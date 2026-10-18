@@ -1,10 +1,10 @@
-//! Cell-exact visual digest matrix for the Jackin preview shell.
-//!
-//! Every deterministic scenario renders one paused fixture frame driven by
-//! the real `App` on a `TestBackend`, and the whole buffer (symbol, fg, bg,
-//! modifier of every cell) is folded into one digest per matrix cell. The
-//! matrix is stable across machines and can only change with an authored
-//! render change; regenerate only with `BLESS=1` after inspecting the diff.
+#![doc = r" Cell-exact visual digest matrix for the Jackin preview shell."]
+#![doc = r""]
+#![doc = r" Every deterministic scenario renders one paused fixture frame driven by"]
+#![doc = r" the real `App` on a `TestBackend`, and the whole buffer (symbol, fg, bg,"]
+#![doc = r" modifier of every cell) is folded into one digest per matrix cell. The"]
+#![doc = r" matrix is stable across machines and can only change with an authored"]
+#![doc = r" render change; regenerate only with `BLESS=1` after inspecting the diff."]
 
 use jackin_preview_app::{App, Motion, Scenario};
 use termrock::{ColorLevel, Theme};

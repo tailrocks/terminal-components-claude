@@ -1,4 +1,4 @@
-//! `SelectField` — a [`Select`] bound to its items as a [`FieldControl`].
+#![doc = r" `SelectField` — a [`Select`] bound to its items as a [`FieldControl`]."]
 
 use core::fmt;
 
@@ -12,11 +12,11 @@ use termrock_collections::collection::KeyFn;
 use termrock_runtime::field_control::FieldControl;
 use termrock_runtime::rowui::RowFn;
 
-/// A `Field` control over a fully-built [`Select`] and its items.
-///
-/// `Select::draw` needs the option slice every frame, so a bare `Select`
-/// cannot implement [`FieldControl`] on its own; this adapter carries both
-/// halves. The caller builds the `Select` first, then binds it to the items.
+#[doc = r" A `Field` control over a fully-built [`Select`] and its items."]
+#[doc = r""]
+#[doc = r" `Select::draw` needs the option slice every frame, so a bare `Select`"]
+#[doc = r" cannot implement [`FieldControl`] on its own; this adapter carries both"]
+#[doc = r" halves. The caller builds the `Select` first, then binds it to the items."]
 pub struct SelectField<'a, T, K, R> {
     select: Select<'a, T, K, R>,
     items: &'a [T],
@@ -32,7 +32,7 @@ impl<T, K, R> fmt::Debug for SelectField<'_, T, K, R> {
 }
 
 impl<'a, T, K, R> SelectField<'a, T, K, R> {
-    /// Bind a fully-built `Select` to the items it draws.
+    #[doc = r" Bind a fully-built `Select` to the items it draws."]
     pub const fn new(select: Select<'a, T, K, R>, items: &'a [T]) -> Self {
         SelectField { select, items }
     }

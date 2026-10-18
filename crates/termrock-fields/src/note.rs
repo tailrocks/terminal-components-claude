@@ -1,7 +1,7 @@
-//! `Note` — a draw-only wrapped help note (`docs/components/note.md`).
-//!
-//! Multi-line muted text under a control, where [`Field`](crate::field::Field)'s
-//! single truncated help row cannot carry the copy.
+#![doc = r" `Note` — a draw-only wrapped help note (`docs/components/note.md`)."]
+#![doc = r""]
+#![doc = r" Multi-line muted text under a control, where [`Field`](crate::field::Field)'s"]
+#![doc = r" single truncated help row cannot carry the copy."]
 
 use core::fmt;
 
@@ -15,59 +15,59 @@ use crate::text::{width, wrap, wrapped_rows};
 use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
-/// Wrapped muted text describing the control above it.
-///
-/// ## Construction
-/// `Note::new(id, text)`.
-///
-/// ## Ownership
-/// Stateless and draw-only: the caller owns the text. The chrome registers
-/// `Decorative` regions under `id` (the `Field` precedent), so a note may
-/// share its control's id.
-///
-/// ## Configuration
-/// `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::FIELD`, `DEFAULT` only.
-///
-/// ## States
-/// Wears no state; the text resolves the `FIELD` `HELP` tone.
-///
-/// ## Actions
-/// None; `Note` has no `update` phase.
-///
-/// ## Focus
-/// Never a focus stop; registers no ring entry.
-///
-/// ## Keyboard
-/// None.
-///
-/// ## Mouse
-/// None; the chrome is `Decorative`.
-///
-/// ## Layout
-/// `measure` is the unwrapped width by the wrapped row count. `draw` fills
-/// `area` with `CONTAINER`, then paints the wrapped lines left-aligned at
-/// `area.x`, at most one per row of `area`; a degenerate rect paints
-/// nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the fill), `HELP` (the text).
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach both parts.
-/// `.slot(Part::CONTAINER, …)` replaces the whole surface.
-///
-/// ## Identity
-/// One `Id` per instance, used to attribute style resolution and overrides;
-/// no items.
-///
-/// ## Testing
-/// `note::tests::note_wrap_and_clip`.
-///
-/// ## Invariants
-/// Never writes outside `area`; never registers a focus stop or a control.
+#[doc = r" Wrapped muted text describing the control above it."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `Note::new(id, text)`."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" Stateless and draw-only: the caller owns the text. The chrome registers"]
+#[doc = r" `Decorative` regions under `id` (the `Field` precedent), so a note may"]
+#[doc = r" share its control's id."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.patch`, `.patch_part`, `.slot`."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::FIELD`, `DEFAULT` only."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" Wears no state; the text resolves the `FIELD` `HELP` tone."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" None; `Note` has no `update` phase."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" Never a focus stop; registers no ring entry."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" None."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" None; the chrome is `Decorative`."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" `measure` is the unwrapped width by the wrapped row count. `draw` fills"]
+#[doc = r" `area` with `CONTAINER`, then paints the wrapped lines left-aligned at"]
+#[doc = r" `area.x`, at most one per row of `area`; a degenerate rect paints"]
+#[doc = r" nothing (R5)."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `CONTAINER` (the fill), `HELP` (the text)."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch` and `.patch_part` reach both parts."]
+#[doc = r" `.slot(Part::CONTAINER, …)` replaces the whole surface."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" One `Id` per instance, used to attribute style resolution and overrides;"]
+#[doc = r" no items."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `note::tests::note_wrap_and_clip`."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" Never writes outside `area`; never registers a focus stop or a control."]
 pub struct Note<'a> {
     id: Id,
     text: &'a str,
@@ -85,10 +85,10 @@ impl fmt::Debug for Note<'_> {
 }
 
 impl<'a> Note<'a> {
-    /// The parts this component styles.
+    #[doc = r" The parts this component styles."]
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::HELP];
 
-    /// A note for `text`.
+    #[doc = r" A note for `text`."]
     pub const fn new(id: Id, text: &'a str) -> Self {
         Note {
             id,
@@ -97,39 +97,38 @@ impl<'a> Note<'a> {
         }
     }
 
-    /// The id.
+    #[doc = r" The id."]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// An instance patch over every part (precedence 6).
+    #[doc = r" An instance patch over every part (precedence 6)."]
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part patches.
+    #[doc = r" Per-part patches."]
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace the whole surface.
+    #[doc = r" Replace the whole surface."]
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// The draw phase; returns the rows the note occupies.
+    #[doc = r" The draw phase; returns the rows the note occupies."]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         if area.is_empty() {
             return area;
         }
-        // runtime: the owner's frame state; derived: none — a note wears no
-        // state of its own
+
         let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         let ov = self.ov;
         if let Some(f) = ov.slot_for(Part::CONTAINER) {
@@ -183,7 +182,7 @@ impl<'a> Note<'a> {
         }
     }
 
-    /// The natural size: the unwrapped width by the wrapped row count.
+    #[doc = r" The natural size: the unwrapped width by the wrapped row count."]
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let w = width(self.text);
         Size {
@@ -229,7 +228,6 @@ mod tests {
 
     #[test]
     fn note_wrap_and_clip() {
-        // wraps to the area width, left-aligned at area.x
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             let used = Note::new(
@@ -257,7 +255,6 @@ mod tests {
             assert_eq!(cell.fg, MUTED, "muted tone at ({x},{y})");
         }
 
-        // takes at most the area height: the second line is dropped at h=1
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             let used = Note::new(
@@ -275,7 +272,6 @@ mod tests {
         );
         assert_eq!(row_text(&buf, 6, 4, 26).trim(), "", "no spill below");
 
-        // degenerate areas paint nothing
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             let used = Note::new(NOTE, "Writes run without asking.").draw(ui, Rect::ZERO);
@@ -283,7 +279,6 @@ mod tests {
         })
         .commit_presented();
 
-        // measure states the wrapped rows without drawing
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             let note = Note::new(

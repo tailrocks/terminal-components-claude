@@ -1,10 +1,9 @@
-//! `TablePro`'s application-owned data adapter.
-//!
-//! The generic grid owns navigation and edit lifecycle. This module owns the
-//! database-shaped rows, stable row keys, type-aware parsing, sorting, and
-//! SQL preview generation. The split is deliberate: the library never knows
-//! about databases, while the app never reaches into runtime internals.
-
+#![doc = r" `TablePro`'s application-owned data adapter."]
+#![doc = r""]
+#![doc = r" The generic grid owns navigation and edit lifecycle. This module owns the"]
+#![doc = r" database-shaped rows, stable row keys, type-aware parsing, sorting, and"]
+#![doc = r" SQL preview generation. The split is deliberate: the library never knows"]
+#![doc = r" about databases, while the app never reaches into runtime internals."]
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -18,7 +17,7 @@ use termrock::{
 use tablepro_demo::db::{ColType, Table, Value};
 use tablepro_sql::sql;
 
-/// One row owns its identity, baseline and lifecycle through every transition.
+#[doc = r" One row owns its identity, baseline and lifecycle through every transition."]
 #[derive(Clone, PartialEq)]
 struct PendingRow {
     key: ItemKey,
@@ -40,16 +39,16 @@ impl core::fmt::Debug for PendingRow {
     }
 }
 
-/// Application-owned pending edits over a rectangular result set.
+#[doc = r" Application-owned pending edits over a rectangular result set."]
 #[derive(Debug, Clone, PartialEq)]
 pub struct PendingEdits {
     rows: Vec<PendingRow>,
-    // None means exhausted. Undo never rolls this allocator backward.
+
     next_key: Option<u64>,
 }
 
 impl PendingEdits {
-    /// Start tracking `rows` without changing them.
+    #[doc = r" Start tracking `rows` without changing them."]
     pub fn new(rows: Vec<Vec<Value>>) -> Self {
         let next_key = u64::try_from(rows.len())
             .ok()
@@ -70,12 +69,12 @@ impl PendingEdits {
         }
     }
 
-    /// Number of rows currently held by the result.
+    #[doc = r" Number of rows currently held by the result."]
     pub fn row_count(&self) -> usize {
         self.rows.len()
     }
 
-    /// Read one current cell.
+    #[doc = r" Read one current cell."]
     pub fn value(&self, row: usize, col: usize) -> Option<&Value> {
         self.rows.get(row)?.current.get(col)
     }
@@ -85,7 +84,7 @@ impl PendingEdits {
         record.original.as_ref().unwrap_or(&record.current).get(col)
     }
 
-    /// Set one cell. Returns whether the value changed.
+    #[doc = r" Set one cell. Returns whether the value changed."]
     pub fn set(&mut self, row: usize, col: usize, value: Value) -> bool {
         let Some(record) = self.rows.get_mut(row) else {
             return false;
@@ -105,7 +104,7 @@ impl PendingEdits {
         true
     }
 
-    /// Add a NULL row, refusing without mutation if stable keys are exhausted.
+    #[doc = r" Add a NULL row, refusing without mutation if stable keys are exhausted."]
     pub fn insert_row(&mut self, columns: usize) -> Option<usize> {
         self.insert_values(vec![Value::Null; columns])
     }
@@ -124,7 +123,7 @@ impl PendingEdits {
         Some(row)
     }
 
-    /// Mark an existing row deleted, or remove a cancelled insertion.
+    #[doc = r" Mark an existing row deleted, or remove a cancelled insertion."]
     pub fn delete_row(&mut self, row: usize) -> bool {
         let Some(record) = self.rows.get_mut(row) else {
             return false;
@@ -157,17 +156,17 @@ impl PendingEdits {
         true
     }
 
-    /// Whether the row was inserted by the user.
+    #[doc = r" Whether the row was inserted by the user."]
     pub fn is_inserted(&self, row: usize) -> bool {
         self.rows.get(row).is_some_and(|record| record.inserted)
     }
 
-    /// Whether the row was marked for deletion.
+    #[doc = r" Whether the row was marked for deletion."]
     pub fn is_deleted(&self, row: usize) -> bool {
         self.rows.get(row).is_some_and(|record| record.deleted)
     }
 
-    /// Whether one cell differs from its original value.
+    #[doc = r" Whether one cell differs from its original value."]
     pub fn is_dirty(&self, row: usize, col: usize) -> bool {
         if self.is_inserted(row) {
             return self
@@ -179,14 +178,14 @@ impl PendingEdits {
             .is_some_and(|(current, original)| current != original)
     }
 
-    /// Whether any cell or row lifecycle operation is pending.
+    #[doc = r" Whether any cell or row lifecycle operation is pending."]
     pub fn is_dirty_row(&self, row: usize) -> bool {
         self.is_inserted(row)
             || self.is_deleted(row)
             || (0..self.current_row_width(row)).any(|col| self.is_dirty(row, col))
     }
 
-    /// Number of changed cells, excluding row lifecycle markers.
+    #[doc = r" Number of changed cells, excluding row lifecycle markers."]
     pub fn dirty_cell_count(&self) -> usize {
         (0..self.row_count())
             .map(|row| {
@@ -197,14 +196,14 @@ impl PendingEdits {
             .sum()
     }
 
-    /// Row indexes with pending cell or row changes.
+    #[doc = r" Row indexes with pending cell or row changes."]
     pub fn dirty_rows(&self) -> Vec<usize> {
         (0..self.row_count())
             .filter(|&row| self.is_dirty_row(row))
             .collect()
     }
 
-    /// Discard pending edits and restore the loaded clean rows.
+    #[doc = r" Discard pending edits and restore the loaded clean rows."]
     pub fn clear(&mut self) {
         self.rows.retain(|record| !record.inserted);
         for record in &mut self.rows {
@@ -215,7 +214,7 @@ impl PendingEdits {
         }
     }
 
-    /// Reorder whole records; invalid permutations leave the result unchanged.
+    #[doc = r" Reorder whole records; invalid permutations leave the result unchanged."]
     pub fn reorder(&mut self, order: &[usize]) {
         let mut seen = vec![false; self.rows.len()];
         if order.len() != self.rows.len()
@@ -239,7 +238,7 @@ impl PendingEdits {
     }
 }
 
-/// Quote a database value for the deterministic SQL preview.
+#[doc = r" Quote a database value for the deterministic SQL preview."]
 pub fn sql_literal(value: &Value) -> String {
     match value {
         Value::Null => "NULL".to_owned(),
@@ -252,7 +251,7 @@ pub fn sql_literal(value: &Value) -> String {
     }
 }
 
-/// Build the statements `TablePro` would send for pending result edits.
+#[doc = r" Build the statements `TablePro` would send for pending result edits."]
 pub fn preview_sql(
     table: &Table,
     columns: &[(String, ColType)],
@@ -291,8 +290,6 @@ pub fn preview_sql(
     let dirty_rows = pending.dirty_rows();
     let mut out = Vec::new();
 
-    // Keep the save order deterministic and compatible with TablePro's old
-    // commit queue: updates, then inserts, then deletes.
     for &row in &dirty_rows {
         if pending.is_inserted(row) || pending.is_deleted(row) {
             continue;
@@ -358,7 +355,7 @@ impl PendingEdits {
     }
 }
 
-/// A database result adapted to the generic keyed grid.
+#[doc = r" A database result adapted to the generic keyed grid."]
 #[derive(Clone, PartialEq)]
 pub struct ResultGrid {
     types: Vec<ColType>,
@@ -368,8 +365,7 @@ pub struct ResultGrid {
     editable: bool,
     source: Option<String>,
     read_only_reason: Option<String>,
-    // Text and JSON cells borrow their already-owned value at read time;
-    // only scalar values that need formatting allocate a cached string.
+
     display: Vec<Option<String>>,
     undo: Vec<PendingEdits>,
 }
@@ -391,7 +387,7 @@ impl core::fmt::Debug for ResultGrid {
 }
 
 impl ResultGrid {
-    /// An empty, read-only result adapter.
+    #[doc = r" An empty, read-only result adapter."]
     pub fn empty() -> Self {
         Self::from_result(&sql::ResultSet {
             columns: Vec::new(),
@@ -403,7 +399,7 @@ impl ResultGrid {
         })
     }
 
-    /// Adapt one SQL result without exposing database types to `termrock`.
+    #[doc = r" Adapt one SQL result without exposing database types to `termrock`."]
     pub fn from_result(result: &sql::ResultSet) -> Self {
         let pending = PendingEdits::new(result.rows.clone());
         let read_only_reason = (!result.editable)
@@ -423,33 +419,33 @@ impl ResultGrid {
         grid
     }
 
-    /// Number of loaded rows.
+    #[doc = r" Number of loaded rows."]
     pub fn row_count(&self) -> usize {
         self.pending.row_count()
     }
 
-    /// Total rows represented by the query, including rows beyond the cap.
+    #[doc = r" Total rows represented by the query, including rows beyond the cap."]
     pub fn total(&self) -> usize {
         self.total.max(self.row_count())
     }
 
-    /// Whether cells may be edited through `Grid::update_editable`.
+    #[doc = r" Whether cells may be edited through `Grid::update_editable`."]
     pub fn is_editable(&self) -> bool {
         self.editable
     }
 
-    /// The source relation, when the result came from one table.
+    #[doc = r" The source relation, when the result came from one table."]
     pub fn source(&self) -> Option<&str> {
         self.source.as_deref()
     }
 
-    /// Current pending-edit state.
+    #[doc = r" Current pending-edit state."]
     pub fn pending(&self) -> &PendingEdits {
         &self.pending
     }
 
-    /// Number of pending row updates, inserts and deletes.
-    /// Multiple changed cells in one existing row form one update.
+    #[doc = r" Number of pending row updates, inserts and deletes."]
+    #[doc = r" Multiple changed cells in one existing row form one update."]
     pub fn pending_total(&self) -> usize {
         self.pending
             .rows
@@ -467,7 +463,7 @@ impl ResultGrid {
             .sum()
     }
 
-    /// Insert a row with typed NULL/default values.
+    #[doc = r" Insert a row with typed NULL/default values."]
     pub fn insert_row(&mut self) -> Option<usize> {
         if !self.editable {
             return None;
@@ -479,7 +475,7 @@ impl ResultGrid {
         Some(row)
     }
 
-    /// Insert schema-derived DEFAULT/NULL values as one undoable operation.
+    #[doc = r" Insert schema-derived DEFAULT/NULL values as one undoable operation."]
     pub fn insert_row_with_defaults(&mut self, defaults: &[bool]) -> Option<usize> {
         if !self.editable || defaults.len() != self.types.len() {
             return None;
@@ -501,7 +497,7 @@ impl ResultGrid {
         Some(row)
     }
 
-    /// Toggle a row deletion; marking deletion replaces existing cell updates.
+    #[doc = r" Toggle a row deletion; marking deletion replaces existing cell updates."]
     pub fn toggle_delete(&mut self, row: usize) -> bool {
         if !self.editable {
             return false;
@@ -515,7 +511,7 @@ impl ResultGrid {
         true
     }
 
-    /// Mark a row deleted, preserving it for undo/save preview.
+    #[doc = r" Mark a row deleted, preserving it for undo/save preview."]
     pub fn delete_row(&mut self, row: usize) -> bool {
         if !self.editable {
             return false;
@@ -529,14 +525,14 @@ impl ResultGrid {
         changed
     }
 
-    /// Restore all cells and row lifecycle markers to the clean baseline.
+    #[doc = r" Restore all cells and row lifecycle markers to the clean baseline."]
     pub fn discard(&mut self) {
         self.undo.push(self.pending.clone());
         self.pending.clear();
         self.restore_sort();
     }
 
-    /// Restore the previous pending state, if one exists.
+    #[doc = r" Restore the previous pending state, if one exists."]
     pub fn undo(&mut self) -> bool {
         let Some(previous) = self.undo.pop() else {
             return false;
@@ -552,7 +548,7 @@ impl ResultGrid {
         true
     }
 
-    /// Expose a deterministic position label for app status bars.
+    #[doc = r" Expose a deterministic position label for app status bars."]
     pub fn position_label(&self, first_row: usize, visible_rows: usize) -> String {
         if self.row_count() == 0 {
             return "0 rows".to_owned();
@@ -564,12 +560,12 @@ impl ResultGrid {
         format!("rows {first}–{last} of {}", self.total())
     }
 
-    /// Number of changed cells.
+    #[doc = r" Number of changed cells."]
     pub fn dirty_cell_count(&self) -> usize {
         self.pending.dirty_cell_count()
     }
 
-    /// Sort by a grid column key, retaining keyed row identity and edits.
+    #[doc = r" Sort by a grid column key, retaining keyed row identity and edits."]
     pub fn sort(&mut self, key: ColumnKey, direction: SortDir) {
         let Some(column) = usize::from(key.raw()).checked_sub(1) else {
             return;
@@ -885,8 +881,6 @@ mod tests {
         ]
     }
 
-    // Restores 794b095 model::tests::preview_sql_orders_updates_inserts_deletes:
-    // reverting one update preserves the independent deletion and its SQL.
     #[test]
     fn preview_sql_orders_updates_inserts_deletes() -> Result<(), String> {
         let catalog = tablepro_demo::db::Catalog::acme_prod();

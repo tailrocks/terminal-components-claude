@@ -1,4 +1,4 @@
-//! Acknowledgement Enter arms and moves to actions without executing.
+#![doc = r" Acknowledgement Enter arms and moves to actions without executing."]
 use ratatui_core::layout::Rect;
 
 use termrock_core::action::{Action, ActionKey};

@@ -1,4 +1,4 @@
-//! Command-line entry point for the deterministic Jackin Preview shell.
+#![doc = r" Command-line entry point for the deterministic Jackin Preview shell."]
 use jackin_preview_app::cli;
 
 use std::io::Write as _;

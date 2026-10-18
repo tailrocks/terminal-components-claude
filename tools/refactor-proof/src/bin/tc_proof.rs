@@ -1,5 +1,4 @@
-//! tc-proof comparator entrypoint.
-
+#![doc = r" tc-proof comparator entrypoint."]
 #![allow(
     missing_docs,
     unreachable_pub,

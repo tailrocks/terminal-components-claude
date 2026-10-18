@@ -1,4 +1,4 @@
-//! Modal confirmation and prompt flows.
+#![doc = r" Modal confirmation and prompt flows."]
 
 use termrock::{
     ActionKey, Button, Constraints, Cx, Dialog, DialogAction, DialogState, Id, Panel, Rect,
@@ -52,7 +52,7 @@ enum OpenDialog {
     Prompt,
 }
 
-/// Dialog launchers and their durable prompt states.
+#[doc = r" Dialog launchers and their durable prompt states."]
 #[derive(Debug)]
 pub struct DialogsPage {
     open: OpenDialog,
@@ -138,9 +138,6 @@ impl Page for DialogsPage {
         }
         response |= delete_button.erase();
 
-        // Update layers unconditionally. A dismissed layer is removed by the
-        // runtime before the app update, and Dialog drains that dismissal
-        // action from its durable state on the following frame.
         let action = Self::confirm().update(cx, &mut self.confirm_state);
         if self.open == OpenDialog::Confirm
             && let Some(action) = action.action_ref()
@@ -179,7 +176,7 @@ impl Page for DialogsPage {
             }
         }
         response |= action.erase();
-        // Both phases build the same launcher and result cards (§13).
+
         let _ = open_panel();
         let _ = results_panel();
         response.into()

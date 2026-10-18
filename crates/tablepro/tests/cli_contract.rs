@@ -1,4 +1,4 @@
-//! Execute help/error paths with pipes so terminal setup cannot hide CLI failures.
+#![doc = r" Execute help/error paths with pipes so terminal setup cannot hide CLI failures."]
 
 use std::io;
 use std::process::{Command, Output, Stdio};

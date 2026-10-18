@@ -1,52 +1,52 @@
-//! Authored capability output for semantic tokens, separate from RGB conversion.
+#![doc = r" Authored capability output for semantic tokens, separate from RGB conversion."]
 use super::{ColorLevel, ColorTokens, MeterTokens, SyntaxTokens};
 use ratatui_core::style::Color;
 
-/// Semantic token palettes authored for particular terminal capabilities.
-///
-/// `source` is the `TrueColor` token set these tables describe. Each target
-/// field is guarded against the same field's actual prior projected value (or
-/// its declared initial capability value before the first projection):
-/// direct token mutations and builder-derived replacements therefore retain
-/// generic RGB conversion. Equal colors in different roles never identify or
-/// borrow each other's palette entries.
-/// Conversions through a level with no authored table retain their exact
-/// projected values, so later narrowing cannot mistake quantization for a
-/// caller's token mutation.
-///
-/// ```
-/// use termrock_theme::{CapabilityPalettes, ColorLevel, Theme};
-/// use ratatui_core::style::Color;
-/// let base = Theme::from_tokens(Theme::junie().color);
-/// let mut mono = base.downgrade(ColorLevel::Mono).color;
-/// mono.accent = Color::Gray;
-/// let theme = base.clone().builder()
-///     .capability_palettes(CapabilityPalettes::new(base.color).with(ColorLevel::Mono, mono))
-///     .build();
-/// assert_eq!(theme.downgrade(ColorLevel::Mono).color.accent, Color::Gray);
-/// // Direct construction explicitly chooses generic conversion.
-/// let generic = Theme { color: base.color, design: base.design,
-///     recipes: base.recipes, capability: base.capability, capability_palettes: None };
-/// assert!(generic.capability_palettes.is_none());
-/// ```
+#[doc = r" Semantic token palettes authored for particular terminal capabilities."]
+#[doc = r""]
+#[doc = r" `source` is the `TrueColor` token set these tables describe. Each target"]
+#[doc = r" field is guarded against the same field's actual prior projected value (or"]
+#[doc = r" its declared initial capability value before the first projection):"]
+#[doc = r" direct token mutations and builder-derived replacements therefore retain"]
+#[doc = r" generic RGB conversion. Equal colors in different roles never identify or"]
+#[doc = r" borrow each other's palette entries."]
+#[doc = r" Conversions through a level with no authored table retain their exact"]
+#[doc = r" projected values, so later narrowing cannot mistake quantization for a"]
+#[doc = r" caller's token mutation."]
+#[doc = r""]
+#[doc = r" ```"]
+#[doc = r" use termrock_theme::{CapabilityPalettes, ColorLevel, Theme};"]
+#[doc = r" use ratatui_core::style::Color;"]
+#[doc = r" let base = Theme::from_tokens(Theme::junie().color);"]
+#[doc = r" let mut mono = base.downgrade(ColorLevel::Mono).color;"]
+#[doc = r" mono.accent = Color::Gray;"]
+#[doc = r" let theme = base.clone().builder()"]
+#[doc = r"     .capability_palettes(CapabilityPalettes::new(base.color).with(ColorLevel::Mono, mono))"]
+#[doc = r"     .build();"]
+#[doc = r" assert_eq!(theme.downgrade(ColorLevel::Mono).color.accent, Color::Gray);"]
+#[doc = r" // Direct construction explicitly chooses generic conversion."]
+#[doc = r" let generic = Theme { color: base.color, design: base.design,"]
+#[doc = r"     recipes: base.recipes, capability: base.capability, capability_palettes: None };"]
+#[doc = r" assert!(generic.capability_palettes.is_none());"]
+#[doc = r" ```"]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CapabilityPalettes {
-    /// `TrueColor` source of the authored token family.
+    #[doc = r" `TrueColor` source of the authored token family."]
     pub source: ColorTokens,
-    /// Authored xterm-256 semantic output.
+    #[doc = r" Authored xterm-256 semantic output."]
     pub ansi256: Option<ColorTokens>,
-    /// Authored ANSI16 semantic output.
+    #[doc = r" Authored ANSI16 semantic output."]
     pub ansi16: Option<ColorTokens>,
-    /// Authored monochrome semantic output.
+    #[doc = r" Authored monochrome semantic output."]
     pub mono: Option<ColorTokens>,
-    /// Once detached, a token cannot accidentally reattach after quantization.
+    #[doc = r" Once detached, a token cannot accidentally reattach after quantization."]
     pub(crate) eligible: Vec<bool>,
-    /// Exact prior projection, including conversions through an unauthored level.
+    #[doc = r" Exact prior projection, including conversions through an unauthored level."]
     pub(crate) projected: Option<(ColorLevel, ColorTokens)>,
 }
 
 impl CapabilityPalettes {
-    /// A token family with generic conversion at every limited capability.
+    #[doc = r" A token family with generic conversion at every limited capability."]
     pub fn new(source: ColorTokens) -> Self {
         let count = source.semantic_colors().len();
         Self {
@@ -59,7 +59,7 @@ impl CapabilityPalettes {
         }
     }
 
-    /// Declare exact semantic output at `level`.
+    #[doc = r" Declare exact semantic output at `level`."]
     #[must_use]
     pub fn with(mut self, level: ColorLevel, tokens: ColorTokens) -> Self {
         match level {
@@ -87,7 +87,6 @@ pub(crate) fn junie() -> CapabilityPalettes {
         .with(ColorLevel::Mono, junie_mono())
 }
 
-// Authored from immutable Holla 794b095 src/theme.rs capability output.
 const fn junie_256() -> ColorTokens {
     ColorTokens {
         surfaces: [
@@ -135,8 +134,7 @@ const fn junie_256() -> ColorTokens {
         disabled_fg: Color::Indexed(238),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
-        // restrained syntax palette: structure through weight and the text
-        // ladder, not hue
+
         syntax: SyntaxTokens {
             keyword: Color::Indexed(231),
             ident: Color::Indexed(231),
@@ -225,8 +223,7 @@ const fn junie_mono() -> ColorTokens {
         disabled_fg: Color::DarkGray,
         disabled_bg: Color::Black,
         read_only_fg: Color::Gray,
-        // restrained syntax palette: structure through weight and the text
-        // ladder, not hue
+
         syntax: SyntaxTokens {
             keyword: Color::White,
             ident: Color::White,

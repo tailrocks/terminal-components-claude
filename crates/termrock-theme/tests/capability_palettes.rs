@@ -1,8 +1,7 @@
-//! Authored semantic output preserves Junie while generic RGB stays generic.
+#![doc = r" Authored semantic output preserves Junie while generic RGB stays generic."]
 use ratatui_core::style::Color;
 use termrock_theme::{CapabilityPalettes, ColorLevel, Theme, downgrade_color};
 
-// Independent immutable Holla 794b095 src/theme.rs:587-600 formula.
 #[expect(
     clippy::arithmetic_side_effects,
     reason = "exact pinned reference formula over bounded u8 channels"
@@ -153,8 +152,7 @@ fn mutations_at_each_intermediate_level_never_reattach_or_detach_other_slots() {
 fn direct_token_mutation_and_quantization_collision_never_reattach() {
     let original = Theme::junie();
     let mut custom = original.clone();
-    // This RGB is exactly palette78. It differs from the authored source,
-    // yet quantizes to the same authored256 output; provenance must survive.
+
     let changed = Color::Rgb(95, 215, 135);
     custom.color.accent = changed;
     let narrowed = custom.for_level(ColorLevel::Ansi256);
@@ -247,7 +245,7 @@ fn explicit_palette_contents_fingerprint_and_missing_level_fallback() {
         authored.for_level(ColorLevel::Ansi256).color.accent,
         Color::Indexed(99)
     );
-    // Identical source RGB in these two roles cannot alias their authored output.
+
     assert_eq!(
         authored.for_level(ColorLevel::Ansi256).color.focus,
         Color::Indexed(100)

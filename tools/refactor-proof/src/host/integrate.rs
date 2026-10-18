@@ -1,4 +1,4 @@
-//! `integrate` performs CAS ref updates and appends acceptance ledger records.
+#![doc = r" `integrate` performs CAS ref updates and appends acceptance ledger records."]
 
 use std::fs;
 use std::path::Path;

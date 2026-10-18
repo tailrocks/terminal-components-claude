@@ -1,7 +1,7 @@
-//! Rendering and digest tests (`COMPONENT_ARCHITECTURE.md` §16.3) for the
-//! foundations: layer compositing, the backdrop, and the `RowUi` painter's
-//! differential against the legacy `fit`. Component digests
-//! (`render::components::*`) are added by the Slice 4 packages.
+#![doc = r" Rendering and digest tests (`COMPONENT_ARCHITECTURE.md` §16.3) for the"]
+#![doc = r" foundations: layer compositing, the backdrop, and the `RowUi` painter's"]
+#![doc = r" differential against the legacy `fit`. Component digests"]
+#![doc = r" (`render::components::*`) are added by the Slice 4 packages."]
 #![cfg_attr(
     test,
     allow(
@@ -33,7 +33,7 @@ const DLG_OK: Id = Id::root("render.dlg.ok");
 const PICK: Id = Id::root("render.pick");
 const PICK_ROW: Id = Id::root("render.pick.row");
 
-/// A page with a modal and a popover; layers are drawn in reverse call order.
+#[doc = r" A page with a modal and a popover; layers are drawn in reverse call order."]
 struct Layered {
     open_dlg: bool,
     open_pick: bool,
@@ -42,7 +42,6 @@ struct Layered {
 
 impl App for Layered {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        // one-shot requests: opened once, never re-opened after a dismissal
         if self.open_dlg && !cx.is_open(DLG) {
             self.open_dlg = false;
             cx.open_layer(DLG, LayerSpec::modal(DLG).size(LayerSize::Fixed(20, 5)));
@@ -137,7 +136,7 @@ fn layered(reverse: bool) -> Harness<Layered> {
         40,
         12,
     );
-    // two updates: the modal opens first, the popover second
+
     let _ = h.tick();
     let _ = h.tick();
     h
@@ -173,7 +172,7 @@ mod overlay {
         let b = layered(true);
         assert_eq!(a.text(), b.text(), "call order must not change z-order");
         assert_eq!(a.snapshot().digest(), b.snapshot().digest());
-        // the popover (opened second) is on top of the dialog where they overlap
+
         assert!(a.find("PICK").is_some());
         assert_eq!(a.top_layer().index(), 2);
     }
@@ -220,17 +219,17 @@ mod text {
     use super::*;
     use unicode_segmentation::UnicodeSegmentation;
 
-    /// The legacy `ui::text::{truncate, fit}` (`src/ui/text.rs:10-84`): a
-    /// **grapheme** walk with the ellipsis reserved out of the budget, and
-    /// the padding that makes `fit` a fixed-width field.
-    ///
-    /// The one substitution is the width function. The legacy called
-    /// `UnicodeWidthStr::width` on whole strings, which disagrees with the
-    /// cells a terminal actually consumes for a few sequences (`"ｶﾞ"`:
-    /// `unicode_width` says 1, `Buffer::set_stringn` consumes 2).
-    /// `termrock::width` is pinned to `set_stringn` by
-    /// `text::width_matches_ratatui_cell_width`, so it is the honest
-    /// reference for a cell comparison; the walk itself is unchanged.
+    #[doc = r" The legacy `ui::text::{truncate, fit}` (`src/ui/text.rs:10-84`): a"]
+    #[doc = r" **grapheme** walk with the ellipsis reserved out of the budget, and"]
+    #[doc = r" the padding that makes `fit` a fixed-width field."]
+    #[doc = r""]
+    #[doc = r" The one substitution is the width function. The legacy called"]
+    #[doc = r" `UnicodeWidthStr::width` on whole strings, which disagrees with the"]
+    #[doc = r#" cells a terminal actually consumes for a few sequences (`"ｶﾞ"`:"#]
+    #[doc = r" `unicode_width` says 1, `Buffer::set_stringn` consumes 2)."]
+    #[doc = r" `termrock::width` is pinned to `set_stringn` by"]
+    #[doc = r" `text::width_matches_ratatui_cell_width`, so it is the honest"]
+    #[doc = r" reference for a cell comparison; the walk itself is unchanged."]
     fn legacy_width(s: &str) -> usize {
         usize::from(termrock::width(s))
     }
@@ -262,17 +261,17 @@ mod text {
         format!("{t}{}", " ".repeat(pad))
     }
 
-    /// A grapheme of zero width occupies no cell, so `Buffer::set_stringn`
-    /// drops it and it cannot appear in a cell comparison. Nothing else is
-    /// removed: combining marks live inside a cluster of non-zero width and
-    /// survive.
+    #[doc = r" A grapheme of zero width occupies no cell, so `Buffer::set_stringn`"]
+    #[doc = r" drops it and it cannot appear in a cell comparison. Nothing else is"]
+    #[doc = r" removed: combining marks live inside a cluster of non-zero width and"]
+    #[doc = r" survive."]
     fn cellular(s: &str) -> String {
         s.graphemes(true).filter(|g| legacy_width(g) > 0).collect()
     }
 
-    /// The first `w` columns of row `y`, symbols included — padding is part
-    /// of the comparison (§20.10: "any change to padding or ellipsis
-    /// placement is a regression").
+    #[doc = r" The first `w` columns of row `y`, symbols included — padding is part"]
+    #[doc = r#" of the comparison (§20.10: "any change to padding or ellipsis"#]
+    #[doc = r#" placement is a regression")."#]
     fn painted_columns(buf: &termrock::Buffer, y: u16, w: u16) -> String {
         let mut out = String::new();
         let mut x = 0u16;
@@ -289,9 +288,7 @@ mod text {
     fn row_ui_matches_fit_for_every_fixture() {
         let corpus = fixtures_text::corpus();
         let mut scene = Scene::new("rowui", Theme::junie(), ColorLevel::TrueColor, 60, 1);
-        // control characters cannot round-trip through a terminal cell at all
-        // (ratatui drops them); every other fixture — CJK, ZWJ emoji,
-        // combining marks, RTL, zero-width — is compared in full.
+
         let cellable = |s: &&String| !s.chars().any(char::is_control);
         for s in corpus.iter().filter(cellable) {
             for w in [1u16, 5, 20, 40] {
@@ -324,10 +321,10 @@ mod layer {
     const LAYER: Id = Id::root("render.layer");
     const ROW_OWNER: Id = Id::root("render.layer.row");
 
-    /// BL-3: `CellUi`'s alignment shift used `Ui::raw`, which marks the whole
-    /// clip written — so a layer containing any right-aligned cell composited
-    /// its *unpainted* cells over the page and defeated §3.3 step 12's
-    /// written-cell bitset.
+    #[doc = r" BL-3: `CellUi`'s alignment shift used `Ui::raw`, which marks the whole"]
+    #[doc = r" clip written — so a layer containing any right-aligned cell composited"]
+    #[doc = r" its *unpainted* cells over the page and defeated §3.3 step 12's"]
+    #[doc = r" written-cell bitset."]
     struct SentinelLayer;
 
     impl App for SentinelLayer {
@@ -363,7 +360,6 @@ mod layer {
                 }
             }
             ui.layer(LAYER, |ui, a| {
-                // a row narrower than the layer, with a right-aligned cell
                 let row = Rect::new(a.x, a.y, 6, 1);
                 let mut r = RowUi::new(
                     ui,
@@ -388,7 +384,7 @@ mod layer {
         assert!(h.is_open(LAYER));
         let area = h.layer_area(LAYER).expect("the layer resolved an area");
         assert_eq!((area.width, area.height), (12, 3));
-        // the painted row: six columns of the layer's first row
+
         for x in area.x..area.x + 6 {
             assert_ne!(
                 h.cell(x, area.y).symbol(),
@@ -396,7 +392,7 @@ mod layer {
                 "column {x} of the layer's row must be painted"
             );
         }
-        // everything else inside the layer keeps the page sentinel
+
         for y in area.y..area.bottom() {
             for x in area.x..area.right() {
                 if y == area.y && x < area.x + 6 {
@@ -417,8 +413,8 @@ mod ui {
 
     const SPANNED: Id = Id::root("render.spans");
 
-    /// §16.1: `Ui::paint_spans` and `RowUi::label_spans` must produce the
-    /// same cells, and (BL-4) the span painter allocates nothing per call.
+    #[doc = r" §16.1: `Ui::paint_spans` and `RowUi::label_spans` must produce the"]
+    #[doc = r" same cells, and (BL-4) the span painter allocates nothing per call."]
     #[test]
     fn paint_spans_matches_row_ui_label_spans() {
         use termrock::{Role, Span};
@@ -432,8 +428,6 @@ mod ui {
 
         let mut direct = Scene::new("spans_direct", Theme::junie(), ColorLevel::TrueColor, 30, 1);
         direct.draw(|ui, _| {
-            // the same two steps `RowUi` performs: fill in CONTAINER, then
-            // paint the spans over it in LABEL
             let container = ui
                 .style(
                     Family::LIST,
@@ -475,7 +469,7 @@ mod ui {
             assert_eq!(ca.symbol(), cb.symbol(), "column {x}");
             assert_eq!(ca.fg, cb.fg, "column {x}");
         }
-        // the roled span really is bound to the accent colour
+
         assert_eq!(a.cell((6, 0)).unwrap().fg, Theme::junie().color.accent);
     }
 
@@ -521,11 +515,11 @@ mod theme {
 
     const PANEL: Id = Id::root("render.ascii.panel");
 
-    /// §24 M2: an ASCII theme must draw its **borders** without box-drawing
-    /// glyphs, so a terminal or font without them is still usable. The scan is
-    /// deliberately restricted to `U+2500..=U+257F` (the box-drawing block):
-    /// widening it would fail on the arrows and bullets §11.2 binds
-    /// independently of the border set.
+    #[doc = r" §24 M2: an ASCII theme must draw its **borders** without box-drawing"]
+    #[doc = r" glyphs, so a terminal or font without them is still usable. The scan is"]
+    #[doc = r" deliberately restricted to `U+2500..=U+257F` (the box-drawing block):"]
+    #[doc = r" widening it would fail on the arrows and bullets §11.2 binds"]
+    #[doc = r" independently of the border set."]
     struct Framed;
 
     impl App for Framed {
@@ -569,9 +563,9 @@ mod theme {
             "the ASCII theme painted box-drawing glyphs {found:?}\n{}",
             h.text()
         );
-        // and the control renders: the assertion is not vacuous
+
         assert!(h.find("ascii panel").is_some(), "{}", h.text());
-        // the default theme *does* use them, so the check has teeth
+
         let junie = Harness::new(Framed, Theme::junie(), 24, 8);
         assert!(!box_drawing(&junie.text()).is_empty());
     }

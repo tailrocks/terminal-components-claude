@@ -1,4 +1,4 @@
-//! Keyed tree navigation with stable branch expansion.
+#![doc = r" Keyed tree navigation with stable branch expansion."]
 
 use termrock::{
     Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Role, RowUi,
@@ -78,7 +78,7 @@ fn project_tree()
         .patch_part(TREE_GUTTER)
 }
 
-/// The one project-card constructor (§13), shared by update and draw.
+#[doc = r" The one project-card constructor (§13), shared by update and draw."]
 fn project_panel(meta: &str) -> Panel<'_> {
     Panel::new(PROJECT)
         .kind(PanelKind::Card)
@@ -168,8 +168,8 @@ fn label_for(key: Option<ItemKey>) -> &'static str {
     .unwrap_or("src")
 }
 
-/// Project navigation owns expansion by stable item key. No depth-derived key
-/// can alias a sibling or move focus after a branch changes shape.
+#[doc = r" Project navigation owns expansion by stable item key. No depth-derived key"]
+#[doc = r" can alias a sibling or move focus after a branch changes shape."]
 #[derive(Debug)]
 pub struct TreesPage {
     state: TreeState,
@@ -180,12 +180,7 @@ pub struct TreesPage {
 impl TreesPage {
     pub fn new() -> Self {
         let mut state = TreeState::new();
-        // Match the legacy tree's first-level-open presentation. Descendants
-        // remain closed until the user opens them, so keyboard expansion has
-        // a deterministic, visible state transition.
-        // The legacy widget records every top-level entry as expanded, even
-        // when the entry is a leaf. Keep those stable keys so the historical
-        // folder count and collapse transition remain visible.
+
         for key in [1_u64, 20, 26, 29, 30] {
             state.expand(ItemKey::Num(key));
         }

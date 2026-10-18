@@ -1,8 +1,8 @@
-//! Strict reader for the pinned cargo-nextest list and libtest-json-plus output.
-//!
-//! The caller owns the trusted selection digest. This module never derives the
-//! selected IDs from Node output or from the test list: it verifies a separate,
-//! static selection file against the digest passed on the reader's command line.
+#![doc = r" Strict reader for the pinned cargo-nextest list and libtest-json-plus output."]
+#![doc = r""]
+#![doc = r" The caller owns the trusted selection digest. This module never derives the"]
+#![doc = r" selected IDs from Node output or from the test list: it verifies a separate,"]
+#![doc = r" static selection file against the digest passed on the reader's command line."]
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -30,8 +30,8 @@ const MAX_V2_SELECTED_TESTS: usize = 1024;
 const MAX_V2_TARGETS: usize = 64;
 const MAX_V2_OMITTED_IGNORED_TESTS: u64 = 1024;
 
-/// A request, capture, or protocol error. Errors are deliberately plain text so
-/// the thin CLI can report them without inventing another serialization layer.
+#[doc = r" A request, capture, or protocol error. Errors are deliberately plain text so"]
+#[doc = r" the thin CLI can report them without inventing another serialization layer."]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReaderError(pub String);
 
@@ -150,10 +150,10 @@ struct ProcessBytes {
     termination: Termination,
 }
 
-/// Reads a request, selection file, and the exact raw process capture files.
-///
-/// `trusted_selection_sha256` must come from caller-owned static configuration;
-/// a digest copied only from the request is not a trust anchor.
+#[doc = r" Reads a request, selection file, and the exact raw process capture files."]
+#[doc = r""]
+#[doc = r" `trusted_selection_sha256` must come from caller-owned static configuration;"]
+#[doc = r" a digest copied only from the request is not a trust anchor."]
 pub fn read_files(
     request_path: &Path,
     selection_path: &Path,
@@ -2935,7 +2935,7 @@ mod tests {
                 events.push(json!({"type":"test","event":"started","name":event_name}));
                 events.push(json!({"type":"test","event":"ok","name":event_name,"exec_time":0.01}));
             }
-            // The pinned Nextest 0.9.146 terminal suite record has no test_count.
+
             events.push(json!({
                 "type":"suite",
                 "event":"ok",

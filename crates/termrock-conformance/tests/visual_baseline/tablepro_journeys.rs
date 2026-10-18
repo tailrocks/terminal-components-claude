@@ -1,35 +1,35 @@
-//! TablePro app-journey suite, slice 1 (VB Phase-7g, §15) — impl port.
-//!
-//! Ported verbatim from VB commit `04121e4bfa2aeeda3893e81f6bb9e84a04d34a29`
-//! (`tests/harness/tests/visual_baseline/tablepro_journeys.rs`), adapting
-//! only paths, binary resolution, and harness API:
-//!
-//! - `Session` is the impl [`support::Session`] wrapper (live samples via
-//!   `s.inner.observe_now()`), not `tuiscotti::tui::Session` directly.
-//! - The subject is the `tablepro` binary built from this impl
-//!   worktree's sources, resolved via [`support::try_resolve_bin`]
-//!   (name → executed path + sha256); [`write_provenance`] records path,
-//!   digest, size, mtime, and argv behind each journey.
-//! - `support::drive` (3-arg) becomes [`support::drive_with_timeout`]
-//!   (timeout in ms); single steps use [`support::press_step`].
-//! - The `--help` enumeration shells the resolved binary path (impl
-//!   `TABLEPRO` is a name, not a `CARGO_BIN_EXE_*` absolute path).
-//!
-//! Multi-step PTY journeys assert needle state across steps — they never
-//! gate snapshots, so every case here uses owned (dynamic) names: the
-//! approval-inventory parser in [`crate::support::suite_capture_names`]
-//! only expands the vendored case registry (never suite sources), and
-//! journey names stay out of the committed `snapshots/` inventory.
-//!
-//! Per-test scratch (checkpoints + provenance) lands under this
-//! conformance crate's `target/tuiscotti/journeys/<test>/` (gitignored,
-//! unique per test fn). Checkpoints are text frames (`.txt`);
-//! `provenance.txt` records the binary identity and argv behind each
-//! journey. Typed input is synthetic and in-memory only (simulation data).
-//! TablePro is a deterministic demo database (no drivers, a small
-//! in-memory engine), so journeys never touch a real database: the
-//! connection form is filled but never submitted, and the second session
-//! in journey 2 proves the typed name never persisted anywhere.
+#![doc = r" TablePro app-journey suite, slice 1 (VB Phase-7g, §15) — impl port."]
+#![doc = r""]
+#![doc = r" Ported verbatim from VB commit `04121e4bfa2aeeda3893e81f6bb9e84a04d34a29`"]
+#![doc = r" (`tests/harness/tests/visual_baseline/tablepro_journeys.rs`), adapting"]
+#![doc = r" only paths, binary resolution, and harness API:"]
+#![doc = r""]
+#![doc = r" - `Session` is the impl [`support::Session`] wrapper (live samples via"]
+#![doc = r"   `s.inner.observe_now()`), not `tuiscotti::tui::Session` directly."]
+#![doc = r" - The subject is the `tablepro` binary built from this impl"]
+#![doc = r"   worktree's sources, resolved via [`support::try_resolve_bin`]"]
+#![doc = r"   (name → executed path + sha256); [`write_provenance`] records path,"]
+#![doc = r"   digest, size, mtime, and argv behind each journey."]
+#![doc = r" - `support::drive` (3-arg) becomes [`support::drive_with_timeout`]"]
+#![doc = r"   (timeout in ms); single steps use [`support::press_step`]."]
+#![doc = r" - The `--help` enumeration shells the resolved binary path (impl"]
+#![doc = r"   `TABLEPRO` is a name, not a `CARGO_BIN_EXE_*` absolute path)."]
+#![doc = r""]
+#![doc = r" Multi-step PTY journeys assert needle state across steps — they never"]
+#![doc = r" gate snapshots, so every case here uses owned (dynamic) names: the"]
+#![doc = r" approval-inventory parser in [`crate::support::suite_capture_names`]"]
+#![doc = r" only expands the vendored case registry (never suite sources), and"]
+#![doc = r" journey names stay out of the committed `snapshots/` inventory."]
+#![doc = r""]
+#![doc = r" Per-test scratch (checkpoints + provenance) lands under this"]
+#![doc = r" conformance crate's `target/tuiscotti/journeys/<test>/` (gitignored,"]
+#![doc = r" unique per test fn). Checkpoints are text frames (`.txt`);"]
+#![doc = r" `provenance.txt` records the binary identity and argv behind each"]
+#![doc = r" journey. Typed input is synthetic and in-memory only (simulation data)."]
+#![doc = r" TablePro is a deterministic demo database (no drivers, a small"]
+#![doc = r" in-memory engine), so journeys never touch a real database: the"]
+#![doc = r" connection form is filled but never submitted, and the second session"]
+#![doc = r" in journey 2 proves the typed name never persisted anywhere."]
 
 use std::path::{Path, PathBuf};
 
@@ -37,14 +37,14 @@ use crate::support::Session;
 use crate::support::state_waits as waits;
 use crate::support::{self, Case, Color, TABLEPRO};
 
-/// Boot needle on the connections screen: the Production tree row.
+#[doc = r" Boot needle on the connections screen: the Production tree row."]
 const BOOT_CONN: &str = "Production";
-/// Boot needle once connected: the first query tab.
+#[doc = r" Boot needle once connected: the first query tab."]
 const BOOT_WB: &str = "Query 1";
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
 
-/// Owned-name journey case at the canonical 120x40 truecolor geometry.
+#[doc = r" Owned-name journey case at the canonical 120x40 truecolor geometry."]
 fn journey_case(name: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
         format!("journeys/tablepro/{name}"),
@@ -57,7 +57,7 @@ fn journey_case(name: &str, args: &'static [&'static str], boot: &'static str) -
     )
 }
 
-/// Unique scratch dir for one journey test (created, never shared).
+#[doc = r" Unique scratch dir for one journey test (created, never shared)."]
 fn journey_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -66,15 +66,15 @@ fn journey_dir(test: &str) -> PathBuf {
     dir
 }
 
-/// Record the binary identity behind a journey: resolved absolute path,
-/// sha256 digest, byte size, mtime, and argv. Written to
-/// `provenance.txt`, echoed too.
+#[doc = r" Record the binary identity behind a journey: resolved absolute path,"]
+#[doc = r" sha256 digest, byte size, mtime, and argv. Written to"]
+#[doc = r" `provenance.txt`, echoed too."]
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
 
-/// [`write_provenance`] with an explicit filename, for multi-session
-/// journeys where each session's argv deserves its own record.
+#[doc = r" [`write_provenance`] with an explicit filename, for multi-session"]
+#[doc = r" journeys where each session's argv deserves its own record."]
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
         support::try_resolve_bin(case.bin).unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
@@ -94,7 +94,7 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     eprintln!("journey provenance ({file}): {body}");
 }
 
-/// Save the live screen text as `<name>.txt` in the journey dir.
+#[doc = r" Save the live screen text as `<name>.txt` in the journey dir."]
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -111,12 +111,12 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
 
-/// Slice 1, journey 1: enumerate the connection entry point (the binary's
-/// own `--help` must document `--connect`), then visit the connection
-/// tree — seven downs from the boot cursor reach Production
-/// (`tablepro.rs`: rows 0 Personal … 7 Production), proven by the detail
-/// card following the cursor (Production host appears, Local host
-/// non-vacuously leaves).
+#[doc = r" Slice 1, journey 1: enumerate the connection entry point (the binary's"]
+#[doc = r" own `--help` must document `--connect`), then visit the connection"]
+#[doc = r" tree — seven downs from the boot cursor reach Production"]
+#[doc = r" (`tablepro.rs`: rows 0 Personal … 7 Production), proven by the detail"]
+#[doc = r" card following the cursor (Production host appears, Local host"]
+#[doc = r" non-vacuously leaves)."]
 #[test]
 #[ignore = "tablepro journey; run with --ignored"]
 fn journey_tablepro_connections_tree() {
@@ -146,8 +146,7 @@ fn journey_tablepro_connections_tree() {
     let case = journey_case("connections_tree", &[], BOOT_CONN);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
-    // Boot selection is the Local connection: its host anchors the
-    // detail-follows-cursor proof (and the wait_gone below).
+
     waits::wait_state(&mut s, "localhost:5432", "boot detail is Local");
     checkpoint(&mut s, &dir, "00-connections");
     support::drive_with_timeout(
@@ -157,11 +156,7 @@ fn journey_tablepro_connections_tree() {
     );
     waits::wait_state(&mut s, "prod-db-1.acme.io", "Production detail card");
     waits::wait_state(&mut s, "acme_prod", "Production database");
-    // The boot checkpoint above proves `localhost:5432` was present, so
-    // this absence poll is non-vacuous across checkpoints (the holla
-    // jump-recovery pattern — `wait_gone` cannot apply here: its inline
-    // presence sample would land after the multi-step drive flipped the
-    // card already).
+
     support::wait_screen(
         &mut s,
         support::DEFAULT_WAIT,
@@ -172,14 +167,14 @@ fn journey_tablepro_connections_tree() {
     eprintln!("journey connections_tree: tree visited, Production detail proven");
 }
 
-/// Slice 1, journey 2: the connection form. Ctrl+N opens a *new* form
-/// (title proves it — an edit form would say `Edit connection`), Enter
-/// begins editing the Name field (typing alone does not: `TextInput`
-/// only commits Enter/F2 while idle, and a stray `e` would re-open the
-/// form as an edit — the lesson baked into the `form_new-filled`
-/// capture), then a synthetic name is typed and proven on screen. The
-/// form is never submitted: a second session boots the untouched tree
-/// and asserts the typed name persisted nowhere — in-memory only.
+#[doc = r" Slice 1, journey 2: the connection form. Ctrl+N opens a *new* form"]
+#[doc = r" (title proves it — an edit form would say `Edit connection`), Enter"]
+#[doc = r" begins editing the Name field (typing alone does not: `TextInput`"]
+#[doc = r" only commits Enter/F2 while idle, and a stray `e` would re-open the"]
+#[doc = r" form as an edit — the lesson baked into the `form_new-filled`"]
+#[doc = r" capture), then a synthetic name is typed and proven on screen. The"]
+#[doc = r" form is never submitted: a second session boots the untouched tree"]
+#[doc = r" and asserts the typed name persisted nowhere — in-memory only."]
 #[test]
 #[ignore = "tablepro journey; run with --ignored"]
 fn journey_tablepro_connection_form() {
@@ -201,7 +196,6 @@ fn journey_tablepro_connection_form() {
     );
     checkpoint(&mut s, &dir, "02-form-filled");
 
-    // Second session: the unsubmitted form left no trace.
     let case2 = journey_case("connection_form_clean", &[], BOOT_CONN);
     write_provenance_named(&dir, &case2, "provenance-clean.txt");
     let mut s2 = support::spawn_boot(&case2);
@@ -219,12 +213,12 @@ fn journey_tablepro_connection_form() {
     eprintln!("journey connection_form: filled, proven, persisted nowhere");
 }
 
-/// Slice 1, journey 3: workbench layout plus the table data/structure
-/// views. `--connect Production` boots the workbench (checkpointed with
-/// its Explorer + Query 1 layout); five downs + Enter open the orders
-/// table, proven by the `public › orders` tab plus a data cell; Ctrl+D
-/// flips to Structure, proven non-vacuously by the structure-only
-/// sub-tabs appearing while the data cell leaves.
+#[doc = r" Slice 1, journey 3: workbench layout plus the table data/structure"]
+#[doc = r" views. `--connect Production` boots the workbench (checkpointed with"]
+#[doc = r" its Explorer + Query 1 layout); five downs + Enter open the orders"]
+#[doc = r" table, proven by the `public › orders` tab plus a data cell; Ctrl+D"]
+#[doc = r" flips to Structure, proven non-vacuously by the structure-only"]
+#[doc = r" sub-tabs appearing while the data cell leaves."]
 #[test]
 #[ignore = "tablepro journey; run with --ignored"]
 fn journey_tablepro_workbench_table_views() {
@@ -255,22 +249,20 @@ fn journey_tablepro_workbench_table_views() {
     waits::wait_state(&mut s, "10000", "first data cell");
     checkpoint(&mut s, &dir, "01-data");
     support::press_step(&s, "ctrl-d");
-    // `wait_gone` first: `press_step` (unlike `drive_with_timeout`) has
-    // no trailing sleep, so its presence sample still sees the data grid
-    // before the app processes the chord (the jackin save-cancel pattern).
+
     waits::wait_gone(&mut s, "10000", "data grid left");
     waits::wait_state(&mut s, "Foreign keys", "structure sub-tabs");
     checkpoint(&mut s, &dir, "02-structure");
     eprintln!("journey workbench_table_views: data then structure, both proven");
 }
 
-/// Slice 1, journey 4: the query editor with assertion-proven states.
-/// Tab + `i` enter the editor, typing a partial FROM triggers
-/// completion (proven by the `order_items` popup row), Enter accepts,
-/// a partial WHERE triggers column completion (Tab accepts `status`),
-/// and Ctrl+R runs the finished statement — proven by the `25 rows`
-/// result header plus the `Ctrl+X Explain` results footer. The query
-/// is a read over the in-memory demo engine: nothing is written.
+#[doc = r" Slice 1, journey 4: the query editor with assertion-proven states."]
+#[doc = r" Tab + `i` enter the editor, typing a partial FROM triggers"]
+#[doc = r" completion (proven by the `order_items` popup row), Enter accepts,"]
+#[doc = r" a partial WHERE triggers column completion (Tab accepts `status`),"]
+#[doc = r" and Ctrl+R runs the finished statement — proven by the `25 rows`"]
+#[doc = r" result header plus the `Ctrl+X Explain` results footer. The query"]
+#[doc = r" is a read over the in-memory demo engine: nothing is written."]
 #[test]
 #[ignore = "tablepro journey; run with --ignored"]
 fn journey_tablepro_query_completion_results() {

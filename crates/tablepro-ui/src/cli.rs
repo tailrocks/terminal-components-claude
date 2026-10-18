@@ -1,4 +1,4 @@
-//! Command-line decisions are resolved before acquiring a terminal session.
+#![doc = r" Command-line decisions are resolved before acquiring a terminal session."]
 
 use std::io::{self, Write};
 
@@ -33,11 +33,11 @@ enum Command {
     },
 }
 
-/// Resolve command-line options and start the interactive application, or print help.
-///
-/// # Errors
-/// Returns invalid-input errors for invalid option values or unknown connections,
-/// and I/O errors for output or terminal failures. Diagnostics omit argument values.
+#[doc = r" Resolve command-line options and start the interactive application, or print help."]
+#[doc = r""]
+#[doc = r" # Errors"]
+#[doc = r" Returns invalid-input errors for invalid option values or unknown connections,"]
+#[doc = r" and I/O errors for output or terminal failures. Diagnostics omit argument values."]
 pub fn run() -> io::Result<()> {
     match parse_args(std::env::args().skip(1), ColorLevel::detect())? {
         Command::Help => io::stdout().lock().write_all(HELP.as_bytes()),
@@ -82,8 +82,7 @@ fn parse_args(args: impl IntoIterator<Item = String>, detected: ColorLevel) -> i
                     _ => return Err(invalid_arg("--color must be truecolor, 256, 16, or none")),
                 };
             }
-            // The pinned CLI accepts an absent connection value and ignores unknown
-            // arguments. Preserve that behavior independently of parser structure.
+
             "--connect" => connect = args.next(),
             "-h" | "--help" => return Ok(Command::Help),
             _ => {}

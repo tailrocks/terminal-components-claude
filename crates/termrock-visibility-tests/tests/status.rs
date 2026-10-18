@@ -1,28 +1,28 @@
-//! Black-box status CLI contract tests.
-//!
-//! Migration map from the former Python test module:
-//!
-//! | Python test | Rust CLI case |
-//! | --- | --- |
-//! | `test_initial_conclusions_are_not_run_and_source_pair_is_exact` | `initial_status_keeps_products_not_run_and_pairs_exact` |
-//! | `test_all_seven_commands_and_each_layer_are_visible` | `renders_all_seven_exact_commands_and_layers` |
-//! | `test_role_changes_local_presentation_and_keeps_candidate_queue_link` | `role_changes_local_label_and_uses_reference_links` |
-//! | `test_cli_accepts_reference_role` | `reference_role_cli_renders_reference_presentation` |
-//! | `test_visual_interaction_api_and_ownership_are_separate` | `keeps_visual_interaction_api_ownership_distinct` |
-//! | `test_ci_and_dco_remain_separate_from_product_results` | `keeps_ci_dco_observations_separate` |
-//! | `test_changed_frozen_tag_is_rejected` | `rejects_changed_frozen_tag` |
-//! | `test_candidate_remote_mismatch_is_rejected` | `rejects_candidate_remote_identity_mismatch` |
-//! | `test_new_typed_observations_do_not_require_reporter_code_changes` | `accepts_new_typed_observations_and_unknown_conclusions` |
-//! | `test_unknown_ci_state_and_invalid_count_are_rejected` | `rejects_unknown_state_negative_count_and_non_https_reason_source` |
-//! | `test_duplicate_or_unknown_task_records_are_rejected` | `rejects_duplicate_task_ids_and_unknown_states` |
-//! | `test_generation_is_deterministic` | `generation_is_byte_deterministic` |
-//!
-//! `checked_in_records_render_from_exact_copies` additionally covers the real
-//! source-facts and accepted-task files in the same disposable-CLI path.
-//!
-//! Every case invokes the copied production script through its CLI in a
-//! disposable repository. These tests do not import Python modules or use a
-//! production test hook.
+#![doc = r" Black-box status CLI contract tests."]
+#![doc = r""]
+#![doc = r" Migration map from the former Python test module:"]
+#![doc = r""]
+#![doc = r" | Python test | Rust CLI case |"]
+#![doc = r" | --- | --- |"]
+#![doc = r" | `test_initial_conclusions_are_not_run_and_source_pair_is_exact` | `initial_status_keeps_products_not_run_and_pairs_exact` |"]
+#![doc = r" | `test_all_seven_commands_and_each_layer_are_visible` | `renders_all_seven_exact_commands_and_layers` |"]
+#![doc = r" | `test_role_changes_local_presentation_and_keeps_candidate_queue_link` | `role_changes_local_label_and_uses_reference_links` |"]
+#![doc = r" | `test_cli_accepts_reference_role` | `reference_role_cli_renders_reference_presentation` |"]
+#![doc = r" | `test_visual_interaction_api_and_ownership_are_separate` | `keeps_visual_interaction_api_ownership_distinct` |"]
+#![doc = r" | `test_ci_and_dco_remain_separate_from_product_results` | `keeps_ci_dco_observations_separate` |"]
+#![doc = r" | `test_changed_frozen_tag_is_rejected` | `rejects_changed_frozen_tag` |"]
+#![doc = r" | `test_candidate_remote_mismatch_is_rejected` | `rejects_candidate_remote_identity_mismatch` |"]
+#![doc = r" | `test_new_typed_observations_do_not_require_reporter_code_changes` | `accepts_new_typed_observations_and_unknown_conclusions` |"]
+#![doc = r" | `test_unknown_ci_state_and_invalid_count_are_rejected` | `rejects_unknown_state_negative_count_and_non_https_reason_source` |"]
+#![doc = r" | `test_duplicate_or_unknown_task_records_are_rejected` | `rejects_duplicate_task_ids_and_unknown_states` |"]
+#![doc = r" | `test_generation_is_deterministic` | `generation_is_byte_deterministic` |"]
+#![doc = r""]
+#![doc = r" `checked_in_records_render_from_exact_copies` additionally covers the real"]
+#![doc = r" source-facts and accepted-task files in the same disposable-CLI path."]
+#![doc = r""]
+#![doc = r" Every case invokes the copied production script through its CLI in a"]
+#![doc = r" disposable repository. These tests do not import Python modules or use a"]
+#![doc = r" production test hook."]
 
 #[cfg(unix)]
 use std::ffi::CString;
@@ -112,7 +112,7 @@ impl StatusFixture {
         }
     }
 
-    #[allow(dead_code)] // Preserves the archived q59 report audit fixture.
+    #[allow(dead_code)]
     fn from_checked_in_report_snapshot() -> Self {
         let fixture = Self::from_checked_in_records();
         let task_snapshot_path = fixture.repo.root().join(
@@ -694,7 +694,7 @@ fn write_provider_json_capture(
     write_provider_capture(fixture, prefix, name, &bytes, files)
 }
 
-#[allow(clippy::too_many_arguments)] // Test fixture fields mirror the provider payload.
+#[allow(clippy::too_many_arguments)]
 fn provider_observation(
     fixture: &StatusFixture,
     files: &mut Vec<serde_json::Value>,
@@ -2289,7 +2289,7 @@ fn bounded_execution_receipts_render_partial_results_without_ready_claims() {
 #[test]
 #[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes() {
-    // The overridden assertion ID appears once for each subject role.
+
     for (status, expected_cell, expected_count) in [
         (
             "FAIL",
@@ -3929,9 +3929,9 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     assert!(report.contains("2ae351dd27f0ee7d7d52ff6093208b0a57f62698"));
     assert!(report.contains("| Remote branch tips observed at | 2026-10-11T03:58:22Z |",));
 
-    // This checked-in pair uses a branch API observation, so its top-level CI
-    // capture is optional. Exercise the explicit-fetch presence rule with a
-    // small synthetic source observation whose provenance is internally bound.
+
+
+
     let explicit_fetch_fixture = StatusFixture::new();
     let mut explicit_fetch: serde_json::Value =
         serde_json::from_str(&base_facts()).expect("parse synthetic explicit-fetch facts");
@@ -4911,7 +4911,7 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     assert_eq!(output.exit_code, Some(0));
     let report = output_text(&output);
 
-    // Current provider source facts remain repository-level only.
+
     assert!(
         report.contains("## Current CI and Developer Certificate of Origin (DCO) observations")
     );
@@ -4936,7 +4936,7 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     assert!(report.contains("**equal**"));
     assert!(report.contains("not a paired execution"));
 
-    // The superseded current report remains preserved as historical evidence.
+
     let historical = &facts["historical_current_status_observations"]["records"][0]["observations"];
     assert!(
         historical["branch_gate_observations"][0]["dco_check_run_id"]
@@ -4964,7 +4964,7 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
             .is_some_and(|value| value == "NOT_RUN")
     );
 
-    // Supersession cannot promote either the old failure or current readiness.
+
     assert!(report.contains("| Visibility / Complete | NOT_RUN |"));
     assert!(report.contains("| Refactor / Ready | NOT_RUN |"));
     assert!(report.contains("| Reference / Qualified | NOT_RUN |"));

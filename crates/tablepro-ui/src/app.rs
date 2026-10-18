@@ -1,4 +1,4 @@
-//! `TablePro` application shell built only on the public `termrock` facade.
+#![doc = r" `TablePro` application shell built only on the public `termrock` facade."]
 
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
@@ -20,9 +20,9 @@ use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
 use tablepro_domain::domain::ResultGrid;
 use tablepro_domain::model::SwitchTarget;
 
-/// Minimum terminal width.
+#[doc = r" Minimum terminal width."]
 pub const MIN_WIDTH: u16 = 72;
-/// Minimum terminal height.
+#[doc = r" Minimum terminal height."]
 pub const MIN_HEIGHT: u16 = 20;
 const CONNECTIONS: Id = Id::root("tablepro.connections.list");
 const CONNECTIONS_PANEL: Id = Id::root("tablepro.connections.panel");
@@ -176,59 +176,59 @@ const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
 const FRAMED_PANEL_PATCH: [(Part, StylePatch); 1] =
     [(Part::DETAIL, StylePatch::new().set_fg(Role::BorderStrong))];
 
-/// Product-level screen.
+#[doc = r" Product-level screen."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
-    /// Connection list and initial landing screen.
+    #[doc = r" Connection list and initial landing screen."]
     Connections,
-    /// Connected database workbench.
+    #[doc = r" Connected database workbench."]
     Workbench,
 }
 
-/// Named visual surfaces retained from the historical showcase matrix.
+#[doc = r" Named visual surfaces retained from the historical showcase matrix."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Surface {
-    /// Connection list.
+    #[doc = r" Connection list."]
     Connections,
-    /// Failed connection state.
+    #[doc = r" Failed connection state."]
     ConnectionsFailed,
-    /// Default workbench.
+    #[doc = r" Default workbench."]
     WorkbenchDefault,
-    /// Explorer focus.
+    #[doc = r" Explorer focus."]
     ExplorerFocused,
-    /// Table data grid.
+    #[doc = r" Table data grid."]
     TableGrid,
-    /// Inline cell editing.
+    #[doc = r" Inline cell editing."]
     GridCellEditing,
-    /// Pending-change bar.
+    #[doc = r" Pending-change bar."]
     PendingChangeBar,
-    /// Structure view.
+    #[doc = r" Structure view."]
     StructureView,
-    /// Query editor.
+    #[doc = r" Query editor."]
     QueryEditing,
-    /// Completion popup state.
+    #[doc = r" Completion popup state."]
     CompletionPopup,
-    /// Successful results.
+    #[doc = r" Successful results."]
     ResultsGrid,
-    /// Error results.
+    #[doc = r" Error results."]
     ErrorResult,
-    /// Explain plan.
+    #[doc = r" Explain plan."]
     ExplainPlan,
-    /// History tab.
+    #[doc = r" History tab."]
     HistoryTab,
-    /// Quick switcher.
+    #[doc = r" Quick switcher."]
     QuickSwitcher,
-    /// Tab-list picker.
+    #[doc = r" Tab-list picker."]
     TabListPicker,
-    /// Safe-mode picker.
+    #[doc = r" Safe-mode picker."]
     SafeModePicker,
-    /// Filter editor.
+    #[doc = r" Filter editor."]
     FilterEditor,
-    /// Safety acknowledgement dialog.
+    #[doc = r" Safety acknowledgement dialog."]
     SafetyDialogTypedAck,
-    /// Help dialog.
+    #[doc = r" Help dialog."]
     HelpDialog,
-    /// Maximised tab.
+    #[doc = r" Maximised tab."]
     MaximisedTab,
 }
 
@@ -263,7 +263,7 @@ enum ExplorerNode {
 }
 
 impl Surface {
-    /// All matrix surfaces in stable order.
+    #[doc = r" All matrix surfaces in stable order."]
     pub const ALL: [Self; 21] = [
         Self::Connections,
         Self::ConnectionsFailed,
@@ -287,7 +287,7 @@ impl Surface {
         Self::HelpDialog,
         Self::MaximisedTab,
     ];
-    /// Stable matrix label.
+    #[doc = r" Stable matrix label."]
     pub const fn label(self) -> &'static str {
         match self {
             Self::Connections => "connections",
@@ -449,7 +449,7 @@ fn fallback_connection(catalog: &Catalog) -> Connection {
     }
 }
 
-/// `TablePro` state and app-owned adapters.
+#[doc = r" `TablePro` state and app-owned adapters."]
 pub struct TableProApp {
     catalog: Catalog,
     connections: Vec<Connection>,
@@ -463,13 +463,13 @@ pub struct TableProApp {
     destructive_notice: Option<&'static str>,
     quit_state: DialogState,
     switcher: QuickSwitcher,
-    /// Current product screen.
+    #[doc = r" Current product screen."]
     pub screen: Screen,
-    /// Current visual matrix surface.
+    #[doc = r" Current visual matrix surface."]
     pub surface: Surface,
-    /// Connection list state.
+    #[doc = r" Connection list state."]
     pub connections_screen: ConnectionsScreen,
-    /// Connected workbench.
+    #[doc = r" Connected workbench."]
     pub workbench: Workbench,
     connection_nodes: Vec<ConnectionNode>,
     connection_tree_state: TreeState,
@@ -534,7 +534,7 @@ impl Default for TableProApp {
 }
 
 impl TableProApp {
-    /// Construct the deterministic demo app.
+    #[doc = r" Construct the deterministic demo app."]
     pub fn new() -> Self {
         let catalog = Catalog::acme_prod();
         let connections = db::connections();
@@ -583,51 +583,51 @@ impl TableProApp {
         let _ = app.execute_query();
         app
     }
-    /// Active safe-mode policy.
+    #[doc = r" Active safe-mode policy."]
     pub const fn safe_mode(&self) -> SafeMode {
         self.safe_mode
     }
-    /// Current SQL text.
+    #[doc = r" Current SQL text."]
     pub fn query(&self) -> &str {
         match self.workbench.active() {
             Some(Tab::Query(tab)) => &tab.query,
             _ => "",
         }
     }
-    /// Current result adapter.
+    #[doc = r" Current result adapter."]
     pub fn result(&self) -> &ResultGrid {
         self.workbench
             .active_grid()
             .map_or(&self.empty_result, |(_, grid)| &grid.model)
     }
-    /// Stable identity of the active SQL editor.
+    #[doc = r" Stable identity of the active SQL editor."]
     pub fn query_id(&self) -> Option<Id> {
         match self.workbench.active() {
             Some(Tab::Query(_)) => self.workbench.active_key().map(|key| key.control("query")),
             _ => None,
         }
     }
-    /// Stable identity of the active result or structure grid.
+    #[doc = r" Stable identity of the active result or structure grid."]
     pub fn result_id(&self) -> Option<Id> {
         self.workbench.active_grid().map(|(id, _)| id)
     }
-    /// Latest status text.
+    #[doc = r" Latest status text."]
     pub fn status(&self) -> &str {
         &self.status
     }
-    /// Current screen.
+    #[doc = r" Current screen."]
     pub const fn screen(&self) -> Screen {
         self.screen
     }
-    /// Current visual surface.
+    #[doc = r" Current visual surface."]
     pub const fn surface(&self) -> Surface {
         self.surface
     }
-    /// Set a named surface and materialize its deterministic capture state.
-    ///
-    /// Visual captures enter through this method instead of mutating the
-    /// surface marker after constructing an unrelated screen.  That keeps the
-    /// renderer on the same connection/workbench route as the product.
+    #[doc = r" Set a named surface and materialize its deterministic capture state."]
+    #[doc = r""]
+    #[doc = r" Visual captures enter through this method instead of mutating the"]
+    #[doc = r" surface marker after constructing an unrelated screen.  That keeps the"]
+    #[doc = r" renderer on the same connection/workbench route as the product."]
     pub fn set_surface(&mut self, surface: Surface) {
         self.form_open = false;
         self.draft = None;
@@ -829,15 +829,15 @@ impl TableProApp {
             tab.editor_state = TextInputState::default();
         }
     }
-    /// Borrow the connected workbench.
+    #[doc = r" Borrow the connected workbench."]
     pub const fn workbench(&self) -> &Workbench {
         &self.workbench
     }
-    /// Whether the public connection form is open.
+    #[doc = r" Whether the public connection form is open."]
     pub const fn connection_form_open(&self) -> bool {
         self.form_open
     }
-    /// Borrow the draft without exposing a password string.
+    #[doc = r" Borrow the draft without exposing a password string."]
     pub const fn connection_draft(&self) -> Option<&ConnectionDraft> {
         if self.form_open {
             self.draft.as_ref()
@@ -845,14 +845,14 @@ impl TableProApp {
             None
         }
     }
-    /// Close the form (kept small so deterministic tests can model Esc).
+    #[doc = r" Close the form (kept small so deterministic tests can model Esc)."]
     pub fn form_open_for_test(&mut self, open: bool) {
         self.form_open = open;
         if !open {
             self.draft = None;
         }
     }
-    /// Open the connection form with the active connection as its draft.
+    #[doc = r" Open the connection form with the active connection as its draft."]
     pub fn begin_connection_form(&mut self) {
         self.draft = Some(ConnectionDraft::from_connection(&self.connection));
         self.form_state = FormState::default();
@@ -862,10 +862,10 @@ impl TableProApp {
     fn close_connection_form(&mut self) {
         self.form_open = false;
         self.form_state.zeroize();
-        // Retain a scrubbed owner until late focus transitions are drained.
+
         self.draft = Some(ConnectionDraft::from_connection(&self.connection));
     }
-    /// Select a connection and open its workbench.
+    #[doc = r" Select a connection and open its workbench."]
     pub fn connect(&mut self, index: usize) -> bool {
         let Some(connection) = self.connections.get(index).cloned() else {
             return false;
@@ -921,7 +921,7 @@ impl TableProApp {
         }
     }
 
-    /// Select a catalog schema and reconstruct its explorer expansion context.
+    #[doc = r" Select a catalog schema and reconstruct its explorer expansion context."]
     pub fn select_schema(&mut self, schema: &str) -> bool {
         if !self.workbench.select_schema(schema) {
             return false;
@@ -967,14 +967,14 @@ impl TableProApp {
         };
         self.sync_tabs_state();
     }
-    /// Change the active safe-mode policy.
+    #[doc = r" Change the active safe-mode policy."]
     pub fn set_safe_mode(&mut self, mode: SafeMode) {
         self.safe_mode = mode;
         self.connection.safe_mode = mode;
         self.workbench.connection.safe_mode = mode;
         self.surface = Surface::SafeModePicker;
     }
-    /// Run a query through the same parser, gate and executor as Ctrl+R.
+    #[doc = r" Run a query through the same parser, gate and executor as Ctrl+R."]
     pub fn run_query(&mut self, query: impl Into<String>) -> QueryOutcome {
         let query = query.into();
         if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
@@ -993,7 +993,7 @@ impl TableProApp {
         self.set_visual_query(&query);
         self.execute_query()
     }
-    /// Parse, gate and execute the current query.
+    #[doc = r" Parse, gate and execute the current query."]
     pub fn execute_query(&mut self) -> QueryOutcome {
         if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
             return QueryOutcome::Rejected {
@@ -1454,7 +1454,6 @@ impl TableProApp {
     }
 
     fn update_destructive_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        // Keep the same control identity alive for late focus lifecycle events.
         let fallback = DestructiveIntent::Quit {
             question: String::new(),
             scope: Vec::new(),
@@ -1866,31 +1865,31 @@ impl TableProApp {
     }
 }
 
-/// Result of executing a query.
+#[doc = r" Result of executing a query."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QueryOutcome {
-    /// Query returned rows.
+    #[doc = r" Query returned rows."]
     Executed {
-        /// Number of returned rows.
+        #[doc = r" Number of returned rows."]
         rows: usize,
-        /// Whether the result supports cell edits.
+        #[doc = r" Whether the result supports cell edits."]
         editable: bool,
     },
-    /// Safety gate requires confirmation.
+    #[doc = r" Safety gate requires confirmation."]
     ConfirmationRequired {
-        /// Whether the acknowledgement must name the target.
+        #[doc = r" Whether the acknowledgement must name the target."]
         deliberate: bool,
-        /// Human-readable safety summary.
+        #[doc = r" Human-readable safety summary."]
         summary: String,
     },
-    /// Read-only policy denied a write.
+    #[doc = r" Read-only policy denied a write."]
     Denied {
-        /// Human-readable denial reason.
+        #[doc = r" Human-readable denial reason."]
         summary: String,
     },
-    /// Parse/execution rejection.
+    #[doc = r" Parse/execution rejection."]
     Rejected {
-        /// Parser or executor message.
+        #[doc = r" Parser or executor message."]
         message: String,
     },
 }
@@ -2612,8 +2611,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         ui.paint_str(right, notice, base);
     } else if app.screen == Screen::Workbench {
         let prefix = "Connected to ";
-        // A leading combining mark or ZWJ can join the prefix's final space.
-        // Keep one text run for measurement and painting, with one allocation.
+
         let mut right_text =
             String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
         right_text.push_str(prefix);
@@ -2897,8 +2895,7 @@ impl App for TableProApp {
         if switcher_was_open {
             return response;
         }
-        // Stateless props have no update method, but their factories remain
-        // the single source of configuration for both runtime phases.
+
         let _ = Self::connections_panel("", None);
         let _ = Self::connection_details_panel("");
         let _ = Self::explorer_panel(self.workbench.schema_caption());
@@ -3173,13 +3170,13 @@ impl App for TableProApp {
     }
 }
 
-/// Start the app with an explicit theme and optional connection name.
-///
-/// # Errors
-///
-/// Returns an invalid-input error when the requested connection does not
-/// exist, or the terminal runtime's I/O error when the session cannot start
-/// or restore the terminal.
+#[doc = r" Start the app with an explicit theme and optional connection name."]
+#[doc = r""]
+#[doc = r" # Errors"]
+#[doc = r""]
+#[doc = r" Returns an invalid-input error when the requested connection does not"]
+#[doc = r" exist, or the terminal runtime's I/O error when the session cannot start"]
+#[doc = r" or restore the terminal."]
 pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
     let mut app = TableProApp::default();
     if let Some(name) = connect {

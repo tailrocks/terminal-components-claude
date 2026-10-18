@@ -1,4 +1,4 @@
-//! Dialog action arrows are published beside ordinary button activation bindings.
+#![doc = r" Dialog action arrows are published beside ordinary button activation bindings."]
 use termrock_core::action::{Action, ActionKey};
 use termrock_core::event::KeyCode;
 use termrock_core::id::Id;

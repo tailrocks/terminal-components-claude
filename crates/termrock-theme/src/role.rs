@@ -1,39 +1,39 @@
-//! Colour roles and surfaces (`COMPONENT_ARCHITECTURE.md` §10, §11.2).
-//!
-//! A [`StylePatch`](super::StylePatch) names a [`Role`], never a colour;
-//! roles bind to colours at the end of resolution against the live theme,
-//! the current [`Surface`] and the colour capability.
+#![doc = r" Colour roles and surfaces (`COMPONENT_ARCHITECTURE.md` §10, §11.2)."]
+#![doc = r""]
+#![doc = r" A [`StylePatch`](super::StylePatch) names a [`Role`], never a colour;"]
+#![doc = r" roles bind to colours at the end of resolution against the live theme,"]
+#![doc = r" the current [`Surface`] and the colour capability."]
 
 use ratatui_core::style::Color;
 
-/// Number of levels in the surface ladder.
+#[doc = r" Number of levels in the surface ladder."]
 pub const SURFACE_LEVELS: usize = 5;
-/// Number of steps in the foreground ladder.
+#[doc = r" Number of steps in the foreground ladder."]
 pub const FG_STEPS: usize = 5;
 
-/// The background plane a component sits on. The first five form the
-/// ordered ladder; `Field` and `FieldHover` are the two non-ladder planes.
+#[doc = r" The background plane a component sits on. The first five form the"]
+#[doc = r" ordered ladder; `Field` and `FieldHover` are the two non-ladder planes."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum Surface {
-    /// The page.
+    #[doc = r" The page."]
     #[default]
     Canvas,
-    /// Chrome and panels.
+    #[doc = r" Chrome and panels."]
     Surface,
-    /// Cards.
+    #[doc = r" Cards."]
     Elevated,
-    /// Overlays.
+    #[doc = r" Overlays."]
     Overlay,
-    /// Popovers and menus.
+    #[doc = r" Popovers and menus."]
     Popover,
-    /// A text field.
+    #[doc = r" A text field."]
     Field,
-    /// A hovered text field.
+    #[doc = r" A hovered text field."]
     FieldHover,
 }
 
 impl Surface {
-    /// The ladder index, or `None` for the field planes.
+    #[doc = r" The ladder index, or `None` for the field planes."]
     pub const fn level(self) -> Option<usize> {
         match self {
             Surface::Canvas => Some(0),
@@ -45,7 +45,7 @@ impl Surface {
         }
     }
 
-    /// The ladder surface at index `i`, saturating at the last level.
+    #[doc = r" The ladder surface at index `i`, saturating at the last level."]
     pub const fn from_level(i: usize) -> Surface {
         match i {
             0 => Surface::Canvas,
@@ -57,23 +57,23 @@ impl Surface {
     }
 }
 
-/// A step on the foreground ladder.
+#[doc = r" A step on the foreground ladder."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum FgStep {
-    /// Primary text.
+    #[doc = r" Primary text."]
     Primary,
-    /// Secondary text.
+    #[doc = r" Secondary text."]
     Secondary,
-    /// Muted text.
+    #[doc = r" Muted text."]
     Muted,
-    /// Faint text.
+    #[doc = r" Faint text."]
     Faint,
-    /// Ghost text (dimmed backdrops).
+    #[doc = r" Ghost text (dimmed backdrops)."]
     Ghost,
 }
 
 impl FgStep {
-    /// The ladder index.
+    #[doc = r" The ladder index."]
     pub const fn index(self) -> usize {
         match self {
             FgStep::Primary => 0,
@@ -85,166 +85,166 @@ impl FgStep {
     }
 }
 
-/// A syntax colour role.
+#[doc = r" A syntax colour role."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum SyntaxRole {
-    /// Keyword.
+    #[doc = r" Keyword."]
     Keyword,
-    /// Identifier.
+    #[doc = r" Identifier."]
     Ident,
-    /// String literal.
+    #[doc = r" String literal."]
     Str,
-    /// Number literal.
+    #[doc = r" Number literal."]
     Number,
-    /// Operator.
+    #[doc = r" Operator."]
     Operator,
-    /// Punctuation.
+    #[doc = r" Punctuation."]
     Punct,
-    /// Comment.
+    #[doc = r" Comment."]
     Comment,
-    /// Plain text.
+    #[doc = r" Plain text."]
     Plain,
-    /// Type name.
+    #[doc = r" Type name."]
     TypeName,
-    /// Function name.
+    #[doc = r" Function name."]
     Function,
-    /// Constant.
+    #[doc = r" Constant."]
     Constant,
-    /// Invalid token.
+    #[doc = r" Invalid token."]
     Invalid,
-    /// Deprecated token.
+    #[doc = r" Deprecated token."]
     Deprecated,
-    /// Find-match background.
+    #[doc = r" Find-match background."]
     MatchBg,
-    /// Current find-match background.
+    #[doc = r" Current find-match background."]
     MatchCurrentBg,
-    /// Matching bracket.
+    #[doc = r" Matching bracket."]
     BracketMatch,
-    /// Error diagnostic.
+    #[doc = r" Error diagnostic."]
     DiagError,
-    /// Warning diagnostic.
+    #[doc = r" Warning diagnostic."]
     DiagWarning,
-    /// Info diagnostic.
+    #[doc = r" Info diagnostic."]
     DiagInfo,
 }
 
-/// A meter colour role.
+#[doc = r" A meter colour role."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum MeterRole {
-    /// Healthy.
+    #[doc = r" Healthy."]
     Low,
-    /// Needs attention.
+    #[doc = r" Needs attention."]
     Medium,
-    /// Critical.
+    #[doc = r" Critical."]
     High,
-    /// The track.
+    #[doc = r" The track."]
     Track,
-    /// The unfilled remainder.
+    #[doc = r" The unfilled remainder."]
     FillRest,
-    /// Stale data.
+    #[doc = r" Stale data."]
     Stale,
-    /// Unknown value.
+    #[doc = r" Unknown value."]
     Unknown,
-    /// Series `n` (wraps over six).
+    #[doc = r" Series `n` (wraps over six)."]
     Series(u8),
 }
 
-/// The complete set a `StylePatch` may name.
+#[doc = r" The complete set a `StylePatch` may name."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Role {
-    /// The background of the current surface.
+    #[doc = r" The background of the current surface."]
     CurrentSurface,
-    /// The background one ladder step above the current surface.
+    #[doc = r" The background one ladder step above the current surface."]
     RaisedSurface,
-    /// Junie row hover plane: `Canvas → Elevated`, `Surface/Elevated → Overlay`,
-    /// `Field → FieldHover`, and `Overlay/Popover/FieldHover → Popover`.
-    /// Unlike `RaisedSurface`, this expresses interaction rather than ladder depth.
+    #[doc = r" Junie row hover plane: `Canvas → Elevated`, `Surface/Elevated → Overlay`,"]
+    #[doc = r" `Field → FieldHover`, and `Overlay/Popover/FieldHover → Popover`."]
+    #[doc = r" Unlike `RaisedSurface`, this expresses interaction rather than ladder depth."]
     HoverSurface,
-    /// A specific surface's background.
+    #[doc = r" A specific surface's background."]
     Surface(Surface),
-    /// A foreground ladder step.
+    #[doc = r" A foreground ladder step."]
     Fg(FgStep),
-    /// Text on an accent fill.
+    #[doc = r" Text on an accent fill."]
     OnAccent,
-    /// Text on a danger fill.
+    #[doc = r" Text on a danger fill."]
     OnDanger,
-    /// Text on an inverted (fg-coloured) fill.
+    #[doc = r" Text on an inverted (fg-coloured) fill."]
     OnSurfaceInverse,
-    /// Subtle border.
+    #[doc = r" Subtle border."]
     BorderSubtle,
-    /// Strong border.
+    #[doc = r" Strong border."]
     BorderStrong,
-    /// The accent.
+    #[doc = r" The accent."]
     Accent,
-    /// Accent, hovered.
+    #[doc = r" Accent, hovered."]
     AccentHover,
-    /// Accent, pressed.
+    #[doc = r" Accent, pressed."]
     AccentPressed,
-    /// Accent tint (selection background).
+    #[doc = r" Accent tint (selection background)."]
     AccentTint,
-    /// Focus indicator.
+    #[doc = r" Focus indicator."]
     Focus,
-    /// Focus ring.
+    #[doc = r" Focus ring."]
     FocusRing,
-    /// Text selection background.
+    #[doc = r" Text selection background."]
     SelectionBg,
-    /// Text selection foreground.
+    #[doc = r" Text selection foreground."]
     SelectionFg,
-    /// Menu highlight background.
+    #[doc = r" Menu highlight background."]
     HighlightBg,
-    /// Menu highlight foreground.
+    #[doc = r" Menu highlight foreground."]
     HighlightFg,
-    /// Destructive menu highlight background.
+    #[doc = r" Destructive menu highlight background."]
     HighlightDangerBg,
-    /// Destructive menu highlight foreground.
+    #[doc = r" Destructive menu highlight foreground."]
     HighlightDangerFg,
-    /// Backdrop foreground.
+    #[doc = r" Backdrop foreground."]
     BackdropFg,
-    /// Backdrop background.
+    #[doc = r" Backdrop background."]
     BackdropBg,
-    /// Danger.
+    #[doc = r" Danger."]
     Danger,
-    /// Danger at rest on a neutral plane.
+    #[doc = r" Danger at rest on a neutral plane."]
     DangerSoft,
-    /// Danger tint.
+    #[doc = r" Danger tint."]
     DangerTint,
-    /// Warning.
+    #[doc = r" Warning."]
     Warning,
-    /// Warning tint.
+    #[doc = r" Warning tint."]
     WarningTint,
-    /// Success.
+    #[doc = r" Success."]
     Success,
-    /// Info.
+    #[doc = r" Info."]
     Info,
-    /// Disabled foreground.
+    #[doc = r" Disabled foreground."]
     DisabledFg,
-    /// Disabled background.
+    #[doc = r" Disabled background."]
     DisabledBg,
-    /// Read-only foreground.
+    #[doc = r" Read-only foreground."]
     ReadOnlyFg,
-    /// A syntax role.
+    #[doc = r" A syntax role."]
     Syntax(SyntaxRole),
-    /// A meter role.
+    #[doc = r" A meter role."]
     Meter(MeterRole),
-    /// The one documented raw-colour escape hatch; still downgraded.
+    #[doc = r" The one documented raw-colour escape hatch; still downgraded."]
     Custom(Color),
 }
 
-/// Text alignment (`StylePatch.align`, `CellUi::align`).
+#[doc = r" Text alignment (`StylePatch.align`, `CellUi::align`)."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum Align {
-    /// Left.
+    #[doc = r" Left."]
     #[default]
     Left,
-    /// Centre.
+    #[doc = r" Centre."]
     Center,
-    /// Right.
+    #[doc = r" Right."]
     Right,
 }
 
 impl Role {
-    /// Retain the source surface's neutral backdrop plane in per-cell
-    /// provenance; modal dimming happens after the source scope has exited.
+    #[doc = r" Retain the source surface's neutral backdrop plane in per-cell"]
+    #[doc = r" provenance; modal dimming happens after the source scope has exited."]
     pub const fn painted(self, surface: Surface) -> Self {
         match self {
             Self::HoverSurface => Self::Surface(match surface {

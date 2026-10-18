@@ -1,4 +1,4 @@
-//! Focused performance smoke tests for the migrated app.
+#![doc = r" Focused performance smoke tests for the migrated app."]
 use std::hint::black_box;
 
 use showcase_ui::{App, PageId};
@@ -55,8 +55,7 @@ fn frame_showcase_dialog_open() {
     let mut h = app(PageId::Dialogs, 120, 40);
     let _ = h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Keyboard & mouse"));
-    // Opening a layer settles its focus scope on the next draw; benchmark the
-    // steady-state frame rather than the hand-off frame.
+
     h.draw();
     let first = h.snapshot().digest();
     for _ in 0..200 {
@@ -106,8 +105,7 @@ fn wheel_showcase_lists() {
         h.snapshot().digest(),
         "summary must not capture wheel input"
     );
-    // Holla's 80×24 fixture puts the first visible language at (26, 8).
-    // Match its row prefix so the earlier summary cannot become the target.
+
     let (gutter_x, y) = require(h.find("▎› Rust"), "first language row is visible");
     assert_eq!((gutter_x, y), (23, 8));
     let x = gutter_x + 3;

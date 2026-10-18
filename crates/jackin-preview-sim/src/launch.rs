@@ -1,41 +1,41 @@
-//! Simulated launch pipeline: the exact ordered 11-stage model advancing
-//! on a deterministic tick timeline, a bounded build log, typed failure,
-//! and the credential stage's account resolution.
+#![doc = r" Simulated launch pipeline: the exact ordered 11-stage model advancing"]
+#![doc = r" on a deterministic tick timeline, a bounded build log, typed failure,"]
+#![doc = r" and the credential stage's account resolution."]
 
 use termrock::StepState;
 
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::instance::RunId;
 
-/// Ordered stages in the deterministic launch pipeline.
+#[doc = r" Ordered stages in the deterministic launch pipeline."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Stage {
-    /// Resolve the launch identity.
+    #[doc = r" Resolve the launch identity."]
     Identity,
-    /// Load and validate the role manifest.
+    #[doc = r" Load and validate the role manifest."]
     Role,
-    /// Resolve the selected credential source.
+    #[doc = r" Resolve the selected credential source."]
     Credentials,
-    /// Prepare the Construct image.
+    #[doc = r" Prepare the Construct image."]
     Construct,
-    /// Install the selected agent binaries.
+    #[doc = r" Install the selected agent binaries."]
     AgentBinaries,
-    /// Build the derived image.
+    #[doc = r" Build the derived image."]
     DerivedImage,
-    /// Mount the selected workspace.
+    #[doc = r" Mount the selected workspace."]
     Workspace,
-    /// Attach the runtime network.
+    #[doc = r" Attach the runtime network."]
     Network,
-    /// Start the sidecar service.
+    #[doc = r" Start the sidecar service."]
     Sidecar,
-    /// Wait for the Capsule daemon.
+    #[doc = r" Wait for the Capsule daemon."]
     Capsule,
-    /// Open the final hardline connection.
+    #[doc = r" Open the final hardline connection."]
     Hardline,
 }
 
 impl Stage {
-    /// All stages in execution order.
+    #[doc = r" All stages in execution order."]
     pub const ALL: [Stage; 11] = [
         Stage::Identity,
         Stage::Role,
@@ -50,7 +50,7 @@ impl Stage {
         Stage::Hardline,
     ];
 
-    /// Human-readable stage label.
+    #[doc = r" Human-readable stage label."]
     pub fn label(self) -> &'static str {
         match self {
             Stage::Identity => "Identity",
@@ -67,12 +67,12 @@ impl Stage {
         }
     }
 
-    /// Zero-based position in [`Self::ALL`].
+    #[doc = r" Zero-based position in [`Self::ALL`]."]
     pub fn index(self) -> usize {
         Stage::ALL.iter().position(|s| *s == self).unwrap_or(0)
     }
 
-    /// Activity text while running (first word upper-cased, trailing `…`).
+    #[doc = r" Activity text while running (first word upper-cased, trailing `…`)."]
     pub fn activity(self, agent: Agent) -> String {
         match self {
             Stage::Identity => "Resolving launch identity…".into(),
@@ -90,99 +90,99 @@ impl Stage {
     }
 }
 
-/// How the fixture wants the pipeline to behave.
+#[doc = r" How the fixture wants the pipeline to behave."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LaunchPlan {
-    /// Every stage succeeds; Agent Binaries is skipped (cached).
+    #[doc = r" Every stage succeeds; Agent Binaries is skipped (cached)."]
     Clean,
-    /// Fails at Network after the build produced output.
+    #[doc = r" Fails at Network after the build produced output."]
     FailNetwork,
-    /// Credentials stage hits a locked 1Password reference (recoverable).
+    #[doc = r" Credentials stage hits a locked 1Password reference (recoverable)."]
     CredentialsLocked,
-    /// Sidecar is Blocked: a modeled-only fixture with no runtime producer.
+    #[doc = r" Sidecar is Blocked: a modeled-only fixture with no runtime producer."]
     BlockedSidecar,
 }
 
-/// Structured failure details for a launch stage.
+#[doc = r" Structured failure details for a launch stage."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LaunchFailure {
-    /// Stage at which the launch stopped.
+    #[doc = r" Stage at which the launch stopped."]
     pub stage: Stage,
-    /// Short operator-facing summary.
+    #[doc = r" Short operator-facing summary."]
     pub summary: String,
-    /// Suggested next action.
+    #[doc = r" Suggested next action."]
     pub next_step: String,
-    /// Detailed deterministic diagnostic lines.
+    #[doc = r" Detailed deterministic diagnostic lines."]
     pub detail: Vec<String>,
 }
 
-/// Event emitted while a [`LaunchRun`] advances.
+#[doc = r" Event emitted while a [`LaunchRun`] advances."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LaunchEvent {
-    /// A stage changed state.
+    #[doc = r" A stage changed state."]
     StageChanged(Stage, StepState),
-    /// Status text for the active stage.
+    #[doc = r" Status text for the active stage."]
     Activity(String),
-    /// One line from the derived-image build log.
+    #[doc = r" One line from the derived-image build log."]
     BuildLine(String),
-    /// The container became available before later stages run.
+    #[doc = r" The container became available before later stages run."]
     ContainerReady(String),
-    /// Credential resolution completed.
+    #[doc = r" Credential resolution completed."]
     CredentialsResolved {
-        /// Credential source description.
+        #[doc = r" Credential source description."]
         origin: String,
-        /// Validation result description.
+        #[doc = r" Validation result description."]
         validation: String,
     },
-    /// Recoverable: the operator may retry or cancel.
+    #[doc = r" Recoverable: the operator may retry or cancel."]
     CredentialError {
-        /// Operator-facing explanation of the credential error.
+        #[doc = r" Operator-facing explanation of the credential error."]
         message: String,
     },
-    /// The pipeline failed at a stage.
+    #[doc = r" The pipeline failed at a stage."]
     Failed(LaunchFailure),
-    /// The pipeline reached the ready state.
+    #[doc = r" The pipeline reached the ready state."]
     Ready,
 }
 
-/// Mutable deterministic state for one launch attempt.
+#[doc = r" Mutable deterministic state for one launch attempt."]
 #[derive(Debug, Clone)]
 pub struct LaunchRun {
-    /// Fixture behavior selected for this run.
+    #[doc = r" Fixture behavior selected for this run."]
     pub plan: LaunchPlan,
-    /// Stable run identifier.
+    #[doc = r" Stable run identifier."]
     pub run_id: RunId,
-    /// Container name shown by the fixture.
+    #[doc = r" Container name shown by the fixture."]
     pub container: String,
-    /// Agent being launched.
+    #[doc = r" Agent being launched."]
     pub agent: Agent,
-    /// State for each stage in [`Stage::ALL`] order.
+    #[doc = r" State for each stage in [`Stage::ALL`] order."]
     pub states: [StepState; 11],
-    /// Duration of each stage in virtual ticks.
+    #[doc = r" Duration of each stage in virtual ticks."]
     pub durations: [u64; 11],
-    /// Current virtual tick.
+    #[doc = r" Current virtual tick."]
     pub tick: u64,
-    /// Tick at which the current stage started.
+    #[doc = r" Tick at which the current stage started."]
     pub stage_start: u64,
-    /// Index of the active stage, if the run has started.
+    #[doc = r" Index of the active stage, if the run has started."]
     pub current: Option<usize>,
-    /// Whether all stages completed successfully.
+    #[doc = r" Whether all stages completed successfully."]
     pub done: bool,
-    /// Failure details, when a stage failed.
+    #[doc = r" Failure details, when a stage failed."]
     pub failure: Option<LaunchFailure>,
-    /// Stage at which a modeled blocked state occurred.
+    #[doc = r" Stage at which a modeled blocked state occurred."]
     pub blocked_at: Option<Stage>,
-    /// Credentials stage paused on an error awaiting a decision.
+    #[doc = r" Credentials stage paused on an error awaiting a decision."]
     pub credential_hold: bool,
-    /// Whether the credential stage was retried.
+    #[doc = r" Whether the credential stage was retried."]
     pub credential_retried: bool,
-    /// Number of build log lines emitted so far.
+    #[doc = r" Number of build log lines emitted so far."]
     pub build_lines_emitted: usize,
-    /// Whether the operator cancelled this run.
+    #[doc = r" Whether the operator cancelled this run."]
     pub cancelled: bool,
 }
 
-/// Fixture Docker build output (ANSI-like markup handled by the viewer).
+#[doc = r" Fixture Docker build output (ANSI-like markup handled by the viewer)."]
 pub const BUILD_LOG: [&str; 44] = [
     "#1 [internal] load build definition from Dockerfile.derived",
     "#1 transferring dockerfile: 2.31kB done",
@@ -231,11 +231,11 @@ pub const BUILD_LOG: [&str; 44] = [
 ];
 
 impl LaunchRun {
-    /// Whether the Construct stage has published the container name.
-    ///
-    /// The name is chosen when the run is created. The debug-info dialog
-    /// shows it only after six ticks of Construct, matching the source
-    /// `ContainerReady` event.
+    #[doc = r" Whether the Construct stage has published the container name."]
+    #[doc = r""]
+    #[doc = r" The name is chosen when the run is created. The debug-info dialog"]
+    #[doc = r" shows it only after six ticks of Construct, matching the source"]
+    #[doc = r" `ContainerReady` event."]
     pub fn container_ready(&self) -> bool {
         let construct = Stage::Construct.index();
         if self
@@ -248,9 +248,8 @@ impl LaunchRun {
         self.current == Some(construct) && self.tick.saturating_sub(self.stage_start) >= 6
     }
 
-    /// Construct a run at virtual tick zero.
+    #[doc = r" Construct a run at virtual tick zero."]
     pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: RunId) -> Self {
-        // durations in ticks (33 ms)
         let durations = [14, 18, 26, 30, 8, 92, 22, 20, 18, 34, 16];
         Self {
             plan,
@@ -272,7 +271,7 @@ impl LaunchRun {
         }
     }
 
-    /// Return `(done, skipped)` stage counts.
+    #[doc = r" Return `(done, skipped)` stage counts."]
     pub fn counts(&self) -> (usize, usize) {
         (
             self.states
@@ -286,19 +285,19 @@ impl LaunchRun {
         )
     }
 
-    /// Whether the run can no longer advance.
+    #[doc = r" Whether the run can no longer advance."]
     pub fn is_terminal(&self) -> bool {
         self.done || self.failure.is_some() || self.blocked_at.is_some() || self.cancelled
     }
 
-    /// The operator retries the credential stage after fixing the source.
+    #[doc = r" The operator retries the credential stage after fixing the source."]
     pub fn retry_credentials(&mut self) {
         self.credential_hold = false;
         self.credential_retried = true;
         self.stage_start = self.tick;
     }
 
-    /// Cancel the run and mark its active stage failed.
+    #[doc = r" Cancel the run and mark its active stage failed."]
     pub fn cancel(&mut self) {
         self.cancelled = true;
         if let Some(i) = self.current
@@ -308,7 +307,7 @@ impl LaunchRun {
         }
     }
 
-    /// Advance one tick; returns the events produced.
+    #[doc = r" Advance one tick; returns the events produced."]
     pub fn advance(&mut self) -> Vec<LaunchEvent> {
         let mut ev = vec![];
         if self.is_terminal() || self.credential_hold {
@@ -335,7 +334,7 @@ impl LaunchRun {
             return ev;
         };
         let elapsed = self.tick - self.stage_start;
-        // stage-specific mid-stage events
+
         match stage {
             Stage::DerivedImage => {
                 let want =
@@ -367,7 +366,7 @@ impl LaunchRun {
         if elapsed < duration {
             return ev;
         }
-        // finish this stage
+
         let final_state = match (self.plan, stage) {
             (_, Stage::AgentBinaries) => StepState::Skipped,
             (LaunchPlan::FailNetwork, Stage::Network) => StepState::Failed,
@@ -432,7 +431,7 @@ impl LaunchRun {
         ev
     }
 
-    /// Seek to a deterministic frame without consulting wall time.
+    #[doc = r" Seek to a deterministic frame without consulting wall time."]
     pub fn seek(&mut self, frame: u64) {
         for _ in 0..frame {
             if self.is_terminal() {

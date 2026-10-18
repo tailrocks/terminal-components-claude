@@ -1,35 +1,35 @@
-//! Deterministic scenario contract: which fixture world the launcher starts
-//! in, how motion behaves, and which tick a paused capture shows.
+#![doc = r" Deterministic scenario contract: which fixture world the launcher starts"]
+#![doc = r" in, how motion behaves, and which tick a paused capture shows."]
 
-/// A deterministic launcher fixture available to the CLI and capture harness.
+#[doc = r" A deterministic launcher fixture available to the CLI and capture harness."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scenario {
-    /// Empty directory on a local dev host: nothing discovered yet.
+    #[doc = r" Empty directory on a local dev host: nothing discovered yet."]
     FirstUse,
-    /// A Rust project with a dirty worktree and a branch behind upstream.
+    #[doc = r" A Rust project with a dirty worktree and a branch behind upstream."]
     RustDirty,
-    /// Monorepository root with bounded child projects and mise tasks.
+    #[doc = r" Monorepository root with bounded child projects and mise tasks."]
     MonorepoRoot,
-    /// Inside `apps/frontend` of the monorepo; parent ecosystem visible.
+    #[doc = r" Inside `apps/frontend` of the monorepo; parent ecosystem visible."]
     MonorepoChild,
-    /// Docker host where the complete-cleanup journey is the point.
+    #[doc = r" Docker host where the complete-cleanup journey is the point."]
     DockerCleanup,
-    /// Disk pressure; progressive analysis and cleanup candidates.
+    #[doc = r" Disk pressure; progressive analysis and cleanup candidates."]
     DiskCleanup,
-    /// Debian host with global mise tools; the upgrade-everything plan.
+    #[doc = r" Debian host with global mise tools; the upgrade-everything plan."]
     UpgradePlan,
-    /// Several named activities running at once (dev server, logs, tests).
+    #[doc = r" Several named activities running at once (dev server, logs, tests)."]
     ActivitiesMulti,
-    /// SSH into a sensitive remote host; stronger identity and gates.
+    #[doc = r" SSH into a sensitive remote host; stronger identity and gates."]
     RemoteHost,
-    /// An action whose simulated execution fails.
+    #[doc = r" An action whose simulated execution fails."]
     LaunchFailure,
-    /// Long labels, missing data, discovery failure, narrow width.
+    #[doc = r" Long labels, missing data, discovery failure, narrow width."]
     HardCases,
 }
 
 impl Scenario {
-    /// Every supported deterministic simulation fixture in CLI inventory order.
+    #[doc = r" Every supported deterministic simulation fixture in CLI inventory order."]
     pub const ALL: [Scenario; 11] = [
         Scenario::FirstUse,
         Scenario::RustDirty,
@@ -44,7 +44,7 @@ impl Scenario {
         Scenario::HardCases,
     ];
 
-    /// Stable CLI and capture-inventory name for this simulation fixture.
+    #[doc = r" Stable CLI and capture-inventory name for this simulation fixture."]
     pub fn name(self) -> &'static str {
         match self {
             Scenario::FirstUse => "first-use",
@@ -66,15 +66,15 @@ impl Scenario {
     }
 }
 
-/// Animation and simulation time policy for the launcher.
+#[doc = r" Animation and simulation time policy for the launcher."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Motion {
-    /// Tick-driven spinners and progressive discovery.
+    #[doc = r" Tick-driven spinners and progressive discovery."]
     #[default]
     Full,
-    /// Static as soon as the fixture settles; ticks still advance time.
+    #[doc = r" Static as soon as the fixture settles; ticks still advance time."]
     Reduced,
-    /// Ticks never advance; `--frame` selects the exact fixture tick shown.
+    #[doc = r" Ticks never advance; `--frame` selects the exact fixture tick shown."]
     Paused,
 }
 
@@ -88,8 +88,8 @@ impl Motion {
         }
     }
 
-    /// Explicit CLI motion wins; otherwise `HOLLA_NO_MOTION` selects the
-    /// reduced path.
+    #[doc = r" Explicit CLI motion wins; otherwise `HOLLA_NO_MOTION` selects the"]
+    #[doc = r" reduced path."]
     pub fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
         match cli {
             Some(m) => m,

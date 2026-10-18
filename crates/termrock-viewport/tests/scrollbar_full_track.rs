@@ -1,4 +1,4 @@
-//! Full-height scrollbar geometry from pinned Holla scrollbar.rs.
+#![doc = r" Full-height scrollbar geometry from pinned Holla scrollbar.rs."]
 use termrock_collections::ScrollState;
 use termrock_core::Id;
 use termrock_runtime::{Rect, ScrollRegion};

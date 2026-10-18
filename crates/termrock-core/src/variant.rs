@@ -1,32 +1,32 @@
-//! Visual variant newtype.
+#![doc = r" Visual variant newtype."]
 
 use crate::id::fnv1a;
 
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 
-/// A variant within a family, the second key of a recipe.
+#[doc = r" A variant within a family, the second key of a recipe."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Variant(u16);
 
 impl Variant {
-    /// The family's default look.
+    #[doc = r" The family's default look."]
     pub const DEFAULT: Variant = Variant(0);
-    /// Primary emphasis.
+    #[doc = r" Primary emphasis."]
     pub const PRIMARY: Variant = Variant(1);
-    /// Secondary emphasis.
+    #[doc = r" Secondary emphasis."]
     pub const SECONDARY: Variant = Variant(2);
-    /// Subtle.
+    #[doc = r" Subtle."]
     pub const SUBTLE: Variant = Variant(3);
-    /// Destructive.
+    #[doc = r" Destructive."]
     pub const DANGER: Variant = Variant(4);
-    /// Toggle.
+    #[doc = r" Toggle."]
     pub const TOGGLE: Variant = Variant(5);
-    /// Quiet.
+    #[doc = r" Quiet."]
     pub const QUIET: Variant = Variant(6);
-    /// Ghost.
+    #[doc = r" Ghost."]
     pub const GHOST: Variant = Variant(7);
 
-    /// Every library constant, in declaration order.
+    #[doc = r" Every library constant, in declaration order."]
     pub const ALL: &'static [Variant] = &[
         Variant::DEFAULT,
         Variant::PRIMARY,
@@ -38,13 +38,13 @@ impl Variant {
         Variant::GHOST,
     ];
 
-    /// A custom value named by a downstream author; lands in the high range.
+    #[doc = r" A custom value named by a downstream author; lands in the high range."]
     pub const fn custom(name: &'static str) -> Variant {
         let h = fnv1a(FNV_OFFSET, name.as_bytes());
         Variant(0x8000 | ((h as u16) & 0x7FFF))
     }
 
-    /// The library name, or `None` for a custom value.
+    #[doc = r" The library name, or `None` for a custom value."]
     pub const fn name(self) -> Option<&'static str> {
         match self {
             Variant::DEFAULT => Some("DEFAULT"),
@@ -59,7 +59,7 @@ impl Variant {
         }
     }
 
-    /// The raw index / hash value.
+    #[doc = r" The raw index / hash value."]
     pub const fn raw(self) -> u16 {
         self.0
     }

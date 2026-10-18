@@ -1,53 +1,53 @@
-//! Provider accounts and API-key profiles: identity, credential source
-//! metadata (never secret material), lifecycle, validation, usage.
+#![doc = r" Provider accounts and API-key profiles: identity, credential source"]
+#![doc = r" metadata (never secret material), lifecycle, validation, usage."]
 
 use super::agent::{Agent, Provider, UsageSurface};
 use super::onepassword::OpReference;
 use super::usage::{AccountUsage, Freshness};
 
-/// Stable identifier for an account in a registry or workspace policy.
+#[doc = r" Stable identifier for an account in a registry or workspace policy."]
 pub type AccountId = String;
 
-/// Indicates whether an account was configured or discovered on the host.
+#[doc = r" Indicates whether an account was configured or discovered on the host."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccountOrigin {
-    /// Created in the Center; editable, removable.
+    #[doc = r" Created in the Center; editable, removable."]
     Registered,
-    /// Found by simulated host discovery; read-only.
+    #[doc = r" Found by simulated host discovery; read-only."]
     Discovered,
 }
 
-/// Describes where an account obtains its credentials.
+#[doc = r" Describes where an account obtains its credentials."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CredentialSource {
-    /// Reference to credential metadata stored in 1Password.
+    #[doc = r" Reference to credential metadata stored in 1Password."]
     OnePassword(OpReference),
-    /// Credential or profile material found in a local folder.
+    #[doc = r" Credential or profile material found in a local folder."]
     LocalFolder {
-        /// Folder path containing the detected material.
+        #[doc = r" Folder path containing the detected material."]
         path: String,
-        /// Kind of material detected in the folder.
+        #[doc = r" Kind of material detected in the folder."]
         detected: DetectedKind,
     },
-    /// Synthetic metadata for a plain API key; secret bytes are not stored.
+    #[doc = r" Synthetic metadata for a plain API key; secret bytes are not stored."]
     PlainApiKey {
-        /// 8 hex chars, deterministic from the fixture handle; never derived
-        /// from the secret bytes.
+        #[doc = r" 8 hex chars, deterministic from the fixture handle; never derived"]
+        #[doc = r" from the secret bytes."]
         fingerprint: String,
-        /// Exactly four synthetic characters shown as `…k7Qz`.
+        #[doc = r" Exactly four synthetic characters shown as `…k7Qz`."]
         tail: String,
     },
-    /// Credential exposed through a host environment variable.
+    #[doc = r" Credential exposed through a host environment variable."]
     HostEnv {
-        /// Name of the environment variable.
+        #[doc = r" Name of the environment variable."]
         var: String,
-        /// Kind of material detected from the variable.
+        #[doc = r" Kind of material detected from the variable."]
         detected: DetectedKind,
     },
 }
 
 impl CredentialSource {
-    /// Return the operator-facing label for this credential source.
+    #[doc = r" Return the operator-facing label for this credential source."]
     pub fn origin_label(&self) -> &'static str {
         match self {
             CredentialSource::OnePassword(_) => "1Password",
@@ -57,7 +57,7 @@ impl CredentialSource {
         }
     }
 
-    /// Non-secret detail: reference path, folder path, or key fingerprint.
+    #[doc = r" Non-secret detail: reference path, folder path, or key fingerprint."]
     pub fn safe_detail(&self) -> String {
         match self {
             CredentialSource::OnePassword(r) => r.display_path(),
@@ -70,13 +70,13 @@ impl CredentialSource {
     }
 }
 
-/// `••••••••…k7Qz`
+#[doc = r" `••••••••…k7Qz`"]
 pub fn masked(tail: &str) -> String {
     format!("••••••••…{tail}")
 }
 
-/// Deterministic 8-hex fingerprint of a fixture key (not of secret bytes
-/// in the real product; here of the synthetic value so duplicates match).
+#[doc = r" Deterministic 8-hex fingerprint of a fixture key (not of secret bytes"]
+#[doc = r" in the real product; here of the synthetic value so duplicates match)."]
 pub fn fingerprint(value: &str) -> String {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for b in value.bytes() {
@@ -86,39 +86,39 @@ pub fn fingerprint(value: &str) -> String {
     format!("{:08x}", (h >> 32) as u32 ^ h as u32)
 }
 
-/// Last four characters of a typed key become the synthetic tail.
+#[doc = r" Last four characters of a typed key become the synthetic tail."]
 pub fn tail_of(value: &str) -> String {
     let n = value.chars().count();
     value.chars().skip(n.saturating_sub(4)).collect()
 }
 
-/// Kind of credential or profile material detected by discovery.
+#[doc = r" Kind of credential or profile material detected by discovery."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetectedKind {
-    /// Claude OAuth profile data.
+    #[doc = r" Claude OAuth profile data."]
     ClaudeOAuthProfile,
-    /// Claude API key environment variable.
+    #[doc = r" Claude API key environment variable."]
     ClaudeApiKeyEnv,
-    /// Codex `auth.json` data.
+    #[doc = r" Codex `auth.json` data."]
     CodexAuthJson,
-    /// Grok `auth.json` data.
+    #[doc = r" Grok `auth.json` data."]
     GrokAuthJson,
-    /// OpenCode Go `auth.json` data.
+    #[doc = r" OpenCode Go `auth.json` data."]
     OpenCodeGoAuthJson,
-    /// Amp `secrets.json` data.
+    #[doc = r" Amp `secrets.json` data."]
     AmpSecrets,
-    /// Z.AI API key environment variable.
+    #[doc = r" Z.AI API key environment variable."]
     ZaiApiKeyEnv,
-    /// Kimi API key environment variable.
+    #[doc = r" Kimi API key environment variable."]
     KimiApiKeyEnv,
-    /// MiniMax token environment variable.
+    #[doc = r" MiniMax token environment variable."]
     MinimaxTokenEnv,
-    /// Material whose provider-specific kind is not recognised.
+    #[doc = r" Material whose provider-specific kind is not recognised."]
     Unknown,
 }
 
 impl DetectedKind {
-    /// Return the operator-facing label for this detected kind.
+    #[doc = r" Return the operator-facing label for this detected kind."]
     pub fn label(self) -> &'static str {
         match self {
             DetectedKind::ClaudeOAuthProfile => "Claude OAuth profile",
@@ -134,7 +134,7 @@ impl DetectedKind {
         }
     }
 
-    /// Map the detected kind to its provider, when known.
+    #[doc = r" Map the detected kind to its provider, when known."]
     pub fn provider(self) -> Option<Provider> {
         match self {
             DetectedKind::ClaudeOAuthProfile | DetectedKind::ClaudeApiKeyEnv => {
@@ -152,15 +152,15 @@ impl DetectedKind {
     }
 }
 
-/// Identity information associated with an account.
+#[doc = r" Identity information associated with an account."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IdentitySubject {
-    /// A provider- or service-specific display handle.
+    #[doc = r" A provider- or service-specific display handle."]
     Handle(String),
 }
 
 impl IdentitySubject {
-    /// Return the display text for this identity subject.
+    #[doc = r" Return the display text for this identity subject."]
     pub fn label(&self) -> &str {
         match self {
             IdentitySubject::Handle(s) => s,
@@ -168,17 +168,17 @@ impl IdentitySubject {
     }
 }
 
-/// Optional identity and plan metadata for an account.
+#[doc = r" Optional identity and plan metadata for an account."]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AccountIdentity {
-    /// Provider-reported or fixture-provided identity subject.
+    #[doc = r" Provider-reported or fixture-provided identity subject."]
     pub subject: Option<IdentitySubject>,
-    /// Human-readable plan or subscription label.
+    #[doc = r" Human-readable plan or subscription label."]
     pub plan: Option<String>,
 }
 
 impl AccountIdentity {
-    /// Return the subject label, or a stable unresolved label when absent.
+    #[doc = r" Return the subject label, or a stable unresolved label when absent."]
     pub fn label(&self) -> String {
         match &self.subject {
             Some(s) => s.label().to_owned(),
@@ -187,17 +187,17 @@ impl AccountIdentity {
     }
 }
 
-/// Source provenance attached to an account observation.
+#[doc = r" Source provenance attached to an account observation."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Provenance {
-    /// Data came from a configured credential source.
+    #[doc = r" Data came from a configured credential source."]
     ConfiguredSource,
-    /// Data came from live host discovery.
+    #[doc = r" Data came from live host discovery."]
     LiveHost,
 }
 
 impl Provenance {
-    /// Return the operator-facing label for this provenance.
+    #[doc = r" Return the operator-facing label for this provenance."]
     pub fn label(self) -> &'static str {
         match self {
             Provenance::ConfiguredSource => "configured source",
@@ -206,21 +206,21 @@ impl Provenance {
     }
 }
 
-/// Confidence level for the account data currently available.
+#[doc = r" Confidence level for the account data currently available."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Confidence {
-    /// The provider verified the account and its data.
+    #[doc = r" The provider verified the account and its data."]
     Authoritative,
-    /// The value was inferred or estimated.
+    #[doc = r" The value was inferred or estimated."]
     Estimated,
-    /// Presence was detected without identity or quota verification.
+    #[doc = r" Presence was detected without identity or quota verification."]
     PresenceOnly,
-    /// No confidence has been established.
+    #[doc = r" No confidence has been established."]
     None,
 }
 
 impl Confidence {
-    /// Return the operator-facing label for this confidence level.
+    #[doc = r" Return the operator-facing label for this confidence level."]
     pub fn label(self) -> &'static str {
         match self {
             Confidence::Authoritative => "authoritative",
@@ -231,27 +231,27 @@ impl Confidence {
     }
 }
 
-/// Current account or provider lifecycle state.
+#[doc = r" Current account or provider lifecycle state."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Lifecycle {
-    /// Credentials and provider data are usable.
+    #[doc = r" Credentials and provider data are usable."]
     Available,
-    /// The agent has not yet been initialized.
+    #[doc = r" The agent has not yet been initialized."]
     AgentUninitialized,
-    /// Interactive login is required.
+    #[doc = r" Interactive login is required."]
     NeedsLogin,
-    /// A secret is required before use.
+    #[doc = r" A secret is required before use."]
     NeedsSecret,
-    /// The provider or source is not supported.
+    #[doc = r" The provider or source is not supported."]
     Unsupported,
-    /// The provider or source is currently unavailable.
+    #[doc = r" The provider or source is currently unavailable."]
     Unavailable,
-    /// A validation or provider error occurred.
+    #[doc = r" A validation or provider error occurred."]
     Error,
 }
 
 impl Lifecycle {
-    /// Return the operator-facing label for this lifecycle state.
+    #[doc = r" Return the operator-facing label for this lifecycle state."]
     pub fn label(self) -> &'static str {
         match self {
             Lifecycle::Available => "available",
@@ -265,19 +265,19 @@ impl Lifecycle {
     }
 }
 
-/// Highest validation milestone reached by an account.
+#[doc = r" Highest validation milestone reached by an account."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ValidationLevel {
-    /// Credential material was found.
+    #[doc = r" Credential material was found."]
     MaterialDiscovered,
-    /// Provider identity was authenticated.
+    #[doc = r" Provider identity was authenticated."]
     IdentityAuthenticated,
-    /// Provider quota data was read successfully.
+    #[doc = r" Provider quota data was read successfully."]
     QuotaReadable,
 }
 
 impl ValidationLevel {
-    /// Return the operator-facing label for this validation level.
+    #[doc = r" Return the operator-facing label for this validation level."]
     pub fn label(self) -> &'static str {
         match self {
             ValidationLevel::MaterialDiscovered => "material discovered",
@@ -287,24 +287,24 @@ impl ValidationLevel {
     }
 }
 
-/// State of the most recent account validation attempt.
+#[doc = r" State of the most recent account validation attempt."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidationState {
-    /// No validation has been attempted.
+    #[doc = r" No validation has been attempted."]
     NeverValidated,
-    /// Validation is in progress, identified by its start tick.
+    #[doc = r" Validation is in progress, identified by its start tick."]
     Validating {
-        /// Tick at which validation started.
+        #[doc = r" Tick at which validation started."]
         started_tick: u64,
     },
-    /// Validation succeeded at the given level.
+    #[doc = r" Validation succeeded at the given level."]
     Valid(ValidationLevel),
-    /// Validation failed with a recoverable issue.
+    #[doc = r" Validation failed with a recoverable issue."]
     Invalid(RecoverableIssue),
 }
 
 impl ValidationState {
-    /// Return a compact operator-facing description of this state.
+    #[doc = r" Return a compact operator-facing description of this state."]
     pub fn label(&self) -> String {
         match self {
             ValidationState::NeverValidated => "never validated".into(),
@@ -314,7 +314,7 @@ impl ValidationState {
         }
     }
 
-    /// Return the successful validation level, if validation succeeded.
+    #[doc = r" Return the successful validation level, if validation succeeded."]
     pub fn level(&self) -> Option<ValidationLevel> {
         match self {
             ValidationState::Valid(l) => Some(*l),
@@ -323,62 +323,62 @@ impl ValidationState {
     }
 }
 
-/// Stable code identifying a recoverable account issue.
+#[doc = r" Stable code identifying a recoverable account issue."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IssueCode {
-    /// The provider does not expose quota data for this source.
+    #[doc = r" The provider does not expose quota data for this source."]
     QuotaUnsupported,
-    /// A configured credential folder is missing.
+    #[doc = r" A configured credential folder is missing."]
     FolderMissing,
-    /// A configured credential folder cannot be read.
+    #[doc = r" A configured credential folder cannot be read."]
     FolderUnreadable,
-    /// A detected folder belongs to another provider.
+    #[doc = r" A detected folder belongs to another provider."]
     FolderWrongProvider,
-    /// A required credential file is missing.
+    #[doc = r" A required credential file is missing."]
     CredentialFileMissing,
-    /// Credential file contents are malformed.
+    #[doc = r" Credential file contents are malformed."]
     CredentialMalformed,
-    /// The supplied API key is empty.
+    #[doc = r" The supplied API key is empty."]
     ApiKeyEmpty,
-    /// The supplied API key is invalid.
+    #[doc = r" The supplied API key is invalid."]
     ApiKeyInvalid,
-    /// 1Password is locked.
+    #[doc = r" 1Password is locked."]
     OpLocked,
-    /// 1Password authorization is required.
+    #[doc = r" 1Password authorization is required."]
     OpAuthorizationRequired,
-    /// 1Password denied access.
+    #[doc = r" 1Password denied access."]
     OpPermissionDenied,
-    /// The referenced 1Password item is missing.
+    #[doc = r" The referenced 1Password item is missing."]
     OpItemMissing,
-    /// The referenced 1Password field is missing.
+    #[doc = r" The referenced 1Password field is missing."]
     OpFieldMissing,
-    /// The 1Password item belongs to another provider.
+    #[doc = r" The 1Password item belongs to another provider."]
     OpProviderMismatch,
-    /// The provider rejected the credential.
+    #[doc = r" The provider rejected the credential."]
     Unauthorized,
-    /// The provider asked the caller to retry later.
+    #[doc = r" The provider asked the caller to retry later."]
     RateLimited,
-    /// The provider is temporarily unavailable.
+    #[doc = r" The provider is temporarily unavailable."]
     ProviderUnavailable,
-    /// Previously valid usage data is stale.
+    #[doc = r" Previously valid usage data is stale."]
     Stale,
-    /// The account identity could not be resolved.
+    #[doc = r" The account identity could not be resolved."]
     IdentityUnresolved,
 }
 
-/// Indicates how an account issue can be addressed.
+#[doc = r" Indicates how an account issue can be addressed."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Recoverability {
-    /// Retrying may resolve the issue without user action.
+    #[doc = r" Retrying may resolve the issue without user action."]
     Retryable,
-    /// The operator must change credentials or configuration.
+    #[doc = r" The operator must change credentials or configuration."]
     ActionRequired,
-    /// The requested capability is not supported.
+    #[doc = r" The requested capability is not supported."]
     Unsupported,
 }
 
 impl Recoverability {
-    /// Return the operator-facing label for this recoverability category.
+    #[doc = r" Return the operator-facing label for this recoverability category."]
     pub fn label(self) -> &'static str {
         match self {
             Recoverability::Retryable => "retryable",
@@ -388,23 +388,23 @@ impl Recoverability {
     }
 }
 
-/// Structured issue information retained with an account.
+#[doc = r" Structured issue information retained with an account."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoverableIssue {
-    /// Stable issue classification.
+    #[doc = r" Stable issue classification."]
     pub code: IssueCode,
-    /// Human-readable issue summary.
+    #[doc = r" Human-readable issue summary."]
     pub message: String,
-    /// Optional additional operator detail.
+    #[doc = r" Optional additional operator detail."]
     pub detail: Option<String>,
-    /// Expected remediation category.
+    #[doc = r" Expected remediation category."]
     pub recoverability: Recoverability,
-    /// Optional absolute retry time in fixture seconds.
+    #[doc = r" Optional absolute retry time in fixture seconds."]
     pub retry_secs: Option<i64>,
 }
 
 impl RecoverableIssue {
-    /// Create an issue with no detail or retry time.
+    #[doc = r" Create an issue with no detail or retry time."]
     pub fn new(code: IssueCode, message: impl Into<String>, rec: Recoverability) -> Self {
         Self {
             code,
@@ -414,77 +414,77 @@ impl RecoverableIssue {
             retry_secs: None,
         }
     }
-    /// Add operator-facing detail to this issue.
+    #[doc = r" Add operator-facing detail to this issue."]
     pub fn detail(mut self, d: impl Into<String>) -> Self {
         self.detail = Some(d.into());
         self
     }
-    /// Add the absolute fixture time at which retrying is appropriate.
+    #[doc = r" Add the absolute fixture time at which retrying is appropriate."]
     pub fn retry(mut self, secs: i64) -> Self {
         self.retry_secs = Some(secs);
         self
     }
 
-    /// Issues that are status, not errors.
+    #[doc = r" Issues that are status, not errors."]
     pub fn is_informational(&self) -> bool {
         matches!(self.code, IssueCode::Stale | IssueCode::IdentityUnresolved)
     }
 }
 
-/// Provider endpoint metadata associated with an account.
+#[doc = r" Provider endpoint metadata associated with an account."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Endpoint {
-    /// Display label for the endpoint or deployment.
+    #[doc = r" Display label for the endpoint or deployment."]
     pub label: String,
-    /// Endpoint host or URL.
+    #[doc = r" Endpoint host or URL."]
     pub host: String,
 }
 
-/// Account record combining identity, credentials, lifecycle, and usage.
+#[doc = r" Account record combining identity, credentials, lifecycle, and usage."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Account {
-    /// Stable registry identifier.
+    #[doc = r" Stable registry identifier."]
     pub id: AccountId,
-    /// Origin of this account record.
+    #[doc = r" Origin of this account record."]
     pub origin: AccountOrigin,
-    /// Operator-supplied display name.
+    #[doc = r" Operator-supplied display name."]
     pub display_name: String,
-    /// Agent runtime associated with the provider, when one exists.
+    #[doc = r" Agent runtime associated with the provider, when one exists."]
     pub agent: Option<Agent>,
-    /// Provider adapter represented by the account.
+    #[doc = r" Provider adapter represented by the account."]
     pub provider: Provider,
-    /// Usage registry surface associated with the provider.
+    #[doc = r" Usage registry surface associated with the provider."]
     pub surface: UsageSurface,
-    /// Credential source metadata.
+    #[doc = r" Credential source metadata."]
     pub source: CredentialSource,
-    /// Optional provider identity and plan metadata.
+    #[doc = r" Optional provider identity and plan metadata."]
     pub identity: AccountIdentity,
-    /// Sources that contributed observations to this record.
+    #[doc = r" Sources that contributed observations to this record."]
     pub provenance: Vec<Provenance>,
-    /// Confidence in the account data.
+    #[doc = r" Confidence in the account data."]
     pub confidence: Confidence,
-    /// Current account lifecycle state.
+    #[doc = r" Current account lifecycle state."]
     pub lifecycle: Lifecycle,
-    /// Optional operator purpose or note.
+    #[doc = r" Optional operator purpose or note."]
     pub purpose: Option<String>,
-    /// Whether the account may be selected.
+    #[doc = r" Whether the account may be selected."]
     pub enabled: bool,
-    /// Whether this is the provider-wide default account.
+    #[doc = r" Whether this is the provider-wide default account."]
     pub default_for_provider: bool,
-    /// Most recent validation state.
+    #[doc = r" Most recent validation state."]
     pub validation: ValidationState,
-    /// Last successful refresh time in fixture seconds.
+    #[doc = r" Last successful refresh time in fixture seconds."]
     pub last_refresh_secs: Option<i64>,
-    /// Current recoverable issue, if any.
+    #[doc = r" Current recoverable issue, if any."]
     pub issue: Option<RecoverableIssue>,
-    /// Endpoint metadata, currently supported only for xAI fixtures.
+    #[doc = r" Endpoint metadata, currently supported only for xAI fixtures."]
     pub endpoint: Option<Endpoint>,
-    /// Usage and freshness data for the account.
+    #[doc = r" Usage and freshness data for the account."]
     pub usage: AccountUsage,
 }
 
 impl Account {
-    /// Construct an enabled account configured by the operator.
+    #[doc = r" Construct an enabled account configured by the operator."]
     pub fn registered(id: &str, name: &str, provider: Provider, source: CredentialSource) -> Self {
         Self {
             id: id.to_owned(),
@@ -509,7 +509,7 @@ impl Account {
         }
     }
 
-    /// Construct an account discovered from the live host.
+    #[doc = r" Construct an account discovered from the live host."]
     pub fn discovered(id: &str, name: &str, provider: Provider, source: CredentialSource) -> Self {
         let mut a = Self::registered(id, name, provider, source);
         a.origin = AccountOrigin::Discovered;
@@ -517,7 +517,7 @@ impl Account {
         a
     }
 
-    /// Attach endpoint metadata when the provider supports endpoints.
+    #[doc = r" Attach endpoint metadata when the provider supports endpoints."]
     pub fn with_endpoint(mut self, label: &str, host: &str) -> Self {
         if self.provider.supports_endpoint() {
             self.endpoint = Some(Endpoint {
@@ -528,19 +528,19 @@ impl Account {
         self
     }
 
-    /// Return whether this account may be edited or removed.
+    #[doc = r" Return whether this account may be edited or removed."]
     pub fn mutations_allowed(&self) -> bool {
         self.origin == AccountOrigin::Registered
     }
 
-    /// Return the compact title used for account rows.
-    /// `Codex · Primary`
+    #[doc = r" Return the compact title used for account rows."]
+    #[doc = r" `Codex · Primary`"]
     pub fn title(&self) -> String {
         format!("{} · {}", self.surface.surface_name(), self.display_name)
     }
 
-    /// Return the highest-priority status word for the account row.
-    /// Row status word: exhausted > error > needs … > warning > stale > refreshing > ok.
+    #[doc = r" Return the highest-priority status word for the account row."]
+    #[doc = r" Row status word: exhausted > error > needs … > warning > stale > refreshing > ok."]
     pub fn status_word(&self) -> &'static str {
         if !self.enabled {
             return "disabled";
@@ -570,7 +570,7 @@ impl Account {
         }
     }
 
-    /// Return whether the account or its usage is in an error-like state.
+    #[doc = r" Return whether the account or its usage is in an error-like state."]
     pub fn is_error_state(&self) -> bool {
         matches!(
             self.lifecycle,
@@ -582,72 +582,72 @@ impl Account {
     }
 }
 
-/// Criterion used to detect an account duplicate.
+#[doc = r" Criterion used to detect an account duplicate."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DuplicateProbe {
-    /// Match a local-folder source by provider and path.
+    #[doc = r" Match a local-folder source by provider and path."]
     Folder {
-        /// Provider expected for the folder.
+        #[doc = r" Provider expected for the folder."]
         provider: Provider,
-        /// Folder path to match.
+        #[doc = r" Folder path to match."]
         path: String,
     },
-    /// Match a 1Password source by canonical reference and account.
+    #[doc = r" Match a 1Password source by canonical reference and account."]
     OpReference {
-        /// Canonical 1Password reference.
+        #[doc = r" Canonical 1Password reference."]
         canonical: String,
-        /// 1Password account domain or identifier.
+        #[doc = r" 1Password account domain or identifier."]
         account: String,
     },
-    /// Match a plain API key by provider and fingerprint.
+    #[doc = r" Match a plain API key by provider and fingerprint."]
     KeyFingerprint {
-        /// Provider expected for the key.
+        #[doc = r" Provider expected for the key."]
         provider: Provider,
-        /// Non-secret key fingerprint.
+        #[doc = r" Non-secret key fingerprint."]
         fingerprint: String,
     },
-    /// Match an account by usage surface and identity subject.
+    #[doc = r" Match an account by usage surface and identity subject."]
     Identity {
-        /// Usage surface to match.
+        #[doc = r" Usage surface to match."]
         surface: UsageSurface,
-        /// Identity subject to match.
+        #[doc = r" Identity subject to match."]
         subject: IdentitySubject,
     },
 }
 
-/// Mutable collection of account records with a change revision.
+#[doc = r" Mutable collection of account records with a change revision."]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AccountRegistry {
-    /// Accounts in insertion order.
+    #[doc = r" Accounts in insertion order."]
     pub accounts: Vec<Account>,
-    /// Incremented whenever the registry is mutated.
+    #[doc = r" Incremented whenever the registry is mutated."]
     pub revision: u64,
 }
 
 impl AccountRegistry {
-    /// Find an account by stable identifier.
+    #[doc = r" Find an account by stable identifier."]
     pub fn get(&self, id: &str) -> Option<&Account> {
         self.accounts.iter().find(|a| a.id == id)
     }
 
-    /// Find an account by stable identifier for mutation.
+    #[doc = r" Find an account by stable identifier for mutation."]
     pub fn get_mut(&mut self, id: &str) -> Option<&mut Account> {
         self.accounts.iter_mut().find(|a| a.id == id)
     }
 
-    /// Iterate over accounts belonging to a provider.
+    #[doc = r" Iterate over accounts belonging to a provider."]
     pub fn by_provider(&self, p: Provider) -> impl Iterator<Item = &Account> {
         self.accounts.iter().filter(move |a| a.provider == p)
     }
 
-    /// Return the enabled provider default, if one is set.
+    #[doc = r" Return the enabled provider default, if one is set."]
     pub fn default_for(&self, p: Provider) -> Option<&Account> {
         self.accounts
             .iter()
             .find(|a| a.provider == p && a.default_for_provider && a.enabled)
     }
 
-    /// Return the first enabled, available account discovered on the host.
+    #[doc = r" Return the first enabled, available account discovered on the host."]
     pub fn discovered_current(&self, p: Provider) -> Option<&Account> {
         self.accounts.iter().find(|a| {
             a.provider == p
@@ -657,7 +657,7 @@ impl AccountRegistry {
         })
     }
 
-    /// Find the first account matching a duplicate probe.
+    #[doc = r" Find the first account matching a duplicate probe."]
     pub fn find_duplicate(&self, probe: &DuplicateProbe) -> Option<&Account> {
         self.accounts.iter().find(|a| match probe {
             DuplicateProbe::Folder { provider, path } => {
@@ -680,8 +680,8 @@ impl AccountRegistry {
         })
     }
 
-    /// Check whether a provider already uses a display name, excluding one id.
-    /// Soft warning: same display name for the same provider.
+    #[doc = r" Check whether a provider already uses a display name, excluding one id."]
+    #[doc = r" Soft warning: same display name for the same provider."]
     pub fn name_taken(&self, provider: Provider, name: &str, except: Option<&str>) -> bool {
         self.accounts.iter().any(|a| {
             a.provider == provider
@@ -690,12 +690,12 @@ impl AccountRegistry {
         })
     }
 
-    /// Make an enabled account the only default for its provider.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the account does not exist or is disabled.
-    /// One default per provider: clears the sibling.
+    #[doc = r" Make an enabled account the only default for its provider."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r""]
+    #[doc = r" Returns an error when the account does not exist or is disabled."]
+    #[doc = r" One default per provider: clears the sibling."]
     pub fn set_default(&mut self, id: &str) -> Result<(), String> {
         let Some(target) = self.get(id) else {
             return Err("account not found".into());
@@ -713,21 +713,21 @@ impl AccountRegistry {
         Ok(())
     }
 
-    /// Remove an account by id and return it when present.
+    #[doc = r" Remove an account by id and return it when present."]
     pub fn remove(&mut self, id: &str) -> Option<Account> {
         let i = self.accounts.iter().position(|a| a.id == id)?;
         self.revision += 1;
         Some(self.accounts.remove(i))
     }
 
-    /// Insert an account and advance the registry revision.
+    #[doc = r" Insert an account and advance the registry revision."]
     pub fn insert(&mut self, account: Account) {
         self.accounts.push(account);
         self.revision += 1;
     }
 
-    /// Return accounts in surface order, with defaults before names.
-    /// Registry order: surface registry order, defaults first, then name.
+    #[doc = r" Return accounts in surface order, with defaults before names."]
+    #[doc = r" Registry order: surface registry order, defaults first, then name."]
     pub fn sorted(&self) -> Vec<&Account> {
         let mut v: Vec<&Account> = self.accounts.iter().collect();
         v.sort_by(|a, b| {

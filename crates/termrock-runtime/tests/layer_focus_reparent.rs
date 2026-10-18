@@ -1,4 +1,4 @@
-//! Initial layer focus must be judged against its new published placement.
+#![doc = r" Initial layer focus must be judged against its new published placement."]
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::buffer::Buffer;
 use termrock::{

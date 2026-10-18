@@ -1,35 +1,35 @@
-//! Jackin-preview app-journey suite, slice 1 (VB Phase-7e, §15) — impl port.
-//!
-//! Ported verbatim from VB commit `41ef28cca744998c8af936e758856ecb2d4b48e3`
-//! (`tests/harness/tests/visual_baseline/jackin_journeys.rs`), adapting
-//! only paths, binary resolution, and harness API:
-//!
-//! - `Session` is the impl [`support::Session`] wrapper (live samples via
-//!   `s.inner.observe_now()`), not `tuiscotti::tui::Session` directly.
-//! - The subject is the `jackin-preview` binary built from this impl
-//!   worktree's sources, resolved via [`support::try_resolve_bin`]
-//!   (name → executed path + sha256); [`write_provenance`] records path,
-//!   digest, size, mtime, and argv behind each journey.
-//! - `support::drive` (3-arg) becomes [`support::drive_with_timeout`]
-//!   (timeout in ms); single steps use [`support::press_step`].
-//! - The `--help` enumeration shells the resolved binary path (impl
-//!   `JACKIN` is a name, not a `CARGO_BIN_EXE_*` absolute path).
-//!
-//! Multi-step PTY journeys assert needle state across steps — they never
-//! gate snapshots, so every case here uses owned (dynamic) names: the
-//! approval-inventory parser in [`crate::support::suite_capture_names`]
-//! only expands the vendored case registry (never suite sources), and
-//! journey names stay out of the committed `snapshots/` inventory.
-//!
-//! Per-test scratch (checkpoints + provenance) lands under this
-//! conformance crate's `target/tuiscotti/journeys/<test>/` (gitignored,
-//! unique per test fn). Checkpoints are text frames (`.txt`);
-//! `provenance.txt` records the binary identity and argv behind each
-//! journey. Typed input is synthetic and in-memory only (simulation data).
-//! Journeys never launch a real container, never log into an account, and
-//! never perform destructive operations: the save flow cancels its preview
-//! dialog (`Not saved · keep editing`), the failure flow only closes the
-//! frozen-failure dialog, and every world is the fixture simulation.
+#![doc = r" Jackin-preview app-journey suite, slice 1 (VB Phase-7e, §15) — impl port."]
+#![doc = r""]
+#![doc = r" Ported verbatim from VB commit `41ef28cca744998c8af936e758856ecb2d4b48e3`"]
+#![doc = r" (`tests/harness/tests/visual_baseline/jackin_journeys.rs`), adapting"]
+#![doc = r" only paths, binary resolution, and harness API:"]
+#![doc = r""]
+#![doc = r" - `Session` is the impl [`support::Session`] wrapper (live samples via"]
+#![doc = r"   `s.inner.observe_now()`), not `tuiscotti::tui::Session` directly."]
+#![doc = r" - The subject is the `jackin-preview` binary built from this impl"]
+#![doc = r"   worktree's sources, resolved via [`support::try_resolve_bin`]"]
+#![doc = r"   (name → executed path + sha256); [`write_provenance`] records path,"]
+#![doc = r"   digest, size, mtime, and argv behind each journey."]
+#![doc = r" - `support::drive` (3-arg) becomes [`support::drive_with_timeout`]"]
+#![doc = r"   (timeout in ms); single steps use [`support::press_step`]."]
+#![doc = r" - The `--help` enumeration shells the resolved binary path (impl"]
+#![doc = r"   `JACKIN` is a name, not a `CARGO_BIN_EXE_*` absolute path)."]
+#![doc = r""]
+#![doc = r" Multi-step PTY journeys assert needle state across steps — they never"]
+#![doc = r" gate snapshots, so every case here uses owned (dynamic) names: the"]
+#![doc = r" approval-inventory parser in [`crate::support::suite_capture_names`]"]
+#![doc = r" only expands the vendored case registry (never suite sources), and"]
+#![doc = r" journey names stay out of the committed `snapshots/` inventory."]
+#![doc = r""]
+#![doc = r" Per-test scratch (checkpoints + provenance) lands under this"]
+#![doc = r" conformance crate's `target/tuiscotti/journeys/<test>/` (gitignored,"]
+#![doc = r" unique per test fn). Checkpoints are text frames (`.txt`);"]
+#![doc = r" `provenance.txt` records the binary identity and argv behind each"]
+#![doc = r" journey. Typed input is synthetic and in-memory only (simulation data)."]
+#![doc = r" Journeys never launch a real container, never log into an account, and"]
+#![doc = r" never perform destructive operations: the save flow cancels its preview"]
+#![doc = r" dialog (`Not saved · keep editing`), the failure flow only closes the"]
+#![doc = r" frozen-failure dialog, and every world is the fixture simulation."]
 
 use std::path::{Path, PathBuf};
 
@@ -42,10 +42,10 @@ const BOOT_FAILURE: &str = "Launch failed";
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
 
-/// Core routes visited in journey 1: argv, checkpoint slug, and the route
-/// needles that prove each boot landed in its own fixture world (header
-/// plus one content line, both read off the approved `jackin/scenarios/`
-/// frames these argvs reproduce).
+#[doc = r" Core routes visited in journey 1: argv, checkpoint slug, and the route"]
+#[doc = r" needles that prove each boot landed in its own fixture world (header"]
+#[doc = r" plus one content line, both read off the approved `jackin/scenarios/`"]
+#[doc = r" frames these argvs reproduce)."]
 const ROUTES: [(&[&str], &str, &[&str]); 2] = [
     (
         &[
@@ -76,7 +76,7 @@ const ROUTES: [(&[&str], &str, &[&str]); 2] = [
     ),
 ];
 
-/// Owned-name journey case at the canonical 120x40 truecolor geometry.
+#[doc = r" Owned-name journey case at the canonical 120x40 truecolor geometry."]
 fn journey_case(name: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
         format!("journeys/jackin/{name}"),
@@ -89,7 +89,7 @@ fn journey_case(name: &str, args: &'static [&'static str], boot: &'static str) -
     )
 }
 
-/// Unique scratch dir for one journey test (created, never shared).
+#[doc = r" Unique scratch dir for one journey test (created, never shared)."]
 fn journey_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -98,15 +98,15 @@ fn journey_dir(test: &str) -> PathBuf {
     dir
 }
 
-/// Record the binary identity behind a journey: resolved absolute path,
-/// sha256 digest, byte size, mtime, and argv. Written to
-/// `provenance.txt`, echoed too.
+#[doc = r" Record the binary identity behind a journey: resolved absolute path,"]
+#[doc = r" sha256 digest, byte size, mtime, and argv. Written to"]
+#[doc = r" `provenance.txt`, echoed too."]
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
 
-/// [`write_provenance`] with an explicit filename, for multi-session
-/// journeys where each session's argv deserves its own record.
+#[doc = r" [`write_provenance`] with an explicit filename, for multi-session"]
+#[doc = r" journeys where each session's argv deserves its own record."]
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
         support::try_resolve_bin(case.bin).unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
@@ -126,7 +126,7 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     eprintln!("journey provenance ({file}): {body}");
 }
 
-/// Save the live screen text as `<name>.txt` in the journey dir.
+#[doc = r" Save the live screen text as `<name>.txt` in the journey dir."]
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -143,10 +143,10 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
 
-/// Slice 1, journey 1: enumerate the scenario definitions (the binary's
-/// own `--help` must list the scenarios this slice boots), then visit the
-/// core routes — Manager, Cockpit — one session per scenario, proving
-/// each with its header plus a content line.
+#[doc = r" Slice 1, journey 1: enumerate the scenario definitions (the binary's"]
+#[doc = r" own `--help` must list the scenarios this slice boots), then visit the"]
+#[doc = r" core routes — Manager, Cockpit — one session per scenario, proving"]
+#[doc = r" each with its header plus a content line."]
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
 fn journey_jackin_core_routes() {
@@ -180,8 +180,6 @@ fn journey_jackin_core_routes() {
     }
     eprintln!("enumeration: returning, accounts-mixed, launch-running, launch-failure all listed");
 
-    // By-value iteration copies each `&[&str]` out of the const's promoted
-    // statics, so `args` already is `&'static [&'static str]`.
     for (i, (args, slug, needles)) in ROUTES.into_iter().enumerate() {
         let case = journey_case(&format!("core_routes_{slug}"), args, BOOT);
         write_provenance_named(&dir, &case, &format!("provenance-{slug}.txt"));
@@ -194,11 +192,11 @@ fn journey_jackin_core_routes() {
     eprintln!("journey core_routes: visited {} routes", ROUTES.len());
 }
 
-/// Slice 1, journey 2: one editor tab visit. `e` on the Manager opens the
-/// workspace editor on General (crumb plus the `Keep awake` body row
-/// prove it), then `2` + Enter jumps to the Mounts tab while TABS is
-/// focused — proven by the mounts body (`+ Add mount`) and its footer
-/// (`r Read-only`), neither of which exists on any other tab.
+#[doc = r" Slice 1, journey 2: one editor tab visit. `e` on the Manager opens the"]
+#[doc = r" workspace editor on General (crumb plus the `Keep awake` body row"]
+#[doc = r" prove it), then `2` + Enter jumps to the Mounts tab while TABS is"]
+#[doc = r" focused — proven by the mounts body (`+ Add mount`) and its footer"]
+#[doc = r" (`r Read-only`), neither of which exists on any other tab."]
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
 fn journey_jackin_editor_mounts_tab() {
@@ -231,11 +229,11 @@ fn journey_jackin_editor_mounts_tab() {
     eprintln!("journey editor_mounts_tab: general then mounts, both proven");
 }
 
-/// Slice 1, journey 3: one settings tab visit. `accounts-mixed` boots
-/// straight into the Accounts route, `s` opens global Settings on General
-/// (crumb plus the DCO body row prove it), then `3` + Enter jumps to the
-/// Environments tab while TABS is focused — proven by the `GH_TOKEN`
-/// global row plus the Environments crumb.
+#[doc = r" Slice 1, journey 3: one settings tab visit. `accounts-mixed` boots"]
+#[doc = r" straight into the Accounts route, `s` opens global Settings on General"]
+#[doc = r" (crumb plus the DCO body row prove it), then `3` + Enter jumps to the"]
+#[doc = r" Environments tab while TABS is focused — proven by the `GH_TOKEN`"]
+#[doc = r" global row plus the Environments crumb."]
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
 fn journey_jackin_settings_env_tab() {
@@ -267,16 +265,16 @@ fn journey_jackin_settings_env_tab() {
     eprintln!("journey settings_env_tab: general then environments, both proven");
 }
 
-/// Slice 1, journey 4: the save-boundary case with assertion-proven
-/// states. In the editor, three downs reach the `Keep awake` checkbox
-/// (TABS → NAME → WORKDIR → KEEP_AWAKE) and Space toggles it off —
-/// proven by the `• 1 change` header badge. Ctrl+S opens the `Save
-/// workspace` preview (the deterministic boundary: the +900 ms
-/// virtual-time completion job never fires under paused motion), proven
-/// by the dialog title plus the `~ keep_awake true → false` diff line.
-/// Escape cancels — proven non-vacuously by the dialog's disappearance
-/// plus the `Not saved · keep editing` status and the intact `• 1 change`
-/// badge. Nothing is written: the preview is cancelled, not confirmed.
+#[doc = r" Slice 1, journey 4: the save-boundary case with assertion-proven"]
+#[doc = r" states. In the editor, three downs reach the `Keep awake` checkbox"]
+#[doc = r" (TABS → NAME → WORKDIR → KEEP_AWAKE) and Space toggles it off —"]
+#[doc = r" proven by the `• 1 change` header badge. Ctrl+S opens the `Save"]
+#[doc = r" workspace` preview (the deterministic boundary: the +900 ms"]
+#[doc = r" virtual-time completion job never fires under paused motion), proven"]
+#[doc = r" by the dialog title plus the `~ keep_awake true → false` diff line."]
+#[doc = r" Escape cancels — proven non-vacuously by the dialog's disappearance"]
+#[doc = r" plus the `Not saved · keep editing` status and the intact `• 1 change`"]
+#[doc = r" badge. Nothing is written: the preview is cancelled, not confirmed."]
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
 fn journey_jackin_editor_save_cancel() {
@@ -321,19 +319,19 @@ fn journey_jackin_editor_save_cancel() {
     eprintln!("journey editor_save_cancel: dirty, preview, cancelled, edits intact");
 }
 
-/// Slice 1, journey 5: the failed-launch case with assertion-proven
-/// states. `launch-failure` at frame 240 is the frozen FailNetwork
-/// failure with the `Launch failed` dialog open — proven by the title
-/// plus the `The Construct network could not be attached` summary and the
-/// `Check that Docker's jackin-net bridge exists` next step. Escape
-/// acknowledges the failure: the cockpit is torn down and the Manager
-/// returns with the `Launch failed · … still running in the Construct`
-/// status (app.rs `Go::LaunchFailedAck`). The ack is proven
-/// non-vacuously by the dialog summary's disappearance (the title text
-/// itself survives into the status line, so it proves nothing in either
-/// direction) plus the ack status and the Manager footer. No container is
-/// touched: the failure and its retries are the fixture simulation's
-/// recorded log lines.
+#[doc = r" Slice 1, journey 5: the failed-launch case with assertion-proven"]
+#[doc = r" states. `launch-failure` at frame 240 is the frozen FailNetwork"]
+#[doc = r" failure with the `Launch failed` dialog open — proven by the title"]
+#[doc = r" plus the `The Construct network could not be attached` summary and the"]
+#[doc = r" `Check that Docker's jackin-net bridge exists` next step. Escape"]
+#[doc = r" acknowledges the failure: the cockpit is torn down and the Manager"]
+#[doc = r" returns with the `Launch failed · … still running in the Construct`"]
+#[doc = r" status (app.rs `Go::LaunchFailedAck`). The ack is proven"]
+#[doc = r" non-vacuously by the dialog summary's disappearance (the title text"]
+#[doc = r" itself survives into the status line, so it proves nothing in either"]
+#[doc = r" direction) plus the ack status and the Manager footer. No container is"]
+#[doc = r" touched: the failure and its retries are the fixture simulation's"]
+#[doc = r" recorded log lines."]
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
 fn journey_jackin_launch_failure_dialog() {
@@ -369,9 +367,7 @@ fn journey_jackin_launch_failure_dialog() {
         "still running in the Construct",
         "ack status on manager",
     );
-    // The ack selects the failed instance row, so the footer carries the
-    // instance hints (no `Enter Launch`); the tree root plus the manager
-    // footer prove the route is back.
+
     waits::wait_state(&mut s, "Current directory", "manager tree back");
     waits::wait_state(&mut s, "Tab Details", "manager footer back");
     checkpoint(&mut s, &dir, "01-acknowledged");

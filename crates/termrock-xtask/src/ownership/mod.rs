@@ -1,10 +1,10 @@
-//! Ownership enforcement check (FIX-008 boundary G1–G2).
-//!
-//! Scans workspace `src/` trees for raw preview painting and boundary
-//! violations per `docs/verification/ownership-and-parity.md` VER-006,
-//! resolves import aliases, paint wrappers, paint macros, and generated
-//! files, and reconciles every finding against the versioned exceptions
-//! file. The grandfathered G1 corpus may only shrink.
+#![doc = r" Ownership enforcement check (FIX-008 boundary G1–G2)."]
+#![doc = r""]
+#![doc = r" Scans workspace `src/` trees for raw preview painting and boundary"]
+#![doc = r" violations per `docs/verification/ownership-and-parity.md` VER-006,"]
+#![doc = r" resolves import aliases, paint wrappers, paint macros, and generated"]
+#![doc = r" files, and reconciles every finding against the versioned exceptions"]
+#![doc = r" file. The grandfathered G1 corpus may only shrink."]
 
 pub mod exceptions;
 pub mod rules;
@@ -17,28 +17,28 @@ use exceptions::{Failure, FailureKind, reconcile};
 use rules::{Finding, Wrapper, collect_wrappers, match_file, match_wrapper_calls};
 use scan::{ScannedFile, scan_file};
 
-/// The outcome of one check run.
+#[doc = r" The outcome of one check run."]
 #[derive(Debug, Clone)]
 pub struct Report {
-    /// Workspace root the check ran against.
+    #[doc = r" Workspace root the check ran against."]
     pub root: PathBuf,
-    /// Every finding, in scan order.
+    #[doc = r" Every finding, in scan order."]
     pub findings: Vec<Finding>,
-    /// Every failure: unexcepted, growth, stale, or structural.
+    #[doc = r" Every failure: unexcepted, growth, stale, or structural."]
     pub failures: Vec<Failure>,
-    /// Paint wrappers resolved across preview crates.
+    #[doc = r" Paint wrappers resolved across preview crates."]
     pub wrappers: Vec<Wrapper>,
-    /// Number of files scanned.
+    #[doc = r" Number of files scanned."]
     pub files_scanned: usize,
 }
 
 impl Report {
-    /// True when the tree satisfies the ownership boundary.
+    #[doc = r" True when the tree satisfies the ownership boundary."]
     pub fn passed(&self) -> bool {
         self.failures.is_empty()
     }
 
-    /// Finding counts keyed by `(file, rule)`.
+    #[doc = r" Finding counts keyed by `(file, rule)`."]
     pub fn counts(&self) -> BTreeMap<(String, String), usize> {
         let mut counts = BTreeMap::new();
         for finding in &self.findings {
@@ -50,9 +50,9 @@ impl Report {
     }
 }
 
-/// Run the ownership check against `root` with exceptions at
-/// `exceptions_path`. Fails closed: unreadable manifests, sources, or
-/// exceptions are failures, never silent skips.
+#[doc = r" Run the ownership check against `root` with exceptions at"]
+#[doc = r" `exceptions_path`. Fails closed: unreadable manifests, sources, or"]
+#[doc = r" exceptions are failures, never silent skips."]
 pub fn check_workspace(root: &Path, exceptions_path: &Path) -> Report {
     let mut failures = Vec::new();
     let members = match workspace_members(root) {
@@ -152,11 +152,11 @@ pub fn check_workspace(root: &Path, exceptions_path: &Path) -> Report {
     }
 }
 
-/// Workspace member paths from the root `Cargo.toml` `members` array.
-///
-/// This parses the manifest's member list only (comments and trailing
-/// commas tolerated). Zero members is a hard error: the check fails
-/// closed rather than scanning nothing.
+#[doc = r" Workspace member paths from the root `Cargo.toml` `members` array."]
+#[doc = r""]
+#[doc = r" This parses the manifest's member list only (comments and trailing"]
+#[doc = r" commas tolerated). Zero members is a hard error: the check fails"]
+#[doc = r" closed rather than scanning nothing."]
 pub fn workspace_members(root: &Path) -> Result<Vec<String>, String> {
     let manifest = root.join("Cargo.toml");
     let text = std::fs::read_to_string(&manifest)
@@ -191,7 +191,7 @@ pub fn workspace_members(root: &Path) -> Result<Vec<String>, String> {
     Ok(members)
 }
 
-/// Double-quoted strings on one manifest line.
+#[doc = r" Double-quoted strings on one manifest line."]
 fn quoted_strings(line: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut rest = line;
@@ -206,7 +206,7 @@ fn quoted_strings(line: &str) -> Vec<String> {
     out
 }
 
-/// Every `.rs` file under `<member>/src`, recursively.
+#[doc = r" Every `.rs` file under `<member>/src`, recursively."]
 fn member_sources(root: &Path, member: &str) -> Vec<PathBuf> {
     let mut sources = Vec::new();
     let mut stack = vec![root.join(member).join("src")];
@@ -228,8 +228,8 @@ fn member_sources(root: &Path, member: &str) -> Vec<PathBuf> {
     sources
 }
 
-/// Walk up from `start` to the workspace root (the dir whose `Cargo.toml`
-/// declares `[workspace]`).
+#[doc = r" Walk up from `start` to the workspace root (the dir whose `Cargo.toml`"]
+#[doc = r" declares `[workspace]`)."]
 pub fn find_workspace_root(start: &Path) -> Option<PathBuf> {
     let mut current = start.to_path_buf();
     loop {
@@ -245,7 +245,7 @@ pub fn find_workspace_root(start: &Path) -> Option<PathBuf> {
     }
 }
 
-/// Render a human-readable report.
+#[doc = r" Render a human-readable report."]
 pub fn render_human(report: &Report) -> String {
     let mut text = String::new();
     text.push_str(&format!(

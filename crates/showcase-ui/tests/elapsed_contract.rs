@@ -1,5 +1,5 @@
-//! Elapsed-time contracts from pinned Holla 794b095, exercised through the
-//! actual app and public runtime. Explicit ticks never imply elapsed time.
+#![doc = r" Elapsed-time contracts from pinned Holla 794b095, exercised through the"]
+#![doc = r" actual app and public runtime. Explicit ticks never imply elapsed time."]
 
 use std::time::Duration;
 

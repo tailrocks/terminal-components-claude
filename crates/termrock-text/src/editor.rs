@@ -1,104 +1,104 @@
-//! The one editing core (`COMPONENT_ARCHITECTURE.md` §15).
-//!
-//! Shared by inputs, text areas, code editors, editable cells and picker
-//! queries. [`TextEditorCore::apply`] is the only mutation entry point, so a
-//! binding table over [`EditAction`] is the whole key handling of a text
-//! control.
+#![doc = r" The one editing core (`COMPONENT_ARCHITECTURE.md` §15)."]
+#![doc = r""]
+#![doc = r" Shared by inputs, text areas, code editors, editable cells and picker"]
+#![doc = r" queries. [`TextEditorCore::apply`] is the only mutation entry point, so a"]
+#![doc = r" binding table over [`EditAction`] is the whole key handling of a text"]
+#![doc = r" control."]
 
 use core::fmt;
 use core::ops::Range;
 
 use super::buffer::{CursorPos, TextBuffer, normalized_text};
 
-/// A cursor motion.
+#[doc = r" A cursor motion."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Motion {
-    /// One grapheme left.
+    #[doc = r" One grapheme left."]
     Left,
-    /// One grapheme right.
+    #[doc = r" One grapheme right."]
     Right,
-    /// One word left.
+    #[doc = r" One word left."]
     WordLeft,
-    /// One word right.
+    #[doc = r" One word right."]
     WordRight,
-    /// Line start.
+    #[doc = r" Line start."]
     Home,
-    /// Line end.
+    #[doc = r" Line end."]
     End,
-    /// Document start.
+    #[doc = r" Document start."]
     DocStart,
-    /// Document end.
+    #[doc = r" Document end."]
     DocEnd,
-    /// Previous line, same column.
+    #[doc = r" Previous line, same column."]
     Up,
-    /// Next line, same column.
+    #[doc = r" Next line, same column."]
     Down,
 }
 
-/// Whether a motion extends the selection.
+#[doc = r" Whether a motion extends the selection."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Extend {
-    /// Move the cursor, dropping any selection.
+    #[doc = r" Move the cursor, dropping any selection."]
     No,
-    /// Extend the selection from its anchor.
+    #[doc = r" Extend the selection from its anchor."]
     Select,
 }
 
-/// An edit command; `const`-constructible so binding tables can hold it.
+#[doc = r" An edit command; `const`-constructible so binding tables can hold it."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EditAction<'a> {
-    /// Insert a character at the cursor.
+    #[doc = r" Insert a character at the cursor."]
     Insert(char),
-    /// Insert text at the cursor (paste).
+    #[doc = r" Insert text at the cursor (paste)."]
     Paste(&'a str),
-    /// Replace the whole text.
+    #[doc = r" Replace the whole text."]
     SetText(&'a str),
-    /// Move the cursor.
+    #[doc = r" Move the cursor."]
     Move(Motion, Extend),
-    /// Delete the grapheme before the cursor.
+    #[doc = r" Delete the grapheme before the cursor."]
     Backspace,
-    /// Delete the grapheme after the cursor.
+    #[doc = r" Delete the grapheme after the cursor."]
     Delete,
-    /// Delete the word before the cursor.
+    #[doc = r" Delete the word before the cursor."]
     DeleteWordLeft,
-    /// Delete to the line end.
+    #[doc = r" Delete to the line end."]
     DeleteToLineEnd,
-    /// Delete to the line start.
+    #[doc = r" Delete to the line start."]
     DeleteToLineStart,
-    /// Select everything.
+    #[doc = r" Select everything."]
     SelectAll,
-    /// Drop the selection.
+    #[doc = r" Drop the selection."]
     ClearSelection,
-    /// Insert a newline (multi-line only).
+    #[doc = r" Insert a newline (multi-line only)."]
     Newline,
 }
 
-/// What an edit did.
+#[doc = r" What an edit did."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EditOutcome {
-    /// The text changed.
+    #[doc = r" The text changed."]
     Changed,
-    /// Only the cursor or selection moved.
+    #[doc = r" Only the cursor or selection moved."]
     Moved,
-    /// Nothing happened (a no-op at a boundary).
+    #[doc = r" Nothing happened (a no-op at a boundary)."]
     Ignored,
-    /// The action is not allowed here (a newline in single-line mode).
+    #[doc = r" The action is not allowed here (a newline in single-line mode)."]
     Rejected,
 }
 
 impl EditOutcome {
-    /// Whether the text changed.
+    #[doc = r" Whether the text changed."]
     pub const fn changed(self) -> bool {
         matches!(self, EditOutcome::Changed)
     }
 
-    /// Whether anything visible changed.
+    #[doc = r" Whether anything visible changed."]
     pub const fn is_visible(self) -> bool {
         matches!(self, EditOutcome::Changed | EditOutcome::Moved)
     }
 }
 
-/// Buffer, cursor, selection, horizontal scroll and the multi-line flag.
+#[doc = r" Buffer, cursor, selection, horizontal scroll and the multi-line flag."]
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct TextEditorCore {
     buf: TextBuffer,
@@ -115,7 +115,7 @@ impl fmt::Debug for TextEditorCore {
 }
 
 impl TextEditorCore {
-    /// A single-line editor.
+    #[doc = r" A single-line editor."]
     pub fn single(text: &str) -> Self {
         TextEditorCore {
             buf: TextBuffer::single(text),
@@ -130,7 +130,7 @@ impl TextEditorCore {
         }
     }
 
-    /// A multi-line editor.
+    #[doc = r" A multi-line editor."]
     pub fn multi(text: &str) -> Self {
         TextEditorCore {
             buf: TextBuffer::multi(text),
@@ -145,48 +145,48 @@ impl TextEditorCore {
         }
     }
 
-    /// The text.
+    #[doc = r" The text."]
     pub fn text(&self) -> &str {
         self.buf.text()
     }
 
-    /// Whether the text is empty.
+    #[doc = r" Whether the text is empty."]
     pub fn is_empty(&self) -> bool {
         self.buf.is_empty()
     }
 
-    /// Whether newlines are accepted.
+    #[doc = r" Whether newlines are accepted."]
     pub const fn is_multiline(&self) -> bool {
         self.buf.is_multiline()
     }
 
-    /// The selection as a byte range.
+    #[doc = r" The selection as a byte range."]
     pub fn selection(&self) -> Option<Range<usize>> {
         self.buf.selection()
     }
 
-    /// The selected text.
+    #[doc = r" The selected text."]
     pub fn selected_text(&self) -> Option<&str> {
         self.buf.selected_text()
     }
 
-    /// The cursor as `(line, display column)`.
+    #[doc = r" The cursor as `(line, display column)`."]
     pub fn cursor_pos(&self) -> CursorPos {
         self.buf.cursor_pos()
     }
 
-    /// The cursor byte offset.
+    #[doc = r" The cursor byte offset."]
     pub const fn cursor_offset(&self) -> usize {
         self.buf.cursor_offset()
     }
 
-    /// The horizontal scroll, in columns.
+    #[doc = r" The horizontal scroll, in columns."]
     pub const fn hscroll(&self) -> u16 {
         self.hscroll
     }
 
-    /// Keep the cursor visible inside a viewport `width` columns wide;
-    /// returns the resulting horizontal scroll.
+    #[doc = r" Keep the cursor visible inside a viewport `width` columns wide;"]
+    #[doc = r" returns the resulting horizontal scroll."]
     pub fn scroll_into_view(&mut self, width: u16) -> u16 {
         let col = self.buf.cursor_pos().col.min(usize::from(u16::MAX)) as u16;
         if width == 0 || col < self.hscroll {
@@ -197,33 +197,33 @@ impl TextEditorCore {
         self.hscroll
     }
 
-    /// The buffer's line count.
+    #[doc = r" The buffer's line count."]
     pub fn line_count(&self) -> usize {
         self.buf.line_count()
     }
 
-    /// Byte offset of `(line, display column)`.
+    #[doc = r" Byte offset of `(line, display column)`."]
     pub fn offset_at(&self, line: usize, col: usize) -> usize {
         self.buf.offset_at(line, col)
     }
 
-    /// Place the cursor at `(line, col)`.
+    #[doc = r" Place the cursor at `(line, col)`."]
     pub fn set_cursor_line_col(&mut self, line: usize, col: usize) {
         self.buf.set_cursor_line_col(line, col);
     }
 
-    /// Select `a..b` (either order), cursor at `b`.
+    #[doc = r" Select `a..b` (either order), cursor at `b`."]
     pub fn select_range(&mut self, a: usize, b: usize) {
         self.buf.select_range(a, b);
     }
 
-    /// Overwrite bytes before drop (§15).
+    #[doc = r" Overwrite bytes before drop (§15)."]
     pub fn zeroize(&mut self) {
         self.buf.zeroize();
         self.hscroll = 0;
     }
 
-    /// The only mutation entry point.
+    #[doc = r" The only mutation entry point."]
     pub fn apply(&mut self, a: EditAction<'_>) -> EditOutcome {
         let b = &mut self.buf;
         let changed = |yes: bool| {

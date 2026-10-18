@@ -1,13 +1,11 @@
-//! Holla UI and terminal application: routes, screens and the deterministic
-//! `App` model, composed on the shared `termrock` facade.
+#![doc = r" Holla UI and terminal application: routes, screens and the deterministic"]
+#![doc = r" `App` model, composed on the shared `termrock` facade."]
 
 pub mod app;
 pub mod cli;
 pub mod dispatch;
 pub mod screens;
 
-// Compatibility views over the split crates; the application code keeps its
-// historical `crate::domain` / `crate::sim` paths.
 pub mod clock {
     pub use holla_sim::clock::*;
 }

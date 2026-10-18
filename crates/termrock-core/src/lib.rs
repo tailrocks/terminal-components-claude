@@ -1,4 +1,4 @@
-//! Core identity, event, intent, keys, response, action, validate, and diagnostic types.
+#![doc = r" Core identity, event, intent, keys, response, action, validate, and diagnostic types."]
 
 pub mod action;
 pub mod diagnostics;

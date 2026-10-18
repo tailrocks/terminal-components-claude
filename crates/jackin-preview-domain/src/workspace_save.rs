@@ -1,28 +1,28 @@
-//! Captured workspace writes. Payloads stay in the deterministic World, never in a UI callback.
+#![doc = r" Captured workspace writes. Payloads stay in the deterministic World, never in a UI callback."]
 use super::workspace::{Workspace, WorkspaceId};
 use std::fmt;
 
-/// Identity of one admitted save and its reserved durable target.
+#[doc = r" Identity of one admitted save and its reserved durable target."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SaveTicket {
-    /// World-lifetime operation identity.
+    #[doc = r" World-lifetime operation identity."]
     pub operation: u64,
-    /// Existing or reserved workspace identifier.
+    #[doc = r" Existing or reserved workspace identifier."]
     pub workspace: WorkspaceId,
 }
 
-/// Why a save could not be admitted.
+#[doc = r" Why a save could not be admitted."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SaveError {
-    /// No immutable preview has been reviewed.
+    #[doc = r" No immutable preview has been reviewed."]
     NoReview,
-    /// Draft values changed after preview.
+    #[doc = r" Draft values changed after preview."]
     ChangedReview,
-    /// This editor already owns an admitted save.
+    #[doc = r" This editor already owns an admitted save."]
     Busy,
-    /// Persisted target differs from the loaded original.
+    #[doc = r" Persisted target differs from the loaded original."]
     TargetChanged,
-    /// A checked identity allocator reached its limit.
+    #[doc = r" A checked identity allocator reached its limit."]
     IdentityExhausted,
 }
 impl fmt::Display for SaveError {
@@ -38,21 +38,21 @@ impl fmt::Display for SaveError {
 }
 impl std::error::Error for SaveError {}
 
-/// Result after validating and consuming one captured write.
+#[doc = r" Result after validating and consuming one captured write."]
 #[derive(Clone, PartialEq, Eq)]
 pub enum SaveResult {
-    /// Unknown, early or already consumed completion.
+    #[doc = r" Unknown, early or already consumed completion."]
     Ignored,
-    /// Captured configuration was persisted atomically.
+    #[doc = r" Captured configuration was persisted atomically."]
     Saved {
-        /// Completed operation identity.
+        #[doc = r" Completed operation identity."]
         ticket: SaveTicket,
-        /// Exact persisted configuration; debug output excludes its environment values.
+        #[doc = r" Exact persisted configuration; debug output excludes its environment values."]
         workspace: Box<Workspace>,
     },
-    /// Simulated write failed, with no durable mutation.
+    #[doc = r" Simulated write failed, with no durable mutation."]
     Failed(SaveTicket),
-    /// Target changed or disappeared before completion.
+    #[doc = r" Target changed or disappeared before completion."]
     Stale(SaveTicket),
 }
 impl fmt::Debug for SaveResult {
@@ -66,7 +66,7 @@ impl fmt::Debug for SaveResult {
     }
 }
 impl SaveResult {
-    /// Ticket for results belonging to an admitted write.
+    #[doc = r" Ticket for results belonging to an admitted write."]
     pub const fn ticket(&self) -> Option<SaveTicket> {
         match self {
             Self::Ignored => None,
@@ -77,19 +77,19 @@ impl SaveResult {
     }
 }
 
-/// Queued editor workspace write: what to save, when, and against which
-/// expected snapshot.
+#[doc = r" Queued editor workspace write: what to save, when, and against which"]
+#[doc = r" expected snapshot."]
 #[derive(Clone)]
 pub struct PendingWrite {
-    /// Ticket this write fulfills.
+    #[doc = r" Ticket this write fulfills."]
     pub ticket: SaveTicket,
-    /// Virtual deadline in milliseconds.
+    #[doc = r" Virtual deadline in milliseconds."]
     pub due_ms: i64,
-    /// Snapshot the write was staged against, if any.
+    #[doc = r" Snapshot the write was staged against, if any."]
     pub expected: Option<Box<Workspace>>,
-    /// Proposed workspace contents.
+    #[doc = r" Proposed workspace contents."]
     pub proposed: Box<Workspace>,
-    /// Whether the write applies cleanly.
+    #[doc = r" Whether the write applies cleanly."]
     pub ok: bool,
 }
 impl fmt::Debug for PendingWrite {

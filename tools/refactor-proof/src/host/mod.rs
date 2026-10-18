@@ -1,4 +1,4 @@
-//! Host CLI operations and result schemas (`tc-proof-host-result/v1`).
+#![doc = r" Host CLI operations and result schemas (`tc-proof-host-result/v1`)."]
 
 mod authority;
 mod context;

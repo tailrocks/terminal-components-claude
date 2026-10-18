@@ -1,4 +1,4 @@
-//! Host operation dispatch and stdout result emission.
+#![doc = r" Host operation dispatch and stdout result emission."]
 
 use std::io::{self, Write as _};
 use std::path::PathBuf;

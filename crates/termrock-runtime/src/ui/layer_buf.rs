@@ -1,4 +1,4 @@
-//! Pooled layer buffers with a written-cell bitset (`COMPONENT_ARCHITECTURE.md` §3.3 step 12).
+#![doc = r" Pooled layer buffers with a written-cell bitset (`COMPONENT_ARCHITECTURE.md` §3.3 step 12)."]
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -8,15 +8,15 @@ use crate::id::Id;
 use crate::layer::{LayerId, LayerSpec};
 use crate::theme::PaintStyle;
 
-/// One open layer's draw target for the frame.
+#[doc = r" One open layer's draw target for the frame."]
 #[derive(Debug, Clone)]
 pub(crate) struct LayerDraw {
     pub(crate) id: Id,
     pub(crate) layer: LayerId,
     pub(crate) spec: LayerSpec,
-    /// The resolved area on screen.
+    #[doc = r" The resolved area on screen."]
     pub(crate) area: Rect,
-    /// A screen-sized buffer; only `written` cells are composited.
+    #[doc = r" A screen-sized buffer; only `written` cells are composited."]
     pub(crate) buf: Buffer,
     pub(crate) written: Vec<bool>,
     roles: Vec<CellRoles>,
@@ -37,7 +37,7 @@ impl LayerDraw {
         }
     }
 
-    /// Reuse for a new frame.
+    #[doc = r" Reuse for a new frame."]
     pub(crate) fn reset(
         &mut self,
         id: Id,
@@ -74,7 +74,7 @@ impl LayerDraw {
         Some(row.saturating_mul(usize::from(a.width)).saturating_add(col))
     }
 
-    /// Mark one cell written.
+    #[doc = r" Mark one cell written."]
     pub(crate) fn mark(&mut self, pos: Position, style: Option<PaintStyle>) {
         if let Some(i) = self.index(pos)
             && let Some(w) = self.written.get_mut(i)
@@ -86,7 +86,7 @@ impl LayerDraw {
         }
     }
 
-    /// Mark every cell of `area` written.
+    #[doc = r" Mark every cell of `area` written."]
     pub(crate) fn mark_area(&mut self, area: Rect, style: Option<PaintStyle>) {
         let area = area.intersection(*self.buf.area());
         for pos in area.positions() {
@@ -109,7 +109,7 @@ impl LayerDraw {
         }
     }
 
-    /// Whether a cell was written this frame.
+    #[doc = r" Whether a cell was written this frame."]
     pub(crate) fn is_written(&self, pos: Position) -> bool {
         self.index(pos)
             .and_then(|i| self.written.get(i))
@@ -117,7 +117,7 @@ impl LayerDraw {
             .unwrap_or(false)
     }
 
-    /// Copy written cells onto `page`.
+    #[doc = r" Copy written cells onto `page`."]
     pub(crate) fn composite_onto(&self, page: &mut Buffer, roles: &mut [CellRoles]) {
         let screen = *page.area();
         let area = self.buf.area().intersection(*page.area());
@@ -138,7 +138,7 @@ impl LayerDraw {
     }
 }
 
-/// The pool of layer draws, reused across frames.
+#[doc = r" The pool of layer draws, reused across frames."]
 #[derive(Debug, Default, Clone)]
 pub(crate) struct LayerPool {
     pub(crate) draws: Vec<LayerDraw>,
@@ -146,7 +146,7 @@ pub(crate) struct LayerPool {
 }
 
 impl LayerPool {
-    /// Start a frame with `n` layers; returns nothing, callers fill via `push`.
+    #[doc = r" Start a frame with `n` layers; returns nothing, callers fill via `push`."]
     pub(crate) fn begin(&mut self) {
         self.len = 0;
     }

@@ -1,22 +1,22 @@
-//! BTN-BUSY parity mirror: candidate-`Button` rendering of the reference
-//! `BTN-BUSY-FRAMES-001` and `BTN-BUSY-CHECKED-GEOM-002` scenarios
-//! (`tests/scenario-registry/v1/registry.json` in the reference worktree).
-//!
-//! Reference contract (legacy `src/widgets/button.rs` + `src/widgets/progress.rs`
-//! at `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`):
-//!
-//! * busy paints the readiness ICON glyph `design.motion.spinner_frames[0]`
-//!   into the icon cell at `area.x + 1` (target `Button` reads only
-//!   `frames.first()`; the frame never advances with `Input::Tick` —
-//!   ticks 0 and 1 show the same `⠋`, FRAMES-001 adapted to the target).
-//! * busy + checked keeps TWO independent 2-cell lanes: the spinner icon at
-//!   `area.x + 1` and the `●` marker at `area.x + 3`; the width is
-//!   `label + 2 padding + 2 icon + 2 marker` (GEOM-002 adapted to the
-//!   target's `readiness_width() + marker_width()` layout).
-//!
-//! Adapted to the candidate API (`Button::new`, `.status`, `.checked`,
-//! `Runtime` + `Stub` + `draw_scene`, one `Input::Tick` per animation tick).
-//! Assertions are the reference assertions, unweakened.
+#![doc = r" BTN-BUSY parity mirror: candidate-`Button` rendering of the reference"]
+#![doc = r" `BTN-BUSY-FRAMES-001` and `BTN-BUSY-CHECKED-GEOM-002` scenarios"]
+#![doc = r" (`tests/scenario-registry/v1/registry.json` in the reference worktree)."]
+#![doc = r""]
+#![doc = r" Reference contract (legacy `src/widgets/button.rs` + `src/widgets/progress.rs`"]
+#![doc = r" at `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`):"]
+#![doc = r""]
+#![doc = r" * busy paints the readiness ICON glyph `design.motion.spinner_frames[0]`"]
+#![doc = r"   into the icon cell at `area.x + 1` (target `Button` reads only"]
+#![doc = r"   `frames.first()`; the frame never advances with `Input::Tick` —"]
+#![doc = r"   ticks 0 and 1 show the same `⠋`, FRAMES-001 adapted to the target)."]
+#![doc = r" * busy + checked keeps TWO independent 2-cell lanes: the spinner icon at"]
+#![doc = r"   `area.x + 1` and the `●` marker at `area.x + 3`; the width is"]
+#![doc = r"   `label + 2 padding + 2 icon + 2 marker` (GEOM-002 adapted to the"]
+#![doc = r"   target's `readiness_width() + marker_width()` layout)."]
+#![doc = r""]
+#![doc = r" Adapted to the candidate API (`Button::new`, `.status`, `.checked`,"]
+#![doc = r" `Runtime` + `Stub` + `draw_scene`, one `Input::Tick` per animation tick)."]
+#![doc = r" Assertions are the reference assertions, unweakened."]
 
 use std::cell::Cell;
 
@@ -31,7 +31,7 @@ const AREA: Rect = Rect {
     height: 1,
 };
 
-/// Target `Button` busy ICON glyph: always `spinner_frames.first()`.
+#[doc = r" Target `Button` busy ICON glyph: always `spinner_frames.first()`."]
 const ICON_GLYPH: &str = "⠋";
 
 fn row_text(buf: &Buffer, width: u16) -> String {
@@ -50,10 +50,10 @@ fn cell_symbol(buf: &Buffer, x: u16) -> String {
         .unwrap_or_default()
 }
 
-/// FRAMES-001 adapted to the target: the busy ICON glyph is static — the
-/// target `Button` paints `spinner_frames.first()` and never advances it with
-/// `Input::Tick`, so tick 0 and tick 1 both show `⠋` (candidate-`pr17`
-/// per-tick advancement is a port candidate, not target behavior).
+#[doc = r" FRAMES-001 adapted to the target: the busy ICON glyph is static — the"]
+#[doc = r" target `Button` paints `spinner_frames.first()` and never advances it with"]
+#[doc = r" `Input::Tick`, so tick 0 and tick 1 both show `⠋` (candidate-`pr17`"]
+#[doc = r" per-tick advancement is a port candidate, not target behavior)."]
 #[test]
 fn busy_spinner_advances_across_ticks() {
     let frames = Theme::junie().design.motion.spinner_frames;
@@ -65,7 +65,6 @@ fn busy_spinner_advances_across_ticks() {
     let mut runtime = Runtime::new(Stub::default(), Theme::junie());
     let _ = runtime.initialize();
 
-    // Tick 0: the readiness icon lane shows the first frame.
     let mut first = Buffer::empty(AREA);
     runtime
         .draw_scene(AREA, &mut first, |ui, area| {
@@ -80,7 +79,6 @@ fn busy_spinner_advances_across_ticks() {
         "FRAMES-001 adapted: icon cell must show the static spinner frame at tick 0"
     );
 
-    // Tick 1: one animation tick later — the glyph is unchanged.
     let _ = deliver(&mut runtime, Input::Tick);
     let mut second = Buffer::empty(AREA);
     runtime
@@ -102,9 +100,9 @@ fn busy_spinner_advances_across_ticks() {
     );
 }
 
-/// GEOM-002 adapted to the target: busy + checked keeps TWO independent
-/// 2-cell lanes — the spinner icon at `area.x + 1` and the checked `●` at
-/// `area.x + 3` — so the width is `label + 2 padding + 2 icon + 2 marker`.
+#[doc = r" GEOM-002 adapted to the target: busy + checked keeps TWO independent"]
+#[doc = r" 2-cell lanes — the spinner icon at `area.x + 1` and the checked `●` at"]
+#[doc = r" `area.x + 3` — so the width is `label + 2 padding + 2 icon + 2 marker`."]
 #[test]
 fn busy_checked_geometry_uses_one_shared_marker_slot() {
     const LABEL: &str = "Sync";

@@ -1,4 +1,4 @@
-//! `Tabs` (`COMPONENT_ARCHITECTURE.md` §12.4, §17.0 A7, Appendix A 4D).
+#![doc = r" `Tabs` (`COMPONENT_ARCHITECTURE.md` §12.4, §17.0 A7, Appendix A 4D)."]
 
 use core::fmt;
 use core::marker::PhantomData;
@@ -21,31 +21,31 @@ use termrock_collections::collection::{
 use termrock_runtime::empty::Status;
 use termrock_runtime::rowui::{RowFn, RowUi};
 
-/// What a tab strip reports; every tab action carries the tab's key.
+#[doc = r" What a tab strip reports; every tab action carries the tab's key."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabsAction {
-    /// A tab became active.
+    #[doc = r" A tab became active."]
     Activated(ItemKey),
-    /// A tab's close affordance fired.
+    #[doc = r" A tab's close affordance fired."]
     Close(ItemKey),
-    /// The new-tab affordance fired.
+    #[doc = r" The new-tab affordance fired."]
     New,
 }
 
-/// The const-constructible commands of the tabs keymap.
+#[doc = r" The const-constructible commands of the tabs keymap."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabsCmd {
-    /// Activate the previous tab.
+    #[doc = r" Activate the previous tab."]
     Prev,
-    /// Activate the next tab.
+    #[doc = r" Activate the next tab."]
     Next,
-    /// Activate the cursor tab.
+    #[doc = r" Activate the cursor tab."]
     Activate,
-    /// Activate tab `n` (1-based).
+    #[doc = r" Activate tab `n` (1-based)."]
     Nth(u8),
-    /// Close the cursor tab.
+    #[doc = r" Close the cursor tab."]
     Close,
-    /// Open a new tab.
+    #[doc = r" Open a new tab."]
     New,
 }
 
@@ -208,8 +208,8 @@ table!(CLOSABLE, 17, [CLOSE_X, CLOSE_DEL]);
 table!(NEWABLE, 16, [NEW_N]);
 table!(FULL, 18, [CLOSE_X, CLOSE_DEL, NEW_N]);
 
-/// Durable state of a [`Tabs`]: the active key, the cursor key and the
-/// strip window's logical first tab.
+#[doc = r" Durable state of a [`Tabs`]: the active key, the cursor key and the"]
+#[doc = r" strip window's logical first tab."]
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct TabsState {
     core: CollectionCore,
@@ -219,22 +219,22 @@ pub struct TabsState {
 }
 
 impl TabsState {
-    /// The active key.
+    #[doc = r" The active key."]
     pub const fn active(&self) -> Option<ItemKey> {
         self.active
     }
 
-    /// The cursor key.
+    #[doc = r" The cursor key."]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-    /// The logical first visible tab.
+    #[doc = r" The logical first visible tab."]
     pub const fn first(&self) -> Option<ItemKey> {
         self.first
     }
 
-    /// Make `key` active (and the cursor).
+    #[doc = r" Make `key` active (and the cursor)."]
     pub fn set_active(&mut self, index: usize, key: ItemKey) {
         self.active = Some(key);
         self.core.set_cursor(index, key);
@@ -269,75 +269,75 @@ impl Reconcile for TabsState {
     }
 }
 
-/// A horizontal tab strip with stable keys: one focus stop, an active tab,
-/// a keyboard cursor and a window that follows the logical first tab.
-///
-/// ## Construction
-/// `Tabs::new(id)`; items are passed to each phase.
-///
-/// ## Ownership
-/// The caller owns the items and a [`TabsState`]; the runtime owns focus,
-/// hover and press.
-///
-/// ## Configuration
-/// `.key`, `.row` (`Part::TAB` pre-styled), `.allow_new(bool)` (`false`),
-/// `.closable(bool)` (`false`), `.status`, `.patch`, `.patch_part`,
-/// runtime state.
-///
-/// ## Variants
-/// `Family::TABS`, `DEFAULT` only.
-///
-/// ## States
-/// The strip wears `FOCUSED`/`FOCUS_VISIBLE`/`HOVERED`/`PRESSED` from the
-/// runtime; the active tab derives `ACTIVE`, the cursor tab `FOCUSED`. Under
-/// reference rendering styles only the runtime cursor. Active/selection
-/// presentation always comes from `TabsState::active`;
-/// forcing `SELECTED` cannot invent an active tab.
-///
-/// ## Actions
-/// `Activated(k)`, `Close(k)`, `New`.
-///
-/// ## Focus
-/// One `Focusable` stop; does not swallow typing.
-///
-/// ## Keyboard
-/// `←`/`h` previous, `→`/`l` next (both activate), `Enter`/`Space`
-/// activate the cursor, `1`–`9` activate by position; with `.closable`:
-/// `x`/`Del` close; with `.allow_new`: `n` new.
-///
-/// ## Mouse
-/// `PartRef::item(Part::TAB, k)` click activates; `PartRef::item(Part::CLOSE,
-/// k)` click closes; `PartRef::of(Part::NEW)` click opens; the `OVERFLOW`
-/// parts (`ItemKey::index(0)` left, `index(1)` right) shift the window.
-///
-/// ## Layout
-/// Two rows: labels, then the rule. A non-ready strip reserves a two-cell
-/// readiness lane at the far right. Tabs are content-sized from what the
-/// renderer painted; the window is `fit` tabs from the logical first, with
-/// `‹N` / `N›` counters when hidden. `measure` is `(…, tabs_height)`;
-/// `draw` returns the two rows. `viewport_len = fit` is reported and the
-/// next `update` keeps the active tab inside the window.
-///
-/// ## Parts
-/// `CONTAINER`, `TAB` (one tab's plane), `LABEL` and `META` (what the
-/// `.row` painter writes through [`RowUi`]), `CLOSE`, `NEW`, `RULE`,
-/// `OVERFLOW`, `BADGE`, `ICON` (the root-owned readiness symbol).
-///
-/// ## Overrides
-/// `.patch`, `.patch_part`; `.slot(Part::ICON, …)` replaces the readiness
-/// symbol without changing its lane.
-///
-/// ## Identity
-/// `.key` supplies stable keys; `ByIndex` is unstable under reorder.
-///
-/// ## Testing
-/// `TabsCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SELECTS |
-/// REPORTS_STATUS`;
-/// `render::components::tabs::*`.
-///
-/// ## Invariants
-/// After an insert or reorder the active key, the cursor key and the window
-/// name the same tabs; `Close(k)` targets the logical tab.
+#[doc = r" A horizontal tab strip with stable keys: one focus stop, an active tab,"]
+#[doc = r" a keyboard cursor and a window that follows the logical first tab."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `Tabs::new(id)`; items are passed to each phase."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" The caller owns the items and a [`TabsState`]; the runtime owns focus,"]
+#[doc = r" hover and press."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.key`, `.row` (`Part::TAB` pre-styled), `.allow_new(bool)` (`false`),"]
+#[doc = r" `.closable(bool)` (`false`), `.status`, `.patch`, `.patch_part`,"]
+#[doc = r" runtime state."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::TABS`, `DEFAULT` only."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" The strip wears `FOCUSED`/`FOCUS_VISIBLE`/`HOVERED`/`PRESSED` from the"]
+#[doc = r" runtime; the active tab derives `ACTIVE`, the cursor tab `FOCUSED`. Under"]
+#[doc = r" reference rendering styles only the runtime cursor. Active/selection"]
+#[doc = r" presentation always comes from `TabsState::active`;"]
+#[doc = r" forcing `SELECTED` cannot invent an active tab."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" `Activated(k)`, `Close(k)`, `New`."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" One `Focusable` stop; does not swallow typing."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" `←`/`h` previous, `→`/`l` next (both activate), `Enter`/`Space`"]
+#[doc = r" activate the cursor, `1`–`9` activate by position; with `.closable`:"]
+#[doc = r" `x`/`Del` close; with `.allow_new`: `n` new."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" `PartRef::item(Part::TAB, k)` click activates; `PartRef::item(Part::CLOSE,"]
+#[doc = r" k)` click closes; `PartRef::of(Part::NEW)` click opens; the `OVERFLOW`"]
+#[doc = r" parts (`ItemKey::index(0)` left, `index(1)` right) shift the window."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" Two rows: labels, then the rule. A non-ready strip reserves a two-cell"]
+#[doc = r" readiness lane at the far right. Tabs are content-sized from what the"]
+#[doc = r" renderer painted; the window is `fit` tabs from the logical first, with"]
+#[doc = r" `‹N` / `N›` counters when hidden. `measure` is `(…, tabs_height)`;"]
+#[doc = r" `draw` returns the two rows. `viewport_len = fit` is reported and the"]
+#[doc = r" next `update` keeps the active tab inside the window."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `CONTAINER`, `TAB` (one tab's plane), `LABEL` and `META` (what the"]
+#[doc = r" `.row` painter writes through [`RowUi`]), `CLOSE`, `NEW`, `RULE`,"]
+#[doc = r" `OVERFLOW`, `BADGE`, `ICON` (the root-owned readiness symbol)."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch`, `.patch_part`; `.slot(Part::ICON, …)` replaces the readiness"]
+#[doc = r" symbol without changing its lane."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" `.key` supplies stable keys; `ByIndex` is unstable under reorder."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `TabsCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SELECTS |"]
+#[doc = r" REPORTS_STATUS`;"]
+#[doc = r" `render::components::tabs::*`."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" After an insert or reorder the active key, the cursor key and the window"]
+#[doc = r" name the same tabs; `Close(k)` targets the logical tab."]
 pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -361,7 +361,7 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
 }
 
 impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
-    /// A strip keyed by index and painted through `Display`.
+    #[doc = r" A strip keyed by index and painted through `Display`."]
     pub const fn new(id: Id) -> Self {
         Tabs {
             id,
@@ -377,7 +377,7 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> Tabs<'a, T, K, R> {
-    /// The parts this component styles.
+    #[doc = r" The parts this component styles."]
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::TAB,
@@ -391,12 +391,12 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         Part::ICON,
     ];
 
-    /// The id.
+    #[doc = r" The id."]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// A stable key accessor.
+    #[doc = r" A stable key accessor."]
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Tabs<'a, T, K2, R> {
         Tabs {
             id: self.id,
@@ -410,7 +410,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         }
     }
 
-    /// A tab painter (`Part::TAB` pre-styled).
+    #[doc = r" A tab painter (`Part::TAB` pre-styled)."]
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tabs<'a, T, K, R2> {
         Tabs {
             id: self.id,
@@ -424,42 +424,42 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         }
     }
 
-    /// Show a trailing new-tab affordance.
+    #[doc = r" Show a trailing new-tab affordance."]
     #[must_use]
     pub fn allow_new(mut self, yes: bool) -> Self {
         self.allow_new = yes;
         self
     }
 
-    /// Show a close affordance on every tab.
+    #[doc = r" Show a close affordance on every tab."]
     #[must_use]
     pub fn closable(mut self, yes: bool) -> Self {
         self.closable = yes;
         self
     }
 
-    /// Data readiness.
+    #[doc = r" Data readiness."]
     #[must_use]
     pub fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
 
-    /// An instance patch over every part.
+    #[doc = r" An instance patch over every part."]
     #[must_use]
     pub fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
+    #[doc = r" Per-part instance patches."]
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace the readiness symbol while preserving its two-cell lane.
+    #[doc = r" Replace the readiness symbol while preserving its two-cell lane."]
     #[must_use]
     pub fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
@@ -471,7 +471,7 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     }
 }
 
-/// The binding table for a strip configuration.
+#[doc = r" The binding table for a strip configuration."]
 pub(crate) const fn table_for(closable: bool, allow_new: bool) -> &'static [Binding<TabsCmd>] {
     match (closable, allow_new) {
         (false, false) => &PLAIN,
@@ -481,7 +481,7 @@ pub(crate) const fn table_for(closable: bool, allow_new: bool) -> &'static [Bind
     }
 }
 
-/// Write `n` (clamped to 99) into `buf`; returns the digits.
+#[doc = r" Write `n` (clamped to 99) into `buf`; returns the digits."]
 fn digits(n: usize, buf: &mut [u8; 2]) -> &str {
     let n = n.min(99);
     if n >= 10 {
@@ -522,7 +522,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         acc.action(TabsAction::Activated(key));
     }
 
-    /// Keep the active tab inside the window, using last frame's `fit`.
+    #[doc = r" Keep the active tab inside the window, using last frame's `fit`."]
     fn follow(&self, st: &mut TabsState, items: &[T], fit: usize) {
         let Some(active) = st.active else { return };
         let Some(ai) = self.index_of(items, active, Some(st.core.cursor_index())) else {
@@ -538,7 +538,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         }
     }
 
-    /// The update phase: reconcile, then drain keys and pointer intents.
+    #[doc = r" The update phase: reconcile, then drain keys and pointer intents."]
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TabsState, items: &[T]) -> Response<TabsAction> {
         let len = items.len();
         let _ = st.reconcile(len, |i| self.key_at(items, i));
@@ -624,7 +624,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    /// The draw phase: the label row and the rule row.
+    #[doc = r" The draw phase: the label row and the rule row."]
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the window, the overflow counters and the new affordance"
@@ -725,8 +725,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if avail < 3 {
                 break;
             }
-            // A11 reference rendering may stand the first tab in for the
-            // cursor, but semantic activation remains owned by `TabsState`.
+
             let is_cursor = cursor == Some(key);
             let is_active = st.active == Some(key);
             let mut flags = StateFlags::empty();
@@ -746,7 +745,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             if pressed == Some(tab_part) {
                 flags |= StateFlags::PRESSED;
             }
-            // paint the tab's content into the remaining strip, then measure it
+
             let content = Rect {
                 x: x.saturating_add(1),
                 y: row0.y,
@@ -778,13 +777,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             ui.fill(tail, strip.style);
             let ts = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::TAB, flags);
             ui.paint_style(tab, ts.style);
-            // §11.4's mono `PRESSED` affordance: `[label]`. The row fn paints
-            // the label through `RowUi`, which cannot consult the `LABEL`
-            // glyph slot the way `Button::draw` does, so the strip paints the
-            // brackets itself — into the pad cells the tab already reserves,
-            // so a mono fallback never changes geometry. Without it a pressed
-            // tab and a focused tab are the same picture without colour
-            // (§16.2 case 9, MA-8).
+
             if flags.contains(StateFlags::PRESSED) {
                 let ls = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::LABEL, flags);
                 if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
@@ -993,7 +986,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                         Slot::Clear => ui.fill(icon_cell, icon.style),
                     },
                     Status::Ready => {}
-                    // `Status` is `#[non_exhaustive]`: future statuses paint nothing.
+
                     _ => {}
                 }
             }
@@ -1002,7 +995,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         used
     }
 
-    /// The natural size: the design's `tabs_height`.
+    #[doc = r" The natural size: the design's `tabs_height`."]
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let h = ui.design().size.tabs_height;
         Size {
@@ -1013,7 +1006,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
     }
 }
 
-/// Columns of `row` painted with a non-blank symbol, measured from its left.
+#[doc = r" Columns of `row` painted with a non-blank symbol, measured from its left."]
 fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
     ui.with_area(row, |ui| {
         let (buf, clip) = ui.raw();
@@ -1095,7 +1088,7 @@ mod tests {
         let _ = st.reconcile(3, |i| a[i]);
         st.set_active(1, ItemKey::num(2));
         st.first = Some(ItemKey::num(1));
-        // insert at 0 and reverse: the active and first keys survive
+
         let b = keys(&[9, 3, 2, 1]);
         let r = st.reconcile(4, |i| b[i]);
         assert_eq!(r, Reconciliation::Unchanged);
@@ -1103,7 +1096,7 @@ mod tests {
         assert_eq!(st.cursor(), Some(ItemKey::num(2)));
         assert_eq!(st.first(), Some(ItemKey::num(1)));
         assert_eq!(st.first_index, 3);
-        // the active tab vanishes: the cursor's neighbour becomes active
+
         let c = keys(&[9, 3, 1]);
         let _ = st.reconcile(3, |i| c[i]);
         assert_eq!(st.active(), st.cursor());

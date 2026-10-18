@@ -1,3 +1,3 @@
-//! Re-export identity types from `id`.
+#![doc = r" Re-export identity types from `id`."]
 
 pub use crate::id::*;

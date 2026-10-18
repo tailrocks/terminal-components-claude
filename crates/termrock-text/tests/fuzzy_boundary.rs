@@ -1,4 +1,4 @@
-//! Boundary policy changes only source-defined ranking bonuses.
+#![doc = r" Boundary policy changes only source-defined ranking bonuses."]
 use termrock_text::{FuzzyBoundary, fuzzy, fuzzy_with_boundary};
 #[test]
 fn default_word_boundary_results_are_unchanged() {

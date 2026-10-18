@@ -1,4 +1,4 @@
-//! Repeat-selected activation uses semantic cursor identity, never click timing.
+#![doc = r" Repeat-selected activation uses semantic cursor identity, never click timing."]
 use std::time::Duration;
 use termrock_core::{Id, ItemKey, KeyCode, MouseKind, Response};
 use termrock_navigation::{Tree, TreeAction, TreeBranchClick, TreeNode, TreeState};

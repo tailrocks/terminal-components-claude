@@ -1,23 +1,23 @@
-//! The ONE width function and the non-render text helpers
-//! (`COMPONENT_ARCHITECTURE.md` §22.2 items 2–4, R‑1).
-//!
-//! [`width`] measures exactly the columns `Buffer::set_stringn` consumes:
-//! graphemes are walked with `unicode-segmentation`, graphemes containing a
-//! control character are skipped, and each surviving grapheme is measured
-//! with `ratatui_core::buffer::CellWidth` (`unicode-width` plus one column
-//! per halfwidth katakana sound mark). No other file may name
-//! `unicode_width`.
+#![doc = r" The ONE width function and the non-render text helpers"]
+#![doc = r" (`COMPONENT_ARCHITECTURE.md` §22.2 items 2–4, R‑1)."]
+#![doc = r""]
+#![doc = r" [`width`] measures exactly the columns `Buffer::set_stringn` consumes:"]
+#![doc = r" graphemes are walked with `unicode-segmentation`, graphemes containing a"]
+#![doc = r" control character are skipped, and each surviving grapheme is measured"]
+#![doc = r" with `ratatui_core::buffer::CellWidth` (`unicode-width` plus one column"]
+#![doc = r" per halfwidth katakana sound mark). No other file may name"]
+#![doc = r" `unicode_width`."]
 
 use ratatui_core::buffer::CellWidth;
 use unicode_segmentation::UnicodeSegmentation;
 
-/// Graphemes of `s` with their byte offsets.
+#[doc = r" Graphemes of `s` with their byte offsets."]
 pub fn graphemes(s: &str) -> impl DoubleEndedIterator<Item = (usize, &str)> {
     s.grapheme_indices(true)
 }
 
-/// Columns one grapheme occupies as painted: `0` for a grapheme carrying a
-/// control character, else `CellWidth::cell_width`.
+#[doc = r" Columns one grapheme occupies as painted: `0` for a grapheme carrying a"]
+#[doc = r" control character, else `CellWidth::cell_width`."]
 pub fn grapheme_width(g: &str) -> u16 {
     if g.contains(char::is_control) {
         0
@@ -26,7 +26,7 @@ pub fn grapheme_width(g: &str) -> u16 {
     }
 }
 
-/// Display width in columns, as `Buffer::set_stringn` consumes them.
+#[doc = r" Display width in columns, as `Buffer::set_stringn` consumes them."]
 pub fn width(s: &str) -> u16 {
     if s.len() == 1 {
         return grapheme_width(s);
@@ -35,19 +35,19 @@ pub fn width(s: &str) -> u16 {
         .fold(0u16, |acc, g| acc.saturating_add(grapheme_width(g)))
 }
 
-/// Whether `c` is a word character for word motion; one definition shared by
-/// the editor core and the viewport.
+#[doc = r" Whether `c` is a word character for word motion; one definition shared by"]
+#[doc = r" the editor core and the viewport."]
 pub(crate) fn is_word_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
-/// Whether a grapheme belongs to a word run. Marks stay attached to base.
+#[doc = r" Whether a grapheme belongs to a word run. Marks stay attached to base."]
 pub(crate) fn is_word_grapheme(g: &str) -> bool {
     g.chars().any(is_word_char)
 }
 
-/// Truncate to `max` columns, appending `…` when cut. Non-render callers
-/// only: painting goes through the clipping writer (R‑2).
+#[doc = r" Truncate to `max` columns, appending `…` when cut. Non-render callers"]
+#[doc = r" only: painting goes through the clipping writer (R‑2)."]
 pub fn truncate(s: &str, max: u16) -> String {
     if width(s) <= max {
         return s.to_owned();
@@ -70,7 +70,7 @@ pub fn truncate(s: &str, max: u16) -> String {
     out
 }
 
-/// Truncate keeping both ends: `very_long_identifier_name` → `very_l…_name`.
+#[doc = r" Truncate keeping both ends: `very_long_identifier_name` → `very_l…_name`."]
 pub fn truncate_middle(s: &str, max: u16) -> String {
     let parts = middle_parts(s, max);
     let mut out = String::with_capacity(parts.iter().map(|part| part.len()).sum());
@@ -80,7 +80,7 @@ pub fn truncate_middle(s: &str, max: u16) -> String {
     out
 }
 
-/// Borrowed decomposition shared by text helpers and the clipping painter.
+#[doc = r" Borrowed decomposition shared by text helpers and the clipping painter."]
 pub fn middle_parts(s: &str, max: u16) -> [&str; 3] {
     if width(s) <= max {
         return [s, "", ""];
@@ -123,9 +123,9 @@ pub fn middle_parts(s: &str, max: u16) -> [&str; 3] {
     ]
 }
 
-/// One step of the wrap walk: text to append, a separating space, or a line
-/// break. `wrap` and `wrapped_rows` are both written against it so the row
-/// count and the rows themselves cannot drift.
+#[doc = r" One step of the wrap walk: text to append, a separating space, or a line"]
+#[doc = r" break. `wrap` and `wrapped_rows` are both written against it so the row"]
+#[doc = r" count and the rows themselves cannot drift."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum WrapPiece<'a> {
     Text(&'a str),
@@ -133,8 +133,8 @@ enum WrapPiece<'a> {
     Break,
 }
 
-/// Word-wrap `s` to `w` columns, hard-wrapping a word longer than the width,
-/// emitting one [`WrapPiece`] per step. Allocation-free in itself.
+#[doc = r" Word-wrap `s` to `w` columns, hard-wrapping a word longer than the width,"]
+#[doc = r" emitting one [`WrapPiece`] per step. Allocation-free in itself."]
 fn wrap_walk<'a>(s: &'a str, w: u16, f: &mut dyn FnMut(WrapPiece<'a>)) {
     let w = w.max(1);
     for (i, para) in s.split('\n').enumerate() {
@@ -182,7 +182,7 @@ fn hard_wrap_walk<'a>(word: &'a str, w: u16, lw: &mut u16, f: &mut dyn FnMut(Wra
     }
 }
 
-/// Word-wrap into lines of at most `w` columns; hard-wraps overlong words.
+#[doc = r" Word-wrap into lines of at most `w` columns; hard-wraps overlong words."]
 pub fn wrap(s: &str, w: u16) -> Vec<String> {
     let mut lines = Vec::new();
     let mut line = String::new();
@@ -195,10 +195,10 @@ pub fn wrap(s: &str, w: u16) -> Vec<String> {
     lines
 }
 
-/// The number of rows [`wrap`] would produce, without building them: the
-/// sizing half of the wrap, for a component that must state its height as a
-/// pure function of its props before it draws (Adjudication N1,
-/// `Dialog::measured_height`). **Zero allocations.**
+#[doc = r" The number of rows [`wrap`] would produce, without building them: the"]
+#[doc = r" sizing half of the wrap, for a component that must state its height as a"]
+#[doc = r" pure function of its props before it draws (Adjudication N1,"]
+#[doc = r" `Dialog::measured_height`). **Zero allocations.**"]
 pub fn wrapped_rows(s: &str, w: u16) -> u16 {
     let mut rows = 1u16;
     wrap_walk(s, w, &mut |p| {
@@ -216,7 +216,7 @@ mod tests {
     use ratatui_core::layout::Rect;
     use ratatui_core::style::Style;
 
-    /// Columns `Buffer::set_stringn` actually consumes for `s`.
+    #[doc = r" Columns `Buffer::set_stringn` actually consumes for `s`."]
     fn consumed(s: &str) -> u16 {
         let mut buf = Buffer::empty(Rect::new(0, 0, 200, 1));
         let (x, _) = buf.set_stringn(0, 0, s, 200, Style::new());
@@ -242,8 +242,7 @@ mod tests {
             assert_eq!(width(s), s.cell_width(), "cell_width disagrees on {s:?}");
             assert_eq!(width(s), consumed(s), "set_stringn disagrees on {s:?}");
         }
-        // control-bearing strings: the writer drops them; `width` agrees
-        // with the writer, which is the columns layout must reserve
+
         for s in ["\r\n", "\u{7}", "a\u{7}b", "x\r\ny"] {
             assert_eq!(width(s), consumed(s), "set_stringn disagrees on {s:?}");
         }
@@ -284,8 +283,8 @@ mod tests {
         assert_eq!(truncate_middle("abcdefghij", 4), "abc…");
     }
 
-    /// `wrapped_rows` is the sizing half of `wrap`: they must agree exactly,
-    /// or `Dialog::measured_height` and `Dialog::draw` drift (Adjudication N1).
+    #[doc = r" `wrapped_rows` is the sizing half of `wrap`: they must agree exactly,"]
+    #[doc = r" or `Dialog::measured_height` and `Dialog::draw` drift (Adjudication N1)."]
     #[test]
     fn wrapped_rows_matches_wrap() {
         let corpus: &[&str] = &[

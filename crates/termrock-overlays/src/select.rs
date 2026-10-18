@@ -1,6 +1,6 @@
-//! `Select` — the dropdown field and its popup layer
-//! (`COMPONENT_ARCHITECTURE.md` §17.0 A7, §24 M3, §26 N1, §18.2,
-//! Appendix A 4B).
+#![doc = r" `Select` — the dropdown field and its popup layer"]
+#![doc = r" (`COMPONENT_ARCHITECTURE.md` §17.0 A7, §24 M3, §26 N1, §18.2,"]
+#![doc = r" Appendix A 4B)."]
 
 use core::fmt;
 use core::marker::PhantomData;
@@ -28,33 +28,33 @@ use termrock_runtime::empty::EmptyState;
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 
-/// What a select reports.
+#[doc = r" What a select reports."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SelectAction {
-    /// An option was committed as the value.
+    #[doc = r" An option was committed as the value."]
     Chose(ItemKey),
-    /// The popup opened.
+    #[doc = r" The popup opened."]
     Opened,
-    /// The popup closed without choosing.
+    #[doc = r" The popup closed without choosing."]
     Closed,
 }
 
-/// The const-constructible commands of the select keymap.
+#[doc = r" The const-constructible commands of the select keymap."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SelectCmd {
-    /// Open the popup, or commit the cursor option while it is open.
+    #[doc = r" Open the popup, or commit the cursor option while it is open."]
     Choose,
-    /// Cursor to the previous option.
+    #[doc = r" Cursor to the previous option."]
     Prev,
-    /// Cursor to the next option.
+    #[doc = r" Cursor to the next option."]
     Next,
-    /// Cursor to the first option.
+    #[doc = r" Cursor to the first option."]
     First,
-    /// Cursor to the last option.
+    #[doc = r" Cursor to the last option."]
     Last,
-    /// Cursor up one popup page.
+    #[doc = r" Cursor up one popup page."]
     PageUp,
-    /// Cursor down one popup page.
+    #[doc = r" Cursor down one popup page."]
     PageDown,
 }
 
@@ -69,10 +69,10 @@ const fn b(chord: Chord, cmd: SelectCmd, label: &'static str, visible: bool) -> 
     }
 }
 
-/// One table for both phases of the control's life: `Enter` / `Space` open
-/// the popup and, once it is open, commit the cursor option; the motion
-/// chords move the **cursor**, never the value (`select::
-/// arrows_move_the_cursor_not_the_value_while_closed`).
+#[doc = r" One table for both phases of the control's life: `Enter` / `Space` open"]
+#[doc = r" the popup and, once it is open, commit the cursor option; the motion"]
+#[doc = r" chords move the **cursor**, never the value (`select::"]
+#[doc = r" arrows_move_the_cursor_not_the_value_while_closed`)."]
 const BINDINGS: &[Binding<SelectCmd>] = &[
     b(
         Chord::key(KeyCode::Enter),
@@ -116,23 +116,23 @@ const BINDINGS: &[Binding<SelectCmd>] = &[
     ),
 ];
 
-/// The default instantiation a form field holds (§15.1, §24 M3): options
-/// are `&str` labels, keyed positionally, painted through `Display`.
-///
-/// `ByIndex` is forced by the form's value channel
-/// (`FieldMut::Choice(&mut usize)` is positional), not a default that
-/// leaked: a keyed, custom-row or non-string choice inside a form is
-/// `FieldKind::Chooser` plus the owner's own popup (§24 M3‑3, M3‑4).
+#[doc = r" The default instantiation a form field holds (§15.1, §24 M3): options"]
+#[doc = r" are `&str` labels, keyed positionally, painted through `Display`."]
+#[doc = r""]
+#[doc = r" `ByIndex` is forced by the form's value channel"]
+#[doc = r" (`FieldMut::Choice(&mut usize)` is positional), not a default that"]
+#[doc = r" leaked: a keyed, custom-row or non-string choice inside a form is"]
+#[doc = r" `FieldKind::Chooser` plus the owner's own popup (§24 M3‑3, M3‑4)."]
 pub type LabelSelect<'a> = Select<'a, &'a str, ByIndex, DefaultRow>;
 
-/// Durable state of a [`Select`]: the popup cursor, the committed value,
-/// the open flag, the popup scroll and the reconcile stamp.
-///
-/// The value is **uncontrolled** — the documented per-component exception of
-/// §13: `Select::update` takes no `&mut` value, because the value is one of
-/// the items the phase call already carries and is named by its `ItemKey`.
-/// Read it with [`SelectState::value`] and seed it with
-/// [`SelectState::set_value`].
+#[doc = r" Durable state of a [`Select`]: the popup cursor, the committed value,"]
+#[doc = r" the open flag, the popup scroll and the reconcile stamp."]
+#[doc = r""]
+#[doc = r" The value is **uncontrolled** — the documented per-component exception of"]
+#[doc = r" §13: `Select::update` takes no `&mut` value, because the value is one of"]
+#[doc = r" the items the phase call already carries and is named by its `ItemKey`."]
+#[doc = r" Read it with [`SelectState::value`] and seed it with"]
+#[doc = r" [`SelectState::set_value`]."]
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct SelectState {
     core: CollectionCore,
@@ -141,27 +141,27 @@ pub struct SelectState {
 }
 
 impl SelectState {
-    /// The committed value.
+    #[doc = r" The committed value."]
     pub const fn value(&self) -> Option<ItemKey> {
         self.value
     }
 
-    /// Set the committed value; the cursor follows it on the next `update`.
+    #[doc = r" Set the committed value; the cursor follows it on the next `update`."]
     pub fn set_value(&mut self, k: Option<ItemKey>) {
         self.value = k;
     }
 
-    /// The popup cursor.
+    #[doc = r" The popup cursor."]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-    /// Whether the popup is open.
+    #[doc = r" Whether the popup is open."]
     pub const fn is_open(&self) -> bool {
         self.open
     }
 
-    /// The popup scroll.
+    #[doc = r" The popup scroll."]
     pub const fn scroll(&self) -> &crate::scroll::ScrollState {
         self.core.scroll()
     }
@@ -183,112 +183,112 @@ impl Reconcile for SelectState {
     }
 }
 
-/// A dropdown: closed it is a one-row field with a trailing indicator; open
-/// it is a `Popover` layer the component sizes itself (§26 N1).
-///
-/// ## Construction
-/// `Select::new(id)`; options are passed to each phase, never held (§21
-/// item 1, §24 M3). The default instantiation `Select<'a, &'a str, ByIndex,
-/// DefaultRow>` is aliased as `LabelSelect<'a>` for form fields.
-///
-/// ## Ownership
-/// The caller owns the options (`&[T]` per phase) and a [`SelectState`]
-/// (cursor, value, open flag, popup scroll). The runtime owns focus, hover,
-/// press and the layer stack.
-///
-/// ## Configuration
-/// `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),
-/// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`),
-/// `.placeholder(&str)`, `.popup_rows(u16)`
-/// (`design.size.popup_max_rows`), `.empty(EmptyState)`,
-/// `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,
-/// `.slot`.
-///
-/// ## Variants
-/// `Family::SELECT`, `DEFAULT` only.
-///
-/// ## States
-/// The field wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from
-/// the runtime, `READ_ONLY` / `DISABLED` from the props, and `EXPANDED`
-/// while the popup is open, and `SELECTED` when it has a value. A popup row
-/// wears `FOCUSED` when it is the cursor and `SELECTED` when it is the value.
-///
-/// ## Actions
-/// [`SelectAction`]: `Chose(k)` (`Enter` / `Space` / a click on a row),
-/// `Opened`, `Closed` (Esc, an outside click, focus leaving the field, or
-/// the toggle). Moving the
-/// cursor — open or closed — reports nothing: the cursor is not the value.
-///
-/// ## Focus
-/// One `Focusable` stop (`FocusableReadOnly` / `Disabled`); does not
-/// swallow typing. The popup is a `Popover`, which is a **pointer barrier
-/// only** (§9.1): it registers no focus stop of its own, so the field
-/// remains the one stop, which is the legacy one-focus-stop contract.
-/// Focus is not *retained* there, though — the popup opens with
-/// [`Dismiss::ALL`], so moving focus off the field (`Tab` is runtime focus
-/// policy and never reaches a component) dismisses the layer with
-/// `DismissReason::FocusOut` and leaves focus on its new target (§29.8).
-///
-/// ## Keyboard
-/// `Enter` / `Space` open the popup and commit the cursor option once it is
-/// open; `↑`/`k`, `↓`/`j`, `Home`, `End`, `PgUp`, `PgDn` move the cursor;
-/// `Esc` dismisses the layer, which restores the cursor to the value.
-///
-/// ## Mouse
-/// `PartRef::of(Part::FIELD)`: a click toggles the popup.
-/// `PartRef::item(Part::ROW, k)`: a press moves the cursor, a click commits
-/// option `k`. `TRACK` / `THUMB` and the wheel go to the popup's
-/// [`ScrollRegion`].
-///
-/// ## Layout
-/// Closed: one row — gutter, two-cell indent, the value or the
-/// placeholder, and the indicator in the last column but one. Open: the
-/// layer [`Select::measured_size`] asked for, one blank pad row above and
-/// below the option rows. `measure` is `(12…24, 1)`; `draw` returns the
-/// field row; `0×0` registers nothing (R5).
-///
-/// ## Parts
-/// In paint order: `FIELD` (the closed row), `GUTTER` (the focus bar, in
-/// the closed field's first column and in each popup row's), `LABEL` (the
-/// value, through [`RowUi`]), `PLACEHOLDER` (what the closed field shows
-/// while there is no value), `MARKER` (the indicator and the popup's chosen
-/// mark), `ROW` (a popup row), `TRACK` / `THUMB` (the popup scrollbar),
-/// `EMPTY` (no options).
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` on any part; `.slot` on exactly `GUTTER`,
-/// `MARKER`, `EMPTY`, `TRACK` and `THUMB`. `GUTTER` and `MARKER` answer for
-/// the closed field's two chrome columns **and** for every popup row's, so
-/// one slot covers every cell this component paints under that part.
-/// `TRACK` and `THUMB` are the popup's [`ScrollRegion`], which paints them
-/// under this select's own `Id`; all three overrides are forwarded to it.
-/// `FIELD`, `ROW`, `LABEL` and `PLACEHOLDER` are not slot-addressable:
-/// `FIELD` and `ROW` are surface fills, `LABEL` is painted by the `.row(…)`
-/// painter the caller already supplies — in the closed field and in every
-/// popup row alike — and `PLACEHOLDER` is `.placeholder(…)`'s own text in
-/// the cell `FIELD` owns.
-///
-/// ## Identity
-/// `.key` supplies stable keys; `ByIndex` is unstable under
-/// insert/remove/reorder. The popup layer is owned by the select's own
-/// `Id`, so its lifecycle events arrive as this component's intents.
-///
-/// ## Testing
-/// `SelectCase` with `ACTIVATES | FOCUSABLE | DISABLEABLE | OVERLAY`;
-/// `render::components::select::*`;
-/// `select::escape_closes_and_restores_the_cursor`,
-/// `select::arrows_move_the_cursor_not_the_value_while_closed`,
-/// `select::standalone_select_takes_items_per_phase`.
-///
-/// ## Invariants
-/// `reconcile` runs before any action is emitted, and is skipped entirely
-/// while `disabled`, which reports no action of its own — the one action a
-/// disabled select can still emit is the `Closed` of a layer it opened
-/// before it was disabled, and that carries no item; the cursor is separate
-/// from the value and Esc restores it; the component re-asserts its layer's
-/// size and anchor every `update` (invariant D1, §26 N1), so a changing
-/// option list corrects the popup on the next draw without the opener
-/// predicting anything.
+#[doc = r" A dropdown: closed it is a one-row field with a trailing indicator; open"]
+#[doc = r" it is a `Popover` layer the component sizes itself (§26 N1)."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `Select::new(id)`; options are passed to each phase, never held (§21"]
+#[doc = r" item 1, §24 M3). The default instantiation `Select<'a, &'a str, ByIndex,"]
+#[doc = r" DefaultRow>` is aliased as `LabelSelect<'a>` for form fields."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" The caller owns the options (`&[T]` per phase) and a [`SelectState`]"]
+#[doc = r" (cursor, value, open flag, popup scroll). The runtime owns focus, hover,"]
+#[doc = r" press and the layer stack."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),"]
+#[doc = r" `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`),"]
+#[doc = r" `.placeholder(&str)`, `.popup_rows(u16)`"]
+#[doc = r" (`design.size.popup_max_rows`), `.empty(EmptyState)`,"]
+#[doc = r" `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,"]
+#[doc = r" `.slot`."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::SELECT`, `DEFAULT` only."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" The field wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from"]
+#[doc = r" the runtime, `READ_ONLY` / `DISABLED` from the props, and `EXPANDED`"]
+#[doc = r" while the popup is open, and `SELECTED` when it has a value. A popup row"]
+#[doc = r" wears `FOCUSED` when it is the cursor and `SELECTED` when it is the value."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" [`SelectAction`]: `Chose(k)` (`Enter` / `Space` / a click on a row),"]
+#[doc = r" `Opened`, `Closed` (Esc, an outside click, focus leaving the field, or"]
+#[doc = r" the toggle). Moving the"]
+#[doc = r" cursor — open or closed — reports nothing: the cursor is not the value."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" One `Focusable` stop (`FocusableReadOnly` / `Disabled`); does not"]
+#[doc = r" swallow typing. The popup is a `Popover`, which is a **pointer barrier"]
+#[doc = r" only** (§9.1): it registers no focus stop of its own, so the field"]
+#[doc = r" remains the one stop, which is the legacy one-focus-stop contract."]
+#[doc = r" Focus is not *retained* there, though — the popup opens with"]
+#[doc = r" [`Dismiss::ALL`], so moving focus off the field (`Tab` is runtime focus"]
+#[doc = r" policy and never reaches a component) dismisses the layer with"]
+#[doc = r" `DismissReason::FocusOut` and leaves focus on its new target (§29.8)."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" `Enter` / `Space` open the popup and commit the cursor option once it is"]
+#[doc = r" open; `↑`/`k`, `↓`/`j`, `Home`, `End`, `PgUp`, `PgDn` move the cursor;"]
+#[doc = r" `Esc` dismisses the layer, which restores the cursor to the value."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" `PartRef::of(Part::FIELD)`: a click toggles the popup."]
+#[doc = r" `PartRef::item(Part::ROW, k)`: a press moves the cursor, a click commits"]
+#[doc = r" option `k`. `TRACK` / `THUMB` and the wheel go to the popup's"]
+#[doc = r" [`ScrollRegion`]."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" Closed: one row — gutter, two-cell indent, the value or the"]
+#[doc = r" placeholder, and the indicator in the last column but one. Open: the"]
+#[doc = r" layer [`Select::measured_size`] asked for, one blank pad row above and"]
+#[doc = r" below the option rows. `measure` is `(12…24, 1)`; `draw` returns the"]
+#[doc = r" field row; `0×0` registers nothing (R5)."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" In paint order: `FIELD` (the closed row), `GUTTER` (the focus bar, in"]
+#[doc = r" the closed field's first column and in each popup row's), `LABEL` (the"]
+#[doc = r" value, through [`RowUi`]), `PLACEHOLDER` (what the closed field shows"]
+#[doc = r" while there is no value), `MARKER` (the indicator and the popup's chosen"]
+#[doc = r" mark), `ROW` (a popup row), `TRACK` / `THUMB` (the popup scrollbar),"]
+#[doc = r" `EMPTY` (no options)."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch` and `.patch_part` on any part; `.slot` on exactly `GUTTER`,"]
+#[doc = r" `MARKER`, `EMPTY`, `TRACK` and `THUMB`. `GUTTER` and `MARKER` answer for"]
+#[doc = r" the closed field's two chrome columns **and** for every popup row's, so"]
+#[doc = r" one slot covers every cell this component paints under that part."]
+#[doc = r" `TRACK` and `THUMB` are the popup's [`ScrollRegion`], which paints them"]
+#[doc = r" under this select's own `Id`; all three overrides are forwarded to it."]
+#[doc = r" `FIELD`, `ROW`, `LABEL` and `PLACEHOLDER` are not slot-addressable:"]
+#[doc = r" `FIELD` and `ROW` are surface fills, `LABEL` is painted by the `.row(…)`"]
+#[doc = r" painter the caller already supplies — in the closed field and in every"]
+#[doc = r" popup row alike — and `PLACEHOLDER` is `.placeholder(…)`'s own text in"]
+#[doc = r" the cell `FIELD` owns."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" `.key` supplies stable keys; `ByIndex` is unstable under"]
+#[doc = r" insert/remove/reorder. The popup layer is owned by the select's own"]
+#[doc = r" `Id`, so its lifecycle events arrive as this component's intents."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `SelectCase` with `ACTIVATES | FOCUSABLE | DISABLEABLE | OVERLAY`;"]
+#[doc = r" `render::components::select::*`;"]
+#[doc = r" `select::escape_closes_and_restores_the_cursor`,"]
+#[doc = r" `select::arrows_move_the_cursor_not_the_value_while_closed`,"]
+#[doc = r" `select::standalone_select_takes_items_per_phase`."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" `reconcile` runs before any action is emitted, and is skipped entirely"]
+#[doc = r" while `disabled`, which reports no action of its own — the one action a"]
+#[doc = r" disabled select can still emit is the `Closed` of a layer it opened"]
+#[doc = r" before it was disabled, and that carries no item; the cursor is separate"]
+#[doc = r" from the value and Esc restores it; the component re-asserts its layer's"]
+#[doc = r" size and anchor every `update` (invariant D1, §26 N1), so a changing"]
+#[doc = r" option list corrects the popup on the next draw without the opener"]
+#[doc = r" predicting anything."]
 pub struct Select<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -298,11 +298,11 @@ pub struct Select<'a, T, K = ByIndex, R = DefaultRow> {
     empty: Option<EmptyState<'a>>,
     read_only: bool,
     disabled: bool,
-    /// Kept beside `ov` so the popup's [`ScrollRegion`] can be built with the
-    /// caller's own overrides: it paints `TRACK` and `THUMB` under *this*
-    /// select's `Id`, so a bare construction dropped the caller's `.patch`
-    /// and `.patch_part` on those parts where `Invariant P` could not see it
-    /// (§45.7 obligation 2).
+    #[doc = r" Kept beside `ov` so the popup's [`ScrollRegion`] can be built with the"]
+    #[doc = r" caller's own overrides: it paints `TRACK` and `THUMB` under *this*"]
+    #[doc = r" select's `Id`, so a bare construction dropped the caller's `.patch`"]
+    #[doc = r" and `.patch_part` on those parts where `Invariant P` could not see it"]
+    #[doc = r" (§45.7 obligation 2)."]
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -322,7 +322,7 @@ impl<T, K, R> fmt::Debug for Select<'_, T, K, R> {
 }
 
 impl<T> Select<'_, T, ByIndex, DefaultRow> {
-    /// A select keyed by index and painted through `Display`.
+    #[doc = r" A select keyed by index and painted through `Display`."]
     pub const fn new(id: Id) -> Self {
         Select {
             id,
@@ -392,7 +392,7 @@ impl<'a> Select<'a, &'a str, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> Select<'a, T, K, R> {
-    /// The parts this component styles.
+    #[doc = r" The parts this component styles."]
     pub const PARTS: &'static [Part] = &[
         Part::FIELD,
         Part::GUTTER,
@@ -405,12 +405,12 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         Part::EMPTY,
     ];
 
-    /// The id.
+    #[doc = r" The id."]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// A stable key accessor.
+    #[doc = r" A stable key accessor."]
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Select<'a, T, K2, R> {
         Select {
             id: self.id,
@@ -428,7 +428,7 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         }
     }
 
-    /// A row painter for the popup and for the closed value.
+    #[doc = r" A row painter for the popup and for the closed value."]
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Select<'a, T, K, R2> {
         Select {
             id: self.id,
@@ -446,42 +446,42 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         }
     }
 
-    /// Text shown while there is no value.
+    #[doc = r" Text shown while there is no value."]
     #[must_use]
     pub const fn placeholder(mut self, s: &'a str) -> Self {
         self.placeholder = Some(s);
         self
     }
 
-    /// The tallest the popup's option list may be.
+    #[doc = r" The tallest the popup's option list may be."]
     #[must_use]
     pub const fn popup_rows(mut self, n: u16) -> Self {
         self.popup_rows = Some(n);
         self
     }
 
-    /// What the popup paints when there are no options.
+    #[doc = r" What the popup paints when there are no options."]
     #[must_use]
     pub const fn empty(mut self, e: EmptyState<'a>) -> Self {
         self.empty = Some(e);
         self
     }
 
-    /// Read-only: stays in the ring, never opens.
+    #[doc = r" Read-only: stays in the ring, never opens."]
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
 
-    /// Disabled: registered, never reachable.
+    #[doc = r" Disabled: registered, never reachable."]
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// An instance patch over every part.
+    #[doc = r" An instance patch over every part."]
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.patch = Some(p);
@@ -489,7 +489,7 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         self
     }
 
-    /// Per-part instance patches.
+    #[doc = r" Per-part instance patches."]
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
@@ -497,18 +497,18 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         self
     }
 
-    /// Replace one part's painting.
+    #[doc = r" Replace one part's painting."]
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// The popup's scrollbar, wearing this select's own overrides.
-    ///
-    /// It paints `TRACK` and `THUMB` under the **select's** `Id`, so those
-    /// two parts' `.patch`, `.patch_part` and `.slot` are the select's to
-    /// forward; constructing it bare dropped all three (§45.1).
+    #[doc = r" The popup's scrollbar, wearing this select's own overrides."]
+    #[doc = r""]
+    #[doc = r" It paints `TRACK` and `THUMB` under the **select's** `Id`, so those"]
+    #[doc = r" two parts' `.patch`, `.patch_part` and `.slot` are the select's to"]
+    #[doc = r" forward; constructing it bare dropped all three (§45.1)."]
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut sr = ScrollRegion::new(self.id).patch_part(self.parts);
         if let Some(p) = self.patch {
@@ -522,19 +522,19 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         sr
     }
 
-    /// Showcase / fixture use only (A11).
+    #[doc = r" Showcase / fixture use only (A11)."]
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
 
-    /// Rows the popup's option list may occupy.
+    #[doc = r" Rows the popup's option list may occupy."]
     fn max_rows(&self, d: &crate::theme::DesignTokens) -> u16 {
         self.popup_rows.unwrap_or(d.size.popup_max_rows).max(1)
     }
 
-    /// The anchor the popup wants: below the field, aligned to its left
-    /// edge. The resolver flips and clamps it (§9.1); no component computes
-    /// a screen rect.
+    #[doc = r" The anchor the popup wants: below the field, aligned to its left"]
+    #[doc = r" edge. The resolver flips and clamps it (§9.1); no component computes"]
+    #[doc = r" a screen rect."]
     fn anchor(&self, cx: &Cx<'_>) -> Anchor {
         match cx.area(self.id) {
             Some(rect) => Anchor::Rect {
@@ -542,8 +542,7 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
                 side: Side::Below,
                 align: CrossAlign::Start,
             },
-            // frame 1: the field has no geometry yet, so the popup centres
-            // itself and corrects on the next frame (S3)
+
             None => Anchor::Screen(crate::layer::ScreenAlign::Center),
         }
     }
@@ -566,13 +565,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
 
-    /// The size this popup asks its layer for (§26 N1): the field's width
-    /// clamped into the design's popup band, and one row per option up to
-    /// `popup_rows`, plus the pad row above and below.
-    ///
-    /// Pure in `(props, last frame's field width, DesignTokens, items)` and
-    /// re-asserted every `update`, so a changing option list corrects the
-    /// layer on the next draw.
+    #[doc = r" The size this popup asks its layer for (§26 N1): the field's width"]
+    #[doc = r" clamped into the design's popup band, and one row per option up to"]
+    #[doc = r" `popup_rows`, plus the pad row above and below."]
+    #[doc = r""]
+    #[doc = r" Pure in `(props, last frame's field width, DesignTokens, items)` and"]
+    #[doc = r" re-asserted every `update`, so a changing option list corrects the"]
+    #[doc = r" layer on the next draw."]
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         let d = cx.design();
         let w = cx
@@ -587,13 +586,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         LayerSize::Fixed(w, rows.saturating_add(2))
     }
 
-    /// The layer this popup wants. Call it at the moment of opening —
-    /// `cx.open_layer(id, select().layer(cx, items))` — and let
-    /// [`Select::update`] re-assert it every frame (§26 N1, invariant D1).
-    /// The popup opens with [`Dismiss::ALL`] (§29.8 D1): a `Popover` is a
-    /// pointer barrier only, so focus-out dismissal — not a focus trap and
-    /// not key swallowing — is what keeps focus off a control behind the
-    /// open popup.
+    #[doc = r" The layer this popup wants. Call it at the moment of opening —"]
+    #[doc = r" `cx.open_layer(id, select().layer(cx, items))` — and let"]
+    #[doc = r" [`Select::update`] re-assert it every frame (§26 N1, invariant D1)."]
+    #[doc = r" The popup opens with [`Dismiss::ALL`] (§29.8 D1): a `Popover` is a"]
+    #[doc = r" pointer barrier only, so focus-out dismissal — not a focus trap and"]
+    #[doc = r" not key swallowing — is what keeps focus off a control behind the"]
+    #[doc = r" open popup."]
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
         LayerSpec::popover(self.id, self.anchor(cx))
             .dismiss(Dismiss::ALL)
@@ -613,8 +612,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         }
         let to = to.min(items.len().saturating_sub(1));
         st.core.set_cursor(to, self.key_at(items, to));
-        // the cursor is not the value (§15): moving it repaints and reports
-        // nothing, open or closed
+
         acc.changed();
     }
 
@@ -633,8 +631,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc.action(SelectAction::Opened);
     }
 
-    /// Close the popup and restore the cursor to the committed value — the
-    /// Esc contract (`select::escape_closes_and_restores_the_cursor`).
+    #[doc = r" Close the popup and restore the cursor to the committed value — the"]
+    #[doc = r" Esc contract (`select::escape_closes_and_restores_the_cursor`)."]
     fn close_restoring(&self, st: &mut SelectState, items: &[T]) {
         st.open = false;
         if let Some(i) = st.value.and_then(|v| self.index_of(items, v, None)) {
@@ -665,14 +663,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc.action(SelectAction::Chose(key));
     }
 
-    /// Reconcile the durable state against `items` and seed the cursor on
-    /// the value, or on the first option when there is none.
-    ///
-    /// Skipped entirely while `disabled` (§16.2 case 1): a disabled control
-    /// is registered but inert, and must not initialise the caller's state.
-    /// It is a skip, not a deferral — [`Reconcile::reconcile`] is stamped on
-    /// the current `(len, keys)`, so however many disabled frames pass, the
-    /// first enabled one reconciles the list as it then is.
+    #[doc = r" Reconcile the durable state against `items` and seed the cursor on"]
+    #[doc = r" the value, or on the first option when there is none."]
+    #[doc = r""]
+    #[doc = r" Skipped entirely while `disabled` (§16.2 case 1): a disabled control"]
+    #[doc = r" is registered but inert, and must not initialise the caller's state."]
+    #[doc = r" It is a skip, not a deferral — [`Reconcile::reconcile`] is stamped on"]
+    #[doc = r" the current `(len, keys)`, so however many disabled frames pass, the"]
+    #[doc = r" first enabled one reconciles the list as it then is."]
     fn reconcile_and_seed(&self, st: &mut SelectState, items: &[T]) {
         if self.disabled {
             return;
@@ -687,17 +685,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         }
     }
 
-    /// The update phase: reconcile when enabled, re-assert the layer, then
-    /// drain keys, pointer intents and the layer's lifecycle events.
-    ///
-    /// The body runs **unconditionally**, whether or not the popup is open
-    /// (§13, §28 P3): a dismissal is delivered in the pass after the layer
-    /// closed, and a gated call would drain nothing. Only the durable-state
-    /// half — the reconcile and the cursor seed — is gated on `disabled`
-    /// (§16.2 case 1), because a disabled control must not mutate the
-    /// caller's state; the intent drain, the layer bookkeeping and the
-    /// dismissal that closes a popup opened before the control was disabled
-    /// all still run.
+    #[doc = r" The update phase: reconcile when enabled, re-assert the layer, then"]
+    #[doc = r" drain keys, pointer intents and the layer's lifecycle events."]
+    #[doc = r""]
+    #[doc = r" The body runs **unconditionally**, whether or not the popup is open"]
+    #[doc = r" (§13, §28 P3): a dismissal is delivered in the pass after the layer"]
+    #[doc = r" closed, and a gated call would drain nothing. Only the durable-state"]
+    #[doc = r" half — the reconcile and the cursor seed — is gated on `disabled`"]
+    #[doc = r" (§16.2 case 1), because a disabled control must not mutate the"]
+    #[doc = r" caller's state; the intent drain, the layer bookkeeping and the"]
+    #[doc = r" dismissal that closes a popup opened before the control was disabled"]
+    #[doc = r" all still run."]
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -708,13 +706,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         self.reconcile_and_seed(st, items);
         let open = st.open && cx.is_open(self.id);
         if open {
-            // invariant D1: re-assert the geometry every frame
             let size = self.measured_size(cx, items);
             let anchor = self.anchor(cx);
             cx.resize_layer(self.id, size);
             cx.reanchor_layer(self.id, anchor);
         } else if st.open {
-            // the layer went away without a dismissal reaching us
             st.open = false;
         }
         let mut acc = Acc::<SelectAction>::new();
@@ -800,11 +796,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    /// The live state flags of the closed field: the frame's own flags plus
-    /// the ones this instance forces.
+    #[doc = r" The live state flags of the closed field: the frame's own flags plus"]
+    #[doc = r" the ones this instance forces."]
     fn live_flags(&self, ui: &Ui<'_>, st: &SelectState) -> StateFlags {
-        // runtime: the frame's own focus/hover/press; derived: the caller's
-        // `.read_only` and `.disabled` props and the caller-owned `st.open`
         let mut derived = StateFlags::empty();
         if st.open {
             derived |= StateFlags::EXPANDED;
@@ -828,9 +822,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         live
     }
 
-    /// Registers the closed field as this component's one control.
-    ///
-    /// A reference rendering registers nothing.
+    #[doc = r" Registers the closed field as this component's one control."]
+    #[doc = r""]
+    #[doc = r" A reference rendering registers nothing."]
     fn register_field(&self, ui: &mut Ui<'_>, area: Rect) {
         if ui.is_inert() {
             return;
@@ -845,7 +839,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         ui.register_control(self.id, area, f);
     }
 
-    /// Paints the gutter column of the closed field.
+    #[doc = r" Paints the gutter column of the closed field."]
     fn paint_gutter(&self, ui: &mut Ui<'_>, cell: Rect, live: StateFlags) {
         if let Some(f) = self.ov.slot_for(Part::GUTTER) {
             f(ui, cell);
@@ -867,8 +861,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         }
     }
 
-    /// Paints the value cell: the chosen option's row body, or the
-    /// placeholder when nothing is chosen.
+    #[doc = r" Paints the value cell: the chosen option's row body, or the"]
+    #[doc = r" placeholder when nothing is chosen."]
     fn paint_value(
         &self,
         ui: &mut Ui<'_>,
@@ -912,14 +906,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             );
             self.row.row(item, &mut r);
         }
-        // the value sits on the FIELD surface, not on a row surface:
-        // `RowUi` fills with the family's `CONTAINER` style, so the
-        // field's own colours are re-applied over the painted symbols
+
         ui.paint_style(cell, field);
     }
 
-    /// Paints the open/closed indicator: the recipe's glyph when it has one,
-    /// else the semantic select disclosure.
+    #[doc = r" Paints the open/closed indicator: the recipe's glyph when it has one,"]
+    #[doc = r" else the semantic select disclosure."]
     fn paint_marker(&self, ui: &mut Ui<'_>, cell: Rect, live: StateFlags, open: bool) {
         if let Some(f) = self.ov.slot_for(Part::MARKER) {
             f(ui, cell);
@@ -952,7 +944,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         }
     }
 
-    /// The draw phase: the closed field, and the popup inside its layer.
+    #[doc = r" The draw phase: the closed field, and the popup inside its layer."]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &SelectState, items: &[T]) -> Rect {
         let area = first_row(area);
         if area.is_empty() {
@@ -993,7 +985,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         area
     }
 
-    /// The popup, inside the layer this component opened and sized.
+    #[doc = r" The popup, inside the layer this component opened and sized."]
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the popup surface, the empty state and the visible rows"
@@ -1016,9 +1008,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                     StateFlags::empty(),
                 );
                 ui.fill(layer, base.style);
-                // the layer is one pad row taller than the option list at
-                // each end (`measured_size`), which is what makes a
-                // borderless popover read as a floating surface
+
                 let list = Rect {
                     x: layer.x,
                     y: layer.y.saturating_add(1),
@@ -1085,10 +1075,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                             ov.style(ui, id, Family::SELECT, Variant::DEFAULT, Part::ROW, flags);
                         ui.paint_style(row, rs.style);
                     }
-                    // the popup's gutter and marker columns are the same two
-                    // parts the closed field paints, so one `.slot(GUTTER, …)`
-                    // or `.slot(MARKER, …)` answers for every cell this
-                    // component paints under that part (§45.3, Invariant R)
+
                     let gutter_cell = cell_at(row, row.x);
                     if let Some(f) = ov.slot_for(Part::GUTTER) {
                         f(ui, gutter_cell);
@@ -1144,7 +1131,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         });
     }
 
-    /// The natural size: one row, twelve columns minimum.
+    #[doc = r" The natural size: one row, twelve columns minimum."]
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, 1),
@@ -1176,9 +1163,9 @@ mod tests {
     const SEL: Id = Id::root("select.tests");
     const OTHER: Id = Id::root("select.tests.other");
 
-    /// A page with a select and one other focus stop, driven by the real
-    /// runtime — the only way to reach `Tab`, which is runtime focus policy
-    /// and never becomes a component intent.
+    #[doc = r" A page with a select and one other focus stop, driven by the real"]
+    #[doc = r" runtime — the only way to reach `Tab`, which is runtime focus policy"]
+    #[doc = r" and never becomes a component intent."]
     #[derive(Default)]
     struct SelectPage {
         st: SelectState,
@@ -1193,8 +1180,7 @@ mod tests {
             if r.take_action() == Some(SelectAction::Closed) {
                 self.closed = self.closed.saturating_add(1);
             }
-            // the other control drains its own bucket, or the focus pair the
-            // runtime addressed to it is reported as undelivered
+
             for _ in cx.intents(OTHER) {}
             r.erase()
         }
@@ -1213,16 +1199,16 @@ mod tests {
         })
     }
 
-    /// §29.8 D1: the popup opens with `Dismiss::ALL`, so the runtime closes
-    /// it the moment focus leaves the field.
-    ///
-    /// The legacy widget held this invariant twice over — it cleared `open`
-    /// whenever it drew unfocused, and it swallowed every unhandled key
-    /// while open. Neither route survives: the popup is a `Popover`, which
-    /// is a pointer barrier only, and `Tab` is intercepted as runtime focus
-    /// policy before any intent is enqueued. Focus-out dismissal is the
-    /// replacement, and it must leave focus on the `Tab` target rather than
-    /// restoring it to the field.
+    #[doc = r" §29.8 D1: the popup opens with `Dismiss::ALL`, so the runtime closes"]
+    #[doc = r" it the moment focus leaves the field."]
+    #[doc = r""]
+    #[doc = r" The legacy widget held this invariant twice over — it cleared `open`"]
+    #[doc = r" whenever it drew unfocused, and it swallowed every unhandled key"]
+    #[doc = r" while open. Neither route survives: the popup is a `Popover`, which"]
+    #[doc = r" is a pointer barrier only, and `Tab` is intercepted as runtime focus"]
+    #[doc = r" policy before any intent is enqueued. Focus-out dismissal is the"]
+    #[doc = r" replacement, and it must leave focus on the `Tab` target rather than"]
+    #[doc = r" restoring it to the field."]
     #[test]
     fn an_open_popup_closes_when_focus_leaves_the_field() {
         let mut st = SelectState::default();
@@ -1241,7 +1227,7 @@ mod tests {
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert!(rt.app().st.is_open(), "Enter opened the popup");
         assert!(rt.is_open(SEL), "the popover layer is open");
-        // browse away from the committed value without committing
+
         let _ = crate::runtime::stub::deliver(&mut rt, press(KeyCode::Down));
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.app().st.cursor(), Some(ItemKey::index(1)));
@@ -1296,9 +1282,9 @@ mod tests {
         assert_eq!(count, 1);
     }
 
-    /// §16.1: Esc dismisses the popup and puts the cursor back on the
-    /// committed value, so a cancelled dropdown leaves no half-made choice
-    /// behind.
+    #[doc = r" §16.1: Esc dismisses the popup and puts the cursor back on the"]
+    #[doc = r" committed value, so a cancelled dropdown leaves no half-made choice"]
+    #[doc = r" behind."]
     #[test]
     fn escape_closes_and_restores_the_cursor() {
         let items = ["a", "b", "c"];
@@ -1326,10 +1312,10 @@ mod tests {
         assert_eq!(st.value(), Some(ItemKey::index(1)));
     }
 
-    /// §16.1: while the popup is closed the motion chords move the cursor
-    /// and leave the value alone — the intentional change from the legacy
-    /// fused behaviour, where `↑`/`↓` on a closed select committed a new
-    /// value per keystroke.
+    #[doc = r" §16.1: while the popup is closed the motion chords move the cursor"]
+    #[doc = r" and leave the value alone — the intentional change from the legacy"]
+    #[doc = r" fused behaviour, where `↑`/`↓` on a closed select committed a new"]
+    #[doc = r" value per keystroke."]
     #[test]
     fn arrows_move_the_cursor_not_the_value_while_closed() {
         let items = ["a", "b", "c"];
@@ -1349,9 +1335,9 @@ mod tests {
         assert_eq!(st.value(), Some(ItemKey::index(0)));
     }
 
-    /// §16.1 / §24 M3: `Select::new(id)` carries no items; a `T` that is not
-    /// `&str` with `.key(..)` / `.row(..)` compiles, takes its items per
-    /// phase and reconciles.
+    #[doc = r" §16.1 / §24 M3: `Select::new(id)` carries no items; a `T` that is not"]
+    #[doc = r" `&str` with `.key(..)` / `.row(..)` compiles, takes its items per"]
+    #[doc = r" phase and reconciles."]
     #[test]
     fn standalone_select_takes_items_per_phase() {
         struct Engine {
@@ -1394,13 +1380,13 @@ mod tests {
             }
         }
         assert!(row0.contains("sqlite"), "{row0}");
-        // an item that vanishes takes the value with it
+
         let shrunk: Vec<Engine> = Vec::new();
         let _ = st.reconcile(shrunk.len(), |i| s.key_at(&shrunk, i));
         assert_eq!(st.value(), None);
     }
 
-    /// A select whose `disabled` prop the test drives.
+    #[doc = r" A select whose `disabled` prop the test drives."]
     #[derive(Default)]
     struct DisablableSelect {
         st: SelectState,
@@ -1417,10 +1403,10 @@ mod tests {
         fn draw(&self, _ui: &mut Ui<'_>) {}
     }
 
-    /// §16.2 case 1 (`disabled_cannot_activate`): a disabled collection stays
-    /// drawable from the caller's current item slice, but its update phase
-    /// must not reconcile or seed durable state. The sibling contract is
-    /// `choice::disabled_update_does_not_initialize_collection_state`.
+    #[doc = r" §16.2 case 1 (`disabled_cannot_activate`): a disabled collection stays"]
+    #[doc = r" drawable from the caller's current item slice, but its update phase"]
+    #[doc = r" must not reconcile or seed durable state. The sibling contract is"]
+    #[doc = r" `choice::disabled_update_does_not_initialize_collection_state`."]
     #[test]
     fn disabled_update_does_not_initialize_collection_state() {
         let app = DisablableSelect {
@@ -1433,10 +1419,10 @@ mod tests {
         assert_eq!(rt.app().st, SelectState::default());
     }
 
-    /// The gate above skips work rather than deferring it: `reconcile` is
-    /// stamped on `(len, keys)`, so however many disabled frames pass, the
-    /// first enabled one reconciles the *current* list and seeds the cursor.
-    /// A disabled select is therefore never left wedged.
+    #[doc = r" The gate above skips work rather than deferring it: `reconcile` is"]
+    #[doc = r" stamped on `(len, keys)`, so however many disabled frames pass, the"]
+    #[doc = r" first enabled one reconciles the *current* list and seeds the cursor."]
+    #[doc = r" A disabled select is therefore never left wedged."]
     #[test]
     fn a_select_reconciles_on_the_first_enabled_frame_after_disabled_ones() {
         let app = DisablableSelect {
@@ -1467,8 +1453,8 @@ mod tests {
         );
     }
 
-    /// Draw the closed field over the stub screen, optionally with an
-    /// instance patch on `part`, and return what was painted.
+    #[doc = r" Draw the closed field over the stub screen, optionally with an"]
+    #[doc = r" instance patch on `part`, and return what was painted."]
     fn draw_field(part: Option<Part>) -> Buffer {
         let items = ["alpha", "beta"];
         let patch = [(
@@ -1604,11 +1590,11 @@ mod tests {
         assert_ne!(draw_selected(Some(ItemKey::index(1))), draw_selected(None));
     }
 
-    /// §16.2 registry: every part a drawn select *styles* must be in
-    /// [`Select::PARTS`], or a per-part patch reaches a part the component
-    /// never declared. The closed field resolves `GUTTER` on every frame and
-    /// `PLACEHOLDER` on every valueless one; the patch changing the render is
-    /// how the conformance check observes that.
+    #[doc = r" §16.2 registry: every part a drawn select *styles* must be in"]
+    #[doc = r" [`Select::PARTS`], or a per-part patch reaches a part the component"]
+    #[doc = r" never declared. The closed field resolves `GUTTER` on every frame and"]
+    #[doc = r" `PLACEHOLDER` on every valueless one; the patch changing the render is"]
+    #[doc = r" how the conformance check observes that."]
     #[test]
     fn the_parts_a_drawn_select_styles_are_declared() {
         let plain = draw_field(None);

@@ -1,4 +1,4 @@
-//! A second grid consumer: compact service-health metrics.
+#![doc = r" A second grid consumer: compact service-health metrics."]
 
 use termrock::{
     Align, CellRef, Column, ColumnKey, Cx, Grid, GridAction, GridModel, GridState, Id, ItemKey,
@@ -244,7 +244,7 @@ fn paint_invisible(ui: &mut Ui<'_>, body: Rect, row: u16, x: u16, text: &str) {
     });
 }
 
-/// A read-only health dashboard demonstrates row identity and typed cell data.
+#[doc = r" A read-only health dashboard demonstrates row identity and typed cell data."]
 #[derive(Debug, Default)]
 pub struct GridPage {
     state: GridState,
@@ -275,10 +275,6 @@ impl Page for GridPage {
             self.title(),
             "Typed cells, a pending-change queue, paging and local sort",
             |ui, body| {
-                // Keep the migrated Grid live. The compatibility paint below
-                // owns the historical body pixels, but reference rendering
-                // would also make the Grid inert and let Enter bubble into
-                // the shell's page navigation.
                 metrics().draw(ui, body, &self.state, &MetricModel);
                 paint_body(
                     ui,

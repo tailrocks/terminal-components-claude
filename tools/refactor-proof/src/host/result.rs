@@ -1,10 +1,10 @@
-//! Host stdout result envelope (`tc-proof-host-result/v1`).
+#![doc = r" Host stdout result envelope (`tc-proof-host-result/v1`)."]
 
 use serde::{Deserialize, Serialize};
 
 use super::HostOperation;
 
-/// Host command outcome status.
+#[doc = r" Host command outcome status."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HostStatus {
@@ -12,7 +12,7 @@ pub enum HostStatus {
     Rejected,
 }
 
-/// Single JSON object emitted on stdout per host invocation.
+#[doc = r" Single JSON object emitted on stdout per host invocation."]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HostResult {
     pub schema: HostResultSchema,
@@ -22,7 +22,7 @@ pub struct HostResult {
     pub category: Option<String>,
 }
 
-/// Wire representation of [`HostOperation`] in host results.
+#[doc = r" Wire representation of [`HostOperation`] in host results."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HostOperationWire {

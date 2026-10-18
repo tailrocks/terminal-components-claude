@@ -1,3 +1,3 @@
-//! Library entry for termrock-xtask: repository enforcement checks.
+#![doc = r" Library entry for termrock-xtask: repository enforcement checks."]
 
 pub mod ownership;

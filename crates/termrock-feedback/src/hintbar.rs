@@ -1,10 +1,10 @@
-//! `HintBar` — the one key-hint surface a shell owns
-//! (`COMPONENT_ARCHITECTURE.md` §13.1, §18.2, Appendix A 4G).
-//!
-//! Components derive chord hints from `const` [`Binding`](crate::keymap::Binding)
-//! tables through `HintLayer::from_bindings`. Screens can contribute product
-//! affordances, including descriptive keycaps such as `Type`, without creating
-//! routing bindings. [`HintBar::resolve`] picks the topmost contributing layer.
+#![doc = r" `HintBar` — the one key-hint surface a shell owns"]
+#![doc = r" (`COMPONENT_ARCHITECTURE.md` §13.1, §18.2, Appendix A 4G)."]
+#![doc = r""]
+#![doc = r" Components derive chord hints from `const` [`Binding`](crate::keymap::Binding)"]
+#![doc = r" tables through `HintLayer::from_bindings`. Screens can contribute product"]
+#![doc = r" affordances, including descriptive keycaps such as `Type`, without creating"]
+#![doc = r" routing bindings. [`HintBar::resolve`] picks the topmost contributing layer."]
 
 use core::fmt;
 
@@ -37,107 +37,107 @@ impl<'a> MetadataOverride<'a> {
     }
 }
 
-/// The bottom row of hints: a badge, the key hints that fit, and a status
-/// message pinned to the right edge.
-///
-/// ## Construction
-/// `HintBar::new(id, layer)` over the [`HintLayer`] the screen resolved.
-/// [`HintBar::resolve`] is the associated function that performs that
-/// resolution: topmost layer wins.
-///
-/// ## Ownership
-/// Stateless. The caller owns the [`HintLayer`] — which it typically caches
-/// behind `(focus_id, StateFlags, top_layer)` in `Ui::cache`, so an
-/// unchanged focus costs no allocation per frame (§13.1) — and the animation
-/// frame. The runtime owns nothing.
-///
-/// ## Configuration
-/// `.variant(Variant)` (default `Recipe.default_variant`), `.status(Status)`
-/// (`Ready`), `.frame(usize)` (`0`), `.patch`, `.patch_part`, `.slot`,
-/// Default centring comes from the selected layer (`HintLayer::centered`).
-/// [`DerivedHintBar::centered`] can override it after context selection.
-///
-/// ## Variants
-/// `Family::HINTBAR`; `DEFAULT` only. The nested key hints resolve under
-/// `Family::KEYHINT`, so a theme restyles chords once for the bar and for
-/// any one-off hint chip.
-///
-/// ## States
-/// Derives `BUSY`/`LOADING`/`ERROR` from `.status(Status)`; wears no runtime
-/// state, because the bar is chrome and never takes focus, hover or press.
-/// An errored bar leads its status message with the error glyph and a busy
-/// one with a spinner frame, which is what keeps the three apart once colour
-/// is removed (§11.4).
-///
-/// ## Actions
-/// None; `HintBar` has no `update` phase. A hint is a *label* for a chord
-/// another component owns; making the label clickable would put a second
-/// dispatch path beside the binding table §13.1 exists to be the only one.
-///
-/// ## Focus
-/// Never a focus stop; registers no ring entry and no region.
-///
-/// ## Keyboard
-/// None of its own — every chord it shows belongs to the component that
-/// declared it.
-///
-/// ## Mouse
-/// None.
-///
-/// ## Layout
-/// `measure` returns `(badge + every hint + the status, 1)`. `draw` uses the
-/// first row of `area`, drops hints **from the right** when they do not fit
-/// and marks the cut with `GlyphRole::Ellipsis`, and returns the rect it
-/// painted; a degenerate rect paints nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the row fill), `BADGE` (the leading mode badge), `KEY` and
-/// `ACTION` (each hint, through `KeyHint`), `LABEL` (the status message),
-/// `MARKER` (the status glyph), `ICON` (the readiness spinner),
-/// `OVERFLOW` (the `…` that marks dropped hints).
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` on any part, forwarded to the nested
-/// [`KeyHint`]s, so patching `KEY` on the bar restyles every chord it draws.
-/// `.slot` on exactly `BADGE`, `KEY`, `ACTION`, `LABEL`, `MARKER`, `ICON`
-/// and `OVERFLOW`; `KEY` and `ACTION` are forwarded to the nested
-/// [`KeyHint`]s on the same reasoning as the patches. `CONTAINER` is not
-/// slot-addressable: its fill *is* the bar.
-///
-/// ## Identity
-/// One `Id` per instance; the hints are positional and carry no `ItemKey`,
-/// because nothing addresses an individual hint.
-///
-/// ## Testing
-/// `HintBarCase` in `crates/tui/tests/conformance.rs`, declaring
-/// `Caps::REPORTS_STATUS`. Its mono states retain the default, `ERROR` and
-/// `BUSY` renderings required by that readiness capability.
-///
-/// The render matrix in `crates/tui/tests/render_components.rs` generates
-/// exactly eight cells per component, one per `St` variant: there is no
-/// `render::components::hint_bar::busy`, no `::error` and no `::overflow`.
-/// Readiness arrives through the matrix's `status_for` mapping —
-/// `::pressed` is `Status::Busy`, `::editing` `Status::Loading`,
-/// `::disabled` `Status::Error`. `busy` reads `self.status`, so the spinner
-/// really does lead the status message in the first two, and is pinned as a
-/// digest there.
-///
-/// The layer resolution and the right-hand drop are unit-tested in this
-/// module by `the_topmost_layer_wins_and_the_fallback_is_none` and
-/// `narrow_rows_drop_hints_from_the_right`, which calls `fitting` directly.
-///
-/// Exercised by no test: the painted `…` — with the matrix's two-hint
-/// fixture, `fitting` keeps both hints at 40 and at 120 columns whether or
-/// not a readiness glyph takes its two cells, so no matrix cell reaches the
-/// `Part::OVERFLOW` branch, and the unit test stops at `fitting`'s counts.
-///
-/// The error glyph **is** painted from the semantic [`Status::Error`] state.
-///
-/// ## Invariants
-/// Overflow drops from the **right** and always leaves the marker, so the
-/// operator can see there is more; the status message keeps the right edge
-/// and wins the space it needs. Never allocates: chords are rendered into a
-/// fixed stack buffer by `KeyHint`.
+#[doc = r" The bottom row of hints: a badge, the key hints that fit, and a status"]
+#[doc = r" message pinned to the right edge."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `HintBar::new(id, layer)` over the [`HintLayer`] the screen resolved."]
+#[doc = r" [`HintBar::resolve`] is the associated function that performs that"]
+#[doc = r" resolution: topmost layer wins."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" Stateless. The caller owns the [`HintLayer`] — which it typically caches"]
+#[doc = r" behind `(focus_id, StateFlags, top_layer)` in `Ui::cache`, so an"]
+#[doc = r" unchanged focus costs no allocation per frame (§13.1) — and the animation"]
+#[doc = r" frame. The runtime owns nothing."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.variant(Variant)` (default `Recipe.default_variant`), `.status(Status)`"]
+#[doc = r" (`Ready`), `.frame(usize)` (`0`), `.patch`, `.patch_part`, `.slot`,"]
+#[doc = r" Default centring comes from the selected layer (`HintLayer::centered`)."]
+#[doc = r" [`DerivedHintBar::centered`] can override it after context selection."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::HINTBAR`; `DEFAULT` only. The nested key hints resolve under"]
+#[doc = r" `Family::KEYHINT`, so a theme restyles chords once for the bar and for"]
+#[doc = r" any one-off hint chip."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" Derives `BUSY`/`LOADING`/`ERROR` from `.status(Status)`; wears no runtime"]
+#[doc = r" state, because the bar is chrome and never takes focus, hover or press."]
+#[doc = r" An errored bar leads its status message with the error glyph and a busy"]
+#[doc = r" one with a spinner frame, which is what keeps the three apart once colour"]
+#[doc = r" is removed (§11.4)."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" None; `HintBar` has no `update` phase. A hint is a *label* for a chord"]
+#[doc = r" another component owns; making the label clickable would put a second"]
+#[doc = r" dispatch path beside the binding table §13.1 exists to be the only one."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" Never a focus stop; registers no ring entry and no region."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" None of its own — every chord it shows belongs to the component that"]
+#[doc = r" declared it."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" None."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" `measure` returns `(badge + every hint + the status, 1)`. `draw` uses the"]
+#[doc = r" first row of `area`, drops hints **from the right** when they do not fit"]
+#[doc = r" and marks the cut with `GlyphRole::Ellipsis`, and returns the rect it"]
+#[doc = r" painted; a degenerate rect paints nothing (R5)."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `CONTAINER` (the row fill), `BADGE` (the leading mode badge), `KEY` and"]
+#[doc = r" `ACTION` (each hint, through `KeyHint`), `LABEL` (the status message),"]
+#[doc = r" `MARKER` (the status glyph), `ICON` (the readiness spinner),"]
+#[doc = r" `OVERFLOW` (the `…` that marks dropped hints)."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch` and `.patch_part` on any part, forwarded to the nested"]
+#[doc = r" [`KeyHint`]s, so patching `KEY` on the bar restyles every chord it draws."]
+#[doc = r" `.slot` on exactly `BADGE`, `KEY`, `ACTION`, `LABEL`, `MARKER`, `ICON`"]
+#[doc = r" and `OVERFLOW`; `KEY` and `ACTION` are forwarded to the nested"]
+#[doc = r" [`KeyHint`]s on the same reasoning as the patches. `CONTAINER` is not"]
+#[doc = r" slot-addressable: its fill *is* the bar."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" One `Id` per instance; the hints are positional and carry no `ItemKey`,"]
+#[doc = r" because nothing addresses an individual hint."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `HintBarCase` in `crates/tui/tests/conformance.rs`, declaring"]
+#[doc = r" `Caps::REPORTS_STATUS`. Its mono states retain the default, `ERROR` and"]
+#[doc = r" `BUSY` renderings required by that readiness capability."]
+#[doc = r""]
+#[doc = r" The render matrix in `crates/tui/tests/render_components.rs` generates"]
+#[doc = r" exactly eight cells per component, one per `St` variant: there is no"]
+#[doc = r" `render::components::hint_bar::busy`, no `::error` and no `::overflow`."]
+#[doc = r" Readiness arrives through the matrix's `status_for` mapping —"]
+#[doc = r" `::pressed` is `Status::Busy`, `::editing` `Status::Loading`,"]
+#[doc = r" `::disabled` `Status::Error`. `busy` reads `self.status`, so the spinner"]
+#[doc = r" really does lead the status message in the first two, and is pinned as a"]
+#[doc = r" digest there."]
+#[doc = r""]
+#[doc = r" The layer resolution and the right-hand drop are unit-tested in this"]
+#[doc = r" module by `the_topmost_layer_wins_and_the_fallback_is_none` and"]
+#[doc = r" `narrow_rows_drop_hints_from_the_right`, which calls `fitting` directly."]
+#[doc = r""]
+#[doc = r" Exercised by no test: the painted `…` — with the matrix's two-hint"]
+#[doc = r" fixture, `fitting` keeps both hints at 40 and at 120 columns whether or"]
+#[doc = r" not a readiness glyph takes its two cells, so no matrix cell reaches the"]
+#[doc = r" `Part::OVERFLOW` branch, and the unit test stops at `fitting`'s counts."]
+#[doc = r""]
+#[doc = r" The error glyph **is** painted from the semantic [`Status::Error`] state."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" Overflow drops from the **right** and always leaves the marker, so the"]
+#[doc = r" operator can see there is more; the status message keeps the right edge"]
+#[doc = r" and wins the space it needs. Never allocates: chords are rendered into a"]
+#[doc = r" fixed stack buffer by `KeyHint`."]
 pub struct HintBar<'a> {
     id: Id,
     layer: &'a HintLayer,
@@ -146,8 +146,7 @@ pub struct HintBar<'a> {
     centered_override: Option<bool>,
     variant: Variant,
     status: Status,
-    // `Status` has no warning variant. Unit tests OR `WARNING` in so `draw`
-    // paints that path; production leaves the set empty.
+
     #[cfg(test)]
     flags: StateFlags,
     frame: usize,
@@ -175,7 +174,7 @@ impl fmt::Debug for HintBar<'_> {
 }
 
 impl<'a> HintBar<'a> {
-    /// The parts this component styles.
+    #[doc = r" The parts this component styles."]
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BADGE,
@@ -187,10 +186,10 @@ impl<'a> HintBar<'a> {
         Part::OVERFLOW,
     ];
 
-    /// Cells between two hints.
+    #[doc = r" Cells between two hints."]
     const HINT_GAP: u16 = 2;
 
-    /// A bar showing `layer`.
+    #[doc = r" A bar showing `layer`."]
     pub const fn new(id: Id, layer: &'a HintLayer) -> Self {
         HintBar {
             id,
@@ -209,7 +208,7 @@ impl<'a> HintBar<'a> {
         }
     }
 
-    /// A bar that derives the focused component layer from the current frame.
+    #[doc = r" A bar that derives the focused component layer from the current frame."]
     pub const fn derived(id: Id) -> DerivedHintBar<'a> {
         DerivedHintBar {
             id,
@@ -223,51 +222,51 @@ impl<'a> HintBar<'a> {
         }
     }
 
-    /// The topmost layer that exists, ordered from the topmost context down
-    /// to the global fallback: top layer ▸ temporary mode ▸ the focused
-    /// component's visible bindings ▸ screen extras ▸ global fallback
-    /// (§13.1).
-    ///
-    /// Borrowing rather than cloning is deliberate: resolution runs every
-    /// frame, and the layer it selects is usually the one the caller already
-    /// cached.
+    #[doc = r" The topmost layer that exists, ordered from the topmost context down"]
+    #[doc = r" to the global fallback: top layer ▸ temporary mode ▸ the focused"]
+    #[doc = r" component's visible bindings ▸ screen extras ▸ global fallback"]
+    #[doc = r" (§13.1)."]
+    #[doc = r""]
+    #[doc = r" Borrowing rather than cloning is deliberate: resolution runs every"]
+    #[doc = r" frame, and the layer it selects is usually the one the caller already"]
+    #[doc = r" cached."]
     #[must_use]
     pub fn resolve<'l>(layers: &[Option<&'l HintLayer>]) -> Option<&'l HintLayer> {
         layers.iter().flatten().copied().next()
     }
 
-    /// The id.
+    #[doc = r" The id."]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// The layer being shown.
+    #[doc = r" The layer being shown."]
     pub const fn layer(&self) -> &'a HintLayer {
         self.layer
     }
 
-    /// Set the variant.
+    #[doc = r" Set the variant."]
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
         self.variant = v;
         self
     }
 
-    /// Data readiness of the surface the bar reports on.
+    #[doc = r" Data readiness of the surface the bar reports on."]
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
 
-    /// The animation frame the spinner reads.
+    #[doc = r" The animation frame the spinner reads."]
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
         self.frame = f;
         self
     }
 
-    /// An instance patch over every part, the nested hints included.
+    #[doc = r" An instance patch over every part, the nested hints included."]
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.patch = Some(p);
@@ -275,7 +274,7 @@ impl<'a> HintBar<'a> {
         self
     }
 
-    /// Per-part patches, forwarded to the nested hints.
+    #[doc = r" Per-part patches, forwarded to the nested hints."]
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
@@ -283,7 +282,7 @@ impl<'a> HintBar<'a> {
         self
     }
 
-    /// Replace one part's painting.
+    #[doc = r" Replace one part's painting."]
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -294,7 +293,7 @@ impl<'a> HintBar<'a> {
         matches!(self.status, Status::Busy | Status::Loading)
     }
 
-    /// Readiness flags `draw` and `measure` share.
+    #[doc = r" Readiness flags `draw` and `measure` share."]
     fn derived_flags(&self) -> StateFlags {
         #[cfg(test)]
         {
@@ -306,13 +305,13 @@ impl<'a> HintBar<'a> {
         }
     }
 
-    /// One hint, wearing this bar's overrides.
-    ///
-    /// `KEY` and `ACTION` are painted by the nested [`KeyHint`] and by
-    /// nothing else, so the bar's slot on either is forwarded rather than
-    /// dropped: `.slot(Part::KEY, …)` on the bar answers for every chord it
-    /// draws, exactly as `.patch_part` on `KEY` already restyles them all
-    /// (§45.3, Invariant R).
+    #[doc = r" One hint, wearing this bar's overrides."]
+    #[doc = r""]
+    #[doc = r" `KEY` and `ACTION` are painted by the nested [`KeyHint`] and by"]
+    #[doc = r" nothing else, so the bar's slot on either is forwarded rather than"]
+    #[doc = r" dropped: `.slot(Part::KEY, …)` on the bar answers for every chord it"]
+    #[doc = r" draws, exactly as `.patch_part` on `KEY` already restyles them all"]
+    #[doc = r" (§45.3, Invariant R)."]
     fn hint(&self, i: usize) -> Option<KeyHint<'a>> {
         let h = self.layer.hints.get(i)?;
         let mut k = KeyHint::from_hint(self.id, h)
@@ -329,14 +328,14 @@ impl<'a> HintBar<'a> {
         Some(k)
     }
 
-    /// Columns the badge occupies, padding included.
+    #[doc = r" Columns the badge occupies, padding included."]
     fn badge_width(&self) -> u16 {
         self.badge_text()
             .filter(|b| !b.is_empty())
             .map_or(0, |b| width(b).saturating_add(2))
     }
 
-    /// Columns the status message occupies, its glyph included.
+    #[doc = r" Columns the status message occupies, its glyph included."]
     fn status_width(&self, ui: &Ui<'_>, live: StateFlags) -> u16 {
         let Some(s) = self.message().filter(|s| !s.is_empty()) else {
             return 0;
@@ -354,14 +353,14 @@ impl<'a> HintBar<'a> {
             .resolve(self.layer.status.as_deref())
     }
 
-    /// The glyph slot `Part::MARKER` resolves under for **this instance**.
-    ///
-    /// [`Ui::resolve`] is §26 N2's `&self` measuring path: it stops at
-    /// precedence 5, so an instance `.patch` or `.patch_part` reached this
-    /// cell's *colour* — resolved through [`PartStyle::style`] — and could
-    /// not reach its *glyph* (§45.5). Precedence 6 is applied here exactly
-    /// as `theme::resolve::bind` applies it on the painting path, so the
-    /// measuring and painting answers cannot diverge.
+    #[doc = r" The glyph slot `Part::MARKER` resolves under for **this instance**."]
+    #[doc = r""]
+    #[doc = r" [`Ui::resolve`] is §26 N2's `&self` measuring path: it stops at"]
+    #[doc = r" precedence 5, so an instance `.patch` or `.patch_part` reached this"]
+    #[doc = r" cell's *colour* — resolved through [`PartStyle::style`] — and could"]
+    #[doc = r" not reach its *glyph* (§45.5). Precedence 6 is applied here exactly"]
+    #[doc = r" as `theme::resolve::bind` applies it on the painting path, so the"]
+    #[doc = r" measuring and painting answers cannot diverge."]
     fn marker_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Slot<GlyphRole> {
         let base = ui
             .resolve(Family::HINTBAR, self.variant, Part::MARKER, live)
@@ -371,8 +370,8 @@ impl<'a> HintBar<'a> {
             .map_or(base, |p| p.glyph.over(base))
     }
 
-    /// The glyph that leads the status message: the spinner while busy, the
-    /// recipe's marker (or the error glyph) while in error.
+    #[doc = r" The glyph that leads the status message: the spinner while busy, the"]
+    #[doc = r" recipe's marker (or the error glyph) while in error."]
     fn status_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Option<&'static str> {
         if self.busy() {
             let frames = ui.design().motion.spinner_frames;
@@ -393,12 +392,12 @@ impl<'a> HintBar<'a> {
         None
     }
 
-    /// The warning marker.
-    ///
-    /// The generic mono fallback rewrites every warning marker to the dirty
-    /// bullet. A status warning keeps `▲` unless the theme or this instance
-    /// sets or clears `Part::MARKER`. Busy still wins: callers have already
-    /// returned the spinner.
+    #[doc = r" The warning marker."]
+    #[doc = r""]
+    #[doc = r" The generic mono fallback rewrites every warning marker to the dirty"]
+    #[doc = r" bullet. A status warning keeps `▲` unless the theme or this instance"]
+    #[doc = r" sets or clears `Part::MARKER`. Busy still wins: callers have already"]
+    #[doc = r" returned the spinner."]
     fn warning_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Option<&'static str> {
         if let Some(patch) = self.ov.part_patch(Part::MARKER) {
             match patch.glyph {
@@ -415,8 +414,7 @@ impl<'a> HintBar<'a> {
                 Slot::Inherit => Some(ui.glyph_str(GlyphRole::WarningMark)),
             };
         }
-        // No explicit glyph. `marker_glyph` still sees overlays, but a mono
-        // `Dirty` here is the generic fallback, not an author Set.
+
         match self.marker_glyph(ui, live) {
             Slot::Set(GlyphRole::Dirty) if ui.theme_ref().capability.color == ColorLevel::Mono => {
                 Some(ui.glyph_str(GlyphRole::WarningMark))
@@ -427,10 +425,10 @@ impl<'a> HintBar<'a> {
         }
     }
 
-    /// `Part::MARKER`'s glyph before the generic mono fallback.
-    ///
-    /// Family base, variant delta, state rules, then theme overrides. Mono
-    /// rules are omitted on purpose: they are what rewrite `▲` to `•`.
+    #[doc = r" `Part::MARKER`'s glyph before the generic mono fallback."]
+    #[doc = r""]
+    #[doc = r" Family base, variant delta, state rules, then theme overrides. Mono"]
+    #[doc = r" rules are omitted on purpose: they are what rewrite `▲` to `•`."]
     fn theme_marker_slot(&self, theme: &Theme, live: StateFlags) -> Slot<GlyphRole> {
         let recipes = &theme.recipes;
         let recipe = recipes.get_or_neutral(Family::HINTBAR);
@@ -471,9 +469,9 @@ impl<'a> HintBar<'a> {
         acc.glyph
     }
 
-    /// How many hints fit in `budget` columns from `x`, and whether any were
-    /// dropped. Two cells are reserved for the cut marker while more hints
-    /// follow, so the marker never pushes a hint off the row it just fitted.
+    #[doc = r" How many hints fit in `budget` columns from `x`, and whether any were"]
+    #[doc = r" dropped. Two cells are reserved for the cut marker while more hints"]
+    #[doc = r" follow, so the marker never pushes a hint off the row it just fitted."]
     fn fitting(&self, budget: u16) -> (usize, u16) {
         let n = self.layer.hints.len();
         let mut used = 0u16;
@@ -497,7 +495,7 @@ impl<'a> HintBar<'a> {
         (drawn, used.saturating_sub(Self::HINT_GAP))
     }
 
-    /// The draw phase; returns the rect painted.
+    #[doc = r" The draw phase; returns the rect painted."]
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the status, the badge, the hints and the cut marker"
@@ -507,15 +505,13 @@ impl<'a> HintBar<'a> {
         if area.is_empty() {
             return area;
         }
-        // runtime: none — the bar is chrome and registers no control of
-        // its own; derived: the readiness the caller's `.status` declares
+
         let live = PartStyle::flags(StateFlags::empty(), self.derived_flags());
         let ov = self.ov;
         let id = self.id;
         let container = ov.style(ui, id, Family::HINTBAR, self.variant, Part::CONTAINER, live);
         ui.fill(area, container.style);
 
-        // the status message keeps the right edge and wins the space
         let status_w = self.status_width(ui, live);
         let mut right_limit = area.right();
         if status_w > 0 && area.width > status_w.saturating_add(2) {
@@ -523,10 +519,6 @@ impl<'a> HintBar<'a> {
             let mut x = area.right().saturating_sub(status_w).saturating_sub(1);
             right_limit = x.saturating_sub(Self::HINT_GAP);
             if let Some(g) = glyph {
-                // one cell, two parts: the spinner is `ICON` and the error or
-                // warning marker is `MARKER`. The slot is consulted before
-                // `spinner_frames` (§45.4) — a slot is substitution, not
-                // suppression, so the cell it replaces keeps its columns.
                 let part = if self.busy() {
                     Part::ICON
                 } else {
@@ -561,13 +553,9 @@ impl<'a> HintBar<'a> {
                 }
             }
         } else if status_w > 0 {
-            // A status wider than the row still wins: tag `keyhint.rs`
-            // truncates it to the content lane and right-aligns the cut,
-            // which fills a narrow footer and leaves no room for hints.
             right_limit = self.paint_truncated_status(ui, area, live);
         }
 
-        // the badge leads
         let mut x = area.x.saturating_add(1);
         let badge_w = self.badge_width();
         if badge_w > 0 && x.saturating_add(badge_w) <= right_limit {
@@ -591,8 +579,6 @@ impl<'a> HintBar<'a> {
         let budget = right_limit.saturating_sub(x);
         let (drawn, used) = self.fitting(budget);
         if self.centered_override.unwrap_or(self.layer.centered) {
-            // the block sits mid-row, never past the badge and never under
-            // the status
             let free = area.width.saturating_sub(used);
             let mid = area.x.saturating_add(free / 2);
             x = mid.max(x).min(right_limit.saturating_sub(used).max(x));
@@ -637,11 +623,11 @@ impl<'a> HintBar<'a> {
         area
     }
 
-    /// Paint a status that does not fit in `area.width - 2`.
-    ///
-    /// The cut is right-aligned in the content lane. Nothing is written
-    /// outside `area`. The returned limit is the right edge hints may use,
-    /// so they drop instead of drawing under the status.
+    #[doc = r" Paint a status that does not fit in `area.width - 2`."]
+    #[doc = r""]
+    #[doc = r" The cut is right-aligned in the content lane. Nothing is written"]
+    #[doc = r" outside `area`. The returned limit is the right edge hints may use,"]
+    #[doc = r" so they drop instead of drawing under the status."]
     fn paint_truncated_status(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) -> u16 {
         let glyph = self.status_glyph(ui, live);
         let run = match (glyph, self.message()) {
@@ -696,7 +682,7 @@ impl<'a> HintBar<'a> {
         right_limit
     }
 
-    /// The natural size: one row wide enough for every hint.
+    #[doc = r" The natural size: one row wide enough for every hint."]
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let live = PartStyle::flags(StateFlags::empty(), self.derived_flags());
         let hints: u16 = (0..self.layer.hints.len())
@@ -717,7 +703,7 @@ impl<'a> HintBar<'a> {
     }
 }
 
-/// Context layers around the runtime-derived focused-component hints.
+#[doc = r" Context layers around the runtime-derived focused-component hints."]
 #[derive(Clone, Copy, Debug)]
 pub struct DerivedHintBar<'a> {
     id: Id,
@@ -731,53 +717,53 @@ pub struct DerivedHintBar<'a> {
 }
 
 impl<'a> DerivedHintBar<'a> {
-    /// Supply the active top-layer hints.
+    #[doc = r" Supply the active top-layer hints."]
     #[must_use]
     pub const fn top(mut self, layer: &'a HintLayer) -> Self {
         self.top = Some(layer);
         self
     }
 
-    /// Supply temporary mode hints.
+    #[doc = r" Supply temporary mode hints."]
     #[must_use]
     pub const fn mode(mut self, layer: &'a HintLayer) -> Self {
         self.mode = Some(layer);
         self
     }
 
-    /// Supply screen-level extras.
+    #[doc = r" Supply screen-level extras."]
     #[must_use]
     pub const fn screen(mut self, layer: &'a HintLayer) -> Self {
         self.screen = Some(layer);
         self
     }
 
-    /// Supply the application-wide fallback.
+    #[doc = r" Supply the application-wide fallback."]
     #[must_use]
     pub const fn global(mut self, layer: &'a HintLayer) -> Self {
         self.global = Some(layer);
         self
     }
 
-    /// Override the selected context's status text with a borrowed message.
-    /// `None` explicitly clears it; omitting this builder preserves it.
-    /// Hint selection and the cached context layer remain unchanged.
+    #[doc = r" Override the selected context's status text with a borrowed message."]
+    #[doc = r" `None` explicitly clears it; omitting this builder preserves it."]
+    #[doc = r" Hint selection and the cached context layer remain unchanged."]
     #[must_use]
     pub const fn status_text(mut self, text: Option<&'a str>) -> Self {
         self.status_text = MetadataOverride::Set(text);
         self
     }
 
-    /// Override the selected context's badge with borrowed text.
-    /// `None` explicitly clears it; omitting this builder preserves it.
+    #[doc = r" Override the selected context's badge with borrowed text."]
+    #[doc = r" `None` explicitly clears it; omitting this builder preserves it."]
     #[must_use]
     pub const fn badge(mut self, text: Option<&'a str>) -> Self {
         self.badge = MetadataOverride::Set(text);
         self
     }
 
-    /// Override centering after selecting the active hint context.
-    /// Omitting this builder preserves the selected layer's alignment.
+    #[doc = r" Override centering after selecting the active hint context."]
+    #[doc = r" Omitting this builder preserves the selected layer's alignment."]
     #[must_use]
     pub const fn centered(mut self, centered: bool) -> Self {
         self.centered = Some(centered);
@@ -792,9 +778,9 @@ impl<'a> DerivedHintBar<'a> {
         bar.draw(ui, area)
     }
 
-    /// Draw the first nonempty layer in top, mode, focused, screen, global
-    /// precedence order, then apply explicit badge, status text and alignment overrides.
-    /// Nonempty explicit metadata also renders when no hint context exists.
+    #[doc = r" Draw the first nonempty layer in top, mode, focused, screen, global"]
+    #[doc = r" precedence order, then apply explicit badge, status text and alignment overrides."]
+    #[doc = r" Nonempty explicit metadata also renders when no hint context exists."]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         if let Some(layer) = self.top.filter(|layer| !layer.is_empty()) {
             return self.draw_layer(ui, area, layer);
@@ -886,12 +872,7 @@ mod tests {
             HintBar::resolve(&[Some(&modal), None, Some(&screen)]).map(|l| l.hints.len()),
             Some(1)
         );
-        // Identity, not equality, is the assertion. `resolve` returns one of the
-        // caller's own borrows, so which slot it picked is provenance, not content:
-        // `HintLayer: PartialEq`, and two layers carrying the same hints would be
-        // `==` while coming from different slots, so `==` would pass even if the
-        // wrong element were returned. Each case also falls back to the *other*
-        // layer, so a `None` result fails rather than aliases the expected pointer.
+
         assert!(core::ptr::eq(
             HintBar::resolve(&[Some(&modal), None, Some(&screen)]).unwrap_or(&screen),
             &raw const modal
@@ -929,8 +910,7 @@ mod tests {
             None,
             "ready status does not imply a glyph"
         );
-        // No public Warning readiness status exists; test this path's semantic
-        // flag directly through its private resolver below.
+
         let mut frame = FrameState::default();
         frame.reset(1, AREA);
         let mut page = Buffer::empty(AREA);

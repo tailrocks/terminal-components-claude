@@ -1,4 +1,4 @@
-//! Switcher projections retain typed destination identity across tab changes.
+#![doc = r" Switcher projections retain typed destination identity across tab changes."]
 use tablepro_ui::{SwitchTarget, Tab, TableProApp};
 
 #[test]

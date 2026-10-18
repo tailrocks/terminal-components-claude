@@ -1,4 +1,4 @@
-//! `install` copies the accepted harness executable from a receipt.
+#![doc = r" `install` copies the accepted harness executable from a receipt."]
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -61,7 +61,7 @@ fn material_executable_bytes(
         if let Ok(bytes) = fs::read(&resolved) {
             return Ok(bytes);
         }
-        // Qualification sandboxes may allow the running image but not the build tree.
+
         let current = std::env::current_exe().map_err(|_| "receipt")?;
         let current_bytes = fs::read(&current).map_err(|_| "receipt")?;
         if !is_mach_o_executable(&current_bytes) {

@@ -1,4 +1,4 @@
-//! Structural tab records keep identity outside cloneable/replaced payloads.
+#![doc = r" Structural tab records keep identity outside cloneable/replaced payloads."]
 use tablepro_ui::{QueryTab, Surface, Tab, TableProApp};
 use termrock::{App, Id, KeyCode, Theme};
 use termrock_test_support::Harness;

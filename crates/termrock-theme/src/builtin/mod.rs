@@ -1,4 +1,4 @@
-//! Built-in themes and the default recipe table.
+#![doc = r" Built-in themes and the default recipe table."]
 
 pub(crate) mod junie;
 pub(crate) mod paper;
@@ -22,8 +22,8 @@ fn part(m: &mut PartMap<PartRecipe>, part: Part, base: StylePatch) -> &mut PartR
     r
 }
 
-/// Row-like chrome shared by every collection: gutter, marker, label, meta,
-/// scrollbar parts and the empty slot.
+#[doc = r" Row-like chrome shared by every collection: gutter, marker, label, meta,"]
+#[doc = r" scrollbar parts and the empty slot."]
 fn row_like(m: &mut PartMap<PartRecipe>) {
     part(
         m,
@@ -497,7 +497,6 @@ fn empty(m: &mut PartMap<PartRecipe>) {
 }
 
 fn brand(m: &mut PartMap<PartRecipe>) {
-    // the only control that fills with the accent (§11.6)
     part(
         m,
         Part::LABEL,
@@ -563,7 +562,7 @@ fn chip(m: &mut PartMap<PartRecipe>) {
 
 fn grid(m: &mut PartMap<PartRecipe>) {
     row_like(m);
-    // Optional header prefixes supply their semantic tone below explicit overrides.
+
     m.entry(Part::ICON).base = p();
     part(m, Part::ROW, p());
     part(m, Part::CELL, p())
@@ -607,16 +606,16 @@ fn button(r: &mut Recipe) {
     }
 }
 
-/// The recipe a family with no declaration of its own starts from (§11.2,
-/// MA-6): the neutral row-like chrome, so a downstream `Family::custom("x")`
-/// renders with the library's default look instead of an empty style.
+#[doc = r" The recipe a family with no declaration of its own starts from (§11.2,"]
+#[doc = r#" MA-6): the neutral row-like chrome, so a downstream `Family::custom("x")`"#]
+#[doc = r" renders with the library's default look instead of an empty style."]
 pub(crate) fn neutral_recipe() -> Recipe {
     let mut r = Recipe::default();
     row_like(&mut r.parts);
     r
 }
 
-/// The default recipe table every theme starts from.
+#[doc = r" The default recipe table every theme starts from."]
 pub(crate) fn default_recipes() -> Recipes {
     let mut rs = Recipes::default();
     for &f in Family::ALL {
@@ -644,8 +643,6 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::KEYHINT => keyhint(&mut r.parts),
             Family::PROGRESS => progress(&mut r.parts),
             Family::METER => {
-                // Meter supplies role defaults through the shared authored
-                // defaults stage; state and explicit recipes stay above them.
                 part(&mut r.parts, Part::LABEL, p());
                 part(&mut r.parts, Part::TRACK, p());
                 part(&mut r.parts, Part::ICON, p())
@@ -692,10 +689,10 @@ mod tests {
         }
     }
 
-    /// Every `(family, variant, part)` in the default table that declares
-    /// **both** a single-flag `HOVERED` rule and a single-flag `DISABLED`
-    /// rule, paired with the merged `DISABLED` patch (family rule then
-    /// variant rule — the order `recipe::merge_states` applies them in).
+    #[doc = r" Every `(family, variant, part)` in the default table that declares"]
+    #[doc = r" **both** a single-flag `HOVERED` rule and a single-flag `DISABLED`"]
+    #[doc = r" rule, paired with the merged `DISABLED` patch (family rule then"]
+    #[doc = r" variant rule — the order `recipe::merge_states` applies them in)."]
     fn hovered_and_disabled_parts() -> Vec<(Family, Variant, Part, StylePatch)> {
         let rs = default_recipes();
         let mut out = Vec::new();
@@ -739,10 +736,10 @@ mod tests {
         out
     }
 
-    /// The set is neither empty nor allowed to lose the three parts the
-    /// property matters most on, so neither ordering test below can pass by
-    /// enumerating nothing (`COORDINATION.md`: a gate that cannot fail is not
-    /// evidence).
+    #[doc = r" The set is neither empty nor allowed to lose the three parts the"]
+    #[doc = r" property matters most on, so neither ordering test below can pass by"]
+    #[doc = r" enumerating nothing (`COORDINATION.md`: a gate that cannot fail is not"]
+    #[doc = r" evidence)."]
     #[test]
     fn hovered_and_disabled_are_declared_together_on_the_parts_that_matter() {
         let found = hovered_and_disabled_parts();
@@ -764,20 +761,20 @@ mod tests {
         );
     }
 
-    /// GAP-2 (`COMPONENT_ARCHITECTURE.md` §44.2,
-    /// `docs/audit/legacy-test-disposition.md`): **`DISABLED` is applied after
-    /// `HOVERED`**, on every part that declares both.
-    ///
-    /// `HOVERED` and `DISABLED` are both single-flag, so §11.3 stores them at
-    /// equal specificity and breaks the tie by declaration order. Which of the
-    /// two wins is therefore a property of the *source line order* in this
-    /// file, and nothing else pins it.
-    ///
-    /// The probe replaces each rule's patch with a marker on the same slot, so
-    /// it detects a swap even where the two real patches happen to write
-    /// disjoint slots and the swap is invisible in the shipped colours. It runs
-    /// through the real `Theme::resolve`, so it also covers the
-    /// family-rules-then-variant-rules merge, not just one `states` vector.
+    #[doc = r" GAP-2 (`COMPONENT_ARCHITECTURE.md` §44.2,"]
+    #[doc = r" `docs/audit/legacy-test-disposition.md`): **`DISABLED` is applied after"]
+    #[doc = r" `HOVERED`**, on every part that declares both."]
+    #[doc = r""]
+    #[doc = r" `HOVERED` and `DISABLED` are both single-flag, so §11.3 stores them at"]
+    #[doc = r" equal specificity and breaks the tie by declaration order. Which of the"]
+    #[doc = r" two wins is therefore a property of the *source line order* in this"]
+    #[doc = r" file, and nothing else pins it."]
+    #[doc = r""]
+    #[doc = r" The probe replaces each rule's patch with a marker on the same slot, so"]
+    #[doc = r" it detects a swap even where the two real patches happen to write"]
+    #[doc = r" disjoint slots and the swap is invisible in the shipped colours. It runs"]
+    #[doc = r" through the real `Theme::resolve`, so it also covers the"]
+    #[doc = r" family-rules-then-variant-rules merge, not just one `states` vector."]
     #[test]
     fn disabled_is_applied_after_hovered_on_every_part_declaring_both() {
         fn mark(m: &mut PartMap<PartRecipe>) {
@@ -798,8 +795,7 @@ mod tests {
                 mark(m);
             }
         }
-        // only `HOVERED`, `DISABLED` and the empty rule are subsets of the live
-        // state, so the two markers are the only rules that speak about `fg`
+
         let live = StateFlags::HOVERED | StateFlags::DISABLED;
         for (f, v, part, _) in hovered_and_disabled_parts() {
             let r = t.resolve(f, v, part, live, Surface::Canvas);
@@ -814,33 +810,33 @@ mod tests {
         }
     }
 
-    /// Parts where a hovered, disabled control **loses its disabled background
-    /// to the hover plane today**, found by the test below.
-    ///
-    /// These three variants declare a `DISABLED` rule that sets no background,
-    /// so the background they show when disabled comes from the family-level
-    /// `DISABLED` rule — and §11.3 applies every *family* rule before every
-    /// *variant* rule, so the variant's own `HOVERED` background lands after
-    /// it. Declaration order inside this file cannot fix that; only a recipe
-    /// change can, and a recipe change is a visual change needing a numbered
-    /// §20.10 classification.
-    ///
-    /// The list can only shrink: the test asserts each entry is **still**
-    /// broken, so fixing one without deleting its entry fails.
+    #[doc = r" Parts where a hovered, disabled control **loses its disabled background"]
+    #[doc = r" to the hover plane today**, found by the test below."]
+    #[doc = r""]
+    #[doc = r" These three variants declare a `DISABLED` rule that sets no background,"]
+    #[doc = r" so the background they show when disabled comes from the family-level"]
+    #[doc = r" `DISABLED` rule — and §11.3 applies every *family* rule before every"]
+    #[doc = r" *variant* rule, so the variant's own `HOVERED` background lands after"]
+    #[doc = r" it. Declaration order inside this file cannot fix that; only a recipe"]
+    #[doc = r" change can, and a recipe change is a visual change needing a numbered"]
+    #[doc = r" §20.10 classification."]
+    #[doc = r""]
+    #[doc = r" The list can only shrink: the test asserts each entry is **still**"]
+    #[doc = r" broken, so fixing one without deleting its entry fails."]
     const DISABLED_BG_LOST_TO_HOVER: [(Family, Variant, Part); 3] = [
         (Family::BUTTON, Variant::SUBTLE, Part::CONTAINER),
         (Family::BUTTON, Variant::QUIET, Part::CONTAINER),
         (Family::BUTTON, Variant::GHOST, Part::CONTAINER),
     ];
 
-    /// The shipped consequence of the ordering above: a hovered *and* disabled
-    /// part keeps every slot its `DISABLED` rules write.
-    ///
-    /// Deliberately scoped to the slots `DISABLED` speaks about. This is
-    /// **not** `DESIGN.md`'s stronger "disabled: no hover" rule — where the
-    /// two patches write disjoint slots the hover plane still survives in the
-    /// recipe, and it is each component that suppresses `HOVERED` before
-    /// resolving.
+    #[doc = r" The shipped consequence of the ordering above: a hovered *and* disabled"]
+    #[doc = r" part keeps every slot its `DISABLED` rules write."]
+    #[doc = r""]
+    #[doc = r" Deliberately scoped to the slots `DISABLED` speaks about. This is"]
+    #[doc = r#" **not** `DESIGN.md`'s stronger "disabled: no hover" rule — where the"#]
+    #[doc = r" two patches write disjoint slots the hover plane still survives in the"]
+    #[doc = r" recipe, and it is each component that suppresses `HOVERED` before"]
+    #[doc = r" resolving."]
     #[test]
     fn a_hovered_disabled_part_keeps_every_slot_the_disabled_rule_writes() {
         let live = StateFlags::HOVERED | StateFlags::DISABLED;

@@ -1,106 +1,106 @@
-//! Glyph roles and sets (`COMPONENT_ARCHITECTURE.md` §11.2, `DESIGN.md` markers table).
+#![doc = r" Glyph roles and sets (`COMPONENT_ARCHITECTURE.md` §11.2, `DESIGN.md` markers table)."]
 
 use ratatui_core::symbols::{line, scrollbar};
 
-/// Every glyph in the design system's table, one role each. Roles stay
-/// distinct even where Junie maps two to the same glyph, so a theme can
-/// separate them.
+#[doc = r" Every glyph in the design system's table, one role each. Roles stay"]
+#[doc = r" distinct even where Junie maps two to the same glyph, so a theme can"]
+#[doc = r" separate them."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum GlyphRole {
-    /// Keyboard focus bar.
+    #[doc = r" Keyboard focus bar."]
     FocusBar,
-    /// Current or chosen item.
+    #[doc = r" Current or chosen item."]
     Chosen,
-    /// Checked / selected / completed.
+    #[doc = r" Checked / selected / completed."]
     Checked,
-    /// Checkbox on.
+    #[doc = r" Checkbox on."]
     CheckboxOn,
-    /// Checkbox off.
+    #[doc = r" Checkbox off."]
     CheckboxOff,
-    /// Radio on.
+    #[doc = r" Radio on."]
     RadioOn,
-    /// Radio off.
+    #[doc = r" Radio off."]
     RadioOff,
-    /// Switch knob.
+    #[doc = r" Switch knob."]
     SwitchKnob,
-    /// Modified / pending.
+    #[doc = r" Modified / pending."]
     Dirty,
-    /// Inserted row.
+    #[doc = r" Inserted row."]
     Inserted,
-    /// Deleted row.
+    #[doc = r" Deleted row."]
     Deleted,
-    /// Error / diagnostic.
+    #[doc = r" Error / diagnostic."]
     Error,
-    /// Warning weight.
+    #[doc = r" Warning weight."]
     WarningMark,
-    /// Collapsed disclosure.
+    #[doc = r" Collapsed disclosure."]
     Collapsed,
-    /// Expanded disclosure.
+    #[doc = r" Expanded disclosure."]
     Expanded,
-    /// Sort ascending.
+    #[doc = r" Sort ascending."]
     SortAsc,
-    /// Sort descending.
+    #[doc = r" Sort descending."]
     SortDesc,
-    /// Filter applied.
+    #[doc = r" Filter applied."]
     Filtered,
-    /// Primary key.
+    #[doc = r" Primary key."]
     PrimaryMark,
-    /// List bullet.
+    #[doc = r" List bullet."]
     Bullet,
-    /// Follows a reference.
+    #[doc = r" Follows a reference."]
     FollowRef,
-    /// More rows available.
+    #[doc = r" More rows available."]
     MoreRows,
-    /// Hidden content to the left.
+    #[doc = r" Hidden content to the left."]
     OverflowLeft,
-    /// Hidden content to the right.
+    #[doc = r" Hidden content to the right."]
     OverflowRight,
-    /// Truncated / clipped.
+    #[doc = r" Truncated / clipped."]
     Ellipsis,
-    /// Close / remove.
+    #[doc = r" Close / remove."]
     Close,
-    /// Path separator.
+    #[doc = r" Path separator."]
     PathSep,
-    /// Production environment.
+    #[doc = r" Production environment."]
     EnvProduction,
-    /// Staging environment.
+    #[doc = r" Staging environment."]
     EnvStaging,
-    /// Quiet rule.
+    #[doc = r" Quiet rule."]
     RuleQuiet,
-    /// Active rule.
+    #[doc = r" Active rule."]
     RuleActive,
-    /// Scrollbar track.
+    #[doc = r" Scrollbar track."]
     ScrollTrack,
-    /// Scrollbar thumb.
+    #[doc = r" Scrollbar thumb."]
     ScrollThumb,
-    /// Progress done.
+    #[doc = r" Progress done."]
     ProgressDone,
-    /// Progress paused.
+    #[doc = r" Progress paused."]
     ProgressPaused,
-    /// New tab affordance.
+    #[doc = r" New tab affordance."]
     NewTab,
-    /// Mono `PRESSED` left bracket.
+    #[doc = r" Mono `PRESSED` left bracket."]
     PressLeft,
-    /// Mono `PRESSED` right bracket.
+    #[doc = r" Mono `PRESSED` right bracket."]
     PressRight,
-    /// The mask a secret field paints per character (§11.2, D-11).
-    ///
-    /// Distinct from [`GlyphRole::Dirty`] even though the Junie theme binds
-    /// both to `•`: `Dirty` is the *uncommitted changes* marker and §11.4's
-    /// mono rule already binds `MARKER + WARNING/DIRTY` to it, so overloading
-    /// it would make a theme that restyles the dirty marker also restyle
-    /// password masking.
+    #[doc = r" The mask a secret field paints per character (§11.2, D-11)."]
+    #[doc = r""]
+    #[doc = r" Distinct from [`GlyphRole::Dirty`] even though the Junie theme binds"]
+    #[doc = r" both to `•`: `Dirty` is the *uncommitted changes* marker and §11.4's"]
+    #[doc = r" mono rule already binds `MARKER + WARNING/DIRTY` to it, so overloading"]
+    #[doc = r" it would make a theme that restyles the dirty marker also restyle"]
+    #[doc = r" password masking."]
     SecretMask,
-    /// Closed select disclosure.
+    #[doc = r" Closed select disclosure."]
     SelectClosed,
-    /// Open select disclosure.
+    #[doc = r" Open select disclosure."]
     SelectOpen,
-    /// Primary-key header glyph, distinct from the compact primary marker.
+    #[doc = r" Primary-key header glyph, distinct from the compact primary marker."]
     PrimaryKey,
 }
 
 impl GlyphRole {
-    /// Every role, in declaration order.
+    #[doc = r" Every role, in declaration order."]
     pub const ALL: [GlyphRole; 42] = [
         GlyphRole::FocusBar,
         GlyphRole::Chosen,
@@ -151,9 +151,9 @@ impl GlyphRole {
     }
 }
 
-/// One `&'static str` per [`GlyphRole`]. `ScrollTrack`/`ScrollThumb` read
-/// from a typed `symbols::scrollbar::Set`; `RuleQuiet`/`RuleActive` from two
-/// typed `symbols::line::Set`s (§22 R‑11).
+#[doc = r" One `&'static str` per [`GlyphRole`]. `ScrollTrack`/`ScrollThumb` read"]
+#[doc = r" from a typed `symbols::scrollbar::Set`; `RuleQuiet`/`RuleActive` from two"]
+#[doc = r" typed `symbols::line::Set`s (§22 R‑11)."]
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct GlyphSet {
     glyphs: [&'static str; 41],
@@ -164,8 +164,8 @@ pub struct GlyphSet {
 }
 
 impl GlyphSet {
-    /// A set from the original 41-role table plus typed symbol sets.
-    /// `PrimaryKey` defaults to `⚷`; use `set` to customize it independently.
+    #[doc = r" A set from the original 41-role table plus typed symbol sets."]
+    #[doc = r" `PrimaryKey` defaults to `⚷`; use `set` to customize it independently."]
     pub const fn new(
         glyphs: [&'static str; 41],
         scroll: scrollbar::Set<'static>,
@@ -181,7 +181,7 @@ impl GlyphSet {
         }
     }
 
-    /// The glyph for a role.
+    #[doc = r" The glyph for a role."]
     #[expect(
         clippy::indexing_slicing,
         reason = "the index is a variant discriminant below the array length"
@@ -197,7 +197,7 @@ impl GlyphSet {
         }
     }
 
-    /// Replace the glyph for a role.
+    #[doc = r" Replace the glyph for a role."]
     #[expect(
         clippy::indexing_slicing,
         reason = "the index is a variant discriminant below the array length"
@@ -213,64 +213,64 @@ impl GlyphSet {
         }
     }
 
-    /// Replace the typed scrollbar set.
-    ///
-    /// [`GlyphRole::ScrollTrack`] and [`GlyphRole::ScrollThumb`] read `track`
-    /// and `thumb` from it. `begin` and `end` remain available to consumers
-    /// that need cap glyphs; the shared `ScrollRegion` uses its historical
-    /// full-height track and deliberately does not paint cap rows (§11.2,
-    /// Adjudication O2).
+    #[doc = r" Replace the typed scrollbar set."]
+    #[doc = r""]
+    #[doc = r" [`GlyphRole::ScrollTrack`] and [`GlyphRole::ScrollThumb`] read `track`"]
+    #[doc = r" and `thumb` from it. `begin` and `end` remain available to consumers"]
+    #[doc = r" that need cap glyphs; the shared `ScrollRegion` uses its historical"]
+    #[doc = r" full-height track and deliberately does not paint cap rows (§11.2,"]
+    #[doc = r" Adjudication O2)."]
     pub const fn set_scrollbar(&mut self, s: scrollbar::Set<'static>) {
         self.scroll = s;
     }
 
-    /// Replace the typed quiet-rule line set.
-    ///
-    /// [`GlyphRole::RuleQuiet`] reads `horizontal`; the vertical, the cross
-    /// and the eight corner/tee junctions are the seam glyphs (§22.2 item 12)
-    /// and are reachable only here.
+    #[doc = r" Replace the typed quiet-rule line set."]
+    #[doc = r""]
+    #[doc = r" [`GlyphRole::RuleQuiet`] reads `horizontal`; the vertical, the cross"]
+    #[doc = r" and the eight corner/tee junctions are the seam glyphs (§22.2 item 12)"]
+    #[doc = r" and are reachable only here."]
     pub const fn set_rule_quiet(&mut self, s: line::Set<'static>) {
         self.rule_quiet = s;
     }
 
-    /// Replace the typed active-rule line set.
-    ///
-    /// [`GlyphRole::RuleActive`] reads `horizontal`; the rest are seams, as
-    /// for [`GlyphSet::set_rule_quiet`].
+    #[doc = r" Replace the typed active-rule line set."]
+    #[doc = r""]
+    #[doc = r" [`GlyphRole::RuleActive`] reads `horizontal`; the rest are seams, as"]
+    #[doc = r" for [`GlyphSet::set_rule_quiet`]."]
     pub const fn set_rule_active(&mut self, s: line::Set<'static>) {
         self.rule_active = s;
     }
 
-    /// The typed scrollbar set.
+    #[doc = r" The typed scrollbar set."]
     pub fn scrollbar(&self) -> scrollbar::Set<'static> {
         self.scroll.clone()
     }
 
-    /// The typed line set for quiet rules and seams.
+    #[doc = r" The typed line set for quiet rules and seams."]
     pub const fn rule_quiet(&self) -> line::Set<'static> {
         self.rule_quiet
     }
 
-    /// The typed line set for active rules.
+    #[doc = r" The typed line set for active rules."]
     pub const fn rule_active(&self) -> line::Set<'static> {
         self.rule_active
     }
 }
 
-/// ASCII scrollbar: `|` track and caps, `#` thumb.
-///
-/// Crate-private, like every other item of this module that is not re-exported
-/// by `theme`: the public entry point is
-/// [`ThemeBuilder::ascii_glyphs`](crate::theme::ThemeBuilder::ascii_glyphs),
-/// and a theme author who wants a bespoke set writes one and passes it to
-/// [`GlyphSet::set_scrollbar`].
-///
-/// The thumb must read **denser** than its track where colour is gone
-/// (`DESIGN.md:491`, `:560`): `|` is one stroke, `#` a crosshatch, which is
-/// the conventional ASCII thumb. `+` was rejected because it collides with
-/// [`border::ASCII`](crate::theme::border::ASCII)'s corners, `*` reads as a
-/// marker and `H` as a letter. Applied by
-/// [`ThemeBuilder::ascii_glyphs`](crate::theme::ThemeBuilder::ascii_glyphs).
+#[doc = r" ASCII scrollbar: `|` track and caps, `#` thumb."]
+#[doc = r""]
+#[doc = r" Crate-private, like every other item of this module that is not re-exported"]
+#[doc = r" by `theme`: the public entry point is"]
+#[doc = r" [`ThemeBuilder::ascii_glyphs`](crate::theme::ThemeBuilder::ascii_glyphs),"]
+#[doc = r" and a theme author who wants a bespoke set writes one and passes it to"]
+#[doc = r" [`GlyphSet::set_scrollbar`]."]
+#[doc = r""]
+#[doc = r" The thumb must read **denser** than its track where colour is gone"]
+#[doc = r" (`DESIGN.md:491`, `:560`): `|` is one stroke, `#` a crosshatch, which is"]
+#[doc = r" the conventional ASCII thumb. `+` was rejected because it collides with"]
+#[doc = r" [`border::ASCII`](crate::theme::border::ASCII)'s corners, `*` reads as a"]
+#[doc = r" marker and `H` as a letter. Applied by"]
+#[doc = r" [`ThemeBuilder::ascii_glyphs`](crate::theme::ThemeBuilder::ascii_glyphs)."]
 pub(crate) const ASCII_SCROLLBAR: scrollbar::Set<'static> = scrollbar::Set {
     track: "|",
     thumb: "#",
@@ -278,11 +278,11 @@ pub(crate) const ASCII_SCROLLBAR: scrollbar::Set<'static> = scrollbar::Set {
     end: "|",
 };
 
-/// ASCII quiet rule: `-` horizontal, `|` vertical, `+` at every junction.
-///
-/// `-` is the direct one-stroke equivalent of `─` (`DESIGN.md:555`); the
-/// seams follow [`border::ASCII`](crate::theme::border::ASCII), so a rule and
-/// a frame meeting in one cell agree.
+#[doc = r" ASCII quiet rule: `-` horizontal, `|` vertical, `+` at every junction."]
+#[doc = r""]
+#[doc = r" `-` is the direct one-stroke equivalent of `─` (`DESIGN.md:555`); the"]
+#[doc = r" seams follow [`border::ASCII`](crate::theme::border::ASCII), so a rule and"]
+#[doc = r" a frame meeting in one cell agree."]
 pub(crate) const ASCII_RULE_QUIET: line::Set<'static> = line::Set {
     vertical: "|",
     horizontal: "-",
@@ -297,12 +297,12 @@ pub(crate) const ASCII_RULE_QUIET: line::Set<'static> = line::Set {
     cross: "+",
 };
 
-/// ASCII active rule: `=` horizontal, `|` vertical, `+` at every junction.
-///
-/// An active rule must read **heavier** than a quiet one (`DESIGN.md:557`).
-/// `=` is two strokes against `-`'s one, which survives monochrome, where
-/// weight is the only channel left; `#` was rejected because it reads as
-/// hatch or fill rather than as a rule.
+#[doc = r" ASCII active rule: `=` horizontal, `|` vertical, `+` at every junction."]
+#[doc = r""]
+#[doc = r" An active rule must read **heavier** than a quiet one (`DESIGN.md:557`)."]
+#[doc = r" `=` is two strokes against `-`'s one, which survives monochrome, where"]
+#[doc = r" weight is the only channel left; `#` was rejected because it reads as"]
+#[doc = r" hatch or fill rather than as a rule."]
 pub(crate) const ASCII_RULE_ACTIVE: line::Set<'static> = line::Set {
     vertical: "|",
     horizontal: "=",
@@ -340,11 +340,11 @@ mod tests {
         assert_eq!(GlyphRole::SelectOpen as usize, 40);
     }
 
-    /// Adjudication O2: `borders_set(border::ASCII)` must leave **nothing** in
-    /// the box-drawing block, including the fields no `GlyphRole` names —
-    /// `scrollbar::Set`'s `begin`/`end` and `line::Set`'s seam junctions. This
-    /// is component-free, so it is not hostage to which painters exist; the
-    /// whole-frame render test can only approximate it.
+    #[doc = r" Adjudication O2: `borders_set(border::ASCII)` must leave **nothing** in"]
+    #[doc = r" the box-drawing block, including the fields no `GlyphRole` names —"]
+    #[doc = r" `scrollbar::Set`'s `begin`/`end` and `line::Set`'s seam junctions. This"]
+    #[doc = r" is component-free, so it is not hostage to which painters exist; the"]
+    #[doc = r" whole-frame render test can only approximate it."]
     #[test]
     fn ascii_glyph_set_has_no_box_drawing() {
         let t = crate::theme::Theme::junie()
@@ -393,7 +393,7 @@ mod tests {
                 check(&format!("{set_name}.{name}"), s);
             }
         }
-        // not vacuous: plain Junie does bind these to box drawing
+
         let j = crate::theme::Theme::junie();
         assert_eq!(j.design.glyphs.scrollbar().begin, "│");
         assert_eq!(j.design.glyphs.rule_quiet().cross, "┼");

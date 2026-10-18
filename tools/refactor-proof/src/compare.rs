@@ -1,4 +1,4 @@
-//! tc-proof compare implementation (Phase 1).
+#![doc = r" tc-proof compare implementation (Phase 1)."]
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -119,7 +119,7 @@ enum CompareOutcome {
     Scenario(Vec<(String, FailureCode)>),
 }
 
-/// Execute `tc-proof compare` for the context file at `context_path`.
+#[doc = r" Execute `tc-proof compare` for the context file at `context_path`."]
 pub fn run_compare(context_path: &Path) -> io::Result<i32> {
     let raw_bytes = fs::read(context_path)?;
     let context = match parse_context(&raw_bytes) {

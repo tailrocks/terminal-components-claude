@@ -1,45 +1,45 @@
-//! The one reconcile rule (`COMPONENT_ARCHITECTURE.md` §12.2, §20.9-3, §21 item 21).
-//!
-//! Keep the cursor key if it is still present; else the nearest surviving
-//! key by the previous index (forward first, then backward); else the first
-//! enabled key; else `None`. Checked sets drop vanished keys and report the
-//! count. Scroll offset is clamped to the new length. A generation stamp
-//! `(len, key(first), key(last))` short-circuits the common no-op, and a
-//! cached index is probed before any scan.
+#![doc = r" The one reconcile rule (`COMPONENT_ARCHITECTURE.md` §12.2, §20.9-3, §21 item 21)."]
+#![doc = r""]
+#![doc = r" Keep the cursor key if it is still present; else the nearest surviving"]
+#![doc = r" key by the previous index (forward first, then backward); else the first"]
+#![doc = r" enabled key; else `None`. Checked sets drop vanished keys and report the"]
+#![doc = r" count. Scroll offset is clamped to the new length. A generation stamp"]
+#![doc = r" `(len, key(first), key(last))` short-circuits the common no-op, and a"]
+#![doc = r" cached index is probed before any scan."]
 
 use crate::id::ItemKey;
 use crate::scroll::ScrollState;
 
 use super::key::KeySet;
 
-/// Cursor step direction for the shared enabled-aware stepping.
+#[doc = r" Cursor step direction for the shared enabled-aware stepping."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StepDir {
-    /// Toward higher indexes.
+    #[doc = r" Toward higher indexes."]
     Next,
-    /// Toward lower indexes.
+    #[doc = r" Toward lower indexes."]
     Prev,
 }
 
-/// What reconciliation did.
+#[doc = r" What reconciliation did."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Reconciliation {
-    /// Everything still names the same items.
+    #[doc = r" Everything still names the same items."]
     Unchanged,
-    /// The cursor moved to a surviving neighbour.
+    #[doc = r" The cursor moved to a surviving neighbour."]
     CursorMoved(ItemKey),
-    /// Nothing is left to point at.
+    #[doc = r" Nothing is left to point at."]
     CursorLost,
-    /// Checked keys vanished; the count.
+    #[doc = r" Checked keys vanished; the count."]
     SelectionDropped(usize),
 }
 
-/// Implemented on every collection state type.
+#[doc = r" Implemented on every collection state type."]
 pub trait Reconcile {
-    /// Reconcile against `len` items keyed by `key`.
+    #[doc = r" Reconcile against `len` items keyed by `key`."]
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;
-    /// The caller mutated items in place without changing `len` or the end
-    /// keys: force the next `reconcile` to scan.
+    #[doc = r" The caller mutated items in place without changing `len` or the end"]
+    #[doc = r" keys: force the next `reconcile` to scan."]
     fn invalidate(&mut self);
 }
 
@@ -50,8 +50,8 @@ struct Stamp {
     last: Option<ItemKey>,
 }
 
-/// The reusable core every keyed collection state embeds: cursor key,
-/// cached index, checked set, scroll and the generation stamp.
+#[doc = r" The reusable core every keyed collection state embeds: cursor key,"]
+#[doc = r" cached index, checked set, scroll and the generation stamp."]
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct CollectionCore {
     cursor: Option<ItemKey>,
@@ -62,7 +62,7 @@ pub struct CollectionCore {
 }
 
 impl CollectionCore {
-    /// An empty core.
+    #[doc = r" An empty core."]
     pub const fn new() -> Self {
         CollectionCore {
             cursor: None,
@@ -73,51 +73,51 @@ impl CollectionCore {
         }
     }
 
-    /// The cursor key.
+    #[doc = r" The cursor key."]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.cursor
     }
 
-    /// The cursor's display index as of the last reconcile.
+    #[doc = r" The cursor's display index as of the last reconcile."]
     pub const fn cursor_index(&self) -> usize {
         self.cursor_index
     }
 
-    /// Point the cursor at `(index, key)`.
+    #[doc = r" Point the cursor at `(index, key)`."]
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.cursor = Some(key);
         self.cursor_index = index;
         self.scroll.ensure_visible_on_next_layout(index);
     }
 
-    /// Clear the cursor.
+    #[doc = r" Clear the cursor."]
     pub fn clear_cursor(&mut self) {
         self.cursor = None;
         self.cursor_index = 0;
     }
 
-    /// The checked set.
+    #[doc = r" The checked set."]
     pub const fn checked(&self) -> &KeySet {
         &self.checked
     }
 
-    /// The checked set, mutably.
+    #[doc = r" The checked set, mutably."]
     pub const fn checked_mut(&mut self) -> &mut KeySet {
         &mut self.checked
     }
 
-    /// The scroll state.
+    #[doc = r" The scroll state."]
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
 
-    /// The scroll state, mutably.
+    #[doc = r" The scroll state, mutably."]
     pub const fn scroll_mut(&mut self) -> &mut ScrollState {
         &mut self.scroll
     }
 
-    /// The first enabled `(index, key)`, or `None` when empty or all
-    /// disabled. This is the shared `Home` / cursor-seed target.
+    #[doc = r" The first enabled `(index, key)`, or `None` when empty or all"]
+    #[doc = r" disabled. This is the shared `Home` / cursor-seed target."]
     pub fn first_enabled(
         len: usize,
         key: impl Fn(usize) -> ItemKey,
@@ -126,8 +126,8 @@ impl CollectionCore {
         (0..len).find(|&i| enabled(i)).map(|i| (i, key(i)))
     }
 
-    /// The last enabled `(index, key)`, or `None` when empty or all
-    /// disabled. This is the shared `End` target.
+    #[doc = r" The last enabled `(index, key)`, or `None` when empty or all"]
+    #[doc = r" disabled. This is the shared `End` target."]
     pub fn last_enabled(
         len: usize,
         key: impl Fn(usize) -> ItemKey,
@@ -136,10 +136,10 @@ impl CollectionCore {
         (0..len).rev().find(|&i| enabled(i)).map(|i| (i, key(i)))
     }
 
-    /// The nearest enabled `(index, key)` at or after `from` ([`StepDir::Next`])
-    /// or at or before it ([`StepDir::Prev`]). `from` is clamped: a `Next`
-    /// seek from at-or-past the end finds nothing, while a `Prev` seek from
-    /// `usize::MAX` is how `End` names the last enabled entry.
+    #[doc = r" The nearest enabled `(index, key)` at or after `from` ([`StepDir::Next`])"]
+    #[doc = r" or at or before it ([`StepDir::Prev`]). `from` is clamped: a `Next`"]
+    #[doc = r" seek from at-or-past the end finds nothing, while a `Prev` seek from"]
+    #[doc = r" `usize::MAX` is how `End` names the last enabled entry."]
     pub fn seek(
         len: usize,
         from: usize,
@@ -161,11 +161,11 @@ impl CollectionCore {
         }
     }
 
-    /// The nearest enabled `(index, key)` strictly after ([`StepDir::Next`])
-    /// or strictly before ([`StepDir::Prev`]) `from`, clamped when stale.
-    /// Returns `None` at the boundary, when empty, or when no enabled entry
-    /// exists in that direction — the caller maps that to its own boundary
-    /// policy (stay consumed, or an opt-in leave action). No wrap.
+    #[doc = r" The nearest enabled `(index, key)` strictly after ([`StepDir::Next`])"]
+    #[doc = r" or strictly before ([`StepDir::Prev`]) `from`, clamped when stale."]
+    #[doc = r" Returns `None` at the boundary, when empty, or when no enabled entry"]
+    #[doc = r" exists in that direction — the caller maps that to its own boundary"]
+    #[doc = r" policy (stay consumed, or an opt-in leave action). No wrap."]
     pub fn step(
         len: usize,
         from: usize,
@@ -185,10 +185,10 @@ impl CollectionCore {
         }
     }
 
-    /// The nearest enabled `(index, key)` strictly after ([`StepDir::Next`])
-    /// or strictly before ([`StepDir::Prev`]) `from`, wrapping around the
-    /// ends. Returns `None` only when empty or all disabled. Menus wrap;
-    /// every other collection clamps via [`Self::step`].
+    #[doc = r" The nearest enabled `(index, key)` strictly after ([`StepDir::Next`])"]
+    #[doc = r" or strictly before ([`StepDir::Prev`]) `from`, wrapping around the"]
+    #[doc = r" ends. Returns `None` only when empty or all disabled. Menus wrap;"]
+    #[doc = r" every other collection clamps via [`Self::step`]."]
     pub fn step_wrapping(
         len: usize,
         from: usize,
@@ -236,13 +236,13 @@ impl CollectionCore {
             return None;
         }
         let start = self.cursor_index.min(len.saturating_sub(1));
-        // forward first
+
         for i in start..len {
             if enabled(i) {
                 return Some((i, key(i)));
             }
         }
-        // then backward
+
         for i in (0..start).rev() {
             if enabled(i) {
                 return Some((i, key(i)));
@@ -251,7 +251,7 @@ impl CollectionCore {
         None
     }
 
-    /// The one rule, with an enabled predicate for the fallbacks.
+    #[doc = r" The one rule, with an enabled predicate for the fallbacks."]
     pub fn reconcile_with(
         &mut self,
         len: usize,
@@ -261,9 +261,9 @@ impl CollectionCore {
         self.reconcile_with_extent(len, len, key, enabled)
     }
 
-    /// As [`reconcile_with`](Self::reconcile_with), but a vanished cursor
-    /// key falls to the first enabled row instead of the nearest one
-    /// (reference picker `refresh_items`; W13-04).
+    #[doc = r" As [`reconcile_with`](Self::reconcile_with), but a vanished cursor"]
+    #[doc = r" key falls to the first enabled row instead of the nearest one"]
+    #[doc = r" (reference picker `refresh_items`; W13-04)."]
     pub fn reconcile_first_with(
         &mut self,
         len: usize,
@@ -273,7 +273,7 @@ impl CollectionCore {
         self.reconcile_inner(len, len, key, enabled, true)
     }
 
-    /// Reconcile keyed entries whose visual extent includes non-item rows.
+    #[doc = r" Reconcile keyed entries whose visual extent includes non-item rows."]
     pub fn reconcile_with_extent(
         &mut self,
         len: usize,
@@ -298,7 +298,7 @@ impl CollectionCore {
         }
         self.stamp = Some(stamp);
         self.scroll.set_content(extent);
-        // checked keys: keep those present; one pass over the items
+
         let dropped = if self.checked.keys().is_empty() {
             0
         } else {
@@ -321,7 +321,6 @@ impl CollectionCore {
         let outcome = match self.cursor {
             None => Reconciliation::Unchanged,
             Some(cur) => {
-                // probe the cached index before any scan
                 let probe = self.cursor_index < len && key(self.cursor_index) == cur;
                 let found = if probe {
                     Some(self.cursor_index)
@@ -449,8 +448,6 @@ mod tests {
 
     #[test]
     fn reconcile_runs_before_any_action_is_emitted() {
-        // the core's contract: a collection calls `reconcile` first, so an
-        // action produced afterwards names a surviving key
         let mut c = CollectionCore::new();
         c.set_cursor(1, ItemKey::num(20));
         let _ = c.reconcile(3, keys(&[10, 20, 30]));
@@ -472,7 +469,7 @@ mod tests {
         let _ = c.reconcile(1000, counting);
         let after_first = calls.get();
         let _ = c.reconcile(1000, counting);
-        // only the two stamp keys were read the second time
+
         assert_eq!(calls.get().saturating_sub(after_first), 2);
         c.invalidate();
         let _ = c.reconcile(1000, counting);
@@ -482,7 +479,7 @@ mod tests {
     #[test]
     fn shared_stepping_skips_disabled_and_clamps_or_wraps() {
         let key = ItemKey::index;
-        // 0 enabled, 1 disabled, 2 enabled, 3 enabled
+
         let enabled = |i: usize| i != 1;
         assert_eq!(
             CollectionCore::first_enabled(4, key, enabled),
@@ -528,7 +525,7 @@ mod tests {
             CollectionCore::step_wrapping(4, 0, StepDir::Prev, key, enabled),
             Some((3, ItemKey::index(3)))
         );
-        // empty and all-disabled find nothing in every direction
+
         assert_eq!(CollectionCore::first_enabled(0, key, enabled), None);
         assert_eq!(
             CollectionCore::step_wrapping(4, 0, StepDir::Next, key, |_| false),
@@ -542,9 +539,6 @@ mod tests {
 
     #[test]
     fn wrapping_prev_reaches_the_last_row_for_any_length() {
-        // the legacy `wrapping_add_signed` + `checked_rem` spelling wrapped
-        // `Prev` from 0 to `usize::MAX % len`, which is only `len - 1` for
-        // powers of two; len 3 stuck at 0. The shared wrap is exact.
         let key = ItemKey::index;
         for len in 1..8usize {
             assert_eq!(
@@ -576,7 +570,7 @@ mod tests {
             ItemKey::num(i as u64)
         };
         let _ = c.reconcile(1000, counting);
-        // stamp (2) + probe (1): no scan of 500 items
+
         assert_eq!(calls.get(), 3);
     }
 }

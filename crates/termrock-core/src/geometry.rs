@@ -1,35 +1,35 @@
-//! Scroll headroom and axis selection for scroll regions.
-//!
-//! Owns [`Headroom`], the remaining space inside an area along all four
-//! sides, and [`Axes`], which axes a scroll region handles.
+#![doc = r" Scroll headroom and axis selection for scroll regions."]
+#![doc = r""]
+#![doc = r" Owns [`Headroom`], the remaining space inside an area along all four"]
+#![doc = r" sides, and [`Axes`], which axes a scroll region handles."]
 
-/// Remaining space inside an area along all four sides.
+#[doc = r" Remaining space inside an area along all four sides."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Headroom {
-    /// Rows above.
+    #[doc = r" Rows above."]
     pub up: u16,
-    /// Rows below.
+    #[doc = r" Rows below."]
     pub down: u16,
-    /// Columns to the left.
+    #[doc = r" Columns to the left."]
     pub left: u16,
-    /// Columns to the right.
+    #[doc = r" Columns to the right."]
     pub right: u16,
 }
 
-/// Which axes a scroll region handles.
+#[doc = r" Which axes a scroll region handles."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Axes {
-    /// Vertical only.
+    #[doc = r" Vertical only."]
     #[default]
     V,
-    /// Horizontal only.
+    #[doc = r" Horizontal only."]
     H,
-    /// Both axes.
+    #[doc = r" Both axes."]
     Both,
 }
 
 impl Axes {
-    /// Whether the region handles `axis`.
+    #[doc = r" Whether the region handles `axis`."]
     pub const fn handles(self, axis: crate::event::Axis) -> bool {
         matches!(
             (self, axis),

@@ -1,4 +1,4 @@
-//! Ranked action surface. Shared controls own text editing and row interaction.
+#![doc = r" Ranked action surface. Shared controls own text editing and row interaction."]
 use termrock::{
     BlurPolicy, Chord, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
     KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
@@ -155,8 +155,7 @@ impl HomeState {
     ) -> (Response<()>, Option<Action>) {
         let mut text = query_input().update(cx, &mut self.editor, &mut self.value);
         let submit = matches!(text.take_action(), Some(TextAction::Committed));
-        // The launcher query stays armed after submission or an empty cancel.
-        // The shared editor remains the sole owner of its draft and cursor.
+
         if !self.editor.is_editing() {
             self.editor.begin(&self.value);
         }

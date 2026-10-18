@@ -1,12 +1,12 @@
-//! Pointer capture (`COMPONENT_ARCHITECTURE.md` §8.2).
-//!
-//! While a capture is live, every `Drag`/`Release` goes to the capturing
-//! owner with `local` computed against the captured area, hit-testing for
-//! other widgets is suppressed, `PRESSED` stays set regardless of hover, and
-//! release activates iff the pointer is inside the captured area. Captures
-//! are released on resize, generation mismatch, or when the actual part is
-//! absent, disabled, or blocked by the live top layer. Nested captures are
-//! rejected, never stacked.
+#![doc = r" Pointer capture (`COMPONENT_ARCHITECTURE.md` §8.2)."]
+#![doc = r""]
+#![doc = r" While a capture is live, every `Drag`/`Release` goes to the capturing"]
+#![doc = r" owner with `local` computed against the captured area, hit-testing for"]
+#![doc = r" other widgets is suppressed, `PRESSED` stays set regardless of hover, and"]
+#![doc = r" release activates iff the pointer is inside the captured area. Captures"]
+#![doc = r" are released on resize, generation mismatch, or when the actual part is"]
+#![doc = r" absent, disabled, or blocked by the live top layer. Nested captures are"]
+#![doc = r" rejected, never stacked."]
 
 use ratatui_core::layout::{Position, Rect};
 
@@ -44,23 +44,23 @@ pub(crate) fn target_area(
     })
 }
 
-/// A live pointer capture.
+#[doc = r" A live pointer capture."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Capture {
-    /// The capturing owner.
+    #[doc = r" The capturing owner."]
     pub owner: Id,
-    /// The part that claimed it.
+    #[doc = r" The part that claimed it."]
     pub part: PartRef,
-    /// Where the pointer was when the claim was made.
+    #[doc = r" Where the pointer was when the claim was made."]
     pub origin: Position,
-    /// The area `local` is computed against.
+    #[doc = r" The area `local` is computed against."]
     pub area: Rect,
-    /// The registry generation the claim was made against.
+    #[doc = r" The registry generation the claim was made against."]
     pub generation: u32,
 }
 
 impl Capture {
-    /// `pos` relative to the captured area's origin (saturating).
+    #[doc = r" `pos` relative to the captured area's origin (saturating)."]
     pub const fn local(&self, pos: Position) -> Position {
         Position {
             x: pos.x.saturating_sub(self.area.x),
@@ -68,20 +68,20 @@ impl Capture {
         }
     }
 
-    /// Whether `pos` is inside the captured area.
+    #[doc = r" Whether `pos` is inside the captured area."]
     pub const fn contains(&self, pos: Position) -> bool {
         self.area.contains(pos)
     }
 }
 
-/// The runtime's single capture slot.
+#[doc = r" The runtime's single capture slot."]
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct CaptureSlot {
     live: Option<Capture>,
 }
 
 impl CaptureSlot {
-    /// Claim; `false` if another capture is live.
+    #[doc = r" Claim; `false` if another capture is live."]
     pub(crate) fn claim(&mut self, c: Capture) -> bool {
         if self.live.is_some() {
             return false;
@@ -98,9 +98,9 @@ impl CaptureSlot {
         self.live.take()
     }
 
-    /// Release when the owner vanished or the generation moved backwards.
-    /// Runtime additionally checks the actual part against the published ring
-    /// and live layer using `target_area` (§3.3 step 13).
+    #[doc = r" Release when the owner vanished or the generation moved backwards."]
+    #[doc = r" Runtime additionally checks the actual part against the published ring"]
+    #[doc = r" and live layer using `target_area` (§3.3 step 13)."]
     pub(crate) fn release_if_stale(&mut self, reg: &Registry) {
         if let Some(c) = self.live
             && (!reg.has_owner(c.owner) || reg.generation() < c.generation)
@@ -203,7 +203,7 @@ mod runtime_tests {
             rt.state_of(THUMB) & StateFlags::PRESSED,
             StateFlags::PRESSED
         );
-        // a drag far outside the thumb, over another control
+
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Drag, 22, 2));
         assert!(rt.app().saw(THUMB, "phase: Drag"));
         assert!(!rt.app().saw(OTHER, "Drag"));
@@ -236,27 +236,26 @@ mod runtime_tests {
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 30, 10));
         assert!(rt.app().saw(THUMB, "Release"));
         assert!(!rt.app().saw(THUMB, "Click"));
-        // inside: activates
+
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 3));
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 4, 4));
         assert!(rt.app().saw(THUMB, "Click"));
     }
 
-    /// §8.2: `Capture.origin` is "where the pointer was when the claim was
-    /// made", so a splitter or a scrollbar thumb computes `pos - origin`
-    /// without the press offset inside the thumb leaking into the delta.
+    #[doc = r#" §8.2: `Capture.origin` is "where the pointer was when the claim was"#]
+    #[doc = r#" made", so a splitter or a scrollbar thumb computes `pos - origin`"#]
+    #[doc = r" without the press offset inside the thumb leaking into the delta."]
     #[test]
     fn origin_is_the_press_position() {
         let (mut rt, mut buf) = runtime(stub());
-        // press at (5, 4) — inside the thumb, three columns right and two
-        // rows below its top-left (2, 2)
+
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 5, 4));
         assert!(
             rt.app().saw(THUMB, "origin: Some(Position { x: 5, y: 4 })"),
             "origin must be the press position, not the area origin: {:?}",
             rt.app().log
         );
-        // a drag one cell right moves the thumb by exactly one cell
+
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Drag, 6, 4));
         assert!(rt.app().saw(THUMB, "phase: Drag"));
     }

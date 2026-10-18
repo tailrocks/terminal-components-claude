@@ -1,4 +1,4 @@
-//! Jackin Preview: a deterministic terminal app built on `termrock`.
+#![doc = r" Jackin Preview: a deterministic terminal app built on `termrock`."]
 #![forbid(unsafe_code)]
 #![expect(
     clippy::pedantic,
@@ -21,8 +21,8 @@
 pub mod app;
 pub mod cli;
 
-/// Route-owned screens, split across the host and capsule UI crates and
-/// re-united here under the monolith's `screens::` namespace.
+#[doc = r" Route-owned screens, split across the host and capsule UI crates and"]
+#[doc = r" re-united here under the monolith's `screens::` namespace."]
 pub mod screens {
     pub use jackin_preview_capsule_ui::screens::{
         FileBrowserAction, FileBrowserEntry, FileBrowserState, OpFlowAction, OpFlowStage,
@@ -35,30 +35,29 @@ pub mod screens {
     pub use jackin_preview_presentation::prelude;
 }
 
-/// Domain re-exports (monolith `domain::` namespace).
+#[doc = r" Domain re-exports (monolith `domain::` namespace)."]
 pub mod domain {
     pub use jackin_preview_domain::*;
-    // The fixture graph moved to `sim` (it projects `World` services);
-    // keep the monolith `domain::fixtures::` path working.
+
     pub use jackin_preview_sim::fixtures;
 }
-/// Sim re-exports (monolith `sim::` namespace).
+#[doc = r" Sim re-exports (monolith `sim::` namespace)."]
 pub mod sim {
     pub use jackin_preview_sim::*;
 }
-/// Atmosphere re-exports (monolith `rain::` namespace).
+#[doc = r" Atmosphere re-exports (monolith `rain::` namespace)."]
 pub mod rain {
     pub use jackin_preview_presentation::rain::*;
 }
-/// Arbiter re-exports (monolith `arbiter::` namespace).
+#[doc = r" Arbiter re-exports (monolith `arbiter::` namespace)."]
 pub mod arbiter {
     pub use jackin_preview_sim::arbiter::*;
 }
-/// Clock re-exports (monolith `clock::` namespace).
+#[doc = r" Clock re-exports (monolith `clock::` namespace)."]
 pub mod clock {
     pub use jackin_preview_sim::clock::*;
 }
-/// Scenario re-exports (monolith `scenario::` namespace).
+#[doc = r" Scenario re-exports (monolith `scenario::` namespace)."]
 pub mod scenario {
     pub use jackin_preview_domain::scenario::*;
 }
@@ -73,17 +72,17 @@ pub use rain::{INTRO_END, TICK_MS};
 pub use scenario::{Motion, Scenario};
 pub use sim::world::{World, world_for};
 
-/// Run the interactive preview through the public `termrock` entry point.
+#[doc = r" Run the interactive preview through the public `termrock` entry point."]
 pub fn run() -> std::io::Result<()> {
     run_scenario(Scenario::FirstUse, Motion::Full, 0)
 }
 
-/// Run a pinned scenario through the public `termrock` entry point.
+#[doc = r" Run a pinned scenario through the public `termrock` entry point."]
 pub fn run_scenario(scenario: Scenario, motion: Motion, frame: u64) -> std::io::Result<()> {
     run_scenario_with_theme(scenario, motion, frame, termrock::Theme::junie())
 }
 
-/// Run a pinned scenario with a caller-selected theme.
+#[doc = r" Run a pinned scenario with a caller-selected theme."]
 pub fn run_scenario_with_theme(
     scenario: Scenario,
     motion: Motion,

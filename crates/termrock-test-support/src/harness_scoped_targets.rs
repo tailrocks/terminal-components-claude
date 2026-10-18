@@ -1,15 +1,15 @@
-//! Scoped unique text targets for [`Harness`].
-//!
-//! Mirror of the reference `scoped_targets` helper, adapted to the
-//! candidate harness API (audit G2/P2). Bare first-occurrence search over
-//! the whole grid cannot tell which widget a needle resolved to; every
-//! lookup here carries an explicit row band (the owning widget's
-//! documented rows) and a label naming that widget. Zero or ambiguous
-//! hits fail with the full screen text. Cell offsets are derived from the
-//! resolved target via [`below`], [`shift_col`], and [`text_width`] —
-//! never hand-rolled `+2` / `+11` / `+1` arithmetic — and size-dependent
-//! needles collapse into a [`NeedleEntry`] table instead of inline
-//! `cols == 72` branches.
+#![doc = r" Scoped unique text targets for [`Harness`]."]
+#![doc = r""]
+#![doc = r" Mirror of the reference `scoped_targets` helper, adapted to the"]
+#![doc = r" candidate harness API (audit G2/P2). Bare first-occurrence search over"]
+#![doc = r" the whole grid cannot tell which widget a needle resolved to; every"]
+#![doc = r" lookup here carries an explicit row band (the owning widget's"]
+#![doc = r" documented rows) and a label naming that widget. Zero or ambiguous"]
+#![doc = r" hits fail with the full screen text. Cell offsets are derived from the"]
+#![doc = r" resolved target via [`below`], [`shift_col`], and [`text_width`] —"]
+#![doc = r" never hand-rolled `+2` / `+11` / `+1` arithmetic — and size-dependent"]
+#![doc = r" needles collapse into a [`NeedleEntry`] table instead of inline"]
+#![doc = r" `cols == 72` branches."]
 
 use core::ops::Range;
 
@@ -17,21 +17,21 @@ use termrock::App;
 
 use crate::harness::{Harness, row_text};
 
-/// A resolved cell: the unique hit of a needle inside its widget's band.
+#[doc = r" A resolved cell: the unique hit of a needle inside its widget's band."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Target {
-    /// Cell column, grapheme-accurate.
+    #[doc = r" Cell column, grapheme-accurate."]
     pub col: u16,
-    /// Cell row.
+    #[doc = r" Cell row."]
     pub row: u16,
-    /// Owning widget, e.g. `buttons/list/tables-content`.
+    #[doc = r" Owning widget, e.g. `buttons/list/tables-content`."]
     pub label: &'static str,
 }
 
-/// The unique match of `needle` inside `rows`; fails on 0 or 2+ hits.
-///
-/// `rows` is clamped to the live frame. The panic carries the label, the
-/// needle, the band, and the full screen text.
+#[doc = r" The unique match of `needle` inside `rows`; fails on 0 or 2+ hits."]
+#[doc = r""]
+#[doc = r" `rows` is clamped to the live frame. The panic carries the label, the"]
+#[doc = r" needle, the band, and the full screen text."]
 pub fn find_unique<A: App>(
     h: &Harness<A>,
     needle: &str,
@@ -69,11 +69,11 @@ pub fn find_unique<A: App>(
     Target { col, row, label }
 }
 
-/// The cell below `target`, asserting it stays on the grid.
-///
-/// The label is inherited: the cell below a widget row still belongs to
-/// that widget's scroll region; callers that cross a region boundary must
-/// resolve a fresh target with its own label instead.
+#[doc = r" The cell below `target`, asserting it stays on the grid."]
+#[doc = r""]
+#[doc = r" The label is inherited: the cell below a widget row still belongs to"]
+#[doc = r" that widget's scroll region; callers that cross a region boundary must"]
+#[doc = r" resolve a fresh target with its own label instead."]
 pub fn below<A: App>(h: &Harness<A>, target: &Target) -> Target {
     let height = h.buffer().area().height;
     let row = target.row.saturating_add(1);
@@ -91,16 +91,16 @@ pub fn below<A: App>(h: &Harness<A>, target: &Target) -> Target {
     }
 }
 
-/// Display width of `s` in columns, as the buffer consumes them.
+#[doc = r" Display width of `s` in columns, as the buffer consumes them."]
 pub fn text_width(s: &str) -> u16 {
     termrock::width(s)
 }
 
-/// `target` shifted right by `delta` cells, asserting it stays on the grid.
-///
-/// Derive `delta` from painted content (e.g. `text_width(needle)` for the
-/// end of a label run, the `HOVER_PAD_END` / `DRAG_SPAN` shapes) instead of
-/// inlining a magic offset.
+#[doc = r" `target` shifted right by `delta` cells, asserting it stays on the grid."]
+#[doc = r""]
+#[doc = r" Derive `delta` from painted content (e.g. `text_width(needle)` for the"]
+#[doc = r" end of a label run, the `HOVER_PAD_END` / `DRAG_SPAN` shapes) instead of"]
+#[doc = r" inlining a magic offset."]
 pub fn shift_col<A: App>(
     h: &Harness<A>,
     target: &Target,
@@ -121,22 +121,22 @@ pub fn shift_col<A: App>(
     }
 }
 
-/// One size-dependent needle: the honest form of an inline `cols == 72`
-/// branch. Entries are tried in order; the first predicate match wins.
+#[doc = r" One size-dependent needle: the honest form of an inline `cols == 72`"]
+#[doc = r" branch. Entries are tried in order; the first predicate match wins."]
 #[derive(Clone, Copy, Debug)]
 pub struct NeedleEntry {
-    /// Whether this entry applies at `(cols, rows)`.
+    #[doc = r" Whether this entry applies at `(cols, rows)`."]
     pub pred: fn(u16, u16) -> bool,
-    /// The needle to resolve when `pred` matches.
+    #[doc = r" The needle to resolve when `pred` matches."]
     pub needle: &'static str,
-    /// Owning widget's row band as `(start, end)`.
+    #[doc = r" Owning widget's row band as `(start, end)`."]
     pub rows: (u16, u16),
 }
 
-/// Resolve the applicable entry for a `cols` x `rows` frame.
-///
-/// Panics when no entry matches: a typo'd size matrix must fail loudly,
-/// never fall through to a default needle.
+#[doc = r" Resolve the applicable entry for a `cols` x `rows` frame."]
+#[doc = r""]
+#[doc = r" Panics when no entry matches: a typo'd size matrix must fail loudly,"]
+#[doc = r" never fall through to a default needle."]
 pub fn resolve_needle(entries: &[NeedleEntry], cols: u16, rows: u16) -> &NeedleEntry {
     entries
         .iter()

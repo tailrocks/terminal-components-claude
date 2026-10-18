@@ -1,4 +1,4 @@
-//! Typed meter token policies preserve source surfaces and custom colors.
+#![doc = r" Typed meter token policies preserve source surfaces and custom colors."]
 use ratatui_core::style::Color;
 use termrock::theme::downgrade_color;
 use termrock::{ColorLevel, Id, Meter, MeterFillRest, MeterVisual, Surface, Theme};
@@ -263,7 +263,6 @@ fn quantized_aliases_follow_pinned_ordered_lift() {
     }
 }
 
-// Direct transcription of immutable Holla theme.rs:362–371 for custom palettes.
 fn pinned_lift(theme: &Theme, surface: Surface) -> Color {
     let bg = theme.bg(surface);
     if bg == theme.bg(Surface::Canvas) {

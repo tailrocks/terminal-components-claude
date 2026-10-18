@@ -1,9 +1,9 @@
-//! Runtime diagnostics (`COMPONENT_ARCHITECTURE.md` §17.0 A9, §21 item 30 P6).
-//!
-//! Never a panic: collisions, rejected cursor writes and undelivered
-//! intents are recorded and surfaced through `Runtime::diagnostics()`.
-//! At most the documented `CAPACITY` bound is retained per `handle`, plus a
-//! dropped count.
+#![doc = r" Runtime diagnostics (`COMPONENT_ARCHITECTURE.md` §17.0 A9, §21 item 30 P6)."]
+#![doc = r""]
+#![doc = r" Never a panic: collisions, rejected cursor writes and undelivered"]
+#![doc = r" intents are recorded and surfaced through `Runtime::diagnostics()`."]
+#![doc = r" At most the documented `CAPACITY` bound is retained per `handle`, plus a"]
+#![doc = r" dropped count."]
 
 use ratatui_core::layout::Rect;
 
@@ -13,79 +13,79 @@ use crate::id::Id;
 use crate::keys::KeyPhase;
 use crate::layer_types::LayerId;
 
-/// One recorded condition.
+#[doc = r" One recorded condition."]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Diagnostic {
-    /// Hover-dependent geometry did not converge within four presentations.
-    /// Hover stays suppressed until the next admitted pointer move.
+    #[doc = r" Hover-dependent geometry did not converge within four presentations."]
+    #[doc = r" Hover stays suppressed until the next admitted pointer move."]
     HoverLayoutDidNotSettle,
-    /// Two `Control` regions registered the same id in one frame.
+    #[doc = r" Two `Control` regions registered the same id in one frame."]
     DuplicateId {
-        /// The id.
+        #[doc = r" The id."]
         id: Id,
-        /// The first area.
+        #[doc = r" The first area."]
         first: Rect,
-        /// The second area.
+        #[doc = r" The second area."]
         second: Rect,
     },
-    /// A cursor write was dropped (§8.4).
+    #[doc = r" A cursor write was dropped (§8.4)."]
     CursorRejected {
-        /// The writer.
+        #[doc = r" The writer."]
         owner: Id,
-        /// The layer it wrote from.
+        #[doc = r" The layer it wrote from."]
         layer: LayerId,
     },
-    /// More than one admissible fallback editor was declared on one layer.
+    #[doc = r" More than one admissible fallback editor was declared on one layer."]
     TypingTargetConflict {
-        /// The first editor.
+        #[doc = r" The first editor."]
         a: Id,
-        /// The other editor.
+        #[doc = r" The other editor."]
         b: Id,
-        /// The active layer.
+        #[doc = r" The active layer."]
         layer: LayerId,
     },
-    /// An owner with a `Control`/`Part` region drained nothing (§3.3 step 9).
+    #[doc = r" An owner with a `Control`/`Part` region drained nothing (§3.3 step 9)."]
     UndeliveredIntent {
-        /// The owner.
+        #[doc = r" The owner."]
         owner: Id,
     },
-    /// Two visible bindings share a chord in one phase.
+    #[doc = r" Two visible bindings share a chord in one phase."]
     BindingConflict {
-        /// The chord.
+        #[doc = r" The chord."]
         chord: Chord,
-        /// The phase.
+        #[doc = r" The phase."]
         phase: KeyPhase,
-        /// The first owner.
+        #[doc = r" The first owner."]
         a: Id,
-        /// The second owner.
+        #[doc = r" The second owner."]
         b: Id,
     },
-    /// A component published the same stable action more than once.
+    #[doc = r" A component published the same stable action more than once."]
     DuplicateBindingAction {
-        /// The component publishing the table.
+        #[doc = r" The component publishing the table."]
         owner: Id,
-        /// The repeated action.
+        #[doc = r" The repeated action."]
         action: ActionKey,
     },
-    /// A fifth focus pass was required (§21 item 11).
+    #[doc = r" A fifth focus pass was required (§21 item 11)."]
     FocusTransitionDidNotSettle {
-        /// The last requested target.
+        #[doc = r" The last requested target."]
         target: Option<Id>,
     },
-    /// A test addressed an id that has no area (§21 item 17, F7).
+    #[doc = r" A test addressed an id that has no area (§21 item 17, F7)."]
     UnaddressableId {
-        /// The id.
+        #[doc = r" The id."]
         id: Id,
     },
-    /// `ui.layer` was called twice for one id in one frame (F10).
+    #[doc = r" `ui.layer` was called twice for one id in one frame (F10)."]
     DuplicateLayerDraw {
-        /// The layer id.
+        #[doc = r" The layer id."]
         id: Id,
     },
 }
 
-/// Bounded diagnostic store.
+#[doc = r" Bounded diagnostic store."]
 #[derive(Debug, Default, Clone)]
 pub struct Diagnostics {
     items: Vec<Diagnostic>,
@@ -93,7 +93,7 @@ pub struct Diagnostics {
 }
 
 impl Diagnostics {
-    /// Retained diagnostics per `handle`.
+    #[doc = r" Retained diagnostics per `handle`."]
     pub(crate) const CAPACITY: usize = 64;
 
     pub fn push(&mut self, d: Diagnostic) {

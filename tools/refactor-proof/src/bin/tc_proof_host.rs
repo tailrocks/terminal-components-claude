@@ -1,5 +1,4 @@
-//! tc-proof-host entrypoint.
-
+#![doc = r" tc-proof-host entrypoint."]
 #![allow(
     missing_docs,
     unreachable_pub,

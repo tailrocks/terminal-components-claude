@@ -1,36 +1,35 @@
-//! Disposition of B45 `c4f47c954f88166ec25ddd78115119529bdae76b` behaviors
-//! that are not on the locked visual frame.
-//!
-//! Ported, behind a key, with no `unsafe` and no `Box::leak`:
-//! - Exit confirm names the running count from an owned `String`.
-//! - Cockpit Cancel asks, then leaves without attaching an instance.
-//! - Escape on a failed launch returns to the Manager and does not invent an
-//!   instance. A second Escape still quits.
-//! - Cockpit `i` opens a debug-info dialog that starts closed. `d` adds the
-//!   `otlp://collector.internal` row only inside that dialog. A failed launch
-//!   does not bind either key, so Escape still returns to the Manager.
-//! - Dirty-editor Cancel/Discard/Save opens only after Escape from the tabs.
-//!   The first Escape on a mount control returns to the tabs. Cancel stays.
-//!   Discard drops the draft. Save opens the existing preview.
-//!
-//! Rejected:
-//! - Manager help stays the hint layer. `?` must leave `Current directory`
-//!   visible and the last row on Esc/Close.
-//! - Choosing a workspace does not fold it. Enter keeps the expanded tree
-//!   and opens the agent picker or the capsule.
-//! - Mount isolation is set to readonly Clone once. A cycle would move the
-//!   assertion in `editor_edits_count_once_preview_then_saves_and_returns`.
-//! - Holla keeps `Route::Home` for every paused scenario. `DiskCleanup`'s
-//!   source boot page and the grouped Finder default would replace `home.draw`.
-//!   The other source pages are a second stack, not an overlay on Home,
-//!   Plan, or Activity. Holla copy reports the OSC 52 outcome in status and
-//!   does not emit the sequence.
-//! - Locked-paint rejects stay out: manager meta tone, host-menu header
-//!   replacement, prelude source-list replacement, accounts provider tree,
-//!   capsule meters and extra menu rows, live keep-awake and git-pull
-//!   checkboxes, settings co-author and DCO checkboxes, Showcase diff page,
-//!   and `TablePro` safe-mode note wrapping. Visual suites cover those frames.
-
+#![doc = r" Disposition of B45 `c4f47c954f88166ec25ddd78115119529bdae76b` behaviors"]
+#![doc = r" that are not on the locked visual frame."]
+#![doc = r""]
+#![doc = r" Ported, behind a key, with no `unsafe` and no `Box::leak`:"]
+#![doc = r" - Exit confirm names the running count from an owned `String`."]
+#![doc = r" - Cockpit Cancel asks, then leaves without attaching an instance."]
+#![doc = r" - Escape on a failed launch returns to the Manager and does not invent an"]
+#![doc = r"   instance. A second Escape still quits."]
+#![doc = r" - Cockpit `i` opens a debug-info dialog that starts closed. `d` adds the"]
+#![doc = r"   `otlp://collector.internal` row only inside that dialog. A failed launch"]
+#![doc = r"   does not bind either key, so Escape still returns to the Manager."]
+#![doc = r" - Dirty-editor Cancel/Discard/Save opens only after Escape from the tabs."]
+#![doc = r"   The first Escape on a mount control returns to the tabs. Cancel stays."]
+#![doc = r"   Discard drops the draft. Save opens the existing preview."]
+#![doc = r""]
+#![doc = r" Rejected:"]
+#![doc = r" - Manager help stays the hint layer. `?` must leave `Current directory`"]
+#![doc = r"   visible and the last row on Esc/Close."]
+#![doc = r" - Choosing a workspace does not fold it. Enter keeps the expanded tree"]
+#![doc = r"   and opens the agent picker or the capsule."]
+#![doc = r" - Mount isolation is set to readonly Clone once. A cycle would move the"]
+#![doc = r"   assertion in `editor_edits_count_once_preview_then_saves_and_returns`."]
+#![doc = r" - Holla keeps `Route::Home` for every paused scenario. `DiskCleanup`'s"]
+#![doc = r"   source boot page and the grouped Finder default would replace `home.draw`."]
+#![doc = r"   The other source pages are a second stack, not an overlay on Home,"]
+#![doc = r"   Plan, or Activity. Holla copy reports the OSC 52 outcome in status and"]
+#![doc = r"   does not emit the sequence."]
+#![doc = r" - Locked-paint rejects stay out: manager meta tone, host-menu header"]
+#![doc = r"   replacement, prelude source-list replacement, accounts provider tree,"]
+#![doc = r"   capsule meters and extra menu rows, live keep-awake and git-pull"]
+#![doc = r"   checkboxes, settings co-author and DCO checkboxes, Showcase diff page,"]
+#![doc = r"   and `TablePro` safe-mode note wrapping. Visual suites cover those frames."]
 #![allow(
     dead_code,
     missing_docs,
@@ -191,7 +190,7 @@ fn dirty_editor_keeps_the_status_question_and_mount_isolation_stays_clone() {
 #[test]
 fn dirty_editor_discard_returns_to_the_manager_without_saving() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
-    // `e` loads the first workspace, ignoring the manager cursor.
+
     let id = h.app().world.workspaces[0].id;
     let before = h
         .app()

@@ -1,4 +1,4 @@
-//! Layout and measurement primitives.
+#![doc = r" Layout and measurement primitives."]
 
 pub mod layout;
 pub mod measure;

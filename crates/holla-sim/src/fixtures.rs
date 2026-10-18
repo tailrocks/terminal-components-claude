@@ -1,6 +1,6 @@
-//! One coherent fixture world per scenario. Every fact the concept requires
-//! (reasons, sizes, freshness, trust, blockers) is seeded here; nothing is
-//! probed from the real machine.
+#![doc = r" One coherent fixture world per scenario. Every fact the concept requires"]
+#![doc = r" (reasons, sizes, freshness, trust, blockers) is seeded here; nothing is"]
+#![doc = r" probed from the real machine."]
 
 use crate::domain::activity::{Activity, ActivityState};
 use crate::domain::debian::{DebianState, OrphanPackage};
@@ -16,16 +16,16 @@ use crate::domain::ssh::{HostKeyPolicy, SshHost};
 use crate::scenario::Scenario;
 use crate::world::{Discovery, Domain, World};
 
-/// Fixture home directory. Display paths use `~`; typed confirmation
-/// phrases (P3) expand through this, e.g. `~/work/scratch` →
-/// `/home/dev/work/scratch`.
+#[doc = r" Fixture home directory. Display paths use `~`; typed confirmation"]
+#[doc = r" phrases (P3) expand through this, e.g. `~/work/scratch` →"]
+#[doc = r" `/home/dev/work/scratch`."]
 pub const HOME: &str = "/home/dev";
 
 pub fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
 }
 
-/// The working directory holla was launched from, per scenario.
+#[doc = r" The working directory holla was launched from, per scenario."]
 pub fn cwd_for(scenario: Scenario) -> &'static str {
     match scenario {
         Scenario::FirstUse => "~/scratch/empty",
@@ -51,7 +51,6 @@ pub fn host_for(scenario: Scenario) -> Host {
 pub fn world_for(scenario: Scenario) -> World {
     let mut w = World::new(scenario, host_for(scenario), cwd_for(scenario));
     w.discovery = match scenario {
-        // hard-cases: docker discovery never lands; the UI must say so
         Scenario::HardCases => World::default_schedule()
             .into_iter()
             .map(|d| {
@@ -69,8 +68,7 @@ pub fn world_for(scenario: Scenario) -> World {
         Scenario::RustDirty => seed_rust_dirty(&mut w),
         Scenario::LaunchFailure => {
             seed_rust_dirty(&mut w);
-            // the failure is visible from the first frame: a failed activity
-            // in the strip, exit code and all — honesty, not silence
+
             let mut seed = Activity::new(
                 1,
                 "seed db",
@@ -95,8 +93,6 @@ pub fn world_for(scenario: Scenario) -> World {
     }
     w
 }
-
-// ---------------------------------------------------------------- helpers
 
 fn tool(name: &str, version: &str, state: ToolState) -> MiseTool {
     MiseTool {
@@ -134,8 +130,8 @@ fn candidate(path: &str, family: Family, size_bytes: u64, freshness: Freshness) 
     }
 }
 
-/// A nested non-submodule child repo. `branch: None` = detached at `sha`;
-/// `primary` is resolved per child, never assumed.
+#[doc = r" A nested non-submodule child repo. `branch: None` = detached at `sha`;"]
+#[doc = r" `primary` is resolved per child, never assumed."]
 fn child_repo(
     root: &str,
     branch: Option<&str>,
@@ -199,9 +195,7 @@ fn ssh_hosts_devbox() -> Vec<SshHost> {
     ]
 }
 
-// -------------------------------------------------------------- scenarios
-
-/// ~/work/pave: Rust project, dirty worktree, branch behind upstream.
+#[doc = r" ~/work/pave: Rust project, dirty worktree, branch behind upstream."]
 fn seed_rust_dirty(w: &mut World) {
     w.mise = Some(MiseState {
         tools: vec![
@@ -297,8 +291,8 @@ fn seed_rust_dirty(w: &mut World) {
     );
 }
 
-/// ~/work/monorepo (root or apps/frontend child): namespaced mise tasks,
-/// one untrusted task file, a nested non-submodule child repo.
+#[doc = r" ~/work/monorepo (root or apps/frontend child): namespaced mise tasks,"]
+#[doc = r" one untrusted task file, a nested non-submodule child repo."]
 #[expect(
     clippy::too_many_lines,
     reason = "One pinned fixture keeps related task and repository literals together for source comparison"
@@ -450,7 +444,7 @@ fn seed_monorepo(w: &mut World, child: bool) {
     );
 }
 
-/// ~/work/scratch: a Docker host whose complete cleanup is the point.
+#[doc = r" ~/work/scratch: a Docker host whose complete cleanup is the point."]
 fn seed_docker_cleanup(w: &mut World) {
     w.docker = Some(
         DockerFixture {
@@ -518,7 +512,7 @@ fn seed_docker_cleanup(w: &mut World) {
     );
 }
 
-/// ~/work: disk at 92%, progressive candidates with freshness facts.
+#[doc = r" ~/work: disk at 92%, progressive candidates with freshness facts."]
 fn seed_disk_cleanup(w: &mut World) {
     w.disk = Some(DiskState {
         total_bytes: 500 * GB,
@@ -559,7 +553,7 @@ fn seed_disk_cleanup(w: &mut World) {
     });
 }
 
-/// devbox-deb: Debian host, global mise tools, the upgrade-everything plan.
+#[doc = r" devbox-deb: Debian host, global mise tools, the upgrade-everything plan."]
 #[expect(
     clippy::arithmetic_side_effects,
     reason = "The fixed 410 MiB fixture is divided among exactly twelve resources; quotient plus at most one remains below its total"
@@ -638,7 +632,7 @@ fn seed_upgrade_plan(w: &mut World) {
     }];
 }
 
-/// ~/work/monorepo with four named activities in distinct states.
+#[doc = r" ~/work/monorepo with four named activities in distinct states."]
 fn seed_activities_multi(w: &mut World) {
     seed_monorepo(w, false);
     let hour = 3_600_000;
@@ -683,8 +677,8 @@ fn seed_activities_multi(w: &mut World) {
     w.activities = vec![dev, watch, deploy, seed];
 }
 
-/// /srv/payments on ◆ prod-eu-1: sensitive identity, unhealthy service,
-/// a pg blocker tree.
+#[doc = r" /srv/payments on ◆ prod-eu-1: sensitive identity, unhealthy service,"]
+#[doc = r" a pg blocker tree."]
 fn seed_remote_host(w: &mut World) {
     w.git = Some(GitRepo {
         root: "/srv/payments".into(),
@@ -781,7 +775,7 @@ fn seed_remote_host(w: &mut World) {
     }];
 }
 
-/// Long labels, missing data, detached HEAD, a docker discovery failure.
+#[doc = r" Long labels, missing data, detached HEAD, a docker discovery failure."]
 fn seed_hard_cases(w: &mut World) {
     w.mise = Some(MiseState {
         tools: vec![],
@@ -835,8 +829,8 @@ fn seed_hard_cases(w: &mut World) {
     }];
 }
 
-/// Explicit authorization for simulated custom commands seeded by these
-/// fixtures. Stored text alone never grants an effect or a risk downgrade.
+#[doc = r" Explicit authorization for simulated custom commands seeded by these"]
+#[doc = r" fixtures. Stored text alone never grants an effect or a risk downgrade."]
 pub fn memory_command(
     scenario: Scenario,
     cwd: &str,

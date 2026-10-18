@@ -1,4 +1,4 @@
-//! Natural samples stay frozen; visible action constraints remain live.
+#![doc = r" Natural samples stay frozen; visible action constraints remain live."]
 use termrock_grid::*;
 use termrock_runtime::*;
 use termrock_test_support::Harness;

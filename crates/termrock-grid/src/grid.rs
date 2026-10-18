@@ -1,21 +1,21 @@
-//! `Grid` — the one tabular component (`COMPONENT_ARCHITECTURE.md` §12.3,
-//! §17.0 A3/A7, §23 K2 (Adjudication K), Appendix A 4I).
-//!
-//! Capability is chosen by the **entry point**, never by a flag ([`Grid::update`]
-//! for a read-only grid, [`Grid::update_editable`] for an editing one), so a
-//! read-only grid is structurally incapable of mutating its model (§23 K2, G1
-//! and G4). `GridCellActions` does not exist: its `actions` is a defaulted
-//! [`GridModel`] method, because `draw` paints the affordance and must see it
-//! (§23 K2, G3).
-//!
-//! ## Sorting is a request, never a permutation
-//!
-//! The grid paints sortable headers and emits [`GridAction::Sort`]. The model
-//! adapter owns display order and every domain comparison (including numeric
-//! and NULL ordering); this module contains no order vector, comparator or
-//! rendered-text fallback (§52). Rows are addressed by [`ItemKey`] and columns
-//! by [`ColumnKey`], so an adapter reorder leaves cursor, range, selection and
-//! pending edit bound to the same logical cells.
+#![doc = r" `Grid` — the one tabular component (`COMPONENT_ARCHITECTURE.md` §12.3,"]
+#![doc = r" §17.0 A3/A7, §23 K2 (Adjudication K), Appendix A 4I)."]
+#![doc = r""]
+#![doc = r" Capability is chosen by the **entry point**, never by a flag ([`Grid::update`]"]
+#![doc = r" for a read-only grid, [`Grid::update_editable`] for an editing one), so a"]
+#![doc = r" read-only grid is structurally incapable of mutating its model (§23 K2, G1"]
+#![doc = r" and G4). `GridCellActions` does not exist: its `actions` is a defaulted"]
+#![doc = r" [`GridModel`] method, because `draw` paints the affordance and must see it"]
+#![doc = r" (§23 K2, G3)."]
+#![doc = r""]
+#![doc = r" ## Sorting is a request, never a permutation"]
+#![doc = r""]
+#![doc = r" The grid paints sortable headers and emits [`GridAction::Sort`]. The model"]
+#![doc = r" adapter owns display order and every domain comparison (including numeric"]
+#![doc = r" and NULL ordering); this module contains no order vector, comparator or"]
+#![doc = r" rendered-text fallback (§52). Rows are addressed by [`ItemKey`] and columns"]
+#![doc = r" by [`ColumnKey`], so an adapter reorder leaves cursor, range, selection and"]
+#![doc = r" pending edit bound to the same logical cells."]
 
 use core::fmt;
 
@@ -49,33 +49,33 @@ use termrock_runtime::scroll_region::ScrollRegion;
 const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 
-/// A stable key for one column.
-///
-/// The column analogue of [`ItemKey`]: every action names a column by key,
-/// never by index, so a model that reorders or hides columns cannot silently
-/// move the cursor to a different one. `0..=0x7FFF` is the numbered range for
-/// callers that have a natural numbering; [`ColumnKey::of`] hashes a name
-/// into the disjoint high range with the same fold every other 16-bit custom
-/// key in the crate uses.
-///
-/// The two ranges cannot meet: [`ColumnKey::num`] *rejects* a number that
-/// would land in the hashed half rather than masking it into a different
-/// column. Two hashed names can still fold together, and a grid checks its
-/// own column list for that in debug builds ([`Grid::draw`]), because the
-/// column list is the only place both names exist at once.
+#[doc = r" A stable key for one column."]
+#[doc = r""]
+#[doc = r" The column analogue of [`ItemKey`]: every action names a column by key,"]
+#[doc = r" never by index, so a model that reorders or hides columns cannot silently"]
+#[doc = r" move the cursor to a different one. `0..=0x7FFF` is the numbered range for"]
+#[doc = r" callers that have a natural numbering; [`ColumnKey::of`] hashes a name"]
+#[doc = r" into the disjoint high range with the same fold every other 16-bit custom"]
+#[doc = r" key in the crate uses."]
+#[doc = r""]
+#[doc = r" The two ranges cannot meet: [`ColumnKey::num`] *rejects* a number that"]
+#[doc = r" would land in the hashed half rather than masking it into a different"]
+#[doc = r" column. Two hashed names can still fold together, and a grid checks its"]
+#[doc = r" own column list for that in debug builds ([`Grid::draw`]), because the"]
+#[doc = r" column list is the only place both names exist at once."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnKey(u16);
 
-/// The largest [`ColumnKey::num`]; `0x8000..` is [`ColumnKey::of`]'s range.
+#[doc = r" The largest [`ColumnKey::num`]; `0x8000..` is [`ColumnKey::of`]'s range."]
 const COLUMN_KEY_MAX: u16 = 0x7FFF;
 
 impl ColumnKey {
-    /// A numbered column key, `0..=0x7FFF`.
-    ///
-    /// # Panics
-    /// If `n > 0x7FFF`. Masking instead would silently alias one
-    /// column onto another (`0x8000` onto column `0`) and, worse, onto
-    /// [`ColumnKey::of`]'s range; in a `const` this panic is a compile error.
+    #[doc = r" A numbered column key, `0..=0x7FFF`."]
+    #[doc = r""]
+    #[doc = r" # Panics"]
+    #[doc = r" If `n > 0x7FFF`. Masking instead would silently alias one"]
+    #[doc = r" column onto another (`0x8000` onto column `0`) and, worse, onto"]
+    #[doc = r" [`ColumnKey::of`]'s range; in a `const` this panic is a compile error."]
     pub const fn num(n: u16) -> Self {
         assert!(
             n <= COLUMN_KEY_MAX,
@@ -84,12 +84,12 @@ impl ColumnKey {
         ColumnKey(n)
     }
 
-    /// A named column key: the crate's FNV-1a fold into the high range.
+    #[doc = r" A named column key: the crate's FNV-1a fold into the high range."]
     pub const fn of(name: &str) -> Self {
         ColumnKey(custom_hash16(name))
     }
 
-    /// The raw key.
+    #[doc = r" The raw key."]
     pub const fn raw(self) -> u16 {
         self.0
     }
@@ -105,33 +105,33 @@ impl fmt::Debug for ColumnKey {
     }
 }
 
-/// What the cursor moves over.
+#[doc = r" What the cursor moves over."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum NavUnit {
-    /// Whole rows: `←`/`→` do not move the cursor and `Enter` activates.
+    #[doc = r" Whole rows: `←`/`→` do not move the cursor and `Enter` activates."]
     Row,
-    /// Individual cells: `←`/`→` move between columns.
+    #[doc = r" Individual cells: `←`/`→` move between columns."]
     #[default]
     Cell,
 }
 
-/// One cell, borrowed from the model.
-///
-/// Borrowed, never owned: the 500 × 12 load benchmark's budget is one owned
-/// conversion for the whole result, so the per-cell type may not allocate
-/// (§16.6 `grid_500x12_load`).
+#[doc = r" One cell, borrowed from the model."]
+#[doc = r""]
+#[doc = r" Borrowed, never owned: the 500 × 12 load benchmark's budget is one owned"]
+#[doc = r" conversion for the whole result, so the per-cell type may not allocate"]
+#[doc = r" (§16.6 `grid_500x12_load`)."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct CellRef<'a> {
-    /// The text to paint.
+    #[doc = r" The text to paint."]
     pub text: &'a str,
-    /// A foreground role, overriding the cell recipe.
+    #[doc = r" A foreground role, overriding the cell recipe."]
     pub tone: Option<Role>,
-    /// Horizontal alignment override. `None` inherits the column alignment.
+    #[doc = r" Horizontal alignment override. `None` inherits the column alignment."]
     pub align: Option<Align>,
 }
 
 impl<'a> CellRef<'a> {
-    /// A cell with no tone that inherits its column's alignment.
+    #[doc = r" A cell with no tone that inherits its column's alignment."]
     pub const fn new(text: &'a str) -> Self {
         CellRef {
             text,
@@ -140,14 +140,14 @@ impl<'a> CellRef<'a> {
         }
     }
 
-    /// Set the alignment.
+    #[doc = r" Set the alignment."]
     #[must_use]
     pub const fn align(mut self, a: Align) -> Self {
         self.align = Some(a);
         self
     }
 
-    /// Set the tone.
+    #[doc = r" Set the tone."]
     #[must_use]
     pub const fn tone(mut self, r: Role) -> Self {
         self.tone = Some(r);
@@ -161,48 +161,48 @@ impl Default for CellRef<'_> {
     }
 }
 
-/// Borrowed display context for [`Grid::cell`].
-///
-/// Keys identify logical cells across model reordering. Indices describe the
-/// current model view and must not be retained as cell identity. The painter
-/// already carries `style` and the cell/column alignment; its area excludes
-/// the grid-owned prefix and action affordance.
+#[doc = r" Borrowed display context for [`Grid::cell`]."]
+#[doc = r""]
+#[doc = r" Keys identify logical cells across model reordering. Indices describe the"]
+#[doc = r" current model view and must not be retained as cell identity. The painter"]
+#[doc = r" already carries `style` and the cell/column alignment; its area excludes"]
+#[doc = r" the grid-owned prefix and action affordance."]
 #[derive(Clone, Copy, Debug)]
 pub struct GridCell<'a> {
-    /// Stable row identity.
+    #[doc = r" Stable row identity."]
     pub row_key: ItemKey,
-    /// Stable column identity.
+    #[doc = r" Stable column identity."]
     pub column_key: ColumnKey,
-    /// Row index in the current model view.
+    #[doc = r" Row index in the current model view."]
     pub row: usize,
-    /// Column index in the current model view.
+    #[doc = r" Column index in the current model view."]
     pub column: usize,
-    /// Borrowed model content.
+    #[doc = r" Borrowed model content."]
     pub value: CellRef<'a>,
-    /// Final row and cell state, including selection and model decoration.
+    #[doc = r" Final row and cell state, including selection and model decoration."]
     pub flags: StateFlags,
-    /// Resolved CELL style with model tone and decoration applied.
+    #[doc = r" Resolved CELL style with model tone and decoration applied."]
     pub style: PaintStyle,
 }
 
 type CellRenderer<'a> = &'a dyn Fn(GridCell<'_>, &mut CellUi<'_>);
 
-/// One affordance offered on a cell (§23 K2, G3).
-///
-/// Absorbed from the deleted `GridCellActions`: `draw` paints the affordance
-/// and registers its hot zone, so it must be reachable from `GridModel`.
+#[doc = r" One affordance offered on a cell (§23 K2, G3)."]
+#[doc = r""]
+#[doc = r" Absorbed from the deleted `GridCellActions`: `draw` paints the affordance"]
+#[doc = r" and registers its hot zone, so it must be reachable from `GridModel`."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct CellAction {
-    /// The action's identity, carried back in [`GridAction::CellAction`].
+    #[doc = r" The action's identity, carried back in [`GridAction::CellAction`]."]
     pub key: ActionKey,
-    /// The glyph painted at the right edge of the cell.
+    #[doc = r" The glyph painted at the right edge of the cell."]
     pub glyph: GlyphRole,
-    /// A chord the owning screen advertises for it; the grid does not bind it.
+    #[doc = r" A chord the owning screen advertises for it; the grid does not bind it."]
     pub chord: Option<Chord>,
 }
 
 impl CellAction {
-    /// A follow affordance for `key`.
+    #[doc = r" A follow affordance for `key`."]
     pub const fn new(key: ActionKey) -> Self {
         CellAction {
             key,
@@ -211,14 +211,14 @@ impl CellAction {
         }
     }
 
-    /// Set the glyph.
+    #[doc = r" Set the glyph."]
     #[must_use]
     pub const fn glyph(mut self, g: GlyphRole) -> Self {
         self.glyph = g;
         self
     }
 
-    /// Advertise a chord.
+    #[doc = r" Advertise a chord."]
     #[must_use]
     pub const fn chord(mut self, c: Chord) -> Self {
         self.chord = Some(c);
@@ -226,64 +226,64 @@ impl CellAction {
     }
 }
 
-/// What editing one cell means (§21 item 30 A8, §23 K2, G5).
+#[doc = r" What editing one cell means (§21 item 30 A8, §23 K2, G5)."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EditIntent<'a> {
-    /// Open an inline editor seeded with `initial`.
+    #[doc = r" Open an inline editor seeded with `initial`."]
     Inline {
-        /// The text the editor starts from.
+        #[doc = r" The text the editor starts from."]
         initial: &'a str,
     },
-    /// Advance the cell through a closed set of values, with no editor.
+    #[doc = r" Advance the cell through a closed set of values, with no editor."]
     Cycle,
-    /// Emit [`GridAction::EditRequested`] and begin **no** inline edit; the
-    /// application opens its own editor.
+    #[doc = r" Emit [`GridAction::EditRequested`] and begin **no** inline edit; the"]
+    #[doc = r" application opens its own editor."]
     External,
-    /// Refuse, with a reason the grid shows.
+    #[doc = r" Refuse, with a reason the grid shows."]
     Refuse {
-        /// Why the cell cannot be edited.
+        #[doc = r" Why the cell cannot be edited."]
         reason: &'a str,
     },
 }
 
-/// One column of a [`Grid`].
-///
-/// Public fields with a `const` constructor, the shape [`RowDecor`] and
-/// [`CellDecor`] already use: an adapter builds column literals with struct
-/// update syntax, and no builder method is named `editable`, because
-/// capability on the *grid* is chosen by the entry point (§23 K2, G4) and a
-/// method of that name would be indistinguishable from the deleted one.
+#[doc = r" One column of a [`Grid`]."]
+#[doc = r""]
+#[doc = r" Public fields with a `const` constructor, the shape [`RowDecor`] and"]
+#[doc = r" [`CellDecor`] already use: an adapter builds column literals with struct"]
+#[doc = r" update syntax, and no builder method is named `editable`, because"]
+#[doc = r" capability on the *grid* is chosen by the entry point (§23 K2, G4) and a"]
+#[doc = r" method of that name would be indistinguishable from the deleted one."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Column<'a> {
-    /// Stable identity; every action names this, never an index.
+    #[doc = r" Stable identity; every action names this, never an index."]
     pub key: ColumnKey,
-    /// The header title.
+    #[doc = r" The header title."]
     pub title: &'a str,
-    /// A second header line's worth of detail, shown beside the title when
-    /// the column is wide enough.
+    #[doc = r" A second header line's worth of detail, shown beside the title when"]
+    #[doc = r" the column is wide enough."]
     pub subtitle: Option<&'a str>,
-    /// Cell alignment when the model does not override it.
+    #[doc = r" Cell alignment when the model does not override it."]
     pub align: Align,
-    /// Narrowest painted width.
+    #[doc = r" Narrowest painted width."]
     pub min_width: u16,
-    /// Widest painted width.
+    #[doc = r" Widest painted width."]
     pub max_width: u16,
-    /// Whether activating the header requests a sort.
+    #[doc = r" Whether activating the header requests a sort."]
     pub sortable: bool,
-    /// Whether cells in this column can be edited at all. A per-column
-    /// property of the *data*; the model's `is_editable` still decides per
-    /// cell, and a read-only grid can never reach either.
+    #[doc = r" Whether cells in this column can be edited at all. A per-column"]
+    #[doc = r" property of the *data*; the model's `is_editable` still decides per"]
+    #[doc = r" cell, and a read-only grid can never reach either."]
     pub editable: bool,
-    /// Pinned to the left: never scrolled out of the column window.
+    #[doc = r" Pinned to the left: never scrolled out of the column window."]
     pub sticky: bool,
-    /// A glyph painted before the cell text.
+    #[doc = r" A glyph painted before the cell text."]
     pub prefix_glyph: Option<GlyphRole>,
-    /// A short badge painted after the title.
+    #[doc = r" A short badge painted after the title."]
     pub badge: Option<&'a str>,
 }
 
 impl<'a> Column<'a> {
-    /// A left-aligned, non-editing, non-sticky column.
+    #[doc = r" A left-aligned, non-editing, non-sticky column."]
     pub const fn new(key: ColumnKey, title: &'a str) -> Self {
         Column {
             key,
@@ -301,88 +301,88 @@ impl<'a> Column<'a> {
     }
 }
 
-/// Direction requested from a sortable column header.
+#[doc = r" Direction requested from a sortable column header."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SortDir {
-    /// Ascending domain order.
+    #[doc = r" Ascending domain order."]
     Asc,
-    /// Descending domain order.
+    #[doc = r" Descending domain order."]
     Desc,
 }
 
-/// The rows a [`Grid`] paints (§12.3, §23 K2).
-///
-/// Three required methods. `read_only_reason` and `actions` live here, not on
-/// [`GridEditor`], because `draw` renders both and is bound by this trait
-/// (§23 K2, G3).
+#[doc = r" The rows a [`Grid`] paints (§12.3, §23 K2)."]
+#[doc = r""]
+#[doc = r" Three required methods. `read_only_reason` and `actions` live here, not on"]
+#[doc = r" [`GridEditor`], because `draw` renders both and is bound by this trait"]
+#[doc = r" (§23 K2, G3)."]
 pub trait GridModel {
-    /// The number of rows.
+    #[doc = r" The number of rows."]
     fn row_count(&self) -> usize;
 
-    /// The stable key of row `row`.
+    #[doc = r" The stable key of row `row`."]
     fn row_key(&self, row: usize) -> ItemKey;
 
-    /// One cell, borrowed, or `None` for a blank cell.
-    ///
-    /// Columns are the sole schema. A missing cell remains addressable for
-    /// rectangular navigation, but has no decoration, actions or editor
-    /// hooks.
+    #[doc = r" One cell, borrowed, or `None` for a blank cell."]
+    #[doc = r""]
+    #[doc = r" Columns are the sole schema. A missing cell remains addressable for"]
+    #[doc = r" rectangular navigation, but has no decoration, actions or editor"]
+    #[doc = r" hooks."]
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>>;
 
-    /// Owner-supplied row decoration.
+    #[doc = r" Owner-supplied row decoration."]
     fn row_decor(&self, _row: usize) -> RowDecor<'_> {
         RowDecor::default()
     }
 
-    /// Owner-supplied cell decoration.
+    #[doc = r" Owner-supplied cell decoration."]
     fn cell_decor(&self, _row: usize, _col: usize) -> CellDecor<'_> {
         CellDecor::default()
     }
 
-    /// How many rows the source has, when that is more than are loaded.
+    #[doc = r" How many rows the source has, when that is more than are loaded."]
     fn total(&self) -> RowTotal {
         RowTotal::Unknown
     }
 
-    /// Whether more rows can be fetched.
+    #[doc = r" Whether more rows can be fetched."]
     fn has_more(&self) -> bool {
         false
     }
 
-    /// Why this grid cannot be edited, if it cannot.
-    ///
-    /// On `GridModel` and not on [`GridEditor`] because the reason is
-    /// *rendered*, and `draw` is bound by this trait (§23 K2, G3).
+    #[doc = r" Why this grid cannot be edited, if it cannot."]
+    #[doc = r""]
+    #[doc = r" On `GridModel` and not on [`GridEditor`] because the reason is"]
+    #[doc = r" *rendered*, and `draw` is bound by this trait (§23 K2, G3)."]
     fn read_only_reason(&self) -> Option<&str> {
         None
     }
 
-    /// The affordances offered on one cell.
-    ///
-    /// Absorbed from the deleted `GridCellActions` (§23 K2, G3); the `&[]`
-    /// default keeps a display-only model to three methods.
+    #[doc = r" The affordances offered on one cell."]
+    #[doc = r""]
+    #[doc = r" Absorbed from the deleted `GridCellActions` (§23 K2, G3); the `&[]`"]
+    #[doc = r" default keeps a display-only model to three methods."]
     fn actions(&self, _row: usize, _col: usize) -> &[CellAction] {
         &[]
     }
 }
 
-/// The editing half, reachable **only** from [`Grid::update_editable`]
-/// (§23 K2, G2).
-///
-/// With `draw`'s `&self` and `&GridState`, and `update`'s `&M`, "rendering
-/// stages a mutation" is unrepresentable.
+#[doc = r" The editing half, reachable **only** from [`Grid::update_editable`]"]
+#[doc = r" (§23 K2, G2)."]
+#[doc = r""]
+#[doc = r#" With `draw`'s `&self` and `&GridState`, and `update`'s `&M`, "rendering"#]
+#[doc = r#" stages a mutation" is unrepresentable."#]
 pub trait GridEditor: GridModel {
-    /// What editing this cell means.
+    #[doc = r" What editing this cell means."]
     fn edit_intent(&self, row: usize, col: usize) -> EditIntent<'_>;
 
-    /// Advance a `Cycle` cell to its next value.
+    #[doc = r" Advance a `Cycle` cell to its next value."]
     fn apply_cycle(&mut self, row: usize, col: usize);
 
-    /// Write `text` to a cell.
-    ///
-    /// # Errors
-    /// The model's own validation error; the inline editor stays open and
-    /// shows it.
+    #[doc = r" Write `text` to a cell."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" The model's own validation error; the inline editor stays open and"]
+    #[doc = r" shows it."]
     fn commit_cell(
         &mut self,
         row: usize,
@@ -390,73 +390,73 @@ pub trait GridEditor: GridModel {
         text: &str,
     ) -> Result<(), crate::validate::FieldError>;
 
-    /// Whether this cell can be edited right now.
+    #[doc = r" Whether this cell can be edited right now."]
     fn is_editable(&self, row: usize, col: usize) -> bool;
 }
 
-/// What a grid reports. Every action carries keys, never indices.
+#[doc = r" What a grid reports. Every action carries keys, never indices."]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum GridAction {
-    /// The cursor moved.
+    #[doc = r" The cursor moved."]
     Moved,
-    /// A row was activated (`Enter` under [`NavUnit::Row`], double-click).
+    #[doc = r" A row was activated (`Enter` under [`NavUnit::Row`], double-click)."]
     Activated(ItemKey),
-    /// A sortable header requested adapter-owned ordering.
+    #[doc = r" A sortable header requested adapter-owned ordering."]
     Sort(ColumnKey, SortDir),
-    /// The fetch-more row was reached or clicked.
+    #[doc = r" The fetch-more row was reached or clicked."]
     FetchMore,
-    /// The selection was copied as TSV.
+    #[doc = r" The selection was copied as TSV."]
     Copy(String),
-    /// `EditIntent::External`: the application opens its own editor (G5).
+    #[doc = r" `EditIntent::External`: the application opens its own editor (G5)."]
     EditRequested(ItemKey, ColumnKey),
-    /// A cell affordance was activated.
+    #[doc = r" A cell affordance was activated."]
     CellAction(ItemKey, ColumnKey, ActionKey),
-    /// `Tab` past the last cell.
+    #[doc = r" `Tab` past the last cell."]
     LeaveForward,
-    /// `Shift+Tab` before the first cell.
+    #[doc = r" `Shift+Tab` before the first cell."]
     LeaveBackward,
 }
 
-/// The const-constructible commands of the grid keymap.
+#[doc = r" The const-constructible commands of the grid keymap."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum GridCmd {
-    /// Cursor up.
+    #[doc = r" Cursor up."]
     Up,
-    /// Cursor down.
+    #[doc = r" Cursor down."]
     Down,
-    /// Cursor left one column.
+    #[doc = r" Cursor left one column."]
     Left,
-    /// Cursor right one column.
+    #[doc = r" Cursor right one column."]
     Right,
-    /// Cursor up one viewport.
+    #[doc = r" Cursor up one viewport."]
     PageUp,
-    /// Cursor down one viewport.
+    #[doc = r" Cursor down one viewport."]
     PageDown,
-    /// Cursor to the first column of the row.
+    #[doc = r" Cursor to the first column of the row."]
     RowStart,
-    /// Cursor to the last column of the row.
+    #[doc = r" Cursor to the last column of the row."]
     RowEnd,
-    /// Cursor to the first row.
+    #[doc = r" Cursor to the first row."]
     First,
-    /// Cursor to the last row.
+    #[doc = r" Cursor to the last row."]
     Last,
-    /// Extend the rectangular range up.
+    #[doc = r" Extend the rectangular range up."]
     ExtendUp,
-    /// Extend the rectangular range down.
+    #[doc = r" Extend the rectangular range down."]
     ExtendDown,
-    /// Extend the rectangular range left.
+    #[doc = r" Extend the rectangular range left."]
     ExtendLeft,
-    /// Extend the rectangular range right.
+    #[doc = r" Extend the rectangular range right."]
     ExtendRight,
-    /// Toggle the cursor row's selection.
+    #[doc = r" Toggle the cursor row's selection."]
     ToggleRow,
-    /// Select or clear every row.
+    #[doc = r" Select or clear every row."]
     ToggleAll,
-    /// Activate the row, or begin editing the cell.
+    #[doc = r" Activate the row, or begin editing the cell."]
     Activate,
-    /// Begin editing the cursor cell.
+    #[doc = r" Begin editing the cursor cell."]
     BeginEdit,
-    /// Copy the selection as TSV.
+    #[doc = r" Copy the selection as TSV."]
     Copy,
 }
 
@@ -477,8 +477,8 @@ const fn b(
     }
 }
 
-/// The one table. The grid is a single focus stop, so it has one binding
-/// state; the edit lifecycle runs on the inline editor's own table.
+#[doc = r" The one table. The grid is a single focus stop, so it has one binding"]
+#[doc = r" state; the edit lifecycle runs on the inline editor's own table."]
 const BINDINGS: [Binding<GridCmd>; 25] = [
     b("grid.up", Chord::key(KeyCode::Up), GridCmd::Up, "Up", true),
     b(
@@ -651,23 +651,23 @@ const BINDINGS: [Binding<GridCmd>; 25] = [
     ),
 ];
 
-/// The largest number of columns a grid lays out.
-///
-/// The whole column geometry lives in two fixed arrays of this length, which
-/// is what keeps `draw` allocation-free (§16.6 `grid_500x12_render`, **< 100**
-/// allocations per frame). Columns beyond the cap are **not painted** and
-/// never reachable by the cursor; a model with more columns than this is a
-/// design error, not a runtime one.
+#[doc = r" The largest number of columns a grid lays out."]
+#[doc = r""]
+#[doc = r" The whole column geometry lives in two fixed arrays of this length, which"]
+#[doc = r" is what keeps `draw` allocation-free (§16.6 `grid_500x12_render`, **< 100**"]
+#[doc = r" allocations per frame). Columns beyond the cap are **not painted** and"]
+#[doc = r" never reachable by the cursor; a model with more columns than this is a"]
+#[doc = r" design error, not a runtime one."]
 pub const GRID_MAX_COLUMNS: usize = 64;
 
-/// Why a keyed [`Grid::move_cursor_to`] request was refused.
+#[doc = r" Why a keyed [`Grid::move_cursor_to`] request was refused."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GridCursorError {
-    /// The row is not present in the current model.
+    #[doc = r" The row is not present in the current model."]
     UnknownRow(ItemKey),
-    /// The column is absent from the grid's addressable schema.
+    #[doc = r" The column is absent from the grid's addressable schema."]
     UnknownColumn(ColumnKey),
-    /// A retained inline draft must be explicitly committed or cancelled first.
+    #[doc = r" A retained inline draft must be explicitly committed or cancelled first."]
     Editing,
 }
 
@@ -683,23 +683,23 @@ impl fmt::Display for GridCursorError {
 
 impl core::error::Error for GridCursorError {}
 
-/// Validated, bounded natural-width sampling policy.
-///
-/// Sampling uses the first `rows` model rows, sorts their terminal-cell widths,
-/// and selects index `floor(n * percentile / 100)`, capped at `n - 1`.
-/// It runs only through [`Grid::sample_column_widths`], never during draw.
+#[doc = r" Validated, bounded natural-width sampling policy."]
+#[doc = r""]
+#[doc = r" Sampling uses the first `rows` model rows, sorts their terminal-cell widths,"]
+#[doc = r" and selects index `floor(n * percentile / 100)`, capped at `n - 1`."]
+#[doc = r" It runs only through [`Grid::sample_column_widths`], never during draw."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct WidthSample {
     rows: usize,
     percentile: u8,
 }
 
-/// Invalid natural-width sampling policy.
+#[doc = r" Invalid natural-width sampling policy."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WidthSampleError {
-    /// The bounded sample must contain between one and 200 rows.
+    #[doc = r" The bounded sample must contain between one and 200 rows."]
     RowsOutOfRange,
-    /// Percentiles range from zero through 100 inclusive.
+    #[doc = r" Percentiles range from zero through 100 inclusive."]
     PercentileOutOfRange,
 }
 
@@ -714,10 +714,10 @@ impl fmt::Display for WidthSampleError {
 impl std::error::Error for WidthSampleError {}
 
 impl WidthSample {
-    /// Validate the bounded sample size and percentile.
-    ///
-    /// # Errors
-    /// Rejects rows outside `1..=200` or percentile above 100.
+    #[doc = r" Validate the bounded sample size and percentile."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" Rejects rows outside `1..=200` or percentile above 100."]
     pub const fn new(rows: usize, percentile: u8) -> Result<Self, WidthSampleError> {
         if rows == 0 || rows > 200 {
             return Err(WidthSampleError::RowsOutOfRange);
@@ -735,17 +735,17 @@ struct SampledWidth {
     natural: u16,
 }
 
-/// Leading row metadata layout. Compact preserves the original two-cell gutter.
+#[doc = r" Leading row metadata layout. Compact preserves the original two-cell gutter."]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum GridGutter {
-    /// Focus plus the shared selection/decoration marker.
+    #[doc = r" Focus plus the shared selection/decoration marker."]
     #[default]
     Compact,
-    /// Separate focus, check, change and optional source row number.
+    #[doc = r" Separate focus, check, change and optional source row number."]
     Detailed {
-        /// Include row numbers and a trailing separator cell.
+        #[doc = r" Include row numbers and a trailing separator cell."]
         row_numbers: bool,
-        /// Minimum number width; loaded-row count can increase it.
+        #[doc = r" Minimum number width; loaded-row count can increase it."]
         min_digits: u16,
     },
 }
@@ -764,88 +764,88 @@ impl GridGutter {
     }
 }
 
-/// Horizontal viewport fitting policy.
+#[doc = r" Horizontal viewport fitting policy."]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum GridColumnFit {
-    /// Existing whole-column placement and target-first reveal.
+    #[doc = r" Existing whole-column placement and target-first reveal."]
     #[default]
     Whole,
-    /// Complete columns form the viewport; paint the next clipped column as a preview.
-    /// Body pointers exclude the preview; headers and keyboard editing remain available.
-    /// Reveal uses the previous complete-column count, so a wider target can remain
-    /// partially visible after navigation. Resizing alone does not move the cursor window.
+    #[doc = r" Complete columns form the viewport; paint the next clipped column as a preview."]
+    #[doc = r" Body pointers exclude the preview; headers and keyboard editing remain available."]
+    #[doc = r" Reveal uses the previous complete-column count, so a wider target can remain"]
+    #[doc = r" partially visible after navigation. Resizing alone does not move the cursor window."]
     CompleteWithPreview {
-        /// Minimum remaining cells needed to paint the next column.
+        #[doc = r" Minimum remaining cells needed to paint the next column."]
         min_width: u16,
     },
 }
 
-/// Header contribution to a column's width.
+#[doc = r" Header contribution to a column's width."]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum GridHeaderSizing {
-    /// Keep the existing title/badge and column min/max constraints.
+    #[doc = r" Keep the existing title/badge and column min/max constraints."]
     #[default]
     Content,
-    /// Reserve marks after the title and permit a bounded header minimum.
+    #[doc = r" Reserve marks after the title and permit a bounded header minimum."]
     Minimum {
-        /// Blank cells reserved for marks even when inactive.
+        #[doc = r" Blank cells reserved for marks even when inactive."]
         padding: u16,
-        /// Header minimum may raise the column maximum only up to this width.
+        #[doc = r" Header minimum may raise the column maximum only up to this width."]
         cap: u16,
     },
 }
 
-/// When sortable headers show their direction glyph.
+#[doc = r" When sortable headers show their direction glyph."]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum GridSortIndicator {
-    /// Existing behavior: an unsorted sortable header shows the ascending glyph.
+    #[doc = r" Existing behavior: an unsorted sortable header shows the ascending glyph."]
     #[default]
     Always,
-    /// Only the currently sorted column shows a glyph.
+    #[doc = r" Only the currently sorted column shows a glyph."]
     ActiveOnly,
 }
 
-/// How the header marks horizontally hidden columns.
+#[doc = r" How the header marks horizontally hidden columns."]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum GridOverflowIndicator {
-    /// Existing behavior: `‹N` / `N›` with the hidden count.
+    #[doc = r" Existing behavior: `‹N` / `N›` with the hidden count."]
     #[default]
     Count,
-    /// A single `…` at the window edge (legacy table parity).
+    #[doc = r" A single `…` at the window edge (legacy table parity)."]
     Ellipsis,
 }
 
-/// Durable state of a [`Grid`].
-///
-/// Holds the cursor cell, the rectangular range anchor, the row selection,
-/// the two-axis window, the reconcile stamp and the inline edit lifecycle —
-/// all keyed. `Debug` redacts the editor's draft, which `TextInputState`
-/// already does.
-///
-/// Its public readers expose durable keyed state and a borrowed inline draft
-/// for application guards, never model indices or derived viewport geometry.
+#[doc = r" Durable state of a [`Grid`]."]
+#[doc = r""]
+#[doc = r" Holds the cursor cell, the rectangular range anchor, the row selection,"]
+#[doc = r" the two-axis window, the reconcile stamp and the inline edit lifecycle —"]
+#[doc = r" all keyed. `Debug` redacts the editor's draft, which `TextInputState`"]
+#[doc = r" already does."]
+#[doc = r""]
+#[doc = r" Its public readers expose durable keyed state and a borrowed inline draft"]
+#[doc = r" for application guards, never model indices or derived viewport geometry."]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GridState {
     sampled_widths: [Option<SampledWidth>; GRID_MAX_COLUMNS],
     sampled_len: usize,
-    /// Synthetic row position, never a model key.
+    #[doc = r" Synthetic row position, never a model key."]
     fetch_row: Option<FetchRow>,
-    /// Row cursor key, row selection, vertical scroll and the stamp.
+    #[doc = r" Row cursor key, row selection, vertical scroll and the stamp."]
     core: CollectionCore,
-    /// Cursor column, keyed; the index is a cache re-derived every phase.
+    #[doc = r" Cursor column, keyed; the index is a cache re-derived every phase."]
     col: Option<ColumnKey>,
     col_index: usize,
-    /// The rectangular range anchor, keyed on both axes.
+    #[doc = r" The rectangular range anchor, keyed on both axes."]
     anchor: Option<RangeAnchor>,
-    /// First non-sticky column shown.
+    #[doc = r" First non-sticky column shown."]
     col_offset: usize,
     pending_column: Option<ColumnKey>,
-    /// The cell being edited, keyed.
+    #[doc = r" The cell being edited, keyed."]
     edit: Option<(ItemKey, ColumnKey)>,
-    /// The inline editor's draft, phase and error.
+    #[doc = r" The inline editor's draft, phase and error."]
     editor: TextInputState,
-    /// Last requested sort, used only to alternate the header affordance.
-    /// The adapter remains the sole owner of the actual row permutation.
+    #[doc = r" Last requested sort, used only to alternate the header affordance."]
+    #[doc = r" The adapter remains the sole owner of the actual row permutation."]
     sort: Option<(ColumnKey, SortDir)>,
 }
 
@@ -882,14 +882,14 @@ impl Default for GridState {
 }
 
 impl GridState {
-    /// Explicitly sampled natural cell width for this stable column key.
-    /// Header, prefix, action and min/max constraints are applied by layout.
+    #[doc = r" Explicitly sampled natural cell width for this stable column key."]
+    #[doc = r" Header, prefix, action and min/max constraints are applied by layout."]
     pub fn sampled_column_width(&self, key: ColumnKey) -> Option<u16> {
         self.sampled_width(key).map(|sample| sample.natural)
     }
 
-    /// Return every column to the default visible-row width policy.
-    /// Does not change cursor, selection, draft or scroll; caller owns repaint.
+    #[doc = r" Return every column to the default visible-row width policy."]
+    #[doc = r" Does not change cursor, selection, draft or scroll; caller owns repaint."]
     pub fn clear_sampled_widths(&mut self) {
         self.sampled_widths.fill(None);
         self.sampled_len = 0;
@@ -904,12 +904,12 @@ impl GridState {
             .copied()
     }
 
-    /// Whether the cursor targets the fetch sentinel rather than model data.
+    #[doc = r" Whether the cursor targets the fetch sentinel rather than model data."]
     pub const fn on_fetch_row(&self) -> bool {
         self.fetch_row.is_some()
     }
 
-    /// The keyed cursor cell; absent while the fetch row is selected.
+    #[doc = r" The keyed cursor cell; absent while the fetch row is selected."]
     pub const fn cursor(&self) -> Option<(ItemKey, ColumnKey)> {
         if self.on_fetch_row() {
             return None;
@@ -920,36 +920,36 @@ impl GridState {
         }
     }
 
-    /// The keyed row selection.
+    #[doc = r" The keyed row selection."]
     pub const fn selected_rows(&self) -> &KeySet {
         self.core.checked()
     }
 
-    /// Whether an inline edit is active.
+    #[doc = r" Whether an inline edit is active."]
     pub const fn is_editing(&self) -> bool {
         self.edit.is_some()
     }
 
-    /// The stable logical cell being edited, even when its editor is unfocused.
+    #[doc = r" The stable logical cell being edited, even when its editor is unfocused."]
     pub const fn edit_cell(&self) -> Option<(ItemKey, ColumnKey)> {
         self.edit
     }
 
-    /// The uncommitted inline draft, only while an edit is active.
+    #[doc = r" The uncommitted inline draft, only while an edit is active."]
     pub fn edit_draft(&self) -> Option<&str> {
         self.edit.and_then(|_| self.editor.draft_text())
     }
 
-    /// The typed error retained by the inline editor.
+    #[doc = r" The typed error retained by the inline editor."]
     pub const fn edit_error(&self) -> Option<&crate::validate::FieldError> {
         self.editor.error()
     }
 
-    /// Explicitly discard the retained inline draft and its cell-local error.
-    ///
-    /// Returns whether an edit or error was cleared. Never commits to a model,
-    /// moves focus or changes the cursor, selection or scroll window. The
-    /// application owns repaint and any subsequent domain discard operation.
+    #[doc = r" Explicitly discard the retained inline draft and its cell-local error."]
+    #[doc = r""]
+    #[doc = r" Returns whether an edit or error was cleared. Never commits to a model,"]
+    #[doc = r" moves focus or changes the cursor, selection or scroll window. The"]
+    #[doc = r" application owns repaint and any subsequent domain discard operation."]
     pub fn cancel_edit(&mut self) -> bool {
         let changed = self.edit.is_some() || self.editor.error().is_some();
         if changed {
@@ -958,12 +958,12 @@ impl GridState {
         changed
     }
 
-    /// Number of non-sticky columns hidden on the left.
+    #[doc = r" Number of non-sticky columns hidden on the left."]
     pub const fn col_offset(&self) -> usize {
         self.col_offset
     }
 
-    /// Point the cursor at `(row, key)` in `col`, and reveal it.
+    #[doc = r" Point the cursor at `(row, key)` in `col`, and reveal it."]
     fn set_cursor(&mut self, row: usize, key: ItemKey, col_index: usize, col: ColumnKey) {
         self.fetch_row = None;
         self.core.set_cursor(row, key);
@@ -971,12 +971,12 @@ impl GridState {
         self.col = Some(col);
     }
 
-    /// Cancel the inline editor and discard any cell-local error.
-    ///
-    /// `TextInputState::cancel` preserves plain validation errors for callers
-    /// that want to display them after a commit. A Grid error belongs to the
-    /// edited cell, so retaining it after that cell is gone or the edit is
-    /// cancelled would paint stale text on the next cursor cell.
+    #[doc = r" Cancel the inline editor and discard any cell-local error."]
+    #[doc = r""]
+    #[doc = r" `TextInputState::cancel` preserves plain validation errors for callers"]
+    #[doc = r" that want to display them after a commit. A Grid error belongs to the"]
+    #[doc = r" edited cell, so retaining it after that cell is gone or the edit is"]
+    #[doc = r" cancelled would paint stale text on the next cursor cell."]
     fn cancel_editor(&mut self) {
         self.edit = None;
         self.editor.cancel();
@@ -1005,26 +1005,26 @@ impl Reconcile for GridState {
     }
 }
 
-/// The column geometry of one frame: two fixed arrays and a window, computed
-/// identically by both phases from `(area, columns, state, model)`.
+#[doc = r" The column geometry of one frame: two fixed arrays and a window, computed"]
+#[doc = r" identically by both phases from `(area, columns, state, model)`."]
 #[derive(Clone, Copy, Debug)]
 struct Geometry {
-    /// Painted width of each column.
+    #[doc = r" Painted width of each column."]
     width: [u16; GRID_MAX_COLUMNS],
-    /// Painted `x` of each column; `0` for a column outside the window.
+    #[doc = r" Painted `x` of each column; `0` for a column outside the window."]
     x: [u16; GRID_MAX_COLUMNS],
-    /// Whether each column is painted this frame.
+    #[doc = r" Whether each column is painted this frame."]
     shown: [bool; GRID_MAX_COLUMNS],
     complete: [bool; GRID_MAX_COLUMNS],
     offset: usize,
-    /// Declared columns, capped at [`GRID_MAX_COLUMNS`].
+    #[doc = r" Declared columns, capped at [`GRID_MAX_COLUMNS`]."]
     n: usize,
-    /// Non-sticky columns hidden to the left and to the right.
+    #[doc = r" Non-sticky columns hidden to the left and to the right."]
     hidden_left: usize,
     hidden_right: usize,
-    /// The rect the rows are laid into (gutter and marker included).
+    #[doc = r" The rect the rows are laid into (gutter and marker included)."]
     body: Rect,
-    /// The first column of cell content, past the gutter and marker.
+    #[doc = r" The first column of cell content, past the gutter and marker."]
     content_x: u16,
     gutter_width: u16,
     number_width: u16,
@@ -1068,7 +1068,7 @@ impl Geometry {
         }
     }
 
-    /// The rect of column `i` on row `y`, or an empty rect.
+    #[doc = r" The rect of column `i` on row `y`, or an empty rect."]
     fn cell(&self, i: usize, y: u16) -> Rect {
         if !self.shown.get(i).copied().unwrap_or(false) {
             return Rect::ZERO;
@@ -1086,7 +1086,7 @@ impl Geometry {
         })
     }
 
-    /// Preview parts remain visible to inspection but never focus or activate.
+    #[doc = r" Preview parts remain visible to inspection but never focus or activate."]
     fn register_cell_part(
         &self,
         ui: &mut Ui<'_>,
@@ -1133,7 +1133,7 @@ impl Geometry {
         }
     }
 
-    /// The column under `x`, if any.
+    #[doc = r" The column under `x`, if any."]
     fn column_at(&self, x: u16) -> Option<usize> {
         (0..self.n).find(|&i| {
             let r = self.cell(i, self.body.y);
@@ -1145,117 +1145,117 @@ impl Geometry {
     }
 }
 
-/// A two-axis, keyed, editable-by-entry-point table over a borrowed model.
-///
-/// ## Construction
-/// `Grid::new(id, columns)`; the model is passed to each phase, never held
-/// (§21 item 1, B15). `Grid::update` takes `&M: GridModel`,
-/// `Grid::update_editable` takes `&mut M: GridEditor`, `Grid::draw` takes
-/// `&M: GridModel` — the same bound and the same shared borrow as `update`.
-///
-/// ## Ownership
-/// The caller owns the columns, the model and a [`GridState`]; the runtime
-/// owns focus, hover, press, wheel routing and the scrollbar capture. The
-/// inline editor is a child component addressed by `id.part(Part::TEXT)`.
-///
-/// ## Configuration
-/// `.nav(NavUnit)` (`Cell`), `.select_mode(SelectMode)` (`Single`),
-/// `.gutter(GridGutter)` (`Compact`), `.right_reserve(u16)` (`0`),
-/// `.part_defaults(&[(Part, StylePatch)])` (detailed-gutter role defaults),
-/// `.empty(EmptyState)` (a default "Nothing here yet"), `.actions_slot(&dyn
-/// Fn(&mut Ui, Rect))`, `.patch`, `.patch_part`, `.slot`,
-/// There is **no** `.editable(bool)` (§23 K2, G4).
-///
-/// ## Variants
-/// `Family::GRID`, `DEFAULT` only.
-///
-/// ## States
-/// The grid wears `FOCUSED`, `FOCUS_VISIBLE` and `HOVERED` from the
-/// runtime and `READ_ONLY` when the model gives a reason. The cursor row
-/// derives `FOCUSED`, the cursor cell `ACTIVE`, a selected row `SELECTED`, a
-/// checked row `CHECKED`, a cell in the range `SELECTED`, an edited cell
-/// `EDITING`, and `ERROR`/`DIRTY` from [`CellDecor`]. Empty loading and error
-/// states are explicit [`EmptyState`] values.
-///
-/// ## Actions
-/// [`GridAction`]. Sort is a keyed adapter request; filter, refresh and
-/// row-lifecycle behavior remains in application bindings.
-///
-/// ## Focus
-/// One `Focusable` stop for the whole grid. While a cell is being edited the
-/// inline editor holds focus and swallows typing, so the grid's own table
-/// stops firing without any flag.
-///
-/// ## Keyboard
-/// `↑`/`k`, `↓`/`j`, `←`/`h`, `→`/`l`, `PgUp`, `PgDn`, `Home`/`End` (row
-/// ends), `Ctrl+Home`/`Ctrl+End` and `g`/`G` (first / last row),
-/// `Shift+arrows` (extend the rectangular range), `Space` (select the row),
-/// `Ctrl+A` (all), `Enter` (activate, or begin an edit under
-/// `update_editable`), `F2` (begin an edit), `Ctrl+C` (copy as TSV).
-///
-/// ## Mouse
-/// `PartRef::item(Part::CELL, row)`: press moves the cursor to the cell under
-/// the pointer, double-click activates or begins an edit.
-/// `PartRef::item(Part::ACTIONS, row)`: the cell affordance's hot zone, which
-/// is registered after the cell and therefore wins the click.
-/// `PartRef::of(Part::ROW)` is the fetch-more row. `TRACK`/`THUMB` and the
-/// wheel go to the embedded [`ScrollRegion`].
-///
-/// ## Layout
-/// A header row, an optional read-only reason row, the body, and an optional
-/// action row. Column widths are **sampled** from the visible rows and the
-/// titles, clamped into each column's `min_width..=max_width`; sticky columns
-/// are pinned to the left and the rest scroll in a window with `‹N` / `N›`
-/// overflow indicators. `measure` is `(the sampled total, rows + chrome)`;
-/// `draw` returns `area`. `0×0` registers nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the whole surface, filled on **every** non-degenerate frame,
-/// which is why it is `PARTS[0]`), `HEADER`, `ROW`, `CELL`, `TRACK`, `THUMB`,
-/// `OVERFLOW`, `EMPTY`, `ACTIONS`, plus the optional detailed-gutter surfaces
-/// `GUTTER`, `MARKER`, `CHANGE` and `ROW_NUMBER` (§17.0 A7). Compact paints its
-/// focus and shared selection/change markers from `ROW`; Detailed resolves
-/// the four distinct parts in their clipped subcells. The fetch sentinel
-/// resolves only `GUTTER`, never a synthetic data-row number. A configured
-/// keyed header prefix additionally resolves `ICON`; this is not a whole-grid
-/// status surface.
-///
-/// Fetch wording and activity are borrowed props. An activity frame composes
-/// canonical Spinner: its PROGRESS ICON/LABEL overrides belong to the child,
-/// while Grid ROW overrides retain the row fill and idle glyph. No loaded-row
-/// readiness is derived from this presentation option.
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach `Part::CONTAINER`, `Part::HEADER`,
-/// `Part::ROW`, `Part::CELL`, `Part::TRACK`, `Part::THUMB`, `Part::OVERFLOW`,
-/// `Part::EMPTY` and `Part::ACTIONS`, plus all four detailed-gutter parts when
-/// enabled, and `ICON` for configured header prefixes. `.slot` replaces `Part::HEADER`, `Part::EMPTY`, `Part::ACTIONS`,
-/// `Part::TRACK`, `Part::THUMB`, each enabled detailed-gutter subcell, and
-/// each header-prefix `ICON`. `HEADER` replacement suppresses all header content.
-/// `ACTIONS` reaches both configured action surfaces and cell affordances.
-/// `TRACK` and `THUMB` are forwarded into the embedded [`ScrollRegion`], as
-/// are `.patch` and `.patch_part`.
-///
-/// ## Identity
-/// Rows are [`ItemKey`]s from `GridModel::row_key`, columns are
-/// [`ColumnKey`]s from the column list. The cursor, the range anchor, the
-/// selection and the edited cell are **all** stored keyed and re-resolved to
-/// indices every phase, so a model that reorders itself between frames moves
-/// none of them.
-///
-/// ## Testing
-/// `GridCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SCROLLS | EDITS`,
-/// registered once and run through both entry points from `Fixture.read_only`
-/// (§23 K2); `crates/tui/tests/fixtures/grid_model.rs` is a display-only model
-/// that implements `GridModel` **alone**, so it is a compile-time witness that
-/// the read-only entry point needs nothing from `GridEditor`.
-///
-/// ## Invariants
-/// `reconcile` runs before any action is emitted (G7); draw invokes the model
-/// only for visible cells (explicit load sampling is separate); a frame
-/// allocates nothing per row or per cell; `draw`
-/// takes `&GridState` and `&M`, so it can neither commit nor cancel an edit
-/// (G2).
+#[doc = r" A two-axis, keyed, editable-by-entry-point table over a borrowed model."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `Grid::new(id, columns)`; the model is passed to each phase, never held"]
+#[doc = r" (§21 item 1, B15). `Grid::update` takes `&M: GridModel`,"]
+#[doc = r" `Grid::update_editable` takes `&mut M: GridEditor`, `Grid::draw` takes"]
+#[doc = r" `&M: GridModel` — the same bound and the same shared borrow as `update`."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" The caller owns the columns, the model and a [`GridState`]; the runtime"]
+#[doc = r" owns focus, hover, press, wheel routing and the scrollbar capture. The"]
+#[doc = r" inline editor is a child component addressed by `id.part(Part::TEXT)`."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.nav(NavUnit)` (`Cell`), `.select_mode(SelectMode)` (`Single`),"]
+#[doc = r" `.gutter(GridGutter)` (`Compact`), `.right_reserve(u16)` (`0`),"]
+#[doc = r" `.part_defaults(&[(Part, StylePatch)])` (detailed-gutter role defaults),"]
+#[doc = r#" `.empty(EmptyState)` (a default "Nothing here yet"), `.actions_slot(&dyn"#]
+#[doc = r" Fn(&mut Ui, Rect))`, `.patch`, `.patch_part`, `.slot`,"]
+#[doc = r" There is **no** `.editable(bool)` (§23 K2, G4)."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::GRID`, `DEFAULT` only."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" The grid wears `FOCUSED`, `FOCUS_VISIBLE` and `HOVERED` from the"]
+#[doc = r" runtime and `READ_ONLY` when the model gives a reason. The cursor row"]
+#[doc = r" derives `FOCUSED`, the cursor cell `ACTIVE`, a selected row `SELECTED`, a"]
+#[doc = r" checked row `CHECKED`, a cell in the range `SELECTED`, an edited cell"]
+#[doc = r" `EDITING`, and `ERROR`/`DIRTY` from [`CellDecor`]. Empty loading and error"]
+#[doc = r" states are explicit [`EmptyState`] values."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" [`GridAction`]. Sort is a keyed adapter request; filter, refresh and"]
+#[doc = r" row-lifecycle behavior remains in application bindings."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" One `Focusable` stop for the whole grid. While a cell is being edited the"]
+#[doc = r" inline editor holds focus and swallows typing, so the grid's own table"]
+#[doc = r" stops firing without any flag."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" `↑`/`k`, `↓`/`j`, `←`/`h`, `→`/`l`, `PgUp`, `PgDn`, `Home`/`End` (row"]
+#[doc = r" ends), `Ctrl+Home`/`Ctrl+End` and `g`/`G` (first / last row),"]
+#[doc = r" `Shift+arrows` (extend the rectangular range), `Space` (select the row),"]
+#[doc = r" `Ctrl+A` (all), `Enter` (activate, or begin an edit under"]
+#[doc = r" `update_editable`), `F2` (begin an edit), `Ctrl+C` (copy as TSV)."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" `PartRef::item(Part::CELL, row)`: press moves the cursor to the cell under"]
+#[doc = r" the pointer, double-click activates or begins an edit."]
+#[doc = r" `PartRef::item(Part::ACTIONS, row)`: the cell affordance's hot zone, which"]
+#[doc = r" is registered after the cell and therefore wins the click."]
+#[doc = r" `PartRef::of(Part::ROW)` is the fetch-more row. `TRACK`/`THUMB` and the"]
+#[doc = r" wheel go to the embedded [`ScrollRegion`]."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" A header row, an optional read-only reason row, the body, and an optional"]
+#[doc = r" action row. Column widths are **sampled** from the visible rows and the"]
+#[doc = r" titles, clamped into each column's `min_width..=max_width`; sticky columns"]
+#[doc = r" are pinned to the left and the rest scroll in a window with `‹N` / `N›`"]
+#[doc = r" overflow indicators. `measure` is `(the sampled total, rows + chrome)`;"]
+#[doc = r" `draw` returns `area`. `0×0` registers nothing (R5)."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `CONTAINER` (the whole surface, filled on **every** non-degenerate frame,"]
+#[doc = r" which is why it is `PARTS[0]`), `HEADER`, `ROW`, `CELL`, `TRACK`, `THUMB`,"]
+#[doc = r" `OVERFLOW`, `EMPTY`, `ACTIONS`, plus the optional detailed-gutter surfaces"]
+#[doc = r" `GUTTER`, `MARKER`, `CHANGE` and `ROW_NUMBER` (§17.0 A7). Compact paints its"]
+#[doc = r" focus and shared selection/change markers from `ROW`; Detailed resolves"]
+#[doc = r" the four distinct parts in their clipped subcells. The fetch sentinel"]
+#[doc = r" resolves only `GUTTER`, never a synthetic data-row number. A configured"]
+#[doc = r" keyed header prefix additionally resolves `ICON`; this is not a whole-grid"]
+#[doc = r" status surface."]
+#[doc = r""]
+#[doc = r" Fetch wording and activity are borrowed props. An activity frame composes"]
+#[doc = r" canonical Spinner: its PROGRESS ICON/LABEL overrides belong to the child,"]
+#[doc = r" while Grid ROW overrides retain the row fill and idle glyph. No loaded-row"]
+#[doc = r" readiness is derived from this presentation option."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch` and `.patch_part` reach `Part::CONTAINER`, `Part::HEADER`,"]
+#[doc = r" `Part::ROW`, `Part::CELL`, `Part::TRACK`, `Part::THUMB`, `Part::OVERFLOW`,"]
+#[doc = r" `Part::EMPTY` and `Part::ACTIONS`, plus all four detailed-gutter parts when"]
+#[doc = r" enabled, and `ICON` for configured header prefixes. `.slot` replaces `Part::HEADER`, `Part::EMPTY`, `Part::ACTIONS`,"]
+#[doc = r" `Part::TRACK`, `Part::THUMB`, each enabled detailed-gutter subcell, and"]
+#[doc = r" each header-prefix `ICON`. `HEADER` replacement suppresses all header content."]
+#[doc = r" `ACTIONS` reaches both configured action surfaces and cell affordances."]
+#[doc = r" `TRACK` and `THUMB` are forwarded into the embedded [`ScrollRegion`], as"]
+#[doc = r" are `.patch` and `.patch_part`."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" Rows are [`ItemKey`]s from `GridModel::row_key`, columns are"]
+#[doc = r" [`ColumnKey`]s from the column list. The cursor, the range anchor, the"]
+#[doc = r" selection and the edited cell are **all** stored keyed and re-resolved to"]
+#[doc = r" indices every phase, so a model that reorders itself between frames moves"]
+#[doc = r" none of them."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `GridCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SCROLLS | EDITS`,"]
+#[doc = r" registered once and run through both entry points from `Fixture.read_only`"]
+#[doc = r" (§23 K2); `crates/tui/tests/fixtures/grid_model.rs` is a display-only model"]
+#[doc = r" that implements `GridModel` **alone**, so it is a compile-time witness that"]
+#[doc = r" the read-only entry point needs nothing from `GridEditor`."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" `reconcile` runs before any action is emitted (G7); draw invokes the model"]
+#[doc = r" only for visible cells (explicit load sampling is separate); a frame"]
+#[doc = r" allocates nothing per row or per cell; `draw`"]
+#[doc = r" takes `&GridState` and `&M`, so it can neither commit nor cancel an edit"]
+#[doc = r" (G2)."]
 pub struct Grid<'a> {
     id: Id,
     columns: &'a [Column<'a>],
@@ -1296,7 +1296,7 @@ impl fmt::Debug for Grid<'_> {
 }
 
 impl<'a> Grid<'a> {
-    /// The parts this component styles (§17.0 A7).
+    #[doc = r" The parts this component styles (§17.0 A7)."]
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::HEADER,
@@ -1314,7 +1314,7 @@ impl<'a> Grid<'a> {
         Part::ICON,
     ];
 
-    /// A grid over `columns`.
+    #[doc = r" A grid over `columns`."]
     pub const fn new(id: Id, columns: &'a [Column<'a>]) -> Self {
         Grid {
             id,
@@ -1343,13 +1343,13 @@ impl<'a> Grid<'a> {
         }
     }
 
-    /// Replace the keyed natural-width sample as an explicit load transaction.
-    ///
-    /// Reads at most 200 model rows per reachable column using bounded scratch
-    /// storage. No cursor, selection, draft or scroll mutation. Draw and update
-    /// never refresh this cache: append/reorder keep the sample until repeated
-    /// explicitly or cleared. New column keys use the default visible policy.
-    /// Header and min/max metadata remain live layout constraints.
+    #[doc = r" Replace the keyed natural-width sample as an explicit load transaction."]
+    #[doc = r""]
+    #[doc = r" Reads at most 200 model rows per reachable column using bounded scratch"]
+    #[doc = r" storage. No cursor, selection, draft or scroll mutation. Draw and update"]
+    #[doc = r" never refresh this cache: append/reorder keep the sample until repeated"]
+    #[doc = r" explicitly or cleared. New column keys use the default visible policy."]
+    #[doc = r" Header and min/max metadata remain live layout constraints."]
     pub fn sample_column_widths<M: GridModel + ?Sized>(
         &self,
         st: &mut GridState,
@@ -1392,82 +1392,82 @@ impl<'a> Grid<'a> {
         st.sampled_len = self.column_count();
     }
 
-    /// The id.
+    #[doc = r" The id."]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// The id of the inline editor this grid owns.
+    #[doc = r" The id of the inline editor this grid owns."]
     pub const fn editor_id(&self) -> Id {
         self.id.part(Part::TEXT)
     }
 
-    /// What the cursor moves over.
+    #[doc = r" What the cursor moves over."]
     #[must_use]
     pub const fn nav(mut self, u: NavUnit) -> Self {
         self.nav = u;
         self
     }
 
-    /// Disable interaction while preserving cursor, selection and inline draft.
+    #[doc = r" Disable interaction while preserving cursor, selection and inline draft."]
     #[must_use]
     pub const fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
     }
 
-    /// Select the fetch row through navigation and fetch only on activation.
-    ///
-    /// Defaults to false: moving down past the last loaded row requests data.
-    /// When enabled, Enter, F2, Space or a click requests data. Appending rows
-    /// selects the first appended row at the previous sentinel position.
+    #[doc = r" Select the fetch row through navigation and fetch only on activation."]
+    #[doc = r""]
+    #[doc = r" Defaults to false: moving down past the last loaded row requests data."]
+    #[doc = r" When enabled, Enter, F2, Space or a click requests data. Appending rows"]
+    #[doc = r" selects the first appended row at the previous sentinel position."]
     #[must_use]
     pub const fn fetch_on_activate(mut self, enabled: bool) -> Self {
         self.fetch_on_activate = enabled;
         self
     }
 
-    /// Borrowed synthetic-row wording. Defaults to "more"; source counts and
-    /// loading text belong to the model adapter, never the generic grid.
+    #[doc = r#" Borrowed synthetic-row wording. Defaults to "more"; source counts and"#]
+    #[doc = r" loading text belong to the model adapter, never the generic grid."]
     #[must_use]
     pub const fn fetch_label(mut self, label: &'a str) -> Self {
         self.fetch_label = label;
         self
     }
 
-    /// Idle fetch-row glyph default, below explicit ROW glyph overrides.
+    #[doc = r" Idle fetch-row glyph default, below explicit ROW glyph overrides."]
     #[must_use]
     pub const fn fetch_glyph(mut self, glyph: GlyphRole) -> Self {
         self.fetch_glyph = glyph;
         self
     }
 
-    /// Optional owner-supplied animation frame. Canonical Spinner owns its
-    /// PROGRESS ICON/LABEL styles; Grid retains ROW fill and fetch interaction.
-    /// This does not advance time, disable fetching, or mark loaded rows busy.
+    #[doc = r" Optional owner-supplied animation frame. Canonical Spinner owns its"]
+    #[doc = r" PROGRESS ICON/LABEL styles; Grid retains ROW fill and fetch interaction."]
+    #[doc = r" This does not advance time, disable fetching, or mark loaded rows busy."]
     #[must_use]
     pub const fn fetch_activity(mut self, frame: Option<usize>) -> Self {
         self.fetch_activity = frame;
         self
     }
 
-    /// Borrowed role-level defaults for detailed gutter parts, below theme and instance patches.
+    #[doc = r" Borrowed role-level defaults for detailed gutter parts, below theme and instance patches."]
     #[must_use]
     pub const fn part_defaults(mut self, defaults: &'a [(Part, StylePatch)]) -> Self {
         self.part_defaults = defaults;
         self
     }
 
-    /// Select the leading row metadata layout. Defaults to compact.
+    #[doc = r" Select the leading row metadata layout. Defaults to compact."]
     #[must_use]
     pub const fn gutter(mut self, gutter: GridGutter) -> Self {
         self.gutter = gutter;
         self
     }
 
-    /// Borrowed keyed header glyphs and semantic tones. Each reserves one glyph
-    /// cell plus one separator; wide theme glyphs remain clipped to that cell.
-    /// ICON defaults precede explicit theme/scope/instance ICON overrides.
+    #[doc = r" Borrowed keyed header glyphs and semantic tones. Each reserves one glyph"]
+    #[doc = r" cell plus one separator; wide theme glyphs remain clipped to that cell."]
+    #[doc = r" ICON defaults precede explicit theme/scope/instance ICON overrides."]
     #[must_use]
     pub const fn header_prefixes(mut self, prefixes: &'a [(ColumnKey, GlyphRole, Role)]) -> Self {
         self.header_prefixes = prefixes;
@@ -1481,118 +1481,118 @@ impl<'a> Grid<'a> {
             .find_map(|(column, glyph, tone)| (*column == key).then_some((*glyph, *tone)))
     }
 
-    /// Reserve trailing cells independently of the scrollbar and column gap.
+    #[doc = r" Reserve trailing cells independently of the scrollbar and column gap."]
     #[must_use]
     pub const fn right_reserve(mut self, cells: u16) -> Self {
         self.right_reserve = cells;
         self
     }
 
-    /// Horizontal cells between columns; defaults to one.
+    #[doc = r" Horizontal cells between columns; defaults to one."]
     #[must_use]
     pub const fn column_gap(mut self, gap: u16) -> Self {
         self.column_gap = gap;
         self
     }
 
-    /// Horizontal fitting and reveal policy; defaults preserve target-first reveal.
+    #[doc = r" Horizontal fitting and reveal policy; defaults preserve target-first reveal."]
     #[must_use]
     pub const fn column_fit(mut self, policy: GridColumnFit) -> Self {
         self.column_fit = policy;
         self
     }
 
-    /// Header width policy, independent of cell-width sampling.
+    #[doc = r" Header width policy, independent of cell-width sampling."]
     #[must_use]
     pub const fn header_sizing(mut self, policy: GridHeaderSizing) -> Self {
         self.header_sizing = policy;
         self
     }
 
-    /// Choose whether inactive sortable headers show a direction glyph.
+    #[doc = r" Choose whether inactive sortable headers show a direction glyph."]
     #[must_use]
     pub const fn sort_indicator(mut self, policy: GridSortIndicator) -> Self {
         self.sort_indicator = policy;
         self
     }
 
-    /// Choose how the header marks horizontally hidden columns.
+    #[doc = r" Choose how the header marks horizontally hidden columns."]
     #[must_use]
     pub const fn overflow_indicator(mut self, policy: GridOverflowIndicator) -> Self {
         self.overflow_indicator = policy;
         self
     }
 
-    /// How rows are selected.
+    #[doc = r" How rows are selected."]
     #[must_use]
     pub const fn select_mode(mut self, m: SelectMode) -> Self {
         self.select_mode = m;
         self
     }
 
-    /// Replace display content with a borrowed, allocation-free cell painter.
-    ///
-    /// Called once per visible, present cell, including cells with no remaining
-    /// content width. Ragged holes, inline editors and validation/refusal text
-    /// remain grid-owned and do not call the renderer. The grid still owns row
-    /// fills, prefixes, actions, clipping, hit regions and interaction state.
-    /// `CellUi` clips text at grapheme boundaries; custom content may use its
-    /// numeric, money, glyph, tone, alignment and patch methods.
+    #[doc = r" Replace display content with a borrowed, allocation-free cell painter."]
+    #[doc = r""]
+    #[doc = r" Called once per visible, present cell, including cells with no remaining"]
+    #[doc = r" content width. Ragged holes, inline editors and validation/refusal text"]
+    #[doc = r" remain grid-owned and do not call the renderer. The grid still owns row"]
+    #[doc = r" fills, prefixes, actions, clipping, hit regions and interaction state."]
+    #[doc = r" `CellUi` clips text at grapheme boundaries; custom content may use its"]
+    #[doc = r" numeric, money, glyph, tone, alignment and patch methods."]
     #[must_use]
     pub const fn cell(mut self, render: &'a dyn Fn(GridCell<'_>, &mut CellUi<'_>)) -> Self {
         self.cell = Some(render);
         self
     }
 
-    /// What the inline editor does when focus leaves it.
-    ///
-    /// Defaults to [`BlurPolicy::CommitAndValidate`]. [`BlurPolicy::Keep`]
-    /// retains the keyed draft without calling the model's commit hook, so an
-    /// application can review navigation or modal changes before committing.
-    /// Explicit Enter still commits and validates; Escape cancels the draft.
+    #[doc = r" What the inline editor does when focus leaves it."]
+    #[doc = r""]
+    #[doc = r" Defaults to [`BlurPolicy::CommitAndValidate`]. [`BlurPolicy::Keep`]"]
+    #[doc = r" retains the keyed draft without calling the model's commit hook, so an"]
+    #[doc = r" application can review navigation or modal changes before committing."]
+    #[doc = r" Explicit Enter still commits and validates; Escape cancels the draft."]
     #[must_use]
     pub const fn blur(mut self, policy: BlurPolicy) -> Self {
         self.blur = policy;
         self
     }
 
-    /// What to paint when there are no rows.
+    #[doc = r" What to paint when there are no rows."]
     #[must_use]
     pub const fn empty(mut self, e: EmptyState<'a>) -> Self {
         self.empty = Some(e);
         self
     }
 
-    /// A row of application affordances under the grid (§12.3's action
-    /// surface). The grid reserves the row and registers nothing in it.
+    #[doc = r" A row of application affordances under the grid (§12.3's action"]
+    #[doc = r" surface). The grid reserves the row and registers nothing in it."]
     #[must_use]
     pub const fn actions_slot(mut self, f: SlotFn<'a>) -> Self {
         self.actions = Some(f);
         self
     }
 
-    /// An instance patch over every part (precedence 6).
+    #[doc = r" An instance patch over every part (precedence 6)."]
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part patches.
+    #[doc = r" Per-part patches."]
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
+    #[doc = r" Replace one part's painting."]
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// The embedded scroll region carrying every owning override (§45.1).
+    #[doc = r" The embedded scroll region carrying every owning override (§45.1)."]
     fn bar(&self) -> ScrollRegion<'a> {
         let mut r = ScrollRegion::new(self.id).patch_part(self.ov.parts);
         if let Some(p) = self.ov.patch {
@@ -1604,20 +1604,20 @@ impl<'a> Grid<'a> {
         r
     }
 
-    /// Declared columns, capped at [`GRID_MAX_COLUMNS`].
+    #[doc = r" Declared columns, capped at [`GRID_MAX_COLUMNS`]."]
     fn column_count(&self) -> usize {
         self.columns.len().min(GRID_MAX_COLUMNS)
     }
 
-    /// Debug-only: the column list must hold no key twice.
-    ///
-    /// Keyed identity (§33) assumes one column per key: [`Self::col_index`]
-    /// resolves the cursor, the range anchor and the edited cell to the
-    /// *first* column carrying a key, so a repeated key — a copy-pasted
-    /// [`ColumnKey::num`], or two [`ColumnKey::of`] names folding to the same
-    /// 15 bits — moves them to a column the caller never meant. Nothing
-    /// downstream can see that; the column list is the one place both keys
-    /// and both titles exist, so the check belongs here. Debug builds only.
+    #[doc = r" Debug-only: the column list must hold no key twice."]
+    #[doc = r""]
+    #[doc = r" Keyed identity (§33) assumes one column per key: [`Self::col_index`]"]
+    #[doc = r" resolves the cursor, the range anchor and the edited cell to the"]
+    #[doc = r" *first* column carrying a key, so a repeated key — a copy-pasted"]
+    #[doc = r" [`ColumnKey::num`], or two [`ColumnKey::of`] names folding to the same"]
+    #[doc = r" 15 bits — moves them to a column the caller never meant. Nothing"]
+    #[doc = r" downstream can see that; the column list is the one place both keys"]
+    #[doc = r" and both titles exist, so the check belongs here. Debug builds only."]
     fn assert_distinct_column_keys(&self) {
         #[cfg(debug_assertions)]
         {
@@ -1637,20 +1637,20 @@ impl<'a> Grid<'a> {
         }
     }
 
-    /// The index of `key` in the capped column list.
+    #[doc = r" The index of `key` in the capped column list."]
     fn col_index(&self, key: ColumnKey) -> Option<usize> {
         self.columns
             .get(..self.column_count())
             .and_then(|cs| cs.iter().position(|c| c.key == key))
     }
 
-    /// The key of column `i`.
+    #[doc = r" The key of column `i`."]
     fn col_key(&self, i: usize) -> Option<ColumnKey> {
         self.columns.get(i).map(|c| c.key)
     }
 
-    /// The cursor column index, re-derived from the stored key so a column
-    /// reorder cannot move it (§33: identity is keyed, not positional).
+    #[doc = r" The cursor column index, re-derived from the stored key so a column"]
+    #[doc = r" reorder cannot move it (§33: identity is keyed, not positional)."]
     fn cursor_col(&self, st: &GridState) -> usize {
         let column_count = self.column_count();
         st.col
@@ -1658,7 +1658,7 @@ impl<'a> Grid<'a> {
             .unwrap_or_else(|| st.col_index.min(column_count.saturating_sub(1)))
     }
 
-    /// The chrome rows: header, read-only reason, action surface.
+    #[doc = r" The chrome rows: header, read-only reason, action surface."]
     fn chrome(&self, area: Rect, reason: Option<&str>) -> (Rect, Rect, Rect, Rect) {
         let header = Rect {
             height: u16::from(!self.columns.is_empty()),
@@ -1718,7 +1718,7 @@ impl<'a> Grid<'a> {
             if let Some(sample) = sample {
                 w = w.max(sample.natural);
             }
-            // Sampling freezes natural text width, never live interaction space.
+
             for r in rows.clone() {
                 if r >= model.row_count() {
                     break;
@@ -1766,9 +1766,9 @@ impl<'a> Grid<'a> {
         body
     }
 
-    /// Sample column widths and place the window. Pure in
-    /// `(body, columns, st, model, rows)`; both phases call it, so a pointer
-    /// resolved in `update` lands on the column `draw` painted.
+    #[doc = r" Sample column widths and place the window. Pure in"]
+    #[doc = r" `(body, columns, st, model, rows)`; both phases call it, so a pointer"]
+    #[doc = r" resolved in `update` lands on the column `draw` painted."]
     fn geometry<M: GridModel + ?Sized>(
         &self,
         body: Rect,
@@ -1824,9 +1824,7 @@ impl<'a> Grid<'a> {
         if count == 0 {
             return g;
         }
-        // Reference navigation uses the current viewport's complete-column count.
-        // Wider columns can leave the new cursor in the painted preview; that
-        // preview remains keyboard editable but does not accept body clicks.
+
         let offset = if ordinal < g.offset {
             ordinal
         } else if ordinal >= g.offset.saturating_add(count) {
@@ -1891,7 +1889,7 @@ impl<'a> Grid<'a> {
             return g;
         }
         g.width = widths;
-        // sticky columns first, then a window over the rest
+
         let gap = self.column_gap;
         let mut x = g.content_x;
         let mut used = 0u16;
@@ -1958,8 +1956,8 @@ impl<'a> Grid<'a> {
     }
 }
 
-/// Paint `text` into `area` under `align`, ending with the ellipsis glyph
-/// when it does not fit. Allocation-free, and never writes outside `area`.
+#[doc = r" Paint `text` into `area` under `align`, ending with the ellipsis glyph"]
+#[doc = r" when it does not fit. Allocation-free, and never writes outside `area`."]
 fn paint_aligned(ui: &mut Ui<'_>, area: Rect, text: &str, align: Align, style: PaintStyle) {
     if area.is_empty() || text.is_empty() {
         return;
@@ -2001,7 +1999,7 @@ fn apply_style_delta(ui: &Ui<'_>, base: PaintStyle, delta: StylePatch) -> PaintS
     base.patch(top)
 }
 
-/// Append `n` with thousands separators.
+#[doc = r" Append `n` with thousands separators."]
 fn push_grouped(out: &mut String, n: usize) {
     let mut digits = [0u8; 20];
     let mut len = 0usize;
@@ -2026,8 +2024,8 @@ fn push_grouped(out: &mut String, n: usize) {
     }
 }
 
-/// A number formatted into a stack buffer, so the overflow indicators and the
-/// header badges never allocate on the paint path.
+#[doc = r" A number formatted into a stack buffer, so the overflow indicators and the"]
+#[doc = r" header badges never allocate on the paint path."]
 #[derive(Clone, Copy, Debug)]
 struct Num {
     buf: [u8; 20],
@@ -2069,12 +2067,12 @@ impl Num {
     }
 }
 
-/// Why navigation requested the edit path.
+#[doc = r" Why navigation requested the edit path."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum EditCause {
-    /// `Enter` or a double-click: activate when editing is unavailable.
+    #[doc = r" `Enter` or a double-click: activate when editing is unavailable."]
     Activate,
-    /// `F2`: edit only, with no activation fallback.
+    #[doc = r" `F2`: edit only, with no activation fallback."]
     Explicit,
 }
 
@@ -2085,14 +2083,14 @@ struct EditRequest {
     cause: EditCause,
 }
 
-/// What a navigation pass asked the caller to do with the cursor cell.
+#[doc = r" What a navigation pass asked the caller to do with the cursor cell."]
 #[derive(Clone, Copy, Debug, Default)]
 struct Pending {
     edit: Option<EditRequest>,
 }
 
-/// How an edit begins, extracted from [`EditIntent`] so the model's borrow
-/// ends before `apply_cycle` / `commit_cell` need `&mut`.
+#[doc = r" How an edit begins, extracted from [`EditIntent`] so the model's borrow"]
+#[doc = r" ends before `apply_cycle` / `commit_cell` need `&mut`."]
 enum Begin {
     Inline(String),
     Cycle,
@@ -2101,8 +2099,8 @@ enum Begin {
 }
 
 impl Grid<'_> {
-    /// The row window `draw` paints, derived from the same scroll state so
-    /// both phases agree (§12.2).
+    #[doc = r" The row window `draw` paints, derived from the same scroll state so"]
+    #[doc = r" both phases agree (§12.2)."]
     fn scroll_for_view(st: &GridState, viewport: usize) -> crate::scroll::ScrollState {
         let mut scroll = *st.core.scroll();
         if viewport != scroll.viewport_len()
@@ -2120,7 +2118,7 @@ impl Grid<'_> {
         r.start.min(len)..r.end.min(len)
     }
 
-    /// The index of `key`, probing the cursor's cached index before scanning.
+    #[doc = r" The index of `key`, probing the cursor's cached index before scanning."]
     fn row_index<M: GridModel + ?Sized>(model: &M, key: ItemKey, hint: usize) -> Option<usize> {
         let len = model.row_count();
         if hint < len && model.row_key(hint) == key {
@@ -2129,10 +2127,10 @@ impl Grid<'_> {
         (0..len).find(|&i| model.row_key(i) == key)
     }
 
-    /// `rows a–b of n`, with the source total when the model knows one.
-    ///
-    /// Composed by the owning screen into a `StatusBar`; it is never on the
-    /// paint path, which is why it may allocate.
+    #[doc = r" `rows a–b of n`, with the source total when the model knows one."]
+    #[doc = r""]
+    #[doc = r" Composed by the owning screen into a `StatusBar`; it is never on the"]
+    #[doc = r" paint path, which is why it may allocate."]
     pub fn rows_label<M: GridModel + ?Sized>(
         &self,
         f: &impl FrameRead,
@@ -2166,7 +2164,7 @@ impl Grid<'_> {
         s
     }
 
-    /// `cols a–b of n`, or `None` when every column is on screen.
+    #[doc = r" `cols a–b of n`, or `None` when every column is on screen."]
     pub fn cols_label<M: GridModel + ?Sized>(
         &self,
         f: &impl FrameRead,
@@ -2194,13 +2192,13 @@ impl Grid<'_> {
         Some(s)
     }
 
-    /// The rectangular range, resolved to indices, or `None` when no anchor
-    /// is set or the anchor's row or column has gone.
-    ///
-    /// Resolved from the stored **keys** every phase — this is the whole
-    /// Real-cell anchors retain stable row/column keys across reorder (§33).
-    /// A fetch anchor names only the synthetic loaded boundary; on append it
-    /// becomes the first appended key. Copy clips that endpoint to real data.
+    #[doc = r" The rectangular range, resolved to indices, or `None` when no anchor"]
+    #[doc = r" is set or the anchor's row or column has gone."]
+    #[doc = r""]
+    #[doc = r" Resolved from the stored **keys** every phase — this is the whole"]
+    #[doc = r" Real-cell anchors retain stable row/column keys across reorder (§33)."]
+    #[doc = r" A fetch anchor names only the synthetic loaded boundary; on append it"]
+    #[doc = r" becomes the first appended key. Copy clips that endpoint to real data."]
     fn range<M: GridModel + ?Sized>(
         &self,
         st: &GridState,
@@ -2222,9 +2220,9 @@ impl Grid<'_> {
         Some(((r0, r1), (c0, c1)))
     }
 
-    /// The selection as TSV: the rectangular range if one is active, else the
-    /// selected rows, else the cursor cell. Allocates — it is the payload of
-    /// [`GridAction::Copy`], produced once per copy, never per frame.
+    #[doc = r" The selection as TSV: the rectangular range if one is active, else the"]
+    #[doc = r" selected rows, else the cursor cell. Allocates — it is the payload of"]
+    #[doc = r" [`GridAction::Copy`], produced once per copy, never per frame."]
     fn copy_tsv<M: GridModel + ?Sized>(
         &self,
         st: &GridState,
@@ -2266,19 +2264,19 @@ impl Grid<'_> {
         out
     }
 
-    /// Move to a current logical cell and reveal it on both axes.
-    ///
-    /// Resolves stable keys against `model` and this grid's columns, never
-    /// against cached positions. Like ordinary unextended cursor movement,
-    /// clears the rectangular range anchor while preserving selected rows.
-    /// Does not move focus, edit or mutate the model; the application owns
-    /// repaint. Read-only cells remain valid navigation destinations.
-    ///
-    /// # Errors
-    /// Returns [`GridCursorError`] without changing any state if either key
-    /// is absent, the column is outside [`GRID_MAX_COLUMNS`], or an inline
-    /// edit is active. Explicitly commit or call [`GridState::cancel_edit`]
-    /// before moving away from a retained draft.
+    #[doc = r" Move to a current logical cell and reveal it on both axes."]
+    #[doc = r""]
+    #[doc = r" Resolves stable keys against `model` and this grid's columns, never"]
+    #[doc = r" against cached positions. Like ordinary unextended cursor movement,"]
+    #[doc = r" clears the rectangular range anchor while preserving selected rows."]
+    #[doc = r" Does not move focus, edit or mutate the model; the application owns"]
+    #[doc = r" repaint. Read-only cells remain valid navigation destinations."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" Returns [`GridCursorError`] without changing any state if either key"]
+    #[doc = r" is absent, the column is outside [`GRID_MAX_COLUMNS`], or an inline"]
+    #[doc = r" edit is active. Explicitly commit or call [`GridState::cancel_edit`]"]
+    #[doc = r" before moving away from a retained draft."]
     pub fn move_cursor_to<M: GridModel + ?Sized>(
         &self,
         st: &mut GridState,
@@ -2314,7 +2312,7 @@ impl Grid<'_> {
         (row < model.row_count()).then(|| RangeAnchor::Cell(model.row_key(row), col))
     }
 
-    /// Move the cursor to `(row, col)`, extending the range when asked.
+    #[doc = r" Move the cursor to `(row, col)`, extending the range when asked."]
     fn move_to<M: GridModel + ?Sized>(
         &self,
         st: &mut GridState,
@@ -2366,8 +2364,8 @@ impl Grid<'_> {
         acc.action(GridAction::Moved);
     }
 
-    /// Scroll the column window so `col` is inside it. Sticky columns are
-    /// always shown, so they never move the window.
+    #[doc = r" Scroll the column window so `col` is inside it. Sticky columns are"]
+    #[doc = r" always shown, so they never move the window."]
     fn reveal_column(&self, st: &mut GridState, col: usize) {
         if self.columns.get(col).is_some_and(|c| c.sticky) {
             if self.column_fit != GridColumnFit::Whole {
@@ -2386,7 +2384,7 @@ impl Grid<'_> {
         st.col_offset = scroll_index;
     }
 
-    /// Toggle the cursor row's selection under the current select mode.
+    #[doc = r" Toggle the cursor row's selection under the current select mode."]
     fn toggle_row<M: GridModel + ?Sized>(
         &self,
         st: &mut GridState,
@@ -2416,8 +2414,8 @@ impl Grid<'_> {
         }
     }
 
-    /// One navigation pass, shared by both entry points (§23 K2 risk 2: the
-    /// two `GridAction` paths cannot drift because there is one body).
+    #[doc = r" One navigation pass, shared by both entry points (§23 K2 risk 2: the"]
+    #[doc = r" two `GridAction` paths cannot drift because there is one body)."]
     #[expect(
         clippy::too_many_lines,
         reason = "the keymap dispatch and the three pointer surfaces in one drain loop"
@@ -2442,15 +2440,13 @@ impl Grid<'_> {
                 None
             };
         }
-        // A same-length reorder with unchanged end keys is invisible to the
-        // collection stamp. Probe the cached cursor so keyed identity still
-        // forces reconciliation without scanning an unchanged model.
+
         if st.core.cursor().is_some_and(|key| {
             st.core.cursor_index() >= len || model.row_key(st.core.cursor_index()) != key
         }) {
             st.core.invalidate();
         }
-        // G7: reconcile before anything can be emitted
+
         let outcome = st.core.reconcile_with(len, |i| model.row_key(i), |_| true);
         if outcome != Reconciliation::Unchanged {
             if let Some(RangeAnchor::Cell(a, _)) = st.anchor
@@ -2503,8 +2499,7 @@ impl Grid<'_> {
         {
             st.pending_column = self.col_key(self.cursor_col(st));
         }
-        // A request can precede the first published layout. Reconciliation
-        // may move its stable cell before geometry can consume the reveal.
+
         if st.core.scroll().pending_reveal().is_some() {
             let row = st.fetch_row.map_or(st.core.cursor_index(), |f| f.boundary);
             st.core.scroll_mut().ensure_visible_on_next_layout(row);
@@ -2831,10 +2826,10 @@ impl Grid<'_> {
         pending
     }
 
-    /// Read-only navigation, selection, copy, fetch-more and cell actions.
-    ///
-    /// `&M`: a read-only grid **cannot** mutate its model — a compile-time
-    /// fact, not a runtime refusal (§23 K2, G1).
+    #[doc = r" Read-only navigation, selection, copy, fetch-more and cell actions."]
+    #[doc = r""]
+    #[doc = r" `&M`: a read-only grid **cannot** mutate its model — a compile-time"]
+    #[doc = r" fact, not a runtime refusal (§23 K2, G1)."]
     pub fn update<M: GridModel + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -2849,7 +2844,7 @@ impl Grid<'_> {
         }
         let mut acc = Acc::<GridAction>::new();
         let pending = self.navigate(cx, st, model, &mut acc);
-        // a read-only grid has one meaning for `Enter` on a cell
+
         if let Some(EditRequest {
             row,
             cause: EditCause::Activate,
@@ -2862,10 +2857,10 @@ impl Grid<'_> {
         acc.finish(self.id)
     }
 
-    /// Everything [`Grid::update`] does, plus the inline edit lifecycle.
-    ///
-    /// The **only** place [`GridEditor`]'s `&mut self` methods are reachable
-    /// (§23 K2, G2).
+    #[doc = r" Everything [`Grid::update`] does, plus the inline edit lifecycle."]
+    #[doc = r""]
+    #[doc = r" The **only** place [`GridEditor`]'s `&mut self` methods are reachable"]
+    #[doc = r" (§23 K2, G2)."]
     pub fn update_editable<M: GridEditor + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -2879,11 +2874,7 @@ impl Grid<'_> {
             return Response::ignored();
         }
         let mut acc = Acc::<GridAction>::new();
-        // A successful commit clears `st.edit` and restores focus to the grid.
-        // Runtime focus settlement can deliver the editor's FocusOut on the
-        // following pass, when there is no active editor for `drive_editor`
-        // to visit. The grid owns that child region, so drain the stale
-        // transition here instead of leaking an undelivered intent.
+
         if st.edit.is_none() {
             for _ in cx.intents(self.editor_id()) {}
         }
@@ -2898,7 +2889,7 @@ impl Grid<'_> {
         acc.finish(self.id)
     }
 
-    /// Open, or refuse to open, an inline edit on `(row, col)`.
+    #[doc = r" Open, or refuse to open, an inline edit on `(row, col)`."]
     fn begin_edit<M: GridEditor + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -2938,7 +2929,7 @@ impl Grid<'_> {
                 model.apply_cycle(row, col);
                 acc.changed();
             }
-            // G5: External emits and begins no inline edit
+
             Begin::External => acc.action(GridAction::EditRequested(key, ck)),
             Begin::Refuse(reason) => {
                 st.editor
@@ -2948,7 +2939,7 @@ impl Grid<'_> {
         }
     }
 
-    /// Drive the open inline editor, if there is one.
+    #[doc = r" Drive the open inline editor, if there is one."]
     fn drive_editor<M: GridEditor + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -2964,8 +2955,7 @@ impl Grid<'_> {
             st.cancel_editor();
             return;
         };
-        // one owned copy per frame **while editing only**; the editor writes
-        // its draft back into it on commit
+
         let Some(cell) = model.cell(row, col) else {
             st.cancel_editor();
             return;
@@ -2995,7 +2985,6 @@ impl Grid<'_> {
                     acc.changed();
                 }
                 Err(e) => {
-                    // the editor stays open, showing the model's own error
                     st.editor.begin(&value);
                     st.editor.set_error(Some(e));
                     acc.changed();
@@ -3156,8 +3145,8 @@ impl Grid<'_> {
         paint_aligned(ui, title, col.title, Align::Left, style);
     }
 
-    /// Paint the header row: titles, badges and the `‹N` / `N›` overflow
-    /// indicators.
+    #[doc = r" Paint the header row: titles, badges and the `‹N` / `N›` overflow"]
+    #[doc = r" indicators."]
     fn draw_header(
         &self,
         ui: &mut Ui<'_>,
@@ -3324,8 +3313,7 @@ impl Grid<'_> {
                 continue;
             }
             let resolved = self.gutter_style(ui, part, flags, defaults);
-            // An unfocused focus-bar stays present, using the row background
-            // as its foreground without losing the background role metadata.
+
             let base = if part == Part::GUTTER && !focused {
                 inherited.with_fg_from_bg(inherited)
             } else {
@@ -3361,7 +3349,7 @@ impl Grid<'_> {
         }
     }
 
-    /// Paint one body row and register its cell parts.
+    #[doc = r" Paint one body row and register its cell parts."]
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the visible cells: fill, gutter, marker, cells, affordances and the inline editor"
@@ -3434,9 +3422,6 @@ impl Grid<'_> {
         let row_style = apply_style_delta(ui, rs.style, row_delta);
         ui.fill(band, row_style);
         if self.gutter == GridGutter::Compact {
-            // The focus gutter and the selection marker are painted from the ROW
-            // resolution. Dedicated gutter parts are opt-in; Compact preserves
-            // the historical ROW-based slot and style behavior.
             if is_cursor && live.contains(StateFlags::FOCUSED) {
                 ui.glyph(super::cell_at(band, band.x), GlyphRole::FocusBar, row_style);
             }
@@ -3466,9 +3451,7 @@ impl Grid<'_> {
                 continue;
             }
             let cell = model.cell(row, i);
-            // `None` — a column index past the list — matches no edit at
-            // all. A sentinel key would have to live in some real key's
-            // range; absence lives in none.
+
             let editing = cell.is_some()
                 && self
                     .col_key(i)
@@ -3609,7 +3592,6 @@ impl Grid<'_> {
                     ui.glyph(affordance, a.glyph, as_.style);
                 }
                 if !inert {
-                    // registered AFTER the cell, so it wins the click
                     geometry.register_cell_part(
                         ui,
                         self.id,
@@ -3620,9 +3602,6 @@ impl Grid<'_> {
                 }
             }
             if editing {
-                // G6: the inline editor's Control region is registered after
-                // the cell's Part region, so a click inside it goes to the
-                // editor and not to the grid
                 TextInput::new(self.id.part(Part::TEXT))
                     .pointer_enabled(geometry.complete.get(i).copied().unwrap_or(false))
                     .disabled(self.disabled)
@@ -3632,7 +3611,7 @@ impl Grid<'_> {
         }
     }
 
-    /// The draw phase; returns `area`.
+    #[doc = r" The draw phase; returns `area`."]
     #[expect(
         clippy::too_many_lines,
         reason = "the chrome, the scroll region, the body and the four conditional surfaces in one pass"
@@ -3779,7 +3758,6 @@ impl Grid<'_> {
                 break;
             }
             if row >= len {
-                // the fetch-more row
                 let more = Rect {
                     x: content.x,
                     y,
@@ -3860,7 +3838,7 @@ impl Grid<'_> {
         area
     }
 
-    /// Paint the action surface (§12.3's action-surface slot).
+    #[doc = r" Paint the action surface (§12.3's action-surface slot)."]
     fn draw_actions(&self, ui: &mut Ui<'_>, bar: Rect, live: StateFlags) {
         let Some(f) = self.actions else { return };
         if bar.is_empty() {
@@ -3878,8 +3856,8 @@ impl Grid<'_> {
         self.ov.slot_for(Part::ACTIONS).unwrap_or(f)(ui, bar);
     }
 
-    /// The natural size: the sampled column total, and whatever height is
-    /// offered.
+    #[doc = r" The natural size: the sampled column total, and whatever height is"]
+    #[doc = r" offered."]
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let mut w = self.gutter.widths(0).0.saturating_add(self.right_reserve);
         for col in self.columns.iter().take(self.column_count()) {
@@ -3895,7 +3873,7 @@ impl Grid<'_> {
     }
 }
 
-/// Encode a column key in the registry's collection-item namespace.
+#[doc = r" Encode a column key in the registry's collection-item namespace."]
 const fn column_item_key(key: ColumnKey) -> ItemKey {
     ItemKey::num(key.raw() as u64)
 }
@@ -4296,10 +4274,10 @@ mod tests {
         (runtime, buffer)
     }
 
-    /// Two columns declared with the same [`ColumnKey::of`] name that folds
-    /// alike, or a copy-pasted [`ColumnKey::num`], used to resolve silently
-    /// to the first column. `Column`s carry the titles, so the grid can name
-    /// both offenders.
+    #[doc = r" Two columns declared with the same [`ColumnKey::of`] name that folds"]
+    #[doc = r" alike, or a copy-pasted [`ColumnKey::num`], used to resolve silently"]
+    #[doc = r" to the first column. `Column`s carry the titles, so the grid can name"]
+    #[doc = r" both offenders."]
     #[cfg(debug_assertions)]
     #[test]
     #[should_panic(expected = "columns \"Name\" and \"Value\" share ColumnKey::num(1)")]
@@ -4371,7 +4349,7 @@ mod tests {
         );
     }
 
-    /// The check is wired to the entry points, not merely available.
+    #[doc = r" The check is wired to the entry points, not merely available."]
     #[cfg(debug_assertions)]
     #[test]
     #[should_panic(expected = "share ColumnKey::num(1)")]
@@ -4391,9 +4369,9 @@ mod tests {
             .commit_presented();
     }
 
-    /// `0x8000..` is `ColumnKey::of`'s half. Masking a number into it — the
-    /// old behaviour — turned `num(0x8000)` into column `0` and `num(0xFFFF)`
-    /// into `num(0x7FFF)`, two silent aliases; rejection is the fix.
+    #[doc = r" `0x8000..` is `ColumnKey::of`'s half. Masking a number into it — the"]
+    #[doc = r" old behaviour — turned `num(0x8000)` into column `0` and `num(0xFFFF)`"]
+    #[doc = r" into `num(0x7FFF)`, two silent aliases; rejection is the fix."]
     #[test]
     #[should_panic(expected = "ColumnKey::num is 0..=0x7FFF")]
     fn column_key_num_rejects_the_hashed_range() {
@@ -4408,8 +4386,8 @@ mod tests {
         }
     }
 
-    /// The two constructors partition the key space, so no numbered column
-    /// can ever be confused with a named one.
+    #[doc = r" The two constructors partition the key space, so no numbered column"]
+    #[doc = r" can ever be confused with a named one."]
     #[test]
     fn numbered_and_named_column_keys_never_meet() {
         for name in ["id", "name", "schema.table", "", "\u{1f600}"] {
@@ -4421,8 +4399,8 @@ mod tests {
         }
     }
 
-    /// One fold for every 16-bit custom key in the crate: the grid no longer
-    /// carries a private 32-bit FNV of its own.
+    #[doc = r" One fold for every 16-bit custom key in the crate: the grid no longer"]
+    #[doc = r" carries a private 32-bit FNV of its own."]
     #[test]
     fn column_key_of_uses_the_shared_custom_fold() {
         for name in ["id", "name", "schema.table", ""] {
@@ -4433,8 +4411,8 @@ mod tests {
         assert_eq!(ColumnKey::of("id"), ColumnKey::of("id"));
     }
 
-    /// A key prints the constructor that could have made it, so a capture or
-    /// a failed assertion names the range it came from.
+    #[doc = r" A key prints the constructor that could have made it, so a capture or"]
+    #[doc = r" a failed assertion names the range it came from."]
     #[test]
     fn column_key_debug_names_its_range() {
         assert_eq!(format!("{:?}", ColumnKey::num(2)), "ColumnKey::num(2)");
@@ -4444,9 +4422,9 @@ mod tests {
         );
     }
 
-    /// A column index past the list has *no* key. The old sentinel
-    /// (`ColumnKey(u16::MAX)`) lived inside `ColumnKey::of`'s range, so a
-    /// named column could equal "the column that does not exist".
+    #[doc = r" A column index past the list has *no* key. The old sentinel"]
+    #[doc = r" (`ColumnKey(u16::MAX)`) lived inside `ColumnKey::of`'s range, so a"]
+    #[doc = r#" named column could equal "the column that does not exist"."#]
     #[test]
     fn an_absent_column_index_has_no_key_rather_than_a_sentinel() {
         let columns = columns();
@@ -4455,8 +4433,7 @@ mod tests {
         assert_eq!(grid.col_key(1), Some(ColumnKey::num(2)));
         assert_eq!(grid.col_key(2), None);
         assert_eq!(grid.col_key(usize::MAX), None);
-        // the sentinel that used to stand in for "absent" is a reachable
-        // named key, which is why absence may not be spelled as a key
+
         const { assert!(u16::MAX > COLUMN_KEY_MAX) };
     }
 
@@ -4951,7 +4928,6 @@ mod tests {
             }
         }
 
-        // distinct keys: a repeated key is itself a rejected mistake now
         let mut columns = [Column::new(ColumnKey::num(0), "x"); GRID_MAX_COLUMNS + 2];
         for (index, column) in columns.iter_mut().enumerate() {
             column.key = ColumnKey::num(index as u16);

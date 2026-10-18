@@ -1,5 +1,5 @@
-//! `Brand` — the accent-filled identity lockup (`COMPONENT_ARCHITECTURE.md`
-//! §11.6, §18.2, Appendix A 4G).
+#![doc = r" `Brand` — the accent-filled identity lockup (`COMPONENT_ARCHITECTURE.md`"]
+#![doc = r" §11.6, §18.2, Appendix A 4G)."]
 
 use core::fmt;
 
@@ -15,98 +15,98 @@ use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
-/// The product mark: the one lockup that fills with the accent.
-///
-/// ## Construction
-/// `Brand::new(id, text)`. The mark text is always the application's; the
-/// library bakes in no wordmark.
-///
-/// ## Ownership
-/// Stateless. The caller owns the mark text and the optional tagline; the
-/// runtime owns hover and press when the lockup is `.clickable(true)`.
-///
-/// ## Configuration
-/// `.variant(Variant)` (default `Recipe.default_variant`), `.compact(bool)`
-/// (`false` — drops the one-cell fill padding for tight strips),
-/// `.tagline(&str)` (none), `.clickable(bool)` (`false`), `.patch`,
-/// `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::BRAND`; `DEFAULT` only. The accent fill, the on-accent
-/// foreground and the bold weight are `Theme::junie()` recipe defaults, not
-/// component code (§11.6) — a theme restyles the lockup without touching
-/// this file.
-///
-/// ## States
-/// Wears `HOVERED` and `PRESSED` from the runtime when `.clickable(true)`;
-/// derives nothing. A non-clickable lockup registers nothing and wears no
-/// state at all.
-///
-/// ## Actions
-/// `Response<Activated>` — `Activated` on a click, and only when
-/// `.clickable(true)`.
-///
-/// ## Focus
-/// `Focusability::ClickOnly` when clickable, so the lockup takes hover and
-/// press but never enters the tab ring: an identity mark is not a control an
-/// operator tabs to. `swallows_typing` is false; `.autofocus()` does not
-/// exist.
-///
-/// ## Keyboard
-/// None. The lockup has no chord and publishes no `Bindings` table; a
-/// product that wants a keyboard path binds one through its own `KeyMap`.
-///
-/// ## Mouse
-/// `PartRef::of(Part::LABEL)` when clickable: press and release paint the
-/// pressed plane, a click emits `Activated`.
-///
-/// ## Layout
-/// `measure` returns `(pad + mark + pad [+ gap + tagline], 1)` where `pad` is
-/// `0` under `.compact(true)` and `1` otherwise. `draw` uses the first row of
-/// `area`, clipped to that width, and returns the rect it painted; a
-/// degenerate rect registers nothing and paints nothing (R5).
-///
-/// ## Parts
-/// `LABEL` (the filled lockup), `META` (the tagline beside it).
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach `Part::LABEL` and `Part::META`.
-/// `.slot(p, …)` changes painted cells for exactly `Part::LABEL` and
-/// `Part::META` — every part `Brand` declares, so nothing is excluded. In
-/// particular there is no `CONTAINER` to exclude: the accent fill is
-/// `LABEL`'s own painting rather than a surface behind it, so a `LABEL`
-/// slot replaces fill and mark together, and the lockup keeps its rect, its
-/// `ClickOnly` control and its `PartRef::of(Part::LABEL)` hit region across
-/// the substitution (§45.4). `META` is painted, and therefore
-/// slot-addressable, only when `.tagline(s)` carries a non-empty string and
-/// the row still has columns after the lockup and the gap; with no tagline
-/// the component paints no `META` cell for a slot to replace.
-///
-/// ## Identity
-/// One `Id` per instance; no items.
-///
-/// ## Testing
-/// `BrandCase` with no capabilities;
-/// `render::components::brand::{default, pressed, empty}`;
-/// `brand::a_slot_changes_painted_cells_for_exactly_label_and_meta`, which
-/// asserts Invariant R (§45.3) in both directions — a named part that stops
-/// changing cells and an unnamed part that starts changing them each fail
-/// it.
-///
-/// `BrandCase` deliberately declares `Caps::empty()`: the conformance fixture
-/// is the non-interactive lockup, while the opt-in `ClickOnly` path is covered
-/// by the runtime-driven unit tests in this module:
-/// `only_a_clickable_lockup_registers_a_click_only_control_and_a_label_part`,
-/// `only_a_clickable_lockup_emits_activated_on_a_click` and
-/// `only_a_clickable_lockup_lifts_to_accent_hover_under_the_pointer`. Each
-/// asserts the plain lockup does **none** of it, so both the mouse-only path
-/// and the non-interactive default remain executable and pinned.
-///
-/// ## Invariants
-/// The mono `PRESSED` bracket rule (§11.4) is honoured only when the lockup
-/// has room for both brackets — a `.compact(true)` lockup reserves no padding
-/// and a mono fallback must never change geometry, so it keeps the plain
-/// mark. Never allocates; never writes outside `area`.
+#[doc = r" The product mark: the one lockup that fills with the accent."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `Brand::new(id, text)`. The mark text is always the application's; the"]
+#[doc = r" library bakes in no wordmark."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" Stateless. The caller owns the mark text and the optional tagline; the"]
+#[doc = r" runtime owns hover and press when the lockup is `.clickable(true)`."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.variant(Variant)` (default `Recipe.default_variant`), `.compact(bool)`"]
+#[doc = r" (`false` — drops the one-cell fill padding for tight strips),"]
+#[doc = r" `.tagline(&str)` (none), `.clickable(bool)` (`false`), `.patch`,"]
+#[doc = r" `.patch_part`, `.slot`."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::BRAND`; `DEFAULT` only. The accent fill, the on-accent"]
+#[doc = r" foreground and the bold weight are `Theme::junie()` recipe defaults, not"]
+#[doc = r" component code (§11.6) — a theme restyles the lockup without touching"]
+#[doc = r" this file."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" Wears `HOVERED` and `PRESSED` from the runtime when `.clickable(true)`;"]
+#[doc = r" derives nothing. A non-clickable lockup registers nothing and wears no"]
+#[doc = r" state at all."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" `Response<Activated>` — `Activated` on a click, and only when"]
+#[doc = r" `.clickable(true)`."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" `Focusability::ClickOnly` when clickable, so the lockup takes hover and"]
+#[doc = r" press but never enters the tab ring: an identity mark is not a control an"]
+#[doc = r" operator tabs to. `swallows_typing` is false; `.autofocus()` does not"]
+#[doc = r" exist."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" None. The lockup has no chord and publishes no `Bindings` table; a"]
+#[doc = r" product that wants a keyboard path binds one through its own `KeyMap`."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" `PartRef::of(Part::LABEL)` when clickable: press and release paint the"]
+#[doc = r" pressed plane, a click emits `Activated`."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" `measure` returns `(pad + mark + pad [+ gap + tagline], 1)` where `pad` is"]
+#[doc = r" `0` under `.compact(true)` and `1` otherwise. `draw` uses the first row of"]
+#[doc = r" `area`, clipped to that width, and returns the rect it painted; a"]
+#[doc = r" degenerate rect registers nothing and paints nothing (R5)."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `LABEL` (the filled lockup), `META` (the tagline beside it)."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch` and `.patch_part` reach `Part::LABEL` and `Part::META`."]
+#[doc = r" `.slot(p, …)` changes painted cells for exactly `Part::LABEL` and"]
+#[doc = r" `Part::META` — every part `Brand` declares, so nothing is excluded. In"]
+#[doc = r" particular there is no `CONTAINER` to exclude: the accent fill is"]
+#[doc = r" `LABEL`'s own painting rather than a surface behind it, so a `LABEL`"]
+#[doc = r" slot replaces fill and mark together, and the lockup keeps its rect, its"]
+#[doc = r" `ClickOnly` control and its `PartRef::of(Part::LABEL)` hit region across"]
+#[doc = r" the substitution (§45.4). `META` is painted, and therefore"]
+#[doc = r" slot-addressable, only when `.tagline(s)` carries a non-empty string and"]
+#[doc = r" the row still has columns after the lockup and the gap; with no tagline"]
+#[doc = r" the component paints no `META` cell for a slot to replace."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" One `Id` per instance; no items."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `BrandCase` with no capabilities;"]
+#[doc = r" `render::components::brand::{default, pressed, empty}`;"]
+#[doc = r" `brand::a_slot_changes_painted_cells_for_exactly_label_and_meta`, which"]
+#[doc = r" asserts Invariant R (§45.3) in both directions — a named part that stops"]
+#[doc = r" changing cells and an unnamed part that starts changing them each fail"]
+#[doc = r" it."]
+#[doc = r""]
+#[doc = r" `BrandCase` deliberately declares `Caps::empty()`: the conformance fixture"]
+#[doc = r" is the non-interactive lockup, while the opt-in `ClickOnly` path is covered"]
+#[doc = r" by the runtime-driven unit tests in this module:"]
+#[doc = r" `only_a_clickable_lockup_registers_a_click_only_control_and_a_label_part`,"]
+#[doc = r" `only_a_clickable_lockup_emits_activated_on_a_click` and"]
+#[doc = r" `only_a_clickable_lockup_lifts_to_accent_hover_under_the_pointer`. Each"]
+#[doc = r" asserts the plain lockup does **none** of it, so both the mouse-only path"]
+#[doc = r" and the non-interactive default remain executable and pinned."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" The mono `PRESSED` bracket rule (§11.4) is honoured only when the lockup"]
+#[doc = r" has room for both brackets — a `.compact(true)` lockup reserves no padding"]
+#[doc = r" and a mono fallback must never change geometry, so it keeps the plain"]
+#[doc = r" mark. Never allocates; never writes outside `area`."]
 pub struct Brand<'a> {
     id: Id,
     text: &'a str,
@@ -131,10 +131,10 @@ impl fmt::Debug for Brand<'_> {
 }
 
 impl<'a> Brand<'a> {
-    /// The parts this component styles.
+    #[doc = r" The parts this component styles."]
     pub const PARTS: &'static [Part] = &[Part::LABEL, Part::META];
 
-    /// A lockup showing `text`.
+    #[doc = r" A lockup showing `text`."]
     pub const fn new(id: Id, text: &'a str) -> Self {
         Brand {
             id,
@@ -147,73 +147,73 @@ impl<'a> Brand<'a> {
         }
     }
 
-    /// The id.
+    #[doc = r" The id."]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// Set the variant.
+    #[doc = r" Set the variant."]
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
         self.variant = v;
         self
     }
 
-    /// Drop the fill padding for a tight strip; the treatment is unchanged.
+    #[doc = r" Drop the fill padding for a tight strip; the treatment is unchanged."]
     #[must_use]
     pub const fn compact(mut self, yes: bool) -> Self {
         self.compact = yes;
         self
     }
 
-    /// A muted line beside the lockup.
+    #[doc = r" A muted line beside the lockup."]
     #[must_use]
     pub const fn tagline(mut self, s: &'a str) -> Self {
         self.tagline = Some(s);
         self
     }
 
-    /// Take hover, press and clicks.
+    #[doc = r" Take hover, press and clicks."]
     #[must_use]
     pub const fn clickable(mut self, yes: bool) -> Self {
         self.clickable = yes;
         self
     }
 
-    /// An instance patch over every part (precedence 6).
+    #[doc = r" An instance patch over every part (precedence 6)."]
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part patches.
+    #[doc = r" Per-part patches."]
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting; layout and hit regions stay.
+    #[doc = r" Replace one part's painting; layout and hit regions stay."]
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// The fill padding either side of the mark.
+    #[doc = r" The fill padding either side of the mark."]
     const fn pad(&self) -> u16 {
         if self.compact { 0 } else { 1 }
     }
 
-    /// Columns the filled lockup occupies.
+    #[doc = r" Columns the filled lockup occupies."]
     fn lockup_width(&self) -> u16 {
         width(self.text)
             .saturating_add(self.pad())
             .saturating_add(self.pad())
     }
 
-    /// Columns the whole component occupies, tagline included.
+    #[doc = r" Columns the whole component occupies, tagline included."]
     fn natural_width(&self, ui: &Ui<'_>) -> u16 {
         match self.tagline {
             Some(t) if !t.is_empty() => self
@@ -224,7 +224,7 @@ impl<'a> Brand<'a> {
         }
     }
 
-    /// The update phase; only a `.clickable(true)` lockup can act.
+    #[doc = r" The update phase; only a `.clickable(true)` lockup can act."]
     pub fn update(&self, cx: &mut Cx<'_>) -> Response<Activated> {
         if !self.clickable {
             return Response::ignored();
@@ -243,7 +243,7 @@ impl<'a> Brand<'a> {
         r.for_id(self.id)
     }
 
-    /// The draw phase; returns the rect painted.
+    #[doc = r" The draw phase; returns the rect painted."]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = Rect {
             width: self.natural_width(ui).min(area.width),
@@ -259,8 +259,7 @@ impl<'a> Brand<'a> {
         if self.clickable && !ui.is_inert() {
             ui.register_control(self.id, lockup, Focusability::ClickOnly);
         }
-        // runtime only, and only while clickable — an unclickable lockup
-        // registers nothing, so the snapshot has nothing to say about it
+
         let live = PartStyle::flags(
             if self.clickable {
                 ui.state(self.id)
@@ -279,8 +278,6 @@ impl<'a> Brand<'a> {
             let bracketed = matches!(s.glyph, Slot::Set(GlyphRole::PressLeft))
                 && lockup.width >= width(self.text).saturating_add(2);
             if bracketed {
-                // §11.4's mono `PRESSED` rule: `[mark]`, painted into the
-                // padding columns so the lockup keeps its width
                 ui.paint_str(shift(lockup, 1), self.text, s.style);
                 paint_pressed_bracket(
                     ui,
@@ -310,7 +307,7 @@ impl<'a> Brand<'a> {
         area
     }
 
-    /// The natural size: one row, the lockup plus any tagline.
+    #[doc = r" The natural size: one row, the lockup plus any tagline."]
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(ui), 1).fit(c)
     }
@@ -333,7 +330,7 @@ mod tests {
     const MARK: Id = Id::root("brand.tests");
     const OTHER: Id = Id::root("brand.tests.stop");
     const TEXT: &str = "Junie";
-    /// `pad + "Junie" + pad`: what `draw` returns and what it registers.
+    #[doc = r#" `pad + "Junie" + pad`: what `draw` returns and what it registers."#]
     const LOCKUP: Rect = Rect {
         x: 0,
         y: 0,
@@ -347,14 +344,14 @@ mod tests {
         height: 1,
     };
 
-    /// One lockup plus one ordinary focus stop, so "the lockup is not in the
-    /// ring" is asserted against a ring that is non-empty for another reason
-    /// rather than against an empty one.
+    #[doc = r#" One lockup plus one ordinary focus stop, so "the lockup is not in the"#]
+    #[doc = r#" ring" is asserted against a ring that is non-empty for another reason"#]
+    #[doc = r" rather than against an empty one."]
     #[derive(Default)]
     struct BrandPage {
         clickable: bool,
         activations: usize,
-        /// Frames on which `Brand::update` consumed a pointer intent.
+        #[doc = r" Frames on which `Brand::update` consumed a pointer intent."]
         pointer_frames: usize,
     }
 
@@ -383,8 +380,8 @@ mod tests {
         }
     }
 
-    /// A page that has drawn twice: the first draw settles focus, the second
-    /// paints it, exactly as the harness does.
+    #[doc = r" A page that has drawn twice: the first draw settles focus, the second"]
+    #[doc = r" paints it, exactly as the harness does."]
     fn page(clickable: bool) -> (Runtime<BrandPage>, Buffer) {
         let app = BrandPage {
             clickable,
@@ -443,14 +440,14 @@ mod tests {
         );
     }
 
-    /// The centre of the lockup, in both the clickable and the plain case.
+    #[doc = r" The centre of the lockup, in both the clickable and the plain case."]
     const fn pointer() -> (u16, u16) {
         (LOCKUP.x + LOCKUP.width / 2, LOCKUP.y)
     }
 
-    /// GAP-1, half one: what `.clickable(true)` puts in the registry, and
-    /// that `.clickable(false)` puts nothing there. Successor to the legacy
-    /// `widgets::brand::tests::clickable_lockup_registers_and_lifts_on_hover`.
+    #[doc = r" GAP-1, half one: what `.clickable(true)` puts in the registry, and"]
+    #[doc = r" that `.clickable(false)` puts nothing there. Successor to the legacy"]
+    #[doc = r" `widgets::brand::tests::clickable_lockup_registers_and_lifts_on_hover`."]
     #[test]
     fn only_a_clickable_lockup_registers_a_click_only_control_and_a_label_part() {
         let (rt, _buf) = page(true);
@@ -487,8 +484,8 @@ mod tests {
         assert!(!rt.ring().is_registered(MARK));
     }
 
-    /// GAP-1, half two: the action. A plain lockup never even sees a pointer
-    /// intent, because it registered nothing to be addressed through.
+    #[doc = r" GAP-1, half two: the action. A plain lockup never even sees a pointer"]
+    #[doc = r" intent, because it registered nothing to be addressed through."]
     #[test]
     fn only_a_clickable_lockup_emits_activated_on_a_click() {
         let (x, y) = pointer();
@@ -530,12 +527,12 @@ mod tests {
         );
     }
 
-    /// The tagline the slot sweep needs, so `META` is a part that paints.
+    #[doc = r" The tagline the slot sweep needs, so `META` is a part that paints."]
     const TAGLINE: &str = "build 7";
 
-    /// Every part the slot sweep installs on, and whether `Brand` is
-    /// expected to honour it: the two parts it declares, then four it does
-    /// not, so the sweep can fail in either direction.
+    #[doc = r" Every part the slot sweep installs on, and whether `Brand` is"]
+    #[doc = r" expected to honour it: the two parts it declares, then four it does"]
+    #[doc = r" not, so the sweep can fail in either direction."]
     const SWEPT: &[(Part, bool)] = &[
         (Part::LABEL, true),
         (Part::META, true),
@@ -545,7 +542,7 @@ mod tests {
         (Part::GUTTER, false),
     ];
 
-    /// A lockup with a tagline, optionally with one part replaced.
+    #[doc = r" A lockup with a tagline, optionally with one part replaced."]
     struct SlotPage(Option<Part>);
 
     impl App for SlotPage {
@@ -566,7 +563,7 @@ mod tests {
         }
     }
 
-    /// The cells one draw paints, with `slot` installed or with none.
+    #[doc = r" The cells one draw paints, with `slot` installed or with none."]
     fn painted(slot: Option<Part>) -> Buffer {
         let mut rt = Runtime::new(SlotPage(slot), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
@@ -574,11 +571,11 @@ mod tests {
         buf
     }
 
-    /// Invariant R (§45.3): the parts the `## Overrides` section names as
-    /// slot-addressable are **exactly** the parts for which installing
-    /// `.slot(p, …)` changes the painted cells. Asserted in both
-    /// directions, so a dropped `slot_for` consult and a slot honoured
-    /// without being named each fail.
+    #[doc = r" Invariant R (§45.3): the parts the `## Overrides` section names as"]
+    #[doc = r" slot-addressable are **exactly** the parts for which installing"]
+    #[doc = r" `.slot(p, …)` changes the painted cells. Asserted in both"]
+    #[doc = r" directions, so a dropped `slot_for` consult and a slot honoured"]
+    #[doc = r" without being named each fail."]
     #[test]
     fn a_slot_changes_painted_cells_for_exactly_label_and_meta() {
         let plain = painted(None);
@@ -603,9 +600,9 @@ mod tests {
         );
     }
 
-    /// GAP-1, half three: the painted hover affordance. The legacy test
-    /// asserted `accent_hover` under the pointer; this asserts it from the
-    /// buffer, and asserts the plain lockup stays on the accent plane.
+    #[doc = r" GAP-1, half three: the painted hover affordance. The legacy test"]
+    #[doc = r" asserted `accent_hover` under the pointer; this asserts it from the"]
+    #[doc = r" buffer, and asserts the plain lockup stays on the accent plane."]
     #[test]
     fn only_a_clickable_lockup_lifts_to_accent_hover_under_the_pointer() {
         let theme = Theme::junie();

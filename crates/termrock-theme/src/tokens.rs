@@ -1,9 +1,9 @@
-//! Theme tokens (`COMPONENT_ARCHITECTURE.md` §11.2, §11.4).
-//!
-//! `ColorTokens` is deliberately not `#[non_exhaustive]`: a new token is an
-//! intentional breaking change for downstream themes, and
-//! [`ColorTokens::map_colors`]'s exhaustive destructure is the mechanism
-//! that makes every downgrade cover every token.
+#![doc = r" Theme tokens (`COMPONENT_ARCHITECTURE.md` §11.2, §11.4)."]
+#![doc = r""]
+#![doc = r" `ColorTokens` is deliberately not `#[non_exhaustive]`: a new token is an"]
+#![doc = r" intentional breaking change for downstream themes, and"]
+#![doc = r" [`ColorTokens::map_colors`]'s exhaustive destructure is the mechanism"]
+#![doc = r" that makes every downgrade cover every token."]
 
 use ratatui_core::style::Color;
 
@@ -11,53 +11,53 @@ use super::border::BorderSet;
 use super::glyph::GlyphSet;
 use super::role::{FG_STEPS, SURFACE_LEVELS};
 
-/// Syntax colours.
+#[doc = r" Syntax colours."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SyntaxTokens {
-    /// Keyword.
+    #[doc = r" Keyword."]
     pub keyword: Color,
-    /// Identifier.
+    #[doc = r" Identifier."]
     pub ident: Color,
-    /// String literal.
+    #[doc = r" String literal."]
     pub string: Color,
-    /// Number literal.
+    #[doc = r" Number literal."]
     pub number: Color,
-    /// Operator.
+    #[doc = r" Operator."]
     pub operator: Color,
-    /// Punctuation.
+    #[doc = r" Punctuation."]
     pub punct: Color,
-    /// Comment.
+    #[doc = r" Comment."]
     pub comment: Color,
-    /// Plain text.
+    #[doc = r" Plain text."]
     pub plain: Color,
-    /// Type name.
+    #[doc = r" Type name."]
     pub type_name: Color,
-    /// Function name.
+    #[doc = r" Function name."]
     pub function: Color,
-    /// Constant.
+    #[doc = r" Constant."]
     pub constant: Color,
-    /// Invalid token.
+    #[doc = r" Invalid token."]
     pub invalid: Color,
-    /// Deprecated token.
+    #[doc = r" Deprecated token."]
     pub deprecated: Color,
-    /// Find-match background.
+    #[doc = r" Find-match background."]
     pub match_bg: Color,
-    /// Current find-match background.
+    #[doc = r" Current find-match background."]
     pub match_current_bg: Color,
-    /// Matching bracket.
+    #[doc = r" Matching bracket."]
     pub bracket_match: Color,
-    /// Error diagnostic.
+    #[doc = r" Error diagnostic."]
     pub diagnostic_error: Color,
-    /// Warning diagnostic.
+    #[doc = r" Warning diagnostic."]
     pub diagnostic_warning: Color,
-    /// Info diagnostic.
+    #[doc = r" Info diagnostic."]
     pub diagnostic_info: Color,
 }
 
 impl SyntaxTokens {
-    /// Derive from three hues. Everything not derivable is `Color::Reset`
-    /// ("inherit the part's colour"); `Theme::from_tokens` fills the
-    /// diagnostic and match colours from the main tokens.
+    #[doc = r" Derive from three hues. Everything not derivable is `Color::Reset`"]
+    #[doc = r#" ("inherit the part's colour"); `Theme::from_tokens` fills the"#]
+    #[doc = r" diagnostic and match colours from the main tokens."]
     pub const fn derive(keyword: Color, string: Color, number: Color) -> SyntaxTokens {
         SyntaxTokens {
             keyword,
@@ -82,7 +82,7 @@ impl SyntaxTokens {
         }
     }
 
-    /// Apply `f` to every colour (exhaustive destructure).
+    #[doc = r" Apply `f` to every colour (exhaustive destructure)."]
     #[must_use]
     pub fn map_colors(&self, f: &mut impl FnMut(Color) -> Color) -> SyntaxTokens {
         let SyntaxTokens {
@@ -130,13 +130,13 @@ impl SyntaxTokens {
     }
 }
 
-/// Background policy for the unfilled share of a block meter.
+#[doc = r" Background policy for the unfilled share of a block meter."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MeterFillRest {
-    /// An explicit theme color, narrowed with the other color tokens.
+    #[doc = r" An explicit theme color, narrowed with the other color tokens."]
     Color(Color),
-    /// Apply pinned ordered color comparisons to the inherited surface.
-    /// Quantized aliases follow the same branch order as the reference theme.
+    #[doc = r" Apply pinned ordered color comparisons to the inherited surface."]
+    #[doc = r" Quantized aliases follow the same branch order as the reference theme."]
     ReferenceLift,
 }
 
@@ -157,30 +157,30 @@ impl<F: FnMut(Color) -> Color> TokenMapper for ColorMapper<'_, F> {
     }
 }
 
-/// Meter colours.
+#[doc = r" Meter colours."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MeterTokens {
-    /// Healthy.
+    #[doc = r" Healthy."]
     pub low: Color,
-    /// Needs attention.
+    #[doc = r" Needs attention."]
     pub medium: Color,
-    /// Critical.
+    #[doc = r" Critical."]
     pub high: Color,
-    /// The track.
+    #[doc = r" The track."]
     pub track: Color,
-    /// The unfilled remainder.
+    #[doc = r" The unfilled remainder."]
     pub fill_rest: MeterFillRest,
-    /// Stale data.
+    #[doc = r" Stale data."]
     pub stale: Color,
-    /// Unknown value.
+    #[doc = r" Unknown value."]
     pub unknown: Color,
-    /// Series colours.
+    #[doc = r" Series colours."]
     pub series: [Color; 6],
 }
 
 impl MeterTokens {
-    /// Derive from three hues; the rest is `Color::Reset` until
-    /// `Theme::from_tokens` fills it from the main tokens.
+    #[doc = r" Derive from three hues; the rest is `Color::Reset` until"]
+    #[doc = r" `Theme::from_tokens` fills it from the main tokens."]
     pub const fn derive(low: Color, medium: Color, high: Color) -> MeterTokens {
         MeterTokens {
             low,
@@ -194,7 +194,7 @@ impl MeterTokens {
         }
     }
 
-    /// Apply `f` to every colour (exhaustive destructure).
+    #[doc = r" Apply `f` to every colour (exhaustive destructure)."]
     #[must_use]
     pub fn map_colors(&self, f: &mut impl FnMut(Color) -> Color) -> MeterTokens {
         self.map_with(&mut ColorMapper(f))
@@ -224,83 +224,83 @@ impl MeterTokens {
     }
 }
 
-/// Every colour a theme supplies.
+#[doc = r" Every colour a theme supplies."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ColorTokens {
-    /// The surface ladder: canvas, surface, elevated, overlay, popover.
+    #[doc = r" The surface ladder: canvas, surface, elevated, overlay, popover."]
     pub surfaces: [Color; SURFACE_LEVELS],
-    /// Text field plane.
+    #[doc = r" Text field plane."]
     pub field: Color,
-    /// Hovered text field plane.
+    #[doc = r" Hovered text field plane."]
     pub field_hover: Color,
-    /// The foreground ladder: primary, secondary, muted, faint, ghost.
+    #[doc = r" The foreground ladder: primary, secondary, muted, faint, ghost."]
     pub fg: [Color; FG_STEPS],
-    /// Text on an accent fill.
+    #[doc = r" Text on an accent fill."]
     pub on_accent: Color,
-    /// Text on a danger fill.
+    #[doc = r" Text on a danger fill."]
     pub on_danger: Color,
-    /// Text on an inverted fill.
+    #[doc = r" Text on an inverted fill."]
     pub on_surface_inverse: Color,
-    /// Subtle border.
+    #[doc = r" Subtle border."]
     pub border_subtle: Color,
-    /// Strong border.
+    #[doc = r" Strong border."]
     pub border_strong: Color,
-    /// Accent.
+    #[doc = r" Accent."]
     pub accent: Color,
-    /// Accent, hovered.
+    #[doc = r" Accent, hovered."]
     pub accent_hover: Color,
-    /// Accent, pressed.
+    #[doc = r" Accent, pressed."]
     pub accent_pressed: Color,
-    /// Accent tint.
+    #[doc = r" Accent tint."]
     pub accent_tint: Color,
-    /// Focus indicator.
+    #[doc = r" Focus indicator."]
     pub focus: Color,
-    /// Focus ring.
+    #[doc = r" Focus ring."]
     pub focus_ring: Color,
-    /// Text selection background.
+    #[doc = r" Text selection background."]
     pub selection_bg: Color,
-    /// Text selection foreground.
+    #[doc = r" Text selection foreground."]
     pub selection_fg: Color,
-    /// Menu highlight background.
+    #[doc = r" Menu highlight background."]
     pub highlight_bg: Color,
-    /// Menu highlight foreground.
+    #[doc = r" Menu highlight foreground."]
     pub highlight_fg: Color,
-    /// Destructive menu highlight background.
+    #[doc = r" Destructive menu highlight background."]
     pub highlight_danger_bg: Color,
-    /// Destructive menu highlight foreground.
+    #[doc = r" Destructive menu highlight foreground."]
     pub highlight_danger_fg: Color,
-    /// Backdrop foreground.
+    #[doc = r" Backdrop foreground."]
     pub backdrop_fg: Color,
-    /// Backdrop background.
+    #[doc = r" Backdrop background."]
     pub backdrop_bg: Color,
-    /// Danger.
+    #[doc = r" Danger."]
     pub danger: Color,
-    /// Danger at rest on a neutral plane.
+    #[doc = r" Danger at rest on a neutral plane."]
     pub danger_soft: Color,
-    /// Danger tint.
+    #[doc = r" Danger tint."]
     pub danger_tint: Color,
-    /// Warning.
+    #[doc = r" Warning."]
     pub warning: Color,
-    /// Warning tint.
+    #[doc = r" Warning tint."]
     pub warning_tint: Color,
-    /// Success.
+    #[doc = r" Success."]
     pub success: Color,
-    /// Info.
+    #[doc = r" Info."]
     pub info: Color,
-    /// Disabled foreground.
+    #[doc = r" Disabled foreground."]
     pub disabled_fg: Color,
-    /// Disabled background.
+    #[doc = r" Disabled background."]
     pub disabled_bg: Color,
-    /// Read-only foreground.
+    #[doc = r" Read-only foreground."]
     pub read_only_fg: Color,
-    /// Syntax colours.
+    #[doc = r" Syntax colours."]
     pub syntax: SyntaxTokens,
-    /// Meter colours.
+    #[doc = r" Meter colours."]
     pub meter: MeterTokens,
 }
 
 impl ColorTokens {
-    /// Exhaustive destructure: adding a field is a compile error here.
+    #[doc = r" Exhaustive destructure: adding a field is a compile error here."]
     #[must_use]
     pub fn map_colors(&self, f: &mut impl FnMut(Color) -> Color) -> ColorTokens {
         self.map_with(&mut ColorMapper(f))
@@ -383,7 +383,7 @@ impl ColorTokens {
         }
     }
 
-    /// Every semantic slot in field order, including the typed fill-rest policy.
+    #[doc = r" Every semantic slot in field order, including the typed fill-rest policy."]
     pub fn semantic_colors(&self) -> Vec<MeterFillRest> {
         struct Collect(Vec<MeterFillRest>);
         impl TokenMapper for Collect {
@@ -401,8 +401,8 @@ impl ColorTokens {
         collect.0
     }
 
-    /// Every concrete colour, in field order. Symbolic policies are omitted.
-    /// Use `semantic_colors` when stable semantic-slot positions matter.
+    #[doc = r" Every concrete colour, in field order. Symbolic policies are omitted."]
+    #[doc = r" Use `semantic_colors` when stable semantic-slot positions matter."]
     pub fn colors(&self) -> Vec<Color> {
         let mut out = Vec::with_capacity(72);
         let _ = self.map_colors(&mut |c| {
@@ -413,135 +413,135 @@ impl ColorTokens {
     }
 }
 
-/// Spacing tokens, in cells.
+#[doc = r" Spacing tokens, in cells."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SpaceTokens {
-    /// Focus gutter width.
+    #[doc = r" Focus gutter width."]
     pub gutter: u16,
-    /// Inline gap between a glyph and a label.
+    #[doc = r" Inline gap between a glyph and a label."]
     pub inline: u16,
-    /// Gap between siblings.
+    #[doc = r" Gap between siblings."]
     pub gap: u16,
-    /// Gap between columns.
+    #[doc = r" Gap between columns."]
     pub column_gap: u16,
-    /// Gap between form rows.
+    #[doc = r" Gap between form rows."]
     pub form_gap: u16,
-    /// Card inset.
+    #[doc = r" Card inset."]
     pub card_inset: u16,
-    /// Frame inset.
+    #[doc = r" Frame inset."]
     pub frame_inset: u16,
-    /// Dialog inset.
+    #[doc = r" Dialog inset."]
     pub dialog_inset: u16,
-    /// Tree indent per depth.
+    #[doc = r" Tree indent per depth."]
     pub tree_indent: u16,
 }
 
-/// Dimension tokens, in cells.
+#[doc = r" Dimension tokens, in cells."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SizeTokens {
-    /// Field height (label, control, help).
+    #[doc = r" Field height (label, control, help)."]
     pub field_height: u16,
-    /// Tab strip height.
+    #[doc = r" Tab strip height."]
     pub tabs_height: u16,
-    /// Dialog width.
+    #[doc = r" Dialog width."]
     pub dialog_width: u16,
-    /// Wide dialog width.
+    #[doc = r" Wide dialog width."]
     pub dialog_width_wide: u16,
-    /// Popup maximum rows.
+    #[doc = r" Popup maximum rows."]
     pub popup_max_rows: u16,
-    /// Popup minimum width.
+    #[doc = r" Popup minimum width."]
     pub popup_min_width: u16,
-    /// Popup maximum width.
+    #[doc = r" Popup maximum width."]
     pub popup_max_width: u16,
-    /// Minimum terminal width.
+    #[doc = r" Minimum terminal width."]
     pub min_width: u16,
-    /// Minimum terminal height.
+    #[doc = r" Minimum terminal height."]
     pub min_height: u16,
-    /// Scrollbar width.
+    #[doc = r" Scrollbar width."]
     pub scrollbar_width: u16,
-    /// Meter track length.
+    #[doc = r" Meter track length."]
     pub meter_track: u16,
-    /// Code preview lines.
+    #[doc = r" Code preview lines."]
     pub code_preview_lines: u16,
 }
 
-/// Animation cadence tokens.
+#[doc = r" Animation cadence tokens."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MotionTokens {
-    /// Spinner frames.
+    #[doc = r" Spinner frames."]
     pub spinner_frames: &'static [&'static str],
-    /// Tick period while animating, in milliseconds.
+    #[doc = r" Tick period while animating, in milliseconds."]
     pub tick_ms: u64,
-    /// Tick period while idle, in milliseconds.
+    #[doc = r" Tick period while idle, in milliseconds."]
     pub idle_tick_ms: u64,
-    /// Press flash duration, in milliseconds.
+    #[doc = r" Press flash duration, in milliseconds."]
     pub press_flash_ms: u64,
-    /// Status message duration, in milliseconds.
+    #[doc = r" Status message duration, in milliseconds."]
     pub status_ms: u64,
-    /// Rows per wheel notch.
+    #[doc = r" Rows per wheel notch."]
     pub wheel_rows: u16,
-    /// Double-click window, in milliseconds.
+    #[doc = r" Double-click window, in milliseconds."]
     pub double_click_ms: u64,
 }
 
-/// Meter thresholds, in percent.
+#[doc = r" Meter thresholds, in percent."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MeterThresholds {
-    /// Up to this is healthy.
+    #[doc = r" Up to this is healthy."]
     pub low_max: u8,
-    /// Up to this needs attention; above is critical.
+    #[doc = r" Up to this needs attention; above is critical."]
     pub medium_max: u8,
 }
 
-/// Row density.
+#[doc = r" Row density."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Density {
-    /// The default.
+    #[doc = r" The default."]
     #[default]
     Comfortable,
-    /// Tighter rows.
+    #[doc = r" Tighter rows."]
     Compact,
 }
 
-/// Every non-colour token.
+#[doc = r" Every non-colour token."]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DesignTokens {
-    /// Spacing.
+    #[doc = r" Spacing."]
     pub space: SpaceTokens,
-    /// Dimensions.
+    #[doc = r" Dimensions."]
     pub size: SizeTokens,
-    /// Glyphs.
+    #[doc = r" Glyphs."]
     pub glyphs: GlyphSet,
-    /// Border set.
+    #[doc = r" Border set."]
     pub borders: BorderSet,
-    /// Motion.
+    #[doc = r" Motion."]
     pub motion: MotionTokens,
-    /// Meter thresholds.
+    #[doc = r" Meter thresholds."]
     pub meter: MeterThresholds,
-    /// Density.
+    #[doc = r" Density."]
     pub density: Density,
 }
 
-/// The colour depth a theme is resolved for.
+#[doc = r" The colour depth a theme is resolved for."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 #[non_exhaustive]
 pub enum ColorLevel {
-    /// 24-bit colour.
+    #[doc = r" 24-bit colour."]
     TrueColor,
-    /// The 256-colour palette.
+    #[doc = r" The 256-colour palette."]
     Ansi256,
-    /// The 16 ANSI colours.
+    #[doc = r" The 16 ANSI colours."]
     Ansi16,
-    /// No colour.
+    #[doc = r" No colour."]
     Mono,
 }
 
 impl ColorLevel {
-    /// The level this process's terminal can paint, from the environment.
-    ///
-    /// A thin wrapper over [`ColorLevel::from_env`], which holds the whole
-    /// decision table and is where the behaviour is tested; this reads the
-    /// inputs and nothing else.
+    #[doc = r" The level this process's terminal can paint, from the environment."]
+    #[doc = r""]
+    #[doc = r" A thin wrapper over [`ColorLevel::from_env`], which holds the whole"]
+    #[doc = r" decision table and is where the behaviour is tested; this reads the"]
+    #[doc = r" inputs and nothing else."]
     #[must_use]
     pub fn detect() -> Self {
         use std::io::IsTerminal as _;
@@ -555,34 +555,34 @@ impl ColorLevel {
         )
     }
 
-    /// The colour-capability decision table. Pure: no environment, no I/O.
-    ///
-    /// Split out from [`ColorLevel::detect`] because it is the only testable
-    /// shape. Edition 2024 makes `std::env::set_var` `unsafe` and this crate
-    /// is `#![forbid(unsafe_code)]`, which no inner `allow` lifts, so no test
-    /// here can set an environment variable; the inputs must arrive as
-    /// arguments.
-    ///
-    /// Precedence, highest first:
-    ///
-    /// 1. `term` is exactly `"dumb"` — [`ColorLevel::Mono`]. The device cannot
-    ///    render SGR at all, so this is a fact about the hardware and outranks
-    ///    everything below it, `clicolor_force` included.
-    /// 2. `clicolor_force` present and neither `""` nor `"0"` — colour is
-    ///    forced on, overriding both `no_color` and `stdout_is_terminal`. This
-    ///    is the only way to force colour up.
-    /// 3. `no_color` present with any non-empty value, per no-color.org —
-    ///    [`ColorLevel::Mono`]. It is an [`OsStr`](std::ffi::OsStr) because a
-    ///    value that is not UTF-8 is still present; the value is never parsed.
-    ///    An empty `no_color` does *not* disable colour.
-    /// 4. `stdout_is_terminal` is `false` — [`ColorLevel::Mono`], so redirected
-    ///    or piped output carries no escape sequences.
-    /// 5. `colorterm` is `truecolor` or `24bit` — [`ColorLevel::TrueColor`].
-    /// 6. `term` contains `256color`, `ghostty` or `kitty` —
-    ///    [`ColorLevel::Ansi256`].
-    /// 7. Otherwise [`ColorLevel::Ansi16`], including when `term` is absent or
-    ///    empty: Windows sets no `TERM` and crossterm enables VT processing
-    ///    there, so `Mono` in that arm would strip colour from Windows Terminal.
+    #[doc = r" The colour-capability decision table. Pure: no environment, no I/O."]
+    #[doc = r""]
+    #[doc = r" Split out from [`ColorLevel::detect`] because it is the only testable"]
+    #[doc = r" shape. Edition 2024 makes `std::env::set_var` `unsafe` and this crate"]
+    #[doc = r" is `#![forbid(unsafe_code)]`, which no inner `allow` lifts, so no test"]
+    #[doc = r" here can set an environment variable; the inputs must arrive as"]
+    #[doc = r" arguments."]
+    #[doc = r""]
+    #[doc = r" Precedence, highest first:"]
+    #[doc = r""]
+    #[doc = r#" 1. `term` is exactly `"dumb"` — [`ColorLevel::Mono`]. The device cannot"#]
+    #[doc = r"    render SGR at all, so this is a fact about the hardware and outranks"]
+    #[doc = r"    everything below it, `clicolor_force` included."]
+    #[doc = r#" 2. `clicolor_force` present and neither `""` nor `"0"` — colour is"#]
+    #[doc = r"    forced on, overriding both `no_color` and `stdout_is_terminal`. This"]
+    #[doc = r"    is the only way to force colour up."]
+    #[doc = r" 3. `no_color` present with any non-empty value, per no-color.org —"]
+    #[doc = r"    [`ColorLevel::Mono`]. It is an [`OsStr`](std::ffi::OsStr) because a"]
+    #[doc = r"    value that is not UTF-8 is still present; the value is never parsed."]
+    #[doc = r"    An empty `no_color` does *not* disable colour."]
+    #[doc = r" 4. `stdout_is_terminal` is `false` — [`ColorLevel::Mono`], so redirected"]
+    #[doc = r"    or piped output carries no escape sequences."]
+    #[doc = r" 5. `colorterm` is `truecolor` or `24bit` — [`ColorLevel::TrueColor`]."]
+    #[doc = r" 6. `term` contains `256color`, `ghostty` or `kitty` —"]
+    #[doc = r"    [`ColorLevel::Ansi256`]."]
+    #[doc = r" 7. Otherwise [`ColorLevel::Ansi16`], including when `term` is absent or"]
+    #[doc = r"    empty: Windows sets no `TERM` and crossterm enables VT processing"]
+    #[doc = r"    there, so `Mono` in that arm would strip colour from Windows Terminal."]
     #[must_use]
     pub fn from_env(
         clicolor_force: Option<&std::ffi::OsStr>,
@@ -616,14 +616,14 @@ impl ColorLevel {
         ColorLevel::Ansi16
     }
 
-    /// How much colour this level can paint, as a rank: `Mono` is 0 and
-    /// `TrueColor` is 3.
-    ///
-    /// Private, and deliberately *not* a `PartialOrd`/`Ord` derive: the enum
-    /// is declared richest-first so that reading it top-to-bottom is reading
-    /// the downgrade ladder, and a derived order would therefore call
-    /// `TrueColor` the *smallest* level. Every comparison would read backwards
-    /// at the call site.
+    #[doc = r" How much colour this level can paint, as a rank: `Mono` is 0 and"]
+    #[doc = r" `TrueColor` is 3."]
+    #[doc = r""]
+    #[doc = r" Private, and deliberately *not* a `PartialOrd`/`Ord` derive: the enum"]
+    #[doc = r" is declared richest-first so that reading it top-to-bottom is reading"]
+    #[doc = r" the downgrade ladder, and a derived order would therefore call"]
+    #[doc = r" `TrueColor` the *smallest* level. Every comparison would read backwards"]
+    #[doc = r" at the call site."]
     const fn depth(self) -> u8 {
         match self {
             ColorLevel::Mono => 0,
@@ -633,13 +633,13 @@ impl ColorLevel {
         }
     }
 
-    /// The poorer of the two levels (§34.3).
-    ///
-    /// The operation [`Theme::for_level`](crate::theme::Theme::for_level) is
-    /// built from: a theme's own `capability.color` is the depth its tokens
-    /// are already at, so combining it with a detected level may only take
-    /// colour away. Commutative, associative and idempotent; `TrueColor` is
-    /// its identity and `Mono` absorbs.
+    #[doc = r" The poorer of the two levels (§34.3)."]
+    #[doc = r""]
+    #[doc = r" The operation [`Theme::for_level`](crate::theme::Theme::for_level) is"]
+    #[doc = r" built from: a theme's own `capability.color` is the depth its tokens"]
+    #[doc = r" are already at, so combining it with a detected level may only take"]
+    #[doc = r" colour away. Commutative, associative and idempotent; `TrueColor` is"]
+    #[doc = r" its identity and `Mono` absorbs."]
     #[must_use]
     pub const fn narrow_to(self, other: ColorLevel) -> ColorLevel {
         if self.depth() <= other.depth() {
@@ -649,7 +649,7 @@ impl ColorLevel {
         }
     }
 
-    /// A short label.
+    #[doc = r" A short label."]
     pub const fn label(self) -> &'static str {
         match self {
             ColorLevel::TrueColor => "truecolor",
@@ -660,10 +660,10 @@ impl ColorLevel {
     }
 }
 
-/// Terminal capability the theme is resolved for.
+#[doc = r" Terminal capability the theme is resolved for."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Capability {
-    /// Colour depth.
+    #[doc = r" Colour depth."]
     pub color: ColorLevel,
 }
 
@@ -673,7 +673,7 @@ mod tests {
 
     use super::ColorLevel;
 
-    /// `TERM=dumb` outranks every other input: the device cannot render SGR.
+    #[doc = r" `TERM=dumb` outranks every other input: the device cannot render SGR."]
     #[test]
     fn term_dumb_is_mono() {
         assert_eq!(
@@ -682,9 +682,9 @@ mod tests {
         );
     }
 
-    /// no-color.org: *presence* with any non-empty value disables colour, and
-    /// an empty value does not. Pinned so nobody rewrites the check as
-    /// `is_some()` (which would fire on `NO_COLOR=`) or as `== "1"`.
+    #[doc = r" no-color.org: *presence* with any non-empty value disables colour, and"]
+    #[doc = r" an empty value does not. Pinned so nobody rewrites the check as"]
+    #[doc = r#" `is_some()` (which would fire on `NO_COLOR=`) or as `== "1"`."#]
     #[test]
     fn no_color_triggers_on_any_non_empty_value() {
         for v in ["1", "0", "false", " "] {
@@ -709,7 +709,7 @@ mod tests {
         }
     }
 
-    /// Redirected or piped output must not carry escape sequences.
+    #[doc = r" Redirected or piped output must not carry escape sequences."]
     #[test]
     fn a_non_tty_stdout_is_mono() {
         assert_eq!(
@@ -718,7 +718,7 @@ mod tests {
         );
     }
 
-    /// `CLICOLOR_FORCE` is the single way to force colour up.
+    #[doc = r" `CLICOLOR_FORCE` is the single way to force colour up."]
     #[test]
     fn clicolor_force_overrides_no_color_and_the_tty_check() {
         assert_eq!(
@@ -746,7 +746,7 @@ mod tests {
         }
     }
 
-    /// Forcing colour cannot invent a capability the device lacks.
+    #[doc = r" Forcing colour cannot invent a capability the device lacks."]
     #[test]
     fn clicolor_force_does_not_override_term_dumb() {
         assert_eq!(
@@ -761,10 +761,10 @@ mod tests {
         );
     }
 
-    /// `narrow_to` is a meet on the colour ladder: it never widens, `Mono`
-    /// absorbs and `TrueColor` is the identity. Pinned as a table because the
-    /// ranking is hand-written — a derived `Ord` would read backwards against
-    /// the enum's richest-first declaration order.
+    #[doc = r" `narrow_to` is a meet on the colour ladder: it never widens, `Mono`"]
+    #[doc = r" absorbs and `TrueColor` is the identity. Pinned as a table because the"]
+    #[doc = r" ranking is hand-written — a derived `Ord` would read backwards against"]
+    #[doc = r" the enum's richest-first declaration order."]
     #[test]
     fn narrow_to_returns_the_poorer_level() {
         use ColorLevel::{Ansi16, Ansi256, Mono, TrueColor};
@@ -781,8 +781,8 @@ mod tests {
         }
     }
 
-    /// Windows sets no `TERM` and crossterm enables VT processing, so an
-    /// absent `TERM` must stay coloured rather than fall back to `Mono`.
+    #[doc = r" Windows sets no `TERM` and crossterm enables VT processing, so an"]
+    #[doc = r" absent `TERM` must stay coloured rather than fall back to `Mono`."]
     #[test]
     fn term_unset_or_empty_is_ansi16() {
         for term in [None, Some("")] {

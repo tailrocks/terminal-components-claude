@@ -1,4 +1,4 @@
-//! Frozen projection facts are separate from live input-routing publication.
+#![doc = r" Frozen projection facts are separate from live input-routing publication."]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,

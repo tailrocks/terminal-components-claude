@@ -1,10 +1,10 @@
-//! Repository selection keeps stable repository identity through shared filtering.
+#![doc = r" Repository selection keeps stable repository identity through shared filtering."]
 use crate::domain::github::{GhRepo, GhState};
 use termrock::{Cx, Id, Item, ItemKey, Picker, PickerAction, PickerState, Response, Ui};
 const PICKER: Id = Id::root("clone.picker");
-/// One private constructor keeps the picker's props identical across the open,
-/// update and draw passes; the layer pass never renders the query placeholder,
-/// so only the interactive passes arm it (§13).
+#[doc = r" One private constructor keeps the picker's props identical across the open,"]
+#[doc = r" update and draw passes; the layer pass never renders the query placeholder,"]
+#[doc = r" so only the interactive passes arm it (§13)."]
 fn picker<'s>(filtering: bool) -> Picker<'s, Item<'s>> {
     let picker = Picker::new(PICKER).title("Clone which repository?");
     if filtering {

@@ -1,4 +1,4 @@
-//! The semantic pause glyph matches pinned Holla and remains customizable.
+#![doc = r" The semantic pause glyph matches pinned Holla and remains customizable."]
 use termrock::{ColorLevel, GlyphRole, Id, ProgressBar, Theme};
 use termrock_test_support::Scene;
 #[test]
