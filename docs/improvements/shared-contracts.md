@@ -1,23 +1,5 @@
 # Shared implementation contracts
 
-## Status
-
-These are retained acceptance contracts for scoped Holla improvement slices and shared API changes. The architecture refactor remains incomplete, broken, and not ready on `main`.
-
-## Authority
-
-Use `main` for split-crate and reusable-API direction. Use `design/interaction-polish` for UI/UX and behavior. Contracts below remain in force when their corresponding work is undertaken, subject to current architecture and design authority.
-
-## Current evidence
-
-Each contract's evidence and source references are scoped to the revision named in that contract. Current behavior must be checked against current source and applicable tests.
-
-## Remaining work
-
-Preserve all contracts linked from `docs/improvements/PLAN.md`, including open regression and parity requirements.
-
-## Verification
-
 Verify each contract through the listed scenario, test, and visual evidence at the integrated revision. Historical passes do not establish current completion.
 
 Read [current scope](scope.md) first. This file retains the original cross-task
@@ -35,7 +17,7 @@ describe the audit snapshot and must be checked against current code.
 
 Generic widget/theme/glyph, keyed-collection, container/modal and worker
 framework proposals remain removed. Former O01/O02/O03/O06 entries are historical
-context in the [audit reference](plan-reference-audit.md#retired-framework-proposals).
+context in the [removed-proposal disposition](PLAN.md#removed-proposals).
 Concrete fixes retain their task contracts, with current versus later ownership
 defined in scope.md. HP14/HP15 require task ownership, cancellation,
 generation/revision matching, stale completion rejection, failure inspection and
@@ -85,10 +67,8 @@ itself verified until its acceptance tests pass.
 
 ## Evidence boundaries and protected regressions
 
-Audit counts, prior-finding dispositions, source snapshots and verification
-history are in the [audit reference](plan-reference-audit.md).
-Preserve the [prior-fix ledger](../plan-verification/plan-prior-fixes-verification.md) and
-[disposition-map regression obligations](plan-reference-audit.md#previous-findings-disposition-map);
+Current work ownership and requirement IDs are mapped in the [finding-to-work crosswalk](plan-reference-audit.md).
+Preserve prior-fix requirements in the active F-item specifications, linked from the [finding-to-work crosswalk](plan-reference-audit.md).
 completed fixes are not work to repeat. F23 retains the missing proof requirements.
 This plan's priorities govern duplicate findings, which count as one work item.
 
@@ -152,9 +132,7 @@ rtk cargo doc --no-deps
 rtk git diff --check
 ```
 
-Regenerate only deliberate affected baselines after inspecting output. Capture
-scripts default to seven fixtures, not the ten-case 250-set audit; the exact
-ten-case reproduction is in the [verification ledger](../plan-verification/plan-prior-fixes-verification.md).
+Regenerate only deliberate affected baselines after inspecting output. Use an isolated socket and a new explicit output directory; retain provenance and failed cases. Larger screenshot counts cannot replace state assertions.
 Use an isolated socket and a new explicit output directory. Retain provenance
 and failed cases. Larger screenshot counts cannot replace state assertions.
 
@@ -170,9 +148,7 @@ Only matrix rows count as capabilities; evidence-report subrows, action variants
 tests and plan items are not extra counts. Each matrix row has exactly one
 disposition and one owning HP item. Shared dependencies do not double-count it.
 
-The comparison is pinned to the 2026-09-10 audit snapshots in the
-[audit reference](plan-reference-audit.md#holla-audit-snapshots-and-counts).
-The matrix and linked source inventories retain exact revisions and evidence.
+The comparison scope, classifications, and source pins are stated in the [capability matrix](../parity/holla-parity-matrix.md#counts) and linked source inventories.
 
 “Covered” proves the complete stated interaction and outcome in the current
 deterministic preview. It does not claim live external execution. A label,
@@ -302,13 +278,11 @@ Covered-row challenges, corrections and residual limits. Future baseline
 updates must pin both revisions, repeat that sweep and classify new capabilities;
 otherwise the current parity claim does not automatically extend to newer code.
 
-Historical verification results are retained in the
-[audit reference](plan-reference-audit.md#holla-audit-completion-evidence).
+The limits of the recorded verification are documented in [Holla parity verification](../parity/holla-parity-verification.md#evidence-limits).
 
 ## Stop conditions
 
-Planning history and its completion criteria are retained in the
-[audit reference](plan-reference-audit.md#historical-planning-completion-criteria).
+Planning acceptance conditions are maintained in [planning acceptance](../refactoring-plan/planning-acceptance.md).
 This plan and its linked references retain finding dispositions, evidence,
 uncertainty, dependencies, compatibility decisions and acceptance criteria.
 All local evidence links must resolve.
@@ -326,7 +300,7 @@ this plan, passing the old suite, or updating hashes with implementing the work.
 ## F08 shared context
 
 Four related but independently testable items; none needs a new input widget.
-Detailed evidence: [interaction verification](../plan-verification/plan-interaction-verification.md).
+Active interaction requirements are mapped in the [finding-to-work crosswalk](plan-reference-audit.md).
 
 
 Key hints and matching remain separate data (`widgets/keyhint.rs::Hint`). Once
@@ -340,8 +314,7 @@ state displaying its hint, not merely absence of duplicate labels.
 **P2 · coverage gaps / verification architecture weaknesses.** Existing hashes
 pass with F16/F17 present. They cover one focused frame per page, exclude sidebar,
 and omit hardware cursor/underline-color metadata. Capture counts have no automatic
-source/binary provenance. The [prior-fix ledger](../plan-verification/plan-prior-fixes-verification.md)
-and independent design review establish these limits.
+source/binary provenance. The [F23 evidence contracts](f23a-state-reachability-design-d4.md) define the missing state, provenance, and independent visual-review requirements.
 
 
 Risk: low/medium test maintenance; lifecycle harnesses need strict process/PTY

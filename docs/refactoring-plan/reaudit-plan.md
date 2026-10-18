@@ -10,16 +10,16 @@ The current architecture direction is main’s reusable crate split. The design/
 The findings and task coverage below are historical, commit-scoped audit records. Their verification applies only to the named artifacts and recorded revisions.
 
 ## Remaining work
-Preserve unresolved findings and planned repairs in [remaining work](../remaining-work.md); use [current status](../status.md) for readiness.
+Preserve unresolved findings and planned repairs in [remaining work](../remaining-work.md); use the [documentation map](../README.md) for current authority and readiness context.
 
 ## Verification
 No current verification is implied by this historical report. Re-run relevant checks against the current branch before closing a task.
 
 ## Scope and current disposition
 
-This is a historical source-first audit plan. Its old authorization boundary and dated task checkpoints do not govern current work. Current direction keeps the main branch’s reusable crate architecture while treating design/interaction-polish as authoritative for UI/UX, colors, and behavior. The architecture refactor remains incomplete; use the current status and remaining-work ledgers for present readiness.
+This is a historical source-first audit plan. Its old authorization boundary and dated task checkpoints do not govern current work. Current direction keeps the main branch’s reusable crate architecture while treating design/interaction-polish as authoritative for UI/UX, colors, and behavior. The architecture refactor remains incomplete; use the documentation map and remaining-work ledger for present readiness.
 
-Completion is unproven. The previous turn made progress by producing the catalog and executed evidence, but those results do not settle the expanded source-first audit. At audit start, the previous complete artifact inventory matched 864 files and 143,008,176 bytes; its manifest SHA-256 was `e31a2cb70a4a987c5a5e5abc46fcc3d8c1f3188cd4c6ac5988dc0e4de6fce82f`. That inventory is a pre-audit snapshot, not a current seal after edits.
+The expanded source-first audit remains incomplete. Earlier catalogs and test receipts do not settle its current scope or source/task synchronization. No generated planning-tree hash is maintained as a readiness signal; executable validators and trusted task inputs remain the authoritative checks.
 
 ## Independent ownership
 
@@ -61,4 +61,4 @@ The user additionally requested a complete reread of the difference between `mai
 
 Compare exact recorded tips `main=7b27732a8c3c131760ec3438f641cb3c11343a42` and `2e2401393c47360741ebd321679de08982dca50a` (then `holla`; live checkout is `visual-baseline`). Keep immutable oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c` separate: moving-branch additions are contextual evidence, not automatic product acceptance. Enumerate every changed path without relying on incomplete rename detection; inspect relocation counterparts explicitly. Text changes require complete assigned diff reading, binary artifacts require exact identity, decoded content where applicable, and provenance/use disposition. Record completed main work to preserve, unfinished main work to continue, regressions requiring source-compatible repair, and obsolete material not to port. Every proposed change must join a task owner and proof obligation. The whole-branch census, source reading, decisions and independent recheck are additional completion conditions; previous task-file audit alone does not satisfy them.
 
-The current cross-partition [finding register](reaudit-findings.tsv) links original findings, repair evidence, independent rereviews and remaining integration checks. Grouped application findings retain their individual source-backed detail in the linked reports. A repaired row with pending synchronization or qualification is not a closed goal condition.
+The [cross-partition finding register](reaudit-findings.tsv) preserves original findings, repair locations, historical review status, and each remaining synchronization or qualification action. Detailed product requirements stay in their task-owned plans. A repaired row with pending synchronization or qualification is not a closed goal condition.

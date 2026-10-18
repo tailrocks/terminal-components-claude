@@ -1,26 +1,5 @@
 # F15 — Incremental live-output work, measured separately from idle redraw
 
-## Status
-
-Active specification or plan; completion is not implied by this document.
-
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-
-## Current evidence
-
-Claims below are scoped to their cited sources and recorded test results.
-
-## Remaining work
-
-Keep all listed requirements and open tasks in scope; track implementation state in docs/remaining-work.md.
-
-## Verification
-
-Verify against current sources and task acceptance criteria; historical passes are not current proof.
-
-
 [Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase
@@ -63,9 +42,7 @@ selection and search at agreed sizes. Record allocations/reflows plus median/tai
 timings, establish a representative latency target, then prove it; no arbitrary
 threshold inferred from one sample. Preserve existing idle zero-reflow gate.
 
-Full text evidence, temporary probe results and exact limits:
-[text verification](../plan-verification/plan-text-verification.md). Temporary probes are current
-evidence, not repository regression tests; implementation must retain them.
+The [finding-to-work crosswalk](plan-reference-audit.md) maps the related text findings. Temporary probes are historical evidence, not repository regression tests; implementation must retain the required workloads above.
 
 ## Evidence
 

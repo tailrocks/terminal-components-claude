@@ -1,21 +1,15 @@
-# Project goal
+# Project operating goal
 
-## Status
+## Product and architecture direction
 
-The Rust refactor on `main` has started but is incomplete, broken, and not ready. `design/interaction-polish` is the authority for intended UI/UX, colors, interactions, and behavior.
+This `wip/s14-followups` worktree contains branch-specific interaction and visual implementation evidence. `design/interaction-polish` is the exact product target; this WIP does not imply that every target feature is present. `main` supplies the correct split-crate architecture direction, but that refactor remains incomplete and not ready.
 
-## Authority
+## Work to preserve
 
-Use `main` as the direction for split crates and reusable APIs. Use this branch for the design target and all its planned work. Carry the intended behavior into the split-crate architecture; retain useful API designs where they fit. Do not treat historical planning prompts as current instructions.
+Keep open requirements in the detailed design contract, audit findings, improvement specifications, parity records, shared-component plan, visual-testing plan, and refactoring task packages. Preserve branch-specific task IDs, dependencies, and recorded scoped closures. Retain useful APIs where they fit the split-crate boundaries, and port behavior against the design authority rather than treating the current main implementation as complete.
 
-## Current evidence
+Start with [README](README.md) and the [documentation map](docs/README.md). Use the [architecture guide](docs/architecture.md), [design contract](docs/design.md), [development guide](docs/development.md), and [roadmap](docs/plan.md) as active references. The detailed worktree ledger is [docs/remaining-work.md](docs/remaining-work.md).
 
-Inspect current branch source, manifests, task records, and verification results before asserting implementation status. The documentation index is [docs/README.md](docs/README.md); canonical status, architecture, design, and plan live in `docs/status.md`, `docs/architecture.md`, `docs/design.md`, and `docs/plan.md`.
+## Completion evidence
 
-## Remaining work
-
-Preserve and complete all open UI/UX, product, audit, parity, improvement, and refactoring work in `docs/remaining-work.md`, `docs/audits/`, `docs/improvements/`, `docs/parity/`, `docs/architecture/shared-components-plan.md`, and `refactoring-tasks/`. Remove Rust source comments without changing code behavior or project visuals. Reconcile outdated prose with current evidence and the branch authorities above.
-
-## Verification
-
-For code changes, run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo nextest run --all-targets`. For visual claims, follow `docs/visual-testing/README.md`. Comment removal must leave behavior and rendered output unchanged. Historical checks prove only their recorded revision and scope.
+Verify structure from current manifests and imports, behavior from current source and task gates, and visual claims against `design/interaction-polish` using [the visual testing guide](docs/visual-testing/README.md). Standard code gates are `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo nextest run --all-targets`. A passing check proves only the revision and scope it exercised.

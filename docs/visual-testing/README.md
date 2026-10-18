@@ -1,24 +1,6 @@
 # Visual testing
 
-## Status
-
-Branch visual-testing guide scoped to `95f62ca33eaf7b02fc5a2551572fa3258b81a880`. Captures and approvals remain branch-specific.
-
-## Authority
-
-`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
-
-## Current evidence
-
-The guide describes scenario definitions, stored captures, and tooling. Existing captures record their own source revision and are not interchangeable with `main` results.
-
-## Remaining work
-
-Complete the open visual plan and migration items; design-branch captures define product appearance, UI/UX, color, and behavior expectations.
-
-## Verification
-
-Run the pinned visual pilot/smoke procedure and compare against `design/interaction-polish` at matched scenario, size, and color level. Treat `visual-baseline` as historical comparison only.
+This guide documents the visual-test harness and its branch-scoped evidence. The exact UI/UX, color, appearance, and interaction reference is `design/interaction-polish`; captures on this WIP do not establish parity or readiness. The split-crate refactor on `main` remains incomplete and not ready.
 
 The real binaries (`showcase`, `tablepro`, `jackin-preview`, `holla`) run in
 a PTY under [tuiscotti](https://github.com/tailrocks/tuiscotti) (exact `rev`

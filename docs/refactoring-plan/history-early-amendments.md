@@ -23,7 +23,7 @@ Verification is limited to the recorded commands, revisions, and results. Re-run
 
 ## Scope and completion
 
-This planning ledger directly reconstructs amendments to the prefix of `COMPONENT_ARCHITECTURE.md` before the top-level §30 heading. The prefix includes the original appendices and sections 21–29. It covers every indexed parent edge after `3ed377e3`, which is the last edge owned by the early reader; the parent assignment's `3ed5c26f` spelling was corrected against Git. The early reader owns `70dacec1` and `3ed377e3` themselves. The historian owns the initial J/L/M inline reconciliation. Later numbered sections belong to the middle and late readers, even when their decisions amend the earlier prefix.
+This planning ledger directly reconstructs amendments to the prefix of [COMPONENT_ARCHITECTURE.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/COMPONENT_ARCHITECTURE.md) before the top-level §30 heading. The prefix includes the original appendices and sections 21–29. It covers every indexed parent edge after `3ed377e3`, which is the last edge owned by the early reader; the parent assignment's `3ed5c26f` spelling was corrected against Git. The early reader owns `70dacec1` and `3ed377e3` themselves. The historian owns the initial J/L/M inline reconciliation. Later numbered sections belong to the middle and late readers, even when their decisions amend the earlier prefix.
 
 Main is pinned to `7b27732a8c3c131760ec3438f641cb3c11343a42`. The controlling UX oracle is `02f5294bfdbf38004cc49130d0aff1d01f31434c`. References to the older `794b095` fixture source below are historical evidence, not a substitute oracle.
 
