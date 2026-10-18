@@ -993,7 +993,7 @@ mod tests {
         let history = History::seeded();
         assert_eq!(history.search("orders pending", None, false).len(), 1);
         let development = history.search("", Some("Development"), false);
-        assert!(!development.is_empty());
+        assert_ne!(development.len(), 0);
         assert!(
             development
                 .iter()

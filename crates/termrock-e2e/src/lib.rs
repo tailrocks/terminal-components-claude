@@ -1348,7 +1348,11 @@ fn digest_paths(root: &Path, paths: &[PathBuf]) -> Result<String, String> {
         digest.update((contents.len() as u64).to_be_bytes());
         digest.update(contents);
     }
-    Ok(format!("{:x}", digest.finalize()))
+    Ok(digest
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect())
 }
 
 pub fn sha256_file(path: &Path) -> Result<String, String> {
@@ -1359,7 +1363,11 @@ pub fn sha256_file(path: &Path) -> Result<String, String> {
 pub fn sha256_bytes(bytes: &[u8]) -> String {
     let mut digest = Sha256::new();
     digest.update(bytes);
-    format!("{:x}", digest.finalize())
+    digest
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 pub fn load_subject_manifest() -> Result<SubjectManifest, String> {

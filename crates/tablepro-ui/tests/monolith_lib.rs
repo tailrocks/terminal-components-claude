@@ -42,7 +42,7 @@ mod monolith_lib {
         assert!(pending.is_inserted(0));
 
         pending.clear();
-        assert!(pending.dirty_rows().is_empty());
+        assert_eq!(pending.dirty_rows(), Vec::<usize>::new());
     }
 
     #[test]

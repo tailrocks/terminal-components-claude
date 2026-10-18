@@ -112,7 +112,10 @@ fn pending_job_accelerates_idle_wake_then_returns_to_idle_interval() {
     assert_eq!(h.app().world.now_ms(), 0);
     let _ = h.advance(Duration::from_millis(1));
     assert_eq!(h.app().world.now_ms(), 80);
-    assert!(h.app().world.jobs.is_empty());
+    assert_eq!(
+        h.app().world.jobs,
+        [] as [jackin_preview_app::sim::world::Job; 0]
+    );
     let _ = h.advance(Duration::from_millis(199));
     assert_eq!(h.app().world.now_ms(), 80);
     let _ = h.advance(Duration::from_millis(1));

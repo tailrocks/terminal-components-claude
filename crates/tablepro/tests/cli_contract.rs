@@ -33,7 +33,7 @@ fn help_exits_successfully_without_terminal_control_bytes() -> io::Result<()> {
     for args in [&["--help"][..], &["-h"], &["--unknown", "value", "--help"]] {
         let output = invoke(args)?;
         assert_eq!(output.status.code(), Some(0));
-        assert!(output.stderr.is_empty());
+        assert_eq!(output.stderr, [] as [u8; 0]);
         let text = String::from_utf8_lossy(&output.stdout);
         assert!(text.starts_with("tablepro — TablePro's core workflow"));
         assert!(text.contains("Ctrl+O open quickly"));
@@ -55,8 +55,8 @@ fn argument_errors_use_exit_two_without_echoing_values() -> io::Result<()> {
     ] {
         let output = invoke(args)?;
         assert_eq!(output.status.code(), Some(2), "{args:?}");
-        assert!(output.stdout.is_empty());
-        assert!(!output.stderr.is_empty());
+        assert_eq!(output.stdout, [] as [u8; 0]);
+        assert_ne!(output.stderr, [] as [u8; 0]);
         assert!(!String::from_utf8_lossy(&output.stderr).contains(secret));
         assert!(!output.stderr.contains(&0x1b));
     }
@@ -78,7 +78,7 @@ fn accepted_color_aliases_reach_help_in_reference_order() -> io::Result<()> {
         ] {
             let output = invoke(&[flag, color, "--help"])?;
             assert_eq!(output.status.code(), Some(0), "{flag} {color}");
-            assert!(output.stderr.is_empty());
+            assert_eq!(output.stderr, [] as [u8; 0]);
         }
     }
     let output = invoke(&["--help", "--color", "invalid"])?;

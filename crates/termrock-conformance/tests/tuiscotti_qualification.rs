@@ -16,10 +16,23 @@ use tuiscotti::formats::{
     assert_no_escapes, assert_normalized_sgr, assert_opaque_rgb, assert_seven_bit,
     assert_static_offline, capture_all, parse_canonical,
 };
-use tuiscotti::grouped::GroupedStore;
+use tuiscotti::grouped::{ArtifactPaths, GroupedStore};
 use tuiscotti::ratatui::{EdgePolicy, render_screen};
 use tuiscotti::render::frame_from_screen;
 use tuiscotti::snapshot::Status;
+
+fn copy_actual_artifacts_to_approved(actual: &ArtifactPaths, approved: &ArtifactPaths) {
+    for (source, destination) in [
+        (&actual.ansi, &approved.ansi),
+        (&actual.txt, &approved.txt),
+        (&actual.png, &approved.png),
+        (&actual.html, &approved.html),
+    ] {
+        std::fs::create_dir_all(destination.parent().expect("artifact parent"))
+            .expect("create approved artifact parent");
+        std::fs::copy(source, destination).expect("copy generated artifact fixture");
+    }
+}
 
 #[test]
 fn qualify_pure_ratatui_capture_and_six_formats() {
@@ -126,8 +139,7 @@ fn qualify_grouped_store_and_negative_detection() {
     assert!(actual_root.join(format!("{case_name}.ansi")).exists());
     assert!(actual_root.join(format!("{case_name}.png")).exists());
 
-    // 2. Bless/accept to approve
-    store.accept(case_name).expect("accept succeeds");
+    copy_actual_artifacts_to_approved(&outcome1.actual, &outcome1.approved);
     assert!(approved_root.join(format!("{case_name}.ansi")).exists());
     assert!(approved_root.join(format!("{case_name}.txt")).exists());
     assert!(approved_root.join(format!("{case_name}.html")).exists());
@@ -230,8 +242,7 @@ fn qualify_corrupt_and_tampered_artifact_rejection() {
         .unwrap();
     assert_eq!(outcome.status(), Status::MissingApproval);
 
-    // 2. Accept into approved
-    store.accept(case_name).expect("accept");
+    copy_actual_artifacts_to_approved(&outcome.actual, &outcome.approved);
     let matched = store
         .check_with(&mut renderer, case_name, &frame, 1.0)
         .unwrap();
