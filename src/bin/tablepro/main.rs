@@ -50,8 +50,7 @@ const NO_MOTION_ENV: &str = "TABLEPRO_NO_MOTION";
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
-
-    #[arg(help = "Connect to the named connection at start")]
+    /// Connect to the named connection at start
     #[arg(long, value_name = "NAME")]
     connect: Option<String>,
 }

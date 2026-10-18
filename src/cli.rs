@@ -26,20 +26,16 @@ impl From<ColorArg> for ColorLevel {
     }
 }
 
+/// The options every application accepts.
 #[derive(Clone, Debug, Default, PartialEq, Eq, clap::Args)]
-#[command(about = "The options every application accepts")]
 pub struct CommonArgs {
-    #[arg(help = "Colour level (default: detected from the terminal; NO_COLOR selects none)")]
+    /// Colour level (default: detected from the terminal; NO_COLOR selects none)
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
     pub color: Option<ColorArg>,
-
-    #[arg(
-        help = "How much moves (default: full, or reduced when the app's NO_MOTION variable is set)"
-    )]
+    /// How much moves (default: full, or reduced when the app's NO_MOTION variable is set)
     #[arg(short = 'm', long, value_enum, value_name = "MOTION")]
     pub motion: Option<Motion>,
-
-    #[arg(help = "With --motion paused, the tick to render")]
+    /// With --motion paused, the tick to render
     #[arg(short = 'f', long, default_value_t = 0, value_name = "N")]
     pub frame: u64,
 }
