@@ -1,15 +1,7 @@
-
-
-
-
-
-
-
 use crate::domain::context::ScopeTag;
 use crate::domain::effect::Effect;
 use crate::domain::exec::Command;
 use crate::sim::world::BatchMode;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Kind {
@@ -66,7 +58,6 @@ impl Kind {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResultType {
     Action,
@@ -75,7 +66,6 @@ pub enum ResultType {
     Flow,
     Handoff,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Risk {
@@ -96,17 +86,13 @@ impl Risk {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Confirmation {
-
     None,
 
     One,
 
-
     TwoGate { phrase: String, broad: bool },
-
 
     Trust { config: String },
 }
@@ -127,7 +113,6 @@ impl Confirmation {
         }
     }
 
-
     pub fn phrase(&self) -> Option<String> {
         match self {
             Confirmation::TwoGate { phrase, broad } => Some(if *broad {
@@ -139,8 +124,6 @@ impl Confirmation {
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Freshness {
@@ -175,10 +158,8 @@ impl Freshness {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Signal {
-
     Default,
 
     GlobalUse,
@@ -206,7 +187,6 @@ impl Reason {
         }
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArgSpec {
@@ -255,11 +235,8 @@ impl ArgSpec {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Launch {
-
-
     Activity { script: Option<String> },
 
     Batch,
@@ -293,10 +270,8 @@ pub enum Launch {
     Insert,
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Item {
-
     pub id: String,
     pub label: String,
     pub kind: Kind,
@@ -316,7 +291,6 @@ pub struct Item {
     pub keywords: Vec<String>,
 
     pub aliases: Vec<String>,
-
 
     pub page_aliases: Vec<String>,
     pub freshness: Freshness,
@@ -351,7 +325,6 @@ pub struct Item {
 
     pub frecency: f64,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Alternative {
@@ -494,19 +467,15 @@ impl Item {
         self
     }
 
-
     pub fn top_reason(&self) -> Option<&Reason> {
         self.reasons.iter().max_by_key(|r| r.signal)
     }
-
 
     pub fn signal(&self) -> Signal {
         self.top_reason()
             .map(|r| r.signal)
             .unwrap_or(Signal::Default)
     }
-
-
 
     pub fn is_recommended(&self) -> bool {
         self.signal() >= Signal::LocalUse

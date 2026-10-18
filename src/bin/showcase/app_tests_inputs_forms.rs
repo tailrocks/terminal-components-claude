@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -93,7 +88,6 @@ impl Harness {
             .join("\n")
     }
 
-
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         let want: Vec<&str> =
@@ -119,8 +113,6 @@ impl Harness {
     }
 }
 
-
-
 #[test]
 #[ignore]
 fn dump_pages() {
@@ -140,14 +132,11 @@ fn dump_pages() {
     }
 }
 
-
-
 fn tool_id(i: usize) -> junie_tui::core::id::WidgetId {
     junie_tui::core::id::WidgetId::of("buttons")
         .sub("tools")
         .child(i)
 }
-
 
 fn focus_bar_on(h: &Harness, y: u16) -> bool {
     let buf = h.term.backend().buffer();
@@ -264,8 +253,6 @@ fn buttons_states_grid_follows_its_options_and_shows_the_icon_button() {
     assert_eq!(marks(&h), 0);
 }
 
-
-
 #[test]
 fn states_legend_names_the_mark_the_grid_draws() {
     for opt in ["shell.glyphs=ascii", "buttons.focus_mark=colon"] {
@@ -314,8 +301,6 @@ fn buttons_row_arrows_stop_at_the_ends_unless_wrap_is_on() {
     }
 }
 
-
-
 fn input_field(h: &Harness, i: usize) -> &junie_tui::widgets::input::TextInput {
     let page = h.app.pages[PageId::Inputs.index()]
         .as_any()
@@ -327,7 +312,6 @@ fn input_field(h: &Harness, i: usize) -> &junie_tui::widgets::input::TextInput {
 fn input_text(h: &Harness, i: usize) -> String {
     input_field(h, i).field.buffer.text().to_owned()
 }
-
 
 fn tab_to_project(h: &mut Harness) {
     let (x, y) = h.at("Playground    Options");
@@ -343,7 +327,6 @@ fn tab_to_project(h: &mut Harness) {
 
 #[test]
 fn inputs_edit_entry_and_focus_select_shape_how_focus_starts_an_edit() {
-
     let mut h = Harness::new(120, 40, PageId::Inputs);
     tab_to_project(&mut h);
     assert!(input_field(&h, 0).editing);
@@ -512,8 +495,6 @@ fn textareas_states_rows_render() {
     assert!(text.contains("Explain why, in the imperative"));
 }
 
-
-
 #[test]
 fn checks_hit_decides_whether_blank_row_space_toggles() {
     for (value, toggles) in [("label", false), ("row", true)] {
@@ -615,8 +596,6 @@ fn checks_states_grid_shows_all_three_widgets() {
     assert!(rows.contains(&junie_tui::ui::specimen::SpecimenState::Disabled));
 }
 
-
-
 fn sort_select(h: &Harness) -> &junie_tui::widgets::select::Select {
     h.app.pages[PageId::Chips.index()]
         .as_any()
@@ -687,7 +666,6 @@ fn chips_custom_keymap_rebinds_remove_add_and_clear() {
 
 #[test]
 fn chips_select_arrows_step_or_open() {
-
     let mut h = Harness::new(120, 40, PageId::Chips);
     focus(&mut h, CHIPS.sub("sort"));
     h.key(KeyCode::Down);
@@ -732,8 +710,6 @@ fn chips_select_list_rows_placement_and_tab() {
 
 #[test]
 fn chips_select_dismiss_and_mixed_follow_the_options() {
-
-
     for (value, closes) in [("light", true), ("escape", false)] {
         let mut h = Harness::new(120, 40, PageId::Chips);
         h.opt(&format!("chipsselects.dismiss={value}"));
@@ -753,12 +729,6 @@ fn chips_select_dismiss_and_mixed_follow_the_options() {
     assert!(h.text().contains("Mixed"));
 }
 
-
-
-
-
-
-
 #[test]
 fn an_escape_only_select_stays_open_on_a_click_outside() {
     let mut h = Harness::new(120, 40, PageId::Chips);
@@ -773,9 +743,6 @@ fn an_escape_only_select_stays_open_on_a_click_outside() {
     h.key(KeyCode::Esc);
     assert!(!sort_select(&h).open, "Esc closes it");
 }
-
-
-
 
 #[test]
 fn a_right_click_on_a_field_focuses_it_and_opens_the_edit_menu() {
@@ -799,7 +766,6 @@ fn a_right_click_on_a_field_focuses_it_and_opens_the_edit_menu() {
         );
     }
 
-
     h.key(KeyCode::Enter);
     h.draw();
     assert!(
@@ -812,10 +778,6 @@ fn a_right_click_on_a_field_focuses_it_and_opens_the_edit_menu() {
         Some("mira@example")
     );
 }
-
-
-
-
 
 #[test]
 fn forms_options_states_and_submit_from_the_strip() {
@@ -870,8 +832,6 @@ fn forms_options_states_and_submit_from_the_strip() {
         assert!(text.lines().any(|l| l.contains(row)), "{row}\n{text}");
     }
 }
-
-
 
 #[test]
 fn a_short_forms_page_scrolls_its_column_to_the_focused_control() {

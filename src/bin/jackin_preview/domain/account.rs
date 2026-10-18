@@ -1,6 +1,3 @@
-
-
-
 use super::agent::{Agent, Provider, UsageSurface};
 use super::onepassword::OpReference;
 use super::usage::{AccountUsage, Freshness};
@@ -9,7 +6,6 @@ pub type AccountId = String;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccountOrigin {
-
     Registered,
 
     Discovered,
@@ -23,8 +19,6 @@ pub enum CredentialSource {
         detected: DetectedKind,
     },
     PlainApiKey {
-
-
         fingerprint: String,
 
         tail: String,
@@ -45,7 +39,6 @@ impl CredentialSource {
         }
     }
 
-
     pub fn safe_detail(&self) -> String {
         match self {
             CredentialSource::OnePassword(r) => r.display_path(),
@@ -58,12 +51,9 @@ impl CredentialSource {
     }
 }
 
-
 pub fn masked(tail: &str) -> String {
     format!("••••••••…{tail}")
 }
-
-
 
 pub fn fingerprint(value: &str) -> String {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
@@ -73,7 +63,6 @@ pub fn fingerprint(value: &str) -> String {
     }
     format!("{:08x}", (h >> 32) as u32 ^ h as u32)
 }
-
 
 pub fn tail_of(value: &str) -> String {
     let n = value.chars().count();
@@ -325,7 +314,6 @@ impl RecoverableIssue {
         self
     }
 
-
     pub fn is_informational(&self) -> bool {
         matches!(self.code, IssueCode::Stale | IssueCode::IdentityUnresolved)
     }
@@ -407,11 +395,9 @@ impl Account {
         self.origin == AccountOrigin::Registered
     }
 
-
     pub fn title(&self) -> String {
         format!("{} · {}", self.surface.surface_name(), self.display_name)
     }
-
 
     pub fn status_word(&self) -> &'static str {
         if !self.enabled {
@@ -529,7 +515,6 @@ impl AccountRegistry {
         })
     }
 
-
     pub fn name_taken(&self, provider: Provider, name: &str, except: Option<&str>) -> bool {
         self.accounts.iter().any(|a| {
             a.provider == provider
@@ -537,7 +522,6 @@ impl AccountRegistry {
                 && Some(a.id.as_str()) != except
         })
     }
-
 
     pub fn set_default(&mut self, id: &str) -> Result<(), String> {
         let Some(target) = self.get(id) else {
@@ -566,7 +550,6 @@ impl AccountRegistry {
         self.accounts.push(account);
         self.revision += 1;
     }
-
 
     pub fn sorted(&self) -> Vec<&Account> {
         let mut v: Vec<&Account> = self.accounts.iter().collect();

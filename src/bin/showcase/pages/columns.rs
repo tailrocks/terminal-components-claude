@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
@@ -33,13 +21,11 @@ use junie_tui::widgets::table::{Cell, Column, DataTable, Tone};
 const ID: WidgetId = WidgetId::of("columns");
 const HEADER_MENU: WidgetId = WidgetId::of("columns.header-menu");
 
-
 const WIDTHS: [Option<u16>; 5] = [None, Some(72), Some(56), Some(40), Some(28)];
 const SEAM_WIDTHS: [u16; 3] = [1, 2, 3];
 const MIN_WIDTHS: [u16; 3] = [3, 6, 10];
 
 const GAP: u16 = 2;
-
 
 const CUSTOM_LABELS: HeaderLabels = HeaderLabels {
     sort_asc: "Sort A to Z",
@@ -48,8 +34,6 @@ const CUSTOM_LABELS: HeaderLabels = HeaderLabels {
     autofit: "Fit Width",
     reset_widths: "Default Widths",
 };
-
-
 
 struct Rule {
     name: &'static str,
@@ -93,7 +77,6 @@ fn rules() -> [Rule; 5] {
     ]
 }
 
-
 fn sized_table(resizable: bool, seam_w: u16, min_width: u16, labels: HeaderLabels) -> DataTable {
     let mut t = DataTable::new(
         ID.sub("sized"),
@@ -107,7 +90,6 @@ fn sized_table(resizable: bool, seam_w: u16, min_width: u16, labels: HeaderLabel
     t.header_labels = labels;
     t
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -186,8 +168,6 @@ impl ColumnsPage {
             self.header_labels(),
         );
     }
-
-
 
     fn solve(&mut self, avail: u16) {
         self.solved_at = avail;
@@ -339,9 +319,6 @@ impl ColumnsPage {
 }
 
 impl ColumnsPage {
-
-
-
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.is(Phase::Secondary) {
             let Some(c) = self.sized.header_menu_at(ev) else {

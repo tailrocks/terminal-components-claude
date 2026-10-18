@@ -1,6 +1,3 @@
-
-
-
 use crate::pages::Pages;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
@@ -12,8 +9,6 @@ use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::editor::ROLES;
 use junie_tui::ui::modal::{BACKDROP, CLOSE, SURFACE};
-
-
 
 fn outside(h: &H) -> Position {
     let area = h.term.backend().buffer().area;
@@ -43,7 +38,6 @@ fn hard_editor_roles() -> H {
     h.key(KeyCode::Char('3'));
     h
 }
-
 
 #[test]
 fn the_wheel_scrolls_the_roles_list_without_snapping_back_to_the_cursor() {
@@ -76,8 +70,6 @@ fn the_wheel_scrolls_the_roles_list_without_snapping_back_to_the_cursor() {
         "the view snapped back to the cursor"
     );
 }
-
-
 
 #[test]
 fn help_closes_by_its_close_button_its_done_button_and_a_click_beside_it() {
@@ -129,7 +121,6 @@ fn new_account_form() -> H {
     h
 }
 
-
 #[test]
 fn a_form_closes_by_the_close_button_in_its_frame() {
     let mut h = new_account_form();
@@ -143,7 +134,6 @@ fn a_form_closes_by_the_close_button_in_its_frame() {
     assert!(!h.text().contains("New account"), "{}", h.text());
     assert_eq!(h.app.route(), Route::Accounts);
 }
-
 
 #[test]
 fn a_refused_outside_click_flashes_the_form_frame() {
@@ -165,7 +155,6 @@ fn a_refused_outside_click_flashes_the_form_frame() {
     assert_eq!(corner(&h), rest);
 }
 
-
 #[test]
 fn a_click_skips_the_intro() {
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
@@ -180,7 +169,6 @@ fn a_click_skips_the_intro() {
     off.click(60, 20);
     assert_eq!(off.app.route(), Route::Intro);
 }
-
 
 #[test]
 fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() {
@@ -220,7 +208,6 @@ fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() 
     assert!(!h.text().contains("Docker build"), "{}", h.text());
 }
 
-
 #[test]
 fn a_taken_over_capsule_reconnects_by_mouse() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
@@ -257,7 +244,6 @@ fn a_taken_over_capsule_reconnects_by_mouse() {
     assert_ne!(h.app.route(), Route::Capsule, "{}", h.text());
 }
 
-
 #[test]
 fn an_app_modal_frame_closes_by_its_close_button() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
@@ -286,8 +272,6 @@ fn an_app_modal_frame_closes_by_its_close_button() {
     assert_eq!(h.app.route(), Route::Capsule);
 }
 
-
-
 fn roster_rows(h: &H) -> Vec<(u16, u16, String)> {
     let Some(card) = h.app.shell.hits.area_of(crate::screens::manager::ROSTER) else {
         return vec![];
@@ -309,10 +293,6 @@ fn roster_rows(h: &H) -> Vec<(u16, u16, String)> {
     }
     rows
 }
-
-
-
-
 
 #[test]
 fn a_roster_click_selects_the_instance_of_that_row() {

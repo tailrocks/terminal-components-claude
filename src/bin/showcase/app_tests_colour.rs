@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind};
 use junie_tui::runtime::Application;
 use junie_tui::theme::{Theme, contrast_ratio};
@@ -70,7 +65,6 @@ impl Harness {
         self.term.backend().buffer().area.height
     }
 
-
     fn find_all(&self, needle: &str) -> Vec<(u16, u16)> {
         let mut out = Vec::new();
         for y in 0..self.rows() {
@@ -98,10 +92,6 @@ impl Harness {
 fn reads(cell: &Cell) -> f64 {
     contrast_ratio(cell.fg, cell.bg).expect("measurable colours")
 }
-
-
-
-
 
 #[test]
 fn taskrunner_states_take_the_status_roles() {
@@ -155,10 +145,6 @@ fn taskrunner_states_take_the_status_roles() {
     assert!(cell.modifier.contains(Modifier::BOLD));
 }
 
-
-
-
-
 #[test]
 fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
     let t = Theme::junie();
@@ -173,7 +159,6 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
         .expect("running run");
     assert_eq!(h.cell(run, y).fg, t.accent, "a running bar is active");
 
-
     let (x, y) = h.find("88% disk");
     let line = h.row(y);
     assert!(line.contains(&format!("critical at 95 {}", t.glyphs.warning)));
@@ -183,7 +168,6 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
         .expect("disk run");
     assert_eq!(h.cell(run, y).fg, t.warning);
 
-
     let (x, y) = h.find("82% · stale warning");
     let run = (0..x)
         .rev()
@@ -191,7 +175,6 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
         .expect("dashed run");
     assert_eq!(h.cell(run, y).fg, t.warning);
     assert!(h.cell(x, y).modifier.contains(Modifier::ITALIC));
-
 
     let (_, y) = h.find("Stale     ");
     assert!(h.row(y).contains(t.glyphs.bar_stale));
@@ -203,8 +186,6 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
         .expect("faint run");
     assert_eq!(h.cell(run, y).fg, t.text_faint);
 }
-
-
 
 #[test]
 fn editor_booleans_are_literals() {
@@ -218,15 +199,11 @@ fn editor_booleans_are_literals() {
     assert!(!cell.modifier.contains(Modifier::BOLD), "not a keyword");
 }
 
-
-
-
 #[test]
 fn overview_roles_draw_statuses_environments_tones_code_and_link() {
     let t = Theme::junie();
 
     let h = Harness::new(220, 80, PageId::Overview);
-
 
     let (roles_x, roles_y) = h.find("Roles");
     let at = |needle: &str| {
@@ -266,8 +243,6 @@ fn overview_roles_draw_statuses_environments_tones_code_and_link() {
     assert!(lit.modifier.contains(Modifier::ITALIC));
 }
 
-
-
 #[test]
 fn destructive_dialog_title_leads_with_a_warning_status() {
     let t = Theme::junie();
@@ -278,8 +253,6 @@ fn destructive_dialog_title_leads_with_a_warning_status() {
     assert_eq!(glyph.symbol(), t.glyphs.warning);
     assert_eq!(glyph.fg, t.legible(t.warning, glyph.bg));
 }
-
-
 
 #[test]
 fn list_metadata_takes_its_change_tone() {
@@ -301,9 +274,6 @@ fn list_metadata_takes_its_change_tone() {
     assert!(reads(cell) >= 4.5);
 }
 
-
-
-
 #[test]
 fn taskrunner_deploy_targets_carry_their_environment() {
     let t = Theme::junie();
@@ -322,8 +292,6 @@ fn taskrunner_deploy_targets_carry_their_environment() {
     let (x, y) = h.find("◇ staging");
     assert_eq!(h.cell(x, y).fg, t.warning);
 }
-
-
 
 #[test]
 fn chrome_shows_toned_status_parts_spans_and_a_footer_status() {

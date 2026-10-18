@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::app::PageId;
@@ -28,7 +24,6 @@ fn panels(h: &Harness) -> &PanelsPage {
         .expect("the Panels page")
 }
 
-
 fn hint(h: &Harness, page: PageId, focus: WidgetId, label: &str) -> Option<&'static str> {
     h.app.pages[page.index()]
         .hints(Some(focus))
@@ -36,7 +31,6 @@ fn hint(h: &Harness, page: PageId, focus: WidgetId, label: &str) -> Option<&'sta
         .find(|(_, l)| *l == label)
         .map(|(k, _)| k)
 }
-
 
 fn key_of(token: &str) -> KeyCode {
     match token {
@@ -47,7 +41,6 @@ fn key_of(token: &str) -> KeyCode {
         t => KeyCode::Char(t.chars().next().unwrap()),
     }
 }
-
 
 fn big() -> Harness {
     Harness::on(160, 60, PageId::Scrolling)
@@ -71,8 +64,6 @@ fn hinted_end_keys_reach_both_ends_of_the_list_under_either_profile() {
             assert_eq!(scrolling(&h).list.cursor, 0, "{profile}: {}", pair[0]);
         }
         if profile == "desktop" {
-
-
             h.key(KeyCode::Char('G'));
             assert_eq!(scrolling(&h).list.cursor, 0, "G is not End on desktop");
         }
@@ -201,8 +192,6 @@ fn the_cursor_readout_names_the_last_step_and_move() {
 
 #[test]
 fn type_ahead_pause_and_precedence_reach_every_collection() {
-
-
     for (timeout, cursor) in [("2s", 1), ("0.5s", 0)] {
         let mut h = big();
         h.opt(&format!("scrolling.timeout={timeout}"));

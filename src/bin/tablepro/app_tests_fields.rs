@@ -1,6 +1,3 @@
-
-
-
 use crate::filter_editor::FilterEditor;
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
@@ -15,7 +12,6 @@ fn history_search(h: &H) -> &junie_tui::widgets::input::TextInput {
         _ => panic!("expected the history tab"),
     }
 }
-
 
 fn searched(text: &str) -> (H, u16, u16) {
     let mut h = H::connected(120, 40);
@@ -134,8 +130,6 @@ fn a_press_on_the_filter_editor_body_ends_the_value_edit() {
 
 #[test]
 fn moving_focus_away_ends_the_explorer_filters_edit() {
-
-
     let mut h = H::connected(120, 40);
     let filter = h.wb().explorer_filter.id;
     h.tab_to(filter);

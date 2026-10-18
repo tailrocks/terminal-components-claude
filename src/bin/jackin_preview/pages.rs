@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use junie_tui::shell::Router;
 
 use crate::app::Route;
@@ -18,13 +11,11 @@ use crate::screens::prelude::PreludeScreen;
 use crate::screens::settings::SettingsScreen;
 use crate::screens::usage::UsageScreen;
 
-
 pub const TAB_MANAGER: usize = 0;
 
 pub const TAB_ACCOUNTS: usize = 1;
 
 pub const TAB_USAGE: usize = 2;
-
 
 pub enum Page {
     Manager(Box<ManagerScreen>),
@@ -44,7 +35,6 @@ impl std::fmt::Debug for Page {
 }
 
 impl Page {
-
     pub fn route(&self) -> Route {
         match self {
             Page::Manager(_) => Route::Manager,
@@ -85,7 +75,6 @@ impl Page {
     }
 }
 
-
 pub fn router() -> Router<Page> {
     Router::with_tabs(vec![
         Page::Manager(Box::default()),
@@ -94,10 +83,7 @@ pub fn router() -> Router<Page> {
     ])
 }
 
-
-
 pub trait Pages {
-
     fn screen(&self, route: Route) -> Option<&dyn Screen>;
 
     fn screen_mut(&mut self, route: Route) -> Option<&mut dyn Screen>;

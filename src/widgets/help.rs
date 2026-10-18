@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -20,11 +16,8 @@ use crate::widgets::button::Button;
 use crate::widgets::keyhint::Hint;
 use crate::widgets::scrollbar;
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HelpCmd {
-
     Close,
 }
 
@@ -43,10 +36,6 @@ impl Actions for HelpCmd {
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct HelpSection {
     pub title: String,
@@ -62,9 +51,6 @@ impl HelpSection {
         }
     }
 
-
-
-
     pub fn row(mut self, keys: impl Into<String>, action: impl Into<String>) -> Self {
         let keys = keys.into();
         if crate::core::keyboard::label_deliverable(&keys) {
@@ -72,11 +58,6 @@ impl HelpSection {
         }
         self
     }
-
-
-
-
-
 
     pub fn bindings(mut self, bindings: &[crate::core::hints::Binding]) -> Self {
         for b in bindings.iter().filter(|b| !b.action.is_empty()) {
@@ -93,22 +74,12 @@ impl HelpSection {
         self
     }
 
-
     pub fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
 }
 
 pub struct HelpOverlay {
-
-
-
-
-
-
-
-
-
     pub close_button: crate::widgets::icon_button::IconButton,
 
     pub dismiss: crate::ui::popup::Dismiss,
@@ -122,23 +93,15 @@ pub struct HelpOverlay {
 
     pub title: String,
 
-
-
-
-
     pub hint: String,
 
     pub nav: NavKeys,
 
     pub keymap: KeyMap<HelpCmd>,
 
-
-
     pub max_percent: u16,
 
-
     pub done: Button,
-
 
     strings: crate::theme::Strings,
 }
@@ -155,7 +118,6 @@ impl std::fmt::Debug for HelpOverlay {
     }
 }
 
-
 impl HasHints for HelpOverlay {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         let mut v = vec![];
@@ -170,18 +132,15 @@ impl HasHints for HelpOverlay {
 }
 
 impl HelpOverlay {
-
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<HelpCmd>) -> Self {
         self.keymap = keymap;
@@ -219,11 +178,6 @@ impl HelpOverlay {
         }
     }
 
-
-
-
-
-
     pub fn from_keymaps(id: WidgetId, scope: &str, sections: Vec<HelpSection>) -> Self {
         let mut h = Self::new(id, scope, vec![]);
         h.sections = sections
@@ -234,13 +188,10 @@ impl HelpOverlay {
         h
     }
 
-
     pub fn max_percent(mut self, percent: u16) -> Self {
         self.max_percent = percent.clamp(20, 100);
         self
     }
-
-
 
     pub fn on_click(&mut self, id: WidgetId) -> Outcome {
         if id == self.done.id && self.done.on_click()
@@ -313,7 +264,6 @@ impl HelpOverlay {
         let col_w = inner.width / cols;
         let cols = cols as usize;
 
-
         let widest = self
             .sections
             .iter()
@@ -365,15 +315,12 @@ impl HelpOverlay {
                         x + key_w + 1,
                         y,
                         truncate(action, action_w),
-
-
                         t.secondary().bg(bg),
                     );
                 }
             }
         }
         if self.scroll.overflows() {
-
             let body = Rect::new(
                 area.x,
                 inner.y,
@@ -421,10 +368,6 @@ impl Scrollable for HelpOverlay {
     }
 }
 
-
-
-
-
 impl crate::core::pointer::MouseTarget for HelpOverlay {
     type Action = ();
 
@@ -468,9 +411,6 @@ mod tests {
     use crate::ui::ctx::Interaction;
     use crate::ui::popup::Dismiss;
     use ratatui::crossterm::event::KeyModifiers;
-
-
-
 
     #[test]
     fn long_descriptions_wrap_under_their_column_and_keys_share_a_row() {

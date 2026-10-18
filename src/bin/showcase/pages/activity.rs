@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -43,14 +28,12 @@ pub const LOG: WidgetId = ID.sub("log");
 
 pub const STREAMS: WidgetId = ID.sub("streams");
 
-
 const SERVICES: [(&str, Tone); 4] = [
     ("api", Tone::Info),
     ("worker", Tone::Secondary),
     ("scheduler", Tone::Warning),
     ("db", Tone::Muted),
 ];
-
 
 const CHATTER: [(usize, &str); 12] = [
     (0, "GET /health 200 2 ms"),
@@ -67,7 +50,6 @@ const CHATTER: [(usize, &str); 12] = [
     (1, "job 4823 send-digest done in 233 ms"),
 ];
 
-
 const STAGES: [&str; 5] = [
     "Resolve tools",
     "Install dependencies",
@@ -75,7 +57,6 @@ const STAGES: [&str; 5] = [
     "Start services",
     "Healthy",
 ];
-
 
 const LINE_TICKS: u32 = 3;
 
@@ -102,7 +83,6 @@ pub struct ActivityPage {
     stop: Button,
     restart: Button,
 
-
     log: Vec<(Option<usize>, Line)>,
     run: Run,
 
@@ -114,8 +94,6 @@ pub struct ActivityPage {
     exit: Option<i32>,
 }
 
-
-
 fn service_line(svc: usize, text: &str) -> Line {
     let (name, tone) = SERVICES[svc];
     let body = if text.contains("error") || text.contains(" 404 ") {
@@ -125,7 +103,6 @@ fn service_line(svc: usize, text: &str) -> Line {
     };
     vec![Span::new(format!("{name:<9} │ "), tone), body]
 }
-
 
 fn holla_line(text: &str, tone: Tone) -> Line {
     vec![Span::new(text, tone)]
@@ -167,8 +144,6 @@ impl ActivityPage {
         p
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let view = std::mem::replace(&mut self.view, TextViewport::new(LOG));
@@ -179,7 +154,6 @@ impl ActivityPage {
             .digit_toggles(o.on("activity.digit_toggles"));
         self.sync_view();
     }
-
 
     fn start(&mut self) {
         self.log.clear();
@@ -268,7 +242,6 @@ impl ActivityPage {
         self.sync_rail();
     }
 
-
     fn sync_view(&mut self) {
         let lines = self
             .log
@@ -281,7 +254,6 @@ impl ActivityPage {
         self.view.set_follow(follow);
         self.mark();
     }
-
 
     fn mark(&mut self) {
         let q = match self.opts.value("activity.find") {
@@ -432,7 +404,6 @@ impl ActivityPage {
                 )),
             )
         } else {
-
             (
                 Rect::new(body.x, body.y, body.width, body.height.saturating_sub(2)),
                 None,
@@ -596,7 +567,6 @@ impl ActivityPage {
         }
     }
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

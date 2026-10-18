@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -19,41 +6,23 @@ use crate::core::id::WidgetId;
 use crate::theme::Theme;
 use crate::ui::ctx::{RenderCtx, fill};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Dismiss {
-
     pub escape: bool,
-
 
     pub outside_click: bool,
 
-
-
-
     pub pass_through: bool,
-
-
-
-
 
     pub close_button: bool,
 
-
     pub refuse_feedback: RefuseFeedback,
-
-
-
 
     pub focus_out: bool,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RefuseFeedback {
-
-
     #[default]
     Flash,
 
@@ -61,7 +30,6 @@ pub enum RefuseFeedback {
 }
 
 impl Dismiss {
-
     pub const LIGHT: Self = Self {
         escape: true,
         outside_click: true,
@@ -70,7 +38,6 @@ impl Dismiss {
         refuse_feedback: RefuseFeedback::Flash,
         focus_out: true,
     };
-
 
     pub const ESCAPE: Self = Self {
         escape: true,
@@ -92,31 +59,25 @@ impl Dismiss {
 }
 
 impl Dismiss {
-
     pub const fn pass_through(mut self, on: bool) -> Self {
         self.pass_through = on;
         self
     }
-
 
     pub const fn close_button(mut self, on: bool) -> Self {
         self.close_button = on;
         self
     }
 
-
     pub const fn refuse_feedback(mut self, feedback: RefuseFeedback) -> Self {
         self.refuse_feedback = feedback;
         self
     }
 
-
     pub const fn focus_out(mut self, on: bool) -> Self {
         self.focus_out = on;
         self
     }
-
-
 
     pub const fn allows(self, reason: crate::core::intent::DismissReason) -> bool {
         use crate::core::intent::DismissReason as R;
@@ -127,9 +88,6 @@ impl Dismiss {
             R::Programmatic => true,
         }
     }
-
-
-
 
     pub const fn shows_close(self) -> bool {
         self.close_button && self.escape
@@ -142,55 +100,29 @@ impl Default for Dismiss {
     }
 }
 
-
-
 pub const fn backdrop_id(owner: WidgetId) -> WidgetId {
     owner.sub("popup.backdrop")
 }
 
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Placement {
-
-
     Below,
-
 
     Above,
 
-
     Right,
 
-
     Left,
-
 
     Center,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Overflow {
-
-
     Shrink,
-
 
     Slide,
 }
-
-
-
-
-
-
 
 pub fn backdrop(ctx: &mut RenderCtx, owner: WidgetId, dismiss: Dismiss, screen: Rect) {
     if !ctx.inert {
@@ -203,30 +135,20 @@ pub fn backdrop(ctx: &mut RenderCtx, owner: WidgetId, dismiss: Dismiss, screen: 
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VAlign {
-
     Center,
 
     Third,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Place {
-
-
-
     pub margin: u16,
 
     pub v_align: VAlign,
 
-
-
     pub text_inset: u16,
-
-
 
     pub vertical_margin: Option<u16>,
 
@@ -234,8 +156,6 @@ pub struct Place {
 }
 
 impl Place {
-
-
     pub const DEFAULT: Self = Self {
         margin: 1,
         v_align: VAlign::Center,
@@ -243,7 +163,6 @@ impl Place {
         vertical_margin: None,
         overflow: Overflow::Shrink,
     };
-
 
     pub const FLUSH: Self = Self {
         margin: 0,
@@ -253,8 +172,6 @@ impl Place {
         overflow: Overflow::Shrink,
     };
 
-
-
     pub const MENU: Self = Self {
         margin: 1,
         v_align: VAlign::Center,
@@ -263,12 +180,10 @@ impl Place {
         overflow: Overflow::Slide,
     };
 
-
     pub const fn vertical_margin(mut self, margin: Option<u16>) -> Self {
         self.vertical_margin = margin;
         self
     }
-
 
     pub const fn overflow(mut self, overflow: Overflow) -> Self {
         self.overflow = overflow;
@@ -297,18 +212,9 @@ impl Default for Place {
     }
 }
 
-
-
 pub fn place(screen: Rect, anchor: Rect, width: u16, height: u16, placement: Placement) -> Rect {
     place_with(screen, anchor, width, height, placement, Place::DEFAULT)
 }
-
-
-
-
-
-
-
 
 pub fn place_with(
     screen: Rect,
@@ -378,9 +284,6 @@ pub fn place_with(
     }
 }
 
-
-
-
 fn side(
     bounds: (u16, u16),
     anchor: (u16, u16),
@@ -415,7 +318,6 @@ fn side(
             }
         }
         Overflow::Shrink => {
-
             let after_wins = if after {
                 room_after >= room_before
             } else {
@@ -434,16 +336,9 @@ fn side(
     }
 }
 
-
-
-
 pub fn surface(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, t: &Theme) -> Rect {
     surface_for(area, buf, ctx, t, None)
 }
-
-
-
-
 
 pub fn surface_for(
     area: Rect,
@@ -462,7 +357,6 @@ pub fn surface_for(
         .border_set(t.glyphs.border)
         .border_style(t.border(true).bg(t.surface_elevated));
     ratatui::widgets::Widget::render(block, area, buf);
-
 
     ctx.hits.push_barrier();
     if let Some((owner, dismiss)) = owner {
@@ -503,7 +397,6 @@ mod tests {
     #[test]
     fn a_popup_that_fits_neither_side_shrinks_on_the_roomier_side_and_never_covers_the_anchor() {
         let screen = Rect::new(0, 0, 80, 20);
-
 
         let anchor = Rect::new(4, 7, 20, 1);
         let r = place(screen, anchor, 30, 16, Placement::Below);

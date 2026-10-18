@@ -1,7 +1,3 @@
-
-
-
-
 use std::collections::BTreeMap;
 
 use crate::arbiter::Arbiter;
@@ -17,9 +13,6 @@ use crate::sim::pty::Daemon;
 use junie_tui::clock::SimClock;
 use junie_tui::shell::JobKey;
 
-
-
-
 pub mod job {
     use junie_tui::shell::JobKey;
     pub const WORKSPACE_SAVE: JobKey = JobKey::new("workspace.save");
@@ -31,7 +24,6 @@ pub mod job {
     pub const ACCOUNT_VALIDATE: JobKey = JobKey::new("account.validate");
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GlobalConfig {
     pub coauthor_trailer: bool,
@@ -39,7 +31,6 @@ pub struct GlobalConfig {
     pub mounts: Vec<Mount>,
     pub env: Vec<EnvVar>,
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
-
 
     pub agent_modes: BTreeMap<Agent, AuthMode>,
     pub trust: Vec<TrustRow>,
@@ -62,8 +53,6 @@ impl GlobalConfig {
         n
     }
 }
-
-
 
 pub fn keyed_diff<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
     let mut n = 0;
@@ -89,7 +78,6 @@ pub struct TrustRow {
     pub roles: usize,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FsEntry {
     pub path: String,
@@ -107,10 +95,8 @@ pub struct GithubRepo {
     pub url: String,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
-
     WorkspaceSaved {
         id: WorkspaceId,
         ok: bool,
@@ -150,7 +136,6 @@ pub enum Msg {
 }
 
 impl Msg {
-
     pub fn job(&self) -> Option<JobKey> {
         match self {
             Msg::WorkspaceSaved { .. } => Some(job::WORKSPACE_SAVE),
@@ -224,8 +209,6 @@ impl World {
         self.jobs.sort_by_key(|j| j.due_ms);
     }
 
-
-
     pub fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
         self.clock.advance(interval_ms);
         if !self.clock.running {
@@ -276,7 +259,6 @@ impl World {
         self.workspaces.iter_mut().find(|w| w.id == id)
     }
 
-
     pub fn cwd_workspace(&self) -> Option<&Workspace> {
         self.workspaces.iter().find(|w| {
             w.mounts.iter().any(|m| {
@@ -307,14 +289,12 @@ impl World {
             .collect()
     }
 
-
     pub fn instances_of(&self, ws: Option<WorkspaceId>) -> Vec<&Instance> {
         self.instances
             .iter()
             .filter(|i| i.workspace == ws && !i.status.hidden())
             .collect()
     }
-
 
     pub fn sync_arbiter(&mut self) {
         if self.arbiter.discovery.is_ok() {
@@ -323,11 +303,9 @@ impl World {
         }
     }
 
-
     pub fn mask_path(&self, path: &str) -> String {
         mask_path(&self.home, path)
     }
-
 
     pub fn tilde(&self, path: &str) -> String {
         if let Some(rest) = path.strip_prefix(&self.home) {
@@ -352,7 +330,6 @@ impl World {
         crate::domain::fixtures::resolve_account(provider, ws, role, session, &self.accounts)
     }
 
-
     pub fn agent_mode(&self, agent: Agent) -> AuthMode {
         self.global
             .agent_modes
@@ -360,10 +337,6 @@ impl World {
             .copied()
             .unwrap_or(AuthMode::Sync)
     }
-
-
-
-
 
     pub fn eligible_accounts(
         &self,
@@ -374,9 +347,6 @@ impl World {
         let offer = self.offer_for(agent, ws, role);
         offer.accounts
     }
-
-
-
 
     pub fn offer_for(
         &self,
@@ -400,7 +370,6 @@ impl World {
                 }
             }
             None => {
-
                 if let Some(a) = self.accounts.default_for(provider) {
                     match crate::domain::workspace::usability_of(a) {
                         Usability::Ready => ready.push(a.id.clone()),
@@ -456,10 +425,6 @@ impl World {
         }
     }
 
-
-
-
-
     pub fn offered_agents(
         &self,
         ws: Option<&Workspace>,
@@ -473,10 +438,8 @@ impl World {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentOffer {
-
     pub accounts: Vec<AccountId>,
     pub preselected: Option<AccountId>,
 
@@ -492,8 +455,6 @@ pub fn expand(home: &str, path: &str) -> String {
         path.to_owned()
     }
 }
-
-
 
 pub fn mask_path(home: &str, path: &str) -> String {
     let last = path.rsplit('/').next().unwrap_or(path);

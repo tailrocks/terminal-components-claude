@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -42,7 +28,6 @@ pub const CRUMBS: WidgetId = WidgetId::of("breadcrumbsrails.crumbs");
 
 pub const RAIL: WidgetId = WidgetId::of("breadcrumbsrails.rail");
 
-
 const DEEP: [&str; 6] = [
     "Disk",
     "Users",
@@ -52,9 +37,7 @@ const DEEP: [&str; 6] = [
     "settlement-backoff-retry-policy-v2.md",
 ];
 
-
 type Entry = (&'static str, &'static str, bool);
-
 
 fn entries(path: &[String]) -> Vec<Entry> {
     match path.join("/").as_str() {
@@ -125,7 +108,6 @@ impl BreadcrumbsRailsPage {
         page
     }
 
-
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::BreadcrumbsRails);
         let i = table
@@ -135,15 +117,12 @@ impl BreadcrumbsRailsPage {
         table[i].values[self.opts[i]]
     }
 
-
-
     fn rebuild(&mut self) {
         self.crumbs = Breadcrumb::new(CRUMBS, self.path.clone())
             .clickable(self.opt("breadcrumbsrails.clickable") == "on");
         self.rail = SidebarRail::new(RAIL, "Explorer")
             .collapsed_rail(self.opt("breadcrumbsrails.collapsed_rail") == "on");
     }
-
 
     fn load_folder(&mut self, cursor: usize) {
         let items = entries(&self.path)
@@ -165,7 +144,6 @@ impl BreadcrumbsRailsPage {
         self.crumbs.segments = self.path.clone();
     }
 
-
     fn go_to_level(&mut self, level: usize, cx: &mut Cx) {
         let left = self.path.get(level + 1).cloned();
         self.path.truncate(level + 1);
@@ -175,7 +153,6 @@ impl BreadcrumbsRailsPage {
         self.load_folder(cursor);
         cx.status(format!("Went back to {}", self.path.join(" › ")));
     }
-
 
     fn open_row(&mut self, i: usize, cx: &mut Cx) {
         let Some((name, _, opens)) = entries(&self.path).get(i).copied() else {
@@ -188,7 +165,6 @@ impl BreadcrumbsRailsPage {
             cx.status(format!("Opened {name}"));
         }
     }
-
 
     fn set_collapsed(&mut self, on: bool, cx: &mut Cx) {
         self.collapsed = on;
@@ -234,7 +210,6 @@ impl BreadcrumbsRailsPage {
             return;
         }
 
-
         let meta = if self.crumbs.clickable {
             "clickable"
         } else {
@@ -264,7 +239,6 @@ impl BreadcrumbsRailsPage {
             &facts,
             bg,
         );
-
 
         let y = card.bottom() + 1;
         if y + 8 > right.bottom() {
@@ -309,7 +283,6 @@ impl BreadcrumbsRailsPage {
             yy += 3;
         }
 
-
         let y = card.bottom() + 1;
         if y + 4 > right.bottom() {
             return;
@@ -333,7 +306,6 @@ impl BreadcrumbsRailsPage {
         props::render(inner, buf, t, &facts, bg);
     }
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -374,7 +346,6 @@ impl Page for BreadcrumbsRailsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('b')
             && self.template.section() == Section::Playground

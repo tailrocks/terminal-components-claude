@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -18,7 +13,6 @@ const TOGGLE: WidgetId = WidgetId::of("masterdetail").sub("toggle");
 fn seam() -> WidgetId {
     LIST.sub("seam")
 }
-
 
 fn tables_width(h: &Harness) -> u16 {
     let (x, y) = h.at("╭─ Tables");
@@ -49,8 +43,6 @@ fn master_detail_follows_the_list_cursor() {
 
 #[test]
 fn master_detail_seam_drags_and_the_chords_resize_it() {
-
-
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = Harness::new(120, 40, PageId::MasterDetail);
     let before = tables_width(&h);

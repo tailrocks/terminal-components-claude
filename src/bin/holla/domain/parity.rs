@@ -1,7 +1,3 @@
-
-
-
-
 use crate::domain::activity::{Branch, LineTone, Script, line, prompt, toned};
 use crate::domain::context::{Host, HostRole, Location, Os, Project, ProjectKind};
 use crate::domain::custom::{Origin, TrustStore, parse_config};
@@ -123,8 +119,6 @@ pub fn world_for(scenario: Scenario, motion: Motion) -> World {
     }
 }
 
-
-
 fn discovery(motion: Motion) -> World {
     let root = format!("{HOME}/work/probe");
     let mut w = base(
@@ -133,7 +127,6 @@ fn discovery(motion: Motion) -> World {
         mac(),
         loc(&root, HOME, Some(rust_project(&root))),
     );
-
 
     w.tools = [
         "git", "cargo", "docker", "mise", "just", "make", "task", "brew", "gradle", "idea", "npm",
@@ -231,8 +224,6 @@ fn discovery(motion: Motion) -> World {
     w
 }
 
-
-
 fn history(motion: Motion) -> World {
     let root = format!("{HOME}/work/holla");
     let mut w = base(
@@ -273,8 +264,6 @@ fn history(motion: Motion) -> World {
     w
 }
 
-
-
 fn files(motion: Motion) -> World {
     let root = format!("{HOME}/work/notes");
     let mut w = base(Scenario::ParityFiles, motion, mac(), loc(&root, HOME, None));
@@ -311,8 +300,6 @@ fn files(motion: Motion) -> World {
     ];
     w
 }
-
-
 
 fn browser(motion: Motion) -> World {
     let root = format!("{HOME}/work/site");
@@ -371,8 +358,6 @@ fn browser(motion: Motion) -> World {
     w
 }
 
-
-
 fn git_current(motion: Motion) -> World {
     let root = format!("{HOME}/work/svc");
     let sub = format!("{root}/src/api");
@@ -401,8 +386,6 @@ fn git_current(motion: Motion) -> World {
     ];
     w
 }
-
-
 
 fn git_batch(motion: Motion) -> World {
     let root = format!("{HOME}/work/repos");
@@ -461,8 +444,6 @@ fn git_batch(motion: Motion) -> World {
     w
 }
 
-
-
 fn task_sources(motion: Motion) -> World {
     let root = format!("{HOME}/work/poly");
     let mut w = base(
@@ -505,8 +486,6 @@ fn task_sources(motion: Motion) -> World {
     w
 }
 
-
-
 fn cargo(motion: Motion) -> World {
     let root = format!("{HOME}/work/engine");
     let mut w = base(
@@ -529,8 +508,6 @@ fn cargo(motion: Motion) -> World {
     ];
     w
 }
-
-
 
 fn docker(motion: Motion) -> World {
     let root = format!("{HOME}/work/stack");
@@ -556,8 +533,6 @@ fn docker(motion: Motion) -> World {
     ];
     w
 }
-
-
 
 fn brew_services(motion: Motion) -> World {
     let root = format!("{HOME}/work");
@@ -618,8 +593,6 @@ fn brew_services(motion: Motion) -> World {
     w
 }
 
-
-
 fn gradle(motion: Motion) -> World {
     let root = format!("{HOME}/work/android");
     let mut w = base(
@@ -664,8 +637,6 @@ fn gradle(motion: Motion) -> World {
     w
 }
 
-
-
 fn idea(motion: Motion) -> World {
     let root = format!("{HOME}/work/ide");
     let mut w = base(Scenario::ParityIdea, motion, mac(), loc(&root, HOME, None));
@@ -688,8 +659,6 @@ fn idea(motion: Motion) -> World {
     w.sources = vec![src("filesystem", 2, motion), src("system", 3, motion)];
     w
 }
-
-
 
 fn upgrade_managers(motion: Motion) -> World {
     let mut w = base(
@@ -745,8 +714,6 @@ fn upgrade_managers(motion: Motion) -> World {
     ];
     w
 }
-
-
 
 fn executor(motion: Motion) -> World {
     let root = format!("{HOME}/work/batch");
@@ -807,8 +774,6 @@ fn executor(motion: Motion) -> World {
     ];
     w
 }
-
-
 
 fn task_input(motion: Motion) -> World {
     let mut w = base(
@@ -893,8 +858,6 @@ fn task_input(motion: Motion) -> World {
     w
 }
 
-
-
 fn custom_actions(motion: Motion) -> World {
     let root = format!("{HOME}/work/team");
     let mut w = base(
@@ -920,7 +883,6 @@ fn custom_actions(motion: Motion) -> World {
         &reserved,
     );
 
-
     let mut trust = TrustStore::load(Some(&format!("{{\"v\":1,\"hashes\":[\"{}\"]}}", p.digest)));
     trust.entries.push(crate::domain::custom::TrustEntry {
         digest: p.digest.clone(),
@@ -941,8 +903,6 @@ fn custom_actions(motion: Motion) -> World {
     ];
     w
 }
-
-
 
 fn disk_scan(motion: Motion) -> World {
     let root = format!("{HOME}/work/data");
@@ -1011,8 +971,6 @@ fn disk_scan(motion: Motion) -> World {
     w
 }
 
-
-
 fn disk_navigation(motion: Motion) -> World {
     let root = format!("{HOME}/work/big");
     let mut w = base(
@@ -1054,8 +1012,6 @@ fn disk_navigation(motion: Motion) -> World {
     w
 }
 
-
-
 fn insights(motion: Motion) -> World {
     let root = format!("{HOME}/Projects/web");
     let mut w = base(
@@ -1091,7 +1047,6 @@ fn insights(motion: Motion) -> World {
         800 * mb,
         3,
     );
-
 
     fs.dir(
         &format!("{HOME}/Library/Developer/Xcode/iOS DeviceSupport"),
@@ -1234,8 +1189,6 @@ fn insights(motion: Motion) -> World {
     w
 }
 
-
-
 fn delete_safety(motion: Motion) -> World {
     let root = format!("{HOME}/Projects/safe");
     let mut w = base(
@@ -1293,8 +1246,6 @@ fn delete_safety(motion: Motion) -> World {
     w
 }
 
-
-
 fn cleanup_results(motion: Motion) -> World {
     let mut w = delete_safety(motion);
     w.scenario = Scenario::ParityCleanupResults;
@@ -1322,8 +1273,6 @@ fn cleanup_results(motion: Motion) -> World {
     w.persisted.ops_log = w.ops_log.lines.clone();
     w
 }
-
-
 
 fn platforms_mac(motion: Motion) -> World {
     let root = format!("{HOME}/work/mac");
@@ -1403,7 +1352,6 @@ fn platforms_linux(motion: Motion) -> World {
         100 * BLOCK,
         40,
     );
-
 
     w.fs.text(&format!("{LHOME}/Projects/app/package.json"), "{}", 40);
     w.fs.file(

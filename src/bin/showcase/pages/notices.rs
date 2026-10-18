@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -24,7 +17,6 @@ use junie_tui::widgets::notice::{Notice, NoticeKind};
 use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("notices");
-
 
 const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
     (
@@ -67,7 +59,6 @@ impl NoticesPage {
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
         }
     }
-
 
     fn styled(&self, n: Notice) -> Notice {
         let mut n = n
@@ -116,7 +107,6 @@ impl NoticesPage {
         )
     }
 
-
     fn inline(&self) -> [Notice; 4] {
         [
             self.styled(Notice::error("Port must be a number between 1 and 65535")),
@@ -128,7 +118,6 @@ impl NoticesPage {
             self.styled(Notice::success("Saved 12 rows in 84 ms")),
         ]
     }
-
 
     fn width(&self, w: u16) -> u16 {
         match self.opts.value("notices.width") {
@@ -218,8 +207,6 @@ impl NoticesPage {
         cx.status(OUTCOMES[self.outcome].1);
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

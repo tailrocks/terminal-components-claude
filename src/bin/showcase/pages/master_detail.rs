@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
@@ -38,7 +29,6 @@ const DETAIL: WidgetId = WidgetId::of("masterdetail").sub("facts");
 const TOGGLE: WidgetId = WidgetId::of("masterdetail").sub("toggle");
 
 const OPEN: WidgetId = WidgetId::of("masterdetail").sub("open");
-
 
 struct Table {
     name: &'static str,
@@ -181,7 +171,6 @@ impl MasterDetailPage {
         page
     }
 
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let collapse = o.number("masterdetail.collapse").unwrap_or(80);
@@ -209,8 +198,6 @@ impl MasterDetailPage {
         };
         self.md = md;
     }
-
-
 
     fn frame_width(&self, avail: u16) -> u16 {
         self.opts
@@ -326,8 +313,6 @@ fn facts(t: &Table) -> Vec<Prop> {
     ]
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -337,7 +322,6 @@ fn states_grid() -> StateGrid {
         .rows(&[Rest, Hover, Pressed, Narrow])
         .column("Master-detail", MasterDetail::new(id.child(0), id.child(1)))
 }
-
 
 pub(crate) fn page_hint(h: junie_tui::widgets::keyhint::Hint) -> Hint {
     let action = match h.action {

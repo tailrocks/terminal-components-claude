@@ -1,7 +1,3 @@
-
-
-
-
 use crate::pages::Pages;
 use junie_tui::core::event::MouseKind;
 use junie_tui::widgets::dialog::DialogBody;
@@ -19,9 +15,6 @@ fn editor() -> H {
     assert_eq!(h.app.route(), Route::Editor, "{}", h.text());
     h
 }
-
-
-
 
 #[test]
 fn ctrl_q_reaches_past_an_editing_name_field() {
@@ -130,10 +123,6 @@ fn a_press_on_the_dialog_body_ends_its_fields_edit() {
         h.text()
     );
 }
-
-
-
-
 
 #[test]
 fn the_name_field_edits_on_focus_and_one_tab_moves_on() {

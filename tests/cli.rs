@@ -1,8 +1,3 @@
-
-
-
-
-
 use std::process::{Command, Output};
 
 const BINS: [(&str, &str); 4] = [
@@ -96,9 +91,6 @@ fn an_unknown_option_or_value_exits_non_zero() {
     }
 }
 
-
-
-
 #[test]
 fn showcase_opt_is_validated_and_explains() {
     let bin = env!("CARGO_BIN_EXE_showcase");
@@ -117,7 +109,6 @@ fn showcase_opt_is_validated_and_explains() {
             &["invalid value \"purple\" for shell.color; valid values: truecolor, 256, 16, mono"],
         ),
         (&["--opt", "shell.color"], &["expected KEY=VALUE"]),
-
         (
             &["--opt", "shell.glyphs=ascii", "--opt", "shell.motion=fast"],
             &["valid values: full, reduced, paused"],

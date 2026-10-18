@@ -22,29 +22,16 @@ use crate::widgets::field_common::{EditAction, PointerField, PointerSelect, past
 use crate::widgets::input::InputAction;
 use crate::widgets::scrollbar;
 
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone)]
 pub struct TextArea {
     pub id: WidgetId,
     pub label: String,
     pub placeholder: String,
 
-
-
     pub field: EditField,
     pub disabled: bool,
     pub help: String,
     pub editing: bool,
-
 
     pub scroll: ScrollPane,
     pub area: Rect,
@@ -55,45 +42,31 @@ pub struct TextArea {
 
     pub rows: u16,
 
-
     pub blur_action: BlurAction,
 
     snapshot: String,
 
-
     pub nav: NavKeys,
-
 
     pub edit_entry: Option<EditEntry>,
     entry: EditEntry,
 
-
-
     pub focus_select: FocusSelect,
-
 
     pub esc_reverts: bool,
 
-
     pub field_keys: Option<FieldKeys>,
     focus_seen: bool,
-
-
 
     pub horizontal: Option<HScroll>,
 
     content_cols: usize,
 
-
     was_editing: bool,
-
 
     pub label_hit: bool,
 
-
     focus_edit: bool,
-
-
 
     pub edit_menu: EditMenu,
 }
@@ -133,13 +106,10 @@ impl TextArea {
         }
     }
 
-
-
     pub fn context_menu(mut self, on: bool) -> Self {
         self.edit_menu.enabled = on;
         self
     }
-
 
     pub fn edit_entry(mut self, entry: EditEntry) -> Self {
         self.edit_entry = Some(entry);
@@ -179,7 +149,6 @@ impl TextArea {
         self.edit_entry.unwrap_or(self.entry)
     }
 
-
     pub fn wants_text_input(&self) -> bool {
         !self.disabled && (self.editing || self.entry() != EditEntry::Explicit)
     }
@@ -187,9 +156,6 @@ impl TextArea {
     pub fn is_dirty(&self) -> bool {
         self.editing && self.field.buffer.text() != self.snapshot
     }
-
-
-
 
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
         use crate::widgets::keyhint::{EDIT_TEXT, hint};
@@ -208,8 +174,6 @@ impl TextArea {
         }
     }
 
-
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -220,15 +184,10 @@ impl TextArea {
         self
     }
 
-
     pub fn blur_action(mut self, action: BlurAction) -> Self {
         self.blur_action = action;
         self
     }
-
-
-
-
 
     pub fn on_blur(&mut self) -> Option<InputAction> {
         if !self.editing {
@@ -307,34 +266,28 @@ impl TextArea {
             );
         }
 
-
         if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
             return (Outcome::Ignored, None);
         }
         let entry = self.entry();
         if !self.editing {
             if entry == EditEntry::Immediate && !self.focus_seen {
-
                 self.begin_edit();
                 self.focus_select.apply(&mut self.field.buffer);
             } else if matches!(key.code, KeyCode::Enter | KeyCode::F(2)) && key.plain() {
                 self.begin_edit();
                 return (Outcome::Changed, None);
             } else if matches!(self.edit_action(key), EditAction::SelectAll) {
-
                 self.begin_edit();
                 self.field.buffer.select_all();
                 return (Outcome::Changed, None);
             } else if matches!(self.edit_action(key), EditAction::Paste) {
-
-
                 let o = paste_clipboard(|t| self.on_paste(t));
                 return (o, (o == Outcome::Changed).then_some(InputAction::Changed));
             } else if entry != EditEntry::Explicit
                 && let KeyCode::Char(c) = key.code
                 && !key.chord()
             {
-
                 self.begin_edit();
                 self.field.record(EditKind::Typing);
                 self.field.buffer.insert_char(c);
@@ -404,8 +357,6 @@ impl TextArea {
         }
     }
 
-
-
     fn revert(&mut self) {
         if self.field.buffer.text() != self.snapshot {
             self.field.record(EditKind::Other);
@@ -425,15 +376,11 @@ impl TextArea {
         Outcome::Changed
     }
 
-
     fn on_label(&self, pos: Position) -> bool {
         self.label_hit && pos.y < self.area.y
     }
 
-
     fn offset_at(&self, pos: Position) -> usize {
-
-
         let line = (self.scroll.offset as isize + (pos.y as isize - self.text_area.y as isize))
             .max(0) as usize;
         let col =
@@ -442,47 +389,30 @@ impl TextArea {
         self.field.buffer.offset_at(line, col)
     }
 
-
-
     pub fn on_click(&mut self, pos: Position) -> Outcome {
         self.on_click_count(pos, 1)
     }
-
-
-
 
     pub fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
         PointerField::on_click_count(self, pos, count)
     }
 
-
-
-
     pub fn on_press(&mut self, pos: Position) -> Outcome {
         self.on_press_count(pos, 1)
     }
-
-
-
 
     pub fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
         PointerField::on_press_count(self, pos, count)
     }
 
-
-
-
-
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         PointerField::on_drag(self, pos)
     }
-
 
     pub fn horizontal(mut self, h: HScroll) -> Self {
         self.horizontal = Some(h);
         self
     }
-
 
     pub fn label_hit(mut self, on: bool) -> Self {
         self.label_hit = on;
@@ -501,7 +431,6 @@ impl TextArea {
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.scroll.begin(ctx.track_click);
 
-
         let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
         if has_focus && !self.focus_seen && self.entry == EditEntry::Immediate && !self.editing {
             self.begin_edit();
@@ -513,8 +442,6 @@ impl TextArea {
             && self.focus_edit
             && !self.is_dirty()
         {
-
-
             self.commit();
         }
         self.focus_seen = has_focus;
@@ -527,7 +454,6 @@ impl TextArea {
         let t = ctx.theme;
         let mut s = ctx.state(self.id);
 
-
         let menu_open = self.edit_menu.is_open();
         s.focused = ctx.interaction.focused_under(self.id, menu_open);
         s.disabled = self.disabled;
@@ -536,10 +462,6 @@ impl TextArea {
         if self.disabled {
             s.hovered = false;
         }
-
-
-
-
 
         let label_style = if self.disabled {
             t.faint().bg(bg)
@@ -553,7 +475,6 @@ impl TextArea {
             label_style,
         );
 
-
         let rows = self.rows.min(area.height.saturating_sub(2));
         if rows == 0 {
             self.area = Rect::ZERO;
@@ -564,8 +485,6 @@ impl TextArea {
         let resized = body.width != self.area.width || body.height != self.area.height;
         self.area = body;
         if self.label_hit && !self.label.is_empty() {
-
-
             let lw = width(&self.label).min(area.width.saturating_sub(2) as usize) as u16;
             ctx.clickable(self.id, Rect::new(area.x, area.y, lw + 2, 1));
         }
@@ -606,8 +525,6 @@ impl TextArea {
                 self.hscroll = cur.col + 1 - width;
             }
         } else if !s.editing && self.was_editing {
-
-
             self.hscroll = 0;
         }
         self.was_editing = s.editing;
@@ -618,8 +535,6 @@ impl TextArea {
         self.last_cursor = Some(cur);
         self.follow_cursor = false;
         if text.is_empty() {
-
-
             let p = crate::ui::text::truncate(&self.placeholder, inner.width as usize);
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
             if s.editing && inner.width > 0 {
@@ -668,7 +583,6 @@ impl TextArea {
                         buf.set_string(inner.right() - 1, y, t.glyphs.ellipsis, st);
                     }
                     if s.editing && li == cur.line {
-
                         for xx in inner.x..inner.right() {
                             if let Some(c) = buf.cell_mut(Position::new(xx, y)) {
                                 c.set_style(
@@ -704,7 +618,6 @@ impl TextArea {
                 fs.fg(t.error).add_modifier(Modifier::BOLD),
             );
         }
-
 
         let fy = body.bottom();
         if fy < area.bottom() {
@@ -759,9 +672,6 @@ impl crate::core::focus::BlurTarget for TextArea {
     }
 }
 
-
-
-
 impl Editable for TextArea {
     fn field(&mut self) -> &mut EditField {
         &mut self.field
@@ -779,7 +689,6 @@ impl Editable for TextArea {
         TextArea::on_label(self, pos)
     }
     fn label_click(&mut self) {
-
         if !self.editing {
             self.begin_edit();
             self.focus_select.apply(&mut self.field.buffer);
@@ -796,9 +705,6 @@ impl Editable for TextArea {
         self.follow_cursor = true;
     }
 }
-
-
-
 
 impl crate::ui::specimen::Specimen for TextArea {
     fn specimen_id(&self) -> WidgetId {
@@ -863,8 +769,6 @@ impl crate::ui::specimen::Specimen for TextArea {
 }
 
 impl Scrollable for TextArea {
-
-
     fn pane(&mut self) -> &mut ScrollPane {
         let width = self.text_area.width as usize;
         self.scroll.h.content_len = self.content_cols;
@@ -881,11 +785,6 @@ impl Scrollable for TextArea {
         false
     }
 }
-
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for TextArea {
     type Action = ();
@@ -922,8 +821,6 @@ impl crate::core::pointer::MouseTarget for TextArea {
     }
 }
 
-
-
 impl EditMenuHost for TextArea {
     fn edit_menu(&mut self) -> &mut EditMenu {
         &mut self.edit_menu
@@ -957,9 +854,6 @@ impl EditMenuHost for TextArea {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-
-
 
     #[test]
     fn an_editing_area_passes_unbound_chords_on() {
@@ -1181,10 +1075,6 @@ mod tests {
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         }
     }
-
-
-
-
 
     #[test]
     fn immediate_entry_esc_is_done_and_tab_moves_on() {

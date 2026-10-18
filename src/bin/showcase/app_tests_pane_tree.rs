@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -15,7 +11,6 @@ const TREE: WidgetId = WidgetId::of("panetree").sub("tree");
 fn button(name: &str) -> WidgetId {
     WidgetId::of("panetree").sub(name)
 }
-
 
 fn pane_width(h: &Harness, name: &str) -> u16 {
     let (x, y) = h.at(&format!("╭─ {name}"));
@@ -130,9 +125,6 @@ fn pane_tree_reads_at_80x24() {
         "{text}"
     );
 }
-
-
-
 
 #[test]
 fn pane_tree_footer_names_no_alt_chord_on_macos_terminal_and_alt_with_the_kitty_protocol() {

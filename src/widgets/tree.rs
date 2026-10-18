@@ -15,7 +15,6 @@ use crate::ui::list_core::ListCore;
 use crate::ui::row::{MarkKind, RowLook, RowUi};
 use crate::widgets::table::{Align, Cell, Column};
 
-
 #[derive(Debug, Clone)]
 pub struct TreeNode {
     pub label: String,
@@ -24,14 +23,9 @@ pub struct TreeNode {
 
     pub glyph: Option<std::borrow::Cow<'static, str>>,
 
-
-
     pub glyph_tone: Tone,
 
-
-
     pub label_tone: Option<Tone>,
-
 
     pub lazy: bool,
 
@@ -39,13 +33,9 @@ pub struct TreeNode {
 
     pub note: bool,
 
-
     pub meta_tone: Tone,
 
-
     pub trailing: Option<(&'static str, Tone)>,
-
-
 
     pub cells: Vec<Cell>,
 }
@@ -82,7 +72,6 @@ impl TreeNode {
         }
     }
 
-
     pub fn lazy(label: &str) -> Self {
         Self {
             lazy: true,
@@ -95,12 +84,10 @@ impl TreeNode {
         self
     }
 
-
     pub fn glyph_tone(mut self, tone: Tone) -> Self {
         self.glyph_tone = tone;
         self
     }
-
 
     pub fn label_tone(mut self, tone: Tone) -> Self {
         self.label_tone = Some(tone);
@@ -119,25 +106,21 @@ impl TreeNode {
         self
     }
 
-
     pub fn meta_tone(mut self, tone: Tone) -> Self {
         self.meta_tone = tone;
         self
     }
-
 
     pub fn trailing(mut self, glyph: &'static str, tone: Tone) -> Self {
         self.trailing = Some((glyph, tone));
         self
     }
 
-
     pub fn cells(mut self, cells: Vec<Cell>) -> Self {
         self.cells = cells;
         self
     }
 }
-
 
 pub type Path = Vec<usize>;
 
@@ -161,20 +144,15 @@ pub struct FlatRow {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TreeAction {
-
     Expand(Path),
 
     Activate(Path),
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BranchAction {
-
     #[default]
     Toggle,
-
 
     Activate,
 
@@ -187,10 +165,6 @@ pub struct TreeView {
     pub nodes: Vec<TreeNode>,
     pub expanded: std::collections::HashSet<Path>,
 
-
-
-
-
     pub core: ListCore,
     pub selected: Option<Path>,
     pub area: Rect,
@@ -198,52 +172,27 @@ pub struct TreeView {
 
     pub filter: Option<String>,
 
-
-
-
-
     pub reserve_right: u16,
-
 
     pub show_meta: bool,
 
-
-
     trailing: Rect,
-
 
     pub branch_activate: BranchAction,
 
     pub indent: u16,
 
-
     rows_built: usize,
 
     pub keymap: KeyMap<TreeCmd>,
 
-
-
     pub divider: bool,
-
-
 
     pub selected_marker: Option<&'static str>,
 
-
-
-
     pub alt_click_recursive: bool,
 
-
-
-
-
-
-
-
-
     pub columns: Vec<Column>,
-
 
     pub column_title: String,
 }
@@ -261,10 +210,8 @@ impl std::ops::DerefMut for TreeView {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TreeCmd {
-
     ExpandAll,
 
     CollapseAll,
@@ -289,8 +236,6 @@ impl Actions for TreeCmd {
 fn matches(n: &TreeNode, q: &str) -> bool {
     n.label.to_lowercase().contains(q) || n.children.iter().any(|c| matches(c, q))
 }
-
-
 
 fn walk(
     nodes: &[TreeNode],
@@ -374,24 +319,20 @@ impl TreeView {
         self
     }
 
-
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.core.click = policy;
         self
     }
-
 
     pub fn wrap(mut self, on: bool) -> Self {
         self.core.wrap = on;
         self
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.core.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<TreeCmd>) -> Self {
         self.keymap = keymap;
@@ -403,20 +344,15 @@ impl TreeView {
         self
     }
 
-
-
-
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.core.typeahead.timeout = timeout;
         self
     }
 
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.core.type_ahead = on;
         self
     }
-
 
     pub fn type_ahead_precedence(
         mut self,
@@ -426,32 +362,25 @@ impl TreeView {
         self
     }
 
-
-
     pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
         self.core.content = content;
         self
     }
-
-
 
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.core.empty = Some(state);
         self
     }
 
-
     pub fn skip_when_empty(mut self, on: bool) -> Self {
         self.core.skip_when_empty = on;
         self
     }
 
-
     pub fn divider(mut self, on: bool) -> Self {
         self.divider = on;
         self
     }
-
 
     pub fn selected_marker(mut self, marker: Option<&'static str>) -> Self {
         self.selected_marker = marker;
@@ -462,7 +391,6 @@ impl TreeView {
         self.alt_click_recursive = on;
         self
     }
-
 
     fn branch(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         let path = self.rows[i].path.clone();
@@ -487,25 +415,20 @@ impl TreeView {
         &self.rows
     }
 
-
     pub fn reserve_right(mut self, cells: u16) -> Self {
         self.reserve_right = cells;
         self
     }
-
 
     pub fn columns(mut self, columns: Vec<Column>) -> Self {
         self.columns = columns;
         self
     }
 
-
     pub fn column_title(mut self, title: &str) -> Self {
         self.column_title = title.to_owned();
         self
     }
-
-
 
     fn columns_width(&self) -> u16 {
         self.columns
@@ -516,26 +439,18 @@ impl TreeView {
             + self.reserve_right
     }
 
-
     pub fn show_meta(mut self, on: bool) -> Self {
         self.show_meta = on;
         self
     }
 
-
-
-
     pub fn trailing(&self) -> Rect {
         self.trailing
     }
 
-
-
     pub const MIN_LABEL: u16 = 12;
 
     pub fn flatten(&mut self) {
-
-
         let focused: Option<Path> = self.rows.get(self.core.cursor).map(|r| r.path.clone());
         let before: Option<Path> = self
             .cursor
@@ -566,8 +481,6 @@ impl TreeView {
         self.core.scroll.set_content(self.rows.len());
     }
 
-
-
     fn relocate(
         &self,
         focused: Option<&[usize]>,
@@ -586,7 +499,6 @@ impl TreeView {
         }
         after.and_then(find).or_else(|| before.and_then(find))
     }
-
 
     pub fn cursor_path(&self) -> Option<&[usize]> {
         self.rows.get(self.core.cursor).map(|r| r.path.as_slice())
@@ -610,7 +522,6 @@ impl TreeView {
         }
         nodes.get_mut(*last)
     }
-
 
     pub fn set_children(&mut self, path: &[usize], children: Vec<TreeNode>) {
         if let Some(n) = self.node_mut(path) {
@@ -636,7 +547,6 @@ impl TreeView {
         self.core.cursor = 0;
     }
 
-
     pub fn reveal(&mut self, path: &[usize]) {
         for k in 1..path.len() {
             self.expanded.insert(path[..k].to_vec());
@@ -651,12 +561,9 @@ impl TreeView {
         self.id.part(PartRef::item(Part::ROW, ItemKey::index(i)))
     }
 
-
     pub fn toggle_id(&self, i: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::ICON, ItemKey::index(i)))
     }
-
-
 
     pub fn row_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
@@ -667,13 +574,9 @@ impl TreeView {
             .or_else(|| ev.index_of(Part::MARKER))
     }
 
-
-
-
     pub fn glyph_id(&self, i: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::MARKER, ItemKey::index(i)))
     }
-
 
     fn nav_cursor(&self) -> Cursor {
         self.core.cursor_model()
@@ -709,11 +612,6 @@ impl TreeView {
         self.refold(i);
         (Outcome::Changed, None)
     }
-
-
-
-
-
 
     fn refold(&mut self, i: usize) {
         if self.filter.as_deref().is_some_and(|f| !f.trim().is_empty()) {
@@ -754,8 +652,6 @@ impl TreeView {
         let added = shown.len();
         self.rows.splice(i + 1..end, shown);
 
-
-
         if self.core.cursor > i {
             self.core.cursor = if self.core.cursor < end {
                 if removed > 0 { i } else { self.core.cursor }
@@ -787,7 +683,6 @@ impl TreeView {
         self.flatten();
     }
 
-
     fn all_expanded(&self) -> bool {
         fn walk(
             nodes: &[TreeNode],
@@ -805,15 +700,6 @@ impl TreeView {
         walk(&self.nodes, &mut Vec::new(), &self.expanded)
     }
 
-
-
-
-
-
-
-
-
-
     pub fn context_items(&self) -> Vec<(TreeCmd, crate::widgets::menu::MenuItem)> {
         use crate::ui::context::{ContextCmd, command_items};
         let cmds = [
@@ -824,8 +710,6 @@ impl TreeView {
         ];
         command_items(&self.keymap, &cmds)
     }
-
-
 
     pub fn run(&mut self, cmd: TreeCmd) -> (Outcome, Option<TreeAction>) {
         match cmd {
@@ -840,7 +724,6 @@ impl TreeView {
             return (Outcome::Ignored, None);
         }
         if unassigned_chord(key, &self.keymap) {
-
             return (Outcome::Ignored, None);
         }
         if let Some(action) = lookup(&self.keymap, key) {
@@ -860,7 +743,6 @@ impl TreeView {
         let (nav, moved) = nav;
         let out = match nav {
             Nav::Up | Nav::Down | Nav::PageUp | Nav::PageDown | Nav::Home | Nav::End => {
-
                 if let Some(i) = moved.index() {
                     self.set_cursor(i);
                 }
@@ -882,7 +764,6 @@ impl TreeView {
                 if row.has_children && row.expanded {
                     return self.toggle(self.core.cursor);
                 } else if row.depth > 0 {
-
                     let depth = row.depth;
                     if let Some(pi) = self.rows[..self.core.cursor]
                         .iter()
@@ -898,7 +779,6 @@ impl TreeView {
         };
         (out, None)
     }
-
 
     fn on_plain_key(&mut self, key: &Key) -> (Outcome, Option<TreeAction>) {
         let out = match key.code {
@@ -921,14 +801,9 @@ impl TreeView {
         (out, None)
     }
 
-
     pub fn on_click_row(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         self.on_click_row_count(i, 1)
     }
-
-
-
-
 
     pub fn on_click_row_count(&mut self, i: usize, count: u8) -> (Outcome, Option<TreeAction>) {
         if i >= self.rows.len() {
@@ -960,10 +835,6 @@ impl TreeView {
         self.toggle(i)
     }
 
-
-
-
-
     pub fn on_click_with(
         &mut self,
         i: usize,
@@ -972,9 +843,6 @@ impl TreeView {
     ) -> (Outcome, Option<TreeAction>) {
         self.on_click_at(i, toggle, mods, 1)
     }
-
-
-
 
     pub fn on_click_at(
         &mut self,
@@ -996,10 +864,6 @@ impl TreeView {
             self.on_click_row_count(i, count)
         }
     }
-
-
-
-
 
     pub fn toggle_recursive(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         let Some(row) = self.rows.get(i) else {
@@ -1050,14 +914,10 @@ impl TreeView {
         (Outcome::Changed, None)
     }
 
-
-
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.core.scroll.track_click = Some(click);
         self
     }
-
-
 
     fn column_cells(&self, x0: u16) -> Vec<(&Column, u16, usize)> {
         let mut x = x0;
@@ -1097,7 +957,6 @@ impl TreeView {
             ctx.scrollable(self.id, area);
         }
 
-
         if (!self.core.content.is_ready() || self.core.empty.is_some())
             && self.core.draw_content(n, area, buf, ctx, bg, None)
         {
@@ -1107,7 +966,6 @@ impl TreeView {
         let full_w = area
             .width
             .saturating_sub(if has_sb || self.divider { 1 } else { 0 });
-
 
         let want = self.columns_width();
         let reserve = if want > 0 && full_w >= want + Self::MIN_LABEL {
@@ -1169,7 +1027,6 @@ impl TreeView {
             s.hovered |= ctx.interaction.hovered(gid);
             s.pressed |= ctx.interaction.pressed(gid);
             if row.note {
-
                 s.hovered = false;
                 s.pressed = false;
             }
@@ -1179,8 +1036,6 @@ impl TreeView {
             let st = rp.style();
             let indent = (row.depth as u16) * self.indent;
             let mut x = rect.x + 1 + indent;
-
-
 
             if !row.note {
                 ctx.register_part(self.id, PartRef::item(Part::ROW, ItemKey::index(ri)), full);
@@ -1200,8 +1055,6 @@ impl TreeView {
                 " "
             };
             let gs = if row.busy {
-
-
                 st.fg(t.legible_mark(t.accent, st.bg.unwrap_or(bg)))
             } else if row.has_children {
                 st.fg(t.text_secondary)
@@ -1219,7 +1072,6 @@ impl TreeView {
                 && !row.busy
                 && let Some(m) = self.selected_marker
             {
-
                 rp.mark(ctx, buf, x, y, MarkKind::Glyph(m), focused);
             }
             x += 2;
@@ -1238,7 +1090,6 @@ impl TreeView {
             };
             let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 1 } + trailing_w);
 
-
             let mut label_style = match (s.selected, focused) {
                 (true, true) => st.fg(t.chosen(true)),
                 (true, false) => st.fg(t.chosen(false)).add_modifier(Modifier::BOLD),
@@ -1253,10 +1104,6 @@ impl TreeView {
             let mut lx = x;
             if let Some(g) = row.glyph.as_deref() {
                 if !row.note {
-
-
-
-
                     ctx.register_part(
                         self.id,
                         PartRef::item(Part::MARKER, ItemKey::index(ri)),
@@ -1267,7 +1114,6 @@ impl TreeView {
                     lx,
                     y,
                     g,
-
                     st.fg(if row.glyph_tone == Tone::Muted {
                         t.text_muted
                     } else {
@@ -1330,8 +1176,6 @@ impl TreeView {
             }
         }
 
-
-
         ctx.scrollable(self.id, area);
         if self.divider && !has_sb {
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
@@ -1370,7 +1214,6 @@ impl Scrollable for TreeView {
     }
 }
 
-
 impl RowSource for [FlatRow] {
     fn len(&self) -> usize {
         <[FlatRow]>::len(self)
@@ -1401,13 +1244,7 @@ impl Navigable for TreeView {
     }
 }
 
-
 const SPECIMEN_ROWS: usize = 4;
-
-
-
-
-
 
 impl crate::ui::specimen::Specimen for TreeView {
     fn specimen_id(&self) -> WidgetId {
@@ -1485,10 +1322,6 @@ impl crate::ui::specimen::Specimen for TreeView {
     }
 }
 
-
-
-
-
 impl crate::core::pointer::MouseTarget for TreeView {
     type Action = TreeAction;
 
@@ -1524,8 +1357,6 @@ impl crate::core::pointer::MouseTarget for TreeView {
 mod identity_tests {
     use super::*;
 
-
-
     fn big(folders: usize, leaves: usize) -> TreeView {
         let dirs = (0..folders)
             .map(|d| {
@@ -1545,9 +1376,6 @@ mod identity_tests {
             .map(|r| (r.path.clone(), r.depth, r.expanded))
             .collect()
     }
-
-
-
 
     #[test]
     fn a_toggle_builds_only_the_rows_it_reveals() {
@@ -1597,8 +1425,6 @@ mod identity_tests {
         let (_, ev) = a.on_key(&enter);
         assert_eq!(ev, Some(TreeAction::Activate(vec![0])));
         assert_eq!(a.rows().len(), 2, "activating does not collapse");
-
-
 
         let mut data = TreeView::new(WidgetId::of("t"), nodes.clone());
         data.on_click_row(0);
@@ -1754,9 +1580,6 @@ mod scroll_tests {
     use crate::ui::ctx::Interaction;
     use ratatui::layout::Position;
 
-
-
-
     #[test]
     fn a_busy_nodes_spinner_reads_on_its_row_at_every_level() {
         use crate::theme::{ColorLevel, contrast_ratio};
@@ -1803,8 +1626,6 @@ mod scroll_tests {
             .collect::<Vec<_>>()
             .join("\n")
     }
-
-
 
     #[test]
     fn content_states_replace_the_rows_and_an_empty_tree_is_skipped() {
@@ -2131,9 +1952,6 @@ mod scroll_tests {
         assert_eq!(t.rows().len(), 2);
     }
 
-
-
-
     #[test]
     fn a_right_click_offers_expand_and_collapse_all_from_the_key_map() {
         use crate::core::intent::Phase;
@@ -2209,7 +2027,6 @@ mod scroll_tests {
         assert_eq!(row(&t, TreeCmd::CollapseAll).1, None);
     }
 }
-
 
 fn align(text: &str, w: usize, align: Align) -> String {
     match align {

@@ -1,16 +1,10 @@
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::Route;
 use crate::app_tests::H;
 
-
-
 #[test]
 fn ctrl_d_is_data_structure_and_alt_d_duplicates() {
-
-
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = H::new(200, 40);
     assert_eq!(h.app.route(), Route::Connections);
@@ -31,10 +25,6 @@ fn ctrl_d_is_data_structure_and_alt_d_duplicates() {
             .any(|c| c.name.ends_with("(Copy)"))
     );
 }
-
-
-
-
 
 #[test]
 fn alt_hints_hide_on_macos_terminal_and_show_with_the_kitty_protocol() {
@@ -76,10 +66,6 @@ fn alt_hints_hide_on_macos_terminal_and_show_with_the_kitty_protocol() {
     assert!(f.contains("Alt+R Run all"), "{f}");
     keyboard::session::leave();
 }
-
-
-
-
 
 #[test]
 fn y_copies_a_cell_and_a_history_query_for_real() {

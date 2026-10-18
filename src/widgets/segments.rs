@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
@@ -47,8 +42,6 @@ impl Segment {
         self
     }
 
-
-
     pub fn lead(mut self, glyph: impl Into<String>, tone: Tone) -> Self {
         self.lead = Some((glyph.into(), tone));
         self
@@ -61,8 +54,6 @@ impl Segment {
         }
     }
 }
-
-
 
 pub fn render(
     area: Rect,
@@ -101,7 +92,6 @@ pub fn render(
         (l + r).saturating_sub(sep) + 2 * edge
     };
     while total(&keep_l, &keep_r) > area.width {
-
         let mut best: Option<(u8, bool, usize)> = None;
         for (i, s) in left.iter().enumerate() {
             if keep_l[i] && best.is_none_or(|b| s.priority < b.0) {
@@ -120,7 +110,6 @@ pub fn render(
         }
     }
     let draw = |buf: &mut Buffer, ctx: &mut RenderCtx, x: u16, s: &Segment| {
-
         let mut st = match s.id {
             Some(id) => {
                 let mut vs = ctx.state(id);
@@ -187,9 +176,6 @@ pub fn render(
         rx = rx.saturating_sub(sep);
     }
 }
-
-
-
 
 impl crate::ui::specimen::Specimen for Segment {
     fn specimen_id(&self) -> WidgetId {

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use super::id::WidgetId;
 
 #[derive(Debug, Default, Clone)]
@@ -17,15 +11,12 @@ impl FocusRing {
         self.order.push(id);
     }
 
-
-
     pub fn len(&self) -> usize {
         self.order.len()
     }
     pub fn is_empty(&self) -> bool {
         self.order.is_empty()
     }
-
 
     pub fn sort_from<K: Ord>(&mut self, start: usize, key: impl FnMut(&WidgetId) -> K) {
         if let Some(group) = self.order.get_mut(start..) {
@@ -74,28 +65,16 @@ impl FocusRing {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusFallback {
-
-
-
-
-
-
     #[default]
     Nearest,
 
     First,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BlurAction {
-
-
     #[default]
     Commit,
 
@@ -104,35 +83,18 @@ pub enum BlurAction {
     Keep,
 }
 
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FocusChange {
-
     pub from: WidgetId,
-
 
     pub to: Option<WidgetId>,
 }
 
-
-
-
-
-
-
 pub trait BlurTarget {
-
     fn blur_id(&self) -> WidgetId;
-
 
     fn blur(&mut self) -> super::event::Outcome;
 }
-
 
 pub fn forward_blur(
     change: FocusChange,
@@ -150,21 +112,13 @@ thread_local! {
     static REQUEST: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
 }
 
-
-
-
-
-
-
 pub fn request_focus_next(backward: bool) {
     REQUEST.with(|r| r.set(Some(backward)));
 }
 
-
 pub fn cancel_focus_request() {
     REQUEST.with(|r| r.set(None));
 }
-
 
 #[derive(Debug, Default, Clone)]
 pub struct Focus {
@@ -177,7 +131,6 @@ pub struct Focus {
     left: Vec<WidgetId>,
 
     end_edit: Option<WidgetId>,
-
 
     moves: u64,
 }
@@ -207,22 +160,13 @@ impl Focus {
         self.move_to(ring.prev(self.current));
     }
 
-
-
-
-
-
-
     pub fn moves(&self) -> u64 {
         self.moves
     }
 
-
-
     fn move_to(&mut self, id: Option<WidgetId>) {
         self.moves = self.moves.wrapping_add(1);
         if self.current != id {
-
             cancel_focus_request();
         }
         if let Some(from) = self.current
@@ -233,8 +177,6 @@ impl Focus {
         }
         self.current = id;
     }
-
-
 
     pub fn apply_request(&mut self, ring: &FocusRing) -> bool {
         let Some(backward) = REQUEST.with(|r| r.take()) else {
@@ -249,29 +191,14 @@ impl Focus {
         self.current != before
     }
 
-
-
-
-
     pub fn settle(&mut self, ring: &FocusRing) -> Vec<FocusChange> {
         self.apply_request(ring);
         self.take_changes()
     }
 
-
-
-
-
     pub fn end_edit(&mut self) {
         self.end_edit = self.current;
     }
-
-
-
-
-
-
-
 
     pub fn take_changes(&mut self) -> Vec<FocusChange> {
         let to = self.current;
@@ -288,13 +215,9 @@ impl Focus {
         out
     }
 
-
-
     pub fn ensure_valid(&mut self, ring: &FocusRing) {
         self.ensure_valid_with(ring, FocusFallback::First);
     }
-
-
 
     pub fn ensure_valid_with(&mut self, ring: &FocusRing, fallback: FocusFallback) {
         let reach = ring.reachable();
@@ -401,8 +324,6 @@ mod tests {
 
     #[test]
     fn focus_moved_onto_an_unfocusable_control_stays_where_it_was() {
-
-
         let r = ring(&["a", "b", "c", "d"]);
         let mut f = Focus::default();
         f.focus(WidgetId::of("c"));
@@ -435,7 +356,6 @@ mod tests {
             }]
         );
         assert!(f.take_changes().is_empty(), "drained");
-
 
         f.focus(c);
         f.focus(b);

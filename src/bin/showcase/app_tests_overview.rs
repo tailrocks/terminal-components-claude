@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -66,7 +62,6 @@ impl Harness {
         s
     }
 
-
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         for y in 0..buf.area.height {
@@ -129,8 +124,6 @@ fn playground_scrolls_by_card_band_on_a_short_terminal() {
         h.text()
     );
 }
-
-
 
 fn sample_bg(h: &Harness, row: u16) -> ratatui::style::Color {
     let (x, y) = h.find("plane ").expect("explorer");
@@ -238,7 +231,6 @@ fn options_section_sets_an_option_like_opt() {
     );
     assert_eq!(h.live_bars(), 1, "{}", h.text());
 }
-
 
 #[test]
 fn print_overview() {

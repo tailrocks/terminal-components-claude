@@ -1,6 +1,3 @@
-
-
-
 use crate::pages::Pages;
 use ratatui::crossterm::event::KeyCode;
 
@@ -19,7 +16,6 @@ fn status(h: &H) -> String {
         .map(str::to_owned)
         .unwrap_or_default()
 }
-
 
 const JARGON: [&str; 4] = ["ritual", "modeled", "runtime producer", "prefix command"];
 
@@ -74,11 +70,8 @@ fn footer(h: &H) -> String {
     h.text().lines().last().unwrap_or_default().to_owned()
 }
 
-
-
 #[test]
 fn jackin_letters_keep_one_meaning_across_screens() {
-
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 220, 40);
     h.app.router.accounts_mut().selected =
         crate::screens::accounts::Sel::Account("acct-claude-work".into());
@@ -100,7 +93,6 @@ fn jackin_letters_keep_one_meaning_across_screens() {
     );
     assert!(footer(&h).contains("t Enable"), "{}", footer(&h));
 
-
     let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 220, 40);
     let f = footer(&h);
     assert!(
@@ -109,7 +101,6 @@ fn jackin_letters_keep_one_meaning_across_screens() {
     );
     h.key(KeyCode::Char('x'));
     assert!(h.text().contains("Cancel the launch?"), "{}", h.text());
-
 
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 220, 40);
     let live = h
@@ -133,11 +124,8 @@ fn jackin_letters_keep_one_meaning_across_screens() {
     assert!(f.contains("c Accounts"), "{f}");
 }
 
-
-
 #[test]
 fn every_quit_confirmation_says_quit() {
-
     let mut clean = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     clean.ctrl('q');
     assert!(clean.app.shell.quit);
@@ -152,10 +140,6 @@ fn every_quit_confirmation_says_quit() {
         assert!(!t.contains("Exit"), "{t}");
     }
 }
-
-
-
-
 
 #[test]
 fn capsule_resize_is_hinted_only_where_the_terminal_delivers_alt() {
@@ -192,10 +176,6 @@ fn capsule_resize_is_hinted_only_where_the_terminal_delivers_alt() {
     keyboard::session::leave();
 }
 
-
-
-
-
 #[test]
 fn a_capsule_copy_reports_what_was_copied() {
     use junie_tui::core::event::MouseKind;
@@ -214,8 +194,6 @@ fn a_capsule_copy_reports_what_was_copied() {
     h.key(KeyCode::Char('y'));
     assert!(h.app.clipboard_gen > before, "{}", h.text());
     assert_eq!(status(&h), "Copied selection");
-
-
 
     h.key(KeyCode::Esc);
     h.app.shell.status.clear();

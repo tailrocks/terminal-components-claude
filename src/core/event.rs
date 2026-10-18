@@ -1,18 +1,10 @@
-
-
-
-
-
-
 use ratatui::crossterm::event::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 use ratatui::layout::Position;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Outcome {
-
     #[default]
     Ignored,
 
@@ -25,7 +17,6 @@ impl Outcome {
     pub fn consumed(self) -> bool {
         !matches!(self, Outcome::Ignored)
     }
-
 
     pub fn or(self, other: Outcome) -> Outcome {
         match (self, other) {
@@ -62,11 +53,9 @@ impl Key {
         self.mods.contains(KeyModifiers::ALT)
     }
 
-
     pub fn cmd(&self) -> bool {
         self.mods.contains(KeyModifiers::SUPER)
     }
-
 
     pub fn chord(&self) -> bool {
         self.ctrl() || self.alt() || self.cmd()
@@ -92,16 +81,9 @@ pub enum MouseKind {
     Up,
     Drag,
 
-
     Secondary,
 
-
-
     SecondaryDrag,
-
-
-
-
 
     SecondaryUp,
 
@@ -117,12 +99,10 @@ pub struct Mouse {
     pub kind: MouseKind,
     pub pos: Position,
 
-
     pub mods: KeyModifiers,
 }
 
 impl Mouse {
-
     pub const fn new(kind: MouseKind, pos: Position) -> Self {
         Self {
             kind,
@@ -130,7 +110,6 @@ impl Mouse {
             mods: KeyModifiers::NONE,
         }
     }
-
 
     pub const fn with_mods(mut self, mods: KeyModifiers) -> Self {
         self.mods = mods;
@@ -147,10 +126,6 @@ impl Mouse {
         self.mods.contains(KeyModifiers::ALT)
     }
 
-
-
-
-
     pub fn wheel(&self) -> Option<(i32, i32)> {
         match self.kind {
             MouseKind::WheelUp => Some((0, -1)),
@@ -162,53 +137,26 @@ impl Mouse {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InputConfig {
-
-
     pub shift_wheel_horizontal: bool,
 
-
-
-
-
     pub ctrl_click_secondary: bool,
-
-
 
     pub legacy_ctrl_punctuation: bool,
 }
 
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClientPlatform {
-
     MacOs,
-
 
     Other,
 }
 
 impl ClientPlatform {
-
-
     pub const OVERRIDE_ENV: &'static str = "JUNIE_TUI_CLIENT_PLATFORM";
 
-
-
-
     pub const MACOS_TERM_PROGRAMS: [&'static str; 2] = ["Apple_Terminal", "iTerm.app"];
-
-
 
     pub const fn build_target() -> Self {
         if cfg!(target_os = "macos") {
@@ -217,10 +165,6 @@ impl ClientPlatform {
             Self::Other
         }
     }
-
-
-
-
 
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
         if let Some(v) = get(Self::OVERRIDE_ENV) {
@@ -239,8 +183,6 @@ impl ClientPlatform {
         Self::build_target()
     }
 
-
-
     pub fn current() -> Self {
         static CURRENT: std::sync::OnceLock<ClientPlatform> = std::sync::OnceLock::new();
         *CURRENT.get_or_init(|| Self::from_env(|k| std::env::var(k).ok()))
@@ -252,9 +194,6 @@ impl ClientPlatform {
 }
 
 impl InputConfig {
-
-
-
     pub const fn for_platform(platform: ClientPlatform) -> Self {
         Self {
             shift_wheel_horizontal: true,
@@ -265,7 +204,6 @@ impl InputConfig {
 }
 
 impl Default for InputConfig {
-
     fn default() -> Self {
         Self::for_platform(ClientPlatform::current())
     }
@@ -275,7 +213,6 @@ impl Input {
     pub fn from_crossterm(ev: Event) -> Option<Self> {
         Self::from_crossterm_with(ev, InputConfig::default())
     }
-
 
     pub fn from_crossterm_with(ev: Event, config: InputConfig) -> Option<Self> {
         let ev = match ev {
@@ -331,8 +268,6 @@ impl Input {
                         MouseKind::Secondary
                     }
 
-
-
                     MouseEventKind::Drag(MouseButton::Left)
                         if config.ctrl_click_secondary
                             && modifiers.contains(KeyModifiers::CONTROL) =>
@@ -355,8 +290,6 @@ impl Input {
                     MouseEventKind::Down(MouseButton::Middle) => MouseKind::Middle,
                     MouseEventKind::ScrollUp => MouseKind::WheelUp,
                     MouseEventKind::ScrollDown => MouseKind::WheelDown,
-
-
 
                     MouseEventKind::ScrollLeft => MouseKind::WheelLeft,
                     MouseEventKind::ScrollRight => MouseKind::WheelRight,
@@ -486,7 +419,6 @@ mod tests {
         let forced_mac = env(&[(ClientPlatform::OVERRIDE_ENV, "macos")]);
         assert_eq!(ClientPlatform::from_env(forced_mac), mac);
 
-
         let fallback = ClientPlatform::build_target();
         for pairs in [
             &[("TERM_PROGRAM", "WezTerm")][..],
@@ -612,9 +544,6 @@ mod tests {
             MouseKind::Up
         );
     }
-
-
-
 
     #[test]
     fn native_horizontal_wheel_stays_horizontal() {

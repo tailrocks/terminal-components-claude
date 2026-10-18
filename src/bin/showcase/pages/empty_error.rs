@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -86,8 +80,6 @@ impl EmptyErrorPage {
         page
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let error = o.value("emptyerror.kind") == "error";
@@ -124,7 +116,6 @@ impl EmptyErrorPage {
             _ => "orders_view is a view: views cannot be edited",
         }
     }
-
 
     fn short_reason(&self) -> &'static str {
         match self.opts.value("emptyerror.reason") {
@@ -219,8 +210,6 @@ impl EmptyErrorPage {
         self.menu.render(area, buf, ctx);
     }
 
-
-
     fn open_menu(&mut self) {
         let reason = self.short_reason();
         let anchor = self.actions_area();
@@ -254,8 +243,6 @@ impl EmptyErrorPage {
         }
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

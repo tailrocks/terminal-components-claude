@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::{Axis, Bar, HitRegistry};
@@ -41,7 +30,6 @@ use ratatui::layout::{Constraint, Position, Rect};
 
 const SCREEN: Rect = Rect::new(0, 0, 60, 16);
 
-
 fn frame(draw: impl FnOnce(Rect, &mut Buffer, &mut RenderCtx)) -> HitRegistry {
     let theme = Theme::junie();
     let mut hits = HitRegistry::default();
@@ -54,7 +42,6 @@ fn frame(draw: impl FnOnce(Rect, &mut Buffer, &mut RenderCtx)) -> HitRegistry {
     }
     hits
 }
-
 
 fn bar(hits: &HitRegistry, owner: WidgetId, axis: Axis) -> Bar {
     let id = match axis {
@@ -71,8 +58,6 @@ fn bar(hits: &HitRegistry, owner: WidgetId, axis: Axis) -> Bar {
 fn state(w: &mut dyn Scrollable, axis: Axis) -> ScrollState {
     *w.pane().axis(axis)
 }
-
-
 
 fn press_and_drag(name: &str, w: &mut dyn Scrollable, bar: Bar) {
     let axis = bar.axis;
@@ -194,8 +179,6 @@ fn tables_and_grids_page_and_drag_both_bars() {
     }
 }
 
-
-
 #[test]
 fn tables_and_grids_step_one_column_per_sideways_notch() {
     let mut t = wide_table();
@@ -215,7 +198,6 @@ fn tables_and_grids_step_one_column_per_sideways_notch() {
     assert_eq!(g.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
     assert_eq!(g.scroll.h.offset, 1);
 
-
     let cols = vec![Column::new("a", Constraint::Length(4))];
     let mut narrow = DataTable::new(WidgetId::of("n"), cols, vec![vec![Cell::new("x")]]);
     frame(|a, b, c| narrow.render(a, b, c, Theme::junie().surface));
@@ -224,7 +206,6 @@ fn tables_and_grids_step_one_column_per_sideways_notch() {
         Outcome::Ignored
     );
 }
-
 
 fn screen(draw: impl FnOnce(Rect, &mut Buffer, &mut RenderCtx)) -> Vec<String> {
     let theme = Theme::junie();
@@ -245,7 +226,6 @@ fn screen(draw: impl FnOnce(Rect, &mut Buffer, &mut RenderCtx)) -> Vec<String> {
         .collect()
 }
 
-
 const STEP_WIDTHS: [u16; 10] = [6, 6, 6, 6, 6, 6, 30, 30, 40, 70];
 
 fn right() -> Key {
@@ -254,11 +234,6 @@ fn right() -> Key {
         mods: KeyModifiers::NONE,
     }
 }
-
-
-
-
-
 
 fn assert_cursor_column_whole(name: &str, offset: usize, fit: usize, cursor: usize, top: &str) {
     assert!(
@@ -326,8 +301,6 @@ fn moving_right_keeps_the_grid_cursor_column_whole() {
         assert_cursor_column_whole("DataGrid", h.offset, h.viewport_len, g.cursor.1, &lines[0]);
     }
 }
-
-
 
 #[test]
 fn a_sideways_notch_after_a_move_is_not_undone() {
@@ -461,9 +434,6 @@ fn modal_bodies_page_and_drag_their_bars() {
     press_and_drag("Dialog", &mut w, b);
 }
 
-
-
-
 #[test]
 fn a_click_on_a_modal_bar_pages_the_body_it_was_drawn_for() {
     let mut focus = Focus::default();
@@ -490,9 +460,6 @@ fn a_click_on_a_modal_bar_pages_the_body_it_was_drawn_for() {
     assert_eq!(o, Outcome::Changed);
     assert_eq!(w.scroll.offset, view.min(w.scroll.max_offset()));
 }
-
-
-
 
 #[test]
 fn a_boundary_notch_in_a_modal_body_is_consumed_without_a_repaint() {
@@ -524,17 +491,11 @@ fn a_boundary_notch_in_a_modal_body_is_consumed_without_a_repaint() {
     assert_eq!(w.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
 }
 
-
 fn last_visible(w: &mut dyn Scrollable) -> usize {
     let v = state(w, Axis::Vertical);
     assert!(v.overflows());
     v.offset + v.viewport_len - 1
 }
-
-
-
-
-
 
 #[test]
 fn a_click_on_the_last_visible_row_never_scrolls_it_away() {

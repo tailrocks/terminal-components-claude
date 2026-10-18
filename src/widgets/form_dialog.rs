@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::hints::{HasHints, HintCx};
@@ -144,8 +135,6 @@ impl FormField {
         }
     }
 
-
-
     fn tab_stop(&self) -> Option<WidgetId> {
         let disabled = match &self.kind {
             FormFieldKind::Input(i) => i.disabled,
@@ -158,10 +147,6 @@ impl FormField {
         if disabled { None } else { self.focus_id() }
     }
 }
-
-
-
-
 
 impl HasHints for FormDialog {
     fn hints(&self, cx: &HintCx) -> Vec<Hint> {
@@ -199,15 +184,6 @@ pub enum FormAction {
 }
 
 pub struct FormDialog {
-
-
-
-
-
-
-
-
-
     pub close_button: crate::widgets::icon_button::IconButton,
 
     pub dismiss: crate::ui::popup::Dismiss,
@@ -227,27 +203,20 @@ pub struct FormDialog {
     pub events: Vec<FormAction>,
     pub dirty: bool,
 
-
     pub pop_on_save: bool,
-
 
     strings: Strings,
 
-
-
     pub nav: NavKeys,
-
 
     pub button_row: crate::widgets::button::ButtonRow,
 }
 
 impl FormDialog {
-
     pub fn button_row(mut self, row: crate::widgets::button::ButtonRow) -> Self {
         self.button_row = row;
         self
     }
-
 
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
@@ -389,11 +358,6 @@ impl FormDialog {
             FormAction::Action("save".into())
         }
     }
-
-
-
-
-
 
     fn submit(&mut self, focus: &mut Focus) {
         let mut first_invalid = None;
@@ -558,8 +522,6 @@ impl FormDialog {
                 Outcome::Changed
             }
             _ if !editing && matches!(self.nav.action(key), Some(Nav::Left | Nav::Right)) => {
-
-
                 let row = self
                     .actions
                     .iter()
@@ -572,7 +534,6 @@ impl FormDialog {
                 Outcome::Changed
             }
 
-
             KeyCode::Esc if self.dismiss.escape => {
                 self.events.push(FormAction::Cancel);
                 Outcome::Changed
@@ -581,7 +542,6 @@ impl FormDialog {
         }
     }
 
-
     fn inputs(&mut self) -> impl Iterator<Item = &mut TextInput> {
         self.fields.iter_mut().filter_map(|f| match &mut f.kind {
             FormFieldKind::Input(i) => Some(i),
@@ -589,20 +549,14 @@ impl FormDialog {
         })
     }
 
-
-
-
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
         if let Some(s) = self.select_owning(id) {
-
             return s.on_press(id, pos);
         }
         self.inputs()
             .find(|i| i.id == id)
             .map_or(Outcome::Ignored, |i| i.on_press_count(pos, count))
     }
-
-
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if scrollbar::is_bar_of(pressed, self.id) {
@@ -618,8 +572,6 @@ impl FormDialog {
             .find(|i| i.id == pressed)
             .map_or(Outcome::Ignored, |i| i.on_drag(pos))
     }
-
-
 
     pub fn on_release(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         for f in self.fields.iter_mut() {
@@ -644,13 +596,9 @@ impl FormDialog {
         })
     }
 
-
-
     pub fn on_click(&mut self, id: WidgetId, pos: Position, focus: &mut Focus) -> Outcome {
         self.on_click_count(id, pos, 1, focus)
     }
-
-
 
     pub fn on_click_count(
         &mut self,
@@ -737,8 +685,6 @@ impl FormDialog {
         Outcome::Consumed
     }
 
-
-
     pub fn on_blur(&mut self, ch: crate::core::focus::FocusChange) -> Outcome {
         for f in self.fields.iter_mut() {
             match &mut f.kind {
@@ -778,7 +724,6 @@ impl FormDialog {
         }
         h
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
@@ -831,8 +776,6 @@ impl FormDialog {
             let fh = f.height() as i32;
             let whole = y >= body.y as i32 && y < body.bottom() as i32;
             if !whole && let Some(id) = f.tab_stop() {
-
-
                 ctx.focus_stop(id);
             }
             if y + fh > body.y as i32 && y < body.bottom() as i32 {
@@ -910,7 +853,6 @@ impl FormDialog {
             y += fh + 1;
         }
         if self.scroll.overflows() {
-
             let rows = Rect::new(
                 area.x,
                 body.y,
@@ -1005,15 +947,6 @@ impl Scrollable for FormDialog {
 }
 
 impl FormDialog {
-
-
-
-
-
-
-
-
-
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -1113,9 +1046,6 @@ mod tests {
         );
     }
 
-
-
-
     #[test]
     fn arrows_between_form_buttons_skip_disabled_and_stop_at_the_ends() {
         use crate::core::focus::{Focus, FocusRing};
@@ -1160,11 +1090,6 @@ mod tests {
         assert_eq!(focus.current(), Some(w.cancel.id), "wraps when asked");
     }
 
-
-
-
-
-
     #[test]
     fn fields_scrolled_out_of_the_body_stay_in_the_tab_order() {
         let t = Theme::junie();
@@ -1191,11 +1116,6 @@ mod tests {
             .collect();
         assert_eq!(order, ids, "every field, in form order");
     }
-
-
-
-
-
 
     #[test]
     fn save_marks_the_first_invalid_field_and_does_not_save() {
@@ -1232,10 +1152,6 @@ mod tests {
         assert_eq!(f.events, vec![FormAction::Save]);
     }
 
-
-
-
-
     #[test]
     fn a_clean_esc_in_an_immediate_edit_cancels_the_form() {
         use crate::core::focus::{Focus, FocusRing};
@@ -1259,7 +1175,6 @@ mod tests {
         f.on_key(&esc, &mut focus, &ring);
         assert_eq!(f.events, vec![FormAction::Cancel]);
 
-
         let mut f = FormDialog::new(
             WidgetId::of("f"),
             "Form",
@@ -1276,10 +1191,6 @@ mod tests {
         f.on_key(&esc, &mut focus, &ring);
         assert!(!f.events.contains(&FormAction::Cancel), "{:?}", f.events);
     }
-
-
-
-
 
     #[test]
     fn a_wheel_over_an_open_select_scrolls_its_list_not_the_form() {

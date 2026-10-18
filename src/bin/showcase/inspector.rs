@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::VecDeque;
 
 use ratatui::buffer::Buffer;
@@ -30,9 +16,7 @@ use junie_tui::widgets::tabs::Tabs;
 
 pub const ID: WidgetId = WidgetId::of("app.inspector");
 
-
 pub const LOG_LEN: usize = 50;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tab {
@@ -105,14 +89,12 @@ impl Inspector {
         self.tabs.cursor = i;
     }
 
-
     pub fn for_page(&mut self, page: PageId) {
         if self.page != page {
             self.page = page;
             self.options = view(page);
         }
     }
-
 
     pub fn record(&mut self, input: &Input, out: Outcome) {
         let what = match input {
@@ -136,12 +118,9 @@ impl Inspector {
         self.log.truncate(LOG_LEN);
     }
 
-
     pub fn has_focus(&self, focus: Option<WidgetId>) -> bool {
         focus.is_some_and(|f| f == self.tabs.id || self.options.has_control(f))
     }
-
-
 
     pub fn render(
         &mut self,
@@ -193,7 +172,6 @@ impl Inspector {
         self.options.on_blur(from)
     }
 
-
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Option<OptSet>)> {
         match ev {
             PageEvent::Key(key) if cx.focus.current() == Some(self.tabs.id) => {
@@ -214,7 +192,6 @@ impl Inspector {
         }
         None
     }
-
 
     pub fn hints(&self, focus: Option<WidgetId>) -> Option<Vec<Hint>> {
         if focus == Some(self.tabs.id) {

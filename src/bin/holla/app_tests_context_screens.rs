@@ -1,6 +1,3 @@
-
-
-
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 
@@ -33,8 +30,6 @@ fn row(h: &H, id: junie_tui::core::id::WidgetId) -> Rect {
         .unwrap_or_else(|| panic!("row {id:?} not drawn\n{}", h.text()))
 }
 
-
-
 fn review() -> H {
     H::new(Scenario::UpgradePlan, Motion::Reduced, 0, 120, 40)
 }
@@ -58,8 +53,6 @@ fn a_plan_step_right_click_opens_its_menu_at_the_pointer_and_toggles_it() {
     assert!(h.app.modals.is_empty());
     assert!(!h.app.world.plans[0].steps[5].included, "excluded");
     assert_eq!(h.app.shell.focus.current(), Some(plan::OUTLINE));
-
-
 
     let r0 = row(&h, plan::OUTLINE.child(0));
     right_click(&mut h, r0.x + 10, r0.y);
@@ -141,8 +134,6 @@ fn a_running_plan_step_menu_retries_a_failed_step() {
     assert_eq!(h.app.world.plans[0].steps[5].state, StepState::Ready);
     assert_eq!(h.app.world.plans[0].steps[3].state, StepState::Succeeded);
 }
-
-
 
 fn disk_tree() -> H {
     let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
@@ -238,8 +229,6 @@ fn a_disk_overview_row_menu_analyzes_the_row() {
     );
 }
 
-
-
 fn activities() -> H {
     H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40)
 }
@@ -288,7 +277,6 @@ fn an_activity_output_right_click_opens_its_menu_at_the_pointer_and_stops_it() {
     );
     assert_eq!(h.app.shell.focus.current(), Some(activity::VIEW));
 }
-
 
 fn activity_view(h: &mut H) -> &junie_tui::widgets::viewport::TextViewport {
     let i = h.app.active();
@@ -382,8 +370,6 @@ fn a_stream_chip_menu_hides_the_stream_and_reopens_from_the_output() {
     assert_eq!(h.app.shell.focus.current(), Some(activity::CHIPS));
 }
 
-
-
 fn cleanup_page() -> H {
     let mut h = H::new(Scenario::ParityInsights, Motion::Paused, 40, 120, 40);
     h.app.go(Go::Push(Page::Cleanup { category: None }));
@@ -432,8 +418,6 @@ fn shift_f10_opens_the_cleanup_menu_below_the_cursor_row() {
     assert_eq!(h.app.shell.focus.current(), Some(cleanup::DETAIL));
 }
 
-
-
 #[test]
 fn a_snapshot_body_menu_runs_the_page_keys() {
     let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);
@@ -477,8 +461,6 @@ fn a_config_snapshot_menu_offers_revoking_trust() {
         "{t}"
     );
 }
-
-
 
 #[test]
 fn the_gate_sequence_menu_copies_or_cancels_but_never_continues() {

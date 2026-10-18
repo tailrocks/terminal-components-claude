@@ -1,20 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Margin, Rect};
 
@@ -51,7 +34,6 @@ const GATE1: WidgetId = ID.sub("gate1");
 const GATE2: WidgetId = ID.sub("gate2");
 const PUSH: WidgetId = ID.sub("push");
 const NOTES: WidgetId = ID.sub("notes");
-
 
 const VARIANTS: &[(&str, &str)] = &[
     ("Confirm run", "Text body"),
@@ -121,7 +103,6 @@ impl DialogsPage {
             task_name: "Migrate sessions table".into(),
         }
     }
-
 
     fn variant(&self, i: usize) -> Dialog {
         match i {
@@ -229,7 +210,6 @@ impl DialogsPage {
         }
     }
 
-
     fn gate2(&self) -> Dialog {
         Dialog::facts(
             GATE2,
@@ -241,8 +221,6 @@ impl DialogsPage {
         )
         .title_status(StatusKind::Fail)
     }
-
-
 
     fn style(&self, mut d: Dialog, anchor: Rect) -> Dialog {
         let o = &self.opts;
@@ -348,7 +326,6 @@ impl DialogsPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
 
-
         let per = (area.width.saturating_sub(2) / 22).max(1) as usize;
         let notes = per >= 4;
         let per = per.min(4);
@@ -418,7 +395,6 @@ impl DialogsPage {
             );
         }
     }
-
 
     fn readout(&self) -> Vec<Prop> {
         let d = self.style(self.variant(0), Rect::ZERO);
@@ -584,7 +560,6 @@ impl DialogsPage {
     }
 }
 
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -656,8 +631,6 @@ impl Page for DialogsPage {
         }
         match ev {
             PageEvent::Key(key) => {
-
-
                 if key.is_char('d') {
                     self.open(3, cx);
                     return Outcome::Changed;

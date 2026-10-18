@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -27,21 +14,15 @@ use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::choice::Toggle;
 use junie_tui::widgets::select::{Select, SelectAction};
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Effect {
-
     Frame,
-
 
     Behaviour,
 }
 
-
 #[derive(Debug, Clone, Copy)]
 pub struct Opt {
-
     pub key: &'static str,
     pub label: &'static str,
 
@@ -49,7 +30,6 @@ pub struct Opt {
 
     pub default: usize,
     pub effect: Effect,
-
 
     pub needs: &'static [(&'static str, &'static str)],
 }
@@ -91,9 +71,7 @@ impl Opt {
 
 const OFF_ON: &[&str] = &["off", "on"];
 
-
 pub static SHELL: &[Opt] = &[
-
     Opt::new(
         "shell.color",
         "Colour level",
@@ -106,12 +84,8 @@ pub static SHELL: &[Opt] = &[
     )
     .needs(&[("shell.color", "mono")]),
     Opt::new("shell.glyphs", "Glyphs", &["unicode", "ascii"]),
-
-
     Opt::new("shell.strings", "Strings", &["default", "ascii"]).behaviour(),
     Opt::new("shell.motion", "Motion", &["full", "reduced", "paused"]).behaviour(),
-
-
     Opt::new("shell.focus_on", "Focus on", &["press", "release"]).behaviour(),
     Opt::new(
         "shell.double_click_ms",
@@ -184,7 +158,6 @@ pub static SHELL: &[Opt] = &[
     Opt::new("shell.reveal", "Reveal cut text", OFF_ON)
         .default(1)
         .behaviour(),
-
     Opt::new(
         "shell.platform",
         "Client platform",
@@ -203,13 +176,11 @@ pub static SHELL: &[Opt] = &[
         &["immediate", "type-to-edit", "explicit"],
     )
     .behaviour(),
-
     Opt::new(
         "shell.focus_fallback",
         "Focus fallback",
         &["first", "nearest"],
     )
-
     .default(1)
     .behaviour(),
     Opt::new(
@@ -226,16 +197,12 @@ pub static SHELL: &[Opt] = &[
     )
     .default(1)
     .behaviour(),
-
-
     Opt::new(
         "shell.keyboard_protocol",
         "Keyboard protocol",
         &["auto", "on", "off"],
     )
     .behaviour(),
-
-
     Opt::new(
         "shell.alt_keys",
         "Alt keys",
@@ -249,9 +216,6 @@ pub static SHELL: &[Opt] = &[
     )
     .behaviour(),
 ];
-
-
-
 
 pub fn page_options(page: PageId) -> &'static [Opt] {
     match page {
@@ -312,8 +276,6 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
     }
 }
 
-
-
 pub static QUERY_WORKBENCH: &[Opt] = &[
     Opt::new("queryworkbench.explorer", "Explorer", OFF_ON).default(1),
     Opt::new(
@@ -345,9 +307,6 @@ pub static QUERY_WORKBENCH: &[Opt] = &[
     ),
 ];
 
-
-
-
 pub static CONNECTIONS: &[Opt] = &[
     Opt::new(
         "connections.group_by",
@@ -369,15 +328,12 @@ pub static CONNECTIONS: &[Opt] = &[
     Opt::new("connections.form_width", "Form width", &["60", "52", "72"]).behaviour(),
 ];
 
-
-
 pub static FINDER: &[Opt] = &[
     Opt::new("finder.query", "Query", &["typed", "empty", "nomatch"]),
     Opt::new("finder.scope", "Scope", &["here", "project", "everywhere"]),
     Opt::new("finder.risk_column", "Risk column", OFF_ON).default(1),
     Opt::new("finder.preview", "Preview", &["auto", "line"]),
 ];
-
 
 pub static PANELS: &[Opt] = &[
     Opt::new("panels.focus_mark", "Card focus mark", &["title", "bar"]),
@@ -399,8 +355,6 @@ pub static PANELS: &[Opt] = &[
     Opt::new("panels.nav", "Keys", &["desktop", "vim", "no-paging"]),
     Opt::new("panels.keymap", "Follow key", &["f", "t"]),
 ];
-
-
 
 pub static SCROLLING: &[Opt] = &[
     Opt::new("scrolling.context", "Context rows", &["0", "1", "2"]).default(1),
@@ -437,7 +391,6 @@ pub static SCROLLING: &[Opt] = &[
     Opt::new("scrolling.skip_disabled", "Skip disabled", OFF_ON).default(1),
 ];
 
-
 pub static BUTTONS: &[Opt] = &[
     Opt::new(
         "buttons.focus_visible",
@@ -464,7 +417,6 @@ pub static BUTTONS: &[Opt] = &[
         &["thin", "colon"],
     ),
 ];
-
 
 pub static INPUTS: &[Opt] = &[
     Opt::new(
@@ -503,8 +455,6 @@ pub static INPUTS: &[Opt] = &[
         &["theme", "custom"],
     ),
 ];
-
-
 
 pub static TEXTAREAS: &[Opt] = &[
     Opt::new(
@@ -551,7 +501,6 @@ pub static TEXTAREAS: &[Opt] = &[
     Opt::new("textareas.label_hit", "Label click focuses", OFF_ON).default(1),
 ];
 
-
 pub static CHECKS: &[Opt] = &[
     Opt::new(
         "checksradios.hit",
@@ -567,9 +516,7 @@ pub static CHECKS: &[Opt] = &[
     Opt::new("checksradios.disabled", "Disable every control", OFF_ON),
 ];
 
-
 pub static CHIPS: &[Opt] = &[
-
     Opt::new(
         "chipsselects.bar_width",
         "Chip bar width",
@@ -603,7 +550,6 @@ pub static CHIPS: &[Opt] = &[
         &["default", "custom"],
     ),
     Opt::new("chipsselects.digit_toggles", "1–9 toggle streams", OFF_ON).default(1),
-
     Opt::new("chipsselects.arrows", "Select arrows", &["open", "step"]),
     Opt::new(
         "chipsselects.wheel",
@@ -657,9 +603,6 @@ pub static CHIPS: &[Opt] = &[
     Opt::new("chipsselects.mixed", "Sort shows mixed", OFF_ON),
 ];
 
-
-
-
 #[derive(Debug, Clone)]
 pub struct PageValues {
     opts: &'static [Opt],
@@ -680,7 +623,6 @@ impl PageValues {
     pub fn get(&self, key: &str) -> Option<usize> {
         self.index(key).map(|i| self.values[i])
     }
-
 
     pub fn set(&mut self, key: &str, value: usize) -> bool {
         let Some(i) = self.index(key) else {
@@ -703,8 +645,6 @@ impl PageValues {
         self.value(key).parse().ok()
     }
 }
-
-
 
 static CELL_EDITORS: &[Opt] = &[
     Opt::new("celleditors.dismiss", "Dismiss", &["light", "escape"]),
@@ -740,8 +680,6 @@ static CELL_EDITORS: &[Opt] = &[
     ),
 ];
 
-
-
 static SELECTION: &[Opt] = &[
     Opt::new("selection.esc_clears", "Esc clears the selection", OFF_ON).default(1),
     Opt::new(
@@ -761,8 +699,6 @@ static SELECTION: &[Opt] = &[
         &["double", "again", "single", "never"],
     ),
 ];
-
-
 
 static EDITABLE: &[Opt] = &[
     Opt::new("editable.rows", "Rows", &["tasks", "empty"]),
@@ -790,8 +726,6 @@ static EDITABLE: &[Opt] = &[
         &["default", "custom"],
     ),
 ];
-
-
 
 static DATA_GRID: &[Opt] = &[
     Opt::new(
@@ -841,7 +775,6 @@ static DATA_GRID: &[Opt] = &[
     Opt::new("datagrid.blur_action", "On blur", &["commit", "cancel"]),
 ];
 
-
 static COLUMNS: &[Opt] = &[
     Opt::new(
         "columns.width",
@@ -858,7 +791,6 @@ static COLUMNS: &[Opt] = &[
     ),
 ];
 
-
 static BASIC_TABLE: &[Opt] = &[Opt::new(
     "basictable.selection",
     "Selection",
@@ -866,9 +798,7 @@ static BASIC_TABLE: &[Opt] = &[Opt::new(
 )
 .default(1)];
 
-
 static CHROME: &[Opt] = &[
-
     Opt::new("chrome.bar", "Bar width", &["full", "narrow"]),
     Opt::new("chrome.open_on", "Open on", &["press", "release"]),
     Opt::new("chrome.overflow", "Overflow", &["hide", "chevron"])
@@ -883,10 +813,7 @@ static CHROME: &[Opt] = &[
     Opt::new("chrome.brand", "Brand", &["lockup", "compact", "none"]),
 ];
 
-
-
 static STATUS_HINTS: &[Opt] = &[
-
     Opt::new(
         "statushints.layer",
         "Top layer",
@@ -913,7 +840,6 @@ static STATUS_HINTS: &[Opt] = &[
     ),
     Opt::new("statushints.badge", "EDIT badge", OFF_ON),
     Opt::new("statushints.hidden", "Hidden files shown", OFF_ON),
-
     Opt::new(
         "statushints.too_small_min",
         "Too small below",
@@ -926,8 +852,6 @@ static STATUS_HINTS: &[Opt] = &[
     ),
     Opt::new("statushints.brand", "Too-small brand", &["title", "accent"]),
 ];
-
-
 
 static TEXT_UTILITIES: &[Opt] = &[
     Opt::new("textutilities.width", "Width", &["8", "12", "20", "32"]).default(2),
@@ -967,8 +891,6 @@ static TEXT_UTILITIES: &[Opt] = &[
     ),
 ];
 
-
-
 static BREADCRUMBS_RAILS: &[Opt] = &[
     Opt::new("breadcrumbsrails.clickable", "Links", OFF_ON).default(1),
     Opt::new(
@@ -981,8 +903,6 @@ static BREADCRUMBS_RAILS: &[Opt] = &[
         .default(1)
         .needs(&[("breadcrumbsrails.collapsed", "on")]),
 ];
-
-
 
 static HELP_KEYS: &[Opt] = &[
     Opt::new("helpkeys.width", "Reference width", &["full", "40", "28"]),
@@ -999,8 +919,6 @@ static HELP_KEYS: &[Opt] = &[
     Opt::new("helpkeys.dismiss", "Dismiss", &["light", "escape"]),
 ];
 
-
-
 static QUIT_LEAVE: &[Opt] = &[
     Opt::new(
         "quitleave.stakes",
@@ -1013,8 +931,6 @@ static QUIT_LEAVE: &[Opt] = &[
     Opt::new("quitleave.ctrl_c", "Ctrl+C quits", OFF_ON).default(1),
     Opt::new("quitleave.ctrl_q", "Ctrl+Q quits", OFF_ON).default(1),
 ];
-
-
 
 static LISTS: &[Opt] = &[
     Opt::new("lists.nav", "Nav keys", &["default", "vim"]),
@@ -1036,8 +952,6 @@ static LISTS: &[Opt] = &[
     Opt::new("lists.content", "Content", &["ready", "loading", "error"]),
 ];
 
-
-
 static TREES: &[Opt] = &[
     Opt::new(
         "trees.branch",
@@ -1057,8 +971,6 @@ static TREES: &[Opt] = &[
     Opt::new("trees.keymap", "Key map", &["default", "custom"]),
     Opt::new("trees.marker", "Selected marker", &["none", "chevron"]),
 ];
-
-
 
 static OVERVIEW: &[Opt] = &[
     Opt::new(
@@ -1100,16 +1012,13 @@ static OVERVIEW: &[Opt] = &[
         ],
     )
     .default(4),
-
     Opt::new("overview.ladder", "Ladder", &["theme", "custom"]),
-
     Opt::new(
         "overview.mods",
         "State modifiers",
         &["level", "color", "16", "mono"],
     ),
 ];
-
 
 pub static TOOLBARS: &[Opt] = &[
     Opt::new("toolbars.nav", "Nav keys", &["desktop", "vim"]),
@@ -1118,8 +1027,6 @@ pub static TOOLBARS: &[Opt] = &[
     Opt::new("toolbars.gap", "Gap", &["0", "1", "2"]).default(1),
     Opt::new("toolbars.overflow", "Overflow button", &["»", "…", "off"]),
 ];
-
-
 
 pub static FOCUS_NAV: &[Opt] = &[
     Opt::new(
@@ -1133,8 +1040,6 @@ pub static FOCUS_NAV: &[Opt] = &[
         &["moves", "stays"],
     ),
 ];
-
-
 
 pub static MENUS: &[Opt] = &[
     Opt::new(
@@ -1163,8 +1068,6 @@ pub static MENUS: &[Opt] = &[
     Opt::new("menus.menu_key", "Menu key", OFF_ON).default(1),
     Opt::new("menus.extra_key", "Extra key", &["none", "m"]),
 ];
-
-
 
 pub static DIALOGS: &[Opt] = &[
     Opt::new("dialogs.width", "Width", &["auto", "44", "80"]),
@@ -1221,8 +1124,6 @@ pub static DIALOGS: &[Opt] = &[
     ),
 ];
 
-
-
 pub static DIALOG_KINDS: &[Opt] = &[
     Opt::new("dialogkinds.width", "Width", &["auto", "48", "72"]),
     Opt::new("dialogkinds.nav", "Nav keys", &["desktop", "vim"]),
@@ -1248,9 +1149,6 @@ pub static DIALOG_KINDS: &[Opt] = &[
         &["two", "three"],
     ),
 ];
-
-
-
 
 pub static POPUPS_TOOLTIPS: &[Opt] = &[
     Opt::new(
@@ -1357,8 +1255,6 @@ pub static POPUPS_TOOLTIPS: &[Opt] = &[
     .default(1),
 ];
 
-
-
 pub static PICKERS: &[Opt] = &[
     Opt::new("pickers.width", "Width", &["auto", "48", "96"]),
     Opt::new("pickers.max_rows", "Max rows", &["12", "6"]),
@@ -1374,7 +1270,6 @@ pub static PICKERS: &[Opt] = &[
     Opt::new("pickers.hints", "Hint row", &["page", "short"]),
     Opt::new("pickers.remote", "Remote fetch", &["works", "fails"]),
 ];
-
 
 pub static TABS: &[Opt] = &[
     Opt::new(
@@ -1400,8 +1295,6 @@ pub static TABS: &[Opt] = &[
     Opt::new("tabs.count", "Tabs", &["few", "many"]).default(1),
 ];
 
-
-
 pub static PROGRESS: &[Opt] = &[
     Opt::new(
         "progress.label_width",
@@ -1412,10 +1305,6 @@ pub static PROGRESS: &[Opt] = &[
     Opt::new("progress.meter_visual", "Meter visual", &["line", "block"]),
     Opt::new("progress.stale_style", "Stale style", &["dashed", "faint"]),
 ];
-
-
-
-
 
 pub static SETTINGS: &[Opt] = &[
     Opt::new(
@@ -1437,9 +1326,6 @@ pub static SETTINGS: &[Opt] = &[
     Opt::new("settings.save_confirm", "Confirm on save", OFF_ON).default(1),
 ];
 
-
-
-
 pub static TASKRUNNER: &[Opt] = &[
     Opt::new("taskrunner.expanded", "Targets expanded", OFF_ON).default(1),
     Opt::new("taskrunner.indent", "Tree indent", &["2", "3", "4"]),
@@ -1448,9 +1334,6 @@ pub static TASKRUNNER: &[Opt] = &[
     Opt::new("taskrunner.follow", "Log follows its tail", OFF_ON).default(1),
     Opt::new("taskrunner.wrap", "Log wraps", OFF_ON),
 ];
-
-
-
 
 pub static FORMS: &[Opt] = &[
     Opt::new("forms.required", "Task name required", OFF_ON).default(1),
@@ -1465,8 +1348,6 @@ pub static FORMS: &[Opt] = &[
     Opt::new("forms.placeholders", "Placeholders", OFF_ON).default(1),
     Opt::new("forms.managed", "Managed toggle", OFF_ON).default(1),
 ];
-
-
 
 pub static SIDEBARS: &[Opt] = &[
     Opt::new("sidebars.collapsed", "Collapsed (icons)", OFF_ON),
@@ -1491,8 +1372,6 @@ pub static SIDEBARS: &[Opt] = &[
     .needs(&[("sidebars.hidden", "on")]),
 ];
 
-
-
 pub static METERS: &[Opt] = &[
     Opt::new(
         "meters.label_width",
@@ -1507,10 +1386,6 @@ pub static METERS: &[Opt] = &[
     Opt::new("meters.offline", "Offline (last-good)", OFF_ON),
     Opt::new("meters.stale_style", "Stale style", &["dashed", "faint"]),
 ];
-
-
-
-
 
 pub static FILE_BROWSER: &[Opt] = &[
     Opt::new("filebrowser.choose", "Choose", &["folders", "files", "any"]),
@@ -1531,8 +1406,6 @@ pub static FILE_BROWSER: &[Opt] = &[
     ),
 ];
 
-
-
 pub static NOTICES: &[Opt] = &[
     Opt::new(
         "notices.kind",
@@ -1551,9 +1424,6 @@ pub static NOTICES: &[Opt] = &[
     Opt::new("notices.mark_cut", "Mark the cut …", OFF_ON).default(1),
     Opt::new("notices.width", "Width", &["wide", "narrow"]),
 ];
-
-
-
 
 pub static DISK_CLEANUP: &[Opt] = &[
     Opt::new(
@@ -1577,8 +1447,6 @@ pub static DISK_CLEANUP: &[Opt] = &[
     ),
 ];
 
-
-
 pub static ACTIVITY: &[Opt] = &[
     Opt::new(
         "activity.state",
@@ -1592,8 +1460,6 @@ pub static ACTIVITY: &[Opt] = &[
         .default(1)
         .behaviour(),
 ];
-
-
 
 pub static WORKSPACES: &[Opt] = &[
     Opt::new(
@@ -1611,9 +1477,6 @@ pub static WORKSPACES: &[Opt] = &[
         .behaviour(),
 ];
 
-
-
-
 pub static ACCOUNTS_USAGE: &[Opt] = &[
     Opt::new("accountsusage.width", "Width", &["fill", "72"]),
     Opt::new(
@@ -1624,8 +1487,6 @@ pub static ACCOUNTS_USAGE: &[Opt] = &[
     Opt::new("accountsusage.offline", "Usage offline (last-good)", OFF_ON),
     Opt::new("accountsusage.warnings", "Account warnings", OFF_ON).default(1),
 ];
-
-
 
 pub static LAUNCH_COCKPIT: &[Opt] = &[
     Opt::new(
@@ -1639,16 +1500,12 @@ pub static LAUNCH_COCKPIT: &[Opt] = &[
     Opt::new("launchcockpit.wrap", "Wrap the log", OFF_ON).default(1),
 ];
 
-
-
 pub static READONLY_REPORT: &[Opt] = &[
     Opt::new("readonlyreport.offline", "Offline (last-good)", OFF_ON),
     Opt::new("readonlyreport.visual", "Meter visual", &["block", "line"]),
     Opt::new("readonlyreport.notices", "Attention notices", OFF_ON).default(1),
     Opt::new("readonlyreport.copyable", "Facts copy", OFF_ON).default(1),
 ];
-
-
 
 pub static EMPTY_ERROR: &[Opt] = &[
     Opt::new("emptyerror.kind", "Kind", &["empty", "error"]),
@@ -1660,7 +1517,6 @@ pub static EMPTY_ERROR: &[Opt] = &[
         &["view", "no-key", "result"],
     ),
 ];
-
 
 pub static SPLITS_STACKS: &[Opt] = &[
     Opt::new(
@@ -1704,9 +1560,6 @@ pub static SPLITS_STACKS: &[Opt] = &[
     ),
 ];
 
-
-
-
 pub static MASTER_DETAIL: &[Opt] = &[
     Opt::new("masterdetail.width", "Demo width", &["fill", "100", "72"]),
     Opt::new(
@@ -1731,7 +1584,6 @@ pub static MASTER_DETAIL: &[Opt] = &[
     Opt::new("masterdetail.gap", "Gap between panes", &["2", "1", "4"]),
 ];
 
-
 pub static PANE_TREE: &[Opt] = &[
     Opt::new(
         "panetree.layout",
@@ -1748,8 +1600,6 @@ pub static PANE_TREE: &[Opt] = &[
     Opt::new("panetree.step", "Resize step", &["2", "1", "5"]),
     Opt::new("panetree.hit_pad", "Seam hit padding", &["1", "0", "3"]),
 ];
-
-
 
 pub static CODE_EDITOR: &[Opt] = &[
     Opt::new("codeeditor.read_only", "Read-only", OFF_ON),
@@ -1791,7 +1641,6 @@ pub static CODE_EDITOR: &[Opt] = &[
         &["1", "0", "2"],
     ),
     Opt::new("codeeditor.track_click", "Track click", &["page", "jump"]),
-
     Opt::new("codeeditor.completion_rows", "Completion rows", &["8", "4"]),
     Opt::new(
         "codeeditor.completion_width",
@@ -1825,13 +1674,11 @@ pub static CODE_EDITOR: &[Opt] = &[
     ),
 ];
 
-
 pub static DIFF: &[Opt] = &[
     Opt::new("diff.mode", "Mode", &["unified", "review"]),
     Opt::new("diff.file", "File", &["changes", "none"]),
     Opt::new("diff.width", "Page width", &["full", "narrow"]),
 ];
-
 
 pub static TERMINAL: &[Opt] = &[
     Opt::new("terminal.wrap", "Wrap long lines", OFF_ON),
@@ -1850,7 +1697,6 @@ pub static TERMINAL: &[Opt] = &[
     ),
     Opt::new("terminal.keymap", "Command keys", &["default", "custom"]),
     Opt::new("terminal.mark", "Find marks", OFF_ON),
-
     Opt::new("terminal.selectable", "Selectable rail", OFF_ON),
     Opt::new("terminal.numbered", "Numbered steps", OFF_ON).default(1),
     Opt::new(
@@ -1860,7 +1706,6 @@ pub static TERMINAL: &[Opt] = &[
     ),
 ];
 
-
 pub fn all() -> impl Iterator<Item = &'static Opt> {
     SHELL.iter().chain(
         crate::app::NAV_ENTRIES
@@ -1869,12 +1714,10 @@ pub fn all() -> impl Iterator<Item = &'static Opt> {
     )
 }
 
-
 pub fn find(key: &str) -> Option<&'static Opt> {
     let key = key.trim();
     all().find(|o| o.key.eq_ignore_ascii_case(key))
 }
-
 
 pub fn page_of(key: &str) -> Option<PageId> {
     let (scope, _) = key.split_once('.')?;
@@ -1884,15 +1727,12 @@ pub fn page_of(key: &str) -> Option<PageId> {
     PageId::from_name(scope)
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OptSet {
     pub key: &'static str,
 
     pub value: usize,
 }
-
-
 
 pub fn parse_opt(arg: &str) -> Result<OptSet, String> {
     let Some((key, value)) = arg.split_once('=') else {
@@ -1925,8 +1765,6 @@ pub fn parse_opt(arg: &str) -> Result<OptSet, String> {
 fn keys() -> String {
     all().map(|o| o.key).collect::<Vec<_>>().join(", ")
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShellOptions {
@@ -1967,8 +1805,6 @@ impl ShellOptions {
     }
 }
 
-
-
 enum Control {
     Toggle(Toggle),
     Select(Box<Select>),
@@ -1990,7 +1826,6 @@ impl Control {
     }
 }
 
-
 enum Row {
     Heading(&'static str),
 
@@ -1998,18 +1833,10 @@ enum Row {
     Option(&'static Opt, Control),
 }
 
-
-
-
-
-
-
 pub struct OptionsView {
     rows: Vec<Row>,
     sections: Sections,
 }
-
-
 
 pub struct Group {
     pub heading: &'static str,
@@ -2059,15 +1886,12 @@ impl OptionsView {
         })
     }
 
-
     #[allow(dead_code)]
     pub fn control_id(&self, key: &str) -> Option<WidgetId> {
         self.controls()
             .find(|(o, _)| o.key == key)
             .map(|(_, c)| c.id())
     }
-
-
 
     pub fn sync(&mut self, value: impl Fn(&Opt) -> usize) {
         for (opt, c) in self.controls_mut() {
@@ -2082,11 +1906,9 @@ impl OptionsView {
         }
     }
 
-
     pub fn has_control(&self, id: WidgetId) -> bool {
         self.controls().any(|(_, c)| c.id() == id)
     }
-
 
     pub fn popup_open(&self) -> bool {
         self.controls()
@@ -2100,7 +1922,6 @@ impl OptionsView {
             .iter()
             .enumerate()
             .map(|(i, r)| match r {
-
                 Row::Heading(_) => StackChild::fixed(1 + u16::from(i > 0)),
                 Row::Note(_) => StackChild::fixed(1),
                 Row::Option(_, c) => StackChild::fixed(c.height()),
@@ -2131,7 +1952,6 @@ impl OptionsView {
         }
     }
 
-
     pub fn on_blur(&mut self, from: Option<WidgetId>) -> Outcome {
         let mut out = Outcome::Ignored;
         for (_, c) in self.controls_mut() {
@@ -2143,8 +1963,6 @@ impl OptionsView {
         }
         out
     }
-
-
 
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Option<OptSet>)> {
         if let Some(o) = self.sections.handle(ev) {
@@ -2193,8 +2011,6 @@ impl OptionsView {
         }
         None
     }
-
-
 
     pub fn hints(&self, focus: Option<WidgetId>) -> Option<Vec<Hint>> {
         let (_, c) = self.controls().find(|(_, c)| Some(c.id()) == focus)?;

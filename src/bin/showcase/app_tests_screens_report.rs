@@ -1,16 +1,9 @@
-
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
 use crate::app_tests_feedback::Harness;
 use crate::pages::template::Section;
 use junie_tui::core::id::WidgetId;
-
-
 
 const REPORT: WidgetId = WidgetId::of("readonlyreport");
 
@@ -97,9 +90,6 @@ fn report_options_drive_the_widgets() {
     }
 }
 
-
-
-
 #[test]
 fn report_link_pushes_the_page_and_esc_returns_to_the_button() {
     let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
@@ -118,8 +108,6 @@ fn report_link_pushes_the_page_and_esc_returns_to_the_button() {
     assert_eq!(h.app.page(), PageId::Activity);
 }
 
-
-
 #[test]
 fn report_header_trail_pops_back_to_the_report() {
     let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
@@ -132,8 +120,6 @@ fn report_header_trail_pops_back_to_the_report() {
     assert!(!h.row(0).contains("Disk cleanup"), "{}", h.row(0));
 }
 
-
-
 #[test]
 fn report_copy_over_the_terminal_limit_is_not_reported_as_copied() {
     let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
@@ -141,8 +127,6 @@ fn report_copy_over_the_terminal_limit_is_not_reported_as_copied() {
     h.click_id(REPORT.sub("copy"));
     assert!(h.status().starts_with("Not copied"), "{}", h.status());
 }
-
-
 
 const ACCOUNTS: WidgetId = WidgetId::of("accountsusage");
 
@@ -239,8 +223,6 @@ fn accounts_narrow_collapse_to_a_summary_and_a_drawer() {
     h.key(KeyCode::Esc);
     assert!(h.text().contains("Tab shows details"), "{}", h.text());
 }
-
-
 
 const COCKPIT: WidgetId = WidgetId::of("launchcockpit");
 
@@ -350,8 +332,6 @@ fn cockpit_cancel_asks_then_stops_the_launch() {
     assert_eq!(h.status(), "Launch cancelled");
     assert!(h.text().contains("cancelled ·"), "{}", h.text());
 }
-
-
 
 #[test]
 fn cockpit_keyboard_reaches_launch_and_cancel() {

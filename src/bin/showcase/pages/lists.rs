@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -45,7 +35,6 @@ pub const SINGLE: WidgetId = ID.sub("single");
 pub const MULTI: WidgetId = ID.sub("multi");
 pub const EMPTY: WidgetId = ID.sub("empty");
 
-
 const FILES: [(&str, &str, bool); 12] = [
     ("src/api/auth.rs", "modified", false),
     ("src/api/billing.rs", "modified", false),
@@ -72,7 +61,6 @@ fn files() -> Vec<ListItem> {
     FILES
         .iter()
         .map(|(n, m, d)| {
-
             let tone = match *m {
                 "new" => Tone::Success,
                 "modified" => Tone::Warning,
@@ -114,12 +102,10 @@ impl ListsPage {
         page
     }
 
-
     #[allow(dead_code)]
     pub fn single(&self) -> &ListBox {
         &self.single
     }
-
 
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::Lists);
@@ -129,7 +115,6 @@ impl ListsPage {
             .unwrap_or_else(|| panic!("no option {key}"));
         table[i].values[self.opts[i]]
     }
-
 
     fn build(&self, l: ListBox) -> ListBox {
         let mut l = l
@@ -174,8 +159,6 @@ impl ListsPage {
         l
     }
 
-
-
     fn rebuild(&mut self) {
         let keep = |old: &ListBox, mut new: ListBox| {
             new.cursor = old.cursor;
@@ -214,7 +197,6 @@ impl ListsPage {
     fn list_mut(&mut self, id: WidgetId) -> Option<&mut ListBox> {
         self.lists().into_iter().find(|l| l.id == id)
     }
-
 
     fn readout(&self) -> Vec<String> {
         let l = &self.multi;
@@ -257,7 +239,6 @@ impl ListsPage {
         ]
     }
 
-
     fn row_items(l: &ListBox, row: usize) -> Vec<MenuItem> {
         let item = &l.items[row];
         match l.mode {
@@ -299,7 +280,6 @@ impl ListsPage {
         }
     }
 
-
     fn open_menu(&mut self, id: WidgetId, req: ContextRequest<usize>) {
         let Some(l) = self.list_mut(id) else {
             return;
@@ -309,8 +289,6 @@ impl ListsPage {
         self.menu
             .open(req.menu(MENU, items).title(title), (id, req.target));
     }
-
-
 
     fn choose(&mut self, (id, row): (WidgetId, usize), i: usize) -> Outcome {
         let Some(l) = self.list_mut(id) else {
@@ -411,7 +389,6 @@ impl ListsPage {
         let inner = panel.render(cols[2], buf, t);
         self.empty.render(inner, buf, ctx, bg);
 
-
         let mut y = area.y + h + 1;
         for line in self.readout() {
             for l in text::wrap(&line, area.width as usize) {
@@ -425,7 +402,6 @@ impl ListsPage {
         self.menu.render(area, buf, ctx);
     }
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

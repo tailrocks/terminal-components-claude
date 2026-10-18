@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -43,7 +32,6 @@ pub const DETAIL: WidgetId = ID.sub("detail");
 pub const ROSTER: WidgetId = ID.sub("roster");
 
 pub const PURGE: WidgetId = ID.sub("purge");
-
 
 const LAUNCH_TICKS: u16 = 16;
 
@@ -261,7 +249,6 @@ impl WorkspacesPage {
         p
     }
 
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let md = MasterDetail::new(TREE, DETAIL)
@@ -281,8 +268,6 @@ impl WorkspacesPage {
             _ => md.resizable(Split::new(46, 30, 40)),
         };
     }
-
-
 
     fn sync_data(&mut self) {
         let nodes = self
@@ -350,7 +335,6 @@ impl WorkspacesPage {
         self.roster.scroll.set_content(n);
         self.facts_for = None;
     }
-
 
     fn current(&self) -> Option<usize> {
         self.tree.cursor_path().and_then(|p| p.first().copied())
@@ -434,8 +418,6 @@ impl WorkspacesPage {
         }
         self.md.finish(ctx);
         if l.detail.is_empty() {
-
-
             for id in [
                 ROSTER,
                 self.launch.id,
@@ -490,7 +472,6 @@ impl WorkspacesPage {
                 Rect::new(body.x + fw + 2, body.y, body.width - fw - 2, body.height),
             )
         } else {
-
             let fh = props::measure(&self.facts(wi), body.width)
                 .min(body.height.saturating_sub(4).max(body.height / 2));
             (
@@ -568,7 +549,6 @@ impl WorkspacesPage {
             cx.status("Prewarming the image…");
         }
     }
-
 
     fn purge_dialog(&self, wi: usize) -> Dialog {
         let ws = &self.data[wi];
@@ -651,8 +631,6 @@ impl WorkspacesPage {
         }
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

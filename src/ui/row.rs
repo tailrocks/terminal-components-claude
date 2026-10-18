@@ -1,31 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
@@ -36,14 +8,10 @@ use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::reveal::RevealState;
 use crate::ui::text::truncate;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowLook {
-
-
     #[default]
     Bar,
-
 
     Fill(CursorStyle),
 }
@@ -54,10 +22,8 @@ impl From<CursorStyle> for RowLook {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MarkKind {
-
     Current,
 
     Tick,
@@ -67,50 +33,31 @@ pub enum MarkKind {
     Glyph(&'static str),
 }
 
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct RowMark {
-
-
     pub pointer: bool,
 
-
     pub dirty: bool,
-
-
 
     pub partial: bool,
 }
 
 impl RowMark {
-
     pub const NONE: RowMark = RowMark {
         pointer: false,
         dirty: false,
         partial: false,
     };
 
-
     pub const fn pointer(mut self, on: bool) -> Self {
         self.pointer = on;
         self
     }
 
-
     pub const fn dirty(mut self, on: bool) -> Self {
         self.dirty = on;
         self
     }
-
 
     pub const fn partial(mut self, on: bool) -> Self {
         self.partial = on;
@@ -118,15 +65,10 @@ impl RowMark {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, Default)]
 pub struct RowUi;
 
 impl RowUi {
-
-
-
-
     pub fn paint(
         ctx: &RenderCtx,
         buf: &mut Buffer,
@@ -139,9 +81,6 @@ impl RowUi {
         p.draw(buf);
         p
     }
-
-
-
 
     pub fn resolve(
         ctx: &RenderCtx,
@@ -164,15 +103,11 @@ impl RowUi {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy)]
 pub struct RowPaint {
-
     pub area: Rect,
 
     pub state: VisualState,
-
 
     pub look: CursorRow,
 
@@ -180,7 +115,6 @@ pub struct RowPaint {
 }
 
 impl RowPaint {
-
     pub fn draw(&self, buf: &mut Buffer) {
         fill(buf, self.area, self.look.style);
         for y in self.area.top()..self.area.bottom() {
@@ -188,27 +122,17 @@ impl RowPaint {
         }
     }
 
-
     pub fn style(&self) -> Style {
         self.look.style
     }
-
 
     pub fn bg(&self) -> Color {
         self.look.style.bg.unwrap_or(self.plane)
     }
 
-
-
-
     pub fn ink(&self, ctx: &RenderCtx, ink: Color) -> Color {
         ctx.theme.row_ink(&self.look, ink)
     }
-
-
-
-
-
 
     pub fn mark(
         &self,
@@ -234,8 +158,6 @@ impl RowPaint {
         buf.set_string(x, y, glyph, style);
     }
 
-
-
     pub fn dirty(&self, ctx: &RenderCtx, buf: &mut Buffer, x: u16, y: u16) {
         let t = ctx.theme;
         let style = if self.state.disabled {
@@ -245,9 +167,6 @@ impl RowPaint {
         };
         buf.set_string(x, y, t.glyphs.dirty, style);
     }
-
-
-
 
     pub fn status(
         &self,
@@ -270,10 +189,6 @@ impl RowPaint {
         }
         buf.set_string(x, y, glyph, style);
     }
-
-
-
-
 
     #[allow(clippy::too_many_arguments)]
     pub fn label(

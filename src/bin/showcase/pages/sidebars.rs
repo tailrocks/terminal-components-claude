@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -25,7 +18,6 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::rail::{RailAction, SidebarRail};
 
 const ID: WidgetId = WidgetId::of("sidebars");
-
 
 const ITEMS: [(&str, &str, &str, Option<&str>, bool); 8] = [
     ("Tasks", "T", "Workspace", Some("3"), false),
@@ -83,8 +75,6 @@ impl SidebarsPage {
         page
     }
 
-
-
     fn apply(&mut self) {
         let o = &self.opts;
         let (current, cursor) = (self.nav.current, self.nav.cursor);
@@ -112,14 +102,11 @@ impl SidebarsPage {
         }
     }
 
-
     fn toggle_collapsed(&mut self) {
         let on = !self.nav.collapsed;
         self.opts.set("sidebars.collapsed", usize::from(on));
         self.nav.collapsed = on;
     }
-
-
 
     fn set_hidden(&mut self, on: bool, cx: &mut Cx) {
         self.hidden = on;
@@ -138,7 +125,6 @@ impl SidebarsPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let content_x = if self.hidden {
-
             let col = Rect::new(area.x, area.y, SidebarRail::WIDTH, area.height.min(20));
             self.rail.render_rail(col, buf, ctx, t.canvas);
             area.x + self.rail.width() + 1
@@ -237,8 +223,6 @@ impl SidebarsPage {
     }
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let sample = || NavList::new(ID.sub("states-nav"), items(true)).widths(22, 6);
@@ -280,7 +264,6 @@ impl Page for SidebarsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('b')
             && self.template.section() == Section::Playground

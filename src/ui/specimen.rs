@@ -1,27 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Style};
@@ -32,13 +8,8 @@ use crate::core::id::WidgetId;
 use crate::theme::{ColorLevel, Kind, Plane, Theme};
 use crate::ui::ctx::{Interaction, RenderCtx, VisualState};
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SpecimenState {
-
     Rest,
 
     Hover,
@@ -69,7 +40,6 @@ pub enum SpecimenState {
 }
 
 impl SpecimenState {
-
     pub const ALL: [Self; 14] = [
         Self::Rest,
         Self::Hover,
@@ -86,8 +56,6 @@ impl SpecimenState {
         Self::Overflow,
         Self::Narrow,
     ];
-
-
 
     pub fn slug(self) -> &'static str {
         match self {
@@ -108,7 +76,6 @@ impl SpecimenState {
         }
     }
 
-
     pub fn label(self) -> &'static str {
         match self {
             Self::FocusedHover => "focus + hover",
@@ -116,12 +83,9 @@ impl SpecimenState {
         }
     }
 
-
     pub fn from_slug(slug: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|s| s.slug() == slug)
     }
-
-
 
     pub fn visual(self) -> VisualState {
         let mut v = VisualState::default();
@@ -150,7 +114,6 @@ impl SpecimenState {
         v
     }
 
-
     fn interaction(self, id: WidgetId, tick: u64) -> Interaction {
         let v = self.visual();
         Interaction {
@@ -163,19 +126,14 @@ impl SpecimenState {
     }
 }
 
-
 pub trait Specimen {
-
     fn specimen_id(&self) -> WidgetId;
-
 
     fn supports(&self, state: SpecimenState) -> bool;
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         1
     }
-
-
 
     fn specimen(
         &self,
@@ -187,18 +145,12 @@ pub trait Specimen {
     );
 }
 
-
 const LEVELS: [ColorLevel; 4] = [
     ColorLevel::TrueColor,
     ColorLevel::Ansi256,
     ColorLevel::Ansi16,
     ColorLevel::Mono,
 ];
-
-
-
-
-
 
 pub struct StateGrid {
     pub id: WidgetId,
@@ -210,9 +162,7 @@ pub struct StateGrid {
 
     pub column_width: u16,
 
-
     pub narrow_width: u16,
-
 
     pub focus_mark: Option<&'static str>,
 
@@ -246,18 +196,15 @@ impl StateGrid {
         }
     }
 
-
     pub fn row(mut self, state: SpecimenState) -> Self {
         self.rows.push(state);
         self
     }
 
-
     pub fn rows(mut self, states: &[SpecimenState]) -> Self {
         self.rows.extend_from_slice(states);
         self
     }
-
 
     pub fn column(mut self, label: &str, specimen: impl Specimen + 'static) -> Self {
         self.columns.push((label.to_owned(), Box::new(specimen)));
@@ -284,11 +231,9 @@ impl StateGrid {
         self
     }
 
-
     pub fn column_labels(&self) -> impl Iterator<Item = &str> {
         self.columns.iter().map(|(l, _)| l.as_str())
     }
-
 
     pub fn rendered_rows(&self) -> &[SpecimenState] {
         &self.rendered
@@ -304,15 +249,11 @@ impl StateGrid {
             .max(1)
     }
 
-
-
     pub fn size(&self) -> (u16, u16) {
         let w = self.label_width + self.column_width * self.columns.len() as u16;
         let h = 1 + self.rows.iter().map(|&r| self.row_height(r)).sum::<u16>();
         (w, h)
     }
-
-
 
     pub fn mark(&self, t: &Theme) -> &'static str {
         self.focus_mark.unwrap_or(if t.glyphs.focus_bar.is_ascii() {
@@ -322,19 +263,13 @@ impl StateGrid {
         })
     }
 
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.render_rows(0..self.rows.len(), true, area, buf, ctx, bg);
     }
 
-
     pub fn row_heights(&self) -> Vec<u16> {
         self.rows.iter().map(|&r| self.row_height(r)).collect()
     }
-
-
-
-
 
     pub fn render_rows(
         &mut self,
@@ -351,7 +286,6 @@ impl StateGrid {
         self.draw_rows(theme, tick, rows, header, area, buf, bg);
     }
 
-
     pub fn levels_height(&self, width: u16) -> u16 {
         let (w, h) = self.size();
         let per_row = Self::per_row(w, width);
@@ -360,17 +294,12 @@ impl StateGrid {
         bands * (h + 1) + bands.saturating_sub(1)
     }
 
-
     fn per_row(grid_w: u16, width: u16) -> usize {
         [4usize, 2]
             .into_iter()
             .find(|&n| grid_w * n as u16 + 2 * (n as u16 - 1) <= width)
             .unwrap_or(1)
     }
-
-
-
-
 
     pub fn render_levels(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let (w, h) = self.size();
@@ -400,8 +329,6 @@ impl StateGrid {
         }
         self.rendered = drawn.unwrap_or_default();
     }
-
-
 
     pub fn render_level(
         &mut self,
@@ -513,7 +440,6 @@ impl StateGrid {
     }
 }
 
-
 fn depict_focus(buf: &mut Buffer, area: Rect, t: &Theme, mark: &str, bg: Color) {
     let bar = t.glyphs.focus_bar;
     for pos in area.positions() {
@@ -532,15 +458,6 @@ fn depict_focus(buf: &mut Buffer, area: Rect, t: &Theme, mark: &str, bg: Color) 
         }
     }
 }
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug, Clone)]
 pub struct KindSample {
@@ -561,12 +478,10 @@ impl KindSample {
         }
     }
 
-
     pub fn plane(mut self, plane: Plane) -> Self {
         self.plane = plane;
         self
     }
-
 
     pub fn draw(&self, t: &Theme, s: VisualState, area: Rect, buf: &mut Buffer) {
         let area = area.intersection(buf.area);
@@ -732,7 +647,6 @@ impl Specimen for crate::widgets::input::TextInput {
         }
     }
 
-
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         if state == SpecimenState::Error || self.field.error.is_some() {
             3
@@ -786,10 +700,6 @@ impl Specimen for crate::widgets::input::TextInput {
     }
 }
 
-
-
-
-
 impl Specimen for crate::widgets::tabs::Tabs {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -804,7 +714,6 @@ impl Specimen for crate::widgets::tabs::Tabs {
             Selected | Disabled | Editing | Empty | Loading => false,
         }
     }
-
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         2
@@ -843,10 +752,6 @@ impl Specimen for crate::widgets::tabs::Tabs {
     }
 }
 
-
-
-
-
 impl Specimen for crate::widgets::menu::ContextMenu {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -859,7 +764,6 @@ impl Specimen for crate::widgets::menu::ContextMenu {
             Focused | FocusedHover | Selected | Busy | Error | Editing | Empty | Loading => false,
         }
     }
-
 
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         let mut m = self.clone();
@@ -905,12 +809,6 @@ impl Specimen for crate::widgets::menu::ContextMenu {
     }
 }
 
-
-
-
-
-
-
 impl Specimen for crate::widgets::dialog::Dialog {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -926,8 +824,6 @@ impl Specimen for crate::widgets::dialog::Dialog {
             Selected | Busy | Error | Empty | Loading | Narrow => false,
         }
     }
-
-
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         self.height(self.width)
@@ -986,7 +882,6 @@ impl Specimen for crate::widgets::dialog::Dialog {
     }
 }
 
-
 fn dialog_target(d: &crate::widgets::dialog::Dialog) -> usize {
     d.confirm_index
         .or_else(|| {
@@ -1000,7 +895,6 @@ fn dialog_target(d: &crate::widgets::dialog::Dialog) -> usize {
         .unwrap_or(d.actions.len().saturating_sub(1))
 }
 
-
 fn dialog_field(d: &crate::widgets::dialog::Dialog) -> Option<WidgetId> {
     use crate::widgets::dialog::DialogBody;
     match &d.body {
@@ -1009,11 +903,6 @@ fn dialog_field(d: &crate::widgets::dialog::Dialog) -> Option<WidgetId> {
         _ => None,
     }
 }
-
-
-
-
-
 
 impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
     fn specimen_id(&self) -> WidgetId {
@@ -1029,7 +918,6 @@ impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
             Busy | Error | Editing | Empty | Loading | Overflow | Narrow => false,
         }
     }
-
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         self.height() + 2
@@ -1070,13 +958,6 @@ impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
     }
 }
 
-
-
-
-
-
-
-
 impl Specimen for crate::ui::modal::Frame<'static> {
     fn specimen_id(&self) -> WidgetId {
         crate::ui::modal::CLOSE
@@ -1091,8 +972,6 @@ impl Specimen for crate::ui::modal::Frame<'static> {
             _ => false,
         }
     }
-
-
 
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         let m = crate::widgets::dialog::OUTER_MARGIN;
@@ -1122,11 +1001,6 @@ impl Specimen for crate::ui::modal::Frame<'static> {
     }
 }
 
-
-
-
-
-
 impl Specimen for crate::widgets::picker::Picker {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -1141,7 +1015,6 @@ impl Specimen for crate::widgets::picker::Picker {
             Focused | FocusedHover | Selected | Busy | Editing | Narrow => false,
         }
     }
-
 
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         picker_sample(self, state).height() + 2
@@ -1167,7 +1040,6 @@ impl Specimen for crate::widgets::picker::Picker {
         p.draw(area, buf, ctx);
     }
 }
-
 
 fn picker_sample(
     p: &crate::widgets::picker::Picker,
@@ -1439,8 +1311,6 @@ mod tests {
         let x0 = g.label_width;
         assert!(buf[(x0 + 24, narrow_field)].bg != buf[(x0 + 1, narrow_field)].bg);
     }
-
-
 
     #[test]
     fn a_band_draws_its_rows_only() {

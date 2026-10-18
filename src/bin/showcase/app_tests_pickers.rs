@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
 
@@ -23,7 +19,6 @@ fn page(h: &Harness) -> &PickersPage {
 fn picker(h: &Harness) -> &Picker {
     h.app.layers.top_as::<Picker>().expect("a picker is open")
 }
-
 
 fn is_open(h: &Harness) -> bool {
     h.app

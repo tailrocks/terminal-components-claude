@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use crate::ui::text::{WrapOpts, width, wrap_with};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,11 +10,7 @@ enum Entry {
 pub struct KeyReference {
     entries: Vec<Entry>,
 
-
-
     pub gap: u16,
-
-
 
     pub key_max_share: u16,
 }
@@ -43,7 +29,6 @@ impl KeyReference {
             key_max_share: 40,
         }
     }
-
 
     pub fn section(mut self, title: &str) -> Self {
         self.entries.push(Entry::Section(title.to_owned()));
@@ -104,13 +89,9 @@ impl KeyReference {
         out.join("\n")
     }
 
-
-
     pub fn text(&self) -> String {
         self.layout(self.key_column(None))
     }
-
-
 
     pub fn lines(&self, w: usize) -> Vec<String> {
         wrap_with(
@@ -121,13 +102,7 @@ impl KeyReference {
     }
 }
 
-
-
 const SPECIMEN_W: usize = 32;
-
-
-
-
 
 impl crate::ui::specimen::Specimen for KeyReference {
     fn specimen_id(&self) -> crate::core::id::WidgetId {
@@ -141,7 +116,6 @@ impl crate::ui::specimen::Specimen for KeyReference {
 
     fn specimen_height(&self, state: crate::ui::specimen::SpecimenState) -> u16 {
         let w = if state == crate::ui::specimen::SpecimenState::Narrow {
-
             24
         } else {
             SPECIMEN_W
@@ -193,7 +167,6 @@ impl crate::ui::specimen::Specimen for KeyReference {
 }
 
 impl KeyReference {
-
     fn sample(&self, state: crate::ui::specimen::SpecimenState) -> Self {
         let mut r = self.clone();
         if state == crate::ui::specimen::SpecimenState::Overflow {

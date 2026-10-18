@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -39,7 +35,6 @@ fn tab_moves_through_the_ring_and_the_page_reads_the_change_back() {
 
 #[test]
 fn a_removed_focused_tag_falls_back_per_the_shell_option() {
-
     let mut h = harness();
     let (alpha, beta) = (page(&h).tags[0].id, page(&h).tags[1].id);
     h.focus(beta);

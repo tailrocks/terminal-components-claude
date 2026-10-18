@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::runtime::Application;
@@ -50,8 +45,6 @@ impl Harness {
         self.send(Input::Mouse(Mouse::new(kind, Position::new(x, y))))
     }
 
-
-
     fn point(&mut self, at: (u16, u16)) -> Outcome {
         self.mouse(MouseKind::Move, at)
     }
@@ -77,7 +70,6 @@ impl Harness {
         s
     }
 
-
     fn text_in(&self, r: Rect) -> String {
         let buf = self.term.backend().buffer();
         let mut s = String::new();
@@ -89,7 +81,6 @@ impl Harness {
         }
         s
     }
-
 
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
@@ -111,7 +102,6 @@ impl Harness {
             .unwrap_or_else(|| panic!("{needle:?} on screen\n{}", self.text()))
     }
 
-
     fn menu(&self, id: WidgetId) -> Option<Rect> {
         self.app.shell.hits.area_of(id)
     }
@@ -130,8 +120,6 @@ const CHROME_MENU: WidgetId = WidgetId::of("chrome.context");
 const LISTS_MENU: WidgetId = WidgetId::of("lists.menu");
 const TREES_MENU: WidgetId = WidgetId::of("trees.menu");
 const TABLES_MENU: WidgetId = WidgetId::of("tables.menu");
-
-
 
 #[test]
 fn a_secondary_click_outside_an_open_menu_reopens_it_on_the_new_row() {
@@ -203,8 +191,6 @@ fn a_secondary_click_outside_a_dialog_stays_swallowed() {
     );
 }
 
-
-
 #[test]
 fn chrome_shift_f10_opens_the_tab_menu_under_the_cursor_row() {
     let mut h = Harness::new(PageId::Chrome);
@@ -232,8 +218,6 @@ fn chrome_shift_f10_opens_the_tab_menu_under_the_cursor_row() {
     assert!(h.text().contains("Shift+F10"), "the hint names the key");
 }
 
-
-
 #[test]
 fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
     let mut h = Harness::new(PageId::Lists);
@@ -252,7 +236,6 @@ fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
     assert!(h.menu(LISTS_MENU).is_none(), "choosing closes the menu");
     assert!(h.text().contains("1 selected"), "the file was excluded");
 
-
     let lock = h.at("Cargo.lock");
     h.right_click((lock.0 + 1, lock.1));
     let menu = h.menu(LISTS_MENU).expect("the row menu");
@@ -268,9 +251,6 @@ fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
         "Select all skips the locked files"
     );
 }
-
-
-
 
 #[test]
 fn an_open_menu_stays_on_screen_when_the_terminal_shrinks() {
@@ -291,9 +271,6 @@ fn an_open_menu_stays_on_screen_when_the_terminal_shrinks() {
     );
     assert_eq!(after.width, before.width, "moved, not cut");
 }
-
-
-
 
 #[test]
 fn a_menu_rows_shortcut_chooses_it_and_other_keys_pass_through() {
@@ -336,8 +313,6 @@ fn lists_shift_f10_opens_under_the_cursor_row_and_chooses() {
     assert!(h.menu(LISTS_MENU).is_none());
 }
 
-
-
 #[test]
 fn trees_right_click_folds_a_folder_and_shift_f10_opens_a_file() {
     let mut h = Harness::new(PageId::Trees);
@@ -369,8 +344,6 @@ fn trees_right_click_folds_a_folder_and_shift_f10_opens_a_file() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("src/api/billing.rs"), "{}", h.text());
 }
-
-
 
 #[test]
 fn tables_right_click_a_cell_sorts_its_column_and_selects_its_row() {

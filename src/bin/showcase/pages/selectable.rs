@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Rect};
@@ -49,7 +34,6 @@ const MENU: WidgetId = WidgetId::of("selectable.menu");
 pub const MIXED: &str = "— mixed —";
 
 const EDITOR_W: u16 = 44;
-
 
 const EDITOR_H: u16 = 17;
 
@@ -203,9 +187,6 @@ fn cells(m: &Member) -> Vec<Cell> {
     ]
 }
 
-
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct FormValues {
     name: Option<String>,
@@ -225,12 +206,10 @@ fn email_rule(s: &str) -> Option<String> {
     (!s.contains('@') || !s.contains('.')).then(|| "Enter a valid email address".to_owned())
 }
 
-
 fn shared<T: PartialEq + Clone>(mut it: impl Iterator<Item = T>) -> Option<T> {
     let first = it.next()?;
     it.all(|v| v == first).then_some(first)
 }
-
 
 const KEYS: [&str; 5] = [
     "selection.esc_clears",
@@ -240,14 +219,12 @@ const KEYS: [&str; 5] = [
     "selection.activate",
 ];
 
-
 const ACTIVATE: [Activate; 4] = [
     Activate::Double,
     Activate::ClickAgain,
     Activate::Single,
     Activate::Never,
 ];
-
 
 fn members_table(members: &[Member], k: &[usize; 5], platform: ClientPlatform) -> DataTable {
     use ratatui::crossterm::event::KeyModifiers;
@@ -264,15 +241,12 @@ fn members_table(members: &[Member], k: &[usize; 5], platform: ClientPlatform) -
     )
     .selection_mode(SelectionMode::Multi)
     .selection_column(checks == 1)
-
     .disabled_rows(if disabled == 0 { &[0] } else { &[] })
     .esc_clears(esc == 1)
     .toggle_mods(toggle)
     .click(ClickPolicy::DATA.activate(ACTIVATE[activate.min(3)]))
     .empty_text("No members yet")
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -333,33 +307,22 @@ pub struct SelectablePage {
 
     base: FormValues,
 
-
     notes_mixed: bool,
 
     pub feedback: Option<String>,
 
-
-
     pub leave_edits: LeaveEdits,
-
-
-
 
     pub platform: ClientPlatform,
 
     menu: RowMenu<(usize, usize)>,
 
-
-
     pending: Option<(junie_tui::core::selection::RowSelection, usize)>,
     sections: crate::pages::layout::Sections,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LeaveEdits {
-
-
     #[default]
     Commit,
 
@@ -368,7 +331,6 @@ pub enum LeaveEdits {
 
     Discard,
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RowAction {
@@ -380,7 +342,6 @@ impl SelectablePage {
     pub fn new() -> Self {
         Self::for_platform(ClientPlatform::current())
     }
-
 
     pub fn for_platform(platform: ClientPlatform) -> Self {
         let members = members();
@@ -418,7 +379,6 @@ impl SelectablePage {
         page.load();
         page
     }
-
 
     pub fn load(&mut self) {
         self.loaded = self.table.selected_rows();
@@ -489,7 +449,6 @@ impl SelectablePage {
         }
     }
 
-
     pub fn dirty(&self) -> bool {
         !self.loaded.is_empty() && self.values() != self.base
     }
@@ -512,7 +471,6 @@ impl SelectablePage {
         self.feedback = None;
         self.load();
     }
-
 
     fn do_apply(&mut self, cx: &mut Cx) {
         for input in [&mut self.name, &mut self.email, &mut self.notes] {
@@ -628,7 +586,6 @@ impl SelectablePage {
         cx.focus.focus(self.table.id);
     }
 
-
     fn edit_row(&mut self, src: usize, cx: &mut Cx) {
         if !self.table.selection.contains(src) {
             let disabled = self.table.disabled.clone();
@@ -648,8 +605,6 @@ impl SelectablePage {
         cx.focus.focus(first);
     }
 
-
-
     fn edits_valid(&mut self) -> bool {
         for input in [&mut self.name, &mut self.email, &mut self.notes] {
             if input.editing {
@@ -664,9 +619,6 @@ impl SelectablePage {
         a && b
     }
 
-
-
-
     fn table_input(
         &mut self,
         cx: &mut Cx,
@@ -676,8 +628,6 @@ impl SelectablePage {
             .then(|| (self.table.selection.clone(), self.table.cursor_row));
         let (out, tev) = f(&mut self.table);
         if let (Some((before, cursor)), Some(TableAction::SelectionChanged)) = (guard, &tev) {
-
-
             if self.leave_edits == LeaveEdits::Commit && self.edits_valid() {
                 self.do_apply(cx);
                 return Outcome::Changed;
@@ -716,7 +666,6 @@ impl SelectablePage {
         }
     }
 
-
     fn row_items(&self, row: usize) -> Vec<(RowAction, MenuItem)> {
         let src = self.table.source_row(row);
         let locked = self.table.is_disabled(src);
@@ -746,8 +695,6 @@ impl SelectablePage {
             .open(req.menu(MENU, items).title(title), req.target);
     }
 
-
-
     fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut Cx) -> Outcome {
         let Some(&(action, _)) = self.row_items(cell.0).get(i) else {
             return Outcome::Consumed;
@@ -757,15 +704,12 @@ impl SelectablePage {
             RowAction::Edit => self.edit_row(src, cx),
             RowAction::Delete => {
                 self.table_input(cx, |t| {
-
-
                     let changed = t.context_selection(cell.0);
                     (
                         Outcome::Changed,
                         changed.then_some(TableAction::SelectionChanged),
                     )
                 });
-
 
                 if self.pending.is_none() {
                     self.ask_delete(cx);
@@ -889,15 +833,9 @@ impl SelectablePage {
         }
     }
 
-
-
-
-
-
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.is(Phase::Secondary) {
             let cfg = self.menu.config;
-
 
             let mut req = None;
             self.table_input(cx, |t| {
@@ -929,8 +867,6 @@ impl SelectablePage {
             None => (Outcome::Ignored, None),
         });
         if routed {
-
-
             if click && ev.bar.is_none() && out != Outcome::Ignored && cx.focus.current() == before
             {
                 cx.focus.focus(self.table.id);
@@ -947,8 +883,6 @@ impl SelectablePage {
         }
         for sel in self.selects() {
             if let Some(r) = sel.route(ev) {
-
-
                 if (click || ev.is(Phase::Press)) && ev.id == sel.id {
                     cx.focus.focus(sel.id);
                 }
@@ -1005,7 +939,6 @@ impl SelectablePage {
 impl SelectablePage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         if area.width > 50 + EDITOR_W {
-
             let tw = area.width - EDITOR_W - 1;
             self.render_table(Rect::new(area.x, area.y, tw, area.height), buf, ctx);
             let eh = area.height.min(EDITOR_H);
@@ -1191,12 +1124,10 @@ impl Page for SelectablePage {
                     page.selection_changed();
                 };
                 match result {
-
                     DialogResult::Action(1) => {
                         go(self);
                         cx.status("Changes discarded");
                     }
-
 
                     DialogResult::Action(2) => {
                         self.do_apply(cx);
@@ -1252,8 +1183,6 @@ impl Page for SelectablePage {
                     ("Ctrl+A", "Select all"),
                 ];
                 if selected {
-
-
                     if let Some(click) =
                         keyhint::modifier_click(self.table.toggle_mods, self.platform)
                     {

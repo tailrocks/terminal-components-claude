@@ -1,21 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Margin, Rect};
@@ -113,7 +95,6 @@ impl PopupsTooltipsPage {
         page
     }
 
-
     fn rebuild(&mut self) {
         self.paths.reveal = RevealState::new(Some(self.reveal()));
         self.template.grid = frame_grid(&self.opts);
@@ -128,7 +109,6 @@ impl PopupsTooltipsPage {
             _ => Placement::Below,
         }
     }
-
 
     fn place(&self) -> Place {
         let o = &self.opts;
@@ -149,7 +129,6 @@ impl PopupsTooltipsPage {
             })
             .text_inset(o.value("popupstooltips.text_inset").parse().unwrap_or(0))
     }
-
 
     fn dismiss(&self) -> Dismiss {
         let o = &self.opts;
@@ -205,7 +184,6 @@ impl PopupsTooltipsPage {
         m.list.placement = self.placement("popupstooltips.placement");
         self.popover.open(m, ());
     }
-
 
     fn readout(&self, screen: Rect) -> Vec<Prop> {
         let place = self.place();
@@ -334,8 +312,6 @@ impl PopupsTooltipsPage {
             buf.set_string(inner.x, inner.y + 2 + i as u16, line, t.muted().bg(bg));
         }
 
-
-
         let app_tooltips = ctx.tooltips;
         ctx.tooltips = self.tooltips();
         let panel = Panel::card(Some("Tooltips")).meta("rest the pointer");
@@ -378,11 +354,9 @@ impl PopupsTooltipsPage {
         let screen = *buf.area();
         props::render(inner, buf, t, &self.readout(screen), bg);
 
-
         self.popover.render(screen, buf, ctx);
     }
 }
-
 
 fn frame_grid(o: &PageValues) -> StateGrid {
     use SpecimenState::*;

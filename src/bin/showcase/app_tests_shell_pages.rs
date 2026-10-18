@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -68,7 +65,6 @@ impl Harness {
         s
     }
 
-
     pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         for y in 0..buf.area.height {
@@ -80,7 +76,6 @@ impl Harness {
         }
         None
     }
-
 
     pub fn row_of(&self, needle: &str) -> String {
         let (_, y) = self.find(needle).unwrap_or_else(|| panic!("{needle:?}"));
@@ -112,7 +107,6 @@ impl Harness {
     }
 }
 
-
 #[test]
 fn dump_shell_pages() {
     if std::env::var("SHOWCASE_DUMP").is_err() {
@@ -135,8 +129,6 @@ fn dump_shell_pages() {
     }
     println!("{}", h.text());
 }
-
-
 
 mod breadcrumbs_rails {
     use super::*;
@@ -252,8 +244,6 @@ mod breadcrumbs_rails {
     }
 }
 
-
-
 #[test]
 fn the_header_crumb_is_the_library_trail() {
     let h = Harness::new(120, 40, PageId::BreadcrumbsRails);
@@ -278,8 +268,6 @@ fn the_header_crumb_is_the_library_trail() {
     assert!(row.contains("? Help"), "{row}");
 }
 
-
-
 mod help_keys {
     use super::*;
     use crate::pages::help_keys::{HELP, OPEN};
@@ -292,10 +280,6 @@ mod help_keys {
         let (x, y) = h.find("Open help overlay").expect("the button");
         h.click(x + 1, y);
     }
-
-
-
-
 
     #[test]
     fn question_mark_opens_the_shell_reference() {
@@ -326,7 +310,6 @@ mod help_keys {
         h.key(KeyCode::Char('?'));
         assert!(h.app.help().is_none());
     }
-
 
     #[test]
     fn it_refuses_to_open_over_a_dialog() {
@@ -487,8 +470,6 @@ mod quit_leave {
         h.key(KeyCode::Esc);
         assert!(h.row_of("Last answer").contains("Resolved::Stay"));
     }
-
-
 
     #[test]
     fn the_shell_quit_keys_see_the_page_stakes() {

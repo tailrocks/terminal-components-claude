@@ -1,22 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -32,15 +13,11 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::reveal::RevealState;
 use crate::widgets::empty::EmptyState;
 
-
 #[derive(Debug, Clone)]
 pub struct ListCore {
-
     pub cursor: usize,
 
-
     pub wrap: bool,
-
 
     pub skip_disabled: bool,
 
@@ -50,14 +27,11 @@ pub struct ListCore {
 
     pub selection: RowSelection,
 
-
     pub click: ClickPolicy,
 
     pub reveal: RevealState,
 
-
     pub type_ahead: bool,
-
 
     pub type_ahead_precedence: Option<TypeAheadPrecedence>,
 
@@ -65,18 +39,12 @@ pub struct ListCore {
 
     pub content: ContentState,
 
-
-
     pub empty: Option<EmptyState>,
-
-
-
 
     pub skip_when_empty: bool,
 }
 
 impl ListCore {
-
     pub fn new(len: usize) -> Self {
         Self {
             cursor: 0,
@@ -96,17 +64,11 @@ impl ListCore {
         }
     }
 
-
     pub fn cursor_model(&self) -> Cursor {
         Cursor::new(self.cursor)
             .wrap(self.wrap)
             .skip_disabled(self.skip_disabled)
     }
-
-
-
-
-
 
     pub fn key_step<S: RowSource + ?Sized>(
         &mut self,
@@ -126,23 +88,13 @@ impl ListCore {
         Some((step, moved))
     }
 
-
     pub fn has_rows(&self, len: usize) -> bool {
         self.content.is_ready() && len > 0
     }
 
-
-
-
-
-
     pub fn is_focus_stop(&self, len: usize, focused: bool) -> bool {
         focused || !self.skip_when_empty || self.has_rows(len)
     }
-
-
-
-
 
     pub fn draw_content(
         &self,
@@ -244,7 +196,6 @@ mod tests {
         );
         assert_eq!(core.content.actions().len(), 1);
     }
-
 
     #[test]
     fn a_widget_with_nothing_to_act_on_is_no_focus_stop() {

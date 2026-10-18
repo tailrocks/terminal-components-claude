@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -14,7 +6,6 @@ use crate::core::id::WidgetId;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::specimen::{Specimen, SpecimenState};
 use crate::widgets::code::{CodeEditor, Diagnostic, Severity};
-
 
 const SAMPLE_ROWS: u16 = 3;
 

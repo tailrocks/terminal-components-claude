@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -22,7 +15,6 @@ pub enum Emphasis {
 
     Strong,
 
-
     Chip,
 }
 
@@ -37,16 +29,12 @@ pub struct StatusItem {
 
     pub meter: Option<(Option<u8>, MeterTone)>,
 
-
     pub meter_stale: bool,
-
 
     pub busy: bool,
 
-
     pub tip: Option<crate::ui::tooltip::Tip>,
 }
-
 
 pub const STATUS_METER_TRACK: u16 = 10;
 
@@ -75,7 +63,6 @@ impl StatusItem {
         self
     }
 
-
     pub fn meter_stale(mut self, on: bool) -> Self {
         self.meter_stale = on;
         self
@@ -102,7 +89,6 @@ impl StatusItem {
         self
     }
 
-
     pub fn width(&self) -> u16 {
         let w = width(&self.text) as u16 + if self.busy { 2 } else { 0 };
         let base = match self.emphasis {
@@ -110,7 +96,6 @@ impl StatusItem {
             _ => w,
         };
         if self.meter.is_some() {
-
             base + 1 + STATUS_METER_TRACK + 7
         } else {
             base
@@ -124,7 +109,6 @@ pub enum Group {
     Center,
     Right,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Placed {
@@ -142,16 +126,12 @@ pub struct StatusBar {
     pub center: Vec<StatusItem>,
     pub right: Vec<StatusItem>,
 
-
     pub reveal: Option<crate::ui::reveal::Reveal>,
 }
-
-
 
 pub fn reveal_id(group: Group, index: usize) -> WidgetId {
     WidgetId::of("statusbar.reveal").child(group as usize * 1000 + index)
 }
-
 
 const GAP: u16 = 3;
 const EDGE: u16 = 1;
@@ -168,7 +148,6 @@ impl StatusBar {
             Group::Right => &self.right,
         }
     }
-
 
     pub fn layout(&self, area: Rect) -> Vec<Placed> {
         let total_w = area.width;
@@ -196,8 +175,6 @@ impl StatusBar {
             let gaps = present.saturating_sub(1) * GAP;
             ws.iter().sum::<u16>() + gaps + 2 * EDGE
         };
-
-
 
         while needed(&keep) > total_w {
             let mut victim: Option<(u8, usize, usize)> = None;
@@ -310,7 +287,6 @@ impl StatusBar {
         for p in self.layout(area) {
             let it = &self.group(p.group)[p.index];
 
-
             let kind = match it.emphasis {
                 Emphasis::Chip => Some(Kind::Chip),
                 _ => it.id.map(|_| Kind::Title),
@@ -348,7 +324,6 @@ impl StatusBar {
                     x += 1;
                 }
 
-
                 let ink = t.legible_mark(t.accent, st.bg.unwrap_or(bg));
                 buf.set_string(x, area.y, spin, st.fg(ink));
                 buf.set_string(x + 2, area.y, rest, st);
@@ -379,7 +354,6 @@ impl StatusBar {
                 let seg = Rect::new(p.x, area.y, p.width, 1);
                 let id = it.id.unwrap_or_else(|| reveal_id(p.group, p.index));
                 if it.id.is_none() && !ctx.inert {
-
                     ctx.hits.register_hover(id, seg);
                 }
                 crate::ui::tooltip::show(ctx, id, seg, tip, None);
@@ -390,7 +364,6 @@ impl StatusBar {
                 let id = it.id.unwrap_or_else(|| reveal_id(p.group, p.index));
                 let cfg = self.reveal.unwrap_or(ctx.reveal);
                 if it.id.is_none() && cfg.hover {
-
                     ctx.clickable(id, cut);
                 }
                 crate::ui::reveal::truncated(ctx, Some(cfg), id, cut, &it.text);
@@ -398,9 +371,6 @@ impl StatusBar {
         }
     }
 }
-
-
-
 
 impl crate::ui::specimen::Specimen for StatusItem {
     fn specimen_id(&self) -> WidgetId {
@@ -537,9 +507,6 @@ mod tests {
         assert!(buf[(1, 0)].modifier.contains(Modifier::BOLD));
     }
 
-
-
-
     #[test]
     fn a_busy_chips_spinner_reads_on_the_chip_at_every_level() {
         use crate::theme::{ColorLevel, contrast_ratio};
@@ -627,8 +594,6 @@ mod tests {
         assert_ne!(hover.bg, pressed.bg, "the chip shows a press");
         assert_eq!(pressed.bg, t.ladder(crate::theme::Plane::Raised).pressed);
     }
-
-
 
     #[test]
     fn a_segment_shows_its_tooltip_when_the_pointer_rests() {

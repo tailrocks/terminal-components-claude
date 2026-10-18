@@ -19,7 +19,6 @@ enum Cmd {
     Run,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Took {
     Layer,
@@ -34,8 +33,6 @@ enum Took {
     Pasted(String),
     Nothing,
 }
-
-
 
 struct Host {
     shell: Shell,
@@ -214,13 +211,10 @@ fn with_mods(code: KeyCode, mods: KeyModifiers) -> Key {
     Key { code, mods }
 }
 
-
-
 #[test]
 fn the_key_order_table() {
     type Setup = fn(&mut Host);
     let rows: Vec<(&str, Setup, Key, Took)> = vec![
-
         (
             "too small: q quits",
             |h| h.shell.too_small = true,
@@ -239,7 +233,6 @@ fn the_key_order_table() {
             ch('d'),
             Took::Nothing,
         ),
-
         (
             "layer before shell keys",
             |h| h.layer = Some(true),
@@ -270,14 +263,12 @@ fn the_key_order_table() {
             ch('x'),
             Took::Nothing,
         ),
-
         (
             "open menu before shell keys",
             |h| h.menu = true,
             k(KeyCode::Tab),
             Took::Menu,
         ),
-
         (
             "editing field takes a letter shortcut",
             |h| {
@@ -353,7 +344,6 @@ fn the_key_order_table() {
             ch('q'),
             Took::Nothing,
         ),
-
         (
             "Ctrl+C: the page refuses first",
             |h| h.interrupts = true,
@@ -366,7 +356,6 @@ fn the_key_order_table() {
             ctrl('c'),
             Took::Quit,
         ),
-
         (
             "app chord before the page",
             |h| h.page_takes = vec![ctrl('r')],
@@ -403,7 +392,6 @@ fn the_key_order_table() {
             with_mods(KeyCode::PageUp, KeyModifiers::CONTROL),
             Took::Action(ShellAction::PrevPage),
         ),
-
         (
             "focused chrome before the page",
             |h| {
@@ -425,7 +413,6 @@ fn the_key_order_table() {
             ch('?'),
             Took::Page,
         ),
-
         (
             "? help when the page passes",
             |_| {},
@@ -476,10 +463,6 @@ fn list_host() -> Host {
     h
 }
 
-
-
-
-
 #[test]
 fn a_letter_shortcut_wins_over_a_focused_lists_type_ahead() {
     let mut h = list_host();
@@ -525,9 +508,6 @@ fn an_activation_that_changed_something_flashes_the_focused_control() {
     assert_eq!(h.shell.pointer.flashing(0), Some(WidgetId::of("ok")));
 }
 
-
-
-
 #[test]
 fn a_paste_goes_to_the_top_layer_else_the_page() {
     let paste = |h: &mut Host| {
@@ -550,9 +530,6 @@ fn a_paste_goes_to_the_top_layer_else_the_page() {
     h.shell.too_small = true;
     assert_eq!(paste(&mut h), (Outcome::Consumed, vec![]));
 }
-
-
-
 
 #[test]
 fn the_help_section_lists_the_live_shell_keys() {

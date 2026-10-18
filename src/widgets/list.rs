@@ -25,16 +25,12 @@ pub struct ListItem {
     pub label: String,
     pub meta: Option<String>,
 
-
     pub meta_tone: Tone,
     pub disabled: bool,
 
-
     pub header: bool,
 
-
     pub status: Option<Tone>,
-
 
     pub status_glyph: Option<&'static str>,
 
@@ -54,9 +50,6 @@ impl ListItem {
             mark: RowMark::NONE,
         }
     }
-
-
-
 
     pub fn header(label: &str) -> Self {
         Self {
@@ -78,10 +71,6 @@ impl ListItem {
         self
     }
 
-
-
-
-
     pub fn status(mut self, tone: Tone) -> Self {
         self.status = Some(tone);
         self
@@ -96,8 +85,6 @@ impl ListItem {
         self.mark = mark;
         self
     }
-
-
 
     pub fn default_status_glyph(t: &crate::theme::Theme, tone: Tone) -> &'static str {
         match tone {
@@ -120,20 +107,6 @@ pub enum SelectMode {
     Multi,
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone)]
 pub struct ListBox {
     pub id: WidgetId,
@@ -141,24 +114,14 @@ pub struct ListBox {
     pub mode: SelectMode,
     pub chosen: Option<usize>,
 
-
-
-
-
     pub core: ListCore,
     pub area: Rect,
 
-
     pub scrollbar_gap: u16,
-
-
 
     pub toggle_mods: KeyModifiers,
 
     pub keymap: KeyMap<ListCmd>,
-
-
-
 
     pub dirty_lane: bool,
 }
@@ -176,15 +139,9 @@ impl std::ops::DerefMut for ListBox {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListCmd {
-
-
     ToggleAll,
-
-
-
 
     SelectAll,
 }
@@ -221,21 +178,16 @@ impl ListBox {
         }
     }
 
-
     pub fn dirty_lane(mut self, on: bool) -> Self {
         self.dirty_lane = on;
         self
     }
-
-
 
     pub fn set_mark(&mut self, i: usize, mark: RowMark) {
         if let Some(it) = self.items.get_mut(i) {
             it.mark = mark;
         }
     }
-
-
 
     fn settle_cursor(&mut self) {
         let n = self.items.len();
@@ -251,26 +203,20 @@ impl ListBox {
         }
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.core.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<ListCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-
     pub fn wrap(mut self, on: bool) -> Self {
         self.core.wrap = on;
         self
     }
-
-
-
 
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.core.typeahead.timeout = timeout;
@@ -282,7 +228,6 @@ impl ListBox {
         self
     }
 
-
     pub fn type_ahead_precedence(mut self, precedence: TypeAheadPrecedence) -> Self {
         self.core.type_ahead_precedence = Some(precedence);
         self
@@ -293,36 +238,27 @@ impl ListBox {
         self
     }
 
-
     pub fn click(mut self, click: ClickPolicy) -> Self {
         self.core.click = click;
         self
     }
-
 
     pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
         self.toggle_mods = mods;
         self
     }
 
-
-
     fn order(&self) -> Vec<usize> {
         (0..self.items.len()).collect()
     }
 
-
-
-
     pub fn select(&mut self, g: SelectGesture, to: usize) -> bool {
         let order = self.order();
         let items = &self.items;
-        self.core
-            .selection
-            .apply(g, to, &order, |i| items.get(i).is_some_and(ListItem::usable))
+        self.core.selection.apply(g, to, &order, |i| {
+            items.get(i).is_some_and(ListItem::usable)
+        })
     }
-
-
 
     pub fn remove_rows(&mut self, rows: &[usize]) -> usize {
         let gone: std::collections::BTreeSet<usize> = rows
@@ -349,11 +285,9 @@ impl ListBox {
         gone.len()
     }
 
-
     pub fn is_checked(&self, i: usize) -> bool {
         self.core.selection.contains(i)
     }
-
 
     pub fn set_checked(&mut self, i: usize, on: bool) {
         if i < self.items.len() {
@@ -366,34 +300,25 @@ impl ListBox {
         self
     }
 
-
     fn nav_cursor(&self) -> Cursor {
         Cursor::new(self.core.cursor)
             .wrap(self.core.wrap)
             .skip_disabled(self.core.skip_disabled)
     }
 
-
     pub fn scrollbar_gap(mut self, gap: u16) -> Self {
         self.scrollbar_gap = gap;
         self
     }
-
 
     pub fn reveal(mut self, config: Reveal) -> Self {
         self.core.reveal.config = Some(config);
         self
     }
 
-
-
-
-
     pub fn reveal_hint(&self) -> Option<(&'static str, &'static str)> {
         self.core.reveal.hint()
     }
-
-
 
     fn label_width(&self, item: &ListItem, text_w: usize) -> (usize, usize) {
         let label_w = text_w.saturating_sub(2 + self.lane());
@@ -411,8 +336,6 @@ impl ListBox {
         (lw, meta_w)
     }
 
-
-
     fn inline_rows(
         &mut self,
         ctx: &mut RenderCtx,
@@ -428,31 +351,24 @@ impl ListBox {
             .inline(ctx, rid, lw as u16, &label, true, room)
     }
 
-
     fn lane(&self) -> usize {
         if self.dirty_lane { 2 } else { 0 }
     }
-
 
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.core.empty = Some(state);
         self
     }
 
-
-
     pub fn empty_text(mut self, s: &str) -> Self {
         self.core.empty = Some(crate::widgets::empty::EmptyState::new(s));
         self
     }
 
-
-
     pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
         self.core.content = content;
         self
     }
-
 
     pub fn skip_when_empty(mut self, on: bool) -> Self {
         self.core.skip_when_empty = on;
@@ -467,7 +383,6 @@ impl ListBox {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
     pub fn mark_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::mark_part(i))
     }
@@ -479,9 +394,6 @@ impl ListBox {
     pub fn checked_count(&self) -> usize {
         self.core.selection.len()
     }
-
-
-
 
     fn move_cursor(&mut self, to: usize, extend: bool) {
         let to = to.min(self.items.len().saturating_sub(1));
@@ -515,12 +427,10 @@ impl ListBox {
         }
         let shift = key.shift();
         if unassigned_chord(key, &self.keymap) {
-
             return Outcome::Ignored;
         }
         if self.mode == SelectMode::Single && lookup(&self.keymap, key) == Some(ListCmd::SelectAll)
         {
-
             return Outcome::Ignored;
         }
 
@@ -553,7 +463,6 @@ impl ListBox {
                 return moved.outcome();
             }
             Some((KeyStep::Nav(_), moved)) => {
-
                 let Some(to) = moved.index() else {
                     return Outcome::Ignored;
                 };
@@ -572,18 +481,9 @@ impl ListBox {
         self.on_click_count(row, 1)
     }
 
-
-
-
     pub fn on_click_count(&mut self, row: usize, count: u8) -> Outcome {
         self.on_click_at(row, count, KeyModifiers::NONE, false)
     }
-
-
-
-
-
-
 
     pub fn on_click_at(
         &mut self,
@@ -593,7 +493,6 @@ impl ListBox {
         on_box: bool,
     ) -> Outcome {
         if row >= self.items.len() || self.items[row].header {
-
             return Outcome::Consumed;
         }
         let from = self.core.cursor;
@@ -624,8 +523,6 @@ impl ListBox {
         Outcome::Changed
     }
 
-
-
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.core.scroll.track_click = Some(click);
         self
@@ -646,7 +543,6 @@ impl ListBox {
         self.core.scroll.set_viewport(area.height as usize);
         let n = self.items.len();
 
-
         if self.core.is_focus_stop(n, focused) {
             ctx.control(self.id, area, false);
             ctx.scrollable(self.id, area);
@@ -661,7 +557,6 @@ impl ListBox {
 
         let mut sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
         let mut text_w = sp.content.width.saturating_sub(1) as usize;
-
 
         let mut expanded = None;
         if focused {
@@ -693,21 +588,21 @@ impl ListBox {
             let row = Rect::new(area.x, y, sp.body.width, h);
             let rid = self.row_id(li);
             if item.header {
-
                 let title = crate::ui::text::truncate(&item.label, text_w);
                 fill(buf, row, ratatui::style::Style::new().bg(bg));
                 buf.set_string(
                     row.x + 1,
                     y,
                     title,
-                    t.muted().bg(bg).add_modifier(ratatui::style::Modifier::BOLD),
+                    t.muted()
+                        .bg(bg)
+                        .add_modifier(ratatui::style::Modifier::BOLD),
                 );
                 y += h;
                 continue;
             }
             let mut s = ctx.child_state(self.id, rid, li == self.core.cursor);
             if self.mode == SelectMode::Multi {
-
                 let mark = self.mark_id(li);
                 s.hovered |= ctx.interaction.hovered(mark);
                 s.pressed |= ctx.interaction.pressed(mark);
@@ -721,7 +616,6 @@ impl ListBox {
             let rp = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg);
             let st = rp.style();
             if let Some(tone) = item.status {
-
                 let glyph = item
                     .status_glyph
                     .unwrap_or_else(|| ListItem::default_status_glyph(t, tone));
@@ -733,7 +627,14 @@ impl ListBox {
                 };
                 rp.mark(ctx, buf, row.x + 1, y, kind, focused);
             } else if self.mode == SelectMode::Multi && item.mark.partial {
-                rp.mark(ctx, buf, row.x + 1, y, MarkKind::Glyph(t.glyphs.dash), focused);
+                rp.mark(
+                    ctx,
+                    buf,
+                    row.x + 1,
+                    y,
+                    MarkKind::Glyph(t.glyphs.dash),
+                    focused,
+                );
             } else if item.mark.pointer {
                 rp.mark(ctx, buf, row.x + 1, y, MarkKind::Current, focused);
             }
@@ -744,8 +645,6 @@ impl ListBox {
             let label_w = text_w.saturating_sub(2 + self.lane());
             let (lw, meta_w) = self.label_width(item, text_w);
             if let Some(rows) = block {
-
-
                 for (k, line) in rows.iter().take(h as usize).enumerate() {
                     let ls = if line.more { st.fg(t.text_muted) } else { st };
                     let text = crate::ui::text::fit(&line.text, lw);
@@ -775,15 +674,11 @@ impl ListBox {
             }
             ctx.register_part(self.id, Self::row_part(li), row);
             if self.mode == SelectMode::Multi {
-
-
                 let mark = Rect::new(row.x, row.y, row.width.min(3), row.height);
                 ctx.register_part(self.id, Self::mark_part(li), mark);
             }
             y += h;
         }
-
-
 
         ctx.scrollable(self.id, area);
         if let Some(sb) = sp.track {
@@ -809,8 +704,6 @@ impl Scrollable for ListBox {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.core.scroll
     }
-
-
 
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         if axis != Axis::Vertical {
@@ -855,12 +748,6 @@ impl Navigable for ListBox {
         self.nav_cursor()
     }
 }
-
-
-
-
-
-
 
 impl crate::ui::specimen::Specimen for ListBox {
     fn specimen_id(&self) -> WidgetId {
@@ -945,9 +832,6 @@ impl crate::ui::specimen::Specimen for ListBox {
     }
 }
 
-
-
-
 impl crate::core::pointer::MouseTarget for ListBox {
     type Action = ();
 
@@ -1015,8 +899,6 @@ mod reveal_tests {
         )
     }
 
-
-
     #[test]
     fn content_states_replace_the_rows_and_empty_lists_are_skipped() {
         use crate::ui::content::ContentState;
@@ -1063,10 +945,6 @@ mod reveal_tests {
         assert!(stop && s.contains("Nothing yet"), "knob: stays a stop");
     }
 
-
-
-
-
     #[test]
     fn the_chosen_mark_is_accent_only_while_the_list_has_focus() {
         let theme = Theme::junie();
@@ -1096,8 +974,6 @@ mod reveal_tests {
         assert_eq!(focused.fg, theme.accent);
     }
 
-
-
     #[test]
     fn the_chosen_row_is_bold_at_every_colour_level() {
         for level in crate::theme::ColorLevel::ALL {
@@ -1123,9 +999,6 @@ mod reveal_tests {
             );
         }
     }
-
-
-
 
     #[test]
     fn a_focused_cut_cursor_row_peeks_its_full_label() {
@@ -1174,8 +1047,6 @@ mod reveal_tests {
         let slow = at(1, "1");
         assert_eq!(slow.fg, theme.tone_on(Tone::Warning, slow.bg));
     }
-
-
 
     #[test]
     fn a_cut_label_keeps_the_gap_before_the_scrollbar() {
@@ -1250,7 +1121,6 @@ mod reveal_tests {
             mods: KeyModifiers::NONE,
         })
     }
-
 
     fn render_in(l: &mut ListBox, w: u16, h: u16, interaction: Interaction) -> Vec<String> {
         let theme = Theme::junie();
@@ -1387,7 +1257,6 @@ mod scroll_tests {
 
     #[test]
     fn a_type_ahead_miss_is_consumed_and_a_bound_letter_still_runs() {
-
         let mut l = disabled_list().type_ahead(true);
         l.cursor = 1;
         let o = l.on_key(&Key {
@@ -1411,7 +1280,6 @@ mod scroll_tests {
 
     #[test]
     fn the_type_ahead_pause_is_configurable() {
-
         let items = || {
             vec![
                 ListItem::new("alpha"),
@@ -1450,8 +1318,6 @@ mod scroll_tests {
 
     #[test]
     fn select_clicks_move_the_cursor_and_double_clicks_activate() {
-
-
         let mut l = disabled_list();
         l.on_click_count(3, 1);
         assert_eq!((l.cursor, l.chosen), (3, None));
@@ -1473,8 +1339,6 @@ mod scroll_tests {
         ListBox::new(WidgetId::of("m"), items, SelectMode::Multi)
             .toggle_mods(SelectGesture::TOGGLE_CTRL_CMD)
     }
-
-
 
     #[test]
     fn multi_clicks_follow_the_selection_gestures() {
@@ -1508,8 +1372,6 @@ mod scroll_tests {
         assert_eq!(c.selection.to_vec(), vec![2]);
     }
 
-
-
     #[test]
     fn a_click_on_the_mark_column_toggles_through_the_hit_regions() {
         use crate::core::focus::FocusRing;
@@ -1539,9 +1401,6 @@ mod scroll_tests {
         assert_eq!(l.selection.to_vec(), vec![4], "the label selects only");
         assert_eq!(l.cursor, 4);
     }
-
-
-
 
     #[test]
     fn shift_arrows_extend_and_shrink_from_the_clicked_anchor() {
@@ -1743,8 +1602,6 @@ mod track_click_tests {
         assert_eq!(l.scroll.offset, 10, "one page, not a jump to the end");
     }
 }
-
-
 
 #[cfg(test)]
 mod select_all_tests {

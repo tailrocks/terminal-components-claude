@@ -1,21 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -25,10 +7,8 @@ use crate::theme::{Theme, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{truncate, wrap};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NoticeKind {
-
     #[default]
     Error,
 
@@ -40,7 +20,6 @@ pub enum NoticeKind {
 }
 
 impl NoticeKind {
-
     fn glyph(self, t: &Theme) -> (&'static str, Style) {
         match self {
             NoticeKind::Error => ("!", t.error_fg().add_modifier(Modifier::BOLD)),
@@ -50,7 +29,6 @@ impl NoticeKind {
         }
     }
 
-
     pub fn message_tone(self) -> Tone {
         match self {
             NoticeKind::Error => Tone::Error,
@@ -59,8 +37,6 @@ impl NoticeKind {
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Notice {
@@ -74,7 +50,6 @@ pub struct Notice {
     pub max_lines: usize,
 
     pub detail_tone: Tone,
-
 
     pub mark_cut: bool,
 }
@@ -140,7 +115,6 @@ impl Notice {
         self
     }
 
-
     fn lines(&self, text: &str, w: usize, max: usize) -> Vec<String> {
         let wrapped = wrap(text, w.max(1));
         let cut = wrapped.len() > max;
@@ -154,8 +128,6 @@ impl Notice {
         lines
     }
 
-
-
     pub fn height(&self, width: u16) -> u16 {
         let w = width.saturating_sub(2) as usize;
         let message = self.lines(&self.message, w, self.message_lines).len();
@@ -166,12 +138,9 @@ impl Notice {
         (message.max(1) + detail + usize::from(self.hint.is_some())) as u16
     }
 
-
-
     pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) -> u16 {
         self.render_theme(area, buf, ctx.theme, bg)
     }
-
 
     pub fn render_theme(&self, area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) -> u16 {
         let area = area.intersection(*buf.area());
@@ -213,10 +182,7 @@ impl Notice {
     }
 }
 
-
 const SAMPLE_ID: WidgetId = WidgetId::of("notice-sample");
-
-
 
 impl crate::ui::specimen::Specimen for Notice {
     fn specimen_id(&self) -> WidgetId {

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -16,10 +10,7 @@ pub struct HintLayer {
     pub badge: Option<(&'static str, BadgeKind)>,
     pub status: Option<(String, Tone)>,
 
-
     pub status_parts: Vec<(String, Tone)>,
-
-
 
     pub align: Option<HintAlign>,
 }
@@ -49,8 +40,6 @@ impl HintLayer {
         self
     }
 
-
-
     pub fn status_parts(mut self, parts: Vec<(String, Tone)>, tone: Tone) -> Self {
         let text: String = parts.iter().map(|(p, _)| p.as_str()).collect();
         self.status = Some((text, tone));
@@ -61,17 +50,10 @@ impl HintLayer {
 
 pub struct HintBar;
 
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HintKeys(Vec<Option<crate::core::event::Key>>);
 
 impl HintKeys {
-
-
-
-
-
     pub fn register(
         ctx: &mut crate::ui::ctx::RenderCtx,
         buf: &mut Buffer,
@@ -97,8 +79,6 @@ impl HintKeys {
         HintKeys(keys)
     }
 
-
-
     pub fn clicked(
         &self,
         ev: &crate::core::pointer::PointerEvent,
@@ -112,13 +92,7 @@ impl HintKeys {
 }
 
 impl HintBar {
-
-
     pub const ID: crate::core::id::WidgetId = crate::core::id::WidgetId::of("hintbar");
-
-
-
-
 
     pub fn render_ctx(
         area: Rect,
@@ -129,11 +103,6 @@ impl HintBar {
         let spots = Self::render_at(area, buf, ctx.theme, layer);
         HintKeys::register(ctx, buf, &layer.hints, spots)
     }
-
-
-
-
-
 
     pub fn render_at(
         area: Rect,
@@ -158,13 +127,9 @@ impl HintBar {
         spots
     }
 
-
-
     pub fn resolve(layers: &[Option<HintLayer>]) -> HintLayer {
         layers.iter().flatten().next().cloned().unwrap_or_default()
     }
-
-
 
     pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, layer: &HintLayer) -> usize {
         let style = crate::theme::HintBarStyle {
@@ -183,10 +148,6 @@ impl HintBar {
         )
     }
 }
-
-
-
-
 
 impl crate::ui::specimen::Specimen for HintLayer {
     fn specimen_id(&self) -> crate::core::id::WidgetId {
@@ -228,9 +189,6 @@ impl crate::ui::specimen::Specimen for HintLayer {
 mod tests {
     use super::*;
     use crate::widgets::keyhint::hint;
-
-
-
 
     #[test]
     fn a_click_on_a_footer_hint_replays_its_key() {
