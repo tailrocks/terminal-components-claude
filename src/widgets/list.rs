@@ -24,7 +24,6 @@ pub struct ListItem {
     pub label: String,
     pub meta: Option<String>,
 
-
     pub meta_tone: Tone,
     pub disabled: bool,
 }
@@ -59,20 +58,6 @@ pub enum SelectMode {
     Multi,
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone)]
 pub struct ListBox {
     pub id: WidgetId,
@@ -87,41 +72,25 @@ pub struct ListBox {
     pub area: Rect,
     pub empty_text: String,
 
-
     strings: crate::theme::Strings,
-
 
     pub empty: Option<crate::widgets::empty::EmptyState>,
 
     pub reveal: RevealState,
 
-
     pub scrollbar_gap: u16,
-
 
     pub skip_disabled: bool,
 
-
-
-
-
     pub click: ClickPolicy,
-
-
 
     pub toggle_mods: KeyModifiers,
 
-
-
     pub type_ahead: bool,
-
-
 
     pub type_ahead_precedence: Option<TypeAheadPrecedence>,
 
-
     pub wrap: bool,
-
 
     pub nav: NavKeys,
 
@@ -129,15 +98,9 @@ pub struct ListBox {
     typeahead: crate::core::typeahead::TypeAhead,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListCmd {
-
-
     ToggleAll,
-
-
-
 
     SelectAll,
 }
@@ -186,26 +149,20 @@ impl ListBox {
         }
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<ListCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
-
-
-
 
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
@@ -217,7 +174,6 @@ impl ListBox {
         self
     }
 
-
     pub fn type_ahead_precedence(mut self, precedence: TypeAheadPrecedence) -> Self {
         self.type_ahead_precedence = Some(precedence);
         self
@@ -228,26 +184,19 @@ impl ListBox {
         self
     }
 
-
     pub fn click(mut self, click: ClickPolicy) -> Self {
         self.click = click;
         self
     }
-
 
     pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
         self.toggle_mods = mods;
         self
     }
 
-
-
     fn order(&self) -> Vec<usize> {
         (0..self.items.len()).collect()
     }
-
-
-
 
     pub fn select(&mut self, g: SelectGesture, to: usize) -> bool {
         let order = self.order();
@@ -256,8 +205,6 @@ impl ListBox {
             items.get(i).is_some_and(|it| !it.disabled)
         })
     }
-
-
 
     pub fn remove_rows(&mut self, rows: &[usize]) -> usize {
         let gone: std::collections::BTreeSet<usize> = rows
@@ -284,11 +231,9 @@ impl ListBox {
         gone.len()
     }
 
-
     pub fn is_checked(&self, i: usize) -> bool {
         self.selection.contains(i)
     }
-
 
     pub fn set_checked(&mut self, i: usize, on: bool) {
         if i < self.items.len() {
@@ -301,34 +246,25 @@ impl ListBox {
         self
     }
 
-
     fn nav_cursor(&self) -> Cursor {
         Cursor::new(self.cursor)
             .wrap(self.wrap)
             .skip_disabled(self.skip_disabled)
     }
 
-
     pub fn scrollbar_gap(mut self, gap: u16) -> Self {
         self.scrollbar_gap = gap;
         self
     }
-
 
     pub fn reveal(mut self, config: Reveal) -> Self {
         self.reveal.config = Some(config);
         self
     }
 
-
-
-
-
     pub fn reveal_hint(&self) -> Option<(&'static str, &'static str)> {
         self.reveal.hint()
     }
-
-
 
     fn label_width(item: &ListItem, text_w: usize) -> (usize, usize) {
         let label_w = text_w.saturating_sub(2);
@@ -346,8 +282,6 @@ impl ListBox {
         (lw, meta_w)
     }
 
-
-
     fn inline_rows(
         &mut self,
         ctx: &mut RenderCtx,
@@ -360,7 +294,6 @@ impl ListBox {
         let label = item.label.clone();
         self.reveal.inline(ctx, rid, lw as u16, &label, true, room)
     }
-
 
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.empty = Some(state);
@@ -380,7 +313,6 @@ impl ListBox {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
     pub fn mark_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::mark_part(i))
     }
@@ -392,9 +324,6 @@ impl ListBox {
     pub fn checked_count(&self) -> usize {
         self.selection.len()
     }
-
-
-
 
     fn move_cursor(&mut self, to: usize, extend: bool) {
         let to = to.min(self.items.len().saturating_sub(1));
@@ -428,12 +357,10 @@ impl ListBox {
         }
         let shift = key.shift();
         if unassigned_chord(key, &self.keymap) {
-
             return Outcome::Ignored;
         }
         if self.mode == SelectMode::Single && lookup(&self.keymap, key) == Some(ListCmd::SelectAll)
         {
-
             return Outcome::Ignored;
         }
 
@@ -492,18 +419,9 @@ impl ListBox {
         self.on_click_count(row, 1)
     }
 
-
-
-
     pub fn on_click_count(&mut self, row: usize, count: u8) -> Outcome {
         self.on_click_at(row, count, KeyModifiers::NONE, false)
     }
-
-
-
-
-
-
 
     pub fn on_click_at(
         &mut self,
@@ -542,8 +460,6 @@ impl ListBox {
         }
         Outcome::Changed
     }
-
-
 
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
@@ -588,7 +504,6 @@ impl ListBox {
         let mut sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
         let mut text_w = sp.content.width.saturating_sub(1) as usize;
 
-
         let mut expanded = None;
         if focused {
             expanded = self.inline_rows(ctx, text_w, area.height);
@@ -619,7 +534,6 @@ impl ListBox {
             let rid = self.row_id(li);
             let mut s = ctx.child_state(self.id, rid, li == self.cursor);
             if self.mode == SelectMode::Multi {
-
                 let mark = self.mark_id(li);
                 s.hovered |= ctx.interaction.hovered(mark);
                 s.pressed |= ctx.interaction.pressed(mark);
@@ -650,8 +564,6 @@ impl ListBox {
             let label_w = text_w.saturating_sub(2);
             let (lw, meta_w) = Self::label_width(item, text_w);
             if let Some(rows) = block {
-
-
                 for (k, line) in rows.iter().take(h as usize).enumerate() {
                     let ls = if line.more { st.fg(t.text_muted) } else { st };
                     let text = crate::ui::text::fit(&line.text, lw);
@@ -681,15 +593,11 @@ impl ListBox {
             }
             ctx.register_part(self.id, Self::row_part(li), row);
             if self.mode == SelectMode::Multi {
-
-
                 let mark = Rect::new(row.x, row.y, row.width.min(3), row.height);
                 ctx.register_part(self.id, Self::mark_part(li), mark);
             }
             y += h;
         }
-
-
 
         ctx.scrollable(self.id, area);
         if let Some(sb) = sp.track {
@@ -715,8 +623,6 @@ impl Scrollable for ListBox {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.scroll
     }
-
-
 
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         if axis != Axis::Vertical {
@@ -755,12 +661,6 @@ impl Navigable for ListBox {
         self.nav_cursor()
     }
 }
-
-
-
-
-
-
 
 impl crate::ui::specimen::Specimen for ListBox {
     fn specimen_id(&self) -> WidgetId {
@@ -840,9 +740,6 @@ impl crate::ui::specimen::Specimen for ListBox {
         l.render(area, buf, ctx, bg);
     }
 }
-
-
-
 
 impl crate::core::pointer::MouseTarget for ListBox {
     type Action = ();
@@ -937,8 +834,6 @@ mod reveal_tests {
         assert_eq!(slow.fg, theme.tone_on(Tone::Warning, slow.bg));
     }
 
-
-
     #[test]
     fn a_cut_label_keeps_the_gap_before_the_scrollbar() {
         let items: Vec<ListItem> = (0..8)
@@ -1012,7 +907,6 @@ mod reveal_tests {
             mods: KeyModifiers::NONE,
         })
     }
-
 
     fn render_in(l: &mut ListBox, w: u16, h: u16, interaction: Interaction) -> Vec<String> {
         let theme = Theme::junie();
@@ -1149,7 +1043,6 @@ mod scroll_tests {
 
     #[test]
     fn a_type_ahead_miss_is_consumed_and_a_bound_letter_still_runs() {
-
         let mut l = disabled_list().type_ahead(true);
         l.cursor = 1;
         let o = l.on_key(&Key {
@@ -1173,7 +1066,6 @@ mod scroll_tests {
 
     #[test]
     fn the_type_ahead_pause_is_configurable() {
-
         let items = || {
             vec![
                 ListItem::new("alpha"),
@@ -1212,8 +1104,6 @@ mod scroll_tests {
 
     #[test]
     fn select_clicks_move_the_cursor_and_double_clicks_activate() {
-
-
         let mut l = disabled_list();
         l.on_click_count(3, 1);
         assert_eq!((l.cursor, l.chosen), (3, None));
@@ -1235,8 +1125,6 @@ mod scroll_tests {
         ListBox::new(WidgetId::of("m"), items, SelectMode::Multi)
             .toggle_mods(SelectGesture::TOGGLE_CTRL_CMD)
     }
-
-
 
     #[test]
     fn multi_clicks_follow_the_selection_gestures() {
@@ -1270,8 +1158,6 @@ mod scroll_tests {
         assert_eq!(c.selection.to_vec(), vec![2]);
     }
 
-
-
     #[test]
     fn a_click_on_the_mark_column_toggles_through_the_hit_regions() {
         use crate::core::focus::FocusRing;
@@ -1301,9 +1187,6 @@ mod scroll_tests {
         assert_eq!(l.selection.to_vec(), vec![4], "the label selects only");
         assert_eq!(l.cursor, 4);
     }
-
-
-
 
     #[test]
     fn shift_arrows_extend_and_shrink_from_the_clicked_anchor() {
@@ -1505,8 +1388,6 @@ mod track_click_tests {
         assert_eq!(l.scroll.offset, 10, "one page, not a jump to the end");
     }
 }
-
-
 
 #[cfg(test)]
 mod select_all_tests {

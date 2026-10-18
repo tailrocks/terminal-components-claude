@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
@@ -21,9 +13,7 @@ pub struct Breadcrumb {
 
     pub segments: Vec<String>,
 
-
     pub clickable: bool,
-
 
     pub areas: Vec<Rect>,
 }
@@ -38,12 +28,10 @@ impl Breadcrumb {
         }
     }
 
-
     pub fn clickable(mut self, on: bool) -> Self {
         self.clickable = on;
         self
     }
-
 
     pub fn segment_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::segment_part(i))
@@ -53,8 +41,6 @@ impl Breadcrumb {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
-
     pub fn on_click(&self, id: WidgetId) -> Option<usize> {
         if !self.clickable {
             return None;
@@ -62,12 +48,6 @@ impl Breadcrumb {
         let last = self.segments.len().checked_sub(1)?;
         self.id.item_of(id, Part::ROW, 0..last)
     }
-
-
-
-
-
-
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
@@ -128,7 +108,6 @@ impl Breadcrumb {
             let current = i + 1 == n;
             let label = self.segments[i].clone();
             if current {
-
                 let st = t.title().bg(bg);
                 self.areas[i] = put(buf, &mut x, &label, st, true);
             } else if self.clickable {
@@ -148,11 +127,6 @@ impl Breadcrumb {
         }
     }
 }
-
-
-
-
-
 
 impl crate::ui::specimen::Specimen for Breadcrumb {
     fn specimen_id(&self) -> WidgetId {
@@ -198,8 +172,6 @@ impl crate::ui::specimen::Specimen for Breadcrumb {
         b.render(area, buf, ctx, bg);
     }
 }
-
-
 
 impl crate::core::pointer::MouseTarget for Breadcrumb {
     type Action = usize;

@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
@@ -412,15 +408,12 @@ impl SettingsPage {
     }
 }
 
-
-
 fn clicked(b: &mut Button, ev: &PointerEvent) -> Option<bool> {
     let r = b.route(ev)?;
     (r.outcome() != Outcome::Ignored).then(|| r.into_action().is_some())
 }
 
 impl SettingsPage {
-
     fn handle_event(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(

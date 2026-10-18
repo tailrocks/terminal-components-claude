@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -70,7 +66,6 @@ impl Harness {
         s
     }
 
-
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         for y in 0..buf.area.height {
@@ -113,7 +108,6 @@ impl Harness {
             .state_rows()
             .to_vec()
     }
-
 
     fn row_of(&self, needle: &str) -> String {
         let (_, y) = self.find(needle).unwrap_or_else(|| panic!("{needle:?}"));
@@ -254,7 +248,6 @@ fn list_states_are_drawn_by_the_list() {
     );
     assert!(h.live_bars() <= 1, "{text}");
 }
-
 
 #[test]
 fn print_text_utilities() {

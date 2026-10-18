@@ -1,7 +1,3 @@
-
-
-
-
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
@@ -45,7 +41,6 @@ enum Source {
 }
 
 impl Source {
-
     fn default_destination(&self) -> String {
         match self {
             Source::Host { path, .. } => path.clone(),
@@ -94,7 +89,6 @@ impl PreludeScreen {
             name: None,
         }
     }
-
 
     pub fn stepper_line(&self) -> String {
         let order = [
@@ -255,8 +249,6 @@ impl PreludeScreen {
         }
     }
 
-
-
     fn workdir_candidates(&self, w: &World) -> Vec<String> {
         let Some(dest) = self.destination.clone() else {
             return vec![];
@@ -279,7 +271,6 @@ impl PreludeScreen {
         }
         rows
     }
-
 
     fn workdir_items(&self, rows: &[String], query: &str, w: &World) -> Vec<PickerItem> {
         let q = query.trim().to_lowercase();
@@ -378,7 +369,6 @@ impl Page<Jackin> for PreludeScreen {
     }
 
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-
         match key.code {
             KeyCode::Esc => self.rewind(w, cx),
             _ => self.open(self.step, w, cx, None),

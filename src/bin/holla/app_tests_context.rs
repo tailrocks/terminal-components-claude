@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
@@ -38,7 +33,6 @@ pub(crate) fn right_click(h: &mut H, x: u16, y: u16) {
     h.mouse(MouseKind::Secondary, x, y);
 }
 
-
 pub(crate) fn menu_area(h: &H, id: WidgetId) -> Rect {
     h.app
         .shell
@@ -46,7 +40,6 @@ pub(crate) fn menu_area(h: &H, id: WidgetId) -> Rect {
         .area_of(id)
         .unwrap_or_else(|| panic!("menu {id:?} not drawn\n{}", h.text()))
 }
-
 
 pub(crate) fn assert_at_pointer(h: &H, id: WidgetId, x: u16, y: u16) {
     let a = menu_area(h, id);
@@ -58,12 +51,10 @@ pub(crate) fn assert_at_pointer(h: &H, id: WidgetId, x: u16, y: u16) {
     );
 }
 
-
 pub(crate) fn assert_below_row(h: &H, id: WidgetId, y: u16) {
     let a = menu_area(h, id);
     assert_eq!(a.y, y + 1, "menu not below the cursor row\n{}", h.text());
 }
-
 
 pub(crate) fn choose(h: &mut H, label: &str) {
     let (x, y) = h

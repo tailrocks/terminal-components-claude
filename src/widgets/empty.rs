@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -16,9 +14,6 @@ pub enum EmptyKind {
 
     Error,
 }
-
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmptyAction {
@@ -81,8 +76,6 @@ impl EmptyState {
         self.actions.iter().find(|a| a.id == id)
     }
 
-
-
     pub fn on_key(
         &self,
         focus: WidgetId,
@@ -99,8 +92,6 @@ impl EmptyState {
         self
     }
 }
-
-
 
 pub fn render_ctx(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, e: &EmptyState, bg: Color) {
     let area = area.intersection(*buf.area());
@@ -145,7 +136,6 @@ pub fn render_ctx(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, e: &EmptySt
         b.render(r, buf, ctx, bg);
     }
 }
-
 
 pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color) {
     let area = area.intersection(*buf.area());
@@ -196,10 +186,7 @@ pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color
     }
 }
 
-
 const SAMPLE_ID: WidgetId = WidgetId::of("empty-sample");
-
-
 
 pub fn height(e: &EmptyState, width: u16) -> u16 {
     let hint = e
@@ -210,8 +197,6 @@ pub fn height(e: &EmptyState, width: u16) -> u16 {
     let actions = if e.actions.is_empty() { 0 } else { 2 };
     1 + hint + actions
 }
-
-
 
 impl crate::ui::specimen::Specimen for EmptyState {
     fn specimen_id(&self) -> WidgetId {
@@ -228,7 +213,6 @@ impl crate::ui::specimen::Specimen for EmptyState {
     }
 
     fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
-
         height(self, 24) + u16::from(self.hint.is_some())
     }
 

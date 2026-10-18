@@ -1,8 +1,3 @@
-
-
-
-
-
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -16,7 +11,6 @@ fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
         }
     }
 }
-
 
 fn declarations(dir: &str, keyword: &str) -> Vec<(String, usize, String)> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));

@@ -1,10 +1,4 @@
-
-
-
-
 use crate::db::{Catalog, ColType, Table, Value};
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokKind {
@@ -146,8 +140,6 @@ pub fn is_keyword(word: &str) -> bool {
     KEYWORDS.contains(&up.as_str())
 }
 
-
-
 pub fn is_literal(word: &str) -> bool {
     ["TRUE", "FALSE", "NULL"]
         .iter()
@@ -226,7 +218,6 @@ pub fn tokenize(src: &str) -> Vec<Token> {
     out
 }
 
-
 pub fn split_statements(src: &str) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut start = 0;
@@ -256,7 +247,6 @@ fn trim_range(src: &str, mut a: usize, mut b: usize) -> (usize, usize) {
     (a, b)
 }
 
-
 pub fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
     let stmts = split_statements(src);
     stmts
@@ -266,8 +256,6 @@ pub fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
         .or_else(|| stmts.iter().copied().rev().find(|&(_, b)| b <= cursor))
         .or_else(|| stmts.first().copied())
 }
-
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Cmp {
@@ -445,7 +433,6 @@ pub fn parse(stmt: &str) -> Result<Statement, ParseError> {
                 if w.accept("ANALYZE") {
                     analyze = true;
                 } else if w.accept("VERBOSE") || w.accept("(") {
-
                     while let Some(t) = w.peek() {
                         if t == ")" {
                             w.next();
@@ -698,14 +685,6 @@ fn parse_select(w: &mut Words) -> Result<Select, ParseError> {
     })
 }
 
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Tier {
     Safe,
@@ -725,7 +704,6 @@ pub fn tier(stmt: &Statement) -> Tier {
         _ => Tier::Write,
     }
 }
-
 
 pub fn is_dangerous(stmt: &Statement) -> bool {
     match stmt {
@@ -747,10 +725,7 @@ pub fn is_dangerous(stmt: &Statement) -> bool {
 pub enum Decision {
     Run,
 
-
-    Confirm {
-        deliberate: bool,
-    },
+    Confirm { deliberate: bool },
 
     Deny,
 }
@@ -894,8 +869,6 @@ pub fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct ResultSet {
     pub columns: Vec<(String, ColType)>,
@@ -904,7 +877,6 @@ pub struct ResultSet {
     pub total: usize,
     pub source: Option<String>,
     pub duration_ms: u32,
-
 
     pub editable: bool,
 }
@@ -916,7 +888,6 @@ pub struct ExecError {
 
     pub at: Option<usize>,
 }
-
 
 pub const ROW_CAP: usize = 500;
 
@@ -976,8 +947,6 @@ pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
         },
     }
 }
-
-
 
 pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
     let table = cat
@@ -1113,8 +1082,6 @@ pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
         editable,
     })
 }
-
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlanNode {
@@ -1340,7 +1307,6 @@ pub fn fmt_int(n: usize) -> String {
     }
     out
 }
-
 
 pub fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
     let indent = "  ".repeat(depth);

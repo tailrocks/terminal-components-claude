@@ -45,7 +45,6 @@ pub struct Column {
     pub editable: bool,
     pub sortable: bool,
 
-
     pub editor: ColumnEditor,
 }
 
@@ -82,7 +81,6 @@ impl Column {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cell {
     pub text: String,
@@ -106,10 +104,8 @@ impl Cell {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct ChoiceEdit {
-
     pub row: usize,
     pub col: usize,
     pub editor: ChoiceEditor,
@@ -117,44 +113,18 @@ pub struct ChoiceEdit {
 
 #[derive(Debug, Clone)]
 pub struct EditState {
-
     pub row: usize,
     pub col: usize,
 
     pub field: EditField,
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone)]
 pub struct DataTable {
-
     parts: PartMap,
     pub id: WidgetId,
     pub columns: Vec<Column>,
     pub rows: Vec<Vec<Cell>>,
-
 
     order: Vec<usize>,
     pub sort: Option<(usize, SortDir)>,
@@ -164,28 +134,20 @@ pub struct DataTable {
     pub cell_nav: bool,
     pub selected: Option<usize>,
 
-
     pub scroll: ScrollPane,
     pub edit: Option<EditState>,
 
-
-
-
     pub validator: Option<Validator<(), usize>>,
-
 
     pub blur_action: BlurAction,
     pub empty_text: String,
 
-
     strings: crate::theme::Strings,
-
 
     pub empty: Option<crate::widgets::empty::EmptyState>,
     pub area: Rect,
     body: Rect,
     col_rects: Vec<Rect>,
-
 
     pub sizing: ColumnSizing,
 
@@ -193,12 +155,9 @@ pub struct DataTable {
 
     pub numeric: Vec<bool>,
 
-
     pub reveal: Option<crate::ui::reveal::Reveal>,
 
-
     pub horizontal: Option<HScroll>,
-
 
     pub overflow_marks: bool,
 
@@ -206,26 +165,11 @@ pub struct DataTable {
 
     pub selection: RowSelection,
 
-
-
     pub selection_column: bool,
-
 
     pub esc_clears: bool,
 
-
-
-
-
-
-
-
-
     pub toggle_mods: KeyModifiers,
-
-
-
-
 
     pub click: ClickPolicy,
 
@@ -235,31 +179,21 @@ pub struct DataTable {
 
     pub keymap: KeyMap<TableCmd>,
 
-
-
     pub type_ahead: bool,
 
-
     pub type_ahead_column: Option<usize>,
-
-
 
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     typeahead: crate::core::typeahead::TypeAhead,
 
     pub choice: Option<ChoiceEdit>,
 
-
     pub editor_config: EditorConfig,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableCmd {
-
     SortByColumn,
-
-
 
     SelectAll,
 }
@@ -281,10 +215,7 @@ impl Actions for TableCmd {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableAction {
-    Committed {
-        row: usize,
-        col: usize,
-    },
+    Committed { row: usize, col: usize },
     Cancelled,
     Activated(usize),
 
@@ -343,20 +274,15 @@ impl DataTable {
         }
     }
 
-
-
-
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
         self
     }
 
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
     }
-
 
     pub fn type_ahead_precedence(
         mut self,
@@ -366,31 +292,23 @@ impl DataTable {
         self
     }
 
-
     pub fn type_ahead_column(mut self, col: Option<usize>) -> Self {
         self.type_ahead_column = col;
         self
     }
-
 
     pub fn editor_config(mut self, cfg: EditorConfig) -> Self {
         self.editor_config = cfg;
         self
     }
 
-
     pub fn choice_id(&self) -> WidgetId {
         self.id.sub("choice")
     }
 
-
-
-
     pub fn open_id(&self, display: usize, col: usize) -> WidgetId {
         self.cell_id(display, col).part(PartRef::of(Part::ACTIONS))
     }
-
-
 
     pub fn out_of_set(&self, src: usize, col: usize) -> bool {
         let (Some(row), Some(c)) = (self.rows.get(src), self.columns.get(col)) else {
@@ -399,7 +317,6 @@ impl DataTable {
         c.editor.out_of_set(&row[col].text, &self.editor_config)
     }
 
-
     pub fn out_of_set_cells(&self) -> Vec<(usize, usize)> {
         (0..self.rows.len())
             .flat_map(|r| (0..self.columns.len()).map(move |c| (r, c)))
@@ -407,75 +324,55 @@ impl DataTable {
             .collect()
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<TableCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-
     pub fn selection_mode(mut self, mode: SelectionMode) -> Self {
         self.selection_mode = mode;
         self
     }
-
 
     pub fn selection_column(mut self, on: bool) -> Self {
         self.selection_column = on;
         self
     }
 
-
     pub fn esc_clears(mut self, on: bool) -> Self {
         self.esc_clears = on;
         self
     }
 
-
-
-
     pub const TOGGLE_CTRL_CMD: KeyModifiers = SelectGesture::TOGGLE_CTRL_CMD;
-
 
     pub const TOGGLE_OPTION_CMD: KeyModifiers = SelectGesture::TOGGLE_OPTION_CMD;
 
-
     pub const TOGGLE_WITH_ALT: KeyModifiers = SelectGesture::TOGGLE_WITH_ALT;
-
-
 
     pub const fn toggle_mods_for(platform: ClientPlatform) -> KeyModifiers {
         SelectGesture::toggle_mods_for(platform)
     }
-
-
-
-
 
     pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
         self.toggle_mods = mods;
         self
     }
 
-
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.click = policy;
         self
     }
 
-
     pub fn disabled_rows(mut self, rows: &[usize]) -> Self {
         self.disabled.extend(rows.iter().copied());
         self
     }
-
-
 
     pub fn set_row_disabled(&mut self, src: usize, disabled: bool) {
         if disabled {
@@ -497,8 +394,6 @@ impl DataTable {
         self.selection_mode == SelectionMode::Multi
     }
 
-
-
     pub fn selected_rows(&self) -> Vec<usize> {
         match self.selection_mode {
             SelectionMode::Multi => self.selection.to_vec(),
@@ -507,8 +402,6 @@ impl DataTable {
         }
     }
 
-
-
     pub fn selection_label(&self) -> String {
         match self.selected_rows().len() {
             0 => String::new(),
@@ -516,13 +409,11 @@ impl DataTable {
         }
     }
 
-
     pub fn selection_state(&self) -> TriState {
         let disabled = &self.disabled;
         self.selection
             .tri_state(0..self.rows.len(), |r| !disabled.contains(&r))
     }
-
 
     pub fn select_all(&mut self) -> bool {
         if !self.multi() {
@@ -533,14 +424,10 @@ impl DataTable {
             .select_all(self.order.iter().copied(), |r| !disabled.contains(&r))
     }
 
-
     pub fn clear_selection(&mut self) -> bool {
         let single = self.selected.take().is_some();
         self.selection.clear() || single
     }
-
-
-
 
     pub fn context_selection(&mut self, display: usize) -> bool {
         if !self.multi() || self.cell_nav {
@@ -551,14 +438,10 @@ impl DataTable {
             .context_select(display, &self.order, |r| !disabled.contains(&r))
     }
 
-
     pub fn toggle_row(&mut self, src: usize) -> bool {
         let disabled = &self.disabled;
         src < self.rows.len() && self.selection.toggle(src, |r| !disabled.contains(&r))
     }
-
-
-
 
     pub fn set_row(&mut self, src: usize, cells: Vec<Cell>) {
         if src >= self.rows.len() {
@@ -574,8 +457,6 @@ impl DataTable {
             }
         }
     }
-
-
 
     pub fn remove_rows(&mut self, srcs: &[usize]) {
         let gone: BTreeSet<usize> = srcs.iter().copied().collect();
@@ -610,7 +491,6 @@ impl DataTable {
         self.scroll.ensure_visible(self.cursor_row);
     }
 
-
     pub fn check_id(&self, display: usize) -> WidgetId {
         self.id.part(Self::check_part(display))
     }
@@ -619,12 +499,9 @@ impl DataTable {
         PartRef::item(Part::MARKER, ItemKey::index(display))
     }
 
-
     pub fn check_all_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::MARKER))
     }
-
-
 
     pub fn on_click_check(&mut self, display: usize) -> (Outcome, Option<TableAction>) {
         if display >= self.rows.len() || !self.multi() {
@@ -638,8 +515,6 @@ impl DataTable {
             (Outcome::Changed, None)
         }
     }
-
-
 
     pub fn on_click_check_all(&mut self) -> (Outcome, Option<TableAction>) {
         if !self.multi() {
@@ -655,8 +530,6 @@ impl DataTable {
             (Outcome::Consumed, None)
         }
     }
-
-
 
     fn on_key_multi(&mut self, key: &Key) -> Option<(Outcome, Option<TableAction>)> {
         let changed = |c: bool| {
@@ -710,44 +583,33 @@ impl DataTable {
         }
     }
 
-
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
-
 
     pub fn overflow_marks(mut self, on: bool) -> Self {
         self.overflow_marks = on;
         self
     }
 
-
-
     pub fn resizable_columns(mut self, on: bool) -> Self {
         self.sizing.resizable = on;
         self
     }
-
-
 
     pub fn seam_hit_w(mut self, cells: u16) -> Self {
         self.sizing.seam_w = cells.max(1);
         self
     }
 
-
     pub fn seam_id(&self, c: usize) -> WidgetId {
         self.id.part(crate::ui::columns::seam_part(c))
     }
 
-
-
     fn seam_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::SEAM, 0..self.columns.len())
     }
-
-
 
     pub fn header_menu_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
@@ -756,9 +618,6 @@ impl DataTable {
         ev.index_of(Part::HEADER)
             .or_else(|| ev.index_of(Part::SEAM))
     }
-
-
-
 
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
         let Some(c) = self.seam_of(id) else {
@@ -777,8 +636,6 @@ impl DataTable {
         Outcome::Changed
     }
 
-
-
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if self.seam_of(pressed).is_some() {
             return match self.sizing.drag_to(pos.x) {
@@ -794,8 +651,6 @@ impl DataTable {
         }
         Outcome::Ignored
     }
-
-
 
     pub fn autofit(&mut self, c: usize) {
         let Some(col) = self.columns.get(c) else {
@@ -816,8 +671,6 @@ impl DataTable {
         self.sizing.set(c, need.min(cap) as u16);
     }
 
-
-
     pub fn header_menu(&self, c: usize) -> Vec<(HeaderAction, crate::widgets::menu::MenuItem)> {
         let sortable = self.columns.get(c).is_some_and(|col| col.sortable);
         let sorted = self.sort.and_then(|(sc, d)| (sc == c).then_some(d));
@@ -829,7 +682,6 @@ impl DataTable {
             !self.sizing.is_default(),
         )
     }
-
 
     pub fn on_header_action(&mut self, c: usize, action: HeaderAction) -> Outcome {
         let want = match action {
@@ -859,7 +711,6 @@ impl DataTable {
         }
         Outcome::Changed
     }
-
 
     pub fn reveal(mut self, config: crate::ui::reveal::Reveal) -> Self {
         self.reveal = Some(config);
@@ -906,7 +757,6 @@ impl DataTable {
         self.edit.is_some() || self.choice.is_some()
     }
 
-
     pub fn source_row(&self, i: usize) -> usize {
         self.order[i]
     }
@@ -922,15 +772,12 @@ impl DataTable {
         PartRef::item(Part::ROW, ItemKey::index(display))
     }
 
-
     pub fn cell_id(&self, display: usize, col: usize) -> WidgetId {
         self.row_id(display).child(col)
     }
     fn cell_part(display: usize) -> PartRef {
         PartRef::item(Part::CELL, ItemKey::index(display))
     }
-
-
 
     pub fn set_rows(&mut self, rows: Vec<Vec<Cell>>) {
         self.edit = None;
@@ -954,7 +801,6 @@ impl DataTable {
             let ca = &rows[a][col].text;
             let cb = &rows[b][col].text;
             let ord = if numeric {
-
                 parse_num(ca).cmp(&parse_num(cb))
             } else {
                 ca.to_lowercase().cmp(&cb.to_lowercase())
@@ -966,7 +812,6 @@ impl DataTable {
             }
         });
     }
-
 
     pub fn sort_by(&mut self, col: usize) -> Outcome {
         if col >= self.columns.len() || !self.columns[col].sortable {
@@ -999,23 +844,18 @@ impl DataTable {
         self.ensure_col_visible();
     }
 
-
-
     fn point_cursor(&mut self, row: usize, col: usize) {
         self.scroll.pointer_move();
         self.set_cursor(row, col);
     }
 
     fn ensure_col_visible(&mut self) {
-
         self.scroll.reveal_column(self.cursor_col);
     }
 
     pub fn begin_edit(&mut self) -> Outcome {
         self.start_edit().0
     }
-
-
 
     pub fn start_edit(&mut self) -> (Outcome, Option<TableAction>) {
         if self.rows.is_empty() {
@@ -1025,7 +865,6 @@ impl DataTable {
         if !self.columns[col].editable {
             return (Outcome::Consumed, None);
         }
-
 
         self.scroll.ensure_visible(self.cursor_row);
         self.ensure_col_visible();
@@ -1054,8 +893,6 @@ impl DataTable {
         (Outcome::Changed, None)
     }
 
-
-
     fn apply_value(&mut self, src: usize, col: usize, text: String) -> Result<TableAction, String> {
         if let Some(Err(err)) = self.validator.as_ref().map(|v| v.validate_in(&col, &text)) {
             return Err(err.into_message());
@@ -1073,7 +910,6 @@ impl DataTable {
         }
         Ok(TableAction::Committed { row: src, col })
     }
-
 
     fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<TableAction> {
         let (value, tab) = match r? {
@@ -1108,8 +944,6 @@ impl DataTable {
         }
     }
 
-
-
     fn tab_to_editable(&mut self, backward: bool) -> Option<TableAction> {
         let n = self.columns.len();
         let mut col = self.cursor_col;
@@ -1133,9 +967,6 @@ impl DataTable {
         None
     }
 
-
-
-
     pub fn on_click_editor(&mut self, id: WidgetId) -> Option<(Outcome, Option<TableAction>)> {
         if let Some(c) = self.choice.as_mut()
             && c.editor.contains_id(id)
@@ -1152,7 +983,6 @@ impl DataTable {
         let mut e = self.edit.take()?;
         let src = e.row;
         if !e.field.validate() {
-
             self.edit = Some(e);
             return None;
         }
@@ -1180,10 +1010,6 @@ impl DataTable {
         }
         self.edit.take().map(|_| TableAction::Cancelled)
     }
-
-
-
-
 
     pub fn on_blur(&mut self) -> Option<TableAction> {
         if let Some(c) = &self.choice {
@@ -1256,7 +1082,6 @@ impl DataTable {
             return r;
         }
         if unassigned_chord(key, &self.keymap) {
-
             return (Outcome::Ignored, None);
         }
         let (r, c) = (self.cursor_row, self.cursor_col);
@@ -1274,7 +1099,6 @@ impl DataTable {
                 TableCmd::SelectAll => (Outcome::Ignored, None),
             };
         }
-
 
         if key.code == KeyCode::Down
             && key.alt()
@@ -1364,8 +1188,6 @@ impl DataTable {
         self.sort_by(col)
     }
 
-
-
     pub fn on_click_cell(
         &mut self,
         display: usize,
@@ -1374,7 +1196,6 @@ impl DataTable {
     ) -> (Outcome, Option<TableAction>) {
         self.on_click_cell_count(display, col, pos, KeyModifiers::NONE, 1)
     }
-
 
     pub fn on_click_cell_with(
         &mut self,
@@ -1385,14 +1206,6 @@ impl DataTable {
     ) -> (Outcome, Option<TableAction>) {
         self.on_click_cell_count(display, col, pos, mods, 1)
     }
-
-
-
-
-
-
-
-
 
     pub fn on_click_cell_count(
         &mut self,
@@ -1411,8 +1224,6 @@ impl DataTable {
         let col = col.min(self.columns.len().saturating_sub(1));
         if let Some(e) = &self.edit {
             if e.row == self.order[display] && e.col == col {
-
-
                 if let Some(at) = self.edit_offset(pos)
                     && let Some(e) = self.edit.as_mut()
                 {
@@ -1434,7 +1245,6 @@ impl DataTable {
             let enabled = |r: usize| !disabled.contains(&r);
             let gesture = SelectGesture::from_mods(mods, self.toggle_mods, from);
             if gesture == SelectGesture::Only && !enabled(src) {
-
                 return (Outcome::Changed, None);
             }
             let changed = self.selection.apply(gesture, display, &self.order, enabled);
@@ -1464,7 +1274,6 @@ impl DataTable {
         (Outcome::Changed, None)
     }
 
-
     fn layout_columns(&mut self, area: Rect) {
         let n = self.columns.len();
 
@@ -1492,8 +1301,6 @@ impl DataTable {
         }
     }
 
-
-
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
@@ -1514,7 +1321,6 @@ impl DataTable {
         let focused = ctx.interaction.focused(self.id);
         let editing = self.edit.is_some() && focused;
 
-
         let mut choice_anchor: Option<Rect> = None;
         let mut open_marks: Vec<(usize, usize, Rect)> = Vec::new();
 
@@ -1523,8 +1329,6 @@ impl DataTable {
 
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.scroll.h_cfg = h_cfg;
-
-
 
         let rows_len = self.rows.len();
         let mut has_sb = rows_len > area.height as usize - 1;
@@ -1546,7 +1350,6 @@ impl DataTable {
         let header_y = area.y;
         let mut body = Rect::new(area.x, area.y + 1, area.width, area.height - 1);
 
-
         let has_hb = !self.rows.is_empty() && body.height > 1 && h_cfg.shows_bar(&self.scroll.h);
         if has_hb {
             body.height -= 1;
@@ -1559,7 +1362,6 @@ impl DataTable {
         self.scroll.set_content(rows_len);
         self.scroll.set_viewport(body.height as usize);
         self.body = body;
-
 
         let header_bg = bg;
         fill(
@@ -1599,7 +1401,6 @@ impl DataTable {
                     head,
                 );
             } else if cut && !ctx.inert {
-
                 ctx.hits.register_hover(hid, head);
             }
             if cut {
@@ -1619,13 +1420,11 @@ impl DataTable {
             }
         }
         if check_w > 0 && area.width > 3 + check_w {
-
             let cid = self.check_all_id();
             let state = self.selection_state();
             let lifted = ctx.interaction.hovered(cid) || ctx.interaction.pressed(cid);
             let st = crate::widgets::grid::header_style(ctx, cid, header_bg, true, false);
             let st = match state {
-
                 _ if lifted => st,
                 TriState::None => st,
                 _ => st.fg(t.legible(t.chosen(focused), st.bg.unwrap_or(header_bg))),
@@ -1670,7 +1469,6 @@ impl DataTable {
             return;
         }
 
-
         for (i, di) in self.scroll.visible_range().enumerate() {
             let y = body.y + i as u16;
             let src = self.order[di];
@@ -1699,8 +1497,6 @@ impl DataTable {
             };
             let row_disabled = self.is_disabled(src);
             if row_disabled {
-
-
                 s.hovered = false;
                 s.pressed = false;
             }
@@ -1752,10 +1548,8 @@ impl DataTable {
                 let cfg = &self.editor_config;
                 let constrained = col.editor.is_constrained();
 
-
                 let shown: std::borrow::Cow<str> = if let Some(on) = col.editor.checked(&cell.text)
                 {
-
                     if on {
                         t.glyphs.check_on
                     } else {
@@ -1820,7 +1614,6 @@ impl DataTable {
                     }
                 } else {
                     if is_cursor_cell || is_choice_cell {
-
                         st = t.cell_cursor(flagged, s.pressed);
                     } else if flagged {
                         st = st.fg(t.error);
@@ -1830,7 +1623,6 @@ impl DataTable {
                             .add_modifier(Modifier::UNDERLINED)
                             .underline_color(t.border_strong);
                     }
-
 
                     let affordance = col.editable
                         && col.editor.has_popup()
@@ -1911,8 +1703,6 @@ impl DataTable {
             c.editor.render(anchor, buf, ctx, &self.editor_config);
         }
 
-
-
         ctx.scrollable(self.id, area);
         if has_sb {
             crate::ui::fade::scroll_edges_except(
@@ -1937,7 +1727,6 @@ impl DataTable {
             self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
         if has_hb {
-
             let y = body.bottom();
             let right = area.right() - u16::from(has_sb);
             fill(
@@ -1950,17 +1739,11 @@ impl DataTable {
         }
     }
 
-
-
     pub(crate) fn column_at(&self, x: u16) -> Option<usize> {
         self.col_rects
             .iter()
             .position(|r| !r.is_empty() && x >= r.x && x < r.right())
     }
-
-
-
-
 
     fn edit_offset(&self, pos: Position) -> Option<usize> {
         let e = self.edit.as_ref()?;
@@ -1975,7 +1758,6 @@ impl DataTable {
         let c = (off as isize + (pos.x as isize - rect.x as isize)).max(0) as usize;
         Some(e.field.buffer.offset_at(0, c))
     }
-
 
     fn on_edit_cell(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
         let Some(e) = &self.edit else {
@@ -1997,7 +1779,6 @@ impl DataTable {
 }
 
 use ratatui::style::Style;
-
 
 fn parse_num(s: &str) -> Option<ordered::F64> {
     let cleaned: String = s
@@ -2047,15 +1828,11 @@ impl Scrollable for DataTable {
         &mut self.scroll
     }
 
-
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         let c = self.choice.as_mut().filter(|_| axis == Axis::Vertical)?;
         Some(c.editor.on_wheel(delta).into())
     }
 }
-
-
-
 
 impl RowSource for DataTable {
     fn len(&self) -> usize {
@@ -2077,14 +1854,6 @@ impl Navigable for DataTable {
         Cursor::new(self.cursor_row).skip_disabled(false)
     }
 }
-
-
-
-
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for DataTable {
     type Action = TableAction;
@@ -2108,15 +1877,12 @@ impl crate::core::pointer::MouseTarget for DataTable {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
 
-
         if (ev.on(self.id) || ev.wheel().is_some())
             && let Some(r) = crate::core::pointer::scroll_input(self, ev)
         {
             return r.lift();
         }
         let (id, pos) = (ev.id, ev.pos());
-
-
 
         match ev.phase() {
             Some(Phase::Press) if self.on_edit_cell(ev) => {
@@ -2201,10 +1967,6 @@ mod tests {
         let cursor = ctx.cursor.unwrap();
         (buf, cursor)
     }
-
-
-
-
 
     #[test]
     fn the_cell_editor_selects_by_pointer_undoes_and_flattens_pastes() {
@@ -2408,7 +2170,6 @@ mod tests {
         let grab = thumb_x(&buf, y).unwrap();
         assert!(grab > t.scroll.h_track().x);
 
-
         assert_eq!(
             t.bar_press(Position::new(grab, y))
                 .outcome()
@@ -2536,7 +2297,6 @@ mod tests {
 
     #[test]
     fn rejected_edit_stays_on_its_source_row_after_header_sort() {
-
         let reserved = ["!".to_owned()];
         let mut t = table().validator(move |_, value| {
             reserved
@@ -2803,8 +2563,6 @@ mod tests {
         assert!(!draw(&mut off, Some(cell)).contains(long));
     }
 
-
-
     fn members() -> DataTable {
         let cols = vec![
             Column::new("Name", Constraint::Min(8)),
@@ -2952,7 +2710,6 @@ mod tests {
         t.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
         assert_eq!(t.selected_rows(), vec![0]);
 
-
         let (_, ev) = t.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
         assert_eq!(ev, None);
         let (_, ev) = t.on_click_cell_count(0, 0, p, KeyModifiers::NONE, 2);
@@ -3003,7 +2760,6 @@ mod tests {
         );
         let p = Position::new(0, 0);
 
-
         let mut mac = members().toggle_mods(DataTable::toggle_mods_for(ClientPlatform::MacOs));
         mac.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         mac.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
@@ -3024,8 +2780,6 @@ mod tests {
 
     #[test]
     fn checkbox_and_space_toggle_without_a_modifier_on_every_platform() {
-
-
         for mods in [
             DataTable::toggle_mods_for(ClientPlatform::MacOs),
             DataTable::toggle_mods_for(ClientPlatform::Other),
@@ -3134,7 +2888,6 @@ mod tests {
 #[cfg(test)]
 #[path = "table_choice_tests.rs"]
 mod choice_tests;
-
 
 #[cfg(test)]
 mod select_all_tests {

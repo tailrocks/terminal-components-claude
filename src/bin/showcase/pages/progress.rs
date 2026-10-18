@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -24,8 +19,6 @@ use junie_tui::widgets::progress::{
 };
 
 const ID: WidgetId = WidgetId::of("progress");
-
-
 
 const JOBS: [(&str, Option<f64>, ProgressStatus); 7] = [
     ("Build image", Some(1.0), ProgressStatus::Done),
@@ -62,7 +55,6 @@ impl ProgressPage {
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
         }
     }
-
 
     fn layout(&self) -> BarLayout {
         let l = BarLayout::default().reserve_value(self.opts.on("progress.reserve_value"));
@@ -184,9 +176,6 @@ impl ProgressPage {
             t.muted().bg(bg),
         );
 
-
-
-
         let visual = match self.opts.value("progress.meter_visual") {
             "block" => MeterVisual::Block,
             _ => MeterVisual::Line,
@@ -260,8 +249,6 @@ impl ProgressPage {
         self.pause.label = if self.paused { "Resume" } else { "Pause" }.into();
     }
 }
-
-
 
 fn states_grid(opts: &PageValues) -> StateGrid {
     use SpecimenState::*;

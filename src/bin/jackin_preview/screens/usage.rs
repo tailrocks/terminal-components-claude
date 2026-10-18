@@ -1,7 +1,3 @@
-
-
-
-
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
@@ -35,10 +31,8 @@ use crate::sim::provider;
 use crate::sim::world::{Msg, World};
 use junie_tui::ui::text::plural;
 
-
 enum OvLine {
     Text(Vec<Span>),
-
 
     Provider {
         name: String,
@@ -47,10 +41,6 @@ enum OvLine {
         status: (Option<StatusKind>, String),
     },
 }
-
-
-
-
 
 #[allow(clippy::too_many_arguments)]
 fn draw_provider_row(
@@ -122,7 +112,6 @@ enum Row {
     Heading(UsageSurface),
     Account(AccountId),
 }
-
 
 type DetailLine = (String, Tone, Option<(u8, QuotaTone)>);
 
@@ -448,7 +437,6 @@ impl UsageScreen {
                 .filter(|(_, w)| w.used_pct.is_some())
                 .max_by_key(|(_, w)| w.used_pct.unwrap_or(0));
 
-
             let (window, status) = match worst {
                 Some((a, win)) => {
                     let st = match (win.status, a.usage.freshness.phase) {
@@ -725,8 +713,6 @@ impl UsageScreen {
                 self.detail_scroll.set_content(lines.len());
                 self.detail_scroll.set_viewport(body.height as usize);
 
-
-
                 let (label_need, rest_need) = lines
                     .iter()
                     .filter(|(_, _, m)| m.is_some())
@@ -890,8 +876,6 @@ impl Page<Jackin> for UsageScreen {
         }
     }
 
-
-
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         match (ev.wheel(), ev.phase()) {
             (Some((Axis::Vertical, delta)), _) => self.wheel(ev.id, delta),
@@ -902,7 +886,6 @@ impl Page<Jackin> for UsageScreen {
 
     fn on_msg(&mut self, msg: &Msg, w: &mut World, _cx: &mut Cx) -> Outcome {
         if let Msg::AccountRefreshed { account } = msg {
-
             let now = w.now_secs();
             if let Some(a) = w.accounts.get_mut(account)
                 && a.usage.freshness.phase == Freshness::Refreshing
@@ -1000,10 +983,6 @@ impl Page<Jackin> for UsageScreen {
 }
 
 impl Screen for UsageScreen {}
-
-
-
-
 
 impl UsageScreen {
     fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {

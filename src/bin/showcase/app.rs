@@ -1,6 +1,3 @@
-
-
-
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
@@ -38,7 +35,6 @@ use junie_tui::widgets::help::HelpOverlay;
 use junie_tui::widgets::too_small::TooSmall;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
-
 const BRAND: &str = "Junie Design system";
 
 const NAV: WidgetId = WidgetId::of("app.nav");
@@ -52,14 +48,11 @@ pub const HEADER_BRAND: WidgetId = WidgetId::of("app.header.brand");
 
 pub const QUIT_DIALOG: WidgetId = WidgetId::of("app.shell.quit");
 
-
-
 pub const INSPECTOR_DOCK_MIN: u16 = 100;
 
 const INSPECTOR_W: u16 = 30;
 
 const INSPECTOR_OVERLAY_W: u16 = 34;
-
 
 const LEVELS: [junie_tui::theme::ColorLevel; 4] = [
     junie_tui::theme::ColorLevel::TrueColor,
@@ -71,7 +64,6 @@ const LEVELS: [junie_tui::theme::ColorLevel; 4] = [
 fn level_index(level: junie_tui::theme::ColorLevel) -> usize {
     LEVELS.iter().position(|l| *l == level).unwrap_or(0)
 }
-
 
 pub use junie_tui::motion::Motion;
 
@@ -138,11 +130,8 @@ pub struct NavEntry {
     pub id: PageId,
     pub label: &'static str,
 
-
     pub group: &'static str,
 }
-
-
 
 pub const NAV_GROUPS: &[&str] = &[
     "App shell",
@@ -155,8 +144,6 @@ pub const NAV_GROUPS: &[&str] = &[
     "Text & code",
     "Screens",
 ];
-
-
 
 pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
@@ -431,11 +418,7 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     },
 ];
 
-
-
 pub const PAGE_ALIASES: &[(&str, PageId)] = &[
-
-
     ("tables", PageId::Tables),
     ("editabletables", PageId::Editable),
     ("selectabletable", PageId::Selectable),
@@ -446,7 +429,6 @@ pub const PAGE_ALIASES: &[(&str, PageId)] = &[
     ("selection", PageId::Selectable),
     ("bulkedit", PageId::Selectable),
     ("selectable", PageId::Selectable),
-
     ("hints", PageId::StatusHints),
     ("breadcrumbs", PageId::BreadcrumbsRails),
     ("rails", PageId::BreadcrumbsRails),
@@ -463,13 +445,8 @@ pub const PAGE_ALIASES: &[(&str, PageId)] = &[
     ("text", PageId::TextUtilities),
 ];
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NavExpand {
-
-
-
     #[default]
     CurrentGroup,
 
@@ -482,8 +459,6 @@ impl PageId {
     pub fn index(self) -> usize {
         NAV_ENTRIES.iter().position(|e| e.id == self).unwrap_or(0)
     }
-
-
 
     pub fn nav_path(self) -> Vec<usize> {
         let e = &NAV_ENTRIES[self.index()];
@@ -508,7 +483,6 @@ impl PageId {
         vec![g, k]
     }
 
-
     pub fn from_nav_path(path: &[usize]) -> Option<Self> {
         let roots = nav_roots();
         match (path, path.first().and_then(|&r| roots.get(r))) {
@@ -523,8 +497,6 @@ impl PageId {
     }
 
     pub fn from_name(name: &str) -> Option<Self> {
-
-
         let norm = |s: &str| -> String {
             s.chars()
                 .filter(|c| c.is_ascii_alphanumeric())
@@ -545,16 +517,12 @@ impl PageId {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavRoot {
-
     Page(PageId),
 
     Group(&'static str),
 }
-
-
 
 pub fn nav_roots() -> Vec<NavRoot> {
     let mut out = Vec::new();
@@ -570,9 +538,6 @@ pub fn nav_roots() -> Vec<NavRoot> {
     }
     out
 }
-
-
-
 
 fn nav_tree() -> TreeView {
     let nodes = nav_roots()
@@ -609,19 +574,11 @@ pub struct App {
 
     pub nav_expand: NavExpand,
 
-
-
     nav_auto: Option<usize>,
-
-
-
 
     pub shell: Shell,
 
     pub(crate) clock: WallClock,
-
-
-
 
     pub layers: Layers,
     pub inspector: bool,
@@ -636,9 +593,7 @@ pub struct App {
 
     pub reveal: junie_tui::ui::reveal::Reveal,
 
-
     pub input: junie_tui::core::event::InputConfig,
-
 
     pub keyboard_protocol: junie_tui::core::keyboard::KeyboardProtocol,
 
@@ -646,12 +601,7 @@ pub struct App {
     pub tick: u64,
     pub last_key: Option<String>,
 
-
-
-
-
     pub keys: shell::ShellKeys<ShowCmd>,
-
 
     leave: LeaveGuard<()>,
     nav_reveal: bool,
@@ -660,18 +610,12 @@ pub struct App {
     layout: ShellLayout,
 }
 
-
 pub type Layers = ShellLayers<LayerRes, (), Option<usize>>;
 type LayerSlot = LayerEntry<LayerRes, (), Option<usize>>;
-
-
-
-
 
 fn is_window_layer(e: &LayerSlot) -> bool {
     e.owner.is_none() || matches!(e.tag.kind, DIALOG_TAG | HELP_TAG)
 }
-
 
 fn closed_report(entry: LayerSlot, result: Option<LayerResult>) -> Report {
     Report {
@@ -691,14 +635,10 @@ struct ShellLayout {
 }
 
 impl App {
-
-
     #[allow(dead_code)]
     pub fn sidebar_area(&self) -> Rect {
         self.layout.sidebar
     }
-
-
 
     #[allow(dead_code)]
     pub fn new(theme: Theme) -> Self {
@@ -811,14 +751,6 @@ impl App {
         };
         app.sync_nav(None);
 
-
-
-
-
-
-
-
-
         if motion == Motion::Paused {
             for _ in 0..frame {
                 for i in 0..app.pages.len() {
@@ -829,9 +761,6 @@ impl App {
         }
         app
     }
-
-
-
 
     fn sync_nav(&mut self, from: Option<PageId>) {
         let path = self.page.nav_path();
@@ -853,7 +782,6 @@ impl App {
             }
         }
 
-
         if let Some(group) = group {
             let opened_now = !self.nav.expanded.contains(&vec![group]);
             if self.nav_expand == NavExpand::CurrentGroup
@@ -869,7 +797,6 @@ impl App {
         self.nav.reveal(&path);
         self.nav_reveal = true;
     }
-
 
     pub fn set_nav_expand(&mut self, policy: NavExpand) {
         self.nav_expand = policy;
@@ -902,7 +829,6 @@ impl App {
     }
 
     pub fn tick_interval(&self) -> Duration {
-
         if self.shell.pointer.autoscrolling() {
             return Duration::from_millis(self.shell.pointer.config.autoscroll_ms);
         }
@@ -922,10 +848,6 @@ impl App {
             .status
             .set_at(s, Tone::Secondary, self.clock.now());
     }
-
-
-
-
 
     fn blur_all(&mut self, ch: FocusChange) -> Outcome {
         let mut out = Outcome::Ignored;
@@ -952,16 +874,12 @@ impl App {
     }
 
     fn on_tick(&mut self) -> Outcome {
-
-
         let auto = PointerRouter::tick(self);
         if self.shell.motion == Motion::Paused {
             return auto;
         }
         let mut out = auto;
         if self.animating() {
-
-
             if self.shell.motion.animates() {
                 self.tick = self.tick.wrapping_add(1);
             }
@@ -975,8 +893,6 @@ impl App {
             out = Outcome::Changed;
         }
 
-
-
         let shown = self.page.index();
         if self.layers.top().is_none_or(|e| e.owner == Some(shown)) {
             let page_out = self.with_shown(|p, cx| p.on_tick(&mut (), cx));
@@ -989,17 +905,12 @@ impl App {
         out
     }
 
-
     fn with_shown(
         &mut self,
         f: impl FnOnce(&mut (dyn Page + 'static), &mut Cx) -> Outcome,
     ) -> Outcome {
         self.with_page(self.page.index(), f)
     }
-
-
-
-
 
     fn with_page(
         &mut self,
@@ -1015,7 +926,6 @@ impl App {
         self.apply_requests(requests, i);
         out
     }
-
 
     fn apply_requests(&mut self, requests: Vec<Request>, owner: usize) {
         for r in requests {
@@ -1039,7 +949,6 @@ impl App {
                     );
                 }
 
-
                 Request::Close => {
                     if self.layers.top().is_some_and(|e| e.owner == Some(owner)) {
                         self.layers.pop(&mut self.shell.focus);
@@ -1058,14 +967,11 @@ impl App {
         }
     }
 
-
     pub fn quit_stakes(&mut self) -> Stakes {
         self.pages
             .iter_mut()
             .fold(Stakes::Clean, |acc, p| acc.max(p.stakes(&())))
     }
-
-
 
     fn request_quit(&mut self) -> Outcome {
         let stakes = self.quit_stakes();
@@ -1081,16 +987,13 @@ impl App {
         }
     }
 
-
     pub(crate) fn open_dialog(&mut self, d: Dialog) {
         self.open_layer(Box::new(d), LayerTag::new(DIALOG_TAG), None);
     }
 
-
     pub fn dialog(&self) -> Option<&Dialog> {
         self.layers.iter().rev().find_map(|e| e.get::<Dialog>())
     }
-
 
     #[allow(dead_code)]
     pub fn help(&self) -> Option<&HelpOverlay> {
@@ -1099,10 +1002,6 @@ impl App {
             .rev()
             .find_map(|e| e.get::<HelpOverlay>())
     }
-
-
-
-
 
     fn open_layer(&mut self, layer: Box<dyn Layer<LayerRes>>, tag: LayerTag, owner: Option<usize>) {
         if tag.kind == HELP_TAG && !self.layers.is_empty() {
@@ -1116,17 +1015,11 @@ impl App {
             initial,
         );
         if let Some(d) = self.layers.top_as_mut::<Dialog>() {
-
-
             d.chrome = (d.chrome.0.max(1), d.chrome.1.max(1));
         }
         self.shell.pointer.hover = None;
         self.shell.pointer.pressed = None;
     }
-
-
-
-
 
     fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
         if let Some(owner) = self.layers.top()?.owner {
@@ -1149,7 +1042,6 @@ impl App {
                     .layers
                     .dismiss(DismissReason::Esc, &mut self.shell.focus)
                 {
-
                     Dismissed::Refused => Outcome::Consumed,
                     d => self.layer_dismissed(d, dismiss),
                 },
@@ -1157,8 +1049,6 @@ impl App {
         }
         Some(self.settle_layer(out))
     }
-
-
 
     fn settle_layer(&mut self, mut out: Outcome) -> Outcome {
         while let Some(taken) = self.layers.take(&mut self.shell.focus) {
@@ -1169,8 +1059,6 @@ impl App {
         }
         out
     }
-
-
 
     fn layer_event(&mut self, r: LayerRes) -> Outcome {
         let Some(top) = self.layers.top() else {
@@ -1189,9 +1077,6 @@ impl App {
             .or(Outcome::Changed)
     }
 
-
-
-
     fn layer_dismissed(
         &mut self,
         d: Dismissed<LayerRes, (), Option<usize>>,
@@ -1200,8 +1085,6 @@ impl App {
         match d {
             Dismissed::None => Outcome::Changed,
             Dismissed::Closed(entry, None) => match entry.owner {
-
-
                 Some(owner) if !is_window_layer(&entry) => {
                     let tag = entry.tag.clone();
                     let report = closed_report(entry, None);
@@ -1218,9 +1101,6 @@ impl App {
             Dismissed::Closed(entry, Some(r)) => self.layer_closed(entry, r).or(Outcome::Changed),
         }
     }
-
-
-
 
     fn layer_closed(&mut self, entry: LayerSlot, r: LayerRes) -> Outcome {
         let dialog = entry.get::<Dialog>().map(|d| d.id);
@@ -1240,7 +1120,6 @@ impl App {
                 }
                 return Outcome::Changed;
             }
-
 
             if dialog == Some(QUIT_DIALOG) && result == Some(DialogResult::Action(1)) {
                 return self.request_quit();
@@ -1264,14 +1143,9 @@ impl App {
         self.page_layer_result(owner, &tag, r).or(Outcome::Changed)
     }
 
-
     fn page_layer_result(&mut self, i: usize, tag: &LayerTag, r: LayerRes) -> Outcome {
         self.with_page(i, |p, cx| p.on_layer_result(tag, r, &mut (), cx))
     }
-
-
-
-
 
     fn nav_key(&mut self, key: &Key) -> Outcome {
         if !self.shell.focus.is(NAV) {
@@ -1301,8 +1175,6 @@ impl App {
         self.nav_event(|nav| nav.on_key(key))
     }
 
-
-
     fn step_page(&mut self, step: isize) -> Outcome {
         let n = NAV_ENTRIES.len() as isize;
         let i = (self.page.index() as isize + step).rem_euclid(n) as usize;
@@ -1310,15 +1182,9 @@ impl App {
         Outcome::Changed
     }
 
-
-
-
-
     pub fn inspector_overlay(&self) -> bool {
         self.inspector && self.shell.size.0 < INSPECTOR_DOCK_MIN
     }
-
-
 
     pub fn toggle_inspector(&mut self) {
         if self.inspector {
@@ -1341,9 +1207,6 @@ impl App {
             self.shell.focus.set(focus.or(Some(NAV)));
         }
     }
-
-
-
 
     fn inspector_key(&mut self, key: &Key) -> Option<Outcome> {
         if !self.inspector {
@@ -1379,8 +1242,6 @@ impl App {
         })
     }
 
-
-
     fn dispatch_inspector(&mut self, ev: PageEvent) -> Option<Outcome> {
         let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
         let (out, set) = self.insp.handle(&ev, &mut cx)?;
@@ -1390,9 +1251,6 @@ impl App {
         }
         Some(out)
     }
-
-
-
 
     pub fn apply_opt(&mut self, set: OptSet) {
         match crate::options::page_of(set.key) {
@@ -1404,7 +1262,6 @@ impl App {
         }
     }
 
-
     pub fn option_value(&self, opt: &crate::options::Opt) -> usize {
         match crate::options::page_of(opt.key) {
             None => self.options.get(opt.key),
@@ -1413,8 +1270,6 @@ impl App {
                 .unwrap_or(opt.default),
         }
     }
-
-
 
     fn apply_shell(&mut self) {
         use junie_tui::core::edit::{EditEntry, FieldKeys};
@@ -1503,7 +1358,6 @@ impl App {
             Reveal::OFF
         };
 
-
         let mut input = junie_tui::core::event::InputConfig::for_platform(
             platform.unwrap_or_else(ClientPlatform::current),
         );
@@ -1521,18 +1375,13 @@ impl App {
         ][o.get("shell.focus_fallback")];
     }
 
-
-
     pub fn input_config(&self) -> junie_tui::core::event::InputConfig {
         self.input
     }
 
-
     pub fn keyboard_protocol(&self) -> junie_tui::core::keyboard::KeyboardProtocol {
         self.keyboard_protocol
     }
-
-
 
     #[allow(dead_code)]
     pub fn live_config(&self) -> String {
@@ -1552,7 +1401,6 @@ impl App {
         )
     }
 
-
     fn open_quit(&mut self) {
         let d = Dialog::confirm(
             QUIT_DIALOG,
@@ -1562,10 +1410,6 @@ impl App {
         );
         self.open_dialog(d);
     }
-
-
-
-
 
     fn open_help(&mut self) {
         use junie_tui::core::hints::Bindings;
@@ -1589,20 +1433,13 @@ impl App {
         self.show_help(h);
     }
 
-
-
-
     pub(crate) fn show_help(&mut self, h: HelpOverlay) {
         self.open_layer(Box::new(h), LayerTag::new(HELP_TAG), None);
     }
 
-
-
     fn modal_open(&self) -> bool {
         !self.layers.is_empty()
     }
-
-
 
     fn page_editing(&self) -> bool {
         match self.layers.top() {
@@ -1610,11 +1447,6 @@ impl App {
             _ => self.pages[self.page.index()].editing(),
         }
     }
-
-
-
-
-
 
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let dismiss = self.layers.top()?.layer.spec().dismiss;
@@ -1629,14 +1461,10 @@ impl App {
         )
     }
 
-
-
-
     fn chrome_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         use junie_tui::core::id::Part;
         use junie_tui::core::intent::Phase;
         if let Some(key) = self.shell.footer_keys.clicked(ev) {
-
             return Some(self.handle_input(Input::Key(key)).or(Outcome::Changed));
         }
         if ev.is(Phase::Click) {
@@ -1663,8 +1491,6 @@ impl App {
             return None;
         }
 
-
-
         let row = self.nav.row_at(ev);
         if ev.is(Phase::Press)
             && let Some(row) = ev.index_of(Part::ROW)
@@ -1679,8 +1505,6 @@ impl App {
         let out = self.nav_event(|nav| nav.pointer(ev).into_parts());
         Some(out)
     }
-
-
 
     fn inspector_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         use junie_tui::core::id::Part;
@@ -1703,9 +1527,6 @@ impl App {
 
         overlay.then_some(Outcome::Ignored)
     }
-
-
-
 
     fn on_filter_key(&mut self, key: &Key) -> Outcome {
         let query = self.nav_filter.get_or_insert_with(String::new);
@@ -1748,7 +1569,6 @@ impl App {
         Outcome::Changed
     }
 
-
     fn end_filter(&mut self) {
         self.nav_filter = None;
         self.nav.set_filter(None);
@@ -1756,10 +1576,6 @@ impl App {
         self.nav.reveal(&path);
         self.nav_reveal = true;
     }
-
-
-
-
 
     fn nav_event(
         &mut self,
@@ -1781,12 +1597,9 @@ impl App {
         out
     }
 
-
     fn now_ms(&self) -> u64 {
         self.clock.now_ms()
     }
-
-
 
     fn compute_layout(&self, area: Rect) -> ShellLayout {
         let header = Rect::new(area.x, area.y, area.width, 1);
@@ -1804,8 +1617,6 @@ impl App {
         } else {
             0
         };
-
-
 
         let sidebar = Rect::new(body.x, body.y, sidebar_w + 1, body.height);
         let main_x = body.x + sidebar_w + 2;
@@ -1842,7 +1653,6 @@ impl App {
             self.draw_inspector_overlay(area, buf, ctx);
         }
 
-
         for e in self.layers.iter_mut().filter(|e| is_window_layer(e)) {
             e.layer.render(area, buf, ctx, &());
         }
@@ -1851,7 +1661,6 @@ impl App {
     fn draw_header(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         let mut x = area.x + 1;
-
 
         let brand = Rect::new(x, area.y, 7, 1);
         let lifted = ctx.interaction.hovered(HEADER_BRAND) || ctx.interaction.pressed(HEADER_BRAND);
@@ -1895,7 +1704,6 @@ impl App {
             rx = rx.saturating_sub(1);
         }
 
-
         let entry = &NAV_ENTRIES[self.page.index()];
         let segments = [entry.group, entry.label]
             .iter()
@@ -1923,16 +1731,12 @@ impl App {
     fn draw_sidebar(&mut self, card: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
 
-
-
-
         let count = NAV_ENTRIES.len().to_string();
         let panel = junie_tui::widgets::panel::Panel::card(Some("Components"))
             .pad_x(1)
             .focused(ctx.interaction.focused(NAV))
             .meta(&count);
         let bg = panel.bg(&t);
-
 
         ctx.clickable_under(NAV, card);
         ctx.scrollable(NAV, card);
@@ -1962,14 +1766,12 @@ impl App {
             _ => area,
         };
 
-
         let resized = self.nav.scroll.viewport_len != area.height as usize;
         self.nav.scroll.set_viewport(area.height as usize);
         if self.nav_reveal || resized {
             self.nav.scroll.ensure_visible(self.nav.cursor);
             self.nav_reveal = false;
         }
-
 
         self.nav.render(area, buf, ctx, bg);
     }
@@ -1978,7 +1780,6 @@ impl App {
         let t = self.theme;
         let i = self.page.index();
         let page = self.pages[i].as_mut();
-
 
         let opts = crate::options::page_options(self.page);
         if !opts.is_empty() {
@@ -2014,8 +1815,6 @@ impl App {
             e.layer.render(screen, buf, ctx, &());
         }
     }
-
-
 
     fn state_props(&self) -> Vec<junie_tui::widgets::props::Prop> {
         use junie_tui::widgets::props::Prop;
@@ -2087,7 +1886,6 @@ impl App {
         ]
     }
 
-
     fn render_inspector(
         &mut self,
         inner: Rect,
@@ -2095,7 +1893,6 @@ impl App {
         buf: &mut Buffer,
         ctx: &mut RenderCtx,
     ) {
-
         self.options
             .set("shell.color", level_index(self.theme.level));
         self.insp.for_page(self.page);
@@ -2112,7 +1909,6 @@ impl App {
         self.insp.render(inner, buf, ctx, bg, &state);
     }
 
-
     fn draw_inspector(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         let within = self.insp.has_focus(self.shell.focus.current());
@@ -2121,9 +1917,6 @@ impl App {
         let inner = panel.render(area, buf, &t);
         self.render_inspector(inner, bg, buf, ctx);
     }
-
-
-
 
     fn draw_inspector_overlay(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         use junie_tui::ui::popup::{self, Dismiss, Placement};
@@ -2146,10 +1939,6 @@ impl App {
         self.shell.hits.len()
     }
 
-
-
-
-
     pub(crate) fn footer(&self) -> shell::Footer {
         let focus = self.shell.focus.current();
         let pairs =
@@ -2167,8 +1956,6 @@ impl App {
             return footer.layer(Some(top.layer.hints(focus)));
         }
         if let Some(own) = top.map(|e| e.layer.hints(focus)).filter(|h| !h.is_empty()) {
-
-
             return footer.layer(Some(own));
         }
         let page = &self.pages[self.page.index()];
@@ -2251,7 +2038,6 @@ impl shell::App for App {
         self.handle_input(input)
     }
 
-
     fn on_blur(&mut self, ch: FocusChange) -> Outcome {
         self.blur_all(ch)
     }
@@ -2277,9 +2063,6 @@ impl shell::App for App {
         App::keyboard_protocol(self)
     }
 }
-
-
-
 
 impl PointerHost for App {
     fn pointer_parts(&mut self) -> PointerParts<'_> {
@@ -2313,8 +2096,6 @@ impl PointerHost for App {
         out.into()
     }
 
-
-
     fn outside(&mut self, _pos: ratatui::layout::Position) -> Response<()> {
         let Some(dismiss) = self.layers.top().map(|e| e.layer.spec().dismiss) else {
             return Response::changed();
@@ -2326,7 +2107,6 @@ impl PointerHost for App {
         Response::changed()
     }
 }
-
 
 pub(crate) fn describe_mods(mods: KeyModifiers) -> String {
     let mut s = String::new();
@@ -2342,16 +2122,12 @@ pub(crate) fn describe_mods(mods: KeyModifiers) -> String {
     s
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShowCmd {
-
     Inspector,
 
     Sidebar,
 }
-
-
 
 pub fn shell_keys() -> shell::ShellKeys<ShowCmd> {
     use junie_tui::core::keymap::KeyBinding;
@@ -2380,8 +2156,6 @@ impl shell::KeyHost for App {
     fn capturing(&self) -> bool {
         self.pages[self.page.index()].is_editing()
     }
-
-
 
     fn interrupt(&mut self) -> Outcome {
         let key = Key {
@@ -2420,7 +2194,6 @@ impl shell::KeyHost for App {
         self.nav_key(key)
     }
 
-
     fn layer_paste(&mut self, text: &str) -> Option<Outcome> {
         let top = self.layers.top_mut()?;
         if top.get::<HelpOverlay>().is_some() {
@@ -2436,7 +2209,6 @@ impl shell::KeyHost for App {
     fn page_key(&mut self, key: &Key) -> Outcome {
         self.with_shown(|p, cx| p.on_key(key, &mut (), cx))
     }
-
 
     fn esc_top(&mut self) -> Outcome {
         if self.shell.focus.is(NAV) {
@@ -2533,8 +2305,6 @@ mod click_regressions {
             }
             let area = app.shell.hits.area_of(id).unwrap();
             let pos = Position::new(area.x + 2, area.y + area.height / 2);
-
-
 
             app.handle(Input::Mouse(Mouse::new(MouseKind::Down, pos)));
             assert_eq!(

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
@@ -89,8 +81,6 @@ impl ActivityTab {
             line.push(Span::new(format!("{:<w$}  ", s, w = svc_w), Tone::Secondary).bold());
         }
 
-
-
         if *tone == LineTone::Error {
             line.push(Span::new("! ", Tone::Error).bold());
         }
@@ -104,15 +94,11 @@ impl ActivityTab {
         line
     }
 
-
-
-
     fn sync(&mut self, w: &World) {
         let Some(a) = w.activity(&self.id) else {
             return;
         };
         if self.input && !a.accepts_input() {
-
             self.input = false;
         }
         let services = a.services();
@@ -137,9 +123,6 @@ impl ActivityTab {
             e.0.as_ref().is_none_or(|s| !a.hidden_services.contains(s))
         };
         let mut changed = false;
-
-
-
 
         let delta = a.dropped.saturating_sub(self.synced_dropped);
         let rebuild = self.synced_hidden != a.hidden_services
@@ -189,8 +172,6 @@ impl ActivityTab {
                 .follow_ups
                 .iter()
                 .enumerate()
-
-
                 .map(|(i, f)| {
                     Button::subtle(FOLLOW_UP.child(i), f).disabled(!follow_up_supported(f))
                 })
@@ -274,7 +255,6 @@ impl ActivityTab {
         }
     }
 
-
     fn follow_up(&self, label: &str, w: &World, cx: &mut Cx) {
         let l = label.to_lowercase();
         if l.starts_with("find the process on port") {
@@ -327,14 +307,10 @@ impl ActivityTab {
                 None => cx.status(format!("{label}: no such action here")),
             }
         }
-
-
     }
 }
 
 impl ActivityTab {
-
-
     fn output_menu(&self, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let Some(a) = w.activity(&self.id) else {
             return Outcome::Ignored;
@@ -394,7 +370,6 @@ impl ActivityTab {
         )
     }
 
-
     fn chip_menu(&self, i: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let Some(chip) = self.chips.chips.get(i) else {
             return Outcome::Ignored;
@@ -420,14 +395,12 @@ impl ShellPage<Holla> for ActivityTab {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let tick = w.tick;
         if self.attached {
-
             if key.ctrl_char(']') {
                 self.attached = false;
                 cx.status("Detached · the program keeps running in its tab");
                 return Outcome::Changed;
             }
             if key.is_char('q') {
-
                 if let Some(a) = w.activity_mut(&self.id) {
                     a.state = ActivityState::Stopped;
                     a.ended_tick = Some(tick);
@@ -442,12 +415,9 @@ impl ShellPage<Holla> for ActivityTab {
             return Outcome::Consumed;
         }
         if self.input && !w.activity(&self.id).is_some_and(|a| a.accepts_input()) {
-
             self.input = false;
         }
         if self.input {
-
-
             if key.code == KeyCode::Esc && key.plain() {
                 self.input = false;
                 cx.status("Keyboard returned to holla · the program keeps running");
@@ -648,7 +618,6 @@ impl ShellPage<Holla> for ActivityTab {
         if self.input {
             let tick = w.tick;
             if let Some(a) = w.activity_mut(&self.id) {
-
                 let _ = a.send_input(text.as_bytes(), tick);
             }
             return Outcome::Changed;
@@ -685,7 +654,6 @@ impl ShellPage<Holla> for ActivityTab {
                     }
                 }
                 if id == VIEW {
-
                     cx.focus.focus(VIEW);
                 }
                 self.view
@@ -693,7 +661,6 @@ impl ShellPage<Holla> for ActivityTab {
                     .map_or(Outcome::Ignored, |r| r.outcome())
             }
             Some(Phase::Secondary) => {
-
                 if self.is_editing() {
                     return Outcome::Ignored;
                 }
@@ -711,7 +678,6 @@ impl ShellPage<Holla> for ActivityTab {
                 }
                 Outcome::Ignored
             }
-
 
             _ => self
                 .view
@@ -943,7 +909,6 @@ impl ShellPage<Holla> for ActivityTab {
             }
         }
         if self.attached {
-
             ctx.cursor = None;
         }
     }
@@ -1039,8 +1004,6 @@ impl Screen for ActivityTab {
             return self.chip_menu(i, anchor, w, cx);
         }
         if cx.focus.is(VIEW) {
-
-
             let at = self.view.context_point();
             return self.output_menu(ContextAnchor::Pointer(at), w, cx);
         }
@@ -1049,7 +1012,6 @@ impl Screen for ActivityTab {
 
     fn status(&self, w: &World) -> StatusBits {
         let mut bits = StatusBits::default();
-
 
         if let Some(a) = w.activity(&self.id) {
             let elapsed = ticks_label(a.duration_ticks(w.tick));
@@ -1086,12 +1048,10 @@ impl Screen for ActivityTab {
 
 #[cfg(test)]
 impl ActivityTab {
-
     pub fn view(&self) -> &TextViewport {
         &self.view
     }
 }
-
 
 const FOLLOW_UPS: [&str; 8] = [
     "find the process on port",

@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use junie_tui::runtime::Application;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
@@ -47,12 +31,9 @@ fn ctor(kind: CapKind) -> &'static str {
     }
 }
 
-
 fn scanned_kind(kind: CapKind) -> bool {
     kind != CapKind::State
 }
-
-
 
 fn registry_problems(caps: &[Capability], scanned: &[Item]) -> Vec<String> {
     let mut problems = Vec::new();
@@ -93,7 +74,6 @@ fn registry_problems(caps: &[Capability], scanned: &[Item]) -> Vec<String> {
     }
     problems
 }
-
 
 #[derive(Debug)]
 struct Allow<'a> {
@@ -136,8 +116,6 @@ fn parse_allowlist(text: &str) -> (Vec<Allow<'_>>, Vec<String>) {
     (out, problems)
 }
 
-
-
 fn coverage_problems(caps: &[Capability], shown: &[(&str, Shown)], allow: &str) -> Vec<String> {
     let (allow, mut problems) = parse_allowlist(allow);
     let known: HashSet<&str> = caps.iter().map(|c| c.id).collect();
@@ -148,7 +126,6 @@ fn coverage_problems(caps: &[Capability], shown: &[(&str, Shown)], allow: &str) 
             problems.push(format!("allowlist lists {} twice", line.id));
         }
         if let Some(rest) = line.id.strip_prefix("app::") {
-
             let bin = rest.split("::").next().unwrap_or_default();
             if line.step != "permanent" {
                 problems.push(format!(
@@ -197,10 +174,6 @@ fn coverage_problems(caps: &[Capability], shown: &[(&str, Shown)], allow: &str) 
     }
     problems
 }
-
-
-
-
 
 fn via_problems(caps: &[Capability], shown: &[(&str, Shown)]) -> Vec<String> {
     let kinds: HashMap<&str, CapKind> = caps.iter().map(|c| (c.id, c.kind)).collect();
@@ -279,12 +252,9 @@ fn every_capability_is_shown_or_allowlisted() {
     );
 }
 
-
-
 fn squash(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
-
 
 fn frame_text(app: &mut App) -> String {
     let mut term = Terminal::new(TestBackend::new(220, 80)).unwrap();
@@ -301,9 +271,6 @@ fn frame_text(app: &mut App) -> String {
     }
     text
 }
-
-
-
 
 fn page_text(page: PageId) -> String {
     let mut app = App::new(Theme::junie());
@@ -322,8 +289,6 @@ fn page_text(page: PageId) -> String {
     text
 }
 
-
-
 fn page_states(page: PageId) -> Option<(Vec<SpecimenState>, String)> {
     let mut app = App::new(Theme::junie());
     app.goto(page);
@@ -335,16 +300,11 @@ fn page_states(page: PageId) -> Option<(Vec<SpecimenState>, String)> {
     Some((rows, text))
 }
 
-
 fn frame_cells(app: &mut App) -> Vec<ratatui::buffer::Cell> {
     let mut term = Terminal::new(TestBackend::new(220, 80)).unwrap();
     term.draw(|frame| app.render(frame)).unwrap();
     term.backend().buffer().content().to_vec()
 }
-
-
-
-
 
 fn option_render(page: PageId, opt: &Opt, value: usize) -> (Vec<ratatui::buffer::Cell>, String) {
     let mut app = App::new(Theme::junie());
@@ -369,7 +329,6 @@ fn option_render(page: PageId, opt: &Opt, value: usize) -> (Vec<ratatui::buffer:
         }
         Effect::Frame => cells = frame_cells(&mut app),
         Effect::Behaviour => {
-
             frame_cells(&mut app);
             app.toggle_inspector();
             app.insp.set_tab(Tab::Options);
@@ -378,9 +337,6 @@ fn option_render(page: PageId, opt: &Opt, value: usize) -> (Vec<ratatui::buffer:
     }
     (cells, app.live_config())
 }
-
-
-
 
 fn option_holds(slug: &str, key: &str) -> Result<(), String> {
     let page = PageId::from_name(slug).ok_or_else(|| format!("unknown page {slug:?}"))?;
@@ -403,8 +359,6 @@ fn option_holds(slug: &str, key: &str) -> Result<(), String> {
     };
     option_values_hold(page, opt, &values)
 }
-
-
 
 fn option_values_hold(page: PageId, opt: &Opt, values: &[usize]) -> Result<(), String> {
     for &v in values {
@@ -429,8 +383,6 @@ fn option_values_hold(page: PageId, opt: &Opt, values: &[usize]) -> Result<(), S
     Ok(())
 }
 
-
-
 fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
     let mut problems = Vec::new();
     let mut pages: HashMap<&str, String> = HashMap::new();
@@ -449,8 +401,6 @@ fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
                     ));
                 }
             }
-
-
 
             Shown::Option(slug, key) => {
                 if let Err(e) = option_holds(slug, key) {
@@ -482,7 +432,6 @@ fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
                     }
                 }
             }
-
 
             Shown::Via(_) => {}
         }
@@ -530,10 +479,6 @@ fn remaining_gaps_per_step() {
     }
 }
 
-
-
-
-
 const NEW_BUILDER: &str = r#"
     pub struct Gizmo { glow: bool }
     impl Gizmo {
@@ -550,7 +495,6 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
         NEW_BUILDER,
     ));
 
-
     let drift = registry_problems(CAPABILITIES, &scanned);
     assert!(
         drift
@@ -565,8 +509,6 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
         "{drift:#?}"
     );
 
-
-
     let mut caps = CAPABILITIES.to_vec();
     caps.push(Capability::ty("widgets::fixture::Gizmo"));
     caps.push(Capability::builder("widgets::fixture::Gizmo::glow"));
@@ -578,7 +520,6 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
         "{gaps:#?}"
     );
 
-
     let allow = format!(
         "{ALLOWLIST}\nwidgets::fixture::Gizmo | fixture | SC7\n\
          widgets::fixture::Gizmo::glow | fixture | SC7\n"
@@ -588,9 +529,6 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
         Vec::<String>::new()
     );
 }
-
-
-
 
 const NEW_FUNCTIONS: &str = r#"
     pub struct Gizmo { glow: u8 }
@@ -609,8 +547,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
         NEW_FUNCTIONS,
     ));
 
-
-
     let drift = registry_problems(CAPABILITIES, &scanned);
     for line in [
         "Capability::function(\"widgets::fixture::render_gizmo\")",
@@ -622,8 +558,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
         !drift.iter().any(|p| p.contains("Gizmo::new")),
         "{drift:#?}"
     );
-
-
 
     let mut caps = CAPABILITIES.to_vec();
     caps.push(Capability::ty("widgets::fixture::Gizmo"));
@@ -642,7 +576,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
         );
     }
 
-
     let gone: Vec<Item> = scanned
         .iter()
         .filter(|i| i.id != "widgets::fixture::render_gizmo")
@@ -653,7 +586,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
             .iter()
             .any(|p| p.contains("lists widgets::fixture::render_gizmo (function)")),
     );
-
 
     let allow = format!(
         "{ALLOWLIST}\nwidgets::fixture::Gizmo | fixture | SC58\n\
@@ -670,7 +602,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
 fn gate_fails_on_a_stale_allowlist_line() {
     let (shown_id, _) = SHOWN.first().expect("at least one declaration");
 
-
     let allow = format!("{ALLOWLIST}\n{shown_id} | was pending | SC2\n");
     let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
     assert!(
@@ -679,7 +610,6 @@ fn gate_fails_on_a_stale_allowlist_line() {
             .any(|p| p.contains(&format!("stale allowlist line: {shown_id} is now shown"))),
         "{problems:#?}"
     );
-
 
     let allow = format!("{ALLOWLIST}\nwidgets::gone::Gone | removed | SC7\n");
     let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
@@ -690,7 +620,6 @@ fn gate_fails_on_a_stale_allowlist_line() {
         "{problems:#?}"
     );
 
-
     let allow = format!("{ALLOWLIST}\nwidgets::gone::Gone | todo | later\n");
     let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
     assert!(
@@ -699,8 +628,6 @@ fn gate_fails_on_a_stale_allowlist_line() {
             .any(|p| p.contains("pending without an SC step")),
         "{problems:#?}"
     );
-
-
 
     let allow = format!(
         "{ALLOWLIST}\napp::gone_app::intro | brand | permanent\n\
@@ -740,11 +667,8 @@ fn gate_fails_when_a_declaration_is_removed() {
 
 #[test]
 fn gate_sets_an_option_through_opt_and_needs_a_visible_change() {
-
-
     assert_eq!(option_holds("overview", "shell.color=mono"), Ok(()));
     assert_eq!(option_holds("overview", "shell.focus_on=release"), Ok(()));
-
 
     let real = options::find("shell.overrides").unwrap();
     let inert = Opt {
@@ -772,8 +696,6 @@ fn gate_fails_on_a_declaration_the_showcase_does_not_hold() {
         (*id, Shown::Demo("buttons", "no such text anywhere")),
         (*id, Shown::Demo("nosuchpage", "x")),
         (*id, Shown::Option("buttons", "glow")),
-
-
         (*id, Shown::StateRow("buttons", "error")),
         (*id, Shown::StateRow("inputs", "sideways")),
         (*id, Shown::StateRow("meters", "rest")),
@@ -781,8 +703,6 @@ fn gate_fails_on_a_declaration_the_showcase_does_not_hold() {
     ];
     assert_eq!(declaration_problems(&wrong).len(), wrong.len());
 }
-
-
 
 const GIZMO: &str = "widgets::fixture::Gizmo";
 const GIZMO_VIA: &[(&str, ViaRole, &[&str])] = &[(
@@ -798,7 +718,6 @@ fn gizmo_caps() -> Vec<Capability> {
     caps.push(Capability::function("widgets::fixture::render_gizmo"));
     caps
 }
-
 
 fn with_gizmo(extra: &[(&'static str, Shown)]) -> Vec<(&'static str, Shown)> {
     let mut shown = coverage::declarations().to_vec();
@@ -859,7 +778,6 @@ fn via_fails_when_the_owner_is_not_demonstrated() {
 fn a_stale_via_fails() {
     let shown = with_gizmo(&[GIZMO_DEMO]);
 
-
     let gone: Vec<Capability> = gizmo_caps()
         .into_iter()
         .filter(|c| c.id != "widgets::fixture::render_gizmo")
@@ -887,7 +805,6 @@ fn a_stale_via_fails() {
         "{problems:#?}"
     );
 
-
     let allow = format!("{ALLOWLIST}\nwidgets::fixture::render_gizmo | fixture | SC58\n");
     let problems = coverage_problems(&caps, &shown, &allow);
     assert!(
@@ -896,8 +813,6 @@ fn a_stale_via_fails() {
         ),
         "{problems:#?}"
     );
-
-
 
     let theme = "theme::Theme";
     let mut wrong = shown.clone();

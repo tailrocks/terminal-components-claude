@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::ui::context::{ContextAnchor, ContextConfig};
@@ -20,9 +14,6 @@ struct Open<T, C> {
 }
 
 pub struct RowMenu<T, C> {
-
-
-
     pub config: ContextConfig,
     id: WidgetId,
     open: Option<Open<T, C>>,
@@ -41,25 +32,20 @@ impl<T: Clone, C: Clone> RowMenu<T, C> {
         self.open.is_some()
     }
 
-
     pub fn hides_page_focus(&self) -> bool {
         self.open
             .as_ref()
             .is_some_and(|o| o.menu.hides_page_focus())
     }
 
-
     #[cfg(test)]
     pub fn menu(&self) -> Option<&ContextMenu> {
         self.open.as_ref().map(|o| &o.menu)
     }
 
-
     pub fn is_context_key(&self, key: &Key) -> bool {
         self.config.keys.matches(key)
     }
-
-
 
     pub fn open(
         &mut self,
@@ -91,8 +77,6 @@ impl<T: Clone, C: Clone> RowMenu<T, C> {
         }
     }
 
-
-
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<(T, C)>) {
         let Some(o) = self.open.as_mut() else {
             return (Outcome::Ignored, None);
@@ -102,8 +86,6 @@ impl<T: Clone, C: Clone> RowMenu<T, C> {
         (out.or(Outcome::Consumed), self.resolve(ev))
     }
 
-
-
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<(T, C)>) {
         let Some(o) = self.open.as_mut() else {
             return (Outcome::Ignored, None);
@@ -112,15 +94,12 @@ impl<T: Clone, C: Clone> RowMenu<T, C> {
         (Outcome::Changed, self.resolve(ev))
     }
 
-
-
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         if let Some(o) = self.open.as_mut() {
             o.menu.render(screen, buf, ctx);
         }
     }
 }
-
 
 pub fn hints() -> Vec<Hint> {
     vec![

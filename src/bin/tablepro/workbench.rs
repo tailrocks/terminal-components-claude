@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -79,9 +77,7 @@ pub struct Workbench {
     pub explorer_filter: TextInput,
     pub explorer_visible: bool,
 
-
     pub rail: junie_tui::widgets::rail::SidebarRail,
-
 
     pub explorer_split: Split,
     pub explorer_sized: bool,
@@ -143,9 +139,6 @@ impl Workbench {
         wb
     }
 
-
-
-
     pub fn rebuild_for_schema(&mut self) {
         self.build_explorer();
         self.sync_strip();
@@ -158,7 +151,6 @@ impl Workbench {
                 .schemas
                 .iter()
                 .map(|s| {
-
                     if *s == self.schema {
                         TreeNode::dir(s, self.schema_children(s)).glyph("S")
                     } else {
@@ -322,7 +314,6 @@ impl Workbench {
         out
     }
 
-
     pub(crate) fn object_at(&self, path: &[usize]) -> Option<(String, String)> {
         if path.len() < 4 || path[0] != 0 {
             return None;
@@ -385,8 +376,6 @@ impl Workbench {
                 .any(|t| matches!(t, WorkTab::Query(q) if q.is_running()))
     }
 
-
-
     fn sync_strip(&mut self) {
         let mut labels: Vec<String> = self.tabs.iter().map(|t| t.label()).collect();
 
@@ -446,7 +435,6 @@ impl Workbench {
     }
 
     pub fn open_table(&mut self, schema: &str, name: &str, preview: bool) -> Option<usize> {
-
         if let Some(i) = self
             .tabs
             .iter()
@@ -550,7 +538,6 @@ impl Workbench {
         self.tabs.get_mut(self.active)
     }
 
-
     pub fn primary_focus(&self) -> Option<WidgetId> {
         match self.tabs.get(self.active)? {
             WorkTab::Table(t) => Some(t.grid.id),
@@ -582,8 +569,6 @@ impl Workbench {
             _ => None,
         })
     }
-
-
 
     pub fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.explorer.id) {
@@ -627,8 +612,6 @@ impl Workbench {
             None => vec![hint("Ctrl+T", "New query"), hint("0", "Explorer")],
         }
     }
-
-
 
     pub fn on_key(&mut self, key: &Key, cx: &mut Cx, history: &mut History) -> Outcome {
         let Some(f) = cx.focus.current() else {
@@ -986,8 +969,6 @@ impl Workbench {
         Outcome::Changed
     }
 
-
-
     fn pointer_fields(&mut self) -> Vec<&mut dyn PointerField> {
         let mut v: Vec<&mut dyn PointerField> = vec![&mut self.explorer_filter];
         if let Some(WorkTab::History(h)) = self.tabs.get_mut(self.active) {
@@ -995,8 +976,6 @@ impl Workbench {
         }
         v
     }
-
-
 
     pub fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx, history: &mut History) -> Outcome {
         if ev.wheel().is_some() {
@@ -1010,7 +989,6 @@ impl Workbench {
             _ => Outcome::Ignored,
         }
     }
-
 
     fn press(&mut self, ev: &PointerEvent) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
@@ -1056,7 +1034,6 @@ impl Workbench {
         }
     }
 
-
     fn middle(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if let Some(r) = self.strip.route(ev) {
             let (o, act) = r.into_parts();
@@ -1071,7 +1048,6 @@ impl Workbench {
         }
     }
 
-
     pub fn active_grid_any_mut(&mut self) -> Option<&mut junie_tui::widgets::grid::DataGrid> {
         match self.tabs.get_mut(self.active)? {
             WorkTab::Table(t) => Some(&mut t.grid),
@@ -1079,7 +1055,6 @@ impl Workbench {
             WorkTab::History(_) => None,
         }
     }
-
 
     pub fn on_header_action(
         &mut self,
@@ -1124,7 +1099,6 @@ impl Workbench {
             {
                 let kind = self.catalog.find(Some(&schema), &name).map(|t| t.kind);
                 if matches!(kind, Some(ObjectKind::Table | ObjectKind::View)) {
-
                     let promote =
                         self.current_object.as_ref() == Some(&(schema.clone(), name.clone()));
                     self.explorer.cursor = row;
@@ -1313,7 +1287,6 @@ impl Workbench {
             return r.outcome();
         }
 
-
         if ev.on(self.explorer.id) {
             return if horizontal {
                 Outcome::Consumed
@@ -1347,8 +1320,6 @@ impl Workbench {
         }
     }
 
-
-
     pub fn on_blur(&mut self, ch: junie_tui::core::focus::FocusChange) -> Outcome {
         use junie_tui::core::focus::forward_blur;
         let mut out = forward_blur(ch, &mut [&mut self.explorer_filter]);
@@ -1374,8 +1345,6 @@ impl Workbench {
         }
     }
 
-
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, history: &History) {
         let t = ctx.theme;
 
@@ -1387,7 +1356,6 @@ impl Workbench {
             area.width,
             area.height.saturating_sub(2),
         );
-
 
         let narrow = area.width < 100;
         let explorer_focused = ctx.interaction.focused(self.explorer.id)
@@ -1404,8 +1372,6 @@ impl Workbench {
         };
         let explorer_w = (body.width / 4).clamp(28, 40);
         if !self.explorer_sized {
-
-
             self.explorer_split.drag_to(
                 SplitDir::Horizontal,
                 body,
@@ -1449,13 +1415,10 @@ impl Workbench {
 
             self.explorer.render(tree_area, buf, ctx, bg);
         } else if self.explorer_visible && !self.maximized {
-
             ctx.control(self.explorer.id, Rect::ZERO, false);
         }
 
         if main.is_empty() {
-
-
             if let Some(pf) = self.primary_focus() {
                 ctx.control(pf, Rect::ZERO, false);
             }

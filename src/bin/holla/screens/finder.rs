@@ -1,8 +1,3 @@
-
-
-
-
-
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
@@ -42,8 +37,6 @@ pub const PREVIEW: WidgetId = WidgetId::of("here.preview");
 pub const SCOPE: WidgetId = WidgetId::of("here.scope");
 const EXPLORE_CELL: WidgetId = WidgetId::of("here.explore");
 
-
-
 pub const SPLIT_MIN: u16 = 108;
 
 const PREVIEW_COMMANDS: usize = 6;
@@ -65,7 +58,6 @@ pub struct FinderPage {
     pub scope: Scope,
     items: Vec<Item>,
 
-
     pub warnings: Vec<String>,
     rows: Vec<Row>,
     pub cursor: usize,
@@ -84,21 +76,13 @@ pub struct FinderPage {
 
     dirty: bool,
 
-
     pub rebuilds: u32,
 
-
     query_changed: bool,
-
 
     previewed: Option<String>,
     last_tick: u64,
 }
-
-
-
-
-
 
 fn query_field() -> EditField {
     use junie_tui::core::edit::{CMD_TEXT_KEYS, TextCmd};
@@ -145,7 +129,6 @@ impl FinderPage {
             last_tick: u64::MAX,
         }
     }
-
 
     pub fn current(&self) -> Option<&Item> {
         match self.rows.get(self.cursor) {
@@ -234,7 +217,6 @@ impl FinderPage {
                 }
             }
 
-
             let projection = w
                 .memory
                 .usage
@@ -267,7 +249,6 @@ impl FinderPage {
 
             if w.location.workspace.is_some() {
                 let parent_ranked = search(&self.items, "", Scope::Parent, None);
-
 
                 let eligible = |r: &&Ranked| {
                     let it = &self.items[r.index];
@@ -350,7 +331,6 @@ impl FinderPage {
         }
         self.rows = rows;
 
-
         let target = if self.query_changed {
             None
         } else {
@@ -363,7 +343,6 @@ impl FinderPage {
         let query_changed = std::mem::take(&mut self.query_changed);
         self.cursor = target.unwrap_or_else(|| self.first_selectable());
 
-
         let previewed = match self.rows.get(self.cursor) {
             Some(Row::Item(i, _)) => Some(self.items[*i].id.clone()),
             _ => None,
@@ -375,8 +354,6 @@ impl FinderPage {
         self.scroll.set_content(self.rows.len());
         self.dirty = false;
     }
-
-
 
     #[cfg(test)]
     pub fn cursor_on_row(&self) -> bool {
@@ -443,20 +420,16 @@ impl FinderPage {
         }
     }
 
-
     fn query_edited(&mut self) {
         self.dirty = true;
         self.query_changed = true;
         self.scroll.jump_start();
     }
 
-
     fn query_selected(&self) -> bool {
         !self.query.text().is_empty()
             && self.query.buffer.selected_text() == Some(self.query.text())
     }
-
-
 
     fn query_apply(&mut self, action: EditAction, key: &Key) -> Outcome {
         if self.query.apply(action, key).edited {
@@ -464,7 +437,6 @@ impl FinderPage {
         }
         Outcome::Changed
     }
-
 
     fn clear_query(&mut self) {
         if self.query.text().is_empty() {
@@ -495,8 +467,6 @@ impl FinderPage {
             None => hint("Enter", "Run"),
         }
     }
-
-
 
     fn preview_lines(&self, it: &Item, w: &World) -> Vec<PreviewLine> {
         let mut v: Vec<PreviewLine> = vec![];
@@ -604,7 +574,6 @@ impl FinderPage {
             true,
         ));
         let gate = match (&it.launch, &it.confirmation) {
-
             (Launch::Cleanup { .. } | Launch::Disk { .. } | Launch::TopFiles | Launch::Find, _) => {
                 "opens a review · the deletion is gated there (typed phrase)".to_owned()
             }
@@ -756,7 +725,6 @@ impl FinderPage {
         let rw = width(&readout) as u16 + 2;
         let rx = area.right().saturating_sub(rw);
 
-
         let mut rs = ctx.title_style(SCOPE, bg);
         let lifted = ctx.interaction.hovered(SCOPE) || ctx.interaction.pressed(SCOPE);
         if self.scope == Scope::Here && !lifted {
@@ -787,7 +755,6 @@ impl FinderPage {
             let st = if self.query_selected() {
                 fs.fg(t.canvas).bg(t.accent)
             } else if focused {
-
                 fs.add_modifier(Modifier::UNDERLINED)
                     .underline_color(t.text_secondary)
             } else {
@@ -873,7 +840,6 @@ impl FinderPage {
             .unwrap_or(4) as u16;
         let content_w = row_w.saturating_sub(4);
 
-
         let risk_w = item_rows
             .iter()
             .filter(|(it, _)| matches!(it.risk, Risk::Destructive | Risk::Privileged))
@@ -881,15 +847,11 @@ impl FinderPage {
             .max()
             .unwrap_or(0);
 
-
         let label_cap = max_label.min((content_w * 36 / 100).max(14));
         let mut cols = vec![
-
-
             Col::content(label_cap, label_cap).max(max_label),
             Col::fixed(type_w),
             Col::fixed(scope_w),
-
             Col::content(12, 12).flex(1, u16::MAX).droppable(1),
         ];
         if risk_w > 0 {
@@ -909,7 +871,6 @@ impl FinderPage {
                     let mut s = ctx.state(rid);
                     s.focused = focused && i == self.cursor;
                     let is_cursor = i == self.cursor;
-
 
                     let cr = t.cursor_row(s, bg, CursorStyle::Fill);
                     let st = cr.style;
@@ -953,8 +914,6 @@ impl FinderPage {
                     let mut s = ctx.state(rid);
                     s.focused = focused && i == self.cursor;
                     s.selected = i == self.cursor;
-
-
 
                     let cr = t.cursor_row(s, bg, CursorStyle::Fill);
                     let st = cr.style;
@@ -1013,7 +972,6 @@ impl FinderPage {
                         ));
                         buf.set_string(x, y, truncate_sep(&reason, reason_w as usize), rs);
                     }
-
 
                     if risk_w > 0 && matches!(it.risk, Risk::Destructive | Risk::Privileged) {
                         let r = it.risk.label();
@@ -1079,8 +1037,6 @@ impl FinderPage {
         Outcome::Changed
     }
 
-
-
     fn preview_key(&mut self, key: &Key, cx: &mut Cx) -> Outcome {
         match key.code {
             KeyCode::Up | KeyCode::Char('k') => {
@@ -1114,7 +1070,6 @@ impl FinderPage {
 }
 
 impl FinderPage {
-
     fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.dirty {
             self.rebuild(w);
@@ -1169,8 +1124,6 @@ impl ShellPage<Holla> for FinderPage {
             self.rebuild(w);
         }
         if cx.focus.is(PREVIEW) {
-
-
             let typed = matches!(
                 key.code,
                 KeyCode::Char(c) if !key.chord() && !matches!(c, 'j' | 'k' | 'y')
@@ -1200,7 +1153,6 @@ impl ShellPage<Holla> for FinderPage {
                 }
 
                 KeyCode::Char('w') | KeyCode::Char('W') => Outcome::Ignored,
-
 
                 _ => match self.query.action(key) {
                     EditAction::SelectAll => {
@@ -1313,7 +1265,6 @@ impl ShellPage<Holla> for FinderPage {
     }
 
     fn on_paste(&mut self, text: &str, _w: &mut World, _cx: &mut Cx) -> Outcome {
-
         let flat: String = text.split(['\n', '\r']).collect::<Vec<_>>().join(" ");
         let flat = flat.trim().to_owned();
         if flat.is_empty() || !self.query.paste(&flat) {
@@ -1326,7 +1277,6 @@ impl ShellPage<Holla> for FinderPage {
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-
             if axis != Axis::Vertical {
                 return Outcome::Ignored;
             }
@@ -1360,8 +1310,6 @@ impl ShellPage<Holla> for FinderPage {
                 Outcome::Ignored
             }
             Some(Phase::Click) => {
-
-
                 if let Some(i) = self.locate_row(id)
                     && matches!(self.rows[i], Row::Item(..))
                     && ClickPolicy::DATA.activates(ev.count(), self.cursor == i)
@@ -1399,12 +1347,9 @@ impl ShellPage<Holla> for FinderPage {
         }
         self.last_tick = w.tick;
 
-
-
         super::rebuild_on_tick(
             self,
             |s| {
-
                 let items: Vec<Item> = s
                     .items
                     .iter()
@@ -1451,7 +1396,6 @@ impl ShellPage<Holla> for FinderPage {
         } else {
             let preview_focused = ctx.interaction.focused(PREVIEW);
             if ctx.interaction.focused(FINDER) {
-
                 self.drawer = false;
             }
             if preview_focused || self.drawer {
@@ -1475,7 +1419,6 @@ impl ShellPage<Holla> for FinderPage {
                         .first()
                         .cloned()
                         .unwrap_or_else(|| "opens inside holla".into());
-
 
                     let tail = format!(" · {} · {}", it.scope.word, it.risk.label());
                     let room =
@@ -1547,8 +1490,6 @@ impl ShellPage<Holla> for FinderPage {
             cx.go(Go::Pop);
             Outcome::Changed
         } else {
-
-
             Outcome::Ignored
         }
     }
@@ -1602,8 +1543,6 @@ impl Screen for FinderPage {
             }
         }
         if !self.warnings.is_empty() {
-
-
             bits.right.push(
                 StatusItem::new(
                     format!(
@@ -1626,7 +1565,6 @@ impl Screen for FinderPage {
         Some(self)
     }
 }
-
 
 pub fn item_facts(it: &Item, w: &World, theme: &Theme) -> Vec<junie_tui::widgets::props::Prop> {
     use junie_tui::widgets::props::Prop;
@@ -1662,7 +1600,6 @@ pub fn item_facts(it: &Item, w: &World, theme: &Theme) -> Vec<junie_tui::widgets
     v.push(Prop::new("Data", it.freshness.label()).tone(Tone::Muted));
     v
 }
-
 
 fn row_reason(rk: &Ranked) -> String {
     match &rk.tag {

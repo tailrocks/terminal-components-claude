@@ -1,8 +1,3 @@
-
-
-
-
-
 pub fn step_index(cursor: usize, len: usize, delta: isize, wrap: bool) -> usize {
     if len == 0 {
         return 0;

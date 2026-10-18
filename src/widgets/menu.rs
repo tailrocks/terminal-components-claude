@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -34,7 +28,6 @@ pub struct MenuItem {
     pub danger: bool,
     pub separator_after: bool,
 
-
     pub reason: Option<String>,
 }
 
@@ -58,13 +51,11 @@ impl MenuItem {
         self
     }
 
-
     pub fn reason(mut self, reason: impl Into<String>) -> Self {
         self.reason = Some(reason.into());
         self.disabled = true;
         self
     }
-
 
     fn trailing(&self) -> Option<&str> {
         match &self.reason {
@@ -92,20 +83,13 @@ impl MenuItem {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum UnknownKey {
-
-
     #[default]
     CloseAndPass,
 
     Swallow,
 }
-
-
-
 
 pub use crate::ui::popup::Placement;
 
@@ -129,77 +113,43 @@ pub struct ContextMenu {
 
     pub dismiss: Dismiss,
 
-
     pub(crate) pending: Option<MenuAction>,
-
 
     pub hide_owner_focus: bool,
 
-
     pub reveal: Option<crate::ui::reveal::Reveal>,
-
-
-
-
-
-
-
 
     pub fit: Place,
 
-
     pub min_width: u16,
-
 
     pub wrap: bool,
 
-
-
     pub anchor_to: Option<WidgetId>,
-
-
 
     pub max_rows: u16,
 
     pub offset: usize,
 
-
     cursor_dirty: bool,
-
 
     pub nav: NavKeys,
 
-
-
-
     pub type_ahead: bool,
-
-
-
 
     pub unknown_key: UnknownKey,
     typeahead: crate::core::typeahead::TypeAhead,
 
-
-
-
-
-
     pub release_selects: bool,
-
 
     release_from: Vec<WidgetId>,
 
     hovering: bool,
 
-
     cursor_hidden: bool,
 
     scrolled_tick: Option<u64>,
 }
-
-
-
 
 impl HasHints for ContextMenu {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -213,30 +163,22 @@ impl HasHints for ContextMenu {
 }
 
 impl ContextMenu {
-
     pub fn release_selects(mut self, on: bool) -> Self {
         self.release_selects = on;
         self
     }
 
-
-
     pub fn more_above_id(&self) -> WidgetId {
         self.id.part(PartRef::OVERFLOW_BEFORE)
     }
-
-
 
     pub fn more_below_id(&self) -> WidgetId {
         self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
-
-
     pub fn highlighted(&self) -> Option<usize> {
         (!self.cursor_hidden && !self.items.is_empty()).then_some(self.cursor)
     }
-
 
     fn page_marker(&mut self, id: WidgetId) -> bool {
         let page = self.viewport().max(1) as i32;
@@ -251,12 +193,10 @@ impl ContextMenu {
         }
     }
 
-
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.max_rows = rows;
         self
     }
-
 
     fn line_of(&self, i: usize) -> usize {
         i + self.items[..i.min(self.items.len())]
@@ -269,12 +209,10 @@ impl ContextMenu {
         self.line_of(self.items.len())
     }
 
-
     fn viewport(&self) -> usize {
         let title = usize::from(self.title.is_some());
         (self.area.height as usize).saturating_sub(2 + title)
     }
-
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
         let max = self.lines().saturating_sub(self.viewport().max(1));
@@ -324,39 +262,30 @@ impl ContextMenu {
         }
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
-
 
     pub fn edge_margin(mut self, cells: u16) -> Self {
         self.fit.margin = cells;
         self
     }
 
-
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
-
-
-
 
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
         self
     }
 
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
     }
-
 
     pub fn fit(mut self, fit: Place) -> Self {
         self.fit = fit;
@@ -373,8 +302,6 @@ impl ContextMenu {
         self
     }
 
-
-
     pub fn hides_page_focus(&self) -> bool {
         self.hide_owner_focus
     }
@@ -385,13 +312,9 @@ impl ContextMenu {
         self
     }
 
-
     pub fn at(self, pos: Position) -> Self {
         self.anchor(Rect::new(pos.x, pos.y, 1, 1), Placement::Below)
     }
-
-
-
 
     pub fn anchor_control(mut self, id: WidgetId, fallback: Rect) -> Self {
         self.anchor_to = Some(id);
@@ -411,17 +334,9 @@ impl ContextMenu {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
-
-
     fn row_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
-
-
-
-
-
 
     pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
         id == self.id
@@ -430,7 +345,6 @@ impl ContextMenu {
             || id == self.more_below_id()
             || self.row_of(id).is_some()
     }
-
 
     pub fn size(&self) -> (u16, u16) {
         let label_w = self
@@ -457,10 +371,8 @@ impl ContextMenu {
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuAction>) {
         if unassigned_chord::<()>(key, &[]) {
-
             return (Outcome::Ignored, None);
         }
-
 
         self.hovering = false;
         let hidden = std::mem::take(&mut self.cursor_hidden);
@@ -468,7 +380,6 @@ impl ContextMenu {
             self.cursor_hidden = true;
             return (Outcome::Consumed, None);
         }
-
 
         if let KeyCode::Char(c) = key.code
             && let Some(i) = self.accelerator(c)
@@ -512,14 +423,12 @@ impl ContextMenu {
             KeyCode::Esc if self.dismiss.escape => (Outcome::Changed, Some(MenuAction::Dismissed)),
             KeyCode::Esc | KeyCode::Tab | KeyCode::BackTab => (Outcome::Consumed, None),
 
-
             _ => match self.unknown_key {
                 UnknownKey::CloseAndPass => (Outcome::Ignored, Some(MenuAction::Dismissed)),
                 UnknownKey::Swallow => (Outcome::Consumed, None),
             },
         }
     }
-
 
     fn accelerator(&self, c: char) -> Option<usize> {
         self.items.iter().position(|it| {
@@ -531,13 +440,10 @@ impl ContextMenu {
         })
     }
 
-
     pub fn unknown_key(mut self, unknown: UnknownKey) -> Self {
         self.unknown_key = unknown;
         self
     }
-
-
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<MenuAction> {
         if self.page_marker(id) {
@@ -559,9 +465,6 @@ impl ContextMenu {
         self.dismiss.outside_click.then_some(MenuAction::Dismissed)
     }
 
-
-
-
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.prepare(screen.intersection(*buf.area()), ctx);
         let menu = self.clone();
@@ -572,15 +475,11 @@ impl ContextMenu {
         });
     }
 
-
-
-
     fn prepare(&mut self, screen: Rect, ctx: &RenderCtx) {
         if let Some(r) = self.anchor_to.and_then(|id| ctx.hits.area_of(id)) {
             self.anchor = r;
         }
         self.area = self.placed(screen).intersection(screen);
-
 
         let view = self.viewport().max(1);
         if self.cursor_dirty && !self.items.is_empty() {
@@ -616,7 +515,6 @@ impl ContextMenu {
                 self.cursor_hidden = false;
             }
 
-
             _ if self.hovering => {
                 self.hovering = false;
                 self.cursor_hidden = true;
@@ -632,7 +530,6 @@ impl ContextMenu {
             return;
         }
 
-
         let bg = t.popover;
         let plane = Plane::Popover;
         fill(buf, area, Style::new().bg(bg));
@@ -641,7 +538,6 @@ impl ContextMenu {
             .border_set(t.glyphs.border)
             .border_style(Style::new().fg(t.frame_on(bg)).bg(bg));
         ratatui::widgets::Widget::render(block, area, buf);
-
 
         ctx.clickable(self.id, area);
         let inner = Rect::new(
@@ -663,7 +559,6 @@ impl ContextMenu {
         let first = self.offset;
         let marker_row = |y: u16| Rect::new(area.x + 1, y, area.width.saturating_sub(2), 1);
         let marker = |ctx: &RenderCtx, id: WidgetId| {
-
             let s = ctx.state(id);
             if s.pressed {
                 t.primary().bg(bg).add_modifier(Modifier::BOLD)
@@ -685,7 +580,6 @@ impl ContextMenu {
         }
         let cursor = self.highlighted();
 
-
         let mut line = 0usize;
         for (i, item) in self.items.iter().enumerate() {
             if y >= inner.bottom() {
@@ -701,10 +595,8 @@ impl ContextMenu {
                 break;
             }
             if line < first {
-
                 line += 1 + usize::from(item.separator_after);
                 if item.separator_after && line > first {
-
                     for x in inner.x + 1..inner.right().saturating_sub(1) {
                         buf.set_string(
                             x,
@@ -724,10 +616,6 @@ impl ContextMenu {
             s.disabled = item.disabled;
             s.error = item.danger;
             let row = Rect::new(inner.x, y, inner.width, 1);
-
-
-
-
 
             let it = t.interactive(Kind::CursorRow(CursorStyle::Fill), s, plane);
             let mut st = it.style;
@@ -749,8 +637,6 @@ impl ContextMenu {
             if let Some(sc) = item.trailing() {
                 let sw = width(sc) as u16;
                 if sw + width(&item.label) as u16 + 5 <= inner.width {
-
-
                     let scs = if item.disabled {
                         st
                     } else {
@@ -763,8 +649,6 @@ impl ContextMenu {
             }
             ctx.register_part(self.id, Self::row_part(i), row);
             if !item.disabled {
-
-
                 if self.release_selects {
                     ctx.hits.accept_release(rid, ReleaseFrom::Secondary);
                 }
@@ -788,12 +672,8 @@ impl ContextMenu {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuBarAction {
-
-
     Opened(usize),
 
     Chosen(usize, usize),
@@ -802,28 +682,18 @@ pub enum MenuBarAction {
     Brand,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OpenOn {
-
-
-
-
     #[default]
     Press,
 
     Release,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Overflow {
-
     #[default]
     Hide,
-
-
-
 
     Chevron,
 }
@@ -840,51 +710,30 @@ pub struct MenuBar {
     pub areas: Vec<Rect>,
     pub brand_area: Rect,
 
-
-
     pub dismiss: Dismiss,
-
-
-
-
-
-
 
     pub hover_switch: bool,
 
     pub wrap: bool,
 
-
     pub hide_owner_focus: bool,
-
 
     pub nav: NavKeys,
 
     pub overflow: Overflow,
 
-
     pub type_ahead: bool,
-
 
     pub type_ahead_timeout: std::time::Duration,
 
-
     pub more_area: Rect,
-
-
 
     pub open_on: OpenOn,
 
-
-
     pub press_drag: bool,
-
 
     press_handled: Option<WidgetId>,
 }
-
-
-
 
 impl HasHints for MenuBar {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -899,7 +748,6 @@ impl HasHints for MenuBar {
 }
 
 impl MenuBar {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -930,21 +778,15 @@ impl MenuBar {
         }
     }
 
-
     pub fn open_on(mut self, open_on: OpenOn) -> Self {
         self.open_on = open_on;
         self
     }
 
-
     pub fn press_drag(mut self, on: bool) -> Self {
         self.press_drag = on;
         self
     }
-
-
-
-
 
     pub fn on_press(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarAction>) {
         self.press_handled = None;
@@ -963,8 +805,6 @@ impl MenuBar {
         (Outcome::Changed, Some(MenuBarAction::Opened(i)))
     }
 
-
-
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.type_ahead_timeout = timeout;
         self
@@ -975,23 +815,18 @@ impl MenuBar {
         self
     }
 
-
     pub fn overflow(mut self, overflow: Overflow) -> Self {
         self.overflow = overflow;
         self
     }
 
-
     pub fn more_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::OVERFLOW))
     }
 
-
     fn chevron(&self) -> bool {
         !self.more_area.is_empty()
     }
-
-
 
     pub fn hidden(&self) -> Vec<usize> {
         if !self.chevron() {
@@ -1002,8 +837,6 @@ impl MenuBar {
             .collect()
     }
 
-
-
     fn ring(&self) -> Vec<usize> {
         let n = self.labels.len();
         let mut v: Vec<usize> = (0..n)
@@ -1012,8 +845,6 @@ impl MenuBar {
         v.push(n);
         v
     }
-
-
 
     fn step(&self, delta: isize) -> usize {
         let ring = self.ring();
@@ -1032,11 +863,9 @@ impl MenuBar {
         ring[to.unwrap_or(at)]
     }
 
-
     fn title_cursor(&self, at: usize) -> Cursor {
         Cursor::new(at).wrap(self.wrap).axis(Axis::Horizontal)
     }
-
 
     fn title_step(&self, delta: isize) -> usize {
         self.title_cursor(self.cursor)
@@ -1045,15 +874,12 @@ impl MenuBar {
             .unwrap_or(self.cursor)
     }
 
-
     fn title_at(&self, id: WidgetId) -> Option<usize> {
         if self.chevron() && id == self.more_id() {
             return Some(self.labels.len());
         }
         self.id.item_of(id, Part::TAB, 0..self.labels.len())
     }
-
-
 
     fn chevron_open(&self) -> bool {
         self.open.is_some()
@@ -1067,9 +893,6 @@ impl MenuBar {
         self
     }
 
-
-
-
     pub fn hides_page_focus(&self) -> bool {
         self.hide_owner_focus && self.open.is_some()
     }
@@ -1078,7 +901,6 @@ impl MenuBar {
         self.dismiss = dismiss;
         self
     }
-
 
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
@@ -1121,7 +943,6 @@ impl MenuBar {
 
     pub fn open_menu(&mut self, i: usize) {
         if i == self.labels.len() && self.chevron() {
-
             self.cursor = i;
             let items = self
                 .hidden()
@@ -1161,10 +982,8 @@ impl MenuBar {
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuBarAction>) {
         let n = self.labels.len();
         if unassigned_chord::<()>(key, &[]) {
-
             return (Outcome::Ignored, None);
         }
-
 
         let typing = self.type_ahead && self.open.is_some() && matches!(key.code, KeyCode::Char(_));
         let nav = if typing { None } else { self.nav.action(key) };
@@ -1206,7 +1025,6 @@ impl MenuBar {
                     (Outcome::Changed, Some(MenuBarAction::Chosen(m, i)))
                 }
 
-
                 Some(MenuAction::Dismissed) if o == Outcome::Ignored => {
                     self.close();
                     (Outcome::Ignored, Some(MenuBarAction::Closed))
@@ -1221,8 +1039,6 @@ impl MenuBar {
         }
         match nav {
             Some(nav @ (Nav::Home | Nav::End)) if n > 0 => {
-
-
                 self.cursor = if chevron {
                     let ring = self.ring();
                     if nav == Nav::Home {
@@ -1269,12 +1085,7 @@ impl MenuBar {
         }
     }
 
-
-
-
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<MenuBarAction>) {
-
-
         let handled = self.press_handled.take();
         if handled.is_some() && handled == Some(id) && self.title_at(id).is_some() {
             return (Outcome::Consumed, None);
@@ -1323,7 +1134,6 @@ impl MenuBar {
         (Outcome::Ignored, None)
     }
 
-
     fn choose_hidden(&mut self, i: usize) -> (Outcome, Option<MenuBarAction>) {
         let Some(&title) = self.hidden().get(i) else {
             return (Outcome::Consumed, None);
@@ -1332,8 +1142,6 @@ impl MenuBar {
         (Outcome::Changed, Some(MenuBarAction::Opened(title)))
     }
 
-
-
     pub fn on_hover(&mut self, id: Option<WidgetId>) -> Outcome {
         if self.open.is_none() || !self.hover_switch {
             return Outcome::Ignored;
@@ -1341,8 +1149,6 @@ impl MenuBar {
         if let Some(id) = id
             && let Some(i) = self.title_at(id)
             && self.open_index() != Some(i)
-
-
             && !(i == self.labels.len() && self.chevron_open())
         {
             self.open_menu(i);
@@ -1351,18 +1157,11 @@ impl MenuBar {
         Outcome::Ignored
     }
 
-
-
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
         }
-
-
-
-
 
         let dragging = ctx
             .interaction
@@ -1378,7 +1177,6 @@ impl MenuBar {
         let focused = ctx.interaction.focused(self.id);
         let plane = t.plane_of(bg);
 
-
         let mut x = area.x + t.spacing.chrome_edge.saturating_sub(1);
         if let Some(b) = &self.brand {
             let w = b.render_clickable(x, area.y, buf, ctx, self.brand_id());
@@ -1389,7 +1187,6 @@ impl MenuBar {
         let open = self.open_index();
         let more_text = format!(" {} ", t.glyphs.more_titles);
         let more_w = width(&more_text) as u16;
-
 
         let limit = if self.overflow == Overflow::Chevron && {
             let all: u16 = self
@@ -1413,7 +1210,6 @@ impl MenuBar {
             if hiding || x + w > limit {
                 self.areas.push(Rect::ZERO);
 
-
                 hiding = limit < area.right();
                 continue;
             }
@@ -1421,7 +1217,6 @@ impl MenuBar {
             let mut s = ctx.state(lid);
             s.focused = focused && self.cursor == i && open.is_none();
             s.selected = is_open;
-
 
             let on = if is_open { Plane::Popover } else { plane };
             let it = t.interactive(Kind::Title, s, on);
@@ -1464,7 +1259,6 @@ impl MenuBar {
             return;
         };
 
-
         if let Some(i) = open {
             match self.areas.get(i) {
                 Some(r) if !r.is_empty() => m.anchor = *r,
@@ -1473,7 +1267,6 @@ impl MenuBar {
                 None => {}
             }
         }
-
 
         m.release_from = if self.press_drag {
             let mut from: Vec<WidgetId> = (0..self.labels.len())
@@ -1490,8 +1283,6 @@ impl MenuBar {
         m.prepare(*buf.area(), ctx);
         let menu = m.clone();
         let (id, dismiss) = (self.id, self.dismiss);
-
-
 
         let mut titles: Vec<(PartRef, Rect)> = (0..self.labels.len())
             .map(|i| (Self::title_part(i), self.areas[i]))
@@ -1547,7 +1338,6 @@ impl Navigable for ContextMenu {
     }
 }
 
-
 impl RowSource for MenuBar {
     fn len(&self) -> usize {
         self.labels.len()
@@ -1563,10 +1353,6 @@ impl Navigable for MenuBar {
     }
 }
 
-
-
-
-
 impl crate::core::pointer::MouseTarget for ContextMenu {
     type Action = MenuAction;
 
@@ -1581,7 +1367,6 @@ impl crate::core::pointer::MouseTarget for ContextMenu {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-
             if ev.part().part == Part::BACKDROP {
                 return Response::ignored();
             }
@@ -1600,11 +1385,6 @@ impl crate::core::pointer::MouseTarget for ContextMenu {
         }
     }
 }
-
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for MenuBar {
     type Action = MenuBarAction;
@@ -1809,9 +1589,6 @@ mod tests {
         assert_eq!(m.cursor, 3);
     }
 
-
-
-
     #[test]
     fn menubar_menus_honour_shortcut_letters_and_pass_other_keys() {
         let bar = || {
@@ -1830,7 +1607,6 @@ mod tests {
             (Outcome::Changed, Some(MenuBarAction::Chosen(0, 0)))
         );
         b.on_key(&key(KeyCode::Enter));
-
 
         assert_eq!(
             b.on_key(&key(KeyCode::Char('z'))),
@@ -1919,8 +1695,6 @@ mod tests {
             ],
         )
     }
-
-
 
     fn bar_hits(bar: &mut MenuBar, interaction: Interaction) -> HitRegistry {
         let t = Theme::junie();
@@ -2220,10 +1994,6 @@ mod tests {
             assert_ne!(cursor, pressed, "{level:?}: cursor = pressed");
         }
     }
-
-
-
-
 
     #[test]
     fn the_menu_frame_stands_off_the_popover_plane_at_every_level() {

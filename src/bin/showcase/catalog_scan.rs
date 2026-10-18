@@ -1,29 +1,7 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::HashMap;
 use std::path::Path;
 
 use junie_tui::catalog::CapKind;
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
@@ -33,12 +11,9 @@ pub struct Item {
     pub at: String,
 }
 
-
 const TOKEN_STRUCTS: &[&str] = &["theme::Theme"];
 
-
 pub const ROOTS: &[&str] = &["core", "ui", "widgets", "theme", "runtime"];
-
 
 pub fn scan_tree(src_dir: &Path) -> Vec<Item> {
     let mut raw = Vec::new();
@@ -68,7 +43,6 @@ fn scan_module(dir: &Path, module: &[String], out: &mut Vec<RawItem>) {
     }
 }
 
-
 pub fn scan_source(module: &[&str], src: &str) -> Vec<Item> {
     let module: Vec<String> = module.iter().map(|s| s.to_string()).collect();
     let mut raw = Vec::new();
@@ -85,10 +59,6 @@ struct RawItem {
     kind: CapKind,
     at: String,
 }
-
-
-
-
 
 fn resolve(raw: Vec<RawItem>) -> Vec<Item> {
     let mut homes: HashMap<&str, Vec<&[String]>> = HashMap::new();
@@ -130,8 +100,6 @@ fn resolve(raw: Vec<RawItem>) -> Vec<Item> {
     out
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Tok {
     Ident(String),
@@ -143,8 +111,6 @@ struct Token {
     tok: Tok,
     line: usize,
 }
-
-
 
 fn strip(src: &str) -> String {
     let c: Vec<char> = src.chars().collect();
@@ -220,7 +186,6 @@ fn strip(src: &str) -> String {
                 }
             }
         } else if ch == '\'' {
-
             if next == Some('\\') {
                 out.push(' ');
                 i += 1;
@@ -248,8 +213,6 @@ fn strip(src: &str) -> String {
 fn prev_is_ident(c: &[char], i: usize) -> bool {
     i > 0 && (c[i - 1].is_alphanumeric() || c[i - 1] == '_')
 }
-
-
 
 fn raw_string_start(c: &[char], i: usize) -> Option<usize> {
     let mut n = 0;
@@ -298,8 +261,6 @@ fn tokenize(src: &str) -> Vec<Token> {
     out
 }
 
-
-
 fn is_punct(t: &Token, c: char) -> bool {
     t.tok == Tok::Punct(c)
 }
@@ -310,7 +271,6 @@ fn ident(t: &Token) -> Option<&str> {
         Tok::Punct(_) => None,
     }
 }
-
 
 fn skip_group(toks: &[Token], i: usize) -> usize {
     let mut depth = 0i32;
@@ -330,7 +290,6 @@ fn skip_group(toks: &[Token], i: usize) -> usize {
     }
     toks.len()
 }
-
 
 fn skip_angles(toks: &[Token], i: usize) -> usize {
     let mut depth = 0i32;
@@ -359,8 +318,6 @@ fn skip_angles(toks: &[Token], i: usize) -> usize {
     }
     toks.len()
 }
-
-
 
 fn split_attrs(header: &[Token]) -> (Vec<Token>, bool) {
     let mut out = Vec::new();
@@ -395,7 +352,6 @@ enum Vis {
     Private,
 }
 
-
 fn visibility(h: &[Token]) -> (Vis, usize) {
     match h.first().and_then(ident) {
         Some("pub") if h.get(1).is_some_and(|t| is_punct(t, '(')) => {
@@ -405,8 +361,6 @@ fn visibility(h: &[Token]) -> (Vis, usize) {
         _ => (Vis::Private, 0),
     }
 }
-
-
 
 fn skip_quals(h: &[Token], mut i: usize) -> usize {
     loop {
@@ -456,8 +410,6 @@ fn scan_raw(module: &[String], src: &str, label: &str, out: &mut Vec<RawItem>) -
     ctx.children
 }
 
-
-
 fn next_header(toks: &[Token], start: usize, end: usize) -> Option<(usize, usize)> {
     let mut j = start;
     while j < end {
@@ -469,8 +421,6 @@ fn next_header(toks: &[Token], start: usize, end: usize) -> Option<(usize, usize
     }
     None
 }
-
-
 
 fn walk_items(
     toks: &[Token],
@@ -542,13 +492,10 @@ fn walk_items(
                 }
             }
 
-
             _ => {}
         }
     }
 }
-
-
 
 fn impl_type(h: &[Token]) -> Option<String> {
     let mut i = 1;
@@ -601,17 +548,14 @@ fn walk_impl(toks: &[Token], start: usize, end: usize, module: &[String], ty: &s
     }
 }
 
-
 #[derive(Debug, PartialEq, Eq)]
 enum FnShape {
-
     Builder,
 
     Constructor,
 
     Other,
 }
-
 
 fn fn_shape(sig: &[Token], ty: &str) -> FnShape {
     let mut i = 0;
@@ -627,7 +571,6 @@ fn fn_shape(sig: &[Token], ty: &str) -> FnShape {
         Some("self") => !params.get(1).is_some_and(|t| is_punct(t, ':')),
         Some("mut") => {
             params.get(1).and_then(|t| ident(t)) == Some("self")
-
                 && !params.get(2).is_some_and(|t| is_punct(t, ':'))
         }
         _ => false,
@@ -656,7 +599,6 @@ fn fn_shape(sig: &[Token], ty: &str) -> FnShape {
         (false, _) => FnShape::Other,
     }
 }
-
 
 fn segments(toks: &[Token], start: usize, end: usize, angles: bool) -> Vec<(usize, usize)> {
     let mut out = Vec::new();

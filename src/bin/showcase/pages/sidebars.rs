@@ -26,8 +26,6 @@ pub struct NavItem {
     pub disabled: bool,
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct NavList {
     pub id: WidgetId,
@@ -40,7 +38,6 @@ pub struct NavList {
     area: Rect,
     track: Rect,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NavRow {
@@ -61,8 +58,6 @@ impl NavList {
     pub fn width(&self) -> u16 {
         if self.collapsed { 6 } else { 24 }
     }
-
-
 
     fn rows(&self) -> Vec<NavRow> {
         let mut rows = vec![];
@@ -87,7 +82,6 @@ impl NavList {
             .unwrap_or(0)
     }
 
-
     fn reveal_cursor(&mut self) {
         let row = self.row_of(self.cursor);
         self.scroll.set_content(self.rows().len());
@@ -101,8 +95,6 @@ impl NavList {
             Outcome::Consumed
         }
     }
-
-
 
     pub fn pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let bar = scrollbar::id_for(self.id);

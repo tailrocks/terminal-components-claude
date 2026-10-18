@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::hints::{HasHints, HintCx};
@@ -20,19 +14,8 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 
-
-
 #[derive(Clone)]
 pub struct ChoiceDialog {
-
-
-
-
-
-
-
-
-
     pub close_button: crate::widgets::icon_button::IconButton,
 
     pub dismiss: crate::ui::popup::Dismiss,
@@ -51,28 +34,16 @@ pub struct ChoiceDialog {
     pub area: Rect,
     pub option_tones: Vec<Tone>,
 
-
     strings: Strings,
-
 
     pub nav: NavKeys,
 
-
-
     pub button_row: crate::widgets::button::ButtonRow,
-
-
-
 
     pub double_click_confirms: bool,
 
-
-
     refused: bool,
 }
-
-
-
 
 impl HasHints for ChoiceDialog {
     fn hints(&self, cx: &HintCx) -> Vec<Hint> {
@@ -103,18 +74,15 @@ impl HasHints for ChoiceDialog {
 }
 
 impl ChoiceDialog {
-
     pub fn button_row(mut self, row: crate::widgets::button::ButtonRow) -> Self {
         self.button_row = row;
         self
     }
 
-
     pub fn double_click_confirms(mut self, on: bool) -> Self {
         self.double_click_confirms = on;
         self
     }
-
 
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
@@ -146,7 +114,6 @@ impl ChoiceDialog {
             refused: false,
         }
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
@@ -183,15 +150,11 @@ impl ChoiceDialog {
         self.radio.id
     }
 
-
-
     pub fn height(&self) -> u16 {
         let body = self.lines.len() as u16 + if self.lines.is_empty() { 0 } else { 1 };
         let stepper = if self.stepper.is_some() { 2 } else { 0 };
         2 + 2 + stepper + body + self.radio.height() + 2 + 1
     }
-
-
 
     fn primary(&self) -> usize {
         self.buttons
@@ -199,9 +162,6 @@ impl ChoiceDialog {
             .position(|b| b.kind == ButtonKind::Primary || b.kind == ButtonKind::Danger)
             .unwrap_or(self.buttons.len().saturating_sub(1))
     }
-
-
-
 
     fn fire_default(&mut self) -> Outcome {
         let i = self.primary();
@@ -252,7 +212,6 @@ impl ChoiceDialog {
             _ => None,
         };
         if let Some(back) = step {
-
             if let Some(id) = self.button_row.step(&self.buttons, cur, !back) {
                 focus.focus(id);
             }
@@ -302,7 +261,6 @@ impl ChoiceDialog {
             }
         }
         let h = self.height();
-
 
         let flash = ctx.interaction.flash;
         if self.refused {
@@ -379,12 +337,6 @@ impl ChoiceDialog {
 }
 
 impl ChoiceDialog {
-
-
-
-
-
-
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -402,7 +354,6 @@ impl ChoiceDialog {
         if let Some(r) = self.radio.route(ev) {
             if ev.is(Phase::Click) {
                 focus.focus(self.radio.id);
-
 
                 if self.double_click_confirms
                     && ev.count() >= 2
@@ -469,9 +420,6 @@ mod tests {
         assert_eq!(d.result, Some(Some(1)));
     }
 
-
-
-
     #[test]
     fn a_disabled_default_button_is_not_fired_by_enter_or_a_double_click() {
         use crate::core::intent::Phase;
@@ -514,9 +462,6 @@ mod tests {
         assert_eq!(d.result, Some(Some(0)));
     }
 
-
-
-
     #[test]
     fn a_double_click_on_an_option_confirms_it() {
         use crate::core::intent::Phase;
@@ -544,7 +489,6 @@ mod tests {
         let new =
             || ChoiceDialog::new(WidgetId::of("split"), "Split", "Dir", &["Right", "Down"], 0);
 
-
         let mut d = new();
         let hits = draw(&mut d);
         click(&mut d, &hits, 1, 1);
@@ -553,7 +497,6 @@ mod tests {
         click(&mut d, &hits, 1, 2);
         assert_eq!(d.result, Some(Some(1)), "double click confirms");
         assert_eq!(d.fired, Some(1), "the primary button fired");
-
 
         let mut d = new().double_click_confirms(false);
         let hits = draw(&mut d);

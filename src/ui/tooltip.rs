@@ -1,35 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::Cell;
 
 use ratatui::buffer::Buffer;
@@ -44,13 +12,9 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{self, Placement};
 use crate::ui::text::{truncate, width, wrap};
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tooltips {
-
     pub enabled: bool,
-
 
     pub delay_ms: u64,
 
@@ -58,7 +22,6 @@ pub struct Tooltips {
 }
 
 impl Tooltips {
-
     pub const OFF: Self = Self {
         enabled: false,
         delay_ms: 600,
@@ -91,9 +54,6 @@ impl Default for Tooltips {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Tip {
     pub text: String,
@@ -114,7 +74,6 @@ impl Tip {
     }
 }
 
-
 pub fn tip_id(owner: WidgetId) -> WidgetId {
     owner.sub("junie.tooltip")
 }
@@ -129,14 +88,10 @@ thread_local! {
     static QUEUED: Cell<bool> = const { Cell::new(false) };
 }
 
-
 pub(crate) fn begin_frame() {
     QUEUED.with(|q| q.set(false));
     SHOWN.with(|s| s.set(None));
 }
-
-
-
 
 pub fn show(
     ctx: &mut RenderCtx,
@@ -161,7 +116,6 @@ pub fn show(
         return;
     }
     if ctx.interaction.pressed == Some(owner) {
-
         DISMISSED.with(|d| d.set(Some(owner)));
         return;
     }
@@ -177,9 +131,6 @@ pub fn show(
     ctx.overlay(move |buf, ctx| draw(buf, ctx, owner, anchor, &tip, policy));
 }
 
-
-
-
 pub fn on_input(input: &Input) -> Option<Outcome> {
     let Input::Key(k) = input else {
         return None;
@@ -193,7 +144,6 @@ pub fn on_input(input: &Input) -> Option<Outcome> {
     Some(Outcome::Changed)
 }
 
-
 fn layout(
     screen: Rect,
     anchor: Rect,
@@ -206,7 +156,6 @@ fn layout(
         .max(1) as usize;
     let mut lines = wrap(&tip.text, room);
     if let Some(key) = key {
-
         let last = lines.last().map(|l| width(l)).unwrap_or(0);
         if last + 2 + width(key) <= room {
             if let Some(l) = lines.last_mut() {
@@ -244,7 +193,6 @@ fn draw(
         return;
     }
     SHOWN.with(|s| s.set(Some(owner)));
-
 
     let on_popover = area
         .positions()
@@ -334,8 +282,6 @@ mod tests {
         })
     }
 
-
-
     #[test]
     fn a_resting_pointer_shows_the_description_and_shortcut() {
         let (buf, _) = frame(hovering(OWNER, Some(100)));
@@ -359,8 +305,6 @@ mod tests {
         let (buf, _) = frame(Interaction::default());
         assert!(!text(&buf).contains("Save the query"));
     }
-
-
 
     #[test]
     fn it_is_hoverable_dismissible_and_persistent() {

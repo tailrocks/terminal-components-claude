@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -142,8 +138,6 @@ fn a_select_cell_is_edited_by_keyboard() {
     assert_eq!(h.status().as_deref(), Some("Edit cancelled"));
 }
 
-
-
 #[test]
 fn the_wheel_over_an_open_choice_popup_moves_its_cursor() {
     let mut h = Harness::new(140, 40);
@@ -207,7 +201,6 @@ fn the_tags_checklist_commits_several_values() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Retired label"));
 
-
     h.key(KeyCode::Char(' '));
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
@@ -258,9 +251,6 @@ fn imported_values_outside_the_set_are_flagged_until_fixed() {
 
 #[test]
 fn the_priority_radio_skips_its_disabled_option_and_tab_moves_on() {
-
-
-
     let mut h = Harness::new(140, 40);
     for _ in ENV..PRIORITY {
         h.key(KeyCode::Right);

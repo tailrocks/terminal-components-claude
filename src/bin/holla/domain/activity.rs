@@ -1,18 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
 use crate::domain::context::ScopeTag;
 use crate::domain::effect::Effect;
 use crate::domain::exec::Command;
-
 
 pub const RETAIN_LINES: usize = 4000;
 
@@ -22,7 +10,6 @@ pub const TERM_EXIT_TICKS: u64 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActivityState {
-
     Queued,
     Running,
 
@@ -64,7 +51,6 @@ impl ActivityState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActivityKind {
-
     Task,
 
     Logs { services: Vec<String> },
@@ -87,13 +73,8 @@ pub enum LineTone {
 pub enum LineKind {
     Output,
 
-
-    Prompt {
-        secret: bool,
-    },
+    Prompt { secret: bool },
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScriptLine {
@@ -104,8 +85,6 @@ pub struct ScriptLine {
     pub kind: LineKind,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Branch {
     pub matches: Option<String>,
@@ -114,7 +93,6 @@ pub struct Branch {
 
     pub end: Option<(u64, i32)>,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Script {
@@ -237,15 +215,11 @@ pub fn prompt(at: u64, text: &str, secret: bool) -> ScriptLine {
     }
 }
 
-
-
-
 pub fn normalize_line(raw: &[u8]) -> String {
     let raw = raw.strip_suffix(b"\n").unwrap_or(raw);
     let raw = raw.strip_suffix(b"\r").unwrap_or(raw);
     String::from_utf8_lossy(raw).into_owned()
 }
-
 
 pub fn split_stream(raw: &[u8]) -> Vec<String> {
     let mut out = vec![];
@@ -261,8 +235,6 @@ pub fn split_stream(raw: &[u8]) -> Vec<String> {
     }
     out
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputRecord {
@@ -289,7 +261,6 @@ pub struct CancelState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InputError {
-
     Finished,
 
     NotStarted,
@@ -336,7 +307,6 @@ pub struct Activity {
 
     pub paused_ticks: u64,
     pub stdin: Vec<InputRecord>,
-
 
     pub pending: Vec<u8>,
 
@@ -400,7 +370,6 @@ impl Activity {
         }
     }
 
-
     pub fn elapsed(&self, tick: u64) -> u64 {
         let wall = tick.saturating_sub(self.started_tick);
         let paused = self.paused_ticks
@@ -412,13 +381,10 @@ impl Activity {
         wall.saturating_sub(paused)
     }
 
-
     pub fn accepts_input(&self) -> bool {
         matches!(self.kind, ActivityKind::Task | ActivityKind::Ssh { .. })
             && matches!(self.state, ActivityState::Running)
     }
-
-
 
     pub fn advance(&mut self, tick: u64) -> bool {
         match self.state {
@@ -469,7 +435,6 @@ impl Activity {
             && elapsed >= end
             && self.state != ActivityState::Detached
         {
-
             while let Some(l) = self.script.lines.get(self.cursor).cloned() {
                 self.cursor += 1;
                 if let LineKind::Output = l.kind {
@@ -540,8 +505,6 @@ impl Activity {
         }
     }
 
-
-
     pub fn stop(&mut self, tick: u64) {
         match self.state {
             ActivityState::Queued => {
@@ -565,7 +528,6 @@ impl Activity {
         }
     }
 
-
     pub fn start(&mut self, tick: u64) {
         if self.state == ActivityState::Queued {
             self.state = ActivityState::Running;
@@ -587,10 +549,6 @@ impl Activity {
         self.cancel = None;
         self.prompts_seen = 0;
     }
-
-
-
-
 
     pub fn send_input(&mut self, bytes: &[u8], tick: u64) -> Result<(), InputError> {
         match self.state {
@@ -616,8 +574,6 @@ impl Activity {
             return Ok(());
         }
         if bytes == [0x04] {
-
-
             if self.waiting.is_some() {
                 let pending = std::mem::take(&mut self.pending);
                 let answer = if pending.is_empty() {
@@ -644,7 +600,6 @@ impl Activity {
                             .into_owned();
                         self.answer_prompt(line, None, tick);
                     } else {
-
                         self.echo_pending(None);
                         self.pending.clear();
                         self.echo_active = false;
@@ -658,8 +613,6 @@ impl Activity {
         }
         Ok(())
     }
-
-
 
     fn echo_pending(&mut self, mark: Option<&str>) {
         let text = String::from_utf8_lossy(&self.pending).into_owned();
@@ -686,12 +639,10 @@ impl Activity {
         }
     }
 
-
     fn answer_prompt(&mut self, answer: String, mark: Option<&str>, tick: u64) {
         let Some(p) = self.waiting.clone() else {
             return;
         };
-
 
         if let Some(last) = self.output.last_mut() {
             let shown = if p.secret || answer == "\u{4}" {
@@ -727,9 +678,6 @@ impl Activity {
             let rest = self.script.lines.split_off(self.cursor);
             self.script.lines.append(&mut spliced);
             if let Some((ticks, exit)) = b.end {
-
-
-
                 self.script.ends_at = Some(elapsed + ticks);
                 self.script.exit = exit;
             } else {
@@ -737,12 +685,6 @@ impl Activity {
             }
         }
     }
-
-
-
-
-
-
 
     pub fn duration_ticks(&self, now: u64) -> u64 {
         match self.ended_tick {
@@ -760,14 +702,11 @@ impl Activity {
         }
     }
 
-
-
     #[cfg(test)]
     pub fn last_line(&self) -> Option<&str> {
         self.output.last().map(|(_, t, _)| t.as_str())
     }
 }
-
 
 pub fn key_bytes(key: &junie_tui::core::event::Key) -> Option<Vec<u8>> {
     use ratatui::crossterm::event::KeyCode;

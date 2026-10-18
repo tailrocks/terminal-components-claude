@@ -1,28 +1,7 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use clap::{Parser, ValueEnum};
 
 use crate::motion::Motion;
 use crate::theme::{ColorLevel, Theme};
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum ColorArg {
@@ -47,49 +26,41 @@ impl From<ColorArg> for ColorLevel {
     }
 }
 
-
+#[doc = " The options every application accepts."]
 #[derive(Clone, Debug, Default, PartialEq, Eq, clap::Args)]
 pub struct CommonArgs {
-
+    #[doc = " Colour level (default: detected from the terminal; NO_COLOR selects none)"]
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
     pub color: Option<ColorArg>,
 
+    #[doc = " How much moves (default: full, or reduced when the app's NO_MOTION variable is set)"]
     #[arg(short = 'm', long, value_enum, value_name = "MOTION")]
     pub motion: Option<Motion>,
 
+    #[doc = " With --motion paused, the tick to render"]
     #[arg(short = 'f', long, default_value_t = 0, value_name = "N")]
     pub frame: u64,
 }
 
 impl CommonArgs {
-
     pub fn level(&self) -> ColorLevel {
         self.color
             .map(ColorLevel::from)
             .unwrap_or_else(ColorLevel::detect)
     }
 
-
     pub fn theme(&self) -> Theme {
         Theme::for_level(self.level())
     }
-
-
-
 
     pub fn motion(&self, env_var: &str) -> Motion {
         Motion::from_cli_or_env(self.motion, env_var)
     }
 }
 
-
-
 pub fn motion_help(env_var: &str) -> String {
     format!("Motion:    explicit --motion wins; otherwise {env_var}=1 selects reduced motion")
 }
-
-
-
 
 pub fn parse<C: Parser>(after_help: String) -> C {
     let matches = C::command().after_help(after_help).get_matches();

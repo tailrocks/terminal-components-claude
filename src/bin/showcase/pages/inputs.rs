@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -38,7 +32,6 @@ fn email(s: &str) -> Option<String> {
     }
 }
 
-
 pub const TEXT_COMMANDS: [(TextCmd, &str); 14] = [
     (TextCmd::SelectAll, "Select all"),
     (TextCmd::Copy, "Copy"),
@@ -56,15 +49,11 @@ pub const TEXT_COMMANDS: [(TextCmd, &str); 14] = [
     (TextCmd::SelectToDocEnd, "Select to text end"),
 ];
 
-
-
 pub fn custom_text_keymap(keys: FieldKeys) -> KeyMap<TextCmd> {
     let mut map = vec![(KeyBinding::alt('a'), TextCmd::SelectAll)];
     map.extend(keys.text_keymap());
     map
 }
-
-
 
 fn keys_of(map: &KeyMap<TextCmd>, cmd: TextCmd) -> String {
     let keys: Vec<String> = map
@@ -88,7 +77,6 @@ fn keys_of(map: &KeyMap<TextCmd>, cmd: TextCmd) -> String {
         keys.join(" · ")
     }
 }
-
 
 fn edit_entry(opts: &PageValues, key: &str) -> Option<EditEntry> {
     match opts.value(key) {
@@ -154,8 +142,6 @@ impl InputsPage {
         page.rebuild();
         page
     }
-
-
 
     fn rebuild(&mut self) {
         let o = &self.opts;
@@ -224,7 +210,6 @@ impl InputsPage {
         }
         self.fields = fields;
     }
-
 
     #[allow(dead_code)]
     pub fn field(&self, i: usize) -> &TextInput {
@@ -300,8 +285,6 @@ impl InputsPage {
         }
     }
 
-
-
     fn render_commands(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let custom = self.opts.value("inputs.text_keymap") == "custom";
@@ -340,7 +323,6 @@ impl InputsPage {
     }
 }
 
-
 fn render_undo(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     let t = ctx.theme;
     let panel = Panel::card(Some("Undo history")).meta("Ctrl+Z · Ctrl+Shift+Z");
@@ -363,8 +345,6 @@ fn render_undo(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         }
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

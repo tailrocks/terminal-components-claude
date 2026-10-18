@@ -1,49 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
@@ -55,21 +9,14 @@ use crate::core::event::ClientPlatform;
 
 use crate::theme::{BadgeKind, HintAlign, HintBarStyle, StatusKind, Theme, Tone};
 
-
-
 pub const UP_DOWN: &str = "↑↓";
 pub const LEFT_RIGHT: &str = "←→";
 pub const ARROWS: &str = "↑↓←→";
 pub const DELETE: &str = "Delete";
 
-
 pub fn range(from: u32, to: u32) -> String {
     format!("{from}–{to}")
 }
-
-
-
-
 
 pub fn normalize_key(key: &str) -> Cow<'_, str> {
     const ARROW: [char; 4] = ['↑', '↓', '←', '→'];
@@ -106,16 +53,6 @@ pub fn normalize_key(key: &str) -> Cow<'_, str> {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 pub fn modifier_click(mods: KeyModifiers, platform: ClientPlatform) -> Option<&'static str> {
     const MAC: [(KeyModifiers, &str); 3] = [
         (KeyModifiers::ALT, "Option+click"),
@@ -134,11 +71,6 @@ pub fn modifier_click(mods: KeyModifiers, platform: ClientPlatform) -> Option<&'
         .map(|&(_, label)| label)
 }
 
-
-
-
-
-
 pub const fn toggle_hint(
     key: &'static str,
     on: bool,
@@ -148,26 +80,15 @@ pub const fn toggle_hint(
     hint(key, if on { when_on } else { when_off })
 }
 
-
-
-
 pub const EDIT_FIELD: [Hint; 3] = [
     hint("Enter", "Apply"),
     hint("Esc", "Cancel"),
     hint("Tab", "Next field"),
 ];
 
-
-
-
 pub const CONTEXT_MENU: Hint = hint("Shift+F10", "Menu");
 
-
-
 pub const EDIT_TEXT: [Hint; 2] = [hint("Tab", "Next field"), hint("Esc", "Done")];
-
-
-
 
 pub const EDIT_CODE: [Hint; 3] = [
     hint("Tab", "Indent"),
@@ -175,31 +96,22 @@ pub const EDIT_CODE: [Hint; 3] = [
     hint("Esc", "Done"),
 ];
 
-
 pub const EDIT_CELL: [Hint; 3] = [
     hint("Enter", "Apply"),
     hint("Esc", "Cancel"),
     hint("Tab", "Next cell"),
 ];
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hint {
     pub key: &'static str,
     pub action: Cow<'static, str>,
 
-
-
     pub priority: HintPriority,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HintPriority {
-
-
     #[default]
     Auto,
 
@@ -209,7 +121,6 @@ pub enum HintPriority {
 }
 
 impl Hint {
-
     pub fn new(key: &'static str, action: impl Into<Cow<'static, str>>) -> Self {
         Self {
             key,
@@ -218,17 +129,14 @@ impl Hint {
         }
     }
 
-
     pub fn priority(mut self, priority: HintPriority) -> Self {
         self.priority = priority;
         self
     }
 
-
     pub fn pinned(self) -> Self {
         self.priority(HintPriority::Pinned)
     }
-
 
     pub fn is_pinned(&self, style: &HintBarStyle) -> bool {
         match self.priority {
@@ -246,9 +154,6 @@ pub const fn hint(key: &'static str, action: &'static str) -> Hint {
         priority: HintPriority::Auto,
     }
 }
-
-
-
 
 pub fn render(
     area: Rect,
@@ -268,12 +173,6 @@ pub fn render(
     )
 }
 
-
-
-
-
-
-
 pub fn render_toned(
     area: Rect,
     buf: &mut Buffer,
@@ -284,7 +183,6 @@ pub fn render_toned(
 ) -> usize {
     render_styled(area, buf, t, hints, badge, right, &t.hintbar)
 }
-
 
 pub fn render_aligned(
     area: Rect,
@@ -299,10 +197,7 @@ pub fn render_aligned(
     render_styled(area, buf, t, hints, badge, right, &style)
 }
 
-
 const GAP: u16 = 2;
-
-
 
 fn hint_width(h: &Hint, compact: bool) -> u16 {
     let kw = crate::ui::text::width(&normalize_key(h.key)) as u16;
@@ -312,8 +207,6 @@ fn hint_width(h: &Hint, compact: bool) -> u16 {
         kw + 1 + crate::ui::text::width(&h.action) as u16
     }
 }
-
-
 
 fn cost(hints: &[Hint], keep: &[usize], compact: &[bool]) -> u32 {
     let mut c: u32 = keep
@@ -325,10 +218,6 @@ fn cost(hints: &[Hint], keep: &[usize], compact: &[bool]) -> u32 {
     }
     c
 }
-
-
-
-
 
 fn fit(hints: &[Hint], room: u16, style: &HintBarStyle) -> (Vec<usize>, Vec<bool>) {
     let room = room as u32;
@@ -356,11 +245,6 @@ fn fit(hints: &[Hint], room: u16, style: &HintBarStyle) -> (Vec<usize>, Vec<bool
     (keep, full)
 }
 
-
-
-
-
-
 pub fn render_status(
     area: Rect,
     buf: &mut Buffer,
@@ -371,9 +255,6 @@ pub fn render_status(
 ) -> usize {
     render_status_at(area, buf, t, hints, badge, right).0
 }
-
-
-
 
 pub fn render_status_at(
     area: Rect,
@@ -410,8 +291,6 @@ pub fn render_status_at(
     (n, spots)
 }
 
-
-
 pub fn render_status_styled_at(
     area: Rect,
     buf: &mut Buffer,
@@ -438,8 +317,6 @@ pub fn render_status_styled_at(
     (n, spots)
 }
 
-
-
 struct Right<'a> {
     text: &'a str,
     mark: &'a str,
@@ -448,8 +325,6 @@ struct Right<'a> {
 }
 
 impl<'a> Right<'a> {
-
-
     fn toned(t: &'a Theme, text: &'a str, tone: Tone) -> Self {
         let mark = match tone {
             Tone::Error => "!",
@@ -465,7 +340,6 @@ impl<'a> Right<'a> {
         }
     }
 }
-
 
 pub fn render_styled(
     area: Rect,
@@ -489,11 +363,6 @@ pub fn render_styled(
         &mut Vec::new(),
     )
 }
-
-
-
-
-
 
 #[allow(clippy::too_many_arguments)]
 pub fn render_parts(
@@ -520,9 +389,6 @@ pub fn render_parts(
     )
 }
 
-
-
-
 #[allow(clippy::too_many_arguments)]
 pub fn render_parts_at(
     area: Rect,
@@ -539,12 +405,6 @@ pub fn render_parts_at(
     let n = render_right(area, buf, t, hints, badge, right, parts, style, &mut spots);
     (n, spots)
 }
-
-
-
-
-
-
 
 pub fn key_of(label: &str) -> Option<crate::core::event::Key> {
     use ratatui::crossterm::event::KeyCode;
@@ -644,7 +504,6 @@ fn render_right(
         style: st,
     }) = right
     {
-
         let text = if mark.is_empty() {
             r.to_owned()
         } else {
@@ -652,8 +511,6 @@ fn render_right(
         };
         let mut available = area.right().saturating_sub(x + 1) as usize;
         if !hints.is_empty() {
-
-
             let share = area.width as usize * style.status_min_share.min(100) as usize / 100;
             let pinned: Vec<usize> = (0..hints.len())
                 .filter(|&i| hints[i].is_pinned(style))
@@ -670,7 +527,6 @@ fn render_right(
             if !mark.is_empty() {
                 buf.set_string(area.right() - w - 1, area.y, mark, mark_style);
             }
-
 
             let mut px = area.right() - w - 1;
             if !mark.is_empty() {
@@ -695,8 +551,6 @@ fn render_right(
     let (keep, compact) = fit(hints, limit.saturating_sub(x), style);
     let cut = keep.len() < hints.len();
     if style.align == HintAlign::Center {
-
-
         let mut used = cost(hints, &keep, &compact) as u16;
         used = if cut {
             used.saturating_sub(GAP) + 1

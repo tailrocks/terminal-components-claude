@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Rect};
@@ -32,13 +28,10 @@ pub struct PickerItem {
     pub matched: Vec<usize>,
     pub disabled: bool,
 
-
     pub key: String,
 }
 
 impl PickerItem {
-
-
     pub const DEFAULT_GLYPH: &'static str = "·";
 
     pub fn new(label: impl Into<String>) -> Self {
@@ -95,10 +88,6 @@ pub struct Picker {
     pub title: String,
     pub placeholder: String,
 
-
-
-
-
     pub query: EditField,
     pub items: Vec<PickerItem>,
     pub cursor: usize,
@@ -107,70 +96,42 @@ pub struct Picker {
     pub width: u16,
     pub max_rows: u16,
 
-
-
     pub fit: crate::ui::popup::Place,
-
-
-
 
     pub placement: Placement,
 
-
     pub anchor: Rect,
 
-
-
     pub hints: String,
-
 
     pub backdrop: Backdrop,
 
     pub scope: Option<String>,
     pub empty_text: String,
 
-
     strings: crate::theme::Strings,
-
 
     pub empty: Option<crate::widgets::empty::EmptyState>,
     pub area: Rect,
 
     pub searchable: bool,
 
-
     pub cursor_style: CursorStyle,
-
-
 
     cursor_dirty: bool,
 
-
     pub reveal: Option<crate::ui::reveal::Reveal>,
-
 
     pub dismiss: crate::ui::popup::Dismiss,
 
-
     pub(crate) pending: Option<PickerAction>,
-
-
-
 
     pub delete_is_secondary: bool,
 
-
-
-
     pub nav: NavKeys,
-
 
     pub choose_hint: std::borrow::Cow<'static, str>,
 }
-
-
-
-
 
 impl HasHints for Picker {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -196,12 +157,10 @@ impl HasHints for Picker {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PickerAction {
-
     QueryChanged,
     Chosen(usize),
 
     ChosenAlt(usize),
-
 
     Submit,
 
@@ -250,12 +209,10 @@ impl Picker {
         }
     }
 
-
     pub fn choose_hint(mut self, action: impl Into<std::borrow::Cow<'static, str>>) -> Self {
         self.choose_hint = action.into();
         self
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
@@ -267,23 +224,19 @@ impl Picker {
         self
     }
 
-
     pub fn caret(&self) -> usize {
         self.query.buffer.cursor_offset()
     }
-
 
     pub fn width(mut self, width: u16) -> Self {
         self.width = width;
         self
     }
 
-
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
         self
     }
-
 
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = anchor;
@@ -291,42 +244,35 @@ impl Picker {
         self
     }
 
-
     pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
         self.fit = fit;
         self
     }
-
 
     pub fn backdrop(mut self, backdrop: Backdrop) -> Self {
         self.backdrop = backdrop;
         self
     }
 
-
     pub fn hints(mut self, hints: &str) -> Self {
         self.hints = hints.to_owned();
         self
     }
-
 
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.max_rows = rows;
         self
     }
 
-
     pub fn placeholder(mut self, text: &str) -> Self {
         self.placeholder = text.to_owned();
         self
     }
 
-
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.empty = Some(state);
         self
     }
-
 
     pub fn empty_text(mut self, text: &str) -> Self {
         self.empty_text = text.to_owned();
@@ -337,8 +283,6 @@ impl Picker {
         self.dismiss = dismiss;
         self
     }
-
-
 
     pub fn on_click_outside(&mut self) -> Option<PickerAction> {
         self.dismiss
@@ -351,10 +295,6 @@ impl Picker {
         self
     }
 
-
-
-
-
     pub fn height(&self) -> u16 {
         let rows = if self.status == PickerStatus::Ready {
             (self.items.len() as u16).clamp(1, self.max_rows)
@@ -365,17 +305,12 @@ impl Picker {
         2 + 1 + query_rows + rows + 2
     }
 
-
-
     pub fn set_items(&mut self, items: Vec<PickerItem>) {
         self.items = items;
         self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
         self.scroll.v = ScrollState::new(self.items.len());
         self.cursor_dirty = true;
     }
-
-
-
 
     pub fn refresh_items(&mut self, items: Vec<PickerItem>) {
         let keep = self
@@ -393,8 +328,6 @@ impl Picker {
         self.cursor_dirty = true;
     }
 
-
-
     pub fn eligible(&self, i: usize) -> Option<usize> {
         if self.status != PickerStatus::Ready {
             return None;
@@ -402,20 +335,16 @@ impl Picker {
         self.items.get(i).filter(|it| !it.disabled).map(|_| i)
     }
 
-
     pub fn current_key(&self) -> Option<&str> {
         self.eligible(self.cursor)
             .map(|i| self.items[i].key.as_str())
             .filter(|k| !k.is_empty())
     }
 
-
-
     pub fn on_paste(&mut self, text: &str) -> (Outcome, Option<PickerAction>) {
         if !self.searchable || self.status == PickerStatus::Loading(String::new()) {
             return (Outcome::Consumed, None);
         }
-
 
         let flat = text.replace('\t', " ");
         if flat.is_empty() || !self.query.paste(&flat) {
@@ -423,7 +352,6 @@ impl Picker {
         }
         (Outcome::Changed, Some(PickerAction::QueryChanged))
     }
-
 
     pub fn set_cursor(&mut self, i: usize) {
         self.cursor = i.min(self.items.len().saturating_sub(1));
@@ -439,7 +367,6 @@ impl Picker {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
     fn move_to(&mut self, i: usize) {
         self.cursor = i;
         self.cursor_dirty = true;
@@ -447,8 +374,6 @@ impl Picker {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
-
-
         let typing = self.searchable;
         let nav = self.nav.action(key).filter(|n| {
             !(typing
@@ -523,7 +448,6 @@ impl Picker {
                 (Outcome::Changed, Some(PickerAction::Back))
             }
 
-
             _ if self.searchable => {
                 let r = self.query.on_key(key);
                 if r.edited {
@@ -531,7 +455,6 @@ impl Picker {
                 } else if r.outcome == Outcome::Changed && r.exit.is_none() {
                     (Outcome::Changed, None)
                 } else {
-
                     (Outcome::Consumed, None)
                 }
             }
@@ -539,14 +462,11 @@ impl Picker {
         }
     }
 
-
-
     fn row_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<PickerAction> {
-
         if id == crate::ui::popup::backdrop_id(self.id) {
             return self.on_click_outside();
         }
@@ -557,13 +477,11 @@ impl Picker {
         Some(PickerAction::Chosen(i))
     }
 
-
     pub fn draw(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let hints = std::mem::take(&mut self.hints);
         self.paint(screen, buf, ctx, &hints);
         self.hints = hints;
     }
-
 
     #[deprecated(note = "set `Picker::hints` and call `Picker::draw`")]
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
@@ -584,9 +502,6 @@ impl Picker {
         let t = ctx.theme;
 
         ctx.modal_backdrop_with(buf, screen, self.backdrop);
-
-
-
 
         let modal = crate::ui::popup::Dismiss {
             pass_through: false,
@@ -618,7 +533,6 @@ impl Picker {
             t.title().bg(bg),
         );
         if let Some(scope) = &self.scope {
-
             let room = inner.width.saturating_sub(width(&self.title) as u16 + 3) as usize;
             if room >= 6 {
                 let scope = truncate(scope, room);
@@ -660,8 +574,6 @@ impl Picker {
                 );
                 line.as_position()
             } else {
-
-
                 let look = crate::widgets::edit::LineLook {
                     text: fs,
                     selection: t.selection(),
@@ -673,14 +585,12 @@ impl Picker {
                 self.query.draw_line(buf, line, &look)
             };
             if line.width > 0 {
-
                 let id = ctx.register_part(self.id, PartRef::of(Part::QUERY), line);
                 ctx.pointer_shape(id, crate::core::shape::PointerShape::Text);
             }
             ctx.set_cursor(caret);
             y += 2;
         }
-
 
         let hints_fit = inner.bottom() > y + 1;
         let hints = if hints_fit { hints } else { "" };
@@ -752,9 +662,6 @@ impl Picker {
         let has_sb = self.scroll.overflows();
         let row_w = list.width.saturating_sub(u16::from(has_sb));
 
-
-
-
         let measure = |f: &dyn Fn(&PickerItem) -> u16| self.items.iter().map(f).max().unwrap_or(0);
         let label_need = measure(&|i| width(&i.label) as u16).max(6);
         let detail_need = measure(&|i| width(&i.detail) as u16);
@@ -763,7 +670,6 @@ impl Picker {
         let label_cap = label_need.min((row_w * 45 / 100).max(6));
         let mut cols = vec![
             Col::content(label_cap.min(12), label_cap),
-
             Col::content(detail_need.min(4), detail_need)
                 .flex(1, u16::MAX)
                 .droppable(0),
@@ -922,11 +828,6 @@ impl Scrollable for Picker {
     }
 }
 
-
-
-
-
-
 impl crate::core::pointer::MouseTarget for Picker {
     type Action = PickerAction;
 
@@ -947,8 +848,6 @@ impl crate::core::pointer::MouseTarget for Picker {
         if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
             return r.lift();
         }
-
-
 
         if self.searchable && ev.part().part == Part::QUERY {
             let at = self.query.line_offset_at(ev.pos());
@@ -971,8 +870,6 @@ impl crate::core::pointer::MouseTarget for Picker {
             self.on_click_outside()
         } else {
             match self.on_click(ev.id) {
-
-
                 Some(PickerAction::Chosen(i))
                     if ev
                         .mods()
@@ -1070,11 +967,6 @@ mod tests {
         Key { code, mods }
     }
 
-
-
-
-
-
     #[test]
     fn the_query_takes_clicks_word_selection_select_all_and_scrolls() {
         use crate::core::intent::Phase;
@@ -1131,7 +1023,6 @@ mod tests {
 
     #[test]
     fn home_end_and_paging_never_land_on_a_disabled_end_row() {
-
         use ratatui::crossterm::event::KeyModifiers as M;
         let mut p = picker(5);
 
@@ -1210,7 +1101,6 @@ mod tests {
         p.refresh_items(items);
         assert_eq!(p.cursor, 1);
         assert_eq!(p.current_key(), Some("k2"));
-
 
         let mut items = p.items.clone();
         items.remove(1);
@@ -1464,8 +1354,6 @@ mod tests {
         assert_eq!((p.area.x, p.area.y), (6, 5), "{:?}", p.area);
     }
 
-
-
     fn click_over_page(
         p: &mut Picker,
         pos: ratatui::layout::Position,
@@ -1492,8 +1380,6 @@ mod tests {
             KeyModifiers::NONE,
         ))
     }
-
-
 
     #[test]
     fn an_alt_click_on_a_row_chooses_its_alternative() {
@@ -1529,9 +1415,6 @@ mod tests {
         );
     }
 
-
-
-
     #[test]
     fn a_click_outside_the_picker_lands_on_its_backdrop_and_cancels_it() {
         use crate::ui::layer::{Dismissed, LayerPointer, LayerTag, ShellLayers};
@@ -1555,8 +1438,6 @@ mod tests {
         }
         assert!(stack.is_empty());
     }
-
-
 
     #[test]
     fn a_refused_outside_click_on_the_picker_is_consumed() {

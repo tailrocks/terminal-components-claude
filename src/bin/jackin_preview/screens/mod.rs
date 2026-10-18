@@ -1,6 +1,3 @@
-
-
-
 pub mod accounts;
 pub mod capsule;
 pub mod cockpit;
@@ -32,14 +29,8 @@ use junie_tui::widgets::menu::MenuAction;
 use junie_tui::widgets::picker::PickerAction;
 use modals::{BrowserResult, FormAction, FormDialog, FormValues, InfoResult};
 
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModalResult {
-
-
     Dialog {
         action: Option<usize>,
         text: Option<String>,
@@ -49,7 +40,6 @@ pub enum ModalResult {
 
     Scope,
 
-
     PickerEvent(PickerAction),
     Cancelled,
     Browser(BrowserResult),
@@ -57,8 +47,6 @@ pub enum ModalResult {
     Form(Option<FormValues>),
 
     FormAction(String, FormValues),
-
-
 
     FormEvent(FormAction),
     Op(Option<OpReference>),
@@ -91,10 +79,7 @@ impl From<LayerResult> for ModalResult {
     }
 }
 
-
-
 pub type AppLayer = dyn Layer<ModalResult, World>;
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Go {
@@ -142,12 +127,9 @@ pub enum Go {
     Quit,
 }
 
-
 pub type Request = junie_tui::shell::Request<ModalResult, World, Go>;
 
-
 pub type Cx<'a> = junie_tui::shell::Cx<'a, ModalResult, World, Go>;
-
 
 pub struct Jackin;
 
@@ -159,12 +141,7 @@ impl junie_tui::shell::PageTypes for Jackin {
     type Go = Go;
 }
 
-
-
-
-
 pub trait Screen: junie_tui::shell::Page<Jackin> {
-
     fn picker_items(
         &mut self,
         _tag: &LayerTag,
@@ -180,22 +157,15 @@ pub trait Screen: junie_tui::shell::Page<Jackin> {
         vec![]
     }
 
-
-
     fn layer_open(&self) -> bool {
         false
     }
-
 
     fn request_leave(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
         cx.go(Go::Manager);
         Outcome::Changed
     }
 }
-
-
-
-
 
 pub fn health_spans(
     s: &crate::domain::usage::OverallSummary,

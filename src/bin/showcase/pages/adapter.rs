@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -19,9 +11,6 @@ use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::leave::Stakes;
 use junie_tui::widgets::keyhint::{Hint, hint};
-
-
-
 
 pub struct Showcase;
 
@@ -54,9 +43,6 @@ impl shell::Page<Showcase> for dyn Page {
         self.handle(&PageEvent::Tick, cx)
     }
 
-
-
-
     fn on_layer_result(
         &mut self,
         tag: &LayerTag,
@@ -87,7 +73,6 @@ impl shell::Page<Showcase> for dyn Page {
     fn crumb(&self, _: &()) -> String {
         self.title().to_owned()
     }
-
 
     fn primary_focus(&self) -> Option<WidgetId> {
         None

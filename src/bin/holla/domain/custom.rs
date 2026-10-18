@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use crate::domain::digest::sha256_hex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,7 +62,6 @@ pub struct CustomAction {
     pub index: usize,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diagnostic {
     pub path: String,
@@ -94,8 +87,6 @@ pub struct CustomConfig {
     pub actions: Vec<CustomAction>,
     pub diagnostics: Vec<Diagnostic>,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq)]
 enum Val {
@@ -172,7 +163,6 @@ fn parse_value(s: &str) -> Result<Val, String> {
     Ok(Val::Other)
 }
 
-
 fn strip_comment(line: &str) -> &str {
     let mut in_str: Option<char> = None;
     for (i, c) in line.char_indices() {
@@ -195,9 +185,6 @@ fn id_ok(id: &str) -> bool {
             .chars()
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '_' | '-'))
 }
-
-
-
 
 pub fn parse_config(
     path: &str,
@@ -274,9 +261,7 @@ pub fn parse_config(
             e.push((key, val, ln + 1));
         }
     }
-    if !saw_action_key && !text.trim().is_empty() && cfg.diagnostics.is_empty() {
-
-    }
+    if !saw_action_key && !text.trim().is_empty() && cfg.diagnostics.is_empty() {}
     let mut ids_here: Vec<String> = vec![];
     for (index, e) in entries.iter().enumerate() {
         let get = |k: &str| {
@@ -419,11 +404,6 @@ pub fn parse_config(
     cfg
 }
 
-
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrustEntry {
     pub digest: String,
@@ -435,7 +415,6 @@ pub struct TrustEntry {
 pub struct TrustStore {
     pub entries: Vec<TrustEntry>,
 
-
     pub corrupt: Option<String>,
 
     pub save_failure: Option<String>,
@@ -444,7 +423,6 @@ pub struct TrustStore {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrustStatus {
-
     Trusted,
 
     Moved,
@@ -473,8 +451,6 @@ impl TrustStore {
         best
     }
 
-
-
     pub fn approve(&mut self, digest: &str, path: &str, cwd: &str) -> Result<String, String> {
         if let Some(e) = &self.save_failure {
             return Err(format!("trust store not saved: {e}"));
@@ -498,7 +474,6 @@ impl TrustStore {
         before != self.entries.len()
     }
 
-
     pub fn serialize(&self) -> String {
         let items: Vec<String> = self
             .entries
@@ -514,8 +489,6 @@ impl TrustStore {
             .collect();
         format!("{{\"v\":2,\"entries\":[{}]}}", items.join(","))
     }
-
-
 
     pub fn load(text: Option<&str>) -> Self {
         let Some(text) = text else {

@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;

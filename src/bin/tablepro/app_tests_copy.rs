@@ -1,11 +1,7 @@
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::Screen;
 use crate::app_tests::H;
-
-
 
 #[test]
 fn ctrl_d_is_data_structure_and_alt_d_duplicates() {

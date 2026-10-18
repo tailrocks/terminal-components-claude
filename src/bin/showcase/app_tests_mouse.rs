@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -68,7 +65,6 @@ impl Harness {
     }
 }
 
-
 #[test]
 fn the_brand_asks_and_quits_by_mouse() {
     let mut h = Harness::new(120, 40, PageId::Overview);
@@ -82,7 +78,6 @@ fn the_brand_asks_and_quits_by_mouse() {
     assert!(h.app.shell.quit, "{}", h.text());
 }
 
-
 #[test]
 fn the_help_dialog_closes_by_its_close_button() {
     let mut h = Harness::new(120, 40, PageId::Overview);
@@ -93,9 +88,6 @@ fn the_help_dialog_closes_by_its_close_button() {
     h.click(x.x + 1, x.y);
     assert!(h.app.help().is_none(), "{:?} {}", h.app.help(), h.text());
 }
-
-
-
 
 #[test]
 fn the_rename_dialog_close_plate_lights_whole_and_closes_on_its_edge() {

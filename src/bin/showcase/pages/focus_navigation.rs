@@ -1,24 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -42,7 +21,6 @@ use junie_tui::widgets::tabs::Tabs;
 
 const ID: WidgetId = WidgetId::of("focusnav");
 
-
 const NAVS: [Nav; 8] = [
     Nav::Up,
     Nav::Down,
@@ -53,7 +31,6 @@ const NAVS: [Nav; 8] = [
     Nav::Home,
     Nav::End,
 ];
-
 
 fn candidate_keys() -> Vec<(&'static str, Key)> {
     let k = |code| Key {
@@ -78,7 +55,6 @@ fn candidate_keys() -> Vec<(&'static str, Key)> {
     ]
 }
 
-
 fn nav_map(nav: NavKeys) -> Vec<(Nav, String)> {
     let keys = candidate_keys();
     NAVS.iter()
@@ -100,7 +76,6 @@ fn nav_map(nav: NavKeys) -> Vec<(Nav, String)> {
         .collect()
 }
 
-
 fn nav_keys(v: usize) -> NavKeys {
     match v {
         1 => NavKeys::DESKTOP.vim(true),
@@ -117,7 +92,6 @@ pub struct FocusNavPage {
     pub email: TextInput,
     pub save: Button,
     pub cancel: Button,
-
 
     pub tags: Vec<Button>,
     pub list: ListBox,
@@ -162,7 +136,6 @@ impl FocusNavPage {
         }
     }
 
-
     fn name_of(&self, id: Option<WidgetId>) -> String {
         let Some(id) = id else {
             return "nothing".into();
@@ -197,7 +170,6 @@ impl FocusNavPage {
         let half = rows[0].width / 2;
         let (left, right) = crate::pages::layout::columns(rows[0], half, 2);
 
-
         let panel = Panel::card(Some("Focus ring")).meta("Tab · Shift+Tab · click");
         let bg = panel.bg(t);
         let inner = panel.render(left, buf, t);
@@ -217,7 +189,6 @@ impl FocusNavPage {
         for (b, r) in self.tags.iter_mut().zip(r) {
             b.render(r, buf, ctx, bg);
         }
-
 
         let panel = Panel::card(Some("Focus"));
         let bg = panel.bg(t);
@@ -244,7 +215,6 @@ impl FocusNavPage {
         ];
         draw_lines(inner, buf, t, bg, &lines);
 
-
         let (left, right) = crate::pages::layout::columns(rows[2], half, 2);
         let panel = Panel::card(Some("Mailboxes"))
             .meta("nav()")
@@ -261,7 +231,6 @@ impl FocusNavPage {
             .map(|(n, k)| (nav_label(*n), k.clone()))
             .collect();
         draw_lines(inner, buf, t, bg, &lines);
-
 
         let panel = Panel::card(Some("Keys and input"));
         let bg = panel.bg(t);
@@ -319,7 +288,6 @@ fn on_off(b: bool) -> &'static str {
     if b { "on" } else { "off" }
 }
 
-
 fn printable(s: &str) -> String {
     if s.is_empty() {
         return "nothing".into();
@@ -339,7 +307,6 @@ fn nav_label(n: Nav) -> &'static str {
         Nav::End => "End",
     }
 }
-
 
 fn draw_lines(
     inner: Rect,
@@ -363,7 +330,6 @@ fn draw_lines(
         );
     }
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -395,7 +361,6 @@ impl Page for FocusNavPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-
         if let PageEvent::Blur(ch) = ev {
             self.last_change = format!("{} → {}", self.name_of(Some(ch.from)), self.name_of(ch.to));
             self.ring_len = cx.ring.reachable().len();
@@ -423,7 +388,6 @@ impl Page for FocusNavPage {
                 {
                     let (out, act) = field.on_key(key);
                     if matches!(act, Some(InputAction::CommittedTab { .. })) && self.tab_stays {
-
                         cancel_focus_request();
                     }
                     return out;
@@ -437,8 +401,6 @@ impl Page for FocusNavPage {
                 if let Some(i) = self.tags.iter().position(|b| b.id == f)
                     && key.code == KeyCode::Delete
                 {
-
-
                     let gone = self.tags.remove(i);
                     cx.status(format!("Removed {}", gone.label));
                     return Outcome::Changed;
@@ -525,7 +487,6 @@ impl Page for FocusNavPage {
                 let items = self.list.items.clone();
                 let cursor = self.list.cursor;
                 let nav = nav_keys(value);
-
 
                 self.list = ListBox::new(self.list.id, items, SelectMode::Single)
                     .nav(nav)

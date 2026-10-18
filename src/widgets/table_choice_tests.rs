@@ -1,6 +1,3 @@
-
-
-
 use super::*;
 use crate::core::{focus::FocusRing, hit::HitRegistry};
 use crate::theme::Theme;
@@ -27,7 +24,6 @@ fn envs() -> Options {
             .disabled("Read-only"),
     ])
 }
-
 
 fn table() -> DataTable {
     let columns = vec![
@@ -146,7 +142,6 @@ fn space_opens_type_ahead_jumps_and_a_disabled_option_is_never_chosen() {
 fn a_select_cell_opens_chooses_and_cancels_by_mouse() {
     let mut t = table();
     let (_, hits) = draw(&mut t, None);
-
 
     let cell = hits.area_of(t.cell_id(0, 1)).unwrap();
     let at = Position::new(cell.x, cell.y);
@@ -329,9 +324,6 @@ fn read_only_and_text_cells_show_no_affordance() {
     let glyph = Theme::junie().glyphs.disclosure_open;
     assert!(!text(&buf).contains(glyph), "{}", text(&buf));
 }
-
-
-
 
 #[test]
 fn an_editor_opened_off_screen_scrolls_its_cell_into_view() {

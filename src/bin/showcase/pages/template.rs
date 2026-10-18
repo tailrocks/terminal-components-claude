@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -28,7 +12,6 @@ use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::tabs::Tabs;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Section {
@@ -48,7 +31,6 @@ impl Section {
         }
     }
 
-
     pub fn caption(self) -> &'static str {
         match self {
             Self::Playground => "the live widget",
@@ -58,15 +40,9 @@ impl Section {
     }
 }
 
-
-
 pub const WIDE: u16 = 76;
 
-
-
-
 pub const FOCUS_LEGEND: &str = "▏ depicts a focused sample; it is not where your focus is";
-
 
 pub fn focus_legend(mark: &str) -> String {
     let rest = FOCUS_LEGEND.trim_start_matches('▏');
@@ -90,7 +66,6 @@ pub struct Template {
 
     shown: Vec<SpecimenState>,
 
-
     options: Option<OptionsView>,
     owner: WidgetId,
 }
@@ -103,7 +78,6 @@ impl Template {
             compare: Button::toggle(owner.sub("compare"), "Compare levels", false),
             grid,
             states: {
-
                 let mut s = super::layout::Sections::new(owner.sub("states"));
                 s.stack = s.stack.gap(0);
                 s
@@ -113,11 +87,6 @@ impl Template {
             owner,
         }
     }
-
-
-
-
-
 
     pub fn sync_options(&mut self, opts: &'static [Opt], value: impl Fn(&Opt) -> usize) {
         if opts.is_empty() {
@@ -137,13 +106,10 @@ impl Template {
         view.sync(value);
     }
 
-
     #[allow(dead_code)]
     pub fn option_control(&self, key: &str) -> Option<WidgetId> {
         self.options.as_ref()?.control_id(key)
     }
-
-
 
     pub fn popup_open(&self) -> bool {
         self.section() == Section::Options && self.options.as_ref().is_some_and(|v| v.popup_open())
@@ -160,7 +126,6 @@ impl Template {
         self.tabs.cursor = i;
         self.states.state.reset();
     }
-
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) -> Rect {
         let t = ctx.theme;
@@ -185,9 +150,6 @@ impl Template {
         Rect::new(area.x, top, area.width, area.bottom() - top)
     }
 
-
-
-
     pub fn render_options(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         if let Some(view) = &mut self.options {
@@ -199,9 +161,6 @@ impl Template {
         empty::render_ctx(area, buf, ctx, &e, t.canvas);
     }
 
-
-
-
     pub fn render_states(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let comparing = self.compare.on == Some(true);
@@ -211,7 +170,6 @@ impl Template {
         let mut children = vec![StackChild::fixed(2)];
         let together = self.grid.levels_height(area.width);
         if !comparing {
-
             children.extend(
                 heights
                     .iter()
@@ -221,7 +179,6 @@ impl Template {
         } else if together <= area.height.saturating_sub(2) {
             children.push(StackChild::fixed(together));
         } else {
-
             children.extend([StackChild::fixed(h + 1); 4]);
         }
         let focus = ctx.interaction.has_focus(self.compare.id).then_some(0);
@@ -264,14 +221,10 @@ impl Template {
         }
     }
 
-
-
     #[allow(dead_code)]
     pub fn state_rows(&self) -> &[SpecimenState] {
         &self.shown
     }
-
-
 
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<Outcome> {
         let before = self.tabs.active;
@@ -336,7 +289,6 @@ impl Template {
             _ => None,
         }
     }
-
 
     pub fn hints(&self, focus: Option<WidgetId>) -> Option<Vec<Hint>> {
         let f = focus?;

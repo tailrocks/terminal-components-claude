@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
 
@@ -18,8 +12,6 @@ use crate::scenario::{Motion, Scenario};
 const HOME: &str = "/Users/alex";
 
 pub(crate) fn open(h: &mut H, label: &str) {
-
-
     h.alt(KeyCode::Char('0'));
     for _ in 0..8 {
         if h.app.tabs[0].stack.len() <= 1 || !h.app.modals.is_empty() {
@@ -31,7 +23,6 @@ pub(crate) fn open(h: &mut H, label: &str) {
     h.type_str(label);
     h.key(KeyCode::Enter);
 }
-
 
 pub(crate) fn confirm(h: &mut H) {
     if !h.app.modals.is_empty() {
@@ -84,13 +75,9 @@ pub(crate) fn output(h: &H, id: &str) -> Vec<String> {
         .collect()
 }
 
-
-
 #[test]
 fn hp01_discovery_is_adaptive_stable_and_reports_failed_sources_and_config_warnings() {
-
     let mut h = H::new(Scenario::ParityDiscovery, Motion::Full, 0, 120, 40);
-
 
     assert!(h.text().contains("discovering"), "{}", h.text());
     let early: Vec<String> = h.app.world.items().iter().map(|i| i.id.clone()).collect();
@@ -133,7 +120,6 @@ fn hp01_discovery_is_adaptive_stable_and_reports_failed_sources_and_config_warni
         daemon.freshness,
         crate::domain::action::Freshness::Unavailable(_)
     ));
-
 
     let pull = items.iter().find(|i| i.id == "git.pull").unwrap();
     assert_eq!(
@@ -195,8 +181,6 @@ pub(crate) fn argv_of(it: &crate::domain::action::Item) -> Vec<String> {
         .collect()
 }
 
-
-
 #[test]
 fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
     let mut h = H::new(Scenario::ParityHistory, Motion::Reduced, 0, 120, 40);
@@ -204,7 +188,6 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
     let w = &h.app.world;
     let recent = w.memory.usage.recent(&w.location.cwd, "mbp", w.now_secs());
     let names: Vec<&str> = recent.iter().map(|(i, _)| i.as_str()).collect();
-
 
     assert_eq!(names[0], "git.pull", "{names:?}");
     assert_eq!(names[1], "cargo.build", "{names:?}");
@@ -222,14 +205,11 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
         h.text()
     );
 
-
-
     h.type_str("pull");
     assert!(!h.text().contains("Fetch and prune"), "{}", h.text());
     assert!(h.row(6).contains("Pull "), "{}", h.row(6));
 
     let now = h.app.world.now_secs();
-
 
     h.app.world.memory.usage.used(
         "git.pull_rebase",
@@ -295,7 +275,6 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
     h.draw();
     assert!(h.row(4).contains("cargo check"), "{}", h.row(4));
 
-
     h.key(KeyCode::Enter);
     let id = activity_id(&h);
     assert_eq!(argv(&h, &id), vec!["cargo check @/Users/alex/work/holla"]);
@@ -318,8 +297,6 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
         Some("git.pull_rebase"),
         "the newer choice replaced the older"
     );
-
-
 
     assert_eq!(on_disk.learned_for("ünï  code", "mbp"), None);
 
@@ -344,15 +321,12 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
     );
 }
 
-
-
 #[test]
 fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
     let mut h = H::new(Scenario::ParityGitCurrent, Motion::Reduced, 0, 120, 40);
     h.ticks(6);
     let items = h.app.world.items();
     let pull = items.iter().find(|i| i.id == "git.pull").unwrap();
-
 
     assert_eq!(
         argv_of(pull),
@@ -377,7 +351,6 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
     );
     let state = settle(&mut h, &id);
     let out = output(&h, &id).join("\n");
-
 
     let g = h.app.world.git_here().unwrap().clone();
     if state == ActivityState::Succeeded {
@@ -434,7 +407,6 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
             "{out}"
         );
     } else {
-
         assert!(
             out.contains("overwritten") || out.contains("error"),
             "{out}"
@@ -446,8 +418,6 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
         );
     }
 }
-
-
 
 #[test]
 fn hp06_sibling_batches_carry_exact_members_and_report_each_failure() {
@@ -479,7 +449,6 @@ fn hp06_sibling_batches_carry_exact_members_and_report_each_failure() {
         "only alpha has the mirror: {cmds:?}"
     );
 
-
     let mut inside = crate::domain::fixtures::world_for(Scenario::ParityGitBatch, Motion::Reduced);
     inside.location.cwd = "/Users/alex/work/repos/alpha".into();
     let inside_items = inside.items();
@@ -508,7 +477,6 @@ fn hp06_sibling_batches_carry_exact_members_and_report_each_failure() {
             .any(|c| c.contains("feature/wt") || c.contains(" main ")),
         "{del_cmds:?}"
     );
-
 
     run(&mut h, "Pull 4 sibling repositories");
     h.ticks(1);
@@ -575,8 +543,6 @@ fn hp06_sibling_batches_carry_exact_members_and_report_each_failure() {
     );
 }
 
-
-
 #[test]
 fn hp03_find_files_indexes_home_truthfully_and_resource_actions_are_exact() {
     let mut h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 120, 40);
@@ -620,7 +586,6 @@ fn hp03_find_files_indexes_home_truthfully_and_resource_actions_are_exact() {
     assert!(h.text().contains("work/app/src/main.rs"), "{}", h.text());
     assert!(!h.text().contains("link-to-app/src"), "{}", h.text());
 
-
     h.ctrl(KeyCode::Char('u'));
     h.type_str("todo");
     h.key(KeyCode::Enter);
@@ -653,8 +618,6 @@ fn hp03_find_files_indexes_home_truthfully_and_resource_actions_are_exact() {
     );
 }
 
-
-
 #[test]
 fn hp04_browser_lists_previews_and_jumps_safely() {
     let mut h = H::new(Scenario::ParityBrowser, Motion::Reduced, 0, 120, 40);
@@ -680,7 +643,6 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
         "{}",
         h.text()
     );
-
 
     let cases: [(&str, &[&str], &[&str]); 8] = [
         ("index.html", &["<html>", "hello"], &[]),
@@ -756,14 +718,11 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
 
 use crate::screens::files;
 
-
-
 #[test]
 fn hp07_task_adapters_keep_exact_names_caps_and_diagnostics() {
     let h = H::new(Scenario::ParityTaskSources, Motion::Reduced, 0, 120, 40);
     let items = h.app.world.items();
     let ids: Vec<&str> = items.iter().map(|i| i.id.as_str()).collect();
-
 
     let quote = items
         .iter()
@@ -834,7 +793,6 @@ fn hp07_task_adapters_keep_exact_names_caps_and_diagnostics() {
         node.iter().map(|i| i.cap_note.clone()).collect::<Vec<_>>()
     );
 
-
     for id in [
         "just.recipe.build",
         "just.recipe.test",
@@ -871,8 +829,6 @@ fn hp07_task_adapters_keep_exact_names_caps_and_diagnostics() {
     assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
 }
 
-
-
 #[test]
 fn hp08_cargo_results_are_exit_codes_and_clean_lands_its_effect() {
     let mut h = H::new(Scenario::ParityCargo, Motion::Reduced, 0, 120, 40);
@@ -904,7 +860,6 @@ fn hp08_cargo_results_are_exit_codes_and_clean_lands_its_effect() {
         "cargo test's own exit code: {:?}",
         a.output
     );
-
 
     let items = h.app.world.items();
     let clean = items.iter().find(|i| i.id == "cargo.clean").unwrap();
@@ -944,7 +899,6 @@ fn hp08_cargo_results_are_exit_codes_and_clean_lands_its_effect() {
     h.alt(KeyCode::Char('0'));
     open(&mut h, "cargo clean");
 
-
     confirm(&mut h);
     if !h.app.modals.is_empty() || h.text().contains("gate") {
         h.key(KeyCode::Right);
@@ -959,8 +913,6 @@ fn hp08_cargo_results_are_exit_codes_and_clean_lands_its_effect() {
     );
     assert_eq!(h.app.world.cargo.target_bytes, 0);
 }
-
-
 
 #[test]
 fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_does() {
@@ -1047,7 +999,6 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
     h.key(KeyCode::Esc);
     h.key(KeyCode::Esc);
 
-
     run(&mut h, "Stop the Compose project");
     let id = activity_id(&h);
     assert_eq!(
@@ -1117,7 +1068,6 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
             .all(|c| c.running)
     );
 
-
     let mut down = H::new(Scenario::ParityDiscovery, Motion::Reduced, 0, 120, 40);
     down.ticks(4);
     let items = down.app.world.items();
@@ -1145,7 +1095,6 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
         down.text()
     );
 
-
     let mut none = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
     none.ticks(4);
     if none.app.world.docker.daemon.is_ok() {
@@ -1159,8 +1108,6 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
         );
     }
 }
-
-
 
 #[test]
 fn hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason() {
@@ -1221,7 +1168,6 @@ fn hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason() {
     assert!(h.text().contains("svc10"), "{}", h.text());
 }
 
-
 pub(crate) fn gate2_items(h: &H) -> usize {
     let text = h.text();
     let line = text
@@ -1233,7 +1179,6 @@ pub(crate) fn gate2_items(h: &H) -> usize {
         .unwrap_or_else(|| panic!("{line}"))
 }
 
-
 pub(crate) fn gate2(h: &mut H, phrase: &str) {
     assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
     h.type_str(phrase);
@@ -1241,11 +1186,9 @@ pub(crate) fn gate2(h: &mut H, phrase: &str) {
     settle_cleanup(h);
 }
 
-
 pub(crate) fn settle_cleanup(h: &mut H) {
     for _ in 0..64 {
         if h.app.world.cleanup_job.is_none() {
-
             assert!(
                 !h.text().contains("Cleanup running") && !h.text().contains("Dry run running"),
                 "a settled report is never shown as running: {}",
@@ -1257,8 +1200,6 @@ pub(crate) fn settle_cleanup(h: &mut H) {
     }
     panic!("the cleanup never settled: {}", h.text());
 }
-
-
 
 #[test]
 fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
@@ -1298,7 +1239,6 @@ fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
     assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
     assert!(!h.app.world.fs.exists("/Users/alex/work/android/build"));
 
-
     let all = items.iter().find(|i| i.id == "gradle.clean-all").unwrap();
     assert!(all.label.contains("49.0 MiB"), "{}", all.label);
     h.alt(KeyCode::Char('0'));
@@ -1316,7 +1256,6 @@ fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
     );
     assert!(!t.contains("android/node_modules"), "{t}");
     assert!(!t.contains("work/other"), "the link is never followed: {t}");
-
 
     assert!(h.text().contains("3 selected"), "{}", h.text());
     h.key(KeyCode::Char('d'));
@@ -1337,8 +1276,6 @@ fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
     assert!(h.app.world.gradle.daemon_running);
 }
 
-
-
 #[test]
 fn hp12_intellij_cleanup_finds_metadata_case_insensitively_and_logs_a_failed_log_write() {
     let mut h = H::new(Scenario::ParityIdea, Motion::Reduced, 0, 120, 40);
@@ -1349,7 +1286,6 @@ fn hp12_intellij_cleanup_finds_metadata_case_insensitively_and_logs_a_failed_log
     open(&mut h, "Clean IntelliJ metadata");
     h.key(KeyCode::Right);
     let t = h.text();
-
 
     for want in [
         "app.iml",
@@ -1401,8 +1337,6 @@ fn hp12_intellij_cleanup_finds_metadata_case_insensitively_and_logs_a_failed_log
     );
 }
 
-
-
 #[test]
 fn hp13_upgrade_managers_run_exact_stages_and_the_plan_branches() {
     let mut h = H::new(Scenario::ParityUpgradeManagers, Motion::Reduced, 0, 120, 40);
@@ -1428,7 +1362,6 @@ fn hp13_upgrade_managers_run_exact_stages_and_the_plan_branches() {
         vec!["sh /Users/alex/.config/omz/tools/upgrade.sh @/Users/alex"],
         "$ZSH wins over ~/.oh-my-zsh"
     );
-
 
     run(&mut h, "Upgrade Homebrew packages");
     h.ticks(1);
@@ -1503,8 +1436,6 @@ fn hp13_upgrade_managers_run_exact_stages_and_the_plan_branches() {
     );
 }
 
-
-
 #[test]
 fn hp14_output_streams_are_exact_and_retention_drops_are_stated() {
     let mut h = H::new(Scenario::ParityExecutor, Motion::Reduced, 0, 120, 40);
@@ -1548,7 +1479,6 @@ fn hp14_output_streams_are_exact_and_retention_drops_are_stated() {
         h.text()
     );
 
-
     h.alt(KeyCode::Char('0'));
     let mut hb = H::new(Scenario::ParityGitBatch, Motion::Reduced, 0, 120, 40);
     hb.ticks(6);
@@ -1581,8 +1511,6 @@ fn hp14_output_streams_are_exact_and_retention_drops_are_stated() {
         }
     }
 }
-
-
 
 #[test]
 fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
@@ -1723,15 +1651,12 @@ fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
     );
 }
 
-
-
 #[test]
 fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved() {
     let mut h = H::new(Scenario::ParityCustomActions, Motion::Reduced, 0, 120, 40);
     h.ticks(4);
     let items = h.app.world.items();
     let ids: Vec<&str> = items.iter().map(|i| i.id.as_str()).collect();
-
 
     for id in [
         "notes",
@@ -1769,8 +1694,6 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
     );
     let multi = items.iter().find(|i| i.id == "multi").unwrap();
     assert_eq!(multi.all_exec()[0].args, vec!["%s\n", "a\nb c"]);
-
-
 
     let status = h
         .app
@@ -1850,8 +1773,6 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
         vec!["sh -c 'rm -rf .cache && echo done' @/Users/alex/work/team"]
     );
 }
-
-
 
 #[test]
 fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
@@ -1946,7 +1867,6 @@ fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
     );
     assert!(h.text().contains("unreadable"), "{}", h.text());
 
-
     assert!(
         h.app
             .world
@@ -1988,11 +1908,6 @@ fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
     );
 }
 
-
-
-
-
-
 #[test]
 fn m15_a_click_on_a_disk_row_selects_nothing_and_its_mark_selects_it() {
     let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
@@ -2026,7 +1941,6 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
     open(&mut h, "Analyze disk usage");
     h.ticks(40);
     assert!(h.text().contains("scan complete"), "{}", h.text());
-
 
     let target = h.find("target").unwrap();
     let vm = h.find("vm.img").unwrap();
@@ -2080,7 +1994,6 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
     h.key(KeyCode::Char('a'));
     assert!(h.text().contains("Everything unselected"), "{}", h.text());
 
-
     h.key(KeyCode::Char('t'));
     assert!(
         h.text().contains("Here › Disk › Usage › Top files"),
@@ -2123,8 +2036,6 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
     );
     assert!(matches!(l.tab_kind(), TabKind::Here));
 }
-
-
 
 #[test]
 fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
@@ -2169,7 +2080,6 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
         2200 * 1024 * 1024 + 2 * crate::sim::fs::BLOCK,
         "the file plus two directory blocks"
     );
-
 
     let art = by("project.artifacts").unwrap();
     let paths: Vec<&str> = art.candidates.iter().map(|k| k.path.as_str()).collect();
@@ -2221,8 +2131,6 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
         "{t}"
     );
 
-
-
     let list = h
         .app
         .shell
@@ -2251,8 +2159,6 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
     );
 }
 
-
-
 #[test]
 fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
     let mut h = H::new(Scenario::ParityDeleteSafety, Motion::Reduced, 0, 120, 40);
@@ -2260,7 +2166,6 @@ fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
     open(&mut h, "Analyze disk usage");
     h.ticks(30);
     assert!(h.text().contains("scan complete"), "{}", h.text());
-
 
     for name in ["target", "linked", "gone-later", "locked"] {
         let (_, y) = h
@@ -2326,7 +2231,6 @@ fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
         t.contains("Revision") && t.contains("voids this review"),
         "{t}"
     );
-
 
     h.app
         .world
@@ -2429,8 +2333,6 @@ fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
         d.app.world.ops_log.lines
     );
 }
-
-
 
 #[test]
 fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
@@ -2542,7 +2444,6 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
     h.type_str("TRASH 1 UNDER /Users/alex/Projects/safe ON mbp");
     h.key(KeyCode::Enter);
 
-
     assert!(h.app.modals.is_empty(), "{}", h.text());
     let job = h.app.world.cleanup_job.as_ref().expect("a running cleanup");
     assert_eq!((job.exec.completed(), job.exec.total()), (0, 1));
@@ -2568,7 +2469,6 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
         h.text()
     );
 
-
     h.ticks(1);
     let r = h.app.world.reports.last().cloned().unwrap();
     assert_eq!(r.count(crate::domain::cleanup::Outcome::Trashed), 1);
@@ -2586,11 +2486,8 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
     );
 }
 
-
-
 #[test]
 fn hp23_platform_capabilities_are_stated_and_never_faked() {
-
     let mut m = H::new(Scenario::ParityPlatforms, Motion::Reduced, 0, 120, 40);
     m.ticks(4);
     open(&mut m, "Top files on this Mac");

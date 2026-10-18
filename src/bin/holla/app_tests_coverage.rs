@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
@@ -336,7 +330,6 @@ fn page_inventory_has_marker_focus_hit_and_escape_contract() {
     }
 }
 
-
 fn help_done(h: &H) -> WidgetId {
     h.app
         .modals
@@ -447,8 +440,6 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     dismiss_modal(&mut dialog, "Dialog/gate2", dialog_owner);
 }
 
-
-
 fn outside(h: &H) -> Position {
     use junie_tui::core::id::Part;
     let backdrop = |hit| {
@@ -473,7 +464,6 @@ fn outside(h: &H) -> Position {
     );
 }
 
-
 pub(crate) fn thumb_row(h: &H, track: ratatui::layout::Rect) -> u16 {
     let text = h.text();
     let lines: Vec<&str> = text.lines().collect();
@@ -491,8 +481,6 @@ pub(crate) fn thumb_row(h: &H, track: ratatui::layout::Rect) -> u16 {
 fn drag_scrollbar(h: &mut H, container: WidgetId, name: &str) {
     drag_scrollbar_focus(h, container, container, name);
 }
-
-
 
 fn drag_scrollbar_focus(h: &mut H, container: WidgetId, focus: WidgetId, name: &str) {
     let id = scrollbar::id_for(container);
@@ -575,7 +563,6 @@ fn finder_file_and_modal_mouse_contracts() {
     );
     finder.key(KeyCode::Esc);
     assert!(finder.app.modals.is_empty());
-
 
     let mut double = build_rust();
     let (dx, dy) = double.find("Run tests").expect("double-click row");
@@ -710,9 +697,6 @@ fn resize_ladder_preserves_inventory_focus_and_hits() {
 
 #[test]
 fn the_history_opt_out_holds_from_the_first_frame() {
-
-
-
     let app = crate::app::App::launch(
         Scenario::ParityCargo,
         Motion::Reduced,
@@ -775,7 +759,6 @@ fn plan_review_gate_cancel_and_cleanup_report_routes_keep_model_state() {
     assert_eq!(plan.app.world.plans[0].phase, PlanPhase::Review);
     assert!(plan.app.modals.is_empty());
 
-
     plan.key(KeyCode::Enter);
     plan.key(KeyCode::Char('c'));
     plan.key(KeyCode::Right);
@@ -817,8 +800,6 @@ fn plan_review_gate_cancel_and_cleanup_report_routes_keep_model_state() {
 
 #[test]
 fn two_clicks_far_apart_on_one_row_are_not_a_double_click() {
-
-
     let mut h = build_rust();
     let (dx, dy) = h.find("Run tests").expect("finder row");
     let row = h.app.shell.hits.hit(Position::new(dx + 2, dy));
@@ -836,7 +817,6 @@ fn two_clicks_far_apart_on_one_row_are_not_a_double_click() {
 
 #[test]
 fn a_horizontal_swipe_never_scrolls_a_vertical_view() {
-
     let mut h = build_browser();
     open(&mut h, "Browse ~/work/site");
     h.ticks(8);
@@ -859,7 +839,6 @@ fn a_horizontal_swipe_never_scrolls_a_vertical_view() {
     assert_ne!(h.text(), before, "the preview does scroll vertically");
 }
 
-
 fn h_thumb(h: &H, area: ratatui::layout::Rect) -> Option<(u16, u16)> {
     let buf = h.term.backend().buffer();
     area.positions()
@@ -869,9 +848,7 @@ fn h_thumb(h: &H, area: ratatui::layout::Rect) -> Option<(u16, u16)> {
 
 #[test]
 fn the_files_preview_pans_a_long_line_sideways_and_resets_for_another_file() {
-
     const NOTCHES: usize = 150;
-
 
     let mut h = build_browser();
     open(&mut h, "Browse ~/work/site");
@@ -932,7 +909,6 @@ fn the_files_preview_pans_a_long_line_sideways_and_resets_for_another_file() {
 
 #[test]
 fn a_middle_click_on_a_tab_closes_it() {
-
     let mut h = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40);
     let tabs = h.app.tabs.len();
     assert!(tabs >= 2, "{}", h.text());
@@ -945,11 +921,6 @@ fn a_middle_click_on_a_tab_closes_it() {
         h.text()
     );
 }
-
-
-
-
-
 
 #[test]
 fn an_idle_cleanup_review_requests_no_redraw() {
@@ -972,11 +943,6 @@ fn an_idle_cleanup_review_requests_no_redraw() {
     );
     assert_eq!(h.text(), before, "nothing on screen changed");
 }
-
-
-
-
-
 
 #[test]
 fn an_idle_finder_requests_redraws_only_when_a_label_moves() {

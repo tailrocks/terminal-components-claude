@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -117,13 +111,10 @@ impl SplitsStacksPage {
         }
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let percent = o.number("splitsstacks.percent").unwrap_or(30);
         let min = o.number("splitsstacks.min").unwrap_or(16);
-
 
         self.outer = match self.dir() {
             SplitDir::Horizontal => Split::new(percent, min, 24),
@@ -292,7 +283,6 @@ impl SplitsStacksPage {
         Outcome::Changed
     }
 
-
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.scroll.pointer(STACK, ev) {
             return o;
@@ -340,7 +330,6 @@ impl SplitsStacksPage {
     }
 }
 
-
 fn pane(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, title: &str, lines: &[&str]) {
     if area.width < 4 || area.height < 3 {
         return;
@@ -362,8 +351,6 @@ fn pane(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, title: &str, lines: &
         );
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

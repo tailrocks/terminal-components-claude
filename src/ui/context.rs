@@ -1,20 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::core::list::Navigable;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
@@ -29,21 +12,16 @@ use crate::widgets::table::DataTable;
 use crate::widgets::tabs::Tabs;
 use crate::widgets::tree::TreeView;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextKeys {
-
     pub shift_f10: bool,
 
-
     pub menu_key: bool,
-
 
     pub extra: Option<Key>,
 }
 
 impl ContextKeys {
-
     pub const DEFAULT: Self = Self {
         shift_f10: true,
         menu_key: true,
@@ -69,7 +47,6 @@ impl ContextKeys {
         self
     }
 
-
     pub fn matches(&self, key: &Key) -> bool {
         (self.shift_f10 && key.code == KeyCode::F(10) && key.mods == KeyModifiers::SHIFT)
             || (self.menu_key && key.code == KeyCode::Menu && key.plain())
@@ -85,13 +62,9 @@ impl Default for ContextKeys {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextConfig {
-
     pub keys: ContextKeys,
-
-
 
     pub moves_cursor: bool,
 }
@@ -111,9 +84,6 @@ impl ContextConfig {
         self
     }
 
-
-
-
     pub fn on_secondary<S: ContextSource + ?Sized>(
         &self,
         src: &mut S,
@@ -128,7 +98,6 @@ impl ContextConfig {
             anchor: ContextAnchor::Pointer(ev.pos()),
         })
     }
-
 
     pub fn on_key<S: ContextSource + ?Sized>(
         &self,
@@ -148,18 +117,14 @@ impl Default for ContextConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContextAnchor {
-
     Pointer(Position),
-
 
     Control { id: WidgetId, fallback: Rect },
 }
 
 impl ContextAnchor {
-
     pub fn apply(self, menu: ContextMenu) -> ContextMenu {
         match self {
             Self::Pointer(pos) => menu.at(pos),
@@ -168,7 +133,6 @@ impl ContextAnchor {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextRequest<T> {
     pub target: T,
@@ -176,12 +140,9 @@ pub struct ContextRequest<T> {
 }
 
 impl<T> ContextRequest<T> {
-
     pub fn menu(&self, id: WidgetId, items: Vec<MenuItem>) -> ContextMenu {
         self.anchor.apply(ContextMenu::new(id, items))
     }
-
-
 
     pub fn map<U>(self, f: impl FnOnce(T) -> U) -> ContextRequest<U> {
         ContextRequest {
@@ -191,22 +152,15 @@ impl<T> ContextRequest<T> {
     }
 }
 
-
 pub trait ContextSource {
-
     type Target: Copy;
 
-
     fn context_target(&self, ev: &PointerEvent) -> Option<Self::Target>;
-
-
 
     fn context_select(&mut self, target: Self::Target);
 
     fn context_cursor(&self) -> Option<ContextRequest<Self::Target>>;
 }
-
-
 
 fn row_rect(area: Rect, row: usize, offset: usize) -> Rect {
     let dy = row
@@ -239,7 +193,6 @@ impl ContextSource for ListBox {
 impl ContextSource for TreeView {
     type Target = usize;
     fn context_target(&self, ev: &PointerEvent) -> Option<usize> {
-
         self.row_at(ev)
     }
     fn context_select(&mut self, row: usize) {
@@ -260,8 +213,6 @@ impl ContextSource for TreeView {
 }
 
 impl ContextSource for DataTable {
-
-
     type Target = (usize, usize);
     fn context_target(&self, ev: &PointerEvent) -> Option<(usize, usize)> {
         if !ev.on(self.id) {
@@ -273,8 +224,6 @@ impl ContextSource for DataTable {
         let r = ev.index_of(Part::CELL)?;
         Some((r, self.column_at(ev.pos().x).unwrap_or(self.cursor_col)))
     }
-
-
 
     fn context_select(&mut self, (row, col): (usize, usize)) {
         if let Some(r) = Navigable::cursor(self).select(row, self).index() {
@@ -313,8 +262,6 @@ impl ContextSource for DataTable {
 }
 
 impl ContextSource for DataGrid {
-
-
     type Target = (usize, usize);
     fn context_target(&self, ev: &PointerEvent) -> Option<(usize, usize)> {
         if !ev.on(self.id) {
@@ -326,8 +273,6 @@ impl ContextSource for DataGrid {
         let r = ev.index_of(Part::CELL)?;
         Some((r, self.column_at(ev.pos().x)?))
     }
-
-
 
     fn context_select(&mut self, cell: (usize, usize)) {
         if cell.1 < self.columns.len()
@@ -399,7 +344,6 @@ mod tests {
         vec![MenuItem::new("Open"), MenuItem::new("Delete").danger()]
     }
 
-
     fn frame(l: &mut ListBox, menu: Option<&mut ContextMenu>) -> HitRegistry {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -416,7 +360,6 @@ mod tests {
         }
         hits
     }
-
 
     fn secondary(hits: &HitRegistry, id: WidgetId, pos: Position) -> PointerEvent {
         PointerEvent::new(
@@ -437,7 +380,6 @@ mod tests {
     fn context_select_goes_through_the_cursor_and_ignores_stale_targets() {
         use crate::widgets::tree::{TreeNode, TreeView};
 
-
         let mut t = TreeView::new(
             WidgetId::of("t"),
             vec![TreeNode::leaf("a"), TreeNode::leaf("b")],
@@ -457,9 +399,6 @@ mod tests {
         l.context_select(2);
         assert_eq!(l.cursor, 1);
     }
-
-
-
 
     #[test]
     fn a_right_click_outside_the_selection_selects_only_that_row() {

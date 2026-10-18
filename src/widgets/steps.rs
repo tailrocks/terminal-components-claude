@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -76,12 +71,10 @@ pub struct StepRail {
 
     pub numbered: bool,
 
-
     pub nav: NavKeys,
 }
 
 impl StepRail {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -100,8 +93,6 @@ impl StepRail {
             nav: NavKeys::default(),
         }
     }
-
-
 
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
@@ -125,11 +116,9 @@ impl StepRail {
         }
     }
 
-
     pub fn frontier(&self) -> Option<usize> {
         self.steps.iter().position(|s| !s.state.terminal())
     }
-
 
     pub fn counts(&self) -> (usize, usize, usize) {
         let c = |st| self.steps.iter().filter(|s| s.state == st).count();
@@ -220,7 +209,6 @@ impl StepRail {
             s.focused = focused && i == self.cursor;
             let row = Rect::new(area.x, y, row_w, 1);
             let st = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg).style();
-
 
             let plane = st.bg.unwrap_or(bg);
             let mark = |ink| st.fg(t.legible_mark(ink, plane));
@@ -344,8 +332,6 @@ impl Navigable for StepRail {
     }
 }
 
-
-
 impl crate::core::pointer::MouseTarget for StepRail {
     type Action = ();
 
@@ -418,9 +404,6 @@ mod tests {
         );
         assert_eq!(rest, pressed);
     }
-
-
-
 
     #[test]
     fn a_steps_state_glyph_reads_on_its_row_at_every_level() {
@@ -495,7 +478,6 @@ mod track_click_tests {
         );
         r.scroll.offset
     }
-
 
     #[test]
     fn a_step_rail_track_click_can_page() {

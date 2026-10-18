@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
@@ -28,29 +19,20 @@ use crate::widgets::keyhint::Hint;
 use crate::widgets::menu::{ContextMenu, MenuAction};
 use crate::widgets::picker::{Picker, PickerAction};
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerResult {
-
-
     Dialog {
         action: Option<usize>,
         text: Option<String>,
     },
 
-
-
     Picker(PickerAction),
 
     Menu(MenuAction),
 
-
-
     Form(FormAction),
 
-
     Choice(Option<usize>),
-
 
     Info(InfoResult),
 
@@ -64,8 +46,6 @@ fn out<R: From<LayerResult>>(r: LayerResult, closes: bool) -> LayerOut<R> {
         LayerOut::Event(r.into())
     }
 }
-
-
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Dialog {
     fn spec(&self) -> LayerSpec {
@@ -132,10 +112,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Dialog
     }
 }
 
-
-
-
-
 fn picker_event(p: &mut Picker, ev: Option<PickerAction>) {
     if let Some(ev) = ev {
         p.pending = Some(ev);
@@ -143,7 +119,6 @@ fn picker_event(p: &mut Picker, ev: Option<PickerAction>) {
 }
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -159,9 +134,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
         o.or(Outcome::Consumed)
     }
 
-
     fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, W>) -> Outcome {
-
         if ev.part().part == crate::core::id::Part::BACKDROP {
             return Outcome::Ignored;
         }
@@ -197,10 +170,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
     }
 }
 
-
-
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ContextMenu {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -243,10 +213,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Contex
     }
 }
 
-
-
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDialog {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -262,7 +229,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome {
         FormDialog::on_key(self, key, cx.focus, cx.ring).or(Outcome::Consumed)
     }
-
 
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
         FormDialog::pointer_in(self, ev, cx.focus).outcome()
@@ -310,10 +276,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
     }
 }
 
-
-
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ChoiceDialog {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -342,10 +305,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Choice
     }
 }
 
-
-
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDialog {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -364,7 +324,6 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
     fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_, W>) -> Outcome {
         InfoDialog::on_click(self, id, pos, cx.focus)
     }
-
 
     fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if pressed != crate::widgets::scrollbar::id_for(self.id) {
@@ -391,10 +350,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
     }
 }
 
-
-
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOverlay {
-
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -443,8 +399,6 @@ mod tests {
         }
     }
 
-
-
     #[test]
     fn library_modals_report_through_the_stack() {
         let page = WidgetId::of("page");
@@ -481,7 +435,6 @@ mod tests {
         );
         assert_eq!(focus.current(), Some(page), "K9: focus back on the page");
 
-
         let p = Picker::new(WidgetId::of("p"), "Go to");
         layers.open(Box::new(p), LayerTag::new("go"), (), &mut focus);
         let mut cx = LayerCx {
@@ -508,7 +461,6 @@ mod tests {
             _ => panic!("a light picker closes on an outside click"),
         }
         assert_eq!(focus.current(), Some(page));
-
 
         let f = FormDialog::new(WidgetId::of("f"), "Form", vec![]);
         assert_eq!(Overlay::dismiss(&f), Dismiss::ESCAPE);

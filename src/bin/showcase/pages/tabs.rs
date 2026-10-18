@@ -1,20 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -38,7 +21,6 @@ use junie_tui::widgets::tabs::{CloseReveal, TabAction, TabCmd, TabItem, TabRule,
 const ID: WidgetId = WidgetId::of("tabs-page");
 const CLOSE_DLG: WidgetId = ID.sub("close-dialog");
 
-
 fn editor_items(many: bool) -> Vec<TabItem> {
     let mut items = vec![
         TabItem::new("Overview").prefix("◆"),
@@ -52,7 +34,6 @@ fn editor_items(many: bool) -> Vec<TabItem> {
         TabItem::new("users").prefix("▦").suffix("●").closable(),
     ];
     if !many {
-
         items.truncate(4);
     } else {
         for name in ["audit_log", "sessions", "invoices", "payments", "events"] {
@@ -61,7 +42,6 @@ fn editor_items(many: bool) -> Vec<TabItem> {
     }
     items
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Opts {
@@ -97,7 +77,6 @@ impl Opts {
     }
 }
 
-
 fn editor_strip(o: &Opts, items: Vec<TabItem>) -> Tabs {
     let id = ID.sub("editor");
     let rule = match o.get("tabs.rule") {
@@ -122,7 +101,6 @@ fn editor_strip(o: &Opts, items: Vec<TabItem>) -> Tabs {
             _ => NavKeys::DESKTOP,
         });
     if o.get("tabs.close_button") == 1 {
-
         t = t.close_button(IconButton::close(id.sub("close-template")).danger_hover(true));
     }
     t = t.close_target_w(match o.get("tabs.close_w") {
@@ -131,11 +109,9 @@ fn editor_strip(o: &Opts, items: Vec<TabItem>) -> Tabs {
         _ => 3,
     });
     if o.get("tabs.more_button") == 1 {
-
         t = t.more_button(IconButton::new(id.sub("more-template"), "+").pad(0));
     }
     if o.get("tabs.keymap") == 1 {
-
         let mut map: KeyMap<TabCmd> = vec![
             (KeyBinding::ctrl('w'), TabCmd::Close),
             (KeyBinding::ctrl('t'), TabCmd::New),
@@ -202,8 +178,6 @@ impl TabsPage {
         }
     }
 
-
-
     fn rebuild(&mut self, reset: bool) {
         let items = if reset {
             editor_items(self.opts.on("tabs.count"))
@@ -236,7 +210,6 @@ impl TabsPage {
             TabAction::Close(i) => {
                 let it = &self.editor.items[i];
                 if it.dirty {
-
                     self.closing = Some(i);
                     self.last = format!("{a:?} · {} has unsaved changes: asked first", it.label);
                     cx.open_dialog(junie_tui::ui::leave::unsaved_dialog(
@@ -308,7 +281,6 @@ impl TabsPage {
             );
         }
 
-
         let nest = Panel::card(Some("Nested strips")).meta("orders › section › sub-tab · 1–6 jump");
         let nbg = nest.bg(t);
         let inner = nest.render(rows[4], buf, t);
@@ -327,8 +299,6 @@ impl TabsPage {
         buf.set_string(r[4].x, r[4].y, crumb, t.muted().bg(nbg));
     }
 
-
-
     fn strip_mut(&mut self, id: WidgetId) -> Option<&mut Tabs> {
         if id == self.editor.id {
             Some(&mut self.editor)
@@ -341,7 +311,6 @@ impl TabsPage {
         }
     }
 }
-
 
 fn keys_readout(t: &Tabs) -> String {
     let mut parts = vec![
@@ -377,7 +346,6 @@ fn keys_readout(t: &Tabs) -> String {
     }
     parts.join(" · ")
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -446,7 +414,6 @@ impl Page for TabsPage {
         }
         match ev {
             PageEvent::Tick => {
-
                 if self.editor.items.iter().any(|t| t.busy) {
                     Outcome::Changed
                 } else {
@@ -469,7 +436,6 @@ impl Page for TabsPage {
                     None => Outcome::Ignored,
                 }
             }
-
 
             PageEvent::Pointer(ev) => {
                 let click = ev.is(Phase::Click);
@@ -506,7 +472,6 @@ impl Page for TabsPage {
                 };
                 let label = self.editor.items[i].label.clone();
                 self.last = match result {
-
                     DialogResult::Action(1) => {
                         self.editor.remove(i);
                         format!("Closed {label}, changes discarded")

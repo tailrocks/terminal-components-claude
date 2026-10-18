@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use crate::screens::Holla;
 use junie_tui::shell::Page as ShellPage;
 use std::collections::BTreeSet;
@@ -50,7 +44,6 @@ pub const TREE: WidgetId = WidgetId::of("disk.tree");
 pub const DETAIL: WidgetId = WidgetId::of("disk.detail");
 pub const LIST: WidgetId = WidgetId::of("disk.list");
 
-
 pub const FS_METER: MeterTone = MeterTone::Level { warn: 80, crit: 95 };
 
 pub const ROW_MENU: WidgetId = WidgetId::of("disk.row.menu");
@@ -63,7 +56,6 @@ pub enum Sort {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum View {
-
     Overview,
 
     Tree,
@@ -114,7 +106,6 @@ pub struct DiskPage {
 
     pub reviewed: Option<u64>,
 
-
     pub rebuilds: u32,
 }
 
@@ -159,8 +150,6 @@ impl DiskPage {
         p.view = View::TopFiles;
         p
     }
-
-
 
     fn node_size(&self, n: &ScanNode) -> u64 {
         match self.sort {
@@ -307,7 +296,6 @@ impl DiskPage {
         self.selected.retain(|s| live.contains(s.as_str()));
     }
 
-
     #[cfg(test)]
     pub fn overview_rows(&self) -> Vec<(String, &'static str)> {
         self.overview
@@ -334,9 +322,6 @@ impl DiskPage {
     fn scan_node<'a>(&self, w: &'a World, path: &str) -> Option<&'a ScanNode> {
         w.scan.as_ref().and_then(|s| s.tree.find(path))
     }
-
-
-
 
     fn seed_selection(&mut self, w: &World) {
         let Some(scan) = &w.scan else { return };
@@ -385,7 +370,6 @@ impl DiskPage {
                 junie_tui::ui::text::bytes(self.selected_bytes(w))
             ));
         } else {
-
             self.selected
                 .retain(|s| !s.starts_with(&format!("{path}/")));
             self.selected.insert(path.to_owned());
@@ -426,8 +410,6 @@ impl DiskPage {
             .collect();
         DeletePlan::new(&w.host.name, &self.path, items, mode, dry_run)
     }
-
-
 
     fn rebuild_overview(&mut self, w: &World) {
         let home = w.location.home.clone();
@@ -473,8 +455,6 @@ impl DiskPage {
         self.list_scroll.set_content(self.overview.len());
     }
 
-
-
     fn rebuild_top(&mut self, w: &World) {
         self.top.clear();
         self.top_state = None;
@@ -496,7 +476,6 @@ impl DiskPage {
                         if !seen.insert(p.clone()) {
                             continue;
                         }
-
 
                         let (bytes, missing) = if w.fs.is_file(p) {
                             (w.fs.get(p).map(|n| n.allocated).unwrap_or(*b), false)
@@ -522,8 +501,6 @@ impl DiskPage {
         }
         self.list_scroll.set_content(self.top.len());
     }
-
-
 
     fn detail_props(&self, w: &World) -> (String, String, Vec<Prop>) {
         match self.view {
@@ -950,7 +927,6 @@ impl DiskPage {
 }
 
 impl DiskPage {
-
     fn select_reason(&self, w: &World, path: &str) -> Option<String> {
         if let Some(r) = self.candidate_skip(w, path) {
             return Some(r);
@@ -960,9 +936,6 @@ impl DiskPage {
             .any(|s| path.starts_with(&format!("{s}/")))
             .then(|| "Already covered by a selected ancestor".to_owned())
     }
-
-
-
 
     fn row_menu(&self, row: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let copy = MenuItem::new("Copy path").shortcut("y");
@@ -1079,7 +1052,6 @@ fn short_error(e: &crate::sim::fs::FsError) -> &'static str {
 }
 
 impl DiskPage {
-
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if id == scrollbar::id_for(TREE) {
@@ -1101,10 +1073,6 @@ impl DiskPage {
         if self.view == View::Tree {
             if let Some(row) = self.tree.row_at(ev) {
                 cx.focus.focus(TREE);
-
-
-
-
 
                 if ev.index_of(Part::MARKER).is_some() {
                     self.tree.cursor = row;
@@ -1383,7 +1351,6 @@ impl ShellPage<Holla> for DiskPage {
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-
             if axis != Axis::Vertical {
                 return Outcome::Ignored;
             }
@@ -1420,8 +1387,6 @@ impl ShellPage<Holla> for DiskPage {
                 }
             }
             Some(Phase::Click) => {
-
-
                 if self.view == View::Overview
                     && let Some(i) = self
                         .list_scroll
@@ -1474,7 +1439,6 @@ impl ShellPage<Holla> for DiskPage {
             && let Ok(row) = row.parse::<usize>()
             && let Some(c) = keys.chars().nth(k)
         {
-
             if self.view == View::Tree {
                 self.tree.context_select(row);
             } else {
@@ -1719,7 +1683,6 @@ impl ShellPage<Holla> for DiskPage {
                 .focused(if self.view == View::Tree { TREE } else { LIST })
         {
             self.drawer = true;
-
 
             let main = if self.view == View::Tree { TREE } else { LIST };
             ctx.control(main, Rect::ZERO, false);

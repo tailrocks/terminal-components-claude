@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -29,7 +14,6 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::toolbar::{ToolItem, Toolbar, ToolbarAction};
 
 const ID: WidgetId = WidgetId::of("toolbars");
-
 
 fn query_items(running: bool) -> Vec<ToolItem> {
     vec![
@@ -63,12 +47,9 @@ fn query_items(running: bool) -> Vec<ToolItem> {
     ]
 }
 
-
 fn busy_if(item: ToolItem, off: bool, why: &str) -> ToolItem {
     if off { item.reason(why) } else { item }
 }
-
-
 
 const NARROW_W: u16 = 32;
 
@@ -119,8 +100,6 @@ impl ToolbarsPage {
         p
     }
 
-
-
     fn rebuild(&mut self) {
         let style = |t: &Toolbar, o: &[usize; 5]| {
             let cursor = t.cursor;
@@ -145,7 +124,6 @@ impl ToolbarsPage {
         self.format = style(&self.format, &self.opts);
     }
 
-
     fn bar_mut(&mut self, k: usize) -> &mut Toolbar {
         match k {
             0 => &mut self.query,
@@ -153,7 +131,6 @@ impl ToolbarsPage {
             _ => &mut self.format,
         }
     }
-
 
     fn act(&mut self, a: ToolbarAction, k: usize, cx: &mut Cx) {
         let label = match a {
@@ -263,7 +240,6 @@ impl ToolbarsPage {
         }
     }
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

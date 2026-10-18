@@ -1,43 +1,18 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #![cfg_attr(not(test), allow(dead_code))]
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Shown {
-
     Option(&'static str, &'static str),
 
     StateRow(&'static str, &'static str),
 
     Demo(&'static str, &'static str),
 
-
     Via(&'static str),
 }
 
 use Shown::{Demo, Option, StateRow};
 use ViaRole::{Operation, Plumbing, Protocol};
-
 
 pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme", Demo("overview", "Tokens and principles")),
@@ -102,7 +77,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme::warning", Demo("overview", "▏ warning #")),
     ("theme::Theme::error", Demo("overview", "▏ error #")),
     ("theme::Theme::danger_label", Demo("overview", "▏ danger #")),
-
     (
         "widgets::diff::DiffLineKind",
         Demo("diff", "+ attempts = 5"),
@@ -250,7 +224,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::viewport::TextViewport::max_lines",
         Option("terminal", "terminal.max_lines"),
     ),
-
     ("widgets::code::Severity", StateRow("codeeditor", "error")),
     (
         "widgets::code::Severity::Error",
@@ -389,7 +362,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::completion::Completion::dismiss",
         Option("codeeditor", "codeeditor.completion_dismiss"),
     ),
-
     (
         "ui::layout::SplitDir",
         Option("splitsstacks", "splitsstacks.dir"),
@@ -490,7 +462,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::splitter::Splitter::double_click",
         Option("splitsstacks", "splitsstacks.double_click"),
     ),
-
     (
         "widgets::progress::BarLayout",
         Option("progress", "progress.label_width"),
@@ -543,7 +514,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::empty::EmptyState::hint",
         Option("emptyerror", "emptyerror.hint"),
     ),
-
     (
         "core::text::TextBuffer",
         Demo(
@@ -635,7 +605,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::props::PropsList::reveal",
         Option("textutilities", "textutilities.reveal"),
     ),
-
     (
         "widgets::hintbar::HintLayer",
         Demo("statushints", "screen layer"),
@@ -696,7 +665,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "theme::HintBarStyle",
         Demo("statushints", "HintBarStyle · align Start"),
     ),
-
     (
         "theme::Theme::centred_hints",
         Demo("statushints", "Theme::centred_hints"),
@@ -875,7 +843,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::statusbar::Placed",
         Demo("chrome", "StatusBar::layout places"),
     ),
-
     (
         "theme::Theme::field_hover",
         Demo("overview", "▏ field.hover #"),
@@ -1093,8 +1060,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::hintbar::HintBar",
         Demo("chrome", "hint bar · topmost layer wins"),
     ),
-
-
     (
         "widgets::hintbar::HintKeys",
         Demo("overview", "Tab Into page"),
@@ -1127,7 +1092,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "theme::ButtonKind::Danger",
         Demo("buttons", "Primary Secondary Subtle Danger"),
     ),
-
     (
         "ui::ctx::FocusVisible",
         Option("buttons", "buttons.focus_visible"),
@@ -1241,7 +1205,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "ui::specimen::StateGrid::focus_mark",
         Option("buttons", "buttons.focus_mark"),
     ),
-
     (
         "widgets::chips::ChipCmd",
         Option("chipsselects", "chipsselects.chip_keymap"),
@@ -1414,7 +1377,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::select::Select::disabled",
         Demo("chipsselects", "Fixed by the connection"),
     ),
-
     (
         "widgets::choice::CheckHit",
         Option("checksradios", "checksradios.hit"),
@@ -1443,7 +1405,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::choice::Toggle::disabled",
         Option("checksradios", "checksradios.disabled"),
     ),
-
     (
         "core::edit::EditEntry",
         Option("inputs", "inputs.edit_entry"),
@@ -1770,7 +1731,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::table::DataTable::validator",
         Demo("editable", "fix/checkout flake !"),
     ),
-
     (
         "widgets::option_editor::OptionItem",
         Demo("celleditors", "Priority P1 (Page on-call now)"),
@@ -2023,7 +1983,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::table::DataTable::track_click",
         Option("editable", "editable.track_click"),
     ),
-
     (
         "widgets::grid::CellValue",
         Demo("datagrid", "1001 Northwind Traders enterprise 3 57.00 true"),
@@ -2419,7 +2378,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::grid::DataGrid::track_click",
         Option("datagrid", "datagrid.track_click"),
     ),
-
     (
         "core::selection::SelectionMode",
         Option("basictable", "basictable.selection"),
@@ -2789,7 +2747,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::splitter::Splitter",
         Demo("terminal", "drag the seam"),
     ),
-
     ("ui::ctx::VisualState", StateRow("buttons", "focused")),
     ("state::rest", StateRow("buttons", "rest")),
     ("state::hover", StateRow("buttons", "hover")),
@@ -2992,7 +2949,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::hintbar::HintLayer::status_parts",
         Demo("chrome", "last: nothing yet"),
     ),
-
     (
         "theme::ColorLevel::Ansi256",
         Option("overview", "shell.color=256"),
@@ -3161,7 +3117,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::shape::CaretShape::Terminal",
         Option("overview", "shell.caret_shape=terminal"),
     ),
-
     ("widgets::tabs::TabItem", Demo("tabs", "◆ Overview")),
     (
         "widgets::tabs::TabItem::closable",
@@ -3276,7 +3231,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::tabs::Tabs::middle_click_closes",
         Option("tabs", "tabs.middle_click"),
     ),
-
     (
         "ui::context::ContextKeys",
         Option("menus", "menus.shift_f10"),
@@ -3432,7 +3386,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::menu::UnknownKey::Swallow",
         Option("menus", "menus.unknown_key=swallow"),
     ),
-
     (
         "core::event::InputConfig",
         Option("focusnavigation", "shell.shift_wheel_horizontal"),
@@ -3527,7 +3480,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::keymap::KeyBinding::shift",
         Demo("focusnavigation", "back Shift+Tab"),
     ),
-
     (
         "widgets::toolbar::Toolbar",
         Demo("toolbars", "Query toolbar"),
@@ -3597,7 +3549,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::toolbar::ToolItem::reason",
         Demo("toolbars", "No query is running"),
     ),
-
     (
         "widgets::breadcrumb::Breadcrumb",
         StateRow("breadcrumbsrails", "overflow"),
@@ -3626,7 +3577,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::rail::RailAction::Collapse",
         Demo("breadcrumbsrails", "RailAction::Collapse"),
     ),
-
     (
         "widgets::help::HelpOverlay",
         Demo("helpkeys", "Open help overlay"),
@@ -3730,7 +3680,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "ui::leave::LeaveGuard::save",
         Option("quitleave", "quitleave.save"),
     ),
-
     ("core::typeahead::TypeAhead", Demo("lists", "(TypeAhead,")),
     (
         "widgets::list::ListItem",
@@ -4164,7 +4113,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::tree::TreeView::type_ahead_timeout",
         Option("scrolling", "scrolling.timeout"),
     ),
-
     (
         "widgets::dialog::DialogBody",
         Demo("dialogs", "Text · Input · Facts"),
@@ -4306,7 +4254,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::dialog::Dialog::confirm_index",
         Option("dialogs", "dialogs.confirm_index"),
     ),
-
     (
         "widgets::choice_dialog::ChoiceDialog",
         StateRow("dialogkinds", "rest"),
@@ -4541,7 +4488,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::info_dialog::InfoDialog::close_button",
         Option("dialogkinds", "dialogkinds.close_button"),
     ),
-
     (
         "ui::ctx::Backdrop",
         Option("popupstooltips", "popupstooltips.frame_dim"),
@@ -4784,7 +4730,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::statusbar::StatusItem::tooltip",
         Demo("popupstooltips", "Region of the connection ⌘R"),
     ),
-
     (
         "widgets::picker::PickerItem",
         Demo("pickers", "▶ Run query (run.query)"),
@@ -4956,7 +4901,6 @@ pub static SHOWN: &[(&str, Shown)] = &[
         StateRow("pickers", "loading"),
     ),
     ("state::loading", StateRow("pickers", "loading")),
-
     (
         "core::focus::request_focus_next",
         Demo("focusnavigation", "request_focus_next"),
@@ -5053,25 +4997,16 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::contrast_ratio", Demo("overview", "contrast_ratio")),
 ];
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViaRole {
-
-
     Protocol,
 
-
     Operation,
-
 
     Plumbing,
 }
 
 impl ViaRole {
-
     pub const fn reason(self) -> &'static str {
         match self {
             Self::Protocol => "widget protocol: every demo of its owner runs it",
@@ -5082,15 +5017,6 @@ impl ViaRole {
         }
     }
 }
-
-
-
-
-
-
-
-
-
 
 pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     ("core::edit::FieldKeys", Plumbing, &["text_keymap"]),
@@ -6145,13 +6071,10 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     ),
 ];
 
-
-
 pub fn declarations() -> &'static [(&'static str, Shown)] {
     static ALL: std::sync::OnceLock<Vec<(&'static str, Shown)>> = std::sync::OnceLock::new();
     ALL.get_or_init(|| expand(SHOWN, VIA))
 }
-
 
 pub fn expand(
     shown: &[(&'static str, Shown)],

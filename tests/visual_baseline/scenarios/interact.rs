@@ -1,25 +1,11 @@
-
-
-
-
-
-
-
-
-
 use std::time::Duration;
 
 use super::{Dismiss, Pointer};
 use crate::support::{self, Case, MouseButton, Scroll, Session};
 
-
-
 pub fn find(s: &mut Session, needle: &str) -> (u16, u16) {
     s.find(needle).unwrap_or_else(|e| panic!("{e}"))
 }
-
-
-
 
 pub fn mouse_move(s: &mut Session, col: u16, row: u16) {
     s.mouse_move(col, row).expect("mouse move report");
@@ -29,7 +15,6 @@ pub fn hover_over(s: &mut Session, needle: &str) {
     let (row, col) = find(s, needle);
     mouse_move(s, col + 2, row);
 }
-
 
 pub fn pointer(s: &mut Session, pointer: Pointer) {
     let (needle, button) = match pointer {
@@ -53,8 +38,6 @@ pub fn pointer(s: &mut Session, pointer: Pointer) {
     std::thread::sleep(Duration::from_millis(120));
 }
 
-
-
 pub fn dismiss(s: &mut Session, dismiss: Dismiss, cols: u16, rows: u16) {
     match dismiss {
         Dismiss::Esc => s.send_key("escape").expect("escape"),
@@ -65,7 +48,6 @@ pub fn dismiss(s: &mut Session, dismiss: Dismiss, cols: u16, rows: u16) {
     std::thread::sleep(Duration::from_millis(120));
 }
 
-
 pub fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     let (row, col) = find(s, needle);
     for _ in 0..notches {
@@ -74,8 +56,6 @@ pub fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     }
 }
 
-
-
 pub fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
     let (row, col) = find(s, needle);
     for _ in 0..notches {
@@ -83,8 +63,6 @@ pub fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
         std::thread::sleep(Duration::from_millis(120));
     }
 }
-
-
 
 pub fn wheel_up(s: &mut Session, needle: &str, notches: u32) {
     let (row, col) = find(s, needle);
@@ -100,15 +78,10 @@ pub fn resize_geometry(s: &mut Session, cols: u16, rows: u16) {
         .unwrap_or_else(|e| panic!("never reached {cols}x{rows}: {e:#}"));
 }
 
-
-
-
 pub fn resize_to(s: &mut Session, cols: u16, rows: u16) {
     resize_geometry(s, cols, rows);
     std::thread::sleep(Duration::from_millis(700));
 }
-
-
 
 pub fn resize_case(case: &Case, cols: u16, rows: u16) {
     let mut s = support::spawn_boot(case);
@@ -116,9 +89,6 @@ pub fn resize_case(case: &Case, cols: u16, rows: u16) {
     find(&mut s, case.needle);
     support::settle_and_gate(&mut s, &case.name);
 }
-
-
-
 
 pub fn showcase_overview_resize(case: &Case, cols: u16, rows: u16) {
     let mut s = support::spawn_boot(case);
@@ -128,8 +98,6 @@ pub fn showcase_overview_resize(case: &Case, cols: u16, rows: u16) {
     find(&mut s, "Design system  Overview");
     support::settle_and_gate(&mut s, &case.name);
 }
-
-
 
 pub fn hover_buttons(s: &mut Session, _: &Case) {
     hover_over(s, "Preview");
@@ -152,15 +120,11 @@ pub fn diff_drag_select(s: &mut Session, _: &Case) {
     s.drag(col, row, col + 11, row).expect("drag select");
 }
 
-
-
 pub fn chrome_context(s: &mut Session, _: &Case) {
     let (row, col) = find(s, "Codex (Primary)");
     s.click_with(MouseButton::Right, col, row)
         .expect("right click");
 }
-
-
 
 pub fn wheel_python(s: &mut Session, _: &Case) {
     wheel_down(s, "Python", 2);
@@ -210,19 +174,11 @@ pub fn terminal_scrollback(s: &mut Session, _: &Case) {
     wheel_up(s, "#4 RUN cargo build", 2);
 }
 
-
-
 pub fn none(_: &mut Session, _: &Case) {}
-
-
 
 pub fn table_wheel(s: &mut Session, _: &Case) {
     wheel_down(s, "9157cff3", 3);
 }
-
-
-
-
 
 pub fn tablepro_workbench_shrunk(case: &Case, cols: u16, rows: u16) {
     let mut s = support::spawn_boot(case);
@@ -232,9 +188,6 @@ pub fn tablepro_workbench_shrunk(case: &Case, cols: u16, rows: u16) {
     find(&mut s, "TablePro");
     support::settle_and_gate(&mut s, &case.name);
 }
-
-
-
 
 pub fn tablepro_workbench_grown(case: &Case, cols: u16, rows: u16) {
     let mut s = support::spawn_boot(case);
@@ -252,21 +205,12 @@ pub fn tablepro_workbench_grown(case: &Case, cols: u16, rows: u16) {
     support::settle_and_gate(&mut s, &case.name);
 }
 
-
-
-
-
-
-
 pub fn accounts_badge(s: &mut Session, case: &Case) {
     if case.rows <= 30 {
         s.wait_for_text("of 23")
             .unwrap_or_else(|e| panic!("accounts badge never rendered: {e:#}"));
     }
 }
-
-
-
 
 pub fn capsule_brand_about(s: &mut Session, _: &Case) {
     pointer(s, Pointer::Click("jackin❯"));
@@ -275,13 +219,9 @@ pub fn capsule_brand_about(s: &mut Session, _: &Case) {
     s.send_key("enter").expect("enter");
 }
 
-
-
 pub fn browser_wheel(s: &mut Session, _: &Case) {
     wheel_down(s, "line 5", 2);
 }
-
-
 
 pub fn trust_body_wheel(s: &mut Session, case: &Case) {
     if case.rows <= 24 {
@@ -290,8 +230,6 @@ pub fn trust_body_wheel(s: &mut Session, case: &Case) {
         wheel_down(s, "id = \"deploy.preview\"", 2);
     }
 }
-
-
 
 pub fn cleanup_list_wheel(s: &mut Session, case: &Case) {
     if case.rows <= 24 {

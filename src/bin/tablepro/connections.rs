@@ -1,6 +1,3 @@
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -68,18 +65,13 @@ pub struct ConnectionsScreen {
     retry_btn: Button,
     form: Option<ConnForm>,
 
-
-
     pub leave: LeaveGuard<FormLeave>,
-
 
     glyphs: junie_tui::theme::Glyphs,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FormLeave {
-
     Close,
 
     Edit(usize),
@@ -251,7 +243,6 @@ impl ConnForm {
         self
     }
 
-
     fn values(&self) -> Vec<String> {
         let c = self.to_connection(None);
         vec![
@@ -263,7 +254,6 @@ impl ConnForm {
             self.local_only.on.to_string(),
         ]
     }
-
 
     fn dirty(&self) -> bool {
         self.values() != self.pristine
@@ -309,10 +299,6 @@ impl ConnForm {
     }
 }
 
-
-
-
-
 pub fn env_tone(env: Environment) -> Tone {
     env.kind().tone()
 }
@@ -355,7 +341,6 @@ impl ConnectionsScreen {
                     .iter()
                     .filter(|c| &c.group == g)
                     .map(|c| {
-
                         let env = c.environment.kind();
                         TreeNode::leaf(&c.name)
                             .glyph(self.glyphs.env(env))
@@ -393,7 +378,6 @@ impl ConnectionsScreen {
         }
     }
 
-
     pub fn tree(&self) -> &TreeView {
         &self.tree
     }
@@ -402,12 +386,10 @@ impl ConnectionsScreen {
         &mut self.tree
     }
 
-
     pub fn connection_at_row(&self, row: usize) -> Option<usize> {
         let path = self.tree.rows().get(row)?.path.clone();
         self.connection_at_path(&path)
     }
-
 
     pub fn select_row(&mut self, row: usize) {
         use junie_tui::ui::context::ContextSource;
@@ -419,11 +401,9 @@ impl ConnectionsScreen {
         self.selected.and_then(|i| self.connections.get(i))
     }
 
-
     pub fn form_dirty(&self) -> bool {
         self.form.as_ref().is_some_and(ConnForm::dirty)
     }
-
 
     pub fn form_stakes(&self) -> Stakes {
         if self.form_dirty() {
@@ -432,8 +412,6 @@ impl ConnectionsScreen {
             Stakes::Clean
         }
     }
-
-
 
     pub fn leave_form(&mut self, to: FormLeave, cx: &mut crate::app::Cx) -> Outcome {
         let stakes = self.form_stakes();
@@ -469,8 +447,6 @@ impl ConnectionsScreen {
         }
     }
 
-
-
     pub fn resolve_leave(
         &mut self,
         result: junie_tui::widgets::dialog::DialogResult,
@@ -482,7 +458,6 @@ impl ConnectionsScreen {
             Resolved::Save(to) => {
                 self.submit(false, cx);
                 if self.form.is_some() {
-
                     return false;
                 }
                 to
@@ -490,7 +465,6 @@ impl ConnectionsScreen {
         };
         match to {
             Leave::Quit => {
-
                 self.form = None;
                 self.state = ConnState::Idle;
                 true
@@ -544,7 +518,6 @@ impl ConnectionsScreen {
     pub fn open_new(&mut self) {
         self.open_form(None);
     }
-
 
     pub fn tick(&mut self) -> Option<ConnEvent> {
         match &mut self.state {
@@ -600,13 +573,7 @@ impl ConnectionsScreen {
         None
     }
 
-
-
     pub fn on_key(&mut self, key: &Key, cx: &mut crate::app::Cx) -> (Outcome, Option<ConnEvent>) {
-
-
-
-
         let text_focus = self.form_text_focus(cx.focus.current());
         if key.is_char('e')
             && !self.is_editing()
@@ -650,8 +617,6 @@ impl ConnectionsScreen {
             return (o, None);
         }
         if f == self.tree.id {
-
-
             if key.is_char('e') {
                 let event = self.action(1, cx);
                 return (Outcome::Changed, event);
@@ -680,7 +645,6 @@ impl ConnectionsScreen {
         }
         if let Some(_form) = self.form.as_mut() {
             let o = self.on_form_key(key, f, cx);
-
 
             if o == Outcome::Ignored && key.is(KeyCode::Esc) {
                 return (self.leave_form(FormLeave::Close, cx), None);
@@ -771,7 +735,6 @@ impl ConnectionsScreen {
         }
         false
     }
-
 
     fn form_text_focus(&self, focus: Option<WidgetId>) -> bool {
         let (Some(form), Some(f)) = (self.form.as_ref(), focus) else {
@@ -959,8 +922,6 @@ impl ConnectionsScreen {
         Outcome::Changed
     }
 
-
-
     fn pointer_fields(&mut self) -> Vec<&mut dyn PointerField> {
         let mut v: Vec<&mut dyn PointerField> = vec![&mut self.filter];
         if let Some(f) = self.form.as_mut() {
@@ -978,10 +939,6 @@ impl ConnectionsScreen {
         }
         v
     }
-
-
-
-
 
     pub fn pointer(
         &mut self,
@@ -1006,7 +963,6 @@ impl ConnectionsScreen {
             }
             _ => {}
         }
-
 
         if let Some(r) = self.tree.route(ev) {
             return (r.outcome(), None);
@@ -1043,7 +999,6 @@ impl ConnectionsScreen {
             let (o, act) = self.tree.pointer(ev).into_parts();
             self.sync_selected_from_cursor();
 
-
             if let Some(TreeAction::Activate(path)) = act
                 && let Some(i) = self.connection_at_path(&path)
             {
@@ -1073,8 +1028,6 @@ impl ConnectionsScreen {
             None => (Outcome::Ignored, None),
         }
     }
-
-
 
     fn form_stack_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let form = self.form.as_mut()?;
@@ -1134,8 +1087,6 @@ impl ConnectionsScreen {
         }
         Outcome::Ignored
     }
-
-
 
     pub fn on_blur(&mut self, ch: junie_tui::core::focus::FocusChange) -> Outcome {
         use junie_tui::core::focus::forward_blur;
@@ -1217,8 +1168,6 @@ impl ConnectionsScreen {
         ]
     }
 
-
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         if self.glyphs != t.glyphs {
@@ -1275,7 +1224,6 @@ impl ConnectionsScreen {
         }
         if r.is_empty() {
             if self.form.is_some() {
-
                 ctx.cover(buf);
                 self.render_form(area, buf, ctx);
             }
@@ -1465,8 +1413,6 @@ impl ConnectionsScreen {
         );
         let (lc, rc) = junie_tui::ui::layout::Split::new(58, 30, 24).horizontal(body, 4);
         let fh = TextInput::HEIGHT;
-
-
 
         let stack = Stack::default();
         let focus = ctx.interaction.focus;

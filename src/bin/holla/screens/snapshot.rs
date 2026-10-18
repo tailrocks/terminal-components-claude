@@ -1,8 +1,3 @@
-
-
-
-
-
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
@@ -38,7 +33,6 @@ pub const BODY: WidgetId = WidgetId::of("snapshot.body");
 
 pub const MENU: WidgetId = WidgetId::of("snapshot.menu");
 
-
 type FollowUp = (String, String, Vec<(String, String)>);
 const FOLLOW: WidgetId = WidgetId::of("snapshot.follow");
 
@@ -48,7 +42,6 @@ pub struct SnapshotPage {
     meta: String,
     facts: Vec<Prop>,
     lines: Vec<(String, Tone)>,
-
 
     marks: Vec<(usize, usize, StatusKind)>,
 
@@ -116,8 +109,6 @@ impl SnapshotPage {
             .collect();
         page
     }
-
-
 
     fn rebuild(&mut self, w: &World) {
         self.facts.clear();
@@ -767,7 +758,6 @@ impl SnapshotPage {
                     self.lines.push(m(""));
                 }
 
-
                 let mut rows: Vec<(i64, String, String, String, String, Tone)> = w
                     .disk
                     .history
@@ -810,7 +800,6 @@ impl SnapshotPage {
                         crate::domain::cleanup::Outcome::WouldRemove => {
                             ("would be removed".to_owned(), Tone::Muted)
                         }
-
 
                         crate::domain::cleanup::Outcome::Trashed => {
                             (format!("  {}", r.outcome.label()), Tone::Success)
@@ -1068,7 +1057,6 @@ impl SnapshotPage {
                             .filter(|j| j.report_index == idx)
                             .map(|j| (j.exec.completed(), j.exec.total()));
 
-
                         self.report_running = running.is_some();
                         self.title = match (running, r.dry_run) {
                             (Some(_), true) => "Dry run running".into(),
@@ -1260,9 +1248,6 @@ impl SnapshotPage {
 }
 
 impl SnapshotPage {
-
-
-
     fn body_menu(&self, anchor: ContextAnchor, cx: &mut Cx) -> Outcome {
         let mut items = vec![MenuItem::new("Copy").shortcut("y")];
         let mut keys = String::from("y");
@@ -1385,7 +1370,6 @@ impl ShellPage<Holla> for SnapshotPage {
     fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-
             if id == BODY && axis == Axis::Vertical {
                 self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
@@ -1584,7 +1568,6 @@ impl Screen for SnapshotPage {
         if !cx.focus.is(BODY) {
             return Outcome::Ignored;
         }
-
 
         let at = Position::new(self.body_area.x, self.body_area.y);
         self.body_menu(ContextAnchor::Pointer(at), cx)

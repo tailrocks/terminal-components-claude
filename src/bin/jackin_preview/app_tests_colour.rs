@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Cell;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::style::Modifier;
@@ -24,7 +20,6 @@ fn row(h: &H, y: u16) -> String {
     h.text().lines().nth(y as usize).unwrap_or("").to_owned()
 }
 
-
 fn find(h: &H, needle: &str) -> (u16, u16) {
     let text = h.text();
     for (y, line) in text.lines().enumerate() {
@@ -34,7 +29,6 @@ fn find(h: &H, needle: &str) -> (u16, u16) {
     }
     panic!("{needle:?} not on screen\n{text}")
 }
-
 
 fn col(h: &H, y: u16, from: u16, needle: &str) -> u16 {
     let r = row(h, y);
@@ -102,7 +96,6 @@ fn the_accounts_health_line_and_warnings_tone_each_part() {
     assert!(cell(&h, d, y).modifier.contains(Modifier::BOLD));
     assert_eq!(cell(&h, col(&h, y, x, "4 warnings"), y).fg, t.warning);
     assert_eq!(cell(&h, col(&h, y, x, "1 refreshing"), y).fg, t.info);
-
 
     let (x, y) = find(&h, "Claude · Work   Session");
     let (warn, warn_style) = t.status(StatusKind::Warn);
@@ -196,8 +189,6 @@ fn a_finished_capsule_tab_is_done() {
     assert_eq!(Some(cell(&h, x, 2).fg), style.fg, "{r}");
 }
 
-
-
 fn stale_work_at_90(h: &mut H) {
     let a = h.app.world.accounts.get_mut("acct-claude-work").unwrap();
     assert_eq!(
@@ -215,7 +206,6 @@ fn stale_work_at_90(h: &mut H) {
     h.draw();
 }
 
-
 fn stale_run(h: &H, y: u16, t: &Theme) -> (Cell, String) {
     let r = row(h, y);
     let x = col(h, y, 0, t.glyphs.bar_stale);
@@ -225,7 +215,6 @@ fn stale_run(h: &H, y: u16, t: &Theme) -> (Cell, String) {
 #[test]
 fn a_stale_quota_warning_keeps_its_warning_level() {
     let t = theme();
-
 
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 140, 40);
     h.app.screens.accounts.selected =
@@ -240,7 +229,6 @@ fn a_stale_quota_warning_keeps_its_warning_level() {
     let m = col(&h, y, v, t.glyphs.warning);
     assert_eq!(cell(&h, m, y).fg, t.warning, "{r}");
 
-
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     stale_work_at_90(&mut h);
     let y = 38;
@@ -249,9 +237,6 @@ fn a_stale_quota_warning_keeps_its_warning_level() {
     assert_eq!(c.fg, t.warning, "{r}");
     assert!(r.contains(&format!("90% {}", t.glyphs.warning)), "{r}");
 }
-
-
-
 
 fn assert_cursor_row_reads(h: &H, t: &Theme, y: u16, plane: ratatui::style::Color, what: &str) {
     let r = row(h, y);
@@ -281,10 +266,6 @@ fn assert_cursor_row_reads(h: &H, t: &Theme, y: u16, plane: ratatui::style::Colo
 
 #[test]
 fn details_on_a_cursor_row_stay_readable_on_its_fill() {
-
-
-
-
     for level in [
         junie_tui::theme::ColorLevel::TrueColor,
         junie_tui::theme::ColorLevel::Ansi256,
@@ -312,9 +293,6 @@ fn details_on_a_cursor_row_stay_readable_on_its_fill() {
 
 #[test]
 fn a_meter_follows_its_window_status_not_the_percentage() {
-
-
-
     let t = theme();
     let h = usage();
     let (x, y) = find(&h, "xAI ");

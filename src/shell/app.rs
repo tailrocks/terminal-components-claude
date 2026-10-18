@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use std::time::Duration;
 
 use ratatui::Frame;
@@ -28,17 +21,11 @@ use crate::widgets::too_small::TooSmall;
 use super::{Cx, Request, StatusLine};
 use crate::ui::context::ContextConfig;
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct PageKey(pub u64);
 
 impl PageKey {
-
     pub const ROOT: Self = Self(0);
-
 
     pub fn of(value: impl std::hash::Hash) -> Self {
         use std::hash::Hasher;
@@ -48,12 +35,7 @@ impl PageKey {
     }
 }
 
-
-
-
 type FooterDrawn = (Vec<Hint>, Vec<(usize, Rect)>);
-
-
 
 pub struct Shell<P = ()> {
     pub focus: Focus,
@@ -74,17 +56,11 @@ pub struct Shell<P = ()> {
 
     pub motion: Motion,
 
-
-
-
-
     pub clock_steps: bool,
-
 
     pub focus_fallback: FocusFallback,
 
     pub footer_keys: HintKeys,
-
 
     pub context: ContextConfig,
     footer: Option<FooterDrawn>,
@@ -118,7 +94,6 @@ impl<P> Shell<P> {
         }
     }
 
-
     pub fn pointer_parts(&mut self) -> PointerParts<'_> {
         PointerParts {
             router: &mut self.pointer,
@@ -128,16 +103,9 @@ impl<P> Shell<P> {
         }
     }
 
-
-
     pub fn cx<R, W: ?Sized, G>(&mut self) -> Cx<'_, R, W, G> {
         Cx::new(&mut self.focus, &self.ring).context(self.context)
     }
-
-
-
-
-
 
     pub fn deliver<R, W: ?Sized, G>(
         &mut self,
@@ -154,18 +122,13 @@ impl<P> Shell<P> {
         }
     }
 
-
     pub fn focus_next(&mut self) {
         self.focus.next(&self.ring);
     }
 
-
     pub fn focus_prev(&mut self) {
         self.focus.prev(&self.ring);
     }
-
-
-
 
     pub fn interaction(&self, now_ms: u64, flash_ms: u64, tick: u64) -> Interaction {
         let p = &self.pointer;
@@ -184,17 +147,9 @@ impl<P> Shell<P> {
         }
     }
 
-
-
-
     pub fn footer_drawn(&mut self, hints: Vec<Hint>, spots: Vec<(usize, Rect)>) {
         self.footer = Some((hints, spots));
     }
-
-
-
-
-
 
     pub fn upkeep(&mut self, layer_open: bool, page: PageKey, primary: Option<WidgetId>) {
         if layer_open {
@@ -216,107 +171,72 @@ impl<P> Shell<P> {
     }
 }
 
-
-
-
-
 pub trait App {
-
     type Status;
 
     fn shell(&self) -> &Shell<Self::Status>;
     fn shell_mut(&mut self) -> &mut Shell<Self::Status>;
 
-
     fn theme(&self) -> Theme;
-
 
     fn too_small(&self) -> TooSmall<'_>;
 
-
     fn now_ms(&self) -> u64;
-
 
     fn flash_ms(&self) -> u64 {
         self.now_ms()
     }
 
-
     fn tick(&self) -> u64;
-
 
     fn tick_interval(&self) -> Duration;
 
-
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx);
-
 
     fn configure(&self, _ctx: &mut RenderCtx) {}
 
-
-
     fn on_input(&mut self, input: Input) -> Outcome;
-
-
 
     fn on_blur(&mut self, _change: FocusChange) -> Outcome {
         Outcome::Ignored
     }
 
-
     fn after_input(&mut self, _input: &Input, out: Outcome) -> Outcome {
         out
     }
-
 
     fn layer_open(&self) -> bool {
         false
     }
 
-
-
     fn page_under_layer(&self) -> bool {
         self.layer_open()
     }
-
 
     fn page_key(&self) -> PageKey {
         PageKey::ROOT
     }
 
-
     fn primary_focus(&self) -> Option<WidgetId> {
         None
     }
-
-
-
-
-
-
-
-
 
     fn advance_clock(&mut self, _ms: u64) -> Option<Outcome> {
         None
     }
 
-
     fn coalesce(&self) -> Coalesce {
         Coalesce::default()
     }
-
 
     fn input_config(&self) -> InputConfig {
         InputConfig::default()
     }
 
-
     fn keyboard_protocol(&self) -> KeyboardProtocol {
         KeyboardProtocol::current()
     }
 }
-
 
 pub fn blur_fan_out<A: App + ?Sized>(app: &mut A) -> Outcome {
     let changes = {
@@ -330,14 +250,11 @@ pub fn blur_fan_out<A: App + ?Sized>(app: &mut A) -> Outcome {
     out
 }
 
-
 pub fn render<A: App + ?Sized>(app: &mut A, frame: &mut Frame) {
     let area = frame.area();
     app.shell_mut().size = (area.width, area.height);
     let theme = app.theme();
     let mut cursor;
-
-
 
     let mut pass = 0;
     loop {
@@ -390,15 +307,12 @@ pub fn render<A: App + ?Sized>(app: &mut A, frame: &mut Frame) {
     }
 }
 
-
 pub fn handle<A: App + ?Sized>(app: &mut A, input: Input) -> Outcome {
-
     let seen = app.shell_mut().status.on_input(&input);
     if let Input::Resize(w, h) = input {
         app.shell_mut().size = (w, h);
     }
     let logged = input.clone();
-
 
     let step = match &input {
         Input::Paste(text) if app.shell().clock_steps && app.shell().motion == Motion::Paused => {

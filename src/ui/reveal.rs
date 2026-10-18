@@ -1,43 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::rc::Rc;
 
 use ratatui::buffer::Buffer;
@@ -52,55 +12,34 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{self, Placement};
 use crate::ui::text::{truncate, wider_than, width, wrap};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RevealMode {
-
-
     #[default]
     Tooltip,
-
-
-
-
 
     InlineWrap,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Reveal {
-
     pub hover: bool,
-
 
     pub keyboard: Option<KeyCode>,
 
     pub mode: RevealMode,
 
-
-
     pub max_rows: u16,
-
-
 
     pub scroll: bool,
 
-
-
-
     pub wheel_lines: u16,
 
-
-
     pub delay_ms: u64,
-
 
     pub wheel_passes_at_ends: bool,
 }
 
 impl Reveal {
-
     pub const OFF: Self = Self {
         hover: false,
         keyboard: None,
@@ -152,7 +91,6 @@ impl Reveal {
         self
     }
 
-
     pub fn key_label(&self) -> Option<&'static str> {
         const PRINTABLE: &str = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
         Some(match self.keyboard? {
@@ -173,7 +111,6 @@ impl Reveal {
 }
 
 impl Default for Reveal {
-
     fn default() -> Self {
         Self {
             hover: true,
@@ -188,12 +125,8 @@ impl Default for Reveal {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct Extent {
-
     max: u16,
 
     page: u16,
@@ -201,21 +134,13 @@ struct Extent {
 
 type SharedExtent = std::rc::Rc<std::cell::Cell<Extent>>;
 
-
-
-
-
-
-
 #[derive(Debug, Clone, Default)]
 pub struct RevealState {
-
     pub config: Option<Reveal>,
 
     pub open: bool,
 
     effective: Reveal,
-
 
     available: bool,
 
@@ -223,11 +148,9 @@ pub struct RevealState {
 
     scroll: u16,
 
-
     target: Option<WidgetId>,
 
     extent: SharedExtent,
-
 
     labels: Option<(&'static str, &'static str)>,
 }
@@ -241,17 +164,13 @@ impl RevealState {
         }
     }
 
-
     pub fn effective(&self) -> Reveal {
         self.effective
     }
 
-
-
     pub fn available(&self) -> bool {
         self.available && self.effective.keyboard.is_some()
     }
-
 
     pub fn hint(&self) -> Option<(&'static str, &'static str)> {
         if !self.available() {
@@ -267,11 +186,9 @@ impl RevealState {
         Some((key, if self.open { close } else { open }))
     }
 
-
     pub fn scrolls(&self) -> bool {
         self.effective.scroll && self.extent.get().max > 0
     }
-
 
     pub fn begin(&mut self, ctx: &RenderCtx) {
         self.effective = self.config.unwrap_or(ctx.reveal);
@@ -288,10 +205,6 @@ impl RevealState {
     pub fn close(&mut self) {
         self.open = false;
     }
-
-
-
-
 
     pub fn on_key(&mut self, key: &Key) -> Option<Outcome> {
         let open_key = self.effective.keyboard?;
@@ -324,9 +237,6 @@ impl RevealState {
         None
     }
 
-
-
-
     pub fn on_wheel(&mut self, delta: i32) -> Option<Outcome> {
         if !self.scrolls() {
             return None;
@@ -343,8 +253,6 @@ impl RevealState {
         let max = self.extent.get().max as i32;
         let next = (self.scroll as i32 + delta).clamp(0, max) as u16;
         if next == self.scroll {
-
-
             Outcome::Consumed
         } else {
             self.scroll = next;
@@ -352,22 +260,12 @@ impl RevealState {
         }
     }
 
-
-
     fn track(&mut self, id: WidgetId) {
         if self.target != Some(id) {
             self.target = Some(id);
             self.scroll = 0;
         }
     }
-
-
-
-
-
-
-
-
 
     pub fn inline(
         &mut self,
@@ -404,9 +302,6 @@ impl RevealState {
         Some(shown)
     }
 
-
-
-
     pub fn cell(
         &mut self,
         ctx: &mut RenderCtx,
@@ -438,8 +333,6 @@ impl RevealState {
         cut
     }
 
-
-
     fn advertise(&self, ctx: &mut RenderCtx) {
         if let Some(h) = self.hint() {
             ctx.reveal_hint = Some(h);
@@ -460,14 +353,11 @@ impl RevealState {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RevealLine {
     pub text: String,
     pub more: bool,
 }
-
 
 fn cap(room: u16, max_rows: u16) -> u16 {
     if max_rows > 0 {
@@ -476,8 +366,6 @@ fn cap(room: u16, max_rows: u16) -> u16 {
         room
     }
 }
-
-
 
 fn window(
     lines: &[String],
@@ -517,7 +405,6 @@ fn window(
         return (vec![line(&lines[scroll.min(max)])], extent);
     }
 
-
     let max = n - (rows - 1);
     let o = scroll.min(max);
     let extent = Extent {
@@ -542,11 +429,6 @@ fn window(
     }
     (out, extent)
 }
-
-
-
-
-
 
 pub fn truncated(
     ctx: &mut RenderCtx,
@@ -584,11 +466,8 @@ pub fn truncated(
     cut
 }
 
-
-
 #[derive(Debug, Default)]
 struct PointerTip {
-
     target: Option<WidgetId>,
     scroll: u16,
     extent: SharedExtent,
@@ -605,8 +484,6 @@ thread_local! {
         std::cell::RefCell::new(PointerTip::default());
 }
 
-
-
 pub(crate) fn begin_frame() {
     POINTER.with(|p| p.borrow_mut().drawn = None);
     HOVER_WAIT.with(|w| w.set(None));
@@ -621,11 +498,6 @@ thread_local! {
     static FRAME: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
 }
 
-
-
-
-
-
 pub fn hover_ready(ctx: &RenderCtx, delay_ms: u64) -> bool {
     let Some(rested) = ctx.interaction.hover_ms else {
         return true;
@@ -638,21 +510,10 @@ pub fn hover_ready(ctx: &RenderCtx, delay_ms: u64) -> bool {
     false
 }
 
-
-
-
 pub fn hover_wait() -> Option<(u64, u64)> {
     let frame = FRAME.with(|f| f.get());
     HOVER_WAIT.with(|w| w.get()).map(|ms| (frame, ms))
 }
-
-
-
-
-
-
-
-
 
 pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
     let crate::core::event::Input::Mouse(m) = input else {
@@ -673,7 +534,6 @@ pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
         let next =
             (p.scroll as i32 + dy * p.wheel_lines.max(1) as i32).clamp(0, extent.max as i32) as u16;
         if next == p.scroll && p.passes {
-
             return None;
         }
         Some(if next == p.scroll {
@@ -684,12 +544,6 @@ pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
         })
     })
 }
-
-
-
-
-
-
 
 pub fn advertise<T>(
     hints: &mut Vec<T>,
@@ -714,17 +568,7 @@ thread_local! {
         const { std::cell::RefCell::new(Vec::new()) };
 }
 
-
-
 const CUTS_MAX: usize = 64;
-
-
-
-
-
-
-
-
 
 pub fn queue_cut(area: Rect, full: &str) {
     if !is_cut(area, full) {
@@ -739,18 +583,13 @@ pub fn queue_cut(area: Rect, full: &str) {
     });
 }
 
-
 pub(crate) fn clear_cuts() {
     CUTS.with(|q| q.borrow_mut().clear());
 }
 
-
-
 pub fn cut_id(area: Rect) -> WidgetId {
     WidgetId::of("junie.reveal.cut").child(((area.x as usize) << 16) | area.y as usize)
 }
-
-
 
 pub(crate) fn flush_cuts(ctx: &mut RenderCtx) {
     let cuts = CUTS.with(|q| std::mem::take(&mut *q.borrow_mut()));
@@ -776,8 +615,6 @@ enum Source {
     Pointer,
 }
 
-
-
 #[derive(Debug, Clone, Default)]
 struct Feed {
     scroll: u16,
@@ -792,21 +629,16 @@ struct Tip {
     anchor: Rect,
     id: WidgetId,
 
-
     text: Rc<str>,
     source: Source,
     feed: Feed,
 }
-
 
 #[derive(Debug, Default)]
 pub(crate) struct Slot {
     tip: Option<Tip>,
     queued: bool,
 }
-
-
-
 
 #[derive(Debug)]
 struct Wrapped {
@@ -824,17 +656,12 @@ thread_local! {
     static WRAPS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-
-
 fn shared(full: &str) -> Rc<str> {
     WRAPPED.with(|w| match &*w.borrow() {
         Some(c) if c.text.len() == full.len() && *c.text == *full => c.text.clone(),
         _ => Rc::from(full),
     })
 }
-
-
-
 
 fn wrapped(id: WidgetId, full: &str, width: usize) -> Rc<Vec<String>> {
     WRAPPED.with(|w| {
@@ -887,11 +714,6 @@ fn show(ctx: &mut RenderCtx, id: WidgetId, anchor: Rect, full: &str, source: Sou
     }
 }
 
-
-
-
-
-
 fn layout(
     screen: Rect,
     anchor: Rect,
@@ -913,8 +735,6 @@ fn layout(
 
     let mut area = popup::place_with(screen, at, w, h, Placement::Below, popup::Place::FLUSH);
 
-
-
     if area.height < h {
         area.height = h.min(screen.height);
         area.y = screen.bottom().saturating_sub(area.height);
@@ -933,8 +753,6 @@ fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {
     if tip.feed.pointer_only {
         POINTER.with(|p| p.borrow_mut().drawn = Some(area));
     }
-
-
 
     let on_popover = area
         .positions()
@@ -1003,8 +821,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn a_resting_reveal_wraps_its_text_once() {
         let wraps = || WRAPS.with(std::cell::Cell::get);
@@ -1069,9 +885,6 @@ mod tests {
         assert_eq!(buf[(4, 2)].bg, Theme::junie().popover);
     }
 
-
-
-
     #[test]
     fn the_hover_reveal_waits_for_the_pointer_to_rest() {
         let id = WidgetId::of("cell");
@@ -1116,8 +929,6 @@ mod tests {
         });
         assert_eq!(row_text(&buf, 2).trim(), FULL);
     }
-
-
 
     #[test]
     fn the_wheel_passes_through_at_a_pointer_tooltips_ends() {
@@ -1270,7 +1081,6 @@ mod tests {
         );
     }
 
-
     fn long_reveal(state: &mut RevealState, text: &str) -> Buffer {
         frame(30, 6, Interaction::default(), |_, ctx| {
             state.begin(ctx);
@@ -1294,7 +1104,6 @@ mod tests {
 
     #[test]
     fn a_long_keyboard_reveal_scrolls_with_page_keys_and_the_wheel() {
-
         let text = numbered(40);
         let mut state = RevealState::default();
         long_reveal(&mut state, &text);

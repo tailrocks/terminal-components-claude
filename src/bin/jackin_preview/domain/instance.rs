@@ -1,7 +1,3 @@
-
-
-
-
 use super::agent::Agent;
 use super::workspace::WorkspaceId;
 
@@ -21,7 +17,6 @@ pub enum InstanceStatus {
 }
 
 impl InstanceStatus {
-
     pub fn label(self) -> &'static str {
         match self {
             InstanceStatus::Running => "running",
@@ -60,7 +55,6 @@ impl InstanceStatus {
         }
     }
 
-
     pub fn hidden(self) -> bool {
         matches!(self, InstanceStatus::Superseded | InstanceStatus::Purged)
     }
@@ -68,7 +62,6 @@ impl InstanceStatus {
     pub fn is_live(self) -> bool {
         self == InstanceStatus::Running
     }
-
 
     pub fn reconnectable(self) -> bool {
         matches!(
@@ -80,7 +73,6 @@ impl InstanceStatus {
                 | InstanceStatus::Crashed
         )
     }
-
 
     pub fn stoppable(self) -> bool {
         self == InstanceStatus::Running
@@ -118,7 +110,6 @@ pub struct Instance {
 
     pub uncommitted: usize,
     pub unpushed: usize,
-
 
     pub accounts: Vec<super::account::AccountId>,
 }
@@ -182,10 +173,8 @@ impl SessionStatus {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DaemonSnapshot {
-
     Unavailable,
 
     NoTabs,
@@ -207,7 +196,6 @@ pub struct PaneSnapshot {
     pub focused: bool,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AgentState {
     Idle,
@@ -227,7 +215,6 @@ impl AgentState {
             AgentState::Unknown => "unknown",
         }
     }
-
 
     pub fn rank(self) -> u8 {
         match self {

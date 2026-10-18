@@ -1,6 +1,3 @@
-
-
-
 use crate::screens::Holla;
 use junie_tui::core::event::MouseKind;
 use junie_tui::runtime::Application;
@@ -12,7 +9,6 @@ use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{Go, Page};
 
-
 fn selected_on_row(h: &H, y: u16) -> String {
     let sel = Theme::junie().selection().bg.expect("a selection colour");
     let buf = h.term.backend().buffer();
@@ -21,7 +17,6 @@ fn selected_on_row(h: &H, y: u16) -> String {
         .map(|x| buf[(x, y)].symbol().to_owned())
         .collect()
 }
-
 
 fn args() -> (H, u16, u16) {
     let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);
@@ -68,7 +63,6 @@ fn dragging_in_an_argument_field_selects_and_a_double_press_drags_by_words() {
     h.mouse(MouseKind::Up, x + 7, y);
     assert_eq!(selected_on_row(&h, y), "alpha beta", "{}", h.text());
 }
-
 
 struct BlurReporter;
 
@@ -150,9 +144,6 @@ fn a_status_raised_by_blur_in_a_background_tab_shows_when_it_activates() {
     assert_eq!(h.app.active, bg);
     assert!(h.text().contains("Background field saved"), "{}", h.text());
 }
-
-
-
 
 #[test]
 fn argument_fields_edit_on_focus_and_tab_moves_on_with_the_caret() {

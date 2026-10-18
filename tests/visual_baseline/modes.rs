@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use crate::scenarios::Bin;
 use crate::support::{self, Case, Color};
 

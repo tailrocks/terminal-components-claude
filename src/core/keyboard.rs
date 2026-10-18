@@ -1,56 +1,22 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::core::event::{Input, Key};
 
-
-
 pub const DISAMBIGUATE: u8 = 0b1;
 
 pub const REPORT_ALTERNATE_KEYS: u8 = 0b100;
 
-
-
 pub const FLAGS: u8 = DISAMBIGUATE | REPORT_ALTERNATE_KEYS;
-
-
 
 pub const QUERY: &str = "\x1b[?u";
 
 pub const POP: &str = "\x1b[<u";
 
-
 pub fn push(flags: u8) -> String {
     format!("\x1b[>{flags}u")
 }
-
-
-
 
 pub fn parse_flags_reply(reply: &[u8]) -> Option<u8> {
     let body = reply.strip_prefix(b"\x1b[?")?.strip_suffix(b"u")?;
@@ -59,9 +25,6 @@ pub fn parse_flags_reply(reply: &[u8]) -> Option<u8> {
     }
     std::str::from_utf8(body).ok()?.parse().ok()
 }
-
-
-
 
 pub fn modifiers(param: u16) -> KeyModifiers {
     let bits = param.saturating_sub(1);
@@ -79,7 +42,6 @@ pub fn modifiers(param: u16) -> KeyModifiers {
     m
 }
 
-
 pub fn modifier_param(mods: KeyModifiers) -> u16 {
     let mut bits = 0;
     for (bit, flag) in [
@@ -95,9 +57,6 @@ pub fn modifier_param(mods: KeyModifiers) -> u16 {
     bits + 1
 }
 
-
-
-
 pub fn encode(key: &Key) -> Option<String> {
     let KeyCode::Char(c) = key.code else {
         return None;
@@ -110,8 +69,6 @@ pub fn encode(key: &Key) -> Option<String> {
         format!("\x1b[{};{param}u", lower as u32)
     })
 }
-
-
 
 pub fn decode(seq: &[u8]) -> Option<Key> {
     let body = std::str::from_utf8(seq.strip_prefix(b"\x1b[")?.strip_suffix(b"u")?).ok()?;
@@ -137,11 +94,8 @@ pub fn decode(seq: &[u8]) -> Option<Key> {
     })
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum KeyboardProtocol {
-
-
     #[default]
     Auto,
 
@@ -151,10 +105,7 @@ pub enum KeyboardProtocol {
 }
 
 impl KeyboardProtocol {
-
-
     pub const ENV: &'static str = "JUNIE_TUI_KEYBOARD_PROTOCOL";
-
 
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
         match get(Self::ENV)
@@ -167,26 +118,19 @@ impl KeyboardProtocol {
         }
     }
 
-
     pub fn current() -> Self {
         Self::from_env(|k| std::env::var(k).ok())
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ProtocolState {
-
     pub enabled: bool,
 
     pub pushed: bool,
 }
 
 impl ProtocolState {
-
-
     pub fn enter(
         &mut self,
         policy: KeyboardProtocol,
@@ -200,11 +144,9 @@ impl ProtocolState {
         self.resume()
     }
 
-
     pub fn leave(&mut self) -> Option<&'static str> {
         std::mem::take(&mut self.pushed).then_some(POP)
     }
-
 
     pub fn resume(&mut self) -> Option<String> {
         (self.enabled && !self.pushed).then(|| {
@@ -218,8 +160,6 @@ static ENABLED: AtomicBool = AtomicBool::new(false);
 static PUSHED: AtomicBool = AtomicBool::new(false);
 
 static SUPER: AtomicU8 = AtomicU8::new(0);
-
-
 
 pub mod session {
     use super::*;
@@ -236,7 +176,6 @@ pub mod session {
         PUSHED.store(s.pushed, Ordering::SeqCst);
     }
 
-
     pub fn enter(policy: KeyboardProtocol, detect: impl FnOnce() -> bool) -> Option<String> {
         let mut s = load();
         let out = s.enter(policy, detect);
@@ -244,14 +183,12 @@ pub mod session {
         out
     }
 
-
     pub fn leave() -> Option<&'static str> {
         let mut s = load();
         let out = s.leave();
         store(s);
         out
     }
-
 
     pub fn resume() -> Option<String> {
         let mut s = load();
@@ -261,26 +198,17 @@ pub mod session {
     }
 }
 
-
-
 pub fn active() -> bool {
     PUSHED.load(Ordering::SeqCst)
 }
-
-
-
 
 pub fn super_delivered() -> bool {
     matches!(SUPER.load(Ordering::SeqCst), 1 | 3)
 }
 
-
-
 pub fn set_super_delivered(on: bool) {
     SUPER.store(if on { 1 } else { 2 }, Ordering::SeqCst);
 }
-
-
 
 pub fn observe(input: &Input) {
     if let Input::Key(k) = input

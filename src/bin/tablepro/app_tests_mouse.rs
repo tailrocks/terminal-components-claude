@@ -1,8 +1,4 @@
-
-
-
 use crate::app_tests::H;
-
 
 #[test]
 fn the_first_connection_is_created_by_mouse_from_the_empty_list() {
@@ -19,7 +15,6 @@ fn the_first_connection_is_created_by_mouse_from_the_empty_list() {
     h.click(x, y);
     assert!(h.text().contains("Save & connect"), "{}", h.text());
 }
-
 
 #[test]
 fn the_query_toolbar_runs_explains_and_cancels_by_mouse() {
@@ -60,8 +55,6 @@ fn the_query_toolbar_runs_explains_and_cancels_by_mouse() {
     h.ticks(10);
     assert!(h.text().contains("Planning"), "{}", h.text());
 }
-
-
 
 #[test]
 fn the_explorer_collapses_and_comes_back_by_mouse() {
@@ -104,7 +97,6 @@ fn the_explorer_collapses_and_comes_back_by_mouse() {
     assert!(h.wb().explorer_visible);
 }
 
-
 #[test]
 fn a_narrow_workbench_opens_the_explorer_drawer_from_its_rail() {
     use crate::workbench::{EXPLORER, EXPLORER_RAIL};
@@ -121,7 +113,6 @@ fn a_narrow_workbench_opens_the_explorer_drawer_from_its_rail() {
     assert_eq!(h.focus(), Some(EXPLORER), "{}", h.text());
     assert!(h.text().contains("Explorer"));
 }
-
 
 #[test]
 fn the_app_menu_disconnects_and_quits_by_mouse() {
@@ -154,7 +145,6 @@ fn the_app_menu_disconnects_and_quits_by_mouse() {
     assert!(h.app.shell.quit, "Quit did not quit");
 }
 
-
 #[test]
 fn disconnect_keeps_an_unsaved_query() {
     use crate::app::STRIP_APP;
@@ -169,9 +159,6 @@ fn disconnect_keeps_an_unsaved_query() {
     assert!(h.app.workbench.is_some());
     assert!(h.text().contains("before disconnecting"), "{}", h.text());
 }
-
-
-
 
 #[test]
 fn a_query_tab_close_plate_lights_whole_and_closes_the_tab() {

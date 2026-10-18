@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
@@ -40,11 +35,9 @@ fn shift_f10(h: &mut H) {
     h.draw();
 }
 
-
 fn click_outside(h: &mut H) {
     h.click(2, 30);
 }
-
 
 fn flashing(h: &H) -> bool {
     h.app.interaction().flash == Some(SURFACE)
@@ -177,8 +170,6 @@ fn the_switcher_scope_cycles_both_ways_through_the_layer_events() {
     assert!(scope(&h).starts_with("Queries"), "{}", scope(&h));
 }
 
-
-
 #[test]
 fn a_paste_lands_in_the_open_pickers_search() {
     let mut h = H::connected(120, 40);
@@ -213,9 +204,6 @@ fn a_context_menu_closes_on_esc_and_on_an_outside_click_back_to_its_owner() {
     assert!(h.app.modal().is_none(), "{}", h.text());
     assert_eq!(h.focus(), Some(g), "K9");
 }
-
-
-
 
 #[test]
 fn the_footer_names_the_open_pickers_keys() {

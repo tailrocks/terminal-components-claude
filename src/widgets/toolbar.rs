@@ -1,25 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -37,23 +15,18 @@ use crate::ui::tooltip::Tip;
 use crate::widgets::icon_button::IconButton;
 use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolItem {
     pub label: String,
 
-
-
     pub shortcut: Option<String>,
     pub disabled: bool,
-
 
     pub on: Option<bool>,
 
     pub separator_after: bool,
 
     pub tip: Option<String>,
-
 
     pub reason: Option<String>,
 }
@@ -93,7 +66,6 @@ impl ToolItem {
         self
     }
 
-
     fn width(&self) -> u16 {
         let mut w = 1 + width(&self.label) as u16 + 1;
         if self.on.is_some() {
@@ -106,10 +78,8 @@ impl ToolItem {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolbarAction {
-
     Activated(usize),
 
     Toggled(usize, bool),
@@ -122,26 +92,17 @@ pub struct Toolbar {
 
     pub cursor: usize,
 
-
     pub nav: NavKeys,
 
-
     pub wrap: bool,
-
 
     pub skip_disabled: bool,
 
     pub gap: u16,
 
-
     pub areas: Vec<Rect>,
 
-
-
     pub overflow: bool,
-
-
-
 
     pub more_button: IconButton,
 
@@ -211,38 +172,30 @@ impl Toolbar {
         self
     }
 
-
     pub fn more_glyph(mut self, glyph: &str) -> Self {
         self.more_button.glyph = Some(glyph.to_owned());
         self
     }
 
-
     pub fn more_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::OVERFLOW))
     }
-
 
     pub fn menu_id(&self) -> WidgetId {
         self.id.sub("more-menu")
     }
 
-
     pub fn menu_open(&self) -> bool {
         self.menu.is_some()
     }
-
 
     pub fn hidden(&self) -> &[usize] {
         &self.hidden
     }
 
-
     pub fn on_more(&self) -> bool {
         self.cursor == self.items.len() && !self.more_area.is_empty()
     }
-
-
 
     fn stops(&self) -> Vec<usize> {
         let n = self.items.len();
@@ -304,17 +257,13 @@ impl Toolbar {
         }
     }
 
-
     pub fn item_id(&self, i: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::ROW, ItemKey::index(i)))
     }
 
-
-
     fn item_at(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
-
 
     pub fn width(&self) -> u16 {
         let n = self.items.len() as u16;
@@ -354,7 +303,6 @@ impl Toolbar {
                 KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Down
             )
         {
-
             self.open_menu();
             return (Outcome::Changed, None);
         }
@@ -397,8 +345,6 @@ impl Toolbar {
         (moved.outcome(), None)
     }
 
-
-
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ToolbarAction>) {
         if let Some((menu, _)) = self.menu.as_mut()
             && menu.contains_id(id)
@@ -424,9 +370,6 @@ impl Toolbar {
         }
     }
 
-
-
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         let n = self.items.len();
@@ -440,7 +383,6 @@ impl Toolbar {
         let t = ctx.theme;
         self.marks = (t.glyphs.dot_on, t.glyphs.dot_off);
         let focused = ctx.interaction.focused_under(self.id, self.menu.is_some());
-
 
         ctx.control(self.id, area, false);
         let more = match &self.more_button.glyph {
@@ -458,13 +400,11 @@ impl Toolbar {
         let y = area.y;
         let mut x = area.x;
 
-
         let mut sep_at: Option<u16> = None;
         for i in 0..n {
             let it = &self.items[i];
             let w = it.width();
             if x + w > limit {
-
                 if overflowing {
                     self.hidden.extend(i..n);
                     if let Some(sx) = sep_at {
@@ -540,7 +480,6 @@ impl Toolbar {
             }
         }
         if self.hidden.is_empty() {
-
             self.menu = None;
             self.cursor = self.cursor.min(n.saturating_sub(1));
         } else {
@@ -593,10 +532,6 @@ impl Navigable for Toolbar {
     }
 }
 
-
-
-
-
 impl crate::ui::specimen::Specimen for Toolbar {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -646,7 +581,6 @@ impl crate::ui::specimen::Specimen for Toolbar {
             it.on = Some(true);
         }
         let area = if state == crate::ui::specimen::SpecimenState::Overflow {
-
             Rect {
                 width: area.width.min(t.width().saturating_sub(1)),
                 ..area
@@ -657,9 +591,6 @@ impl crate::ui::specimen::Specimen for Toolbar {
         t.render(area, buf, ctx, bg);
     }
 }
-
-
-
 
 impl crate::core::pointer::MouseTarget for Toolbar {
     type Action = ToolbarAction;
@@ -719,8 +650,6 @@ mod tests {
         render_w(t, inter, 60, &Theme::junie())
     }
 
-
-
     fn render_w(
         t: &mut Toolbar,
         inter: Interaction,
@@ -741,7 +670,6 @@ mod tests {
     fn line(buf: &Buffer, y: u16) -> String {
         (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect()
     }
-
 
     fn wide() -> Toolbar {
         Toolbar::new(

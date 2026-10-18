@@ -121,8 +121,6 @@ impl FormsPage {
 }
 
 impl FormsPage {
-
-
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         for inp in [&mut self.name, &mut self.reviewer] {
@@ -196,8 +194,6 @@ impl Page for FormsPage {
             t,
         );
 
-
-
         if inner.height < 11 || inner.width < 40 {
             return;
         }
@@ -205,7 +201,6 @@ impl Page for FormsPage {
         self.description.rows = if compact { 1 } else { 4 };
         let body = Rect::new(inner.x, inner.y, inner.width, inner.height - 2);
         let (l, r) = crate::pages::layout::columns(body, body.width / 2 - 2, 4);
-
 
         let mut y = l.y;
         if !compact {
@@ -229,7 +224,6 @@ impl Page for FormsPage {
         }
         self.reviewer
             .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
-
 
         let mut y = r.y;
         if !compact {
@@ -260,7 +254,6 @@ impl Page for FormsPage {
             ),
             t.faint().bg(bg),
         );
-
 
         let ay = inner.bottom().saturating_sub(1);
         let widths = [self.submit.width(), self.reset.width()];

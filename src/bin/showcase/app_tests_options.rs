@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -84,7 +81,6 @@ impl Harness {
             .count()
     }
 
-
     fn cells(&self, area: Rect) -> Vec<ratatui::buffer::Cell> {
         let buf = self.term.backend().buffer();
         let mut out = Vec::new();
@@ -102,7 +98,6 @@ impl Harness {
         self.app.insp.set_tab(Tab::Options);
         self.draw();
     }
-
 
     fn control(&self, key: &str) -> Rect {
         let id = self.app.insp.options.control_id(key).expect("an option");
@@ -174,7 +169,6 @@ fn a_colour_level_flip_rerenders_at_that_level() {
 fn every_shell_option_flips_through_the_pane_and_through_opt() {
     for o in options::SHELL {
         for (i, value) in o.values.iter().enumerate() {
-
             let mut by_flag = Harness::new(160, 60, PageId::Overview);
             by_flag.app.apply_opt(opt(&format!("{}={value}", o.key)));
             by_flag.draw();
@@ -266,7 +260,6 @@ fn the_overlay_options_work_at_80_by_24() {
 #[test]
 fn docked_pane_focus_and_escape() {
     let mut h = Harness::new(160, 50, PageId::Overview);
-
 
     let marks = h.focus_bars();
     h.key(KeyCode::Char('i'));

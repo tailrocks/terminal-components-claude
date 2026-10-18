@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -30,10 +25,8 @@ const ID: WidgetId = WidgetId::of("buttons");
 const LONG_JOB_TICKS: u8 = 28;
 const RUN_TICKS: u8 = 24;
 
-
 const RUN: usize = 0;
 const CANCEL: usize = 3;
-
 
 const ROW: WidgetId = WidgetId::of("buttons.row");
 
@@ -76,8 +69,6 @@ impl ButtonsPage {
         page
     }
 
-
-
     fn rebuild(&mut self) {
         let fv = match self.opts.value("buttons.focus_visible") {
             "keyboard-only" => FocusVisible::KeyboardOnly,
@@ -85,7 +76,6 @@ impl ButtonsPage {
         };
         let busy = self.buttons.get(8).is_some_and(|b| b.busy);
         self.buttons = vec![
-
             Button::primary(ID.child(0), "Run task").tooltip("Start the task in the background"),
             Button::secondary(ID.child(1), "Preview").tooltip("Show what the task would change"),
             Button::subtle(ID.child(2), "Cancel").tooltip("Leave without running anything"),
@@ -101,8 +91,6 @@ impl ButtonsPage {
         .map(|b| b.focus_visible(fv))
         .collect();
         self.buttons[8].busy = busy;
-
-
 
         let tab = self.opts.on("buttons.toolbar_focus");
         let running = self.run_ticks.is_some();
@@ -185,7 +173,6 @@ impl ButtonsPage {
         self.last = Some(msg);
     }
 
-
     fn tool(&mut self, i: usize, cx: &mut Cx) {
         if !self.tools[i].can_activate() {
             return;
@@ -203,7 +190,6 @@ impl ButtonsPage {
         }
         self.sync_run();
     }
-
 
     fn sync_run(&mut self) {
         let running = self.run_ticks.is_some();
@@ -289,7 +275,6 @@ impl ButtonsPage {
         }
     }
 
-
     fn render_kinds(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Playground")).meta("hover · click · Tab · Enter / Space");
@@ -322,9 +307,6 @@ impl ButtonsPage {
         }
     }
 
-
-
-
     fn render_toolbar(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let meta = if self.tools[0].focusable {
@@ -350,8 +332,6 @@ impl ButtonsPage {
             );
         }
     }
-
-
 
     fn render_rows(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
@@ -407,8 +387,6 @@ impl ButtonsPage {
         }
     }
 
-
-
     fn render_icons(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Icon buttons")).meta("hover · press · click");
@@ -460,9 +438,6 @@ impl ButtonsPage {
     }
 }
 
-
-
-
 fn states_grid(opts: &PageValues) -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -484,7 +459,6 @@ fn states_grid(opts: &PageValues) -> StateGrid {
         .column("Danger", Button::danger(id.child(3), "Label"))
         .column("Toggle", Button::toggle(id.child(4), "Label", false))
         .column("Icon ×", IconButton::close(id.child(5)))
-
         .column_width(13);
     if let Some(w) = opts.number("buttons.label_width") {
         grid = grid.label_width(w);
@@ -547,7 +521,6 @@ impl Page for ButtonsPage {
                 out
             }
             PageEvent::Key(key) => {
-
                 if key.code == KeyCode::F(5) {
                     self.tool(if key.shift() { CANCEL } else { RUN }, cx);
                     return Outcome::Changed;

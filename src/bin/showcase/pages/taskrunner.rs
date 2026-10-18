@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -86,9 +84,6 @@ fn targets() -> Vec<TreeNode> {
         ),
     ]
 }
-
-
-
 
 fn env(name: &str, kind: EnvKind) -> TreeNode {
     let node = TreeNode::leaf(name)
@@ -234,9 +229,6 @@ impl Page for TaskRunnerPage {
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-
-
-
         let tree_h = self.tree.rows().len() as u16 + 3;
         let pipe_h = self.tasks.len() as u16 + 5;
         let has = |id| ctx.interaction.has_focus(id);
@@ -412,8 +404,6 @@ impl Page for TaskRunnerPage {
         self.running
     }
 
-
-
     fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
         if self.running {
             junie_tui::ui::leave::Stakes::Running {
@@ -469,7 +459,6 @@ impl TaskRunnerPage {
             let name = junie_tui::ui::text::truncate(&label, 10);
             let bar = Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1);
 
-
             let kind = match task.state {
                 TaskState::Queued => StatusKind::Queued,
                 TaskState::Running => StatusKind::Running,
@@ -488,8 +477,6 @@ impl TaskRunnerPage {
             };
             buf.set_string(inner.x + 2, y, &name, name_style.bg(bg));
             let word = |buf: &mut Buffer, text: &str| {
-
-
                 let fg = t.tone_on(kind.tone(), bg);
                 buf.set_string(bar.x, y, text, ratatui::style::Style::new().fg(fg).bg(bg));
             };
@@ -525,7 +512,6 @@ impl TaskRunnerPage {
             self.run.render(rects[0], buf, ctx, bg);
             self.cancel.render(rects[1], buf, ctx, bg);
         } else if self.running {
-
             self.cancel
                 .render(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
         } else {

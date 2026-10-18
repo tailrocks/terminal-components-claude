@@ -1,8 +1,3 @@
-
-
-
-
-
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::{Axis, Bar};
@@ -84,10 +79,7 @@ enum Intent {
 pub struct CapsuleScreen {
     pub instance: String,
 
-
     pub prefix_until: Option<i64>,
-
-
 
     pub prefix_timeout_ms: Option<i64>,
     drag: Option<(Vec<u8>, Rect)>,
@@ -103,8 +95,6 @@ pub struct CapsuleScreen {
 
     tab_menu: Option<(usize, ContextMenu)>,
 
-
-
     pub context: ContextConfig,
     pub body: Rect,
     pending_intent: Option<Intent>,
@@ -119,8 +109,6 @@ pub struct CapsuleScreen {
     pub redraw_flash: u8,
     pending_spawn: Option<PendingSpawn>,
 }
-
-
 
 type PendingSpawn = (Intent, Option<Agent>, Option<AccountId>, String, i64);
 
@@ -249,10 +237,6 @@ impl CapsuleScreen {
         }
     }
 
-
-
-
-
     fn build_menubar() -> MenuBar {
         let entries: Vec<(&str, Vec<MenuItem>)> = vec![
             (
@@ -314,7 +298,6 @@ impl CapsuleScreen {
         MenuBar::new(MENUBAR, entries).brand(Lockup::new(crate::app::BRAND_MARK))
     }
 
-
     fn open_brand_menu(&mut self) {
         let anchor = self.menubar.brand_area;
         let items = vec![
@@ -327,9 +310,6 @@ impl CapsuleScreen {
             ContextMenu::new(TAB_MENU, items).anchor(anchor, Placement::Below),
         ));
     }
-
-
-
 
     fn open_pane_menu(&mut self, at: Position, w: &World) {
         let pane = self
@@ -435,7 +415,6 @@ impl CapsuleScreen {
             super::modals::InfoDialog::new(WidgetId::of("capsule.about"), "About", props).width(64);
         cx.open(d, LayerTag::new("about"));
     }
-
 
     fn run_menu(&mut self, label: &str, tab: Option<usize>, w: &mut World, cx: &mut Cx) {
         match label {
@@ -543,7 +522,6 @@ impl CapsuleScreen {
         }
     }
 
-
     fn open_inspect(&mut self, w: &World, cx: &mut Cx, from_exit: bool) {
         let touched = self
             .daemon(w)
@@ -599,7 +577,6 @@ impl CapsuleScreen {
         let role = w.instance(&self.instance).map(|i| i.role.clone());
         let mut items = vec![];
         self.picker_agents.clear();
-
 
         for (a, offer) in w.offered_agents(ws, role.as_deref()) {
             let detail = match (&offer.blocked, offer.accounts.len()) {
@@ -772,8 +749,6 @@ impl CapsuleScreen {
         }
         let d = w.daemons.get(&self.instance);
         let _ = d;
-
-
 
         self.pending_spawn = Some((intent, agent, account, ws, now));
         cx.status("spawning");
@@ -1334,7 +1309,6 @@ impl CapsuleScreen {
     fn handle_prefix_cmd(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         self.prefix_until = None;
         if key.ctrl_char('b') {
-
             return Outcome::Changed;
         }
         if key.ctrl_char('l') {
@@ -1495,8 +1469,6 @@ impl CapsuleScreen {
         Outcome::Changed
     }
 
-
-
     fn prime(&self, pid: PaneId, w: &mut World) {
         let Some((_, r)) = self.pane_rects.iter().find(|(p, _)| *p == pid).copied() else {
             return;
@@ -1513,8 +1485,6 @@ impl CapsuleScreen {
             .find(|(_, r)| r.contains(pos))
             .map(|(id, _)| *id)
     }
-
-
 
     fn draw_strip(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
@@ -1535,7 +1505,6 @@ impl CapsuleScreen {
                         (i + 1).to_string()
                     });
                 }
-
 
                 let g = match d.tab_state(tab) {
                     AgentState::Blocked => "●",
@@ -1675,8 +1644,6 @@ impl CapsuleScreen {
                 && term.caret_visible
                 && let Some(c) = term.caret
             {
-
-
                 if let Some(p) = term.screen_pos(c) {
                     ctx.set_cursor(p);
                 }
@@ -1699,16 +1666,12 @@ impl CapsuleScreen {
 
         let seams = self.seams.clone();
         for (i, s) in seams.iter().enumerate() {
-
-
             let sid = PANES.sub("seam").child(i);
             let held = self.drag.as_ref().is_some_and(|(p, _)| *p == s.path);
             Splitter::new(sid, s.dir).render_held(s.handle, buf, ctx, t.canvas, held);
         }
         ctx.control(PANES, Rect::new(body.x, body.y, 1, 1), false);
     }
-
-
 
     fn draw_identity(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
@@ -1748,9 +1711,6 @@ impl CapsuleScreen {
         }
         segments::render(rest, buf, ctx, &[], &right, t.canvas);
     }
-
-
-
 
     fn draw_status(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let Some(i) = w.instance(&self.instance) else {
@@ -1877,14 +1837,12 @@ impl CapsuleScreen {
             ),
         }
 
-
         ctx.clickable(STATUS, area);
         bar.render(area, buf, ctx);
     }
 }
 
 impl CapsuleScreen {
-
     fn reconnect(&mut self, w: &mut World, cx: &mut Cx) {
         self.takeover = None;
         if let Some(d) = self.daemon_mut(w) {
@@ -1892,7 +1850,6 @@ impl CapsuleScreen {
         }
         cx.status("Reconnected · the other client was displaced");
     }
-
 
     fn leave_takeover(&mut self, cx: &mut Cx) {
         self.takeover = None;
@@ -1988,9 +1945,6 @@ impl Page<Jackin> for CapsuleScreen {
             return o.or(Outcome::Changed);
         }
         if self.context.keys.matches(key) {
-
-
-
             self.prefix_until = None;
             let at = self
                 .focused_pane(w)
@@ -2058,13 +2012,6 @@ impl Page<Jackin> for CapsuleScreen {
         out
     }
 
-
-
-
-
-
-
-
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
@@ -2081,7 +2028,6 @@ impl Page<Jackin> for CapsuleScreen {
             Some(Phase::Drag) => self.drag(id, pos, w),
             Some(Phase::DragEnd | Phase::Release) => self.drag_end(w, cx),
             Some(Phase::Click) => {
-
                 let o = self.drag_end(w, cx);
                 if ClickPolicy::DATA.activates(ev.count(), false) {
                     let d = self.double_click(ev, w, cx);
@@ -2136,7 +2082,6 @@ impl Page<Jackin> for CapsuleScreen {
                 let account = self.picker_accounts.get(i).cloned();
                 let agent = self.pending_agent.take();
                 if let (Some(a), Some(acc)) = (agent, account.clone()) {
-
                     let next_id = self.daemon(w).map(|d| d.next_id).unwrap_or(0);
                     w.session_accounts
                         .insert((self.instance.clone(), next_id), acc.clone());
@@ -2368,7 +2313,6 @@ impl Page<Jackin> for CapsuleScreen {
             return;
         }
 
-
         let menu = Rect::new(area.x, area.y, area.width, 1);
         let strip = Rect::new(area.x, area.y + 2, area.width, 2);
         let status = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
@@ -2494,8 +2438,6 @@ impl Screen for CapsuleScreen {
     }
 }
 
-
-
 pub struct UsageDialog {
     pub accounts: Vec<AccountId>,
     pub tab: usize,
@@ -2521,8 +2463,6 @@ impl UsageDialog {
         }
     }
 }
-
-
 
 impl Layer<ModalResult, World> for UsageDialog {
     fn animating(&self) -> bool {
@@ -2588,7 +2528,6 @@ impl Layer<ModalResult, World> for UsageDialog {
             _ => Outcome::Consumed,
         }
     }
-
 
     fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, World>) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
@@ -2666,14 +2605,9 @@ impl Layer<ModalResult, World> for UsageDialog {
         }
         let y = inner.y;
 
-
-
-
         let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
         let mut strip = Tabs::new(WidgetId::of("capsule.usage.tab"), &label_refs);
         strip.set_active(self.tab);
-
-
 
         let inert = std::mem::replace(&mut ctx.inert, true);
         let focus = std::mem::replace(
@@ -2888,15 +2822,7 @@ impl Layer<ModalResult, World> for UsageDialog {
     }
 }
 
-
-
-
-
-
 impl CapsuleScreen {
-
-
-
     fn hbar_of(term: &TextViewport) -> Bar {
         Bar {
             id: scrollbar::h_id_for(term.id),
@@ -2909,7 +2835,6 @@ impl CapsuleScreen {
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if self.takeover.is_some() {
-
             if id == TAKEOVER_RECONNECT {
                 self.reconnect(w, cx);
                 return Outcome::Changed;
@@ -2988,14 +2913,12 @@ impl CapsuleScreen {
     }
 
     fn press(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
-
         if let Some(r) = self.menubar.route(ev)
             && r.outcome() != Outcome::Ignored
         {
             return Outcome::Changed;
         }
         let pos = ev.pos();
-
 
         if let Some(pid) = self.pane_at(pos) {
             cx.focus.focus(PANES);
@@ -3004,8 +2927,6 @@ impl CapsuleScreen {
             }
             self.prime(pid, w);
             if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
-
-
                 if pane.term.hbar().contains(pos) {
                     self.hbar_held = Some(pid);
                     let bar = Self::hbar_of(&pane.term);
@@ -3035,9 +2956,6 @@ impl CapsuleScreen {
         }
         let pos = ev.pos();
         if let Some(pid) = self.pane_at(pos) {
-
-
-
             if self.context.moves_cursor
                 && let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut())
             {
@@ -3072,7 +2990,6 @@ impl CapsuleScreen {
     }
 
     fn drag(&mut self, pressed: WidgetId, pos: Position, w: &mut World) -> Outcome {
-
         for i in 0..self.seams.len() {
             if PANES.sub("seam").child(i) == pressed {
                 let s = self.seams[i].clone();
@@ -3106,9 +3023,6 @@ impl CapsuleScreen {
         Outcome::Ignored
     }
 
-
-
-
     fn drag_end(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.hbar_held.take().is_some() {
             return Outcome::Changed;
@@ -3129,7 +3043,6 @@ impl CapsuleScreen {
         }
         Outcome::Ignored
     }
-
 
     fn wheel(&mut self, axis: Axis, delta: i32, pos: Position, w: &mut World) -> Outcome {
         if let Some(pid) = self.pane_at(pos) {

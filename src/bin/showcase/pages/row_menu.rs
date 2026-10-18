@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -15,17 +10,11 @@ use junie_tui::ui::context::ContextConfig;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::menu::{ContextMenu, MenuAction};
 
-
 pub const MENU_HINTS: [Hint; 3] = [("↑↓", "Move"), ("Enter", "Choose"), ("Esc", "Close")];
-
 
 pub const OPEN_HINT: Hint = ("Shift+F10", "Menu");
 
-
 pub struct RowMenu<T> {
-
-
-
     pub config: ContextConfig,
     open: Option<(ContextMenu, T)>,
 }
@@ -44,18 +33,15 @@ impl<T: Clone> RowMenu<T> {
         self.open.is_some()
     }
 
-
     pub fn hides_page_focus(&self) -> bool {
         self.open
             .as_ref()
             .is_some_and(|(m, _)| m.hides_page_focus())
     }
 
-
     pub fn open(&mut self, menu: ContextMenu, target: T) {
         self.open = Some((menu, target));
     }
-
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         if let Some((m, _)) = self.open.as_mut() {
@@ -63,18 +49,12 @@ impl<T: Clone> RowMenu<T> {
         }
     }
 
-
-
-
-
     pub fn handle(&mut self, ev: &PageEvent) -> Option<(Outcome, Option<(T, usize)>)> {
         let (menu, _) = self.open.as_mut()?;
         let (out, event) = match ev {
             PageEvent::Key(key) => {
                 let (o, e) = menu.on_key(key);
                 if o == Outcome::Ignored && e == Some(MenuAction::Dismissed) {
-
-
                     self.open = None;
                     return None;
                 }
@@ -82,10 +62,8 @@ impl<T: Clone> RowMenu<T> {
                 (o.or(Outcome::Consumed), e)
             }
             PageEvent::Pointer(p) => match menu.route(p) {
-
                 Some(r) if r.outcome() != Outcome::Ignored => r.into_parts(),
                 Some(_) => return None,
-
 
                 None => match p.phase() {
                     Some(Phase::Click) => (Outcome::Changed, menu.on_click(p.id)),
@@ -108,8 +86,6 @@ impl<T: Clone> RowMenu<T> {
         }
     }
 }
-
-
 
 pub fn plain(code: KeyCode) -> Key {
     Key {

@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -24,10 +20,7 @@ use crate::app::ModalResult;
 use crate::db::ColType;
 use crate::tabs::{Filter, FilterOp};
 
-
 pub const ID: WidgetId = WidgetId::of("filter-editor");
-
-
 
 pub type FilterDone = Option<(Option<usize>, Filter)>;
 
@@ -42,11 +35,9 @@ pub struct FilterEditor {
     pub area: Rect,
     columns: Vec<(String, ColType)>,
 
-
     pub dismiss: Dismiss,
     done: Option<FilterDone>,
 }
-
 
 enum Step {
     Keep(Outcome),
@@ -55,9 +46,6 @@ enum Step {
 }
 
 impl FilterEditor {
-
-
-
     pub fn new(
         index: Option<usize>,
         update: bool,
@@ -99,7 +87,6 @@ impl FilterEditor {
         }
     }
 
-
     fn column_changed(&mut self, i: usize) {
         let ops = FilterOp::ordered_for(self.columns[i].1);
         let labels: Vec<&str> = ops.iter().map(|o| o.label()).collect();
@@ -111,8 +98,6 @@ impl FilterEditor {
         let ops = FilterOp::ordered_for(self.columns[self.column.selected].1);
         ops[self.op.selected.min(ops.len() - 1)]
     }
-
-
 
     fn submit(&mut self, focus: &mut Focus) -> Outcome {
         let op = self.chosen_op();
@@ -221,10 +206,6 @@ impl FilterEditor {
             _ => Step::Keep(Outcome::Consumed),
         }
     }
-
-
-
-
 
     fn pointer_step(&mut self, ev: &PointerEvent, focus: &mut Focus) -> Step {
         let (id, pos) = (ev.id, ev.pos());
@@ -388,8 +369,6 @@ impl FilterEditor {
 }
 
 impl Layer<ModalResult> for FilterEditor {
-
-
     fn spec(&self) -> LayerSpec {
         let initial = if self.value.text().is_empty() {
             self.value.id
@@ -402,8 +381,6 @@ impl Layer<ModalResult> for FilterEditor {
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &()) {
         self.draw(screen, buf, ctx);
     }
-
-
 
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_>) -> Outcome {
         if key.is(KeyCode::Esc)

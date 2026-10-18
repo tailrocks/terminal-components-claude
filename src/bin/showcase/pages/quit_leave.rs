@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -90,7 +74,6 @@ impl QuitLeavePage {
         page
     }
 
-
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::QuitLeave);
         let i = table
@@ -100,11 +83,9 @@ impl QuitLeavePage {
         table[i].values[self.opts[i]]
     }
 
-
     fn rebuild(&mut self) {
         self.guard = LeaveGuard::new(GUARD).save(self.opt("quitleave.save") == "on");
     }
-
 
     fn quit_keys(&self) -> QuitKeys {
         let mut k = QuitKeys::DEFAULT
@@ -119,7 +100,6 @@ impl QuitLeavePage {
         k
     }
 
-
     fn unsaved(&self) -> Stakes {
         if self.title.text() == self.saved {
             Stakes::Clean
@@ -127,7 +107,6 @@ impl QuitLeavePage {
             Stakes::Unsaved { changes: 1 }
         }
     }
-
 
     fn work(&self) -> Stakes {
         if self.running {
@@ -139,11 +118,9 @@ impl QuitLeavePage {
         }
     }
 
-
     fn stakes(&self) -> Stakes {
         self.unsaved().max(self.work())
     }
-
 
     fn request(&mut self, to: Leave<&'static str>, cx: &mut Cx) {
         let stakes = self.stakes();
@@ -159,7 +136,6 @@ impl QuitLeavePage {
             }
         }
     }
-
 
     fn resolve(&mut self, r: Resolved<&'static str>, cx: &mut Cx) {
         self.last_resolved = match &r {
@@ -184,7 +160,6 @@ impl QuitLeavePage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (left, right) = crate::pages::layout::columns(area, 50.min(area.width / 2), 2);
-
 
         let meta = match self.stakes() {
             Stakes::Clean => "saved",
@@ -240,7 +215,6 @@ impl QuitLeavePage {
                 bg,
             );
         }
-
 
         let keys = self.quit_keys();
         let letter = keys.letter.map_or("letter".to_owned(), |c| c.to_string());
@@ -368,7 +342,6 @@ fn stakes_label(s: &Stakes) -> String {
         Stakes::Running { what } => format!("Running · {what}"),
     }
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

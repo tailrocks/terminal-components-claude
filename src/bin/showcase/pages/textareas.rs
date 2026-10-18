@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -42,8 +38,6 @@ impl TextAreasPage {
         page.rebuild();
         page
     }
-
-
 
     fn rebuild(&mut self) {
         let long = (1..=28)
@@ -115,7 +109,6 @@ impl TextAreasPage {
             })
             .collect();
     }
-
 
     #[allow(dead_code)]
     pub fn area(&self, i: usize) -> &TextArea {
@@ -271,8 +264,6 @@ impl TextAreasPage {
         }
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

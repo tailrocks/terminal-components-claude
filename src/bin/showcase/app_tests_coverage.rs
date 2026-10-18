@@ -115,7 +115,6 @@ impl Harness {
         for y in 0..buffer.area.height {
             let row = self.row(y);
 
-
             if let Some(x) = row.find(needle) {
                 return Some((junie_tui::ui::text::width(&row[..x]) as u16, y));
             }
@@ -222,7 +221,6 @@ fn navigation_edges_and_page_entry_are_deterministic() {
     h.key(KeyCode::Home);
     assert_eq!(h.app.nav.cursor, 0, "Overview, the top-level page");
 
-
     h.key(KeyCode::Right);
     assert_eq!(h.app.page, PageId::Overview);
     assert_eq!(h.app.page, PageId::Overview);
@@ -285,7 +283,6 @@ fn chips_selection_and_disabled_behavior() {
     h.key(KeyCode::Char('x'));
     assert!(h.text().contains("last action: removed status = 'pending'"));
 
-
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
     assert!(
@@ -342,7 +339,6 @@ fn dialogs_cover_choice_destructive_and_prompt_validation() {
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     h.assert_status("Branch feat/rate-limit deleted");
-
 
     h.click_label("Rename task");
     h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
@@ -433,9 +429,6 @@ fn inputs_paste_validation_and_disabled_field() {
     h.key(KeyCode::Enter);
     h.assert_status("Branch to check out once the task is done saved");
 
-
-
-
     h.click_id(api_token);
     assert_eq!(h.app.shell.focus.current(), Some(branch));
 }
@@ -470,9 +463,6 @@ fn pickers_cancel_scope_and_secondary_action() {
     h.assert_status_prefix("Closed ");
 }
 
-
-
-
 #[test]
 fn tab_in_an_open_select_chooses_and_moves_focus_on() {
     let mut h = Harness::new(100, 40, PageId::Chips);
@@ -489,10 +479,6 @@ fn tab_in_an_open_select_chooses_and_moves_focus_on() {
     );
     assert!(!text.contains("created_at"), "and the list closed\n{text}");
 }
-
-
-
-
 
 #[test]
 fn closing_a_picker_gives_focus_back_to_the_button_that_opened_it() {
@@ -529,8 +515,6 @@ fn closing_a_picker_gives_focus_back_to_the_button_that_opened_it() {
     }
 }
 
-
-
 #[test]
 fn picker_shift_tab_goes_back_a_scope() {
     let mut h = Harness::new(120, 40, PageId::Pickers);
@@ -560,7 +544,6 @@ fn grid_pending_save_and_discard_lifecycle() {
     h.type_str("12");
     h.key(KeyCode::Enter);
     h.assert_status("1 pending");
-
 
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
     assert!(h.app.dialog().is_some(), "Ctrl+S opens the save review");
@@ -711,7 +694,6 @@ fn terminal_selection_and_status_actions() {
 fn editor_completion_paste_and_diagnostic_paths() {
     let mut h = Harness::new(140, 45, PageId::Editor);
 
-
     h.focus(WidgetId::of("editor").sub("code"));
     h.type_str("cl");
     assert!(h.text().contains("Client"));
@@ -829,7 +811,6 @@ fn a_panel_with_wide_lines_shows_and_moves_its_horizontal_position() {
         h.row(bar.y)
     );
 
-
     let area = h.area(log);
     let before = h.text();
     assert_eq!(
@@ -838,7 +819,6 @@ fn a_panel_with_wide_lines_shows_and_moves_its_horizontal_position() {
     );
     assert_ne!(h.text(), before);
     assert!(thumb_x(&h) > Some(bar.x));
-
 
     let grab = thumb_x(&h).unwrap();
     h.mouse(MouseKind::Down, grab, bar.y);
@@ -1072,8 +1052,6 @@ fn terminal_reaches_success_failure_and_splitter_states() {
     assert!(failure.text().contains("failed"));
 }
 
-
-
 #[test]
 fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
     let mut h = Harness::new(80, 40, PageId::Chips);
@@ -1107,8 +1085,6 @@ fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
     h.assert_status(&format!("Would open the editor for {label}"));
 }
 
-
-
 #[test]
 fn blank_space_right_of_a_checkbox_label_does_not_toggle_it() {
     let mut h = Harness::new(160, 40, PageId::Forms);
@@ -1133,8 +1109,6 @@ fn blank_space_right_of_a_checkbox_label_does_not_toggle_it() {
     h.click(area.x + 6, area.y);
     assert_ne!(row(&h.text()), row(&before), "a click on the label toggles");
 }
-
-
 
 #[test]
 fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
@@ -1162,11 +1136,6 @@ fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
     assert!(clean.app.shell.quit, "a clean quit never asks");
 }
 
-
-
-
-
-
 #[test]
 fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
     let mut h = Harness::new(140, 45, PageId::Settings);
@@ -1181,7 +1150,6 @@ fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
             .filter(|&x| buffer[(x, strip.y)].symbol() == "▎")
             .collect()
     };
-
 
     h.focus(tabs);
     assert_eq!(gutters(&h), 1, "{}", h.text());
@@ -1198,11 +1166,9 @@ fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
     assert_eq!(gutters(&h), 1, "{}", h.text());
     h.key(KeyCode::Left);
 
-
     h.click_id(settings.sub("automerge"));
     assert!(strip_gutters(&h).is_empty(), "{}", h.text());
     assert_eq!(gutters(&h), 1, "{}", h.text());
-
 
     h.focus(tabs);
     assert_eq!(strip_gutters(&h).len(), 1, "{}", h.text());
@@ -1212,9 +1178,6 @@ fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
     assert!(strip_gutters(&h).is_empty(), "{}", h.text());
     assert!(gutters(&h) <= 1, "{}", h.text());
 }
-
-
-
 
 #[test]
 fn ctrl_q_reaches_past_editing_text_controls() {

@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusChange, FocusRing};
 use junie_tui::core::hit::Axis;
@@ -30,8 +25,6 @@ use crate::sim::world::{FsEntry, World};
 use super::ModalResult;
 use junie_tui::core::scroll::Scrollable;
 
-
-
 #[allow(clippy::too_many_arguments)]
 pub fn modal_frame(
     screen: Rect,
@@ -42,11 +35,8 @@ pub fn modal_frame(
     title: &str,
     meta: Option<&str>,
 
-
     dismiss: junie_tui::ui::popup::Dismiss,
 ) -> (Rect, Rect) {
-
-
     junie_tui::ui::modal::Frame::new(width_, height)
         .title(title)
         .meta(meta)
@@ -54,8 +44,6 @@ pub fn modal_frame(
         .dismiss(dismiss)
         .render(screen, buf, ctx)
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BrowserResult {
@@ -65,7 +53,6 @@ pub enum BrowserResult {
 }
 
 pub struct FileBrowser {
-
     pub dismiss: junie_tui::ui::popup::Dismiss,
     pub title: String,
     pub cwd: String,
@@ -83,7 +70,6 @@ pub struct FileBrowser {
     pub dirs_only: bool,
     pub result: Option<BrowserResult>,
     pub area: Rect,
-
 
     pub stepper: Option<String>,
 }
@@ -349,10 +335,6 @@ impl FileBrowser {
         }
     }
 
-
-
-
-
     pub fn pointer(&mut self, ev: &PointerEvent, focus: &mut Focus, w: &World) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
@@ -381,7 +363,6 @@ impl FileBrowser {
             .flatten()
         {
             focus.focus(self.list.id);
-
 
             let open = self.list.click.activates(ev.count(), self.list.cursor == i);
             self.list.cursor = i;
@@ -526,8 +507,6 @@ impl FileBrowser {
     }
 }
 
-
-
 impl Layer<ModalResult, World> for FileBrowser {
     fn animating(&self) -> bool {
         true
@@ -575,17 +554,11 @@ impl Layer<ModalResult, World> for FileBrowser {
     }
 }
 
-
-
-
-
 pub use junie_tui::widgets::choice_dialog::ChoiceDialog;
 pub use junie_tui::widgets::form_dialog::{
     FieldValue, FormAction, FormDialog, FormField, FormFieldKind as FieldKindW, FormValues,
 };
 pub use junie_tui::widgets::info_dialog::{InfoDialog, InfoResult};
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpStep {
@@ -595,10 +568,7 @@ pub enum OpStep {
     Field,
 }
 
-
-
 pub struct OpFlow {
-
     pub dismiss: junie_tui::ui::popup::Dismiss,
     pub step: OpStep,
     pub account: Option<String>,
@@ -606,7 +576,6 @@ pub struct OpFlow {
     pub item: Option<(String, String)>,
     pub picker: Picker,
     pub result: Option<Option<OpReference>>,
-
 
     pub dismissed: bool,
     pub loading_until: Option<i64>,
@@ -691,7 +660,6 @@ impl OpFlow {
         self.loading_until = Some(now_ms + op.latency_ms);
     }
 
-
     pub fn tick(&mut self, now_ms: i64, op: &SimOnePassword) -> Outcome {
         if let Some(t) = self.loading_until
             && now_ms >= t
@@ -727,7 +695,6 @@ impl OpFlow {
         };
         self.last_error = Some(e);
     }
-
 
     pub fn refresh(&mut self, op: &SimOnePassword) {
         self.picker.status = PickerStatus::Ready;
@@ -959,9 +926,6 @@ impl OpFlow {
         }
     }
 
-
-
-
     pub fn pointer(&mut self, ev: &PointerEvent, now_ms: i64, op: &SimOnePassword) -> Outcome {
         let Some(r) = self.picker.route(ev) else {
             return match ev.wheel() {
@@ -982,7 +946,6 @@ impl OpFlow {
             None => o,
         }
     }
-
 
     pub fn hints(&self) -> Vec<Hint> {
         match (self.step, &self.picker.status) {
@@ -1010,8 +973,6 @@ impl OpFlow {
         self.picker.draw(screen, buf, ctx);
     }
 }
-
-
 
 impl Layer<ModalResult, World> for OpFlow {
     fn animating(&self) -> bool {
@@ -1047,7 +1008,5 @@ impl Layer<ModalResult, World> for OpFlow {
             .map(|r| LayerOut::Close(ModalResult::Op(r)))
     }
 }
-
-
 
 pub use junie_tui::widgets::help::HelpOverlay;

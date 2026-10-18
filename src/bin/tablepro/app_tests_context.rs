@@ -1,5 +1,3 @@
-
-
 use crate::filter_editor::FilterEditor;
 use junie_tui::core::event::{Input, Key, MouseKind};
 use junie_tui::core::id::WidgetId;
@@ -11,7 +9,6 @@ use ratatui::layout::Rect;
 use crate::app_tests::H;
 use crate::context::{CtxMenu, Target};
 use crate::workbench::WorkTab;
-
 
 fn open_orders(h: &mut H) {
     for _ in 0..5 {
@@ -62,11 +59,9 @@ fn table(h: &H) -> &crate::tabs::TableTab {
     }
 }
 
-
 fn area(h: &H, id: WidgetId) -> Rect {
     h.app.shell.hits.area_of(id).expect("drawn this frame")
 }
-
 
 fn choose(h: &mut H, label: &str) {
     let m = menu(h);

@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -90,9 +86,6 @@ fn options_rebuild_the_toolbars_through_their_builders() {
     h.key(KeyCode::Char('l'));
     assert_eq!(page(&h).query.cursor, 1, "vim: l moves right");
 }
-
-
-
 
 #[test]
 fn the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu() {

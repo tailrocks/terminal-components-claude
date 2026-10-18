@@ -1,5 +1,3 @@
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -272,8 +270,6 @@ fn the_key_reference_stays_in_the_body_with_a_margin() {
     let text = h.text();
     let rows: Vec<&str> = text.lines().collect();
 
-
-
     let top = rows.iter().position(|r| r.contains("╭─")).unwrap();
     let bottom = rows.iter().position(|r| r.contains("╰─")).unwrap();
     assert!(top >= 2 && bottom <= 17, "({top}, {bottom}) {text}");
@@ -300,7 +296,6 @@ fn a_hidden_reason_column_gives_its_room_to_the_labels() {
     let h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 72, 20);
     let t = h.text();
 
-
     assert!(
         t.contains("Remove all unused images"),
         "the label is not cut while the row has room\n{t}"
@@ -310,9 +305,6 @@ fn a_hidden_reason_column_gives_its_room_to_the_labels() {
         "the safety class never drops\n{t}"
     );
 }
-
-
-
 
 #[test]
 fn an_error_status_waits_for_the_next_action_and_information_expires() {
@@ -347,11 +339,6 @@ fn an_error_status_waits_for_the_next_action_and_information_expires() {
     );
     assert!(!h.text().contains("Disk full"));
 }
-
-
-
-
-
 
 #[test]
 fn page_letters_win_over_the_focused_disk_tree() {

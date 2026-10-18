@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
@@ -30,13 +19,10 @@ use crate::connections::ConnectionsScreen;
 use crate::db::ObjectKind;
 use crate::workbench::{WorkTab, Workbench};
 
-
 pub const MENU: WidgetId = WidgetId::of("context-menu");
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Target {
-
     Explorer(usize),
 
     Tab(usize),
@@ -51,24 +37,17 @@ pub enum Target {
 
     Header(usize),
 
-
     App,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppCommand {
-
     OpenTabs,
-
 
     Disconnect,
 
     Quit,
 }
-
-
 
 pub fn app_menu(connection: Option<&str>, pos: Position) -> CtxMenu {
     let mut items = vec![];
@@ -93,25 +72,16 @@ pub fn app_menu(connection: Option<&str>, pos: Position) -> CtxMenu {
     }
 }
 
-
-
 pub struct CtxMenu {
     pub menu: ContextMenu,
     pub target: Target,
     pub owner: WidgetId,
     pub keys: Vec<Option<Key>>,
 
-
     pub header: Vec<HeaderAction>,
 
     pub app: Vec<AppCommand>,
 }
-
-
-
-
-
-
 
 impl Layer<ModalResult> for CtxMenu {
     fn spec(&self) -> LayerSpec {
@@ -166,9 +136,7 @@ fn alt(c: char) -> Key {
     }
 }
 
-
 type Items = Vec<(MenuItem, Option<Key>)>;
-
 
 fn cmd(items: &mut Items, item: MenuItem, key: Key, reason: Option<&str>) {
     match reason {
@@ -177,14 +145,11 @@ fn cmd(items: &mut Items, item: MenuItem, key: Key, reason: Option<&str>) {
     }
 }
 
-
 fn group(items: &mut Items) {
     if let Some((it, _)) = items.last_mut() {
         it.separator_after = true;
     }
 }
-
-
 
 pub fn on_secondary(w: &mut Workbench, cfg: &ContextConfig, ev: &PointerEvent) -> Option<CtxMenu> {
     if let Some(req) = cfg.on_secondary(&mut w.explorer, ev) {
@@ -223,7 +188,6 @@ pub fn on_secondary(w: &mut Workbench, cfg: &ContextConfig, ev: &PointerEvent) -
     Some(build(w, req))
 }
 
-
 pub fn on_key(
     w: &Workbench,
     cfg: &ContextConfig,
@@ -254,8 +218,6 @@ pub fn on_key(
     Some(build(w, req))
 }
 
-
-
 pub fn select(w: &mut Workbench, target: Target) {
     use junie_tui::ui::context::ContextSource;
     match target {
@@ -282,8 +244,6 @@ pub fn select(w: &mut Workbench, target: Target) {
     }
 }
 
-
-
 pub fn on_secondary_connections(
     c: &mut ConnectionsScreen,
     cfg: &ContextConfig,
@@ -293,7 +253,6 @@ pub fn on_secondary_connections(
     c.select_row(req.target);
     Some(build_connection(c, req.map(Target::Connection)))
 }
-
 
 pub fn on_key_connections(
     c: &ConnectionsScreen,
@@ -461,7 +420,6 @@ fn build(w: &Workbench, req: ContextRequest<Target>) -> CtxMenu {
     finish(req, title, owner, items)
 }
 
-
 fn finish(req: ContextRequest<Target>, title: String, owner: WidgetId, items: Items) -> CtxMenu {
     let (items, keys): (Vec<MenuItem>, Vec<Option<Key>>) = items.into_iter().unzip();
     let mut menu = req.menu(MENU, items);
@@ -564,8 +522,6 @@ fn tab_items(w: &Workbench, i: usize) -> (String, WidgetId, Items) {
     );
     (title, w.strip.id, items)
 }
-
-
 
 fn grid_items(g: &DataGrid, row: usize, col: usize, table: bool) -> (String, WidgetId, Items) {
     let mut items = Items::new();

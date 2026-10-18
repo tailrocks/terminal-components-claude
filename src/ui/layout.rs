@@ -1,10 +1,7 @@
-
-
 use ratatui::layout::{Position, Rect};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SplitDir {
-
     Horizontal,
 
     Vertical,
@@ -17,13 +14,6 @@ pub enum Maximized {
     Second,
 }
 
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Split {
     pub percent: u16,
@@ -31,9 +21,7 @@ pub struct Split {
     pub min_second: u16,
     pub maximized: Maximized,
 
-
     pub default_percent: u16,
-
 
     precise: Option<(u16, u16)>,
 }
@@ -50,13 +38,11 @@ impl Split {
         }
     }
 
-
     pub fn reset(&mut self) {
         self.percent = self.default_percent;
         self.precise = None;
         self.maximized = Maximized::None;
     }
-
 
     fn first_of(&self, usable: u16) -> u16 {
         match self.precise {
@@ -77,15 +63,12 @@ impl Split {
         self.percent = (self.percent as i16 + delta).clamp(5, 95) as u16;
     }
 
-
     pub fn layout(&self, dir: SplitDir, area: Rect, gap: u16) -> (Rect, Rect) {
         match dir {
             SplitDir::Horizontal => self.horizontal(area, gap),
             SplitDir::Vertical => self.vertical(area, gap),
         }
     }
-
-
 
     pub fn handle(&self, dir: SplitDir, area: Rect, gap: u16) -> Rect {
         let (a, b) = self.layout(dir, area, gap);
@@ -97,8 +80,6 @@ impl Split {
             SplitDir::Vertical => Rect::new(area.x, a.bottom(), area.width, gap),
         }
     }
-
-
 
     pub fn drag_to(&mut self, dir: SplitDir, area: Rect, gap: u16, pos: Position) -> bool {
         let (usable, offset) = match dir {
@@ -123,7 +104,6 @@ impl Split {
         self.first_of(usable) != before
     }
 
-
     pub fn nudge(&mut self, dir: SplitDir, area: Rect, gap: u16, delta: i16) {
         let (first, _) = self.layout(dir, area, gap);
         let cur = match dir {
@@ -138,7 +118,6 @@ impl Split {
         self.drag_to(dir, area, gap, pos);
     }
 
-
     pub fn vertical(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         match self.maximized {
             Maximized::First => (area, Rect::ZERO),
@@ -146,7 +125,6 @@ impl Split {
             Maximized::None => {
                 let usable = area.height.saturating_sub(gap);
                 if usable < self.min_first + self.min_second {
-
                     return (area, Rect::ZERO);
                 }
                 let mut first = self.first_of(usable);
@@ -158,7 +136,6 @@ impl Split {
             }
         }
     }
-
 
     pub fn horizontal(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         match self.maximized {
@@ -180,30 +157,22 @@ impl Split {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Overflow {
-
-
     #[default]
     Scroll,
-
 
     Clip,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackChild {
-
     pub height: u16,
-
 
     pub min: u16,
 }
 
 impl StackChild {
-
     pub const fn fixed(height: u16) -> Self {
         Self {
             height,
@@ -211,34 +180,20 @@ impl StackChild {
         }
     }
 
-
     pub const fn flex(min: u16, height: u16) -> Self {
         Self { height, min }
     }
 }
 
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Stack {
-
     pub gap: u16,
-
 
     pub overflow: Overflow,
 
-
     pub min_child_rows: u16,
 
-
     pub scrollbar_gap: u16,
-
-
-
-
 
     pub track_click: crate::core::scroll::TrackClick,
 }
@@ -255,13 +210,9 @@ impl Default for Stack {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Default)]
 pub struct StackScroll {
     pub scroll: crate::core::scroll::ScrollState,
-
 
     kept: Option<usize>,
 
@@ -271,8 +222,6 @@ pub struct StackScroll {
 }
 
 impl StackScroll {
-
-
     pub fn on_wheel(&mut self, delta: i32) -> bool {
         self.scroll.scroll_by(delta.signum() as isize)
     }
@@ -285,9 +234,6 @@ impl StackScroll {
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> bool {
         !self.track.is_empty() && crate::widgets::scrollbar::drag(self.track, pos, &mut self.scroll)
     }
-
-
-
 
     pub fn pointer(
         &mut self,
@@ -327,12 +273,8 @@ impl StackScroll {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StackLayout {
-
-
-
     pub slots: Vec<Option<Rect>>,
 
     pub track: Option<Rect>,
@@ -342,7 +284,6 @@ pub struct StackLayout {
 }
 
 impl StackLayout {
-
     pub fn slot(&self, i: usize) -> Option<Rect> {
         self.slots.get(i).copied().flatten()
     }
@@ -370,22 +311,15 @@ impl Stack {
         self
     }
 
-
-
     fn total(&self, heights: &[u16]) -> u32 {
         let shown = heights.iter().filter(|&&h| h > 0).count() as u32;
         heights.iter().map(|&h| h as u32).sum::<u32>() + self.gap as u32 * shown.saturating_sub(1)
     }
 
-
-
     pub fn measure(&self, children: &[StackChild]) -> u16 {
         let h: Vec<u16> = children.iter().map(|c| c.height).collect();
         self.total(&h).min(u16::MAX as u32) as u16
     }
-
-
-
 
     pub fn layout(
         &self,
@@ -411,9 +345,6 @@ impl Stack {
         let fits = self.total(&h) <= room;
         let scrolls = !fits && self.overflow == Overflow::Scroll && n > 0;
         if scrolls {
-
-
-
             for (hi, c) in h.iter_mut().zip(children) {
                 *hi = c.height.min(area.height);
             }
@@ -478,7 +409,6 @@ impl Stack {
                 y = top + h[i] as u32;
                 placed = true;
             } else if !placed && top < area.bottom() as u32 {
-
                 slots[i] = Some(Rect::new(
                     content.x,
                     top as u16,
@@ -501,11 +431,6 @@ impl Stack {
             hidden_below,
         }
     }
-
-
-
-
-
 
     pub fn chrome(
         layout: &StackLayout,
@@ -643,9 +568,6 @@ mod tests {
         assert_eq!(a.width, 15);
     }
 
-
-
-
     #[test]
     fn drag_places_the_seam_on_the_exact_cell() {
         for width in [37u16, 62, 133, 241] {
@@ -685,7 +607,6 @@ mod track_click_tests {
         assert!(st.on_scrollbar(Position::new(track.x, track.bottom() - 1)));
         st.scroll.offset
     }
-
 
     #[test]
     fn a_stack_track_click_can_page() {

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -16,16 +8,12 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::specimen::{Specimen, SpecimenState};
 use crate::widgets::table::DataTable;
 
-
 const SAMPLE_ROWS: usize = 3;
 
 impl DataTable {
-
     fn sample_edit_col(&self) -> Option<usize> {
         self.columns.iter().position(|c| c.editable)
     }
-
-
 
     fn sample_text_col(&self) -> usize {
         (0..self.columns.len())
@@ -49,7 +37,6 @@ impl Specimen for DataTable {
             Busy | Loading => false,
         }
     }
-
 
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         if state == SpecimenState::Empty {

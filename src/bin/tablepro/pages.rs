@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::FocusChange;
 use junie_tui::core::id::WidgetId;
@@ -23,8 +17,6 @@ use crate::workbench::{EXPLORER, TABSTRIP, Workbench};
 use junie_tui::theme::StatusKind;
 use junie_tui::ui::layout::Maximized;
 use junie_tui::widgets::input::TextInput;
-
-
 
 pub struct Tablepro;
 
@@ -52,7 +44,6 @@ impl Page<Tablepro> for ConnectionsScreen {
     fn on_blur(&mut self, ch: FocusChange, _h: &mut History, _cx: &mut Cx) -> Outcome {
         ConnectionsScreen::on_blur(self, ch)
     }
-
 
     fn on_tick(&mut self, _h: &mut History, cx: &mut Cx) -> Outcome {
         match self.tick() {
@@ -87,8 +78,6 @@ impl Page<Tablepro> for ConnectionsScreen {
     fn animating(&self, _h: &History) -> bool {
         ConnectionsScreen::animating(self)
     }
-
-
 
     fn on_esc_top(&mut self, _h: &mut History, _cx: &mut Cx) -> Outcome {
         Outcome::Consumed
@@ -140,9 +129,6 @@ impl Page<Tablepro> for Workbench {
         Workbench::animating(self)
     }
 
-
-
-
     fn on_esc_top(&mut self, _h: &mut History, cx: &mut Cx) -> Outcome {
         if self.maximized {
             self.maximized = false;
@@ -169,7 +155,6 @@ impl Page<Tablepro> for Workbench {
         cx.focus.focus(TABSTRIP);
         Outcome::Changed
     }
-
 
     fn on_interrupt(&mut self, _h: &mut History, cx: &mut Cx) -> Outcome {
         if let Some(WorkTab::Query(q)) = self.active_tab_mut()

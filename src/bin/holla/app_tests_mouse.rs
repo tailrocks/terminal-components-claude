@@ -1,7 +1,3 @@
-
-
-
-
 use crate::app::CRUMBS;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
@@ -17,7 +13,6 @@ fn nested() -> H {
     assert_eq!(h.app.tabs[0].stack.len(), 3, "{}", h.text());
     h
 }
-
 
 #[test]
 fn the_breadcrumb_goes_back_one_level_or_to_the_root_by_mouse() {

@@ -1,7 +1,3 @@
-
-
-
-
 use crate::screens::Jackin;
 use junie_tui::shell::Page;
 use std::collections::HashSet;
@@ -50,8 +46,6 @@ pub const TREE: WidgetId = WidgetId::of("manager.tree");
 pub const DETAIL: WidgetId = WidgetId::of("manager.detail");
 pub const ROSTER: WidgetId = WidgetId::of("manager.roster");
 
-
-
 fn roster_row(instance: &str) -> PartRef {
     PartRef::item(Part::ROW, ItemKey::text(instance))
 }
@@ -66,9 +60,6 @@ pub enum RowKey {
     NewWorkspace,
 }
 
-
-
-
 fn instance_mark(s: InstanceStatus) -> (&'static str, Tone) {
     match s {
         InstanceStatus::Crashed | InstanceStatus::FailedSetup => ("!", Tone::Error),
@@ -77,13 +68,9 @@ fn instance_mark(s: InstanceStatus) -> (&'static str, Tone) {
     }
 }
 
-
-
 fn status_word_tone(s: InstanceStatus, otherwise: Tone) -> Tone {
     if s.is_live() { Tone::Active } else { otherwise }
 }
-
-
 
 fn instance_line(i: &crate::domain::instance::Instance, tone: Tone) -> Vec<Span> {
     let (g, gt) = instance_mark(i.status);
@@ -114,7 +101,6 @@ struct Row {
     trailing: Option<(&'static str, Tone)>,
     expandable: bool,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum DetailRow {
@@ -147,7 +133,6 @@ pub struct ManagerScreen {
     body_narrow: bool,
     wide: bool,
     seam_container: Rect,
-
 
     pub menu: RowMenu<RowKey, &'static str>,
 }
@@ -186,7 +171,6 @@ impl ManagerScreen {
             menu: RowMenu::new(MENU),
         }
     }
-
 
     pub fn select_instance(&mut self, id: &str, w: &World) {
         if let Some(i) = w.instance(id)
@@ -413,8 +397,6 @@ impl ManagerScreen {
         }
     }
 
-
-
     fn open_launch_picker(&mut self, w: &World, cx: &mut Cx) {
         let (ws, role) = match &self.selected {
             RowKey::Workspace(id) => {
@@ -504,7 +486,6 @@ impl ManagerScreen {
             InstanceStatus::RestoreAvailable
             | InstanceStatus::PreservedDirty
             | InstanceStatus::PreservedUnpushed => {
-
                 let wsname = i.workdir.trim_start_matches("/workspace/").to_owned();
                 let agent = i.agent;
                 let now_secs = w.clock.now_secs();
@@ -740,10 +721,6 @@ impl ManagerScreen {
         }
     }
 
-
-
-
-
     fn menu_items(&self, key: &RowKey, w: &World) -> (String, Vec<(MenuItem, &'static str)>) {
         let item = |label: &str, key: &'static str| MenuItem::new(label).shortcut(key);
         match key {
@@ -831,7 +808,6 @@ impl ManagerScreen {
         }
     }
 
-
     fn open_menu(&mut self, i: usize, anchor: ContextAnchor, w: &World) {
         let Some(key) = self.rows.get(i).map(|r| r.key.clone()) else {
             return;
@@ -841,8 +817,6 @@ impl ManagerScreen {
             self.menu.open(key, anchor, title, items);
         }
     }
-
-
 
     fn run_menu(
         &mut self,
@@ -864,8 +838,6 @@ impl ManagerScreen {
         }
         out.or(Outcome::Changed)
     }
-
-
 
     fn build_detail(&mut self, w: &World) {
         let mut rows = vec![];
@@ -1054,8 +1026,6 @@ impl ManagerScreen {
                 || focus.is_some_and(|f| f == DETAIL || self.actions.iter().any(|b| b.id == f)))
     }
 
-
-
     fn draw_tree(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(TREE);
@@ -1180,9 +1150,6 @@ impl ManagerScreen {
         }
     }
 
-
-
-
     fn draw_detail(
         &mut self,
         area: Rect,
@@ -1256,8 +1223,6 @@ impl ManagerScreen {
                 .meta(&scope_word)
                 .render(area, buf, t)
         } else {
-
-
             let card_is_stop =
                 ctx.interaction.focused(DETAIL) && !matches!(self.selected, RowKey::Instance(_));
             Panel::card(Some(&title))
@@ -1640,7 +1605,6 @@ impl ManagerScreen {
             }
         }
         if !matches!(self.selected, RowKey::Instance(_)) {
-
             ctx.control(DETAIL, Rect::new(inner.x, inner.y, inner.width, 1), false);
         }
     }
@@ -1834,7 +1798,6 @@ impl ManagerScreen {
     }
 }
 
-
 fn agent_rows(
     w: &World,
     ws: Option<WorkspaceId>,
@@ -2015,9 +1978,6 @@ impl Page<Jackin> for ManagerScreen {
             && self.menu.is_context_key(key)
             && let Some(i) = self.cursor()
         {
-
-
-
             let anchor = match action_focus {
                 Some(b) => ContextAnchor::Control {
                     id: self.actions[b].id,
@@ -2332,13 +2292,8 @@ impl Page<Jackin> for ManagerScreen {
             }
         }
 
-
         Outcome::Ignored
     }
-
-
-
-
 
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
@@ -2510,7 +2465,6 @@ impl Page<Jackin> for ManagerScreen {
             self.draw_tree(tree, buf, ctx, w);
             let summary = Rect::new(area.x, tree.bottom() + 1, area.width, summary_h);
             if drawer {
-
                 self.draw_detail(
                     Rect::new(area.x, area.y, area.width, area.height),
                     buf,
@@ -2642,8 +2596,6 @@ impl Page<Jackin> for ManagerScreen {
     }
 
     fn on_esc_top(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
-
-
         Outcome::Ignored
     }
 }
@@ -2784,10 +2736,6 @@ impl ManagerScreen {
     }
 }
 
-
-
-
-
 impl ManagerScreen {
     fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);
@@ -2852,8 +2800,6 @@ impl ManagerScreen {
         }
         for i in 0..self.detail_rows.len() {
             if Self::detail_row_id(i) == id {
-
-
                 let was = self.detail_cursor == i && cx.focus.is(DETAIL);
                 self.detail_cursor = i;
                 cx.focus.focus(DETAIL);
@@ -2917,7 +2863,6 @@ impl ManagerScreen {
     fn secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);
 
-
         let in_detail = id == DETAIL
             || (0..self.detail_rows.len()).any(|k| Self::detail_row_id(k) == id)
             || self.actions.iter().any(|b| b.id == id);
@@ -2950,7 +2895,6 @@ impl ManagerScreen {
 
     fn double_click(&mut self, id: WidgetId, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.menu.is_open() {
-
             return Outcome::Ignored;
         }
         for i in self.scroll.visible_range() {

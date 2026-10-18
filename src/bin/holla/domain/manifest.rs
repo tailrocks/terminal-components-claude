@@ -1,10 +1,4 @@
-
-
-
-
-
 use std::collections::BTreeSet;
-
 
 pub const TASK_CAP: usize = 30;
 
@@ -42,10 +36,6 @@ impl Discovery {
         }
     }
 }
-
-
-
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Json {
@@ -215,7 +205,6 @@ impl JsonParser<'_> {
                     }
                 }
                 _ => {
-
                     let start = self.i - 1;
                     let mut end = self.i;
                     while end < self.s.len() && (self.s[end] & 0b1100_0000) == 0b1000_0000 {
@@ -242,9 +231,6 @@ pub fn parse_json(text: &str) -> Result<Json, String> {
     Ok(v)
 }
 
-
-
-
 pub fn node_runner(present: &[&str]) -> &'static str {
     if present.contains(&"pnpm-lock.yaml") {
         "pnpm"
@@ -256,9 +242,6 @@ pub fn node_runner(present: &[&str]) -> &'static str {
         "npm"
     }
 }
-
-
-
 
 pub fn node_scripts(cwd: &str, package_json: Option<&str>, lockfiles: &[&str]) -> Discovery {
     let runner = node_runner(lockfiles);
@@ -309,10 +292,6 @@ pub fn node_scripts(cwd: &str, package_json: Option<&str>, lockfiles: &[&str]) -
     d
 }
 
-
-
-
-
 pub fn just_recipes(cwd: &str, file: &str, summary: Result<&str, &str>) -> Discovery {
     let mut d = Discovery {
         source: "just",
@@ -347,8 +326,6 @@ pub fn just_recipes(cwd: &str, file: &str, summary: Result<&str, &str>) -> Disco
     d
 }
 
-
-
 fn make_target_ok(name: &str) -> bool {
     !name.is_empty()
         && !name.starts_with('.')
@@ -356,10 +333,6 @@ fn make_target_ok(name: &str) -> bool {
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
-
-
-
-
 
 pub fn make_targets(text: &str) -> (Vec<String>, Vec<String>) {
     let mut out: Vec<String> = vec![];
@@ -435,11 +408,6 @@ pub fn make_discovery(cwd: &str, makefile: Option<&str>) -> Discovery {
     d
 }
 
-
-
-
-
-
 pub fn taskfile_tasks(cwd: &str, file: &str, listing: Result<&str, &str>) -> Discovery {
     let mut d = Discovery {
         source: "taskfile",
@@ -491,11 +459,6 @@ pub fn taskfile_tasks(cwd: &str, file: &str, listing: Result<&str, &str>) -> Dis
         .collect();
     d
 }
-
-
-
-
-
 
 pub fn mise_tasks(cwd: &str, output: Result<&str, &str>) -> Discovery {
     let mut d = Discovery {

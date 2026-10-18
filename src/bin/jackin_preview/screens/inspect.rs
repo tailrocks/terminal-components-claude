@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::Focus;
 use junie_tui::core::hit::Axis;
@@ -54,15 +49,11 @@ impl InspectMode {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Region {
     Tree,
     Diff,
 }
-
-
-
 
 pub struct InspectChanges {
     pub id: WidgetId,
@@ -87,7 +78,6 @@ pub struct InspectChanges {
     diff_area: Rect,
     container: Rect,
     stacked: bool,
-
 
     returns_to_exit: bool,
     result: Option<ModalResult>,
@@ -129,7 +119,6 @@ impl InspectChanges {
         s
     }
 
-
     pub fn returns_to_exit(mut self, on: bool) -> Self {
         self.returns_to_exit = on;
         self
@@ -139,7 +128,6 @@ impl InspectChanges {
     pub fn diff_mode(&self) -> DiffMode {
         self.diff.mode
     }
-
 
     #[cfg(test)]
     pub fn selected_file(&self) -> Option<&ChangedFile> {
@@ -171,7 +159,6 @@ impl InspectChanges {
     fn file_of_path(&self, path: &[usize]) -> Option<usize> {
         self.leaves.iter().find(|(p, _)| p == path).map(|(_, i)| *i)
     }
-
 
     fn compact_rows(&self) -> usize {
         self.changes.files.len() + usize::from(self.changes.unpushed > 0)
@@ -208,9 +195,6 @@ impl InspectChanges {
         ));
         Outcome::Changed
     }
-
-
-
 
     pub fn wheel_at(&mut self, axis: Axis, delta: i32, pos: Position) -> Outcome {
         if axis == Axis::Horizontal {
@@ -317,7 +301,6 @@ impl InspectChanges {
                 return Outcome::Changed;
             }
             KeyCode::Esc if self.region == Region::Diff => {
-
                 let (o, _) = self.diff.on_key(key);
                 if o != Outcome::Changed {
                     self.set_region(Region::Tree, focus);
@@ -553,7 +536,6 @@ impl InspectChanges {
         if let Some(u) = Some(self.changes.unpushed).filter(|u| *u > 0)
             && diff_r.height > 2
         {
-
             let text = format!("↑ {u} commit{} not pushed", if u == 1 { "" } else { "s" });
             let y = diff_r.bottom() - 1;
             let w = width(&text) as u16;
@@ -567,13 +549,10 @@ impl InspectChanges {
     }
 }
 
-
 fn row_index(tree: &TreeView, i: usize, leaves: &[(Vec<usize>, usize)]) -> Option<usize> {
     let (path, _) = leaves.iter().find(|(_, fi)| *fi == i)?;
     tree.rows().iter().position(|r| &r.path == path)
 }
-
-
 
 fn build_tree(files: &[ChangedFile]) -> (Vec<TreeNode>, Vec<(Vec<usize>, usize)>) {
     #[derive(Default)]
@@ -625,7 +604,6 @@ fn build_tree(files: &[ChangedFile]) -> (Vec<TreeNode>, Vec<(Vec<usize>, usize)>
     (nodes, leaves)
 }
 
-
 fn view_hint(mode: junie_tui::widgets::diff::DiffMode) -> Hint {
     junie_tui::widgets::keyhint::toggle_hint(
         "v",
@@ -636,8 +614,6 @@ fn view_hint(mode: junie_tui::widgets::diff::DiffMode) -> Hint {
 }
 
 impl InspectChanges {
-
-
     pub fn initial_focus(&self) -> WidgetId {
         match self.mode {
             InspectMode::Compact => self.id,
@@ -645,8 +621,6 @@ impl InspectChanges {
         }
     }
 }
-
-
 
 impl Layer<ModalResult, World> for InspectChanges {
     fn animating(&self) -> bool {
@@ -678,11 +652,6 @@ impl Layer<ModalResult, World> for InspectChanges {
             InspectMode::Advanced => self.advanced_key(key, focus),
         }
     }
-
-
-
-
-
 
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, World>) -> Outcome {
         let focus = &mut *cx.focus;
@@ -826,7 +795,6 @@ mod tests {
     use junie_tui::theme::Theme;
     use junie_tui::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
-
 
     fn done(m: &mut InspectChanges) -> Option<ModalResult> {
         m.take_result().map(LayerOut::into_inner)
@@ -1012,7 +980,6 @@ mod tests {
         let diff_pos = Position::new(m.diff_area.x + 1, m.diff_area.y + 1);
         assert_eq!(m.wheel_at(Axis::Vertical, 2, tree_pos), Outcome::Changed);
         assert_eq!(m.tree.scroll.offset, 2);
-
 
         let d0 = m.diff.term.scroll.offset;
         let out = m.wheel_at(Axis::Vertical, 3, diff_pos);

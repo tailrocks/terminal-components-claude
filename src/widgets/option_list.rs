@@ -1,26 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
@@ -41,34 +18,23 @@ use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, backdrop_id};
 use crate::widgets::scrollbar;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectArrows {
-
     Step,
-
 
     Open,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WheelMode {
-
-
-
     #[default]
     Viewport,
 
     Cursor,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
-
-
     pub key: ItemKey,
     pub label: String,
 
@@ -81,11 +47,9 @@ pub struct Item {
 
     pub matched: Vec<usize>,
 
-
     pub insert: Option<String>,
 
     pub disabled: bool,
-
 
     pub reason: Option<String>,
 
@@ -99,7 +63,6 @@ impl Default for Item {
 }
 
 impl Item {
-
     pub fn new(label: impl Into<String>) -> Self {
         Self {
             key: ItemKey::index(0),
@@ -116,54 +79,45 @@ impl Item {
         }
     }
 
-
     pub fn key(mut self, key: ItemKey) -> Self {
         self.key = key;
         self
     }
-
 
     pub fn glyph(mut self, glyph: impl Into<Cow<'static, str>>) -> Self {
         self.glyph = glyph.into();
         self
     }
 
-
     pub fn detail(mut self, detail: impl Into<String>) -> Self {
         self.detail = detail.into();
         self
     }
-
 
     pub fn tag(mut self, tag: impl Into<Cow<'static, str>>) -> Self {
         self.tag = Some(tag.into());
         self
     }
 
-
     pub fn group(mut self, group: impl Into<Cow<'static, str>>) -> Self {
         self.group = group.into();
         self
     }
-
 
     pub fn matched(mut self, matched: Vec<usize>) -> Self {
         self.matched = matched;
         self
     }
 
-
     pub fn insert(mut self, insert: impl Into<String>) -> Self {
         self.insert = Some(insert.into());
         self
     }
 
-
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
     }
-
 
     pub fn reason(mut self, reason: impl Into<String>) -> Self {
         self.reason = Some(reason.into());
@@ -171,22 +125,17 @@ impl Item {
         self
     }
 
-
     pub fn value(mut self, value: usize) -> Self {
         self.value = value;
         self
     }
-
 
     pub fn insertion(&self) -> &str {
         self.insert.as_deref().unwrap_or(&self.label)
     }
 }
 
-
-
 pub trait AsItem {
-
     fn as_item(&self) -> &Item;
 }
 
@@ -208,70 +157,50 @@ impl<T: AsItem> RowSource for [T] {
     }
     fn key(&self, i: usize) -> ItemKey {
         match self[i].as_item().key {
-
             ItemKey::Index(_) => ItemKey::index(i),
             k => k,
         }
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy)]
 pub struct RowPaint {
-
     pub index: usize,
 
-
     pub area: Rect,
-
-
 
     pub state: VisualState,
 
     pub look: CursorRow,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct OptionList {
-
-
     pub id: WidgetId,
 
     pub cursor: Cursor,
 
     pub scroll: ScrollPane,
 
-
     pub look: CursorStyle,
 
-
     pub wheel: WheelMode,
-
-
-
 
     pub hover_moves_cursor: bool,
 
     pub nav: NavKeys,
 
-
     pub type_ahead: bool,
-
 
     pub fade_edges: bool,
 
     pub dismiss: Dismiss,
 
-
     pub placement: Placement,
-
 
     pub fit: Place,
 
     pub max_rows: u16,
-
 
     pub width: (u16, u16),
     typeahead: TypeAhead,
@@ -286,11 +215,9 @@ pub struct OptionList {
 }
 
 impl OptionList {
-
     pub const MAX_ROWS: u16 = 8;
 
     pub const WIDTH: (u16, u16) = (12, 40);
-
 
     pub fn new(id: WidgetId) -> Self {
         Self {
@@ -316,73 +243,60 @@ impl OptionList {
         }
     }
 
-
     pub fn wheel_mode(mut self, mode: WheelMode) -> Self {
         self.wheel = mode;
         self
     }
-
 
     pub fn hover_moves_cursor(mut self, on: bool) -> Self {
         self.hover_moves_cursor = on;
         self
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
     }
 
-
     pub fn fade_edges(mut self, on: bool) -> Self {
         self.fade_edges = on;
         self
     }
-
 
     pub fn look(mut self, look: CursorStyle) -> Self {
         self.look = look;
         self
     }
 
-
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
     }
-
 
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
         self
     }
 
-
     pub fn fit(mut self, fit: Place) -> Self {
         self.fit = fit;
         self
     }
-
 
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.max_rows = rows;
         self
     }
 
-
     pub fn width(mut self, min: u16, max: u16) -> Self {
         self.width = (min, max.max(min));
         self
     }
-
-
 
     pub fn reset(&mut self, len: usize) {
         self.cursor.index = 0;
@@ -393,27 +307,21 @@ impl OptionList {
         self.hidden = false;
     }
 
-
-
     pub fn highlighted(&self) -> Option<usize> {
         (!self.hidden).then_some(self.cursor.index)
     }
-
 
     pub fn row_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
     pub fn row_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::row_part(i))
     }
 
-
     pub fn row_of(&self, id: WidgetId, len: usize) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..len)
     }
-
 
     pub fn row_of_event(&self, ev: &PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
@@ -423,13 +331,9 @@ impl OptionList {
             .filter(|&i| i < self.scroll.content_len)
     }
 
-
-
     pub fn on_backdrop(&self, ev: &PointerEvent) -> bool {
         ev.id == backdrop_id(self.id)
     }
-
-
 
     pub fn row_at(&self, pos: Position) -> Option<usize> {
         if !self.rows_area.contains(pos) {
@@ -439,13 +343,9 @@ impl OptionList {
         (i < self.scroll.content_len).then_some(i)
     }
 
-
     pub fn rows_area(&self) -> Rect {
         self.rows_area
     }
-
-
-
 
     pub fn key<S: RowSource + ?Sized>(&mut self, key: &Key, src: &S) -> Moved {
         match KeyStep::of(key, &self.nav, self.type_ahead) {
@@ -458,20 +358,16 @@ impl OptionList {
         }
     }
 
-
     pub fn nav_step<S: RowSource + ?Sized>(&mut self, nav: Nav, src: &S) -> Moved {
         let page = self.scroll.viewport_len;
         let moved = self.cursor.apply(nav, src, page);
         self.keyed(moved)
     }
 
-
     pub fn step<S: RowSource + ?Sized>(&mut self, delta: isize, src: &S) -> Moved {
         let moved = self.cursor.step(delta, src);
         self.keyed(moved)
     }
-
-
 
     pub fn select<S: RowSource + ?Sized>(&mut self, i: usize, src: &S) -> Moved {
         let moved = self.cursor.select(i, src);
@@ -483,9 +379,6 @@ impl OptionList {
         moved
     }
 
-
-
-
     fn keyed(&mut self, moved: Moved) -> Moved {
         if let Some(i) = moved.index() {
             self.hidden = false;
@@ -495,11 +388,6 @@ impl OptionList {
         }
         moved
     }
-
-
-
-
-
 
     pub fn layout<S: RowSource + ?Sized>(&mut self, inner: Rect, src: &S, ctx: &RenderCtx) {
         let len = src.len();
@@ -525,9 +413,6 @@ impl OptionList {
         }
     }
 
-
-
-
     fn hover<S: RowSource + ?Sized>(&mut self, ctx: &RenderCtx, src: &S) {
         if !self.hover_moves_cursor {
             return;
@@ -547,7 +432,6 @@ impl OptionList {
                 self.scroll.follow(i);
             }
 
-
             _ if self.hovering => {
                 self.hovering = false;
                 self.hidden = true;
@@ -555,11 +439,6 @@ impl OptionList {
             _ => {}
         }
     }
-
-
-
-
-
 
     pub fn paint_rows<S: RowSource + ?Sized>(
         &self,
@@ -607,8 +486,6 @@ impl OptionList {
         }
     }
 
-
-
     pub fn status<'a, T: AsItem>(&self, items: &'a [T]) -> Option<&'a str> {
         let it = items.get(self.highlighted()?)?.as_item();
         if it.disabled {
@@ -618,9 +495,6 @@ impl OptionList {
         }
     }
 }
-
-
-
 
 impl Scrollable for OptionList {
     fn pane(&mut self) -> &mut ScrollPane {
@@ -672,8 +546,6 @@ mod tests {
     }
 
     const INNER: Rect = Rect::new(1, 1, 20, 5);
-
-
 
     fn frame(l: &mut OptionList, rows: &[Item], hover: Option<WidgetId>) -> (Buffer, HitRegistry) {
         let theme = Theme::junie();

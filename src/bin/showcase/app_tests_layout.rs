@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
 
@@ -12,7 +8,6 @@ use crate::pages::template::Section;
 fn outer() -> WidgetId {
     WidgetId::of("splitsstacks").sub("outer")
 }
-
 
 fn explorer_width(h: &Harness) -> u16 {
     let (x, y) = h.at("╭─ Explorer");

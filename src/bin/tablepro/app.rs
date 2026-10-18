@@ -1,6 +1,3 @@
-
-
-
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
@@ -64,8 +61,6 @@ const PREVIEW_DIALOG: WidgetId = WidgetId::of("dialog.preview");
 const VIEWER_DIALOG: WidgetId = WidgetId::of("dialog.viewer");
 const QUIT_DIALOG: WidgetId = WidgetId::of("dialog.quit");
 
-
-
 pub enum Act {
     EditFilter(Option<usize>),
     FilterOnCell(usize, CellValue),
@@ -80,17 +75,11 @@ pub enum Act {
     Connected(usize),
 }
 
-
 pub type Request = junie_tui::shell::Request<ModalResult, (), Act>;
-
 
 pub type Cx<'a> = junie_tui::shell::Cx<'a, ModalResult, (), Act>;
 
-
 pub trait OpenDialog {
-
-
-
     fn open_dialog(&mut self, d: Dialog);
 }
 
@@ -101,7 +90,6 @@ impl OpenDialog for Cx<'_> {
     }
 }
 
-
 pub use junie_tui::motion::Motion;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -110,14 +98,11 @@ pub enum Screen {
     Workbench,
 }
 
-
 const SWITCHER: &str = "switcher";
 
 const TAB_LIST: &str = "tablist";
 
 const SAFE_MODE: &str = "safemode";
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModalResult {
@@ -131,8 +116,6 @@ impl From<LayerResult> for ModalResult {
     }
 }
 
-
-
 pub type Layers = ShellLayers<ModalResult>;
 
 pub struct App {
@@ -142,10 +125,7 @@ pub struct App {
     pub workbench: Option<Workbench>,
     pub history: History,
 
-
     pub shell: Shell<Option<StatusKind>>,
-
-
 
     pub context: ContextConfig,
 
@@ -153,9 +133,6 @@ pub struct App {
 
     pub layers: Layers,
     pub tick: u64,
-
-
-
 
     pub keys: shell::ShellKeys<TpCmd>,
 
@@ -190,7 +167,6 @@ impl App {
         }
     }
 
-
     pub fn connect(&mut self, index: usize) {
         let Some(c) = self.connections.connections.get(index).cloned() else {
             return;
@@ -209,9 +185,6 @@ impl App {
             ),
         );
     }
-
-
-
 
     pub fn set_motion(&mut self, motion: Motion, frame: u64) {
         self.shell.motion = Motion::Full;
@@ -235,7 +208,6 @@ impl App {
     }
 
     pub fn tick_interval(&self) -> Duration {
-
         if self.shell.pointer.autoscrolling() {
             return Duration::from_millis(self.shell.pointer.config.autoscroll_ms);
         }
@@ -250,18 +222,15 @@ impl App {
         }
     }
 
-
     fn set_status(&mut self, s: String) {
         self.put_status(s, None);
     }
-
 
     fn set_status_as(&mut self, kind: StatusKind, s: String) {
         self.put_status(s, Some(kind));
     }
 
     fn put_status(&mut self, s: String, kind: Option<StatusKind>) {
-
         let tone = if kind == Some(StatusKind::Fail) {
             Tone::Error
         } else {
@@ -272,12 +241,9 @@ impl App {
             .set_with_at(s, tone, kind, self.clock.now());
     }
 
-
     fn now_ms(&self) -> u64 {
         self.clock.now_ms()
     }
-
-
 
     fn flash_clock(&self) -> u64 {
         if self.shell.motion == Motion::Paused {
@@ -293,8 +259,6 @@ impl App {
             .interaction(self.now_ms(), self.flash_clock(), self.tick)
     }
 
-
-
     fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
             Input::Resize(..) => Outcome::Changed,
@@ -303,8 +267,6 @@ impl App {
             other => shell::KeyRouter::input(self, other),
         }
     }
-
-
 
     fn disconnect(&mut self) -> Outcome {
         let Some(w) = self.workbench.as_ref() else {
@@ -329,8 +291,6 @@ impl App {
         Outcome::Changed
     }
 
-
-
     fn new_connection(&mut self) -> Outcome {
         let (o, reqs) = self.shell.deliver(true, |cx| {
             self.connections
@@ -340,7 +300,6 @@ impl App {
     }
 
     fn request_quit(&mut self) -> Outcome {
-
         let stakes = self.connections.form_stakes();
         if let Err(d) = self
             .connections
@@ -392,25 +351,17 @@ impl App {
         Outcome::Consumed
     }
 
-
-
-
-
-
     fn autoscroll(&mut self) -> Outcome {
         PointerRouter::tick(self)
     }
 
     fn on_tick(&mut self) -> Outcome {
-
         let auto = self.autoscroll();
         if self.shell.motion == Motion::Paused {
             return auto;
         }
         self.advance().or(auto)
     }
-
-
 
     fn advance(&mut self) -> Outcome {
         let mut out = Outcome::Ignored;
@@ -478,15 +429,12 @@ impl App {
         out
     }
 
-
-
     fn shown(&self) -> Option<&dyn Page<Tablepro>> {
         match self.screen {
             Screen::Connections => Some(&self.connections),
             Screen::Workbench => self.workbench.as_ref().map(|w| w as &dyn Page<Tablepro>),
         }
     }
-
 
     fn shown_mut(&mut self) -> (Option<&mut dyn Page<Tablepro>>, &mut History) {
         let page: Option<&mut dyn Page<Tablepro>> = match self.screen {
@@ -498,8 +446,6 @@ impl App {
         };
         (page, &mut self.history)
     }
-
-
 
     fn with_page(
         &mut self,
@@ -548,7 +494,6 @@ impl App {
         }
         out
     }
-
 
     fn act(&mut self, a: Act) {
         match a {
@@ -648,8 +593,6 @@ impl App {
             }
         }
     }
-
-
 
     fn run_cmd(&mut self, cmd: TpCmd) -> Outcome {
         if cmd == TpCmd::NewConnection {
@@ -776,7 +719,6 @@ impl App {
                     let maximized = w.maximized;
                     let f = self.shell.focus.current();
                     if let Some(WorkTab::Query(q)) = w.active_tab_mut() {
-
                         let target = if f == Some(q.editor.id) {
                             junie_tui::ui::layout::Maximized::First
                         } else {
@@ -810,8 +752,6 @@ impl App {
         }
     }
 
-
-
     fn step_tab(&mut self, step: isize) -> Outcome {
         if self.screen != Screen::Workbench {
             return Outcome::Ignored;
@@ -839,12 +779,6 @@ impl App {
         )
     }
 
-
-
-
-
-
-
     fn set_explorer(&mut self, show: bool) -> Outcome {
         if let Some(w) = self.workbench.as_mut() {
             w.explorer_visible = show;
@@ -859,7 +793,6 @@ impl App {
         }
         Outcome::Changed
     }
-
 
     fn cancel_running(&mut self) -> Outcome {
         if let Some(w) = self.workbench.as_mut() {
@@ -926,7 +859,6 @@ impl App {
         }
         let _ = parse_errors;
         let Some((decision, stmt, text)) = worst else {
-
             q.start(statements, all, explain);
             return Outcome::Changed;
         };
@@ -967,7 +899,6 @@ impl App {
                             stmt.target().map(|t| format!(" · {t}")).unwrap_or_default()
                         ),
                     )
-
                     .tone(if production {
                         env.kind().tone()
                     } else {
@@ -1035,7 +966,6 @@ impl App {
                     d = d.title_status(StatusKind::Warn);
                 }
                 if token.is_none() {
-
                     d.initial_focus = if dangerous {
                         d.actions[0].id
                     } else {
@@ -1252,10 +1182,6 @@ impl App {
         self.open_dialog(d);
     }
 
-
-
-
-
     fn open_layer(
         &mut self,
         layer: Box<dyn junie_tui::ui::layer::Layer<ModalResult>>,
@@ -1266,15 +1192,10 @@ impl App {
         self.shell.pointer.pressed = None;
     }
 
-
     fn open_dialog(&mut self, mut d: Dialog) {
         d.outer_margin.vertical += 1;
         self.open_layer(Box::new(d), LayerTag::new("dialog"));
     }
-
-
-
-
 
     fn open_help(&mut self) {
         use junie_tui::widgets::help::{HelpOverlay, HelpSection};
@@ -1340,7 +1261,6 @@ impl App {
             _ => true,
         });
         if p.query.text().is_empty() && self.scope == 0 {
-
             results.truncate(24);
         }
         let items: Vec<PickerItem> = results
@@ -1511,24 +1431,19 @@ impl App {
         );
     }
 
-
     #[cfg(test)]
     pub fn modal(&self) -> Option<&LayerEntry<ModalResult>> {
         self.layers.top()
     }
-
 
     #[cfg(test)]
     pub fn top_as<L: junie_tui::ui::layer::Layer<ModalResult>>(&self) -> Option<&L> {
         self.layers.top_as()
     }
 
-
     fn top_kind(&self) -> Option<&'static str> {
         self.layers.top().map(|e| e.tag.kind)
     }
-
-
 
     fn layer_key(&mut self, key: Key) -> Outcome {
         let Some(top) = self.layers.top_mut() else {
@@ -1546,8 +1461,6 @@ impl App {
         self.take_layer().or(out)
     }
 
-
-
     fn take_layer(&mut self) -> Outcome {
         match self.layers.take(&mut self.shell.focus) {
             None => Outcome::Ignored,
@@ -1556,14 +1469,10 @@ impl App {
         }
     }
 
-
-
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
         let dismissed = self.layers.dismiss(reason, &mut self.shell.focus);
         self.dismissed(reason, dismissed)
     }
-
-
 
     fn dismissed(&mut self, reason: DismissReason, d: Dismissed<ModalResult>) -> Outcome {
         match d {
@@ -1587,7 +1496,6 @@ impl App {
             Dismissed::Closed(_, None) => Outcome::Changed,
         }
     }
-
 
     fn layer_event(&mut self, r: ModalResult) -> Outcome {
         let ModalResult::Lib(LayerResult::Picker(ev)) = r else {
@@ -1626,11 +1534,9 @@ impl App {
                 Outcome::Changed
             }
 
-
             _ => Outcome::Ignored,
         }
     }
-
 
     fn filter_tab_list(&mut self) {
         let Some(w) = self.workbench.as_ref() else {
@@ -1659,8 +1565,6 @@ impl App {
         p.set_items(items);
     }
 
-
-
     fn layer_closed(&mut self, entry: LayerEntry<ModalResult>, r: ModalResult) -> Outcome {
         match r {
             ModalResult::Lib(LayerResult::Dialog { action, .. }) => {
@@ -1686,7 +1590,6 @@ impl App {
             _ => Outcome::Changed,
         }
     }
-
 
     fn picker_chosen(&mut self, entry: &LayerEntry<ModalResult>, i: usize, alt: bool) -> Outcome {
         match entry.tag.kind {
@@ -1794,7 +1697,6 @@ impl App {
         }
     }
 
-
     fn apply_filter(&mut self, index: Option<usize>, filter: Filter) -> Outcome {
         let mut applied = None;
         if let Some(w) = self.workbench.as_mut() {
@@ -1829,7 +1731,6 @@ impl App {
             });
             self.apply_requests(reqs);
             if quit {
-
                 return self.request_quit().or(Outcome::Changed);
             }
             return Outcome::Changed;
@@ -1896,11 +1797,6 @@ impl App {
         Outcome::Changed
     }
 
-
-
-
-
-
     fn deliver_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if !self.layers.is_empty() {
             return self.layer_pointer(ev);
@@ -1916,9 +1812,6 @@ impl App {
         self.with_page(|p, h, cx| p.pointer(ev, h, cx))
     }
 
-
-
-
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
@@ -1931,8 +1824,6 @@ impl App {
             LayerPointer::Dismissed(d) => self.dismissed(DismissReason::OutsideClick, d),
         }
     }
-
-
 
     fn chrome_click(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let id = ev.id;
@@ -1989,8 +1880,6 @@ impl App {
         None
     }
 
-
-
     fn on_secondary(&mut self, ev: &PointerEvent) -> Outcome {
         if !self.layers.is_empty() {
             return Outcome::Consumed;
@@ -2016,8 +1905,6 @@ impl App {
         }
     }
 
-
-
     fn open_context(&mut self, menu: CtxMenu) -> Outcome {
         self.shell.focus.focus(menu.owner);
         self.layers.open(
@@ -2029,8 +1916,6 @@ impl App {
         self.shell.pointer.pressed = None;
         Outcome::Changed
     }
-
-
 
     fn context_chosen(&mut self, m: &CtxMenu, i: usize) -> Outcome {
         let (key, target, owner) = (m.keys.get(i).copied().flatten(), m.target, m.owner);
@@ -2072,8 +1957,6 @@ impl App {
         self.shell.focus.focus(owner);
         shell::KeyRouter::replay(self, &key).or(Outcome::Changed)
     }
-
-
 
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let header = Rect::new(area.x, area.y, area.width, 1);
@@ -2154,7 +2037,6 @@ impl App {
                     );
                     let level = c.safe_mode;
 
-
                     let (status, bold) = match level {
                         SafeMode::Silent if env == Environment::Production => {
                             (Some(StatusKind::Warn), true)
@@ -2221,9 +2103,6 @@ impl App {
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 
-
-
-
     fn footer(&self) -> shell::Footer {
         let focus = self.shell.focus.current();
         let editing = self.shown().is_some_and(|p| p.is_editing());
@@ -2281,7 +2160,6 @@ impl shell::App for App {
         self.handle_input(input)
     }
 
-
     fn on_blur(&mut self, ch: FocusChange) -> Outcome {
         let mut out = self.layers.on_blur(ch);
 
@@ -2327,7 +2205,6 @@ impl PointerHost for App {
         self.deliver_pointer(ev).into()
     }
 
-
     fn outside(&mut self, _pos: Position) -> Response<()> {
         if self.layers.is_empty() {
             return Response::changed();
@@ -2338,8 +2215,6 @@ impl PointerHost for App {
     }
 }
 
-
-
 fn tab_index(p: &Picker, i: usize) -> usize {
     p.items
         .get(i)
@@ -2348,7 +2223,6 @@ fn tab_index(p: &Picker, i: usize) -> usize {
 }
 
 fn pretty_json(j: &str) -> String {
-
     let mut out = String::new();
     let mut depth = 0usize;
     let mut in_str = false;
@@ -2382,11 +2256,8 @@ fn pretty_json(j: &str) -> String {
     out
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TpCmd {
-
     NewConnection,
 
     CancelQuery,
@@ -2413,7 +2284,6 @@ pub enum TpCmd {
 }
 
 impl TpCmd {
-
     pub fn label(self) -> &'static str {
         match self {
             TpCmd::NewConnection => "New connection",
@@ -2440,12 +2310,6 @@ impl TpCmd {
         }
     }
 }
-
-
-
-
-
-
 
 pub fn shell_keys() -> shell::ShellKeys<TpCmd> {
     use junie_tui::core::keymap::KeyBinding;
@@ -2487,7 +2351,6 @@ pub fn shell_keys() -> shell::ShellKeys<TpCmd> {
         .bind_priority(KeyBinding::char('['), ShellAction::PrevPage)
         .bind_priority(KeyBinding::char(']'), ShellAction::NextPage)
         .bind_fallback(KeyBinding::char('0'), Cmd(TpCmd::Explorer))
-
         .dirty_letter_note(None);
     for c in [
         TpCmd::CloseTab,
@@ -2541,8 +2404,6 @@ impl shell::KeyHost for App {
             _ => Outcome::Ignored,
         }
     }
-
-
 
     fn chrome_key(&mut self, key: &Key) -> Outcome {
         let focus = self.shell.focus.current();

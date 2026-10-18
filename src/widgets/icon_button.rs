@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -20,45 +8,32 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::width;
 use crate::ui::tooltip::Tip;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum IconLook {
-
     #[default]
     Close,
 
     Title,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IconButton {
     pub id: WidgetId,
 
-
-
-
     pub glyph: Option<String>,
     pub look: IconLook,
 
-
     pub pad: u16,
-
-
 
     pub danger_hover: bool,
 
-
     pub tip: Option<Tip>,
-
 
     pub part: Option<(WidgetId, PartRef)>,
 }
 
 impl IconButton {
-
     pub const DEFAULT_PAD: u16 = 1;
-
 
     pub fn close(id: WidgetId) -> Self {
         Self {
@@ -72,7 +47,6 @@ impl IconButton {
         }
     }
 
-
     pub fn new(id: WidgetId, glyph: &str) -> Self {
         Self {
             glyph: Some(glyph.to_owned()),
@@ -80,7 +54,6 @@ impl IconButton {
             ..Self::close(id)
         }
     }
-
 
     pub fn with_id(&self, id: WidgetId) -> Self {
         Self {
@@ -90,8 +63,6 @@ impl IconButton {
         }
     }
 
-
-
     pub fn part_of(&self, owner: WidgetId, part: PartRef) -> Self {
         Self {
             id: owner.part(part),
@@ -100,7 +71,6 @@ impl IconButton {
         }
     }
 
-
     pub fn with_glyph(&self, glyph: &str) -> Self {
         Self {
             glyph: Some(glyph.to_owned()),
@@ -108,41 +78,32 @@ impl IconButton {
         }
     }
 
-
     pub fn pad(mut self, cells: u16) -> Self {
         self.pad = cells;
         self
     }
 
-
-
     pub fn plate(self, cells: u16) -> Self {
         self.pad(cells.saturating_sub(1) / 2)
     }
-
 
     pub fn danger_hover(mut self, on: bool) -> Self {
         self.danger_hover = on;
         self
     }
 
-
     pub fn tip(mut self, tip: Tip) -> Self {
         self.tip = Some(tip);
         self
     }
 
-
     pub fn glyph<'a>(&'a self, t: &Theme) -> &'a str {
         self.glyph.as_deref().unwrap_or(t.glyphs.close)
     }
 
-
     pub fn width(&self, t: &Theme) -> u16 {
         width(self.glyph(t)) as u16 + 2 * self.pad
     }
-
-
 
     pub fn style(&self, ctx: &RenderCtx, host: Style) -> Style {
         let t = ctx.theme;
@@ -157,9 +118,6 @@ impl IconButton {
         }
     }
 
-
-
-
     pub fn render(
         &self,
         x: u16,
@@ -173,11 +131,6 @@ impl IconButton {
         fill(buf, plate, host);
         self.render_in(plate, x + self.pad, buf, ctx, host, default_tip)
     }
-
-
-
-
-
 
     pub fn render_in(
         &self,
@@ -214,8 +167,6 @@ impl IconButton {
         plate
     }
 }
-
-
 
 impl crate::ui::specimen::Specimen for IconButton {
     fn specimen_id(&self) -> WidgetId {
@@ -255,8 +206,6 @@ mod tests {
 
     const ID: WidgetId = WidgetId::of("icon");
 
-
-
     fn draw(t: &Theme, b: &IconButton, inter: Interaction) -> (Buffer, HitRegistry, Rect) {
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
@@ -285,7 +234,6 @@ mod tests {
             ..Default::default()
         }
     }
-
 
     fn look(t: &Theme, b: &Buffer, x: u16) -> (Option<ratatui::style::Color>, Modifier) {
         let c = &b[(x, 0)];

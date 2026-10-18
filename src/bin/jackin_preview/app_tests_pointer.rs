@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::{Part, WidgetId};
 use ratatui::crossterm::event::KeyCode;
@@ -9,7 +6,6 @@ use ratatui::layout::Rect;
 use crate::app::Route;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
-
 
 fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
     h.app
@@ -22,13 +18,11 @@ fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
         .map(|r| r.area)
 }
 
-
 fn manager() -> H {
     let h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     assert_eq!(h.app.route, Route::Manager, "{}", h.text());
     h
 }
-
 
 fn footer_at(h: &H, needle: &str) -> (u16, u16) {
     let text = h.text();
@@ -39,7 +33,6 @@ fn footer_at(h: &H, needle: &str) -> (u16, u16) {
         .unwrap_or_else(|| panic!("the footer names {needle:?}\n{text}"));
     (line[..at].chars().count() as u16, y)
 }
-
 
 #[test]
 fn a_click_on_a_footer_hint_runs_its_key() {
@@ -53,8 +46,6 @@ fn a_click_on_a_footer_hint_runs_its_key() {
         h.text()
     );
 }
-
-
 
 #[test]
 fn a_press_on_the_help_overlay_scrollbar_pages_it() {
@@ -79,9 +70,6 @@ fn a_press_on_the_help_overlay_scrollbar_pages_it() {
     assert!(offset(&h) > before, "the press paged help\n{}", h.text());
     h.mouse(MouseKind::Up, bar.x, bar.bottom() - 1);
 }
-
-
-
 
 #[test]
 fn the_wheel_over_the_session_strip_moves_its_window() {
@@ -108,8 +96,6 @@ fn the_wheel_over_the_session_strip_moves_its_window() {
     assert_ne!(row(&h), before, "the wheel moved the strip\n{}", h.text());
 }
 
-
-
 #[test]
 fn the_host_menu_opens_on_the_press_and_a_click_away_closes_it() {
     let mut h = manager();
@@ -125,10 +111,6 @@ fn the_host_menu_opens_on_the_press_and_a_click_away_closes_it() {
     h.click(h.app.shell.size.0 - 3, h.app.shell.size.1 / 2);
     assert!(!h.app.host_menu.is_open(), "a click away closed the menu");
 }
-
-
-
-
 
 #[test]
 fn the_focused_host_menu_bar_opens_with_enter() {

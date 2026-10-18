@@ -1,31 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -35,17 +7,13 @@ use crate::widgets::keyhint::{self, Hint, HintPriority, hint};
 
 use super::Shell;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FooterStatus {
-
-
     Toned {
         text: String,
         tone: Tone,
         parts: Vec<(String, Tone)>,
     },
-
 
     Kind {
         text: String,
@@ -54,7 +22,6 @@ pub enum FooterStatus {
 }
 
 impl FooterStatus {
-
     pub fn is_error(&self) -> bool {
         match self {
             Self::Toned { tone, .. } => *tone == Tone::Error,
@@ -63,27 +30,19 @@ impl FooterStatus {
     }
 }
 
-
-
 #[derive(Debug, Clone, Default)]
 pub struct Footer {
-
     pub hints: Option<Vec<Hint>>,
-
 
     pub fallback: Vec<Hint>,
 
     pub editing: bool,
 
-
     pub tab_next: bool,
 
     pub status: Option<FooterStatus>,
 
-
     pub align: Option<HintAlign>,
-
-
 
     pub pin_dirty: Option<&'static str>,
 
@@ -95,9 +54,6 @@ impl Footer {
         Self::default()
     }
 
-
-
-
     pub fn layer(mut self, hints: Option<Vec<Hint>>) -> Self {
         if self.hints.is_none() {
             self.hints = hints.filter(|h| !h.is_empty());
@@ -105,42 +61,35 @@ impl Footer {
         self
     }
 
-
     pub fn fallback(mut self, hints: Vec<Hint>) -> Self {
         self.fallback = hints;
         self
     }
-
 
     pub fn editing(mut self, on: bool) -> Self {
         self.editing = on;
         self
     }
 
-
     pub fn tab_next(mut self, on: bool) -> Self {
         self.tab_next = on;
         self
     }
-
 
     pub fn align(mut self, align: HintAlign) -> Self {
         self.align = Some(align);
         self
     }
 
-
     pub fn pin_dirty(mut self, key: Option<&'static str>) -> Self {
         self.pin_dirty = key;
         self
     }
 
-
     pub fn dirty(mut self, dirty: bool) -> Self {
         self.dirty = dirty;
         self
     }
-
 
     pub fn status(mut self, status: Option<(&str, Tone)>) -> Self {
         self.status = status.map(|(text, tone)| FooterStatus::Toned {
@@ -150,7 +99,6 @@ impl Footer {
         });
         self
     }
-
 
     pub fn status_parts(
         mut self,
@@ -165,7 +113,6 @@ impl Footer {
         self
     }
 
-
     pub fn status_kind(mut self, status: Option<(&str, Option<StatusKind>)>) -> Self {
         self.status = status.map(|(text, kind)| FooterStatus::Kind {
             text: text.to_owned(),
@@ -173,10 +120,6 @@ impl Footer {
         });
         self
     }
-
-
-
-
 
     pub fn compose(&self, reveal: Option<(&'static str, &'static str)>) -> Vec<Hint> {
         let mut hints = self.hints.clone().unwrap_or_else(|| self.fallback.clone());
@@ -193,15 +136,12 @@ impl Footer {
             }
         }
         if self.status.as_ref().is_some_and(FooterStatus::is_error) {
-
             for h in &mut hints {
                 h.priority = HintPriority::Normal;
             }
         }
         hints
     }
-
-
 
     pub fn render<P>(self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, shell: &mut Shell<P>) {
         let t = ctx.theme;
@@ -246,11 +186,6 @@ impl Footer {
         }
     }
 }
-
-
-
-
-
 
 pub fn deliverable(key: &str) -> bool {
     let cmd = key.starts_with('⌘') || key.starts_with("Cmd+") || key.starts_with("Super+");

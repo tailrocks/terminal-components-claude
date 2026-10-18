@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -81,9 +76,6 @@ impl Harness {
     }
 }
 
-
-
-
 #[test]
 fn a_press_focuses_the_control_under_it_before_the_release() {
     let mut h = Harness::new(120, 40, PageId::Buttons);
@@ -109,11 +101,8 @@ fn a_press_focuses_the_control_under_it_before_the_release() {
     );
 }
 
-
-
 #[test]
 fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
-
     let mut h = Harness::new(120, 40, PageId::Overview);
     let inspect = h.area_of(WidgetId::of("app.header.inspect"));
     h.click(inspect.x + 1, inspect.y);
@@ -123,7 +112,6 @@ fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
         Some(WidgetId::of("app.header.inspect")),
         "the header link flashes"
     );
-
 
     let mut h = Harness::new(120, 40, PageId::Overview);
 
@@ -149,7 +137,6 @@ fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
     assert!(h.app.nav.rows().len() > rows, "the row opened its group");
     assert_eq!(h.flashing(), Some(target), "the sidebar row flashes");
 
-
     let mut h = Harness::new(120, 40, PageId::Overview);
     let brand = h.area_of(crate::app::HEADER_BRAND);
     h.click(brand.x, brand.y);
@@ -160,7 +147,6 @@ fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
     assert!(h.app.dialog().is_none(), "Cancel closed it");
     assert_eq!(h.flashing(), Some(cancel), "the dialog button flashes");
 }
-
 
 #[test]
 fn a_click_on_a_footer_hint_runs_its_key() {
@@ -177,8 +163,6 @@ fn a_click_on_a_footer_hint_runs_its_key() {
         h.row(footer)
     );
 }
-
-
 
 #[test]
 fn a_drag_on_the_keyboard_references_scrollbar_scrolls_it() {
@@ -197,8 +181,6 @@ fn a_drag_on_the_keyboard_references_scrollbar_scrolls_it() {
     assert!(h.app.help().is_some(), "the drag is no outside click");
 }
 
-
-
 #[test]
 fn a_click_outside_an_open_picker_closes_it() {
     let mut h = Harness::new(120, 40, PageId::Pickers);
@@ -212,11 +194,6 @@ fn a_click_outside_an_open_picker_closes_it() {
         h.text()
     );
 }
-
-
-
-
-
 
 #[test]
 fn a_click_that_keeps_focus_on_purpose_is_not_overridden_on_release() {

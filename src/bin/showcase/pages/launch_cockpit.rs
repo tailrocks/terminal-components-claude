@@ -1,7 +1,3 @@
-
-
-
-
 use crate::pages::Page;
 use crate::pages::stub::StubPage;
 

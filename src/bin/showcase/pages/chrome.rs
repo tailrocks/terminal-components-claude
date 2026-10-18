@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -49,14 +38,10 @@ const PR: WidgetId = WidgetId::of("chrome.status.pr");
 const ENV: WidgetId = WidgetId::of("chrome.strip.env");
 const PENDING: WidgetId = WidgetId::of("chrome.strip.pending");
 
-
-
 const NARROW_BAR: u16 = 30;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Target {
-
     Session(usize),
 
     Env,
@@ -106,7 +91,6 @@ impl ChromePage {
         page
     }
 
-
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::Chrome);
         let i = table
@@ -119,7 +103,6 @@ impl ChromePage {
     fn on(&self, key: &str) -> bool {
         self.opt(key) == "on"
     }
-
 
     fn build_bar(&self) -> MenuBar {
         let bar = MenuBar::new(
@@ -188,7 +171,6 @@ impl ChromePage {
         }
     }
 
-
     fn readout(&self) -> [String; 2] {
         let b = &self.bar;
         let on = |v: bool| if v { "on" } else { "off" };
@@ -223,8 +205,6 @@ impl ChromePage {
             ),
         ]
     }
-
-
 
     fn strip(&self, tick: u64, t: &junie_tui::theme::Theme) -> (Vec<Segment>, Vec<Segment>) {
         let g = &t.glyphs;
@@ -298,7 +278,6 @@ impl ChromePage {
         b
     }
 
-
     fn open_context(&mut self, req: ContextRequest<usize>) {
         let row = req.target;
         let label = self.sessions.items[row].label.clone();
@@ -308,7 +287,6 @@ impl ChromePage {
             Target::Session(row),
         );
     }
-
 
     fn context_items(&self, target: Target) -> Vec<MenuItem> {
         match target {
@@ -356,7 +334,6 @@ impl ChromePage {
                 hint("right-click", "Context menu"),
                 hint("Tab", "Next"),
             ])
-
             .status_parts(
                 vec![
                     ("last: ".to_owned(), Tone::Muted),
@@ -380,7 +357,6 @@ impl ChromePage {
         self.last = format!("{} › {label}", self.bar.labels[menu]);
         cx.status(label);
     }
-
 
     fn bar_action(&mut self, ev: Option<MenuBarAction>, cx: &mut Cx) {
         let Some(ev) = ev else { return };
@@ -408,7 +384,6 @@ impl ChromePage {
         self.bar
             .render(Rect::new(area.x, y, bar_w, 1), buf, ctx, t.canvas);
         y += 2;
-
 
         let foot = area.bottom().saturating_sub(5);
 
@@ -440,7 +415,6 @@ impl ChromePage {
             }
         }
 
-
         let sy = inner.y + notes.len() as u16 + 1;
         if nx + 8 < inner.right() && sy + 1 < inner.bottom() {
             let max = inner.right().saturating_sub(nx);
@@ -462,7 +436,6 @@ impl ChromePage {
                 Some(("Saved", Some(StatusKind::Ok))),
             );
         }
-
 
         let mut y = body.bottom() + 1;
         for line in self.readout() {
@@ -543,8 +516,6 @@ impl ChromePage {
     }
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -589,7 +560,6 @@ impl Page for ChromePage {
     }
 
     fn animating(&self) -> bool {
-
         true
     }
 
@@ -668,7 +638,6 @@ impl Page for ChromePage {
                 }
                 let id = ev.id;
                 if id == ENV {
-
                     let menu = ContextMenu::new(CONTEXT, self.context_items(Target::Env))
                         .at(ev.pos())
                         .title("production");
@@ -706,7 +675,6 @@ impl Page for ChromePage {
         self.layer(focus)
             .hints
             .iter()
-
             .filter_map(|h| match h.action {
                 std::borrow::Cow::Borrowed(a) => Some((h.key, a)),
                 std::borrow::Cow::Owned(_) => None,

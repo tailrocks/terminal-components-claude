@@ -1,6 +1,3 @@
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app_tests::H;
@@ -22,7 +19,6 @@ fn alt_enter_is_alternatives_in_the_finder_and_the_files_find_page() {
     open(&mut h, "Find files under home");
     h.ticks(8);
     let f = footer(&h);
-
 
     assert!(f.contains("Type Find"), "find: {f}");
     assert!(f.contains("Enter Alternatives…"), "find: {f}");
@@ -47,17 +43,12 @@ fn the_files_browser_names_alt_enter_alternatives() {
     assert!(!f.contains("Actions"), "browse: {f}");
 }
 
-
-
 #[test]
 fn the_hint_bar_is_left_aligned() {
     let h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 200, 40);
     let f = footer(&h);
     assert!(f.starts_with(' ') && !f.starts_with("  "), "{f:?}");
 }
-
-
-
 
 #[test]
 fn an_error_status_is_never_cut_for_the_hints() {

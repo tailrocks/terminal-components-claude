@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -13,9 +8,7 @@ use crate::ui::ctx::{RenderCtx, VisualState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lockup {
-
     pub text: String,
-
 
     pub compact: bool,
 }
@@ -47,8 +40,6 @@ impl Lockup {
         crate::ui::text::width(&self.label()) as u16
     }
 
-
-
     pub fn style(t: &Theme) -> Style {
         Self::state_style(t, VisualState::default())
     }
@@ -58,14 +49,11 @@ impl Lockup {
             .style
     }
 
-
     pub fn render(&self, x: u16, y: u16, buf: &mut Buffer, t: &Theme) -> u16 {
         let label = self.label();
         buf.set_string(x, y, &label, Self::style(t));
         crate::ui::text::width(&label) as u16
     }
-
-
 
     pub fn render_clickable(
         &self,

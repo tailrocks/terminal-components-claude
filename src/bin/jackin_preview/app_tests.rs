@@ -1,5 +1,3 @@
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -44,8 +42,6 @@ impl H {
         self.draw();
         o
     }
-
-
 
     pub fn cmd(&mut self, c: char) -> Outcome {
         let o = self.app.handle(Input::Key(Key {
@@ -172,8 +168,6 @@ fn reduced_motion_and_paused_frames_are_deterministic() {
 
 #[test]
 fn the_manager_detail_card_tabs_in_visual_order() {
-
-
     let mut h = H::new(Scenario::Returning, Motion::Full, 0, 120, 40);
     h.key(KeyCode::Down);
     assert_eq!(
@@ -455,7 +449,6 @@ fn usage_limit_labels_take_the_width_they_measure_when_the_row_has_room() {
         h.key(KeyCode::Char('u'));
         h.key(KeyCode::Down);
         if w < 120 {
-
             h.key(KeyCode::Enter);
         }
         let t = h.text();
@@ -556,10 +549,6 @@ fn prelude_refuses_a_duplicate_name_and_cancels_cleanly() {
         h.text()
     );
 }
-
-
-
-
 
 #[test]
 fn a_short_editor_general_tab_scrolls_instead_of_reaching_the_actions() {
@@ -742,7 +731,6 @@ fn settings_trust_toggle_and_failed_save_keep_edits() {
     h.ticks(20);
     assert_eq!(h.app.route, Route::Manager, "{}", h.text());
 
-
     assert!(!h.app.world.global.trust[0].trusted);
 }
 
@@ -771,8 +759,6 @@ fn hard_cases_refresh_keeps_last_good_and_help_opens_everywhere() {
     h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Reading meters"));
 }
-
-
 
 #[test]
 fn complete_jackin_flow_keyboard_first() {
@@ -917,7 +903,6 @@ fn complete_jackin_flow_keyboard_first() {
     assert_eq!(h.app.route, Route::Editor, "{}", h.text());
     assert!(h.text().contains("new workspace › edit"));
 
-
     assert!(h.term.backend().cursor_visible());
     h.key(KeyCode::Tab);
 
@@ -1052,7 +1037,6 @@ fn complete_jackin_flow_keyboard_first() {
         h.text()
     );
 
-
     h.app.world.clipboard = None;
     h.mouse(MouseKind::Down, x + 2, y);
     h.mouse(MouseKind::Up, x + 2, y);
@@ -1153,7 +1137,6 @@ fn complete_jackin_flow_keyboard_first() {
     assert_eq!(h.app.route, Route::Outro, "{}", h.text());
     h.ticks(5);
     if !h.text().contains("You were in the Construct for") {
-
         h.key(KeyCode::Enter);
         h.ticks(25);
     }
@@ -1502,8 +1485,6 @@ fn settings_footer_names_the_focused_button_and_the_tab_strip_action() {
     assert!(!f.contains("Enter Run"), "{f}");
 }
 
-
-
 #[test]
 fn the_account_drawer_keeps_every_action_whole_at_72_columns() {
     let mut h = H::new(Scenario::AccountsMixed, Motion::Paused, 0, 72, 20);
@@ -1520,11 +1501,6 @@ fn the_account_drawer_keeps_every_action_whole_at_72_columns() {
 
     assert!(!t.contains("›│") && !t.contains("›┃"), "{t}");
 }
-
-
-
-
-
 
 #[test]
 fn q_leaves_the_editor_from_a_focused_select() {
@@ -1545,10 +1521,6 @@ fn q_leaves_the_editor_from_a_focused_select() {
 
 #[test]
 fn saving_a_new_account_without_a_name_marks_the_field_and_stays() {
-
-
-
-
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 100, 30);
     h.key(KeyCode::Char('a'));
     assert!(h.text().contains("New account"), "{}", h.text());
@@ -1566,9 +1538,6 @@ fn saving_a_new_account_without_a_name_marks_the_field_and_stays() {
 
 #[test]
 fn tab_reaches_the_fields_below_a_short_add_account_form() {
-
-
-
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 72, 20);
     h.key(KeyCode::Char('a'));
     let source = crate::screens::accounts::FORM.sub("source");
@@ -1589,7 +1558,6 @@ fn tab_reaches_the_fields_below_a_short_add_account_form() {
     assert!(row.contains('▎'), "the focus gutter is on it: {text}");
 }
 
-
 fn focus_bars(h: &H) -> Vec<String> {
     h.text()
         .lines()
@@ -1600,9 +1568,6 @@ fn focus_bars(h: &H) -> Vec<String> {
 
 #[test]
 fn a_detail_card_that_holds_focus_shows_the_one_focus_bar() {
-
-
-
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::Tab);
     let bars = focus_bars(&h);
@@ -1621,8 +1586,6 @@ fn a_detail_card_that_holds_focus_shows_the_one_focus_bar() {
 
 #[test]
 fn the_accounts_health_line_wraps_instead_of_cutting_its_issues() {
-
-
     let h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
     let text = h.text();
     assert!(text.contains("Health"), "{text}");
@@ -1637,10 +1600,6 @@ fn the_accounts_health_line_wraps_instead_of_cutting_its_issues() {
     }
     assert!(!joined.contains("refres…"), "{text}");
 }
-
-
-
-
 
 #[test]
 fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {
