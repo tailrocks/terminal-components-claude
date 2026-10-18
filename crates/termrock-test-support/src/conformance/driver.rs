@@ -647,27 +647,25 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
         C::NAME
     );
     assert_eq!(plain.runtime().theme().fingerprint(), before);
-    if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 {
-        if !C::PARTS.is_empty() {
-            if patched.snapshot().digest() == plain_digest {
-                assert_ne!(
-                    patched.resolved(C::id(), patch_part),
-                    plain.resolved(C::id(), patch_part),
-                    "{}: the instance patch had no effect; plain={:?} patched={:?}",
-                    C::NAME,
-                    plain.resolved(C::id(), patch_part),
-                    patched.resolved(C::id(), patch_part),
-                );
-            }
+    if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 && !C::PARTS.is_empty() {
+        if patched.snapshot().digest() == plain_digest {
+            assert_ne!(
+                patched.resolved(C::id(), patch_part),
+                plain.resolved(C::id(), patch_part),
+                "{}: the instance patch had no effect; plain={:?} patched={:?}",
+                C::NAME,
+                plain.resolved(C::id(), patch_part),
+                patched.resolved(C::id(), patch_part),
+            );
+        }
 
-            if let Some(sibling) = C::PARTS.iter().copied().find(|p| *p != patch_part) {
-                assert_eq!(
-                    patched.resolved(C::id(), sibling),
-                    plain.resolved(C::id(), sibling),
-                    "{}: patching {patch_part:?} changed sibling {sibling:?}",
-                    C::NAME,
-                );
-            }
+        if let Some(sibling) = C::PARTS.iter().copied().find(|p| *p != patch_part) {
+            assert_eq!(
+                patched.resolved(C::id(), sibling),
+                plain.resolved(C::id(), sibling),
+                "{}: patching {patch_part:?} changed sibling {sibling:?}",
+                C::NAME,
+            );
         }
     }
 }

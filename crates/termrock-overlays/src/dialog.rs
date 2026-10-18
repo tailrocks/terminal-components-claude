@@ -579,17 +579,17 @@ impl<'a> Dialog<'a> {
                     acc.action(DialogAction::Action(a.key()));
                     action_fired = true;
                 }
-            } else if committed && is_ack {
-                if let Some(id) =
+            } else if committed
+                && is_ack
+                && let Some(id) =
                     self.effective_actions()
                         .iter()
                         .enumerate()
                         .find_map(|(i, action)| {
                             self.enabled(i, action, st).then_some(self.action_id(i))
                         })
-                {
-                    cx.focus(id);
-                }
+            {
+                cx.focus(id);
             }
         }
         for (i, a) in self.effective_actions().iter().enumerate() {
