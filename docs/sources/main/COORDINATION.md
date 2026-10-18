@@ -1,5 +1,26 @@
 # Multi-lead coordination contract
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Three lead agents are working the same goal (`GOAL.md`, `REFACTORING_GOAL.md`,
 `CONTINUE_PROMPT.md`) against this one working tree. This file is the authoritative
 lane and file-ownership contract between the leads. It is the only cross-lead channel.

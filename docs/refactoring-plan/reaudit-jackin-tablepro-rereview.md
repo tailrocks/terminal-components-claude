@@ -1,5 +1,26 @@
 # Jackin/TablePro repair re-review
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Scope: bounded independent review of reaudit-jackin-tablepro.md and its repaired TASK-051–064 contracts. Skill verify-and-stop used for focused verification; no production or canonical AGENTS edits. Oracle tag and harness HEAD independently resolve 02f5294bfdbf38004cc49130d0aff1d01f31434c; main authority remains7b27732a8c3c131760ec3438f641cb3c11343a42.
 
 ## Material findings

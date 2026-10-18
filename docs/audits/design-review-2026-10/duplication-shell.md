@@ -1,5 +1,26 @@
 # Duplication review: app shells
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Read-only review of the four app shells (`src/bin/*/app.rs`, `main.rs`) for logic implemented more than once. Recorded 2026-10-16. The consolidated decisions and the execution order are in [`docs/architecture/shared-components-plan.md`](../../architecture/shared-components-plan.md).
 
 Audited `origin/design/interaction-polish` @ `6dc41693b`. Source read from a `git archive` copy at `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/dup-shell/src`, because the worktree checkout stalled on 2.3 GB of baselines. Worktree add was killed, dir removed, `git worktree prune` run. No repo edits; `visual-baseline` untouched; no tests run.

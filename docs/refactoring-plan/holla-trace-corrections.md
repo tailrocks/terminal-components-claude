@@ -1,5 +1,26 @@
 # Holla source-correct interaction branches
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This normative expansion amends HO-PREVIEW-SELECT, HO-ARGS and HO-OVERLAY-PASTE without changing their primary IDs or deleting any important behavior. Oracle authority is `02f5294bfdbf38004cc49130d0aff1d01f31434c`. The rejected earlier interpretations remain in `reaudit-holla.md`. TASK-003 must materialize every branch below into separate immutable action/checkpoint identities. No branch may pass from its title, a static frame, or a direct-model continuation after process exit.
 
 All branches run independently at 80×24, 100×30, 120×40 and160×50. Existing palette, full-frame, cursor, semantic-state and native/resized requirements still apply. Coordinates are extracted once from the oracle, then frozen literally for candidate replay. Every original source-native test remains unchanged.

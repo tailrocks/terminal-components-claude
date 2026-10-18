@@ -1,5 +1,22 @@
 # Independent rereview of Filter, ChipBar and Inspect trace repairs
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Bounded verdict: the repaired TP-039–042 and JA-060 routing premises are supported by actual oracle source and replay. This is not full application or frozen baseline acceptance. The coordinator did not author these scenario repairs or their five replay tests.
 
 Read `reaudit-jt-routing-repairs.md` completely, all five repaired canonical scenario rows, both disposable Rust harnesses (`lib.rs`, 32 physical lines; `jackin.rs`, 16 physical lines), their Cargo manifest, and the reused Jackin Harness definition through its input/render methods. Minified source lines were read in full, not treated as one-line coverage shortcuts.

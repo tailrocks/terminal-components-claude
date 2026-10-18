@@ -1,3 +1,17 @@
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
 1. **High** | src/bin/jackin_preview/app.rs:2556-2565, src/bin/tablepro/app.rs:2316-2331, src/bin/holla/app.rs:3260-3290, src/bin/showcase/app.rs:1224 | all apps / every confirm dialog | The footer always says `Enter Confirm` and `y / n Quick answer`. `Dialog::destructive` (src/widgets/dialog.rs:85) puts focus on **Cancel**, so Enter actually cancels. The snapshots show this in jackin/cockpit/cancel_confirm and tablepro/connections/delete_dialog (`▎Cancel   Delete` with the footer reading `Enter Confirm`). The same logic is also copied into four apps. | Library fix: add `Dialog::hints() -> Vec<Hint>` that builds the row from the dialog's state: `← → Choose · Enter <focused button label> · Esc Cancel · y <primary label> · n <cancel label>`, for example `Enter Cancel · y Delete · n Cancel`. Delete the four copies and call this instead. `Hint.action` would need to become `Cow<'static, str>`.
 
 2. **High** | src/bin/jackin_preview/screens/capsule.rs:258 vs 1258-1325 | jackin capsule / View menu | The menu lists `Container info  Ctrl+B i`, but the prefix handler has no `'i'` case. Pressing it gives the status `Not a prefix command: i`. | Add `KeyCode::Char('i') => self.open_info(..)` to `handle_prefix_cmd`. Otherwise remove the shortcut from the menu item.

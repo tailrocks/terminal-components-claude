@@ -1,5 +1,22 @@
 # Whole-branch tooling/tests reread — work in progress
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Not a completed partition or whole-plan acceptance. Exact endpoints: holla `2e2401393c47360741ebd321679de08982dca50a` and main `7b27732a8c3c131760ec3438f641cb3c11343a42`; UI oracle remains separately `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Inventory has244paths and138274 changed text lines. Mode/blob membership comes from the coordinator's no-rename inventory. The table below records byte bindings, not semantic acceptance. Numeric prefix is physical line count; suffix is SHA-256. Binary physical-line counts have no semantic significance.
 
 Current evidence: full executable source read for CI/perf workflow, test-inventory implementation/tests/profiles, package manifests and deleted historical capture-flow scripts; complete lockfile package/edge records parsed on both endpoints. Main lock120packages/223resolvededges versus holla182/352; every dependency reference resolves uniquely. All3211historical catalog IDs recompute from origin and canonical `[target,identity]`; counts2470initial-repaired-main/269Holla-reference/472publication-parent and exact catalog SHA35484514ad8241a4ce693b5c2498fea0102384502c2d44dfbec259ed86574e0e match pending required.json. All3211mappings remain unresolved, zero accepted targets, matching explicit pending authority. Original source-artifact reconciliation remains separate, not proved by catalog consistency.

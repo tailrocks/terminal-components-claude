@@ -1,3 +1,20 @@
+
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
 Found 22 issues, ranked below. The "Debug info" white-on-white bug comes from one shared cause in the theme, not from the screens. Contrast figures are WCAG ratios computed from the `palette::*` RGB values. I backed them with a scan of every snapshot `.ansi` file for cells whose text contrast falls below 4.5:1 or where text and background colours are equal. 256-colour values use `nearest_256` output. 16-colour values use the snapshot renderer's palette (DarkGray `#7f7f7f`, LightRed `#ff0000`, Gray `#e5e5e5`). `none` = `ColorLevel::Mono`. I did not run any tests or change anything in the repo.
 
 1. **high | src/theme.rs:363 (`row()` pressed branch), with consumers that override the text colour after calling it: src/widgets/props.rs:289-307, steps.rs:273-293, grid.rs:1758-1800, select.rs:389, list.rs:283, tree.rs:567, choice.rs:84/217/313, completion.rs:187, picker.rs:569, plus every app screen that calls `t.row()` (manager, accounts, settings, editor, inspect, usage, holla finder/files/cleanup/disk/plan, showcase sidebars/app) | jackin cockpit and capsule "Debug info" (the reported bug), every InfoDialog/PropsList, every list/tree/select/picker/steps row on click or Enter-activation (`Interaction::pressed` includes the activation flash) |**

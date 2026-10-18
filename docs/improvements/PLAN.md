@@ -1,13 +1,32 @@
 # Improvements plan
 
+## Status
+
+This plan tracks Holla prototype improvements and shared component work. Its checkboxes are scoped to the stated slices; they do not establish repository-wide refactor readiness. The `main` refactor remains incomplete, broken, and not ready.
+
+## Authority
+
+Holla product requirements live in `docs/product/CONCEPT.md`. UI/UX authority lives in `design/interaction-polish`. The architecture direction is split crates and reusable APIs following `main`. Keep all planned and deferred work below; do not treat this Holla-specific scope as replacing the repository-wide plan.
+
+## Current evidence
+
+This plan's status labels and verification claims apply to the revisions and evidence recorded with each row. Current completion requires current source, task acceptance evidence, and applicable Rust and visual gates.
+
+## Remaining work
+
+The complete tracker and linked task contracts below remain in scope, including Later work and open findings. Do not remove a requirement because a prototype slice or old audit passed.
+
+## Verification
+
+A checkbox requires the named task's implementation, tests, and inspected visual evidence at the current revision. Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo nextest run --all-targets` as applicable; use current visual procedures for visual claims.
+
 Status: **Current phase implemented and verified (simulated Holla prototype); Later work open.** This document is
 the checkbox tracker. Detailed contracts live in [small task files]().
 The current phase implements Holla's simulated design, interactions, coverage
 and the shared components needed by those flows. Other work remains tracked.
 
-Read [current scope and delivery order](scope.md),
-[shared acceptance contracts](shared-contracts.md) and the
-[ready-to-use goal prompt](goal-prompt.md).
+Read [current scope and delivery order](scope.md) and
+[shared acceptance contracts](shared-contracts.md).
 Historical research and evidence remain in the [audit reference](plan-reference-audit.md).
 
 ## Tracking rules
