@@ -1,9 +1,3 @@
-//! Holla: a context-adaptive action launcher for the terminal, as a
-//! deterministic preview on the Junie design system. Every external system
-//! (mise, git, gh, docker, btm, pg_activity, ssh, the filesystem) is an
-//! in-memory simulation; every operator interaction is real. No stack
-//! command is ever spawned.
-
 mod app;
 #[cfg(test)]
 mod app_tests;
@@ -50,7 +44,6 @@ use junie_tui::cli::CommonArgs;
 use crate::app::App;
 use crate::scenario::Scenario;
 
-/// Set to `1` (anything but empty or `0`) for reduced motion.
 const NO_MOTION_ENV: &str = "HOLLA_NO_MOTION";
 
 #[derive(Debug, Parser)]
@@ -62,7 +55,7 @@ const NO_MOTION_ENV: &str = "HOLLA_NO_MOTION";
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
-    /// The fixture scenario to open
+    #[arg(help = "The fixture scenario to open")]
     #[arg(short = 's', long, value_parser = parse_scenario, default_value = "first-use")]
     scenario: Scenario,
 }

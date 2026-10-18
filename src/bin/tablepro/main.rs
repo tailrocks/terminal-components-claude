@@ -1,6 +1,3 @@
-//! TablePro, terminal edition: the core database workbench built on the
-//! Junie-inspired design system.
-
 mod app;
 #[cfg(test)]
 mod app_tests;
@@ -44,7 +41,6 @@ use junie_tui::cli::CommonArgs;
 use crate::app::App;
 use crate::db::Connection;
 
-/// Set to `1` (anything but empty or `0`) for reduced motion.
 const NO_MOTION_ENV: &str = "TABLEPRO_NO_MOTION";
 
 #[derive(Debug, Parser)]
@@ -56,7 +52,7 @@ const NO_MOTION_ENV: &str = "TABLEPRO_NO_MOTION";
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
-    /// Connect to the named connection at start
+    #[arg(help = "Connect to the named connection at start")]
     #[arg(long, value_name = "NAME")]
     connect: Option<String>,
 }
@@ -91,7 +87,6 @@ fn main() -> std::io::Result<()> {
         app.connect(i);
     }
     app.set_motion(cli.common.motion(NO_MOTION_ENV), cli.common.frame);
-    // a field's Copy and Cut reach the system clipboard too (OSC 52)
     app.shell.clipboard.install();
     junie_tui::shell::run(&mut app)
 }

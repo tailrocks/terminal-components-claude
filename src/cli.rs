@@ -1,29 +1,8 @@
-//! Command-line options every application shares: colour level, glyphs,
-//! motion and the paused frame. An application flattens [`CommonArgs`] into its own
-//! `clap` parser and adds only its own options:
-//!
-//! ```ignore
-//! #[derive(clap::Parser)]
-//! struct Cli {
-//!     #[command(flatten)]
-//!     common: junie_tui::cli::CommonArgs,
-//!     #[arg(long)]
-//!     connect: Option<String>,
-//! }
-//! let cli: Cli = junie_tui::cli::parse(after_help);
-//! let theme = cli.common.theme();
-//! let motion = cli.common.motion("TABLEPRO_NO_MOTION");
-//! ```
-//!
-//! `--help` prints usage and exits 0; an unknown option or value prints an
-//! error and exits non-zero (clap's contract).
-
 use clap::{Parser, ValueEnum};
 
 use crate::motion::Motion;
 use crate::theme::{Charset, ColorLevel, Theme};
 
-/// `--color` values. `24bit` and `mono` are aliases.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum ColorArg {
     #[value(name = "truecolor", alias = "24bit")]
@@ -47,7 +26,6 @@ impl From<ColorArg> for ColorLevel {
     }
 }
 
-/// `--glyphs` values. `utf8` is an alias.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum GlyphsArg {
     #[value(name = "unicode", alias = "utf8")]
@@ -65,64 +43,53 @@ impl From<GlyphsArg> for Charset {
     }
 }
 
-/// The options every application accepts.
 #[derive(Clone, Debug, Default, PartialEq, Eq, clap::Args)]
+#[command(about = "The options every application accepts")]
 pub struct CommonArgs {
-    /// Colour level (default: detected from the terminal; NO_COLOR selects none)
+    #[arg(help = "Colour level (default: detected from the terminal; NO_COLOR selects none)")]
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
     pub color: Option<ColorArg>,
-    /// Glyphs and copy (default: detected from the terminal; ASCII on the
-    /// Linux console, VT terminals and the legacy Windows console;
-    /// JUNIE_TUI_GLYPHS=unicode|ascii overrides detection)
+    #[arg(
+        help = "Glyphs and copy (default: detected from the terminal; ASCII on the Linux console, VT terminals and the legacy Windows console; JUNIE_TUI_GLYPHS=unicode|ascii overrides detection)"
+    )]
     #[arg(long, value_enum, value_name = "SET")]
     pub glyphs: Option<GlyphsArg>,
-    /// How much moves (default: full, or reduced when the app's NO_MOTION variable is set)
+    #[arg(
+        help = "How much moves (default: full, or reduced when the app's NO_MOTION variable is set)"
+    )]
     #[arg(short = 'm', long, value_enum, value_name = "MOTION")]
     pub motion: Option<Motion>,
-    /// With --motion paused, the tick to render
+    #[arg(help = "With --motion paused, the tick to render")]
     #[arg(short = 'f', long, default_value_t = 0, value_name = "N")]
     pub frame: u64,
 }
 
 impl CommonArgs {
-    /// The colour level: `--color`, else [`ColorLevel::detect`].
     pub fn level(&self) -> ColorLevel {
         self.color
             .map(ColorLevel::from)
             .unwrap_or_else(ColorLevel::detect)
     }
 
-    /// The charset: `--glyphs`, else [`Charset::detect`] (which honours
-    /// [`Charset::OVERRIDE_ENV`]).
     pub fn charset(&self) -> Charset {
         self.glyphs
             .map(Charset::from)
             .unwrap_or_else(Charset::detect)
     }
 
-    /// The theme for [`level`](Self::level), drawing with the glyphs and
-    /// copy of [`charset`](Self::charset).
     pub fn theme(&self) -> Theme {
         self.charset().apply(Theme::for_level(self.level()))
     }
 
-    /// The motion level: `--motion`, else reduced when the application's
-    /// `env_var` (`<APP>_NO_MOTION`) is set, else full
-    /// ([`Motion::from_cli_or_env`]).
     pub fn motion(&self, env_var: &str) -> Motion {
         Motion::from_cli_or_env(self.motion, env_var)
     }
 }
 
-/// The `Motion:` line of an application's after-help text, naming its
-/// `<APP>_NO_MOTION` variable.
 pub fn motion_help(env_var: &str) -> String {
     format!("Motion:    explicit --motion wins; otherwise {env_var}=1 selects reduced motion")
 }
 
-/// Parse the process arguments into `C` with `after_help` appended to its
-/// help text. `--help` prints and exits 0; an invalid command line prints
-/// the error and exits non-zero.
 pub fn parse<C: Parser>(after_help: String) -> C {
     let matches = C::command().after_help(after_help).get_matches();
     C::from_arg_matches(&matches).unwrap_or_else(|error| error.exit())
@@ -179,8 +146,6 @@ mod tests {
         assert_eq!(mono.common.level(), ColorLevel::Mono);
     }
 
-    /// `--glyphs` wins over the terminal: an explicit set is used whatever
-    /// `TERM` says, and the theme draws with its glyphs and copy.
     #[test]
     fn explicit_glyphs_win_and_reach_the_theme() {
         use crate::theme::{Glyphs, Strings};
