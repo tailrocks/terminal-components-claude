@@ -1,8 +1,3 @@
-
-
-
-
-
 pub fn step_index(cursor: usize, len: usize, delta: isize, wrap: bool) -> usize {
     if len == 0 {
         return 0;
@@ -70,7 +65,6 @@ mod tests {
         let mut tabs = Tabs::new(WidgetId::of("tabs"), &["a", "b", "c"]).wrap(true);
         tabs.on_key(&k(KeyCode::Left));
         assert_eq!(tabs.active, 2);
-
 
         let step = crate::widgets::select::SelectArrows::Step;
         let mut s = Select::new(WidgetId::of("s"), "S", &["a", "b", "c"], 2).arrows(step);

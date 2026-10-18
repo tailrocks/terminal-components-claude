@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
 use ratatui::crossterm::event::KeyCode;
@@ -16,12 +13,9 @@ fn open_orders(h: &mut H) {
     h.ticks(3);
 }
 
-
 fn footer(h: &H) -> String {
     h.text().lines().last().unwrap_or_default().to_owned()
 }
-
-
 
 #[test]
 fn a_middle_click_on_a_query_tab_closes_it() {
@@ -42,7 +36,6 @@ fn a_middle_click_on_a_query_tab_closes_it() {
     assert_eq!(h.wb().tabs.len(), before - 1, "{}", h.text());
 }
 
-
 #[test]
 fn a_click_on_a_footer_hint_runs_its_key() {
     let mut h = H::connected(120, 40);
@@ -59,8 +52,6 @@ fn a_click_on_a_footer_hint_runs_its_key() {
         h.text()
     );
 }
-
-
 
 #[test]
 fn the_wheel_over_the_filter_editors_open_select_scrolls_its_list() {
@@ -99,8 +90,6 @@ fn the_wheel_over_the_filter_editors_open_select_scrolls_its_list() {
         h.text()
     );
 }
-
-
 
 #[test]
 fn a_press_on_the_switcher_scrollbar_pages_its_list() {

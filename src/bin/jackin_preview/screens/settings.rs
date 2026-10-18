@@ -1,7 +1,3 @@
-
-
-
-
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
@@ -571,9 +567,6 @@ impl SettingsScreen {
         }
     }
 
-
-
-
     fn render_agents(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         let bg = t.canvas;
@@ -984,9 +977,6 @@ impl Page<Jackin> for SettingsScreen {
         }
     }
 
-
-
-
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         if self.saving && (click || ev.is(Phase::Secondary)) {
@@ -1269,7 +1259,6 @@ impl Screen for SettingsScreen {
 }
 
 impl SettingsScreen {
-
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let id = ev.id;
         if id == CANCEL {

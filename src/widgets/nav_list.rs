@@ -1,25 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -35,14 +13,11 @@ use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::scrollbar;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NavItem {
     pub label: String,
 
-
     pub icon: String,
-
 
     pub section: String,
 
@@ -62,24 +37,20 @@ impl NavItem {
         }
     }
 
-
     pub fn icon(mut self, icon: &str) -> Self {
         self.icon = icon.to_owned();
         self
     }
-
 
     pub fn section(mut self, section: &str) -> Self {
         self.section = section.to_owned();
         self
     }
 
-
     pub fn badge(mut self, badge: &str) -> Self {
         self.badge = Some(badge.to_owned());
         self
     }
-
 
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
@@ -87,13 +58,10 @@ impl NavItem {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavAction {
-
     Activated(usize),
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NavRow {
@@ -101,7 +69,6 @@ enum NavRow {
     Blank,
     Item(usize),
 }
-
 
 #[derive(Debug, Clone)]
 pub struct NavList {
@@ -114,9 +81,7 @@ pub struct NavList {
 
     pub collapsed: bool,
 
-
     pub nav: NavKeys,
-
 
     pub widths: (u16, u16),
 
@@ -142,31 +107,26 @@ impl NavList {
         }
     }
 
-
     pub fn current(mut self, i: usize) -> Self {
         self.current = i;
         self.cursor = i;
         self
     }
 
-
     pub fn collapsed(mut self, on: bool) -> Self {
         self.collapsed = on;
         self
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-
     pub fn widths(mut self, open: u16, collapsed: u16) -> Self {
         self.widths = (open, collapsed);
         self
     }
-
 
     pub fn item_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::item_part(i))
@@ -176,7 +136,6 @@ impl NavList {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-
     pub fn width(&self) -> u16 {
         if self.collapsed {
             self.widths.1
@@ -184,8 +143,6 @@ impl NavList {
             self.widths.0
         }
     }
-
-
 
     fn rows(&self) -> Vec<NavRow> {
         let mut rows = vec![];
@@ -213,7 +170,6 @@ impl NavList {
             .unwrap_or(0)
     }
 
-
     fn reveal_cursor(&mut self) {
         let row = self.row_of(self.cursor);
         self.scroll.set_content(self.rows().len());
@@ -227,8 +183,6 @@ impl NavList {
             Outcome::Consumed
         }
     }
-
-
 
     fn step(&self, steps: isize) -> usize {
         let mut c = self.cursor;
@@ -249,7 +203,6 @@ impl NavList {
         }
         c
     }
-
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<NavAction>) {
         if self.items.is_empty() {
@@ -289,7 +242,6 @@ impl NavList {
             _ => (Outcome::Ignored, None),
         }
     }
-
 
     pub fn on_click(&mut self, i: usize) -> (Outcome, Option<NavAction>) {
         if i < self.items.len() && !self.items[i].disabled {
@@ -412,13 +364,6 @@ impl NavList {
     }
 }
 
-
-
-
-
-
-
-
 impl crate::ui::specimen::Specimen for NavList {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -482,8 +427,6 @@ impl crate::ui::specimen::Specimen for NavList {
 }
 
 impl NavList {
-
-
     fn sample(&self) -> Self {
         let mut l = self.clone();
         l.items.truncate(3);
@@ -502,9 +445,6 @@ impl NavList {
         l
     }
 }
-
-
-
 
 impl crate::core::pointer::MouseTarget for NavList {
     type Action = NavAction;
@@ -594,7 +534,6 @@ mod tests {
         nav.render(area, &mut buf, &mut ctx, theme.canvas);
         (buf, hits)
     }
-
 
     fn row(buf: &Buffer, y: u16) -> String {
         (0..buf.area.width - 1)

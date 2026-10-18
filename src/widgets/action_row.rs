@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
@@ -23,15 +8,11 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{truncate, width};
 use crate::widgets::button::{Button, ButtonRow, RowAlign, row_layout, row_layout_right};
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionRow {
-
     pub align: RowAlign,
 
-
     pub gap: u16,
-
 
     pub message: Option<(String, Tone)>,
 
@@ -54,30 +35,25 @@ impl ActionRow {
         }
     }
 
-
     pub fn align(mut self, align: RowAlign) -> Self {
         self.align = align;
         self
     }
-
 
     pub fn gap(mut self, gap: u16) -> Self {
         self.gap = gap;
         self
     }
 
-
     pub fn message(mut self, text: &str, tone: Tone) -> Self {
         self.message = Some((text.to_owned(), tone));
         self
     }
 
-
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
-
 
     pub fn layout(&self, area: Rect, buttons: &[&Button]) -> Vec<Rect> {
         let widths: Vec<u16> = buttons.iter().map(|b| b.width()).collect();
@@ -87,8 +63,6 @@ impl ActionRow {
             _ => row_layout(row, &widths, self.gap),
         }
     }
-
-
 
     pub fn render(
         &self,
@@ -137,9 +111,6 @@ impl ActionRow {
         }
         rects
     }
-
-
-
 
     pub fn step(
         &self,

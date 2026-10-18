@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::shell::Page as ShellPage;
@@ -15,7 +11,6 @@ use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{Cx, Holla};
 use crate::sim::world::World;
-
 
 struct Dirty;
 
@@ -54,7 +49,6 @@ impl ShellPage<Holla> for Dirty {
 }
 
 impl crate::screens::Screen for Dirty {}
-
 
 fn with_dirty_page() -> H {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
@@ -103,7 +97,6 @@ fn quitting_with_unsaved_page_edits_asks_first() {
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(!h.app.shell.quit, "Cancel stays\n{}", h.text());
-
 
     h.ctrl(KeyCode::Char('c'));
     assert!(!h.app.shell.quit, "{}", h.text());

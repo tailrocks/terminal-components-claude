@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -111,7 +107,6 @@ impl Harness {
             .join("\n")
     }
 
-
     pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         let want: Vec<&str> =
@@ -137,9 +132,6 @@ impl Harness {
     }
 }
 
-
-
-
 #[test]
 #[ignore]
 fn dump_feedback_pages() {
@@ -161,9 +153,6 @@ fn dump_feedback_pages() {
     }
 }
 
-
-
-
 fn track_start(h: &Harness, label: &str) -> u16 {
     let t = Theme::junie();
     let (x, y) = h.at(label);
@@ -171,7 +160,6 @@ fn track_start(h: &Harness, label: &str) -> u16 {
         .find(|&cx| [t.glyphs.bar_fill, t.glyphs.bar_empty].contains(&h.cell(cx, y).symbol()))
         .expect("a track")
 }
-
 
 fn track_end(h: &Harness, label: &str) -> u16 {
     let t = Theme::junie();
@@ -258,8 +246,6 @@ fn progress_states_grid_shows_bars_and_meters_in_every_content_state() {
         assert!(text.contains(label), "{label}: {text}");
     }
 }
-
-
 
 #[test]
 fn empty_kind_hint_and_actions_follow_the_options() {

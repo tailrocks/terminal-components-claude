@@ -1,45 +1,19 @@
-
-
-
-
-
-
-
-
-
-
 use super::event::ClientPlatform;
 use super::keymap::{Actions, KeyBinding, KeyMap};
 use super::text::TextBuffer;
 
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EditEntry {
-
-
-
-
     #[default]
     Immediate,
 
-
     TypeToEdit,
-
 
     Explicit,
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusSelect {
-
-
     #[default]
     SelectAll,
 
@@ -49,7 +23,6 @@ pub enum FocusSelect {
 }
 
 impl FocusSelect {
-
     pub fn apply(self, buf: &mut TextBuffer) {
         match self {
             FocusSelect::SelectAll => buf.select_all(),
@@ -65,52 +38,20 @@ impl FocusSelect {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldKeys {
-
-
-
-
     Emacs,
-
-
 
     Desktop,
 }
 
 impl FieldKeys {
-
-
     pub const fn for_platform(platform: ClientPlatform) -> Self {
         match platform {
             ClientPlatform::MacOs => Self::Emacs,
             ClientPlatform::Other => Self::Desktop,
         }
     }
-
-
-
-
-
-
-
-
 
     pub fn text_keymap(self) -> KeyMap<TextCmd> {
         let mut map: KeyMap<TextCmd> = CMD_TEXT_KEYS.to_vec();
@@ -131,7 +72,6 @@ impl FieldKeys {
             ]),
         }
         map.extend([
-
             (KeyBinding::ctrl('z').shift(), TextCmd::Redo),
             (KeyBinding::ctrl('Z'), TextCmd::Redo),
             (KeyBinding::ctrl('z'), TextCmd::Undo),
@@ -139,11 +79,6 @@ impl FieldKeys {
         map
     }
 }
-
-
-
-
-
 
 pub const CMD_TEXT_KEYS: [(KeyBinding, TextCmd); 15] = {
     use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -181,19 +116,13 @@ pub const CMD_TEXT_KEYS: [(KeyBinding, TextCmd); 15] = {
 };
 
 impl Default for FieldKeys {
-
     fn default() -> Self {
         Self::for_platform(ClientPlatform::current())
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextCmd {
-
     SelectAll,
 
     Copy,
@@ -203,7 +132,6 @@ pub enum TextCmd {
     Paste,
 
     Undo,
-
 
     Redo,
 
@@ -244,12 +172,10 @@ impl Actions for TextCmd {
         }
     }
 
-
     fn default_keymap() -> KeyMap<Self> {
         FieldKeys::default().text_keymap()
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Snap {
@@ -257,11 +183,8 @@ struct Snap {
     cursor: usize,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EditKind {
-
     #[default]
     Typing,
 
@@ -269,11 +192,6 @@ pub enum EditKind {
 
     Other,
 }
-
-
-
-
-
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct UndoStack {
@@ -283,14 +201,11 @@ pub struct UndoStack {
 }
 
 impl UndoStack {
-
     pub const LIMIT: usize = 200;
 
     pub fn new() -> Self {
         Self::default()
     }
-
-
 
     pub fn record(&mut self, buf: &TextBuffer, kind: EditKind) {
         self.redo.clear();
@@ -307,11 +222,9 @@ impl UndoStack {
         self.run = (kind != EditKind::Other).then_some(kind);
     }
 
-
     pub fn seal(&mut self) {
         self.run = None;
     }
-
 
     pub fn clear(&mut self) {
         self.undo.clear();
@@ -327,7 +240,6 @@ impl UndoStack {
         !self.redo.is_empty()
     }
 
-
     pub fn undo(&mut self, buf: &mut TextBuffer) -> bool {
         let Some(s) = self.undo.pop() else {
             return false;
@@ -340,8 +252,6 @@ impl UndoStack {
         self.run = None;
         true
     }
-
-
 
     pub fn redo(&mut self, buf: &mut TextBuffer) -> bool {
         let Some(s) = self.redo.pop() else {
@@ -364,13 +274,6 @@ fn restore(buf: &mut TextBuffer, s: Snap) {
     buf.clear_selection();
 }
 
-
-
-
-
-
-
-
 pub mod clipboard {
     use std::cell::RefCell;
 
@@ -381,7 +284,6 @@ pub mod clipboard {
         static HOOK: RefCell<Option<Hook>> = const { RefCell::new(None) };
     }
 
-
     pub fn copy(text: &str) {
         TEXT.with(|t| *t.borrow_mut() = Some(text.to_owned()));
         HOOK.with(|h| {
@@ -391,16 +293,13 @@ pub mod clipboard {
         });
     }
 
-
     pub fn text() -> Option<String> {
         TEXT.with(|t| t.borrow().clone())
     }
 
-
     pub fn set_hook(hook: impl Fn(&str) + 'static) {
         HOOK.with(|h| *h.borrow_mut() = Some(Box::new(hook)));
     }
-
 
     pub fn clear_hook() {
         HOOK.with(|h| *h.borrow_mut() = None);
@@ -444,7 +343,6 @@ mod tests {
         assert!(u.undo(&mut b));
         assert_eq!(b.text(), "a");
     }
-
 
     #[test]
     fn field_keys_follow_the_client_platform() {

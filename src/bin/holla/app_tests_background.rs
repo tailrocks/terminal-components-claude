@@ -1,6 +1,3 @@
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -16,8 +13,6 @@ use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{Cx, Go, Holla, Screen};
 use crate::sim::world::World;
-
-
 
 struct TickProbe {
     ticked: bool,
@@ -49,10 +44,6 @@ impl Page<Holla> for TickProbe {
 
 impl Screen for TickProbe {}
 
-
-
-
-
 #[test]
 fn a_background_tabs_tick_status_shows_when_the_tab_is_shown() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
@@ -72,8 +63,6 @@ fn a_background_tabs_tick_status_shows_when_the_tab_is_shown() {
         h.text()
     );
 }
-
-
 
 #[test]
 fn ctrl_page_keys_step_the_tabs() {

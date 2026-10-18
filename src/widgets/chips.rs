@@ -1,6 +1,3 @@
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -19,11 +16,6 @@ use crate::ui::text::{truncate, width};
 use crate::ui::tooltip::Tip;
 use crate::widgets::icon_button::IconButton;
 use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
-
-
-
-
-
 
 pub fn overflow_run(widths: &[u16], avail: u16, gap: u16) -> (usize, Option<String>) {
     let total: u32 = widths.iter().map(|&w| w as u32).sum::<u32>()
@@ -75,41 +67,23 @@ pub struct ChipBar {
     pub lead: Option<String>,
     pub area: Rect,
 
-
     pub overflow_marker: bool,
-
 
     pub nav: NavKeys,
 
     pub keymap: KeyMap<ChipCmd>,
 
-
-
-
-
     pub close_button: IconButton,
-
-
 
     pub overflow_menu: bool,
 
-
-
-
     pub more_button: IconButton,
-
-
 
     pub digit_toggles: bool,
 
-
-
     pub context_menu: bool,
 
-
-
     pub context: ContextConfig,
-
 
     menu: Option<(ContextMenu, BarMenu)>,
 
@@ -118,24 +92,15 @@ pub struct ChipBar {
     more_area: Rect,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChipCmd {
-
-
     Remove,
 
     Add,
 
     ClearAll,
 
-
-
-
     ShowHidden,
-
-
-
 
     Lead,
 }
@@ -198,41 +163,33 @@ impl ChipBar {
         }
     }
 
-
-
     pub fn close_target_w(mut self, cells: u16) -> Self {
         self.close_button = self.close_button.plate(cells);
         self
     }
-
 
     pub fn close_button(mut self, button: IconButton) -> Self {
         self.close_button = button;
         self
     }
 
-
     pub fn more_button(mut self, button: IconButton) -> Self {
         self.more_button = button;
         self
     }
-
 
     pub fn overflow_menu(mut self, on: bool) -> Self {
         self.overflow_menu = on;
         self
     }
 
-
     pub fn more_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::OVERFLOW))
     }
 
-
     pub fn menu_id(&self) -> WidgetId {
         self.id.sub("more-menu")
     }
-
 
     pub fn menu_open(&self) -> bool {
         self.menu.is_some()
@@ -251,11 +208,6 @@ impl ChipBar {
             ContextMenu::new(self.menu_id(), items).anchor_control(self.more_id(), self.more_area);
         self.menu = Some((menu, BarMenu::Hidden(hidden)));
     }
-
-
-
-
-
 
     pub fn context_items(&self, i: usize) -> Vec<(ChipAction, MenuItem)> {
         use crate::ui::context::{ContextCmd, command_items};
@@ -285,7 +237,6 @@ impl ChipBar {
         items
     }
 
-
     fn open_chip_menu(&mut self, i: usize, anchor: crate::ui::context::ContextAnchor) {
         let (actions, items): (Vec<_>, Vec<_>) = self.context_items(i).into_iter().unzip();
         if items.is_empty() {
@@ -312,24 +263,20 @@ impl ChipBar {
         }
     }
 
-
     pub fn digit_toggles(mut self, on: bool) -> Self {
         self.digit_toggles = on;
         self
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-
     pub fn keymap(mut self, keymap: KeyMap<ChipCmd>) -> Self {
         self.keymap = keymap;
         self
     }
-
 
     pub fn overflow_marker(mut self, on: bool) -> Self {
         self.overflow_marker = on;
@@ -349,7 +296,6 @@ impl ChipBar {
     pub fn lead_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::TITLE))
     }
-
 
     fn stops(&self) -> usize {
         self.chips.len() + usize::from(self.add_label.is_some())
@@ -385,7 +331,6 @@ impl ChipBar {
         }
         let action = lookup(&self.keymap, key);
         if unassigned_chord(key, &self.keymap) {
-
             return (Outcome::Ignored, None);
         }
         match action {
@@ -499,10 +444,6 @@ impl ChipBar {
             if i >= shown {
                 if let Some(m) = marker.as_ref().filter(|_| self.overflow_marker) {
                     if self.overflow_menu {
-
-
-
-
                         let left = x.saturating_sub(1).max(area.x);
                         let r = Rect::new(left, y, x + width(m) as u16 + 1 - left, 1)
                             .intersection(area);
@@ -552,7 +493,6 @@ impl ChipBar {
             if chip.removable {
                 ctx.register_part(self.id, PartRef::item(Part::ROW, ItemKey::index(i)), r);
 
-
                 let gx = x + 2 + label_w;
                 let cw = self.close_button.width(t).max(1).min(w);
                 let left = gx
@@ -592,7 +532,6 @@ impl ChipBar {
         }
         self.more_area = more_area;
         if more_area.is_empty() && matches!(self.menu, Some((_, BarMenu::Hidden(_)))) {
-
             self.menu = None;
         }
         if let Some((menu, _)) = self.menu.as_mut() {
@@ -600,7 +539,6 @@ impl ChipBar {
         }
     }
 }
-
 
 impl RowSource for ChipBar {
     fn len(&self) -> usize {
@@ -616,8 +554,6 @@ impl Navigable for ChipBar {
         Cursor::new(self.cursor).axis(Axis::Horizontal)
     }
 }
-
-
 
 impl crate::ui::specimen::Specimen for ChipBar {
     fn specimen_id(&self) -> WidgetId {
@@ -645,7 +581,6 @@ impl crate::ui::specimen::Specimen for ChipBar {
         b.menu = None;
         let v = state.visual();
         if v.hovered && !b.chips.is_empty() {
-
             ctx.interaction.hover = Some(b.chip_id(0));
         }
         match state {
@@ -664,10 +599,6 @@ impl crate::ui::specimen::Specimen for ChipBar {
         b.render(area, buf, ctx, bg);
     }
 }
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for ChipBar {
     type Action = ChipAction;
@@ -698,7 +629,6 @@ impl crate::core::pointer::MouseTarget for ChipBar {
         match ev.phase() {
             Some(Phase::Click) => self.on_click(ev.id).into(),
 
-
             Some(Phase::Secondary) if self.context_menu => {
                 let Some(i) = (0..self.chips.len())
                     .find(|&i| ev.id == self.chip_id(i) || ev.id == self.close_id(i))
@@ -716,10 +646,8 @@ impl crate::core::pointer::MouseTarget for ChipBar {
     }
 }
 
-
 #[derive(Debug, Clone)]
 enum BarMenu {
-
     Hidden(Vec<usize>),
 
     Chip(Vec<ChipAction>),
@@ -748,10 +676,6 @@ mod tests {
         bar.chips = vec![Chip::new("alpha"), off];
         bar
     }
-
-
-
-
 
     #[test]
     fn a_right_click_on_a_chip_offers_toggle_remove_and_clear_all() {
@@ -813,7 +737,6 @@ mod tests {
         assert_eq!(r.take_action(), Some(ChipAction::ClearAll));
         assert!(!b.menu_open());
 
-
         b.cursor = 0;
         frame(&mut b);
         let shift_f10 = Key {
@@ -840,8 +763,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn digit_toggles_switch_the_numbered_chip() {
         let key = |c| Key {
@@ -859,8 +780,6 @@ mod tests {
 
         assert_eq!(b.on_key(&key('3')), (Outcome::Ignored, None));
     }
-
-
 
     #[test]
     fn the_lead_key_runs_the_lead_like_a_click() {
@@ -911,8 +830,6 @@ mod tests {
             "× presses on its chip's plane"
         );
     }
-
-
 
     #[test]
     fn the_remove_plate_lights_as_wide_as_it_hits() {
@@ -1053,8 +970,6 @@ mod overflow_tests {
             .join("\n")
     }
 
-
-
     #[test]
     fn the_plus_n_marker_opens_a_menu_of_the_hidden_chips() {
         let mut bar = ChipBar::new(WidgetId::of("c"));
@@ -1067,7 +982,6 @@ mod overflow_tests {
         let more = hits
             .area_of(bar.more_id())
             .expect("the +N marker is a target");
-
 
         let (buf, hits) = render_hits(&mut bar, 24);
         let plate: String = (more.left()..more.right())
@@ -1109,9 +1023,6 @@ mod overflow_tests {
         assert!(hits.area_of(plain.more_id()).is_none());
     }
 
-
-
-
     #[test]
     fn down_opens_the_menu_of_the_hidden_chips() {
         let key = |code| Key {
@@ -1136,8 +1047,6 @@ mod overflow_tests {
             Some("↓")
         );
     }
-
-
 
     #[test]
     fn the_focused_bar_under_its_open_menu_shows_no_focus() {

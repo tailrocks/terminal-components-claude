@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeSet;
 
 use junie_tui::runtime::Application;
@@ -21,13 +10,9 @@ use crate::app::{App, NAV_ENTRIES};
 use crate::pages::template::Section;
 use junie_tui::theme::Theme;
 
-
 const SIZES: [(u16, u16); 4] = [(80, 24), (100, 25), (106, 29), (120, 40)];
 
-
 const REFERENCE: (u16, u16) = (220, 70);
-
-
 
 fn words(buf: &Buffer, area: Rect, out: &mut BTreeSet<String>) {
     for y in area.top()..area.bottom() {
@@ -68,21 +53,16 @@ impl Shot {
         &mut self.app.pages[i].template_mut().unwrap().view
     }
 
-
     fn words(&mut self, out: &mut BTreeSet<String>) {
         let area = self.view().last_layout().viewport;
         words(self.term.backend().buffer(), area, out);
     }
-
-
 
     fn reachable(&mut self) -> BTreeSet<String> {
         let mut out = BTreeSet::new();
         self.words(&mut out);
         let l = self.view().last_layout();
         let steps = |content: u16, view: u16| -> Vec<usize> {
-
-
             let max = content.saturating_sub(view) as usize;
             let step = (view / 2).max(1) as usize;
             let mut v: Vec<usize> = (0..=max).step_by(step).collect();
@@ -99,7 +79,6 @@ impl Shot {
         out
     }
 }
-
 
 fn allowed() -> BTreeSet<String> {
     let text = include_str!("../../../tests/showcase_reach_allow.txt");
@@ -163,7 +142,6 @@ fn every_section_reaches_its_whole_content_by_scrolling() {
     );
 }
 
-
 static LONG: &[crate::options::Opt] = &{
     use crate::options::{Effect, Opt};
     const fn opt(key: &'static str, label: &'static str) -> Opt {
@@ -204,8 +182,6 @@ static LONG: &[crate::options::Opt] = &{
     ]
 };
 
-
-
 fn options_frame(
     t: &mut crate::pages::template::Template,
     focus: Option<junie_tui::core::id::WidgetId>,
@@ -245,10 +221,6 @@ fn text(buf: &Buffer) -> String {
         .join("\n")
 }
 
-
-
-
-
 #[test]
 fn a_long_option_table_scrolls_and_follows_focus() {
     use crate::pages::template::{Section, Template};
@@ -273,8 +245,6 @@ fn a_long_option_table_scrolls_and_follows_focus() {
     assert!(t.view.last_layout().viewport.contains(at.as_position()));
     assert!(text(&buf).contains("The last option"));
 }
-
-
 
 #[test]
 fn the_inspector_options_pane_scrolls_to_its_last_option() {

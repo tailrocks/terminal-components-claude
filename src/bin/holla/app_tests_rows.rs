@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app_tests::H;
@@ -53,8 +49,6 @@ fn batch_argv(h: &H, id: &str) -> Vec<String> {
         .flat_map(|(_, cmds, _, _)| cmds.iter().map(|c| format!("{} @{}", c.display(), c.cwd)))
         .collect()
 }
-
-
 
 #[test]
 fn l07_built_in_find_browse_disk_and_cleanup_routes_survive_an_empty_toolset() {
@@ -137,8 +131,6 @@ fn l16_l19_navigation_keys_land_on_rows_and_the_focused_preview_scrolls() {
     assert!(!h.app.shell.focus.is(finder::PREVIEW));
 }
 
-
-
 #[test]
 fn i_f10_i_f12_file_actions_reveal_through_open_r_and_analyze_the_folder() {
     let mut h = H::new(Scenario::ParityBrowser, Motion::Reduced, 0, 120, 40);
@@ -204,8 +196,6 @@ fn i_b14_context_markers_and_recommendations_are_preview_only() {
     );
 }
 
-
-
 #[test]
 fn op03_op11_op12_current_repository_status_fetch_prune_and_gc_are_exact() {
     let mut h = H::new(Scenario::ParityGitCurrent, Motion::Reduced, 0, 120, 40);
@@ -245,8 +235,6 @@ fn op07_op08_sibling_push_and_status_batches_name_every_repository() {
     assert_eq!(push.len(), repos.len());
     assert_eq!(status.len(), repos.len());
 }
-
-
 
 #[test]
 fn op34_op41_compose_logs_and_brew_start_carry_the_legacy_argv() {
@@ -291,8 +279,6 @@ fn op54_op56_op57_standalone_upgrade_rows_are_exact() {
         "{omz:?}"
     );
 }
-
-
 
 #[test]
 fn e33_e39_input_mode_returns_on_esc_ends_with_the_program_and_a_kill_reports_reaping() {
@@ -345,8 +331,6 @@ fn e33_e39_input_mode_returns_on_esc_ends_with_the_program_and_a_kill_reports_re
     );
 }
 
-
-
 #[test]
 fn e20_unreviewed_project_actions_are_labelled_before_trust() {
     let mut h = H::new(Scenario::ParityCustomActions, Motion::Reduced, 0, 120, 40);
@@ -354,8 +338,6 @@ fn e20_unreviewed_project_actions_are_labelled_before_trust() {
     h.type_str("Deploy preview");
     assert!(h.text().contains("⚠ unreviewed"), "{}", h.text());
 }
-
-
 
 #[test]
 fn ld002_ld003_the_overview_lists_home_folders_first_and_a_custom_path_is_validated() {
@@ -428,11 +410,8 @@ fn ld002_ld003_the_overview_lists_home_folders_first_and_a_custom_path_is_valida
     );
 }
 
-
-
 #[test]
 fn ld022_to_ld047_the_category_table_matches_the_legacy_contract() {
-
     type Row = (
         &'static str,
         Safety,
@@ -612,8 +591,6 @@ fn ld022_to_ld047_the_category_table_matches_the_legacy_contract() {
     }
 }
 
-
-
 #[test]
 fn ld053_ld054_every_protected_root_and_user_path_is_denied_by_name() {
     let fs = crate::sim::fs::Fs::new();
@@ -661,8 +638,6 @@ fn ld053_ld054_every_protected_root_and_user_path_is_denied_by_name() {
     }
 }
 
-
-
 #[test]
 fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
     let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
@@ -683,7 +658,6 @@ fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
         "editing after one click: {}",
         h.text()
     );
-
 
     h.type_str("X");
     assert!(
@@ -715,8 +689,6 @@ fn a_click_on_dead_space_ends_an_argument_edit_in_place() {
         "and kept the value"
     );
 }
-
-
 
 fn fg_grey(h: &H, x: u16, y: u16) -> u8 {
     match h.term.backend().buffer()[(x, y)].fg {

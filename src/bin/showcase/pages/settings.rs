@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
@@ -79,7 +73,6 @@ pub struct SettingsPage {
     remove_vars: Button,
 }
 
-
 fn member_rows() -> Vec<Vec<Cell>> {
     [
         ("Mira Okafor", "mira@acme.dev", "Owner", "today"),
@@ -101,7 +94,6 @@ fn member_rows() -> Vec<Vec<Cell>> {
     .collect()
 }
 
-
 fn members_table(id: WidgetId, rows: Vec<Vec<Cell>>) -> DataTable {
     DataTable::new(
         id,
@@ -116,7 +108,6 @@ fn members_table(id: WidgetId, rows: Vec<Vec<Cell>>) -> DataTable {
     .validator(role_validator)
 }
 
-
 fn env_items() -> Vec<ListItem> {
     [
         ("DATABASE_URL", "postgres://…"),
@@ -129,8 +120,6 @@ fn env_items() -> Vec<ListItem> {
     .map(|(k, v)| ListItem::new(k).meta(v))
     .collect()
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -198,8 +187,6 @@ impl SettingsPage {
         page
     }
 
-
-
     fn apply(&mut self) {
         let o = &self.opts;
         self.members = self.members.clone().cell_nav(o.on("settings.cell_nav"));
@@ -216,7 +203,6 @@ impl SettingsPage {
         )
         .value(self.description.field.text());
     }
-
 
     fn save(&mut self, cx: &mut Cx) {
         if !self.dirty {
@@ -377,7 +363,6 @@ impl Page for SettingsPage {
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         let out = match self.template.handle(ev, cx) {
             Some(o) => o,
-
 
             None if self.template.section() == Section::Playground
                 || matches!(ev, PageEvent::DialogClosed { .. } | PageEvent::Blur(_)) =>
@@ -540,15 +525,12 @@ impl SettingsPage {
     }
 }
 
-
-
 fn clicked(b: &mut Button, ev: &PointerEvent) -> Option<bool> {
     let r = b.route(ev)?;
     (r.outcome() != Outcome::Ignored).then(|| r.into_action().is_some())
 }
 
 impl SettingsPage {
-
     fn handle_event(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(

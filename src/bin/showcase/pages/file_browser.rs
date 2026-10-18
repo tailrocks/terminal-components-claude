@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -33,7 +26,6 @@ use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("filebrowser");
 const HOME: &str = "/Users/ada";
-
 
 fn fixture() -> MemorySource {
     let d = |p: &str, meta: &str| FileEntry::dir(&format!("{HOME}{p}")).meta(meta);
@@ -66,7 +58,6 @@ fn fixture() -> MemorySource {
     ])
     .home(HOME)
 }
-
 
 const REPOS: [&str; 2] = ["acme/payments-platform", "acme/customer-portal"];
 
@@ -112,7 +103,6 @@ impl FileBrowserPage {
             FileCmd::default_keymap()
         }
     }
-
 
     fn browser(&self) -> FileBrowser {
         let title = match self.choose_kind() {
@@ -346,8 +336,6 @@ impl FileBrowserPage {
         self.log.push(entry);
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

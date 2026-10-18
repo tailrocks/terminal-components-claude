@@ -1,8 +1,3 @@
-
-
-
-
-
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
@@ -52,7 +47,6 @@ const FOLLOW_UP: WidgetId = WidgetId::of("plan.follow");
 
 pub const STEP_MENU: WidgetId = WidgetId::of("plan.step.menu");
 
-
 const REVIEW_STEP_KEYS: [char; 5] = [' ', 'u', 'p', 'c', 'x'];
 
 fn plain_key(c: char) -> Key {
@@ -62,13 +56,10 @@ fn plain_key(c: char) -> Key {
     }
 }
 
-
 fn step_at(id: WidgetId, w: &World, plan: &str) -> Option<usize> {
     let n = w.plan(plan).map(|p| p.steps.len()).unwrap_or(0);
     (0..n).find(|&i| OUTLINE.child(i) == id)
 }
-
-
 
 pub fn lane(p: &Plan, i: usize) -> String {
     fn go(p: &Plan, i: usize, depth: usize) -> String {
@@ -80,7 +71,6 @@ pub fn lane(p: &Plan, i: usize) -> String {
             return "join".into();
         }
         let Some(&parent) = deps.first() else {
-
             let roots: Vec<usize> = (0..p.steps.len())
                 .filter(|&j| p.steps[j].deps.is_empty())
                 .collect();
@@ -112,7 +102,6 @@ fn state_glyph(s: StepState, tick: u64) -> (&'static str, Tone, bool) {
         StepState::Blocked => ("·", Tone::Faint, false),
     }
 }
-
 
 fn step_props(p: &Plan, i: usize, w: &World) -> Vec<Prop> {
     let s = &p.steps[i];
@@ -201,9 +190,6 @@ fn step_props(p: &Plan, i: usize, w: &World) -> Vec<Prop> {
     v
 }
 
-
-
-
 fn outcome_line(
     ok: usize,
     failed: usize,
@@ -234,7 +220,6 @@ fn outcome_line(
     }
     line
 }
-
 
 fn consequences(p: &Plan) -> Vec<String> {
     let mut v: Vec<String> = p
@@ -316,10 +301,6 @@ fn render_outline(
         let plain = st.remove_modifier(Modifier::BOLD);
         let mut x = row.x + 1;
         if review {
-
-
-
-
             let quiet = if vs.selected {
                 t.text_muted
             } else {
@@ -389,8 +370,6 @@ fn render_outline(
             } else if s.optional {
                 "optional".to_owned()
             } else if !s.privilege.is_empty() {
-
-
                 format!("required · {}", s.privilege)
             } else {
                 "required".to_owned()
@@ -470,8 +449,6 @@ fn render_outline(
         );
     }
 }
-
-
 
 pub struct PlanReviewPage {
     pub plan: String,
@@ -573,7 +550,6 @@ impl PlanReviewPage {
 }
 
 impl PlanReviewPage {
-
     fn step_menu(&self, i: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let Some(s) = w.plan(&self.plan).and_then(|p| p.steps.get(i)) else {
             return Outcome::Ignored;
@@ -747,7 +723,6 @@ impl ShellPage<Holla> for PlanReviewPage {
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-
             if axis != Axis::Vertical {
                 return Outcome::Ignored;
             }
@@ -783,8 +758,6 @@ impl ShellPage<Holla> for PlanReviewPage {
                 Outcome::Ignored
             }
             Some(Phase::Click) => {
-
-
                 if let Some(i) = step
                     && ClickPolicy::DATA.activates(ev.count(), self.cursor == i)
                     && let Some(p) = w.plan_mut(&self.plan)
@@ -850,7 +823,6 @@ impl ShellPage<Holla> for PlanReviewPage {
             && let Ok(i) = tag.key.parse::<usize>()
             && let Some(&c) = REVIEW_STEP_KEYS.get(k)
         {
-
             self.cursor = i;
             return self.on_key(&plain_key(c), w, cx).or(Outcome::Changed);
         }
@@ -991,7 +963,6 @@ impl ShellPage<Holla> for PlanReviewPage {
             ctx.control(DETAIL, Rect::ZERO, false);
         }
 
-
         let cy = (rows.y + p.steps.len() as u16 + 1).min(body.bottom() + 1);
         for (i, c) in cons.iter().take(2).enumerate() {
             let tone = if c.contains("blocked") {
@@ -1086,8 +1057,6 @@ impl Screen for PlanReviewPage {
     }
 }
 
-
-
 pub struct PlanTab {
     pub plan: String,
     pub cursor: usize,
@@ -1129,7 +1098,6 @@ impl PlanTab {
         let Some(p) = w.plan(&self.plan) else {
             return;
         };
-
 
         if p.phase == PlanPhase::Done && !self.landed {
             self.landed = true;
@@ -1183,7 +1151,6 @@ impl PlanTab {
     }
 }
 
-
 #[derive(Debug, Clone, Copy)]
 enum RunStep {
     Expand,
@@ -1234,7 +1201,6 @@ impl PlanTab {
         Outcome::Changed
     }
 
-
     fn step_menu(&self, i: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let Some(p) = w.plan(&self.plan) else {
             return Outcome::Ignored;
@@ -1283,7 +1249,6 @@ impl PlanTab {
 
 impl ShellPage<Holla> for PlanTab {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-
         for i in 0..self.follow_ups.len() {
             if cx.focus.is(self.follow_ups[i].id) {
                 let (o, fired) = self.follow_ups[i].on_key(key);
@@ -1400,7 +1365,6 @@ impl ShellPage<Holla> for PlanTab {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
             if id == OUTLINE {
-
                 if axis != Axis::Vertical {
                     return Outcome::Ignored;
                 }
@@ -1780,8 +1744,6 @@ impl ShellPage<Holla> for PlanTab {
         cx.go(Go::Here);
         Outcome::Changed
     }
-
-
 
     fn on_interrupt(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
         let running = w

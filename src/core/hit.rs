@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::layout::{Position, Rect};
 
 use super::id::{ItemKey, Part, PartRef, WidgetId};
@@ -18,39 +6,27 @@ use super::id::{ItemKey, Part, PartRef, WidgetId};
 pub struct HitRegion {
     pub id: WidgetId,
 
-
     pub owner: WidgetId,
-
 
     pub part: PartRef,
     pub area: Rect,
 
-
     pub scroll_only: bool,
-
 
     pub pass_through: bool,
 
-
     pub hover_only: bool,
-
 
     pub backdrop: bool,
 
-
-
     pub surface: bool,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Axis {
     Vertical,
     Horizontal,
 }
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bar {
@@ -64,27 +40,18 @@ pub struct Bar {
 pub struct HitRegistry {
     regions: Vec<HitRegion>,
 
-
-
     barriers: Vec<usize>,
 
     bars: Vec<Bar>,
 
     shapes: Vec<(WidgetId, super::shape::PointerShape)>,
 
-
     autoscroll: Vec<(usize, Rect)>,
-
 
     releases: Vec<(WidgetId, ReleaseFrom)>,
 
-
-
     shifts: Vec<(WidgetId, (u16, u16))>,
 }
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct HitMark {
@@ -94,26 +61,17 @@ pub struct HitMark {
 }
 
 impl HitMark {
-
     pub(crate) fn regions_len(&self) -> usize {
         self.regions
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReleaseFrom {
-
-
     Press(WidgetId),
-
 
     Secondary,
 }
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Hit {
@@ -122,7 +80,6 @@ pub struct Hit {
 }
 
 impl HitRegion {
-
     fn plain(id: WidgetId, area: Rect) -> Self {
         Self {
             id,
@@ -136,7 +93,6 @@ impl HitRegion {
             surface: false,
         }
     }
-
 
     pub fn hit(&self) -> Hit {
         Hit {
@@ -158,17 +114,11 @@ impl HitRegistry {
         self.regions.push(HitRegion::plain(id, area));
     }
 
-
-
-
     pub fn register_part(&mut self, owner: WidgetId, part: PartRef, area: Rect) -> WidgetId {
         let id = owner.part(part);
         self.register_part_as(id, owner, part, area);
         id
     }
-
-
-
 
     pub fn register_part_as(&mut self, id: WidgetId, owner: WidgetId, part: PartRef, area: Rect) {
         if area.is_empty() {
@@ -181,8 +131,6 @@ impl HitRegistry {
         });
     }
 
-
-
     pub fn resolve(&self, pos: Position) -> Option<Hit> {
         self.reachable()
             .iter()
@@ -190,8 +138,6 @@ impl HitRegistry {
             .find(|r| r.clickable() && r.area.contains(pos))
             .map(HitRegion::hit)
     }
-
-
 
     pub fn part_of(&self, id: WidgetId) -> Option<Hit> {
         self.regions
@@ -201,12 +147,8 @@ impl HitRegistry {
             .map(HitRegion::hit)
     }
 
-
-
-
     pub fn raise(&mut self, id: WidgetId) {
         if let Some(bar) = self.bar(id) {
-
             let parts: Vec<HitRegion> = self
                 .regions
                 .iter()
@@ -222,13 +164,9 @@ impl HitRegistry {
         }
     }
 
-
     pub fn regions(&self) -> &[HitRegion] {
         &self.regions
     }
-
-
-
 
     pub fn register_under(&mut self, id: WidgetId, area: Rect) {
         if area.is_empty() {
@@ -237,11 +175,6 @@ impl HitRegistry {
         let at = self.barriers.last().copied().unwrap_or(0);
         self.regions.insert(at, HitRegion::plain(id, area));
     }
-
-
-
-
-
 
     pub fn register_surface(&mut self, id: WidgetId, area: Rect) {
         if area.is_empty() {
@@ -253,21 +186,14 @@ impl HitRegistry {
         });
     }
 
-
     pub fn is_surface(&self, id: WidgetId) -> bool {
         self.regions.iter().rev().any(|r| r.id == id && r.surface)
     }
-
-
-
-
-
 
     pub fn set_shape(&mut self, id: WidgetId, shape: super::shape::PointerShape) {
         self.shapes.retain(|(i, _)| *i != id);
         self.shapes.push((id, shape));
     }
-
 
     pub fn shape_of(&self, id: WidgetId) -> Option<super::shape::PointerShape> {
         self.shapes.iter().find(|(i, _)| *i == id).map(|(_, s)| *s)
@@ -281,11 +207,6 @@ impl HitRegistry {
         self.bars.push(bar);
     }
 
-
-
-
-
-
     pub fn register_thumb(&mut self, bar_id: WidgetId, owner: WidgetId, thumb: Rect) {
         if self.bar(bar_id).is_none() {
             return;
@@ -293,33 +214,21 @@ impl HitRegistry {
         self.register_part_as(bar_id, owner, PartRef::of(Part::THUMB), thumb);
     }
 
-
-
-
     pub fn accept_release(&mut self, id: WidgetId, from: ReleaseFrom) {
         self.releases.push((id, from));
     }
-
-
 
     pub fn accepts_release(&self, id: WidgetId, from: ReleaseFrom) -> bool {
         self.releases.contains(&(id, from))
     }
 
-
     pub fn bar(&self, id: WidgetId) -> Option<Bar> {
         self.bars.iter().rev().find(|b| b.id == id).copied()
     }
 
-
-
     pub fn register_backdrop(&mut self, id: WidgetId, area: Rect, pass_through: bool) {
         self.register_backdrop_of(id, id, area, pass_through);
     }
-
-
-
-
 
     pub fn register_backdrop_of(
         &mut self,
@@ -350,8 +259,6 @@ impl HitRegistry {
         });
     }
 
-
-
     pub fn register_hover(&mut self, id: WidgetId, area: Rect) {
         if area.is_empty() {
             return;
@@ -362,17 +269,11 @@ impl HitRegistry {
         });
     }
 
-
-
-
-
-
     pub fn register_autoscroll(&mut self, area: Rect) {
         if !area.is_empty() {
             self.autoscroll.push((self.barriers.len(), area));
         }
     }
-
 
     pub fn autoscroll_at(&self, pos: Position) -> Option<Rect> {
         let layer = self.barriers.len();
@@ -382,7 +283,6 @@ impl HitRegistry {
             .find(|(at, area)| *at == layer && area.contains(pos))
             .map(|(_, area)| *area)
     }
-
 
     pub fn push_barrier(&mut self) {
         self.barriers.push(self.regions.len());
@@ -395,7 +295,6 @@ impl HitRegistry {
         }
     }
 
-
     fn beneath(&self) -> &[HitRegion] {
         match self.barriers.as_slice() {
             [] => &[],
@@ -403,8 +302,6 @@ impl HitRegistry {
             [.., below, top] => &self.regions[*below..*top],
         }
     }
-
-
 
     pub fn pass_through_target(&self, id: WidgetId, pos: Position) -> Option<WidgetId> {
         let top = self
@@ -421,15 +318,6 @@ impl HitRegistry {
             .find(|r| r.clickable() && r.area.contains(pos))
             .map(|r| r.id)
     }
-
-
-
-
-
-
-
-
-
 
     pub fn backdrop_at(&self, pos: Position) -> Option<(WidgetId, Option<WidgetId>)> {
         let top = self
@@ -459,7 +347,6 @@ impl HitRegistry {
             .map(|r| r.id)
     }
 
-
     pub fn hit(&self, pos: Position) -> Option<WidgetId> {
         self.reachable()
             .iter()
@@ -467,8 +354,6 @@ impl HitRegistry {
             .find(|r| r.clickable() && r.area.contains(pos))
             .map(|r| r.id)
     }
-
-
 
     pub fn hover_at(&self, pos: Position) -> Option<WidgetId> {
         self.reachable()
@@ -478,8 +363,6 @@ impl HitRegistry {
             .map(|r| r.id)
     }
 
-
-
     pub fn hit_scroll(&self, pos: Position) -> Option<WidgetId> {
         self.reachable()
             .iter()
@@ -487,11 +370,6 @@ impl HitRegistry {
             .find(|r| !r.hover_only && r.area.contains(pos))
             .map(|r| r.id)
     }
-
-
-
-
-
 
     pub fn scroll_stack(&self, pos: Position) -> Vec<WidgetId> {
         let mut out: Vec<WidgetId> = Vec::new();
@@ -503,8 +381,6 @@ impl HitRegistry {
         out
     }
 
-
-
     pub fn mark(&self) -> HitMark {
         HitMark {
             regions: self.regions.len(),
@@ -512,19 +388,6 @@ impl HitRegistry {
             autoscroll: self.autoscroll.len(),
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     pub fn scroll_since(&mut self, mark: HitMark, content: Rect, window: Rect, to: Position) {
         let dx = window.x.saturating_sub(to.x);
@@ -592,17 +455,12 @@ impl HitRegistry {
         }
     }
 
-
-
-
     pub fn shift_of(&self, id: WidgetId) -> (u16, u16) {
         self.shifts
             .iter()
             .find(|(i, _)| *i == id)
             .map_or((0, 0), |&(_, s)| s)
     }
-
-
 
     pub fn local(&self, id: WidgetId, pos: Position) -> Position {
         let (dx, dy) = self.shift_of(id);
@@ -617,10 +475,6 @@ impl HitRegistry {
         self.regions.is_empty()
     }
 
-
-
-
-
     pub fn clip_since(&mut self, from: usize, area: Rect) {
         let from = from.min(self.regions.len());
         let mut kept = Vec::with_capacity(self.regions.len() - from);
@@ -634,7 +488,6 @@ impl HitRegistry {
     }
 
     pub fn area_of(&self, id: WidgetId) -> Option<Rect> {
-
         if let Some(bar) = self.bar(id) {
             return Some(bar.track);
         }
@@ -646,22 +499,13 @@ impl HitRegistry {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct PartEntry {
     id: WidgetId,
     part: PartRef,
 
-
     col: Option<usize>,
 }
-
-
-
-
-
-
-
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct PartMap {
@@ -669,11 +513,9 @@ pub(crate) struct PartMap {
 }
 
 impl PartMap {
-
     pub fn clear(&mut self) {
         self.entries.clear();
     }
-
 
     pub fn record(&mut self, id: WidgetId, part: PartRef) {
         self.entries.push(PartEntry {
@@ -683,7 +525,6 @@ impl PartMap {
         });
     }
 
-
     pub fn record_cell(&mut self, id: WidgetId, part: PartRef, col: usize) {
         self.entries.push(PartEntry {
             id,
@@ -692,12 +533,9 @@ impl PartMap {
         });
     }
 
-
     fn entry(&self, id: WidgetId) -> Option<&PartEntry> {
         self.entries.iter().rev().find(|e| e.id == id)
     }
-
-
 
     pub fn index(&self, id: WidgetId, part: Part) -> Option<usize> {
         self.entry(id)
@@ -705,7 +543,6 @@ impl PartMap {
             .and_then(|e| e.part.item)
             .and_then(ItemKey::as_index)
     }
-
 
     pub fn cell(&self, id: WidgetId, part: Part) -> Option<(usize, usize)> {
         let e = self.entry(id).filter(|e| e.part.part == part)?;

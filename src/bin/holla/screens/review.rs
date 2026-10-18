@@ -1,7 +1,3 @@
-
-
-
-
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
@@ -45,8 +41,6 @@ pub const GATE_CONTINUE: WidgetId = WidgetId::of("gate.continue");
 
 pub const SEQUENCE_MENU: WidgetId = WidgetId::of("gate.sequence.menu");
 
-
-
 pub struct GatePage {
     pub target: GateTarget,
     title: String,
@@ -73,8 +67,6 @@ impl GatePage {
         page.resolve(w);
         page
     }
-
-
 
     fn resolve(&mut self, w: &World) {
         let host_tone = if w.host.role.sensitive() {
@@ -342,9 +334,6 @@ impl GatePage {
 }
 
 impl GatePage {
-
-
-
     fn sequence_menu(&self, anchor: ContextAnchor, cx: &mut Cx) -> Outcome {
         let items = vec![
             MenuItem::new("Copy sequence").shortcut("y").separator(),
@@ -417,7 +406,6 @@ impl ShellPage<Holla> for GatePage {
     fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-
             if id == SEQUENCE && axis == Axis::Vertical {
                 self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
@@ -607,8 +595,6 @@ impl Screen for GatePage {
         }
     }
 }
-
-
 
 pub const TRUST_CANCEL: WidgetId = WidgetId::of("trust.cancel");
 pub const TRUST_OK: WidgetId = WidgetId::of("trust.ok");
@@ -835,7 +821,6 @@ impl ShellPage<Holla> for TrustPage {
     fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-
             if id == TRUST_BODY && axis == Axis::Vertical {
                 self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
@@ -976,8 +961,6 @@ impl Screen for TrustPage {
         }
     }
 }
-
-
 
 pub const ARGS_CANCEL: WidgetId = WidgetId::of("args.cancel");
 pub const ARGS_RUN: WidgetId = WidgetId::of("args.run");
@@ -1169,8 +1152,6 @@ impl ShellPage<Holla> for ArgsPage {
     }
 
     fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
-
-
         for i in 0..self.fields.len() {
             let fid = ARG.child(i);
             let out = match &mut self.fields[i] {
@@ -1216,8 +1197,6 @@ impl ShellPage<Holla> for ArgsPage {
     }
 
     fn on_paste(&mut self, text: &str, _w: &mut World, cx: &mut Cx) -> Outcome {
-
-
         for (i, f) in self.fields.iter_mut().enumerate() {
             if let Field::Text(t) = f
                 && cx.focus.is(ARG.child(i))
@@ -1252,7 +1231,6 @@ impl ShellPage<Holla> for ArgsPage {
             }
             y += 4;
         }
-
 
         let card_y = y;
         let buttons_y = (card_y + 4).min(area.bottom().saturating_sub(1));

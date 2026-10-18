@@ -1,21 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Margin, Rect};
@@ -31,9 +13,7 @@ use crate::ui::layout::{Maximized, Split, SplitDir, SplitKeys};
 use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::splitter::Splitter;
 
-
 pub type PaneId = u64;
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PaneNode {
@@ -47,7 +27,6 @@ pub enum PaneNode {
 }
 
 impl PaneNode {
-
     pub fn leaves(&self) -> Vec<PaneId> {
         match self {
             PaneNode::Leaf(id) => vec![*id],
@@ -58,8 +37,6 @@ impl PaneNode {
             }
         }
     }
-
-
 
     pub fn layout(
         &self,
@@ -95,7 +72,6 @@ impl PaneNode {
         }
     }
 
-
     pub fn node_at_mut(&mut self, path: &[u8]) -> Option<&mut PaneNode> {
         let mut cur = self;
         for p in path {
@@ -108,8 +84,6 @@ impl PaneNode {
         }
         Some(cur)
     }
-
-
 
     pub fn split_leaf(
         &mut self,
@@ -143,7 +117,6 @@ impl PaneNode {
         }
     }
 
-
     pub fn remove_leaf(&mut self, target: PaneId) -> bool {
         if let PaneNode::Split { first, second, .. } = self {
             if matches!(**first, PaneNode::Leaf(id) if id == target) {
@@ -160,7 +133,6 @@ impl PaneNode {
         }
         false
     }
-
 
     pub fn path_to(&self, target: PaneId, path: &mut Vec<u8>) -> bool {
         match self {
@@ -181,7 +153,6 @@ impl PaneNode {
         }
     }
 
-
     fn unzoom(&mut self) {
         if let PaneNode::Split {
             split,
@@ -195,7 +166,6 @@ impl PaneNode {
             second.unzoom();
         }
     }
-
 
     fn zoomed(&self) -> Option<PaneId> {
         match self {
@@ -214,10 +184,8 @@ impl PaneNode {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Seam {
-
     pub path: Vec<u8>,
     pub dir: SplitDir,
 
@@ -226,7 +194,6 @@ pub struct Seam {
     pub handle: Rect,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     Left,
@@ -234,8 +201,6 @@ pub enum Direction {
     Up,
     Down,
 }
-
-
 
 pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, dir: Direction) -> Option<PaneId> {
     let (_, fr) = leaves.iter().find(|(id, _)| *id == from)?;
@@ -262,10 +227,8 @@ pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, dir: Direction) -> Optio
         .map(|(id, _)| *id)
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaneRefusal {
-
     ZoomedFocus,
 
     ZoomedResize,
@@ -280,7 +243,6 @@ pub enum PaneRefusal {
 }
 
 impl PaneRefusal {
-
     pub fn message(self) -> &'static str {
         match self {
             PaneRefusal::ZoomedFocus => "Unzoom to move focus",
@@ -293,11 +255,8 @@ impl PaneRefusal {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaneCmd {
-
     Next,
 
     Prev,
@@ -310,12 +269,6 @@ pub enum PaneCmd {
 }
 
 impl Actions for PaneCmd {
-
-
-
-
-
-
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::F(6)), PaneCmd::Next),
@@ -363,11 +316,8 @@ impl Actions for PaneCmd {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Frames {
-
-
     #[default]
     WhenSplit,
 
@@ -376,15 +326,10 @@ pub enum Frames {
     Never,
 }
 
-
 pub type PaneResult = Result<Outcome, PaneRefusal>;
-
-
 
 #[derive(Debug, Clone)]
 pub struct PaneTree {
-
-
     pub id: WidgetId,
     pub root: PaneNode,
 
@@ -407,7 +352,6 @@ pub struct PaneTree {
 }
 
 impl PaneTree {
-
     pub fn new(id: WidgetId, first: PaneId) -> Self {
         Self {
             id,
@@ -425,52 +369,42 @@ impl PaneTree {
         }
     }
 
-
     pub fn keys(mut self, keys: KeyMap<PaneCmd>) -> Self {
         self.keys = keys;
         self
     }
-
 
     pub fn split_keys(mut self, keys: SplitKeys) -> Self {
         self.split_keys = keys;
         self
     }
 
-
     pub fn min_size(mut self, cols: u16, rows: u16) -> Self {
         self.min_size = (cols, rows);
         self
     }
-
 
     pub fn frames(mut self, frames: Frames) -> Self {
         self.frames = frames;
         self
     }
 
-
     pub fn hit_pad(mut self, cells: u16) -> Self {
         self.hit_pad = cells;
         self
     }
 
-
     pub fn leaves(&self) -> Vec<PaneId> {
         self.root.leaves()
     }
-
-
 
     pub fn panes(&self) -> &[(PaneId, Rect)] {
         &self.rects
     }
 
-
     pub fn seams(&self) -> &[Seam] {
         &self.seams
     }
-
 
     pub fn zoomed(&self) -> Option<PaneId> {
         match self.root {
@@ -478,7 +412,6 @@ impl PaneTree {
             _ => self.root.zoomed(),
         }
     }
-
 
     pub fn framed(&self) -> bool {
         match self.frames {
@@ -488,9 +421,6 @@ impl PaneTree {
         }
     }
 
-
-
-
     pub fn split(&mut self, target: PaneId, new: PaneId, dir: SplitDir, new_first: bool) -> bool {
         self.root.unzoom();
         let done = self.root.split_leaf(target, new, dir, new_first);
@@ -499,8 +429,6 @@ impl PaneTree {
         }
         done
     }
-
-
 
     pub fn close(&mut self, target: PaneId) -> Result<(), PaneRefusal> {
         if self.leaves().len() <= 1 {
@@ -517,8 +445,6 @@ impl PaneTree {
         }
         Ok(())
     }
-
-
 
     pub fn toggle_zoom(&mut self) -> PaneResult {
         if self.zoomed().is_some() {
@@ -544,7 +470,6 @@ impl PaneTree {
         Ok(Outcome::Changed)
     }
 
-
     pub fn focus_toward(&mut self, dir: Direction) -> PaneResult {
         if self.zoomed().is_some() {
             return Err(PaneRefusal::ZoomedFocus);
@@ -553,7 +478,6 @@ impl PaneTree {
         self.focused = to;
         Ok(Outcome::Changed)
     }
-
 
     pub fn focus_next(&mut self, back: bool) -> PaneResult {
         if self.zoomed().is_some() {
@@ -568,10 +492,6 @@ impl PaneTree {
         self.focused = leaves[if back { (i + n - 1) % n } else { (i + 1) % n }];
         Ok(Outcome::Changed)
     }
-
-
-
-
 
     pub fn resize(&mut self, dir: Direction, cells: u16) -> PaneResult {
         if self.zoomed().is_some() {
@@ -591,7 +511,6 @@ impl PaneTree {
             if let Some(PaneNode::Split { dir: sd, .. }) = self.root.node_at_mut(&path[..k])
                 && *sd == want
             {
-
                 let delta = cells.min(i16::MAX as u16) as i16;
                 chosen = Some((path[..k].to_vec(), if grows_first { delta } else { -delta }));
                 break;
@@ -622,7 +541,6 @@ impl PaneTree {
         Ok(Outcome::Changed)
     }
 
-
     pub fn layout(&mut self, area: Rect) {
         self.rects.clear();
         self.seams.clear();
@@ -641,16 +559,9 @@ impl PaneTree {
         }
     }
 
-
     pub fn seam_id(&self, i: usize) -> WidgetId {
         self.id.sub("seam").child(i)
     }
-
-
-
-
-
-
 
     pub fn render(
         &mut self,
@@ -695,7 +606,6 @@ impl PaneTree {
             let focused = tree_focused && pid == self.focused;
             let hovered = ctx.interaction.hovered(part);
 
-
             let name = title(pid);
             let meta = if zoomed { Some("zoomed") } else { None };
             let mut panel = crate::widgets::panel::Panel::framed(Some(&name)).focused(focused);
@@ -705,7 +615,6 @@ impl PaneTree {
             }
             panel.render(r, buf, t);
             if hovered && !focused && r.width > 4 {
-
                 let w = crate::ui::text::width(&name) as u16 + 2;
                 for x in r.x + 2..(r.x + 2 + w).min(r.right().saturating_sub(2)) {
                     buf[(x, r.y)].set_style(t.primary().bg(bg));
@@ -715,10 +624,6 @@ impl PaneTree {
         }
         inner
     }
-
-
-
-
 
     pub fn on_key(&mut self, key: &Key) -> Option<PaneResult> {
         if let Some(cmd) = lookup(&self.keys, key) {
@@ -744,9 +649,6 @@ impl PaneTree {
         })?;
         Some(self.resize(dir, self.split_keys.step))
     }
-
-
-
 
     pub fn on_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         if let Some(i) = (0..self.seams.len()).find(|&i| self.seam_id(i) == ev.id) {
@@ -786,7 +688,6 @@ impl PaneTree {
         None
     }
 
-
     pub fn hints(&self) -> Vec<Hint> {
         let mut v = Vec::new();
         if self.zoomed().is_none() {
@@ -812,8 +713,6 @@ impl PaneTree {
         v
     }
 }
-
-
 
 impl crate::ui::specimen::Specimen for PaneTree {
     fn specimen_id(&self) -> WidgetId {
@@ -874,7 +773,6 @@ mod tests {
     use ratatui::layout::Position;
 
     const ID: WidgetId = WidgetId::of("panes");
-
 
     fn three() -> PaneTree {
         let mut t = PaneTree::new(ID, 1);
@@ -980,9 +878,6 @@ mod tests {
             Err(PaneRefusal::AtMinimum)
         );
     }
-
-
-
 
     #[test]
     fn hints_name_no_alt_chord_where_the_terminal_keeps_option() {

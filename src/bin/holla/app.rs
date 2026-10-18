@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use junie_tui::clock::Clock;
 use junie_tui::core::event::{Input, Key, Outcome};
 use junie_tui::core::focus::FocusChange;
@@ -61,16 +55,12 @@ use crate::screens::{
 };
 use crate::sim::world::{Msg, World};
 
-
 pub const BRAND_MARK: &str = "holla❯";
 
 pub const MENU: WidgetId = WidgetId::of("shell.menu");
 pub const TABS: WidgetId = WidgetId::of("shell.tabs");
 
 pub const CRUMBS: WidgetId = WidgetId::of("shell.crumbs");
-
-
-
 
 const CHROME: shell::Chrome = shell::Chrome::new().header(4).gap(0).footer(3).inset(1);
 
@@ -86,16 +76,11 @@ pub enum TabKind {
     Plan(String),
 }
 
-
-
 pub struct TabEntry {
     pub kind: TabKind,
 
-
-
     pub pending: Vec<Request>,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum AltCmd {
@@ -116,16 +101,11 @@ pub struct App {
     pub scenario: Scenario,
     pub world: World,
 
-
-
     pub router: shell::Router<Box<dyn Screen>>,
     pub tabs: Vec<TabEntry>,
 
-
     leave: LeaveGuard<shell::Nav<Page>>,
     pub(crate) modals: Layers,
-
-
 
     pub shell: Shell<Vec<(String, Tone)>>,
 
@@ -140,33 +120,22 @@ pub struct App {
     pending_confirm: Option<(String, Vec<(String, String)>)>,
     pub clipboard_gen: u32,
 
-
     pub quitting: bool,
 
     pub last_query: Option<String>,
 
-
-
-
     pub keys: shell::ShellKeys<HollaCmd>,
 }
-
-
 
 fn plan_key(id: &str) -> ItemKey {
     ItemKey::text(&format!("plan:{id}"))
 }
 
 impl App {
-
-
     #[cfg(test)]
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
         Self::launch(scenario, motion, frame, theme, true)
     }
-
-
-
 
     pub fn launch(
         scenario: Scenario,
@@ -177,7 +146,6 @@ impl App {
     ) -> Self {
         let mut world = crate::domain::fixtures::world_for(scenario, motion);
         if !history {
-
             world.memory.usage = crate::domain::usage::UsageStore::disabled();
         }
         let mut shell = Shell::new();
@@ -261,10 +229,8 @@ impl App {
     }
 
     fn finder_mut(&mut self) -> Option<&mut FinderPage> {
-
         self.router.pages_mut().next()?.as_finder()
     }
-
 
     pub fn active(&self) -> usize {
         self.router.active()
@@ -273,8 +239,6 @@ impl App {
     pub fn set_status(&mut self, s: &str, tone: Tone) {
         self.shell.status.set_at(s, tone, self.world.clock.now());
     }
-
-
 
     pub fn set_status_parts(&mut self, parts: Vec<(String, Tone)>, tone: Tone) {
         let text: String = parts.iter().map(|(p, _)| p.as_str()).collect();
@@ -306,24 +270,19 @@ impl App {
         std::time::Duration::from_millis(if self.animating() { 80 } else { 200 })
     }
 
-
     #[cfg(test)]
     pub fn menu_open(&self) -> bool {
         self.menu.is_open()
     }
-
 
     #[cfg(test)]
     pub fn strip_tab_id(&self, i: usize) -> WidgetId {
         self.strip.tab_id(i)
     }
 
-
     fn now_ms(&self) -> u64 {
         self.world.now_ms().max(0) as u64
     }
-
-
 
     fn with_top<F: FnOnce(&mut Box<dyn Screen>, &mut World, &mut Cx) -> Outcome>(
         &mut self,
@@ -333,10 +292,6 @@ impl App {
         let (o, reqs) = self.deliver_tab(active, true, Outcome::Ignored, f);
         o.or(self.apply_requests(reqs, active))
     }
-
-
-
-
 
     fn deliver_tab(
         &mut self,
@@ -361,20 +316,10 @@ impl App {
         self.shell.focus.set(pf);
     }
 
-
-
-
-
     fn blur_all(&mut self, ch: FocusChange) -> Outcome {
         let out = self.modals.on_blur(ch);
         out.or(self.deliver_all(|s, w, cx| s.on_blur(ch, w, cx)))
     }
-
-
-
-
-
-
 
     fn deliver_all(
         &mut self,
@@ -392,7 +337,6 @@ impl App {
         }
         out
     }
-
 
     fn apply_pending(&mut self, out: Outcome) -> Outcome {
         let active = self.active();
@@ -423,7 +367,6 @@ impl App {
             Outcome::Ignored
         };
 
-
         if let Some(idx) = crate::screens::cleanup::step(&mut self.world) {
             let r = &self.world.reports[idx];
             let (summary, tone) = (
@@ -444,8 +387,6 @@ impl App {
         if self.shell.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
-
-
 
         out = out.or(PointerRouter::tick(self));
         if self.shell.status.expire(self.world.clock.now()) {
@@ -509,8 +450,6 @@ impl App {
                 }
             }
             Msg::BatchDone { id, ok } => {
-
-
                 let parts = self
                     .world
                     .batches
@@ -571,8 +510,6 @@ impl App {
             )
     }
 
-
-
     fn open_menu_key(&mut self, key: &Key) -> Outcome {
         let (o, ev) = self.menu.on_key(key);
         match ev {
@@ -587,10 +524,6 @@ impl App {
             _ => o.or(Outcome::Changed),
         }
     }
-
-
-
-
 
     fn chrome_focus_key(&mut self, key: &Key) -> Outcome {
         if self.shell.context.keys.matches(key) {
@@ -640,7 +573,6 @@ impl App {
         Outcome::Ignored
     }
 
-
     fn tab_key(&mut self, n: usize) -> Outcome {
         if n < self.router.tab_count() {
             self.activate_tab(n);
@@ -649,9 +581,6 @@ impl App {
         }
         Outcome::Changed
     }
-
-
-
 
     fn menus() -> shell::Menus<HollaCmd> {
         use HollaCmd as C;
@@ -701,11 +630,9 @@ impl App {
             .menu("Help", help)
     }
 
-
     fn run_cmd(&mut self, cmd: HollaCmd) -> Outcome {
         let key = |code: KeyCode, mods: KeyModifiers| Key { code, mods };
         match cmd {
-
             HollaCmd::Run => {
                 return shell::KeyRouter::replay(self, &key(KeyCode::Enter, KeyModifiers::NONE));
             }
@@ -778,7 +705,6 @@ impl App {
             .get(self.active())
             .map(|t| t.kind.clone())
             .unwrap_or(TabKind::Here);
-
 
         let mut sections: Vec<HelpSection> = vec![];
         let mut section = |title: &str, rows: &[(&str, &str)]| {
@@ -877,7 +803,6 @@ impl App {
                 HollaCmd::CloseTab => "Close tab",
                 HollaCmd::Tab(0) => "Here",
 
-
                 _ => return None,
             })
         }));
@@ -908,8 +833,6 @@ impl App {
         self.open_layer(Box::new(m), LayerTag::new("why"));
     }
 
-
-
     pub fn quit_stakes(&self) -> Stakes {
         let n = self.world.live_activities();
         if n > 0 || self.world.cleanup_job.is_some() {
@@ -920,10 +843,6 @@ impl App {
             Stakes::Clean
         }
     }
-
-
-
-
 
     fn request_quit(&mut self) {
         if self.quitting {
@@ -1063,14 +982,9 @@ impl App {
         self.open_layer(Box::new(p), LayerTag::new("activities"));
     }
 
-
-
-
-
     fn open_layer(&mut self, layer: Box<dyn Layer<ModalResult>>, tag: LayerTag) {
         self.modals
             .open(layer, tag, self.active(), &mut self.shell.focus);
-
 
         if let Some(d) = self.modals.top_as_mut::<Dialog>() {
             d.chrome = (1, 2);
@@ -1078,7 +992,6 @@ impl App {
         self.shell.pointer.hover = None;
         self.shell.pointer.pressed = None;
     }
-
 
     fn layer_cx(&mut self) -> (Option<&mut LayerSlot>, LayerCx<'_>) {
         (
@@ -1091,8 +1004,6 @@ impl App {
         )
     }
 
-
-
     fn settle_layer(&mut self, out: Outcome) -> Outcome {
         match self.modals.take(&mut self.shell.focus) {
             None => out,
@@ -1101,14 +1012,11 @@ impl App {
         }
     }
 
-
-
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
         let dismiss = self.top_dismiss();
         let d = self.modals.dismiss(reason, &mut self.shell.focus);
         self.dismissed(reason, dismiss, d)
     }
-
 
     fn top_dismiss(&self) -> junie_tui::ui::popup::Dismiss {
         self.modals
@@ -1116,8 +1024,6 @@ impl App {
             .map(|e| e.layer.spec().dismiss)
             .unwrap_or_default()
     }
-
-
 
     fn dismissed(
         &mut self,
@@ -1146,7 +1052,6 @@ impl App {
         }
     }
 
-
     fn on_layer_event(&mut self, result: ModalResult) -> Outcome {
         let Some((tag, owner)) = self.modals.top().map(|e| (e.tag.clone(), e.owner)) else {
             return Outcome::Ignored;
@@ -1159,8 +1064,6 @@ impl App {
         }
         self.report_to_owner(owner, &tag, result)
     }
-
-
 
     fn on_layer_result(&mut self, entry: LayerSlot, result: ModalResult) -> Outcome {
         let tag = entry.tag.clone();
@@ -1241,8 +1144,6 @@ impl App {
             }
             "activities" => {
                 if let ModalResult::Picked(i) = result {
-
-
                     let row = entry
                         .get::<Picker>()
                         .and_then(|p| p.items.get(i))
@@ -1293,14 +1194,12 @@ impl App {
         }
     }
 
-
     fn report_to_owner(&mut self, owner: usize, tag: &LayerTag, result: ModalResult) -> Outcome {
         let (o, reqs) = self.deliver_tab(owner, true, Outcome::Changed, |s, w, cx| {
             s.on_layer_result(tag, result, w, cx)
         });
         o.or(self.apply_requests(reqs, owner)).or(Outcome::Changed)
     }
-
 
     fn layer_key(&mut self, key: Key) -> Outcome {
         let (Some(top), mut cx) = self.layer_cx() else {
@@ -1309,8 +1208,6 @@ impl App {
         let out = top.layer.on_key(&key, &mut cx);
         self.settle_layer(out)
     }
-
-
 
     fn files_jump_rows(&mut self, error: Option<String>) {
         let active = self.active();
@@ -1332,10 +1229,6 @@ impl App {
             p.status = status;
         }
     }
-
-
-
-
 
     fn files_jump(&mut self, ev: PickerAction, chosen: Option<LayerSlot>) -> Outcome {
         let active = self.active();
@@ -1385,7 +1278,6 @@ impl App {
                         self.apply_requests(requests, active);
                     }
                     Some(Err(e)) => {
-
                         if let Some(entry) = chosen {
                             self.modals.open(
                                 entry.layer,
@@ -1410,14 +1302,7 @@ impl App {
         }
     }
 
-
-
-
-
-
-
     fn deliver_pointer(&mut self, ev: &PointerEvent) -> Outcome {
-
         if ev.on(HintBar::ID) {
             return match self.shell.footer_keys.clicked(ev) {
                 Some(key) => shell::KeyRouter::replay(self, &key).or(Outcome::Changed),
@@ -1434,10 +1319,6 @@ impl App {
         self.with_top(|s, w, cx| s.pointer(&ev, w, cx))
     }
 
-
-
-
-
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
@@ -1452,10 +1333,7 @@ impl App {
         }
     }
 
-
-
     fn chrome_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
-
         if let Some(r) = self.crumbs.route(ev) {
             let (o, level) = r.into_parts();
             let nav = level.and_then(|_| self.router.crumb_click(&self.crumbs, 0, ev.id));
@@ -1483,7 +1361,6 @@ impl App {
                 _ => o,
             });
         }
-
 
         if let Some(r) = self.strip.route(ev) {
             let (o, act) = r.into_parts();
@@ -1523,8 +1400,6 @@ impl App {
         None
     }
 
-
-
     fn apply_requests(&mut self, requests: Vec<Request>, _owner: usize) -> Outcome {
         let mut out = Outcome::Ignored;
         for r in requests {
@@ -1550,10 +1425,6 @@ impl App {
         out
     }
 
-
-
-
-
     fn copy(&mut self, s: String, what: Option<String>) {
         self.sync_clipboard();
         let now = self.world.clock.now();
@@ -1561,8 +1432,6 @@ impl App {
         self.world.clipboard = Some(s);
         self.clipboard_gen += 1;
     }
-
-
 
     fn sync_clipboard(&mut self) {
         let p = &self.world.platform;
@@ -1620,8 +1489,6 @@ impl App {
                     .filter(|c| c.path == config)
                     .cloned();
                 if let Some(cfg) = custom {
-
-
                     let now_text = match self.world.fs.get(&cfg.path).map(|n| &n.content) {
                         Some(crate::sim::fs::Content::Text(t)) => t.clone(),
                         _ => String::new(),
@@ -1713,7 +1580,6 @@ impl App {
         }
     }
 
-
     fn page_screen(world: &mut World, page: Page) -> Box<dyn Screen> {
         match page {
             Page::Finder { group } => Box::new(FinderPage::new(group)),
@@ -1738,8 +1604,6 @@ impl App {
             Page::Config { path } => Box::new(SnapshotPage::new(&format!("config:{path}"), world)),
         }
     }
-
-
 
     fn reload_project_config(&mut self) {
         let Some(cfg) = self.world.custom_project.clone() else {
@@ -1766,17 +1630,11 @@ impl App {
         ));
     }
 
-
     pub(crate) fn push_page(&mut self, page: Page) {
         self.router.select(0);
         self.navigate(shell::Nav::Push(page));
         self.enter_top();
     }
-
-
-
-
-
 
     fn navigate(&mut self, nav: shell::Nav<Page>) -> bool {
         let n = self.router.dropped_by(&nav).count();
@@ -1799,14 +1657,11 @@ impl App {
         }
     }
 
-
     fn apply_nav(&mut self, nav: shell::Nav<Page>) {
         let world = &mut self.world;
         self.router
             .apply(nav, |page| Self::page_screen(world, page));
     }
-
-
 
     fn leave_review_pages(&mut self) -> bool {
         self.router.select(0);
@@ -1831,8 +1686,6 @@ impl App {
         self.strip.set_active(i);
         self.enter_top();
     }
-
-
 
     pub(crate) fn add_tab(&mut self, kind: TabKind, root: Box<dyn Screen>) -> usize {
         let shown = self.active();
@@ -1918,8 +1771,6 @@ impl App {
                     && let Some(a) = self.world.activity_mut(&id)
                     && a.state.live()
                 {
-
-
                     a.stop(tick);
                     self.set_status(
                         "Stopping · the tab closes once the process is gone",
@@ -1944,8 +1795,6 @@ impl App {
         self.router.close_tab(i);
         self.activate_tab(i.saturating_sub(1).min(self.tabs.len() - 1));
     }
-
-
 
     fn find_item(&self, id: &str) -> Option<Item> {
         self.world.items().into_iter().find(|i| i.id == id)
@@ -2006,7 +1855,6 @@ impl App {
         match &it.confirmation {
             Confirmation::None | Confirmation::Trust { .. } => self.execute_item(&it.id, args),
 
-
             Confirmation::One
                 if matches!(
                     it.launch,
@@ -2026,9 +1874,6 @@ impl App {
         }
     }
 
-
-
-
     fn remember_use(&mut self, id: &str) {
         self.world.record_use(id);
         if let Some(q) = self.last_query.take()
@@ -2040,9 +1885,6 @@ impl App {
         }
         self.persist_usage();
     }
-
-
-
 
     fn persist_usage(&mut self) {
         let now = self.world.now_secs();
@@ -2108,8 +1950,6 @@ impl App {
         self.open_layer(Box::new(d), LayerTag::new("confirm-one"));
     }
 
-
-
     fn confirm_plan(&mut self, id: &str) {
         let Some(p) = self.world.plan(id).cloned() else {
             return;
@@ -2150,7 +1990,6 @@ impl App {
                 .flat_map(|s| s.commands.clone())
                 .collect();
 
-
             let confirm = Button::primary(WidgetId::of("start-plan").sub("ok"), "Start plan");
             let mut d = Dialog::facts(
                 WidgetId::of("start-plan"),
@@ -2166,7 +2005,6 @@ impl App {
             self.open_layer(Box::new(d), LayerTag::new("gate2"));
         }
     }
-
 
     fn open_gate2(&mut self, target: GateTarget) {
         let (title, facts, code, phrase, confirm_label) = match &target {
@@ -2249,7 +2087,6 @@ impl App {
         self.open_layer(Box::new(d), LayerTag::new("gate2"));
     }
 
-
     fn gate2_confirmed(&mut self) {
         let Some(target) = self.pending_gate.take() else {
             return;
@@ -2299,13 +2136,9 @@ impl App {
                 self.execute_item(&item, args);
             }
             GateTarget::Cleanup(plan) => {
-
-
                 let outcome = crate::screens::cleanup::commit(&plan, &mut self.world);
                 match outcome {
                     Ok(index) => {
-
-
                         self.leave_review_pages();
                         self.push_page(Page::Report { index });
                         let n = plan.items.len();
@@ -2372,7 +2205,6 @@ impl App {
                     ActivityKind::Task
                 };
 
-
                 let argv: Vec<crate::domain::exec::Command> = it
                     .exec
                     .iter()
@@ -2415,7 +2247,6 @@ impl App {
                 );
                 if let Some(a) = self.world.activity_mut(&aid) {
                     if !args.is_empty() {
-
                         a.insights = args
                             .iter()
                             .filter(|(k, _)| !it.args.iter().any(|s| &s.name == k && s.secret))
@@ -2591,10 +2422,6 @@ impl App {
         }
     }
 
-
-
-
-
     pub fn copy_osc52(&mut self, value: String) {
         self.sync_clipboard();
         let copied = self.shell.clipboard.copy(&value);
@@ -2618,8 +2445,6 @@ impl App {
             }
         }
     }
-
-
 
     pub(crate) fn open_alternatives(&mut self, id: &str, anchor: Rect) {
         let Some(it) = self.find_item(id) else {
@@ -2658,7 +2483,6 @@ impl App {
         }
         for a in &it.alternatives {
             let mut item = MenuItem::new(a.label.clone());
-
 
             if !self.alternative_supported(&a.item) {
                 item = item.reason("Not in this preview");
@@ -2703,14 +2527,9 @@ impl App {
         );
     }
 
-
-
     pub(crate) fn alternative_supported(&self, alt: &str) -> bool {
         self.find_item(alt).is_some() || derived_supported(alt)
     }
-
-
-
 
     fn run_derived(&mut self, alt: &str, origin: &str) {
         let tick = self.world.tick;
@@ -2779,8 +2598,6 @@ impl App {
         if alt.ends_with(".alias") {
             self.menu_action(AltCmd::Alias, origin);
         }
-
-
     }
 
     fn menu_action(&mut self, a: AltCmd, id: &str) {
@@ -2888,12 +2705,8 @@ impl App {
         }
     }
 
-
-
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.draw_frame(area, buf, ctx);
-
-
 
         let mut modals = std::mem::take(&mut self.modals);
         for entry in modals.iter_mut() {
@@ -2911,7 +2724,6 @@ impl App {
         let open = !modals.is_empty();
         self.modals = modals;
         if open {
-
             let r = CHROME.regions(area).footer;
             let footer = Rect::new(r.x, r.bottom() - 1, r.width, 1);
             self.footer(true).render(footer, buf, ctx, &mut self.shell);
@@ -2921,7 +2733,6 @@ impl App {
     fn crumb(&self) -> String {
         self.crumb_parts().join(" › ")
     }
-
 
     fn crumb_parts(&self) -> Vec<String> {
         trail(self.router.tab(0).map(|s| s.crumb(&self.world)).collect())
@@ -3006,7 +2817,6 @@ impl App {
             2,
         );
 
-
         let status = Rect::new(r.footer.x, r.footer.bottom() - 2, r.footer.width, 1);
         let footer = Rect::new(r.footer.x, r.footer.bottom() - 1, r.footer.width, 1);
         self.draw_menu(menu, buf, ctx);
@@ -3015,7 +2825,6 @@ impl App {
         self.strip.set_items(items);
         self.strip.set_active(self.active());
         self.strip.render(strip, buf, ctx, t.canvas);
-
 
         if self.active() == 0 && self.router.depth() > 1 {
             let mut crumbs = self.router.breadcrumb(CRUMBS, |s| s.crumb(&self.world));
@@ -3038,8 +2847,6 @@ impl App {
         self.draw_status(status, buf, ctx);
         self.footer(false).render(footer, buf, ctx, &mut self.shell);
     }
-
-
 
     fn draw_menu(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
@@ -3065,7 +2872,6 @@ impl App {
             r => format!("{} · {}", w.host.name, r.label()),
         };
 
-
         let budget = (rest.width as usize).saturating_sub(width(&host) + 6);
         if budget >= 12 {
             right
@@ -3086,10 +2892,6 @@ impl App {
                 .priority(10),
         );
         if let Some(g) = w.git_here() {
-
-
-
-
             let state = g.state_parts();
             bar.left.push(
                 StatusItem::new(truncate_middle(&g.head_label(), 24), Tone::Muted)
@@ -3155,11 +2957,6 @@ impl App {
         bar.render(area, buf, ctx);
     }
 
-
-
-
-
-
     fn footer(&self, modal: bool) -> shell::Footer {
         use junie_tui::core::hints::{HasHints, HintCx};
         let focus = self.shell.focus.current();
@@ -3192,7 +2989,6 @@ impl App {
         )
     }
 }
-
 
 const BRAND_PADDED: &str = " holla❯ ";
 
@@ -3235,7 +3031,6 @@ impl shell::App for App {
         !self.modals.is_empty()
     }
 
-
     fn stakes(&mut self) -> Stakes {
         let mut stakes = self.quit_stakes();
         for p in self.router.pages_mut() {
@@ -3271,8 +3066,6 @@ impl PointerHost for App {
         self.deliver_pointer(ev).into()
     }
 
-
-
     fn outside(&mut self, _pos: Position) -> Response<()> {
         if !self.modals.is_empty() {
             return self
@@ -3286,9 +3079,6 @@ impl PointerHost for App {
         Response::changed()
     }
 }
-
-
-
 
 fn trail(crumbs: Vec<String>) -> Vec<String> {
     let mut parts: Vec<String> = vec![];
@@ -3307,8 +3097,6 @@ fn trail(crumbs: Vec<String>) -> Vec<String> {
     }
     parts
 }
-
-
 
 fn ensure_plan(world: &mut World, id: &str) {
     if world.plan(id).is_some() {
@@ -3334,7 +3122,6 @@ fn ensure_plan(world: &mut World, id: &str) {
     world.plans.push(plan);
 }
 
-
 fn answer(result: &ModalResult) -> DialogResult {
     match result {
         ModalResult::Dialog {
@@ -3343,7 +3130,6 @@ fn answer(result: &ModalResult) -> DialogResult {
         _ => DialogResult::Cancelled,
     }
 }
-
 
 fn derived_supported(alt: &str) -> bool {
     let mise_dry = alt
@@ -3358,11 +3144,8 @@ fn derived_supported(alt: &str) -> bool {
     mise_dry || ssh || activity || alt.ends_with(".alias")
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HollaCmd {
-
     Activities,
 
     CloseTab,
@@ -3387,8 +3170,6 @@ pub enum HollaCmd {
 
     About,
 }
-
-
 
 pub fn shell_keys() -> shell::ShellKeys<HollaCmd> {
     use junie_tui::core::keymap::KeyBinding;
@@ -3421,9 +3202,6 @@ impl shell::KeyHost for App {
         self.menu.is_open().then(|| self.open_menu_key(key))
     }
 
-
-
-
     fn capturing(&self) -> bool {
         self.attached()
     }
@@ -3439,7 +3217,6 @@ impl shell::KeyHost for App {
     fn shell_action(&mut self, action: shell::ShellAction<HollaCmd>, key: &Key) -> Outcome {
         use shell::ShellAction;
         match action {
-
             ShellAction::MenuBar if self.shell.context.keys.matches(key) => Outcome::Ignored,
             ShellAction::MenuBar => {
                 self.menu.open_menu(0);
@@ -3470,8 +3247,6 @@ impl shell::KeyHost for App {
         self.with_top(|s, w, cx| s.on_key(key, w, cx))
     }
 
-
-
     fn layer_paste(&mut self, text: &str) -> Option<Outcome> {
         let top = self.modals.top_mut()?;
         let out = top.layer.on_paste(text);
@@ -3481,8 +3256,6 @@ impl shell::KeyHost for App {
     fn page_paste(&mut self, text: &str) -> Outcome {
         self.with_top(|s, w, cx| s.on_paste(text, w, cx))
     }
-
-
 
     fn esc_top(&mut self) -> Outcome {
         if self.active() != 0 {

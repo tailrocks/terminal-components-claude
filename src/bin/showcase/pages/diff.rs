@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -59,7 +53,6 @@ fn sample() -> DiffFile {
             .collect(),
     }
 }
-
 
 fn changes() -> Vec<DiffFile> {
     vec![
@@ -129,8 +122,6 @@ impl DiffPage {
         page
     }
 
-
-
     fn update_controls(&mut self) {
         let review = self.review.on == Some(true);
         if review != (self.view.mode == DiffMode::Review) {
@@ -175,8 +166,6 @@ impl DiffPage {
         self.view.render(inner, buf, ctx, ctx.theme.canvas);
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -323,7 +312,6 @@ impl Page for DiffPage {
     }
 
     fn option_value(&self, key: &str) -> Option<usize> {
-
         if key == "diff.mode" {
             return Some(usize::from(self.review.on == Some(true)));
         }

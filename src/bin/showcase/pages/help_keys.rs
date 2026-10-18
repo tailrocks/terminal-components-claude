@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -35,7 +24,6 @@ const ID: WidgetId = WidgetId::of("helpkeys");
 pub const OPEN: WidgetId = WidgetId::of("helpkeys.open");
 
 pub const HELP: WidgetId = WidgetId::of("helpkeys.help");
-
 
 fn sections() -> Vec<(&'static str, Vec<(&'static str, &'static str)>)> {
     vec![
@@ -90,7 +78,6 @@ fn sections() -> Vec<(&'static str, Vec<(&'static str, &'static str)>)> {
     ]
 }
 
-
 fn reference() -> KeyReference {
     KeyReference::new()
         .section("Results")
@@ -125,7 +112,6 @@ impl HelpKeysPage {
         }
     }
 
-
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::HelpKeys);
         let i = table
@@ -134,7 +120,6 @@ impl HelpKeysPage {
             .unwrap_or_else(|| panic!("no option {key}"));
         table[i].values[self.opts[i]]
     }
-
 
     pub fn build_help(&self) -> HelpOverlay {
         let mut h = HelpOverlay::new(HELP, "Editor", sections())
@@ -159,7 +144,6 @@ impl HelpKeysPage {
         h
     }
 
-
     fn build_reference(&self) -> KeyReference {
         reference()
             .key_max_share(self.opt("helpkeys.key_max_share").parse().unwrap_or(40))
@@ -169,7 +153,6 @@ impl HelpKeysPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (left, right) = crate::pages::layout::columns(area, 58.min(area.width * 11 / 20), 2);
-
 
         let r = self.build_reference();
         let w = match self.opt("helpkeys.width") {
@@ -203,7 +186,6 @@ impl HelpKeysPage {
                 buf.set_string(edge, y, "┊", t.faint().bg(bg));
             }
         }
-
 
         let help = self.build_help();
 
@@ -272,7 +254,6 @@ impl HelpKeysPage {
     }
 }
 
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))
@@ -328,8 +309,6 @@ impl Page for HelpKeysPage {
             _ => return Outcome::Ignored,
         };
         if open {
-
-
             cx.focus.focus(OPEN);
             cx.open_help(self.build_help());
         }

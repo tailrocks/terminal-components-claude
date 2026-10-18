@@ -1,6 +1,3 @@
-
-
-
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
@@ -43,14 +40,10 @@ use crate::db::{Catalog, ColType, Table, Value};
 use crate::model::{self, History, HistoryEntry, HistorySource};
 use crate::sql::{self, PlanNode, Statement};
 
-
-
 const ALT_D: junie_tui::core::event::Key = junie_tui::core::event::Key {
     code: KeyCode::Char('d'),
     mods: ratatui::crossterm::event::KeyModifiers::ALT,
 };
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FilterOp {
@@ -123,7 +116,6 @@ impl FilterOp {
             FilterOp::IsNull | FilterOp::IsNotNull | FilterOp::IsEmpty | FilterOp::IsNotEmpty
         )
     }
-
 
     pub fn ordered_for(ty: ColType) -> Vec<FilterOp> {
         let first: &[FilterOp] = match ty {
@@ -272,8 +264,6 @@ fn quote(v: &str) -> String {
     }
 }
 
-
-
 pub fn cell_kind(ty: ColType) -> CellKind {
     match ty {
         ColType::Uuid => CellKind::Id,
@@ -362,8 +352,6 @@ pub fn segment_sql(src: &str) -> Vec<Range<usize>> {
         .collect()
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableMode {
     Data,
@@ -411,8 +399,6 @@ impl TableTab {
         grid.empty = EmptyState::new("No rows").hint("f changes the filter");
         let mut chips = ChipBar::new(id.sub("chips"));
         chips.lead = Some("match all ▾".into());
-
-
 
         let mut mode_tabs = Tabs::new(id.sub("mode"), &["Data", "Structure"]);
         mode_tabs.active = 0;
@@ -481,7 +467,6 @@ impl TableTab {
             count_only: false,
         }
     }
-
 
     pub fn load(&mut self, cat: &Catalog) {
         let sel = self.select();
@@ -731,7 +716,6 @@ impl TableTab {
                 vec![hint("←→", "Switch"), hint("Ctrl+D", "Data / Structure")]
             }
             Some(f) if f == self.chips.id => {
-
                 let km = &self.chips.keymap;
                 let mut h = vec![hint("Enter", "Edit filter"), hint("Space", "Enable")];
                 h.extend(hint_key(km, ChipCmd::Remove).map(|k| hint(k, "Remove")));
@@ -742,7 +726,6 @@ impl TableTab {
                 vec![hint("←→", "Section"), hint("1–6", "Jump")]
             }
             Some(f) if f == self.grid.id => {
-
                 let km = &self.grid.keymap;
                 let mut h = vec![hint("↑↓←→", "Cell")];
 
@@ -799,7 +782,6 @@ impl TableTab {
                 self.grid.render(grid_area, buf, ctx, bg);
 
                 let sy = body.bottom().saturating_sub(1);
-
 
                 let mut parts: Vec<(String, u8)> = vec![];
                 if let Some((c, d)) = self.sort {
@@ -894,8 +876,6 @@ impl TableTab {
         }
     }
 }
-
-
 
 #[allow(clippy::large_enum_variant)]
 pub enum ResultBody {
@@ -1026,12 +1006,9 @@ impl QueryTab {
         }
     }
 
-
-
     pub fn is_editing(&self) -> bool {
         self.editor.wants_text_input() || self.active_grid().is_some_and(|g| g.is_editing())
     }
-
 
     pub fn statements_to_run(&self, all: bool) -> Vec<(String, Range<usize>)> {
         let text = self.editor.text();
@@ -1056,7 +1033,6 @@ impl QueryTab {
             None => vec![],
         }
     }
-
 
     pub fn start(
         &mut self,
@@ -1102,7 +1078,6 @@ impl QueryTab {
         }
         false
     }
-
 
     pub fn tick(&mut self, cat: &Catalog, connection: &str, database: &str) -> Vec<HistoryEntry> {
         let mut out = vec![];
@@ -1242,7 +1217,6 @@ impl QueryTab {
         }
     }
 
-
     pub fn trigger_completion(&mut self, cat: &Catalog, manual: bool) {
         let cur = self.editor.cursor_offset();
         let text = self.editor.text();
@@ -1274,8 +1248,6 @@ impl QueryTab {
     }
 
     fn accept_completion(&mut self, i: usize) {
-
-
         self.completion.apply(i, &mut self.editor.field.buffer);
         self.completion.close();
     }
@@ -1453,9 +1425,6 @@ impl QueryTab {
         }
     }
 
-
-
-
     pub fn press(&mut self, ev: &PointerEvent) -> Outcome {
         if let Some(r) = self.editor.route(ev) {
             return r.outcome();
@@ -1467,7 +1436,6 @@ impl QueryTab {
         }
         self.plan_route(ev)
     }
-
 
     fn plan_route(&mut self, ev: &PointerEvent) -> Outcome {
         let Some(r) = self.results.get_mut(self.active_result) else {
@@ -1482,7 +1450,6 @@ impl QueryTab {
             _ => Outcome::Ignored,
         }
     }
-
 
     pub fn middle(&mut self, ev: &PointerEvent) -> Outcome {
         match self.result_tabs.route(ev).map(|r| r.into_parts()) {
@@ -1572,7 +1539,6 @@ impl QueryTab {
     }
 
     pub fn wheel(&mut self, ev: &PointerEvent) -> Outcome {
-
         let horizontal = matches!(ev.wheel(), Some((Axis::Horizontal, _)));
         if ev.on(self.completion.id) {
             return if horizontal {
@@ -1603,8 +1569,6 @@ impl QueryTab {
             _ => Outcome::Ignored,
         }
     }
-
-
 
     fn render_toolbar(
         &mut self,
@@ -1755,8 +1719,6 @@ impl QueryTab {
             String::new()
         };
         if !status_line.is_empty() {
-
-
             let done = self
                 .results
                 .get(self.active_result)
@@ -1878,7 +1840,6 @@ impl QueryTab {
                             let inner = card.render(body, buf, t);
                             raw.render(inner, buf, ctx, cbg, |t, _| t.secondary());
                         } else {
-
                             let detail_w = if body.width >= 110 { 40 } else { 0 };
                             let tree_area = Rect::new(
                                 body.x,
@@ -1887,8 +1848,6 @@ impl QueryTab {
                                     .saturating_sub(detail_w + if detail_w > 0 { 2 } else { 0 }),
                                 body.height,
                             );
-
-
 
                             tree.reserve_right = PLAN_COLS_W;
                             tree.show_meta = false;
@@ -1960,7 +1919,6 @@ impl QueryTab {
                                 );
                                 let bgc = buf[(cols_x, y)].bg;
                                 buf.set_string(cols_x, y, &text, base.bg(bgc));
-
 
                                 let sh = format!(
                                     "{:>4} {}",
@@ -2060,19 +2018,9 @@ impl QueryTab {
     }
 }
 
-
-
-
-
 const HOT_SHARE: f64 = 0.5;
 
-
-
 const PLAN_COLS_W: u16 = 40;
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolbarAction {
@@ -2087,7 +2035,6 @@ pub const TOOLBAR_RUN_ALL: WidgetId = WidgetId::of("query.toolbar.run_all");
 pub const TOOLBAR_EXPLAIN: WidgetId = WidgetId::of("query.toolbar.explain");
 pub const TOOLBAR_CANCEL: WidgetId = WidgetId::of("query.toolbar.cancel");
 
-
 pub fn toolbar_action(id: WidgetId) -> Option<ToolbarAction> {
     match id {
         i if i == TOOLBAR_RUN => Some(ToolbarAction::Run),
@@ -2097,8 +2044,6 @@ pub fn toolbar_action(id: WidgetId) -> Option<ToolbarAction> {
         _ => None,
     }
 }
-
-
 
 fn plan_header() -> String {
     format!("{:>13} {:>8} {:>10} {:>4}", "cost", "rows", "actual", "%")
@@ -2151,7 +2096,6 @@ fn plan_to_tree(node: &PlanNode, nodes: &mut Vec<PlanInfo>, root_total: f64) -> 
     }
     n.meta(&idx.to_string())
 }
-
 
 fn execute(
     cat: &Catalog,
@@ -2230,8 +2174,6 @@ fn execute(
                     });
                 let mut grid =
                     DataGrid::new(WidgetId::of("result").child(n), specs).duplicate_keys(&[ALT_D]);
-
-
 
                 grid.editable = false;
                 grid.read_only_reason = Some(if rs.editable {
@@ -2369,7 +2311,6 @@ fn execute(
             }
         },
         other => {
-
             let target = other.target().map(str::to_owned);
             let table = target.as_deref().and_then(|t| cat.find(None, t));
             let (rows, ms) = match &other {
@@ -2435,8 +2376,6 @@ fn execute(
     }
 }
 
-
-
 pub struct HistoryTab {
     pub id: WidgetId,
     pub list: ListBox,
@@ -2444,7 +2383,6 @@ pub struct HistoryTab {
     pub search: TextInput,
     pub scope_all: bool,
     pub failed_only: bool,
-
 
     pub slow_ms: u32,
     pub filtered: Vec<usize>,

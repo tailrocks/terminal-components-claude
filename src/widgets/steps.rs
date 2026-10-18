@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -71,7 +66,6 @@ pub struct StepRail {
     pub steps: Vec<Step>,
     pub selectable: bool,
 
-
     pub core: ListCore,
     pub area: Rect,
 
@@ -92,7 +86,6 @@ impl std::ops::DerefMut for StepRail {
 }
 
 impl StepRail {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.core.nav = nav;
         self
@@ -110,14 +103,10 @@ impl StepRail {
         }
     }
 
-
-
     pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
         self.core.content = content;
         self
     }
-
-
 
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.core.scroll.track_click = Some(click);
@@ -141,11 +130,9 @@ impl StepRail {
         }
     }
 
-
     pub fn frontier(&self) -> Option<usize> {
         self.steps.iter().position(|s| !s.state.terminal())
     }
-
 
     pub fn counts(&self) -> (usize, usize, usize) {
         let c = |st| self.steps.iter().filter(|s| s.state == st).count();
@@ -218,7 +205,6 @@ impl StepRail {
         self.core.scroll.set_viewport(area.height as usize);
         let n = self.steps.len();
 
-
         if self.selectable && self.core.is_focus_stop(n, focused) {
             ctx.control(self.id, area, false);
         }
@@ -244,7 +230,6 @@ impl StepRail {
             s.focused = focused && i == self.core.cursor;
             let row = Rect::new(area.x, y, row_w, 1);
             let st = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg).style();
-
 
             let plane = st.bg.unwrap_or(bg);
             let mark = |ink| st.fg(t.legible_mark(ink, plane));
@@ -368,8 +353,6 @@ impl Navigable for StepRail {
     }
 }
 
-
-
 impl crate::core::pointer::MouseTarget for StepRail {
     type Action = ();
 
@@ -442,9 +425,6 @@ mod tests {
         );
         assert_eq!(rest, pressed);
     }
-
-
-
 
     #[test]
     fn a_steps_state_glyph_reads_on_its_row_at_every_level() {
@@ -519,7 +499,6 @@ mod track_click_tests {
         );
         r.scroll.offset
     }
-
 
     #[test]
     fn a_step_rail_track_click_can_page() {

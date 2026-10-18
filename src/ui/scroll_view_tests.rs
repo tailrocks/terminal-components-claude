@@ -1,7 +1,3 @@
-
-
-
-
 use super::*;
 use crate::core::focus::FocusRing;
 use crate::core::hit::HitRegistry;
@@ -15,9 +11,6 @@ const VIEW: WidgetId = WidgetId::of("test.view");
 fn theme() -> Theme {
     Theme::for_level(ColorLevel::TrueColor)
 }
-
-
-
 
 fn content(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, controls: &[(WidgetId, Rect)]) {
     for y in area.top()..area.bottom() {
@@ -36,9 +29,6 @@ struct Frame {
     hits: HitRegistry,
     ring: FocusRing,
 }
-
-
-
 
 fn frame(
     view: &mut ScrollView,
@@ -117,7 +107,6 @@ fn layout_settles_both_bars_and_leaves_the_corner_blank() {
     assert_eq!(l.viewport, Rect::new(0, 0, 18, 8));
     assert_eq!(l.v_track, Some(Rect::new(19, 0, 1, 8)));
     assert_eq!(l.h_track, None);
-
 
     let l = v.layout(area, Size::new(40, 8));
     assert_eq!(l.viewport, Rect::new(0, 0, 18, 7));
@@ -267,7 +256,6 @@ fn the_wheel_scrolls_the_view_and_a_short_inner_scroller_passes_it_on() {
     let r = v.pointer(&wheel(&f.hits, Axis::Horizontal, 1));
     assert_eq!(r.map(|r| r.outcome()), Some(Outcome::Ignored));
 
-
     let mut fits = ScrollPane::new(5);
     fits.set_viewport(8);
     assert_eq!(fits.wheel(Axis::Vertical, 3).outcome(), Outcome::Ignored);
@@ -364,7 +352,6 @@ fn an_overlay_queued_by_scrolled_content_lands_over_its_anchor() {
             &mut buf,
             &mut ctx,
             |inner, _buf, ctx| {
-
                 let at = Rect::new(inner.x + 1, inner.y + 13, 4, 1);
                 ctx.overlay(move |buf, ctx| {
                     buf.set_string(at.x, at.y, "POP!", ratatui::style::Style::new());

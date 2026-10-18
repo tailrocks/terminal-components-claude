@@ -1,26 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::any::Any;
 
 use ratatui::buffer::Buffer;
@@ -40,21 +17,14 @@ use crate::ui::popup::{Dismiss, Placement};
 use crate::widgets::icon_button::IconButton;
 use crate::widgets::keyhint::Hint;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LayerKind {
-
-
     Modal,
-
 
     Popover,
 
     Tooltip,
 }
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LayerSpec {
@@ -68,21 +38,16 @@ pub struct LayerSpec {
 
     pub dismiss: Dismiss,
 
-
     pub initial_focus: Option<WidgetId>,
-
 
     pub restore_focus: bool,
 
     pub inert_below: bool,
 
-
-
     pub hides_page_focus: bool,
 }
 
 impl LayerSpec {
-
     pub const fn modal(dismiss: Dismiss) -> Self {
         Self {
             kind: LayerKind::Modal,
@@ -96,8 +61,6 @@ impl LayerSpec {
             hides_page_focus: true,
         }
     }
-
-
 
     pub const fn popover(dismiss: Dismiss) -> Self {
         Self {
@@ -113,7 +76,6 @@ impl LayerSpec {
         }
     }
 
-
     pub const fn tooltip() -> Self {
         Self {
             kind: LayerKind::Tooltip,
@@ -127,7 +89,6 @@ impl LayerSpec {
             hides_page_focus: false,
         }
     }
-
 
     pub const fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = Some(anchor);
@@ -161,35 +122,21 @@ impl LayerSpec {
     }
 }
 
-
 pub trait Overlay {
-
     type Action;
 
-
     fn dismiss(&self) -> Dismiss;
-
-
 
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(self.dismiss())
     }
 
-
-
-
     fn on_dismiss(&mut self, reason: DismissReason) -> Response<Self::Action>;
-
-
-
 
     fn close_button(&self) -> Option<&IconButton> {
         None
     }
 }
-
-
-
 
 pub fn dismiss<O: Overlay + ?Sized>(
     overlay: &mut O,
@@ -201,35 +148,18 @@ pub fn dismiss<O: Overlay + ?Sized>(
         .then(|| overlay.on_dismiss(reason))
 }
 
-
-
-
 pub struct LayerCx<'a, W: ?Sized = ()> {
     pub focus: &'a mut Focus,
     pub ring: &'a FocusRing,
     pub app: &'a W,
 }
 
-
-
-
-
-
-
-
-
-
 pub trait Layer<R, W: ?Sized = ()>: Any {
-
     fn spec(&self) -> LayerSpec;
 
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, app: &W);
 
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome;
-
-
-
-
 
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
@@ -297,35 +227,27 @@ pub trait Layer<R, W: ?Sized = ()>: Any {
         Vec::new()
     }
 
-
     fn is_editing(&self) -> bool {
         false
     }
-
 
     fn animating(&self) -> bool {
         false
     }
 
-
     fn on_dismiss(&mut self, reason: DismissReason);
-
-
 
     fn take_result(&mut self) -> Option<LayerOut<R>>;
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerOut<R> {
-
     Close(R),
 
     Event(R),
 }
 
 impl<R> LayerOut<R> {
-
     pub fn into_inner(self) -> R {
         match self {
             Self::Close(r) | Self::Event(r) => r,
@@ -336,8 +258,6 @@ impl<R> LayerOut<R> {
         matches!(self, Self::Close(_))
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct LayerTag {
@@ -364,7 +284,6 @@ impl LayerTag {
     }
 }
 
-
 pub struct LayerEntry<R, W: ?Sized = (), O = ()> {
     pub layer: Box<dyn Layer<R, W>>,
     pub tag: LayerTag,
@@ -372,7 +291,6 @@ pub struct LayerEntry<R, W: ?Sized = (), O = ()> {
 }
 
 impl<R: 'static, W: ?Sized + 'static, O> LayerEntry<R, W, O> {
-
     pub fn get<L: Layer<R, W>>(&self) -> Option<&L> {
         let any: &dyn Any = &*self.layer;
         any.downcast_ref()
@@ -390,22 +308,15 @@ impl<R: 'static, W: ?Sized + 'static, O> Modal for LayerEntry<R, W, O> {
     }
 }
 
-
-
-
 pub type ShellLayers<R, W = (), O = ()> = ModalStack<LayerEntry<R, W, O>>;
 
-
 pub enum Taken<R, W: ?Sized = (), O = ()> {
-
     Event(R),
 
     Closed(LayerEntry<R, W, O>, R),
 }
 
-
 pub enum Dismissed<R, W: ?Sized = (), O = ()> {
-
     None,
 
     Refused,
@@ -413,23 +324,13 @@ pub enum Dismissed<R, W: ?Sized = (), O = ()> {
     Closed(LayerEntry<R, W, O>, Option<R>),
 }
 
-
 pub enum LayerPointer<R, W: ?Sized = (), O = ()> {
-
     Handled(Outcome),
-
-
-
 
     Dismissed(Dismissed<R, W, O>),
 }
 
 impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
-
-
-
-
-
     pub fn pointer(
         &mut self,
         ev: &PointerEvent,
@@ -457,7 +358,6 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         LayerPointer::Handled(out)
     }
 
-
     pub fn open(
         &mut self,
         layer: Box<dyn Layer<R, W>>,
@@ -469,8 +369,6 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         self.push(LayerEntry { layer, tag, owner }, focus, initial);
     }
 
-
-
     pub fn take(&mut self, focus: &mut Focus) -> Option<Taken<R, W, O>> {
         match self.top_mut()?.layer.take_result()? {
             LayerOut::Event(r) => Some(Taken::Event(r)),
@@ -480,8 +378,6 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
             }
         }
     }
-
-
 
     pub fn dismiss(&mut self, reason: DismissReason, focus: &mut Focus) -> Dismissed<R, W, O> {
         let Some(top) = self.top_mut() else {
@@ -498,19 +394,14 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         }
     }
 
-
-
     pub fn on_blur(&mut self, change: FocusChange) -> Outcome {
         self.iter_mut()
             .fold(Outcome::Ignored, |out, e| out.or(e.layer.on_blur(change)))
     }
 
-
-
     pub fn hides_page_focus(&self) -> bool {
         self.iter().any(|e| e.layer.spec().hides_page_focus)
     }
-
 
     pub fn top_as<L: Layer<R, W>>(&self) -> Option<&L> {
         self.top()?.get()
@@ -520,10 +411,6 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         self.top_mut()?.get_mut()
     }
 }
-
-
-
-
 
 use crate::widgets::choice_dialog::ChoiceDialog;
 use crate::widgets::completion::{Completion, CompletionAction};
@@ -538,15 +425,12 @@ use crate::widgets::select::{Select, SelectAction};
 impl Overlay for Dialog {
     type Action = DialogResult;
 
-
-
     fn dismiss(&self) -> Dismiss {
         self.dismiss_in_force()
     }
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(Overlay::dismiss(self)).initial_focus(self.initial_focus)
     }
-
 
     fn on_dismiss(&mut self, _: DismissReason) -> Response<DialogResult> {
         let _ = self.dismissed();
@@ -614,8 +498,6 @@ impl Overlay for HelpOverlay {
         self.dismiss
     }
 
-
-
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(self.dismiss).initial_focus(self.done.id)
     }
@@ -676,8 +558,6 @@ impl Overlay for Select {
         self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
-
-
         LayerSpec::popover(self.list.dismiss)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<SelectAction> {
@@ -691,7 +571,6 @@ impl Overlay for Completion {
         self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
-
         LayerSpec::popover(self.list.dismiss).hides_page_focus(false)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<CompletionAction> {
@@ -700,17 +579,12 @@ impl Overlay for Completion {
     }
 }
 
-
-
-
 impl Overlay for crate::widgets::option_editor::ChoiceEditor {
     type Action = crate::widgets::option_editor::ChoiceResult;
     fn dismiss(&self) -> Dismiss {
         self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
-
-
         LayerSpec::popover(self.list.dismiss)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<Self::Action> {
@@ -722,7 +596,6 @@ impl Overlay for crate::widgets::option_editor::ChoiceEditor {
 mod tests {
     use super::*;
     use crate::core::intent::DismissReason as R;
-
 
     struct Ask {
         id: WidgetId,
@@ -747,8 +620,6 @@ mod tests {
             self.result.take().map(LayerOut::Close)
         }
     }
-
-
 
     #[test]
     fn every_library_overlay_resolves_a_dismissal_to_cancel() {
@@ -832,11 +703,6 @@ mod tests {
         assert!(!comp.spec().hides_page_focus, "the editor keeps its caret");
     }
 
-
-
-
-
-
     #[test]
     fn every_framed_modal_takes_a_custom_close_button() {
         use crate::ui::ctx::Interaction;
@@ -897,8 +763,6 @@ mod tests {
         }
         assert!(Dismiss::ESCAPE.focus_out(true).allows(R::FocusOut));
     }
-
-
 
     #[test]
     fn layers_restore_the_owner_focus_and_resolve_to_cancel() {

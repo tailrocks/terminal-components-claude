@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::{Part, WidgetId};
 use ratatui::crossterm::event::KeyCode;
@@ -9,7 +6,6 @@ use ratatui::layout::Rect;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{Go, Page};
-
 
 fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
     h.app
@@ -21,7 +17,6 @@ fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
         .find(|r| r.owner == owner && r.part.part == part)
         .map(|r| r.area)
 }
-
 
 #[test]
 fn a_click_on_a_footer_hint_runs_its_key() {
@@ -45,8 +40,6 @@ fn a_click_on_a_footer_hint_runs_its_key() {
         Some(crate::screens::finder::PREVIEW)
     );
 }
-
-
 
 #[test]
 fn a_press_on_the_jump_picker_scrollbar_pages_its_list() {
@@ -85,8 +78,6 @@ fn scroll_of(h: &H) -> usize {
         .offset
 }
 
-
-
 fn choice_args() -> (H, WidgetId) {
     let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);
     let (item, i) = h
@@ -103,10 +94,6 @@ fn choice_args() -> (H, WidgetId) {
     h.draw();
     (h, crate::screens::review::ARG.child(i))
 }
-
-
-
-
 
 #[test]
 fn a_press_dragged_onto_a_choice_option_chooses_it_on_release() {
@@ -159,9 +146,6 @@ fn a_press_dragged_onto_a_choice_option_chooses_it_on_release() {
         h.text()
     );
 }
-
-
-
 
 #[test]
 fn a_click_on_dead_space_closes_the_open_menu_bar() {

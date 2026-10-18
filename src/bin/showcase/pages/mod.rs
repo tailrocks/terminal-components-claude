@@ -1,5 +1,3 @@
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -72,7 +70,6 @@ pub mod toolbars;
 pub mod trees;
 pub mod workspaces;
 
-
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
 pub enum PageEvent {
@@ -80,14 +77,8 @@ pub enum PageEvent {
 
     Paste(String),
 
-
-
-
     Pointer(PointerEvent),
     Tick,
-
-
-
 
     Blur(FocusChange),
     DialogClosed {
@@ -98,13 +89,9 @@ pub enum PageEvent {
     },
 }
 
-
-
 #[derive(Debug, Clone)]
 pub enum LayerRes {
-
     Lib(LayerResult),
-
 
     Dialog {
         id: WidgetId,
@@ -115,22 +102,16 @@ pub enum LayerRes {
     Page(Report),
 }
 
-
-
-
 #[derive(Debug, Clone)]
 pub struct Report {
-
     pub result: Option<LayerResult>,
 
     pub values: Option<FormValues>,
-
 
     pub closed: Option<Closed>,
 }
 
 impl Report {
-
     pub fn text(&self, name: &str) -> String {
         self.values
             .iter()
@@ -143,12 +124,10 @@ impl Report {
     }
 }
 
-
 #[derive(Clone)]
 pub struct Closed(pub std::rc::Rc<dyn Layer<LayerRes>>);
 
 impl Closed {
-
     pub fn get<L: Layer<LayerRes>>(&self) -> Option<&L> {
         let any: &dyn std::any::Any = &*self.0;
         any.downcast_ref()
@@ -167,41 +146,27 @@ impl From<LayerResult> for LayerRes {
     }
 }
 
-
-
 #[derive(Debug)]
 pub enum Go {
-
     SetOption(crate::options::OptSet),
 
     Nav(junie_tui::shell::Nav<crate::app::PageId>),
 }
 
-
-
 pub type Request = junie_tui::shell::Request<LayerRes, (), Go>;
 
-
-
 pub type Cx<'a> = junie_tui::shell::Cx<'a, LayerRes, (), Go>;
-
 
 pub const DIALOG_TAG: &str = "dialog";
 
 pub const HELP_TAG: &str = "help";
 
-
 pub trait CxExt {
-
-
     fn open_dialog(&mut self, d: Dialog);
-
 
     fn open_help(&mut self, help: HelpOverlay);
 
-
     fn set_option(&mut self, set: crate::options::OptSet);
-
 
     fn open_page(&mut self, page: crate::app::PageId);
 }
@@ -228,10 +193,6 @@ pub trait Page {
     fn blurb(&self) -> &'static str;
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx);
 
-
-
-
-
     fn measure(&self, avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
         avail
     }
@@ -242,7 +203,6 @@ pub trait Page {
     fn editing(&self) -> bool {
         false
     }
-
 
     fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
         junie_tui::ui::leave::Stakes::Clean
@@ -257,32 +217,23 @@ pub trait Page {
         None
     }
 
-
-
     fn layer_open(&self) -> bool {
         self.template().is_some_and(|t| t.popup_open())
     }
-
-
 
     fn on_layer_key(&mut self, _key: &Key, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
 
-
     fn on_layer(&mut self, _tag: &LayerTag, _report: Report, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
-
-
 
     fn option_value(&self, _key: &str) -> Option<usize> {
         None
     }
 
-
     fn set_option(&mut self, _key: &str, _value: usize) {}
-
 
     #[allow(dead_code)]
     fn template(&self) -> Option<&template::Template> {
@@ -294,7 +245,6 @@ pub trait Page {
     }
 }
 
-
 pub mod layout {
     use ratatui::buffer::Buffer;
     use ratatui::layout::Rect;
@@ -302,11 +252,9 @@ pub mod layout {
 
     use junie_tui::theme::Theme;
 
-
     pub fn caption(x: u16, y: u16, buf: &mut Buffer, t: &Theme, text: &str, bg: Color) {
         buf.set_string(x, y, text, t.muted().bg(bg));
     }
-
 
     pub fn rows(area: Rect, heights: &[u16]) -> Vec<Rect> {
         let mut y = area.y;
@@ -324,11 +272,6 @@ pub mod layout {
         out
     }
 
-
-
-
-
-
     pub struct Sections {
         pub id: junie_tui::core::id::WidgetId,
         pub stack: junie_tui::ui::layout::Stack,
@@ -336,7 +279,6 @@ pub mod layout {
     }
 
     impl Sections {
-
         pub fn new(id: junie_tui::core::id::WidgetId) -> Self {
             Self {
                 id,
@@ -344,8 +286,6 @@ pub mod layout {
                 state: Default::default(),
             }
         }
-
-
 
         pub fn layout(
             &mut self,
@@ -360,8 +300,6 @@ pub mod layout {
             l
         }
 
-
-
         pub fn handle(&mut self, ev: &super::PageEvent) -> Option<junie_tui::core::event::Outcome> {
             match ev {
                 super::PageEvent::Pointer(p) => self.state.pointer(self.id, p),
@@ -369,7 +307,6 @@ pub mod layout {
             }
         }
     }
-
 
     pub fn columns(area: Rect, left_w: u16, gap: u16) -> (Rect, Rect) {
         if area.width < left_w + gap + 20 {

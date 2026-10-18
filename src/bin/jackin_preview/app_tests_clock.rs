@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use crate::pages::Pages;
 use ratatui::crossterm::event::KeyCode;
 
@@ -24,7 +18,6 @@ fn paused(scenario: Scenario) -> H {
 fn step(h: &mut H, ms: u64) {
     h.paste(&ClockStep::request(ms));
 }
-
 
 fn assert_still(h: &mut H) {
     let before = h.text();

@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
@@ -15,10 +6,8 @@ use crate::core::id::{Part, PartRef, WidgetId};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RailAction {
-
     Expand,
 
     Collapse,
@@ -26,17 +15,14 @@ pub enum RailAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SidebarRail {
-
     pub id: WidgetId,
 
     pub label: String,
-
 
     pub collapsed_rail: bool,
 }
 
 impl SidebarRail {
-
     pub const WIDTH: u16 = 2;
 
     pub fn new(id: WidgetId, label: &str) -> Self {
@@ -47,24 +33,18 @@ impl SidebarRail {
         }
     }
 
-
     pub fn collapsed_rail(mut self, on: bool) -> Self {
         self.collapsed_rail = on;
         self
     }
 
-
-
     pub fn collapse_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::ICON))
     }
 
-
-
     pub fn width(&self) -> u16 {
         if self.collapsed_rail { Self::WIDTH } else { 0 }
     }
-
 
     pub fn on_click(&self, id: WidgetId) -> Option<RailAction> {
         if id == self.id && self.collapsed_rail {
@@ -75,9 +55,6 @@ impl SidebarRail {
             None
         }
     }
-
-
-
 
     pub fn render_rail(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
@@ -101,8 +78,6 @@ impl SidebarRail {
         ctx.clickable(self.id, col);
     }
 
-
-
     pub fn render_collapse(&self, panel: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         if panel.width < 12 || panel.height < 2 {
             return;
@@ -120,9 +95,6 @@ impl SidebarRail {
         ctx.register_part(self.id, PartRef::of(Part::ICON), r);
     }
 }
-
-
-
 
 impl crate::ui::specimen::Specimen for SidebarRail {
     fn specimen_id(&self) -> WidgetId {
@@ -150,9 +122,6 @@ impl crate::ui::specimen::Specimen for SidebarRail {
         self.render_rail(area, buf, ctx, bg);
     }
 }
-
-
-
 
 impl crate::core::pointer::MouseTarget for SidebarRail {
     type Action = RailAction;

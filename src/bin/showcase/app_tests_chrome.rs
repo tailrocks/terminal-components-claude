@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -69,7 +64,6 @@ impl Harness {
         s
     }
 
-
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         for y in 0..buf.area.height {
@@ -110,7 +104,6 @@ impl Harness {
             .state_rows()
             .to_vec()
     }
-
 
     fn row_of(&self, needle: &str) -> String {
         let (_, y) = self.find(needle).unwrap_or_else(|| panic!("{needle:?}"));
@@ -288,7 +281,6 @@ fn hint_bar_states_are_drawn_by_the_layer() {
     assert!(text.contains("Pinned F5"));
 }
 
-
 #[test]
 fn print_chrome_and_status_hints() {
     if std::env::var("PRINT_PAGES").is_err() {
@@ -305,10 +297,7 @@ fn print_chrome_and_status_hints() {
     }
 }
 
-
-
 impl Harness {
-
     fn age(&mut self, ms: u64) {
         let origin = self.app.clock.origin() - std::time::Duration::from_millis(ms);
         self.app.clock = junie_tui::clock::WallClock::with_origin(origin);
@@ -327,7 +316,6 @@ impl Harness {
         self.app.shell.status.text().map(str::to_owned)
     }
 
-
     fn spinner(&self) -> String {
         let (x, y) = self.find("Indexing").expect("the motion demo");
         self.term.backend().buffer()[(x - 2, y)].symbol().to_owned()
@@ -340,9 +328,6 @@ impl Harness {
             .and_then(|p| p.job())
     }
 }
-
-
-
 
 #[test]
 fn status_buttons_post_to_the_footer_and_only_information_expires() {
@@ -379,9 +364,6 @@ fn status_buttons_post_to_the_footer_and_only_information_expires() {
     );
 }
 
-
-
-
 #[test]
 fn reduced_motion_keeps_the_spinner_still_while_the_job_advances() {
     for (motion, turns, advances) in [
@@ -412,7 +394,6 @@ fn reduced_motion_keeps_the_spinner_still_while_the_job_advances() {
     }
 }
 
-
 #[test]
 fn too_small_and_centred_hints_follow_their_builders() {
     let mut h = Harness::new(220, 80, PageId::StatusHints);
@@ -433,7 +414,6 @@ fn too_small_and_centred_hints_follow_their_builders() {
     let centred = h.row_of("Theme::centred_hints").find("↑↓").unwrap();
     assert!(centred > start, "the preset centres the hints");
 }
-
 
 #[test]
 fn the_common_command_line_is_read_from_clap() {

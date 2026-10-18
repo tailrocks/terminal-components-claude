@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::widgets::tree::TreeNode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

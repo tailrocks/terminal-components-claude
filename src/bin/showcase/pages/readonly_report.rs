@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -36,9 +27,7 @@ const COPY: WidgetId = ID.sub("copy");
 const NEXT_DISK: WidgetId = ID.sub("next-disk");
 const NEXT_ACTIVITY: WidgetId = ID.sub("next-activity");
 
-
 const REFRESH_TICKS: u16 = 16;
-
 
 const LOAD: [(&str, u8, &str); 5] = [
     ("CPU", 23, "8 cores · load 1.84 1.62 1.40"),
@@ -47,7 +36,6 @@ const LOAD: [(&str, u8, &str); 5] = [
     ("Disk /", 62, "310 of 500 GB"),
     ("Disk /Volumes/Backup", 97, "1.94 of 2 TB"),
 ];
-
 
 fn facts(copyable: bool) -> Vec<Prop> {
     let rows = [
@@ -110,8 +98,6 @@ impl ReadOnlyReportPage {
     fn offline(&self) -> bool {
         self.opts.on("readonlyreport.offline")
     }
-
-
 
     fn meta(&self) -> &'static str {
         if self.refreshing > 0 {
@@ -179,7 +165,6 @@ impl ReadOnlyReportPage {
         }
         v
     }
-
 
     fn report_text(&self) -> String {
         let mut s = format!("Host snapshot ({})\n", self.meta());
@@ -315,8 +300,6 @@ impl ReadOnlyReportPage {
         }
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

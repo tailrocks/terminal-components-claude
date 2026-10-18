@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -16,8 +10,6 @@ fn typed(h: &mut Harness, s: &str) {
         h.key(KeyCode::Char(c));
     }
 }
-
-
 
 const DISK: WidgetId = WidgetId::of("diskcleanup");
 
@@ -54,7 +46,6 @@ fn disk_cleanup_checklist_counts_and_skips_the_category_in_use() {
 
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("3 of 10 · 8.1 GiB"), "{}", h.text());
-
 
     for _ in 0..12 {
         h.key(KeyCode::Down);
@@ -196,7 +187,6 @@ fn disk_cleanup_states_rows_render() {
 fn disk_cleanup_tab_order_runs_tree_details_then_checklist() {
     let mut h = Harness::new(120, 40, PageId::DiskCleanup);
 
-
     for _ in 0..4 {
         h.key(KeyCode::Tab);
     }
@@ -204,8 +194,6 @@ fn disk_cleanup_tab_order_runs_tree_details_then_checklist() {
     h.key(KeyCode::Char('d'));
     assert!(h.text().contains("gate 1 of 2"), "{}", h.text());
 }
-
-
 
 const ACT: WidgetId = WidgetId::of("activity");
 
@@ -308,8 +296,6 @@ fn activity_states_rows_render() {
         assert!(text.contains(needle), "{needle}: {text}");
     }
 }
-
-
 
 const WS: WidgetId = WidgetId::of("workspaces");
 

@@ -1,8 +1,3 @@
-
-
-
-
-
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
@@ -71,9 +66,7 @@ const KEYWORDS: &[&str] = &[
     "Self", "static", "struct", "trait", "type", "use", "where", "while",
 ];
 
-
 const LITERALS: &[&str] = &["true", "false"];
-
 
 const CANDIDATES: &[(&str, &str, &str)] = &[
     ("fetch(", "async fn (url: &str) -> Result<Body, Error>", "ƒ"),
@@ -175,7 +168,6 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
     out
 }
 
-
 fn blocks(src: &str) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     let mut start: Option<usize> = None;
@@ -212,8 +204,6 @@ pub struct EditorPage {
     last_ms: Option<u32>,
 }
 
-
-
 fn custom_keymap() -> KeyMap<CodeCmd> {
     vec![
         (KeyBinding::key(KeyCode::Enter), CodeCmd::Edit),
@@ -242,8 +232,6 @@ impl EditorPage {
         page.rebuild();
         page
     }
-
-
 
     fn rebuild(&mut self) {
         let o = &self.opts;
@@ -329,12 +317,10 @@ impl EditorPage {
             });
     }
 
-
     #[cfg(test)]
     pub fn text(&self) -> &str {
         self.editor.text()
     }
-
 
     fn word_before_cursor(&self) -> (usize, String) {
         let cur = self.editor.cursor_offset();
@@ -441,8 +427,6 @@ impl EditorPage {
         let bg = panel.bg(t);
         let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(26)), buf, t);
         self.editor.render(inner, buf, ctx, bg);
-
-
 
         let widths = [self.find.width(), self.run_button.width()];
         let rects =
@@ -560,16 +544,12 @@ impl EditorPage {
             }
         }
 
-
         if self.completion.is_open() {
             let screen = *buf.area();
             self.completion.render(screen, buf, ctx);
         }
     }
 }
-
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

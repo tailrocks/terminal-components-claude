@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use std::collections::{BTreeSet, HashMap};
 
 use ratatui::buffer::Buffer;
@@ -37,8 +28,6 @@ use crate::widgets::option_editor::{
 use crate::widgets::scrollbar;
 use crate::widgets::table::SortDir;
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum CellValue {
     Null,
@@ -55,7 +44,6 @@ impl CellValue {
     pub fn text(&self) -> String {
         self.text_ref().into_owned()
     }
-
 
     pub fn text_ref(&self) -> std::borrow::Cow<'_, str> {
         match self {
@@ -75,7 +63,6 @@ impl CellValue {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CellKind {
@@ -118,11 +105,7 @@ pub struct ColumnSpec {
     pub min_width: u16,
     pub max_width: u16,
 
-
-
-
     pub type_label: String,
-
 
     pub editor: ColumnEditor,
 }
@@ -191,8 +174,6 @@ pub struct GridRows {
     pub more: bool,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum UndoAction {
     Cell {
@@ -208,8 +189,6 @@ pub enum UndoAction {
         row: usize,
     },
 }
-
-
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PendingChanges {
@@ -268,10 +247,7 @@ pub struct EditState {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GridAction {
-    CellChanged {
-        row: usize,
-        col: usize,
-    },
+    CellChanged { row: usize, col: usize },
     RowInserted(usize),
     RowDeleted(usize),
     SortRequested(Option<(usize, SortDir)>),
@@ -281,40 +257,19 @@ pub enum GridAction {
     DiscardRequested,
     PreviewSql,
     Copy(String),
-    FollowReference {
-        row: usize,
-        col: usize,
-    },
-    OpenViewer {
-        row: usize,
-        col: usize,
-    },
-    FilterOnCell {
-        col: usize,
-        value: CellValue,
-    },
+    FollowReference { row: usize, col: usize },
+    OpenViewer { row: usize, col: usize },
+    FilterOnCell { col: usize, value: CellValue },
     OpenFilters,
     ClearFilters,
     Activated(usize),
     LeaveForward,
     LeaveBackward,
 
-
-
-
-    ReadOnly {
-        reason: String,
-    },
+    ReadOnly { reason: String },
 }
 
-
-
-
-
-
-
 pub type CellParser = Validator<CellValue, ColumnSpec>;
-
 
 pub fn cell_validator(
     f: impl Fn(&ColumnSpec, &str) -> Result<CellValue, String> + 'static,
@@ -323,9 +278,6 @@ pub fn cell_validator(
         f(spec, text).map_err(FieldError::from)
     })
 }
-
-
-
 
 fn parse_cell(parser: &CellParser, spec: &ColumnSpec, text: &str) -> Result<CellValue, FieldError> {
     if text.is_empty() {
@@ -395,12 +347,8 @@ pub fn default_validator(col: &ColumnSpec, text: &str) -> Result<CellValue, Stri
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GridDrag {
-
     Cells(WidgetId),
 
     Rows {
@@ -412,7 +360,6 @@ enum GridDrag {
 
 #[derive(Debug, Clone)]
 pub struct DataGrid {
-
     parts: PartMap,
     pub id: WidgetId,
     pub columns: Vec<ColumnSpec>,
@@ -428,24 +375,17 @@ pub struct DataGrid {
 
     anchor: Option<(usize, usize)>,
 
-
     pub selection: RowSelection,
     pub pending: PendingChanges,
     undo: Vec<UndoAction>,
-
 
     pub scroll: ScrollPane,
     pub edit: Option<EditState>,
     pub editable: bool,
 
-
-
-
     pub click: ClickPolicy,
 
-
     pub toggle_mods: KeyModifiers,
-
 
     pub blur_action: BlurAction,
     pub read_only_reason: Option<String>,
@@ -458,10 +398,8 @@ pub struct DataGrid {
     pub area: Rect,
     body: Rect,
 
-
     drag: Option<GridDrag>,
     widths: Vec<u16>,
-
 
     pub sizing: ColumnSizing,
 
@@ -470,64 +408,41 @@ pub struct DataGrid {
     show_bar: bool,
     bar: [Button; 3],
 
-
-
     strings: crate::theme::Strings,
-
 
     pub reveal: Option<crate::ui::reveal::Reveal>,
 
-
     pub horizontal: Option<HScroll>,
 
-
-
     pub overflow_badges: bool,
-
-
 
     pub nav: NavKeys,
 
     pub keymap: KeyMap<GridCmd>,
 
-
-
     pub type_ahead: bool,
-
 
     pub type_ahead_column: Option<usize>,
 
-
-
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     typeahead: crate::core::typeahead::TypeAhead,
-
-
-
 
     pub width_sample_rows: usize,
 
     pub choice: Option<GridChoice>,
 
-
     pub editor_config: EditorConfig,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct GridChoice {
-
     pub row: usize,
     pub col: usize,
     pub editor: ChoiceEditor,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GridCmd {
-
-
     ClearCell,
 
     ToggleDelete,
@@ -535,7 +450,6 @@ pub enum GridCmd {
     InsertRow,
 
     DuplicateRow,
-
 
     Copy,
 
@@ -546,7 +460,6 @@ pub enum GridCmd {
     Sort,
 
     ClearSort,
-
 
     FilterOnCell,
 
@@ -563,8 +476,6 @@ pub enum GridCmd {
     PreviewSql,
 
     FollowReference,
-
-
 
     SelectAll,
 }
@@ -621,8 +532,6 @@ impl Actions for GridCmd {
         ]
     }
 }
-
-
 
 pub const DEFAULT_WIDTH_SAMPLE_ROWS: usize = 200;
 
@@ -690,17 +599,14 @@ impl DataGrid {
         }
     }
 
-
     pub fn editor_config(mut self, cfg: EditorConfig) -> Self {
         self.editor_config = cfg;
         self
     }
 
-
     pub fn choice_id(&self) -> WidgetId {
         self.id.sub("choice")
     }
-
 
     pub fn open_id(&self, display: usize, col: usize) -> WidgetId {
         self.cell_id(display, col).part(PartRef::of(Part::ACTIONS))
@@ -709,8 +615,6 @@ impl DataGrid {
     fn locate_open(&self, id: WidgetId) -> Option<(usize, usize)> {
         self.parts.cell(id, Part::ACTIONS)
     }
-
-
 
     pub fn out_of_set(&self, src: usize, col: usize) -> bool {
         let Some(spec) = self.columns.get(col) else {
@@ -721,8 +625,6 @@ impl DataGrid {
             _ => false,
         }
     }
-
-
 
     fn apply_choice(
         &mut self,
@@ -740,8 +642,6 @@ impl DataGrid {
         self.record_cell(src, col, parsed);
         Ok(GridAction::CellChanged { row: src, col })
     }
-
-
 
     fn next_writable(&self, backward: bool) -> Result<usize, GridAction> {
         let n = self.columns.len();
@@ -763,7 +663,6 @@ impl DataGrid {
             }
         }
     }
-
 
     fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<GridAction> {
         let (value, tab) = match r? {
@@ -798,20 +697,15 @@ impl DataGrid {
         }
     }
 
-
-
-
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
         self
     }
 
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
     }
-
 
     pub fn type_ahead_precedence(
         mut self,
@@ -821,18 +715,15 @@ impl DataGrid {
         self
     }
 
-
     pub fn type_ahead_column(mut self, col: Option<usize>) -> Self {
         self.type_ahead_column = col;
         self
     }
 
-
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
-
 
     fn follow_strings(&mut self, s: crate::theme::Strings) {
         use crate::theme::Strings;
@@ -851,14 +742,10 @@ impl DataGrid {
         }
     }
 
-
     pub fn overflow_badges(mut self, on: bool) -> Self {
         self.overflow_badges = on;
         self
     }
-
-
-
 
     pub fn bar_labels(mut self, labels: [&str; 3]) -> Self {
         for (b, l) in self.bar.iter_mut().zip(labels) {
@@ -867,12 +754,10 @@ impl DataGrid {
         self
     }
 
-
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.empty = state;
         self
     }
-
 
     pub fn validator(
         mut self,
@@ -887,21 +772,15 @@ impl DataGrid {
         self
     }
 
-
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.click = policy;
         self
     }
 
-
     pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
         self.toggle_mods = mods;
         self
     }
-
-
-
-
 
     pub fn duplicate_keys(mut self, keys: &[Key]) -> Self {
         self.keymap.retain(|(_, a)| *a != GridCmd::DuplicateRow);
@@ -912,47 +791,35 @@ impl DataGrid {
         self
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<GridCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-
-
-
     pub fn width_sample_rows(mut self, rows: usize) -> Self {
         self.width_sample_rows = rows;
         self
     }
-
-
 
     pub fn resizable_columns(mut self, on: bool) -> Self {
         self.sizing.resizable = on;
         self
     }
 
-
-
     pub fn seam_hit_w(mut self, cells: u16) -> Self {
         self.sizing.seam_w = cells.max(1);
         self
     }
 
-
     fn col_w(&self, c: usize) -> u16 {
         self.sizing
             .width(c, self.widths.get(c).copied().unwrap_or(0))
     }
-
-
 
     pub fn autofit(&mut self, c: usize) {
         let Some(col) = self.columns.get(c) else {
@@ -976,8 +843,6 @@ impl DataGrid {
         self.sizing.set(c, need.min(cap) as u16);
     }
 
-
-
     pub fn header_menu(&self, c: usize) -> Vec<(HeaderAction, crate::widgets::menu::MenuItem)> {
         let sortable = self.columns.get(c).is_some_and(|col| col.sortable);
         let sorted = self.sort.and_then(|(sc, d)| (sc == c).then_some(d));
@@ -989,7 +854,6 @@ impl DataGrid {
             !self.sizing.is_default(),
         )
     }
-
 
     pub fn on_header_action(
         &mut self,
@@ -1010,8 +874,6 @@ impl DataGrid {
             }
         }
     }
-
-
 
     pub fn len(&self) -> usize {
         self.rows.len()
@@ -1035,7 +897,6 @@ impl DataGrid {
         })
     }
 
-
     pub fn set_rows(&mut self, data: GridRows) {
         self.rows = data.rows;
         self.total = data.total;
@@ -1058,7 +919,6 @@ impl DataGrid {
         self.scroll.set_content(self.content_rows());
         self.scroll.ensure_visible(self.cursor.0);
     }
-
 
     pub fn append_rows(&mut self, data: GridRows) {
         let start = self.rows.len();
@@ -1087,7 +947,6 @@ impl DataGrid {
                 let header = width(&c.name) as u16 + if c.primary { 2 } else { 0 } + 2;
 
                 let max = c.max_width.max(header.min(24));
-
 
                 let mut ws: Vec<usize> = self
                     .rows
@@ -1119,9 +978,6 @@ impl DataGrid {
         self.row_state_with(src, |src| self.pending.cells.keys().any(|(r, _)| *r == src))
     }
 
-
-
-
     fn row_state_with(&self, src: usize, edited: impl Fn(usize) -> bool) -> RowState {
         if self.row_errors.contains_key(&src) {
             RowState::Error
@@ -1136,17 +992,12 @@ impl DataGrid {
         }
     }
 
-
-
     pub fn is_editing(&self) -> bool {
         if self.choice.is_some() {
             return true;
         }
         self.edit.is_some()
     }
-
-
-
 
     fn edit_offset(&self, pos: Position) -> Option<usize> {
         let e = self.edit.as_ref()?;
@@ -1175,8 +1026,6 @@ impl DataGrid {
         self.order.get(self.cursor.0).copied()
     }
 
-
-
     pub fn read_only_reason_at_cursor(&self) -> Option<String> {
         let src = self.cursor_src()?;
         if !self.editable {
@@ -1194,8 +1043,6 @@ impl DataGrid {
             None
         }
     }
-
-
 
     pub fn cell_editable(&self) -> bool {
         self.editable
@@ -1215,7 +1062,6 @@ impl DataGrid {
         if let Some(reason) = self.read_only_reason_at_cursor() {
             return (Outcome::Changed, Some(GridAction::ReadOnly { reason }));
         }
-
 
         self.scroll.ensure_visible(self.cursor.0);
         self.ensure_col_visible();
@@ -1270,7 +1116,6 @@ impl DataGrid {
         }
         let mut field = EditField::single(v.edit_text());
 
-
         let (parser, spec) = (self.validator.clone(), self.columns[col].clone());
         field.validator = Some(Validator::new(move |text| {
             parse_cell(&parser, &spec, text).map(|_| ())
@@ -1306,10 +1151,6 @@ impl DataGrid {
         self.edit.take().is_some()
     }
 
-
-
-
-
     pub fn on_blur(&mut self) -> (Outcome, Option<GridAction>) {
         if let Some(c) = &self.choice {
             let r = match self.editor_config.blur {
@@ -1334,7 +1175,6 @@ impl DataGrid {
             BlurAction::Keep => (Outcome::Ignored, None),
         }
     }
-
 
     pub fn record_cell(&mut self, src: usize, col: usize, value: CellValue) {
         let before = self.pending.cells.get(&(src, col)).cloned();
@@ -1362,7 +1202,6 @@ impl DataGrid {
             return None;
         }
         if self.pending.inserted.contains(&src) {
-
             self.remove_inserted(src);
             return Some(GridAction::RowDeleted(src));
         }
@@ -1432,8 +1271,6 @@ impl DataGrid {
         Some(GridAction::RowInserted(src))
     }
 
-
-
     pub fn duplicate_row(&mut self) -> Option<GridAction> {
         let src = self.cursor_src()?;
         if !self.editable {
@@ -1487,11 +1324,9 @@ impl DataGrid {
         true
     }
 
-
     pub fn apply_commit_result(&mut self, result: Result<(), (usize, String)>) {
         match result {
             Ok(()) => {
-
                 for ((r, c), v) in self.pending.cells.drain() {
                     if let Some(row) = self.rows.get_mut(r)
                         && let Some(cell) = row.get_mut(c)
@@ -1532,8 +1367,6 @@ impl DataGrid {
         self.row_errors.clear();
     }
 
-
-
     fn set_cursor(&mut self, row: usize, col: usize, extend: bool) {
         let n = self.content_rows();
         let row = row.min(n.saturating_sub(1));
@@ -1550,18 +1383,14 @@ impl DataGrid {
         self.ensure_col_visible();
     }
 
-
-
     fn point_cursor(&mut self, row: usize, col: usize, extend: bool) {
         self.scroll.pointer_move();
         self.set_cursor(row, col, extend);
     }
 
     fn ensure_col_visible(&mut self) {
-
         self.scroll.reveal_column(self.cursor.1);
     }
-
 
     fn in_range(&self, row: usize, col: usize) -> bool {
         let Some(a) = self.anchor else {
@@ -1575,8 +1404,6 @@ impl DataGrid {
     fn on_more_row(&self) -> bool {
         self.more && self.cursor.0 == self.rows.len()
     }
-
-
 
     pub fn has_selection(&self) -> bool {
         self.anchor.is_some() || !self.selection.is_empty()
@@ -1698,8 +1525,6 @@ impl DataGrid {
         let ctrl = key.ctrl();
         let n_rows = self.content_rows();
         if n_rows == 0 {
-
-
             return match lookup(&self.keymap, key) {
                 Some(GridCmd::InsertRow) if self.editable => (Outcome::Changed, self.insert_row()),
                 Some(GridCmd::Refresh) => (Outcome::Changed, Some(GridAction::Refresh)),
@@ -1733,14 +1558,11 @@ impl DataGrid {
             return (moved.outcome(), None);
         }
 
-
         let copy = (key.ctrl_char('c') && self.has_selection()).then_some(GridCmd::Copy);
         if let Some(action) = lookup(&self.keymap, key).or(copy) {
             return self.on_action(action);
         }
         if let Some(nav) = self.nav.action(key) {
-
-
             let letter = matches!(key.code, KeyCode::Char(_));
             let rows = RowFn {
                 len: n_rows,
@@ -1778,8 +1600,6 @@ impl DataGrid {
                     return (Outcome::Changed, Some(GridAction::FetchMore));
                 }
                 if !self.editable {
-
-
                     if let Some(reason) = self.read_only_reason_at_cursor() {
                         return (Outcome::Changed, Some(GridAction::ReadOnly { reason }));
                     }
@@ -1809,16 +1629,6 @@ impl DataGrid {
             _ => (Outcome::Ignored, None),
         }
     }
-
-
-
-
-
-
-
-
-
-
 
     pub fn context_items(&self) -> Vec<(GridCmd, crate::widgets::menu::MenuItem)> {
         use crate::ui::context::{ContextCmd, command_items};
@@ -1852,8 +1662,6 @@ impl DataGrid {
         ];
         command_items(&self.keymap, &cmds)
     }
-
-
 
     pub fn run(&mut self, cmd: GridCmd) -> (Outcome, Option<GridAction>) {
         if cmd == GridCmd::InsertRow && !self.editable {
@@ -1978,12 +1786,9 @@ impl DataGrid {
         }
     }
 
-
-
     pub fn header_id(&self, c: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::HEADER, ItemKey::index(c)))
     }
-
 
     pub fn cell_id(&self, display: usize, c: usize) -> WidgetId {
         self.id
@@ -2001,7 +1806,6 @@ impl DataGrid {
     fn seam_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::SEAM, 0..self.columns.len())
     }
-
 
     pub fn header_menu_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
@@ -2027,10 +1831,6 @@ impl DataGrid {
         self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
-
-
-
-
     fn cell_of(&self, id: WidgetId) -> Option<(usize, usize)> {
         self.parts.cell(id, Part::CELL)
     }
@@ -2043,12 +1843,7 @@ impl DataGrid {
         self.parts.index(id, Part::ROW_NUMBER)
     }
 
-
-
-
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
-
-
         if let Some((d, c)) = self.cell_of(id)
             && self
                 .edit
@@ -2078,15 +1873,9 @@ impl DataGrid {
         Outcome::Changed
     }
 
-
     pub fn on_click(&mut self, id: WidgetId, pos: Position) -> (Outcome, Option<GridAction>) {
         self.on_click_with(id, pos, KeyModifiers::NONE, 1)
     }
-
-
-
-
-
 
     pub fn context_selection(&mut self, display: usize, col: usize) {
         if self.anchor.is_some() && self.in_range(display, col) {
@@ -2100,19 +1889,9 @@ impl DataGrid {
         }
     }
 
-
-
     pub fn select_rows(&mut self, g: SelectGesture, display: usize) -> bool {
         self.selection.apply(g, display, &self.order, |_| true)
     }
-
-
-
-
-
-
-
-
 
     pub fn on_click_with(
         &mut self,
@@ -2123,7 +1902,6 @@ impl DataGrid {
     ) -> (Outcome, Option<GridAction>) {
         let count = count.max(1);
         if self.seam_of(id).is_some() {
-
             self.sizing.release();
             return (Outcome::Consumed, None);
         }
@@ -2181,8 +1959,6 @@ impl DataGrid {
             return self.request_sort(next);
         }
         if let Some(d) = self.rownum_of(id) {
-
-
             if let Some(GridDrag::Rows { id: from_id, .. }) = self.drag.take()
                 && from_id == id
             {
@@ -2199,8 +1975,6 @@ impl DataGrid {
         if let Some((d, c)) = self.cell_of(id) {
             if let Some(e) = &self.edit {
                 if self.order.get(d) == Some(&e.row) && e.col == c {
-
-
                     if let Some(at) = self.edit_offset(pos)
                         && let Some(e) = self.edit.as_mut()
                     {
@@ -2277,8 +2051,6 @@ impl DataGrid {
             return self.drag_rows(pressed, row_origin, pos);
         }
 
-
-
         let from_cell = matches!(self.drag, Some(GridDrag::Cells(id)) if id == pressed)
             || self.cell_of(pressed).is_some();
         if !from_cell || self.body.height == 0 {
@@ -2293,14 +2065,10 @@ impl DataGrid {
         Outcome::Ignored
     }
 
-
-
     fn drag_row(&self, y: u16) -> usize {
         let d = self.scroll.offset as isize + (y as isize - self.body.y as isize);
         (d.max(0) as usize).min(self.content_rows().saturating_sub(1))
     }
-
-
 
     pub(crate) fn column_at(&self, x: u16) -> Option<usize> {
         self.col_rects
@@ -2308,8 +2076,6 @@ impl DataGrid {
             .position(|r| x >= r.x && x < r.right())
             .map(|k| self.scroll.h.offset + k)
     }
-
-
 
     fn drag_col(&self, x: u16) -> usize {
         let (Some(first), Some(last)) = (self.col_rects.first(), self.col_rects.last()) else {
@@ -2329,8 +2095,6 @@ impl DataGrid {
         };
         c.min(self.columns.len().saturating_sub(1))
     }
-
-
 
     fn drag_rows(&mut self, pressed: WidgetId, origin: Option<usize>, pos: Position) -> Outcome {
         let d = self.drag_row(pos.y);
@@ -2376,16 +2140,12 @@ impl DataGrid {
         }
     }
 
-
-
-
     pub fn position_label(&self) -> String {
         match self.cols_label() {
             Some(c) => format!("{} · {c}", self.rows_label()),
             None => self.rows_label(),
         }
     }
-
 
     pub fn rows_label(&self) -> String {
         use crate::ui::text::thousands;
@@ -2411,7 +2171,6 @@ impl DataGrid {
         };
         format!("rows {}–{} of {total}", thousands(a), thousands(b))
     }
-
 
     pub fn cols_label(&self) -> Option<String> {
         if self.rows.is_empty() || !self.scroll.h.overflows() {
@@ -2440,8 +2199,6 @@ impl DataGrid {
         Some(parts.join(" · "))
     }
 
-
-
     fn layout_columns(&mut self, area: Rect) {
         let n = self.columns.len();
         let gap = 2u16;
@@ -2461,7 +2218,6 @@ impl DataGrid {
             x += w + gap;
         }
 
-
         let next = self.scroll.h.offset + fit;
         if next < n && x < area.right() {
             let rest = area.right() - x;
@@ -2470,7 +2226,6 @@ impl DataGrid {
             }
         }
     }
-
 
     fn fit_header_marks(&mut self) {
         for ci in 0..self.columns.len() {
@@ -2491,8 +2246,6 @@ impl DataGrid {
             }
         }
     }
-
-
 
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
@@ -2544,8 +2297,6 @@ impl DataGrid {
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.scroll.h_cfg = h_cfg;
 
-
-
         let rows_len = self.content_rows();
         let mut has_sb = body.height > 0 && rows_len > body.height as usize;
 
@@ -2567,8 +2318,6 @@ impl DataGrid {
         };
         self.layout_columns(cols_for(has_sb));
 
-
-
         let has_rows = !self.rows.is_empty() || self.more;
         let has_hb = has_rows && body.height > 1 && h_cfg.shows_bar(&self.scroll.h);
         if has_hb {
@@ -2585,7 +2334,6 @@ impl DataGrid {
         if has_rows {
             ctx.autoscroll(body);
         }
-
 
         let header_y = grid_area.y;
         fill(
@@ -2661,14 +2409,9 @@ impl DataGrid {
                     head,
                 );
             } else if (cut || !col.type_label.is_empty()) && !ctx.inert {
-
-
                 ctx.hits.register_hover(hid, head);
             }
             if !col.type_label.is_empty() {
-
-
-
                 let tip = crate::ui::tooltip::Tip::new(&format!(
                     "{}{}{}",
                     col.name, t.glyphs.separator, col.type_label
@@ -2722,7 +2465,6 @@ impl DataGrid {
             return;
         }
 
-
         let edited_rows: std::collections::HashSet<usize> =
             self.pending.cells.keys().map(|&(r, _)| r).collect();
         let editing_here = self
@@ -2744,7 +2486,6 @@ impl DataGrid {
                 1,
             );
             if d >= self.rows.len() {
-
                 let mid = self.more_id();
                 let mut s = ctx.child_state(self.id, mid, d == self.cursor.0);
                 s.focused = focused && d == self.cursor.0;
@@ -2873,7 +2614,6 @@ impl DataGrid {
                     }
                     let is_cursor = is_cursor || in_choice;
 
-
                     let flagged = cfg.flag_out_of_set && self.out_of_set(src, ci);
                     let err = self.cell_errors.get(&(src, ci));
                     let err = err.or(flagged.then_some(&flagged_msg));
@@ -2888,8 +2628,6 @@ impl DataGrid {
                             Affordance::Always => true,
                             Affordance::Focused => is_cursor || hovered_cell == Some(ci),
                         };
-
-
 
                     let ref_mark = col.references.is_some()
                         && !matches!(v, CellValue::Null | CellValue::Default)
@@ -2908,8 +2646,6 @@ impl DataGrid {
                         }
                         _ => cell_text_with(v, col.kind, text_w, &t.glyphs),
                     };
-
-
 
                     let on = st.bg.unwrap_or(bg);
                     let literal = |st: Style, tone: SyntaxTone| {
@@ -2936,7 +2672,6 @@ impl DataGrid {
                         st = st.patch(t.selection());
                     }
                     if dirty {
-
                         st = st.fg(t.warning).remove_modifier(Modifier::ITALIC);
                     }
                     if err.is_some() {
@@ -2980,7 +2715,6 @@ impl DataGrid {
                         open_marks.push((d, ci, mark));
                     }
 
-
                     let full = v.text_ref();
                     if text != *full {
                         crate::ui::reveal::truncated(
@@ -2990,7 +2724,6 @@ impl DataGrid {
                             Rect::new(rect.x, y, rect.width, 1),
                             &full,
                         );
-
 
                         let cfg = self.reveal.unwrap_or(ctx.reveal);
                         if is_cursor && (cfg.hover || cfg.keyboard.is_some()) {
@@ -3031,8 +2764,6 @@ impl DataGrid {
             c.editor.render(anchor, buf, ctx, &self.editor_config);
         }
 
-
-
         ctx.scrollable(self.id, area);
         if has_sb {
             crate::ui::fade::scroll_edges(
@@ -3050,8 +2781,6 @@ impl DataGrid {
             self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
         if has_hb {
-
-
             let y = body.bottom();
             let right = area.right() - u16::from(has_sb);
             fill(
@@ -3062,7 +2791,6 @@ impl DataGrid {
             let hb = Rect::new(cols_area.x, y, right.saturating_sub(cols_area.x), 1);
             self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
-
 
         if bar_h > 0 {
             let by = area.bottom() - 1;
@@ -3108,7 +2836,6 @@ impl DataGrid {
         [self.bar[0].id, self.bar[1].id, self.bar[2].id]
     }
 
-
     pub fn on_bar_key(&mut self, id: WidgetId, key: &Key) -> (Outcome, Option<GridAction>) {
         for (i, b) in self.bar.iter_mut().enumerate() {
             if b.id == id {
@@ -3146,12 +2873,9 @@ fn cmp_cells(a: &CellValue, b: &CellValue) -> std::cmp::Ordering {
     }
 }
 
-
 pub fn cell_text(v: &CellValue, kind: CellKind, w: usize) -> String {
     cell_text_with(v, kind, w, &crate::theme::Glyphs::UNICODE)
 }
-
-
 
 pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme::Glyphs) -> String {
     match v {
@@ -3160,7 +2884,6 @@ pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme:
         CellValue::Text(s) if s.is_empty() => "''".into(),
         CellValue::Json(j) => {
             if w < 8 {
-
                 if j.trim_start().starts_with('[') {
                     format!("[{}]", g.ellipsis)
                 } else {
@@ -3172,7 +2895,6 @@ pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme:
         }
         CellValue::Text(s) => {
             if kind == CellKind::Id {
-
                 truncate_middle(&sanitized(s, usize::MAX, g).0, w)
             } else {
                 truncate(&shown_prefix(w, |limit| sanitized(s, limit, g)), w)
@@ -3182,12 +2904,7 @@ pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme:
     }
 }
 
-
-
 const TEXT_CELL_CHARS: usize = 10_000;
-
-
-
 
 fn sanitized(s: &str, limit: usize, g: &crate::theme::Glyphs) -> (String, bool) {
     let mut out = String::new();
@@ -3209,8 +2926,6 @@ fn sanitized(s: &str, limit: usize, g: &crate::theme::Glyphs) -> (String, bool) 
     (out, true)
 }
 
-
-
 fn one_line_json(j: &str, limit: usize) -> (String, bool) {
     let mut out = String::new();
     for word in j.split_whitespace() {
@@ -3225,12 +2940,6 @@ fn one_line_json(j: &str, limit: usize) -> (String, bool) {
     (out, true)
 }
 
-
-
-
-
-
-
 fn shown_prefix(w: usize, make: impl Fn(usize) -> (String, bool)) -> String {
     let mut limit = w.saturating_mul(4).saturating_add(64);
     loop {
@@ -3243,7 +2952,6 @@ fn shown_prefix(w: usize, make: impl Fn(usize) -> (String, bool)) -> String {
 }
 
 impl Theme {
-
     pub fn change_glyph(&self, state: RowState) -> (&'static str, Color) {
         match state {
             RowState::Clean => (" ", self.text_faint),
@@ -3254,8 +2962,6 @@ impl Theme {
         }
     }
 }
-
-
 
 pub(crate) fn header_style(
     ctx: &RenderCtx,
@@ -3278,7 +2984,6 @@ pub(crate) fn header_style(
     };
     let st = base.fg(t.legible(ink, base.bg.unwrap_or(bg)));
 
-
     if active {
         st.add_modifier(ratatui::style::Modifier::BOLD)
     } else {
@@ -3300,21 +3005,17 @@ impl Scrollable for DataGrid {
         &mut self.scroll
     }
 
-
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         let c = self.choice.as_mut().filter(|_| axis == Axis::Vertical)?;
         Some(c.editor.wheel(axis, delta))
     }
 }
 
-
-
 impl RowSource for DataGrid {
     fn len(&self) -> usize {
         self.content_rows()
     }
     fn label(&self, _: usize) -> &str {
-
         ""
     }
 }
@@ -3324,13 +3025,6 @@ impl Navigable for DataGrid {
         Cursor::new(self.cursor.0)
     }
 }
-
-
-
-
-
-
-
 
 impl crate::core::pointer::MouseTarget for DataGrid {
     type Action = GridAction;
@@ -3357,7 +3051,6 @@ impl crate::core::pointer::MouseTarget for DataGrid {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
 
-
         if let Some(c) = self.choice.as_mut()
             && ev.on(c.editor.id)
             && ev.wheel().is_none()
@@ -3365,7 +3058,6 @@ impl crate::core::pointer::MouseTarget for DataGrid {
             let (out, r) = c.editor.pointer(ev).into_parts();
             return (out, self.on_choice(r)).into();
         }
-
 
         if (ev.on(self.id) || ev.wheel().is_some())
             && let Some(r) = crate::core::pointer::scroll_input(self, ev)
@@ -3560,11 +3252,6 @@ mod tests {
         assert!(g.pending.is_empty());
     }
 
-
-
-
-
-
     #[test]
     fn a_cell_edit_rechecks_after_an_error_undoes_and_flattens_pastes() {
         let ctrl = |c| Key {
@@ -3697,11 +3384,9 @@ mod tests {
             .collect()
     }
 
-
     fn thumb_x(buf: &Buffer, y: u16) -> Option<u16> {
         (0..buf.area.width).find(|&x| buf[(x, y)].symbol() == scrollbar::H_THUMB)
     }
-
 
     fn hit_x(hits: &HitRegistry, y: u16, w: u16, id: WidgetId) -> Option<u16> {
         (0..w).find(|&x| hits.hit(Position::new(x, y)) == Some(id))
@@ -3749,8 +3434,6 @@ mod tests {
 
     #[test]
     fn a_reference_arrow_never_covers_the_value() {
-
-
         let cols = vec![
             ColumnSpec::new("account_id", CellKind::Number).references("accounts"),
             ColumnSpec::new("owner", CellKind::Text).references("users"),
@@ -3899,9 +3582,6 @@ mod tests {
         assert!(all.contains(long), "{all}");
     }
 
-
-
-
     #[test]
     fn a_column_type_label_is_its_header_tooltip() {
         let long = "customer_lifetime_value_in_reporting_currency";
@@ -3964,7 +3644,6 @@ mod tests {
         let (start, len) = g.scroll.thumb(track.height as usize);
         assert!(len >= 2 && start == 0, "{start} {len}");
 
-
         g.on_drag(bar, Position::new(track.x, track.y + 1));
         g.on_drag(bar, Position::new(track.x, track.y + 3));
         let (moved, _) = g.scroll.thumb(track.height as usize);
@@ -3998,12 +3677,10 @@ mod tests {
             "rows are not drawn over"
         );
 
-
         assert_eq!(g.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
         assert_eq!(g.scroll.h.offset, 1);
         let (buf, _) = render_at(&mut g, area, Interaction::default());
         assert!(thumb_x(&buf, y) > Some(g.scroll.h_track().x));
-
 
         let grab = Position::new(thumb_x(&buf, y).unwrap(), y);
         let (out, _) = g.on_click(scrollbar::h_id_for(g.id), grab);
@@ -4043,7 +3720,6 @@ mod tests {
         let mut off = wide_grid().horizontal(HScroll::off());
         render_at(&mut off, area, Interaction::default());
         assert_eq!(off.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
-
 
         let mut fits = grid();
         let (buf, _) = render_at(&mut fits, Rect::new(0, 0, 80, 8), Interaction::default());
@@ -4219,9 +3895,6 @@ mod tests {
         assert_eq!(g.row_state(g.source_row(0)), RowState::Modified);
     }
 
-
-
-
     #[test]
     fn the_cursor_inside_a_range_takes_its_own_fill() {
         let mut g = grid();
@@ -4313,7 +3986,6 @@ mod tests {
         assert_eq!(g.row_state(0), RowState::Error);
     }
 
-
     fn cell_text_reference(v: &CellValue, kind: CellKind, w: usize) -> String {
         match v {
             CellValue::Null => "NULL".into(),
@@ -4393,8 +4065,6 @@ mod tests {
             }
         }
     }
-
-
 
     #[test]
     fn cell_text_reads_a_prefix_bounded_by_the_cell_width() {
@@ -4488,15 +4158,12 @@ mod tests {
         assert!(!draw(Some(grid().cell_id(1, 1))).contains(long));
     }
 
-
     fn holding(id: WidgetId) -> Interaction {
         Interaction {
             pressed: Some(id),
             ..Interaction::default()
         }
     }
-
-
 
     #[test]
     fn a_double_click_edits_a_cell_and_one_click_never_does() {
@@ -4519,9 +4186,6 @@ mod tests {
         again.on_click(cell, at);
         assert!(again.edit.is_some());
     }
-
-
-
 
     #[test]
     fn row_numbers_and_cells_take_the_click_modifiers() {
@@ -4552,8 +4216,6 @@ mod tests {
         assert_eq!(g.cursor, (3, 2));
     }
 
-
-
     #[test]
     fn a_right_click_outside_the_range_ends_it() {
         use crate::ui::context::ContextSource;
@@ -4580,9 +4242,6 @@ mod tests {
         g.context_select((5, 0));
         assert_eq!(g.selection.to_vec(), vec![5]);
     }
-
-
-
 
     #[test]
     fn a_right_click_offers_the_grid_commands_from_its_key_map() {
@@ -4676,7 +4335,6 @@ mod tests {
             "the rows are the autoscroll body"
         );
 
-
         let below = Position::new(g.col_rects[1].x, g.body.bottom());
         let mut last = g.cursor.0;
         for _ in 0..5 {
@@ -4707,12 +4365,10 @@ mod tests {
         );
         assert_eq!(g.selection.to_vec(), [0, 1, 2]);
 
-
         g.on_drag(origin, Position::new(gutter_x, g.body.y));
         let (out, _) = g.on_click(origin, Position::new(gutter_x, g.body.y));
         assert_eq!(out, Outcome::Changed);
         assert!(g.selection.contains(0), "{:?}", g.selection);
-
 
         render_at(&mut g, area, Interaction::default());
         let origin = g.rownum_id(3);
@@ -4729,7 +4385,6 @@ mod tests {
 #[cfg(test)]
 #[path = "grid_choice_tests.rs"]
 mod choice_tests;
-
 
 #[cfg(test)]
 mod select_all_tests {
@@ -4761,8 +4416,6 @@ mod select_all_tests {
         }
     }
 }
-
-
 
 #[cfg(test)]
 mod cmd_copy_tests {

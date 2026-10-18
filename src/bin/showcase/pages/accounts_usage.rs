@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
@@ -44,7 +34,6 @@ const REFRESH: WidgetId = ID.sub("refresh");
 const DEFAULT: WidgetId = ID.sub("default");
 const USAGE: WidgetId = ID.sub("usage");
 
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Health {
     Ok,
@@ -54,7 +43,6 @@ enum Health {
     Broken,
     Disabled,
 }
-
 
 struct Account {
     name: &'static str,
@@ -161,7 +149,6 @@ const ACCOUNTS: [Account; 5] = [
     },
 ];
 
-
 fn account_at(path: &[usize]) -> Option<&'static Account> {
     let [p, a] = path else { return None };
     ACCOUNTS
@@ -236,7 +223,6 @@ impl AccountsUsagePage {
         page
     }
 
-
     fn rebuild(&mut self) {
         self.md = MasterDetail::new(TREE, INSPECTOR)
             .collapse_below(80)
@@ -245,8 +231,6 @@ impl AccountsUsagePage {
             .summary_rows(1)
             .resizable(Split::new(40, 26, 44));
     }
-
-
 
     fn frame_width(&self, avail: u16) -> u16 {
         self.opts
@@ -264,7 +248,6 @@ impl AccountsUsagePage {
             .map(<[usize]>::to_vec)
             .unwrap_or_default()
     }
-
 
     fn sync_inspector(&mut self) {
         let path = self.cursor_path();
@@ -581,8 +564,6 @@ fn usage_table() -> DataTable {
     .numeric(&[2, 3, 4])
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))
@@ -617,7 +598,6 @@ fn states_grid() -> StateGrid {
             Notice::error("The API key was revoked").detail("401 invalid_api_key"),
         )
 }
-
 
 fn page_hint(h: junie_tui::widgets::keyhint::Hint) -> Hint {
     let action = match h.action {

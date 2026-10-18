@@ -1,6 +1,3 @@
-
-
-
 use std::collections::BTreeMap;
 
 use junie_tui::ui::text::plural;
@@ -51,7 +48,6 @@ impl QuotaStatus {
         }
     }
 
-
     pub fn from_pct(used_pct: u8) -> Self {
         if used_pct >= 100 {
             QuotaStatus::Exhausted
@@ -92,7 +88,6 @@ impl WindowUnit {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QuotaWindow {
-
     pub id: &'static str,
     pub label: String,
     pub category: WindowCategory,
@@ -189,7 +184,6 @@ impl QuotaWindow {
         self.used_pct.map(|p| 100 - p)
     }
 
-
     pub fn value_label(&self) -> String {
         match (self.used, self.limit, self.used_pct, self.status) {
             (_, _, _, QuotaStatus::NotStarted) => "not started".into(),
@@ -254,7 +248,6 @@ impl FreshnessInfo {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUsage {
     pub freshness: FreshnessInfo,
@@ -284,8 +277,6 @@ impl AccountUsage {
             })
     }
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HealthWord {
@@ -355,8 +346,6 @@ pub struct OverallSummary {
 }
 
 impl OverallSummary {
-
-
     pub fn compute(accounts: &[Account]) -> Self {
         let mut counts = OverallCounts {
             accounts: accounts.len(),
@@ -511,7 +500,6 @@ impl OverallSummary {
         }
     }
 
-
     pub fn counts_line(&self) -> String {
         let c = &self.counts;
         let mut parts = vec![plural(c.accounts, "account", "accounts")];
@@ -523,16 +511,10 @@ impl OverallSummary {
         parts.join(" · ")
     }
 
-
     pub fn issues_line(&self) -> String {
         let parts: Vec<String> = self.issue_parts().into_iter().map(|(p, _)| p).collect();
         parts.join(" · ")
     }
-
-
-
-
-
 
     pub fn issue_parts(&self) -> Vec<(String, junie_tui::theme::Tone)> {
         use junie_tui::theme::Tone;

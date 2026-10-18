@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::RefCell;
 
 use crate::core::edit::clipboard;
@@ -23,36 +9,26 @@ thread_local! {
     static OUT: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Copied {
-
     Copied { chars: usize },
 
     Unsupported,
-
 
     TooLarge { encoded: usize, limit: usize },
 }
 
 impl Copied {
-
     pub fn ok(&self) -> bool {
         matches!(self, Self::Copied { .. })
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Clipboard {
-
-
     pub osc52: bool,
 
-
     pub limit: usize,
-
-
 
     pub write: bool,
 }
@@ -64,8 +40,6 @@ impl Default for Clipboard {
 }
 
 impl Clipboard {
-
-
     pub const DEFAULT_LIMIT: usize = 100_000;
 
     pub const fn new() -> Self {
@@ -76,32 +50,25 @@ impl Clipboard {
         }
     }
 
-
     pub const fn osc52(mut self, on: bool) -> Self {
         self.osc52 = on;
         self
     }
-
 
     pub const fn limit(mut self, bytes: usize) -> Self {
         self.limit = bytes;
         self
     }
 
-
     pub const fn write(mut self, on: bool) -> Self {
         self.write = on;
         self
     }
 
-
-
     pub fn copy(&self, text: &str) -> Copied {
         clipboard::copy(text);
         self.system(text)
     }
-
-
 
     fn system(&self, text: &str) -> Copied {
         if !self.osc52 {
@@ -122,15 +89,11 @@ impl Clipboard {
         }
     }
 
-
     pub fn install(self) {
         clipboard::set_hook(move |t| {
             self.system(t);
         });
     }
-
-
-
 
     pub fn report(result: &Copied, text: &str, what: Option<&str>) -> (String, Tone) {
         match result {
@@ -161,11 +124,9 @@ impl Clipboard {
     }
 }
 
-
 pub fn take_output() -> Vec<String> {
     OUT.with(|o| std::mem::take(&mut *o.borrow_mut()))
 }
-
 
 pub fn osc52(text: &str) -> String {
     format!("\x1b]52;c;{}\x07", base64(text.as_bytes()))
@@ -224,7 +185,6 @@ mod tests {
             ("Copied 5 characters · héllo", Tone::Secondary)
         );
 
-
         let c = Clipboard::new().limit(8);
         let r = c.copy("0123456789");
         assert_eq!(
@@ -243,7 +203,6 @@ mod tests {
         );
         assert_eq!(Clipboard::new().osc52(false).copy("x"), Copied::Unsupported);
         assert!(take_output().is_empty());
-
 
         assert!(Clipboard::new().write(false).copy("x").ok());
         assert!(take_output().is_empty());

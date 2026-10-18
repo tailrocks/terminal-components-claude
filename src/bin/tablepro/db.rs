@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Engine {
     Postgres,
@@ -29,11 +22,8 @@ impl Engine {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SafeMode {
-
     Silent,
 
     Alert,
@@ -67,7 +57,6 @@ impl SafeMode {
             SafeMode::ReadOnly => "Read-Only",
         }
     }
-
 
     pub fn token(self) -> &'static str {
         match self {
@@ -121,8 +110,6 @@ impl Environment {
             Environment::Production => "production",
         }
     }
-
-
 
     pub fn kind(self) -> junie_tui::theme::EnvKind {
         use junie_tui::theme::EnvKind;
@@ -749,8 +736,6 @@ impl Catalog {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Null,
@@ -786,7 +771,6 @@ impl Value {
         }
     }
 }
-
 
 #[derive(Clone)]
 struct Rng(u64);
@@ -928,7 +912,6 @@ fn timestamp(r: &mut Rng, year: i32) -> String {
 fn date(r: &mut Rng, year: i32) -> String {
     format!("{year}-{:02}-{:02}", 1 + r.below(12), 1 + r.below(28))
 }
-
 
 pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
     let mut out = Vec::with_capacity(n);

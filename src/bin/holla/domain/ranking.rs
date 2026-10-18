@@ -1,14 +1,7 @@
-
-
-
-
-
 use junie_tui::ui::text::fuzzy;
 
 use crate::domain::action::{Item, Signal};
 use crate::domain::context::Scope;
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ranked {
@@ -19,7 +12,6 @@ pub struct Ranked {
 
     pub tag: Option<String>,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Query {
@@ -61,9 +53,6 @@ impl Query {
     }
 }
 
-
-
-
 pub fn effective_scope(readout: Scope, token: Option<ScopeToken>) -> (Option<Scope>, bool) {
     match token {
         Some(ScopeToken::All) => (None, true),
@@ -74,9 +63,6 @@ pub fn effective_scope(readout: Scope, token: Option<ScopeToken>) -> (Option<Sco
         None => (Some(readout), false),
     }
 }
-
-
-
 
 fn in_scope(item: &Item, scope: Option<Scope>, strict: bool, has_query: bool) -> bool {
     match scope {
@@ -91,8 +77,6 @@ fn in_scope(item: &Item, scope: Option<Scope>, strict: bool, has_query: bool) ->
         Some(s) => item.scope.direction == s,
     }
 }
-
-
 
 fn word_score(item: &Item, word: &str) -> Option<(u32, Vec<usize>)> {
     let mut best: Option<(u32, Vec<usize>)> = None;
@@ -124,14 +108,9 @@ fn word_score(item: &Item, word: &str) -> Option<(u32, Vec<usize>)> {
     best
 }
 
-
-
 pub fn search(items: &[Item], raw: &str, readout: Scope, group: Option<&str>) -> Vec<Ranked> {
     search_with(items, raw, readout, group, None)
 }
-
-
-
 
 pub fn search_with(
     items: &[Item],
@@ -207,9 +186,6 @@ pub fn search_with(
                     continue;
                 }
 
-
-
-
                 let phrase = item.label.to_lowercase().contains(&text);
 
                 let core = item
@@ -220,12 +196,9 @@ pub fn search_with(
                     .to_lowercase();
                 let exact = core == text;
                 if phrase {
-
-
                     total =
                         (core.chars().count().saturating_sub(text.chars().count())).min(199) as u32;
                 }
-
 
                 let bucket: i64 = if exact {
                     10
@@ -253,19 +226,15 @@ pub fn search_with(
             Signal::Default => 1,
         };
 
-
         if item.pinned {
             score += 90_000;
             reason = format!("pinned here · {reason}");
         }
         if has_query && learned == Some(item.id.as_str()) {
-
-
             score += 950_000;
             reason = format!("remembered for “{}” · {reason}", text);
         }
         if item.frecency > 0.0 {
-
             score += (item.frecency.clamp(0.0, 1.0) * crate::domain::usage::BOOST_CAP * 100_000.0)
                 as i64;
         }
@@ -294,7 +263,6 @@ pub fn search_with(
     });
     out
 }
-
 
 pub fn explain(item: &Item, cwd_short: &str) -> Vec<(String, String)> {
     let mut rows = vec![];

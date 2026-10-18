@@ -1,6 +1,3 @@
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use junie_tui::core::event::MouseKind;
@@ -117,7 +114,6 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
 
 #[test]
 fn finished_runs_change_the_world_they_claimed_to() {
-
     let mut h = H::new(Scenario::DiskCleanup, Motion::Reduced, 80, 120, 40);
     let before = h.app.world.disk.candidates.len();
     let used_before = h.app.world.disk.filesystems[0].used_gb;
@@ -139,7 +135,6 @@ fn finished_runs_change_the_world_they_claimed_to() {
     assert!(d.candidates.len() < before, "reclaimed candidates are gone");
     assert!(!d.history.is_empty(), "a cleanup record was written");
     assert!(d.filesystems[0].used_gb < used_before);
-
 
     let mut h = H::new(Scenario::RemoteHost, Motion::Reduced, 0, 120, 40);
     let blocker = h.app.world.pg_blocker().expect("a blocker in the fixture");
@@ -218,7 +213,6 @@ fn upgrade_plan_exclusion_recalculates_and_failure_blocks_dependents() {
         "{}",
         h.text()
     );
-
 
     h.key(KeyCode::Char('r'));
     assert_eq!(h.app.world.plans[0].steps[5].state, StepState::Ready);
@@ -767,10 +761,6 @@ fn an_open_menu_hides_the_page_focus_under_it() {
     assert_eq!(tinted(&h), 0, "no focused-row tint under the menu");
 }
 
-
-
-
-
 #[test]
 fn the_key_reference_shows_its_one_focus_bar_on_done() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
@@ -821,8 +811,6 @@ fn the_finder_cursor_row_is_a_fill_and_the_query_keeps_the_only_bar() {
 
 #[test]
 fn unavailable_alternatives_are_disabled_in_the_menu_not_failing_on_choice() {
-
-
     let mut unsupported = vec![];
     for sc in Scenario::ALL {
         let h = H::new(sc, Motion::Reduced, 0, 120, 40);
@@ -852,8 +840,6 @@ fn unavailable_alternatives_are_disabled_in_the_menu_not_failing_on_choice() {
     let t = h.text();
     assert!(t.contains("Not in this preview"), "{t}");
 }
-
-
 
 #[test]
 fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
@@ -887,11 +873,6 @@ fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
     assert!(a.text().contains("Quit holla❯?"), "{}", a.text());
     assert!(a.app.world.live_activities() > 0);
 }
-
-
-
-
-
 
 #[test]
 fn a_vanished_control_hands_focus_to_its_nearest_neighbour() {

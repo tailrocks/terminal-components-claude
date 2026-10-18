@@ -1,30 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 mod app;
 mod chrome;
 pub mod clipboard;
@@ -49,11 +22,6 @@ pub use page::{
 pub use router::{KeyHost, KeyRouter, ShellAction, ShellKeys};
 pub use status::{JobKey, StatusLine};
 
-
-
-
-
-
 pub fn run<A: App>(app: &mut A) -> std::io::Result<()> {
     app.shell().clipboard.install();
     if let Some(delay) = start_delay() {
@@ -62,10 +30,6 @@ pub fn run<A: App>(app: &mut A) -> std::io::Result<()> {
     let _ = crate::runtime::drain_pending_input();
     crate::runtime::run(app)
 }
-
-
-
-
 
 fn start_delay() -> Option<std::time::Duration> {
     std::env::var("JUNIE_TUI_START_DELAY_MS")

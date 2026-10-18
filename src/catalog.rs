@@ -1,33 +1,5 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CapKind {
-
     Type,
 
     Variant,
@@ -36,15 +8,12 @@ pub enum CapKind {
 
     Token,
 
-
-
     Function,
 
     State,
 }
 
 impl CapKind {
-
     pub const fn name(self) -> &'static str {
         match self {
             Self::Type => "type",
@@ -57,24 +26,20 @@ impl CapKind {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Capability {
-
     pub id: &'static str,
 
     pub kind: CapKind,
 }
 
 impl Capability {
-
     pub const fn ty(id: &'static str) -> Self {
         Self {
             id,
             kind: CapKind::Type,
         }
     }
-
 
     pub const fn variant(id: &'static str) -> Self {
         Self {
@@ -83,14 +48,12 @@ impl Capability {
         }
     }
 
-
     pub const fn builder(id: &'static str) -> Self {
         Self {
             id,
             kind: CapKind::Builder,
         }
     }
-
 
     pub const fn token(id: &'static str) -> Self {
         Self {
@@ -99,14 +62,12 @@ impl Capability {
         }
     }
 
-
     pub const fn state(id: &'static str) -> Self {
         Self {
             id,
             kind: CapKind::State,
         }
     }
-
 
     pub const fn function(id: &'static str) -> Self {
         Self {
@@ -116,14 +77,11 @@ impl Capability {
     }
 }
 
-
 pub fn find(id: &str) -> Option<&'static Capability> {
     CAPABILITIES.iter().find(|cap| cap.id == id)
 }
 
-
 pub static CAPABILITIES: &[Capability] = &[
-
     Capability::ty("core::edit::EditEntry"),
     Capability::variant("core::edit::EditEntry::Immediate"),
     Capability::variant("core::edit::EditEntry::TypeToEdit"),
@@ -168,7 +126,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::edit::clipboard::text"),
     Capability::function("core::edit::clipboard::set_hook"),
     Capability::function("core::edit::clipboard::clear_hook"),
-
     Capability::ty("core::event::Outcome"),
     Capability::variant("core::event::Outcome::Ignored"),
     Capability::variant("core::event::Outcome::Consumed"),
@@ -217,7 +174,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::event::ClientPlatform::is_macos"),
     Capability::function("core::event::Input::from_crossterm"),
     Capability::function("core::event::Input::from_crossterm_with"),
-
     Capability::ty("core::focus::FocusRing"),
     Capability::ty("core::focus::FocusFallback"),
     Capability::variant("core::focus::FocusFallback::Nearest"),
@@ -256,7 +212,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::focus::Focus::take_changes"),
     Capability::function("core::focus::Focus::ensure_valid"),
     Capability::function("core::focus::Focus::ensure_valid_with"),
-
     Capability::ty("core::hit::HitRegion"),
     Capability::ty("core::hit::Axis"),
     Capability::variant("core::hit::Axis::Vertical"),
@@ -307,7 +262,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::hit::HitRegistry::is_empty"),
     Capability::function("core::hit::HitRegistry::clip_since"),
     Capability::function("core::hit::HitRegistry::area_of"),
-
     Capability::ty("core::id::WidgetId"),
     Capability::builder("core::id::WidgetId::child"),
     Capability::builder("core::id::WidgetId::sub"),
@@ -322,7 +276,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::id::custom_hash16"),
     Capability::function("core::id::ItemKey::as_index"),
     Capability::function("core::id::Part::raw"),
-
     Capability::ty("core::intent::Intent"),
     Capability::variant("core::intent::Intent::Key"),
     Capability::variant("core::intent::Intent::Binding"),
@@ -363,7 +316,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::intent::Intent::part"),
     Capability::function("core::intent::Intent::pos"),
     Capability::function("core::intent::ActionKey::raw"),
-
     Capability::ty("core::keyboard::KeyboardProtocol"),
     Capability::variant("core::keyboard::KeyboardProtocol::Auto"),
     Capability::variant("core::keyboard::KeyboardProtocol::On"),
@@ -394,7 +346,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::keyboard::alt_delivered"),
     Capability::function("core::keyboard::label_deliverable"),
     Capability::function("core::keyboard::set_alt_delivered"),
-
     Capability::ty("core::keymap::Nav"),
     Capability::variant("core::keymap::Nav::Up"),
     Capability::variant("core::keymap::Nav::Down"),
@@ -435,7 +386,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::hints::nav_hints"),
     Capability::function("core::hints::actions_bindings"),
     Capability::function("core::hints::nav_bindings"),
-
     Capability::ty("core::list::Cursor"),
     Capability::builder("core::list::Cursor::wrap"),
     Capability::builder("core::list::Cursor::axis"),
@@ -470,7 +420,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::list::NavProfile::nav"),
     Capability::function("core::list::NavProfile::type_ahead"),
     Capability::function("core::list::NavProfile::install"),
-
     Capability::ty("core::pointer::FocusOn"),
     Capability::variant("core::pointer::FocusOn::Press"),
     Capability::variant("core::pointer::FocusOn::Release"),
@@ -552,7 +501,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::pointer::scroll_input"),
     Capability::function("core::pointer::PointerRouter::route"),
     Capability::function("core::pointer::PointerRouter::tick"),
-
     Capability::ty("core::response::Flow"),
     Capability::variant("core::response::Flow::Ignored"),
     Capability::variant("core::response::Flow::Consumed"),
@@ -588,7 +536,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::response::StateFlags::insert"),
     Capability::function("core::response::StateFlags::remove"),
     Capability::function("core::response::StateFlags::set"),
-
     Capability::ty("core::scroll::ScrollState"),
     Capability::builder("core::scroll::ScrollState::with_follow_cursor"),
     Capability::builder("core::scroll::ScrollState::with_context"),
@@ -667,7 +614,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::scroll::ScrollPane::draw_divider"),
     Capability::function("core::scroll::ScrollPane::draw_h"),
     Capability::function("core::scroll::ScrollPane::draw_with_fade"),
-
     Capability::ty("core::selection::SelectionMode"),
     Capability::variant("core::selection::SelectionMode::None"),
     Capability::variant("core::selection::SelectionMode::Single"),
@@ -721,7 +667,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::selection::RowSelection::apply"),
     Capability::function("core::selection::RowSelection::context_select"),
     Capability::function("core::selection::RowSelection::set"),
-
     Capability::ty("core::shape::PointerShape"),
     Capability::variant("core::shape::PointerShape::Default"),
     Capability::variant("core::shape::PointerShape::Text"),
@@ -744,7 +689,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::shape::ShapeSync::apply"),
     Capability::function("core::shape::ShapeSync::forget"),
     Capability::function("core::shape::reset_sequence"),
-
     Capability::ty("core::text::TextBuffer"),
     Capability::ty("core::text::CursorPos"),
     Capability::function("core::text::TextBuffer::text"),
@@ -788,14 +732,12 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("core::text::TextBuffer::pos_of"),
     Capability::function("core::text::TextBuffer::offset_at"),
     Capability::function("core::text::TextBuffer::width"),
-
     Capability::ty("core::typeahead::TypeAhead"),
     Capability::function("core::typeahead::TypeAhead::char_of"),
     Capability::function("core::typeahead::TypeAhead::feed"),
     Capability::function("core::typeahead::TypeAhead::feed_at"),
     Capability::function("core::typeahead::TypeAhead::reset"),
     Capability::function("core::typeahead::TypeAhead::find"),
-
     Capability::ty("ui::columns::Col"),
     Capability::builder("ui::columns::Col::flex"),
     Capability::builder("ui::columns::Col::max"),
@@ -824,7 +766,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::columns::render_seam"),
     Capability::function("ui::columns::seam_part"),
     Capability::function("ui::columns::header_menu"),
-
     Capability::ty("ui::content::ContentState"),
     Capability::variant("ui::content::ContentState::Ready"),
     Capability::variant("ui::content::ContentState::Loading"),
@@ -835,7 +776,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::content::draw_loading"),
     Capability::function("ui::content::draw_empty"),
     Capability::function("ui::content::specimen"),
-
     Capability::ty("ui::context::ContextKeys"),
     Capability::builder("ui::context::ContextKeys::shift_f10"),
     Capability::builder("ui::context::ContextKeys::menu_key"),
@@ -858,7 +798,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("ui::context::ContextCmd::group_end"),
     Capability::builder("ui::context::ContextCmd::danger"),
     Capability::function("ui::context::command_items"),
-
     Capability::ty("ui::edit_menu::EditCaps"),
     Capability::builder("ui::edit_menu::EditCaps::secret"),
     Capability::ty("ui::edit_menu::EditMenu"),
@@ -880,7 +819,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::edit_menu::point_editable"),
     Capability::function("ui::edit_menu::editable_target"),
     Capability::function("ui::edit_menu::point_field"),
-
     Capability::ty("ui::ctx::Interaction"),
     Capability::ty("ui::ctx::FocusVisible"),
     Capability::variant("ui::ctx::FocusVisible::Always"),
@@ -928,7 +866,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::ctx::RenderCtx::modal_backdrop_with"),
     Capability::function("ui::ctx::legible_on_fill"),
     Capability::function("ui::ctx::fill"),
-
     Capability::ty("ui::layout::SplitDir"),
     Capability::variant("ui::layout::SplitDir::Horizontal"),
     Capability::variant("ui::layout::SplitDir::Vertical"),
@@ -974,14 +911,12 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::layout::SplitKeys::delta"),
     Capability::function("ui::layout::SplitKeys::apply"),
     Capability::function("ui::layout::SplitKeys::hint"),
-
     Capability::ty("ui::list_core::ListCore"),
     Capability::function("ui::list_core::ListCore::cursor_model"),
     Capability::function("ui::list_core::ListCore::key_step"),
     Capability::function("ui::list_core::ListCore::has_rows"),
     Capability::function("ui::list_core::ListCore::is_focus_stop"),
     Capability::function("ui::list_core::ListCore::draw_content"),
-
     Capability::ty("ui::master_detail::DetailSize"),
     Capability::variant("ui::master_detail::DetailSize::Share"),
     Capability::variant("ui::master_detail::DetailSize::Resizable"),
@@ -1012,7 +947,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::master_detail::MasterDetail::on_key"),
     Capability::function("ui::master_detail::MasterDetail::on_pointer"),
     Capability::function("ui::master_detail::MasterDetail::hints"),
-
     Capability::ty("ui::pane_tree::PaneNode"),
     Capability::variant("ui::pane_tree::PaneNode::Leaf"),
     Capability::variant("ui::pane_tree::PaneNode::Split"),
@@ -1076,7 +1010,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::layout::Stack::measure"),
     Capability::function("ui::layout::Stack::layout"),
     Capability::function("ui::layout::Stack::chrome"),
-
     Capability::ty("ui::leave::Stakes"),
     Capability::variant("ui::leave::Stakes::Clean"),
     Capability::variant("ui::leave::Stakes::Unsaved"),
@@ -1109,7 +1042,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::leave::unsaved_dialog"),
     Capability::function("ui::leave::discard_dialog"),
     Capability::function("ui::leave::running_dialog"),
-
     Capability::ty("ui::modal::Dismissal"),
     Capability::variant("ui::modal::Dismissal::None"),
     Capability::variant("ui::modal::Dismissal::Close"),
@@ -1159,7 +1091,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::modal::ensure_focus"),
     Capability::function("ui::modal::Frame::area"),
     Capability::function("ui::modal::Frame::render"),
-
     Capability::ty("ui::popup::Dismiss"),
     Capability::ty("ui::popup::RefuseFeedback"),
     Capability::variant("ui::popup::RefuseFeedback::Flash"),
@@ -1194,7 +1125,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::popup::place_with"),
     Capability::function("ui::popup::surface"),
     Capability::function("ui::popup::surface_for"),
-
     Capability::function("ui::measure::at_least"),
     Capability::ty("ui::scroll_view::Axes"),
     Capability::ty("ui::scroll_view::ScrollCmd"),
@@ -1247,7 +1177,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::row::RowPaint::ink"),
     Capability::function("ui::row::RowPaint::mark"),
     Capability::function("ui::row::RowPaint::label"),
-
     Capability::ty("ui::reveal::RevealMode"),
     Capability::variant("ui::reveal::RevealMode::Tooltip"),
     Capability::variant("ui::reveal::RevealMode::InlineWrap"),
@@ -1281,7 +1210,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::reveal::peek"),
     Capability::function("ui::reveal::queue_cut"),
     Capability::function("ui::reveal::cut_id"),
-
     Capability::ty("ui::specimen::SpecimenState"),
     Capability::variant("ui::specimen::SpecimenState::Rest"),
     Capability::variant("ui::specimen::SpecimenState::Hover"),
@@ -1322,7 +1250,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::specimen::StateGrid::render_levels"),
     Capability::function("ui::specimen::StateGrid::render_level"),
     Capability::function("ui::specimen::KindSample::draw"),
-
     Capability::ty("ui::text::WrapOpts"),
     Capability::ty("ui::text::DurationStyle"),
     Capability::variant("ui::text::DurationStyle::Compact"),
@@ -1347,7 +1274,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::text::wrap_with"),
     Capability::function("ui::text::find_ranges"),
     Capability::function("ui::text::fuzzy"),
-
     Capability::ty("ui::tooltip::Tooltips"),
     Capability::builder("ui::tooltip::Tooltips::enabled"),
     Capability::builder("ui::tooltip::Tooltips::delay_ms"),
@@ -1395,19 +1321,16 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("ui::tooltip::tip_id"),
     Capability::function("ui::tooltip::show"),
     Capability::function("ui::tooltip::on_input"),
-
     Capability::ty("widgets::brand::Lockup"),
     Capability::function("widgets::brand::Lockup::width"),
     Capability::function("widgets::brand::Lockup::style"),
     Capability::function("widgets::brand::Lockup::render"),
     Capability::function("widgets::brand::Lockup::render_clickable"),
-
     Capability::ty("widgets::breadcrumb::Breadcrumb"),
     Capability::builder("widgets::breadcrumb::Breadcrumb::clickable"),
     Capability::function("widgets::breadcrumb::Breadcrumb::segment_id"),
     Capability::function("widgets::breadcrumb::Breadcrumb::on_click"),
     Capability::function("widgets::breadcrumb::Breadcrumb::render"),
-
     Capability::ty("widgets::button::Button"),
     Capability::builder("widgets::button::Button::focusable"),
     Capability::builder("widgets::button::Button::tooltip"),
@@ -1440,7 +1363,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::button::ButtonRow::rows_at_gap"),
     Capability::function("widgets::button::ButtonRow::layout"),
     Capability::function("widgets::button::ButtonRow::render"),
-
     Capability::ty("widgets::chips::Chip"),
     Capability::ty("widgets::chips::ChipBar"),
     Capability::ty("widgets::chips::ChipCmd"),
@@ -1476,7 +1398,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::chips::ChipBar::on_key"),
     Capability::function("widgets::chips::ChipBar::on_click"),
     Capability::function("widgets::chips::ChipBar::render"),
-
     Capability::ty("widgets::choice::CheckHit"),
     Capability::variant("widgets::choice::CheckHit::Label"),
     Capability::variant("widgets::choice::CheckHit::Row"),
@@ -1499,7 +1420,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::choice::Toggle::on_key"),
     Capability::function("widgets::choice::Toggle::on_click"),
     Capability::function("widgets::choice::Toggle::render"),
-
     Capability::ty("widgets::choice_dialog::ChoiceDialog"),
     Capability::builder("widgets::choice_dialog::ChoiceDialog::nav"),
     Capability::builder("widgets::choice_dialog::ChoiceDialog::buttons"),
@@ -1516,7 +1436,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::choice_dialog::ChoiceDialog::on_click"),
     Capability::function("widgets::choice_dialog::ChoiceDialog::render"),
     Capability::function("widgets::choice_dialog::ChoiceDialog::pointer_in"),
-
     Capability::ty("widgets::code::Severity"),
     Capability::variant("widgets::code::Severity::Error"),
     Capability::variant("widgets::code::Severity::Warning"),
@@ -1573,7 +1492,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::code::CodeEditor::on_drag"),
     Capability::function("widgets::code::CodeEditor::on_paste"),
     Capability::function("widgets::code::CodeEditor::render"),
-
     Capability::ty("widgets::completion::Completion"),
     Capability::ty("widgets::completion::CompletionAction"),
     Capability::variant("widgets::completion::CompletionAction::Accept"),
@@ -1594,7 +1512,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::completion::Completion::on_key"),
     Capability::function("widgets::completion::Completion::on_click"),
     Capability::function("widgets::completion::Completion::render"),
-
     Capability::ty("widgets::dialog::DialogBody"),
     Capability::variant("widgets::dialog::DialogBody::Text"),
     Capability::variant("widgets::dialog::DialogBody::Input"),
@@ -1652,7 +1569,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::dialog::Dialog::render_in"),
     Capability::function("widgets::dialog::body_bounds"),
     Capability::function("widgets::dialog::Dialog::pointer_in"),
-
     Capability::ty("widgets::diff::DiffLineKind"),
     Capability::variant("widgets::diff::DiffLineKind::Context"),
     Capability::variant("widgets::diff::DiffLineKind::Add"),
@@ -1698,7 +1614,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::diff::unified_lines_with"),
     Capability::function("widgets::diff::review_lines"),
     Capability::function("widgets::diff::review_lines_with"),
-
     Capability::ty("widgets::empty::EmptyKind"),
     Capability::variant("widgets::empty::EmptyKind::Empty"),
     Capability::variant("widgets::empty::EmptyKind::Error"),
@@ -1711,7 +1626,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::empty::render_ctx"),
     Capability::function("widgets::empty::render"),
     Capability::function("widgets::empty::height"),
-
     Capability::ty("widgets::edit::FieldError"),
     Capability::function("widgets::edit::FieldError::message"),
     Capability::function("widgets::edit::FieldError::into_message"),
@@ -1763,7 +1677,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::edit::EditField::line_scroll"),
     Capability::function("widgets::edit::FieldError::message_mut"),
     Capability::ty("widgets::edit::LineLook"),
-
     Capability::ty("widgets::field_common::PointerSelect"),
     Capability::builder("widgets::field_common::PointerSelect::drag"),
     Capability::builder("widgets::field_common::PointerSelect::word"),
@@ -1795,7 +1708,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::field_common::text_cmd_action"),
     Capability::function("widgets::field_common::paste_clipboard"),
     Capability::function("widgets::field_common::apply_edit"),
-
     Capability::ty("widgets::file_browser::FileEntry"),
     Capability::builder("widgets::file_browser::FileEntry::meta"),
     Capability::builder("widgets::file_browser::FileEntry::hidden"),
@@ -1849,7 +1761,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::file_browser::FileBrowser::render"),
     Capability::function("widgets::file_browser::FileBrowser::initial_focus"),
     Capability::function("widgets::file_browser::FileBrowser::hints"),
-
     Capability::ty("widgets::form_dialog::FieldValue"),
     Capability::variant("widgets::form_dialog::FieldValue::Text"),
     Capability::variant("widgets::form_dialog::FieldValue::Choice"),
@@ -1899,7 +1810,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::form_dialog::FormDialog::on_paste"),
     Capability::function("widgets::form_dialog::FormDialog::render"),
     Capability::function("widgets::form_dialog::FormDialog::pointer_in"),
-
     Capability::ty("widgets::grid::CellValue"),
     Capability::variant("widgets::grid::CellValue::Null"),
     Capability::variant("widgets::grid::CellValue::Default"),
@@ -2071,7 +1981,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::grid::DataGrid::on_bar_key"),
     Capability::function("widgets::grid::cell_text"),
     Capability::function("widgets::grid::cell_text_with"),
-
     Capability::ty("widgets::help::HelpCmd"),
     Capability::variant("widgets::help::HelpCmd::Close"),
     Capability::ty("widgets::help::HelpSection"),
@@ -2088,7 +1997,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::help::HelpOverlay::on_click"),
     Capability::function("widgets::help::HelpOverlay::on_key"),
     Capability::function("widgets::help::HelpOverlay::render"),
-
     Capability::ty("widgets::hintbar::HintLayer"),
     Capability::builder("widgets::hintbar::HintLayer::align"),
     Capability::builder("widgets::hintbar::HintLayer::badge"),
@@ -2101,7 +2009,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::hintbar::HintBar::render_at"),
     Capability::function("widgets::hintbar::HintBar::resolve"),
     Capability::function("widgets::hintbar::HintBar::render"),
-
     Capability::ty("widgets::icon_button::IconLook"),
     Capability::variant("widgets::icon_button::IconLook::Close"),
     Capability::variant("widgets::icon_button::IconLook::Title"),
@@ -2115,7 +2022,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::icon_button::IconButton::style"),
     Capability::function("widgets::icon_button::IconButton::render"),
     Capability::function("widgets::icon_button::IconButton::render_in"),
-
     Capability::ty("widgets::info_dialog::InfoResult"),
     Capability::variant("widgets::info_dialog::InfoResult::Closed"),
     Capability::variant("widgets::info_dialog::InfoResult::Copy"),
@@ -2139,7 +2045,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::info_dialog::InfoDialog::on_drag"),
     Capability::function("widgets::info_dialog::InfoDialog::render"),
     Capability::function("widgets::info_dialog::InfoDialog::pointer_in"),
-
     Capability::ty("widgets::input::TextInput"),
     Capability::ty("widgets::input::InputAction"),
     Capability::variant("widgets::input::InputAction::Committed"),
@@ -2200,7 +2105,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::input::TextInput::on_press_count"),
     Capability::function("widgets::input::TextInput::on_drag"),
     Capability::function("widgets::input::TextInput::render"),
-
     Capability::ty("widgets::keyhint::Hint"),
     Capability::ty("widgets::keyhint::HintPriority"),
     Capability::variant("widgets::keyhint::HintPriority::Auto"),
@@ -2225,7 +2129,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::keyhint::render_parts"),
     Capability::function("widgets::keyhint::render_parts_at"),
     Capability::function("widgets::keyhint::key_of"),
-
     Capability::ty("widgets::keyref::KeyReference"),
     Capability::builder("widgets::keyref::KeyReference::section"),
     Capability::builder("widgets::keyref::KeyReference::key"),
@@ -2233,7 +2136,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::builder("widgets::keyref::KeyReference::key_max_share"),
     Capability::function("widgets::keyref::KeyReference::text"),
     Capability::function("widgets::keyref::KeyReference::lines"),
-
     Capability::ty("widgets::list::ListItem"),
     Capability::builder("widgets::list::ListItem::meta"),
     Capability::builder("widgets::list::ListItem::meta_tone"),
@@ -2276,7 +2178,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::list::ListBox::on_click"),
     Capability::function("widgets::list::ListBox::on_click_count"),
     Capability::function("widgets::list::ListBox::render"),
-
     Capability::ty("widgets::menu::MenuItem"),
     Capability::builder("widgets::menu::MenuItem::shortcut"),
     Capability::builder("widgets::menu::MenuItem::disabled"),
@@ -2357,7 +2258,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::menu::MenuBar::on_click"),
     Capability::function("widgets::menu::MenuBar::on_hover"),
     Capability::function("widgets::menu::MenuBar::render"),
-
     Capability::ty("widgets::meter_list::MeterRow"),
     Capability::builder("widgets::meter_list::MeterRow::detail"),
     Capability::ty("widgets::meter_list::MeterList"),
@@ -2374,7 +2274,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::meter_list::MeterList::label_column"),
     Capability::function("widgets::meter_list::MeterList::meter_column"),
     Capability::function("widgets::meter_list::MeterList::render"),
-
     Capability::ty("widgets::notice::NoticeKind"),
     Capability::variant("widgets::notice::NoticeKind::Error"),
     Capability::variant("widgets::notice::NoticeKind::Warning"),
@@ -2392,7 +2291,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::notice::Notice::height"),
     Capability::function("widgets::notice::Notice::render"),
     Capability::function("widgets::notice::Notice::render_theme"),
-
     Capability::ty("widgets::option_editor::OptionItem"),
     Capability::builder("widgets::option_editor::OptionItem::label"),
     Capability::builder("widgets::option_editor::OptionItem::tone"),
@@ -2439,7 +2337,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::option_editor::ChoiceEditor::on_click"),
     Capability::function("widgets::option_editor::ChoiceEditor::wheel"),
     Capability::function("widgets::option_editor::ChoiceEditor::render"),
-
     Capability::ty("widgets::option_list::SelectArrows"),
     Capability::variant("widgets::option_list::SelectArrows::Step"),
     Capability::variant("widgets::option_list::SelectArrows::Open"),
@@ -2495,7 +2392,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::option_list::OptionList::line_of"),
     Capability::function("widgets::option_list::OptionList::visible_lines"),
     Capability::function("widgets::option_list::OptionList::more_below"),
-
     Capability::ty("widgets::panel::PanelKind"),
     Capability::variant("widgets::panel::PanelKind::Card"),
     Capability::variant("widgets::panel::PanelKind::Framed"),
@@ -2535,7 +2431,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::panel::ScrollPanel::selected_text"),
     Capability::function("widgets::panel::ScrollPanel::select_all"),
     Capability::function("widgets::panel::ScrollPanel::clear_selection"),
-
     Capability::ty("widgets::picker::PickerStatus"),
     Capability::variant("widgets::picker::PickerStatus::Ready"),
     Capability::variant("widgets::picker::PickerStatus::Loading"),
@@ -2586,7 +2481,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::picker::Picker::on_click"),
     Capability::function("widgets::picker::Picker::draw"),
     Capability::function("widgets::picker::Picker::render"),
-
     Capability::ty("widgets::progress::ProgressStatus"),
     Capability::variant("widgets::progress::ProgressStatus::Active"),
     Capability::variant("widgets::progress::ProgressStatus::Done"),
@@ -2638,7 +2532,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::progress::ProgressBar::render"),
     Capability::function("widgets::progress::Tally::text"),
     Capability::function("widgets::progress::Tally::render"),
-
     Capability::ty("widgets::props::Prop"),
     Capability::builder("widgets::props::Prop::copyable"),
     Capability::builder("widgets::props::Prop::tone"),
@@ -2670,7 +2563,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::props::PropsList::on_click"),
     Capability::function("widgets::props::PropsList::on_click_count"),
     Capability::function("widgets::props::PropsList::render"),
-
     Capability::ty("widgets::rail::RailAction"),
     Capability::variant("widgets::rail::RailAction::Expand"),
     Capability::variant("widgets::rail::RailAction::Collapse"),
@@ -2681,7 +2573,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::rail::SidebarRail::on_click"),
     Capability::function("widgets::rail::SidebarRail::render_rail"),
     Capability::function("widgets::rail::SidebarRail::render_collapse"),
-
     Capability::ty("widgets::scrollbar::Bars"),
     Capability::ty("widgets::scrollbar::VSplit"),
     Capability::function("widgets::scrollbar::id_for"),
@@ -2704,14 +2595,12 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::scrollbar::render_with_fade"),
     Capability::function("widgets::scrollbar::render_with_fade_except"),
     Capability::function("widgets::scrollbar::position_label"),
-
     Capability::ty("widgets::segments::Segment"),
     Capability::builder("widgets::segments::Segment::bold"),
     Capability::builder("widgets::segments::Segment::clickable"),
     Capability::builder("widgets::segments::Segment::priority"),
     Capability::builder("widgets::segments::Segment::lead"),
     Capability::function("widgets::segments::render"),
-
     Capability::ty("widgets::select::Select"),
     Capability::ty("widgets::select::SelectAction"),
     Capability::variant("widgets::select::SelectAction::Changed"),
@@ -2754,7 +2643,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::select::Select::on_drag"),
     Capability::function("widgets::select::Select::on_release"),
     Capability::function("widgets::select::Select::render"),
-
     Capability::ty("widgets::splitter::SeamDoubleClick"),
     Capability::variant("widgets::splitter::SeamDoubleClick::Reset"),
     Capability::variant("widgets::splitter::SeamDoubleClick::Ignore"),
@@ -2767,7 +2655,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::splitter::Splitter::on_press"),
     Capability::function("widgets::splitter::Splitter::on_drag"),
     Capability::function("widgets::splitter::Splitter::on_click"),
-
     Capability::ty("widgets::statusbar::Emphasis"),
     Capability::variant("widgets::statusbar::Emphasis::Plain"),
     Capability::variant("widgets::statusbar::Emphasis::Strong"),
@@ -2791,7 +2678,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::statusbar::reveal_id"),
     Capability::function("widgets::statusbar::StatusBar::layout"),
     Capability::function("widgets::statusbar::StatusBar::render"),
-
     Capability::ty("widgets::steps::StepState"),
     Capability::variant("widgets::steps::StepState::Queued"),
     Capability::variant("widgets::steps::StepState::Running"),
@@ -2816,7 +2702,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::steps::StepRail::on_key"),
     Capability::function("widgets::steps::StepRail::on_click"),
     Capability::function("widgets::steps::StepRail::render"),
-
     Capability::ty("widgets::table::SortDir"),
     Capability::variant("widgets::table::SortDir::Asc"),
     Capability::variant("widgets::table::SortDir::Desc"),
@@ -2917,7 +2802,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::table::DataTable::on_click_cell_count"),
     Capability::function("widgets::table::DataTable::render"),
     Capability::function("widgets::table::DataTable::edit_error"),
-
     Capability::ty("widgets::tabs::TabItem"),
     Capability::builder("widgets::tabs::TabItem::closable"),
     Capability::builder("widgets::tabs::TabItem::prefix"),
@@ -3028,7 +2912,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::tabs::Tabs::on_key"),
     Capability::function("widgets::tabs::Tabs::on_click"),
     Capability::function("widgets::tabs::Tabs::render"),
-
     Capability::ty("widgets::textarea::TextArea"),
     Capability::builder("widgets::textarea::TextArea::edit_entry"),
     Capability::builder("widgets::textarea::TextArea::focus_select"),
@@ -3062,14 +2945,12 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::textarea::TextArea::on_press_count"),
     Capability::function("widgets::textarea::TextArea::on_drag"),
     Capability::function("widgets::textarea::TextArea::render"),
-
     Capability::ty("widgets::too_small::TooSmall"),
     Capability::builder("widgets::too_small::TooSmall::brand_style"),
     Capability::builder("widgets::too_small::TooSmall::min"),
     Capability::builder("widgets::too_small::TooSmall::quit_hint"),
     Capability::function("widgets::too_small::TooSmall::applies"),
     Capability::function("widgets::too_small::TooSmall::render"),
-
     Capability::ty("widgets::toolbar::ToolItem"),
     Capability::builder("widgets::toolbar::ToolItem::shortcut"),
     Capability::builder("widgets::toolbar::ToolItem::disabled"),
@@ -3098,7 +2979,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::toolbar::Toolbar::on_key"),
     Capability::function("widgets::toolbar::Toolbar::on_click"),
     Capability::function("widgets::toolbar::Toolbar::render"),
-
     Capability::ty("widgets::tree::TreeNode"),
     Capability::builder("widgets::tree::TreeNode::glyph"),
     Capability::builder("widgets::tree::TreeNode::glyph_tone"),
@@ -3161,7 +3041,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::tree::TreeView::on_click_row_count"),
     Capability::function("widgets::tree::TreeView::toggle_recursive"),
     Capability::function("widgets::tree::TreeView::render"),
-
     Capability::ty("widgets::viewport::Span"),
     Capability::builder("widgets::viewport::Span::bold"),
     Capability::builder("widgets::viewport::Span::italic"),
@@ -3234,18 +3113,14 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("widgets::viewport::TextViewport::screen_pos"),
     Capability::function("widgets::viewport::TextViewport::context_point"),
     Capability::function("widgets::viewport::TextViewport::hbar"),
-
     Capability::function("core::nav::step_index"),
-
     Capability::function("ui::fade::scroll_edges"),
     Capability::function("ui::fade::scroll_edges_except"),
-
     Capability::function("ui::layer::dismiss"),
     Capability::function("ui::layer::LayerOut::into_inner"),
     Capability::function("ui::layer::LayerOut::closes"),
     Capability::function("ui::layer::LayerEntry::get"),
     Capability::function("ui::layer::LayerEntry::get_mut"),
-
     Capability::ty("theme::CursorStyle"),
     Capability::variant("theme::CursorStyle::Fill"),
     Capability::variant("theme::CursorStyle::Bar"),
@@ -3464,7 +3339,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("theme::Strings::fill"),
     Capability::function("theme::Strings::follow"),
     Capability::function("theme::contrast_ratio"),
-
     Capability::ty("runtime::Coalesce"),
     Capability::ty("runtime::TerminalSession"),
     Capability::ty("runtime::SizeWatch"),
@@ -3490,8 +3364,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("runtime::InputPump::drain"),
     Capability::function("runtime::InputPump::settle"),
     Capability::function("runtime::drain_pending_input"),
-
-
     Capability::function("shell::run"),
     Capability::ty("shell::clipboard::Copied"),
     Capability::variant("shell::clipboard::Copied::Copied"),
@@ -3679,7 +3551,6 @@ pub static CAPABILITIES: &[Capability] = &[
     Capability::function("shell::StatusLine::error"),
     Capability::function("shell::StatusLine::progress"),
     Capability::function("shell::StatusLine::progress_at"),
-
     Capability::state("state::rest"),
     Capability::state("state::hover"),
     Capability::state("state::pressed"),

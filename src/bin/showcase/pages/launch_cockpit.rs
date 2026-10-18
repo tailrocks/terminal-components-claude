@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -42,8 +30,6 @@ const CANCEL_DLG: WidgetId = ID.sub("cancel-dialog");
 const CRED_DLG: WidgetId = ID.sub("cred-dialog");
 const FAIL_DLG: WidgetId = ID.sub("fail-dialog");
 
-
-
 const STAGES: [(&str, u32); 11] = [
     ("Identity", 3),
     ("Role", 3),
@@ -60,8 +46,6 @@ const STAGES: [(&str, u32); 11] = [
 const CREDENTIALS: usize = 2;
 const DERIVED_IMAGE: usize = 5;
 const RUN_ID: &str = "run-7f3a91c2";
-
-
 
 fn activity(stage: usize) -> &'static str {
     match stage {
@@ -109,7 +93,6 @@ fn stage_log(stage: usize, tick: u32) -> Option<Vec<Span>> {
 pub fn page() -> Box<dyn Page> {
     Box::new(LaunchCockpitPage::new())
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Run {
@@ -161,8 +144,6 @@ impl LaunchCockpitPage {
         p
     }
 
-
-
     fn rebuild(&mut self) {
         let rail = std::mem::replace(&mut self.rail, StepRail::new(RAIL, vec![]));
         let mut rail = rail.selectable(self.opts.on("launchcockpit.selectable"));
@@ -195,7 +176,6 @@ impl LaunchCockpitPage {
         self.facts.set_props(facts(self.run, false));
         cx.status("Launching payments-platform…");
     }
-
 
     fn stop(&mut self, run: Run, state: StepState) {
         self.run = run;
@@ -300,7 +280,6 @@ impl LaunchCockpitPage {
                     .push(vec![Span::plain("Hardline open · capsule ready").bold()]);
                 cx.status("Launched ✓ capsule cap-payments-01");
             } else if self.stage == 3 {
-
                 self.rail.set_state(3, StepState::Skipped);
                 self.rail.set_meta(3, Some("cached".into()));
                 self.stage = 4;
@@ -311,8 +290,6 @@ impl LaunchCockpitPage {
         }
         Outcome::Changed
     }
-
-
 
     fn activity(&self, spinner: &str) -> String {
         let lines = self.log.len();
@@ -445,7 +422,6 @@ impl LaunchCockpitPage {
     }
 }
 
-
 fn facts(run: Run, cred_error: bool) -> Vec<Prop> {
     let creds = if cred_error && run == Run::Held {
         Prop::new("Credentials", "1Password · vault Engineering is locked").tone(Tone::Error)
@@ -470,8 +446,6 @@ fn facts(run: Run, cred_error: bool) -> Vec<Prop> {
         Prop::new("Run id", RUN_ID).copyable(),
     ]
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -546,7 +520,6 @@ impl Page for LaunchCockpitPage {
             match (*id, result) {
                 (CANCEL_DLG, DialogResult::Action(1)) if self.running() => self.cancel_now(cx),
                 (CRED_DLG, DialogResult::Action(0)) => {
-
                     self.run = Run::Running;
                     self.facts.set_props(facts(self.run, false));
                     self.log

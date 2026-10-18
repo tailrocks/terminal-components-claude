@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -28,7 +19,6 @@ use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("panetree");
 const TREE: WidgetId = WidgetId::of("panetree").sub("tree");
-
 
 const PANES: &[(&str, &[&str])] = &[
     (
@@ -108,8 +98,6 @@ impl PaneTreePage {
         page
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let frames = match o.value("panetree.frames") {
@@ -157,7 +145,6 @@ impl PaneTreePage {
         self.next = tree.leaves().into_iter().max().unwrap_or(1) + 1;
         self.tree = tree;
     }
-
 
     fn legend(&self) -> String {
         let mut parts = Vec::new();
@@ -257,7 +244,6 @@ impl PaneTreePage {
         }
     }
 
-
     fn report(r: PaneResult, cx: &mut Cx) -> Outcome {
         match r {
             Ok(o) => o,
@@ -288,7 +274,6 @@ impl PaneTreePage {
         }
     }
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

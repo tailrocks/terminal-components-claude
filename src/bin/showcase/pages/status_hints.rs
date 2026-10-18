@@ -1,20 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -41,25 +24,19 @@ use junie_tui::widgets::too_small::TooSmall;
 
 const ID: WidgetId = WidgetId::of("statushints");
 
-
-
 const NARROW: u16 = 44;
 
-
 const LABEL_W: u16 = 22;
-
 
 const HINTS_H: u16 = 26;
 
 const SHELL_H: u16 = 22;
-
 
 const POSTS: [(&str, &str, Tone); 3] = [
     ("Post info", "Saved 3 rows", Tone::Secondary),
     ("Post warning", "2 rows skipped", Tone::Warning),
     ("Post error", "Connection lost", Tone::Error),
 ];
-
 
 const JOB_STEP: f64 = 0.02;
 
@@ -95,12 +72,10 @@ impl StatusHintsPage {
         }
     }
 
-
     #[allow(dead_code)]
     pub fn job(&self) -> Option<f64> {
         self.job
     }
-
 
     fn too_small(&self, t: &Theme) -> TooSmall<'static> {
         let (w, h) = match self.opt("statushints.too_small_min") {
@@ -117,7 +92,6 @@ impl StatusHintsPage {
         screen
     }
 
-
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::StatusHints);
         let i = table
@@ -126,7 +100,6 @@ impl StatusHintsPage {
             .unwrap_or_else(|| panic!("no option {key}"));
         table[i].values[self.opts[i]]
     }
-
 
     fn screen_hints(&self) -> Vec<KeyHint> {
         let priority = match self.opt("statushints.priority") {
@@ -148,8 +121,6 @@ impl StatusHintsPage {
             KeyHint::new("F5", "Refresh").priority(priority),
         ]
     }
-
-
 
     fn layers(&self) -> [Option<HintLayer>; 3] {
         let top = self.opt("statushints.layer");
@@ -187,7 +158,6 @@ impl StatusHintsPage {
         [modal, menu, Some(screen)]
     }
 
-
     fn style(&self, t: &Theme) -> HintBarStyle {
         HintBarStyle {
             compact: self.opt("statushints.compact") == "on",
@@ -214,7 +184,6 @@ impl StatusHintsPage {
         match l.slot(1) {
             Some(r) => self.render_shell(r, buf, ctx),
             None => {
-
                 for b in &self.posts {
                     ctx.focus_stop(b.id);
                 }
@@ -222,7 +191,6 @@ impl StatusHintsPage {
             }
         }
     }
-
 
     fn render_hints(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
@@ -244,7 +212,6 @@ impl StatusHintsPage {
             Rect::new(x, y, w.min(area.right().saturating_sub(x)), 1)
         };
         let full = area.width.saturating_sub(LABEL_W);
-
 
         caption(
             buf,
@@ -328,7 +295,6 @@ impl StatusHintsPage {
         }
         y += 2;
 
-
         caption(buf, y, "Alignment · HintAlign");
         y += 1;
         let hints = [
@@ -364,7 +330,6 @@ impl StatusHintsPage {
         }
         y += 2;
 
-
         caption(
             buf,
             y,
@@ -398,7 +363,6 @@ impl StatusHintsPage {
             );
         }
         y += 2;
-
 
         caption(buf, y, "Statuses · the right edge");
         y += 1;
@@ -440,7 +404,6 @@ impl StatusHintsPage {
         }
         y += 2;
 
-
         caption(buf, y, "Toggle hints and the reveal key");
         y += 1;
         if y < area.bottom() {
@@ -475,8 +438,6 @@ impl StatusHintsPage {
         }
     }
 
-
-
     fn render_shell(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let bg = t.canvas;
@@ -493,7 +454,6 @@ impl StatusHintsPage {
                 buf.set_string(area.x + 2, y, text, t.faint().bg(bg));
             }
         };
-
 
         caption(
             buf,
@@ -519,7 +479,6 @@ impl StatusHintsPage {
             ),
         );
         y += 2;
-
 
         caption(
             buf,
@@ -553,7 +512,6 @@ impl StatusHintsPage {
         );
         y += 2;
 
-
         caption(
             buf,
             y,
@@ -572,7 +530,6 @@ impl StatusHintsPage {
             screen.render(inner, buf, t);
         }
         y += 8;
-
 
         caption(
             buf,
@@ -594,15 +551,11 @@ impl StatusHintsPage {
         }
     }
 
-
     fn post(i: usize, cx: &mut Cx) {
         let (_, text, tone) = POSTS[i];
         cx.status_in(text, tone);
     }
 }
-
-
-
 
 fn common_args() -> Vec<String> {
     use clap::{Args, Command};
@@ -635,8 +588,6 @@ fn common_args() -> Vec<String> {
         })
         .collect()
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -685,8 +636,6 @@ impl Page for StatusHintsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-
-
         if let PageEvent::Tick = ev {
             return match self.job {
                 Some(p) if p < 1.0 => {

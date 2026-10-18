@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -82,8 +67,6 @@ impl PanelsPage {
         page
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = match o.value("panels.nav") {
@@ -92,7 +75,6 @@ impl PanelsPage {
             _ => NavKeys::default(),
         };
         let keymap = match o.value("panels.keymap") {
-
             "t" => PanelCmd::default_keymap()
                 .into_iter()
                 .map(|(k, c)| match c {
@@ -146,7 +128,6 @@ impl PanelsPage {
         [&mut self.prose, &mut self.log]
     }
 
-
     fn card<'a>(&self, title: Option<&'a str>) -> Panel<'a> {
         let mut p = Panel::card(title)
             .pad_x(self.opts.number("panels.pad_x").unwrap_or(2))
@@ -161,7 +142,6 @@ impl PanelsPage {
         let t = ctx.theme;
         let (l, r) = crate::pages::layout::columns(area, area.width / 2 - 1, 2);
 
-
         let focus = ctx.interaction.has_focus(self.nested.id).then_some(2);
         let lrows = self.sections.layout(
             l,
@@ -174,7 +154,6 @@ impl PanelsPage {
             buf,
             ctx,
         );
-
 
         let panel = self.card(Some("Titled card")).meta("surface");
         let bg = panel.bg(t);
@@ -189,7 +168,6 @@ impl PanelsPage {
                 }
             }
         }
-
 
         let panel = self.card(None);
         let bg = panel.bg(t);
@@ -206,7 +184,6 @@ impl PanelsPage {
                 }
             }
         }
-
 
         let panel = self.card(Some("Nested"));
         let bg = panel.bg(t);
@@ -294,8 +271,6 @@ impl PanelsPage {
         panel.draw_meta(card, buf, t, &meta);
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -391,7 +366,6 @@ impl Page for PanelsPage {
         } else {
             &self.prose
         };
-
 
         let mut v = Vec::new();
         if let Some(k) = panel.nav.move_hint(false) {

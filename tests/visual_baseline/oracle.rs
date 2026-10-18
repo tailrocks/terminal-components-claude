@@ -1,27 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
@@ -31,7 +7,6 @@ use crate::support;
 
 pub const DIR: &str = "baselines/oracle";
 pub const MANIFEST: &str = "ORACLE.toml";
-
 
 pub const PROGRESS_DIR: &str = "progress";
 pub const APPS: [&str; 4] = ["showcase", "tablepro", "jackin", "holla"];
@@ -58,9 +33,6 @@ fn unquote(value: &str) -> Result<String, String> {
 }
 
 impl Manifest {
-
-
-
     pub fn parse(text: &str) -> Result<Self, String> {
         let mut m = Manifest::default();
         let mut seen = BTreeSet::new();
@@ -142,7 +114,6 @@ pub fn root() -> PathBuf {
     support::manifest_path(DIR)
 }
 
-
 pub fn load() -> Result<Option<Manifest>, String> {
     let path = root().join(MANIFEST);
     match std::fs::read_to_string(&path) {
@@ -151,9 +122,6 @@ pub fn load() -> Result<Option<Manifest>, String> {
         Err(e) => Err(format!("read {}: {e}", path.display())),
     }
 }
-
-
-
 
 pub fn active() -> bool {
     matches!(load(), Ok(Some(m)) if !m.pending)
@@ -186,10 +154,6 @@ fn walk(root: &Path, dir: &Path, skip_top: Option<&str>, out: &mut Vec<(String, 
     }
 }
 
-
-
-
-
 pub fn harness_sha256(dir: &Path) -> String {
     let mut files = Vec::new();
     walk(dir, dir, Some(PROGRESS_DIR), &mut files);
@@ -209,11 +173,9 @@ pub fn harness_sha256(dir: &Path) -> String {
         .collect()
 }
 
-
 pub fn harness_dir() -> PathBuf {
     support::manifest_path("tests/visual_baseline")
 }
-
 
 pub fn pinned_tuiscotti_rev() -> String {
     let toml = std::fs::read_to_string(support::manifest_path("Cargo.toml")).expect("Cargo.toml");
@@ -225,7 +187,6 @@ pub fn pinned_tuiscotti_rev() -> String {
         .expect("Cargo.toml pins tuiscotti with `rev = \"…\"`")
 }
 
-
 pub struct Expect<'a> {
     pub harness: &'a Path,
     pub tuiscotti_rev: &'a str,
@@ -234,11 +195,6 @@ pub struct Expect<'a> {
 
     pub required: &'a BTreeSet<String>,
 }
-
-
-
-
-
 
 pub fn check_store(store: &Path, expect: &Expect<'_>) -> Result<String, String> {
     let text = std::fs::read_to_string(store.join(MANIFEST))
@@ -347,7 +303,6 @@ pub fn check_store(store: &Path, expect: &Expect<'_>) -> Result<String, String> 
     ))
 }
 
-
 pub fn integrity() {
     let all = crate::scenarios::all();
     let suite: BTreeSet<String> = all.iter().map(|s| s.name.clone()).collect();
@@ -368,7 +323,6 @@ pub fn integrity() {
         Err(e) => panic!("{DIR}: {e}"),
     }
 }
-
 
 pub fn store_check_accepts_and_rejects() {
     let base = support::manifest_path("target/tuiscotti/tmp/oracle-store");
@@ -440,8 +394,6 @@ pub fn store_check_accepts_and_rejects() {
     assert!(check_store(&store, &expect).is_err(), "a missing approval");
 }
 
-
-
 pub fn manifest_and_hash_are_stable() {
     let text = "\
 # comment
@@ -492,6 +444,5 @@ holla = 1
     std::fs::write(dir.join("sub/b.rs"), "yy").unwrap();
     assert_ne!(harness_sha256(&dir), with_progress);
 }
-
 
 const HASH_VECTOR: &str = "58101eafd1290d1707f14178bf42b1bc8284d0a6652f423380db1c667cc381a2";

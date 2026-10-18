@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::clock::Clock;
 use junie_tui::core::event::{Input, Key, Outcome};
 use junie_tui::core::focus::FocusChange;
@@ -47,7 +43,6 @@ use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::dialog::DialogResult;
 use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 
-
 pub const BRAND_MARK: &str = "jackin❯";
 const STRIP_HELP: WidgetId = WidgetId::of("strip.help");
 const HOST_MENU: WidgetId = WidgetId::of("host.menu");
@@ -86,8 +81,6 @@ impl Route {
     }
 }
 
-
-
 type Layers = ShellLayers<ModalResult, World, Route>;
 type Entry = LayerEntry<ModalResult, World, Route>;
 
@@ -98,28 +91,16 @@ pub struct App {
     pub intro: Option<IntroState>,
     pub outro: Option<OutroState>,
 
-
     pub handoff: Option<u64>,
-
-
 
     pub router: Router<Page>,
     layers: Layers,
 
-
-
     pub shell: Shell,
-
-
-
 
     pub keys: shell::ShellKeys<JackinCmd>,
 
-
-
-
     quit_guard: LeaveGuard<()>,
-
 
     pub host_menu: MenuBar,
 
@@ -131,24 +112,20 @@ pub struct App {
 }
 
 impl App {
-
     #[cfg(test)]
     pub fn top_layer<L: junie_tui::ui::layer::Layer<ModalResult, World>>(&self) -> Option<&L> {
         self.layers.top_as()
     }
-
 
     #[cfg(test)]
     pub fn layer_count(&self) -> usize {
         self.layers.len()
     }
 
-
     #[cfg(test)]
     pub fn top_dismiss(&self) -> Option<junie_tui::ui::popup::Dismiss> {
         self.layers.top().map(|t| t.layer.spec().dismiss)
     }
-
 
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
         let mut world = crate::domain::fixtures::world_for(scenario);
@@ -181,7 +158,6 @@ impl App {
     fn start(&mut self, frame: u64) {
         match self.scenario {
             Scenario::OutroLast if frame > 0 => {
-
                 self.world.arbiter.set_running(0);
                 let decision = self.world.arbiter.request_exit(self.world.now_ms());
                 let elapsed = match decision {
@@ -263,8 +239,6 @@ impl App {
         });
     }
 
-
-
     pub fn route(&self) -> Route {
         if self.outro.is_some() {
             Route::Outro
@@ -277,9 +251,6 @@ impl App {
         }
     }
 
-
-
-
     fn show_tab(&mut self, tab: usize) {
         self.intro = None;
         self.handoff = None;
@@ -287,7 +258,6 @@ impl App {
         self.router.pop_to(0);
         self.router.select(tab);
     }
-
 
     fn open_page(&mut self, page: Page) {
         self.show_tab(TAB_MANAGER);
@@ -320,22 +290,14 @@ impl App {
         std::time::Duration::from_millis(self.route().tick_ms(self.animating()))
     }
 
-
     fn now_ms(&self) -> u64 {
         self.world.now_ms().max(0) as u64
     }
 
-
-
-
-
     fn blur_all(&mut self, ch: FocusChange) -> Outcome {
         let mut out = self.layers.on_blur(ch);
         {
-
-
             out = self.settle_layers(out);
-
 
             for route in self.router.routes() {
                 out =
@@ -366,8 +328,6 @@ impl App {
         if self.shell.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
-
-
 
         out = out.or(PointerRouter::tick(self));
         if self.shell.status.expire(self.world.clock.now()) {
@@ -402,8 +362,6 @@ impl App {
                 return Outcome::Changed;
             }
             Route::Handoff => {
-
-
                 if self.world.clock.running {
                     let h = self.handoff.unwrap_or(0) + 1;
                     self.handoff = Some(h);
@@ -431,9 +389,6 @@ impl App {
     }
 
     fn dispatch_msg(&mut self, m: Msg) -> Outcome {
-
-
-
         let ended = m.job().is_some_and(|job| self.shell.status.end_job(job));
         let route = self.route();
         let (o, reqs) = self
@@ -442,7 +397,6 @@ impl App {
                 Some(s) => s.on_msg(&m, &mut self.world, cx),
                 None => Outcome::Ignored,
             });
-
 
         let (o, behind) = self.shell.deliver(false, |cx| {
             let mut o = o;
@@ -476,9 +430,6 @@ impl App {
             Outcome::Ignored
         });
     }
-
-
-
 
     fn sequence_key(&mut self, key: &Key) -> Option<Outcome> {
         match self.route() {
@@ -526,14 +477,11 @@ impl App {
         }
     }
 
-
     fn host_editing(&self) -> bool {
         self.router
             .screen(self.route())
             .is_some_and(|s| s.is_editing() || s.layer_open())
     }
-
-
 
     fn leave_key(&mut self) -> Outcome {
         let route = self.route();
@@ -551,11 +499,6 @@ impl App {
         Outcome::Changed
     }
 
-
-
-
-
-
     fn request_quit(&mut self) -> Outcome {
         let stakes = shell::App::stakes(self);
         match self
@@ -567,15 +510,12 @@ impl App {
                 Outcome::Consumed
             }
 
-
-
             Err(_) => {
                 let route = self.route();
                 self.on_route(route, Outcome::Ignored, |s, w, cx| s.request_leave(w, cx))
             }
         }
     }
-
 
     fn quit_now(&mut self) {
         self.world.arbiter.release_entry();
@@ -593,10 +533,6 @@ impl App {
                 | Route::Prelude
         )
     }
-
-
-
-
 
     fn build_host_menu(route: Route) -> Menus<HostCmd> {
         use HostCmd::{Press, Quit};
@@ -681,7 +617,6 @@ impl App {
             .menu("Help", help)
     }
 
-
     fn host_bar(menus: &Menus<HostCmd>) -> MenuBar {
         menus.bar(HOST_MENU).brand(Lockup::new(BRAND_MARK))
     }
@@ -694,8 +629,6 @@ impl App {
         }
     }
 
-
-
     fn host_menu_action(&mut self, action: MenuBarAction, o: Outcome) -> Outcome {
         if let MenuBarAction::Brand = action {
             self.open_about();
@@ -707,9 +640,6 @@ impl App {
         }
     }
 
-
-
-
     fn run_host_cmd(&mut self, cmd: HostCmd) -> Outcome {
         let editing_screen = matches!(
             self.route(),
@@ -717,7 +647,6 @@ impl App {
         );
         match cmd {
             HostCmd::Manager if editing_screen => {
-
                 return shell::KeyRouter::replay(self, &plain(KeyCode::Esc));
             }
             HostCmd::Manager => self.go(Go::Manager),
@@ -755,8 +684,6 @@ impl App {
             .width(64);
         self.open_layer(Box::new(d), LayerTag::new("about"), self.route());
     }
-
-
 
     fn draw_host_menu(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, route: Route) {
         let t = self.theme;
@@ -1109,7 +1036,6 @@ impl App {
             ],
         };
 
-
         let mut sections: Vec<junie_tui::widgets::help::HelpSection> = sections
             .into_iter()
             .map(|(title, rows)| {
@@ -1131,11 +1057,6 @@ impl App {
         self.open_layer(Box::new(h), LayerTag::new("help"), self.route());
     }
 
-
-
-
-
-
     fn open_layer(&mut self, layer: Box<AppLayer>, tag: LayerTag, owner: Route) {
         self.layers.open(layer, tag, owner, &mut self.shell.focus);
         self.shell.pointer.hover = None;
@@ -1145,7 +1066,6 @@ impl App {
         }
     }
 
-
     fn layer_gone(&mut self) {
         if self.layers.is_empty()
             && let Some(c) = self.router.capsule_mut()
@@ -1153,9 +1073,6 @@ impl App {
             c.dialog_open = false;
         }
     }
-
-
-
 
     fn settle_layers(&mut self, mut out: Outcome) -> Outcome {
         while let Some(taken) = self.layers.take(&mut self.shell.focus) {
@@ -1169,9 +1086,6 @@ impl App {
         }
         out
     }
-
-
-
 
     fn layer_event(&mut self, r: ModalResult) -> Outcome {
         let Some(top) = self.layers.top() else {
@@ -1203,12 +1117,10 @@ impl App {
         let scope = r == ModalResult::Scope;
         let o = self.tell_owner(owner, &tag, r);
         if scope {
-
             self.refresh_picker();
         }
         o.or(Outcome::Changed)
     }
-
 
     fn layer_closed(&mut self, entry: Entry, r: ModalResult) -> Outcome {
         let cancel_index = entry.get::<Dialog>().and_then(|d| d.cancel_index);
@@ -1222,7 +1134,6 @@ impl App {
                     .unwrap_or_default(),
             )),
 
-
             ModalResult::Dialog { action: None, text } => ModalResult::Dialog {
                 action: cancel_index,
                 text,
@@ -1232,15 +1143,12 @@ impl App {
         self.tell_owner(entry.owner, &entry.tag, r)
     }
 
-
     fn tell_owner(&mut self, owner: Route, tag: &LayerTag, r: ModalResult) -> Outcome {
         self.on_route(owner, Outcome::Changed, |s, w, cx| {
             s.on_layer_result(tag, r, w, cx)
         })
         .or(Outcome::Changed)
     }
-
-
 
     fn top_form_values(&self) -> crate::screens::modals::FormValues {
         self.layers
@@ -1249,16 +1157,12 @@ impl App {
             .unwrap_or_default()
     }
 
-
-
-
     fn copy(&mut self, v: String, what: Option<String>) {
         let now = self.world.clock.now();
         self.shell.copy_at(&v, what.as_deref(), now);
         self.world.clipboard = Some(v);
         self.clipboard_gen += 1;
     }
-
 
     fn refresh_picker(&mut self) {
         let Some(top) = self.layers.top() else {
@@ -1283,8 +1187,6 @@ impl App {
         }
     }
 
-
-
     fn form_changed(&mut self) {
         let Some(top) = self.layers.top_mut() else {
             return;
@@ -1297,8 +1199,6 @@ impl App {
             s.form_changed(&tag, form, &self.world);
         }
     }
-
-
 
     fn layer_key(&mut self, key: Key) -> Outcome {
         let Some(top) = self.layers.top_mut() else {
@@ -1316,14 +1216,10 @@ impl App {
         self.settle_layers(o.or(Outcome::Consumed))
     }
 
-
-
-
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
         let d = self.layers.dismiss(reason, &mut self.shell.focus);
         self.dismissed(reason, d)
     }
-
 
     fn dismissed(
         &mut self,
@@ -1362,26 +1258,16 @@ impl App {
         }
     }
 
-
-
     fn layer_animates(&self) -> bool {
         self.layers.top().is_some_and(|t| t.layer.animating())
     }
-
 
     fn layer_editing(&self) -> bool {
         self.layers.top().is_some_and(|t| t.layer.is_editing())
     }
 
-
-
-
-
-
-
     fn deliver_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if matches!(self.route(), Route::Intro | Route::Outro | Route::Handoff) {
-
             return if ev.is(Phase::Click) {
                 self.skip_animation()
             } else {
@@ -1404,8 +1290,6 @@ impl App {
         self.screen_pointer(ev)
     }
 
-
-
     fn skip_animation(&mut self) -> Outcome {
         if matches!(self.route(), Route::Intro | Route::Outro)
             && self.shell.pointer.config.click_skips_animation
@@ -1421,10 +1305,6 @@ impl App {
         Outcome::Ignored
     }
 
-
-
-
-
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
@@ -1438,12 +1318,8 @@ impl App {
         }
     }
 
-
-
     fn chrome_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         if Self::is_host(self.route()) {
-
-
             if let Some(r) = self.host_menu.route(ev) {
                 let (o, act) = r.into_parts();
                 return Some(match act {
@@ -1474,16 +1350,10 @@ impl App {
         Some(Outcome::Changed)
     }
 
-
     fn screen_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         let route = self.route();
         self.on_route(route, Outcome::Ignored, |s, w, cx| s.pointer(ev, w, cx))
     }
-
-
-
-
-
 
     fn on_route(
         &mut self,
@@ -1534,8 +1404,6 @@ impl App {
     }
 
     pub fn go(&mut self, g: Go) {
-
-
         if self.quit_guard.pending().is_some() && matches!(g, Go::Manager) {
             self.quit_guard.resolve(DialogResult::Action(1));
             self.quit_now();
@@ -1615,8 +1483,6 @@ impl App {
                     pane,
                 )));
                 if self.route() == Route::Cockpit {
-
-
                     self.router.push(page);
                     self.handoff = Some(0);
                     if self.shell.motion == Motion::Reduced {
@@ -1704,7 +1570,6 @@ impl App {
                 self.leave_construct(&instance);
             }
             Go::LaunchFailedAck { instance } => {
-
                 self.show_tab(TAB_MANAGER);
                 if self.world.running_count() > 0 {
                     if let Some(i) = instance {
@@ -1723,7 +1588,6 @@ impl App {
                         Tone::Error,
                     );
                 } else {
-
                     self.leave_construct(instance.as_deref().unwrap_or(""));
                 }
             }
@@ -1731,8 +1595,6 @@ impl App {
             Go::Quit => self.quit_now(),
         }
     }
-
-
 
     fn leave_construct(&mut self, instance: &str) {
         let decision = self.world.arbiter.request_exit(self.world.now_ms());
@@ -1799,8 +1661,6 @@ impl App {
         });
     }
 
-
-
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         match self.route() {
@@ -1844,19 +1704,12 @@ impl App {
                     entry.layer.render(area, buf, ctx, &self.world);
                 }
                 if !self.layers.is_empty() {
-
                     let footer = Self::chrome(r).regions(area).footer;
                     self.footer(true).render(footer, buf, ctx, &mut self.shell);
                 }
             }
         }
     }
-
-
-
-
-
-
 
     fn chrome(route: Route) -> Chrome {
         match route {
@@ -1865,7 +1718,6 @@ impl App {
             _ => Chrome::new().inset(1),
         }
     }
-
 
     fn draw_frame(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, route: Route) {
         let t = self.theme;
@@ -1996,11 +1848,6 @@ impl App {
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 
-
-
-
-
-
     fn footer(&self, modal: bool) -> shell::Footer {
         use junie_tui::core::hints::{HasHints, HintCx};
         let focus = self.shell.focus.current();
@@ -2037,7 +1884,6 @@ impl App {
     }
 }
 
-
 const BRAND_PADDED: &str = " jackin❯ ";
 
 impl shell::App for App {
@@ -2070,8 +1916,6 @@ impl shell::App for App {
         self.handle_input(input)
     }
 
-
-
     fn advance_clock(&mut self, ms: u64) -> Option<Outcome> {
         Some(junie_tui::clock::run_step(
             self,
@@ -2101,7 +1945,6 @@ impl shell::App for App {
             _ => self.router.key(),
         }
     }
-
 
     fn stakes(&mut self) -> Stakes {
         let world = &self.world;
@@ -2133,9 +1976,6 @@ impl PointerHost for App {
         self.deliver_pointer(ev).into()
     }
 
-
-
-
     fn outside(&mut self, _pos: Position) -> Response<()> {
         if matches!(self.route(), Route::Intro | Route::Outro | Route::Handoff) {
             return self.skip_animation().into();
@@ -2153,11 +1993,8 @@ impl PointerHost for App {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HostCmd {
-
     Manager,
 
     Accounts,
@@ -2175,7 +2012,6 @@ enum HostCmd {
     Press(Key),
 }
 
-
 fn plain(code: KeyCode) -> Key {
     Key {
         code,
@@ -2183,11 +2019,8 @@ fn plain(code: KeyCode) -> Key {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JackinCmd {
-
     Usage,
 
     Accounts,
@@ -2196,9 +2029,6 @@ pub enum JackinCmd {
 
     Leave,
 }
-
-
-
 
 pub fn shell_keys() -> shell::ShellKeys<JackinCmd> {
     use junie_tui::core::keymap::KeyBinding;
@@ -2218,9 +2048,6 @@ impl shell::KeyHost for App {
     fn shell_keys(&self) -> &shell::ShellKeys<JackinCmd> {
         &self.keys
     }
-
-
-
 
     fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
         if let Some(o) = self.sequence_key(key) {
@@ -2245,8 +2072,6 @@ impl shell::KeyHost for App {
             _ => o.or(Outcome::Changed),
         })
     }
-
-
 
     fn capturing(&self) -> bool {
         matches!(self.route(), Route::Cockpit | Route::Capsule) || self.host_editing()
@@ -2291,8 +2116,6 @@ impl shell::KeyHost for App {
         }
     }
 
-
-
     fn chrome_key(&mut self, key: &Key) -> Outcome {
         if !(Self::is_host(self.route()) && self.shell.focus.is(HOST_MENU)) {
             return Outcome::Ignored;
@@ -2332,9 +2155,6 @@ impl shell::KeyHost for App {
         self.on_route(route, Outcome::Consumed, |s, w, cx| s.on_paste(text, w, cx))
     }
 
-
-
-
     fn esc_top(&mut self) -> Outcome {
         let route = self.route();
         let o = self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_esc_top(w, cx));
@@ -2344,8 +2164,6 @@ impl shell::KeyHost for App {
             o.or(Outcome::Consumed)
         }
     }
-
-
 
     fn interrupt(&mut self) -> Outcome {
         let route = self.route();

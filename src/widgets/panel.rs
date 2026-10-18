@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyModifiers;
 use ratatui::layout::{Position, Rect};
@@ -34,28 +26,17 @@ pub enum PanelKind {
     Framed,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PanelFocus {
-
-
     #[default]
     Title,
-
 
     Bar,
 }
 
-
-
 pub const TITLE_MIN: u16 = 12;
 
-
 const META_MIN: u16 = 4;
-
-
-
-
 
 fn cut_meta(meta: &str, room: u16, ellipsis: &str) -> Option<String> {
     if room < META_MIN {
@@ -86,21 +67,12 @@ pub struct Panel<'a> {
 
     pub focus_mark: PanelFocus,
 
-
     pub title_min: u16,
-
-
-
-
 
     pub meta_short: Option<&'a str>,
 
-
-
     pub pad_x: u16,
 }
-
-
 
 pub const CARD_PAD: u16 = 2;
 
@@ -156,7 +128,6 @@ impl<'a> Panel<'a> {
         self
     }
 
-
     fn title_span(&self, area: Rect) -> (u16, u16) {
         let pad = match self.kind {
             PanelKind::Card => self.pad_x,
@@ -165,13 +136,10 @@ impl<'a> Panel<'a> {
         (area.x + pad, area.width.saturating_sub(pad * 2))
     }
 
-
-
     pub fn title_min(mut self, cells: u16) -> Self {
         self.title_min = cells;
         self
     }
-
 
     pub fn bg(&self, t: &Theme) -> Color {
         if let Some(bg) = self.bg_override {
@@ -182,9 +150,6 @@ impl<'a> Panel<'a> {
             PanelKind::Framed => t.canvas,
         }
     }
-
-
-
 
     pub fn draw_meta(&self, area: Rect, buf: &mut Buffer, t: &Theme, meta: &str) {
         let area = area.intersection(*buf.area());
@@ -210,9 +175,6 @@ impl<'a> Panel<'a> {
         late.title_row(row.x, row.y, row.width, buf, t, bg);
     }
 
-
-
-
     pub fn mark_clipped(&self, inner: Rect, buf: &mut Buffer, t: &Theme) {
         let inner = inner.intersection(*buf.area());
         if inner.is_empty() {
@@ -223,17 +185,10 @@ impl<'a> Panel<'a> {
         buf.set_string(x, y, t.glyphs.ellipsis, t.faint().bg(bg));
     }
 
-
-
-
-
-
-
     pub fn try_render(&self, area: Rect, buf: &mut Buffer, t: &Theme) -> Option<Rect> {
         let inner = self.render(area, buf, t);
         (!inner.is_empty()).then_some(inner)
     }
-
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, t: &Theme) -> Rect {
         let area = area.intersection(*buf.area());
@@ -246,7 +201,6 @@ impl<'a> Panel<'a> {
                 fill(buf, area, Style::new().bg(bg));
                 let inner = area.inner(ratatui::layout::Margin::new(self.pad_x, 1));
                 if self.focused && self.title.is_some() && self.focus_mark == PanelFocus::Bar {
-
                     let s = crate::ui::ctx::VisualState {
                         focused: true,
                         ..Default::default()
@@ -300,9 +254,6 @@ impl<'a> Panel<'a> {
         let framed = self.kind == PanelKind::Framed;
         let pad: u16 = if framed { 2 } else { 0 };
 
-
-
-
         let title_min = self
             .title
             .map(|t| (crate::ui::text::width(t) as u16).min(self.title_min))
@@ -318,7 +269,6 @@ impl<'a> Panel<'a> {
                 .meta_short
                 .map(str::to_owned)
                 .unwrap_or_else(|| m.replace(" of ", "/"));
-
 
             let head = short.split(" · ").next().unwrap_or_default().to_owned();
             if fits(&short) {
@@ -381,27 +331,10 @@ impl<'a> Panel<'a> {
 
 use ratatui::style::Style;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone)]
 pub struct ScrollPanel {
     pub id: WidgetId,
     pub lines: Vec<String>,
-
 
     pub scroll: ScrollPane,
 
@@ -415,39 +348,24 @@ pub struct ScrollPanel {
 
     pub horizontal: Option<HScroll>,
 
-
     pub nav: NavKeys,
 
     pub keymap: KeyMap<PanelCmd>,
 
-
-
-
     pub pointer_select: PointerSelect,
-
-
 
     select: TextSelect<CellPos>,
 
-
     select_w: u16,
-
-
 
     pub edit_menu: EditMenu,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PanelCmd {
-
-
     Follow,
 
-
-
     Copy,
-
 
     SelectAll,
 }
@@ -475,12 +393,10 @@ impl Actions for PanelCmd {
 }
 
 impl ScrollPanel {
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<PanelCmd>) -> Self {
         self.keymap = keymap;
@@ -507,31 +423,24 @@ impl ScrollPanel {
         }
     }
 
-
-
     pub fn context_menu(mut self, on: bool) -> Self {
         self.edit_menu.enabled = on;
         self
     }
-
 
     pub fn pointer_select(mut self, policy: PointerSelect) -> Self {
         self.pointer_select = policy;
         self
     }
 
-
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
 
-
     fn h_enabled(&self) -> bool {
         !self.wrap && self.scroll.h_cfg.enabled
     }
-
-
 
     fn scroll_h(&mut self, delta: isize) -> Outcome {
         self.wheel(Axis::Horizontal, delta as i32).outcome()
@@ -541,7 +450,6 @@ impl ScrollPanel {
         self.wrap = w;
         self
     }
-
 
     pub fn tail(mut self, t: bool) -> Self {
         self.tail = t;
@@ -554,14 +462,11 @@ impl ScrollPanel {
         self.wrapped_cache.0 = 0;
     }
 
-
-
     fn settle_follow(&mut self) {
         self.follow = self.tail && self.scroll.at_end();
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
-
         if let Some(o) = edit_menu_key(self, key) {
             return o;
         }
@@ -572,7 +477,6 @@ impl ScrollPanel {
         match cmd {
             Some(PanelCmd::SelectAll) => return self.select_all(),
             Some(PanelCmd::Copy) => {
-
                 let Some(text) = self.selected_text() else {
                     return Outcome::Ignored;
                 };
@@ -618,9 +522,6 @@ impl ScrollPanel {
             Outcome::Consumed
         }
     }
-
-
-
 
     pub fn measure(&mut self, area: Rect) {
         self.area = area;
@@ -669,9 +570,6 @@ impl ScrollPanel {
         }
     }
 
-
-
-
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
@@ -719,7 +617,6 @@ impl ScrollPanel {
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
 
-
         let rows_h = (self.scroll.viewport_len as u16).min(area.height);
         ctx.autoscroll(Rect::new(area.x, area.y, area.width, rows_h));
         let sel = self.select.range();
@@ -745,7 +642,6 @@ impl ScrollPanel {
             };
             buf.set_string(area.x, y, &text, st);
 
-
             if let Some((a, b)) = sel
                 && (a.line..=b.line).contains(&li)
             {
@@ -770,7 +666,6 @@ impl ScrollPanel {
                 .draw_with_fade(body, buf, ctx, self.id, focused, &[]);
         }
         if rows_h < area.height && self.h_enabled() {
-
             let y = area.y + rows_h;
             fill(
                 buf,
@@ -786,9 +681,7 @@ impl ScrollPanel {
     }
 }
 
-
 impl ScrollPanel {
-
     fn rows(&self) -> &[String] {
         if self.wrap {
             &self.wrapped_cache.1
@@ -797,7 +690,6 @@ impl ScrollPanel {
         }
     }
 
-
     fn source_of(&self, row: usize) -> usize {
         if self.wrap {
             self.wrapped_cache.2.get(row).copied().unwrap_or(row)
@@ -805,8 +697,6 @@ impl ScrollPanel {
             row
         }
     }
-
-
 
     fn pos_at(&self, pos: Position) -> Option<CellPos> {
         let rows = self.rows();
@@ -827,7 +717,6 @@ impl ScrollPanel {
         Some(CellPos { line, col })
     }
 
-
     fn word_at(&self, p: CellPos) -> Option<(CellPos, CellPos)> {
         let row = self.rows().get(p.line)?;
         let cells = text_select::plain_cells(row);
@@ -845,7 +734,6 @@ impl ScrollPanel {
             },
         ))
     }
-
 
     fn line_at(&self, p: CellPos) -> Option<(CellPos, CellPos)> {
         let rows = self.rows();
@@ -871,12 +759,9 @@ impl ScrollPanel {
         ))
     }
 
-
     pub fn selection(&self) -> Option<(CellPos, CellPos)> {
         self.select.range()
     }
-
-
 
     pub fn selected_text(&self) -> Option<String> {
         let (a, b) = self.selection()?;
@@ -898,8 +783,6 @@ impl ScrollPanel {
         Some(out)
     }
 
-
-
     pub fn select_all(&mut self) -> Outcome {
         let rows = self.rows();
         let Some(last) = rows.len().checked_sub(1) else {
@@ -919,14 +802,9 @@ impl ScrollPanel {
         Outcome::Changed
     }
 
-
     pub fn clear_selection(&mut self) -> Outcome {
         self.select.clear()
     }
-
-
-
-
 
     fn on_press_with(&mut self, pos: Position, count: u8, mods: KeyModifiers) -> Outcome {
         let at = self.pos_at(pos);
@@ -935,9 +813,6 @@ impl ScrollPanel {
         self.select
             .press(self.pointer_select, at, count, mods, word, line)
     }
-
-
-
 
     fn on_drag(&mut self, pos: Position) -> Outcome {
         if self.select.press.is_none() {
@@ -961,9 +836,6 @@ impl ScrollPanel {
         self.select.drag(self.pointer_select, head, pos, word)
     }
 
-
-
-
     fn on_click_with(&mut self, pos: Position, count: u8) -> Outcome {
         let at = self.pos_at(pos);
         let word = at.and_then(|p| self.word_at(p));
@@ -978,11 +850,9 @@ impl Scrollable for ScrollPanel {
         &mut self.scroll
     }
 
-
     fn wheel_first(&mut self, axis: Axis, _delta: i32) -> Option<Response<()>> {
         (axis == Axis::Horizontal && !self.h_enabled()).then(Response::ignored)
     }
-
 
     fn after_scroll(&mut self, axis: Axis, _moved: bool) -> bool {
         if axis != Axis::Vertical {
@@ -993,12 +863,6 @@ impl Scrollable for ScrollPanel {
         was != self.follow
     }
 }
-
-
-
-
-
-
 
 impl crate::ui::specimen::Specimen for Panel<'static> {
     fn specimen_id(&self) -> WidgetId {
@@ -1048,12 +912,6 @@ impl crate::ui::specimen::Specimen for Panel<'static> {
     }
 }
 
-
-
-
-
-
-
 impl crate::ui::specimen::Specimen for ScrollPanel {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -1102,10 +960,6 @@ impl crate::ui::specimen::Specimen for ScrollPanel {
     }
 }
 
-
-
-
-
 impl crate::core::pointer::MouseTarget for ScrollPanel {
     type Action = ();
 
@@ -1137,9 +991,6 @@ impl crate::core::pointer::MouseTarget for ScrollPanel {
     }
 }
 
-
-
-
 impl EditMenuHost for ScrollPanel {
     fn edit_menu(&mut self) -> &mut EditMenu {
         &mut self.edit_menu
@@ -1163,7 +1014,6 @@ impl EditMenuHost for ScrollPanel {
         crate::core::keymap::label_for(&self.keymap, cmd)
     }
     fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
-
         ev.id == self.id
     }
     fn edit_run(&mut self, cmd: crate::core::edit::TextCmd) -> bool {
@@ -1204,7 +1054,6 @@ mod scroll_panel_tests {
             .map(|x| buf[(x, y)].symbol().to_owned())
             .collect::<String>()
     }
-
 
     fn sample(
         sample: &dyn crate::ui::specimen::Specimen,
@@ -1291,14 +1140,11 @@ mod scroll_panel_tests {
         );
         assert!(row(&buf, 0).starts_with("CREATE TABLE"));
 
-
-
         assert_eq!(p.on_key(&key(KeyCode::Right)), Outcome::Changed);
         assert_eq!(p.scroll.h.offset, HScroll::default().step);
         let (buf, _) = draw_panel(&mut p, area);
         assert!(row(&buf, 0).starts_with('…'), "{}", row(&buf, 0));
         assert!(!row(&buf, 3).starts_with(scrollbar::H_THUMB));
-
 
         assert_eq!(p.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
         let (buf, _) = draw_panel(&mut p, area);
@@ -1314,7 +1160,6 @@ mod scroll_panel_tests {
         assert_eq!(p.bar_drag(Position::new(40, 3)).outcome(), Outcome::Changed);
         assert_eq!(p.scroll.h.offset, p.scroll.h.max_offset());
         assert_eq!(p.scroll.offset, 0, "rows did not move");
-
 
         let mut wrapped = ScrollPanel::new(WidgetId::of("w"), p.lines.clone()).wrap(true);
         let (buf, _) = draw_panel(&mut wrapped, area);
@@ -1354,13 +1199,8 @@ mod scroll_panel_tests {
         row(&buf, 0)
     }
 
-
-
-
-
     #[test]
     fn the_title_keeps_title_min_and_the_meta_shortens_first() {
-
         let r = title_of("Languages", "1–13 of 24", None, 30);
         assert!(r.contains("Languages") && r.contains("1–13 of 24"), "{r}");
 
@@ -1376,7 +1216,6 @@ mod scroll_panel_tests {
         );
         assert!(r.contains("customers") && r.contains("1–10/40"), "{r}");
 
-
         let r = title_of("Languages", "1–13 of 24", None, 18);
         assert!(r.contains("Languages") && !r.contains('1'), "{r}");
 
@@ -1385,7 +1224,6 @@ mod scroll_panel_tests {
             r.contains("Log") && r.contains("Enter cop") && r.contains('…'),
             "{r}"
         );
-
 
         let r = title_of(
             "customers",
@@ -1412,7 +1250,6 @@ mod scroll_panel_tests {
             .render(Rect::new(0, 0, 24, 3), &mut buf, &t);
         assert!(row(&buf, 0).contains("70–100 of 120"), "{}", row(&buf, 0));
     }
-
 
     #[test]
     fn a_clipped_card_body_ends_in_an_ellipsis() {
@@ -1551,8 +1388,6 @@ mod title_reveal_tests {
 
     const TITLE: &str = "Connections to the production analytics warehouse";
 
-
-
     fn frame(hover: Option<WidgetId>) -> (String, HitRegistry) {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -1672,7 +1507,6 @@ mod pad_tests {
         panel.draw_meta(area, &mut buf, &theme, "3/25");
         assert_eq!(top(&buf), " Components   3/25 ");
 
-
         let framed =
             Panel::framed(Some("F"))
                 .pad_x(1)
@@ -1681,8 +1515,6 @@ mod pad_tests {
         assert_eq!(framed, plain);
     }
 }
-
-
 
 #[cfg(test)]
 mod selection_tests {
@@ -1755,7 +1587,6 @@ mod selection_tests {
         let none = KeyModifiers::NONE;
         let (_, hits) = draw(&mut p);
 
-
         send(&mut p, &hits, Phase::Press, (6, 0), 1, none);
         send(&mut p, &hits, Phase::Drag, (3, 1), 1, none);
         send(&mut p, &hits, Phase::Click, (3, 1), 1, none);
@@ -1767,13 +1598,11 @@ mod selection_tests {
         assert!(!selected(&buf, 5, 0) && !selected(&buf, 3, 1));
         assert_eq!(copied(&mut p).as_deref(), Some("beta gamma\nsec"));
 
-
         click(&mut p, &hits, (1, 2), 1, KeyModifiers::SHIFT);
         assert_eq!(
             copied(&mut p).as_deref(),
             Some("beta gamma\nsecond line here\nt")
         );
-
 
         click(&mut p, &hits, (8, 1), 1, none);
         click(&mut p, &hits, (8, 1), 2, none);
@@ -1782,7 +1611,6 @@ mod selection_tests {
         click(&mut p, &hits, (1, 0), 2, none);
         click(&mut p, &hits, (1, 0), 3, none);
         assert_eq!(copied(&mut p).as_deref(), Some("alpha beta gamma"));
-
 
         click(&mut p, &hits, (1, 0), 1, none);
         assert_eq!(copied(&mut p), None);

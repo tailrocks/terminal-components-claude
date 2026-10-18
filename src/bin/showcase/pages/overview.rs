@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -32,7 +20,6 @@ use junie_tui::widgets::props::{self, Prop};
 
 const ID: WidgetId = WidgetId::of("overview");
 
-
 const PLANES: [(Plane, &str); 10] = [
     (Plane::Canvas, "Canvas"),
     (Plane::Surface, "Surface"),
@@ -45,8 +32,6 @@ const PLANES: [(Plane, &str); 10] = [
     (Plane::Accent, "Accent"),
     (Plane::Danger, "Danger"),
 ];
-
-
 
 const KINDS: [(Kind, &str); 15] = [
     (Kind::Row, "Row"),
@@ -66,10 +51,8 @@ const KINDS: [(Kind, &str); 15] = [
     (Kind::Seam, "Seam"),
 ];
 
-
 const DEFAULT_PLANE: usize = 2;
 const DEFAULT_KIND: usize = 4;
-
 
 const CARD_MIN: u16 = 50;
 
@@ -94,8 +77,6 @@ impl OverviewPage {
             mods: 0,
         }
     }
-
-
 
     fn explorer_theme(&self, t: &Theme) -> Theme {
         let plane = PLANES[self.plane].0;
@@ -169,8 +150,6 @@ impl OverviewPage {
         }
     }
 
-
-
     fn render_explorer(&self, area: Rect, buf: &mut Buffer, t: &Theme, xt: &Theme, bg: Color) {
         let (plane, plane_name) = PLANES[self.plane];
         let (kind, kind_name) = KINDS[self.kind];
@@ -234,8 +213,6 @@ impl OverviewPage {
     }
 }
 
-
-
 fn states_grid(plane: Plane) -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -257,7 +234,6 @@ fn states_grid(plane: Plane) -> StateGrid {
     }
     g
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Card {
@@ -308,7 +284,6 @@ impl Card {
         }
     }
 
-
     fn height(self, width: u16) -> u16 {
         let body = match self {
             Card::Planes | Card::Accents => 20,
@@ -335,7 +310,6 @@ impl Card {
         body + 3
     }
 }
-
 
 fn put(buf: &mut Buffer, area: Rect, row: u16, col: u16, text: &str, style: Style) {
     if row >= area.height || col >= area.width {
@@ -396,9 +370,6 @@ fn accent_and_status(t: &Theme) -> Vec<(&'static str, Color)> {
     ]
 }
 
-
-
-
 fn swatch_note(c: Color) -> String {
     match c {
         Color::Rgb(r, g, b) => format!("#{r:02x}{g:02x}{b:02x}"),
@@ -406,8 +377,6 @@ fn swatch_note(c: Color) -> String {
         other => format!("{other:?}"),
     }
 }
-
-
 
 fn render_swatches(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color, all: &[(&str, Color)]) {
     for (i, (name, color)) in all.iter().enumerate() {
@@ -431,8 +400,6 @@ fn render_swatches(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color, all: &[(&
         }
     }
 }
-
-
 
 fn render_ladders(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     put(
@@ -483,9 +450,6 @@ fn render_ladders(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
         }
     }
 }
-
-
-
 
 fn render_contrast(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     type Ink = fn(&Theme) -> Color;
@@ -544,7 +508,6 @@ fn render_contrast(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     );
 }
 
-
 fn ratio_label(r: f64) -> String {
     if r >= 10.0 {
         format!("{r:.0}")
@@ -560,7 +523,6 @@ fn render_principles(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
         for (k, l) in lines.iter().enumerate() {
             put(buf, area, row, 0, l, t.secondary().bg(bg));
             if k == 0 {
-
                 let head = format!("{title}.");
                 let bold = t.primary().bg(bg).add_modifier(Modifier::BOLD);
                 put(buf, area, row, 0, &head, bold);
@@ -569,8 +531,6 @@ fn render_principles(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
         }
     }
 }
-
-
 
 fn render_mods(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     let m = t.mods;
@@ -614,7 +574,6 @@ fn render_mods(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     }
 }
 
-
 fn render_settings(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     let h = t.hintbar;
     let on = |b: bool| if b { "on" } else { "off" };
@@ -647,9 +606,7 @@ fn render_settings(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     props::render(area, buf, t, &list, bg);
 }
 
-
 fn render_legend(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
-
     let legend: [(&str, &str, Style); 7] = [
         ("▏", "focus: the bar (depicted)", t.accent_fg()),
         ("░", "hover lifts the surface", t.secondary()),
@@ -664,8 +621,6 @@ fn render_legend(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
         put(buf, area, i as u16, 3, text, t.secondary().bg(bg));
     }
 }
-
-
 
 fn render_spacing(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     let s = t.spacing;
@@ -700,8 +655,6 @@ fn render_spacing(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     put(buf, area, row + 2, 0, "BadgeKind::Edit", t.muted().bg(bg));
     put(buf, area, row + 2, 17, " EDIT ", t.badge(BadgeKind::Edit));
 }
-
-
 
 fn render_glyphs(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     type Draw = fn(&Glyphs) -> String;
@@ -836,7 +789,6 @@ impl Page for OverviewPage {
     }
 }
 
-
 const OPTION_KEYS: [&str; 4] = [
     "overview.plane",
     "overview.kind",
@@ -870,12 +822,6 @@ const PRINCIPLES: &[(&str, &str)] = &[
         "Bold is reserved for the focused control. No box around a thing unless the box carries meaning.",
     ),
 ];
-
-
-
-
-
-
 
 fn render_roles(area: Rect, buf: &mut Buffer, t: &Theme) {
     if area.height < 4 {
