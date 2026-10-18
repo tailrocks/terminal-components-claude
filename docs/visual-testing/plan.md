@@ -370,7 +370,7 @@ flips to passing.
 **Slice rule:** one PR = one library defect (L*) or one surface group of one
 app. It must flip at least 1 scenario, regress none, and pass the repo gate.
 Re-implementation follows the reference *behaviour* through the termrock
-API; no cherry-picks from either lineage (`main-port-analysis.md`).
+API; do not copy a source tree wholesale or treat a branch snapshot as product authority. Use the current migration rules in [the component architecture](../architecture/component-architecture.md).
 
 ## G. Risks and upstream work
 
