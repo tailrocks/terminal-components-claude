@@ -1,10 +1,10 @@
-//! [`CodeEditor`] as a [`Specimen`]: a States grid draws a short copy of
-//! an editor in a forced state.
-//!
-//! The sample keeps the editor's text, highlighter and settings and sets
-//! only what the state is about: editing (the caret), read-only, a block
-//! running (the spinner in the marker column), an error diagnostic, no
-//! text (the placeholder), or a line longer than the column.
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -15,7 +15,7 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::specimen::{Specimen, SpecimenState};
 use crate::widgets::code::{CodeEditor, Diagnostic, Severity};
 
-/// Rows a sample takes.
+
 const SAMPLE_ROWS: u16 = 3;
 
 impl Specimen for CodeEditor {

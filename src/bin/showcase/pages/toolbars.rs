@@ -1,17 +1,17 @@
-//! Toolbars (Inputs & forms, plan §7.5 SC28): the library `Toolbar`, a
-//! row of commands that is one focus stop (WAI-ARIA APG toolbar).
-//!
-//! - **Playground**: a query toolbar (commands with shortcuts and tips, a
-//!   Stop that is disabled until a run starts, separators, toggles), the
-//!   same commands in a narrow toolbar whose hidden items sit behind the
-//!   `»` overflow menu, and a formatting toolbar of toggles, with a
-//!   readout of the last `ToolbarAction`.
-//! - **Options**: `toolbars.*`, one control per builder (nav keys, wrap,
-//!   disabled items reachable, gap, overflow button).
-//! - **States**: a command toolbar and a toggle toolbar in every state.
-//!
-//! Wiring and demo data only: keys, pointer, focus and drawing are the
-//! toolbar's.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -34,7 +34,7 @@ use junie_tui::widgets::toolbar::{ToolItem, Toolbar, ToolbarAction};
 
 const ID: WidgetId = WidgetId::of("toolbars");
 
-/// The query toolbar's commands; `running` enables Stop and disables Run.
+
 fn query_items(running: bool) -> Vec<ToolItem> {
     vec![
         busy_if(
@@ -67,13 +67,13 @@ fn query_items(running: bool) -> Vec<ToolItem> {
     ]
 }
 
-/// `item`, disabled with `why` when `off`.
+
 fn busy_if(item: ToolItem, off: bool, why: &str) -> ToolItem {
     if off { item.reason(why) } else { item }
 }
 
-/// The narrow toolbar's width: Run and Run all fit, the rest goes behind
-/// the overflow button.
+
+
 const NARROW_W: u16 = 32;
 
 fn format_items() -> Vec<ToolItem> {
@@ -90,12 +90,12 @@ fn format_items() -> Vec<ToolItem> {
 pub struct ToolbarsPage {
     template: Template,
     pub query: Toolbar,
-    /// The query commands in [`NARROW_W`] cells: the overflow menu.
+
     pub narrow: Toolbar,
     pub format: Toolbar,
     pub running: bool,
     pub last: String,
-    /// `toolbars.nav`, `.wrap`, `.skip_disabled`, `.gap`, `.overflow`.
+
     opts: [usize; 5],
 }
 
@@ -123,8 +123,8 @@ impl ToolbarsPage {
         p
     }
 
-    /// Apply the options through the builders an app calls, keeping each
-    /// toolbar's items and cursor.
+
+
     fn rebuild(&mut self) {
         let style = |t: &Toolbar, o: &[usize; 5]| {
             let cursor = t.cursor;
@@ -149,7 +149,7 @@ impl ToolbarsPage {
         self.format = style(&self.format, &self.opts);
     }
 
-    /// The toolbars in focus order: query, narrow, format.
+
     fn bar_mut(&mut self, k: usize) -> &mut Toolbar {
         match k {
             0 => &mut self.query,
@@ -158,7 +158,7 @@ impl ToolbarsPage {
         }
     }
 
-    /// `k` is a toolbar of query commands (the wide or the narrow one).
+
     fn act(&mut self, a: ToolbarAction, k: usize, cx: &mut Cx) {
         let label = match a {
             ToolbarAction::Activated(i) | ToolbarAction::Toggled(i, _) => {
@@ -174,7 +174,7 @@ impl ToolbarsPage {
                 2 => self.running = false,
                 _ => {}
             }
-            // the run state enables Stop and disables Run, keeping toggles
+
             for bar in [&mut self.query, &mut self.narrow] {
                 let mut items = query_items(self.running);
                 for (n, o) in items.iter_mut().zip(&bar.items) {
@@ -196,8 +196,8 @@ impl ToolbarsPage {
         }
     }
 
-    /// What the narrow toolbar's overflow menu holds, with why a disabled
-    /// item waits.
+
+
     fn behind_text(&self) -> String {
         let hidden: Vec<String> = self
             .narrow
@@ -229,8 +229,8 @@ impl ToolbarsPage {
         ]
     }
 
-    /// The four cards, one under the other, at `width`: each never
-    /// narrower than its toolbar shown whole and its first line.
+
+
     fn tiled(&self, width: u16) -> Tiled {
         let w = |s: &str| text::width(s) as u16;
         let card = |p: Panel, content: u16| p.outer(Size::new(content, 0)).width;
@@ -313,7 +313,7 @@ impl ToolbarsPage {
 const QUERY_META: &str = "one Tab stop · ←→ · Enter";
 const NARROW_META: &str = "» holds what does not fit";
 
-/// The States grid: a command toolbar and a toggle toolbar.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -403,7 +403,7 @@ impl Page for ToolbarsPage {
                 for k in 0..3 {
                     let bar = self.bar_mut(k);
                     let bid = bar.id;
-                    // the overflow menu is the bar's too
+
                     if let Some(r) = bar.route(ev) {
                         if !ev.is(Phase::Click) {
                             return r.outcome();

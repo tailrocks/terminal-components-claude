@@ -1,5 +1,5 @@
-//! Deterministic fixture worlds, one per scenario, and the account
-//! precedence resolver that every surface shares.
+
+
 
 use std::collections::BTreeMap;
 
@@ -29,7 +29,7 @@ use junie_tui::ui::layout::SplitDir;
 
 pub const HOME: &str = "/Users/alexey";
 
-// ------------------------------------------------------------ precedence
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrecedenceLevel {
@@ -59,7 +59,7 @@ pub struct ResolvedAccount {
     pub account: Option<AccountId>,
     pub level: PrecedenceLevel,
     pub why: String,
-    /// Lower levels that would have applied.
+
     pub shadowed: Vec<(PrecedenceLevel, AccountId)>,
 }
 
@@ -75,11 +75,11 @@ impl ResolvedAccount {
     }
 }
 
-/// session choice › Role preference › Workspace preference › provider
-/// default › discovered current source. With a Workspace every candidate
-/// must be in its effective set; an account the Workspace enabled without
-/// preferring it is the final fallback. Disabled hits are skipped and
-/// recorded.
+
+
+
+
+
 pub fn resolve_account(
     provider: Provider,
     ws: Option<&Workspace>,
@@ -206,7 +206,7 @@ pub fn resolve_account(
     }
 }
 
-// --------------------------------------------------------------- helpers
+
 
 fn op_ref(account: &str, vault: (&str, &str), item: (&str, &str), field: &str) -> OpReference {
     OpReference {
@@ -280,9 +280,9 @@ fn roles() -> Vec<RoleEntry> {
     ]
 }
 
-/// A large, deterministic Role registry (`svc-001` …) so the scoped-config
-/// screens prove they scale: every Role is trusted, in the registry, and
-/// carries no configuration until an operator adds some.
+
+
+
 fn generated_roles(n: usize) -> Vec<RoleEntry> {
     const AREAS: [&str; 6] = ["billing", "ledger", "search", "notify", "ingest", "auth"];
     (1..=n)
@@ -349,8 +349,8 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
             ),
         )],
     );
-    // two Anthropic accounts at once: Personal is the inherited registry
-    // default, Work is switched on here; Codex Primary is inherited
+
+
     w.accounts.enabled.insert("acct-claude-work".into());
     w.accounts.role_preferred.insert(
         ("reviewer".into(), Provider::Anthropic),
@@ -384,8 +384,8 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
         ),
         EnvVar::plain("TF_LOG", "WARN"),
     ];
-    // the inherited Codex default is switched off here; Experiments is
-    // enabled and therefore the only (and preferred) Codex account
+
+
     w.accounts
         .disabled_defaults
         .insert("acct-codex-primary".into());
@@ -690,7 +690,7 @@ fn github() -> Vec<GithubRepo> {
     ]
 }
 
-// --------------------------------------------------------------- accounts
+
 
 fn accounts_mixed(now: i64) -> AccountRegistry {
     let h = 3600;
@@ -1002,7 +1002,7 @@ fn accounts_mixed(now: i64) -> AccountRegistry {
     };
     r.insert(a);
 
-    // discovered, read-only
+
     let mut a = Account::discovered(
         "disc-amp",
         "discovered",
@@ -1251,7 +1251,7 @@ fn accounts_hard(now: i64) -> AccountRegistry {
         windows: vec![],
     };
     r.insert(a);
-    // long labels
+
     if let Some(w) = r.get_mut("acct-claude-work")
         && let Some(win) = w.usage.windows.iter_mut().find(|w| w.id == "weekly")
     {
@@ -1262,7 +1262,7 @@ fn accounts_hard(now: i64) -> AccountRegistry {
     r
 }
 
-// -------------------------------------------------------------- worlds
+
 
 fn base_world(scenario: Scenario) -> World {
     let clock = crate::scenario::CLOCK;
@@ -1297,7 +1297,7 @@ fn base_world(scenario: Scenario) -> World {
     w
 }
 
-/// Populated world shared by returning / accounts / launch / capsule.
+
 fn populated(scenario: Scenario, rich: bool) -> World {
     let mut w = base_world(scenario);
     let now = w.now_secs();
@@ -1310,7 +1310,7 @@ fn populated(scenario: Scenario, rich: bool) -> World {
     } else {
         accounts_mixed(now)
     };
-    // instances
+
     let mut i1 = instance(
         "jk-7f3a",
         Some(1),
@@ -1448,7 +1448,7 @@ fn populated(scenario: Scenario, rich: bool) -> World {
     i9.sessions = Ok(vec![]);
     w.instances = vec![i1, i2, i3, i4, i5, i6, i7, i8, i9];
     if rich {
-        // many instances, missing daemon data, manifest error
+
         let mut i10 = instance(
             "jk-e0e0",
             Some(10),
@@ -1491,7 +1491,7 @@ fn populated(scenario: Scenario, rich: bool) -> World {
             ));
         }
     }
-    // daemons for running instances
+
     let now_ms = w.now_ms();
     let mut d1 = Daemon::new("payments-platform");
     d1.new_tab(
@@ -1518,7 +1518,7 @@ fn populated(scenario: Scenario, rich: bool) -> World {
         t.custom_label = Some("docs".into());
     }
     d1.active = 0;
-    // long shell log for scrollback
+
     if let Some(p) = d1.pane_mut(3) {
         let mut history: Vec<junie_tui::widgets::viewport::Line> = vec![];
         for n in 0..1_960u32 {
@@ -1568,15 +1568,15 @@ fn populated(scenario: Scenario, rich: bool) -> World {
     if rich {
         let d10 = Daemon::new("data-pipeline");
         w.daemons.insert("jk-e0e0".into(), d10);
-        // its daemon never answers
+
         if let Some(i) = w.instance_mut("jk-e0e0") {
             i.daemon = DaemonSnapshot::Unavailable;
         }
         w.daemons.remove("jk-e0e0");
     }
-    // a larger Role registry: the scoped-config screens must stay readable
+
     w.roles.extend(generated_roles(if rich { 120 } else { 40 }));
-    // every instance carries the effective account set of its Workspace
+
     let registry = w.accounts.clone();
     let sets: Vec<(u32, Vec<AccountId>)> = w
         .workspaces
@@ -1604,7 +1604,7 @@ fn populated(scenario: Scenario, rich: bool) -> World {
     w
 }
 
-/// Copy live daemon topology into the instance records' snapshots.
+
 pub fn refresh_snapshots(w: &mut World) {
     let snaps: Vec<(String, DaemonSnapshot)> = w
         .daemons
@@ -1637,7 +1637,7 @@ pub fn world_for(scenario: Scenario) -> World {
         | Scenario::CapsuleMulti => populated(scenario, false),
         Scenario::OutroLast => {
             let mut w = populated(scenario, false);
-            // only one instance runs; entered 2 h 14 min ago
+
             for i in w.instances.iter_mut() {
                 if i.id == "jk-9b02" {
                     i.status = InstanceStatus::CleanExited;
@@ -1655,8 +1655,8 @@ pub fn world_for(scenario: Scenario) -> World {
             w.daemon_health = DaemonHealth::Stale;
             w.refresh_fails = true;
             w.save_fails_once = true;
-            // a trusted Role whose load still fails: the manifest does not
-            // parse (A26, the editor's role-load error dialog)
+
+
             if let Some(r) = w.roles.iter_mut().find(|r| r.name == "writer") {
                 r.fetch_error = Some(
                     "~/roles/writer/role.toml: parse error at line 4: unknown key `toolz`".into(),
@@ -1678,7 +1678,7 @@ mod tests {
     fn precedence_order_and_why() {
         let w = populated(Scenario::Returning, false);
         let ws = w.workspace(1).unwrap();
-        // Personal is the inherited registry default; Work is enabled here too
+
         let r = resolve_account(Provider::Anthropic, Some(ws), None, None, &w.accounts);
         assert_eq!(r.account.as_deref(), Some("acct-claude-personal"));
         assert_eq!(r.level, PrecedenceLevel::ProviderDefault);
@@ -1686,7 +1686,7 @@ mod tests {
         let s = "acct-claude-work".to_owned();
         let r2 = resolve_account(Provider::Anthropic, Some(ws), None, Some(&s), &w.accounts);
         assert_eq!(r2.level, PrecedenceLevel::Session);
-        // the reviewer Role prefers Work
+
         let rr = resolve_account(
             Provider::Anthropic,
             Some(ws),
@@ -1696,7 +1696,7 @@ mod tests {
         );
         assert_eq!(rr.account.as_deref(), Some("acct-claude-work"));
         assert_eq!(rr.level, PrecedenceLevel::Role);
-        // a session choice outside the effective set is ignored
+
         let foreign = "acct-codex-primary".to_owned();
         let r2b = resolve_account(
             Provider::Anthropic,
@@ -1706,7 +1706,7 @@ mod tests {
             &w.accounts,
         );
         assert_eq!(r2b.level, PrecedenceLevel::ProviderDefault);
-        // infra-control-plane switched the Codex default off and enabled Experiments
+
         let ws2 = w.workspace(2).unwrap();
         let rc = resolve_account(Provider::OpenAi, Some(ws2), None, None, &w.accounts);
         assert_eq!(rc.account.as_deref(), Some("acct-codex-experiments"));
@@ -1729,7 +1729,7 @@ mod tests {
             .iter()
             .filter(|e| e.provider == Provider::Anthropic)
             .collect();
-        // two accounts of one provider coexist: the inherited default and an enabled one
+
         assert_eq!(anthropic.len(), 2);
         assert_eq!(anthropic[0].id, "acct-claude-personal");
         assert_eq!(anthropic[0].origin, Effective::InheritedDefault);
@@ -1737,9 +1737,9 @@ mod tests {
         assert_eq!(anthropic[1].id, "acct-claude-work");
         assert_eq!(anthropic[1].origin, Effective::Enabled);
         assert_eq!(anthropic[1].usable, Usability::Ready);
-        // the same input always yields the same order
+
         assert_eq!(set, ws.effective_accounts(&w.accounts));
-        // disabling the inherited default drops it; the enabled one becomes preferred
+
         let mut ws2 = ws.clone();
         ws2.accounts
             .disabled_defaults
@@ -1750,7 +1750,7 @@ mod tests {
             set2.iter()
                 .any(|e| e.id == "acct-claude-work" && e.preferred)
         );
-        // enabling a second Codex account keeps the inherited Primary
+
         let mut ws3 = ws.clone();
         ws3.accounts.enabled.insert("acct-codex-experiments".into());
         let codex: Vec<_> = ws3
@@ -1760,7 +1760,7 @@ mod tests {
             .collect();
         assert_eq!(codex.len(), 2);
         assert_eq!(ws3.change_count(ws), 1);
-        // every instance of the Workspace carries the set
+
         let i = w.instance("jk-7f3a").unwrap();
         assert!(i.accounts.contains(&"acct-claude-work".to_owned()));
         assert!(i.accounts.contains(&"acct-claude-personal".to_owned()));
@@ -1779,14 +1779,14 @@ mod tests {
         assert_eq!(claude.accounts.len(), 2);
         assert_eq!(claude.preselected.as_deref(), Some("acct-claude-personal"));
         assert_eq!(claude.accounts[0], "acct-claude-personal");
-        // Kimi Code runs in ignore mode in the rich global config: configured but blocked
+
         let kimi = offers.iter().find(|(a, _)| *a == Agent::KimiCode);
         assert!(kimi.is_none_or(|(_, o)| o.blocked.is_some() && o.accounts.is_empty()));
         for (_, o) in &offers {
             assert!(o.configured);
             assert!(!o.accounts.is_empty() || o.blocked.is_some());
         }
-        // a registry with a single Claude account offers exactly one agent
+
         let mut fresh = world_for(Scenario::FirstUse);
         let mut a = Account::registered(
             "acct-only",

@@ -1,11 +1,11 @@
-//! Boundary motion: the deterministic choreography of the Construct entry
-//! and exit rituals, the cockpit atmosphere and the Capsule handoff. Every
-//! frame is a pure function of `(tick, area, mode)`; there is no retained
-//! simulation grid and no wall-clock randomness, so a resize simply
-//! re-evaluates the same function at the new size.
-//!
-//! Tones are theme tokens only: the white ladder (primary → ghost), the
-//! accent chain for signal trails, and the pill (on-accent on accent).
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -17,11 +17,11 @@ use crate::scenario::Motion;
 
 pub const TICK_MS: u64 = 33;
 
-// ------------------------------------------------------------- randomness
+
 
 pub const MOTION_SEED: u64 = 0x4A41_434B_494E_5E5E;
 
-/// Stateless mixer over three keyed lanes: the only randomness source.
+
 #[inline]
 pub const fn mix(a: u64, b: u64, c: u64) -> u64 {
     let mut z = a.wrapping_mul(0x9E37_79B9_7F4A_7C15)
@@ -47,11 +47,11 @@ pub fn glyph(x: u64, y: u64, epoch: u64) -> char {
     POOL[(mix(x, y, epoch) % 78) as usize] as char
 }
 
-// ------------------------------------------------------------------ tones
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tone {
-    /// 4 primary · 3 secondary · 2 muted · 1 faint · 0 ghost.
+
     Ladder(u8),
     Accent,
 }
@@ -66,7 +66,7 @@ fn ladder_color(t: &Theme, i: u8) -> Color {
     }
 }
 
-/// Style for a tone dimmed by `dim` steps; `None` when the cell is gone.
+
 pub fn style(t: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     match tone {
         Tone::Ladder(i) => {
@@ -97,8 +97,8 @@ pub fn fill_canvas(buf: &mut Buffer, area: Rect, t: &Theme) {
     junie_tui::ui::ctx::fill(buf, area, Style::new().bg(t.canvas).fg(t.text_primary));
 }
 
-/// Dim an existing buffer region by `steps` ladder steps in token space
-/// (the Capsule handoff cross-fade).
+
+
 pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, t: &Theme) {
     if steps == 0 {
         return;
@@ -171,7 +171,7 @@ pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, t: &Theme) {
     }
 }
 
-// --------------------------------------------------------------- text
+
 
 fn center(area: Rect) -> (u16, u16) {
     (
@@ -198,7 +198,7 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
     }
     let x = area.right().saturating_sub(n + 2);
     let y = area.bottom().saturating_sub(1);
-    // the hint owns its cells: nothing from the field shows through it
+
     for xx in x.saturating_sub(1)..area.right() {
         put(buf, xx, y, ' ', Style::new().bg(t.canvas));
     }
@@ -221,9 +221,9 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
     }
 }
 
-/// The brand lockup two rows above the bottom edge: the host's boundary
-/// marker during the phrases and the closing caption, exactly as the
-/// original ritual placed it.
+
+
+
 fn draw_pill_bottom(buf: &mut Buffer, area: Rect, t: &Theme) {
     let lockup = junie_tui::widgets::brand::Lockup::new(crate::app::BRAND_MARK);
     let w = lockup.width();
@@ -235,7 +235,7 @@ fn draw_pill_bottom(buf: &mut Buffer, area: Rect, t: &Theme) {
     lockup.render(x, y, buf, t);
 }
 
-/// Typewriter reveal of a centred phrase: `shown` characters in text-primary.
+
 fn draw_typed(buf: &mut Buffer, area: Rect, text: &str, y: u16, shown: usize, t: &Theme) {
     let n = text.chars().count() as u16;
     let x0 = area.x + area.width.saturating_sub(n) / 2;
@@ -246,8 +246,8 @@ fn draw_typed(buf: &mut Buffer, area: Rect, text: &str, y: u16, shown: usize, t:
     }
 }
 
-/// Five glitch passes (one every two ticks, a third of the characters
-/// scrambled), then the resolved phrase. `j` is the local tick.
+
+
 fn draw_glitched(buf: &mut Buffer, area: Rect, text: &str, y: u16, j: u64, tone: Tone, t: &Theme) {
     let n = text.chars().count() as u16;
     let x0 = area.x + area.width.saturating_sub(n) / 2;
@@ -264,15 +264,15 @@ fn draw_glitched(buf: &mut Buffer, area: Rect, text: &str, y: u16, j: u64, tone:
     }
 }
 
-// ------------------------------------------------------------ starfield
 
-/// Ticks per glitch pass and passes per glitch reveal (5 × 70 ms).
+
+
 pub const GLITCH_PASS_TICKS: u64 = 2;
 pub const GLITCH_PASSES: u64 = 5;
-/// Warp length: 104 frames of 30 ms expressed in 33 ms ticks.
+
 pub const WARP_TICKS: u64 = 95;
 
-/// Xorshift step, the original ritual's generator.
+
 const fn xorshift(seed: &mut u64) -> u64 {
     if *seed == 0 {
         *seed = 0xDEAD_BEEF_CAFE_1337;
@@ -290,8 +290,8 @@ struct Star {
     speed: f32,
 }
 
-/// One painted cell of the warp: glyph, white-ladder level (0 ghost … 4
-/// primary) and whether it is a fast streak drawn in the accent.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WarpCell {
     pub ch: char,
@@ -299,10 +299,10 @@ pub struct WarpCell {
     pub accent: bool,
 }
 
-/// The radial hyperspace field of the original ritual: stars fly outwards
-/// from the centre, faster and brighter as the warp factor climbs, and
-/// respawn near the centre when they leave the screen. Stateful, seeded and
-/// stepped exactly once per tick, so every frame is reproducible.
+
+
+
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Starfield {
     seed: u64,
@@ -310,7 +310,7 @@ pub struct Starfield {
     cols: u16,
     rows: u16,
     cells: Vec<Option<WarpCell>>,
-    /// Frames stepped so far.
+
     pub frame: u64,
 }
 
@@ -350,8 +350,8 @@ impl Starfield {
         }
     }
 
-    /// Advance one frame. `accelerating` is the entry, otherwise the exit;
-    /// `f` is the frame index within `WARP_TICKS`.
+
+
     pub fn advance(&mut self, accelerating: bool, f: u64) {
         use std::f32::consts::PI;
         let (cols, rows) = (self.cols as usize, self.rows as usize);
@@ -403,8 +403,8 @@ impl Starfield {
                 };
                 let bright = (frac * 0.7 + warp_factor / 5.2 * 0.3).clamp(0.0, 1.0) * entry_fade;
                 let level = (bright * 4.999) as u8;
-                // only the head of a fast streak takes the accent, so the
-                // green stays a trace across the field rather than its colour
+
+
                 self.cells[yu * cols + xu] = Some(WarpCell {
                     ch,
                     level,
@@ -420,8 +420,8 @@ impl Starfield {
         (self.cols, self.rows)
     }
 
-    /// Paint the last stepped frame into `area`; ghost cells are skipped so
-    /// the canvas shows through, `dim` steps every cell down the ladder.
+
+
     pub fn paint(&self, buf: &mut Buffer, area: Rect, dim: u8, t: &Theme) {
         for y in 0..self.rows.min(area.height) {
             for x in 0..self.cols.min(area.width) {
@@ -444,8 +444,8 @@ impl Starfield {
     }
 }
 
-/// Keep a field in step with the tick: (re)create it for the area, then
-/// step every frame the tick has passed but the field has not painted.
+
+
 fn sync_field(
     field: &mut Option<Starfield>,
     area: Rect,
@@ -468,10 +468,10 @@ fn sync_field(
     }
 }
 
-// ---------------------------------------------------------------- intro
 
-/// Phrase texts and their original pacing: milliseconds per character and
-/// hold after the last one.
+
+
+
 pub const PHRASES: [(&str, u64, u64); 3] = [
     ("Stand up, operator…", 60, 950),
     ("Host stays outside…", 55, 950),
@@ -480,8 +480,8 @@ pub const PHRASES: [(&str, u64, u64); 3] = [
 pub const CAPTION: &str = "Knock, knock, operator.";
 pub const CAPTION_HOLD_MS: u64 = 850;
 
-/// Tick at which each phrase starts, the knock starts, the warp starts, and
-/// the intro ends (33 ms ticks).
+
+
 pub const fn phrase_ticks(chars: u64, char_ms: u64, hold_ms: u64) -> u64 {
     (chars * char_ms + hold_ms).div_ceil(TICK_MS)
 }
@@ -546,7 +546,7 @@ impl IntroState {
         self.phase() == IntroPhase::Done
     }
 
-    /// Advance one tick; returns whether anything moved.
+
     pub fn on_tick(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
             return false;
@@ -555,8 +555,8 @@ impl IntroState {
         true
     }
 
-    /// Enter/Esc: the phrases jump to the warp, the warp finishes — the
-    /// original ritual's skip.
+
+
     pub fn skip(&mut self) {
         match self.mode {
             Motion::Reduced => self.tick = REDUCED_HOLD,
@@ -570,7 +570,7 @@ impl IntroState {
     }
 }
 
-/// Which phrase is on screen at `tick` and how many characters of it.
+
 fn phrase_at(tick: u64) -> Option<(usize, usize)> {
     let mut start = 0;
     for (i, (text, char_ms, hold_ms)) in PHRASES.iter().enumerate() {
@@ -586,7 +586,7 @@ fn phrase_at(tick: u64) -> Option<(usize, usize)> {
     None
 }
 
-/// Render the intro at `state.tick`.
+
 pub fn render_intro(buf: &mut Buffer, area: Rect, state: &mut IntroState, t: &Theme) {
     if area.is_empty() {
         return;
@@ -638,10 +638,10 @@ pub fn render_intro(buf: &mut Buffer, area: Rect, state: &mut IntroState, t: &Th
     }
 }
 
-// ---------------------------------------------------------------- outro
+
 
 pub const OUT_WARP: u64 = WARP_TICKS;
-/// Glitch reveal plus the original 2 400 ms hold.
+
 pub const OUT_CAPTION: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + 2_400u64.div_ceil(TICK_MS);
 const OUTRO_SALT: u64 = 0x5F5F_4F55_5452_4F5F;
 
@@ -660,8 +660,8 @@ pub struct OutroState {
     field: Option<Starfield>,
 }
 
-/// `2 hours 14 minutes`, `7 minutes 30 seconds`, `45 seconds`: the two
-/// largest units, worded, as the original caption reads them.
+
+
 pub fn format_universe_duration(secs: u64) -> String {
     fn unit(n: u64, name: &str) -> String {
         format!("{n} {name}{}", if n == 1 { "" } else { "s" })
@@ -737,7 +737,7 @@ impl OutroState {
         true
     }
 
-    /// Enter/Esc: the warp jumps to the caption; the caption finishes.
+
     pub fn skip(&mut self) {
         self.tick = match self.phase() {
             OutroPhase::Warp => OUT_WARP,
@@ -767,7 +767,7 @@ pub fn render_outro(buf: &mut Buffer, area: Rect, state: &mut OutroState, t: &Th
             let f = state.tick;
             sync_field(&mut state.field, area, OUTRO_SALT, false, f);
             if let Some(field) = &state.field {
-                // the field thins out as the warp decelerates
+
                 let dim = if f >= OUT_WARP - 12 {
                     ((f - (OUT_WARP - 12)) / 4) as u8
                 } else {
@@ -797,10 +797,10 @@ pub fn render_outro(buf: &mut Buffer, area: Rect, state: &mut OutroState, t: &Th
     }
 }
 
-// ----------------------------------------------------------- atmosphere
 
-/// Restrained signal field behind the launch cockpit: ghost/faint bodies,
-/// at most one accent head per column, frozen on failure.
+
+
+
 pub fn paint_atmosphere(
     buf: &mut Buffer,
     area: Rect,
@@ -850,8 +850,8 @@ pub fn paint_atmosphere(
 
 pub const HANDOFF_LEN: u64 = 12;
 
-/// Dim steps for the cockpit (`Some`) or the Capsule (`None` = not yet)
-/// at handoff tick `h`.
+
+
 pub fn handoff_stage(h: u64) -> HandoffStage {
     match h {
         0..=3 => HandoffStage::CockpitDim((h + 1) as u8),
@@ -875,7 +875,7 @@ mod tests {
 
     #[test]
     fn intro_timeline_follows_the_original_pacing() {
-        // 19 chars × 60 ms + 950 ms hold ≈ 2.1 s
+
         assert_eq!(P1_LEN, 64);
         assert_eq!(phrase_at(0), Some((0, 0)));
         assert_eq!(phrase_at(P1_LEN - 1).map(|p| p.0), Some(0));
@@ -922,7 +922,7 @@ mod tests {
         render_intro(&mut a, area, &mut s1, &t);
         render_intro(&mut b, area, &mut s2, &t);
         assert_eq!(a, b);
-        // a second render of the same tick repaints the same field
+
         let mut c = Buffer::empty(area);
         render_intro(&mut c, area, &mut s1, &t);
         assert_eq!(a, c);
@@ -939,7 +939,7 @@ mod tests {
             green < lit / 2,
             "green stays the minority: {green} of {lit}"
         );
-        // the pill sits two rows above the bottom during the phrases
+
         let mut d = Buffer::empty(area);
         let mut s3 = IntroState::new(Motion::Paused, 40);
         render_intro(&mut d, area, &mut s3, &t);

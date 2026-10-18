@@ -1,26 +1,26 @@
-//! The oracle store (plan §B4 and §E, task T5): `baselines/oracle/`, one
-//! `.ansi` (cells + cursor trailer) per scenario at
-//! `<app>/<group>/<leaf>…/<cols>x<rows>/<color>.ansi`, plus the manifest
-//! `ORACLE.toml`:
-//!
-//! ```toml
-//! version = 0                 # oracle version (v0 interim, v1 published, …)
-//! pending = true              # true until the first capture is imported
-//! source_commit = ""          # the commit the captures were taken at
-//! tuiscotti_rev = "…"         # must equal the `rev =` pin in Cargo.toml
-//! harness_sha256 = ""         # [`harness_sha256`] of tests/visual_baseline/
-//! approved_by = ""
-//! date = ""                   # YYYY-MM-DD
-//!
-//! [scenarios]                 # `.ansi` count per app
-//! showcase = 0
-//! ```
-//!
-//! While `pending = true` the store holds only the manifest and the gate
-//! keeps reading the legacy `snapshots/`. Once a capture is imported
-//! (`cargo xtask visual import <dir> --oracle`), `pending = false` switches
-//! the gate, `accept` and `list` to this store
-//! ([`crate::support::approved_root`]) and [`integrity`] checks it in full.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -31,8 +31,8 @@ use crate::support;
 
 pub const DIR: &str = "baselines/oracle";
 pub const MANIFEST: &str = "ORACLE.toml";
-/// Harness subdirectory excluded from [`harness_sha256`]: `main`'s ratchet
-/// list changes on every passing slice, the harness itself must not.
+
+
 pub const PROGRESS_DIR: &str = "progress";
 pub const APPS: [&str; 4] = ["showcase", "tablepro", "jackin", "holla"];
 
@@ -58,9 +58,9 @@ fn unquote(value: &str) -> Result<String, String> {
 }
 
 impl Manifest {
-    /// The flat TOML subset the manifest uses: `key = value` lines with
-    /// strings, integers and booleans, and one `[scenarios]` table of
-    /// integers. Unknown keys, duplicates and missing keys are errors.
+
+
+
     pub fn parse(text: &str) -> Result<Self, String> {
         let mut m = Manifest::default();
         let mut seen = BTreeSet::new();
@@ -142,7 +142,7 @@ pub fn root() -> PathBuf {
     support::manifest_path(DIR)
 }
 
-/// The committed manifest, if the oracle store exists.
+
 pub fn load() -> Result<Option<Manifest>, String> {
     let path = root().join(MANIFEST);
     match std::fs::read_to_string(&path) {
@@ -152,9 +152,9 @@ pub fn load() -> Result<Option<Manifest>, String> {
     }
 }
 
-/// The oracle is the approved store (an imported capture, `pending =
-/// false`). A malformed manifest is reported by [`integrity`]; here it
-/// counts as inactive so the gate keeps working on `snapshots/`.
+
+
+
 pub fn active() -> bool {
     matches!(load(), Ok(Some(m)) if !m.pending)
 }
@@ -186,10 +186,10 @@ fn walk(root: &Path, dir: &Path, skip_top: Option<&str>, out: &mut Vec<(String, 
     }
 }
 
-/// SHA-256 over every file of the harness directory `dir` except
-/// [`PROGRESS_DIR`], in sorted path order, each as `<path>\0<len LE u64>
-/// <bytes>`. `cargo xtask visual sync-oracle` checks the incoming harness
-/// against the manifest with the same function (`VISUAL_TOOL=harness-hash`).
+
+
+
+
 pub fn harness_sha256(dir: &Path) -> String {
     let mut files = Vec::new();
     walk(dir, dir, Some(PROGRESS_DIR), &mut files);
@@ -209,12 +209,12 @@ pub fn harness_sha256(dir: &Path) -> String {
         .collect()
 }
 
-/// The harness directory of this checkout.
+
 pub fn harness_dir() -> PathBuf {
     support::manifest_path("tests/visual_baseline")
 }
 
-/// The `rev =` of the tuiscotti pin in `Cargo.toml`.
+
 pub fn pinned_tuiscotti_rev() -> String {
     let toml = std::fs::read_to_string(support::manifest_path("Cargo.toml")).expect("Cargo.toml");
     toml.lines()
@@ -225,21 +225,21 @@ pub fn pinned_tuiscotti_rev() -> String {
         .expect("Cargo.toml pins tuiscotti with `rev = \"…\"`")
 }
 
-/// What a store is checked against.
+
 pub struct Expect<'a> {
     pub harness: &'a Path,
     pub tuiscotti_rev: &'a str,
-    /// Every scenario name the tables generate.
+
     pub suite: &'a BTreeSet<String>,
-    /// The non-pending ones: each needs an approval once the oracle is live.
+
     pub required: &'a BTreeSet<String>,
 }
 
-/// Check the oracle store at `store` (plan §B4 `store_integrity`): only
-/// `.ansi` files and the manifest; a pending store holds no capture; a live
-/// one has exactly one parseable `.ansi` per required scenario, nothing
-/// outside the tables, counts that match, the pinned tuiscotti and the
-/// harness it was sealed for. Returns a one-line summary.
+
+
+
+
+
 pub fn check_store(store: &Path, expect: &Expect<'_>) -> Result<String, String> {
     let text = std::fs::read_to_string(store.join(MANIFEST))
         .map_err(|e| format!("{}/{MANIFEST}: {e}", store.display()))?;
@@ -347,7 +347,7 @@ pub fn check_store(store: &Path, expect: &Expect<'_>) -> Result<String, String> 
     ))
 }
 
-/// The default-run check on this checkout's `baselines/oracle/`.
+
 pub fn integrity() {
     let all = crate::scenarios::all();
     let suite: BTreeSet<String> = all.iter().map(|s| s.name.clone()).collect();
@@ -369,7 +369,7 @@ pub fn integrity() {
     }
 }
 
-/// [`check_store`] on small stores built under `target/`.
+
 pub fn store_check_accepts_and_rejects() {
     let base = support::manifest_path("target/tuiscotti/tmp/oracle-store");
     let _ = std::fs::remove_dir_all(&base);
@@ -401,7 +401,7 @@ pub fn store_check_accepts_and_rejects() {
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(path, body).unwrap();
     };
-    // a canonical `.ansi` (blank 1x1 screen, hidden cursor)
+
     let blank = tuiscotti::render::frame_from_screen(&tuiscotti::Screen::blank(1, 1), "t");
     let ansi = &tuiscotti::render::ansi_dump_with_cursor(&blank);
 
@@ -440,8 +440,8 @@ pub fn store_check_accepts_and_rejects() {
     assert!(check_store(&store, &expect).is_err(), "a missing approval");
 }
 
-/// Parser and hash on fixed inputs. The hash vector pins the layout:
-/// `main`'s synced copy must hash a harness exactly as this branch does.
+
+
 pub fn manifest_and_hash_are_stable() {
     let text = "\
 # comment
@@ -493,5 +493,5 @@ holla = 1
     assert_ne!(harness_sha256(&dir), with_progress);
 }
 
-/// [`harness_sha256`] of {a.rs = "x", sub/b.rs = "yz"}.
+
 const HASH_VECTOR: &str = "58101eafd1290d1707f14178bf42b1bc8284d0a6652f423380db1c667cc381a2";

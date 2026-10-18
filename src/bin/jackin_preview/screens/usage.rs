@@ -1,6 +1,6 @@
-//! Host Usage: a read-only projection of every provider account with an
-//! honest overview on row zero. Nothing here mutates; `m` hands the
-//! selected row to the Account & Usage Center.
+
+
+
 
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
@@ -35,11 +35,11 @@ use crate::sim::provider;
 use crate::sim::world::{Msg, World};
 use junie_tui::ui::text::plural;
 
-/// One line of the Usage overview.
+
 enum OvLine {
     Text(Vec<Span>),
-    /// A provider: its name, enabled account count, the worst window
-    /// (label, used percent, meter tone) and the status cell.
+
+
     Provider {
         name: String,
         accounts: usize,
@@ -48,10 +48,10 @@ enum OvLine {
     },
 }
 
-/// A provider row of the overview table, in the header's columns
-/// (`{:<12} {:<9} {:<26} {}`): the name primary, the count secondary,
-/// the worst window as its label and a meter, and the status with its
-/// [`Theme::status`](junie_tui::theme::Theme::status) glyph.
+
+
+
+
 #[allow(clippy::too_many_arguments)]
 fn draw_provider_row(
     buf: &mut Buffer,
@@ -123,7 +123,7 @@ enum Row {
     Account(AccountId),
 }
 
-/// One detail row: text, tone and an optional meter (used %, tone).
+
 type DetailLine = (String, Tone, Option<(u8, QuotaTone)>);
 
 #[derive(Default)]
@@ -134,7 +134,7 @@ pub struct UsageScreen {
     detail_scroll: ScrollState,
     list_area: Rect,
     detail_area: Rect,
-    /// Narrow terminals swap the list for the detail.
+
     pub show_detail: bool,
     pub refreshing: bool,
 }
@@ -447,8 +447,8 @@ impl UsageScreen {
                 .flat_map(|a| a.usage.windows.iter().map(move |w| (a, w)))
                 .filter(|(_, w)| w.used_pct.is_some())
                 .max_by_key(|(_, w)| w.used_pct.unwrap_or(0));
-            // one row, a tone per cell: the name primary, the worst window
-            // as a meter, and only the status cell in a status colour
+
+
             let (window, status) = match worst {
                 Some((a, win)) => {
                     let st = match (win.status, a.usage.freshness.phase) {
@@ -634,7 +634,7 @@ impl UsageScreen {
                         }
                         _ => {}
                     }
-                    // the cursor row is a fill: its details step up to stay readable
+
                     legible_on_fill(buf, r, t, bg);
                     ctx.clickable(rid, r);
                 }
@@ -727,9 +727,9 @@ impl UsageScreen {
                 let lines = Self::account_lines(&a, w);
                 self.detail_scroll.set_content(lines.len());
                 self.detail_scroll.set_viewport(body.height as usize);
-                // the limit rows share one column layout measured from
-                // their labels: a long label is cut only when the row is
-                // genuinely short, never to a fixed width
+
+
+
                 let (label_need, rest_need) = lines
                     .iter()
                     .filter(|(_, _, m)| m.is_some())
@@ -881,8 +881,8 @@ impl Page<Jackin> for UsageScreen {
         }
     }
 
-    /// A click picks a row or pages a bar; the wheel scrolls the list or
-    /// the detail under the pointer.
+
+
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         match (ev.wheel(), ev.phase()) {
             (Some((Axis::Vertical, delta)), _) => self.wheel(ev.id, delta),
@@ -893,7 +893,7 @@ impl Page<Jackin> for UsageScreen {
 
     fn on_msg(&mut self, msg: &Msg, w: &mut World, _cx: &mut Cx) -> Outcome {
         if let Msg::AccountRefreshed { account } = msg {
-            // the projection reloads in place; the Center owns the outcome table
+
             let now = w.now_secs();
             if let Some(a) = w.accounts.get_mut(account)
                 && a.usage.freshness.phase == Freshness::Refreshing
@@ -992,10 +992,10 @@ impl Page<Jackin> for UsageScreen {
 
 impl Screen for UsageScreen {}
 
-// ------------------------------------------------------------ pointer
 
-/// The screen's pointer gestures by phase (its hand-drawn rows keep
-/// their derived ids until S16 moves them onto widgets).
+
+
+
 impl UsageScreen {
     fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);

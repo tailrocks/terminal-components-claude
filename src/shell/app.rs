@@ -1,9 +1,9 @@
-//! The shell an application runs on (plan §1.8): the state every app keeps
-//! (focus, ring, hit regions, pointer, status line, size) in [`Shell`], and
-//! the [`App`] trait whose implementors get
-//! [`Application`](crate::runtime::Application) from the library: the
-//! render prologue and epilogue (background, too-small screen, overlays,
-//! footer hits, hover refresh), focus upkeep and the blur fan-out.
+
+
+
+
+
+
 
 use std::time::Duration;
 
@@ -32,18 +32,18 @@ use crate::ui::context::ContextConfig;
 use crate::ui::leave::{LeaveGuard, Stakes};
 use crate::widgets::dialog::Dialog;
 
-/// Which page of an app is mounted, for focus upkeep: when it changes,
-/// focus that lost its control goes to the new page's
-/// [`App::primary_focus`]; while it stays, to the nearest control
-/// ([`FocusFallback::Nearest`], K8).
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct PageKey(pub u64);
 
 impl PageKey {
-    /// The key of an app with one page.
+
     pub const ROOT: Self = Self(0);
 
-    /// A key from anything hashable (a route, a tab index and its depth).
+
     pub fn of(value: impl std::hash::Hash) -> Self {
         use std::hash::Hasher;
         let mut h = std::collections::hash_map::DefaultHasher::new();
@@ -52,47 +52,47 @@ impl PageKey {
     }
 }
 
-/// The footer hints drawn this frame and where each landed: the shell
-/// registers them as click targets after the overlays, so the footer (which
-/// names the topmost layer's keys) sits above every popup.
+
+
+
 type FooterDrawn = (Vec<Hint>, Vec<(usize, Rect)>);
 
-/// The state every app keeps for its shell. `P` is the status line's
-/// presentation payload (toned parts, a status kind).
+
+
 pub struct Shell<P = ()> {
     pub focus: Focus,
-    /// The focus ring of the last frame.
+
     pub ring: FocusRing,
-    /// The hit regions of the last frame.
+
     pub hits: HitRegistry,
-    /// Hover, press, flash and click-count state.
+
     pub pointer: PointerRouter,
-    /// The footer status ([`StatusLine`]).
+
     pub status: StatusLine<P>,
-    /// The terminal size of the last frame or resize.
+
     pub size: (u16, u16),
-    /// The last frame was the too-small screen.
+
     pub too_small: bool,
-    /// The app asked to quit.
+
     pub quit: bool,
-    /// Tick delivery and decorative motion.
+
     pub motion: Motion,
-    /// Explicit clock steps ([`crate::clock::ClockStep`]) are honoured:
-    /// only when a test harness opted in (`JUNIE_TUI_TEST_CLOCK=1`, read
-    /// once per process, [`crate::clock::ClockStep::opted_in`]), and then
-    /// only under [`Motion::Paused`]. Otherwise a request is the ordinary
-    /// paste it is, so no user input can step a real app's clock.
+
+
+
+
+
     pub clock_steps: bool,
-    /// Where focus goes when its control vanishes on the same page.
-    /// Default [`FocusFallback::Nearest`] (K8).
+
+
     pub focus_fallback: FocusFallback,
-    /// The keys of the footer hints drawn last frame: a click replays one.
+
     pub footer_keys: HintKeys,
-    /// Which keys open a context menu, handed to every page's [`Cx`]
-    /// ([`ContextConfig::DEFAULT`] unless the app sets one).
+
+
     pub context: ContextConfig,
-    /// How a copy reaches the system clipboard ([`Clipboard`]; every
-    /// [`Request::Copy`] goes through [`Self::copy_at`]).
+
+
     pub clipboard: Clipboard,
     footer: Option<FooterDrawn>,
     page: Option<PageKey>,
@@ -105,9 +105,9 @@ impl<P> Default for Shell<P> {
 }
 
 impl<P: Default> Shell<P> {
-    /// Copy `text` ([`Request::Copy`]) through [`Self::clipboard`] and
-    /// report the true result on the status line, naming it `what` when
-    /// given ([`Clipboard::report`]).
+
+
+
     pub fn copy_at(&mut self, text: &str, what: Option<&str>, now: Moment) -> Copied {
         let r = self.clipboard.copy(text);
         let (msg, tone) = Clipboard::report(&r, text, what);
@@ -138,7 +138,7 @@ impl<P> Shell<P> {
         }
     }
 
-    /// The router's parts for a [`PointerHost`](crate::core::pointer::PointerHost).
+
     pub fn pointer_parts(&mut self) -> PointerParts<'_> {
         PointerParts {
             router: &mut self.pointer,
@@ -148,17 +148,17 @@ impl<P> Shell<P> {
         }
     }
 
-    /// A fresh event context over this shell's focus and ring, with its
-    /// context-menu keys.
+
+
     pub fn cx<R, W: ?Sized, G>(&mut self) -> Cx<'_, R, W, G> {
         Cx::new(&mut self.focus, &self.ring).context(self.context)
     }
 
-    /// Hand an event to a page: run `f` in a fresh [`Cx`] and return its
-    /// outcome with what the page asked for. A page that is not `shown`
-    /// (a background tab, another route) keeps only its statuses (the
-    /// background-request policy, [`super::background`]). The app applies
-    /// the requests.
+
+
+
+
+
     pub fn deliver<R, W: ?Sized, G>(
         &mut self,
         shown: bool,
@@ -174,9 +174,9 @@ impl<P> Shell<P> {
         }
     }
 
-    /// Quit through `guard`: a clean app (`stakes`) quits now; otherwise
-    /// the guard's question comes back for the app to open (its answer
-    /// goes to [`LeaveGuard::resolve`]).
+
+
+
     pub fn quit_through<T: Clone>(
         &mut self,
         guard: &mut LeaveGuard<T>,
@@ -188,19 +188,19 @@ impl<P> Shell<P> {
         Ok(())
     }
 
-    /// Move focus to the next control of the ring.
+
     pub fn focus_next(&mut self) {
         self.focus.next(&self.ring);
     }
 
-    /// Move focus to the previous control of the ring.
+
     pub fn focus_prev(&mut self) {
         self.focus.prev(&self.ring);
     }
 
-    /// The interaction state a frame draws with. `now_ms` is the pointer
-    /// clock, `flash_ms` the clock the press flash reads (a paused capture
-    /// may stop it), `tick` the frame's animation tick.
+
+
+
     pub fn interaction(&self, now_ms: u64, flash_ms: u64, tick: u64) -> Interaction {
         let p = &self.pointer;
         Interaction {
@@ -213,23 +213,23 @@ impl<P> Shell<P> {
             pointer_focus: p.pointer_focus,
             motion_unreported: !p.reports_motion(),
             tick,
-            // a paused capture has no clock: hover content shows at once
+
             hover_ms: (self.motion != Motion::Paused).then(|| p.hover_ms(now_ms)),
         }
     }
 
-    /// The footer drew `hints`, each at its spot: the shell makes them
-    /// click targets after the overlays (they name the top layer's keys,
-    /// so they sit above every popup).
+
+
+
     pub fn footer_drawn(&mut self, hints: Vec<Hint>, spots: Vec<(usize, Rect)>) {
         self.footer = Some((hints, spots));
     }
 
-    /// Keep focus on a control of the frame just drawn. Under a layer the
-    /// layer keeps its own focus ([`Focus::ensure_valid`]). Otherwise,
-    /// when the page changed, focus that lost its control goes to the
-    /// page's `primary` control (else the first); on the same page it
-    /// falls back per [`Self::focus_fallback`] (the nearest by default).
+
+
+
+
+
     pub fn upkeep(&mut self, layer_open: bool, page: PageKey, primary: Option<WidgetId>) {
         if layer_open {
             self.focus.ensure_valid(&self.ring);
@@ -250,115 +250,115 @@ impl<P> Shell<P> {
     }
 }
 
-/// An application on the library shell. Implementing it gives the app
-/// [`Application`]: the shell runs the frame (background, too-small screen,
-/// [`Self::draw`], overlays, footer hits, focus upkeep) and the input path
-/// (status seen, [`Self::on_input`], the blur fan-out).
+
+
+
+
 pub trait App {
-    /// The status line's presentation payload.
+
     type Status;
 
     fn shell(&self) -> &Shell<Self::Status>;
     fn shell_mut(&mut self) -> &mut Shell<Self::Status>;
 
-    /// The theme the next frame draws with.
+
     fn theme(&self) -> Theme;
 
-    /// The too-small screen (its brand and minimum size).
+
     fn too_small(&self) -> TooSmall<'_>;
 
-    /// The pointer clock in milliseconds.
+
     fn now_ms(&self) -> u64;
 
-    /// The clock the press flash reads. Default [`Self::now_ms`].
+
     fn flash_ms(&self) -> u64 {
         self.now_ms()
     }
 
-    /// The animation tick of the next frame.
+
     fn tick(&self) -> u64;
 
-    /// How often to deliver `Input::Tick`.
+
     fn tick_interval(&self) -> Duration;
 
-    /// Draw the app on a cleared, big-enough screen.
+
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx);
 
-    /// App-wide defaults on the frame's context (track click, tooltips).
+
     fn configure(&self, _ctx: &mut RenderCtx) {}
 
-    /// Route one input. The shell has already noted the status as seen
-    /// and the size of a resize.
+
+
     fn on_input(&mut self, input: Input) -> Outcome;
 
-    /// One focus change of the input just handled: fan it out to every
-    /// open layer, then every mounted page, so fields end their edits.
+
+
     fn on_blur(&mut self, _change: FocusChange) -> Outcome {
         Outcome::Ignored
     }
 
-    /// After the input and its blur fan-out (an input log).
+
     fn after_input(&mut self, _input: &Input, out: Outcome) -> Outcome {
         out
     }
 
-    /// A modal layer holds the focus: upkeep keeps it inside the layer.
+
     fn layer_open(&self) -> bool {
         false
     }
 
-    /// The page draws under a layer and shows no focus
-    /// ([`RenderCtx::page_under_layer`]). Default [`Self::layer_open`].
+
+
     fn page_under_layer(&self) -> bool {
         self.layer_open()
     }
 
-    /// The mounted page (see [`PageKey`]).
+
     fn page_key(&self) -> PageKey {
         PageKey::ROOT
     }
 
-    /// Where focus lands on the mounted page when it has none.
+
     fn primary_focus(&self) -> Option<WidgetId> {
         None
     }
 
-    /// An explicit clock step of `ms` virtual milliseconds
-    /// ([`crate::clock::ClockStep`]): run the app's stopped clock for that
-    /// long through its own ticks ([`crate::clock::run_step`]) so jobs
-    /// scheduled on virtual time fire, then stop it again. The shell asks
-    /// only under [`Motion::Paused`] when a test opted in
-    /// ([`Shell::clock_steps`]). Default `None`: the app has no
-    /// virtual clock and the request reaches [`Self::on_input`] as the
-    /// ordinary paste it is.
+
+
+
+
+
+
+
+
     fn advance_clock(&mut self, _ms: u64) -> Option<Outcome> {
         None
     }
 
-    /// What quitting would lose: every page and layer that is not clean
-    /// ([`Stakes::max`]). Default [`Stakes::Clean`]. The quit keys and a
-    /// menu's Quit go through [`Shell::quit_through`] with it.
+
+
+
     fn stakes(&mut self) -> Stakes {
         Stakes::Clean
     }
 
-    /// See [`Application::coalesce`].
+
     fn coalesce(&self) -> Coalesce {
         Coalesce::default()
     }
 
-    /// See [`Application::input_config`].
+
     fn input_config(&self) -> InputConfig {
         InputConfig::default()
     }
 
-    /// See [`Application::keyboard_protocol`].
+
     fn keyboard_protocol(&self) -> KeyboardProtocol {
         KeyboardProtocol::current()
     }
 }
 
-/// Hand every focus change the last input made to [`App::on_blur`].
+
 pub fn blur_fan_out<A: App + ?Sized>(app: &mut A) -> Outcome {
     let changes = {
         let s = app.shell_mut();
@@ -371,15 +371,15 @@ pub fn blur_fan_out<A: App + ?Sized>(app: &mut A) -> Outcome {
     out
 }
 
-/// Draw one frame of `app`: see [`App`].
+
 pub fn render<A: App + ?Sized>(app: &mut A, frame: &mut Frame) {
     let area = frame.area();
     app.shell_mut().size = (area.width, area.height);
     let theme = app.theme();
     let mut cursor;
-    // a second pass when the focused control vanished this frame: upkeep
-    // picks the new focus from the ring the first pass built, and the
-    // frame must show it (one focus indicator, never none)
+
+
+
     let mut pass = 0;
     loop {
         let mut hits = HitRegistry::default();
@@ -431,16 +431,16 @@ pub fn render<A: App + ?Sized>(app: &mut A, frame: &mut Frame) {
     }
 }
 
-/// Handle one input of `app`: see [`App`].
+
 pub fn handle<A: App + ?Sized>(app: &mut A, input: Input) -> Outcome {
-    // an error status has been seen once the user acts again
+
     let seen = app.shell_mut().status.on_input(&input);
     if let Input::Resize(w, h) = input {
         app.shell_mut().size = (w, h);
     }
     let logged = input.clone();
-    // an explicit clock step (paused captures, `ClockStep`) runs the
-    // app's clock instead of pasting its request
+
+
     let step = match &input {
         Input::Paste(text) if app.shell().clock_steps && app.shell().motion == Motion::Paused => {
             crate::clock::ClockStep::parse(text)

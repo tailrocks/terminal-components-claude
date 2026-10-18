@@ -1,5 +1,5 @@
-//! Journey tests (CONCEPT §12) through the real App: gates, plans,
-//! activities, trust, scope, ranking controls, snapshots, narrow layouts.
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -58,7 +58,7 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
         !h.text().contains("gate 1 of 2"),
         "Enter on Cancel leaves the review"
     );
-    // again, this time continue
+
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char('c'));
     h.key(KeyCode::Right);
@@ -68,7 +68,7 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
         h.text()
             .contains("Type I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm")
     );
-    // a wrong phrase keeps Execute disabled
+
     h.type_str("yes");
     h.key(KeyCode::Enter);
     assert!(
@@ -77,7 +77,7 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
     );
     assert!(h.text().contains("Does not match"), "{}", h.text());
     assert_eq!(h.app.world.plans[0].phase, PlanPhase::Review);
-    // the exact phrase arms it; the first execute finds a changed target
+
     h.key(KeyCode::Esc);
     h.key(KeyCode::Enter);
     for _ in 0..3 {
@@ -92,7 +92,7 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
         h.text()
     );
     assert_eq!(h.app.world.plans[0].phase, PlanPhase::Review);
-    // second pass executes
+
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     h.type_str("I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox");
@@ -103,7 +103,7 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
         == PlanPhase::Done));
     assert!(h.text().contains("7 succeeded"), "{}", h.text());
     assert!(h.text().contains("100% ✓"));
-    // the effect landed in the world: nothing is pretended
+
     let d = &h.app.world.docker;
     assert!(d.containers.is_empty() && d.volumes.is_empty());
     assert_eq!(d.images, 0);
@@ -117,7 +117,7 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
 
 #[test]
 fn finished_runs_change_the_world_they_claimed_to() {
-    // disk cleanup: reclaimed candidates leave the list and enter history
+
     let mut h = H::new(Scenario::DiskCleanup, Motion::Reduced, 80, 120, 40);
     let before = h.app.world.disk.candidates.len();
     let used_before = h.app.world.disk.filesystems[0].used_gb;
@@ -140,12 +140,12 @@ fn finished_runs_change_the_world_they_claimed_to() {
     assert!(!d.history.is_empty(), "a cleanup record was written");
     assert!(d.filesystems[0].used_gb < used_before);
 
-    // postgres: cancelling the blocker frees its waiters
+
     let mut h = H::new(Scenario::RemoteHost, Motion::Reduced, 0, 120, 40);
     let blocker = h.app.world.pg_blocker().expect("a blocker in the fixture");
     h.type_str("cancel the blocking");
     h.key(KeyCode::Enter);
-    // one confirmation for a bounded mutation
+
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     assert!(until(&mut h, 200, |h| h
@@ -168,7 +168,7 @@ fn upgrade_plan_exclusion_recalculates_and_failure_blocks_dependents() {
     let mut h = H::new(Scenario::UpgradePlan, Motion::Reduced, 0, 120, 40);
     assert!(h.text().contains("Here › Upgrade everything"));
     assert!(h.text().contains("Final verification"));
-    // required steps refuse exclusion
+
     h.key(KeyCode::Char(' '));
     assert!(
         h.last_row().contains("required by the plan"),
@@ -184,7 +184,7 @@ fn upgrade_plan_exclusion_recalculates_and_failure_blocks_dependents() {
     assert_eq!(h.app.world.plans[0].steps[7].state, StepState::Blocked);
     h.key(KeyCode::Char('u'));
     assert_eq!(h.app.world.plans[0].steps[7].state, StepState::Waiting);
-    // exclude the optional cleanup instead, then start
+
     h.key(KeyCode::Down);
     h.key(KeyCode::Char(' '));
     h.key(KeyCode::Char('c'));
@@ -196,7 +196,7 @@ fn upgrade_plan_exclusion_recalculates_and_failure_blocks_dependents() {
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     assert_eq!(h.tab_kind(), TabKind::Plan("upgrade".into()));
-    // both branches run after preflight
+
     assert!(until(&mut h, 200, |h| h.app.world.plans[0].running().len() == 2));
     assert!(until(&mut h, 600, |h| h.app.world.plans[0].phase
         == PlanPhase::Done));
@@ -218,8 +218,8 @@ fn upgrade_plan_exclusion_recalculates_and_failure_blocks_dependents() {
         "{}",
         h.text()
     );
-    // the run landed the cursor on the failed step: retry from there;
-    // succeeded work is untouched
+
+
     h.key(KeyCode::Char('r'));
     assert_eq!(h.app.world.plans[0].steps[5].state, StepState::Ready);
     assert_eq!(h.app.world.plans[0].steps[3].state, StepState::Succeeded);
@@ -266,7 +266,7 @@ fn activities_survive_navigation_and_merged_logs_keep_identity() {
         "earliest lines are still there: {}",
         h.text()
     );
-    // attach and detach a monitor
+
     h.alt(KeyCode::Char('5'));
     assert!(h.text().contains("btm screen"));
     h.key(KeyCode::Enter);
@@ -274,7 +274,7 @@ fn activities_survive_navigation_and_merged_logs_keep_identity() {
     assert!(h.last_row().contains("Detach"));
     h.key(KeyCode::Char('q'));
     assert!(h.text().contains("program exited"));
-    // the activities picker
+
     h.ctrl(KeyCode::Char('g'));
     assert!(
         h.text().contains("Activities") && h.text().contains("api tests"),
@@ -286,7 +286,7 @@ fn activities_survive_navigation_and_merged_logs_keep_identity() {
     h.key(KeyCode::Enter);
     assert_eq!(h.tab_kind(), TabKind::Activity("act-3".into()));
     assert!(h.text().contains("128 tests run: 128 passed"));
-    // closing a running tab asks; closing a finished one does not
+
     h.ctrl(KeyCode::Char('w'));
     assert_eq!(h.app.tabs.len(), 5);
     h.alt(KeyCode::Char('1'));
@@ -384,7 +384,7 @@ fn disk_cleanup_selects_by_freshness_and_gates_on_the_path() {
         "stale, confident artifacts start selected: {}",
         h.text()
     );
-    // largest first: the tree opens on the root with its children collapsed
+
     assert!(
         h.row(12).contains("work") && h.row(12).contains("100%"),
         "{}",
@@ -397,7 +397,7 @@ fn disk_cleanup_selects_by_freshness_and_gates_on_the_path() {
     );
     h.key(KeyCode::Down);
     h.key(KeyCode::Right);
-    // the opened folder lists largest first: the selected target leads
+
     assert!(h.text().contains("✓ target"), "{}", h.text());
     h.key(KeyCode::Down);
     assert!(
@@ -410,7 +410,7 @@ fn disk_cleanup_selects_by_freshness_and_gates_on_the_path() {
         "{}",
         h.text()
     );
-    // a fresh artifact is not preselected
+
     h.key(KeyCode::Left);
     h.key(KeyCode::Left);
     h.key(KeyCode::Down);
@@ -441,7 +441,7 @@ fn disk_cleanup_selects_by_freshness_and_gates_on_the_path() {
         "{}",
         h.text()
     );
-    // the streaming scan at an early frame is explicit about progress
+
     let early = H::new(Scenario::DiskCleanup, Motion::Paused, 10, 120, 40);
     assert!(early.text().contains("scanning ·"), "{}", early.text());
     assert!(early.text().contains("entries"));
@@ -451,7 +451,7 @@ fn disk_cleanup_selects_by_freshness_and_gates_on_the_path() {
 #[test]
 fn quitting_a_remote_host_with_work_running_names_the_box() {
     let mut h = H::new(Scenario::RemoteHost, Motion::Reduced, 0, 120, 40);
-    h.key(KeyCode::Enter); // follow the payments-worker journal
+    h.key(KeyCode::Enter);
     assert!(h.app.world.live_activities() > 0);
     h.ctrl(KeyCode::Char('q'));
     assert!(
@@ -517,7 +517,7 @@ fn alternatives_pin_alias_hide_and_why() {
         h.text()
     );
     h.key(KeyCode::Esc);
-    // pin the second row: the menu ends with Pin · Alias · Hide · Reset · Why
+
     h.key(KeyCode::Down);
     h.alt(KeyCode::Enter);
     h.key(KeyCode::End);
@@ -531,7 +531,7 @@ fn alternatives_pin_alias_hide_and_why() {
         "pinned row rises: {}",
         h.row(7)
     );
-    // alias
+
     h.alt(KeyCode::Enter);
     h.key(KeyCode::End);
     for _ in 0..3 {
@@ -545,14 +545,14 @@ fn alternatives_pin_alias_hide_and_why() {
     h.type_str("tt");
     assert!(h.row(7).contains("alias tt"), "{}", h.row(7));
     h.key(KeyCode::Esc);
-    // why is this here
+
     h.alt(KeyCode::Enter);
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Why is “"), "{}", h.text());
     assert!(h.text().contains("never changes the rank"));
     h.key(KeyCode::Esc);
-    // hide
+
     h.alt(KeyCode::Enter);
     h.key(KeyCode::End);
     h.key(KeyCode::Up);
@@ -662,7 +662,7 @@ fn narrow_root_uses_a_summary_line_and_a_preview_drawer() {
     assert!(!h.text().contains("Suggested here"));
     h.key(KeyCode::Esc);
     assert!(h.text().contains("Suggested here"));
-    // typing goes to the query even after the drawer
+
     h.type_str("du");
     assert!(
         h.row(7).contains("Analyze disk usage") && h.row(7).contains("alias du"),
@@ -693,7 +693,7 @@ fn esc_ladder_and_quit_rules() {
     h.key(KeyCode::Esc);
     assert!(!h.app.shell.quit, "Esc never quits (keyboard audit #21)");
     assert!(h.last_row().contains("Ctrl+Q quits"), "{}", h.last_row());
-    // a clean Ctrl+Q leaves without a question
+
     h.ctrl(KeyCode::Char('q'));
     assert!(h.app.shell.quit, "a clean quit never nags");
     let mut a = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 100, 30);
@@ -767,10 +767,10 @@ fn an_open_menu_hides_the_page_focus_under_it() {
     assert_eq!(tinted(&h), 0, "no focused-row tint under the menu");
 }
 
-/// The key reference's one focus stop is its Done button: focus lands
-/// there and the single `▎` is drawn beside it, in the topmost layer
-/// (AGENTS.md "exactly one focus indicator"; WCAG 2.4.7), as in jackin
-/// and tablepro. It used to stay on the overlay body with no indicator.
+
+
+
+
 #[test]
 fn the_key_reference_shows_its_one_focus_bar_on_done() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
@@ -821,8 +821,8 @@ fn the_finder_cursor_row_is_a_fill_and_the_query_keeps_the_only_bar() {
 
 #[test]
 fn unavailable_alternatives_are_disabled_in_the_menu_not_failing_on_choice() {
-    // every alternative the preview cannot run is offered disabled, so no
-    // enabled menu row ends in "not available in the preview"
+
+
     let mut unsupported = vec![];
     for sc in Scenario::ALL {
         let h = H::new(sc, Motion::Reduced, 0, 120, 40);
@@ -847,14 +847,14 @@ fn unavailable_alternatives_are_disabled_in_the_menu_not_failing_on_choice() {
         .find(label.as_str())
         .unwrap_or_else(|| panic!("{label} listed\n{t}"));
     assert!(!t.contains("Not in this preview"), "{t}");
-    // the pointer on the disabled row says why in the menu's status row
+
     h.mouse(junie_tui::core::event::MouseKind::Move, x + 1, y);
     let t = h.text();
     assert!(t.contains("Not in this preview"), "{t}");
 }
 
-/// Keyboard audit #3: the page gets the first chance at Ctrl+C, and the
-/// global quit always goes through the guard while activities run.
+
+
 #[test]
 fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
     let mut h = H::new(Scenario::UpgradePlan, Motion::Reduced, 0, 120, 40);
@@ -876,7 +876,7 @@ fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
         "{}",
         h.text()
     );
-    // with activities running, a global Ctrl+C asks instead of killing them
+
     let mut a = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 100, 30);
     assert!(a.app.world.live_activities() > 0);
     a.ctrl(KeyCode::Char('c'));
@@ -888,12 +888,12 @@ fn ctrl_c_on_a_running_plan_cancels_its_steps_and_never_kills_the_app() {
     assert!(a.app.world.live_activities() > 0);
 }
 
-/// R-apps-7: a finished activity offers its follow-ups in one row; the
-/// ones that no longer fit used to drop out when the terminal narrowed
-/// (K8's focus hand-off is covered by `core::focus` and jackin's
-/// `a_vanished_control_hands_focus_to_its_nearest_neighbour`). Now the row
-/// wraps: focus on the last one, narrow to the minimum, and it stays
-/// drawn, reachable and focused on the next line.
+
+
+
+
+
+
 #[test]
 fn a_narrowed_follow_up_row_wraps_and_keeps_the_focused_button() {
     use junie_tui::shell::App as _;
@@ -948,14 +948,14 @@ fn a_narrowed_follow_up_row_wraps_and_keeps_the_focused_button() {
     assert!(after.y > prev.y, "on the next line: {before:?} {after:?}");
 }
 
-/// The footer's peek line never costs a key hint: with a cut cursor row
-/// the finder at 120 columns keeps every hint it draws without the peek
-/// (keys before a preview), the peek takes only what they leave.
+
+
+
 #[test]
 fn the_finder_peek_never_drops_a_hint() {
     let h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 120, 40);
     let footer = h.last_row();
-    // the peek: the cursor row, cut to what the hints leave
+
     assert!(footer.contains("   Clean Docker c"), "no peek: {footer}");
     for hint in [
         "Type Search",

@@ -1,8 +1,8 @@
-//! Composed screen: project settings with tabs, a form, an editable
-//! members table with a destructive dialog, and an environment list with a
-//! prompt dialog, on the Playground | Options | States template. Options:
-//! `crate::options::SETTINGS`; States: the section tabs, the members table
-//! and the environment list.
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect, Size};
@@ -62,7 +62,7 @@ pub struct SettingsPage {
     template: Template,
     opts: PageValues,
     tabs: Tabs,
-    // general
+
     name: TextInput,
     description: TextArea,
     visibility: RadioGroup,
@@ -70,17 +70,17 @@ pub struct SettingsPage {
     protect: Toggle,
     save: Button,
     dirty: bool,
-    // members
+
     members: DataTable,
     remove: Button,
     invite: Button,
-    // env
+
     env: ListBox,
     add_var: Button,
     remove_vars: Button,
 }
 
-/// The members table's rows.
+
 fn member_rows() -> Vec<Vec<Cell>> {
     [
         ("Mira Okafor", "mira@acme.dev", "Owner", "today"),
@@ -102,7 +102,7 @@ fn member_rows() -> Vec<Vec<Cell>> {
     .collect()
 }
 
-/// The members table: name and role edit in place.
+
 fn members_table(id: WidgetId, rows: Vec<Vec<Cell>>) -> DataTable {
     DataTable::new(
         id,
@@ -117,7 +117,7 @@ fn members_table(id: WidgetId, rows: Vec<Vec<Cell>>) -> DataTable {
     .validator(role_validator)
 }
 
-/// The environment's variables.
+
 fn env_items() -> Vec<ListItem> {
     [
         ("DATABASE_URL", "postgres://…"),
@@ -131,8 +131,8 @@ fn env_items() -> Vec<ListItem> {
     .collect()
 }
 
-/// The States grid: the section tabs (General unsaved), the members table
-/// and the environment list.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let tabs = Tabs::new(ID.sub("states-tabs"), &["General", "Members", "Env"]);
@@ -199,8 +199,8 @@ impl SettingsPage {
         page
     }
 
-    /// Rebuild the widgets from the options through their builders,
-    /// keeping their content.
+
+
     fn apply(&mut self) {
         let o = &self.opts;
         self.members = self.members.clone().cell_nav(o.on("settings.cell_nav"));
@@ -218,7 +218,7 @@ impl SettingsPage {
         .value(self.description.field.text());
     }
 
-    /// Save: through a confirmation (`settings.save_confirm`), or at once.
+
     fn save(&mut self, cx: &mut Cx) {
         if !self.dirty {
             cx.status("Nothing to save");
@@ -245,13 +245,13 @@ impl SettingsPage {
 }
 
 impl SettingsPage {
-    /// The columns the General card's two sides need: the description
-    /// at TextArea's `Measure::min_width` (it scrolls sideways itself),
-    /// the visibility choices and the toggles with their state words.
+
+
+
     fn general_needs(&self, ctx: &RenderCtx) -> (u16, u16) {
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;
-        // the description scrolls sideways itself: its minimum, not its
-        // longest line
+
+
         let left = self.description.min_width(Size::ZERO, ctx);
         let right = self
             .auto_merge
@@ -269,9 +269,9 @@ impl SettingsPage {
         (left, right)
     }
 
-    /// The left column's width when both sides fit beside each other in
-    /// a card `inner` columns wide (halves when they fit in halves, else
-    /// the right side at its need), `None` to stack them.
+
+
+
     fn general_columns(&self, inner: u16, ctx: &RenderCtx) -> Option<u16> {
         let (left, right) = self.general_needs(ctx);
         let half = (inner / 2).saturating_sub(2);
@@ -284,14 +284,14 @@ impl SettingsPage {
         }
     }
 
-    /// The General card's height with an `inner`-wide content area: its
-    /// 16 rows side by side, taller when the sides stack.
+
+
     fn general_height(&self, inner: u16, ctx: &RenderCtx) -> u16 {
         if self.general_columns(inner, ctx).is_some() {
             return 16;
         }
-        // name, description, a blank row, visibility and the toggles, a
-        // blank row, the save row; the title rows
+
+
         let rows = TextInput::HEIGHT + self.description.height() + 1 + 7 + 1 + 1;
         (rows + 3).max(16)
     }
@@ -319,7 +319,7 @@ impl SettingsPage {
                 let (l, r) = match self.general_columns(inner.width, ctx) {
                     Some(lw) => crate::pages::layout::columns(inner, lw, 4),
                     None => {
-                        // the right side under the left one
+
                         let top = TextInput::HEIGHT + self.description.height() + 1;
                         (
                             inner,
@@ -434,11 +434,11 @@ impl Page for SettingsPage {
         "Composed: tabs, form, editable table, list, dialogs"
     }
 
-    /// The General card's fields whole (the description at its minimum,
-    /// the toggles with their state words, the visibility choices): two
-    /// columns when the room takes both, else the right column under the
-    /// left one ([`SettingsPage::general_columns`]); as wide as the room
-    /// when wider. The other tabs' rows under the strip.
+
+
+
+
+
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let top = Tabs::STRIP_H + 1;
         let (left, right) = self.general_needs(ctx);
@@ -467,8 +467,8 @@ impl Page for SettingsPage {
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         let out = match self.template.handle(ev, cx) {
             Some(o) => o,
-            // a dialog's result and a field's blur reach the page from any
-            // section; the rest only on the Playground
+
+
             None if self.template.section() == Section::Playground
                 || matches!(ev, PageEvent::DialogClosed { .. } | PageEvent::Blur(_)) =>
             {
@@ -476,7 +476,7 @@ impl Page for SettingsPage {
             }
             None => Outcome::Ignored,
         };
-        // the tab of the section with unsaved edits carries the dirty mark
+
         if let Some(general) = self.tabs.items.get_mut(0) {
             general.dirty = self.dirty && self.opts.on("settings.tab_dirty");
         }
@@ -630,15 +630,15 @@ impl SettingsPage {
     }
 }
 
-/// A button's share of a pointer event: `Some(activated)` when the event
-/// was its click, `None` when it was not the button's.
+
+
 fn clicked(b: &mut Button, ev: &PointerEvent) -> Option<bool> {
     let r = b.route(ev)?;
     (r.outcome() != Outcome::Ignored).then(|| r.into_action().is_some())
 }
 
 impl SettingsPage {
-    /// The page's events; [`Page::handle`] syncs the tabs after them.
+
     fn handle_event(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(

@@ -1,11 +1,11 @@
-//! Scroll performance of the table-like widgets (DataGrid, DataTable,
-//! ListBox, TreeView) rendered alone into a buffer, at small and large row
-//! counts (see docs/audits/design-review-2026-10/performance.md).
-//!
-//! `measure_widgets` is an ignored measurement that prints timings; run it
-//! in the release profile:
-//!
-//! `cargo nextest run --cargo-profile release --test table_perf --run-ignored only --no-capture`
+
+
+
+
+
+
+
+
 
 use std::time::{Duration, Instant};
 
@@ -26,8 +26,8 @@ use ratatui::layout::{Constraint, Rect};
 
 const COLS: usize = 11;
 
-/// Rows whose columns 8 and 9 carry `blob` bytes of JSON and text: cut
-/// cells whose full value is far wider than any viewport.
+
+
 fn grid_rows_with(n: usize, blob: usize) -> Vec<Vec<CellValue>> {
     let json = format!("{{\"k\": [{}]}}", "1, ".repeat(blob / 3));
     let text = "lorem ipsum ".repeat(blob / 12);
@@ -106,7 +106,7 @@ fn list(n: usize) -> ListBox {
 }
 
 fn tree(n: usize) -> TreeView {
-    // one expanded folder per 100 leaves
+
     let dirs = (0..n.div_ceil(100))
         .map(|d| {
             TreeNode::dir(
@@ -191,7 +191,7 @@ impl Surface for TreeView {
     }
 }
 
-/// One frame: a fresh hit registry and focus ring, as the app does.
+
 fn frame(s: &mut impl Surface, area: Rect, theme: &Theme) -> HitRegistry {
     let mut buf = Buffer::empty(area);
     let mut hits = HitRegistry::default();
@@ -270,7 +270,7 @@ fn measure_widgets() {
         let mut tr = None;
         let b = time(|| tr = Some(tree(n)));
         measure("TreeView", n, b, tr.as_mut().unwrap());
-        // collapse and expand one folder in the middle of the tree
+
         let tr = tr.as_mut().unwrap();
         let folder = (n / 100 / 2) * 101;
         let toggles = 20;
@@ -284,7 +284,7 @@ fn measure_widgets() {
             spent.as_secs_f64() * 1e6 / toggles as f64
         );
     }
-    // the reveal alone: a pointer resting on a cut value, frame after frame
+
     for len in [65_536usize, 1 << 20] {
         let theme = Theme::junie();
         let area = Rect::new(0, 0, 200, 55);
@@ -317,9 +317,9 @@ fn measure_widgets() {
             spent.as_secs_f64() * 1e6 / frames as f64
         );
     }
-    // cut cells holding long values (JSON documents, long text)
+
     for blob in [4_096, 65_536] {
-        // the pointer resting on a cut long value: its reveal wraps it
+
         let theme = Theme::junie();
         let area = Rect::new(0, 0, 200, 55);
         let mut g = grid_with(200, blob);
@@ -365,10 +365,10 @@ fn measure_widgets() {
     }
 }
 
-// ------------------------------------------------------------------ guards
 
-/// Guard: a frame's work is bounded by the viewport, not the dataset. The
-/// hit regions a 100k-row widget registers equal those of a 500-row one.
+
+
+
 #[test]
 fn hit_regions_per_frame_do_not_grow_with_the_row_count() {
     let theme = Theme::junie();
@@ -376,7 +376,7 @@ fn hit_regions_per_frame_do_not_grow_with_the_row_count() {
     let small = frame(&mut grid(500), area, &theme).len();
     let large = frame(&mut grid(100_000), area, &theme).len();
     assert_eq!(small, large, "DataGrid");
-    // at most every visible cell, its row and the chrome
+
     assert!(large <= 55 * (COLS + 2) + 16, "DataGrid registered {large}");
     let small = frame(&mut table(500), area, &theme).len();
     let large = frame(&mut table(100_000), area, &theme).len();
@@ -389,16 +389,16 @@ fn hit_regions_per_frame_do_not_grow_with_the_row_count() {
     assert_eq!(small, large, "TreeView");
 }
 
-/// Guard (P1): the wheel resolves to the widget itself over its rows, so a
-/// coalesced burst (handled against the hit regions of the frame it began
-/// on) keeps scrolling after the rows under the pointer have moved away.
+
+
+
 #[test]
 fn the_wheel_over_rows_routes_to_the_widget_for_the_whole_burst() {
     let theme = Theme::junie();
     let area = Rect::new(0, 0, 120, 40);
     let pos = ratatui::layout::Position::new(20, 10);
     fn burst(s: &mut impl Surface, hits: &HitRegistry, pos: ratatui::layout::Position) -> usize {
-        // every notch of the burst routes through the same, stale regions
+
         (0..30)
             .filter(|_| hits.hit_scroll(pos) == Some(s.id()) && s.wheel(1) == Outcome::Changed)
             .count()
@@ -417,13 +417,13 @@ fn the_wheel_over_rows_routes_to_the_widget_for_the_whole_burst() {
     assert_eq!(burst(&mut tr, &hits, pos), 30, "TreeView");
 }
 
-/// Guard (P2): frame cost does not grow with the length of cut values.
-///
-/// Wall-clock, so the budget is deliberately loose for a debug build on a
-/// shared CI runner: the best of five frames whose visible cells hold
-/// 128 KiB values may cost at most 8× the best of five frames of short
-/// values, plus 25 ms. Before bounded measurement the ratio was over 100×
-/// (release: 0.25 ms against 19–37 ms per frame with 64 KiB cells).
+
+
+
+
+
+
+
 #[test]
 fn long_cut_values_cost_what_their_visible_part_costs() {
     let theme = Theme::junie();
@@ -441,7 +441,7 @@ fn long_cut_values_cost_what_their_visible_part_costs() {
         );
     };
     let (mut short, mut long) = (grid_with(60, 0), grid_with(60, 128 * 1024));
-    // bring the long-value columns (8 and 9) on screen
+
     short.scroll.h.offset = 6;
     long.scroll.h.offset = 6;
     frame(&mut short, area, &theme);

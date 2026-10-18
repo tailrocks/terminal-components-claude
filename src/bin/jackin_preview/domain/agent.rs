@@ -1,7 +1,7 @@
-//! Agent runtime, provider adapter identity and Usage surface are three
-//! separate axes that one operator-facing row may link together.
 
-/// Closed runtime selection offered by current Jackin.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Agent {
     ClaudeCode,
@@ -33,7 +33,7 @@ impl Agent {
         }
     }
 
-    /// Short form for tab labels and chips.
+
     pub fn short(self) -> &'static str {
         match self {
             Agent::ClaudeCode => "claude",
@@ -56,7 +56,7 @@ impl Agent {
         }
     }
 
-    /// Auth modes the core registry exposes for this agent.
+
     pub fn auth_modes(self) -> &'static [AuthMode] {
         match self {
             Agent::ClaudeCode => &[
@@ -69,8 +69,8 @@ impl Agent {
         }
     }
 
-    /// Agents whose accounts may be registered manually in the Account &
-    /// Usage Center. Others are discovered, read-only.
+
+
     pub fn registerable(self) -> bool {
         matches!(
             self,
@@ -79,7 +79,7 @@ impl Agent {
     }
 }
 
-/// Launch/provider adapter identity.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Provider {
     Anthropic,
@@ -132,7 +132,7 @@ impl Provider {
         }
     }
 
-    /// The agent runtime this provider serves, when one exists.
+
     pub fn agent(self) -> Option<Agent> {
         match self {
             Provider::Anthropic => Some(Agent::ClaudeCode),
@@ -145,7 +145,7 @@ impl Provider {
         }
     }
 
-    /// Only the source-backed Grok fixture carries an endpoint/deployment.
+
     pub fn supports_endpoint(self) -> bool {
         matches!(self, Provider::XAi)
     }
@@ -177,7 +177,7 @@ impl Provider {
     }
 }
 
-/// Provider-specific quota/account projection registry, in current order.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum UsageSurface {
     Claude,
@@ -204,7 +204,7 @@ impl UsageSurface {
         UsageSurface::Unsupported,
     ];
 
-    /// Provider label as the Usage registry shows it.
+
     pub fn label(self) -> &'static str {
         match self {
             UsageSurface::Claude => "Anthropic",
@@ -219,7 +219,7 @@ impl UsageSurface {
         }
     }
 
-    /// Surface name (what the operator calls the meter).
+
     pub fn surface_name(self) -> &'static str {
         match self {
             UsageSurface::Claude => "Claude",
@@ -249,14 +249,14 @@ impl UsageSurface {
     }
 }
 
-/// Credential forwarding mode from the core auth registry.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AuthMode {
-    /// Forward the host agent's own credentials/profile.
+
     Sync,
     ApiKey,
     OAuthToken,
-    /// Do not forward anything.
+
     Ignore,
 }
 

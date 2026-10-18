@@ -1,6 +1,6 @@
-//! Persisted Workspace configuration: workdir, mounts, Roles, environments,
-//! Auth, policies. Everything here is durable host data, distinct from
-//! instance records and live daemon snapshots.
+
+
+
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -17,34 +17,34 @@ pub struct Workspace {
     pub workdir: String,
     pub mounts: Vec<Mount>,
     pub roles: RolePolicy,
-    /// Workspace-scope environment variables.
+
     pub env: Vec<EnvVar>,
-    /// Role-scope environment variables keyed by Role name.
+
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
     pub keep_awake: bool,
     pub git_pull: bool,
-    /// Which registry accounts this Workspace activates, and which it prefers.
+
     pub accounts: AccountPolicy,
     pub dirty_policy: DirtyExitPolicy,
 }
 
-/// The Workspace's view of the global account registry: inherited defaults
-/// can be switched off, further accounts switched on, and one account per
-/// provider marked preferred. Credentials never live here.
+
+
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AccountPolicy {
-    /// Global defaults (registry `default_for_provider`) this Workspace turns off.
+
     pub disabled_defaults: BTreeSet<AccountId>,
-    /// Registry accounts explicitly enabled here in addition to the inherited defaults.
+
     pub enabled: BTreeSet<AccountId>,
-    /// Preferred account per provider among the effective set.
+
     pub preferred: BTreeMap<Provider, AccountId>,
-    /// Per-Role preference (a Role may prefer another effective account).
+
     pub role_preferred: BTreeMap<(RoleName, Provider), AccountId>,
 }
 
 impl AccountPolicy {
-    /// Number of activation / preference decisions that differ from `other`.
+
     pub fn change_count(&self, other: &AccountPolicy) -> usize {
         self.disabled_defaults
             .symmetric_difference(&other.disabled_defaults)
@@ -55,12 +55,12 @@ impl AccountPolicy {
     }
 }
 
-/// Why an account is part of the Workspace's effective set.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Effective {
-    /// The registry's provider default, inherited because it is not disabled here.
+
     InheritedDefault,
-    /// Explicitly enabled in this Workspace.
+
     Enabled,
 }
 
@@ -73,11 +73,11 @@ impl Effective {
     }
 }
 
-/// Whether an effective account can actually back a session right now.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Usability {
     Ready,
-    /// Switched off in the registry (kept in the policy so it comes back when re-enabled).
+
     Disabled(String),
     NeedsLogin,
     Invalid(String),
@@ -107,7 +107,7 @@ pub struct EffectiveAccount {
     pub usable: Usability,
 }
 
-/// How usable a registry account is, independent of any Workspace.
+
 pub fn usability_of(a: &super::account::Account) -> Usability {
     if !a.enabled {
         return Usability::Disabled("disabled globally".into());
@@ -145,11 +145,11 @@ impl Workspace {
         }
     }
 
-    /// The accounts this Workspace can hand to a container: every registry
-    /// provider default that is not disabled here, plus every account enabled
-    /// here. Sorted by provider, then preferred first, then display order of
-    /// the registry. Nothing is invented: an account absent from the registry
-    /// is dropped from the set.
+
+
+
+
+
     pub fn effective_accounts(&self, registry: &AccountRegistry) -> Vec<EffectiveAccount> {
         let mut out: Vec<EffectiveAccount> = vec![];
         for a in &registry.accounts {
@@ -171,8 +171,8 @@ impl Workspace {
                 usable: usability_of(a),
             });
         }
-        // one preferred per provider: the explicit preference when it is in
-        // the set, else the inherited default, else the first ready account
+
+
         let providers: Vec<Provider> = {
             let mut v: Vec<Provider> = out.iter().map(|e| e.provider).collect();
             v.dedup();
@@ -209,7 +209,7 @@ impl Workspace {
         out
     }
 
-    /// The effective account a Role prefers, if it is in the effective set.
+
     pub fn role_preference(
         &self,
         role: &str,
@@ -226,7 +226,7 @@ impl Workspace {
             .map(|e| e.id.clone())
     }
 
-    /// Number of fields that differ from `other` (dirty count).
+
     pub fn change_count(&self, other: &Workspace) -> usize {
         let mut n = 0;
         n += usize::from(self.name != other.name);
@@ -247,7 +247,7 @@ impl Workspace {
     }
 }
 
-/// Added + modified + removed rows by identity (an edit counts once).
+
 fn keyed<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
     let mut n = 0;
     for x in a {
@@ -281,7 +281,7 @@ impl DirtyExitPolicy {
     }
 }
 
-// ---------------------------------------------------------------- mounts
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mount {
@@ -290,12 +290,12 @@ pub struct Mount {
     pub readonly: bool,
     pub isolation: Isolation,
     pub kind: MountKind,
-    /// Scope for global mounts (Settings); Workspace mounts are `Workspace`.
+
     pub scope: MountScope,
-    /// Source path moved or vanished since the mount was saved.
+
     pub drift: Option<String>,
-    /// An isolated (worktree/clone) copy is in use by a running instance;
-    /// changing isolation requires cleanup first.
+
+
     pub running_isolated: bool,
 }
 
@@ -379,7 +379,7 @@ impl Isolation {
         }
     }
 
-    /// `Shared → Worktree → Clone → Shared`.
+
     pub fn next(self) -> Self {
         match self {
             Isolation::Shared => Isolation::Worktree,
@@ -412,7 +412,7 @@ impl MountScope {
     }
 }
 
-// ----------------------------------------------------------------- roles
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RolePolicy {
@@ -444,7 +444,7 @@ impl RolePolicy {
     }
 }
 
-/// A Role as the host registry knows it: namespace/name, source, trust.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RoleEntry {
     pub namespace: String,
@@ -454,10 +454,10 @@ pub struct RoleEntry {
     pub in_registry: bool,
     pub description: String,
     pub load_error: Option<String>,
-    /// What the registry answers when this Role is loaded: `None` loads,
-    /// `Some(reason)` fails (a fetch, I/O or manifest parse error) even
-    /// for a trusted Role. A fixture knob; the real product gets it from the
-    /// load itself.
+
+
+
+
     pub fetch_error: Option<String>,
 }
 
@@ -482,7 +482,7 @@ impl RoleSource {
     }
 }
 
-// ------------------------------------------------------------ environments
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnvVar {
@@ -515,11 +515,11 @@ impl EnvVar {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EnvValue {
-    /// Plain text; rendered masked by default.
+
     Plain(String),
-    /// 1Password item/field reference, resolved on demand (`[op]`).
+
     OnePassword(super::onepassword::OpReference),
-    /// Forward a host environment variable by name.
+
     HostEnv(String),
 }
 
@@ -533,9 +533,9 @@ impl EnvValue {
     }
 }
 
-/// Asterisk runs, never `•` (which marks modified rows in the tables).
-/// API-key-shaped values keep their last four characters so two keys can
-/// be told apart; anything with path or URL structure is fully masked.
+
+
+
 pub fn mask(v: &str) -> String {
     if v.is_empty() {
         return "(empty)".into();
@@ -557,7 +557,7 @@ pub fn mask(v: &str) -> String {
     }
 }
 
-/// Reserved and forbidden environment keys (validation before save).
+
 pub fn env_key_error(key: &str) -> Option<String> {
     let k = key.trim();
     if k.is_empty() {

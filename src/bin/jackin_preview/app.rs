@@ -1,6 +1,6 @@
-//! Application shell: one runtime session that owns the route (intro,
-//! host control plane, cockpit, handoff, Capsule, outro), the modal stack,
-//! focus/hover/press state, the identity strip and the footer.
+
+
+
 
 use junie_tui::clock::Clock;
 use junie_tui::core::event::{Input, Key, Outcome};
@@ -47,7 +47,7 @@ use junie_tui::widgets::brand::Lockup;
 use junie_tui::widgets::dialog::DialogResult;
 use junie_tui::widgets::menu::{MenuBar, MenuBarAction, MenuItem};
 
-/// The canonical product mark; every brand lockup renders exactly this.
+
 pub const BRAND_MARK: &str = "jackin❯";
 const STRIP_HELP: WidgetId = WidgetId::of("strip.help");
 const HOST_MENU: WidgetId = WidgetId::of("host.menu");
@@ -86,8 +86,8 @@ impl Route {
     }
 }
 
-/// The app's layer stack: every layer reads the world and reports a
-/// [`ModalResult`] to the route that opened it.
+
+
 type Layers = ShellLayers<ModalResult, World, Route>;
 type Entry = LayerEntry<ModalResult, World, Route>;
 
@@ -97,32 +97,32 @@ pub struct App {
     pub world: World,
     pub intro: Option<IntroState>,
     pub outro: Option<OutroState>,
-    /// The handoff's frame while the cockpit hands over to the Capsule
-    /// (both are on the router, the Capsule on top).
+
+
     pub handoff: Option<u64>,
-    /// The pages ([`shell::Router`], [`crate::pages`]): the manager,
-    /// Accounts and Usage keep their tabs; every other route opens over
-    /// the manager, and Back is the manager.
+
+
+
     pub router: Router<Page>,
     layers: Layers,
-    /// Focus, ring, hit regions, pointer, the footer status (5 s on the
-    /// world clock; an error stays until the next action), size, motion
-    /// and quit: the library shell's state.
+
+
+
     pub shell: Shell,
-    /// The shell's keys ([`shell::KeyRouter`], [`shell_keys`]): Ctrl+C
-    /// and Ctrl+Q quit through the guard, Esc never quits, `q` leaves the
-    /// host screen (never over a field or unsaved edits), `u`/`c`/`s` the
-    /// host routes.
+
+
+
+
     pub keys: shell::ShellKeys<JackinCmd>,
-    /// The quit's leave guard ([`Shell::quit_through`]): while a quit
-    /// waits on the screen's unsaved-changes question it is pending, and
-    /// when that flow leaves for the manager (Save or Discard), the app
-    /// quits.
+
+
+
+
     quit_guard: LeaveGuard<()>,
-    /// The application menu bar shown on every host screen, built from
-    /// [`Self::host_menus`].
+
+
     pub host_menu: MenuBar,
-    /// The host menus, each item with its command (M23).
+
     host_menus: Menus<HostCmd>,
     host_menu_route: Route,
     intro_guard: u8,
@@ -131,32 +131,32 @@ pub struct App {
 }
 
 impl App {
-    /// The top layer as an `L` (proof accessor).
+
     #[cfg(test)]
     pub fn top_layer<L: junie_tui::ui::layer::Layer<ModalResult, World>>(&self) -> Option<&L> {
         self.layers.top_as()
     }
 
-    /// How many layers are open (proof accessor).
+
     #[cfg(test)]
     pub fn layer_count(&self) -> usize {
         self.layers.len()
     }
 
-    /// The top layer's dismissal policy (proof accessor).
+
     #[cfg(test)]
     pub fn top_dismiss(&self) -> Option<junie_tui::ui::popup::Dismiss> {
         self.layers.top().map(|t| t.layer.spec().dismiss)
     }
 
-    /// Pure fixture entry point: one coherent world per scenario.
+
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
         let mut world = crate::domain::fixtures::world_for(scenario);
         world.clock.running = motion != Motion::Paused;
         let mut shell = Shell::new();
         shell.motion = motion;
-        // the preview's clipboard is the simulated world's: a copy is
-        // reported truthfully and never written to the real terminal
+
+
         shell.clipboard = shell::Clipboard::new().write(false);
         let mut app = Self {
             theme,
@@ -184,7 +184,7 @@ impl App {
     fn start(&mut self, frame: u64) {
         match self.scenario {
             Scenario::OutroLast if frame > 0 => {
-                // capture the outro directly at a fixture tick
+
                 self.world.arbiter.set_running(0);
                 let decision = self.world.arbiter.request_exit(self.world.now_ms());
                 let elapsed = match decision {
@@ -224,7 +224,7 @@ impl App {
                 );
             }
         }
-        // scenario-specific starting routes
+
         match self.scenario {
             Scenario::AccountsMixed => self.go(Go::Accounts { select: None }),
             Scenario::LaunchRunning | Scenario::LaunchFailure => {
@@ -266,8 +266,8 @@ impl App {
         });
     }
 
-    /// The shown route: a full-screen sequence (the outro, the intro, the
-    /// handoff) over the router, else the router's shown page.
+
+
     pub fn route(&self) -> Route {
         if self.outro.is_some() {
             Route::Outro
@@ -280,9 +280,9 @@ impl App {
         }
     }
 
-    /// Show the root of `tab` (the manager, Accounts or Usage): the pages
-    /// opened over the manager are dropped, and a sequence still on
-    /// screen ends.
+
+
+
     fn show_tab(&mut self, tab: usize) {
         self.intro = None;
         self.handoff = None;
@@ -291,7 +291,7 @@ impl App {
         self.router.select(tab);
     }
 
-    /// Open `page` over the manager (Back is the manager) and enter it.
+
     fn open_page(&mut self, page: Page) {
         self.show_tab(TAB_MANAGER);
         self.router.push(page);
@@ -323,23 +323,23 @@ impl App {
         std::time::Duration::from_millis(self.route().tick_ms(self.animating()))
     }
 
-    /// Milliseconds on the pointer clock (the simulated world clock).
+
     fn now_ms(&self) -> u64 {
         self.world.now_ms().max(0) as u64
     }
 
-    // ------------------------------------------------------------- input
 
-    /// Hand every focus change the input caused to every open layer and
-    /// the screens, so fields end their edits on the event path.
+
+
+
     fn blur_all(&mut self, ch: FocusChange) -> Outcome {
         let mut out = self.layers.on_blur(ch);
         {
-            // what an ended edit reported (a form field changed) reaches
-            // the owner, as Enter's does
+
+
             out = self.settle_layers(out);
-            // a route behind the shown one may only report a status (the
-            // background-request policy, `Shell::deliver`)
+
+
             for route in self.router.routes() {
                 out =
                     out.or(self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_blur(ch, w, cx)));
@@ -369,9 +369,9 @@ impl App {
         if self.shell.pointer.expire_flash(now) {
             out = Outcome::Changed;
         }
-        // a held drag past a selecting body's edge autoscrolls, a press
-        // held on a scrollbar track keeps paging (the simulated clock
-        // keeps its own tick rate)
+
+
+
         out = out.or(PointerRouter::tick(self));
         if self.shell.status.expire(self.world.clock.now()) {
             out = Outcome::Changed;
@@ -405,8 +405,8 @@ impl App {
                 return Outcome::Changed;
             }
             Route::Handoff => {
-                // a paused clock holds the handoff (an explicit clock step
-                // runs it, `advance_clock`)
+
+
                 if self.world.clock.running {
                     let h = self.handoff.unwrap_or(0) + 1;
                     self.handoff = Some(h);
@@ -418,15 +418,15 @@ impl App {
             }
             _ => {}
         }
-        // the top layer's tick
+
         if let Some(top) = self.layers.top_mut() {
             let o = top.layer.on_tick(&self.world);
             out = self.settle_layers(out.or(o));
         }
-        // screen tick
+
         let route = self.route();
         out = out.or(self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_tick(w, cx)));
-        // messages
+
         for m in msgs {
             out = out.or(self.dispatch_msg(m));
         }
@@ -434,9 +434,9 @@ impl App {
     }
 
     fn dispatch_msg(&mut self, m: Msg) -> Outcome {
-        // the job's result is here: its progress status ends before the
-        // owner reports the result (a failure that only opens a dialog
-        // leaves no "Saving…" under it)
+
+
+
         let ended = m.job().is_some_and(|job| self.shell.status.end_job(job));
         let route = self.route();
         let (o, reqs) = self
@@ -445,8 +445,8 @@ impl App {
                 Some(s) => s.on_msg(&m, &mut self.world, cx),
                 None => Outcome::Ignored,
             });
-        // the manager and accounts follow the world from behind; the
-        // background-request policy keeps only their statuses
+
+
         let (o, behind) = self.shell.deliver(false, |cx| {
             let mut o = o;
             if !o.consumed() && route != Route::Manager {
@@ -470,7 +470,7 @@ impl App {
 
     fn finish_handoff(&mut self) {
         self.handoff = None;
-        // the Capsule takes the cockpit's place over the manager
+
         if let Some(capsule) = self.router.back() {
             self.router.replace(capsule);
         }
@@ -480,9 +480,9 @@ impl App {
         });
     }
 
-    /// A key on a full-screen sequence (the intro, the outro, the
-    /// handoff): Enter and Esc skip it; Ctrl+C leaves the intro and the
-    /// outro at once. `None` on any other route.
+
+
+
     fn sequence_key(&mut self, key: &Key) -> Option<Outcome> {
         match self.route() {
             Route::Intro => {
@@ -529,15 +529,15 @@ impl App {
         }
     }
 
-    /// The host screen's page is editing or has its own menu open.
+
     fn host_editing(&self) -> bool {
         self.router
             .screen(self.route())
             .is_some_and(|s| s.is_editing() || s.layer_open())
     }
 
-    /// `q` on a host screen: never over unsaved edits; the manager quits,
-    /// any other host screen goes back to it.
+
+
     fn leave_key(&mut self) -> Outcome {
         let route = self.route();
         let dirty = self
@@ -554,11 +554,11 @@ impl App {
         Outcome::Changed
     }
 
-    /// Every quit (Ctrl+Q, Ctrl+C, `q`, the menu) goes through here: a
-    /// clean screen quits at once (running instances keep running in the
-    /// Construct, so nothing is lost); unsaved edits ask the screen's own
-    /// Save / Discard / Cancel first, and the app quits when that flow
-    /// leaves the screen.
+
+
+
+
+
     fn request_quit(&mut self) -> Outcome {
         let stakes = shell::App::stakes(self);
         match self
@@ -569,9 +569,9 @@ impl App {
                 self.world.arbiter.release_entry();
                 Outcome::Consumed
             }
-            // the guard keeps the quit pending; the screen asks its own
-            // Save / Discard / Cancel (its save previews first), not the
-            // guard's generic question (S20 moves it into EditorShell)
+
+
+
             Err(_) => {
                 let route = self.route();
                 self.on_route(route, Outcome::Ignored, |s, w, cx| s.request_leave(w, cx))
@@ -579,7 +579,7 @@ impl App {
         }
     }
 
-    /// Quit now: the user already answered (or nothing is at stake).
+
     fn quit_now(&mut self) {
         self.world.arbiter.release_entry();
         self.shell.quit = true;
@@ -597,10 +597,10 @@ impl App {
         )
     }
 
-    /// The menus of the host screens: the same bar as the Capsule's, with
-    /// the screen's own actions under File and the destinations under Go.
-    /// Each item carries its command; an action item presses the key it
-    /// names, so menus and keys can never disagree.
+
+
+
+
     fn build_host_menu(route: Route) -> Menus<HostCmd> {
         use HostCmd::{Press, Quit};
         let k = |c: char| Press(plain(KeyCode::Char(c)));
@@ -684,7 +684,7 @@ impl App {
             .menu("Help", help)
     }
 
-    /// The host menu bar showing `menus`.
+
     fn host_bar(menus: &Menus<HostCmd>) -> MenuBar {
         menus.bar(HOST_MENU).brand(Lockup::new(BRAND_MARK))
     }
@@ -697,8 +697,8 @@ impl App {
         }
     }
 
-    /// What the host menu bar's `action` asks for: a chosen item runs its
-    /// command, the brand opens About.
+
+
     fn host_menu_action(&mut self, action: MenuBarAction, o: Outcome) -> Outcome {
         if let MenuBarAction::Brand = action {
             self.open_about();
@@ -710,9 +710,9 @@ impl App {
         }
     }
 
-    /// Run a host menu command: a destination navigates (an editing
-    /// screen keeps the user until it is saved or cancelled), an action
-    /// presses its key through the shell's key order.
+
+
+
     fn run_host_cmd(&mut self, cmd: HostCmd) -> Outcome {
         let editing_screen = matches!(
             self.route(),
@@ -720,7 +720,7 @@ impl App {
         );
         match cmd {
             HostCmd::Manager if editing_screen => {
-                // the editor asks about unsaved work on its own way out
+
                 return shell::KeyRouter::replay(self, &plain(KeyCode::Esc));
             }
             HostCmd::Manager => self.go(Go::Manager),
@@ -759,8 +759,8 @@ impl App {
         self.open_layer(Box::new(d), LayerTag::new("about"), self.route());
     }
 
-    /// Row zero of every host screen: the menu bar, then the Construct state
-    /// and the breadcrumb right-aligned in what is left of the row.
+
+
     fn draw_host_menu(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, route: Route) {
         let t = self.theme;
         self.sync_host_menu();
@@ -1111,8 +1111,8 @@ impl App {
                 ),
             ],
         };
-        // the screen keys each screen handles in its own code, by hand
-        // until they move onto key maps (S16); the shell's from ShellKeys
+
+
         let mut sections: Vec<junie_tui::widgets::help::HelpSection> = sections
             .into_iter()
             .map(|(title, rows)| {
@@ -1134,11 +1134,11 @@ impl App {
         self.open_layer(Box::new(h), LayerTag::new("help"), self.route());
     }
 
-    // ------------------------------------------------------------ layers
 
-    /// Open `layer` on top for `owner`: focus moves into it (the stack
-    /// remembers the control it covers, K9) and the page under it shows
-    /// no hover or press.
+
+
+
+
     fn open_layer(&mut self, layer: Box<AppLayer>, tag: LayerTag, owner: Route) {
         self.layers.open(layer, tag, owner, &mut self.shell.focus);
         self.shell.pointer.hover = None;
@@ -1148,7 +1148,7 @@ impl App {
         }
     }
 
-    /// A layer closed: the Capsule takes input again once none is open.
+
     fn layer_gone(&mut self) {
         if self.layers.is_empty()
             && let Some(c) = self.router.capsule_mut()
@@ -1157,9 +1157,9 @@ impl App {
         }
     }
 
-    /// Hand what the top layer reported to its owner: an event leaves the
-    /// layer open; a result closes it (the stack gives focus back to the
-    /// control it covered, K9) and reaches the screen that opened it.
+
+
+
     fn settle_layers(&mut self, mut out: Outcome) -> Outcome {
         while let Some(taken) = self.layers.take(&mut self.shell.focus) {
             out = out.or(match taken {
@@ -1173,9 +1173,9 @@ impl App {
         out
     }
 
-    /// An event from the top layer, which stays open: the shell answers
-    /// the ones that need a layer (a picker's rows, a form's dependent
-    /// fields, a copied value); the rest reach the owner.
+
+
+
     fn layer_event(&mut self, r: ModalResult) -> Outcome {
         let Some(top) = self.layers.top() else {
             return Outcome::Ignored;
@@ -1206,26 +1206,26 @@ impl App {
         let scope = r == ModalResult::Scope;
         let o = self.tell_owner(owner, &tag, r);
         if scope {
-            // the owner switched scope: it supplies the rows again
+
             self.refresh_picker();
         }
         o.or(Outcome::Changed)
     }
 
-    /// A layer closed with `r`: the screen that opened it hears it.
+
     fn layer_closed(&mut self, entry: Entry, r: ModalResult) -> Outcome {
         let cancel_index = entry.get::<Dialog>().and_then(|d| d.cancel_index);
         let r = match r {
             ModalResult::Help => return Outcome::Changed,
-            // Save hands over the form's values
+
             ModalResult::FormEvent(FormAction::Save) => ModalResult::Form(Some(
                 entry
                     .get::<FormDialog>()
                     .map(FormDialog::values)
                     .unwrap_or_default(),
             )),
-            // a dismissed dialog resolves to its cancel action, as its Esc
-            // does
+
+
             ModalResult::Dialog { action: None, text } => ModalResult::Dialog {
                 action: cancel_index,
                 text,
@@ -1235,7 +1235,7 @@ impl App {
         self.tell_owner(entry.owner, &entry.tag, r)
     }
 
-    /// Tell `owner`, the screen that opened a layer, what it reported.
+
     fn tell_owner(&mut self, owner: Route, tag: &LayerTag, r: ModalResult) -> Outcome {
         self.on_route(owner, Outcome::Changed, |s, w, cx| {
             s.on_layer_result(tag, r, w, cx)
@@ -1243,8 +1243,8 @@ impl App {
         .or(Outcome::Changed)
     }
 
-    /// The values of the form on top (a chooser or action button
-    /// reports them with its name).
+
+
     fn top_form_values(&self) -> crate::screens::modals::FormValues {
         self.layers
             .top_as::<FormDialog>()
@@ -1252,9 +1252,9 @@ impl App {
             .unwrap_or_default()
     }
 
-    /// Put `v` on the preview clipboard through the shell's
-    /// ([`Shell::copy_at`]): the status says what was copied, named
-    /// `what` when the screen gave a name.
+
+
+
     fn copy(&mut self, v: String, what: Option<String>) {
         let now = self.world.clock.now();
         self.shell.copy_at(&v, what.as_deref(), now);
@@ -1262,7 +1262,7 @@ impl App {
         self.clipboard_gen += 1;
     }
 
-    /// The picker on top asks its owner for rows matching its query.
+
     fn refresh_picker(&mut self) {
         let Some(top) = self.layers.top() else {
             return;
@@ -1286,8 +1286,8 @@ impl App {
         }
     }
 
-    /// A field of the form on top changed: its owner reveals or hides the
-    /// fields that depend on it.
+
+
     fn form_changed(&mut self) {
         let Some(top) = self.layers.top_mut() else {
             return;
@@ -1301,8 +1301,8 @@ impl App {
         }
     }
 
-    /// A key while a layer is open: the top layer has it (its own Esc
-    /// honours its dismissal policy); an Esc it passes on dismisses it.
+
+
     fn layer_key(&mut self, key: Key) -> Outcome {
         let Some(top) = self.layers.top_mut() else {
             return Outcome::Ignored;
@@ -1319,15 +1319,15 @@ impl App {
         self.settle_layers(o.or(Outcome::Consumed))
     }
 
-    /// Dismiss the top layer for `reason` under its own policy: it closes
-    /// with its cancel result, or stays (a refused outside click flashes
-    /// its frame).
+
+
+
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
         let d = self.layers.dismiss(reason, &mut self.shell.focus);
         self.dismissed(reason, d)
     }
 
-    /// What a dismissal of the top layer did (see [`Self::dismiss_layer`]).
+
     fn dismissed(
         &mut self,
         reason: DismissReason,
@@ -1365,33 +1365,33 @@ impl App {
         }
     }
 
-    /// Whether the top layer animates (a loading chain, a refresh): the
-    /// shell ticks faster while it does.
+
+
     fn layer_animates(&self) -> bool {
         self.layers.top().is_some_and(|t| t.layer.animating())
     }
 
-    /// Whether a field in the top layer is being edited (the EDIT badge).
+
     fn layer_editing(&self) -> bool {
         self.layers.top().is_some_and(|t| t.layer.is_editing())
     }
 
-    // ------------------------------------------------------------- mouse
 
-    /// One pointer event the router resolved: the footer's hints first
-    /// (they are drawn above every layer), then the top layer while one
-    /// is open, then the chrome (host menu bar, identity strip) and the
-    /// route's screen.
+
+
+
+
+
     fn deliver_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if matches!(self.route(), Route::Intro | Route::Outro | Route::Handoff) {
-            // a completed click skips the animation as Enter does
+
             return if ev.is(Phase::Click) {
                 self.skip_animation()
             } else {
                 Outcome::Ignored
             };
         }
-        // a footer hint naming one key runs it (mouse #1)
+
         if ev.on(HintBar::ID) {
             return match self.shell.footer_keys.clicked(ev) {
                 Some(key) => shell::KeyRouter::replay(self, &key).or(Outcome::Changed),
@@ -1407,8 +1407,8 @@ impl App {
         self.screen_pointer(ev)
     }
 
-    /// A completed click on the intro or the outro skips it as Enter does
-    /// ([`junie_tui::core::pointer::PointerConfig::click_skips_animation`]).
+
+
     fn skip_animation(&mut self) -> Outcome {
         if matches!(self.route(), Route::Intro | Route::Outro)
             && self.shell.pointer.config.click_skips_animation
@@ -1424,10 +1424,10 @@ impl App {
         Outcome::Ignored
     }
 
-    /// An event while a layer is open: the frame's `×` means what Esc
-    /// means and a click on its backdrop is an outside click, both under
-    /// the layer's own policy (`ShellLayers::pointer`); anything else is
-    /// the layer's.
+
+
+
+
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
@@ -1441,12 +1441,12 @@ impl App {
         }
     }
 
-    /// An event on the chrome around the screen: the host menu bar and
-    /// the identity strip's segments; `None` when it is not the chrome's.
+
+
     fn chrome_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         if Self::is_host(self.route()) {
-            // a title opens on the press (MenuBar::open_on); a click
-            // chooses a row, the brand opens About
+
+
             if let Some(r) = self.host_menu.route(ev) {
                 let (o, act) = r.into_parts();
                 return Some(match act {
@@ -1454,7 +1454,7 @@ impl App {
                     None => o,
                 });
             }
-            // a click anywhere else closes the open menu
+
             if self.host_menu.is_open() && ev.is(Phase::Click) {
                 self.host_menu.close();
                 return Some(Outcome::Changed);
@@ -1477,17 +1477,17 @@ impl App {
         Some(Outcome::Changed)
     }
 
-    /// An event on the route's screen, with the requests it made.
+
     fn screen_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         let route = self.route();
         self.on_route(route, Outcome::Ignored, |s, w, cx| s.pointer(ev, w, cx))
     }
 
-    // ----------------------------------------------------------- requests
 
-    /// Hand an event to `route`'s screen (`absent` when it is not mounted)
-    /// through [`junie_tui::shell::Shell::deliver`] (a route behind the
-    /// shown one keeps only its statuses), then apply what it asked for.
+
+
+
+
     fn on_route(
         &mut self,
         route: Route,
@@ -1516,7 +1516,7 @@ impl App {
                     self.shell.status.progress_at(job, s, now);
                 }
                 Request::Open(layer, tag) => self.open_layer(layer, tag, owner),
-                // the owner closes its layer without a result
+
                 Request::Close => {
                     self.layers.pop(&mut self.shell.focus);
                     self.layer_gone();
@@ -1537,8 +1537,8 @@ impl App {
     }
 
     pub fn go(&mut self, g: Go) {
-        // the unsaved-changes question of a quit resolved to leaving
-        // (Save or Discard): the quit goes on
+
+
         if self.quit_guard.pending().is_some() && matches!(g, Go::Manager) {
             self.quit_guard.resolve(DialogResult::Action(1));
             self.quit_now();
@@ -1618,8 +1618,8 @@ impl App {
                     pane,
                 )));
                 if self.route() == Route::Cockpit {
-                    // the cockpit hands over: the Capsule goes on top of
-                    // it until the handoff ends (`finish_handoff`)
+
+
                     self.router.push(page);
                     self.handoff = Some(0);
                     if self.shell.motion == Motion::Reduced {
@@ -1702,12 +1702,12 @@ impl App {
                 self.world.daemons.remove(&instance);
                 crate::domain::fixtures::refresh_snapshots(&mut self.world);
                 self.world.sync_arbiter();
-                // the Capsule closes
+
                 self.show_tab(TAB_MANAGER);
                 self.leave_construct(&instance);
             }
             Go::LaunchFailedAck { instance } => {
-                // the cockpit closes
+
                 self.show_tab(TAB_MANAGER);
                 if self.world.running_count() > 0 {
                     if let Some(i) = instance {
@@ -1726,17 +1726,17 @@ impl App {
                         Tone::Error,
                     );
                 } else {
-                    // a fresh Construct with no survivor: acknowledge, then the one outro
+
                     self.leave_construct(instance.as_deref().unwrap_or(""));
                 }
             }
-            // the screen asked and the user chose to quit
+
             Go::Quit => self.quit_now(),
         }
     }
 
-    /// Foreground instance left: decide between the outro, still-inside
-    /// feedback, an already-ended Construct, or a fail-closed return.
+
+
     fn leave_construct(&mut self, instance: &str) {
         let decision = self.world.arbiter.request_exit(self.world.now_ms());
         match decision {
@@ -1802,7 +1802,7 @@ impl App {
         });
     }
 
-    // ------------------------------------------------------------ render
+
 
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
@@ -1842,12 +1842,12 @@ impl App {
             }
             r => {
                 self.draw_frame(area, buf, ctx, r);
-                // the layers, bottom to top
+
                 for entry in self.layers.iter_mut() {
                     entry.layer.render(area, buf, ctx, &self.world);
                 }
                 if !self.layers.is_empty() {
-                    // footer hints for the modal
+
                     let footer = Self::chrome(r).regions(area).footer;
                     self.footer(true).render(footer, buf, ctx, &mut self.shell);
                 }
@@ -1855,12 +1855,12 @@ impl App {
         }
     }
 
-    /// The rows around `route`'s page ([`Chrome`]): a header row (the host
-    /// menu bar or the identity strip) and the footer, a blank row between
-    /// each and the body. The Capsule owns its chrome (menu bar, tabs,
-    /// status bar) above the footer; the cockpit keeps the identity strip
-    /// but uses the full width; a host screen keeps a column clear on each
-    /// side.
+
+
+
+
+
+
     fn chrome(route: Route) -> Chrome {
         match route {
             Route::Capsule => Chrome::new().header(0).gap(0),
@@ -1869,7 +1869,7 @@ impl App {
         }
     }
 
-    /// Strip + body + footer for a route (no modals).
+
     fn draw_frame(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, route: Route) {
         let t = self.theme;
         fill(buf, area, t.base());
@@ -1999,11 +1999,11 @@ impl App {
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 
-    /// The footer ([`shell::Footer`]): the top layer's hints while one is
-    /// open (library modals name their own keys, CO4), else the open host
-    /// menu's, else the screen's, else `? Help · Esc Back`; the EDIT badge
-    /// while a field edits; the status line, where the Manager's
-    /// still-inside feedback takes an empty slot.
+
+
+
+
+
     fn footer(&self, modal: bool) -> shell::Footer {
         use junie_tui::core::hints::{HasHints, HintCx};
         let focus = self.shell.focus.current();
@@ -2040,7 +2040,7 @@ impl App {
     }
 }
 
-/// The brand on the too-small screen.
+
 const BRAND_PADDED: &str = " jackin❯ ";
 
 impl shell::App for App {
@@ -2072,9 +2072,9 @@ impl shell::App for App {
     fn on_input(&mut self, input: Input) -> Outcome {
         self.handle_input(input)
     }
-    /// Paused captures step the world clock through the app's own tick,
-    /// so jobs on virtual time (a failing save, a role load, the launch
-    /// pipeline) complete and the frame then settles.
+
+
+
     fn advance_clock(&mut self, ms: u64) -> Option<Outcome> {
         Some(junie_tui::clock::run_step(
             self,
@@ -2097,15 +2097,15 @@ impl shell::App for App {
                 .screen(self.route())
                 .is_some_and(|s| s.layer_open())
     }
-    /// The router's key for a page; a full-screen sequence has its own.
+
     fn page_key(&self) -> PageKey {
         match self.route() {
             r @ (Route::Intro | Route::Outro | Route::Handoff) => PageKey(u64::MAX - r as u64),
             _ => self.router.key(),
         }
     }
-    /// What quitting would lose: every page's stakes (only the editor
-    /// and settings ever hold unsaved edits).
+
+
     fn stakes(&mut self) -> Stakes {
         let world = &self.world;
         self.router
@@ -2136,9 +2136,9 @@ impl PointerHost for App {
         self.deliver_pointer(ev).into()
     }
 
-    /// A click on nothing: the intro or the outro skips; the top layer's
-    /// own policy decides (a refused outside click flashes); with no
-    /// layer, an open host menu closes.
+
+
+
     fn outside(&mut self, _pos: Position) -> Response<()> {
         if matches!(self.route(), Route::Intro | Route::Outro | Route::Handoff) {
             return self.skip_animation().into();
@@ -2156,29 +2156,29 @@ impl PointerHost for App {
     }
 }
 
-/// What a host menu item does ([`App::build_host_menu`]): a choice
-/// resolves to its command, never to its label (M23).
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HostCmd {
-    /// Go › Workspace manager.
+
     Manager,
-    /// Go › Account & Usage Center.
+
     Accounts,
-    /// Go › Usage.
+
     Usage,
-    /// Go › Global settings.
+
     Settings,
-    /// Help › Key reference.
+
     Help,
-    /// Help › About jackin-preview.
+
     About,
-    /// File › Quit.
+
     Quit,
-    /// A screen action: press the key the item names.
+
     Press(Key),
 }
 
-/// `code` with no modifier.
+
 fn plain(code: KeyCode) -> Key {
     Key {
         code,
@@ -2186,23 +2186,23 @@ fn plain(code: KeyCode) -> Key {
     }
 }
 
-/// jackin's own shell commands ([`shell::ShellAction::App`]): the host
-/// screens' letters.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JackinCmd {
-    /// `u`: Usage (from the manager and accounts).
+
     Usage,
-    /// `c`: Accounts (from the manager and usage).
+
     Accounts,
-    /// `s`: Settings (from the manager, accounts and usage).
+
     Settings,
-    /// `q`: leave the host screen (the manager quits).
+
     Leave,
 }
 
-/// jackin's shell keys: the standard set without a quit letter (`q`
-/// leaves the screen instead), the host letters before the page, and the
-/// menu bar never over an editing field.
+
+
+
 pub fn shell_keys() -> shell::ShellKeys<JackinCmd> {
     use junie_tui::core::keymap::KeyBinding;
     use shell::ShellAction::{self, App as Cmd};
@@ -2222,9 +2222,9 @@ impl shell::KeyHost for App {
         &self.keys
     }
 
-    /// The intro, outro and handoff own the keyboard, then the layer
-    /// stack. With neither, the user is back on the page: a quit that
-    /// waited on the leave question was cancelled.
+
+
+
     fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
         if let Some(o) = self.sequence_key(key) {
             return Some(o);
@@ -2249,8 +2249,8 @@ impl shell::KeyHost for App {
         })
     }
 
-    /// The cockpit and the capsule are sessions that own the keyboard; a
-    /// host screen captures while a field edits or its own menu is open.
+
+
     fn capturing(&self) -> bool {
         matches!(self.route(), Route::Cockpit | Route::Capsule) || self.host_editing()
     }
@@ -2294,8 +2294,8 @@ impl shell::KeyHost for App {
         }
     }
 
-    /// The host menu bar as a focus stop (K11): Enter or ↓ opens it, ← →
-    /// move between its titles, Esc hands focus back to the page.
+
+
     fn chrome_key(&mut self, key: &Key) -> Outcome {
         if !(Self::is_host(self.route()) && self.shell.focus.is(HOST_MENU)) {
             return Outcome::Ignored;
@@ -2335,9 +2335,9 @@ impl shell::KeyHost for App {
         self.on_route(route, Outcome::Consumed, |s, w, cx| s.on_paste(text, w, cx))
     }
 
-    /// Esc at the top: the page's ladder. A session (cockpit, capsule)
-    /// keeps an Esc it does not use; a host screen at its top shows that
-    /// Esc never quits.
+
+
+
     fn esc_top(&mut self) -> Outcome {
         let route = self.route();
         let o = self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_esc_top(w, cx));
@@ -2348,8 +2348,8 @@ impl shell::KeyHost for App {
         }
     }
 
-    /// Ctrl+C before it quits: the shown page's interrupt
-    /// ([`shell::Page::on_interrupt`], SI17).
+
+
     fn interrupt(&mut self) -> Outcome {
         let route = self.route();
         self.on_route(route, Outcome::Ignored, |s, w, cx| s.on_interrupt(w, cx))

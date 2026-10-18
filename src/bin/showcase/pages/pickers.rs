@@ -1,21 +1,21 @@
-//! Pickers (Overlays, plan §7.5 SC20): one searchable modal list for
-//! files, tabs, levels, commands and remote branches, opened on the
-//! shell's layer stack with the page as its owner.
-//!
-//! - **Playground**: Open quickly (fuzzy over files and tasks as you type,
-//!   Tab cycles the scope, Alt+Enter the alternate action); Switch tab (a
-//!   live switcher: running tabs tick and the scope counts them, Delete
-//!   closes a row); Choose a level (no search box); Run command (rows
-//!   with keys, glyphs and groups, disabled rows saying why); Remote
-//!   branch (loading, then ready, or an error that `r` retries). A card
-//!   reads the options back from a built picker, another shows the last
-//!   result and action.
-//! - **Options**: one control per builder (`pickers.<key>`).
-//! - **States**: a picker at rest, hovered, with a disabled row, empty,
-//!   loading, failed and overflowing, drawn by the picker.
-//!
-//! The page is wiring and demo data only: search, keys, pointer and
-//! dismissal are the picker's own.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -125,7 +125,7 @@ const LEVELS: [(&str, &str); 6] = [
     ),
 ];
 
-/// The command palette: label, glyph, key, why it is disabled (if it is).
+
 const COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     ("Run query", "▶", "run.query", None),
     ("Explain query", "?", "run.explain", None),
@@ -153,31 +153,31 @@ const BRANCHES: &[&str] = &[
     "release/4.2",
 ];
 
-/// Ticks a remote fetch takes.
+
 const FETCH_TICKS: u32 = 3;
 
 pub struct PickersPage {
     template: Template,
     opts: PageValues,
     pub buttons: Vec<Button>,
-    /// The kind of the picker the page has open on the shell's layer
-    /// stack (its tag's `n`), which gives the button that opened it its
-    /// focus back when it closes (K9).
+
+
+
     open: Option<Kind>,
     scope: Scope,
     entries: Vec<Entry>,
-    /// Open tabs: name and, for a running query, its elapsed ticks.
+
     tabs: Vec<(String, Option<u32>)>,
     level: usize,
     chosen: Option<(String, String)>,
     pub last: String,
     opened: u32,
-    /// Ticks left before the remote fetch answers; `None` when idle.
+
     fetching: Option<u32>,
 }
 
-/// What the pickers' rows are built from: a copy the shell hands to the
-/// open picker (`Cx::with_top`).
+
+
 struct Rows {
     entries: Vec<Entry>,
     scope: Scope,
@@ -244,7 +244,7 @@ impl Rows {
                     .collect();
                 let live = self.tabs.iter().filter(|t| t.1.is_some()).count();
                 p.scope = Some(format!("{live} live"));
-                // a tick keeps the cursor on its row
+
                 p.refresh_items(items);
             }
             Kind::Level => {
@@ -344,13 +344,13 @@ impl PickersPage {
         self.open
     }
 
-    /// Refill the open picker's rows (a query, scope, row or tick change).
+
     fn refill(&self, kind: Kind, cx: &mut Cx) {
         let rows = self.rows();
         cx.with_top::<Picker>(move |p| rows.fill(kind, p));
     }
 
-    /// What the pickers' rows are built from, as they are now.
+
     fn rows(&self) -> Rows {
         Rows {
             entries: self.entries.clone(),
@@ -362,7 +362,7 @@ impl PickersPage {
         }
     }
 
-    /// The builders an app calls, from the options.
+
     fn style(&self, p: Picker, anchor: Rect) -> Picker {
         let o = &self.opts;
         let mut p = p
@@ -459,8 +459,8 @@ impl PickersPage {
         self.open = Some(kind);
     }
 
-    /// Handle what the open picker reported: an event keeps it open, a
-    /// result closed it (and the stack gave focus back, K9).
+
+
     fn on_report(&mut self, kind: Kind, r: Report, cx: &mut Cx) {
         if r.closed.is_some() {
             self.open = None;
@@ -496,8 +496,8 @@ impl PickersPage {
                     self.refill(kind, cx);
                 }
             }
-            // free text is not an item in any showcase picker: the query
-            // stays, the picker stays open
+
+
             PickerAction::Submit => {}
             PickerAction::NextScope | PickerAction::PrevScope => {
                 if kind == Kind::Quick {
@@ -518,7 +518,7 @@ impl PickersPage {
         }
     }
 
-    /// A tick: running tabs count up, a remote fetch answers.
+
     fn tick(&mut self, cx: &mut Cx) -> bool {
         let Some(kind) = self.kind() else {
             return false;
@@ -549,11 +549,11 @@ impl PickersPage {
         }
     }
 
-    /// What the options built, read back from a built picker.
+
     fn readout(&self) -> Vec<Prop> {
         let p = self.style(Picker::new(ID.sub("picker.sample"), "Sample"), Rect::ZERO);
         let on = |b: bool| if b { "on" } else { "off" };
-        // the first command and the disabled ones, with why
+
         let commands = COMMANDS
             .iter()
             .enumerate()
@@ -634,7 +634,7 @@ impl PickersPage {
         ]
     }
 
-    /// The buttons in lines of as many as fit in `room` cells.
+
     fn button_lines(&self, room: u16) -> Vec<Vec<usize>> {
         let widths: Vec<u16> = self.buttons.iter().map(|b| b.width()).collect();
         let mut lines: Vec<Vec<usize>> = vec![vec![]];
@@ -679,8 +679,8 @@ impl PickersPage {
         self.readout().into_iter().map(Prop::wrap).collect()
     }
 
-    /// The cards' heights at `width`: the buttons and the note, Applied,
-    /// Result.
+
+
     fn heights(&self, width: u16) -> [u16; 3] {
         let room = width.saturating_sub(4);
         let n = self.button_lines(room).len() as u16;
@@ -696,7 +696,7 @@ impl PickersPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // as many buttons per row as fit, the rest on the next rows
+
         let widths: Vec<u16> = self.buttons.iter().map(|b| b.width()).collect();
         let lines = self.button_lines(area.width.saturating_sub(4));
         let n = lines.len() as u16;
@@ -735,7 +735,7 @@ impl PickersPage {
 const QUICK_NOTE: &str = "Quick: fuzzy as you type, Tab scope, Alt+Enter alternate · Tabs: live, Delete closes · Level: no search box · Commands: disabled rows say why · Remote: loads, r retries";
 const APPLIED_META: &str = "read back from a built picker";
 
-/// The States grid: a branch picker without a search box.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -791,8 +791,8 @@ impl Page for PickersPage {
                 Outcome::Ignored
             };
         }
-        // the shell routes the open picker; the page underneath takes
-        // nothing meanwhile
+
+
         if self.open.is_some() {
             return Outcome::Ignored;
         }
@@ -849,8 +849,8 @@ impl Page for PickersPage {
         matches!(self.kind(), Some(Kind::Tabs)) || self.fetching.is_some()
     }
 
-    /// A failed fetch retries with r (PickerStatus::Error asks the owner
-    /// to): the page's own key over its picker.
+
+
     fn on_layer_key(&mut self, key: &Key, cx: &mut Cx) -> Outcome {
         let failed = self.fetching.is_none() && self.opts.value("pickers.remote") == "fails";
         if !(key.is_char('r') && self.kind() == Some(Kind::Remote) && failed) {

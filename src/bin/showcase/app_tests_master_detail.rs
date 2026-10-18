@@ -1,7 +1,7 @@
-//! The Master-detail page through the real app (plan §7 SC38): both panes
-//! wide with a seam that drags and moves with the resize chords, the
-//! collapsed list with its summary, the drawer that Tab or Show details
-//! opens and Esc closes, and the options that drive the `MasterDetail`.
+
+
+
+
 
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
@@ -19,7 +19,7 @@ fn seam() -> WidgetId {
     LIST.sub("seam")
 }
 
-/// Width of the Tables pane: its frame from `╭` to `╮`.
+
 fn tables_width(h: &Harness) -> u16 {
     let (x, y) = h.at("╭─ Tables");
     let row: Vec<String> = (x..h.term.backend().buffer().area.width)
@@ -49,8 +49,8 @@ fn master_detail_follows_the_list_cursor() {
 
 #[test]
 fn master_detail_seam_drags_and_the_chords_resize_it() {
-    // Alt chords delivered (a Linux client, WezTerm): the hints this
-    // test reads do not depend on the host terminal (A29)
+
+
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = Harness::new(120, 40, PageId::MasterDetail);
     let before = tables_width(&h);
@@ -63,7 +63,7 @@ fn master_detail_seam_drags_and_the_chords_resize_it() {
     h.key_mod(KeyCode::Left, KeyModifiers::ALT | KeyModifiers::SHIFT);
     assert_eq!(tables_width(&h), before + 6);
     assert!(h.text().contains("Alt+Shift+←→ Resize"), "{}", h.text());
-    // the custom chords and step
+
     h.opt("masterdetail.keys=custom");
     h.opt("masterdetail.step=5");
     let w = tables_width(&h);
@@ -103,30 +103,30 @@ fn master_detail_show_details_toggles_the_drawer() {
 #[test]
 fn master_detail_options_drive_the_layout() {
     let mut h = Harness::new(120, 40, PageId::MasterDetail);
-    // a set demo width: filling, the demo takes the width both panes
-    // need, which leaves a share or a master size nothing to move
+
+
     h.opt("masterdetail.width=100");
-    // a fixed share: the chords do not move it and are not hinted
+
     h.opt("masterdetail.size=share");
     let w = tables_width(&h);
     h.focus(LIST);
     h.key_mod(KeyCode::Right, KeyModifiers::ALT | KeyModifiers::SHIFT);
     assert_eq!(tables_width(&h), w);
     assert!(!h.text().contains("Resize"), "{}", h.text());
-    // sized by the master: a third of the frame, clamped to 26..40
+
     h.opt("masterdetail.size=master");
     let m = tables_width(&h);
     assert_ne!(m, w, "the master share moved the seam");
     h.key_mod(KeyCode::Right, KeyModifiers::ALT | KeyModifiers::SHIFT);
     assert_eq!(tables_width(&h), m);
-    // collapsing above the frame width
+
     h.opt("masterdetail.size=resizable");
     h.opt("masterdetail.collapse=140");
     assert!(h.find("╭─ orders").is_none(), "{}", h.text());
-    // no summary
+
     h.opt("masterdetail.summary=0");
     assert!(!h.text().contains("→ orders"));
-    // Esc does not leave the drawer when turned off
+
     h.opt("masterdetail.esc_returns=off");
     h.focus(DETAIL);
     h.key(KeyCode::Esc);
@@ -147,15 +147,15 @@ fn master_detail_states_grid_lists_its_rows() {
 
 #[test]
 fn master_detail_reads_at_80x24() {
-    // filling, the demo keeps both panes side by side and the page
-    // scrolls sideways to the detail
+
+
     let h = Harness::new(80, 24, PageId::MasterDetail);
     let text = h.text();
     assert!(
         text.contains("╭─ Tables") && text.contains("╭─ orders"),
         "{text}"
     );
-    // at the 72-column demo width it collapses to the list and its summary
+
     let mut h = Harness::new(80, 24, PageId::MasterDetail);
     h.opt("masterdetail.width=72");
     let text = h.page_text();

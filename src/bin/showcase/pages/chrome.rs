@@ -1,13 +1,13 @@
-//! Application chrome (plan §7, SC4): the brand lockup, a menu bar with
-//! anchored menus, an identity strip of segments, a status bar with three
-//! groups that collapse by priority, a context menu on list rows, and the
-//! hint-bar layer precedence.
-//!
-//! Options rebuild the menu bar through its builders (`open_on`,
-//! `overflow`, `hover_switch`, `press_drag`, `hide_owner_focus`, `wrap`,
-//! `type_ahead`, `nav`, `dismiss`, `brand`); the readout under the bar
-//! reads the built widget back. States: segments and status items drawn
-//! by themselves in every state they have.
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -50,16 +50,16 @@ const PR: WidgetId = WidgetId::of("chrome.status.pr");
 const ENV: WidgetId = WidgetId::of("chrome.strip.env");
 const PENDING: WidgetId = WidgetId::of("chrome.strip.pending");
 
-/// Width of the menu bar under `chrome.bar=narrow`: too narrow for every
-/// title, so `chrome.overflow` shows.
+
+
 const NARROW_BAR: u16 = 30;
 
-/// What an open context menu is about.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Target {
-    /// A session row's tab menu.
+
     Session(usize),
-    /// The app menu anchored at the environment segment.
+
     Env,
 }
 
@@ -69,11 +69,11 @@ pub struct ChromePage {
     sessions: ListBox,
     context: RowMenu<Target>,
     last: String,
-    /// The last `MenuBarAction` the bar reported.
+
     action: Option<MenuBarAction>,
     zoomed: bool,
     hint_area: Rect,
-    /// Value indices of the page options, in `page_options` order.
+
     opts: Vec<usize>,
 }
 
@@ -107,7 +107,7 @@ impl ChromePage {
         page
     }
 
-    /// The value of option `key` (`chrome.<name>`) as the table spells it.
+
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::Chrome);
         let i = table
@@ -121,7 +121,7 @@ impl ChromePage {
         self.opt(key) == "on"
     }
 
-    /// The menu bar, built from the options through its builders.
+
     fn build_bar(&self) -> MenuBar {
         let bar = MenuBar::new(
             BAR,
@@ -189,7 +189,7 @@ impl ChromePage {
         }
     }
 
-    /// The built bar read back: what each builder set.
+
     fn readout(&self) -> [String; 2] {
         let b = &self.bar;
         let on = |v: bool| if v { "on" } else { "off" };
@@ -225,8 +225,8 @@ impl ChromePage {
         ]
     }
 
-    /// The identity strip: who and where, each fact a segment with its
-    /// own tone and priority; the environment opens the app menu.
+
+
     fn strip(&self, tick: u64, t: &junie_tui::theme::Theme) -> (Vec<Segment>, Vec<Segment>) {
         let g = &t.glyphs;
         let left = vec![
@@ -299,7 +299,7 @@ impl ChromePage {
         b
     }
 
-    /// Open the tab menu about session `row`, as `req` places it.
+
     fn open_context(&mut self, req: ContextRequest<usize>) {
         let row = req.target;
         let label = self.sessions.items[row].label.clone();
@@ -310,7 +310,7 @@ impl ChromePage {
         );
     }
 
-    /// A context menu's items.
+
     fn context_items(&self, target: Target) -> Vec<MenuItem> {
         match target {
             Target::Session(row) => vec![
@@ -357,7 +357,7 @@ impl ChromePage {
                 hint("right-click", "Context menu"),
                 hint("Tab", "Next"),
             ])
-            // a status made of parts in their own tones
+
             .status_parts(
                 vec![
                     ("last: ".to_owned(), Tone::Muted),
@@ -382,7 +382,7 @@ impl ChromePage {
         cx.status(label);
     }
 
-    /// Record what the bar reported, and act on a choice or the brand.
+
     fn bar_action(&mut self, ev: Option<MenuBarAction>, cx: &mut Cx) {
         let Some(ev) = ev else { return };
         self.action = Some(ev);
@@ -403,7 +403,7 @@ impl ChromePage {
             .focused(focused)
     }
 
-    /// The toned spans line in the sessions card.
+
     fn checks_line() -> [Span; 6] {
         [
             Span::muted("checks "),
@@ -415,7 +415,7 @@ impl ChromePage {
         ]
     }
 
-    /// What the bar reported last, and the actions it reports.
+
     fn action_line(&self) -> String {
         let last = match self.action {
             Some(a) => format!("{a:?}"),
@@ -424,8 +424,8 @@ impl ChromePage {
         format!("last MenuBarAction: {last}   (Opened(menu) · Chosen(menu, item) · Closed · Brand)")
     }
 
-    /// The faint lines under the card, wrapped to `w`: the built bar read
-    /// back and the last action.
+
+
     fn readout_lines(&self, w: u16) -> Vec<String> {
         self.readout()
             .iter()
@@ -435,7 +435,7 @@ impl ChromePage {
             .collect()
     }
 
-    /// Where the status bar's items went at `w` columns.
+
     fn placed_text(&self, w: u16) -> String {
         let placed = self.status_bar().layout(Rect::new(0, 0, w, 1));
         let groups: Vec<String> = [Group::Left, Group::Center, Group::Right]
@@ -448,23 +448,23 @@ impl ChromePage {
         format!("places {} of 8 · {}", placed.len(), groups.join(", "))
     }
 
-    /// The Playground's natural width: the menu bar with every title, the
-    /// sessions card with its notes, the identity strip, the status bar
-    /// and the hint bar with nothing dropped.
+
+
+
     fn natural_width(&self, ctx: &RenderCtx) -> u16 {
         let t = ctx.theme;
         let any = ratatui::layout::Size::new(0, 1);
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;
         let spans: u16 = Self::checks_line().iter().map(|s| w(&s.text)).sum();
-        // the notes wrap beside the list, or under it on a narrow page
+
         let notes = NOTES_MIN.max(spans).max(44);
         let card = self
             .sessions_panel(false)
             .outer(ratatui::layout::Size::new(LIST_W.max(notes), 0))
             .width;
         let (left, right) = self.strip(0, t);
-        // the strip and the status bar collapse what does not fit into
-        // their revealing `…`: they take the room the page has
+
+
         let status = self.status_bar().min_width(any, ctx);
         let captions = [
             STRIP_CAPTION.to_owned(),
@@ -491,8 +491,8 @@ impl ChromePage {
         .unwrap_or(0)
     }
 
-    /// The sessions card's notes wrapped to `w` columns: the paragraph, a
-    /// blank row, the brand line.
+
+
     fn notes_lines(w: u16) -> Vec<String> {
         let w = w.max(1) as usize;
         let mut lines = junie_tui::ui::text::wrap(NOTES_TEXT, w);
@@ -501,8 +501,8 @@ impl ChromePage {
         lines
     }
 
-    /// The sessions card's content `w` wide: the list beside its notes
-    /// (and the toned lines under them), stacked when they do not fit.
+
+
     fn card_tiles(w: u16) -> Tiled {
         let list_h = |_: u16| LIST_ROWS;
         let notes_h = |w: u16| Self::notes_lines(w).len() as u16 + 3;
@@ -516,7 +516,7 @@ impl ChromePage {
         )
     }
 
-    /// The sessions card's height `w` wide.
+
     fn card_h(&self, w: u16) -> u16 {
         let panel = self.sessions_panel(false);
         let inner = panel.inner(ratatui::layout::Size::new(w, 0)).width;
@@ -528,8 +528,8 @@ impl ChromePage {
             .height
     }
 
-    /// The Playground's rows at `w` columns: the menu bar, the sessions
-    /// card, the readout, the strip, the status bars and the hint bar.
+
+
     fn height(&self, w: u16) -> u16 {
         2 + self.card_h(w) + 1 + self.readout_lines(w).len() as u16 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2
     }
@@ -537,7 +537,7 @@ impl ChromePage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let mut y = area.y;
-        // the menu bar on the canvas, narrow when chrome.bar says so
+
         let bar_w = if self.opt("chrome.bar") == "narrow" {
             area.width.min(NARROW_BAR)
         } else {
@@ -546,7 +546,7 @@ impl ChromePage {
         self.bar
             .render(Rect::new(area.x, y, bar_w, 1), buf, ctx, t.canvas);
         y += 2;
-        // body: a list of sessions in a card
+
         let body = Rect::new(area.x, y, area.width, self.card_h(area.width));
         let panel = self.sessions_panel(ctx.interaction.focused(SESSIONS));
         let bg = panel.bg(t);
@@ -560,8 +560,8 @@ impl ChromePage {
         for (i, n) in lines.iter().enumerate() {
             buf.set_string(nx, notes.y + i as u16, n, t.muted().bg(bg));
         }
-        // toned lines drawn by the library: spans with their own tones,
-        // and a footer status led by its `StatusKind` glyph
+
+
         let sy = notes.y + lines.len() as u16 + 1;
         let max = notes.width;
         render_spans(buf, nx, sy, max, t, &Self::checks_line(), bg);
@@ -573,8 +573,8 @@ impl ChromePage {
             None,
             Some(("Saved", Some(StatusKind::Ok))),
         );
-        // the built bar read back and what it reported last, then the
-        // identity strip on the chrome plane
+
+
         let mut y = body.bottom() + 1;
         for line in self.readout_lines(area.width) {
             buf.set_string(area.x, y, line, t.faint().bg(t.canvas));
@@ -587,8 +587,8 @@ impl ChromePage {
         junie_tui::ui::ctx::fill(buf, row, ratatui::style::Style::new().bg(t.surface));
         segments::render(row, buf, ctx, &left, &right, t.surface);
         y += 3;
-        // the status bar at the page's width and in a narrow row, and
-        // where its items went
+
+
         let status = self.status_bar();
         for (caption, w) in [
             (
@@ -610,39 +610,39 @@ impl ChromePage {
             status.render(Rect::new(area.x, y + 1, w, 1), buf, ctx);
             y += 3;
         }
-        // the hint layer that a shell would pin to the bottom, as wide as
-        // its hints and status: its status stays in view on a page wider
-        // than the screen
+
+
+
         let layer = self.layer(ctx.interaction.focus);
         let hint_w = layer.measure(ratatui::layout::Size::new(0, 1), ctx).width;
         let hint_row = Rect::new(area.x, y + 1, hint_w.min(area.width), 1);
         self.hint_area = hint_row;
         buf.set_string(area.x + 1, y, HINT_CAPTION, t.faint().bg(t.canvas));
         HintBar::render(hint_row, buf, t, &layer);
-        // popovers last so they sit on top
+
         self.context.render(area, buf, ctx);
     }
 }
 
-/// The sessions list's width.
+
 const LIST_W: u16 = 48;
-/// The narrow status row: items leave by priority.
+
 const NARROW_STATUS: u16 = 64;
 
 const NOTES_TEXT: &str = "The status bar below sits on its own plane: three groups, no \
      separator glyphs, and items that do not fit collapse into a … that \
      shows them on hover, by priority — the 64-column row shows the center going first.";
 const BRAND_NOTE: &str = "Brand: one lockup, accent-filled, the only accent-filled control.";
-/// The notes beside the session list wrap; never narrower than this.
+
 const NOTES_MIN: u16 = 36;
-/// The session list's rows.
+
 const LIST_ROWS: u16 = 6;
 
 const STRIP_CAPTION: &str = "identity strip · segments drop by priority · ◆ opens the app menu";
 const HINT_CAPTION: &str = "hint bar · topmost layer wins:";
 
-/// The States grid: segments and status items in every state they have,
-/// drawn by the widgets themselves.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -687,7 +687,7 @@ impl Page for ChromePage {
     }
 
     fn animating(&self) -> bool {
-        // the strip's deploy spinner and the busy status item
+
         true
     }
 
@@ -751,7 +751,7 @@ impl Page for ChromePage {
                 }
                 Outcome::Ignored
             }
-            // a title opens its menu on the press (MenuBar::open_on)
+
             PageEvent::Pointer(ev) => {
                 if let Some(r) = self.bar.route(ev) {
                     let (o, a) = r.into_parts();
@@ -771,7 +771,7 @@ impl Page for ChromePage {
                 }
                 let id = ev.id;
                 if id == ENV {
-                    // the app menu, anchored where the segment was clicked
+
                     let menu = ContextMenu::new(CONTEXT, self.context_items(Target::Env))
                         .at(ev.pos())
                         .title("production");
@@ -809,7 +809,7 @@ impl Page for ChromePage {
         self.layer(focus)
             .hints
             .iter()
-            // the chrome layers are all literal hints, so every action is borrowed
+
             .filter_map(|h| match h.action {
                 std::borrow::Cow::Borrowed(a) => Some((h.key, a)),
                 std::borrow::Cow::Owned(_) => None,

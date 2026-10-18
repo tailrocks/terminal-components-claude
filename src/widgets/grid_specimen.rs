@@ -1,11 +1,11 @@
-//! [`DataGrid`] as a [`Specimen`]: a States grid draws a short copy of a
-//! grid (its header and first rows, and its pending-change bar when it has
-//! changes) in a forced state.
-//!
-//! The sample keeps the grid's columns, values, pending changes and
-//! settings and sets only what the state is about: the hovered or pressed
-//! row (row 2), marked rows, an open cell edit, a cell and row error, no
-//! rows, a load in progress, or a value too long for its column.
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -16,16 +16,16 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::specimen::{Specimen, SpecimenState};
 use crate::widgets::grid::{CellValue, DataGrid, GridRows, RowTotal};
 
-/// Rows a sample keeps.
+
 const SAMPLE_ROWS: usize = 3;
 
 impl DataGrid {
-    /// The first column a sample edits: writable, not the key.
+
     fn sample_edit_col(&self) -> Option<usize> {
         self.columns.iter().position(|c| !c.read_only && !c.primary)
     }
 
-    /// The first text column, for the overflow sample.
+
     fn sample_text_col(&self) -> Option<usize> {
         (0..self.columns.len()).find(|&c| {
             matches!(
@@ -51,11 +51,11 @@ impl Specimen for DataGrid {
         }
     }
 
-    /// The header and the sample rows (a placeholder row when empty), and
-    /// the pending-change bar when the grid has changes.
+
+
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         let rows = if state == SpecimenState::Empty {
-            // the empty state's title and its gap
+
             2
         } else if self.pending.is_empty() {
             SAMPLE_ROWS.min(self.rows().len().max(1)) as u16
@@ -75,8 +75,8 @@ impl Specimen for DataGrid {
         bg: Color,
     ) {
         let mut g = self.clone();
-        // a longer grid is cut to its first rows; one with pending changes
-        // (keyed by source row) is drawn whole
+
+
         if g.rows().len() > SAMPLE_ROWS && g.pending.is_empty() {
             let rows = g.rows()[..SAMPLE_ROWS].to_vec();
             g.set_rows(GridRows {
@@ -136,7 +136,7 @@ impl Specimen for DataGrid {
             _ => {}
         }
         g.render(area, buf, ctx, bg);
-        // samples never move the terminal cursor
+
         ctx.cursor = None;
     }
 }
