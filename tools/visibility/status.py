@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import os
 import re
+import shlex
 import stat
 import sys
 from datetime import datetime
@@ -24,7 +25,7 @@ TAG_COMMIT = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
 SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 MAX_EXECUTION_EVIDENCE_BYTES = 8 * 1024 * 1024
-EVIDENCE_TMP_ROOT = Path("/private/tmp")
+EVIDENCE_TMP_ROOT = Path(os.sep, "tmp").resolve()
 STATUS_EVIDENCE_ARCHIVE_ROOT = Path(
     "docs/implementation/visibility/evidence/reports/status-source-archive-20261009"
 )
@@ -66,6 +67,61 @@ HOLLA_ARTIFACT_FORMATS = (
     "observations_json", "png", "png_fidelity_json", "txt",
 )
 STATUS_ORDER = ("PASS", "FAIL", "BLOCKED", "NOT_RUN", "NOT_APPLICABLE")
+EXECUTION_ATTEMPT_HISTORY_SCHEMA = "termrock-status-execution-attempt-history/v1"
+PRODUCT_PHASE_OBSERVATIONS_SCHEMA = "termrock-status-product-phase-observations/v1"
+PRODUCT_PHASE_ARCHIVE_SCHEMA = "termrock-vis13-raw-attempt-archive/v1"
+PRODUCT_PHASE_ARCHIVE_PREFIX = (
+    "docs/implementation/visibility/evidence/reports/"
+)
+PRODUCT_PHASE_ARCHIVE_MAX_MEMBERS = 512
+PRODUCT_PHASE_ARCHIVE_MAX_BYTES = 64 * 1024 * 1024
+PROVIDER_OBSERVATIONS_SCHEMA = "termrock-status-provider-observations/v1"
+PROVIDER_ARCHIVE_SCHEMA = "termrock-vis13-raw-attempt-archive/v1"
+PROVIDER_CAPTURE_ROLES = {
+    "workflow", "run", "check_suites", "suite_check_runs", "check_runs",
+    "jobs", "artifacts", "run_logs_headers", "run_logs_body",
+}
+PROVIDER_JSON_ROLES = {
+    "workflow", "run", "check_suites", "suite_check_runs", "check_runs",
+    "jobs", "artifacts",
+}
+PROVIDER_CAPTURE_FILENAMES = {
+    "workflow": "workflow.json",
+    "run": "run.json",
+    "check_suites": "check_suites.json",
+    "suite_check_runs": "suite-check-runs.json",
+    "check_runs": "check_runs.json",
+    "jobs": "jobs.json",
+    "artifacts": "artifacts.json",
+    "run_logs_headers": "run-logs.headers",
+    "run_logs_body": "run-logs.body",
+}
+PRODUCT_PHASE_NAMES = (
+    "build", "launch", "first_frame", "interaction", "exit", "restoration",
+    "visual", "ownership", "cleanup",
+)
+PRODUCT_PHASE_DISPLAY_NAMES = PRODUCT_PHASE_NAMES[:-1]
+EXECUTION_ATTEMPT_LANES = {
+    "ci_provider": "candidate_commit",
+    "paired_nextest": "candidate_reference_pair",
+    "tag_capture": "immutable_visual_tag",
+    "tool_control": "tool_source",
+    "observer_ingest": "tool_source",
+}
+EXECUTION_ATTEMPT_COUNT_FIELDS = (
+    "inventory", "selected", "started", "passed", "failed", "filtered", "incomplete",
+)
+EXECUTION_ATTEMPT_STATE_FIELDS = {
+    "test": {"PASS", "FAIL", "INCOMPLETE", "NOT_RUN"},
+    "child": {"PASS", "FAIL", "NOT_RUN", "NOT_APPLICABLE"},
+    "wrapper": {"PASS", "FAIL", "INVALID", "INCOMPLETE", "NOT_RUN", "NOT_APPLICABLE"},
+    "collector": {"PASS", "FAIL", "INCOMPLETE", "NOT_RUN", "NOT_APPLICABLE"},
+    "postflight": {"PASS", "FAIL", "UNVERIFIED", "NOT_RUN", "NOT_APPLICABLE"},
+    "cleanup": {"PASS", "FAIL", "UNVERIFIED", "NOT_RUN", "NOT_APPLICABLE"},
+    "product_qualification": {"BLOCKED", "NOT_QUALIFIED", "NOT_RUN", "NOT_APPLICABLE"},
+    "capture": {"COMPLETE", "INCOMPLETE", "NOT_RUN", "NOT_APPLICABLE"},
+    "admission": {"ADMITTED", "NOT_RUN", "NOT_APPLICABLE"},
+}
 
 
 def require(condition: bool, message: str) -> None:
@@ -489,7 +545,7 @@ def validate_product_evidence_packet(
         expected_name = {
             "receipt": "receipt.json",
             "ledger": "ledger-record.json",
-            "review": "actual-independent-review-luna.json",
+            "review": "actual-independent-review.json",
         }[field]
         require(relative == (runs_root / expected_name).as_posix()
                 and hashes.get(relative) == evidence.get("sha256"),
@@ -1164,7 +1220,7 @@ def validate_local_checkout_history(value: Any) -> Sequence[Mapping[str, Any]]:
                 "{} checkout metadata is invalid".format(label))
         require(sha(dco.get("commit_sha"), "{}.DCO commit".format(label)) == checkout_sha
                 and dco.get("expected_trailer")
-                == "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>"
+                == "Signed-off-by: Termrock Contributor <contributor@example.invalid>"
                 and type(dco.get("trailer_present")) is bool
                 and isinstance(dco.get("parsed_trailers"), list)
                 and all(isinstance(item, str) for item in dco["parsed_trailers"])
@@ -3512,6 +3568,433 @@ def validate_current_status_observations(
     return validated
 
 
+
+def _provider_archive_members(pin: Any, queue_module: Any) -> tuple[str, Mapping[str, Mapping[str, Any]]]:
+    require(isinstance(pin, dict) and set(pin) == {"path", "sha256", "bytes"},
+            "provider archive manifest pin has missing or unknown fields")
+    manifest_path = _product_archive_path(pin.get("path"), "provider archive manifest")
+    require(Path(manifest_path).name == "MANIFEST.json",
+            "provider archive manifest must be named MANIFEST.json")
+    manifest_size = pin.get("bytes")
+    require(type(manifest_size) is int and 0 < manifest_size <= 1024 * 1024,
+            "provider archive manifest byte count is outside its bound")
+    raw = read_pinned_bytes(pin, "provider archive manifest")
+    require(len(raw) == manifest_size,
+            "provider archive manifest byte count does not match its pin")
+    try:
+        manifest = queue_module.strict_json_loads(raw)
+    except Exception as error:
+        raise ValueError("provider archive manifest is not strict JSON: {}".format(error)) from error
+    require(isinstance(manifest, dict)
+            and set(manifest) == {"schema", "increment", "status", "source_baseline", "files"}
+            and manifest.get("schema") == PROVIDER_ARCHIVE_SCHEMA
+            and isinstance(manifest.get("increment"), str)
+            and manifest["increment"] == Path(manifest_path).parent.name
+            and isinstance(manifest.get("status"), str)
+            and isinstance(manifest.get("source_baseline"), dict),
+            "provider archive manifest identity or fields are malformed")
+    files = manifest.get("files")
+    require(isinstance(files, list) and 0 < len(files) <= 512,
+            "provider archive member count is outside its bound")
+    archive_root = Path(manifest_path).parent.as_posix()
+    member_by_path: dict[str, Mapping[str, Any]] = {}
+    total_bytes = 0
+    for index, member in enumerate(files):
+        label = "provider archive files[{}]".format(index)
+        require(isinstance(member, dict)
+                and set(member) == {
+                    "path", "source_path", "bytes", "sha256", "source_mode", "description",
+                }, "{} has missing or unknown fields".format(label))
+        relative = member.get("path")
+        require(isinstance(relative, str) and not Path(relative).is_absolute()
+                and Path(relative).as_posix() == relative
+                and bool(Path(relative).parts)
+                and all(part not in {"", ".", ".."} for part in Path(relative).parts)
+                and relative.startswith("raw/"),
+                "{}.path must be a safe path below raw/".format(label))
+        full_path = _product_archive_path(
+            (Path(archive_root) / relative).as_posix(), "{}.path".format(label),
+        )
+        require(isinstance(member.get("source_path"), str)
+                and member["source_path"].strip()
+                and isinstance(member.get("description"), str)
+                and member["description"].strip()
+                and isinstance(member.get("source_mode"), str)
+                and re.fullmatch(r"[0-7]{3,4}", member["source_mode"]) is not None,
+                "{}.source provenance fields are malformed".format(label))
+        size = member.get("bytes")
+        require(type(size) is int and 0 <= size <= MAX_EXECUTION_EVIDENCE_BYTES,
+                "{}.bytes is outside its bound".format(label))
+        digest = sha256(member.get("sha256"), "{}.sha256".format(label))
+        require(full_path not in member_by_path, "provider archive repeats a member path")
+        member_by_path[full_path] = {
+            "bytes": size,
+            "sha256": digest,
+            "source_path": member["source_path"],
+        }
+        total_bytes += size
+        require(total_bytes <= PRODUCT_PHASE_ARCHIVE_MAX_BYTES,
+                "provider archive exceeds its aggregate byte bound")
+    return archive_root, member_by_path
+
+
+def _read_provider_capture(
+    pin: Any, role: str, archive_root: str,
+    member_by_path: Mapping[str, Mapping[str, Any]], queue_module: Any,
+) -> Any:
+    label = "provider observation capture {}".format(role)
+    require(isinstance(pin, dict) and set(pin) == {"path", "sha256", "bytes"},
+            "{}.pin has missing or unknown fields".format(label))
+    path = _product_archive_path(pin.get("path"), label)
+    require(path.startswith(archive_root + "/"),
+            "{} is outside its pinned archive".format(label))
+    member = member_by_path.get(path)
+    require(member is not None
+            and member.get("bytes") == pin.get("bytes")
+            and member.get("sha256") == pin.get("sha256"),
+            "{} is not bound to its archive member".format(label))
+    expected_filename = PROVIDER_CAPTURE_FILENAMES[role]
+    require(Path(path).name == expected_filename
+            and Path(member["source_path"]).name == expected_filename
+            and member["source_path"].endswith("/raw-api/" + expected_filename),
+            "{}.source_path is not the expected raw provider endpoint capture".format(label))
+    size = pin.get("bytes")
+    require(type(size) is int and 0 <= size <= MAX_EXECUTION_EVIDENCE_BYTES,
+            "{}.bytes is outside its bound".format(label))
+    raw = read_pinned_bytes(pin, label)
+    require(len(raw) == size, "{}.bytes does not match its pin".format(label))
+    if role not in PROVIDER_JSON_ROLES:
+        return raw
+    try:
+        value = queue_module.strict_json_loads(raw)
+    except Exception as error:
+        raise ValueError("{} is not strict JSON: {}".format(label, error)) from error
+    require(isinstance(value, dict), "{} must contain a JSON object".format(label))
+    return value
+
+
+def validate_provider_observations(
+    value: Any, latest: Mapping[str, Any], queue_module: Any,
+) -> Sequence[Mapping[str, Any]]:
+    """Validate ordered provider run captures without treating them as product tests."""
+    if value is None:
+        return []
+    require(isinstance(value, dict)
+            and set(value) == {"schema", "archive_manifest", "observations"}
+            and value.get("schema") == PROVIDER_OBSERVATIONS_SCHEMA,
+            "unsupported provider observations schema or fields")
+    archive_root, member_by_path = _provider_archive_members(
+        value.get("archive_manifest"), queue_module,
+    )
+    observations = value.get("observations")
+    require(isinstance(observations, list) and 0 < len(observations) <= 100,
+            "provider observations must contain 1 to 100 rows")
+    validated: list[Mapping[str, Any]] = []
+    seen_run_attempts: set[tuple[str, int]] = set()
+    previous_observed_at: Optional[str] = None
+    current_indexes: list[int] = []
+    allowed_conclusions = {
+        "success", "failure", "neutral", "cancelled", "skipped", "timed_out",
+        "action_required", "stale",
+    }
+    for index, observation in enumerate(observations):
+        label = "provider observations[{}]".format(index)
+        require(isinstance(observation, dict)
+                and set(observation) == {
+                    "sequence", "observed_at", "scope", "source_binding", "captures",
+                }, "{} has missing or unknown fields".format(label))
+        sequence = observation.get("sequence")
+        require(type(sequence) is int and sequence == index + 1,
+                "{}.sequence must be contiguous and start at 1".format(label))
+        observed_at = timestamp(observation.get("observed_at"), "{}.observed_at".format(label))
+        require(previous_observed_at is None or observed_at >= previous_observed_at,
+                "provider observation timestamps are out of order")
+        previous_observed_at = observed_at
+        scope = observation.get("scope")
+        require(scope in {"CURRENT", "HISTORICAL"},
+                "{}.scope must be CURRENT or HISTORICAL".format(label))
+        if scope == "CURRENT":
+            current_indexes.append(index)
+        binding = observation.get("source_binding")
+        require(isinstance(binding, dict)
+                and set(binding) == {"kind", "branch", "commit_sha", "tree_sha"}
+                and binding.get("kind") == "candidate_commit"
+                and isinstance(binding.get("branch"), str)
+                and binding["branch"].strip(),
+                "{}.source_binding has invalid fields".format(label))
+        source_commit = sha(binding.get("commit_sha"), "{}.source_binding.commit_sha".format(label))
+        source_tree = sha(binding.get("tree_sha"), "{}.source_binding.tree_sha".format(label))
+        captures = observation.get("captures")
+        require(isinstance(captures, dict) and set(captures) == PROVIDER_CAPTURE_ROLES,
+                "{}.captures must pin the exact provider inputs".format(label))
+        raw = {
+            role: _read_provider_capture(
+                captures[role], role, archive_root, member_by_path, queue_module,
+            ) for role in PROVIDER_CAPTURE_ROLES
+        }
+        run = raw["run"]
+        run_id = run.get("id")
+        require(str(run_id).isdigit(), "{}.run ID must be numeric".format(label))
+        run_id = str(run_id)
+        run_attempt = run.get("run_attempt")
+        require(type(run_attempt) is int and run_attempt > 0,
+                "{}.run attempt must be a positive integer".format(label))
+        run_key = (run_id, run_attempt)
+        require(run_key not in seen_run_attempts,
+                "provider observations repeat a run attempt")
+        seen_run_attempts.add(run_key)
+        workflow = raw["workflow"]
+        workflow_id = run.get("workflow_id")
+        require(type(workflow_id) is int and workflow_id > 0
+                and workflow.get("id") == workflow_id,
+                "{}.workflow ID does not match the captured run".format(label))
+        workflow_path = workflow.get("path")
+        require(isinstance(workflow_path, str)
+                and workflow_path == CURRENT_CI_WORKFLOW
+                and run.get("name") == workflow_path,
+                "{}.workflow path does not match the captured run".format(label))
+        require(workflow.get("url") ==
+                "https://api.github.com/repos/{}/actions/workflows/{}".format(
+                    REPOSITORY, workflow_id,
+                ) and isinstance(workflow.get("state"), str),
+                "{}.workflow API identity is malformed".format(label))
+        require(run.get("head_branch") == binding["branch"]
+                and run.get("head_sha") == source_commit
+                and run.get("status") in {"queued", "in_progress", "completed"}
+                and (run.get("conclusion") is None
+                     or run.get("conclusion") in allowed_conclusions)
+                and ((run.get("status") == "completed")
+                     == (run.get("conclusion") is not None))
+                and isinstance(run.get("event"), str) and run["event"].strip(),
+                "{}.run fields do not match its source binding".format(label))
+        created_at = timestamp(run.get("created_at"), "{}.run.created_at".format(label))
+        require(created_at <= observed_at,
+                "{}.observed_at predates its provider run".format(label))
+        run_url = "https://github.com/{}/actions/runs/{}".format(REPOSITORY, run_id)
+        run_api_url = "https://api.github.com/repos/{}/actions/runs/{}".format(
+            REPOSITORY, run_id,
+        )
+        require(run.get("html_url") == run_url
+                and run.get("url") == run_api_url
+                and run.get("workflow_url") == workflow.get("url")
+                and run.get("path") == workflow_path,
+                "{}.run URL does not match its ID".format(label))
+        head_commit = run.get("head_commit")
+        require(isinstance(head_commit, dict)
+                and head_commit.get("id") == source_commit
+                and head_commit.get("tree_id") == source_tree,
+                "{}.run commit/tree do not match its source binding".format(label))
+        check_suite_id = run.get("check_suite_id")
+        require(type(check_suite_id) is int and check_suite_id > 0,
+                "{}.check_suite_id must be a positive integer".format(label))
+
+        suites = raw["check_suites"]
+        require(isinstance(suites.get("check_suites"), list)
+                and type(suites.get("total_count")) is int
+                and suites["total_count"] == len(suites["check_suites"]),
+                "{}.check suites response is malformed".format(label))
+        matching_suites = [
+            suite for suite in suites["check_suites"]
+            if isinstance(suite, dict) and str(suite.get("id")) == str(check_suite_id)
+        ]
+        require(len(matching_suites) == 1,
+                "{}.run check suite is absent or duplicated".format(label))
+        suite = matching_suites[0]
+        suite_url = "https://api.github.com/repos/{}/check-suites/{}/check-runs".format(
+            REPOSITORY, check_suite_id,
+        )
+        require(suite.get("head_sha") == source_commit
+                and suite.get("head_branch") == binding["branch"]
+                and suite.get("status") == run["status"]
+                and suite.get("conclusion") == run.get("conclusion")
+                and type(suite.get("latest_check_runs_count")) is int
+                and suite.get("latest_check_runs_count") >= 0
+                and suite.get("check_runs_url") == suite_url,
+                "{}.check suite does not match its workflow run".format(label))
+        suite_runs = raw["suite_check_runs"]
+        require(isinstance(suite_runs.get("check_runs"), list)
+                and type(suite_runs.get("total_count")) is int
+                and suite_runs["total_count"] == len(suite_runs["check_runs"])
+                and suite_runs["total_count"] == suite["latest_check_runs_count"],
+                "{}.suite check-runs response does not match its suite".format(label))
+        suite_run_ids: set[str] = set()
+        for check in suite_runs["check_runs"]:
+            require(isinstance(check, dict)
+                    and str(check.get("id", "")).isdigit()
+                    and check.get("head_sha") == source_commit
+                    and check.get("status") in {"queued", "in_progress", "completed"}
+                    and (check.get("conclusion") is None
+                         or check.get("conclusion") in allowed_conclusions),
+                    "{}.suite check-run is malformed or has another source".format(label))
+            suite_run_ids.add(str(check["id"]))
+            check_suite = check.get("check_suite")
+            if check_suite is not None:
+                require(isinstance(check_suite, dict)
+                        and str(check_suite.get("id")) == str(check_suite_id),
+                        "{}.suite check-run belongs to another suite".format(label))
+        require(len(suite_run_ids) == len(suite_runs["check_runs"]),
+                "{}.suite check-runs repeat an ID".format(label))
+
+        jobs = raw["jobs"]
+        require(isinstance(jobs.get("jobs"), list)
+                and type(jobs.get("total_count")) is int
+                and jobs["total_count"] == len(jobs["jobs"]),
+                "{}.jobs response is malformed".format(label))
+        job_ids: set[str] = set()
+        for job in jobs["jobs"]:
+            require(isinstance(job, dict) and str(job.get("run_id")) == run_id
+                    and str(job.get("id", "")).isdigit()
+                    and job.get("head_sha") == source_commit,
+                    "{}.job is not bound to its workflow run".format(label))
+            job_ids.add(str(job["id"]))
+        require(len(job_ids) == len(jobs["jobs"]),
+                "{}.jobs response repeats a job ID".format(label))
+
+        artifacts = raw["artifacts"]
+        require(isinstance(artifacts.get("artifacts"), list)
+                and type(artifacts.get("total_count")) is int
+                and artifacts["total_count"] == len(artifacts["artifacts"]),
+                "{}.artifacts response is malformed".format(label))
+        artifact_ids: set[str] = set()
+        for artifact in artifacts["artifacts"]:
+            require(isinstance(artifact, dict)
+                    and str(artifact.get("id", "")).isdigit()
+                    and isinstance(artifact.get("name"), str)
+                    and isinstance(artifact.get("workflow_run"), dict)
+                    and str(artifact["workflow_run"].get("id")) == run_id
+                    and artifact["workflow_run"].get("head_sha") == source_commit,
+                    "{}.artifact record is malformed".format(label))
+            artifact_ids.add(str(artifact["id"]))
+        require(len(artifact_ids) == len(artifacts["artifacts"]),
+                "{}.artifacts response repeats an artifact ID".format(label))
+
+        checks = raw["check_runs"]
+        require(isinstance(checks.get("check_runs"), list)
+                and type(checks.get("total_count")) is int
+                and checks["total_count"] == len(checks["check_runs"]),
+                "{}.commit check-runs response is malformed".format(label))
+        check_ids: set[str] = set()
+        dco_checks: list[Mapping[str, Any]] = []
+        for check in checks["check_runs"]:
+            require(isinstance(check, dict)
+                    and str(check.get("id", "")).isdigit()
+                    and check.get("head_sha") == source_commit
+                    and isinstance(check.get("name"), str)
+                    and check.get("status") in {"queued", "in_progress", "completed"}
+                    and (check.get("conclusion") is None
+                         or check.get("conclusion") in allowed_conclusions),
+                    "{}.check-run record is malformed or has another head".format(label))
+            check_ids.add(str(check["id"]))
+            if check["name"] == "DCO":
+                dco_checks.append(check)
+        require(len(check_ids) == len(checks["check_runs"])
+                and len(dco_checks) <= 1,
+                "{}.check-run IDs or DCO observation are duplicated".format(label))
+        dco = dco_checks[0] if dco_checks else None
+
+        header_bytes = raw["run_logs_headers"]
+        first_line = header_bytes.split(b"\n", 1)[0].rstrip(b"\r")
+        status_match = re.fullmatch(rb"HTTP/\d(?:\.\d)?[ \t]+([1-5][0-9]{2})(?:[ \t].*)?", first_line)
+        status_lines = [
+            line for line in header_bytes.splitlines()
+            if re.match(rb"HTTP/\d(?:\.\d)?[ \t]+", line)
+        ]
+        require(status_match is not None and len(status_lines) == 1,
+                "{}.run-log headers lack one HTTP status line".format(label))
+        http_status = int(status_match.group(1))
+        body_bytes = raw["run_logs_body"]
+        require(http_status < 400 or len(body_bytes) > 0,
+                "{}.failed run-log response body is missing".format(label))
+        try:
+            error_body = queue_module.strict_json_loads(body_bytes)
+        except Exception:
+            error_body = None
+        if isinstance(error_body, dict) and error_body.get("status") is not None:
+            require(str(error_body.get("status")) == str(http_status),
+                    "{}.run-log response body status differs from its HTTP headers".format(label))
+
+        if scope == "CURRENT":
+            require(binding["branch"] == latest["candidate_remote"]["branch"]
+                    and source_commit == latest["candidate_remote"]["head_sha"],
+                    "CURRENT provider observation does not match the latest candidate source")
+        validated.append({
+            "sequence": sequence,
+            "observed_at": observed_at,
+            "scope": scope,
+            "source_binding": binding,
+            "workflow_path": workflow_path,
+            "run_id": run_id,
+            "run_attempt": run_attempt,
+            "run_url": run_url,
+            "event": run["event"],
+            "status": run["status"],
+            "conclusion": run.get("conclusion"),
+            "created_at": created_at,
+            "job_count": jobs["total_count"],
+            "artifact_count": artifacts["total_count"],
+            "suite_check_run_count": suite_runs["total_count"],
+            "log_http_status": http_status,
+            "dco": None if dco is None else {
+                "id": str(dco["id"]), "status": dco["status"],
+                "conclusion": dco.get("conclusion"),
+            },
+            "archive_manifest": value["archive_manifest"],
+            "captures": captures,
+        })
+    require(len(current_indexes) <= 1
+            and (not current_indexes or current_indexes[0] == len(observations) - 1),
+            "the CURRENT provider observation must be the final ordered row")
+    return validated
+
+
+def render_provider_observations(
+    observations: Sequence[Mapping[str, Any]],
+) -> str:
+    if not observations:
+        return ""
+    rows = []
+    tick = chr(96)
+    for item in observations:
+        binding = item["source_binding"]
+        dco = item["dco"]
+        dco_text = (
+            "DCO NOT_CAPTURED" if dco is None else
+            "DCO check {}: {} / {}".format(dco["id"], dco["status"], dco["conclusion"])
+        )
+        log_text = "logs HTTP {}".format(item["log_http_status"])
+        if item["log_http_status"] >= 400:
+            log_text += (
+                "; workflow cause NOT_EXPOSED"
+                if item["conclusion"] == "failure"
+                else "; provider log response unavailable"
+            )
+        evidence_text = "; ".join(
+            "{} {}{}{}".format(role, tick, pin["sha256"][:12], tick)
+            for role, pin in sorted(item["captures"].items())
+        )
+        manifest = item["archive_manifest"]
+        rows.append(
+            "| {} | {} | {}{}{} / {}{}{} (tree {}{}{}) | [{}]({}) attempt {}; {} / {}; event {}; {} jobs; {} artifacts; {} suite checks | {}; {}; {}; observed {}; archive {} {}{}{}; captures {} |".format(
+                item["sequence"], item["scope"], tick, binding["branch"], tick,
+                tick, binding["commit_sha"], tick, tick, binding["tree_sha"], tick,
+                item["run_id"], item["run_url"], item["run_attempt"], item["status"],
+                item["conclusion"] or "NOT_REPORTED", item["event"], item["job_count"],
+                item["artifact_count"], item["suite_check_run_count"], log_text, dco_text,
+                item["workflow_path"], item["observed_at"], cell(manifest["path"]),
+                tick, manifest["sha256"][:12], tick, evidence_text,
+            )
+        )
+    return "\n".join([
+        "## Provider workflow observations",
+        "",
+        "These hash-pinned provider records describe workflow metadata and log access. They are not product-test receipts. The provider response recorded zero jobs. An HTTP error while fetching logs does not establish the workflow failure cause. This section does not promote product readiness.",
+        "",
+        "| # | Scope | Source binding | Run | Provider and log observation |",
+        "| --- | --- | --- | --- | --- |",
+        *rows,
+        "",
+    ])
+
 def render_current_status_observations(
     observations: Optional[Mapping[str, Any]],
 ) -> str:
@@ -3628,6 +4111,645 @@ The source record's readiness fields remain NOT_RUN because no readiness accepta
     )
 
 
+def validate_execution_attempt_history(
+    value: Any, latest: Mapping[str, Any], authority: Mapping[str, Any],
+    queue_module: Any,
+) -> Sequence[Mapping[str, Any]]:
+    """Validate ordered, source-bound attempt rows without changing readiness."""
+    if value is None:
+        return []
+    require(isinstance(value, dict)
+            and set(value) == {"schema", "attempts"}
+            and value.get("schema") == EXECUTION_ATTEMPT_HISTORY_SCHEMA,
+            "unsupported execution attempt-history schema or fields")
+    attempts = value.get("attempts")
+    require(isinstance(attempts, list) and 0 < len(attempts) <= 100,
+            "execution attempt history must contain 1 to 100 records")
+
+    validated: list[Mapping[str, Any]] = []
+    seen_ids: set[str] = set()
+    previous_time: Optional[str] = None
+    for index, attempt in enumerate(attempts):
+        label = "execution_attempt_history.attempts[{}]".format(index)
+        require(isinstance(attempt, dict), "{} must be an object".format(label))
+        lane = attempt.get("lane")
+        require(lane in EXECUTION_ATTEMPT_LANES,
+                "{}.lane is unsupported".format(label))
+        fields = {
+            "sequence", "attempt_id", "recorded_at", "lane", "scope",
+            "source_binding", "counts", "states", "evidence",
+        }
+        if lane == "ci_provider":
+            fields.add("diagnostic")
+        require(set(attempt) == fields,
+                "{} has missing or unknown fields".format(label))
+
+        sequence = attempt.get("sequence")
+        require(type(sequence) is int and sequence == index + 1,
+                "{}.sequence must be contiguous and start at 1".format(label))
+        attempt_id = attempt.get("attempt_id")
+        require(isinstance(attempt_id, str)
+                and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", attempt_id)
+                is not None,
+                "{}.attempt_id is malformed".format(label))
+        require(attempt_id not in seen_ids,
+                "execution attempt history repeats an attempt ID")
+        seen_ids.add(attempt_id)
+        recorded_at = timestamp(attempt.get("recorded_at"), "{}.recorded_at".format(label))
+        require(previous_time is None or recorded_at >= previous_time,
+                "execution attempt history timestamps are out of order")
+        previous_time = recorded_at
+
+        scope = attempt.get("scope")
+        require(scope in {"CURRENT", "HISTORICAL"},
+                "{}.scope must be CURRENT or HISTORICAL".format(label))
+        binding = attempt.get("source_binding")
+        require(isinstance(binding, dict)
+                and binding.get("kind") == EXECUTION_ATTEMPT_LANES[lane],
+                "{}.source_binding does not match its typed lane".format(label))
+        kind = binding["kind"]
+        if kind == "candidate_commit":
+            require(set(binding) == {"kind", "commit_sha"},
+                    "{}.source_binding has invalid candidate-commit fields".format(label))
+            commit = sha(binding.get("commit_sha"), "{}.source_binding.commit_sha".format(label))
+            is_current_source = commit == latest["candidate_remote"]["head_sha"]
+        elif kind == "candidate_reference_pair":
+            require(set(binding) == {"kind", "candidate_commit", "reference_commit"},
+                    "{}.source_binding has invalid source-pair fields".format(label))
+            candidate_commit = sha(
+                binding.get("candidate_commit"), "{}.source_binding.candidate_commit".format(label),
+            )
+            reference_commit = sha(
+                binding.get("reference_commit"), "{}.source_binding.reference_commit".format(label),
+            )
+            is_current_source = (
+                candidate_commit == latest["candidate_remote"]["head_sha"]
+                and reference_commit == latest["reference_remote"]["head_sha"]
+            )
+        elif kind == "immutable_visual_tag":
+            require(set(binding) == {"kind", "tag_object_sha", "peeled_commit_sha"},
+                    "{}.source_binding has invalid visual-tag fields".format(label))
+            require(sha(binding.get("tag_object_sha"),
+                        "{}.source_binding.tag_object_sha".format(label))
+                    == authority["tag_object_sha"]
+                    and sha(binding.get("peeled_commit_sha"),
+                            "{}.source_binding.peeled_commit_sha".format(label))
+                    == authority["commit_sha"],
+                    "{}.source_binding differs from the immutable visual tag".format(label))
+            is_current_source = True
+        else:
+            require(set(binding) == {
+                "kind", "commit_sha", "tree_sha", "source_sha256",
+            }, "{}.source_binding has invalid tool-source fields".format(label))
+            commit = sha(binding.get("commit_sha"), "{}.source_binding.commit_sha".format(label))
+            sha(binding.get("tree_sha"), "{}.source_binding.tree_sha".format(label))
+            sha256(binding.get("source_sha256"), "{}.source_binding.source_sha256".format(label))
+            is_current_source = commit == latest["candidate_remote"]["head_sha"]
+        require(scope != "CURRENT" or is_current_source,
+                "{}.scope cannot label a stale or unrelated source as CURRENT".format(label))
+
+        counts = attempt.get("counts")
+        require(isinstance(counts, dict) and set(counts) == set(EXECUTION_ATTEMPT_COUNT_FIELDS),
+                "{}.counts has missing or unknown fields".format(label))
+        for name in EXECUTION_ATTEMPT_COUNT_FIELDS:
+            require(type(counts.get(name)) is int and counts[name] >= 0,
+                    "{}.counts.{} must be a nonnegative integer".format(label, name))
+        require(counts["inventory"] == counts["selected"] + counts["filtered"]
+                and counts["selected"] == counts["started"] + counts["incomplete"]
+                and counts["started"] == counts["passed"] + counts["failed"],
+                "{}.counts do not reconcile inventory, selection, and terminal results"
+                .format(label))
+
+        states = attempt.get("states")
+        require(isinstance(states, dict) and set(states) == set(EXECUTION_ATTEMPT_STATE_FIELDS),
+                "{}.states has missing or unknown fields".format(label))
+        for name, allowed in EXECUTION_ATTEMPT_STATE_FIELDS.items():
+            require(states.get(name) in allowed,
+                    "{}.states.{} is unsupported".format(label, name))
+        if counts["selected"] == 0:
+            expected_test_state = "NOT_RUN"
+        elif counts["failed"]:
+            expected_test_state = "FAIL"
+        elif counts["incomplete"]:
+            expected_test_state = "INCOMPLETE"
+        else:
+            expected_test_state = "PASS"
+        require(states["test"] == expected_test_state,
+                "{}.states.test does not match the reconciled counts".format(label))
+        require(states["child"] != "PASS"
+                or (counts["failed"] == 0 and counts["incomplete"] == 0),
+                "{}.states.child cannot pass with failed or incomplete selected tests"
+                .format(label))
+        require(states["product_qualification"] != "PASS",
+                "execution-attempt history cannot qualify a product result")
+
+        evidence = attempt.get("evidence")
+        require(isinstance(evidence, dict) and 0 < len(evidence) <= 16,
+                "{}.evidence must contain 1 to 16 pinned files".format(label))
+        decoded: dict[str, Any] = {}
+        for role, pin in evidence.items():
+            require(isinstance(role, str)
+                    and re.fullmatch(r"[a-z][a-z0-9_]{0,63}", role) is not None,
+                    "{}.evidence has a malformed role".format(label))
+            require(isinstance(pin, dict)
+                    and set(pin) == {"path", "sha256", "format"},
+                    "{}.evidence.{} pin has missing or unknown fields".format(label, role))
+            format_name = pin.get("format")
+            require(format_name in {"json", "utf8", "bytes"},
+                    "{}.evidence.{} format is unsupported".format(label, role))
+            raw = read_pinned_bytes(pin, "{}.evidence.{}".format(label, role))
+            if format_name == "json":
+                try:
+                    decoded[role] = queue_module.strict_json_loads(raw)
+                except Exception as error:
+                    raise ValueError(
+                        "{}.evidence.{} is not strict JSON: {}".format(label, role, error)
+                    ) from error
+                require(isinstance(decoded[role], (dict, list)),
+                        "{}.evidence.{} JSON must be an object or array".format(label, role))
+            elif format_name == "utf8":
+                try:
+                    decoded[role] = raw.decode("utf-8")
+                except UnicodeDecodeError as error:
+                    raise ValueError(
+                        "{}.evidence.{} is not UTF-8".format(label, role)
+                    ) from error
+            else:
+                decoded[role] = raw
+
+        if lane == "ci_provider":
+            required_roles = {
+                "run_detail", "failed_suite", "failed_suite_runs", "jobs",
+                "artifacts", "log_cli_output",
+            }
+            require(set(evidence) == required_roles
+                    and all(evidence[name]["format"] == "json"
+                            for name in required_roles - {"log_cli_output"})
+                    and evidence["log_cli_output"]["format"] == "utf8",
+                    "{}.evidence does not contain the exact CI diagnostic inputs".format(label))
+            run = decoded["run_detail"]
+            suite = decoded["failed_suite"]
+            suite_runs = decoded["failed_suite_runs"]
+            jobs = decoded["jobs"]
+            artifacts = decoded["artifacts"]
+            require(isinstance(run, dict)
+                    and str(run.get("id", "")).isdigit()
+                    and run.get("name") == CURRENT_CI_WORKFLOW
+                    and run.get("head_branch") == "termrock-implementation"
+                    and run.get("head_sha") == binding["commit_sha"]
+                    and run.get("status") == "completed"
+                    and run.get("conclusion") == "failure"
+                    and str(run.get("check_suite_id", "")).isdigit()
+                    and attempt_id == "github-ci-{}".format(run["id"]),
+                    "{}.evidence.run_detail does not bind a failed CI run to its source"
+                    .format(label))
+            require(isinstance(suite, dict)
+                    and str(suite.get("id", "")) == str(run["check_suite_id"])
+                    and suite.get("head_sha") == binding["commit_sha"]
+                    and suite.get("head_branch") == "termrock-implementation"
+                    and suite.get("status") == "completed"
+                    and suite.get("conclusion") == "failure"
+                    and type(suite.get("latest_check_runs_count")) is int
+                    and suite["latest_check_runs_count"] == 0
+                    and suite.get("check_runs_url") ==
+                    "https://api.github.com/repos/{}/check-suites/{}/check-runs".format(
+                        REPOSITORY, suite["id"],
+                    ),
+                    "{}.evidence.failed_suite does not match the failed run".format(label))
+            require(isinstance(suite_runs, dict)
+                    and type(suite_runs.get("total_count")) is int
+                    and suite_runs.get("total_count") == 0
+                    and suite_runs.get("check_runs") == [],
+                    "{}.evidence.failed_suite_runs must prove zero suite check-runs"
+                    .format(label))
+            require(isinstance(jobs, dict)
+                    and type(jobs.get("total_count")) is int
+                    and jobs.get("total_count") == 0 and jobs.get("jobs") == []
+                    and isinstance(artifacts, dict)
+                    and type(artifacts.get("total_count")) is int
+                    and artifacts.get("total_count") == 0
+                    and artifacts.get("artifacts") == [],
+                    "{}.evidence must prove zero CI jobs and artifacts".format(label))
+            require(counts == {
+                "inventory": 0, "selected": 0, "started": 0, "passed": 0,
+                "failed": 0, "filtered": 0, "incomplete": 0,
+            } and states == {
+                "test": "NOT_RUN", "child": "NOT_RUN", "wrapper": "NOT_APPLICABLE",
+                "collector": "INCOMPLETE", "postflight": "NOT_APPLICABLE",
+                "cleanup": "NOT_APPLICABLE", "product_qualification": "BLOCKED",
+                "capture": "INCOMPLETE", "admission": "NOT_RUN",
+            }, "{}.CI provider run must remain a non-product incomplete observation".format(label))
+            diagnostic = attempt.get("diagnostic")
+            require(isinstance(diagnostic, dict)
+                    and set(diagnostic) == {
+                        "status", "log_fetch_outcome", "http_status", "log_cli_exit_code",
+                    }
+                    and diagnostic.get("status") == "NOT_EXPOSED"
+                    and diagnostic.get("log_fetch_outcome") == "CLI_REPORTED_LOG_NOT_FOUND"
+                    and diagnostic.get("http_status") == "NOT_CAPTURED"
+                    and type(diagnostic.get("log_cli_exit_code")) is int
+                    and diagnostic["log_cli_exit_code"] == 1,
+                    "{}.diagnostic must preserve the unavailable cause and HTTP status"
+                    .format(label))
+            require("failed to get run log: log not found" in decoded["log_cli_output"],
+                    "{}.evidence.log_cli_output does not match the recorded CLI result"
+                    .format(label))
+        else:
+            require("result_record" in evidence and evidence["result_record"]["format"] == "json",
+                    "{}.evidence.result_record JSON is required for this typed lane".format(label))
+            result_record = decoded["result_record"]
+            require(isinstance(result_record, dict)
+                    and set(result_record) == {
+                        "schema", "attempt_id", "lane", "source_binding", "counts", "states",
+                    }
+                    and result_record.get("schema") == "termrock-status-attempt-result/v1"
+                    and result_record.get("attempt_id") == attempt_id
+                    and result_record.get("lane") == lane
+                    and result_record.get("source_binding") == binding
+                    and result_record.get("counts") == counts
+                    and result_record.get("states") == states,
+                    "{}.evidence.result_record does not match its typed attempt row".format(label))
+
+        validated.append({
+            "sequence": sequence,
+            "attempt_id": attempt_id,
+            "recorded_at": recorded_at,
+            "lane": lane,
+            "scope": scope,
+            "source_binding": binding,
+            "counts": counts,
+            "states": states,
+            "evidence": evidence,
+            "diagnostic": attempt.get("diagnostic"),
+        })
+    return validated
+
+
+def render_execution_attempt_history(
+    attempts: Sequence[Mapping[str, Any]],
+) -> str:
+    if not attempts:
+        return ""
+    rows = []
+    for attempt in attempts:
+        counts = attempt["counts"]
+        states = attempt["states"]
+        if counts["selected"] == 0:
+            count_summary = "NOT_RUN"
+        else:
+            count_summary = (
+                "{}/{} selected; {} started; {} passed; {} failed; {} filtered; {} incomplete"
+            ).format(
+                counts["selected"], counts["inventory"], counts["started"],
+                counts["passed"], counts["failed"], counts["filtered"], counts["incomplete"],
+            )
+        binding = attempt["source_binding"]
+        source = " / ".join(
+            "`{}`".format(cell(value))
+            for key, value in binding.items() if key != "kind"
+        )
+        evidence = "; ".join(
+            "{} `{}`".format(cell(role), pin["sha256"][:12])
+            for role, pin in sorted(attempt["evidence"].items())
+        )
+        diagnostic = attempt.get("diagnostic")
+        diagnostic_summary = (
+            "diagnostic NOT_EXPOSED; log CLI {} (exit {}); HTTP status {}".format(
+                diagnostic["log_fetch_outcome"], diagnostic["log_cli_exit_code"],
+                diagnostic["http_status"],
+            ) if diagnostic is not None else "not applicable"
+        )
+        rows.append(
+            "| {} | `{}` | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |"
+            .format(
+                attempt["sequence"], cell(attempt["attempt_id"]), cell(attempt["lane"]),
+                attempt["scope"], source, count_summary, states["test"], states["child"],
+                states["wrapper"], states["collector"], states["postflight"],
+                states["cleanup"], states["product_qualification"], states["capture"],
+                states["admission"], "{}; {}; recorded {}".format(
+                    diagnostic_summary, evidence, attempt["recorded_at"],
+                ),
+            )
+        )
+    return "\n".join([
+        "## Execution attempt history",
+        "",
+        "These source-bound attempts preserve test, wrapper, collection, postflight, and cleanup outcomes separately. They are evidence history only; they do not promote product readiness, qualify a product result, or admit test data.",
+        "",
+        "| # | Attempt | Lane | Source scope | Source binding | Counts | Test | Child | Wrapper | Collector | Postflight | Cleanup | Product qualification | Capture | Admission | Evidence and diagnostics |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        *rows,
+        "",
+    ])
+
+
+def _product_archive_path(value: Any, label: str) -> str:
+    require(isinstance(value, str) and value,
+            "{}.path must be nonempty text".format(label))
+    require("\\" not in value,
+            "{}.path must use normalized repository separators".format(label))
+    path = Path(value)
+    require(not path.is_absolute() and path.as_posix() == value
+            and bool(path.parts)
+            and all(part not in {"", ".", ".."} for part in path.parts),
+            "{}.path must be a normalized repository-relative path".format(label))
+    require(value.startswith(PRODUCT_PHASE_ARCHIVE_PREFIX),
+            "{}.path must remain under the reports evidence root".format(label))
+    return value
+
+
+def _product_phase_status(layers: Mapping[str, Any]) -> str:
+    statuses = [layers[name]["status"] for name in PRODUCT_PHASE_DISPLAY_NAMES]
+    if "FAIL" in statuses:
+        return "NOT_READY"
+    if "BLOCKED" in statuses:
+        return "NOT_READY"
+    if "NOT_RUN" in statuses:
+        return "NOT_RUN"
+    if all(status == "NOT_APPLICABLE" for status in statuses):
+        return "NOT_APPLICABLE"
+    return "READY"
+
+
+def validate_product_phase_observations(
+    value: Any,
+    queue_module: Any,
+) -> Sequence[Mapping[str, Any]]:
+    """Validate a bounded historical phase view from the immutable reports archive."""
+    if value is None:
+        return []
+    require(isinstance(value, dict)
+            and set(value) == {
+                "schema", "scope", "source_pair", "archive_manifest", "commands",
+            }
+            and value.get("schema") == PRODUCT_PHASE_OBSERVATIONS_SCHEMA
+            and value.get("scope") == "HISTORICAL",
+            "unsupported product phase observations schema, scope, or fields")
+
+    pair = value.get("source_pair")
+    require(isinstance(pair, dict)
+            and set(pair) == {"candidate_commit", "reference_commit"},
+            "product phase source_pair has missing or unknown fields")
+    candidate_commit = sha(pair.get("candidate_commit"),
+                           "product phase candidate commit")
+    reference_commit = sha(pair.get("reference_commit"),
+                           "product phase reference commit")
+    # This row describes an immutable historical pair. Its role records below
+    # must match this pair, but later remote tips and current observations may
+    # advance or be absent without invalidating the archived result.
+
+    manifest_pin = value.get("archive_manifest")
+    require(isinstance(manifest_pin, dict)
+            and set(manifest_pin) == {"path", "sha256", "bytes"},
+            "product phase archive manifest pin has missing or unknown fields")
+    manifest_path = _product_archive_path(
+        manifest_pin.get("path"), "product phase archive manifest",
+    )
+    require(Path(manifest_path).name == "MANIFEST.json",
+            "product phase archive manifest must be named MANIFEST.json")
+    manifest_size = manifest_pin.get("bytes")
+    require(type(manifest_size) is int and 0 < manifest_size <= 1024 * 1024,
+            "product phase archive manifest byte count is outside its bound")
+    manifest_raw = read_pinned_bytes(manifest_pin, "product phase archive manifest")
+    require(len(manifest_raw) == manifest_size,
+            "product phase archive manifest byte count does not match its pin")
+    try:
+        manifest = queue_module.strict_json_loads(manifest_raw)
+    except Exception as error:
+        raise ValueError("product phase archive manifest is not strict JSON: {}".format(error)) from error
+    require(isinstance(manifest, dict)
+            and set(manifest) == {
+                "schema", "increment", "source_baseline", "files", "file_count",
+                "total_bytes", "limits",
+            }
+            and manifest.get("schema") == PRODUCT_PHASE_ARCHIVE_SCHEMA,
+            "unsupported product phase archive manifest schema or fields")
+    archive_name = Path(manifest_path).parent.name
+    require(isinstance(manifest.get("increment"), str)
+            and manifest["increment"] == archive_name,
+            "product phase archive manifest increment does not match its directory")
+    require(isinstance(manifest.get("source_baseline"), dict),
+            "product phase archive source baseline must be an object")
+    limits = manifest.get("limits")
+    require(isinstance(limits, list) and 0 < len(limits) <= 32
+            and all(isinstance(item, str) and item.strip() for item in limits),
+            "product phase archive limits must be a bounded list of descriptions")
+    members = manifest.get("files")
+    require(isinstance(members, list)
+            and 0 < len(members) <= PRODUCT_PHASE_ARCHIVE_MAX_MEMBERS,
+            "product phase archive member count is outside its bound")
+    require(type(manifest.get("file_count")) is int
+            and manifest["file_count"] == len(members),
+            "product phase archive file_count does not match its members")
+    total_bytes = 0
+    member_by_path: dict[str, Mapping[str, Any]] = {}
+    for index, member in enumerate(members):
+        label = "product phase archive files[{}]".format(index)
+        require(isinstance(member, dict)
+                and set(member) == {"path", "source_path", "bytes", "sha256", "description"},
+                "{} has missing or unknown fields".format(label))
+        member_path = _product_archive_path(member.get("path"), label)
+        require(member_path.startswith(Path(manifest_path).parent.as_posix() + "/"),
+                "{} is outside the pinned archive directory".format(label))
+        require(isinstance(member.get("source_path"), str)
+                and member["source_path"].strip()
+                and isinstance(member.get("description"), str)
+                and member["description"].strip(),
+                "{} source_path and description are required".format(label))
+        member_size = member.get("bytes")
+        require(type(member_size) is int and 0 <= member_size <= MAX_EXECUTION_EVIDENCE_BYTES,
+                "{}.bytes is outside its bound".format(label))
+        member_sha = sha256(member.get("sha256"), "{}.sha256".format(label))
+        require(member_path not in member_by_path,
+                "product phase archive repeats a member path")
+        member_by_path[member_path] = member
+        total_bytes += member_size
+        require(total_bytes <= PRODUCT_PHASE_ARCHIVE_MAX_BYTES,
+                "product phase archive exceeds its aggregate byte bound")
+    require(type(manifest.get("total_bytes")) is int
+            and manifest["total_bytes"] == total_bytes,
+            "product phase archive total_bytes does not match its members")
+
+    commands = value.get("commands")
+    require(isinstance(commands, list) and len(commands) == 1,
+            "product phase observations must contain exactly one registered command")
+    observation = commands[0]
+    require(isinstance(observation, dict)
+            and set(observation) == {"command_id", "exact_command", "pair_evidence"},
+            "product phase command has missing or unknown fields")
+    command_id = observation.get("command_id")
+    expected_commands = dict(COMMANDS)
+    require(command_id == "RUN-03"
+            and expected_commands.get(command_id) == observation.get("exact_command"),
+            "product phase command differs from the registered RUN-03 command")
+    pair_pin = observation.get("pair_evidence")
+    require(isinstance(pair_pin, dict)
+            and set(pair_pin) == {"path", "sha256", "bytes"},
+            "product phase pair evidence pin has missing or unknown fields")
+    pair_path = _product_archive_path(pair_pin.get("path"), "product phase pair evidence")
+    archive_directory = Path(manifest_path).parent.as_posix()
+    require(pair_path.startswith(archive_directory + "/"),
+            "product phase pair evidence is outside the pinned archive directory")
+    pair_size = pair_pin.get("bytes")
+    require(type(pair_size) is int and 0 < pair_size <= MAX_EXECUTION_EVIDENCE_BYTES,
+            "product phase pair evidence byte count is outside its bound")
+    member = member_by_path.get(pair_path)
+    require(member is not None,
+            "product phase pair evidence is not listed in the archive manifest")
+    require(member["bytes"] == pair_size and member["sha256"] == pair_pin.get("sha256"),
+            "product phase pair evidence pin differs from its archive member")
+    pair_raw = read_pinned_bytes(pair_pin, "product phase pair evidence")
+    require(len(pair_raw) == pair_size,
+            "product phase pair evidence byte count does not match its pin")
+    try:
+        pair_evidence = queue_module.strict_json_loads(pair_raw)
+    except Exception as error:
+        raise ValueError("product phase pair evidence is not strict JSON: {}".format(error)) from error
+    require(isinstance(pair_evidence, dict)
+            and set(pair_evidence) == {
+                "case_sha256", "compiled_suite_sha256", "receipt", "runs", "schema",
+            }
+            and pair_evidence.get("schema") == "termrock-e2e/run03-pair-evidence-v1",
+            "unsupported RUN-03 pair-evidence schema or fields")
+    sha256(pair_evidence.get("case_sha256"), "RUN-03 case digest")
+    sha256(pair_evidence.get("compiled_suite_sha256"), "RUN-03 compiled-suite digest")
+    require(isinstance(pair_evidence.get("runs"), list)
+            and len(pair_evidence["runs"]) <= 32,
+            "RUN-03 pair-evidence runs must be a bounded list")
+    receipt = pair_evidence.get("receipt")
+    require(isinstance(receipt, dict)
+            and set(receipt) == {"rows", "schema"}
+            and receipt.get("schema") == "termrock-spec/visibility-command-lane-v1",
+            "unsupported RUN-03 command-lane receipt schema or fields")
+    rows = receipt.get("rows")
+    require(isinstance(rows, list) and 0 < len(rows) <= 32,
+            "RUN-03 receipt rows must be a bounded nonempty list")
+    row_ids = [row.get("id") for row in rows if isinstance(row, dict)]
+    require(len(row_ids) == len(rows)
+            and all(isinstance(row_id, str) and row_id for row_id in row_ids)
+            and len(set(row_ids)) == len(row_ids),
+            "RUN-03 receipt row IDs must be unique nonempty text")
+    matching_rows = [row for row in rows if row.get("id") == command_id]
+    require(len(matching_rows) == 1,
+            "RUN-03 evidence must contain exactly one RUN-03 row")
+    row = matching_rows[0]
+    require(set(row) == {
+                "candidate", "direct_executable_diagnostics", "exact_command", "id",
+                "reference", "status",
+            }
+            and row.get("exact_command") == observation["exact_command"]
+            and row.get("status") in STATUS_ORDER,
+            "RUN-03 row has invalid fields, command, or status")
+    require(isinstance(row.get("direct_executable_diagnostics"), list)
+            and len(row["direct_executable_diagnostics"]) <= 32,
+            "RUN-03 diagnostics must be a bounded list")
+
+    validated_roles: dict[str, Mapping[str, Any]] = {}
+    for role, source_commit in (
+        ("candidate", candidate_commit), ("reference", reference_commit),
+    ):
+        record = row.get(role)
+        require(isinstance(record, dict)
+                and set(record) == {
+                    "argv", "cwd", "kind", "layers", "pre_command_executable_sha256",
+                    "role", "source_commit", "source_manifest", "source_manifest_sha256",
+                },
+                "RUN-03 {} role record has missing or unknown fields".format(role))
+        require(record.get("role") == role
+                and record.get("kind") == "ExactRootCommand"
+                and record.get("source_commit") == source_commit
+                and record.get("argv") == shlex.split(observation["exact_command"]),
+                "RUN-03 {} role does not bind the exact command and source".format(role))
+        require(isinstance(record.get("cwd"), str) and record["cwd"]
+                and isinstance(record.get("source_manifest"), str)
+                and record["source_manifest"],
+                "RUN-03 {} role paths are required".format(role))
+        sha256(record.get("source_manifest_sha256"),
+               "RUN-03 {} source manifest digest".format(role))
+        sha256(record.get("pre_command_executable_sha256"),
+               "RUN-03 {} executable digest".format(role))
+        layers = record.get("layers")
+        require(isinstance(layers, dict) and set(layers) == set(PRODUCT_PHASE_NAMES),
+                "RUN-03 {} role must contain exactly the nine recorded layers".format(role))
+        validated_layers: dict[str, Mapping[str, Any]] = {}
+        for name in PRODUCT_PHASE_NAMES:
+            layer = layers[name]
+            require(isinstance(layer, dict)
+                    and set(layer) == {"evidence", "reason", "status"}
+                    and layer.get("status") in STATUS_ORDER,
+                    "RUN-03 {} layer {} has invalid fields or status".format(role, name))
+            require(isinstance(layer.get("reason"), str) and layer["reason"].strip()
+                    and isinstance(layer.get("evidence"), list)
+                    and len(layer["evidence"]) <= 32
+                    and all(isinstance(item, str) for item in layer["evidence"]),
+                    "RUN-03 {} layer {} reason or evidence is invalid".format(role, name))
+            validated_layers[name] = layer
+        validated_roles[role] = validated_layers
+    all_statuses = [
+        layer["status"] for role in validated_roles.values() for layer in role.values()
+    ]
+    expected_row_status = (
+        "FAIL" if "FAIL" in all_statuses else (
+            "BLOCKED" if "BLOCKED" in all_statuses else (
+                "NOT_RUN" if "NOT_RUN" in all_statuses else (
+                    "NOT_APPLICABLE" if all(
+                        status == "NOT_APPLICABLE" for status in all_statuses
+                    ) else "PASS"
+                )
+            )
+        )
+    )
+    require(row["status"] == expected_row_status,
+            "RUN-03 row status does not match its recorded layers")
+    return [{
+        "command_id": command_id,
+        "exact_command": observation["exact_command"],
+        "source_pair": pair,
+        "candidate_layers": validated_roles["candidate"],
+        "reference_layers": validated_roles["reference"],
+        "candidate_readiness": _product_phase_status(validated_roles["candidate"]),
+        "reference_readiness": _product_phase_status(validated_roles["reference"]),
+        "pair_status": row["status"],
+        "pair_evidence": pair_pin,
+    }]
+
+
+def render_required_command_rows(
+    observations: Sequence[Mapping[str, Any]],
+) -> str:
+    phase_by_command = {item["command_id"]: item for item in observations}
+    rows = []
+    for run_id, command in COMMANDS:
+        phase = phase_by_command.get(run_id)
+        if phase is None:
+            rows.append(
+                "| {} | {} | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_APPLICABLE; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN |"
+                .format(run_id, command)
+            )
+            continue
+        source_pair = phase["source_pair"]
+        historical_command = (
+            "{} (historical pair: candidate `{}`; reference `{}`)".format(
+                command, source_pair["candidate_commit"], source_pair["reference_commit"],
+            )
+        )
+        cells = []
+        for dimension in PRODUCT_PHASE_DISPLAY_NAMES:
+            cells.append("Reference: {}; Candidate: {}".format(
+                phase["reference_layers"][dimension]["status"],
+                phase["candidate_layers"][dimension]["status"],
+            ))
+        cells.append(
+            "Current: NOT_RUN; historical required: Reference {}; Candidate {}".format(
+                phase["reference_readiness"], phase["candidate_readiness"],
+            )
+        )
+        rows.append("| {} | {} | {} |".format(
+            run_id, historical_command, " | ".join(cells),
+        ))
+    return "\n".join(rows)
+
+
 def validate_facts(facts: Any) -> Mapping[str, Any]:
     require(isinstance(facts, dict) and facts.get("schema_version") == 2,
             "unsupported source-facts schema; expected version 2")
@@ -3692,7 +4814,7 @@ def validate_facts(facts: Any) -> Mapping[str, Any]:
     require(sha(local_dco.get("commit_sha"), "latest_local_dco_trailer_observation.commit_sha")
             == local["head_sha"], "local DCO trailer observation is for another commit")
     require(local_dco.get("expected_trailer")
-            == "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+            == "Signed-off-by: Termrock Contributor <contributor@example.invalid>",
             "expected local DCO trailer changed")
     require(type(local_dco.get("trailer_present")) is bool,
             "local DCO trailer presence must be boolean")
@@ -3911,6 +5033,27 @@ def render_status(
     current_status_observations = validate_current_status_observations(
         facts.get("current_status_observations"), latest, authority, queue_module
     )
+    provider_observations = validate_provider_observations(
+        facts.get("provider_observations"), latest, queue_module,
+    )
+    provider_observations_section = render_provider_observations(provider_observations)
+    provider_observations_layout = (
+        provider_observations_section + "\n\n" if provider_observations_section else ""
+    )
+    product_phase_observations = validate_product_phase_observations(
+        facts.get("product_phase_observations"), queue_module,
+    )
+    execution_attempt_history = validate_execution_attempt_history(
+        facts.get("execution_attempt_history"), latest, authority, queue_module,
+    )
+    execution_attempt_history_section = render_execution_attempt_history(
+        execution_attempt_history
+    )
+    execution_attempt_history_layout = (
+        execution_attempt_history_section + "\n\n"
+        if execution_attempt_history_section
+        else ""
+    )
     current_publication_observation = validate_current_publication_observation(
         facts.get("current_publication_observation"), latest, archive_manifest, queue_module,
     )
@@ -4064,12 +5207,7 @@ def render_status(
         dco_findings = "{} commits are reported with sign-off problems.".format(
             affected_commits
         )
-    command_rows = "\n".join(
-        "| {} | {} | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN | Reference: NOT_APPLICABLE; Candidate: NOT_RUN | Reference: NOT_RUN; Candidate: NOT_RUN |".format(
-            run_id, command
-        )
-        for run_id, command in COMMANDS
-    )
+    command_rows = render_required_command_rows(product_phase_observations)
     holla = next(
         (item for item in execution_observations if item["kind"] == "holla_diagnostic"),
         None,
@@ -4278,7 +5416,7 @@ The DCO observations above describe the captured local commit message. They do n
 
 {current_status_observations_section}
 
-{current_publication_section}
+{execution_attempt_history_layout}{provider_observations_layout}{current_publication_section}
 
 {publication_section}
 
@@ -4384,6 +5522,8 @@ The required shared-case and per-component checkpoint sets are unknown until the
         task_section=task_section,
         current_ci_section=current_ci_section,
         current_status_observations_section=current_status_observations_section,
+        execution_attempt_history_layout=execution_attempt_history_layout,
+        provider_observations_layout=provider_observations_layout,
         current_publication_section=current_publication_section,
         checklist_markdown_link=checklist_markdown_link,
         checklist_json_link=checklist_json_link,
@@ -4429,15 +5569,6 @@ def load_task_records(path: Path, queue_module: Any) -> Any:
     return queue_module.strict_json_loads(raw)
 
 
-
-def recorded_status_role(text):
-    """The `Local role` recorded in a generated STATUS.md, if any."""
-    for line in text.splitlines():
-        if line.startswith("| Local role |") and line.endswith("|"):
-            recorded = line[len("| Local role |"):-1].split()
-            return recorded[0].strip().lower() or None if recorded else None
-    return None
-
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     modes = parser.add_mutually_exclusive_group()
@@ -4453,18 +5584,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         queue_module = load_queue_module()
         task_records = load_task_records(TASKS_PATH, queue_module)
-        # `--check` without an explicit `--role` compares against the role the
-        # committed record states, so the documented check works on a fresh
-        # checkout of a reference-role STATUS.md.
-        role = args.role
-        explicit_role = "--role" in (sys.argv[1:] if argv is None else argv)
-        if args.check and not explicit_role and STATUS_PATH.exists():
-            recorded = recorded_status_role(STATUS_PATH.read_text(encoding="utf-8"))
-            if recorded is not None:
-                role = recorded
         output = render_status(
             load_source_facts(FACTS_PATH, queue_module), task_records,
-            role=role, queue_module=queue_module
+            role=args.role, queue_module=queue_module
         )
     except ValueError as error:
         print("status generation failed: {}".format(error), file=sys.stderr)

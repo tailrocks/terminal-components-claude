@@ -24,14 +24,14 @@
 //! disposable repository. These tests do not import Python modules or use a
 //! production test hook.
 
+use std::fs;
+use std::path::{Path, PathBuf};
 #[cfg(unix)]
 use std::ffi::CString;
-use std::fs;
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
-use std::path::{Path, PathBuf};
 #[cfg(unix)]
 use std::time::Duration;
 
@@ -91,19 +91,13 @@ impl StatusFixture {
         }
         Self::copy_manifest_members(
             &repo,
-            Path::new(
-                "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json",
-            ),
+            Path::new("docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json"),
             None,
         );
         Self::copy_manifest_members(
             &repo,
-            Path::new(
-                "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/SHA256SUMS.json",
-            ),
-            Some(Path::new(
-                "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009",
-            )),
+            Path::new("docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/SHA256SUMS.json"),
+            Some(Path::new("docs/implementation/visibility/evidence/deferred/product23-s1d-20261009")),
         );
         Self {
             repo,
@@ -112,7 +106,6 @@ impl StatusFixture {
         }
     }
 
-    #[allow(dead_code)] // Preserves the archived q59 report audit fixture.
     fn from_checked_in_report_snapshot() -> Self {
         let fixture = Self::from_checked_in_records();
         let task_snapshot_path = fixture.repo.root().join(
@@ -128,8 +121,9 @@ impl StatusFixture {
         let task_value: serde_json::Value =
             serde_json::from_slice(&task_snapshot).expect("parse archived q59 task snapshot");
         assert_eq!(task_value["queue_revision"], 59);
-        fixture
-            .write_tasks(std::str::from_utf8(&task_snapshot).expect("q59 task snapshot is UTF-8"));
+        fixture.write_tasks(
+            std::str::from_utf8(&task_snapshot).expect("q59 task snapshot is UTF-8"),
+        );
 
         let rendered_queue = fixture.run_queue(&["render"]);
         assert_eq!(
@@ -161,7 +155,9 @@ impl StatusFixture {
         .expect("parse copied evidence manifest");
         let members = manifest["files"].as_array().expect("manifest member array");
         for member in members {
-            let member_path = Path::new(member["path"].as_str().expect("manifest member path"));
+            let member_path = Path::new(
+                member["path"].as_str().expect("manifest member path"),
+            );
             let relative_path = match member_root {
                 Some(root) => root.join(member_path),
                 None => member_path.to_path_buf(),
@@ -246,7 +242,7 @@ fn base_facts() -> String {
   "latest_local_dco_trailer_observation": {{
     "observed_at": "2026-10-08T04:32:00Z",
     "commit_sha": "6666666666666666666666666666666666666666",
-    "expected_trailer": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+    "expected_trailer": "Signed-off-by: Termrock Contributor <contributor@example.invalid>",
     "trailer_present": false,
     "parsed_trailers": [],
     "message_subject": "Local fixture commit",
@@ -393,7 +389,10 @@ fn facts_with_current_ci_observation() -> serde_json::Value {
     facts
 }
 
-fn add_latest_ci_snapshot_fixture(fixture: &StatusFixture, facts: &mut serde_json::Value) {
+fn add_latest_ci_snapshot_fixture(
+    fixture: &StatusFixture,
+    facts: &mut serde_json::Value,
+) {
     let latest = facts["latest_source_observation"].clone();
     let api = facts["current_ci_observation"]["api_capture"].clone();
     let candidate_sha = latest["candidate_remote"]["head_sha"]
@@ -615,8 +614,9 @@ fn with_four_predecessors(mut facts: serde_json::Value) -> serde_json::Value {
 }
 
 fn write_json_facts(fixture: &StatusFixture, facts: &serde_json::Value) {
-    fixture
-        .write_facts(&serde_json::to_string_pretty(facts).expect("serialize source facts fixture"));
+    fixture.write_facts(
+        &serde_json::to_string_pretty(facts).expect("serialize source facts fixture"),
+    );
 }
 
 fn write_attempt_artifact(
@@ -646,14 +646,11 @@ fn write_attempt_json(
     write_attempt_artifact(fixture, name, &bytes, "json")
 }
 
+
 const PROVIDER_ARCHIVE_DIR: &str =
     "docs/implementation/visibility/evidence/reports/provider-observations-test";
 const PROVIDER_SOURCE_SHA: &str = "3333333333333333333333333333333333333333";
 const PROVIDER_SOURCE_TREE: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-const PROVIDER_POLL_ARCHIVE_DIR: &str =
-    "docs/implementation/visibility/evidence/reports/provider-poll-observations-test";
-const PROVIDER_POLL_SOURCE_SHA: &str = "58de6bb6c8e23da8a1f66237db179d7c58c79b28";
-const PROVIDER_POLL_SOURCE_TREE: &str = "c4b73494c2913910366dd9fcedf4cf712806298b";
 
 fn write_provider_capture(
     fixture: &StatusFixture,
@@ -694,7 +691,6 @@ fn write_provider_json_capture(
     write_provider_capture(fixture, prefix, name, &bytes, files)
 }
 
-#[allow(clippy::too_many_arguments)] // Test fixture fields mirror the provider payload.
 fn provider_observation(
     fixture: &StatusFixture,
     files: &mut Vec<serde_json::Value>,
@@ -709,12 +705,14 @@ fn provider_observation(
     let suite_id = run_number + 1000;
     let dco_id = run_number + 2000;
     let workflow_path = ".github/workflows/ci.yml";
-    let run_url =
-        format!("https://github.com/tailrocks/terminal-components-claude/actions/runs/{run_id}");
+    let run_url = format!(
+        "https://github.com/tailrocks/terminal-components-claude/actions/runs/{run_id}"
+    );
     let run_api_url = format!(
         "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/{run_id}"
     );
-    let workflow_api_url = "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/workflows/349610291";
+    let workflow_api_url =
+        "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/workflows/349610291";
     let suite_runs_url = format!(
         "https://api.github.com/repos/tailrocks/terminal-components-claude/check-suites/{suite_id}/check-runs"
     );
@@ -779,24 +777,23 @@ fn provider_observation(
 
     let workflow_capture =
         write_provider_json_capture(fixture, prefix, "workflow.json", &workflow, files);
-    let run_capture = write_provider_json_capture(fixture, prefix, "run.json", &run, files);
+    let run_capture =
+        write_provider_json_capture(fixture, prefix, "run.json", &run, files);
     let suites_capture =
         write_provider_json_capture(fixture, prefix, "check-suites.json", &check_suites, files);
     let suite_runs_capture = write_provider_json_capture(
-        fixture,
-        prefix,
-        "suite-check-runs.json",
-        &suite_check_runs,
-        files,
+        fixture, prefix, "suite-check-runs.json", &suite_check_runs, files,
     );
     let checks_capture =
         write_provider_json_capture(fixture, prefix, "check-runs.json", &check_runs, files);
-    let jobs_capture = write_provider_json_capture(fixture, prefix, "jobs.json", &jobs, files);
+    let jobs_capture =
+        write_provider_json_capture(fixture, prefix, "jobs.json", &jobs, files);
     let artifacts_capture =
         write_provider_json_capture(fixture, prefix, "artifacts.json", &artifacts, files);
     let log_headers_capture =
         write_provider_capture(fixture, prefix, "run-logs.headers", headers, files);
-    let log_body_capture = write_provider_capture(fixture, prefix, "run-logs.body", body, files);
+    let log_body_capture =
+        write_provider_capture(fixture, prefix, "run-logs.body", body, files);
 
     serde_json::json!({
         "sequence": 1,
@@ -828,7 +825,7 @@ fn provider_observations_bundle(
     files: Vec<serde_json::Value>,
 ) -> serde_json::Value {
     let manifest = serde_json::json!({
-        "schema": "termrock-status-provider-capture-archive/v1",
+        "schema": "termrock-vis13-raw-attempt-archive/v1",
         "increment": "provider-observations-test",
         "status": "FIXTURE",
         "source_baseline": {"note": "synthetic provider observation fixture"},
@@ -851,273 +848,7 @@ fn provider_observations_bundle(
     })
 }
 
-fn write_provider_poll_capture(
-    fixture: &StatusFixture,
-    name: &str,
-    bytes: &[u8],
-    files: &mut Vec<serde_json::Value>,
-) -> serde_json::Value {
-    let member_path = format!("raw/{name}");
-    let repo_path = format!("{PROVIDER_POLL_ARCHIVE_DIR}/{member_path}");
-    let path = fixture.repo.root().join(&repo_path);
-    fs::create_dir_all(path.parent().expect("provider poll member parent"))
-        .expect("create provider poll archive directory");
-    fs::write(path, bytes).expect("write provider poll archive member");
-    files.push(serde_json::json!({
-        "path": member_path,
-        "source_path": format!("/fixture/provider-poll/{name}"),
-        "bytes": bytes.len(),
-        "sha256": sha256_hex(bytes),
-        "source_mode": "600",
-        "description": format!("synthetic provider poll evidence {name}"),
-    }));
-    serde_json::json!({
-        "path": repo_path,
-        "sha256": sha256_hex(bytes),
-        "bytes": bytes.len(),
-    })
-}
-
-fn write_provider_poll_json_capture(
-    fixture: &StatusFixture,
-    name: &str,
-    value: &serde_json::Value,
-    files: &mut Vec<serde_json::Value>,
-) -> serde_json::Value {
-    let bytes = serde_json::to_vec(value).expect("serialize provider poll JSON");
-    write_provider_poll_capture(fixture, name, &bytes, files)
-}
-
-fn provider_poll_observations_bundle(fixture: &StatusFixture) -> serde_json::Value {
-    let observed_at = "2026-10-10T04:12:40Z";
-    let created_at = "2026-10-10T03:42:50Z";
-    let run_id = 38021527173_u64;
-    let run_number = 871_u64;
-    let run_attempt = 1_u64;
-    let workflow_id = 349610291_u64;
-    let run_url =
-        format!("https://github.com/tailrocks/terminal-components-claude/actions/runs/{run_id}");
-    let run_api_url = format!(
-        "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/runs/{run_id}"
-    );
-    let workflow_path = ".github/workflows/ci.yml";
-    let mut files = Vec::new();
-    let pull_request = serde_json::json!({
-        "number": 17,
-        "head": {"ref": "termrock-implementation", "sha": PROVIDER_POLL_SOURCE_SHA},
-        "base": {"ref": "main", "sha": "81a8bf15cd3042f80649e2b48fed479829518dbd"}
-    });
-    let candidate_ref = serde_json::json!({
-        "ref": "refs/heads/termrock-implementation",
-        "object": {"sha": PROVIDER_POLL_SOURCE_SHA, "type": "commit"}
-    });
-    let commit = serde_json::json!({
-        "sha": PROVIDER_POLL_SOURCE_SHA,
-        "commit": {"tree": {"sha": PROVIDER_POLL_SOURCE_TREE}}
-    });
-    let run_api = serde_json::json!({
-        "id": run_id,
-        "run_number": run_number,
-        "run_attempt": run_attempt,
-        "workflow_id": workflow_id,
-        "name": workflow_path,
-        "path": workflow_path,
-        "head_branch": "termrock-implementation",
-        "head_sha": PROVIDER_POLL_SOURCE_SHA,
-        "event": "push",
-        "status": "completed",
-        "conclusion": "failure",
-        "created_at": created_at,
-        "url": run_api_url,
-        "html_url": run_url
-    });
-    let run_view = serde_json::json!({
-        "databaseId": run_id,
-        "workflowName": "CI",
-        "headBranch": "termrock-implementation",
-        "headSha": PROVIDER_POLL_SOURCE_SHA,
-        "status": "completed",
-        "conclusion": "failure",
-        "event": "push",
-        "createdAt": created_at,
-        "updatedAt": created_at,
-        "jobs": [],
-        "url": run_url
-    });
-    let jobs_api = serde_json::json!({
-        "message": "Not Found",
-        "documentation_url": "https://docs.github.com/rest",
-        "status": "404"
-    });
-    let artifacts_api = serde_json::json!({"total_count": 0, "artifacts": []});
-    let dco_checks = serde_json::json!({
-        "total_count": 1,
-        "check_runs": [{
-            "id": 114123397279_u64,
-            "name": "DCO",
-            "head_sha": PROVIDER_POLL_SOURCE_SHA,
-            "status": "completed",
-            "conclusion": "success"
-        }]
-    });
-
-    let mut captures = serde_json::Map::new();
-    for (role, name, value) in [
-        ("pull_request", "pull-17.json", Some(&pull_request)),
-        (
-            "candidate_ref",
-            "head-termrock-implementation.json",
-            Some(&candidate_ref),
-        ),
-        ("commit", "commit-object.json", Some(&commit)),
-        ("run_api", "run-api.json", Some(&run_api)),
-        ("run_view", "run-view.json", Some(&run_view)),
-        ("jobs_api", "run-jobs-api.json", Some(&jobs_api)),
-        (
-            "artifacts_api",
-            "run-artifacts-api.json",
-            Some(&artifacts_api),
-        ),
-        ("dco_checks", "check-runs-retry.json", Some(&dco_checks)),
-    ] {
-        captures.insert(
-            role.to_string(),
-            write_provider_poll_json_capture(
-                fixture,
-                name,
-                value.expect("JSON provider capture"),
-                &mut files,
-            ),
-        );
-    }
-    for (role, name, bytes) in [
-        (
-            "jobs_api_stderr",
-            "run-jobs-api.stderr",
-            &b"gh: Not Found (HTTP 404)\n"[..],
-        ),
-        ("run_log_stdout", "run-log.txt", &b""[..]),
-        (
-            "run_log_stderr",
-            "run-log.stderr",
-            &b"failed to get run log: log not found\n"[..],
-        ),
-    ] {
-        captures.insert(
-            role.to_string(),
-            write_provider_poll_capture(fixture, name, bytes, &mut files),
-        );
-    }
-
-    let mut sums: Vec<(String, String)> = files
-        .iter()
-        .map(|file| {
-            (
-                file["path"]
-                    .as_str()
-                    .expect("raw member path")
-                    .strip_prefix("raw/")
-                    .expect("raw member prefix")
-                    .to_string(),
-                file["sha256"]
-                    .as_str()
-                    .expect("raw member hash")
-                    .to_string(),
-            )
-        })
-        .collect();
-    sums.sort_by(|left, right| left.0.cmp(&right.0));
-    let checksum_bytes = sums
-        .iter()
-        .map(|(name, digest)| format!("{digest}  {name}\n"))
-        .collect::<String>()
-        .into_bytes();
-    let checksums_pin =
-        write_provider_poll_capture(fixture, "SHA256SUMS", &checksum_bytes, &mut files);
-
-    let summary = serde_json::json!({
-        "schema": "termrock-live-pr-observation/v1",
-        "repository": "tailrocks/terminal-components-claude",
-        "observed_at_utc": observed_at,
-        "pull_request": {
-            "number": 17,
-            "head_ref": "termrock-implementation",
-            "requested_head_sha": PROVIDER_POLL_SOURCE_SHA,
-            "observed_head_sha": PROVIDER_POLL_SOURCE_SHA,
-            "remote_head_ref_sha": PROVIDER_POLL_SOURCE_SHA,
-            "head_commit_tree_sha": PROVIDER_POLL_SOURCE_TREE,
-            "base_ref": "main",
-            "observed_base_sha": "81a8bf15cd3042f80649e2b48fed479829518dbd"
-        },
-        "current_ci_observation": {
-            "workflow_run_id": run_id,
-            "workflow_run_number": run_number,
-            "workflow_id": workflow_id,
-            "workflow_name": "CI",
-            "event": "push",
-            "head_sha": PROVIDER_POLL_SOURCE_SHA,
-            "status": "completed",
-            "conclusion": "failure",
-            "created_at": created_at,
-            "jobs_visible_in_gh_run_view": 0,
-            "jobs_api": "HTTP 404 Not Found",
-            "artifacts_total_count": 0,
-            "logs": "not found; no log body returned",
-            "provider_failure_cause": "NOT_EXPOSED"
-        },
-        "checks": {"dco": "PASS", "check_runs_count": 1},
-        "raw_closure": {
-            "path": "SHA256SUMS",
-            "sha256": sha256_hex(&checksum_bytes),
-            "entries": sums.len(),
-            "entry_scope": "Every file under raw/; checksum file itself is excluded."
-        }
-    });
-    let summary_bytes = serde_json::to_vec(&summary).expect("serialize provider poll summary");
-    let summary_pin =
-        write_provider_poll_capture(fixture, "observation.json", &summary_bytes, &mut files);
-    captures.insert("checksums".to_string(), checksums_pin);
-    captures.insert("summary".to_string(), summary_pin);
-
-    let manifest = serde_json::json!({
-        "schema": "termrock-status-provider-poll-archive/v1",
-        "increment": "provider-poll-observations-test",
-        "status": "FIXTURE",
-        "source_baseline": {"note": "synthetic archived provider poll"},
-        "files": files
-    });
-    let manifest_raw = serde_json::to_vec(&manifest).expect("serialize provider poll manifest");
-    let manifest_path = format!("{PROVIDER_POLL_ARCHIVE_DIR}/MANIFEST.json");
-    fixture
-        .repo
-        .write_file(Path::new(&manifest_path), &manifest_raw)
-        .expect("write provider poll manifest");
-    let poll = serde_json::json!({
-        "sequence": 1,
-        "observed_at": observed_at,
-        "scope": "HISTORICAL",
-        "kind": "workflow_run_poll",
-        "source_binding": {
-            "kind": "candidate_commit",
-            "branch": "termrock-implementation",
-            "commit_sha": PROVIDER_POLL_SOURCE_SHA,
-            "tree_sha": PROVIDER_POLL_SOURCE_TREE
-        },
-        "captures": captures
-    });
-    serde_json::json!({
-        "schema": "termrock-status-provider-observations/v2",
-        "archive_manifest": {
-            "path": manifest_path,
-            "sha256": sha256_hex(&manifest_raw),
-            "bytes": manifest_raw.len()
-        },
-        "observations": [poll]
-    })
-}
-
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn provider_observation_accepts_zero_jobs_and_forbidden_logs_without_cause_inference() {
     let fixture = StatusFixture::new();
     let mut files = Vec::new();
@@ -1140,30 +871,22 @@ fn provider_observation_accepts_zero_jobs_and_forbidden_logs_without_cause_infer
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
     let report = output_text(&output);
-    let row = report
-        .lines()
+    let row = report.lines()
         .find(|line| line.contains("38016983578"))
         .expect("current provider observation is rendered");
     assert!(row.contains("CURRENT"));
     assert!(row.contains("failure; event push; 0 jobs; 0 artifacts"));
     assert!(row.contains("logs HTTP 403; workflow cause NOT_EXPOSED"));
-    assert!(!row.contains("Must have admin rights to Repository."));
+    assert!(!report.contains("Must have admin rights to Repository."));
     assert!(row.contains("DCO check"));
-    assert!(
-        report.contains(
-            "These hash-pinned provider records describe workflow metadata and log access."
-        )
-    );
+    assert!(report.contains("These hash-pinned provider records describe workflow metadata and log access."));
     assert!(report.contains("Refactor / Ready | NOT_RUN"));
     assert!(report.contains("Visibility / Complete | NOT_RUN"));
-    assert!(!row.contains("500 KB"));
-    assert!(!row.contains("537470 bytes"));
-    assert!(report.contains("37721476033"));
-    assert!(report.contains(FAILURE_REASON));
+    assert!(!report.contains("500 KB"));
+    assert!(!report.contains("537470 bytes"));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn provider_observation_rejects_source_drift_archive_tampering_and_out_of_order_rows() {
     let fixture = StatusFixture::new();
     let mut files = Vec::new();
@@ -1191,50 +914,13 @@ fn provider_observation_rejects_source_drift_archive_tampering_and_out_of_order_
 
     facts["provider_observations"] = bundle.clone();
     let run_path = facts["provider_observations"]["observations"][0]["captures"]["run"]["path"]
-        .as_str()
-        .expect("run evidence path");
+        .as_str().expect("run evidence path");
     fs::write(fixture.repo.root().join(run_path), b"{\"tampered\":true}")
         .expect("tamper pinned provider response");
     write_json_facts(&fixture, &facts);
     let tampered = fixture.run(&[]);
     assert_eq!(tampered.exit_code, Some(2));
     assert!(error_text(&tampered).contains("bytes do not match the recorded SHA-256"));
-
-    let fixture = StatusFixture::new();
-    let mut files = Vec::new();
-    let observation = provider_observation(
-        &fixture,
-        &mut files,
-        "current-38016983578",
-        "38016983578",
-        1,
-        "2026-10-10T02:26:42Z",
-        "2026-10-10T02:43:00Z",
-        "CURRENT",
-    );
-    let mut bundle = provider_observations_bundle(&fixture, vec![observation], files);
-    let manifest_path = bundle["archive_manifest"]["path"]
-        .as_str()
-        .expect("provider archive manifest path");
-    let manifest_file = fixture.repo.root().join(manifest_path);
-    let mut manifest: serde_json::Value =
-        serde_json::from_slice(&fs::read(&manifest_file).expect("read provider archive manifest"))
-            .expect("parse provider archive manifest");
-    manifest["schema"] = serde_json::json!("termrock-vis13-raw-attempt-archive/v1");
-    let manifest_bytes = serde_json::to_vec(&manifest).expect("serialize colliding manifest");
-    fs::write(&manifest_file, &manifest_bytes).expect("write colliding manifest");
-    bundle["archive_manifest"]["sha256"] = serde_json::json!(sha256_hex(&manifest_bytes));
-    bundle["archive_manifest"]["bytes"] = serde_json::json!(manifest_bytes.len());
-    let mut facts: serde_json::Value =
-        serde_json::from_str(&base_facts()).expect("parse base source facts");
-    facts["provider_observations"] = bundle;
-    write_json_facts(&fixture, &facts);
-    let colliding_schema = fixture.run(&[]);
-    assert_eq!(colliding_schema.exit_code, Some(2));
-    assert!(
-        error_text(&colliding_schema)
-            .contains("provider archive manifest identity or fields are malformed")
-    );
 
     let fixture = StatusFixture::new();
     let mut files = Vec::new();
@@ -1270,203 +956,12 @@ fn provider_observation_rejects_source_drift_archive_tampering_and_out_of_order_
     assert!(error_text(&out_of_order).contains("timestamps are out of order"));
 }
 
-#[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
-fn provider_poll_variant_preserves_error_and_historical_boundaries() {
-    let fixture = StatusFixture::new();
-    let bundle = provider_poll_observations_bundle(&fixture);
-    let mut facts: serde_json::Value =
-        serde_json::from_str(&base_facts()).expect("parse base source facts");
-    facts["provider_observations"] = bundle;
-    write_json_facts(&fixture, &facts);
-
-    let output = fixture.run(&[]);
-    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
-    let report = output_text(&output);
-    let row = report
-        .lines()
-        .find(|line| line.contains("38021527173"))
-        .expect("historical provider poll is rendered");
-    assert!(row.contains("HISTORICAL"));
-    assert!(row.contains("CLI-visible jobs 0"));
-    assert!(row.contains("jobs API error status field 404"));
-    assert!(row.contains("artifacts 0"));
-    assert!(row.contains("logs body NOT_FOUND"));
-    assert!(row.contains("log HTTP status NOT_CAPTURED"));
-    assert!(row.contains("failure cause NOT_EXPOSED"));
-    assert!(row.contains("DCO completed / success"));
-    assert!(!row.contains("HTTP 404"));
-    assert!(!row.contains("jobs API error status field 0"));
-    assert!(row.contains(PROVIDER_POLL_SOURCE_SHA));
-    assert_ne!(PROVIDER_POLL_SOURCE_SHA, PROVIDER_SOURCE_SHA);
-    assert!(report.contains("Refactor / Ready | NOT_RUN"));
-    assert!(report.contains("Visibility / Complete | NOT_RUN"));
-    assert!(report.contains("does not promote current CI or product readiness"));
-}
-
-#[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
-fn provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes() {
-    let fixture = StatusFixture::new();
-    let bundle = provider_poll_observations_bundle(&fixture);
-    let mut facts: serde_json::Value =
-        serde_json::from_str(&base_facts()).expect("parse base source facts");
-    facts["provider_observations"] = bundle.clone();
-
-    facts["provider_observations"]["observations"][0]["source_binding"]["tree_sha"] =
-        serde_json::json!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
-    write_json_facts(&fixture, &facts);
-    let source_drift = fixture.run(&[]);
-    assert_eq!(source_drift.exit_code, Some(2));
-    assert!(error_text(&source_drift).contains("summary pull-request identity differs"));
-
-    facts["provider_observations"] = bundle.clone();
-    facts["provider_observations"]["observations"][0]["captures"]
-        .as_object_mut()
-        .expect("provider poll captures")
-        .remove("run_view");
-    write_json_facts(&fixture, &facts);
-    let missing_capture = fixture.run(&[]);
-    assert_eq!(missing_capture.exit_code, Some(2));
-    assert!(error_text(&missing_capture).contains("pin the exact poll evidence roles"));
-
-    facts["provider_observations"] = bundle.clone();
-    let manifest_path = facts["provider_observations"]["archive_manifest"]["path"]
-        .as_str()
-        .expect("provider poll manifest path");
-    let manifest_file = fixture.repo.root().join(manifest_path);
-    let original_manifest_bytes =
-        fs::read(&manifest_file).expect("read original provider poll manifest");
-    let mut manifest: serde_json::Value =
-        serde_json::from_slice(&original_manifest_bytes).expect("parse provider poll manifest");
-    let run_view_path =
-        facts["provider_observations"]["observations"][0]["captures"]["run_view"]["path"]
-            .as_str()
-            .expect("run view capture path");
-    let relative_run_view = run_view_path
-        .strip_prefix(&format!("{PROVIDER_POLL_ARCHIVE_DIR}/"))
-        .expect("run view path is under poll archive");
-    let members = manifest["files"]
-        .as_array_mut()
-        .expect("provider manifest files");
-    let member_index = members
-        .iter()
-        .position(|member| member["path"].as_str() == Some(relative_run_view))
-        .expect("run view member exists");
-    members.remove(member_index);
-    let manifest_bytes = serde_json::to_vec(&manifest).expect("serialize missing-member manifest");
-    fs::write(&manifest_file, &manifest_bytes).expect("write missing-member manifest");
-    facts["provider_observations"]["archive_manifest"]["sha256"] =
-        serde_json::json!(sha256_hex(&manifest_bytes));
-    facts["provider_observations"]["archive_manifest"]["bytes"] =
-        serde_json::json!(manifest_bytes.len());
-    write_json_facts(&fixture, &facts);
-    let missing_member = fixture.run(&[]);
-    assert_eq!(missing_member.exit_code, Some(2));
-    assert!(error_text(&missing_member).contains("not bound to its archive member"));
-
-    fs::write(&manifest_file, &original_manifest_bytes)
-        .expect("restore original provider poll manifest");
-    facts["provider_observations"] = bundle.clone();
-    facts["provider_observations"]["observations"][0]["captures"]["run_view"]["path"] = serde_json::json!(
-        "docs/implementation/visibility/evidence/reports/provider-poll-observations-test/raw/not-listed.json"
-    );
-    write_json_facts(&fixture, &facts);
-    let unlisted_capture = fixture.run(&[]);
-    assert_eq!(unlisted_capture.exit_code, Some(2));
-    assert!(error_text(&unlisted_capture).contains("not bound to its archive member"));
-
-    facts["provider_observations"] = bundle;
-    let run_view_path =
-        facts["provider_observations"]["observations"][0]["captures"]["run_view"]["path"]
-            .as_str()
-            .expect("run view capture path");
-    fs::write(
-        fixture.repo.root().join(run_view_path),
-        b"{\"tampered\":true}",
-    )
-    .expect("tamper provider poll evidence");
-    write_json_facts(&fixture, &facts);
-    let tampered = fixture.run(&[]);
-    assert_eq!(tampered.exit_code, Some(2));
-    assert!(error_text(&tampered).contains("bytes do not match the recorded SHA-256"));
-}
-
-#[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
-fn provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind() {
-    let fixture = StatusFixture::new();
-    let bundle = provider_poll_observations_bundle(&fixture);
-    let mut facts: serde_json::Value =
-        serde_json::from_str(&base_facts()).expect("parse base source facts");
-
-    let mut duplicate = bundle.clone();
-    let mut second = duplicate["observations"][0].clone();
-    second["sequence"] = serde_json::json!(2);
-    duplicate["observations"]
-        .as_array_mut()
-        .expect("provider poll observations")
-        .push(second.clone());
-    facts["provider_observations"] = duplicate;
-    write_json_facts(&fixture, &facts);
-    let duplicate_run = fixture.run(&[]);
-    assert_eq!(duplicate_run.exit_code, Some(2));
-    assert!(error_text(&duplicate_run).contains("repeat a run attempt"));
-
-    let mut out_of_order = bundle.clone();
-    second["observed_at"] = serde_json::json!("2026-10-10T04:11:00Z");
-    out_of_order["observations"]
-        .as_array_mut()
-        .expect("provider poll observations")
-        .push(second);
-    facts["provider_observations"] = out_of_order;
-    write_json_facts(&fixture, &facts);
-    let timestamp_order = fixture.run(&[]);
-    assert_eq!(timestamp_order.exit_code, Some(2));
-    assert!(error_text(&timestamp_order).contains("timestamps are out of order"));
-
-    let mut current_scope = bundle.clone();
-    current_scope["observations"][0]["scope"] = serde_json::json!("CURRENT");
-    facts["provider_observations"] = current_scope;
-    write_json_facts(&fixture, &facts);
-    let promoted = fixture.run(&[]);
-    assert_eq!(promoted.exit_code, Some(2));
-    assert!(error_text(&promoted).contains("must remain HISTORICAL"));
-
-    let mut unknown_schema = bundle.clone();
-    unknown_schema["schema"] = serde_json::json!("termrock-status-provider-observations/v999");
-    facts["provider_observations"] = unknown_schema;
-    write_json_facts(&fixture, &facts);
-    let rejected_schema = fixture.run(&[]);
-    assert_eq!(rejected_schema.exit_code, Some(2));
-    assert!(
-        error_text(&rejected_schema).contains("unsupported provider observations schema or fields")
-    );
-
-    let mut extra_field = bundle.clone();
-    extra_field["observations"][0]["unreviewed_field"] = serde_json::json!(true);
-    facts["provider_observations"] = extra_field;
-    write_json_facts(&fixture, &facts);
-    let rejected_field = fixture.run(&[]);
-    assert_eq!(rejected_field.exit_code, Some(2));
-    assert!(
-        error_text(&rejected_field).contains("missing, unknown, or unsupported variant fields")
-    );
-
-    let mut unknown_kind = bundle;
-    unknown_kind["observations"][0]["kind"] = serde_json::json!("endpoint_capture_v1");
-    facts["provider_observations"] = unknown_kind;
-    write_json_facts(&fixture, &facts);
-    let unsupported = fixture.run(&[]);
-    assert_eq!(unsupported.exit_code, Some(2));
-    assert!(error_text(&unsupported).contains("unsupported variant fields"));
-}
-
 const PRODUCT_PHASE_ARCHIVE_DIR: &str =
     "docs/implementation/visibility/evidence/reports/current-attempts-archive-test";
 const PRODUCT_PHASE_MANIFEST_PATH: &str =
     "docs/implementation/visibility/evidence/reports/current-attempts-archive-test/MANIFEST.json";
-const PRODUCT_PHASE_PAIR_PATH: &str = "docs/implementation/visibility/evidence/reports/current-attempts-archive-test/raw/run03/pair-evidence.json";
+const PRODUCT_PHASE_PAIR_PATH: &str =
+    "docs/implementation/visibility/evidence/reports/current-attempts-archive-test/raw/run03/pair-evidence.json";
 const PRODUCT_PHASE_CANDIDATE: &str = "1d797d41c8141fcbdc3f69d7f11eb8875ab54712";
 const PRODUCT_PHASE_REFERENCE: &str = "b274dd57f4dd078ade6e424d546d83efbd2e8526";
 
@@ -1480,32 +975,13 @@ fn product_phase_layer(status: &str) -> serde_json::Value {
 
 fn product_phase_role(role: &str, source_commit: &str) -> serde_json::Value {
     let statuses = if role == "candidate" {
-        [
-            "PASS", "PASS", "PASS", "FAIL", "PASS", "BLOCKED", "BLOCKED", "BLOCKED", "PASS",
-        ]
+        ["PASS", "PASS", "PASS", "FAIL", "PASS", "BLOCKED", "BLOCKED", "BLOCKED", "PASS"]
     } else {
-        [
-            "PASS",
-            "PASS",
-            "PASS",
-            "FAIL",
-            "BLOCKED",
-            "BLOCKED",
-            "BLOCKED",
-            "NOT_APPLICABLE",
-            "BLOCKED",
-        ]
+        ["PASS", "PASS", "PASS", "FAIL", "BLOCKED", "BLOCKED", "BLOCKED", "NOT_APPLICABLE", "BLOCKED"]
     };
     let names = [
-        "build",
-        "launch",
-        "first_frame",
-        "interaction",
-        "exit",
-        "restoration",
-        "visual",
-        "ownership",
-        "cleanup",
+        "build", "launch", "first_frame", "interaction", "exit", "restoration",
+        "visual", "ownership", "cleanup",
     ];
     let layers: serde_json::Map<String, serde_json::Value> = names
         .iter()
@@ -1606,12 +1082,16 @@ fn rebind_product_phase_archive(
 ) {
     let pair_raw = serde_json::to_vec(pair).expect("serialize rebound pair-evidence fixture");
     let pair_sha = sha256_hex(&pair_raw);
-    fs::write(fixture.repo.root().join(PRODUCT_PHASE_PAIR_PATH), &pair_raw)
-        .expect("write rebound pair-evidence fixture");
+    fs::write(
+        fixture.repo.root().join(PRODUCT_PHASE_PAIR_PATH),
+        &pair_raw,
+    )
+    .expect("write rebound pair-evidence fixture");
     let manifest_path = fixture.repo.root().join(PRODUCT_PHASE_MANIFEST_PATH);
-    let mut manifest: serde_json::Value =
-        serde_json::from_slice(&fs::read(&manifest_path).expect("read archive manifest fixture"))
-            .expect("parse archive manifest fixture");
+    let mut manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(&manifest_path).expect("read archive manifest fixture"),
+    )
+    .expect("parse archive manifest fixture");
     manifest["files"][0]["bytes"] = serde_json::json!(pair_raw.len());
     manifest["files"][0]["sha256"] = serde_json::json!(&pair_sha);
     manifest["total_bytes"] = serde_json::json!(pair_raw.len());
@@ -1693,7 +1173,10 @@ fn write_pinned_json(
     serde_json::json!({"path": relative, "sha256": sha256_hex(&raw)})
 }
 
-fn mutate_holla_receipt(fixture: &StatusFixture, mutate: impl FnOnce(&mut serde_json::Value)) {
+fn mutate_holla_receipt(
+    fixture: &StatusFixture,
+    mutate: impl FnOnce(&mut serde_json::Value),
+) {
     let facts_path = fixture
         .repo
         .root()
@@ -1701,7 +1184,8 @@ fn mutate_holla_receipt(fixture: &StatusFixture, mutate: impl FnOnce(&mut serde_
     let mut facts: serde_json::Value =
         serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
             .expect("parse source facts");
-    let relative_receipt = facts["execution_observations"]["holla_diagnostic"]["receipt"]["path"]
+    let relative_receipt = facts["execution_observations"]["holla_diagnostic"]["receipt"]
+        ["path"]
         .as_str()
         .expect("Holla receipt fixture path");
     let receipt_path = fixture.repo.root().join(relative_receipt);
@@ -1731,11 +1215,10 @@ fn mutate_holla_receipt(fixture: &StatusFixture, mutate: impl FnOnce(&mut serde_
         serde_json::json!(&seal_sha);
 
     let review_pin = facts["execution_observations"]["holla_diagnostic"]["review"].clone();
-    let review_path = fixture.repo.root().join(
-        review_pin["path"]
-            .as_str()
-            .expect("Holla review fixture path"),
-    );
+    let review_path = fixture
+        .repo
+        .root()
+        .join(review_pin["path"].as_str().expect("Holla review fixture path"));
     let mut review: serde_json::Value =
         serde_json::from_slice(&fs::read(&review_path).expect("read Holla review"))
             .expect("parse Holla review");
@@ -1780,7 +1263,9 @@ fn execution_fixture() -> StatusFixture {
     execution_fixture_with_holla_override(None)
 }
 
-fn execution_fixture_with_holla_override(status_override: Option<(&str, &str)>) -> StatusFixture {
+fn execution_fixture_with_holla_override(
+    status_override: Option<(&str, &str)>,
+) -> StatusFixture {
     let fixture = StatusFixture::new();
     let candidate = "1ea1c17707f0a8f1639af506be179013d5e2d52a";
     let reference = "b682cb26d68b353aeeccf9e51653eddf097b39f5";
@@ -1796,7 +1281,7 @@ fn execution_fixture_with_holla_override(status_override: Option<(&str, &str)>) 
     let deferred_seal = serde_json::json!({
         "schema": "termrock-deferred-nextest-execution-v1",
         "kind": "actual-execution",
-        "run_root": "/private/tmp/deferred-fixture",
+        "run_root": "/fixtures/deferred-fixture",
         "source": {
             "commit": candidate,
             "tree": "4444444444444444444444444444444444444444",
@@ -1918,17 +1403,11 @@ fn execution_fixture_with_holla_override(status_override: Option<(&str, &str)>) 
             checks.push(check("interaction", "PASS", &aggregate_id, vec![]));
             let assertions: &[&str] = match checkpoint {
                 "00-boot" => &[
-                    "boot.disk_cursor",
-                    "boot.finder_footer",
-                    "boot.placeholder",
-                    "boot.world",
+                    "boot.disk_cursor", "boot.finder_footer", "boot.placeholder", "boot.world",
                 ],
                 "01-help" => &[
-                    "help.finder_footer_absent",
-                    "help.finder_row",
-                    "help.footer",
-                    "help.quit_row",
-                    "help.title_here",
+                    "help.finder_footer_absent", "help.finder_row", "help.footer",
+                    "help.quit_row", "help.title_here",
                 ],
                 "02-finder" => &["finder.placeholder_restored", "finder.quit_row_absent"],
                 "03-help-again" => &["reopen.title_here"],
@@ -1943,16 +1422,8 @@ fn execution_fixture_with_holla_override(status_override: Option<(&str, &str)>) 
                 checks.push(check("interaction", status, &id, vec![]));
             }
             let formats = [
-                "ansi",
-                "ascii",
-                "ascii_loss_json",
-                "frame_json",
-                "html",
-                "manifest_json",
-                "observations_json",
-                "png",
-                "png_fidelity_json",
-                "txt",
+                "ansi", "ascii", "ascii_loss_json", "frame_json", "html", "manifest_json",
+                "observations_json", "png", "png_fidelity_json", "txt",
             ];
             for format in formats {
                 artifacts.push(serde_json::json!({
@@ -1976,21 +1447,23 @@ fn execution_fixture_with_holla_override(status_override: Option<(&str, &str)>) 
     let status_counts = serde_json::Value::Object(status_counts);
     let interaction_pass_count = checks
         .iter()
-        .filter(|check| check["dimension"] == "interaction" && check["status"] == "PASS")
+        .filter(|check| {
+            check["dimension"] == "interaction" && check["status"] == "PASS"
+        })
         .count();
     let failed_interactions = checks
         .iter()
-        .filter(|check| check["dimension"] == "interaction" && check["status"] == "FAIL")
+        .filter(|check| {
+            check["dimension"] == "interaction" && check["status"] == "FAIL"
+        })
         .count();
     let not_run_interactions = checks
         .iter()
-        .filter(|check| check["dimension"] == "interaction" && check["status"] == "NOT_RUN")
+        .filter(|check| {
+            check["dimension"] == "interaction" && check["status"] == "NOT_RUN"
+        })
         .count();
-    let qualification = if failed_interactions > 0 {
-        "FAIL"
-    } else {
-        "BLOCKED"
-    };
+    let qualification = if failed_interactions > 0 { "FAIL" } else { "BLOCKED" };
     let assertion_outcome = if failed_interactions > 0 {
         "A recorded interaction FAIL and visual BLOCKED result caused the selected test to fail."
     } else {
@@ -2012,7 +1485,7 @@ fn execution_fixture_with_holla_override(status_override: Option<(&str, &str)>) 
         "artifacts": artifacts
     });
     let holla_receipt_pin = write_pinned_json(&fixture, "holla-receipt.json", &holla_receipt);
-    let holla_root = "/private/tmp/holla-diagnostic-test-run-01";
+    let holla_root = "/fixtures/holla-diagnostic-test-run-01";
     let nextest_run_id = "be22e745-da96-47ba-880f-eb00605352a6";
     let holla_seal = serde_json::json!({
         "record_type": "termrock_holla_actual_paired_journey_seal_v1",
@@ -2161,8 +1634,8 @@ fn base_tasks() -> String {
       "branch": "termrock-implementation",
       "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
       "allowed_paths": ["tools/visibility/status.py"],
-      "owner": "/root/status_luna",
-      "reviewer": "/root/technical_review",
+      "owner": "owner:status-test",
+      "reviewer": "reviewer:technical-test",
       "claim_token": "fixture-vis01",
       "expiry": "2026-10-09T06:00:00Z",
       "state": "in_progress",
@@ -2180,8 +1653,8 @@ fn base_tasks() -> String {
       "base_sha": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
       "allowed_paths": ["crates/termrock-e2e/**"],
       "state": "claimed",
-      "owner": "/root/suite_luna",
-      "reviewer": "/root/technical_review",
+      "owner": "owner:suite-test",
+      "reviewer": "reviewer:technical-test",
       "claim_token": "fixture-vis02",
       "expiry": "2026-10-09T06:00:00Z",
       "evidence": ["synthetic q47 branch-scope fixture"],
@@ -2219,7 +1692,6 @@ fn write_facts(fixture: &StatusFixture, facts: &str) {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn initial_status_keeps_products_not_run_and_pairs_exact() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -2254,7 +1726,6 @@ fn initial_status_keeps_products_not_run_and_pairs_exact() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn bounded_execution_receipts_render_partial_results_without_ready_claims() {
     let fixture = execution_fixture();
     let output = fixture.run(&[]);
@@ -2272,11 +1743,7 @@ fn bounded_execution_receipts_render_partial_results_without_ready_claims() {
     assert!(report.contains("| Reference | build: PASS (4), launch: PASS (4), first_frame: PASS (4), interaction: PASS (16), visual: BLOCKED (4), exit: NOT_APPLICABLE (4), restoration: NOT_APPLICABLE (4) |"));
     assert!(report.contains("The review records 12 registry assertion IDs and 4 aggregate interaction checks per subject across 4 checkpoints."));
     assert!(report.contains("80 checks: 56 PASS, 8 BLOCKED, 16 NOT_APPLICABLE"));
-    assert!(
-        report.contains(
-            "The candidate and reference release-build commands each exited with code 0."
-        )
-    );
+    assert!(report.contains("The candidate and reference release-build commands each exited with code 0."));
     assert!(report.contains("This covers one 120x40 truecolor case only."));
     assert!(report.contains("No API or ownership result is recorded"));
     assert!(report.contains("proposed R5 denominator is not accepted"));
@@ -2287,7 +1754,6 @@ fn bounded_execution_receipts_render_partial_results_without_ready_claims() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes() {
     // The overridden assertion ID appears once for each subject role.
     for (status, expected_cell, expected_count) in [
@@ -2313,7 +1779,8 @@ fn holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes() {
         assert!(report.contains(expected_count));
         assert!(report.contains(&format!(
             "| Holla | BLOCKED (4) | BLOCKED (4) | {} | {} |",
-            expected_cell, expected_cell,
+            expected_cell,
+            expected_cell,
         )));
         assert!(report.contains("Visibility / Complete | NOT_READY"));
         assert!(report.contains("Refactor / Ready | NOT_READY"));
@@ -2322,7 +1789,6 @@ fn holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_receipts_reject_source_pair_mismatch_and_changed_bytes() {
     let fixture = execution_fixture();
     let facts_path = fixture
@@ -2337,10 +1803,8 @@ fn execution_receipts_reject_source_pair_mismatch_and_changed_bytes() {
     write_json_facts(&fixture, &facts);
     let mismatched_pair = fixture.run(&[]);
     assert_eq!(mismatched_pair.exit_code, Some(2));
-    assert!(
-        error_text(&mismatched_pair)
-            .contains("execution observations candidate commit does not match the selected source")
-    );
+    assert!(error_text(&mismatched_pair)
+        .contains("execution observations candidate commit does not match the selected source"));
     assert!(mismatched_pair.stdout.is_empty());
 
     let fixture = execution_fixture();
@@ -2351,7 +1815,8 @@ fn execution_receipts_reject_source_pair_mismatch_and_changed_bytes() {
     let facts: serde_json::Value =
         serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
             .expect("parse source facts");
-    let relative_receipt = facts["execution_observations"]["holla_diagnostic"]["receipt"]["path"]
+    let relative_receipt = facts["execution_observations"]["holla_diagnostic"]["receipt"]
+        ["path"]
         .as_str()
         .expect("Holla receipt fixture path");
     let receipt_path = fixture.repo.root().join(relative_receipt);
@@ -2360,15 +1825,12 @@ fn execution_receipts_reject_source_pair_mismatch_and_changed_bytes() {
     fs::write(receipt_path, receipt_bytes).expect("change Holla receipt fixture bytes");
     let changed_receipt = fixture.run(&[]);
     assert_eq!(changed_receipt.exit_code, Some(2));
-    assert!(
-        error_text(&changed_receipt)
-            .contains("Holla paired receipt bytes do not match the recorded SHA-256")
-    );
+    assert!(error_text(&changed_receipt)
+        .contains("Holla paired receipt bytes do not match the recorded SHA-256"));
     assert!(changed_receipt.stdout.is_empty());
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn holla_executable_and_builder_receipt_hashes_are_cross_bound() {
     let mutations = [
         (
@@ -2421,56 +1883,49 @@ fn holla_executable_and_builder_receipt_hashes_are_cross_bound() {
                     serde_json::json!("x86_64-unknown-linux-gnu");
             }),
             "receipt_expected_actual_mismatch" => mutate_holla_receipt(&fixture, |receipt| {
-                receipt["source_pair"][0]["executable"]["expected_sha256"] = serde_json::json!(
-                    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-                );
+                receipt["source_pair"][0]["executable"]["expected_sha256"] =
+                    serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
             }),
             "receipt_executable_sha256" => mutate_holla_receipt(&fixture, |receipt| {
                 let candidate = &mut receipt["source_pair"][0];
-                candidate["executable"]["expected_sha256"] = serde_json::json!(
-                    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-                );
-                candidate["executable"]["actual_sha256"] = serde_json::json!(
-                    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-                );
-                candidate["builder_receipt"]["executable_sha256"] = serde_json::json!(
-                    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-                );
+                candidate["executable"]["expected_sha256"] =
+                    serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+                candidate["executable"]["actual_sha256"] =
+                    serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+                candidate["builder_receipt"]["executable_sha256"] =
+                    serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
             }),
             "receipt_builder_receipt_sha256" => mutate_holla_receipt(&fixture, |receipt| {
-                receipt["source_pair"][0]["builder_receipt_sha256"] = serde_json::json!(
-                    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-                );
-                receipt["source_pair"][0]["builder_receipt"]["sha256"] = serde_json::json!(
-                    "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-                );
+                receipt["source_pair"][0]["builder_receipt_sha256"] =
+                    serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+                receipt["source_pair"][0]["builder_receipt"]["sha256"] =
+                    serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
             }),
             "review_executable_sha256" => {
                 mutate_holla_pinned_document(&fixture, "review", |review| {
-                    review["source_pair_and_binaries"]["candidate"]["executable_sha256_expected_and_rehashed"] = serde_json::json!(
-                        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-                    );
+                    review["source_pair_and_binaries"]["candidate"]
+                        ["executable_sha256_expected_and_rehashed"] =
+                        serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
                 })
             }
             "review_builder_receipt_sha256" => {
                 mutate_holla_pinned_document(&fixture, "review", |review| {
-                    review["source_pair_and_binaries"]["candidate"]["builder_receipt_sha256"] = serde_json::json!(
+                    review["source_pair_and_binaries"]["candidate"]
+                        ["builder_receipt_sha256"] = serde_json::json!(
                         "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
                     );
                 })
             }
             "build_review_executable_sha256" => {
                 mutate_holla_pinned_document(&fixture, "build_review", |build_review| {
-                    build_review["observations"]["builds"][0]["executable_sha256"] = serde_json::json!(
-                        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-                    );
+                    build_review["observations"]["builds"][0]["executable_sha256"] =
+                        serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
                 })
             }
             "build_review_builder_receipt_sha256" => {
                 mutate_holla_pinned_document(&fixture, "build_review", |build_review| {
-                    build_review["observations"]["builds"][0]["builder_receipt_sha256"] = serde_json::json!(
-                        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-                    );
+                    build_review["observations"]["builds"][0]["builder_receipt_sha256"] =
+                        serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
                 })
             }
             _ => panic!("unknown Holla hash mutation `{mutation}`"),
@@ -2478,16 +1933,12 @@ fn holla_executable_and_builder_receipt_hashes_are_cross_bound() {
 
         let output = fixture.run(&[]);
         assert_eq!(output.exit_code, Some(2), "mutation `{mutation}`");
-        assert!(
-            error_text(&output).contains(expected_error),
-            "mutation `{mutation}`"
-        );
+        assert!(error_text(&output).contains(expected_error), "mutation `{mutation}`");
         assert!(output.stdout.is_empty(), "mutation `{mutation}`");
     }
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn holla_receipt_rejects_unexpected_or_missing_check_and_artifact_rows() {
     for (mutation, expected_error) in [
         (
@@ -2511,12 +1962,11 @@ fn holla_receipt_rejects_unexpected_or_missing_check_and_artifact_rows() {
         mutate_holla_receipt(&fixture, |receipt| match mutation {
             "extra_fail_check" => {
                 let mut row = receipt["checks"][0].clone();
-                row["id"] = serde_json::json!("candidate:HELP-HOLLA-004:00-boot:unexpected");
+                row["id"] = serde_json::json!(
+                    "candidate:HELP-HOLLA-004:00-boot:unexpected"
+                );
                 row["status"] = serde_json::json!("FAIL");
-                receipt["checks"]
-                    .as_array_mut()
-                    .expect("checks array")
-                    .push(row);
+                receipt["checks"].as_array_mut().expect("checks array").push(row);
             }
             "missing_check" => {
                 receipt["checks"]
@@ -2544,17 +1994,13 @@ fn holla_receipt_rejects_unexpected_or_missing_check_and_artifact_rows() {
         let output = fixture.run(&[]);
 
         assert_eq!(output.exit_code, Some(2), "mutation `{mutation}`");
-        assert!(
-            error_text(&output).contains(expected_error),
-            "mutation `{mutation}`"
-        );
+        assert!(error_text(&output).contains(expected_error), "mutation `{mutation}`");
         assert!(output.stdout.is_empty());
     }
 }
 
 #[cfg(unix)]
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_evidence_rejects_tmp_traversal_and_symlinked_parent() {
     let fixture = execution_fixture();
     let facts_path = fixture
@@ -2569,7 +2015,8 @@ fn execution_evidence_rejects_tmp_traversal_and_symlinked_parent() {
     write_json_facts(&fixture, &facts);
     let traversal = fixture.run(&[]);
     assert_eq!(traversal.exit_code, Some(2));
-    assert!(error_text(&traversal).contains("evidence path must stay below its allowed root"));
+    assert!(error_text(&traversal)
+        .contains("evidence path must stay below its allowed root"));
     assert!(traversal.stdout.is_empty());
 
     let fixture = execution_fixture();
@@ -2595,16 +2042,13 @@ fn execution_evidence_rejects_tmp_traversal_and_symlinked_parent() {
     write_json_facts(&fixture, &facts);
     let symlinked_parent = fixture.run(&[]);
     assert_eq!(symlinked_parent.exit_code, Some(2));
-    assert!(
-        error_text(&symlinked_parent)
-            .contains("Holla journey execution seal cannot be opened without following symlinks")
-    );
+    assert!(error_text(&symlinked_parent)
+        .contains("Holla journey execution seal cannot be opened without following symlinks"));
     assert!(symlinked_parent.stdout.is_empty());
 }
 
 #[cfg(unix)]
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_evidence_fifo_is_rejected_without_blocking_or_report() {
     let fixture = execution_fixture();
     let facts_path = fixture
@@ -2614,7 +2058,8 @@ fn execution_evidence_fifo_is_rejected_without_blocking_or_report() {
     let facts: serde_json::Value =
         serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
             .expect("parse source facts");
-    let relative_receipt = facts["execution_observations"]["holla_diagnostic"]["receipt"]["path"]
+    let relative_receipt = facts["execution_observations"]["holla_diagnostic"]["receipt"]
+        ["path"]
         .as_str()
         .expect("Holla receipt fixture path");
     let receipt_path = fixture.repo.root().join(relative_receipt);
@@ -2642,16 +2087,12 @@ fn execution_evidence_fifo_is_rejected_without_blocking_or_report() {
 
     assert!(!output.timed_out, "FIFO evidence open must not block");
     assert_eq!(output.exit_code, Some(2));
-    assert!(
-        output.stdout.is_empty(),
-        "rejected evidence emits no report"
-    );
+    assert!(output.stdout.is_empty(), "rejected evidence emits no report");
     assert!(!fixture.repo.root().join("STATUS.md").exists());
     assert!(error_text(&output).contains("Holla paired receipt must be a regular file"));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_receipt_json_rejects_duplicate_keys() {
     let fixture = execution_fixture();
     let facts_path = fixture
@@ -2661,7 +2102,8 @@ fn execution_receipt_json_rejects_duplicate_keys() {
     let mut facts: serde_json::Value =
         serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
             .expect("parse source facts");
-    let relative_receipt = facts["execution_observations"]["holla_diagnostic"]["receipt"]["path"]
+    let relative_receipt = facts["execution_observations"]["holla_diagnostic"]["receipt"]
+        ["path"]
         .as_str()
         .expect("Holla receipt fixture path");
     let receipt_path = fixture.repo.root().join(relative_receipt);
@@ -2678,9 +2120,8 @@ fn execution_receipt_json_rejects_duplicate_keys() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn checked_in_records_render_from_exact_copies() {
-    let fixture = StatusFixture::from_checked_in_records();
+    let fixture = StatusFixture::from_checked_in_report_snapshot();
     let checked_in_report = fs::read(fixture.repo.root().join("STATUS.md"))
         .expect("read exact checked-in STATUS report");
     let facts_path = fixture
@@ -2725,22 +2166,24 @@ fn checked_in_records_render_from_exact_copies() {
     assert_eq!(
         output.stdout.as_slice(),
         checked_in_report.as_slice(),
-        "checked-in facts and STATUS must agree byte for byte"
+        "absent optional history must preserve checked-in STATUS bytes"
     );
     assert_eq!(repeated.exit_code, Some(0));
     assert_eq!(output.stdout, repeated.stdout);
     assert!(report.contains(candidate_sha));
     assert!(report.contains(reference_sha));
-    assert_eq!(candidate_sha, "9b11039bace9333a40f578c71e2e997e1182e415");
-    assert_eq!(reference_sha, "2ae351dd27f0ee7d7d52ff6093208b0a57f62698");
-    assert_eq!(candidate_sha, latest_candidate_sha);
-    assert_eq!(reference_sha, latest_reference_sha);
+    assert!(report.contains(latest_candidate_sha));
+    assert!(report.contains(latest_reference_sha));
+    assert!(report.contains("These source snapshots remain historical. Their CI and Developer Certificate of Origin (DCO) captures are bound to the exact pair in each row. They do not qualify product results or change the fixed comparison pair."));
+    assert_eq!(candidate_sha, "85b51da2e9832dba642abf7d64d032f848cade0e");
+    assert_eq!(reference_sha, "5f6e52f31861f9f4281f1db264ab012457b9bc2e");
     assert!(facts["latest_source_observation"]["branch_last_update_at"].is_null());
     assert_eq!(
-        facts["latest_source_observation"]["timestamp_provenance"]["committer_dates_are_branch_update_times"],
+        facts["latest_source_observation"]["timestamp_provenance"]
+            ["committer_dates_are_branch_update_times"],
         false
     );
-    assert_eq!(history.len(), 7);
+    assert_eq!(history.len(), 5);
     assert_eq!(
         history[0]["source_observation"]["candidate_remote"]["head_sha"],
         "931bbba00bad43de79731912f48e29fe88751cb8"
@@ -2766,215 +2209,62 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(history[2]["current_ci_observation"].is_null());
     assert!(history[3]["current_ci_observation"].is_object());
     assert!(history[4]["current_ci_observation"].is_object());
-    assert!(history[5]["current_ci_observation"].is_null());
-    assert_eq!(
-        history[5]["source_observation"]["candidate_remote"]["head_sha"],
-        "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
-    );
-    assert_eq!(history[5]["superseded_at"], "2026-10-10T22:26:30Z");
-    assert_eq!(
-        history[6]["source_observation"]["candidate_remote"]["head_sha"],
-        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
-    );
-    assert!(history[6]["current_ci_observation"].is_object());
-    assert_eq!(
-        history[6]["current_ci_observation"]["api_capture"]["candidate_run"]["run_id"],
-        "38090751977"
-    );
-    assert_eq!(history[6]["superseded_at"], "2026-10-11T03:58:22Z");
-    let superseded_current = &facts["superseded_current_observations"]["records"][0];
-    assert_eq!(
-        superseded_current["candidate_head_sha"],
-        "14d0e0e5aa569868f519fc9ca91e55a02589d72a"
-    );
-    assert_eq!(
-        superseded_current["reference_head_sha"],
-        "4b473a98a8641a9dae8dbf9c31c0c94b15465496"
-    );
-    assert_eq!(
-        superseded_current["current_ci_observation"]["api_capture"]["candidate_run"]["run_id"],
-        "38041666323"
-    );
-    assert_eq!(superseded_current["superseded_at"], "2026-10-10T22:26:30Z");
-    let partial_current = &facts["superseded_current_observations"]["records"][1];
-    assert_eq!(partial_current["observation_kind"], "partial_queued_ci");
-    assert_eq!(
-        partial_current["candidate_head_sha"],
-        "d7c03139d0131157f1bd40eaf379d46c2e3814f8"
-    );
-    assert_eq!(
-        partial_current["reference_head_sha"],
-        "2ae351dd27f0ee7d7d52ff6093208b0a57f62698"
-    );
-    assert_eq!(
-        partial_current["current_ci_observation"]["api_capture"]["candidate_run"]["job_count"],
-        49
-    );
-    assert_eq!(partial_current["superseded_at"], "2026-10-10T22:54:12Z");
-    assert!(facts["current_status_observations"].is_null());
-    assert!(facts["current_publication_observation"].is_null());
-    assert!(
-        facts["historical_current_status_observations"]["records"]
-            .as_array()
-            .expect("historical current status records")
-            .len()
-            == 1
-    );
-    assert!(
-        facts["historical_current_publication_observations"]["records"]
-            .as_array()
-            .expect("historical current publication records")
-            .len()
-            == 1
-    );
-    assert!(
-        facts["historical_latest_ci_snapshots"]["records"]
-            .as_array()
-            .expect("historical CI snapshots")
-            .len()
-            == 1
-    );
-
-    let current_ci = facts["current_ci_observation"]["api_capture"]
-        .as_object()
-        .expect("current CI API capture");
-    assert_eq!(current_ci["candidate_run"]["run_id"], "38108486387");
-    assert_eq!(current_ci["candidate_run"]["status"], "completed");
-    assert_eq!(current_ci["candidate_run"]["conclusion"], "failure");
-    assert_eq!(current_ci["candidate_run"]["job_count"], 51);
-    assert_eq!(current_ci["candidate_run"]["artifact_count"], 49);
-    assert_eq!(current_ci["reference_query"]["query_total_count"], 0);
-    assert_eq!(current_ci["workflow_source"]["size_bytes"], 115_446);
-    assert_eq!(
-        current_ci["workflow_source"]["raw_sha256"],
-        "664fe57510323c3d148cdad3f9a416bf383fa54276fa40efb4af95bd3b57804f"
-    );
-    assert_eq!(current_ci["candidate_dco"]["check_run_id"], "114378959885");
-    assert_eq!(current_ci["candidate_dco"]["conclusion"], "success");
-    assert_eq!(current_ci["reference_dco"]["check_run_id"], "114328215608");
-    assert_eq!(current_ci["reference_dco"]["conclusion"], "action_required");
-    assert!(facts["current_ci_observation"]["provider_annotation_capture"].is_null());
-    let job_execution = current_ci["job_execution_observation"]
-        .as_object()
-        .expect("current final job execution capture");
-    assert_eq!(job_execution["run_status"], "completed");
-    assert_eq!(job_execution["completed"], 51);
-    assert_eq!(job_execution["in_progress"], 0);
-    assert_eq!(job_execution["queued"], 0);
-    assert_eq!(job_execution["success_count"], 37);
-    assert_eq!(job_execution["failure_count"], 13);
-    assert_eq!(job_execution["skipped_count"], 1);
-    assert_eq!(job_execution["failed_jobs"].as_array().unwrap().len(), 13);
-    assert_eq!(job_execution["skipped_jobs"].as_array().unwrap().len(), 1);
-    assert!(
-        job_execution["failed_jobs"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|job| job["name"] == "Required"),
-        "aggregate Required failure must remain explicit"
-    );
-    assert_eq!(current_ci["artifact_observation"]["artifact_count"], 49);
-    assert_eq!(
-        current_ci["artifact_observation"]["partial_snapshot"],
-        false
-    );
-    assert_eq!(job_execution["product_execution"], "NOT_RUN");
-    assert_eq!(
-        facts["pull_request_observation"]["merge_state_status"],
-        serde_json::Value::Null
-    );
-    let package = facts["current_local_e2e_suite_observation"]
-        .as_object()
-        .expect("current local package control");
-    assert_eq!(package["file_count"], 29);
-    assert_eq!(
-        package["package_sha256"],
-        "9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6"
-    );
-    assert_eq!(
-        package["inventory_sha256"],
-        "3912c8cb872429f718047008f488606d73755d67ae1f4269da6077d297ab0d1c"
-    );
-    assert_eq!(package["nextest"]["selected"], 1);
-    assert_eq!(package["nextest"]["passed"], 1);
-    assert_eq!(package["nextest"]["failed"], 0);
     assert!(history[2]["source_observation"]["branch_last_update_at"].is_null());
+    assert_eq!(latest_candidate_sha, "1d797d41c8141fcbdc3f69d7f11eb8875ab54712");
+    assert_eq!(latest_reference_sha, "b274dd57f4dd078ade6e424d546d83efbd2e8526");
     assert_eq!(history[4]["superseded_at"], "2026-10-08T23:25:02Z");
-    assert!(report.contains("2026-10-10T22:54:12Z"));
-    assert_eq!(
-        facts["latest_source_observation"]["reference_remote"]["commit_committer_at"],
-        "2026-10-10T22:24:41Z"
-    );
-    assert_eq!(
-        facts["source_observation_history"][5]["source_observation"]["reference_remote"]["commit_committer_at"],
-        "2026-10-08T16:13:33Z"
-    );
-    assert!(report.contains("read-only GitHub branch API observation"));
-    assert!(report.contains("branch last-update time unknown"));
-    let historical_snapshot = facts["historical_latest_ci_snapshots"]["records"][0]["snapshot"]
+    assert!(report.contains("2026-10-08T23:14:25Z"));
+    assert!(report.contains("2026-10-08T16:13:33Z"));
+    assert!(report.contains(
+        "read-only GitHub branch API observation; local fetched refs verified afterward"
+    ));
+    assert!(report.contains("Branch last-update time unknown"));
+    let current_ci = facts["latest_ci_snapshot"]
         .as_object()
-        .expect("historical exact-source CI capture");
+        .expect("latest exact-source CI capture");
+    assert_eq!(current_ci["candidate_run"]["run_id"], "37858314774");
     assert_eq!(
-        historical_snapshot["candidate_run"]["run_id"],
-        "37858314774"
+        current_ci["source_pair"]["candidate_commit"],
+        latest_candidate_sha
     );
     assert_eq!(
-        historical_snapshot["source_pair"]["candidate_commit"],
-        "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
+        current_ci["source_pair"]["reference_commit"],
+        latest_reference_sha
     );
-    assert_eq!(
-        historical_snapshot["source_pair"]["reference_commit"],
-        "b274dd57f4dd078ade6e424d546d83efbd2e8526"
-    );
-    assert_eq!(historical_snapshot["candidate_run"]["job_count"], 0);
-    assert!(historical_snapshot["artifact_count"].is_null());
-    assert_eq!(historical_snapshot["artifact_query"], "NOT_QUERIED");
-    assert_eq!(historical_snapshot["failure_cause"], "UNKNOWN_NOT_CAPTURED");
-    assert_eq!(historical_snapshot["product_execution"], "NOT_RUN");
-    assert_eq!(
-        historical_snapshot["reference_query"]["query_total_count"],
-        0
-    );
-    assert_eq!(
-        historical_snapshot["candidate_dco"]["check_run_id"],
-        "113587796998"
-    );
-    assert!(historical_snapshot["reference_dco"].is_null());
-    let current_ci_section = report
-        .split("## Current CI and Developer Certificate of Origin (DCO) observations")
+    assert_eq!(current_ci["candidate_run"]["job_count"], 0);
+    assert!(current_ci["artifact_count"].is_null());
+    assert_eq!(current_ci["artifact_query"], "NOT_QUERIED");
+    assert_eq!(current_ci["failure_cause"], "UNKNOWN_NOT_CAPTURED");
+    assert_eq!(current_ci["product_execution"], "NOT_RUN");
+    assert_eq!(current_ci["reference_query"]["query_total_count"], 0);
+    assert_eq!(current_ci["candidate_dco"]["check_run_id"], "113587796998");
+    assert!(current_ci["reference_dco"].is_null());
+    let latest_ci_section = report
+        .split("## Latest candidate-source CI snapshot")
         .nth(1)
-        .expect("current CI report section")
-        .split("\n## ")
+        .expect("latest CI report section")
+        .split("\n## Report publication observations")
         .next()
-        .expect("end of current CI report section");
-    assert!(current_ci_section.contains("38108486387"));
-    assert!(current_ci_section.contains("51 jobs; 49 artifacts"));
-    assert!(current_ci_section.contains("No correlated provider annotation is recorded"));
-    assert!(current_ci_section.contains("115446 bytes"));
-    assert!(current_ci_section.contains("Rust / jackin-preview-app"));
-    assert!(current_ci_section.contains("Rust / jackin-preview"));
-    assert!(current_ci_section.contains("Rust / termrock-visibility-tests"));
-    assert!(current_ci_section.contains("Rust / termrock-viewport"));
-    assert!(current_ci_section.contains("Required"));
-    assert!(current_ci_section.contains("Publish baseline"));
-    assert!(current_ci_section.contains("0 matching Actions runs"));
-    assert!(current_ci_section.contains("114378959885"));
-    assert!(current_ci_section.contains("114328215608"));
+        .expect("end of latest CI report section");
+    assert!(latest_ci_section.contains("37858314774"));
+    assert!(latest_ci_section.contains("artifact count UNKNOWN (not queried)"));
+    assert!(latest_ci_section.contains("Failure cause UNKNOWN_NOT_CAPTURED"));
+    assert!(latest_ci_section.contains("0 matching runs"));
+    assert!(latest_ci_section.contains("113587796998"));
+    assert!(latest_ci_section.contains("Reference DCO check | NOT_CAPTURED"));
+    let provider_annotation = facts["current_status_observations"]["workflow_run_observations"][0]
+        ["provider_annotation"]
+        .as_str()
+        .expect("captured current workflow failure annotation");
+    assert!(latest_ci_section.contains(provider_annotation));
+    assert!(latest_ci_section.contains("workflow source 537470 bytes"));
     assert_eq!(
         facts["latest_local_checkout_observation"]["head_sha"],
-        "9b11039bace9333a40f578c71e2e997e1182e415"
+        "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
     );
     assert!(
-        report.contains("termrock-implementation at `9b11039bace9333a40f578c71e2e997e1182e415`")
-            && report.contains("| Local publication | Published.")
-            && facts["local_checkout_history"]
-                .as_array()
-                .is_some_and(|history| {
-                    history.iter().any(|record| {
-                        record["checkout"]["head_sha"] == "766ae1e925e32b4b28aa9100bb3fde5279aa223b"
-                    })
-                })
+        report.contains("termrock-implementation at `766ae1e925e32b4b28aa9100bb3fde5279aa223b`")
+            && report.contains("| Local publication | NOT_RECORDED.")
             && report.contains("f61abd3dfba1b4f867a539ab18ed7e4760b24a18"),
         "latest and historical local checkout identities must remain distinct"
     );
@@ -2986,7 +2276,16 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(report.contains("## Report publication observations"));
     assert!(report.contains("37862074205"));
     assert!(report.contains("37864720297"));
-    assert!(!report.contains("Published report commits and source evidence"));
+    assert!(report.lines().any(|line| {
+        line.contains("169380c7d6a4cff9f1c43ecef592abc715e6df6a")
+            && line.contains("[37862074205]")
+    }));
+    assert!(report.lines().any(|line| {
+        line.contains("b9e34b13ef47401865f1511b9babaab6e020eedc")
+            && line.contains("[37864720297]")
+    }));
+    assert!(report.contains("UNKNOWN_NOT_QUERIED"));
+    assert!(report.contains("UNKNOWN_NOT_CAPTURED"));
     assert!(report.contains("## Historical bounded execution observations"));
     assert!(report.lines().any(|line| {
         line.contains("1ea1c17707f0a8f1639af506be179013d5e2d52a")
@@ -2995,9 +2294,6 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(report.contains("22 passed; 1 failed of 23 terminal tests"));
     assert!(report.contains("80 checks: 56 PASS, 8 BLOCKED, 16 NOT_APPLICABLE"));
     assert!(report.contains("Historical local E2E package"));
-    assert!(report.contains("## Current local package control"));
-    assert!(report.contains("9f7e2298aded253dcfccfb6b56f8377be889aadfe477dfd40cb1620267a2ddd6"));
-    assert!(report.contains("NOT product execution and NOT a paired run"));
     assert!(report.contains("## Local package and reporter controls"));
     assert!(report.contains("f307376a1e1d3dca04642875fdf98e9b43cdee47e6988ed0952c30c62c447361"));
     assert!(report.contains("a914f8e34280f55d6a868bfee8777f771fb0354e96e5a2291a91b86c65a62ea0"));
@@ -3006,38 +2302,13 @@ fn checked_in_records_render_from_exact_copies() {
     assert!(report.contains("this is not one full green run"));
     assert!(report.contains("The f307 Holla product result remains NOT_RUN."));
     assert!(report.contains("| Visibility / Complete | NOT_RUN |"));
-    assert!(report.contains("| Refactor / Ready | NOT_RUN |"));
+    assert!(report.contains("| Refactor / Ready | NOT_READY |"));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
-fn rejects_stale_current_local_package_digest() {
-    let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read copied source facts"))
-            .expect("parse copied source facts");
-    facts["current_local_e2e_suite_observation"]["package_sha256"] =
-        serde_json::json!("0".repeat(64));
-    write_json_facts(&fixture, &facts);
-
-    let output = fixture.run(&[]);
-    assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("current E2E Nextest control source digest changed"));
-    assert!(output.stdout.is_empty());
-}
-
-#[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phases_render_run03_without_promoting_current_readiness() {
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
     let mut facts: serde_json::Value = serde_json::from_slice(
         &fs::read(&facts_path).expect("read source facts for phase projection"),
     )
@@ -3061,18 +2332,13 @@ fn historical_product_phases_render_run03_without_promoting_current_readiness() 
         .lines()
         .find(|line| line.starts_with("| RUN-03 |"))
         .expect("historical RUN-03 table row");
-    assert!(
-        run03.contains("historical pair: candidate `1d797d41c8141fcbdc3f69d7f11eb8875ab54712`")
-    );
+    assert!(run03.contains("historical pair: candidate `1d797d41c8141fcbdc3f69d7f11eb8875ab54712`"));
     assert!(run03.contains("reference `b274dd57f4dd078ade6e424d546d83efbd2e8526`"));
     assert!(run03.contains("Reference: FAIL; Candidate: FAIL"));
     assert!(run03.contains(
         "Current: NOT_RUN; historical required: Reference NOT_READY; Candidate NOT_READY"
     ));
-    assert!(
-        !run03.contains("cleanup"),
-        "cleanup is validated but not a table dimension"
-    );
+    assert!(!run03.contains("cleanup"), "cleanup is validated but not a table dimension");
     let run02 = commands
         .lines()
         .find(|line| line.starts_with("| RUN-02 |"))
@@ -3081,13 +2347,9 @@ fn historical_product_phases_render_run03_without_promoting_current_readiness() 
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_pair_remains_valid_when_current_pair_differs() {
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
     let mut facts: serde_json::Value = serde_json::from_slice(
         &fs::read(&facts_path).expect("read source facts for historical pair test"),
     )
@@ -3120,36 +2382,21 @@ fn historical_product_phase_pair_remains_valid_when_current_pair_differs() {
         .lines()
         .find(|line| line.starts_with("| RUN-03 |"))
         .expect("historical RUN-03 row remains visible");
-    assert!(
-        run03.contains("historical pair: candidate `3333333333333333333333333333333333333333`")
-    );
+    assert!(run03.contains("historical pair: candidate `3333333333333333333333333333333333333333`"));
     assert!(run03.contains("reference `4444444444444444444444444444444444444444`"));
-    assert!(run03.contains(
-        "Current: NOT_RUN; historical required: Reference NOT_READY; Candidate NOT_READY"
-    ));
-    assert!(report.contains("These source snapshots remain historical."));
+    assert!(run03.contains("Current: NOT_RUN; historical required: Reference NOT_READY; Candidate NOT_READY"));
+    assert!(report.contains("fixed comparison pair"));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_not_applicable_readiness_is_explicit() {
     let phase_names = [
-        "build",
-        "launch",
-        "first_frame",
-        "interaction",
-        "exit",
-        "restoration",
-        "visual",
-        "ownership",
-        "cleanup",
+        "build", "launch", "first_frame", "interaction", "exit", "restoration",
+        "visual", "ownership", "cleanup",
     ];
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
     let mut facts: serde_json::Value = serde_json::from_slice(
         &fs::read(&facts_path).expect("read source facts for N/A readiness test"),
     )
@@ -3157,7 +2404,8 @@ fn historical_product_phase_not_applicable_readiness_is_explicit() {
     let mut pair = product_phase_pair_evidence();
     for role in ["candidate", "reference"] {
         for name in phase_names {
-            pair["receipt"]["rows"][0][role]["layers"][name]["status"] = serde_json::json!("PASS");
+            pair["receipt"]["rows"][0][role]["layers"][name]["status"] =
+                serde_json::json!("PASS");
         }
     }
     pair["receipt"]["rows"][0]["reference"]["layers"]["ownership"]["status"] =
@@ -3167,16 +2415,12 @@ fn historical_product_phase_not_applicable_readiness_is_explicit() {
     rebind_product_phase_archive(&fixture, &mut facts, &pair);
     let neutral_na = fixture.run(&[]);
     assert_eq!(neutral_na.exit_code, Some(0), "{}", error_text(&neutral_na));
-    assert!(
-        output_text(&neutral_na)
-            .contains("Current: NOT_RUN; historical required: Reference READY; Candidate READY")
-    );
+    assert!(output_text(&neutral_na).contains(
+        "Current: NOT_RUN; historical required: Reference READY; Candidate READY"
+    ));
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
     let mut facts: serde_json::Value = serde_json::from_slice(
         &fs::read(&facts_path).expect("read source facts for all-N/A readiness test"),
     )
@@ -3198,10 +2442,7 @@ fn historical_product_phase_not_applicable_readiness_is_explicit() {
     ));
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
     let mut facts: serde_json::Value = serde_json::from_slice(
         &fs::read(&facts_path).expect("read source facts for required N/A test"),
     )
@@ -3219,30 +2460,20 @@ fn historical_product_phase_not_applicable_readiness_is_explicit() {
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
     rebind_product_phase_archive(&fixture, &mut facts, &pair);
     let required_na = fixture.run(&[]);
-    assert_eq!(
-        required_na.exit_code,
-        Some(0),
-        "{}",
-        error_text(&required_na)
-    );
-    assert!(
-        output_text(&required_na).contains(
-            "Current: NOT_RUN; historical required: Reference NOT_RUN; Candidate NOT_RUN"
-        )
-    );
+    assert_eq!(required_na.exit_code, Some(0), "{}", error_text(&required_na));
+    assert!(output_text(&required_na).contains(
+        "Current: NOT_RUN; historical required: Reference NOT_RUN; Candidate NOT_RUN"
+    ));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_archive_rejects_missing_tampered_and_unlisted_members() {
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let pair = product_phase_pair_evidence();
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
     write_json_facts(&fixture, &facts);
@@ -3254,39 +2485,31 @@ fn historical_product_phase_archive_rejects_missing_tampered_and_unlisted_member
     assert!(missing.stdout.is_empty());
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let pair = product_phase_pair_evidence();
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
     write_json_facts(&fixture, &facts);
-    fs::write(
-        fixture.repo.root().join(PRODUCT_PHASE_PAIR_PATH),
-        b"tampered",
-    )
-    .expect("tamper pair evidence");
+    fs::write(fixture.repo.root().join(PRODUCT_PHASE_PAIR_PATH), b"tampered")
+        .expect("tamper pair evidence");
     let tampered = fixture.run(&[]);
     assert_eq!(tampered.exit_code, Some(2));
     assert!(error_text(&tampered).contains("pair evidence bytes do not match"));
     assert!(tampered.stdout.is_empty());
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let pair = product_phase_pair_evidence();
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
-    facts["product_phase_observations"]["commands"][0]["pair_evidence"]["path"] = serde_json::json!(
-        format!("{PRODUCT_PHASE_ARCHIVE_DIR}/raw/run03/unlisted.json")
-    );
+    facts["product_phase_observations"]["commands"][0]["pair_evidence"]["path"] =
+        serde_json::json!(format!("{PRODUCT_PHASE_ARCHIVE_DIR}/raw/run03/unlisted.json"));
     write_json_facts(&fixture, &facts);
     let unlisted = fixture.run(&[]);
     assert_eq!(unlisted.exit_code, Some(2));
@@ -3294,18 +2517,15 @@ fn historical_product_phase_archive_rejects_missing_tampered_and_unlisted_member
     assert!(unlisted.stdout.is_empty());
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let pair = product_phase_pair_evidence();
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
-    facts["product_phase_observations"]["commands"][0]["pair_evidence"]["path"] = serde_json::json!(
-        format!("{PRODUCT_PHASE_ARCHIVE_DIR}/raw/run03/../pair-evidence.json")
-    );
+    facts["product_phase_observations"]["commands"][0]["pair_evidence"]["path"] =
+        serde_json::json!(format!("{PRODUCT_PHASE_ARCHIVE_DIR}/raw/run03/../pair-evidence.json"));
     write_json_facts(&fixture, &facts);
     let escaped = fixture.run(&[]);
     assert_eq!(escaped.exit_code, Some(2));
@@ -3314,16 +2534,13 @@ fn historical_product_phase_archive_rejects_missing_tampered_and_unlisted_member
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_rejects_command_and_source_pair_drift() {
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let pair = product_phase_pair_evidence();
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
     facts["product_phase_observations"]["commands"][0]["exact_command"] =
@@ -3335,13 +2552,11 @@ fn historical_product_phase_rejects_command_and_source_pair_drift() {
     assert!(command_drift.stdout.is_empty());
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let mut pair = product_phase_pair_evidence();
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
     pair["receipt"]["rows"][0]["candidate"]["source_commit"] =
@@ -3354,23 +2569,17 @@ fn historical_product_phase_rejects_command_and_source_pair_drift() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn historical_product_phase_rejects_duplicate_run03_and_invalid_layers() {
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let mut pair = product_phase_pair_evidence();
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
     let duplicate = pair["receipt"]["rows"][0].clone();
-    pair["receipt"]["rows"]
-        .as_array_mut()
-        .expect("receipt rows")
-        .push(duplicate);
+    pair["receipt"]["rows"].as_array_mut().expect("receipt rows").push(duplicate);
     rebind_product_phase_archive(&fixture, &mut facts, &pair);
     let duplicate_run = fixture.run(&[]);
     assert_eq!(duplicate_run.exit_code, Some(2));
@@ -3378,13 +2587,11 @@ fn historical_product_phase_rejects_duplicate_run03_and_invalid_layers() {
     assert!(duplicate_run.stdout.is_empty());
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let mut pair = product_phase_pair_evidence();
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
     pair["receipt"]["rows"][0]["candidate"]["layers"]
@@ -3398,13 +2605,11 @@ fn historical_product_phase_rejects_duplicate_run03_and_invalid_layers() {
     assert!(missing_layer.stdout.is_empty());
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let mut pair = product_phase_pair_evidence();
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
     pair["receipt"]["rows"][0]["candidate"]["layers"]["interaction"]["status"] =
@@ -3416,15 +2621,14 @@ fn historical_product_phase_rejects_duplicate_run03_and_invalid_layers() {
     assert!(invalid_layer.stdout.is_empty());
 
     let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let mut facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(&facts_path).expect("read source facts"))
-            .expect("parse source facts");
+    let facts_path = fixture.repo.root().join("tools/visibility/source-facts.json");
+    let mut facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(&facts_path).expect("read source facts"),
+    )
+    .expect("parse source facts");
     let mut pair = product_phase_pair_evidence();
-    pair["receipt"]["rows"][0]["candidate"]["layers"]["unregistered"] = product_phase_layer("PASS");
+    pair["receipt"]["rows"][0]["candidate"]["layers"]["unregistered"] =
+        product_phase_layer("PASS");
     facts["product_phase_observations"] = write_product_phase_archive(&fixture, &pair);
     rebind_product_phase_archive(&fixture, &mut facts, &pair);
     let extra_layer = fixture.run(&[]);
@@ -3434,7 +2638,6 @@ fn historical_product_phase_rejects_duplicate_run03_and_invalid_layers() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_misbound_latest_ci_publication_and_historical_execution() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -3447,15 +2650,14 @@ fn rejects_misbound_latest_ci_publication_and_historical_execution() {
     .expect("parse copied source facts");
 
     let mut misbound_ci = original.clone();
-    misbound_ci["current_ci_observation"]["api_capture"]["source_pair"]["candidate_head_sha"] =
+    misbound_ci["latest_ci_snapshot"]["source_pair"]["candidate_commit"] =
         serde_json::json!("1111111111111111111111111111111111111111");
     fixture.write_facts(&misbound_ci.to_string());
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(
-        error_text(&output)
-            .contains("current CI candidate source does not match the latest candidate tip")
-    );
+    assert!(error_text(&output).contains(
+        "latest CI source pair does not match the current source observation"
+    ));
     assert!(output.stdout.is_empty());
 
     let mut misbound_publication = original.clone();
@@ -3468,17 +2670,19 @@ fn rejects_misbound_latest_ci_publication_and_historical_execution() {
     assert!(output.stdout.is_empty());
 
     let mut promoted_historical = original;
-    promoted_historical["historical_execution_observations"][0]["source_pair"]["candidate_commit"] =
+    promoted_historical["historical_execution_observations"][0]["source_pair"]
+        ["candidate_commit"] =
         serde_json::json!("1d797d41c8141fcbdc3f69d7f11eb8875ab54712");
     fixture.write_facts(&promoted_historical.to_string());
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("must match exactly one superseded source observation"));
+    assert!(error_text(&output).contains(
+        "must match exactly one superseded source observation"
+    ));
     assert!(output.stdout.is_empty());
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn local_package_and_report_control_metadata_rejects_unbound_inputs() {
     for mutation in [
         "local_commit",
@@ -3508,17 +2712,16 @@ fn local_package_and_report_control_metadata_rejects_unbound_inputs() {
                     serde_json::json!("0000000000000000000000000000000000000000");
             }
             "package_digest" => {
-                facts["local_e2e_suite_observation"]["package_sha256"] = serde_json::json!(
-                    "0000000000000000000000000000000000000000000000000000000000000000"
-                );
+                facts["local_e2e_suite_observation"]["package_sha256"] =
+                    serde_json::json!("0000000000000000000000000000000000000000000000000000000000000000");
             }
             "contract_result" => {
                 facts["local_e2e_suite_observation"]["contract_gate"]["result"] =
                     serde_json::json!("NOT_RUN");
             }
             "contract_count" => {
-                let receipt_path = facts["local_e2e_suite_observation"]["contract_gate"]["receipt"]
-                    ["path"]
+                let receipt_path = facts["local_e2e_suite_observation"]["contract_gate"]
+                    ["receipt"]["path"]
                     .as_str()
                     .expect("f307 receipt path");
                 let receipt_bytes = fs::read(fixture.repo.root().join(receipt_path))
@@ -3526,8 +2729,8 @@ fn local_package_and_report_control_metadata_rejects_unbound_inputs() {
                 let mut receipt: serde_json::Value =
                     serde_json::from_slice(&receipt_bytes).expect("parse f307 receipt");
                 receipt["test_results"][2]["counts"]["passed"] = serde_json::json!(0);
-                let changed_bytes =
-                    serde_json::to_vec(&receipt).expect("serialize altered f307 receipt");
+                let changed_bytes = serde_json::to_vec(&receipt)
+                    .expect("serialize altered f307 receipt");
                 let local_receipt = fixture
                     .repo
                     .root()
@@ -3544,9 +2747,8 @@ fn local_package_and_report_control_metadata_rejects_unbound_inputs() {
                     serde_json::json!(34);
             }
             "report_review_pin" => {
-                facts["status_report_control_observation"]["independent_review"]["sha256"] = serde_json::json!(
-                    "0000000000000000000000000000000000000000000000000000000000000000"
-                );
+                facts["status_report_control_observation"]["independent_review"]["sha256"] =
+                    serde_json::json!("0000000000000000000000000000000000000000000000000000000000000000");
             }
             _ => unreachable!("listed metadata mutation"),
         }
@@ -3558,7 +2760,6 @@ fn local_package_and_report_control_metadata_rejects_unbound_inputs() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
     let fixture = StatusFixture::from_checked_in_records();
     let tasks_path = fixture
@@ -3577,10 +2778,8 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
         "coordinator",
     ]);
     assert_eq!(scoped_preview.exit_code, Some(2));
-    assert!(
-        error_text(&scoped_preview)
-            .contains("tasks[0].branch_scopes is a schema-v1 claim extension")
-    );
+    assert!(error_text(&scoped_preview)
+        .contains("tasks[0].branch_scopes is a schema-v1 claim extension"));
     assert_eq!(
         fs::read(&tasks_path).expect("tasks after rejecting scoped preview"),
         current_v1_tasks
@@ -3653,12 +2852,7 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
         &serde_json::to_string(&representable_v1).expect("serialize representable schema-v1 tasks"),
     );
     let rendered_v1 = fixture.run_queue(&["render"]);
-    assert_eq!(
-        rendered_v1.exit_code,
-        Some(0),
-        "{}",
-        error_text(&rendered_v1)
-    );
+    assert_eq!(rendered_v1.exit_code, Some(0), "{}", error_text(&rendered_v1));
     fs::write(&queue_view_path, &rendered_v1.stdout)
         .expect("write v1 view for the isolated representable fixture");
 
@@ -3678,10 +2872,7 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
     let preview: serde_json::Value =
         serde_json::from_slice(&preview.stdout).expect("parse canonical migration preview");
     assert_eq!(preview["writes_files"], false);
-    assert_eq!(
-        fs::read(&tasks_path).expect("tasks after preview"),
-        v1_tasks
-    );
+    assert_eq!(fs::read(&tasks_path).expect("tasks after preview"), v1_tasks);
     assert_eq!(
         fs::read(&queue_view_path).expect("queue view after preview"),
         v1_queue_view
@@ -3740,7 +2931,9 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
         .strip_prefix('{')
         .and_then(|value| value.strip_suffix('}'))
         .expect("serialized records object delimiters");
-    let raw_duplicate = format!("{{\"schema_version\":2,\"schema_version\":1,{fields}}}");
+    let raw_duplicate = format!(
+        "{{\"schema_version\":2,\"schema_version\":1,{fields}}}"
+    );
     fixture.write_tasks(&raw_duplicate);
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
@@ -3749,7 +2942,6 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
 
 #[cfg(unix)]
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_fails_closed_when_adjacent_queue_is_missing_or_symlinked() {
     let missing = StatusFixture::new();
     fs::remove_file(&missing.queue_script).expect("remove adjacent queue module");
@@ -3767,7 +2959,6 @@ fn status_fails_closed_when_adjacent_queue_is_missing_or_symlinked() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_fails_closed_when_adjacent_queue_lacks_v1_validator() {
     let fixture = StatusFixture::new();
     let v2_only_queue_module = concat!(
@@ -3776,8 +2967,11 @@ fn status_fails_closed_when_adjacent_queue_lacks_v1_validator() {
         "def validate_records_v2(records):\n",
         "    return records\n",
     );
-    fs::write(&fixture.queue_script, v2_only_queue_module)
-        .expect("write queue module without schema-v1 validator");
+    fs::write(
+        &fixture.queue_script,
+        v2_only_queue_module,
+    )
+    .expect("write queue module without schema-v1 validator");
 
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
@@ -3788,7 +2982,6 @@ fn status_fails_closed_when_adjacent_queue_lacks_v1_validator() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_ambiguous_or_nonfinite_source_facts_without_status_output() {
     let duplicate_identity = replace_once(
         base_facts(),
@@ -3818,24 +3011,18 @@ fn rejects_ambiguous_or_nonfinite_source_facts_without_status_output() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
         .repo
         .root()
         .join("tools/visibility/source-facts.json");
-    let facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(facts_path).expect("read copied checked-in source facts"))
-            .expect("parse checked-in source facts");
+    let facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(facts_path).expect("read copied checked-in source facts"),
+    )
+    .expect("parse checked-in source facts");
     let original = with_four_predecessors(facts);
-    assert_eq!(
-        original["source_observation_history"]
-            .as_array()
-            .unwrap()
-            .len(),
-        7
-    );
+    assert_eq!(original["source_observation_history"].as_array().unwrap().len(), 5);
 
     fixture.write_facts(&original.to_string());
     let output = fixture.run(&[]);
@@ -3843,18 +3030,22 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     let report = output_text(&output);
     assert!(report.contains("1ea1c17707f0a8f1639af506be179013d5e2d52a"));
     assert!(report.contains("b682cb26d68b353aeeccf9e51653eddf097b39f5"));
-    assert!(report.contains("d7c03139d0131157f1bd40eaf379d46c2e3814f8"));
-    assert!(report.contains("2ae351dd27f0ee7d7d52ff6093208b0a57f62698"));
+    assert!(report.contains("1d797d41c8141fcbdc3f69d7f11eb8875ab54712"));
+    assert!(report.contains("b274dd57f4dd078ade6e424d546d83efbd2e8526"));
     assert_eq!(
         original["latest_source_observation"]["candidate_remote"]["head_sha"],
-        "9b11039bace9333a40f578c71e2e997e1182e415"
+        "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
     );
     assert_eq!(
         original["latest_source_observation"]["reference_remote"]["head_sha"],
-        "2ae351dd27f0ee7d7d52ff6093208b0a57f62698"
+        "b274dd57f4dd078ade6e424d546d83efbd2e8526"
     );
     assert!(report.contains("Visibility / Complete | NOT_RUN"));
-    assert!(report.contains("Refactor / Ready | NOT_RUN"));
+    assert!(report.contains("Refactor / Ready | NOT_READY"));
+    assert!(report.contains("FAILED: 22/23 passed, 1 failed, 87 filtered"));
+    assert!(report.contains(
+        "The candidate API/deferred test run FAILED: 22 of 23 tests passed; 1 failed."
+    ));
 
     let mut malformed_source = original.clone();
     malformed_source["source_observation_history"][0]["source_observation"]
@@ -3875,10 +3066,7 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
     assert!(error_text(&output).contains("source_observation_history[0].source_evidence.sha256"));
 
     let mut reordered = original.clone();
-    reordered["source_observation_history"]
-        .as_array_mut()
-        .unwrap()
-        .swap(0, 1);
+    reordered["source_observation_history"].as_array_mut().unwrap().swap(0, 1);
     fixture.write_facts(&reordered.to_string());
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
@@ -3886,26 +3074,92 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
 
     let mut duplicate_predecessor = original.clone();
     let duplicated_record = duplicate_predecessor["source_observation_history"][0].clone();
-    duplicate_predecessor["source_observation_history"]
-        .as_array_mut()
-        .unwrap()[1] = duplicated_record;
+    duplicate_predecessor["source_observation_history"].as_array_mut().unwrap()[1] =
+        duplicated_record;
     fixture.write_facts(&duplicate_predecessor.to_string());
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
     assert!(error_text(&output).contains("reuses a source-evidence identity"));
+
+    let mut duplicate_source_pair = original.clone();
+    let first_candidate = duplicate_source_pair["source_observation_history"][0]
+        ["source_observation"]["candidate_remote"]["head_sha"]
+        .clone();
+    let first_reference = duplicate_source_pair["source_observation_history"][0]
+        ["source_observation"]["reference_remote"]["head_sha"]
+        .clone();
+    let history = duplicate_source_pair["source_observation_history"]
+        .as_array_mut()
+        .expect("source history array");
+    history[1]["source_observation"]["candidate_remote"]["head_sha"] =
+        first_candidate;
+    history[1]["source_observation"]["reference_remote"]["head_sha"] =
+        first_reference;
+    history[1]["current_ci_observation"] = serde_json::Value::Null;
+    fixture.write_facts(&duplicate_source_pair.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("duplicate source pair"));
+
+    let mut reused_evidence = original.clone();
+    let first_source_evidence = reused_evidence["source_observation_history"][0]
+        ["source_evidence"]
+        .clone();
+    reused_evidence["source_observation_history"][1]["source_evidence"] =
+        first_source_evidence;
+    fixture.write_facts(&reused_evidence.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("reuses a source-evidence identity"));
+
+    let mut misbound_fetch_evidence = original.clone();
+    misbound_fetch_evidence["source_observation_history"][3]["source_evidence"]["path"] =
+        serde_json::json!("/fixtures/other-source-observation.json");
+    fixture.write_facts(&misbound_fetch_evidence.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("does not match its explicit-fetch provenance"));
+
+    let mut misbound_query = original.clone();
+    misbound_query["latest_source_observation"]["fetch_provenance"]
+        ["post_fetch_ref_query"]["reference_head_sha"] =
+        serde_json::json!("1111111111111111111111111111111111111111");
+    fixture.write_facts(&misbound_query.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("post-fetch refs do not match its branch API pair"));
+
+    let mut mismatched_capture = original.clone();
+    mismatched_capture["source_observation_history"][1]
+        ["current_ci_observation"]["api_capture"]["source_pair"]["candidate_head_sha"] =
+        serde_json::json!("1111111111111111111111111111111111111111");
+    fixture.write_facts(&mismatched_capture.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains(
+        "current CI candidate source does not match the latest candidate tip"
+    ));
+
+    let mut wrong_successor_time = original;
+    wrong_successor_time["source_observation_history"][1]["superseded_at"] =
+        serde_json::json!("2026-10-08T10:19:24Z");
+    fixture.write_facts(&wrong_successor_time.to_string());
+    let output = fixture.run(&[]);
+    assert_eq!(output.exit_code, Some(2));
+    assert!(error_text(&output).contains("superseded_at must equal the next source observation time"));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
         .repo
         .root()
         .join("tools/visibility/source-facts.json");
-    let facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(facts_path).expect("read copied checked-in source facts"))
-            .expect("parse checked-in source facts");
+    let facts: serde_json::Value = serde_json::from_slice(
+        &fs::read(facts_path).expect("read copied checked-in source facts"),
+    )
+    .expect("parse checked-in source facts");
     let original = with_four_predecessors(facts);
 
     let mut explicit_null = original.clone();
@@ -3914,20 +3168,18 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
     let report = output_text(&output);
-    assert!(
-        !report.contains("## Current CI and Developer Certificate of Origin (DCO) observations")
-    );
+    assert!(!report.contains("## Current CI and Developer Certificate of Origin (DCO) observations"));
     assert_eq!(
         original["latest_source_observation"]["candidate_remote"]["head_sha"],
-        "9b11039bace9333a40f578c71e2e997e1182e415"
+        "1d797d41c8141fcbdc3f69d7f11eb8875ab54712"
     );
     assert_eq!(
         original["latest_source_observation"]["reference_remote"]["head_sha"],
-        "2ae351dd27f0ee7d7d52ff6093208b0a57f62698"
+        "b274dd57f4dd078ade6e424d546d83efbd2e8526"
     );
-    assert!(report.contains("d7c03139d0131157f1bd40eaf379d46c2e3814f8"));
-    assert!(report.contains("2ae351dd27f0ee7d7d52ff6093208b0a57f62698"));
-    assert!(report.contains("| Remote branch tips observed at | 2026-10-11T03:58:22Z |",));
+    assert!(report.contains("1d797d41c8141fcbdc3f69d7f11eb8875ab54712"));
+    assert!(report.contains("b274dd57f4dd078ade6e424d546d83efbd2e8526"));
+    assert!(report.contains("| Pair selected at | 2026-10-08T23:25:02Z |"));
 
     // This checked-in pair uses a branch API observation, so its top-level CI
     // capture is optional. Exercise the explicit-fetch presence rule with a
@@ -3939,80 +3191,72 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     explicit_fetch["current_ci_observation"] = serde_json::Value::Null;
     explicit_fetch["latest_source_observation"]["method"] =
         serde_json::json!("explicit HTTPS refs/heads fetch");
-    explicit_fetch["latest_source_observation"]["branch_last_update_at"] = serde_json::Value::Null;
-    explicit_fetch["latest_source_observation"]["timestamp_provenance"] = serde_json::json!({
-        "candidate_committer_date_source": "synthetic explicit-fetch fixture",
-        "reference_committer_date_source": "synthetic explicit-fetch fixture",
-        "branch_last_update_at_source": "not recorded in this synthetic fixture",
-        "committer_dates_are_branch_update_times": false
-    });
+    explicit_fetch["latest_source_observation"]["branch_last_update_at"] =
+        serde_json::Value::Null;
+    explicit_fetch["latest_source_observation"]["timestamp_provenance"] =
+        serde_json::json!({
+            "candidate_committer_date_source": "synthetic explicit-fetch fixture",
+            "reference_committer_date_source": "synthetic explicit-fetch fixture",
+            "branch_last_update_at_source": "not recorded in this synthetic fixture",
+            "committer_dates_are_branch_update_times": false
+        });
     explicit_fetch["latest_source_observation"]["candidate_remote"]["commit_committer_at"] =
         serde_json::json!("2026-10-08T04:20:00Z");
-    assert!(
-        explicit_fetch["latest_source_observation"]["candidate_remote"]
-            .as_object_mut()
-            .expect("candidate remote")
-            .remove("updated_at")
-            .is_some()
-    );
+    assert!(explicit_fetch["latest_source_observation"]["candidate_remote"]
+        .as_object_mut()
+        .expect("candidate remote")
+        .remove("updated_at")
+        .is_some());
     explicit_fetch["latest_source_observation"]["reference_remote"]["commit_committer_at"] =
         serde_json::json!("2026-10-08T04:10:00Z");
-    assert!(
-        explicit_fetch["latest_source_observation"]["reference_remote"]
-            .as_object_mut()
-            .expect("reference remote")
-            .remove("updated_at")
-            .is_some()
-    );
-    explicit_fetch["latest_source_observation"]["fetch_provenance"] = serde_json::json!({
-        "evidence_path": "fixtures/source-observation/latest.json",
-        "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "evidence_kind": "synthetic explicit-fetch test fixture",
-        "transport": "HTTPS",
-        "operation": "fetch",
-        "refspecs": [
-            "refs/heads/termrock-implementation",
-            "refs/heads/visual-baseline"
-        ],
-        "session_id": 1,
-        "exit_code": 0,
-        "completed_at": "2026-10-08T04:30:00Z",
-        "raw_fetch_output_preserved": false,
-        "post_fetch_ref_query": {
-            "record_id": "synthetic-explicit-fetch-query",
-            "observed_at": null,
-            "candidate_head_sha": "3333333333333333333333333333333333333333",
-            "reference_head_sha": "4444444444444444444444444444444444444444"
-        }
-    });
+    assert!(explicit_fetch["latest_source_observation"]["reference_remote"]
+        .as_object_mut()
+        .expect("reference remote")
+        .remove("updated_at")
+        .is_some());
+    explicit_fetch["latest_source_observation"]["fetch_provenance"] =
+        serde_json::json!({
+            "evidence_path": "fixtures/source-observation/latest.json",
+            "evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_kind": "synthetic explicit-fetch test fixture",
+            "transport": "HTTPS",
+            "operation": "fetch",
+            "refspecs": [
+                "refs/heads/termrock-implementation",
+                "refs/heads/visual-baseline"
+            ],
+            "session_id": 1,
+            "exit_code": 0,
+            "completed_at": "2026-10-08T04:30:00Z",
+            "raw_fetch_output_preserved": false,
+            "post_fetch_ref_query": {
+                "record_id": "synthetic-explicit-fetch-query",
+                "observed_at": null,
+                "candidate_head_sha": "3333333333333333333333333333333333333333",
+                "reference_head_sha": "4444444444444444444444444444444444444444"
+            }
+        });
     explicit_fetch_fixture.write_facts(&explicit_fetch.to_string());
     let output = explicit_fetch_fixture.run(&[]);
     assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
-    assert!(
-        !output_text(&output)
-            .contains("## Current CI and Developer Certificate of Origin (DCO) observations")
-    );
+    assert!(!output_text(&output).contains("## Current CI and Developer Certificate of Origin (DCO) observations"));
 
     let mut missing_committer_date = explicit_fetch.clone();
-    assert!(
-        missing_committer_date["latest_source_observation"]["candidate_remote"]
-            .as_object_mut()
-            .expect("candidate remote")
-            .remove("commit_committer_at")
-            .is_some()
-    );
+    assert!(missing_committer_date["latest_source_observation"]["candidate_remote"]
+        .as_object_mut()
+        .expect("candidate remote")
+        .remove("commit_committer_at")
+        .is_some());
     explicit_fetch_fixture.write_facts(&missing_committer_date.to_string());
     let output = explicit_fetch_fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(
-        error_text(&output).contains(
-            "latest_source_observation.candidate_remote.commit_committer_at must be text"
-        )
-    );
+    assert!(error_text(&output).contains(
+        "latest_source_observation.candidate_remote.commit_committer_at must be text"
+    ));
 
     let mut malformed_committer_date = explicit_fetch.clone();
-    malformed_committer_date["latest_source_observation"]["reference_remote"]["commit_committer_at"] =
-        serde_json::json!("not-a-timestamp");
+    malformed_committer_date["latest_source_observation"]["reference_remote"]
+        ["commit_committer_at"] = serde_json::json!("not-a-timestamp");
     explicit_fetch_fixture.write_facts(&malformed_committer_date.to_string());
     let output = explicit_fetch_fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
@@ -4021,8 +3265,7 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     ));
 
     let mut missing = explicit_fetch;
-    missing
-        .as_object_mut()
+    missing.as_object_mut()
         .expect("source facts object")
         .remove("current_ci_observation");
     explicit_fetch_fixture.write_facts(&missing.to_string());
@@ -4040,14 +3283,12 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     fixture.write_facts(&missing_history_null.to_string());
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(
-        error_text(&output)
-            .contains("current_ci_observation must be present; use null for an absent capture")
-    );
+    assert!(error_text(&output).contains(
+        "current_ci_observation must be present; use null for an absent capture"
+    ));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn reports_latest_remote_refs_and_local_checkout_separately() {
     let fixture = StatusFixture::new();
     let report = output_text(&fixture.run(&[]));
@@ -4061,11 +3302,9 @@ fn reports_latest_remote_refs_and_local_checkout_separately() {
     assert!(report.contains("Captured local cryptographic commit signature"));
     assert!(report.contains("Git reported no cryptographic signature"));
     assert!(report.contains("Captured local Developer Certificate of Origin (DCO) trailer"));
-    assert!(
-        report.contains(
-            "Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is missing"
-        )
-    );
+    assert!(report.contains(
+        "Expected line `Signed-off-by: Termrock Contributor <contributor@example.invalid>` is missing"
+    ));
     assert!(report.contains("Parsed local DCO trailers | none"));
     assert!(report.contains("They do not report a remote DCO check."));
     assert!(report.contains("| Local publication | Local checkout observation only. |"));
@@ -4079,7 +3318,6 @@ fn reports_latest_remote_refs_and_local_checkout_separately() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn renders_all_seven_exact_commands_and_layers() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -4130,7 +3368,6 @@ fn renders_all_seven_exact_commands_and_layers() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn role_changes_local_label_and_uses_reference_links() {
     let fixture = StatusFixture::new();
     let candidate = output_text(&fixture.run(&[]));
@@ -4150,9 +3387,9 @@ fn role_changes_local_label_and_uses_reference_links() {
     assert!(reference.contains("| Local role | Reference (visual-baseline) |"));
     assert!(candidate.contains("[CHECKLIST.md](CHECKLIST.md)"));
     assert!(candidate.contains("[checklist.json](checklist.json)"));
-    assert!(
-        candidate.contains("[Source facts and observation commands](tools/visibility/README.md)")
-    );
+    assert!(candidate.contains(
+        "[Source facts and observation commands](tools/visibility/README.md)"
+    ));
     assert!(reference.contains(&format!("[CHECKLIST.md]({checklist_markdown_url})")));
     assert!(reference.contains(&format!("[checklist.json]({checklist_json_url})")));
     assert!(reference.contains(&format!(
@@ -4198,28 +3435,26 @@ fn role_changes_local_label_and_uses_reference_links() {
             "[Work queue](WORK_QUEUE.md)",
             &format!("[Work queue]({queue_url})"),
         );
-    let reference_common = reference
-        .replace(
-            "| Local role | Reference (visual-baseline) |",
-            "| Local role | LOCAL_ROLE |",
-        )
-        .replace(
-            &format!("[CHECKLIST.md]({checklist_markdown_url})"),
-            "[CHECKLIST.md](CHECKLIST.md)",
-        )
-        .replace(
-            &format!("[checklist.json]({checklist_json_url})"),
-            "[checklist.json](checklist.json)",
-        )
-        .replace(
-            &format!("[Source facts and observation commands]({source_readme_url})"),
-            "[Source facts and observation commands](tools/visibility/README.md)",
-        );
+    let reference_common = reference.replace(
+        "| Local role | Reference (visual-baseline) |",
+        "| Local role | LOCAL_ROLE |",
+    )
+    .replace(
+        &format!("[CHECKLIST.md]({checklist_markdown_url})"),
+        "[CHECKLIST.md](CHECKLIST.md)",
+    )
+    .replace(
+        &format!("[checklist.json]({checklist_json_url})"),
+        "[checklist.json](checklist.json)",
+    )
+    .replace(
+        &format!("[Source facts and observation commands]({source_readme_url})"),
+        "[Source facts and observation commands](tools/visibility/README.md)",
+    );
     assert_eq!(candidate_common, reference_common);
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn reference_role_cli_renders_reference_presentation() {
     let fixture = StatusFixture::from_checked_in_records();
     let output = fixture.run(&["--role", "reference"]);
@@ -4228,23 +3463,22 @@ fn reference_role_cli_renders_reference_presentation() {
     let report = output_text(&output);
     assert!(report.contains("| Local role | Reference (visual-baseline) |"));
     assert!(report.contains(
-        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/CHECKLIST.md)"
+        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/CHECKLIST.md)"
     ));
     assert!(report.contains(
-        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/checklist.json)"
+        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/checklist.json)"
     ));
     assert!(report.contains(
-        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/tools/visibility/README.md)"
+        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/tools/visibility/README.md)"
     ));
     assert!(!report.contains("[CHECKLIST.md](CHECKLIST.md)"));
     assert!(!report.contains("[checklist.json](checklist.json)"));
-    assert!(
-        !report.contains("[Source facts and observation commands](tools/visibility/README.md)")
-    );
+    assert!(!report.contains(
+        "[Source facts and observation commands](tools/visibility/README.md)"
+    ));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn keeps_visual_interaction_api_ownership_distinct() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -4267,7 +3501,6 @@ fn keeps_visual_interaction_api_ownership_distinct() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn keeps_ci_dco_observations_separate() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -4278,11 +3511,9 @@ fn keeps_ci_dco_observations_separate() {
     assert!(report.contains(FAILURE_REASON));
     assert!(report.contains(&format!("[source]({FAILURE_URL})")));
     assert!(report.contains("0 jobs; 0 artifacts"));
-    assert!(
-        report.contains(
-            "This recorded workflow result is historical and is not a product test result."
-        )
-    );
+    assert!(report.contains(
+        "This recorded workflow result is historical and is not a product test result."
+    ));
     assert!(report.contains("failure at"));
     assert!(report.contains("113129904697"));
     assert!(report.contains("action_required"));
@@ -4291,7 +3522,6 @@ fn keeps_ci_dco_observations_separate() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn absent_optional_current_ci_capture_keeps_only_historical_rows() {
     let fixture = StatusFixture::new();
     let report = output_text(&fixture.run(&[]));
@@ -4304,7 +3534,6 @@ fn absent_optional_current_ci_capture_keeps_only_historical_rows() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn current_ci_snapshot_binds_each_gate_and_keeps_products_not_run() {
     let fixture = StatusFixture::new();
     let mut facts = facts_with_current_ci_observation();
@@ -4333,10 +3562,7 @@ fn current_ci_snapshot_binds_each_gate_and_keeps_products_not_run() {
     assert_eq!(output.exit_code, Some(0));
     assert!(report.contains("Current CI and Developer Certificate of Origin (DCO) observations"));
     assert!(report.contains("Candidate Actions run [987654321]"));
-    assert!(
-        report
-            .contains("failure at `3333333333333333333333333333333333333333`; 0 jobs; 0 artifacts")
-    );
+    assert!(report.contains("failure at `3333333333333333333333333333333333333333`; 0 jobs; 0 artifacts"));
     assert!(report.contains("returned 0 matching Actions runs for this source tip"));
     assert!(report.contains("Candidate DCO status |"));
     assert!(report.contains(
@@ -4349,10 +3575,7 @@ fn current_ci_snapshot_binds_each_gate_and_keeps_products_not_run() {
     ));
     assert!(report.contains("14 commits are reported with sign-off problems"));
     assert!(report.contains("Workflow file exceeds the maximum allowed size of 500 KB."));
-    assert!(
-        report
-            .contains("SHA-256 `dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd`")
-    );
+    assert!(report.contains("SHA-256 `dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd`"));
     assert!(report.contains("Workflow-level result; product execution remains NOT_RUN"));
     assert!(report.contains("Visibility / Complete | NOT_RUN"));
     assert!(report.contains("Refactor / Ready | NOT_RUN"));
@@ -4397,7 +3620,6 @@ fn current_ci_snapshot_binds_each_gate_and_keeps_products_not_run() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn current_ci_source_pair_run_head_workflow_and_url_mismatches_are_rejected() {
     let mutations: [(&[&str], serde_json::Value, &str); 5] = [
         (
@@ -4422,9 +3644,7 @@ fn current_ci_source_pair_run_head_workflow_and_url_mismatches_are_rejected() {
         ),
         (
             &["api_capture", "candidate_run", "run_url"],
-            serde_json::json!(
-                "https://github.com/tailrocks/terminal-components-claude/actions/runs/123"
-            ),
+            serde_json::json!("https://github.com/tailrocks/terminal-components-claude/actions/runs/123"),
             "current candidate run URL does not match its ID",
         ),
     ];
@@ -4443,7 +3663,6 @@ fn current_ci_source_pair_run_head_workflow_and_url_mismatches_are_rejected() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn missing_or_failed_reference_query_is_unknown_not_zero() {
     let fixture = StatusFixture::new();
     let mut missing = facts_with_current_ci_observation();
@@ -4470,25 +3689,23 @@ fn missing_or_failed_reference_query_is_unknown_not_zero() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn mismatched_or_absent_provider_capture_does_not_supply_failure_cause() {
     let mutations: [(&[&str], Option<serde_json::Value>); 4] = [
-        (&["run_id"], Some(serde_json::json!("123456789"))),
+        (
+            &["run_id"],
+            Some(serde_json::json!("123456789")),
+        ),
         (
             &["workflow_path"],
             Some(serde_json::json!(".github/workflows/other.yml")),
         ),
         (
             &["workflow_commit_sha"],
-            Some(serde_json::json!(
-                "0000000000000000000000000000000000000000"
-            )),
+            Some(serde_json::json!("0000000000000000000000000000000000000000")),
         ),
         (
             &["workflow_source_sha256"],
-            Some(serde_json::json!(
-                "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-            )),
+            Some(serde_json::json!("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")),
         ),
     ];
 
@@ -4536,7 +3753,6 @@ fn mismatched_or_absent_provider_capture_does_not_supply_failure_cause() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn current_dco_heads_must_match_their_candidate_and_reference_tips() {
     for (role, expected_error) in [
         (
@@ -4561,7 +3777,6 @@ fn current_dco_heads_must_match_their_candidate_and_reference_tips() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_changed_frozen_tag() {
     let fixture = StatusFixture::new();
     let facts = replace_once(
@@ -4578,7 +3793,6 @@ fn rejects_changed_frozen_tag() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_previous_source_facts_schema_version() {
     let fixture = StatusFixture::new();
     let facts = replace_once(
@@ -4594,14 +3808,13 @@ fn rejects_previous_source_facts_schema_version() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn does_not_accept_wrong_or_partial_dco_trailers() {
     let fixture = StatusFixture::new();
     for wrong_trailer in [
-        "Signed-off-by: Alexey",
-        "Signed-off-by: Alexey Zhokhov",
-        "Signed-off-by: Alexey Zhokhov <alexey@other.example>",
-        "Signed-off-by: Other Person <alexey@zhokhov.com>",
+        "Signed-off-by: Contributor",
+        "Signed-off-by: Termrock Contributor",
+        "Signed-off-by: Termrock Contributor <contributor@other.invalid>",
+        "Signed-off-by: Other Person <contributor@example.invalid>",
     ] {
         let facts = replace_once(
             base_facts(),
@@ -4614,16 +3827,15 @@ fn does_not_accept_wrong_or_partial_dco_trailers() {
 
         assert_eq!(output.exit_code, Some(0));
         assert!(report.contains(
-            "Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is missing"
+            "Expected line `Signed-off-by: Termrock Contributor <contributor@example.invalid>` is missing"
         ));
         assert!(!report.contains(
-            "Expected line `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>` is present"
+            "Expected line `Signed-off-by: Termrock Contributor <contributor@example.invalid>` is present"
         ));
     }
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_candidate_remote_identity_mismatch() {
     let fixture = StatusFixture::new();
     let facts = replace_once(
@@ -4639,7 +3851,6 @@ fn rejects_candidate_remote_identity_mismatch() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn accepts_new_typed_observations_and_unknown_conclusions() {
     let fixture = StatusFixture::new();
     let mut facts = base_facts();
@@ -4736,7 +3947,6 @@ fn accepts_new_typed_observations_and_unknown_conclusions() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_unknown_state_negative_count_and_non_https_reason_source() {
     let fixture = StatusFixture::new();
     let unknown = replace_once(
@@ -4758,7 +3968,7 @@ fn rejects_unknown_state_negative_count_and_non_https_reason_source() {
     let bad_url = replace_once(
         base_facts(),
         &format!("\"source_url\": \"{FAILURE_URL}\""),
-        "\"source_url\": \"file:///tmp/failure\"",
+        "\"source_url\": \"file:///fixtures/failure\"",
     );
     fixture.write_facts(&bad_url);
     let output = fixture.run(&[]);
@@ -4767,7 +3977,6 @@ fn rejects_unknown_state_negative_count_and_non_https_reason_source() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_duplicate_task_ids_and_unknown_states() {
     let fixture = StatusFixture::new();
     let duplicate = replace_once(
@@ -4792,7 +4001,6 @@ fn rejects_duplicate_task_ids_and_unknown_states() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_accepts_q47_reference_branch_scope() {
     let fixture = StatusFixture::new();
     let output = fixture.run(&[]);
@@ -4802,7 +4010,6 @@ fn status_accepts_q47_reference_branch_scope() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn status_rejects_malformed_or_incomplete_q47_v1_records() {
     let fixture = StatusFixture::new();
     let valid: serde_json::Value =
@@ -4814,11 +4021,7 @@ fn status_rejects_malformed_or_incomplete_q47_v1_records() {
         let output = fixture.run(&[]);
         assert_eq!(output.exit_code, Some(2), "{name}");
         assert!(output.stdout.is_empty(), "{name}");
-        assert!(
-            error_text(&output).contains(expected),
-            "{name}: {}",
-            error_text(&output)
-        );
+        assert!(error_text(&output).contains(expected), "{name}: {}", error_text(&output));
     };
 
     let mut malformed_scope = valid.clone();
@@ -4876,7 +4079,6 @@ fn status_rejects_malformed_or_incomplete_q47_v1_records() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn generation_is_byte_deterministic() {
     let fixture = StatusFixture::new();
     let first = fixture.run(&[]);
@@ -4897,7 +4099,6 @@ fn generation_is_byte_deterministic() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn current_observations_render_source_bound_branch_and_candidate_failure() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -4911,140 +4112,67 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     assert_eq!(output.exit_code, Some(0));
     let report = output_text(&output);
 
-    // Current provider source facts remain repository-level only.
-    assert!(
-        report.contains("## Current CI and Developer Certificate of Origin (DCO) observations")
+    assert!(report.contains("Current implementation-branch and external-tool observations"));
+    assert!(report.contains("Published report commits and source evidence"));
+    assert!(report.contains("20f2d485695991632f1ff5210d696576eb602583"));
+    assert!(report.contains("28c694037ee06e093a23de2ec0e0f6ed3f7f5569"));
+    assert!(report.contains("Candidate task snapshot revision 59 (historical)"));
+    assert!(report.contains("Historical reference task snapshot revision 56"));
+    assert!(report.contains("Later queue edits are outside this evidence record."));
+    assert!(report.contains("Workflow file exceeds the maximum allowed size of 500 KB."));
+    assert!(report.contains("The retained Root record contains no raw Actions run/jobs responses"));
+    assert!(report.contains("[completed successfully](https://github.com/tailrocks/terminal-components-claude/runs/113900149889)"));
+    assert!(report.contains("suite SHA-256 b67efe786fb0c0f64db2aca62c572b700f2a5247d7a2258deab1313bdb581a5d"));
+    assert!(report.contains("paired execution NOT_RUN, corpus NOT_ADMITTED"));
+    assert!(report.contains("Repository evidence archive | 70 files / 6171844 bytes verified"));
+    assert!(report.contains("9f1f756219b6bd42131b6e7291f54f99e1128cf1"));
+    assert_eq!(
+        facts["current_status_observations"]["branch_gate_observations"][0]
+            ["dco_check_run_id"]
+            .as_str(),
+        Some("113663911182")
     );
-    assert!(report.contains("38108486387"));
-    assert!(report.contains("51 jobs; 49 artifacts"));
-    assert!(report.contains("failure"));
-    assert!(report.contains("37 successful, 13 failed, and 1 skipped"));
-    assert!(report.contains("115446 bytes"));
-    assert!(report.contains("Rust / jackin-preview-app"));
-    assert!(report.contains("Rust / jackin-preview"));
-    assert!(report.contains("Rust / termrock-e2e"));
-    assert!(report.contains("Rust / termrock-visibility-tests"));
-    assert!(report.contains("Rust / termrock-viewport"));
-    assert!(report.contains("Required"));
-    assert!(report.contains("Publish baseline"));
-    assert!(report.contains("No correlated provider annotation is recorded"));
-    assert!(report.contains("0 matching Actions runs"));
-    assert!(report.contains("114326526502"));
-    assert!(report.contains("114328215608"));
-    assert!(report.contains("## Current E2E subtree parity"));
-    assert!(report.contains("140d74e6552b7cec6db30dd4c32c3e5cbc675aef"));
-    assert!(report.contains("**equal**"));
-    assert!(report.contains("not a paired execution"));
-
-    // The superseded current report remains preserved as historical evidence.
-    let historical = &facts["historical_current_status_observations"]["records"][0]["observations"];
-    assert!(
-        historical["branch_gate_observations"][0]["dco_check_run_id"]
-            .as_str()
-            .is_some_and(|value| value == "113663911182")
+    assert!(report.contains(
+        "DCO status: [completed successfully](https://github.com/tailrocks/terminal-components-claude/runs/113663911182)"
+    ));
+    assert!(report.contains("37882112951"));
+    assert!(report.contains("0 jobs; 0 artifacts; workflow source 537470 bytes"));
+    assert!(report.contains("FAILED: 22/23 passed, 1 failed, 87 filtered"));
+    assert!(report.contains("The candidate API/deferred test run FAILED: 22 of 23 tests passed; 1 failed."));
+    assert!(report.contains("The required set and acceptance remain incomplete. The failure was BD-21 case W13-05 (w13_filter_wide_trail_cells_clear). This candidate-only run does not qualify a paired product result."));
+    assert!(report.contains("The candidate API/deferred test run FAILED, so Refactor / Ready remains NOT_READY."));
+    assert!(report.contains("BD-21 case W13-05 failed in w13_filter_wide_trail_cells_clear"));
+    assert!(report.contains("independent review VERIFIED_FAILED_RUN"));
+    assert!(report.contains("Requirement registry: NOT_RUN"));
+    assert!(report.contains("paired reference: NOT_RUN; paired visual: NOT_RUN; acceptance: NOT_RECORDED"));
+    assert!(report.contains("Repository evidence archive | 70 files / 6171844 bytes verified"));
+    assert!(report.contains("Historical raw-evidence coverage gap: normalized source/CI summaries for 5 retained records remain"));
+    assert!(report.contains("Receipt SHA-256 c6fec50571f45a875c375bf5668e4f1b8754eb9ac87ec9aa98c95590c79e1929"));
+    assert!(report.contains("R12: Nextest stopped before selecting tests; 0 selected"));
+    assert!(report.contains("R13: 1 selected, 0 passed, 1 failed before PTY launch"));
+    assert!(report.contains("16/27 expected tests executed (14 passed, 2 failed, 11 NOT_RUN)"));
+    for conclusion in [
+        "Visibility / Complete | NOT_RUN",
+        "Refactor / Ready | NOT_READY",
+        "Reference / Qualified | NOT_RUN",
+        "Command / Ready | NOT_RUN",
+        "Evidence freshness | NOT_RUN",
+    ] {
+        assert!(report.contains(conclusion), "missing `{conclusion}`");
+    }
+    assert_eq!(
+        facts["current_status_observations"]["candidate_api_deferred_run"]["measurement_status"]
+            .as_str(),
+        Some("FAILED")
     );
-    assert!(
-        historical["workflow_run_observations"][0]["run_id"]
-            .as_str()
-            .is_some_and(|value| value == "37882112951")
-    );
-    assert!(
-        historical["candidate_api_deferred_run"]["measurement_status"]
-            .as_str()
-            .is_some_and(|value| value == "FAILED")
-    );
-    assert!(
-        historical["candidate_api_deferred_run"]["failure"]["test_name"]
-            .as_str()
-            .is_some_and(|value| value == "w13_filter_wide_trail_cells_clear")
-    );
-    assert!(
-        historical["report_readiness"]["refactor_ready"]
-            .as_str()
-            .is_some_and(|value| value == "NOT_RUN")
-    );
-
-    // Supersession cannot promote either the old failure or current readiness.
-    assert!(report.contains("| Visibility / Complete | NOT_RUN |"));
-    assert!(report.contains("| Refactor / Ready | NOT_RUN |"));
-    assert!(report.contains("| Reference / Qualified | NOT_RUN |"));
-    assert!(report.contains("| Command / Ready | NOT_RUN |"));
-    assert!(report.contains("| Evidence freshness | NOT_RUN |"));
-    assert!(
-        report
-            .contains("If no current run receipt is present, the product result remains NOT_RUN.")
+    assert_eq!(
+        facts["current_status_observations"]["report_readiness"]["refactor_ready"]
+            .as_str(),
+        Some("NOT_RUN")
     );
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
-fn partial_job_and_subtree_observations_reject_drift_without_product_claims() {
-    let fixture = StatusFixture::from_checked_in_records();
-    let facts_path = fixture
-        .repo
-        .root()
-        .join("tools/visibility/source-facts.json");
-    let facts: serde_json::Value =
-        serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
-            .expect("parse copied source facts");
-
-    let mut bad_jobs = facts.clone();
-    bad_jobs["current_ci_observation"]["api_capture"]["job_execution_observation"]["completed"] =
-        serde_json::json!(23);
-    fixture.write_facts(&bad_jobs.to_string());
-    let output = fixture.run(&[]);
-    assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("job state counts do not reconcile"));
-
-    let mut bad_skip = facts.clone();
-    bad_skip["current_ci_observation"]["api_capture"]["job_execution_observation"]["skipped_count"] =
-        serde_json::json!(2);
-    fixture.write_facts(&bad_skip.to_string());
-    let output = fixture.run(&[]);
-    assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("completed job outcomes do not reconcile"));
-
-    let mut pending_completed = facts.clone();
-    let run = &mut pending_completed["current_ci_observation"]["api_capture"]["candidate_run"];
-    run["job_count"] = serde_json::json!(52);
-    let execution = &mut pending_completed["current_ci_observation"]["api_capture"]["job_execution_observation"];
-    execution["job_count"] = serde_json::json!(52);
-    execution["in_progress"] = serde_json::json!(1);
-    fixture.write_facts(&pending_completed.to_string());
-    let output = fixture.run(&[]);
-    assert_eq!(output.exit_code, Some(2));
-    assert!(
-        error_text(&output)
-            .contains("completed workflow run still has pending or partial job counts")
-    );
-
-    let mut bad_artifacts = facts.clone();
-    bad_artifacts["current_ci_observation"]["api_capture"]["artifact_observation"]["artifact_count"] =
-        serde_json::json!(50);
-    fixture.write_facts(&bad_artifacts.to_string());
-    let output = fixture.run(&[]);
-    assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("artifact count does not match its run"));
-
-    let mut bad_parity = facts.clone();
-    bad_parity["current_e2e_subtree_parity_observation"]["reference_tree_sha"] =
-        serde_json::json!("0000000000000000000000000000000000000000");
-    fixture.write_facts(&bad_parity.to_string());
-    let output = fixture.run(&[]);
-    assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("subtree comparison is not equal"));
-
-    let mut product_claim = facts;
-    product_claim["current_ci_observation"]["api_capture"]["job_execution_observation"]["product_execution"] =
-        serde_json::json!("PASS");
-    fixture.write_facts(&product_claim.to_string());
-    let output = fixture.run(&[]);
-    assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("cannot claim product execution"));
-}
-
-#[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_changed_current_observation_evidence_pin() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5054,34 +4182,29 @@ fn rejects_changed_current_observation_evidence_pin() {
     let mut facts: serde_json::Value =
         serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
             .expect("parse copied source facts");
-    facts["source_evidence_archive"]["manifest"]["path"] = serde_json::Value::String(
-        "docs/implementation/visibility/evidence/wrong-manifest.json".to_owned(),
-    );
+    let original_branch_pin = facts["current_status_observations"]["branch_tip"]["branch_response"]["sha256"].clone();
+    facts["current_status_observations"]["branch_tip"]["branch_response"]["sha256"] =
+        serde_json::Value::String("0".repeat(64));
     write_json_facts(&fixture, &facts);
+
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(
-        error_text(&output).contains(
-            "source evidence archive manifest must use the pinned repository-relative path"
-        )
-    );
+    assert!(error_text(&output).contains(
+        "current implementation branch API response bytes do not match the recorded SHA-256"
+    ));
 
-    facts["source_evidence_archive"]["manifest"]["path"] = serde_json::Value::String(
-        "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json".to_owned(),
-    );
-    facts["current_local_e2e_suite_observation"]["nextest"]["source_suite_sha256"] =
-        serde_json::json!("0".repeat(64));
+    facts["current_status_observations"]["branch_tip"]["branch_response"]["sha256"] = original_branch_pin;
+    facts["current_publication_observation"]["candidate_report"]["publication"]["sha256"] =
+        serde_json::Value::String("0".repeat(64));
     write_json_facts(&fixture, &facts);
-    let changed_current_pin = fixture.run(&[]);
-    assert_eq!(changed_current_pin.exit_code, Some(2));
-    assert!(
-        error_text(&changed_current_pin)
-            .contains("current E2E Nextest control source digest changed")
-    );
+    let tampered_publication = fixture.run(&[]);
+    assert_eq!(tampered_publication.exit_code, Some(2));
+    assert!(error_text(&tampered_publication).contains(
+        "candidate report publication is not an exact member of the verified source archive"
+    ));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_a_temporary_root_locator_in_checked_in_source_facts() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5092,18 +4215,19 @@ fn rejects_a_temporary_root_locator_in_checked_in_source_facts() {
         serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
             .expect("parse copied source facts");
     facts["test_only_unbound_locator"] = serde_json::Value::String(
-        "/private/tmp/termrock-vis01-branch-b106-observation-20261009-luna-r1/branch.json"
+        "/fixtures/branch-observation/branch.json"
             .to_string(),
     );
     write_json_facts(&fixture, &facts);
 
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("source-facts paths must be repository-relative"));
+    assert!(error_text(&output).contains(
+        "source-facts paths must be repository-relative"
+    ));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_a_stale_source_evidence_archive_manifest_pin() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5119,14 +4243,12 @@ fn rejects_a_stale_source_evidence_archive_manifest_pin() {
 
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(
-        error_text(&output)
-            .contains("source evidence archive manifest bytes do not match the recorded SHA-256")
-    );
+    assert!(error_text(&output).contains(
+        "source evidence archive manifest bytes do not match the recorded SHA-256"
+    ));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_missing_archived_current_observation_input() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5136,21 +4258,21 @@ fn rejects_missing_archived_current_observation_input() {
     let facts: serde_json::Value =
         serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
             .expect("parse copied source facts");
-    let archived_path =
-        facts["historical_current_status_observations"]["records"][0]["observations"]["branch_tip"]
-            ["branch_response"]["path"]
-            .as_str()
-            .expect("repository-relative historical branch response path");
+    let archived_path = facts["current_status_observations"]["branch_tip"]
+        ["branch_response"]["path"]
+        .as_str()
+        .expect("repository-relative branch response path");
     fs::remove_file(fixture.repo.root().join(archived_path))
-        .expect("remove copied historical archive member");
+        .expect("remove copied current archive member");
 
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("cannot be opened without following symlinks"));
+    assert!(error_text(&output).contains(
+        "cannot be opened without following symlinks"
+    ));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_tampered_candidate_measurement_packet_member() {
     let fixture = StatusFixture::from_checked_in_records();
     let member = fixture.repo.root().join(
@@ -5162,11 +4284,12 @@ fn rejects_tampered_candidate_measurement_packet_member() {
 
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("bytes do not match the recorded SHA-256"));
+    assert!(error_text(&output).contains(
+        "bytes do not match the recorded SHA-256"
+    ));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn keeps_historical_raw_capture_gap_separate_from_readiness() {
     let fixture = StatusFixture::from_checked_in_records();
     let output = fixture.run(&[]);
@@ -5174,14 +4297,13 @@ fn keeps_historical_raw_capture_gap_separate_from_readiness() {
     let report = output_text(&output);
     assert!(report.contains("Historical raw-evidence coverage gap"));
     assert!(report.contains("Visibility / Complete | NOT_RUN"));
-    assert!(report.contains("Refactor / Ready | NOT_RUN"));
+    assert!(report.contains("Refactor / Ready | NOT_READY"));
     assert!(report.contains("Reference / Qualified | NOT_RUN"));
     assert!(report.contains("Command / Ready | NOT_RUN"));
     assert!(report.contains("Evidence freshness | NOT_RUN"));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_relabeling_a_verified_candidate_failure_as_not_run() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5191,16 +4313,19 @@ fn rejects_relabeling_a_verified_candidate_failure_as_not_run() {
     let mut facts: serde_json::Value =
         serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
             .expect("parse copied source facts");
-    facts["historical_current_status_observations"]["records"][0]["observations"]["candidate_api_deferred_run"]
-        ["measurement_status"] = serde_json::Value::String("NOT_RUN".to_string());
+    facts["current_status_observations"]["candidate_api_deferred_run"]["measurement_status"] =
+        serde_json::Value::String("NOT_RUN".to_string());
     write_json_facts(&fixture, &facts);
+
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("must preserve its failed source-bound candidate run"));
+    assert!(error_text(&output).contains(
+        "candidate deferred/API run must remain a source-bound partial failure"
+    ));
 }
 
+
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn rejects_unrecorded_candidate_acceptance_promotion() {
     let fixture = StatusFixture::from_checked_in_records();
     let facts_path = fixture
@@ -5210,16 +4335,18 @@ fn rejects_unrecorded_candidate_acceptance_promotion() {
     let mut facts: serde_json::Value =
         serde_json::from_slice(&fs::read(facts_path).expect("read copied source facts"))
             .expect("parse copied source facts");
-    facts["historical_current_status_observations"]["records"][0]["observations"]["candidate_api_deferred_run"]
-        ["acceptance_decision"] = serde_json::Value::String("ACCEPTED".to_string());
+    facts["current_status_observations"]["candidate_api_deferred_run"]["acceptance_decision"] =
+        serde_json::Value::String("ACCEPTED".to_string());
     write_json_facts(&fixture, &facts);
+
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
-    assert!(error_text(&output).contains("must preserve its failed source-bound candidate run"));
+    assert!(error_text(&output).contains(
+        "candidate deferred/API run must remain a source-bound partial failure"
+    ));
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate() {
     let fixture = StatusFixture::new();
     let mut facts: serde_json::Value =
@@ -5235,12 +4362,8 @@ fn execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate() 
     let report = output_text(&output);
     assert!(report.contains("## Execution attempt history"));
     assert!(report.contains("run03-r7"));
-    assert!(
-        report.contains("1/4 selected; 1 started; 0 passed; 1 failed; 3 filtered; 0 incomplete")
-    );
-    assert!(
-        report.contains("| FAIL | FAIL | FAIL | INCOMPLETE | UNVERIFIED | UNVERIFIED | BLOCKED |")
-    );
+    assert!(report.contains("1/4 selected; 1 started; 0 passed; 1 failed; 3 filtered; 0 incomplete"));
+    assert!(report.contains("| FAIL | FAIL | FAIL | INCOMPLETE | UNVERIFIED | UNVERIFIED | BLOCKED |"));
     assert!(report.contains("Visibility / Complete | NOT_RUN"));
     assert!(report.contains("Refactor / Ready | NOT_RUN"));
     assert!(report.contains("Reference / Qualified | NOT_RUN"));
@@ -5248,14 +4371,11 @@ fn execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate() 
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn stale_attempt_must_be_historical_and_does_not_promote_readiness() {
     let fixture = StatusFixture::new();
     let mut stale = paired_attempt_fixture(&fixture);
-    stale["source_binding"]["candidate_commit"] =
-        serde_json::json!("5555555555555555555555555555555555555555");
-    stale["source_binding"]["reference_commit"] =
-        serde_json::json!("6666666666666666666666666666666666666666");
+    stale["source_binding"]["candidate_commit"] = serde_json::json!("5555555555555555555555555555555555555555");
+    stale["source_binding"]["reference_commit"] = serde_json::json!("6666666666666666666666666666666666666666");
     let stale_result_record = write_attempt_json(
         &fixture,
         "stale-paired-result.json",
@@ -5279,9 +4399,7 @@ fn stale_attempt_must_be_historical_and_does_not_promote_readiness() {
 
     let mislabeled = fixture.run(&[]);
     assert_eq!(mislabeled.exit_code, Some(2));
-    assert!(
-        error_text(&mislabeled).contains("cannot label a stale or unrelated source as CURRENT")
-    );
+    assert!(error_text(&mislabeled).contains("cannot label a stale or unrelated source as CURRENT"));
 
     stale["scope"] = serde_json::json!("HISTORICAL");
     facts["execution_attempt_history"]["attempts"] = serde_json::json!([stale]);
@@ -5295,7 +4413,6 @@ fn stale_attempt_must_be_historical_and_does_not_promote_readiness() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn attempt_history_rejects_count_sequence_and_artifact_pin_drift() {
     let fixture = StatusFixture::new();
     let mut facts: serde_json::Value =
@@ -5307,8 +4424,7 @@ fn attempt_history_rejects_count_sequence_and_artifact_pin_drift() {
     });
 
     let mut bad_counts = facts.clone();
-    bad_counts["execution_attempt_history"]["attempts"][0]["counts"]["passed"] =
-        serde_json::json!(1);
+    bad_counts["execution_attempt_history"]["attempts"][0]["counts"]["passed"] = serde_json::json!(1);
     write_json_facts(&fixture, &bad_counts);
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(2));
@@ -5339,7 +4455,6 @@ fn attempt_history_rejects_count_sequence_and_artifact_pin_drift() {
 }
 
 #[test]
-#[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs() {
     let fixture = StatusFixture::new();
     let run = serde_json::json!({
@@ -5415,9 +4530,7 @@ fn ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs() {
     let output = fixture.run(&[]);
     assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
     let report = output_text(&output);
-    let row = report
-        .lines()
-        .find(|line| line.contains("37985833303"))
+    let row = report.lines().find(|line| line.contains("37985833303"))
         .expect("CI attempt row is rendered");
     assert!(row.contains("diagnostic NOT_EXPOSED"));
     assert!(row.contains("CLI_REPORTED_LOG_NOT_FOUND"));
@@ -5436,8 +4549,7 @@ fn ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs() {
         serde_json::json!("NOT_CAPTURED");
     facts["execution_attempt_history"]["attempts"][0]["evidence"]["failed_suite_runs"] =
         write_attempt_json(
-            &fixture,
-            "ci-suite-runs-nonzero.json",
+            &fixture, "ci-suite-runs-nonzero.json",
             &serde_json::json!({"total_count": 1, "check_runs": [{"id": 1}]}),
         );
     write_json_facts(&fixture, &facts);
