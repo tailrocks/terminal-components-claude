@@ -1,10 +1,10 @@
-//! Panels: the surface container. Two flavours:
-//! - **card**: filled `surface` rectangle, no border, title row. The default.
-//! - **framed**: rounded subtle border, used when a region must read as a
-//!   distinct pane (split views, dialogs).
-//!
-//! Focus at container level is shown by the border/title only; the accent
-//! gutter bar belongs to the focused control inside.
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyModifiers;
@@ -34,44 +34,44 @@ pub enum PanelKind {
     Framed,
 }
 
-/// How a card panel shows that focus is inside it.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PanelFocus {
-    /// The title turns primary and bold; the only `▎` on screen stays with
-    /// the focused control inside.
+
+
     #[default]
     Title,
-    /// The title also carries a `▎` bar (a container that is itself the
-    /// focus stop, with no focusable control inside).
+
+
     Bar,
 }
 
-/// How a card's heading row (its title and meta) sets itself apart from
-/// the body under it. Set app-wide with
-/// [`Theme::with_card_heading`](crate::theme::Theme::with_card_heading) or
-/// per card with [`Panel::heading_style`]; a framed panel ignores it (its
-/// frame already carries the title). Every style keeps the card's layout:
-/// the content area is the same as [`CardHeading::Plain`]'s. See
-/// `docs/design/card-heading.md`.
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum CardHeading {
-    /// The title in secondary ink (primary and bold while focus is
-    /// inside), the meta faint, on the card's own surface, with the row
-    /// under it left blank.
+
+
+
     Plain,
-    /// A faint rule ([`Glyphs::h_divider`](crate::theme::Glyphs::h_divider),
-    /// `-` in ASCII) across the blank row the card already keeps under its
-    /// title, as an inspector section's separator. Its shape carries it in
-    /// monochrome. The default.
+
+
+
+
     #[default]
     Rule,
-    /// The heading row on the plane one step up
-    /// ([`Plane::up`](crate::theme::Plane::up)), its inks kept legible on
-    /// it. In monochrome, where the fill is gone, the title is underlined.
+
+
+
     Band,
-    /// The title bold in every state (secondary ink at rest, primary while
-    /// focus is inside). In monochrome, where bold is the focus-within cue
-    /// of a plain card, the focused title is also underlined.
+
+
+
     Emphasis,
 }
 
@@ -83,7 +83,7 @@ impl CardHeading {
         CardHeading::Emphasis,
     ];
 
-    /// A short name for the style (`"plain"`, `"rule"`, ...).
+
     pub fn label(self) -> &'static str {
         match self {
             CardHeading::Plain => "plain",
@@ -94,17 +94,17 @@ impl CardHeading {
     }
 }
 
-/// Cells a title keeps when a long meta competes for the title row: the
-/// default of [`Panel::title_min`].
+
+
 pub const TITLE_MIN: u16 = 12;
 
-/// The fewest cells a cut meta is drawn in; below that it is dropped.
+
 const META_MIN: u16 = 4;
 
-/// `meta` cut to `room` cells with an ellipsis, never in the middle of a
-/// number or a range (`"1–1…"` would misstate the position): the cut backs
-/// up to the last space before it. `None` when what is left is shorter
-/// than [`META_MIN`]. `ellipsis` is the one-cell mark it ends with.
+
+
+
+
 fn cut_meta(meta: &str, room: u16, ellipsis: &str) -> Option<String> {
     if room < META_MIN {
         return None;
@@ -127,32 +127,32 @@ pub struct Panel<'a> {
     pub title: Option<&'a str>,
     pub kind: PanelKind,
     pub focused: bool,
-    /// Right-aligned text in the title row (position label, badge).
+
     pub meta: Option<&'a str>,
     pub badge: Option<(&'a str, crate::theme::BadgeKind)>,
     pub bg_override: Option<Color>,
-    /// How focus-within shows on a card. Default [`PanelFocus::Title`].
+
     pub focus_mark: PanelFocus,
-    /// Cells the title keeps before the meta gives way. Default
-    /// [`TITLE_MIN`] (12); a shorter title keeps its whole width.
+
+
     pub title_min: u16,
-    /// A short form of the meta, used when the full one does not fit
-    /// beside the title (`"1–9/24"` for `"1–9 of 24"`). `None`: a position
-    /// label `"a–b of n"` shortens to `"a–b/n"` on its own. When the short
-    /// form is still too long, its first `" · "`-separated fact is shown,
-    /// then a cut that never splits a number, then nothing.
+
+
+
+
+
     pub meta_short: Option<&'a str>,
-    /// Columns a card keeps blank on each side of its title and content.
-    /// Default [`CARD_PAD`] (2); a narrow pane (a navigation sidebar)
-    /// takes 1 so its rows keep their labels. A framed panel ignores it.
+
+
+
     pub pad_x: u16,
-    /// How the heading row stands apart from the body. `None` (default):
-    /// the theme's [`Theme::card_heading`]. A framed panel ignores it.
+
+
     pub heading: Option<CardHeading>,
 }
 
-/// Columns a card keeps blank on each side: the default of
-/// [`Panel::pad_x`].
+
+
 pub const CARD_PAD: u16 = 2;
 
 impl<'a> Panel<'a> {
@@ -198,26 +198,26 @@ impl<'a> Panel<'a> {
         self.meta = Some(m);
         self
     }
-    /// The short form of the meta for a narrow title row.
+
     pub fn meta_short(mut self, m: &'a str) -> Self {
         self.meta_short = Some(m);
         self
     }
-    /// Columns a card keeps blank on each side (default [`CARD_PAD`]).
+
     pub fn pad_x(mut self, cells: u16) -> Self {
         self.pad_x = cells;
         self
     }
 
-    /// How this card's heading row stands apart from its body, over the
-    /// theme's [`Theme::card_heading`]. A framed panel ignores it.
+
+
     pub fn heading_style(mut self, style: CardHeading) -> Self {
         self.heading = Some(style);
         self
     }
 
-    /// The heading style this panel draws with: its own, else the theme's;
-    /// always [`CardHeading::Plain`] for a framed panel.
+
+
     pub(crate) fn heading_for(&self, t: &Theme) -> CardHeading {
         match self.kind {
             PanelKind::Card => self.heading.unwrap_or(t.card_heading),
@@ -225,8 +225,8 @@ impl<'a> Panel<'a> {
         }
     }
 
-    /// The colour the title row sits on: the panel's own, or the plane one
-    /// step up for a [`CardHeading::Band`].
+
+
     fn head_bg(&self, t: &Theme) -> Color {
         let bg = self.bg(t);
         match self.heading_for(t) {
@@ -235,7 +235,7 @@ impl<'a> Panel<'a> {
         }
     }
 
-    /// The title row's left edge and width inside `area`.
+
     fn title_span(&self, area: Rect) -> (u16, u16) {
         let pad = match self.kind {
             PanelKind::Card => self.pad_x,
@@ -244,14 +244,14 @@ impl<'a> Panel<'a> {
         (area.x + pad, area.width.saturating_sub(pad * 2))
     }
 
-    /// Cells the title keeps before the meta gives way (default
-    /// [`TITLE_MIN`]).
+
+
     pub fn title_min(mut self, cells: u16) -> Self {
         self.title_min = cells;
         self
     }
 
-    /// Background colour the content will sit on.
+
     pub fn bg(&self, t: &Theme) -> Color {
         if let Some(bg) = self.bg_override {
             return bg;
@@ -262,9 +262,9 @@ impl<'a> Panel<'a> {
         }
     }
 
-    /// Redraw the title row with `meta` after the content was rendered, so
-    /// a scroll position computed from the content's own layout is fresh
-    /// on the first frame, after a resize and after a tick.
+
+
+
     pub fn draw_meta(&self, area: Rect, buf: &mut Buffer, t: &Theme, meta: &str) {
         let area = area.intersection(*buf.area());
         if area.is_empty() || (self.kind == PanelKind::Framed && area.width <= 4) {
@@ -290,9 +290,9 @@ impl<'a> Panel<'a> {
         late.title_row(row.x, row.y, row.width, buf, t, bg);
     }
 
-    /// Mark a card body whose content was cut at its bottom edge: a faint
-    /// `…` in the last cell of `inner`'s last row, so clipped prose never
-    /// looks complete. Call it after drawing the content.
+
+
+
     pub fn mark_clipped(&self, inner: Rect, buf: &mut Buffer, t: &Theme) {
         let inner = inner.intersection(*buf.area());
         if inner.is_empty() {
@@ -303,22 +303,22 @@ impl<'a> Panel<'a> {
         buf.set_string(x, y, t.glyphs.ellipsis, t.faint().bg(bg));
     }
 
-    /// Draw the panel chrome and return the content area, or `None` when
-    /// the panel has no content row at all (a card squeezed to its title,
-    /// a rect past the bottom of the screen). Prefer it to [`Self::render`]
-    /// for content that must not be drawn when there is no room for it:
-    /// `render` returns an empty rect in that case, whose `x`/`y` still
-    /// point at the panel's edge.
+
+
+
+
+
+
     pub fn try_render(&self, area: Rect, buf: &mut Buffer, t: &Theme) -> Option<Rect> {
         let inner = self.render(area, buf, t);
         (!inner.is_empty()).then_some(inner)
     }
 
-    /// The panel's natural size around content of `content` cells (plan
-    /// §1.4 `Measure`): the chrome a card or a frame adds, and at least the
-    /// width its title row needs to show the title and the meta whole. A
-    /// container that lays the panel out at this size gets back a content
-    /// area of `content` from [`Self::render`].
+
+
+
+
+
     pub fn outer(&self, content: ratatui::layout::Size) -> ratatui::layout::Size {
         let w = |s: &str| crate::ui::text::width(s) as u16;
         let title = self.title.map(w).unwrap_or(0);
@@ -334,7 +334,7 @@ impl<'a> Panel<'a> {
                 )
             }
             PanelKind::Framed => {
-                // ` title ` and ` meta ` inside the frame's corners
+
                 let row = if meta > 0 {
                     title + meta + 5
                 } else {
@@ -345,9 +345,9 @@ impl<'a> Panel<'a> {
         }
     }
 
-    /// The content area's size that [`Self::render`] gives for a panel
-    /// of `outer` cells: `outer` less the card's padding and title rows,
-    /// or less the frame.
+
+
+
     pub fn inner(&self, outer: ratatui::layout::Size) -> ratatui::layout::Size {
         let (w, h) = match self.kind {
             PanelKind::Card => (self.pad_x * 2, if self.title.is_some() { 3 } else { 2 }),
@@ -359,7 +359,7 @@ impl<'a> Panel<'a> {
         )
     }
 
-    /// Draw the panel chrome and return the inner content area.
+
     pub fn render(&self, area: Rect, buf: &mut Buffer, t: &Theme) -> Rect {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -380,7 +380,7 @@ impl<'a> Panel<'a> {
                     );
                 }
                 if self.focused && self.title.is_some() && self.focus_mark == PanelFocus::Bar {
-                    // opt-in: the container itself is the focus stop
+
                     let s = crate::ui::ctx::VisualState {
                         focused: true,
                         ..Default::default()
@@ -395,8 +395,8 @@ impl<'a> Panel<'a> {
                 let (x, w) = self.title_span(area);
                 self.title_row(x, area.y, w, buf, t, head_bg);
                 if heading == CardHeading::Rule && self.title.is_some() && area.height > 2 {
-                    // the blank row under the title becomes the separator:
-                    // the content area does not move
+
+
                     let rule = t.glyphs.h_divider.repeat(w as usize);
                     buf.set_string(x, area.y + 1, rule, Style::new().fg(t.rule_on(bg)).bg(bg));
                 }
@@ -432,7 +432,7 @@ impl<'a> Panel<'a> {
         }
     }
 
-    /// The title's style on `bg` for this panel's heading style and focus.
+
     fn title_style(&self, t: &Theme, bg: Color) -> Style {
         use crate::theme::ColorLevel;
         use ratatui::style::Modifier;
@@ -464,7 +464,7 @@ impl<'a> Panel<'a> {
         }
     }
 
-    /// The meta's style on `bg`: faint, kept legible on a band.
+
     fn meta_style(&self, t: &Theme, bg: Color) -> Style {
         match self.heading_for(t) {
             CardHeading::Band => Style::new().fg(t.legible(t.text_faint, bg)).bg(bg),
@@ -479,10 +479,10 @@ impl<'a> Panel<'a> {
         let mut cx = x;
         let framed = self.kind == PanelKind::Framed;
         let pad: u16 = if framed { 2 } else { 0 };
-        // the title keeps `title_min` cells (its whole width when shorter):
-        // a panel must still say what it is. The meta gives way first: its
-        // short form, then an ellipsis, and it is dropped when not even a
-        // few cells are left
+
+
+
+
         let title_min = self
             .title
             .map(|t| (crate::ui::text::width(t) as u16).min(self.title_min))
@@ -498,8 +498,8 @@ impl<'a> Panel<'a> {
                 .meta_short
                 .map(str::to_owned)
                 .unwrap_or_else(|| m.replace(" of ", "/"));
-            // then only its first fact ("388–401/401" of
-            // "388–401/401 · following")
+
+
             let head = short.split(" · ").next().unwrap_or_default().to_owned();
             if fits(&short) {
                 Some(short)
@@ -522,7 +522,7 @@ impl<'a> Panel<'a> {
             };
             let full = title;
             let title = crate::ui::text::truncate(full, room as usize);
-            // a cut title reveals its full text on hover
+
             let cut = Rect::new(
                 cx + u16::from(framed),
                 y,
@@ -535,7 +535,7 @@ impl<'a> Panel<'a> {
             cx += crate::ui::text::width(&title) as u16;
         }
         let mut right = x + w;
-        // an empty meta draws nothing, not a blank gap in the frame
+
         if let Some(meta) = meta.filter(|m| !m.is_empty()) {
             let shown = crate::ui::text::width(&meta) as u16;
             let text = if framed { format!(" {meta} ") } else { meta };
@@ -543,8 +543,8 @@ impl<'a> Panel<'a> {
             if right >= cx + tw + u16::from(cx > x) {
                 right = right.saturating_sub(tw);
                 buf.set_string(right, y, &text, self.meta_style(t, bg));
-                // a shortened meta (its short form, its first fact or a
-                // cut) reveals its full text on hover, like a cut title
+
+
                 if let Some(full) = self.meta {
                     let cells = Rect::new(right + u16::from(framed), y, shown, 1);
                     crate::ui::reveal::queue_cut(cells, full);
@@ -564,74 +564,74 @@ impl<'a> Panel<'a> {
 
 use ratatui::style::Style;
 
-/// A scrollable read-only text panel (log output, prose). It is a focus stop
-/// itself because it has no focusable children.
-///
-/// A panel that `tail`s (a log) follows new lines while the viewport is at
-/// the end; scrolling away pauses following and scrolling back to the end,
-/// by any means, resumes it. A panel that does not tail (prose) never
-/// follows: `End` is only a jump.
-///
-/// Its text selects like a [`TextViewport`](crate::widgets::viewport::TextViewport)'s,
-/// through the same selection model: a drag selects, Shift with a press
-/// extends the selection from its anchor, a double click selects a word
-/// and a triple click the line ([`Self::pointer_select`]); Select All
-/// ([`PanelCmd::SelectAll`]) selects everything, Copy ([`PanelCmd::Copy`])
-/// puts the selection on the clipboard and Esc clears it. Positions are
-/// display rows (a wrapped line's rows; a triple click selects all of
-/// them) and columns.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct ScrollPanel {
     pub id: WidgetId,
     pub lines: Vec<String>,
-    /// Rows (`scroll`, the vertical state) and cells (`scroll.h`) with both bars
-    /// ([`Scrollable`]).
+
+
     pub scroll: ScrollPane,
-    /// Following the tail right now (only ever true for a tailing panel).
+
     pub follow: bool,
-    /// The panel tails its content: new lines keep the end in view.
+
     pub tail: bool,
     pub wrap: bool,
     pub area: Rect,
-    /// The wrap width, the wrapped rows and the line each row comes from.
+
     wrapped_cache: (u16, Vec<String>, Vec<usize>),
-    /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
+
     pub horizontal: Option<HScroll>,
-    /// Which keys scroll (default [`NavKeys::default`]; ←/→ scroll
-    /// sideways, since the panel has no caret).
+
+
     pub nav: NavKeys,
-    /// The panel's own action keys (default [`PanelCmd::default_keymap`]).
+
     pub keymap: KeyMap<PanelCmd>,
-    /// What a drag, a double and a triple click select (the text fields'
-    /// policy). Default [`PointerSelect::DEFAULT`] (macOS): a drag
-    /// selects, a double click a word (a drag from it extends by words),
-    /// a triple click the line; Shift with a press extends the selection.
+
+
+
+
     pub pointer_select: PointerSelect,
-    /// The text selection and the pointer gesture in progress, over
-    /// display rows (the model [`crate::widgets::viewport::TextViewport`]
-    /// shares).
+
+
+
     select: TextSelect<CellPos>,
-    /// The text width the selection's rows were laid out for: a wrapped
-    /// panel that reflows drops its selection.
+
+
     select_w: u16,
-    /// The standard Edit context menu for read-only text (Copy, Select
-    /// all) a secondary click or Shift+F10 / the Menu key opens
-    /// ([`crate::ui::edit_menu`]). [`Self::context_menu`] turns it off.
+
+
+
     pub edit_menu: EditMenu,
 }
 
-/// A [`ScrollPanel`] action a key can be bound to.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PanelCmd {
-    /// A tailing panel: pause following, or jump to the end and follow
-    /// again. Default `f`.
+
+
     Follow,
-    /// Put the selection on the clipboard
-    /// ([`crate::core::edit::clipboard::copy`]). Default Cmd+C where the
-    /// terminal delivers Cmd, and `y` (as on a `TextViewport`).
+
+
+
     Copy,
-    /// Select every line, ready for Copy. Default Cmd+A where the
-    /// terminal delivers Cmd, and Ctrl+A ([`crate::core::keymap::SELECT_ALL`]).
+
+
     SelectAll,
 }
 
@@ -658,13 +658,13 @@ impl Actions for PanelCmd {
 }
 
 impl ScrollPanel {
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<PanelCmd>) -> Self {
         self.keymap = keymap;
         self
@@ -690,32 +690,32 @@ impl ScrollPanel {
         }
     }
 
-    /// Whether a secondary click or a context key opens the Edit menu
-    /// ([`EditMenu::enabled`]). Default `true`.
+
+
     pub fn context_menu(mut self, on: bool) -> Self {
         self.edit_menu.enabled = on;
         self
     }
 
-    /// See [`Self::pointer_select`].
+
     pub fn pointer_select(mut self, policy: PointerSelect) -> Self {
         self.pointer_select = policy;
         self
     }
 
-    /// Override the app-wide horizontal scrolling policy.
+
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
 
-    /// Lines scroll sideways: not wrapping and the policy allows it.
+
     fn h_enabled(&self) -> bool {
         !self.wrap && self.scroll.h_cfg.enabled
     }
 
-    /// Scroll sideways by `delta` steps (the arrows); the wheel's rule:
-    /// nothing wider than the panel leaves the arrows free for the page.
+
+
     fn scroll_h(&mut self, delta: isize) -> Outcome {
         self.wheel(Axis::Horizontal, delta as i32).outcome()
     }
@@ -725,7 +725,7 @@ impl ScrollPanel {
         self
     }
 
-    /// A log: follow new lines while the end is in view.
+
     pub fn tail(mut self, t: bool) -> Self {
         self.tail = t;
         self.follow = t;
@@ -737,25 +737,25 @@ impl ScrollPanel {
         self.wrapped_cache.0 = 0;
     }
 
-    /// Following resumes at the end and pauses anywhere else; a panel
-    /// that does not tail never follows.
+
+
     fn settle_follow(&mut self) {
         self.follow = self.tail && self.scroll.at_end();
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
-        // the open Edit menu takes the keys; Shift+F10 opens it
+
         if let Some(o) = edit_menu_key(self, key) {
             return o;
         }
-        // Ctrl+C over a selection copies (copy-first, SI17)
+
         let cmd = lookup(&self.keymap, key).or_else(|| {
             (key.ctrl_char('c') && self.selection().is_some()).then_some(PanelCmd::Copy)
         });
         match cmd {
             Some(PanelCmd::SelectAll) => return self.select_all(),
             Some(PanelCmd::Copy) => {
-                // nothing selected: the key stays free for the page
+
                 let Some(text) = self.selected_text() else {
                     return Outcome::Ignored;
                 };
@@ -789,7 +789,7 @@ impl ScrollPanel {
             Nav::PageDown => self.scroll.page_down(),
             Nav::Home => self.scroll.jump_start(),
             Nav::End => self.scroll.jump_end(),
-            // the panel has no caret, so the arrows scroll sideways
+
             Nav::Left => return self.scroll_h(-1),
             Nav::Right => return self.scroll_h(1),
         };
@@ -802,9 +802,9 @@ impl ScrollPanel {
         }
     }
 
-    /// Lay the content out for `area` without drawing: the wrap cache,
-    /// content and viewport lengths and the tail follow are settled, so a
-    /// position label read afterwards is exact. `render` calls it too.
+
+
+
     pub fn measure(&mut self, area: Rect) {
         self.area = area;
         let text_w = area.width.saturating_sub(2);
@@ -818,7 +818,7 @@ impl ScrollPanel {
             }
             self.wrapped_cache = (text_w, out, src);
         }
-        // a wrapped panel that reflows moves its rows under the selection
+
         if self.select_w != text_w {
             if self.wrap {
                 self.select = TextSelect::default();
@@ -830,7 +830,7 @@ impl ScrollPanel {
         } else {
             self.lines.len()
         };
-        // the horizontal axis: the widest line against the text width
+
         let widest = if self.h_enabled() {
             self.lines
                 .iter()
@@ -852,9 +852,9 @@ impl ScrollPanel {
         }
     }
 
-    /// Render into `area` (already the inner area of a panel).
-    /// Override the app-wide vertical track-click policy
-    /// (`TrackClick::Page` pages toward the pointer).
+
+
+
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
@@ -869,7 +869,7 @@ impl ScrollPanel {
         style_line: fn(&Theme, &str) -> Style,
     ) {
         self.render_panel(area, buf, ctx, bg, style_line);
-        // the Edit menu floats above everything drawn after the panel
+
         self.edit_menu.render(self.area, buf, ctx);
     }
 
@@ -889,7 +889,7 @@ impl ScrollPanel {
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.measure(area);
         let t = ctx.theme;
-        // under its open Edit menu the panel shows no focus
+
         let focused = ctx
             .interaction
             .focused_under(self.id, self.edit_menu.is_open());
@@ -901,8 +901,8 @@ impl ScrollPanel {
         };
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
-        // rows the vertical viewport covers (the horizontal bar takes the
-        // last one)
+
+
         let rows_h = (self.scroll.viewport_len as u16).min(area.height);
         ctx.autoscroll(Rect::new(area.x, area.y, area.width, rows_h));
         let sel = self.select.range();
@@ -927,8 +927,8 @@ impl ScrollPanel {
                 crate::ui::text::fit(line, text_w as usize)
             };
             buf.set_string(area.x, y, &text, st);
-            // the selected columns of the row; a selection that runs on to
-            // the next row paints the cell after the line end too
+
+
             if let Some((a, b)) = sel
                 && (a.line..=b.line).contains(&li)
             {
@@ -953,7 +953,7 @@ impl ScrollPanel {
                 .draw_with_fade(body, buf, ctx, self.id, focused, &[]);
         }
         if rows_h < area.height && self.h_enabled() {
-            // the corner under the vertical bar stays blank
+
             let y = area.y + rows_h;
             fill(
                 buf,
@@ -969,9 +969,9 @@ impl ScrollPanel {
     }
 }
 
-/// Text selection: the shared [`TextSelect`] model over display rows.
+
 impl ScrollPanel {
-    /// The rows drawn: the wrapped rows, or the lines.
+
     fn rows(&self) -> &[String] {
         if self.wrap {
             &self.wrapped_cache.1
@@ -980,7 +980,7 @@ impl ScrollPanel {
         }
     }
 
-    /// The line a display row comes from.
+
     fn source_of(&self, row: usize) -> usize {
         if self.wrap {
             self.wrapped_cache.2.get(row).copied().unwrap_or(row)
@@ -989,8 +989,8 @@ impl ScrollPanel {
         }
     }
 
-    /// The text position (display row, column) under a screen position,
-    /// clamped into the text; `None` with no text laid out.
+
+
     fn pos_at(&self, pos: Position) -> Option<CellPos> {
         let rows = self.rows();
         let rows_h = (self.scroll.viewport_len as u16).min(self.area.height);
@@ -1010,7 +1010,7 @@ impl ScrollPanel {
         Some(CellPos { line, col })
     }
 
-    /// The word at a text position.
+
     fn word_at(&self, p: CellPos) -> Option<(CellPos, CellPos)> {
         let row = self.rows().get(p.line)?;
         let cells = text_select::plain_cells(row);
@@ -1029,7 +1029,7 @@ impl ScrollPanel {
         ))
     }
 
-    /// The line at a text position: every display row of it.
+
     fn line_at(&self, p: CellPos) -> Option<(CellPos, CellPos)> {
         let rows = self.rows();
         rows.get(p.line)?;
@@ -1054,13 +1054,13 @@ impl ScrollPanel {
         ))
     }
 
-    /// The selection as (start, end) text positions in reading order.
+
     pub fn selection(&self) -> Option<(CellPos, CellPos)> {
         self.select.range()
     }
 
-    /// The selected text: rows of one wrapped line rejoin with a space,
-    /// lines with a newline; trailing spaces of each row are dropped.
+
+
     pub fn selected_text(&self) -> Option<String> {
         let (a, b) = self.selection()?;
         let rows = self.rows();
@@ -1081,8 +1081,8 @@ impl ScrollPanel {
         Some(out)
     }
 
-    /// Select All: every line, ready for Copy. `Changed` when the
-    /// selection changed.
+
+
     pub fn select_all(&mut self) -> Outcome {
         let rows = self.rows();
         let Some(last) = rows.len().checked_sub(1) else {
@@ -1102,15 +1102,15 @@ impl ScrollPanel {
         Outcome::Changed
     }
 
-    /// Drop the selection. `Changed` when there was one.
+
     pub fn clear_selection(&mut self) -> Outcome {
         self.select.clear()
     }
 
-    /// A press with its multi-click `count` and modifiers (per
-    /// [`Self::pointer_select`]): anchors a drag; Shift extends the
-    /// selection from its anchor; a double press selects the word, a
-    /// triple the line.
+
+
+
+
     fn on_press_with(&mut self, pos: Position, count: u8, mods: KeyModifiers) -> Outcome {
         let at = self.pos_at(pos);
         let word = at.and_then(|p| self.word_at(p));
@@ -1119,9 +1119,9 @@ impl ScrollPanel {
             .press(self.pointer_select, at, count, mods, word, line)
     }
 
-    /// A drag held since a press: extend the selection (by words after a
-    /// double press); past the top or bottom edge it scrolls a row per
-    /// cell of distance.
+
+
+
     fn on_drag(&mut self, pos: Position) -> Outcome {
         if self.select.press.is_none() {
             return Outcome::Ignored;
@@ -1144,9 +1144,9 @@ impl ScrollPanel {
         self.select.drag(self.pointer_select, head, pos, word)
     }
 
-    /// A completed click with its multi-click `count`: a double click
-    /// selects the word, a triple click the line; the release that ends a
-    /// drag or a Shift press keeps the selection.
+
+
+
     fn on_click_with(&mut self, pos: Position, count: u8) -> Outcome {
         let at = self.pos_at(pos);
         let word = at.and_then(|p| self.word_at(p));
@@ -1161,12 +1161,12 @@ impl Scrollable for ScrollPanel {
         &mut self.scroll
     }
 
-    /// Wrapped lines never scroll sideways.
+
     fn wheel_first(&mut self, axis: Axis, _delta: i32) -> Option<Response<()>> {
         (axis == Axis::Horizontal && !self.h_enabled()).then(Response::ignored)
     }
 
-    /// Following resumes at the end and pauses anywhere else.
+
     fn after_scroll(&mut self, axis: Axis, _moved: bool) -> bool {
         if axis != Axis::Vertical {
             return false;
@@ -1177,12 +1177,12 @@ impl Scrollable for ScrollPanel {
     }
 }
 
-/// A panel drawn in a forced state for a States grid
-/// ([`crate::ui::specimen`]): its chrome (title row, meta, the card fill
-/// or the frame) over one content row. Focused shows how focus-within
-/// reads under its [`PanelFocus`] (the title, or the title with the bar,
-/// which the grid depicts); overflow gives it a meta far longer than its
-/// title row, which gives way to the title.
+
+
+
+
+
+
 impl crate::ui::specimen::Specimen for Panel<'static> {
     fn specimen_id(&self) -> WidgetId {
         WidgetId::of("panel-specimen")
@@ -1232,12 +1232,12 @@ impl crate::ui::specimen::Specimen for Panel<'static> {
     }
 }
 
-/// A scrolling panel drawn in a forced state for a States grid
-/// ([`crate::ui::specimen`]), four rows tall in the secondary ink. The
-/// pointer states are its scrollbar's: hover lights the thumb, a press
-/// holds it in the accent (the one-glyph thumb rule). Overflow has more
-/// lines than rows (the faded edge and the bar), empty has none, and the
-/// narrow slot cuts its lines.
+
+
+
+
+
+
 impl crate::ui::specimen::Specimen for ScrollPanel {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -1264,7 +1264,7 @@ impl crate::ui::specimen::Specimen for ScrollPanel {
         let mut panel = self.clone();
         match state {
             Empty => panel.lines.clear(),
-            // the bar's states need a bar: content longer than the rows
+
             Hover | Pressed | Overflow => {
                 let n = panel.lines.len();
                 panel
@@ -1286,10 +1286,10 @@ impl crate::ui::specimen::Specimen for ScrollPanel {
     }
 }
 
-/// The panel's pointer gestures: a wheel or a bar press scrolls it
-/// ([`crate::core::pointer::scroll_input`]); a press, a drag and a click
-/// select text ([`ScrollPanel::on_press_with`], [`ScrollPanel::on_drag`],
-/// [`ScrollPanel::on_click_with`]).
+
+
+
+
 impl crate::core::pointer::MouseTarget for ScrollPanel {
     type Action = ();
 
@@ -1321,9 +1321,9 @@ impl crate::core::pointer::MouseTarget for ScrollPanel {
     }
 }
 
-/// The panel's Edit menu for read-only text: Copy (the selection onto the
-/// field clipboard and its OSC 52 hook) and Select all, named by the
-/// panel's own key map. The selection stays where a right click lands.
+
+
+
 impl EditMenuHost for ScrollPanel {
     fn edit_menu(&mut self) -> &mut EditMenu {
         &mut self.edit_menu
@@ -1347,7 +1347,7 @@ impl EditMenuHost for ScrollPanel {
         crate::core::keymap::label_for(&self.keymap, cmd)
     }
     fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
-        // the text, not a scrollbar
+
         ev.id == self.id
     }
     fn edit_run(&mut self, cmd: crate::core::edit::TextCmd) -> bool {
@@ -1389,7 +1389,7 @@ mod scroll_panel_tests {
             .collect::<String>()
     }
 
-    /// Draw `sample` in `state` on a 20×4 inert frame.
+
     fn sample(
         sample: &dyn crate::ui::specimen::Specimen,
         state: crate::ui::specimen::SpecimenState,
@@ -1409,7 +1409,7 @@ mod scroll_panel_tests {
         use crate::ui::specimen::SpecimenState::*;
         let theme = Theme::junie();
         let p = ScrollPanel::new(WidgetId::of("s"), vec!["one".into()]);
-        // the thumb sits at the top of the bar column (offset 0)
+
         let thumb = |state| sample(&p, state)[(19, 0)].clone();
         let (rest, hover, held) = (thumb(Overflow), thumb(Hover), thumb(Pressed));
         for c in [&rest, &hover, &held] {
@@ -1475,15 +1475,15 @@ mod scroll_panel_tests {
         );
         assert!(row(&buf, 0).starts_with("CREATE TABLE"));
 
-        // → scrolls by the step, the line shows a leading … and the
-        // thumb moves right
+
+
         assert_eq!(p.on_key(&key(KeyCode::Right)), Outcome::Changed);
         assert_eq!(p.scroll.h.offset, HScroll::default().step);
         let (buf, _) = draw_panel(&mut p, area);
         assert!(row(&buf, 0).starts_with('…'), "{}", row(&buf, 0));
         assert!(!row(&buf, 3).starts_with(scrollbar::H_THUMB));
 
-        // the wheel and a drag on the bar reach the end
+
         assert_eq!(p.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
         let (buf, _) = draw_panel(&mut p, area);
         let thumb = (0..20)
@@ -1499,7 +1499,7 @@ mod scroll_panel_tests {
         assert_eq!(p.scroll.h.offset, p.scroll.h.max_offset());
         assert_eq!(p.scroll.offset, 0, "rows did not move");
 
-        // wrapping text never scrolls sideways; neither does a disabled policy
+
         let mut wrapped = ScrollPanel::new(WidgetId::of("w"), p.lines.clone()).wrap(true);
         let (buf, _) = draw_panel(&mut wrapped, area);
         assert!(!row(&buf, 3).contains(scrollbar::H_THUMB));
@@ -1538,20 +1538,20 @@ mod scroll_panel_tests {
         row(&buf, 0)
     }
 
-    /// Layout audit #7: the title gave way to the meta down to 4 cells
-    /// ("Lan… 1–13 of …", both cut). The title now keeps `title_min` cells
-    /// (12 by default, its whole width when shorter) and the meta yields
-    /// first: its short form, then an ellipsis, then nothing.
+
+
+
+
     #[test]
     fn the_title_keeps_title_min_and_the_meta_shortens_first() {
-        // room for both
+
         let r = title_of("Languages", "1–13 of 24", None, 30);
         assert!(r.contains("Languages") && r.contains("1–13 of 24"), "{r}");
-        // a position label shortens on its own before the title is cut
+
         let r = title_of("Languages", "1–13 of 24", None, 22);
         assert!(r.contains("Languages"), "the title stays whole: {r}");
         assert!(r.contains("1–13/24"), "{r}");
-        // an explicit short form wins
+
         let r = title_of(
             "customers",
             "rows 1–10 of 40 loaded · ~4,812 total",
@@ -1559,18 +1559,18 @@ mod scroll_panel_tests {
             24,
         );
         assert!(r.contains("customers") && r.contains("1–10/40"), "{r}");
-        // no room left: a number is never cut mid-way ("1–1…" misstates the
-        // position), so the meta is dropped; the title never is
+
+
         let r = title_of("Languages", "1–13 of 24", None, 18);
         assert!(r.contains("Languages") && !r.contains('1'), "{r}");
-        // a text meta is cut with an ellipsis
+
         let r = title_of("Log", "Enter copies the row", None, 20);
         assert!(
             r.contains("Log") && r.contains("Enter cop") && r.contains('…'),
             "{r}"
         );
-        // a long meta keeps its first fact whole rather than cutting
-        // inside the next number
+
+
         let r = title_of(
             "customers",
             "rows 1–10 of 40 loaded · ~4,812 total",
@@ -1584,10 +1584,10 @@ mod scroll_panel_tests {
             cut_meta("rows 1–10/40 · ~4,812", 16, "…").as_deref(),
             Some("rows 1–10/40…")
         );
-        // a long title is cut to title_min, not to 4 cells
+
         let r = title_of("A rather long title", "70–100 of 120", None, 28);
         assert!(r.contains("A rather lo") && r.contains("70–100/120"), "{r}");
-        // configurable: a title_min of 4 restores the old balance
+
         let t = Theme::junie();
         let mut buf = Buffer::empty(Rect::new(0, 0, 24, 3));
         Panel::card(Some("A rather long title"))
@@ -1597,7 +1597,7 @@ mod scroll_panel_tests {
         assert!(row(&buf, 0).contains("70–100 of 120"), "{}", row(&buf, 0));
     }
 
-    /// Layout audit #17: card prose cut at the bottom read as complete.
+
     #[test]
     fn a_clipped_card_body_ends_in_an_ellipsis() {
         let t = Theme::junie();
@@ -1646,10 +1646,10 @@ mod scroll_panel_tests {
         let mut log = ScrollPanel::new(WidgetId::of("log"), lines.clone()).tail(true);
         drawn(&mut log, 20, 5);
         assert!(log.follow && log.scroll.at_end());
-        // a wheel down at the tail moves nothing and keeps following
+
         assert_eq!(log.wheel(Axis::Vertical, 3).outcome(), Outcome::Consumed);
         assert!(log.follow);
-        // scrolling up pauses; the wheel back to the end resumes
+
         assert_eq!(log.wheel(Axis::Vertical, -3).outcome(), Outcome::Changed);
         assert!(!log.follow);
         log.push("line 31".into());
@@ -1670,7 +1670,7 @@ mod scroll_panel_tests {
         assert!(!log.follow);
         assert_eq!(log.on_key(&key(KeyCode::Char('f'))), Outcome::Changed);
         assert!(log.follow && log.scroll.at_end());
-        // the scrollbar behaves the same: the thumb dragged to the end follows
+
         log.scroll.track_click = Some(crate::core::scroll::TrackClick::Jump);
         drawn(&mut log, 20, 5);
         assert_eq!(
@@ -1695,7 +1695,7 @@ mod scroll_panel_tests {
         );
         assert_eq!(prose.on_key(&key(KeyCode::End)), Outcome::Changed);
         assert!(!prose.follow, "End is a jump, never a follow");
-        // a resize after End keeps the offset clamped, not re-anchored
+
         prose.on_key(&key(KeyCode::Up));
         let before = prose.scroll.offset;
         drawn(&mut prose, 20, 10);
@@ -1735,8 +1735,8 @@ mod title_reveal_tests {
 
     const TITLE: &str = "Connections to the production analytics warehouse";
 
-    /// A framed panel squeezed to 24 columns inside a 70-column screen,
-    /// with the pointer on `hover`: the screen text and the hit registry.
+
+
     fn frame(hover: Option<WidgetId>) -> (String, HitRegistry) {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -1764,7 +1764,7 @@ mod title_reveal_tests {
         let (text, hits) = frame(None);
         assert!(text.contains('…'), "the title is cut: {text}");
         assert!(!text.contains(TITLE));
-        // the title's cells hover as the title, click as the panel
+
         let on_title = Position::new(4, 0);
         let id = hits
             .hover_at(on_title)
@@ -1805,7 +1805,7 @@ mod title_reveal_tests {
         let (text, hits) = draw(None);
         assert!(text.contains("395–400/400"), "its first fact: {text}");
         assert!(!text.contains("following"), "the rest is dropped: {text}");
-        // the meta's cells (right-aligned before the card's padding) reveal
+
         let on_meta = Position::new(14, 0);
         let id = hits.hover_at(on_meta).expect("a hover region on the meta");
         let (text, _) = draw(Some(id));
@@ -1857,7 +1857,7 @@ mod track_click_tests {
             Outcome::Changed
         );
         assert_eq!(p.scroll.offset, 10, "one page, not a jump to the end");
-        // the widget's own setting wins over the app default
+
         let mut p = ScrollPanel::new(WidgetId::of("p"), lines).track_click(TrackClick::Jump);
         draw(&mut p, TrackClick::Page);
         p.bar_press(Position::new(19, 9))
@@ -1888,12 +1888,12 @@ mod pad_tests {
         let panel = Panel::card(Some("Components")).pad_x(1).meta("25");
         let inner = panel.render(area, &mut buf, &theme);
         assert_eq!(inner, Rect::new(1, 2, 17, 3));
-        // the title and its meta keep one blank column at either edge
+
         assert_eq!(top(&buf), " Components     25 ");
         panel.draw_meta(area, &mut buf, &theme, "3/25");
         assert_eq!(top(&buf), " Components   3/25 ");
 
-        // a framed panel keeps its own geometry
+
         let framed =
             Panel::framed(Some("F"))
                 .pad_x(1)
@@ -1903,8 +1903,8 @@ mod pad_tests {
     }
 }
 
-/// M31: a `ScrollPanel` (a log pane) selects its text with the pointer,
-/// the way a `TextViewport` does, and copies it.
+
+
 #[cfg(test)]
 mod selection_tests {
     use super::*;
@@ -1976,7 +1976,7 @@ mod selection_tests {
         let none = KeyModifiers::NONE;
         let (_, hits) = draw(&mut p);
 
-        // a drag from "beta" to the second row selects across the rows
+
         send(&mut p, &hits, Phase::Press, (6, 0), 1, none);
         send(&mut p, &hits, Phase::Drag, (3, 1), 1, none);
         send(&mut p, &hits, Phase::Click, (3, 1), 1, none);
@@ -1988,14 +1988,14 @@ mod selection_tests {
         assert!(!selected(&buf, 5, 0) && !selected(&buf, 3, 1));
         assert_eq!(copied(&mut p).as_deref(), Some("beta gamma\nsec"));
 
-        // Shift+click extends from the anchor
+
         click(&mut p, &hits, (1, 2), 1, KeyModifiers::SHIFT);
         assert_eq!(
             copied(&mut p).as_deref(),
             Some("beta gamma\nsecond line here\nt")
         );
 
-        // a double click selects the word, a triple click the line
+
         click(&mut p, &hits, (8, 1), 1, none);
         click(&mut p, &hits, (8, 1), 2, none);
         assert_eq!(copied(&mut p).as_deref(), Some("line"));
@@ -2004,7 +2004,7 @@ mod selection_tests {
         click(&mut p, &hits, (1, 0), 3, none);
         assert_eq!(copied(&mut p).as_deref(), Some("alpha beta gamma"));
 
-        // a single click clears; Select All then Copy copies every line
+
         click(&mut p, &hits, (1, 0), 1, none);
         assert_eq!(copied(&mut p), None);
         let _ = p.on_key(&Key {
@@ -2012,7 +2012,7 @@ mod selection_tests {
             mods: KeyModifiers::CONTROL,
         });
         assert_eq!(copied(&mut p).as_deref(), Some(lines.join("\n").as_str()));
-        // Esc clears it
+
         let o = p.on_key(&Key {
             code: KeyCode::Esc,
             mods: KeyModifiers::NONE,
@@ -2044,8 +2044,8 @@ mod outer_tests {
     use crate::theme::Theme;
     use ratatui::layout::Size;
 
-    /// `outer` is the size whose `render` gives back the content asked
-    /// for, and whose title row shows the title and the meta whole.
+
+
     #[test]
     fn outer_gives_back_the_content_and_a_whole_title_row() {
         let t = Theme::junie();
@@ -2085,7 +2085,7 @@ mod heading_tests {
     ];
     const AREA: Rect = Rect::new(0, 0, 30, 5);
 
-    /// A titled card with a meta and one body line, drawn as an app does.
+
     fn card(t: &Theme, heading: Option<CardHeading>, focused: bool) -> (Buffer, Rect) {
         let mut buf = Buffer::empty(AREA);
         let mut p = Panel::card(Some("Settings"))
@@ -2113,13 +2113,13 @@ mod heading_tests {
                 let (rule, _) = card(&t, None, focused);
                 let (own, _) = card(&t, Some(CardHeading::Rule), focused);
                 assert_eq!(rule, own, "{level:?}: Rule is the default");
-                // the theme sets the style for every card...
+
                 let plain_theme = t.with_card_heading(CardHeading::Plain);
                 let (themed, _) = card(&plain_theme, None, focused);
                 assert_ne!(themed, rule, "{level:?}: the theme's style applies");
                 let (plain, _) = card(&t, Some(CardHeading::Plain), focused);
                 assert_eq!(themed, plain, "{level:?}: Plain stays available");
-                // ...and a card's own style wins over it
+
                 let (back, _) = card(&plain_theme, Some(CardHeading::Rule), focused);
                 assert_eq!(back, rule, "{level:?}: the panel's style wins");
             }
@@ -2151,10 +2151,10 @@ mod heading_tests {
         }
     }
 
-    /// Every style at every colour level: the content area does not move,
-    /// the title reads at ≥ 4.5:1 on whatever it sits on, and the heading
-    /// stands apart from the body by a cue that survives monochrome (a
-    /// glyph or a modifier, not only a colour).
+
+
+
+
     #[test]
     fn every_style_reads_and_sets_the_heading_apart_at_every_level() {
         for level in LEVELS {
@@ -2208,7 +2208,7 @@ mod heading_tests {
                                 "{at}: the title differs from the body"
                             );
                             if level == ColorLevel::Mono && focused {
-                                // bold no longer tells focus-within apart
+
                                 assert!(title.modifier.contains(Modifier::UNDERLINED), "{at}");
                             }
                             if !focused {
@@ -2225,7 +2225,7 @@ mod heading_tests {
         }
     }
 
-    /// The meta repainted after the content keeps the band's plane.
+
     #[test]
     fn draw_meta_keeps_the_band() {
         let t = Theme::junie().with_card_heading(CardHeading::Band);
@@ -2239,7 +2239,7 @@ mod heading_tests {
         assert!(line(&buf, 0).contains("1–7 of 60"), "{}", line(&buf, 0));
     }
 
-    /// An untitled card has no heading: every style draws it as plain.
+
     #[test]
     fn an_untitled_card_has_no_heading_to_set_apart() {
         for h in CardHeading::ALL {

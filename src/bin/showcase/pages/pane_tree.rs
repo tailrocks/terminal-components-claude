@@ -1,11 +1,11 @@
-//! Pane tree (Layout, plan §7 SC45): a `PaneTree` of terminal-like panes
-//! split side by side and stacked, with rounded frames that mark the
-//! focused and the hovered pane, draggable seams, keyboard focus moves
-//! (F6, Alt+arrows), resize chords (Alt+Shift+arrows) and zoom (Alt+Z,
-//! through `Split::toggle_max` on every split above the pane). Split,
-//! close and zoom are also buttons. No cross-fade: jackin's handoff fade
-//! stays in jackin (owner decision 2026-10-17). Options:
-//! `crate::options::PANE_TREE`.
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -29,7 +29,7 @@ use junie_tui::widgets::panel::Panel;
 const ID: WidgetId = WidgetId::of("panetree");
 const TREE: WidgetId = WidgetId::of("panetree").sub("tree");
 
-/// Pane names and contents, by pane id (ids past the list reuse it).
+
 const PANES: &[(&str, &[&str])] = &[
     (
         "shell",
@@ -78,9 +78,9 @@ pub struct PaneTreePage {
     template: Template,
     opts: PageValues,
     tree: PaneTree,
-    /// Split right, Split below, Close pane, Zoom.
+
     buttons: [Button; 4],
-    /// The next pane id a split creates.
+
     next: PaneId,
     sections: crate::pages::layout::Sections,
 }
@@ -108,8 +108,8 @@ impl PaneTreePage {
         page
     }
 
-    /// The tree from the option values, through its builders: shell
-    /// beside build over logs.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let frames = match o.value("panetree.frames") {
@@ -158,7 +158,7 @@ impl PaneTreePage {
         self.tree = tree;
     }
 
-    /// The legend of the tree's keys, from its key maps.
+
     fn legend(&self) -> String {
         let mut parts = Vec::new();
         if let Some(k) = hint_key(&self.tree.keys, PaneCmd::Next) {
@@ -193,7 +193,7 @@ impl PaneTreePage {
         }
     }
 
-    /// The card's meta: the panes, the focused one, zoomed.
+
     fn meta(&self) -> String {
         let n = self.tree.leaves().len();
         format!(
@@ -208,8 +208,8 @@ impl PaneTreePage {
         )
     }
 
-    /// The card's natural size: the buttons, the legend and a blank row
-    /// over the tree with every pane's lines whole (each drawn a cell in).
+
+
     fn card_size(&self) -> Size {
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;
         let tree = self.tree.natural_size(&|p| {
@@ -228,7 +228,7 @@ impl PaneTreePage {
             .outer(content)
     }
 
-    /// The card as the page's one section: at least the rows it had.
+
     fn child(&self) -> StackChild {
         StackChild::flex(12, self.card_size().height.max(26))
     }
@@ -285,7 +285,7 @@ impl PaneTreePage {
         }
     }
 
-    /// Show a refused command in the status line.
+
     fn report(r: PaneResult, cx: &mut Cx) -> Outcome {
         match r {
             Ok(o) => o,
@@ -317,7 +317,7 @@ impl PaneTreePage {
     }
 }
 
-/// The States grid: two panes at rest, hovered, focused and zoomed.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -336,7 +336,7 @@ impl Page for PaneTreePage {
         "PaneTree: nested splits, frames, focus moves, resize chords and zoom"
     }
 
-    /// The card at its natural size: every pane's lines whole.
+
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         Size::new(
             self.card_size().width,

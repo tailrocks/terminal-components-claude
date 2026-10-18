@@ -1,4 +1,4 @@
-// Inserted as a child of the existing private rowui::tests module.
+
 mod architecture_nested {
     use super::*;
 
@@ -18,7 +18,7 @@ mod architecture_nested {
                 columns.cell_part(0, INSIDE).text("B");
                 columns.cell(1).text("D");
             }
-            // ARCHITECTURE_NESTED_RETURN: independent lost-restoration fault.
+
             assert_eq!(outer.owner(), previous_owner, "nested return leaked the inner owner");
             outer.part(AFTER, 2).text("C");
             let queries = outer.ui.styled_queries();

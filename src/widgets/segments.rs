@@ -1,7 +1,7 @@
-//! Segment bar: a single line of labelled facts (identity strip, status
-//! line). Segments carry a tone and a priority; low-priority segments drop
-//! first when the line is narrow. Segments with an id are clickable and
-//! lift on hover.
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -17,9 +17,9 @@ pub struct Segment {
     pub tone: Tone,
     pub bold: bool,
     pub id: Option<WidgetId>,
-    /// Higher survives longer when space is short.
+
     pub priority: u8,
-    /// A glyph before the text in its own tone ([`Self::lead`]).
+
     pub lead: Option<(String, Tone)>,
 }
 
@@ -46,14 +46,14 @@ impl Segment {
         self.priority = p;
         self
     }
-    /// Lead the text with a glyph in its own tone, one space apart: a
-    /// count in secondary behind a live dot in [`Tone::Active`]
-    /// (`● 2 running`). The glyph and the text drop together.
+
+
+
     pub fn lead(mut self, glyph: impl Into<String>, tone: Tone) -> Self {
         self.lead = Some((glyph.into(), tone));
         self
     }
-    /// The text as drawn: the lead glyph, a space, the text.
+
     fn shown(&self) -> String {
         match &self.lead {
             Some((g, _)) => format!("{g} {}", self.text),
@@ -62,10 +62,10 @@ impl Segment {
     }
 }
 
-/// Render `left` segments from the left and `right` segments from the
-/// right, separated by two cells. Returns the areas of clickable segments.
-/// The width that shows every segment of `left` and `right` (plan §1.4
-/// `Measure`): drawn this wide, [`render`] drops none.
+
+
+
+
 pub fn width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u16 {
     let sep = 2u16;
     let w: u16 = left
@@ -76,10 +76,10 @@ pub fn width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u1
     w.saturating_sub(sep) + 2 * t.spacing.chrome_edge
 }
 
-/// The narrowest a strip is laid out at (plan §1.4 `Measure` min width):
-/// what does not fit collapses into its revealing `…` overflow item, so
-/// it is whole at any width that keeps its strongest segment and that
-/// item.
+
+
+
+
 pub fn min_width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u16 {
     let strongest = left
         .iter()
@@ -103,10 +103,10 @@ pub fn render(
     }
     let t = ctx.theme;
     let sep = 2u16;
-    // the same inset on both sides: the theme's chrome edge
+
     let edge = t.spacing.chrome_edge;
     let w = |s: &Segment| crate::ui::text::width(&s.shown()) as u16;
-    // decide which segments survive
+
     let mut keep_l: Vec<bool> = vec![true; left.len()];
     let mut keep_r: Vec<bool> = vec![true; right.len()];
     let total = |kl: &[bool], kr: &[bool]| -> u16 {
@@ -122,14 +122,14 @@ pub fn render(
             .filter(|(_, k)| **k)
             .map(|(s, _)| w(s) + sep)
             .sum();
-        // the overflow item `…` stands for the segments that left
+
         let gone = kl.iter().chain(kr).any(|k| !k);
         let more = if gone { 1 + sep } else { 0 };
-        // separators sit between segments only; the edges are kept clear
+
         (l + r + more).saturating_sub(sep) + 2 * edge
     };
     while total(&keep_l, &keep_r) > area.width {
-        // drop the lowest priority surviving segment (rightmost on ties)
+
         let mut best: Option<(u8, bool, usize)> = None;
         for (i, s) in left.iter().enumerate() {
             if keep_l[i] && best.is_none_or(|b| s.priority < b.0) {
@@ -148,7 +148,7 @@ pub fn render(
         }
     }
     let draw = |buf: &mut Buffer, ctx: &mut RenderCtx, x: u16, s: &Segment| {
-        // a clickable segment walks the ladder; its tone survives hover
+
         let mut st = match s.id {
             Some(id) => {
                 let mut vs = ctx.state(id);
@@ -214,9 +214,9 @@ pub fn render(
         draw(buf, ctx, start, s);
         rx = rx.saturating_sub(sep);
     }
-    // the dropped segments collapse into one `…` between the two sides
-    // (first of the right side, or last of the left when it has none):
-    // resting the pointer on it reveals them (R-apps-1)
+
+
+
     let hidden: Vec<String> = left
         .iter()
         .zip(&keep_l)
@@ -240,9 +240,9 @@ pub fn render(
     }
 }
 
-/// A segment drawn alone, in a forced state, for a States grid
-/// ([`crate::ui::specimen`]): a clickable segment lifts on hover and
-/// press; in the narrow slot a long segment is cut or dropped.
+
+
+
 impl crate::ui::specimen::Specimen for Segment {
     fn specimen_id(&self) -> WidgetId {
         self.id.unwrap_or(WidgetId::of("segments.specimen"))
@@ -278,8 +278,8 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
 
-    /// Drawn at its `width` every segment shows; one cell less drops the
-    /// lowest priority.
+
+
     #[test]
     fn width_shows_every_segment() {
         let t = Theme::junie();
@@ -325,8 +325,8 @@ mod tests {
         assert_eq!(buf[(x + 2, 0)].fg, t.text_secondary);
     }
 
-    /// R-apps-1: segments with no room collapse into one `…` overflow
-    /// item; resting the pointer on it reveals them.
+
+
     #[test]
     fn dropped_segments_collapse_into_an_overflow_item_that_reveals_them() {
         let t = Theme::junie();

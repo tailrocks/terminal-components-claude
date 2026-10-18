@@ -43,4 +43,3 @@ fn main() {
     assert!(events.as_array().unwrap().iter().any(|e|e["kind"]=="resize" && e["cols"]==36 && e["rows"]==14));
     println!("PASS: 384 independent cells; all modifiers, wide styles, clipping, cursor; click/drag/hover/wheel transport; literal LF paste; resize; style-aware settle; child exit");
 }
-

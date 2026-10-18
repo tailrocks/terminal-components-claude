@@ -1,7 +1,7 @@
-//! Jackin, redesigned: an interactive terminal preview of the complete
-//! Jackin operator experience built on the Junie design system. Every
-//! external system (Docker, daemons, PTYs, providers, 1Password) is a
-//! deterministic in-memory simulation; every operator interaction is real.
+
+
+
+
 
 mod app;
 #[cfg(test)]
@@ -42,7 +42,7 @@ use junie_tui::cli::CommonArgs;
 use crate::app::App;
 use crate::scenario::Scenario;
 
-/// Set to `1` (anything but empty or `0`) for reduced motion.
+
 const NO_MOTION_ENV: &str = "JACKIN_NO_MOTION";
 
 #[derive(Debug, Parser)]
@@ -54,7 +54,7 @@ const NO_MOTION_ENV: &str = "JACKIN_NO_MOTION";
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
-    /// The fixture scenario to open
+
     #[arg(short = 's', long, value_parser = parse_scenario, default_value = "first-use")]
     scenario: Scenario,
 }
@@ -92,6 +92,6 @@ fn main() -> std::io::Result<()> {
     let cli: Cli = junie_tui::cli::parse(cli_after_help());
     let motion = cli.common.motion(NO_MOTION_ENV);
     let mut app = App::for_scenario(cli.scenario, motion, cli.common.frame, cli.common.theme());
-    // stale key presses from the launching shell must not skip the ritual
+
     junie_tui::shell::run(&mut app)
 }

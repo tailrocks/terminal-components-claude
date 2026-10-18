@@ -1,6 +1,6 @@
-//! Simulated Capsule daemon: tabs, a nested pane tree, PTY-backed panes
-//! whose content is a `TextViewport`, and deterministic agent processes
-//! that emit believable transcripts over virtual time and answer input.
+
+
+
 
 use std::collections::VecDeque;
 
@@ -20,8 +20,8 @@ pub const MIN_PANE_COLS: u16 = 20;
 pub const MIN_PANE_ROWS: u16 = 4;
 pub const MAX_LABEL: usize = 16;
 
-/// The pane tree is the library's (`PaneTree`, S26): the capsule's split
-/// tree, its seams, directions and nearest-pane search moved there.
+
+
 pub use junie_tui::ui::pane_tree::{Direction, PaneNode, Seam, nearest};
 
 #[derive(Debug, Clone)]
@@ -38,16 +38,16 @@ impl Tab {
     }
 }
 
-// ------------------------------------------------------------ processes
+
 
 #[derive(Debug, Clone)]
 pub enum Step {
-    /// Emit a line after `delay` virtual ms.
+
     Emit(i64, Line),
     State(AgentState),
-    /// Touch a file: marks the repo dirty.
+
     Touch(&'static str),
-    /// Wait for operator input.
+
     Await,
 }
 
@@ -59,7 +59,7 @@ pub struct AgentProcess {
     pub script: Vec<Step>,
     pub pc: usize,
     pub next_at_ms: i64,
-    /// The current Emit step's delay has been scheduled into `next_at_ms`.
+
     scheduled: bool,
     pub reply_queue: VecDeque<(i64, Line)>,
     pub reply_cursor: usize,
@@ -97,7 +97,7 @@ fn e(delay: i64, l: Line) -> Step {
     Step::Emit(delay, l)
 }
 
-/// Boot transcript per agent (paths synthetic, no secrets).
+
 pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
     let ws = format!("~/{workspace}");
     match agent {
@@ -740,7 +740,7 @@ pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
     }
 }
 
-/// Canned replies (rotating) after operator input.
+
 fn replies(agent: Option<Agent>) -> Vec<Vec<Line>> {
     match agent {
         Some(Agent::ClaudeCode) => vec![
@@ -866,7 +866,7 @@ impl AgentProcess {
         }
     }
 
-    /// Fast-forward the boot script (fixtures that start mid-session).
+
     pub fn boot_all(&mut self, out: &mut Vec<Line>) {
         while self.pc < self.script.len() {
             match &self.script[self.pc] {
@@ -889,7 +889,7 @@ impl AgentProcess {
             && self.reply_queue.is_empty()
     }
 
-    /// Advance; returns lines to emit now.
+
     pub fn tick(&mut self, now_ms: i64) -> Vec<Line> {
         let mut out = vec![];
         while let Some((due, _)) = self.reply_queue.front() {
@@ -905,7 +905,7 @@ impl AgentProcess {
             && self.awaiting()
             && !self.awaiting_permission
         {
-            // reply finished
+
             self.state = AgentState::Done;
         }
         while self.pc < self.script.len() {
@@ -940,7 +940,7 @@ impl AgentProcess {
         out
     }
 
-    /// Operator committed a line.
+
     pub fn on_input(&mut self, input: &str, now_ms: i64, workspace: &str) -> Vec<Line> {
         let mut out = vec![];
         let is_shell = self.agent.is_none();
@@ -1066,7 +1066,7 @@ impl AgentProcess {
     }
 }
 
-// ----------------------------------------------------------------- pane
+
 
 #[derive(Debug, Clone)]
 pub struct Pane {
@@ -1111,8 +1111,8 @@ impl Pane {
         ]
     }
 
-    /// The live prompt row is always the last line while the process waits,
-    /// and while the operator has typed ahead.
+
+
     fn refresh_prompt(&mut self) {
         let waiting = self.proc.awaiting() || !self.input.is_empty();
         if waiting {
@@ -1140,7 +1140,7 @@ impl Pane {
         if lines.is_empty() {
             return;
         }
-        // remove a pending prompt row before appending output
+
         if self
             .term
             .last()
@@ -1154,11 +1154,11 @@ impl Pane {
                 continue;
             }
             if l.first().is_some_and(|s| s.text == "⠋ ") {
-                // a spinner line replaces itself when the reply lands
+
                 self.term.push(l);
                 continue;
             }
-            // drop a previous spinner row
+
             if self
                 .term
                 .last()
@@ -1188,12 +1188,12 @@ impl Pane {
     }
 
     pub fn type_char(&mut self, c: char, now_ms: i64, workspace: &str) {
-        // typing snaps to live
+
         self.term.set_follow(true);
         let _ = now_ms;
         let _ = workspace;
         if !self.proc.awaiting() && self.proc.agent.is_some() {
-            // agent is working: queue the character into the input anyway
+
         }
         self.input.push(c);
         self.refresh_prompt();
@@ -1231,7 +1231,7 @@ impl Pane {
     }
 }
 
-// --------------------------------------------------------------- daemon
+
 
 #[derive(Debug, Clone)]
 pub struct Daemon {
@@ -1240,7 +1240,7 @@ pub struct Daemon {
     pub active: usize,
     pub panes: Vec<Pane>,
     pub next_id: u64,
-    /// Which client holds the single attach.
+
     pub attached_by: Option<String>,
 }
 
@@ -1316,8 +1316,8 @@ impl Daemon {
         self.active
     }
 
-    /// Split the focused pane of the active tab. `new_first` places the new
-    /// pane left/above.
+
+
     pub fn split(
         &mut self,
         dir: SplitDir,
@@ -1340,7 +1340,7 @@ impl Daemon {
         }
     }
 
-    /// Close a pane; returns true when the tab closed too.
+
     pub fn close_pane(&mut self, id: PaneId) -> bool {
         let Some(ti) = self.tabs.iter().position(|t| t.leaves().contains(&id)) else {
             return false;
@@ -1376,7 +1376,7 @@ impl Daemon {
         }
     }
 
-    /// Auto label: Shell / agent label / Agents / Mix, with a count.
+
     pub fn tab_label(&self, tab: &Tab, account_suffix: &dyn Fn(&Pane) -> Option<String>) -> String {
         if let Some(c) = &tab.custom_label {
             return c.clone();
@@ -1429,7 +1429,7 @@ impl Daemon {
         changed
     }
 
-    /// Repos dirtied by agents in this instance.
+
     pub fn touched_files(&self) -> Vec<String> {
         let mut v: Vec<String> = self
             .panes

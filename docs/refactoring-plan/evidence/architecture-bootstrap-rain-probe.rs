@@ -1,4 +1,4 @@
-//! Actual accepted application art composed with an actual library control.
+
 use junie_tui::{App, Button, Cx, Id, KeyCode, Rect, Response, Theme, Ui};
 use junie_tui_testing::Harness;
 

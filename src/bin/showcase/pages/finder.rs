@@ -1,17 +1,17 @@
-//! Finder (Screens, plan §7.5 SC48): holla's finder composed from the
-//! library only. A typing-hot query (`TextInput`, ranked live with
-//! `ui::text::fuzzy`) with its scope readout inside the field
-//! (`TextInput::readout` as a link: a click widens it, Alt+↑↓ step it),
-//! the ranked results
-//! (`DataTable`, grouped by kind), and a preview `DetailCard` with
-//! Alternatives… (a `ContextMenu`) and Why? (an `InfoDialog`); on a narrow
-//! page the preview folds to a one-line summary (`segments`). Options:
-//! `crate::options::FINDER`.
-//!
-//! Gaps (recorded in docs/remaining-work.md SC48): the query owning the
-//! list (`FilterList`, S21: today ↑↓ need Tab into the table), `DataTable`
-//! group rows and match ranges (S24; today a Group column and plain
-//! text).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -49,24 +49,24 @@ const ID: WidgetId = WidgetId::of("finder");
 const ALTS: WidgetId = ID.sub("alternatives-menu");
 const WHY: WidgetId = ID.sub("why-dialog");
 const SCOPES: &[&str] = &["Here", "Project", "Everywhere"];
-/// The scope readout inside the query: a link that widens the scope.
+
 const SCOPE_LINK: WidgetId = ID.sub("scope");
-/// Page width from which the preview is a card beside the results.
+
 const CARD_MIN: u16 = 90;
-/// The preview card's narrowest.
+
 const PREVIEW_MIN: u16 = 34;
 
-/// One thing the finder can run (demo data, holla's catalogue shape).
+
 struct Action {
     name: &'static str,
     group: &'static str,
-    /// The narrowest scope that shows it (0 here, 1 project, 2 everywhere).
+
     scope: usize,
     note: &'static str,
     runs: &'static str,
     risk: &'static str,
     alternatives: &'static [&'static str],
-    /// Higher ranks first among equal matches (recent use).
+
     recency: u32,
 }
 
@@ -202,8 +202,8 @@ fn risk_tone(risk: &str) -> Tone {
     }
 }
 
-/// The actions in scope that match `query`, best first: a fuzzy penalty
-/// (`ui::text::fuzzy`), then recency, grouped by kind in rank order.
+
+
 fn rank(query: &str, scope: usize) -> Vec<usize> {
     let mut hits: Vec<(u32, u32, usize)> = ACTIONS
         .iter()
@@ -212,7 +212,7 @@ fn rank(query: &str, scope: usize) -> Vec<usize> {
         .filter_map(|(i, a)| fuzzy(a.name, query.trim()).map(|(p, _)| (p, a.recency, i)))
         .collect();
     hits.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
-    // groups keep their best member's place
+
     let mut groups: Vec<&str> = Vec::new();
     for (_, _, i) in &hits {
         if !groups.contains(&ACTIONS[*i].group) {
@@ -237,10 +237,10 @@ pub struct FinderPage {
     template: Template,
     opts: PageValues,
     pub query: TextInput,
-    /// The scope: an index into `SCOPES` (0 here, 1 project, 2 everywhere).
+
     pub scope: usize,
     pub results: DataTable,
-    /// `ACTIONS` index of each result row.
+
     shown: Vec<usize>,
     pub alternatives: Button,
     pub why: Button,
@@ -266,7 +266,7 @@ impl FinderPage {
         page
     }
 
-    /// The query, scope and results from the option values.
+
     fn rebuild(&mut self) {
         let q = match self.opts.value("finder.query") {
             "empty" => "",
@@ -286,7 +286,7 @@ impl FinderPage {
         self.set_scope(scope);
     }
 
-    /// Show `scope` in the query's readout and rank again for it.
+
     pub fn set_scope(&mut self, scope: usize) {
         self.scope = scope.min(SCOPES.len() - 1);
         self.query
@@ -306,7 +306,7 @@ impl FinderPage {
         cols
     }
 
-    /// Rank again for the query and scope; the best match takes the cursor.
+
     fn rerank(&mut self) {
         self.shown = rank(self.query.text(), self.scope);
         let risk = self.opts.on("finder.risk_column");
@@ -335,7 +335,7 @@ impl FinderPage {
         self.results.cursor_row = 0;
     }
 
-    /// The action under the results cursor.
+
     fn current(&self) -> Option<&'static Action> {
         if self.shown.is_empty() {
             return None;
@@ -348,8 +348,8 @@ impl FinderPage {
         cx.status(format!("✓ Ran {what}"));
     }
 
-    /// The current action's alternatives, opened at `anchor` (the
-    /// button, the cursor row or the pointer).
+
+
     fn open_alternatives(&mut self, anchor: ContextAnchor) {
         let Some(a) = self.current() else {
             return;
@@ -404,7 +404,7 @@ impl FinderPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // the query with its scope readout inside the field
+
         self.query
             .render(Rect::new(area.x, area.y, area.width, 2), buf, ctx, t.canvas);
         let top = 3;
@@ -467,7 +467,7 @@ impl FinderPage {
         };
         let meta = format!("{} · {}", a.group, SCOPES[a.scope].to_lowercase());
         let facts = facts(a);
-        // the facts, then Alternatives… and Why? right under them
+
         DetailCard::new(a.name)
             .meta(&meta)
             .props(facts)
@@ -482,7 +482,7 @@ impl FinderPage {
             );
     }
 
-    /// The narrow preview: one line naming what Enter runs.
+
     fn render_line(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let Some(a) = self.current() else {
             return;
@@ -503,8 +503,8 @@ impl FinderPage {
             }
             return r.outcome();
         }
-        // the scope readout is a link: a click widens the scope, and past
-        // Everywhere comes back to Here
+
+
         if ev.id == SCOPE_LINK {
             if click {
                 self.set_scope((self.scope + 1) % SCOPES.len());
@@ -557,7 +557,7 @@ impl FinderPage {
             return Outcome::Ignored;
         };
         if f == self.query.id {
-            // Alt+↑ widens the scope, Alt+↓ narrows it (the readout's keys)
+
             if key.alt() {
                 match key.code {
                     KeyCode::Up => {
@@ -615,7 +615,7 @@ impl FinderPage {
     }
 }
 
-/// The preview card's facts of action `a`.
+
 fn facts(a: &Action) -> Vec<Prop> {
     vec![
         Prop::new("Runs", a.runs).copyable(),
@@ -635,8 +635,8 @@ fn facts(a: &Action) -> Vec<Prop> {
     ]
 }
 
-/// The States grid: the query with its scope readout and the results
-/// table.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -675,18 +675,18 @@ impl Page for FinderPage {
         "Typing-hot query, scope, ranked results, preview, alternatives and why"
     }
 
-    /// The room it gets; with the preview as a card, never narrower than
-    /// [`CARD_MIN`] (the card does not fall back to its one line) and
-    /// never shorter than the query over the selected action's card at
-    /// its narrowest: every fact and the action row. The results scroll
-    /// their own rows.
+
+
+
+
+
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         if self.opts.value("finder.preview") == "line" {
             return avail;
         }
         let card = self.current().map_or(0, |a| {
-            // the card's title and rule, its facts, a blank row and the
-            // action row
+
+
             3 + props::measure(&facts(a), PREVIEW_MIN - 4) + 2
         });
         Size::new(avail.width.max(CARD_MIN), avail.height.max(3 + card))

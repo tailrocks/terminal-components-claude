@@ -1,23 +1,23 @@
-//! Scrolling (Layout, plan §7.5 SC22 and SC29): one scroll model
-//! (`ScrollState`, `ScrollPane`, `Scrollable`) and one cursor model
-//! (`Cursor`, `RowSource`, `NavProfile`, type-ahead) in every collection.
-//!
-//! - **Playground**: wrapped prose, a long list and a following log; a
-//!   hand-drawn table on a bare `ScrollPane` (rows painted by the page, the
-//!   faded edge and both bars by `draw_with_fade`/`draw_h`) that follows the
-//!   list's cursor; the divider-or-scrollbar rule on two small panes; a
-//!   readout of the list's `Cursor` and of what the last key was
-//!   (`KeyStep`, `Moved`); and type-ahead in a select, a tree, a table and
-//!   a grid under the same pause and precedence.
-//! - **Options** (`scrolling.*`): context rows, follow policy, track click,
-//!   the horizontal bar and unit of the hand-drawn pane, the navigation
-//!   profile, type-ahead, its pause and its precedence, wrap and
-//!   skip-disabled.
-//! - **States**: a scrolling panel at rest, with its thumb hovered and
-//!   held, empty, overflowing and narrow.
-//!
-//! The page is wiring and demo data only: scrolling, bars, fades, cursor
-//! moves and type-ahead are the library's.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::collections::BTreeSet;
 use std::time::Duration;
@@ -57,22 +57,22 @@ use junie_tui::widgets::table::{Cell, Column, DataTable};
 use junie_tui::widgets::tree::{TreeNode, TreeView};
 
 const ID: WidgetId = WidgetId::of("scrolling");
-/// The hand-drawn table's pane (the page paints its rows).
+
 const HAND: WidgetId = ID.sub("hand");
-/// The divider demo: content that fits, and content that overflows.
+
 const FITS: WidgetId = ID.sub("fits");
 const OVER: WidgetId = ID.sub("over");
 
-/// The scrolling cards' fewest rows, then the mechanics and the
-/// collections bands under them.
+
+
 const TOP_MIN: u16 = 10;
 const MECHANICS_H: u16 = 10;
 const COLLECTIONS_H: u16 = 8;
-/// The narrowest Playground: the divider panes keep their captions and
-/// items, the prose its longest word and the hand-drawn table a column.
+
+
 const MIN_W: u16 = 68;
 
-/// Every tenth row is retired (disabled): skip-disabled steps over it.
+
 fn retired(i: usize) -> bool {
     i % 10 == 9
 }
@@ -94,11 +94,11 @@ const REGIONS: &[&str] = &[
     "us-east-2",
     "us-west-2",
 ];
-/// The hand-drawn table's columns: title and cells per column.
+
 const HAND_COLS: &[&str] = &["Host", "Region", "Latency", "CPU", "Memory", "Uptime"];
 const HAND_W: usize = 14;
 
-/// The hand-drawn table's cells for row `i`.
+
 fn hand_row(i: usize) -> [String; 6] {
     [
         format!(
@@ -121,20 +121,20 @@ pub struct ScrollingPage {
     pub prose: ScrollPanel,
     pub list: ListBox,
     pub log: ScrollPanel,
-    /// A bare pane the page draws a table into (`ScrollPane` builders,
-    /// `draw_with_fade`, `draw_h`, `follow`).
+
+
     pub hand: ScrollPane,
-    /// Divider demo panes.
+
     pub fits: ScrollPane,
     pub over: ScrollPane,
-    /// Type-ahead in other collections.
+
     pub region: Select,
     pub tree: TreeView,
     pub table: DataTable,
     pub grid: DataGrid,
-    /// Rows flagged with the page's `f` shortcut.
+
     pub flagged: BTreeSet<usize>,
-    /// What the last key on the list meant and did.
+
     pub last: Option<(KeyStep, Moved)>,
 }
 
@@ -209,8 +209,8 @@ impl ScrollingPage {
         }
     }
 
-    /// Build every widget from the option values through its builders,
-    /// keeping where the user was.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = self.profile().nav();
@@ -317,8 +317,8 @@ impl ScrollingPage {
         self.grid = grid;
     }
 
-    /// The list's flag: the page's own single-letter shortcut, so the
-    /// precedence option has something to decide.
+
+
     fn toggle_flag(&mut self) -> Outcome {
         let i = self.list.cursor;
         if retired(i) {
@@ -346,7 +346,7 @@ impl ScrollingPage {
         } else {
             None
         };
-        // the scrolling cards take every row the other two bands leave
+
         let top = area
             .height
             .saturating_sub(MECHANICS_H + COLLECTIONS_H + 3)
@@ -379,7 +379,7 @@ impl ScrollingPage {
         }
     }
 
-    /// Three columns of `area` with one blank column between them.
+
     fn thirds(area: Rect) -> [Rect; 3] {
         let third = area.width / 3;
         [
@@ -402,14 +402,14 @@ impl ScrollingPage {
     fn render_scrollers(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let cols = Self::thirds(area);
-        // narrow cards keep one column of padding, so the position labels
-        // ("271–278/279") survive at 80 columns
+
+
         let pad = if cols[0].width < 22 { 1 } else { 2 };
-        // titles first, content second, the position last: a label read
-        // after the content laid itself out is exact on the first frame,
-        // after a resize and after every tick. This page is about the
-        // position labels, so they keep priority over the titles (a title
-        // keeps 4 cells here, not the default `TITLE_MIN`)
+
+
+
+
+
         let panel = Panel::card(Some("Wrapped text"))
             .pad_x(pad)
             .focused(ctx.interaction.focused(self.prose.id))
@@ -453,9 +453,9 @@ impl ScrollingPage {
         panel.draw_meta(cols[2], buf, t, &meta);
     }
 
-    /// The hand-drawn table, the divider rule and the cursor readout.
+
     fn render_mechanics(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        // the readout's lines are the longest: the divider panes give way
+
         let (hand, div) = (area.width * 3 / 8, area.width / 4);
         let x1 = area.x + hand + 1;
         let x2 = x1 + div + 1;
@@ -465,9 +465,9 @@ impl ScrollingPage {
         self.render_cursor(col(x2, area.right().saturating_sub(x2)), buf, ctx);
     }
 
-    /// A table the page paints itself on a bare `ScrollPane`: the pane
-    /// keeps both offsets, follows the list's cursor and draws the faded
-    /// edge and both bars.
+
+
+
     fn render_hand(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Hand-drawn")).title_min(4);
@@ -477,11 +477,11 @@ impl ScrollingPage {
         if inner.height < 3 || inner.width < 8 {
             return;
         }
-        // header row, then the rows; the bottom row is the horizontal bar
+
         let header = Rect::new(inner.x, inner.y, inner.width, 1);
         let shows_h = self.hand.h_cfg.bar != ScrollbarVisibility::Never;
-        // the rows, the vertical bar on their right and the horizontal bar
-        // under them, its track short of the corner
+
+
         let region = Rect::new(inner.x, inner.y + 1, inner.width, inner.height - 1);
         let bars = scrollbar::Bars::split(region, true, shows_h);
         let body = Rect::new(region.x, region.y, region.width, bars.content.height);
@@ -497,7 +497,7 @@ impl ScrollingPage {
         }
         self.hand.v.set_content(120);
         self.hand.v.set_viewport(body.height as usize);
-        // the pane follows the list's cursor per its FollowCursor
+
         self.hand.follow(self.list.cursor);
         let line = |cells: &[String]| -> String {
             let full: String = cells.iter().map(|c| fit(c, HAND_W)).collect();
@@ -525,8 +525,8 @@ impl ScrollingPage {
         }
     }
 
-    /// The divider rule: one column is a solid divider while the content
-    /// fits and a scrollbar (dotted track, thumb) once it overflows.
+
+
     fn render_dividers(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Divider or bar")).title_min(4);
@@ -570,7 +570,7 @@ impl ScrollingPage {
             let body = Rect::new(r.x, r.y + 1, r.width, rows);
             pane.v.set_content(n);
             pane.v.set_viewport(rows as usize);
-            // the column is the pane's edge at every size: reserve it
+
             let split = scrollbar::split(body, true, scrollbar::GAP);
             for (k, i) in pane.v.visible_range().enumerate() {
                 let text = truncate(&format!("item {}", i + 1), split.content.width as usize);
@@ -583,7 +583,7 @@ impl ScrollingPage {
         }
     }
 
-    /// The list's cursor as the library sees it, and the last key.
+
     fn render_cursor(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Cursor")).title_min(4);
@@ -595,8 +595,8 @@ impl ScrollingPage {
             Axis::Horizontal => "horizontal",
         };
         let on = |b: bool| if b { "on" } else { "off" };
-        // the rows a type-ahead would search, through the closure adapter
-        // a filtered view passes (here: every enabled row)
+
+
         let items = &self.list.items;
         let enabled = |i: usize| !items[i].disabled;
         let label = |i: usize| items[i].label.as_str();
@@ -649,14 +649,14 @@ impl ScrollingPage {
             } else {
                 t.secondary()
             };
-            // a line cut on a narrow page reveals itself on hover
+
             let row = Rect::new(inner.x, y, inner.width, 1);
             buf.set_string(inner.x, y, reveal::cut(row, l), style.bg(bg));
         }
     }
 
-    /// Type-ahead in four more collections, under the same pause and
-    /// precedence.
+
+
     fn render_collections(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Type to jump · select, tree, table, grid")).title_min(4);
@@ -688,8 +688,8 @@ impl ScrollingPage {
         let before = self.list.cursor;
         let step = KeyStep::of(key, &self.list.nav, self.list.type_ahead);
         let o = self.list.on_key(key);
-        // the page's own letter shortcut, after the list: under
-        // `TypeAheadPrecedence::Shortcuts` the list yields `f`
+
+
         if o == Outcome::Ignored && key.plain() && key.code == KeyCode::Char('f') {
             return self.toggle_flag();
         }
@@ -728,8 +728,8 @@ fn moved_text(moved: Moved) -> String {
     }
 }
 
-/// The States grid: a scrolling panel in every state it has, drawn by the
-/// panel itself (the pointer states are its thumb's).
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -793,7 +793,7 @@ impl ScrollingPage {
             }
             return r.outcome();
         }
-        // the hand-drawn panes: the page paints them, so it moves them
+
         if let Some((axis, delta)) = ev.wheel() {
             for (pane, owner) in self.panes() {
                 let over = ev.id == owner || scrollbar::is_bar_of(ev.id, owner);
@@ -818,10 +818,10 @@ impl ScrollingPage {
                 continue;
             }
             return match ev.phase() {
-                // the press grabs the thumb or pages the track
+
                 Some(Phase::Press) => pane.press(ev.pos()).outcome().or(Outcome::Consumed),
                 Some(Phase::Drag) => pane.drag(ev.pos()).outcome(),
-                // the completed click (or a release away) ends the grab
+
                 Some(Phase::Click | Phase::Release) => {
                     pane.release();
                     Outcome::Consumed
@@ -841,12 +841,12 @@ impl Page for ScrollingPage {
         "Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows"
     }
 
-    /// The room it gets, never shorter than the three bands with the
-    /// scrolling cards at [`TOP_MIN`] rows (their prose, list and log
-    /// scroll the rest themselves) and never narrower than [`MIN_W`]: the
-    /// template scrolls instead of the bands squeezing. The cards'
-    /// position labels shorten on a narrow page and reveal their full
-    /// text on hover.
+
+
+
+
+
+
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let height = TOP_MIN + MECHANICS_H + COLLECTIONS_H + 3;
         Size::new(avail.width.max(MIN_W), avail.height.max(height))
@@ -873,7 +873,7 @@ impl Page for ScrollingPage {
         }
         match ev {
             PageEvent::Tick => {
-                // keep the log alive so follow-tail is observable
+
                 if self.log.lines.len() < 2000 && self.log.follow {
                     let n = self.log.lines.len();
                     if let Some(line) = crate::data::log_lines(n + 1).pop() {
@@ -927,8 +927,8 @@ impl Page for ScrollingPage {
         if let Some(h) = self.template.hints(focus) {
             return h;
         }
-        // every navigation hint reads the focused widget's live keys, so a
-        // key the profile does not deliver is never advertised
+
+
         let nav_hints = |nav: &NavKeys, type_ahead: bool, step: &'static str| -> Vec<Hint> {
             let mut v = Vec::new();
             if let Some(k) = nav.move_hint(type_ahead) {
@@ -953,7 +953,7 @@ impl Page for ScrollingPage {
             v
         } else if focus == Some(self.list.id) {
             let mut v = nav_hints(&self.list.nav, self.list.type_ahead, "Move");
-            // `f` reaches the page only while shortcuts come first
+
             if !self.list.type_ahead || self.precedence() == TypeAheadPrecedence::Shortcuts {
                 v.push(("f", "Flag"));
             }

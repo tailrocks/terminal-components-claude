@@ -1,7 +1,7 @@
-//! Colour as meaning in the showcase: each page shows the library roles
-//! (status kinds, environments, tones, links, syntax literals, meter
-//! levels and staleness) through the library API, driven through the real
-//! app (colour follow-ups, `docs/audits/design-review-2026-10`).
+
+
+
+
 
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind};
 use junie_tui::runtime::Application;
@@ -70,7 +70,7 @@ impl Harness {
         self.term.backend().buffer().area.height
     }
 
-    /// Every cell position where `needle` starts, in columns.
+
     fn find_all(&self, needle: &str) -> Vec<(u16, u16)> {
         let mut out = Vec::new();
         for y in 0..self.rows() {
@@ -99,10 +99,10 @@ fn reads(cell: &Cell) -> f64 {
     contrast_ratio(cell.fg, cell.bg).expect("measurable colours")
 }
 
-/// Task runner rows lead with their `Theme::status` glyph: queued `○`
-/// muted, running the spinner with its label in info, done `✓` in success,
-/// failed `✗` in error, cancelled `–` as skipped; the state word reads at
-/// 4.5:1 on the card (skipped is faint, stepped up).
+
+
+
+
 #[test]
 fn taskrunner_states_take_the_status_roles() {
     let t = Theme::junie();
@@ -115,7 +115,7 @@ fn taskrunner_states_take_the_status_roles() {
 
     h.click_label("Run pipeline");
     h.tick();
-    // the running row: the spinner glyph in the accent, then the name
+
     let (sx, sy) = (0..h.rows())
         .flat_map(|y| (0..140u16).map(move |x| (x, y)))
         .find(|&(x, y)| {
@@ -155,10 +155,10 @@ fn taskrunner_states_take_the_status_roles() {
     assert!(cell.modifier.contains(Modifier::BOLD));
 }
 
-/// The progress page: running bars in the active tone, red only as a run
-/// or a glyph (no red block fills), and the meter options: owner
-/// thresholds, a fixed level, a stale domain warning and both stale
-/// styles.
+
+
+
+
 #[test]
 fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
     let t = Theme::junie();
@@ -173,7 +173,7 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
         .expect("running run");
     assert_eq!(h.cell(run, y).fg, t.accent, "a running bar is active");
 
-    // owner thresholds: 88% of a disk is attention, not danger
+
     let (x, y) = h.find("88% disk");
     let line = h.row(y);
     assert!(line.contains(&format!("critical at 95 {}", t.glyphs.warning)));
@@ -183,7 +183,7 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
         .expect("disk run");
     assert_eq!(h.cell(run, y).fg, t.warning);
 
-    // a stale domain warning keeps its hue and ▲, drawn dashed
+
     let (x, y) = h.find("82% · stale warning");
     let run = (0..x)
         .rev()
@@ -192,7 +192,7 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
     assert_eq!(h.cell(run, y).fg, t.warning);
     assert!(h.cell(x, y).modifier.contains(Modifier::ITALIC));
 
-    // the default stale meter keeps its level; the faint style hides it
+
     let (_, y) = h.find("Stale     ");
     assert!(h.row(y).contains(t.glyphs.bar_stale));
     assert!(h.row(y).contains(&format!("76% used {}", t.glyphs.warning)));
@@ -204,13 +204,13 @@ fn progress_page_shows_meter_levels_and_staleness_without_red_fills() {
     assert_eq!(h.cell(run, y).fg, t.text_faint);
 }
 
-/// `true` and `false` in the code editor take the literal tone (lavender
-/// italic, as numbers), not the keyword tone.
+
+
 #[test]
 fn editor_booleans_are_literals() {
     let t = Theme::junie();
-    // wide enough for the editor to show the builder line whole (it
-    // scrolls sideways itself when narrower)
+
+
     let h = Harness::new(180, 45, PageId::Editor);
     let (x, y) = h.find("gzip(true)");
     let cell = h.cell(x + 5, y);
@@ -220,16 +220,16 @@ fn editor_booleans_are_literals() {
     assert!(!cell.modifier.contains(Modifier::BOLD), "not a keyword");
 }
 
-/// The Overview's Roles card draws every status kind, environment, tone,
-/// syntax class and a link through the library, each readable on the
-/// card.
+
+
+
 #[test]
 fn overview_roles_draw_statuses_environments_tones_code_and_link() {
     let t = Theme::junie();
-    // every card of the playground shows at once at this size
+
     let h = Harness::new(220, 80, PageId::Overview);
-    // the Roles card starts its band; the Principles text above it also
-    // names some glyphs
+
+
     let (roles_x, roles_y) = h.find("Roles");
     let at = |needle: &str| {
         let (x, y) = h
@@ -268,8 +268,8 @@ fn overview_roles_draw_statuses_environments_tones_code_and_link() {
     assert!(lit.modifier.contains(Modifier::ITALIC));
 }
 
-/// The destructive dialog leads its title with the warning status glyph
-/// (`Dialog::title_status`).
+
+
 #[test]
 fn destructive_dialog_title_leads_with_a_warning_status() {
     let t = Theme::junie();
@@ -281,8 +281,8 @@ fn destructive_dialog_title_leads_with_a_warning_status() {
     assert_eq!(glyph.fg, t.legible(t.warning, glyph.bg));
 }
 
-/// List metadata takes its tone (`ListItem::meta_tone`): a new file in
-/// success, a modified one in warning, both readable on the card.
+
+
 #[test]
 fn list_metadata_takes_its_change_tone() {
     let t = Theme::junie();
@@ -303,9 +303,9 @@ fn list_metadata_takes_its_change_tone() {
     assert!(reads(cell) >= 4.5);
 }
 
-/// The task runner's deploy targets carry their environment: glyph and
-/// tone from the library (`TreeNode::glyph_tone`), production's label in
-/// the danger tone (`TreeNode::label_tone`).
+
+
+
 #[test]
 fn taskrunner_deploy_targets_carry_their_environment() {
     let t = Theme::junie();
@@ -325,12 +325,12 @@ fn taskrunner_deploy_targets_carry_their_environment() {
     assert_eq!(h.cell(x, y).fg, t.warning);
 }
 
-/// Toned lines on the Chrome page: hint bar status parts, a span line and
-/// a footer status led by its `StatusKind` glyph.
+
+
 #[test]
 fn chrome_shows_toned_status_parts_spans_and_a_footer_status() {
     let t = Theme::junie();
-    // tall enough for the hint bar under the status bars
+
     let h = Harness::new(120, 60, PageId::Chrome);
     let (x, y) = h.find("last: nothing yet");
     assert_ne!(

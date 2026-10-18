@@ -1,17 +1,17 @@
-//! Panels (Layout, plan §7.5 SC22): the `Panel` surface (card and framed,
-//! its title row, meta and focus mark) and the `ScrollPanel` inside it.
-//!
-//! - **Playground**: a titled card with meta, an untitled card, a card
-//!   holding a group, a framed split pane of wrapped prose and a card
-//!   holding a scrolling log.
-//! - **Options** (`panels.*`): the card focus mark, how much of the title a
-//!   long meta leaves, the card padding, the meta's short form, and the
-//!   scrolling panels' wrap, tail, sideways policy, track click, keys and
-//!   follow key.
-//! - **States**: a card, a card whose focus is its own bar and a framed
-//!   pane at rest, focused, overflowing and narrow.
-//!
-//! The page is wiring and demo data only.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -36,13 +36,13 @@ use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("panels");
 
-/// The narrowest column side by side: the Nested card's group keeps its
-/// width; the cards wrap and the panes scroll sideways themselves.
+
+
 const COL_MIN: u16 = 36;
-/// Rows each scrolling pane keeps at least.
+
 const PANE_H: u16 = 9;
-/// Where the group's note starts in the Nested card: after the group's
-/// columns and a gap.
+
+
 const NOTE_X: u16 = 32;
 const TITLED: &str = "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.";
 const UNTITLED: &str = "Untitled card. Same surface, content starts at the padding edge.";
@@ -95,8 +95,8 @@ impl PanelsPage {
         page
     }
 
-    /// Build both scrolling panels from the option values through their
-    /// builders, keeping their positions.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = match o.value("panels.nav") {
@@ -105,7 +105,7 @@ impl PanelsPage {
             _ => NavKeys::default(),
         };
         let keymap = match o.value("panels.keymap") {
-            // the defaults (Follow, Copy, Select All) with Follow on `t`
+
             "t" => PanelCmd::default_keymap()
                 .into_iter()
                 .map(|(k, c)| match c {
@@ -156,8 +156,8 @@ impl PanelsPage {
         self.template.grid = states_grid(self.heading());
     }
 
-    /// The cards' own heading style; `None` follows the theme's
-    /// (`shell.card_heading`).
+
+
     fn heading(&self) -> Option<CardHeading> {
         CardHeading::ALL
             .into_iter()
@@ -168,7 +168,7 @@ impl PanelsPage {
         [&mut self.prose, &mut self.log]
     }
 
-    /// A card with this page's chrome options.
+
     fn card<'a>(&self, title: Option<&'a str>) -> Panel<'a> {
         let mut p = Panel::card(title)
             .pad_x(self.opts.number("panels.pad_x").unwrap_or(2))
@@ -182,9 +182,9 @@ impl PanelsPage {
         p
     }
 
-    /// The left column's width in a Playground `width` wide, and whether
-    /// the panes sit beside it (else under it): side by side only while
-    /// both columns keep [`COL_MIN`].
+
+
+
     fn split(width: u16) -> (u16, bool) {
         let half = (width / 2).saturating_sub(1);
         if half >= COL_MIN {
@@ -194,17 +194,17 @@ impl PanelsPage {
         }
     }
 
-    /// The left column's cards at a column `lw` wide: each tall enough for
-    /// its text wrapped to its width, never shorter than the fixed rows
-    /// they had (7, 6, 7).
+
+
+
     fn children(&self, lw: u16) -> [StackChild; 3] {
         let iw = |p: &Panel| p.inner(Size::new(lw, 0)).width as usize;
         let titled = self.card(Some("Titled card"));
         let untitled = self.card(None);
         let nested = self.card(Some("Nested"));
         let lines = |text: &str, w: usize| junie_tui::ui::text::wrap(text, w.max(1)).len() as u16;
-        // the group takes its label and three rows; the note wraps beside
-        // it when it has room, else under it after a blank row
+
+
         let nw = iw(&nested) as u16;
         let body = if Self::note_beside(nw) {
             lines(NESTED_NOTE, (nw - NOTE_X) as usize).max(4)
@@ -218,8 +218,8 @@ impl PanelsPage {
         ]
     }
 
-    /// Whether the Nested card's note fits beside its group in a card
-    /// `inner` cells wide (else it goes under the group).
+
+
     fn note_beside(inner: u16) -> bool {
         inner > NOTE_X + 20
     }
@@ -231,7 +231,7 @@ impl PanelsPage {
         let (l, r) = if side {
             crate::pages::layout::columns(area, lw, 2)
         } else {
-            // the panes under the cards
+
             let lh = self.sections.stack.measure(&children).min(area.height);
             let below = (lh + 1).min(area.height);
             (
@@ -239,12 +239,12 @@ impl PanelsPage {
                 Rect::new(area.x, area.y + below, area.width, area.height - below),
             )
         };
-        // the left column's cards scroll as whole sections on a short
-        // terminal rather than drawing into the row under the page
+
+
         let focus = ctx.interaction.has_focus(self.nested.id).then_some(2);
         let lrows = self.sections.layout(l, &children, focus, buf, ctx);
 
-        // titled card
+
         let panel = self.card(Some("Titled card")).meta("surface");
         let bg = panel.bg(t);
         if let Some(inner) = lrows.slot(0).and_then(|r| panel.try_render(r, buf, t)) {
@@ -258,7 +258,7 @@ impl PanelsPage {
             }
         }
 
-        // untitled card
+
         let panel = self.card(None);
         let bg = panel.bg(t);
         if let Some(inner) = lrows.slot(1).and_then(|r| panel.try_render(r, buf, t)) {
@@ -272,7 +272,7 @@ impl PanelsPage {
             }
         }
 
-        // nested: card containing a framed pane containing a list
+
         let panel = self.card(Some("Nested"));
         let bg = panel.bg(t);
         match lrows.slot(2).and_then(|r| panel.try_render(r, buf, t)) {
@@ -290,7 +290,7 @@ impl PanelsPage {
         bg: ratatui::style::Color,
     ) {
         let t = ctx.theme;
-        // nested grouping is a muted label and indent, never a second box
+
         buf.set_string(inner.x, inner.y, "Target", t.muted().bg(bg));
         let group = Rect::new(
             inner.x,
@@ -299,7 +299,7 @@ impl PanelsPage {
             inner.height.saturating_sub(1).min(3),
         );
         self.nested.render(group, buf, ctx, bg);
-        // the note beside the group when it has room, else under it
+
         let (note_x, note_y) = if Self::note_beside(inner.width) {
             (inner.x + NOTE_X, inner.y)
         } else {
@@ -318,7 +318,7 @@ impl PanelsPage {
 
     fn render_panes(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // right: two framed scrollable panes
+
         let rrows = crate::pages::layout::rows(r, &[r.height / 2, 0]);
         let pf = ctx.interaction.focused(self.prose.id);
         let panel = Panel::framed(Some("Framed · split pane"))
@@ -345,9 +345,9 @@ impl PanelsPage {
         let bg = panel.bg(t);
         let inner = panel.render(card, buf, t);
         self.log.render(inner, buf, ctx, bg, log_style);
-        // the label is read after the content laid itself out
+
         let pos = scrollbar::position_label(&self.log.scroll);
-        // the custom short form keeps the range and drops the total
+
         let short = pos.split(" of ").next().unwrap_or_default().to_owned();
         let panel = if self.opts.value("panels.meta_short") == "custom" {
             panel.meta_short(&short)
@@ -363,10 +363,10 @@ impl PanelsPage {
     }
 }
 
-/// The States grid: a card, a card that is itself the focus stop (its
-/// title carries the bar) and a framed pane, each drawn by `Panel`. The
-/// cards draw their heading in `heading` (`panels.heading`), or in the
-/// theme's (`shell.card_heading`) when `None`; the frame ignores it.
+
+
+
+
 fn states_grid(heading: Option<CardHeading>) -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -399,10 +399,10 @@ impl Page for PanelsPage {
         "Cards group; a frame only where a pane needs an edge; nothing boxed twice"
     }
 
-    /// The cards whole and the panes at least [`PANE_H`] rows: side by
-    /// side when both columns keep [`COL_MIN`], else the panes under the
-    /// cards. As wide as the room (the cards wrap to it), never narrower
-    /// than a column.
+
+
+
+
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let width = avail.width.max(COL_MIN);
         let (lw, side) = Self::split(width);
@@ -484,8 +484,8 @@ impl Page for PanelsPage {
         } else {
             &self.prose
         };
-        // read from the panel's live keys: a key it does not take is never
-        // advertised (`g G` only under the vim keys)
+
+
         let mut v = Vec::new();
         if let Some(k) = panel.nav.move_hint(false) {
             v.push((k, "Scroll"));

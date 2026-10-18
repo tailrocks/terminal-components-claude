@@ -1,13 +1,13 @@
-//! Text utilities (plan §7, SC26): the `ui::text` helpers, the text
-//! buffer model, property sheets and the interactive `PropsList`.
-//!
-//! Playground: every helper applied to sample text at the chosen width
-//! (drawn as a property sheet through `props::render_with`), wrapping with
-//! `WrapOpts`, a `TextBuffer` with its `CursorPos`, and a `PropsList` with
-//! copyable, toned and wrapped rows. Options: the width, the sheet's
-//! column rule, wrap options, duration style, match case, and the list's
-//! builders (`nav`, `keymap`, `track_click`, `scrollbar_gap`, `sheet`,
-//! `reveal`). States: the list drawn by itself in every state it has.
+
+
+
+
+
+
+
+
+
+
 
 use std::time::Duration;
 
@@ -34,32 +34,32 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop, PropsAction, PropsCmd, PropsList, Sheet};
 
 const ID: WidgetId = WidgetId::of("textutilities");
-/// The PropsList card's rows (the list scrolls the rest) and the text
-/// buffer card's.
+
+
 const LIST_H: u16 = 13;
 const BUFFER_H: u16 = 8;
-/// The narrowest Playground that keeps its two columns side by side.
+
 const MIN_W: u16 = 56;
 const LIST: WidgetId = WidgetId::of("textutilities.props");
 
-/// The sample every cutting helper works on.
+
 const SAMPLE: &str = "payments-platform/settlement-backoff";
-/// A breadcrumb trail for `truncate_sep` and `crumb_fit`.
+
 const TRAIL: &str = "Tables › payments › settlements";
-/// The wrapping sample: a paragraph, an indented block and a key list.
+
 const PROSE: &str = "Wrapping keeps words whole and hard-wraps a word longer than the line.\n    An indented block keeps its indent on every continuation line.\nCtrl+F    find in the focused text; Enter steps to the next match, Shift+Enter back";
 
 pub struct TextUtilitiesPage {
     template: Template,
     list: PropsList,
-    /// Value indices of the page options, in `page_options` order.
+
     opts: Vec<usize>,
-    /// What the list reported last.
+
     last: String,
 }
 
-/// The list's rows: copyable, toned and wrapped values, one long enough
-/// to be cut.
+
+
 fn list_props() -> Vec<Prop> {
     vec![
         Prop::new("Host", "db-primary.payments.internal").copyable(),
@@ -96,13 +96,13 @@ impl TextUtilitiesPage {
         page
     }
 
-    /// The live list (tests read its builders back).
+
     #[allow(dead_code)]
     pub fn list(&self) -> &PropsList {
         &self.list
     }
 
-    /// The value of option `key` as the table spells it.
+
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::TextUtilities);
         let i = table
@@ -112,7 +112,7 @@ impl TextUtilitiesPage {
         table[i].values[self.opts[i]]
     }
 
-    /// The sheet rule of `textutilities.sheet`.
+
     fn sheet(&self) -> Sheet {
         match self.opt("textutilities.sheet") {
             "narrow-labels" => Sheet {
@@ -123,7 +123,7 @@ impl TextUtilitiesPage {
         }
     }
 
-    /// The list, built from the options through its builders.
+
     fn build_list(&self) -> PropsList {
         let reveal = match self.opt("textutilities.reveal") {
             "inline" => Reveal::default().mode(RevealMode::InlineWrap),
@@ -149,7 +149,7 @@ impl TextUtilitiesPage {
         list
     }
 
-    /// The built list read back.
+
     fn list_readout(&self) -> String {
         let l = &self.list;
         let key = junie_tui::core::keymap::label_for(&l.keymap, PropsCmd::Copy)
@@ -172,7 +172,7 @@ impl TextUtilitiesPage {
         )
     }
 
-    /// Every helper on the sample at the chosen width, as a property sheet.
+
     fn helpers(&self, w: usize) -> Vec<Prop> {
         let style = match self.opt("textutilities.duration") {
             "compact" => DurationStyle::Compact,
@@ -271,13 +271,13 @@ impl TextUtilitiesPage {
         self.opt("textutilities.width").parse().unwrap_or(20)
     }
 
-    /// The helpers column and the list column of `area`.
+
     fn columns(area: Rect) -> (Rect, Rect) {
         crate::pages::layout::columns(area, 64.min(area.width * 11 / 20), 2)
     }
 
-    /// The helpers card's and the wrapping card's heights in a column
-    /// `width` wide: every helper row and every wrapped line.
+
+
     fn left_heights(&self, width: u16) -> (u16, u16) {
         let w = self.width();
         let inner_w = width.saturating_sub(4);
@@ -287,7 +287,7 @@ impl TextUtilitiesPage {
         (helpers, lines + 3)
     }
 
-    /// The list's readout and its last action, wrapped to `width`.
+
     fn readout(&self, width: u16) -> Vec<String> {
         let last = format!(
             "last PropsAction: {}   (Activate(row) on Enter or a click · Copy(row) on the copy key)",
@@ -304,7 +304,7 @@ impl TextUtilitiesPage {
         let (left, right) = Self::columns(area);
         let w = self.width();
 
-        // the helpers, as a property sheet
+
         let helpers = self.helpers(w);
         let title = format!("ui::text at width {w}");
         let panel = Panel::card(Some(&title)).meta("props::render_with");
@@ -316,7 +316,7 @@ impl TextUtilitiesPage {
         let inner = panel.render(card, buf, t);
         props::render_with(inner, buf, t, &helpers, bg, sheet);
 
-        // wrapping
+
         let below = card.bottom() + 1;
         if below + 4 < left.bottom() {
             let ww = (w + 16).min(inner_w as usize);
@@ -336,7 +336,7 @@ impl TextUtilitiesPage {
                     break;
                 }
                 buf.set_string(inner.x, y, l, t.secondary().bg(bg));
-                // the wrap width, as a faint rule
+
                 let edge = inner.x + ww as u16;
                 if edge < inner.right() {
                     buf.set_string(edge, y, "┊", t.faint().bg(bg));
@@ -344,7 +344,7 @@ impl TextUtilitiesPage {
             }
         }
 
-        // the interactive list
+
         let mut y = right.y;
         let panel = Panel::card(Some("PropsList"))
             .meta("Enter activates · y copies")
@@ -354,7 +354,7 @@ impl TextUtilitiesPage {
         let inner = panel.render(Rect::new(right.x, y, right.width, h), buf, t);
         self.list.render(inner, buf, ctx, bg);
         y += h;
-        // the readout wraps to the column
+
         for line in self.readout(right.width) {
             if y < right.bottom() {
                 buf.set_string(right.x, y, &line, t.faint().bg(t.canvas));
@@ -363,7 +363,7 @@ impl TextUtilitiesPage {
         }
         y += 1;
 
-        // the text buffer under every text control
+
         if y + 5 < right.bottom() {
             let mut b = TextBuffer::multi("SELECT id, name\nFROM users\nWHERE active");
             b.select_word_at(b.text().find("users").unwrap_or(0));
@@ -389,7 +389,7 @@ impl TextUtilitiesPage {
     }
 }
 
-/// The States grid: the list in every state it has, drawn by itself.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -416,10 +416,10 @@ impl Page for TextUtilitiesPage {
         "Text helpers (truncation, wrapping, widths), property sheets and PropsList"
     }
 
-    /// The room it gets, never narrower than [`MIN_W`] (the two columns
-    /// side by side) and as tall as the taller column: the helpers card
-    /// with every row and the wrapping card with every line; the list
-    /// card, its readout wrapped to the column and the text buffer card.
+
+
+
+
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let width = avail.width.max(MIN_W);
         let (left, right) = Self::columns(Rect::new(0, 0, width, 1));

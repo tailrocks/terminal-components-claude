@@ -1,6 +1,6 @@
-//! Text utilities (plan §7, SC26), driven through the real app: the
-//! helpers follow the width and style options, the property list is
-//! rebuilt through its builders and reports its actions.
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -70,7 +70,7 @@ impl Harness {
         s
     }
 
-    /// Where `needle` starts on screen.
+
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         for y in 0..buf.area.height {
@@ -114,7 +114,7 @@ impl Harness {
             .to_vec()
     }
 
-    /// The row holding `needle`, as text.
+
     fn row_of(&self, needle: &str) -> String {
         let (_, y) = self.find(needle).unwrap_or_else(|| panic!("{needle:?}"));
         let buf = self.term.backend().buffer();
@@ -166,7 +166,7 @@ fn wrap_options_change_the_wrapped_block() {
     h.opt("textutilities.wrap=plain");
     assert!(h.text().contains("keep_indent false · hang_at_gap None"));
     assert_eq!(indent(&h), 0, "plain drops the indent");
-    // the key list hangs its continuation under its second column
+
     h.opt("textutilities.wrap=default");
     let hang = |h: &Harness| {
         let (x0, _) = h.find("Ctrl+F").unwrap();
@@ -182,7 +182,7 @@ fn wrap_options_change_the_wrapped_block() {
 fn the_list_activates_and_copies_through_its_keymap() {
     let mut h = Harness::new(220, 80, PageId::TextUtilities);
     let (x, y) = h.find("Port  ").expect("the list");
-    // M32: one click selects the row; a double click activates it
+
     h.click(x, y);
     assert!(h.app.shell.focus.is(WidgetId::of("textutilities.props")));
     assert!(!h.text().contains("Activate(Port)"), "a click only selects");
@@ -190,7 +190,7 @@ fn the_list_activates_and_copies_through_its_keymap() {
     assert!(h.text().contains("last PropsAction: Activate(Port)"));
     h.key(KeyCode::Char('y'));
     assert!(h.text().contains("last PropsAction: Copy(Port)"));
-    // a custom key map: `c` copies, `y` is free
+
     h.opt("textutilities.copy_key=c");
     assert!(h.text().contains("copy c"));
     h.key(KeyCode::Up);
@@ -221,7 +221,7 @@ fn list_builders_rebuild_the_list() {
     let l = h.list();
     assert_eq!(l.nav, junie_tui::core::keymap::NavKeys::VIM);
     assert_eq!(l.scrollbar_gap, 0);
-    // vim letters move the cursor too
+
     let (x, y) = h.find("Port  ").unwrap();
     h.click(x, y);
     h.key(KeyCode::Char('j'));
@@ -255,7 +255,7 @@ fn list_states_are_drawn_by_the_list() {
     assert!(h.live_bars() <= 1, "{text}");
 }
 
-/// Not a check: prints the page for review (`--no-capture`).
+
 #[test]
 fn print_text_utilities() {
     if std::env::var("PRINT_PAGES").is_err() {

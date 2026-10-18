@@ -1,8 +1,8 @@
-//! Disk usage (HP18/HP19): the overview of home folders and insight roots
-//! with cached hints, the largest-first tree of a root that deepens as the
-//! scan streams, allocated/apparent sorting, presentation-only noise
-//! folding, arbitrary multi-selection with parent dominance, the macOS Top
-//! files scope, and routes into the shared cleanup gates.
+
+
+
+
+
 
 use crate::screens::Holla;
 use junie_tui::shell::Page as ShellPage;
@@ -52,10 +52,10 @@ use junie_tui::ui::text::plural;
 pub const TREE: WidgetId = WidgetId::of("disk.tree");
 pub const DETAIL: WidgetId = WidgetId::of("disk.detail");
 pub const LIST: WidgetId = WidgetId::of("disk.list");
-/// A filesystem fills toward its limit later than a quota: attention at
-/// 80%, danger at 95%.
+
+
 pub const FS_METER: MeterTone = MeterTone::Level { warn: 80, crit: 95 };
-/// A row's context menu.
+
 pub const ROW_MENU: WidgetId = WidgetId::of("disk.row.menu");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,11 +66,11 @@ pub enum Sort {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum View {
-    /// Home folders and insight roots with cached sizes.
+
     Overview,
-    /// The scan tree of one root.
+
     Tree,
-    /// Spotlight top files.
+
     TopFiles,
 }
 
@@ -93,9 +93,9 @@ pub struct DiskPage {
     pub path: String,
     view: View,
     tree: TreeView,
-    /// Positional tree path → filesystem path, in row order.
+
     paths: Vec<(Vec<usize>, String)>,
-    /// Nodes whose folded aggregate row stands for a subtree.
+
     folded: BTreeSet<String>,
     pub sort: Sort,
     pub fold: bool,
@@ -108,16 +108,16 @@ pub struct DiskPage {
     overview: Vec<OverviewRow>,
     top: Vec<TopRow>,
     top_state: Option<String>,
-    /// The tree or list beside the details; a drawer when narrow.
+
     md: MasterDetail,
     last_tick: u64,
     last_revealed: usize,
     generation: u64,
     seeded_gen: u64,
-    /// Selection revision, for gate drift.
+
     pub reviewed: Option<u64>,
-    /// Tree rebuilds so far (a proof counter: rebuilds follow revealed
-    /// batches, sort and fold changes, never idle ticks).
+
+
     pub rebuilds: u32,
 }
 
@@ -162,7 +162,7 @@ impl DiskPage {
         p
     }
 
-    // ------------------------------------------------------------ tree
+
 
     fn node_size(&self, n: &ScanNode) -> u64 {
         match self.sort {
@@ -289,7 +289,7 @@ impl DiskPage {
         let mut path = vec![0];
         let root = self.build_nodes(&tree, tree.allocated, &revealed, &mut path);
         self.tree.nodes = vec![root];
-        // expansion follows filesystem identity across rebuilds
+
         let mut expanded: std::collections::HashSet<Vec<usize>> = Default::default();
         expanded.insert(vec![0]);
         for f in expanded_fs {
@@ -304,12 +304,12 @@ impl DiskPage {
         {
             self.tree.reveal(&pp.clone());
         }
-        // checks drop nodes that disappeared
+
         let live: BTreeSet<&str> = self.paths.iter().map(|(_, f)| f.as_str()).collect();
         self.selected.retain(|s| live.contains(s.as_str()));
     }
 
-    /// Overview rows as (label, kind) in display order.
+
     #[cfg(test)]
     pub fn overview_rows(&self) -> Vec<(String, &'static str)> {
         self.overview
@@ -337,9 +337,9 @@ impl DiskPage {
         w.scan.as_ref().and_then(|s| s.tree.find(path))
     }
 
-    /// Seed the checks from the legacy candidate policy once the scan is
-    /// complete: only stale, confident, unprotected candidates start
-    /// selected.
+
+
+
     fn seed_selection(&mut self, w: &World) {
         let Some(scan) = &w.scan else { return };
         if self.seeded_gen == scan.generation || !scan.done(w.tick) {
@@ -387,7 +387,7 @@ impl DiskPage {
                 junie_tui::ui::text::bytes(self.selected_bytes(w))
             ));
         } else {
-            // a checked parent dominates its descendants
+
             self.selected
                 .retain(|s| !s.starts_with(&format!("{path}/")));
             self.selected.insert(path.to_owned());
@@ -429,7 +429,7 @@ impl DiskPage {
         DeletePlan::new(&w.host.name, &self.path, items, mode, dry_run)
     }
 
-    // ------------------------------------------------------------ overview
+
 
     fn rebuild_overview(&mut self, w: &World) {
         let home = w.location.home.clone();
@@ -475,7 +475,7 @@ impl DiskPage {
         self.list_scroll.set_content(self.overview.len());
     }
 
-    // ------------------------------------------------------------ top files
+
 
     fn rebuild_top(&mut self, w: &World) {
         self.top.clear();
@@ -498,8 +498,8 @@ impl DiskPage {
                         if !seen.insert(p.clone()) {
                             continue;
                         }
-                        // stat each path (16-way concurrency in the adapter):
-                        // a vanished file is reported, never sized
+
+
                         let (bytes, missing) = if w.fs.is_file(p) {
                             (w.fs.get(p).map(|n| n.allocated).unwrap_or(*b), false)
                         } else {
@@ -525,7 +525,7 @@ impl DiskPage {
         self.list_scroll.set_content(self.top.len());
     }
 
-    // ------------------------------------------------------------ detail
+
 
     fn detail_props(&self, w: &World) -> (String, String, Vec<Prop>) {
         match self.view {
@@ -962,7 +962,7 @@ impl DiskPage {
 }
 
 impl DiskPage {
-    /// Why `path` cannot be selected (the reason Space would give), if so.
+
     fn select_reason(&self, w: &World, path: &str) -> Option<String> {
         if let Some(r) = self.candidate_skip(w, path) {
             return Some(r);
@@ -973,9 +973,9 @@ impl DiskPage {
             .then(|| "Already covered by a selected ancestor".to_owned())
     }
 
-    /// The context menu of display row `row` (a tree row, or an overview /
-    /// Top files row): the page's own keys for it. Each item stands for the
-    /// key at its index in the tag (`row:keys`).
+
+
+
     fn row_menu(&self, row: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let copy = MenuItem::new("Copy path").shortcut("y");
         let mut review = MenuItem::new("Review deletion…").shortcut("d").danger();
@@ -1085,7 +1085,7 @@ fn short_error(e: &crate::sim::fs::FsError) -> &'static str {
 }
 
 impl DiskPage {
-    /// A completed click.
+
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if id == scrollbar::id_for(TREE) {
@@ -1107,11 +1107,11 @@ impl DiskPage {
         if self.view == View::Tree {
             if let Some(row) = self.tree.row_at(ev) {
                 cx.focus.focus(TREE);
-                // the node's mark (its glyph: ✓ · ◐) is the row's check
-                // box: a click there selects it for cleanup
-                // (CheckClick::BoxOnly, M15); a click on the rest of the
-                // row only moves the cursor, the disclosure and a double
-                // click on a folder open it (the tree's ClickPolicy)
+
+
+
+
+
                 if ev.index_of(Part::MARKER).is_some() {
                     self.tree.cursor = row;
                     if let Some(p) = self.fs_path_of(&self.tree.rows()[row].path.clone())
@@ -1150,7 +1150,7 @@ impl DiskPage {
 }
 
 impl DiskPage {
-    /// The master pane of the current view.
+
     fn main_id(&self) -> WidgetId {
         if self.view == View::Tree { TREE } else { LIST }
     }
@@ -1158,7 +1158,7 @@ impl DiskPage {
 
 impl ShellPage<Holla> for DiskPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-        // the master is this view's tree or list; Esc on the details returns to it
+
         self.md.master = self.main_id();
         if let Some(o) = self.md.on_key(key, cx.focus) {
             return o;
@@ -1179,7 +1179,7 @@ impl ShellPage<Holla> for DiskPage {
         if matches!(key.code, KeyCode::Char(_)) && key.chord() {
             return Outcome::Ignored;
         }
-        // shared letters first
+
         match key.code {
             KeyCode::Char('p') if key.plain() => {
                 self.md.master = self.main_id();
@@ -1389,7 +1389,7 @@ impl ShellPage<Holla> for DiskPage {
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-            // a sideways notch never scrolls these vertical panes
+
             if axis != Axis::Vertical {
                 return Outcome::Ignored;
             }
@@ -1426,8 +1426,8 @@ impl ShellPage<Holla> for DiskPage {
                 }
             }
             Some(Phase::Click) => {
-                // an overview row opens on the library's data-view
-                // activation (a double click)
+
+
                 if self.view == View::Overview
                     && let Some(i) = self
                         .list_scroll
@@ -1480,7 +1480,7 @@ impl ShellPage<Holla> for DiskPage {
             && let Ok(row) = row.parse::<usize>()
             && let Some(c) = keys.chars().nth(k)
         {
-            // the chosen row runs its key on the row the menu was opened for
+
             if self.view == View::Tree {
                 self.tree.context_select(row);
             } else {
@@ -1645,8 +1645,8 @@ impl ShellPage<Holla> for DiskPage {
             }
         }
         let mut body_y = area.y + 3;
-        // the filesystems keep their rows at every height: the tree below
-        // scrolls, so nothing is dropped on a short screen (R-apps-6)
+
+
         if self.view == View::Tree && !w.disk.filesystems.is_empty() {
             Heading::new("Filesystems").render(
                 Rect::new(area.x + 3, body_y, area.width.saturating_sub(3), 1),
@@ -1724,8 +1724,8 @@ impl ShellPage<Holla> for DiskPage {
                 }
                 _ => me.render_list(r, buf, ctx, w),
             };
-        // only this view's tree or list keeps a stop: Tab returns to it
-        // and the drawer gives the body back
+
+
         self.md.master = self.main_id();
         let l = self.md.layout(body, buf, ctx, ctx.theme.canvas);
         if !l.master.is_empty() {

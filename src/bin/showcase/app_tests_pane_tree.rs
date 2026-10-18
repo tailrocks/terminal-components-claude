@@ -1,6 +1,6 @@
-//! The Pane tree page through the real app (plan §7 SC45): nested panes
-//! with frames, focus by click and F6, the resize chords, zoom by key and
-//! button, split and close, and the options that drive the `PaneTree`.
+
+
+
 
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
@@ -16,7 +16,7 @@ fn button(name: &str) -> WidgetId {
     WidgetId::of("panetree").sub(name)
 }
 
-/// Width of a pane's frame from its `╭─ <name>` to the next `╮`.
+
 fn pane_width(h: &Harness, name: &str) -> u16 {
     let (x, y) = h.at(&format!("╭─ {name}"));
     let row: Vec<String> = (x..h.term.backend().buffer().area.width)
@@ -56,7 +56,7 @@ fn pane_tree_zoom_takes_the_whole_tree_and_restores() {
     let text = h.text();
     assert!(text.contains("zoomed"), "{text}");
     assert!(!text.contains("╭─ build"), "only the zoomed pane: {text}");
-    // focus does not move while zoomed: the status says why
+
     h.key_mod(KeyCode::Right, KeyModifiers::ALT);
     assert!(
         h.status().contains("Unzoom to move focus"),
@@ -83,8 +83,8 @@ fn pane_tree_resize_chords_and_seam_drag_move_the_seam() {
 
 #[test]
 fn pane_tree_split_and_close_change_the_panes() {
-    // wide enough for four panes at their natural size: the card's meta
-    // sits at its right edge
+
+
     let mut h = Harness::new(300, 40, PageId::PaneTree);
     h.click_id(button("split-right"));
     assert!(h.text().contains("4 panes · focus editor"), "{}", h.text());
@@ -133,9 +133,9 @@ fn pane_tree_reads_at_80x24() {
     );
 }
 
-/// A29: on macOS Terminal (Option types a character) the footer names no
-/// Alt chord: Ctrl+Shift+arrows resize and Ctrl+Shift+F12 zooms, and both
-/// work; with the kitty keyboard protocol the Alt chords are named.
+
+
+
 #[test]
 fn pane_tree_footer_names_no_alt_chord_on_macos_terminal_and_alt_with_the_kitty_protocol() {
     use junie_tui::core::event::ClientPlatform;

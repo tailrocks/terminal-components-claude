@@ -1,34 +1,34 @@
-//! Visual-baseline suite: every capturable surface of the four binaries,
-//! driven as real processes in PTYs through tuiscotti (`tuiscotti::tui`,
-//! pinned to tailrocks/tuiscotti `main` in `Cargo.toml`) and gated against
-//! the approved artifacts in `snapshots/`
-//! (`<app>/<sub_group>/<cols>x<rows>/<palette>.<ext>`) through tuiscotti's
-//! `GroupedStore` ([`support::store`]). Which artifacts are committed and
-//! gated is the single constant [`support::ARTIFACTS`]
-//! (`ArtifactSet::AnsiCursor`: one `.ansi` with a cursor trailer); scratch
-//! (actuals, seals, review PNG/HTML, diffs) lives under `target/tuiscotti/`.
-//!
-//! `harness = false` (libtest-mimic): scenarios come from the typed state
-//! tables in [`scenarios`] and each one is its own test, named
-//! `<app>::<group>::<leaf>…::<cols>x<rows>::<color>`, so one drift fails one
-//! test and nextest filters by app, group, size or palette:
-//!
-//! ```sh
-//! cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
-//! cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(/^tablepro::/)'
-//! cargo nextest run --profile smoke --run-ignored only    # 120x40/truecolor + 72x20/nocolor
-//! VISUAL_FULL=1 cargo nextest run --run-ignored only -E 'test(/^holla::parity::/)'
-//! ```
-//!
-//! Every capture test is ignored: the default `cargo nextest run` runs only
-//! the cheap checks (`store_integrity`, `scenario_tables`, the store `.ansi`
-//! round trip) and the four boot-mode tests.
-//!
-//! Migration status (`docs/visual-testing/tuiscotti-migration.md`): only
-//! scenarios already re-approved on tuiscotti ([`support::is_reapproved`])
-//! gate; every other capture is skipped unless `VISUAL_FULL=1`. Gate policy
-//! is fail-closed: only a full match passes, and approval is never implicit
-//! (`tuiscotti accept`, local only).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
@@ -139,8 +139,8 @@ fn check(name: &str, body: fn()) -> Trial {
     Trial::test(name, move || catch(body))
 }
 
-/// Turn a panic (the suite's assertion style) into a test failure with the
-/// panic message.
+
+
 fn catch(body: impl FnOnce()) -> Result<(), Failed> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(body)).map_err(|e| {
         e.downcast_ref::<String>()
@@ -155,12 +155,12 @@ fn known_ext(ext: &str) -> bool {
     LEGACY_EXTS.contains(&ext) || COMMITTED.contains(&ext)
 }
 
-/// Cheap non-PTY gate: every re-approved `.ansi` in the store is canonical
-/// for tuiscotti's [`support::ARTIFACTS`] mode, so it decodes
-/// (`formats::ansi::frame_from_ansi`) and re-encodes byte-identical
-/// (`render::ansi_dump_with_cursor`), the guard `tuiscotti accept` applies
-/// to every candidate. Legacy tuisnap files (no cursor trailer) are pending
-/// re-approval and skipped.
+
+
+
+
+
+
 fn store_ansi_round_trips() {
     let root = support::approved_root();
     if !root.exists() {
@@ -191,12 +191,12 @@ fn store_ansi_round_trips() {
     eprintln!("{checked} re-approved .ansi file(s) round-trip");
 }
 
-/// Cheap non-PTY gate: the committed `snapshots/` names match the scenario
-/// tables, each scenario is `group/sub_group/<cols>x<rows>/<color>` with
-/// exactly the [`COMMITTED`] artifacts (re-approved) or the legacy tuisnap
-/// four (pending re-approval), and the legacy `shots/` corpus is gone.
-/// Pending rows and the narrow tier may be absent; nothing in the store may
-/// be outside the tables.
+
+
+
+
+
+
 fn store_integrity() {
     let approved = support::snapshots_root();
     if !approved.exists() && oracle::active() {

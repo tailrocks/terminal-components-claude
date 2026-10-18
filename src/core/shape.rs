@@ -1,19 +1,19 @@
-//! Pointer and caret shapes.
-//!
-//! On the desktop the mouse pointer says what a press will do: an I-beam
-//! over text, a resize arrow over a split seam. Terminals that implement
-//! the OSC 22 pointer-shape protocol (kitty, WezTerm, ghostty, foot) let an
-//! application set it with CSS cursor names; [`PointerShape`] is that
-//! vocabulary, chosen per hit region ([`crate::core::hit::HitRegistry::set_shape`])
-//! and emitted by the runtime only when it changes. Text fields keep the
-//! macOS bar caret (DECSCUSR, [`CaretShape`]) instead of the terminal's
-//! block.
-//!
-//! Both are detection-gated ([`ShapeSupport::from_env`]): nothing is sent
-//! to a terminal not known to understand it, and both are reset on exit,
-//! on suspend and after a panic. Both are overridable:
-//! [`crate::core::pointer::PointerConfig::pointer_shapes`] and
-//! [`crate::core::pointer::PointerConfig::caret_shape`].
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::io::Write;
 use std::sync::atomic::{AtomicU8, Ordering};
@@ -21,24 +21,24 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use super::hit::HitRegistry;
 use super::pointer::PointerState;
 
-/// A pointer shape, by its CSS cursor name (OSC 22).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum PointerShape {
-    /// The arrow.
+
     #[default]
     Default,
-    /// The I-beam: text that a press places the caret in or selects.
+
     Text,
-    /// The pointing hand: a link.
+
     Pointer,
-    /// A horizontal resize: a vertical seam between columns or panes.
+
     ColResize,
-    /// A vertical resize: a horizontal seam between rows or panes.
+
     RowResize,
 }
 
 impl PointerShape {
-    /// The CSS cursor name OSC 22 takes.
+
     pub const fn css_name(self) -> &'static str {
         match self {
             Self::Default => "default",
@@ -49,30 +49,30 @@ impl PointerShape {
         }
     }
 
-    /// The OSC 22 sequence that sets this shape.
+
     pub fn osc22(self) -> String {
         format!("\x1b]22;{}\x1b\\", self.css_name())
     }
 }
 
-/// The text caret's shape (DECSCUSR). Default [`CaretShape::Bar`], the
-/// macOS and Windows text caret.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum CaretShape {
-    /// A steady vertical bar between cells.
+
     #[default]
     Bar,
-    /// A steady block over the cell.
+
     Block,
-    /// A steady underline under the cell.
+
     Underline,
-    /// Whatever the terminal's user configured: nothing is sent.
+
     Terminal,
 }
 
 impl CaretShape {
-    /// The DECSCUSR sequence for this shape (`None` for
-    /// [`CaretShape::Terminal`]).
+
+
     pub const fn decscusr(self) -> Option<&'static str> {
         match self {
             Self::Block => Some("\x1b[2 q"),
@@ -83,30 +83,30 @@ impl CaretShape {
     }
 }
 
-/// DECSCUSR 0: the terminal's own caret shape again.
+
 pub const CARET_RESET: &str = "\x1b[0 q";
 
-/// What the terminal is known to understand.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ShapeSupport {
-    /// OSC 22 pointer shapes.
+
     pub pointer: bool,
-    /// DECSCUSR caret shapes.
+
     pub caret: bool,
 }
 
 impl ShapeSupport {
-    /// Nothing is sent.
+
     pub const NONE: Self = Self {
         pointer: false,
         caret: false,
     };
 
-    /// Detect support from the environment (`TERM`, `TERM_PROGRAM`). OSC 22
-    /// is sent only to kitty, WezTerm, ghostty and foot, never through tmux
-    /// or screen (they do not pass it on). DECSCUSR is sent to the xterm
-    /// family and the terminals above; not to the Linux console, `dumb` or
-    /// an unknown `TERM`.
+
+
+
+
+
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
         let term = get("TERM").unwrap_or_default().to_ascii_lowercase();
         let program = get("TERM_PROGRAM").unwrap_or_default().to_ascii_lowercase();
@@ -132,16 +132,16 @@ impl ShapeSupport {
         Self { pointer, caret }
     }
 
-    /// [`Self::from_env`] on the process environment, detected once.
+
     pub fn current() -> Self {
         static CURRENT: std::sync::OnceLock<ShapeSupport> = std::sync::OnceLock::new();
         *CURRENT.get_or_init(|| Self::from_env(|k| std::env::var(k).ok()))
     }
 }
 
-/// The pointer shape for what is under (or held by) the pointer: the
-/// pressed control's shape during a drag (a seam keeps its resize arrow
-/// while the pointer runs ahead), else the hovered control's.
+
+
+
 pub fn under(pointer: &PointerState, hits: &HitRegistry) -> PointerShape {
     pointer
         .pressed
@@ -150,10 +150,10 @@ pub fn under(pointer: &PointerState, hits: &HitRegistry) -> PointerShape {
         .unwrap_or_default()
 }
 
-/// The shapes an app shows under its [`PointerState::config`]: the shape
-/// [`under`] the pointer when
-/// [`crate::core::pointer::PointerConfig::pointer_shapes`] is on, and the
-/// configured caret.
+
+
+
+
 pub fn shapes_for(pointer: &PointerState, hits: &HitRegistry) -> Shapes {
     Shapes {
         pointer: pointer.config.pointer_shapes.then(|| under(pointer, hits)),
@@ -161,17 +161,17 @@ pub fn shapes_for(pointer: &PointerState, hits: &HitRegistry) -> Shapes {
     }
 }
 
-/// What an application asks the runtime to show, per frame.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Shapes {
-    /// The pointer shape; `None`: the application does not set pointer
-    /// shapes.
+
+
     pub pointer: Option<PointerShape>,
-    /// The caret shape; `None`: left to the terminal.
+
     pub caret: Option<CaretShape>,
 }
 
-/// What the runtime last sent, so a shape is written only when it changes.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ShapeSync {
     support: ShapeSupport,
@@ -179,8 +179,8 @@ pub struct ShapeSync {
     caret: Option<CaretShape>,
 }
 
-/// Bits of what has been sent this process: a reset is written only for
-/// what was set (`restore` runs from a panic hook and has no state).
+
+
 static SENT: AtomicU8 = AtomicU8::new(0);
 const SENT_POINTER: u8 = 1;
 const SENT_CARET: u8 = 2;
@@ -194,8 +194,8 @@ impl ShapeSync {
         }
     }
 
-    /// Write what changed in `want` to `out` (nothing the terminal is not
-    /// known to support). Returns whether anything was written.
+
+
     pub fn apply(&mut self, want: Shapes, out: &mut impl Write) -> std::io::Result<bool> {
         let mut wrote = false;
         if self.support.pointer
@@ -220,16 +220,16 @@ impl ShapeSync {
         Ok(wrote)
     }
 
-    /// Forget what was sent (the terminal was handed back and re-entered):
-    /// the next [`Self::apply`] writes the shapes again.
+
+
     pub fn forget(&mut self) {
         self.pointer = None;
         self.caret = None;
     }
 }
 
-/// The resets for whatever was set this process: the arrow pointer and
-/// the terminal's own caret. Empty when nothing was sent.
+
+
 pub fn reset_sequence() -> String {
     let sent = SENT.swap(0, Ordering::Relaxed);
     let mut s = String::new();
@@ -289,7 +289,7 @@ mod tests {
         assert!(s.pointer);
         let s = ShapeSupport::from_env(env(&[("TERM", "foot")]));
         assert!(s.pointer);
-        // iTerm2, Terminal.app: the caret only
+
         let s = ShapeSupport::from_env(env(&[
             ("TERM", "xterm-256color"),
             ("TERM_PROGRAM", "iTerm.app"),
@@ -301,10 +301,10 @@ mod tests {
                 caret: true
             }
         );
-        // tmux does not pass OSC 22 on
+
         let s = ShapeSupport::from_env(env(&[("TERM", "tmux-256color"), ("KITTY_WINDOW_ID", "1")]));
         assert!(!s.pointer && s.caret);
-        // the console and unknown terminals get nothing
+
         assert_eq!(
             ShapeSupport::from_env(env(&[("TERM", "linux")])),
             ShapeSupport::NONE
@@ -316,8 +316,8 @@ mod tests {
         assert_eq!(ShapeSupport::from_env(env(&[])), ShapeSupport::NONE);
     }
 
-    /// A shape is written once, when it changes, and only where supported;
-    /// the reset covers exactly what was sent.
+
+
     #[test]
     fn shapes_are_written_on_change_only() {
         let full = ShapeSupport {
@@ -343,19 +343,19 @@ mod tests {
         assert_eq!(String::from_utf8_lossy(&out), "\x1b]22;col-resize\x1b\\");
         assert_eq!(reset_sequence(), "\x1b]22;default\x1b\\\x1b[0 q");
         assert_eq!(reset_sequence(), "", "reset once");
-        // after a suspend the shapes go out again
+
         out.clear();
         sync.forget();
         sync.apply(want, &mut out).unwrap();
         assert!(!out.is_empty());
         reset_sequence();
-        // unsupported: nothing at all
+
         let mut sync = ShapeSync::new(ShapeSupport::NONE);
         out.clear();
         assert!(!sync.apply(want, &mut out).unwrap());
         assert!(out.is_empty());
         assert_eq!(reset_sequence(), "");
-        // the terminal's own caret: nothing for the caret
+
         let mut sync = ShapeSync::new(full);
         sync.apply(
             Shapes {

@@ -1,50 +1,50 @@
-//! Natural size (plan §1.4 `Measure`, the part S15 builds on).
-//!
-//! A child that can size itself says how much room it needs to show all of
-//! its content without squeezing: a container lays it out at that size and
-//! scrolls when the size is larger than the room it has
-//! ([`ScrollView`](crate::ui::scroll_view::ScrollView)). `avail` is the room
-//! the container offers; a child that wraps reads its width from it, a
-//! child that fills whatever it gets answers `avail`.
+
+
+
+
+
+
+
+
 
 use ratatui::layout::Size;
 
 use crate::ui::ctx::RenderCtx;
 
-/// A child that knows its natural size.
+
 pub trait Measure {
-    /// The cells (width, height) the child needs to show all of its
-    /// content when offered `avail`. It may be larger than `avail` on
-    /// either axis: the container then scrolls instead of squeezing it.
+
+
+
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size;
 
-    /// The narrowest width the child stays whole at. Default: its natural
-    /// width ([`Measure::measure`]), for content of a set width. A child
-    /// that handles a narrower row itself (a table or a text area that
-    /// scrolls sideways, a strip that collapses what does not fit into a
-    /// revealing `…`, a tab strip with its window and `+N` menu) answers
-    /// less: a container lays it out in the room it has, down to this,
-    /// and lets the child's own overflow do the rest instead of scrolling
-    /// the whole page sideways for it.
+
+
+
+
+
+
+
+
     fn min_width(&self, avail: Size, ctx: &RenderCtx) -> u16 {
         self.measure(avail, ctx).width
     }
 }
 
-/// The larger of two sizes on each axis: content laid out at its natural
-/// size, but never smaller than the room it fills.
+
+
 pub fn at_least(size: Size, min: Size) -> Size {
     Size::new(size.width.max(min.width), size.height.max(min.height))
 }
 
-/// One tile of a [`tiles`] layout: the narrowest width it shows its
-/// content whole at, and its height at a given width (a card of wrapping
-/// facts grows taller as it narrows).
+
+
+
 pub struct Tile<'a> {
     pub min_width: u16,
     pub height: &'a dyn Fn(u16) -> u16,
-    /// The tile takes a share of the row's spare width. Default on; off
-    /// keeps it at `min_width` (content of a set width).
+
+
     pub grow: bool,
 }
 
@@ -57,39 +57,39 @@ impl<'a> Tile<'a> {
         }
     }
 
-    /// Keep the tile at its `min_width` (see [`Tile::grow`]).
+
     pub fn fixed(mut self) -> Self {
         self.grow = false;
         self
     }
 }
 
-/// Where [`tiles`] puts each tile, and the size of the whole.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tiled {
-    /// One rect per tile, in the order given, relative to the origin.
+
     pub rects: Vec<ratatui::layout::Rect>,
-    /// The natural size of the whole: at least `width` wide.
+
     pub size: Size,
 }
 
 impl Tiled {
-    /// Tile `i`'s rect placed at `origin` (the area the layout fills).
+
     pub fn at(&self, i: usize, origin: ratatui::layout::Rect) -> ratatui::layout::Rect {
         let r = self.rects.get(i).copied().unwrap_or_default();
         ratatui::layout::Rect::new(origin.x + r.x, origin.y + r.y, r.width, r.height)
     }
 }
 
-/// Rows of tiles laid out at their natural size in `width` columns: a row
-/// whose tiles fit side by side (each at its `min_width`, `gap.0` between)
-/// shares the width (equal shares, every tile at least its minimum), and
-/// is as tall as its tallest tile; a row that does not fit stacks its
-/// tiles, each the full width. A [`Tile::fixed`] tile keeps its minimum
-/// width either way. Rows are `gap.1` apart. The result is never
-/// narrower than its widest tile, so a container that lays it out at
-/// [`Tiled::size`] (a [`ScrollView`](crate::ui::scroll_view::ScrollView))
-/// scrolls instead of cutting a tile.
+
+
+
+
+
+
+
+
+
 pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
     use ratatui::layout::Rect;
     let width = rows
@@ -107,8 +107,8 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
         let gaps = gap.0.saturating_mul(n - 1);
         let mins: u16 = row.iter().map(|t| t.min_width).sum();
         if mins.saturating_add(gaps) <= width {
-            // side by side: the growing tiles share what the fixed ones
-            // leave, each at least its minimum
+
+
             let mut widths: Vec<u16> = row.iter().map(|t| t.min_width).collect();
             let mut spare = width - gaps - mins;
             let fixed: u16 = row.iter().filter(|t| !t.grow).map(|t| t.min_width).sum();
@@ -121,7 +121,7 @@ pub fn tiles(width: u16, rows: &[&[Tile]], gap: (u16, u16)) -> Tiled {
                         spare -= add;
                     }
                 }
-                // what is left goes to the last growing tile: the row fills
+
                 if let Some(i) = row.iter().rposition(|t| t.grow) {
                     widths[i] += spare;
                 }
@@ -161,12 +161,12 @@ mod tests {
     use super::*;
     use ratatui::layout::Rect;
 
-    /// Tiles that fit share the row; a row that does not fit stacks at
-    /// the full width; nothing is ever narrower than its minimum.
+
+
     #[test]
     fn tiles_share_a_row_or_stack() {
         let short = |_: u16| 3;
-        // a wrapping tile: 40 cells of text
+
         let wraps = |w: u16| 40u16.div_ceil(w.max(1));
         let rows: [&[Tile]; 2] = [
             &[Tile::new(20, &short), Tile::new(10, &wraps)],
@@ -178,19 +178,19 @@ mod tests {
         assert_eq!(t.rects[2], Rect::new(0, 4, 60, 3));
         assert_eq!(t.size, Size::new(60, 7));
         assert_eq!(t.at(2, Rect::new(5, 6, 60, 7)), Rect::new(5, 10, 60, 3));
-        // too narrow for both: they stack, each the full width
+
         let t = tiles(25, &rows, (2, 1));
         assert_eq!(t.rects[0], Rect::new(0, 0, 30, 3));
         assert_eq!(t.rects[1], Rect::new(0, 4, 30, 2));
         assert_eq!(t.rects[2], Rect::new(0, 7, 30, 3));
-        // never narrower than the widest tile
+
         assert_eq!(t.size, Size::new(30, 10));
-        // a tile wider than an equal share keeps its minimum
+
         let rows: [&[Tile]; 1] = [&[Tile::new(40, &short), Tile::new(5, &short)]];
         let t = tiles(60, &rows, (2, 1));
         assert_eq!(t.rects[0].width, 40);
         assert_eq!(t.rects[1], Rect::new(42, 0, 18, 3));
-        // a fixed tile keeps its width; the other takes the rest
+
         let rows: [&[Tile]; 1] = [&[Tile::new(20, &short).fixed(), Tile::new(5, &short)]];
         let t = tiles(60, &rows, (2, 1));
         assert_eq!(t.rects[0], Rect::new(0, 0, 20, 3));

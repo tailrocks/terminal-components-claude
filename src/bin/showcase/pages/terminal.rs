@@ -1,8 +1,8 @@
-//! Terminal (plan §7 SC25): a text viewport with scrollback, follow-tail,
-//! selection, copy, styled spans and find marks; a draggable splitter
-//! between two panes; and a step rail that reports a multi-stage job.
-//! Every `TextViewport` and `StepRail` knob is an option, and the States
-//! grid shows both. Options: `crate::options::TERMINAL`.
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -44,10 +44,10 @@ const STAGES: [&str; 7] = [
 
 const DURATIONS: [u32; 7] = [10, 26, 40, 8, 18, 14, 1];
 
-/// The step rail card's inner rows: the stages, the work line two rows
-/// under them, the copied line and the buttons.
+
+
 const RAIL_INNER_H: u16 = STAGES.len() as u16 + 6;
-/// The viewport's narrowest text column: it wraps or scrolls the rest.
+
 const VIEW_MIN_W: u16 = 24;
 
 pub struct TerminalPage {
@@ -139,8 +139,8 @@ impl TerminalPage {
         p
     }
 
-    /// The viewport and the rail from the option values, through their
-    /// builders; their lines and steps survive.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = |key| match o.value(key) {
@@ -153,7 +153,7 @@ impl TerminalPage {
             _ => TrackClick::Page,
         };
         let keymap = match o.value("terminal.keymap") {
-            // an app's own keys: `F` follows, `c` copies, Ctrl+A selects
+
             "custom" => vec![
                 (KeyBinding::char('F'), ViewportCmd::ToggleFollow),
                 (KeyBinding::char('c'), ViewportCmd::Copy),
@@ -175,7 +175,7 @@ impl TerminalPage {
             _ => {}
         }
         if o.on("terminal.mark") {
-            // find marks over "jackin" in the prompt line
+
             let at = term.line_text(0).and_then(|l| l.find("jackin"));
             term.set_marks(
                 at.map(|a| Mark {
@@ -272,7 +272,7 @@ impl TerminalPage {
                     .push(vec![Span::plain("payments-platform ❯ ").bold()]);
             } else {
                 if self.stage == 3 {
-                    // one stage is skipped when nothing needs mounting twice
+
                     self.rail.set_state(self.stage, StepState::Skipped);
                     self.rail.set_meta(self.stage, Some("cached".into()));
                     self.stage += 1;
@@ -284,8 +284,8 @@ impl TerminalPage {
     }
 }
 
-/// The States grid: the viewport (plain and wrapped) and a selectable
-/// step rail in every step state.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -340,9 +340,9 @@ fn states_grid() -> StateGrid {
 }
 
 impl TerminalPage {
-    /// The viewport card's meta: the selection, the line count while it
-    /// follows, or how far back it is; and the retention once it drops
-    /// lines.
+
+
+
     fn viewport_meta(&self) -> String {
         let depth = self.term.scrollback_depth();
         let meta = if self.term.has_selection() {
@@ -352,15 +352,15 @@ impl TerminalPage {
         } else {
             format!("scrollback ↑{depth}")
         };
-        // retention: the oldest lines leave past the limit
+
         match self.term.retention() {
             Some(n) if self.term.len() >= n => format!("{meta} · last {n} kept"),
             _ => meta,
         }
     }
 
-    /// The step rail card's meta: steps finished of all, and whether the
-    /// job runs or failed.
+
+
     fn rail_meta(&self) -> String {
         let (done, skipped, failed) = self.rail.counts();
         let total = STAGES.len();
@@ -406,7 +406,7 @@ impl TerminalPage {
             inner.height.saturating_sub(3),
         );
         self.rail.render(rail_area, buf, ctx, bg);
-        // a narrow card wraps the two buttons upward instead of cutting one
+
         let widths = [self.run.width(), self.fail.width()];
         let lines = junie_tui::widgets::button::row_lines(inner.width, &widths, 2);
         let rects = row_layout(
@@ -421,11 +421,11 @@ impl TerminalPage {
         );
         self.run.render(rects[0], buf, ctx, bg);
         self.fail.render(rects[1], buf, ctx, bg);
-        // the viewport's layout work, as its performance proofs count it
+
         let work = self.term.work_counters();
         let y = inner.bottom().saturating_sub(5);
         if y > rail_area.y + STAGES.len() as u16 {
-            // a line cut on a narrow pane reveals itself on hover
+
             let full = format!(
                 "viewport work: {} lines segmented · {} reflowed",
                 work.segmented_lines, work.reflowed_lines
@@ -490,14 +490,14 @@ impl Page for TerminalPage {
         "Viewport with scrollback, selection and copy · drag the seam · step rail reports a job"
     }
 
-    /// The step rail card at its min width ([`StepRail`]'s
-    /// `Measure::min_width`: every stage's state or duration whole, a
-    /// label cut with `…` reveals itself), its meta whole, the two
-    /// buttons on one row and the work line under the stages, beside the
-    /// viewport at [`VIEW_MIN_W`] under its title; split at the starting
-    /// ratio (`Split::natural_extent`: a seam drag never resizes the
-    /// page). The viewport wraps or scrolls its own lines; its meta and
-    /// the work line shorten and reveal on hover.
+
+
+
+
+
+
+
+
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let rail = self.rail.min_width(avail, ctx);
         let buttons = self.run.width() + 2 + self.fail.width();

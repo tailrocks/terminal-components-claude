@@ -1,12 +1,12 @@
-//! Lists (plan §7, SC15): the `ListBox` in single and multiple selection,
-//! with disabled rows, scrolling, a row menu and an empty state.
-//!
-//! Playground: a language list (single), a file list (multi, toned
-//! metadata, disabled rows) and an empty search, with the built lists read
-//! back. Options: every `ListBox` builder (`nav`, `type_ahead`, `click`,
-//! `wrap`, `skip_disabled`, `scrollbar_gap`, `reveal`, `track_click`,
-//! `keymap`, `empty`). States: a single and a multi list in every state
-//! they have. Hints name only keys the lists' `NavKeys` deliver.
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -41,12 +41,12 @@ use ratatui::crossterm::event::KeyCode;
 
 const ID: WidgetId = WidgetId::of("lists");
 const MENU: WidgetId = WidgetId::of("lists.menu");
-/// The three lists.
+
 pub const SINGLE: WidgetId = ID.sub("single");
 pub const MULTI: WidgetId = ID.sub("multi");
 pub const EMPTY: WidgetId = ID.sub("empty");
 
-/// The changed files (demo data): name, change kind, disabled.
+
 const FILES: [(&str, &str, bool); 12] = [
     ("src/api/auth.rs", "modified", false),
     ("src/api/billing.rs", "modified", false),
@@ -73,7 +73,7 @@ fn files() -> Vec<ListItem> {
     FILES
         .iter()
         .map(|(n, m, d)| {
-            // the change kind in its tone; generated and locked stay muted
+
             let tone = match *m {
                 "new" => Tone::Success,
                 "modified" => Tone::Warning,
@@ -89,9 +89,9 @@ pub struct ListsPage {
     single: ListBox,
     multi: ListBox,
     empty: ListBox,
-    /// The row menu: which list (by id) and which row it is about.
+
     menu: RowMenu<(WidgetId, usize)>,
-    /// Value indices of the page options, in `page_options` order.
+
     opts: Vec<usize>,
 }
 
@@ -115,13 +115,13 @@ impl ListsPage {
         page
     }
 
-    /// The language list (tests read it back).
+
     #[allow(dead_code)]
     pub fn single(&self) -> &ListBox {
         &self.single
     }
 
-    /// The value of option `key` as the table spells it.
+
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::Lists);
         let i = table
@@ -131,7 +131,7 @@ impl ListsPage {
         table[i].values[self.opts[i]]
     }
 
-    /// `l` with the options applied through its builders.
+
     fn build(&self, l: ListBox) -> ListBox {
         let mut l = l
             .nav(match self.opt("lists.nav") {
@@ -175,8 +175,8 @@ impl ListsPage {
         l
     }
 
-    /// Rebuild the three lists through their builders, keeping what the
-    /// user chose.
+
+
     fn rebuild(&mut self) {
         let keep = |old: &ListBox, mut new: ListBox| {
             new.cursor = old.cursor;
@@ -216,7 +216,7 @@ impl ListsPage {
         self.lists().into_iter().find(|l| l.id == id)
     }
 
-    /// The lists as built, read back.
+
     fn readout(&self) -> Vec<String> {
         let l = &self.multi;
         let nav = if l.nav == NavKeys::VIM {
@@ -226,7 +226,7 @@ impl ListsPage {
         };
         let key = |c| label_for(&l.keymap, c).unwrap_or_else(|| "none".into());
         use ratatui::crossterm::event::KeyModifiers as M;
-        // the platform default reads the same on every host (the digest)
+
         let toggle = if l.toggle_mods == SelectGesture::toggle_mods() {
             "platform".to_owned()
         } else {
@@ -258,7 +258,7 @@ impl ListsPage {
         ]
     }
 
-    /// What a row of `l` offers: only what its keys already do.
+
     fn row_items(l: &ListBox, row: usize) -> Vec<MenuItem> {
         let item = &l.items[row];
         match l.mode {
@@ -300,7 +300,7 @@ impl ListsPage {
         }
     }
 
-    /// Open the row menu `req` asks for on list `id`.
+
     fn open_menu(&mut self, id: WidgetId, req: ContextRequest<usize>) {
         let Some(l) = self.list_mut(id) else {
             return;
@@ -311,8 +311,8 @@ impl ListsPage {
             .open(req.menu(MENU, items).title(title), (id, req.target));
     }
 
-    /// Item `i` of the menu about `row` of list `id`: the same path the
-    /// item's key takes.
+
+
     fn choose(&mut self, (id, row): (WidgetId, usize), i: usize) -> Outcome {
         let Some(l) = self.list_mut(id) else {
             return Outcome::Consumed;
@@ -332,8 +332,8 @@ impl ListsPage {
         }
     }
 
-    /// The widest row of `list`: its label and its meta, after the
-    /// cursor gutter and a checkbox.
+
+
     fn rows_width(list: &ListBox) -> u16 {
         list.items
             .iter()
@@ -352,8 +352,8 @@ impl ListsPage {
         format!("Space toggle · {all} all · Shift+↓ range")
     }
 
-    /// The three list cards side by side when they fit whole (stacked
-    /// otherwise), each LIST_H rows tall: its list scrolls in it.
+
+
     fn tiled(&self, width: u16) -> Tiled {
         let card =
             |title: &str, content: u16| Panel::card(Some(title)).outer(Size::new(content, 0)).width;
@@ -386,7 +386,7 @@ impl ListsPage {
         )
     }
 
-    /// The readout lines wrapped to `width`.
+
     fn readout_lines(&self, width: u16) -> Vec<String> {
         self.readout()
             .iter()
@@ -460,7 +460,7 @@ impl ListsPage {
         let inner = panel.render(cols[2], buf, t);
         self.empty.render(inner, buf, ctx, bg);
 
-        // the built lists, read back
+
         for (y, l) in (area.y + h + 1..).zip(self.readout_lines(area.width)) {
             buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
         }
@@ -468,14 +468,14 @@ impl ListsPage {
     }
 }
 
-/// Each list card's height: its list scrolls in it.
+
 const LIST_H: u16 = 18;
-/// A row's cursor gutter, checkbox and padding around its text.
+
 const ROW_CHROME: u16 = 8;
-/// The search results card's empty state.
+
 const EMPTY_W: u16 = 30;
 
-/// The States grid: a single and a multi list, drawn by themselves.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -595,7 +595,7 @@ impl Page for ListsPage {
         if let Some(h) = self.template.hints(focus) {
             return h;
         }
-        // only keys the focused list's NavKeys deliver
+
         let l = if focus == Some(self.multi.id) {
             &self.multi
         } else {

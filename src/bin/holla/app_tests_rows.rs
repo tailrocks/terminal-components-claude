@@ -1,6 +1,6 @@
-//! Row-level proofs for capability rows the journeys leave implicit. Each
-//! test names the matrix rows it closes (docs/parity/holla-parity-matrix.md) and
-//! asserts the exact argv, state or text the row contract requires.
+
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -54,7 +54,7 @@ fn batch_argv(h: &H, id: &str) -> Vec<String> {
         .collect()
 }
 
-// ------------------------------------------------------------ HP01 L07 L16 L19
+
 
 #[test]
 fn l07_built_in_find_browse_disk_and_cleanup_routes_survive_an_empty_toolset() {
@@ -104,7 +104,7 @@ fn l16_l19_navigation_keys_land_on_rows_and_the_focused_preview_scrolls() {
     h.key(KeyCode::PageUp);
     let (back, on_row) = finder_cursor(&mut h);
     assert!(on_row && back < page, "PageUp moves back ({back} < {page})");
-    // headings and blank rows never take the cursor, whichever way it moves
+
     for _ in 0..40 {
         h.key(KeyCode::Down);
         assert!(
@@ -117,7 +117,7 @@ fn l16_l19_navigation_keys_land_on_rows_and_the_focused_preview_scrolls() {
         h.key(KeyCode::Up);
         assert!(finder_cursor(&mut h).1, "Up landed off a row: {}", h.text());
     }
-    // Tab focuses the preview; arrows then scroll the preview, not the list
+
     h.key(KeyCode::Home);
     let (before, _) = finder_cursor(&mut h);
     h.key(KeyCode::Tab);
@@ -131,13 +131,13 @@ fn l16_l19_navigation_keys_land_on_rows_and_the_focused_preview_scrolls() {
         "the preview scrolled at 120x24: {}",
         h.text()
     );
-    // a query change resets the preview scroll and returns to the list
+
     h.type_str("pull");
     assert_eq!(preview_offset(&mut h), 0);
     assert!(!h.app.shell.focus.is(finder::PREVIEW));
 }
 
-// ------------------------------------------------------------ HP03 I-F10 I-F12 · HP04 I-B14
+
 
 #[test]
 fn i_f10_i_f12_file_actions_reveal_through_open_r_and_analyze_the_folder() {
@@ -161,7 +161,7 @@ fn i_f10_i_f12_file_actions_reveal_through_open_r_and_analyze_the_folder() {
         "macOS reveal is open -R on the exact path: {a:?}"
     );
     assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
-    // analyze from the menu: the Disk page for that folder, not for cwd
+
     open(&mut h, "Browse ~/work/site");
     let (_, y) = h.find("assets").unwrap_or_else(|| panic!("{}", h.text()));
     let list = h.app.shell.hits.area_of(files::LIST).unwrap();
@@ -204,7 +204,7 @@ fn i_b14_context_markers_and_recommendations_are_preview_only() {
     );
 }
 
-// ------------------------------------------------------------ HP05 OP03 · HP06 OP07 OP08 OP11 OP12
+
 
 #[test]
 fn op03_op11_op12_current_repository_status_fetch_prune_and_gc_are_exact() {
@@ -246,7 +246,7 @@ fn op07_op08_sibling_push_and_status_batches_name_every_repository() {
     assert_eq!(status.len(), repos.len());
 }
 
-// ------------------------------------------------------------ HP09 OP34 · HP10 OP41 · HP13 OP54 OP56 OP57
+
 
 #[test]
 fn op34_op41_compose_logs_and_brew_start_carry_the_legacy_argv() {
@@ -292,7 +292,7 @@ fn op54_op56_op57_standalone_upgrade_rows_are_exact() {
     );
 }
 
-// ------------------------------------------------------------ HP15 E33 E39
+
 
 #[test]
 fn e33_e39_input_mode_returns_on_esc_ends_with_the_program_and_a_kill_reports_reaping() {
@@ -326,7 +326,7 @@ fn e33_e39_input_mode_returns_on_esc_ends_with_the_program_and_a_kill_reports_re
             .any(|l| l == "killed (SIGKILL) · descendants reaped"),
         "{out:?}"
     );
-    // input mode ends by itself when the program exits
+
     run(&mut h, "Deploy the release");
     let id = activity_id(&h);
     h.ticks(4);
@@ -345,7 +345,7 @@ fn e33_e39_input_mode_returns_on_esc_ends_with_the_program_and_a_kill_reports_re
     );
 }
 
-// ------------------------------------------------------------ HP17 E20
+
 
 #[test]
 fn e20_unreviewed_project_actions_are_labelled_before_trust() {
@@ -355,7 +355,7 @@ fn e20_unreviewed_project_actions_are_labelled_before_trust() {
     assert!(h.text().contains("⚠ unreviewed"), "{}", h.text());
 }
 
-// ------------------------------------------------------------ HP19 LD002 LD003
+
 
 #[test]
 fn ld002_ld003_the_overview_lists_home_folders_first_and_a_custom_path_is_validated() {
@@ -383,7 +383,7 @@ fn ld002_ld003_the_overview_lists_home_folders_first_and_a_custom_path_is_valida
         rows.iter().any(|(_, kind)| *kind != "home folder"),
         "insight roots follow the home folders: {rows:?}"
     );
-    // the custom path is validated before any scan starts
+
     open(&mut h, "Analyze a custom path");
     assert!(
         h.text()
@@ -391,7 +391,7 @@ fn ld002_ld003_the_overview_lists_home_folders_first_and_a_custom_path_is_valida
         "{}",
         h.text()
     );
-    // the path field holds focus and is editing (EditEntry::Immediate)
+
     let set_path = |h: &mut H, p: &str| {
         h.ctrl(KeyCode::Char('u'));
         h.type_str(p);
@@ -428,11 +428,11 @@ fn ld002_ld003_the_overview_lists_home_folders_first_and_a_custom_path_is_valida
     );
 }
 
-// ------------------------------------------------------------ HP20 LD022–LD047
+
 
 #[test]
 fn ld022_to_ld047_the_category_table_matches_the_legacy_contract() {
-    // (id, safety, minimum age in days, macOS only, roots, guard)
+
     type Row = (
         &'static str,
         Safety,
@@ -603,7 +603,7 @@ fn ld022_to_ld047_the_category_table_matches_the_legacy_contract() {
         assert_eq!(c.roots, roots, "{id} roots");
         assert_eq!(c.guard_process, guard, "{id} guard");
     }
-    // the two whole-root categories protect their root and offer children
+
     for id in ["user.caches", "user.logs"] {
         assert!(
             CATEGORIES.iter().any(|c| c.id == id && c.children_of_root),
@@ -612,7 +612,7 @@ fn ld022_to_ld047_the_category_table_matches_the_legacy_contract() {
     }
 }
 
-// ------------------------------------------------------------ HP21 LD053 LD054
+
 
 #[test]
 fn ld053_ld054_every_protected_root_and_user_path_is_denied_by_name() {
@@ -661,7 +661,7 @@ fn ld053_ld054_every_protected_root_and_user_path_is_denied_by_name() {
     }
 }
 
-// ------------------------------------------------------------ pointer: one click edits
+
 
 #[test]
 fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
@@ -675,7 +675,7 @@ fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
         .hits
         .area_of(field)
         .unwrap_or_else(|| panic!("the path field is hittable: {}", h.text()));
-    // one completed click: focused and editing, the caret under the pointer
+
     h.click(area.x + 3, area.y);
     assert!(h.app.shell.focus.is(field), "{}", h.text());
     assert!(
@@ -683,8 +683,8 @@ fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
         "editing after one click: {}",
         h.text()
     );
-    // the caret is under the pointer: the hit area starts one cell before the
-    // text, so column 3 of the area is offset 1 of the value
+
+
     h.type_str("X");
     assert!(
         h.text().contains("/XUsers/alex/work/big"),
@@ -716,7 +716,7 @@ fn a_click_on_dead_space_ends_an_argument_edit_in_place() {
     );
 }
 
-// ------------------------------------------------------------ scroll edges
+
 
 fn fg_grey(h: &H, x: u16, y: u16) -> u8 {
     match h.term.backend().buffer()[(x, y)].fg {
@@ -739,7 +739,7 @@ fn scrolled_output_fades_toward_the_hidden_lines_and_clears_at_the_edges() {
         .area_of(crate::screens::activity::VIEW)
         .unwrap();
     let (x, top, bottom) = (view.x + 2, view.y, view.bottom() - 1);
-    // following the tail: more above, nothing below
+
     assert!(
         fg_grey(&h, x, top) < fg_grey(&h, x, top + 2),
         "top rows fade while lines are hidden above"
@@ -749,13 +749,13 @@ fn scrolled_output_fades_toward_the_hidden_lines_and_clears_at_the_edges() {
         fg_grey(&h, x, bottom - 2),
         "the tail is the end: no fade below"
     );
-    // scrolled up into the middle: both edges hint
+
     h.key(KeyCode::Up);
     h.key(KeyCode::Up);
     h.key(KeyCode::Up);
     assert!(fg_grey(&h, x, top) < fg_grey(&h, x, top + 2));
     assert!(fg_grey(&h, x, bottom) < fg_grey(&h, x, bottom - 2));
-    // at the very top: only the bottom edge hints
+
     h.key(KeyCode::Home);
     assert_eq!(fg_grey(&h, x, top), fg_grey(&h, x, top + 2));
     assert!(fg_grey(&h, x, bottom) < fg_grey(&h, x, bottom - 2));
@@ -773,7 +773,7 @@ fn the_cursor_row_of_a_scrolled_list_is_never_faded() {
         .hits
         .area_of(crate::screens::cleanup::LIST)
         .unwrap();
-    // the row inside the list, not the preview title on the right
+
     let cursor_y = (list.y..list.bottom())
         .find(|&y| {
             h.row(y)
@@ -789,7 +789,7 @@ fn the_cursor_row_of_a_scrolled_list_is_never_faded() {
         "the last category sits at the bottom edge with rows hidden above: {}",
         h.text()
     );
-    // the cursor row keeps its plane and its text colour
+
     let plane = h.term.backend().buffer()[(list.x + 6, cursor_y)].bg;
     assert_ne!(
         plane,
@@ -799,7 +799,7 @@ fn the_cursor_row_of_a_scrolled_list_is_never_faded() {
         h.term.backend().buffer()[(list.x + 6, cursor_y)].fg,
         h.app.theme.text_primary
     );
-    // the first visible row fades because rows are hidden above it
+
     let first = list.y;
     assert!(fg_grey(&h, list.x + 6, first) < fg_grey(&h, list.x + 6, first + 2));
 }

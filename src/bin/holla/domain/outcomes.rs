@@ -1,8 +1,8 @@
-//! Truthful simulated outcomes per command: the script a command produces
-//! is decided from the world's state at launch, so the same argv that a
-//! production adapter would run has the same success and failure shape
-//! here. Nothing in this table succeeds generically; an argv without an
-//! entry is an unmodeled failure at the caller.
+
+
+
+
+
 
 use crate::domain::activity::{Branch, LineTone, Script, ScriptLine, line, prompt, toned};
 use crate::domain::exec::{Command, ExecKind};
@@ -24,7 +24,7 @@ fn arg(c: &Command, i: usize) -> &str {
     c.args.get(i).map(String::as_str).unwrap_or("")
 }
 
-/// `git -C <path> <verb> ...` → (path, verb, rest).
+
 fn git_parts(c: &Command) -> (String, String, Vec<String>) {
     let mut args = c.args.iter();
     let mut path = c.cwd.clone();
@@ -42,8 +42,8 @@ fn git_parts(c: &Command) -> (String, String, Vec<String>) {
     (path, verb, rest)
 }
 
-/// The outcome of a sequence: the first entry decides; a later command in
-/// one activity runs only when the earlier one succeeded.
+
+
 pub fn for_commands(w: &World, argv: &[Command]) -> Option<Script> {
     let mut merged: Option<Script> = None;
     for c in argv {
@@ -56,7 +56,7 @@ pub fn for_commands(w: &World, argv: &[Command]) -> Option<Script> {
     merged
 }
 
-/// Append `next` after `prev`; a failed `prev` ends the sequence.
+
 fn chain(prev: Script, next: Script) -> Script {
     if prev.exit != 0 || prev.ends_at.is_none() {
         return prev;
@@ -458,7 +458,7 @@ fn git(w: &World, c: &Command) -> Script {
             )
         }
         "branch" => {
-            // git branch -d -- <names>
+
             let names: Vec<&String> = rest.iter().skip_while(|a| *a != "--").skip(1).collect();
             let mut lines = vec![echo(c)];
             let mut exit = 0;
@@ -1286,7 +1286,7 @@ fn sudo(w: &World, c: &Command) -> Script {
     if w.sudo_cached {
         return chain(ok(vec![echo(c)], 0), body);
     }
-    // sudo asks on the controlling terminal: a secret prompt with no newline
+
     let head = Script::ending(
         vec![
             echo(c),
@@ -1655,7 +1655,7 @@ fn shell(w: &World, c: &Command) -> Script {
             6,
         );
     }
-    // an explicit interpreter action: the reviewed script runs as one unit
+
     ok(
         vec![
             echo_l,
@@ -2177,7 +2177,7 @@ mod tests {
             101,
             "no manifest here"
         );
-        // sequences stop at the first failure
+
         let seq = for_commands(
             &r,
             &[

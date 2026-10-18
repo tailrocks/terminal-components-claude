@@ -1,13 +1,13 @@
-//! Reachability gate (owner rule 2026-10-17): every screen and overlay of
-//! jackin-preview keeps all of its content reachable at every size of the
-//! matrix: shown, scrolled to, or cut with its `…` reveal
-//! ([`junie_tui::shell::reach`]). Known gaps are the `jackin` lines of
-//! `tests/reach_allow.txt`, each with its finding id
-//! (docs/audits/design-review-2026-10/responsive.md); the gate fails on a
-//! new gap and on a fixed one whose line is still there.
-//!
-//! `REACH_DUMP=<case>:<w>:<h>` prints one case's frame at a size
-//! (`cargo nextest run --bin jackin-preview reach_dump --no-capture`).
+
+
+
+
+
+
+
+
+
+
 
 use junie_tui::core::event::{Input, Key};
 use junie_tui::runtime::Application;
@@ -92,10 +92,10 @@ fn accounts(h: &mut H) {
     at(h, Scenario::AccountsMixed);
 }
 
-/// The cursor `N` rows down the page's list, then Tab: narrow, a
-/// master-detail (`ui::master_detail`) collapses to its list and Tab
-/// ("Tab details" in its summary) opens the row's detail as a drawer;
-/// wide, Tab focuses the detail beside the list.
+
+
+
+
 fn drawer<const N: usize>(h: &mut H) {
     for _ in 0..N {
         h.key(KeyCode::Down);
@@ -103,8 +103,8 @@ fn drawer<const N: usize>(h: &mut H) {
     h.key(KeyCode::Tab);
 }
 
-/// The cursor `N` rows down the Usage list, then Enter ("Enter Details"):
-/// below 100 columns the list and its detail take turns on the page.
+
+
 fn details<const N: usize>(h: &mut H) {
     for _ in 0..N {
         h.key(KeyCode::Down);
@@ -112,29 +112,29 @@ fn details<const N: usize>(h: &mut H) {
     h.key(KeyCode::Enter);
 }
 
-/// One reveal per list row (`$n` rows down), each from the case's fresh
-/// state, so every row's detail is read once.
+
+
 macro_rules! per_row {
     ($f:ident; $($n:literal)*) => {
         &[$(Reveal { step: $f::<$n>, times: 1 },)*]
     };
 }
 
-/// Every row's detail drawer of a master-detail page (Manager, Accounts:
-/// up to 24 rows).
+
+
 const DRAWERS: &[Reveal<H>] =
     per_row!(drawer; 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23);
 
-/// Every row's detail page of the Usage list (up to 24 rows).
+
 const DETAILS: &[Reveal<H>] =
     per_row!(details; 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23);
 
-/// The current row's detail drawer (Tab), for a page whose cursor is
-/// already on the row the case is about.
+
+
 const DRAWER: &[Reveal<H>] = per_row!(drawer; 0);
 
-/// A detail shown on its own at a narrow size: Esc ("Esc Back") returns
-/// to the list it belongs to.
+
+
 const BACK: &[Reveal<H>] = &[Reveal {
     step: |h| {
         h.key(KeyCode::Esc);
@@ -144,7 +144,7 @@ const BACK: &[Reveal<H>] = &[Reveal {
 
 fn cases() -> Vec<Case<H>> {
     vec![
-        // routes and their panes
+
         page("intro", |h| {
             *h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
         }),
@@ -212,16 +212,16 @@ fn cases() -> Vec<Case<H>> {
         })
         .reveals(BACK),
         page("cockpit", cockpit),
-        // the build log is a modal over the cockpit
+
         layer("cockpit-log", cockpit, |h| {
             h.key(KeyCode::Char('b'));
         }),
-        // the failure dialog over the cockpit, once the plan reaches the
-        // stage it fails at
+
+
         layer(
             "cockpit-failure",
-            // the cockpit as it stands just before the failure: its
-            // credentials resolved (the plan fails at Network, later)
+
+
             |h| {
                 at(h, Scenario::LaunchFailure);
                 for _ in 0..120 {
@@ -248,7 +248,7 @@ fn cases() -> Vec<Case<H>> {
             h.ctrl('b');
             h.key(KeyCode::Char('z'));
         }),
-        // menus and dialogs
+
         layer(
             "help",
             |_| {},
@@ -300,8 +300,8 @@ fn cases() -> Vec<Case<H>> {
                 h.key(KeyCode::Char('d'));
             },
         ),
-        // the prelude's Source step as n opens it, switched to a Git URL
-        // (an in-page mode, not an overlay)
+
+
         page("prelude-source", |h| {
             h.key(KeyCode::Char('n'));
             h.key(KeyCode::Char('g'));

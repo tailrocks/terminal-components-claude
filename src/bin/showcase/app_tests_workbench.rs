@@ -1,7 +1,7 @@
-//! The Query workbench screen (plan §7.5, SC46), driven through the real
-//! showcase: the explorer opens tables in tabs, the filter narrows it,
-//! Ctrl+R runs a query to rows or to the server's error, and every
-//! option changes the frame.
+
+
+
+
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
@@ -33,8 +33,8 @@ fn type_text(h: &mut Harness, s: &str) {
     }
 }
 
-/// `DUMP_SCREEN=<slug>[@WxH] cargo nextest run --bin showcase screen_dump
-/// --no-capture` prints a page's Playground (a development aid).
+
+
 #[test]
 fn screen_dump() {
     let Ok(spec) = std::env::var("DUMP_SCREEN") else {
@@ -93,7 +93,7 @@ fn opening_a_table_in_the_explorer_opens_its_tab_and_ctrl_r_runs_it() {
     ticks(&mut h, 8);
     assert!(!page(&h).tabs.items[2].busy);
     assert!(h.text().contains("40 rows · 15 ms"), "{}", h.text());
-    // opening it again goes to the same tab
+
     h.focus(page(&h).explorer.id);
     h.key(KeyCode::Enter);
     assert_eq!(page(&h).tabs.items.len(), 3);
@@ -136,7 +136,7 @@ fn closing_every_tab_leaves_an_empty_state_with_a_way_back() {
     let mut h = Harness::on(120, 40, PageId::QueryWorkbench);
     let tabs = page(&h).tabs.id;
     h.focus(tabs);
-    // x closes the tab under the strip's cursor (the tab's own key)
+
     h.key(KeyCode::Char('x'));
     h.key(KeyCode::Char('x'));
     assert!(page(&h).tabs.items.is_empty());
@@ -158,7 +158,7 @@ fn every_option_value_changes_the_playground() {
         for v in opt.values.iter().filter(|v| **v != opt.values[opt.default]) {
             let other = frame(v);
             if opt.key == "queryworkbench.close_reveal" {
-                // hover reveal only differs on the inactive tabs' `×`
+
                 assert_ne!(
                     base.matches('×').count(),
                     other.matches('×').count(),

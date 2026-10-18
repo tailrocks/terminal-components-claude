@@ -1,14 +1,14 @@
-//! Small text helpers: truncation with ellipsis, padding, width.
+
 
 use std::ops::Range;
 
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-/// TextViewport renders each tab as four spaces, independent of column.
+
 pub(crate) const TAB_SPACES: &str = "    ";
 
-/// Match viewport tab geometry before constructing fixed-width styled spans.
+
 pub(crate) fn expand_tabs(text: &str) -> std::borrow::Cow<'_, str> {
     if text.contains('\t') {
         text.replace('\t', TAB_SPACES).into()
@@ -21,17 +21,17 @@ pub fn width(s: &str) -> usize {
     UnicodeWidthStr::width(s)
 }
 
-/// Whether `s` is wider than `max` display cells: `width(s) > max`, but
-/// reading only as much of `s` as the answer needs. A cut cell holding a
-/// megabyte of JSON then costs what its visible part costs, not what the
-/// whole value costs, on every frame it is on screen.
-///
-/// No character is wider than its UTF-8 encoding is long, so a string of at
-/// most `max` bytes fits. A longer one is measured on growing prefixes
-/// (ending on a char boundary): once a prefix is wider than `max` plus a
-/// small margin, the whole string is. The margin covers the one case where
-/// a following character narrows the text before it (a text-presentation
-/// selector after an emoji at the prefix's end).
+
+
+
+
+
+
+
+
+
+
+
 pub fn wider_than(s: &str, max: usize) -> bool {
     if s.len() <= max {
         return false;
@@ -52,8 +52,8 @@ pub fn wider_than(s: &str, max: usize) -> bool {
     }
 }
 
-/// `width(s)` when it is at most `cap`, else any value above `cap`; reads
-/// only a bounded prefix of a long `s` (see [`wider_than`]).
+
+
 pub fn width_capped(s: &str, cap: usize) -> usize {
     if wider_than(s, cap) {
         cap.saturating_add(1)
@@ -62,17 +62,17 @@ pub fn width_capped(s: &str, cap: usize) -> usize {
     }
 }
 
-/// The leading part of `s` that fits in `max` display cells, without an
-/// ellipsis: a short id (`clip(run_id, 8)`), a digest prefix. Never splits a
-/// grapheme and never panics on text shorter than `max`, unlike a byte
-/// slice `&s[..max]`.
-///
-/// ```
-/// use junie_tui::ui::text::clip;
-/// assert_eq!(clip("run7f3a", 8), "run7f3a");
-/// assert_eq!(clip("0123456789", 4), "0123");
-/// assert_eq!(clip("日本語", 3), "日");
-/// ```
+
+
+
+
+
+
+
+
+
+
+
 pub fn clip(s: &str, max: usize) -> String {
     let mut out = String::new();
     let mut w = 0;
@@ -87,8 +87,8 @@ pub fn clip(s: &str, max: usize) -> String {
     out
 }
 
-/// Truncate to `max` display cells, appending `…` when cut. Reads only the
-/// part of `s` that can be shown (see [`wider_than`]).
+
+
 pub fn truncate(s: &str, max: usize) -> String {
     if !wider_than(s, max) {
         return s.to_owned();
@@ -110,17 +110,17 @@ pub fn truncate(s: &str, max: usize) -> String {
     out
 }
 
-/// Show a horizontal window addressed in display cells, never splitting a
-/// grapheme. Clipped edges use `…`; a partly hidden wide grapheme leaves padding
-/// so subsequent glyphs keep their original cell positions. The result occupies
-/// at most `max` cells, making cursor position `column - offset` reusable for
-/// rendering and mouse placement. A window past the text returns an empty string.
-///
-/// ```
-/// use junie_tui::ui::text::slice_cells;
-/// assert_eq!(slice_cells("ab日本cd", 3, 5), "…本cd");
-/// assert_eq!(slice_cells("日本語", 0, 5), "日本…");
-/// ```
+
+
+
+
+
+
+
+
+
+
+
 pub fn slice_cells(s: &str, offset: usize, max: usize) -> String {
     if max == 0 {
         return String::new();
@@ -162,7 +162,7 @@ pub fn slice_cells(s: &str, offset: usize, max: usize) -> String {
     out
 }
 
-/// Truncate keeping both ends: `very_long_identifier_name` → `very_l…_name`.
+
 pub fn truncate_middle(s: &str, max: usize) -> String {
     if !wider_than(s, max) {
         return s.to_owned();
@@ -172,7 +172,7 @@ pub fn truncate_middle(s: &str, max: usize) -> String {
     }
     let keep_end = (max - 1) / 3;
     let keep_start = max - 1 - keep_end;
-    // both ends are read from their own edge: the middle is never walked
+
     let gs = s.graphemes(true);
     let mut head = String::new();
     let mut w = 0;
@@ -197,7 +197,7 @@ pub fn truncate_middle(s: &str, max: usize) -> String {
     format!("{head}…{tail}")
 }
 
-/// `1203338` → `1,203,338`.
+
 pub fn thousands(n: usize) -> String {
     let s = n.to_string();
     let mut out = String::new();
@@ -210,29 +210,29 @@ pub fn thousands(n: usize) -> String {
     out
 }
 
-/// Left-align in `w` cells (pad or truncate).
+
 pub fn fit(s: &str, w: usize) -> String {
     let t = truncate(s, w);
     let pad = w.saturating_sub(width(&t));
     format!("{t}{}", " ".repeat(pad))
 }
 
-/// Right-align in `w` cells.
+
 pub fn fit_right(s: &str, w: usize) -> String {
     let t = truncate(s, w);
     let pad = w.saturating_sub(width(&t));
     format!("{}{t}", " ".repeat(pad))
 }
 
-/// The column that centres `text` in `area` (by display width, so wide
-/// characters centre correctly); `area.x` when it does not fit.
+
+
 pub fn center_x(area: ratatui::layout::Rect, text: &str) -> u16 {
     let w = width_capped(text, usize::from(u16::MAX)) as u16;
     area.x + area.width.saturating_sub(w) / 2
 }
 
-/// `1 file`, `3 files`, `0 files`: the count with the singular or plural
-/// noun.
+
+
 pub fn plural(n: usize, one: &str, many: &str) -> String {
     if n == 1 {
         format!("{n} {one}")
@@ -241,9 +241,9 @@ pub fn plural(n: usize, one: &str, many: &str) -> String {
     }
 }
 
-/// Truncate a ` · `-joined phrase at the last separator that fits, so a
-/// cell never ends mid-word; falls back to a plain cut ([`truncate`]) when
-/// no separator leaves at least a third of the room.
+
+
+
 pub fn truncate_sep(s: &str, max: usize) -> String {
     if width(s) <= max {
         return s.to_owned();
@@ -270,8 +270,8 @@ pub fn truncate_sep(s: &str, max: usize) -> String {
     }
 }
 
-/// Fit a ` › ` breadcrumb into `max` cells by dropping middle crumbs first
-/// (`Here › … › Review`), then truncating the last crumb in the middle.
+
+
 pub fn crumb_fit(label: &str, max: usize) -> String {
     if width(label) <= max {
         return label.to_owned();
@@ -290,20 +290,20 @@ pub fn crumb_fit(label: &str, max: usize) -> String {
     truncate_middle(label, max)
 }
 
-/// How [`duration`] spells an elapsed time.
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum DurationStyle {
-    /// A timer's precision in tight units, for a measured run (a query
-    /// timer): `<1 ms`, `12 ms`, `1.25 s`, `2m 3s`.
+
+
     Compact,
-    /// Spaced units, the two most significant only, whole seconds, for
-    /// prose and status text: `38 s`, `3 min 2 s`, `2 h 14 min`, `1 d 2 h`.
+
+
     #[default]
     Spoken,
 }
 
-/// An elapsed time as text, in `style`. The one duration formatter, so
-/// every app spells durations the same way for the same style.
+
+
 pub fn duration(elapsed: std::time::Duration, style: DurationStyle) -> String {
     match style {
         DurationStyle::Compact => {
@@ -345,7 +345,7 @@ fn duration_spoken(secs: u64) -> String {
     }
 }
 
-/// A byte size in binary units: `512 B`, `1.5 KiB`, `3.2 GiB`.
+
 pub fn bytes(n: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KiB", "MiB", "GiB", "TiB"];
     let mut v = n as f64;
@@ -361,18 +361,18 @@ pub fn bytes(n: u64) -> String {
     }
 }
 
-/// How [`wrap_with`] lays out indented paragraphs.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WrapOpts {
-    /// A paragraph's leading spaces are kept on its first line and repeated
-    /// on every continuation line, so an indented block stays indented
-    /// when it wraps. Default `true`.
+
+
+
     pub keep_indent: bool,
-    /// A run of at least this many spaces inside a paragraph marks a
-    /// column (`Ctrl+F    find`): continuation lines hang under the text
-    /// after the first such run, like a key reference or a definition
-    /// list. `None` turns the hanging indent off. Default `Some(3)`, so the
-    /// single and double spaces of prose never start a column.
+
+
+
+
+
     pub hang_at_gap: Option<u8>,
 }
 
@@ -386,23 +386,23 @@ impl Default for WrapOpts {
 }
 
 impl WrapOpts {
-    /// Plain word wrap: leading spaces dropped, no hanging indent.
+
     pub const PLAIN: Self = Self {
         keep_indent: false,
         hang_at_gap: None,
     };
 }
 
-/// Word-wrap into lines of at most `w.max(1)` cells. Hard-wraps overlong
-/// words; a grapheme wider than the entire line is represented by `…`.
-/// Indentation follows [`WrapOpts::default`]: leading spaces carry over to
-/// continuation lines and a wide column gap hangs them under the second
-/// column.
+
+
+
+
+
 pub fn wrap(s: &str, w: usize) -> Vec<String> {
     wrap_with(s, w, WrapOpts::default())
 }
 
-/// [`wrap`] with explicit indentation rules.
+
 pub fn wrap_with(s: &str, w: usize, opts: WrapOpts) -> Vec<String> {
     let w = w.max(1);
     let mut lines = Vec::new();
@@ -416,7 +416,7 @@ pub fn wrap_with(s: &str, w: usize, opts: WrapOpts) -> Vec<String> {
         {
             cont = first + col;
         }
-        // an indent only applies while it leaves at least half the line
+
         let first = if first * 2 <= w { first } else { 0 };
         let cont = if cont * 2 <= w { cont } else { first };
         wrap_para(body, w, first, cont, &mut lines);
@@ -424,7 +424,7 @@ pub fn wrap_with(s: &str, w: usize, opts: WrapOpts) -> Vec<String> {
     lines
 }
 
-/// The cell column after the first run of at least `gap` spaces in `s`.
+
 fn hang_column(s: &str, gap: usize) -> Option<usize> {
     let at = s.find(&" ".repeat(gap))?;
     let rest = s[at..].trim_start_matches(' ');
@@ -434,8 +434,8 @@ fn hang_column(s: &str, gap: usize) -> Option<usize> {
     Some(width(&s[..s.len() - rest.len()]))
 }
 
-/// One paragraph being wrapped: the open line, its width, the indent it
-/// started at and the indent of the lines after it.
+
+
 struct Para<'a> {
     lines: &'a mut Vec<String>,
     line: String,
@@ -506,7 +506,7 @@ fn wrap_para(body: &str, w: usize, first: usize, cont: usize, lines: &mut Vec<St
     p.lines.push(last);
 }
 
-/// Search text retains source graphemes when lowercase expands a scalar.
+
 struct SearchText {
     text: String,
     origins: Vec<(Range<usize>, Range<usize>)>,
@@ -514,9 +514,9 @@ struct SearchText {
 
 impl SearchText {
     fn new(source: &str, lowercase: bool) -> Self {
-        // Lowercase the whole string so contextual forms (Greek final sigma)
-        // retain Rust's string-casing semantics. Context changes the scalar's
-        // form; scalar expansion counts still identify its source grapheme.
+
+
+
         let text = if lowercase {
             source.to_lowercase()
         } else {
@@ -559,7 +559,7 @@ impl SearchText {
     }
 }
 
-/// Match ranges always refer to complete graphemes in the original document.
+
 pub fn find_ranges(text: &str, needle: &str, case_sensitive: bool) -> Vec<Range<usize>> {
     if needle.is_empty() {
         return Vec::new();
@@ -575,16 +575,16 @@ pub fn find_ranges(text: &str, needle: &str, case_sensitive: bool) -> Vec<Range<
         .match_indices(&needle)
         .map(|(start, matched)| hay.original_range(start..start + matched.len()))
         .collect();
-    // Multiple scalar matches may belong to one combining/emoji grapheme.
+
     ranges.dedup();
     ranges
 }
 
-/// Fuzzy match `word` against `label`: a prefix wins, then a substring
-/// (bonus on a `_`/`.` boundary), then a subsequence. Returns a penalty
-/// (lower is better) and unique byte offsets of matched original grapheme
-/// starts so a list can bold them. Matching compares Unicode scalars after
-/// lowercasing; offsets never address transformed text or split UTF-8.
+
+
+
+
+
 pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
     if word.is_empty() {
         return Some((0, vec![]));
@@ -659,7 +659,7 @@ mod tests {
             wrap("  alpha beta gamma", 12),
             vec!["  alpha beta", "  gamma"]
         );
-        // the plain wrap still drops it
+
         assert_eq!(
             wrap_with("  alpha beta gamma", 12, WrapOpts::PLAIN),
             vec!["alpha beta", "gamma"]
@@ -673,9 +673,9 @@ mod tests {
             lines,
             vec!["Ctrl+D   Data / Structure", "         or find (editor)"]
         );
-        // prose spacing never starts a column
+
         assert_eq!(wrap("one.  two three", 9), vec!["one.  two", "three"]);
-        // an indent that would leave less than half the line is dropped
+
         assert_eq!(wrap("        ab cd", 10), vec!["ab cd"]);
     }
 
@@ -721,8 +721,8 @@ mod tests {
         assert!(find_ranges("", "a", false).is_empty());
     }
 
-    /// Strings whose width is not the sum of their characters' widths,
-    /// short and long, for the bounded-measurement equivalence tests.
+
+
     fn width_corpus() -> Vec<String> {
         let seeds = [
             "",
@@ -741,7 +741,7 @@ mod tests {
             out.push(s.repeat(7));
             out.push(s.repeat(400));
         }
-        // a prefix boundary landing between a char and its selector
+
         for k in 0..12 {
             out.push(format!(
                 "{}⌚\u{FE0E}{}",
@@ -753,7 +753,7 @@ mod tests {
         out
     }
 
-    /// The truncation before bounded measurement, as the reference.
+
     fn truncate_reference(s: &str, max: usize) -> String {
         if width(s) <= max {
             return s.to_owned();
@@ -898,7 +898,7 @@ mod format_tests {
         assert_eq!(spoken(7_200), "2 h");
         assert_eq!(spoken(97_200), "1 d 3 h");
         assert_eq!(spoken(259_200), "3 d");
-        // the same elapsed time in both styles; Spoken drops the fraction
+
         let d = Duration::from_millis(123_400);
         assert_eq!(duration(d, DurationStyle::Compact), "2m 3s");
         assert_eq!(duration(d, DurationStyle::Spoken), "2 min 3 s");
