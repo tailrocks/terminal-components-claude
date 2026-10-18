@@ -1,9 +1,9 @@
-//! File browser (Overlays, plan §7 SC41): the library `FileBrowser` modal
-//! on the shell's layer stack, over an in-memory `MemorySource` fixture
-//! (or the real filesystem through `FsSource`), as jackin's mount form and
-//! new-workspace flow open it. Browse… opens it with the page's options;
-//! the result comes back as `LayerResult::File`. Options:
-//! `crate::options::FILE_BROWSER`.
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -34,7 +34,7 @@ use junie_tui::widgets::panel::Panel;
 const ID: WidgetId = WidgetId::of("filebrowser");
 const HOME: &str = "/Users/ada";
 
-/// The fixture: a home folder with projects, profiles and notes.
+
 fn fixture() -> MemorySource {
     let d = |p: &str, meta: &str| FileEntry::dir(&format!("{HOME}{p}")).meta(meta);
     let f = |p: &str, meta: &str| FileEntry::file(&format!("{HOME}{p}")).meta(meta);
@@ -67,7 +67,7 @@ fn fixture() -> MemorySource {
     .home(HOME)
 }
 
-/// The New mount card's two lines of prose.
+
 const INTRO: [&str; 2] = [
     "The folder mounted into the workspace. Browse… opens the modal over this page;",
     "Esc, the × or (with Dismiss light) a click outside cancels it.",
@@ -77,7 +77,7 @@ const SOURCE_HEAD: &str =
     "FileEntry rows of ~ (folders first in the browser; hidden ones wait for the toggle):";
 const RESULTS_META: &str = "FileBrowserResult: Chosen { path, checked } · Url · Cancelled";
 
-/// The repositories the URL entry resolves.
+
 const REPOS: [&str; 2] = ["acme/payments-platform", "acme/customer-portal"];
 
 pub fn page() -> Box<dyn Page> {
@@ -88,9 +88,9 @@ pub struct FileBrowserPage {
     template: Template,
     opts: PageValues,
     browse: Button,
-    /// What the browser answered last.
+
     pub(crate) chosen: String,
-    /// Every result, oldest first.
+
     pub(crate) log: Vec<String>,
     sections: crate::pages::layout::Sections,
 }
@@ -123,7 +123,7 @@ impl FileBrowserPage {
         }
     }
 
-    /// The browser the options describe.
+
     fn browser(&self) -> FileBrowser {
         let title = match self.choose_kind() {
             Choose::Dirs => "Choose a folder",
@@ -180,7 +180,7 @@ impl FileBrowserPage {
         b
     }
 
-    /// The commands the Keys card lists.
+
     const CMDS: [FileCmd; 7] = [
         FileCmd::Open,
         FileCmd::Parent,
@@ -191,7 +191,7 @@ impl FileBrowserPage {
         FileCmd::Url,
     ];
 
-    /// The rows of the Source card: the fixture's home listing.
+
     fn source_rows() -> Vec<String> {
         let home = fixture().list(HOME).unwrap_or_default();
         home.iter()
@@ -203,7 +203,7 @@ impl FileBrowserPage {
             .collect()
     }
 
-    /// The rows of the Keys card: each command and its key.
+
     fn key_rows(&self) -> Vec<String> {
         let keys = self.keymap();
         Self::CMDS
@@ -223,7 +223,7 @@ impl FileBrowserPage {
         format!("FileCmd · {} key map", self.opts.value("filebrowser.keys"))
     }
 
-    /// The Playground's cards, top to bottom, at their natural heights.
+
     fn children(&self) -> [StackChild; 4] {
         [
             StackChild::fixed(9),
@@ -356,8 +356,8 @@ impl FileBrowserPage {
     }
 }
 
-/// The States grid: the browser's listing (folders, a disabled file in
-/// Choose folders) and its hidden-files check box.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let b = FileBrowser::new(ID.sub("sample"), "Choose", fixture(), HOME);
@@ -381,8 +381,8 @@ impl Page for FileBrowserPage {
         "FileBrowser: choose a file or folder from a FileSource, with a path bar, filter, type-ahead and hidden files"
     }
 
-    /// Every card whole: the widest line or title row, the cards'
-    /// stacked heights.
+
+
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;
         let widest = |rows: &[String]| rows.iter().map(|r| w(r)).max().unwrap_or(0);

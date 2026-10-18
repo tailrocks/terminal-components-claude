@@ -1,7 +1,7 @@
-//! Naming conventions of the widget API (shared-components plan §1.9, S0):
-//! a widget's output enum is `XAction`, a key-map command enum is `XCmd`.
-//! The old `XEvent` output names and `XAction` key-map names must not
-//! come back, or the two vocabularies blur again.
+
+
+
+
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -17,7 +17,7 @@ fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// `(file, line, identifier)` for every `<keyword> <Ident>` in `dir`.
+
 fn declarations(dir: &str, keyword: &str) -> Vec<(String, usize, String)> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut files = Vec::new();

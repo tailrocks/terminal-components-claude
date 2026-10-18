@@ -1,19 +1,19 @@
-//! The one editable text field every text control is built on.
-//!
-//! [`EditField`] holds what a text control edits and how: the
-//! [`TextBuffer`], the undo history, the control-key preset and text key
-//! map, the pointer selection policy and the press in progress, and the
-//! validation state ([`Validator`], [`FieldError`], [`ValidateWhen`]).
-//! `TextInput`, `TextArea`, `CodeEditor`, the table and grid cell editors
-//! and the Picker and Combo queries keep one each, so a key, a paste and a
-//! pointer gesture mean the same thing in every one of them, and Select
-//! All, undo and the clipboard keys come with the field instead of being
-//! rebuilt per control.
-//!
-//! A control that draws an [`EditField`] implements [`Editable`] (where the
-//! field is, which byte a pointer position names, what a press on its
-//! label does); [`PointerField`] (press, drag, multi-click) is implemented
-//! once for every [`Editable`].
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::ops::Range;
 use std::rc::Rc;
@@ -29,8 +29,8 @@ use crate::widgets::field_common::{
     Applied, EditAction, PointerField, PointerSelect, apply_edit, edit_key_in, unbound_key,
 };
 
-/// Why a value was rejected: the message shown under (or beside) the
-/// field and in the status line.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldError {
     message: String,
@@ -43,12 +43,12 @@ impl FieldError {
         }
     }
 
-    /// The text shown for the error.
+
     pub fn message(&self) -> &str {
         &self.message
     }
 
-    /// The message, taken out of the error.
+
     pub fn into_message(self) -> String {
         self.message
     }
@@ -62,8 +62,8 @@ impl std::ops::Deref for FieldError {
 }
 
 impl FieldError {
-    /// The message, to rewrite in place (a theme string the error still
-    /// reads follows a theme change: [`crate::theme::Strings::follow`]).
+
+
     pub fn message_mut(&mut self) -> &mut String {
         &mut self.message
     }
@@ -87,20 +87,20 @@ impl From<&str> for FieldError {
     }
 }
 
-/// Turns the text of a field into a value, or says why it cannot.
+
 pub trait Validate {
-    /// What a valid text parses to (`()` when the text itself is the value).
+
     type Value;
     fn validate(&self, text: &str) -> Result<Self::Value, FieldError>;
 }
 
-/// The function a [`Validator`] wraps.
+
 pub type ValidateFn<V, C> = dyn Fn(&C, &str) -> Result<V, FieldError>;
 
-/// A [`Validate`] made from a closure, so it can capture state (an allowed
-/// list, a schema). `C` is the context a validator shared by several
-/// fields needs (a table column, a grid column's spec); [`Self::bind`]
-/// fixes it, giving the context-free validator one field runs.
+
+
+
+
 pub struct Validator<V = (), C = ()>(Rc<ValidateFn<V, C>>);
 
 impl<V, C> Clone for Validator<V, C> {
@@ -116,31 +116,31 @@ impl<V, C> std::fmt::Debug for Validator<V, C> {
 }
 
 impl<V: 'static> Validator<V> {
-    /// A validator that parses the text into a `V`.
+
     pub fn new(f: impl Fn(&str) -> Result<V, FieldError> + 'static) -> Self {
         Self(Rc::new(move |_: &(), text: &str| f(text)))
     }
 }
 
 impl Validator {
-    /// A validator in the message form: `Some(message)` rejects the text.
+
     pub fn check(f: impl Fn(&str) -> Option<String> + 'static) -> Self {
         Self::new(move |text| f(text).map_or(Ok(()), |m| Err(FieldError::from(m))))
     }
 }
 
 impl<V: 'static, C: 'static> Validator<V, C> {
-    /// A validator that also reads a context `C` (the column a cell is in).
+
     pub fn with_context(f: impl Fn(&C, &str) -> Result<V, FieldError> + 'static) -> Self {
         Self(Rc::new(f))
     }
 
-    /// Validate `text` in the context `cx`.
+
     pub fn validate_in(&self, cx: &C, text: &str) -> Result<V, FieldError> {
         (self.0)(cx, text)
     }
 
-    /// This validator with its context fixed to `cx`, for one field.
+
     pub fn bind(&self, cx: C) -> Validator<V> {
         let f = self.0.clone();
         Validator(Rc::new(move |_: &(), text: &str| f(&cx, text)))
@@ -154,53 +154,53 @@ impl<V> Validate for Validator<V> {
     }
 }
 
-/// When an [`EditField`] runs its validator while the user types (an
-/// ended edit always validates; the owner decides which ended edits count).
-///
-/// The default follows WCAG 3.3.1 and the forms guidance the standards
-/// review cites (gap 9): errors appear when an edit is committed, never
-/// per keystroke on a value the user is still typing; once an error shows,
-/// every edit re-checks, so the error goes the moment the value is fixed.
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ValidateWhen {
-    /// Only an ended edit validates; a shown error stays until the next
-    /// commit.
+
+
     Commit,
-    /// An ended edit validates; while an error shows, every edit
-    /// re-validates (it clears as soon as the value is valid, and a new
-    /// error replaces the old).
+
+
+
     #[default]
     AfterError,
-    /// Every edit validates, from the first keystroke.
+
     Live,
 }
 
-/// How a key ended an edit ([`EditResult::exit`]); the control decides
-/// what each means (apply, revert, move focus on).
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EditExit {
-    /// Enter (in a single-line field).
+
     Commit,
-    /// Esc.
+
     Cancel,
-    /// Tab or Shift+Tab.
+
     Tab { backward: bool },
 }
 
-/// What [`EditField::on_key`] did with a key.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EditResult {
-    /// `Changed` when the text, the caret or the selection moved,
-    /// `Consumed` for a key the field kept without effect, `Ignored` for a
-    /// key the field has no use for (an unbound chord, ↑↓ in a single-line
-    /// field: [`EditResult::unused`]).
+
+
+
+
     pub outcome: Outcome,
-    /// The text changed (and the change is on the undo history).
+
     pub edited: bool,
-    /// The key ends the edit; the field itself is unchanged.
+
     pub exit: Option<EditExit>,
-    /// The key has no edit meaning at all (not even a chord to swallow):
-    /// controls with keys of their own (PgUp, a list under a query) take it.
+
+
     pub unused: bool,
 }
 
@@ -215,64 +215,64 @@ impl EditResult {
     }
 }
 
-/// Pointer gesture bookkeeping: where the press landed and whether a drag
-/// selected from it since.
+
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct PressState {
     at: Option<usize>,
     dragged: bool,
-    /// The word the second press of a double click selected: a drag from
-    /// it extends by words ([`PointerSelect::drag_by_word`]).
+
+
     word: Option<Range<usize>>,
 }
 
-/// An editable text value with its keys, undo history, pointer selection
-/// and validation. See the module docs.
+
+
 #[derive(Debug, Clone)]
 pub struct EditField {
     pub buffer: TextBuffer,
-    /// What a drag, double click and triple click select. Default
-    /// [`PointerSelect::DEFAULT`].
+
+
     pub sel: PointerSelect,
     press: PressState,
     undo: UndoStack,
-    /// The control-key preset in effect (the owner resolves its override
-    /// or the theme's before handing keys over).
+
+
     pub keys: FieldKeys,
-    /// The text commands' keys. `None` (default) uses the preset's
-    /// ([`FieldKeys::text_keymap`]).
+
+
     pub text_keymap: Option<KeyMap<TextCmd>>,
-    /// Checks the value; `None` accepts everything.
+
     pub validator: Option<Validator>,
-    /// The error the last validation found.
+
     pub error: Option<FieldError>,
-    /// When typing re-validates. Default [`ValidateWhen::AfterError`].
+
     pub validate_when: ValidateWhen,
-    /// Enter inserts a line break, ↑↓ and Cmd+↑/↓ move by line.
+
     pub multiline: bool,
-    /// Keys and the pointer only move, select and copy.
+
     pub read_only: bool,
-    /// A run of typing (or deleting) undoes as one step, the way desktop
-    /// fields group typing. Default `true`; `false` makes every keystroke
-    /// its own undo step (holla's finder query, parity H10/H11).
+
+
+
     pub undo_runs: bool,
-    /// The error an empty value shows when the field is required, checked
-    /// when there is no [`Self::validator`] (a validator owns validation
-    /// when supplied). `None`: an empty value is fine.
+
+
+
     pub required: Option<String>,
-    /// The first column a one-line draw shows ([`Self::draw_line`]).
+
     line_off: usize,
-    /// Where the last one-line draw put the text.
+
     line_area: ratatui::layout::Rect,
 }
 
 impl EditField {
-    /// A single-line field holding `text`.
+
     pub fn single(text: impl Into<String>) -> Self {
         Self::with_buffer(TextBuffer::single(text), false)
     }
 
-    /// A multi-line field holding `text`.
+
     pub fn multi(text: impl Into<String>) -> Self {
         Self::with_buffer(TextBuffer::multi(text), true)
     }
@@ -297,19 +297,19 @@ impl EditField {
         }
     }
 
-    /// See [`Self::validator`].
+
     pub fn validator(mut self, v: Validator) -> Self {
         self.validator = Some(v);
         self
     }
 
-    /// See [`Self::validate_when`].
+
     pub fn validate_when(mut self, when: ValidateWhen) -> Self {
         self.validate_when = when;
         self
     }
 
-    /// See [`Self::keys`].
+
     pub fn keys(mut self, keys: FieldKeys) -> Self {
         self.keys = keys;
         self
@@ -319,18 +319,18 @@ impl EditField {
         self.buffer.text()
     }
 
-    /// Replace the value from outside (not an edit): the history is
-    /// forgotten and the caret goes to the end.
+
+
     pub fn set_text(&mut self, text: impl Into<String>) {
         self.buffer.set_text(text);
         self.undo.clear();
     }
 
-    /// The edit action `key` means under the preset and the text keys.
-    /// Ctrl+C over a selection copies under every preset unless the text
-    /// keys bind it to something else (copy-first, SI17: the Emacs preset
-    /// leaves Ctrl+C unbound, and the shell no longer quits over a
-    /// selection, so the field takes it).
+
+
+
+
+
     pub fn action(&self, key: &Key) -> EditAction {
         if self.copy_first(key) {
             return EditAction::Copy;
@@ -341,8 +341,8 @@ impl EditField {
         }
     }
 
-    /// The text command `key` is bound to, if any; Ctrl+C over a
-    /// selection is Copy when nothing else binds it ([`Self::action`]).
+
+
     pub fn text_cmd(&self, key: &Key) -> Option<TextCmd> {
         if self.copy_first(key) {
             return Some(TextCmd::Copy);
@@ -357,27 +357,27 @@ impl EditField {
         }
     }
 
-    /// Ctrl+C over a selection, unbound by the text keys: Copy
-    /// (copy-first, SI17).
+
+
     fn copy_first(&self, key: &Key) -> bool {
         key.ctrl_char('c') && self.buffer.has_selection() && self.bound_cmd(key).is_none()
     }
 
-    /// Handle a key: typing, caret moves, Select All, the clipboard keys,
-    /// undo and redo apply here; Enter, Esc and Tab come back as an
-    /// [`EditExit`] for the control to decide.
+
+
+
     pub fn on_key(&mut self, key: &Key) -> EditResult {
         let action = self.action(key);
         self.apply(action, key)
     }
 
-    /// Apply an already resolved `action` (the control looked at it first).
+
     pub fn apply(&mut self, action: EditAction, key: &Key) -> EditResult {
         self.apply_as(action, key, self.read_only)
     }
 
-    /// [`Self::apply`] with `read_only` deciding for this key alone (a
-    /// document that only moves and selects while it is not being edited).
+
+
     pub fn apply_as(&mut self, action: EditAction, key: &Key, read_only: bool) -> EditResult {
         let exit = match action {
             EditAction::Commit => Some(EditExit::Commit),
@@ -417,18 +417,18 @@ impl EditField {
         EditResult::changed(edited)
     }
 
-    /// Run a text command as if its key was pressed (the Edit context
-    /// menu, [`crate::ui::edit_menu`]): its [`EditAction`] through
-    /// [`Self::apply`]. Paste brings the field clipboard's text in through
-    /// [`Self::paste`], so a one-line field flattens its line breaks as a
-    /// terminal paste does.
+
+
+
+
+
     pub fn run(&mut self, cmd: TextCmd) -> EditResult {
         self.run_as(cmd, self.read_only)
     }
 
-    /// [`Self::run`] with `read_only` deciding for this command alone (a
-    /// document that only selects and copies while it is not being
-    /// edited, [`Self::apply_as`]).
+
+
+
     pub fn run_as(&mut self, cmd: TextCmd, read_only: bool) -> EditResult {
         if cmd == TextCmd::Paste {
             let text = crate::core::edit::clipboard::text().unwrap_or_default();
@@ -442,8 +442,8 @@ impl EditField {
         self.apply_as(action, &key, read_only)
     }
 
-    /// The label of the first deliverable key bound to `cmd` in the
-    /// field's text key map (its own, or the preset's).
+
+
     pub fn shortcut(&self, cmd: TextCmd) -> Option<String> {
         match &self.text_keymap {
             Some(map) => crate::core::keymap::label_for(map, cmd),
@@ -451,10 +451,10 @@ impl EditField {
         }
     }
 
-    /// Bracketed paste: one undoable edit. A single-line field flattens
-    /// line breaks to spaces (a trailing break is dropped), so words never
-    /// run together and a pasted newline never submits (standards gap 5).
-    /// `false` (nothing changed) on a read-only field.
+
+
+
+
     pub fn paste(&mut self, text: &str) -> bool {
         if self.read_only || text.is_empty() {
             return false;
@@ -472,18 +472,18 @@ impl EditField {
         true
     }
 
-    /// Record the buffer before an edit the control makes itself (an
-    /// indent, a completion), so Ctrl+Z steps it back.
+
+
     pub fn record(&mut self, kind: EditKind) {
         self.undo.record(&self.buffer, kind);
     }
 
-    /// End the current typing run.
+
     pub fn seal(&mut self) {
         self.undo.seal();
     }
 
-    /// Forget the undo history.
+
     pub fn clear_history(&mut self) {
         self.undo.clear();
     }
@@ -496,8 +496,8 @@ impl EditField {
         self.undo.can_redo()
     }
 
-    /// A control's own edit happened (an indent, a revert): re-validate
-    /// per [`Self::validate_when`].
+
+
     pub fn after_edit(&mut self) {
         match self.validate_when {
             ValidateWhen::Live => {
@@ -510,10 +510,10 @@ impl EditField {
         }
     }
 
-    /// Check the current text and show what is wrong with it; `true` when
-    /// it is valid. The validator owns validation when there is one;
-    /// otherwise a [`Self::required`] field rejects an empty value, and
-    /// anything else is valid (an error shown before clears).
+
+
+
+
     pub fn validate(&mut self) -> bool {
         self.error = match &self.validator {
             Some(v) => v.validate(self.buffer.text()).err(),
@@ -526,23 +526,23 @@ impl EditField {
         self.error.is_none()
     }
 
-    /// Show `error` (an owner-level check: required, a server reply).
+
     pub fn set_error(&mut self, error: Option<FieldError>) {
         self.error = error;
     }
 
-    /// The error message, if any.
+
     pub fn error_message(&self) -> Option<&str> {
         self.error.as_ref().map(FieldError::message)
     }
 
-    // ---- pointer --------------------------------------------------------
 
-    /// A press with its multi-click `count` at byte `offset`: remember it
-    /// for the drag; the second press of a double click selects the word
-    /// there and a drag from it extends by words. `true` when the
-    /// selection changed. `whole_word` makes the whole value one word (a
-    /// masked field).
+
+
+
+
+
+
     pub fn press(&mut self, offset: usize, count: u8, whole_word: bool) -> bool {
         self.press = PressState {
             at: Some(offset),
@@ -558,9 +558,9 @@ impl EditField {
         false
     }
 
-    /// A drag to byte `offset`: extend the selection from the press (by
-    /// whole words after a double-click press). `false` when the policy
-    /// turns drag selection off.
+
+
+
     pub fn drag(&mut self, offset: usize) -> bool {
         if !self.sel.drag {
             return false;
@@ -581,9 +581,9 @@ impl EditField {
         true
     }
 
-    /// A completed click with `count` (1 single, 2 double, 3+ triple) at
-    /// byte `offset`: caret, word, line, per [`Self::sel`]. The release
-    /// that ends a drag keeps the dragged selection.
+
+
+
     pub fn click(&mut self, offset: usize, count: u8, whole_word: bool) {
         let dragged = std::mem::take(&mut self.press.dragged);
         self.press.at = None;
@@ -606,18 +606,18 @@ impl EditField {
         self.undo.seal();
     }
 
-    /// A press is held on the field (a drag from it may follow).
+
     pub fn pressed(&self) -> bool {
         self.press.at.is_some()
     }
 
-    // ---- one-line drawing ------------------------------------------------
 
-    /// Draw a one-line field's text into `area` and return the caret cell:
-    /// the text scrolls sideways so the caret stays in view, a cut start
-    /// or end shows `…` in [`LineLook::ellipsis`] (never under the caret),
-    /// the selection takes [`LineLook::selection`]. Every one-line text
-    /// field draws through here (the Picker and Combo queries, `TextInput`).
+
+
+
+
+
+
     pub fn draw_line(
         &mut self,
         buf: &mut ratatui::buffer::Buffer,
@@ -628,15 +628,15 @@ impl EditField {
         self.draw_glyphs(buf, area, look, &glyphs)
     }
 
-    /// The graphemes of `text` as `(byte offset, grapheme, cells)`.
+
     pub fn graphemes(text: &str) -> Vec<(usize, String, usize)> {
         unicode_segmentation::UnicodeSegmentation::grapheme_indices(text, true)
             .map(|(bi, g)| (bi, g.to_owned(), crate::ui::text::width(g)))
             .collect()
     }
 
-    /// [`Self::draw_line`] over graphemes the owner chose to show (a masked
-    /// field draws `•` per grapheme): `(byte offset, shown text, cells)`.
+
+
     pub fn draw_glyphs(
         &mut self,
         buf: &mut ratatui::buffer::Buffer,
@@ -661,7 +661,7 @@ impl EditField {
             if !look.follow_caret {
                 self.line_off = 0;
             }
-            // the insertion caret needs a cell after the final glyph
+
             self.line_off = self.line_off.min(total.saturating_add(1).saturating_sub(w));
             let mut boundary = 0;
             for (_, _, gw) in glyphs {
@@ -714,17 +714,17 @@ impl EditField {
         Position::new(cx.min(area.right().saturating_sub(1)), area.y)
     }
 
-    /// The byte offset a pointer at `pos` names in the line drawn last
-    /// ([`Self::draw_line`]): left of the text names the column before the
-    /// first visible one, so a drag past the edge scrolls the line.
+
+
+
     pub fn line_offset_at(&self, pos: Position) -> usize {
         let col =
             (self.line_off as isize + (pos.x as isize - self.line_area.x as isize)).max(0) as usize;
         self.buffer.offset_at(0, col)
     }
 
-    /// [`Self::line_offset_at`] over the graphemes the line was drawn with
-    /// (a masked field's `•` take one cell each).
+
+
     pub fn glyph_offset_at(&self, pos: Position, glyphs: &[(usize, String, usize)]) -> usize {
         let col =
             (self.line_off as isize + (pos.x as isize - self.line_area.x as isize)).max(0) as usize;
@@ -738,28 +738,28 @@ impl EditField {
         self.buffer.text().len()
     }
 
-    /// The text cells of the line drawn last.
+
     pub fn line_area(&self) -> ratatui::layout::Rect {
         self.line_area
     }
 
-    /// The first column the line drawn last shows (how far it scrolled).
+
     pub fn line_scroll(&self) -> usize {
         self.line_off
     }
 }
 
-/// How [`EditField::draw_line`] draws a line.
+
 #[derive(Debug, Clone, Copy)]
 pub struct LineLook {
     pub text: ratatui::style::Style,
     pub selection: ratatui::style::Style,
     pub ellipsis: ratatui::style::Style,
     pub ellipsis_glyph: &'static str,
-    /// Underline every glyph in this colour (an editing field).
+
     pub underline: Option<ratatui::style::Color>,
-    /// Scroll to keep the caret in view; `false` shows the start (a field
-    /// not being edited).
+
+
     pub follow_caret: bool,
 }
 
@@ -769,39 +769,39 @@ impl Default for EditField {
     }
 }
 
-/// A control that edits through an [`EditField`]. Implementing it gives
-/// the control [`PointerField`]: a press anchors a drag with the click
-/// count it starts, a drag selects, a completed click places the caret or
-/// selects a word or a line, the same in every text control.
+
+
+
+
 pub trait Editable {
-    /// The field the control edits.
+
     fn field(&mut self) -> &mut EditField;
-    /// The hit id the control registers.
+
     fn edit_id(&self) -> WidgetId;
-    /// The byte offset `pos` names. A position above or left of the text
-    /// names the row or column before the first visible one, so a drag past
-    /// the edge scrolls (and the selection runs on).
+
+
+
     fn offset_at(&self, pos: Position) -> usize;
-    /// The pointer acts on the control at all (not disabled).
+
     fn pointer_enabled(&self) -> bool {
         true
     }
-    /// A double click selects the whole value (a masked field).
+
     fn whole_word(&self) -> bool {
         false
     }
-    /// `pos` is on the control's label, not its text.
+
     fn on_label(&self, _pos: Position) -> bool {
         false
     }
-    /// A completed click on the label (focus already moved).
+
     fn label_click(&mut self) {}
-    /// The pointer starts an edit (or continues one): begin editing.
+
     fn pointer_begin(&mut self);
-    /// A press took the pointer: the keyboard's focus selection does not
-    /// apply to this focus.
+
+
     fn pointer_focus(&mut self) {}
-    /// After a pointer change (keep the caret in view).
+
     fn pointer_after(&mut self) {}
 }
 
@@ -957,7 +957,7 @@ mod tests {
                 (!t.chars().all(|c| c.is_ascii_digit())).then(|| "Digits only".into())
             })
         };
-        // Commit: typing never validates, even with an error shown
+
         let mut c = EditField::single("")
             .validator(digits())
             .validate_when(ValidateWhen::Commit);
@@ -966,7 +966,7 @@ mod tests {
         assert!(!c.validate());
         c.on_key(&key(KeyCode::Backspace));
         assert_eq!(c.error_message(), Some("Digits only"), "kept until commit");
-        // AfterError (default): quiet until the first error, then live
+
         let mut a = EditField::single("").validator(digits());
         a.on_key(&ch('x'));
         assert_eq!(a.error, None, "no error while still typing");
@@ -976,7 +976,7 @@ mod tests {
         a.on_key(&ch('1'));
         a.on_key(&ch('y'));
         assert_eq!(a.error, None, "the error is gone: typing is quiet again");
-        // Live: every keystroke
+
         let mut l = EditField::single("")
             .validator(digits())
             .validate_when(ValidateWhen::Live);
@@ -1005,30 +1005,30 @@ mod tests {
     #[test]
     fn pointer_press_drag_and_clicks_select() {
         let mut f = EditField::single("hello big world");
-        // a drag from a press selects what it crosses; its release keeps it
+
         f.press(0, 1, false);
         f.drag(5);
         f.click(5, 1, false);
         assert_eq!(f.buffer.selected_text(), Some("hello"));
-        // a double click selects the word, a triple click the line
+
         f.click(7, 2, false);
         assert_eq!(f.buffer.selected_text(), Some("big"));
         f.click(7, 3, false);
         assert_eq!(f.buffer.selected_text(), Some("hello big world"));
-        // a masked field selects all on a double click
+
         f.click(7, 2, true);
         assert_eq!(f.buffer.selected_text(), Some("hello big world"));
-        // a drag from a double-click press extends by words
+
         assert!(f.press(7, 2, false));
         f.drag(12);
         assert_eq!(f.buffer.selected_text(), Some("big world"));
         f.click(12, 2, false);
-        // one click places the caret
+
         f.press(3, 1, false);
         f.click(3, 1, false);
         assert_eq!(f.buffer.selected_text(), None);
         assert_eq!(f.buffer.cursor_offset(), 3);
-        // the policy can turn the gestures off
+
         f.sel = PointerSelect::OFF;
         assert!(!f.drag(9));
         f.click(7, 2, false);

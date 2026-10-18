@@ -1,8 +1,8 @@
-//! Checkbox, radio group and toggle switch for forms.
-//!
-//! Labels and marks stay within the supplied rectangle. At widths of two or
-//! three cells, compact marks preserve checked/on state without colour; one
-//! cell can show only focus. Empty radio renders clear their old option areas.
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -16,8 +16,8 @@ use crate::core::list::{Cursor, Navigable, RowSource};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::row::{RowLook, RowUi};
 
-// Buffer string writes clip to the whole buffer, not the widget rectangle.
-// Keep every optional row segment bounded before deriving its coordinates.
+
+
 fn row_part(buf: &mut Buffer, row: Rect, offset: u16, text: &str, style: Style) {
     if offset < row.width {
         buf.set_stringn(
@@ -30,14 +30,14 @@ fn row_part(buf: &mut Buffer, row: Rect, offset: u16, text: &str, style: Style) 
     }
 }
 
-/// Which part of a [`Checkbox`] row takes clicks.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CheckHit {
-    /// The box and its label (macOS, Windows): blank space to the right of
-    /// a short label does not toggle.
+
+
     #[default]
     Label,
-    /// The whole row the checkbox is given.
+
     Row,
 }
 
@@ -47,11 +47,11 @@ pub struct Checkbox {
     pub label: String,
     pub checked: bool,
     pub disabled: bool,
-    /// Indeterminate: the box stands for several differing values (a bulk
-    /// edit) and shows `[–]`. Toggling it checks the box, as on macOS.
-    /// Default `false`.
+
+
+
     pub mixed: bool,
-    /// Which part of the row takes clicks. Default [`CheckHit::Label`].
+
     pub hit: CheckHit,
     pub area: Rect,
 }
@@ -69,13 +69,13 @@ impl Checkbox {
         }
     }
 
-    /// See [`Self::hit`].
+
     pub fn hit(mut self, hit: CheckHit) -> Self {
         self.hit = hit;
         self
     }
 
-    /// Start indeterminate (see [`Self::mixed`]).
+
     pub fn mixed(mut self, mixed: bool) -> Self {
         self.mixed = mixed;
         self
@@ -106,8 +106,8 @@ impl Checkbox {
         Outcome::Changed
     }
 
-    /// The row's natural width (plan §1.4 `Measure`): the gutter, the
-    /// box and the whole label with its cell of padding.
+
+
     pub fn width(&self) -> u16 {
         crate::ui::text::width(&self.label) as u16 + 6
     }
@@ -139,8 +139,8 @@ impl Checkbox {
         let mark_style = if self.disabled {
             st
         } else if self.checked || self.mixed {
-            // a checked value is a fact; it takes the accent only while the
-            // control has focus, so green stays the focus colour
+
+
             st.fg(t.chosen_in(s))
         } else {
             st.fg(t.text_muted)
@@ -148,7 +148,7 @@ impl Checkbox {
         row_part(buf, area, 1, mark, mark_style);
         let label = crate::ui::text::truncate(&self.label, area.width.saturating_sub(6) as usize);
         row_part(buf, area, 5, &label, st);
-        // the target: the gutter, box and label plus one cell of padding
+
         let target = match self.hit {
             CheckHit::Row => area,
             CheckHit::Label => {
@@ -169,13 +169,13 @@ pub struct RadioGroup {
     pub cursor: usize,
     pub disabled: bool,
     pub areas: Vec<Rect>,
-    /// Which keys move the choice (default [`NavKeys::default`]: ↑/↓, `k`/`j`,
-    /// Home/End and `g`/`G`).
+
+
     pub nav: NavKeys,
 }
 
 impl RadioGroup {
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -231,19 +231,19 @@ impl RadioGroup {
         Outcome::Changed
     }
 
-    /// Ids of the individual options, for hit testing.
+
     pub fn option_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::option_part(i))
     }
 
-    /// Option `i` as a part of the group.
+
     pub fn option_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// The group's natural width (plan §1.4 `Measure`): its label after
-    /// the gutter, and every option whole after its mark with a cell of
-    /// padding.
+
+
+
     pub fn width(&self) -> u16 {
         let w = |t: &str| crate::ui::text::width(t) as u16;
         let options = self.options.iter().map(|o| w(o) + 6).max().unwrap_or(0);
@@ -308,7 +308,7 @@ impl RadioGroup {
             );
             ctx.register_part(self.id, Self::option_part(i), row);
         }
-        // the group is a single focus stop; option rows are click targets
+
         if !ctx.inert && !self.disabled && !self.areas.is_empty() {
             ctx.ring.register(self.id);
         }
@@ -359,8 +359,8 @@ impl Toggle {
         Outcome::Changed
     }
 
-    /// The row's natural width (plan §1.4 `Measure`): the switch, the
-    /// whole label and its state word.
+
+
     pub fn width(&self) -> u16 {
         crate::ui::text::width(&self.label) as u16 + 10
     }
@@ -434,7 +434,7 @@ impl Navigable for RadioGroup {
     }
 }
 
-/// Rest, hover, press, focus and disabled, drawn by the checkbox itself.
+
 impl crate::ui::specimen::Specimen for Checkbox {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -465,7 +465,7 @@ impl crate::ui::specimen::Specimen for Checkbox {
     }
 }
 
-/// Rest, hover, press, focus and disabled, drawn by the switch itself.
+
 impl crate::ui::specimen::Specimen for Toggle {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -496,7 +496,7 @@ impl crate::ui::specimen::Specimen for Toggle {
     }
 }
 
-/// The group in rest, hover (over its cursor option), focus and disabled.
+
 impl crate::ui::specimen::Specimen for RadioGroup {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -522,7 +522,7 @@ impl crate::ui::specimen::Specimen for RadioGroup {
         let mut g = self.clone();
         let v = state.visual();
         g.disabled |= v.disabled;
-        // the pointer rests on an option row, not on the group
+
         if v.hovered {
             ctx.interaction.hover = Some(g.option_id(g.cursor));
         }
@@ -530,8 +530,8 @@ impl crate::ui::specimen::Specimen for RadioGroup {
     }
 }
 
-/// The checkbox's pointer gesture: a completed click toggles it
-/// ([`Checkbox::on_click`]).
+
+
 impl crate::core::pointer::MouseTarget for Checkbox {
     type Action = ();
 
@@ -550,8 +550,8 @@ impl crate::core::pointer::MouseTarget for Checkbox {
     }
 }
 
-/// The group's pointer gesture: a completed click on an option selects it
-/// ([`RadioGroup::on_click`]).
+
+
 impl crate::core::pointer::MouseTarget for RadioGroup {
     type Action = ();
 
@@ -570,8 +570,8 @@ impl crate::core::pointer::MouseTarget for RadioGroup {
     }
 }
 
-/// The toggle's pointer gesture: a completed click flips it
-/// ([`Toggle::on_click`]).
+
+
 impl crate::core::pointer::MouseTarget for Toggle {
     type Action = ();
 
@@ -597,7 +597,7 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
 
-    /// At its width a toggle shows its whole label and its state word.
+
     #[test]
     fn a_toggle_at_its_width_shows_its_label_and_state() {
         let theme = Theme::junie();
@@ -615,8 +615,8 @@ mod tests {
         );
     }
 
-    /// At their widths a checkbox shows its whole label and a radio
-    /// group every option; one column less cuts the longest.
+
+
     #[test]
     fn a_checkbox_and_a_radio_group_at_their_widths_show_every_label() {
         let theme = Theme::junie();
@@ -677,8 +677,8 @@ mod tests {
         assert!(!cb.checked);
     }
 
-    /// Mouse audit #34: blank space far right of a checkbox's label toggled
-    /// it. The target is the box and label by default.
+
+
     #[test]
     fn only_the_box_and_label_take_clicks_by_default() {
         let t = Theme::junie();

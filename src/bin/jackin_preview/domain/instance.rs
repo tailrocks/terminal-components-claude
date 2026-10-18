@@ -1,6 +1,6 @@
-//! Durable instance records, persisted session records, and live daemon
-//! snapshots. The three are kept apart on purpose: a persisted record can
-//! outlive its daemon, and a daemon snapshot is never invented from records.
+
+
+
 
 use super::agent::Agent;
 use super::workspace::WorkspaceId;
@@ -21,7 +21,7 @@ pub enum InstanceStatus {
 }
 
 impl InstanceStatus {
-    /// Compact lifecycle label shown in the tree row.
+
     pub fn label(self) -> &'static str {
         match self {
             InstanceStatus::Running => "running",
@@ -60,7 +60,7 @@ impl InstanceStatus {
         }
     }
 
-    /// Hidden from the normal tree, as in current Jackin.
+
     pub fn hidden(self) -> bool {
         matches!(self, InstanceStatus::Superseded | InstanceStatus::Purged)
     }
@@ -69,7 +69,7 @@ impl InstanceStatus {
         self == InstanceStatus::Running
     }
 
-    /// Reconnect/restore is offered for these.
+
     pub fn reconnectable(self) -> bool {
         matches!(
             self,
@@ -81,7 +81,7 @@ impl InstanceStatus {
         )
     }
 
-    /// Stop is offered only for live instances.
+
     pub fn stoppable(self) -> bool {
         self == InstanceStatus::Running
     }
@@ -97,7 +97,7 @@ impl InstanceStatus {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Instance {
     pub id: InstanceId,
-    /// Container base name; the container id appends the instance suffix.
+
     pub container: String,
     pub workspace: Option<WorkspaceId>,
     pub workdir: String,
@@ -107,19 +107,19 @@ pub struct Instance {
     pub created_secs: i64,
     pub last_seen_secs: i64,
     pub run_id: String,
-    /// Persisted session records (manifest).
+
     pub sessions: Result<Vec<SessionRecord>, ManifestError>,
-    /// Live daemon snapshot; independent from the manifest.
+
     pub daemon: DaemonSnapshot,
-    /// Branch / PR context resolved for this instance.
+
     pub branch: Option<String>,
     pub pr: Option<(u32, String)>,
     pub default_branch: String,
-    /// Uncommitted / unpushed simulated git state.
+
     pub uncommitted: usize,
     pub unpushed: usize,
-    /// The Workspace's effective account set at launch: every account the
-    /// container can hand to a session, not just the one that started it.
+
+
     pub accounts: Vec<super::account::AccountId>,
 }
 
@@ -182,12 +182,12 @@ impl SessionStatus {
     }
 }
 
-/// What the daemon reports right now (never derived from the manifest).
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DaemonSnapshot {
-    /// No daemon socket answered.
+
     Unavailable,
-    /// Daemon reports no tabs.
+
     NoTabs,
     Tabs(Vec<TabSnapshot>),
 }
@@ -207,7 +207,7 @@ pub struct PaneSnapshot {
     pub focused: bool,
 }
 
-/// Public agent attention state, as the Capsule status bar glyphs encode it.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AgentState {
     Idle,
@@ -228,7 +228,7 @@ impl AgentState {
         }
     }
 
-    /// Glyph priority for a tab that holds several panes.
+
     pub fn rank(self) -> u8 {
         match self {
             AgentState::Blocked => 4,

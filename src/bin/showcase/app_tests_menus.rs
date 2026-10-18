@@ -1,6 +1,6 @@
-//! The Menus page (plan §7.5, SC16), driven through the real app: row
-//! menus from keys and the pointer, press-drag-release, the Actions menu
-//! under its button, the options and the States grid.
+
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -51,14 +51,14 @@ fn shift_f10_opens_the_cursor_rows_menu_and_enter_chooses() {
     assert!(menus(&h).request.contains("report.pdf · under its row"));
     assert!(h.text().contains("Duplicate"), "the menu is drawn");
     assert_eq!(h.bars(), 0, "the open menu owns the keyboard: no ▎");
-    // Open, Rename, Duplicate, Copy path
+
     for _ in 0..3 {
         h.key(KeyCode::Down);
     }
     h.key(KeyCode::Enter);
     assert!(!menus(&h).row_menu.is_open());
     assert_eq!(menus(&h).last, "Chosen(3) · Copy path on report.pdf");
-    // Esc dismisses
+
     h.key_mod(
         KeyCode::F(10),
         ratatui::crossterm::event::KeyModifiers::SHIFT,
@@ -74,18 +74,18 @@ fn a_right_click_on_a_read_only_file_shows_reasons_and_no_danger() {
     h.mouse(MouseKind::Secondary, x, y);
     assert!(menus(&h).row_menu.is_open());
     assert!(!h.text().contains("Read-only file"), "not until asked");
-    // the pointer on the disabled Rename says why in the status row
+
     let (rx, ry) = h.find("Rename").expect("the Rename row");
     h.mouse(MouseKind::Move, rx + 1, ry);
     assert!(h.text().contains("Read-only file"), "the reason is shown");
     assert!(menus(&h).request.contains("README.md · at the pointer"));
     assert_eq!(menus(&h).files.cursor, 5, "the click moved the cursor");
-    // a read-only file's Trash is disabled, not danger
+
     let (tx, ty) = h.find("Move to Trash").unwrap();
     let ink = h.term.backend().buffer()[(tx, ty)].fg;
     assert_ne!(ink, junie_tui::theme::Theme::junie().error);
     h.key(KeyCode::Esc);
-    // with moves_cursor off the cursor stays
+
     h.opt("menus.moves_cursor=off");
     let (x, y) = h.find("photo.png").expect("the row");
     h.mouse(MouseKind::Secondary, x, y);
@@ -102,7 +102,7 @@ fn press_drag_release_chooses_the_row_under_the_release() {
     h.mouse(MouseKind::SecondaryDrag, dx + 1, dy);
     h.mouse(MouseKind::SecondaryUp, dx + 1, dy);
     assert_eq!(menus(&h).last, "Chosen(2) · Duplicate on notes.md");
-    // release_selects off: the release only ends the gesture
+
     h.opt("menus.release_selects=off");
     h.mouse(MouseKind::Secondary, x, y);
     let (dx, dy) = h.find("Duplicate").unwrap();
@@ -152,7 +152,7 @@ fn the_actions_menu_opens_under_its_button_and_scrolls_under_max_rows() {
     assert!(ny < by, "above the button");
     assert!(!h.text().contains("Empty Trash"), "the menu scrolls");
     assert!(h.text().matches('▾').count() >= 2, "with a marker below");
-    // an outside click closes a light menu, not an Esc-only one
+
     h.click(2, 30);
     assert!(!menus(&h).actions_menu.is_open());
     h.opt("menus.dismiss=escape");
@@ -175,8 +175,8 @@ fn the_states_grid_draws_every_menu_state() {
     for s in [Rest, Hover, Pressed, Disabled] {
         assert!(rows.contains(&s), "{s:?} row drawn");
     }
-    // a disabled row keeps its row; its reason shows in the status row
-    // (the bottom border) of the hovered sample, never in a column
+
+
     assert!(h.text().contains("Share…"), "a disabled row drawn");
     assert!(!h.text().contains("Share…    Off"), "no reason column");
     assert!(h.text().contains("╰─ Off ─"), "the hovered sample says why");

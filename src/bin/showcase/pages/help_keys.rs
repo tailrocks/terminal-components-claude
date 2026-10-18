@@ -1,13 +1,13 @@
-//! Help & keys (plan §7, SC6): the `HelpOverlay` and the `KeyReference`.
-//!
-//! Playground: a `KeyReference` laid out at a chosen width (sections, the
-//! key column capped at `key_max_share`, descriptions hanging under their
-//! column when they wrap), and a `HelpOverlay` the page opens over itself:
-//! titled sections in as many columns as fit, scrolling when they do not,
-//! closed by Esc, Enter, its `HelpCmd::Close` keys, its Done button, its
-//! `×` and, under light dismiss, a click outside. Options: the reference's
-//! width, `key_max_share` and `gap`; the overlay's `title`, `max_percent`,
-//! `nav`, `keymap` and `dismiss`. States: the reference by itself.
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -33,12 +33,12 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
 
 const ID: WidgetId = WidgetId::of("helpkeys");
-/// The button that opens the overlay.
+
 pub const OPEN: WidgetId = WidgetId::of("helpkeys.open");
-/// The overlay the page opens.
+
 pub const HELP: WidgetId = WidgetId::of("helpkeys.help");
 
-/// The editor's keys, as the overlay lists them (demo data).
+
 fn sections() -> Vec<(&'static str, Vec<(&'static str, &'static str)>)> {
     vec![
         (
@@ -92,7 +92,7 @@ fn sections() -> Vec<(&'static str, Vec<(&'static str, &'static str)>)> {
     ]
 }
 
-/// The reference the Playground lays out (demo data).
+
 fn reference() -> KeyReference {
     KeyReference::new()
         .section("Results")
@@ -111,7 +111,7 @@ fn reference() -> KeyReference {
 pub struct HelpKeysPage {
     template: Template,
     open: Button,
-    /// Value indices of the page options, in `page_options` order.
+
     opts: Vec<usize>,
 }
 
@@ -127,7 +127,7 @@ impl HelpKeysPage {
         }
     }
 
-    /// The value of option `key` as the table spells it.
+
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::HelpKeys);
         let i = table
@@ -137,7 +137,7 @@ impl HelpKeysPage {
         table[i].values[self.opts[i]]
     }
 
-    /// The overlay, built from the options through its builders.
+
     pub fn build_help(&self) -> HelpOverlay {
         let mut h = HelpOverlay::new(HELP, "Editor", sections())
             .max_percent(self.opt("helpkeys.max_percent").parse().unwrap_or(80))
@@ -161,14 +161,14 @@ impl HelpKeysPage {
         h
     }
 
-    /// The reference, built from the options through its builders.
+
     fn build_reference(&self) -> KeyReference {
         reference()
             .key_max_share(self.opt("helpkeys.key_max_share").parse().unwrap_or(40))
             .gap(self.opt("helpkeys.gap").parse().unwrap_or(3))
     }
 
-    /// The reference's wrap width: the chosen one, or the card's.
+
     fn ref_width(&self) -> usize {
         match self.opt("helpkeys.width") {
             "full" => (REF_W - 4) as usize,
@@ -176,10 +176,10 @@ impl HelpKeysPage {
         }
     }
 
-    /// The overlay the options build, read back.
+
     fn help_facts(&self) -> Vec<Prop> {
         let help = self.build_help();
-        // every key the map binds to Close (`label_for` names the first)
+
         let first = label_for(&help.keymap, HelpCmd::Close).unwrap_or_else(|| "none".into());
         let rest: Vec<String> = help
             .keymap
@@ -218,9 +218,9 @@ impl HelpKeysPage {
         ]
     }
 
-    /// The reference card (its own width) beside the overlay card and
-    /// its note, or above them when they do not fit side by side.
-    /// `measure` and `render_playground` share it.
+
+
+
     fn tiled(&self, width: u16) -> Tiled {
         let lines = self.build_reference().lines(self.ref_width()).len() as u16;
         let ref_h = |_: u16| lines + 3;
@@ -244,7 +244,7 @@ impl HelpKeysPage {
         let tiled = self.tiled(area.width);
         let (left, right) = (tiled.at(0, area), tiled.at(1, area));
 
-        // the reference at the chosen width
+
         let r = self.build_reference();
         let w = self.ref_width();
         let lines = r.lines(w);
@@ -267,14 +267,14 @@ impl HelpKeysPage {
                 t.secondary().bg(bg)
             };
             buf.set_string(inner.x, y, l, st);
-            // the wrap width, as a faint rule
+
             let edge = inner.x + w as u16;
             if edge < inner.right() {
                 buf.set_string(edge, y, "┊", t.faint().bg(bg));
             }
         }
 
-        // the overlay the options build, read back
+
         let facts = self.help_facts();
         let panel = Panel::card(Some("HelpOverlay"));
         let bg = panel.bg(t);
@@ -302,13 +302,13 @@ impl HelpKeysPage {
     }
 }
 
-/// The reference card's width: "full" wraps the reference to it.
+
 const REF_W: u16 = 58;
 
 const NOTE: &str = "It opens as the shell's modal and never over another one. \
                     The showcase's own ? opens one too, listing the shell's keys.";
 
-/// The States grid: the reference by itself.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))
@@ -368,8 +368,8 @@ impl Page for HelpKeysPage {
             _ => return Outcome::Ignored,
         };
         if open {
-            // the shell owns the modal: routing, light dismiss, focus back
-            // to the button
+
+
             cx.focus.focus(OPEN);
             cx.open_help(self.build_help());
         }

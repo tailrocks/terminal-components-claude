@@ -1,8 +1,8 @@
-//! The Connections screen (plan §7.5, SC47), driven through the real
-//! showcase: the detail card follows the list, Enter connects (to a
-//! connection, a failure block with Reconnect), Duplicate and Delete…
-//! change the list, the form saves a new connection, and every option
-//! changes the frame.
+
+
+
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -29,7 +29,7 @@ fn ticks(h: &mut Harness, n: usize) {
     h.draw();
 }
 
-/// Click the list row labelled `name` (focuses the list).
+
 fn pick(h: &mut Harness, name: &str) {
     let (x, y) = h
         .find(name)
@@ -96,7 +96,7 @@ fn duplicate_and_delete_change_the_list() {
     h.click(x + 1, y);
     assert!(h.app.dialog().is_some(), "Delete asks first");
     assert!(h.text().contains("Delete Production copy?"), "{}", h.text());
-    // the safe choice has focus; Tab reaches Delete
+
     h.key(KeyCode::Tab);
     h.key(KeyCode::Enter);
     assert!(h.app.dialog().is_none());
@@ -177,7 +177,7 @@ fn at_80_by_24_the_details_are_a_drawer_over_the_list() {
     let text = h.text();
     assert!(text.contains("Connections"), "{text}");
     assert!(text.contains("Production"), "{text}");
-    // narrow: the list and a one-line summary; the card waits in a drawer
+
     assert!(text.contains("→ Production · production"), "{text}");
     assert!(!text.contains("Engine"), "{text}");
     h.focus(page(&h).new.id);

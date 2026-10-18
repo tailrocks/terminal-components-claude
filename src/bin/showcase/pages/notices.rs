@@ -1,9 +1,9 @@
-//! Notices (Feedback, plan §7 SC36): `Notice`, the inline error, warning,
-//! information and success block, as the apps use it: a connection test's
-//! failure under the connection card (tablepro connections), a query's
-//! error card (tablepro results) and the inline notices of a form. Test
-//! connection walks the outcomes (auth failure, unreachable host,
-//! connected). Options: `crate::options::NOTICES`.
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -25,7 +25,7 @@ use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("notices");
 
-/// What Test connection answers, in turn.
+
 const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
     (
         NoticeKind::Error,
@@ -48,7 +48,7 @@ pub fn page() -> Box<dyn Page> {
     Box::new(NoticesPage::new())
 }
 
-/// The cards' titles and metas, top to bottom.
+
 const CARDS: [(&str, &str); 3] = [
     ("prod-replica", "postgres · connection test"),
     ("Result 1", "error card · 0.4 ms"),
@@ -57,14 +57,14 @@ const CARDS: [(&str, &str); 3] = [
         "inline · one per kind, the glyph carries it",
     ),
 ];
-/// The connection card's address line.
+
 const ADDRESS: &str = "acme_app@analytics.acme.io:5432/analytics";
 
 pub struct NoticesPage {
     template: Template,
     opts: PageValues,
     test: Button,
-    /// The answer Test connection gave last (an index into [`OUTCOMES`]).
+
     outcome: usize,
     sections: crate::pages::layout::Sections,
 }
@@ -80,7 +80,7 @@ impl NoticesPage {
         }
     }
 
-    /// A notice with the page's options applied through its builders.
+
     fn styled(&self, n: Notice) -> Notice {
         let mut n = n
             .max_lines(self.opts.value("notices.max_lines").parse().unwrap_or(2))
@@ -128,7 +128,7 @@ impl NoticesPage {
         )
     }
 
-    /// The four kinds as a form shows them inline.
+
     fn inline(&self) -> [Notice; 4] {
         [
             self.styled(Notice::error("Port must be a number between 1 and 65535")),
@@ -141,7 +141,7 @@ impl NoticesPage {
         ]
     }
 
-    /// The notices' width: the card's, or narrow to show the wrap.
+
     fn width(&self, w: u16) -> u16 {
         match self.opts.value("notices.width") {
             "narrow" => w.min(44),
@@ -149,10 +149,10 @@ impl NoticesPage {
         }
     }
 
-    /// The cards at their heights with the notices `w` wide: a card
-    /// takes its title row, a blank row and a bottom row; the connection
-    /// card its address, the button and blank rows too; the inline card a
-    /// blank row between its four notices.
+
+
+
+
     fn children(&self, w: u16) -> [StackChild; 3] {
         let inline: u16 = self.inline().iter().map(|n| n.height(w)).sum::<u16>() + 3;
         [
@@ -229,8 +229,8 @@ impl NoticesPage {
     }
 }
 
-/// The States grid: an error with a detail and a warning with a hint, in
-/// rest, error, overflow (the cut detail) and narrow (the wrap).
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))
@@ -256,8 +256,8 @@ impl Page for NoticesPage {
         "Notice: inline error, warning, information and success blocks with a wrapped detail"
     }
 
-    /// The notices at the width the option gives them (96 or 44, the
-    /// widest they are drawn) and the cards around them whole.
+
+
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         let w = self.width(u16::MAX);
         let content = w.max(junie_tui::ui::text::width(ADDRESS) as u16);
@@ -271,8 +271,8 @@ impl Page for NoticesPage {
             })
             .max()
             .unwrap_or(0);
-        // the notices are laid out at the room less 4: never narrower
-        // than that here
+
+
         Size::new(
             width.max(w + 4),
             self.sections.stack.measure(&self.children(w)),

@@ -1,23 +1,23 @@
-//! Focus & navigation (App shell, plan §7.5 SC28): the focus ring, focus
-//! changes and fallback, the navigation keys a widget takes, key bindings,
-//! input normalisation and the keyboard protocol, read back from the
-//! library as they act.
-//!
-//! - **Playground**: fields, buttons and removable tags in the ring (Tab
-//!   order is reading order); a readout of the focused control, the last
-//!   `FocusChange` and the fallback; a list whose `nav()` follows the
-//!   options with the `Nav` map its `NavKeys` produce; key bindings, the
-//!   app's `InputConfig` and the `KeyboardProtocol` with what its
-//!   `ProtocolState` writes.
-//! - **Options**: `focusnavigation.*` (the list's nav keys, Tab in a field)
-//!   plus the shell-wide focus and input options in the Inspector
-//!   (`shell.focus_fallback`, `shell.shift_wheel_horizontal`,
-//!   `shell.legacy_ctrl_punctuation`, `shell.keyboard_protocol`).
-//! - **States**: how each kind of control shows focus (the one `▎`,
-//!   depicted as `▏` in samples).
-//!
-//! Wiring and demo data only: the ring, the moves and the fallback are the
-//! library's (`core::focus`), applied by the shell.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -45,7 +45,7 @@ use junie_tui::widgets::tabs::Tabs;
 
 const ID: WidgetId = WidgetId::of("focusnav");
 
-/// Every navigation step, in the order the map lists them.
+
 const NAVS: [Nav; 8] = [
     Nav::Up,
     Nav::Down,
@@ -57,7 +57,7 @@ const NAVS: [Nav; 8] = [
     Nav::End,
 ];
 
-/// Keys tried against the list's `NavKeys` for the map.
+
 fn candidate_keys() -> Vec<(&'static str, Key)> {
     let k = |code| Key {
         code,
@@ -81,7 +81,7 @@ fn candidate_keys() -> Vec<(&'static str, Key)> {
     ]
 }
 
-/// The keys `nav` moves by, step by step: the `Nav` map.
+
 fn nav_map(nav: NavKeys) -> Vec<(Nav, String)> {
     let keys = candidate_keys();
     NAVS.iter()
@@ -103,7 +103,7 @@ fn nav_map(nav: NavKeys) -> Vec<(Nav, String)> {
         .collect()
 }
 
-/// The list's navigation keys from `focusnavigation.nav`.
+
 fn nav_keys(v: usize) -> NavKeys {
     match v {
         1 => NavKeys::DESKTOP.vim(true),
@@ -120,18 +120,18 @@ pub struct FocusNavPage {
     pub email: TextInput,
     pub save: Button,
     pub cancel: Button,
-    /// Removable tags: Delete removes the focused one, and the shell's
-    /// focus fallback decides where focus goes.
+
+
     pub tags: Vec<Button>,
     pub list: ListBox,
-    /// `focusnavigation.nav`, `focusnavigation.tab_in_field`.
+
     nav: usize,
     tab_stays: bool,
-    /// The last focus change: from → to.
+
     pub last_change: String,
-    /// Stops in the ring when the last change came in.
+
     ring_len: usize,
-    /// The last navigation step the list took.
+
     pub last_nav: String,
 }
 
@@ -165,7 +165,7 @@ impl FocusNavPage {
         }
     }
 
-    /// A name for a focus id this page knows.
+
     fn name_of(&self, id: Option<WidgetId>) -> String {
         let Some(id) = id else {
             return "nothing".into();
@@ -194,7 +194,7 @@ impl FocusNavPage {
         "outside the page".into()
     }
 
-    /// What the ring did.
+
     fn focus_facts(&self, ctx: &RenderCtx) -> Vec<Prop> {
         let ring = if self.ring_len > 0 {
             format!("{} stops · reading order", self.ring_len)
@@ -217,7 +217,7 @@ impl FocusNavPage {
         ]
     }
 
-    /// The list's `Nav` map.
+
     fn nav_facts(&self) -> Vec<Prop> {
         nav_map(self.list.nav)
             .into_iter()
@@ -225,27 +225,27 @@ impl FocusNavPage {
             .collect()
     }
 
-    /// Key bindings, input normalisation and the keyboard protocol.
+
     fn keys_facts(&self) -> Vec<Prop> {
         let select_all: Vec<String> = select_all_bindings(())
             .filter(|(b, _)| b.deliverable())
             .map(|(b, _)| b.label())
             .collect();
         let protocol = KeyboardProtocol::current();
-        // the split resize chord and its stand-in where Alt is not
-        // delivered (A29)
+
+
         let stand_in = KeyBinding::new(
             KeyCode::Left,
             ratatui::crossterm::event::KeyModifiers::CONTROL
                 | ratatui::crossterm::event::KeyModifiers::SHIFT,
         );
-        // what a session under `On` writes on enter and on leave
+
         let mut state = ProtocolState::default();
         let push = state
             .enter(KeyboardProtocol::On, || false)
             .unwrap_or_default();
         let pop = state.leave().unwrap_or("");
-        // both platforms' defaults, so the page reads the same on every host
+
         let mac = InputConfig::for_platform(ClientPlatform::MacOs);
         let other = InputConfig::for_platform(ClientPlatform::Other);
         vec![
@@ -310,18 +310,18 @@ impl FocusNavPage {
             .focused(ctx.interaction.focused(self.list.id))
     }
 
-    /// The ring card's content width: the fields, the buttons and the
-    /// tags on their rows.
+
+
     fn ring_width(&self) -> u16 {
         let buttons = self.save.width() + 2 + self.cancel.width();
         let tags: u16 = self.tags.iter().map(|b| b.width() + 1).sum();
         FIELD_W.max(buttons).max(tags.saturating_sub(1))
     }
 
-    /// The Playground's cards laid out in `width` columns: the ring and
-    /// its readout, the list and its `Nav` map, side by side when they
-    /// fit, then the keys card. `measure` and `render_playground` share
-    /// it.
+
+
+
+
     fn tiled(&self, width: u16, ctx: &RenderCtx) -> Tiled {
         let focus_panel = Panel::card(Some("Focus"));
         let nav_panel = Panel::card(Some("Nav map")).meta(&self.last_nav);
@@ -356,7 +356,7 @@ impl FocusNavPage {
         let t = ctx.theme;
         let tiled = self.tiled(area.width, ctx);
 
-        // the ring: fields, buttons, tags
+
         let panel = Self::ring_panel();
         let bg = panel.bg(t);
         let inner = panel.render(tiled.at(0, area), buf, t);
@@ -377,13 +377,13 @@ impl FocusNavPage {
             b.render(r, buf, ctx, bg);
         }
 
-        // what the ring did
+
         let panel = Panel::card(Some("Focus"));
         let bg = panel.bg(t);
         let inner = panel.render(tiled.at(1, area), buf, t);
         props::render(inner, buf, t, &self.focus_facts(ctx), bg);
 
-        // navigation keys of one widget
+
         let panel = self.list_panel(ctx);
         let bg = panel.bg(t);
         let inner = panel.render(tiled.at(2, area), buf, t);
@@ -393,7 +393,7 @@ impl FocusNavPage {
         let inner = panel.render(tiled.at(3, area), buf, t);
         props::render(inner, buf, t, &self.nav_facts(), bg);
 
-        // keys and input
+
         let panel = Panel::card(Some("Keys and input"));
         let bg = panel.bg(t);
         let inner = panel.render(tiled.at(4, area), buf, t);
@@ -401,18 +401,18 @@ impl FocusNavPage {
     }
 }
 
-/// The ring's fields' width, and its rows: two fields, a blank row, the
-/// buttons, a blank row, the tags.
+
+
 const FIELD_W: u16 = 30;
 const RING_ROWS: u16 = 8;
-/// The mailbox list's width; it shows every mailbox.
+
 const LIST_W: u16 = 20;
 
 fn on_off(b: bool) -> &'static str {
     if b { "on" } else { "off" }
 }
 
-/// Escape bytes as `ESC`, so a control sequence reads as text.
+
 fn printable(s: &str) -> String {
     if s.is_empty() {
         return "nothing".into();
@@ -433,7 +433,7 @@ fn nav_label(n: Nav) -> &'static str {
     }
 }
 
-/// The States grid: how each kind of control shows keyboard focus.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -468,7 +468,7 @@ impl Page for FocusNavPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-        // every focus change reaches every page: read it back
+
         if let PageEvent::Blur(ch) = ev {
             self.last_change = format!("{} → {}", self.name_of(Some(ch.from)), self.name_of(ch.to));
             self.ring_len = cx.ring.reachable().len();
@@ -496,7 +496,7 @@ impl Page for FocusNavPage {
                 {
                     let (out, act) = field.on_key(key);
                     if matches!(act, Some(InputAction::CommittedTab { .. })) && self.tab_stays {
-                        // the field asked to move on; this page keeps focus
+
                         cancel_focus_request();
                     }
                     return out;
@@ -510,8 +510,8 @@ impl Page for FocusNavPage {
                 if let Some(i) = self.tags.iter().position(|b| b.id == f)
                     && key.code == KeyCode::Delete
                 {
-                    // the focused control disappears: the shell's fallback
-                    // picks the next focus on the next frame
+
+
                     let gone = self.tags.remove(i);
                     cx.status(format!("Removed {}", gone.label));
                     return Outcome::Changed;
@@ -598,8 +598,8 @@ impl Page for FocusNavPage {
                 let items = self.list.items.clone();
                 let cursor = self.list.cursor;
                 let nav = nav_keys(value);
-                // vim letters navigate, so they do not type-select (the Vim
-                // profile's rule)
+
+
                 self.list = ListBox::new(self.list.id, items, SelectMode::Single)
                     .nav(nav)
                     .type_ahead(!nav.vim);

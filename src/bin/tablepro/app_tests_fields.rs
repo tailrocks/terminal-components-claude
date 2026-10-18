@@ -1,5 +1,5 @@
-//! Pointer text selection in TablePro's fields through the real App:
-//! click counts, press and drag reach the fields (interaction #16).
+
+
 
 use crate::filter_editor::FilterEditor;
 use junie_tui::core::event::MouseKind;
@@ -16,7 +16,7 @@ fn history_search(h: &H) -> &junie_tui::widgets::input::TextInput {
     }
 }
 
-/// The History tab with `text` typed into its search.
+
 fn searched(text: &str) -> (H, u16, u16) {
     let mut h = H::connected(120, 40);
     h.ctrl('y');
@@ -85,13 +85,13 @@ fn a_double_click_in_the_filter_editor_value_selects_the_word() {
     h.ticks(3);
     h.key(KeyCode::Char('f'));
     let value = WidgetId::of("filter-editor").sub("value");
-    // Tab landing on the field starts its edit (EditEntry::Immediate)
+
     h.tab_to(value);
     for _ in 0..64 {
         h.key(KeyCode::Backspace);
     }
     h.type_str("abc def");
-    // Tab applies the field and moves on (Enter would apply the filter)
+
     h.key(KeyCode::Tab);
     let (x, y) = h.find("abc def").expect("the value");
     h.click(x + 5, y);
@@ -113,7 +113,7 @@ fn a_press_on_the_filter_editor_body_ends_the_value_edit() {
     h.ticks(3);
     h.key(KeyCode::Char('f'));
     let value = WidgetId::of("filter-editor").sub("value");
-    // Tab landing on the field starts its edit (EditEntry::Immediate)
+
     h.tab_to(value);
     let editing = |h: &H| match h.app.top_as::<FilterEditor>() {
         Some(f) => f.value.editing,
@@ -134,8 +134,8 @@ fn a_press_on_the_filter_editor_body_ends_the_value_edit() {
 
 #[test]
 fn moving_focus_away_ends_the_explorer_filters_edit() {
-    // the blur fan-out: the shell hands the focus change to the workbench,
-    // whose filter ends its edit and keeps the text
+
+
     let mut h = H::connected(120, 40);
     let filter = h.wb().explorer_filter.id;
     h.tab_to(filter);

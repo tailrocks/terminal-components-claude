@@ -1,4 +1,4 @@
-//! Planner-owned external probe of the actual production Showcase application.
+
 use junie_tui::{Id, KeyCode, Theme};
 use junie_tui_testing::Harness;
 use showcase_app::{App, PageId};

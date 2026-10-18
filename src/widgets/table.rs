@@ -44,8 +44,8 @@ pub struct Column {
     pub align: Align,
     pub editable: bool,
     pub sortable: bool,
-    /// How an editable cell is edited: free text (default) or a value from
-    /// a fixed set ([`ColumnEditor`]).
+
+
     pub editor: ColumnEditor,
 }
 
@@ -60,7 +60,7 @@ impl Column {
             editor: ColumnEditor::Text,
         }
     }
-    /// Edit the column with `editor` (and make it editable).
+
     pub fn editor(mut self, editor: ColumnEditor) -> Self {
         self.editable = true;
         self.editor = editor;
@@ -82,7 +82,7 @@ impl Column {
     }
 }
 
-/// A cell value with an optional per-cell error.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cell {
     pub text: String,
@@ -106,10 +106,10 @@ impl Cell {
     }
 }
 
-/// A constrained editor open on one cell ([`DataTable::choice`]).
+
 #[derive(Debug, Clone)]
 pub struct ChoiceEdit {
-    /// Source row index.
+
     pub row: usize,
     pub col: usize,
     pub editor: ChoiceEditor,
@@ -117,18 +117,18 @@ pub struct ChoiceEdit {
 
 #[derive(Debug, Clone)]
 pub struct EditState {
-    /// Source row index, independent of the current display sort order.
+
     pub row: usize,
     pub col: usize,
-    /// The cell's text, keys, undo, pointer selection and validation.
+
     pub field: EditField,
 }
 
-/// The table with every column in view (no sideways scroll) and every
-/// cell whole: the gutter, the selection checkboxes, each column at its
-/// set width or (one that grows) its widest cell and title, the gaps, the
-/// vertical bar's column; as tall as its header and every row (an owner
-/// that shows fewer rows lets the table scroll them).
+
+
+
+
+
 impl crate::ui::measure::Measure for DataTable {
     fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
         let n = self.columns.len();
@@ -137,8 +137,8 @@ impl crate::ui::measure::Measure for DataTable {
         } else {
             0
         };
-        // a column of set width keeps it; one that grows is as wide as its
-        // title (and sort mark) and its widest cell
+
+
         let col = |i: usize| -> u16 {
             if let Some(w) = self.sizing.user(i) {
                 return w;
@@ -164,9 +164,9 @@ impl crate::ui::measure::Measure for DataTable {
         ratatui::layout::Size::new(cols + 5 + check_w + 1, 1 + self.rows.len().max(1) as u16)
     }
 
-    /// The table scrolls sideways by columns and cuts a cell with a
-    /// revealing `…`: it is whole at any width that holds its first
-    /// column.
+
+
+
     fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> u16 {
         let check_w: u16 = if self.multi() && self.selection_column {
             4
@@ -178,143 +178,143 @@ impl crate::ui::measure::Measure for DataTable {
     }
 }
 
-/// Data table with header sorting, row/cell keyboard navigation, hover,
-/// row selection and optional in-place cell editing.
-///
-/// Selection follows [`DataTable::selection_mode`]:
-///
-/// - [`SelectionMode::Single`] (default): Enter, Space or a click chooses
-///   one row, marked `›` ([`DataTable::selected`]).
-/// - [`SelectionMode::Multi`]: [`DataTable::selection`] holds any set of
-///   rows, marked `✓` (or `[✓]` in the optional checkbox column). Space
-///   toggles the cursor row, Shift+↑↓ (Home/End, PageUp/PageDown) extends a
-///   range, Ctrl/Cmd+A selects all, Esc clears ([`DataTable::esc_clears`]).
-///   A click selects only that row, Shift-click extends, a click with
-///   [`DataTable::toggle_mods`] toggles: Option or Cmd when the client
-///   terminal is on macOS, Ctrl or Cmd elsewhere
-///   ([`DataTable::toggle_mods_for`]). The modified click is a shortcut,
-///   not the only way: Space and a click on the row's checkbox
-///   ([`DataTable::selection_column`]) toggle with no modifier, which
-///   matters on macOS, where iTerm2 and Terminal.app may keep
-///   Option+click for themselves (moving the cursor, block selection).
-/// - [`SelectionMode::None`]: Enter activates, nothing stays marked.
-///
-/// Selection is keyed by source row, so it survives sorting and scrolling.
-/// Rows in [`DataTable::disabled`] can be read but never selected.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct DataTable {
-    /// The rows, cells, checkboxes and `▾`s registered in the last render.
+
     parts: PartMap,
     pub id: WidgetId,
     pub columns: Vec<Column>,
     pub rows: Vec<Vec<Cell>>,
-    /// Display order → source row index (sorting is a permutation, so edits
-    /// land in the right row).
+
+
     order: Vec<usize>,
     pub sort: Option<(usize, SortDir)>,
     pub cursor_row: usize,
     pub cursor_col: usize,
-    /// When false the whole row is the navigation unit.
+
     pub cell_nav: bool,
     pub selected: Option<usize>,
-    /// Rows (`scroll`, the vertical state) and columns (`scroll.h`) with both bars
-    /// ([`Scrollable`]).
+
+
     pub scroll: ScrollPane,
     pub edit: Option<EditState>,
-    /// Checks a cell edit: `Some(message)` rejects the value. A closure,
-    /// so it can capture state (an enum list, a schema).
-    /// The context is the column index; a cell edit runs it bound to
-    /// its column ([`Validator::bind`]).
+
+
+
+
     pub validator: Option<Validator<(), usize>>,
-    /// What a cell edit in progress does when the table loses focus
-    /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
+
+
     pub blur_action: BlurAction,
     pub empty_text: String,
-    /// The theme's strings as of the last render: default text still
-    /// reading them follows a change ([`crate::theme::Strings::follow`]).
+
+
     strings: crate::theme::Strings,
-    /// A full empty state (title, hint, error tone) shown instead of
-    /// [`Self::empty_text`] when set. Default `None`.
+
+
     pub empty: Option<crate::widgets::empty::EmptyState>,
     pub area: Rect,
     body: Rect,
     col_rects: Vec<Rect>,
-    /// User column widths from dragging a header seam or autofit
-    /// ([`ColumnSizing`]); `sizing.resizable` turns the seams off.
+
+
     pub sizing: ColumnSizing,
-    /// Labels of the header context menu ([`Self::header_menu`]).
+
     pub header_labels: HeaderLabels,
-    /// Numeric sort for these columns.
+
     pub numeric: Vec<bool>,
-    /// How a cut cell reveals its full text on hover (see
-    /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+
+
     pub reveal: Option<crate::ui::reveal::Reveal>,
-    /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
-    /// The table moves by whole columns and its bar counts columns.
+
+
     pub horizontal: Option<HScroll>,
-    /// The `…` marks at the header's edges when columns are hidden on
-    /// that side.
+
+
     pub overflow_marks: bool,
-    /// How many rows can be selected. Default [`SelectionMode::Single`].
+
     pub selection_mode: SelectionMode,
-    /// The selected source rows in [`SelectionMode::Multi`].
+
     pub selection: RowSelection,
-    /// Multi mode draws a checkbox column (`[✓]`) before the cells, with a
-    /// tri-state "select all / none" box in the header. Default `false`:
-    /// the `✓` mark sits in the gutter.
+
+
+
     pub selection_column: bool,
-    /// Esc clears a multi selection (and is consumed) before it reaches
-    /// the app. Default `true`, as in Finder and Mail.
+
+
     pub esc_clears: bool,
-    /// Modifiers that make a click toggle one row in multi mode; Shift
-    /// always extends. Default [`DataTable::toggle_mods_for`] the client
-    /// terminal's platform ([`ClientPlatform::current`]):
-    /// [`DataTable::TOGGLE_OPTION_CMD`] (Option or Cmd) on macOS, where
-    /// Ctrl+click is a secondary click (`InputConfig::ctrl_click_secondary`)
-    /// and many terminals do not report Cmd; [`DataTable::TOGGLE_CTRL_CMD`]
-    /// (Ctrl or Cmd) elsewhere. [`DataTable::TOGGLE_WITH_ALT`] accepts all
-    /// three. Option+click is a fallback (some macOS terminals keep it);
-    /// Space and the checkbox column always toggle without a modifier.
+
+
+
+
+
+
+
+
+
     pub toggle_mods: KeyModifiers,
-    /// What a click does beyond selecting: when it activates a row and
-    /// when it starts editing a cell. Default [`ClickPolicy::DATA`]: a
-    /// double click activates or edits, one click only selects (M9, M15,
-    /// SI14); [`Activate::ClickAgain`](crate::core::selection::Activate)
-    /// is the earlier "click the cursor row again" rule.
+
+
+
+
+
     pub click: ClickPolicy,
-    /// Source rows that can be read but never selected or activated.
+
     pub disabled: BTreeSet<usize>,
-    /// Which keys move the cursor (default [`NavKeys::default`]).
+
     pub nav: NavKeys,
-    /// The table's own action keys (default [`TableCmd::default_keymap`]).
+
     pub keymap: KeyMap<TableCmd>,
-    /// Typing a prefix jumps to the first enabled row whose cell in
-    /// [`Self::type_ahead_column`] starts with it (macOS table type-select).
-    /// Off by default: plain letters keep their vim and action bindings.
+
+
+
     pub type_ahead: bool,
-    /// The column type-ahead matches; `None` (default) is the cursor's
-    /// column.
+
+
     pub type_ahead_column: Option<usize>,
-    /// Whether the page's and the app's single-character shortcuts win over
-    /// type-ahead ([`TypeAheadPrecedence`](crate::core::list::TypeAheadPrecedence)). Default `None`: the app-wide
-    /// [`TypeAheadPrecedence::current`](crate::core::list::TypeAheadPrecedence::current) (shortcuts first).
+
+
+
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     typeahead: crate::core::typeahead::TypeAhead,
-    /// The constrained editor open on a cell, if any.
+
     pub choice: Option<ChoiceEdit>,
-    /// Behaviour of every constrained column editor
-    /// ([`EditorConfig::default`]: macOS popup conventions).
+
+
     pub editor_config: EditorConfig,
 }
 
-/// A [`DataTable`] action a key can be bound to.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableCmd {
-    /// Sort by the cursor column (again: reverse). Default `s`.
+
     SortByColumn,
-    /// Multi mode: select every enabled row. Default Cmd+A where the
-    /// terminal delivers Cmd, and Ctrl+A
-    /// ([`crate::core::keymap::SELECT_ALL`]); single selection ignores it.
+
+
+
     SelectAll,
 }
 
@@ -341,9 +341,9 @@ pub enum TableAction {
     },
     Cancelled,
     Activated(usize),
-    /// The multi selection changed (keyboard, click or header checkbox).
+
     SelectionChanged,
-    /// Editing ended via Tab at the last cell; caller may move focus.
+
     LeaveForward,
     LeaveBackward,
 }
@@ -397,21 +397,21 @@ impl DataTable {
         }
     }
 
-    /// The pause after which the next letter starts a new type-ahead
-    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
-    /// (1 s; APG suggests 500–1000 ms).
+
+
+
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
         self
     }
 
-    /// See [`Self::type_ahead`].
+
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
     }
 
-    /// See [`Self::type_ahead_precedence`].
+
     pub fn type_ahead_precedence(
         mut self,
         precedence: crate::core::list::TypeAheadPrecedence,
@@ -420,32 +420,32 @@ impl DataTable {
         self
     }
 
-    /// See [`Self::type_ahead_column`].
+
     pub fn type_ahead_column(mut self, col: Option<usize>) -> Self {
         self.type_ahead_column = col;
         self
     }
 
-    /// See [`Self::editor_config`].
+
     pub fn editor_config(mut self, cfg: EditorConfig) -> Self {
         self.editor_config = cfg;
         self
     }
 
-    /// The id of the popup a constrained editor opens.
+
     pub fn choice_id(&self) -> WidgetId {
         self.id.sub("choice")
     }
 
-    /// The `▾` of a constrained cell (drawn on hover and on the cursor).
-    /// The `▾` of a constrained cell: `Part::ACTIONS` of the row (as on
-    /// `main`), one id per cell.
+
+
+
     pub fn open_id(&self, display: usize, col: usize) -> WidgetId {
         self.cell_id(display, col).part(PartRef::of(Part::ACTIONS))
     }
 
-    /// The cell at (source row, column) holds a value outside its column's
-    /// options (imported data).
+
+
     pub fn out_of_set(&self, src: usize, col: usize) -> bool {
         let (Some(row), Some(c)) = (self.rows.get(src), self.columns.get(col)) else {
             return false;
@@ -453,7 +453,7 @@ impl DataTable {
         c.editor.out_of_set(&row[col].text, &self.editor_config)
     }
 
-    /// Every (source row, column) holding a value outside its options.
+
     pub fn out_of_set_cells(&self) -> Vec<(usize, usize)> {
         (0..self.rows.len())
             .flat_map(|r| (0..self.columns.len()).map(move |c| (r, c)))
@@ -461,76 +461,76 @@ impl DataTable {
             .collect()
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<TableCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-    /// How many rows can be selected (default [`SelectionMode::Single`]).
+
     pub fn selection_mode(mut self, mode: SelectionMode) -> Self {
         self.selection_mode = mode;
         self
     }
 
-    /// Draw the multi-selection checkbox column (default off).
+
     pub fn selection_column(mut self, on: bool) -> Self {
         self.selection_column = on;
         self
     }
 
-    /// Whether Esc clears a multi selection (default on).
+
     pub fn esc_clears(mut self, on: bool) -> Self {
         self.esc_clears = on;
         self
     }
 
-    /// Ctrl or Cmd toggles a row: the default [`Self::toggle_mods`] off
-    /// macOS.
-    /// ([`SelectGesture::TOGGLE_CTRL_CMD`]).
+
+
+
     pub const TOGGLE_CTRL_CMD: KeyModifiers = SelectGesture::TOGGLE_CTRL_CMD;
-    /// Option (Alt) or Cmd toggles a row: the default [`Self::toggle_mods`]
-    /// on macOS ([`SelectGesture::TOGGLE_OPTION_CMD`]).
+
+
     pub const TOGGLE_OPTION_CMD: KeyModifiers = SelectGesture::TOGGLE_OPTION_CMD;
-    /// Ctrl, Cmd or Alt (Option) toggles a row
-    /// ([`SelectGesture::TOGGLE_WITH_ALT`]).
+
+
     pub const TOGGLE_WITH_ALT: KeyModifiers = SelectGesture::TOGGLE_WITH_ALT;
 
-    /// The default toggle-click modifiers on `platform`
-    /// ([`SelectGesture::toggle_mods_for`]).
+
+
     pub const fn toggle_mods_for(platform: ClientPlatform) -> KeyModifiers {
         SelectGesture::toggle_mods_for(platform)
     }
 
-    /// Modifiers that make a click toggle a row (default
-    /// [`Self::toggle_mods_for`] the client platform; pass
-    /// `DataTable::toggle_mods_for(platform)` to follow another platform,
-    /// or any set such as [`Self::TOGGLE_WITH_ALT`]).
+
+
+
+
     pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
         self.toggle_mods = mods;
         self
     }
 
-    /// See [`Self::click`].
+
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.click = policy;
         self
     }
 
-    /// Mark source rows as disabled: readable, never selectable.
+
     pub fn disabled_rows(mut self, rows: &[usize]) -> Self {
         self.disabled.extend(rows.iter().copied());
         self
     }
 
-    /// Enable or disable one source row; disabling drops it from the
-    /// selection.
+
+
     pub fn set_row_disabled(&mut self, src: usize, disabled: bool) {
         if disabled {
             self.disabled.insert(src);
@@ -551,8 +551,8 @@ impl DataTable {
         self.selection_mode == SelectionMode::Multi
     }
 
-    /// Selected source rows, ascending: the multi selection, or the chosen
-    /// row in single mode.
+
+
     pub fn selected_rows(&self) -> Vec<usize> {
         match self.selection_mode {
             SelectionMode::Multi => self.selection.to_vec(),
@@ -561,8 +561,8 @@ impl DataTable {
         }
     }
 
-    /// Panel meta for the selection: `"3 selected"`, or empty when nothing
-    /// is selected.
+
+
     pub fn selection_label(&self) -> String {
         match self.selected_rows().len() {
             0 => String::new(),
@@ -570,14 +570,14 @@ impl DataTable {
         }
     }
 
-    /// Aggregate state of the multi selection (the header checkbox).
+
     pub fn selection_state(&self) -> TriState {
         let disabled = &self.disabled;
         self.selection
             .tri_state(0..self.rows.len(), |r| !disabled.contains(&r))
     }
 
-    /// Select every enabled row (multi mode). Returns whether it changed.
+
     pub fn select_all(&mut self) -> bool {
         if !self.multi() {
             return false;
@@ -587,15 +587,15 @@ impl DataTable {
             .select_all(self.order.iter().copied(), |r| !disabled.contains(&r))
     }
 
-    /// Clear the selection (both modes). Returns whether it changed.
+
     pub fn clear_selection(&mut self) -> bool {
         let single = self.selected.take().is_some();
         self.selection.clear() || single
     }
 
-    /// The right-click selection rule on display row `display` (multi mode,
-    /// row navigation): a row inside the selection keeps it, any other
-    /// selects only that row. Returns whether the selection changed.
+
+
+
     pub fn context_selection(&mut self, display: usize) -> bool {
         if !self.multi() || self.cell_nav {
             return false;
@@ -605,15 +605,15 @@ impl DataTable {
             .context_select(display, &self.order, |r| !disabled.contains(&r))
     }
 
-    /// Toggle one source row in the multi selection.
+
     pub fn toggle_row(&mut self, src: usize) -> bool {
         let disabled = &self.disabled;
         src < self.rows.len() && self.selection.toggle(src, |r| !disabled.contains(&r))
     }
 
-    /// Replace the cells of source row `src` (an edit made elsewhere, such
-    /// as an inspector form), keeping the selection, re-applying the sort
-    /// and keeping the cursor on the row it was on.
+
+
+
     pub fn set_row(&mut self, src: usize, cells: Vec<Cell>) {
         if src >= self.rows.len() {
             return;
@@ -629,8 +629,8 @@ impl DataTable {
         }
     }
 
-    /// Remove source rows from the dataset, keeping the selection, the
-    /// disabled set, the sort and the cursor on the rows that remain.
+
+
     pub fn remove_rows(&mut self, srcs: &[usize]) {
         let gone: BTreeSet<usize> = srcs.iter().copied().collect();
         let map = |r: usize| (!gone.contains(&r)).then(|| r - gone.range(..r).count());
@@ -651,7 +651,7 @@ impl DataTable {
         if let Some((c, d)) = self.sort {
             self.apply_sort(c, d);
         }
-        // the cursor stays on its row, or on the next one that remains
+
         let next = cursor_src.and_then(|c| {
             (c..len)
                 .find_map(map)
@@ -664,7 +664,7 @@ impl DataTable {
         self.scroll.ensure_visible(self.cursor_row);
     }
 
-    /// Id of the selection checkbox on display row `display`.
+
     pub fn check_id(&self, display: usize) -> WidgetId {
         self.id.part(Self::check_part(display))
     }
@@ -673,13 +673,13 @@ impl DataTable {
         PartRef::item(Part::MARKER, ItemKey::index(display))
     }
 
-    /// Id of the header's "select all / none" checkbox.
+
     pub fn check_all_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::MARKER))
     }
 
-    /// A click on a row's checkbox: toggles that row and moves the cursor
-    /// there.
+
+
     pub fn on_click_check(&mut self, display: usize) -> (Outcome, Option<TableAction>) {
         if display >= self.rows.len() || !self.multi() {
             return (Outcome::Consumed, None);
@@ -693,8 +693,8 @@ impl DataTable {
         }
     }
 
-    /// A click on the header checkbox: all when not everything is
-    /// selected, none otherwise.
+
+
     pub fn on_click_check_all(&mut self) -> (Outcome, Option<TableAction>) {
         if !self.multi() {
             return (Outcome::Consumed, None);
@@ -710,8 +710,8 @@ impl DataTable {
         }
     }
 
-    /// Multi-mode keys: Space, Shift+movement, Esc ([`TableCmd::SelectAll`]
-    /// is a key-map action).
+
+
     fn on_key_multi(&mut self, key: &Key) -> Option<(Outcome, Option<TableAction>)> {
         let changed = |c: bool| {
             if c {
@@ -764,45 +764,45 @@ impl DataTable {
         }
     }
 
-    /// Override the app-wide horizontal scrolling policy.
+
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
 
-    /// Show or hide the `…` hidden-column marks in the header.
+
     pub fn overflow_marks(mut self, on: bool) -> Self {
         self.overflow_marks = on;
         self
     }
 
-    /// Header seams resize columns by drag (double-click autofits).
-    /// Default on.
+
+
     pub fn resizable_columns(mut self, on: bool) -> Self {
         self.sizing.resizable = on;
         self
     }
 
-    /// Hit width of a header seam in cells (default
-    /// [`crate::ui::columns::DEFAULT_SEAM_W`]).
+
+
     pub fn seam_hit_w(mut self, cells: u16) -> Self {
         self.sizing.seam_w = cells.max(1);
         self
     }
 
-    /// The resize seam after column `c` in the header.
+
     pub fn seam_id(&self, c: usize) -> WidgetId {
         self.id.part(crate::ui::columns::seam_part(c))
     }
 
-    /// The column whose seam `id` is (the inverse the id-taking press and
-    /// drag need until S15 hands them the routed part).
+
+
     fn seam_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::SEAM, 0..self.columns.len())
     }
 
-    /// The column whose header menu the secondary click `ev` opens (its
-    /// header or its seam).
+
+
     pub fn header_menu_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
             return None;
@@ -811,9 +811,9 @@ impl DataTable {
             .or_else(|| ev.index_of(Part::SEAM))
     }
 
-    /// Button down on `id` with the click count it starts: a press on a
-    /// header seam starts a resize (keeping the grab offset); the second
-    /// press of a double click fits the column to its content.
+
+
+
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
         let Some(c) = self.seam_of(id) else {
             return Outcome::Ignored;
@@ -831,8 +831,8 @@ impl DataTable {
         Outcome::Changed
     }
 
-    /// A drag held since a press on `pressed`: a header seam resizes its
-    /// column cell by cell, a scrollbar scrolls.
+
+
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if self.seam_of(pressed).is_some() {
             return match self.sizing.drag_to(pos.x) {
@@ -849,8 +849,8 @@ impl DataTable {
         Outcome::Ignored
     }
 
-    /// Fit column `c` to its title and the text of the visible rows (no
-    /// wider than the table), as a user width.
+
+
     pub fn autofit(&mut self, c: usize) {
         let Some(col) = self.columns.get(c) else {
             return;
@@ -870,8 +870,8 @@ impl DataTable {
         self.sizing.set(c, need.min(cap) as u16);
     }
 
-    /// The header context menu of column `c`: sort, autofit and reset
-    /// widths, each paired with the action [`Self::on_header_action`] runs.
+
+
     pub fn header_menu(&self, c: usize) -> Vec<(HeaderAction, crate::widgets::menu::MenuItem)> {
         let sortable = self.columns.get(c).is_some_and(|col| col.sortable);
         let sorted = self.sort.and_then(|(sc, d)| (sc == c).then_some(d));
@@ -884,7 +884,7 @@ impl DataTable {
         )
     }
 
-    /// Run a header menu command on column `c`.
+
     pub fn on_header_action(&mut self, c: usize, action: HeaderAction) -> Outcome {
         let want = match action {
             HeaderAction::SortAsc => Some(Some((c, SortDir::Asc))),
@@ -903,7 +903,7 @@ impl DataTable {
             if c >= self.columns.len() || !self.columns[c].sortable {
                 return Outcome::Consumed;
             }
-            // sort_by cycles asc, desc, none: step until it lands on `want`
+
             for _ in 0..3 {
                 if self.sort == want {
                     break;
@@ -914,7 +914,7 @@ impl DataTable {
         Outcome::Changed
     }
 
-    /// How cut cells reveal their full text (default: [`RenderCtx::reveal`]).
+
     pub fn reveal(mut self, config: crate::ui::reveal::Reveal) -> Self {
         self.reveal = Some(config);
         self
@@ -932,14 +932,14 @@ impl DataTable {
         }
         self
     }
-    /// See [`Self::validator`]: `v(col, text)`.
+
     pub fn validator(mut self, v: impl Fn(usize, &str) -> Option<String> + 'static) -> Self {
         self.validator = Some(Validator::with_context(move |col: &usize, text: &str| {
             v(*col, text).map_or(Ok(()), |m| Err(m.into()))
         }));
         self
     }
-    /// See [`Self::empty`].
+
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.empty = Some(state);
         self
@@ -960,7 +960,7 @@ impl DataTable {
         self.edit.is_some() || self.choice.is_some()
     }
 
-    /// Source index of the row at display position `i`.
+
     pub fn source_row(&self, i: usize) -> usize {
         self.order[i]
     }
@@ -975,8 +975,8 @@ impl DataTable {
     fn row_part(display: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(display))
     }
-    /// One id per cell, under its row's id; the part is the row's
-    /// `Part::CELL` (the column comes from the position on `main`).
+
+
     pub fn cell_id(&self, display: usize, col: usize) -> WidgetId {
         self.row_id(display).child(col)
     }
@@ -984,8 +984,8 @@ impl DataTable {
         PartRef::item(Part::CELL, ItemKey::index(display))
     }
 
-    /// Replace the dataset, cancelling any edit and clearing row selection.
-    /// Keeps column configuration and sorting; clamps the navigation cursor.
+
+
     pub fn set_rows(&mut self, rows: Vec<Vec<Cell>>) {
         self.edit = None;
         self.choice = None;
@@ -1008,7 +1008,7 @@ impl DataTable {
             let ca = &rows[a][col].text;
             let cb = &rows[b][col].text;
             let ord = if numeric {
-                // non-numeric cells (e.g. "—") sort before every number
+
                 parse_num(ca).cmp(&parse_num(cb))
             } else {
                 ca.to_lowercase().cmp(&cb.to_lowercase())
@@ -1021,12 +1021,12 @@ impl DataTable {
         });
     }
 
-    /// Cycle sort on a column: asc → desc → none.
+
     pub fn sort_by(&mut self, col: usize) -> Outcome {
         if col >= self.columns.len() || !self.columns[col].sortable {
             return Outcome::Consumed;
         }
-        // keep the cursor on the same source row
+
         let src = self.order.get(self.cursor_row).copied();
         self.sort = match self.sort {
             Some((c, SortDir::Asc)) if c == col => Some((col, SortDir::Desc)),
@@ -1053,15 +1053,15 @@ impl DataTable {
         self.ensure_col_visible();
     }
 
-    /// [`Self::set_cursor`] for a row the pointer placed: the row comes in
-    /// without context ([`crate::core::scroll::ScrollState::pointer_move`]).
+
+
     fn point_cursor(&mut self, row: usize, col: usize) {
         self.scroll.pointer_move();
         self.set_cursor(row, col);
     }
 
     fn ensure_col_visible(&mut self) {
-        // the whole cursor column, measured at the offset it lands on
+
         self.scroll.reveal_column(self.cursor_col);
     }
 
@@ -1069,8 +1069,8 @@ impl DataTable {
         self.start_edit().0
     }
 
-    /// Start editing the cursor cell: a text editor, a constrained
-    /// editor's popup, or (Checkbox) the flipped value committed at once.
+
+
     pub fn start_edit(&mut self) -> (Outcome, Option<TableAction>) {
         if self.rows.is_empty() {
             return (Outcome::Consumed, None);
@@ -1079,8 +1079,8 @@ impl DataTable {
         if !self.columns[col].editable {
             return (Outcome::Consumed, None);
         }
-        // the editor (and a popup's anchor) is the cell on screen, even
-        // after the view was scrolled away from it
+
+
         self.scroll.ensure_visible(self.cursor_row);
         self.ensure_col_visible();
         let src = self.order[self.cursor_row];
@@ -1108,8 +1108,8 @@ impl DataTable {
         (Outcome::Changed, None)
     }
 
-    /// Store a chosen value through the edit pipeline: the validator may
-    /// reject it (the message comes back), a sorted column re-sorts.
+
+
     fn apply_value(&mut self, src: usize, col: usize, text: String) -> Result<TableAction, String> {
         if let Some(Err(err)) = self.validator.as_ref().map(|v| v.validate_in(&col, &text)) {
             return Err(err.into_message());
@@ -1128,7 +1128,7 @@ impl DataTable {
         Ok(TableAction::Committed { row: src, col })
     }
 
-    /// Resolve what an open constrained editor reported.
+
     fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<TableAction> {
         let (value, tab) = match r? {
             ChoiceResult::Cancel => {
@@ -1162,8 +1162,8 @@ impl DataTable {
         }
     }
 
-    /// Move the cell cursor to the next (previous) editable column of the
-    /// row; `Some(Leave…)` when there is none.
+
+
     fn tab_to_editable(&mut self, backward: bool) -> Option<TableAction> {
         let n = self.columns.len();
         let mut col = self.cursor_col;
@@ -1187,9 +1187,9 @@ impl DataTable {
         None
     }
 
-    /// A click on an open constrained editor (an option, the popup, the
-    /// backdrop) or on a cell's `▾`; `None` when `id` is neither, so the
-    /// owner routes it on.
+
+
+
     pub fn on_click_editor(&mut self, id: WidgetId) -> Option<(Outcome, Option<TableAction>)> {
         if let Some(c) = self.choice.as_mut()
             && c.editor.contains_id(id)
@@ -1206,7 +1206,7 @@ impl DataTable {
         let mut e = self.edit.take()?;
         let src = e.row;
         if !e.field.validate() {
-            // keep editing, show error
+
             self.edit = Some(e);
             return None;
         }
@@ -1235,10 +1235,10 @@ impl DataTable {
         self.edit.take().map(|_| TableAction::Cancelled)
     }
 
-    /// Focus left the table (see [`crate::core::focus::Focus::take_changes`]).
-    /// A cell edit in progress ends per [`Self::blur_action`] and reports
-    /// `Committed` or `Cancelled` like Enter or Esc (an invalid value stays
-    /// open with its error and reports nothing).
+
+
+
+
     pub fn on_blur(&mut self) -> Option<TableAction> {
         if let Some(c) = &self.choice {
             return match self.editor_config.blur {
@@ -1276,7 +1276,7 @@ impl DataTable {
                     if ev.is_none() {
                         return (Outcome::Changed, None);
                     }
-                    // move to next editable cell
+
                     if let Some(leave) = self.tab_to_editable(backward) {
                         return (Outcome::Changed, Some(leave));
                     }
@@ -1310,7 +1310,7 @@ impl DataTable {
             return r;
         }
         if unassigned_chord(key, &self.keymap) {
-            // an unassigned modified chord never performs a plain action
+
             return (Outcome::Ignored, None);
         }
         let (r, c) = (self.cursor_row, self.cursor_col);
@@ -1324,12 +1324,12 @@ impl DataTable {
                         (Outcome::Consumed, None)
                     }
                 }
-                // single selection: nothing to select all of
+
                 TableCmd::SelectAll => (Outcome::Ignored, None),
             };
         }
-        // Alt+↓ opens a constrained cell's popup; plain ↓ stays row
-        // navigation (APG grid)
+
+
         if key.code == KeyCode::Down
             && key.alt()
             && self.cell_nav
@@ -1345,7 +1345,7 @@ impl DataTable {
             KeyCode::Enter | KeyCode::F(2) if self.cell_nav && self.columns[c].editable => {
                 self.start_edit()
             }
-            // Space opens a constrained cell (and flips a checkbox)
+
             KeyCode::Char(' ')
                 if self.cell_nav
                     && self.columns[c].editable
@@ -1418,8 +1418,8 @@ impl DataTable {
         self.sort_by(col)
     }
 
-    /// A single plain click on a row (display index) / cell
-    /// ([`Self::on_click_cell_count`]).
+
+
     pub fn on_click_cell(
         &mut self,
         display: usize,
@@ -1429,7 +1429,7 @@ impl DataTable {
         self.on_click_cell_count(display, col, pos, KeyModifiers::NONE, 1)
     }
 
-    /// A single click with the modifiers held ([`Self::on_click_cell_count`]).
+
     pub fn on_click_cell_with(
         &mut self,
         display: usize,
@@ -1440,14 +1440,14 @@ impl DataTable {
         self.on_click_cell_count(display, col, pos, mods, 1)
     }
 
-    /// The `count`th click of a multi-click on a row / cell, with the
-    /// modifiers held. In multi mode the click is a [`SelectGesture`]
-    /// ([`SelectGesture::from_mods`] with [`Self::toggle_mods`]): Shift
-    /// extends from the anchor, the toggle modifiers toggle the row, a plain
-    /// click selects only that row. A plain click selects; it activates the
-    /// row ([`TableAction::Activated`]) or edits a cell (cell navigation)
-    /// only when [`Self::click`] says so: a double click by default, so the
-    /// click that gives a row the cursor never opens or edits it (M9, M15).
+
+
+
+
+
+
+
+
     pub fn on_click_cell_count(
         &mut self,
         display: usize,
@@ -1460,13 +1460,13 @@ impl DataTable {
         if display >= self.rows.len() {
             return (Outcome::Consumed, None);
         }
-        // a click elsewhere ends an open popup without a choice
+
         self.choice = None;
         let col = col.min(self.columns.len().saturating_sub(1));
         if let Some(e) = &self.edit {
             if e.row == self.order[display] && e.col == col {
-                // a click inside the editor places the caret, a double
-                // click selects a word, a triple click the value
+
+
                 if let Some(at) = self.edit_offset(pos)
                     && let Some(e) = self.edit.as_mut()
                 {
@@ -1488,7 +1488,7 @@ impl DataTable {
             let enabled = |r: usize| !disabled.contains(&r);
             let gesture = SelectGesture::from_mods(mods, self.toggle_mods, from);
             if gesture == SelectGesture::Only && !enabled(src) {
-                // a disabled row takes the cursor, the selection stays
+
                 return (Outcome::Changed, None);
             }
             let changed = self.selection.apply(gesture, display, &self.order, enabled);
@@ -1518,10 +1518,10 @@ impl DataTable {
         (Outcome::Changed, None)
     }
 
-    /// Compute column rects for the visible columns.
+
     fn layout_columns(&mut self, area: Rect) {
         let n = self.columns.len();
-        // decide how many columns fit starting at hscroll.offset
+
         let gap = 2u16;
         let widths = (0..n)
             .map(|i| self.sizing.width(i, self.columns[i].min_width()))
@@ -1546,8 +1546,8 @@ impl DataTable {
         }
     }
 
-    /// Override the app-wide vertical track-click policy
-    /// (`TrackClick::Page` pages toward the pointer).
+
+
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
@@ -1567,22 +1567,22 @@ impl DataTable {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
         let editing = self.edit.is_some() && focused;
-        // a cell edit that lost focus is ended by `on_blur`, never here
-        // where an open constrained editor's popup anchors this frame
+
+
         let mut choice_anchor: Option<Rect> = None;
         let mut open_marks: Vec<(usize, usize, Rect)> = Vec::new();
 
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
-        // gutter (1) + columns + scrollbar (1)
+
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.scroll.h_cfg = h_cfg;
-        // the viewport is settled once both bars are known: setting a
-        // provisional taller one first would clamp the offset and drop
-        // the cursor row off the bottom
+
+
+
         let rows_len = self.rows.len();
         let mut has_sb = rows_len > area.height as usize - 1;
-        // the multi-selection checkbox column: `[✓]` and a blank
+
         let check_w: u16 = if self.multi() && self.selection_column {
             4
         } else {
@@ -1599,8 +1599,8 @@ impl DataTable {
         self.layout_columns(cols_for(has_sb));
         let header_y = area.y;
         let mut body = Rect::new(area.x, area.y + 1, area.width, area.height - 1);
-        // the horizontal bar takes the bottom row; losing it can make the
-        // rows overflow, which costs a column for the vertical bar
+
+
         let has_hb = !self.rows.is_empty() && body.height > 1 && h_cfg.shows_bar(&self.scroll.h);
         if has_hb {
             body.height -= 1;
@@ -1614,7 +1614,7 @@ impl DataTable {
         self.scroll.set_viewport(body.height as usize);
         self.body = body;
 
-        // header
+
         let header_bg = bg;
         fill(
             buf,
@@ -1653,7 +1653,7 @@ impl DataTable {
                     head,
                 );
             } else if cut && !ctx.inert {
-                // a cut title reveals on hover even when it does not sort
+
                 ctx.hits.register_hover(hid, head);
             }
             if cut {
@@ -1673,13 +1673,13 @@ impl DataTable {
             }
         }
         if check_w > 0 && area.width > 3 + check_w {
-            // the header's "select all / none" box
+
             let cid = self.check_all_id();
             let state = self.selection_state();
             let lifted = ctx.interaction.hovered(cid) || ctx.interaction.pressed(cid);
             let st = crate::widgets::grid::header_style(ctx, cid, header_bg, true, false);
             let st = match state {
-                // hover lifts the box like a sortable title
+
                 _ if lifted => st,
                 TriState::None => st,
                 _ => st.fg(t.legible(ctx.chosen(focused), st.bg.unwrap_or(header_bg))),
@@ -1690,7 +1690,7 @@ impl DataTable {
                 ctx.register_part(self.id, PartRef::of(Part::MARKER), r);
             }
         }
-        // horizontal overflow indicators
+
         if self.overflow_marks && self.scroll.h.overflows() {
             let more_right = self.scroll.h.offset + self.scroll.h.viewport_len < self.columns.len();
             let more_left = self.scroll.h.offset > 0;
@@ -1724,7 +1724,7 @@ impl DataTable {
             return;
         }
 
-        // rows
+
         for (i, di) in self.scroll.visible_range().enumerate() {
             let y = body.y + i as u16;
             let src = self.order[di];
@@ -1736,7 +1736,7 @@ impl DataTable {
             );
             let rid = self.row_id(di);
             let mut s = ctx.child_state(self.id, rid, di == self.cursor_row);
-            // cell hover and press count as the row's
+
             let hovered_cell = (0..self.columns.len()).find(|&c| {
                 ctx.interaction.hovered(self.cell_id(di, c))
                     || ctx.interaction.hovered(self.open_id(di, c))
@@ -1753,8 +1753,8 @@ impl DataTable {
             };
             let row_disabled = self.is_disabled(src);
             if row_disabled {
-                // a disabled row does not react to hover or press; it keeps
-                // the cursor's focus bar so the keyboard position stays seen
+
+
                 s.hovered = false;
                 s.pressed = false;
             }
@@ -1784,7 +1784,7 @@ impl DataTable {
                 } else {
                     (t.glyphs.check_off, row_style.fg(t.text_muted))
                 };
-                // its hit region goes on top of the row's, below
+
                 buf.set_string(r.x, r.y, glyph, gs);
             }
             for (ci, col) in self.columns.iter().enumerate() {
@@ -1804,11 +1804,11 @@ impl DataTable {
                 let mut st = row_style;
                 let cfg = &self.editor_config;
                 let constrained = col.editor.is_constrained();
-                // a constrained cell shows its option's label and tone; a
-                // value outside the options is flagged like an error
+
+
                 let shown: std::borrow::Cow<str> = if let Some(on) = col.editor.checked(&cell.text)
                 {
-                    // a two-value cell is a checkbox
+
                     if on {
                         t.glyphs.check_on
                     } else {
@@ -1873,7 +1873,7 @@ impl DataTable {
                     }
                 } else {
                     if is_cursor_cell || is_choice_cell {
-                        // cell cursor: the cursor fill on the cell only
+
                         st = t.cell_cursor(flagged, s.pressed);
                     } else if flagged {
                         st = st.fg(t.error);
@@ -1883,8 +1883,8 @@ impl DataTable {
                             .add_modifier(Modifier::UNDERLINED)
                             .underline_color(t.border_strong);
                     }
-                    // editable popup cells advertise their `▾` on hover and
-                    // on the cursor cell; read-only cells never do
+
+
                     let affordance = col.editable
                         && col.editor.has_popup()
                         && r.width > 3
@@ -1913,9 +1913,9 @@ impl DataTable {
                         Rect::new(r.x, y, text_w as u16, 1),
                         &shown,
                     );
-                    // the cursor's cut value reads in full on the peek
-                    // line: the cursor cell, or the row's first cut cell
-                    // (K12, SI8)
+
+
+
                     if cut && s.focused && (!self.cell_nav || ci == self.cursor_col) {
                         let cfg = self.reveal.unwrap_or(ctx.reveal);
                         if cfg.hover || cfg.keyboard.is_some() {
@@ -1946,7 +1946,7 @@ impl DataTable {
                 ctx.register_part_as(cid, self.id, cell.0, cell_rect);
             }
             ctx.register_part(self.id, Self::row_part(di), row_rect);
-            // re-register cells on top so cell hover resolves before row
+
             for ci in 0..self.columns.len() {
                 let r = self.col_rects[ci];
                 if !r.is_empty() {
@@ -1961,20 +1961,20 @@ impl DataTable {
                 ctx.register_part(self.id, Self::check_part(di), rect);
             }
         }
-        // a cell's `▾` sits above the cell: a click on it opens the editor
+
         for (di, ci, rect) in open_marks {
             let oid = self.open_id(di, ci);
             let open = (PartRef::item(Part::ACTIONS, ItemKey::index(di)), ci);
-            // the id-taking `on_click_editor` (S15) maps a `▾` back to its cell
+
             self.parts.record_cell(oid, open.0, open.1);
             ctx.register_part_as(oid, self.id, open.0, rect);
         }
         if let (Some(anchor), Some(c)) = (choice_anchor, self.choice.as_mut()) {
             c.editor.render(anchor, buf, ctx, &self.editor_config);
         }
-        // the scroll region also sits above the rows: a wheel burst handled
-        // before the next frame (see `runtime::Coalesce`) then routes to the
-        // widget, not to a row whose display index it already scrolled away
+
+
+
         ctx.scrollable(self.id, area);
         if has_sb {
             crate::ui::fade::scroll_edges_except(
@@ -1999,7 +1999,7 @@ impl DataTable {
             self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
         if has_hb {
-            // under the columns; the corner under the vertical bar stays blank
+
             let y = body.bottom();
             let right = area.right() - u16::from(has_sb);
             fill(
@@ -2012,18 +2012,18 @@ impl DataTable {
         }
     }
 
-    /// The column drawn under screen column `x` this frame (a cell's
-    /// column: the router resolves a cell to its row only).
+
+
     pub(crate) fn column_at(&self, x: u16) -> Option<usize> {
         self.col_rects
             .iter()
             .position(|r| !r.is_empty() && x >= r.x && x < r.right())
     }
 
-    /// The byte offset of the open cell editor's text under `pos`, by the
-    /// geometry it was drawn with (the caret keeps itself in view, so the
-    /// text scrolls by the caret column). Left of the cell names the first
-    /// character, right of it the last, so a drag past an edge selects on.
+
+
+
+
     fn edit_offset(&self, pos: Position) -> Option<usize> {
         let e = self.edit.as_ref()?;
         let rect = self.col_rects.get(e.col)?;
@@ -2038,7 +2038,7 @@ impl DataTable {
         Some(e.field.buffer.offset_at(0, c))
     }
 
-    /// `ev` lands on the open cell editor.
+
     fn on_edit_cell(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
         let Some(e) = &self.edit else {
             return false;
@@ -2060,7 +2060,7 @@ impl DataTable {
 
 use ratatui::style::Style;
 
-/// Numeric key with a total order: `None` for cells without a number.
+
 fn parse_num(s: &str) -> Option<ordered::F64> {
     let cleaned: String = s
         .chars()
@@ -2109,16 +2109,16 @@ impl Scrollable for DataTable {
         &mut self.scroll
     }
 
-    /// An open choice popup takes the vertical wheel.
+
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         let c = self.choice.as_mut().filter(|_| axis == Axis::Vertical)?;
         Some(c.editor.wheel(axis, delta))
     }
 }
 
-/// Display rows; type-ahead reads [`DataTable::type_ahead_column`] (or the
-/// cursor's column). Disabled rows stay reachable by the arrows (they can
-/// be inspected) but type-ahead never lands on one.
+
+
+
 impl RowSource for DataTable {
     fn len(&self) -> usize {
         self.order.len()
@@ -2140,14 +2140,14 @@ impl Navigable for DataTable {
     }
 }
 
-/// The table's pointer gestures, as the apps route them: a wheel or a bar
-/// press scrolls it; a press on a header seam starts a resize (a double
-/// press fits the column) and a drag carries it on; a completed click
-/// goes to an open constrained editor or a cell's `▾`
-/// ([`DataTable::on_click_editor`]), the header checkbox, a row's
-/// checkbox, a header (sort) or a cell ([`DataTable::on_click_cell_with`]
-/// with the modifiers held; a row hit keeps the cursor column). The open
-/// constrained editor's popup is the table's too ([`Self::route`]).
+
+
+
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for DataTable {
     type Action = TableAction;
 
@@ -2169,8 +2169,8 @@ impl crate::core::pointer::MouseTarget for DataTable {
     ) -> crate::core::response::Response<TableAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-        // the open choice popup takes its own gestures (CO7): the Combo's
-        // query line, an option, its backdrop
+
+
         if let Some(c) = self.choice.as_mut()
             && ev.on(c.editor.id)
             && ev.wheel().is_none()
@@ -2178,17 +2178,17 @@ impl crate::core::pointer::MouseTarget for DataTable {
             let (out, r) = c.editor.pointer(ev).into_parts();
             return (out, self.on_choice(r)).into();
         }
-        // a wheel over the open choice popup (the widget's too) reaches it
-        // first ([`Scrollable::wheel_first`])
+
+
         if (ev.on(self.id) || ev.wheel().is_some())
             && let Some(r) = crate::core::pointer::scroll_input(self, ev)
         {
             return r.lift();
         }
         let (id, pos) = (ev.id, ev.pos());
-        // the open cell editor takes the text gestures: a press anchors a
-        // drag selection (a double-click press selects the word), a drag
-        // selects, its click lands below
+
+
+
         match ev.phase() {
             Some(Phase::Press) if self.on_edit_cell(ev) => {
                 if let Some(at) = self.edit_offset(pos)
@@ -2227,7 +2227,7 @@ impl crate::core::pointer::MouseTarget for DataTable {
                 if let Some(c) = ev.index_of(Part::HEADER) {
                     return self.on_click_header(c).into();
                 }
-                // a row's free space names the cursor column; a cell its own
+
                 let col = |t: &Self| t.column_at(pos.x).unwrap_or(t.cursor_col);
                 let at = match (ev.index_of(Part::ROW), ev.index_of(Part::CELL)) {
                     (Some(row), _) => Some((row, self.cursor_col)),
@@ -2250,8 +2250,8 @@ impl crate::core::pointer::MouseTarget for DataTable {
 mod tests {
     use super::*;
 
-    /// Drawn at its measured width every column is in view: no column
-    /// behind the sideways scroll.
+
+
     #[test]
     fn measure_shows_every_column() {
         use crate::core::focus::FocusRing;
@@ -2276,7 +2276,7 @@ mod tests {
             table.measure(ratatui::layout::Size::new(1, 1), &ctx)
         };
         assert_eq!(size.height, 31);
-        // its min width holds the first column; the rest scroll sideways
+
         let min = {
             let ctx = RenderCtx::new(
                 &t,
@@ -2287,7 +2287,7 @@ mod tests {
             table.min_width(ratatui::layout::Size::new(1, 1), &ctx)
         };
         assert_eq!(min, 10 + 6);
-        // fewer rows than the table has: the vertical bar is in
+
         for (w, all) in [(size.width, true), (size.width - 3, false)] {
             let mut ctx = RenderCtx::new(
                 &t,
@@ -2325,10 +2325,10 @@ mod tests {
         (buf, cursor)
     }
 
-    /// M21 for cells (S11): the open cell editor takes the text gestures
-    /// through the router: a double click selects the word, a drag selects
-    /// what it crosses (both only placed the caret); Ctrl+Z undoes typing
-    /// (it did nothing); a pasted line break never lands in the cell.
+
+
+
+
     #[test]
     fn the_cell_editor_selects_by_pointer_undoes_and_flattens_pastes() {
         use crate::core::intent::Phase;
@@ -2447,18 +2447,18 @@ mod tests {
         let seam = hits.area_of(sid).expect("a seam after the first column");
         assert_eq!(seam.x, head.right(), "in the gap after the title");
         assert_eq!(head.width, 10);
-        // the grab offset is kept: press one cell into the seam
+
         t.on_press(sid, Position::new(seam.x + 1, seam.y), 1);
         t.on_drag(sid, Position::new(seam.x + 1, seam.y));
         t.on_drag(sid, Position::new(seam.x + 5, seam.y));
         let (_, hits) = draw(&mut t, area);
         assert_eq!(hits.area_of(t.header_id(0)).unwrap().width, 14);
         assert_eq!(hits.area_of(t.header_id(1)).unwrap().x, head.x + 14 + 2);
-        // a double press fits "col0" / "r0c0" (4 cells)
+
         t.on_press(sid, Position::new(seam.x, seam.y), 2);
         let (_, hits) = draw(&mut t, area);
         assert_eq!(hits.area_of(t.header_id(0)).unwrap().width, 4);
-        // the header menu sorts and resets
+
         let ev = crate::core::pointer::PointerEvent::new(
             &hits,
             crate::core::intent::Phase::Secondary,
@@ -2475,7 +2475,7 @@ mod tests {
         t.on_header_action(0, HeaderAction::ResetWidths);
         let (_, hits) = draw(&mut t, area);
         assert_eq!(hits.area_of(t.header_id(0)).unwrap().width, 10);
-        // off: no seam
+
         let mut t = wide_table().resizable_columns(false);
         let (_, hits) = draw(&mut t, area);
         assert!(hits.area_of(t.seam_id(0)).is_none());
@@ -2531,7 +2531,7 @@ mod tests {
         let grab = thumb_x(&buf, y).unwrap();
         assert!(grab > t.scroll.h_track().x);
 
-        // the shared scrollbar entry point tells the bars apart by position
+
         assert_eq!(
             t.bar_press(Position::new(grab, y))
                 .outcome()
@@ -2618,7 +2618,7 @@ mod tests {
     #[test]
     fn sort_keeps_cursor_on_same_row() {
         let mut t = table();
-        t.cursor_row = 1; // alpha
+        t.cursor_row = 1;
         t.sort_by(0);
         assert_eq!(t.source_row(t.cursor_row), 1);
     }
@@ -2659,7 +2659,7 @@ mod tests {
 
     #[test]
     fn rejected_edit_stays_on_its_source_row_after_header_sort() {
-        // a closure that captures state (the reserved values)
+
         let reserved = ["!".to_owned()];
         let mut t = table().validator(move |_, value| {
             reserved
@@ -2814,9 +2814,9 @@ mod tests {
         assert!(!t.is_editing());
     }
 
-    /// K12, SI8: the focused cursor cell's cut value reads in full on the
-    /// peek line, with no key and no pointer; another cell, or the table
-    /// without focus, publishes nothing.
+
+
+
     #[test]
     fn the_cut_cursor_cell_peeks_its_full_value() {
         const LONG: &str = "a value far too long for the narrow name column";
@@ -2869,7 +2869,7 @@ mod tests {
         let theme = Theme::junie();
         let pressed = theme.ladder(crate::theme::Plane::Surface).pressed;
         let mut t = table();
-        // pointer held on a cell (cells register above the row)
+
         let cell = t.cell_id(0, 0);
         let buf = render_with(
             &mut t,
@@ -2881,7 +2881,7 @@ mod tests {
         );
         let y = row_of(&buf, "beta");
         assert_eq!(buf[(0, y)].bg, pressed, "cell press is the row's press");
-        // Enter on the focused table flashes the container id
+
         let id = t.id;
         let buf = render_with(
             &mut t,
@@ -2954,7 +2954,7 @@ mod tests {
         assert!(!draw(&mut off, Some(cell)).contains(long));
     }
 
-    // ------------------------------------------------------------ selection
+
 
     fn members() -> DataTable {
         let cols = vec![
@@ -3012,14 +3012,14 @@ mod tests {
         assert_eq!(ev, Some(TableAction::SelectionChanged));
         assert_eq!(t.selected_rows(), vec![0, 1, 2, 3, 5]);
         assert_eq!(t.selection_state(), TriState::All);
-        // Cmd+A works the same where the terminal reports it
+
         t.clear_selection();
         t.on_key(&k(KeyCode::Char('a'), KeyModifiers::SUPER));
         assert_eq!(t.selected_rows().len(), 5);
         let (out, _) = t.on_key(&k(KeyCode::Esc, KeyModifiers::NONE));
         assert_eq!(out, Outcome::Changed);
         assert!(t.selected_rows().is_empty());
-        // with nothing selected Esc is not the table's
+
         assert_eq!(
             t.on_key(&k(KeyCode::Esc, KeyModifiers::NONE)).0,
             Outcome::Ignored
@@ -3036,8 +3036,8 @@ mod tests {
     #[test]
     fn multi_selection_survives_sorting_and_scrolling() {
         let mut t = members();
-        t.toggle_row(1); // Ari
-        t.toggle_row(3); // Bo
+        t.toggle_row(1);
+        t.toggle_row(3);
         t.sort_by(0);
         let names = |t: &DataTable| -> Vec<String> {
             t.selected_rows()
@@ -3046,20 +3046,20 @@ mod tests {
                 .collect()
         };
         assert_eq!(names(&t), vec!["Ari", "Bo"]);
-        // Ari and Bo now display first
+
         assert!(t.selection.contains(t.source_row(0)));
         assert!(t.selection.contains(t.source_row(1)));
         let (buf, _) = draw(&mut t, Rect::new(0, 0, 30, 3));
         assert_eq!(buf[(1, 1)].symbol(), "✓");
         t.wheel(Axis::Vertical, 3).outcome();
         assert_eq!(t.selected_rows(), vec![1, 3]);
-        // a shift range follows the display order
+
         t.clear_selection();
         t.cursor_row = 0;
         t.on_key(&k(KeyCode::Char(' '), KeyModifiers::NONE));
         t.on_key(&k(KeyCode::Down, KeyModifiers::SHIFT));
         t.on_key(&k(KeyCode::Down, KeyModifiers::SHIFT));
-        // display order Ari, Bo, Cleo; reported in source order
+
         assert_eq!(names(&t), vec!["Ari", "Cleo", "Bo"]);
     }
 
@@ -3080,7 +3080,7 @@ mod tests {
         let (_, ev) = single.on_click_cell(4, 0, Position::new(0, 0));
         assert_eq!(ev, None);
         assert_eq!(single.selected, None);
-        // disabling a selected row drops it
+
         t.toggle_row(2);
         t.set_row_disabled(2, true);
         assert!(t.selected_rows().is_empty());
@@ -3099,36 +3099,36 @@ mod tests {
         assert_eq!(t.selected_rows(), vec![1, 3]);
         t.on_click_cell_with(5, 0, p, KeyModifiers::SUPER);
         assert_eq!(t.selected_rows(), vec![1, 3, 5]);
-        // a plain click replaces the selection
+
         t.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
         assert_eq!(t.selected_rows(), vec![0]);
-        // a slow second click on the selected row only selects (M15); the
-        // double click activates it
+
+
         let (_, ev) = t.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
         assert_eq!(ev, None);
         let (_, ev) = t.on_click_cell_count(0, 0, p, KeyModifiers::NONE, 2);
         assert_eq!(ev, Some(TableAction::Activated(0)));
-        // the earlier rule stays an option
+
         let mut again = members()
             .click(ClickPolicy::DATA.activate(crate::core::selection::Activate::ClickAgain));
         again.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
         let (_, ev) = again.on_click_cell_with(0, 0, p, KeyModifiers::NONE);
         assert_eq!(ev, Some(TableAction::Activated(0)));
-        // a plain click on a disabled row moves the cursor only
+
         t.on_click_cell_with(4, 0, p, KeyModifiers::NONE);
         assert_eq!(t.cursor_row, 4);
         assert_eq!(t.selected_rows(), vec![0]);
-        // toggle modifiers are configurable
+
         let mut alt = members().toggle_mods(KeyModifiers::ALT);
         alt.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         alt.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
         assert_eq!(alt.selected_rows(), vec![1, 2]);
-        // Ctrl or Cmd off macOS: Alt+click selects only the row
+
         let mut def = members().toggle_mods(DataTable::toggle_mods_for(ClientPlatform::Other));
         def.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         def.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
         assert_eq!(def.selected_rows(), vec![2]);
-        // TOGGLE_WITH_ALT accepts Ctrl, Cmd and Option
+
         let mut all = members().toggle_mods(DataTable::TOGGLE_WITH_ALT);
         all.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         all.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
@@ -3147,14 +3147,14 @@ mod tests {
             DataTable::toggle_mods_for(ClientPlatform::Other),
             DataTable::TOGGLE_CTRL_CMD
         );
-        // the default follows the one shared client-platform detector
+
         assert_eq!(
             members().toggle_mods,
             DataTable::toggle_mods_for(ClientPlatform::current())
         );
         let p = Position::new(0, 0);
-        // macOS: Option+click (or Cmd+click) toggles; a Ctrl+click that
-        // still reaches the table (ctrl_click_secondary off) selects only
+
+
         let mut mac = members().toggle_mods(DataTable::toggle_mods_for(ClientPlatform::MacOs));
         mac.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         mac.on_click_cell_with(2, 0, p, KeyModifiers::ALT);
@@ -3164,7 +3164,7 @@ mod tests {
         assert_eq!(mac.selected_rows(), vec![1, 3], "Option+click toggles off");
         mac.on_click_cell_with(5, 0, p, KeyModifiers::CONTROL);
         assert_eq!(mac.selected_rows(), vec![5]);
-        // elsewhere: Ctrl+click toggles, Alt+click selects only
+
         let mut other = members().toggle_mods(DataTable::toggle_mods_for(ClientPlatform::Other));
         other.on_click_cell_with(1, 0, p, KeyModifiers::NONE);
         other.on_click_cell_with(2, 0, p, KeyModifiers::CONTROL);
@@ -3175,8 +3175,8 @@ mod tests {
 
     #[test]
     fn checkbox_and_space_toggle_without_a_modifier_on_every_platform() {
-        // the modified click is a shortcut; a terminal that keeps
-        // Option+click (or an app that turns modifiers off) still toggles
+
+
         for mods in [
             DataTable::toggle_mods_for(ClientPlatform::MacOs),
             DataTable::toggle_mods_for(ClientPlatform::Other),
@@ -3213,7 +3213,7 @@ mod tests {
         );
         assert_eq!(hits.part_of(t.check_id(1)).map(|h| h.owner), Some(t.id));
         assert_eq!(hits.part_of(t.check_all_id()).map(|h| h.owner), Some(t.id));
-        // cells start after the box
+
         assert_eq!(buf[(7, 1)].symbol(), "D");
 
         assert_eq!(
@@ -3272,8 +3272,8 @@ mod tests {
     #[test]
     fn set_row_resorts_and_keeps_selection_and_cursor() {
         let mut t = members();
-        t.sort_by(0); // Ari, Bo, Cleo, Dana, Eli, Fay
-        t.toggle_row(2); // Cleo
+        t.sort_by(0);
+        t.toggle_row(2);
         t.cursor_row = 2;
         t.set_row(2, vec![Cell::new("Zed"), Cell::new("r2")]);
         assert_eq!(t.selected_rows(), vec![2], "the selection keeps the row");
@@ -3286,7 +3286,7 @@ mod tests {
 #[path = "table_choice_tests.rs"]
 mod choice_tests;
 
-/// Select All in a multi-selection table goes through its key map.
+
 #[cfg(test)]
 mod select_all_tests {
     use super::*;

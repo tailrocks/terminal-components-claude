@@ -1,6 +1,6 @@
-//! Scenario worlds: one coherent fixture per `--scenario`. Every timestamp
-//! derives from the fixture clock, every tick-driven event has a fixed tick,
-//! so the same scenario always renders the same frames.
+
+
+
 
 use std::collections::BTreeMap;
 
@@ -1363,7 +1363,7 @@ pub fn world_for(scenario: Scenario, motion: Motion) -> World {
     w
 }
 
-/// A project `.holla.toml` with the given actions; trusted when asked.
+
 fn seed_custom(
     w: &mut World,
     root: &str,
@@ -1396,13 +1396,13 @@ fn seed_custom(
     w.custom_project = Some(cfg);
 }
 
-/// Derive the filesystem, the tool set and the persisted stores from the
-/// scenario state so every flow reads one coherent world.
+
+
 pub fn seed_world(w: &mut World) {
     seed_tools(w);
     seed_fs(w);
-    // a fixture that staged another writer's store keeps it: the merge on
-    // save is what the journey proves
+
+
     if w.persisted.frecency.is_none() {
         w.persisted.frecency = Some(w.memory.usage.serialize());
     }
@@ -1472,7 +1472,7 @@ fn seed_tools(w: &mut World) {
     }
 }
 
-/// A file whose allocated size is `bytes`, rounded to blocks.
+
 fn sized(fs: &mut Fs, path: &str, bytes: u64, age_days: i64) {
     fs.file(path, bytes.max(1), age_days);
 }
@@ -1481,8 +1481,8 @@ fn gb(gb: f32) -> u64 {
     (gb as f64 * 1024.0 * 1024.0 * 1024.0) as u64 / BLOCK * BLOCK
 }
 
-/// The seeder's view of the filesystem: it fills in what a scenario left
-/// unsaid and never overwrites a path a fixture created on purpose.
+
+
 struct SeedFs(Fs);
 
 impl std::ops::Deref for SeedFs {
@@ -1524,7 +1524,7 @@ fn seed_fs(w: &mut World) {
     let cwd = w.location.cwd.clone();
     let now = w.now_secs();
     let mut fs = SeedFs(std::mem::take(&mut w.fs));
-    // special files every host has: a device node is listed, never previewed
+
     fs.device("/dev/null");
     for f in &w.disk.filesystems {
         if !fs.volumes.iter().any(|v| v.mount == f.mount) {
@@ -1537,7 +1537,7 @@ fn seed_fs(w: &mut World) {
     fs.dir(&home, 400);
     fs.dir(&cwd, 3);
     fs.dir(&format!("{home}/.Trash"), 1);
-    // home folders the overview lists and the finder indexes
+
     for (d, age) in [
         ("Documents", 12),
         ("Downloads", 1),
@@ -1595,7 +1595,7 @@ fn seed_fs(w: &mut World) {
         100_000,
         2,
     );
-    // projects
+
     let mut roots: Vec<(String, ProjectKind)> = vec![];
     if let Some(p) = &w.location.project {
         roots.push((p.root.clone(), p.kind.clone()));
@@ -1696,7 +1696,7 @@ fn seed_fs(w: &mut World) {
             10,
         );
     }
-    // disk candidates and large entries become real subtrees
+
     let cands = w.disk.candidates.clone();
     for c in &cands {
         let age = i64::from(c.inactive_days.unwrap_or(0));
@@ -1738,7 +1738,7 @@ fn seed_fs(w: &mut World) {
             w.cargo.target_files = fs.subtree(&target).len() as u64;
         }
     }
-    // OMZ and upgrade fixtures
+
     if let Some(z) = &w.upgrade.zsh_env {
         fs.dir(z, 30);
         fs.text(&format!("{z}/tools/upgrade.sh"), "#!/bin/sh\n", 30);
@@ -2462,8 +2462,8 @@ fn activities_multi(motion: Motion) -> World {
     if let Some(a) = w.activity_mut(&id) {
         a.state = crate::domain::activity::ActivityState::Detached;
     }
-    // let the fixture breathe so the tests activity has finished and the logs
-    // have accumulated before the first frame
+
+
     for _ in 0..48 {
         w.tick();
     }
@@ -2731,7 +2731,7 @@ fn hard_cases(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------------ plans
+
 
 pub fn plan_docker_cleanup(w: &World) -> Plan {
     let d = &w.docker;
@@ -2939,9 +2939,9 @@ pub fn plan_upgrade(w: &World) -> Plan {
     .follow_up("Outdated tools", "mise.outdated")
 }
 
-/// Every detected upgrade manager as one plan (HP13): Homebrew stages
-/// depend on each other, the other managers run beside them, and a stage
-/// listed in `UpgradeState::failing` fails exactly there.
+
+
+
 pub fn plan_upgrade_all(w: &World) -> Plan {
     let host = w.host.name.clone();
     let fails = |stage: &str| w.upgrade.failing.iter().any(|f| f == stage);

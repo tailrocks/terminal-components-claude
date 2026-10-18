@@ -1,5 +1,5 @@
-//! The last fixed keys move into `NavKeys` and `KeyMap`, and type-ahead
-//! reaches menus, tables and grids (api #14, #17).
+
+
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
@@ -139,14 +139,14 @@ fn context_menus_take_type_ahead_when_asked() {
     m.on_key(&ch('p'));
     assert_eq!(m.list.cursor.index, 2);
     m.on_key(&ch('r'));
-    // "pr" matches nothing: the cursor stays
+
     assert_eq!(m.list.cursor.index, 2);
     let mut m = ContextMenu::new(WidgetId::of("m"), menu_items()).type_ahead(true);
     m.on_key(&ch('r'));
     assert_eq!(m.list.cursor.index, 3);
     m.on_key(&ch('r'));
     assert_eq!(m.list.cursor.index, 4, "a repeated letter cycles");
-    // a menu bar hands its open menu the letters, never `l` to the next title
+
     let mut bar = MenuBar::new(
         WidgetId::of("bar"),
         vec![("Edit", menu_items()), ("View", menu_items())],
@@ -210,7 +210,7 @@ fn tables_and_grids_take_type_ahead_when_asked() {
     g.on_key(&ch('b'));
     assert_eq!(g.cursor.0, 0, "off by default");
     let mut g = grid().type_ahead(true);
-    // the cursor's column (name) by default
+
     g.on_key(&ch('b'));
     assert_eq!(g.cursor.0, 1);
 }
