@@ -57,7 +57,7 @@ fn frame_tablepro_grid_500x14_120x40() {
         unreachable!("rendered result value");
     };
     assert!(x >= header.x && x < header.right() && y > header.y);
-    assert!(harness.diagnostics().is_empty());
+    assert_eq!(harness.diagnostics(), []);
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn key_tablepro_grid_cursor() {
     let _ = harness.key(KeyCode::Down);
     let _ = harness.key(KeyCode::Right);
 
-    assert!(harness.diagnostics().is_empty());
+    assert_eq!(harness.diagnostics(), []);
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn key_tablepro_grid_sort_local() {
     let _ = harness.key(KeyCode::Char('s'));
 
     assert_eq!(harness.app().result().row_count(), 500);
-    assert!(harness.diagnostics().is_empty());
+    assert_eq!(harness.diagnostics(), []);
 }
 
 #[test]
@@ -115,7 +115,7 @@ fn mouse_click_grid_cell() {
 
     let _ = harness.click(60, 12);
 
-    assert!(harness.diagnostics().is_empty());
+    assert_eq!(harness.diagnostics(), []);
 }
 
 #[test]
@@ -124,7 +124,7 @@ fn wheel_tablepro_grid() {
 
     let _ = harness.wheel(Axis::V, 1, 60, 20);
 
-    assert!(harness.diagnostics().is_empty());
+    assert_eq!(harness.diagnostics(), []);
 }
 
 #[test]
@@ -179,7 +179,7 @@ fn frame_tablepro_connection_form_120x40() {
         stats.allocs
     );
     assert!(harness.find("Connect to database").is_some());
-    assert!(harness.diagnostics().is_empty());
+    assert_eq!(harness.diagnostics(), []);
 }
 
 #[test]
@@ -199,7 +199,7 @@ fn frame_tablepro_query_editor_2k_lines() {
         stats.allocs
     );
     assert!(harness.find("TablePro").is_some());
-    assert!(harness.diagnostics().is_empty());
+    assert_eq!(harness.diagnostics(), []);
 }
 
 #[test]

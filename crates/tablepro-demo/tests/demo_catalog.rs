@@ -12,16 +12,16 @@ fn shipped_connections_are_fully_labelled_and_consistent() {
         "the demo ships at least one connection"
     );
     for connection in &connections {
-        assert!(!connection.name.is_empty());
-        assert!(!connection.host.is_empty());
-        assert!(!connection.database.is_empty());
+        assert_ne!(connection.name, "");
+        assert_ne!(connection.host, "");
+        assert_ne!(connection.database, "");
         // IAM/SSO connections authenticate without a stored user.
         assert!(
             !connection.user.is_empty() || connection.ssh.is_some() || !connection.ssl,
             "{} stores no user only through a token-based path",
             connection.name
         );
-        assert!(!connection.group.is_empty());
+        assert_ne!(connection.group, "");
         let _ = match connection.engine {
             Engine::Postgres | Engine::MySql | Engine::Sqlite => connection.engine.label(),
         };

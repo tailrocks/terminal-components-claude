@@ -71,7 +71,6 @@ use std::path::Path;
 
 use rayon::prelude::*;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use tuiscotti::grouped::{self, GroupedStore};
 use tuiscotti::{Profile, VENDORED_FACES};
 
@@ -188,9 +187,7 @@ struct ArtifactEntry {
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    format!("{:x}", hasher.finalize())
+    support::sha256_hex(bytes)
 }
 
 fn parse_geometry(geom: &str) -> Option<(u16, u16)> {

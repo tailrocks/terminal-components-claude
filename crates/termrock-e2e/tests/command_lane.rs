@@ -2474,10 +2474,19 @@ pub struct RestorationReceipt {
             if n == 0 { break; }
             hasher.update(&buffer[..n]);
         }
-        Ok(format!("{:x}", hasher.finalize()))
+        Ok(hasher
+            .finalize()
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect())
     }
 
-    fn sha256(bytes: &[u8]) -> String { format!("{:x}", Sha256::digest(bytes)) }
+    fn sha256(bytes: &[u8]) -> String {
+        Sha256::digest(bytes)
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect()
+    }
 
     fn valid_sha256(value: &str) -> bool {
         value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
@@ -3364,7 +3373,10 @@ mod tests {
             .unwrap_or_else(|_| panic!("{RUN03_CASE_SHA_ENV} is required; refusing to use an unpinned pair case"));
         assert!(expected_sha.len() == 64 && expected_sha.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()),
             "RUN03 pair case SHA-256 must be lowercase hexadecimal");
-        let actual_sha = format!("{:x}", Sha256::digest(&bytes));
+        let actual_sha: String = Sha256::digest(&bytes)
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
         assert_eq!(actual_sha, expected_sha, "RUN03 pair case bytes differ from their supplied digest");
         let case = serde_json::from_slice::<Run03PairCase>(&bytes)
             .unwrap_or_else(|error| panic!("parse strict RUN03 pair case {}: {error}", path.display()));

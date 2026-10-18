@@ -365,14 +365,22 @@ pub struct BinSubject {
     pub mtime_unix: Option<u64>,
 }
 
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
 /// Digest `path` into a [`BinSubject`]. Returns `None` when the file cannot
 /// be read (missing binary, permissions); callers fail loudly instead.
 pub fn digest_file(path: &Path) -> Option<BinSubject> {
     let bytes = std::fs::read(path).ok()?;
     let meta = std::fs::metadata(path).ok()?;
-    let mut hasher = Sha256::new();
-    hasher.update(&bytes);
-    let sha256 = format!("{:x}", hasher.finalize());
+    let sha256 = sha256_hex(&bytes);
     let mtime_unix = meta
         .modified()
         .ok()
@@ -967,12 +975,6 @@ pub fn store() -> GroupedStore {
         .with_actual_root(&ws_root.join("target/tuiscotti/actual"))
         .with_diff_root(&ws_root.join("target/tuiscotti/diff"))
         .with_report_path(&ws_root.join("target/tuiscotti/report.html"))
-}
-
-fn sha256_hex(bytes: &[u8]) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    format!("{:x}", hasher.finalize())
 }
 
 fn write_artifact_strictly(path: &Path, content: &[u8]) -> Result<(), String> {
