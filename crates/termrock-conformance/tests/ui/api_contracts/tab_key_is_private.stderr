@@ -1,0 +1,10 @@
+error[E0616]: field `key` of struct `TabRecord` is private
+ --> tests/ui/api_contracts/tab_key_is_private.rs:6:21
+  |
+6 |     let _ = tabs[0].key;
+  |                     ^^^ private field
+  |
+help: a method `key` also exists, call it with parentheses
+  |
+6 |     let _ = tabs[0].key();
+  |                        ++

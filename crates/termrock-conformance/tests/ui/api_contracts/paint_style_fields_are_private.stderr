@@ -1,0 +1,7 @@
+error[E0594]: cannot assign to data in dereference of `PaintStyle`
+ --> tests/ui/api_contracts/paint_style_fields_are_private.rs:6:5
+  |
+6 |     style.bg = Some(Color::Red);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot assign
+  |
+  = help: trait `DerefMut` is required to modify through a dereference, but it is not implemented for `PaintStyle`

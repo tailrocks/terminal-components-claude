@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/api_contracts/elapsed_moment_is_not_simulation_moment.rs:4:35
+  |
+4 |     let _ = cx.sync_feedback_time(elapsed);
+  |                ------------------ ^^^^^^^ expected `SimulationMoment`, found `Moment`
+  |                |
+  |                arguments to this method are incorrect
+  |
+note: method defined here
+ --> $WORKSPACE/crates/termrock-runtime/src/ui/cx.rs
+  |
+  |     pub fn sync_feedback_time(
+  |            ^^^^^^^^^^^^^^^^^^

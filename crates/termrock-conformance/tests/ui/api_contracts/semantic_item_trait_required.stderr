@@ -1,0 +1,27 @@
+error[E0599]: the associated function or constant `semantic_width` exists for struct `FilterList<'_, PaintedOnly>`, but its trait bounds were not satisfied
+ --> tests/ui/api_contracts/semantic_item_trait_required.rs:6:49
+  |
+3 | struct PaintedOnly;
+  | ------------------ doesn't satisfy `PaintedOnly: AsItem`
+...
+6 |     let _ = FilterList::<PaintedOnly, ItemRow>::semantic_width(&[]);
+  |                                                 ^^^^^^^^^^^^^^ associated function or constant cannot be called on `FilterList<'_, PaintedOnly>` due to unsatisfied trait bounds
+  |
+ ::: $WORKSPACE/crates/termrock-navigation/src/item.rs
+  |
+  | pub struct ItemRow;
+  | ------------------ doesn't satisfy `ItemRow: RowFn<PaintedOnly>`
+  |
+note: if you're trying to build a new `FilterList<'_, PaintedOnly>`, consider using `FilterList::<'_, T>::new` which returns `FilterList<'_, _>`
+ --> $WORKSPACE/crates/termrock-navigation/src/filter_list.rs
+  |
+  |     pub const fn new(id: Id) -> Self {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: the following trait bounds were not satisfied:
+          `PaintedOnly: AsItem`
+          `ItemRow: RowFn<PaintedOnly>`
+note: the trait `AsItem` must be implemented
+ --> $WORKSPACE/crates/termrock-navigation/src/item.rs
+  |
+  | pub trait AsItem {
+  | ^^^^^^^^^^^^^^^^

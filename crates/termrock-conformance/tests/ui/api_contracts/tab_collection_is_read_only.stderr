@@ -1,0 +1,9 @@
+error[E0599]: no method named `push` found for reference `&[TabRecord]` in the current scope
+ --> tests/ui/api_contracts/tab_collection_is_read_only.rs:7:10
+  |
+5 | /     app.workbench
+6 | |         .tabs()
+7 | |         .push(Tab::Query(tablepro_ui::QueryTab::new(1, "")));
+  | |         -^^^^ method not found in `&[TabRecord]`
+  | |_________|
+  |
