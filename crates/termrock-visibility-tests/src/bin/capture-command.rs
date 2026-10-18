@@ -473,12 +473,12 @@ fn install_parent_signal_handlers() -> io::Result<()> {
     let mut action: libc::sigaction = unsafe { std::mem::zeroed() };
     action.sa_sigaction = record_parent_signal as *const () as usize;
     action.sa_flags = 0;
-    // SAFETY: the signal set is writable storage initialized by libc.
+
     if unsafe { libc::sigemptyset(&mut action.sa_mask) } != 0 {
         return Err(io::Error::last_os_error());
     }
     for signal in [libc::SIGINT, libc::SIGTERM, libc::SIGHUP] {
-        // SAFETY: `action` contains a plain atomic-only handler and a valid mask.
+
         if unsafe { libc::sigaction(signal, &action, std::ptr::null_mut()) } != 0 {
             return Err(io::Error::last_os_error());
         }
@@ -488,8 +488,8 @@ fn install_parent_signal_handlers() -> io::Result<()> {
 
 #[cfg(unix)]
 extern "C" fn record_parent_signal(signal: libc::c_int) {
-    // AtomicI32 operations are lock-free on the supported Unix targets. The
-    // signal handler performs no allocation, I/O, or process management.
+
+
     let _ =
         RECEIVED_PARENT_SIGNAL.compare_exchange(0, signal, Ordering::Relaxed, Ordering::Relaxed);
 }

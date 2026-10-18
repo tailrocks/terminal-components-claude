@@ -1,23 +1,17 @@
-//! Application-owned grid metadata and the public adapter facade.
-
 use crate::domain::{ResultGrid, preview_sql};
 
 use tablepro_demo::db::{ColType, Table};
 
-/// The read/write result adapter used by a table data grid.
 pub type TableGridModel = ResultGrid;
 
-/// The read-only result adapter used by query and table-result views.
 pub type ResultGridModel = ResultGrid;
 
-/// Read-only structure metadata exposed through the public grid contract.
 #[derive(Debug, Clone)]
 pub struct StructureModel {
     grid: ResultGrid,
 }
 
 impl StructureModel {
-    /// Build the six-column structure model for one catalog table.
     #[must_use]
     pub fn from_table(table: &Table) -> Self {
         let rows: Vec<Vec<tablepro_demo::db::Value>> = table
@@ -60,7 +54,6 @@ impl StructureModel {
         }
     }
 
-    /// Explain why structure cells cannot be edited.
     #[must_use]
     pub fn read_only_reason(&self) -> Option<&str> {
         Some("Structure metadata is read-only")
@@ -85,7 +78,6 @@ impl termrock::GridModel for StructureModel {
     }
 }
 
-/// Column labels/types for the generic grid.
 pub fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
@@ -94,7 +86,6 @@ pub fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
         .collect()
 }
 
-/// Compact pending-change marker for the status bar.
 pub fn pending_label(grid: &ResultGrid) -> String {
     match grid.pending_total() {
         0 => String::new(),
@@ -102,7 +93,6 @@ pub fn pending_label(grid: &ResultGrid) -> String {
     }
 }
 
-/// Renderable SQL preview rows.
 pub fn preview_for(table: &Table, grid: &ResultGrid) -> Vec<String> {
     preview_sql(table, &grid_columns(table), grid.pending())
 }

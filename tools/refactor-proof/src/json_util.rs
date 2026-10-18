@@ -1,12 +1,9 @@
-//! Strict JSON loading and canonical serialization helpers.
-
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use serde::de::{self, DeserializeSeed, Deserializer, MapAccess, SeqAccess, Visitor};
 use serde_json::{Map, Value};
 
-/// Serialize JSON with sorted object keys and compact separators (no trailing newline).
 pub fn canonical_json(value: &Value) -> String {
     let sorted = sort_value(value);
     serde_json::to_string(&sorted).expect("canonical JSON serialization")
@@ -28,7 +25,6 @@ fn sort_value(value: &Value) -> Value {
     }
 }
 
-/// SHA-256 hex digest of raw bytes.
 pub fn sha256_bytes(data: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     Sha256::digest(data)
@@ -37,22 +33,18 @@ pub fn sha256_bytes(data: &[u8]) -> String {
         .collect()
 }
 
-/// SHA-256 hex digest of canonical JSON bytes.
 pub fn sha256_canonical(value: &Value) -> String {
     sha256_bytes(canonical_json(value).as_bytes())
 }
 
-/// SHA-256 hex digest of canonical JSON bytes with a terminal newline.
 pub fn sha256_canonical_line(value: &Value) -> String {
     sha256_bytes(format!("{}\n", canonical_json(value)).as_bytes())
 }
 
-/// Serialize canonical JSON with a terminal newline for host artifacts.
 pub fn canonical_json_line(value: &Value) -> String {
     format!("{}\n", canonical_json(value))
 }
 
-/// Parse JSON while rejecting duplicate object keys at any depth.
 pub fn parse_json_strict(text: &str) -> Result<Value, String> {
     let mut de = serde_json::Deserializer::from_str(text);
     let value = StrictValueSeed
@@ -149,13 +141,11 @@ impl<'de> Visitor<'de> for NoDupVisitor {
     }
 }
 
-/// Parse JSON from bytes with duplicate-key rejection.
 pub fn parse_json_bytes_strict(bytes: &[u8]) -> Result<Value, String> {
     let text = std::str::from_utf8(bytes).map_err(|error| error.to_string())?;
     parse_json_strict(text)
 }
 
-/// Return true when `path` is a safe relative artifact path.
 pub fn is_safe_relative_path(path: &str) -> bool {
     !path.is_empty()
         && !path.starts_with('/')
@@ -164,7 +154,6 @@ pub fn is_safe_relative_path(path: &str) -> bool {
         && !path.split('/').any(|part| part == "..")
 }
 
-/// Collect duplicate values from a slice, preserving first-seen order.
 pub fn duplicate_values(values: &[String]) -> Vec<String> {
     let mut seen = HashSet::new();
     let mut dupes = Vec::new();
@@ -176,7 +165,6 @@ pub fn duplicate_values(values: &[String]) -> Vec<String> {
     dupes
 }
 
-/// Return sorted unique keys for object field validation.
 pub fn object_keys(value: &Value) -> Option<Vec<&str>> {
     value.as_object().map(|map| {
         let mut keys: Vec<_> = map.keys().map(String::as_str).collect();
@@ -185,24 +173,20 @@ pub fn object_keys(value: &Value) -> Option<Vec<&str>> {
     })
 }
 
-/// Compare two JSON values for exact structural equality.
 pub fn values_equal(left: &Value, right: &Value) -> bool {
     left == right
 }
 
-/// Load optional string field.
 pub fn get_str<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }
 
-/// Load required string field.
 pub fn require_str(value: &Value, key: &str) -> Result<String, String> {
     get_str(value, key)
         .map(str::to_owned)
         .ok_or_else(|| format!("missing or invalid string field: {key}"))
 }
 
-/// Load required u64 field stored as JSON number.
 pub fn require_u64(value: &Value, key: &str) -> Result<u64, String> {
     value
         .get(key)
@@ -210,7 +194,6 @@ pub fn require_u64(value: &Value, key: &str) -> Result<u64, String> {
         .ok_or_else(|| format!("missing or invalid integer field: {key}"))
 }
 
-/// Load required string array field.
 pub fn require_str_array(value: &Value, key: &str) -> Result<Vec<String>, String> {
     let array = value
         .get(key)
@@ -226,21 +209,18 @@ pub fn require_str_array(value: &Value, key: &str) -> Result<Vec<String>, String
         .collect()
 }
 
-/// Exact top-level key set check.
 pub fn has_exact_keys(value: &Value, keys: &[&str]) -> bool {
     value
         .as_object()
         .is_some_and(|map| map.len() == keys.len() && keys.iter().all(|key| map.contains_key(*key)))
 }
 
-/// Build a map from a JSON object for keyed lookup.
 pub fn as_object_map(value: &Value) -> Result<&Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| "expected JSON object".to_string())
 }
 
-/// Index scenarios by id.
 pub fn index_by_id(entries: &[Value], id_field: &str) -> Result<HashMap<String, Value>, String> {
     let mut map = HashMap::new();
     for entry in entries {

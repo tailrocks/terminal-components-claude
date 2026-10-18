@@ -1,29 +1,3 @@
-//! Black-box status CLI contract tests.
-//!
-//! Migration map from the former Python test module:
-//!
-//! | Python test | Rust CLI case |
-//! | --- | --- |
-//! | `test_initial_conclusions_are_not_run_and_source_pair_is_exact` | `initial_status_keeps_products_not_run_and_pairs_exact` |
-//! | `test_all_seven_commands_and_each_layer_are_visible` | `renders_all_seven_exact_commands_and_layers` |
-//! | `test_role_changes_local_presentation_and_keeps_candidate_queue_link` | `role_changes_local_label_and_uses_reference_links` |
-//! | `test_cli_accepts_reference_role` | `reference_role_cli_renders_reference_presentation` |
-//! | `test_visual_interaction_api_and_ownership_are_separate` | `keeps_visual_interaction_api_ownership_distinct` |
-//! | `test_ci_and_dco_remain_separate_from_product_results` | `keeps_ci_dco_observations_separate` |
-//! | `test_changed_frozen_tag_is_rejected` | `rejects_changed_frozen_tag` |
-//! | `test_candidate_remote_mismatch_is_rejected` | `rejects_candidate_remote_identity_mismatch` |
-//! | `test_new_typed_observations_do_not_require_reporter_code_changes` | `accepts_new_typed_observations_and_unknown_conclusions` |
-//! | `test_unknown_ci_state_and_invalid_count_are_rejected` | `rejects_unknown_state_negative_count_and_non_https_reason_source` |
-//! | `test_duplicate_or_unknown_task_records_are_rejected` | `rejects_duplicate_task_ids_and_unknown_states` |
-//! | `test_generation_is_deterministic` | `generation_is_byte_deterministic` |
-//!
-//! `checked_in_records_render_from_exact_copies` additionally covers the real
-//! source-facts and accepted-task files in the same disposable-CLI path.
-//!
-//! Every case invokes the copied production script through its CLI in a
-//! disposable repository. These tests do not import Python modules or use a
-//! production test hook.
-
 #[cfg(unix)]
 use std::ffi::CString;
 use std::fs;
@@ -81,10 +55,8 @@ impl StatusFixture {
             .copy_tool_exact(Tool::Queue)
             .expect("copy exact adjacent queue CLI");
         for relative_path in [
-            "STATUS.md",
             "tools/visibility/source-facts.json",
             "docs/implementation/visibility/tasks.json",
-            "WORK_QUEUE.md",
         ] {
             repo.copy_project_file_exact(Path::new(relative_path))
                 .expect("copy exact checked-in status input");
@@ -95,6 +67,28 @@ impl StatusFixture {
                 "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/MANIFEST.json",
             ),
             None,
+        );
+        let queue_snapshot = run_cli(
+            &queue_tool.path,
+            &[
+                "render".to_owned(),
+                "--output".to_owned(),
+                "target/visibility/WORK_QUEUE.md".to_owned(),
+            ],
+            repo.root(),
+            &[],
+            None,
+        )
+        .expect("render a queue snapshot from copied accepted-task JSON");
+        assert_eq!(
+            queue_snapshot.exit_code,
+            Some(0),
+            "{}",
+            error_text(&queue_snapshot)
+        );
+        assert!(
+            String::from_utf8_lossy(&queue_snapshot.stdout)
+                .contains("target/visibility/WORK_QUEUE.md")
         );
         Self::copy_manifest_members(
             &repo,
@@ -112,7 +106,7 @@ impl StatusFixture {
         }
     }
 
-    #[allow(dead_code)] // Preserves the archived q59 report audit fixture.
+    #[allow(dead_code)]
     fn from_checked_in_report_snapshot() -> Self {
         let fixture = Self::from_checked_in_records();
         let task_snapshot_path = fixture.repo.root().join(
@@ -131,23 +125,19 @@ impl StatusFixture {
         fixture
             .write_tasks(std::str::from_utf8(&task_snapshot).expect("q59 task snapshot is UTF-8"));
 
-        let rendered_queue = fixture.run_queue(&["render"]);
+        let rendered_queue =
+            fixture.run_queue(&["render", "--output", "target/visibility/WORK_QUEUE.md"]);
+        assert_eq!(rendered_queue.exit_code, Some(0));
+        let view = fs::read(fixture.repo.root().join("target/visibility/WORK_QUEUE.md"))
+            .expect("read queue view generated from q59 accepted-task snapshot");
+        let repeat = fixture.run_queue(&["render", "--output", "target/visibility/WORK_QUEUE.md"]);
+        assert_eq!(repeat.exit_code, Some(0));
         assert_eq!(
-            rendered_queue.exit_code,
-            Some(0),
-            "{}",
-            error_text(&rendered_queue)
+            fs::read(fixture.repo.root().join("target/visibility/WORK_QUEUE.md"))
+                .expect("read repeated q59 queue snapshot"),
+            view,
+            "q59 task snapshot must render deterministically"
         );
-        assert_eq!(
-            sha256_hex(&rendered_queue.stdout),
-            "9adb4cb2788b01a03be421d0666f7334a96910a0d823edce526fc67c913922db",
-            "q59 task snapshot must render the published q59 WORK_QUEUE bytes"
-        );
-        fs::write(
-            fixture.repo.root().join("WORK_QUEUE.md"),
-            &rendered_queue.stdout,
-        )
-        .expect("write matched q59 WORK_QUEUE fixture");
         fixture
     }
 
@@ -197,8 +187,23 @@ impl StatusFixture {
         fs::write(path, tasks).expect("write accepted-task fixture");
     }
 
+    fn update_packet_manifest_pin(&self, manifest_bytes: &[u8]) {
+        let facts_path = self.repo.root().join("tools/visibility/source-facts.json");
+        let mut facts: serde_json::Value =
+            serde_json::from_slice(&fs::read(&facts_path).expect("read copied source facts"))
+                .expect("parse copied source facts");
+        facts["current_status_observations"]["candidate_api_deferred_run"]["packet_manifest"]["sha256"] =
+            serde_json::json!(sha256_hex(manifest_bytes));
+        fs::write(
+            facts_path,
+            serde_json::to_vec_pretty(&facts).expect("serialize updated source facts"),
+        )
+        .expect("write updated source facts");
+    }
+
     fn report(&self) -> String {
-        fs::read_to_string(self.repo.root().join("STATUS.md")).expect("read generated status")
+        fs::read_to_string(self.repo.root().join("target/visibility/STATUS.md"))
+            .expect("read generated status")
     }
 }
 
@@ -694,7 +699,7 @@ fn write_provider_json_capture(
     write_provider_capture(fixture, prefix, name, &bytes, files)
 }
 
-#[allow(clippy::too_many_arguments)] // Test fixture fields mirror the provider payload.
+#[allow(clippy::too_many_arguments)]
 fn provider_observation(
     fixture: &StatusFixture,
     files: &mut Vec<serde_json::Value>,
@@ -2249,7 +2254,7 @@ fn initial_status_keeps_products_not_run_and_pairs_exact() {
     assert!(!report.contains("commit P"));
     assert!(report.contains("A run receipt records execution results"));
     assert!(report.contains("NOT_RUN is a result status, not a run-receipt status"));
-    assert!(report.contains("Product requirements remain in [CHECKLIST.md]"));
+    assert!(report.contains("Product requirements remain in [Product requirements]"));
     assert!(!report.contains("is generated from accepted records"));
 }
 
@@ -2289,7 +2294,6 @@ fn bounded_execution_receipts_render_partial_results_without_ready_claims() {
 #[test]
 #[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes() {
-    // The overridden assertion ID appears once for each subject role.
     for (status, expected_cell, expected_count) in [
         (
             "FAIL",
@@ -2646,7 +2650,13 @@ fn execution_evidence_fifo_is_rejected_without_blocking_or_report() {
         output.stdout.is_empty(),
         "rejected evidence emits no report"
     );
-    assert!(!fixture.repo.root().join("STATUS.md").exists());
+    assert!(
+        !fixture
+            .repo
+            .root()
+            .join("target/visibility/STATUS.md")
+            .exists()
+    );
     assert!(error_text(&output).contains("Holla paired receipt must be a regular file"));
 }
 
@@ -2681,8 +2691,6 @@ fn execution_receipt_json_rejects_duplicate_keys() {
 #[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn checked_in_records_render_from_exact_copies() {
     let fixture = StatusFixture::from_checked_in_records();
-    let checked_in_report = fs::read(fixture.repo.root().join("STATUS.md"))
-        .expect("read exact checked-in STATUS report");
     let facts_path = fixture
         .repo
         .root()
@@ -2722,11 +2730,6 @@ fn checked_in_records_render_from_exact_copies() {
     let repeated = fixture.run(&[]);
     let report = output_text(&output);
     assert_eq!(output.exit_code, Some(0));
-    assert_eq!(
-        output.stdout.as_slice(),
-        checked_in_report.as_slice(),
-        "checked-in facts and STATUS must agree byte for byte"
-    );
     assert_eq!(repeated.exit_code, Some(0));
     assert_eq!(output.stdout, repeated.stdout);
     assert!(report.contains(candidate_sha));
@@ -3565,7 +3568,7 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
         .repo
         .root()
         .join("docs/implementation/visibility/tasks.json");
-    let queue_view_path = fixture.repo.root().join("WORK_QUEUE.md");
+    let queue_view_path = fixture.repo.root().join("target/visibility/WORK_QUEUE.md");
     let current_v1_tasks = fs::read(&tasks_path).expect("read copied schema-v1 tasks");
     let current_v1_queue_view = fs::read(&queue_view_path).expect("read copied v1 queue view");
 
@@ -3801,7 +3804,13 @@ fn rejects_ambiguous_or_nonfinite_source_facts_without_status_output() {
     assert_eq!(output.exit_code, Some(2));
     assert!(error_text(&output).contains("JSON object repeats key 'head_sha'"));
     assert!(output.stdout.is_empty());
-    assert!(!duplicate_fixture.repo.root().join("STATUS.md").exists());
+    assert!(
+        !duplicate_fixture
+            .repo
+            .root()
+            .join("target/visibility/STATUS.md")
+            .exists()
+    );
 
     let nonfinite_version = replace_once(
         base_facts(),
@@ -3814,7 +3823,13 @@ fn rejects_ambiguous_or_nonfinite_source_facts_without_status_output() {
     assert_eq!(output.exit_code, Some(2));
     assert!(error_text(&output).contains("JSON contains unsupported non-finite number NaN"));
     assert!(output.stdout.is_empty());
-    assert!(!nonfinite_fixture.repo.root().join("STATUS.md").exists());
+    assert!(
+        !nonfinite_fixture
+            .repo
+            .root()
+            .join("target/visibility/STATUS.md")
+            .exists()
+    );
 }
 
 #[test]
@@ -3929,9 +3944,6 @@ fn explicit_source_ci_capture_distinguishes_null_from_missing() {
     assert!(report.contains("2ae351dd27f0ee7d7d52ff6093208b0a57f62698"));
     assert!(report.contains("| Remote branch tips observed at | 2026-10-11T03:58:22Z |",));
 
-    // This checked-in pair uses a branch API observation, so its top-level CI
-    // capture is optional. Exercise the explicit-fetch presence rule with a
-    // small synthetic source observation whose provenance is internally bound.
     let explicit_fetch_fixture = StatusFixture::new();
     let mut explicit_fetch: serde_json::Value =
         serde_json::from_str(&base_facts()).expect("parse synthetic explicit-fetch facts");
@@ -4135,33 +4147,29 @@ fn role_changes_local_label_and_uses_reference_links() {
     let fixture = StatusFixture::new();
     let candidate = output_text(&fixture.run(&[]));
     let reference = output_text(&fixture.run(&["--role", "reference"]));
-    let queue_url = "https://github.com/tailrocks/terminal-components-claude/blob/termrock-implementation/WORK_QUEUE.md";
-    let checklist_markdown_url = format!(
-        "https://github.com/tailrocks/terminal-components-claude/blob/{CANDIDATE_SHA}/CHECKLIST.md"
+    let tasks_url = "https://github.com/tailrocks/terminal-components-claude/blob/termrock-implementation/docs/implementation/visibility/tasks.json";
+    let requirements_url = format!(
+        "https://github.com/tailrocks/terminal-components-claude/blob/{CANDIDATE_SHA}/docs/requirements.md"
     );
-    let checklist_json_url = format!(
-        "https://github.com/tailrocks/terminal-components-claude/blob/{CANDIDATE_SHA}/checklist.json"
+    let overview_url = format!(
+        "https://github.com/tailrocks/terminal-components-claude/blob/{CANDIDATE_SHA}/README.md"
     );
-    let source_readme_url = format!(
-        "https://github.com/tailrocks/terminal-components-claude/blob/{CANDIDATE_SHA}/tools/visibility/README.md"
+    let source_facts_url = format!(
+        "https://github.com/tailrocks/terminal-components-claude/blob/{CANDIDATE_SHA}/tools/visibility/source-facts.json"
     );
 
     assert!(candidate.contains("| Local role | Candidate (termrock-implementation) |"));
     assert!(reference.contains("| Local role | Reference (visual-baseline) |"));
-    assert!(candidate.contains("[CHECKLIST.md](CHECKLIST.md)"));
-    assert!(candidate.contains("[checklist.json](checklist.json)"));
+    assert!(candidate.contains("[Product requirements](docs/requirements.md)"));
+    assert!(candidate.contains("[Project overview](README.md)"));
+    assert!(candidate.contains("[Source facts](tools/visibility/source-facts.json)"));
+    assert!(reference.contains(&format!("[Product requirements]({requirements_url})")));
+    assert!(reference.contains(&format!("[Project overview]({overview_url})")));
+    assert!(reference.contains(&format!("[Source facts]({source_facts_url})")));
     assert!(
-        candidate.contains("[Source facts and observation commands](tools/visibility/README.md)")
+        candidate.contains("[Accepted task records](docs/implementation/visibility/tasks.json)")
     );
-    assert!(reference.contains(&format!("[CHECKLIST.md]({checklist_markdown_url})")));
-    assert!(reference.contains(&format!("[checklist.json]({checklist_json_url})")));
-    assert!(reference.contains(&format!(
-        "[Source facts and observation commands]({source_readme_url})"
-    )));
-    assert!(candidate.contains("[WORK_QUEUE.md](WORK_QUEUE.md)"));
-    assert!(candidate.contains("[Work queue](WORK_QUEUE.md)"));
-    assert!(reference.contains(&format!("[WORK_QUEUE.md]({queue_url})")));
-    assert!(reference.contains(&format!("[Work queue]({queue_url})")));
+    assert!(reference.contains(&format!("[Accepted task records]({tasks_url})")));
     for (id, command) in [
         ("RUN-01", "cargo run --release --bin showcase"),
         ("RUN-02", "cargo run --release --bin jackin-preview"),
@@ -4191,12 +4199,8 @@ fn role_changes_local_label_and_uses_reference_links() {
             "| Local role | LOCAL_ROLE |",
         )
         .replace(
-            "[WORK_QUEUE.md](WORK_QUEUE.md)",
-            &format!("[WORK_QUEUE.md]({queue_url})"),
-        )
-        .replace(
-            "[Work queue](WORK_QUEUE.md)",
-            &format!("[Work queue]({queue_url})"),
+            "[Accepted task records](docs/implementation/visibility/tasks.json)",
+            &format!("[Accepted task records]({tasks_url})"),
         );
     let reference_common = reference
         .replace(
@@ -4204,16 +4208,16 @@ fn role_changes_local_label_and_uses_reference_links() {
             "| Local role | LOCAL_ROLE |",
         )
         .replace(
-            &format!("[CHECKLIST.md]({checklist_markdown_url})"),
-            "[CHECKLIST.md](CHECKLIST.md)",
+            &format!("[Product requirements]({requirements_url})"),
+            "[Product requirements](docs/requirements.md)",
         )
         .replace(
-            &format!("[checklist.json]({checklist_json_url})"),
-            "[checklist.json](checklist.json)",
+            &format!("[Project overview]({overview_url})"),
+            "[Project overview](README.md)",
         )
         .replace(
-            &format!("[Source facts and observation commands]({source_readme_url})"),
-            "[Source facts and observation commands](tools/visibility/README.md)",
+            &format!("[Source facts]({source_facts_url})"),
+            "[Source facts](tools/visibility/source-facts.json)",
         );
     assert_eq!(candidate_common, reference_common);
 }
@@ -4228,19 +4232,17 @@ fn reference_role_cli_renders_reference_presentation() {
     let report = output_text(&output);
     assert!(report.contains("| Local role | Reference (visual-baseline) |"));
     assert!(report.contains(
-        "[CHECKLIST.md](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/CHECKLIST.md)"
+        "[Product requirements](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/docs/requirements.md)"
     ));
     assert!(report.contains(
-        "[checklist.json](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/checklist.json)"
+        "[Project overview](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/README.md)"
     ));
     assert!(report.contains(
-        "[Source facts and observation commands](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/tools/visibility/README.md)"
+        "[Source facts](https://github.com/tailrocks/terminal-components-claude/blob/9b11039bace9333a40f578c71e2e997e1182e415/tools/visibility/source-facts.json)"
     ));
-    assert!(!report.contains("[CHECKLIST.md](CHECKLIST.md)"));
-    assert!(!report.contains("[checklist.json](checklist.json)"));
-    assert!(
-        !report.contains("[Source facts and observation commands](tools/visibility/README.md)")
-    );
+    assert!(!report.contains("[Product requirements](docs/requirements.md)"));
+    assert!(!report.contains("[Project overview](README.md)"));
+    assert!(!report.contains("[Source facts](tools/visibility/source-facts.json)"));
 }
 
 #[test]
@@ -4574,7 +4576,13 @@ fn rejects_changed_frozen_tag() {
 
     assert_eq!(output.exit_code, Some(2));
     assert!(error_text(&output).contains("frozen visual tag identity changed"));
-    assert!(!fixture.repo.root().join("STATUS.md").exists());
+    assert!(
+        !fixture
+            .repo
+            .root()
+            .join("target/visibility/STATUS.md")
+            .exists()
+    );
 }
 
 #[test]
@@ -4911,7 +4919,6 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     assert_eq!(output.exit_code, Some(0));
     let report = output_text(&output);
 
-    // Current provider source facts remain repository-level only.
     assert!(
         report.contains("## Current CI and Developer Certificate of Origin (DCO) observations")
     );
@@ -4936,7 +4943,6 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
     assert!(report.contains("**equal**"));
     assert!(report.contains("not a paired execution"));
 
-    // The superseded current report remains preserved as historical evidence.
     let historical = &facts["historical_current_status_observations"]["records"][0]["observations"];
     assert!(
         historical["branch_gate_observations"][0]["dco_check_run_id"]
@@ -4964,7 +4970,6 @@ fn current_observations_render_source_bound_branch_and_candidate_failure() {
             .is_some_and(|value| value == "NOT_RUN")
     );
 
-    // Supersession cannot promote either the old failure or current readiness.
     assert!(report.contains("| Visibility / Complete | NOT_RUN |"));
     assert!(report.contains("| Refactor / Ready | NOT_RUN |"));
     assert!(report.contains("| Reference / Qualified | NOT_RUN |"));
@@ -5444,4 +5449,182 @@ fn ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs() {
     let nonzero_suite = fixture.run(&[]);
     assert_eq!(nonzero_suite.exit_code, Some(2));
     assert!(error_text(&nonzero_suite).contains("prove zero suite check-runs"));
+}
+
+#[test]
+fn input_validation_modes_do_not_require_or_create_report_views() {
+    let fixture = StatusFixture::new();
+    let status = fixture.run(&["--validate"]);
+    assert_eq!(status.exit_code, Some(0), "{}", error_text(&status));
+    assert!(String::from_utf8_lossy(&status.stdout).contains("visibility inputs are valid"));
+
+    let queue = fixture.run_queue(&["validate"]);
+    assert_eq!(queue.exit_code, Some(0), "{}", error_text(&queue));
+    assert!(String::from_utf8_lossy(&queue.stdout).contains("queue revision"));
+    assert!(
+        !fixture
+            .repo
+            .root()
+            .join("target/visibility/STATUS.md")
+            .exists()
+    );
+    assert!(
+        !fixture
+            .repo
+            .root()
+            .join("target/visibility/WORK_QUEUE.md")
+            .exists()
+    );
+
+    let written = fixture.run(&["--write"]);
+    assert_eq!(written.exit_code, Some(0), "{}", error_text(&written));
+    let default_view = fs::read_to_string(fixture.repo.root().join("target/visibility/STATUS.md"))
+        .expect("read generated status view");
+    for link in [
+        "../../README.md",
+        "../../docs/architecture.md",
+        "../../docs/direction.md",
+        "../../docs/requirements.md",
+        "../../tools/visibility/source-facts.json",
+        "../../docs/implementation/visibility/tasks.json",
+    ] {
+        assert!(
+            default_view.contains(link),
+            "missing output-relative link {link}"
+        );
+    }
+    for retired in ["docs/README.md", "docs/design.md", "docs/plan.md"] {
+        assert!(
+            !default_view.contains(retired),
+            "retired current link {retired}"
+        );
+    }
+
+    let overridden = fixture.run(&["--write", "--output", "target/visibility/custom-status.md"]);
+    assert_eq!(overridden.exit_code, Some(0), "{}", error_text(&overridden));
+    let override_view = fs::read_to_string(
+        fixture
+            .repo
+            .root()
+            .join("target/visibility/custom-status.md"),
+    )
+    .expect("read explicitly generated status view");
+    assert!(override_view.contains("../../docs/requirements.md"));
+}
+
+#[test]
+fn status_roles_keep_current_guidance_separate_from_historical_measurement_contract() {
+    let fixture = StatusFixture::new();
+    let historical_checklist = "https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/CHECKLIST.md";
+    let historical_json = "https://github.com/tailrocks/terminal-components-claude/blob/20f2d485695991632f1ff5210d696576eb602583/checklist.json";
+    for args in [&[][..], &["--role", "reference"][..]] {
+        let output = fixture.run(args);
+        assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
+        let report = output_text(&output);
+        assert!(report.contains("[project overview](README.md)"));
+        assert!(report.contains("[architecture](docs/architecture.md)"));
+        assert!(report.contains("[direction](docs/direction.md)"));
+        assert!(report.contains("[product requirements](docs/requirements.md)"));
+        assert!(report.contains(&format!("[recorded CHECKLIST.md]({historical_checklist})")));
+        assert!(report.contains(&format!("[recorded checklist.json]({historical_json})")));
+        assert!(report.contains("The recorded measurements used the historical contract files"));
+        assert!(report.contains(
+            "Current guidance is linked above and does not replace those historical inputs."
+        ));
+        assert!(!report.contains("these are the requirements used for the recorded measurements"));
+    }
+}
+
+#[test]
+fn report_output_overrides_cannot_replace_managed_repository_inputs() {
+    let fixture = StatusFixture::new();
+    let facts_path = fixture
+        .repo
+        .root()
+        .join("tools/visibility/source-facts.json");
+    let tasks_path = fixture
+        .repo
+        .root()
+        .join("docs/implementation/visibility/tasks.json");
+    let facts_before = fs::read(&facts_path).expect("read source facts before output probes");
+    let tasks_before = fs::read(&tasks_path).expect("read accepted tasks before output probes");
+
+    let status = fixture.run(&["--write", "--output", "tools/visibility/source-facts.json"]);
+    assert_eq!(status.exit_code, Some(2));
+    assert!(error_text(&status).contains("report output must be target/visibility/<name>.md"));
+
+    let queue = fixture.run_queue(&[
+        "render",
+        "--output",
+        "docs/implementation/visibility/tasks.json",
+    ]);
+    assert_eq!(queue.exit_code, Some(2));
+    assert!(error_text(&queue).contains("report output must be target/visibility/<name>.md"));
+    assert_eq!(
+        fs::read(facts_path).expect("read source facts after output probes"),
+        facts_before
+    );
+    assert_eq!(
+        fs::read(tasks_path).expect("read tasks after output probes"),
+        tasks_before
+    );
+}
+
+#[test]
+fn product_packet_rejects_deleted_or_tampered_operational_members_and_invalid_retirement() {
+    let fixture = StatusFixture::from_checked_in_records();
+    let manifest_path = fixture.repo.root().join(
+        "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/SHA256SUMS.json",
+    );
+    let original_manifest = fs::read(&manifest_path).expect("read copied packet manifest");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&original_manifest).expect("parse copied packet manifest");
+    manifest["retired_documentation"]["path"] = serde_json::json!("docs/requirements.md");
+    let malformed = serde_json::to_vec_pretty(&manifest).expect("serialize malformed retirement");
+    fs::write(&manifest_path, &malformed).expect("write malformed retirement manifest");
+    fixture.update_packet_manifest_pin(&malformed);
+    let invalid_retirement = fixture.run(&[]);
+    assert_eq!(invalid_retirement.exit_code, Some(2));
+    assert!(error_text(&invalid_retirement).contains("retirement record changed"));
+
+    fs::write(&manifest_path, &original_manifest).expect("restore exact packet manifest");
+    fixture.update_packet_manifest_pin(&original_manifest);
+    let operational_path = fixture.repo.root().join(
+        "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/contract-source/deferred.py",
+    );
+    let original_operational =
+        fs::read(&operational_path).expect("read copied operational packet member");
+    fs::remove_file(&operational_path).expect("remove operational packet member");
+    let missing_operational = fixture.run(&[]);
+    assert_eq!(missing_operational.exit_code, Some(2));
+    assert!(
+        error_text(&missing_operational).contains("cannot be opened without following symlinks")
+    );
+
+    fs::write(&operational_path, original_operational)
+        .expect("restore copied operational packet member");
+    let tampered_path = fixture.repo.root().join(
+        "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/provenance/preflight.json",
+    );
+    let mut tampered = fs::read(&tampered_path).expect("read copied operational member");
+    tampered.push(b' ');
+    fs::write(&tampered_path, tampered).expect("tamper operational packet member");
+    let tampered_operational = fixture.run(&[]);
+    assert_eq!(tampered_operational.exit_code, Some(2));
+    assert!(error_text(&tampered_operational).contains("bytes do not match the recorded SHA-256"));
+
+    fs::write(&manifest_path, &original_manifest).expect("restore packet manifest");
+    let mut missing_manifest: serde_json::Value =
+        serde_json::from_slice(&original_manifest).expect("parse original packet manifest");
+    missing_manifest["files"]
+        .as_array_mut()
+        .expect("packet file array")
+        .remove(1);
+    let missing_manifest_bytes =
+        serde_json::to_vec_pretty(&missing_manifest).expect("serialize missing member manifest");
+    fs::write(&manifest_path, &missing_manifest_bytes).expect("write missing member manifest");
+    fixture.update_packet_manifest_pin(&missing_manifest_bytes);
+    let unlisted_operational = fixture.run(&[]);
+    assert_eq!(unlisted_operational.exit_code, Some(2));
+    assert!(error_text(&unlisted_operational).contains("must enumerate its 21 operational files"));
 }

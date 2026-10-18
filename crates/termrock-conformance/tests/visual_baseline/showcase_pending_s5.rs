@@ -1,84 +1,3 @@
-//! Showcase pending slice 8A-S5 executable checks — impl port.
-//!
-//! Ported from VB commit `68d98ac99238c8580464f238a65b0f862ecc3dbd`
-//! (`tests/harness/tests/visual_baseline/showcase_pending_s5.rs`), adapting
-//! only paths, binary resolution, harness API, and the isolated
-//! component-path translation:
-//!
-//! - `Session` is the impl [`support::Session`] wrapper (live samples via
-//!   `s.inner.observe_now()` / `s.inner.snapshot()`), not
-//!   `tuiscotti::tui::Session` directly.
-//! - The subject is the binary built from this impl worktree's sources,
-//!   resolved via [`support::try_resolve_bin`] (name -> executed path +
-//!   sha256); [`write_provenance`] records path, digest, size, mtime, and
-//!   argv behind each check.
-//! - `support::frame_from_screen` (VB helper over `Provenance`) becomes
-//!   `tuiscotti::render::frame_from_screen` (provenance `"default"`).
-//! - Isolated `junie_tui` in-process renders (`HintBar`, `HintLayer`,
-//!   `keyhint`, `DataGrid`, `CodeEditor`, `DiffView`, `TextViewport`,
-//!   `ScrollPanel`, `scrollbar`, `ScrollState`) become the established impl
-//!   component path: `Runtime` + `Stub` + `draw_scene` with
-//!   `ui.reference` state injection for inert paint, and `Harness` apps
-//!   for interaction. `Outcome` assertions become draw/behavior
-//!   correlates (flow, committed values, re-rendered glyphs, selection
-//!   paint, actions): `Changed` is `Consumed` plus the asserted effect,
-//!   caller-owned validation stays caller-owned, and caller-owned label
-//!   composition (position labels, pending breakdowns) is mirrored from
-//!   the owning page and asserted through the component facts it reads.
-//!
-//! One ignored test per S5 registry row (14 rows: the last 14 unrun
-//! showcase rows in registry order after S4 — the 3 FEEDBACK hint rows
-//! plus the 11 DATA-VIEWS rows), over the real binaries built from this
-//! worktree's impl sources and over the real production components
-//! rendered headless. Each test executes its row's listed adapters
-//! (`headless-tick`, `pty-capture`, or both) and asserts its visual (V),
-//! state (S), action (A), and negative (N) checks in executable form:
-//!
-//! - Isolated path: the production component renders into a `·`-sentinel
-//!   buffer (any 1-cell overflow fails the surround check), so glyphs,
-//!   tones, bold, widths, hit regions, focus-ring stops, and actions are
-//!   asserted exactly.
-//! - PTY path: the live app boots the row's page and drives the row's
-//!   inputs; V cells are probed live (needles plus fg/bg/bold cell
-//!   reads), S labels are read live, A outcomes are proven by their
-//!   screen correlates (moved, committed, reverted, byte-identical),
-//!   since PTY cannot see the action, and every N absence is paired with
-//!   a presence proof in the same test so no absence passes vacuously.
-//!
-//! One row is PTY-only by construction: TERM-RUN-001 (the stage engine,
-//! reset, and advance live in the showcase binary's terminal page).
-//! None of it is importable from this conformance crate, so no headless
-//! path exists for it; every one of its checks has a live-PTY executable
-//! form instead.
-//!
-//! No new snapshots and no new static captures: every S5 row already has
-//! approved frames gated cell-exact by the ported matrices (`showcase.rs`,
-//! `pointer.rs`, `audit.rs`), so every case here uses owned (dynamic)
-//! names and stays out of the `snapshots/` inventory.
-//!
-//! Per-test scratch lands under this conformance crate's
-//! `target/tuiscotti/journeys/<test>/` (gitignored): the row's named
-//! checkpoint(s) as text frames, `provenance.txt` (binary path, digest,
-//! size, mtime, argv), and `isolated-*.json` (headless captures). Typed
-//! input is synthetic and in-memory only (simulation data).
-//!
-//! Row → test map (registry id → `s5_*` test):
-//!
-//! - HB-LAYERS-001 → [`s5_hint_layers`]
-//! - KH-STATUS-001 → [`s5_keyhint_status`]
-//! - KH-DROP-002 → [`s5_keyhint_drop`]
-//! - GRID-EDIT-001 → [`s5_grid_edit`]
-//! - GRID-PENDING-002 → [`s5_grid_pending`]
-//! - GRID-COMMIT-003 → [`s5_grid_commit`]
-//! - CODE-EDIT-001 → [`s5_code_edit`]
-//! - CODE-RUN-002 → [`s5_code_run`]
-//! - DIFF-UNIFIED-001 → [`s5_diff_unified`]
-//! - DIFF-REVIEW-002 → [`s5_diff_review`]
-//! - TERM-RUN-001 → [`s5_term_run`] (PTY-only)
-//! - TERM-FOLLOW-002 → [`s5_term_follow`]
-//! - SCROLL-REGION-001 → [`s5_scroll_region`]
-//! - SCROLL-TRACK-002 → [`s5_scroll_track`]
-
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -107,13 +26,10 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, SHOWCASE};
 
-/// Boot needle: the fully-rendered shell header on every showcase page.
 const BOOT: &str = "Junie Design system";
 
-/// The VB oracle commit this file ports.
 const PORT_OF: &str = "68d98ac99238c8580464f238a65b0f862ecc3dbd";
 
-/// Owned-name S5 case at the row's viewport (truecolor, like every S5 row).
 fn s5_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> Case {
     Case::dynamic(
         format!("journeys/showcase/s5/{slug}"),
@@ -126,7 +42,6 @@ fn s5_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> C
     )
 }
 
-/// Unique scratch dir for one S5 test (created, never shared).
 fn s5_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -135,14 +50,10 @@ fn s5_dir(test: &str) -> PathBuf {
     dir
 }
 
-/// Record the binary identity: resolved absolute path, sha256 digest, byte size, mtime, argv.
-/// Written to `provenance.txt`, echoed too (the build-identity record).
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
 
-/// [`write_provenance`] with an explicit filename, for multi-session tests
-/// where each session's argv deserves its own record.
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
         support::try_resolve_bin(case.bin).unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
@@ -162,7 +73,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     eprintln!("s5 provenance ({file}): {body}");
 }
 
-/// Save the live screen text as `<name>.txt` in the test dir.
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -183,7 +93,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-/// One fresh live text sample (no wait).
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -192,8 +101,6 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-/// One fresh live frame with cell colors (no wait). Provenance is
-/// informational only (excluded from digests).
 fn live_frame(s: &mut Session) -> Frame {
     let screen = s
         .inner
@@ -202,7 +109,6 @@ fn live_frame(s: &mut Session) -> Frame {
     frame_from_screen(&screen, "default")
 }
 
-/// Poll until two consecutive samples agree (bounded, fail-closed).
 fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     let deadline = std::time::Instant::now() + timeout;
     let mut prev = live_text(s);
@@ -220,7 +126,6 @@ fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     }
 }
 
-/// First occurrence of `needle` as `(row, col)`, waiting until it appears.
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
         s,
@@ -231,7 +136,6 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-/// Primary-button click on `needle`'s cell (split press + release).
 fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     Input::down(MouseButton::Left, col, row).send(s);
@@ -240,7 +144,6 @@ fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     (row, col)
 }
 
-/// `notches` wheel steps over `needle`'s cell, paced like a send step.
 fn wheel_over(
     s: &mut Session,
     needle: &str,
@@ -253,8 +156,6 @@ fn wheel_over(
     (row, col)
 }
 
-/// `notches` wheel steps at fixed `(col, row)` — the stance-probe form,
-/// used when the needle may have scrolled off-screen.
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
@@ -262,22 +163,16 @@ fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     }
 }
 
-/// Type literal `text` into the live session, paced like a send step.
 fn type_text(s: &mut Session, text: &str) {
     s.type_text(text).expect("type_text");
     std::thread::sleep(Duration::from_millis(120));
 }
 
-/// Press one key, paced like a send step: sequential unpaced presses
-/// overrun the app's per-frame input drain, so every live key goes
-/// through here (the `drive` vocabulary keeps its own pacing).
 fn press(s: &mut Session, key: &str) {
     support::press_step(s, key);
     std::thread::sleep(Duration::from_millis(120));
 }
 
-/// Tab until the footer shows `needle` (bounded): the focus-seeking form
-/// for pages whose tab order is asserted hop by hop.
 fn tab_until(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
     let deadline = std::time::Instant::now() + timeout;
     for _ in 0..8 {
@@ -297,12 +192,6 @@ fn tab_until(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
     );
 }
 
-/// Wait (bounded) for `needle` to leave the screen, WITHOUT the
-/// presence gate: for closings whose presence the preceding asserts
-/// already proved on a settled screen. `wait_gone` re-samples presence
-/// first, so a dialog Esc-closed 120 ms earlier (every `press` settles)
-/// fails it vacuously — the open-wait plus content asserts above are the
-/// presence proof, this is only the expiry.
 fn wait_absent(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
     support::wait_screen(
         s,
@@ -312,7 +201,6 @@ fn wait_absent(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
     );
 }
 
-/// Assert one screen line contains both `needle` and `also`.
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
@@ -320,7 +208,6 @@ fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-/// Assert no screen line contains both `needle` and `also`.
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         !text.lines().any(|l| l.contains(needle) && l.contains(also)),
@@ -328,9 +215,6 @@ fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-/// Resize and wait for the new geometry, then let the app redraw: the
-/// emulator reports the size before the app repaints (~300 ms), so a bare
-/// geometry wait can observe the blank post-resize frame.
 fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     s.resize(cols, rows).expect("resize");
     support::wait_screen(
@@ -342,10 +226,6 @@ fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     std::thread::sleep(Duration::from_millis(700));
 }
 
-// ------------------------------------------------------- isolated harness --
-
-/// Buffer pre-filled with `·` sentinels; the component renders into a
-/// sub-area and every cell outside must still be `·` (no 1-cell overflow).
 fn sentinel_buf(cols: u16, rows: u16) -> Buffer {
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
     for y in 0..rows {
@@ -384,10 +264,6 @@ fn buf_is_bold(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::BOLD)
 }
 
-/// One inert component-path render into a sentinel buffer: `ticks`
-/// animation ticks delivered first, then one `draw_scene` with `target`
-/// injected via `ui.reference` (the `Interaction` equivalent: focus,
-/// hover, press owned by the runtime, semantic state by props).
 fn render_isolated(
     cols: u16,
     rows: u16,
@@ -414,8 +290,6 @@ fn render_isolated(
     buf
 }
 
-/// Colour conversion mirroring `tuiscotti::ratatui` (private there): named
-/// ANSI colours become their palette index, the rest map one-to-one.
 fn convert_color(c: RColor) -> TColor {
     match c {
         RColor::Reset => TColor::Default,
@@ -440,7 +314,6 @@ fn convert_color(c: RColor) -> TColor {
     }
 }
 
-/// Modifier conversion mirroring `tuiscotti::ratatui` (private there).
 fn convert_mods(m: Modifier) -> Mods {
     Mods {
         hidden: m.contains(Modifier::HIDDEN),
@@ -459,10 +332,6 @@ fn convert_mods(m: Modifier) -> Mods {
     }
 }
 
-/// Capture a candidate buffer through the component path. The conversion
-/// mirrors `tuiscotti::ratatui::from_buffer` (wide cells, continuations,
-/// cursor-less): empty symbols become continuation followers, wide symbols
-/// emit a lead plus a follower (downgraded at the exact row end).
 fn capture_buffer(buf: &Buffer) -> Frame {
     let cols = buf.area.width;
     let rows = buf.area.height;
@@ -533,7 +402,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-/// Headless capture plus JSON evidence in the test dir.
 fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     let frame = capture_buffer(buf);
     std::fs::write(
@@ -545,8 +413,6 @@ fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     frame
 }
 
-/// Cell column of `needle`'s first occurrence in `line` (char-based: byte
-/// offsets lie when multibyte sentinels or glyphs precede the needle).
 fn char_col(line: &str, needle: &str) -> u16 {
     let byte = line
         .find(needle)
@@ -554,8 +420,6 @@ fn char_col(line: &str, needle: &str) -> u16 {
     line[..byte].chars().count() as u16
 }
 
-/// One `key label` hint pair (the VB `hint()` helper's component-path form:
-/// descriptive keycaps declare no routing chord).
 fn s5_hint(key: &'static str, label: &'static str) -> Hint {
     Hint {
         key: HintKey::Label(key),
@@ -564,15 +428,6 @@ fn s5_hint(key: &'static str, label: &'static str) -> Hint {
     }
 }
 
-/// HB-LAYERS-001 (`showcase/pages/chrome`, 80x24): the shell-owned hint
-/// surface — layer precedence, the zoom badge, and the pinned status.
-///
-/// Isolated path proves [`HintBar::resolve`] order (menu › context ›
-/// screen › empty), the badge-preserving layer, the menu row's exact
-/// glyphs, and the single-row shape (a modal wins the one row; there is
-/// no second row to paint). Live path boots the chrome page, focuses the
-/// bar (bar layer), opens the View menu (menu layer), and chooses Zoom
-/// pane (badge + status, screen layer restored).
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_hint_layers() {
@@ -610,7 +465,6 @@ fn s5_hint_layers() {
         centered: false,
     };
 
-    // S1: resolve takes the first present layer: menu, context, screen.
     assert_eq!(
         HintBar::resolve(&[Some(&menu), Some(&context), Some(&screen)]),
         Some(&menu),
@@ -635,7 +489,7 @@ fn s5_hint_layers() {
         HintLayer::empty().is_empty(),
         "S1: the empty fallback contributes nothing"
     );
-    // S2: zooming adds the badge without changing the hints.
+
     let zoomed = HintLayer {
         badge: Some("ZOOM"),
         ..screen.clone()
@@ -643,7 +497,6 @@ fn s5_hint_layers() {
     assert_eq!(zoomed.hints, screen.hints, "S2: badge keeps the hints");
     assert_eq!(zoomed.status, screen.status, "S2: badge keeps the status");
 
-    // V1/V2 render form: the menu row's glyphs plus the badge lead.
     let buf = render_isolated(80, 3, 0, None, |ui, _| {
         HintBar::new(Id::root("s5.hint"), &menu).draw(ui, Rect::new(0, 1, 80, 1));
     });
@@ -678,25 +531,23 @@ fn s5_hint_layers() {
     );
     assert_surround_intact(&buf, area, "N1: one row only");
 
-    // PTY: base → bar layer → menu layer → zoomed screen layer.
     let case = s5_case("hint_layers", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "base");
     let (base_row, _) = find_pos(&mut s, "last: nothing yet", case_timeout(&case));
-    // Row 21, not 23: the page footer sits two rows up while the app's
-    // own hint bar owns the bottom row.
+
     assert_eq!(base_row, 21, "N2: the footer sits above the app hints");
     let base = live_text(&mut s);
     assert!(
         base.contains("Context menu"),
         "base: screen hints render (presence)"
     );
-    // A2: focus on the menu bar swaps to the bar layer.
+
     press(&mut s, "tab");
     waits::wait_state(&mut s, "← → Menu", "A2 live: bar layer swaps in");
     checkpoint(&mut s, &dir, "bar-focused");
-    // V1 live: an open menu swaps the footer to the menu layer.
+
     press(&mut s, "enter");
     waits::wait_state(&mut s, "New tab", "File menu never opened");
     press(&mut s, "right");
@@ -709,11 +560,9 @@ fn s5_hint_layers() {
     );
     let open = live_text(&mut s);
     assert_line_has(&open, "Switch menu", "Close", "V1 live: menu layer");
-    // A1 + V2 + S2 live: choosing Zoom pane closes the menu (screen layer
-    // back), adds the badge, and keeps the hints and the right edge.
+
     press(&mut s, "enter");
-    // Choosing leaves focus on the bar, whose layer carries no status —
-    // one tab (any non-bar stop) restores the screen layer with `last:`.
+
     press(&mut s, "tab");
     waits::wait_state(&mut s, "last: View › Zoom pane", "A1 live: choice records");
     checkpoint(&mut s, &dir, "zoomed");
@@ -723,8 +572,7 @@ fn s5_hint_layers() {
         "N2: the footer never moves between layers"
     );
     let zoomed_text = live_text(&mut s);
-    // The badge steals the room `Context menu` needs, so the footer
-    // keeps the first hint, marks the cut, and holds the right edge.
+
     assert_line_has(
         &zoomed_text,
         "ZOOM",
@@ -739,15 +587,6 @@ fn s5_hint_layers() {
     eprintln!("s5 hint_layers: resolve order + live base/bar/menu/zoom footer");
 }
 
-/// KH-STATUS-001 (`showcase/pages/chrome`, 80x24): the toned status that
-/// keeps the right edge of the hint row.
-///
-/// Isolated path renders [`HintBar`] with toned readiness into sentinel
-/// buffers: error/warning marks with bold mark cells in tone, the plain
-/// secondary form, the mark-follows-readiness table, the width-plus-3
-/// hint reservation, and the only-the-mark-is-bold scan. Live path boots
-/// the chrome page, runs two menu actions (status replacement), and
-/// clicks the status (no input: byte-identical screen).
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_keyhint_status() {
@@ -761,9 +600,6 @@ fn s5_keyhint_status() {
         centered: false,
     };
 
-    // V1: an error status renders `! message` in error with a bold mark;
-    // a warning renders `▲ message`. (Tone arrives through the bar's
-    // readiness prop; the layer owns only the text.)
     let layer = toned("disk low");
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         HintBar::new(Id::root("s5.hint"), &layer)
@@ -794,10 +630,7 @@ fn s5_keyhint_status() {
     );
     assert_surround_intact(&buf, area, "V1: containment");
     capture_isolated(&dir, "keyhint-error", &buf);
-    // The pr17 `Status::Warning` "▲ disk low" case is dropped: the target
-    // `Status` has no Warning variant (Ready/Busy/Loading/Error only).
-    // V2 + N1: a plain secondary status renders unmarked in its tone and
-    // never carries ▲ or !.
+
     let layer = toned("last: View › Zoom pane");
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         HintBar::new(Id::root("s5.hint"), &layer).draw(ui, Rect::new(0, 1, 60, 1));
@@ -821,9 +654,7 @@ fn s5_keyhint_status() {
         (status_x..60).all(|x| !buf_is_bold(&buf, x, 1)),
         "N2: no bold anywhere in a plain status"
     );
-    // S1: the mark follows the readiness: Error !, Ready none,
-    // Busy/Loading a spinner frame. (pr17's `Warning ▲` is dropped — the
-    // target `Status` has no Warning variant.)
+
     let spinner: &str = t.design.motion.spinner_frames[0];
     for (status, mark) in [(Status::Error, Some("!")), (Status::Ready, None)] {
         let layer = toned("msg");
@@ -860,8 +691,7 @@ fn s5_keyhint_status() {
             "S1: {status:?} spins before the message\n{row:?}"
         );
     }
-    // S2: the status reserves its width plus 3 from the hint limit — the
-    // hint block ends where the status reservation begins, never under it.
+
     let many = HintLayer {
         hints: vec![
             s5_hint("↑↓", "Move"),
@@ -903,9 +733,7 @@ fn s5_keyhint_status() {
         80 - w - 1,
         "S2: the status pins the right edge minus one"
     );
-    // The reservation is status + 3: complete hints stop 3 cells shy
-    // (`limit`), but the cut marker may spend the last two, so the block
-    // as drawn ends exactly where the status begins.
+
     let limit = 80 - (w + 3);
     let head: String = row.chars().take(status_x as usize).collect();
     let hint_end = head
@@ -921,8 +749,6 @@ fn s5_keyhint_status() {
         "S2: the complete-hint limit ({limit}) stays shy of the status"
     );
 
-    // PTY: plain secondary status at boot, replaced by each menu action,
-    // and the status line takes no input.
     let case = s5_case("keyhint_status", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -933,7 +759,7 @@ fn s5_keyhint_status() {
         "V2 live: plain secondary status at boot"
     );
     assert_line_lacks(&boot, "last:", "▲", "N1 live: no warning mark");
-    // A2 live: a new menu action replaces the status text.
+
     press(&mut s, "tab");
     waits::wait_state(&mut s, "← → Menu", "menu bar never focused");
     press(&mut s, "enter");
@@ -941,9 +767,7 @@ fn s5_keyhint_status() {
     checkpoint(&mut s, &dir, "menu-open");
     press(&mut s, "enter");
     checkpoint(&mut s, &dir, "after-choose");
-    // The choose lands (menu closes, app status shows it) but focus
-    // stays on the bar, whose layer carries no `last:` — one tab onto
-    // any other stop restores the screen layer with the status.
+
     press(&mut s, "tab");
     waits::wait_state(
         &mut s,
@@ -972,7 +796,7 @@ fn s5_keyhint_status() {
         !replaced.contains("New tab"),
         "A2 live: the old status is gone"
     );
-    // A1 live: the status line takes no input — clicking it changes nothing.
+
     let before = settle_text(&mut s, case_timeout(&case), "A1 steady");
     let before_frame = live_frame(&mut s);
     click_at(&mut s, "last:", case_timeout(&case));
@@ -990,16 +814,6 @@ fn s5_keyhint_status() {
     eprintln!("s5 keyhint_status: toned marks + live replace + no-input click");
 }
 
-/// KH-DROP-002 (`showcase/pages/chrome`, 72x20): narrow drop, badge,
-/// centered rows, and containment.
-///
-/// Isolated path renders [`HintBar`] into sentinel buffers:
-/// drop-from-the-right with the faint `…`, the leading badge block,
-/// centered mid-row measurement with badge/status clamps, the drawn
-/// count with its 2-cell cut reserve, and the 1..16-cell containment
-/// sweep. Live path boots the chrome page at 72x20 (dropped hints +
-/// `…`), zooms for the badge, clicks the row (no input), and widens to
-/// 120x30 (dropped hints redrawn).
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_keyhint_drop() {
@@ -1019,14 +833,12 @@ fn s5_keyhint_drop() {
         centered: false,
     };
 
-    // V1: hints drop from the right and a faint … marks the cut.
     let buf = render_isolated(30, 3, 0, None, |ui, _| {
         HintBar::new(Id::root("s5.hint"), &layer).draw(ui, Rect::new(0, 1, 30, 1));
     });
     let area = Rect::new(0, 1, 30, 1);
     let row = buf_row_text(&buf, 1);
-    // S1: exactly the first two hints draw (the drawn-count correlate:
-    // head present, mid and tail absent, cut marked).
+
     assert!(
         row.contains("Enter")
             && row.contains("Open")
@@ -1054,7 +866,7 @@ fn s5_keyhint_drop() {
     );
     assert_surround_intact(&buf, area, "N1: containment");
     capture_isolated(&dir, "keyhint-drop", &buf);
-    // V2: a badge renders as ` TEXT ` leading; centered rows sit mid-row.
+
     let badged = HintLayer {
         badge: Some("ZOOM"),
         status: Some("last: View › Zoom pane".into()),
@@ -1069,8 +881,7 @@ fn s5_keyhint_drop() {
         unmarked.starts_with(" ZOOM "),
         "V2: the badge leads\n{row:?}"
     );
-    // The sentinel row has one unpainted cell past the status (the
-    // status pins right-edge-minus-one); trim sentinels, not content.
+
     let drawn = row.trim_end().trim_end_matches('·');
     assert!(
         drawn.ends_with("last: View › Zoom pane"),
@@ -1084,7 +895,7 @@ fn s5_keyhint_drop() {
         HintBar::new(Id::root("s5.hint"), &centered).draw(ui, Rect::new(0, 0, 72, 1));
     });
     let row = buf_row_text(&buf, 0);
-    // Byte indices lie past multibyte separators — measure in cells.
+
     let first_b = row.find("Enter").unwrap();
     let last_b = row.rfind("Cancel").unwrap() + "Cancel".len();
     let first = row[..first_b].chars().count();
@@ -1094,7 +905,7 @@ fn s5_keyhint_drop() {
         (first as i32 - (72 - last) as i32).abs() <= 3,
         "V2: centered rows sit mid-row\n{row:?}"
     );
-    // S2: centered start clamps between the badge and the status.
+
     let tight = HintLayer {
         badge: Some("ZOOM"),
         status: Some("last: View › Zoom pane".into()),
@@ -1131,7 +942,7 @@ fn s5_keyhint_drop() {
         block_end <= status_x,
         "N2: centered block never slides under the status\n{row:?}"
     );
-    // N1: nothing paints outside the assigned area at any width.
+
     for width in 1..16u16 {
         let area = Rect::new(2, 1, width, 1);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
@@ -1162,7 +973,6 @@ fn s5_keyhint_drop() {
         }
     }
 
-    // PTY: narrow boot drops hints, zoom adds the badge, widen redraws.
     let case = s5_case("keyhint_drop", &["--page", "chrome"], 72, 20);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1176,8 +986,7 @@ fn s5_keyhint_drop() {
     press(&mut s, "right");
     waits::wait_state(&mut s, "Zoom pane", "View menu never opened");
     press(&mut s, "enter");
-    // Choosing leaves the bar layer (no cut there) — one tab restores
-    // the narrow screen layer where the badge and the cut meet.
+
     press(&mut s, "tab");
     waits::wait_state(&mut s, "ZOOM", "V2 live: zoom badge never led");
     let zoomed = live_text(&mut s);
@@ -1188,12 +997,12 @@ fn s5_keyhint_drop() {
         "V2 live: badge leads, cut stays marked",
     );
     checkpoint(&mut s, &dir, "narrow-zoomed");
-    // A1 live: the hint row takes no input at any width.
+
     let before = settle_text(&mut s, case_timeout(&case), "A1 steady");
     click_at(&mut s, "ZOOM", case_timeout(&case));
     let after = settle_text(&mut s, case_timeout(&case), "A1 steady");
     assert_eq!(after, before, "A1 live: clicking the row changes nothing");
-    // A2 live: widening the terminal redraws the dropped hints.
+
     resize_to(&mut s, 120, 30, case_timeout(&case));
     waits::wait_state(&mut s, "right-click", "A2 live: dropped hints never redrew");
     checkpoint(&mut s, &dir, "widened");
@@ -1207,8 +1016,6 @@ fn s5_keyhint_drop() {
     eprintln!("s5 keyhint_drop: narrow drop + badge + widen redraw");
 }
 
-// ------------------------------------------------------------- grid rig --
-
 const S5_GRID: Id = Id::root("s5.grid");
 
 const S5_COL_CUSTOMER: usize = 1;
@@ -1218,9 +1025,6 @@ const S5_COL_ACTIVE: usize = 5;
 const S5_COL_RENEWED: usize = 6;
 const S5_COL_NOTES: usize = 7;
 
-/// Page-shaped grid columns (the customers table: id primary read-only,
-/// mrr read-only, the rest writable). Widths mirror the datagrid page's
-/// sampled `COLUMNS`.
 const S5_COLUMNS: [Column<'static>; 8] = [
     Column {
         key: ColumnKey::num(0),
@@ -1328,7 +1132,6 @@ const S5_COLUMNS: [Column<'static>; 8] = [
     },
 ];
 
-/// The row's grid with the datagrid page's own props.
 fn s5_grid() -> Grid<'static> {
     Grid::new(S5_GRID, &S5_COLUMNS)
         .nav(NavUnit::Cell)
@@ -1344,7 +1147,6 @@ fn s5_grid() -> Grid<'static> {
         .fetch_label("Enter fetches more")
 }
 
-/// One stored cell: ghost cells (`NULL`, `DEFAULT`) read muted italic.
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct S5Cell {
     text: String,
@@ -1367,7 +1169,6 @@ impl S5Cell {
     }
 }
 
-/// One clean customer record; pending edits overlay it by id.
 #[derive(Clone, Debug)]
 struct S5Record {
     id: u64,
@@ -1400,9 +1201,6 @@ struct S5Snapshot {
     next_key: u64,
 }
 
-/// The row's customer model: the datagrid page's `CustomerModel` queue
-/// semantics (keyed records, pending overlay, undoable snapshots) over a
-/// fixed row set with a configurable total.
 #[derive(Clone, Debug)]
 struct S5GridModel {
     records: HashMap<u64, S5Record>,
@@ -1474,7 +1272,6 @@ impl S5GridModel {
         self.records.get(&id)?.cells.get(col)
     }
 
-    /// Set a pending value; reverting to the stored value clears the change.
     fn record_cell(&mut self, row: usize, col: usize, value: S5Cell) {
         let Some(id) = self.id_at(row) else {
             return;
@@ -1527,7 +1324,6 @@ impl S5GridModel {
             self.cells.retain(|(kept, _), _| *kept != id);
             self.row_errors.remove(&id);
         } else if self.deleted.remove(&id) {
-            // re-queued rows come back clean of cell edits, like the page.
         } else {
             self.deleted.insert(id);
             self.cells.retain(|(kept, _), _| *kept != id);
@@ -1579,7 +1375,6 @@ impl S5GridModel {
         true
     }
 
-    /// Fold the queue into the clean records (the clean-commit correlate).
     fn commit_ok(&mut self) {
         for ((id, col), value) in std::mem::take(&mut self.cells) {
             if let Some(record) = self.records.get_mut(&id)
@@ -1603,7 +1398,6 @@ impl S5GridModel {
         }
     }
 
-    /// (updated rows, inserted rows, deleted rows).
     fn counts(&self) -> (usize, usize, usize) {
         let updates = self
             .cells
@@ -1710,10 +1504,6 @@ impl GridModel for S5GridModel {
     fn has_more(&self) -> bool {
         self.more
     }
-
-    // pr17's `pending_count`/`pending_breakdown`/`row_error` are not in the
-    // target `GridModel`; the queue facts stay on the concrete model and the
-    // owning page composes them.
 }
 
 fn s5_validate_cell(col: usize, text: &str) -> Result<S5Cell, FieldError> {
@@ -1863,7 +1653,6 @@ impl GridEditor for S5GridModel {
     }
 }
 
-/// Editable grid rig: the row's model plus the action log.
 struct S5GridApp {
     state: GridState,
     model: S5GridModel,
@@ -1883,7 +1672,6 @@ impl S5GridApp {
         }
     }
 
-    /// The cursor as `(row, col)` display indices.
     fn cursor(&self) -> Option<(usize, usize)> {
         let (key, col) = self.state.cursor()?;
         let row = self
@@ -1916,27 +1704,14 @@ impl App for S5GridApp {
     }
 }
 
-/// GRID-EDIT-001 (`showcase/flows/datagrid/selected`, 80x24): the
-/// customers cell cursor plus the inline cell editor.
-///
-/// Isolated path drives a page-shaped [`Grid`]: the estimated-total
-/// position label, the cursor-row gutter, edit entry with the cell
-/// draft text, validator-gated commit folding into the pending queue,
-/// inline Bool toggles, Tab commit-and-advance past read-only/primary
-/// columns, and the read-only/deleted/invalid negatives. Live path boots
-/// the datagrid page, moves the cursor, edits a customer cell, toggles a
-/// Bool inline, and proves the id column and bad numbers never commit.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_grid_edit() {
     let dir = s5_dir("s5_grid_edit");
 
-    // V1 headless: the cursor cell is highlighted and the meta reads the
-    // estimated total.
     let model = S5GridModel::with_rows(40, RowTotal::Estimated(4_812), true);
     let state = GridState::default();
-    // Target API: `rows_label` is a frame-phase helper over a `FrameRead`
-    // (`rows_label_for` does not exist), so it composes inside a render.
+
     let _buf = render_isolated(80, 12, 0, None, |ui, _| {
         assert_eq!(
             s5_grid().rows_label(ui, &state, &model),
@@ -1971,7 +1746,6 @@ fn s5_grid_edit() {
     );
     assert!(!other_marked, "V1: only the cursor row is marked\n{text}");
 
-    // S1: Enter on a writable cell opens the editor with the cell draft.
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
         Theme::junie(),
@@ -2005,8 +1779,7 @@ fn s5_grid_edit() {
         Some("Customer 0"),
         "S1: the cell draft text"
     );
-    // S2/V2: typing commits through the validator and folds pending (the
-    // `CellChanged` correlate: editor closed, pending holds the value).
+
     let _ = app.type_str(" Jr");
     assert_eq!(
         app.app().state.edit_draft(),
@@ -2021,7 +1794,7 @@ fn s5_grid_edit() {
         Some("Customer 0 Jr"),
         "V2: commit repaints the typed value"
     );
-    // A1: Bool cells toggle inline without opening the editor.
+
     for _ in 0..4 {
         let _ = app.key(KeyCode::Right);
     }
@@ -2041,8 +1814,7 @@ fn s5_grid_edit() {
         Some("false"),
         "A1: the toggle queues false"
     );
-    // A2: Tab commits then opens the next writable cell, skipping
-    // read_only and primary columns.
+
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
         Theme::junie(),
@@ -2067,8 +1839,7 @@ fn s5_grid_edit() {
         app.app().state.is_editing(),
         "A2: Tab opens the next editor"
     );
-    // From seats (3), Tab skips the read_only mrr (4) into active (5),
-    // whose inline toggle runs instead of an editor.
+
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
         Theme::junie(),
@@ -2091,8 +1862,7 @@ fn s5_grid_edit() {
         Some("false"),
         "A2: the skipped-into Bool toggles inline"
     );
-    // N1: Enter on a read_only column or a queued-for-deletion row must
-    // NOT open the editor.
+
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
         Theme::junie(),
@@ -2128,8 +1898,7 @@ fn s5_grid_edit() {
         !app.app().state.is_editing(),
         "N1: Enter on a queued-for-deletion row opens nothing"
     );
-    // N2: a failed validation must NOT fold pending: the editor stays
-    // open with the error.
+
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
         Theme::junie(),
@@ -2152,7 +1921,6 @@ fn s5_grid_edit() {
     );
     assert_eq!(app.app().model.pending_total(), 0, "N2: nothing queues");
 
-    // PTY: move, edit, commit, toggle, refuse.
     let case = s5_case("grid_edit", &["--page", "datagrid"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2192,9 +1960,7 @@ fn s5_grid_edit() {
         committed.contains("Blue Yonder Airlines Jr"),
         "V2 live: commit repaints the typed value"
     );
-    // A1 live: a Bool cell toggles inline — pending grows, no editor
-    // opens. The queue counts dirty ROWS, so the toggle moves down one
-    // row first: same-row edits would keep reporting `1 pending`.
+
     press(&mut s, "down");
     for _ in 0..4 {
         press(&mut s, "right");
@@ -2206,7 +1972,7 @@ fn s5_grid_edit() {
         !toggled.contains("Next cell"),
         "A1 live: no editor opens for Bool"
     );
-    // N1 live: Enter on the read_only id column opens nothing.
+
     press(&mut s, "home");
     press(&mut s, "enter");
     let refused = settle_text(&mut s, case_timeout(&case), "N1 steady");
@@ -2214,7 +1980,7 @@ fn s5_grid_edit() {
         !refused.contains("Next cell") && refused.contains("2 pending"),
         "N1 live: the id column refuses the editor"
     );
-    // N2 live: a bad number never commits — the editor stays open.
+
     press(&mut s, "right");
     press(&mut s, "right");
     press(&mut s, "right");
@@ -2236,25 +2002,11 @@ fn s5_grid_edit() {
     eprintln!("s5 grid_edit: cursor + inline editor + toggle + refusals");
 }
 
-/// GRID-PENDING-002 (`showcase/flows/datagrid/preview`, 80x24): the
-/// pending-change queue plus the Preview SQL dialog.
-///
-/// Isolated path drives a page-shaped [`Grid`]: `record_cell` queuing
-/// with revert-to-stored clearing, inserted-row deletion removing the
-/// row entirely, undo/discard queue ops, and discard clearing only the
-/// queue. (The pr17 Grid's pending bar and its
-/// `PreviewRequested`/`DiscardRequested`/`CommitRequested` actions are not
-/// in the target Grid — the bar is page-owned — so the bar-button checks
-/// are asserted as model queue facts; `p`/`u`/`U` are page-keymap
-/// bindings, proven live.) Live path
-/// replays the matrix `GRID_EDITS` (seats 600/12), inserts and deletes a
-/// row, previews the SQL dialog, undoes one change, and discards the rest.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_grid_pending() {
     let dir = s5_dir("s5_grid_pending");
 
-    // S1: record_cell queues values; reverting to the stored value clears.
     let mut model = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
     model.record_cell(0, 3, S5Cell::plain("600"));
     assert_eq!(model.counts(), (1, 0, 0), "S1: one change queues");
@@ -2270,7 +2022,7 @@ fn s5_grid_pending() {
         S5RowState::Clean,
         "S1: the row reads Clean again"
     );
-    // S2: deleting an inserted row removes it entirely instead of queueing.
+
     let len = model.len();
     let id = model.insert_row();
     assert_eq!(model.len(), len + 1, "S2: the row exists");
@@ -2278,26 +2030,21 @@ fn s5_grid_pending() {
     model.toggle_delete(len);
     assert_eq!(model.len(), len, "S2: the inserted row is gone entirely");
     assert_eq!(model.pending_total(), 0, "S2: no delete queues");
-    // V1/A1/A2 headless adapted: pr17's Grid rendered a pending bar and
-    // emitted `PreviewRequested`/`DiscardRequested`/`CommitRequested`; the
-    // target Grid has none of those (no preview_id/discard_id/save_id, no
-    // such actions) — the pending bar is page-owned. The queue facts the
-    // bar reported are asserted on the concrete model instead.
+
     model.record_cell(0, 3, S5Cell::plain("600"));
     assert_eq!(
         model.counts(),
         (1, 0, 0),
         "V1: the queue the bar would count"
     );
-    // A1: `u` undoes one queued change: drive through the model queue the
-    // page's `u` binding owns (unit correlate).
+
     let mut queued = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
     queued.record_cell(0, 3, S5Cell::plain("600"));
     queued.record_cell(1, 3, S5Cell::plain("12"));
     assert_eq!(queued.pending_total(), 2, "A1: two changes queue");
     assert!(queued.undo(), "A1: u runs");
     assert_eq!(queued.pending_total(), 1, "A1: u undoes one queued change");
-    // N2: discard clears only the queue — committed rows are untouched.
+
     let mut model = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
     model.record_cell(0, 3, S5Cell::plain("600"));
     model.insert_row();
@@ -2312,7 +2059,6 @@ fn s5_grid_pending() {
         "N2: stored values are untouched"
     );
 
-    // PTY: the matrix GRID_EDITS plus insert, delete, preview, undo, discard.
     let case = s5_case("grid_pending", &["--page", "datagrid"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2337,9 +2083,7 @@ fn s5_grid_pending() {
         case.timeout_ms,
     );
     checkpoint(&mut s, &dir, "pending");
-    // `+`/`-` are not chord names (the parser eats `+`), so they go as
-    // literal text. Insert parks the cursor on the new row, so step up
-    // first: deleting the inserted row itself would remove it entirely.
+
     type_text(&mut s, "+");
     waits::wait_state(&mut s, "Row inserted", "insert never reported");
     press(&mut s, "up");
@@ -2358,8 +2102,7 @@ fn s5_grid_pending() {
         "V1 live: the bar shows its buttons",
     );
     assert!(queued.contains("Discard"), "V1 live: Discard renders");
-    // V2 + N1 live: the preview dialog lists UPDATE/INSERT/DELETE — and an
-    // inserted row renders no UPDATE of its own.
+
     press(&mut s, "p");
     waits::wait_state(&mut s, "Pending changes", "preview never opened");
     checkpoint(&mut s, &dir, "preview");
@@ -2396,14 +2139,13 @@ fn s5_grid_pending() {
         case_timeout(&case),
         "preview never closed",
     );
-    // A1 live: u undoes one queued change; U discards the rest.
+
     press(&mut s, "u");
     waits::wait_state(&mut s, "3 pending", "A1 live: u never undid one");
     press(&mut s, "U");
     waits::wait_state(&mut s, "Changes discarded", "A1 live: U never discarded");
     let clean = live_text(&mut s);
-    // The blurb always says "pending-change", so pin the bar's shape
-    // (`• N pending · …`) and the marker glyph instead of the word.
+
     assert!(
         !clean.contains("pending ·"),
         "A1 live: the pending bar is gone"
@@ -2416,28 +2158,11 @@ fn s5_grid_pending() {
     eprintln!("s5 grid_pending: queue + preview dialog + undo + discard");
 }
 
-/// GRID-COMMIT-003 (`showcase/flows/datagrid/failed`, 80x24): the commit
-/// round-trip plus the row-level error.
-///
-/// Isolated path drives a page-shaped [`Grid`]: the `Loading rows`
-/// empty-grid form, the commit
-/// rejection marking exactly one row with its error, the pending queue
-/// surviving failure, and the clean-commit fold. (The pr17 Save button's
-/// `CommitRequested` has no target Grid correlate — the save affordance is
-/// page-owned — so that headless check is dropped.) Live path replays the
-/// matrix failed-save flow (seats 600/12), rides the 4-tick saving
-/// window, proves the `!` mark plus the error text, and proves a clean
-/// queue reports `Nothing to save`.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_grid_commit() {
     let dir = s5_dir("s5_grid_commit");
 
-    // A1 headless removed: pr17's Grid rendered a Save button emitting
-    // `CommitRequested`; the target Grid has neither — the save affordance
-    // and its `Ctrl+S` binding are page-owned, proven on the live path.
-
-    // V1 headless, empty grid: the loading form with its label.
     let model = S5GridModel::with_rows(0, RowTotal::Exact(0), false);
     let state = GridState::default();
     let buf = render_isolated(80, 12, 0, None, |ui, _| {
@@ -2458,7 +2183,7 @@ fn s5_grid_commit() {
     );
     assert_surround_intact(&buf, Rect::new(0, 1, 80, 10), "V1: containment");
     capture_isolated(&dir, "grid-loading", &buf);
-    // S1/S2 headless: the round-trip marks exactly the rejected row.
+
     let mut model = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
     model.record_cell(0, 3, S5Cell::plain("600"));
     assert_eq!(
@@ -2477,16 +2202,16 @@ fn s5_grid_commit() {
         Some("seats above the plan limit (500)"),
         "S2: the row owns its error"
     );
-    // N1: valid queued edits are NOT marked when only one row is rejected.
+
     model.record_cell(1, 3, S5Cell::plain("12"));
     assert_eq!(
         model.row_state(1),
         S5RowState::Modified,
         "N1: the valid row stays Modified"
     );
-    // N2: the pending queue is NOT cleared on failure.
+
     assert_eq!(model.counts(), (2, 0, 0), "N2: the queue survives failure");
-    // A clean commit folds the queue instead.
+
     let mut model = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
     model.record_cell(0, 3, S5Cell::plain("12"));
     model.commit_ok();
@@ -2496,9 +2221,7 @@ fn s5_grid_commit() {
         &S5Cell::plain("12"),
         "clean commit: stored"
     );
-    // V1 headless, loaded grid: the fetch row spins while saving. (After
-    // the queue checks: the `fetching…` wording has no impl correlate —
-    // the fetch row spins the `Enter fetches more` label instead.)
+
     let mut rig = S5GridApp::new(
         S5GridModel::with_rows(40, RowTotal::Estimated(4_812), true),
         80,
@@ -2517,7 +2240,6 @@ fn s5_grid_commit() {
         "V1: the loaded grid spins fetching… while saving\n{saving}"
     );
 
-    // PTY: the matrix failed-save flow.
     let case = s5_case("grid_commit", &["--page", "datagrid"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2541,12 +2263,10 @@ fn s5_grid_commit() {
         ],
         case.timeout_ms,
     );
-    // The fetch row only renders in view, so jump to the bottom first:
-    // while saving it spins `fetching…` there.
+
     press(&mut s, "G");
     waits::wait_state(&mut s, "Enter fetches more", "fetch row never showed");
-    // S1/A1/V1 live: Ctrl+S arms the save — sample tight until it lands,
-    // since the 4-tick window is ~320 ms.
+
     press(&mut s, "ctrl-s");
     let mut saw_saving = false;
     let mut saw_fetching = false;
@@ -2570,11 +2290,7 @@ fn s5_grid_commit() {
         "V1 live: the grid spins fetching… while saving"
     );
     checkpoint(&mut s, &dir, "failed");
-    // V2/N1/N2 live: back at the top the rejected row marks `!` with the
-    // error text, the valid row keeps `•`, and the queue survives. The
-    // narrow bar truncates the detail past usefulness, so the mark wait
-    // is a line predicate (the 600 row owns `!`); the wide session below
-    // proves the full error string.
+
     press(&mut s, "g");
     support::wait_screen(
         &mut s,
@@ -2598,8 +2314,7 @@ fn s5_grid_commit() {
         marked.contains("2 pending"),
         "N2 live: the queue survives failure"
     );
-    // V2 live, wide: the bar has room for the whole rejection, so the
-    // full error string proves what the narrow prefix only hints at.
+
     let casew = s5_case("grid_commit_wide", &["--page", "datagrid"], 120, 40);
     write_provenance_named(&dir, &casew, "provenance-wide.txt");
     let mut w = support::spawn_boot(&casew);
@@ -2627,7 +2342,7 @@ fn s5_grid_commit() {
         "V2 live: the full error text never showed",
     );
     checkpoint(&mut w, &dir, "marked-wide");
-    // A2 live: a clean queue reports Nothing to save instead.
+
     let case2 = s5_case("grid_commit_clean", &["--page", "datagrid"], 80, 24);
     write_provenance_named(&dir, &case2, "provenance-clean.txt");
     let mut c = support::spawn_boot(&case2);
@@ -2643,11 +2358,8 @@ fn s5_grid_commit() {
     eprintln!("s5 grid_commit: saving window + row error + clean queue");
 }
 
-// ------------------------------------------------------------ editor rig --
-
 const S5_CODE: Id = Id::root("s5.code");
 
-/// Paragraph blocks (runs of non-blank lines), the page's rule.
 fn s5_blocks(src: &str) -> Vec<std::ops::Range<usize>> {
     let mut out = Vec::new();
     let mut start: Option<usize> = None;
@@ -2672,7 +2384,6 @@ fn s5_blocks(src: &str) -> Vec<std::ops::Range<usize>> {
     out
 }
 
-/// Minimal tones: `fn`/`let` keywords, `"…"` strings.
 fn s5_highlight(src: &str) -> Vec<(std::ops::Range<usize>, SyntaxRole)> {
     let mut out = Vec::new();
     for word in ["fn ", "let "] {
@@ -2698,7 +2409,6 @@ fn s5_highlight(src: &str) -> Vec<(std::ops::Range<usize>, SyntaxRole)> {
 
 const S5_SAMPLE: &str = "fn fetch(url: &str) -> Body {\n    let body = get(url);\n    log(\"done\");\n    body\n}\n\nfn client() -> Client {\n    Client::new().unwrap()\n}\n";
 
-/// The row's editor with the codeeditor page's own props.
 fn s5_code() -> CodeEditor<'static> {
     CodeEditor::new(S5_CODE, 12)
         .highlighter(&s5_highlight)
@@ -2706,7 +2416,6 @@ fn s5_code() -> CodeEditor<'static> {
         .tab_behavior(TabBehavior::Leave)
 }
 
-/// Editor rig: durable state plus the action log.
 struct S5CodeApp {
     state: CodeEditorState,
     actions: Vec<CodeAction>,
@@ -2737,24 +2446,12 @@ impl App for S5CodeApp {
     }
 }
 
-/// CODE-EDIT-001 (`showcase/pages/codeeditor`, 80x24): gutter, navigation
-/// and editing modes, and the footer.
-///
-/// Isolated path drives a [`CodeEditor`] over a two-block sample: gutter
-/// geometry (bar + block marker + right-aligned numbers), syntax tones
-/// through the production render, edit entry/commit, block jumps, find
-/// with match stepping, h/l pan and paging, and the
-/// navigation-typing/Esc negatives. (The `ln L/N · col C` footer is
-/// page-owned in the impl; the live path proves it.) Live path boots the
-/// editor page on retry.rs and walks the same flow.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_code_edit() {
     let dir = s5_dir("s5_code_edit");
     let t = Theme::junie();
 
-    // V1 headless: the gutter shows the cursor bar, block marker › and
-    // right-aligned numbers.
     let mut app = Harness::new(
         S5CodeApp::new(S5_SAMPLE, Rect::new(0, 1, 60, 12)),
         Theme::junie(),
@@ -2777,8 +2474,7 @@ fn s5_code_edit() {
         second.starts_with("  ") && second.contains(" 2 "),
         "V1: plain gutter off the cursor\n{second:?}"
     );
-    // V2 headless: keywords and strings carry syntax tones through the
-    // production render.
+
     assert!(buf_is_bold(&buf, 6, 1), "V2: the `fn` keyword reads bold");
     assert_eq!(
         buf[(6, 1)].fg,
@@ -2793,7 +2489,6 @@ fn s5_code_edit() {
         "V2: strings take secondary"
     );
 
-    // S1: i/Enter/a enters editing; Esc commits back to navigation.
     let mut app = Harness::new(
         S5CodeApp::new(S5_SAMPLE, Rect::new(0, 1, 60, 12)),
         Theme::junie(),
@@ -2818,7 +2513,7 @@ fn s5_code_edit() {
         S5_SAMPLE,
         "S1: the document is kept"
     );
-    // S2: { and } jump to the previous/next block start.
+
     let second = s5_code().blocks(&app.app().state)[1].start;
     let before = app.app().actions.len();
     let r = app.key(KeyCode::Char('}'));
@@ -2836,7 +2531,7 @@ fn s5_code_edit() {
         "S2: {{ jumps back ({r:?})"
     );
     assert_eq!(app.app().state.cursor_offset(), 0, "S2: back to start");
-    // A1: / opens the find bar; n/N step through matches with CursorMoved.
+
     let r = app.key(KeyCode::Char('/'));
     assert_eq!(r.flow(), Flow::Consumed, "A1: / finds");
     assert!(
@@ -2870,7 +2565,7 @@ fn s5_code_edit() {
         &[CodeAction::CursorMoved],
         "A1: n steps with CursorMoved"
     );
-    // A2: h/l pan 8 cells; PageUp/Down move by the viewport height.
+
     let mut app = Harness::new(
         S5CodeApp::new(S5_SAMPLE, Rect::new(0, 1, 60, 12)),
         Theme::junie(),
@@ -2896,7 +2591,7 @@ fn s5_code_edit() {
         app.app().state.cursor_offset() > top,
         "A2: PageDown moves by the viewport"
     );
-    // N1: typing in navigation must NOT mutate the document.
+
     let before_text = app.app().state.text().to_owned();
     let before = app.app().actions.len();
     let r = app.key(KeyCode::Char('x'));
@@ -2910,7 +2605,7 @@ fn s5_code_edit() {
         "N1: typing in navigation reports nothing"
     );
     assert_eq!(app.app().state.text(), before_text, "N1: untouched");
-    // N2: Esc with no find bar open must NOT consume.
+
     let before = app.app().actions.len();
     let r = app.key(KeyCode::Esc);
     assert_eq!(r.flow(), Flow::Ignored, "N2: a bare Esc returns Ignored");
@@ -2919,13 +2614,11 @@ fn s5_code_edit() {
         "N2: a bare Esc reports nothing"
     );
 
-    // PTY: navigate, jump blocks, edit, commit, refuse.
     let case = s5_case("code_edit", &["--page", "codeeditor"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     press(&mut s, "tab");
-    // The footer reads ln/col only while focused (`navigating` shows
-    // regardless and would pass before the tab lands).
+
     waits::wait_state(&mut s, "ln 1/26 · col 1", "editor never focused");
     checkpoint(&mut s, &dir, "navigating");
     let nav = live_text(&mut s);
@@ -2935,15 +2628,14 @@ fn s5_code_edit() {
     );
     assert!(nav.contains('›'), "V1 live: the block marker renders");
     assert!(nav.contains("3 blocks"), "meta: 3 blocks (presence)");
-    // S2 live: } jumps to the next block start (line 18).
+
     press(&mut s, "}");
     waits::wait_state(&mut s, "ln 18", "S2 live: } never jumped blocks");
-    // S1 live: i enters editing; Esc commits back, keeping the document.
+
     press(&mut s, "i");
     waits::wait_state(&mut s, "editing", "S1 live: i never entered editing");
     checkpoint(&mut s, &dir, "editing");
-    // A single char: a 2+ char word would trigger completion, whose Esc
-    // dismisses the popup instead of committing.
+
     type_text(&mut s, "x");
     press(&mut s, "esc");
     waits::wait_state(&mut s, "navigating", "S1 live: Esc never committed");
@@ -2952,7 +2644,7 @@ fn s5_code_edit() {
         kept.contains("xfn client"),
         "S1 live: Esc keeps the document"
     );
-    // N1 live: typing in navigation mutates nothing.
+
     let before = settle_text(&mut s, case_timeout(&case), "N1 steady");
     press(&mut s, "x");
     let after = settle_text(&mut s, case_timeout(&case), "N1 steady");
@@ -2960,8 +2652,7 @@ fn s5_code_edit() {
         after, before,
         "N1 live: typing in navigation changes nothing"
     );
-    // N2 live: a bare Esc drops focus back to the nav — the document it
-    // leaves alone (no ▎ in the editor, app hints back, ln/col gone).
+
     press(&mut s, "esc");
     let bare = settle_text(&mut s, case_timeout(&case), "N2 steady");
     assert!(
@@ -2979,25 +2670,12 @@ fn s5_code_edit() {
     eprintln!("s5 code_edit: gutter + modes + jumps + refusals");
 }
 
-/// CODE-RUN-002 (`showcase/flows/editor/diag`, 80x24): the running block
-/// plus diagnostics.
-///
-/// Isolated path drives a [`CodeEditor`]: `set_running` painting the
-/// accent spinner in the marker column, `current_block` keeping the
-/// previous block between blocks (`None` only before the first block),
-/// a Warning diagnostic owning the `!` marker slot with its footer
-/// message, and `Changed` firing on edit (which the page uses to clear
-/// diagnostics). Live path runs the second block paused (the running
-/// state, frozen) and playing (the unwrap warning lands), proves a
-/// between-blocks run executes the previous block, and proves an edit
-/// clears the diagnostic without the run ever touching the text.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_code_run() {
     let dir = s5_dir("s5_code_run");
     let t = Theme::junie();
 
-    // S1/V1 headless: running arms the block and spins the marker column.
     let mut state = CodeEditorState::new(S5_SAMPLE);
     let block = s5_code().blocks(&state)[1].clone();
     state.jump_to(block.start);
@@ -3024,9 +2702,7 @@ fn s5_code_run() {
     );
     assert_surround_intact(&buf, area, "V1: containment");
     capture_isolated(&dir, "code-running", &buf);
-    // A1 headless: between blocks the cursor keeps the previous block
-    // (the `or_else` fallback); `None` happens only before the first
-    // block start, which needs leading blank lines.
+
     let first = s5_code().blocks(&state)[0].clone();
     state.jump_to(S5_SAMPLE.find("\n\n").unwrap() + 1);
     assert_eq!(
@@ -3041,7 +2717,7 @@ fn s5_code_run() {
         None,
         "A1: None before the first block"
     );
-    // V2/S2 headless: the unwrap line owns the ! marker; the footer names it.
+
     let p = S5_SAMPLE.find(".unwrap()").unwrap();
     state.set_diagnostics(vec![CodeDiagnostic::new(
         p + 1..p + 9,
@@ -3064,7 +2740,7 @@ fn s5_code_run() {
         footer.contains("unwrap() panics"),
         "V2: the footer names the diagnostic\n{footer:?}"
     );
-    // A2/N2 headless: any edit reports Changed (the page clears on it).
+
     let mut app = Harness::new(
         S5CodeApp::new(S5_SAMPLE, Rect::new(0, 1, 60, 12)),
         Theme::junie(),
@@ -3081,13 +2757,12 @@ fn s5_code_run() {
         &[CodeAction::Changed],
         "A2: an edit reports Changed"
     );
-    // N1 headless: arming a run never touches the document text.
+
     let mut state = CodeEditorState::new(S5_SAMPLE);
     let block = s5_code().blocks(&state)[1].clone();
     state.set_running(Some(block));
     assert_eq!(state.text(), S5_SAMPLE, "N1: the run mutates no text");
 
-    // PTY, paused: the running state frozen plus the between-blocks refusal.
     let case = s5_case(
         "code_run_paused",
         &["--page", "codeeditor", "--motion", "paused"],
@@ -3108,12 +2783,7 @@ fn s5_code_run() {
         "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏".chars().any(|c| running.contains(c)),
         "V1 live: the marker column spins while running"
     );
-    // A1 live: between blocks Ctrl+R runs the previous block (block 1
-    // has no unwrap/todo, so no diagnostic lands). A fresh session (this
-    // one is mid-run and paused ticks never land): the run needs ticks,
-    // so this one plays.
-    // 120x40: at 80x24 the columns stack and the Diagnostics card's
-    // y+4<bottom gate never opens, so the empty panel is unprovable.
+
     let case_between = s5_case("code_run_between", &["--page", "codeeditor"], 120, 40);
     write_provenance_named(&dir, &case_between, "provenance-between.txt");
     let mut b = support::spawn_boot(&case_between);
@@ -3135,8 +2805,7 @@ fn s5_code_run() {
         between.contains("Nothing flagged"),
         "A1 live: block 1 flags nothing (presence: the empty panel)"
     );
-    // PTY, playing: the run lands the unwrap warning; an edit clears it.
-    // 120x40 for the same stacked-columns reason as the between case.
+
     let case2 = s5_case("code_run", &["--page", "codeeditor"], 120, 40);
     write_provenance_named(&dir, &case2, "provenance-playing.txt");
     let mut p = support::spawn_boot(&case2);
@@ -3152,15 +2821,13 @@ fn s5_code_run() {
     );
     checkpoint(&mut p, &dir, "diag");
     let diag = live_text(&mut p);
-    // The panel truncates the 52-char row to its ~35 cells; the
-    // prefix pins the line number and the message head.
+
     assert!(
         diag.contains("ln 19 · unwrap() panics"),
         "V2 live: the Diagnostics panel lists ln · message"
     );
     assert_line_has(&diag, "unwrap()", "!", "V2 live: the unwrap line owns !");
-    // The editor truncates the 43-char statement (`…`), so the head
-    // proves the text survived the run byte for byte.
+
     assert!(
         diag.contains("Client::builder().timeout(10)"),
         "N1 live: the run mutates no text (presence)"
@@ -3171,7 +2838,7 @@ fn s5_code_run() {
         "!",
         "V2 live: the editor line owns the ! marker",
     );
-    // A2/N2 live: any edit clears the diagnostics.
+
     press(&mut p, "i");
     waits::wait_state(&mut p, "editing", "edit never started");
     type_text(&mut p, "x");
@@ -3184,19 +2851,15 @@ fn s5_code_run() {
     eprintln!("s5 code_run: running spinner + unwrap warning + edit clears");
 }
 
-// -------------------------------------------------------------- diff rig --
-
 const S5_DIFF: Id = Id::root("s5.diff");
 const S5_DIFF_EMPTY: Id = Id::root("s5.diff.empty");
 
-/// One owned diff row: hunk starts plus kinded text lines.
 #[derive(Clone, Debug)]
 enum S5DiffRow {
     Hunk { old_start: usize, new_start: usize },
     Line { kind: DiffLineKind, text: String },
 }
 
-/// Page-shaped diff file (Modified config/service.toml, 5 hunks, +10 −5).
 fn s5_diff_sample() -> Vec<S5DiffRow> {
     let mut rows = Vec::new();
     for i in 0..5 {
@@ -3232,7 +2895,6 @@ fn s5_diff_sample() -> Vec<S5DiffRow> {
     rows
 }
 
-/// Borrowed diff source over owned rows.
 #[derive(Clone, Debug)]
 struct S5DiffSource {
     rows: Vec<S5DiffRow>,
@@ -3285,8 +2947,6 @@ impl DiffSource for S5DiffSource {
     }
 }
 
-/// Diff rig: the view plus the page's Empty toggle (the `set_file(None)`
-/// lever) and the action log.
 struct S5DiffApp {
     state: DiffViewState,
     source: Option<S5DiffSource>,
@@ -3334,23 +2994,12 @@ impl App for S5DiffApp {
     }
 }
 
-/// DIFF-UNIFIED-001 (`showcase/flows/diff/empty`, 80x24): the unified
-/// listing plus the empty file state.
-///
-/// Isolated path drives a [`DiffView`] over a page-shaped file: the `M
-/// path +N −M · K hunks` header with muted `@@` lines, old/new gutters
-/// with bold toned `+`/`-` markers, the Empty toggle rendering `No file
-/// selected` with the scroll reset, the no-hunks `(no textual changes)`
-/// form, viewport delegation, and the no-`Old`/`New` plus
-/// no-kept-offset negatives. Live path boots the diff page, scrolls the
-/// listing, and toggles Empty on.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_diff_unified() {
     let dir = s5_dir("s5_diff_unified");
     let t = Theme::junie();
 
-    // V1 headless: the header plus muted @@ hunk lines.
     let mut app = Harness::new(
         S5DiffApp::new(Some(S5DiffSource::sample()), Rect::new(0, 1, 78, 22)),
         Theme::junie(),
@@ -3380,7 +3029,7 @@ fn s5_diff_unified() {
         t.color.fg[FgStep::Muted.index()],
         "V1: @@ lines are muted"
     );
-    // V2 headless: old/new numbers, a bold marker, and the toned text.
+
     let rem_y = (1..23u16)
         .find(|y| buf_row_text(&buf, *y).contains("- attempts = 3"))
         .expect("V2: the removed row lists");
@@ -3408,7 +3057,7 @@ fn s5_diff_unified() {
         buf_is_bold(&buf, add_x, add_y) && buf[(add_x, add_y)].fg == t.color.success,
         "V2: + bold success"
     );
-    // S1: the Empty toggle renders No file selected and resets the scroll.
+
     for _ in 0..5 {
         let _ = app.key(KeyCode::Down);
     }
@@ -3429,7 +3078,7 @@ fn s5_diff_unified() {
         "S1: the empty line renders\n{}",
         app.text()
     );
-    // S2: a file with no hunks renders (no textual changes).
+
     let mut app = Harness::new(
         S5DiffApp::new(
             Some(S5DiffSource { rows: Vec::new() }),
@@ -3445,7 +3094,7 @@ fn s5_diff_unified() {
         "S2: the no-hunks form\n{}",
         app.text()
     );
-    // A2: keys, wheel and drags delegate to the wrapped TextViewport.
+
     let mut app = Harness::new(
         S5DiffApp::new(Some(S5DiffSource::sample()), Rect::new(0, 1, 78, 22)),
         Theme::junie(),
@@ -3464,9 +3113,7 @@ fn s5_diff_unified() {
         1,
         "A2: Down scrolls one row"
     );
-    // N1: the unified listing must NOT show the Old/New column headers.
-    // (Offset 1 after A2: the header row scrolled out; @@ + rows prove
-    // the listing still renders.)
+
     let all = app.text();
     assert!(
         all.contains("@@") && all.contains("attempts = 3"),
@@ -3477,7 +3124,6 @@ fn s5_diff_unified() {
         "N1: no review headers in unified"
     );
 
-    // PTY: boot, scroll, empty.
     let case = s5_case("diff_unified", &["--page", "diff"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3496,7 +3142,7 @@ fn s5_diff_unified() {
         !boot.contains("Old"),
         "N1 live: no review headers in unified"
     );
-    // A2 live: keys delegate — Down scrolls the listing.
+
     click_at(&mut s, "attempts = 3", case_timeout(&case));
     waits::wait_state(&mut s, "Select", "diff view never focused");
     press(&mut s, "down");
@@ -3509,33 +3155,18 @@ fn s5_diff_unified() {
         !scrolled.contains("@@ -1,6"),
         "A2 live: the first hunk scrolled out"
     );
-    // A1 live: the Empty toggle calls set_file(None) and clears. A
-    // click, not tabs: focus sits in the view, so two tabs would wrap
-    // through the nav and land on Review instead of Empty.
+
     click_at(&mut s, "Empty", case_timeout(&case));
     waits::wait_state(&mut s, "No file selected", "S1 live: empty never rendered");
     checkpoint(&mut s, &dir, "empty");
     eprintln!("s5 diff_unified: listing + scroll + empty");
 }
 
-/// DIFF-REVIEW-002 (`showcase/flows/diff/drag-selected`, 80x24):
-/// side-by-side review plus drag selection copy.
-///
-/// Isolated path drives a [`DiffView`] over a page-shaped file: the
-/// paired columns with faint numbers and bold changed runs, the
-/// narrow-width fallback with the mode retained, `y` emitting `Copy`,
-/// Esc clearing, wheel scrolling, unpaired blank sides, and tab
-/// expansion before measuring. (Check order runs the supported forms
-/// before the two known gaps — the narrow fallback and the `Old`/`New`
-/// headers — so the gaps fail last, not first.) Live path toggles
-/// Review on, drags across the columns, copies with `y`, clears with
-/// Esc, and toggles the mode off and on.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_diff_review() {
     let dir = s5_dir("s5_diff_review");
 
-    // V1 headless: paired columns with faint numbers, bold changed runs.
     let mut rig = S5DiffApp::new(Some(S5DiffSource::sample()), Rect::new(0, 1, 78, 22));
     rig.state.set_mode(DiffMode::Review);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -3557,7 +3188,7 @@ fn s5_diff_review() {
         "V1: the differing run reads bold ({bolds:?})\n{paired:?}"
     );
     assert!(paired.contains('│'), "V1: the │ separator\n{paired:?}");
-    // N1: unpaired sides must NOT pair text: the empty side stays blank.
+
     let lopsided = S5DiffSource {
         rows: vec![
             S5DiffRow::Hunk {
@@ -3594,7 +3225,7 @@ fn s5_diff_review() {
         halves[1].trim().is_empty(),
         "N1: the empty side stays blank\n{lone}"
     );
-    // N2: tabs expand to four spaces before measuring.
+
     let tabbed = S5DiffSource {
         rows: vec![
             S5DiffRow::Hunk {
@@ -3628,7 +3259,7 @@ fn s5_diff_review() {
         halves[1].trim_end().chars().count(),
         "N2: columns measure identically"
     );
-    // V2/S2/A2 headless: drag selects, y copies, Esc clears, wheel scrolls.
+
     let mut rig = S5DiffApp::new(Some(S5DiffSource::sample()), Rect::new(0, 1, 78, 22));
     rig.state.set_mode(DiffMode::Review);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -3663,7 +3294,7 @@ fn s5_diff_review() {
         Flow::Consumed,
         "A2: wheel scrolls via the viewport"
     );
-    // Two notches at the design's 3-rows-per-notch wheel scaling.
+
     assert_eq!(
         app.app().state.viewport().scroll().offset(),
         6,
@@ -3675,7 +3306,7 @@ fn s5_diff_review() {
         app.app().state.viewport().selection().is_none(),
         "A2: Esc clears the selection"
     );
-    // S1: review falls back below 43 cells; the retained mode stays Review.
+
     let mut rig = S5DiffApp::new(Some(S5DiffSource::sample()), Rect::new(0, 1, 78, 22));
     rig.state.set_mode(DiffMode::Review);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -3700,7 +3331,7 @@ fn s5_diff_review() {
         !narrow.contains('│') && narrow.contains("@@"),
         "S1: 42 cells fall back to unified\n{narrow}"
     );
-    // V1 headless: the Old │ New column headers.
+
     let mut rig = S5DiffApp::new(Some(S5DiffSource::sample()), Rect::new(0, 1, 78, 22));
     rig.state.set_mode(DiffMode::Review);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -3711,7 +3342,6 @@ fn s5_diff_review() {
         "V1: the column headers\n{wide}"
     );
 
-    // PTY: review on, drag, copy, clear, toggle off/on.
     let case = s5_case("diff_review", &["--page", "diff"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3725,9 +3355,7 @@ fn s5_diff_review() {
         review.contains("Old") && review.contains("New") && review.contains("│"),
         "V1 live: Old │ New columns"
     );
-    // V2 live: the dragged range paints the selection style. Anchor
-    // inclusion wobbles run to run (press/drag coalescing), so a long
-    // drag pins a wide interior with both ends clear of the edges.
+
     let (row, col) = find_pos(&mut s, "attempts = 3", case_timeout(&case));
     support::drag_path(&mut s, (col, row), (col + 20, row));
     std::thread::sleep(Duration::from_millis(300));
@@ -3745,7 +3373,7 @@ fn s5_diff_review() {
     assert_ne!(sel_bg, before, "V2 live: the style starts past the lead");
     let edge = frame.get(col + 22, row).expect("V2: edge cell").bg;
     assert_ne!(sel_bg, edge, "V2 live: the style ends past the range");
-    // S2 live: y with a selection reports Selection copied in demo.
+
     press(&mut s, "y");
     waits::wait_state(
         &mut s,
@@ -3758,8 +3386,7 @@ fn s5_diff_review() {
         Some(&sel_bg),
         "V2 live: copy keeps the demo text selected"
     );
-    // A2 live: Esc clears the selection (the status line keeps its
-    // report — only the selection style must go); wheel scrolls.
+
     press(&mut s, "esc");
     std::thread::sleep(Duration::from_millis(400));
     let cleared = live_frame(&mut s);
@@ -3775,11 +3402,10 @@ fn s5_diff_review() {
         !wheeled.contains("M config/service.toml"),
         "A2 live: the wheel scrolled the header out"
     );
-    // A1 live: the toggle flips the mode off and back on. Home first so
-    // the Old header is on screen for the gone-wait's presence leg.
+
     press(&mut s, "home");
     waits::wait_state(&mut s, "Old", "never scrolled home");
-    // Focus sits in the view: one tab only reaches the nav, so seek.
+
     tab_until(
         &mut s,
         "Toggle",
@@ -3787,7 +3413,7 @@ fn s5_diff_review() {
         "review toggle never refocused",
     );
     press(&mut s, "enter");
-    // Presence proven by the home-wait above; this is the expiry.
+
     wait_absent(
         &mut s,
         "Old",
@@ -3799,28 +3425,15 @@ fn s5_diff_review() {
     eprintln!("s5 diff_review: columns + drag copy + toggles");
 }
 
-/// TERM-RUN-001 (`showcase/flows/terminal/mid`, 80x24): the launch
-/// transcript plus the step rail run (PTY-only).
-///
-/// The stage engine, reset, and advance live in the showcase binary's
-/// terminal page, outside the importable library, so every check runs
-/// live: the bold prompt plus `jackin launch`, `▶` stage opens, `✓` done
-/// lines with the `N lines · following` meta, reset clearing the
-/// viewport and re-queueing the rail, the Skipped/cached stage, tick
-/// advancement with clean/failure restarts, and the no-`✗`/no-`Blocked`
-/// plus post-run-silence negatives.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_term_run() {
-    // 120x40, not the row's 80x24: the rail hides per-step metas below
-    // the mw+12 threshold at 80 columns (`cached`, `blocked` clip away),
-    // so the S2/N1/A2 checks need the room the matrix uses.
     let dir = s5_dir("s5_term_run");
     let case = s5_case("term_run", &["--page", "terminal"], 120, 40).timeout(60_000);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-    // V1: the transcript opens with the bold prompt plus jackin launch.
+
     let boot = live_text(&mut s);
     assert!(
         boot.contains("jackin launch"),
@@ -3834,7 +3447,7 @@ fn s5_term_run() {
             .is_some_and(|c| c.mods.bold),
         "V1: the prompt reads bold"
     );
-    // V1/V2/A1: stages open with ▶, finish with ✓, ticks advance the rail.
+
     waits::wait_state(&mut s, "▶ Resolve workspace", "stage 0 never opened");
     waits::wait_state(&mut s, "✓ Resolve workspace", "A1: stage 0 never finished");
     waits::wait_state(&mut s, "▶ Pull base image", "S2: Running never moved on");
@@ -3844,14 +3457,14 @@ fn s5_term_run() {
         mid.contains("lines · following"),
         "V2: the meta follows the tail"
     );
-    // S2: stage 3 is Skipped/cached.
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
         "S2: the skipped stage never showed",
         |screen| support::screen_text(screen).contains("cached"),
     );
-    // N1 + end: a clean run shows no ✗ and no Blocked states.
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
@@ -3869,13 +3482,10 @@ fn s5_term_run() {
         done.contains('✓'),
         "N1: done lines prove the run (presence)"
     );
-    // N2: ticks after the last stage append no more output.
+
     let settled = settle_text(&mut s, case_timeout(&case), "N2 steady");
     assert_eq!(settled, done, "N2: the transcript freezes at the end");
-    // S1/A2: Run restarts clean — the viewport clears, the rail re-queues.
-    // Boot focus is the nav (no term hints), so the tabs land hop by hop.
-    // The rail takes no hop: it is not selectable, never joins the ring,
-    // and its Move hints stay dark — the rail reports, it is not driven.
+
     assert!(
         !done.contains("f Follow"),
         "S1 live: boot focus is the nav (presence)"
@@ -3896,14 +3506,14 @@ fn s5_term_run() {
         "S1 live: the fresh prompt reopens"
     );
     checkpoint(&mut s, &dir, "restarted");
-    // The restart is clean: stage 1 finishes (a failure would ✗ instead).
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
         "A2 live: the clean restart never passed stage 1",
         |screen| support::screen_text(screen).contains("✓ Pull base image"),
     );
-    // A2: Run with a failure arms fail_at=1.
+
     press(&mut s, "tab");
     waits::wait_state(&mut s, "Enter Activate", "fail never focused");
     press(&mut s, "enter");
@@ -3915,11 +3525,8 @@ fn s5_term_run() {
     eprintln!("s5 term_run: launch transcript + rail + clean/fail restarts");
 }
 
-// ------------------------------------------------------------ viewport rig --
-
 const S5_TERM: Id = Id::root("s5.term");
 
-/// Viewport rig: owned transcript lines plus the action log.
 struct S5TermApp {
     state: ViewportState,
     lines: Vec<String>,
@@ -3958,24 +3565,11 @@ impl App for S5TermApp {
     }
 }
 
-/// TERM-FOLLOW-002 (`showcase/pages/terminal`, 80x24): follow tail,
-/// scrollback, selection, and copy.
-///
-/// Isolated path drives a [`TextViewport`] over a transcript: wheel and
-/// scrollbar moves recomputing follow from the tail, `Copy` reporting
-/// with the text retained, `f` toggling follow with `FollowChanged`,
-/// drag auto-scroll at the edges from the press anchor, the
-/// `y`-with-no-selection `Consumed` negative, the thumb-press-grabs
-/// negative, and Esc clearing. (Check order runs the supported forms
-/// before the Esc gap so it fails last, not first.) Live path boots the
-/// frame-60 terminal, wheels off the tail, drags a selection, and copies
-/// it with `y`.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_term_follow() {
     let dir = s5_dir("s5_term_follow");
 
-    // N1: y with no selection must NOT emit Copy.
     let mut app = Harness::new(
         S5TermApp::transcript(60, Rect::new(0, 1, 60, 20)),
         Theme::junie(),
@@ -3994,8 +3588,7 @@ fn s5_term_follow() {
         app.app().actions[before..].is_empty(),
         "N1: y with no selection emits no Copy"
     );
-    // S1 headless: wheel moves recompute follow from the tail and
-    // remember the reading row.
+
     let mut app = Harness::new(
         S5TermApp::transcript(60, Rect::new(0, 1, 60, 20)),
         Theme::junie(),
@@ -4022,7 +3615,7 @@ fn s5_term_follow() {
         app.app().state.follow() && app.app().state.scroll().at_end(),
         "S1: the tail resumes follow"
     );
-    // V1/S2 headless: a dragged selection reports Copy with its text.
+
     let r = app.mouse(MouseKind::Down, 2, 2);
     assert_eq!(r.flow(), Flow::Consumed, "click anchors");
     let _ = app.mouse(MouseKind::Up, 2, 2);
@@ -4046,7 +3639,7 @@ fn s5_term_follow() {
         copied.lines().next().is_some_and(|l| !l.is_empty()),
         "S2: the first line is retained"
     );
-    // A1 headless: f toggles follow with FollowChanged.
+
     let before = app.app().actions.len();
     let r = app.key(KeyCode::Char('f'));
     assert_eq!(r.flow(), Flow::Consumed, "A1: f toggles follow");
@@ -4055,8 +3648,7 @@ fn s5_term_follow() {
         &[ViewportAction::FollowChanged(false)],
         "A1: f reports FollowChanged"
     );
-    // A2 headless: drag auto-scrolls at the vertical edges, extending
-    // from the press anchor.
+
     let _ = app.wheel(Axis::V, -10, 30, 10);
     let before_off = app.app().state.scroll().offset();
     assert!(before_off > 0, "A2: room to scroll up");
@@ -4075,8 +3667,7 @@ fn s5_term_follow() {
         app.app().state.selection().is_some(),
         "A2: the drag extends from the anchor"
     );
-    // N2: a scrollbar press on the thumb must NOT jump: it grabs.
-    // At the end the thumb sits on the last track row.
+
     let mut app = Harness::new(
         S5TermApp::transcript(60, Rect::new(0, 1, 60, 20)),
         Theme::junie(),
@@ -4097,7 +3688,7 @@ fn s5_term_follow() {
         offset,
         "N2: a thumb press grabs without jumping"
     );
-    // A2 headless: Esc clears the selection.
+
     let mut app = Harness::new(
         S5TermApp::transcript(60, Rect::new(0, 1, 60, 20)),
         Theme::junie(),
@@ -4127,7 +3718,6 @@ fn s5_term_follow() {
         "A2: the selection is gone"
     );
 
-    // PTY: follow toggles, wheel off the tail, drag, copy, clear.
     let case = s5_case(
         "term_follow",
         &["--page", "terminal", "--motion", "paused", "--frame", "60"],
@@ -4141,7 +3731,7 @@ fn s5_term_follow() {
     assert!(boot.contains("2 of 7"), "boot: the rail sits at 2 of 7");
     press(&mut s, "tab");
     waits::wait_state(&mut s, "f Follow", "term never focused");
-    // A1 live: f toggles follow with Following/Pausing status.
+
     press(&mut s, "f");
     waits::wait_state(
         &mut s,
@@ -4150,7 +3740,7 @@ fn s5_term_follow() {
     );
     press(&mut s, "f");
     waits::wait_state(&mut s, "Following the tail", "A1 live: no follow");
-    // V1/S1 live: wheel up leaves the tail for scrollback.
+
     wheel_over(
         &mut s,
         "#4 RUN cargo build",
@@ -4160,18 +3750,18 @@ fn s5_term_follow() {
     );
     waits::wait_state(&mut s, "scrollback ↑5", "V1 live: never left the tail");
     checkpoint(&mut s, &dir, "scrolled");
-    // V1 live: a drag switches the meta to selection · y copies.
+
     let (row, col) = find_pos(&mut s, "Resolve workspace", case_timeout(&case));
     support::drag_path(&mut s, (col, row), (col + 10, row + 1));
     std::thread::sleep(Duration::from_millis(300));
     waits::wait_state(&mut s, "selection · y copies", "V1 live: no selection meta");
     checkpoint(&mut s, &dir, "selected");
-    // V2/S2 live: y copies; the step side shows copied: first-line.
+
     press(&mut s, "y");
     waits::wait_state(&mut s, "Copied ", "S2 live: copy never reported");
     waits::wait_state(&mut s, "copied: ", "V2 live: no copied readout");
     checkpoint(&mut s, &dir, "copied");
-    // A2 live: Esc clears the selection.
+
     press(&mut s, "esc");
     wait_absent(
         &mut s,
@@ -4182,12 +3772,8 @@ fn s5_term_follow() {
     eprintln!("s5 term_follow: tail + scrollback + selection copy");
 }
 
-// ------------------------------------------------------------- scroll rig --
-
 const S5_SCROLL: Id = Id::root("s5.scroll");
 
-/// Mirror of the scrolling page's `position_label` (page-owned fact):
-/// `a–b of n` over the visible range, empty when content fits.
 fn s5_position_label(scroll: &ScrollState) -> String {
     if !scroll.overflows() {
         return String::new();
@@ -4201,9 +3787,6 @@ fn s5_position_label(scroll: &ScrollState) -> String {
     )
 }
 
-/// Bare [`ScrollRegion`] rig: caller-owned [`ScrollState`] over a
-/// content length, remembering the content rect draw returned (the
-/// region reserves the bar column only when the content overflows).
 struct S5ScrollApp {
     state: ScrollState,
     len: usize,
@@ -4233,24 +3816,11 @@ impl App for S5ScrollApp {
     }
 }
 
-/// SCROLL-REGION-001 (`showcase/flows/scrolling/scrolled`, 80x24): the
-/// three scrolling columns plus position labels.
-///
-/// Isolated path drives a tailing [`TextViewport`] log: paging by the
-/// viewport, `g`/`G` jumps, `f` toggling follow, plus the fitting-column
-/// negative (no scrollbar, no label) through [`ScrollRegion`] and the
-/// page's label mirror. (The prose-never-follows negative runs after the
-/// live boots so the known gap fails last, not first.) Live path boots
-/// the frame-1600 scrolling page wide (labels, track, thumb, follow
-/// toggles) and narrow (wheel-under-pointer, keys-to-focused,
-/// page/ends), plus a playing boot proving the log grows a line per
-/// tick and stops at the 2000 cap.
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_scroll_region() {
     let dir = s5_dir("s5_scroll_region");
 
-    // A1 headless: PageUp/Down page by the viewport length; g/G jump.
     let mut app = Harness::new(
         S5TermApp::transcript(400, Rect::new(0, 1, 40, 15)),
         Theme::junie(),
@@ -4296,7 +3866,7 @@ fn s5_scroll_region() {
         end,
         "A1/A2: G jumps to the live end"
     );
-    // A2 headless: f toggles log follow.
+
     assert!(
         app.app().state.follow(),
         "A2: a tailing log follows at the end"
@@ -4319,7 +3889,7 @@ fn s5_scroll_region() {
         format!("{}–400 of 400", end + 1),
         "V1: the tail label"
     );
-    // N1 headless: a fitting column draws no scrollbar and no label.
+
     let mut fits = ScrollState::new(3);
     fits.set_viewport(5);
     assert_eq!(
@@ -4345,9 +3915,7 @@ fn s5_scroll_region() {
             "N1: no scrollbar when content fits, row {y}: {row:?}"
         );
     }
-    // PTY wide: labels, track, thumb, follow toggles.
-    // 160x50: the log meta truncates to `· f…` even at 120 columns, so
-    // the `· following` suffix needs the widest canonical size.
+
     let case = s5_case(
         "scroll_region_wide",
         &[
@@ -4364,8 +3932,7 @@ fn s5_scroll_region() {
     write_provenance_named(&dir, &case, "provenance-wide.txt");
     let mut w = support::spawn_boot(&case);
     waits::wait_state(&mut w, "739.63s", "paused log endpoint never showed");
-    // The labels derive from the previous frame's layout facts, so they
-    // land a frame after the tail; the needles stay byte-identical.
+
     waits::wait_state(&mut w, "of 120", "V1 live: list label never showed");
     waits::wait_state(
         &mut w,
@@ -4407,7 +3974,6 @@ fn s5_scroll_region() {
     press(&mut w, "f");
     waits::wait_state(&mut w, "following", "A2 live: f never resumed follow");
 
-    // PTY narrow: wheel-under-pointer, keys-to-focused, pages, ends.
     let case2 = s5_case(
         "scroll_region",
         &[
@@ -4429,14 +3995,12 @@ fn s5_scroll_region() {
     checkpoint(&mut s, &dir, "booted");
     let boot = live_text(&mut s);
     assert!(boot.contains("1–15 of"), "V1 live: prose boots at 1–15");
-    // Narrow clips the total (`Log 1986–2000 …`); the window pins the cap
-    // here and the wide boot above proved the full `of 2000`.
+
     assert!(
         boot.contains("1986–2000"),
         "V1/S1 live: the log caps at 2000"
     );
-    // S2 live: the wheel routes under the pointer; the rest stay put.
-    // One notch is three lines (the app maps each notch to delta ±3).
+
     wheel_over(&mut s, "739.63s", Wheel::Up, 1, case_timeout(&case2));
     waits::wait_state(&mut s, "1983–1997", "S2 live: the log never wheeled");
     let wheeled = live_text(&mut s);
@@ -4444,7 +4008,7 @@ fn s5_scroll_region() {
         wheeled.contains("1–15 of"),
         "S2/N2 live: prose and list keep 1–15"
     );
-    // S2/N2 live: keys route to the focused container only.
+
     press(&mut s, "tab");
     waits::wait_state(&mut s, "PgUp PgDn", "prose never focused");
     press(&mut s, "pagedown");
@@ -4456,17 +4020,15 @@ fn s5_scroll_region() {
         "N2 live: keys move no unfocused container"
     );
     assert!(paged.contains("Row 001"), "N2 live: the list rows stay");
-    // A1/A2 live: g/G ends on the log; G returns to the live end.
+
     tab_until(&mut s, "Follow", case_timeout(&case2), "log never focused");
     press(&mut s, "g");
-    // Narrow clips the total here too, so the title+window pins home.
+
     waits::wait_state(&mut s, "Log 1–15", "A1 live: g never jumped home");
     press(&mut s, "G");
     waits::wait_state(&mut s, "1986–2000", "A2 live: G never jumped to the end");
     checkpoint(&mut s, &dir, "ends");
 
-    // PTY playing: the log grows a line per tick while follow holds.
-    // 120x40: narrow clips every total (`of …`), starving the parser.
     let case3 = s5_case("scroll_region_live", &["--page", "scrolling"], 120, 40);
     write_provenance_named(&dir, &case3, "provenance-live.txt");
     let mut p = support::spawn_boot(&case3);
@@ -4495,9 +4057,7 @@ fn s5_scroll_region() {
         "S1 live: the log grows while follow holds ({n1} → {n2})"
     );
     checkpoint(&mut p, &dir, "growing");
-    // A2 headless, last: prose never follows. Fresh viewports start
-    // following, so the first `f` pauses; the second must be a no-op.
-    // Runs after the live boots so the known gap fails last, not first.
+
     let mut prose = Harness::new(
         S5TermApp::transcript(2, Rect::new(0, 1, 40, 15)),
         Theme::junie(),
@@ -4512,22 +4072,11 @@ fn s5_scroll_region() {
     eprintln!("s5 scroll_region: columns + routing + growth + cap");
 }
 
-/// SCROLL-TRACK-002 (`showcase/flows/scrolling/scrolled`, 80x24): the
-/// scrollbar track press plus thumb drag.
-///
-/// Isolated path drives [`ScrollState`] over a 2000-line log mirror plus
-/// the [`ScrollRegion`] wrappers: proportional thumb geometry with the
-/// 1-cell floor, thumb-press holds vs track-press centering, grab-kept
-/// drags, press-fallback drags, release clearing, consumed-vs-repaint
-/// responses, and the no-overflow no-ops. Live path boots the
-/// frame-1600 scrolling page, presses the log thumb (holds), drags it
-/// two rows (follows), and presses the bare track (jumps centered).
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_scroll_track() {
     let dir = s5_dir("s5_scroll_track");
 
-    // V1 headless: the thumb spans viewport/content of the track, ≥1 cell.
     let mut log = ScrollState::new(2000);
     log.set_viewport(15);
     assert_eq!(log.thumb(15), (0, 1), "V1: top thumb spans one cell");
@@ -4538,17 +4087,17 @@ fn s5_scroll_track() {
         "1986–2000 of 2000",
         "V1 live shape: the tail label"
     );
-    // V2/S1 headless: a thumb press holds the offset (grab only).
+
     let mut held = ScrollState::new(2000);
     held.set_viewport(15);
     held.press_track(0, 15);
     assert_eq!(held.offset(), 0, "V2: pressing the thumb holds");
     assert_eq!(held.offset(), 0, "N1: a thumb press moves nothing");
-    // S1: dragging keeps the grabbed row under the pointer.
+
     held.drag_track(2, 15);
     assert!(held.offset() > 0, "S1: the drag moves");
     assert_eq!(held.thumb(15).0, 2, "S1: the thumb follows the pointer");
-    // V2/A2 headless: a track press centers the thumb under the pointer.
+
     let mut jumped = ScrollState::new(2000);
     jumped.set_viewport(15);
     jumped.press_track(0, 15);
@@ -4570,7 +4119,7 @@ fn s5_scroll_track() {
             "A2: track pos {pos} centers"
         );
     }
-    // S2: a drag without a press behaves like a press; release clears.
+
     let mut fresh = ScrollState::new(2000);
     fresh.set_viewport(15);
     fresh.drag_track(14, 15);
@@ -4579,7 +4128,7 @@ fn s5_scroll_track() {
     fresh.scroll_to(0);
     fresh.press_track(0, 15);
     assert_eq!(fresh.offset(), 0, "S2: a new press grabs again");
-    // A1: press/drag report consumed-vs-repaint through the region.
+
     let mut region = Harness::new(
         S5ScrollApp::new(2000, Rect::new(0, 1, 2, 15)),
         Theme::junie(),
@@ -4594,8 +4143,7 @@ fn s5_scroll_track() {
     );
     let r = region.mouse(MouseKind::Down, 1, 1);
     assert_eq!(r.flow(), Flow::Consumed, "A1: the thumb press grabs");
-    // The grab is an offset noop, but the region repaints: the thumb
-    // wears PRESSED while captured (contract §states).
+
     assert_eq!(r.invalidate(), Invalidate::Paint, "A1: the grab repaints");
     assert_eq!(region.app().state.offset(), 0, "A1: the offset holds");
     let r = region.mouse(MouseKind::Drag, 1, 1);
@@ -4603,7 +4151,7 @@ fn s5_scroll_track() {
     assert_eq!(r.invalidate(), Invalidate::None, "A1: null drag is a noop");
     assert_eq!(region.app().state.offset(), 0, "A1: the null drag holds");
     let _ = region.mouse(MouseKind::Up, 1, 1);
-    // The region wrappers map through the same core.
+
     let r = region.mouse(MouseKind::Down, 1, 1);
     assert_eq!(r.flow(), Flow::Consumed, "wrappers: thumb press holds");
     assert_eq!(region.app().state.offset(), 0, "wrappers: hold");
@@ -4611,14 +4159,14 @@ fn s5_scroll_track() {
     assert_eq!(r.flow(), Flow::Consumed, "wrappers: drag follows");
     assert_eq!(region.app().state.thumb(15).0, 2, "wrappers: grab kept");
     let _ = region.mouse(MouseKind::Up, 1, 3);
-    // N2: without overflow, press and drag change nothing.
+
     let mut fits = ScrollState::new(3);
     fits.set_viewport(5);
     fits.press_track(2, 5);
     assert_eq!(fits.offset(), 0, "N2: press is a noop");
     fits.drag_track(4, 5);
     assert_eq!(fits.offset(), 0, "N2: drag is a noop");
-    // Render form: │ track with the ┃ thumb, contained.
+
     let mut rendered = Harness::new(
         S5ScrollApp::new(2000, Rect::new(0, 1, 2, 15)),
         Theme::junie(),
@@ -4641,7 +4189,6 @@ fn s5_scroll_track() {
     );
     capture_isolated(&dir, "scroll-thumb", rendered.buffer());
 
-    // PTY: press the thumb (holds), drag two rows (follows), track jumps.
     let case = s5_case(
         "scroll_track",
         &[
@@ -4659,7 +4206,7 @@ fn s5_scroll_track() {
     let mut s = support::spawn_boot(&case);
     waits::wait_state(&mut s, "739.63s", "endpoint never showed");
     checkpoint(&mut s, &dir, "booted");
-    // Locate the log scrollbar: the rightmost │/┃ run.
+
     let frame = live_frame(&mut s);
     let mut track_col = 0u16;
     let mut track_top = 0u16;
@@ -4695,7 +4242,7 @@ fn s5_scroll_track() {
     }
     assert!(!thumb_rows.is_empty(), "V2 live: the log thumb renders");
     let thumb_mid = thumb_rows[thumb_rows.len() / 2];
-    // V2/S1/N1 live: pressing the thumb holds the offset.
+
     s.inner
         .mouse_down(MouseButton::Left, track_col, thumb_mid, MouseMods::NONE)
         .expect("thumb press");
@@ -4706,7 +4253,7 @@ fn s5_scroll_track() {
         "V2/N1 live: a thumb press holds the offset"
     );
     checkpoint(&mut s, &dir, "grabbed");
-    // S1 live: dragging keeps the grabbed row under the pointer.
+
     let target = thumb_mid.saturating_sub(2);
     s.inner
         .mouse_drag(MouseButton::Left, track_col, target, MouseMods::NONE)
@@ -4733,9 +4280,7 @@ fn s5_scroll_track() {
         .mouse_up(MouseButton::Left, track_col, target, MouseMods::NONE)
         .expect("thumb release");
     std::thread::sleep(Duration::from_millis(300));
-    // V2/A2 live: a bare-track press jumps the thumb under the pointer.
-    // Two rows inside the top: the first row may sit above the track's
-    // hit rect (a border │), which would swallow the press silently.
+
     let slot = track_top + 2;
     s.inner
         .mouse_down(MouseButton::Left, track_col, slot, MouseMods::NONE)
@@ -4757,8 +4302,7 @@ fn s5_scroll_track() {
         &[slot],
         "V2/A2 live: the press puts the thumb under the pointer"
     );
-    // The narrow meta clips the total, so the window leaving the end
-    // plus the exact thumb geometry above is the jump proof.
+
     let jumped = live_text(&mut s);
     assert!(
         !jumped.contains("1986–2000"),

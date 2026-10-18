@@ -1,5 +1,3 @@
-//! Query-history, completion and quick-switcher models.
-
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -35,23 +33,20 @@ impl AsItem for SwitchItem {
     }
 }
 
-/// Origin of a history entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HistorySource {
-    /// Editor execution.
     Editor,
-    /// Explain-plan execution.
+
     Explain,
-    /// Table browsing.
+
     Browsing,
-    /// Row edits.
+
     RowEdits,
-    /// Structure inspection.
+
     Structure,
 }
 
 impl HistorySource {
-    /// Human-readable source label.
     pub const fn label(self) -> &'static str {
         match self {
             Self::Editor => "Editor",
@@ -63,37 +58,34 @@ impl HistorySource {
     }
 }
 
-/// One query-history record.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryEntry {
-    /// Stable id.
     pub id: usize,
-    /// SQL text.
+
     pub sql: String,
-    /// Connection name.
+
     pub connection: String,
-    /// Database name.
+
     pub database: String,
-    /// Schema name.
+
     pub schema: String,
-    /// Deterministic age in minutes.
+
     pub minutes_ago: u32,
-    /// Duration in milliseconds.
+
     pub duration_ms: Option<u32>,
-    /// Returned/affected rows.
+
     pub rows: Option<usize>,
-    /// Error, when execution failed.
+
     pub error: Option<String>,
-    /// Origin surface.
+
     pub source: HistorySource,
 }
 
 impl HistoryEntry {
-    /// Whether execution succeeded.
     pub fn ok(&self) -> bool {
         self.error.is_none()
     }
-    /// First line for compact rows.
+
     pub fn first_line(&self) -> String {
         let mut lines = self.sql.lines();
         let first = lines.next().unwrap_or_default().trim();
@@ -103,7 +95,7 @@ impl HistoryEntry {
             first.to_owned()
         }
     }
-    /// Stable relative time label.
+
     pub fn when(&self) -> String {
         match self.minutes_ago {
             0 => "just now".to_owned(),
@@ -112,7 +104,7 @@ impl HistoryEntry {
             n => format!("{} d ago", n / 1_440),
         }
     }
-    /// Stable duration label.
+
     pub fn duration(&self) -> String {
         match self.duration_ms {
             None => "–".to_owned(),
@@ -124,16 +116,13 @@ impl HistoryEntry {
     }
 }
 
-/// Bounded newest-first history.
 #[derive(Debug, Clone, Default)]
 pub struct History {
-    /// Entries, newest first.
     pub entries: Vec<HistoryEntry>,
     next_id: usize,
 }
 
 impl History {
-    /// Build the deterministic demo history.
     pub fn seeded() -> Self {
         let mut out = Self::default();
         let rows = [
@@ -225,18 +214,17 @@ impl History {
         out
     }
 
-    /// Whether this history contains no entries.
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
-    /// Add an entry and retain the newest 10,000 records.
+
     pub fn push(&mut self, mut entry: HistoryEntry) {
         self.next_id = self.next_id.saturating_add(1);
         entry.id = self.next_id;
         self.entries.insert(0, entry);
         self.entries.truncate(10_000);
     }
-    /// Search with case-insensitive AND semantics.
+
     pub fn search<'a>(
         &'a self,
         query: &str,
@@ -262,22 +250,20 @@ impl History {
     }
 }
 
-/// Completion item category, preserving SQL context and display semantics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompletionKind {
-    /// SQL keyword.
     Keyword,
-    /// Table name.
+
     Table,
-    /// View name.
+
     View,
-    /// Column name.
+
     Column,
-    /// SQL function.
+
     Function,
-    /// Schema qualifier.
+
     Schema,
-    /// Alias declared in the current statement.
+
     Alias,
 }
 impl CompletionKind {
@@ -293,20 +279,19 @@ impl CompletionKind {
         }
     }
 }
-/// One SQL completion candidate.
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Completion {
-    /// Text inserted into the editor, including any necessary qualifier.
     pub text: String,
-    /// Display label.
+
     pub label: String,
-    /// Type, relation or alias metadata.
+
     pub detail: String,
-    /// Candidate category.
+
     pub kind: CompletionKind,
-    /// Rank; lower values sort first.
+
     pub score: u32,
-    /// Matched grapheme ordinals in the original label.
+
     pub matched: Vec<usize>,
 }
 impl core::fmt::Debug for Completion {
@@ -321,12 +306,11 @@ impl core::fmt::Debug for Completion {
             .finish()
     }
 }
-/// Suggestions and the exact UTF-8 range they replace in the input.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompletionBatch {
-    /// Ranked candidates.
     pub items: Vec<Completion>,
-    /// Current word, ending at the normalized cursor boundary.
+
     pub replace: core::ops::Range<usize>,
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -475,7 +459,7 @@ impl CompletionPool<'_> {
         }
     }
 }
-/// Complete a token while retaining the byte range needed to apply it safely.
+
 pub fn completion_batch(src: &str, cursor: usize, cat: &Catalog) -> CompletionBatch {
     let cursor = normalized_cursor(src, cursor);
     let (word, clause, qualifier) = context(src, cursor);
@@ -517,7 +501,6 @@ fn member_candidates(
     q: &str,
     pool: &mut CompletionPool<'_>,
 ) {
-    // alias or table name → its columns; schema → its tables
     let table = in_stmt
         .iter()
         .find(|(t, a)| {
@@ -718,7 +701,6 @@ fn col_detail(c: &tablepro_demo::db::Column) -> String {
     d
 }
 
-/// Whether this SQL context has enough input to open completion automatically.
 pub fn auto_trigger(src: &str, cursor: usize) -> bool {
     let (word, clause, _) = context(src, normalized_cursor(src, cursor));
     match clause {
@@ -728,41 +710,27 @@ pub fn auto_trigger(src: &str, cursor: usize) -> bool {
     }
 }
 
-/// Return ranked candidates; use [`completion_batch`] to apply a replacement.
 pub fn complete(source: &str, cursor: usize, catalog: &Catalog) -> Vec<Completion> {
     completion_batch(source, cursor, catalog).items
 }
 
-/// An actionable switcher destination, independent of its display position.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SwitchTarget {
-    /// Catalog table, identified by schema and name.
-    Table {
-        /// Schema name.
-        schema: String,
-        /// Table name.
-        name: String,
-    },
-    /// Catalog view, identified by schema and name.
-    View {
-        /// Schema name.
-        schema: String,
-        /// View name.
-        name: String,
-    },
-    /// Schema name.
+    Table { schema: String, name: String },
+
+    View { schema: String, name: String },
+
     Schema(String),
-    /// Database name.
+
     Database(String),
-    /// Immutable owning tab identity.
+
     OpenTab(crate::tabs::TabKey),
-    /// Stable history entry id.
+
     Query(usize),
-    /// Additive connection destination.
+
     Connection(String),
 }
 impl SwitchTarget {
-    /// Source group label, derived from the actual destination.
     pub const fn group(&self) -> &'static str {
         match self {
             Self::Table { .. } => "Tables",
@@ -786,22 +754,21 @@ impl SwitchTarget {
         }
     }
 }
-/// One quick-switcher result.
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct SwitchItem {
-    /// Stable display key; activation uses the typed target.
     pub key: String,
-    /// Main label.
+
     pub label: String,
-    /// Searchable path metadata.
+
     pub detail: String,
-    /// Typed destination.
+
     pub target: SwitchTarget,
-    /// Whether the represented destination is already open.
+
     pub open: bool,
-    /// Rank; lower values sort first.
+
     pub score: u32,
-    /// Matched original-label grapheme ordinals; empty for path-only matches.
+
     pub matched: Vec<usize>,
 }
 impl core::fmt::Debug for SwitchItem {
@@ -817,14 +784,12 @@ impl core::fmt::Debug for SwitchItem {
             .finish()
     }
 }
-/// Owned snapshot of available quick-switcher destinations.
+
 #[derive(Debug, Clone, Default)]
 pub struct SwitcherIndex {
-    /// Indexed targets. Rebuild from the workbench after structural changes.
     pub items: Vec<SwitchItem>,
 }
 impl SwitcherIndex {
-    /// Build without open-tab metadata for standalone catalog consumers.
     pub fn from_catalog(
         catalog: &Catalog,
         history: &History,
@@ -935,7 +900,7 @@ impl SwitcherIndex {
         }
         index
     }
-    /// Rank name matches before path matches, preserving source group priorities.
+
     pub fn search(&self, query: &str) -> Vec<SwitchItem> {
         let query = query.trim();
         let path_query = query.to_lowercase();
@@ -968,7 +933,6 @@ impl SwitcherIndex {
     }
 }
 
-/// Return the columns of a table for filter/editor construction.
 pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
@@ -977,7 +941,6 @@ pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
         .collect()
 }
 
-/// Explicit app-level wrapper around the SQL tokenizer for tests and editor UI.
 pub fn statement_tokens(source: &str) -> Vec<String> {
     tokenize(source)
         .into_iter()

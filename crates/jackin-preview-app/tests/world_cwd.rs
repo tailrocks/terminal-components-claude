@@ -1,4 +1,3 @@
-//! Current directory is domain truth, never inferred from the selected row.
 use jackin_preview_app::domain::workspace::Mount;
 use jackin_preview_app::{Scenario, world_for};
 

@@ -1,12 +1,3 @@
-//! Capability downgrade and the mono rule (`COMPONENT_ARCHITECTURE.md` §11.4, §21 items 25, 29).
-//!
-//! `downgrade_color` is exact integer/float arithmetic over the 6×6×6 cube,
-//! the 24-step greyscale and the 16 xterm defaults; `Theme::downgrade` maps
-//! every token through `ColorTokens::map_colors`, then protects the
-//! foreground ladder of light themes from ANSI16's bright grey entries.
-//! Explicit authored capability tables compose over that generic result by
-//! semantic slot and source provenance; they never change RGB conversion.
-
 use ratatui_core::style::{Color, Modifier};
 
 use super::Theme;
@@ -18,7 +9,6 @@ use super::tokens::{ColorLevel, ColorTokens};
 use crate::id::Part;
 use crate::response::StateFlags;
 
-/// The 16 xterm default colours as `(r, g, b)`, indexed like `Color::Indexed(0..16)`.
 const XTERM16: [(u8, u8, u8); 16] = [
     (0, 0, 0),
     (205, 0, 0),
@@ -60,7 +50,6 @@ const fn named_index(c: Color) -> Option<usize> {
     }
 }
 
-/// The cube channel value for a cube step `0..6`.
 const fn cube_value(step: u8) -> u8 {
     if step == 0 {
         0
@@ -69,7 +58,6 @@ const fn cube_value(step: u8) -> u8 {
     }
 }
 
-/// The `(r, g, b)` of a 256-palette index.
 fn rgb_of_index(i: u8) -> (u8, u8, u8) {
     if let Some(&c) = XTERM16.get(usize::from(i)) {
         return c;
@@ -86,7 +74,6 @@ fn rgb_of_index(i: u8) -> (u8, u8, u8) {
     )
 }
 
-/// The reference `(r, g, b)` of any colour, `None` for `Reset`.
 pub(crate) fn rgb_of(c: Color) -> Option<(u8, u8, u8)> {
     match c {
         Color::Rgb(r, g, b) => Some((r, g, b)),
@@ -106,8 +93,6 @@ fn sq_dist(a: (u8, u8, u8), b: (u8, u8, u8)) -> u32 {
         .saturating_add(d(a.2, b.2))
 }
 
-/// Nearest of the 6×6×6 cube ∪ the 24-step greyscale by squared sRGB
-/// distance; ties resolve to the lower index.
 fn nearest_256(rgb: (u8, u8, u8)) -> u8 {
     let mut best = (16u8, u32::MAX);
     for i in 16..=255u8 {
@@ -128,7 +113,6 @@ fn to_lin(c: u8) -> f64 {
     }
 }
 
-/// CIE L*a*b* under D65.
 pub(crate) fn lab_of(rgb: (u8, u8, u8)) -> (f64, f64, f64) {
     let (red, green, blue) = (to_lin(rgb.0), to_lin(rgb.1), to_lin(rgb.2));
     let x = (red * 0.412_456_4 + green * 0.357_576_1 + blue * 0.180_437_5) / 0.950_47;
@@ -145,22 +129,6 @@ pub(crate) fn lab_of(rgb: (u8, u8, u8)) -> (f64, f64, f64) {
     (116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz))
 }
 
-/// Nearest of the 16 xterm defaults by **hue family and brightness class**
-/// (`DESIGN.md:320`), not by perceptual distance.
-///
-/// A colour whose channel spread is under 40 collapses to the grey ladder by
-/// ITU-R BT.601 luma (`≤30 Black`, `≤110 DarkGray`, `≤200 Gray`, else
-/// `White`); otherwise the dominant channel selects the hue family (with
-/// `r ≥ g,b ∧ g > 120 ∧ b < 80` reading as Yellow) and `max(r,g,b) > 180`
-/// selects the light half.
-///
-/// Recorded rejection: nearest-by-CIE76 ΔE. It is the more "correct"
-/// perceptual answer and the wrong design answer — it maps Junie's accent
-/// `#48e054` and error `#e44545` into the *dark* half, discarding the
-/// brightness contrast the accent system rests on, and collapses
-/// `danger_soft` onto a grey. `DESIGN.md:320` fixes the outcome (accent
-/// `LightGreen`, error `LightRed`) and the authority order puts it above the
-/// implementation spec.
 fn nearest_16(rgb: (u8, u8, u8)) -> Color {
     let (r, g, b) = rgb;
     let lum = (u32::from(r)
@@ -205,12 +173,10 @@ fn nearest_16(rgb: (u8, u8, u8)) -> Color {
     }
 }
 
-/// Relative luminance `Y = 0.2126R + 0.7152G + 0.0722B` over linear channels.
 pub(crate) fn luminance(rgb: (u8, u8, u8)) -> f64 {
     0.2126 * to_lin(rgb.0) + 0.7152 * to_lin(rgb.1) + 0.0722 * to_lin(rgb.2)
 }
 
-/// Mono: `Y < 0.35 → Black`, `Y > 0.75 → White`, else `Reset`.
 fn mono(rgb: (u8, u8, u8)) -> Color {
     let y = luminance(rgb);
     if y < 0.35 {
@@ -222,7 +188,6 @@ fn mono(rgb: (u8, u8, u8)) -> Color {
     }
 }
 
-/// Map a colour to a capability level (§21 item 29, exact).
 pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     let Some(rgb) = rgb_of(c) else {
         return c;
@@ -241,12 +206,6 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     }
 }
 
-/// Keep semantic foreground text legible when a light theme enters the tiny
-/// ANSI16 palette. The palette's `Gray`/`White` entries are intentionally
-/// bright; on a light canvas they erase the foreground/background contrast.
-/// This post-map is limited to the foreground ladder, preserving hue mapping
-/// for accents and every other token while keeping the downgrade generic for
-/// user-supplied light themes.
 fn repair_ansi16_light_foreground(source: &ColorTokens, mapped: &mut ColorTokens) {
     let Some(canvas) = rgb_of(source.surfaces[0]) else {
         return;
@@ -296,8 +255,6 @@ impl PaletteProjection<'_> {
 }
 impl super::tokens::TokenMapper for PaletteProjection<'_> {
     fn color(&mut self, current: Color) -> Color {
-        // Ordinary fields are Color in every typed source/target. A symbolic
-        // target cannot be authored at one of these positions.
         match self.project(super::MeterFillRest::Color(current)) {
             super::MeterFillRest::Color(color) => color,
             super::MeterFillRest::ReferenceLift => downgrade_color(current, self.level),
@@ -309,14 +266,6 @@ impl super::tokens::TokenMapper for PaletteProjection<'_> {
 }
 
 impl Theme {
-    /// Every token mapped through [`downgrade_color`]; at `Mono` the mono
-    /// fallback rules are applied by resolution (§11.4). Works for any theme.
-    ///
-    /// A theme already at `level` is returned unchanged: the token map is not
-    /// re-run, so a theme authored at that depth — or one a caller already
-    /// took down to it — keeps its exact colours instead of being pushed
-    /// through a second, lossy approximation of colours that are already
-    /// representable.
     #[must_use]
     pub fn downgrade(&self, level: ColorLevel) -> Theme {
         if self.capability.color == level {
@@ -364,37 +313,19 @@ impl Theme {
         out
     }
 
-    /// This theme narrowed to what `detected` can paint. Pure: the testable
-    /// seam under [`Theme::for_terminal`] (§34.3).
-    ///
-    /// Narrows and **never widens**, because `capability.color` is the depth
-    /// the theme's tokens are actually at, not a request. A plain
-    /// `downgrade(detected)` would raise the field on a theme a caller had
-    /// deliberately taken down to `Mono`, leaving it claiming `TrueColor` over
-    /// black-and-white tokens — a field lying about its own content, which then
-    /// mis-binds [`Role::Custom`].
     #[must_use]
     pub fn for_level(&self, detected: ColorLevel) -> Theme {
         self.downgrade(self.capability.color.narrow_to(detected))
     }
 
-    /// [`Theme::for_level`] at [`ColorLevel::detect`] — the one impure call,
-    /// made once by `run` when the terminal is finally known.
     #[must_use]
     pub fn for_terminal(&self) -> Theme {
         self.for_level(ColorLevel::detect())
     }
 }
 
-/// One entry of the §11.4 mono fallback manifest: the part it targets, the
-/// state that arms it, and the patch merged when that state is live.
-///
-/// The shape a theme author passes to
-/// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules), and the
-/// shape the built-in tables below are written in.
 pub type MonoRule = (Part, StateFlags, StylePatch);
 
-/// The immutable generic mono fallback manifest applied by the resolver.
 fn mono_rules() -> [MonoRule; 15] {
     let p = StylePatch::new;
     [
@@ -451,25 +382,9 @@ fn mono_rules() -> [MonoRule; 15] {
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
-        // The two parts a *text* control paints for its own content. Without
-        // them a disabled `TextInput` is indistinguishable from an enabled one
-        // at `Mono` (§29, MA-8): `PARTS` is `FIELD, TEXT, PLACEHOLDER, MARKER,
-        // GUTTER`, and no mono rule reached the first two. `PLACEHOLDER` needs
-        // none — it is painted over the `FIELD` fill and inherits its
-        // modifiers per cell; `CONTAINER` needs none — a text control fills
-        // `FIELD`, so a `CONTAINER` rule would not reach the defect.
-        //
-        // Declaration order is load-bearing: state rules of equal specificity
-        // apply in declaration order, so these `remove(Modifier::all())` rules
-        // must precede the `ERROR` rules below or `ERROR`'s `UNDERLINED` is
-        // erased.
         (
             Part::FIELD,
             StateFlags::DISABLED,
-            // `Fg(Primary)`, NOT `Fg(Faint)`: `mono()` maps every step below
-            // `Y = 0.35` to `Black`, and both `disabled_fg` and `Fg(Faint)`
-            // are below it — on a `Black` canvas §11.4's prescribed faint
-            // foreground is invisible, not merely colourless.
             p().set_fg(Role::Fg(FgStep::Primary))
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
@@ -504,9 +419,6 @@ fn mono_rules() -> [MonoRule; 15] {
     ]
 }
 
-/// Rules that share a slot with the table above but are keyed on a second
-/// flag (`DIRTY` beside `WARNING`, `ACTIVE` for tabs), plus the scrollbar
-/// half of `PRESSED`.
 fn mono_rules_extra() -> [MonoRule; 5] {
     let p = StylePatch::new;
     [
@@ -521,45 +433,15 @@ fn mono_rules_extra() -> [MonoRule; 5] {
             p().set_glyph(GlyphRole::RuleActive),
         ),
         (Part::LABEL, StateFlags::ACTIVE, p().add(Modifier::BOLD)),
-        // Busy and loading share the same animated glyph sequence. Give the
-        // data-loading state a capability-local signal of its own, so their
-        // mono rendering does not depend on unrelated fixture/runtime state.
         (
             Part::ICON,
             StateFlags::LOADING,
             p().add(Modifier::UNDERLINED),
         ),
-        // §11.4 `PRESSED`, scrollbar half: the thumb wears `PRESSED` from a
-        // live capture (`components/scroll_region.rs:36-38`). The generic
-        // `CONTAINER` rule is excluded from `SCROLLBAR` below because this
-        // component fills that part across its whole area; the thumb must be
-        // the only bold part. The recipe's own `PRESSED` rule is
-        // `set_fg(Role::Accent)`, and colour alone is excluded from
-        // conformance case 9's comparison, so without this a dragged thumb is
-        // invisible at `Mono`. `BOLD` reserves no cell, so this keeps the
-        // "a mono fallback never changes geometry" guarantee.
         (Part::THUMB, StateFlags::PRESSED, p().add(Modifier::BOLD)),
     ]
 }
 
-/// The number of **generic** entries in the static mono fallback manifest:
-/// `mono_rules()` plus `mono_rules_extra()`, applied once after family and
-/// variant states to every resolvable recipe — each `by_family` entry and the
-/// neutral recipe — without touching recipe storage.
-///
-/// The name is historical and is **not** a per-family total: it is cited by
-/// name in §16.1 and §20.10 item 18, so it keeps it. Six built-in families
-/// declare targeted rules on top of these (`VIEWPORT` 1, `GRID` 2, `MENU` 2,
-/// `HELP` 2, `PICKER` 3, `SELECT` 3) — `PICKER`'s `(LABEL, PRESSED)` retargets
-/// a pair the generic set already covers, so `PICKER` reaches 22 `(part,
-/// state)` pairs where `SELECT` reaches 23 — and a theme author can give any family —
-/// including a `Family::custom` one — its own targeted set through
-/// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules). The count
-/// that is constant across families is exactly this generic one; the total a
-/// given family applies is this number plus its targeted set's length.
-/// `SCROLLBAR` is the one family that applies *fewer*: the generic
-/// `(CONTAINER, PRESSED)` rule is excluded for it (`apply_mono_fallback`), so
-/// its generic total is `MONO_RULES_PER_FAMILY - 1`.
 pub const MONO_RULES_PER_FAMILY: usize = 20;
 
 fn viewport_mono_rules() -> [MonoRule; 1] {
@@ -676,19 +558,6 @@ fn select_mono_rules() -> [MonoRule; 3] {
     ]
 }
 
-/// Apply the private §11.4 static fallback layer after family and variant
-/// states, before every override layer.
-///
-/// Three layers merge here, in order: the generic manifest
-/// ([`MONO_RULES_PER_FAMILY`] rules, family-independent), then the family's
-/// targeted manifest, then nothing else — the targeted manifest is the
-/// author's whole set for that family when the theme declares one
-/// ([`Recipes::mono_rules`]), and the built-in one otherwise.
-///
-/// The static layer still never *writes* into recipe storage: an author's
-/// mono rules are in `Recipes` because the author put them there through
-/// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules), and
-/// [`Theme::downgrade`] adds none.
 pub(crate) fn apply_mono_fallback(
     acc: StylePatch,
     recipes: &Recipes,
@@ -718,9 +587,7 @@ pub(crate) fn apply_mono_with_defaults(
         Family::SELECT => &select_mono_rules(),
         _ => &[],
     };
-    // Whole-set semantics: an authored manifest *replaces* the built-in one
-    // for that family, so a theme can retarget or silence it, and repeating
-    // the call cannot accumulate duplicates.
+
     let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
     for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
         let applies = family != Family::SCROLLBAR
@@ -777,13 +644,12 @@ mod tests {
         for level in LEVELS {
             assert_eq!(t.downgrade(level), t.downgrade(level));
         }
-        // the exact metrics of §21 item 29
+
         assert_eq!(
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi256),
             Color::Indexed(77)
         );
-        // the categorical hue-family metric (DESIGN.md:320): Junie's accent
-        // and error keep their hue *and* their brightness class
+
         assert_eq!(
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi16),
             Color::LightGreen
@@ -820,7 +686,7 @@ mod tests {
             downgrade_color(Color::Indexed(196), ColorLevel::Ansi16),
             Color::LightRed
         );
-        // a near-grey collapses to the grey ladder, not to a hue
+
         assert_eq!(
             downgrade_color(Color::Rgb(0x26, 0x26, 0x26), ColorLevel::Ansi16),
             Color::DarkGray
@@ -829,7 +695,7 @@ mod tests {
             downgrade_color(Color::Rgb(0x11, 0x11, 0x11), ColorLevel::Ansi16),
             Color::Black
         );
-        // greyscale wins over the cube for a mid grey, ties to the lower index
+
         assert_eq!(
             downgrade_color(Color::Rgb(8, 8, 8), ColorLevel::Ansi256),
             Color::Indexed(232)
@@ -839,27 +705,22 @@ mod tests {
         assert_eq!(rgb_of_index(231), (255, 255, 255));
     }
 
-    /// `DESIGN.md:320` is the contract: a 16-colour downgrade preserves hue
-    /// family and brightness class, it does not minimise perceptual distance.
     #[test]
     fn ansi16_preserves_hue_family_and_brightness() {
         let c = Theme::junie().color;
         let at16 = |x| downgrade_color(x, ColorLevel::Ansi16);
-        // DESIGN.md:320 — "at 16 colours the accent is LightGreen and error is LightRed"
+
         assert_eq!(at16(c.accent), Color::LightGreen);
         assert_eq!(at16(c.danger), Color::LightRed);
-        // a destructive label at rest stays red rather than collapsing to grey
+
         assert_eq!(at16(c.danger_soft), Color::LightRed);
-        // the grey ladder: subtle chrome is grey, never a hue. `border_subtle`
-        // is `#262626`, BT.601 luma 38, so it lands on `DarkGray` — the
-        // review's "Black" was an unverified estimate; `#111111` (luma 17) is
-        // the colour that reaches `Black`.
+
         assert_eq!(at16(c.border_subtle), Color::DarkGray);
         assert_eq!(at16(c.surfaces[1]), Color::Black);
         assert_eq!(at16(c.fg[1]), Color::Gray);
         assert_eq!(at16(c.fg[0]), Color::White);
         assert_eq!(at16(c.warning), Color::Yellow);
-        // the dark half is reachable: the same hue at low brightness
+
         assert_eq!(at16(Color::Rgb(0x2b, 0x86, 0x32)), Color::Green);
         assert_eq!(at16(Color::Rgb(0x7a, 0x2a, 0x2a)), Color::Red);
         assert_eq!(at16(c.info), Color::LightBlue);
@@ -885,8 +746,6 @@ mod tests {
         assert_eq!(muted.style.fg, Some(Color::DarkGray));
     }
 
-    /// Downgrade is idempotent, and its static mono fallback layer never
-    /// mutates public recipe storage.
     #[test]
     fn downgrade_is_idempotent_per_level() {
         let t = Theme::junie();
@@ -902,13 +761,6 @@ mod tests {
         assert_eq!(t.downgrade(ColorLevel::Mono).recipes, t.recipes);
     }
 
-    /// §34.3: `for_level` narrows and never widens.
-    ///
-    /// The widening case is the one with teeth. `capability.color` is a claim
-    /// about the tokens, so raising it on an already-mono theme would leave the
-    /// field asserting `TrueColor` over black-and-white colours — and both
-    /// halves are checked here, because a fix that only pinned the field would
-    /// still be wrong if the colours moved.
     #[test]
     fn for_level_narrows_but_never_widens() {
         let mono = Theme::from_tokens(Theme::junie().color).downgrade(ColorLevel::Mono);
@@ -942,7 +794,6 @@ mod tests {
         );
     }
 
-    /// `for_level` activates mono resolution without changing recipe storage.
     #[test]
     fn for_level_reaches_the_neutral_recipe_once() {
         let base = Theme::junie();
@@ -963,7 +814,7 @@ mod tests {
             m.recipes, t.recipes,
             "mono fallback leaked into recipe storage"
         );
-        // CHECKED wins over SELECTED when both are live
+
         let acc = crate::theme::resolve::accumulate(
             &m,
             Family::LIST,
@@ -985,14 +836,10 @@ mod tests {
         assert!(pressed.add.contains(Modifier::BOLD));
     }
 
-    /// F1: static mono resolution must reach the neutral-backed path for
-    /// undeclared families without inserting anything into recipe storage.
     #[test]
     fn mono_fallbacks_reach_the_neutral_recipe() {
         let f = Family::custom("segmented");
         for base in [Theme::junie(), Theme::paper()] {
-            // The fixture must stay undeclared, or the test silently stops
-            // exercising the neutral path and asserts nothing.
             assert!(
                 base.recipes.get(f).is_none(),
                 "`segmented` is now a declared family; pick an undeclared fixture"
@@ -1002,7 +849,6 @@ mod tests {
 
             assert_eq!(m.recipes.neutral(), base.recipes.neutral());
 
-            // …and they are observable where it counts.
             let at = |p: Part, s: StateFlags| m.resolve(f, Variant::DEFAULT, p, s, Surface::Canvas);
             assert!(
                 at(Part::LABEL, StateFlags::FOCUSED)
@@ -1017,9 +863,6 @@ mod tests {
                 "mono ERROR marker of an undeclared family has no glyph"
             );
 
-            // Expressed as DIM plus "not the canvas colour" rather than as a
-            // literal token, so it stays a readability assertion instead of a
-            // theme-palette snapshot.
             let canvas = crate::theme::resolve::bind_role(
                 &m,
                 Role::Surface(Surface::Canvas),
@@ -1038,12 +881,6 @@ mod tests {
         }
     }
 
-    /// §11.4, `PRESSED`: a dragged scrollbar thumb must stay visible at
-    /// `Mono`, without applying the generic pressed-container treatment to
-    /// the whole region. The sole authored `PRESSED` rule on `SCROLLBAR` is
-    /// `set_fg(Role::Accent)` — colour, which conformance case 9 excludes from
-    /// its comparison. The thumb genuinely wears `PRESSED`: a live capture
-    /// keeps it (`components/scroll_region.rs:36-38`).
     #[test]
     fn mono_pressed_reaches_the_scrollbar_thumb() {
         for base in [Theme::junie(), Theme::paper()] {
@@ -1245,10 +1082,6 @@ mod tests {
         }));
     }
 
-    /// §29 + §11.4: at `Mono` a disabled control must stay **readable**, not
-    /// merely colourless. The rule that produced `Fg(Faint)` here resolved to
-    /// `Black` on a `Black` canvas — invisible — because `mono()` collapses
-    /// every step below `Y = 0.35` onto the background.
     #[test]
     fn mono_disabled_is_dim_and_readable() {
         for base in [Theme::junie(), Theme::paper()] {
@@ -1284,9 +1117,6 @@ mod tests {
         }
     }
 
-    /// Every `(part, state)` pair the static mono layer answers for `f`,
-    /// probed through `apply_mono_fallback` rather than read off the tables,
-    /// so the count measures what resolution does.
     fn responding_pairs(recipes: &Recipes, f: Family) -> usize {
         let mut pairs: Vec<(Part, StateFlags)> = mono_rules()
             .iter()
@@ -1310,10 +1140,6 @@ mod tests {
             .count()
     }
 
-    /// The constant counts the **generic** manifest only; a family's real
-    /// total is that plus its targeted set, minus `SCROLLBAR`'s one exclusion
-    /// and minus any pair a targeted rule shares with the generic set. These
-    /// are the numbers `MONO_RULES_PER_FAMILY`'s documentation states.
     #[test]
     fn mono_rule_counts_match_the_documented_totals() {
         assert_eq!(
@@ -1321,14 +1147,13 @@ mod tests {
             mono_rules().len() + mono_rules_extra().len()
         );
         let r = Theme::junie().recipes;
-        // a family with no targeted set answers exactly the generic manifest
+
         assert_eq!(responding_pairs(&r, Family::BUTTON), MONO_RULES_PER_FAMILY);
         assert_eq!(
             responding_pairs(&r, Family::custom("seg")),
             MONO_RULES_PER_FAMILY
         );
-        // the one family that answers fewer: generic `(CONTAINER, PRESSED)`
-        // is excluded so only the thumb is bold under a drag
+
         assert_eq!(
             responding_pairs(&r, Family::SCROLLBAR),
             MONO_RULES_PER_FAMILY - 1
@@ -1338,8 +1163,6 @@ mod tests {
             (Family::GRID, 22),
             (Family::MENU, 22),
             (Family::HELP, 22),
-            // `PICKER` declares three rules but one retargets `(LABEL,
-            // PRESSED)`, which the generic set already answers
             (Family::PICKER, 22),
             (Family::SELECT, 23),
         ] {
@@ -1347,10 +1170,6 @@ mod tests {
         }
     }
 
-    /// S6: a downstream family had no way to declare mono affordances — the
-    /// six targeted tables are private and closed. `ThemeBuilder::mono_rules`
-    /// is that seam, and it must reach resolution for a `Family::custom`
-    /// family without declaring the family in recipe storage.
     #[test]
     fn builder_mono_rules_reach_a_custom_family_at_mono_only() {
         let seg = Family::custom("seg");
@@ -1360,11 +1179,10 @@ mod tests {
             StylePatch::new().set_glyph(GlyphRole::Chosen),
         )];
         let base = Theme::junie().builder().mono_rules(seg, &rule).build();
-        // storage records the manifest, not a family
+
         assert!(base.recipes.get(seg).is_none());
         assert_eq!(base.recipes.mono_rules(seg), Some(&rule[..]));
 
-        // nothing happens above `Mono`: this is a capability fallback layer
         assert_eq!(
             base.resolve(
                 seg,
@@ -1389,7 +1207,7 @@ mod tests {
             .glyph,
             Slot::Set(GlyphRole::Chosen)
         );
-        // the generic manifest still applies to the same family
+
         assert!(
             m.resolve(
                 seg,
@@ -1402,7 +1220,7 @@ mod tests {
             .add_modifier
             .contains(Modifier::BOLD)
         );
-        // and an author override still beats the static layer (§11.4)
+
         let overridden = base
             .clone()
             .override_family(seg, |recipe| {
@@ -1429,10 +1247,6 @@ mod tests {
         );
     }
 
-    /// Whole-set semantics: the manifest a theme sets **is** the family's
-    /// targeted set. Repeating the call replaces rather than accumulates, an
-    /// empty slice silences the built-in set, and the generic manifest is
-    /// untouched in every case.
     #[test]
     fn builder_mono_rules_replace_the_whole_targeted_set() {
         let underlined = [(
@@ -1454,7 +1268,7 @@ mod tests {
                 StateFlags::PRESSED,
             )
         };
-        // the built-in `SELECT` rules are gone, not merged under the new one
+
         assert_eq!(
             at(&replaced, Part::FIELD),
             StylePatch::new().add(Modifier::UNDERLINED)
@@ -1465,13 +1279,12 @@ mod tests {
             Slot::Inherit,
             "the built-in `(MARKER, PRESSED)` rule survived a whole-set replacement"
         );
-        // the generic manifest is untouched by a targeted replacement
+
         assert_eq!(
             responding_pairs(&replaced.recipes, Family::SELECT),
             MONO_RULES_PER_FAMILY + 1
         );
 
-        // last call wins: no accumulation across repeated calls
         let last = Theme::junie()
             .builder()
             .mono_rules(Family::SELECT, &underlined)
@@ -1490,7 +1303,6 @@ mod tests {
             StylePatch::new().add(Modifier::BOLD)
         );
 
-        // an empty set silences the family's targeted rules and only those
         let cleared = Theme::junie()
             .builder()
             .mono_rules(Family::SELECT, &[])
@@ -1502,7 +1314,7 @@ mod tests {
             responding_pairs(&cleared.recipes, Family::SELECT),
             MONO_RULES_PER_FAMILY
         );
-        // …and a family the theme said nothing about keeps its built-in set
+
         assert_eq!(
             responding_pairs(&cleared.recipes, Family::PICKER),
             responding_pairs(&Theme::junie().recipes, Family::PICKER)

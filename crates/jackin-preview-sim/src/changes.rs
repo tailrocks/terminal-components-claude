@@ -1,37 +1,24 @@
-//! Deterministic change sets for the preview's inspect-changes surface.
-//!
-//! A simulated instance has no repository, so this module turns its touched
-//! paths into stable fixture hunks.  The data model intentionally belongs to
-//! the app instead of importing the retired diff widget.  A future screen can
-//! project it into `termrock::DiffSource` without exposing credentials or
-//! coupling the simulation to a renderer.
-
 use std::collections::BTreeSet;
 
 use termrock::{FgStep, Role};
 
-/// The kind of one line in a unified diff.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiffLineKind {
-    /// Present on both sides.
     Context,
-    /// Present only on the new side.
+
     Add,
-    /// Present only on the old side.
+
     Remove,
 }
 
-/// One owned diff line.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiffLine {
-    /// The semantic line kind.
     pub kind: DiffLineKind,
-    /// Source text without the diff marker.
+
     pub text: String,
 }
 
 impl DiffLine {
-    /// Construct a context line.
     pub fn context(text: impl Into<String>) -> Self {
         Self {
             kind: DiffLineKind::Context,
@@ -39,7 +26,6 @@ impl DiffLine {
         }
     }
 
-    /// Construct an added line.
     pub fn add(text: impl Into<String>) -> Self {
         Self {
             kind: DiffLineKind::Add,
@@ -47,7 +33,6 @@ impl DiffLine {
         }
     }
 
-    /// Construct a removed line.
     pub fn remove(text: impl Into<String>) -> Self {
         Self {
             kind: DiffLineKind::Remove,
@@ -55,17 +40,14 @@ impl DiffLine {
         }
     }
 
-    /// Whether the line exists only on the new side.
     pub const fn is_addition(&self) -> bool {
         matches!(self.kind, DiffLineKind::Add)
     }
 
-    /// Whether the line exists only on the old side.
     pub const fn is_deletion(&self) -> bool {
         matches!(self.kind, DiffLineKind::Remove)
     }
 
-    /// The theme role a diff renderer should use for this line.
     pub const fn role(&self) -> Role {
         match self.kind {
             DiffLineKind::Context => Role::Fg(FgStep::Primary),
@@ -75,29 +57,24 @@ impl DiffLine {
     }
 }
 
-/// One hunk in a changed file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hunk {
-    /// First old-side line number.
     pub old_start: usize,
-    /// First new-side line number.
+
     pub new_start: usize,
-    /// Hunk lines.
+
     pub lines: Vec<DiffLine>,
 }
 
 impl Hunk {
-    /// Number of old-side lines represented by this hunk.
     pub fn old_len(&self) -> usize {
         self.lines.iter().filter(|line| !line.is_addition()).count()
     }
 
-    /// Number of new-side lines represented by this hunk.
     pub fn new_len(&self) -> usize {
         self.lines.iter().filter(|line| !line.is_deletion()).count()
     }
 
-    /// Conventional unified-diff header.
     pub fn header(&self) -> String {
         format!(
             "@@ -{},{} +{},{} @@",
@@ -109,24 +86,18 @@ impl Hunk {
     }
 }
 
-/// File-level change status.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DiffStatus {
-    /// A newly created file.
     Added,
-    /// An existing file changed in place.
+
     Modified,
-    /// A file was removed.
+
     Deleted,
-    /// A file changed path.
-    Renamed {
-        /// The old path.
-        from: String,
-    },
+
+    Renamed { from: String },
 }
 
 impl DiffStatus {
-    /// One-letter status marker.
     pub const fn marker(&self) -> &'static str {
         match self {
             Self::Added => "A",
@@ -136,7 +107,6 @@ impl DiffStatus {
         }
     }
 
-    /// Human-readable status label.
     pub const fn label(&self) -> &'static str {
         match self {
             Self::Added => "added",
@@ -146,7 +116,6 @@ impl DiffStatus {
         }
     }
 
-    /// Theme role for the status marker.
     pub const fn role(&self) -> Role {
         match self {
             Self::Added => Role::Success,
@@ -157,19 +126,16 @@ impl DiffStatus {
     }
 }
 
-/// One changed file in an instance's deterministic diff.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangedFile {
-    /// Current repository-relative path.
     pub path: String,
-    /// File status.
+
     pub status: DiffStatus,
-    /// Stable hunks for this path.
+
     pub hunks: Vec<Hunk>,
 }
 
 impl ChangedFile {
-    /// Count added lines.
     pub fn additions(&self) -> usize {
         self.hunks
             .iter()
@@ -178,7 +144,6 @@ impl ChangedFile {
             .count()
     }
 
-    /// Count removed lines.
     pub fn deletions(&self) -> usize {
         self.hunks
             .iter()
@@ -187,7 +152,6 @@ impl ChangedFile {
             .count()
     }
 
-    /// Compact file summary.
     pub fn summary(&self) -> String {
         let n = self.hunks.len();
         format!(
@@ -199,7 +163,6 @@ impl ChangedFile {
         )
     }
 
-    /// File header suitable for a diff list.
     pub fn header(&self) -> String {
         match &self.status {
             DiffStatus::Renamed { from } => {
@@ -210,32 +173,26 @@ impl ChangedFile {
     }
 }
 
-/// Everything the inspector shows for one instance.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangeSet {
-    /// Changed files, in stable input order with duplicates removed.
     pub files: Vec<ChangedFile>,
-    /// Commits ahead of the remote, shown separately from file rows.
+
     pub unpushed: usize,
 }
 
 impl ChangeSet {
-    /// Count added lines across all files.
     pub fn additions(&self) -> usize {
         self.files.iter().map(ChangedFile::additions).sum()
     }
 
-    /// Count removed lines across all files.
     pub fn deletions(&self) -> usize {
         self.files.iter().map(ChangedFile::deletions).sum()
     }
 
-    /// Whether there is no file or unpushed commit to inspect.
     pub const fn is_empty(&self) -> bool {
         self.files.is_empty() && self.unpushed == 0
     }
 
-    /// Compact summary such as `3 files · +41 −12`.
     pub fn summary(&self) -> String {
         let n = self.files.len();
         format!(
@@ -271,7 +228,6 @@ fn removed(text: &str) -> DiffLine {
     DiffLine::remove(text)
 }
 
-/// Pick realistic but secret-free hunks from a fixed snippet library.
 fn hunks_for(path: &str, key: u64) -> Vec<Hunk> {
     let base = 8 + (key % 7) as usize * 5;
     let lines = match ext(path) {
@@ -404,7 +360,6 @@ fn renamed_file() -> ChangedFile {
     }
 }
 
-/// Build the deterministic change set for one simulated instance.
 pub fn changes_for(
     instance_id: &str,
     touched: &[String],

@@ -1,29 +1,19 @@
-//! Domain half of the staged 1Password picker.
-//!
-//! `termrock::PickerChain` owns breadcrumb focus and retry/back bindings.  The
-//! app keeps provider-specific ids and translates simulator errors to safe
-//! display state; credential material remains inside `SimOnePassword`'s
-//! closure and is never stored here.
-
 use termrock::{ItemKey, Status};
 
 use jackin_preview_sim::onepassword::OpError;
 
-/// Ordered stages in the 1Password reference flow.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OpFlowStage {
-    /// Account selection stage.
     Account,
-    /// Vault selection stage.
+
     Vault,
-    /// Item selection stage.
+
     Item,
-    /// Field selection stage.
+
     Field,
 }
 
 impl OpFlowStage {
-    /// Stable stage key used by `PickerChain`.
     pub const fn key(self) -> ItemKey {
         ItemKey::num(match self {
             Self::Account => 1,
@@ -33,7 +23,6 @@ impl OpFlowStage {
         })
     }
 
-    /// Breadcrumb label.
     pub const fn label(self) -> &'static str {
         match self {
             Self::Account => "Account",
@@ -43,7 +32,6 @@ impl OpFlowStage {
         }
     }
 
-    /// Next stage, if any.
     pub const fn next(self) -> Option<Self> {
         match self {
             Self::Account => Some(Self::Vault),
@@ -53,7 +41,6 @@ impl OpFlowStage {
         }
     }
 
-    /// Previous stage, if any.
     pub const fn previous(self) -> Option<Self> {
         match self {
             Self::Account => None,
@@ -64,27 +51,16 @@ impl OpFlowStage {
     }
 }
 
-/// Safe loading/error state projected below a picker breadcrumb.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpFlowStatus {
-    /// The current stage is ready for input.
     Ready,
-    /// A stage request is in progress.
-    Loading {
-        /// Human-readable loading label.
-        label: String,
-    },
-    /// A stage request failed with safe operator-facing details.
-    Error {
-        /// Safe error summary.
-        message: String,
-        /// Recovery guidance for the operator.
-        detail: String,
-    },
+
+    Loading { label: String },
+
+    Error { message: String, detail: String },
 }
 
 impl OpFlowStatus {
-    /// Library collection status for this stage.
     pub const fn collection_status(&self) -> Status {
         match self {
             Self::Ready => Status::Ready,
@@ -94,30 +70,17 @@ impl OpFlowStatus {
     }
 }
 
-/// Domain actions returned by the staged flow.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpFlowAction {
-    /// Move to a new stage with a stable provider id.
-    Entered {
-        /// Stage entered by the flow.
-        stage: OpFlowStage,
-        /// Stable provider identifier selected at that stage.
-        id: String,
-    },
-    /// Return to an earlier breadcrumb.
+    Entered { stage: OpFlowStage, id: String },
+
     Back(OpFlowStage),
-    /// Retry the current operation.
+
     Retry(OpFlowStage),
-    /// Accept a metadata-only reference.
-    Completed {
-        /// Final stage completed by the flow.
-        stage: OpFlowStage,
-        /// Stable provider identifier selected at that stage.
-        id: String,
-    },
+
+    Completed { stage: OpFlowStage, id: String },
 }
 
-/// State retained by the app-side OpFlow composition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpFlowState {
     current: OpFlowStage,
@@ -136,28 +99,20 @@ impl Default for OpFlowState {
 }
 
 impl OpFlowState {
-    /// Current stage.
     pub const fn current(&self) -> OpFlowStage {
         self.current
     }
 
-    /// Current status.
     pub const fn status(&self) -> &OpFlowStatus {
         &self.status
     }
 
-    /// Selection at `stage`, if one exists.
     pub fn selected(&self, stage: OpFlowStage) -> Option<&str> {
         self.selected
             .get(Self::index(stage))
             .and_then(Option::as_deref)
     }
 
-    /// Reconcile one selected provider key against the latest collection.
-    ///
-    /// A picker may outlive an asynchronous refresh.  If its selected item
-    /// disappeared, clear that key and every dependent breadcrumb rather
-    /// than dispatching an action for stale provider data.
     pub fn reconcile_selection(&mut self, stage: OpFlowStage, valid: &[String]) -> bool {
         let index = Self::index(stage);
         let Some(selected) = self.selected.get(index).and_then(Option::as_deref) else {
@@ -174,7 +129,6 @@ impl OpFlowState {
         true
     }
 
-    /// Begin a deterministic loading state for one stage.
     pub fn begin_load(&mut self, stage: OpFlowStage, label: impl Into<String>) {
         self.current = stage;
         self.status = OpFlowStatus::Loading {
@@ -182,7 +136,6 @@ impl OpFlowState {
         };
     }
 
-    /// Store a provider id and advance the chain.
     pub fn choose(&mut self, id: impl Into<String>) -> Option<OpFlowAction> {
         let id = id.into();
         if id.is_empty() {
@@ -203,7 +156,6 @@ impl OpFlowState {
         }
     }
 
-    /// Rewind one stage and retain earlier selections.
     pub fn back(&mut self) -> Option<OpFlowAction> {
         let previous = self.current.previous()?;
         self.current = previous;
@@ -212,7 +164,6 @@ impl OpFlowState {
         Some(OpFlowAction::Back(previous))
     }
 
-    /// Rewind to an earlier stage and clear selections after it.
     pub fn back_to(&mut self, stage: OpFlowStage) -> Option<OpFlowAction> {
         if Self::index(stage) >= Self::index(self.current) {
             return None;
@@ -223,7 +174,6 @@ impl OpFlowState {
         Some(OpFlowAction::Back(stage))
     }
 
-    /// Record a retryable or terminal simulator error without its material.
     pub fn set_error(&mut self, error: OpError) {
         let message = error.message();
         self.status = OpFlowStatus::Error {
@@ -244,7 +194,6 @@ impl OpFlowState {
         };
     }
 
-    /// Retry the current failed stage.
     pub fn retry(&mut self) -> Option<OpFlowAction> {
         if matches!(self.status, OpFlowStatus::Error { .. }) {
             self.status = OpFlowStatus::Loading {
@@ -256,7 +205,6 @@ impl OpFlowState {
         }
     }
 
-    /// Reset the chain without retaining prior choices.
     pub fn reset(&mut self) {
         *self = Self::default();
     }

@@ -1,8 +1,3 @@
-//! Black-box checks for read-only queue v2 records and registry roles.
-//!
-//! These tests launch the exact production queue CLI against disposable Git
-//! repositories. They do not import Python modules or use a Python test runner.
-
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -19,6 +14,28 @@ use termrock_visibility_tests::{CliOutput, TempRepo, Tool, run_cli, sha256_hex};
 const CANDIDATE_BRANCH: &str = "termrock-implementation";
 const FROZEN_VISUAL_TAG_OBJECT_SHA: &str = "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5";
 const FROZEN_VISUAL_TAG_COMMIT_SHA: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+
+fn install_rendered_view(script: &Path, root: &Path, command: &str) -> Vec<u8> {
+    let view_path = root.join("target/visibility/WORK_QUEUE.md");
+    let arguments = vec![
+        "--root".to_owned(),
+        path_text(root),
+        command.to_owned(),
+        "--output".to_owned(),
+        "target/visibility/WORK_QUEUE.md".to_owned(),
+    ];
+    let output =
+        run_cli(script, &arguments, root, &[], None).expect("run generated queue-view command");
+    assert_success(&output);
+    fs::read(view_path).expect("read queue view rendered at its output location")
+}
+
+fn root_relative_view(view: &[u8]) -> Vec<u8> {
+    String::from_utf8(view.to_vec())
+        .expect("generated queue view is UTF-8")
+        .replace("](../../", "](")
+        .into_bytes()
+}
 struct RegistryFixture {
     candidate: TempRepo,
     origin: TempRepo,
@@ -617,7 +634,10 @@ fn registry_check_reports_candidate_identity_and_clean_state() {
         "registry-check must not create accepted task records"
     );
     assert!(
-        !fixture.candidate_root().join("WORK_QUEUE.md").exists(),
+        !fixture
+            .candidate_root()
+            .join("target/visibility/WORK_QUEUE.md")
+            .exists(),
         "registry-check must not create the generated queue view"
     );
     assert_eq!(
@@ -1449,16 +1469,18 @@ impl QueueV2Fixture {
             .expect("resolve source repository root");
         let source_tasks = fs::read(source_root.join("docs/implementation/visibility/tasks.json"))
             .expect("read checked-in accepted queue records");
-        let source_view = fs::read(source_root.join("WORK_QUEUE.md"))
-            .expect("read checked-in generated queue view");
         let tasks_path = self
             .repository
             .root()
             .join("docs/implementation/visibility/tasks.json");
-        let view_path = self.repository.root().join("WORK_QUEUE.md");
+        let view_path = self
+            .repository
+            .root()
+            .join("target/visibility/WORK_QUEUE.md");
         fs::create_dir_all(tasks_path.parent().expect("tasks parent"))
             .expect("create fixture task-record directory");
         fs::write(&tasks_path, &source_tasks).expect("copy accepted records to fixture");
+        let source_view = install_rendered_view(&self.script, self.repository.root(), "render");
         fs::write(&view_path, &source_view).expect("copy generated view to fixture");
         (tasks_path, view_path, source_tasks, source_view)
     }
@@ -1473,10 +1495,8 @@ impl QueueV2Fixture {
             serde_json::to_vec_pretty(&records).expect("serialize scope-free records");
         scope_free_tasks.push(b'\n');
         fs::write(&tasks_path, &scope_free_tasks).expect("write scope-free records");
-        let rendered = self.run(&["render".to_owned()]);
-        assert_success(&rendered);
-        fs::write(&view_path, &rendered.stdout).expect("write matching scope-free view");
-        (tasks_path, view_path, scope_free_tasks, rendered.stdout)
+        let source_view = install_rendered_view(&self.script, self.repository.root(), "render");
+        (tasks_path, view_path, scope_free_tasks, source_view)
     }
 
     fn identity_map_args(&self) -> Vec<String> {
@@ -1506,10 +1526,7 @@ fn remove_branch_scope_fields(records: &mut Value) {
             continue;
         };
         for entry in history {
-            if let Some(claim) = entry
-                .get_mut("claim")
-                .and_then(Value::as_object_mut)
-            {
+            if let Some(claim) = entry.get_mut("claim").and_then(Value::as_object_mut) {
                 claim.remove("branch_scopes");
             }
         }
@@ -1643,7 +1660,8 @@ impl RegistryCheckV2Fixture {
         )
         .expect("write coordinator task-record fixture");
         fs::write(
-            base.candidate_root().join("WORK_QUEUE.md"),
+            base.candidate_root()
+                .join("target/visibility/WORK_QUEUE.md"),
             b"# Fixture queue\n",
         )
         .expect("write coordinator queue-view fixture");
@@ -1896,7 +1914,7 @@ impl RegistryCheckV2Fixture {
                 "coordinator-root",
                 "docs/implementation/visibility/tasks.json",
             ),
-            ("coordinator-root", "WORK_QUEUE.md"),
+            ("coordinator-root", "target/visibility/WORK_QUEUE.md"),
             ("coordinator-root", ".git"),
             ("candidate-source-root", ".git"),
             ("reference-root", ".git"),
@@ -2221,7 +2239,8 @@ fn scope_free_current_records_preview_to_v2_without_writing_and_preserve_history
     let v1_render = fixture.run(&["render".to_owned()]);
     assert_success(&v1_render);
     assert_eq!(
-        v1_render.stdout, source_view,
+        v1_render.stdout,
+        root_relative_view(&source_view),
         "schema-v1 render behavior must remain unchanged"
     );
 
@@ -2312,7 +2331,7 @@ fn scope_free_current_records_preview_to_v2_without_writing_and_preserve_history
         "claim snapshot has missing or unknown fields",
     );
 
-    let rendered = preview["rendered_queue"]
+    let expected_v2_view = preview["rendered_queue"]
         .as_str()
         .expect("preview contains deterministic v2 view")
         .as_bytes()
@@ -2320,14 +2339,55 @@ fn scope_free_current_records_preview_to_v2_without_writing_and_preserve_history
     let mut v2_bytes = serde_json::to_vec_pretty(&expected).expect("serialize expected v2 records");
     v2_bytes.push(b'\n');
     fs::write(&tasks_path, v2_bytes).expect("install v2 records in disposable fixture");
-    fs::write(&view_path, &rendered).expect("install v2 view in disposable fixture");
+    let target_view =
+        install_rendered_view(&fixture.script, fixture.repository.root(), "render-v2");
     assert_success(&fixture.run(&["check-v2".to_owned()]));
     let render = fixture.run(&["render-v2".to_owned()]);
     assert_success(&render);
     assert_eq!(
-        render.stdout, rendered,
+        render.stdout, expected_v2_view,
         "v2 rendering must be deterministic"
     );
+    assert!(String::from_utf8_lossy(&target_view).contains("(../../README.md)"));
+}
+
+#[test]
+fn queue_v1_and_v2_links_match_stdout_and_ignored_output_locations() {
+    let fixture = QueueV2Fixture::new();
+    let (tasks_path, _, _, _) = fixture.install_scope_free_current_v1_queue();
+    let v1_stdout = fixture.run(&["render".to_owned()]);
+    assert_success(&v1_stdout);
+    for path in [
+        "README.md",
+        "docs/architecture.md",
+        "docs/direction.md",
+        "docs/requirements.md",
+    ] {
+        assert!(String::from_utf8_lossy(&v1_stdout.stdout).contains(&format!("]({path})")));
+    }
+    for retired in ["docs/README.md", "docs/design.md", "docs/plan.md"] {
+        assert!(!String::from_utf8_lossy(&v1_stdout.stdout).contains(retired));
+    }
+    let v1_target = install_rendered_view(&fixture.script, fixture.repository.root(), "render");
+    assert!(String::from_utf8_lossy(&v1_target).contains("(../../README.md)"));
+
+    let preview = fixture.run(&fixture.identity_map_args());
+    assert_success(&preview);
+    let preview: Value = serde_json::from_slice(&preview.stdout).expect("parse v2 preview");
+    let mut v2_records =
+        serde_json::to_vec_pretty(&preview["records"]).expect("serialize v2 accepted task records");
+    v2_records.push(b'\n');
+    fs::write(&tasks_path, v2_records).expect("install v2 records in isolated repository");
+
+    let v2_stdout = fixture.run(&["render-v2".to_owned()]);
+    assert_success(&v2_stdout);
+    assert!(String::from_utf8_lossy(&v2_stdout.stdout).contains("(README.md)"));
+    for retired in ["docs/README.md", "docs/design.md", "docs/plan.md"] {
+        assert!(!String::from_utf8_lossy(&v2_stdout.stdout).contains(retired));
+    }
+    let v2_target = install_rendered_view(&fixture.script, fixture.repository.root(), "render-v2");
+    assert!(String::from_utf8_lossy(&v2_target).contains("(../../README.md)"));
+    assert_success(&fixture.run(&["check-v2".to_owned()]));
 }
 
 #[test]
@@ -2345,7 +2405,7 @@ fn migration_preview_fails_closed_for_a_current_branch_scope_extension() {
     fs::write(&tasks_path, &scoped_tasks).expect("write top-level scope fixture");
     let rendered = fixture.run(&["render".to_owned()]);
     assert_success(&rendered);
-    fs::write(&view_path, &rendered.stdout).expect("write top-level scope view");
+    let rendered_view = install_rendered_view(&fixture.script, fixture.repository.root(), "render");
 
     let output = fixture.run(&fixture.identity_map_args());
     assert_exact_error(
@@ -2358,7 +2418,7 @@ fn migration_preview_fails_closed_for_a_current_branch_scope_extension() {
     );
     assert_eq!(
         fs::read(&view_path).expect("read view source after rejected preview"),
-        rendered.stdout
+        rendered_view
     );
 }
 
@@ -2384,7 +2444,7 @@ fn migration_preview_fails_closed_for_a_historical_branch_scope_extension() {
     fs::write(&tasks_path, &scoped_tasks).expect("write historical scope fixture");
     let rendered = fixture.run(&["render".to_owned()]);
     assert_success(&rendered);
-    fs::write(&view_path, &rendered.stdout).expect("write historical scope view");
+    let rendered_view = install_rendered_view(&fixture.script, fixture.repository.root(), "render");
 
     let output = fixture.run(&fixture.identity_map_args());
     assert_exact_error(
@@ -2397,7 +2457,7 @@ fn migration_preview_fails_closed_for_a_historical_branch_scope_extension() {
     );
     assert_eq!(
         fs::read(&view_path).expect("read view source after rejected preview"),
-        rendered.stdout
+        rendered_view
     );
 }
 
@@ -2405,10 +2465,10 @@ fn migration_preview_fails_closed_for_a_historical_branch_scope_extension() {
 #[ignore = "branch-scoped evidence gate: audits the termrock-implementation tree and its frozen visibility evidence; kept as a historical record outside active verification (recovery ledger R-41)"]
 fn handoff_next_action_is_labeled_as_recorded_in_v1_and_v2() {
     let fixture = QueueV2Fixture::new();
-    let (tasks_path, view_path, source_tasks, _source_view) =
+    let (tasks_path, _view_path, source_tasks, _source_view) =
         fixture.install_scope_free_current_v1_queue();
-    let mut records: Value = serde_json::from_slice(&source_tasks)
-        .expect("parse copied accepted task records");
+    let mut records: Value =
+        serde_json::from_slice(&source_tasks).expect("parse copied accepted task records");
     let recorded_action = "fixture instruction retained from the prior handoff";
     let task = records["tasks"]
         .as_array_mut()
@@ -2430,13 +2490,13 @@ fn handoff_next_action_is_labeled_as_recorded_in_v1_and_v2() {
         !v1_text.contains(&format!(". Next: {}", recorded_action)),
         "v1 view must not present the recorded action as current: {v1_text}"
     );
-    fs::write(&view_path, &v1_view_bytes).expect("write generated v1 view to disposable fixture");
+    install_rendered_view(&fixture.script, fixture.repository.root(), "render");
 
     let preview = fixture.run(&fixture.identity_map_args());
     assert_success(&preview);
     let preview: Value = serde_json::from_slice(&preview.stdout).expect("parse v2 preview");
-    let mut v2_bytes = serde_json::to_vec_pretty(&preview["records"])
-        .expect("serialize v2 fixture records");
+    let mut v2_bytes =
+        serde_json::to_vec_pretty(&preview["records"]).expect("serialize v2 fixture records");
     v2_bytes.push(b'\n');
     fs::write(&tasks_path, v2_bytes).expect("install v2 records in disposable fixture");
 
@@ -2509,7 +2569,6 @@ fn schema_v2_active_path_conflicts_are_repository_scoped() {
         .repository
         .root()
         .join("docs/implementation/visibility/tasks.json");
-    let view_path = fixture.repository.root().join("WORK_QUEUE.md");
     let same_repository =
         serde_json::to_vec_pretty(&records).expect("serialize overlapping records");
     fs::write(&records_path, &same_repository).expect("write same-repository fixture records");
@@ -2538,7 +2597,7 @@ fn schema_v2_active_path_conflicts_are_repository_scoped() {
     fs::write(&records_path, distinct_repository).expect("write independent fixture records");
     let rendered = fixture.run(&["render-v2".to_owned()]);
     assert_success(&rendered);
-    fs::write(&view_path, &rendered.stdout).expect("write generated v2 view");
+    install_rendered_view(&fixture.script, fixture.repository.root(), "render-v2");
     assert_success(&fixture.run(&["check-v2".to_owned()]));
 
     assert_eq!(
@@ -2991,8 +3050,11 @@ impl ReviewSubjectFixture {
             repository.root(),
             &["checkout", "--quiet", "-b", CANDIDATE_BRANCH],
         );
-        fs::write(repository.root().join("fixture-seed.txt"), b"review subject fixture\n")
-            .expect("write fixture seed");
+        fs::write(
+            repository.root().join("fixture-seed.txt"),
+            b"review subject fixture\n",
+        )
+        .expect("write fixture seed");
         git(repository.root(), &["add", "--all"]);
         git_with_identity(
             repository.root(),
@@ -3001,28 +3063,24 @@ impl ReviewSubjectFixture {
 
         let source_root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
             .expect("resolve pinned source repository");
-        let source_tasks = fs::read(
-            source_root.join("docs/implementation/visibility/tasks.json"),
-        )
-        .expect("read accepted source task records");
-        let source_view = fs::read(source_root.join("WORK_QUEUE.md"))
-            .expect("read accepted generated queue view");
+        let source_tasks = fs::read(source_root.join("docs/implementation/visibility/tasks.json"))
+            .expect("read accepted source task records");
         let tasks_path = repository
             .root()
             .join("docs/implementation/visibility/tasks.json");
-        let view_path = repository.root().join("WORK_QUEUE.md");
+        let view_path = repository.root().join("target/visibility/WORK_QUEUE.md");
         fs::create_dir_all(tasks_path.parent().expect("task parent"))
             .expect("create fixture task directory");
         fs::write(&tasks_path, source_tasks).expect("copy accepted task records");
+        let source_view = install_rendered_view(&tool.path, repository.root(), "render");
         fs::write(&view_path, source_view).expect("copy accepted queue view");
 
-        let subject_path = repository.root().join(
-            "docs/implementation/visibility/evidence/dco/review-subject-fixture.txt",
-        );
+        let subject_path = repository
+            .root()
+            .join("docs/implementation/visibility/evidence/dco/review-subject-fixture.txt");
         fs::create_dir_all(subject_path.parent().expect("subject parent"))
             .expect("create accepted VIS-12 scope");
-        fs::write(&subject_path, b"first review subject\n")
-            .expect("write review subject file");
+        fs::write(&subject_path, b"first review subject\n").expect("write review subject file");
 
         let fixture = Self {
             repository,
@@ -3056,31 +3114,20 @@ impl ReviewSubjectFixture {
         .expect("install isolated review fixture records");
         let render = fixture.run(&["render".to_owned()]);
         assert_success(&render);
-        fs::write(&fixture.view_path, render.stdout).expect("refresh isolated fixture view");
+        install_rendered_view(&fixture.script, fixture.repository.root(), "render");
         fixture
     }
 
     fn run(&self, tail: &[String]) -> CliOutput {
-        let mut arguments = vec![
-            "--root".to_owned(),
-            path_text(self.repository.root()),
-        ];
+        let mut arguments = vec!["--root".to_owned(), path_text(self.repository.root())];
         arguments.extend_from_slice(tail);
-        run_cli(
-            &self.script,
-            &arguments,
-            self.repository.root(),
-            &[],
-            None,
-        )
-        .expect("run production queue CLI")
+        run_cli(&self.script, &arguments, self.repository.root(), &[], None)
+            .expect("run production queue CLI")
     }
 
     fn read_records(&self) -> Value {
-        serde_json::from_slice(
-            &fs::read(&self.tasks_path).expect("read fixture accepted records"),
-        )
-        .expect("parse fixture accepted records")
+        serde_json::from_slice(&fs::read(&self.tasks_path).expect("read fixture accepted records"))
+            .expect("parse fixture accepted records")
     }
 
     fn read_task(&self, work_id: &str) -> Value {
@@ -3166,12 +3213,7 @@ impl ReviewSubjectFixture {
         ])
     }
 
-    fn transition(
-        &self,
-        state: &str,
-        revision: u64,
-        review: Option<(&Path, &str)>,
-    ) -> CliOutput {
+    fn transition(&self, state: &str, revision: u64, review: Option<(&Path, &str)>) -> CliOutput {
         let mut arguments = vec![
             "transition".to_owned(),
             "VIS-12".to_owned(),
@@ -3226,7 +3268,10 @@ fn verified_task_rows(records: &Value) -> Vec<(String, Value)> {
         .filter(|task| task["state"] == "verified")
         .map(|task| {
             (
-                task["work_id"].as_str().expect("verified work ID").to_owned(),
+                task["work_id"]
+                    .as_str()
+                    .expect("verified work ID")
+                    .to_owned(),
                 task.clone(),
             )
         })
@@ -3240,9 +3285,17 @@ fn review_subject_binding_uses_revision_cas_and_preserves_existing_verified_reco
     let before_records = fixture.read_records();
     let initial_revision = fixture.revision();
     let old_verified = verified_task_rows(&before_records);
-    assert!(!old_verified.is_empty(), "q34 fixture retains verified claims");
+    assert!(
+        !old_verified.is_empty(),
+        "q34 fixture retains verified claims"
+    );
     assert_eq!(fixture.read_task("VIS-12")["state"], "review");
-    assert!(fixture.read_task("VIS-12").get("review_subject_sha256").is_none());
+    assert!(
+        fixture
+            .read_task("VIS-12")
+            .get("review_subject_sha256")
+            .is_none()
+    );
     let token = fixture.claim_token();
     let expected = fixture.subject_digest();
     let unchanged = fixture.queue_files();
@@ -3251,17 +3304,29 @@ fn review_subject_binding_uses_revision_cas_and_preserves_existing_verified_reco
         &fixture.bind(initial_revision.saturating_sub(1), &token, &expected),
         "stale queue revision",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "stale CAS writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "stale CAS writes no queue files"
+    );
     assert_error(
         &fixture.bind(initial_revision, "wrong-claim-token", &expected),
         "claim token does not match the current task claim",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "wrong token writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "wrong token writes no queue files"
+    );
     assert_error(
         &fixture.bind(initial_revision, &token, "not-a-sha256"),
         "expected subject SHA-256 must be a full lowercase SHA-256",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "invalid digest writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "invalid digest writes no queue files"
+    );
 
     fs::write(&fixture.subject_path, b"changed after the digest read\n")
         .expect("change allowed-path subject after digest read");
@@ -3269,19 +3334,30 @@ fn review_subject_binding_uses_revision_cas_and_preserves_existing_verified_reco
         &fixture.bind(initial_revision, &token, &expected),
         "current allowed-path digest does not match expected review subject",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "digest drift writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "digest drift writes no queue files"
+    );
 
     let current = fixture.subject_digest();
     let accepted = fixture.bind(initial_revision, &token, &current);
     assert_success(&accepted);
     assert_eq!(fixture.revision(), initial_revision + 1);
-    assert_eq!(fixture.read_task("VIS-12")["review_subject_sha256"], current);
+    assert_eq!(
+        fixture.read_task("VIS-12")["review_subject_sha256"],
+        current
+    );
     let current_snapshot = fixture.queue_files();
     assert_error(
         &fixture.bind(initial_revision + 1, &token, &current),
         "review subject is already bound",
     );
-    assert_eq!(fixture.queue_files(), current_snapshot, "duplicate bind writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        current_snapshot,
+        "duplicate bind writes no queue files"
+    );
 
     let after_records = fixture.read_records();
     let after_verified = verified_task_rows(&after_records);
@@ -3316,8 +3392,11 @@ fn append_evidence_uses_revision_cas_and_preserves_claim_identity_and_state() {
         .as_array_mut()
         .expect("evidence array")
         .push(json!(evidence));
-    assert_eq!(fixture.read_records(), expected,
-        "only queue revision and the target evidence list may change");
+    assert_eq!(
+        fixture.read_records(),
+        expected,
+        "only queue revision and the target evidence list may change"
+    );
     assert_eq!(fixture.read_task("VIS-12")["state"], "review");
     assert_eq!(
         fixture.read_task("VIS-12")["claim_token"].as_str(),
@@ -3342,22 +3421,38 @@ fn append_evidence_rejects_stale_empty_wrong_token_and_duplicate_without_writes(
         &fixture.append_evidence(revision.saturating_sub(1), &token, "new evidence"),
         "stale queue revision",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "stale CAS writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "stale CAS writes no queue files"
+    );
     assert_error(
         &fixture.append_evidence(revision, &token, "  \t  "),
         "evidence must be nonempty text",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "empty evidence writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "empty evidence writes no queue files"
+    );
     assert_error(
         &fixture.append_evidence(revision, "wrong-claim-token", "new evidence"),
         "claim token does not match the current task claim",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "wrong token writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "wrong token writes no queue files"
+    );
     assert_error(
         &fixture.append_evidence(revision, &token, &existing),
         "evidence entry already exists",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "duplicate evidence writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "duplicate evidence writes no queue files"
+    );
 }
 
 #[test]
@@ -3373,8 +3468,13 @@ fn append_evidence_rejects_lower_priority_work_without_writes() {
         .expect("VIS-12 task");
     task["priority"] = json!("P1");
     task["priority_reason"] = json!("synthetic lower-priority control");
-    assert!(records["tasks"].as_array().unwrap().iter().any(|task|
-        task["state"] != "verified" && task["priority"] == "P0"));
+    assert!(
+        records["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|task| task["state"] != "verified" && task["priority"] == "P0")
+    );
     fs::write(
         &fixture.tasks_path,
         serde_json::to_vec_pretty(&records).expect("serialize lower-priority fixture"),
@@ -3382,7 +3482,7 @@ fn append_evidence_rejects_lower_priority_work_without_writes() {
     .expect("install lower-priority fixture records");
     let rendered = fixture.run(&["render".to_owned()]);
     assert_success(&rendered);
-    fs::write(&fixture.view_path, rendered.stdout).expect("refresh lower-priority fixture view");
+    install_rendered_view(&fixture.script, fixture.repository.root(), "render");
 
     let revision = fixture.revision();
     let token = fixture.claim_token();
@@ -3391,7 +3491,11 @@ fn append_evidence_rejects_lower_priority_work_without_writes() {
         &fixture.append_evidence(revision, &token, "lower-priority evidence"),
         "cannot append evidence for lower priority P1 while P0 remains open",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "priority rejection writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "priority rejection writes no queue files"
+    );
 }
 
 #[test]
@@ -3414,7 +3518,12 @@ fn reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer()
     assert_eq!(task["state"], "in_progress");
     assert_eq!(task["expiry"], "2026-10-09T00:00:00Z");
     let output = fixture.reviewer_handoff(
-        "VIS-08", revision, &token, old_reviewer, new_reviewer, evidence,
+        "VIS-08",
+        revision,
+        &token,
+        old_reviewer,
+        new_reviewer,
+        evidence,
     );
     assert_success(&output);
 
@@ -3427,15 +3536,21 @@ fn reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer()
         .find(|item| item["work_id"] == "VIS-08")
         .unwrap();
     changed["reviewer"] = json!(new_reviewer);
-    changed["evidence"].as_array_mut().unwrap().push(json!(format!(
-        "reviewer handoff at queue revision {}: {} -> {}; {}",
-        revision + 1,
-        old_reviewer,
-        new_reviewer,
-        evidence
-    )));
-    assert_eq!(fixture.read_records(), expected,
-        "only reviewer, audit evidence, and queue revision may change");
+    changed["evidence"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!(format!(
+            "reviewer handoff at queue revision {}: {} -> {}; {}",
+            revision + 1,
+            old_reviewer,
+            new_reviewer,
+            evidence
+        )));
+    assert_eq!(
+        fixture.read_records(),
+        expected,
+        "only reviewer, audit evidence, and queue revision may change"
+    );
     assert_success(&fixture.run(&["check".to_owned()]));
 }
 
@@ -3458,46 +3573,71 @@ fn reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes() {
 
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", revision.saturating_sub(1), &token,
-            &old_reviewer, valid_new, "synthetic replacement",
+            "VIS-08",
+            revision.saturating_sub(1),
+            &token,
+            &old_reviewer,
+            valid_new,
+            "synthetic replacement",
         ),
         "stale queue revision",
     );
     assert_eq!(fixture.queue_files(), unchanged);
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", revision, "wrong-token", &old_reviewer,
-            valid_new, "synthetic replacement",
+            "VIS-08",
+            revision,
+            "wrong-token",
+            &old_reviewer,
+            valid_new,
+            "synthetic replacement",
         ),
         "claim token does not match the current task claim",
     );
     assert_eq!(fixture.queue_files(), unchanged);
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", revision, &token, "/root/stale-reviewer",
-            valid_new, "synthetic replacement",
+            "VIS-08",
+            revision,
+            &token,
+            "/root/stale-reviewer",
+            valid_new,
+            "synthetic replacement",
         ),
         "assigned reviewer does not match expected reviewer",
     );
     assert_eq!(fixture.queue_files(), unchanged);
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", revision, &token, &old_reviewer,
-            &old_reviewer, "synthetic replacement",
+            "VIS-08",
+            revision,
+            &token,
+            &old_reviewer,
+            &old_reviewer,
+            "synthetic replacement",
         ),
         "new reviewer must differ from assigned reviewer",
     );
     assert_eq!(fixture.queue_files(), unchanged);
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", revision, &token, &old_reviewer, "", "synthetic replacement",
+            "VIS-08",
+            revision,
+            &token,
+            &old_reviewer,
+            "",
+            "synthetic replacement",
         ),
         "new reviewer must be nonempty text",
     );
     assert_eq!(fixture.queue_files(), unchanged);
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", revision, &token, &old_reviewer, &owner,
+            "VIS-08",
+            revision,
+            &token,
+            &old_reviewer,
+            &owner,
             "synthetic replacement",
         ),
         "new reviewer must differ from current owner",
@@ -3505,22 +3645,36 @@ fn reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes() {
     assert_eq!(fixture.queue_files(), unchanged);
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", revision, &token, &old_reviewer,
-            "/root/invalid\nreviewer", "synthetic replacement",
+            "VIS-08",
+            revision,
+            &token,
+            &old_reviewer,
+            "/root/invalid\nreviewer",
+            "synthetic replacement",
         ),
         "new reviewer must be a single-line identity",
     );
     assert_eq!(fixture.queue_files(), unchanged);
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", revision, &token, &old_reviewer, valid_new, "  \t  ",
+            "VIS-08",
+            revision,
+            &token,
+            &old_reviewer,
+            valid_new,
+            "  \t  ",
         ),
         "reviewer handoff evidence must be nonempty text",
     );
     assert_eq!(fixture.queue_files(), unchanged);
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", revision, &token, &old_reviewer, valid_new, &existing,
+            "VIS-08",
+            revision,
+            &token,
+            &old_reviewer,
+            valid_new,
+            &existing,
         ),
         "reviewer handoff evidence entry already exists",
     );
@@ -3546,18 +3700,31 @@ fn reviewer_handoff_rejects_reused_reason_without_writes() {
     };
     let reason = "same reviewer handoff rationale";
     assert_success(&fixture.reviewer_handoff(
-        "VIS-08", fixture.revision(), &token, &first_reviewer, second_reviewer, reason,
+        "VIS-08",
+        fixture.revision(),
+        &token,
+        &first_reviewer,
+        second_reviewer,
+        reason,
     ));
 
     let after_first_handoff = fixture.queue_files();
     assert_error(
         &fixture.reviewer_handoff(
-            "VIS-08", fixture.revision(), &token, second_reviewer, third_reviewer, reason,
+            "VIS-08",
+            fixture.revision(),
+            &token,
+            second_reviewer,
+            third_reviewer,
+            reason,
         ),
         "reviewer handoff evidence entry already exists",
     );
-    assert_eq!(fixture.queue_files(), after_first_handoff,
-        "reused reviewer handoff reason writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        after_first_handoff,
+        "reused reviewer handoff reason writes no queue files"
+    );
 }
 
 #[test]
@@ -3572,7 +3739,9 @@ fn reviewer_handoff_rejects_review_state_without_writes() {
         .find(|item| item["work_id"] == "VIS-08")
         .unwrap();
     task["state"] = json!("review");
-    task.as_object_mut().unwrap().remove("review_subject_sha256");
+    task.as_object_mut()
+        .unwrap()
+        .remove("review_subject_sha256");
     task.as_object_mut().unwrap().remove("review_record");
     task.as_object_mut().unwrap().remove("review_record_sha256");
     fs::write(
@@ -3582,7 +3751,7 @@ fn reviewer_handoff_rejects_review_state_without_writes() {
     .expect("install review-state fixture records");
     let rendered = fixture.run(&["render".to_owned()]);
     assert_success(&rendered);
-    fs::write(&fixture.view_path, rendered.stdout).expect("refresh review-state fixture view");
+    install_rendered_view(&fixture.script, fixture.repository.root(), "render");
 
     let task = fixture.read_task("VIS-08");
     let revision = fixture.revision();
@@ -3602,7 +3771,11 @@ fn reviewer_handoff_rejects_review_state_without_writes() {
         ),
         "reviewer handoff requires a claimed, in-progress, or blocked task",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "review-state rejection writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "review-state rejection writes no queue files"
+    );
 }
 
 #[test]
@@ -3618,8 +3791,13 @@ fn reviewer_handoff_rejects_lower_priority_work_without_writes() {
         .unwrap();
     task["priority"] = json!("P1");
     task["priority_reason"] = json!("synthetic lower-priority reviewer handoff control");
-    assert!(records["tasks"].as_array().unwrap().iter().any(|item|
-        item["state"] != "verified" && item["priority"] == "P0"));
+    assert!(
+        records["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["state"] != "verified" && item["priority"] == "P0")
+    );
     fs::write(
         &fixture.tasks_path,
         serde_json::to_vec_pretty(&records).expect("serialize lower-priority fixture"),
@@ -3627,7 +3805,7 @@ fn reviewer_handoff_rejects_lower_priority_work_without_writes() {
     .expect("install lower-priority fixture records");
     let rendered = fixture.run(&["render".to_owned()]);
     assert_success(&rendered);
-    fs::write(&fixture.view_path, rendered.stdout).expect("refresh lower-priority fixture view");
+    install_rendered_view(&fixture.script, fixture.repository.root(), "render");
 
     let revision = fixture.revision();
     let task = fixture.read_task("VIS-08");
@@ -3647,7 +3825,11 @@ fn reviewer_handoff_rejects_lower_priority_work_without_writes() {
         ),
         "cannot append evidence for lower priority P1 while P0 remains open",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "priority rejection writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "priority rejection writes no queue files"
+    );
 }
 
 #[test]
@@ -3669,7 +3851,7 @@ fn reviewer_handoff_rejects_a_stale_review_subject_without_writes() {
     .expect("install stale subject fixture records");
     let rendered = fixture.run(&["render".to_owned()]);
     assert_success(&rendered);
-    fs::write(&fixture.view_path, rendered.stdout).expect("refresh stale subject fixture view");
+    install_rendered_view(&fixture.script, fixture.repository.root(), "render");
 
     let task = fixture.read_task("VIS-08");
     let revision = fixture.revision();
@@ -3689,7 +3871,11 @@ fn reviewer_handoff_rejects_a_stale_review_subject_without_writes() {
         ),
         "reviewer handoff cannot change an active review subject",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "stale subject rejection writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "stale subject rejection writes no queue files"
+    );
 }
 
 #[test]
@@ -3707,22 +3893,33 @@ fn review_to_blocked_archives_subject_and_blocked_to_review_requires_rebinding()
     let blocked = fixture.read_task("VIS-12");
     assert_eq!(blocked["state"], "blocked");
     assert!(blocked.get("review_subject_sha256").is_none());
-    assert!(blocked["evidence"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|entry| entry.as_str().unwrap().contains(&old_subject)
-            && entry.as_str().unwrap().contains("review -> blocked")));
+    assert!(
+        blocked["evidence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|entry| entry.as_str().unwrap().contains(&old_subject)
+                && entry.as_str().unwrap().contains("review -> blocked"))
+    );
 
     fs::write(&fixture.subject_path, b"source after reviewer findings\n")
         .expect("apply fixture correction while blocked");
     assert_success(&fixture.transition("review", initial_revision + 2, None));
     assert_eq!(fixture.read_task("VIS-12")["state"], "review");
-    assert!(fixture.read_task("VIS-12").get("review_subject_sha256").is_none());
+    assert!(
+        fixture
+            .read_task("VIS-12")
+            .get("review_subject_sha256")
+            .is_none()
+    );
 
     let before_rejected_verify = fixture.queue_files();
     assert_error(
-        &fixture.transition("verified", initial_revision + 3, Some((&old_review_path, &old_review_sha))),
+        &fixture.transition(
+            "verified",
+            initial_revision + 3,
+            Some((&old_review_path, &old_review_sha)),
+        ),
         "VIS-12.review_subject_sha256 must be recorded in accepted source before verification",
     );
     assert_eq!(fixture.queue_files(), before_rejected_verify);
@@ -3732,7 +3929,11 @@ fn review_to_blocked_archives_subject_and_blocked_to_review_requires_rebinding()
     assert_success(&fixture.bind(initial_revision + 3, &token, &new_subject));
     let before_old_receipt = fixture.queue_files();
     assert_error(
-        &fixture.transition("verified", initial_revision + 4, Some((&old_review_path, &old_review_sha))),
+        &fixture.transition(
+            "verified",
+            initial_revision + 4,
+            Some((&old_review_path, &old_review_sha)),
+        ),
         "review subject does not match accepted subject binding",
     );
     assert_eq!(fixture.queue_files(), before_old_receipt);
@@ -3749,7 +3950,10 @@ fn review_to_blocked_archives_subject_and_blocked_to_review_requires_rebinding()
         .into_iter()
         .filter(|(work_id, _)| work_id != "VIS-12")
         .collect();
-    assert_eq!(preserved, original_verified, "other verified claims remain unchanged");
+    assert_eq!(
+        preserved, original_verified,
+        "other verified claims remain unchanged"
+    );
 }
 
 #[test]
@@ -3765,7 +3969,11 @@ fn binding_is_rejected_outside_review_without_writing_queue_files() {
         &fixture.bind(revision + 1, &token, &subject),
         "review subject can only be bound while the task is in review",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "non-review binding writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "non-review binding writes no queue files"
+    );
 }
 
 #[test]
@@ -3790,8 +3998,7 @@ fn legacy_subjects_are_archived_on_blocked_or_in_progress_review_reentry() {
         .expect("install legacy record with a stale subject");
         let rendered = fixture.run(&["render".to_owned()]);
         assert_success(&rendered);
-        fs::write(&fixture.view_path, rendered.stdout)
-            .expect("refresh fixture queue view");
+        install_rendered_view(&fixture.script, fixture.repository.root(), "render");
 
         let revision = fixture.revision();
         let token = fixture.claim_token();
@@ -3803,12 +4010,17 @@ fn legacy_subjects_are_archived_on_blocked_or_in_progress_review_reentry() {
         let reopened = fixture.read_task("VIS-12");
         assert_eq!(reopened["state"], "review");
         assert!(reopened.get("review_subject_sha256").is_none());
-        assert!(reopened["evidence"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|entry| entry.as_str().unwrap().contains(&stale_subject)
-                && entry.as_str().unwrap().contains(expected_transition.as_str())));
+        assert!(
+            reopened["evidence"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry.as_str().unwrap().contains(&stale_subject)
+                    && entry
+                        .as_str()
+                        .unwrap()
+                        .contains(expected_transition.as_str()))
+        );
 
         let before_old_receipt = fixture.queue_files();
         assert_error(
@@ -3847,7 +4059,10 @@ fn legacy_subjects_are_archived_on_blocked_or_in_progress_review_reentry() {
             .into_iter()
             .filter(|(work_id, _)| work_id != "VIS-12")
             .collect::<Vec<_>>();
-        assert_eq!(preserved, old_verified, "prior verified rows remain unchanged");
+        assert_eq!(
+            preserved, old_verified,
+            "prior verified rows remain unchanged"
+        );
     }
 }
 
@@ -3863,16 +4078,23 @@ fn review_to_in_progress_also_clears_the_subject_before_a_later_review() {
     let reopened = fixture.read_task("VIS-12");
     assert_eq!(reopened["state"], "in_progress");
     assert!(reopened.get("review_subject_sha256").is_none());
-    assert!(reopened["evidence"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|entry| entry.as_str().unwrap().contains(&subject)
-            && entry.as_str().unwrap().contains("review -> in_progress")));
+    assert!(
+        reopened["evidence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|entry| entry.as_str().unwrap().contains(&subject)
+                && entry.as_str().unwrap().contains("review -> in_progress"))
+    );
 
     assert_success(&fixture.transition("review", initial_revision + 2, None));
     assert_eq!(fixture.read_task("VIS-12")["state"], "review");
-    assert!(fixture.read_task("VIS-12").get("review_subject_sha256").is_none());
+    assert!(
+        fixture
+            .read_task("VIS-12")
+            .get("review_subject_sha256")
+            .is_none()
+    );
 }
 
 #[test]
@@ -3933,12 +4155,14 @@ fn handoff_archives_bound_subject_in_prior_claim_evidence() {
         .expect("new prior claim entry");
     let prior = &prior["claim"];
     assert!(prior.get("review_subject_sha256").is_none());
-    assert!(prior["evidence"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|entry| entry.as_str().unwrap().contains(&subject)
-            && entry.as_str().unwrap().contains("before handoff")));
+    assert!(
+        prior["evidence"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|entry| entry.as_str().unwrap().contains(&subject)
+                && entry.as_str().unwrap().contains("before handoff"))
+    );
 }
 
 #[test]
@@ -3961,10 +4185,12 @@ fn accept_rejects_a_claim_that_preseeds_review_subject() {
     claim["expiry"] = json!("2099-01-01T00:00:00Z");
     claim["evidence"] = json!(["synthetic accepted claim"]);
     claim["handoff"] = Value::Null;
-    claim.as_object_mut()
+    claim
+        .as_object_mut()
         .expect("claim object")
         .remove("accepted_queue_revision");
-    claim.as_object_mut()
+    claim
+        .as_object_mut()
         .expect("claim object")
         .remove("claim_history");
     claim["review_subject_sha256"] = json!("b".repeat(64));
@@ -3983,7 +4209,11 @@ fn accept_rejects_a_claim_that_preseeds_review_subject() {
         path_text(&record_path),
     ]);
     assert_error(&output, "new claim cannot prebind a review subject");
-    assert_eq!(fixture.queue_files(), unchanged, "rejected claim writes no queue files");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "rejected claim writes no queue files"
+    );
 }
 
 const BRANCH_SCOPE_PATH: &str = "crates/termrock-e2e/**";
@@ -4101,7 +4331,7 @@ impl BranchScopeFixture {
         let tasks_path = repository
             .root()
             .join("docs/implementation/visibility/tasks.json");
-        let view_path = repository.root().join("WORK_QUEUE.md");
+        let view_path = repository.root().join("target/visibility/WORK_QUEUE.md");
         let plan_path = repository.root().join("accepted-branch-scope-plan.md");
         let review_path = repository.root().join("accepted-branch-scope-review.json");
         let accepted_authorization_evidence = format!(
@@ -4209,7 +4439,7 @@ impl BranchScopeFixture {
         .expect("write accepted queue fixture");
         let rendered = self.run(&["render".to_owned()]);
         assert_success(&rendered);
-        fs::write(&self.view_path, rendered.stdout).expect("write rendered fixture view");
+        install_rendered_view(&self.script, self.repository.root(), "render");
     }
 
     fn run(&self, tail: &[String]) -> CliOutput {
@@ -4289,7 +4519,10 @@ impl BranchScopeFixture {
     }
 
     fn amendment_for_with_current(
-        &self, work_id: &str, current: Value, replacement: Value,
+        &self,
+        work_id: &str,
+        current: Value,
+        replacement: Value,
     ) -> Value {
         let mut amendment = self.amendment_for(work_id, replacement);
         amendment["current_branch_scopes"] = current;
@@ -4370,7 +4603,10 @@ impl BranchScopeFixture {
     }
 
     fn install_task_specific_plan(
-        &mut self, work_id: &str, allowed_paths: &[String], authorization_evidence: &str,
+        &mut self,
+        work_id: &str,
+        allowed_paths: &[String],
+        authorization_evidence: &str,
     ) {
         let task = self.read_task(work_id);
         let primary = json!({
@@ -4444,7 +4680,10 @@ impl BranchScopeFixture {
     }
 
     fn amend_with_env_for_work_id(
-        &self, work_id: &str, amendment: Value, environment: &[(&str, &str)],
+        &self,
+        work_id: &str,
+        amendment: Value,
+        environment: &[(&str, &str)],
     ) -> CliOutput {
         let record_path = self.repository.root().join("branch-scope-amendment.json");
         fs::write(
@@ -4722,7 +4961,13 @@ fn vis01_branch_scope_accepts_exact_89_literal_reference_paths() {
     assert_eq!(after["branch"], before["branch"]);
     assert_eq!(after["base_sha"], before["base_sha"]);
     assert_eq!(after["allowed_paths"], before["allowed_paths"]);
-    assert_eq!(after["branch_scopes"][0]["allowed_paths"].as_array().unwrap().len(), 89);
+    assert_eq!(
+        after["branch_scopes"][0]["allowed_paths"]
+            .as_array()
+            .unwrap()
+            .len(),
+        89
+    );
     let rendered = fs::read_to_string(&fixture.view_path).expect("read rendered queue view");
     assert!(rendered.contains("docs/status-closure/leaf-088.json"));
 }
@@ -4775,7 +5020,10 @@ fn vis11_branch_scope_accepts_synthetic_literal_workflow_config_and_toolpin_leav
     assert_eq!(after["base_sha"], before["base_sha"]);
     assert_eq!(after["allowed_paths"], before["allowed_paths"]);
     assert_eq!(
-        after["branch_scopes"][0]["allowed_paths"].as_array().unwrap().len(),
+        after["branch_scopes"][0]["allowed_paths"]
+            .as_array()
+            .unwrap()
+            .len(),
         6
     );
     let rendered = fs::read_to_string(&fixture.view_path).expect("read rendered queue view");
@@ -4842,7 +5090,11 @@ fn task_specific_branch_scope_rejects_cross_task_plan_and_glob_before_probe() {
         &fixture.amend_with_env_for_work_id("VIS-01", wildcard_amendment, &environment),
         "literal file paths for VIS-01",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "glob rejection must not write");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "glob rejection must not write"
+    );
     assert!(!marker.exists(), "glob rejection must precede remote probe");
 
     let short_paths = (0..88)
@@ -4861,8 +5113,15 @@ fn task_specific_branch_scope_rejects_cross_task_plan_and_glob_before_probe() {
         &fixture.amend_with_env_for_work_id("VIS-01", short_amendment, &environment),
         "exactly 89 literal paths",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "short closure must not write");
-    assert!(!marker.exists(), "short closure rejection must precede remote probe");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "short closure must not write"
+    );
+    assert!(
+        !marker.exists(),
+        "short closure rejection must precede remote probe"
+    );
 
     let cross_task_amendment = fixture.amendment_for(
         "VIS-11",
@@ -4877,8 +5136,15 @@ fn task_specific_branch_scope_rejects_cross_task_plan_and_glob_before_probe() {
         &fixture.amend_with_env_for_work_id("VIS-11", cross_task_amendment, &environment),
         "not bound to accepted VIS-10 evidence",
     );
-    assert_eq!(fixture.queue_files(), unchanged, "cross-task rejection must not write");
-    assert!(!marker.exists(), "cross-task rejection must precede remote probe");
+    assert_eq!(
+        fixture.queue_files(),
+        unchanged,
+        "cross-task rejection must not write"
+    );
+    assert!(
+        !marker.exists(),
+        "cross-task rejection must precede remote probe"
+    );
 }
 
 #[test]
@@ -4951,9 +5217,21 @@ fn expired_active_primary_and_optional_reference_grants_both_conflict() {
             CANDIDATE_BRANCH,
             &fixture.candidate_head,
             &["synthetic/conflict/**"],
-            if optional { "/root/current_branch_comparison_luna" } else { "/root/vis21-owner" },
-            if optional { "/root/velnor_residual_review_luna" } else { "/root/vis21-reviewer" },
-            if optional { "vis11-branch-scope-conflict" } else { "vis21-branch-scope-conflict" },
+            if optional {
+                "/root/current_branch_comparison_luna"
+            } else {
+                "/root/vis21-owner"
+            },
+            if optional {
+                "/root/velnor_residual_review_luna"
+            } else {
+                "/root/vis21-reviewer"
+            },
+            if optional {
+                "vis11-branch-scope-conflict"
+            } else {
+                "vis21-branch-scope-conflict"
+            },
         );
         if optional {
             conflict["branch_scopes"] = json!([{
@@ -5550,7 +5828,15 @@ fn branch_scope_transition_from_declared_nonempty_to_replacement_succeeds() {
     let after = fixture.read_task("VIS-02");
     assert_eq!(records["queue_revision"], json!(revision + 1));
     assert_eq!(after["branch_scopes"], replacement_scopes);
-    for field in ["owner", "reviewer", "priority", "branch", "base_sha", "allowed_paths", "state"] {
+    for field in [
+        "owner",
+        "reviewer",
+        "priority",
+        "branch",
+        "base_sha",
+        "allowed_paths",
+        "state",
+    ] {
         assert_eq!(after[field], before[field], "primary field {field} changed");
     }
     assert_eq!(after.get("claim_history"), before.get("claim_history"));
@@ -5559,7 +5845,11 @@ fn branch_scope_transition_from_declared_nonempty_to_replacement_succeeds() {
         evidence.len(),
         before["evidence"].as_array().unwrap().len() + 2
     );
-    assert!(evidence.iter().any(|entry| entry.as_str().unwrap() == authorization));
+    assert!(
+        evidence
+            .iter()
+            .any(|entry| entry.as_str().unwrap() == authorization)
+    );
     assert!(evidence.iter().any(|entry| {
         let text = entry.as_str().unwrap();
         text.contains("amended branch scopes at queue revision")
@@ -5588,11 +5878,7 @@ fn branch_scope_transition_rejects_wrong_operational_current_before_probe() {
         "TEST ONLY synthetic current mismatch authorization.",
     );
     let wrong_current = branch_scope_at_base(&fixture.accepted_reference_base);
-    let amendment = fixture.amendment_for_with_current(
-        "VIS-02",
-        wrong_current,
-        replacement_scopes,
-    );
+    let amendment = fixture.amendment_for_with_current("VIS-02", wrong_current, replacement_scopes);
     let unchanged = fixture.queue_files();
     assert_error(
         &fixture.amend_with_env(amendment, &[]),
@@ -5615,11 +5901,8 @@ fn branch_scope_transition_requires_actual_current_to_equal_declared_current() {
         "TEST ONLY synthetic actual-current mismatch authorization.",
     );
     fixture.set_branch_scopes("VIS-02", replacement_scopes.clone());
-    let amendment = fixture.amendment_for_with_current(
-        "VIS-02",
-        current_scopes,
-        replacement_scopes,
-    );
+    let amendment =
+        fixture.amendment_for_with_current("VIS-02", current_scopes, replacement_scopes);
     let unchanged = fixture.queue_files();
     assert_error(
         &fixture.amend_with_env(amendment, &[]),
@@ -5684,11 +5967,8 @@ fn branch_scope_transition_rejects_an_altered_replacement() {
         "TEST ONLY synthetic altered replacement authorization.",
     );
     let altered_replacement = branch_scope_at_base(&"d".repeat(40));
-    let amendment = fixture.amendment_for_with_current(
-        "VIS-02",
-        current_scopes,
-        altered_replacement,
-    );
+    let amendment =
+        fixture.amendment_for_with_current("VIS-02", current_scopes, altered_replacement);
     let unchanged = fixture.queue_files();
     assert_error(
         &fixture.amend_with_env(amendment, &[]),
@@ -5709,11 +5989,8 @@ fn legacy_branch_scope_amendment_without_declaration_keeps_empty_or_equal_rules(
     assert_eq!(removed["branch_scopes"], json!([]));
 
     let forbidden = BranchScopeFixture::new_with_reference_tip_plan();
-    let amendment = forbidden.amendment_for_with_current(
-        "VIS-02",
-        current_scopes,
-        forbidden.add_scope(),
-    );
+    let amendment =
+        forbidden.amendment_for_with_current("VIS-02", current_scopes, forbidden.add_scope());
     let unchanged = forbidden.queue_files();
     assert_error(
         &forbidden.amend_with_env(amendment, &[]),

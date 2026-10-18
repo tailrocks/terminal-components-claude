@@ -1,91 +1,3 @@
-//! Showcase pending slice 8A-S4 executable checks — impl port.
-//!
-//! Ported from VB commit `5f6e52f31861f9f4281f1db264ab012457b9bc2e`
-//! (`tests/harness/tests/visual_baseline/showcase_pending_s4.rs`), adapting
-//! only paths, binary resolution, harness API, and the isolated
-//! component-path translation:
-//!
-//! - `Session` is the impl [`support::Session`] wrapper (live samples via
-//!   `s.inner.observe_now()` / `s.inner.snapshot()`), not
-//!   `tuiscotti::tui::Session` directly.
-//! - The subject is the binary built from this impl worktree's sources,
-//!   resolved via [`support::try_resolve_bin`] (name -> executed path +
-//!   sha256); [`write_provenance`] records path, digest, size, mtime, and
-//!   argv behind each check.
-//! - `support::frame_from_screen` (VB helper over `Provenance`) becomes
-//!   `tuiscotti::render::frame_from_screen` (provenance `"default"`).
-//! - Isolated `junie_tui` in-process renders (`Select`, `Picker`,
-//!   `Completion`, `Dialog`, `ContextMenu`, `MenuBar`, `render_bar`,
-//!   `render_spinner`, `render_indeterminate`, `Meter`, `StatusBar`,
-//!   `RenderCtx`, `Interaction`, `Outcome`) become the established impl
-//!   component path: `Runtime` + `Stub` + `draw_scene` with
-//!   `ui.reference` state injection for inert paint, and `Harness` apps
-//!   for interaction. `Outcome` assertions become draw/behavior
-//!   correlates (flow, committed values, re-rendered glyphs, selection
-//!   paint, actions): `Changed` is `Consumed` plus the asserted effect,
-//!   modal dismissal is the layer correlate (`is_open` / `Closed` /
-//!   `Dismissed`), and caller-owned validation stays caller-owned.
-//!
-//! One ignored test per S4 registry row (20 rows: the 10 OVERLAYS group rows
-//! plus the 2 FORMS rows plus the 8 FEEDBACK rows), over the real binaries
-//! built from this worktree's impl sources and over the real production
-//! components rendered headless. Each test executes its row's listed
-//! adapters (`headless-tick`, `pty-capture`, or both) and asserts its
-//! visual (V), state (S), action (A), and negative (N) checks in
-//! executable form:
-//!
-//! - Isolated path: the production component renders into a `·`-sentinel
-//!   buffer (any 1-cell overflow fails the surround check), so glyphs,
-//!   tones, bold, widths, hit regions, focus-ring stops, and actions are
-//!   asserted exactly.
-//! - PTY path: the live app boots the row's page and drives the row's
-//!   inputs; V cells are probed live (needles plus fg/bg/bold cell
-//!   reads), S labels are read live, A outcomes are proven by their
-//!   screen correlates (moved, committed, reverted, byte-identical),
-//!   since PTY cannot see the action, and every N absence is paired with
-//!   a presence proof in the same test so no absence passes vacuously.
-//!
-//! Three rows are PTY-only by construction: HELP-SHOWCASE-001 (help is the
-//! showcase binary's help overlay), FORM-SUBMIT-001 and FORM-INVALID-002
-//! (the submit/countdown/reset state machine lives in the showcase
-//! binary's forms page). None is importable as a unit here, so no headless
-//! path exists for them; every one of their checks has a live-PTY
-//! executable form instead.
-//!
-//! No new snapshots and no new static captures: every S4 row already has
-//! approved frames gated cell-exact by the ported matrices (`showcase.rs`,
-//! `pointer.rs`, `audit.rs`), so every case here uses owned (dynamic)
-//! names and stays out of the `snapshots/` inventory.
-//!
-//! Per-test scratch lands under this conformance crate's
-//! `target/tuiscotti/journeys/<test>/` (gitignored): the row's named
-//! checkpoint(s) as text frames, `provenance.txt` (binary path, digest,
-//! size, mtime, argv), and `isolated-*.json` (headless captures). Typed
-//! input is synthetic and in-memory only (simulation data).
-//!
-//! Row → test map (registry id → `s4_*` test):
-//!
-//! - SELECT-OPEN-001 → [`s4_select_open`]
-//! - PICKER-QUERY-001 → [`s4_picker_query`]
-//! - PICKER-TABS-002 → [`s4_picker_tabs`]
-//! - COMPLETE-EDITOR-002 → [`s4_complete_editor`]
-//! - DIALOG-CONFIRM-001 → [`s4_dialog_confirm`]
-//! - DIALOG-PROMPT-002 → [`s4_dialog_prompt`]
-//! - MENU-OPEN-001 → [`s4_menu_open`]
-//! - CTXMENU-ANCHOR-001 → [`s4_ctxmenu_anchor`]
-//! - MENUBAR-SHELL-001 → [`s4_menubar_shell`]
-//! - HELP-SHOWCASE-001 → [`s4_help_showcase`] (PTY-only)
-//! - FORM-SUBMIT-001 → [`s4_form_submit`] (PTY-only)
-//! - FORM-INVALID-002 → [`s4_form_invalid`] (PTY-only)
-//! - PB-STATES-001 → [`s4_pb_states`]
-//! - PB-LIVE-002 → [`s4_pb_live`]
-//! - SPIN-FRAME-001 → [`s4_spin_frame`]
-//! - SPIN-SWEEP-002 → [`s4_spin_sweep`]
-//! - METER-TONES-001 → [`s4_meter_tones`]
-//! - METER-DOMAIN-002 → [`s4_meter_domain`]
-//! - SB-GROUPS-001 → [`s4_sb_groups`]
-//! - SB-COLLAPSE-002 → [`s4_sb_collapse`]
-
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -115,13 +27,10 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, SHOWCASE};
 
-/// Boot needle: the fully-rendered shell header on every showcase page.
 const BOOT: &str = "Junie Design system";
 
-/// The VB oracle commit this file ports.
 const PORT_OF: &str = "5f6e52f31861f9f4281f1db264ab012457b9bc2e";
 
-/// Owned-name S4 case at the row's viewport (truecolor, like every S4 row).
 fn s4_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> Case {
     Case::dynamic(
         format!("journeys/showcase/s4/{slug}"),
@@ -134,7 +43,6 @@ fn s4_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> C
     )
 }
 
-/// Unique scratch dir for one S4 test (created, never shared).
 fn s4_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -143,8 +51,6 @@ fn s4_dir(test: &str) -> PathBuf {
     dir
 }
 
-/// Record the binary identity: resolved absolute path, sha256 digest, byte size, mtime, argv.
-/// Written to `provenance.txt`, echoed too (the build-identity record).
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
         support::try_resolve_bin(case.bin).unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
@@ -164,7 +70,6 @@ fn write_provenance(dir: &Path, case: &Case) {
     eprintln!("s4 provenance: {body}");
 }
 
-/// Save the live screen text as `<name>.txt` in the test dir.
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -185,7 +90,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-/// One fresh live text sample (no wait).
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -194,8 +98,6 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-/// One fresh live frame with cell colors (no wait). Provenance is
-/// informational only (excluded from digests).
 fn live_frame(s: &mut Session) -> Frame {
     let screen = s
         .inner
@@ -204,7 +106,6 @@ fn live_frame(s: &mut Session) -> Frame {
     frame_from_screen(&screen, "default")
 }
 
-/// First occurrence of `needle` as `(row, col)`, waiting until it appears.
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
         s,
@@ -215,7 +116,6 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-/// Move the pointer over `needle`'s cell (hover), paced like a send step.
 fn hover_over(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     Input::move_to(col, row).send(s);
@@ -223,7 +123,6 @@ fn hover_over(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     (row, col)
 }
 
-/// Primary-button click on `needle`'s cell (split press + release).
 fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     Input::down(MouseButton::Left, col, row).send(s);
@@ -232,7 +131,6 @@ fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     (row, col)
 }
 
-/// Secondary-button click on `needle`'s cell.
 fn right_click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     s.click_with(MouseButton::Right, col, row)
@@ -241,13 +139,11 @@ fn right_click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16
     (row, col)
 }
 
-/// Type literal `text` into the live session, paced like a send step.
 fn type_text(s: &mut Session, text: &str) {
     s.type_text(text).expect("type_text");
     std::thread::sleep(Duration::from_millis(120));
 }
 
-/// Assert one screen line contains both `needle` and `also`.
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
@@ -255,7 +151,6 @@ fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-/// Assert no screen line contains both `needle` and `also`.
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         !text.lines().any(|l| l.contains(needle) && l.contains(also)),
@@ -263,10 +158,6 @@ fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-// ------------------------------------------------------- isolated harness --
-
-/// Buffer pre-filled with `·` sentinels; the component renders into a
-/// sub-area and every cell outside must still be `·` (no 1-cell overflow).
 fn sentinel_buf(cols: u16, rows: u16) -> Buffer {
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
     for y in 0..rows {
@@ -305,10 +196,6 @@ fn buf_is_bold(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::BOLD)
 }
 
-/// One inert component-path render into a sentinel buffer: `ticks`
-/// animation ticks delivered first, then one `draw_scene` with `target`
-/// injected via `ui.reference` (the `Interaction` equivalent: focus,
-/// hover, press owned by the runtime, semantic state by props).
 fn render_isolated(
     cols: u16,
     rows: u16,
@@ -335,8 +222,6 @@ fn render_isolated(
     buf
 }
 
-/// Colour conversion mirroring `tuiscotti::ratatui` (private there): named
-/// ANSI colours become their palette index, the rest map one-to-one.
 fn convert_color(c: RColor) -> TColor {
     match c {
         RColor::Reset => TColor::Default,
@@ -361,7 +246,6 @@ fn convert_color(c: RColor) -> TColor {
     }
 }
 
-/// Modifier conversion mirroring `tuiscotti::ratatui` (private there).
 fn convert_mods(m: Modifier) -> Mods {
     Mods {
         hidden: m.contains(Modifier::HIDDEN),
@@ -380,10 +264,6 @@ fn convert_mods(m: Modifier) -> Mods {
     }
 }
 
-/// Capture a candidate buffer through the component path. The conversion
-/// mirrors `tuiscotti::ratatui::from_buffer` (wide cells, continuations,
-/// cursor-less): empty symbols become continuation followers, wide symbols
-/// emit a lead plus a follower (downgraded at the exact row end).
 fn capture_buffer(buf: &Buffer) -> Frame {
     let cols = buf.area.width;
     let rows = buf.area.height;
@@ -454,7 +334,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-/// Headless capture plus JSON evidence in the test dir.
 fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     let frame = capture_buffer(buf);
     std::fs::write(
@@ -466,8 +345,6 @@ fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     frame
 }
 
-/// Cell column of `needle`'s first occurrence in `line` (char-based: all
-/// page chrome here is single-cell).
 fn char_col(line: &str, needle: &str) -> u16 {
     let byte = line
         .find(needle)
@@ -475,7 +352,6 @@ fn char_col(line: &str, needle: &str) -> u16 {
     line[..byte].chars().count() as u16
 }
 
-/// Poll until two consecutive samples agree (bounded, fail-closed).
 fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     let deadline = std::time::Instant::now() + timeout;
     let mut prev = live_text(s);
@@ -493,7 +369,6 @@ fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     }
 }
 
-/// The screen line right below the first line containing `label`.
 fn row_below(text: &str, label: &str, what: &str) -> String {
     let mut lines = text.lines();
     while let Some(l) = lines.next() {
@@ -507,7 +382,6 @@ fn row_below(text: &str, label: &str, what: &str) -> String {
     panic!("{what}: label {label:?} not on screen\n{text}");
 }
 
-/// The reference ten-frame braille cycle (theme `spinner_frames`).
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 const S4_SORT: Id = Id::root("s4.sort");
@@ -520,8 +394,6 @@ const S4_SORT_AREA: Rect = Rect {
 };
 const SORT_ITEMS: [&str; 4] = ["created_at", "total", "status", "customer"];
 
-/// Sort-select rig: shared state plus action log, with a second live
-/// select as the focus-loss target.
 struct SelectApp {
     st: Rc<RefCell<SelectState>>,
     other: SelectState,
@@ -536,7 +408,7 @@ impl App for SelectApp {
             .disabled(self.disabled)
             .update(cx, &mut self.st.borrow_mut(), &SORT_ITEMS)
             .on_action(|action| log.borrow_mut().push(action));
-        // The other select drains its own bucket so Tab reaches it.
+
         r |= Select::new(S4_SORT_OTHER)
             .update(cx, &mut self.other, &SORT_ITEMS)
             .erase();
@@ -554,16 +426,6 @@ impl App for SelectApp {
     }
 }
 
-/// SELECT-OPEN-001 (`showcase/flows/chips/select_open`, 80x24): the closed
-/// field plus the open popup list over [`Select`].
-///
-/// Isolated path mirrors the row's chips-page selects (Sort, Page size,
-/// disabled Engine): open/close, clamped cursor motion, direct closed
-/// stepping, Changed-only-on-difference, Esc restore, dismiss, and the
-/// disabled/modified-chord/focus-loss negatives. Live path drives the
-/// Sort select on the chips page (click to focus, keyboard to move and
-/// choose), steps the closed select directly, and proves the disabled
-/// Engine select never opens.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_select_open() {
@@ -572,7 +434,6 @@ fn s4_select_open() {
     let faint = t.color.fg[FgStep::Faint.index()];
     let disabled_tone = t.color.disabled_fg;
 
-    // S1 isolated: Enter opens with cursor = selected; Up/Down/k/j clamp.
     let st = Rc::new(RefCell::new(SelectState::default()));
     st.borrow_mut().set_value(Some(ItemKey::index(0)));
     let log = Rc::new(RefCell::new(Vec::new()));
@@ -624,8 +485,7 @@ fn s4_select_open() {
         Some(ItemKey::index(3)),
         "S1: Down clamps at the last option"
     );
-    // V1/V2 render form: the open field shows ▴ and the popup anchors
-    // below it with › on the selected row.
+
     let buf = app.buffer();
     assert_eq!(
         buf[(59, 13)].symbol(),
@@ -659,7 +519,7 @@ fn s4_select_open() {
         "V2: the cursor row is separate from the selected row"
     );
     capture_isolated(&dir, "select-open", buf);
-    // V1 closed form: the same field closed shows ▾.
+
     let r = app.key(KeyCode::Esc);
     assert_eq!(r.flow(), Flow::Consumed, "A2: Esc closes");
     assert!(!st.borrow().is_open(), "A2: closed");
@@ -677,7 +537,7 @@ fn s4_select_open() {
         !(3..14).any(|y| buf_row_text(buf, y).contains("customer")),
         "V1: closed field paints no popup"
     );
-    // A1: Enter/Space on an open list emits Changed(i) only on difference.
+
     log.borrow_mut().clear();
     let _ = app.key(KeyCode::Enter);
     let _ = app.key(KeyCode::Down);
@@ -703,7 +563,7 @@ fn s4_select_open() {
             .any(|a| matches!(a, SelectAction::Chose(_))),
         "N1: choosing the already selected option emits no event"
     );
-    // S2: closed Up/Down/Left/Right change selected directly.
+
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Right);
     assert_eq!(r.flow(), Flow::Consumed, "S2: closed Right applies");
@@ -736,7 +596,7 @@ fn s4_select_open() {
             .any(|a| matches!(a, SelectAction::Chose(_))),
         "S2: stepping past the edge emits no event"
     );
-    // A2: click outside dismisses without change.
+
     let _ = app.key(KeyCode::Enter);
     let _ = app.key(KeyCode::Down);
     assert!(st.borrow().is_open(), "fixture open");
@@ -748,9 +608,7 @@ fn s4_select_open() {
         Some(ItemKey::index(0)),
         "A2: dismiss changes nothing"
     );
-    // V3/N1: the disabled Engine select paints faint and never opens.
-    // (The component has no label prop, so the faint half reads off the
-    // disabled value text instead of the VB label row.)
+
     let est = Rc::new(RefCell::new(SelectState::default()));
     est.borrow_mut().set_value(Some(ItemKey::index(0)));
     let elog = Rc::new(RefCell::new(Vec::new()));
@@ -786,7 +644,7 @@ fn s4_select_open() {
     assert_eq!(r.flow(), Flow::Consumed, "N1: disabled ignores clicks");
     assert!(elog.borrow().is_empty(), "N1: clicks emit nothing");
     assert!(!est.borrow().is_open(), "N1: clicks never open");
-    // N2: a modified chord is Ignored; losing focus closes the popup.
+
     for mods in [KeyModifiers::CONTROL, KeyModifiers::ALT] {
         log.borrow_mut().clear();
         let r = app.key_mod(KeyCode::Char('x'), mods);
@@ -798,8 +656,6 @@ fn s4_select_open() {
     assert!(app.tab_to(S4_SORT_OTHER), "tab away");
     assert!(!st.borrow().is_open(), "N2: losing focus closes the popup");
 
-    // PTY: the Sort select opens, moves, and chooses live; the closed
-    // select steps directly; the disabled Engine select never opens.
     let case = s4_case("select_open", &["--page", "chipsselects"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -825,7 +681,7 @@ fn s4_select_open() {
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "Sort by → total", "A1 live: change commits");
     checkpoint(&mut s, &dir, "select-changed");
-    // S2 live: the closed select steps directly without opening.
+
     support::press_step(&s, "down");
     waits::wait_state(&mut s, "Sort by → status", "S2 live: closed Down steps");
     let stepped = live_text(&mut s);
@@ -833,8 +689,7 @@ fn s4_select_open() {
         !stepped.contains("customer"),
         "S2 live: stepping paints no popup"
     );
-    // A2 live: Esc closes and restores the cursor to the selection.
-    // Focus never left the Sort select, so Enter reopens it directly.
+
     support::press_step(&s, "enter");
     support::wait_screen(
         &mut s,
@@ -853,7 +708,7 @@ fn s4_select_open() {
         settled.contains("Sort by → status") || !settled.contains("Sort by → customer"),
         "A2 live: Esc restores without choosing"
     );
-    // V3/N1 live: the disabled Engine select never opens.
+
     click_at(&mut s, "PostgreSQL", case_timeout(&case));
     let engine = settle_text(&mut s, case_timeout(&case), "engine steady");
     assert!(!engine.contains('▴'), "V3 live: Engine paints no popup");
@@ -863,7 +718,6 @@ fn s4_select_open() {
 
 const S4_QUICK: Id = Id::root("s4.quick");
 
-/// Owned picker row with semantic identity.
 struct S4PItem {
     key: ItemKey,
     label: String,
@@ -888,7 +742,6 @@ impl AsItem for S4PItem {
     }
 }
 
-/// Quick-open rig: modal picker owner plus action log.
 struct QuickApp {
     items: Vec<S4PItem>,
     st: Rc<RefCell<PickerState>>,
@@ -955,7 +808,6 @@ impl QuickApp {
         let p = Picker::new(S4_QUICK)
             .title("Open quickly")
             .placeholder("Files and tasks…")
-            // (No `meta`/`footer` builders on the target Picker.)
             .width(80)
             .scopes(&self.scopes);
         if self.loading {
@@ -970,9 +822,7 @@ impl App for QuickApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let log = Rc::clone(&self.log);
         let loading = self.loading;
-        // Boot-only open: a cancel-close must stay closed. Reopening on
-        // `!open` resurrects the layer in the same keystroke's bubble
-        // re-update, defeating Cancel.
+
         if !self.booted {
             self.booted = true;
             self.open = true;
@@ -1008,21 +858,11 @@ impl App for QuickApp {
     }
 }
 
-/// PICKER-QUERY-001 (`showcase/flows/pickers/open`, 80x24): the Quick
-/// picker with its query field, ranked rows, and scope label over [`Picker`].
-///
-/// Isolated path mirrors the row's Quick picker (title, placeholder, scope,
-/// F/T rows): QueryChanged on every keystroke with cursor reset, NextScope,
-/// Chosen/ChosenAlt, two-stage Esc, Submit-keeps-open, and the
-/// blank-query Consumed negative. Live path types a query, cycles the
-/// scope, chooses a row, proves Submit keeps the picker open, and cancels.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_picker_query() {
     let dir = s4_dir("s4_picker_query");
 
-    // S1 isolated: every keystroke emits QueryChanged; the owner reset lands
-    // on the first eligible row.
     let (rig, log) = QuickApp::rig(QuickApp::file_items(), PickerState::default());
     let st = Rc::clone(&rig.st);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -1045,8 +885,7 @@ fn s4_picker_query() {
         Some(ItemKey::text("planner_flow.rs")),
         "S1: set_items resets past disabled rows"
     );
-    // V1/V2 render form: the modal carries the title, query row, scope
-    // label, grouped rows, and hint footer; file rows carry F, tasks T.
+
     let (rig, _log) = QuickApp::rig(QuickApp::file_items(), PickerState::default());
     let app = Harness::new(rig, Theme::junie(), 80, 24);
     let screen: String = (0..24).map(|y| buf_row_text(app.buffer(), y)).collect();
@@ -1076,7 +915,7 @@ fn s4_picker_query() {
         .expect("V2: task row renders");
     assert!(t_line.contains('T'), "V2: task rows carry glyph T");
     capture_isolated(&dir, "picker-query", app.buffer());
-    // S2/A1: Tab emits NextScope; Enter emits Chosen, Alt+Enter ChosenAlt.
+
     let (rig, log) = QuickApp::rig(QuickApp::file_items(), PickerState::default());
     let st = Rc::clone(&rig.st);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -1109,9 +948,7 @@ fn s4_picker_query() {
             ))),
         "A1: Alt+Enter emits ChosenAlt"
     );
-    // A2: first Esc clears a non-empty query; Esc on empty cancels.
-    // (Cancel has no picker action: the layer correlate is the modal
-    // closing with no choice.)
+
     st.borrow_mut().set_query("plan");
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Esc);
@@ -1131,9 +968,7 @@ fn s4_picker_query() {
             .any(|a| matches!(a, PickerAction::Chosen(_))),
         "A2: cancel chooses nothing"
     );
-    // N1: Submit (free text, no eligible row) keeps the picker open.
-    // (Submit has no picker action; the observable halves — stays open,
-    // query stays, never Chosen — are kept.)
+
     let mut stale = QuickApp::file_items();
     for it in stale.iter_mut() {
         it.disabled = true;
@@ -1162,9 +997,7 @@ fn s4_picker_query() {
         log.borrow().is_empty(),
         "N1: blank query + no eligible row consumes"
     );
-    // Only a real, enabled row of a Ready picker resolves: Loading refuses.
-    // (Loading is an empty presentation, not a status flag: the refusing
-    // half runs with no rows under the Loading label.)
+
     let (rig, _log) = QuickApp::rig(QuickApp::file_items(), PickerState::default());
     let rst = Rc::clone(&rig.st);
     let _app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -1184,7 +1017,7 @@ fn s4_picker_query() {
     );
     let r = lapp.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "Loading Enter applies");
-    // N2: clicks outside the modal own nothing (presence: rows own).
+
     assert!(
         app.area_of_part(S4_QUICK, PartRef::item(Part::ROW, ItemKey::text("foreign")))
             .is_none(),
@@ -1199,14 +1032,11 @@ fn s4_picker_query() {
         "N2: rows are owned (presence proof)"
     );
 
-    // PTY: the Quick picker opens, filters, scopes, chooses, submits, and
-    // cancels live.
     let case = s4_case("picker_query", &["--page", "pickers"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-    // The modal-open needle is the scope line: the `Open quickly` button
-    // label stays visible while closed, so it can never prove the modal.
+
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -1261,8 +1091,7 @@ fn s4_picker_query() {
         chosen.contains("Chosen"),
         "S1 live: Result records the choice"
     );
-    // N1 live: free text with no eligible row submits and stays open.
-    // (Choosing returned focus to NAV: Tab back on to Quick first.)
+
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -1275,8 +1104,7 @@ fn s4_picker_query() {
         },
     );
     support::press_step(&s, "enter");
-    // The page keeps the scope across opens: we cycled to Files above, so
-    // the reopened modal shows Files, not All.
+
     waits::wait_state(&mut s, "Files · Tab scope", "Quick picker reopened");
     type_text(&mut s, "zzz-no-match");
     support::press_step(&s, "enter");
@@ -1287,7 +1115,7 @@ fn s4_picker_query() {
         "N1 live: Submit keeps the picker open"
     );
     assert!(stayed.contains("zzz-no-match"), "N1 live: the query stays");
-    // A2 live: first Esc clears, second Esc cancels.
+
     support::press_step(&s, "escape");
     support::wait_screen(
         &mut s,
@@ -1306,7 +1134,6 @@ fn s4_picker_query() {
 const S4_TABS: Id = Id::root("s4.tabs");
 const S4_LEVEL: Id = Id::root("s4.level");
 
-/// Tabs/Level picker rig: modal picker owner plus action log.
 struct TabsApp {
     id: Id,
     title: &'static str,
@@ -1425,7 +1252,7 @@ impl TabsApp {
         let mut p = Picker::new(self.id)
             .title(self.title)
             .width(self.width)
-            .searchable(self.searchable); // (no `footer` builder on target)
+            .searchable(self.searchable);
         if let Some(ph) = self.placeholder {
             p = p.placeholder(ph);
         }
@@ -1464,22 +1291,11 @@ impl App for TabsApp {
     }
 }
 
-/// PICKER-TABS-002 (`showcase/flows/pickers/tabs`, 80x24): the Tabs picker
-/// with tags plus the non-searchable Level list over [`Picker`].
-///
-/// Isolated path mirrors the row's Tabs picker (glyphs, active tag, group)
-/// and Level picker (six levels, current tag, no search box): Secondary
-/// close, cursor-follows-level, j/k motion in non-searchable pickers, and
-/// the typed-text-impossible negative. Live path closes tabs down to the
-/// last (refused), proves Back is ignored, sets a level with vim keys,
-/// and proves Secondary and typing do nothing outside the Tabs kind.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_picker_tabs() {
     let dir = s4_dir("s4_picker_tabs");
 
-    // S1 isolated: Delete emits Secondary(i); the owner splice keeps the
-    // cursor on a live row.
     let (rig, log) = TabsApp::rig(
         S4_TABS,
         "Open tabs",
@@ -1519,7 +1335,7 @@ fn s4_picker_tabs() {
         Some(ItemKey::text("orders")),
         "S1: cursor lands on a live row"
     );
-    // V1 render form: glyphs, the active tag, and the group header.
+
     let mut three = TabsApp::tab_items();
     three.remove(0);
     let (rig, _log) = TabsApp::rig(
@@ -1542,8 +1358,7 @@ fn s4_picker_tabs() {
         .expect("V1: tab row renders");
     assert!(glyph_line.contains('T'), "V1: tab rows carry glyphs");
     capture_isolated(&dir, "picker-tabs", app.buffer());
-    // N1 isolated: Backspace on an empty query emits Back (the showcase
-    // page ignores it — proven live below).
+
     let (rig, log) = TabsApp::rig(
         S4_TABS,
         "Open tabs",
@@ -1564,7 +1379,6 @@ fn s4_picker_tabs() {
         "N1: Backspace on empty query emits Back"
     );
 
-    // Level picker: non-searchable, cursor opens on the stored level.
     let (rig, log) = TabsApp::rig(
         S4_LEVEL,
         "Safe Mode · this connection",
@@ -1582,7 +1396,7 @@ fn s4_picker_tabs() {
         Some(ItemKey::text("Safe Mode")),
         "S2: the Level picker opens on the stored level"
     );
-    // V2 render form: no query row; the current level carries its tag.
+
     let screen: String = (0..24).map(|y| buf_row_text(lapp.buffer(), y)).collect();
     assert!(
         !screen.contains("Type to search"),
@@ -1597,7 +1411,7 @@ fn s4_picker_tabs() {
         "V2: the current level carries the current tag"
     );
     capture_isolated(&dir, "picker-level", lapp.buffer());
-    // A2: in a non-searchable picker j/k move and typed text is impossible.
+
     log.borrow_mut().clear();
     let r = lapp.key(KeyCode::Char('j'));
     assert_eq!(r.flow(), Flow::Consumed, "A2: j applies");
@@ -1622,7 +1436,6 @@ fn s4_picker_tabs() {
     }
     assert_eq!(lst.borrow().query(), "", "A2: no query can accumulate");
 
-    // PTY: close tabs to the last (refused), set the level with j/Enter.
     let case = s4_case("picker_tabs", &["--page", "pickers"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1648,7 +1461,7 @@ fn s4_picker_tabs() {
         "S1 live: the modal stays open after a close"
     );
     checkpoint(&mut s, &dir, "tab-closed");
-    // A1 live: Secondary on the last remaining tab is refused.
+
     support::press_step(&s, "delete");
     waits::wait_state(&mut s, "Closed orders", "closing down");
     support::press_step(&s, "delete");
@@ -1660,7 +1473,7 @@ fn s4_picker_tabs() {
         last.contains("History"),
         "A1 live: the last tab never leaves"
     );
-    // N1 live: Back on the empty query is ignored.
+
     support::press_step(&s, "backspace");
     let back = settle_text(&mut s, case_timeout(&case), "back steady");
     assert!(
@@ -1669,8 +1482,7 @@ fn s4_picker_tabs() {
     );
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Filter tabs…", "Tabs picker closes");
-    // Level picker: no search box, vim motion, j/Enter sets the level.
-    // (Esc returned focus to NAV; Level is the third button.)
+
     support::press_step(&s, "tab");
     support::press_step(&s, "tab");
     support::press_step(&s, "tab");
@@ -1706,8 +1518,7 @@ fn s4_picker_tabs() {
         set.contains("Safe Mode (Full)"),
         "S2 live: Result keeps the level"
     );
-    // N2/A2 live: Secondary and typing do nothing in the Level picker.
-    // (Choosing returned focus to NAV; Level is the third button.)
+
     support::press_step(&s, "tab");
     support::press_step(&s, "tab");
     support::press_step(&s, "tab");
@@ -1747,7 +1558,6 @@ fn s4_picker_tabs() {
 const S4_COMPLETE: Id = Id::root("s4.complete");
 const S4_COMPLETE_EDITOR: Id = Id::root("s4.complete.editor");
 
-/// Owned completion row with semantic identity.
 struct S4CItem {
     key: ItemKey,
     label: String,
@@ -1768,7 +1578,6 @@ impl AsItem for S4CItem {
     }
 }
 
-/// Editor + suggestion-popover rig plus action log.
 struct CompleteApp {
     value: String,
     est: TextInputState,
@@ -1871,20 +1680,11 @@ impl App for CompleteApp {
     }
 }
 
-/// COMPLETE-EDITOR-002 (`showcase/flows/editor/completion`, 80x24): the code
-/// editor identifier popup over [`Completion`].
-///
-/// Isolated path mirrors the row's suggestion popup (function/type/local
-/// candidates with signature details and fuzzy-matched bold
-/// bytes): anchor geometry, clamped navigation, Accept/Dismiss, click and
-/// wheel paths. Live path auto-triggers with two characters, moves, accepts
-/// into the buffer, and proves the one-character and no-match negatives.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_complete_editor() {
     let dir = s4_dir("s4_complete_editor");
 
-    // S2 isolated: the popup opens only when non-empty.
     let (rig, _log) = CompleteApp::rig(Vec::new());
     let cst = Rc::clone(&rig.cst);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -1901,7 +1701,7 @@ fn s4_complete_editor() {
         Some(ItemKey::text("client(")),
         "open resets the cursor"
     );
-    // V1 render form: anchored at the word start with glyphs + details.
+
     let area = app.layer_area(S4_COMPLETE).expect("V1: popup layer placed");
     assert_eq!(area.x, 10, "V1: popup left-aligns with the word start");
     assert!(area.y > 5, "V1: popup anchors below the anchor row");
@@ -1923,10 +1723,7 @@ fn s4_complete_editor() {
         "V1: type glyph"
     );
     capture_isolated(&dir, "complete-open", app.buffer());
-    // V2: fuzzy-matched label bytes render bold on every row. (The cursor
-    // row keeps the bold base style, so the unmatched-plain half reads off
-    // the non-cursor rows. Label columns derive from the painted rows: the
-    // gutter geometry is the component's own.)
+
     let y0 = (0..24)
         .find(|y| buf_row_text(app.buffer(), *y).contains("client("))
         .expect("row 0");
@@ -1962,8 +1759,7 @@ fn s4_complete_editor() {
         !buf_is_bold(app.buffer(), lx2, y2),
         "V2: unmatched rows stay plain"
     );
-    // Navigation: Down/Up clamp (never wrap); plain n/p are ignored so the
-    // owner keeps typing; ctrl-n/ctrl-p move.
+
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Down);
     assert_eq!(r.flow(), Flow::Consumed, "Down applies");
@@ -1972,8 +1768,7 @@ fn s4_complete_editor() {
         Some(ItemKey::text("Client")),
         "Down moves"
     );
-    // (Plain `n` reaches the editor, which owns the keystroke; the
-    // completion half — no motion — is kept.)
+
     let r = app.key(KeyCode::Char('n'));
     assert_eq!(r.flow(), Flow::Consumed, "n reaches the editor");
     assert!(
@@ -2007,7 +1802,7 @@ fn s4_complete_editor() {
         Some(ItemKey::text("Client")),
         "Up moves"
     );
-    // A1: Tab/Enter accept the cursor row; click accepts a visible row.
+
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "A1: Enter applies");
@@ -2051,9 +1846,7 @@ fn s4_complete_editor() {
             .any(|a| matches!(a, CompletionAction::Accepted(_))),
         "foreign clicks miss"
     );
-    // A2: Dismiss closes; N2: a stale index resolves to nothing.
-    // (The foreign click above already dismissed this rig's layer, so the
-    // Esc half drives a fresh open rig.)
+
     let (rig, log) = CompleteApp::rig(CompleteApp::items());
     let cst = Rc::clone(&rig.cst);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -2072,8 +1865,6 @@ fn s4_complete_editor() {
         "N2: stale index resolves to nothing"
     );
 
-    // PTY: two characters auto-trigger, Down moves, Enter accepts into the
-    // buffer; one character and past-all-matches never open.
     let case = s4_case("complete_editor", &["--page", "codeeditor"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2087,9 +1878,7 @@ fn s4_complete_editor() {
     );
     support::press_step(&s, "i");
     type_text(&mut s, "cl");
-    // "fn () -> Client" is popup-only: the fixture code spells the same
-    // symbol as `fn client() -> Client`, so a bare "Client" wait would
-    // pass vacuously at boot.
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
@@ -2112,7 +1901,7 @@ fn s4_complete_editor() {
         accepted.contains("EDIT"),
         "A1 live: still editing after accept (presence proof)"
     );
-    // N1 live: a one-character word never auto-opens.
+
     type_text(&mut s, " z");
     let single = settle_text(&mut s, case_timeout(&case), "single-char steady");
     assert!(
@@ -2123,7 +1912,7 @@ fn s4_complete_editor() {
         single.contains("EDIT"),
         "N1 live: editor still live (presence proof)"
     );
-    // N1 live: typing past all matches closes.
+
     type_text(&mut s, "z");
     support::press_step(&s, "backspace");
     support::press_step(&s, "backspace");
@@ -2154,7 +1943,6 @@ enum DialogKind {
     Destructive,
 }
 
-/// Confirm/facts/three-choice dialog rig plus action log.
 struct DialogRig {
     id: Id,
     kind: DialogKind,
@@ -2220,10 +2008,7 @@ impl DialogRig {
                     Action::quiet(ActionKey::CANCEL, "Cancel"),
                     Action::new(ActionKey::CONFIRM, "Rename"),
                 ];
-                let d = Dialog::prompt(self.id, "Rename task", "Task name")
-                    // (No `input_help`/`input_required` builders on target;
-                    // validation is caller-owned.)
-                    .actions(&actions);
+                let d = Dialog::prompt(self.id, "Rename task", "Task name").actions(&actions);
                 if !self.booted {
                     self.booted = true;
                     self.open = true;
@@ -2283,10 +2068,7 @@ impl DialogRig {
                     Action::quiet(ActionKey::CANCEL, "Cancel"),
                     Action::new(ActionKey::CONFIRM, "Rename"),
                 ];
-                let d = Dialog::prompt(self.id, "Rename task", "Task name")
-                    // (No `input_help`/`input_required` builders on target;
-                    // validation is caller-owned.)
-                    .actions(&actions);
+                let d = Dialog::prompt(self.id, "Rename task", "Task name").actions(&actions);
                 let _ = ui.layer(self.id, |ui, area| {
                     d.draw(ui, area, &self.st.borrow(), |_, _| ())
                 });
@@ -2318,7 +2100,6 @@ impl App for DialogRig {
     }
 }
 
-/// Focused action of a dialog rig, by button index.
 fn dialog_focused<A>(app: &Harness<A>, id: Id, n: usize) -> Option<usize>
 where
     A: App,
@@ -2330,25 +2111,14 @@ where
     })
 }
 
-/// DIALOG-CONFIRM-001 (`showcase/flows/dialogs/open`, 80x24): the confirm
-/// plus three-choice text dialogs over [`Dialog`].
-///
-/// Isolated path mirrors the row's dialogs (Run confirm, Unsaved-changes
-/// three-choice): initial focus, Left/Right skipping disabled, Tab ring,
-/// y/n quick answers, Esc/outside-cancel, and the facts/input y/n
-/// negatives. Live path answers with y, walks the three choices, and
-/// cancels with Esc.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_dialog_confirm() {
     let dir = s4_dir("s4_dialog_confirm");
 
-    // V2/S1 isolated: confirm focuses the primary action first; Left/Right
-    // move between actions skipping disabled ones; Tab cycles the ring.
     let (rig, _log) = DialogRig::rig(S4_CONFIRM, DialogKind::Confirm);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
-    // (No `initial_focus` probe on target: focus is proven by the runtime
-    // FOCUSED-flag check below.)
+
     assert_eq!(
         dialog_focused(&app, S4_CONFIRM, 2),
         Some(1),
@@ -2361,7 +2131,7 @@ fn s4_dialog_confirm() {
         Some(0),
         "S1: Left moves"
     );
-    // Disabled Cancel: Left from Run stays (a fresh rig with Cancel off).
+
     let (mut rig, _log) = DialogRig::rig(S4_CONFIRM, DialogKind::Confirm);
     rig.cancel_enabled = false;
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -2377,7 +2147,7 @@ fn s4_dialog_confirm() {
         Some(1),
         "S1: Left skips disabled actions"
     );
-    // Tab cycles the ring (Cancel re-enabled: a fresh rig, focus on Run).
+
     let (rig, _log) = DialogRig::rig(S4_CONFIRM, DialogKind::Confirm);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     let _ = app.key(KeyCode::Tab);
@@ -2386,7 +2156,7 @@ fn s4_dialog_confirm() {
         Some(0),
         "S1: Tab cycles the ring"
     );
-    // A1: y finishes the primary action, n the cancel action.
+
     let (rig, log) = DialogRig::rig(S4_CONFIRM, DialogKind::Confirm);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     let r = app.key(KeyCode::Char('y'));
@@ -2405,9 +2175,7 @@ fn s4_dialog_confirm() {
             .contains(&DialogAction::Action(ActionKey::CANCEL)),
         "A1: n finishes the cancel action"
     );
-    // A2: Esc and click-outside finish the cancel action.
-    // (Dismissal is the layer correlate of finishing cancel: the modal
-    // closes with no action fired.)
+
     let (rig, log) = DialogRig::rig(S4_CONFIRM, DialogKind::Confirm);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     assert!(app.is_open(S4_CONFIRM), "fixture open");
@@ -2456,7 +2224,7 @@ fn s4_dialog_confirm() {
         "A2: click-outside finishes cancel"
     );
     assert!(!app.is_open(S4_CONFIRM), "A2: click-outside closes");
-    // N1: y/n do nothing on facts dialogs; other keys are Consumed.
+
     let (rig, log) = DialogRig::rig(S4_FACTS, DialogKind::Facts);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     assert!(app.is_open(S4_FACTS), "facts fixture open");
@@ -2474,7 +2242,7 @@ fn s4_dialog_confirm() {
     let r = app.key(KeyCode::Char('q'));
     assert_eq!(r.flow(), Flow::Consumed, "N1: other keys are Consumed");
     assert!(log.borrow().is_empty(), "N1: q fires nothing");
-    // N2: clicks on no action are Consumed (presence: action clicks finish).
+
     log.borrow_mut().clear();
     let r = app.click(0, 0);
     assert_eq!(r.flow(), Flow::Consumed, "N2: foreign clicks Consumed");
@@ -2496,15 +2264,14 @@ fn s4_dialog_confirm() {
             .contains(&DialogAction::Action(ActionKey::CONFIRM)),
         "action clicks finish (presence proof)"
     );
-    // V1 render form: the dialog centers over the page.
+
     let (rig, _log) = DialogRig::rig(S4_CONFIRM, DialogKind::Confirm);
     let app = Harness::new(rig, Theme::junie(), 80, 24);
     assert!(
         (0..24).any(|y| buf_row_text(app.buffer(), y).contains("Run task now?")),
         "V1: title renders"
     );
-    // The dialog frame (not the left-aligned title) centers: the top
-    // border's left and right margins match (cell columns, not bytes).
+
     let top_y = (0..24)
         .find(|y| buf_row_text(app.buffer(), *y).contains('╭'))
         .expect("V1: dialog frame renders");
@@ -2521,19 +2288,16 @@ fn s4_dialog_confirm() {
         "V1: both actions render"
     );
     capture_isolated(&dir, "dialog-confirm", app.buffer());
-    // Three-choice form: Save focused first.
+
     let three_actions = [
         Action::quiet(ActionKey::CANCEL, "Cancel"),
-        // (Target `Action` has no `secondary`: quiet is the low-emphasis variant.)
         Action::quiet(ActionKey::custom("discard"), "Discard"),
         Action::new(ActionKey::CONFIRM, "Save"),
     ];
     let three = Dialog::confirm(S4_THREE, "Unsaved changes", "Save first?").actions(&three_actions);
-    // (No `initial_focus` probe on target; Save-first focus is exercised by
-    // the live PTY path below.)
+
     let _ = three;
 
-    // PTY: answer with y, walk the three choices, cancel with Esc.
     let case = s4_case("dialog_confirm", &["--page", "dialogs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2555,7 +2319,7 @@ fn s4_dialog_confirm() {
         answered.contains("Run ") && answered.contains("Task started"),
         "S2 live: history names the outcome"
     );
-    // Three choices: Left/Right walk, Enter activates.
+
     click_at(&mut s, "Three choices", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -2567,7 +2331,7 @@ fn s4_dialog_confirm() {
     support::press_step(&s, "right");
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "Description saved", "S1 live: Save activates");
-    // Reopen and cancel with Esc.
+
     click_at(&mut s, "Confirm run", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -2581,29 +2345,15 @@ fn s4_dialog_confirm() {
     eprintln!("s4 dialog_confirm: isolated answers + live y/walk/cancel");
 }
 
-/// DIALOG-PROMPT-002 (`showcase/flows/dialogs/prompt`, 80x24): the validated
-/// prompt plus the destructive confirm over [`Dialog`].
-///
-/// Isolated path mirrors the row's Rename prompt (prefilled input, help,
-/// non-empty/40-max rules) and Delete-branch destructive dialog: finish
-/// commits then validates, failing validation keeps the dialog open, Enter
-/// submits to the primary action, paste routes to the input, and the y/n
-/// and Esc negatives. Live path blocks an empty submit, renames validly,
-/// rejects an over-long name, and cancels the destructive dialog twice.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_dialog_prompt() {
     let dir = s4_dir("s4_dialog_prompt");
 
-    // V1 isolated: the prompt focuses its input first with help under it.
-    // (Validation is caller-owned in the component: the failing-submit
-    // halves below assert the row's blocking expectation and fail where
-    // the component fires regardless.)
     let (rig, log) = DialogRig::rig(S4_PROMPT, DialogKind::Prompt);
     let pst = Rc::clone(&rig.st);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
-    // (No `DialogState::set_draft` on target: prefill by pasting into the
-    // focused input.)
+
     let _ = app.paste("Migrate sessions table");
     let probe = Dialog::prompt(S4_PROMPT, "Rename task", "Task name");
     let input_id = probe.input_id();
@@ -2613,9 +2363,9 @@ fn s4_dialog_prompt() {
         screen.contains("Migrate sessions table"),
         "V1: prefilled input"
     );
-    // (No `input_help` on target: the help-under-input check is dropped.)
+
     capture_isolated(&dir, "dialog-prompt", app.buffer());
-    // N1 (input half of confirm-row N1): y does not finish an input dialog.
+
     assert!(
         app.state_of(input_id).contains(StateFlags::FOCUSED),
         "V1: input focused first"
@@ -2628,8 +2378,7 @@ fn s4_dialog_prompt() {
         "N1: y finishes nothing on input dialogs"
     );
     assert!(app.is_open(S4_PROMPT), "N1: prompt stays open");
-    // S1/N1: finish commits the editing input then validates; a failing
-    // validation keeps the dialog open and stores no rename.
+
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "Enter begins editing");
     let r = app.ctrl('l');
@@ -2644,9 +2393,7 @@ fn s4_dialog_prompt() {
         "S1: failing validation keeps the dialog open"
     );
     assert!(app.is_open(S4_PROMPT), "S1: still open");
-    // A1: a valid name submits to the primary action; paste routes in.
-    // (The failed submit committed, so Enter begins editing again before
-    // pasting — mirroring the live path.)
+
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "Enter begins editing again");
     let r = app.paste("Seed the demo database");
@@ -2664,11 +2411,10 @@ fn s4_dialog_prompt() {
             .contains(&DialogAction::Action(ActionKey::CONFIRM)),
         "S2: a valid rename finishes the primary action"
     );
-    // N1: over-long names never close the prompt.
+
     let (rig, log) = DialogRig::rig(S4_PROMPT, DialogKind::Prompt);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
-    // (No `DialogState::set_draft` on target: prefill by pasting into the
-    // focused input.)
+
     let _ = app.paste("Migrate sessions table");
     let _ = app.key(KeyCode::Enter);
     let _ = app.ctrl('l');
@@ -2677,14 +2423,11 @@ fn s4_dialog_prompt() {
     let _ = app.key(KeyCode::Enter);
     assert!(log.borrow().is_empty(), "N1: over-long names never close");
     assert!(app.is_open(S4_PROMPT), "N1: still open");
-    // V2/N2: the destructive dialog focuses Cancel first in danger style.
-    // (The danger variant is proven behaviorally: `y` answers through the
-    // danger action, while Enter/Esc land on Cancel.)
+
     let (rig, log) = DialogRig::rig(S4_DELETE, DialogKind::Destructive);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     let xprobe = Dialog::destructive(S4_DELETE, "Delete branch?", "This cannot be undone.");
-    // (No `initial_focus` probe on target: focus is proven by the runtime
-    // FOCUSED-flag check below.)
+
     let _ = xprobe;
     assert_eq!(
         dialog_focused(&app, S4_DELETE, 2),
@@ -2727,11 +2470,10 @@ fn s4_dialog_prompt() {
         "destructive title renders"
     );
     capture_isolated(&dir, "dialog-destructive", app.buffer());
-    // N2 (click half): clicking the prompt input focuses without finishing.
+
     let (rig, log) = DialogRig::rig(S4_PROMPT, DialogKind::Prompt);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
-    // (No `DialogState::set_draft` on target: prefill by pasting into the
-    // focused input.)
+
     let _ = app.paste("Migrate sessions table");
     let probe = Dialog::prompt(S4_PROMPT, "Rename task", "Task name");
     assert!(app.tab_to(probe.action_id(1)), "tab to Rename");
@@ -2749,15 +2491,11 @@ fn s4_dialog_prompt() {
     );
     assert!(app.is_open(S4_PROMPT), "N2: still open");
 
-    // PTY: block the empty submit, rename validly, reject over-long, and
-    // cancel the destructive dialog with Enter and Esc.
     let case = s4_case("dialog_prompt", &["--page", "dialogs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-    // Tab to the Rename button with a probe loop: press_step settles nothing,
-    // and the `Rename task…` button label would satisfy an open-wait while
-    // closed, so the open needle must be dialog-only help text.
+
     let mut rename_focused = false;
     for _ in 0..8 {
         support::press_step(&s, "tab");
@@ -2786,7 +2524,7 @@ fn s4_dialog_prompt() {
         opened.contains("Shown in the task list"),
         "V1 live: help text"
     );
-    // N1 live: y finishes nothing on an input dialog.
+
     support::press_step(&s, "y");
     let yed = settle_text(&mut s, case_timeout(&case), "y steady");
     assert!(
@@ -2797,7 +2535,7 @@ fn s4_dialog_prompt() {
         yed.contains("Migrate sessions table"),
         "N1 live: y types nothing while unfocused-for-edit"
     );
-    // S1/N1 live: clear, submit, blocked with the validation error.
+
     support::press_step(&s, "enter");
     support::press_step(&s, "ctrl+l");
     support::press_step(&s, "backspace");
@@ -2810,8 +2548,7 @@ fn s4_dialog_prompt() {
     );
     checkpoint(&mut s, &dir, "prompt-blocked");
     let blocked = live_text(&mut s);
-    // The validation error replaces the help line while blocked, so the
-    // error itself is the dialog-still-open proof.
+
     assert!(
         blocked.contains("Name cannot be empty"),
         "S1 live: failing validation keeps the dialog open"
@@ -2820,8 +2557,7 @@ fn s4_dialog_prompt() {
         !blocked.contains("Renamed to"),
         "N1 live: no rename is stored"
     );
-    // S2/A1 live: a valid name renames (the failed submit committed, so
-    // Enter begins editing again before typing).
+
     support::press_step(&s, "enter");
     type_text(&mut s, "Seed the demo database");
     support::press_step(&s, "enter");
@@ -2832,7 +2568,7 @@ fn s4_dialog_prompt() {
         renamed.contains("Seed the demo database"),
         "S2 live: the task name stores"
     );
-    // N1 live: an over-long name never closes the prompt.
+
     support::press_step(&s, "enter");
     support::wait_screen(
         &mut s,
@@ -2859,8 +2595,7 @@ fn s4_dialog_prompt() {
     support::press_step(&s, "escape");
     support::press_step(&s, "escape");
     waits::wait_state(&mut s, "Cancelled", "prompt cancels out");
-    // A2/V2/N2 live: d opens the destructive flow; Enter and Esc both land
-    // on Cancel, never on Delete.
+
     support::press_step(&s, "d");
     support::wait_screen(
         &mut s,
@@ -2892,7 +2627,6 @@ fn s4_dialog_prompt() {
 
 const S4_FILEMENU: Id = Id::root("s4.filemenu");
 
-/// Dropdown/context-menu rig plus action log.
 struct MenuRig {
     id: Id,
     items: Vec<MenuItem<'static>>,
@@ -2997,15 +2731,6 @@ impl App for MenuRig {
     }
 }
 
-/// MENU-OPEN-001 (`showcase/flows/chrome/menu`, 80x24): the open dropdown
-/// list over [`ContextMenu`].
-///
-/// Isolated path mirrors the row's File/View menus: highlight-fill cursor,
-/// right-aligned muted shortcuts, danger tones, ─ separators, faint
-/// disabled rows, wrapping skip-disabled steps, Home/End jumps, the
-/// flip-above placement, Chosen/Dismissed, and the disabled/modified-chord
-/// negatives. Live path opens File, walks past Export to the danger row,
-/// chooses, then opens View and jumps to the last enabled row.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_menu_open() {
@@ -3017,8 +2742,6 @@ fn s4_menu_open() {
     let error_soft = t.color.danger_soft;
     let subtle = t.color.border_subtle;
 
-    // S1 isolated: step wraps with rem_euclid and skips disabled rows;
-    // Home/End jump to first/last enabled.
     let (rig, _log) = MenuRig::rig(MenuRig::view_items(), Rect::new(2, 1, 8, 1));
     let mst = Rc::clone(&rig.st);
     let mut app = Harness::new(rig, Theme::junie(), 60, 16);
@@ -3051,7 +2774,7 @@ fn s4_menu_open() {
         0,
         "Home jumps to the first enabled row"
     );
-    // V1/V2/V3 render form over the File menu with the cursor on Close tab.
+
     let (rig, _log) = MenuRig::rig(MenuRig::file_items(), Rect::new(2, 1, 8, 1));
     let fst = Rc::clone(&rig.st);
     let mut app = Harness::new(rig, Theme::junie(), 60, 16);
@@ -3109,11 +2832,10 @@ fn s4_menu_open() {
     );
     assert_eq!(buf[(area.x + 2, crow - 1)].fg, subtle, "separator tone");
     capture_isolated(&dir, "menu-open", buf);
-    // V3: disabled rows render faint and the cursor never lands on them.
+
     let (rig, _log) = MenuRig::rig(MenuRig::view_items(), Rect::new(2, 1, 8, 1));
     let mut app = Harness::new(rig, Theme::junie(), 60, 16);
-    // (No `MenuState::set_cursor` on target: End lands on the same last
-    // enabled row.)
+
     let _ = app.key(KeyCode::End);
     let _ = app.key(KeyCode::Down);
     let _ = app.key(KeyCode::Up);
@@ -3137,7 +2859,7 @@ fn s4_menu_open() {
         "highlight plane (presence)"
     );
     let _ = area;
-    // S2: the popover flips above the anchor when the room below is short.
+
     let (rig, _log) = MenuRig::rig(MenuRig::file_items(), Rect::new(2, 13, 8, 1));
     let app = Harness::new(rig, Theme::junie(), 60, 16);
     let low = app.layer_area(S4_FILEMENU).expect("popover layer placed");
@@ -3145,9 +2867,7 @@ fn s4_menu_open() {
         low.y + low.height <= 13,
         "S2: the popover flips above the anchor"
     );
-    // A1/A2: Enter/Space choose; Esc dismisses; row clicks choose, outside
-    // clicks dismiss; hover moves the cursor.
-    // (Dismissal is the layer correlate of the row's Dismissed event.)
+
     let (rig, log) = MenuRig::rig(MenuRig::file_items(), Rect::new(2, 1, 8, 1));
     let _mst = Rc::clone(&rig.st);
     let mut app = Harness::new(rig, Theme::junie(), 60, 16);
@@ -3208,10 +2928,7 @@ fn s4_menu_open() {
     let hx = char_col(&buf_row_text(app.buffer(), hy), "Export…") + 1;
     let _ = app.mouse(MouseKind::Move, hx, hy);
     assert_eq!(mst.borrow().cursor(), 2, "A2: hover moves the cursor");
-    // N1: the disabled row can never be chosen; a modified chord is Ignored.
-    // (No `MenuState::set_cursor` on target: the cursor cannot rest on a
-    // disabled row, so the key negative is adapted to a wrap that crosses
-    // the disabled tail — Enter then lands on the wrapped first row.)
+
     let (rig, log) = MenuRig::rig(MenuRig::view_items(), Rect::new(2, 1, 8, 1));
     let mut app = Harness::new(rig, Theme::junie(), 60, 16);
     let _ = app.key(KeyCode::End);
@@ -3237,8 +2954,6 @@ fn s4_menu_open() {
     assert!(log.borrow().is_empty(), "N1: no event");
     assert_ne!(error_soft, primary, "danger tone differs (presence)");
 
-    // PTY: open File, walk past Export to the danger row, choose; open
-    // View and jump to the last enabled row.
     let case = s4_case("menu_open", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3262,7 +2977,7 @@ fn s4_menu_open() {
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "Close tab", "A1 live: danger row chooses");
     waits::wait_gone(&mut s, "Split right", "N2 live: choosing closes");
-    // View menu: Right switches, End jumps past the disabled row.
+
     support::press_step(&s, "enter");
     support::wait_screen(
         &mut s,
@@ -3284,10 +2999,7 @@ fn s4_menu_open() {
     );
     support::press_step(&s, "end");
     support::press_step(&s, "enter");
-    // Gate on the menu closing ("Usage" alone would match the open menu's
-    // own row and pass before Enter lands). Choosing records the bare label
-    // on the status line (`cx.status(label)`); the `last:` prefix hides while
-    // the bar holds focus.
+
     waits::wait_gone(
         &mut s,
         "Zoom pane",
@@ -3300,14 +3012,6 @@ fn s4_menu_open() {
 
 const S4_CONTEXT: Id = Id::root("s4.context");
 
-/// CTXMENU-ANCHOR-001 (`showcase/flows/chrome/context`, 80x24): the anchored
-/// session context menu over [`ContextMenu`].
-///
-/// Isolated path mirrors the row's session menu (title, edge-disabled Move
-/// rows, danger Close): title row, danger-under-separator geometry, and the
-/// disabled-edge negatives. Live path opens with m, chooses Close, proves
-/// the disabled edge can never be chosen, proves the menu never opens
-/// unfocused, and opens with a right-click that moves the cursor.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_ctxmenu_anchor() {
@@ -3343,8 +3047,6 @@ fn s4_ctxmenu_anchor() {
         (rig, log, st)
     }
 
-    // V1/V2 render form: the popover titles itself with the session label;
-    // at the top edge Move left disables; Close is danger under a separator.
     let (rig, _log, _st) = session_rig(0, 4);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     let area = app.layer_area(S4_CONTEXT).expect("popover layer placed");
@@ -3374,10 +3076,7 @@ fn s4_ctxmenu_anchor() {
         "V2: Close takes the danger fill under the cursor"
     );
     capture_isolated(&dir, "ctxmenu-anchor", buf);
-    // N1: a disabled edge row can never be chosen by key or click.
-    // (No `MenuState::set_cursor` on target: Down from the top skips the
-    // disabled edge, proving it can never take the cursor; Enter then
-    // chooses the row it skipped to.)
+
     let (rig, log, _mst) = session_rig(0, 4);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     log.borrow_mut().clear();
@@ -3398,8 +3097,7 @@ fn s4_ctxmenu_anchor() {
     log.borrow_mut().clear();
     let _ = app.click(ex, ey);
     assert!(log.borrow().is_empty(), "N1: disabled clicks miss");
-    // Presence: the enabled rows resolve through the same paths (the cursor
-    // starts on the first row, so no staging is needed).
+
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "presence applies");
@@ -3428,8 +3126,6 @@ fn s4_ctxmenu_anchor() {
         "outside dismisses"
     );
 
-    // PTY: m opens, Close chooses, Esc dismisses; the disabled edge never
-    // chooses; right-click anchors and moves the cursor.
     let case = s4_case("ctxmenu_anchor", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3466,7 +3162,7 @@ fn s4_ctxmenu_anchor() {
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "tab › Close", "S2 live: choice records");
     checkpoint(&mut s, &dir, "context-chosen");
-    // A1: Esc dismisses and clears.
+
     support::press_step(&s, "m");
     support::wait_screen(
         &mut s,
@@ -3477,7 +3173,7 @@ fn s4_ctxmenu_anchor() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Change title…", "A1 live: Esc clears");
     checkpoint(&mut s, &dir, "context-closed");
-    // N1 live: the disabled edge row can never be chosen.
+
     support::press_step(&s, "up");
     support::press_step(&s, "m");
     support::wait_screen(
@@ -3489,7 +3185,7 @@ fn s4_ctxmenu_anchor() {
     support::press_step(&s, "down");
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "tab › Move right", "N1 live: Down skips Move left");
-    // Presence: the choice stands on the status line while no menu covers it.
+
     let stood = live_text(&mut s);
     assert!(
         stood.contains("tab › Move right"),
@@ -3510,14 +3206,13 @@ fn s4_ctxmenu_anchor() {
     );
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Change title…", "context clears");
-    // The open menu hides the status layer, so the no-record proof reads
-    // after Esc: the old choice stands, Move left never recorded.
+
     let cleared = live_text(&mut s);
     assert!(
         cleared.contains("tab › Move right") && !cleared.contains("tab › Move left"),
         "N1 live: the disabled click recorded nothing"
     );
-    // N2 live: the menu never opens when sessions are not focused.
+
     support::press_step(&s, "backtab");
     support::wait_screen(
         &mut s,
@@ -3531,7 +3226,7 @@ fn s4_ctxmenu_anchor() {
         !unfocused.contains("Change title…"),
         "N2 live: m opens nothing off-sessions"
     );
-    // S1 live: right-click anchors at the pointer and moves the cursor.
+
     right_click_at(&mut s, "3 Shell", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -3550,7 +3245,7 @@ fn s4_ctxmenu_anchor() {
         rclick.contains("Change title…"),
         "S1 live: right-click opens the menu"
     );
-    // A2 live: a row click chooses while open.
+
     click_at(&mut s, "Change title…", case_timeout(&case));
     waits::wait_state(&mut s, "tab › Change title…", "A2 live: click chooses");
     eprintln!("s4 ctxmenu_anchor: isolated edges + live m/right-click/disabled");
@@ -3581,8 +3276,6 @@ static S4_BAR_MENUS: [Menu<'static>; 3] = [
     Menu::new("Help", &S4_BAR_HELP),
 ];
 
-/// Shell bar rig: menu strip plus brand lockup plus action log.
-/// (The component owns the strip; the brand is the composed [`Brand`].)
 struct BarApp {
     st: Rc<RefCell<MenuState>>,
     log: Rc<RefCell<Vec<MenuAction>>>,
@@ -3623,15 +3316,6 @@ impl App for BarApp {
     }
 }
 
-/// MENUBAR-SHELL-001 (`showcase/flows/chrome/focus`, 80x24): the label strip
-/// plus brand lockup over [`MenuBar`].
-///
-/// Isolated path mirrors the row's shell bar (File/View/Help, app❯ lockup):
-/// padded labels, open-plane sharing, cursor ▎ bar, hover lift, move/switch
-/// keys, open/choose/close/toggle clicks, Brand, hover-switch, and the
-/// no-open-hover plus unfittable-label negatives. Live path focuses the bar,
-/// opens, switches menus, chooses, activates the brand, and proves both
-/// hover halves.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_menubar_shell() {
@@ -3640,8 +3324,6 @@ fn s4_menubar_shell() {
     let popover = t.color.surfaces[Surface::Popover.level().expect("popover level")];
     let primary = t.color.fg[FgStep::Primary.index()];
 
-    // V1/V2 render form: padded labels with 1-cell gaps; the focused cursor
-    // label carries the ▎ bar.
     let st = Rc::new(RefCell::new(MenuState::default()));
     let mut app = Harness::new(
         BarApp {
@@ -3671,9 +3353,7 @@ fn s4_menubar_shell() {
     );
     assert!(buf_is_bold(buf, fx, 1), "V2: the cursor label is bold");
     capture_isolated(&dir, "menubar-closed", buf);
-    // S2/V1: Enter opens the cursor menu; the open label shares the popover
-    // plane in bold. One continuous rig drives the open/switch/choose
-    // steps below.
+
     let st = Rc::new(RefCell::new(MenuState::default()));
     let log = Rc::new(RefCell::new(Vec::new()));
     let fired = Rc::new(Cell::new(0));
@@ -3705,7 +3385,7 @@ fn s4_menubar_shell() {
         "V1: the open label shares the popover plane"
     );
     assert!(buf_is_bold(buf, fx, 1), "V1: the open label is bold");
-    // S1: Right switches the open menu; Left switches back.
+
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Right);
     assert_eq!(r.flow(), Flow::Consumed, "S1: Right applies");
@@ -3721,7 +3401,7 @@ fn s4_menubar_shell() {
         log.borrow().contains(&MenuAction::Opened(0)),
         "S1: h switches back"
     );
-    // A1: choosing emits Chosen(menu, item) and closes.
+
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "A1: Enter applies");
@@ -3731,12 +3411,12 @@ fn s4_menubar_shell() {
         "A1: choosing emits Chosen(0, 0)"
     );
     assert!(!st.borrow().is_open(), "A1: choosing closes");
-    // S1 closed: Left/Right move the cursor.
+
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Right);
     assert_eq!(r.flow(), Flow::Consumed, "S1: Right applies");
     assert_eq!(st.borrow().cursor(), 1, "S1: Right moves");
-    // S2: clicking a label toggles its menu.
+
     let vy = 1u16;
     let vx = char_col(&buf_row_text(app.buffer(), vy), "View") + 1;
     log.borrow_mut().clear();
@@ -3756,8 +3436,7 @@ fn s4_menubar_shell() {
             .any(|a| matches!(a, MenuAction::Closed(_))),
         "S2: clicking its label again closes it"
     );
-    // A2: the brand lockup emits Brand; hovering another label while open
-    // switches to it.
+
     let bx = char_col(&buf_row_text(app.buffer(), 1), "app❯") + 1;
     let r = app.click(bx, 1);
     assert_eq!(r.flow(), Flow::Consumed, "A2: brand click applies");
@@ -3773,7 +3452,7 @@ fn s4_menubar_shell() {
         Some(2),
         "A2: hover switches the open menu"
     );
-    // N1: hover with no menu open changes nothing; modified chords Ignored.
+
     log.borrow_mut().clear();
     let _ = app.key(KeyCode::Esc);
     assert!(!st.borrow().is_open(), "bar closed");
@@ -3790,9 +3469,7 @@ fn s4_menubar_shell() {
     let r = app.key_mod(KeyCode::Char('x'), KeyModifiers::CONTROL);
     assert_eq!(r.flow(), Flow::Ignored, "N1: a modified chord is Ignored");
     assert!(log.borrow().is_empty(), "N1: no event");
-    // N2: labels that do not fit keep ZERO areas and cannot open.
-    // (No areas escape the component: the paint half plus the open half
-    // below carry the check.)
+
     let nst = Rc::new(RefCell::new(MenuState::default()));
     let nlog = Rc::new(RefCell::new(Vec::new()));
     let mut narrow = Harness::new(
@@ -3809,8 +3486,7 @@ fn s4_menubar_shell() {
     assert!(narrow.tab_to(S4_MENUBAR), "navigating focus");
     let nrow = buf_row_text(narrow.buffer(), 1);
     assert!(!nrow.contains("Help"), "N2: unfitting labels do not paint");
-    // (No `MenuState::set_cursor` on target: Right steps the cursor to the
-    // unfitted Help label.)
+
     let _ = narrow.key(KeyCode::Right);
     let _ = narrow.key(KeyCode::Right);
     nlog.borrow_mut().clear();
@@ -3823,8 +3499,6 @@ fn s4_menubar_shell() {
         "N2: unfitting labels cannot open"
     );
 
-    // PTY: focus the bar, open, switch, choose, brand, hover negative,
-    // click-switch.
     let case = s4_case("menubar_shell", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3866,26 +3540,21 @@ fn s4_menubar_shell() {
         |screen| support::screen_text(screen).contains("Split right"),
     );
     support::press_step(&s, "enter");
-    // Choosing records the bare label; gate on the close so the open menu's
-    // own row cannot satisfy the wait.
+
     waits::wait_gone(&mut s, "Split right", "A1 live: choosing closes");
     waits::wait_state(&mut s, "New tab", "A1 live: choice records");
     checkpoint(&mut s, &dir, "bar-chosen");
-    // A2 live: the brand lockup activates.
+
     click_at(&mut s, "app❯", case_timeout(&case));
     waits::wait_state(&mut s, "Brand lockup activated", "A2 live: brand");
-    // N1 live: hover with no menu open changes nothing.
+
     hover_over(&mut s, "View", case_timeout(&case));
     let noopen = settle_text(&mut s, case_timeout(&case), "hover steady");
     assert!(
         !noopen.contains("Zoom pane"),
         "N1 live: hover opens nothing"
     );
-    // A2 live: activating another label while open switches to it. The reopen
-    // needle must be menu-only: the status line still records `New tab` from
-    // the choice above. Pointer switching goes through label clicks: the
-    // shell tracks hover ids but never routes hover to the bar, so the
-    // widget's hover-switch stays an isolated proof.
+
     click_at(&mut s, "File", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -3903,14 +3572,6 @@ fn s4_menubar_shell() {
     eprintln!("s4 menubar_shell: isolated bar map + live open/switch/brand/hover");
 }
 
-/// HELP-SHOWCASE-001 (`showcase/flows/help/overlay`, 80x24): the keyboard
-/// and mouse reference dialog (PTY-only).
-///
-/// Help is the showcase binary's help overlay, outside the importable
-/// library, so every check runs live: the single Close action under the
-/// key table, the keyboard-rows-then-mouse-row shape, focus save/restore,
-/// both openers, all four closers, and the no-second-action plus
-/// y-never-closes negatives.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_help_showcase() {
@@ -3925,8 +3586,7 @@ fn s4_help_showcase() {
     });
     checkpoint(&mut s, &dir, "help-open");
     let opened = live_text(&mut s);
-    // V1/V2/S1: one Close action under the table; keyboard rows first, one
-    // mouse row last; no Cancel exists (stripped, Close is index 0).
+
     assert!(opened.contains("Close"), "V1 live: the Close action");
     assert!(
         opened.contains("Tab / Shift+Tab") && opened.contains("quit"),
@@ -3936,15 +3596,14 @@ fn s4_help_showcase() {
         opened.contains("Mouse: hover to preview"),
         "V2 live: the mouse row"
     );
-    // "Cancel" appears only as footer-hint text ("Esc Cancel") — never as a
-    // second dialog button (the dialog row holds Close alone).
+
     let cancel_lines: Vec<&str> = opened.lines().filter(|l| l.contains("Cancel")).collect();
     assert_eq!(cancel_lines.len(), 1, "S1 live: no second action exists");
     assert!(
         cancel_lines[0].contains("Esc"),
         "S1 live: the only Cancel text is the Esc hint"
     );
-    // N1/N2: Left/Right reach nothing; y never closes help.
+
     support::press_step(&s, "right");
     support::press_step(&s, "left");
     support::press_step(&s, "y");
@@ -3953,7 +3612,7 @@ fn s4_help_showcase() {
         stayed.contains("Keyboard & mouse"),
         "N1/N2 live: Right/Left/y keep help open"
     );
-    // A2: n, Enter, Space, and Esc all finish through Close.
+
     support::press_step(&s, "n");
     waits::wait_gone(&mut s, "Keyboard & mouse", "A2 live: n closes");
     for (key, what) in [("enter", "Enter"), ("space", "Space")] {
@@ -3981,7 +3640,7 @@ fn s4_help_showcase() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Keyboard & mouse", "A2 live: Esc closes");
     checkpoint(&mut s, &dir, "help-closed");
-    // A1: the header Help affordance opens too.
+
     click_at(&mut s, "? Help", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -3991,7 +3650,7 @@ fn s4_help_showcase() {
     );
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Keyboard & mouse", "header help closes");
-    // S2: closing restores the focus saved before the dialog opened (nav).
+
     support::press_step(&s, "down");
     support::wait_screen(
         &mut s,
@@ -4006,13 +3665,6 @@ fn s4_help_showcase() {
     eprintln!("s4 help_showcase: live help open/close/focus roundtrips");
 }
 
-/// FORM-SUBMIT-001 (`showcase/flows/forms/valid`, 80x24): the action row plus
-/// submission status message (PTY-only).
-///
-/// The submit/countdown/reset state machine lives in the showcase binary's
-/// forms page, so every check runs live: the Busy countdown message, the
-/// Done message, the 23-tick countdown, Ctrl+S entry, per-tick decrement,
-/// and the idle-empty plus invalid-never-busy negatives.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_form_submit() {
@@ -4021,7 +3673,7 @@ fn s4_form_submit() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-    // N2: the message cell stays empty while Idle and unattempted.
+
     let boot = live_text(&mut s);
     assert!(
         !boot.contains("Creating task")
@@ -4033,7 +3685,7 @@ fn s4_form_submit() {
         boot.contains("Create task") && boot.contains("Reset"),
         "N2 live: the action row renders (presence proof)"
     );
-    // Fill a valid name and reviewer; both validators pass.
+
     support::press_step(&s, "tab");
     support::press_step(&s, "enter");
     type_text(&mut s, "Seed the demo database");
@@ -4041,7 +3693,7 @@ fn s4_form_submit() {
     click_at(&mut s, "name@company.com", case_timeout(&case));
     type_text(&mut s, "ada@company.com");
     support::press_step(&s, "enter");
-    // A1/S1/V1: Ctrl+S enters Busy(23) with the countdown message.
+
     support::press_step(&s, "ctrl+s");
     support::wait_screen(
         &mut s,
@@ -4052,7 +3704,7 @@ fn s4_form_submit() {
     checkpoint(&mut s, &dir, "submitted");
     let busy = live_text(&mut s);
     assert_line_has(&busy, "Creating task…", "Reset", "V1 live: Busy row");
-    // A2/S2/V2: the countdown reaches Done with the accent message.
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
@@ -4068,12 +3720,6 @@ fn s4_form_submit() {
     eprintln!("s4 form_submit: live Busy(23) countdown to Done");
 }
 
-/// FORM-INVALID-002 (`showcase/flows/forms/invalid`, 80x24): validators plus
-/// invalid focus plus reset (PTY-only).
-///
-/// Same binary-only state machine as [`s4_form_submit`]: the error rows and
-/// Fix message, first-invalid focus, Ctrl+S-invalid and Reset actions, and
-/// the never-busy plus lone-reviewer-focus negatives all run live.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_form_invalid() {
@@ -4082,7 +3728,7 @@ fn s4_form_invalid() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-    // Enter a short name and an invalid reviewer, then submit.
+
     support::press_step(&s, "tab");
     support::press_step(&s, "enter");
     type_text(&mut s, "abc");
@@ -4099,18 +3745,17 @@ fn s4_form_invalid() {
     );
     checkpoint(&mut s, &dir, "invalid");
     let invalid = live_text(&mut s);
-    // V1/S1: error rows under both fields; validate() false, attempted true.
+
     assert!(
         invalid.contains("At least 4 characters"),
         "V1 live: name error row"
     );
-    // The reviewer message clips to the narrow column (`…`).
+
     assert!(
         invalid.contains("Enter a valid email"),
         "V1 live: reviewer error row"
     );
-    // V1: the error markers are bold `!` cells (the trailing marker on the
-    // invalid field's own row).
+
     let frame = live_frame(&mut s);
     let snap = s
         .inner
@@ -4130,20 +3775,18 @@ fn s4_form_invalid() {
         }
     }
     assert!(bold_bang, "V1 live: the name error carries a bold `!`");
-    // S2: focus lands on the name field, the first invalid field.
+
     let name_row = row_below(&invalid, "Task name", "S2 live");
     assert!(
         name_row.contains('▎'),
         "S2 live: focus lands on the first invalid field"
     );
-    // N1: an invalid submit never sets busy.
+
     assert!(
         !invalid.contains("Creating task…"),
         "N1 live: invalid never goes Busy"
     );
-    // A2: Reset rebuilds the defaults, focuses name, reports. Keyboard-driven:
-    // a mouse click on Reset would leave app-level focus on the button (the
-    // shell focuses any control the page did not refocus).
+
     let mut reset_focused = false;
     let mut probe = String::new();
     for _ in 0..16 {
@@ -4170,7 +3813,7 @@ fn s4_form_invalid() {
     );
     let name_row = row_below(&reset, "Task name", "A2 live");
     assert!(name_row.contains('▎'), "A2 live: reset focuses name");
-    // N2: a lone reviewer error focuses the reviewer, never the name.
+
     support::press_step(&s, "enter");
     type_text(&mut s, "Seed the demo database");
     support::press_step(&s, "enter");
@@ -4202,14 +3845,12 @@ fn s4_form_invalid() {
     eprintln!("s4 form_invalid: live errors/focus/reset/lone-reviewer");
 }
 
-/// First track cell (filled or not) in a bar row, by glyph.
 fn track_start(row: &str) -> u16 {
     row.chars()
         .position(|c| c == '━' || c == '─')
         .expect("track renders") as u16
 }
 
-/// Five sample bars; the no-focus-stop probe.
 struct PbFocusApp;
 
 impl App for PbFocusApp {
@@ -4248,17 +3889,6 @@ impl App for PbFocusApp {
     }
 }
 
-/// PB-STATES-001 (`showcase/pages/progress`, paused): state samples plus
-/// terminal glyphs over [`ProgressBar`].
-///
-/// Isolated path renders the row's five samples plus edge widths: terminal
-/// glyphs and tones, the running-white/Done-green rule, clamp/round/label
-/// rules, the narrow percent-only form, and the no-focus-stops plus
-/// never-green negatives. Live path boots the progress page paused at
-/// 120x40 and proves the glyphs plus the Tab-only-buttons focus shape.
-/// (120x40, not the row's 80x24: the approved 80x24 frame clips the States
-/// panel to Queued/Halfway, so the row's own V1 rows — Completed, Failed,
-/// Paused — render only at 120x40 and above.)
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_pb_states() {
@@ -4269,10 +3899,6 @@ fn s4_pb_states() {
     let muted = t.color.fg[FgStep::Muted.index()];
     let running = t.color.fg[FgStep::Secondary.index()];
 
-    // V1/V2 isolated: terminal glyphs in their tones; running is white-70.
-    // (VB `ProgressStatus` maps onto the bar props: Active is Ready with a
-    // ratio, Done is `.done(true)`, Error is `Status::Error`, Paused is the
-    // explicit paused icon.)
     let samples = [
         ("Queued    ", 0.0, false, "  ", running, "running"),
         ("Halfway   ", 0.5, false, "  ", running, "running"),
@@ -4345,7 +3971,7 @@ fn s4_pb_states() {
             "N2: green never paints {label:?}"
         );
     }
-    // S1: ratio clamps to 0..1 and the percent rounds.
+
     for (ratio, want) in [(1.7, "100%"), (-0.3, "0%"), (0.5, "50%")] {
         let buf = render_isolated(70, 3, 0, None, |ui, _| {
             ProgressBar::new(Id::root("s4.pb"))
@@ -4359,7 +3985,7 @@ fn s4_pb_states() {
             "S1: ratio {ratio} shows {want}"
         );
     }
-    // S2: the label paints only when width exceeds label plus 8.
+
     let buf = render_isolated(70, 3, 0, None, |ui, _| {
         ProgressBar::new(Id::root("s4.pb"))
             .label("Building  ")
@@ -4382,7 +4008,7 @@ fn s4_pb_states() {
         !buf_row_text(&buf, 1).contains("Building"),
         "S2: narrow drops the label"
     );
-    // N1: a bar narrower than 6 track cells shows the percent only.
+
     let buf = render_isolated(70, 3, 0, None, |ui, _| {
         ProgressBar::new(Id::root("s4.pb"))
             .label("")
@@ -4396,7 +4022,7 @@ fn s4_pb_states() {
         !narrow.contains('━') && !narrow.contains('─'),
         "N1: no label, no track"
     );
-    // A1/A2: sample rows expose no focus stops.
+
     let mut app = Harness::new(PbFocusApp, Theme::junie(), 70, 8);
     assert!(
         !app.tab_to(Id::root("s4.pb0")),
@@ -4433,7 +4059,6 @@ fn s4_pb_states() {
     });
     capture_isolated(&dir, "pb-states", &buf);
 
-    // PTY: the glyphs render paused; Tab reaches only Restart/Pause.
     let case = s4_case(
         "pb_states",
         &["--page", "progress", "--motion", "paused"],
@@ -4451,7 +4076,7 @@ fn s4_pb_states() {
         states.contains("Queued") && states.contains("Halfway"),
         "V2 live: running samples render"
     );
-    // A2 live: exactly two Tabs reach Pause (no sample stops between).
+
     support::press_step(&s, "tab");
     support::press_step(&s, "tab");
     support::press_step(&s, "space");
@@ -4459,19 +4084,11 @@ fn s4_pb_states() {
     eprintln!("s4 pb_states: isolated bar map + live glyphs/focus");
 }
 
-/// PB-LIVE-002 (`showcase/flows/progress/mid`, 80x24, playing): the live
-/// build plus pause/restart over [`ProgressBar`].
-///
-/// Isolated path pins the bar geometry the live build paints through (fill
-/// growth, Done form, 1.0 cap). Live path watches the percent climb,
-/// pauses (percent freezes while the page animates), restarts to zero, and
-/// rides the build to its once-only Done.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_pb_live() {
     let dir = s4_dir("s4_pb_live");
 
-    // Isolated: the fill grows with the ratio and caps at 1.0.
     let fill_count = |ratio: f64| -> usize {
         let buf = render_isolated(70, 3, 0, None, |ui, _| {
             ProgressBar::new(Id::root("s4.pb"))
@@ -4499,7 +4116,6 @@ fn s4_pb_live() {
     assert!(capped.contains("100%"), "N1: ratios past 1.0 cap at Done");
     capture_isolated(&dir, "pb-live", &buf);
 
-    // PTY: the percent climbs, pauses, restarts, and finishes once.
     let case = s4_case("pb_live", &["--page", "progress"], 80, 24).timeout(30_000);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4509,7 +4125,7 @@ fn s4_pb_live() {
     let p2 = building_pct(&live_text(&mut s));
     assert!(p2 > p1, "V1/S1 live: the build advances ({p1}% → {p2}%)");
     checkpoint(&mut s, &dir, "mid");
-    // V2/A1/N2: pausing freezes the percent while the page animates.
+
     click_at(&mut s, "Pause", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -4520,8 +4136,7 @@ fn s4_pb_live() {
     let paused = live_text(&mut s);
     assert_line_has(&paused, "Building", "‖", "V2 live: pause suffix");
     let q1 = building_pct(&paused);
-    // The nav column precedes the spinner on the row, so the glyph is the last
-    // non-blank char BEFORE the `Waiting for` label.
+
     let spin_of = |text: &str| -> char {
         text.lines()
             .find(|l| l.contains("Waiting for"))
@@ -4537,8 +4152,7 @@ fn s4_pb_live() {
     let spin2 = spin_of(&live_text(&mut s));
     assert_eq!(q1, q2, "N2 live: pausing stops the advance");
     assert_ne!(spin1, spin2, "N2 live: the page keeps animating");
-    // A2: Restart resets to 0 and resumes running (unpause first: Restart
-    // resets the build but leaves the paused flag alone).
+
     click_at(&mut s, "Resume", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -4553,7 +4167,7 @@ fn s4_pb_live() {
         "restart never applied",
         |screen| building_pct(&support::screen_text(screen)) < q2,
     );
-    // S2/N1: reaching 1.0 reports Done once and never overflows.
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
@@ -4567,7 +4181,6 @@ fn s4_pb_live() {
     eprintln!("s4 pb_live: isolated growth + live climb/pause/restart/done");
 }
 
-/// One labeled spinner; the no-focus-stop probe.
 struct SpinFocusApp;
 
 impl App for SpinFocusApp {
@@ -4583,20 +4196,12 @@ impl App for SpinFocusApp {
     }
 }
 
-/// SPIN-FRAME-001 (`showcase/pages/progress`, 80x24, playing): braille frames
-/// plus the compact activity row over [`Spinner`].
-///
-/// Isolated path pins the 10-frame cycle, the accent-glyph/secondary-label
-/// paint, the empty-area no-op, and the no-focus shape. Live path samples
-/// two distinct frames plus the count line.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_spin_frame() {
     let dir = s4_dir("s4_spin_frame");
     let t = Theme::junie();
 
-    // S1 isolated: frame(tick) is SPINNER[tick % 10].
-    // (The cycle lives in the theme's motion tokens; the frame is a prop.)
     let frames = t.design.motion.spinner_frames;
     assert_eq!(frames.len(), 10, "S1: ten braille frames");
     assert_eq!(frames[0], "⠋", "row pins frame 0");
@@ -4608,8 +4213,7 @@ fn s4_spin_frame() {
             "S1: frame({tick}) cycles"
         );
     }
-    // V1/N2 isolated: `⠋ label` in accent/secondary; the label is never
-    // bold and never accent.
+
     let accent = t.color.accent;
     let secondary = t.color.fg[FgStep::Secondary.index()];
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
@@ -4620,7 +4224,7 @@ fn s4_spin_frame() {
     });
     assert_eq!(buf[(4, 1)].symbol(), "⠋", "V1: the glyph renders");
     assert_eq!(buf[(4, 1)].fg, accent, "V1: the glyph is accent");
-    // The label starts past the icon plus the 2-cell design gap.
+
     assert_eq!(buf[(7, 1)].symbol(), "W", "the label follows the gap");
     assert_eq!(buf[(7, 1)].fg, secondary, "V1: the label is secondary");
     assert!(
@@ -4650,7 +4254,7 @@ fn s4_spin_frame() {
         second.digest(),
         "N1: frames differ, not frozen"
     );
-    // S2: an empty area draws nothing.
+
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         Spinner::new(Id::root("s4.spin"))
             .label("Waiting for the test runner")
@@ -4659,7 +4263,6 @@ fn s4_spin_frame() {
     });
     assert_surround_intact(&buf, Rect::ZERO, "S2: an empty area draws nothing");
 
-    // PTY: two distinct live frames plus the count line.
     let case = s4_case("spin_frame", &["--page", "progress"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4687,12 +4290,6 @@ fn s4_spin_frame() {
     eprintln!("s4 spin_frame: isolated cycle + live frames {seen:?}");
 }
 
-/// SPIN-SWEEP-002 (`showcase/flows/progress/mid`, 80x24, playing): the
-/// indeterminate sweep geometry over [`ProgressBar`].
-///
-/// Isolated path pins the segment length/position math, the accent-over-
-/// subtle paint, the label rule, and the never-outside/empty negatives.
-/// Live path watches the sweep move.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_spin_sweep() {
@@ -4702,8 +4299,6 @@ fn s4_spin_sweep() {
     let subtle = t.color.border_subtle;
     let primary = t.color.fg[FgStep::Primary.index()];
 
-    // S1/S2 isolated: length (track/5) clamps to 2..8; position wraps.
-    // (No ratio: the indeterminate sweep; the tick is the frame prop.)
     let sweep_row = |tick: usize, width: u16| -> Buffer {
         render_isolated(80, 3, 0, None, |ui, _| {
             ProgressBar::new(Id::root("s4.sweep"))
@@ -4718,8 +4313,7 @@ fn s4_spin_sweep() {
         row8.contains("Resolving"),
         "V2: the label paints when it fits"
     );
-    // Track starts after "Resolving " + 2 (x = 12); at tick 8 the segment
-    // sits at cells 12..20 in accent over the subtle track.
+
     assert_eq!(buf8[(0, 1)].fg, primary, "V2: the label is primary");
     assert_eq!(
         buf8[(12, 1)].fg,
@@ -4748,7 +4342,7 @@ fn s4_spin_sweep() {
         buf_row_text(&buf0, 1),
         "S2: position wraps around at tick 66"
     );
-    // N1: the segment never paints outside the track cells.
+
     for tick in [0usize, 8, 40, 65, 200] {
         let buf = sweep_row(tick, 70);
         assert!(
@@ -4757,7 +4351,7 @@ fn s4_spin_sweep() {
         );
     }
     capture_isolated(&dir, "sweep-8", &buf8);
-    // Empty areas draw nothing; no focus stops anywhere.
+
     let buf = render_isolated(80, 3, 0, None, |ui, _| {
         ProgressBar::new(Id::root("s4.sweep"))
             .label("Resolving ")
@@ -4783,7 +4377,6 @@ fn s4_spin_sweep() {
         "A1: the sweep holds no focus"
     );
 
-    // PTY: the sweep visibly moves.
     let case = s4_case("spin_sweep", &["--page", "progress"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4805,7 +4398,6 @@ fn s4_spin_sweep() {
     eprintln!("s4 spin_sweep: isolated wrap + live motion");
 }
 
-/// One threshold meter; the no-focus-stop probe.
 struct MeterFocusApp;
 
 impl App for MeterFocusApp {
@@ -4821,22 +4413,12 @@ impl App for MeterFocusApp {
     }
 }
 
-/// METER-TONES-001 (`showcase/pages/progress`, 120x40, paused): threshold
-/// levels plus the line visual over [`Meter`].
-///
-/// Isolated path renders the row's three samples (38/72/91): shared
-/// thresholds, run/value tones, the 100-cap ratio, the narrow value-only
-/// form, and the never-green plus no-focus negatives. Live path boots the
-/// progress page paused at 120x40 and reads the three meter rows.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_meter_tones() {
     let dir = s4_dir("s4_meter_tones");
     let t = Theme::junie();
 
-    // S1 isolated: of(pct) is Low at 59 and below, Medium to 84, High above.
-    // (The mapping lives in `MeterTone::from_ratio` against the design
-    // thresholds; the boundaries are the row's own 59/84.)
     let thresholds = t.design.meter;
     assert_eq!(thresholds.low_max, 59, "low boundary");
     assert_eq!(thresholds.medium_max, 84, "medium boundary");
@@ -4854,8 +4436,7 @@ fn s4_meter_tones() {
             "S1: of({pct})"
         );
     }
-    // V1/V2 isolated: white/warning/error runs; low value text is primary,
-    // medium and high take the run color.
+
     let white = t.color.fg[FgStep::Secondary.index()];
     let warning = t.color.warning;
     let err = t.color.danger;
@@ -4878,7 +4459,7 @@ fn s4_meter_tones() {
             "V1: {what} value right of the run"
         );
         assert_eq!(buf[(0, 1)].fg, run, "V1: {what} run tone");
-        // Cell columns, not byte offsets: the run is multibyte ━/─ cells.
+
         let track_w = 40u16 - (8 + 3);
         let vx = track_w + 1;
         assert_eq!(
@@ -4892,7 +4473,7 @@ fn s4_meter_tones() {
             "N1: green is never used ({what})"
         );
     }
-    // S2: ratio is used_pct capped at 100 over 100.
+
     let capped = |pct: u8| -> String {
         let buf = render_isolated(60, 3, 0, None, |ui, _| {
             Meter::new(Id::root("s4.meter"))
@@ -4907,7 +4488,7 @@ fn s4_meter_tones() {
             .to_string()
     };
     assert_eq!(capped(150), capped(100), "S2: used_pct caps at 100");
-    // N2: a track narrower than 6 cells shows the value only.
+
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         Meter::new(Id::root("s4.meter"))
             .ratio(0.38)
@@ -4920,7 +4501,7 @@ fn s4_meter_tones() {
         !narrow.contains('━') && !narrow.contains('─'),
         "N2: no track"
     );
-    // A1/A2: meters hold no focus.
+
     let mut app = Harness::new(MeterFocusApp, Theme::junie(), 60, 3);
     assert!(
         !app.tab_to(Id::root("s4.meter")),
@@ -4936,7 +4517,6 @@ fn s4_meter_tones() {
     });
     capture_isolated(&dir, "meter-tones", &buf);
 
-    // PTY: the three threshold rows render paused at 120x40.
     let case = s4_case(
         "meter_tones",
         &["--page", "progress", "--motion", "paused"],
@@ -4953,25 +4533,12 @@ fn s4_meter_tones() {
     eprintln!("s4 meter_tones: isolated thresholds + live rows");
 }
 
-/// METER-DOMAIN-002 (`showcase/pages/progress`, 120x40, paused): domain tones
-/// plus the block visual over [`Meter`].
-///
-/// Isolated path renders the row's six domain tones in both visuals: the
-/// Warning/Exhausted/Stale/Unknown markers, the block fill with its inset
-/// value, the tone→level map, the Refreshing spinner value, and the
-/// no-run plus Stale-text negatives. Live path reads the six domain rows
-/// paused at 120x40.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_meter_domain() {
     let dir = s4_dir("s4_meter_domain");
     let t = Theme::junie();
 
-    // S1 isolated: level() maps Warning to Medium and Exhausted to High;
-    // Stale and below map to None.
-    // (No `level()` exists: the graded half runs through `from_ratio`, the
-    // flat tones keep their distinct role identity, and their paint is
-    // pinned by V1/N1 below.)
     let thresholds = t.design.meter;
     assert_eq!(
         MeterTone::from_ratio(0.82, thresholds),
@@ -4993,12 +4560,7 @@ fn s4_meter_domain() {
     let err = t.color.danger;
     let faint = t.color.fg[FgStep::Faint.index()];
     let secondary = t.color.fg[FgStep::Secondary.index()];
-    // V1 isolated: Warning ends ` ▲`, Exhausted ends bold ` !`, Stale is
-    // faint, Unknown is `—`.
-    // (Warning/Exhausted/Refreshing/Error have no domain tones: Warning
-    // runs as the Medium grade, Exhausted as High under Error readiness,
-    // Error as readiness without a run, Refreshing as Busy with a leading
-    // spinner. The row's markers are kept verbatim.)
+
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         Meter::new(Id::root("s4.meter"))
             .ratio(0.82)
@@ -5042,7 +4604,7 @@ fn s4_meter_domain() {
             .draw(ui, Rect::new(0, 1, 40, 1));
     });
     assert!(buf_row_text(&buf, 1).contains('—'), "V1: Unknown is —");
-    // N1: Error and Unknown draw no run (presence: Warning draws one).
+
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         Meter::new(Id::root("s4.meter"))
             .value("quota read failed")
@@ -5055,7 +4617,7 @@ fn s4_meter_domain() {
         !erow.contains('━') && !erow.contains('─'),
         "N1: Error draws no run"
     );
-    // S2: Refreshing shows the spinner frame plus `refreshing` as the value.
+
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         Meter::new(Id::root("s4.meter"))
             .ratio(0.54)
@@ -5069,8 +4631,7 @@ fn s4_meter_domain() {
         buf_row_text(&buf, 1).contains("⠋ refreshing"),
         "S2: Refreshing value at tick 0"
     );
-    // V2/N2: Block fills the used share as background with the value inside
-    // it starting one cell in; Stale fill text is secondary, never canvas.
+
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         Meter::new(Id::root("s4.meter"))
             .ratio(0.82)
@@ -5103,9 +4664,6 @@ fn s4_meter_domain() {
     );
     capture_isolated(&dir, "meter-domain", &buf);
 
-    // PTY: the domain rows render paused at 120x40; the Unknown row needs
-    // 160x50 (it is clipped at every smaller canonical size, including in
-    // the approved frames).
     let case = s4_case(
         "meter_domain",
         &["--page", "progress", "--motion", "paused"],
@@ -5143,9 +4701,6 @@ fn s4_meter_domain() {
     eprintln!("s4 meter_domain: isolated tones + live rows");
 }
 
-/// The row's chrome bar: six items across three groups (VB
-/// `chrome_status_bar`). Keys are indices: 0 is the Weekly usage chip, 1
-/// the PR row.
 struct ChromeBarApp {
     left: [StatusItem<'static>; 2],
     center: [StatusItem<'static>; 1],
@@ -5207,20 +4762,11 @@ impl App for ChromeBarApp {
     }
 }
 
-/// Cell column where `needle` starts in `row` (multibyte-safe).
 fn row_col(row: &str, needle: &str) -> u16 {
     let byte = row.find(needle).expect("needle renders") as u16;
     row[..byte as usize].chars().count() as u16
 }
 
-/// SB-GROUPS-001 (`showcase/pages/chrome`): three groups plus chips plus
-/// hover over [`StatusBar`].
-///
-/// Isolated path mirrors the row's chrome bar at full width: shared-row
-/// spacing, priorities, bold name, chip planes, hover lift, and one-row hit
-/// regions. Live path boots 80x24 (where priorities evict to the top two),
-/// resizes to 160x50 (the canonical size where the full bar renders), and
-/// hovers the Weekly chip.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_sb_groups() {
@@ -5229,8 +4775,6 @@ fn s4_sb_groups() {
     let elevated = t.color.surfaces[Surface::Elevated.level().expect("elevated level")];
     let overlay = t.color.surfaces[Surface::Overlay.level().expect("overlay level")];
 
-    // S1/V1 isolated: all six place at full width with spacing only.
-    // (No `layout()` exists: survivors are read back from the painted row.)
     let app = ChromeBarApp::chrome(160);
     let buf = render_isolated(160, 3, 0, None, |ui, _| {
         app.bar().draw(ui, Rect::new(0, 1, 160, 1));
@@ -5252,7 +4796,7 @@ fn s4_sb_groups() {
             && row.contains("Weekly 59%"),
         "V1: all groups render"
     );
-    // N1/S2: gaps between groups are never glyphs (spaces on the bar fill).
+
     let left_end = row_col(&row, "PR #482 · settlement backoff")
         + "PR #482 · settlement backoff".chars().count() as u16;
     let center_x = row_col(&row, "Claude Code · working · 2 tabs");
@@ -5264,7 +4808,7 @@ fn s4_sb_groups() {
         assert_eq!(buf[(x, 1)].symbol(), " ", "N1: gaps are never glyphs");
         assert_eq!(buf[(x, 1)].bg, elevated, "S2: gaps fill surface_elevated");
     }
-    // V2: the surface name is bold; quota chips sit on the overlay plane.
+
     let name_x = row_col(&row, "payments-platform");
     assert!(buf_is_bold(&buf, name_x, 1), "V2: the surface name is bold");
     let chip_x = row_col(&row, "Weekly 59%") + 1;
@@ -5274,7 +4818,7 @@ fn s4_sb_groups() {
         "V2: chips sit on the overlay plane"
     );
     capture_isolated(&dir, "sb-groups", &buf);
-    // A2: clickable items register a one-row hit region.
+
     let mut app = Harness::new(ChromeBarApp::chrome(160), Theme::junie(), 160, 3);
     let hit = app
         .area_of_part(
@@ -5288,7 +4832,6 @@ fn s4_sb_groups() {
         "A2: the region covers the chip (presence proof)"
     );
 
-    // PTY: 80x24 evicts by priority; 160x50 shows the full bar for hover.
     let case = s4_case("sb_groups", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -5316,12 +4859,12 @@ fn s4_sb_groups() {
         wide.contains("Claude Code · working · 2 tabs") && wide.contains("Weekly 59%"),
         "V1 live: all groups share the row at 160x50"
     );
-    // N2 live: the center sits right of the left group.
+
     let (lrow, lcol) = find_pos(&mut s, "payments-platform", case_timeout(&case));
     let (crow, ccol) = find_pos(&mut s, "2 tabs", case_timeout(&case));
     assert_eq!(lrow, crow, "V1 live: one shared row");
     assert!(ccol > lcol, "N2 live: center right of left");
-    // A1 live: hovering the Weekly chip lifts its plane.
+
     let (hrow, hcol) = find_pos(&mut s, "Weekly 59%", case_timeout(&case));
     let before = live_frame(&mut s)
         .get(hcol + 1, hrow)
@@ -5339,10 +4882,7 @@ fn s4_sb_groups() {
         "A1 live: glyphs stable under hover"
     );
     checkpoint(&mut s, &dir, "hover");
-    // A1 isolated: hovering a clickable chip lifts its plane to primary
-    // text. (Runs last: the chip delta keeps the Overlay plane under
-    // hover, so this is the known genuine gap; every other assertion —
-    // isolated and live — runs first.)
+
     let lift = t.color.surfaces[t.raise(Surface::Overlay).level().expect("lift level")];
     let primary = t.color.fg[FgStep::Primary.index()];
     let _ = app.mouse(MouseKind::Move, chip_x, 1);
@@ -5359,22 +4899,11 @@ fn s4_sb_groups() {
     eprintln!("s4 sb_groups: isolated planes + live evict/resize/hover");
 }
 
-/// SB-COLLAPSE-002 (`showcase/pages/chrome`, 72x20): narrow collapse order
-/// plus truncation over [`StatusBar`].
-///
-/// Isolated path proves the eviction machine at exact widths (survivor sets,
-/// tie order, truncate-with-… of the last left item, right-never-truncated,
-/// no focus stops). Live path boots the registry viewport (center gone, the
-/// strongest left item kept whole), resizes up (same priorities recompute),
-/// and proves the survivor is never dropped.
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_sb_collapse() {
     let dir = s4_dir("s4_sb_collapse");
 
-    // S1 isolated: eviction drops the lowest priority anywhere; at page
-    // widths 61/53 (the 80x24/72x20 chrome pages) only the left pair stays.
-    // (No `layout()` exists: survivors are read back from the painted row.)
     for (w, what) in [(61u16, "80x24 page"), (53u16, "72x20 page")] {
         let app = ChromeBarApp::chrome(w);
         let buf = render_isolated(w, 3, 0, None, |ui, _| {
@@ -5390,7 +4919,7 @@ fn s4_sb_collapse() {
             "S1: {what} evicts center and right"
         );
     }
-    // S1 ties: center leaves before right before left at equal priority.
+
     let tied = || {
         let left = [StatusItem::new("L").priority(5)];
         let center = [StatusItem::new("C").priority(5)];
@@ -5408,8 +4937,7 @@ fn s4_sb_collapse() {
         !row.contains('C'),
         "S1: ties evict the center first (row: {row:?})"
     );
-    // V1/S2/N1: at width 40 only the strongest left item stays, whole; at
-    // width 18 it truncates with … instead of leaving.
+
     let app = ChromeBarApp::chrome(40);
     let buf = render_isolated(40, 3, 0, None, |ui, _| {
         app.bar().draw(ui, Rect::new(0, 1, 40, 1));
@@ -5439,7 +4967,7 @@ fn s4_sb_collapse() {
         (1..16).all(|i| cells[i] != ' '),
         "V2: it fills the room (row: {row:?})"
     );
-    // N2: right items are never truncated — they leave whole or stay whole.
+
     for w in [40u16, 53, 61, 100, 134] {
         let app = ChromeBarApp::chrome(w);
         let buf = render_isolated(w, 3, 0, None, |ui, _| {
@@ -5456,8 +4984,7 @@ fn s4_sb_collapse() {
             }
         }
     }
-    // A1/A2: placement recomputes from the same priorities per width; the
-    // bar holds no focus stops at any width.
+
     let narrow_app = ChromeBarApp::chrome(53);
     let narrow_buf = render_isolated(53, 3, 0, None, |ui, _| {
         narrow_app.bar().draw(ui, Rect::new(0, 1, 53, 1));
@@ -5489,8 +5016,6 @@ fn s4_sb_collapse() {
     );
     capture_isolated(&dir, "sb-collapse", &wide_buf);
 
-    // PTY: 72x20 drops the center first and keeps the survivor whole; a
-    // resize recomputes from the same priorities.
     let case = s4_case("sb_collapse", &["--page", "chrome"], 72, 20);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -5526,7 +5051,6 @@ fn s4_sb_collapse() {
     eprintln!("s4 sb_collapse: isolated eviction + live narrow/resize");
 }
 
-/// Extract the `NN%` value from the live "Building" line (progress page).
 fn building_pct(text: &str) -> u32 {
     let line = text
         .lines()

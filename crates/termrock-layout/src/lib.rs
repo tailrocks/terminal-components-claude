@@ -1,5 +1,3 @@
-//! Layout and measurement primitives.
-
 pub mod layout;
 pub mod measure;
 

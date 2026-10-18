@@ -13,6 +13,51 @@ import uuid
 
 PACKAGE = Path(__file__).resolve().parent
 
+SUPERSEDED_PINS_SHA256 = '2e8245bb0cd3ae48c2b4a31f2203c7cc974d1de6ff15aa2bcae0456623cc1d60'
+RETIRED_DOCUMENTATION_SHA256 = {'README.md': 'b6103126b99e0b7b88f6502dadf80556c842ea8078899e76c3da005b8bae17ce',
+ 'proof/REPORT.md': '8aab52a0cc8abfd75879177d20291b66ec31e35387cb2c4cd3022e3b4591759b',
+ 'proof/cursor-independent-review/REVIEW.md': '4192f7fbbcaf014f785615c3171c3edae8a35f768e2ee90bcc062ddf855e7b95',
+ 'proof/cursor-review.md': '4192f7fbbcaf014f785615c3171c3edae8a35f768e2ee90bcc062ddf855e7b95',
+ 'proof/independent-review/REVIEW.md': 'c3612b4e11a49227e1180637d8a80f9f2a5842beb997f2fb5bbbc62575702d4e',
+ 'proof/migration-review.md': 'c3612b4e11a49227e1180637d8a80f9f2a5842beb997f2fb5bbbc62575702d4e'}
+OPERATIONAL_PAYLOADS = frozenset(('acquire.py',
+ 'expected-cells.json',
+ 'fixture.py',
+ 'harness/Cargo.lock',
+ 'harness/main.rs',
+ 'licenses/tui-snap-LICENSE',
+ 'licenses/tui-test-LICENSE',
+ 'licenses/vt100-LICENSE',
+ 'oracle.py',
+ 'proof/applied-review-verification.json',
+ 'proof/clean-acquisition.json',
+ 'proof/clean-metadata.json',
+ 'proof/cursor-independent-review/SHA256SUMS',
+ 'proof/cursor-review.sha256',
+ 'proof/exact-provenance.json',
+ 'proof/final-test-identities.json',
+ 'proof/final-tool-gates.json',
+ 'proof/full-0.log',
+ 'proof/full-1.log',
+ 'proof/full-2.log',
+ 'proof/full-3.log',
+ 'proof/full-4.log',
+ 'proof/full-5.log',
+ 'proof/independent-review/verified.json',
+ 'proof/matrix-status.json',
+ 'proof/migration-reviewed-hashes.json',
+ 'proof/recorded-environment.json',
+ 'proof/resolved-tools.json',
+ 'proof/run_final_gates.py',
+ 'proof/run_repaired.py',
+ 'proof/source-artifacts.json',
+ 'proof/test-identities.json',
+ 'repairs/tuisnap-code.patch',
+ 'repairs/tuisnap.bundle',
+ 'repairs/vt100-upstream.json',
+ 'tests/test_integrity.py',
+ 'tuitest_smoke.py'))
+
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -20,6 +65,13 @@ def digest(path):
 
 def validate_payloads(package=PACKAGE):
     pins = json.loads((package / "pins.json").read_text())
+    if pins.get("schema") != 2:
+        raise RuntimeError("Unsupported qualified payload schema")
+    if (pins.get("supersedes_pins_sha256") != SUPERSEDED_PINS_SHA256
+            or pins.get("retired_documentation_sha256") != RETIRED_DOCUMENTATION_SHA256):
+        raise RuntimeError("Invalid qualified documentation retirement")
+    if set(pins.get("payload_sha256", {})) != OPERATIONAL_PAYLOADS:
+        raise RuntimeError("Qualified operational payload membership changed")
     for name, expected in pins["payload_sha256"].items():
         path = package / name
         if not path.is_file() or digest(path) != expected:

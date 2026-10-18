@@ -1,38 +1,3 @@
-//! Visual-baseline suite: every capturable surface of the four binaries,
-//! driven as real processes in PTYs via the tuiscotti library and gated
-//! cell-exact (`.ansi`), content (`.txt`), render-level (`.html`) and
-//! pixel-exact (`.png`) against the approved frames in
-//! `baselines/tuiscotti-v1` (the grouped multi-artifact store; scratch
-//! under `target/tuiscotti/`).
-//!
-//! The capture matrix is the vendored case registry
-//! (`tests/conformance/required_cases.json`: 302 `LEGACY:` roots × 5 sizes
-//! × 5 colours); [`support::suite_capture_names`] expands it, and the
-//! [`store_integrity`] gate proves store==suite registry coverage. Capture
-//! names are screen-first grouped paths
-//! (`<app>/<screen>/.../<cols>x<rows>/<color>`); argv, boot needles, send
-//! steps and per-capture timeouts are the ported runner's, verbatim (via
-//! [`support::run_canonical`]); the `pointer` module adds the mouse/resize
-//! group (hover, drag-select, wheel scroll-fade, resize sequences). The
-//! `audit` module drives the 10-fixture × 5 sizes × 5 colours audit
-//! matrices data-drivenly; the audit-flow variant matrices live in
-//! `showcase.rs` (keyboard) and `pointer.rs` (drag-select).
-//!
-//! Every capture test is `#[ignore]`d: default `cargo nextest run` compiles
-//! the suite and runs only the cheap non-PTY [`store_integrity`] check. Run
-//! the PTY baseline explicitly:
-//!
-//! ```sh
-//! cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
-//! cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
-//! cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
-//! ```
-//!
-//! Gate policy (fail-closed): only `matched` passes. Pending and
-//! missing-approval captures fail until the whole suite is generated and
-//! explicitly blessed out-of-band into `baselines/tuiscotti-v1`; drift
-//! after approval or a capture error also fails.
-
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
 mod audit;
@@ -99,48 +64,20 @@ const MANIFEST_ARTIFACT_KEYS: [&str; 9] = [
     "txt",
 ];
 
-/// Expected admission pins, compiled from frozen evidence (Q04/FIX-012 A2).
-/// Each value cites its source; `store_integrity` re-proves every pin against
-/// the full 7550-capture corpus on each run, so a wrong constant fails loudly.
 mod expected {
-    /// Evidence: `git rev-parse 'visual-baseline^{commit}'` (tag object 1ee5ebdc
-    /// points at this commit; tag itself is frozen, never moved) and
-    /// `baselines/tuiscotti-v1/corpus-index.json` (`historical_oracle_commit`) /
-    /// `admission-record.json` (`historical_oracle_commit`).
     pub const HISTORICAL_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
-    /// Evidence: `baselines/tuiscotti-v1/corpus-index.json`
-    /// (`historical_oracle_tag`).
     pub const HISTORICAL_ORACLE_TAG: &str = "visual-baseline";
-    /// Evidence: `baselines/tuiscotti-v1/corpus-index.json` and
-    /// `admission-record.json` (`reference_app_sha`).
     pub const REFERENCE_APP_SHA: &str = "7bd6a331721737514a2477c894d922cb262ef07b";
-    /// Evidence: workspace `Cargo.lock` tuiscotti source rev
-    /// (`git+https://github.com/tailrocks/tuiscotti?rev=a47c9aae…`), matching
-    /// `corpus-index.json` (`tuiscotti_source_sha`) and `admission-record.json`
-    /// (`tuiscotti_pin`).
     pub const TUISCOTTI_PIN: &str = "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274";
-    /// Evidence: `baselines/tuiscotti-v1/admission-record.json` (`status`).
     pub const ADMISSION_STATUS: &str = "admitted";
-    /// Evidence: `baselines/tuiscotti-v1/admission-record.json` (`schema`).
     pub const ADMISSION_SCHEMA: &str = "termrock-spec/tuiscotti-admission-record-v1";
-    /// Evidence: `baselines/tuiscotti-v1/corpus-index.json` (`schema`).
     pub const CORPUS_INDEX_SCHEMA: &str = "termrock-spec/tuiscotti-corpus-index-v1";
-    /// Evidence: `profile` field uniform across all 7550
-    /// `*.manifest.json` and all 7550 `*.png.fidelity.json` files.
     pub const RENDER_PROFILE: &str = "tuiscotti-default";
-    /// Evidence: `font_sha256` uniform across all 7550 `*.png.fidelity.json`.
     pub const FONT_SHA256: &str =
         "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a";
-    /// Evidence: `font_desc` uniform across all 7550 `*.png.fidelity.json`.
     pub const FONT_DESC: &str = "vendored JetBrainsMonoNerdFontMono-Regular (SIL OFL 1.1)";
-    /// Evidence: `scale` uniform across all 7550 `*.png.fidelity.json`.
     pub const RENDER_SCALE: u32 = 2;
-    /// Evidence: `provenance.tool` uniform across sampled `*.observations.json`
-    /// (re-proved for every capture by `store_integrity`).
     pub const PROVENANCE_TOOL: &str = "tuiscotti";
-    /// Evidence: `provenance.tool_version` uniform across sampled
-    /// `*.observations.json`; matches the `tuiscotti 0.2.0` entry in
-    /// `Cargo.lock`.
     pub const PROVENANCE_TOOL_VERSION: &str = "0.2.0";
 }
 
@@ -400,8 +337,6 @@ fn verify_scenario_manifest(
         return Err(format!("manifest complete is false in {scenario_name}"));
     }
 
-    // Corpus-wide render-profile pin: every manifest must carry the admitted
-    // profile, so a mixed-profile corpus fails instead of passing silently.
     if manifest.profile != expected::RENDER_PROFILE {
         return Err(format!(
             "profile mismatch in {scenario_name}: expected '{}', got '{}'",
@@ -410,9 +345,6 @@ fn verify_scenario_manifest(
         ));
     }
 
-    // Per-capture generation digest must be well-formed: 64 lowercase hex.
-    // Uniqueness-per-capture is by design (content digest); binding to the
-    // rendered html below is what makes a mixed-generation corpus fail.
     if manifest.generation.len() != 64
         || !manifest
             .generation
@@ -510,10 +442,6 @@ fn verify_scenario_manifest(
     Ok(())
 }
 
-/// Bind the manifest `generation` digest to the generation marker embedded in
-/// the rendered html artifact (`<!-- generation: <hex> -->`). A manifest
-/// spliced in from another capture or corpus (mixed generation) carries a
-/// digest the html does not contain, so the mix fails here.
 fn verify_generation_binding(
     scenario_name: &str,
     manifest: &ScenarioManifest,
@@ -535,10 +463,6 @@ fn verify_generation_binding(
     Ok(())
 }
 
-/// Pin renderer/font/provenance identity recorded in the companion artifacts:
-/// fidelity profile, font sha/desc, render scale, and the observations
-/// provenance tool identity. A capture rendered with a different
-/// renderer/font/toolchain fails here even if its pixels hash-match.
 fn verify_render_identity(
     scenario_name: &str,
     fidelity_bytes: &Option<Vec<u8>>,
@@ -618,9 +542,6 @@ fn verify_render_identity(
     Ok(())
 }
 
-/// Cheap non-PTY gate: committed `baselines/tuiscotti-v1` names match the suite, each
-/// scenario is screen-first `app/screen/.../geometry/color` with exactly ten artifacts,
-/// cryptographic hashes are fully verified fail-closed, and legacy stores are gone.
 #[test]
 fn store_integrity() {
     let approved = support::baseline_store_root();
@@ -857,9 +778,6 @@ fn mismatched_corpus_index_digest_fails_verification() {
     );
 }
 
-/// Copy the real admission record into a tempdir, patch one field with a
-/// synthetic value, and run the admission gate against the real corpus index.
-/// The frozen `baselines/` tree is only read, never written.
 fn verify_admission_with_patched_field(field: &str, value: &str) -> Result<(), String> {
     let approved = support::baseline_store_root();
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -921,8 +839,6 @@ fn non_admitted_status_fails_verification() {
 
 #[test]
 fn admission_index_tuiscotti_disagreement_fails_verification() {
-    // Admission record is genuine; the corpus index presented alongside it
-    // carries a different tuiscotti sha, so the cross-check must fail.
     let approved = support::baseline_store_root();
     let tmp = tempfile::tempdir().expect("tempdir");
     std::fs::copy(
@@ -950,9 +866,6 @@ fn admission_index_tuiscotti_disagreement_fails_verification() {
     );
 }
 
-/// Copy one scenario into a tempdir and patch a top-level manifest field with
-/// a synthetic value. Callers pass `None` as the expected manifest hash so
-/// only content checks run.
 fn copy_scenario_with_patched_manifest(
     scenario_name: &str,
     field: &str,
@@ -998,8 +911,6 @@ fn mixed_profile_fails_verification() {
 
 #[test]
 fn mixed_generation_fails_verification() {
-    // Splice the generation digest of a *different* real capture into this
-    // manifest: a genuinely mixed-generation corpus. The html binding must fail.
     let scenario = "jackin/settings/mounts/72x20/16";
     let donor = "holla/upgrade/excluded/72x20/truecolor";
     let foreign_generation = read_manifest_field(donor, "generation");
@@ -1031,8 +942,6 @@ fn malformed_generation_fails_verification() {
 
 #[test]
 fn tampered_font_identity_fails_verification() {
-    // Rewrite the fidelity companion with a foreign font_sha256, patching the
-    // manifest artifact entry (hash + length) so only the identity pin fires.
     let scenario = "jackin/settings/mounts/72x20/16";
     let approved = support::baseline_store_root();
     let tmp = copy_scenario_to_tempdir(&approved, scenario);
@@ -1126,9 +1035,6 @@ fn posix_rel(root: &Path, path: &Path) -> String {
         .join("/")
 }
 
-/// Write a fast file-link index at `target/tuisnap/report.html`. Does not
-/// re-render PNGs and does not embed them. Per-capture `#[ignore]` tests are
-/// the gate; this only indexes on-disk actual vs approved bytes.
 #[test]
 #[ignore = "rebuilds target/tuisnap/report.html; run after accept; skip with --skip rebuild_review_html"]
 fn rebuild_review_html() {

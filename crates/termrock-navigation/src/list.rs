@@ -1,5 +1,3 @@
-//! `List` (`COMPONENT_ARCHITECTURE.md` §12.2, §17.0 A7, Appendix A 4C).
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -24,49 +22,29 @@ use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 
-/// What a list reports; every item action carries the item's key.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ListAction {
-    /// The cursor moved.
     Moved,
-    /// An item was chosen (`Single`).
     Chose(ItemKey),
-    /// An item's check toggled (`Multi` / `Range`).
     Toggled(ItemKey),
-    /// An item was activated (Enter or a double-click).
     Activated(ItemKey),
-    /// Every enabled item was checked or unchecked.
     ToggledAll,
-    /// Plain Up attempted to move before the first physical row (opt-in).
     LeaveBackward,
-    /// Plain Down attempted to move after the last physical row (opt-in).
     LeaveForward,
 }
 
-/// The const-constructible commands of the list keymap.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ListCmd {
-    /// Cursor up.
     Up,
-    /// Cursor down.
     Down,
-    /// Cursor up one viewport.
     PageUp,
-    /// Cursor down one viewport.
     PageDown,
-    /// Cursor to the first item.
     Home,
-    /// Cursor to the last item.
     End,
-    /// Cursor up, extending the checked range.
     ExtendUp,
-    /// Cursor down, extending the checked range.
     ExtendDown,
-    /// Choose / toggle the cursor item.
     Choose,
-    /// Activate the cursor item.
     Activate,
-    /// Toggle every enabled item.
     ToggleAll,
 }
 
@@ -226,53 +204,43 @@ const MULTI: [Binding<ListCmd>; 15] = [
 
 const NONE: [Binding<ListCmd>; 11] = BASE;
 
-/// Durable state of a [`List`]: cursor key, chosen key, checked set,
-/// scroll and the reconcile stamp.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ListState {
     core: CollectionCore,
     chosen: Option<ItemKey>,
     anchor: Option<ItemKey>,
-    // Selection transaction; runtime still owns focus and feedback.
+
     click_cursor: Option<ItemKey>,
-    // Last update configuration keeps explicit reconciliation in scroll units.
+
     row_stride: usize,
     row_gap: u16,
 }
 
 impl ListState {
-    /// The cursor key.
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-    /// The chosen key (`Single`).
     pub const fn chosen(&self) -> Option<ItemKey> {
         self.chosen
     }
 
-    /// The checked set (`Multi` / `Range`).
     pub const fn checked(&self) -> &KeySet {
         self.core.checked()
     }
 
-    /// The checked set, mutably.
     pub const fn checked_mut(&mut self) -> &mut KeySet {
         self.core.checked_mut()
     }
 
-    /// The scroll state in terminal lines. Multiline rows align offsets to
-    /// their stride; bounded trailing padding permits the final aligned view.
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-    /// Point the cursor at `(index, key)` and reveal it on the next layout.
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
 
-    /// Choose `key` (`Single`).
     pub fn choose(&mut self, key: Option<ItemKey>) {
         self.chosen = key;
     }
@@ -302,88 +270,6 @@ impl Reconcile for ListState {
     }
 }
 
-/// A keyed, scrollable, single-focus-stop list over borrowed rows.
-///
-/// ## Construction
-/// `List::new(id)`; items are passed to each phase, never held.
-///
-/// ## Ownership
-/// The caller owns the items (`&[T]` per phase) and a [`ListState`]; the
-/// runtime owns focus, hover, press, wheel routing and the scrollbar
-/// capture.
-///
-/// ## Configuration
-/// `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),
-/// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`), `.select_mode`
-/// (`Single`), `.empty(EmptyState)` (a default "Nothing here yet"),
-/// `.disabled_item(&dyn Fn(&T) -> bool)`, `.status`, `.patch`,
-/// `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::LIST`, `DEFAULT` only.
-///
-/// ## States
-/// The list wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from the
-/// runtime and `BUSY`/`LOADING`/`ERROR` from `.status`; the cursor row
-/// derives `FOCUSED`/`PRESSED`, a chosen row `SELECTED`, a checked row
-/// `CHECKED`, a disabled item `DISABLED`. The readiness flags reach every
-/// row as well as the container, so an errored or stale list is visible
-/// without colour.
-///
-/// ## Actions
-/// `Moved`, `Chose(k)` (Space / click, `Single`), `Toggled(k)` (Space /
-/// click, `Multi`/`Range`), `Activated(k)` (Enter / double-click),
-/// `ToggledAll` (`a`, `Multi`/`Range`). Opt-in `LeaveBackward`/`LeaveForward`
-/// report plain Up/Down attempts beyond the physical row boundaries.
-///
-/// ## Focus
-/// One `Focusable` stop for the whole list; does not swallow typing.
-///
-/// ## Keyboard
-/// `↑`/`k`, `↓`/`j`, `PgUp`, `PgDn`, `Home`/`g`, `End`/`G`, `Enter`
-/// activate, `Space` choose/toggle; `Multi`/`Range` add `Shift+↑`/`Shift+↓`
-/// (extend) and `a` (toggle all).
-///
-/// ## Mouse
-/// `PartRef::item(Part::ROW, k)`: press moves the cursor, click chooses /
-/// toggles, double-click activates. `TRACK`/`THUMB` and the wheel go to the
-/// embedded [`ScrollRegion`].
-///
-/// ## Layout
-/// One row per item; an optional two-cell readiness rail, gutter, marker,
-/// then the renderer's row; a scrollbar column when the items overflow.
-/// `measure` is `(24…, items)`;
-/// `measured_size` is the same arithmetic as a [`LayerSize`] for a list used
-/// as popover content (§26 N1); `draw` returns `area`. `0×0` registers
-/// nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER`, `ICON`, `GUTTER`, `MARKER`, `LABEL`, `META`, `TRACK`,
-/// `THUMB`, `EMPTY`, `ROW` (hit regions only).
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` on any part; `.slot` on exactly `ICON`,
-/// `GUTTER`, `MARKER`, `EMPTY`, `TRACK` and `THUMB`. `TRACK` and `THUMB` are the
-/// embedded [`ScrollRegion`]'s, which paints them under this list's own
-/// `Id`, so all three overrides are forwarded to it. `CONTAINER`, `LABEL`,
-/// `META` and `ROW` are not slot-addressable: `CONTAINER` is the list's own
-/// fill, `LABEL` and `META` are painted by the `.row(…)` painter the caller
-/// already supplies, and `ROW` is a hit region rather than a painted part.
-///
-/// ## Identity
-/// `.key` supplies stable keys; `ByIndex` is unstable under
-/// insert/remove/reorder. Every action carries an `ItemKey`.
-///
-/// ## Testing
-/// `ListCase` with `ACTIVATES | FOCUSABLE | COLLECTION | SCROLLS |
-/// REPORTS_STATUS`;
-/// `render::components::list::*`. `CAPTURES` belongs to the embedded
-/// [`ScrollRegion`], whose thumb claims the capture, and is declared by
-/// `ScrollRegionCase`.
-///
-/// ## Invariants
-/// `reconcile` runs before any action is emitted; only visible rows invoke
-/// the renderer; a frame allocates nothing per row.
 #[expect(
     clippy::struct_excessive_bools,
     reason = "whole rows, boundary exit, click activation and bare row chrome are independent opt-ins"
@@ -405,12 +291,6 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     bare: bool,
     bare_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
-    /// Kept beside `ov` so the nested [`ScrollRegion`] can be built with the
-    /// caller's own overrides. `PartStyle` reads back only the slot, and a
-    /// scrollbar the container constructs bare drops the container's
-    /// `.patch` and `.patch_part` on `TRACK` and `THUMB` — a drop
-    /// `Invariant P` cannot see, because the scrollbar styles those parts
-    /// under *this* list's `Id` (§45.7 obligation 2).
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -446,7 +326,6 @@ impl<T, K, R> fmt::Debug for List<'_, T, K, R> {
 }
 
 impl<T> List<'_, T, ByIndex, DefaultRow> {
-    /// A list keyed by index and painted through `Display`.
     pub const fn new(id: Id) -> Self {
         List {
             id,
@@ -474,7 +353,6 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> List<'a, T, K, R> {
-    /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::ICON,
@@ -487,64 +365,36 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         Part::EMPTY,
     ];
 
-    /// The width `measure` prefers and `measured_size` clamps into the
-    /// design's popup band.
     pub const PREFERRED_WIDTH: u16 = 24;
 
-    /// The id.
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// Report plain Up/Down attempts beyond the physical first/last row.
-    ///
-    /// Defaults to `false` (clamp and consume). An exit does not move the
-    /// cursor or change selection. Disabled items remain navigable, as in
-    /// ordinary List movement; an empty or disabled control never exits.
-    /// Vim aliases, Home/End, page and range-extension commands are unchanged.
     #[must_use]
     pub const fn leave_at_boundary(mut self, leave: bool) -> Self {
         self.leave_at_boundary = leave;
         self
     }
 
-    /// Activate a clicked row only when it was already the cursor and this
-    /// list already owned focus before pointer press.
-    ///
-    /// Defaults to false. When enabled, single and double clicks follow this
-    /// semantic rule independently of the double-click deadline. A click that
-    /// acquires owner focus or selects another row follows the selection mode.
-    /// Disclosure-free body hits, dragging, focus loss and canceled presses
-    /// never activate a row. Keyboard activation remains unchanged.
     #[must_use]
     pub const fn activate_focused_on_click(mut self, enabled: bool) -> Self {
         self.activate_focused_on_click = enabled;
         self
     }
 
-    /// Painted lines per item; zero is normalized to one. Defaults to one.
-    /// Rows scroll at item boundaries, preserving their logical rect. Wheel
-    /// deltas already normalized by the runtime count items; thumb movement
-    /// snaps in its movement direction. The scrollbar includes only enough
-    /// trailing blank space to reach the last aligned viewport. A shorter
-    /// viewport clips a row unless [`Self::whole_rows`] is enabled.
     #[must_use]
     pub const fn row_height(mut self, height: u16) -> Self {
         self.row_height = if height == 0 { 1 } else { height };
         self
     }
 
-    /// Blank, non-item lines between rows. Defaults to zero; no trailing gap.
     #[must_use]
     pub const fn row_gap(mut self, gap: u16) -> Self {
         self.row_gap = gap;
         self
     }
 
-    /// Omit rows that do not fit the logical viewport completely.
-    /// Defaults to false (bottom rows may be clipped). If the viewport is
-    /// shorter than a row, true paints no items until it grows; selection and
-    /// scrolling remain available. Ancestor clipping never shifts row content.
     #[must_use]
     pub const fn whole_rows(mut self, enabled: bool) -> Self {
         self.whole_rows = enabled;
@@ -568,8 +418,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             })
     }
 
-    // Pad only enough to represent the final row-aligned viewport. Padding
-    // never becomes an item or a painted row.
     fn scroll_extent(&self, len: usize, viewport: usize) -> usize {
         row_scroll_extent(len, self.stride(), self.row_gap, viewport)
     }
@@ -604,7 +452,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         scroll
     }
 
-    /// A stable key accessor.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> List<'a, T, K2, R> {
         List {
             id: self.id,
@@ -630,7 +477,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         }
     }
 
-    /// A row painter.
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> List<'a, T, K, R2> {
         List {
             id: self.id,
@@ -656,90 +502,55 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         }
     }
 
-    /// Replace the entire visible row's painting, including its chrome.
-    ///
-    /// The borrowed callback receives the authoritative logical row, final
-    /// interaction flags, stable key and borrowed item. List retains scrolling,
-    /// reconciliation, input and hit registration. Writes are clipped to the
-    /// row and ancestor clip without shifting logical content alignment. Rows
-    /// wholly outside that clip do not invoke the callback. No default painter runs
-    /// first. Instance part patches and slots apply to the default painter;
-    /// custom painters resolve their own semantic parts, as with `NavList`.
-    ///
-    /// Items need not implement `Display`. Installing this renderer replaces
-    /// the default row capability; subsequent `key` and `row` builders retain
-    /// the full-row renderer, and no builder can remove it.
     #[must_use]
     pub fn render_row(self, renderer: ListRowRenderer<'a, T>) -> List<'a, T, K, impl RowFn<T>> {
-        // The full-row callback below is installed before this value escapes.
-        // All type-changing builders preserve it and there is no unset API,
-        // so this zero-sized fallback can never paint a row.
         let mut list = self.row(|_: &T, _: &mut RowUi<'_>| {});
         list.render_row = Some(renderer);
         list
     }
 
-    /// The selection mode.
     #[must_use]
     pub fn select_mode(mut self, m: SelectMode) -> Self {
         self.select_mode = m;
         self
     }
 
-    /// What to paint when there are no items.
     #[must_use]
     pub fn empty(mut self, e: EmptyState<'a>) -> Self {
         self.empty = Some(e);
         self
     }
 
-    /// Which items are disabled.
     #[must_use]
     pub fn disabled_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.disabled_item = Some(f);
         self
     }
 
-    /// Which rows accept pointer selection and activation.
-    ///
-    /// Defaults to every row. Ineligible rows retain keyboard traversal and
-    /// activation, but publish an owner-only `Part::BODY` hit instead of a
-    /// keyed row hit and ignore stale row-pointer intents. This keeps the
-    /// list focusable at their coordinates without selecting a row; owner
-    /// hover/press feedback is independent of row hover/press feedback.
     #[must_use]
     pub fn pointer_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.pointer_item = Some(f);
         self
     }
 
-    /// Drop the gutter and marker chrome so the row painter starts at `area.x`.
-    ///
-    /// Cursor, selection, scroll, and hit registration stay. Only the two
-    /// chrome cells and the trailing pad reservation go away.
     #[must_use]
     pub fn bare(mut self, yes: bool) -> Self {
         self.bare = yes;
         self
     }
 
-    /// Skip gutter and marker chrome on the rows `f` accepts.
-    ///
-    /// Sibling rows keep the chrome. Defaults to no rows.
     #[must_use]
     pub fn bare_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.bare_item = Some(f);
         self
     }
 
-    /// Data readiness.
     #[must_use]
     pub fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
 
-    /// An instance patch over every part.
     #[must_use]
     pub fn patch(mut self, p: &'a StylePatch) -> Self {
         self.patch = Some(p);
@@ -747,7 +558,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-    /// Per-part instance patches.
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
@@ -755,19 +565,12 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-    /// Replace one part's painting.
     #[must_use]
     pub fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// The embedded scrollbar, wearing this list's own overrides.
-    ///
-    /// The scrollbar paints `TRACK` and `THUMB` under the **list's** `Id`,
-    /// so a caller's `.patch`, `.patch_part` and `.slot` on those two parts
-    /// are the list's to forward; constructing it bare dropped all three
-    /// (§45.1, §45.7 obligation 2).
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut sr = ScrollRegion::new(self.id).patch_part(self.parts);
         if let Some(p) = self.patch {
@@ -781,7 +584,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         sr
     }
 
-    /// Showcase / fixture use only (A11).
     fn table(&self) -> &'static [Binding<ListCmd>] {
         match self.select_mode {
             SelectMode::Single => &SINGLE,
@@ -806,7 +608,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         items.get(i).is_some_and(|it| !self.is_disabled(it))
     }
 
-    /// The index of `key` near `hint`, probing the hint before scanning.
     fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
         if let Some(h) = hint
             && h < items.len()
@@ -895,7 +696,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         }
     }
 
-    /// The update phase: reconcile, then drain keys, pointer and wheel.
     #[expect(
         clippy::too_many_lines,
         reason = "the keymap dispatch and the pointer phases in one drain loop"
@@ -1065,7 +865,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     if matches!(phase, Phase::DragStart | Phase::Drag | Phase::DragEnd) {
                         st.click_cursor = None;
                     }
-                    // the row index from the pointer row and last frame's view
+
                     let hint = cx.area(self.id).map(|a| {
                         let view = self.scroll_view(st, len, usize::from(a.height));
                         self.item_at_line(
@@ -1138,7 +938,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    /// The draw phase.
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the visible rows with gutter, marker and renderer"
@@ -1196,7 +995,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         Slot::Clear => ui.fill(icon_cell, icon.style),
                     },
                     Status::Ready => {}
-                    // `Status` is `#[non_exhaustive]`: future statuses paint nothing.
+
                     _ => {}
                 }
             }
@@ -1224,10 +1023,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let cursor = st.core.cursor();
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
-        // Data readiness is a property of the whole list, but the rows are the
-        // only surface it has: a list whose `.status` is `Error` must say so in
-        // the row chrome, or it is indistinguishable from a healthy one once
-        // colour is removed (§11.4, §16.2 case 9).
+
         let status = live
             & (StateFlags::ERROR | StateFlags::WARNING | StateFlags::BUSY | StateFlags::LOADING);
         for i in self.item_at_line(view.offset())..len {
@@ -1356,7 +1152,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         area
     }
 
-    /// The natural size: 24 columns, using the offered viewport height.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, 1),
@@ -1365,14 +1160,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         .fit(c)
     }
 
-    /// The layer size this list wants as popover content (§26 N1): its
-    /// natural width clamped into the design's popup band, and the configured
-    /// visual row extent up to `popup_max_rows` terminal lines.
-    ///
-    /// The list does not own the layer — whoever opened it does — so the
-    /// opener passes this to `LayerSpec::size` and, if the item slice can
-    /// change while the popover is open, re-asserts it every frame with
-    /// [`Cx::resize_layer`].
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         let d = cx.design();
         let w = Self::PREFERRED_WIDTH.clamp(d.size.popup_min_width, d.size.popup_max_width);
@@ -1439,9 +1226,6 @@ mod tests {
 
     #[test]
     fn select_all_selects_only_enabled_items() {
-        // The target runtime delivers bindings end-to-end, so the dispatch
-        // itself is covered by the keymap table; the selection rule is
-        // observed directly through the public toggle-all code path.
         fn disabled(item: &u8) -> bool {
             matches!(*item, 1 | 3)
         }

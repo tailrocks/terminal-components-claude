@@ -1,5 +1,3 @@
-//! Tests carried over from the monolith `tablepro_app` lib root.
-
 #[cfg(test)]
 mod monolith_lib {
     use tablepro_ui::{

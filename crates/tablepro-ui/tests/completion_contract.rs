@@ -1,4 +1,3 @@
-//! Completion is a statement-scoped model contract, independent of popup input.
 use tablepro_ui::{Catalog, CompletionKind, auto_trigger, completion_batch};
 
 #[test]

@@ -1,4 +1,3 @@
-//! Real `StatusBar` cells, measurement, priority and hit geometry with composed spinners.
 use termrock::{
     App, Constraints, Cx, Id, ItemKey, Part, PartRef, Rect, Response, Spinner, StatusAction,
     StatusBar, StatusItem, Theme, Ui,

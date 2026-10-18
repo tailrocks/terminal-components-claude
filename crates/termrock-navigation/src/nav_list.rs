@@ -1,16 +1,3 @@
-//! `NavList` (`COMPONENT_ARCHITECTURE.md` §18.3 #1, §18.3 #2, Appendix A 4C).
-//!
-//! The showcase's hand-rolled sidebar navigation, promoted to the library.
-//! There is no legacy *widget* to replace — the control lived inside
-//! `showcase/pages/sidebars.rs`, registered its own focus entry with
-//! `ctx.ring.register` and located a clicked row with a reverse scan over 22
-//! derived ids. Both disappear here: the runtime owns the focus entry, and a
-//! click arrives already carrying the row's [`ItemKey`].
-//!
-//! What the sidebar had and this keeps: section headings, a collapsed
-//! icon-only mode, per-item badges, disabled items the cursor skips, and the
-//! separation of the *current* destination from the keyboard *cursor*.
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -34,52 +21,33 @@ use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_text::width;
 use termrock_theme::{Family, Slot, StylePatch, Variant};
 
-/// An entry's badge accessor: the trailing text for an entry, or `None`
-/// when it has no badge.
 pub type BadgeFn<'a, T> = &'a dyn Fn(&T) -> Option<&str>;
 
-/// Borrowed full-row paint override, clipped to the component's row geometry.
 type NavRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
 
-/// How much of a nav row is shown.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum NavMode {
-    /// Icon, label and badge.
     #[default]
     Full,
-    /// The icon column only — the narrow sidebar.
     Collapsed,
 }
 
-/// What a nav list reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum NavListAction {
-    /// The cursor moved; the current destination is unchanged.
     Moved(ItemKey),
-    /// A destination was chosen. This is the navigation event.
     Chose(ItemKey),
-    /// A destination was chosen and its content pane should receive focus.
     EnterContent(ItemKey),
-    /// Moving before the first enabled row requested leaving an opted-in list.
     LeaveBackward,
-    /// Moving after the last enabled row requested leaving an opted-in list.
     LeaveForward,
 }
 
-/// The const-constructible commands of the nav keymap.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum NavListCmd {
-    /// Cursor to the previous enabled entry.
     Up,
-    /// Cursor to the next enabled entry.
     Down,
-    /// Cursor to the first enabled entry.
     Home,
-    /// Cursor to the last enabled entry.
     End,
-    /// Choose the cursor entry.
     Choose,
-    /// Choose the cursor entry and request entry into its content pane.
     EnterContent,
 }
 
@@ -187,12 +155,6 @@ const TABLE: [Binding<NavListCmd>; 12] = [
     ),
 ];
 
-/// Durable state of a [`NavList`]: the keyboard cursor and the current
-/// destination, both keys.
-///
-/// They are separate on purpose: moving the cursor through a sidebar must
-/// not navigate, which is the same cursor/value split `RadioGroup` makes
-/// (§12.2).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct NavListState {
     core: CollectionCore,
@@ -201,7 +163,6 @@ pub struct NavListState {
 }
 
 impl NavListState {
-    /// A nav list with no cursor and no destination.
     #[must_use]
     pub const fn new() -> Self {
         NavListState {
@@ -211,32 +172,26 @@ impl NavListState {
         }
     }
 
-    /// The keyboard cursor.
     #[must_use]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-    /// The shared visual-row scroll state, read-only.
     #[must_use]
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-    /// The current destination.
     #[must_use]
     pub const fn current(&self) -> Option<ItemKey> {
         self.current
     }
 
-    /// Set the current destination without moving the cursor. The caller
-    /// uses this to reflect navigation that happened elsewhere.
     pub const fn set_current(&mut self, key: Option<ItemKey>) {
         self.current = key;
         self.current_index = 0;
     }
 
-    /// Point the cursor at `(index, key)`.
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
@@ -270,106 +225,6 @@ impl Reconcile for NavListState {
     }
 }
 
-/// A sidebar navigation list: sections, a current destination, a keyboard
-/// cursor that skips disabled entries, badges and a collapsed icon-only
-/// mode.
-///
-/// ## Construction
-/// `NavList::new(id)`; the entries are passed to each phase, never held.
-///
-/// ## Ownership
-/// The caller owns the entries (`&[T]` per phase) and a [`NavListState`].
-/// The runtime owns focus, hover and press.
-///
-/// ## Configuration
-/// `.mode(NavMode)` (`Full`), `.section(&dyn Fn(&T) -> &str)` (no sections),
-/// `.icon(&dyn Fn(&T) -> &str)` (no icons), `.badge(&dyn Fn(&T) ->
-/// Option<&str>)` (no badges), `.disabled_item(&dyn Fn(&T) -> bool)`,
-/// `.disabled(bool)` (default `false`), `.key(Fn(&T) -> ItemKey)`
-/// (`ByIndex`, unstable under reorder), `.row(Fn(&T, &mut RowUi))`
-/// (`DefaultRow`: `Display`), `.patch`, `.patch_part`, `.slot`,
-/// runtime state. `.compact()` hides grouping rows; `.compact_when_clipped()`
-/// chooses compact grouping only when expanded rows exceed available height.
-/// `.header_indent(cells)` sets heading inset; `.render_row(callback)` replaces
-/// the default row painter inside the same clipped layout traversal.
-///
-/// ## Variants
-/// `Family::LIST`, `DEFAULT` only. A nav list resolves through the list
-/// recipe deliberately: it *is* a list, the recipe carries the row state
-/// rules a sidebar needs, and there is no `Family::NAV`.
-///
-/// ## States
-/// The list wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED` and `PRESSED` from
-/// the runtime and `DISABLED` from `.disabled`. A row derives `SELECTED`
-/// when it is the current destination, the runtime's focus flags when it is
-/// the cursor, and `DISABLED` from `.disabled_item`. The list takes **no**
-/// `.status(Status)` prop: it paints no readiness affordance, and §11.4
-/// forbids accepting the prop without one.
-///
-/// ## Actions
-/// `Moved(k)`, `Chose(k)`, `EnterContent(k)`. Moving the cursor never
-/// navigates. `Enter`, `Space` and click choose while Right and `l` choose
-/// and ask the shell to focus the content pane.
-///
-/// ## Focus
-/// One `Focusable` stop for the whole list (`Disabled` when `.disabled`);
-/// does not swallow typing. Individual entries are `Part` regions, not focus
-/// stops, which is what deletes the sidebar's own `ctx.ring.register`.
-///
-/// ## Keyboard
-/// `↑`/`k` and `↓`/`j` move to the neighbouring **enabled** entry,
-/// `Home`/`g` and `End`/`G` to the first and last enabled entry, `Enter` and
-/// `Space` choose, and Right/`l` enter content. Modified `l` is not bound.
-///
-/// ## Mouse
-/// `PartRef::item(Part::ROW, k)`: press moves the cursor, click chooses.
-/// Disabled entries register no region at all, so they cannot be clicked.
-///
-/// ## Layout
-/// By default every section change after the first gets one blank separator. Full mode
-/// then paints a nonempty heading; collapsed mode paints no heading. Every
-/// entry gets gutter, current-marker and icon cells; full mode also invokes
-/// the renderer with the badge budget already reserved on the right. Rows
-/// are laid out from the top and clipped at the bottom by default.
-/// `.scrollable(true)` enables shared vertical scrolling; headings and
-/// separators count toward the visual extent. Cursor motion reveals the
-/// keyed row; wheel scrolling keeps the cursor unchanged. `measure` is `(6…, entries)` collapsed and
-/// `(12…, entries)` full; `draw` returns `area`. `0×0` registers nothing
-/// (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the sidebar surface and each row's fill), `GUTTER` (the
-/// focus column), `MARKER` (the current-destination affordance), `ICON` (the
-/// icon column), `HEADER` (a section heading), `BADGE` (an entry's badge),
-/// `LABEL` (resolved through [`RowUi`] by the row renderer, `NavMode::Full`
-/// only). `TRACK` and `THUMB` style the opt-in scrollbar. `Part::ROW` is a
-/// hit region only and is deliberately not styled.
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach every member of [`Self::PARTS`]. The
-/// scoped [`RowUi`] carrier forwards owner patches only to `CONTAINER` and
-/// `LABEL`; arbitrary row parts remain row-owned. `.slot(p, …)` changes
-/// painted cells for exactly `GUTTER`, `MARKER`, `ICON`, `HEADER` and
-/// `BADGE`.
-///
-/// ## Identity
-/// `.key` supplies stable keys; `ByIndex` is unstable under insert, remove
-/// and reorder. The cursor and the current destination are both `ItemKey`,
-/// so a reorder of the sidebar moves neither.
-///
-/// ## Testing
-/// `NavListCase` with `ACTIVATES | DISABLEABLE | FOCUSABLE | COLLECTION |
-/// SELECTS`; `render::components::nav_list::*`. The fixture must give at
-/// least one entry a section and at least one a badge, or `Part::HEADER` and
-/// `Part::BADGE` are never resolved and the parts check has nothing to
-/// compare (§33.4).
-///
-/// ## Invariants
-/// `reconcile` runs before any action is emitted; a disabled entry
-/// registers no region and the cursor never lands on one; a frame allocates
-/// nothing per row; the cursor and the destination are independent, so
-/// arrowing through the sidebar never navigates; the row renderer runs only
-/// for visible full-mode item rows.
 #[expect(
     clippy::struct_excessive_bools,
     reason = "Disabled admission, scrolling, scrollbar presentation and boundary exit are independent opt-in policies, not exclusive runtime states"
@@ -406,7 +261,6 @@ impl<T, K, R> fmt::Debug for NavList<'_, T, K, R> {
 }
 
 impl<T> NavList<'_, T, ByIndex, DefaultRow> {
-    /// A nav list keyed by index and painted through `Display`.
     #[must_use]
     pub const fn new(id: Id) -> Self {
         NavList {
@@ -432,16 +286,11 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> NavList<'a, T, K, R> {
-    /// Report directional exits beyond enabled rows instead of consuming them.
-    ///
-    /// Defaults to false. The caller decides where focus moves. Cursor and
-    /// current destination remain unchanged; empty lists and Home/End never exit.
     #[must_use]
     pub const fn leave_at_boundary(mut self, leave: bool) -> Self {
         self.leave_at_boundary = leave;
         self
     }
-    /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -454,19 +303,15 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         Part::THUMB,
     ];
 
-    /// The width a full sidebar prefers.
     pub const PREFERRED_WIDTH: u16 = 24;
 
-    /// The width a collapsed sidebar prefers.
     pub const COLLAPSED_WIDTH: u16 = 6;
 
-    /// The id.
     #[must_use]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// The width this list prefers in its current mode.
     #[must_use]
     pub const fn width(&self) -> u16 {
         match self.mode {
@@ -475,104 +320,78 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         }
     }
 
-    /// Enable shared vertical scrolling and cursor reveal. Default: false.
     #[must_use]
     pub const fn scrollable(mut self, yes: bool) -> Self {
         self.scrollable = yes;
         self
     }
 
-    /// Show and reserve the overflow scrollbar column when scrolling is enabled.
-    /// Default: true. False retains shared wheel routing and cursor reveal,
-    /// gives rows the full width, and registers no scrollbar pointer parts.
-    /// Use the same policy in update and draw.
     #[must_use]
     pub const fn scrollbar_visible(mut self, visible: bool) -> Self {
         self.scrollbar_visible = visible;
         self
     }
 
-    /// Full or collapsed.
     #[must_use]
     pub const fn mode(mut self, m: NavMode) -> Self {
         self.mode = m;
         self
     }
 
-    /// Hide section headings and separator rows, retaining full labels.
-    /// This is independent of the icon-only [`NavMode::Collapsed`] mode.
     #[must_use]
     pub const fn compact(mut self) -> Self {
         self.compact = Some(true);
         self
     }
 
-    /// Hide headings and separators when all expanded rows would not fit.
-    /// Painting and input registration use this same policy and traversal.
     #[must_use]
     pub const fn compact_when_clipped(mut self) -> Self {
         self.compact = None;
         self
     }
 
-    /// Horizontal inset of section text; the default is one cell.
     #[must_use]
     pub const fn header_indent(mut self, cells: u16) -> Self {
         self.header_indent = cells;
         self
     }
 
-    /// Replace the entire row's painting, including its chrome.
-    /// The callback borrows each visible item, receives resolved interaction
-    /// flags and its stable key, and is clipped to the authoritative row rect.
-    /// The component still owns registration, navigation and disabled behavior.
-    /// No default row painter runs first. Instance part patches and slots apply
-    /// to the default painter; custom painters resolve their own semantic parts.
     #[must_use]
     pub fn render_row(mut self, renderer: NavRowRenderer<'a, T>) -> Self {
         self.render_row = Some(renderer);
         self
     }
 
-    /// The section an entry belongs to. A heading is painted whenever the
-    /// text changes from the previous entry's; an empty section suppresses
-    /// the heading.
     #[must_use]
     pub const fn section(mut self, f: &'a dyn Fn(&T) -> &str) -> Self {
         self.section = Some(f);
         self
     }
 
-    /// The icon column's text for an entry, clipped to one cell.
     #[must_use]
     pub const fn icon(mut self, f: &'a dyn Fn(&T) -> &str) -> Self {
         self.icon = Some(f);
         self
     }
 
-    /// A trailing badge for an entry.
     #[must_use]
     pub const fn badge(mut self, f: BadgeFn<'a, T>) -> Self {
         self.badge = Some(f);
         self
     }
 
-    /// Which entries are not selectable.
     #[must_use]
     pub const fn disabled_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.disabled_item = Some(f);
         self
     }
 
-    /// Disable the whole list: it stays in the ring, unreachable, and
-    /// ignores every input.
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// A stable key accessor.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> NavList<'a, T, K2, R> {
         NavList {
             id: self.id,
@@ -595,7 +414,6 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         }
     }
 
-    /// A row painter, used in `NavMode::Full` only.
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> NavList<'a, T, K, R2> {
         NavList {
             id: self.id,
@@ -618,29 +436,24 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         }
     }
 
-    /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// Showcase / fixture use only (A11).
-    /// The derived half of the state (§39.2, Invariant Q).
     const fn derived(&self) -> StateFlags {
         if self.disabled {
             StateFlags::DISABLED
@@ -683,9 +496,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
 
-    /// The nearest enabled entry at or after `from` when `forward`, at or
-    /// before it otherwise. This is the sidebar's disabled-skipping rule,
-    /// which the legacy control implemented twice, once per direction.
     fn seek(&self, items: &[T], from: usize, forward: bool) -> Option<usize> {
         if forward {
             (from..items.len()).find(|&i| self.enabled_at(items, i))
@@ -831,7 +641,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         extent
     }
 
-    /// The update phase: reconcile, then drain keys and the pointer.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -902,7 +711,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    // One traversal owns headings, separators and item visual positions.
     fn rows<'b>(
         &'b self,
         items: &'b [T],
@@ -989,7 +797,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         live
     }
 
-    /// The draw phase.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &NavListState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;
@@ -1184,9 +991,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         }
     }
 
-    /// Paint one reserved cell of a row: the caller's `text` when there is
-    /// one and the recipe does not name a glyph, else the resolved glyph,
-    /// else the bare style.
     fn paint_cell_part(
         &self,
         ui: &mut Ui<'_>,
@@ -1217,8 +1021,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         }
     }
 
-    /// The natural size: the mode's width, one row per entry plus its
-    /// section headings.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (
@@ -1234,7 +1036,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
     }
 }
 
-/// One row of `area` at `y`, or an empty rect when `y` is outside.
 const fn row_at(area: Rect, y: u16) -> Rect {
     Rect {
         x: area.x,
@@ -1368,9 +1169,6 @@ mod tests {
             .key(keyed as fn(&E) -> ItemKey)
     }
 
-    /// The update phase driven through a real runtime: NAV is focused, the
-    /// binding's default chord is delivered and the app records what the
-    /// component answered.
     struct NavApp {
         nav: NavList<'static, E, fn(&E) -> ItemKey>,
         state: NavListState,
@@ -1453,8 +1251,6 @@ mod tests {
         (app.last, app.state.clone())
     }
 
-    /// Steady reconciliation, driven through a real runtime so the update
-    /// phase runs exactly as production does (Tick: no intents).
     #[test]
     fn steady_current_reconciliation_is_constant_time_and_invalidation_repairs_reorder() {
         use std::rc::Rc;
@@ -1467,8 +1263,7 @@ mod tests {
             items: Vec<u64>,
             last: Option<NavListAction>,
         }
-        // The shared probe counter travels inside an `Rc` captured by the
-        // key closure, so the app owns everything it needs ('static).
+
         impl<K: Fn(&u64) -> ItemKey> crate::runtime::App for SteadyApp<K> {
             fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
                 let response = self.nav.update(cx, &mut self.state, &self.items);
@@ -1512,8 +1307,7 @@ mod tests {
         let _ = rt.settle();
 
         accesses.set(0);
-        // handle() alone runs exactly one update pass; `deliver` would also
-        // redraw (another update) and pollute the probe count.
+
         let _ = rt.handle(Input::Tick);
         assert_eq!(rt.app().last, None);
         assert!(
@@ -1535,16 +1329,12 @@ mod tests {
         );
     }
 
-    /// The sidebar's disabled-skipping rule, in both directions. The legacy
-    /// control wrote it twice, once per arrow, and neither copy handled
-    /// "there is nothing enabled left" — it reported `Changed` regardless.
     #[test]
     fn the_cursor_skips_disabled_entries_in_both_directions() {
         let nav = list();
         let mut st = NavListState::new();
         st.set_cursor(0, ItemKey::text("Tasks"));
 
-        // down from Tasks(0) skips Runs(1, disabled) and lands on Branches(2)
         let mut acc = Acc::<NavListAction>::new();
         nav.move_cursor(&mut st, &ITEMS, 1, true, &mut acc);
         assert_eq!(st.cursor(), Some(ItemKey::text("Branches")));
@@ -1553,7 +1343,6 @@ mod tests {
             Some(&NavListAction::Moved(ItemKey::text("Branches")))
         );
 
-        // down again skips nothing; Members(3) is enabled
         let mut acc = Acc::<NavListAction>::new();
         nav.move_cursor(&mut st, &ITEMS, 3, true, &mut acc);
         assert_eq!(st.cursor(), Some(ItemKey::text("Members")));
@@ -1562,8 +1351,6 @@ mod tests {
             Some(&NavListAction::Moved(ItemKey::text("Members")))
         );
 
-        // down from the last enabled entry has nowhere to go: Billing(4) is
-        // disabled, so the cursor must NOT move and must not report a move
         let mut acc = Acc::<NavListAction>::new();
         nav.move_cursor(&mut st, &ITEMS, 4, true, &mut acc);
         assert_eq!(st.cursor(), Some(ItemKey::text("Members")));
@@ -1573,7 +1360,6 @@ mod tests {
             "a cursor that cannot move must not report Moved"
         );
 
-        // and upward, skipping Runs the other way
         let mut acc = Acc::<NavListAction>::new();
         nav.move_cursor(&mut st, &ITEMS, 2, false, &mut acc);
         assert_eq!(st.cursor(), Some(ItemKey::text("Branches")));
@@ -1613,8 +1399,7 @@ mod tests {
                 Some(&NavListAction::EnterContent(ItemKey::text("Branches")))
             );
             assert_eq!(st.current(), Some(ItemKey::text("Branches")));
-            // NavList must not move focus itself; the runtime's focus stays
-            // on the sidebar after the dispatch.
+
             assert_eq!(focus, Some(NAV));
         }
 
@@ -1645,8 +1430,6 @@ mod tests {
         assert_eq!(st.current(), Some(ItemKey::text("Members")));
     }
 
-    /// Choosing sets the destination; moving the cursor does not. That split
-    /// is the whole reason `NavListState` carries two keys.
     #[test]
     fn moving_the_cursor_never_navigates() {
         let nav = list();
@@ -1664,15 +1447,12 @@ mod tests {
         );
         assert_eq!(st.current(), Some(ItemKey::text("Branches")));
 
-        // a disabled entry can be neither chosen nor made current
         let mut acc = Acc::<NavListAction>::new();
         nav.choose(&mut st, &ITEMS, 4, &mut acc);
         assert_eq!(acc.finish(NAV).action_ref(), None);
         assert_eq!(st.current(), Some(ItemKey::text("Branches")));
     }
 
-    /// A heading is painted once per section change, separated by a blank
-    /// row, and never before the first row.
     #[test]
     fn a_section_heading_is_painted_once_per_change() {
         let nav = list();
@@ -1686,7 +1466,7 @@ mod tests {
             .collect();
         assert_eq!(headings.len(), 2, "one heading per section: {painted:?}");
         assert_eq!(headings.first(), Some(&0), "no blank row before the first");
-        // the second heading is preceded by a blank separator row
+
         let second = headings.get(1).copied().unwrap_or_default();
         assert!(second >= 2);
         assert_eq!(
@@ -1694,7 +1474,7 @@ mod tests {
             Some(""),
             "the second heading has no separator above it: {painted:?}"
         );
-        // and every entry got exactly one row
+
         for e in ITEMS {
             assert_eq!(
                 painted.iter().filter(|r| r.contains(e.0)).count(),
@@ -1705,10 +1485,6 @@ mod tests {
         }
     }
 
-    /// `NavMode::Collapsed` paints the icon column and nothing else. The
-    /// legacy control had the same mode; what is new is that the labels are
-    /// genuinely absent rather than painted and clipped, so a narrow sidebar
-    /// cannot leak a truncated label.
     #[test]
     fn the_collapsed_mode_paints_the_icon_and_not_the_label() {
         let st = NavListState::new();
@@ -1798,7 +1574,7 @@ mod tests {
         let last = LastFrame::default();
         {
             let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-            // Reference fixtures reproduce runtime hover state per exact part.
+
             ui.reference(
                 Some(
                     crate::ReferenceTarget::new(NAV, crate::ReferenceState::HOVERED)
@@ -1835,8 +1611,7 @@ mod tests {
                 );
             })
             .commit_presented();
-        // Registrations are suppressed inside a reference scope, so the
-        // presented focus ring carries no reachable controls or rows.
+
         assert_eq!(runtime.ring().reachable().count(), 0);
     }
 

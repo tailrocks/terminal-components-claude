@@ -1,4 +1,3 @@
-//! Complete columns form the logical viewport; clipped preview does not.
 use ratatui_core::layout::Rect;
 use termrock_core::validate::FieldError;
 use termrock_grid::{
