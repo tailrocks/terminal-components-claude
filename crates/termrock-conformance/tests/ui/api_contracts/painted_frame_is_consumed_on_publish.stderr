@@ -1,0 +1,15 @@
+error[E0382]: use of moved value: `candidate`
+ --> tests/ui/api_contracts/painted_frame_is_consumed_on_publish.rs:7:5
+  |
+5 |     let candidate = runtime.draw(frame);
+  |         --------- move occurs because `candidate` has type `PaintedFrame<'_, A>`, which does not implement the `Copy` trait
+6 |     candidate.commit_presented();
+  |               ------------------ `candidate` moved due to this method call
+7 |     candidate.commit_presented();
+  |     ^^^^^^^^^ value used here after move
+  |
+note: `termrock::PaintedFrame::<'_, A>::commit_presented` takes ownership of the receiver `self`, which moves `candidate`
+ --> $WORKSPACE/crates/termrock-runtime/src/runtime.rs
+  |
+  |     pub fn commit_presented(mut self) {
+  |                                 ^^^^

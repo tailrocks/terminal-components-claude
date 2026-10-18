@@ -1,0 +1,16 @@
+error[E0061]: this method takes 0 arguments but 1 argument was supplied
+ --> tests/ui/api_contracts/painted_frame_cannot_publish_to_another_runtime.rs:6:15
+  |
+6 |     candidate.commit_presented(two);
+  |               ^^^^^^^^^^^^^^^^ --- unexpected argument of type `&mut Runtime<A>`
+  |
+note: method defined here
+ --> $WORKSPACE/crates/termrock-runtime/src/runtime.rs
+  |
+  |     pub fn commit_presented(mut self) {
+  |            ^^^^^^^^^^^^^^^^
+help: remove the extra argument
+  |
+6 -     candidate.commit_presented(two);
+6 +     candidate.commit_presented();
+  |

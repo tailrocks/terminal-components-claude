@@ -1,0 +1,9 @@
+error[E0499]: cannot borrow `*runtime` as mutable more than once at a time
+ --> tests/ui/api_contracts/painted_frame_exclusively_borrows_runtime.rs:6:13
+  |
+5 |     let candidate = runtime.draw(frame);
+  |                     ------- first mutable borrow occurs here
+6 |     let _ = runtime.app_mut();
+  |             ^^^^^^^ second mutable borrow occurs here
+7 |     candidate.commit_presented();
+  |     --------- first borrow later used here
