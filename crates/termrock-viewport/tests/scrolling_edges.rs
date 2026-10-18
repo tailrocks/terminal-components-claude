@@ -1,11 +1,3 @@
-//! Scroll edge fades preserve hidden cells and input routing.
-//!
-//! The shared [`ScrollState`](termrock_collections::ScrollState) model, the owner-keyed
-//! [`ScrollRegion`](termrock_runtime::ScrollRegion) and the reusable
-//! [`Ui::scroll_edges`](termrock_runtime::Ui::scroll_edges) painter keep exact
-//! fade arithmetic, thumb track/grab capture and boundary wheel
-//! routing: hidden bars reserve no column and expose no pointer part while
-//! wheel and reveal stay active.
 #![cfg_attr(
     test,
     allow(
@@ -63,9 +55,6 @@ fn fg_at(buf: &termrock_render::Buffer, x: u16, y: u16) -> Color {
     buf.cell(Position::new(x, y)).map(|c| c.fg).unwrap()
 }
 
-/// Heights 3/4/11/12 across fits/top/middle/bottom: below four rows nothing
-/// fades, four through eleven fade one outer row per hidden edge at 55%,
-/// twelve add the inner row at 80%. Both themes, every capability.
 #[test]
 fn fade_heights_states_themes_and_levels_match_oracle() {
     for theme in themes() {
@@ -276,14 +265,9 @@ fn split_span_graphemes_use_style_of_first_byte() {
     }
 }
 
-/// Majority-background ties resolve to the last majority plane; reversed
-/// and different-background cells are excluded from the fade.
 #[test]
 fn fade_background_majority_ties_and_exclusions_match_oracle() {
     for theme in themes() {
-        // tied vote: top half BG, bottom half OTHER, equal counts. The
-        // last majority wins, so the top outer row stays whole and the
-        // bottom outer row fades toward OTHER.
         let other = Color::Rgb(10, 10, 40);
         let other_outer = Color::Rgb(71, 93, 128);
         let mut scene = Scene::new("fade_tie", theme.clone(), ColorLevel::TrueColor, 16, 4);
@@ -304,7 +288,7 @@ fn fade_background_majority_ties_and_exclusions_match_oracle() {
             other_outer,
             "last majority fades"
         );
-        // reversed and different-background cells stay whole inside a faded row.
+
         let mut scene = Scene::new("fade_excl", theme, ColorLevel::TrueColor, 16, 6);
         scene.draw(|ui, area| {
             paint_rows(ui, area);
@@ -327,8 +311,6 @@ fn fade_background_majority_ties_and_exclusions_match_oracle() {
     }
 }
 
-/// Palettes without RGB cannot blend: the outermost row dims with `DIM`,
-/// the inner row stays, and no colour is invented. Every capability.
 #[test]
 fn fade_non_rgb_dims_outer_row_only_at_every_level() {
     for theme in themes() {
@@ -367,8 +349,6 @@ fn fade_non_rgb_dims_outer_row_only_at_every_level() {
     }
 }
 
-/// Cursor, keep, selected, hovered and marked rows stay whole while the
-/// plain neighbours on the same fade rows fade.
 #[test]
 fn fade_protects_cursor_keep_selected_hovered_and_marked_rows() {
     const CURSOR_ID: Id = Id::root("fade.protect");
@@ -376,13 +356,13 @@ fn fade_protects_cursor_keep_selected_hovered_and_marked_rows() {
         let mut scene = Scene::new("fade_protect", theme, ColorLevel::TrueColor, 16, 12);
         scene.draw(|ui, area| {
             paint_rows(ui, area);
-            // selected row on its own plane (top outer fade row).
+
             ui.paint_str(
                 Rect::new(0, 0, 16, 1),
                 "row-content-here!",
                 Style::new().fg(FG).bg(Color::Rgb(20, 60, 20)),
             );
-            // emulated hover plane and marked cell on the bottom outer row.
+
             ui.paint_str(
                 Rect::new(0, 11, 8, 1),
                 "row-cont",
@@ -393,9 +373,9 @@ fn fade_protects_cursor_keep_selected_hovered_and_marked_rows() {
                 "e",
                 Style::new().fg(FG).bg(Color::Rgb(40, 40, 0)),
             );
-            // hardware cursor on the bottom inner fade row.
+
             ui.set_cursor(CURSOR_ID, Position::new(4, 10));
-            // kept current row on the top inner fade row.
+
             ui.scroll_edges_except(area, &state(50, 100, 12), &[1]);
         });
         let buf = scene.buffer();
@@ -408,8 +388,6 @@ fn fade_protects_cursor_keep_selected_hovered_and_marked_rows() {
     }
 }
 
-/// Headers, footers and the scrollbar column are outside the content rect
-/// and never fade, with content painted before the bar.
 #[test]
 fn fade_skips_headers_footers_and_bar_column() {
     const ID: Id = Id::root("fade.chrome");
@@ -419,7 +397,7 @@ fn fade_skips_headers_footers_and_bar_column() {
             scene.draw(|ui, area| {
                 let st = state(10, 100, 6);
                 let content = ScrollRegion::new(ID).draw(ui, area, &st, 100);
-                // content inset by a header row and a footer row.
+
                 let rows = Rect::new(content.x, content.y + 1, content.width, 6);
                 ui.paint_str(
                     Rect::new(content.x, content.y, content.width, 1),
@@ -441,7 +419,7 @@ fn fade_skips_headers_footers_and_bar_column() {
         let plain = paint(false);
         let faded = paint(true);
         let (plain_buf, faded_buf) = (plain.buffer(), faded.buffer());
-        // header row, footer row and bar column are byte-identical.
+
         for x in 0..11 {
             for y in [0u16, 7] {
                 assert_eq!(
@@ -458,15 +436,13 @@ fn fade_skips_headers_footers_and_bar_column() {
                 "bar column at row {y}"
             );
         }
-        // the content edges fade.
+
         assert_eq!(fg_at(faded_buf, 0, 1), OUTER, "top content edge fades");
         assert_eq!(fg_at(faded_buf, 0, 6), OUTER, "bottom content edge fades");
         assert_eq!(fg_at(faded_buf, 0, 3), FG, "content middle stays");
     }
 }
 
-/// NEGATIVE: the fade blends foregrounds only. Glyphs, backgrounds, hit
-/// areas and selection visuals are identical with the fade on or off.
 #[test]
 fn fade_never_changes_glyphs_backgrounds_hits_or_selection() {
     const ID: Id = Id::root("fade.negative");
@@ -525,7 +501,7 @@ fn fade_never_changes_glyphs_backgrounds_hits_or_selection() {
             );
         }
     }
-    // the selected row is byte-identical: selection visuals never dim.
+
     for x in 0..11 {
         assert_eq!(
             faded.0.cell(Position::new(x, 3)),
@@ -535,8 +511,6 @@ fn fade_never_changes_glyphs_backgrounds_hits_or_selection() {
     }
 }
 
-/// Clipping bounds the fade: sentinel cells outside the content rect stay
-/// byte-identical, and an over-tall area cannot escape the buffer.
 #[test]
 fn fade_clipping_bounds_to_visible_content() {
     for theme in themes() {
@@ -551,7 +525,7 @@ fn fade_clipping_bounds_to_visible_content() {
             |ui, _| {
                 let content = Rect::new(2, 0, 6, 6);
                 paint_rows(ui, content);
-                // an area taller than the buffer and wider than the content.
+
                 ui.scroll_edges(Rect::new(0, 0, 12, 40), &state(10, 100, 6));
             },
         );
@@ -582,8 +556,6 @@ impl App for FadeResizePage {
     }
 }
 
-/// Resizing across the twelve-row threshold flips the fade depth: eleven
-/// rows fade one row per edge, twelve fade two.
 #[test]
 fn fade_depth_flips_at_twelve_rows_on_resize() {
     let mut h = Harness::new(FadeResizePage, Theme::junie(), 16, 11);
@@ -636,15 +608,12 @@ impl App for DragPage {
     }
 }
 
-/// A press on the bare track claims no capture; the following drag falls
-/// back to press semantics so the thumb follows the pointer and saturates
-/// at both endpoints instead of snapping.
 #[test]
 fn thumb_drag_from_bare_track_follows_pointer_and_saturates() {
     let mut h = Harness::new(DragPage::new(100), Theme::junie(), 10, 15);
     let _ = h.click(6, 11);
     assert_eq!(h.app().scroll.offset(), 90);
-    // bare-track press jumps without capturing, then the drag follows.
+
     let _ = h.mouse(MouseKind::Down, 6, 2);
     assert_eq!(h.app().scroll.offset(), 0);
     assert!(!h.app().captured, "a track press claims no capture");
@@ -652,13 +621,13 @@ fn thumb_drag_from_bare_track_follows_pointer_and_saturates() {
     assert_eq!(h.app().scroll.offset(), 90, "drag follows to the end");
     assert!(!h.app().captured);
     let _ = h.mouse(MouseKind::Up, 6, 11);
-    // and back to the top through the same fallback.
+
     let _ = h.mouse(MouseKind::Down, 6, 11);
     assert_eq!(h.app().scroll.offset(), 90);
     let _ = h.mouse(MouseKind::Drag, 6, 2);
     assert_eq!(h.app().scroll.offset(), 0, "drag follows to the start");
     let _ = h.mouse(MouseKind::Up, 6, 2);
-    // intermediate motion follows row by row instead of snapping.
+
     let _ = h.mouse(MouseKind::Down, 6, 5);
     assert_eq!(h.app().scroll.offset(), 30);
     let _ = h.mouse(MouseKind::Drag, 6, 6);
@@ -682,8 +651,6 @@ impl App for InsetDragPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-        // The owner includes headers above the actual track, like Help's
-        // bordered overlay. Bare-track motion must use the registered part.
         ui.register_control(
             INSET_DRAG_ID,
             Rect::new(1, 1, 8, 12),
@@ -718,24 +685,20 @@ fn bare_track_drag_uses_inset_track_origin() {
     assert!(h.diagnostics().is_empty());
 }
 
-/// A press on the thumb grabs it: the view does not move, one row of
-/// pointer motion moves the thumb one row, and the region holds the only
-/// capture until release.
 #[test]
 fn thumb_drag_from_thumb_retains_grab_offset_and_single_capture() {
     let mut h = Harness::new(DragPage::new(30), Theme::junie(), 10, 15);
-    // a press inside the thumb grabs without moving the view. The first
-    // update applies the drawn viewport, so the thumb reads (0, 3) after.
+
     let _ = h.mouse(MouseKind::Down, 6, 3);
     assert_eq!(h.app().scroll.thumb(10), (0, 3));
     assert_eq!(h.app().scroll.offset(), 0);
     assert!(h.app().captured, "the thumb holds the capture");
-    // one row of motion moves the thumb one row, not a jump.
+
     let _ = h.mouse(MouseKind::Drag, 6, 4);
     assert_eq!(h.app().scroll.offset(), 3);
     assert_eq!(h.app().scroll.thumb(10).0, 1, "grab offset retained");
     assert!(h.app().captured);
-    // dragging to the bottom endpoint reaches the end exactly.
+
     let _ = h.mouse(MouseKind::Drag, 6, 11);
     assert_eq!(h.app().scroll.offset(), 20);
     assert!(h.app().scroll.at_end());
@@ -764,9 +727,6 @@ impl App for NestedPage {
     }
 }
 
-/// A boundary wheel over the nested owner is consumed there: no parent
-/// chaining, no repaint, no reveal, no focus move. Motion still routes to
-/// the nearest eligible owner.
 #[test]
 fn boundary_wheel_consumes_without_chaining_repaint_or_focus_move() {
     let mut h = Harness::new(
@@ -779,7 +739,7 @@ fn boundary_wheel_consumes_without_chaining_repaint_or_focus_move() {
         12,
     );
     assert_eq!(h.focus(), None);
-    // inner at the top: wheel up is consumed without repaint or chaining.
+
     let r = h.wheel(Axis::V, -3, 5, 5);
     assert!(
         r.is_consumed() && !r.is_changed(),
@@ -793,17 +753,17 @@ fn boundary_wheel_consumes_without_chaining_repaint_or_focus_move() {
         "a wheel never reveals"
     );
     assert_eq!(h.focus(), None, "no focus move");
-    // wheel down over the inner owner scrolls the inner owner only.
+
     let r = h.wheel(Axis::V, 3, 5, 5);
     assert!(r.is_consumed() && r.is_changed());
     assert!(h.app().inner.offset() > 0);
     assert_eq!(h.app().outer.offset(), 0);
-    // wheel over the outer-only area scrolls the outer owner.
+
     let r = h.wheel(Axis::V, 3, 15, 5);
     assert!(r.is_consumed() && r.is_changed());
     assert!(h.app().outer.offset() > 0);
     let inner = h.app().inner.offset();
-    // inner at the end: wheel down is consumed without chaining.
+
     h.app_mut().inner.jump_end();
     h.draw();
     assert!(h.app().inner.at_end());
@@ -843,9 +803,6 @@ impl App for HidePage {
     }
 }
 
-/// Hiding mid-drag releases the thumb capture without scrolling; the
-/// hidden bar reserves no column, exposes no pointer part, and still
-/// routes wheel and reveal through the shared owner.
 #[test]
 fn hidden_bar_mid_drag_releases_and_keeps_wheel_reveal_without_parts() {
     let mut h = Harness::new(
@@ -860,10 +817,10 @@ fn hidden_bar_mid_drag_releases_and_keeps_wheel_reveal_without_parts() {
         12,
     );
     assert!(h.area_of_part(HIDE_ID, PartRef::of(Part::TRACK)).is_some());
-    // press the thumb (track row 0 of the bar column) and hold it.
+
     let _ = h.mouse(MouseKind::Down, 7, 1);
     assert!(h.app().captured);
-    // hiding mid-drag releases the capture without scrolling.
+
     h.app_mut().visible = false;
     let _ = h.mouse(MouseKind::Drag, 7, 5);
     assert!(!h.app().captured, "hide releases the drag capture");
@@ -873,10 +830,10 @@ fn hidden_bar_mid_drag_releases_and_keeps_wheel_reveal_without_parts() {
     assert!(h.area_of_part(HIDE_ID, PartRef::of(Part::TRACK)).is_none());
     assert!(h.area_of_part(HIDE_ID, PartRef::of(Part::THUMB)).is_none());
     assert_eq!(h.app().content_width.get(), 6, "full content width");
-    // a pointer where the bar was scrolls nothing.
+
     let _ = h.click(7, 3);
     assert_eq!(h.app().scroll.offset(), 0);
-    // wheel and reveal stay active through the shared owner.
+
     let _ = h.wheel(Axis::V, 4, 3, 3);
     assert!(h.app().scroll.offset() > 0);
     h.app_mut().scroll.ensure_visible_on_next_layout(90);
@@ -905,21 +862,18 @@ impl App for TwinPage {
     }
 }
 
-/// NEGATIVE: one shared primitive, owner-keyed state. Fading and scrolling
-/// one owner never touches the other: no per-app duplicate, no shared
-/// mutable renderer.
 #[test]
 fn scroll_and_fade_state_never_leaks_between_owners() {
     let mut h = Harness::new(TwinPage, Theme::junie(), 20, 8);
     h.draw();
     let buf = h.buffer().clone();
-    // twin A fades, twin B is pristine at the same rows.
+
     assert_eq!(fg_at(&buf, 0, 0), OUTER);
     assert_eq!(fg_at(&buf, 0, 7), OUTER);
     for y in 0..8 {
         assert_eq!(fg_at(&buf, 10, y), FG, "twin B row {y} untouched");
     }
-    // bar parts stay under their owner's identity.
+
     assert_eq!(
         h.area_of_part(TWIN_A, PartRef::of(Part::TRACK)),
         Some(Rect::new(9, 0, 1, 8))
@@ -931,9 +885,6 @@ fn scroll_and_fade_state_never_leaks_between_owners() {
     assert!(h.diagnostics().is_empty());
 }
 
-/// Owners compose [`ScrollRegion`] directly under their own id: the bar
-/// parts share the owner's identity, the container covers the full area,
-/// and the content rect keeps the full width when everything fits.
 #[test]
 fn scroll_region_composes_directly_under_owner_identity() {
     const ID: Id = Id::root("fade.compose");
@@ -973,11 +924,8 @@ fn scroll_region_composes_directly_under_owner_identity() {
     });
 }
 
-/// The shared model matches the oracle's extent/offset/viewport/reveal/
-/// clamp behavior, including empty, single-cell and huge content.
 #[test]
 fn scroll_model_boundaries_match_oracle_extent_offset_viewport_reveal_clamp() {
-    // thumb geometry and its inverse saturate at both endpoints.
     let mut st = ScrollState::new(100);
     st.set_viewport(20);
     assert_eq!(st.thumb(10), (0, 2));
@@ -987,7 +935,7 @@ fn scroll_model_boundaries_match_oracle_extent_offset_viewport_reveal_clamp() {
     let end = st.offset_for_track_pos(9, 10);
     assert_eq!(end, st.max_offset());
     st.jump_start();
-    // degenerate content and viewport lengths never panic and stay sane.
+
     for (content, viewport) in [
         (0usize, 0usize),
         (0, 1),
@@ -1016,7 +964,7 @@ fn scroll_model_boundaries_match_oracle_extent_offset_viewport_reveal_clamp() {
             content.min(viewport)
         );
     }
-    // reveal moves minimally and clamps; a zero viewport reveals nothing.
+
     let mut reveal = ScrollState::new(50);
     reveal.set_viewport(10);
     reveal.ensure_visible(25);
@@ -1038,14 +986,13 @@ fn scroll_model_boundaries_match_oracle_extent_offset_viewport_reveal_clamp() {
     zero.apply_layout(10, 50);
     assert_eq!(zero.pending_reveal(), None);
     assert_eq!(zero.offset(), 31);
-    // shrinking the content clamps the offset.
+
     let mut shrink = ScrollState::new(100);
     shrink.set_viewport(10);
     shrink.scroll_to(90);
     shrink.set_content(5);
     assert_eq!(shrink.offset(), 0);
-    // the wheel rule: consumed even at the boundary, repaint only on move,
-    // and a wheel never requests a reveal.
+
     let mut wheel = ScrollState::new(30);
     wheel.set_viewport(10);
     let resp = wheel.wheel(-3);

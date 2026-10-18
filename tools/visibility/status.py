@@ -17,13 +17,36 @@ from typing import Any, Mapping, Optional, Sequence
 ROOT = Path(__file__).resolve().parents[2]
 FACTS_PATH = ROOT / "tools/visibility/source-facts.json"
 TASKS_PATH = ROOT / "docs/implementation/visibility/tasks.json"
-STATUS_PATH = ROOT / "STATUS.md"
+STATUS_PATH = ROOT / "target/visibility/STATUS.md"
 REPOSITORY = "tailrocks/terminal-components-claude"
 TAG_OBJECT = "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
 TAG_COMMIT = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
 SHA = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 MAX_EXECUTION_EVIDENCE_BYTES = 8 * 1024 * 1024
+PRODUCT23_OPERATIONAL_PACKET_MEMBERS = (
+    "contract-source/deferred-reasons-9deb66b.json",
+    "contract-source/deferred.py",
+    "contract-source/deferred.rs",
+    "provenance/launch.sh",
+    "provenance/preflight.json",
+    "provenance/preflight/receipt.json",
+    "provenance/record-ledger.cjs",
+    "provenance/reviews/v3-static-review.json",
+    "provenance/run-controls.cjs",
+    "provenance/runplan.json",
+    "provenance/source-manifest.json",
+    "provenance/stable-case-map.json",
+    "provenance/static-preflight.json",
+    "provenance/test-names.json",
+    "runs/2026-10-09T03-04-14-975Z-10bae096/actual-independent-review-luna.json",
+    "runs/2026-10-09T03-04-14-975Z-10bae096/ledger-record.json",
+    "runs/2026-10-09T03-04-14-975Z-10bae096/nextest-list.stderr.log",
+    "runs/2026-10-09T03-04-14-975Z-10bae096/nextest-list.stdout.json",
+    "runs/2026-10-09T03-04-14-975Z-10bae096/nextest-run.stderr.log",
+    "runs/2026-10-09T03-04-14-975Z-10bae096/nextest-run.stdout.jsonl",
+    "runs/2026-10-09T03-04-14-975Z-10bae096/receipt.json",
+)
 EVIDENCE_TMP_ROOT = Path("/private/tmp")
 STATUS_EVIDENCE_ARCHIVE_ROOT = Path(
     "docs/implementation/visibility/evidence/reports/status-source-archive-20261009"
@@ -436,12 +459,26 @@ def validate_product_evidence_packet(
         manifest_pin, "candidate measurement packet manifest", queue_module,
     )
     require(isinstance(manifest, dict)
-            and manifest.get("schema") == "termrock-evidence-file-hashes/v1"
-            and manifest.get("includes_self") is False,
+            and set(manifest) == {
+                "schema", "includes_self", "files", "external_artifacts",
+                "retired_documentation", "supersedes_manifest_sha256",
+            }
+            and manifest.get("schema") == "termrock-evidence-file-hashes/v2"
+            and manifest.get("includes_self") is False
+            and manifest.get("supersedes_manifest_sha256")
+            == "4928eb13c7e242d79a80b7d8d710a0d95f34fc4ad54a4255d361500eea748053",
             "candidate measurement packet manifest identity changed")
     files = manifest.get("files")
-    require(isinstance(files, list) and len(files) == 22,
-            "candidate measurement packet must enumerate its 22 files")
+    require(isinstance(files, list) and len(files) == 21,
+            "candidate measurement packet must enumerate its 21 operational files")
+    require([item.get("path") if isinstance(item, dict) else None for item in files]
+            == list(PRODUCT23_OPERATIONAL_PACKET_MEMBERS),
+            "candidate measurement packet operational member set changed")
+    retired = manifest.get("retired_documentation")
+    require(retired == {
+        "path": "README.md",
+        "sha256": "ac2ecd357d079f544595987fd4e932a60eea45583f8999a5f0e86d18c799402c",
+    }, "candidate measurement packet retirement record changed")
     manifest_path = Path(manifest_pin["path"])
     packet_root = manifest_path.parent
     seen = set()
@@ -460,6 +497,8 @@ def validate_product_evidence_packet(
         member_name = member.as_posix()
         require(member_name not in seen,
                 "candidate measurement packet repeats a member path")
+        require(member_name != retired["path"],
+                "candidate measurement packet cannot list retired documentation as operational")
         seen.add(member_name)
         digest = sha256(item.get("sha256"), "{}.sha256".format(label))
         count = item.get("bytes")
@@ -3813,6 +3852,7 @@ def render_status(
     role: str = "candidate",
     *,
     queue_module: Any,
+    link_prefix: str = "",
 ) -> str:
     require(role in {"candidate", "reference"}, "role must be candidate or reference")
     facts = validate_facts(facts_value)
@@ -3835,9 +3875,9 @@ def render_status(
     local_branch = candidate["branch"] if role == "candidate" else reference["branch"]
     local_role = "Candidate" if role == "candidate" else "Reference"
     queue_link = (
-        "WORK_QUEUE.md"
+        "{}docs/implementation/visibility/tasks.json".format(link_prefix)
         if role == "candidate"
-        else "https://github.com/{}/blob/{}/WORK_QUEUE.md".format(
+        else "https://github.com/{}/blob/{}/docs/implementation/visibility/tasks.json".format(
             REPOSITORY, candidate["branch"]
         )
     )
@@ -3917,28 +3957,23 @@ def render_status(
     current_publication_section = render_current_publication_observation(
         current_publication_observation
     )
-    checklist_revision = (
-        current_publication_observation["candidate"]["publication"]["commit"]
-        if current_publication_observation is not None
-        else candidate["head_sha"]
-    )
-    if role == "candidate":
-        checklist_markdown_link = "[CHECKLIST.md](CHECKLIST.md)"
-        checklist_json_link = "[checklist.json](checklist.json)"
-        source_readme_link = "[Source facts and observation commands](tools/visibility/README.md)"
-    else:
-        checklist_markdown_link = (
-            "[CHECKLIST.md](https://github.com/{}/blob/{}/CHECKLIST.md)"
-            .format(REPOSITORY, checklist_revision)
+    def current_document_link(label: str, path: str) -> str:
+        return "[{}]({}{})".format(label, link_prefix, path)
+
+    def historical_checklist_link(label: str, path: str) -> str:
+        return "[{}](https://github.com/{}/blob/20f2d485695991632f1ff5210d696576eb602583/{})".format(
+            label, REPOSITORY, path,
         )
-        checklist_json_link = (
-            "[checklist.json](https://github.com/{}/blob/{}/checklist.json)"
-            .format(REPOSITORY, checklist_revision)
-        )
-        source_readme_link = (
-            "[Source facts and observation commands](https://github.com/{}/blob/{}/tools/visibility/README.md)"
-            .format(REPOSITORY, checklist_revision)
-        )
+
+    current_guidance = ", ".join((
+        current_document_link("project overview", "README.md"),
+        current_document_link("architecture", "docs/architecture.md"),
+        current_document_link("direction", "docs/direction.md"),
+        current_document_link("product requirements", "docs/requirements.md"),
+    ))
+    checklist_markdown_link = historical_checklist_link("recorded CHECKLIST.md", "CHECKLIST.md")
+    checklist_json_link = historical_checklist_link("recorded checklist.json", "checklist.json")
+    source_readme_link = current_document_link("Source facts", "tools/visibility/source-facts.json")
     if current_status_observations is not None:
         require(archive_manifest is not None,
                 "current observations require the verified repository evidence archive")
@@ -4197,19 +4232,19 @@ def render_status(
                 "| --- | --- | --- | --- | --- |",
                 task_rows,
                 "",
-                "See [WORK_QUEUE.md]({}) for dependencies and claim details.".format(
+                "See [Accepted task records]({}) for dependencies and claim details.".format(
                     queue_link
                 ),
             ]
         )
     else:
-        task_section = "No open accepted task is recorded. See [WORK_QUEUE.md]({}).".format(
+        task_section = "No open accepted task is recorded. See [Accepted task records]({}).".format(
             queue_link
         )
 
     return """# Termrock status
 
-This page is a recorded visibility report, not current project guidance. Its selected comparison source pair is candidate [{remote_candidate_sha}](https://github.com/{repository}/commit/{remote_candidate_sha}) and reference [{remote_reference_sha}](https://github.com/{repository}/commit/{remote_reference_sha}), recorded at {remote_observed_at}. Each evidence row remains bound to its explicitly named source, test set, command, and observation time; historical observations do not describe later branch tips or imply current readiness. For current project direction, see the [documentation index](docs/README.md), [architecture](docs/architecture.md), [design reference](docs/design.md), and [plan](docs/plan.md).
+This page is a recorded visibility report, not current project guidance. Its selected comparison source pair is candidate [{remote_candidate_sha}](https://github.com/{repository}/commit/{remote_candidate_sha}) and reference [{remote_reference_sha}](https://github.com/{repository}/commit/{remote_reference_sha}), recorded at {remote_observed_at}. Each evidence row remains bound to its explicitly named source, test set, command, and observation time; historical observations do not describe later branch tips or imply current readiness. For current project direction, see {current_guidance}.
 
 | Conclusion | State | Evidence |
 | --- | --- | --- |
@@ -4230,7 +4265,7 @@ Reference ownership is NOT_APPLICABLE because the reference is not required to u
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 {command_rows}
 
-The status reporter generated this report from measured facts in [source-facts.json](tools/visibility/source-facts.json). A run receipt records execution results tied to an exact source pair and required test set. {receipt_statement} Product requirements remain in {checklist_markdown_link} and {checklist_json_link}; these are the requirements used for the recorded measurements.
+The status reporter generated this report from measured facts in {source_readme_link}. A run receipt records execution results tied to an exact source pair and required test set. {receipt_statement} The recorded measurements used the historical contract files {checklist_markdown_link} and {checklist_json_link}. Current guidance is linked above and does not replace those historical inputs.
 
 ## Recorded source pair
 
@@ -4315,7 +4350,7 @@ The required shared-case and per-component checkpoint sets are unknown until the
 - [Work queue]({queue_link})
 - [Implementation PR #17](https://github.com/{repository}/pull/17)
 - [Recorded CI run]({ci_url})
-- Product requirements: {checklist_markdown_link} and {checklist_json_link}
+- Historical measurement contract: {checklist_markdown_link} and {checklist_json_link}
 - {source_readme_link}
 
 {final_evidence_note}
@@ -4347,6 +4382,7 @@ The required shared-case and per-component checkpoint sets are unknown until the
         local_dco_subject=cell(local_dco["message_subject"]),
         local_dco_observed_at=local_dco["observed_at"],
         local_publication=local_publication,
+        current_guidance=current_guidance,
         local_role=local_role,
         local_branch=local_branch,
         queue_link=queue_link,
@@ -4447,6 +4483,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--write", action="store_true", help="write generated STATUS.md")
     modes.add_argument("--check", action="store_true", help="compare STATUS.md with current inputs")
+    modes.add_argument("--validate", action="store_true", help="validate inputs without reading or writing a report view")
+    parser.add_argument("--output", type=Path, help="report-view path (default: target/visibility/STATUS.md)")
     parser.add_argument(
         "--role",
         choices=("candidate", "reference"),
@@ -4456,34 +4494,45 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser.parse_args(argv)
     try:
         queue_module = load_queue_module()
+        status_path = queue_module.report_view_path(ROOT, args.output, "STATUS.md")
         task_records = load_task_records(TASKS_PATH, queue_module)
         # `--check` without an explicit `--role` compares against the role the
         # committed record states, so the documented check works on a fresh
         # checkout of a reference-role STATUS.md.
         role = args.role
         explicit_role = "--role" in (sys.argv[1:] if argv is None else argv)
-        if args.check and not explicit_role and STATUS_PATH.exists():
-            recorded = recorded_status_role(STATUS_PATH.read_text(encoding="utf-8"))
+        if args.check and not explicit_role and status_path.exists():
+            recorded = recorded_status_role(
+                queue_module._safe_read(status_path, "generated STATUS.md").decode("utf-8")
+            )
             if recorded is not None:
                 role = recorded
+        facts = load_source_facts(FACTS_PATH, queue_module)
+        if args.validate:
+            render_status(facts, task_records, role=role, queue_module=queue_module)
+            print("visibility inputs are valid")
+            return 0
         output = render_status(
-            load_source_facts(FACTS_PATH, queue_module), task_records,
-            role=role, queue_module=queue_module
+            facts, task_records, role=role, queue_module=queue_module,
+            link_prefix="../../" if args.write or args.check else "",
         )
     except ValueError as error:
         print("status generation failed: {}".format(error), file=sys.stderr)
         return 2
     if args.write:
-        STATUS_PATH.write_text(output, encoding="utf-8")
-        print("wrote {}".format(STATUS_PATH.relative_to(ROOT)))
+        queue_module._ensure_report_view_parent(status_path, ROOT)
+        queue_module._atomic_write(status_path, output.encode("utf-8"))
+        print("wrote {}".format(status_path.relative_to(ROOT)))
     elif args.check:
         try:
-            current = STATUS_PATH.read_text(encoding="utf-8")
-        except OSError as error:
+            current = queue_module._safe_read(
+                status_path, "generated STATUS.md",
+            ).decode("utf-8")
+        except (OSError, ValueError) as error:
             print("status check failed: {}".format(error), file=sys.stderr)
             return 1
         if current != output:
-            print("STATUS.md is stale; run python3 tools/visibility/status.py --write",
+            print("{} is stale; run python3 tools/visibility/status.py --write".format(status_path),
                   file=sys.stderr)
             return 1
         print("STATUS.md matches measured inputs")

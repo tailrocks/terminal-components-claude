@@ -1,5 +1,3 @@
-//! Regression coverage for live and reference `StatusBar` hover state.
-
 use termrock::{
     App, Cx, Family, FrameRead, Id, ItemKey, KeyCode, MouseKind, Part, PartRef, ReferenceState,
     ReferenceTarget, Response, Role, StateFlags, StatusBar, StatusItem, StylePatch, Surface, Theme,

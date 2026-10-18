@@ -1,10 +1,8 @@
-//! CLI policy stays pure; terminal initialization occurs only after parsing succeeds.
 use std::ffi::{OsStr, OsString};
 
 use crate::{Motion, Scenario};
 use termrock::{ColorLevel, Theme};
 
-/// Usage text printed for `--help`.
 pub const HELP: &str = "jackin-preview — Jackin redesigned on the Junie design system (deterministic preview)\n\n\
                      USAGE: jackin-preview [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
                      Scenarios: first-use, returning, accounts-mixed, launch-running, launch-failure, capsule-multi, outro-last, hard-cases\n\
@@ -14,22 +12,15 @@ pub const HELP: &str = "jackin-preview — Jackin redesigned on the Junie design
                      Everything is simulated in memory; the real Jackin CLI is never touched.";
 
 #[derive(Debug)]
-/// Resolved launch options.
 pub struct Options {
-    /// Scenario world to load.
     scenario: Scenario,
-    /// Motion cadence.
     motion: Motion,
-    /// Pinned virtual frame for paused captures.
     frame: u64,
-    /// Terminal color capability.
     level: ColorLevel,
-    /// Use the paper theme.
     paper: bool,
 }
 
 impl Options {
-    /// Run the preview with these options.
     pub fn run(self) -> std::io::Result<()> {
         let theme = if self.paper {
             Theme::paper()
@@ -46,19 +37,13 @@ impl Options {
 }
 
 #[derive(Debug)]
-/// Outcome of argument parsing.
 pub enum Parsed {
-    /// Launch with the parsed options.
     Run(Options),
-    /// Print usage text.
     Help,
 }
 
-// Errors contain policy text only, never supplied values. A malformed CLI
-// argument can itself be a pasted credential; reference value echoing is unsafe.
 type Error = &'static str;
 
-/// Parse Jackin Preview CLI arguments.
 pub fn parse(
     args: impl IntoIterator<Item = OsString>,
     no_motion: Option<&OsStr>,
@@ -102,8 +87,6 @@ pub fn parse(
                     .ok_or("--frame needs a tick number")?;
             }
             Some("--theme") => {
-                // Preserve main's additive paper selection, including its
-                // existing treatment of unrecognized or missing theme values.
                 if args
                     .next()
                     .as_deref()
@@ -114,7 +97,7 @@ pub fn parse(
                 }
             }
             Some("--help" | "-h") => return Ok(Parsed::Help),
-            _ => {} // Pinned reference deliberately ignores unknown arguments.
+            _ => {}
         }
     }
     let no_motion = no_motion.is_some_and(|value| !value.is_empty() && value != "0");
@@ -127,7 +110,6 @@ pub fn parse(
     }))
 }
 
-/// Parse a `--color` value into a terminal color level.
 fn parse_color(value: &str) -> Option<ColorLevel> {
     match value.to_ascii_lowercase().as_str() {
         "truecolor" | "24bit" => Some(ColorLevel::TrueColor),

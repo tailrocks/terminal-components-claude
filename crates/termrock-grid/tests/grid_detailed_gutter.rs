@@ -1,4 +1,3 @@
-//! Source-number gutters share the grid's authoritative column geometry.
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Color;
 use termrock_grid::{CellRef, Column, ColumnKey, Grid, GridGutter, GridModel, GridState};
@@ -204,7 +203,7 @@ fn detailed_parts_resolve_authored_defaults_then_theme_then_instance() {
             Color::Rgb(13, 17, 19),
             "authored {part:?}"
         );
-        // An explicit recipe must beat the borrowed author default, including states.
+
         theme = theme.define_family(Family::GRID, |family| {
             family
                 .part(part)
@@ -365,8 +364,7 @@ fn detailed_reserve_and_scrollbar_share_preview_pointer_geometry() {
     page.columns[2].min_width = 24;
     page.columns[2].max_width = 24;
     let mut h = Harness::new(page, Theme::junie(), 40, 6);
-    // 37 - scrollbar 1 - gutter 6 - right reserve 4 = 26:
-    // complete widths 8 + 2 + 8, then six-cell preview at x26.
+
     assert_eq!(h.cell(26, 1).symbol(), "c");
     let before = h.app().state.cursor();
     let _ = h.click(27, 1);

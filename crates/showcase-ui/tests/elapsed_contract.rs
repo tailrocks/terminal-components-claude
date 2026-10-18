@@ -1,6 +1,3 @@
-//! Elapsed-time contracts from pinned Holla 794b095, exercised through the
-//! actual app and public runtime. Explicit ticks never imply elapsed time.
-
 use std::time::Duration;
 
 use showcase_ui::{App, PageId};

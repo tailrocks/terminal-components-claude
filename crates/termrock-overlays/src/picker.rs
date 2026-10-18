@@ -1,5 +1,3 @@
-//! Searchable modal picker and its semantic item contract.
-
 use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
@@ -26,39 +24,28 @@ impl<T, R: RowFn<T>> RowFn<T> for BorrowedRow<'_, R> {
     }
 }
 
-/// Typed picker scope.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ScopeKey(u16);
 
 impl ScopeKey {
-    /// Construct from an application-local numeric key.
     pub const fn new(value: u16) -> Self {
         Self(value)
     }
-    /// Raw value.
     pub const fn get(self) -> u16 {
         self.0
     }
 }
 
-/// Picker events.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PickerAction {
-    /// Normal activation.
     Chosen(ItemKey),
-    /// Alt activation.
     ChosenAlt(ItemKey),
-    /// Secondary row action.
     Secondary(ItemKey),
-    /// Rewind one owner-defined level.
     Back,
-    /// Active scope changed.
     Scope(ScopeKey),
-    /// Query text changed.
     QueryChanged,
 }
 
-/// Durable picker state.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PickerState {
     list: FilterListState,
@@ -66,79 +53,26 @@ pub struct PickerState {
 }
 
 impl PickerState {
-    /// Current query.
     pub fn query(&self) -> &str {
         self.list.query()
     }
-    /// Replace the query.
     pub fn set_query(&mut self, query: impl Into<String>) {
         self.list.set_query(query);
     }
-    /// Current cursor key.
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.list.cursor()
     }
-    /// Set the initial cursor before the first draw.
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.list.set_cursor(index, key);
     }
-    /// Current scope.
     pub fn scope(&self, scopes: &[ScopeKey]) -> Option<ScopeKey> {
         scopes.get(self.active_scope).copied()
     }
-    /// Filtered-list state for controller compositions.
     pub const fn list(&self) -> &FilterListState {
         &self.list
     }
 }
 
-/// A modal semantic picker.
-///
-/// ## Construction
-/// `Picker::new(id)`; items arrive per phase and must implement [`AsItem`].
-///
-/// ## Ownership
-/// Caller owns items and [`PickerState`]; runtime owns the modal layer and focus trap.
-///
-/// ## Configuration
-/// `.title`, `.width`, `.size`, `.searchable`, `.filter`, `.item_layout`,
-/// `.placeholder`, `.scopes`, `.align`, `.empty`, `.row`, `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::PICKER`, `DEFAULT`.
-///
-/// ## States
-/// Query editor and cursor state are derived by the embedded [`FilterList`].
-///
-/// ## Actions
-/// [`PickerAction`] always carries semantic keys or scopes.
-///
-/// ## Focus
-/// Modal trap; its filter list is the initial focus and swallows typing.
-///
-/// ## Keyboard
-/// Typing filters; Esc clears then dismisses; Enter/Alt+Enter choose; Tab cycles scope.
-///
-/// ## Mouse
-/// Click chooses; secondary click matches the keyboard secondary command.
-///
-/// ## Layout
-/// Upper-third modal, design-clamped width, query plus bounded result rows.
-///
-/// ## Parts
-/// `CONTAINER`, `BORDER`, `TITLE`, `QUERY`, row parts, scrollbar parts, `EMPTY`.
-///
-/// ## Overrides
-/// Standard patch/part/slot overrides are forwarded into the embedded list.
-///
-/// ## Identity
-/// [`AsItem`] is mandatory; `Display` and positional keys are never consulted.
-///
-/// ## Testing
-/// `PickerCase`; semantic key, query, and wheel/cursor contracts are covered.
-///
-/// ## Invariants
-/// The component reasserts its own layer size every update and computes no screen rect.
 pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
     title: &'a str,
@@ -172,7 +106,6 @@ impl<T, R> core::fmt::Debug for Picker<'_, T, R> {
 }
 
 impl<T> Picker<'_, T, ItemRow> {
-    /// Construct a semantic picker.
     pub const fn new(id: Id) -> Self {
         Self {
             id,
@@ -196,7 +129,6 @@ impl<T> Picker<'_, T, ItemRow> {
 }
 
 impl<T> Picker<'_, T, ItemRow> {
-    /// Opt into aligned semantic columns without replacing the row painter.
     #[must_use]
     pub const fn item_layout(mut self, layout: ItemRowLayout) -> Self {
         self.item_layout = layout;
@@ -205,7 +137,6 @@ impl<T> Picker<'_, T, ItemRow> {
 }
 
 impl<'a, T, R> Picker<'a, T, R> {
-    /// Styled parts.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BORDER,
@@ -220,69 +151,54 @@ impl<'a, T, R> Picker<'a, T, R> {
         Part::THUMB,
         Part::EMPTY,
     ];
-    /// Component id.
     pub const fn id(&self) -> Id {
         self.id
     }
-    /// Title.
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
         self.title = title;
         self
     }
-    /// Override the requested width; the layer resolver still clamps to the viewport.
-    /// Omit this option to retain semantic sizing within the theme's popup bounds.
     #[must_use]
     pub const fn width(mut self, width: u16) -> Self {
         self.width = Some(width);
         self
     }
-    /// Select caller-owned filtering while retaining query editing and navigation.
     #[must_use]
     pub const fn filter(mut self, policy: FilterPolicy) -> Self {
         self.filter = policy;
         self
     }
-    /// Whether the picker displays and accepts query input. Enabled by default.
-    /// Disabling clears any existing query on update or reconciliation. Caller-filtered
-    /// owners must refresh their projection when that transition reports a query change.
     #[must_use]
     pub const fn searchable(mut self, searchable: bool) -> Self {
         self.searchable = searchable;
         self
     }
-    /// Query placeholder.
     #[must_use]
     pub const fn placeholder(mut self, placeholder: &'a str) -> Self {
         self.placeholder = placeholder;
         self
     }
-    /// Available typed scopes.
     #[must_use]
     pub const fn scopes(mut self, scopes: &'a [ScopeKey]) -> Self {
         self.scopes = scopes;
         self
     }
-    /// Request an explicit modal size. The layer resolver still clamps to the
-    /// viewport; omit this option to retain semantic sizing.
     #[must_use]
     pub const fn size(mut self, size: LayerSize) -> Self {
         self.requested_size = Some(size);
         self
     }
-    /// Choose the screen placement for this modal.
     #[must_use]
     pub const fn align(mut self, align: ScreenAlign) -> Self {
         self.align = Some(align);
         self
     }
-    /// Empty/loading/error presentation.
     #[must_use]
     pub const fn empty(mut self, empty: EmptyState<'a>) -> Self {
         self.empty = Some(empty);
         self
     }
-    /// Replace row painting.
     pub fn row<R2: RowFn<T>>(self, row: R2) -> Picker<'a, T, R2> {
         Picker {
             id: self.id,
@@ -303,21 +219,18 @@ impl<'a, T, R> Picker<'a, T, R> {
             _item: PhantomData,
         }
     }
-    /// Patch every part.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
         self.ov = self.ov.global(patch);
         self
     }
-    /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.parts = parts;
         self.ov = self.ov.part(parts);
         self
     }
-    /// Replace one part.
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
@@ -351,7 +264,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         list
     }
 
-    /// Requested modal size, pure in props, semantic labels, and design tokens.
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         if let Some(size) = self.requested_size {
             return clamp_fixed_width(size, cx.viewport().width);
@@ -366,13 +278,10 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .min(usize::from(d.size.popup_max_rows))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
-        // Searchable pickers reserve title, query and spacing before the list.
-        // Nonsearchable pickers move the list above that query space and retain
-        // the bottom breathing room. Both request the same outer height.
+
         LayerSize::Fixed(width, rows.saturating_add(5))
     }
 
-    /// Layer specification supplied by this picker.
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
         LayerSpec::modal(self.id)
             .anchor(Anchor::Screen(
@@ -382,10 +291,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .size(self.measured_size(cx, items))
     }
 
-    /// Reconcile a replaced projection without consuming another input update.
-    /// Call after handling query or scope changes and before drawing new items.
-    /// Returns whether disabling search cleared the query. When true, caller-filtered
-    /// owners must rebuild their items for the empty query and reconcile again.
     pub fn reconcile(&self, st: &mut PickerState, items: &[T]) -> bool {
         let changed = self.clear_hidden_query(st);
         self.list().reconcile(&mut st.list, items);
@@ -401,10 +306,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         }
     }
 
-    /// Update the embedded filter and map its actions to picker semantics.
-    /// When disabling search clears a query, stale row activation is suppressed.
-    /// Back and scope navigation take precedence over `QueryChanged`; their owners
-    /// rebuild using the already-empty query. Cancellation still dismisses the layer.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -424,8 +325,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             acc.repaint();
         }
         if query_changed {
-            // A caller-filtered projection still describes the old query until its
-            // owner handles this signal. Never activate a row from that projection.
             acc.repaint();
             acc.action(PickerAction::QueryChanged);
         }
@@ -472,7 +371,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         acc.finish(self.id)
     }
 
-    /// Draw into the resolved modal area supplied by the owner's layer closure.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &PickerState, items: &[T]) -> Rect {
         let mut live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
         live.remove(StateFlags::PRESSED);
@@ -489,8 +387,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 if inner.is_empty() {
                     return area;
                 }
-                // An explicitly requested size insets the content lane inside
-                // the frame instead of letting the list touch the border.
+
                 let content = if self.requested_size.is_some() {
                     Rect {
                         x: inner.x.saturating_add(1),
@@ -553,9 +450,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         ),
                     );
                 }
-                // Searchable pickers reserve title, query and spacing before
-                // the list; nonsearchable pickers retain the bottom breathing
-                // room so the drawn rows match the requested outer height.
+
                 let list = Rect {
                     y: content
                         .y
@@ -572,7 +467,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     }
 }
 
-/// Command palette is the picker surface over semantic actions.
 pub type CommandPalette<'a, T, R = ItemRow> = Picker<'a, T, R>;
 
 #[cfg(test)]
@@ -614,14 +508,11 @@ mod tests {
 
     #[test]
     fn query_change_is_visible_through_state_query() {
-        // `push_query_char` is internal; the public surface is `set_query`.
         let mut state = FilterListState::default();
         state.set_query("a");
         assert_eq!(state.query(), "a");
     }
 
-    /// `Cx` has no public constructor, so sizes are observed through a minimal
-    /// app whose update calls `measured_size` inside a real frame.
     fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
         struct MeasureApp {
             size: LayerSize,

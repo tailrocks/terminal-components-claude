@@ -1,6 +1,3 @@
-//! Typed context menus and menu bars (`COMPONENT_ARCHITECTURE.md` §9.2,
-//! §14.1, §18.2, Appendix A 4F).
-
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -21,8 +18,6 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_feedback::keyhint::ChordText;
 
-/// One command row. Its optional [`Chord`] is both painted and handled; no
-/// parallel display-only shortcut string exists.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MenuItem<'a> {
     action: ActionKey,
@@ -35,7 +30,6 @@ pub struct MenuItem<'a> {
 }
 
 impl<'a> MenuItem<'a> {
-    /// An enabled command row.
     pub const fn new(action: ActionKey, label: &'a str) -> Self {
         MenuItem {
             action,
@@ -48,84 +42,69 @@ impl<'a> MenuItem<'a> {
         }
     }
 
-    /// Attach the chord which both paints and activates this action.
     #[must_use]
     pub const fn chord(mut self, chord: Chord) -> Self {
         self.chord = Some(chord);
         self
     }
 
-    /// Make the row inert but still visible.
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// Use the destructive row variant.
     #[must_use]
     pub const fn danger(mut self) -> Self {
         self.danger = true;
         self
     }
 
-    /// Draw a separator after this row.
     #[must_use]
     pub const fn separator(mut self) -> Self {
         self.separator_after = true;
         self
     }
 
-    /// Open `items` as a child menu instead of emitting this row's action.
     #[must_use]
     pub const fn submenu(mut self, items: &'a [MenuItem<'a>]) -> Self {
         self.submenu = Some(items);
         self
     }
 
-    /// Typed action payload.
     pub const fn action(&self) -> ActionKey {
         self.action
     }
 
-    /// Display label.
     pub const fn label(&self) -> &'a str {
         self.label
     }
 
-    /// Shortcut used by both painting and update.
     pub const fn chord_ref(&self) -> Option<Chord> {
         self.chord
     }
 
-    /// Whether activation is disabled.
     pub const fn is_disabled(&self) -> bool {
         self.disabled
     }
 
-    /// Child menu, if any.
     pub const fn submenu_ref(&self) -> Option<&'a [MenuItem<'a>]> {
         self.submenu
     }
 }
 
-/// One top-level menu in a [`MenuBar`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Menu<'a> {
-    /// Label painted in the bar.
     pub label: &'a str,
-    /// Rows shown by its dropdown.
     pub items: &'a [MenuItem<'a>],
 }
 
 impl<'a> Menu<'a> {
-    /// A labelled menu.
     pub const fn new(label: &'a str, items: &'a [MenuItem<'a>]) -> Self {
         Menu { label, items }
     }
 }
 
-/// Menu state shared by a context menu and a menu bar dropdown.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct MenuState {
     cursor: usize,
@@ -133,51 +112,35 @@ pub struct MenuState {
 }
 
 impl MenuState {
-    /// Current row index.
     pub const fn cursor(&self) -> usize {
         self.cursor
     }
 
-    /// Open top-level menu, for a [`MenuBar`].
     pub const fn open_menu(&self) -> Option<usize> {
         self.open
     }
 
-    /// Whether a dropdown is open.
     pub const fn is_open(&self) -> bool {
         self.open.is_some()
     }
 }
 
-/// Semantic menu output.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MenuAction {
-    /// A typed command was chosen.
     Chosen(ActionKey),
-    /// A top-level dropdown opened.
     Opened(usize),
-    /// A menu closed without choosing.
     Closed(DismissReason),
-    /// A row requested its child menu.
     Submenu(ItemKey),
 }
 
-/// Const navigation commands.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MenuCmd {
-    /// Previous enabled row.
     Prev,
-    /// Next enabled row.
     Next,
-    /// First enabled row.
     First,
-    /// Last enabled row.
     Last,
-    /// Activate the cursor row.
     Activate,
-    /// Previous top-level menu.
     PrevMenu,
-    /// Next top-level menu.
     NextMenu,
 }
 
@@ -367,63 +330,6 @@ const BAR_CONTEXT_BINDINGS: &[Binding<MenuCmd>] = &[
     ),
 ];
 
-/// Anchored popup content. The runtime owns placement, dismissal and z-order.
-///
-/// ## Construction
-/// `ContextMenu::new(id, items, anchor)` or `ContextMenu::at(id, items,
-/// position)`. Open [`ContextMenu::layer`] from `update`, then call `draw`
-/// inside `ui.layer(id, ...)`.
-///
-/// ## Ownership
-/// Caller owns borrowed [`MenuItem`]s and [`MenuState`]. Runtime owns focus,
-/// hover, press and layer lifecycle.
-///
-/// ## Configuration
-/// `.title`, `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::MENU`; dangerous items use `Variant::DANGER`.
-///
-/// ## States
-/// Cursor row derives `ACTIVE`; rows also wear runtime `HOVERED` and item
-/// `DISABLED`.
-///
-/// ## Actions
-/// [`MenuAction::Chosen`] carries the row's [`ActionKey`]; submenu rows emit
-/// [`MenuAction::Submenu`]; dismissal emits [`MenuAction::Closed`].
-///
-/// ## Focus
-/// One focus stop for the popup; rows are keyed parts, not separate stops.
-///
-/// ## Keyboard
-/// Arrows / `j` / `k`, Home, End, Enter and Space. An item's optional chord
-/// is matched from the same field [`draw`](Self::draw) paints.
-///
-/// ## Mouse
-/// Press selects an enabled row; click activates it. Disabled rows consume
-/// without changing state.
-///
-/// ## Layout
-/// Computes a [`LayerSize`], never a rect. Frame, optional title, command
-/// rows and separators are clipped to the resolved layer area.
-///
-/// ## Parts
-/// `CONTAINER`, `BORDER`, `TITLE`, `ROW`, `LABEL`, `KEY`, `MARKER`, `RULE`.
-///
-/// ## Overrides
-/// `.patch` / `.patch_part` reach every part. Slots reach text and chrome;
-/// `CONTAINER` and `ROW` remain owned surface fills.
-///
-/// ## Identity
-/// Row regions use `PartRef::item(ROW, ItemKey::index(i))`; positional keys
-/// are intentionally unstable because a menu declaration is static chrome.
-///
-/// ## Testing
-/// `ContextMenuCase`; `render::components::context_menu::*`.
-///
-/// ## Invariants
-/// Shortcut presentation and dispatch cannot drift. Disabled rows never
-/// activate. Placement, flip and clamp exist only in the layer resolver.
 pub struct ContextMenu<'a> {
     id: Id,
     items: &'a [MenuItem<'a>],
@@ -447,7 +353,6 @@ impl fmt::Debug for ContextMenu<'_> {
 }
 
 impl<'a> ContextMenu<'a> {
-    /// Every styled part. `ROW` carries [`ItemKey::index`].
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BORDER,
@@ -459,7 +364,6 @@ impl<'a> ContextMenu<'a> {
         Part::RULE,
     ];
 
-    /// A menu anchored at `anchor`.
     pub const fn new(id: Id, items: &'a [MenuItem<'a>], anchor: Anchor) -> Self {
         ContextMenu {
             id,
@@ -472,47 +376,40 @@ impl<'a> ContextMenu<'a> {
         }
     }
 
-    /// A context menu at a pointer position.
     pub const fn at(id: Id, items: &'a [MenuItem<'a>], position: Position) -> Self {
         Self::new(id, items, Anchor::Point(position))
     }
 
-    /// Optional heading.
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
         self.title = Some(title);
         self
     }
 
-    /// Display casing for shortcut characters; routing chords remain unchanged.
     #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
         self.chord_case = case;
         self
     }
 
-    /// Instance patch.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.ov = self.ov.global(patch);
         self
     }
 
-    /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(patches);
         self
     }
 
-    /// Replace a paintable part.
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
         self
     }
 
-    /// Size requested from the resolver. No rect is computed here.
     pub fn measured_size(&self, cx: &Cx<'_>) -> LayerSize {
         let d = cx.design();
         let width = self
@@ -521,7 +418,6 @@ impl<'a> ContextMenu<'a> {
         LayerSize::Fixed(width, self.natural_height().max(3))
     }
 
-    /// Popover specification. Outside click, focus-out and Esc dismiss it.
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         LayerSpec::popover(self.id, self.anchor)
             .dismiss(Dismiss::ALL)
@@ -661,7 +557,6 @@ impl<'a> ContextMenu<'a> {
         }
     }
 
-    /// Reconcile cursor, re-assert layer geometry, then process input.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
         if !self.enabled_at(st.cursor)
             && let Some(first) = self.first_enabled()
@@ -708,7 +603,6 @@ impl<'a> ContextMenu<'a> {
         acc.finish(self.id)
     }
 
-    /// Paint menu content in the resolved layer `area`.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &MenuState) -> Rect {
         if area.is_empty() {
             return area;
@@ -897,7 +791,6 @@ impl<'a> ContextMenu<'a> {
         );
     }
 
-    /// Natural content size, bounded by `c`.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(
             self.natural_width(|action, chord| ui.effective_chord(self.id, action, chord)),
@@ -915,55 +808,6 @@ impl Bindings for ContextMenu<'_> {
     }
 }
 
-/// One-row menu strip whose open dropdown is layer content.
-///
-/// ## Construction
-/// `MenuBar::new(id, menus)` over borrowed [`Menu`] declarations.
-///
-/// ## Ownership
-/// Caller owns declarations and [`MenuState`]; runtime owns dropdown layer.
-///
-/// ## Configuration
-/// `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::MENU`; dropdown danger rows use `Variant::DANGER`.
-///
-/// ## States
-/// Cursor/open title derives `ACTIVE`; runtime supplies focus/hover/press.
-///
-/// ## Actions
-/// `Opened(index)`, typed `Chosen(ActionKey)`, `Closed(reason)`.
-///
-/// ## Focus
-/// Bar is one stop; open dropdown remains layer content owned by the bar.
-///
-/// ## Keyboard
-/// Left/right (`h`/`l`) choose a menu; Down/Enter/Space opens it. Open-state
-/// navigation uses [`ContextMenu`]'s table.
-///
-/// ## Mouse
-/// Clicking a title opens its dropdown. Dropdown rows follow [`ContextMenu`].
-///
-/// ## Layout
-/// One row; labels truncate as whole declarations when width runs out. Open
-/// dropdown is painted with `ui.layer`, independent of call order.
-///
-/// ## Parts
-/// Same typed part vocabulary as [`ContextMenu`].
-///
-/// ## Overrides
-/// Forwarded to dropdown content so one instance override covers both.
-///
-/// ## Identity
-/// Titles use positional `ItemKey`s; the dropdown layer uses bar `Id`.
-///
-/// ## Testing
-/// `MenuBarCase`; `render::components::menu_bar::*`.
-///
-/// ## Invariants
-/// Open dropdown size/anchor is re-asserted from update. Chords originate
-/// only in [`MenuItem`], never a parallel label-string dispatcher.
 pub struct MenuBar<'a> {
     id: Id,
     menus: &'a [Menu<'a>],
@@ -981,10 +825,8 @@ impl fmt::Debug for MenuBar<'_> {
 }
 
 impl<'a> MenuBar<'a> {
-    /// Bar plus dropdown parts.
     pub const PARTS: &'static [Part] = ContextMenu::PARTS;
 
-    /// A bar over borrowed menus.
     pub const fn new(id: Id, menus: &'a [Menu<'a>]) -> Self {
         MenuBar {
             id,
@@ -994,28 +836,24 @@ impl<'a> MenuBar<'a> {
         }
     }
 
-    /// Display casing for shortcut characters; routing chords remain unchanged.
     #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
         self.chord_case = case;
         self
     }
 
-    /// Instance patch.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.ov = self.ov.global(patch);
         self
     }
 
-    /// Per-part patches.
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(patches);
         self
     }
 
-    /// Replace a paintable part.
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
@@ -1064,8 +902,6 @@ impl<'a> MenuBar<'a> {
         MenuAction::Opened(index)
     }
 
-    /// Open a menu programmatically, preserving the same state and layer
-    /// ownership as keyboard and pointer activation.
     pub fn open_menu(
         &self,
         cx: &mut Cx<'_>,
@@ -1078,12 +914,6 @@ impl<'a> MenuBar<'a> {
         Response::action(self.open(cx, st, index)).for_id(self.id)
     }
 
-    /// Close a dropdown whose owning declaration is no longer present.
-    ///
-    /// `MenuBar` owns both the durable open index and the runtime layer.  A
-    /// borrowed menu slice may change between phases, so clearing only the
-    /// index would leave a live, unowned layer behind.  Treat that transition
-    /// like any other programmatic dismissal and report it to the caller.
     fn close_missing(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
         let had_open_state = st.open.take().is_some();
         let had_live_layer = cx.is_open(self.id);
@@ -1094,7 +924,6 @@ impl<'a> MenuBar<'a> {
         Response::action(MenuAction::Closed(DismissReason::Programmatic)).for_id(self.id)
     }
 
-    /// Handle bar navigation and the active dropdown.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
         if self.menus.is_empty() {
             let response = self.close_missing(cx, st);
@@ -1175,7 +1004,6 @@ impl<'a> MenuBar<'a> {
         acc.finish(self.id)
     }
 
-    /// Paint the strip, then the open dropdown in its runtime layer.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &MenuState) -> Rect {
         let row = first_row(area);
         if row.is_empty() {
@@ -1276,7 +1104,6 @@ impl<'a> MenuBar<'a> {
         row
     }
 
-    /// Natural strip width and one row.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let width = self.menus.iter().fold(1u16, |total, menu| {
             total.saturating_add(width(menu.label).saturating_add(3))

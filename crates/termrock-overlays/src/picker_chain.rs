@@ -1,5 +1,3 @@
-//! Staged asynchronous picker controller (`COMPONENT_ARCHITECTURE.md` §14.2 J8).
-
 use ratatui_core::layout::Rect;
 
 use super::{PartStyle, SlotFn};
@@ -15,19 +13,14 @@ use crate::ui::{Cx, FrameRead, Ui};
 use termrock_runtime::empty::{CenteredText, draw_centered};
 use termrock_runtime::empty::{EmptyState, Status};
 
-/// One stage in a picker chain.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PickerStage<'a> {
-    /// Stable stage identity.
     pub key: ItemKey,
-    /// Breadcrumb label.
     pub label: &'a str,
-    /// Current readiness.
     pub status: Status,
 }
 
 impl<'a> PickerStage<'a> {
-    /// Declare a ready stage.
     pub const fn new(key: ItemKey, label: &'a str) -> Self {
         Self {
             key,
@@ -36,7 +29,6 @@ impl<'a> PickerStage<'a> {
         }
     }
 
-    /// Set readiness.
     #[must_use]
     pub const fn status(mut self, status: Status) -> Self {
         self.status = status;
@@ -44,21 +36,15 @@ impl<'a> PickerStage<'a> {
     }
 }
 
-/// Semantic chain output.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PickerChainAction {
-    /// Return to the previous stage.
     Back(ItemKey),
-    /// Retry the current failed stage.
     Retry(ItemKey),
 }
 
-/// Chain commands.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PickerChainCmd {
-    /// Go back one stage.
     Back,
-    /// Retry the failed current stage.
     Retry,
 }
 
@@ -81,7 +67,6 @@ const BINDINGS: &[Binding<PickerChainCmd>] = &[
     },
 ];
 
-/// Durable active stage and breadcrumb history.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PickerChainState {
     current: Option<ItemKey>,
@@ -89,12 +74,10 @@ pub struct PickerChainState {
 }
 
 impl PickerChainState {
-    /// Active stage.
     pub const fn current(&self) -> Option<ItemKey> {
         self.current
     }
 
-    /// Enter a stage while retaining the earlier breadcrumb.
     pub fn enter(&mut self, key: ItemKey) {
         if self.current != Some(key) {
             if let Some(old) = self.current {
@@ -104,7 +87,6 @@ impl PickerChainState {
         }
     }
 
-    /// Return one stage.
     pub fn back(&mut self) -> Option<ItemKey> {
         let key = self.history.pop()?;
         self.current = Some(key);
@@ -112,55 +94,6 @@ impl PickerChainState {
     }
 }
 
-/// Breadcrumb and lifecycle controller for a staged picker.
-///
-/// ## Construction
-/// `PickerChain::new(id, stages)`; actual domain items remain with the app.
-///
-/// ## Ownership
-/// Caller owns declarations, current item collections and state.
-///
-/// ## Configuration
-/// `.empty`, `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::PICKER`, default variant.
-///
-/// ## States
-/// Current stage readiness maps to `BUSY`, `LOADING`, or `ERROR`.
-///
-/// ## Actions
-/// Keyed back and retry actions. The caller-owned nested picker reports its
-/// own choices directly; the chain does not forward or duplicate them.
-///
-/// ## Focus
-/// One chain focus stop. Nested picker content keeps its own focus.
-///
-/// ## Keyboard
-/// Backspace goes back; `r` retries only an errored stage.
-///
-/// ## Mouse
-/// Breadcrumb clicks go back to that stage; retry is a keyed control.
-///
-/// ## Layout
-/// Breadcrumb row followed by caller-owned picker content.
-///
-/// ## Parts
-/// `CONTAINER`, `HEADER`, `LABEL`, `BODY`, `HELP`, `ICON`.
-///
-/// ## Overrides
-/// All parts accept patches; `HEADER`, `LABEL`, `BODY`, `HELP`, `ICON` accept slots.
-///
-/// ## Identity
-/// Breadcrumb and retry hit targets are root-owned keyed part references.
-///
-/// ## Testing
-/// Conformance covers focus, activation, tiny rectangles and status.
-///
-/// ## Invariants
-/// `update` emits at most one keyed action. Only historical stages can be
-/// rewound, and retry is available only for the active errored stage. `draw`
-/// does not mutate [`PickerChainState`] and an empty area registers nothing.
 #[derive(Debug)]
 pub struct PickerChain<'a> {
     id: Id,
@@ -170,7 +103,6 @@ pub struct PickerChain<'a> {
 }
 
 impl<'a> PickerChain<'a> {
-    /// Styled parts.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::HEADER,
@@ -180,7 +112,6 @@ impl<'a> PickerChain<'a> {
         Part::ICON,
     ];
 
-    /// Build a chain over borrowed stage declarations.
     pub const fn new(id: Id, stages: &'a [PickerStage<'a>]) -> Self {
         Self {
             id,
@@ -190,25 +121,21 @@ impl<'a> PickerChain<'a> {
         }
     }
 
-    /// Set the empty/loading/error content below the breadcrumb.
     #[must_use]
     pub const fn empty(mut self, empty: EmptyState<'a>) -> Self {
         self.empty = Some(empty);
         self
     }
-    /// Patch every part.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.ov = self.ov.global(patch);
         self
     }
-    /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(parts);
         self
     }
-    /// Replace a supported part painter.
     #[must_use]
     pub const fn slot(mut self, part: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, f);
@@ -225,7 +152,6 @@ impl<'a> PickerChain<'a> {
         st.history.contains(&key)
     }
 
-    /// Update back/retry and breadcrumb activation.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -306,7 +232,6 @@ impl<'a> PickerChain<'a> {
         .for_id(self.id)
     }
 
-    /// Draw breadcrumb and optional readiness surface.
     #[expect(
         clippy::too_many_lines,
         reason = "one pass owns breadcrumb, body and readiness geometry"
@@ -408,7 +333,7 @@ impl<'a> PickerChain<'a> {
                 detail: Some("Press r to retry"),
             }),
             Status::Ready => self.empty,
-            // `Status` is `#[non_exhaustive]`: future statuses read as busy.
+
             _ => Some(EmptyState::Loading { label: "Loading" }),
         });
         if let Some(slot) = self.ov.slot_for(Part::BODY) {
@@ -469,7 +394,7 @@ impl<'a> PickerChain<'a> {
                 Slot::Clear => None,
             },
             Status::Ready => None,
-            // `Status` is `#[non_exhaustive]`: future statuses paint no icon.
+
             _ => None,
         };
         let icon_width = glyph.map_or(0, crate::text::width);
@@ -511,7 +436,6 @@ impl<'a> PickerChain<'a> {
         );
     }
 
-    /// Natural breadcrumb size.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let w = self.stages.iter().fold(0u16, |n, s| {
             n.saturating_add(crate::text::width(s.label))

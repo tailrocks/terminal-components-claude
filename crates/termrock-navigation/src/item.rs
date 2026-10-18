@@ -1,7 +1,3 @@
-//! Semantic item vocabulary shared by `FilterList`, `Picker` and
-//! `Completion`: borrowed item data, row layouts and the default row
-//! renderer. Canonical home; `termrock-overlays` re-exports it.
-
 use ratatui_core::style::Modifier;
 
 use termrock_core::id::{ItemKey, Part};
@@ -10,31 +6,20 @@ use termrock_layout::layout::Track;
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_text::width;
 
-/// Borrowed semantic data shared by picker and completion rows.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Item<'i> {
-    /// One-cell kind glyph.
     pub glyph: &'i str,
-    /// Visible and searchable label.
     pub label: &'i str,
-    /// Grapheme ordinals in `label` that matched.
     pub matched: &'i [usize],
-    /// Secondary description.
     pub detail: &'i str,
-    /// Text inserted by completion; `None` inserts `label`.
     pub insert: Option<&'i str>,
-    /// Optional trailing tag.
     pub tag: Option<&'i str>,
-    /// Optional group label.
     pub group: Option<&'i str>,
-    /// Whether activation is refused.
     pub disabled: bool,
-    /// Stable semantic identity.
     pub key: ItemKey,
 }
 
 impl<'i> Item<'i> {
-    /// A minimal enabled item. Optional columns are empty and completion inserts the label.
     pub const fn new(key: ItemKey, label: &'i str) -> Self {
         Self {
             glyph: "",
@@ -48,49 +33,41 @@ impl<'i> Item<'i> {
             key,
         }
     }
-    /// Set the completion insertion text independently of the label.
     #[must_use]
     pub const fn insert(mut self, text: &'i str) -> Self {
         self.insert = Some(text);
         self
     }
-    /// Set the glyph.
     #[must_use]
     pub const fn glyph(mut self, glyph: &'i str) -> Self {
         self.glyph = glyph;
         self
     }
-    /// Set matched grapheme ordinals.
     #[must_use]
     pub const fn matched(mut self, matched: &'i [usize]) -> Self {
         self.matched = matched;
         self
     }
-    /// Set detail.
     #[must_use]
     pub const fn detail(mut self, detail: &'i str) -> Self {
         self.detail = detail;
         self
     }
-    /// Set a tag.
     #[must_use]
     pub const fn tag(mut self, tag: &'i str) -> Self {
         self.tag = Some(tag);
         self
     }
-    /// Set a group.
     #[must_use]
     pub const fn group(mut self, group: &'i str) -> Self {
         self.group = Some(group);
         self
     }
-    /// Disable activation.
     #[must_use]
     pub const fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
     }
-    /// Completion insertion text, falling back to the visible label.
     pub const fn insertion(self) -> &'i str {
         match self.insert {
             Some(text) => text,
@@ -99,19 +76,7 @@ impl<'i> Item<'i> {
     }
 }
 
-/// Convert a domain item to the borrowed semantic picker/completion view.
-///
-/// A custom row painter does not replace this semantic contract:
-///
-/// ```compile_fail
-/// use termrock_navigation::{AsItem, FilterList, Id};
-/// struct PaintedOnly;
-/// fn requires_semantics<T: AsItem>(_: &FilterList<'_, T>) {}
-/// let list = FilterList::<PaintedOnly>::new(Id::root("painted-only"));
-/// requires_semantics(&list);
-/// ```
 pub trait AsItem {
-    /// Borrow this value as an item.
     fn as_item(&self) -> Item<'_>;
 }
 
@@ -121,17 +86,13 @@ impl AsItem for Item<'_> {
     }
 }
 
-/// Built-in semantic item layout. Custom row callbacks remain authoritative.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum ItemRowLayout {
-    /// Existing compact label with trailing glyph and metadata.
     #[default]
     Compact,
-    /// Leading glyph, aligned label/detail/tag/group columns and matched emphasis.
     Columns,
 }
 
-/// One measurement across the complete semantic projection, not only visible rows.
 #[derive(Default)]
 pub struct ItemColumns {
     label: u16,
@@ -172,12 +133,7 @@ impl ItemColumns {
             ],
             0,
         );
-        // A focused list fills every row from the CONTAINER recipe, whose
-        // bold bleeds into painted text. Strip it only where the resolved
-        // part style did not author bold, so theme, overlay and instance
-        // part styles stay authoritative. Color hierarchy also stays in the
-        // theme recipes: a built-in painter never tones over the resolved
-        // part style.
+
         {
             let mut icon = cells.cell_part(0, Part::ICON);
             if !icon.authored_modifiers().contains(Modifier::BOLD) {
@@ -216,7 +172,6 @@ impl ItemColumns {
     }
 }
 
-/// Default semantic row painter.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct ItemRow;
 

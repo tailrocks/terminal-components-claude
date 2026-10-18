@@ -1,4 +1,3 @@
-//! Pointer-ineligible rows retain the source List keyboard/control contract.
 use std::cell::RefCell;
 use termrock_controls::Button;
 use termrock_core::{
@@ -91,7 +90,7 @@ impl App for Page {
         self.seen.borrow_mut().clear();
         let paint = |ui: &mut Ui<'_>, area, flags, key, item: &Entry| {
             self.seen.borrow_mut().push((key, flags));
-            // Source Manager topology decor rows ignore cursor presentation.
+
             let visual = if item.pointer {
                 flags
             } else {
@@ -199,7 +198,7 @@ fn stale_row_pointer_intent_cannot_choose_after_eligibility_changes() {
     for row in &mut h.app_mut().rows {
         row.pointer = false;
     }
-    // No publication between mutation and release: update must reject old row intent.
+
     let _ = h.mouse(MouseKind::Up, 10, 2);
     assert_eq!(h.app().state.chosen(), None);
     assert_eq!(h.app().action, None);

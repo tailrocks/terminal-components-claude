@@ -1,5 +1,3 @@
-//! `prepare` validates campaign authority and initializes run progress.
-
 use std::path::Path;
 use std::process::Command;
 

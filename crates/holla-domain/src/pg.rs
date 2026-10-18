@@ -1,11 +1,7 @@
-//! `pg_activity`: live session tree. Blockers form a tree via `blocked_by`;
-//! kill semantics (cancel before terminate, revalidate PID + query) are P3.
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PgSession {
     pub pid: u32,
     pub user: String,
-    /// The query text is fixture data, never a real statement.
     pub query: String,
     pub wait_event: Option<String>,
     pub blocked_by: Option<u32>,
@@ -18,7 +14,6 @@ impl PgSession {
     }
 }
 
-/// Root blockers: sessions others wait on.
 pub fn blockers(sessions: &[PgSession]) -> Vec<&PgSession> {
     let waited_on: std::collections::BTreeSet<u32> =
         sessions.iter().filter_map(|s| s.blocked_by).collect();
@@ -28,7 +23,6 @@ pub fn blockers(sessions: &[PgSession]) -> Vec<&PgSession> {
         .collect()
 }
 
-/// Sessions directly blocked by `pid`.
 pub fn blocked_by(sessions: &[PgSession], pid: u32) -> Vec<&PgSession> {
     sessions
         .iter()

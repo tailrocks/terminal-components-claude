@@ -1,6 +1,3 @@
-//! Activities: named, scoped, long-running work that survives navigation.
-//! Output is retained so a finished activity stays inspectable (§8.14).
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActivityState {
     Running,
@@ -26,12 +23,9 @@ impl ActivityState {
 pub struct Activity {
     pub id: u32,
     pub name: String,
-    /// Path scope the activity belongs to (ring: Here or a child project).
     pub scope: String,
     pub state: ActivityState,
-    /// Virtual ms when it started (relative to the world clock's zero).
     pub started_ms: i64,
-    /// Retained output lines, oldest first.
     pub lines: Vec<String>,
 }
 

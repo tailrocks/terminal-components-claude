@@ -35,7 +35,7 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 TASKS_PATH = ROOT / "docs/implementation/visibility/tasks.json"
-QUEUE_PATH = ROOT / "WORK_QUEUE.md"
+QUEUE_PATH = ROOT / "target/visibility/WORK_QUEUE.md"
 PRIORITY = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
 STATES = {"ready", "claimed", "in_progress", "review", "blocked", "verified"}
 ACTIVE_STATES = {"claimed", "in_progress", "review", "blocked"}
@@ -1015,19 +1015,23 @@ def _markdown_cell(value: Any) -> str:
     return rendered.replace("|", "\\|").replace("\r", " ").replace("\n", " ")
 
 
-def render_queue(records_value: Any) -> str:
+def _view_link_prefix(queue_path: Path) -> str:
+    return "../../" if queue_path.parent.name == "visibility" and queue_path.parent.parent.name == "target" else ""
+
+
+def render_queue(records_value: Any, *, link_prefix: str = "") -> str:
     records = validate_records(records_value)
     highest = highest_open_priority(records)
     ordered = sorted(records["tasks"], key=lambda task: (PRIORITY[task["priority"]], task["work_id"]))
     lines = [
         "# Work queue",
         "",
-        "Generated from [accepted task records](docs/implementation/visibility/tasks.json).",
+        "Generated from [accepted task records]({}docs/implementation/visibility/tasks.json).".format(link_prefix),
         "Queue revision: {}. Acceptance owner: `{}`.".format(
             records["queue_revision"], records["accepted_by"]
         ),
         "",
-        "This is a recorded queue snapshot. Owners, branches, claim tokens, expiries, and handoffs below preserve accepted records; they are not current assignments or instructions. Expiry does not itself release a claim. For current project direction, see the [documentation index](docs/README.md), [architecture](docs/architecture.md), [design reference](docs/design.md), and [plan](docs/plan.md).",
+        "This is a recorded queue snapshot. Owners, branches, claim tokens, expiries, and handoffs below preserve accepted records; they are not current assignments or instructions. Expiry does not itself release a claim. For current project direction, see the [project overview]({}README.md), [architecture]({}docs/architecture.md), [direction]({}docs/direction.md), and [product requirements]({}docs/requirements.md).".format(link_prefix, link_prefix, link_prefix, link_prefix),
         "",
     ]
     if highest is None:
@@ -1090,7 +1094,7 @@ def render_queue(records_value: Any) -> str:
     return "\n".join(lines)
 
 
-def render_queue_v2(records_value: Any) -> str:
+def render_queue_v2(records_value: Any, *, link_prefix: str = "") -> str:
     """Render a deterministic schema-v2 queue without changing the v1 view."""
     records = validate_records_v2(records_value)
     highest = highest_open_priority(records)
@@ -1098,12 +1102,12 @@ def render_queue_v2(records_value: Any) -> str:
     lines = [
         "# Work queue",
         "",
-        "Generated from [accepted task records](docs/implementation/visibility/tasks.json) (schema v2).",
+        "Generated from [accepted task records]({}docs/implementation/visibility/tasks.json) (schema v2).".format(link_prefix),
         "Queue revision: {}. Acceptance owner: `{}`.".format(
             records["queue_revision"], records["accepted_by"]
         ),
         "",
-        "This is a recorded queue snapshot. Owners, branches, claim tokens, expiries, and handoffs below preserve accepted records; they are not current assignments or instructions. Expiry does not itself release a claim. For current project direction, see the [documentation index](docs/README.md), [architecture](docs/architecture.md), [design reference](docs/design.md), and [plan](docs/plan.md).",
+        "This is a recorded queue snapshot. Owners, branches, claim tokens, expiries, and handoffs below preserve accepted records; they are not current assignments or instructions. Expiry does not itself release a claim. For current project direction, see the [project overview]({}README.md), [architecture]({}docs/architecture.md), [direction]({}docs/direction.md), and [product requirements]({}docs/requirements.md).".format(link_prefix, link_prefix, link_prefix, link_prefix),
         "",
     ]
     if highest is None:
@@ -2425,7 +2429,7 @@ def read_records(path: Path = TASKS_PATH) -> dict[str, Any]:
 
 def check_rendered_queue(tasks_path: Path = TASKS_PATH, queue_path: Path = QUEUE_PATH) -> str:
     records = read_records(tasks_path)
-    expected = render_queue(records)
+    expected = render_queue(records, link_prefix=_view_link_prefix(queue_path))
     try:
         current = _safe_read(queue_path, "generated WORK_QUEUE.md").decode("utf-8")
     except UnicodeDecodeError as error:
@@ -2443,7 +2447,7 @@ def read_records_v2(path: Path = TASKS_PATH) -> dict[str, Any]:
 
 def check_rendered_queue_v2(tasks_path: Path = TASKS_PATH, queue_path: Path = QUEUE_PATH) -> str:
     records = read_records_v2(tasks_path)
-    expected = render_queue_v2(records)
+    expected = render_queue_v2(records, link_prefix=_view_link_prefix(queue_path))
     try:
         current = _safe_read(queue_path, "generated WORK_QUEUE.md").decode("utf-8")
     except UnicodeDecodeError as error:
@@ -2467,7 +2471,9 @@ def migration_preview(
     tasks_raw = _safe_read(tasks_path, "accepted task records")
     view_raw = _safe_read(queue_path, "generated WORK_QUEUE.md")
     source_records = validate_records(strict_json_loads(tasks_raw))
-    expected_v1_view = render_queue(source_records)
+    expected_v1_view = render_queue(
+        source_records, link_prefix=_view_link_prefix(queue_path),
+    )
     try:
         source_view = view_raw.decode("utf-8")
     except UnicodeDecodeError as error:
@@ -2546,6 +2552,30 @@ def _atomic_write(path: Path, content: bytes) -> None:
             except FileNotFoundError:
                 pass
         os.close(parent_fd)
+
+
+def report_view_path(root: Path, output: Path | None, default_name: str) -> Path:
+    """Constrain generated Markdown views to one ignored target directory."""
+    relative = output if output is not None else Path("target/visibility") / default_name
+    parts = relative.parts
+    require(not relative.is_absolute() and len(parts) == 3
+            and parts[:2] == ("target", "visibility")
+            and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*\.md", parts[2]) is not None,
+            "report output must be target/visibility/<name>.md")
+    return root.joinpath(*parts)
+
+
+def _ensure_report_view_parent(path: Path, root: Path) -> None:
+    """Create the ignored view directory while rejecting symlink components."""
+    if path.parent != root / "target/visibility":
+        return
+    for directory in (root / "target", root / "target/visibility"):
+        try:
+            directory.mkdir()
+        except FileExistsError:
+            metadata = os.lstat(directory)
+            require(stat.S_ISDIR(metadata.st_mode) and not stat.S_ISLNK(metadata.st_mode),
+                    "report output parent must be a regular directory: {}".format(directory))
 
 
 @contextmanager
@@ -2753,7 +2783,7 @@ def _visual_baseline_branch_tip(root: Path) -> str:
 
 def _write_pair(records: Mapping[str, Any], tasks_path: Path, queue_path: Path) -> None:
     validate_records(records)
-    queue_bytes = render_queue(records).encode("utf-8")
+    queue_bytes = render_queue(records, link_prefix=_view_link_prefix(queue_path)).encode("utf-8")
     # Source is replaced first. If the process stops before the derived view is
     # replaced, check fails closed and repair-render is required explicitly.
     _atomic_write(tasks_path, _canonical_json(records))
@@ -2799,6 +2829,7 @@ def _mutate(
                         "{} allowed-path digest changed before the review receipt was recorded".format(
                             task["work_id"]
                         ))
+        _ensure_report_view_parent(queue_path, repo_root)
         _write_pair(changed, tasks_path, queue_path)
         return changed
 
@@ -2810,12 +2841,16 @@ def _repair_render(
     repo_root: Path,
     subject_reader: Any,
 ) -> int:
+    _ensure_report_view_parent(queue_path, repo_root)
     with _exclusive_lock(tasks_path):
         branch, _ = subject_reader()
         require(branch == "termrock-implementation",
                 "queue mutations are only allowed on termrock-implementation")
         records = read_records(tasks_path)
-        _atomic_write(queue_path, render_queue(records).encode("utf-8"))
+        _atomic_write(
+            queue_path,
+            render_queue(records, link_prefix=_view_link_prefix(queue_path)).encode("utf-8"),
+        )
         check_rendered_queue(tasks_path, queue_path)
         return records["queue_revision"]
 
@@ -2824,9 +2859,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT, help=argparse.SUPPRESS)
     subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("check", help="validate records and confirm WORK_QUEUE.md is current")
-    subparsers.add_parser("render", help="print the deterministic WORK_QUEUE.md view")
-    subparsers.add_parser("repair-render", help="explicitly regenerate stale WORK_QUEUE.md")
+    check = subparsers.add_parser("check", help="validate records and confirm WORK_QUEUE.md is current")
+    check.add_argument("--output", type=Path, help="report-view path (default: target/visibility/WORK_QUEUE.md)")
+    subparsers.add_parser("validate", help="validate accepted task records without reading a report view")
+    render = subparsers.add_parser("render", help="print the deterministic WORK_QUEUE.md view")
+    render.add_argument(
+        "--output", type=Path,
+        help="write Markdown view under target/visibility instead of stdout",
+    )
+    repair = subparsers.add_parser("repair-render", help="explicitly regenerate stale WORK_QUEUE.md")
+    repair.add_argument("--output", type=Path, help="report-view path (default: target/visibility/WORK_QUEUE.md)")
 
     packet = subparsers.add_parser("instructions", help="print static instruction paths and hashes for a claim")
     packet.add_argument("work_id")
@@ -2892,8 +2934,10 @@ def build_parser() -> argparse.ArgumentParser:
     registry_check_v2.add_argument("--registry-sha256", required=True)
     registry_check_v2.add_argument("--worktree", required=True)
 
-    subparsers.add_parser("check-v2", help="validate schema-v2 records and confirm their view is current")
-    subparsers.add_parser("render-v2", help="print the deterministic schema-v2 queue view")
+    check_v2 = subparsers.add_parser("check-v2", help="validate schema-v2 records and confirm their view is current")
+    check_v2.add_argument("--output", type=Path, help="report-view path (default: target/visibility/WORK_QUEUE.md)")
+    render_v2 = subparsers.add_parser("render-v2", help="print the deterministic schema-v2 queue view")
+    render_v2.add_argument("--output", type=Path, help="write view under target/visibility instead of stdout")
 
     preview = subparsers.add_parser(
         "migration-preview", help="preview a no-write schema-v1 to v2 identity mapping"
@@ -2908,7 +2952,7 @@ def run(args: Sequence[str] | None = None) -> int:
     options = parser.parse_args(args)
     root = _absolute_path(options.root)
     tasks_path = root / "docs/implementation/visibility/tasks.json"
-    queue_path = root / "WORK_QUEUE.md"
+    queue_path = report_view_path(root, None, "WORK_QUEUE.md")
     try:
         if options.command == "registry-check":
             result = check_root_registry(
@@ -2925,19 +2969,46 @@ def run(args: Sequence[str] | None = None) -> int:
             print(json.dumps(result, sort_keys=True, allow_nan=False))
         elif options.command == "check":
             records = read_records(tasks_path)
+            queue_path = report_view_path(root, options.output, "WORK_QUEUE.md")
             check_rendered_queue(tasks_path, queue_path)
             print("queue revision {}; {} accepted task(s); highest open priority {}".format(
                 records["queue_revision"], len(records["tasks"]), highest_open_priority(records) or "none"
             ))
+        elif options.command == "validate":
+            records = read_records(tasks_path)
+            print("queue revision {}; {} accepted task(s); highest open priority {}".format(
+                records["queue_revision"], len(records["tasks"]), highest_open_priority(records) or "none"
+            ))
         elif options.command == "check-v2":
+            queue_path = report_view_path(root, options.output, "WORK_QUEUE.md")
             check_rendered_queue_v2(tasks_path, queue_path)
             print("schema-v2 queue view is current")
         elif options.command == "render":
             records = read_records(tasks_path)
-            sys.stdout.write(render_queue(records))
+            rendered = render_queue(records)
+            if options.output is None:
+                sys.stdout.write(rendered)
+            else:
+                queue_path = report_view_path(root, options.output, "WORK_QUEUE.md")
+                _ensure_report_view_parent(queue_path, root)
+                rendered = render_queue(
+                    records, link_prefix=_view_link_prefix(queue_path),
+                )
+                _atomic_write(queue_path, rendered.encode("utf-8"))
+                print("wrote {}".format(queue_path.relative_to(root)))
         elif options.command == "render-v2":
             records = read_records_v2(tasks_path)
-            sys.stdout.write(render_queue_v2(records))
+            rendered = render_queue_v2(records)
+            if options.output is None:
+                sys.stdout.write(rendered)
+            else:
+                queue_path = report_view_path(root, options.output, "WORK_QUEUE.md")
+                _ensure_report_view_parent(queue_path, root)
+                rendered = render_queue_v2(
+                    records, link_prefix=_view_link_prefix(queue_path),
+                )
+                _atomic_write(queue_path, rendered.encode("utf-8"))
+                print("wrote {}".format(queue_path.relative_to(root)))
         elif options.command == "migration-preview":
             preview = migration_preview(
                 tasks_path,
@@ -2948,7 +3019,8 @@ def run(args: Sequence[str] | None = None) -> int:
             print(json.dumps(preview, sort_keys=True, allow_nan=False))
         elif options.command == "repair-render":
             revision = _repair_render(
-                tasks_path, queue_path, repo_root=root, subject_reader=lambda: _git_subject(root)
+                tasks_path, report_view_path(root, options.output, "WORK_QUEUE.md"),
+                repo_root=root, subject_reader=lambda: _git_subject(root)
             )
             print("rendered WORK_QUEUE.md from queue revision {}".format(revision))
         elif options.command == "instructions":

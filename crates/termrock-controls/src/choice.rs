@@ -1,12 +1,3 @@
-//! `Checkbox`, `Toggle` and `RadioGroup` (`COMPONENT_ARCHITECTURE.md` §15,
-//! §17.0 A7/A10, §18.2, §20.10 item 3, Appendix A 4B).
-//!
-//! The three controls share one keymap (`Space` / `Enter` commit) and one
-//! marker vocabulary: the glyph is a [`GlyphRole`] the component names and
-//! the theme binds, because a two-state affordance's *off* half cannot be
-//! expressed by a `StateRule` — a rule binds one glyph to a state, and "not
-//! checked" is the absence of a state, not a state of its own.
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -30,35 +21,22 @@ use termrock_collections::collection::{
 };
 use termrock_runtime::{RowFn, RowUi};
 
-/// What a radio group reports; the cursor moving is **not** an action —
-/// cursor and value are separate (§15, §20.10 item 3).
-/// Editing state a `Form` (in `termrock-forms`) hands to its field
-/// controls: shared flags every embedded control must respect.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct InheritedFormState {
-    /// The owning form field is disabled; the control paints and behaves
-    /// accordingly without owning the disable decision.
     pub disabled: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RadioGroupAction {
-    /// The cursor option was committed as the value.
     Chose(ItemKey),
 }
 
-/// The const-constructible commands of the choice keymap.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChoiceCmd {
-    /// Commit the cursor option / flip the flag.
     Choose,
-    /// Cursor to the previous option.
     Prev,
-    /// Cursor to the next option.
     Next,
-    /// Cursor to the first option.
     First,
-    /// Cursor to the last option.
     Last,
 }
 
@@ -73,7 +51,6 @@ const fn b(chord: Chord, cmd: ChoiceCmd, label: &'static str, visible: bool) -> 
     }
 }
 
-/// `Checkbox` / `Toggle`: one commit chord, two spellings.
 const FLAG: &[Binding<ChoiceCmd>] = &[
     b(
         Chord::key(KeyCode::Char(' ')),
@@ -89,7 +66,6 @@ const FLAG: &[Binding<ChoiceCmd>] = &[
     ),
 ];
 
-/// `RadioGroup`: arrows move the cursor, `Space` / `Enter` commit it.
 const RADIO: &[Binding<ChoiceCmd>] = &[
     b(
         Chord::key(KeyCode::Char(' ')),
@@ -121,10 +97,6 @@ const RADIO: &[Binding<ChoiceCmd>] = &[
     b(Chord::key(KeyCode::End), ChoiceCmd::Last, "Last", false),
 ];
 
-/// One flag row's chrome — gutter, marker glyph, label, trailing word.
-///
-/// Shared by [`Checkbox`] and [`Toggle`]: the only difference is the marker,
-/// which each control supplies as a closure over its own glyph roles.
 struct FlagRow<'r> {
     id: Id,
     ov: PartStyle<'r>,
@@ -134,7 +106,6 @@ struct FlagRow<'r> {
 }
 
 impl FlagRow<'_> {
-    /// Paint the row and return it.
     fn draw(
         &self,
         ui: &mut Ui<'_>,
@@ -188,7 +159,6 @@ impl FlagRow<'_> {
         } else {
             let ls = style(ui, Part::LABEL);
             let used = if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
-                // §11.4's mono `PRESSED` affordance: `[label]`
                 let l = ui.glyph(text, GlyphRole::PressLeft, ls.style);
                 let mut t = super::shift(text, l);
                 let w = ui.paint_str(t, label, ls.style);
@@ -208,64 +178,6 @@ impl FlagRow<'_> {
     }
 }
 
-/// A one-row checkbox: `[✓]` / `[ ]`, a label, and the caller's `bool`.
-///
-/// ## Construction
-/// `Checkbox::new(id, label)`. The controlled flag is passed per phase:
-/// `&mut bool` to `update`, `.checked(bool)` for `draw`.
-///
-/// ## Ownership
-/// Stateless (`State = ()`): the flag is the caller's, the runtime owns
-/// focus, hover and press.
-///
-/// ## Configuration
-/// `.checked(bool)` (draw; `false`), `.disabled(bool)`, `.read_only(bool)`,
-/// `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::CHOICE`, `DEFAULT` only.
-///
-/// ## States
-/// `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from the runtime;
-/// `CHECKED | SELECTED` from the flag; `READ_ONLY`, `DISABLED` from the props.
-///
-/// ## Actions
-/// [`Activated`] — the flag was flipped through the `&mut bool` (§6.1: the
-/// activation action of a button-like control).
-///
-/// ## Focus
-/// One `Focusable` stop (`FocusableReadOnly` / `Disabled`); does not
-/// swallow typing.
-///
-/// ## Keyboard
-/// `Space` (visible) and `Enter` toggle.
-///
-/// ## Mouse
-/// `PartRef::of(Part::CONTAINER)`: a click toggles.
-///
-/// ## Layout
-/// One row: gutter, a three-column marker, one space, the label. `measure`
-/// is the natural width by one row; `draw` returns the row; `0×0` registers
-/// nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the row fill), `GUTTER` (the focus bar), `MARKER` (the box),
-/// `LABEL`.
-///
-/// ## Overrides
-/// `.patch`, `.patch_part`, `.slot` on `GUTTER`, `MARKER` and `LABEL`.
-///
-/// ## Identity
-/// One `Id`; no items.
-///
-/// ## Testing
-/// `CheckboxCase` with `ACTIVATES | FOCUSABLE | DISABLEABLE`;
-/// `render::components::checkbox::*`.
-///
-/// ## Invariants
-/// `draw` never writes the flag (it takes `&self` and a `bool` prop); the
-/// marker is [`GlyphRole::CheckboxOn`] / [`GlyphRole::CheckboxOff`], so the
-/// off state is a glyph and survives `ColorLevel::Mono`.
 pub struct Checkbox<'a> {
     id: Id,
     label: &'a str,
@@ -288,13 +200,10 @@ impl fmt::Debug for Checkbox<'_> {
 }
 
 impl<'a> Checkbox<'a> {
-    /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
 
-    /// Columns the marker occupies.
     const MARKER_W: u16 = 3;
 
-    /// A checkbox.
     pub const fn new(id: Id, label: &'a str) -> Self {
         Checkbox {
             id,
@@ -306,49 +215,42 @@ impl<'a> Checkbox<'a> {
         }
     }
 
-    /// The controlled flag, for `draw`.
     #[must_use]
     pub const fn checked(mut self, yes: bool) -> Self {
         self.checked = yes;
         self
     }
 
-    /// Read-only: stays in the ring, never toggles.
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
 
-    /// Disabled: registered, never reachable.
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// Showcase / fixture use only (A11).
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
@@ -364,7 +266,6 @@ impl<'a> Checkbox<'a> {
         }
     }
 
-    /// The update phase: `Space` / `Enter` / a click flip `value`.
     pub fn update(&self, cx: &mut Cx<'_>, value: &mut bool) -> Response<Activated> {
         let mut acc = Acc::<Activated>::new();
         let can = self.editable();
@@ -400,21 +301,18 @@ impl<'a> Checkbox<'a> {
             .update(cx, value)
     }
 
-    /// The natural width: gutter, marker, space, label.
     fn natural_width(&self) -> u16 {
         Self::MARKER_W
             .saturating_add(2)
             .saturating_add(width(self.label))
     }
 
-    /// The draw phase.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = first_row(area);
         if area.is_empty() {
             return area;
         }
-        // runtime: the frame's own focus/hover/press; derived: the box's
-        // `.checked`, `.read_only` and `.disabled` props
+
         let mut derived = StateFlags::empty();
         if self.checked {
             derived |= StateFlags::CHECKED | StateFlags::SELECTED;
@@ -478,7 +376,6 @@ impl<'a> Checkbox<'a> {
             .draw(ui, area)
     }
 
-    /// One row, the marker plus the label.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(), 1).fit(c)
     }
@@ -508,63 +405,6 @@ impl FieldControl for Checkbox<'_> {
     }
 }
 
-/// A one-row switch: a knob on a two-cell track, a label and an `on` / `off`
-/// word.
-///
-/// ## Construction
-/// `Toggle::new(id, label)`. The controlled flag is passed per phase:
-/// `&mut bool` to `update`, `.on(bool)` for `draw`.
-///
-/// ## Ownership
-/// Stateless (`State = ()`): the flag is the caller's.
-///
-/// ## Configuration
-/// `.on(bool)` (draw; `false`), `.disabled(bool)`, `.read_only(bool)`,
-/// `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::CHOICE`, `DEFAULT` only.
-///
-/// ## States
-/// `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from the runtime;
-/// `CHECKED | SELECTED` from the flag; `READ_ONLY`, `DISABLED` from the props.
-///
-/// ## Actions
-/// [`Activated`] — the flag was flipped through the `&mut bool`.
-///
-/// ## Focus
-/// One `Focusable` stop (`FocusableReadOnly` / `Disabled`); does not
-/// swallow typing.
-///
-/// ## Keyboard
-/// `Space` (visible) and `Enter` toggle.
-///
-/// ## Mouse
-/// `PartRef::of(Part::CONTAINER)`: a click toggles.
-///
-/// ## Layout
-/// One row: gutter, a three-column switch, one space, the label, then the
-/// `on` / `off` word when the row is wide enough. `measure` is the natural
-/// width by one row; `0×0` registers nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER`, `GUTTER`, `MARKER` (the switch), `LABEL`, `META` (the
-/// `on` / `off` word).
-///
-/// ## Overrides
-/// `.patch`, `.patch_part`, `.slot` on `GUTTER`, `MARKER` and `LABEL`.
-///
-/// ## Identity
-/// One `Id`; no items.
-///
-/// ## Testing
-/// `ToggleCase` with `ACTIVATES | FOCUSABLE | DISABLEABLE`;
-/// `render::components::toggle::*`.
-///
-/// ## Invariants
-/// `draw` never writes the flag; the switch is [`GlyphRole::SwitchKnob`] on
-/// a [`GlyphRole::RuleQuiet`] track and the state word is text, so both
-/// halves survive `ColorLevel::Mono`.
 pub struct Toggle<'a> {
     id: Id,
     label: &'a str,
@@ -587,7 +427,6 @@ impl fmt::Debug for Toggle<'_> {
 }
 
 impl<'a> Toggle<'a> {
-    /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -596,10 +435,8 @@ impl<'a> Toggle<'a> {
         Part::META,
     ];
 
-    /// Columns the switch occupies.
     const MARKER_W: u16 = 3;
 
-    /// A toggle.
     pub const fn new(id: Id, label: &'a str) -> Self {
         Toggle {
             id,
@@ -611,49 +448,42 @@ impl<'a> Toggle<'a> {
         }
     }
 
-    /// The controlled flag, for `draw`.
     #[must_use]
     pub const fn on(mut self, yes: bool) -> Self {
         self.on = yes;
         self
     }
 
-    /// Read-only: stays in the ring, never toggles.
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
 
-    /// Disabled: registered, never reachable.
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// Showcase / fixture use only (A11).
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
@@ -669,7 +499,6 @@ impl<'a> Toggle<'a> {
         }
     }
 
-    /// The update phase: `Space` / `Enter` / a click flip `value`.
     pub fn update(&self, cx: &mut Cx<'_>, value: &mut bool) -> Response<Activated> {
         let mut acc = Acc::<Activated>::new();
         let can = self.editable();
@@ -712,14 +541,12 @@ impl<'a> Toggle<'a> {
             .saturating_add(4)
     }
 
-    /// The draw phase.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = first_row(area);
         if area.is_empty() {
             return area;
         }
-        // runtime: the frame's own focus/hover/press; derived: the switch's
-        // `.on`, `.read_only` and `.disabled` props
+
         let mut derived = StateFlags::empty();
         if self.on {
             derived |= StateFlags::CHECKED | StateFlags::SELECTED;
@@ -761,7 +588,6 @@ impl<'a> Toggle<'a> {
             area,
             live,
             &move |ui: &mut Ui<'_>, cell: Rect, style| {
-                // the knob sits at the end of the track when the switch is on
                 let (knob, track) = if on {
                     (cell.right().saturating_sub(1), cell.x)
                 } else {
@@ -793,7 +619,6 @@ impl<'a> Toggle<'a> {
             .draw(ui, area)
     }
 
-    /// One row, the switch plus the label and the state word.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(), 1).fit(c)
     }
@@ -823,31 +648,22 @@ impl FieldControl for Toggle<'_> {
     }
 }
 
-/// The default instantiation a form field holds (§15.1, §24 M3): options
-/// are `&str` labels, keyed positionally, painted through `Display`.
 pub type LabelRadio<'a> = RadioGroup<'a, &'a str, ByIndex, DefaultRow>;
 
-/// Durable state of a [`RadioGroup`]: the **cursor** and the reconcile
-/// stamp. The value is the caller's, supplied to both phases through
-/// `.value(ItemKey)` and written by the caller when
-/// [`RadioGroupAction::Chose`] arrives (§15, §20.10 item 3).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RadioGroupState {
     core: CollectionCore,
 }
 
 impl RadioGroupState {
-    /// The cursor key.
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-    /// The cursor's index as of the last reconcile.
     pub const fn cursor_index(&self) -> usize {
         self.core.cursor_index()
     }
 
-    /// Point the cursor at `(index, key)`.
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
@@ -863,79 +679,6 @@ impl Reconcile for RadioGroupState {
     }
 }
 
-/// A vertical radio group over borrowed options, with the **cursor
-/// separated from the value**.
-///
-/// ## Construction
-/// `RadioGroup::new(id)`; options are passed to each phase, never held
-/// (§21 item 1). The value is a controlled prop (`.value(ItemKey)`), written by
-/// the caller when [`RadioGroupAction::Chose`] arrives.
-///
-/// ## Ownership
-/// The caller owns the options (`&[T]` per phase), the value and a
-/// [`RadioGroupState`] (the cursor). The runtime owns focus, hover and
-/// press.
-///
-/// ## Configuration
-/// `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable under reorder),
-/// `.row(Fn(&T, &mut RowUi))` (`DefaultRow`: `Display`), `.value(ItemKey)`
-/// (update and draw), `.read_only(bool)`, `.disabled(bool)`, `.patch`, `.patch_part`,
-/// `.slot`.
-///
-/// ## Variants
-/// `Family::CHOICE`, `DEFAULT` only.
-///
-/// ## States
-/// The group wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED`, `PRESSED` from
-/// the runtime and passes them to the **cursor** row only; the value row
-/// wears `SELECTED`; `READ_ONLY` and `DISABLED` reach every row.
-///
-/// ## Actions
-/// [`RadioGroupAction::Chose(k)`](RadioGroupAction::Chose) — `Space`,
-/// `Enter` or a click committed option `k`. **Moving the cursor emits no
-/// action**: this is the intentional change from the legacy fused
-/// cursor-is-value behaviour (§20.10 item 3), so arrowing through a group
-/// no longer fires a change per row.
-///
-/// ## Focus
-/// One `Focusable` stop for the whole group (`FocusableReadOnly` /
-/// `Disabled`); does not swallow typing. Option rows are click targets, not
-/// focus stops.
-///
-/// ## Keyboard
-/// `↑`/`k`, `↓`/`j` move the cursor; `Home`/`End` jump; `Space` (visible)
-/// and `Enter` commit the cursor option.
-///
-/// ## Mouse
-/// `PartRef::item(Part::ROW, k)`: a press moves the cursor, a click commits
-/// option `k`.
-///
-/// ## Layout
-/// One row per option: gutter, a three-column marker, one space, the row
-/// renderer's content. `measure` is `(16…, options)`; `draw` returns the
-/// rows it used; `0×0` registers nothing (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the row fill), `GUTTER` (the focus bar), `MARKER` (the
-/// radio), `LABEL` (through [`RowUi`]).
-///
-/// ## Overrides
-/// `.patch`, `.patch_part`, `.slot` on `GUTTER` and `MARKER`.
-///
-/// ## Identity
-/// `.key` supplies stable keys; `ByIndex` is unstable under
-/// insert/remove/reorder. The action carries an `ItemKey`, never an index.
-///
-/// ## Testing
-/// `RadioGroupCase` with `ACTIVATES | FOCUSABLE | COLLECTION |
-/// DISABLEABLE | SELECTS`; `render::components::radio_group::*`;
-/// `choice::radio_group_separates_cursor_from_value`.
-///
-/// ## Invariants
-/// `reconcile` runs before any action is emitted; the marker is
-/// [`GlyphRole::RadioOn`] / [`GlyphRole::RadioOff`], so the unselected half
-/// is a glyph rather than the absence of colour; only visible rows invoke
-/// the renderer.
 pub struct RadioGroup<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -959,7 +702,6 @@ impl<T, K, R> fmt::Debug for RadioGroup<'_, T, K, R> {
 }
 
 impl<T> RadioGroup<'_, T, ByIndex, DefaultRow> {
-    /// A radio group keyed by index and painted through `Display`.
     pub const fn new(id: Id) -> Self {
         RadioGroup {
             id,
@@ -1020,18 +762,14 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
-    /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
 
-    /// Columns the marker occupies.
     const MARKER_W: u16 = 3;
 
-    /// The id.
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// A stable key accessor.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> RadioGroup<'a, T, K2, R> {
         RadioGroup {
             id: self.id,
@@ -1045,7 +783,6 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
         }
     }
 
-    /// A row painter.
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> RadioGroup<'a, T, K, R2> {
         RadioGroup {
             id: self.id,
@@ -1059,56 +796,42 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
         }
     }
 
-    /// The controlled value, for `update` and `draw`.
-    ///
-    /// The value is **not** state: `update` never writes it, it reports
-    /// [`RadioGroupAction::Chose`] and the caller writes its own field —
-    /// the controlled-value convention of §13, with the write happening in
-    /// the action handler rather than through a `&mut` parameter, because a
-    /// group's value is an `ItemKey` chosen from the items the phase call
-    /// already carries.
     #[must_use]
     pub const fn value(mut self, k: ItemKey) -> Self {
         self.value = Some(k);
         self
     }
 
-    /// Read-only: stays in the ring, never commits.
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
 
-    /// Disabled: registered, never reachable.
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
 
-    /// Showcase / fixture use only (A11).
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
@@ -1145,8 +868,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         let to = to.min(items.len().saturating_sub(1));
         let key = self.key_at(items, to);
         st.core.set_cursor(to, key);
-        // the cursor is not the value: moving it repaints and reports
-        // nothing (§20.10 item 3)
+
         acc.changed();
     }
 
@@ -1167,8 +889,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         acc.action(RadioGroupAction::Chose(key));
     }
 
-    /// The update phase: reconcile when enabled, then move the cursor or
-    /// commit it.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -1180,8 +900,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         if !self.disabled {
             let _ = st.core.reconcile(len, |i| self.key_at(items, i));
             if st.core.cursor().is_none() && len > 0 {
-                // the cursor starts on the value when there is one, else on
-                // the first option
                 let i = self
                     .value
                     .and_then(|v| self.index_of(items, v, None))
@@ -1236,7 +954,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    /// The rect the group paints into: one row per option that fits `area`.
     fn used_rect(area: Rect, len: usize) -> Rect {
         let rows = usize::from(area.height).min(len);
         Rect {
@@ -1245,10 +962,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         }
     }
 
-    /// Registers the group as one control over `used`.
-    ///
-    /// A reference rendering registers nothing, so it cannot take focus from
-    /// the live frame.
     fn register(&self, ui: &mut Ui<'_>, used: Rect) {
         if ui.is_inert() {
             return;
@@ -1263,11 +976,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         ui.register_control(self.id, used, f);
     }
 
-    /// The state flags row `i` paints with, and whether that row carries the
-    /// value.
-    ///
-    /// Runtime state may style the actual cursor and value rows, but never
-    /// supplies either semantic identity.
     fn row_flags(
         &self,
         live: StateFlags,
@@ -1301,7 +1009,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         (flags, on)
     }
 
-    /// Paints the gutter column of one option row.
     fn paint_gutter(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags) {
         if let Some(f) = self.ov.slot_for(Part::GUTTER) {
             f(ui, cell);
@@ -1323,7 +1030,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         }
     }
 
-    /// Paints the radio marker of one option row.
     fn paint_marker(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags, on: bool) {
         if let Some(f) = self.ov.slot_for(Part::MARKER) {
             f(ui, cell);
@@ -1345,8 +1051,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         ui.glyph(cell, g, ms.style);
     }
 
-    /// Paints one option row: the container surface, the gutter, the marker
-    /// and the caller's row body.
     fn paint_row(
         &self,
         ui: &mut Ui<'_>,
@@ -1397,7 +1101,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         }
     }
 
-    /// The draw phase: one row per option.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;
@@ -1407,8 +1110,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             return used;
         }
         self.register(ui, used);
-        // runtime: the group's own frame state; derived: none — the group's
-        // `.disabled` and `.read_only` enter per row, in `row_flags`
+
         let live = PartStyle::flags(
             crate::ui::FrameRead::state(ui, self.id),
             StateFlags::empty(),
@@ -1442,7 +1144,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         used
     }
 
-    /// The natural size: sixteen columns by one row per option.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (16, 1),
@@ -1537,8 +1238,6 @@ mod tests {
         assert_ne!(draw_toggle(true), draw_toggle(false));
     }
 
-    /// A disabled collection remains drawable from its current item slice,
-    /// but its update phase must not initialize or reconcile persistent state.
     #[test]
     fn disabled_update_does_not_initialize_collection_state() {
         let mut runtime = Runtime::new(DisabledRadioApp::default(), Theme::junie());
@@ -1547,9 +1246,6 @@ mod tests {
         assert_eq!(runtime.app().state, RadioGroupState::default());
     }
 
-    /// §16.1 / §20.10 item 3: arrows move the cursor and commit nothing; the
-    /// value changes only on `Space` / `Enter` / a click, and it is the
-    /// caller's field, never state.
     #[test]
     fn radio_group_separates_cursor_from_value() {
         let items = ["a", "b", "c"];
@@ -1575,7 +1271,7 @@ mod tests {
             acc.finish(RG).action_ref(),
             Some(&RadioGroupAction::Chose(ItemKey::index(2)))
         );
-        // the cursor also lands on the value when the group first draws
+
         let mut fresh = RadioGroupState::default();
         let valued: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(1));
         let _ = fresh.core.reconcile(3, |i| valued.key_at(&items, i));
@@ -1715,8 +1411,6 @@ mod tests {
         assert_eq!(state.cursor(), Some(ItemKey::text("beta")));
     }
 
-    /// The marker is a glyph pair, so an unselected option is visible
-    /// without colour (§11.4).
     #[test]
     fn the_radio_marker_is_a_glyph_pair() {
         let items = ["alpha", "beta"];

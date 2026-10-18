@@ -1,5 +1,3 @@
-//! Headless searchable collection used by pickers.
-
 use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
@@ -21,53 +19,31 @@ use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 
-/// Events produced by a [`FilterList`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FilterListAction {
-    /// The query changed.
     QueryChanged,
-    /// The cursor moved.
     Moved,
-    /// The cursor item was chosen.
     Chose(ItemKey),
-    /// The cursor item was chosen with Alt held.
     ChoseAlt(ItemKey),
-    /// The cursor item's secondary action was requested.
     Secondary(ItemKey),
-    /// Backspace was pressed with an empty query.
     Back,
-    /// Escape was pressed with an empty query.
     Cancel,
-    /// The next scope was requested.
     NextScope,
 }
 
-/// Const commands declared by a filter list.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FilterListCmd {
-    /// Previous match.
     Up,
-    /// Next match.
     Down,
-    /// Previous page.
     PageUp,
-    /// Next page.
     PageDown,
-    /// First match.
     Home,
-    /// Last match.
     End,
-    /// Normal activation.
     Choose,
-    /// Alternate activation.
     ChooseAlt,
-    /// Secondary activation.
     Secondary,
-    /// Delete a query grapheme or rewind when empty.
     Back,
-    /// Cycle scope.
     NextScope,
-    /// Clear the query or cancel when already empty.
     Cancel,
 }
 
@@ -189,18 +165,13 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
     ),
 ];
 
-/// Ownership of the visible item projection.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FilterPolicy {
-    /// Match the query against semantic labels, preserving source order.
     #[default]
     Label,
-    /// The caller supplies already filtered and ranked items.
-    /// Query editing and keyed navigation remain owned by the component.
     Caller,
 }
 
-/// Durable query, cursor, filtered-index and scroll state.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct FilterListState {
     query: String,
@@ -210,28 +181,22 @@ pub struct FilterListState {
 }
 
 impl FilterListState {
-    /// Current query.
     pub fn query(&self) -> &str {
         &self.query
     }
-    /// Replace the query. Matches are rebuilt on the next update.
     pub fn set_query(&mut self, query: impl Into<String>) {
         self.query = query.into();
         self.core.invalidate();
     }
-    /// Current item key.
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
-    /// Set the cursor before the first draw, preserving the semantic key.
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
-    /// Scroll state.
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
-    /// Number of matched items from the last update.
     pub const fn matched_len(&self) -> usize {
         self.matches.len()
     }
@@ -252,52 +217,6 @@ impl Reconcile for FilterListState {
     }
 }
 
-/// A searchable, keyed list with caller-owned state and items.
-///
-/// ## Construction
-/// `FilterList::new(id)`; data is passed to both phases.
-///
-/// ## Ownership
-/// The caller owns items and [`FilterListState`]; runtime owns focus, pointer and wheel routing.
-///
-/// ## Configuration
-/// `.row`, `.empty`, `.status`, `.searchable`, `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::PICKER`, `DEFAULT`.
-///
-/// ## States
-/// Focus and pointer states are runtime-derived; status and disabled rows are semantic.
-///
-/// ## Actions
-/// [`FilterListAction`] carries stable [`ItemKey`] values for item actions.
-///
-/// ## Focus
-/// One editor focus stop; it swallows printable input while searchable.
-///
-/// ## Keyboard
-/// Typing edits the query; arrows/page/home/end move; Enter chooses; Alt+Enter chooses alternate.
-///
-/// ## Mouse
-/// Row click chooses, secondary-click requests the secondary action; wheel uses [`ScrollRegion`].
-///
-/// ## Layout
-/// One row per visible match; a zero area registers nothing.
-///
-/// ## Parts
-/// `CONTAINER`, `GUTTER`, `ROW`, `LABEL`, `META`, `ICON`, `TRACK`, `THUMB`, `EMPTY`.
-///
-/// ## Overrides
-/// Standard patch, per-part patch, and single-part slot overrides.
-///
-/// ## Identity
-/// [`AsItem::as_item`] supplies the stable key; no positional fallback exists.
-///
-/// ## Testing
-/// `FilterListCase`; filtered identity and typing are unit-tested here.
-///
-/// ## Invariants
-/// Matching reuses one index buffer and never allocates once per candidate.
 pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     id: Id,
     row: R,
@@ -324,7 +243,6 @@ impl<T, R> core::fmt::Debug for FilterList<'_, T, R> {
 }
 
 impl<T> FilterList<'_, T, crate::item::ItemRow> {
-    /// Construct with the semantic item row painter.
     pub const fn new(id: Id) -> Self {
         Self {
             id,
@@ -344,7 +262,6 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
 }
 
 impl<T> FilterList<'_, T, crate::item::ItemRow> {
-    /// Opt into aligned semantic columns, measured over the filtered projection.
     #[must_use]
     pub const fn item_layout(mut self, layout: crate::item::ItemRowLayout) -> Self {
         self.item_layout = layout;
@@ -358,7 +275,6 @@ impl<'a, T, R> FilterList<'a, T, R> {
         self
     }
 
-    /// Styled parts.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -370,11 +286,9 @@ impl<'a, T, R> FilterList<'a, T, R> {
         Part::THUMB,
         Part::EMPTY,
     ];
-    /// Component id.
     pub const fn id(&self) -> Id {
         self.id
     }
-    /// Replace the semantic row painter.
     pub fn row<R2: RowFn<T>>(self, row: R2) -> FilterList<'a, T, R2> {
         FilterList {
             id: self.id,
@@ -391,51 +305,43 @@ impl<'a, T, R> FilterList<'a, T, R> {
             _item: PhantomData,
         }
     }
-    /// Empty/loading/error presentation.
     #[must_use]
     pub const fn empty(mut self, empty: EmptyState<'a>) -> Self {
         self.empty = Some(empty);
         self
     }
-    /// Data status.
     #[must_use]
     pub const fn status(mut self, status: Status) -> Self {
         self.status = status;
         self
     }
-    /// Animation frame used by busy/loading readiness.
     #[must_use]
     pub const fn frame(mut self, frame: usize) -> Self {
         self.frame = frame;
         self
     }
-    /// Select who filters the visible items; query editing is independent.
     #[must_use]
     pub const fn filter(mut self, policy: FilterPolicy) -> Self {
         self.filter = policy;
         self
     }
-    /// Whether printable input edits the query.
     #[must_use]
     pub const fn searchable(mut self, yes: bool) -> Self {
         self.searchable = yes;
         self
     }
-    /// Patch all parts.
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
         self.ov = self.ov.global(patch);
         self
     }
-    /// Patch selected parts.
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.parts = parts;
         self.ov = self.ov.part(parts);
         self
     }
-    /// Replace one part painter.
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
@@ -454,8 +360,6 @@ impl<'a, T, R> FilterList<'a, T, R> {
         bar
     }
 
-    /// Paint the readiness prefix and return the exact remaining list area.
-    /// Ready status is geometry-neutral: no cell is reserved.
     fn readiness_area(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) -> Rect {
         if self.status == Status::Ready || area.is_empty() {
             return area;
@@ -498,7 +402,7 @@ impl<'a, T, R> FilterList<'a, T, R> {
                     }
                 }
                 Status::Ready => {}
-                // `Status` is `#[non_exhaustive]`: future statuses paint nothing.
+
                 _ => {}
             }
         }
@@ -540,10 +444,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             .unwrap_or(12)
     }
 
-    /// Reconcile selection and scroll against current semantic item keys.
-    ///
-    /// Call after replacing a caller-owned projection in response to query or
-    /// scope changes, before drawing. This consumes no input and emits no action.
     pub fn reconcile(&self, st: &mut FilterListState, items: &[T]) {
         st.matches.clear();
         st.matches
@@ -718,7 +618,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         }
     }
 
-    /// Update query, selection and scrolling.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -878,7 +777,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         }
     }
 
-    /// Draw the last computed filtered rows.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;

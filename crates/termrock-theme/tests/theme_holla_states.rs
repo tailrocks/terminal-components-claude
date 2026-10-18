@@ -1,6 +1,3 @@
-//! Exact Junie row cells from Holla 794b095 src/theme.rs:329–372 and DESIGN.
-//! Expectations are reference values, not values obtained from the candidate resolver.
-
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Style;
 use termrock_core::{Id, ItemKey, KeyCode, MouseKind, Response};
@@ -335,8 +332,7 @@ fn foreground_only_painters_preserve_background_and_raw_overwrite_drops_it() {
             ui.paint_spans(Rect::new(2, 0, 1, 1), &[Span::new("c")], text);
             ui.paint_style(Rect::new(3, 0, 1, 1), text);
             ui.fill(Rect::new(4, 0, 1, 1), text);
-            // An explicit background starts new provenance, never inherits
-            // the prior hover role just because a text style has no bg role.
+
             ui.paint_str(
                 Rect::new(5, 0, 1, 1),
                 "r",
@@ -555,8 +551,6 @@ fn equal_palette_colors_never_confuse_raw_and_saved_semantic_channels() {
         (ColorLevel::Ansi16, Color::White),
         (ColorLevel::Mono, Color::White),
     ] {
-        // Elevated and overlay collide with each other and with raw white.
-        // Canvas remains distinct so wrong raw provenance cannot pass by color.
         let theme = Theme::junie()
             .builder()
             .surfaces([
@@ -577,8 +571,7 @@ fn equal_palette_colors_never_confuse_raw_and_saved_semantic_channels() {
                 )
             });
             let _ = ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(Surface::Canvas)));
-            // Delayed semantic value, raw color identity, raw patch, semantic
-            // channel copy, and modifiers must remain distinguishable.
+
             let styles = [
                 saved,
                 PaintStyle::from(Style::new().bg(neutral)),
@@ -636,8 +629,7 @@ fn background_only_and_modifier_only_paint_preserve_the_foreground_origin() {
             Rect::new(1, 0, 1, 1),
             Style::new().add_modifier(Modifier::ITALIC),
         );
-        // Same color is still an explicit raw foreground, so it must not erase
-        // through the semantic Ghost ladder when dimmed.
+
         ui.paint_style(
             Rect::new(2, 0, 1, 1),
             Style::new().fg(ghost.fg.unwrap_or(Color::Reset)),
@@ -796,8 +788,6 @@ impl App for NestedPaintOrigins {
                 columns.cell(0).text("a界").align(Align::Right);
             }
             if self.raw {
-                // Explicit raw overwrite matches the exact previously painted
-                // colors, but must replace its semantic origins.
                 ui.paint_str(
                     Rect::new(1, 0, 1, 1),
                     "R",

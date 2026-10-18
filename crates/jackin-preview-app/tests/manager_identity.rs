@@ -1,5 +1,3 @@
-//! Production manager selection follows durable rows across projection changes.
-
 use jackin_preview_app::{App, MANAGER_LIST, Motion, Scenario};
 use termrock::{KeyCode, Theme};
 use termrock_test_support::Harness;

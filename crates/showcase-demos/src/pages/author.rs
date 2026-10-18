@@ -1,10 +1,3 @@
-//! A small downstream-authored component using only `termrock::author`.
-//!
-//! This is intentionally kept in the application package. It proves that an
-//! app-owned control can register focus and parts, receive pointer intents,
-//! resolve per-instance styles, and render through the same public facade as
-//! the built-in controls.
-
 use termrock::author::{
     Cx, Family, Focusability, FrameRead, Id, Intent, Part, PartRef, PartStyle, Phase, Rect,
     Response, Role, StateFlags, StylePatch, Ui, Variant,
