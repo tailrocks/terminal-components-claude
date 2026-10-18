@@ -8,31 +8,31 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use ratatui::crossterm::event::KeyCode;
 
-/// A button is rendered as ` label ` with one cell of padding. When focused
-/// the left padding cell becomes the accent gutter bar. No box, ever.
+
+
 #[derive(Debug, Clone)]
 pub struct Button {
     pub id: WidgetId,
     pub label: String,
     pub kind: ButtonKind,
     pub disabled: bool,
-    /// For toggle buttons: current on/off state.
+
     pub on: Option<bool>,
     pub busy: bool,
     pub area: Rect,
-    /// When the focus ring shows. Default [`FocusVisible::Always`](crate::ui::ctx::FocusVisible::Always);
-    /// `KeyboardOnly` hides it after a click, as macOS buttons do.
+
+
     pub focus_visible: crate::ui::ctx::FocusVisible,
-    /// The label character (index in chars) drawn underlined as the
-    /// button's mnemonic, set by the owner that handles the key (a
-    /// [`crate::widgets::dialog::Dialog`]). Default `None`.
+
+
+
     pub mnemonic: Option<usize>,
-    /// What the button does and its shortcut, shown when the pointer rests
-    /// on it ([`crate::ui::tooltip`]). Default `None`.
+
+
     pub tip: Option<crate::ui::tooltip::Tip>,
-    /// The button is a Tab stop. Default on. Off for a toolbar button
-    /// whose command already has a shortcut (macOS toolbars are not in the
-    /// key loop without Full Keyboard Access); it still takes clicks.
+
+
+
     pub focusable: bool,
 }
 
@@ -53,14 +53,14 @@ impl Button {
         }
     }
 
-    /// See [`Self::focusable`].
+
     pub fn focusable(mut self, on: bool) -> Self {
         self.focusable = on;
         self
     }
 
-    /// A tooltip describing what the button does, shown when the pointer
-    /// rests on it.
+
+
     pub fn tooltip(mut self, text: &str) -> Self {
         let key = self.tip.take().and_then(|t| t.shortcut);
         self.tip = Some(crate::ui::tooltip::Tip {
@@ -70,8 +70,8 @@ impl Button {
         self
     }
 
-    /// The key that does the same, shown in the tooltip after its text
-    /// (set the text with [`Self::tooltip`]).
+
+
     pub fn shortcut(mut self, key: &str) -> Self {
         let mut tip = self.tip.take().unwrap_or_default();
         tip.shortcut = Some(key.to_owned());
@@ -106,16 +106,16 @@ impl Button {
         self
     }
 
-    /// Display width including padding and toggle marker.
+
     pub fn width(&self) -> u16 {
         let marker = if self.on.is_some() || self.busy { 2 } else { 0 };
         (width(&self.label) + 2 + marker) as u16
     }
 
-    /// The footer hint for this button while it has focus: Enter names
-    /// what it does (`Enter Save…`, `Enter Cancel`), never a generic verb.
-    /// While it is busy Enter does nothing, so the hint says it is working
-    /// (`Working…`, K35) instead of naming a key that does nothing.
+
+
+
+
     pub fn hint(&self) -> crate::widgets::keyhint::Hint {
         if self.busy {
             return crate::widgets::keyhint::Hint::new("", "Working…")
@@ -128,7 +128,7 @@ impl Button {
         !self.disabled && !self.busy
     }
 
-    /// Keyboard activation while focused. Returns `true` when activated.
+
     pub fn on_key(&mut self, key: &Key) -> (Outcome, bool) {
         if key.is(KeyCode::Enter) || key.is_char(' ') {
             if self.can_activate() {
@@ -142,7 +142,7 @@ impl Button {
         }
     }
 
-    /// Mouse click activation. Returns `true` when activated.
+
     pub fn on_click(&mut self) -> bool {
         if self.can_activate() {
             self.toggle_if_needed();
@@ -185,8 +185,8 @@ impl Button {
             s.pressed = false;
         }
         let t = ctx.theme;
-        // the resolver owns every state, busy included: a busy label dims,
-        // on the accent fill it keeps the on-accent ink
+
+
         let it = t.interactive(Kind::Button(self.kind), s, t.plane_of(bg));
         let style = it.style;
         let filled = it.on_fill;
@@ -208,7 +208,7 @@ impl Button {
         let text = crate::ui::text::fit(&text, (w as usize).saturating_sub(2));
         buf.set_string(area.x, area.y, it.gutter, gutter);
         buf.set_string(area.x + 1, area.y, &text, style);
-        // marker colour: accent when on, muted when off
+
         if let Some(on) = self.on
             && !self.disabled
         {
@@ -233,7 +233,7 @@ impl Button {
                 style.fg(if filled { busy_ink } else { t.accent }),
             );
         }
-        // the mnemonic letter, underlined where the label is drawn whole
+
         if let Some(mi) = self.mnemonic
             && !self.busy
             && self.on.is_none()
@@ -258,10 +258,10 @@ impl Button {
     }
 }
 
-/// The lines of a row of buttons `widths` wide in `width` cells with `gap`
-/// cells between them, each a list of indices: a button that does not fit
-/// beside the ones before it starts the next line. One rule for
-/// [`row_layout`] and [`ButtonRow`] (R-apps-7).
+
+
+
+
 fn wrap_lines(width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
     let mut lines: Vec<Vec<usize>> = vec![vec![]];
     let mut used = 0u16;
@@ -283,8 +283,8 @@ fn wrap_lines(width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
     lines
 }
 
-/// Lines a row of buttons `widths` wide takes in `width` cells
-/// ([`row_layout`]): 1 while they fit side by side.
+
+
 pub fn row_lines(width: u16, widths: &[u16], gap: u16) -> u16 {
     if widths.is_empty() {
         return 1;
@@ -292,19 +292,19 @@ pub fn row_lines(width: u16, widths: &[u16], gap: u16) -> u16 {
     wrap_lines(width, widths, gap).len() as u16
 }
 
-/// Lay out buttons in a row, `gap` cells apart, returning their areas.
-///
-/// A button never drops or gets cut because the row is full (R-apps-7):
-/// one that does not fit beside the ones before it wraps onto the next
-/// line, as a wrapping toolbar does, so every button stays a Tab stop and
-/// a click target. Reserve [`row_lines`] lines below `area.y`. Only a
-/// button wider than the whole row is cut to it.
+
+
+
+
+
+
+
 pub fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     place_lines(area, widths, gap, false)
 }
 
-/// Right-aligned row layout (used by dialog action bars): every line of
-/// [`row_layout`] packed to the right.
+
+
 pub fn row_layout_right(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     place_lines(area, widths, gap, true)
 }
@@ -329,67 +329,67 @@ fn place_lines(area: Rect, widths: &[u16], gap: u16, right: bool) -> Vec<Rect> {
     out
 }
 
-/// Where a [`ButtonRow`] puts its buttons along the row.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowAlign {
-    /// Packed to the left (forms, toolbars).
+
     #[default]
     Start,
-    /// Packed to the right (dialog actions, the macOS convention).
+
     End,
 }
 
-/// What a [`ButtonRow`] does with buttons that do not fit its width.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RowOverflow {
-    /// The buttons that do not fit fold into one `…` button at the end of
-    /// the row; the owner opens them as a menu when it is activated
-    /// ([`ButtonRow::more_id`], [`RowLayout::hidden`]).
+
+
+
     #[default]
     More,
-    /// The row continues on the next line; reserve
-    /// [`ButtonRow::rows`] lines for it.
+
+
     Wrap,
 }
 
-/// A row of buttons laid out once for every app: a shared gap (the theme's
-/// `spacing.button_gap` unless set), and the primary action never cut.
-///
-/// Laying buttons out edge to edge used to cut the last one, usually the
-/// primary, to `Remov…` or to nothing. A row now keeps every button whole:
-/// the primary (the first [`ButtonKind::Primary`] or
-/// [`ButtonKind::Danger`] button, else the last) is placed first, and the
-/// others either fold into a `…` button ([`RowOverflow::More`], the
-/// default) or wrap onto the next line ([`RowOverflow::Wrap`]). Only a row
-/// too narrow for the primary alone cuts it.
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ButtonRow {
-    /// Default [`RowAlign::Start`].
+
     pub align: RowAlign,
-    /// Cells between buttons; `None` takes the theme's
-    /// `spacing.button_gap` (2). Default `None`.
+
+
     pub gap: Option<u16>,
-    /// Default [`RowOverflow::More`].
+
     pub overflow: RowOverflow,
-    /// ←/→ past the last (first) button wraps to the first (last). Default
-    /// off: the arrows stop at the ends, as in a macOS button row (K32).
+
+
     pub wrap: bool,
 }
 
-/// Where a [`ButtonRow`] put each button.
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RowLayout {
-    /// One entry per button: its area, or `None` when it folded into the
-    /// `…` button.
+
+
     pub rects: Vec<Option<Rect>>,
-    /// The `…` button's area, when anything folded into it.
+
     pub more: Option<Rect>,
-    /// Indices of the buttons behind the `…` button, in row order.
+
     pub hidden: Vec<usize>,
 }
 
-/// Label of the overflow button with the default glyphs; the button draws
-/// [`crate::theme::Glyphs::ellipsis`].
+
+
 pub const MORE_LABEL: &str = "…";
 
 impl ButtonRow {
@@ -408,17 +408,17 @@ impl ButtonRow {
         self.overflow = overflow;
         self
     }
-    /// See [`Self::wrap`].
+
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
 
-    /// The button ←/→ moves to from `cur` among `buttons` (row order):
-    /// the next (`forward`) or previous enabled one, wrapping per
-    /// [`Self::wrap`]. `None` when `cur` is not a button of the row or
-    /// there is nowhere to go. The one button-row navigation every dialog
-    /// uses (K32).
+
+
+
+
+
     pub fn step<'a>(
         &self,
         buttons: impl IntoIterator<Item = &'a Button>,
@@ -444,7 +444,7 @@ impl ButtonRow {
         }
     }
 
-    /// The id of the `…` button for a row owned by `owner`.
+
     pub fn more_id(owner: WidgetId) -> WidgetId {
         owner.sub("more")
     }
@@ -453,7 +453,7 @@ impl ButtonRow {
         self.gap.unwrap_or(theme.spacing.button_gap)
     }
 
-    /// The button that is never folded away or cut first.
+
     fn primary(buttons: &[Button]) -> Option<usize> {
         buttons
             .iter()
@@ -461,19 +461,19 @@ impl ButtonRow {
             .or_else(|| buttons.len().checked_sub(1))
     }
 
-    /// The lines of buttons, each a list of indices, for `width` cells.
+
     fn lines(&self, width: u16, widths: &[u16], gap: u16) -> Vec<Vec<usize>> {
         wrap_lines(width, widths, gap)
     }
 
-    /// The row's natural width (plan §1.4 `Measure`): every button on one
-    /// line with the gap between, so nothing folds behind `…` or wraps.
+
+
     pub fn width(&self, buttons: &[Button], theme: &crate::theme::Theme) -> u16 {
         let n = buttons.len() as u16;
         buttons.iter().map(Button::width).sum::<u16>() + self.gap_for(theme) * n.saturating_sub(1)
     }
 
-    /// Lines the row takes at `width`: always 1 for [`RowOverflow::More`].
+
     pub fn rows(&self, width: u16, buttons: &[Button], theme: &crate::theme::Theme) -> u16 {
         match self.overflow {
             RowOverflow::More => 1,
@@ -484,8 +484,8 @@ impl ButtonRow {
         }
     }
 
-    /// [`Self::rows`] with an explicit gap, for owners that measure
-    /// before they have a theme (a dialog's natural height).
+
+
     pub fn rows_at_gap(&self, width: u16, buttons: &[Button], gap: u16) -> u16 {
         match self.overflow {
             RowOverflow::More => 1,
@@ -496,8 +496,8 @@ impl ButtonRow {
         }
     }
 
-    /// Place `buttons` in `area` (one line, or [`ButtonRow::rows`] lines
-    /// when wrapping) without drawing anything.
+
+
     pub fn layout(&self, area: Rect, buttons: &[Button], theme: &crate::theme::Theme) -> RowLayout {
         let gap = self.gap_for(theme);
         let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
@@ -515,8 +515,8 @@ impl ButtonRow {
                 RowAlign::Start => area.x,
                 RowAlign::End => area.right().saturating_sub(total).max(area.x),
             };
-            // one line, already fitted (only a primary wider than the
-            // whole row is cut to it)
+
+
             let mut cx = x;
             let rects: Vec<Rect> = line
                 .iter()
@@ -552,8 +552,8 @@ impl ButtonRow {
                     place(&line, area.y, &mut out);
                     return out;
                 }
-                // keep the primary and as many others, in order, as fit
-                // beside it and the `…` button; the rest fold away
+
+
                 let primary = Self::primary(buttons).unwrap_or(0);
                 let more_w = (width(theme.glyphs.ellipsis) + 2) as u16;
                 let mut budget = area.width.saturating_sub(widths[primary] + gap + more_w);
@@ -567,13 +567,13 @@ impl ButtonRow {
                         budget -= w + gap;
                         keep[i] = true;
                     } else {
-                        // keep the order readable: nothing after a fold
+
                         break;
                     }
                 }
                 out.hidden = (0..buttons.len()).filter(|i| !keep[*i]).collect();
-                // the `…` button sits just before the primary when the
-                // primary ends the row, otherwise at the end
+
+
                 let mut line: Vec<(usize, u16)> = Vec::new();
                 for (i, &w) in widths.iter().enumerate() {
                     if keep[i] && i != primary {
@@ -605,9 +605,9 @@ impl ButtonRow {
         out
     }
 
-    /// Lay out and draw `buttons`. Folded buttons get an empty area and are
-    /// not registered, so they are neither clickable nor focusable; the
-    /// `…` button is drawn with [`ButtonRow::more_id`]`(owner)`.
+
+
+
     pub fn render(
         &self,
         owner: WidgetId,
@@ -632,9 +632,9 @@ impl ButtonRow {
     }
 }
 
-/// The button's pointer gesture: a completed click activates it
-/// ([`Button::on_click`]); the action (`()`) says it did. A click on a
-/// button that cannot activate (disabled, busy) is consumed.
+
+
+
 impl crate::core::pointer::MouseTarget for Button {
     type Action = ();
 
@@ -676,8 +676,8 @@ mod tests {
         ]
     }
 
-    /// The last (primary or destructive) button is never cut to `Remov…`;
-    /// what does not fit folds into `…` (layout audit #15).
+
+
     #[test]
     fn a_narrow_row_folds_buttons_and_keeps_the_primary_whole() {
         let t = Theme::junie();
@@ -690,7 +690,7 @@ mod tests {
         assert_eq!(l.hidden, vec![1, 2]);
         let more = l.more.expect("a … button");
         assert!(more.right() <= primary.x, "… sits before the primary");
-        // everything that is drawn is inside the row and never overlaps
+
         let mut drawn: Vec<Rect> = l.rects.iter().flatten().copied().collect();
         drawn.push(more);
         drawn.sort_by_key(|r| r.x);
@@ -699,9 +699,9 @@ mod tests {
         }
     }
 
-    /// R-apps-7: the free row layout never drops or cuts a button the row
-    /// has no room for; it wraps onto the next line ([`row_lines`]), left
-    /// or right aligned.
+
+
+
     #[test]
     fn row_layout_wraps_the_buttons_that_do_not_fit_instead_of_dropping_them() {
         let buttons = drawer_actions();
@@ -719,7 +719,7 @@ mod tests {
             assert_eq!(rects[0].y, 3);
             assert_eq!(rects[3].y, 4, "the last button wraps: {rects:?}");
         }
-        // a row with room is one line, unchanged
+
         let wide = Rect::new(0, 0, 80, 1);
         assert_eq!(row_lines(wide.width, &widths, 2), 1);
         assert!(row_layout(wide, &widths, 2).iter().all(|r| r.y == 0));
@@ -740,7 +740,7 @@ mod tests {
         }
     }
 
-    /// At its `width` the row folds nothing; one cell less folds.
+
     #[test]
     fn width_is_the_row_that_folds_nothing() {
         let t = crate::theme::Theme::junie();
@@ -810,9 +810,9 @@ mod tests {
         }
     }
 
-    /// A1: the focus bar stands off the button's plane (3:1) at every
-    /// level; at 16 colours a raised button is xterm's DarkGray, where the
-    /// LightGreen bar was 2.9:1.
+
+
+
     #[test]
     fn the_focus_bar_reads_on_a_focused_button_at_every_level() {
         use crate::theme::{ColorLevel, contrast_ratio};

@@ -1,18 +1,18 @@
-//! Quit & leave (plan §7, SC6): `QuitKeys`, `KeyContext` and `LeaveKey`,
-//! the `LeaveGuard` with `Stakes` Clean, Unsaved and Running, and its
-//! dialogs.
-//!
-//! Playground: a document with a title field (typing makes it unsaved)
-//! and an export that runs. "Leave for Overview" and "Quit" ask the page's
-//! `LeaveGuard`: nothing at stake goes at once (`Ok`), unsaved edits open
-//! the unsaved-changes dialog (Cancel / Discard / Save, or Cancel /
-//! Discard without `save`), a running export the running-work dialog
-//! (Stay / Stop and leave); the dialog's answer resolves to `Resolved`.
-//! The page also reports its stakes to the shell, so the showcase's own
-//! Ctrl+Q asks first. A table classifies the quit keys in four contexts
-//! through `QuitKeys::classify`. Options: the guard's `save`, the stakes
-//! at start, and the `QuitKeys` fields. States: the guard dialog's
-//! buttons.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -41,13 +41,13 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::{self, Prop};
 
 const ID: WidgetId = WidgetId::of("quitleave");
-/// The document's title field.
+
 pub const TITLE: WidgetId = WidgetId::of("quitleave.title");
-/// The leave buttons and the export.
+
 pub const LEAVE: WidgetId = WidgetId::of("quitleave.leave");
 pub const QUIT: WidgetId = WidgetId::of("quitleave.quit");
 pub const EXPORT: WidgetId = WidgetId::of("quitleave.export");
-/// The guard's dialogs.
+
 pub const GUARD: WidgetId = WidgetId::of("quitleave.guard");
 
 const SAVED_TITLE: &str = "Q3 settlement report";
@@ -55,17 +55,17 @@ const SAVED_TITLE: &str = "Q3 settlement report";
 pub struct QuitLeavePage {
     template: Template,
     title: TextInput,
-    /// The title as last saved.
+
     saved: String,
     leave: Button,
     quit: Button,
     export: Button,
-    /// The export is running.
+
     running: bool,
     guard: LeaveGuard<&'static str>,
-    /// Value indices of the page options, in `page_options` order.
+
     opts: Vec<usize>,
-    /// What the last request and the last dialog answer came to.
+
     last_request: String,
     last_resolved: String,
 }
@@ -92,7 +92,7 @@ impl QuitLeavePage {
         page
     }
 
-    /// The value of option `key` as the table spells it.
+
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::QuitLeave);
         let i = table
@@ -102,12 +102,12 @@ impl QuitLeavePage {
         table[i].values[self.opts[i]]
     }
 
-    /// The guard, built from the options through its builder.
+
     fn rebuild(&mut self) {
         self.guard = LeaveGuard::new(GUARD).save(self.opt("quitleave.save") == "on");
     }
 
-    /// The quit keys, built from the options.
+
     fn quit_keys(&self) -> QuitKeys {
         let mut k = QuitKeys::DEFAULT
             .letter(match self.opt("quitleave.letter") {
@@ -121,7 +121,7 @@ impl QuitLeavePage {
         k
     }
 
-    /// The edits: the title differs from the saved one.
+
     fn unsaved(&self) -> Stakes {
         if self.title.text() == self.saved {
             Stakes::Clean
@@ -130,7 +130,7 @@ impl QuitLeavePage {
         }
     }
 
-    /// The export, while it runs.
+
     fn work(&self) -> Stakes {
         if self.running {
             Stakes::Running {
@@ -141,12 +141,12 @@ impl QuitLeavePage {
         }
     }
 
-    /// What leaving would lose: the stronger of the two.
+
     fn stakes(&self) -> Stakes {
         self.unsaved().max(self.work())
     }
 
-    /// Ask the guard to leave for `to`.
+
     fn request(&mut self, to: Leave<&'static str>, cx: &mut Cx) {
         let stakes = self.stakes();
         let strings = junie_tui::theme::Strings::DEFAULT;
@@ -162,7 +162,7 @@ impl QuitLeavePage {
         }
     }
 
-    /// The guard's dialog closed.
+
     fn resolve(&mut self, r: Resolved<&'static str>, cx: &mut Cx) {
         self.last_resolved = match &r {
             Resolved::Stay => "Resolved::Stay".to_owned(),
@@ -183,7 +183,7 @@ impl QuitLeavePage {
         }
     }
 
-    /// The document's stakes and the guard's last request and answer.
+
     fn facts(&self) -> Vec<Prop> {
         vec![
             Prop::new("Edits", stakes_label(&self.unsaved())).wrap(),
@@ -208,7 +208,7 @@ impl QuitLeavePage {
         ]
     }
 
-    /// The classify card's notes.
+
     fn notes(&self) -> String {
         let c = contexts();
         format!(
@@ -224,12 +224,12 @@ impl QuitLeavePage {
         )
     }
 
-    /// The document card beside the classify card, stacked when they do
-    /// not fit. `measure` and `render_playground` share it.
+
+
     fn tiled(&self, width: u16) -> Tiled {
         let doc = Panel::card(Some("Document")).meta("exporting");
         let facts = self.facts();
-        // the buttons' row, with the longer export label
+
         let buttons = self.leave.width() + self.quit.width() + self.export.width() + 1 + 4;
         let doc_w = doc
             .outer(Size::new(buttons.max(FIELD_W), 0))
@@ -257,7 +257,7 @@ impl QuitLeavePage {
         let tiled = self.tiled(area.width);
         let (left, right) = (tiled.at(0, area), tiled.at(1, area));
 
-        // the document and the ways out
+
         let meta = match self.stakes() {
             Stakes::Clean => "saved",
             Stakes::Unsaved { .. } => "edited",
@@ -295,7 +295,7 @@ impl QuitLeavePage {
             );
         }
 
-        // the quit keys in four contexts
+
         let keys = self.quit_keys();
         let letter = keys.letter.map_or("letter".to_owned(), |c| c.to_string());
         let cases: [(String, Key); 4] = [
@@ -308,7 +308,7 @@ impl QuitLeavePage {
             ("Esc".into(), plain(KeyCode::Esc)),
         ];
         let contexts = contexts();
-        // rows = contexts, columns = keys
+
         let panel = Panel::card(Some("QuitKeys::classify")).meta("→ LeaveKey");
         let bg = panel.bg(t);
         let inner = panel.render(right, buf, t);
@@ -350,13 +350,13 @@ impl QuitLeavePage {
     }
 }
 
-/// The title field's width in the document card.
+
 const FIELD_W: u16 = 40;
-/// The classify table: the context column and one column per key.
+
 const LABEL_W: u16 = 12;
 const COL_W: u16 = 8;
 
-/// The contexts the classify card reads the quit keys in.
+
 fn contexts() -> [(&'static str, KeyContext); 4] {
     [
         ("clean", KeyContext::default()),
@@ -420,7 +420,7 @@ fn stakes_label(s: &Stakes) -> String {
     }
 }
 
-/// The States grid: the guard dialog's buttons by themselves.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

@@ -1,16 +1,16 @@
-//! Breadcrumbs & rails (plan §7, SC5): the `Breadcrumb` trail and the
-//! collapsible sidebar's `SidebarRail`.
-//!
-//! Playground: a folder explorer in a framed sidebar whose title carries
-//! the rail's `‹` collapse button; collapsed, it leaves the rail (`›` over
-//! the sidebar's name written down the column) that a click opens again.
-//! Ctrl+B hides and shows it from the keyboard. The location is a live,
-//! clickable `Breadcrumb`: a click on an earlier level goes back to it.
-//! Beside it, the same trail as plain text and a deep trail at a chosen
-//! width (the outer levels collapse into `…`, a long current page is cut
-//! in the middle). Options: `clickable`, the trail width, the rail
-//! (`collapsed_rail`) and the sidebar collapsed at start. States: both
-//! trails and the rail in every state they have.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -36,14 +36,14 @@ use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::rail::{RailAction, SidebarRail};
 
 const ID: WidgetId = WidgetId::of("breadcrumbsrails");
-/// The explorer's folder list.
+
 pub const LIST: WidgetId = WidgetId::of("breadcrumbsrails.list");
-/// The live trail of the explorer's location.
+
 pub const CRUMBS: WidgetId = WidgetId::of("breadcrumbsrails.crumbs");
-/// The explorer's rail and collapse button.
+
 pub const RAIL: WidgetId = WidgetId::of("breadcrumbsrails.rail");
 
-/// The deep trail cut to the chosen width.
+
 const DEEP: [&str; 6] = [
     "Disk",
     "Users",
@@ -53,10 +53,10 @@ const DEEP: [&str; 6] = [
     "settlement-backoff-retry-policy-v2.md",
 ];
 
-/// One entry of a folder: its name, its metadata, whether it opens.
+
 type Entry = (&'static str, &'static str, bool);
 
-/// The folders the explorer walks (demo data).
+
 fn entries(path: &[String]) -> Vec<Entry> {
     match path.join("/").as_str() {
         "Disk" => vec![
@@ -90,16 +90,16 @@ fn entries(path: &[String]) -> Vec<Entry> {
 
 pub struct BreadcrumbsRailsPage {
     template: Template,
-    /// The explorer's location, outermost first.
+
     path: Vec<String>,
     list: ListBox,
     crumbs: Breadcrumb,
     rail: SidebarRail,
-    /// The sidebar is collapsed into its rail.
+
     collapsed: bool,
-    /// Value indices of the page options, in `page_options` order.
+
     opts: Vec<usize>,
-    /// What the trail and the rail reported last.
+
     last_crumb: String,
     last_rail: String,
 }
@@ -126,7 +126,7 @@ impl BreadcrumbsRailsPage {
         page
     }
 
-    /// The value of option `key` as the table spells it.
+
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::BreadcrumbsRails);
         let i = table
@@ -136,8 +136,8 @@ impl BreadcrumbsRailsPage {
         table[i].values[self.opts[i]]
     }
 
-    /// The trail and the rail, built from the options through their
-    /// builders.
+
+
     fn rebuild(&mut self) {
         self.crumbs = Breadcrumb::new(CRUMBS, self.path.clone())
             .clickable(self.opt("breadcrumbsrails.clickable") == "on");
@@ -145,7 +145,7 @@ impl BreadcrumbsRailsPage {
             .collapsed_rail(self.opt("breadcrumbsrails.collapsed_rail") == "on");
     }
 
-    /// Show the folder at `path` with the cursor on row `cursor`.
+
     fn load_folder(&mut self, cursor: usize) {
         let items = entries(&self.path)
             .into_iter()
@@ -166,7 +166,7 @@ impl BreadcrumbsRailsPage {
         self.crumbs.segments = self.path.clone();
     }
 
-    /// The trail went back to `level` (0 is the outermost).
+
     fn go_to_level(&mut self, level: usize, cx: &mut Cx) {
         let left = self.path.get(level + 1).cloned();
         self.path.truncate(level + 1);
@@ -177,7 +177,7 @@ impl BreadcrumbsRailsPage {
         cx.status(format!("Went back to {}", self.path.join(" › ")));
     }
 
-    /// Open the chosen row: a folder descends, anything else reports.
+
     fn open_row(&mut self, i: usize, cx: &mut Cx) {
         let Some((name, _, opens)) = entries(&self.path).get(i).copied() else {
             return;
@@ -190,7 +190,7 @@ impl BreadcrumbsRailsPage {
         }
     }
 
-    /// Collapse or expand the sidebar (its rail, its button or Ctrl+B).
+
     fn set_collapsed(&mut self, on: bool, cx: &mut Cx) {
         self.collapsed = on;
         self.last_rail = if on { "Collapse" } else { "Expand" }.into();
@@ -203,7 +203,7 @@ impl BreadcrumbsRailsPage {
         }
     }
 
-    /// The live trail's facts.
+
     fn location_facts(&self) -> Vec<Prop> {
         vec![
             Prop::new("Depth", self.path.len().to_string()),
@@ -213,7 +213,7 @@ impl BreadcrumbsRailsPage {
         ]
     }
 
-    /// The rail's actions.
+
     fn rail_facts(&self) -> Vec<Prop> {
         vec![
             Prop::new("RailAction::Collapse", "‹ in the frame, or Ctrl+B").wrap(),
@@ -239,7 +239,7 @@ impl BreadcrumbsRailsPage {
         Panel::card(Some("Location")).meta(meta)
     }
 
-    /// The plain and the deep trail.
+
     fn trail_pair(&self) -> (Breadcrumb, Breadcrumb) {
         (
             Breadcrumb::new(ID.sub("plain"), self.path.clone()).clickable(false),
@@ -250,11 +250,11 @@ impl BreadcrumbsRailsPage {
         )
     }
 
-    /// Where the Playground's parts go when offered `avail`: the explorer
-    /// (or its rail), the Location and SidebarRail cards beside it, the
-    /// Trails card under both, each at least as large as it needs to show
-    /// its content whole. `measure` and `render_playground` share it, so
-    /// the Playground is drawn at the size it reports.
+
+
+
+
+
     fn geometry(&self, avail: Size, ctx: &RenderCtx) -> Geometry {
         let side_w = if self.collapsed {
             self.rail.width() + 1
@@ -266,8 +266,8 @@ impl BreadcrumbsRailsPage {
         let loc_panel = self.location_panel();
         let rail_panel = Panel::card(Some("SidebarRail"));
         let wide = |w: u16| Size::new(w, 0);
-        // the cards' column: as wide as the room, never narrower than
-        // their content
+
+
         let crumbs = self.crumbs.measure(avail, ctx).width;
         let right_nat = loc_panel
             .outer(wide(crumbs.max(props::width(&loc_facts))))
@@ -282,7 +282,7 @@ impl BreadcrumbsRailsPage {
             .outer(Size::new(inner_w, props::measure(&rail_facts, inner_w)))
             .height;
         let top = SIDE_H.max(loc_h + 1 + rail_h);
-        // the trails card spans the page: the deep trail is wide
+
         let (plain, deep) = self.trail_pair();
         let caption = text::width("clickable(false) · full width") as u16;
         let trail_w = deep
@@ -306,13 +306,13 @@ impl BreadcrumbsRailsPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let g = self.geometry(area.as_size(), ctx);
-        // the explorer, or its rail
+
         if self.collapsed {
             let col = Rect::new(area.x, area.y, SidebarRail::WIDTH, SIDE_H);
             self.rail.render_rail(col, buf, ctx, t.canvas);
         } else {
             let side = Rect::new(area.x, area.y, SIDE_W, SIDE_H);
-            // the meta keeps room for the collapse button after it
+
             let meta = format!("{} items    ", self.list.items.len());
             let panel = Panel::framed(Some("Explorer"))
                 .focused(ctx.interaction.focused(LIST))
@@ -324,7 +324,7 @@ impl BreadcrumbsRailsPage {
         }
         let right = Rect::new(area.x + g.side_w, area.y, g.right_w, g.top);
 
-        // the live trail and what it and the rail reported
+
         let panel = self.location_panel();
         let bg = panel.bg(t);
         let card = Rect::new(right.x, right.y, right.width, g.loc_h);
@@ -345,19 +345,19 @@ impl BreadcrumbsRailsPage {
             bg,
         );
 
-        // the rail's actions
+
         let panel = Panel::card(Some("SidebarRail"));
         let bg = panel.bg(t);
         let card = Rect::new(right.x, card.bottom() + 1, right.width, g.rail_h);
         let inner = panel.render(card, buf, t);
         props::render(inner, buf, t, &self.rail_facts(), bg);
 
-        // the same trail as plain text, and a deep trail at a set width
+
         let panel = Panel::card(Some("Trails"));
         let bg = panel.bg(t);
         let card = Rect::new(area.x, area.y + g.top + 1, g.size.width, g.trails_h);
         let inner = panel.render(card, buf, t);
-        // the deep trail's width: the card's, or the chosen one
+
         let (w, width) = match self.opt("breadcrumbsrails.width") {
             "full" => (inner.width, "full width".to_owned()),
             n => {
@@ -390,27 +390,27 @@ impl BreadcrumbsRailsPage {
     }
 }
 
-/// The explorer's size.
+
 const SIDE_W: u16 = 34;
 const SIDE_H: u16 = 18;
-/// The Trails card's content: a caption and a trail, a blank row, again.
+
 const TRAILS_ROWS: u16 = 5;
 
-/// Where the Playground's parts go ([`BreadcrumbsRailsPage::geometry`]).
+
 struct Geometry {
-    /// The explorer (or the rail) and the gap after it.
+
     side_w: u16,
-    /// The Location and SidebarRail cards' column.
+
     right_w: u16,
     loc_h: u16,
     rail_h: u16,
-    /// The explorer row: the taller of the explorer and the cards.
+
     top: u16,
     trails_h: u16,
     size: Size,
 }
 
-/// The States grid: both trails and the rail, drawn by themselves.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -454,7 +454,7 @@ impl Page for BreadcrumbsRailsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-        // Ctrl+B is the sidebar's shortcut wherever focus is on the page
+
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('b')
             && self.template.section() == Section::Playground

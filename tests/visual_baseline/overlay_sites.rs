@@ -1,25 +1,25 @@
-//! Overlay coverage (plan task T15): every place in `src/bin` that opens a
-//! popup, menu, dialog or picker, or draws through the overlay layer, is an
-//! entry of [`SITES`], keyed `<file under src/bin>::<enclosing fn>`, and
-//! names the scenario rows that capture it, or a gap with the reason it has
-//! none yet. `overlay_sites` fails when a site appears or disappears in the
-//! source without this table following, or when a named row is not in the
-//! scenario tables. Gaps are allowed but listed in every run; closing one
-//! means adding an `OVERLAYS` row (open + both dismissals) and naming it.
-//!
-//! A site is a line, outside comments, strings and test modules, with one
-//! of [`OPENERS`]. Several openers in one function form one site.
+
+
+
+
+
+
+
+
+
+
+
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use crate::determinism::{code_only, non_test};
 
-/// What opens or draws an overlay in the four apps.
+
 const OPENERS: [&str; 16] = [
     "req.menu(",
     "ModalTag::new(",
-    // a layer opened on an app's `ShellLayers` (plan S5)
+
     "LayerTag::new(",
     "Dialog::new(",
     "Dialog::confirm(",
@@ -30,20 +30,20 @@ const OPENERS: [&str; 16] = [
     ".push(Modal::",
     "begin_modal(",
     ".menu.open(",
-    // the shared leave guard (`ui::leave::LeaveGuard`) returns its dialog
+
     ".request_quit(&",
     ".request(Leave::",
-    // a keyboard reference (the showcase shell opens it as its modal)
+
     "HelpOverlay::new(",
     "HelpOverlay::from_keymaps(",
 ];
 
-/// Lines that mention an opener without opening anything: a fallback tag,
-/// and the Pickers page building a picker only to read its options back
-/// into the readout (`pickers.rs::readout`).
+
+
+
 const NOT_OPENING: [&str; 2] = [
     "unwrap_or(ModalTag::new(",
-    // (string literals are blanked before matching)
+
     "let p = self.style(Picker::new(ID.sub(",
 ];
 
@@ -57,8 +57,8 @@ const fn rows(key: &'static str, rows: &'static [&'static str]) -> Site {
     Site { key, rows, gap: "" }
 }
 
-// no site is a gap since V12 (every one has rows); kept for the next site
-// that lands before its row
+
+
 #[allow(dead_code)]
 const fn gap(key: &'static str, gap: &'static str) -> Site {
     Site {
@@ -70,7 +70,7 @@ const fn gap(key: &'static str, gap: &'static str) -> Site {
 
 #[rustfmt::skip]
 pub const SITES: &[Site] = &[
-    // ------------------------------------------------------------- holla --
+
     rows("holla/app.rs::confirm_plan", &["holla/flows/upgrade/confirm"]),
     rows("holla/app.rs::draw", &["holla/flows/help/overlay", "holla/flows/quit/confirm"]),
     rows("holla/app.rs::menu_action", &["holla/overlays/alias_prompt"]),
@@ -101,7 +101,7 @@ pub const SITES: &[Site] = &[
     rows("holla/screens/plan.rs::step_menu", &["holla/overlays/plan_step_menu"]),
     rows("holla/screens/review.rs::sequence_menu", &["holla/overlays/review_sequence_menu"]),
     rows("holla/screens/snapshot.rs::body_menu", &["holla/overlays/snapshot_body_menu"]),
-    // ------------------------------------------------------------ jackin --
+
     rows("jackin_preview/app.rs::open_about", &["jackin/overlays/about"]),
     rows("jackin_preview/app.rs::open_help", &["jackin/manager/help_overlay"]),
     rows("jackin_preview/screens/accounts.rs::on_key", &["jackin/overlays/accounts_filter"]),
@@ -154,7 +154,7 @@ pub const SITES: &[Site] = &[
     rows("jackin_preview/screens/settings.rs::finish_save", &["jackin/overlays/settings_save_failed"]),
     rows("jackin_preview/screens/settings.rs::leave", &["jackin/settings/quit_guard"]),
     rows("jackin_preview/screens/settings.rs::open_preview", &["jackin/settings/save_preview"]),
-    // ---------------------------------------------------------- showcase --
+
     rows("showcase/app.rs::open_dialog", &["showcase/flows/dialogs/open"]),
     rows("showcase/app.rs::open_help", &["showcase/flows/help/overlay"]),
     rows("showcase/app.rs::open_quit", &["showcase/overlays/quit_confirm"]),
@@ -201,7 +201,7 @@ pub const SITES: &[Site] = &[
     rows("showcase/pages/taskrunner.rs::handle", &["showcase/overlays/taskrunner_cancel"]),
     rows("showcase/pages/tables.rs::open_menu", &["showcase/overlays/tables_context"]),
     rows("showcase/pages/trees.rs::open_menu", &["showcase/overlays/trees_context"]),
-    // ---------------------------------------------------------- tablepro --
+
     rows("tablepro/app.rs::act", &["tablepro/query/close_confirm"]),
     rows("tablepro/app.rs::begin_commit", &["tablepro/workbench/commit_dialog"]),
     rows("tablepro/app.rs::open_context", &["tablepro/overlays/explorer_context", "tablepro/overlays/connections_context"]),
@@ -246,7 +246,7 @@ fn rs_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
-/// `key -> opener count` for every site under `src/bin`.
+
 pub fn scan(bin_dir: &Path) -> BTreeMap<String, usize> {
     let mut files = Vec::new();
     rs_files(bin_dir, &mut files);
@@ -276,7 +276,7 @@ pub fn scan(bin_dir: &Path) -> BTreeMap<String, usize> {
     sites
 }
 
-/// The default-run check.
+
 pub fn overlay_sites() {
     let scanned = scan(&Path::new(env!("CARGO_MANIFEST_DIR")).join("src/bin"));
     let listed: BTreeMap<&str, &Site> = SITES.iter().map(|s| (s.key, s)).collect();

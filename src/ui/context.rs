@@ -1,19 +1,19 @@
-//! Universal context menus: one hook every row widget shares.
-//!
-//! A secondary click (right click, or Ctrl+click on macOS through
-//! [`crate::core::event::InputConfig::ctrl_click_secondary`]) on a row, a
-//! cell or a tab, or the keyboard context key ([`ContextKeys`]: Shift+F10
-//! and the Menu key by default) on the widget's cursor, turns into a
-//! [`ContextRequest`]: *what* the menu is about ([`ContextSource::Target`])
-//! and *where* it opens ([`ContextAnchor`]). The owner answers with the
-//! items it can offer for that target and opens a
-//! [`ContextMenu`] through
-//! [`ContextRequest::menu`]; unavailable commands stay in the menu with
-//! [`MenuItem::reason`](crate::widgets::menu::MenuItem::reason).
-//!
-//! The router side (a right-click outside an open popup closes it and
-//! re-opens at the new spot) is
-//! [`PointerState::route_secondary`](crate::core::pointer::PointerState::route_secondary).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::core::keymap::Actions;
 use crate::core::list::Navigable;
@@ -30,27 +30,27 @@ use crate::widgets::table::DataTable;
 use crate::widgets::tabs::Tabs;
 use crate::widgets::tree::TreeView;
 
-/// Which keys open the context menu of the focused widget's cursor.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextKeys {
-    /// Shift+F10 (the desktop keyboard context-menu chord). Default on.
+
     pub shift_f10: bool,
-    /// The Menu (application) key, where the terminal reports it. Default
-    /// on.
+
+
     pub menu_key: bool,
-    /// One more key an app may add (e.g. a plain letter on a page with no
-    /// text entry). Default `None`.
+
+
     pub extra: Option<Key>,
 }
 
 impl ContextKeys {
-    /// Shift+F10 and the Menu key.
+
     pub const DEFAULT: Self = Self {
         shift_f10: true,
         menu_key: true,
         extra: None,
     };
-    /// No key opens a context menu.
+
     pub const NONE: Self = Self {
         shift_f10: false,
         menu_key: false,
@@ -70,7 +70,7 @@ impl ContextKeys {
         self
     }
 
-    /// Whether `key` asks for the context menu.
+
     pub fn matches(&self, key: &Key) -> bool {
         (self.shift_f10 && key.code == KeyCode::F(10) && key.mods == KeyModifiers::SHIFT)
             || (self.menu_key && key.code == KeyCode::Menu && key.plain())
@@ -86,14 +86,14 @@ impl Default for ContextKeys {
     }
 }
 
-/// Context-menu behaviour shared by every row widget.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextConfig {
-    /// Keys that open the menu at the cursor.
+
     pub keys: ContextKeys,
-    /// A secondary click moves the widget's cursor onto the row, cell or
-    /// tab it opens the menu for (Finder, Mail), so the menu's commands
-    /// visibly apply to the highlighted item. Default `true`.
+
+
+
     pub moves_cursor: bool,
 }
 
@@ -112,9 +112,9 @@ impl ContextConfig {
         self
     }
 
-    /// A secondary click `ev`: the request when it is on one of `src`'s
-    /// rows, cells or tabs (moving the cursor there per
-    /// [`Self::moves_cursor`]), opening at the pointer.
+
+
+
     pub fn on_secondary<S: ContextSource + ?Sized>(
         &self,
         src: &mut S,
@@ -130,7 +130,7 @@ impl ContextConfig {
         })
     }
 
-    /// A key: the request for the cursor when `key` is a context key.
+
     pub fn on_key<S: ContextSource + ?Sized>(
         &self,
         src: &S,
@@ -149,18 +149,18 @@ impl Default for ContextConfig {
     }
 }
 
-/// Where a context menu opens.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContextAnchor {
-    /// At the pointer (a secondary click).
+
     Pointer(Position),
-    /// Below a control as drawn this frame (the cursor row, cell or tab),
-    /// with `fallback` used when it is not drawn before the menu.
+
+
     Control { id: WidgetId, fallback: Rect },
 }
 
 impl ContextAnchor {
-    /// Anchor `menu` here.
+
     pub fn apply(self, menu: ContextMenu) -> ContextMenu {
         match self {
             Self::Pointer(pos) => menu.at(pos),
@@ -169,7 +169,7 @@ impl ContextAnchor {
     }
 }
 
-/// A context menu asked for `target`, to open at `anchor`.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextRequest<T> {
     pub target: T,
@@ -177,13 +177,13 @@ pub struct ContextRequest<T> {
 }
 
 impl<T> ContextRequest<T> {
-    /// The menu answering this request.
+
     pub fn menu(&self, id: WidgetId, items: Vec<MenuItem>) -> ContextMenu {
         self.anchor.apply(ContextMenu::new(id, items))
     }
 
-    /// The same request about another target (an owner mapping a display
-    /// row to its own record).
+
+
     pub fn map<U>(self, f: impl FnOnce(T) -> U) -> ContextRequest<U> {
         ContextRequest {
             target: f(self.target),
@@ -192,24 +192,24 @@ impl<T> ContextRequest<T> {
     }
 }
 
-/// A widget whose rows, cells or tabs carry a context menu.
+
 pub trait ContextSource {
-    /// What a menu is about: a row index, a `(row, col)` cell, a tab.
+
     type Target: Copy;
-    /// The target the part under a pointer event stands for, if it is one
-    /// of the widget's items.
+
+
     fn context_target(&self, ev: &PointerEvent) -> Option<Self::Target>;
-    /// Move the cursor onto `target` (through the widget's
-    /// [`crate::core::list::Cursor::select`]: a target out of range is
-    /// ignored).
+
+
+
     fn context_select(&mut self, target: Self::Target);
-    /// The cursor's target and where its menu opens, `None` when empty.
+
     fn context_cursor(&self) -> Option<ContextRequest<Self::Target>>;
 }
 
-/// One command of a widget's default context menu
-/// ([`command_items`]): the command, why it is unavailable (if it is), and
-/// whether a separator follows it.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextCmd<A> {
     pub cmd: A,
@@ -227,28 +227,28 @@ impl<A> ContextCmd<A> {
             danger: false,
         }
     }
-    /// Unavailable for `reason` when it is `Some`: the row stays, dimmed,
-    /// and says why.
+
+
     pub const fn unless(mut self, reason: Option<&'static str>) -> Self {
         self.reason = reason;
         self
     }
-    /// A separator follows the row.
+
     pub const fn group_end(mut self) -> Self {
         self.group_end = true;
         self
     }
-    /// The row is destructive.
+
     pub const fn danger(mut self) -> Self {
         self.danger = true;
         self
     }
 }
 
-/// A widget's default context-menu rows from its key map (M22): each row
-/// is the command's [`Actions::label`] with the first deliverable key the
-/// map binds to it ([`crate::core::keymap::label_for`]), so a remapped key
-/// shows its new chord and an undeliverable one shows none.
+
+
+
+
 pub fn command_items<A: Actions + Copy + PartialEq>(
     map: &[(crate::core::keymap::KeyBinding, A)],
     cmds: &[ContextCmd<A>],
@@ -269,8 +269,8 @@ pub fn command_items<A: Actions + Copy + PartialEq>(
         .collect()
 }
 
-/// A one-row rectangle at `row` rows below the top of `area`'s visible
-/// part (the anchor used before a row is drawn).
+
+
 fn row_rect(area: Rect, row: usize, offset: usize) -> Rect {
     let dy = row
         .saturating_sub(offset)
@@ -302,7 +302,7 @@ impl ContextSource for ListBox {
 impl ContextSource for TreeView {
     type Target = usize;
     fn context_target(&self, ev: &PointerEvent) -> Option<usize> {
-        // a row, its disclosure toggle or its glyph
+
         self.row_at(ev)
     }
     fn context_select(&mut self, row: usize) {
@@ -323,8 +323,8 @@ impl ContextSource for TreeView {
 }
 
 impl ContextSource for DataTable {
-    /// `(display row, column)`; a click on a row's free space names the
-    /// cursor column.
+
+
     type Target = (usize, usize);
     fn context_target(&self, ev: &PointerEvent) -> Option<(usize, usize)> {
         if !ev.on(self.id) {
@@ -336,9 +336,9 @@ impl ContextSource for DataTable {
         let r = ev.index_of(Part::CELL)?;
         Some((r, self.column_at(ev.pos().x).unwrap_or(self.cursor_col)))
     }
-    /// The cursor moves onto the row; in multi mode the selection follows
-    /// [`RowSelection::context_select`](crate::core::selection::RowSelection::context_select)
-    /// (kept when the row is in it, only that row otherwise: M10).
+
+
+
     fn context_select(&mut self, (row, col): (usize, usize)) {
         if let Some(r) = Navigable::cursor(self).select(row, self).index() {
             self.cursor_row = r;
@@ -359,7 +359,7 @@ impl ContextSource for DataTable {
                 target: (self.cursor_row, self.cursor_col),
                 anchor: ContextAnchor::Control {
                     id,
-                    // header row above the body
+
                     fallback: row_rect(
                         Rect {
                             y: self.area.y.saturating_add(1),
@@ -376,8 +376,8 @@ impl ContextSource for DataTable {
 }
 
 impl ContextSource for DataGrid {
-    /// `(display row, column)`; the row-number gutter names the cursor
-    /// column.
+
+
     type Target = (usize, usize);
     fn context_target(&self, ev: &PointerEvent) -> Option<(usize, usize)> {
         if !ev.on(self.id) {
@@ -389,9 +389,9 @@ impl ContextSource for DataGrid {
         let r = ev.index_of(Part::CELL)?;
         Some((r, self.column_at(ev.pos().x)?))
     }
-    /// The cursor moves onto the cell unless it lands inside the cell
-    /// range, which then stays; a range or row marks the cell is outside
-    /// of give way to it ([`DataGrid::context_selection`], M10).
+
+
+
     fn context_select(&mut self, cell: (usize, usize)) {
         if cell.1 < self.columns.len()
             && let Some(r) = Navigable::cursor(self).select(cell.0, self).index()
@@ -462,7 +462,7 @@ mod tests {
         vec![MenuItem::new("Open"), MenuItem::new("Delete").danger()]
     }
 
-    /// Draw the list, then `menu` above it; the hit registry of the frame.
+
     fn frame(l: &mut ListBox, menu: Option<&mut ContextMenu>) -> HitRegistry {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -480,7 +480,7 @@ mod tests {
         hits
     }
 
-    /// A secondary click on the region `id` at `pos`.
+
     fn secondary(hits: &HitRegistry, id: WidgetId, pos: Position) -> PointerEvent {
         PointerEvent::new(
             hits,
@@ -499,8 +499,8 @@ mod tests {
     #[test]
     fn context_select_goes_through_the_cursor_and_ignores_stale_targets() {
         use crate::widgets::tree::{TreeNode, TreeView};
-        // a target from a previous frame (the tree collapsed since) must not
-        // leave the cursor past the rows
+
+
         let mut t = TreeView::new(
             WidgetId::of("t"),
             vec![TreeNode::leaf("a"), TreeNode::leaf("b")],
@@ -521,9 +521,9 @@ mod tests {
         assert_eq!(l.cursor, 1);
     }
 
-    /// M10: a right click inside a multi selection keeps it (the menu acts
-    /// on every selected row); outside it, only the clicked row is
-    /// selected, so Copy and Delete never hit rows the user did not mean.
+
+
+
     #[test]
     fn a_right_click_outside_the_selection_selects_only_that_row() {
         use crate::core::selection::SelectionMode;
@@ -597,7 +597,7 @@ mod tests {
         );
         let mut m = req.menu(MENU, items());
         frame(&mut l, Some(&mut m));
-        // the list starts at y = 2; row 3 is drawn at y = 5
+
         assert_eq!(m.area.y, 6, "the menu sits right under the cursor row");
         assert!(
             ContextConfig::DEFAULT

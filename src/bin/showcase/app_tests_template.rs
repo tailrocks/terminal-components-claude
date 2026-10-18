@@ -1,5 +1,5 @@
-//! The widget-page template (Playground | Options | States) and the
-//! States grid, driven through the real app (plan §7, SC2).
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -91,7 +91,7 @@ impl Harness {
             .count()
     }
 
-    /// Focus the page's section strip (Tab from the sidebar lands there).
+
     fn focus_strip(&mut self) {
         self.key(KeyCode::Tab);
         assert_eq!(
@@ -115,8 +115,8 @@ fn wheel_down(h: &mut Harness, x: u16, y: u16) {
     h.draw();
 }
 
-/// Tab lands on the strip; ←/→, the digits and a click switch sections;
-/// Options names the step that brings its controls.
+
+
 #[test]
 fn the_strip_switches_sections_by_key_and_click() {
     let mut h = Harness::new(120, 40, PageId::Buttons);
@@ -125,7 +125,7 @@ fn the_strip_switches_sections_by_key_and_click() {
     h.focus_strip();
     h.key(KeyCode::Right);
     assert_eq!(h.section(), Section::Options);
-    // the page's option controls (SC7)
+
     assert!(h.text().contains("Focus ring"));
     assert!(!h.text().contains("Run task"), "one section at a time");
     h.key(KeyCode::Char('3'));
@@ -138,10 +138,10 @@ fn the_strip_switches_sections_by_key_and_click() {
     assert!(h.text().contains("Run task"));
 }
 
-/// Wide (≥ 100 columns): the strip carries the section's caption and the
-/// States section its focus legend, and the grid has room for every row.
-/// Narrow (< 100): both captions give way, the grid keeps its rows and
-/// scrolls row by row.
+
+
+
+
 #[test]
 fn the_template_lays_out_wide_and_narrow() {
     let mut wide = Harness::new(120, 40, PageId::Inputs);
@@ -154,7 +154,7 @@ fn the_template_lays_out_wide_and_narrow() {
     let rows = page.template().unwrap().state_rows().to_vec();
     assert_eq!(rows.first(), Some(&SpecimenState::Rest));
     assert_eq!(rows.last(), Some(&SpecimenState::Narrow), "every row fits");
-    // the strip sits on the page's first two rows, the body below
+
     let (_, strip_y) = wide.find("Playground").unwrap();
     let (_, toggle_y) = wide.find("Compare levels").unwrap();
     assert_eq!(toggle_y, strip_y + 3, "strip, rule, blank row, body");
@@ -175,7 +175,7 @@ fn the_template_lays_out_wide_and_narrow() {
     let first = rows(&narrow);
     assert!(first.contains(&SpecimenState::Rest));
     assert!(!first.contains(&SpecimenState::Narrow), "{text}");
-    // the wheel over the body scrolls whole rows until the last one shows
+
     let (x, y) = narrow.find("Compare levels").unwrap();
     for _ in 0..12 {
         wheel_down(&mut narrow, x + 30, y + 4);
@@ -187,9 +187,9 @@ fn the_template_lays_out_wide_and_narrow() {
     );
 }
 
-/// A focused sample is depicted, never shown as a second live focus bar:
-/// with the strip focused the screen has exactly one `▎`, at every colour
-/// level.
+
+
+
 #[test]
 fn the_states_grid_never_adds_a_live_focus_bar() {
     for level in [
@@ -216,8 +216,8 @@ fn the_states_grid_never_adds_a_live_focus_bar() {
     }
 }
 
-/// "Compare levels" draws the grid at all four levels, each under its
-/// name; on a page too short for all of them it scrolls pane by pane.
+
+
 #[test]
 fn compare_levels_shows_every_colour_level() {
     let mut h = Harness::new(220, 80, PageId::Buttons);
@@ -244,7 +244,7 @@ fn compare_levels_shows_every_colour_level() {
         rows.contains(&SpecimenState::Overflow),
         "every pane drew every row"
     );
-    // a short page: one pane per stack child, the wheel brings the rest
+
     let mut h = Harness::new(120, 40, PageId::Buttons);
     h.focus_strip();
     h.key(KeyCode::Char('3'));
@@ -259,10 +259,10 @@ fn compare_levels_shows_every_colour_level() {
     assert!(h.text().contains("no color"), "{}", h.text());
 }
 
-// ------------------------------------------------------------- tree rules --
 
-/// A label or name as `--page` compares it: letters and digits only, lower
-/// case (`PageId::from_name`).
+
+
+
 fn slug(s: &str) -> String {
     s.chars()
         .filter(|c| c.is_ascii_alphanumeric())
@@ -272,8 +272,8 @@ fn slug(s: &str) -> String {
 
 const SLUGS: &str = include_str!("../../../tests/showcase_slugs.txt");
 
-/// The golden `--page` names: `name | page label`, comments and blanks
-/// skipped.
+
+
 fn golden() -> Vec<(&'static str, &'static str)> {
     SLUGS
         .lines()
@@ -286,15 +286,15 @@ fn golden() -> Vec<(&'static str, &'static str)> {
         .collect()
 }
 
-/// Plan §7, SCP7: the sidebar is at most two levels deep (Overview, then
-/// groups of leaves); no group holds a leaf with its own name; every page
-/// has one slug of its own that no other page's alias repeats; and the
-/// `--page` names in `tests/showcase_slugs.txt` only ever grow: each still
-/// opens the page it names, and every current slug and alias is listed.
+
+
+
+
+
 #[test]
 fn the_tree_keeps_its_rules_and_its_page_names_only_grow() {
     let label_of = |id: PageId| NAV_ENTRIES[id.index()].label;
-    // two levels at most, every leaf under a known group
+
     for e in NAV_ENTRIES {
         let depth = e.id.nav_path().len();
         assert!(depth <= 2, "{} is {depth} levels deep", e.label);
@@ -317,7 +317,7 @@ fn the_tree_keeps_its_rules_and_its_page_names_only_grow() {
     app.nav_expand = crate::app::NavExpand::All;
     app.open_page(PageId::Overview);
     assert!(app.nav.rows().iter().all(|r| r.depth <= 1), "two levels");
-    // one slug per page, never another page's alias
+
     let mut slugs: Vec<(String, PageId)> = Vec::new();
     for e in NAV_ENTRIES {
         let s = slug(e.label);
@@ -344,7 +344,7 @@ fn the_tree_keeps_its_rules_and_its_page_names_only_grow() {
         }
         assert_eq!(PageId::from_name(alias), Some(id), "{alias:?}");
     }
-    // the golden list only grows
+
     let golden = golden();
     for &(name, label) in &golden {
         let page = PageId::from_name(name)
@@ -365,8 +365,8 @@ fn the_tree_keeps_its_rules_and_its_page_names_only_grow() {
     );
 }
 
-/// Every page opens by its slug and shows its content: no page is the
-/// planned-page stub any more (Priority 0 filled them all).
+
+
 #[test]
 fn every_page_opens_by_its_slug() {
     for e in NAV_ENTRIES {
@@ -383,9 +383,9 @@ fn every_page_opens_by_its_slug() {
     }
 }
 
-/// Every registered page builds through `Template`, opens on its
-/// Playground and draws its section strip (Playground | Options | States),
-/// so no page can fall back to the old single-view layout.
+
+
+
 #[test]
 fn every_page_is_on_the_template() {
     for e in NAV_ENTRIES {

@@ -1,8 +1,8 @@
-//! Deterministic coverage of the App's surface contracts.
-//!
-//! These tests intentionally stay on ratatui's TestBackend.  They cover
-//! model state, focus and hit registration; PTY snapshots and live spinner
-//! phases belong to the visual-baseline suite and are not part of this file.
+
+
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
@@ -336,7 +336,7 @@ fn page_inventory_has_marker_focus_hit_and_escape_contract() {
     }
 }
 
-/// The open key reference's Done button: its one focus stop.
+
 fn help_done(h: &H) -> WidgetId {
     h.app
         .modals
@@ -447,8 +447,8 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     dismiss_modal(&mut dialog, "Dialog/gate2", dialog_owner);
 }
 
-/// A cell outside the top layer: nothing registered there, or the
-/// light-dismiss backdrop a layer registers (the key reference's).
+
+
 fn outside(h: &H) -> Position {
     use junie_tui::core::id::Part;
     let backdrop = |hit| {
@@ -473,7 +473,7 @@ fn outside(h: &H) -> Position {
     );
 }
 
-/// Row of the scrollbar thumb drawn in the 1-column `track`.
+
 pub(crate) fn thumb_row(h: &H, track: ratatui::layout::Rect) -> u16 {
     let text = h.text();
     let lines: Vec<&str> = text.lines().collect();
@@ -492,8 +492,8 @@ fn drag_scrollbar(h: &mut H, container: WidgetId, name: &str) {
     drag_scrollbar_focus(h, container, container, name);
 }
 
-/// Drag `container`'s bar; afterwards focus is on `focus` (the container,
-/// or the layer's one focus stop when the container is not a stop).
+
+
 fn drag_scrollbar_focus(h: &mut H, container: WidgetId, focus: WidgetId, name: &str) {
     let id = scrollbar::id_for(container);
     let track = h
@@ -503,7 +503,7 @@ fn drag_scrollbar_focus(h: &mut H, container: WidgetId, focus: WidgetId, name: &
         .area_of(id)
         .unwrap_or_else(|| panic!("{name}: missing scrollbar hit\n{}", h.text()));
     let before = h.text();
-    // a press on the bare track pages (TrackClick::Page); the thumb drags
+
     let start = thumb_row(h, track);
     let bottom = if start < track.y + track.height / 2 {
         track.bottom().saturating_sub(1)
@@ -542,7 +542,7 @@ fn raw_scrollbars_route_pointer_press_and_drag() {
 
     let mut modal = H::new(Scenario::RustDirty, Motion::Paused, 40, 72, 20);
     modal.key(KeyCode::F(1));
-    // the reference's one focus stop is Done; the bar keeps it there
+
     let done = help_done(&modal);
     drag_scrollbar_focus(&mut modal, WidgetId::of("help"), done, "help modal");
 }
@@ -576,7 +576,7 @@ fn finder_file_and_modal_mouse_contracts() {
     finder.key(KeyCode::Esc);
     assert!(finder.app.modals.is_empty());
 
-    // Two releases at the same virtual time exercise App's double-click path.
+
     let mut double = build_rust();
     let (dx, dy) = double.find("Run tests").expect("double-click row");
     let tabs = double.app.tabs.len();
@@ -659,7 +659,7 @@ fn finder_file_and_modal_mouse_contracts() {
     assert!(modal.app.modals.is_empty(), "outside click left Text modal");
 
     let mut quit = H::new(Scenario::ActivitiesMulti, Motion::Paused, 40, 120, 40);
-    // Esc never quits; Ctrl+Q asks while activities run
+
     quit.ctrl(KeyCode::Char('q'));
     assert!(!quit.app.modals.is_empty());
     let p = outside(&quit);
@@ -710,9 +710,9 @@ fn resize_ladder_preserves_inventory_focus_and_hits() {
 
 #[test]
 fn the_history_opt_out_holds_from_the_first_frame() {
-    // HOLLA_NO_HISTORY=1 swapped the store in after the Here page was
-    // built, so the first screen still listed learned use ("Pull git here
-    // used 20 times") until something rebuilt it
+
+
+
     let app = crate::app::App::launch(
         Scenario::ParityCargo,
         Motion::Reduced,
@@ -775,7 +775,7 @@ fn plan_review_gate_cancel_and_cleanup_report_routes_keep_model_state() {
     assert_eq!(plan.app.world.plans[0].phase, PlanPhase::Review);
     assert!(plan.app.modals.is_empty());
 
-    // Re-open the plan, advance to gate 2, then cancel without executing.
+
     plan.key(KeyCode::Enter);
     plan.key(KeyCode::Char('c'));
     plan.key(KeyCode::Right);
@@ -817,8 +817,8 @@ fn plan_review_gate_cancel_and_cleanup_report_routes_keep_model_state() {
 
 #[test]
 fn two_clicks_far_apart_on_one_row_are_not_a_double_click() {
-    // interaction #21: a multi-click chains by control, cell and time, not
-    // by control alone (a wide row is one control)
+
+
     let mut h = build_rust();
     let (dx, dy) = h.find("Run tests").expect("finder row");
     let row = h.app.shell.hits.hit(Position::new(dx + 2, dy));
@@ -836,7 +836,7 @@ fn two_clicks_far_apart_on_one_row_are_not_a_double_click() {
 
 #[test]
 fn a_horizontal_swipe_never_scrolls_a_vertical_view() {
-    // interaction #7: WheelLeft/Right are their own axis, not vertical
+
     let mut h = build_browser();
     open(&mut h, "Browse ~/work/site");
     h.ticks(8);
@@ -859,7 +859,7 @@ fn a_horizontal_swipe_never_scrolls_a_vertical_view() {
     assert_ne!(h.text(), before, "the preview does scroll vertically");
 }
 
-/// The first cell of the horizontal thumb drawn inside `area`.
+
 fn h_thumb(h: &H, area: ratatui::layout::Rect) -> Option<(u16, u16)> {
     let buf = h.term.backend().buffer();
     area.positions()
@@ -869,10 +869,10 @@ fn h_thumb(h: &H, area: ratatui::layout::Rect) -> Option<(u16, u16)> {
 
 #[test]
 fn the_files_preview_pans_a_long_line_sideways_and_resets_for_another_file() {
-    // the line is 4096 cells: enough notches to move the thumb visibly
+
     const NOTCHES: usize = 150;
-    // hscroll follow-up: the wrap-off preview takes the sideways wheel and
-    // its own bar, and a newly opened file starts at its first column
+
+
     let mut h = build_browser();
     open(&mut h, "Browse ~/work/site");
     h.ticks(8);
@@ -907,7 +907,7 @@ fn the_files_preview_pans_a_long_line_sideways_and_resets_for_another_file() {
         h.mouse(MouseKind::WheelLeft, x, y);
     }
     assert_eq!(h_thumb(&h, bar).map(|t| t.0), Some(x0), "and back");
-    // a press on the far end of the bar's track moves the thumb there
+
     h.click(bar.right() - 1, bar.y);
     let (x2, _) = h_thumb(&h, bar).expect("bar");
     assert!(
@@ -915,7 +915,7 @@ fn the_files_preview_pans_a_long_line_sideways_and_resets_for_another_file() {
         "the track press panned: {x0} -> {x2}\n{}",
         h.text()
     );
-    // another file, then long.txt again: the offset starts over
+
     let (ix, iy) = h.find("index.html").expect("index.html row");
     h.click(ix + 2, iy);
     h.ticks(2);
@@ -932,7 +932,7 @@ fn the_files_preview_pans_a_long_line_sideways_and_resets_for_another_file() {
 
 #[test]
 fn a_middle_click_on_a_tab_closes_it() {
-    // interaction #6: middle click closes a tab, as in browsers and editors
+
     let mut h = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40);
     let tabs = h.app.tabs.len();
     assert!(tabs >= 2, "{}", h.text());
@@ -946,16 +946,16 @@ fn a_middle_click_on_a_tab_closes_it() {
     );
 }
 
-/// An idle screen asks for no redraw: under reduced motion the cleanup
-/// review used to rebuild and report `Changed` on every world tick (every
-/// 200 ms) with nothing on it changing, so the runtime redrew an identical
-/// frame forever. Once the review settles, ticks are `Ignored` and the
-/// frame stays the same.
+
+
+
+
+
 #[test]
 fn an_idle_cleanup_review_requests_no_redraw() {
     let mut h = H::new(Scenario::ParityInsights, Motion::Reduced, 0, 120, 40);
     open(&mut h, "Review cleanup candidates");
-    // let discovery and the transient status settle
+
     h.ticks(200);
     let before = h.text();
     assert!(before.contains("18 categories"), "{before}");
@@ -973,11 +973,11 @@ fn an_idle_cleanup_review_requests_no_redraw() {
     assert_eq!(h.text(), before, "nothing on screen changed");
 }
 
-/// The idle finder (the home screen) under reduced motion used to report
-/// `Changed` on every tick: each rebuild restamps live data ages in
-/// milliseconds, though only their labels are shown. Now a tick redraws only
-/// when a shown label moves (a "N s ago" crossing a second), not 50 times
-/// in 50 ticks.
+
+
+
+
+
 #[test]
 fn an_idle_finder_requests_redraws_only_when_a_label_moves() {
     let mut h = H::new(Scenario::ParityInsights, Motion::Reduced, 0, 120, 40);

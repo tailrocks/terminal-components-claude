@@ -1,6 +1,6 @@
-//! Text areas (plan §7 SC8): `TextArea` editing, scrolling and every knob
-//! it shares with `TextInput`, plus its own (Esc reverts, scroll keys,
-//! horizontal scrolling). Options: `crate::options::TEXTAREAS`.
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -44,8 +44,8 @@ impl TextAreasPage {
         page
     }
 
-    /// Build the areas from the option values through their builders,
-    /// keeping what was typed.
+
+
     fn rebuild(&mut self) {
         let long = (1..=28)
             .map(|i| match i % 4 {
@@ -108,7 +108,7 @@ impl TextAreasPage {
                     "off" => a = a.horizontal(HScroll::off()),
                     _ => {}
                 }
-                // what was typed survives a rebuild
+
                 if let Some(old) = self.areas.get(i) {
                     a = a.value(old.field.buffer.text());
                 }
@@ -117,7 +117,7 @@ impl TextAreasPage {
             .collect();
     }
 
-    /// Area `i` of the playground (tests read it).
+
     #[allow(dead_code)]
     pub fn area(&self, i: usize) -> &TextArea {
         &self.areas[i]
@@ -206,15 +206,15 @@ impl Page for TextAreasPage {
 }
 
 impl TextAreasPage {
-    /// The two cards (the editable areas, then the disabled one and the
-    /// one with an error), each with its two areas side by side when both
-    /// fit whole and stacked otherwise. `measure` and `render_playground`
-    /// share it: the cards' rects, and each card's areas in its content.
+
+
+
+
     fn tiled(&self, width: u16, ctx: &RenderCtx) -> (Tiled, [Tiled; 2]) {
         let any = Size::new(0, 0);
-        // each area at its natural height and its min width: a long line
-        // scrolls sideways inside its area (that is the demo), it does not
-        // widen the page
+
+
+
         let sizes: Vec<Size> = self
             .areas
             .iter()
@@ -332,8 +332,8 @@ impl TextAreasPage {
     }
 }
 
-/// The States grid: a text area in every state it has, drawn by `TextArea`
-/// itself ([`junie_tui::ui::specimen`]).
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

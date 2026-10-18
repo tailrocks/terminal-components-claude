@@ -1,8 +1,8 @@
-//! The File browser page through the real app (plan §7 SC41): the page
-//! shows the library `FileBrowser`'s demo, not the planned-page stub;
-//! Browse… opens the modal on the shell's layer stack, its keys walk the
-//! fixture, a choice or a dismissal comes back to the page, and the
-//! options drive the browser's builders.
+
+
+
+
+
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
@@ -18,7 +18,7 @@ fn open(h: &mut Harness) {
     h.key(KeyCode::Enter);
 }
 
-/// The results the page logged, oldest first.
+
 fn log(h: &Harness) -> Vec<String> {
     h.app.pages[PageId::FileBrowser.index()]
         .as_any()
@@ -62,9 +62,9 @@ fn browse_opens_the_modal_and_space_chooses_a_folder() {
     ] {
         assert!(text.contains(needle), "{needle}: {text}");
     }
-    // the footer names the browser's keys
+
     assert!(text.contains("Space Choose"), "{text}");
-    // type-ahead to payments-platform, into it, back up
+
     h.key(KeyCode::Char('p'));
     h.key(KeyCode::Enter);
     let text = h.text();
@@ -142,7 +142,7 @@ fn a_typed_location_opens_it() {
     let mut h = Harness::new(120, 40, PageId::FileBrowser);
     open(&mut h);
     h.key(KeyCode::Char('/'));
-    // the field edits `~/src` with the caret at the end
+
     for _ in 0..3 {
         h.key(KeyCode::Backspace);
     }
@@ -173,7 +173,7 @@ fn options_drive_the_browser() {
     assert!(text.contains("Git URL…"), "{text}");
     assert!(text.contains("✓ Source · ● Folder"), "{text}");
     assert!(text.contains("g Git URL"), "vim keys: {text}");
-    // vim `g` switches to the URL entry; a known repository answers
+
     h.key(KeyCode::Char('g'));
     assert!(h.text().contains("Browse folders"), "{}", h.text());
     type_str(&mut h, "github.com/acme/customer-portal");

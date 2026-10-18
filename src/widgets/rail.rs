@@ -1,11 +1,11 @@
-//! A collapsible sidebar's controls: the rail a collapsed sidebar leaves
-//! behind, and the collapse button on the open sidebar's frame.
-//!
-//! A sidebar hidden by a shortcut (Ctrl+B) must come back by pointer too:
-//! macOS sidebars keep a toolbar toggle, and a collapsed pane in an IDE
-//! keeps a rail with its name. The rail is a narrow column at the edge the
-//! sidebar collapsed into: `›` above the sidebar's name written down the
-//! column; a click anywhere on it opens the sidebar again.
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -15,28 +15,28 @@ use crate::core::id::{Part, PartRef, WidgetId};
 use crate::theme::Kind;
 use crate::ui::ctx::RenderCtx;
 
-/// What a click on the sidebar's controls asks for.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RailAction {
-    /// The rail was clicked: open the sidebar.
+
     Expand,
-    /// The collapse button was clicked: collapse the sidebar.
+
     Collapse,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SidebarRail {
-    /// The rail's hit id; the collapse button is `id.sub("collapse")`.
+
     pub id: WidgetId,
-    /// The sidebar's name, written down the rail.
+
     pub label: String,
-    /// A collapsed sidebar leaves a rail to click. Default on; off, it
-    /// disappears entirely (only the keyboard brings it back).
+
+
     pub collapsed_rail: bool,
 }
 
 impl SidebarRail {
-    /// Cells the rail takes: the glyph column and a gap.
+
     pub const WIDTH: u16 = 2;
 
     pub fn new(id: WidgetId, label: &str) -> Self {
@@ -47,25 +47,25 @@ impl SidebarRail {
         }
     }
 
-    /// See [`Self::collapsed_rail`].
+
     pub fn collapsed_rail(mut self, on: bool) -> Self {
         self.collapsed_rail = on;
         self
     }
 
-    /// The collapse button's hit id: the rail's disclosure
-    /// (`Part::ICON`, as a tree branch's).
+
+
     pub fn collapse_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::ICON))
     }
 
-    /// Columns the collapsed sidebar keeps: [`Self::WIDTH`], or 0 without
-    /// a rail.
+
+
     pub fn width(&self) -> u16 {
         if self.collapsed_rail { Self::WIDTH } else { 0 }
     }
 
-    /// A completed click on `id`.
+
     pub fn on_click(&self, id: WidgetId) -> Option<RailAction> {
         if id == self.id && self.collapsed_rail {
             Some(RailAction::Expand)
@@ -76,9 +76,9 @@ impl SidebarRail {
         }
     }
 
-    /// Draw the rail in the first column of `area` (the column the sidebar
-    /// collapsed into) and register it. Rest, hover and press come from
-    /// the title ladder, so it reads as a control.
+
+
+
     pub fn render_rail(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         if !self.collapsed_rail || area.is_empty() {
@@ -101,8 +101,8 @@ impl SidebarRail {
         ctx.clickable(self.id, col);
     }
 
-    /// Draw the collapse button (` ‹ `) into the top border of the open
-    /// sidebar's frame `panel`, right-aligned, and register it.
+
+
     pub fn render_collapse(&self, panel: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         if panel.width < 12 || panel.height < 2 {
             return;
@@ -121,9 +121,9 @@ impl SidebarRail {
     }
 }
 
-/// The collapsed rail drawn alone, in a forced state, for a States grid
-/// ([`crate::ui::specimen`]): rest, hover and press on the rail, as tall
-/// as its glyph and label.
+
+
+
 impl crate::ui::specimen::Specimen for SidebarRail {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -151,9 +151,9 @@ impl crate::ui::specimen::Specimen for SidebarRail {
     }
 }
 
-/// The rail's pointer gesture: a completed click on the collapsed rail
-/// expands the sidebar, on the collapse button collapses it
-/// ([`SidebarRail::on_click`]).
+
+
+
 impl crate::core::pointer::MouseTarget for SidebarRail {
     type Action = RailAction;
 

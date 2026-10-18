@@ -1,7 +1,7 @@
-//! Shared Mounts / Environments tabs for the Workspace Editor and the
-//! Global Settings. Both screens keep an original and a pending `Doc`; rows
-//! carry `+ • −` change slots, child modals edit one row at a time and the
-//! save preview is built from the diff.
+
+
+
+
 
 use std::collections::{BTreeMap, HashSet};
 
@@ -47,7 +47,7 @@ use junie_tui::ui::context::ContextAnchor;
 use junie_tui::widgets::menu::MenuItem;
 use ratatui::crossterm::event::KeyModifiers;
 
-/// Which configuration document the tabs edit.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scope {
     Workspace,
@@ -69,7 +69,7 @@ pub enum Tab {
     Environments,
 }
 
-/// The parts of a Workspace or the global config that the shared tabs edit.
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Doc {
     pub mounts: Vec<Mount>,
@@ -120,7 +120,7 @@ impl Doc {
         }
     }
 
-    /// Roles that carry configuration (and therefore get a section).
+
     fn roles(&self) -> Vec<RoleName> {
         let mut v: Vec<RoleName> = self
             .role_env
@@ -161,9 +161,9 @@ pub enum RowKey {
     Section(Option<RoleName>),
     Env(Option<RoleName>, String),
     AddEnv(Option<RoleName>),
-    /// `Role overrides · N configured` summary header.
+
     RoleSummary,
-    /// `+ Add role override…` — opens the searchable Role picker.
+
     AddRoleOverride,
 }
 
@@ -172,7 +172,7 @@ struct Row {
     key: RowKey,
     change: Change,
     cells: Vec<(String, Tone)>,
-    /// Trailing `!` with a message (blocker or validation).
+
     problem: Option<String>,
     faint: bool,
     header: bool,
@@ -188,7 +188,7 @@ struct ListState {
     area: Rect,
 }
 
-/// What a child modal edits, so its result lands on the right row.
+
 #[derive(Debug, Clone)]
 enum Editing {
     Mount {
@@ -211,18 +211,18 @@ pub struct ConfigTabs {
     unmasked: HashSet<(Option<RoleName>, String)>,
     editing: Option<Editing>,
     op_ref: Option<OpReference>,
-    /// Roles that get a section: only those that carry entries.
+
     roles: Vec<RoleName>,
-    /// Every registry role, for scope selectors and the role picker.
+
     registry: Vec<RoleName>,
-    /// Picker rows → Role names for the last role picker.
+
     role_targets: Vec<RoleName>,
     ids: Ids,
-    /// The rows' context menu (right-click, Shift+F10, Menu key): each item
-    /// replays the row key it shows. Its `config` is the knob.
+
+
     pub menu: RowMenu<(Tab, RowKey), KeyCode>,
-    /// The Environments list beside its variable card: the card sits at
-    /// the right from 150 columns and is a drawer below (R-apps-2).
+
+
     md: MasterDetail,
 }
 
@@ -275,20 +275,20 @@ impl ConfigTabs {
                 card: base.sub("card"),
             },
             menu: RowMenu::new(base.sub("menu")),
-            // the card keeps its 56 columns two from the right edge
+
             md: MasterDetail::new(base.sub("envs"), base.sub("card"))
                 .detail_share(0, 56, 56)
                 .collapse_below(150),
         }
     }
 
-    /// Whether `focus` is on `tab`'s list or on its variable card.
+
     pub fn owns(&self, tab: Tab, focus: Option<WidgetId>) -> bool {
         focus == Some(self.list_id(tab))
             || (tab == Tab::Environments && focus == Some(self.ids.card))
     }
 
-    /// Whether the row under the cursor has a card (a variable).
+
     fn has_card(&self, tab: Tab) -> bool {
         let st = self.state_ref(tab);
         tab == Tab::Environments
@@ -319,7 +319,7 @@ impl ConfigTabs {
         }
     }
 
-    // ------------------------------------------------------------ dirty
+
 
     pub fn tab_dirty(&self, tab: Tab) -> bool {
         match tab {
@@ -346,7 +346,7 @@ impl ConfigTabs {
         }
     }
 
-    /// Blockers that stop a save until cleaned up.
+
     pub fn blockers(&self) -> Vec<String> {
         let mut v = vec![];
         for m in &self.pending.mounts {
@@ -363,7 +363,7 @@ impl ConfigTabs {
         v
     }
 
-    /// Clears every blocker (simulated cleanup) so the save can proceed.
+
     pub fn clean_up(&mut self) {
         for m in &mut self.pending.mounts {
             m.drift = None;
@@ -371,7 +371,7 @@ impl ConfigTabs {
         }
     }
 
-    /// `+ − ~` preview lines for the save facts dialog.
+
     pub fn diff_lines(&self) -> Vec<String> {
         let mut v = vec![];
         for m in &self.pending.mounts {
@@ -476,11 +476,11 @@ impl ConfigTabs {
         v
     }
 
-    // ------------------------------------------------------------- rows
+
 
     fn build_rows(&mut self, tab: Tab, w: &World) {
-        // a Role section exists while the Role carries entries in either the
-        // original or the pending document; nothing else earns one
+
+
         let mut roles = self.original.roles();
         for r in self.pending.roles() {
             if !roles.contains(&r) {
@@ -497,7 +497,7 @@ impl ConfigTabs {
         if st.cursor >= st.rows.len() {
             st.cursor = st.rows.len().saturating_sub(1);
         }
-        // never rest on a header without a fold
+
         while st
             .rows
             .get(st.cursor)
@@ -739,8 +739,8 @@ impl ConfigTabs {
                 meta: String::new(),
             });
             if s.is_none() {
-                // Role scopes follow, but only the ones that carry entries:
-                // a registry of hundreds of Roles stays one summary row
+
+
                 rows.push(Row {
                     key: RowKey::RoleSummary,
                     change: Change::None,
@@ -774,9 +774,9 @@ impl ConfigTabs {
         rows
     }
 
-    // ----------------------------------------------------------- render
 
-    /// Renders the tab body; returns the footer status for the focused row.
+
+
     pub fn render(
         &mut self,
         tab: Tab,
@@ -798,7 +798,7 @@ impl ConfigTabs {
             let l = self.md.layout(area, buf, ctx, bg);
             match l.mode {
                 Mode::Drawer => {
-                    // the card covers the body; the list keeps its stop
+
                     if has_card {
                         self.render_inspector(tab, l.detail, buf, ctx);
                     }
@@ -814,7 +814,7 @@ impl ConfigTabs {
                 Mode::Master => (l.master, None),
             }
         };
-        // header row for tables
+
         let header: Vec<&str> = match (tab, scope) {
             (Tab::Mounts, Scope::Workspace) => {
                 vec!["Destination", "Mode", "Isolation", "Kind", "Source"]
@@ -997,8 +997,8 @@ impl ConfigTabs {
                     if row.change == Change::Removed {
                         cs = cs.add_modifier(Modifier::CROSSED_OUT);
                     }
-                    // a cut cell reveals on hover, the cursor row's on the
-                    // peek line (R-apps-4)
+
+
                     let cell = Rect::new(x, y, cw, 1);
                     let shown = junie_tui::ui::reveal::fit(ctx, cell, text, s.focused);
                     buf.set_string(x, y, fit(&shown, cw as usize), cs);
@@ -1016,7 +1016,7 @@ impl ConfigTabs {
                     style.fg(t.text_faint),
                 );
             }
-            // the cursor row is a fill: its details step up to stay readable
+
             legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
             if s.selected {
@@ -1040,8 +1040,8 @@ impl ConfigTabs {
                 if y >= list_area.bottom() {
                     break;
                 }
-                // each blocker wraps to two rows at most; a cut ends in ` …`
-                // and reveals in full on hover (R-apps-5)
+
+
                 y += Notice::error(p.as_str()).render(
                     Rect::new(
                         list_area.x + 3,
@@ -1059,7 +1059,7 @@ impl ConfigTabs {
             self.render_inspector(tab, card, buf, ctx);
         }
         if has_card {
-            // narrow: the card's hidden stop after the list opens the drawer
+
             self.md.finish(ctx);
         }
         status
@@ -1162,8 +1162,8 @@ impl ConfigTabs {
             }
             _ => return,
         };
-        // the card is a focus stop: Tab reaches it from the list (narrow,
-        // focusing it opens the drawer) and Esc returns
+
+
         let focused = ctx.interaction.focused(self.ids.card);
         ctx.control(self.ids.card, area, false);
         let inner = Panel::card(Some(&title))
@@ -1196,7 +1196,7 @@ impl ConfigTabs {
         }
     }
 
-    // ------------------------------------------------------------- keys
+
 
     pub fn hints(&self, tab: Tab, focus: Option<WidgetId>) -> Vec<Hint> {
         if tab == Tab::Environments && focus == Some(self.ids.card) {
@@ -1256,7 +1256,7 @@ impl ConfigTabs {
             let r = &st.rows[i as usize];
             if r.header && r.folded.is_none() {
                 if i == 0 && delta < 0 || i == n as isize - 1 && delta > 0 {
-                    // sit on the header when it is the boundary
+
                     break;
                 }
                 continue;
@@ -1507,7 +1507,7 @@ impl ConfigTabs {
         Outcome::Changed
     }
 
-    // ------------------------------------------------------ context menu
+
 
     fn row_title(row: &Row) -> String {
         match &row.key {
@@ -1523,8 +1523,8 @@ impl ConfigTabs {
         }
     }
 
-    /// The commands a row offers: its keys (the hint bar's), each replayed
-    /// through [`Self::on_key`]; unavailable ones carry the reason.
+
+
     fn menu_items(&self, row: &Row) -> Vec<(MenuItem, KeyCode)> {
         let item = |label: &str, key: &'static str| MenuItem::new(label).shortcut(key);
         let add_env = (item("Add variable…", "a"), KeyCode::Char('a'));
@@ -1675,13 +1675,13 @@ impl ConfigTabs {
         self.menu.is_open()
     }
 
-    /// The page under the open menu draws without focus.
+
     pub fn menu_hides_focus(&self) -> bool {
         self.menu.hides_page_focus()
     }
 
-    /// A key while the menu is open. `Ignored` only when the key closed
-    /// the menu unused and belongs to the page (K14).
+
+
     pub fn menu_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let (o, chosen) = self.menu.on_key(key);
         match chosen {
@@ -1692,7 +1692,7 @@ impl ConfigTabs {
         }
     }
 
-    /// A click while the menu is open.
+
     pub fn menu_click(&mut self, id: WidgetId, w: &mut World, cx: &mut Cx) -> Outcome {
         let (o, chosen) = self.menu.on_click(id);
         match chosen {
@@ -1701,7 +1701,7 @@ impl ConfigTabs {
         }
     }
 
-    /// Replay the chosen row key on its row.
+
     fn run_menu(
         &mut self,
         tab: Tab,
@@ -1726,16 +1726,16 @@ impl ConfigTabs {
             mods: KeyModifiers::NONE,
         };
         let out = self.on_key(tab, &key, w, cx);
-        // a menu that leaves the cursor in place runs on its row only
+
         if !self.menu.config.moves_cursor {
             self.state(tab).cursor = prev;
         }
         out.or(Outcome::Changed)
     }
 
-    /// A pointer event on `tab`'s list: a click picks a row (a second
-    /// click on it runs Enter), folds a section or pages the bar; a
-    /// secondary click opens a row's menu; the wheel scrolls the list.
+
+
+
     pub fn pointer(&mut self, tab: Tab, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
@@ -1751,7 +1751,7 @@ impl ConfigTabs {
         }
     }
 
-    /// A secondary click on one of `tab`'s rows opens its menu at `pos`.
+
     fn secondary(
         &mut self,
         tab: Tab,
@@ -1778,7 +1778,7 @@ impl ConfigTabs {
         Outcome::Changed
     }
 
-    /// Draw the open menu; after the rows, so it anchors to them.
+
     pub fn render_menu(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.menu.render(screen, buf, ctx);
     }
@@ -1898,7 +1898,7 @@ impl ConfigTabs {
         Outcome::Ignored
     }
 
-    // ------------------------------------------------------------ modals
+
 
     fn scope_options(&self) -> Vec<String> {
         let mut v = vec![self.scope.label().to_owned()];
@@ -1957,9 +1957,9 @@ impl ConfigTabs {
         cx.open(d, LayerTag::new("cfg.scope").key(&k));
     }
 
-    /// Searchable Role picker for `+ Add role override…`: every registry
-    /// Role, the configured ones tagged, so hundreds of Roles cost one row
-    /// on the main surface.
+
+
+
     fn open_role_picker(&mut self, cx: &mut Cx) {
         let mut p = Picker::new(self.ids.form.sub("rolepick"), "Add role override");
         p.list.width = (72, 72);
@@ -1969,8 +1969,8 @@ impl ConfigTabs {
         cx.open(p, LayerTag::new("cfg.role"));
     }
 
-    /// Rows for the Role picker filtered by `query`; owners route their
-    /// `picker_items` hook here for the `cfg.role` tag.
+
+
     pub fn role_picker_items(&mut self, query: &str) -> Vec<Item> {
         let q = query.to_lowercase();
         let mut items = vec![];
@@ -2218,7 +2218,7 @@ impl ConfigTabs {
         ];
         let _ = scope_word;
         if e.is_some() {
-            // the key is the row identity; editing it re-creates the row
+
             if let Some(fld) = fields.iter_mut().find(|x| x.name == "key")
                 && let FieldKindW::Input(i) = &mut fld.kind
             {
@@ -2255,8 +2255,8 @@ impl ConfigTabs {
         }
     }
 
-    /// Handles results of the child modals this module opened. Returns
-    /// `None` when the tag belongs to someone else.
+
+
     pub fn on_modal(
         &mut self,
         tag: &LayerTag,
@@ -2331,7 +2331,7 @@ impl ConfigTabs {
                 Outcome::Changed
             }
             ("cfg.env.op", ModalResult::Op(Some(r))) => {
-                // direct re-pick from the row (`p`)
+
                 if let Some(Editing::Env {
                     role,
                     original: Some(k),
@@ -2610,7 +2610,7 @@ impl ConfigTabs {
     }
 }
 
-// ------------------------------------------------------------------ util
+
 
 fn counts<T: PartialEq>(
     pending: &[T],
@@ -2636,7 +2636,7 @@ fn counts<T: PartialEq>(
 fn column_widths(tab: Tab, scope: Scope, avail: u16) -> Vec<u16> {
     match (tab, scope) {
         (Tab::Mounts, Scope::Workspace) => {
-            // Destination, Mode, Isolation, Kind, Source
+
             let fixed = 4 + 9 + 6;
             if avail >= 90 {
                 let rest = avail.saturating_sub(fixed + 8);

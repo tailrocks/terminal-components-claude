@@ -1,14 +1,14 @@
-//! Launch cockpit (Screens, plan §7.5 SC55): jackin's launch cockpit
-//! composed from library widgets only. A card of launch facts
-//! (`PropsList`: target, agent, account, credentials origin) over a
-//! `StepRail` of the eleven launch stages beside the build log
-//! (`TextViewport`, following its tail, with the activity in the panel's
-//! meta); Launch and Cancel launch… under them. The outcome option walks
-//! the paths: a clean launch, a credential source that is unavailable
-//! (a dialog: Retry or Cancel launch), and a failed Docker build (a facts
-//! dialog with the run id and the next step). The cockpit-to-capsule
-//! handoff cross-fade stays jackin-only (owner decision 2026-10-17).
-//! Options: `crate::options::LAUNCH_COCKPIT`.
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -32,10 +32,10 @@ use junie_tui::widgets::props::{self, Prop, PropsAction, PropsList};
 use junie_tui::widgets::steps::{Step, StepRail, StepState};
 use junie_tui::widgets::viewport::{Span, TextViewport, ViewportAction, line_text};
 
-/// The widest the stage rail is drawn.
+
 const RAIL_W: u16 = 30;
-/// The widest the log asks the page to be: it wraps or scrolls sideways
-/// itself past it.
+
+
 const LOG_MIN: u16 = 48;
 const ID: WidgetId = WidgetId::of("launchcockpit");
 const FACTS: WidgetId = ID.sub("facts");
@@ -47,8 +47,8 @@ const CANCEL_DLG: WidgetId = ID.sub("cancel-dialog");
 const CRED_DLG: WidgetId = ID.sub("cred-dialog");
 const FAIL_DLG: WidgetId = ID.sub("fail-dialog");
 
-/// The launch stages, as jackin's cockpit names them, with the ticks
-/// each runs.
+
+
 const STAGES: [(&str, u32); 11] = [
     ("Identity", 3),
     ("Role", 3),
@@ -66,8 +66,8 @@ const CREDENTIALS: usize = 2;
 const DERIVED_IMAGE: usize = 5;
 const RUN_ID: &str = "run-7f3a91c2";
 
-/// What a stage reports as it runs: the activity line, and its log lines
-/// by tick.
+
+
 fn activity(stage: usize) -> &'static str {
     match stage {
         0 => "Resolving identity…",
@@ -115,12 +115,12 @@ pub fn page() -> Box<dyn Page> {
     Box::new(LaunchCockpitPage::new())
 }
 
-/// Where the launch is.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Run {
     Idle,
     Running,
-    /// Paused at the Credentials stage, the dialog open.
+
     Held,
     Ready,
     Failed,
@@ -138,7 +138,7 @@ pub struct LaunchCockpitPage {
     run: Run,
     stage: usize,
     stage_tick: u32,
-    /// The credential failure fires once per launch; Retry resolves it.
+
     cred_failed: bool,
     sections: crate::pages::layout::Sections,
 }
@@ -166,8 +166,8 @@ impl LaunchCockpitPage {
         p
     }
 
-    /// The rail and the log from the option values, through their
-    /// builders; their steps and lines survive.
+
+
     fn rebuild(&mut self) {
         let rail = std::mem::replace(&mut self.rail, StepRail::new(RAIL, vec![]));
         let mut rail = rail.selectable(self.opts.on("launchcockpit.selectable"));
@@ -201,7 +201,7 @@ impl LaunchCockpitPage {
         cx.status("Launching payments-platform…");
     }
 
-    /// Stop every stage still to run, as `state`.
+
     fn stop(&mut self, run: Run, state: StepState) {
         self.run = run;
         self.rail.set_state(self.stage, state);
@@ -305,7 +305,7 @@ impl LaunchCockpitPage {
                     .push(vec![Span::plain("Hardline open · capsule ready").bold()]);
                 cx.status("Launched ✓ capsule cap-payments-01");
             } else if self.stage == 3 {
-                // nothing to construct twice: the cached base is reused
+
                 self.rail.set_state(3, StepState::Skipped);
                 self.rail.set_meta(3, Some("cached".into()));
                 self.stage = 4;
@@ -317,8 +317,8 @@ impl LaunchCockpitPage {
         Outcome::Changed
     }
 
-    /// The build log panel's meta: the activity, with the theme's spinner
-    /// while the launch runs.
+
+
     fn activity(&self, spinner: &str) -> String {
         let lines = self.log.len();
         match self.run {
@@ -421,7 +421,7 @@ impl LaunchCockpitPage {
         }
     }
 
-    /// The facts card, the rail beside the log, the action row.
+
     fn children(&self) -> [StackChild; 3] {
         [
             StackChild::fixed(self.facts.props.len() as u16 + 3),
@@ -451,7 +451,7 @@ impl LaunchCockpitPage {
     }
 }
 
-/// The launch facts, with the credentials origin as the run has it.
+
 fn facts(run: Run, cred_error: bool) -> Vec<Prop> {
     let creds = if cred_error && run == Run::Held {
         Prop::new("Credentials", "1Password · vault Engineering is locked").tone(Tone::Error)
@@ -477,8 +477,8 @@ fn facts(run: Run, cred_error: bool) -> Vec<Prop> {
     ]
 }
 
-/// The States grid: the stage rail in every step state and the build log
-/// viewport.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -535,17 +535,17 @@ impl Page for LaunchCockpitPage {
         "A launch: stage rail, build log, credentials and failure dialogs, Cancel launch"
     }
 
-    /// Everything whole: the facts in their card, the rail at its full
-    /// width beside the log (its title row whole, its lines up to
-    /// [`LOG_MIN`] columns: the log wraps or scrolls sideways itself, so
-    /// a long line never scrolls the page), the actions.
+
+
+
+
     fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
         let facts = Panel::card(Some("Launch · payments-platform"))
             .meta("11 of 11 stages · failed")
             .outer(Size::new(props::width(&self.facts.props), 0))
             .width;
         let meta = self.activity(ctx.theme.glyphs.spinner_frame(0));
-        // the log's lines, up to its own minimum
+
         let widest = self
             .log
             .lines()
@@ -584,7 +584,7 @@ impl Page for LaunchCockpitPage {
             match (*id, result) {
                 (CANCEL_DLG, DialogResult::Action(1)) if self.running() => self.cancel_now(cx),
                 (CRED_DLG, DialogResult::Action(0)) => {
-                    // Retry: the vault answers this time
+
                     self.run = Run::Running;
                     self.facts.set_props(facts(self.run, false));
                     self.log

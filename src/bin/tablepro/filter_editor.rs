@@ -1,6 +1,6 @@
-//! The filter editor: tablepro's own modal, a [`Layer`] on the app's
-//! layer stack (plan S5). It owns its input, rendering, hints and
-//! validation; the app only applies the filter it resolves to.
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -24,11 +24,11 @@ use crate::app::ModalResult;
 use crate::db::ColType;
 use crate::tabs::{Filter, FilterOp};
 
-/// The editor's surface: a press on it is dead space inside the modal.
+
 pub const ID: WidgetId = WidgetId::of("filter-editor");
 
-/// What the editor resolved to: the filter to put at `index` (`None`:
-/// append), or `None` when it was cancelled or dismissed.
+
+
 pub type FilterDone = Option<(Option<usize>, Filter)>;
 
 pub struct FilterEditor {
@@ -41,13 +41,13 @@ pub struct FilterEditor {
     pub cancel: Button,
     pub area: Rect,
     columns: Vec<(String, ColType)>,
-    /// A form holds typed input: only Esc (or Cancel) discards it, a stray
-    /// click outside does not.
+
+
     pub dismiss: Dismiss,
     done: Option<FilterDone>,
 }
 
-/// What a key or click asked the editor to do.
+
 enum Step {
     Keep(Outcome),
     Apply,
@@ -55,9 +55,9 @@ enum Step {
 }
 
 impl FilterEditor {
-    /// An editor for the filter at `index` (`None`: a new one; `update`:
-    /// one exists there) over `columns`, starting on column `col_i`,
-    /// operator `op` and values.
+
+
+
     pub fn new(
         index: Option<usize>,
         update: bool,
@@ -99,7 +99,7 @@ impl FilterEditor {
         }
     }
 
-    /// The operator list follows the chosen column's type.
+
     fn column_changed(&mut self, i: usize) {
         let ops = FilterOp::ordered_for(self.columns[i].1);
         let labels: Vec<&str> = ops.iter().map(|o| o.label()).collect();
@@ -112,8 +112,8 @@ impl FilterEditor {
         ops[self.op.selected.min(ops.len() - 1)]
     }
 
-    /// Apply: a missing value keeps the editor open on the value field
-    /// with the reason; otherwise it resolves to the filter.
+
+
     fn submit(&mut self, focus: &mut Focus) -> Outcome {
         let op = self.chosen_op();
         if self.value.editing {
@@ -151,7 +151,7 @@ impl FilterEditor {
 
     fn key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing) -> Step {
         let cur = focus.current();
-        // focus traversal wins whenever no text field is editing
+
         if !self.value.editing && !self.value2.editing && !self.column.open && !self.op.open {
             match key.code {
                 KeyCode::Tab => {
@@ -222,10 +222,10 @@ impl FilterEditor {
         }
     }
 
-    /// A pointer event on the editor: its selects take every phase of
-    /// their gestures (press-drag-release, the wheel and the bar of an open
-    /// list), the value fields their press, drag and click, the buttons a
-    /// click.
+
+
+
+
     fn pointer_step(&mut self, ev: &PointerEvent, focus: &mut Focus) -> Step {
         let (id, pos) = (ev.id, ev.pos());
         let focusing = ev.is(Phase::Press) || ev.is(Phase::Click);
@@ -273,7 +273,7 @@ impl FilterEditor {
 
     fn draw(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // dim like a dialog, keep the footer
+
         ctx.modal_backdrop(buf, screen);
         let w = 64u16.min(screen.width.saturating_sub(4));
         let h = 15u16.min(screen.height.saturating_sub(2));
@@ -292,7 +292,7 @@ impl FilterEditor {
             .border_type(ratatui::widgets::BorderType::Rounded)
             .border_style(t.border(true).bg(bg));
         ratatui::widgets::Widget::render(block, area, buf);
-        // the editor's body: a press on it is dead space inside the modal
+
         ctx.hits.register_surface(ID, area);
         let inner = area.inner(ratatui::layout::Margin::new(3, 1));
         buf.set_string(
@@ -382,7 +382,7 @@ impl FilterEditor {
                 bg,
                 &mut [&mut self.cancel, &mut self.apply],
             );
-        // controls on top of the surface
+
         ctx.hits.register(self.column.id, self.column.area);
         ctx.hits.register(self.op.id, self.op.area);
         ctx.hits.register(self.value.id, self.value.area);
@@ -393,8 +393,8 @@ impl FilterEditor {
 }
 
 impl Layer<ModalResult> for FilterEditor {
-    /// A centred modal under [`Self::dismiss`] (Esc only), opening on the
-    /// value when it is empty and on Apply otherwise.
+
+
     fn spec(&self) -> LayerSpec {
         let initial = if self.value.text().is_empty() {
             self.value.id
@@ -408,8 +408,8 @@ impl Layer<ModalResult> for FilterEditor {
         self.draw(screen, buf, ctx);
     }
 
-    /// Esc reverts a field's edit first; with nothing to revert it is
-    /// left to the stack's dismissal (and so to [`Self::dismiss`]).
+
+
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_>) -> Outcome {
         if key.is(KeyCode::Esc)
             && !self.value.is_dirty()
