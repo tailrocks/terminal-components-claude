@@ -8,6 +8,17 @@ The root workspace manifest declares Termrock crates for foundations, layout, th
 
 Reusable behavior belongs in focused shared crates with explicit public APIs. Applications own domain workflows, policy, and composition. Preserve explicit dependency direction and retire legacy paths only through intentional migration.
 
+## Repository and dependency map
+
+| Area | Current location and role |
+|---|---|
+| Public facade | `crates/termrock` re-exports the shared public surfaces; its `testing` feature enables the headless example harness. |
+| Shared implementation | `crates/termrock-*` owns reusable primitives, runtime, components, and supporting test/tool crates. Follow each package manifest for its dependency direction. |
+| Applications | `crates/showcase*`, `crates/jackin-preview*`, `crates/holla*`, and `crates/tablepro*` separate application data/domain/simulation from UI composition and executable entry points. |
+| Maintenance tools | `tools/` contains proof, visibility, inventory, rendering, and capture utilities; their own runbooks describe their inputs. |
+
+Dependency constraints live in [the workspace manifest](../Cargo.toml); [Cargo.lock](../Cargo.lock) records resolved versions. Ratatui and the Crossterm integration support terminal rendering and events; Unicode width/segmentation libraries support text geometry; Serde/JSON support structured data; Tuiscotti supports PTY verification. Individual package manifests determine which boundary owns each dependency. Keep reusable dependencies in the relevant shared crate and application-specific dependencies in app/tool crates. The facade’s declarations do not imply that every component has a stable downstream API.
+
 ## Remaining architecture work
 
 - Complete and repair the in-progress crate migration.
