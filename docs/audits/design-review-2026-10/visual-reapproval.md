@@ -1,24 +1,6 @@
 # Visual re-approval against `visual-baseline` (tablepro, holla, jackin)
 
-## Status
-
-Historical evidence. Its dated findings and source pins describe the recorded review only.
-
-## Authority
-
-Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
-
-## Current evidence
-
-Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
-
-## Remaining work
-
-Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
-
-## Verification
-
-Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+> Source-pinned design review. The observations, proposed contracts, and any results below describe the recorded review only; they do not prove the current split-crate implementation or readiness. Preserve concrete requirements in the active branch work register and verify them against current code before closing work.
 
 
 Status: 2026-10-17. tablepro, holla and jackin re-approved (gate).

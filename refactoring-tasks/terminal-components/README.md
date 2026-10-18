@@ -10,7 +10,7 @@ The intended architecture is the split-crate reusable library on main. `design/i
 
 ## Current evidence
 
-The group contains 73 dependency-linked task contracts, initially authored against main `7b27732a8c3c131760ec3438f641cb3c11343a42`. The task index and source-obligation traceability preserve requirements and dependency identities. Per-file SHA-256 disposition appears in [the task artifact inventory](../../docs/refactoring-task-disposition.tsv). Their recorded source hashes and audit coverage are historical; task status fields do not prove readiness.
+The group contains 73 dependency-linked task contracts, initially authored against main `7b27732a8c3c131760ec3438f641cb3c11343a42`. The task index and source-obligation traceability preserve requirements and dependency identities. Task contracts and trusted proof inputs retain their own source pins and acceptance criteria. Historical source hashes do not prove readiness; re-audit a task against the current architecture and product reference before implementation.
 
 ## Remaining work
 

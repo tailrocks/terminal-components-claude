@@ -25,7 +25,7 @@ Verification is limited to the recorded commands, revisions, and results. Re-run
 
 ## Source reconstruction and binding result
 
-Read the complete1692-line `d4715f8e:REFACTORING_GOAL.md`, complete original-to-final diff and all five intervening patches. All six recorded revisions exist. Changes removed obsolete reference authority (dce91d51), added historical model routing (2d81eec4), relaxed prescribed research tooling (25ea92b0), made the goal historical under parity-first work (efada044), then renamed old agent roles (d4715f8e). The final scrub did not remove every obsolete model requirement; current instruction authority supplies supersession.
+Read the complete1692-line `d4715f8e:[REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md), complete original-to-final diff and all five intervening patches. All six recorded revisions exist. Changes removed obsolete reference authority (dce91d51), added historical model routing (2d81eec4), relaxed prescribed research tooling (25ea92b0), made the goal historical under parity-first work (efada044), then renamed old agent roles (d4715f8e). The final scrub did not remove every obsolete model requirement; current instruction authority supplies supersession.
 
 Every row was compared with its actual source section, canonical requirement/disposition, remaining proof, task IDs, actual R/AC/CHK arrays and exact embedded task payload.56 source rows,98 edges,34 mapped packages: zero identity, common-field, owner-set, check-binding or embedded-payload mismatches. RG39's heterogeneous canonical remaining-work/test refinement was assessed semantically under ADJ09/reconciliation, not forced into a fabricated same-schema projection.
 
@@ -110,12 +110,12 @@ Historical source file identities:
 
 ```tsv
 revision:path	lines	sha256
-e48137f1:REFACTORING_GOAL.md	1683	d534639151d7681f86ddfc6d95f8ea9e47848e8a8ef2e5d1fd87715b8cdad350
-dce91d51:REFACTORING_GOAL.md	1680	0524552b92fb00e7e50626b425f31d68e8d2495cdcd5bbb9e6716a4ab6109b4c
-2d81eec4:REFACTORING_GOAL.md	1702	8815242e1feb9adcdcb4ce3a19cd8b37e961b4f85dfebb8d69ec96ae2bc25020
-25ea92b0:REFACTORING_GOAL.md	1687	13c7e356368853e8825dcc70356e053cad9957d587ad06299c39d4f81d7f4b9c
-efada044:REFACTORING_GOAL.md	1692	eeaa022a6a11402e0268efd20b8ce300cdc026351b9909e2d206f1e3a041b34d
-d4715f8e:REFACTORING_GOAL.md	1692	e897e1169500acd645cb58ef8595f8f0dd70222b180b7d8e14d2a72644885e6c
+e48137f1:[REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md)	1683	d534639151d7681f86ddfc6d95f8ea9e47848e8a8ef2e5d1fd87715b8cdad350
+dce91d51:[REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md)	1680	0524552b92fb00e7e50626b425f31d68e8d2495cdcd5bbb9e6716a4ab6109b4c
+2d81eec4:[REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md)	1702	8815242e1feb9adcdcb4ce3a19cd8b37e961b4f85dfebb8d69ec96ae2bc25020
+25ea92b0:[REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md)	1687	13c7e356368853e8825dcc70356e053cad9957d587ad06299c39d4f81d7f4b9c
+efada044:[REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md)	1692	eeaa022a6a11402e0268efd20b8ce300cdc026351b9909e2d206f1e3a041b34d
+d4715f8e:[REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md)	1692	e897e1169500acd645cb58ef8595f8f0dd70222b180b7d8e14d2a72644885e6c
 ```
 
 Reviewed current source-family snapshot; other family snapshots remain in their scoped reviews:

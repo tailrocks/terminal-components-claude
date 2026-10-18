@@ -1,30 +1,26 @@
 # Junie TUI
 
-## Status
+Junie TUI is a deterministic Rust terminal UI component and application laboratory. It contains a widget showcase and simulated previews for TablePro, Jackin, and Holla; the preview applications do not perform real external side effects.
 
-This branch is the reference for the intended terminal interface: visual language, colors, layouts, interactions, and behavior. Its monolithic crate structure is not the target architecture.
+## Run
 
-## Authority
+```sh
+cargo run --release
+cargo run --release --bin tablepro
+cargo run --release --bin jackin-preview
+cargo run --release --bin holla
+```
 
-Use `main` as the architectural direction: separate crates, reusable components, and public APIs. The `main` refactor is incomplete, broken, and not ready to serve as a working implementation. Use this branch for intended UI and behavior. Reuse API ideas where useful, then place them in the split-crate architecture.
+The root package is `junie-tui`; its library is `junie_tui`. The product source is under `src/`, with the four binaries under `src/bin/`. `xtask` provides repository tooling. This is the `wip/rapps-3-7-14` worktree, not the target architecture. `main` gives the correct split-crate direction, but its refactor is incomplete and not ready. `design/interaction-polish` is the exact UI/UX, color, interaction, and behavior target; this WIP retains branch-specific code, specifications, and backlog, and does not imply every target feature is present.
 
-## Current evidence
+## Project documentation
 
-The repository contains one Rust package with four application binaries. The root package manifest and `src/` tree are the evidence for current structure. The design and interaction specifications define intent; they do not prove every item is implemented or verified.
+- [Documentation map](docs/README.md): active references and evidence scope.
+- [Architecture direction](docs/architecture.md): current crate shape and migration target.
+- [Design contract](docs/design.md): UI/UX authority and focused specifications.
+- [Development and verification](docs/development.md): code, visual, and generated-doc workflows.
+- [Roadmap](docs/plan.md): detailed open-work index; branch-specific acceptance ledger in [remaining work](docs/remaining-work.md).
+- [Visual testing](docs/visual-testing/README.md): scenarios, approval rules, and current commands.
+- [Safety rationale](SAFETY.md): explanations for unsafe blocks and invariants.
 
-## Remaining work
-
-Preserve all open design, product, audit, and refactoring tasks in `docs/remaining-work.md`, `docs/improvements/`, `docs/audits/`, and `refactoring-tasks/`. Complete the planned UI/UX work against this branch's design authority while carrying reusable APIs into the split-crate architecture. Treat the refactor as unfinished until implementation and its required verification are complete.
-
-## Verification
-
-Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo nextest run --all-targets` for code changes. For visual claims, use the current procedures in `docs/visual-testing/README.md`; a plan or historical verification record is not current proof. Rust comment-only removal must leave behavior and rendered output unchanged.
-
-## Applications
-
-- `showcase` demonstrates library widgets and compositions.
-- `tablepro` is a deterministic database-workbench preview.
-- `jackin-preview` is a deterministic simulated application redesign.
-- `holla` is a deterministic context-adaptive action-launcher preview.
-
-Run the showcase with `cargo run --release`; select another binary with `cargo run --release --bin tablepro`, `cargo run --release --bin jackin-preview`, or `cargo run --release --bin holla`. Each binary's README documents its scenarios and controls.
+Run the applicable workspace checks and visual gate before claiming a code or design task complete. Historical reports prove only their recorded revision and scope.

@@ -1,24 +1,6 @@
 # CI
 
-## Status
-
-Current project documentation; individual evidence and task state may be revision-scoped.
-
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-
-## Current evidence
-
-Use the cited sources and current repository state; historical records retain their original scope.
-
-## Remaining work
-
-Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
-
-## Verification
-
-Run current task-specific checks before treating implementation as complete.
+CI describes the generated workflows and their inputs in this checkout. Edit the declared Velnor input files, regenerate outputs, and validate them with the repository checks. The exact product reference remains `design/interaction-polish`; this document describes tooling, not product readiness.
 
 
 ## How it is generated

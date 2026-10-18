@@ -1,24 +1,12 @@
-# Remaining work
+# Implementation backlog
 
-## Status
+This backlog belongs to `wip/rapps-3-7-14`. It preserves this branch’s feature requirements, dependencies, acceptance criteria, and work identifiers. Branch-specific closure notes apply only to their cited source; they do not establish completion on another branch.
 
-Active WIP-specific requirements and scoped evidence ledger for `81be99a79c5158a27713d4f6f0ed06f6f4e1faf0`. Historical owner/budget triage and staffing instructions have been retired; detailed work IDs, open requirements, recorded closures, dependencies, and acceptance evidence are retained below.
+`main` defines the intended split-crate architecture and reusable APIs. Its refactor remains broken, incomplete, and not ready. `design/interaction-polish` defines the exact target for UI/UX, colors, interactions, and behavior. Implement the requirements below in that architecture without importing the monolithic source layout.
 
-## Authority
+Inherited closure entries describe source revision [`81be99a79`](https://github.com/tailrocks/terminal-components-claude/tree/81be99a79c5158a27713d4f6f0ed06f6f4e1faf0), unless an item cites a different revision.
 
-`main` supplies the structural target and is incomplete/not ready. `design/interaction-polish` supplies the exact visual, UI/UX, color, and interaction target. Adapt this plan to the split crates; do not infer that the design branch's source layout is the architecture target.
-
-## Current evidence
-
-This document copy is from WIP checkout `81be99a79c5158a27713d4f6f0ed06f6f4e1faf0`. Status entries use the source revisions cited by individual items, where provided; the WIP commit identifies this document copy and is not a fresh source audit. “Done” entries retain their original scope and cited evidence; open gaps and task IDs remain work items. These records do not establish that the same behavior exists in `main` or that visual parity has been approved.
-
-## Remaining work
-
-The sections below retain the branch-specific page requirements, P0 reachability items, S/SC steps, carry-overs, audit findings, visual work, upstream dependencies, and CI gates. Preserve IDs and scoped closure notes when updating them.
-
-## Verification
-
-A closure requires its listed acceptance evidence on the cited source scope. Visual changes require comparison against `design/interaction-polish`; `visual-baseline` is immutable historical evidence only. Re-run the applicable branch gate against exact final HEAD before asserting completion.
+Use current code and each task’s acceptance criteria to verify completion. Keep every unfinished requirement until implemented and verified. A past completion note does not waive current tests or establish visual parity.
 
 ## Priority 0: fill every empty showcase page
 

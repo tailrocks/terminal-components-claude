@@ -1,19 +1,4 @@
-
-## Status
-
-Current project documentation; individual evidence and task state may be revision-scoped.
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-## Current evidence
-
-Use the cited sources and current repository state; historical records retain their original scope.
-## Remaining work
-
-Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
-## Verification
-
-Run current task-specific checks before treating implementation as complete.
+# Research Main
 
 I set up detached worktrees for `main` (032e9faa3) and for `design/interaction-polish` (fb70b7ddb) under the scratchpad, ran everything there, and removed both with `git worktree remove`. No ref changed: `visual-baseline` is still 4a79c0a2d and `main` is still 032e9faa3. I read AGENTS.md on both refs.
 
@@ -62,7 +47,7 @@ I set up detached worktrees for `main` (032e9faa3) and for `design/interaction-p
 The reference uses clap with `-c/-p/-m/-f` everywhere, and `--motion reduced` on all four binaries.
 
 **Plans describing the target**
-- On main: `GOAL.md` (restore historical UI while keeping the refactor), `REFACTORING_GOAL.md` (marked historical), `docs/REFACTORING_AUDIT_REPORT.md`, `STATUS.md` (Refactor NOT_READY, reference not qualified), `docs/plans/*`.
+- On main: `GOAL.md` (restore historical UI while keeping the refactor), [REFACTORING_GOAL.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_GOAL.md) (marked historical), `docs/REFACTORING_AUDIT_REPORT.md`, `STATUS.md` (Refactor NOT_READY, reference not qualified), `docs/plans/*`.
 - On the reference: `docs/refactoring/{goal.md,plan.md,main-port-analysis.md}`, `docs/refactoring-plan/` (branch-diff ledgers, BF01–BF14 library defects), and `refactoring-tasks/terminal-components/completion/` (770 files).
 - `main-port-analysis.md` already recommends porting the library and harness and not taking main's apps "as-is" (it is dated at main 7b27732a).
 
