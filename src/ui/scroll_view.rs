@@ -240,7 +240,7 @@ impl ScrollView {
             && (always || size.width.saturating_add(pad_w) > area.width);
         if h_bar && size.height.saturating_add(pad_h) <= area.height {
             let shorter = measure(Size::new(area.width, area.height - 1));
-            if shorter.height.saturating_add(pad_h) <= area.height - 1 {
+            if shorter.height.saturating_add(pad_h) < area.height {
                 return shorter;
             }
         }
