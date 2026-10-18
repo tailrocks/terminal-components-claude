@@ -1,26 +1,18 @@
-# Junie TUI
+# Termrock
 
-Junie TUI is a deterministic Rust terminal UI component and application laboratory. It contains a widget showcase and simulated previews for TablePro, Jackin, and Holla; the preview applications do not perform real external side effects.
+Termrock is a Rust terminal UI component library with deterministic demonstration applications. The workspaces share one product target, but their implementations differ in maturity. The modular refactor is incomplete; no branch should be treated as product-ready from compilation, tests, or documentation alone.
 
-## Run
+Start with [direction](docs/direction.md), [current state](docs/current-state.md), [architecture](docs/architecture.md), [product](docs/product.md), [requirements](docs/requirements.md), [development](docs/development.md), and [decisions](docs/decisions.md). The repository's `AGENTS.md` remains the instruction file for agent workflow.
 
-```sh
-cargo run --release
-cargo run --release --bin tablepro
-cargo run --release --bin jackin-preview
-cargo run --release --bin holla
-```
+| Workspace | What it represents |
+|---|---|
+| `main` | The intended modular crate direction and incomplete implementation. |
+| `design/interaction-polish` | The exact product behavior, visual language, and interaction target, in the former monolithic package. |
+| `wip/v1-showcase` | Monolithic snapshot with a scoped Holla activity-timing correction for paused ticks and stopped-job prompts. |
+| `wip/s14-followups` | Monolithic snapshot with platform-capability-aware OSC 52 copy status in Holla and Jackin. |
+| `wip/plan-s16` | Monolithic snapshot with list/tree metadata and row/column marker API work. |
+| `wip/reach-pages-a` | Monolithic snapshot with natural-size measurement and additional measured text/query/connection/finder pages. |
+| `wip/rapps-3-7-14` | Monolithic snapshot with metadata folding and hover reveal for dropped app-table columns. |
+| `wip/reach-pages-a-2` | Monolithic snapshot with natural-size measurement, scroll-view horizontal-bar retry, and panel/step metadata reveal. |
 
-The root package is `junie-tui`; its library is `junie_tui`. The product source is under `src/`, with the four binaries under `src/bin/`. `xtask` provides repository tooling. This is the `wip/v1-showcase` worktree, not the target architecture. `main` gives the correct split-crate direction, but its refactor is incomplete and not ready. `design/interaction-polish` is the exact UI/UX, color, interaction, and behavior target; this WIP retains branch-specific code, specifications, and backlog, and does not imply every target feature is present.
-
-## Project documentation
-
-- [Documentation map](docs/README.md): active references and evidence scope.
-- [Architecture direction](docs/architecture.md): current crate shape and migration target.
-- [Design contract](docs/design.md): UI/UX authority and focused specifications.
-- [Development and verification](docs/development.md): code, visual, and generated-doc workflows.
-- [Roadmap](docs/plan.md): detailed open-work index; branch-specific acceptance ledger in [remaining work](docs/remaining-work.md).
-- [Visual testing](docs/visual-testing/README.md): scenarios, approval rules, and current commands.
-- [Safety rationale](SAFETY.md): explanations for unsafe blocks and invariants.
-
-Run the applicable workspace checks and visual gate before claiming a code or design task complete. Historical reports prove only their recorded revision and scope.
+These documents are intentionally branch-identical. They describe the shared target and known constraints; inspect the checked-out source, manifest, and tests for branch-specific implementation facts. `AGENTS.md` and `CLAUDE.md` are preserved instruction files and can still contain legacy links; this README is the navigation entrypoint for the replacement docs.
