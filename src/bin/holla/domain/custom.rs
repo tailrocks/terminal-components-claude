@@ -261,7 +261,7 @@ pub fn parse_config(
             e.push((key, val, ln + 1));
         }
     }
-    if !saw_action_key && !text.trim().is_empty() && cfg.diagnostics.is_empty() {}
+    let _ = !saw_action_key && !text.trim().is_empty() && cfg.diagnostics.is_empty();
     let mut ids_here: Vec<String> = vec![];
     for (index, e) in entries.iter().enumerate() {
         let get = |k: &str| {
