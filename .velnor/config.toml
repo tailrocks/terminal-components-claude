@@ -8,8 +8,8 @@ schema = 1
 policy = "consumer-v1"
 # The working branch; pushes here run CI, pull requests run CI regardless.
 default_branch = "design/interaction-polish"
-# docs/visual-testing/plan.md §C3: CI runs on ubuntu-24.04.
-runner_label = "ubuntu-24.04"
+# The explicit current stable hosted Ubuntu image; avoid a moving alias.
+runner_label = "ubuntu-26.04"
 
 [stacks.rust]
 # Plain Cargo; matches the documented gate in AGENTS.md.
@@ -99,3 +99,6 @@ env = { VISUAL_FULL = "1" }
 dispatch_inputs = { tier = ["capture"] }
 filter_input = "filter"
 artifacts = [{ name = "visual-capture-{shard}", paths = ["target/tuiscotti/actual"], when = "always", retention_days = 14 }]
+
+[tools]
+mr-boxington = "1.24.1"
