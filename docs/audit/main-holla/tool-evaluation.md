@@ -1,5 +1,27 @@
 # Terminal tool evaluation (initial)
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `ba6717592c4664acc1ea5a2dc0df3819ea36f376` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Current source revisions are pinned in tool-pins.json; inspected upstream
 README, manifests and adapter sources. Stable rustc 1.98.1 builds both tools
 outside the application workspace. Neither is an MSRV dependency.

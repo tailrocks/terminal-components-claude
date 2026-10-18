@@ -1,3 +1,11 @@
+Status: historical adjudication record; details retained for recorded source snapshots.
+Authority: docs/architecture.md, docs/design.md, docs/status.md, and docs/plan.md. Historical decisions do not establish current readiness.
+Current evidence: only source revisions and evidence explicitly named in this file.
+Remaining work: reconcile useful open requirements with current branch state and accepted design reference.
+Verification: recheck against current source before treating any conclusion as active.
+
+---
+
 # Part 1 (24 worktrees): 29 unique + commits = 28 PRESENT, 1 DRIFT, 0 ABSENT
 DRIFT hintbar-review 37c45f39 "clarify grid draft reader contract" — docs-only 2-line rewrite; substance carried at crates/tui/src/components/grid.rs:813-814 with reworded phrasing; nothing to re-port. DISPOSITION: ACCEPTED (content present; drift cosmetic)
 PRESENT all other commits; capture lineage ddd8abd5/ddd8abd5-group = patch-duplicate re-commits of app-inventory's 47ac27da/7e8a36cc/12fb562b/55c7dc08/fd62e3a7/cb7a78af

@@ -1,3 +1,27 @@
+# NOTES
+
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../../docs/architecture.md), [design](../../docs/design.md), [status](../../docs/status.md), and [plan](../../docs/plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `94eb69fcc7eb14ea3d907ea0e7e7f652bb758acf` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 ## Scope and method
 
 Before-refactor evidence set for `showcase`, `tablepro` and `jackin-preview` at commit `d5e7075`

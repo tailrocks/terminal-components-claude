@@ -1,5 +1,27 @@
 # Adjudication O — Slice 3 foundations follow-ups
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `8e3670a64d97bdfc6f67abbdbe32533f09591a6e` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 **Source.** Four research requests returned by the Slice 3 foundations correction pass (F1–F26 + Adjudication N) at `HEAD 7899678`. Each is a conflict between two already-accepted statements. Nothing here reopens Adjudications A–N; each item decides only *which side moves*.
 
 **Method.** Facts are `path:line`. Arithmetic marked **[derived]** was recomputed in this pass from the checked-in token values; the review's `(estimate)` figures are corrected where they were wrong.

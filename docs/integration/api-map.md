@@ -1,9 +1,54 @@
-# Termrock public API map
+# Historical Termrock API mapping
 
-Source of truth: `junie-tui` root exports at target 2e07d6f7 (crates/tui/src/lib.rs).
-Destination = the restored PR #17 crate structure at the integration head.
-Every item keeps its name; access paths move from the flat `junie_tui::` root to the
-facade sections (`termrock::core`, `termrock::controls`, ...) or the owning crate.
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `5daf8f4187a3079e12b89e94f47d4ee6040229ce` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
+## Status
+
+Archived mapping for the historical target/integration comparison. It is not a current API inventory and gives no migration instructions.
+
+## Authority
+
+Current direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Current crate exports and `crates/termrock` facade source are authoritative.
+
+## Current evidence
+
+The table below maps an old monolithic `junie_tui` API to the crate/facade proposal at historical integration commit `d1122f69`. It does not establish that each symbol still exists at the listed path. Current consumers must inspect current crate exports.
+
+## Remaining work
+
+Create a current API inventory only when needed, deriving it from current public exports and consumer builds. Do not use this historical mapping to change imports or remove compatibility paths.
+
+## Verification
+
+Compare current `pub use` declarations in `crates/termrock` and owning crate roots with actual application imports.
+
+---
+
+# Historical mapping table
+
+
+
+Source snapshot: `junie-tui` root exports at target `2e07d6f7` (`crates/tui/src/lib.rs`). Destination column describes the proposed historical integration structure at commit `d1122f69`; neither column is current authority.
 
 | Public item | Old path (junie_tui) | Destination |
 |---|---|---|

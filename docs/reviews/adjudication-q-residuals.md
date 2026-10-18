@@ -1,5 +1,27 @@
 # Adjudication Q — three residuals from the Adjudication P code pass
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `422391112470eb5a627d952b5db2791a6db096cf` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 **Status:** accepted and applied for Q1–Q3 in the current tree. The source review was read-only at `HEAD 0f66160`; implementation follow-up evidence is recorded below. Facts marked **[F]** describe that review snapshot; later execution and source corrections are recorded as applied evidence. One premise handed to the review (Q1's byte-identity observation) could not be reproduced statically — R1 is now closed by the three-phase execution record. This status does not claim that the concurrent Slice 4 wave or the full workspace gate is green.
 
 ---

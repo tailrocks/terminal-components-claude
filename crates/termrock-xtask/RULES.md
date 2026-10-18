@@ -1,5 +1,27 @@
 # Ownership enforcement check (FIX-008)
 
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../../docs/architecture.md), [design](../../docs/design.md), [status](../../docs/status.md), and [plan](../../docs/plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `97eb0d5eb410f3971b7b349acdd587510629e6ec` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 `cargo run -p termrock-xtask -- check-ownership` enforces the
 consumer/author boundary from `docs/verification/ownership-and-parity.md`
 VER-006: preview applications compose reusable Termrock components and do

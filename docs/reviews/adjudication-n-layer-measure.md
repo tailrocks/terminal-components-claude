@@ -1,5 +1,27 @@
 # Adjudication N — layer sizing (MI‑9) and `Measure` style access (MI‑16)
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `dd51778c590073ea34a172420e2669961b4080b3` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 **Scope.** Two Slice‑3 foundation decisions blocking Slice 4 packages 4A (buttons/measure) and 4F (dialog/overlays). Read against `COMPONENT_ARCHITECTURE.md` §9.1, §9.2, §10, §11.1 A3, §11.3, §16.1, §16.2 cases 14/19, §17.0 A2/A6/A7, §17 examples 9 and 10, §21 items 14/20/30, and the code at the commit after `18afddd`.
 
 **Method.** Facts are `path:line`. Everything under *Decision*, *Rationale*, *Rejected* is inference from those facts.

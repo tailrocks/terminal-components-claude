@@ -1,5 +1,27 @@
 # Holla forward-port disposition audit
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `0b585819afc3adf99ec88287325dbf5120fee19b` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Pinned MAIN_BASE c12cad8728755cd2d03eefdd8e02891143fca86d; HOLLA_REFERENCE 794b095c196562d38f1b6f7ce379c128af2a023d. Read-only source audit; external evidence only. No source changes, tests, captures, or visual approvals claimed.
 
 ## Authority correction

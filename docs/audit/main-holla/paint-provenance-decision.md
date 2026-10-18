@@ -1,5 +1,27 @@
 # Follow-up: semantic paint provenance cannot be inferred from Style
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `e864ca08f17d9a0b7467a44424ede2787000143d` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Reviewed73a5ee9 immutable. Followup branch codex/theme-paint-provenance contains four additional regression tests only; no broader production edit made pending parent API/ownership decision. Do not integrate73a5ee9 as complete.
 
 ## Reproduction

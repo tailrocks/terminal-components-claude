@@ -1,3 +1,11 @@
+Status: historical adjudication record; details retained for recorded source snapshots.
+Authority: docs/architecture.md, docs/design.md, docs/status.md, and docs/plan.md. Historical decisions do not establish current readiness.
+Current evidence: only source revisions and evidence explicitly named in this file.
+Remaining work: reconcile useful open requirements with current branch state and accepted design reference.
+Verification: recheck against current source before treating any conclusion as active.
+
+---
+
 # Part 3 (23 worktrees): 15 unique + commits = 12 PRESENT, 3 ABSENT (58 rows)
 ABSENT 9f837e81/dbf425e3 (patch-id b5f2d1b5, showcase-grid-adapter + showcase-grid-fidelity) "wip: replace painted grid fixture with customer model" — REJECTED: unreviewed WIP replacing the reviewed, item-36-classified page fixture; base predates RangeAnchor API; not demonstrably beneficial without review+re-bless; successor work
 ABSENT cf8f6b34 (showcase-progress-fidelity) "wip: restore progress sample composition" — REJECTED: same grounds (capacity taxonomy + narrow bars unreviewed; would move frozen digests; current page classified under item 36)

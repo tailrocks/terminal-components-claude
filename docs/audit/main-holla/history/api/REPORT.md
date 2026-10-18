@@ -1,5 +1,27 @@
 # Historical API adjudication patch review
 
+## Status
+
+Historical evidence record. Findings and conclusions apply to the source revision stated within; unresolved compatible requirements remain planned.
+
+## Authority
+
+Current project direction: [architecture](../../../../architecture.md), [design](../../../../design.md), [status](../../../../status.md), and [plan](../../../../plan.md). This document's historical claims do not establish current readiness.
+
+## Current evidence
+
+Use only source revisions, captures, and command results identified in this document as evidence for the recorded state.
+
+## Remaining work
+
+Recheck open findings against current source; carry unresolved compatible acceptance criteria into the canonical plan.
+
+## Verification
+
+Verify current claims against current source and the accepted `design/interaction-polish` reference.
+
+---
+
 Scope: reversed tree-audit patches 7 and 8 only. All added/deleted lines and hunk headers read, not commit-title inference. Exact parent pairs, original patch SHA256, line counts and hunk coverage: `coverage.json`. Full reviewed semantic input: the two `*.delta.txt` files. Exact test/command-bearing added and removed lines: `*.test-and-command-lines.txt`. No builds, runtime reproduction, current implementation compliance audit, or source edits performed. Earlier snapshot reconstruction is parent-provided evidence, not rerun here. These are both semantic changes, not formatting-only changes; neither patch creates/deletes/renames the document.
 
 ## 27bd918e3a8a0a7fdba14fb10643139340d6281f relative to f2d30b654e5c6bea154392a8be6e9f4b7d4dbcb1

@@ -1,5 +1,27 @@
 # Independent Jackin CLI review
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `cf6f5888bf5c38ad03cb31e0ac2020dd95bec353` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Candidate: `aaf9630b9f8c828ff0fd488e90f11c5ee19563a3`, clean worktree. Reference: `794b095c196562d38f1b6f7ce379c128af2a023d`, `src/bin/jackin_preview/main.rs`. Scope: four committed Jackin parser/entrypoint/test files. No source edits.
 
 ## Result

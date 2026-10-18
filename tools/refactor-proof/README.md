@@ -1,8 +1,30 @@
 # refactor-proof
 
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../../docs/architecture.md), [design](../../docs/design.md), [status](../../docs/status.md), and [plan](../../docs/plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `c28ca173e4797fc67d075d45ae430f14dccc344e` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 TASK-001 deliverable: independently qualified `tc-proof` comparator and `tc-proof-host` core for product `qualified-harness`.
 
-Command interface and ownership boundaries are defined in [`docs/refactoring-plan/proof-contract.md`](../../docs/refactoring-plan/proof-contract.md). This crate does not constitute qualification evidence until CHK-004/005/006/007 pass against the pinned bootstrap drivers.
+This tool supports the repository refactor; it does not define the current component architecture or establish product readiness. See [the active architecture](../../docs/architecture.md) and [the current plan](../../docs/plan.md) for project authority. Its qualification claims below are historical tool-specific requirements and must be revalidated before reuse.
 
 Build, sync, and run:
 

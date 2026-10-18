@@ -1,5 +1,27 @@
 # Performance and Ownership Audit — current code + measurement plan
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `9f547dae90bd36cca1040cb5992d912f6b61a1b7` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Scope: `REFACTORING_GOAL.md` §25.6 and §28 ("Performance and ownership review"), judged against `docs/audit/architecture-research.md` §2–§3, §8 and `docs/audit/interaction-audit.md` Part B (B1–B3).
 
 Every claim under **FACT** carries a `file:line` citation and is directly readable in the source. Every claim under **INFERENCE** is judgement, arithmetic on those facts, or a recommendation. Cell/row counts for representative screens are arithmetic on the layout code and are labelled as estimates.

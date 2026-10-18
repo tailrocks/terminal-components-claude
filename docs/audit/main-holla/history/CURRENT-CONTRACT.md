@@ -1,5 +1,27 @@
 # Current normative contract from reachable architecture history
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../../architecture.md), [design](../../../design.md), [status](../../../status.md), and [plan](../../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `4bc89bd6608eb446572a01fdb6e1c92b29eadae1` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Pinned MAIN_BASE `c12cad8728755cd2d03eefdd8e02891143fca86d`. User attachment governs main-based implementation, pinned-Holla product parity, four applications, available Codex routing and exact verification/integration. This external synthesis does not edit or replace repository source documents. It is not implementation-completion evidence.
 
 ## Authority and continuity

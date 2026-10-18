@@ -1,5 +1,27 @@
 # Component overrides
 
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `fd73d1bc4002ad7e333c64ffa5b2ed836e249563` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 You have a global theme and it is nearly right. One button in one dialog
 needs a warning-coloured label. A list in the sidebar needs a different
 marker glyph. A whole family of buttons needs a square gutter instead of a

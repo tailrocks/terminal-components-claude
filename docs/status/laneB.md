@@ -1,42 +1,25 @@
-# Lane B status
+# Lane B: TablePro and Grid status
 
-## Current state
+## Status
 
-The fresh Q1–Q3 Grid review is accepted and recorded in
-`docs/reviews/laneB-grid-contract.md`. It assigns sorting order and comparison to the
-TablePro adapter, requires `GridAction::Sort(ColumnKey, SortDir)`, fixes the exact
-`GridState` reader surface, and chooses a separate `Ui::register_focus_only` API for
-the explorer drawer's hidden keyboard stop.
+Historical planning lane. Application migration exists in the split workspace; the crate migration is not ready for release. This page records candidate acceptance requirements, not an active lane assignment.
 
-Lane B has not started the TablePro migration. The preserved regression inventory is
-23 application tests, 42 render digests, and the currently green 41-test legacy
-TablePro target.
+## Authority
 
-## Completed
+Current direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Product behavior follows `design/interaction-polish`; reusable APIs and package boundaries follow the split architecture represented by `main`.
 
-- Q1 resolved: adapters present already ordered rows and own their domain comparator;
-  the generic grid emits a keyed sort request and never compares rendered text.
-- Q2 resolved: `cursor`, `selected_rows`, `is_editing`, typed `edit_error`, and
-  `col_offset` are the exact public readers. Derived row/column windows stay private.
-- Q3 resolved: hidden keyboard reachability uses `register_focus_only`, never a
-  zero-area `register_control`; it creates no hit region.
-- Corrections and acceptance conditions are explicit in the review for Lane A to
-  transcribe and implement.
+## Current evidence
 
-## Blockers
+TablePro code currently lives across `crates/tablepro`, `crates/tablepro-ui`, `crates/tablepro-domain`, `crates/tablepro-sql`, and `crates/tablepro-demo`. Grid code lives in `crates/termrock-grid`; focus registration lives in `crates/termrock-runtime`. The old `apps/tablepro` and Slice 5/6 sequencing claims are historical and do not describe current paths.
 
-1. **Lane A integration:** Lane A must record the accepted contract in
-   `COMPONENT_ARCHITECTURE.md` and `REFACTORING_STATE.md`, then implement and verify
-   the `Grid` sort action, exact `GridState` accessors, and
-   `Ui::register_focus_only` under `crates/**`. Lane B does not own those files.
-2. **Slice 5:** Slice 6 package move cannot begin until Slice 5 closes the crate
-   rename, removes the root binary layout, and establishes `apps/tablepro`. This is
-   an explicit precondition in `docs/plans/slice6-tablepro.md`.
+The old Grid review proposed adapter-owned sorting, keyed `GridAction::Sort(ColumnKey, SortDir)`, typed edit errors, limited semantic state readers, and a separate focus-only registration API. Some APIs now exist, but this does not prove all proposed API limits, consumer needs, behavior, or visual parity. See [historical review](../reviews/laneB-grid-contract.md).
 
-## Next action
+## Remaining work
 
-After both blockers clear, start Slice 6 package 6-0, then execute the TablePro work
-packages in the dependency order from `docs/plans/slice6-tablepro.md`. Preserve all
-23 application tests and 42 digest keys; classify any moved baseline before Lane A
-runs the repository-owned bless operation. Do not replace domain sorting with cell
-text sorting and do not reach into `crates/**` for missing primitives.
+- Compare current TablePro interaction, output, and colors against `design/interaction-polish`.
+- Verify every accepted behavior against current app and library source; decide each old Grid proposal against actual current public APIs.
+- Verify migrated tests and visual evidence against the current source revision before claiming completion.
+
+## Verification
+
+Inspect current manifests, crate exports, focused tests, and design-branch behavior. Historical test counts and green runs are not current proof.

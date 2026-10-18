@@ -1,5 +1,27 @@
 # Mole-informed disk and cleanup patterns
 
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../../docs/architecture.md), [design](../../docs/design.md), [status](../../docs/status.md), and [plan](../../docs/plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `a6681e18bc05994317837d3ed85b6d5547a6a6dd` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 This reference distills useful disk-analysis and cleanup ideas from Mole into
 Holla's product concept. It does not require copying Mole's interface or visual
 design.

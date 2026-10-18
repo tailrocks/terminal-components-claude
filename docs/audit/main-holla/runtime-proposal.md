@@ -1,5 +1,27 @@
 # Proposed runtime API — explicit time and presented-frame lifecycle
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `29853b3fbcceee6a8a1f16d49345bcdbb94af223` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Read-only design, not approved implementation. References: CURRENT-CONTRACT.md items1–5/8/11; REFACTORING_STATE.md:1548–1618 historical §54 addendum;1846–2030 checkpoint and residual evidence. Current source inspected at MAIN_BASE. Historical checkpoint counts are not current test evidence.
 
 ## Decisions

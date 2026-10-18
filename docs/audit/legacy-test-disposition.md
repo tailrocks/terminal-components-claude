@@ -1,5 +1,27 @@
 # Historical legacy test disposition — the per-test record that Slice 5's deletion destroys
 
+## Status
+
+Historical evidence record. Findings and conclusions apply to the source revision stated within; unresolved compatible requirements remain planned.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). This document's historical claims do not establish current readiness.
+
+## Current evidence
+
+Use only source revisions, captures, and command results identified in this document as evidence for the recorded state.
+
+## Remaining work
+
+Recheck open findings against current source; carry unresolved compatible acceptance criteria into the canonical plan.
+
+## Verification
+
+Verify current claims against current source and the accepted `design/interaction-polish` reference.
+
+---
+
 > Historical record. This file was written before the package migration. The
 > old root-package and `src/bin` target references are retained evidence, not
 > current paths. Current app targets live under `apps/`, and the current Jackin

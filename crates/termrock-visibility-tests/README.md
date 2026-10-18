@@ -1,5 +1,27 @@
 # Termrock visibility CLI tests
 
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../../docs/architecture.md), [design](../../docs/design.md), [status](../../docs/status.md), and [plan](../../docs/plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `c79a9026405e102647e4a9367209bbba8e2c37c9` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 This is a standalone Rust test package for the visibility command-line tools.
 Its local workspace and lock file keep its dependency closure separate from the
 Termrock product workspace and the PTY suite in `termrock-e2e`.

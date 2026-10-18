@@ -1,5 +1,27 @@
 # Verified tui-snap repair
 
+## Status
+
+Legacy documentation retained pending reconciliation with current source and accepted product reference.
+
+## Authority
+
+Current project direction: [architecture](../../../docs/architecture.md), [design](../../../docs/design.md), [status](../../../docs/status.md), and [plan](../../../docs/plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `2ecbec01fd7bb6a52f339326383253304254dba4` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Final tool commit **e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2**, tree `e87f3fe3ae49d8066afe8ab7b319f319c2a1dd0f`, clean isolated `tool-sources/tui-snap-repaired` on `codex/qualification-repairs`. Original source `5036cf87e621e6beb66deffe3224abdbefc955cb` and original qualification captures remain unchanged.
 
 Three signed commits: `7d5d62c` implementation; `02102e9` independently reviewed reference-derived fixture migration; `e45d3fa` physical-cursor boundary correction. Each has DCO and Codex coauthor trailers.

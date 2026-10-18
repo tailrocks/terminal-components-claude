@@ -1,5 +1,27 @@
 # Slice 2 architecture review — COMPONENT_ARCHITECTURE.md
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `8539e65a0dfca9de47e7cc714853b09a38c0113f` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 **Reviewer:** fresh read-only `read-only analyst` (goal §27 Slice 2, §28 "Independent verifier"). No prior work assumed correct.
 **Scope read:** `REFACTORING_GOAL.md` §5, §9–§23, §25, §27, §29; `COMPONENT_ARCHITECTURE.md` in full (2 768 lines); spot verification against `Cargo.toml`, `src/core/id.rs`, `src/bin/showcase/app_tests.rs`, `src/bin/jackin_preview/screens/mod.rs`.
 **Method:** §16–§20 and Appendices A/B were treated as a *consumer* of §3–§15 and every type, method, module path, test name, precedence rule and file path used downstream was resolved against §3–§15 or §17.0. Every §17 example was read as Rust that must compile under `architecture::all_examples_compile`.

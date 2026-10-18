@@ -1,5 +1,27 @@
 # Consolidation disposition ledger
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `f86ddea31309c84f2ea10a080f83b42508b021ff` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Generated 2026-09-09 for GOAL2 (worktree consolidation into `codex/main-holla-integration`).
 Scope: 233 git worktrees (231 scratch checkouts + the protected main checkout + this integration checkout) and 113 local branches.
 

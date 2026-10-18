@@ -1,5 +1,27 @@
 # Terminal-tool qualification — incomplete fidelity, explicit limits
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `ff47d84969688becae613fabbb4604f39aa8f4f7` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Pinned sources: tui-snap `5036cf87e621e6beb66deffe3224abdbefc955cb`, tui-test `2d5f8020ba6eb77b9c4da38892c2f6f200311b90`. All changes are external harness/evidence only. tui-snap source status contains pre-existing untracked `target` symlink; no tracked source changes. Binary and evidence hashes: provenance.json.
 
 Reproduce: `rtk proxy python3 /Users/donbeave/Projects/terminal-components-integration-evidence/tool-qualification/run_all.py`. It launches each full tui-test session inside one Python process, unique name, finally closes. `rtk proxy python3 .../qualify.py --strict` intentionally exits 1: neither engine is fully qualified. No snapshot approval is created. Fixture oracle is hand-authored from explicit ANSI commands; expected-cells.json never copies a capture.

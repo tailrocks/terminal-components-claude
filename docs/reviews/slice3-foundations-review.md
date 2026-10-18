@@ -1,5 +1,27 @@
 # Slice 3 foundations review — fresh read-only `read-only analyst`
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../architecture.md), [design](../design.md), [status](../status.md), and [plan](../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `9d8f986c367e46d72226c063301d0bacdda23234` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 **Scope.** `crates/tui` (package `tui-next`, lib `tui_next`), `crates/tui-testing`, `xtask`, `crates/tui/tests/**`, `crates/tui/examples/12_author_component.rs`, `crates/tui/README.md`, at commit `18afddd`. Read against `COMPONENT_ARCHITECTURE.md` §3–§13, §16, §17.0, §21–§24, Appendix B, and `docs/audit/modern-api-audit.md` §1–§2.
 
 **Verdict.** **Components may build on this surface: NO as it stands; YES after the seven blockers and the eight adjudications below are applied.** The foundation is substantially correct, well-documented and unusually honestly tested for a first cut — the intent queue, focus ring, capture, scroll, layout, reconcile core and the conformance driver are ready. Seven defects are load-bearing for Slice 4 and cannot be fixed by a 4x owner (they all live in files Slice 3 owns), and four architecture-document amendments are required so the gates stop asserting things that are false.

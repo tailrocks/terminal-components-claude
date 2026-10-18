@@ -1,5 +1,27 @@
 # Runtime/identity audit — source evidence, not executed parity
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `7361c6a04b822f05e8f9ff866db88f6e1f7f4607` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Base: c12cad8728755cd2d03eefdd8e02891143fca86d. Read-only repository audit; no source mutations. Source hashes attached. Task scope is architectural dependency diagnosis; complete historical patch audit belongs to history owner. No tests executed by this worker; named-tests.tsv is source symbol inventory, never executed test counts.
 
 ## Preserved foundation

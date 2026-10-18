@@ -1,5 +1,27 @@
 # Independent dialog compiler repair review
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `2d9fc23c223efb851cbc7bdbc80f5be2aaf404cd` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Candidate: fa99577f6684c398ab56c1a31630004be8771b2e
 Parent: 95776a40c87f8dbf14a9d75a4932bb4e2dc192d9
 Detached worktree: /Users/donbeave/Projects/terminal-components-dialog-review

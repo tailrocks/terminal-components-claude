@@ -1,5 +1,27 @@
 # Semantic history review — indices 11–21
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../../../architecture.md), [design](../../../../design.md), [status](../../../../status.md), and [plan](../../../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `81a54c4d6ea55fd2c1b319875b42ada571aa7842` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Scope: reversed `tree-audit.json.patches`, indices 11–21 inclusive, all COMPONENT_ARCHITECTURE.md. Exact patch/novel hashes and complete code/test-name token inventory: `coverage-11-21.json`. Reviewed 331,716 novel characters in bounded ≤17,000-character reads without truncation. Every added and removed semantic line was reviewed. One identical moved `FixtureRow` declaration at index13 was separately read; its shape remains `{ key: ItemKey, label: String, meta: String, disabled: bool }`. Full raw patch context was not repeatedly reread; preceding unchanged contract belongs to parent audit induction. Parent owns patch→snapshot reconstruction proof. This is historical obligation review, not present implementation verification or execution of quoted commands. Claims that historical code/tests passed remain historical reports until reproduced.
 
 Current user overrides historical model-routing names, three-app scope, ownership dates, and acceptance shortcuts. Independent judgment/review remains required using available agents; four applications and pinned Holla production parity govern. Historical weak first-generation review is explicitly insufficient for current full canonical-cell/style and independent image/interaction review. Later sections outside this slice may supersede exact API spellings or decisions; integrate with their audit, never drop a surviving requirement merely because current implementation violates it.

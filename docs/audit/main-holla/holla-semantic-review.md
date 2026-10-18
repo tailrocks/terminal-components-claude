@@ -1,5 +1,27 @@
 # Holla semantic review — code and prose coverage complete; visual/runtime proof pending
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `b167495e14ef074fa9801b524c51014669119712` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Pinned reference 794b095c196562d38f1b6f7ce379c128af2a023d. Source read in bounded nontruncated chunks; no source mutation, test execution or live reproduction. Findings below source-proven unless stated otherwise. Main remains implementation base. Recovery-tree replacement directives remain explicitly superseded (AUDIT.md).
 
 ## Coverage ledger

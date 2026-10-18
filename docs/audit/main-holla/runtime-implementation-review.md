@@ -1,5 +1,27 @@
 # Review of runtime-proposal.md after focus integration
 
+## Status
+
+Historical record retained for context and any still-applicable planned work.
+
+## Authority
+
+Current project direction: [architecture](../../architecture.md), [design](../../design.md), [status](../../status.md), and [plan](../../plan.md). Historical claims here do not establish current implementation readiness.
+
+## Current evidence
+
+This document snapshot is Git blob `e32064bdede2d1eff005246d5d69418eee8b5197` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
+
+## Remaining work
+
+Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
+
+## Verification
+
+Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
+
+---
+
 Read-only review against integrated focus source and full docs/audit/main-holla/runtime-proposal.md. No repository edits. The proposal preserves required invariants, but its independently movable frame token, runtime identity/error checks and fully bundled migration are larger than necessary.
 
 ## 1. Replace identity-bearing tokens with exclusive publication guards
