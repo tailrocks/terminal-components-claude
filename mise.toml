@@ -1,3 +1,5 @@
+min_version = "2026.10.13"
+
 # Developer tools for this repository, installed with `mise install`.
 # Keep every pin on its latest release (docs/dependencies.md, "Tools via
 # mise"). `rust` must equal the channel in rust-toolchain.toml, which is what
@@ -6,14 +8,14 @@
 "aqua:nextest-rs/nextest/cargo-nextest" = "0.9.148"
 actionlint = "1.7.12"
 shellcheck = "0.11.0"
-# CI (velnor catalog) installs 1.30.1; 1.31.1 waits on a proven `[tools]` raise.
-zizmor = "1.30.1"
+zizmor = "1.31.1"
 gh = "2.102.0"
 # The release named in .velnor/release-manifest.json (docs/ci.md).
-"github:tailrocks/velnor-new" = { version = "0.1.12", bin = "velnor-actions" }
+"github:tailrocks/velnor-new" = { version = "0.1.14", bin = "velnor-actions" }
 # tuiscotti's CLI at the same rev as the dev-dependency in Cargo.toml.
 "cargo:https://github.com/tailrocks/tuiscotti" = { version = "rev:a1ea27f757d75d07b05499276cd932e9f8e067ad", crate = "tuiscotti-cli" }
 # Last on purpose: mise puts each tool's bin directory on PATH in this
 # order, and rust's is ~/.cargo/bin, where an older `cargo install`ed
 # cargo-nextest, velnor-actions or tuiscotti would otherwise win.
+mr-boxington = "1.24.1"
 rust = { version = "1.99.1", components = "clippy,rustfmt" }
