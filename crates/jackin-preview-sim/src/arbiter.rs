@@ -1,24 +1,10 @@
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 
 pub enum DiscoveryError {
-
     IndexUnreadable,
 }
 
 impl DiscoveryError {
-
     pub fn label(self) -> &'static str {
         match self {
             DiscoveryError::IndexUnreadable => "instance index unreadable",
@@ -29,14 +15,9 @@ impl DiscoveryError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 
 pub enum EntryDecision {
-
     PlayIntro,
 
-
-    JoinActive {
-
-        running: usize,
-    },
+    JoinActive { running: usize },
 
     Duplicate,
 
@@ -46,18 +27,9 @@ pub enum EntryDecision {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 
 pub enum ExitDecision {
+    Outro { elapsed_secs: Option<u64> },
 
-
-    Outro {
-
-        elapsed_secs: Option<u64>,
-    },
-
-
-    StillInside {
-
-        remaining: usize,
-    },
+    StillInside { remaining: usize },
 
     AlreadyEnded,
 
@@ -67,7 +39,6 @@ pub enum ExitDecision {
 #[derive(Debug, Clone, PartialEq, Eq)]
 
 pub struct Arbiter {
-
     pub discovery: Result<usize, DiscoveryError>,
 
     pub foreign_claim: bool,
@@ -80,7 +51,6 @@ pub struct Arbiter {
 }
 
 impl Arbiter {
-
     pub fn new(running: usize) -> Self {
         Self {
             discovery: Ok(running),
@@ -97,17 +67,13 @@ impl Arbiter {
         self.pending_entry
     }
 
-
     pub fn running(&self) -> Result<usize, DiscoveryError> {
         self.discovery
     }
 
-
     pub fn set_running(&mut self, n: usize) {
         self.discovery = Ok(n);
     }
-
-
 
     pub fn request_entry(&mut self) -> EntryDecision {
         match self.discovery {
@@ -124,11 +90,9 @@ impl Arbiter {
         }
     }
 
-
     pub fn release_entry(&mut self) {
         self.pending_entry = false;
     }
-
 
     pub fn complete_entry(&mut self, now_ms: i64) {
         self.pending_entry = false;
@@ -136,8 +100,6 @@ impl Arbiter {
             self.entered_at_ms = Some(now_ms);
         }
     }
-
-
 
     pub fn request_exit(&mut self, now_ms: i64) -> ExitDecision {
         match self.discovery {

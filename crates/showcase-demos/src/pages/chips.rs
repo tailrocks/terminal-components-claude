@@ -1,5 +1,3 @@
-
-
 use termrock::author::PaintStyle;
 use termrock::{
     ChipBar, ChipBarAction, ChipBarState, Cx, FrameRead, Id, ItemKey, Modifier, Part, Rect,
@@ -235,8 +233,6 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
     let _ = close;
 }
 
-
-
 #[derive(Debug, Default)]
 pub struct ChipsPage {
     chip_state: ChipBarState,
@@ -292,7 +288,6 @@ impl Page for ChipsPage {
             self.title(),
             "Removable chips, a popup select, and strips that drop what does not fit",
             |ui, body| {
-
                 let (chip_area, rest) = layout::split_v(body, 4);
                 chips().draw(ui, chip_area, &self.chip_state, FILTERS);
                 let (select_area, _) = layout::split_v(rest, 3);

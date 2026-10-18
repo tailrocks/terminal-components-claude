@@ -1,37 +1,8 @@
-
 use super::{ColorLevel, ColorTokens, MeterTokens, SyntaxTokens};
 use ratatui_core::style::Color;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CapabilityPalettes {
-
     pub source: ColorTokens,
 
     pub ansi256: Option<ColorTokens>,
@@ -46,7 +17,6 @@ pub struct CapabilityPalettes {
 }
 
 impl CapabilityPalettes {
-
     pub fn new(source: ColorTokens) -> Self {
         let count = source.semantic_colors().len();
         Self {
@@ -58,7 +28,6 @@ impl CapabilityPalettes {
             projected: None,
         }
     }
-
 
     #[must_use]
     pub fn with(mut self, level: ColorLevel, tokens: ColorTokens) -> Self {
@@ -86,7 +55,6 @@ pub(crate) fn junie() -> CapabilityPalettes {
         .with(ColorLevel::Ansi256, junie_256())
         .with(ColorLevel::Mono, junie_mono())
 }
-
 
 const fn junie_256() -> ColorTokens {
     ColorTokens {
@@ -135,7 +103,6 @@ const fn junie_256() -> ColorTokens {
         disabled_fg: Color::Indexed(238),
         disabled_bg: Color::Indexed(235),
         read_only_fg: Color::Indexed(249),
-
 
         syntax: SyntaxTokens {
             keyword: Color::Indexed(231),
@@ -225,7 +192,6 @@ const fn junie_mono() -> ColorTokens {
         disabled_fg: Color::DarkGray,
         disabled_bg: Color::Black,
         read_only_fg: Color::Gray,
-
 
         syntax: SyntaxTokens {
             keyword: Color::White,

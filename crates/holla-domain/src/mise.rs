@@ -1,7 +1,3 @@
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ToolState {
     Active,
@@ -26,8 +22,6 @@ pub struct MiseTool {
     pub state: ToolState,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Trust {
     Trusted,
@@ -36,7 +30,6 @@ pub enum Trust {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MiseTask {
-
     pub id: String,
     pub command: String,
 

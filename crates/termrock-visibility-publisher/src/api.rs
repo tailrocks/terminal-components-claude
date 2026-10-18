@@ -1,5 +1,3 @@
-
-
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::time::{Duration, Instant};
@@ -16,9 +14,6 @@ pub const MAX_PAGES: usize = 20;
 pub const PAGE_SIZE: usize = 100;
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 pub const MAX_REDIRECTS: usize = 3;
-
-
-
 
 pub trait ReadOnlyTransport: Send + Sync {
     fn get(
@@ -369,8 +364,6 @@ impl<T: ReadOnlyTransport> ApiClient<T> {
         self.get_bytes(&url, max_bytes)
     }
 
-
-
     pub fn get_workflow_file(
         &self,
         repository: &Repository,
@@ -684,8 +677,6 @@ struct ApiArtifactRun {
     head_branch: String,
     head_sha: String,
 }
-
-
 
 #[derive(Deserialize)]
 struct PageEnvelope<T> {

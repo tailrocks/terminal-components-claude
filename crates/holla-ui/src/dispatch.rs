@@ -1,4 +1,3 @@
-
 use crate::domain::{
     action::{Action, ActionKind, Availability, Risk},
     activity::{Activity, ActivityState},
@@ -21,8 +20,6 @@ pub(crate) enum Destination {
     Clone,
     Activity(u32, String),
 }
-
-
 
 pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
     let action = match catalogue::resolve_intent(world, row) {
@@ -59,8 +56,6 @@ pub(crate) fn invoke(world: &mut World, row: &Action) -> Destination {
         Risk::ReadOnly => simulate(world, &action),
     }
 }
-
-
 
 pub(crate) fn confirm_preview(world: &mut World, row: &Action) -> Destination {
     match catalogue::resolve_intent(world, row) {

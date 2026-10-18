@@ -1,40 +1,23 @@
-
-
-
-
-
-
-
 use ratatui_core::layout::{Margin, Position, Rect};
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Track {
-
     Fixed(u16),
 
     Flex(u16),
 
-
-
-
     Auto,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowAlign {
-
     Start,
 
     End,
 }
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Insets {
-
     pub l: u16,
 
     pub t: u16,
@@ -45,7 +28,6 @@ pub struct Insets {
 }
 
 impl Insets {
-
     pub const fn all(n: u16) -> Self {
         Insets {
             l: n,
@@ -54,7 +36,6 @@ impl Insets {
             b: n,
         }
     }
-
 
     pub const fn symmetric(h: u16, v: u16) -> Self {
         Insets {
@@ -65,8 +46,6 @@ impl Insets {
         }
     }
 }
-
-
 
 pub fn distribute(total: u16, tracks: &[Track], spacing: u16, natural: Option<&[u16]>) -> Vec<u16> {
     let n = tracks.len() as u16;
@@ -131,8 +110,6 @@ pub fn distribute(total: u16, tracks: &[Track], spacing: u16, natural: Option<&[
     }
     out
 }
-
-
 
 pub fn distribute_into(total: u16, tracks: &[Track], spacing: u16, out: &mut [u16]) {
     let n = tracks.len().min(out.len());
@@ -223,11 +200,9 @@ fn stack(area: Rect, sizes: &[u16], spacing: u16, vertical: bool) -> Vec<Rect> {
         .collect()
 }
 
-
 pub fn rows(area: Rect, heights: &[Track]) -> Vec<Rect> {
     stack(area, &distribute(area.height, heights, 0, None), 0, true)
 }
-
 
 pub fn rows_measured(area: Rect, heights: &[Track], natural: &[u16]) -> Vec<Rect> {
     stack(
@@ -238,7 +213,6 @@ pub fn rows_measured(area: Rect, heights: &[Track], natural: &[u16]) -> Vec<Rect
     )
 }
 
-
 pub fn columns(area: Rect, widths: &[Track], spacing: u16) -> Vec<Rect> {
     stack(
         area,
@@ -247,7 +221,6 @@ pub fn columns(area: Rect, widths: &[Track], spacing: u16) -> Vec<Rect> {
         false,
     )
 }
-
 
 pub fn columns_measured(area: Rect, widths: &[Track], spacing: u16, natural: &[u16]) -> Vec<Rect> {
     stack(
@@ -258,7 +231,6 @@ pub fn columns_measured(area: Rect, widths: &[Track], spacing: u16, natural: &[u
     )
 }
 
-
 pub fn responsive_columns(area: Rect, spec: &[Track], spacing: u16, stack_below: u16) -> Vec<Rect> {
     if area.width < stack_below {
         let tracks: Vec<Track> = spec.iter().map(|_| Track::Flex(1)).collect();
@@ -267,8 +239,6 @@ pub fn responsive_columns(area: Rect, spec: &[Track], spacing: u16, stack_below:
         columns(area, spec, spacing)
     }
 }
-
-
 
 pub fn action_row(area: Rect, widths: &[u16], spacing: u16, align: RowAlign) -> Vec<Rect> {
     let total: u16 = widths.iter().fold(0u16, |acc, w| acc.saturating_add(*w));
@@ -287,27 +257,9 @@ pub fn action_row(area: Rect, widths: &[u16], spacing: u16, align: RowAlign) -> 
     stack(base, widths, spacing, false)
 }
 
-
-
-
-
-
-
-
-
-
-
-
 pub fn inset(area: Rect, i: Insets) -> Rect {
     if i.l == i.r && i.t == i.b {
         let r = area.inner(Margin::new(i.l, i.t));
-
-
-
-
-
-
-
 
         if !r.is_empty() {
             return r;
@@ -320,7 +272,6 @@ pub fn inset(area: Rect, i: Insets) -> Rect {
         height: area.height.saturating_sub(i.t).saturating_sub(i.b),
     }
 }
-
 
 pub fn split_v(area: Rect, at: u16) -> (Rect, Rect) {
     let at = at.min(area.height);
@@ -340,7 +291,6 @@ pub fn split_v(area: Rect, at: u16) -> (Rect, Rect) {
     )
 }
 
-
 pub fn split_h(area: Rect, at: u16) -> (Rect, Rect) {
     let at = at.min(area.width);
     (
@@ -359,10 +309,8 @@ pub fn split_h(area: Rect, at: u16) -> (Rect, Rect) {
     )
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Maximized {
-
     #[default]
     None,
 
@@ -371,20 +319,15 @@ pub enum Maximized {
     Second,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SplitAxis {
-
     Vertical,
 
     Horizontal,
 }
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SplitModel {
-
     pub percent: u8,
 
     pub min_first: u16,
@@ -397,7 +340,6 @@ pub struct SplitModel {
 }
 
 impl SplitModel {
-
     pub const fn new(axis: SplitAxis, percent: u8, min_first: u16, min_second: u16) -> Self {
         SplitModel {
             percent: clamp_percent(percent),
@@ -408,7 +350,6 @@ impl SplitModel {
         }
     }
 
-
     pub fn toggle_max(&mut self, which: Maximized) {
         self.maximized = if self.maximized == which {
             Maximized::None
@@ -416,7 +357,6 @@ impl SplitModel {
             which
         };
     }
-
 
     pub fn grow(&mut self, delta: i8) {
         let p = i16::from(self.percent).saturating_add(i16::from(delta));
@@ -429,9 +369,6 @@ impl SplitModel {
             SplitAxis::Horizontal => area.width,
         }
     }
-
-
-
 
     const fn collapsed(self, area: Rect, second: bool) -> Rect {
         match (self.axis, second) {
@@ -462,17 +399,6 @@ impl SplitModel {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
     pub fn layout(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         let split = |at: u16| match self.axis {
             SplitAxis::Vertical => {
@@ -492,7 +418,6 @@ impl SplitModel {
             Maximized::None => {
                 let usable = self.length(area).saturating_sub(gap);
                 if usable < self.min_first.saturating_add(self.min_second) {
-
                     return (area, self.collapsed(area, true));
                 }
                 let first =
@@ -502,13 +427,6 @@ impl SplitModel {
             }
         }
     }
-
-
-
-
-
-
-
 
     pub fn handle(&self, area: Rect, gap: u16) -> Rect {
         let (a, b) = self.layout(area, gap);
@@ -528,8 +446,6 @@ impl SplitModel {
             },
         }
     }
-
-
 
     pub fn drag_to(&mut self, area: Rect, gap: u16, pos: Position) -> bool {
         let usable = self.length(area).saturating_sub(gap);
@@ -551,7 +467,6 @@ impl SplitModel {
         self.percent = percent;
         changed
     }
-
 
     pub fn nudge(&mut self, area: Rect, gap: u16, delta: i16) {
         let (first, _) = self.layout(area, gap);
@@ -674,13 +589,8 @@ mod tests {
         assert!(tight.iter().all(|r| r.right() <= 15));
     }
 
-
-
-
-
     #[test]
     fn auto_takes_one_cell_beside_flex_and_an_equal_share_without_it() {
-
         let d = distribute(20, &[Track::Auto, Track::Flex(1)], 0, None);
         assert_eq!(d, vec![1, 19]);
         let d = distribute(20, &[Track::Auto, Track::Auto, Track::Flex(1)], 0, None);
@@ -689,14 +599,11 @@ mod tests {
         let d = distribute(20, &[Track::Fixed(6), Track::Auto, Track::Flex(1)], 0, None);
         assert_eq!(d, vec![6, 1, 13]);
 
-
         let d = distribute(20, &[Track::Auto, Track::Auto], 0, None);
         assert_eq!(d, vec![10, 10]);
         let d = distribute(20, &[Track::Fixed(5), Track::Auto, Track::Auto], 0, None);
         assert_eq!(d, vec![5, 8, 7]);
     }
-
-
 
     #[test]
     fn rows_measured_uses_the_natural_size() {
@@ -705,7 +612,6 @@ mod tests {
 
         let plain = rows(area, &tracks);
         assert_eq!(plain[0].height, 1);
-
 
         let rows_m = rows_measured(area, &tracks, &[4, 0, 0]);
         assert_eq!(rows_m[0].height, 4);
@@ -721,20 +627,8 @@ mod tests {
         assert_eq!(cols[0].width, 4);
     }
 
-
-
-
-
-
-
-
-
-
-
     #[test]
     fn inset_saturates_on_tiny_rects() {
-
-
         assert_eq!(
             inset(Rect::new(0, 0, 2, 2), Insets::all(3)),
             Rect::new(2, 2, 0, 0)
@@ -804,9 +698,6 @@ mod tests {
                             r: 2,
                             b: n,
                         },
-
-
-
                         Insets {
                             l: n,
                             t: 2,
@@ -856,10 +747,6 @@ mod tests {
         let (a, b) = m.layout(Rect::new(0, 0, 80, 30), 1);
         assert!(a.is_empty() && b.height == 30);
     }
-
-
-
-
 
     #[test]
     fn split_panes_and_seam_stay_inside_the_area() {

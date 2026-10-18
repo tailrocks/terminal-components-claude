@@ -1,11 +1,8 @@
-
-
 use core::fmt;
 
 use termrock::{Id, ListState, TextInputState};
 
 use jackin_preview_domain::onepassword::OpReference;
-
 
 pub const LIST: Id = Id::root("jackin.accounts.list");
 
@@ -31,10 +28,8 @@ pub const SECRET: Id = FORM.sub("secret");
 
 pub const FILTER: Id = Id::root("jackin.accounts.filter");
 
-
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct AccountsState {
-
     pub list: ListState,
 
     pub form_open: bool,
@@ -113,7 +108,6 @@ impl fmt::Debug for AccountsState {
 }
 
 impl AccountsState {
-
     pub fn open_new(&mut self) {
         self.form_open = true;
         self.started = false;
@@ -139,18 +133,15 @@ impl AccountsState {
         self.drawer_open = false;
     }
 
-
     pub const fn close(&mut self) {
         self.form_open = false;
     }
-
 
     pub fn form_editing(&self) -> bool {
         self.name_input.is_editing()
             || self.folder_input.is_editing()
             || self.secret_input.is_editing()
     }
-
 
     pub fn form_hints(&self) -> &'static str {
         if self.form_editing() {

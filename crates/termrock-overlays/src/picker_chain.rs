@@ -1,5 +1,3 @@
-
-
 use ratatui_core::layout::Rect;
 
 use super::{PartStyle, SlotFn};
@@ -15,10 +13,8 @@ use crate::ui::{Cx, FrameRead, Ui};
 use termrock_runtime::empty::{CenteredText, draw_centered};
 use termrock_runtime::empty::{EmptyState, Status};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PickerStage<'a> {
-
     pub key: ItemKey,
 
     pub label: &'a str,
@@ -27,7 +23,6 @@ pub struct PickerStage<'a> {
 }
 
 impl<'a> PickerStage<'a> {
-
     pub const fn new(key: ItemKey, label: &'a str) -> Self {
         Self {
             key,
@@ -36,7 +31,6 @@ impl<'a> PickerStage<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn status(mut self, status: Status) -> Self {
         self.status = status;
@@ -44,19 +38,15 @@ impl<'a> PickerStage<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PickerChainAction {
-
     Back(ItemKey),
 
     Retry(ItemKey),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PickerChainCmd {
-
     Back,
 
     Retry,
@@ -81,7 +71,6 @@ const BINDINGS: &[Binding<PickerChainCmd>] = &[
     },
 ];
 
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PickerChainState {
     current: Option<ItemKey>,
@@ -89,11 +78,9 @@ pub struct PickerChainState {
 }
 
 impl PickerChainState {
-
     pub const fn current(&self) -> Option<ItemKey> {
         self.current
     }
-
 
     pub fn enter(&mut self, key: ItemKey) {
         if self.current != Some(key) {
@@ -104,62 +91,12 @@ impl PickerChainState {
         }
     }
 
-
     pub fn back(&mut self) -> Option<ItemKey> {
         let key = self.history.pop()?;
         self.current = Some(key);
         Some(key)
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug)]
 pub struct PickerChain<'a> {
@@ -170,7 +107,6 @@ pub struct PickerChain<'a> {
 }
 
 impl<'a> PickerChain<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::HEADER,
@@ -180,7 +116,6 @@ impl<'a> PickerChain<'a> {
         Part::ICON,
     ];
 
-
     pub const fn new(id: Id, stages: &'a [PickerStage<'a>]) -> Self {
         Self {
             id,
@@ -189,7 +124,6 @@ impl<'a> PickerChain<'a> {
             ov: PartStyle::new(),
         }
     }
-
 
     #[must_use]
     pub const fn empty(mut self, empty: EmptyState<'a>) -> Self {
@@ -224,7 +158,6 @@ impl<'a> PickerChain<'a> {
     fn can_rewind_to(st: &PickerChainState, key: ItemKey) -> bool {
         st.history.contains(&key)
     }
-
 
     pub fn update(
         &self,
@@ -305,7 +238,6 @@ impl<'a> PickerChain<'a> {
         }
         .for_id(self.id)
     }
-
 
     #[expect(
         clippy::too_many_lines,
@@ -510,7 +442,6 @@ impl<'a> PickerChain<'a> {
             },
         );
     }
-
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let w = self.stages.iter().fold(0u16, |n, s| {

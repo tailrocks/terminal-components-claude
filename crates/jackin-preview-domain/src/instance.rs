@@ -1,36 +1,21 @@
-
-
-
-
 use core::fmt;
 
 use super::agent::Agent;
 use super::workspace::WorkspaceId;
 
-
 pub type InstanceId = String;
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct RunId(u64);
 
 impl RunId {
-
     pub const fn new(value: u64) -> Self {
         Self(value)
     }
 
-
     pub const fn value(self) -> u64 {
         self.0
     }
-
-
-
-
 
     pub fn from_label(label: &str) -> Self {
         let mut hash = 0xcbf2_9ce4_8422_2325_u64;
@@ -41,12 +26,9 @@ impl RunId {
         Self(hash)
     }
 
-
-
     pub fn short(self) -> String {
         format!("{:08x}", self.0 & u64::from(u32::MAX))
     }
-
 
     pub fn container_uid(self) -> String {
         format!("3f9c{}e21a", self.short())
@@ -59,10 +41,8 @@ impl fmt::Display for RunId {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InstanceStatus {
-
     Running,
 
     CleanExited,
@@ -83,7 +63,6 @@ pub enum InstanceStatus {
 }
 
 impl InstanceStatus {
-
     pub fn label(self) -> &'static str {
         match self {
             InstanceStatus::Running => "running",
@@ -97,7 +76,6 @@ impl InstanceStatus {
             InstanceStatus::FailedSetup => "failed setup",
         }
     }
-
 
     pub fn description(self) -> &'static str {
         match self {
@@ -123,18 +101,13 @@ impl InstanceStatus {
         }
     }
 
-
-
     pub fn hidden(self) -> bool {
         matches!(self, InstanceStatus::Superseded | InstanceStatus::Purged)
     }
 
-
     pub fn is_live(self) -> bool {
         self == InstanceStatus::Running
     }
-
-
 
     pub fn reconnectable(self) -> bool {
         matches!(
@@ -147,12 +120,9 @@ impl InstanceStatus {
         )
     }
 
-
-
     pub fn stoppable(self) -> bool {
         self == InstanceStatus::Running
     }
-
 
     pub fn dirty(self) -> bool {
         matches!(
@@ -162,10 +132,8 @@ impl InstanceStatus {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Instance {
-
     pub id: InstanceId,
 
     pub container: String,
@@ -200,26 +168,21 @@ pub struct Instance {
 
     pub unpushed: usize,
 
-
     pub accounts: Vec<super::account::AccountId>,
 }
 
 impl Instance {
-
     pub fn container_uid(&self) -> String {
         self.run_id.container_uid()
     }
-
 
     pub fn container_id(&self) -> String {
         format!("{}-{}", self.container, self.id.trim_start_matches("jk-"))
     }
 
-
     pub fn is_dirty(&self) -> bool {
         self.uncommitted > 0 || self.unpushed > 0
     }
-
 
     pub fn dirty_summary(&self) -> String {
         match (self.uncommitted, self.unpushed) {
@@ -231,15 +194,12 @@ impl Instance {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ManifestError {
-
     ReadError,
 }
 
 impl ManifestError {
-
     pub fn label(self) -> &'static str {
         match self {
             ManifestError::ReadError => "Sessions unavailable (manifest read error)",
@@ -247,10 +207,8 @@ impl ManifestError {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionRecord {
-
     pub id: String,
 
     pub agent: Option<Agent>,
@@ -262,10 +220,8 @@ pub struct SessionRecord {
     pub started_secs: i64,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SessionStatus {
-
     Active,
 
     Exited(i32),
@@ -274,7 +230,6 @@ pub enum SessionStatus {
 }
 
 impl SessionStatus {
-
     pub fn label(self) -> String {
         match self {
             SessionStatus::Active => "active".into(),
@@ -285,10 +240,8 @@ impl SessionStatus {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DaemonSnapshot {
-
     Unavailable,
 
     NoTabs,
@@ -296,10 +249,8 @@ pub enum DaemonSnapshot {
     Tabs(Vec<TabSnapshot>),
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TabSnapshot {
-
     pub label: String,
 
     pub active: bool,
@@ -307,10 +258,8 @@ pub struct TabSnapshot {
     pub panes: Vec<PaneSnapshot>,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PaneSnapshot {
-
     pub label: String,
 
     pub agent: Option<Agent>,
@@ -320,10 +269,8 @@ pub struct PaneSnapshot {
     pub focused: bool,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AgentState {
-
     Idle,
 
     Working,
@@ -336,7 +283,6 @@ pub enum AgentState {
 }
 
 impl AgentState {
-
     pub fn label(self) -> &'static str {
         match self {
             AgentState::Idle => "idle",
@@ -346,7 +292,6 @@ impl AgentState {
             AgentState::Unknown => "unknown",
         }
     }
-
 
     pub fn rank(self) -> u8 {
         match self {

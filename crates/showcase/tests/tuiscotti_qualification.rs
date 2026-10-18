@@ -1,7 +1,3 @@
-
-
-
-
 use std::time::Duration;
 
 use tuiscotti::Profile;
@@ -32,7 +28,6 @@ fn qualify_pty_session_lifecycle_and_capture() {
     .spawn()
     .expect("session spawn succeeds");
 
-
     let deadline = std::time::Instant::now() + Duration::from_secs(5);
     let cancel = tuiscotti::tui::CancelToken::new();
     let obs = session
@@ -49,7 +44,6 @@ fn qualify_pty_session_lifecycle_and_capture() {
 
     assert_eq!(obs.screen.cols(), cols);
     assert_eq!(obs.screen.rows(), rows);
-
 
     let profile = Profile::default_profile();
     let frame = frame_from_screen(&obs.screen, &profile.name);
@@ -68,13 +62,11 @@ fn qualify_pty_session_lifecycle_and_capture() {
     let parsed = parse_canonical(&bundle.json).expect("valid frame json");
     assert_eq!(parsed.digest(), frame.digest());
 
-
     session.press("Tab").expect("press Tab succeeds");
     let settle_deadline = std::time::Instant::now() + Duration::from_secs(2);
     session
         .wait_stable(settle_deadline, &cancel)
         .expect("session settled after Tab");
-
 
     session.press("q").expect("press q succeeds");
     let exit_deadline = std::time::Instant::now() + Duration::from_secs(3);

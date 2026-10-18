@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::time::Duration;
 
 use tuiscotti::tui::Wheel;
@@ -32,16 +16,11 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
-
-
 fn hover_over(s: &mut Session, needle: &str) {
     let target = Target::resolve(s, needle);
     let (col, row) = target.offset(2, 0);
     Input::move_to(col, row).send(s);
 }
-
-
 
 pub(crate) fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     let mut target = Target::resolve(s, needle);
@@ -53,8 +32,6 @@ pub(crate) fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     }
 }
 
-
-
 pub(crate) fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
     let mut target = Target::resolve(s, needle);
     for _ in 0..notches {
@@ -64,9 +41,6 @@ pub(crate) fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
         target.refresh(s);
     }
 }
-
-
-
 
 fn wheel_up(s: &mut Session, needle: &str, notches: u32) {
     let mut target = Target::resolve(s, needle);
@@ -78,8 +52,6 @@ fn wheel_up(s: &mut Session, needle: &str, notches: u32) {
     }
 }
 
-
-
 fn resize_case(case: &Case, cols: u16, rows: u16) {
     let timeout = case_timeout(case);
     let mut s = support::spawn_boot(case);
@@ -90,8 +62,6 @@ fn resize_case(case: &Case, cols: u16, rows: u16) {
 
 fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     resize_geometry(s, cols, rows, timeout);
-
-
 
     std::thread::sleep(Duration::from_millis(700));
 }
@@ -119,8 +89,6 @@ fn run_resize_matrix(representative: &Case, mut capture: impl FnMut(&Case, u16, 
     }
     support::finish_matrix(&failures);
 }
-
-
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
@@ -177,8 +145,6 @@ fn showcase_hover_tables_matrix() {
     });
 }
 
-
-
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_flows_diff_drag_selected_matrix() {
@@ -197,10 +163,6 @@ fn showcase_flows_diff_drag_selected_matrix() {
         Input::drag(target.point(), target.span_end()).send(s);
     });
 }
-
-
-
-
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
@@ -222,15 +184,6 @@ fn showcase_flows_chrome_context_matrix() {
     });
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_flows_inspector_scrolled_matrix() {
@@ -248,8 +201,6 @@ fn showcase_flows_inspector_scrolled_matrix() {
         wheel_down(s, "Python", 2);
     });
 }
-
-
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
@@ -334,8 +285,6 @@ fn holla_fade_browser_wheel_matrix() {
             "type:Browse ~/work/site",
             "enter",
             "wait:16 entries",
-
-
             "home",
             "down",
             "down",
@@ -375,8 +324,6 @@ fn tablepro_fade_table_wheel_matrix() {
     });
 }
 
-
-
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_editor_wheel_matrix() {
@@ -397,7 +344,6 @@ fn showcase_fade_editor_wheel_matrix() {
         }
     });
 }
-
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
@@ -420,8 +366,6 @@ fn showcase_fade_textarea_wheel_matrix() {
     });
 }
 
-
-
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_diff_wheel_matrix() {
@@ -439,9 +383,6 @@ fn showcase_fade_diff_wheel_matrix() {
         wheel_down(s, "attempts = 3", 2);
     });
 }
-
-
-
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
@@ -467,8 +408,6 @@ fn showcase_fade_scrolling_wheel_fade_matrix() {
     });
 }
 
-
-
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_scroll_page_matrix() {
@@ -492,8 +431,6 @@ fn showcase_fade_scroll_page_matrix() {
     support::run_canonical_live(&case, |_, _| ());
 }
 
-
-
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_sidebars_wheel_matrix() {
@@ -510,8 +447,6 @@ fn showcase_fade_sidebars_wheel_matrix() {
         wheel_down(s, "Members", 2);
     });
 }
-
-
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
@@ -530,8 +465,6 @@ fn showcase_fade_terminal_scrollback_matrix() {
     });
 }
 
-
-
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_resize_overview_shrunk_80x24_truecolor() {
@@ -549,8 +482,6 @@ fn showcase_resize_overview_shrunk_80x24_truecolor() {
         let timeout = case_timeout(case);
         let mut s = support::spawn_boot(case);
         resize_geometry(&mut s, cols, rows, timeout);
-
-
 
         s.send_key("ctrl-l").expect("redraw tick");
         std::thread::sleep(Duration::from_millis(700));
@@ -580,8 +511,6 @@ fn showcase_resize_overview_grown_120x40_truecolor() {
         let timeout = case_timeout(case);
         let mut s = support::spawn_boot(case);
         resize_geometry(&mut s, cols, rows, timeout);
-
-
 
         s.send_key("ctrl-l").expect("redraw tick");
         std::thread::sleep(Duration::from_millis(700));
@@ -643,16 +572,6 @@ fn holla_resize_rust_dirty_grown_120x40_truecolor() {
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn tablepro_resize_workbench_shrunk_80x24_truecolor() {
-
-
-
-
-
-
-
-
-
-
     let case = Case::new(
         "tablepro/resize/workbench_shrunk/80x24/truecolor",
         TABLEPRO,
@@ -682,13 +601,6 @@ fn tablepro_resize_workbench_shrunk_80x24_truecolor() {
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn tablepro_resize_workbench_grown_120x40_truecolor() {
-
-
-
-
-
-
-
     let case = Case::new(
         "tablepro/resize/workbench_grown/120x40/truecolor",
         TABLEPRO,

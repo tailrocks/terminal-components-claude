@@ -1,9 +1,6 @@
-
-
 use termrock::Id;
 
 use jackin_preview_presentation::rain::{HANDOFF_LEN, HandoffStage, handoff_stage};
-
 
 pub const ROOT: Id = Id::root("jackin.cockpit");
 
@@ -19,11 +16,6 @@ pub const RETRY: Id = ROOT.sub("retry");
 
 pub const HANDOFF: Id = ROOT.sub("handoff");
 
-
-
-
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AccountLine {
     primary: Option<String>,
@@ -31,7 +23,6 @@ pub struct AccountLine {
 }
 
 impl AccountLine {
-
     pub fn new<I, S>(primary: Option<S>, additional: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -50,7 +41,6 @@ impl AccountLine {
         line
     }
 
-
     pub fn from_labels<I, S>(labels: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -61,26 +51,21 @@ impl AccountLine {
         Self::new(primary, labels)
     }
 
-
     pub fn len(&self) -> usize {
         usize::from(self.primary.is_some()) + self.additional.len()
     }
-
 
     pub const fn is_empty(&self) -> bool {
         self.primary.is_none() && self.additional.is_empty()
     }
 
-
     pub fn primary(&self) -> Option<&str> {
         self.primary.as_deref()
     }
 
-
     pub fn additional(&self) -> impl Iterator<Item = &str> {
         self.additional.iter().map(String::as_str)
     }
-
 
     pub fn text(&self) -> Option<String> {
         if self.is_empty() {
@@ -116,12 +101,6 @@ impl AccountLine {
     }
 }
 
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct HandoffState {
     frame: u64,
@@ -129,27 +108,22 @@ pub struct HandoffState {
 }
 
 impl HandoffState {
-
     pub const fn start(&mut self) {
         self.frame = 0;
         self.active = true;
     }
 
-
     pub const fn frame(self) -> u64 {
         self.frame
     }
-
 
     pub const fn is_active(self) -> bool {
         self.active
     }
 
-
     pub const fn is_complete(self) -> bool {
         !self.active && self.frame >= HANDOFF_LEN
     }
-
 
     pub const fn stage(self) -> HandoffStage {
         if self.active || self.frame > 0 {
@@ -158,7 +132,6 @@ impl HandoffState {
             HandoffStage::Capsule
         }
     }
-
 
     pub const fn advance(&mut self) -> bool {
         if !self.active {
@@ -173,10 +146,8 @@ impl HandoffState {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CockpitState {
-
     pub log_open: bool,
 
     pub log_scroll: u16,

@@ -1,22 +1,9 @@
-
-
-
-
-
-
-
-
-
-
 use ratatui_core::buffer::CellWidth;
 use unicode_segmentation::UnicodeSegmentation;
-
 
 pub fn graphemes(s: &str) -> impl DoubleEndedIterator<Item = (usize, &str)> {
     s.grapheme_indices(true)
 }
-
-
 
 pub fn grapheme_width(g: &str) -> u16 {
     if g.contains(char::is_control) {
@@ -26,7 +13,6 @@ pub fn grapheme_width(g: &str) -> u16 {
     }
 }
 
-
 pub fn width(s: &str) -> u16 {
     if s.len() == 1 {
         return grapheme_width(s);
@@ -35,18 +21,13 @@ pub fn width(s: &str) -> u16 {
         .fold(0u16, |acc, g| acc.saturating_add(grapheme_width(g)))
 }
 
-
-
 pub(crate) fn is_word_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
-
 pub(crate) fn is_word_grapheme(g: &str) -> bool {
     g.chars().any(is_word_char)
 }
-
-
 
 pub fn truncate(s: &str, max: u16) -> String {
     if width(s) <= max {
@@ -70,7 +51,6 @@ pub fn truncate(s: &str, max: u16) -> String {
     out
 }
 
-
 pub fn truncate_middle(s: &str, max: u16) -> String {
     let parts = middle_parts(s, max);
     let mut out = String::with_capacity(parts.iter().map(|part| part.len()).sum());
@@ -79,7 +59,6 @@ pub fn truncate_middle(s: &str, max: u16) -> String {
     }
     out
 }
-
 
 pub fn middle_parts(s: &str, max: u16) -> [&str; 3] {
     if width(s) <= max {
@@ -123,17 +102,12 @@ pub fn middle_parts(s: &str, max: u16) -> [&str; 3] {
     ]
 }
 
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum WrapPiece<'a> {
     Text(&'a str),
     Space,
     Break,
 }
-
-
 
 fn wrap_walk<'a>(s: &'a str, w: u16, f: &mut dyn FnMut(WrapPiece<'a>)) {
     let w = w.max(1);
@@ -182,7 +156,6 @@ fn hard_wrap_walk<'a>(word: &'a str, w: u16, lw: &mut u16, f: &mut dyn FnMut(Wra
     }
 }
 
-
 pub fn wrap(s: &str, w: u16) -> Vec<String> {
     let mut lines = Vec::new();
     let mut line = String::new();
@@ -194,10 +167,6 @@ pub fn wrap(s: &str, w: u16) -> Vec<String> {
     lines.push(line);
     lines
 }
-
-
-
-
 
 pub fn wrapped_rows(s: &str, w: u16) -> u16 {
     let mut rows = 1u16;
@@ -215,7 +184,6 @@ mod tests {
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::Rect;
     use ratatui_core::style::Style;
-
 
     fn consumed(s: &str) -> u16 {
         let mut buf = Buffer::empty(Rect::new(0, 0, 200, 1));
@@ -242,7 +210,6 @@ mod tests {
             assert_eq!(width(s), s.cell_width(), "cell_width disagrees on {s:?}");
             assert_eq!(width(s), consumed(s), "set_stringn disagrees on {s:?}");
         }
-
 
         for s in ["\r\n", "\u{7}", "a\u{7}b", "x\r\ny"] {
             assert_eq!(width(s), consumed(s), "set_stringn disagrees on {s:?}");
@@ -283,8 +250,6 @@ mod tests {
         assert_eq!(truncate_middle("short", 12), "short");
         assert_eq!(truncate_middle("abcdefghij", 4), "abc…");
     }
-
-
 
     #[test]
     fn wrapped_rows_matches_wrap() {

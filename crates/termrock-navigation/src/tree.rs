@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -35,35 +24,26 @@ use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum NodeKind {
-
     #[default]
     Leaf,
 
     Parent,
 
-
-
     Lazy,
 }
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TreeBranchActivation {
-
     #[default]
     Toggle,
 
     Activate,
 }
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TreeBranchClick {
-
     #[default]
     Toggle,
 
@@ -78,12 +58,6 @@ enum Engagement {
     SelectedClick,
 }
 
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct TreeNode {
     depth: u16,
@@ -92,7 +66,6 @@ pub struct TreeNode {
 }
 
 impl TreeNode {
-
     #[must_use]
     pub const fn leaf(depth: u16) -> Self {
         TreeNode {
@@ -101,7 +74,6 @@ impl TreeNode {
             key: None,
         }
     }
-
 
     #[must_use]
     pub const fn parent(depth: u16) -> Self {
@@ -112,7 +84,6 @@ impl TreeNode {
         }
     }
 
-
     #[must_use]
     pub const fn lazy(depth: u16) -> Self {
         TreeNode {
@@ -122,32 +93,26 @@ impl TreeNode {
         }
     }
 
-
-
     #[must_use]
     pub const fn keyed(mut self, k: ItemKey) -> Self {
         self.key = Some(k);
         self
     }
 
-
     #[must_use]
     pub const fn depth(self) -> u16 {
         self.depth
     }
-
 
     #[must_use]
     pub const fn kind(self) -> NodeKind {
         self.kind
     }
 
-
     #[must_use]
     pub const fn key(self) -> Option<ItemKey> {
         self.key
     }
-
 
     #[must_use]
     pub const fn has_children(self) -> bool {
@@ -155,12 +120,9 @@ impl TreeNode {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TreeAction {
-
     Moved,
-
 
     Expanded(ItemKey),
 
@@ -171,10 +133,8 @@ pub enum TreeAction {
     Activated(ItemKey),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TreeCmd {
-
     Up,
 
     Down,
@@ -326,8 +286,6 @@ const TABLE: [Binding<TreeCmd>; 16] = [
     ),
 ];
 
-
-
 const TABLE_FOLDABLE: [Binding<TreeCmd>; 18] = [
     TABLE[0],
     TABLE[1],
@@ -361,13 +319,6 @@ const TABLE_FOLDABLE: [Binding<TreeCmd>; 18] = [
     ),
 ];
 
-
-
-
-
-
-
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct TreeState {
     core: CollectionCore,
@@ -392,7 +343,6 @@ struct ExpansionChange {
 }
 
 impl TreeState {
-
     #[must_use]
     pub const fn new() -> Self {
         TreeState {
@@ -410,35 +360,29 @@ impl TreeState {
         }
     }
 
-
     #[must_use]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
-
 
     #[must_use]
     pub const fn chosen(&self) -> Option<ItemKey> {
         self.chosen
     }
 
-
     pub const fn choose(&mut self, key: Option<ItemKey>) {
         self.chosen = key;
     }
-
 
     #[must_use]
     pub const fn expanded(&self) -> &KeySet {
         &self.expanded
     }
 
-
     #[must_use]
     pub fn is_expanded(&self, key: ItemKey) -> bool {
         self.expanded.contains(key)
     }
-
 
     pub fn expand(&mut self, key: ItemKey) {
         if !self.expanded.contains(key) {
@@ -448,7 +392,6 @@ impl TreeState {
         }
     }
 
-
     pub fn collapse(&mut self, key: ItemKey) {
         if self.expanded.contains(key) {
             Self::prepare_lineage(&mut self.expansion_lineage);
@@ -456,7 +399,6 @@ impl TreeState {
             self.record_expansion(key, false);
         }
     }
-
 
     pub fn toggle(&mut self, key: ItemKey) -> bool {
         Self::prepare_lineage(&mut self.expansion_lineage);
@@ -466,16 +408,12 @@ impl TreeState {
         expanded
     }
 
-
-
-
     pub fn expand_all(&mut self) {
         Self::prepare_lineage(&mut self.expansion_lineage);
         self.expanded.all();
         self.bump_expand_generation();
         self.last_expansion = None;
     }
-
 
     pub fn collapse_all(&mut self) {
         if !self.expanded.is_empty() {
@@ -486,30 +424,20 @@ impl TreeState {
         }
     }
 
-
     #[must_use]
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-
-
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
-
-
-
-
-
 
     pub fn invalidate(&mut self) {
         Self::prepare_lineage(&mut self.source_lineage);
         if let Some(next) = self.source_generation.checked_add(1) {
             self.source_generation = next;
         } else {
-
-
             self.source_generation_saturated = true;
         }
         self.core.invalidate();
@@ -529,14 +457,9 @@ impl TreeState {
         if let Some(next) = self.expand_generation.checked_add(1) {
             self.expand_generation = next;
         } else {
-
-
             self.expand_generation_saturated = true;
         }
     }
-
-
-
 
     fn prepare_lineage(lineage: &mut Option<Arc<()>>) {
         if lineage
@@ -546,8 +469,6 @@ impl TreeState {
             *lineage = Some(Arc::new(()));
         }
     }
-
-
 
     fn parts_mut(&mut self) -> (&mut CollectionCore, &KeySet) {
         (&mut self.core, &self.expanded)
@@ -570,117 +491,6 @@ impl Reconcile for TreeState {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -702,18 +512,13 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     empty: Option<EmptyState<'a>>,
     ov: PartStyle<'a>,
 
-
-
-
     fwd_patch: Option<&'a StylePatch>,
     fwd_parts: &'a [(Part, StylePatch)],
     fwd_slot: Option<(Part, SlotFn<'a>)>,
     _t: PhantomData<fn(&T)>,
 }
 
-
 pub type TreeIconFn<'a, T> = &'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>;
-
 
 pub type TreeTrailingMarkFn<'a, T> = &'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>;
 
@@ -737,7 +542,6 @@ impl<T, K, R> fmt::Debug for Tree<'_, T, K, R> {
 }
 
 impl<T> Tree<'_, T, ByIndex, DefaultRow> {
-
     #[must_use]
     pub const fn new(id: Id) -> Self {
         Tree {
@@ -769,7 +573,6 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> Tree<'a, T, K, R> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -781,15 +584,12 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         Part::EMPTY,
     ];
 
-
     pub const PREFERRED_WIDTH: u16 = 28;
-
 
     #[must_use]
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn node(mut self, f: &'a dyn Fn(&T) -> TreeNode) -> Self {
@@ -797,20 +597,11 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
     #[must_use]
     pub const fn icon(mut self, f: TreeIconFn<'a, T>) -> Self {
         self.icon = Some(f);
         self
     }
-
-
-
-
 
     #[must_use]
     pub const fn trailing_mark(mut self, f: TreeTrailingMarkFn<'a, T>) -> Self {
@@ -818,16 +609,11 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-
-
-
-
     #[must_use]
     pub const fn focused_patch(mut self, patch: &'a StylePatch) -> Self {
         self.focused_patch = Some(patch);
         self
     }
-
 
     #[must_use]
     pub const fn branch_activation(mut self, policy: TreeBranchActivation) -> Self {
@@ -835,17 +621,11 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn branch_click(mut self, policy: TreeBranchClick) -> Self {
         self.branch_click = policy;
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub const fn activate_selected_on_click(mut self, enabled: bool) -> Self {
@@ -853,15 +633,11 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-
-
     #[must_use]
     pub const fn gutter_gap(mut self, cells: u16) -> Self {
         self.gutter_gap = cells;
         self
     }
-
-
 
     #[must_use]
     pub const fn disclosure_hit_width(mut self, cells: u16) -> Self {
@@ -869,15 +645,11 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-
-
-
     #[must_use]
     pub const fn cursor_selected(mut self, enabled: bool) -> Self {
         self.cursor_selected = enabled;
         self
     }
-
 
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Tree<'a, T, K2, R> {
         Tree {
@@ -907,23 +679,12 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
     #[must_use]
     pub fn render_row(self, renderer: TreeRowRenderer<'a, T>) -> Tree<'a, T, K, impl RowFn<T>> {
         let mut tree = self.row(|_: &T, _: &mut RowUi<'_>| {});
         tree.render_row = Some(renderer);
         tree
     }
-
 
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tree<'a, T, K, R2> {
         Tree {
@@ -953,17 +714,11 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         }
     }
 
-
     #[must_use]
     pub const fn disabled_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.disabled_item = Some(f);
         self
     }
-
-
-
-
-
 
     #[must_use]
     pub const fn query(mut self, revision: u64, matcher: &'a dyn Fn(&T) -> bool) -> Self {
@@ -971,21 +726,17 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-
     #[must_use]
     pub const fn empty(mut self, e: EmptyState<'a>) -> Self {
         self.empty = Some(e);
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -994,7 +745,6 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
@@ -1002,16 +752,12 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self.fwd_slot = Some((p, f));
         self
     }
-
-
-
 
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut s = ScrollRegion::new(self.id).patch_part(self.fwd_parts);
@@ -1023,7 +769,6 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         }
         s
     }
-
 
     const fn derived(&self) -> StateFlags {
         if self.disabled {
@@ -1042,8 +787,6 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     }
 }
 
-
-
 #[derive(Clone, Copy, Debug)]
 struct FlatRef {
     source: usize,
@@ -1052,7 +795,6 @@ struct FlatRef {
     kind: NodeKind,
     included: bool,
 }
-
 
 #[derive(Default)]
 struct TreeIndex {
@@ -1108,7 +850,6 @@ impl TreeIndex {
             self.expansion_lineage.as_ref(),
             state.expansion_lineage.as_ref(),
         );
-
 
         let from_empty = self.expansion_lineage.is_none() && self.expand_generation == 0;
         if !same_expansion {
@@ -1182,7 +923,6 @@ impl TreeIndex {
         self.apply_query(tree, items);
         self.rebuild_visible(&state.expanded);
         self.initialized = true;
-
 
         self.source_lineage = state.source_lineage.as_ref().map(Arc::downgrade);
         self.expansion_lineage = state.expansion_lineage.as_ref().map(Arc::downgrade);
@@ -1342,7 +1082,6 @@ impl TreeIndex {
     }
 }
 
-
 #[derive(Clone, Copy)]
 struct Row {
     rect: Rect,
@@ -1395,7 +1134,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
-
     fn toggle_at(
         &self,
         st: &mut TreeState,
@@ -1439,8 +1177,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         true
     }
 
-
-
     fn engage(
         &self,
         st: &mut TreeState,
@@ -1482,7 +1218,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             },
         );
     }
-
 
     fn collapse_or_parent(
         &self,
@@ -1545,7 +1280,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         acc.consumed();
     }
-
 
     fn expand_or_descend(
         &self,
@@ -1638,8 +1372,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
-
-
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TreeState, items: &[T]) -> Response<TreeAction> {
         if self.disabled {
             st.click_cursor = None;
@@ -1696,13 +1428,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             st.click_cursor = None;
         }
 
-
         let after = index.visible.len();
         st.core.scroll_mut().set_content(after);
         acc.finish(self.id)
     }
-
-
 
     fn reconcile(&self, st: &mut TreeState, items: &[T], index: &TreeIndex) -> usize {
         let len = index.visible.len();
@@ -1836,7 +1565,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &TreeState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;
@@ -1945,7 +1673,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             })
             .draw_inherited(ui, mid, 0, inherited);
     }
-
 
     fn row_of(st: &TreeState, context: RowContext) -> Row {
         let RowContext {
@@ -2061,8 +1788,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
-
-
     fn paint_fold(
         &self,
         ui: &mut Ui<'_>,
@@ -2107,12 +1832,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     ui.glyph(fold, g, icon.style);
                 }
 
-
-
                 Slot::Inherit if row.disclosure.is_none() && !has_icon_patch => {
                     ui.fill(fold, row_style);
                 }
-
 
                 Slot::Inherit => {
                     if let Some(glyph) = row.disclosure {
@@ -2145,7 +1867,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 &patch,
             )
             .style;
-
 
         let style = if matches!(patch.bg, Slot::Inherit) {
             style.with_bg_from(row_style)
@@ -2188,7 +1909,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         let marker = cell_at(row.rect, fold_x.saturating_add(1));
         self.paint_marker(ui, row, marker);
         let trailing = self.trailing_mark.and_then(|paint| paint(item));
-
 
         let mut rest = Rect {
             x: fold_x.saturating_add(2),
@@ -2237,7 +1957,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
     fn register_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, has_custom_icon: bool) {
         ui.register_part(self.id, PartRef::item(Part::ROW, row.key), row.rect);
 
-
         if self.disclosure_hit_width > 0 && (row.disclosure.is_some() || !has_custom_icon) {
             let fold = Rect {
                 x: self.fold_x(row, indent),
@@ -2272,7 +1991,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             }
         }
     }
-
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
@@ -2330,7 +2048,6 @@ mod tests {
 
     const TREE: Id = Id::root("tree.tests");
 
-
     #[derive(Clone, Copy, Debug)]
     struct N(&'static str, u16, bool);
 
@@ -2352,7 +2069,6 @@ mod tests {
     fn tree<'a>() -> Tree<'a, N> {
         Tree::new(TREE).node(&node)
     }
-
 
     fn visible(t: &Tree<'_, N>, items: &[N], st: &TreeState) -> Vec<&'static str> {
         let mut index = TreeIndex::default();
@@ -2641,8 +2357,6 @@ mod tests {
         buffer
     }
 
-
-
     const FOREST: [N; 8] = [
         N("alpha", 0, true),
         N("a1", 1, false),
@@ -2654,13 +2368,6 @@ mod tests {
         N("b2x", 2, false),
     ];
 
-
-
-
-
-
-
-
     #[test]
     fn expand_collapse_is_keyed_not_positional() {
         let t = tree();
@@ -2668,16 +2375,12 @@ mod tests {
         let beta = ItemKey::text("beta");
         let alpha = ItemKey::text("alpha");
 
-
         assert_eq!(visible(&t, &FOREST, &st), ["alpha", "beta"]);
-
 
         st.expand(beta);
         st.set_cursor(2, ItemKey::text("b1"));
         st.choose(Some(ItemKey::text("b1")));
         assert_eq!(visible(&t, &FOREST, &st), ["alpha", "beta", "b1", "b2"]);
-
-
 
         let reordered = [
             FOREST[4], FOREST[5], FOREST[6], FOREST[7], FOREST[0], FOREST[1], FOREST[2], FOREST[3],
@@ -2693,8 +2396,6 @@ mod tests {
             "the same NODE is open after the reorder, not the same index"
         );
 
-
-
         let mut st2 = st.clone();
         let mut index = TreeIndex::default();
         index.sync(&t, &st2, &reordered);
@@ -2703,12 +2404,9 @@ mod tests {
         assert_eq!(st2.cursor(), Some(ItemKey::text("b1")));
         assert_eq!(st2.chosen(), Some(ItemKey::text("b1")));
 
-
         st.collapse(beta);
         assert_eq!(visible(&t, &reordered, &st), ["beta", "alpha"]);
         assert!(!st.is_expanded(beta));
-
-
 
         st.expand(beta);
         st.expand(ItemKey::text("b2"));
@@ -2718,18 +2416,8 @@ mod tests {
         );
     }
 
-
-
-
-
-
-
-
-
     #[test]
     fn lazy_children_do_not_reflatten_the_world() {
-
-
         let mut items = vec![N("root", 0, true)];
         items.extend((0..10_000).map(|_| N("child", 1, false)));
 
@@ -2752,8 +2440,6 @@ mod tests {
         };
         let mut st = TreeState::new();
 
-
-
         draw(&t, &st, &items, area);
         assert_eq!(painted.get(), 1);
         assert_eq!(
@@ -2761,7 +2447,6 @@ mod tests {
             0,
             "a collapsed subtree reached the renderer"
         );
-
 
         painted.set(0);
         st.expand(ItemKey::index(0));
@@ -2772,7 +2457,6 @@ mod tests {
             "the renderer ran once per node instead of once per visible row"
         );
         assert!(seen_depth1.get() <= 6);
-
 
         let mut index = TreeIndex::default();
         index.sync(&t, &st, &items);
@@ -2826,9 +2510,6 @@ mod tests {
         buffer
     }
 
-
-
-
     #[test]
     fn a_lazy_node_reports_its_expansion_by_key() {
         let items = [N("db", 0, false)];
@@ -2851,7 +2532,6 @@ mod tests {
         );
         assert!(st.is_expanded(ItemKey::text("db")));
 
-
         let leaf = |n: &N| TreeNode::leaf(n.1).keyed(ItemKey::text(n.0));
         let t = Tree::new(TREE).node(&leaf);
         let mut index = TreeIndex::default();
@@ -2860,9 +2540,6 @@ mod tests {
         assert!(!t.toggle_at(&mut st, &mut index, &items, 0, &mut acc));
         assert!(acc.finish(TREE).action_ref().is_none());
     }
-
-
-
 
     #[test]
     fn expand_all_is_the_inverted_key_set() {
@@ -2892,10 +2569,6 @@ mod tests {
         depth: u16,
         parent: bool,
     }
-
-
-
-
 
     #[test]
     fn tree_100k_nodes_flatten() {
@@ -2940,9 +2613,6 @@ mod tests {
         assert_eq!(index.source_rebuilds, 1);
         assert_eq!(index.splices, 2);
     }
-
-
-
 
     #[test]
     fn tree_100k_nodes_render() {
@@ -3006,8 +2676,6 @@ mod tests {
         state.expand(ItemKey::num(0));
         let area = Rect::new(0, 0, 30, 6);
 
-
-
         {
             let mut rt = Runtime::new(
                 TreeApp {
@@ -3021,7 +2689,6 @@ mod tests {
             let mut page = Buffer::empty(area);
             rt.draw_buffer(area, &mut page).commit_presented();
             let _ = rt.settle();
-
 
             assert!(node_accesses.get() >= rt.app().items.len());
             node_accesses.set(0);
@@ -3152,7 +2819,6 @@ mod tests {
         state.expand(ItemKey::text("alpha"));
         state.choose(Some(ItemKey::text("a1")));
         let area = Rect::new(0, 0, 30, 6);
-
 
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut page = Buffer::empty(area);

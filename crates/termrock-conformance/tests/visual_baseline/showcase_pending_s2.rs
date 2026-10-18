@@ -1,80 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::{Cell, RefCell};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -102,12 +25,9 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, HOLLA, JACKIN, SHOWCASE, TABLEPRO};
 
-
 const BOOT: &str = "Junie Design system";
 
-
 const PORT_OF: &str = "91aba5102f5b4dabaff506894f8b19166afb27a6";
-
 
 fn s2_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> Case {
     Case::dynamic(
@@ -121,7 +41,6 @@ fn s2_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> C
     )
 }
 
-
 fn s2_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -129,8 +48,6 @@ fn s2_dir(test: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     dir
 }
-
-
 
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
@@ -150,7 +67,6 @@ fn write_provenance(dir: &Path, case: &Case) {
         .unwrap_or_else(|e| panic!("write provenance.txt: {e}"));
     eprintln!("s2 provenance: {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -172,7 +88,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -181,8 +96,6 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
 fn live_frame(s: &mut Session) -> Frame {
     let screen = s
         .inner
@@ -190,7 +103,6 @@ fn live_frame(s: &mut Session) -> Frame {
         .unwrap_or_else(|e| panic!("live frame sample failed: {e:#}"));
     frame_from_screen(&screen, "default")
 }
-
 
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
@@ -202,14 +114,12 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-
 fn hover_over(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     Input::move_to(col, row).send(s);
     std::thread::sleep(Duration::from_millis(120));
     (row, col)
 }
-
 
 fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
@@ -219,7 +129,6 @@ fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     (row, col)
 }
 
-
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
@@ -227,12 +136,10 @@ fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     }
 }
 
-
 fn type_text(s: &mut Session, text: &str) {
     s.type_text(text).expect("type_text");
     std::thread::sleep(Duration::from_millis(120));
 }
-
 
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
@@ -241,17 +148,12 @@ fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         !text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: a line holds both {needle:?} and {also:?}\n{text}"
     );
 }
-
-
-
-
 
 fn sentinel_buf(cols: u16, rows: u16) -> Buffer {
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
@@ -291,14 +193,9 @@ fn buf_is_bold(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::BOLD)
 }
 
-
 fn buf_is_underlined(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::UNDERLINED)
 }
-
-
-
-
 
 fn render_isolated(
     cols: u16,
@@ -326,7 +223,6 @@ fn render_isolated(
     buf
 }
 
-
 fn measure_size(draw: impl Fn(&Ui<'_>, Constraints) -> Size) -> Size {
     let mut runtime = Runtime::new(Stub::default(), Theme::junie());
     let mut buffer = Buffer::empty(Rect::new(0, 0, 40, 8));
@@ -341,8 +237,6 @@ fn measure_size(draw: impl Fn(&Ui<'_>, Constraints) -> Size) -> Size {
         .commit_presented();
     size.get()
 }
-
-
 
 fn convert_color(c: RColor) -> TColor {
     match c {
@@ -368,7 +262,6 @@ fn convert_color(c: RColor) -> TColor {
     }
 }
 
-
 fn convert_mods(m: Modifier) -> Mods {
     Mods {
         hidden: m.contains(Modifier::HIDDEN),
@@ -386,10 +279,6 @@ fn convert_mods(m: Modifier) -> Mods {
         reverse: m.contains(Modifier::REVERSED),
     }
 }
-
-
-
-
 
 fn capture_buffer(buf: &Buffer) -> Frame {
     let cols = buf.area.width;
@@ -461,7 +350,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-
 fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     let frame = capture_buffer(buf);
     std::fs::write(
@@ -473,8 +361,6 @@ fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     frame
 }
 
-
-
 fn resolve_rgb(c: TColor, what: &str) -> Rgb {
     match c {
         TColor::Rgb(rgb) => rgb,
@@ -483,12 +369,10 @@ fn resolve_rgb(c: TColor, what: &str) -> Rgb {
     }
 }
 
-
 fn lum(c: TColor, what: &str) -> u32 {
     let rgb = resolve_rgb(c, what);
     u32::from(rgb.r) * 2126 + u32::from(rgb.g) * 7152 + u32::from(rgb.b) * 722
 }
-
 
 fn theme_rgb(c: RColor) -> Rgb {
     match c {
@@ -497,15 +381,12 @@ fn theme_rgb(c: RColor) -> Rgb {
     }
 }
 
-
-
 fn char_col(line: &str, needle: &str) -> u16 {
     let byte = line
         .find(needle)
         .unwrap_or_else(|| panic!("{needle:?} not in {line:?}"));
     line[..byte].chars().count() as u16
 }
-
 
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
@@ -516,7 +397,6 @@ const S2_BUSY_AREA: Rect = Rect {
     width: 20,
     height: 1,
 };
-
 
 struct BusyApp {
     fired: Rc<Cell<u32>>,
@@ -547,13 +427,11 @@ impl App for BusyApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_busy_frames() {
     let dir = s2_dir("s2_busy_frames");
     let t = Theme::junie();
-
 
     let mut first: Option<Frame> = None;
     for (tick, want) in [(0u64, "⠋"), (1u64, "⠙")] {
@@ -579,7 +457,6 @@ fn s2_busy_frames() {
         );
         assert!(!buf_is_bold(&buf, 7, 1), "V2: label non-bold");
         assert_eq!(buf[(5, 1)].fg, t.color.accent, "V2: spinner accent");
-
 
         let fired = Rc::new(Cell::new(0));
         let mut app = Harness::new(
@@ -615,13 +492,11 @@ fn s2_busy_frames() {
         assert_surround_intact(&buf, Rect::new(4, 1, 16, 1), "busy tick {tick}");
         let frame = capture_isolated(&dir, &format!("busy-tick-{tick}"), &buf);
         if let Some(prev) = first.as_ref() {
-
             assert_ne!(frame.digest(), prev.digest(), "N1: tick frames differ");
         } else {
             first = Some(frame);
         }
     }
-
 
     let case = s2_case("busy_frames", &["--page", "buttons"], 80, 24);
     write_provenance(&dir, &case);
@@ -642,8 +517,6 @@ fn s2_busy_frames() {
             .unwrap_or_else(|e| panic!("busy sample failed: {e:#}"));
         let frame = frame_from_screen(&snap, "default");
         if let Some((row, col)) = support::screen_find(&snap, "Start long job") {
-
-
             for c in col.saturating_sub(3)..col {
                 if let Some(cell) = frame.get(c, row)
                     && SPINNER.contains(&cell.symbol.as_str())
@@ -666,14 +539,11 @@ fn s2_busy_frames() {
     eprintln!("s2 busy_frames: isolated ticks 0/1 + live cycle {seen:?}");
 }
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_busy_checked_geom() {
     let dir = s2_dir("s2_busy_checked_geom");
     let t = Theme::junie();
-
 
     let buf = render_isolated(
         30,
@@ -700,7 +570,6 @@ fn s2_busy_checked_geom() {
             .measure(ui, c)
     });
     assert_eq!(w.preferred.0, 7 + 2 + 2, "V2/N2: one marker slot");
-
 
     let fired = Rc::new(Cell::new(0));
     let mut app = Harness::new(
@@ -732,7 +601,6 @@ fn s2_busy_checked_geom() {
     );
     assert_surround_intact(&buf, Rect::new(4, 1, 11, 1), "busy+checked");
     capture_isolated(&dir, "busy-checked", &buf);
-
 
     let case = s2_case("busy_checked_geom", &["--page", "buttons"], 80, 24);
     write_provenance(&dir, &case);
@@ -767,7 +635,6 @@ fn s2_busy_checked_geom() {
         "V2 live: row width stable"
     );
 
-
     assert!(
         !busy_row.contains('●') && !busy_row.contains('○'),
         "N1 live: {busy_row:?}"
@@ -788,7 +655,6 @@ const S2_BRAND_AREA: Rect = Rect {
     width: 8,
     height: 1,
 };
-
 
 struct BrandApp {
     fired: Rc<Cell<u32>>,
@@ -811,13 +677,11 @@ impl App for BrandApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_brand_hover() {
     let dir = s2_dir("s2_brand_hover");
     let t = Theme::junie();
-
 
     let w = measure_size(|ui, c| {
         Brand::new(S2_BRAND, "holla❯")
@@ -825,7 +689,6 @@ fn s2_brand_hover() {
             .measure(ui, c)
     });
     assert_eq!(w.preferred.0, 8, "V1: 6 text + 2 pad");
-
 
     let idle_buf = render_isolated(16, 3, 0, None, |ui, _| {
         Brand::new(S2_BRAND, "holla❯")
@@ -856,7 +719,6 @@ fn s2_brand_hover() {
     assert_surround_intact(&idle_buf, Rect::new(4, 1, 8, 1), "brand idle");
     let idle = capture_isolated(&dir, "brand-idle", &idle_buf);
 
-
     let hov_buf = render_isolated(
         16,
         3,
@@ -885,7 +747,6 @@ fn s2_brand_hover() {
         "V2: hover changes the frame"
     );
 
-
     for name in ["press", "flash"] {
         let buf = render_isolated(
             16,
@@ -904,7 +765,6 @@ fn s2_brand_hover() {
         assert_eq!(buf[(5, 1)].bg, t.color.accent_pressed, "V2: {name} fill");
         capture_isolated(&dir, &format!("brand-{name}"), &buf);
     }
-
 
     let press_no_hover_buf = render_isolated(
         16,
@@ -938,7 +798,6 @@ fn s2_brand_hover() {
     );
 
     assert!(!app.tab_to(S2_BRAND), "N2: no focus stop ever");
-
 
     let case = s2_case("brand_hover", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
@@ -990,7 +849,6 @@ const S2_BTNFOCUS_AREA: Rect = Rect {
     height: 1,
 };
 
-
 struct FocusButtonApp {
     fired: Rc<Cell<u32>>,
     disabled: bool,
@@ -1017,14 +875,11 @@ impl App for FocusButtonApp {
     }
 }
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_button_focus() {
     let dir = s2_dir("s2_button_focus");
     let t = Theme::junie();
-
 
     let idle_buf = render_isolated(24, 3, 0, None, |ui, _| {
         Button::new(S2_BTNFOCUS, "Run task")
@@ -1034,7 +889,6 @@ fn s2_button_focus() {
     assert_eq!(idle_buf[(4, 1)].symbol(), " ", "idle gutter blank");
     let idle_bg = idle_buf[(5, 1)].bg;
     let idle = capture_isolated(&dir, "btn-idle", &idle_buf);
-
 
     let kbd_buf = render_isolated(
         24,
@@ -1054,7 +908,6 @@ fn s2_button_focus() {
     let kbd = capture_isolated(&dir, "btn-kbdfocus", &kbd_buf);
     assert_ne!(kbd.digest(), idle.digest(), "V1: focus changes the frame");
 
-
     let ptr_buf = render_isolated(
         24,
         3,
@@ -1073,7 +926,6 @@ fn s2_button_focus() {
     assert!(buf_is_bold(&ptr_buf, 5, 1), "V1: pointer-focus bold");
     assert_ne!(ptr_buf[(5, 1)].bg, idle_bg, "V1: hover lift present");
     let ptr = capture_isolated(&dir, "btn-pointerfocus", &ptr_buf);
-
 
     let pressed_buf = render_isolated(
         24,
@@ -1126,7 +978,6 @@ fn s2_button_focus() {
         "N1: press w/o hover is idle"
     );
 
-
     let danger_buf = render_isolated(24, 3, 0, None, |ui, _| {
         Button::new(S2_BTNFOCUS, "Run task")
             .variant(Variant::DANGER)
@@ -1138,7 +989,6 @@ fn s2_button_focus() {
         idle.digest(),
         "V2: danger differs from secondary"
     );
-
 
     for on in [true, false] {
         let w = measure_size(|ui, c| {
@@ -1205,7 +1055,6 @@ fn s2_button_focus() {
         );
     }
 
-
     let case = s2_case("button_focus", &["--page", "buttons"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1243,7 +1092,6 @@ const S2_BTNDIS_AREA: Rect = Rect {
     height: 1,
 };
 
-
 struct DisabledButtonApp {
     fired: Rc<Cell<u32>>,
     disabled: bool,
@@ -1272,14 +1120,11 @@ impl App for DisabledButtonApp {
     }
 }
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_button_disabled() {
     let dir = s2_dir("s2_button_disabled");
     let t = Theme::junie();
-
 
     let idle_buf = render_isolated(24, 3, 0, None, |ui, _| {
         Button::new(S2_BTNDIS, "Verbose")
@@ -1294,7 +1139,6 @@ fn s2_button_disabled() {
     assert_eq!(idle_buf[(5, 1)].symbol(), "●", "V2: marker kept");
     assert_ne!(idle_buf[(5, 1)].fg, t.color.accent, "V2: accent lost");
     let idle = capture_isolated(&dir, "btndis-idle", &idle_buf);
-
 
     let allset_buf = render_isolated(
         24,
@@ -1386,7 +1230,6 @@ fn s2_button_disabled() {
     );
     capture_isolated(&dir, "btndis-busy", &busy_buf);
 
-
     let case = s2_case("button_disabled", &["--page", "buttons"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1430,7 +1273,6 @@ const S2_CHK_AREA: Rect = Rect {
     height: 1,
 };
 
-
 struct CheckboxApp {
     value: Rc<Cell<bool>>,
     fired: Rc<Cell<u32>>,
@@ -1458,13 +1300,11 @@ impl App for CheckboxApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_checkbox_matrix() {
     let dir = s2_dir("s2_checkbox_matrix");
     let t = Theme::junie();
-
 
     let idle_buf = render_isolated(30, 3, 0, None, |ui, _| {
         Checkbox::new(S2_CHK, "Run tests")
@@ -1479,7 +1319,6 @@ fn s2_checkbox_matrix() {
         "V1: unchecked muted"
     );
     let idle = capture_isolated(&dir, "chk-idle", &idle_buf);
-
 
     let hot_buf = render_isolated(
         30,
@@ -1517,7 +1356,6 @@ fn s2_checkbox_matrix() {
     let hidden = capture_isolated(&dir, "chk-hidden", &hidden_buf);
     assert_eq!(hidden.digest(), idle.digest(), "V1: hidden focus is idle");
 
-
     let narrow_buf = render_isolated(12, 3, 0, None, |ui, _| {
         Checkbox::new(S2_CHK, "Run tests")
             .checked(true)
@@ -1541,7 +1379,6 @@ fn s2_checkbox_matrix() {
         },
     );
     assert_eq!(one_buf[(4, 1)].symbol(), "▎", "V2: 1-cell bar only");
-
 
     let dis_buf = render_isolated(30, 3, 0, None, |ui, _| {
         Checkbox::new(S2_CHK, "Run tests")
@@ -1589,7 +1426,6 @@ fn s2_checkbox_matrix() {
         "S1: disabled all-set is idle"
     );
 
-
     let value = Rc::new(Cell::new(false));
     let fired = Rc::new(Cell::new(0));
     let mut app = Harness::new(
@@ -1631,9 +1467,6 @@ fn s2_checkbox_matrix() {
     assert_eq!(r.flow(), Flow::Consumed, "A1: disabled click consumes");
     assert_eq!(fired.get(), 0, "A1: disabled click never fires");
     assert!(value.get(), "A1: disabled never flips");
-
-
-
 
     let case = s2_case("checkbox_matrix", &["--page", "forms"], 80, 24);
     write_provenance(&dir, &case);
@@ -1678,7 +1511,6 @@ const S2_TGL_AREA: Rect = Rect {
     height: 1,
 };
 
-
 struct ToggleApp {
     value: Rc<Cell<bool>>,
     fired: Rc<Cell<u32>>,
@@ -1706,14 +1538,11 @@ impl App for ToggleApp {
     }
 }
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_toggle_matrix() {
     let dir = s2_dir("s2_toggle_matrix");
     let t = Theme::junie();
-
 
     let idle_buf = render_isolated(34, 3, 0, None, |ui, _| {
         Toggle::new(S2_TGL, "Auto-approve")
@@ -1729,7 +1558,6 @@ fn s2_toggle_matrix() {
         "V1: off muted"
     );
     let idle = capture_isolated(&dir, "tgl-off", &idle_buf);
-
 
     let hot_buf = render_isolated(
         34,
@@ -1754,7 +1582,6 @@ fn s2_toggle_matrix() {
     let hot = capture_isolated(&dir, "tgl-hot", &hot_buf);
     assert_ne!(hot.digest(), idle.digest(), "V1: state changes the frame");
 
-
     let narrow_buf = render_isolated(12, 3, 0, None, |ui, _| {
         Toggle::new(S2_TGL, "Auto-approve")
             .on(true)
@@ -1766,7 +1593,6 @@ fn s2_toggle_matrix() {
         "V2: compact ● in {narrow:?}"
     );
     capture_isolated(&dir, "tgl-narrow3", &narrow_buf);
-
 
     let dis_buf = render_isolated(34, 3, 0, None, |ui, _| {
         Toggle::new(S2_TGL, "Auto-approve")
@@ -1817,7 +1643,6 @@ fn s2_toggle_matrix() {
         "S1: disabled all-set is idle"
     );
 
-
     let value = Rc::new(Cell::new(false));
     let fired = Rc::new(Cell::new(0));
     let mut app = Harness::new(
@@ -1859,8 +1684,6 @@ fn s2_toggle_matrix() {
     assert_eq!(r.flow(), Flow::Consumed, "A1: disabled click consumes");
     assert_eq!(fired.get(), 0, "A1: disabled click never fires");
     assert!(value.get(), "A1: disabled never flips");
-
-
 
     let case = s2_case("toggle_matrix", &["--page", "forms"], 80, 24);
     write_provenance(&dir, &case);
@@ -1905,8 +1728,6 @@ const S2_RADIO_AREA: Rect = Rect {
 };
 const S2_RADIO_ITEMS: [&str; 3] = ["Fast", "Balanced", "Thorough"];
 
-
-
 struct RadioApp {
     value: Rc<Cell<Option<termrock::ItemKey>>>,
     st: RadioGroupState,
@@ -1946,8 +1767,6 @@ impl App for RadioApp {
     }
 }
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_radio_matrix() {
@@ -1955,9 +1774,6 @@ fn s2_radio_matrix() {
 
     let dir = s2_dir("s2_radio_matrix");
     let t = Theme::junie();
-
-
-
 
     let mut st = RadioGroupState::default();
     st.set_cursor(1, ItemKey::index(1));
@@ -1977,8 +1793,6 @@ fn s2_radio_matrix() {
     assert!(opt1.contains("(●)"), "V1: selected mark in {opt1:?}");
     assert_eq!(idle_buf[(6, 3)].fg, t.color.accent, "V1: selected accent");
     let idle = capture_isolated(&dir, "radio-idle", &idle_buf);
-
-
 
     let mut st = RadioGroupState::default();
     st.set_cursor(1, ItemKey::index(1));
@@ -2011,7 +1825,6 @@ fn s2_radio_matrix() {
     );
     let hot = capture_isolated(&dir, "radio-hot", &hot_buf);
     assert_ne!(hot.digest(), idle.digest(), "V1: state changes the frame");
-
 
     let value = Rc::new(Cell::new(Some(ItemKey::index(1))));
     let chose = Rc::new(RefCell::new(Vec::new()));
@@ -2056,9 +1869,6 @@ fn s2_radio_matrix() {
         8,
     );
     assert!(!app.tab_to(S2_RADIO), "S2: empty group has no stop");
-
-
-
 
     let value = Rc::new(Cell::new(Some(ItemKey::index(1))));
     let chose = Rc::new(RefCell::new(Vec::new()));
@@ -2110,8 +1920,6 @@ fn s2_radio_matrix() {
         "A1: click selects"
     );
 
-
-
     let case = s2_case("radio_matrix", &["--page", "forms"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2144,7 +1952,6 @@ const S2_SCROLL_AREA: Rect = Rect {
     height: 6,
 };
 
-
 struct ScrollApp {
     lines: Vec<String>,
     st: ViewportState,
@@ -2166,13 +1973,10 @@ impl App for ScrollApp {
     }
 }
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_panel_focus() {
     let dir = s2_dir("s2_panel_focus");
-
 
     let seen = Cell::new(Rect::default());
     let card_buf = render_isolated(40, 8, 0, None, |ui, _| {
@@ -2196,7 +2000,6 @@ fn s2_panel_focus() {
     );
     capture_isolated(&dir, "panel-card-idle", &card_buf);
 
-
     let focused_buf = render_isolated(40, 8, 0, None, |ui, _| {
         Panel::new(S2_PANEL)
             .kind(PanelKind::Card)
@@ -2212,7 +2015,6 @@ fn s2_panel_focus() {
     );
     assert!(buf_is_bold(&focused_buf, 6, 1), "V1: focused title bold");
     capture_isolated(&dir, "panel-card-focused", &focused_buf);
-
 
     let framed_idle_buf = render_isolated(40, 8, 0, None, |ui, _| {
         Panel::new(S2_PANEL)
@@ -2236,10 +2038,7 @@ fn s2_panel_focus() {
     );
     capture_isolated(&dir, "panel-framed-focused", &framed_hot_buf);
 
-
-
     let lines: Vec<String> = (0..20).map(|i| format!("log line {i:02}")).collect();
-
 
     let mut scroll_st = ViewportState::default();
     scroll_st.set_follow(false);
@@ -2269,10 +2068,6 @@ fn s2_panel_focus() {
         assert_eq!(r.flow(), Flow::Ignored, "A1/S2: {code:?} ignores");
     }
 
-
-
-
-
     let case = s2_case("panel_focus", &["--page", "panels"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2281,7 +2076,6 @@ fn s2_panel_focus() {
     assert!(boot.contains("Titled card"), "boot shows the titled card");
     assert!(boot.contains("Framed"), "boot shows framed chrome");
     assert!(boot.contains("of 60"), "boot shows the log scroll readout");
-
 
     let mut entered = false;
     for _ in 0..4 {
@@ -2298,8 +2092,6 @@ fn s2_panel_focus() {
     }
     assert!(entered, "V1 live: focus never reached a card");
     checkpoint(&mut s, &dir, "focused");
-
-
 
     let (log_row, log_col) = find_pos(&mut s, "Resol", case_timeout(&case));
     let before = live_text(&mut s);
@@ -2325,7 +2117,6 @@ fn s2_panel_focus() {
     eprintln!("s2 panel_focus: isolated chrome/scroll + live wheel/read-only");
 }
 
-
 fn scroll_start(text: &str, of: &str) -> u32 {
     for line in text.lines() {
         if let Some(pos) = line.find(of) {
@@ -2349,9 +2140,6 @@ fn scroll_start(text: &str, of: &str) -> u32 {
 }
 
 const S2_SPLIT: Id = Id::root("s2.split");
-
-
-
 
 struct SplitApp {
     st: SplitPaneState,
@@ -2383,14 +2171,11 @@ impl App for SplitApp {
     }
 }
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_split_drag() {
     let dir = s2_dir("s2_split_drag");
     let container = Rect::new(0, 0, 80, 24);
-
 
     let split = SplitModel::new(SplitAxis::Horizontal, 50, 5, 5);
     let (left, right) = split.layout(container, 1);
@@ -2398,7 +2183,6 @@ fn s2_split_drag() {
     assert_eq!(left.width + 1 + right.width, 80, "V2: panes + gap fill");
     assert_eq!(handle.width, 1, "V2: 1-cell gap strip");
     assert_eq!(handle.x, left.right(), "V2: strip between panes");
-
 
     let paint_seam = |state: ReferenceState| {
         render_isolated(80, 24, 0, Some((S2_SPLIT, state)), |ui, _| {
@@ -2420,8 +2204,6 @@ fn s2_split_drag() {
     );
     let hovered = capture_isolated(&dir, "split-hover", &hov_buf);
     assert_ne!(hovered.digest(), idle.digest(), "V1: hover strengthens");
-
-
 
     for (name, state, heavy) in [
         ("focus", ReferenceState::FOCUSED, false),
@@ -2466,7 +2248,6 @@ fn s2_split_drag() {
         "S1: nudge moves one cell"
     );
 
-
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         SplitApp {
@@ -2504,10 +2285,6 @@ fn s2_split_drag() {
         "V2: maximized draws nothing",
     );
 
-
-
-
-
     let case = s2_case(
         "split_drag",
         &["--page", "terminal", "--motion", "paused", "--frame", "60"],
@@ -2517,7 +2294,6 @@ fn s2_split_drag() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-
 
     let boot = live_text(&mut s);
     let top = boot
@@ -2582,7 +2358,6 @@ const S2_PROPS_AREA: Rect = Rect {
     height: 4,
 };
 
-
 struct PropsApp {
     rows: [PropsRow<'static>; 3],
     st: PropsState,
@@ -2621,8 +2396,6 @@ impl App for PropsApp {
     }
 }
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_props_cursor() {
@@ -2631,9 +2404,6 @@ fn s2_props_cursor() {
     let dir = s2_dir("s2_props_cursor");
     let t = Theme::junie();
     let rows = PropsApp::rows();
-
-
-
 
     let idle_buf = render_isolated(50, 6, 0, None, |ui, _| {
         PropsList::new(S2_PROPS).draw(ui, Rect::new(4, 1, 42, 4), &PropsState::default(), &rows);
@@ -2645,7 +2415,6 @@ fn s2_props_cursor() {
     );
     assert_eq!(idle_buf[(12, 3)].fg, t.color.danger, "V1: error tone kept");
     let idle = capture_isolated(&dir, "props-idle", &idle_buf);
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -2692,8 +2461,6 @@ fn s2_props_cursor() {
         "V1: cursor changes the frame"
     );
 
-
-
     let _ = app.key(KeyCode::Tab);
     assert!(
         app.state_of(S2_PROPS_SENTINEL)
@@ -2714,9 +2481,6 @@ fn s2_props_cursor() {
     assert!(app.tab_to(S2_PROPS_SENTINEL), "S1: empty harness focus");
     let r = app.key(KeyCode::Down);
     assert_eq!(r.flow(), Flow::Ignored, "S1: empty ignores keys");
-
-
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -2768,7 +2532,6 @@ fn s2_props_cursor() {
         "A1: click on plain row copies nothing"
     );
 
-
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Char('y'));
     assert_eq!(r.flow(), Flow::Consumed, "A1: click moves the cursor");
@@ -2776,7 +2539,6 @@ fn s2_props_cursor() {
         log.borrow().is_empty(),
         "A1: cursor sits on the plain row 2"
     );
-
 
     let after = app.buffer().clone();
     for (y, value) in [
@@ -2793,7 +2555,6 @@ fn s2_props_cursor() {
     let m = measure_size(|ui, c| PropsList::new(S2_PROPS).measure(ui, c));
     assert_eq!(m.preferred.1, 3, "S2: measure counts rows");
 
-
     let case = s2_case("props_cursor", &["--page", "chipsselects"], 120, 40);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2802,8 +2563,6 @@ fn s2_props_cursor() {
     assert!(text.contains("PostgreSQL 16.3"), "V1 live: engine value");
     assert!(text.contains("prod-db-1.acme.io"), "V1 live: host value");
     assert_line_has(&text, "Engine", "PostgreSQL", "V1 live: fact row");
-
-
 
     let frame = live_frame(&mut s);
     let text = live_text(&mut s);
@@ -2832,14 +2591,11 @@ fn s2_props_cursor() {
 
 const S2_EMPTY: Id = Id::root("s2.empty");
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_empty_narrow() {
     let dir = s2_dir("s2_empty_narrow");
     let t = Theme::junie();
-
 
     let buf = render_isolated(40, 9, 0, None, |ui, _| {
         Empty::new(
@@ -2869,7 +2625,6 @@ fn s2_empty_narrow() {
     capture_isolated(&dir, "empty-plain", &buf);
     assert_surround_intact(&buf, Rect::new(4, 1, 32, 7), "N1: nothing outside");
 
-
     let buf = render_isolated(40, 9, 0, None, |ui, _| {
         Empty::new(
             S2_EMPTY,
@@ -2891,7 +2646,6 @@ fn s2_empty_narrow() {
         .expect("bang") as u16;
     assert!(buf_is_bold(&buf, bang_x, ey), "V1: bold bang");
     capture_isolated(&dir, "empty-error", &buf);
-
 
     let buf = render_isolated(20, 5, 0, None, |ui, _| {
         Empty::new(
@@ -2926,10 +2680,7 @@ fn s2_empty_narrow() {
     );
     capture_isolated(&dir, "empty-narrow", &buf);
 
-
-
     assert!(title_y < 4, "S1: block vertically centered");
-
 
     let case = s2_case("empty_narrow", &["--page", "chipsselects"], 120, 40);
     write_provenance(&dir, &case);
@@ -2941,7 +2692,6 @@ fn s2_empty_narrow() {
     assert!(text.contains("Properties"), "V1 live: properties beside it");
     eprintln!("s2 empty_narrow: isolated variants + live empty card");
 }
-
 
 fn spawn_notice(
     bin: &'static str,
@@ -2962,8 +2712,6 @@ fn spawn_notice(
     let s = support::spawn_boot(&case);
     (case, s)
 }
-
-
 
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
@@ -2989,7 +2737,6 @@ fn s2_toosmall_notice() {
             "V1/S1: {app} size line"
         );
         assert!(text.contains("q Quit"), "V1: {app} quit line");
-
 
         assert!(!text.contains('›'), "N1: {app} no nav cursor");
         assert!(!text.contains("Playground"), "N1: {app} no page body");
@@ -3032,17 +2779,12 @@ const S2_NARROW_SPLIT: Id = Id::root("s2.narrow.split");
 const S2_NARROW_PROPS: Id = Id::root("s2.narrow.props");
 const S2_NARROW_PANEL: Id = Id::root("s2.narrow.panel");
 
-
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_narrow_clip() {
     let dir = s2_dir("s2_narrow_clip");
 
-
     for width in [6u16, 4, 3, 2, 1] {
-
         let used = Cell::new(Rect::default());
         let buf = render_isolated(16, 3, 0, None, |ui, _| {
             used.set(
@@ -3103,8 +2845,6 @@ fn s2_narrow_clip() {
         });
         assert_surround_intact(&buf, Rect::new(4, 1, width, 3), "V1 radio");
 
-
-
         let buf = render_isolated(16, 3, 0, None, |ui, _| {
             SplitPane::new(S2_NARROW_SPLIT, SplitAxis::Horizontal)
                 .gap(1)
@@ -3144,7 +2884,6 @@ fn s2_narrow_clip() {
         "V2: border-only in {brow:?}"
     );
     capture_isolated(&dir, "narrow-framed", &buf);
-
 
     use termrock::ItemKey;
     let rows = [PropsRow::new(
@@ -3191,13 +2930,10 @@ const S2_HOV_SPLIT: Id = Id::root("s2.hov.split");
 const S2_HOV_PROPS: Id = Id::root("s2.hov.props");
 const S2_HOV_SCROLL: Id = Id::root("s2.hov.scroll");
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_hover_coverage() {
     let dir = s2_dir("s2_hover_coverage");
-
 
     let btn_idle_buf = render_isolated(30, 3, 0, None, |ui, _| {
         Button::new(S2_HOV_BTN, "Run task")
@@ -3429,7 +3165,6 @@ fn s2_hover_coverage() {
         "V1: props delta"
     );
 
-
     let vlines: Vec<String> = ["a".to_string(), "b".to_string()].to_vec();
     let scroll_idle = capture_isolated(
         &dir,
@@ -3497,7 +3232,6 @@ fn s2_hover_coverage() {
         "N1: disabled ignores hover"
     );
 
-
     let mut app = Harness::new(HoverButtonApp, Theme::junie(), 40, 8);
     let plain = app.buffer().clone();
     let _ = app.mouse(MouseKind::Move, 6, 1);
@@ -3547,7 +3281,6 @@ fn s2_hover_coverage() {
     assert!(value.get(), "A1: flags untouched");
     assert_eq!(fired.get(), 0, "A1: hover never fires");
 
-
     let case = s2_case("hover_coverage", &["--page", "buttons"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3586,7 +3319,6 @@ fn s2_hover_coverage() {
 
 const S2_FLD: Id = Id::root("s2.fld");
 
-
 fn email_ok(s: &str) -> Result<(), FieldError> {
     if s.contains('@') && s.contains('.') {
         Ok(())
@@ -3594,7 +3326,6 @@ fn email_ok(s: &str) -> Result<(), FieldError> {
         Err(FieldError::new("bad"))
     }
 }
-
 
 fn email_full(s: &str) -> Result<(), FieldError> {
     if s.contains('@') && s.contains('.') {
@@ -3604,14 +3335,11 @@ fn email_full(s: &str) -> Result<(), FieldError> {
     }
 }
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_field_chrome() {
     let dir = s2_dir("s2_field_chrome");
     let t = Theme::junie();
-
 
     let buf = render_isolated(40, 5, 0, None, |ui, _| {
         Field::new(
@@ -3757,7 +3485,6 @@ fn s2_field_chrome() {
     );
     assert!(!msg.contains("some help"), "N2: help hidden in {msg:?}");
 
-
     let case = s2_case("field_chrome", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3765,8 +3492,6 @@ fn s2_field_chrome() {
     let boot = live_text(&mut s);
     assert!(boot.contains("Project name *"), "boot required label");
     assert!(boot.contains("Branch  optional"), "boot optional suffix");
-
-
 
     for (i, needle) in [
         "▎ payments-gateway",
@@ -3803,7 +3528,6 @@ fn s2_field_chrome() {
     eprintln!("s2 field_chrome: isolated chrome + live tab walk");
 }
 
-
 struct ChromeNavApp {
     value: String,
     st: TextInputState,
@@ -3827,7 +3551,6 @@ impl App for ChromeNavApp {
     }
 }
 
-
 struct HoverButtonApp;
 
 impl App for HoverButtonApp {
@@ -3849,16 +3572,11 @@ const S2_FLDDIS: Id = Id::root("s2.flddis");
 const S2_FLDDIS_SENT: Id = Id::root("s2.flddis.sent");
 const S2_TRANSCRIPT: Id = Id::root("s2.transcript");
 
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_field_disabled() {
     let dir = s2_dir("s2_field_disabled");
     let t = Theme::junie();
-
-
-
-
 
     let buf = render_isolated(44, 5, 0, None, |ui, _| {
         Field::new(
@@ -3873,7 +3591,6 @@ fn s2_field_disabled() {
     assert_eq!(buf[(4, 2)].symbol(), " ", "V2/N1: gutter blank");
     assert_eq!(buf[(6, 1)].fg, t.color.disabled_fg, "V1: faint label");
     capture_isolated(&dir, "fld-disabled", &buf);
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let fired = Rc::new(Cell::new(0));
@@ -3928,9 +3645,6 @@ fn s2_field_disabled() {
     .digest();
     assert_eq!(dis_idle, dis_hov, "S2: hover forced off");
 
-
-
-
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "S1: Enter reaches the ring");
     assert_eq!(fired.get(), 1, "S1: sentinel proves arrival");
@@ -3970,7 +3684,6 @@ fn s2_field_disabled() {
         "N2: literal bullets"
     );
 
-
     let case = s2_case("field_disabled", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3980,19 +3693,16 @@ fn s2_field_disabled() {
         "boot shows the token"
     );
 
-
     let before = live_text(&mut s);
     assert_line_has(&before, "▎", "›", "A1 presence: nav holds focus at boot");
     click_at(&mut s, "jb_live_", case_timeout(&case));
     std::thread::sleep(Duration::from_millis(400));
     let after_click = live_text(&mut s);
 
-
     assert!(!after_click.contains("EDIT"), "A1 live: click never edits");
     assert_eq!(after_click, before, "A1 live: click changes nothing");
     assert_line_has(&after_click, "▎", "›", "A1 live: focus stays on nav");
     assert_line_lacks(&after_click, "▎", "jb_live_", "A1 live: no bar on token");
-
 
     for _ in 0..5 {
         support::press_step(&s, "tab");
@@ -4006,7 +3716,6 @@ fn s2_field_disabled() {
     checkpoint(&mut s, &dir, "skipped");
     eprintln!("s2 field_disabled: isolated guards + live refuse/skip");
 }
-
 
 struct DisabledInputApp {
     value: String,
@@ -4039,7 +3748,6 @@ impl App for DisabledInputApp {
     }
 }
 
-
 struct DisabledAreaApp {
     value: String,
     st: TextAreaState,
@@ -4070,13 +3778,10 @@ impl App for DisabledAreaApp {
 const S2_FLDLOSS: Id = Id::root("s2.fldloss");
 const S2_FLDLOSS_OTHER: Id = Id::root("s2.fldloss.other");
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_field_focusloss() {
     let dir = s2_dir("s2_field_focusloss");
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -4104,15 +3809,12 @@ fn s2_field_focusloss() {
     assert!(buf_is_underlined(&staged, 6, 1), "editing underlined");
     assert!(app.cursor().is_some(), "cursor placed while editing");
 
-
-
     log.borrow_mut().clear();
     assert!(app.tab_to(S2_FLDLOSS_OTHER), "A1: Tab moves focus");
     assert!(
         log.borrow().contains(&TextAction::Committed),
         "A1: Tab commits"
     );
-
 
     let committed = app.buffer().clone();
     assert!(
@@ -4146,7 +3848,6 @@ fn s2_field_focusloss() {
         "A2: editing under way"
     );
     assert!(app.cursor().is_some(), "A2: cursor placed at the pointer");
-
 
     let case = s2_case("field_focusloss", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
@@ -4202,7 +3903,6 @@ fn s2_field_focusloss() {
     eprintln!("s2 field_focusloss: isolated commit + live click-away");
 }
 
-
 struct LossApp {
     value: String,
     other_value: String,
@@ -4239,14 +3939,10 @@ impl App for LossApp {
 const S2_TICOMMIT: Id = Id::root("s2.ticommit");
 const S2_TICOMMIT_SENT: Id = Id::root("s2.ticommit.sent");
 
-
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_input_commit() {
     let dir = s2_dir("s2_input_commit");
-
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -4288,8 +3984,6 @@ fn s2_input_commit() {
     assert!(app.cursor().is_some(), "V1: hardware cursor placed");
     capture_isolated(&dir, "ti-editing", app.buffer());
 
-
-
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "commit applies");
     assert!(
@@ -4317,7 +4011,6 @@ fn s2_input_commit() {
         app.state_of(S2_TICOMMIT).contains(StateFlags::FOCUSED),
         "A2: focus returns to the field"
     );
-
 
     let case = s2_case("input_commit", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
@@ -4349,7 +4042,6 @@ fn s2_input_commit() {
     eprintln!("s2 input_commit: isolated lifecycle + live saved status");
 }
 
-
 struct CommitApp {
     value: String,
     st: TextInputState,
@@ -4378,7 +4070,6 @@ impl App for CommitApp {
 const S2_TICANCEL: Id = Id::root("s2.ticancel");
 const S2_TICANCEL_SENT: Id = Id::root("s2.ticancel.sent");
 
-
 fn no_x(s: &str) -> Result<(), FieldError> {
     if s.contains('x') {
         Err(FieldError::new("no x"))
@@ -4387,13 +4078,10 @@ fn no_x(s: &str) -> Result<(), FieldError> {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s2 check; run with --ignored"]
 fn s2_input_cancel() {
     let dir = s2_dir("s2_input_cancel");
-
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -4414,8 +4102,6 @@ fn s2_input_cancel() {
         buf_row_text(app.buffer(), 1).contains("payments-gateway-x"),
         "staged edit"
     );
-
-
 
     assert_ne!(
         app.buffer()[(39, 1)].symbol(),
@@ -4497,7 +4183,6 @@ fn s2_input_cancel() {
         "N2: no partial remnant"
     );
 
-
     let case = s2_case("input_cancel", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4531,7 +4216,6 @@ fn s2_input_cancel() {
     assert!(!done.contains("gateway-x"), "N2 live: no partial revert");
     eprintln!("s2 input_cancel: isolated revert + live Reverted status");
 }
-
 
 struct CancelApp {
     value: String,

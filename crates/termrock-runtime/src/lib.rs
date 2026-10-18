@@ -1,5 +1,3 @@
-
-
 pub(crate) use termrock_collections as scroll;
 pub use termrock_core as id;
 pub use termrock_core as event;
@@ -31,7 +29,6 @@ pub mod runtime;
 pub mod scroll_region;
 pub mod support;
 pub mod ui;
-
 
 pub use author::*;
 pub use capture::*;

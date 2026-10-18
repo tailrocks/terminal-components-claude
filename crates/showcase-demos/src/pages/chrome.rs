@@ -1,5 +1,3 @@
-
-
 use termrock::author::PaintStyle;
 use termrock::{
     Brand, Cx, FrameRead, Id, Modifier, Part, Role, StateFlags, Status, StatusBar, StatusItem,
@@ -249,7 +247,6 @@ fn paint_historical(ui: &mut Ui<'_>, body: termrock::Rect, brand_clicks: u32) {
         canvas,
     );
 
-
     let status_y = body.y.saturating_add(15);
     ui.paint_str(
         termrock::Rect {
@@ -275,8 +272,6 @@ fn paint_historical(ui: &mut Ui<'_>, body: termrock::Rect, brand_clicks: u32) {
         format!("brand activations: {brand_clicks}")
     };
 
-
-
     let prefix = " ↑↓ Move  m Context menu  right-click Context menu  Tab Next";
     let filler = body
         .width
@@ -296,7 +291,6 @@ fn paint_historical(ui: &mut Ui<'_>, body: termrock::Rect, brand_clicks: u32) {
     );
     let _ = (active_detail, key, action, last_style);
 }
-
 
 #[derive(Debug, Default)]
 pub struct ChromePage {
@@ -335,8 +329,6 @@ impl Page for ChromePage {
             self.title(),
             "Brand lockup · menu bar with anchored menus · status bar planes and priorities · context menu · hint layers",
             |ui, body| {
-
-
                 brand().draw(ui, body);
                 status_bar(&CENTER, self.frame).draw(ui, body);
                 paint_body(

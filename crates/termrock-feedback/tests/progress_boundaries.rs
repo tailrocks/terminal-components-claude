@@ -1,4 +1,3 @@
-
 use termrock::{
     ColorLevel, GlyphRole, Id, Meter, MeterTone, MeterVisual, ProgressBar, Spinner, Status, Theme,
 };

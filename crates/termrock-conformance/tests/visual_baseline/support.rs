@@ -1,26 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub mod scoped_targets;
 pub mod state_waits;
 pub mod typed_input;
@@ -53,16 +30,11 @@ pub const TABLEPRO: &str = "tablepro";
 pub const JACKIN: &str = "jackin-preview";
 pub const HOLLA: &str = "holla";
 
-
 pub const SETTLE: Duration = Duration::from_millis(400);
-
 
 pub const TIMEOUT_MS: u64 = 8_000;
 
-
 pub const DEFAULT_WAIT: Duration = Duration::from_millis(TIMEOUT_MS);
-
-
 
 pub const CANONICAL_SIZES: [(u16, u16); 5] = [(72, 20), (80, 24), (100, 30), (120, 40), (160, 50)];
 pub const CANONICAL_COLORS: [Color; 5] = [
@@ -72,7 +44,6 @@ pub const CANONICAL_COLORS: [Color; 5] = [
     Color::None,
     Color::NoColorEnv,
 ];
-
 
 pub const AUDIT_PREFIX_HOLLA_RUST: &str = "holla/audit/rust";
 pub const AUDIT_PREFIX_HOLLA_UPGRADE: &str = "holla/audit/upgrade";
@@ -127,12 +98,6 @@ pub fn audit_default_name(prefix: &str, cols: u16, rows: u16, color: Color) -> S
     format!("{prefix}/{cols}x{rows}/{}", color.suffix())
 }
 
-
-
-
-
-
-
 pub fn suite_capture_names() -> BTreeSet<String> {
     const REGISTRY_JSON: &str = include_str!("../../../../tests/conformance/required_cases.json");
     let manifest: serde_json::Value =
@@ -175,8 +140,6 @@ pub fn suite_capture_names() -> BTreeSet<String> {
     );
     names
 }
-
-
 
 fn canonical_root(name: &str) -> Option<&str> {
     name.rsplit_once('/')
@@ -324,17 +287,7 @@ impl Case {
     }
 }
 
-
-
-
-
-
 pub const PARTIAL_RUN_ENV: &str = "TERMROCK_PARTIAL_RUN";
-
-
-
-
-
 
 pub const MIDTEST_BUILD_ENV: &str = "TERMROCK_ALLOW_MIDTEST_BUILD";
 
@@ -356,7 +309,6 @@ fn mark_midtest_build_used() {
     MIDTEST_BUILD_USED.store(true, Ordering::SeqCst);
 }
 
-
 #[derive(Clone, Debug)]
 pub struct BinSubject {
     pub path: PathBuf,
@@ -364,8 +316,6 @@ pub struct BinSubject {
     pub len: u64,
     pub mtime_unix: Option<u64>,
 }
-
-
 
 pub fn digest_file(path: &Path) -> Option<BinSubject> {
     let bytes = std::fs::read(path).ok()?;
@@ -429,13 +379,6 @@ fn candidate_bins(name: &str) -> Vec<PathBuf> {
     candidates.push(root.join("target").join("release").join(name));
     candidates
 }
-
-
-
-
-
-
-
 
 pub fn try_resolve_bin(name: &str) -> Result<BinSubject, String> {
     for candidate in candidate_bins(name) {
@@ -523,8 +466,6 @@ pub fn argv_for(case: &Case) -> Vec<String> {
     argv
 }
 
-
-
 pub fn row_text(screen: &tuiscotti::Screen, row: u16) -> String {
     let mut s = String::new();
     for x in 0..screen.cols() {
@@ -537,16 +478,12 @@ pub fn row_text(screen: &tuiscotti::Screen, row: u16) -> String {
     s
 }
 
-
 pub fn screen_text(screen: &tuiscotti::Screen) -> String {
     (0..screen.rows())
         .map(|y| row_text(screen, y))
         .collect::<Vec<_>>()
         .join("\n")
 }
-
-
-
 
 pub fn screen_find(screen: &tuiscotti::Screen, needle: &str) -> Option<(u16, u16)> {
     if needle.is_empty() {
@@ -686,8 +623,6 @@ pub fn spawn_boot(case: &Case) -> Session {
     session
 }
 
-
-
 pub fn boot(session: &mut Session, needle: &str, timeout: Duration) {
     if !needle.is_empty() {
         wait_screen(
@@ -706,21 +641,15 @@ pub fn boot(session: &mut Session, needle: &str, timeout: Duration) {
         .unwrap_or_else(|e| panic!("boot idle failed: {e:#}"));
 }
 
-
-
 pub fn try_wait_screen(
     s: &mut Session,
     timeout: Duration,
     pred: impl FnMut(&tuiscotti::Screen) -> bool,
 ) -> Result<tuiscotti::Observation, tuiscotti::tui::WaitError> {
-
-
     let pred = RefCell::new(pred);
     s.inner
         .wait_predicate_timeout(|o| pred.borrow_mut()(&o.screen), timeout)
 }
-
-
 
 pub fn wait_screen(
     s: &mut Session,
@@ -730,10 +659,6 @@ pub fn wait_screen(
 ) -> tuiscotti::Observation {
     try_wait_screen(s, timeout, pred).unwrap_or_else(|e| panic!("{what}: {e:#}"))
 }
-
-
-
-
 
 pub fn drag_path(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
     s.inner
@@ -748,9 +673,6 @@ pub fn drag_path(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
         .mouse_up(MouseButton::Left, to.0, to.1, MouseMods::NONE)
         .unwrap_or_else(|e| panic!("drag release at {to:?} failed: {e:#}"));
 }
-
-
-
 
 fn cells_between(from: (u16, u16), to: (u16, u16)) -> Vec<(u16, u16)> {
     let (from_col, from_row) = (i64::from(from.0), i64::from(from.1));
@@ -770,8 +692,6 @@ fn cells_between(from: (u16, u16), to: (u16, u16)) -> Vec<(u16, u16)> {
         })
         .collect()
 }
-
-
 
 pub fn settle_frame(
     session: &mut Session,
@@ -833,10 +753,6 @@ fn press_chord(
     }
     inner.press(&chord)
 }
-
-
-
-
 
 pub fn press_step(session: &Session, step: &str) {
     press_chord(&session.inner, step).unwrap_or_else(|e| panic!("key `{step}` failed: {e:#}"));
@@ -1110,7 +1026,6 @@ pub fn write_10_artifact_bundle(
     let observations_json = serde_json::to_string_pretty(&observations_obj)
         .map_err(|e| format!("serialize observations `{name}`: {e}"))?;
 
-
     let frame_json_path = root.join(format!("{name}.frame.json"));
     let ansi_path = root.join(format!("{name}.ansi"));
     let txt_path = root.join(format!("{name}.txt"));
@@ -1118,11 +1033,9 @@ pub fn write_10_artifact_bundle(
     let html_path = root.join(format!("{name}.html"));
     let ascii_path = root.join(format!("{name}.ascii"));
 
-
     let ascii_loss_path = root.join(format!("{name}.ascii.loss.json"));
     let png_fidelity_path = root.join(format!("{name}.png.fidelity.json"));
     let observations_path = root.join(format!("{name}.observations.json"));
-
 
     let manifest_path = root.join(format!("{name}.manifest.json"));
 
@@ -1201,7 +1114,6 @@ pub fn write_10_artifact_bundle(
 
     write_artifact_strictly(&manifest_path, manifest_json.as_bytes())?;
 
-
     let paths = [
         &frame_json_path,
         &ansi_path,
@@ -1225,22 +1137,6 @@ pub fn write_10_artifact_bundle(
     Ok(())
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const COMPARED_ARTIFACTS: [(&str, &str); 9] = [
     ("frame_json", "frame.json"),
     ("ansi", "ansi"),
@@ -1253,14 +1149,7 @@ const COMPARED_ARTIFACTS: [(&str, &str); 9] = [
     ("observations_json", "observations.json"),
 ];
 
-
 const MAX_JSON_DIFF_LINES: usize = 10;
-
-
-
-
-
-
 
 fn summarize_cell(cell: &Cell) -> String {
     if cell.continuation {
@@ -1311,15 +1200,6 @@ fn summarize_cell(cell: &Cell) -> String {
     format!("{symbol:?} fg={fg_hex} bg={bg_hex}{mods}")
 }
 
-
-
-
-
-
-
-
-
-
 fn first_cell_diffs(actual: &Frame, approved: &Frame) -> Option<(Vec<CellDiff>, usize)> {
     let positions = actual.diff_cells(approved).ok()?;
     let total = positions.len();
@@ -1353,7 +1233,6 @@ fn first_cell_diffs(actual: &Frame, approved: &Frame) -> Option<(Vec<CellDiff>, 
     Some((diffs, total))
 }
 
-
 fn json_snippet(value: &serde_json::Value) -> String {
     const LIMIT: usize = 160;
     let text = serde_json::to_string(value).unwrap_or_else(|_| "?".to_string());
@@ -1364,9 +1243,6 @@ fn json_snippet(value: &serde_json::Value) -> String {
         text
     }
 }
-
-
-
 
 fn json_diffs(
     expected: &serde_json::Value,
@@ -1435,13 +1311,6 @@ fn json_diffs(
     }
 }
 
-
-
-
-
-
-
-
 fn stable_observations(value: &serde_json::Value) -> serde_json::Value {
     let provenance = value.get("provenance");
     let provenance_field = |field: &str| {
@@ -1465,31 +1334,6 @@ fn stable_observations(value: &serde_json::Value) -> serde_json::Value {
         },
     })
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn compare_bundle_dirs(
     name: &str,
@@ -1539,7 +1383,6 @@ pub fn compare_bundle_dirs(
         approved: approved_paths.clone(),
     };
 
-
     let approved_manifest_path = approved_root.join(format!("{name}.manifest.json"));
     let approved_manifest_bytes = match std::fs::read(&approved_manifest_path) {
         Ok(bytes) => bytes,
@@ -1588,7 +1431,6 @@ pub fn compare_bundle_dirs(
             .as_str()
             .map(str::to_string)
     };
-
 
     let mut approved_bytes: HashMap<&str, Vec<u8>> = HashMap::new();
     let mut actual_bytes_map: HashMap<&str, Vec<u8>> = HashMap::new();
@@ -1679,9 +1521,6 @@ pub fn compare_bundle_dirs(
             format!("approved {name}.frame.json failed validation: {e}"),
         ));
     }
-
-
-
 
     let actual_file_frame: Option<Frame> = std::str::from_utf8(&actual_bytes_map["frame_json"])
         .ok()
@@ -1934,9 +1773,6 @@ pub fn check_baseline_bundle(
     compare_bundle_dirs(name, frame, &actual_root, &approved_root, &diff_root)
 }
 
-
-
-
 pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
     let target_name = screen_first_path(name);
     let mut outcome = RENDERER.with(|r| {
@@ -1948,18 +1784,7 @@ pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
     outcome
 }
 
-
-
 const NORMALIZED_ARGV0: &str = "argv0-normalized";
-
-
-
-
-
-
-
-
-
 
 fn html_argv0_value_span(html: &[u8]) -> Option<(usize, usize)> {
     const KEY: &[u8] = b"\"argv\"";
@@ -2003,8 +1828,6 @@ fn html_argv0_value_span(html: &[u8]) -> Option<(usize, usize)> {
     None
 }
 
-
-
 fn mask_html_argv0(html: &[u8]) -> Option<Vec<u8>> {
     let (start, end) = html_argv0_value_span(html)?;
     let mut masked = Vec::with_capacity(html.len() - (end - start) + NORMALIZED_ARGV0.len());
@@ -2014,36 +1837,12 @@ fn mask_html_argv0(html: &[u8]) -> Option<Vec<u8>> {
     Some(masked)
 }
 
-
-
 fn html_equal_modulo_argv0(approved: &[u8], actual: &[u8]) -> bool {
     match (mask_html_argv0(approved), mask_html_argv0(actual)) {
         (Some(masked_approved), Some(masked_actual)) => masked_approved == masked_actual,
         _ => false,
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 fn forgive_html_argv0_drift(name: &str, outcome: &mut GroupedOutcome) {
     if outcome.ansi_match != Some(true)
@@ -2072,8 +1871,6 @@ fn forgive_html_argv0_drift(name: &str, outcome: &mut GroupedOutcome) {
     rewrite_sealed_verdict_for_argv0(name, outcome, &note);
 }
 
-
-
 fn normalized_html_note(previous: &str) -> String {
     const NORMALIZATION: &str =
         "html matches with provenance.argv0 normalized (volatile bless path ignored)";
@@ -2086,10 +1883,6 @@ fn normalized_html_note(previous: &str) -> String {
     kept.push(NORMALIZATION);
     kept.join("; ")
 }
-
-
-
-
 
 fn is_html_byte_count_fragment(segment: &str) -> bool {
     let Some(rest) = segment.strip_prefix("approved ") else {
@@ -2108,13 +1901,6 @@ fn is_html_byte_count_fragment(segment: &str) -> bool {
         None => false,
     }
 }
-
-
-
-
-
-
-
 
 fn note_has_only_html_finding(note: &str) -> bool {
     let mut saw_html_finding = false;
@@ -2135,20 +1921,6 @@ fn note_has_only_html_finding(note: &str) -> bool {
     }
     saw_html_finding
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 fn rewrite_sealed_verdict_for_argv0(name: &str, outcome: &GroupedOutcome, note: &str) {
     assert!(
@@ -2193,9 +1965,6 @@ fn rewrite_sealed_verdict_for_argv0(name: &str, outcome: &GroupedOutcome, note: 
     );
 }
 
-
-
-
 fn replace_verdict_note(text: &str, name: &str, note: &str) -> String {
     const KEY: &str = "\"note\": \"";
     let value_at = text
@@ -2223,12 +1992,6 @@ fn replace_verdict_note(text: &str, name: &str, note: &str) -> String {
     );
     format!("{}{}{}", &text[..value_at], note, &text[i..])
 }
-
-
-
-
-
-
 
 fn argv0_test_render() -> Vec<u8> {
     let mut html = String::from("<!DOCTYPE html><html><body><pre>");
@@ -2369,11 +2132,6 @@ fn html_argv0_span_rejects_empty_or_absent_argv() {
     assert_eq!(&escaped[start..end], b"a\\\"b");
 }
 
-
-
-
-
-
 pub fn assert_gated(outcome: &GroupedOutcome) {
     match outcome.status() {
         Status::Matched => eprintln!("baseline matched   {}", outcome.outcome.name),
@@ -2385,14 +2143,10 @@ pub fn assert_gated(outcome: &GroupedOutcome) {
     }
 }
 
-
 pub fn run_and_assert(case: &Case) {
     let mut session = spawn_boot(case);
     settle_and_gate_with_timeout(&mut session, &case.name, case.timeout_ms);
 }
-
-
-
 
 pub fn run_canonical(representative: &Case) {
     let mut failures = Vec::new();
@@ -2416,14 +2170,6 @@ pub fn run_canonical(representative: &Case) {
     }
     finish_matrix_accounted(&failures, executed, skipped);
 }
-
-
-
-
-
-
-
-
 
 pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
     let root = canonical_root(&representative.name).unwrap_or_else(|| {
@@ -2489,9 +2235,6 @@ pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
     finish_matrix_accounted(&failures, executed, skipped);
 }
 
-
-
-
 pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut Session, &Case)) {
     let mut failures = Vec::new();
     let mut executed = 0usize;
@@ -2519,10 +2262,6 @@ pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut S
     finish_matrix_accounted(&failures, executed, skipped);
 }
 
-
-
-
-
 pub fn run_canonical_live_with_compact_sends(
     representative: &Case,
     max_cols: u16,
@@ -2549,10 +2288,6 @@ pub fn run_canonical_live_with_compact_sends(
     finish_matrix(&failures);
 }
 
-
-
-
-
 pub fn collect_matrix(combo: &str, body: impl FnOnce()) -> bool {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(body)) {
         Ok(()) => true,
@@ -2567,11 +2302,6 @@ pub fn collect_matrix(combo: &str, body: impl FnOnce()) -> bool {
         }
     }
 }
-
-
-
-
-
 
 pub fn acceptance_verdict(
     failures: &[String],
@@ -2606,8 +2336,6 @@ pub fn acceptance_verdict(
     Ok(())
 }
 
-
-
 pub fn finish_matrix(failures: &[String]) {
     if let Err(msg) =
         acceptance_verdict(failures, 0, 0, partial_run_allowed(), midtest_build_used())
@@ -2615,10 +2343,6 @@ pub fn finish_matrix(failures: &[String]) {
         panic!("{msg}");
     }
 }
-
-
-
-
 
 pub fn finish_matrix_accounted(failures: &[String], executed: usize, skipped: usize) {
     let required = executed + skipped;
@@ -2640,10 +2364,6 @@ pub fn finish_matrix_accounted(failures: &[String], executed: usize, skipped: us
     }
 }
 
-
-
-
-
 #[macro_export]
 macro_rules! baseline_case {
     ($fn_name:ident => $case:expr) => {
@@ -2654,7 +2374,6 @@ macro_rules! baseline_case {
         }
     };
 }
-
 
 #[macro_export]
 macro_rules! baseline_case_with_variants {
@@ -2671,7 +2390,6 @@ macro_rules! baseline_case_with_variants {
 #[cfg(test)]
 mod execution_subject_tests {
     use super::*;
-
 
     const ABC_SHA256: &str = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
 
@@ -2797,11 +2515,6 @@ mod execution_subject_tests {
     }
 }
 
-
-
-
-
-
 #[cfg(test)]
 mod bundle_gate_tests {
     use super::*;
@@ -2833,8 +2546,6 @@ mod bundle_gate_tests {
             underline_color: tuiscotti::Color::Default,
         }
     }
-
-
 
     fn probe_frame_a() -> Frame {
         let mut frame = Frame::blank(16, 8, probe_provenance());
@@ -2898,9 +2609,6 @@ mod bundle_gate_tests {
     fn artifact_bytes(root: &Path, ext: &str) -> Vec<u8> {
         std::fs::read(root.join(format!("{PROBE_NAME}.{ext}"))).expect("read artifact")
     }
-
-
-
 
     fn rewrite_pinned(root: &Path, key: &str, ext: &str, bytes: &[u8]) {
         let path = root.join(format!("{PROBE_NAME}.{ext}"));
@@ -3174,7 +2882,6 @@ mod bundle_gate_tests {
     fn modifier_and_continuation_in_diagnostics() {
         let approved = probe_frame_a();
         let mut actual = probe_frame_a();
-
 
         let mut changed = actual.get(2, 1).cloned().expect("cell (2,1)");
         changed.mods = Mods {

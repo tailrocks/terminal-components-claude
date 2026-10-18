@@ -1,79 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -83,7 +7,6 @@ use crate::support::Session;
 use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, JACKIN};
-
 
 const BOOT: &str = "jackin❯";
 
@@ -107,7 +30,6 @@ const ACCOUNTS: &[&str] = &[
     "--frame",
     "40",
 ];
-
 
 const ACCOUNTS_PLAY: &[&str] = &["--scenario", "accounts-mixed", "--motion", "full"];
 const LAUNCH: &[&str] = &[
@@ -152,13 +74,11 @@ const FIRST400: &[&str] = &[
     "400",
 ];
 
-
 const PRELUDE_S1: &str = "step 1 of 5 · Source";
 
 const COPIED: &str = "Copied to the preview clipboard";
 
 const SPIN: &str = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
-
 
 fn j2_case(
     slug: &str,
@@ -178,7 +98,6 @@ fn j2_case(
     )
 }
 
-
 fn j2_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -187,13 +106,9 @@ fn j2_dir(test: &str) -> PathBuf {
     dir
 }
 
-
-
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
-
-
 
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
@@ -213,7 +128,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
         .unwrap_or_else(|e| panic!("write {}: {e}", dir.join(file).display()));
     eprintln!("j2 provenance ({file}): {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -235,11 +149,9 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn drive_ms(timeout: Duration) -> u64 {
     u64::try_from(timeout.as_millis()).expect("case timeout fits u64 ms")
 }
-
 
 fn live_text(s: &mut Session) -> String {
     let obs = s
@@ -249,14 +161,12 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
 fn live_screen(s: &mut Session) -> tuiscotti::Screen {
     s.inner
         .observe_now()
         .unwrap_or_else(|e| panic!("live screen sample failed: {e:#}"))
         .screen
 }
-
 
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
@@ -268,8 +178,6 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
@@ -277,18 +185,14 @@ fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-
 fn count_lines(text: &str, needle: &str) -> usize {
     text.lines().filter(|l| l.contains(needle)).count()
 }
-
-
 
 fn display_col(line: &str, needle: &str) -> usize {
     let off = line.find(needle).expect("needle present");
     unicode_width::UnicodeWidthStr::width(&line[..off])
 }
-
 
 fn footer_line(text: &str) -> &str {
     text.lines()
@@ -296,7 +200,6 @@ fn footer_line(text: &str) -> &str {
         .find(|l| !l.trim().is_empty())
         .unwrap_or("")
 }
-
 
 fn click_text(s: &mut Session, needle: &str, dcol: i16, timeout: Duration, what: &str) {
     let (row, col) = find_pos(s, needle, timeout);
@@ -306,7 +209,6 @@ fn click_text(s: &mut Session, needle: &str, dcol: i16, timeout: Duration, what:
     std::thread::sleep(Duration::from_millis(400));
 }
 
-
 fn right_click_text(s: &mut Session, needle: &str, dcol: i16, timeout: Duration, what: &str) {
     let (row, col) = find_pos(s, needle, timeout);
     let target = col.saturating_add_signed(dcol);
@@ -315,16 +217,12 @@ fn right_click_text(s: &mut Session, needle: &str, dcol: i16, timeout: Duration,
     std::thread::sleep(Duration::from_millis(400));
 }
 
-
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
         std::thread::sleep(Duration::from_millis(120));
     }
 }
-
-
-
 
 fn wait_absent(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
     support::wait_screen(
@@ -334,8 +232,6 @@ fn wait_absent(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
         |screen| !support::screen_text(screen).contains(needle),
     );
 }
-
-
 
 fn props_goto(s: &mut Session, label: &str, what: &str) {
     for _ in 0..12 {
@@ -348,14 +244,6 @@ fn props_goto(s: &mut Session, label: &str, what: &str) {
     }
     panic!("{what}: gutter never reached `{label}`");
 }
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
@@ -378,7 +266,6 @@ fn j2_input_required_error() {
         "fresh form must not show Required"
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["enter", "enter", "wait:Required"],
@@ -386,7 +273,6 @@ fn j2_input_required_error() {
     );
     checkpoint(&mut s, &dir, "02-required-error");
     let err = live_text(&mut s);
-
 
     let rows: Vec<&str> = err.lines().collect();
     let ei = rows
@@ -403,10 +289,7 @@ fn j2_input_required_error() {
         rows[ei - 1]
     );
 
-
     assert_eq!(count_lines(&err, "Required"), 1, "S2: one error row");
-
-
 
     support::drive_with_timeout(&mut s, &["enter", "type:x"], drive_ms(case_timeout(&case)));
     wait_absent(
@@ -422,7 +305,6 @@ fn j2_input_required_error() {
         !live_text(&mut s).contains("Required"),
         "A1: non-empty commit stays clean"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -441,8 +323,6 @@ fn j2_input_required_error() {
         drive_ms(case_timeout(&case)),
     );
 
-
-
     support::drive_with_timeout(
         &mut s,
         &["enter", "type:y", "wait:Display name"],
@@ -453,7 +333,6 @@ fn j2_input_required_error() {
     waits::wait_state(&mut s, "Required", "cancel revalidates");
     waits::wait_state(&mut s, "New account", "form still open after Esc");
     checkpoint(&mut s, &dir, "03-cancel-reverted");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -482,13 +361,6 @@ fn j2_input_required_error() {
     eprintln!("j2 input_required_error: error, live clear, commit+cancel validate, optional clean");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_cockpit_rail() {
@@ -499,7 +371,6 @@ fn j2_cockpit_rail() {
     waits::wait_state(&mut s, "stage 3 of 11", "rail header");
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
-
 
     assert_line_has(&boot, "✓ 01 Identity", "1.4 s", "V1 done row");
     assert_line_has(&boot, "✓ 02 Role", "1.8 s", "V1 done row");
@@ -529,8 +400,6 @@ fn j2_cockpit_rail() {
         assert!(!line.contains("▎"), "N2: no cursor on rail: {line:?}");
     }
 
-
-
     for key in ["down", "up", "left", "right"] {
         support::press_step(&s, key);
         std::thread::sleep(Duration::from_millis(250));
@@ -544,13 +413,10 @@ fn j2_cockpit_rail() {
     }
     checkpoint(&mut s, &dir, "01-cockpit-rail");
 
-
     let (row, col) = find_pos(&mut s, "03 Credentials", case_timeout(&case));
     s.click(col, row).expect("rail click");
     std::thread::sleep(Duration::from_millis(400));
     assert_eq!(live_text(&mut s), boot, "A1: rail click changes nothing");
-
-
 
     let rail_before: Vec<String> = boot
         .lines()
@@ -583,7 +449,6 @@ fn j2_cockpit_rail() {
     assert_eq!(rail_before, rail_after, "A2: rail untouched by debug");
     checkpoint(&mut s, &dir, "02-debug");
 
-
     let fcase = j2_case("cockpit_rail_failed", FAILURE, BOOT_FAILURE, 80, 24);
     write_provenance_named(&dir, &fcase, "provenance-failed.txt");
     let mut f = support::spawn_boot(&fcase);
@@ -600,13 +465,6 @@ fn j2_cockpit_rail() {
     checkpoint(&mut f, &dir, "03-cockpit-failed");
     eprintln!("j2 cockpit_rail: rail, refused keys/clicks/tabs, debug, failed");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
@@ -652,9 +510,7 @@ fn j2_cockpit_info_copy() {
     );
     assert!(info.contains("run-2026"), "run id value present");
 
-
     props_goto(&mut s, "Target", "S1 target row");
-
 
     support::press_step(&s, "y");
     std::thread::sleep(Duration::from_millis(300));
@@ -671,11 +527,9 @@ fn j2_cockpit_info_copy() {
     );
     assert!(plain_enter.contains("Debug info"), "A2: dialog still open");
 
-
     props_goto(&mut s, "Run id", "V2 run id row");
     let on_run = live_text(&mut s);
     assert_line_has(&on_run, "Run id", "y copy", "V2 copy hint");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -690,8 +544,6 @@ fn j2_cockpit_info_copy() {
     );
     assert_line_has(&copied, "▎", "Run id", "S1 cursor unmoved");
 
-
-
     click_text(&mut s, "Target", 0, case_timeout(&case), "A2 click row");
     let clicked = live_text(&mut s);
     assert_line_has(&clicked, "▎", "Target", "A1 click moves cursor");
@@ -699,8 +551,6 @@ fn j2_cockpit_info_copy() {
         clicked.contains("Debug info"),
         "A2: plain click keeps dialog"
     );
-
-
 
     support::press_step(&s, "tab");
     std::thread::sleep(Duration::from_millis(250));
@@ -716,15 +566,6 @@ fn j2_cockpit_info_copy() {
     eprintln!("j2 cockpit_info_copy: plain refused, run id copied, click, close");
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_capsule_about_scroll() {
@@ -733,7 +574,6 @@ fn j2_capsule_about_scroll() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
 
     click_text(&mut s, BOOT, 2, case_timeout(&case), "brand menu");
     waits::wait_state(&mut s, "About jackin-preview", "brand menu open");
@@ -744,7 +584,6 @@ fn j2_capsule_about_scroll() {
     );
     checkpoint(&mut s, &dir, "01-about-dialog");
     let about = live_text(&mut s);
-
 
     let mut label_cols = vec![];
     let mut value_cols = vec![];
@@ -776,21 +615,16 @@ fn j2_capsule_about_scroll() {
     );
     assert_line_has(&about, "▎", "Product", "list focus starts row 0");
 
-
-
     click_text(&mut s, "Scenario", 0, case_timeout(&case), "A1 click row");
     let clicked = live_text(&mut s);
     assert_line_has(&clicked, "▎", "Scenario", "A1 click moves cursor");
     assert!(clicked.contains("About"), "A1: plain Activate keeps dialog");
-
-
 
     let (wrow, wcol) = find_pos(&mut s, "Scenario", case_timeout(&case));
     wheel_at(&mut s, wcol, wrow, Wheel::Down, 3);
     assert_eq!(live_text(&mut s), clicked, "N1: wheel down at fit is inert");
     wheel_at(&mut s, wcol, wrow, Wheel::Up, 3);
     assert_eq!(live_text(&mut s), clicked, "N1: wheel up at fit is inert");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -805,7 +639,6 @@ fn j2_capsule_about_scroll() {
     );
     assert_line_has(&live_text(&mut s), "▎", "Product", "S1 top clamp");
 
-
     for label in ["Product", "Scenario", "Construct", "Design system"] {
         click_text(&mut s, label, 0, case_timeout(&case), "N2 row click");
         assert_line_has(
@@ -815,7 +648,6 @@ fn j2_capsule_about_scroll() {
             &format!("N2: click resolves `{label}`"),
         );
     }
-
 
     s.click(10, 13).expect("padding click");
     std::thread::sleep(Duration::from_millis(400));
@@ -830,18 +662,11 @@ fn j2_capsule_about_scroll() {
     click_text(&mut s, "Close", 0, case_timeout(&case), "About close click");
     wait_absent(&mut s, "Design system", case_timeout(&case), "About closed");
 
-
-
-
-
-
-
     let bcase = j2_case("capsule_about_scroll_detail", FAILURE, BOOT_FAILURE, 80, 24);
     write_provenance_named(&dir, &bcase, "provenance-detail.txt");
     let mut b = support::spawn_boot(&bcase);
     waits::wait_state(&mut b, "network: attach", "detail head");
     checkpoint(&mut b, &dir, "02-detail-overflow");
-
 
     let (sbrow0, sbcol0) = find_pos(&mut b, "┃", case_timeout(&bcase));
     assert_eq!(sbcol0, 73, "V2: thumb on the detail track");
@@ -885,15 +710,6 @@ fn j2_capsule_about_scroll() {
     eprintln!("j2 capsule_about_scroll: label math, click, clamps, overflow scroll");
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_capsule_palette() {
@@ -933,8 +749,6 @@ fn j2_capsule_palette() {
         "V2: disabled selection reason after scroll"
     );
 
-
-
     support::drive_with_timeout(
         &mut s,
         &["type:zoom", "wait:1 of 20"],
@@ -952,7 +766,6 @@ fn j2_capsule_palette() {
         &["escape", "wait:20 of 20"],
         drive_ms(case_timeout(&case)),
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -976,7 +789,6 @@ fn j2_capsule_palette() {
         drive_ms(case_timeout(&case)),
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:usage", "wait:1 of 20"],
@@ -999,7 +811,6 @@ fn j2_capsule_palette() {
         case_timeout(&case),
         "usage closed",
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1025,7 +836,6 @@ fn j2_capsule_palette() {
         case_timeout(&case),
         "palette closed",
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1062,8 +872,6 @@ fn j2_capsule_palette() {
         case_timeout(&case),
         "menu palette closed",
     );
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1115,15 +923,6 @@ fn j2_capsule_palette() {
     eprintln!("j2 capsule_palette: filter, disabled refused, dispatch, empty, openers, scope");
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_settings_op_chain() {
@@ -1145,12 +944,8 @@ fn j2_settings_op_chain() {
     );
     checkpoint(&mut s, &dir, "01-env");
 
-
-
     support::press_step(&s, "p");
     waits::wait_state(&mut s, "Choose 1Password account", "chain opens");
-
-
 
     let mut saw_loading = false;
     for _ in 0..30 {
@@ -1175,8 +970,6 @@ fn j2_settings_op_chain() {
     waits::wait_state(&mut s, "my.1password.com", "three accounts listed");
     checkpoint(&mut s, &dir, "02-chain-open");
     eprintln!("op chain loading observed: {saw_loading}");
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1219,13 +1012,11 @@ fn j2_settings_op_chain() {
         "chain closed after storing"
     );
 
-
     assert_line_has(&stored, "GH_TOKEN", "[op]", "N2 metadata tag");
     assert!(
         !stored.contains("openai:valid") && !stored.contains("k7Qz"),
         "N2: no secret value on screen"
     );
-
 
     support::press_step(&s, "p");
     waits::wait_state(&mut s, "Choose 1Password account", "chain reopened");
@@ -1254,8 +1045,6 @@ fn j2_settings_op_chain() {
         "S2: env screen back, draft intact"
     );
 
-
-
     support::press_step(&s, "p");
     waits::wait_state(&mut s, "Choose 1Password account", "chain reopened");
     waits::wait_state(&mut s, "my.1password.com", "locked row listed");
@@ -1267,7 +1056,6 @@ fn j2_settings_op_chain() {
     support::press_step(&s, "r");
     std::thread::sleep(Duration::from_millis(500));
     waits::wait_state(&mut s, "1Password is locked", "r retries into error");
-
 
     support::press_step(&s, "backspace");
     waits::wait_state(&mut s, "Choose 1Password account", "back at accounts");
@@ -1293,16 +1081,6 @@ fn j2_settings_op_chain() {
     eprintln!("j2 settings_op_chain: full chain, rewind, cancel, locked+retry, click");
 }
 
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_dialog_cancel_quit() {
@@ -1325,8 +1103,6 @@ fn j2_dialog_cancel_quit() {
         "V1: destructive body"
     );
 
-
-
     support::drive_with_timeout(&mut s, &["y"], drive_ms(case_timeout(&case)));
     wait_absent(
         &mut s,
@@ -1342,8 +1118,6 @@ fn j2_dialog_cancel_quit() {
         "A1: ack status after confirm"
     );
 
-
-
     support::press_step(&s, "c");
     std::thread::sleep(Duration::from_millis(400));
     let after = live_text(&mut s);
@@ -1355,7 +1129,6 @@ fn j2_dialog_cancel_quit() {
         after.contains("Accounts"),
         "S1: the key reaches the new route instead"
     );
-
 
     let bcase = j2_case("dialog_cancel_quit_dismiss", LAUNCH, BOOT, 80, 24);
     write_provenance_named(&dir, &bcase, "provenance-dismiss.txt");
@@ -1403,7 +1176,6 @@ fn j2_dialog_cancel_quit() {
         "N2: Esc never confirms"
     );
 
-
     let ccase = j2_case("dialog_cancel_quit_running", RETURNING, BOOT, 80, 24);
     write_provenance_named(&dir, &ccase, "provenance-quit.txt");
     let mut c = support::spawn_boot(&ccase);
@@ -1431,7 +1203,6 @@ fn j2_dialog_cancel_quit() {
         "quit cancelled",
     );
     waits::wait_state(&mut c, "Current directory", "manager back");
-
 
     let dcase = j2_case("dialog_cancel_quit_zero", FIRST400, BOOT, 80, 24);
     write_provenance_named(&dir, &dcase, "provenance-quit-zero.txt");
@@ -1461,14 +1232,6 @@ fn j2_dialog_cancel_quit() {
     eprintln!("j2 dialog_cancel_quit: confirm, dismissals, terminal refusal, quits");
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_capsule_tab_menu() {
@@ -1477,7 +1240,6 @@ fn j2_capsule_tab_menu() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
 
     let (strip_row, _) = find_pos(&mut s, "Mix (3)", case_timeout(&case));
     right_click_text(&mut s, "Mix (3)", 1, case_timeout(&case), "S1 tab menu");
@@ -1516,7 +1278,6 @@ fn j2_capsule_tab_menu() {
         "V2: separator rule above Close tab"
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["enter", "wait:Change tab title"],
@@ -1534,7 +1295,6 @@ fn j2_capsule_tab_menu() {
         !live_text(&mut s).contains("Change title…"),
         "menu consumed by the choice"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1576,7 +1336,6 @@ fn j2_capsule_tab_menu() {
         "A2: outside click acts on nothing"
     );
 
-
     let (prow, pcol) = find_pos(&mut s, "payments-platform ❯", case_timeout(&case));
     s.click_with(MouseButton::Right, pcol, prow)
         .expect("pane right click");
@@ -1600,7 +1359,6 @@ fn j2_capsule_tab_menu() {
         "pane menu cleared",
     );
 
-
     click_text(&mut s, BOOT, 2, case_timeout(&case), "S2 brand menu");
     waits::wait_state(&mut s, "About jackin-preview", "brand menu open");
     checkpoint(&mut s, &dir, "03-brandmenu-open");
@@ -1614,7 +1372,6 @@ fn j2_capsule_tab_menu() {
         case_timeout(&case),
         "brand menu cleared",
     );
-
 
     let (srow2, scol2) = find_pos(&mut s, "docs", case_timeout(&case));
     s.click_with(MouseButton::Right, scol2 + 18, srow2)
@@ -1642,15 +1399,6 @@ fn j2_capsule_tab_menu() {
     eprintln!("j2 capsule_tab_menu: titled menus, rename, dismissals, brand, empty");
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_menubar_capsule_host() {
@@ -1661,16 +1409,12 @@ fn j2_menubar_capsule_host() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
 
-
     let strip = boot.lines().next().unwrap_or("").to_string();
     for label in ["File", "Edit", "View", "Session", "Help"] {
         assert!(strip.contains(label), "V1: strip shows `{label}`");
     }
     assert!(strip.contains("jackin❯"), "V1: brand lockup on the strip");
     checkpoint(&mut s, &dir, "01-capsule-bar-open");
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1698,7 +1442,6 @@ fn j2_menubar_capsule_host() {
     support::press_step(&s, "escape");
     wait_absent(&mut s, "New tab", case_timeout(&case), "menu closed");
 
-
     support::drive_with_timeout(
         &mut s,
         &["f10", "wait:New tab"],
@@ -1715,7 +1458,6 @@ fn j2_menubar_capsule_host() {
         drive_ms(case_timeout(&case)),
     );
     checkpoint(&mut s, &dir, "02-capsule-menu-chosen");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1741,7 +1483,6 @@ fn j2_menubar_capsule_host() {
         "N1: nothing chosen, no tab spawned"
     );
 
-
     click_text(&mut s, BOOT, 2, case_timeout(&case), "A2 brand menu");
     waits::wait_state(&mut s, "About jackin-preview", "brand menu open");
     support::press_step(&s, "escape");
@@ -1751,7 +1492,6 @@ fn j2_menubar_capsule_host() {
         case_timeout(&case),
         "brand menu cleared",
     );
-
 
     let bcase = j2_case("menubar_host_manager", RETURNING, BOOT, 80, 24);
     write_provenance_named(&dir, &bcase, "provenance-host.txt");
@@ -1796,7 +1536,6 @@ fn j2_menubar_capsule_host() {
         "host menu closed",
     );
 
-
     support::drive_with_timeout(
         &mut b,
         &["f10", "wait:New workspace…"],
@@ -1824,7 +1563,6 @@ fn j2_menubar_capsule_host() {
         "help menu closed",
     );
 
-
     click_text(&mut b, BOOT, 2, case_timeout(&bcase), "A2 host brand");
     waits::wait_state(&mut b, "About", "host About open");
     support::press_step(&b, "escape");
@@ -1834,7 +1572,6 @@ fn j2_menubar_capsule_host() {
         case_timeout(&bcase),
         "host About closed",
     );
-
 
     support::drive_with_timeout(
         &mut b,
@@ -1852,7 +1589,6 @@ fn j2_menubar_capsule_host() {
         drive_ms(case_timeout(&bcase)),
     );
     checkpoint(&mut b, &dir, "04-host-menu-chosen");
-
 
     let ccase = j2_case("menubar_host_accounts", ACCOUNTS, BOOT, 80, 24);
     write_provenance_named(&dir, &ccase, "provenance-accounts.txt");
@@ -1874,7 +1610,6 @@ fn j2_menubar_capsule_host() {
         "accounts menu closed",
     );
 
-
     support::drive_with_timeout(
         &mut c,
         &["a", "wait:New account"],
@@ -1893,7 +1628,6 @@ fn j2_menubar_capsule_host() {
         !editing.contains("Add account…") && editing.contains("New account"),
         "N2: F10 refused while editing"
     );
-
 
     support::press_step(&c, "escape");
     std::thread::sleep(Duration::from_millis(300));
@@ -1916,15 +1650,6 @@ fn j2_menubar_capsule_host() {
     eprintln!("j2 menubar_capsule_host: strips, fixed/per-route menus, dispatch, brand, f10-guard");
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_manager_help() {
@@ -1941,7 +1666,6 @@ fn j2_manager_help() {
     );
     checkpoint(&mut s, &dir, "01-help-open");
     let help = live_text(&mut s);
-
 
     let wrow = help.lines().position(|l| l.contains("Workspaces"));
     let irow = help.lines().position(|l| l.contains("Instances"));
@@ -1971,7 +1695,6 @@ fn j2_manager_help() {
     assert!(help.contains("new workspace"), "S2: manager rows");
     assert!(help.contains("expand / collapse all"), "S2: manager rows");
 
-
     support::press_step(&s, "down");
     std::thread::sleep(Duration::from_millis(250));
     let down1 = live_text(&mut s);
@@ -1993,7 +1716,6 @@ fn j2_manager_help() {
     assert_ne!(live_text(&mut s), paged, "S1: wheel scrolls");
     checkpoint(&mut s, &dir, "02-help-scrolled");
 
-
     let before_x = live_text(&mut s);
     support::press_step(&s, "x");
     std::thread::sleep(Duration::from_millis(250));
@@ -2001,7 +1723,6 @@ fn j2_manager_help() {
     support::press_step(&s, "e");
     std::thread::sleep(Duration::from_millis(250));
     assert_eq!(live_text(&mut s), before_x, "A2: `e` swallowed");
-
 
     for _ in 0..50 {
         support::press_step(&s, "up");
@@ -2025,7 +1746,6 @@ fn j2_manager_help() {
     support::press_step(&s, "pagedown");
     std::thread::sleep(Duration::from_millis(250));
     assert_eq!(live_text(&mut s), bottom, "N1: past-bottom moves nothing");
-
 
     support::press_step(&s, "escape");
     wait_absent(
@@ -2051,9 +1771,6 @@ fn j2_manager_help() {
     }
     checkpoint(&mut s, &dir, "03-help-closed");
 
-
-
-
     let bcase = j2_case("manager_help_fits", RETURNING, BOOT, 120, 40);
     write_provenance_named(&dir, &bcase, "provenance-fits.txt");
     let mut b = support::spawn_boot(&bcase);
@@ -2076,7 +1793,6 @@ fn j2_manager_help() {
         case_timeout(&bcase),
         "fits overlay closed",
     );
-
 
     let ccase = j2_case("manager_help_capsule", CAPSULE, BOOT, 80, 24);
     write_provenance_named(&dir, &ccase, "provenance-capsule.txt");
@@ -2112,19 +1828,6 @@ fn j2_manager_help() {
     eprintln!("j2 manager_help: columns, scroll, swallow, bounds, closers, per-route");
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 fn form_focus_on(text: &str, label: &str) -> bool {
     let rows: Vec<&str> = text.lines().collect();
     rows.iter()
@@ -2153,7 +1856,6 @@ fn j2_accounts_add_form() {
     checkpoint(&mut s, &dir, "01-open");
     let open = live_text(&mut s);
 
-
     for row in [
         "Display name",
         "Purpose label",
@@ -2164,7 +1866,6 @@ fn j2_accounts_add_form() {
     }
     assert_line_has(&open, "Cancel", "Save", "V1 action row");
 
-
     for hidden in [
         "Claude profile / home folder",
         "Anthropic API key",
@@ -2173,10 +1874,6 @@ fn j2_accounts_add_form() {
         assert!(!open.contains(hidden), "V2: `{hidden}` hidden");
     }
     assert!(form_focus_on(&open, "Display name"), "focus starts on name");
-
-
-
-
 
     for (i, label) in ["Purpose label", "Provider", "Credential source"]
         .iter()
@@ -2195,8 +1892,6 @@ fn j2_accounts_add_form() {
         "A1: keep-visible scrolled the name field out"
     );
 
-
-
     for (i, label) in ["Enter plain text instead", "Validate", "Cancel", "Save"]
         .iter()
         .enumerate()
@@ -2210,15 +1905,12 @@ fn j2_accounts_add_form() {
         );
     }
 
-
     support::press_step(&s, "tab");
     std::thread::sleep(Duration::from_millis(200));
     assert!(
         form_focus_on(&live_text(&mut s), "Purpose label"),
         "A1: tab 8 wraps to the first registered stop"
     );
-
-
 
     wheel_at(&mut s, 40, 12, Wheel::Up, 10);
     std::thread::sleep(Duration::from_millis(300));
@@ -2240,9 +1932,6 @@ fn j2_accounts_add_form() {
         form_focus_on(&live_text(&mut s), "Display name"),
         "A1: tab wraps over the bottom to name"
     );
-
-
-
 
     for _ in 0..3 {
         support::press_step(&s, "tab");
@@ -2276,8 +1965,6 @@ fn j2_accounts_add_form() {
     wheel_at(&mut s, 40, 12, Wheel::Up, 10);
     std::thread::sleep(Duration::from_millis(300));
 
-
-
     for _ in 0..10 {
         support::press_step(&s, "tab");
         std::thread::sleep(Duration::from_millis(120));
@@ -2292,9 +1979,6 @@ fn j2_accounts_add_form() {
         );
     }
 
-
-
-
     for _ in 0..12 {
         if form_focus_on(&live_text(&mut s), "Display name") {
             break;
@@ -2308,7 +1992,6 @@ fn j2_accounts_add_form() {
         form_focus_on(&live_text(&mut s), "Display name"),
         "ring returns to name"
     );
-
 
     support::press_step(&s, "enter");
     std::thread::sleep(Duration::from_millis(300));
@@ -2328,7 +2011,6 @@ fn j2_accounts_add_form() {
         "N1: no Cancel fired while editing"
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["enter", "type:zz9", "enter"],
@@ -2339,8 +2021,6 @@ fn j2_accounts_add_form() {
         live_text(&mut s).contains("zz9"),
         "S2: committed value retained"
     );
-
-
 
     for _ in 0..8 {
         if form_focus_on(&live_text(&mut s), "Credential source") {
@@ -2355,7 +2035,6 @@ fn j2_accounts_add_form() {
     );
     support::press_step(&s, "down");
     std::thread::sleep(Duration::from_millis(300));
-
 
     wheel_at(&mut s, 40, 12, Wheel::Down, 3);
     std::thread::sleep(Duration::from_millis(250));
@@ -2387,8 +2066,6 @@ fn j2_accounts_add_form() {
         "revealed row focusable"
     );
 
-
-
     support::press_step(&s, "escape");
     wait_absent(
         &mut s,
@@ -2413,13 +2090,6 @@ fn j2_accounts_add_form() {
     eprintln!("j2 accounts_add_form: ring, hidden, edit/cancel, changed-reveal");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_prelude_chain() {
@@ -2441,7 +2111,6 @@ fn j2_prelude_chain() {
         "V1: source title"
     );
     let source_before = live_text(&mut s);
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2468,12 +2137,9 @@ fn j2_prelude_chain() {
         .expect("S1: default line")
         .to_string();
 
-
     support::press_step(&s, "escape");
     waits::wait_state(&mut s, PRELUDE_S1, "rewind to source");
     checkpoint(&mut s, &dir, "03-rewound-source");
-
-
 
     let rewound = live_text(&mut s);
     assert!(
@@ -2485,8 +2151,6 @@ fn j2_prelude_chain() {
         rewound, source_before,
         "S2: the listing is the parent, not the retained view"
     );
-
-
 
     for _ in 0..12 {
         if live_text(&mut s)
@@ -2515,13 +2179,11 @@ fn j2_prelude_chain() {
         .expect("N2: default line again");
     assert_eq!(default_line2, default_line, "N2: accepted value retained");
 
-
     support::press_step(&s, "escape");
     waits::wait_state(&mut s, PRELUDE_S1, "rewind to source");
     support::press_step(&s, "escape");
     wait_absent(&mut s, PRELUDE_S1, case_timeout(&case), "chain cancelled");
     waits::wait_state(&mut s, "Cancelled · nothing created", "cancel status");
-
 
     let manager = live_text(&mut s);
     assert!(
@@ -2532,16 +2194,6 @@ fn j2_prelude_chain() {
     checkpoint(&mut s, &dir, "04-cancelled");
     eprintln!("j2 prelude_chain: advance, stepper, rewind, cancel");
 }
-
-
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
@@ -2568,7 +2220,6 @@ fn j2_prelude_validate() {
         drive_ms(case_timeout(&case)),
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-e", "ctrl-u", "type:relative/path", "enter"],
@@ -2577,7 +2228,6 @@ fn j2_prelude_validate() {
     waits::wait_state(&mut s, "Destination must be an absolute path", "S1 error");
     checkpoint(&mut s, &dir, "01-edit-error");
     let edit_err = live_text(&mut s);
-
 
     assert!(
         edit_err.contains("New workspace · step 3 of 5 · Edit destination"),
@@ -2591,7 +2241,6 @@ fn j2_prelude_validate() {
         !edit_err.contains("step 4 of 5"),
         "N1: invalid Next never advances"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2608,8 +2257,6 @@ fn j2_prelude_validate() {
         "N1: still on Edit"
     );
 
-
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-e", "ctrl-u", "enter"],
@@ -2620,8 +2267,6 @@ fn j2_prelude_validate() {
         live_text(&mut s).contains("step 3 of 5 · Edit destination"),
         "N1: blank never advances"
     );
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2641,7 +2286,6 @@ fn j2_prelude_validate() {
         drive_ms(case_timeout(&case)),
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:/bad", "enter"],
@@ -2654,7 +2298,6 @@ fn j2_prelude_validate() {
         "N1: slash never advances"
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-e", "ctrl-u", "type:payments-platform", "enter"],
@@ -2665,7 +2308,6 @@ fn j2_prelude_validate() {
         live_text(&mut s).contains("New workspace · step 5 of 5 · Name"),
         "N1: duplicate never advances"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2686,8 +2328,6 @@ fn j2_prelude_validate() {
     );
     checkpoint(&mut s, &dir, "03-created");
 
-
-
     let bcase = j2_case("prelude_validate_cancel", RETURNING, BOOT, 120, 40);
     write_provenance_named(&dir, &bcase, "provenance-cancel.txt");
     let mut b = support::spawn_boot(&bcase);
@@ -2704,15 +2344,6 @@ fn j2_prelude_validate() {
     assert!(!manager.contains("zzok9"), "N2: nothing persisted");
     eprintln!("j2 prelude_validate: destination+name errors, fixes, create, cancel");
 }
-
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
@@ -2737,9 +2368,6 @@ fn j2_prelude_branch_create() {
         live_text(&mut s).contains("✓ Source · Destination · Edit · Working dir · Name"),
         "destination stepper (presence)"
     );
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2766,10 +2394,6 @@ fn j2_prelude_branch_create() {
         .expect("V2: subdir row");
     assert!(dest_i < sub_i, "V2: destination lists first");
 
-
-
-
-
     support::press_step(&s, "escape");
     waits::wait_state(&mut s, "step 2 of 5 · Destination", "skipped rewind");
     assert!(
@@ -2782,13 +2406,11 @@ fn j2_prelude_branch_create() {
         drive_ms(case_timeout(&case)),
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["enter", "wait:step 5 of 5 · Name"],
         drive_ms(case_timeout(&case)),
     );
-
 
     assert!(
         live_text(&mut s).contains("payments-platform"),
@@ -2813,9 +2435,6 @@ fn j2_prelude_branch_create() {
         "A2: pending status"
     );
     assert!(created.contains("› edit"), "S2: editor opened");
-
-
-
 
     let bcase = j2_case("prelude_branch_edit", FIRST400, BOOT, 100, 30);
     write_provenance_named(&dir, &bcase, "provenance-edit.txt");
@@ -2859,13 +2478,6 @@ fn j2_prelude_branch_create() {
     eprintln!("j2 prelude_branch_create: skip-edit, workdir rows, create, edit-branch");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_footer_layers() {
@@ -2887,8 +2499,6 @@ fn j2_footer_layers() {
         "V2: footer row centered: {screen_footer:?}"
     );
     checkpoint(&mut s, &dir, "01-screen-hints");
-
-
 
     let bcase = j2_case("footer_layers_modal", FIRST400, BOOT, 80, 24);
     write_provenance_named(&dir, &bcase, "provenance-modal.txt");
@@ -2913,7 +2523,6 @@ fn j2_footer_layers() {
         "N1: modal footer never blank"
     );
 
-
     support::drive_with_timeout(
         &mut b,
         &["space", "wait:step 2 of 5 · Destination"],
@@ -2930,8 +2539,6 @@ fn j2_footer_layers() {
         "V2/S1: EDIT badge on dialog edit: {edit_footer:?}"
     );
 
-
-
     for _ in 0..5 {
         support::press_step(&b, "escape");
         std::thread::sleep(Duration::from_millis(200));
@@ -2946,12 +2553,10 @@ fn j2_footer_layers() {
         "A1: screen layer restored: {restored:?}"
     );
 
-
     assert!(
         restored.contains("Cancelled · nothing created"),
         "S2: status owns the slot: {restored:?}"
     );
-
 
     let ccase = j2_case("footer_layers_form", ACCOUNTS, BOOT, 80, 24);
     write_provenance_named(&dir, &ccase, "provenance-form.txt");
@@ -2968,7 +2573,6 @@ fn j2_footer_layers() {
         "S1: EDIT badge on form edit"
     );
 
-
     let dcase = j2_case("footer_layers_browser", FIRST400, BOOT, 80, 24);
     write_provenance_named(&dir, &dcase, "provenance-browser.txt");
     let mut d = support::spawn_boot(&dcase);
@@ -2983,7 +2587,6 @@ fn j2_footer_layers() {
         footer_line(&live_text(&mut d)).contains("EDIT"),
         "S1: EDIT badge on browser edit"
     );
-
 
     let ecase = j2_case("footer_layers_screen", RETURNING, BOOT, 80, 24);
     write_provenance_named(&dir, &ecase, "provenance-screen.txt");
@@ -3001,11 +2604,6 @@ fn j2_footer_layers() {
         "S1: EDIT badge on screen edit"
     );
     assert!(escreen.contains("› edit"), "editor still bare (no modal)");
-
-
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -3028,8 +2626,6 @@ fn j2_footer_layers() {
         "A2: screen layer restored"
     );
 
-
-
     let fcase = j2_case("footer_layers_intro", FIRST40, BOOT_SKIP, 80, 24);
     write_provenance_named(&dir, &fcase, "provenance-intro.txt");
     let mut f = support::spawn_boot(&fcase);
@@ -3038,8 +2634,6 @@ fn j2_footer_layers() {
         intro_footer.contains("Enter") && intro_footer.contains("Skip"),
         "N1: cinematic paints its own hint: {intro_footer:?}"
     );
-
-
 
     let gcase = j2_case("footer_layers_created", FIRST400, BOOT, 80, 24);
     write_provenance_named(&dir, &gcase, "provenance-created.txt");
@@ -3087,14 +2681,6 @@ fn j2_footer_layers() {
     eprintln!("j2 footer_layers: modal>screen>fallback, EDIT everywhere, status slot");
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_capsule_inspect_diff() {
@@ -3126,12 +2712,10 @@ fn j2_capsule_inspect_diff() {
     assert_line_has(&list, "↑", "not pushed", "V2: unpushed row");
     assert!(list.contains("compact · unified"), "compact list mode meta");
 
-
     support::drive_with_timeout(&mut s, &["down", "enter"], drive_ms(case_timeout(&case)));
     waits::wait_state(&mut s, "d switches", "diff open");
     let open = live_text(&mut s);
     assert!(open.contains("unified · d switches"), "V1: diff mode meta");
-
 
     let head_path = open
         .lines()
@@ -3143,7 +2727,6 @@ fn j2_capsule_inspect_diff() {
         .expect("V1: diff header names the file");
 
     assert_ne!(open, list, "S1: list replaced by the file diff");
-
 
     support::press_step(&s, "d");
     waits::wait_state(&mut s, "review · d switches", "review mode");
@@ -3158,9 +2741,6 @@ fn j2_capsule_inspect_diff() {
         "N1: file unchanged toggling back"
     );
 
-
-
-
     support::press_step(&s, "m");
     waits::wait_state(&mut s, "Tab tree / diff", "advanced mode");
     let adv = live_text(&mut s);
@@ -3169,8 +2749,6 @@ fn j2_capsule_inspect_diff() {
         !base.is_empty() && adv.lines().any(|l| l.contains("▎") && l.contains(&base)),
         "S1: tree cursor synced to {base:?}"
     );
-
-
 
     support::press_step(&s, "tab");
     std::thread::sleep(Duration::from_millis(250));
@@ -3186,7 +2764,6 @@ fn j2_capsule_inspect_diff() {
     let wheeled = live_text(&mut s);
     assert_ne!(wheeled, before_wheel, "A1: wheel scrolls the diff");
 
-
     let gutter_wheeled = wheeled
         .lines()
         .find(|l| l.contains("▎"))
@@ -3200,11 +2777,6 @@ fn j2_capsule_inspect_diff() {
         wheeled.contains("mod.rs") && wheeled.contains("retry.rs"),
         "A1: tree intact while scrolling"
     );
-
-
-
-
-
 
     let grid: Vec<Vec<char>> = wheeled.lines().map(|l| l.chars().collect()).collect();
     let in_run = |c: usize, r: usize| {
@@ -3235,10 +2807,6 @@ fn j2_capsule_inspect_diff() {
         "A2: tree cursor unmoved by the jump"
     );
 
-
-
-
-
     let gutter_row = |t: &str| {
         t.lines()
             .find(|l| l.contains("▎"))
@@ -3251,8 +2819,6 @@ fn j2_capsule_inspect_diff() {
             .unwrap_or("")
             .to_string()
     };
-
-
 
     wheel_at(&mut s, 40, 15, Wheel::Up, 10);
     std::thread::sleep(Duration::from_millis(300));
@@ -3279,9 +2845,6 @@ fn j2_capsule_inspect_diff() {
         }
     }
     assert!(n2_proven, "N2: tree keys move the tree, never the diff");
-
-
-
 
     support::press_step(&s, "f2");
     wait_absent(
@@ -3313,16 +2876,6 @@ fn j2_capsule_inspect_diff() {
     eprintln!("j2 capsule_inspect_diff: open, toggles, wheel, scrollbar, regions");
 }
 
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j2 check; run with --ignored"]
 fn j2_capsule_panes() {
@@ -3332,12 +2885,9 @@ fn j2_capsule_panes() {
     let mut s = support::spawn_boot(&case);
     waits::wait_state(&mut s, "Mix (3)", "tabs up");
 
-
-
     waits::wait_state(&mut s, "0003-retry-policy.md", "shell script settled");
     std::thread::sleep(Duration::from_millis(300));
     checkpoint(&mut s, &dir, "00-boot");
-
 
     let boot = live_text(&mut s);
     for tab in ["Mix (3)", "Shell", "docs"] {
@@ -3354,11 +2904,6 @@ fn j2_capsule_panes() {
     support::drive_with_timeout(&mut s, &["ctrl-b", "ctrl-l"], drive_ms(case_timeout(&case)));
     std::thread::sleep(Duration::from_millis(400));
     let boot = live_text(&mut s);
-
-
-
-
-
 
     let prompts = |t: &str| {
         t.lines()
@@ -3385,14 +2930,8 @@ fn j2_capsule_panes() {
     );
     checkpoint(&mut s, &dir, "01-split");
 
-
-
-
     let is_spinner_line = |l: &str| l.chars().any(|c| SPIN.contains(c));
     let spins_in = |t: &str| t.lines().filter(|l| is_spinner_line(l)).count();
-
-
-
 
     click_text(
         &mut s,
@@ -3432,8 +2971,6 @@ fn j2_capsule_panes() {
     );
     eprintln!("pane stream: {distinct}/7 distinct frames on release");
 
-
-
     click_text(
         &mut s,
         "1,204.49",
@@ -3464,8 +3001,6 @@ fn j2_capsule_panes() {
     assert!(saw_spinner, "V2: spinner shows while the reply lands");
     for t in &codex {
         for line in t.lines().filter(|l| is_spinner_line(l)) {
-
-
             let seg = line.split('│').find(|s| is_spinner_line(s)).unwrap_or("");
             let clean: String = seg.chars().filter(|c| *c != '┃').collect();
             let trimmed = clean.trim();
@@ -3484,22 +3019,16 @@ fn j2_capsule_panes() {
         "A1: the codex reply lands whole"
     );
 
-
     assert_eq!(prompts(landed), 4, "N1: echo + prompt once idle");
-
-
-
 
     support::drive_with_timeout(&mut s, &["type:again"], drive_ms(case_timeout(&case)));
     waits::wait_state(&mut s, "❯ again", "typed `again` echoed");
     support::press_step(&s, "enter");
 
-
     waits::wait_state(&mut s, "Thinking…", "commit consumed");
     support::drive_with_timeout(&mut s, &["type:a"], drive_ms(case_timeout(&case)));
     std::thread::sleep(Duration::from_millis(300));
     let ahead = live_text(&mut s);
-
 
     assert!(
         (4..=5).contains(&prompts(&ahead)),
@@ -3523,11 +3052,6 @@ fn j2_capsule_panes() {
         4,
         "S2: lingering codex echo + prompts once idle"
     );
-
-
-
-
-
 
     click_text(
         &mut s,
@@ -3565,7 +3089,6 @@ fn j2_capsule_panes() {
         "S2: backspace snaps and removes"
     );
 
-
     click_text(
         &mut s,
         "payments-platform ❯",
@@ -3589,7 +3112,6 @@ fn j2_capsule_panes() {
     );
     assert_eq!(prompts(&committed), 5, "S2: shell echo joins the echoes");
 
-
     click_text(
         &mut s,
         "payments-platform ❯",
@@ -3602,7 +3124,6 @@ fn j2_capsule_panes() {
     std::thread::sleep(Duration::from_millis(400));
     let cleared = live_text(&mut s);
     assert_ne!(cleared, before_clear, "A2: clear wipes the viewport");
-
 
     assert_eq!(prompts(&cleared), 4, "A2: shell bare, codex linger kept");
     assert!(

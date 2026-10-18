@@ -1,38 +1,20 @@
-
-
-
-
-
-
-
-
 use std::collections::{BTreeMap, BTreeSet};
-
-
-
-
-
 
 #[derive(Debug, Clone)]
 pub struct CodeLine {
-
     pub number: usize,
 
     pub code: String,
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct StringSpan {
-
     pub start_line: usize,
 
     pub end_line: usize,
 
     pub text: String,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LineRange {
@@ -46,10 +28,8 @@ impl LineRange {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct ScannedFile {
-
     pub path: String,
 
     pub member: String,
@@ -68,16 +48,13 @@ pub struct ScannedFile {
 
     pub macros: Vec<(String, LineRange)>,
 
-
     pub generated: bool,
 }
 
 impl ScannedFile {
-
     pub fn is_test_line(&self, line: usize) -> bool {
         self.test_ranges.iter().any(|range| range.contains(line))
     }
-
 
     pub fn enclosing_fn(&self, line: usize) -> Option<&str> {
         self.functions
@@ -87,9 +64,6 @@ impl ScannedFile {
             .map(|(name, _)| name.as_str())
     }
 
-
-
-
     pub fn is_ui_ident(&self, ident: &str) -> bool {
         ident == "ui"
             || self.ui_values.contains(ident)
@@ -97,14 +71,9 @@ impl ScannedFile {
     }
 }
 
-
 pub fn is_ui_path(path: &str) -> bool {
     path.rsplit("::").next() == Some("Ui")
 }
-
-
-
-
 
 pub fn is_raw_buffer_path(path: &str) -> bool {
     let last = path.rsplit("::").next().unwrap_or("");
@@ -113,7 +82,6 @@ pub fn is_raw_buffer_path(path: &str) -> bool {
     }
     path.contains("ratatui") || path.contains("termrock") || path.contains("buffer")
 }
-
 
 pub fn scan_file(path: &str, member: &str, text: &str) -> ScannedFile {
     let mut out = ScannedFile {
@@ -145,11 +113,6 @@ fn is_generated_marker(text: &str) -> bool {
         || lower.contains("auto-generated")
         || lower.contains("automatically generated")
 }
-
-
-
-
-
 
 fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSpan>) {
     let chars: Vec<char> = text.chars().collect();
@@ -231,7 +194,6 @@ fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSp
         if let Some((start, text)) = cooked.as_mut() {
             if rest[0] == '\\' && rest.len() > 1 {
                 if rest[1] == '\n' {
-
                     text.pop();
                     finish_line(number, &mut current, lines, &mut raw, &mut cooked);
                     number += 1;
@@ -295,7 +257,6 @@ fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSp
                 index += 1;
             }
         } else if rest[0] == '\'' && is_char_literal(rest) {
-
             let mut taken = 1;
             if rest.get(1) == Some(&'\\') {
                 taken += 2;
@@ -320,7 +281,6 @@ fn strip_lines(text: &str, lines: &mut Vec<CodeLine>, strings: &mut Vec<StringSp
     }
 }
 
-
 fn is_char_literal(rest: &[char]) -> bool {
     if rest.len() < 3 || rest[0] != '\'' {
         return false;
@@ -330,8 +290,6 @@ fn is_char_literal(rest: &[char]) -> bool {
     }
     rest[2] == '\''
 }
-
-
 
 fn test_ranges(lines: &[CodeLine]) -> Vec<LineRange> {
     let mut ranges = Vec::new();
@@ -361,7 +319,6 @@ fn test_ranges(lines: &[CodeLine]) -> Vec<LineRange> {
     ranges
 }
 
-
 fn cfg_attribute(code: &str) -> Option<&str> {
     let start = code.find("#[cfg(")?;
     let after = &code[start + "#[cfg(".len()..];
@@ -378,8 +335,6 @@ fn cfg_attribute(code: &str) -> Option<&str> {
     }
     None
 }
-
-
 
 fn cfg_tests(body: &str) -> bool {
     let mut cleaned = body.to_string();
@@ -398,9 +353,6 @@ fn is_test_mod(code: &str) -> bool {
         .any(|pair| pair[0] == "mod" && (pair[1] == "tests" || pair[1] == "test"))
 }
 
-
-
-
 fn skip_item(lines: &[CodeLine], from: usize) -> Option<usize> {
     let mut index = from;
     while index < lines.len() {
@@ -414,8 +366,6 @@ fn skip_item(lines: &[CodeLine], from: usize) -> Option<usize> {
     None
 }
 
-
-
 fn item_end(lines: &[CodeLine], at: usize) -> Option<usize> {
     brace_close(lines, at).or_else(|| {
         lines[at..]
@@ -424,7 +374,6 @@ fn item_end(lines: &[CodeLine], at: usize) -> Option<usize> {
             .map(|line| line.number)
     })
 }
-
 
 fn brace_close(lines: &[CodeLine], at: usize) -> Option<usize> {
     let mut depth: i32 = 0;
@@ -444,7 +393,6 @@ fn brace_close(lines: &[CodeLine], at: usize) -> Option<usize> {
     }
     None
 }
-
 
 fn fn_spans(lines: &[CodeLine], test_ranges: &[LineRange]) -> Vec<(String, LineRange)> {
     let mut spans = Vec::new();
@@ -466,7 +414,6 @@ fn fn_spans(lines: &[CodeLine], test_ranges: &[LineRange]) -> Vec<(String, LineR
     spans
 }
 
-
 fn fn_name(code: &str) -> Option<String> {
     let words: Vec<&str> = code
         .split(|c: char| !c.is_alphanumeric() && c != '_' && c != ':')
@@ -484,7 +431,6 @@ fn fn_name(code: &str) -> Option<String> {
     }
     None
 }
-
 
 fn macro_spans(lines: &[CodeLine]) -> Vec<(String, LineRange)> {
     let mut spans = Vec::new();
@@ -505,7 +451,6 @@ fn macro_spans(lines: &[CodeLine]) -> Vec<(String, LineRange)> {
     spans
 }
 
-
 fn macro_def_name(code: &str) -> Option<String> {
     let at = code.find("macro_rules!")?;
     let after = code[at + "macro_rules!".len()..].trim_start();
@@ -523,8 +468,6 @@ fn macro_def_name(code: &str) -> Option<String> {
         None
     }
 }
-
-
 
 fn macro_end(lines: &[CodeLine], at: usize) -> Option<usize> {
     let mut open: Option<char> = None;
@@ -559,10 +502,6 @@ fn macro_end(lines: &[CodeLine], at: usize) -> Option<usize> {
     None
 }
 
-
-
-
-
 fn ui_value_idents(
     lines: &[CodeLine],
     test_ranges: &[LineRange],
@@ -596,9 +535,6 @@ fn ui_value_idents(
     }
     idents
 }
-
-
-
 
 fn ref_type_name(after: &str) -> Option<String> {
     let after = after.trim_start();
@@ -643,7 +579,6 @@ fn ref_type_name(after: &str) -> Option<String> {
     segments.into_iter().next_back()
 }
 
-
 fn ident_before(before: &str) -> Option<String> {
     let ident: String = before
         .trim_end()
@@ -663,8 +598,6 @@ fn ident_before(before: &str) -> Option<String> {
     }
     Some(ident)
 }
-
-
 
 fn import_aliases(lines: &[CodeLine]) -> BTreeMap<String, String> {
     let mut aliases = BTreeMap::new();
@@ -688,11 +621,6 @@ fn import_aliases(lines: &[CodeLine]) -> BTreeMap<String, String> {
     aliases
 }
 
-
-
-
-
-
 fn parse_use(statement: &str) -> Vec<(String, String)> {
     let mut text = statement.trim().to_string();
     if let Some(stripped) = text.strip_prefix("pub use") {
@@ -703,9 +631,6 @@ fn parse_use(statement: &str) -> Vec<(String, String)> {
     text = text.trim().trim_end_matches(';').trim().to_string();
     expand_use_path(&text)
 }
-
-
-
 
 fn expand_use_path(tree: &str) -> Vec<(String, String)> {
     let tree = tree.trim();
@@ -737,7 +662,6 @@ fn expand_use_path(tree: &str) -> Vec<(String, String)> {
     vec![(local.to_string(), tree.to_string())]
 }
 
-
 fn split_group(tree: &str) -> Option<(String, &str)> {
     let open = tree.find('{')?;
     let head = tree[..open].trim().trim_end_matches("::").to_string();
@@ -754,7 +678,6 @@ fn split_group(tree: &str) -> Option<(String, &str)> {
     }
     None
 }
-
 
 fn split_top_level(text: &str, delimiter: char) -> Vec<&str> {
     let mut parts = Vec::new();
@@ -774,7 +697,6 @@ fn split_top_level(text: &str, delimiter: char) -> Vec<&str> {
     parts
 }
 
-
 fn split_alias(tree: &str) -> Option<(&str, &str)> {
     let mut depth = 0;
     let bytes = tree.as_bytes();
@@ -785,7 +707,6 @@ fn split_alias(tree: &str) -> Option<(&str, &str)> {
             b'}' => depth -= 1,
             _ => {}
         }
-
 
         if depth == 0 && tree[index..].starts_with(" as ") {
             let path = tree[..index].trim();
@@ -799,7 +720,6 @@ fn split_alias(tree: &str) -> Option<(&str, &str)> {
     None
 }
 
-
 pub fn words(code: &str) -> Vec<&str> {
     code.split(|c: char| !is_word_char(c))
         .filter(|w| !w.is_empty())
@@ -809,9 +729,6 @@ pub fn words(code: &str) -> Vec<&str> {
 fn is_word_char(char: char) -> bool {
     char.is_alphanumeric() || char == '_'
 }
-
-
-
 
 pub fn receiver_before(code: &str, dot: usize) -> Option<String> {
     let before = code[..dot].trim_end();

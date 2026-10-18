@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use core::cell::Cell;
 use core::fmt;
 use core::ops::Range;
@@ -18,11 +9,9 @@ use crate::event::{Axis, Key, KeyModifiers};
 use crate::id::{Id, PartRef};
 use crate::layer_types::LayerEvent;
 
-
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Intent<'f> {
-
     Binding(ActionKey),
 
     Key(Key),
@@ -30,7 +19,6 @@ pub enum Intent<'f> {
     Paste(&'f str),
 
     Pointer {
-
         phase: Phase,
 
         part: PartRef,
@@ -42,9 +30,7 @@ pub enum Intent<'f> {
         mods: KeyModifiers,
     },
 
-
     Wheel {
-
         axis: Axis,
 
         delta: i16,
@@ -55,12 +41,10 @@ pub enum Intent<'f> {
     },
 
     FocusIn {
-
         via: FocusVia,
     },
 
     FocusOut {
-
         to: Option<Id>,
     },
 
@@ -113,11 +97,9 @@ impl fmt::Debug for Intent<'_> {
     }
 }
 
-
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
-
     Move,
 
     Press,
@@ -137,11 +119,9 @@ pub enum Phase {
     DragEnd,
 }
 
-
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FocusVia {
-
     Keyboard,
 
     Pointer,
@@ -150,7 +130,6 @@ pub enum FocusVia {
 
     Restore,
 }
-
 
 #[derive(Debug)]
 enum Stored {
@@ -187,11 +166,9 @@ struct Bucket {
     drained: Cell<bool>,
 }
 
-
 const TABLE: usize = 32;
 
 const TABLE_MAX_OWNERS: usize = 24;
-
 
 pub struct IntentQueue {
     arena: String,
@@ -200,8 +177,6 @@ pub struct IntentQueue {
     used: usize,
     table: [Option<(u64, u16)>; TABLE],
     overflow: bool,
-
-
 
     #[cfg(feature = "testing")]
     probes: Cell<usize>,
@@ -226,12 +201,10 @@ impl IntentQueue {
         }
     }
 
-
     #[cfg(feature = "testing")]
     pub fn probes(&self) -> usize {
         self.probes.get()
     }
-
 
     pub fn clear(&mut self) {
         zeroize_string(&mut self.arena);
@@ -385,22 +358,12 @@ impl IntentQueue {
         self.push(owner, Stored::Cancel);
     }
 
-
     pub fn undrained(&self) -> impl Iterator<Item = Id> + '_ {
         self.live()
             .iter()
             .filter(|b| !b.drained.get() && !b.items.is_empty())
             .map(|b| b.owner)
     }
-
-
-
-
-
-
-
-
-
 
     pub fn has_runtime_addressed(&self, owner: Id) -> bool {
         self.bucket_index(owner)
@@ -419,15 +382,12 @@ impl IntentQueue {
             })
     }
 
-
     #[cfg(test)]
     pub(crate) fn was_drained(&self, owner: Id) -> bool {
         self.bucket_index(owner)
             .and_then(|i| self.live().get(i))
             .is_some_and(|b| b.drained.get())
     }
-
-
 
     pub fn iter(&self, owner: Id) -> IntentIter<'_> {
         if self.used == 0 {
@@ -532,8 +492,6 @@ fn zeroize_string(value: &mut String) {
     *value = String::new();
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct IntentIter<'f> {
     queue: &'f IntentQueue,
@@ -564,9 +522,6 @@ mod tests {
 
     #[test]
     fn paste_reaches_only_an_editing_owner() {
-
-
-
         let mut q = IntentQueue::new();
         let a = Id::root("a");
         let b = Id::root("b");

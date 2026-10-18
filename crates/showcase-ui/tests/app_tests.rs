@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use showcase_ui::{App, NAV_ENTRIES, PageId};
 use termrock::{
     Axis, Color, ColorLevel, Id, ItemKey, KeyCode, LayerId, Modifier, MouseKind, Part, PartRef,
@@ -76,9 +70,6 @@ fn area_text(h: &Harness<App>, area: Rect) -> String {
 }
 
 fn focus_bar_x(h: &Harness<App>, y: u16) -> Option<u16> {
-
-
-
     (20..h.buffer().area().width).find(|x| h.cell(*x, y).symbol() == "▎")
 }
 

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 #![cfg_attr(
     test,
     allow(
@@ -62,9 +54,6 @@ fn paint_rows(ui: &mut Ui<'_>, area: Rect) {
 fn fg_at(buf: &termrock_render::Buffer, x: u16, y: u16) -> Color {
     buf.cell(Position::new(x, y)).map(|c| c.fg).unwrap()
 }
-
-
-
 
 #[test]
 fn fade_heights_states_themes_and_levels_match_oracle() {
@@ -276,14 +265,9 @@ fn split_span_graphemes_use_style_of_first_byte() {
     }
 }
 
-
-
 #[test]
 fn fade_background_majority_ties_and_exclusions_match_oracle() {
     for theme in themes() {
-
-
-
         let other = Color::Rgb(10, 10, 40);
         let other_outer = Color::Rgb(71, 93, 128);
         let mut scene = Scene::new("fade_tie", theme.clone(), ColorLevel::TrueColor, 16, 4);
@@ -327,8 +311,6 @@ fn fade_background_majority_ties_and_exclusions_match_oracle() {
     }
 }
 
-
-
 #[test]
 fn fade_non_rgb_dims_outer_row_only_at_every_level() {
     for theme in themes() {
@@ -366,8 +348,6 @@ fn fade_non_rgb_dims_outer_row_only_at_every_level() {
         }
     }
 }
-
-
 
 #[test]
 fn fade_protects_cursor_keep_selected_hovered_and_marked_rows() {
@@ -407,8 +387,6 @@ fn fade_protects_cursor_keep_selected_hovered_and_marked_rows() {
         assert_eq!(fg_at(buf, 0, 1), FG, "kept row untouched");
     }
 }
-
-
 
 #[test]
 fn fade_skips_headers_footers_and_bar_column() {
@@ -464,8 +442,6 @@ fn fade_skips_headers_footers_and_bar_column() {
         assert_eq!(fg_at(faded_buf, 0, 3), FG, "content middle stays");
     }
 }
-
-
 
 #[test]
 fn fade_never_changes_glyphs_backgrounds_hits_or_selection() {
@@ -535,8 +511,6 @@ fn fade_never_changes_glyphs_backgrounds_hits_or_selection() {
     }
 }
 
-
-
 #[test]
 fn fade_clipping_bounds_to_visible_content() {
     for theme in themes() {
@@ -581,8 +555,6 @@ impl App for FadeResizePage {
         ui.scroll_edges(area, &view);
     }
 }
-
-
 
 #[test]
 fn fade_depth_flips_at_twelve_rows_on_resize() {
@@ -636,9 +608,6 @@ impl App for DragPage {
     }
 }
 
-
-
-
 #[test]
 fn thumb_drag_from_bare_track_follows_pointer_and_saturates() {
     let mut h = Harness::new(DragPage::new(100), Theme::junie(), 10, 15);
@@ -682,8 +651,6 @@ impl App for InsetDragPage {
     }
 
     fn draw(&self, ui: &mut Ui<'_>) {
-
-
         ui.register_control(
             INSET_DRAG_ID,
             Rect::new(1, 1, 8, 12),
@@ -718,13 +685,9 @@ fn bare_track_drag_uses_inset_track_origin() {
     assert!(h.diagnostics().is_empty());
 }
 
-
-
-
 #[test]
 fn thumb_drag_from_thumb_retains_grab_offset_and_single_capture() {
     let mut h = Harness::new(DragPage::new(30), Theme::junie(), 10, 15);
-
 
     let _ = h.mouse(MouseKind::Down, 6, 3);
     assert_eq!(h.app().scroll.thumb(10), (0, 3));
@@ -763,9 +726,6 @@ impl App for NestedPage {
         let _ = outer;
     }
 }
-
-
-
 
 #[test]
 fn boundary_wheel_consumes_without_chaining_repaint_or_focus_move() {
@@ -843,9 +803,6 @@ impl App for HidePage {
     }
 }
 
-
-
-
 #[test]
 fn hidden_bar_mid_drag_releases_and_keeps_wheel_reveal_without_parts() {
     let mut h = Harness::new(
@@ -905,9 +862,6 @@ impl App for TwinPage {
     }
 }
 
-
-
-
 #[test]
 fn scroll_and_fade_state_never_leaks_between_owners() {
     let mut h = Harness::new(TwinPage, Theme::junie(), 20, 8);
@@ -930,9 +884,6 @@ fn scroll_and_fade_state_never_leaks_between_owners() {
     );
     assert!(h.diagnostics().is_empty());
 }
-
-
-
 
 #[test]
 fn scroll_region_composes_directly_under_owner_identity() {
@@ -973,11 +924,8 @@ fn scroll_region_composes_directly_under_owner_identity() {
     });
 }
 
-
-
 #[test]
 fn scroll_model_boundaries_match_oracle_extent_offset_viewport_reveal_clamp() {
-
     let mut st = ScrollState::new(100);
     st.set_viewport(20);
     assert_eq!(st.thumb(10), (0, 2));
@@ -1044,7 +992,6 @@ fn scroll_model_boundaries_match_oracle_extent_offset_viewport_reveal_clamp() {
     shrink.scroll_to(90);
     shrink.set_content(5);
     assert_eq!(shrink.offset(), 0);
-
 
     let mut wheel = ScrollState::new(30);
     wheel.set_viewport(10);

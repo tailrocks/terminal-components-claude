@@ -1,4 +1,3 @@
-
 use tablepro_ui::{SwitchTarget, Tab, TableProApp};
 
 #[test]

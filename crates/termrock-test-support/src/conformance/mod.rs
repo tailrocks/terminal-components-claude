@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 pub mod driver;
 
 use bitflags::bitflags;
@@ -53,19 +46,15 @@ bitflags! {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PointerGesture {
-
     Click,
 
     DoubleClick,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FixtureRow {
-
     pub key: ItemKey,
 
     pub label: String,
@@ -75,10 +64,8 @@ pub struct FixtureRow {
     pub disabled: bool,
 }
 
-
 #[derive(Clone, Debug)]
 pub struct Fixture {
-
     pub disabled: bool,
 
     pub read_only: bool,
@@ -95,16 +82,11 @@ pub struct Fixture {
 
     pub selected: bool,
 
-
-
-
     reference_state: Option<StateFlags>,
 
     pub patch: Option<(Part, StylePatch)>,
 
     pub secret: Option<&'static str>,
-
-
 
     status: Status,
 }
@@ -136,22 +118,15 @@ impl Default for Fixture {
 }
 
 impl Fixture {
-
     #[must_use]
     pub const fn forced(&self) -> Option<StateFlags> {
         self.reference_state
     }
 
-
     #[must_use]
     pub const fn status(&self) -> Status {
         self.status
     }
-
-
-
-
-
 
     #[must_use]
     pub fn force(mut self, s: StateFlags) -> Self {
@@ -175,13 +150,6 @@ impl Fixture {
     }
 }
 
-
-
-
-
-
-
-
 pub const DEFAULT_MONO_STATES: &[StateFlags] = &[
     StateFlags::empty(),
     StateFlags::FOCUSED,
@@ -194,11 +162,6 @@ pub const DEFAULT_MONO_STATES: &[StateFlags] = &[
     StateFlags::BUSY,
     StateFlags::ACTIVE,
 ];
-
-
-
-
-
 
 #[must_use]
 pub fn mono_states_required_by(caps: Caps) -> Vec<StateFlags> {
@@ -219,30 +182,24 @@ pub fn mono_states_required_by(caps: Caps) -> Vec<StateFlags> {
         out.push(StateFlags::SELECTED);
     }
     if caps.contains(Caps::REPORTS_STATUS) {
-
-
         out.push(StateFlags::BUSY);
         out.push(StateFlags::ERROR);
     }
     out
 }
 
-
 pub trait Conformance: 'static {
-
     const NAME: &'static str;
 
     const FAMILY: Family;
 
     const PARTS: &'static [Part];
 
-
     type State: Default + Clone + PartialEq + core::fmt::Debug;
 
     type Action: PartialEq + core::fmt::Debug;
 
     type Cmd: Copy + 'static;
-
 
     fn caps() -> Caps;
 
@@ -267,7 +224,6 @@ pub trait Conformance: 'static {
     fn update(cx: &mut Cx<'_>, st: &mut Self::State, f: &Fixture) -> Response<Self::Action>;
 
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &Self::State, f: &Fixture);
-
 
     fn activation_chords() -> &'static [Chord] {
         &[]
@@ -333,35 +289,17 @@ pub trait Conformance: 'static {
         Fixture::default()
     }
 
-
-
-
     fn mono_setup_chords(_state: StateFlags) -> &'static [Chord] {
         &[]
     }
-
-
-
-
-
-
-
-
-
-
 
     fn mono_narrowing_reason() -> &'static str {
         ""
     }
 
-
     fn open_chord() -> Option<Chord> {
         Self::activation_chords().first().copied()
     }
-
-
-
-
 
     fn open_overlay(_cx: &mut Cx<'_>, _state: &mut Self::State, _fixture: &Fixture) -> bool {
         false
@@ -371,9 +309,6 @@ pub trait Conformance: 'static {
         None
     }
 }
-
-
-
 
 #[macro_export]
 macro_rules! conformance_suite {
@@ -485,8 +420,6 @@ mod tests {
             reports.contains(&StateFlags::ERROR),
             "REPORTS_STATUS must imply ERROR, got {reports:?}"
         );
-
-
 
         assert_eq!(
             mono_states_required_by(Caps::empty()),

@@ -1,93 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -99,7 +9,6 @@ use crate::support::Session;
 use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, HOLLA};
-
 
 const BOOT: &str = "holla❯";
 
@@ -212,7 +121,6 @@ const INSIGHTS: &[&str] = &["--scenario", "parity-insights", "--motion", "reduce
 const EXECUTOR: &[&str] = &["--scenario", "parity-executor", "--motion", "reduced"];
 const CUSTOM: &[&str] = &["--scenario", "parity-custom-actions", "--motion", "reduced"];
 
-
 fn h5_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
         format!("journeys/holla/h5/{slug}"),
@@ -225,7 +133,6 @@ fn h5_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Cas
     )
 }
 
-
 fn h5_case_t(
     slug: &str,
     args: &'static [&'static str],
@@ -235,7 +142,6 @@ fn h5_case_t(
     h5_case(slug, args, boot).timeout(timeout_ms)
 }
 
-
 fn h5_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -243,8 +149,6 @@ fn h5_dir(test: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     dir
 }
-
-
 
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
@@ -264,7 +168,6 @@ fn write_provenance(dir: &Path, case: &Case) {
         .unwrap_or_else(|e| panic!("write {}: {e}", dir.join("provenance.txt").display()));
     eprintln!("h5 provenance: {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -286,7 +189,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -295,18 +197,10 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
 fn live_frame(s: &mut Session) -> Frame {
     s.snapshot()
         .unwrap_or_else(|e| panic!("live frame sample failed: {e:#}"))
 }
-
-
-
-
-
-
-
 
 fn wait_absent(s: &mut Session, needle: &str, what: &str) {
     support::wait_screen(
@@ -316,9 +210,6 @@ fn wait_absent(s: &mut Session, needle: &str, what: &str) {
         |screen| !support::screen_text(screen).contains(needle),
     );
 }
-
-
-
 
 fn wait_changed(s: &mut Session, baseline: &str, timeout: Duration, what: &str) -> String {
     let deadline = std::time::Instant::now() + timeout;
@@ -335,15 +226,12 @@ fn wait_changed(s: &mut Session, baseline: &str, timeout: Duration, what: &str) 
     }
 }
 
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: no line contains both `{needle}` and `{also}`"
     );
 }
-
 
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
@@ -354,9 +242,6 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     );
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
-
-
-
 
 fn wheel_over(
     s: &mut Session,
@@ -370,17 +255,12 @@ fn wheel_over(
     (row, col)
 }
 
-
-
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
         std::thread::sleep(Duration::from_millis(120));
     }
 }
-
-
-
 
 fn resolve_rgb(c: TColor, what: &str) -> Rgb {
     match c {
@@ -390,16 +270,10 @@ fn resolve_rgb(c: TColor, what: &str) -> Rgb {
     }
 }
 
-
 fn lum(c: TColor, what: &str) -> u32 {
     let rgb = resolve_rgb(c, what);
     u32::from(rgb.r) * 2126 + u32::from(rgb.g) * 7152 + u32::from(rgb.b) * 722
 }
-
-
-
-
-
 
 fn row_fg_median_cols(frame: &Frame, row: u16, c0: u16, c1: u16, what: &str) -> u32 {
     let mut lums: Vec<u32> = Vec::new();
@@ -423,15 +297,12 @@ fn row_fg_median_cols(frame: &Frame, row: u16, c0: u16, c1: u16, what: &str) -> 
     lums[lums.len() / 2]
 }
 
-
-
 fn assert_faded(edge: u32, interior: u32, what: &str) {
     assert!(
         edge < interior,
         "{what}: edge row must fade (edge lum {edge} < interior lum {interior})"
     );
 }
-
 
 fn assert_row_same(a: &Frame, b: &Frame, row: u16, what: &str) {
     assert_eq!(
@@ -453,11 +324,6 @@ fn assert_row_same(a: &Frame, b: &Frame, row: u16, what: &str) {
     }
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_parity_task_sources() {
@@ -469,25 +335,21 @@ fn h5_parity_task_sources() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "› just build", ".justfile here", "V1 row");
 
     assert!(boot.contains("make build"), "V2: no make target");
 
     assert_line_has(&boot, "In", "~/work/poly", "S1 world");
 
-
     support::drive_with_timeout(&mut s, &["type:yarn", "wait:yarn s00"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
-
 
     assert!(res.contains("Results · 31"), "flow: no Results · 31");
 
     assert!(res.contains("scope ‹ here ›"), "S2: no here scope");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "yarn s00", "results cleared");
@@ -503,11 +365,6 @@ fn h5_parity_task_sources() {
     eprintln!("h5 parity_task_sources: boot, filter roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_parity_upgrade_managers() {
@@ -518,11 +375,9 @@ fn h5_parity_upgrade_managers() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
 
-
     waits::wait_state(&mut s, "›Tasks", "explore settled");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(&boot, "›Tasks", "Services", "V1 explore");
 
@@ -532,10 +387,6 @@ fn h5_parity_upgrade_managers() {
     );
 
     assert_line_has(&boot, "Scope", "here", "S1 scope");
-
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -553,7 +404,6 @@ fn h5_parity_upgrade_managers() {
     checkpoint(&mut s, &dir, "01-batch");
     let batch = live_text(&mut s);
 
-
     assert!(
         batch.contains("==> Outdated Formulae · 2"),
         "flow: no outdated line"
@@ -565,7 +415,6 @@ fn h5_parity_upgrade_managers() {
     );
 
     assert!(!batch.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "r");
     wait_absent(&mut s, OUTDATED, "output restarted");
@@ -587,11 +436,6 @@ fn h5_parity_upgrade_managers() {
     eprintln!("h5 parity_upgrade_managers: boot, batch + restart roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_audit_rust() {
@@ -602,7 +446,6 @@ fn h5_audit_rust() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(
         &boot,
@@ -617,16 +460,13 @@ fn h5_audit_rust() {
 
     assert_line_has(&boot, "main", "↓3 • 5", "S2 status");
 
-
     support::drive_with_timeout(&mut s, &["type:tests", "wait:Results ·"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
 
-
     assert_line_has(&res, "› Run tests", "task", "flow row");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Results ·", "results cleared");
@@ -642,10 +482,6 @@ fn h5_audit_rust() {
     eprintln!("h5 audit_rust: boot, filter roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_audit_upgrade() {
@@ -657,7 +493,6 @@ fn h5_audit_upgrade() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
-
 
     assert_line_has(
         &boot,
@@ -672,16 +507,13 @@ fn h5_audit_upgrade() {
 
     assert_line_has(&boot, "State", "ready", "S2 state");
 
-
     support::drive_with_timeout(&mut s, &["down", &format!("wait:{STEP2}")], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-moved");
     let moved = live_text(&mut s);
 
-
     assert_line_has(&moved, STEP2, "sudo", "flow cursor");
 
     assert!(!moved.contains(STEP1), "N1: step-01 cursor stuck");
-
 
     support::drive_with_timeout(&mut s, &["up", &format!("wait:{STEP1}")], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-back");
@@ -691,11 +523,6 @@ fn h5_audit_upgrade() {
     assert_line_has(&back, STEP1, "sudo", "cursor intact");
     eprintln!("h5 audit_upgrade: boot, cursor roundtrip");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
@@ -708,7 +535,6 @@ fn h5_concept_activities_multi() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "frontend dev ⠋ ×", "btm ○ ×", "V1 strip");
 
     assert_line_has(&boot, "frontend dev", "running · 3 s", "V2 running");
@@ -717,16 +543,13 @@ fn h5_concept_activities_multi() {
 
     assert!(boot.contains("4 running"), "S2: no running count");
 
-
     support::drive_with_timeout(&mut s, &["type:preview", "wait:Results ·"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
 
-
     assert_line_has(&res, "› Deploy preview", "Current folder", "flow row");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Results ·", "results cleared");
@@ -742,10 +565,6 @@ fn h5_concept_activities_multi() {
     eprintln!("h5 concept_activities_multi: boot, filter roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_concept_disk_cleanup() {
@@ -757,7 +576,6 @@ fn h5_concept_disk_cleanup() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
-
 
     assert!(
         boot.contains("scan complete · 31.8 GiB allocated · 35 entries · 3 selected (24.2 GiB)"),
@@ -778,16 +596,13 @@ fn h5_concept_disk_cleanup() {
         "S2: no selection footer"
     );
 
-
     support::drive_with_timeout(&mut s, &["s", &format!("wait:{APPARENT}")], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-apparent");
     let apparent = live_text(&mut s);
 
-
     assert_line_has(&apparent, APPARENT, "noise folded", "flow sort");
 
     assert!(!apparent.contains(ALLOC), "N1: allocated order stuck");
-
 
     support::drive_with_timeout(&mut s, &["s", &format!("wait:{ALLOC}")], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-allocated");
@@ -797,11 +612,6 @@ fn h5_concept_disk_cleanup() {
     assert_line_has(&back, ALLOC, "noise folded", "sort intact");
     eprintln!("h5 concept_disk_cleanup: boot, sort toggle roundtrip");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
@@ -814,7 +624,6 @@ fn h5_concept_docker_cleanup() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
 
-
     assert_line_has(&boot, "› Clean Docker completely", "destructive", "V1 row");
 
     assert!(boot.contains(RESULTS), "V2: no Results · 7");
@@ -822,7 +631,6 @@ fn h5_concept_docker_cleanup() {
     assert_line_has(&boot, "Scope", "on devbox", "S1 scope");
 
     assert_line_has(&boot, "Gate", "two gates", "S2 gate");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -832,11 +640,9 @@ fn h5_concept_docker_cleanup() {
     checkpoint(&mut s, &dir, "01-cleared");
     let cleared = live_text(&mut s);
 
-
     assert!(cleared.contains("Suggested"), "flow: no suggestions back");
 
     assert!(!cleared.contains(RESULTS), "N1: results stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -856,11 +662,6 @@ fn h5_concept_docker_cleanup() {
     eprintln!("h5 concept_docker_cleanup: boot, clear/retype roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_concept_first_use() {
@@ -871,7 +672,6 @@ fn h5_concept_first_use() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(
         &boot,
@@ -886,16 +686,13 @@ fn h5_concept_first_use() {
 
     assert_line_has(&boot, "Gate", "runs directly", "S2 gate");
 
-
     support::drive_with_timeout(&mut s, &["type:btm", "wait:Results ·"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
 
-
     assert_line_has(&res, "› Open btm", "sustained pressure", "flow row");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Results ·", "results cleared");
@@ -911,11 +708,6 @@ fn h5_concept_first_use() {
     eprintln!("h5 concept_first_use: boot, filter roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_concept_hard_cases() {
@@ -926,7 +718,6 @@ fn h5_concept_hard_cases() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(&boot, "› Analyze disk usage", "/ is 91% full", "V1 row");
 
@@ -942,16 +733,13 @@ fn h5_concept_hard_cases() {
 
     assert_line_has(&boot, "Scope", "here", "S2 scope");
 
-
     support::drive_with_timeout(&mut s, &["type:cleanup", "wait:Results ·"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
 
-
     assert_line_has(&res, "› Review cleanup candidates", "8.0 GiB", "flow row");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Results ·", "results cleared");
@@ -972,10 +760,6 @@ fn h5_concept_hard_cases() {
     eprintln!("h5 concept_hard_cases: boot, filter roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_concept_launch_failure() {
@@ -987,7 +771,6 @@ fn h5_concept_launch_failure() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
-
 
     assert!(
         boot.contains("Error: listen EADDRINUSE: address already in use :::5173"),
@@ -1008,7 +791,6 @@ fn h5_concept_launch_failure() {
         "S2: no failure footer"
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["escape", &format!("wait:{PLACEHOLDER}")],
@@ -1017,11 +799,9 @@ fn h5_concept_launch_failure() {
     checkpoint(&mut s, &dir, "01-here");
     let here = live_text(&mut s);
 
-
     assert!(here.contains("scope ‹ here ›"), "flow: no here scope");
 
     assert!(!here.contains(EADDR), "N1: port error stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1036,11 +816,6 @@ fn h5_concept_launch_failure() {
     eprintln!("h5 concept_launch_failure: boot, Here/jump roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_concept_monorepo_child() {
@@ -1051,7 +826,6 @@ fn h5_concept_monorepo_child() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(
         &boot,
@@ -1069,16 +843,13 @@ fn h5_concept_monorepo_child() {
 
     assert_line_has(&boot, "Scope", "here", "S2 scope");
 
-
     support::drive_with_timeout(&mut s, &["type:test", "wait:Results · 17"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
 
-
     assert_line_has(&res, "› Run tests", "task", "flow row");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Results · 17", "results cleared");
@@ -1094,11 +865,6 @@ fn h5_concept_monorepo_child() {
     eprintln!("h5 concept_monorepo_child: boot, filter roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_concept_monorepo_root() {
@@ -1110,7 +876,6 @@ fn h5_concept_monorepo_root() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "› Deploy preview", "unreviewed", "V1 row");
 
     assert!(boot.contains("Children · 3 projects"), "V2: no child count");
@@ -1118,7 +883,6 @@ fn h5_concept_monorepo_root() {
     assert_line_has(&boot, "Gate", "trust required", "S1 gate");
 
     assert_line_has(&boot, "Scope", "here", "S2 scope");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1128,14 +892,12 @@ fn h5_concept_monorepo_root() {
     checkpoint(&mut s, &dir, "01-children");
     let children = live_text(&mut s);
 
-
     assert!(
         children.contains("Children · 3 projects · 11 entries"),
         "flow: no children header"
     );
 
     assert!(!children.contains("scope ‹ here ›"), "N1: here scope stuck");
-
 
     support::drive_with_timeout(&mut s, &["ctrl-up", "wait:scope ‹ here ›"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-here");
@@ -1159,11 +921,6 @@ fn h5_concept_monorepo_root() {
     eprintln!("h5 concept_monorepo_root: boot, scope roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_concept_remote_host() {
@@ -1174,7 +931,6 @@ fn h5_concept_remote_host() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(
         &boot,
@@ -1189,7 +945,6 @@ fn h5_concept_remote_host() {
 
     assert_line_has(&boot, "Scope", "on prod-eu-1", "S2 scope");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:restart payments", "wait:Results · 2"],
@@ -1198,11 +953,9 @@ fn h5_concept_remote_host() {
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
 
-
     assert_line_has(&res, "› Restart payments", "privileged", "flow row");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Results · 2", "results cleared");
@@ -1222,10 +975,6 @@ fn h5_concept_remote_host() {
     eprintln!("h5 concept_remote_host: boot, filter roundtrip");
 }
 
-
-
-
-
 fn wait_text_eq(s: &mut Session, want: &str, timeout: Duration, what: &str) -> String {
     let deadline = std::time::Instant::now() + timeout;
     loop {
@@ -1240,11 +989,6 @@ fn wait_text_eq(s: &mut Session, want: &str, timeout: Duration, what: &str) -> S
         std::thread::sleep(Duration::from_millis(25));
     }
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
@@ -1275,12 +1019,10 @@ fn h5_fade_browser_wheel() {
     assert!(!pre.contains("line 33"), "pre: already scrolled");
     let (header_row, _) = find_pos(&mut s, "first 2000 lines", case_timeout(&case));
 
-
     let (wrow, wcol) = wheel_over(&mut s, "line 5", Wheel::Down, 2, case_timeout(&case));
     let post = wait_changed(&mut s, &pre, case_timeout(&case), "preview scrolled");
     checkpoint(&mut s, &dir, "01-scrolled");
     let frame = live_frame(&mut s);
-
 
     assert!(post.contains("7 line 6"), "V1: no scrolled top line");
     assert!(post.contains("line 33"), "V1: no surfaced bottom line");
@@ -1307,7 +1049,6 @@ fn h5_fade_browser_wheel() {
 
     assert_row_same(&pre_frame, &frame, header_row, "N1 header never fades");
 
-
     wheel_at(&mut s, wcol, wrow, Wheel::Up, 2);
     let top = wait_text_eq(&mut s, &pre, case_timeout(&case), "back to top");
     checkpoint(&mut s, &dir, "02-back-top");
@@ -1316,11 +1057,6 @@ fn h5_fade_browser_wheel() {
     assert!(top.contains("line 5"), "top target back");
     eprintln!("h5 fade_browser_wheel: scroll + fade, back to top");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
@@ -1347,21 +1083,13 @@ fn h5_fade_cleanup_list_wheel() {
     assert!(!pre.contains("JetBrains logs"), "pre: already scrolled");
     let (header_row, _) = find_pos(&mut s, "Cleanup review", case_timeout(&case));
 
-
-
-
-
     wheel_below(&mut s, "Yarn cache", 2);
     let post = wait_changed(&mut s, &pre, case_timeout(&case), "list scrolled");
     checkpoint(&mut s, &dir, "01-scrolled");
     let frame = live_frame(&mut s);
 
-
     assert!(post.contains("18 categories"), "V1: no categories meta");
     assert!(post.contains("JetBrains logs"), "V1: no surfaced category");
-
-
-
 
     let (edge_row, _) = find_pos(&mut s, "Xcode archives", case_timeout(&case));
     let (inner_row, _) = find_pos(&mut s, "Maven repository", case_timeout(&case));
@@ -1380,7 +1108,6 @@ fn h5_fade_cleanup_list_wheel() {
 
     assert_row_same(&pre_frame, &frame, header_row, "N1 title never fades");
 
-
     let (wrow, wcol) = find_pos(&mut s, "Yarn cache", case_timeout(&case));
     wheel_at(&mut s, wcol, wrow + 1, Wheel::Up, 2);
     let top = wait_text_eq(&mut s, &pre, case_timeout(&case), "back to top");
@@ -1390,11 +1117,6 @@ fn h5_fade_cleanup_list_wheel() {
     assert!(top.contains("Xcode device support"), "top rows back");
     eprintln!("h5 fade_cleanup_list_wheel: scroll + fade, back to top");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
@@ -1407,13 +1129,10 @@ fn h5_fade_executor_burst_end() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
 
-
-
     waits::wait_state(&mut s, "› Status across 3 child", "top row settled");
     waits::wait_state(&mut s, "Emit a mixed stream", "suggestions settled");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(
         &boot,
@@ -1425,7 +1144,6 @@ fn h5_fade_executor_burst_end() {
     assert!(boot.contains("Emit a mixed stream"), "V2: no burst shelf");
 
     assert_line_has(&boot, "In", "~/work/batch", "S1 world");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1439,7 +1157,6 @@ fn h5_fade_executor_burst_end() {
     );
     checkpoint(&mut s, &dir, "01-tail");
     let tail = live_text(&mut s);
-
 
     assert!(
         tail.contains("500 earlier lines dropped"),
@@ -1457,7 +1174,6 @@ fn h5_fade_executor_burst_end() {
 
     assert!(!tail.contains(PLACEHOLDER), "N1: placeholder stuck");
 
-
     support::press_step(&s, "r");
     wait_absent(&mut s, DONE, "output restarted");
     waits::wait_state(&mut s, DONE, "burst finished again");
@@ -1474,12 +1190,6 @@ fn h5_fade_executor_burst_end() {
     assert!(!here.contains("burst line"), "N2: burst body stuck");
     eprintln!("h5 fade_executor_burst_end: boot, burst + restart roundtrip");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
@@ -1506,7 +1216,6 @@ fn h5_fade_trust_body_wheel() {
     assert!(!pre.contains("id = \"shared\""), "pre: already scrolled");
     let (header_row, _) = find_pos(&mut s, TRUST, case_timeout(&case));
 
-
     let (wrow, wcol) = wheel_over(
         &mut s,
         "id = \"deploy.preview\"",
@@ -1517,7 +1226,6 @@ fn h5_fade_trust_body_wheel() {
     let post = wait_changed(&mut s, &pre, case_timeout(&case), "body scrolled");
     checkpoint(&mut s, &dir, "01-scrolled");
     let frame = live_frame(&mut s);
-
 
     assert!(post.contains("id = \"shared\""), "V1: no shared action row");
     assert!(post.contains("Definition"), "V1: no definition title");
@@ -1540,7 +1248,6 @@ fn h5_fade_trust_body_wheel() {
 
     assert_row_same(&pre_frame, &frame, header_row, "N1 title never fades");
 
-
     wheel_at(&mut s, wcol, wrow, Wheel::Up, 2);
     let top = wait_text_eq(&mut s, &pre, case_timeout(&case), "back to top");
     checkpoint(&mut s, &dir, "02-back-top");
@@ -1549,11 +1256,6 @@ fn h5_fade_trust_body_wheel() {
     assert!(top.contains("id = \"deploy.preview\""), "top target back");
     eprintln!("h5 fade_trust_body_wheel: scroll + fade, back to top");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
@@ -1568,7 +1270,6 @@ fn h5_activities_empty() {
     let boot = live_text(&mut s);
     assert!(boot.contains(FOCUSED_FIND), "pre: finder not focused");
 
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-g", &format!("wait:{EMPTY}")],
@@ -1576,7 +1277,6 @@ fn h5_activities_empty() {
     );
     checkpoint(&mut s, &dir, "01-picker");
     let picker = live_text(&mut s);
-
 
     assert_line_has(&picker, "Activities", "0 live", "V1 title");
 
@@ -1593,7 +1293,6 @@ fn h5_activities_empty() {
     );
 
     assert!(!picker.contains(FOCUSED_FIND), "N1: finder focus stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, EMPTY, "picker cancelled");
@@ -1613,11 +1312,6 @@ fn h5_activities_empty() {
     eprintln!("h5 activities_empty: picker, cancel roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_activities_jump() {
@@ -1631,7 +1325,6 @@ fn h5_activities_jump() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "frontend dev ⠋ ×", "btm ○ ×", "V1 strip");
 
     assert_line_has(&boot, "› Deploy preview", "Current folder", "V2 cursor");
@@ -1639,7 +1332,6 @@ fn h5_activities_jump() {
     assert!(boot.contains("4 running"), "S1: no running count");
 
     assert_line_has(&boot, "Gate", "trust required", "S2 gate");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1649,13 +1341,11 @@ fn h5_activities_jump() {
     checkpoint(&mut s, &dir, "01-output");
     let output = live_text(&mut s);
 
-
     assert!(output.contains(VITE), "flow: no vite ready line");
 
     assert_line_has(&output, TITLE, "3 s", "flow title");
 
     assert!(!output.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, TITLE, "back to Here");
@@ -1675,11 +1365,6 @@ fn h5_activities_jump() {
     eprintln!("h5 activities_jump: boot, Here/jump roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h5 check; run with --ignored"]
 fn h5_activities_overlay() {
@@ -1693,13 +1378,11 @@ fn h5_activities_overlay() {
     let boot = live_text(&mut s);
     assert!(boot.contains(FOCUSED_FIND), "pre: finder not focused");
 
-
     assert_line_has(&boot, "frontend dev ⠋ ×", "btm ○ ×", "V1 strip");
 
     assert_line_has(&boot, "› Deploy preview", "Current folder", "V2 cursor");
 
     assert!(boot.contains("4 running"), "S1: no running count");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1708,7 +1391,6 @@ fn h5_activities_overlay() {
     );
     checkpoint(&mut s, &dir, "01-picker");
     let picker = live_text(&mut s);
-
 
     assert_line_has(&picker, "Activities", LIVE4, "flow title");
 
@@ -1722,7 +1404,6 @@ fn h5_activities_overlay() {
     assert_line_has(&picker, "○ btm", "detached · host · 3 s", "S2 detached");
 
     assert!(!picker.contains(FOCUSED_FIND), "N1: finder focus stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, LIVE4, "picker cancelled");

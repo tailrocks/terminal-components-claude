@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -13,104 +10,13 @@ use crate::response::StateFlags;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{FrameRead, Ui};
 
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum PanelKind {
-
     #[default]
     Card,
 
     Framed,
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Panel<'a> {
     id: Id,
@@ -137,7 +43,6 @@ impl fmt::Debug for Panel<'_> {
 }
 
 impl<'a> Panel<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -146,7 +51,6 @@ impl<'a> Panel<'a> {
         Part::BADGE,
         Part::BORDER,
     ];
-
 
     pub const fn new(id: Id) -> Self {
         Panel {
@@ -160,11 +64,9 @@ impl<'a> Panel<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn kind(mut self, k: PanelKind) -> Self {
@@ -172,13 +74,11 @@ impl<'a> Panel<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn title(mut self, t: &'a str) -> Self {
         self.title = Some(t);
         self
     }
-
 
     #[must_use]
     pub const fn meta(mut self, m: &'a str) -> Self {
@@ -186,18 +86,11 @@ impl<'a> Panel<'a> {
         self
     }
 
-
-
-
-
-
-
     #[must_use]
     pub const fn badge(mut self, text: &'a str) -> Self {
         self.badge = if text.is_empty() { None } else { Some(text) };
         self
     }
-
 
     #[must_use]
     pub const fn focused(mut self, yes: bool) -> Self {
@@ -205,13 +98,11 @@ impl<'a> Panel<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
-
 
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
@@ -219,13 +110,11 @@ impl<'a> Panel<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
 
     const fn derived(&self) -> StateFlags {
         if self.focused {
@@ -235,9 +124,6 @@ impl<'a> Panel<'a> {
         }
     }
 
-
-
-
     fn plane(&self, ui: &Ui<'_>) -> Surface {
         match self.kind {
             PanelKind::Card => ui.theme().raise(ui.surface()),
@@ -245,20 +131,12 @@ impl<'a> Panel<'a> {
         }
     }
 
-
-
     const fn top_inset(&self) -> u16 {
         match self.kind {
             PanelKind::Card if self.title.is_some() => 2,
             PanelKind::Card | PanelKind::Framed => 1,
         }
     }
-
-
-
-
-
-
 
     pub fn inner(&self, ui: &Ui<'_>, area: Rect) -> Rect {
         let side = match self.kind {
@@ -275,12 +153,6 @@ impl<'a> Panel<'a> {
             },
         );
         if r.is_empty() {
-
-
-
-
-
-
             return Rect {
                 x: area.x,
                 y: area.y,
@@ -291,16 +163,10 @@ impl<'a> Panel<'a> {
         r
     }
 
-
-
-
-
-
     fn badge_lane_width(&self) -> Option<u16> {
         let title_w = self.title.map_or(0, crate::text::width);
         let meta_w = self.meta.map_or(0, crate::text::width);
         let badge_w = self.badge.map(crate::text::width)?;
-
 
         Some(
             title_w
@@ -314,7 +180,6 @@ impl<'a> Panel<'a> {
                 }),
         )
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let side = match self.kind {
@@ -340,12 +205,6 @@ impl<'a> Panel<'a> {
         .fit(c)
     }
 
-
-
-
-
-
-
     pub fn draw<R>(
         &self,
         ui: &mut Ui<'_>,
@@ -359,7 +218,6 @@ impl<'a> Panel<'a> {
             ui.with_area(inner, |ui| body(ui, inner))
         })
     }
-
 
     fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
         let ov = self.ov;
@@ -386,9 +244,6 @@ impl<'a> Panel<'a> {
         }
         self.head(ui, area, live, container.style);
     }
-
-
-
 
     fn draw_badge(&self, ui: &mut Ui<'_>, rect: Rect, live: StateFlags) {
         let Some(text) = self.badge.filter(|_| !rect.is_empty()) else {
@@ -421,7 +276,6 @@ impl<'a> Panel<'a> {
         });
     }
 
-
     fn head(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, fill: crate::theme::PaintStyle) {
         let head = first_row(area);
         if head.is_empty() || area.width < 3 {
@@ -429,7 +283,6 @@ impl<'a> Panel<'a> {
         }
         let ov = self.ov;
         let id = self.id;
-
 
         let pad = u16::from(self.kind == PanelKind::Framed);
         let gutter_x = area.x.saturating_add(1);
@@ -451,11 +304,6 @@ impl<'a> Panel<'a> {
         let text_x = area.x.saturating_add(2);
 
         let span_w = area.width.saturating_sub(3);
-
-
-
-
-
 
         if self
             .badge_lane_width()
@@ -577,8 +425,6 @@ impl<'a> Panel<'a> {
             } else {
                 let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::DETAIL, live);
 
-
-
                 if pad == 1 {
                     ui.fill(cell_at(head, x.saturating_sub(1)), s.style);
                 }
@@ -593,9 +439,6 @@ impl<'a> Panel<'a> {
         }
     }
 }
-
-
-
 
 fn paint_label(
     ui: &mut Ui<'_>,
@@ -682,14 +525,6 @@ mod tests {
             .map_or_else(String::new, |c| c.symbol().to_owned())
     }
 
-
-
-
-
-
-
-
-
     #[test]
     fn the_inner_rect_never_escapes_the_panel() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
@@ -725,10 +560,6 @@ mod tests {
         .commit_presented();
     }
 
-
-
-
-
     #[test]
     fn a_framed_head_row_keeps_the_corner_columns() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
@@ -753,12 +584,6 @@ mod tests {
         assert_eq!(symbol_at(&buf, 0, 4), b.bottom_left);
         assert_eq!(symbol_at(&buf, 19, 4), b.bottom_right);
     }
-
-
-
-
-
-
 
     #[test]
     fn the_focus_bar_is_painted_from_the_props_and_only_then() {
@@ -789,9 +614,6 @@ mod tests {
         );
     }
 
-
-
-
     #[test]
     fn a_panel_registers_no_focus_stop() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
@@ -808,7 +630,6 @@ mod tests {
         assert!(rt.area_of(ID).is_some(), "the container is not addressable");
     }
 
-
     #[test]
     fn a_reference_panel_registers_nothing() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
@@ -824,11 +645,6 @@ mod tests {
         .commit_presented();
         assert!(rt.area_of(ID).is_none());
     }
-
-
-
-
-
 
     #[test]
     fn every_declared_part_is_one_a_drawn_panel_styles() {
@@ -869,11 +685,6 @@ mod tests {
             );
         }
     }
-
-
-
-
-
 
     #[test]
     fn the_slot_addressable_parts_are_exactly_the_documented_ones() {

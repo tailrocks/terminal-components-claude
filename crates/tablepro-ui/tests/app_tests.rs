@@ -1,4 +1,3 @@
-
 #![allow(
     clippy::all,
     clippy::pedantic,
@@ -252,7 +251,6 @@ fn visual_surface_fixture_materializes_the_real_route() {
         assert_eq!(app.surface(), surface);
         let harness = Harness::new(app, Theme::junie(), 120, 40);
 
-
         let expected_marker = match surface {
             Surface::Connections | Surface::ConnectionsFailed => "Connections",
             _ => "Production",
@@ -309,7 +307,6 @@ fn connection_form_keyboard_and_mouse_reach_every_field() {
     let fields = form_fields();
     assert_eq!(fields.len(), 15);
 
-
     for (index, field) in fields.iter().enumerate() {
         let mut reached = false;
         for _ in 0..32 {
@@ -320,7 +317,6 @@ fn connection_form_keyboard_and_mouse_reach_every_field() {
             let _ = harness.wheel(Axis::V, 1, 60, 26);
         }
         assert!(reached, "field {:?} was unreachable", field.id);
-
 
         if index == 12 {
             let _ = harness.key(KeyCode::Char(' '));

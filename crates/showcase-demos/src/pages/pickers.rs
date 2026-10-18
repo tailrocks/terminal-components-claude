@@ -1,5 +1,3 @@
-
-
 use termrock::author::PaintStyle;
 use termrock::{
     ActionKey, Button, ContextMenu, Cx, Family, FilterList, FilterListState, FrameRead, GlyphRole,
@@ -915,7 +913,6 @@ fn paint_historical(
     );
 }
 
-
 #[derive(Debug, Default)]
 pub struct PickersPage {
     state: PickerState,
@@ -1021,8 +1018,6 @@ impl Page for PickersPage {
         result |= picker_chain().update(cx, &mut self.chain_state).erase();
         result |= menu_bar().update(cx, &mut self.menu_state).erase();
         result |= context_menu().update(cx, &mut self.context_state).erase();
-
-
 
         let kind = self.open_kind.unwrap_or(PickerKind::Quick);
         let items = match kind {

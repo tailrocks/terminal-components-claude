@@ -1,4 +1,3 @@
-
 use ratatui_core::style::Color;
 use termrock::{
     ColorLevel, Family, Id, Meter, MeterTone, MeterVisual, Part, Role, StylePatch, Theme,
@@ -78,9 +77,6 @@ fn capture_unchanged_default_cells() {
             }
         }
     }
-
-
-
 
     assert_eq!(
         hashes,

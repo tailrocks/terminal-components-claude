@@ -1,77 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -84,9 +10,7 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, SHOWCASE};
 
-
 const BOOT: &str = "Junie Design system";
-
 
 fn s1_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> Case {
     Case::dynamic(
@@ -100,7 +24,6 @@ fn s1_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> C
     )
 }
 
-
 fn s1_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -109,13 +32,9 @@ fn s1_dir(test: &str) -> PathBuf {
     dir
 }
 
-
-
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
-
-
 
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
@@ -135,7 +54,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
         .unwrap_or_else(|e| panic!("write {}: {e}", dir.join(file).display()));
     eprintln!("s1 provenance ({file}): {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -157,7 +75,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -166,8 +83,6 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
 fn live_frame(s: &mut Session) -> Frame {
     let screen = s
         .inner
@@ -175,7 +90,6 @@ fn live_frame(s: &mut Session) -> Frame {
         .unwrap_or_else(|e| panic!("live frame sample failed: {e:#}"));
     frame_from_screen(&screen, "default")
 }
-
 
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
@@ -186,10 +100,6 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     );
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
-
-
-
-
 
 fn wheel_over(
     s: &mut Session,
@@ -203,18 +113,12 @@ fn wheel_over(
     (row, col)
 }
 
-
-
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
         std::thread::sleep(Duration::from_millis(120));
     }
 }
-
-
-
-
 
 fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     let deadline = std::time::Instant::now() + timeout;
@@ -232,9 +136,6 @@ fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
         prev = cur;
     }
 }
-
-
-
 
 fn wheel_until_stable(
     s: &mut Session,
@@ -261,14 +162,12 @@ fn wheel_until_stable(
     panic!("{what}: still moving after 10 batches");
 }
 
-
 fn hover_over(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     Input::move_to(col, row).send(s);
     std::thread::sleep(Duration::from_millis(120));
     (row, col)
 }
-
 
 fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
@@ -277,9 +176,6 @@ fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     std::thread::sleep(Duration::from_millis(120));
     (row, col)
 }
-
-
-
 
 fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     s.resize(cols, rows).expect("resize");
@@ -292,9 +188,6 @@ fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     std::thread::sleep(Duration::from_millis(700));
 }
 
-
-
-
 fn resolve_rgb(c: TColor, what: &str) -> Rgb {
     match c {
         TColor::Rgb(rgb) => rgb,
@@ -303,14 +196,10 @@ fn resolve_rgb(c: TColor, what: &str) -> Rgb {
     }
 }
 
-
 fn lum(c: TColor, what: &str) -> u32 {
     let rgb = resolve_rgb(c, what);
     u32::from(rgb.r) * 2126 + u32::from(rgb.g) * 7152 + u32::from(rgb.b) * 722
 }
-
-
-
 
 fn row_fg_median(frame: &Frame, row: u16, what: &str) -> u32 {
     let mut lums: Vec<u32> = Vec::new();
@@ -334,10 +223,6 @@ fn row_fg_median(frame: &Frame, row: u16, what: &str) -> u32 {
     lums[lums.len() / 2]
 }
 
-
-
-
-
 fn span_fg_median(frame: &Frame, row: u16, col: u16, len: usize, what: &str) -> u32 {
     let mut lums: Vec<u32> = Vec::new();
     for c in col..col.saturating_add(len as u16) {
@@ -360,8 +245,6 @@ fn span_fg_median(frame: &Frame, row: u16, col: u16, len: usize, what: &str) -> 
     lums[lums.len() / 2]
 }
 
-
-
 fn assert_faded(edge: u32, interior: u32, what: &str) {
     assert!(
         edge < interior,
@@ -369,15 +252,12 @@ fn assert_faded(edge: u32, interior: u32, what: &str) {
     );
 }
 
-
 fn assert_same_tone(a: u32, b: u32, what: &str) {
     assert!(
         a == b,
         "{what}: rows must read at the same tone (lum {a} == {b})"
     );
 }
-
-
 
 fn assert_cell_same(a: &Frame, b: &Frame, col: u16, row: u16, what: &str) {
     let ca = a
@@ -392,7 +272,6 @@ fn assert_cell_same(a: &Frame, b: &Frame, col: u16, row: u16, what: &str) {
     );
 }
 
-
 fn assert_row_same(a: &Frame, b: &Frame, row: u16, what: &str) {
     assert_eq!(
         a.cols, b.cols,
@@ -404,16 +283,12 @@ fn assert_row_same(a: &Frame, b: &Frame, row: u16, what: &str) {
     }
 }
 
-
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: no line contains both `{needle}` and `{also}`"
     );
 }
-
 
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     for line in text.lines().filter(|l| l.contains(needle)) {
@@ -423,9 +298,6 @@ fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
         );
     }
 }
-
-
-
 
 fn assert_right_lacks(text: &str, needle: &str, also: &str, what: &str) {
     for line in text.lines().filter(|l| l.contains(needle)) {
@@ -440,9 +312,6 @@ fn assert_right_lacks(text: &str, needle: &str, also: &str, what: &str) {
     }
 }
 
-
-
-
 fn assert_body_lacks(text: &str, label: &str, what: &str) {
     for line in text.lines().skip(1) {
         assert!(
@@ -452,14 +321,12 @@ fn assert_body_lacks(text: &str, label: &str, what: &str) {
     }
 }
 
-
 fn assert_body_has(text: &str, needle: &str, what: &str) {
     assert!(
         text.lines().skip(1).any(|l| l.contains(needle)),
         "{what}: no body line contains `{needle}`"
     );
 }
-
 
 fn parse_window(label: &str, what: &str) -> (u32, u32) {
     let sep = if label.contains('–') { '–' } else { '-' };
@@ -480,10 +347,6 @@ fn parse_window(label: &str, what: &str) -> (u32, u32) {
     (first, last)
 }
 
-
-
-
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_table_page_boot() {
@@ -493,7 +356,6 @@ fn s1_table_page_boot() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
     let boot = live_text(&mut s);
-
 
     for needle in ["#1040", "#1041", "#1042", "#1043", "#1044"] {
         assert!(boot.contains(needle), "V1: boot lacks row {needle}");
@@ -520,15 +382,12 @@ fn s1_table_page_boot() {
 
     assert!(!boot.contains("Selected"), "N1: no Selected status at boot");
 
-
     support::press_step(&s, "tab");
     waits::wait_state(&mut s, "Columns", "A1 table footer");
     let focused = live_text(&mut s);
     assert_line_has(&focused, "▎", "Tasks", "A1 focus bar on the card");
 
     assert_line_has(&focused, "#1040", "▎", "S1 cursor at row 0");
-
-
 
     support::press_step(&s, "down");
     support::wait_screen(
@@ -547,7 +406,6 @@ fn s1_table_page_boot() {
         !text.contains("unsorted") && (text.contains('▴') || text.contains('▾'))
     });
 
-
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "Selected", "N2 selection status");
     let selected = live_text(&mut s);
@@ -555,8 +413,6 @@ fn s1_table_page_boot() {
     checkpoint(&mut s, &dir, "01-selected");
     eprintln!("s1 table_page_boot: boot proven, tab/down/s/enter all behaved");
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -570,12 +426,10 @@ fn s1_table_select_cursor() {
     checkpoint(&mut s, &dir, "cursor-moved");
     let text = live_text(&mut s);
 
-
     assert_line_has(&text, "#1042", "▎", "V1 cursor row");
     for needle in ["Move", "Columns", "Sort", "Select", "Next"] {
         assert!(text.contains(needle), "V1: footer lacks hint {needle}");
     }
-
 
     assert_right_lacks(&text, "#104", "›", "V2 no selection marker");
     assert!(
@@ -590,8 +444,6 @@ fn s1_table_select_cursor() {
     assert!(!text.contains("Selected"), "N1: no Selected status");
 
     assert!(text.contains("unsorted"), "N2: sort untouched");
-
-
 
     support::press_step(&s, "j");
     support::wait_screen(
@@ -615,8 +467,6 @@ fn s1_table_select_cursor() {
     eprintln!("s1 table_select_cursor: cursor (2,0) proven, j moved, space selected");
 }
 
-
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_table_edit_open() {
@@ -629,7 +479,6 @@ fn s1_table_edit_open() {
     checkpoint(&mut s, &dir, "editing");
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
-
 
     for needle in ["EDIT", "Commit", "Cancel", "Next cell"] {
         assert!(text.contains(needle), "V1: footer lacks {needle}");
@@ -670,7 +519,6 @@ fn s1_table_edit_open() {
     );
     assert_eq!(text.matches("EDIT").count(), 1, "N2: exactly one EDIT");
 
-
     support::drive_with_timeout(&mut s, &["type:z"], case.timeout_ms);
     support::wait_screen(
         &mut s,
@@ -689,8 +537,6 @@ fn s1_table_edit_open() {
     eprintln!("s1 table_edit_open: draft + underline + cursor proven, z inserted, esc cancelled");
 }
 
-
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_table_edit_commit() {
@@ -707,15 +553,12 @@ fn s1_table_edit_commit() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
     assert!(
         text.contains("1 edits · 1–10 of 14"),
         "V1/S1: one-edits meta"
     );
     assert!(text.contains("Cell saved"), "V1: Cell saved status");
     assert!(!text.contains("EDIT"), "V1/S2/N1: EDIT mode cleared");
-
-
 
     let (cell_row, _) = find_pos(&mut s, "#1040", case_timeout(&case));
     let underlined = (0..frame.cols)
@@ -724,7 +567,6 @@ fn s1_table_edit_commit() {
     assert!(!underlined, "V2: no underline remains on the cell");
 
     assert_line_lacks(&text, "#104", "!", "N2 no validator error");
-
 
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "EDIT", "V2 re-edit shows the draft");
@@ -736,9 +578,6 @@ fn s1_table_edit_commit() {
     );
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "EDIT", "V2 draft closed");
-
-
-
 
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "EDIT", "A2 editing (0,1) again");
@@ -761,9 +600,6 @@ fn s1_table_edit_commit() {
     waits::wait_state(&mut s, "4 edits", "A2 tab committed (0,4)");
     checkpoint(&mut s, &dir, "01-tab3");
 
-
-
-
     support::drive_with_timeout(&mut s, &["type:7"], case.timeout_ms);
     support::wait_screen(
         &mut s,
@@ -779,7 +615,6 @@ fn s1_table_edit_commit() {
     );
     checkpoint(&mut s, &dir, "02-left-card");
 
-
     support::press_step(&s, "shift+tab");
     waits::wait_state(&mut s, "▎Tasks", "A2 focus back on the card");
     support::press_step(&s, "enter");
@@ -794,9 +629,6 @@ fn s1_table_edit_commit() {
     waits::wait_gone(&mut s, "EDIT", "A2 draft closed");
     checkpoint(&mut s, &dir, "03-data-proven");
 
-
-
-
     let case2 = s1_case(
         "table_edit_commit_empty",
         &["--page", "editabletables"],
@@ -809,7 +641,6 @@ fn s1_table_edit_commit() {
     clear.extend(std::iter::repeat_n("backspace", 35));
     support::drive_with_timeout(&mut s2, &clear, case2.timeout_ms);
     support::press_step(&s2, "enter");
-
 
     support::wait_screen(
         &mut s2,
@@ -839,7 +670,6 @@ fn s1_table_edit_commit() {
     eprintln!("s1 table_edit_commit: commit + x proven, tab chain + LeaveForward, empty rejected");
 }
 
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_table_hover_lift() {
@@ -862,7 +692,6 @@ fn s1_table_hover_lift() {
     );
     checkpoint(&mut s, &dir, "hovered");
     let text = live_text(&mut s);
-
 
     assert_eq!(hovered.text(), idle.text(), "V1: identical text");
     assert_eq!(text, idle_text, "V1: live text identical too");
@@ -911,8 +740,6 @@ fn s1_table_hover_lift() {
     assert_right_lacks(&text, "#104", "›", "N2 no selection marker");
     assert!(!text.contains("Selected"), "N2: no selection status");
 
-
-
     hover_over(&mut s, "#1043", case_timeout(&case));
     let moved = waits::wait_frame_where(
         &mut s,
@@ -936,12 +763,9 @@ fn s1_table_hover_lift() {
     eprintln!("s1 table_hover_lift: plane lift proven, follows pointer, selects nothing");
 }
 
-
 fn cell_sig(cell: &tuiscotti::Cell) -> (String, TColor, TColor) {
     (cell.symbol.clone(), cell.fg, cell.bg)
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -952,7 +776,6 @@ fn s1_table_editable_boot() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
     let boot = live_text(&mut s);
-
 
     assert_eq!(
         boot.matches('▎').count(),
@@ -969,8 +792,6 @@ fn s1_table_editable_boot() {
     assert_line_lacks(&boot, "#104", "!", "V2/S2 preset error off-screen");
 
     assert!(!boot.contains("EDIT"), "N1: no EDIT at boot");
-
-
 
     support::press_step(&s, "tab");
     waits::wait_state(&mut s, "Cell", "S1 table footer");
@@ -1004,10 +825,6 @@ fn s1_table_editable_boot() {
     waits::wait_gone(&mut s, "EDIT", "A2 editor closed");
     checkpoint(&mut s, &dir, "01-entered");
 
-
-
-
-
     support::drive_with_timeout(
         &mut s,
         &["down", "down", "right", "right", "right", "right"],
@@ -1027,8 +844,6 @@ fn s1_table_editable_boot() {
     eprintln!("s1 table_editable_boot: unfocused boot + reversed (0,1) + preset error proven");
 }
 
-
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_grid_wheel_fade() {
@@ -1040,7 +855,6 @@ fn s1_grid_wheel_fade() {
     let boot_text = live_text(&mut s);
     let boot = live_frame(&mut s);
     assert!(boot_text.contains("rows 1–14 of 40"), "S1: boot offset 0");
-
 
     wheel_over(
         &mut s,
@@ -1062,13 +876,11 @@ fn s1_grid_wheel_fade() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
     assert!(
         text.contains("rows 7–20 of 40 loaded · ~4,812 total"),
         "V1: scrolled meta"
     );
     assert_line_has(&text, "1007", "Wide World Importers", "V1 first row");
-
 
     let (r7, _) = find_pos(&mut s, "1007", case_timeout(&case));
     let (r8, _) = find_pos(&mut s, "1008", case_timeout(&case));
@@ -1110,9 +922,6 @@ fn s1_grid_wheel_fade() {
 
     assert!(text.contains("of 40 loaded"), "N2: page_rows stays 40");
 
-
-
-
     let (end_row, end_col) = find_pos(&mut s, "Northwind Traders", case_timeout(&case));
     let end = wheel_until_stable(
         &mut s,
@@ -1123,8 +932,6 @@ fn s1_grid_wheel_fade() {
         "A1 bottom offset",
     );
     checkpoint(&mut s, &dir, "01-end-reached");
-
-
 
     assert!(
         end.contains("rows 28–40 of 40"),
@@ -1140,8 +947,6 @@ fn s1_grid_wheel_fade() {
     checkpoint(&mut s, &dir, "01-bottom");
     eprintln!("s1 grid_wheel_fade: offset 0→3→6, two-deep fade, bottom Consumed");
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -1164,7 +969,6 @@ fn s1_code_wheel_fade() {
     checkpoint(&mut s, &dir, "wheel-faded");
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
-
 
     assert!(text.contains("7–11 of 26"), "V1: window label");
     assert!(
@@ -1198,8 +1002,6 @@ fn s1_code_wheel_fade() {
         "V2 bottom edge fades",
     );
 
-
-
     assert_line_has(&text, "Block", "1 of 3", "S1: blocks untouched");
 
     assert_line_has(&text, "Cursor", "ln 1 · col 1", "S2/A2: cursor stays");
@@ -1209,7 +1011,6 @@ fn s1_code_wheel_fade() {
     assert_row_same(&boot, &frame, header_row, "N1 header never fades");
 
     assert_line_has(&text, "Diagnostics", "0", "N2: diagnostics stay");
-
 
     let (end_row, end_col) = find_pos(&mut s, "sleep(delay)", case_timeout(&case));
     let end = wheel_until_stable(
@@ -1228,8 +1029,6 @@ fn s1_code_wheel_fade() {
     eprintln!("s1 code_wheel_fade: 7–11 proven, both edges fade, bottom Consumed");
 }
 
-
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_diff_wheel_review() {
@@ -1238,8 +1037,6 @@ fn s1_diff_wheel_review() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     support::drive_with_timeout(&mut s, &["tab", "enter", "wait:● Review"], case.timeout_ms);
-
-
 
     let review_text = settle_text(&mut s, Duration::from_millis(5000), "review steady");
     checkpoint(&mut s, &dir, "00-review");
@@ -1251,7 +1048,6 @@ fn s1_diff_wheel_review() {
     checkpoint(&mut s, &dir, "wheel-faded");
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
-
 
     assert!(text.contains("@@ -9,6 +10,7 @@"), "V1: hunk header");
     assert!(text.contains("attempts = 3"), "V1: old column");
@@ -1275,7 +1071,6 @@ fn s1_diff_wheel_review() {
         "V2 bottom edge fades",
     );
 
-
     assert_ne!(text, review_text, "S2: the wheel moved the offset");
     assert!(text.contains("● Review"), "S1/A2: mode stays Review");
 
@@ -1286,7 +1081,6 @@ fn s1_diff_wheel_review() {
         !text.contains("No file selected"),
         "N2/A2: file stays loaded"
     );
-
 
     let (end_row, end_col) = find_pos(&mut s, "attempts = 3", case_timeout(&case));
     let end = wheel_until_stable(
@@ -1308,8 +1102,6 @@ fn s1_diff_wheel_review() {
     checkpoint(&mut s, &dir, "01-end");
     eprintln!("s1 diff_wheel_review: review + bold runs + both fades + end Consumed");
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -1341,11 +1133,8 @@ fn s1_scroll_page_prose() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
     assert_line_has(&text, "16–30", "▎", "V1 prose window + focus");
     assert!(text.contains("Log 1986–2000"), "V1/S1 log tail intact");
-
-
 
     let (prose_first, prose_first_col) = find_pos(&mut s, "reports back", case_timeout(&case));
     let (prose_mid, prose_mid_col) = find_pos(&mut s, "Each step is", case_timeout(&case));
@@ -1387,7 +1176,6 @@ fn s1_scroll_page_prose() {
         "N2: list rows intact"
     );
 
-
     let (b_first, b_last) = parse_window("1–15", "A1 boot window");
     assert_eq!(
         last - first,
@@ -1406,8 +1194,6 @@ fn s1_scroll_page_prose() {
     checkpoint(&mut s, &dir, "01-down");
     eprintln!("s1 scroll_page_prose: 16–30 + both fades, log tail whole, down is column-local");
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -1446,11 +1232,7 @@ fn s1_scroll_wheel_offtail() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
-
-
     assert!(text.contains("Log 1980–1994"), "V1: off-tail window");
-
 
     let (log_first, log_first_col) = find_pos(&mut s, "732.23s", case_timeout(&case));
     let (log_mid, log_mid_col) = find_pos(&mut s, "734.82s", case_timeout(&case));
@@ -1496,14 +1278,11 @@ fn s1_scroll_wheel_offtail() {
         "A2: footer still the nav footer"
     );
 
-
     wheel_over(&mut s, "737.41s", Wheel::Up, 2, case_timeout(&case));
     waits::wait_state(&mut s, "1974–1988", "A1 further ups scroll");
     checkpoint(&mut s, &dir, "01-further-up");
     eprintln!("s1 scroll_wheel_offtail: 1980–1994 + both fades, prose/list pinned, ups continue");
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -1515,7 +1294,6 @@ fn s1_nav_wheel_demo() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot_text = live_text(&mut s);
     let boot = live_frame(&mut s);
-
 
     assert!(
         boot_text.contains("Workspace"),
@@ -1536,8 +1314,6 @@ fn s1_nav_wheel_demo() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
-
     assert!(text.contains("B Branches"), "V1: first demo row");
     assert!(text.contains("A Appearance"), "V1: last demo row");
     assert!(text.contains("Collapse"), "V1: Collapse footer persists");
@@ -1548,10 +1324,6 @@ fn s1_nav_wheel_demo() {
             .is_some_and(|c| c.symbol == "│" || c.symbol == "┃")
     });
     assert!(scrollbar, "V1: scrollbar beside the demo list");
-
-
-
-
 
     assert!(
         !text.contains("Workspace"),
@@ -1564,7 +1336,6 @@ fn s1_nav_wheel_demo() {
         boot_text.contains("Collapse") && text.contains("Collapse"),
         "S1: Collapse footer persists"
     );
-
 
     let (branches_row, branches_col) = find_pos(&mut s, "B Branches", case_timeout(&case));
     let (members_row, members_col) = find_pos(&mut s, "M Members", case_timeout(&case));
@@ -1581,13 +1352,11 @@ fn s1_nav_wheel_demo() {
         "V2 shell nav bottom edge fades",
     );
 
-
     assert!(text.contains("Tasks"), "S2/N1: demo current persists");
     assert!(
         text.contains("Tab Into page"),
         "S2: footer still the nav footer"
     );
-
 
     let bars: Vec<&str> = text.lines().filter(|l| l.contains('▎')).collect();
     assert_eq!(bars.len(), 2, "S2: nav bar + legend sample only: {bars:?}");
@@ -1627,7 +1396,6 @@ fn s1_nav_wheel_demo() {
         assert_eq!(a, b, "N2: shell nav row {row} unmoved");
     }
 
-
     let (end_row, end_col) = find_pos(&mut s, "M Members", case_timeout(&case));
     let end = wheel_until_stable(
         &mut s,
@@ -1643,8 +1411,6 @@ fn s1_nav_wheel_demo() {
     checkpoint(&mut s, &dir, "01-bottom");
     eprintln!("s1 nav_wheel_demo: Collapse persists, both fades, gutter pinned, bottom Consumed");
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -1675,15 +1441,10 @@ fn s1_term_wheel_scrollback() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
     assert!(text.contains("scrollback ↑5"), "V1: scrollback header");
     for needle in ["Resolve workspace", "Pull base image", "layer 01/12"] {
         assert!(text.contains(needle), "V1: transcript lacks {needle}");
     }
-
-
-
-
 
     let (prompt_row, prompt_col) = find_pos(&mut s, "payments-platform", case_timeout(&case));
     let prompt = span_fg_median(&frame, prompt_row, prompt_col, 17, "V2 prompt row");
@@ -1724,12 +1485,9 @@ fn s1_term_wheel_scrollback() {
         );
     }
 
-
     assert!(text.contains("2 of 7"), "S2/N2/A2: rail stays at 2 of 7");
 
     assert!(!text.contains("following"), "N1: no following indicator");
-
-
 
     wheel_over(&mut s, "layer 04/12", Wheel::Down, 2, case_timeout(&case));
     support::wait_screen(
@@ -1755,8 +1513,6 @@ fn s1_term_wheel_scrollback() {
     eprintln!("s1 term_wheel_scrollback: ↑5 top-anchored, bottom fade, rail pinned, top Consumed");
 }
 
-
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_list_wheel_fade() {
@@ -1774,14 +1530,11 @@ fn s1_list_wheel_fade() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
     assert!(text.contains("7–19 of"), "V1: window label");
     let (swift_row, swift_col) = find_pos(&mut s, "Swift", case_timeout(&case));
     let (csharp_row, _) = find_pos(&mut s, "C#", case_timeout(&case));
     assert!(swift_row < csharp_row, "V1: Swift first in the window");
     assert!(text.contains("Chosen: Rust"), "V1/S2/N1: choice persists");
-
-
 
     let (last_row, last_col) = find_pos(&mut s, "Clojure", case_timeout(&case));
     let (mid_row, mid_col) = find_pos(&mut s, "Haskell", case_timeout(&case));
@@ -1808,7 +1561,6 @@ fn s1_list_wheel_fade() {
     assert!(text.contains("Space toggle"), "N2: filter hints intact");
     assert!(text.contains("No results for"), "N2: search column intact");
 
-
     let (end_row, end_col) = find_pos(&mut s, "Swift", case_timeout(&case));
     let end = wheel_until_stable(
         &mut s,
@@ -1818,7 +1570,6 @@ fn s1_list_wheel_fade() {
         case_timeout(&case),
         "A1 end offset",
     );
-
 
     assert!(end.contains("8–20 of"), "A1: end offset is 8–20");
     wheel_at(&mut s, end_col, end_row, Wheel::Down, 3);
@@ -1837,8 +1588,6 @@ fn s1_list_wheel_fade() {
     eprintln!("s1 list_wheel_fade: 7–19 + both fades, end Consumed, up re-reveals row 0");
 }
 
-
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_tree_wheel_fade() {
@@ -1854,13 +1603,10 @@ fn s1_tree_wheel_fade() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
     assert!(text.contains("2–16 of 16"), "V1/S1: window label");
     for needle in ["▸ api", "▸ db", "▸ workers", "▾ tests"] {
         assert!(text.contains(needle), "V1: expansion lacks {needle}");
     }
-
-
 
     let (first_row, _) = find_pos(&mut s, "▸ api", case_timeout(&case));
     let (mid_row, mid_col) = find_pos(&mut s, "main.rs", case_timeout(&case));
@@ -1887,15 +1633,12 @@ fn s1_tree_wheel_fade() {
         "N2: still nothing selected"
     );
 
-
     wheel_over(&mut s, "config.rs", Wheel::Down, 1, case_timeout(&case));
     std::thread::sleep(Duration::from_millis(400));
     assert!(
         live_text(&mut s).contains("2–16 of 16"),
         "A1: second notch Consumed at the end"
     );
-
-
 
     support::press_step(&s, "tab");
     waits::wait_state(&mut s, "▎", "A2 tree focused");
@@ -1908,8 +1651,6 @@ fn s1_tree_wheel_fade() {
     checkpoint(&mut s, &dir, "01-toggled");
     eprintln!("s1 tree_wheel_fade: 2–16 + top fade, second notch Consumed, toggles work");
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -1928,7 +1669,6 @@ fn s1_textarea_wheel_fade() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
     assert!(text.contains("7–14 of 28"), "V1: window label");
     assert!(text.contains("7. Open a PR"), "V1: first line");
     assert!(text.contains("14. Keep the public"), "V1: last line");
@@ -1938,7 +1678,6 @@ fn s1_textarea_wheel_fade() {
         "V1: no cursor bar in the area"
     );
     assert!(!text.contains('▁'), "V1: no editing cursor mark");
-
 
     let (first_row, _) = find_pos(&mut s, "7. Open a PR", case_timeout(&case));
     let (mid_row, _) = find_pos(&mut s, "10. Keep the public", case_timeout(&case));
@@ -1969,7 +1708,6 @@ fn s1_textarea_wheel_fade() {
         assert!(text.contains(needle), "N2: area keeps {needle:?}");
     }
 
-
     let (end_row, end_col) =
         wheel_over(&mut s, "7. Open a PR", Wheel::Down, 20, case_timeout(&case));
     waits::wait_state(&mut s, "21–28 of 28", "A1 end offset");
@@ -1977,8 +1715,6 @@ fn s1_textarea_wheel_fade() {
     wheel_at(&mut s, end_col, end_row, Wheel::Down, 3);
     std::thread::sleep(Duration::from_millis(400));
     assert_eq!(live_text(&mut s), end, "A1: Consumed at the boundary");
-
-
 
     support::press_step(&s, "tab");
     waits::wait_state(&mut s, "▎", "A2 area focused");
@@ -1995,8 +1731,6 @@ fn s1_textarea_wheel_fade() {
         "s1 textarea_wheel_fade: 7–14 + both fades, end Consumed, view keys stay out of edit"
     );
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -2017,7 +1751,6 @@ fn s1_inspect_open() {
     checkpoint(&mut s, &dir, "open");
     let text = live_text(&mut s);
 
-
     for needle in [
         "mode        NAV",
         "0·2 24×36",
@@ -2033,9 +1766,7 @@ fn s1_inspect_open() {
         assert!(text.contains(needle), "V1: card lacks {needle:?}");
     }
 
-
     assert!(text.contains("suppressed"), "N2: hover suppressed");
-
 
     support::press_step(&s, "i");
     waits::wait_gone(&mut s, "hit regions", "A1 card closed");
@@ -2045,10 +1776,8 @@ fn s1_inspect_open() {
     );
     checkpoint(&mut s, &dir, "01-closed");
 
-
     click_at(&mut s, "Inspector", case_timeout(&case));
     waits::wait_state(&mut s, "hit regions 26", "A2 header click reopens");
-
 
     click_at(&mut s, "hit regions", case_timeout(&case));
     let clicked = settle_text(&mut s, Duration::from_millis(3000), "A2 card click");
@@ -2061,8 +1790,6 @@ fn s1_inspect_open() {
         "A2: card click takes no focus"
     );
     checkpoint(&mut s, &dir, "02-clicked");
-
-
 
     let case2 = s1_case("inspect_open_narrow", &["--page", "overview"], 80, 24);
     write_provenance_named(&dir, &case2, "provenance-narrow.txt");
@@ -2079,8 +1806,6 @@ fn s1_inspect_open() {
     eprintln!("s1 inspect_open: 10 readout rows, i toggles, header click toggles, narrow gated");
 }
 
-
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_inspect_scrolled() {
@@ -2091,7 +1816,6 @@ fn s1_inspect_scrolled() {
     support::press_step(&s, "i");
     waits::wait_state(&mut s, "hit regions 58", "inspector open on lists");
     checkpoint(&mut s, &dir, "01-open");
-
 
     assert!(
         !live_text(&mut s).contains("31·10"),
@@ -2104,12 +1828,8 @@ fn s1_inspect_scrolled() {
     let text = live_text(&mut s);
     let frame = live_frame(&mut s);
 
-
     assert!(text.contains("31·10"), "V1: mouse row reads the wheel cell");
     assert!(text.contains("7–19 of 20"), "V1/S1: lists window 7–19");
-
-
-
 
     let (first_row, first_col) = find_pos(&mut s, "Swift", case_timeout(&case));
     let (mid_row, mid_col) = find_pos(&mut s, "Haskell", case_timeout(&case));
@@ -2119,16 +1839,12 @@ fn s1_inspect_scrolled() {
         "V2 lists top edge fades",
     );
 
-
     let (first, _) = parse_window("7–19", "S1 window");
     assert_eq!(first, 7, "S1: lists offset 0 → 6");
     assert!(text.contains("suppressed"), "S1/N1: hover stays suppressed");
 
     assert!(text.contains("4 stops"), "S2: 4 focus stops");
     assert!(text.contains("hit regions 58"), "S2: 58 hit regions");
-
-
-
 
     let before = live_text(&mut s);
     let (card_row, card_col) = find_pos(&mut s, "hit regions", case_timeout(&case));
@@ -2139,8 +1855,6 @@ fn s1_inspect_scrolled() {
     eprintln!("s1 inspect_scrolled: mouse 31·10 + 7–19, top fades, card wheel Ignored");
 }
 
-
-
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
 fn s1_panel_overview_static() {
@@ -2150,7 +1864,6 @@ fn s1_panel_overview_static() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
     let boot = live_text(&mut s);
-
 
     assert_line_has(&boot, "canvas", "text.muted", "V1 tokens two-column");
     assert_line_has(&boot, "popover", "accent.bg", "V1 tokens two-column");
@@ -2167,8 +1880,6 @@ fn s1_panel_overview_static() {
 
     assert!(!boot.contains("Principles"), "V2/N1: no Principles title");
 
-
-
     assert_eq!(
         boot.matches('▎').count(),
         2,
@@ -2179,12 +1890,9 @@ fn s1_panel_overview_static() {
         assert_line_lacks(&boot, token, "▎", "N2 no focus bar on Tokens rows");
     }
 
-
-
     support::press_step(&s, "s");
     std::thread::sleep(Duration::from_millis(400));
     assert_eq!(live_text(&mut s), boot, "S2: page key Ignored");
-
 
     support::press_step(&s, "i");
     waits::wait_state(&mut s, "· on", "A2 inspector arm fires");
@@ -2193,7 +1901,6 @@ fn s1_panel_overview_static() {
         "A2: card gated below width 100"
     );
     checkpoint(&mut s, &dir, "01-inspector-arm");
-
 
     let case2 = s1_case(
         "panel_overview_static_next",
@@ -2208,8 +1915,6 @@ fn s1_panel_overview_static() {
     checkpoint(&mut s2, &dir, "02-next-page");
     eprintln!("s1 panel_overview_static: tokens + legend, s no-op, i arm, ] cycles");
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -2233,7 +1938,6 @@ fn s1_resize_grown() {
     let grown_text = live_text(&mut s);
     let grown = live_frame(&mut s);
 
-
     let case2 = s1_case("resize_grown_static", &["--page", "overview"], 120, 40);
     write_provenance_named(&dir, &case2, "provenance-static.txt");
     let mut s2 = support::spawn_boot(&case2);
@@ -2241,14 +1945,12 @@ fn s1_resize_grown() {
     let static_text = live_text(&mut s2);
     let static_frame = live_frame(&mut s2);
 
-
     assert_eq!(grown_text, static_text, "V1: grown text equals static boot");
     assert_eq!(
         grown.digest(),
         static_frame.digest(),
         "V1: grown frame digest equals static boot"
     );
-
 
     assert!(
         grown_text.contains("120×40"),
@@ -2271,8 +1973,6 @@ fn s1_resize_grown() {
     );
     assert!(!grown_text.contains("tabl…"), "N2: no stale truncation");
 
-
-
     let case3 = s1_case("resize_grown_notice", &["--page", "overview"], 60, 10).timeout(15_000);
     write_provenance_named(&dir, &case3, "provenance-notice.txt");
     let mut s3 = support::spawn(&case3);
@@ -2290,8 +1990,6 @@ fn s1_resize_grown() {
         "s1 resize_grown: grown == static boot, badge + labels + Principles, notice below gate"
     );
 }
-
-
 
 #[test]
 #[ignore = "showcase s1 check; run with --ignored"]
@@ -2324,14 +2022,12 @@ fn s1_resize_shrunk() {
     let shrunk_text = live_text(&mut s);
     let shrunk = live_frame(&mut s);
 
-
     let case2 = s1_case("resize_shrunk_static", &["--page", "overview"], 80, 24);
     write_provenance_named(&dir, &case2, "provenance-static.txt");
     let mut s2 = support::spawn_boot(&case2);
     checkpoint(&mut s2, &dir, "01-static-80");
     let static_text = live_text(&mut s2);
     let static_frame = live_frame(&mut s2);
-
 
     assert_eq!(
         shrunk_text, static_text,
@@ -2342,8 +2038,6 @@ fn s1_resize_shrunk() {
         static_frame.digest(),
         "V1: shrunk frame digest equals static boot"
     );
-
-
 
     assert!(!shrunk_text.contains("×40"), "V2/N1: cap badge dropped");
     assert!(!shrunk_text.contains("truecolor ·"), "V2/N1: no badge row");

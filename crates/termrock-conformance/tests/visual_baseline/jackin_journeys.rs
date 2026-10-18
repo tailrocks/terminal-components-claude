@@ -1,36 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 
 use crate::support::Session;
@@ -41,10 +8,6 @@ const BOOT: &str = "jackin❯";
 const BOOT_FAILURE: &str = "Launch failed";
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
-
-
-
-
 
 const ROUTES: [(&[&str], &str, &[&str]); 2] = [
     (
@@ -76,7 +39,6 @@ const ROUTES: [(&[&str], &str, &[&str]); 2] = [
     ),
 ];
 
-
 fn journey_case(name: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
         format!("journeys/jackin/{name}"),
@@ -89,7 +51,6 @@ fn journey_case(name: &str, args: &'static [&'static str], boot: &'static str) -
     )
 }
 
-
 fn journey_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -98,14 +59,9 @@ fn journey_dir(test: &str) -> PathBuf {
     dir
 }
 
-
-
-
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
-
-
 
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
@@ -126,7 +82,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     eprintln!("journey provenance ({file}): {body}");
 }
 
-
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -142,10 +97,6 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     std::fs::write(&path, body).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
-
-
-
-
 
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
@@ -180,8 +131,6 @@ fn journey_jackin_core_routes() {
     }
     eprintln!("enumeration: returning, accounts-mixed, launch-running, launch-failure all listed");
 
-
-
     for (i, (args, slug, needles)) in ROUTES.into_iter().enumerate() {
         let case = journey_case(&format!("core_routes_{slug}"), args, BOOT);
         write_provenance_named(&dir, &case, &format!("provenance-{slug}.txt"));
@@ -193,11 +142,6 @@ fn journey_jackin_core_routes() {
     }
     eprintln!("journey core_routes: visited {} routes", ROUTES.len());
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
@@ -231,11 +175,6 @@ fn journey_jackin_editor_mounts_tab() {
     eprintln!("journey editor_mounts_tab: general then mounts, both proven");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
 fn journey_jackin_settings_env_tab() {
@@ -266,16 +205,6 @@ fn journey_jackin_settings_env_tab() {
     checkpoint(&mut s, &dir, "02-env");
     eprintln!("journey settings_env_tab: general then environments, both proven");
 }
-
-
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
@@ -321,19 +250,6 @@ fn journey_jackin_editor_save_cancel() {
     eprintln!("journey editor_save_cancel: dirty, preview, cancelled, edits intact");
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin journey; run with --ignored"]
 fn journey_jackin_launch_failure_dialog() {
@@ -369,8 +285,6 @@ fn journey_jackin_launch_failure_dialog() {
         "still running in the Construct",
         "ack status on manager",
     );
-
-
 
     waits::wait_state(&mut s, "Current directory", "manager tree back");
     waits::wait_state(&mut s, "Tab Details", "manager footer back");

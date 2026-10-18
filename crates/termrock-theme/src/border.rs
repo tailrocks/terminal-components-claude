@@ -1,16 +1,6 @@
-
-
-
 pub use ratatui_core::symbols::border::{DOUBLE, PLAIN, ROUNDED, Set};
 
-
-
 pub type BorderSet = Set<'static>;
-
-
-
-
-
 
 pub const ASCII: Set<'static> = Set {
     top_left: "+",

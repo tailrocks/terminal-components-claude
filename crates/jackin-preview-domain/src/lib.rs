@@ -1,6 +1,3 @@
-
-
-
 #![forbid(unsafe_code)]
 #![expect(
     clippy::pedantic,
@@ -20,7 +17,6 @@
     )
 )]
 
-
 pub mod account;
 
 pub mod agent;
@@ -34,7 +30,6 @@ pub mod scenario;
 pub mod usage;
 
 pub mod workspace;
-
 
 pub mod workspace_save;
 

@@ -1,4 +1,3 @@
-
 use tablepro_ui::{Surface, TableProApp};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;

@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use termrock::{
     App, Buffer, Cx, EditPhase, Flow, Id, Rect, Response, Runtime, TextAction, TextInput,
     TextInputState, Theme, Ui,
@@ -60,7 +50,6 @@ struct NameProbe {
 impl App for NameProbe {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let response = update_name(self.id, cx, &mut self.state, &mut self.value, self.locked);
-
 
         let forwarded = response.clone().erase();
         self.captured = Some(response);
@@ -119,7 +108,6 @@ fn ex02_idle_name_without_input_paints_value() {
         Theme::junie(),
     );
 
-
     let _bootstrap = runtime.initialize();
 
     let response = runtime
@@ -127,7 +115,6 @@ fn ex02_idle_name_without_input_paints_value() {
         .captured
         .clone()
         .expect("initialize must call update_name through App::update");
-
 
     let action: Option<TextAction> = response.action_ref().copied();
     assert_eq!(

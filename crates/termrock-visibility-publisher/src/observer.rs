@@ -1,5 +1,3 @@
-
-
 use std::io::{Cursor, Read};
 
 use flate2::read::DeflateDecoder;
@@ -10,8 +8,6 @@ const LOCAL_SIGNATURE: u32 = 0x0403_4b50;
 const DATA_DESCRIPTOR_SIGNATURE: u32 = 0x0807_4b50;
 const MAX_ZIP_ENTRIES: usize = 16;
 const MAX_ZIP_COMMENT: usize = 65_535;
-
-
 
 pub const OBSERVER_REPORT_MEMBER: &str = "ci-observer-report.json";
 
@@ -61,8 +57,6 @@ impl std::fmt::Display for ObserverError {
 }
 
 impl std::error::Error for ObserverError {}
-
-
 
 pub fn decode_observer_zip(
     archive: &[u8],

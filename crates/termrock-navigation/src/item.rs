@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui_core::style::Modifier;
 
 use termrock_core::id::{ItemKey, Part};
@@ -10,10 +6,8 @@ use termrock_layout::layout::Track;
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_text::width;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Item<'i> {
-
     pub glyph: &'i str,
 
     pub label: &'i str,
@@ -34,7 +28,6 @@ pub struct Item<'i> {
 }
 
 impl<'i> Item<'i> {
-
     pub const fn new(key: ItemKey, label: &'i str) -> Self {
         Self {
             glyph: "",
@@ -99,19 +92,7 @@ impl<'i> Item<'i> {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 pub trait AsItem {
-
     fn as_item(&self) -> Item<'_>;
 }
 
@@ -121,16 +102,13 @@ impl AsItem for Item<'_> {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum ItemRowLayout {
-
     #[default]
     Compact,
 
     Columns,
 }
-
 
 #[derive(Default)]
 pub struct ItemColumns {
@@ -173,11 +151,6 @@ impl ItemColumns {
             0,
         );
 
-
-
-
-
-
         {
             let mut icon = cells.cell_part(0, Part::ICON);
             if !icon.authored_modifiers().contains(Modifier::BOLD) {
@@ -215,7 +188,6 @@ impl ItemColumns {
         }
     }
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct ItemRow;

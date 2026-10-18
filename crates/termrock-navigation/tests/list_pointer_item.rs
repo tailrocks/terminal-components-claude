@@ -1,4 +1,3 @@
-
 use std::cell::RefCell;
 use termrock_controls::Button;
 use termrock_core::{

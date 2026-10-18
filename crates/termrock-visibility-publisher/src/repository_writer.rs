@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::{Duration, Instant};
@@ -678,7 +672,6 @@ fn validate_observation(
         ));
     }
 
-
     Ok(())
 }
 
@@ -928,14 +921,10 @@ fn validate_source_head(
             return Err(PublishError::ExistingCursorMismatch);
         }
 
-
-
         if input.status.source_commit != previous.last_published.source_sha {
             return Err(PublishError::StaleSource);
         }
     } else if input.status.source_commit != remote_head {
-
-
         return Err(PublishError::StaleSource);
     }
     if observation.target.head_sha != input.status.source_commit

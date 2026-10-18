@@ -1,5 +1,3 @@
-
-
 pub(crate) use termrock_collections as scroll;
 pub(crate) use termrock_core as event;
 pub(crate) use termrock_core as id;

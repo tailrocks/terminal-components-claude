@@ -1,6 +1,3 @@
-
-
-
 pub mod accounting;
 pub mod action;
 pub mod activity;
@@ -17,9 +14,7 @@ pub mod ssh;
 
 pub use host::Environment;
 
-
 pub const HOME: &str = "/home/dev";
-
 
 pub fn human_bytes(bytes: u64) -> String {
     const KB: u64 = 1_024;

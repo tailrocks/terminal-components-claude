@@ -1,4 +1,3 @@
-
 use tablepro_ui::{QueryOutcome, Tab, TableProApp};
 use termrock::{App, GridEditor, KeyCode, Theme};
 use termrock_test_support::Harness;

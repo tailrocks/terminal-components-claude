@@ -1,6 +1,3 @@
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HostKeyPolicy {
     Strict,
@@ -20,7 +17,6 @@ impl HostKeyPolicy {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SshHost {
-
     pub alias: String,
     pub host_name: String,
     pub user: String,
@@ -35,7 +31,6 @@ pub struct SshHost {
 }
 
 impl SshHost {
-
     pub fn chain(&self) -> String {
         match &self.jump {
             Some(j) => format!("{j} → {}", self.alias),

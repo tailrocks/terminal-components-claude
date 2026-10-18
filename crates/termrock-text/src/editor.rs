@@ -1,19 +1,10 @@
-
-
-
-
-
-
-
 use core::fmt;
 use core::ops::Range;
 
 use super::buffer::{CursorPos, TextBuffer, normalized_text};
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Motion {
-
     Left,
 
     Right,
@@ -35,19 +26,15 @@ pub enum Motion {
     Down,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Extend {
-
     No,
 
     Select,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EditAction<'a> {
-
     Insert(char),
 
     Paste(&'a str),
@@ -73,10 +60,8 @@ pub enum EditAction<'a> {
     Newline,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EditOutcome {
-
     Changed,
 
     Moved,
@@ -87,17 +72,14 @@ pub enum EditOutcome {
 }
 
 impl EditOutcome {
-
     pub const fn changed(self) -> bool {
         matches!(self, EditOutcome::Changed)
     }
-
 
     pub const fn is_visible(self) -> bool {
         matches!(self, EditOutcome::Changed | EditOutcome::Moved)
     }
 }
-
 
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct TextEditorCore {
@@ -115,7 +97,6 @@ impl fmt::Debug for TextEditorCore {
 }
 
 impl TextEditorCore {
-
     pub fn single(text: &str) -> Self {
         TextEditorCore {
             buf: TextBuffer::single(text),
@@ -129,7 +110,6 @@ impl TextEditorCore {
             hscroll: 0,
         }
     }
-
 
     pub fn multi(text: &str) -> Self {
         TextEditorCore {
@@ -145,47 +125,37 @@ impl TextEditorCore {
         }
     }
 
-
     pub fn text(&self) -> &str {
         self.buf.text()
     }
-
 
     pub fn is_empty(&self) -> bool {
         self.buf.is_empty()
     }
 
-
     pub const fn is_multiline(&self) -> bool {
         self.buf.is_multiline()
     }
-
 
     pub fn selection(&self) -> Option<Range<usize>> {
         self.buf.selection()
     }
 
-
     pub fn selected_text(&self) -> Option<&str> {
         self.buf.selected_text()
     }
-
 
     pub fn cursor_pos(&self) -> CursorPos {
         self.buf.cursor_pos()
     }
 
-
     pub const fn cursor_offset(&self) -> usize {
         self.buf.cursor_offset()
     }
 
-
     pub const fn hscroll(&self) -> u16 {
         self.hscroll
     }
-
-
 
     pub fn scroll_into_view(&mut self, width: u16) -> u16 {
         let col = self.buf.cursor_pos().col.min(usize::from(u16::MAX)) as u16;
@@ -197,32 +167,26 @@ impl TextEditorCore {
         self.hscroll
     }
 
-
     pub fn line_count(&self) -> usize {
         self.buf.line_count()
     }
-
 
     pub fn offset_at(&self, line: usize, col: usize) -> usize {
         self.buf.offset_at(line, col)
     }
 
-
     pub fn set_cursor_line_col(&mut self, line: usize, col: usize) {
         self.buf.set_cursor_line_col(line, col);
     }
-
 
     pub fn select_range(&mut self, a: usize, b: usize) {
         self.buf.select_range(a, b);
     }
 
-
     pub fn zeroize(&mut self) {
         self.buf.zeroize();
         self.hscroll = 0;
     }
-
 
     pub fn apply(&mut self, a: EditAction<'_>) -> EditOutcome {
         let b = &mut self.buf;

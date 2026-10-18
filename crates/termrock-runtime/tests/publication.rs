@@ -1,4 +1,3 @@
-
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -136,7 +135,6 @@ fn theme_and_model_mutation_require_publication_even_without_changed_response() 
     assert!(!rt.handle(key()).unwrap().is_changed());
     assert!(rt.handle(key()).is_err());
 }
-
 
 struct FailingBackend(ratatui_core::backend::TestBackend);
 impl ratatui_core::backend::Backend for FailingBackend {

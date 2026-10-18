@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -30,10 +27,6 @@ mod text_target {
     impl Sealed for String {}
     impl Sealed for crate::secret::Secret {}
 }
-
-
-
-
 
 pub trait TextTarget: text_target::Sealed {
     fn expose(&self) -> &str;
@@ -74,10 +67,8 @@ impl TextTarget for Secret {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum BlurPolicy {
-
     #[default]
     CommitAndValidate,
 
@@ -88,43 +79,29 @@ pub enum BlurPolicy {
     Keep,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum EditPhase {
-
     #[default]
     Idle,
 
     Editing,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TextAction {
-
     Changed,
 
     Committed,
 
     Cancelled,
 
-
     MoveNext,
 
     MovePrev,
 }
 
-
-
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TextCmd {
-
     Cancel,
 
     Commit,
@@ -326,11 +303,6 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     ),
 ];
 
-
-
-
-
-
 pub(crate) enum EditorDraft {
     Plain(TextEditorCore),
     Secret(TextEditorCore),
@@ -455,9 +427,6 @@ impl EditorDraft {
         }
     }
 
-
-
-
     pub(crate) fn clone_snapshot(&self) -> Self {
         match self {
             EditorDraft::Plain(editor) => EditorDraft::Plain(editor.clone()),
@@ -474,8 +443,6 @@ impl EditorDraft {
         }
     }
 }
-
-
 
 pub enum ErrorState {
     Plain(FieldError),
@@ -553,9 +520,6 @@ static INVALID_VALUE: FieldError = FieldError {
     code: None,
 };
 
-
-
-
 #[derive(Default)]
 pub struct TextInputState {
     draft: EditorDraft,
@@ -613,12 +577,6 @@ impl fmt::Debug for TextInputState {
 }
 
 impl TextInputState {
-
-
-
-
-
-
     #[must_use]
     pub fn sensitive() -> Self {
         let mut state = Self::default();
@@ -626,20 +584,13 @@ impl TextInputState {
         state
     }
 
-
     pub const fn is_editing(&self) -> bool {
         matches!(self.phase, EditPhase::Editing)
     }
 
-
     pub const fn phase(&self) -> EditPhase {
         self.phase
     }
-
-
-
-
-
 
     pub fn draft_text(&self) -> Option<&str> {
         if self.is_sensitive() || !self.is_editing() {
@@ -648,9 +599,6 @@ impl TextInputState {
             Some(self.draft.text())
         }
     }
-
-
-
 
     pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
         if !self.is_editing() {
@@ -665,8 +613,6 @@ impl TextInputState {
         editor.apply(EditAction::Paste(insertion)).changed()
     }
 
-
-
     pub fn visible_text_equals(&self, committed: &str, expected: &str) -> bool {
         !self.redacted_snapshot
             && if self.is_editing() {
@@ -679,12 +625,6 @@ impl TextInputState {
     pub const fn is_sensitive(&self) -> bool {
         self.draft.is_sensitive()
     }
-
-
-
-
-
-
 
     pub const fn error(&self) -> Option<&FieldError> {
         match &self.error {
@@ -716,7 +656,6 @@ impl TextInputState {
         }
     }
 
-
     pub fn set_error(&mut self, e: Option<FieldError>) {
         self.clear_error();
         self.error = match (self.sensitivity, e) {
@@ -742,7 +681,6 @@ impl TextInputState {
         }
     }
 
-
     pub fn begin(&mut self, current: &str) {
         if self.is_editing() {
             return;
@@ -751,10 +689,6 @@ impl TextInputState {
         self.draft.begin_single(current);
         self.phase = EditPhase::Editing;
     }
-
-
-
-
 
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError> {
         self.commit_target(value, v)
@@ -778,7 +712,6 @@ impl TextInputState {
         self.draft.zeroize();
     }
 
-
     pub fn cancel(&mut self) {
         self.phase = EditPhase::Idle;
         self.redacted_snapshot = false;
@@ -787,10 +720,6 @@ impl TextInputState {
             self.clear_error();
         }
     }
-
-
-
-
 
     pub fn blur(
         &mut self,
@@ -820,7 +749,6 @@ impl TextInputState {
             BlurPolicy::Keep => Ok(()),
         }
     }
-
 
     pub fn zeroize(&mut self) {
         self.draft.zeroize();
@@ -871,79 +799,6 @@ pub fn redacted_text(text: &str) -> String {
     redacted
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[expect(
     clippy::struct_excessive_bools,
     reason = "placeholder visibility, editability, availability and pointer admission are independent borrowed configuration"
@@ -982,7 +837,6 @@ impl fmt::Debug for TextInput<'_> {
 }
 
 impl<'a> TextInput<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::FIELD,
         Part::TEXT,
@@ -991,7 +845,6 @@ impl<'a> TextInput<'a> {
         Part::GUTTER,
         Part::ICON,
     ];
-
 
     pub const fn new(id: Id) -> Self {
         TextInput {
@@ -1011,13 +864,11 @@ impl<'a> TextInput<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn value(mut self, v: &'a str) -> Self {
         self.value = Some(v);
         self
     }
-
 
     #[must_use]
     pub const fn placeholder(mut self, s: &'a str) -> Self {
@@ -1025,14 +876,11 @@ impl<'a> TextInput<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn placeholder_while_editing(mut self, enabled: bool) -> Self {
         self.placeholder_while_editing = enabled;
         self
     }
-
 
     #[must_use]
     pub const fn validate(mut self, v: &'a dyn Validate) -> Self {
@@ -1040,22 +888,17 @@ impl<'a> TextInput<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn blur(mut self, p: BlurPolicy) -> Self {
         self.blur = p;
         self
     }
 
-
-
-
     #[must_use]
     pub const fn typing_policy(mut self, policy: crate::TypingPolicy) -> Self {
         self.typing_policy = policy;
         self
     }
-
 
     #[must_use]
     pub const fn secret(mut self, policy: SecretPolicy) -> Self {
@@ -1067,13 +910,11 @@ impl<'a> TextInput<'a> {
         self.secret.is_some()
     }
 
-
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
-
 
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
@@ -1081,14 +922,11 @@ impl<'a> TextInput<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn pointer_enabled(mut self, enabled: bool) -> Self {
         self.pointer_enabled = enabled;
         self
     }
-
 
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
@@ -1096,20 +934,17 @@ impl<'a> TextInput<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -1143,12 +978,9 @@ impl<'a> TextInput<'a> {
         Dyn(self.validate.unwrap_or(&NoValidate))
     }
 
-
     const fn inner_width(area_width: u16) -> u16 {
         area_width.saturating_sub(3)
     }
-
-
 
     pub fn update(
         &self,
@@ -1158,8 +990,6 @@ impl<'a> TextInput<'a> {
     ) -> Response<TextAction> {
         self.update_target(cx, st, value)
     }
-
-
 
     pub fn update_in_form<T: TextTarget + ?Sized>(
         &self,
@@ -1325,8 +1155,6 @@ impl<'a> TextInput<'a> {
         }
     }
 
-
-
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over gutter, text window, marker and cursor"
@@ -1353,7 +1181,6 @@ impl<'a> TextInput<'a> {
             StateFlags::empty()
         };
 
-
         let mut derived = self.status.flags();
         if editing {
             derived |= StateFlags::EDITING;
@@ -1374,8 +1201,6 @@ impl<'a> TextInput<'a> {
         if self.disabled {
             live = live.difference(StateFlags::HOVERED);
         }
-
-
 
         let busy = matches!(self.status, Status::Busy | Status::Loading);
         let inner = Rect {
@@ -1588,7 +1413,6 @@ impl<'a> TextInput<'a> {
             .draw(ui, area, st)
     }
 
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (8, 1),
@@ -1632,7 +1456,6 @@ fn paint_masked(
     }
 }
 
-
 struct Dyn<'a>(&'a dyn Validate);
 
 impl Validate for Dyn<'_> {
@@ -1640,7 +1463,6 @@ impl Validate for Dyn<'_> {
         self.0.check(s)
     }
 }
-
 
 pub(super) fn byte_at_col(s: &str, col: usize) -> usize {
     let mut w = 0usize;
@@ -1780,8 +1602,6 @@ mod tests {
         }
     }
 
-
-
     #[test]
     fn begin_snapshots_the_value() {
         let mut st = TextInputState::default();
@@ -1807,7 +1627,6 @@ mod tests {
         assert_eq!(st.draft_text(), Some("world"));
     }
 
-
     #[test]
     fn commit_writes_the_controlled_value() {
         let mut st = TextInputState::default();
@@ -1822,8 +1641,6 @@ mod tests {
         assert!(st.commit(&mut value, &rule).is_ok());
         assert_eq!(value, "a@");
     }
-
-
 
     #[test]
     fn commit_runs_validation_once() {
@@ -1863,7 +1680,6 @@ mod tests {
         assert!(!format!("{st:?}").contains("hello"));
     }
 
-
     #[test]
     fn blur_commit_and_validate_policy() {
         let mut value = "a".to_owned();
@@ -1887,7 +1703,6 @@ mod tests {
         assert!(st.error().is_some());
     }
 
-
     #[test]
     fn blur_cancel_policy() {
         let mut value = "a".to_owned();
@@ -1899,7 +1714,6 @@ mod tests {
         assert!(!st.is_editing());
         assert_eq!(st.draft.text(), "");
     }
-
 
     #[test]
     fn blur_keep_policy_leaves_the_draft() {
@@ -1928,8 +1742,6 @@ mod tests {
         assert_eq!(st.draft.text(), "ab");
         assert_eq!(value, "a");
     }
-
-
 
     #[test]
     fn external_error_survives_a_redraw() {
@@ -2039,9 +1851,6 @@ mod tests {
         assert_ne!(render(false, true), idle, "real edit state was not styled");
     }
 
-
-
-
     #[test]
     fn write_mask_is_synthetic() {
         const SECRET: &str = "hunter2";
@@ -2073,7 +1882,6 @@ mod tests {
             painted.starts_with(&mask.repeat(masked)),
             "the mask run is wrong: {painted}"
         );
-
 
         let tail: String = painted.chars().skip(masked).collect();
         assert_eq!(tail.chars().count(), policy.synthetic_tail);

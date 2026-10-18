@@ -1,5 +1,3 @@
-
-
 use ratatui_core::buffer::Buffer;
 use termrock::{
     App, Cx, Focusability, Id, Input, Intent, Key, KeyCode, KeyModifiers, LayerSpec, Rect,

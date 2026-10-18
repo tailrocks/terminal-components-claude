@@ -1,5 +1,3 @@
-
-
 #[path = "fixtures/grid_model.rs"]
 mod grid_model;
 

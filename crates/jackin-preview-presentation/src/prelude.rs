@@ -1,7 +1,4 @@
-
-
 use termrock::Id;
-
 
 pub const ROOT: Id = Id::root("jackin.prelude");
 
@@ -10,7 +7,6 @@ pub const SOURCE: Id = ROOT.sub("source");
 pub const DESTINATION: Id = ROOT.sub("destination");
 
 pub const CONTINUE: Id = ROOT.sub("continue");
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreludeState {
@@ -34,41 +30,33 @@ impl Default for PreludeState {
 }
 
 impl PreludeState {
-
     pub const fn step(&self) -> u8 {
         self.step
     }
-
 
     pub fn source(&self) -> &str {
         &self.source
     }
 
-
     pub fn name(&self) -> &str {
         &self.name
     }
-
 
     pub fn advance(&mut self) {
         self.step = self.step.saturating_add(1).min(5);
     }
 
-
     pub fn back(&mut self) {
         self.step = self.step.saturating_sub(1).max(1);
     }
-
 
     pub const fn duplicate(&self) -> bool {
         self.duplicate
     }
 
-
     pub const fn set_duplicate(&mut self, duplicate: bool) {
         self.duplicate = duplicate;
     }
-
 
     pub fn move_selection(&mut self, down: bool) {
         if down {
@@ -77,7 +65,6 @@ impl PreludeState {
             self.selection = self.selection.saturating_sub(1);
         }
     }
-
 
     pub fn choose_source(&mut self) {
         self.source = match self.selection {
@@ -94,7 +81,6 @@ impl PreludeState {
         self.step = 2;
     }
 
-
     pub const fn advance_flow(&mut self) {
         self.step = match self.step {
             1 => 2,
@@ -104,17 +90,14 @@ impl PreludeState {
         };
     }
 
-
     pub fn source_back(&mut self) {
         self.step = 1;
         self.source = "~/src".into();
     }
 
-
     pub const fn selection(&self) -> u8 {
         self.selection
     }
-
 
     pub fn marked_source(&self, label: &str, index: u8) -> String {
         if self.selection == index {
@@ -123,10 +106,6 @@ impl PreludeState {
             label.to_owned()
         }
     }
-
-
-
-
 
     pub fn follow_source_cursor(&mut self, from: u8, to: u8) -> bool {
         if self.step != 1 {

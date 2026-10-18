@@ -1,4 +1,3 @@
-
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -454,7 +453,6 @@ fn readonly_primary_blocks_fallback_and_focused_primary_initializes_its_own_draf
         }
         rt.app_mut().request_focus = Some(OTHER);
         send(&mut rt, &mut buf, Input::Tick);
-
 
         assert_eq!(rt.focus(), Some(OTHER));
         if readonly {

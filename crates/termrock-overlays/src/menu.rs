@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -21,8 +18,6 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_feedback::keyhint::ChordText;
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MenuItem<'a> {
     action: ActionKey,
@@ -35,7 +30,6 @@ pub struct MenuItem<'a> {
 }
 
 impl<'a> MenuItem<'a> {
-
     pub const fn new(action: ActionKey, label: &'a str) -> Self {
         MenuItem {
             action,
@@ -48,13 +42,11 @@ impl<'a> MenuItem<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn chord(mut self, chord: Chord) -> Self {
         self.chord = Some(chord);
         self
     }
-
 
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
@@ -62,13 +54,11 @@ impl<'a> MenuItem<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn danger(mut self) -> Self {
         self.danger = true;
         self
     }
-
 
     #[must_use]
     pub const fn separator(mut self) -> Self {
@@ -76,55 +66,45 @@ impl<'a> MenuItem<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn submenu(mut self, items: &'a [MenuItem<'a>]) -> Self {
         self.submenu = Some(items);
         self
     }
 
-
     pub const fn action(&self) -> ActionKey {
         self.action
     }
-
 
     pub const fn label(&self) -> &'a str {
         self.label
     }
 
-
     pub const fn chord_ref(&self) -> Option<Chord> {
         self.chord
     }
 
-
     pub const fn is_disabled(&self) -> bool {
         self.disabled
     }
-
 
     pub const fn submenu_ref(&self) -> Option<&'a [MenuItem<'a>]> {
         self.submenu
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Menu<'a> {
-
     pub label: &'a str,
 
     pub items: &'a [MenuItem<'a>],
 }
 
 impl<'a> Menu<'a> {
-
     pub const fn new(label: &'a str, items: &'a [MenuItem<'a>]) -> Self {
         Menu { label, items }
     }
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct MenuState {
@@ -133,26 +113,21 @@ pub struct MenuState {
 }
 
 impl MenuState {
-
     pub const fn cursor(&self) -> usize {
         self.cursor
     }
 
-
     pub const fn open_menu(&self) -> Option<usize> {
         self.open
     }
-
 
     pub const fn is_open(&self) -> bool {
         self.open.is_some()
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MenuAction {
-
     Chosen(ActionKey),
 
     Opened(usize),
@@ -162,10 +137,8 @@ pub enum MenuAction {
     Submenu(ItemKey),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MenuCmd {
-
     Prev,
 
     Next,
@@ -367,63 +340,6 @@ const BAR_CONTEXT_BINDINGS: &[Binding<MenuCmd>] = &[
     ),
 ];
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct ContextMenu<'a> {
     id: Id,
     items: &'a [MenuItem<'a>],
@@ -447,7 +363,6 @@ impl fmt::Debug for ContextMenu<'_> {
 }
 
 impl<'a> ContextMenu<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BORDER,
@@ -458,7 +373,6 @@ impl<'a> ContextMenu<'a> {
         Part::MARKER,
         Part::RULE,
     ];
-
 
     pub const fn new(id: Id, items: &'a [MenuItem<'a>], anchor: Anchor) -> Self {
         ContextMenu {
@@ -472,11 +386,9 @@ impl<'a> ContextMenu<'a> {
         }
     }
 
-
     pub const fn at(id: Id, items: &'a [MenuItem<'a>], position: Position) -> Self {
         Self::new(id, items, Anchor::Point(position))
     }
-
 
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
@@ -484,13 +396,11 @@ impl<'a> ContextMenu<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
         self.chord_case = case;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
@@ -498,20 +408,17 @@ impl<'a> ContextMenu<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(patches);
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
         self
     }
-
 
     pub fn measured_size(&self, cx: &Cx<'_>) -> LayerSize {
         let d = cx.design();
@@ -520,7 +427,6 @@ impl<'a> ContextMenu<'a> {
             .clamp(d.size.popup_min_width, d.size.popup_max_width);
         LayerSize::Fixed(width, self.natural_height().max(3))
     }
-
 
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         LayerSpec::popover(self.id, self.anchor)
@@ -661,7 +567,6 @@ impl<'a> ContextMenu<'a> {
         }
     }
 
-
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
         if !self.enabled_at(st.cursor)
             && let Some(first) = self.first_enabled()
@@ -707,7 +612,6 @@ impl<'a> ContextMenu<'a> {
         }
         acc.finish(self.id)
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &MenuState) -> Rect {
         if area.is_empty() {
@@ -897,7 +801,6 @@ impl<'a> ContextMenu<'a> {
         );
     }
 
-
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(
             self.natural_width(|action, chord| ui.effective_chord(self.id, action, chord)),
@@ -914,55 +817,6 @@ impl Bindings for ContextMenu<'_> {
         CONTEXT_BINDINGS
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct MenuBar<'a> {
     id: Id,
@@ -981,9 +835,7 @@ impl fmt::Debug for MenuBar<'_> {
 }
 
 impl<'a> MenuBar<'a> {
-
     pub const PARTS: &'static [Part] = ContextMenu::PARTS;
-
 
     pub const fn new(id: Id, menus: &'a [Menu<'a>]) -> Self {
         MenuBar {
@@ -994,13 +846,11 @@ impl<'a> MenuBar<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
         self.chord_case = case;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
@@ -1008,13 +858,11 @@ impl<'a> MenuBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(patches);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
@@ -1064,8 +912,6 @@ impl<'a> MenuBar<'a> {
         MenuAction::Opened(index)
     }
 
-
-
     pub fn open_menu(
         &self,
         cx: &mut Cx<'_>,
@@ -1078,12 +924,6 @@ impl<'a> MenuBar<'a> {
         Response::action(self.open(cx, st, index)).for_id(self.id)
     }
 
-
-
-
-
-
-
     fn close_missing(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
         let had_open_state = st.open.take().is_some();
         let had_live_layer = cx.is_open(self.id);
@@ -1093,7 +933,6 @@ impl<'a> MenuBar<'a> {
         cx.close_layer(self.id, None);
         Response::action(MenuAction::Closed(DismissReason::Programmatic)).for_id(self.id)
     }
-
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut MenuState) -> Response<MenuAction> {
         if self.menus.is_empty() {
@@ -1174,7 +1013,6 @@ impl<'a> MenuBar<'a> {
         }
         acc.finish(self.id)
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &MenuState) -> Rect {
         let row = first_row(area);
@@ -1275,7 +1113,6 @@ impl<'a> MenuBar<'a> {
         }
         row
     }
-
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let width = self.menus.iter().fold(1u16, |total, menu| {

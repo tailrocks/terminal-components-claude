@@ -1,5 +1,3 @@
-
-
 use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::{
@@ -50,10 +48,8 @@ const STATUS_RIGHT: [StatusItem<'static>; 2] = [
     StatusItem::new("? help").priority(5),
 ];
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PageId {
-
     Overview,
 
     Buttons,
@@ -100,7 +96,6 @@ pub enum PageId {
 }
 
 impl PageId {
-
     pub const ALL: [Self; 22] = [
         Self::Overview,
         Self::Buttons,
@@ -125,7 +120,6 @@ impl PageId {
         Self::Settings,
         Self::TaskRunner,
     ];
-
 
     pub const fn title(self) -> &'static str {
         match self {
@@ -154,7 +148,6 @@ impl PageId {
         }
     }
 
-
     pub const fn slug(self) -> &'static str {
         match self {
             Self::Overview => "overview",
@@ -182,11 +175,9 @@ impl PageId {
         }
     }
 
-
     pub fn index(self) -> usize {
         Self::ALL.iter().position(|page| *page == self).unwrap_or(0)
     }
-
 
     pub fn from_name(value: &str) -> Option<Self> {
         let normalized = |input: &str| {
@@ -202,7 +193,6 @@ impl PageId {
             .find(|page| normalized(page.slug()) == value || normalized(page.title()) == value)
     }
 
-
     pub fn from_key(key: ItemKey) -> Option<Self> {
         Self::ALL
             .into_iter()
@@ -210,10 +200,8 @@ impl PageId {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NavEntry {
-
     pub id: PageId,
 
     pub label: &'static str,
@@ -228,7 +216,6 @@ impl std::fmt::Display for NavEntry {
         f.write_str(self.label)
     }
 }
-
 
 pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
@@ -437,8 +424,6 @@ fn page(kind: PageId) -> Box<dyn Page> {
 fn keymap() -> KeyMap {
     KeyMap::new()
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('q')), QUIT)
-
-
         .bind(
             KeyPhase::Capture,
             Chord::with(KeyCode::Char('c'), termrock::KeyModifiers::CONTROL),
@@ -473,7 +458,6 @@ fn keymap() -> KeyMap {
         )
 }
 
-
 pub struct App {
     page: PageId,
     nav_state: NavListState,
@@ -504,11 +488,9 @@ impl core::fmt::Debug for App {
 }
 
 impl App {
-
     pub fn new() -> Self {
         Self::with_page(PageId::Overview)
     }
-
 
     pub fn with_page(initial: PageId) -> Self {
         Self::with_page_motion(initial, false, 0)
@@ -538,11 +520,9 @@ impl App {
         }
     }
 
-
     pub const fn page(&self) -> PageId {
         self.page
     }
-
 
     pub const fn quit(&self) -> bool {
         self.quit
@@ -675,12 +655,6 @@ fn shell_part_style(
             .with_bg_from(background),
     )
 }
-
-
-
-
-
-
 
 fn shell_compat_style(style: PaintStyle) -> PaintStyle {
     let bold = style.add_modifier.contains(termrock::Modifier::BOLD);
@@ -857,11 +831,7 @@ fn paint_header_actions(
     );
     right = inspector_x.saturating_sub(1);
 
-
-
     if right > left.saturating_add(capability_width).saturating_add(2) {
-
-
         let cap_x = right.saturating_sub(capability_width.saturating_add(1));
         ui.paint_str(
             Rect::new(cap_x, area.y, width(capability), 1),
@@ -897,7 +867,6 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle
 
 fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, entry: &NavEntry) {
     let current = flags.contains(StateFlags::SELECTED);
-
 
     let flags = flags.difference(StateFlags::SELECTED);
     let emphasized = current || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
@@ -1015,7 +984,6 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     });
 }
 
-
 #[expect(
     clippy::too_many_arguments,
     reason = "the footer paints pre-resolved part styles without re-resolving per hint"
@@ -1078,9 +1046,6 @@ fn paint_footer(
     } else {
         &[]
     };
-
-
-
 
     let tab_next = !nav_focused && !page_editing;
     let mut x = area.x.saturating_add(1);
@@ -1157,9 +1122,6 @@ impl TuiApp for App {
         response |= shell_brand().update(cx).erase();
         response |= shell_status().update(cx).erase();
 
-
-
-
         let _ = too_small_notice();
         let _ = missing_page_panel();
         let _ = inspector_panel();
@@ -1228,8 +1190,6 @@ impl TuiApp for App {
                 | NavListAction::LeaveForward => {}
             });
 
-
-
         if !(cx.update_cause() == termrock::UpdateCause::Tick
             && (cx.is_open(HELP) || self.motion_paused))
             && let Some(active) = self.pages.get_mut(self.page.index())
@@ -1256,16 +1216,12 @@ impl TuiApp for App {
     fn draw(&self, ui: &mut Ui<'_>) {
         let full = ui.full();
 
-
-
         ui.fill(full, shell_compat_style(ui.surface_style()));
         if full.width < 72 || full.height < 20 {
             too_small_notice().draw(ui, full);
             return;
         }
         let shell = shell_layout(full, self.inspector);
-
-
 
         shell_brand().draw(ui, shell.header);
         nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
@@ -1323,13 +1279,10 @@ impl TuiApp for App {
     }
 
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-
-
         cx.focus(NAV);
         Response::changed()
     }
 }
-
 
 pub fn run() -> std::io::Result<()> {
     let (page, theme, paused, frame) = parse_args(std::env::args().skip(1))?;

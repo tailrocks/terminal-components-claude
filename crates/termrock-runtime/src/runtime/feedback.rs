@@ -1,21 +1,11 @@
-
 use core::time::Duration;
 
 use super::Moment;
 use crate::id::{Id, PartRef};
 
-
-
-
-
-
-
-
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SimulationMoment(Duration);
 impl SimulationMoment {
-
     pub const ZERO: Self = Self(Duration::ZERO);
 
     pub const fn from_millis(ms: u64) -> Self {
@@ -40,27 +30,21 @@ impl SimulationMoment {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum FeedbackClock {
-
     #[default]
     Elapsed,
 
     Simulation {
-
         initial: SimulationMoment,
     },
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FeedbackClockError {
-
     WrongPolicy,
 
     Backwards {
-
         current: SimulationMoment,
 
         requested: SimulationMoment,
@@ -76,11 +60,8 @@ impl core::fmt::Display for FeedbackClockError {
 }
 impl core::error::Error for FeedbackClockError {}
 
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ActivationFeedback {
-
     pub owner: Id,
 
     pub part: PartRef,
@@ -97,8 +78,6 @@ struct Record {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct FeedbackState {
-
-
     simulation: Option<SimulationMoment>,
     record: Option<Record>,
 }
@@ -125,8 +104,6 @@ impl FeedbackState {
     ) {
         let now = self.now(elapsed);
         let until = now.saturating_add(duration);
-
-
 
         self.record =
             (self.simulation.is_none() || until > now).then_some(Record { owner, part, until });

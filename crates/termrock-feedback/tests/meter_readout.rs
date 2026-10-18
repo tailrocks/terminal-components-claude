@@ -1,4 +1,3 @@
-
 use std::cell::Cell;
 use termrock::{ColorLevel, Constraints, FrameRead, Id, Meter, MeterVisual, Part, Status, Theme};
 use termrock_test_support::Scene;

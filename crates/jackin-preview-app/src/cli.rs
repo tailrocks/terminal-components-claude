@@ -1,9 +1,7 @@
-
 use std::ffi::{OsStr, OsString};
 
 use crate::{Motion, Scenario};
 use termrock::{ColorLevel, Theme};
-
 
 pub const HELP: &str = "jackin-preview — Jackin redesigned on the Junie design system (deterministic preview)\n\n\
                      USAGE: jackin-preview [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
@@ -16,7 +14,6 @@ pub const HELP: &str = "jackin-preview — Jackin redesigned on the Junie design
 #[derive(Debug)]
 
 pub struct Options {
-
     scenario: Scenario,
 
     motion: Motion,
@@ -29,7 +26,6 @@ pub struct Options {
 }
 
 impl Options {
-
     pub fn run(self) -> std::io::Result<()> {
         let theme = if self.paper {
             Theme::paper()
@@ -48,16 +44,12 @@ impl Options {
 #[derive(Debug)]
 
 pub enum Parsed {
-
     Run(Options),
 
     Help,
 }
 
-
-
 type Error = &'static str;
-
 
 pub fn parse(
     args: impl IntoIterator<Item = OsString>,
@@ -102,8 +94,6 @@ pub fn parse(
                     .ok_or("--frame needs a tick number")?;
             }
             Some("--theme") => {
-
-
                 if args
                     .next()
                     .as_deref()
@@ -126,7 +116,6 @@ pub fn parse(
         paper,
     }))
 }
-
 
 fn parse_color(value: &str) -> Option<ColorLevel> {
     match value.to_ascii_lowercase().as_str() {

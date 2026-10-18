@@ -1,30 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::collections::BTreeMap;
@@ -36,11 +9,9 @@ thread_local! {
     static T_BYTES: Cell<usize> = const { Cell::new(0) };
 }
 
-
 pub fn allocs() -> usize {
     T_ALLOCS.try_with(Cell::get).unwrap_or(0)
 }
-
 
 pub fn bytes() -> usize {
     T_BYTES.try_with(Cell::get).unwrap_or(0)
@@ -48,22 +19,14 @@ pub fn bytes() -> usize {
 
 #[inline]
 fn count(bytes: usize) {
-
-
-
     let _ = T_ALLOCS.try_with(|c| c.set(c.get().saturating_add(1)));
     let _ = T_BYTES.try_with(|c| c.set(c.get().saturating_add(bytes)));
 }
-
-
-
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Counting;
 
 #[expect(unsafe_code, reason = "counting allocator; see SAFETY")]
-
-
 
 unsafe impl GlobalAlloc for Counting {
     unsafe fn alloc(&self, l: Layout) -> *mut u8 {
@@ -73,7 +36,6 @@ unsafe impl GlobalAlloc for Counting {
     }
 
     unsafe fn dealloc(&self, p: *mut u8, l: Layout) {
-
         unsafe { System.dealloc(p, l) }
     }
 
@@ -92,17 +54,13 @@ unsafe impl GlobalAlloc for Counting {
 
 static LOCK: Mutex<()> = Mutex::new(());
 
-
-
 pub fn lock() -> MutexGuard<'static, ()> {
     LOCK.lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Stats {
-
     pub ns: u128,
 
     pub allocs: usize,
@@ -115,7 +73,6 @@ pub struct Stats {
 }
 
 impl Stats {
-
     #[must_use]
     pub const fn with_regions(mut self, hits: usize, ring: usize) -> Self {
         self.hits = Some(hits);
@@ -124,11 +81,9 @@ impl Stats {
     }
 }
 
-
 pub fn env_flag(name: &str) -> bool {
     std::env::var_os(name).is_some_and(|v| !v.is_empty() && v != "0")
 }
-
 
 pub fn big(n: usize) -> usize {
     if cfg!(debug_assertions) && !env_flag("PERF_FULL") {
@@ -137,7 +92,6 @@ pub fn big(n: usize) -> usize {
         n
     }
 }
-
 
 pub fn iters(release_default: usize) -> usize {
     let mut n = if cfg!(debug_assertions) {
@@ -155,8 +109,6 @@ pub fn iters(release_default: usize) -> usize {
 }
 
 const REPS: usize = if cfg!(debug_assertions) { 3 } else { 9 };
-
-
 
 pub fn bench(warm: usize, iters: usize, f: &mut dyn FnMut()) -> Stats {
     let iters = iters.max(1);
@@ -192,9 +144,6 @@ pub fn bench(warm: usize, iters: usize, f: &mut dyn FnMut()) -> Stats {
     }
 }
 
-
-
-
 #[derive(Debug, Default)]
 pub struct Sample {
     ns: u128,
@@ -203,7 +152,6 @@ pub struct Sample {
 }
 
 impl Sample {
-
     pub fn measure<T>(&mut self, f: impl FnOnce() -> T) -> T {
         let a0 = allocs();
         let b0 = bytes();
@@ -215,9 +163,6 @@ impl Sample {
         result
     }
 }
-
-
-
 
 pub fn bench_sampled(warm: usize, iters: usize, f: &mut dyn FnMut(&mut Sample)) -> Stats {
     let iters = iters.max(1);
@@ -248,7 +193,6 @@ pub fn bench_sampled(warm: usize, iters: usize, f: &mut dyn FnMut(&mut Sample)) 
     }
 }
 
-
 pub fn measure_once(f: &mut dyn FnMut()) -> Stats {
     let a0 = allocs();
     let b0 = bytes();
@@ -264,8 +208,6 @@ pub fn measure_once(f: &mut dyn FnMut()) -> Stats {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy)]
 struct Entry {
     ns: u128,
@@ -274,7 +216,6 @@ struct Entry {
     hits: Option<usize>,
     ring: Option<usize>,
 }
-
 
 pub fn baseline_path() -> String {
     std::env::var("PERF_BASELINE").unwrap_or_else(|_| {
@@ -319,9 +260,6 @@ fn read_baseline(path: &str) -> BTreeMap<String, Entry> {
     out
 }
 
-
-
-
 fn write_baseline(path: &str, map: &BTreeMap<String, Entry>) {
     let existing = std::fs::read_to_string(path).unwrap_or_default();
     let mut header = String::new();
@@ -358,7 +296,6 @@ fn region_mismatch(name: &str, message: &str, release: bool) {
 fn check_regions(name: &str, s: &Stats, base: &Entry, release: bool) {
     match (s.hits, base.hits) {
         (Some(h), Some(bh)) => {
-
             let lo = bh - bh / 10;
             let hi = bh + bh / 10;
             if h < lo || h > hi {
@@ -393,12 +330,9 @@ fn check_regions(name: &str, s: &Stats, base: &Entry, release: bool) {
     }
 }
 
-
-
 pub fn report(name: &str, s: &Stats) {
     report_to(&baseline_path(), name, s);
 }
-
 
 pub fn report_to(path: &str, name: &str, s: &Stats) {
     let mut line = format!(
@@ -455,8 +389,6 @@ pub fn report_to(path: &str, name: &str, s: &Stats) {
     }
 }
 
-
-
 pub fn check_ratio(name: &str, a: u128, b: u128, max: f64, strict: bool) {
     let ratio = a as f64 / b.max(1) as f64;
     println!("PERF-RATIO {name} ratio={ratio:.2} max={max}");
@@ -464,12 +396,6 @@ pub fn check_ratio(name: &str, a: u128, b: u128, max: f64, strict: bool) {
         assert!(ratio <= max, "{name}: ratio {ratio:.2} exceeds {max}");
     }
 }
-
-
-
-
-
-
 
 pub fn unicode_line_inline(n: usize) -> String {
     const PARTS: [&str; 6] = ["a", "b", "漢", "字", "e\u{301}", "\u{00E9}"];
@@ -479,10 +405,6 @@ pub fn unicode_line_inline(n: usize) -> String {
     }
     s
 }
-
-
-
-
 
 pub fn unicode_line(n: usize) -> String {
     const PARTS: [&str; 8] = [

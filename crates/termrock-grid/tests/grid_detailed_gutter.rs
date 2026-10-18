@@ -1,4 +1,3 @@
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Color;
 use termrock_grid::{CellRef, Column, ColumnKey, Grid, GridGutter, GridModel, GridState};
@@ -365,7 +364,6 @@ fn detailed_reserve_and_scrollbar_share_preview_pointer_geometry() {
     page.columns[2].min_width = 24;
     page.columns[2].max_width = 24;
     let mut h = Harness::new(page, Theme::junie(), 40, 6);
-
 
     assert_eq!(h.cell(26, 1).symbol(), "c");
     let before = h.app().state.cursor();

@@ -1,5 +1,3 @@
-
-
 use termrock::{
     Action, ActionKey, Button, Checkbox, Constraints, Cx, Family, Field, FieldKind, FieldMut,
     FieldRef, FieldSpec, Form, FormData, FormState, FrameRead, Id, ItemKey, Panel, PanelKind, Part,
@@ -9,7 +7,6 @@ use termrock::{
 };
 
 use super::{Page, PageUpdate, frame};
-
 
 pub const SUBMIT: ActionKey = ActionKey::application("showcase.form.submit");
 
@@ -210,7 +207,6 @@ fn legacy_choice_label(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, text: &st
     let _ = ui.paint_str(label, &fitted, style);
 }
 
-
 #[derive(Debug)]
 pub struct FormsPage {
     summary: String,
@@ -268,9 +264,6 @@ impl FormsPage {
     }
 }
 
-
-
-
 fn onboarding_steps() -> [WizardStep<'static>; 4] {
     [
         WizardStep::new(ACCOUNT, "Account"),
@@ -283,7 +276,6 @@ fn onboarding_steps() -> [WizardStep<'static>; 4] {
 fn onboarding<'a>(steps: &'a [WizardStep<'static>]) -> Wizard<'a> {
     Wizard::new(FLOW, steps)
 }
-
 
 #[derive(Debug, Default)]
 struct Deploy {
@@ -433,7 +425,6 @@ impl Page for FormsPage {
         }
         result |= save.erase();
 
-
         let _ = reviewer_field();
         let _ = mode_group();
         let _ = run_tests_checkbox();
@@ -510,8 +501,6 @@ impl Page for FormsPage {
 }
 
 impl FormsPage {
-
-
     fn draw_task_card(&self, ui: &mut Ui<'_>, card_body: Rect, panel_width: u16) {
         let panel_area = Rect {
             width: if card_body.width < 70 {
@@ -603,7 +592,6 @@ impl FormsPage {
         }
     }
 
-
     fn draw_deploy_form(&self, ui: &mut Ui<'_>, area: Rect) {
         if area.is_empty() {
             return;
@@ -616,8 +604,6 @@ impl FormsPage {
     }
 
     fn draw_task_fields(&self, ui: &mut Ui<'_>, left: Rect) {
-
-
         let _ = Self::priority();
         let _ = ui.paint_str(Rect { height: 1, ..left }, "Task", ui.surface_style());
         let summary_error =

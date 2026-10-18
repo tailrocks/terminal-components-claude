@@ -1,4 +1,3 @@
-
 use tablepro_ui::{Surface, Tab, TableProApp, TableTab, Value};
 use termrock::{GridEditor, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -29,9 +28,6 @@ fn plain_u_after_keyboard_edit_new_tab_and_return_undoes_only_that_logical_table
         unreachable!("table")
     };
     assert!(neighbor.result.model.commit_cell(0, 6, "GBP").is_ok());
-
-
-
 
     let Some(table) = app
         .workbench

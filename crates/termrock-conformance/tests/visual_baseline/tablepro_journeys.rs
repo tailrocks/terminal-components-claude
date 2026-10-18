@@ -1,49 +1,14 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 
 use crate::support::Session;
 use crate::support::state_waits as waits;
 use crate::support::{self, Case, Color, TABLEPRO};
 
-
 const BOOT_CONN: &str = "Production";
 
 const BOOT_WB: &str = "Query 1";
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
-
 
 fn journey_case(name: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
@@ -57,7 +22,6 @@ fn journey_case(name: &str, args: &'static [&'static str], boot: &'static str) -
     )
 }
 
-
 fn journey_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -66,14 +30,9 @@ fn journey_dir(test: &str) -> PathBuf {
     dir
 }
 
-
-
-
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
-
-
 
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
@@ -94,7 +53,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     eprintln!("journey provenance ({file}): {body}");
 }
 
-
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -110,12 +68,6 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     std::fs::write(&path, body).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro journey; run with --ignored"]
@@ -147,7 +99,6 @@ fn journey_tablepro_connections_tree() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
 
-
     waits::wait_state(&mut s, "localhost:5432", "boot detail is Local");
     checkpoint(&mut s, &dir, "00-connections");
     support::drive_with_timeout(
@@ -158,10 +109,6 @@ fn journey_tablepro_connections_tree() {
     waits::wait_state(&mut s, "prod-db-1.acme.io", "Production detail card");
     waits::wait_state(&mut s, "acme_prod", "Production database");
 
-
-
-
-
     support::wait_screen(
         &mut s,
         support::DEFAULT_WAIT,
@@ -171,14 +118,6 @@ fn journey_tablepro_connections_tree() {
     checkpoint(&mut s, &dir, "01-production-detail");
     eprintln!("journey connections_tree: tree visited, Production detail proven");
 }
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro journey; run with --ignored"]
@@ -201,7 +140,6 @@ fn journey_tablepro_connection_form() {
     );
     checkpoint(&mut s, &dir, "02-form-filled");
 
-
     let case2 = journey_case("connection_form_clean", &[], BOOT_CONN);
     write_provenance_named(&dir, &case2, "provenance-clean.txt");
     let mut s2 = support::spawn_boot(&case2);
@@ -218,12 +156,6 @@ fn journey_tablepro_connection_form() {
     checkpoint(&mut s2, &dir, "03-clean-boot");
     eprintln!("journey connection_form: filled, proven, persisted nowhere");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro journey; run with --ignored"]
@@ -256,20 +188,11 @@ fn journey_tablepro_workbench_table_views() {
     checkpoint(&mut s, &dir, "01-data");
     support::press_step(&s, "ctrl-d");
 
-
-
     waits::wait_gone(&mut s, "10000", "data grid left");
     waits::wait_state(&mut s, "Foreign keys", "structure sub-tabs");
     checkpoint(&mut s, &dir, "02-structure");
     eprintln!("journey workbench_table_views: data then structure, both proven");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro journey; run with --ignored"]

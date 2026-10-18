@@ -1,4 +1,3 @@
-
 use ratatui_core::layout::Rect;
 
 use termrock_core::action::{Action, ActionKey};

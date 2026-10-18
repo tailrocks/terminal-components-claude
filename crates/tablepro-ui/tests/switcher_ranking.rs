@@ -1,6 +1,3 @@
-
-
-
 #[test]
 fn switcher_ranks_tables_first_and_prefix_first() -> Result<(), String> {
     let mut app = tablepro_ui::TableProApp::default();

@@ -1,31 +1,12 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use core::time::Duration;
 
 use termrock::{App, Id, StateFlags};
 
 use crate::harness::Harness;
 
-
-
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(8);
 
-
 const STEP: Duration = Duration::from_millis(10);
-
-
-
-
 
 pub fn wait_until<A: App>(
     h: &mut Harness<A>,
@@ -58,7 +39,6 @@ pub fn wait_until<A: App>(
     );
 }
 
-
 pub fn wait_for_text<A: App>(h: &mut Harness<A>, needle: &str, timeout: Duration) {
     assert!(!needle.is_empty(), "state wait: needle must not be empty");
     wait_until(
@@ -69,7 +49,6 @@ pub fn wait_for_text<A: App>(h: &mut Harness<A>, needle: &str, timeout: Duration
     );
 }
 
-
 pub fn wait_for_focus<A: App>(h: &mut Harness<A>, id: Id, timeout: Duration) {
     wait_until(
         h,
@@ -78,7 +57,6 @@ pub fn wait_for_focus<A: App>(h: &mut Harness<A>, id: Id, timeout: Duration) {
         &format!("focus on {id:?}"),
     );
 }
-
 
 pub fn wait_for_state<A: App>(h: &mut Harness<A>, id: Id, flags: StateFlags, timeout: Duration) {
     wait_until(

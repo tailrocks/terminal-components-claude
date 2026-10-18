@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -13,75 +11,6 @@ use crate::response::{Response, StateFlags};
 use crate::scroll::ScrollState;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct ScrollRegion<'a> {
     id: Id,
@@ -111,9 +40,7 @@ impl fmt::Debug for ScrollRegion<'_> {
 }
 
 impl<'a> ScrollRegion<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::TRACK, Part::THUMB, Part::CONTAINER];
-
 
     pub const fn new(id: Id) -> Self {
         ScrollRegion {
@@ -124,17 +51,11 @@ impl<'a> ScrollRegion<'a> {
         }
     }
 
-
-
-
-
-
     #[must_use]
     pub const fn scrollbar_visible(mut self, visible: bool) -> Self {
         self.scrollbar_visible = visible;
         self
     }
-
 
     pub const fn inherit_family(mut self, family: Family) -> Self {
         self.family = family;
@@ -146,13 +67,11 @@ impl<'a> ScrollRegion<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
-
 
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
@@ -160,14 +79,11 @@ impl<'a> ScrollRegion<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
-
 
     pub fn update(
         &self,
@@ -183,7 +99,6 @@ impl<'a> ScrollRegion<'a> {
         r.for_id(self.id)
     }
 
-
     pub fn prepare(&self, cx: &Cx<'_>, st: &mut ScrollState, content_len: usize) -> u16 {
         let viewport = cx
             .layout(self.id)
@@ -192,10 +107,6 @@ impl<'a> ScrollRegion<'a> {
         cx.layout(self.id)
             .map_or(viewport.min(usize::from(u16::MAX)) as u16, |l| l.rows)
     }
-
-
-
-
 
     pub fn handle_intent(
         &self,
@@ -253,9 +164,6 @@ impl<'a> ScrollRegion<'a> {
                 Response::consumed()
             }
             Phase::Press => {
-
-
-
                 let track_pos = usize::from(local.y);
                 st.scroll_to(st.offset_for_track_pos(track_pos, usize::from(track_len)));
                 moved(st.offset() != before)
@@ -268,8 +176,6 @@ impl<'a> ScrollRegion<'a> {
                     .or_else(|| cx.area(self.id))
                     .map_or(capture_area.y, |area| area.y);
                 if cx.capture_owner() != Some(self.id) {
-
-
                     let track_pos = usize::from(pos.y.saturating_sub(track_y));
                     st.scroll_to(st.offset_for_track_pos(track_pos, usize::from(track_len)));
                     return moved(st.offset() != before);
@@ -290,23 +196,17 @@ impl<'a> ScrollRegion<'a> {
         }
     }
 
-
-
-
     pub fn view(st: &ScrollState, area: Rect, content_len: usize) -> ScrollState {
         let mut v = *st;
         v.apply_layout(usize::from(area.height), content_len);
         v
     }
 
-
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &ScrollState, content_len: usize) -> Rect {
         if area.is_empty() {
             return area;
         }
         let view = Self::view(st, area, content_len);
-
 
         let container = self.ov.style(
             ui,
@@ -346,9 +246,6 @@ impl<'a> ScrollRegion<'a> {
     }
 
     fn paint_bar(&self, ui: &mut Ui<'_>, bar: Rect, view: &ScrollState) {
-
-
-
         let track_rect = bar;
         let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);
@@ -427,8 +324,6 @@ impl<'a> ScrollRegion<'a> {
         ui.register_part(self.id, PartRef::of(Part::TRACK), bar);
         ui.register_part(self.id, PartRef::of(Part::THUMB), thumb_rect);
     }
-
-
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {

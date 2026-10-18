@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui_core::style::{Color, Style};
 
 use super::Theme;
@@ -18,18 +9,6 @@ use super::role::{Align, MeterRole, Role, Surface, SyntaxRole};
 use crate::id::{Part, fnv1a};
 use crate::response::StateFlags;
 
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct PaintStyle {
     style: Style,
@@ -38,7 +17,6 @@ pub struct PaintStyle {
 }
 
 impl PaintStyle {
-
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -56,19 +34,15 @@ impl PaintStyle {
         }
     }
 
-
-
     #[must_use]
     pub const fn as_style(&self) -> &Style {
         &self.style
     }
 
-
     #[must_use]
     pub const fn into_style(self) -> Style {
         self.style
     }
-
 
     #[must_use]
     pub fn fg(mut self, color: Color) -> Self {
@@ -77,14 +51,12 @@ impl PaintStyle {
         self
     }
 
-
     #[must_use]
     pub fn bg(mut self, color: Color) -> Self {
         self.style = self.style.bg(color);
         self.bg_role = None;
         self
     }
-
 
     #[must_use]
     pub fn with_fg_from(mut self, other: Self) -> Self {
@@ -93,14 +65,12 @@ impl PaintStyle {
         self
     }
 
-
     #[must_use]
     pub fn with_bg_from(mut self, other: Self) -> Self {
         self.style.bg = other.style.bg;
         self.bg_role = other.bg_role;
         self
     }
-
 
     #[must_use]
     pub fn with_fg_from_bg(mut self, other: Self) -> Self {
@@ -109,7 +79,6 @@ impl PaintStyle {
         self
     }
 
-
     #[must_use]
     pub fn with_bg_from_fg(mut self, other: Self) -> Self {
         self.style.bg = other.style.fg;
@@ -117,13 +86,11 @@ impl PaintStyle {
         self
     }
 
-
     #[must_use]
     pub fn underline_color(mut self, color: Color) -> Self {
         self.style = self.style.underline_color(color);
         self
     }
-
 
     #[must_use]
     pub fn add_modifier(mut self, modifier: ratatui_core::style::Modifier) -> Self {
@@ -131,13 +98,11 @@ impl PaintStyle {
         self
     }
 
-
     #[must_use]
     pub fn remove_modifier(mut self, modifier: ratatui_core::style::Modifier) -> Self {
         self.style = self.style.remove_modifier(modifier);
         self
     }
-
 
     #[must_use]
     pub fn patch(mut self, other: impl Into<Self>) -> Self {
@@ -163,7 +128,6 @@ impl From<Style> for PaintStyle {
     }
 }
 
-
 impl std::ops::Deref for PaintStyle {
     type Target = Style;
     fn deref(&self) -> &Style {
@@ -171,25 +135,18 @@ impl std::ops::Deref for PaintStyle {
     }
 }
 
-
-
-
 #[derive(Clone, Copy, Debug, Default)]
 pub struct StyleDefaults<'a> {
-
     pub base: StylePatch,
-
 
     pub mono: &'a [super::MonoRule],
 }
 
 impl<'a> StyleDefaults<'a> {
-
     #[must_use]
     pub const fn new(base: StylePatch) -> Self {
         Self { base, mono: &[] }
     }
-
 
     #[must_use]
     pub const fn mono(mut self, rules: &'a [super::MonoRule]) -> Self {
@@ -198,14 +155,9 @@ impl<'a> StyleDefaults<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Resolved {
-
-
     pub style: PaintStyle,
-
-
 
     pub glyph: Slot<GlyphRole>,
 
@@ -215,16 +167,10 @@ pub struct Resolved {
 }
 
 impl Resolved {
-
-
-
-
-
     #[must_use]
     pub fn over(self, inherited: impl Into<PaintStyle>) -> PaintStyle {
         inherited.into().patch(self.style)
     }
-
 
     #[must_use]
     pub const fn metrics(self) -> PartMetrics {
@@ -236,14 +182,8 @@ impl Resolved {
     }
 }
 
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct PartMetrics {
-
-
-
     pub glyph: Slot<GlyphRole>,
 
     pub size: Option<u16>,
@@ -257,8 +197,6 @@ impl From<Resolved> for PartMetrics {
     }
 }
 
-
-
 pub(crate) fn metrics_of(acc: &StylePatch) -> PartMetrics {
     PartMetrics {
         glyph: acc.glyph,
@@ -266,7 +204,6 @@ pub(crate) fn metrics_of(acc: &StylePatch) -> PartMetrics {
         align: acc.align.get(),
     }
 }
-
 
 pub(crate) fn accumulate(
     theme: &Theme,
@@ -290,7 +227,6 @@ fn accumulate_defaults(
     let recipes = &theme.recipes;
 
     let (mut acc, variant) = apply_recipe(recipes.get_or_neutral(f), v, p, live, StylePatch::new());
-
 
     if theme.capability.color == super::ColorLevel::Mono {
         acc = super::downgrade::apply_mono_fallback(acc, recipes, f, p, live);
@@ -326,9 +262,6 @@ fn apply_recipe(
     );
     (acc, variant)
 }
-
-
-
 
 pub fn bind_defaults(
     theme: &Theme,
@@ -387,9 +320,6 @@ fn apply_explicit(
     acc
 }
 
-
-
-
 pub fn bind_inherited(
     theme: &Theme,
     (family, variant, part): (Family, Variant, Part),
@@ -411,7 +341,6 @@ pub fn bind_inherited(
     let mut result = bind(theme, defaults.merge(explicit), None, surface);
     let mut style = base.patch(inherited).patch(top);
 
-
     if !matches!(explicit.fg, Slot::Inherit) {
         style = style.with_fg_from(if top.fg.is_some() { top } else { inherited });
     }
@@ -425,9 +354,6 @@ pub fn bind_inherited(
     result
 }
 
-
-
-
 fn reference_lift(theme: &Theme, surface: Surface) -> Color {
     let bg = theme.bg(surface);
     if bg == theme.bg(Surface::Canvas) {
@@ -440,7 +366,6 @@ fn reference_lift(theme: &Theme, surface: Surface) -> Color {
         theme.bg(Surface::Popover)
     }
 }
-
 
 pub fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
     let c = &theme.color;
@@ -545,7 +470,6 @@ fn bind_slot(theme: &Theme, slot: Slot<Role>, surface: Surface) -> Option<Color>
     }
 }
 
-
 pub fn bind(
     theme: &Theme,
     acc: StylePatch,
@@ -586,28 +510,10 @@ fn canonical_role(theme: &Theme, role: Role) -> Role {
     }
 }
 
-
 const CACHE_SLOTS: usize = 256;
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 const WAYS: usize = 2;
 const CACHE_SETS: usize = CACHE_SLOTS / WAYS;
-
-
-
-
 
 #[derive(Clone, Debug)]
 pub struct StyleCache {
@@ -633,14 +539,6 @@ impl StyleCache {
         }
     }
 
-
-
-
-
-
-
-
-
     pub fn clear(&mut self) {
         if self.generation == u32::MAX {
             self.slots.fill((0, 0, StylePatch::new()));
@@ -649,9 +547,6 @@ impl StyleCache {
             self.generation = self.generation.saturating_add(1);
         }
     }
-
-
-
 
     #[cfg(any(test, feature = "testing"))]
     pub const fn stats(&self) -> (u64, u64) {
@@ -665,7 +560,6 @@ impl StyleCache {
         h = fnv1a(h, &live.bits().to_le_bytes());
         fnv1a(h, &stack_hash.to_le_bytes())
     }
-
 
     #[expect(
         clippy::too_many_arguments,
@@ -682,7 +576,6 @@ impl StyleCache {
         stack_hash: u64,
     ) -> StylePatch {
         let key = Self::key(f, v, p, live, stack_hash) | 1;
-
 
         let set = ((key >> 1) as usize) % CACHE_SETS;
         let base = set.saturating_mul(WAYS);
@@ -701,7 +594,6 @@ impl StyleCache {
         }
         let patch = accumulate(theme, f, v, p, live, overlays);
 
-
         for w in (1..WAYS).rev() {
             let prev = self
                 .slots
@@ -717,7 +609,6 @@ impl StyleCache {
         self.misses = self.misses.wrapping_add(1);
         patch
     }
-
 
     fn promote(&mut self, base: usize, w: usize) {
         let Some(hit) = self.slots.get(base.saturating_add(w)).copied() else {
@@ -737,7 +628,6 @@ impl StyleCache {
         }
     }
 }
-
 
 #[expect(
     clippy::too_many_arguments,
@@ -764,9 +654,6 @@ mod tests {
     use crate::theme::recipe::{GlobalOverride, OverlayRule, PartMap, PartRecipe};
     use crate::theme::role::FgStep;
     use ratatui_core::style::Modifier;
-
-
-
 
     fn theme_over(base: Theme) -> Theme {
         let mut t = base;
@@ -872,7 +759,6 @@ mod tests {
                 Some(t.color.accent)
             );
 
-
             assert_eq!(
                 label_fg(&t, StateFlags::FOCUSED, &[], None),
                 Some(t.color.warning)
@@ -920,10 +806,8 @@ mod tests {
             .style
         };
 
-
         assert_eq!(q(StateFlags::FOCUSED).fg, Some(t.color.success));
         assert_eq!(q(StateFlags::FOCUSED).bg, Some(t.color.accent_tint));
-
 
         let both = StateFlags::FOCUSED | StateFlags::HOVERED;
         assert_eq!(q(both).fg, Some(t.color.info));
@@ -1063,9 +947,6 @@ mod tests {
         assert!(r.apply(StylePatch::new(), StateFlags::empty()).is_empty());
     }
 
-
-
-
     #[test]
     fn cache_generation_wrap_does_not_serve_a_stale_entry() {
         let t = theme();
@@ -1085,8 +966,6 @@ mod tests {
         assert_eq!(c.generation, 1, "a fresh cache stamps at generation 1");
         let seeded = query(&mut c);
         assert_eq!(c.stats(), (0, 1), "the first query is a miss");
-
-
 
         c.generation = u32::MAX;
         c.clear();

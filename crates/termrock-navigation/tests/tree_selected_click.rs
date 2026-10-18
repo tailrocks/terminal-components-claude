@@ -1,4 +1,3 @@
-
 use std::time::Duration;
 use termrock_core::{Id, ItemKey, KeyCode, MouseKind, Response};
 use termrock_navigation::{Tree, TreeAction, TreeBranchClick, TreeNode, TreeState};

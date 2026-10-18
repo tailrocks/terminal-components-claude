@@ -1,10 +1,7 @@
-
-
 use crate::filter_editor::Filter;
 use crate::tabs::{self, ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TabRecord, TableTab};
 use tablepro_demo::db::{Catalog, Connection, ObjectKind};
 use tablepro_domain::model::{History, HistoryEntry, HistorySource, SwitcherIndex};
-
 
 #[derive(Debug)]
 pub struct Workbench {
@@ -36,7 +33,6 @@ pub struct Workbench {
 }
 
 impl Workbench {
-
     pub fn new(connection: Connection, catalog: Catalog) -> Self {
         Self {
             owner: std::sync::Arc::new(()),
@@ -64,7 +60,6 @@ impl Workbench {
         &self.schema_caption
     }
 
-
     pub fn select_schema(&mut self, schema: &str) -> bool {
         if !self
             .catalog
@@ -80,7 +75,6 @@ impl Workbench {
         self.explorer_selected = 0;
         true
     }
-
 
     pub fn visible_explorer(&self) -> Vec<(usize, &ExplorerItem)> {
         let query = self.explorer_filter.to_ascii_lowercase();
@@ -106,7 +100,6 @@ impl Workbench {
         self.open_table_in_schema("public", name)
     }
 
-
     pub fn open_table_in_schema(&mut self, schema: &str, name: &str) -> bool {
         if let Some(key) = self.tabs.iter().find_map(|record| match record.payload() {
             Tab::Table(tab) if tab.table.schema == schema && tab.table.name == name => {
@@ -123,7 +116,6 @@ impl Workbench {
         let payload = Tab::Table(TableTab::new(table, &self.catalog));
         self.insert_tab(self.tabs.len(), payload).is_some()
     }
-
 
     pub fn open_explorer_item(&mut self, item: &ExplorerItem) -> bool {
         self.open_table_in_schema(&item.schema, &item.name)
@@ -144,7 +136,6 @@ impl Workbench {
         self.next_tab_key.is_some()
     }
 
-
     pub fn insert_tab(&mut self, index: usize, payload: Tab) -> Option<TabKey> {
         if index > self.tabs.len() {
             return None;
@@ -157,11 +148,9 @@ impl Workbench {
         Some(key)
     }
 
-
     pub fn tabs(&self) -> &[TabRecord] {
         &self.tabs
     }
-
 
     pub fn tab(&self, key: TabKey) -> Option<&Tab> {
         self.tabs
@@ -169,8 +158,6 @@ impl Workbench {
             .find(|record| record.key() == key)
             .map(TabRecord::payload)
     }
-
-
 
     pub fn tab_mut(&mut self, key: TabKey) -> Option<&mut Tab> {
         self.tabs
@@ -215,7 +202,6 @@ impl Workbench {
                 .all(|(key, generation)| self.generation(*key) == Some(*generation))
     }
 
-
     pub fn reorder_tabs(&mut self, keys: &[TabKey]) -> bool {
         if keys.len() != self.tabs.len() {
             return false;
@@ -241,7 +227,6 @@ impl Workbench {
         true
     }
 
-
     pub fn new_query(&mut self, query: impl Into<String>) -> Option<TabKey> {
         let number = self.query_counter.checked_add(1)?;
         let key = self.insert_tab(self.tabs.len(), Tab::Query(QueryTab::new(number, query)))?;
@@ -266,7 +251,6 @@ impl Workbench {
         self.close_tab_confirmed(tab.key())
     }
 
-
     pub(crate) fn close_tab_confirmed(&mut self, key: TabKey) -> bool {
         let Some(index) = self.tabs.iter().position(|tab| tab.key() == key) else {
             return false;
@@ -280,7 +264,6 @@ impl Workbench {
         }
         true
     }
-
 
     pub fn active_key(&self) -> Option<TabKey> {
         self.active_index()
@@ -309,7 +292,6 @@ impl Workbench {
         true
     }
 
-
     pub fn has_unsaved_work(&self) -> bool {
         self.tabs.iter().any(TabRecord::dirty)
     }
@@ -320,11 +302,9 @@ impl Workbench {
         self.next_tab_key = next_tab_key;
     }
 
-
     pub fn active_grid(&self) -> Option<(termrock::Id, &tabs::GridView)> {
         self.tabs.get(self.active_index()?)?.grid()
     }
-
 
     pub fn active_grid_mut(&mut self) -> Option<(termrock::Id, &mut tabs::GridView)> {
         let index = self.active_index()?;
@@ -371,11 +351,6 @@ impl Workbench {
     pub const fn toggle_maximized(&mut self) {
         self.maximized = !self.maximized;
     }
-
-
-
-
-
 
     pub fn execute_active(&mut self) -> Result<usize, String> {
         let (query, source) = match self.active() {

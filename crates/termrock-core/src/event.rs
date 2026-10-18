@@ -1,19 +1,10 @@
-
-
-
-
-
-
-
 use core::fmt;
 
 pub use crate::keys::{KeyCode, KeyModifiers};
 use ratatui_core::layout::Position;
 
-
 #[derive(Clone, PartialEq, Eq)]
 pub enum Input {
-
     Key(Key),
 
     Mouse(Mouse),
@@ -47,17 +38,14 @@ impl Drop for Input {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Key {
-
     pub code: KeyCode,
 
     pub mods: KeyModifiers,
 }
 
 impl Key {
-
     pub const fn chord(&self) -> Chord {
         Chord {
             code: self.code,
@@ -65,26 +53,21 @@ impl Key {
         }
     }
 
-
     pub fn is(&self, c: KeyCode) -> bool {
         self.code == c && self.mods.difference(KeyModifiers::SHIFT).is_empty()
     }
-
 
     pub const fn ctrl(&self) -> bool {
         self.mods.contains(KeyModifiers::CONTROL)
     }
 
-
     pub const fn alt(&self) -> bool {
         self.mods.contains(KeyModifiers::ALT)
     }
 
-
     pub const fn shift(&self) -> bool {
         self.mods.contains(KeyModifiers::SHIFT)
     }
-
 
     pub const fn bare_char(&self) -> Option<char> {
         match self.code {
@@ -94,20 +77,14 @@ impl Key {
     }
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Chord {
-
     pub code: KeyCode,
 
     pub mods: KeyModifiers,
 }
 
 impl Chord {
-
     pub const fn key(c: KeyCode) -> Chord {
         Chord {
             code: c,
@@ -115,22 +92,14 @@ impl Chord {
         }
     }
 
-
     pub const fn with(c: KeyCode, m: KeyModifiers) -> Chord {
         Chord { code: c, mods: m }
     }
-
-
 
     pub const fn is_bare_char(&self) -> bool {
         matches!(self.code, KeyCode::Char(_))
             && self.mods.difference(KeyModifiers::SHIFT).is_empty()
     }
-
-
-
-
-
 
     pub fn effective_eq(&self, other: &Chord) -> bool {
         if self.code != other.code {
@@ -142,8 +111,6 @@ impl Chord {
             self.mods == other.mods
         }
     }
-
-
 
     pub fn matches(&self, k: &Key) -> bool {
         self.effective_eq(&k.chord())
@@ -184,10 +151,8 @@ impl fmt::Display for Chord {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Mouse {
-
     pub kind: MouseKind,
 
     pub pos: Position,
@@ -195,11 +160,8 @@ pub struct Mouse {
     pub mods: KeyModifiers,
 }
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MouseKind {
-
     Move,
 
     Down,
@@ -215,19 +177,14 @@ pub enum MouseKind {
     Wheel(Axis, i16),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Axis {
-
     V,
 
     H,
 }
 
 impl Input {
-
-
-
     #[cfg(feature = "crossterm")]
     pub fn from_crossterm(ev: ratatui_crossterm::crossterm::event::Event) -> Option<Self> {
         use ratatui_crossterm::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
@@ -306,8 +263,6 @@ mod tests {
     #[test]
     #[cfg(feature = "crossterm")]
     fn key_release_is_dropped() {
-
-
         assert_eq!(
             Input::from_crossterm(key_event(KeyCode::Enter, KeyEventKind::Release)),
             None
@@ -571,14 +526,12 @@ mod backend_keys {
 
     impl From<backend::KeyModifiers> for KeyModifiers {
         fn from(value: backend::KeyModifiers) -> Self {
-
             Self::from_bits_retain(value.bits())
         }
     }
 
     impl From<KeyModifiers> for backend::KeyModifiers {
         fn from(value: KeyModifiers) -> Self {
-
             Self::from_bits_retain(value.bits())
         }
     }

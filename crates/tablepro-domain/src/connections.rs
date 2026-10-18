@@ -1,5 +1,3 @@
-
-
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -12,13 +10,10 @@ use termrock::{
 
 use tablepro_demo::db::{self, ConnectOutcome, Connection, Engine, Environment, SafeMode};
 
-
 pub const FORM: Id = Id::root("tablepro.connections.form");
-
 
 pub mod field {
     use termrock::Id;
-
 
     pub const NAME: Id = Id::root("tablepro.connections.form.name");
 
@@ -51,11 +46,9 @@ pub mod field {
     pub const STARTUP: Id = Id::root("tablepro.connections.form.startup");
 }
 
-
 pub const TEST: ActionKey = ActionKey::application("tablepro.connections.test");
 
 pub const SAVE_CONNECT: ActionKey = ActionKey::application("tablepro.connections.save-connect");
-
 
 pub const ENGINES: &[&str] = &["PostgreSQL", "MySQL", "SQLite"];
 
@@ -72,7 +65,6 @@ pub const SAFE_MODES: &[&str] = &[
     "Read-Only",
 ];
 
-
 pub const fn default_port(engine: usize) -> &'static str {
     match engine {
         0 => "5432",
@@ -88,7 +80,6 @@ fn valid_port(value: &str) -> Result<(), termrock::FieldError> {
         Err(termrock::FieldError::coded("Enter a valid port", "port"))
     }
 }
-
 
 pub fn form_fields() -> [FieldSpec<'static>; 15] {
     use field::{
@@ -163,7 +154,6 @@ pub fn form_fields() -> [FieldSpec<'static>; 15] {
     ]
 }
 
-
 pub fn form_actions() -> [Action<'static>; 4] {
     [
         Action::quiet(TEST, "Test connection"),
@@ -176,11 +166,8 @@ pub fn form_actions() -> [Action<'static>; 4] {
     ]
 }
 
-
-
 #[derive(Debug, Default)]
 pub struct ConnectionDraft {
-
     pub name: String,
 
     pub engine: usize,
@@ -213,7 +200,6 @@ pub struct ConnectionDraft {
 }
 
 impl ConnectionDraft {
-
     pub fn from_connection(connection: &Connection) -> Self {
         Self {
             name: connection.name.clone(),
@@ -249,11 +235,6 @@ impl ConnectionDraft {
         }
     }
 
-
-
-
-
-
     pub fn validate_all(&self) -> Result<(), (Id, termrock::FieldError)> {
         use field::{DATABASE, NAME, PORT};
         if self.name.trim().is_empty() {
@@ -270,7 +251,6 @@ impl ConnectionDraft {
         }
         valid_port(&self.port).map_err(|e| (PORT, e))
     }
-
 
     pub fn to_connection(&self, base: Option<&Connection>) -> Option<Connection> {
         let port = if self.port.is_empty() {
@@ -312,7 +292,6 @@ impl ConnectionDraft {
             outcome: base.map_or(ConnectOutcome::Ok, |c| c.outcome),
         })
     }
-
 
     pub fn has_password(&self) -> bool {
         !self.password.is_empty()
@@ -417,10 +396,8 @@ impl FormData for ConnectionDraft {
     }
 }
 
-
 #[derive(Debug)]
 pub struct ConnectionsScreen {
-
     pub connections: Vec<Connection>,
 
     pub selected: usize,
@@ -431,7 +408,6 @@ pub struct ConnectionsScreen {
 }
 
 impl ConnectionsScreen {
-
     pub fn new(connections: Vec<Connection>) -> Self {
         Self {
             connections,

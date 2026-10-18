@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #![cfg_attr(
     test,
     allow(
@@ -43,12 +29,8 @@ use termrock_runtime::{App, Cx, ReferenceState, ReferenceTarget, RowUi, Status, 
 use termrock_test_support::Harness;
 use termrock_theme::{Family, Theme, Variant};
 
-
-
 const BUTTONS: Id = Id::root("showcase.buttons");
 const MATRIX: Id = Id::root("showcase.buttons.matrix");
-
-
 
 const SPECS: [(&str, Variant, bool, Option<bool>); 9] = [
     ("Run task", Variant::PRIMARY, false, None),
@@ -68,9 +50,6 @@ const GROUPS: [(&str, &[usize]); 4] = [
     ("Disabled", &[6, 7]),
     ("Busy", &[8]),
 ];
-
-
-
 
 const MATRIX_STATES: [(&str, StateFlags); 6] = [
     ("default", StateFlags::empty()),
@@ -115,7 +94,6 @@ fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
 
 const LONG_JOB: usize = 8;
 
-
 #[derive(Default)]
 struct ButtonsPage {
     checked: [Option<bool>; 9],
@@ -136,7 +114,6 @@ impl ButtonsPage {
         }
         p
     }
-
 
     fn button(&self, i: usize) -> Button<'static> {
         let (label, variant, disabled, _) = SPECS[i];
@@ -167,7 +144,6 @@ impl ButtonsPage {
         }
     }
 }
-
 
 fn caption(ui: &mut Ui<'_>, area: Rect, text: &str) {
     ui.with_part(
@@ -231,7 +207,6 @@ impl App for ButtonsPage {
 }
 
 impl ButtonsPage {
-
     fn draw_playground(&self, ui: &mut Ui<'_>, area: Rect) {
         let gap = ui.design().space.gap;
         let mut y = area.y;
@@ -271,8 +246,6 @@ impl ButtonsPage {
             y += 3;
         }
     }
-
-
 
     fn draw_matrix(ui: &mut Ui<'_>, area: Rect) {
         let label_w = 15u16;
@@ -341,12 +314,6 @@ fn page() -> Harness<ButtonsPage> {
     Harness::new(ButtonsPage::new(), Theme::junie(), 120, 40)
 }
 
-
-
-
-
-
-
 #[test]
 fn tab_traversal_is_deterministic_and_wraps() {
     let mut h = page();
@@ -359,7 +326,6 @@ fn tab_traversal_is_deterministic_and_wraps() {
             .collect::<Vec<_>>(),
         "the ring is registration order with the two disabled buttons skipped"
     );
-
 
     let start = h.focus().expect("the first control takes focus");
     assert_eq!(start, button_id(0));
@@ -376,7 +342,6 @@ fn tab_traversal_is_deterministic_and_wraps() {
     assert_eq!(seen.len(), 7, "seven enabled buttons, two disabled skipped");
     assert_eq!(seen, reachable);
 
-
     let mut back = Vec::new();
     for _ in 0..seen.len() {
         let _ = h.key_mod(KeyCode::BackTab, KeyModifiers::NONE);
@@ -386,9 +351,6 @@ fn tab_traversal_is_deterministic_and_wraps() {
     expected.reverse();
     assert_eq!(back, expected);
 }
-
-
-
 
 #[test]
 fn disabled_buttons_are_skipped_and_cannot_activate() {
@@ -405,7 +367,6 @@ fn disabled_buttons_are_skipped_and_cannot_activate() {
     assert!(!h.text().contains("Disabled primary ✓"));
     assert_eq!(h.focus(), before, "clicking it does not move focus to it");
 
-
     let a = h.area_of(disabled).expect("the disabled button drew");
     let _ = h.mouse(MouseKind::Move, a.x + 2, a.y);
     assert_eq!(
@@ -415,7 +376,6 @@ fn disabled_buttons_are_skipped_and_cannot_activate() {
     );
     assert_eq!(h.app().clicks, 0);
 }
-
 
 #[test]
 fn mouse_click_activates_and_keyboard_enter_activates() {
@@ -430,12 +390,9 @@ fn mouse_click_activates_and_keyboard_enter_activates() {
     assert_eq!(h.app().last.as_deref(), Some("Preview ✓"));
     assert_eq!(h.app().clicks, 2);
 
-
     let _ = h.key(KeyCode::Char(' '));
     assert_eq!(h.app().clicks, 3);
 }
-
-
 
 const NAME: Id = Id::root("roster.name");
 const ADD: Id = Id::root("roster.add");
@@ -443,10 +400,6 @@ const PEOPLE: Id = Id::root("roster.people");
 const CONFIRM: Id = Id::root("roster.confirm");
 const K_YES: ActionKey = ActionKey::CONFIRM;
 const K_NO: ActionKey = ActionKey::CANCEL;
-
-
-
-
 
 #[derive(Default)]
 struct Roster {
@@ -474,8 +427,6 @@ fn people_list()
 
 const REMOVE_ACTIONS: [Action<'static>; 2] =
     [Action::new(K_NO, "Keep"), Action::danger(K_YES, "Remove")];
-
-
 
 fn remove_dialog() -> Dialog<'static> {
     Dialog::destructive(
@@ -507,21 +458,6 @@ impl App for Roster {
                     cx.open_layer(CONFIRM, remove_dialog().layer(cx));
                 }
             });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         r |= remove_dialog().update(cx, &mut self.dlg).on_action(|a| {
             if let DialogAction::Action(K_YES) = a
@@ -573,21 +509,13 @@ fn assert_clean(diags: &[Diagnostic], where_: &str) {
     }
 }
 
-
-
-
-
-
-
 #[test]
 fn no_diagnostics_are_emitted_during_the_journey() {
-
     let mut h = Harness::new(Roster::default(), Theme::junie(), 100, 30);
     assert_clean(h.diagnostics(), "roster: first frame");
     let step = |h: &mut Harness<Roster>, label: &'static str| {
         assert_clean(h.diagnostics(), label);
     };
-
 
     assert_eq!(h.focus(), Some(NAME));
     let _ = h.type_str("Ada");
@@ -627,7 +555,6 @@ fn no_diagnostics_are_emitted_during_the_journey() {
     step(&mut h, "roster: confirm the removal");
     assert_eq!(h.app().people.len(), 1, "{}", h.text());
 
-
     let mut b = page();
     assert_clean(b.diagnostics(), "buttons: first frame");
     for _ in 0..9 {
@@ -649,7 +576,6 @@ fn no_diagnostics_are_emitted_during_the_journey() {
     b.ticks(30);
     assert_clean(b.diagnostics(), "buttons: the long job finishes");
     assert_eq!(b.app().last.as_deref(), Some("Long job finished ✓"));
-
 
     assert!(b.area_of(MATRIX.index(0).index(0)).is_none());
 }

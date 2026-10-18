@@ -1,5 +1,3 @@
-
-
 use std::io::{self, Write};
 
 use termrock::{ColorLevel, Theme};
@@ -32,11 +30,6 @@ enum Command {
         connect: Option<String>,
     },
 }
-
-
-
-
-
 
 pub fn run() -> io::Result<()> {
     match parse_args(std::env::args().skip(1), ColorLevel::detect())? {
@@ -82,7 +75,6 @@ fn parse_args(args: impl IntoIterator<Item = String>, detected: ColorLevel) -> i
                     _ => return Err(invalid_arg("--color must be truecolor, 256, 16, or none")),
                 };
             }
-
 
             "--connect" => connect = args.next(),
             "-h" | "--help" => return Ok(Command::Help),

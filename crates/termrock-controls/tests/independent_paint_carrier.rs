@@ -1,4 +1,3 @@
-
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::layout::Rect;
 use ratatui_core::style::{Color, Style};
@@ -85,7 +84,6 @@ fn independent_right_alignment_moves_unpatched_ghost_origin() {
         }
         ui.dim_layer(area, 1);
     });
-
 
     for x in [9, 10] {
         assert_eq!(

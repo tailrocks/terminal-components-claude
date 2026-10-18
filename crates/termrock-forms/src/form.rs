@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 use std::borrow::Cow;
 
@@ -29,10 +27,8 @@ use termrock_navigation::chip::{ChipBarState, LabelChips};
 use termrock_overlays::select::{LabelSelect, SelectAction, SelectState};
 use termrock_runtime::scroll_region::ScrollRegion;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FieldSpan {
-
     Full,
 
     Half,
@@ -40,23 +36,18 @@ pub enum FieldSpan {
 
 pub use termrock_controls::choice::InheritedFormState;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct GroupKey(u16);
 
 impl GroupKey {
-
     pub const ALL: GroupKey = GroupKey(0);
-
 
     pub const fn custom(name: &'static str) -> GroupKey {
         GroupKey(1 | ((fnv1a(0xcbf2_9ce4_8422_2325, name.as_bytes()) as u16) & 0x7fff))
     }
 }
 
-
 pub enum FieldKind<'a> {
-
     Text(TextInput<'a>),
 
     Area(TextArea<'a>),
@@ -92,9 +83,7 @@ impl fmt::Debug for FieldKind<'_> {
     }
 }
 
-
 pub struct FieldSpec<'a> {
-
     pub id: Id,
 
     pub label: &'a str,
@@ -128,7 +117,6 @@ impl fmt::Debug for FieldSpec<'_> {
 }
 
 impl<'a> FieldSpec<'a> {
-
     pub const fn new(id: Id, label: &'a str, kind: FieldKind<'a>) -> Self {
         FieldSpec {
             id,
@@ -142,13 +130,11 @@ impl<'a> FieldSpec<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn required(mut self, yes: bool) -> Self {
         self.required = yes;
         self
     }
-
 
     #[must_use]
     pub const fn help(mut self, text: &'a str) -> Self {
@@ -156,20 +142,17 @@ impl<'a> FieldSpec<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn span(mut self, span: FieldSpan) -> Self {
         self.span = span;
         self
     }
 
-
     #[must_use]
     pub const fn group(mut self, group: GroupKey) -> Self {
         self.group = group;
         self
     }
-
 
     #[must_use]
     pub const fn plain(mut self, yes: bool) -> Self {
@@ -178,9 +161,7 @@ impl<'a> FieldSpec<'a> {
     }
 }
 
-
 pub enum FieldMut<'d> {
-
     Text(&'d mut String),
 
     Secret(&'d mut Secret),
@@ -207,9 +188,7 @@ impl fmt::Debug for FieldMut<'_> {
     }
 }
 
-
 pub enum FieldRef<'d> {
-
     Text(&'d str),
 
     Secret(&'d Secret),
@@ -221,7 +200,6 @@ pub enum FieldRef<'d> {
     Chips(&'d KeySet),
 
     Display {
-
         value: &'d str,
 
         detail: Option<&'d str>,
@@ -244,68 +222,49 @@ impl fmt::Debug for FieldRef<'_> {
     }
 }
 
-
 pub trait FormData {
-
     fn value(&self, id: Id) -> FieldRef<'_>;
 
     fn value_mut(&mut self, id: Id) -> FieldMut<'_>;
-
 
     fn options(&self, _id: Id) -> &[&str] {
         &[]
     }
 
-
     fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
         (self.value_mut(id), &[])
     }
-
 
     fn visible(&self, _id: Id) -> bool {
         true
     }
 
-
     fn disabled(&self, _id: Id) -> bool {
         false
     }
-
 
     fn error(&self, _id: Id) -> Option<&str> {
         None
     }
 
-
-
-
-
     fn validate(&self, _id: Id, _value: FieldRef<'_>) -> Result<(), FieldError> {
         Ok(())
     }
-
-
-
-
 
     fn validate_all(&self) -> Result<(), (Id, FieldError)> {
         Ok(())
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EnterPolicy {
-
     SubmitsWhenIdle,
 
     Never,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FormAction {
-
     Changed(Id),
 
     Committed(Id),
@@ -462,7 +421,6 @@ impl fmt::Debug for FieldSlot {
     }
 }
 
-
 #[derive(Default)]
 pub struct FormState {
     slots: Vec<FieldSlot>,
@@ -525,21 +483,13 @@ impl fmt::Debug for FormState {
 }
 
 impl FormState {
-
     pub const fn is_dirty(&self) -> bool {
         self.dirty
     }
 
-
     pub fn mark_clean(&mut self) {
         self.dirty = false;
     }
-
-
-
-
-
-
 
     pub fn error(&self, id: Id) -> Option<&FieldError> {
         self.errors
@@ -554,9 +504,7 @@ impl FormState {
             })
     }
 
-
     pub fn set_error(&mut self, id: Id, error: Option<FieldError>) {
-
         let sensitivity = self.slot_sensitivity(id).filter(|sensitive| *sensitive);
         self.set_error_with_sensitivity(id, error, sensitivity);
     }
@@ -648,18 +596,15 @@ impl FormState {
         }
     }
 
-
     pub fn clear_errors(&mut self) {
         for (_, error) in self.errors.drain(..) {
             error.discard();
         }
     }
 
-
     pub fn reveal(&mut self, id: Id) {
         self.reveal = Some(id);
     }
-
 
     pub fn zeroize(&mut self) {
         for slot in &mut self.slots {
@@ -744,82 +689,6 @@ impl FormState {
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Form<'a> {
     id: Id,
@@ -929,7 +798,6 @@ impl Placements<'_, '_> {
 }
 
 impl<'a> Form<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BODY,
@@ -939,7 +807,6 @@ impl<'a> Form<'a> {
         Part::TRACK,
         Part::THUMB,
     ];
-
 
     pub const fn new(id: Id, fields: &'a [FieldSpec<'a>]) -> Self {
         Form {
@@ -955,13 +822,11 @@ impl<'a> Form<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn actions(mut self, actions: &'a [Action<'a>]) -> Self {
         self.actions = actions;
         self
     }
-
 
     #[must_use]
     pub const fn submit(mut self, key: ActionKey) -> Self {
@@ -969,13 +834,11 @@ impl<'a> Form<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn enter(mut self, policy: EnterPolicy) -> Self {
         self.enter = policy;
         self
     }
-
 
     #[must_use]
     pub const fn columns(mut self, columns: u8) -> Self {
@@ -983,13 +846,11 @@ impl<'a> Form<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn group(mut self, group: GroupKey) -> Self {
         self.group = group;
         self
     }
-
 
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
@@ -1250,7 +1111,6 @@ impl<'a> Form<'a> {
         FormAction::Action(self.submit)
     }
 
-
     pub fn update<D: FormData + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -1385,7 +1245,6 @@ impl<'a> Form<'a> {
             error
         }
     }
-
 
     pub fn draw<D: FormData + ?Sized>(
         &self,
@@ -1687,7 +1546,6 @@ impl<'a> Form<'a> {
             ..area
         }
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         let rows = self

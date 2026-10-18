@@ -1,6 +1,3 @@
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContainerState {
     Running,
@@ -46,8 +43,6 @@ pub struct Container {
     pub health: Option<Health>,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Resource {
     pub id: String,
@@ -63,8 +58,6 @@ pub struct DockerState {
     pub volume_inventory: Vec<Resource>,
     pub cache_bytes: u64,
 }
-
-
 
 pub struct DockerFixture {
     pub containers: Vec<Container>,
@@ -88,7 +81,6 @@ impl DockerFixture {
             .iter()
             .filter(|c| c.state == ContainerState::Exited)
             .count();
-
 
         let stopped_size = if exited == 0 {
             0
@@ -211,7 +203,6 @@ impl DockerState {
     pub fn build_cache_bytes(&self) -> u64 {
         self.cache_bytes
     }
-
 
     fn validate_network_bytes(&self) -> Result<(), crate::accounting::InventoryError> {
         if self

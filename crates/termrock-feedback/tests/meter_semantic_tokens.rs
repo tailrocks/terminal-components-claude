@@ -1,4 +1,3 @@
-
 use ratatui_core::style::Color;
 use termrock::theme::downgrade_color;
 use termrock::{ColorLevel, Id, Meter, MeterFillRest, MeterVisual, Surface, Theme};
@@ -262,7 +261,6 @@ fn quantized_aliases_follow_pinned_ordered_lift() {
         );
     }
 }
-
 
 fn pinned_lift(theme: &Theme, surface: Surface) -> Color {
     let bg = theme.bg(surface);

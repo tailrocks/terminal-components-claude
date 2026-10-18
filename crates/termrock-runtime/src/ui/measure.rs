@@ -1,12 +1,8 @@
-
-
 use super::Ui;
 
 use crate::measure::{Constraints, Size};
 
-
 pub trait Measure {
-
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size;
 }
 
@@ -29,7 +25,6 @@ mod tests {
         width: 40,
         height: 6,
     };
-
 
     fn with_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, FrameState) {
         let mut frame = FrameState::default();
@@ -72,9 +67,6 @@ mod tests {
         StylePatch::new().set_fg(Role::Warning),
     )];
 
-
-
-
     #[test]
     fn ui_resolve_equals_ui_style_for_every_family_variant_part() {
         for theme in [Theme::junie(), Theme::paper()] {
@@ -94,7 +86,6 @@ mod tests {
                             }
                         }
 
-
                         let cf = Family::custom("drift");
                         assert_eq!(
                             ui.resolve(cf, Variant::DEFAULT, Part::LABEL, StateFlags::FOCUSED),
@@ -110,10 +101,6 @@ mod tests {
             });
         }
     }
-
-
-
-
 
     #[test]
     fn measure_records_no_roles_and_no_styled_parts() {
@@ -132,8 +119,6 @@ mod tests {
         assert!(frame.styled_parts.is_empty() && frame.styled_queries.is_empty());
         let _ = frame;
     }
-
-
 
     #[cfg(feature = "testing")]
     #[test]
@@ -154,8 +139,6 @@ mod tests {
             assert_eq!(ui.style_cache_stats(), before);
         });
     }
-
-
 
     #[test]
     fn natural_width_follows_the_themed_glyph() {
@@ -185,13 +168,9 @@ mod tests {
         let b = Gutterful { label: "Save" };
         let c = Constraints::loose(40, 3);
 
-
         let junie = Theme::junie();
         let (rest, _) = with_ui(&junie, |ui| b.measure(ui, c));
         assert_eq!(rest.preferred.0, 6);
-
-
-
 
         let mut wide = Theme::junie();
         wide.design.glyphs.set(GlyphRole::FocusBar, "██");
@@ -211,9 +190,6 @@ mod tests {
         };
         assert_eq!(measure_focused(&wide), measure_focused(&narrow) + 1);
     }
-
-
-
 
     #[test]
     fn metrics_are_surface_independent() {

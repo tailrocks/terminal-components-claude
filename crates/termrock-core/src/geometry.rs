@@ -1,12 +1,5 @@
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Headroom {
-
     pub up: u16,
 
     pub down: u16,
@@ -16,10 +9,8 @@ pub struct Headroom {
     pub right: u16,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Axes {
-
     #[default]
     V,
 
@@ -29,7 +20,6 @@ pub enum Axes {
 }
 
 impl Axes {
-
     pub const fn handles(self, axis: crate::event::Axis) -> bool {
         matches!(
             (self, axis),

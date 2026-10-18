@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -25,20 +14,15 @@ use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
-
 const BALANCED: u8 = 50;
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SplitAction {
-
     Resized(u8),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SplitCmd {
-
     Shrink,
 
     Grow,
@@ -104,12 +88,6 @@ const VERTICAL: &[Binding<SplitCmd>] = &[
     ),
 ];
 
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SplitPaneState {
     percent: u8,
@@ -126,8 +104,6 @@ impl Default for SplitPaneState {
 }
 
 impl SplitPaneState {
-
-
     pub const fn new(percent: u8) -> Self {
         SplitPaneState {
             percent: clamp_percent(percent),
@@ -135,23 +111,17 @@ impl SplitPaneState {
         }
     }
 
-
     pub const fn percent(&self) -> u8 {
         self.percent
     }
-
-
 
     pub const fn set_percent(&mut self, p: u8) {
         self.percent = clamp_percent(p);
     }
 
-
     pub const fn maximized(&self) -> Maximized {
         self.maximized
     }
-
-
 
     pub fn toggle_max(&mut self, which: Maximized) {
         self.maximized = if self.maximized == which {
@@ -168,94 +138,6 @@ enum SeamAlign {
     Center,
     End,
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct SplitPane<'a> {
     id: Id,
@@ -286,9 +168,7 @@ impl fmt::Debug for SplitPane<'_> {
 }
 
 impl<'a> SplitPane<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::SEAM];
-
 
     pub const fn new(id: Id, axis: SplitAxis) -> Self {
         SplitPane {
@@ -304,12 +184,9 @@ impl<'a> SplitPane<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
-
 
     #[must_use]
     pub const fn gap(mut self, g: u16) -> Self {
@@ -317,15 +194,11 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn seam_start(mut self, width: u16) -> Self {
         self.seam = Some((width, SeamAlign::Start));
         self
     }
-
-
 
     #[must_use]
     pub const fn seam_center(mut self, width: u16) -> Self {
@@ -333,14 +206,11 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn seam_end(mut self, width: u16) -> Self {
         self.seam = Some((width, SeamAlign::End));
         self
     }
-
 
     #[must_use]
     pub const fn min_first(mut self, n: u16) -> Self {
@@ -348,14 +218,11 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn min_second(mut self, n: u16) -> Self {
         self.min_second = n;
         self
     }
-
-
 
     #[must_use]
     pub const fn resizable(mut self, yes: bool) -> Self {
@@ -363,14 +230,11 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -378,13 +242,11 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -392,19 +254,15 @@ impl<'a> SplitPane<'a> {
         self
     }
 
-
     const fn model(&self, st: SplitPaneState) -> SplitModel {
         let mut m = SplitModel::new(self.axis, st.percent, self.min_first, self.min_second);
         m.maximized = st.maximized;
         m
     }
 
-
     pub(crate) fn panes(&self, st: SplitPaneState, area: Rect) -> (Rect, Rect) {
         self.model(st).layout(area, self.gap)
     }
-
-
 
     pub(crate) fn seam(&self, st: SplitPaneState, area: Rect) -> Rect {
         let mut seam = self.model(st).handle(area, self.gap);
@@ -434,8 +292,6 @@ impl<'a> SplitPane<'a> {
         seam
     }
 
-
-
     const fn table(&self) -> &'static [Binding<SplitCmd>] {
         if self.disabled || !self.resizable {
             return &[];
@@ -445,7 +301,6 @@ impl<'a> SplitPane<'a> {
             SplitAxis::Vertical => VERTICAL,
         }
     }
-
 
     fn apply(
         &self,
@@ -464,7 +319,6 @@ impl<'a> SplitPane<'a> {
             acc.action(SplitAction::Resized(st.percent));
         }
     }
-
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut SplitPaneState) -> Response<SplitAction> {
         let area = cx
@@ -553,14 +407,9 @@ impl<'a> SplitPane<'a> {
             Phase::Click | Phase::Secondary => acc.consumed(),
             Phase::Move => {}
 
-
             _ => {}
         }
     }
-
-
-
-
 
     pub fn draw<R>(
         &self,
@@ -620,18 +469,6 @@ impl<'a> SplitPane<'a> {
         ui.with_area(area, |ui| body(ui, first, second))
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
     fn paint_seam(&self, ui: &mut Ui<'_>, seam: Rect, live: StateFlags) {
         let s = self.ov.style(
             ui,
@@ -676,8 +513,6 @@ impl<'a> SplitPane<'a> {
             }
         }
     }
-
-
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let along = self
@@ -869,11 +704,6 @@ mod tests {
         );
     }
 
-
-
-
-
-
     #[test]
     fn the_panes_and_the_seam_tile_the_container() {
         for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
@@ -899,11 +729,6 @@ mod tests {
             }
         }
     }
-
-
-
-
-
 
     #[test]
     fn a_non_resizable_split_declares_no_bindings_and_no_focus_stop() {
@@ -937,13 +762,6 @@ mod tests {
             3
         );
     }
-
-
-
-
-
-
-
 
     #[test]
     fn the_seam_distinguishes_focus_and_press_without_colour() {
@@ -981,11 +799,6 @@ mod tests {
         );
     }
 
-
-
-
-
-
     #[test]
     fn the_first_pane_wins_when_the_minima_do_not_fit() {
         for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
@@ -997,7 +810,6 @@ mod tests {
             assert!(sp.seam(st, AREA).is_empty(), "{axis:?}: a seam survived");
         }
     }
-
 
     #[test]
     fn a_reference_split_registers_nothing() {
@@ -1015,9 +827,6 @@ mod tests {
         assert!(rt.area_of(ID).is_none());
         assert!(!rt.ring().is_registered(ID));
     }
-
-
-
 
     #[test]
     fn every_declared_part_is_one_a_drawn_split_styles() {
@@ -1048,9 +857,6 @@ mod tests {
             );
         }
     }
-
-
-
 
     #[test]
     fn the_slot_addressable_parts_are_exactly_the_documented_ones() {

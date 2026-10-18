@@ -1,4 +1,3 @@
-
 use std::cell::RefCell;
 use termrock_core::{Axis, Id, ItemKey, KeyCode, Response, StateFlags, Variant};
 use termrock_navigation::{List, ListState};

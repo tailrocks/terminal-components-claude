@@ -1,6 +1,3 @@
-
-
-
 pub mod core {
     pub use termrock_core::*;
 }
@@ -77,14 +74,11 @@ pub mod author {
     };
 }
 
-
 pub use termrock_core::validate::FieldError;
-
 
 pub use termrock_core::custom_hash16;
 pub use termrock_core::id;
 pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
-
 
 pub use termrock_runtime::{
     Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError,
@@ -98,14 +92,12 @@ pub use termrock_session::{
     DefaultTerminal, TerminalSession, chain_panic_hook, run, run_with_feedback_clock,
 };
 
-
 pub use termrock_core::action::{Action, ActionKey};
 pub use termrock_core::diagnostics::Diagnostic;
 pub use termrock_core::event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 pub use termrock_core::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use termrock_core::keys::{MediaKeyCode, ModifierKeyCode};
 pub use termrock_core::response::{Activated, Flow, Invalidate, Response, StateFlags};
-
 
 pub use termrock_collections::ScrollState;
 pub use termrock_runtime::capture::Capture;
@@ -118,12 +110,10 @@ pub use termrock_runtime::{
     KeyPhase, binding_conflicts,
 };
 
-
 pub use termrock_runtime::layer::{
     Anchor, Backdrop, CrossAlign, Dismiss, DismissReason, LayerEvent, LayerId, LayerKind,
     LayerSize, LayerSpec, ScreenAlign, Side, backdrop_area, resolve_anchor,
 };
-
 
 pub use termrock_theme::{
     Align, BorderSet, CapabilityPalettes, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS,
@@ -133,11 +123,9 @@ pub use termrock_theme::{
     Variant,
 };
 
-
 pub use termrock_layout::{Constraints, Size};
 pub use termrock_layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
 pub use termrock_runtime::Measure;
-
 
 pub use termrock_text::{
     CursorPos, EditAction, EditOutcome, Extend, FuzzyBoundary, Motion, Span, TextBuffer,
@@ -146,14 +134,12 @@ pub use termrock_text::{
 };
 pub use termrock_text::{Secret, SecretPolicy};
 
-
 pub use termrock_collections::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, KeySet, Reconcile, Reconciliation, SelectMode,
 };
 pub use termrock_runtime::{
     CellDecor, CellUi, ColumnsUi, EmptyState, MAX_COLUMNS, RowDecor, RowFn, RowTotal, RowUi, Status,
 };
-
 
 pub use termrock_controls::{
     Brand, Button, ButtonCmd, Checkbox, ChoiceCmd, Empty, LabelRadio, Panel, PanelKind, Props,
@@ -162,19 +148,16 @@ pub use termrock_controls::{
     TooSmall,
 };
 
-
 pub use termrock_fields::{
     BlurPolicy, EditPhase, ErrorState, Field, NoValidate, Note, TextAction, TextArea,
     TextAreaState, TextCmd, TextInput, TextInputState, Validate, discard_error, redacted_text,
 };
 pub use termrock_runtime::field_control::FieldControl;
 
-
 pub use termrock_feedback::{
     DerivedHintBar, Emphasis, Group, HintBar, KeyHint, MAX_ITEMS, Meter, MeterTone, MeterVisual,
     ProgressBar, Spinner, StatusAction, StatusBar, StatusItem,
 };
-
 
 pub use termrock_navigation::{
     AsItem, BadgeFn, ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, FilterList,
@@ -185,14 +168,12 @@ pub use termrock_navigation::{
     TreeState,
 };
 
-
 pub use termrock_viewport::{
     CellPos, ProjectedText, ScrollRegion, TextViewport, ViewportAction, ViewportCmd, ViewportLine,
     ViewportState,
 };
 #[cfg(feature = "testing")]
 pub use termrock_viewport::{ViewportWorkProbe, ViewportWorkSnapshot};
-
 
 pub use termrock_overlays::{
     CommandPalette, Completion, CompletionAction, CompletionCmd, CompletionController,
@@ -203,7 +184,6 @@ pub use termrock_overlays::{
     SelectCmd, SelectField, SelectState,
 };
 
-
 pub use termrock_grid::{
     CellAction, CellRef, Column, ColumnKey, EditIntent, GRID_MAX_COLUMNS, Grid, GridAction,
     GridCell, GridCmd, GridColumnFit, GridCursorError, GridEditor, GridGutter, GridHeaderSizing,
@@ -211,25 +191,21 @@ pub use termrock_grid::{
     WidthSampleError,
 };
 
-
 pub use termrock_editors::{
     CodeAction, CodeCmd, CodeDiagnostic, CodeEditor, CodeEditorState, CodeSeverity, DiffLineKind,
     DiffMode, DiffRow, DiffSource, DiffView, DiffViewState, Highlighter, Segmenter, TabBehavior,
 };
-
 
 pub use termrock_forms::{
     FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, Form, FormAction, FormData, FormState,
     GroupKey, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
 };
 
-
 pub use termrock_render::{TerminalCell, TerminalCursor, TerminalSource};
 pub use termrock_terminal::{
     InputToken, LinkKey, TerminalAction, TerminalInteraction, TerminalSelection, TerminalView,
     TerminalViewState,
 };
-
 
 pub use ratatui_core::buffer::{Buffer, Cell};
 pub use ratatui_core::layout::{Position, Rect};

@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use std::collections::{BTreeMap, BTreeSet};
 
 const PROVENANCE_JSON: &str = include_str!("../../../tests/conformance/cursor_provenance.json");
@@ -257,9 +248,6 @@ fn summary_totals_match_records() {
 
 #[test]
 fn acquisition_headline_findings_anchored() {
-
-
-
     let doc = provenance();
     assert_eq!(doc["summary"]["roots"].as_u64(), Some(302));
     assert_eq!(doc["summary"]["replay_default_matches"].as_u64(), Some(0));

@@ -1,22 +1,13 @@
-
-
-
-
-
-
 pub(crate) const EPOCH_SECS: i64 = 1_788_401_640;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Clock {
-
     pub now_ms: i64,
 
     pub running: bool,
 }
 
 impl Clock {
-
     pub const fn new() -> Self {
         Self {
             now_ms: 0,
@@ -24,18 +15,15 @@ impl Clock {
         }
     }
 
-
     pub fn advance(&mut self, interval_ms: i64) {
         if self.running {
             self.now_ms += interval_ms;
         }
     }
 
-
     pub fn now_secs(&self) -> i64 {
         EPOCH_SECS + self.now_ms.div_euclid(1000)
     }
-
 
     pub fn hhmm(secs: i64) -> String {
         let local = secs + 7 * 3600;
@@ -43,14 +31,12 @@ impl Clock {
         format!("{:02}:{:02}", day / 3600, (day % 3600) / 60)
     }
 
-
     pub fn stamp(secs: i64) -> String {
         let local = secs + 7 * 3600;
         let days = local.div_euclid(86_400);
         let (y, m, d) = civil_from_days(days);
         format!("{y:04}-{m:02}-{d:02} {}", Self::hhmm(secs))
     }
-
 
     pub fn weekday(secs: i64) -> &'static str {
         let days = (secs + 7 * 3600).div_euclid(86_400);
@@ -62,7 +48,6 @@ impl Clock {
             .unwrap_or("Thu")
     }
 
-
     pub fn ago(&self, then_secs: i64) -> String {
         let delta = (self.now_secs() - then_secs).max(0) as u64;
         match delta {
@@ -73,7 +58,6 @@ impl Clock {
             _ => format!("{} d ago", delta / 86_400),
         }
     }
-
 
     pub fn reset_label(&self, then_secs: i64) -> String {
         let delta = then_secs - self.now_secs();
@@ -97,7 +81,6 @@ impl Default for Clock {
     }
 }
 
-
 fn civil_from_days(z: i64) -> (i64, u32, u32) {
     let z = z + 719_468;
     let era = z.div_euclid(146_097);
@@ -110,8 +93,6 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
     let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
     (if m <= 2 { y + 1 } else { y }, m, d)
 }
-
-
 
 fn format_duration(secs: u64) -> String {
     let d = secs / 86_400;

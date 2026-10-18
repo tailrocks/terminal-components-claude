@@ -1,4 +1,3 @@
-
 use std::hint::black_box;
 
 use showcase_ui::{App, PageId};
@@ -56,7 +55,6 @@ fn frame_showcase_dialog_open() {
     let _ = h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Keyboard & mouse"));
 
-
     h.draw();
     let first = h.snapshot().digest();
     for _ in 0..200 {
@@ -106,7 +104,6 @@ fn wheel_showcase_lists() {
         h.snapshot().digest(),
         "summary must not capture wheel input"
     );
-
 
     let (gutter_x, y) = require(h.find("▎› Rust"), "first language row is visible");
     assert_eq!((gutter_x, y), (23, 8));

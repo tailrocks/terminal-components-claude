@@ -1,4 +1,3 @@
-
 use tablepro_ui::{Catalog, CompletionKind, auto_trigger, completion_batch};
 
 #[test]

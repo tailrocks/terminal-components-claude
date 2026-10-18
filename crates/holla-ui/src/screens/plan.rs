@@ -1,4 +1,3 @@
-
 use crate::domain::plan::{Plan, PlanStep, StepState};
 use crate::sim::plans::ReviewedPlan;
 use termrock::{

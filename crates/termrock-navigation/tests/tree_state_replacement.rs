@@ -1,4 +1,3 @@
-
 #![cfg(test)]
 use termrock_core::{Id, ItemKey, Response};
 use termrock_navigation::{Tree, TreeNode, TreeState};

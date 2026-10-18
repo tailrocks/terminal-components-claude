@@ -1,5 +1,3 @@
-
-
 use termrock::{
     Cx, EmptyState, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListAction, ListState,
     Panel, PanelKind, Part, Rect, Response, Role, RowUi, SelectMode, StateFlags, StylePatch, Track,
@@ -189,8 +187,6 @@ fn single_list() -> List<
         .patch_part(LIST_GUTTER)
 }
 
-
-
 fn multi_list_with(
     row: impl Fn(&FileRow, &mut RowUi<'_>),
 ) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
@@ -212,13 +208,9 @@ fn compact_multi_list()
     multi_list_with(compact_file_row)
 }
 
-
-
 fn empty_list(title: &'static str) -> List<'static, &'static str> {
     List::new(EMPTY).empty(EmptyState::Empty { title, hint: None })
 }
-
-
 
 #[derive(Debug, Default)]
 pub struct ListsPage {

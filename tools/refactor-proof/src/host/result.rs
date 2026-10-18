@@ -1,9 +1,6 @@
-
-
 use serde::{Deserialize, Serialize};
 
 use super::HostOperation;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -11,7 +8,6 @@ pub enum HostStatus {
     Passed,
     Rejected,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HostResult {
@@ -21,7 +17,6 @@ pub struct HostResult {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub category: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

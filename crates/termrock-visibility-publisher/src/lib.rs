@@ -1,8 +1,3 @@
-
-
-
-
-
 pub mod api;
 pub mod observer;
 
@@ -17,7 +12,6 @@ use sha2::{Digest, Sha256};
 pub const MAX_OBSERVER_ZIP_BYTES: usize = api::MAX_ARTIFACT_DOWNLOAD_BYTES;
 pub const MAX_OBSERVER_JSON_BYTES: usize = 1024 * 1024;
 pub const OBSERVER_REPORT_SCHEMA_VERSION: u16 = 2;
-
 
 pub mod transport {
     use std::io::Read;
@@ -137,7 +131,6 @@ pub mod transport {
         "other"
     }
 
-
     #[derive(Clone)]
     pub struct ReqwestTransport {
         client: Client,
@@ -228,13 +221,8 @@ pub mod transport {
                 .filter(|duration| !duration.is_zero())
                 .ok_or(TransportError::Deadline)?;
 
-
-
-
-
             #[cfg(test)]
             let parsed = self.test_wire_url(parsed)?;
-
 
             #[cfg(test)]
             self.record_test_wire_url(&parsed);
@@ -328,9 +316,6 @@ pub mod transport {
 
         builder.build().map_err(|_| TransportError::Unavailable)
     }
-
-
-
 
     fn ensure_default_provider() -> Result<(), TransportError> {
         if rustls::crypto::CryptoProvider::get_default().is_none() {
@@ -1440,7 +1425,6 @@ pub mod transport {
     }
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RunIdentity {
     pub repository: Repository,
@@ -1453,7 +1437,6 @@ pub struct RunIdentity {
     pub head_sha: String,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CallerIdentity {
     pub run: RunIdentity,
@@ -1461,19 +1444,14 @@ pub struct CallerIdentity {
     pub workflow_sha: String,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IngestRequest {
     pub caller: CallerIdentity,
     pub target: RunSelector,
     pub observer: RunIdentity,
 
-
     pub observer_artifact_name: String,
 }
-
-
-
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -1583,8 +1561,6 @@ impl From<ObserverError> for IngestError {
         Self::Observer(value)
     }
 }
-
-
 
 pub fn ingest<T: api::ReadOnlyTransport>(
     client: &ApiClient<T>,

@@ -1,25 +1,15 @@
-
-
-
-
-
-
-
 use core::fmt;
 use core::ops::Range;
 use std::borrow::Cow;
 
 use super::measure::{grapheme_width, graphemes, is_word_grapheme, width};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CursorPos {
-
     pub line: usize,
 
     pub col: usize,
 }
-
 
 #[derive(Default, PartialEq, Eq)]
 pub struct TextBuffer {
@@ -145,46 +135,37 @@ impl TextBuffer {
         }
     }
 
-
     pub fn single(text: impl Into<String>) -> Self {
         Self::from_text(text.into(), false, false)
     }
-
 
     pub(crate) fn sensitive_single(text: &str) -> Self {
         Self::from_text(text.to_owned(), false, true)
     }
 
-
     pub fn multi(text: impl Into<String>) -> Self {
         Self::from_text(text.into(), true, false)
     }
-
 
     pub(crate) fn sensitive_multi(text: &str) -> Self {
         Self::from_text(text.to_owned(), true, true)
     }
 
-
     pub fn text(&self) -> &str {
         &self.text
     }
-
 
     pub fn is_empty(&self) -> bool {
         self.text.is_empty()
     }
 
-
     pub const fn is_multiline(&self) -> bool {
         self.multiline
     }
 
-
     pub const fn cursor_offset(&self) -> usize {
         self.cursor
     }
-
 
     pub fn zeroize(&mut self) {
         wipe_string(core::mem::take(&mut self.text));
@@ -192,7 +173,6 @@ impl TextBuffer {
         self.cursor = 0;
         self.anchor = None;
     }
-
 
     pub fn set_text(&mut self, text: &str) {
         if self.sensitive {
@@ -212,13 +192,11 @@ impl TextBuffer {
         }
     }
 
-
     pub fn select_range(&mut self, a: usize, b: usize) {
         let len = self.text.len();
         self.anchor = Some(self.snap(a.min(len)));
         self.cursor = self.snap(b.min(len));
     }
-
 
     pub fn selection(&self) -> Option<Range<usize>> {
         let a = self.anchor?;
@@ -228,22 +206,18 @@ impl TextBuffer {
         Some(a.min(self.cursor)..a.max(self.cursor))
     }
 
-
     pub fn selected_text(&self) -> Option<&str> {
         self.selection().and_then(|r| self.text.get(r))
     }
-
 
     pub fn select_all(&mut self) {
         self.anchor = Some(0);
         self.cursor = self.text.len();
     }
 
-
     pub fn clear_selection(&mut self) {
         self.anchor = None;
     }
-
 
     pub fn selection_lines(&self) -> (usize, usize) {
         if let Some(r) = self.selection() {
@@ -269,7 +243,6 @@ impl TextBuffer {
             self.anchor = None;
         }
     }
-
 
     fn snap(&self, at: usize) -> usize {
         Self::floor_boundary(&self.text, at.min(self.text.len()))
@@ -337,7 +310,6 @@ impl TextBuffer {
         start.saturating_add(end)
     }
 
-
     pub fn move_left(&mut self, select: bool) {
         if !select && let Some(r) = self.selection() {
             self.anchor = None;
@@ -347,7 +319,6 @@ impl TextBuffer {
         self.begin_move(select);
         self.cursor = self.prev_boundary(self.cursor);
     }
-
 
     pub fn move_right(&mut self, select: bool) {
         if !select && let Some(r) = self.selection() {
@@ -359,42 +330,35 @@ impl TextBuffer {
         self.cursor = self.next_boundary(self.cursor);
     }
 
-
     pub fn move_word_left(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.prev_word(self.cursor);
     }
-
 
     pub fn move_word_right(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.next_word(self.cursor);
     }
 
-
     pub fn move_home(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.line_start(self.cursor);
     }
-
 
     pub fn move_end(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.line_end(self.cursor);
     }
 
-
     pub fn move_doc_start(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = 0;
     }
 
-
     pub fn move_doc_end(&mut self, select: bool) {
         self.begin_move(select);
         self.cursor = self.text.len();
     }
-
 
     pub fn move_up(&mut self, select: bool) -> bool {
         if !self.multiline {
@@ -409,7 +373,6 @@ impl TextBuffer {
         true
     }
 
-
     pub fn move_down(&mut self, select: bool) -> bool {
         if !self.multiline {
             return false;
@@ -422,7 +385,6 @@ impl TextBuffer {
         self.cursor = self.offset_at(line.saturating_add(1), col);
         true
     }
-
 
     pub fn set_cursor_line_col(&mut self, line: usize, col: usize) {
         self.anchor = None;
@@ -441,8 +403,6 @@ impl TextBuffer {
             false
         }
     }
-
-
 
     pub fn insert_char(&mut self, c: char) -> bool {
         if matches!(c, '\r' | '\n') && !self.multiline {
@@ -473,7 +433,6 @@ impl TextBuffer {
         true
     }
 
-
     pub fn insert_str(&mut self, s: &str) -> bool {
         let ins = normalized_text(s, self.multiline);
         let range = self.selection().unwrap_or(self.cursor..self.cursor);
@@ -501,7 +460,6 @@ impl TextBuffer {
         changed
     }
 
-
     pub fn backspace(&mut self) -> bool {
         if self.delete_selection() {
             return true;
@@ -516,7 +474,6 @@ impl TextBuffer {
         true
     }
 
-
     pub fn delete(&mut self) -> bool {
         if self.delete_selection() {
             return true;
@@ -529,7 +486,6 @@ impl TextBuffer {
         self.normalize_positions();
         true
     }
-
 
     pub fn delete_word_left(&mut self) -> bool {
         if self.delete_selection() {
@@ -545,7 +501,6 @@ impl TextBuffer {
         true
     }
 
-
     pub fn delete_to_line_end(&mut self) -> bool {
         if self.delete_selection() {
             return true;
@@ -558,7 +513,6 @@ impl TextBuffer {
         self.normalize_positions();
         true
     }
-
 
     pub fn delete_to_line_start(&mut self) -> bool {
         if self.delete_selection() {
@@ -582,16 +536,13 @@ impl TextBuffer {
         }
     }
 
-
     pub fn line_count(&self) -> usize {
         self.text.split('\n').count()
     }
 
-
     pub fn cursor_pos(&self) -> CursorPos {
         Self::pos_of(&self.text, self.cursor)
     }
-
 
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
         let before = text.get(..offset.min(text.len())).unwrap_or("");
@@ -600,7 +551,6 @@ impl TextBuffer {
         let col = usize::from(width(before.get(line_start..).unwrap_or("")));
         CursorPos { line, col }
     }
-
 
     pub fn offset_at(&self, line: usize, col: usize) -> usize {
         let mut start = 0usize;
@@ -620,7 +570,6 @@ impl TextBuffer {
         }
         self.text.len()
     }
-
 
     pub fn width(&self) -> u16 {
         width(&self.text)
@@ -696,7 +645,6 @@ mod tests {
 
     #[test]
     fn word_chars_are_consistent_between_buffer_and_viewport() {
-
         let mut b = TextBuffer::single("snake_case-kebab");
         b.move_home(false);
         b.move_word_right(false);

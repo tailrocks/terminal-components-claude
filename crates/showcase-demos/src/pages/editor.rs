@@ -1,5 +1,3 @@
-
-
 use std::ops::Range;
 
 use termrock::{
@@ -181,7 +179,6 @@ fn state_panel() -> Panel<'static> {
     Panel::new(STATE_PANEL).title("State")
 }
 
-
 fn editor_meta(state: &CodeEditorState) -> String {
     if state.is_editing() {
         String::from("running ")
@@ -189,8 +186,6 @@ fn editor_meta(state: &CodeEditorState) -> String {
         format!("{} blocks ", editor().blocks(state).len())
     }
 }
-
-
 
 #[derive(Debug)]
 pub struct EditorPage {
@@ -238,7 +233,6 @@ impl Page for EditorPage {
             .erase();
         result |= diff().update(cx, &mut self.diff_state).erase();
 
-
         let _ = editor_panel(&editor_meta(&self.state));
         let _ = state_panel();
         result.erase().into()
@@ -265,7 +259,6 @@ impl Page for EditorPage {
                 } else {
                     layout::split_h(body, left_width)
                 };
-
 
                 let _ = completion();
                 let blocks = editor().blocks(&self.state).len();

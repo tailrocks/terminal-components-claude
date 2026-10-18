@@ -1,7 +1,3 @@
-
-
-
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -28,10 +24,8 @@ use termrock_runtime::empty::EmptyState;
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SelectAction {
-
     Chose(ItemKey),
 
     Opened,
@@ -39,10 +33,8 @@ pub enum SelectAction {
     Closed,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SelectCmd {
-
     Choose,
 
     Prev,
@@ -68,10 +60,6 @@ const fn b(chord: Chord, cmd: SelectCmd, label: &'static str, visible: bool) -> 
         visible,
     }
 }
-
-
-
-
 
 const BINDINGS: &[Binding<SelectCmd>] = &[
     b(
@@ -116,22 +104,7 @@ const BINDINGS: &[Binding<SelectCmd>] = &[
     ),
 ];
 
-
-
-
-
-
-
-
 pub type LabelSelect<'a> = Select<'a, &'a str, ByIndex, DefaultRow>;
-
-
-
-
-
-
-
-
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct SelectState {
@@ -141,26 +114,21 @@ pub struct SelectState {
 }
 
 impl SelectState {
-
     pub const fn value(&self) -> Option<ItemKey> {
         self.value
     }
-
 
     pub fn set_value(&mut self, k: Option<ItemKey>) {
         self.value = k;
     }
 
-
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-
     pub const fn is_open(&self) -> bool {
         self.open
     }
-
 
     pub const fn scroll(&self) -> &crate::scroll::ScrollState {
         self.core.scroll()
@@ -183,112 +151,6 @@ impl Reconcile for SelectState {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct Select<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -298,10 +160,6 @@ pub struct Select<'a, T, K = ByIndex, R = DefaultRow> {
     empty: Option<EmptyState<'a>>,
     read_only: bool,
     disabled: bool,
-
-
-
-
 
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -322,7 +180,6 @@ impl<T, K, R> fmt::Debug for Select<'_, T, K, R> {
 }
 
 impl<T> Select<'_, T, ByIndex, DefaultRow> {
-
     pub const fn new(id: Id) -> Self {
         Select {
             id,
@@ -392,7 +249,6 @@ impl<'a> Select<'a, &'a str, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> Select<'a, T, K, R> {
-
     pub const PARTS: &'static [Part] = &[
         Part::FIELD,
         Part::GUTTER,
@@ -405,11 +261,9 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         Part::EMPTY,
     ];
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Select<'a, T, K2, R> {
         Select {
@@ -428,7 +282,6 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         }
     }
 
-
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Select<'a, T, K, R2> {
         Select {
             id: self.id,
@@ -446,13 +299,11 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         }
     }
 
-
     #[must_use]
     pub const fn placeholder(mut self, s: &'a str) -> Self {
         self.placeholder = Some(s);
         self
     }
-
 
     #[must_use]
     pub const fn popup_rows(mut self, n: u16) -> Self {
@@ -460,13 +311,11 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn empty(mut self, e: EmptyState<'a>) -> Self {
         self.empty = Some(e);
         self
     }
-
 
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
@@ -474,13 +323,11 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -489,7 +336,6 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
@@ -497,17 +343,11 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
-
-
-
-
 
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut sr = ScrollRegion::new(self.id).patch_part(self.parts);
@@ -522,18 +362,13 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
         sr
     }
 
-
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
     }
 
-
     fn max_rows(&self, d: &crate::theme::DesignTokens) -> u16 {
         self.popup_rows.unwrap_or(d.size.popup_max_rows).max(1)
     }
-
-
-
 
     fn anchor(&self, cx: &Cx<'_>) -> Anchor {
         match cx.area(self.id) {
@@ -542,7 +377,6 @@ impl<'a, T, K, R> Select<'a, T, K, R> {
                 side: Side::Below,
                 align: CrossAlign::Start,
             },
-
 
             None => Anchor::Screen(crate::layer::ScreenAlign::Center),
         }
@@ -566,13 +400,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
 
-
-
-
-
-
-
-
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         let d = cx.design();
         let w = cx
@@ -586,13 +413,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             .min(usize::from(u16::MAX)) as u16;
         LayerSize::Fixed(w, rows.saturating_add(2))
     }
-
-
-
-
-
-
-
 
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
         LayerSpec::popover(self.id, self.anchor(cx))
@@ -614,7 +434,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         let to = to.min(items.len().saturating_sub(1));
         st.core.set_cursor(to, self.key_at(items, to));
 
-
         acc.changed();
     }
 
@@ -632,8 +451,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         cx.open_layer(self.id, self.layer(cx, items));
         acc.action(SelectAction::Opened);
     }
-
-
 
     fn close_restoring(&self, st: &mut SelectState, items: &[T]) {
         st.open = false;
@@ -665,14 +482,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc.action(SelectAction::Chose(key));
     }
 
-
-
-
-
-
-
-
-
     fn reconcile_and_seed(&self, st: &mut SelectState, items: &[T]) {
         if self.disabled {
             return;
@@ -687,17 +496,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -708,13 +506,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         self.reconcile_and_seed(st, items);
         let open = st.open && cx.is_open(self.id);
         if open {
-
             let size = self.measured_size(cx, items);
             let anchor = self.anchor(cx);
             cx.resize_layer(self.id, size);
             cx.reanchor_layer(self.id, anchor);
         } else if st.open {
-
             st.open = false;
         }
         let mut acc = Acc::<SelectAction>::new();
@@ -800,11 +596,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-
-
     fn live_flags(&self, ui: &Ui<'_>, st: &SelectState) -> StateFlags {
-
-
         let mut derived = StateFlags::empty();
         if st.open {
             derived |= StateFlags::EXPANDED;
@@ -828,9 +620,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         live
     }
 
-
-
-
     fn register_field(&self, ui: &mut Ui<'_>, area: Rect) {
         if ui.is_inert() {
             return;
@@ -844,7 +633,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         };
         ui.register_control(self.id, area, f);
     }
-
 
     fn paint_gutter(&self, ui: &mut Ui<'_>, cell: Rect, live: StateFlags) {
         if let Some(f) = self.ov.slot_for(Part::GUTTER) {
@@ -866,8 +654,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             Slot::Inherit | Slot::Clear => ui.fill(cell, g.style),
         }
     }
-
-
 
     fn paint_value(
         &self,
@@ -913,12 +699,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             self.row.row(item, &mut r);
         }
 
-
-
         ui.paint_style(cell, field);
     }
-
-
 
     fn paint_marker(&self, ui: &mut Ui<'_>, cell: Rect, live: StateFlags, open: bool) {
         if let Some(f) = self.ov.slot_for(Part::MARKER) {
@@ -951,7 +733,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
             }
         }
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &SelectState, items: &[T]) -> Rect {
         let area = first_row(area);
@@ -993,7 +774,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         area
     }
 
-
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the popup surface, the empty state and the visible rows"
@@ -1016,8 +796,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                     StateFlags::empty(),
                 );
                 ui.fill(layer, base.style);
-
-
 
                 let list = Rect {
                     x: layer.x,
@@ -1086,9 +864,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                         ui.paint_style(row, rs.style);
                     }
 
-
-
-
                     let gutter_cell = cell_at(row, row.x);
                     if let Some(f) = ov.slot_for(Part::GUTTER) {
                         f(ui, gutter_cell);
@@ -1144,7 +919,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         });
     }
 
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, 1),
@@ -1176,9 +950,6 @@ mod tests {
     const SEL: Id = Id::root("select.tests");
     const OTHER: Id = Id::root("select.tests.other");
 
-
-
-
     #[derive(Default)]
     struct SelectPage {
         st: SelectState,
@@ -1193,7 +964,6 @@ mod tests {
             if r.take_action() == Some(SelectAction::Closed) {
                 self.closed = self.closed.saturating_add(1);
             }
-
 
             for _ in cx.intents(OTHER) {}
             r.erase()
@@ -1212,16 +982,6 @@ mod tests {
             mods: KeyModifiers::NONE,
         })
     }
-
-
-
-
-
-
-
-
-
-
 
     #[test]
     fn an_open_popup_closes_when_focus_leaves_the_field() {
@@ -1296,9 +1056,6 @@ mod tests {
         assert_eq!(count, 1);
     }
 
-
-
-
     #[test]
     fn escape_closes_and_restores_the_cursor() {
         let items = ["a", "b", "c"];
@@ -1326,10 +1083,6 @@ mod tests {
         assert_eq!(st.value(), Some(ItemKey::index(1)));
     }
 
-
-
-
-
     #[test]
     fn arrows_move_the_cursor_not_the_value_while_closed() {
         let items = ["a", "b", "c"];
@@ -1348,9 +1101,6 @@ mod tests {
         assert_eq!(st.cursor(), Some(ItemKey::index(2)));
         assert_eq!(st.value(), Some(ItemKey::index(0)));
     }
-
-
-
 
     #[test]
     fn standalone_select_takes_items_per_phase() {
@@ -1400,7 +1150,6 @@ mod tests {
         assert_eq!(st.value(), None);
     }
 
-
     #[derive(Default)]
     struct DisablableSelect {
         st: SelectState,
@@ -1417,10 +1166,6 @@ mod tests {
         fn draw(&self, _ui: &mut Ui<'_>) {}
     }
 
-
-
-
-
     #[test]
     fn disabled_update_does_not_initialize_collection_state() {
         let app = DisablableSelect {
@@ -1432,10 +1177,6 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
         assert_eq!(rt.app().st, SelectState::default());
     }
-
-
-
-
 
     #[test]
     fn a_select_reconciles_on_the_first_enabled_frame_after_disabled_ones() {
@@ -1466,8 +1207,6 @@ mod tests {
             "and the scroll length"
         );
     }
-
-
 
     fn draw_field(part: Option<Part>) -> Buffer {
         let items = ["alpha", "beta"];
@@ -1603,11 +1342,6 @@ mod tests {
     fn selected_painting_comes_only_from_the_semantic_value() {
         assert_ne!(draw_selected(Some(ItemKey::index(1))), draw_selected(None));
     }
-
-
-
-
-
 
     #[test]
     fn the_parts_a_drawn_select_styles_are_declared() {

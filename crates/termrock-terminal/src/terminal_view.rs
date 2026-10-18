@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Modifier, Style};
 
@@ -17,10 +11,8 @@ use termrock_render::TerminalSource;
 use termrock_runtime::{Acc, Cx, Focusability, FrameRead, ScrollRegion, Ui};
 use termrock_theme::StylePatch;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum TerminalInteraction {
-
     #[default]
     Interactive,
 
@@ -38,7 +30,6 @@ impl TerminalInteraction {
         matches!(self, Self::Interactive | Self::SelectionOnly)
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct TerminalSelection {
@@ -65,7 +56,6 @@ impl TerminalSelection {
         self
     }
 
-
     pub const fn normalized(&self) -> (usize, usize, usize, usize) {
         if self.start_line < self.end_line
             || (self.start_line == self.end_line && self.start_col <= self.end_col)
@@ -75,7 +65,6 @@ impl TerminalSelection {
             (self.end_line, self.end_col, self.start_line, self.start_col)
         }
     }
-
 
     pub fn contains(&self, line: usize, col: usize) -> bool {
         let (s_line, s_col, e_line, e_col) = self.normalized();
@@ -93,7 +82,6 @@ impl TerminalSelection {
         }
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LinkKey(pub ItemKey);
@@ -140,10 +128,8 @@ impl std::ops::Deref for LinkKey {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InputToken {
-
     Input(Input),
 
     Key(Key),
@@ -211,23 +197,27 @@ impl From<Vec<u8>> for InputToken {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TerminalAction {
-
-    Forward { token: InputToken },
+    Forward {
+        token: InputToken,
+    },
 
     CopyRequested(TerminalSelection),
 
-    OpenLink { key: LinkKey },
+    OpenLink {
+        key: LinkKey,
+    },
 
-    Resize { rows: u16, cols: u16 },
+    Resize {
+        rows: u16,
+        cols: u16,
+    },
 
     SelectionChanged {
         selection: Option<TerminalSelection>,
     },
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TerminalViewState {
@@ -274,7 +264,6 @@ impl TerminalViewState {
         self.selecting = false;
     }
 }
-
 
 pub struct TerminalView<'a> {
     pub id: Id,
@@ -326,7 +315,6 @@ impl<'a> TerminalView<'a> {
         self.link_resolver = Some(resolver);
         self
     }
-
 
     pub fn extract_selection(&self, selection: &TerminalSelection) -> String {
         let (s_line, s_col, e_line, e_col) = selection.normalized();
@@ -384,7 +372,6 @@ impl<'a> TerminalView<'a> {
         state.scroll.set_viewport(area.height as usize);
         state.scroll.clamp();
 
-
         if let Some(ref sel) = state.selection
             && sel.revision != Revision::zero()
             && sel.revision != self.source.revision()
@@ -392,7 +379,6 @@ impl<'a> TerminalView<'a> {
             state.clear_selection();
             acc.changed();
         }
-
 
         if !area.is_empty() {
             let current_size = (area.width, area.height);
@@ -408,7 +394,6 @@ impl<'a> TerminalView<'a> {
                 state.last_reported_size = Some(current_size);
             }
         }
-
 
         for it in cx.intents(self.id) {
             match it {
@@ -430,7 +415,6 @@ impl<'a> TerminalView<'a> {
                 } => {
                     let rel_y = (pos.y.saturating_sub(area.y)) as usize + state.scroll.offset();
                     let rel_x = (pos.x.saturating_sub(area.x)) as usize;
-
 
                     if let Some(resolver) = self.link_resolver
                         && let Some(key) = resolver(rel_y, rel_x)
@@ -523,7 +507,6 @@ impl<'a> TerminalView<'a> {
         let scroll_offset = state.scroll.offset();
         let rev = self.source.revision();
 
-
         let mut cursor_loc = None;
         if state.cursor_visible
             && let Some(cursor) = self.source.cursor()
@@ -542,19 +525,16 @@ impl<'a> TerminalView<'a> {
             }
         }
 
-
         if state.scroll.overflows() {
             let scroll_region = ScrollRegion::new(self.id.sub("scroll"));
             scroll_region.draw(ui, clipped, &state.scroll, src_size.height as usize);
         }
-
 
         let effective_sel = self
             .selection
             .as_ref()
             .or(state.selection.as_ref())
             .filter(|s| s.revision == Revision::zero() || s.revision == rev);
-
 
         let (buf, _) = ui.raw();
         for row in 0..clipped.height {

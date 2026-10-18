@@ -1,4 +1,3 @@
-
 use ratatui_core::layout::Rect;
 use termrock_navigation::{
     FilterList, FilterListAction, FilterListState, FilterPolicy, Item, ItemRowLayout,
@@ -470,8 +469,4 @@ fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("; "));
-
-
-
-
 }

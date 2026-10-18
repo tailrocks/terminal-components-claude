@@ -1,4 +1,3 @@
-
 use termrock_collections::SelectMode;
 use termrock_core::{Id, ItemKey, KeyCode, KeyModifiers, Response, StateFlags};
 use termrock_navigation::{List, ListAction, ListState};

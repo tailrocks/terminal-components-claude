@@ -1,7 +1,3 @@
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pin {
     pub path: String,
@@ -31,7 +27,6 @@ pub struct Memory {
 }
 
 impl Memory {
-
     pub fn seeded(pins: Vec<Pin>, aliases: Vec<Alias>, usage: Vec<Usage>, hides: Vec<Pin>) -> Self {
         let mut memory = Self {
             pins,
@@ -40,8 +35,6 @@ impl Memory {
             hides,
         };
         for alias in aliases {
-
-
             memory.aliases.retain(|old| {
                 alias_key(&old.alias) != alias_key(&alias.alias) && old.expansion != alias.expansion
             });
@@ -53,10 +46,6 @@ impl Memory {
     pub fn aliases(&self) -> &[Alias] {
         &self.aliases
     }
-
-
-
-
 
     pub fn set_alias(&mut self, name: &str, command: &str) -> Result<(), AliasError> {
         let name = name.trim();
@@ -105,15 +94,12 @@ impl Memory {
             .map(|a| a.expansion.as_str())
     }
 
-
     pub fn alias_for(&self, command: &str) -> Option<&str> {
         self.aliases
             .iter()
             .find(|a| a.expansion == command)
             .map(|a| a.alias.as_str())
     }
-
-
 
     pub fn reset_at(&mut self, path: &str, command: &str) {
         self.pins
@@ -123,7 +109,6 @@ impl Memory {
         self.aliases.retain(|a| a.expansion != command);
     }
 }
-
 
 pub fn alias_key(name: &str) -> String {
     name.trim().to_lowercase()

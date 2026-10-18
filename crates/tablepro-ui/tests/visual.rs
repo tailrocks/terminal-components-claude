@@ -1,5 +1,3 @@
-
-
 use tablepro_ui::{Surface, TableProApp};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;
@@ -18,8 +16,6 @@ fn tablepro_visual_baseline() {
                     let mut app = TableProApp::default();
                     app.set_surface(surface);
                     let harness = Harness::new(app, theme.clone(), width, height).with_color(color);
-
-
 
                     harness
                         .snapshot()

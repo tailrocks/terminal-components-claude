@@ -1,9 +1,3 @@
-
-
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlanFact {
     pub label: String,
@@ -18,8 +12,6 @@ impl PlanFact {
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StepState {
@@ -136,12 +128,8 @@ impl PlanStep {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlanEffect {
-
     RestartContainer(String),
 
     DockerCleanup,
@@ -155,7 +143,6 @@ pub enum PlanEffect {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlanSpec {
-
     pub action_id: String,
     pub title: String,
     pub host: String,
@@ -168,7 +155,6 @@ pub struct PlanSpec {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Plan {
-
     action_id: String,
     title: String,
     host: String,
@@ -179,7 +165,6 @@ pub struct Plan {
     effect: Option<PlanEffect>,
     ran: bool,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlanError {
@@ -208,11 +193,6 @@ impl std::fmt::Display for PlanError {
 impl std::error::Error for PlanError {}
 
 impl Plan {
-
-
-
-
-
     pub fn try_new(spec: PlanSpec) -> Result<Self, PlanError> {
         let mut ids = std::collections::BTreeSet::new();
         for (index, step) in spec.steps.iter().enumerate() {
@@ -278,15 +258,12 @@ impl Plan {
         self.effect.as_ref()
     }
 
-
     pub fn included_count(&self) -> usize {
         self.steps
             .iter()
             .filter(|s| !matches!(s.state, StepState::Excluded | StepState::PolicySkipped(_)))
             .count()
     }
-
-
 
     #[expect(
         clippy::arithmetic_side_effects,
@@ -309,7 +286,6 @@ impl Plan {
             .map(|&dependency| self.steps[dependency].title.clone())
     }
 
-
     pub fn toggle(&mut self, i: usize) -> Result<String, PlanError> {
         let s = self.steps.get_mut(i).ok_or(PlanError::MissingStep)?;
         if self.ran {
@@ -328,8 +304,6 @@ impl Plan {
             _ => format!("Included {}", s.title),
         })
     }
-
-
 
     #[expect(
         clippy::indexing_slicing,
@@ -383,7 +357,6 @@ impl Plan {
         }
         parts.join(" · ")
     }
-
 
     pub fn facts(&self) -> Vec<PlanFact> {
         vec![

@@ -1,5 +1,3 @@
-
-
 #![expect(
     unsafe_code,
     reason = "observer IPC wraps inherited anonymous pipe file descriptors"
@@ -16,7 +14,6 @@ use super::ipc::{
 };
 
 const MAX_LINE_BYTES: usize = 4096;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ObserverUnavailable;
@@ -35,7 +32,6 @@ impl From<ObserverUnavailable> for io::Error {
     }
 }
 
-
 pub struct ObserverClient {
     nonce: String,
     request: BufWriter<File>,
@@ -43,7 +39,6 @@ pub struct ObserverClient {
 }
 
 impl ObserverClient {
-
     pub fn from_env() -> Result<Self, ObserverUnavailable> {
         let request_fd = std::env::var(super::ipc::ObserverEnv::REQUEST_FD)
             .map_err(|_| ObserverUnavailable)?
@@ -65,21 +60,17 @@ impl ObserverClient {
         })
     }
 
-
     pub fn require_transport() -> Result<(), ObserverUnavailable> {
         Self::from_env().map(|_| ())
     }
-
 
     pub fn nonce(&self) -> &str {
         &self.nonce
     }
 
-
     pub fn encode_request(&self, step: ObserverStep) -> io::Result<String> {
         encode_request_line(&self.nonce, step)
     }
-
 
     pub fn execute_step(
         &mut self,
@@ -94,7 +85,6 @@ impl ObserverClient {
             read_response_line(&mut self.response).map_err(|_| ObserverUnavailable)?;
         parse_observation(&response_line)
     }
-
 
     pub fn execute_verify_sequence(
         &mut self,
@@ -163,7 +153,6 @@ fn parse_observation(line: &str) -> Result<ObserverObservation, ObserverUnavaila
         }
     }
 }
-
 
 pub fn decode_file_payload(encoded: &str) -> Result<Vec<u8>, ObserverUnavailable> {
     base64::engine::general_purpose::STANDARD

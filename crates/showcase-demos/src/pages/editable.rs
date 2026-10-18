@@ -1,5 +1,3 @@
-
-
 use termrock::{
     Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
     GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Role, RowDecor,
@@ -20,8 +18,6 @@ const PANEL_PARTS: &[(Part, StylePatch)] = &[(
 )];
 
 const COLUMNS: [Column<'static>; 6] = [
-
-
     Column {
         key: ColumnKey::num(1),
         title: "Task",
@@ -450,11 +446,9 @@ fn table() -> Grid<'static> {
     Grid::new(TABLE, &COLUMNS).nav(NavUnit::Cell)
 }
 
-
 fn tasks_status<E: core::fmt::Display>(error: Option<E>, edits: u32) -> String {
     error.map_or_else(|| format!("{edits} edits"), |error| error.to_string())
 }
-
 
 fn tasks_panel(meta: &str) -> Panel<'_> {
     Panel::new(TASKS_PANEL)
@@ -462,8 +456,6 @@ fn tasks_panel(meta: &str) -> Panel<'_> {
         .meta(meta)
         .patch_part(PANEL_PARTS)
 }
-
-
 
 #[derive(Debug)]
 pub struct EditablePage {

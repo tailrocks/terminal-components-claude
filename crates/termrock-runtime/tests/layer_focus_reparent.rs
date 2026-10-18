@@ -1,4 +1,3 @@
-
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::buffer::Buffer;
 use termrock::{

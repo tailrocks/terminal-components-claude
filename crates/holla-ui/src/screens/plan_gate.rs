@@ -1,4 +1,3 @@
-
 use crate::domain::plan::StepState;
 use crate::sim::{
     plans::{ReviewBinding, ReviewedPlan},
@@ -124,9 +123,6 @@ impl PlanGate {
         let (response, action) = self.poll(cx);
         let result = match action {
             Some(DialogAction::Action(ActionKey::CONFIRM)) => {
-
-
-
                 let result = if review.matches_binding(&self.binding) {
                     match review
                         .approve(&self.phrase, world)

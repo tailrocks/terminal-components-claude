@@ -1,5 +1,3 @@
-
-
 use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
@@ -21,10 +19,8 @@ use termrock_runtime::empty::EmptyState;
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CompletionAction {
-
     Moved,
 
     Accepted(ItemKey),
@@ -32,10 +28,8 @@ pub enum CompletionAction {
     Dismissed,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CompletionCmd {
-
     Up,
 
     Down,
@@ -134,7 +128,6 @@ const BINDINGS: &[Binding<CompletionCmd>] = &[
     ),
 ];
 
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct CompletionState {
     core: CollectionCore,
@@ -145,7 +138,6 @@ pub struct CompletionState {
 }
 
 impl CompletionState {
-
     pub const fn is_open(&self) -> bool {
         self.open
     }
@@ -159,7 +151,6 @@ impl CompletionState {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct CompletionController {
     editor_id: Id,
@@ -167,14 +158,12 @@ pub struct CompletionController {
 }
 
 impl CompletionController {
-
     pub const fn new(editor_id: Id, popup_id: Id) -> Self {
         Self {
             editor_id,
             popup_id,
         }
     }
-
 
     pub fn request<T: AsItem>(
         &self,
@@ -212,17 +201,11 @@ impl CompletionController {
         }
     }
 
-
     pub fn dismiss(&self, cx: &mut Cx<'_>, state: &mut CompletionState) {
         state.open = false;
         state.owner = None;
         cx.close_layer(self.popup_id, None);
     }
-
-
-
-
-
 
     pub fn dismiss_on_editor_motion(&self, cx: &mut Cx<'_>, state: &mut CompletionState) -> bool {
         if !state.open {
@@ -231,13 +214,6 @@ impl CompletionController {
         self.dismiss(cx, state);
         true
     }
-
-
-
-
-
-
-
 
     pub fn accept(
         &self,
@@ -251,7 +227,6 @@ impl CompletionController {
         inserted
     }
 
-
     fn splice(buffer: &mut TextBuffer, replace_len: usize, item: Item<'_>) -> bool {
         let end = buffer.cursor_offset();
         let start = end.saturating_sub(replace_len);
@@ -259,56 +234,6 @@ impl CompletionController {
         buffer.insert_str(item.insertion())
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Completion<'a, T, R = ItemRow> {
     id: Id,
@@ -331,7 +256,6 @@ impl<T, R> core::fmt::Debug for Completion<'_, T, R> {
 }
 
 impl<T> Completion<'_, T, ItemRow> {
-
     pub const fn new(id: Id) -> Self {
         Self {
             id,
@@ -347,7 +271,6 @@ impl<T> Completion<'_, T, ItemRow> {
 }
 
 impl<'a, T, R> Completion<'a, T, R> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BORDER,
@@ -502,7 +425,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
                 acc.action(CompletionAction::Dismissed);
             }
 
-
             _ => {}
         }
     }
@@ -514,7 +436,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
     fn pressed_target(pressed_part: Option<PartRef>, key: ItemKey) -> bool {
         pressed_part == Some(PartRef::item(Part::ROW, key))
     }
-
 
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         let width = items
@@ -535,10 +456,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
             .min(usize::from(u16::MAX)) as u16;
         LayerSize::Fixed(width, rows.saturating_add(2))
     }
-
-
-
-
 
     pub fn update_for(
         &self,
@@ -607,7 +524,6 @@ impl<T: AsItem, R: RowFn<T>> Completion<'_, T, R> {
         }
         acc.finish(self.id)
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &CompletionState, items: &[T]) -> Rect {
         ui.with_surface(crate::theme::Surface::Popover, |ui| {

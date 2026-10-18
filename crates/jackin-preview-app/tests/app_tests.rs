@@ -1,5 +1,3 @@
-
-
 #![allow(
     dead_code,
     missing_debug_implementations,
@@ -335,9 +333,6 @@ fn one_password_picker_uses_active_items_and_stable_stage_two_keys() {
     assert!(h.text().contains("OpenAI · Throttled sandbox › credential"));
 }
 
-
-
-
 #[test]
 fn form_dialog_secret_never_reaches_the_screen_as_a_string() {
     accounts_register_with_a_1password_reference_and_never_render_the_secret();
@@ -595,7 +590,6 @@ fn editor_env_plain_value_stays_masked() {
     );
 }
 
-
 #[test]
 fn form_dialog_toggles_visibility_and_keeps_drafts() {
     editor_env_plain_value_stays_masked();
@@ -671,7 +665,6 @@ fn settings_trust_toggle_and_failed_save_keep_edits() {
     h.ticks(20);
     assert_eq!(h.app().route(), Route::Manager, "{}", h.text());
 
-
     assert!(!h.app().world.global.trust[0].trusted);
 }
 
@@ -700,8 +693,6 @@ fn hard_cases_refresh_keeps_last_good_and_help_opens_everywhere() {
     h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Reading meters"));
 }
-
-
 
 #[test]
 fn complete_jackin_flow_keyboard_first() {
@@ -1093,7 +1084,6 @@ fn complete_jackin_flow_keyboard_first() {
     assert_eq!(h.app().route(), Route::Outro, "{}", h.text());
     h.ticks(5);
     if !h.text().contains("You were in the Construct for") {
-
         h.key(KeyCode::Enter);
         h.ticks(25);
     }
@@ -1105,8 +1095,6 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Enter);
     assert!(h.app().should_quit());
 }
-
-
 
 #[test]
 fn complete_flow_keyboard_first() {

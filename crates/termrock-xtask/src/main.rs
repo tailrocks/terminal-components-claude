@@ -1,8 +1,3 @@
-
-
-
-
-
 use std::path::PathBuf;
 
 use termrock_xtask::ownership::{check_workspace, find_workspace_root, render_human};
@@ -91,7 +86,6 @@ fn print_usage() {
     );
 }
 
-
 fn render_json(report: &termrock_xtask::ownership::Report) -> String {
     use std::fmt::Write as _;
     let mut out = String::from("{\"files_scanned\":");
@@ -143,7 +137,5 @@ fn render_json(report: &termrock_xtask::ownership::Report) -> String {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_xtask_binary_entry() {
-
-    }
+    fn test_xtask_binary_entry() {}
 }

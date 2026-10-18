@@ -1,93 +1,9 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 
 use crate::support::Session;
 
 use crate::support::state_waits as waits;
 use crate::support::{self, Case, Color, HOLLA};
-
 
 const BOOT: &str = "holla❯";
 
@@ -158,7 +74,6 @@ const REMOTE_RUN: &[&str] = &["--scenario", "remote-host", "--motion", "reduced"
 const CHILD: &[&str] = &["--scenario", "monorepo-child", "--motion", "reduced"];
 const CUSTOM: &[&str] = &["--scenario", "parity-custom-actions", "--motion", "reduced"];
 
-
 fn h3_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
         format!("journeys/holla/h3/{slug}"),
@@ -171,7 +86,6 @@ fn h3_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Cas
     )
 }
 
-
 fn h3_case_t(
     slug: &str,
     args: &'static [&'static str],
@@ -181,7 +95,6 @@ fn h3_case_t(
     h3_case(slug, args, boot).timeout(timeout_ms)
 }
 
-
 fn h3_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -189,8 +102,6 @@ fn h3_dir(test: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     dir
 }
-
-
 
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
@@ -211,7 +122,6 @@ fn write_provenance(dir: &Path, case: &Case) {
     eprintln!("h3 provenance: {body}");
 }
 
-
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -228,7 +138,6 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -236,14 +145,6 @@ fn live_text(s: &mut Session) -> String {
         .unwrap_or_else(|e| panic!("live sample failed: {e:#}"));
     support::screen_text(&obs.screen)
 }
-
-
-
-
-
-
-
-
 
 fn wait_absent(s: &mut Session, needle: &str, what: &str) {
     support::wait_screen(
@@ -254,19 +155,12 @@ fn wait_absent(s: &mut Session, needle: &str, what: &str) {
     );
 }
 
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: no line contains both `{needle}` and `{also}`"
     );
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
@@ -280,7 +174,6 @@ fn h3_args_clone() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:clone", "enter", &format!("wait:{TITLE}")],
@@ -288,7 +181,6 @@ fn h3_args_clone() {
     );
     checkpoint(&mut s, &dir, "01-page");
     let page = live_text(&mut s);
-
 
     assert!(page.contains(TITLE), "V1: no clone title");
 
@@ -299,7 +191,6 @@ fn h3_args_clone() {
     assert!(page.contains("Ctrl+S Run"), "S2: no run footer");
 
     assert!(!page.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, TITLE, "page closed");
@@ -320,11 +211,6 @@ fn h3_args_clone() {
     eprintln!("h3 args_clone: page, back roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_args_page() {
@@ -337,7 +223,6 @@ fn h3_args_page() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:port", "enter", &format!("wait:{TITLE}")],
@@ -345,7 +230,6 @@ fn h3_args_page() {
     );
     checkpoint(&mut s, &dir, "01-page");
     let page = live_text(&mut s);
-
 
     assert!(page.contains(TITLE), "V1: no port title");
 
@@ -359,7 +243,6 @@ fn h3_args_page() {
     assert!(page.contains("Ctrl+S Run"), "S2: no run footer");
 
     assert!(!page.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, TITLE, "page closed");
@@ -379,11 +262,6 @@ fn h3_args_page() {
     assert!(back.contains(TITLE), "page intact");
     eprintln!("h3 args_page: page, back roundtrip");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
@@ -405,7 +283,6 @@ fn h3_args_snapshot() {
     let args = live_text(&mut s);
     assert!(args.contains(TITLE), "pre: no args page");
 
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-s", &format!("wait:{SNAP}")],
@@ -413,7 +290,6 @@ fn h3_args_snapshot() {
     );
     checkpoint(&mut s, &dir, "02-snapshot");
     let snap = live_text(&mut s);
-
 
     assert_line_has(&snap, "node (vite)", "sleeping", "V1 process");
 
@@ -427,9 +303,6 @@ fn h3_args_snapshot() {
     );
 
     assert!(!snap.contains("· arguments"), "N1: args page stuck");
-
-
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, SNAP, "snapshot closed");
@@ -454,11 +327,6 @@ fn h3_args_snapshot() {
     eprintln!("h3 args_snapshot: snapshot, back roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_brew_services() {
@@ -471,7 +339,6 @@ fn h3_brew_services() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:Homebrew services", "enter", "wait:svc02"],
@@ -482,7 +349,6 @@ fn h3_brew_services() {
 
     assert!(list.contains(DETAIL), "pre: no detail panel");
 
-
     assert_line_has(&list, "svc02", "error", "V1 row");
 
     assert_line_has(&list, "Services", "11", "V2 count");
@@ -492,7 +358,6 @@ fn h3_brew_services() {
     assert_line_has(&list, "Cache write", "fails on this host", "S2 cache");
 
     assert!(!list.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, DETAIL, "listing closed");
@@ -513,12 +378,6 @@ fn h3_brew_services() {
     eprintln!("h3 brew_services: listing, back roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_brew_services_stop_failed() {
@@ -530,9 +389,6 @@ fn h3_brew_services_stop_failed() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -548,7 +404,6 @@ fn h3_brew_services_stop_failed() {
     );
     checkpoint(&mut s, &dir, "01-failed");
     let failed = live_text(&mut s);
-
 
     assert!(
         failed.contains("Bootstrap failed: 5: Input/output error"),
@@ -568,9 +423,6 @@ fn h3_brew_services_stop_failed() {
     );
 
     assert!(!failed.contains(PLACEHOLDER), "N1: placeholder stuck");
-
-
-
 
     support::press_step(&s, "r");
     wait_absent(&mut s, FAILED, "output restarted");
@@ -592,12 +444,6 @@ fn h3_brew_services_stop_failed() {
     eprintln!("h3 brew_services_stop_failed: fail, restart roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_brew_upgrade_batch() {
@@ -609,10 +455,6 @@ fn h3_brew_upgrade_batch() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -629,7 +471,6 @@ fn h3_brew_upgrade_batch() {
     );
     checkpoint(&mut s, &dir, "01-batch");
     let batch = live_text(&mut s);
-
 
     assert!(
         batch.contains("==> Outdated Formulae · 2"),
@@ -649,9 +490,6 @@ fn h3_brew_upgrade_batch() {
     );
 
     assert!(!batch.contains(PLACEHOLDER), "N1: placeholder stuck");
-
-
-
 
     support::press_step(&s, "r");
     wait_absent(&mut s, OUTDATED, "output restarted");
@@ -673,11 +511,6 @@ fn h3_brew_upgrade_batch() {
     eprintln!("h3 brew_upgrade_batch: batch, restart roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_brew_upgrade_plan() {
@@ -688,7 +521,6 @@ fn h3_brew_upgrade_plan() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -709,7 +541,6 @@ fn h3_brew_upgrade_plan() {
     checkpoint(&mut s, &dir, "01-plan");
     let plan = live_text(&mut s);
 
-
     assert_line_has(&plan, "Upgrade everything", "9 included", "V1 title");
 
     assert!(
@@ -720,11 +551,6 @@ fn h3_brew_upgrade_plan() {
     assert!(plan.contains(EXCLUDED_NONE), "S1: no included count");
 
     assert_line_has(&plan, "Cancel", "Confirm plan", "S2 choice");
-
-
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -752,12 +578,6 @@ fn h3_brew_upgrade_plan() {
     eprintln!("h3 brew_upgrade_plan: plan, exclude roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_git_batch() {
@@ -769,10 +589,6 @@ fn h3_git_batch() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -790,7 +606,6 @@ fn h3_git_batch() {
     checkpoint(&mut s, &dir, "01-batch");
     let batch = live_text(&mut s);
 
-
     assert!(batch.contains(FF), "V1: no fast-forward line");
 
     assert_line_has(&batch, "pull alpha · succeeded", "exit 0", "V2 title");
@@ -806,9 +621,6 @@ fn h3_git_batch() {
     );
 
     assert!(!batch.contains(PLACEHOLDER), "N1: placeholder stuck");
-
-
-
 
     support::press_step(&s, "r");
     wait_absent(&mut s, FF, "output restarted");
@@ -829,13 +641,6 @@ fn h3_git_batch() {
     assert!(!here.contains(FF), "N2: report line stuck");
     eprintln!("h3 git_batch: batch, restart roundtrip");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
@@ -862,11 +667,9 @@ fn h3_git_batch_picker() {
     let output = live_text(&mut s);
     assert!(output.contains("f Follow"), "pre: no output footer");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-g", "wait:0 live"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-picker");
     let picker = live_text(&mut s);
-
 
     assert_line_has(&picker, "Activities", "0 live", "V1 title");
 
@@ -877,7 +680,6 @@ fn h3_git_batch_picker() {
     assert_line_has(&picker, "pull delta", "failed", "S2 failed row");
 
     assert!(!picker.contains("f Follow"), "N1: output footer stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, "Enter Switch", "picker cancelled");
@@ -893,12 +695,6 @@ fn h3_git_batch_picker() {
     eprintln!("h3 git_batch_picker: picker, cancel roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_git_merge() {
@@ -910,9 +706,6 @@ fn h3_git_merge() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -928,7 +721,6 @@ fn h3_git_merge() {
     );
     checkpoint(&mut s, &dir, "01-merge");
     let merge = live_text(&mut s);
-
 
     assert!(
         merge.contains(
@@ -951,9 +743,6 @@ fn h3_git_merge() {
 
     assert!(!merge.contains(PLACEHOLDER), "N1: placeholder stuck");
 
-
-
-
     support::press_step(&s, "r");
     wait_absent(&mut s, BLOCKED, "output restarted");
     support::drive_with_timeout(
@@ -974,10 +763,6 @@ fn h3_git_merge() {
     eprintln!("h3 git_merge: merge, restart roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_git_pull_blocked() {
@@ -989,7 +774,6 @@ fn h3_git_pull_blocked() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:Pull", "wait:blocked · 1 modified"],
@@ -997,7 +781,6 @@ fn h3_git_pull_blocked() {
     );
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
-
 
     assert_line_has(&res, "› Pull", "blocked · 1 modified", "V1 row");
 
@@ -1008,7 +791,6 @@ fn h3_git_pull_blocked() {
     assert!(res.contains("scope ‹ here ›"), "S2: no here scope");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, "Results · 3", "results cleared");
@@ -1027,12 +809,6 @@ fn h3_git_pull_blocked() {
     assert_line_has(&back, "› Pull", "blocked · 1 modified", "row intact");
     eprintln!("h3 git_pull_blocked: results, clear roundtrip");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
@@ -1064,10 +840,6 @@ fn h3_git_push_rejected() {
         "mid: no merge error"
     );
 
-
-
-
-
     support::drive_with_timeout(
         &mut s,
         &[
@@ -1085,7 +857,6 @@ fn h3_git_push_rejected() {
     checkpoint(&mut s, &dir, "02-push");
     let push = live_text(&mut s);
 
-
     assert_line_has(&push, "[rejected]", "fetch first", "V1 rejected");
 
     assert_line_has(&push, "push · failed", "exit 1", "V2 title");
@@ -1101,9 +872,6 @@ fn h3_git_push_rejected() {
     );
 
     assert!(!push.contains(PLACEHOLDER), "N1: placeholder stuck");
-
-
-
 
     support::press_step(&s, "r");
     wait_absent(&mut s, REJECTED, "output restarted");
@@ -1125,14 +893,6 @@ fn h3_git_push_rejected() {
     eprintln!("h3 git_push_rejected: push, restart roundtrip");
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_platforms_files() {
@@ -1144,8 +904,6 @@ fn h3_platforms_files() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1159,7 +917,6 @@ fn h3_platforms_files() {
     );
     checkpoint(&mut s, &dir, "01-files");
     let files = live_text(&mut s);
-
 
     assert!(files.contains("Top files · Spotlight"), "V1: no page title");
 
@@ -1178,7 +935,6 @@ fn h3_platforms_files() {
     assert!(files.contains("Esc Back"), "S2: no back footer");
 
     assert!(!files.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, "Esc Back", "page closed");
@@ -1203,12 +959,6 @@ fn h3_platforms_files() {
     assert!(back.contains("Top files · Spotlight"), "page intact");
     eprintln!("h3 platforms_files: page, back roundtrip");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
@@ -1235,7 +985,6 @@ fn h3_platforms_linux_gate1() {
     checkpoint(&mut s, &dir, "01-gate1");
     let gate = live_text(&mut s);
 
-
     assert_line_has(&gate, "Review · trash 1 item", GATE1, "V1 title");
 
     assert_line_has(&gate, "Mode", "no Trash backend", "V2 mode");
@@ -1254,7 +1003,6 @@ fn h3_platforms_linux_gate1() {
 
     assert!(!gate.contains(GATE2), "N1: gate 2 open before Right+Enter");
 
-
     support::drive_with_timeout(
         &mut s,
         &["right", "enter", &format!("wait:{GATE2}")],
@@ -1265,7 +1013,6 @@ fn h3_platforms_linux_gate1() {
     wait_absent(&mut s, GATE2, "gate 2 cancelled");
     wait_absent(&mut s, "to confirm", "prompt fully closed");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1283,12 +1030,6 @@ fn h3_platforms_linux_gate1() {
     checkpoint(&mut s, &dir, "03-gate1-again");
     eprintln!("h3 platforms_linux_gate1: gate 1, gate-2 roundtrip x2");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
@@ -1319,7 +1060,6 @@ fn h3_platforms_linux_gate2() {
     checkpoint(&mut s, &dir, "01-gate2");
     let gate = live_text(&mut s);
 
-
     assert!(
         gate.contains("Trash 1 items · gate 2 of 2"),
         "V1: no gate-2 title"
@@ -1331,7 +1071,6 @@ fn h3_platforms_linux_gate2() {
 
     assert_line_has(&gate, "Cancel", "Execute", "S2 choice");
 
-
     support::press_step(&s, "escape");
     wait_absent(&mut s, GATE2, "gate 2 cancelled");
     wait_absent(&mut s, "to confirm", "prompt fully closed");
@@ -1341,7 +1080,6 @@ fn h3_platforms_linux_gate2() {
 
     assert!(!cancelled.contains(GATE2), "N1: gate 2 stuck");
     assert!(!cancelled.contains("to confirm"), "N1: phrase prompt stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1359,12 +1097,6 @@ fn h3_platforms_linux_gate2() {
     eprintln!("h3 platforms_linux_gate2: gate 2, cancel roundtrip x2");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_remote_gate1() {
@@ -1381,7 +1113,6 @@ fn h3_remote_gate1() {
     );
     checkpoint(&mut s, &dir, "01-gate1");
     let gate = live_text(&mut s);
-
 
     assert_line_has(&gate, "Review · Restart payments", GATE1, "V1 title");
 
@@ -1406,7 +1137,6 @@ fn h3_remote_gate1() {
 
     assert!(!gate.contains(GATE2), "N1: gate 2 open before Right+Enter");
 
-
     support::drive_with_timeout(
         &mut s,
         &["right", "enter", &format!("wait:{GATE2}")],
@@ -1417,7 +1147,6 @@ fn h3_remote_gate1() {
     wait_absent(&mut s, GATE2, "gate 2 cancelled");
     wait_absent(&mut s, "to confirm", "prompt fully closed");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1435,12 +1164,6 @@ fn h3_remote_gate1() {
     checkpoint(&mut s, &dir, "03-gate1-again");
     eprintln!("h3 remote_gate1: gate 1, gate-2 roundtrip x2");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
@@ -1467,7 +1190,6 @@ fn h3_remote_gate2() {
     checkpoint(&mut s, &dir, "01-gate2");
     let gate = live_text(&mut s);
 
-
     assert!(
         gate.contains("Restart payments · gate 2 of 2"),
         "V1: no gate-2 title"
@@ -1479,7 +1201,6 @@ fn h3_remote_gate2() {
 
     assert_line_has(&gate, "Cancel", "Execute", "S2 choice");
 
-
     support::press_step(&s, "escape");
     wait_absent(&mut s, GATE2, "gate 2 cancelled");
     wait_absent(&mut s, "to confirm", "prompt fully closed");
@@ -1489,7 +1210,6 @@ fn h3_remote_gate2() {
 
     assert!(!cancelled.contains(GATE2), "N1: gate 2 stuck");
     assert!(!cancelled.contains("to confirm"), "N1: phrase prompt stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1506,13 +1226,6 @@ fn h3_remote_gate2() {
     checkpoint(&mut s, &dir, "03-cancelled-again");
     eprintln!("h3 remote_gate2: gate 2, cancel roundtrip x2");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
@@ -1542,7 +1255,6 @@ fn h3_remote_gate2_typed() {
     checkpoint(&mut s, &dir, "01-typed");
     let typed = live_text(&mut s);
 
-
     assert!(
         typed.contains(&format!("▎ {PHRASE}")),
         "V1: no typed phrase"
@@ -1557,20 +1269,17 @@ fn h3_remote_gate2_typed() {
 
     assert!(typed.contains(GATE1), "S2: no gate-1 status");
 
-
     support::press_step(&s, "escape");
     wait_absent(&mut s, &format!("▎ {PHRASE}"), "phrase cleared");
     waits::wait_state(&mut s, GATE2, "dialog still open");
     checkpoint(&mut s, &dir, "02-cleared");
     let cleared = live_text(&mut s);
 
-
     assert!(
         !cleared.contains(&format!("▎ {PHRASE}")),
         "N1: typed phrase stuck"
     );
     assert!(cleared.contains("to confirm"), "N1: prompt lost");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, GATE2, "dialog cancelled");
@@ -1584,10 +1293,6 @@ fn h3_remote_gate2_typed() {
     eprintln!("h3 remote_gate2_typed: typed, cleared, cancelled");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_remote_query() {
@@ -1599,7 +1304,6 @@ fn h3_remote_query() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:restart payments", "wait:Results · 2"],
@@ -1607,7 +1311,6 @@ fn h3_remote_query() {
     );
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
-
 
     assert_line_has(&res, "› Restart payments", "privileged", "V1 row");
 
@@ -1618,7 +1321,6 @@ fn h3_remote_query() {
     assert!(res.contains("scope ‹ here ›"), "S2: no here scope");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, "Results · 2", "results cleared");
@@ -1637,11 +1339,6 @@ fn h3_remote_query() {
     assert_line_has(&back, "› Restart payments", "privileged", "row intact");
     eprintln!("h3 remote_query: results, clear roundtrip");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
@@ -1665,7 +1362,6 @@ fn h3_trust_accepted() {
     assert!(prompt.contains(PROMPT), "pre: no trust prompt");
     assert!(prompt.contains("not trusted yet"), "pre: no untrusted fact");
 
-
     support::drive_with_timeout(
         &mut s,
         &["right", "enter", &format!("wait:{TRUSTED}")],
@@ -1673,7 +1369,6 @@ fn h3_trust_accepted() {
     );
     checkpoint(&mut s, &dir, "02-args");
     let args = live_text(&mut s);
-
 
     assert!(args.contains(ARGS), "V1: no args title");
 
@@ -1688,8 +1383,6 @@ fn h3_trust_accepted() {
 
     assert!(!args.contains(PROMPT), "N1: prompt stuck");
 
-
-
     support::press_step(&s, "escape");
     wait_absent(&mut s, ARGS, "args closed");
     waits::wait_state(&mut s, "Type Search", "finder back");
@@ -1702,13 +1395,6 @@ fn h3_trust_accepted() {
     eprintln!("h3 trust_accepted: accepted, no re-prompt");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_trust_deploy_failed() {
@@ -1720,7 +1406,6 @@ fn h3_trust_deploy_failed() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1736,7 +1421,6 @@ fn h3_trust_deploy_failed() {
     );
     checkpoint(&mut s, &dir, "01-failed");
     let failed = live_text(&mut s);
-
 
     assert!(
         failed.contains("holla: no simulated outcome for `tools/deploy-preview.sh --env 'preview stack' '$(whoami)'` in this preview"),
@@ -1757,17 +1441,12 @@ fn h3_trust_deploy_failed() {
 
     assert!(!failed.contains(PLACEHOLDER), "N1: placeholder stuck");
 
-
-
-
     support::press_step(&s, "r");
     wait_absent(&mut s, EXIT, "output restarted");
     waits::wait_state(&mut s, EXIT, "deploy failed again");
     checkpoint(&mut s, &dir, "02-failed-again");
     let back = live_text(&mut s);
     assert_line_has(&back, "deploy preview · failed", EXIT, "title intact");
-
-
 
     support::press_step(&s, "alt-0");
     wait_absent(&mut s, "no simulated outcome", "back to Here");
@@ -1782,11 +1461,6 @@ fn h3_trust_deploy_failed() {
     eprintln!("h3 trust_deploy_failed: fail, restart roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h3 check; run with --ignored"]
 fn h3_trust_prompt() {
@@ -1799,7 +1473,6 @@ fn h3_trust_prompt() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:test", "enter", &format!("wait:{PROMPT}")],
@@ -1807,7 +1480,6 @@ fn h3_trust_prompt() {
     );
     checkpoint(&mut s, &dir, "01-prompt");
     let prompt = live_text(&mut s);
-
 
     assert!(prompt.contains(PROMPT), "V1: no prompt title");
 
@@ -1823,7 +1495,6 @@ fn h3_trust_prompt() {
     assert_line_has(&prompt, "Cancel", "Trust this file", "S2 choice");
 
     assert!(!prompt.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, PROMPT, "review closed");

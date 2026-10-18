@@ -1,4 +1,3 @@
-
 use jackin_preview_app::{App, Motion, Scenario};
 use std::time::Duration;
 use termrock::{KeyCode, Theme};

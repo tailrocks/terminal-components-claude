@@ -1,17 +1,8 @@
-
-
-
-
-
-
-
-
 use ratatui_core::layout::Position;
 
 use crate::diagnostics::Diagnostic;
 use crate::id::Id;
 use crate::layer::LayerId;
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct CursorRequest {
@@ -24,14 +15,12 @@ pub(crate) struct CursorRequest {
     pub(crate) typing_offer: bool,
 }
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum CursorDecision {
     Keep(Position),
     Reject(Diagnostic),
     Silent,
 }
-
 
 pub(crate) fn resolve(req: CursorRequest, top: LayerId, focus: Option<Id>) -> CursorDecision {
     if req.inert {
@@ -46,7 +35,6 @@ pub(crate) fn resolve(req: CursorRequest, top: LayerId, focus: Option<Id>) -> Cu
         })
     }
 }
-
 
 pub(crate) fn resolve_requests(
     requests: &[CursorRequest],
@@ -148,11 +136,6 @@ mod tests {
             CursorDecision::Reject(_)
         ));
     }
-
-
-
-
-
 
     #[test]
     fn the_focused_owners_write_wins_on_the_same_layer() {

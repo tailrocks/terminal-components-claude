@@ -1,5 +1,3 @@
-
-
 use termrock::author::PaintStyle;
 use termrock::{
     Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, List, ListAction,
@@ -264,8 +262,6 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, members: &[Member], member_tab:
     }
 }
 
-
-
 #[derive(Debug)]
 pub struct SettingsPage {
     tabs: TabsState,
@@ -375,8 +371,6 @@ impl Page for SettingsPage {
             "Project settings",
             "Composed: tabs, form, editable table, list, dialogs",
             |ui, body| {
-
-
                 Tabs::new(TAB).draw(ui, Rect { height: 2, ..body }, &self.tabs, TABS);
                 if matches!(
                     self.tabs.active().or(self.tabs.cursor()),

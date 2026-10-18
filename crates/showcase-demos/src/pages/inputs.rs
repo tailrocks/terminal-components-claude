@@ -1,5 +1,3 @@
-
-
 use termrock::{
     BlurPolicy, Cx, Family, Field, FieldError, FrameRead, Id, Panel, PanelKind, Part, Rect,
     Response, StateFlags, Status, TextAction, TextInput, TextInputState, Track, Ui, Variant,
@@ -35,8 +33,6 @@ fn branch_input<'a>() -> TextInput<'a> {
         .placeholder("feat/…")
         .blur(BlurPolicy::Commit)
 }
-
-
 
 fn card_panel() -> Panel<'static> {
     Panel::new(CARD).kind(PanelKind::Card)
@@ -160,7 +156,6 @@ fn legacy_field_help(
     let _ = ui.paint_str(row, &fitted, style);
 }
 
-
 #[derive(Debug)]
 pub struct InputsPage {
     name: String,
@@ -195,7 +190,6 @@ impl Page for InputsPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
-
 
         let _ = fields_panel();
         let _ = playground_panel();

@@ -1,6 +1,3 @@
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DebianState {
     pub orphaned_packages: Vec<OrphanPackage>,
@@ -49,7 +46,6 @@ impl DebianState {
         s
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OrphanPackage {

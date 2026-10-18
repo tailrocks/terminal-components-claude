@@ -1,11 +1,8 @@
-
-
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use serde::de::{self, Deserializer, MapAccess, SeqAccess, Visitor};
 use serde_json::{Map, Value};
-
 
 pub fn canonical_json(value: &Value) -> String {
     let sorted = sort_value(value);
@@ -28,27 +25,22 @@ fn sort_value(value: &Value) -> Value {
     }
 }
 
-
 pub fn sha256_bytes(data: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     format!("{:x}", Sha256::digest(data))
 }
 
-
 pub fn sha256_canonical(value: &Value) -> String {
     sha256_bytes(canonical_json(value).as_bytes())
 }
-
 
 pub fn sha256_canonical_line(value: &Value) -> String {
     sha256_bytes(format!("{}\n", canonical_json(value)).as_bytes())
 }
 
-
 pub fn canonical_json_line(value: &Value) -> String {
     format!("{}\n", canonical_json(value))
 }
-
 
 pub fn parse_json_strict(text: &str) -> Result<Value, String> {
     let mut de = serde_json::Deserializer::from_str(text);
@@ -129,12 +121,10 @@ impl<'de> Visitor<'de> for NoDupVisitor {
     }
 }
 
-
 pub fn parse_json_bytes_strict(bytes: &[u8]) -> Result<Value, String> {
     let text = std::str::from_utf8(bytes).map_err(|error| error.to_string())?;
     parse_json_strict(text)
 }
-
 
 pub fn is_safe_relative_path(path: &str) -> bool {
     !path.is_empty()
@@ -143,7 +133,6 @@ pub fn is_safe_relative_path(path: &str) -> bool {
         && !path.contains('\\')
         && !path.split('/').any(|part| part == "..")
 }
-
 
 pub fn duplicate_values(values: &[String]) -> Vec<String> {
     let mut seen = HashSet::new();
@@ -156,7 +145,6 @@ pub fn duplicate_values(values: &[String]) -> Vec<String> {
     dupes
 }
 
-
 pub fn object_keys(value: &Value) -> Option<Vec<&str>> {
     value.as_object().map(|map| {
         let mut keys: Vec<_> = map.keys().map(String::as_str).collect();
@@ -165,16 +153,13 @@ pub fn object_keys(value: &Value) -> Option<Vec<&str>> {
     })
 }
 
-
 pub fn values_equal(left: &Value, right: &Value) -> bool {
     left == right
 }
 
-
 pub fn get_str<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }
-
 
 pub fn require_str(value: &Value, key: &str) -> Result<String, String> {
     get_str(value, key)
@@ -182,14 +167,12 @@ pub fn require_str(value: &Value, key: &str) -> Result<String, String> {
         .ok_or_else(|| format!("missing or invalid string field: {key}"))
 }
 
-
 pub fn require_u64(value: &Value, key: &str) -> Result<u64, String> {
     value
         .get(key)
         .and_then(Value::as_u64)
         .ok_or_else(|| format!("missing or invalid integer field: {key}"))
 }
-
 
 pub fn require_str_array(value: &Value, key: &str) -> Result<Vec<String>, String> {
     let array = value
@@ -206,20 +189,17 @@ pub fn require_str_array(value: &Value, key: &str) -> Result<Vec<String>, String
         .collect()
 }
 
-
 pub fn has_exact_keys(value: &Value, keys: &[&str]) -> bool {
     value
         .as_object()
         .is_some_and(|map| map.len() == keys.len() && keys.iter().all(|key| map.contains_key(*key)))
 }
 
-
 pub fn as_object_map(value: &Value) -> Result<&Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| "expected JSON object".to_string())
 }
-
 
 pub fn index_by_id(entries: &[Value], id_field: &str) -> Result<HashMap<String, Value>, String> {
     let mut map = HashMap::new();

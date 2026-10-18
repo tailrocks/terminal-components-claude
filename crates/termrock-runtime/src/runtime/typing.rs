@@ -1,20 +1,15 @@
-
-
 use crate::diagnostics::Diagnostic;
 use crate::id::Id;
 use crate::layer::LayerId;
 use crate::response::StateFlags;
 use crate::ui::FrameState;
 
-
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TypingPolicy {
-
     #[default]
     Focused,
 
     Fallback {
-
         cursor: bool,
     },
 }
@@ -87,7 +82,6 @@ pub(crate) fn resolve(frame: &mut FrameState, focus: Option<Id>) -> TypingResolv
             candidate = Some((declaration.owner, declaration.cursor));
         }
     }
-
 
     if let Some(owner) = focus
         && frame

@@ -1,6 +1,3 @@
-
-
-
 #![forbid(unsafe_code)]
 #![expect(
     clippy::pedantic,

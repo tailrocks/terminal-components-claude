@@ -1,6 +1,3 @@
-
-
-
 use crate::pty::{Daemon, Span, SplitDir, TextViewport, Tone};
 use crate::world::{GithubRepo, World};
 use jackin_preview_domain::account::{
@@ -90,9 +87,6 @@ pub(crate) fn roles() -> Vec<RoleEntry> {
     ]
 }
 
-
-
-
 fn generated_roles(n: usize) -> Vec<RoleEntry> {
     const AREAS: [&str; 6] = ["billing", "ledger", "search", "notify", "ingest", "auth"];
     (1..=n)
@@ -160,7 +154,6 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
         )],
     );
 
-
     w.accounts.enabled.insert("acct-claude-work".into());
     w.accounts.role_preferred.insert(
         ("reviewer".into(), Provider::Anthropic),
@@ -194,7 +187,6 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
         ),
         EnvVar::plain("TF_LOG", "WARN"),
     ];
-
 
     w.accounts
         .disabled_defaults
@@ -604,7 +596,6 @@ fn accounts_mixed(now: i64) -> AccountRegistry {
     };
     r.insert(a);
 
-
     let mut a = Account::discovered(
         "disc-amp",
         "discovered",
@@ -1012,7 +1003,6 @@ pub(crate) fn populate(w: &mut World, rich: bool) {
     i9.sessions = Ok(vec![]);
     w.instances = vec![i1, i2, i3, i4, i5, i6, i7, i8, i9];
     if rich {
-
         let mut i10 = instance(
             "jk-e0e0",
             Some(10),
@@ -1170,7 +1160,6 @@ pub(crate) fn populate(w: &mut World, rich: bool) {
     w.sync_arbiter();
 }
 
-
 pub fn refresh_snapshots(w: &mut World) {
     let snaps: Vec<(String, DaemonSnapshot)> = w
         .daemons
@@ -1188,7 +1177,6 @@ pub fn refresh_snapshots(w: &mut World) {
         }
     }
 }
-
 
 fn canonical_role(short: &str) -> &str {
     match short {
@@ -1253,7 +1241,6 @@ pub(crate) fn workspaces_for(scenario: Scenario) -> Vec<Workspace> {
     canonicalize_workspace_roles(&mut result);
     result
 }
-
 
 pub(crate) fn github() -> Vec<GithubRepo> {
     let r = |n: &str, b: &str, extra: &[&str], upd: &str| GithubRepo {

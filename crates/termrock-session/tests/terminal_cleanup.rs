@@ -1,9 +1,7 @@
-
 #![allow(clippy::unwrap_used, reason = "explicit terminal fixture assertions")]
 
 use std::io::{self, Read};
 use termrock_session::TerminalSession;
-
 
 #[test]
 #[ignore = "real PTY fixture; external driver supplies terminal and output failure"]
@@ -16,7 +14,6 @@ fn terminal_cleanup_driver_fixture() {
         let result = TerminalSession::enter();
         assert!(result.is_err());
         eprintln!("TERMINAL_ENTRY_ERROR_RESTORED");
-
 
         std::process::exit(0);
     }

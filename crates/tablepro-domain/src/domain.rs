@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -17,7 +10,6 @@ use termrock::{
 
 use tablepro_demo::db::{ColType, Table, Value};
 use tablepro_sql::sql;
-
 
 #[derive(Clone, PartialEq)]
 struct PendingRow {
@@ -40,7 +32,6 @@ impl core::fmt::Debug for PendingRow {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct PendingEdits {
     rows: Vec<PendingRow>,
@@ -49,7 +40,6 @@ pub struct PendingEdits {
 }
 
 impl PendingEdits {
-
     pub fn new(rows: Vec<Vec<Value>>) -> Self {
         let next_key = u64::try_from(rows.len())
             .ok()
@@ -70,11 +60,9 @@ impl PendingEdits {
         }
     }
 
-
     pub fn row_count(&self) -> usize {
         self.rows.len()
     }
-
 
     pub fn value(&self, row: usize, col: usize) -> Option<&Value> {
         self.rows.get(row)?.current.get(col)
@@ -84,7 +72,6 @@ impl PendingEdits {
         let record = self.rows.get(row)?;
         record.original.as_ref().unwrap_or(&record.current).get(col)
     }
-
 
     pub fn set(&mut self, row: usize, col: usize, value: Value) -> bool {
         let Some(record) = self.rows.get_mut(row) else {
@@ -105,7 +92,6 @@ impl PendingEdits {
         true
     }
 
-
     pub fn insert_row(&mut self, columns: usize) -> Option<usize> {
         self.insert_values(vec![Value::Null; columns])
     }
@@ -123,7 +109,6 @@ impl PendingEdits {
         self.next_key = key.checked_add(1);
         Some(row)
     }
-
 
     pub fn delete_row(&mut self, row: usize) -> bool {
         let Some(record) = self.rows.get_mut(row) else {
@@ -157,16 +142,13 @@ impl PendingEdits {
         true
     }
 
-
     pub fn is_inserted(&self, row: usize) -> bool {
         self.rows.get(row).is_some_and(|record| record.inserted)
     }
 
-
     pub fn is_deleted(&self, row: usize) -> bool {
         self.rows.get(row).is_some_and(|record| record.deleted)
     }
-
 
     pub fn is_dirty(&self, row: usize, col: usize) -> bool {
         if self.is_inserted(row) {
@@ -179,13 +161,11 @@ impl PendingEdits {
             .is_some_and(|(current, original)| current != original)
     }
 
-
     pub fn is_dirty_row(&self, row: usize) -> bool {
         self.is_inserted(row)
             || self.is_deleted(row)
             || (0..self.current_row_width(row)).any(|col| self.is_dirty(row, col))
     }
-
 
     pub fn dirty_cell_count(&self) -> usize {
         (0..self.row_count())
@@ -197,13 +177,11 @@ impl PendingEdits {
             .sum()
     }
 
-
     pub fn dirty_rows(&self) -> Vec<usize> {
         (0..self.row_count())
             .filter(|&row| self.is_dirty_row(row))
             .collect()
     }
-
 
     pub fn clear(&mut self) {
         self.rows.retain(|record| !record.inserted);
@@ -214,7 +192,6 @@ impl PendingEdits {
             record.deleted = false;
         }
     }
-
 
     pub fn reorder(&mut self, order: &[usize]) {
         let mut seen = vec![false; self.rows.len()];
@@ -239,7 +216,6 @@ impl PendingEdits {
     }
 }
 
-
 pub fn sql_literal(value: &Value) -> String {
     match value {
         Value::Null => "NULL".to_owned(),
@@ -251,7 +227,6 @@ pub fn sql_literal(value: &Value) -> String {
         Value::Json(value) => format!("'{}'::jsonb", value.replace('\'', "''")),
     }
 }
-
 
 pub fn preview_sql(
     table: &Table,
@@ -290,8 +265,6 @@ pub fn preview_sql(
 
     let dirty_rows = pending.dirty_rows();
     let mut out = Vec::new();
-
-
 
     for &row in &dirty_rows {
         if pending.is_inserted(row) || pending.is_deleted(row) {
@@ -358,7 +331,6 @@ impl PendingEdits {
     }
 }
 
-
 #[derive(Clone, PartialEq)]
 pub struct ResultGrid {
     types: Vec<ColType>,
@@ -368,7 +340,6 @@ pub struct ResultGrid {
     editable: bool,
     source: Option<String>,
     read_only_reason: Option<String>,
-
 
     display: Vec<Option<String>>,
     undo: Vec<PendingEdits>,
@@ -391,7 +362,6 @@ impl core::fmt::Debug for ResultGrid {
 }
 
 impl ResultGrid {
-
     pub fn empty() -> Self {
         Self::from_result(&sql::ResultSet {
             columns: Vec::new(),
@@ -402,7 +372,6 @@ impl ResultGrid {
             editable: false,
         })
     }
-
 
     pub fn from_result(result: &sql::ResultSet) -> Self {
         let pending = PendingEdits::new(result.rows.clone());
@@ -423,32 +392,25 @@ impl ResultGrid {
         grid
     }
 
-
     pub fn row_count(&self) -> usize {
         self.pending.row_count()
     }
-
 
     pub fn total(&self) -> usize {
         self.total.max(self.row_count())
     }
 
-
     pub fn is_editable(&self) -> bool {
         self.editable
     }
-
 
     pub fn source(&self) -> Option<&str> {
         self.source.as_deref()
     }
 
-
     pub fn pending(&self) -> &PendingEdits {
         &self.pending
     }
-
-
 
     pub fn pending_total(&self) -> usize {
         self.pending
@@ -467,7 +429,6 @@ impl ResultGrid {
             .sum()
     }
 
-
     pub fn insert_row(&mut self) -> Option<usize> {
         if !self.editable {
             return None;
@@ -478,7 +439,6 @@ impl ResultGrid {
         self.rebuild_display();
         Some(row)
     }
-
 
     pub fn insert_row_with_defaults(&mut self, defaults: &[bool]) -> Option<usize> {
         if !self.editable || defaults.len() != self.types.len() {
@@ -501,7 +461,6 @@ impl ResultGrid {
         Some(row)
     }
 
-
     pub fn toggle_delete(&mut self, row: usize) -> bool {
         if !self.editable {
             return false;
@@ -514,7 +473,6 @@ impl ResultGrid {
         self.rebuild_display();
         true
     }
-
 
     pub fn delete_row(&mut self, row: usize) -> bool {
         if !self.editable {
@@ -529,13 +487,11 @@ impl ResultGrid {
         changed
     }
 
-
     pub fn discard(&mut self) {
         self.undo.push(self.pending.clone());
         self.pending.clear();
         self.restore_sort();
     }
-
 
     pub fn undo(&mut self) -> bool {
         let Some(previous) = self.undo.pop() else {
@@ -552,7 +508,6 @@ impl ResultGrid {
         true
     }
 
-
     pub fn position_label(&self, first_row: usize, visible_rows: usize) -> String {
         if self.row_count() == 0 {
             return "0 rows".to_owned();
@@ -564,11 +519,9 @@ impl ResultGrid {
         format!("rows {first}–{last} of {}", self.total())
     }
 
-
     pub fn dirty_cell_count(&self) -> usize {
         self.pending.dirty_cell_count()
     }
-
 
     pub fn sort(&mut self, key: ColumnKey, direction: SortDir) {
         let Some(column) = usize::from(key.raw()).checked_sub(1) else {
@@ -884,8 +837,6 @@ mod tests {
             ("name".to_owned(), ColType::Text),
         ]
     }
-
-
 
     #[test]
     fn preview_sql_orders_updates_inserts_deletes() -> Result<(), String> {

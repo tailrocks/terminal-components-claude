@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 use core::ops::{ControlFlow, Range};
 
@@ -37,11 +23,7 @@ use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 use termrock_runtime::scroll_region::ScrollRegion;
 
-
-
-
 const TAB_WIDTH: u16 = 4;
-
 
 #[cfg(feature = "testing")]
 #[derive(Debug, Default)]
@@ -50,11 +32,9 @@ pub struct ViewportWorkProbe {
     visible_rows: Cell<usize>,
 }
 
-
 #[cfg(feature = "testing")]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct ViewportWorkSnapshot {
-
     pub indexed_lines: usize,
 
     pub visible_rows: usize,
@@ -62,12 +42,10 @@ pub struct ViewportWorkSnapshot {
 
 #[cfg(feature = "testing")]
 impl ViewportWorkProbe {
-
     pub fn reset(&self) {
         self.indexed_lines.set(0);
         self.visible_rows.set(0);
     }
-
 
     pub fn snapshot(&self) -> ViewportWorkSnapshot {
         ViewportWorkSnapshot {
@@ -87,27 +65,12 @@ impl ViewportWorkProbe {
     }
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ViewportLine<'a> {
-
     Plain(&'a str),
 
     Spans(&'a [Span<'a>]),
 }
-
-
-
-
-
-
-
-
-
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ProjectedText {
@@ -124,16 +87,11 @@ pub(crate) struct ProjectedRun {
 }
 
 impl ProjectedText {
-
     pub fn clear(&mut self) {
         self.text.clear();
         self.lines.clear();
         self.runs.clear();
     }
-
-
-
-
 
     pub fn push_line<I, S>(&mut self, runs: I)
     where
@@ -219,29 +177,21 @@ impl<'a> From<&'a [Span<'a>]> for ViewportLine<'a> {
     }
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
 pub struct CellPos {
-
     pub line: usize,
 
     pub col: usize,
 }
 
 impl CellPos {
-
     pub const fn new(line: usize, col: usize) -> Self {
         CellPos { line, col }
     }
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ViewportAction {
-
     Copy(String),
 
     SelectionChanged,
@@ -249,10 +199,8 @@ pub enum ViewportAction {
     FollowChanged(bool),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ViewportCmd {
-
     Up,
 
     Down,
@@ -374,11 +322,6 @@ const BINDINGS: &[Binding<ViewportCmd>] = &[
     ),
 ];
 
-
-
-
-
-
 #[derive(Clone, Copy, Debug)]
 struct VCell {
     span: usize,
@@ -387,7 +330,6 @@ struct VCell {
     w: u16,
     tab: bool,
 }
-
 
 const fn runs(line: ViewportLine<'_>) -> &[Span<'_>] {
     match line {
@@ -404,7 +346,6 @@ fn run_count(line: LineRef<'_>) -> usize {
     }
 }
 
-
 fn run_text(line: LineRef<'_>, ix: usize) -> &str {
     match line {
         LineRef::Borrowed(ViewportLine::Plain(s)) => s,
@@ -417,7 +358,6 @@ fn run_text(line: LineRef<'_>, ix: usize) -> &str {
             .unwrap_or(""),
     }
 }
-
 
 fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier) {
     match line {
@@ -432,7 +372,6 @@ fn run_style(line: LineRef<'_>, ix: usize) -> (Option<Role>, Modifier) {
     }
 }
 
-
 fn cell_text<'a>(line: impl Into<LineRef<'a>>, c: VCell) -> &'a str {
     let line = line.into();
     if c.tab {
@@ -443,7 +382,6 @@ fn cell_text<'a>(line: impl Into<LineRef<'a>>, c: VCell) -> &'a str {
             .unwrap_or("")
     }
 }
-
 
 fn walk_run(
     ix: usize,
@@ -478,7 +416,6 @@ fn walk_run(
     ControlFlow::Continue(())
 }
 
-
 fn walk_line<'a>(line: impl Into<LineRef<'a>>, mut f: impl FnMut(VCell) -> ControlFlow<()>) {
     let line = line.into();
     for index in 0..run_count(line) {
@@ -487,7 +424,6 @@ fn walk_line<'a>(line: impl Into<LineRef<'a>>, mut f: impl FnMut(VCell) -> Contr
         }
     }
 }
-
 
 fn line_cols<'a>(line: impl Into<LineRef<'a>>) -> usize {
     let line = line.into();
@@ -498,7 +434,6 @@ fn line_cols<'a>(line: impl Into<LineRef<'a>>) -> usize {
     });
     n
 }
-
 
 fn line_rows<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool) -> usize {
     let line = line.into();
@@ -520,8 +455,6 @@ fn line_rows<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool) -> usize {
     });
     rows
 }
-
-
 
 fn row_cols<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool, row: usize) -> (usize, usize) {
     let line = line.into();
@@ -557,9 +490,6 @@ fn row_cols<'a>(line: impl Into<LineRef<'a>>, w: u16, wrap: bool, row: usize) ->
     }
 }
 
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 struct LayoutKey {
     width: u16,
@@ -567,25 +497,15 @@ struct LayoutKey {
     generation: u32,
 }
 
-
-
-
-
 #[derive(Debug, Default)]
 struct ViewportLayout {
     key: LayoutKey,
-
-
 
     prefix: Vec<usize>,
     lines: usize,
 }
 
 impl ViewportLayout {
-
-
-
-
     fn ensure<'a>(&mut self, lines: impl Into<LineSet<'a>>, key: LayoutKey) -> usize {
         let lines = lines.into();
         let reusable = key.generation != u32::MAX;
@@ -603,9 +523,6 @@ impl ViewportLayout {
             return 0;
         }
         if self.prefix.is_empty() {
-
-
-
             self.prefix.reserve(
                 lines
                     .len()
@@ -634,14 +551,12 @@ impl ViewportLayout {
         indexed
     }
 
-
     fn total(&self) -> usize {
         if !self.key.wrap {
             return self.lines;
         }
         self.prefix.last().copied().unwrap_or(0)
     }
-
 
     fn row_start<'a>(&self, lines: impl Into<LineSet<'a>>, row: usize) -> (usize, usize) {
         let lines = lines.into();
@@ -670,13 +585,9 @@ impl ViewportLayout {
     }
 }
 
-
-
-
 fn is_word(c: char) -> bool {
     c.is_alphanumeric() || c == '_' || c == '-' || c == '/' || c == '.'
 }
-
 
 fn word_at<'a>(line: impl Into<LineRef<'a>>, col: usize) -> Option<(usize, usize)> {
     let line = line.into();
@@ -710,13 +621,6 @@ fn word_at<'a>(line: impl Into<LineRef<'a>>, col: usize) -> Option<(usize, usize
     found
 }
 
-
-
-
-
-
-
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ViewportState {
     scroll: ScrollState,
@@ -741,22 +645,17 @@ impl Default for ViewportState {
 }
 
 impl ViewportState {
-
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
-
 
     pub const fn follow(&self) -> bool {
         self.follow
     }
 
-
-
     pub const fn set_follow(&mut self, on: bool) {
         self.follow = on;
     }
-
 
     pub fn selection(&self) -> Option<(CellPos, CellPos)> {
         let (a, b) = self.selection?;
@@ -766,12 +665,10 @@ impl ViewportState {
         Some((a.min(b), a.max(b)))
     }
 
-
     pub const fn select(&mut self, a: CellPos, b: CellPos) {
         self.selection = Some((a, b));
         self.anchor = None;
     }
-
 
     pub const fn clear_selection(&mut self) -> bool {
         let had = self.selection.is_some();
@@ -780,25 +677,13 @@ impl ViewportState {
         had
     }
 
-
-
     pub const fn caret(&self) -> Option<CellPos> {
         self.caret
     }
 
-
     pub const fn set_caret(&mut self, c: Option<CellPos>) {
         self.caret = c;
     }
-
-
-
-
-
-
-
-
-
 
     pub fn retained(&mut self, dropped: usize) {
         if dropped == 0 {
@@ -808,10 +693,6 @@ impl ViewportState {
             .selection
             .is_some_and(|(a, b)| a.line < dropped && b.line < dropped)
         {
-
-
-
-
             self.selection = None;
         } else if let Some((a, b)) = self.selection.as_mut() {
             shift(a, dropped);
@@ -826,23 +707,13 @@ impl ViewportState {
         self.invalidate();
     }
 
-
-
     pub const fn invalidate(&mut self) {
         self.generation = self.generation.saturating_add(1);
     }
 
-
-
-
-
     pub fn copy_into(&self, lines: &[ViewportLine<'_>], out: &mut String) -> bool {
         self.copy_from(LineSet::Borrowed(lines), out)
     }
-
-
-
-
 
     pub fn copy_from_projected(&self, text: &ProjectedText, out: &mut String) -> bool {
         self.copy_from(LineSet::Projected(text), out)
@@ -880,9 +751,6 @@ impl ViewportState {
     }
 }
 
-
-
-
 fn shift(p: &mut CellPos, dropped: usize) {
     if p.line < dropped {
         *p = CellPos::new(0, 0);
@@ -890,95 +758,6 @@ fn shift(p: &mut CellPos, dropped: usize) {
         p.line = p.line.saturating_sub(dropped);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct TextViewport<'a> {
     id: Id,
@@ -1003,7 +782,6 @@ impl fmt::Debug for TextViewport<'_> {
 }
 
 impl<'a> TextViewport<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::TEXT,
@@ -1012,9 +790,7 @@ impl<'a> TextViewport<'a> {
         Part::THUMB,
     ];
 
-
     pub const PREFERRED_TEXT_WIDTH: u16 = 20;
-
 
     pub const fn new(id: Id) -> Self {
         TextViewport {
@@ -1028,7 +804,6 @@ impl<'a> TextViewport<'a> {
             work_probe: None,
         }
     }
-
 
     #[cfg(feature = "testing")]
     #[must_use]
@@ -1056,11 +831,9 @@ impl<'a> TextViewport<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn wrap(mut self, yes: bool) -> Self {
@@ -1068,17 +841,11 @@ impl<'a> TextViewport<'a> {
         self
     }
 
-
-
-
-
-
     #[must_use]
     pub const fn click_selects_word(mut self, yes: bool) -> Self {
         self.click_selects_word = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -1086,26 +853,17 @@ impl<'a> TextViewport<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.slot = Some((p, f));
         self
     }
-
-
-
-
-
-
-
 
     fn overrides(&self) -> PartStyle<'a> {
         let mut ov = PartStyle::new().part(self.parts);
@@ -1117,8 +875,6 @@ impl<'a> TextViewport<'a> {
         }
         ov
     }
-
-
 
     fn bar(&self) -> ScrollRegion<'a> {
         let mut sr = ScrollRegion::new(self.id)
@@ -1133,8 +889,6 @@ impl<'a> TextViewport<'a> {
         sr
     }
 
-
-
     const fn text_width(width: u16) -> u16 {
         width.saturating_sub(2)
     }
@@ -1146,8 +900,6 @@ impl<'a> TextViewport<'a> {
             generation: st.generation,
         }
     }
-
-
 
     fn pos_at(
         &self,
@@ -1179,8 +931,6 @@ impl<'a> TextViewport<'a> {
         })
     }
 
-
-
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -1189,10 +939,6 @@ impl<'a> TextViewport<'a> {
     ) -> Response<ViewportAction> {
         self.update_lines(cx, st, LineSet::Borrowed(lines))
     }
-
-
-
-
 
     pub fn update_projected(
         &self,
@@ -1279,8 +1025,6 @@ impl<'a> TextViewport<'a> {
                 }
             }
             Phase::Drag => {
-
-
                 if pos.y < area.y {
                     st.scroll.scroll_by(-1);
                     st.follow = false;
@@ -1333,12 +1077,9 @@ impl<'a> TextViewport<'a> {
             Phase::Secondary => acc.consumed(),
             Phase::Move => {}
 
-
             _ => {}
         }
     }
-
-
 
     fn command<'b>(
         st: &mut ViewportState,
@@ -1391,7 +1132,6 @@ impl<'a> TextViewport<'a> {
         }
     }
 
-
     pub fn draw(
         &self,
         ui: &mut Ui<'_>,
@@ -1401,10 +1141,6 @@ impl<'a> TextViewport<'a> {
     ) -> Rect {
         self.draw_lines(ui, area, st, LineSet::Borrowed(lines))
     }
-
-
-
-
 
     pub fn draw_projected(
         &self,
@@ -1513,7 +1249,6 @@ impl<'a> TextViewport<'a> {
         text
     }
 
-
     fn rows(
         &self,
         ui: &mut Ui<'_>,
@@ -1554,7 +1289,6 @@ impl<'a> TextViewport<'a> {
         self.note_visible(visible);
     }
 
-
     fn gutter(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, ov: &PartStyle<'a>) {
         let col = Rect {
             x: area.x,
@@ -1588,7 +1322,6 @@ impl<'a> TextViewport<'a> {
             Slot::Inherit | Slot::Clear => ui.fill(col, g.style),
         }
     }
-
 
     fn caret(
         &self,
@@ -1637,7 +1370,6 @@ impl<'a> TextViewport<'a> {
         );
     }
 
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (3, 1),
@@ -1647,7 +1379,6 @@ impl<'a> TextViewport<'a> {
     }
 }
 
-
 #[derive(Clone, Copy)]
 struct Run {
     span: usize,
@@ -1655,8 +1386,6 @@ struct Run {
     a: usize,
     b: usize,
 }
-
-
 
 fn paint_row(
     ui: &mut Ui<'_>,
@@ -2310,12 +2039,6 @@ mod tests {
         assert_ne!(rt.resolved(ID, Part::TRACK), scrollbar);
     }
 
-
-
-
-
-
-
     #[test]
     fn retention_fixes_up_selection_and_caret() {
         let mut st = ViewportState::default();
@@ -2332,8 +2055,6 @@ mod tests {
         assert_eq!(st.anchor, Some(CellPos::new(2, 2)));
         assert_eq!(st.caret(), Some(CellPos::new(4, 1)));
 
-
-
         let mut partial = ViewportState::default();
         partial.select(CellPos::new(1, 3), CellPos::new(4, 6));
         partial.retained(3);
@@ -2341,7 +2062,6 @@ mod tests {
             partial.selection(),
             Some((CellPos::new(0, 0), CellPos::new(1, 6)))
         );
-
 
         st.retained(10);
         assert_eq!(
@@ -2359,11 +2079,6 @@ mod tests {
         st.retained(0);
         assert_eq!(st.generation, g);
     }
-
-
-
-
-
 
     #[test]
     fn wrapped_rows_partition_the_line() {
@@ -2389,10 +2104,6 @@ mod tests {
         }
     }
 
-
-
-
-
     #[test]
     fn copy_joins_lines_and_trims_each() {
         let lines = [
@@ -2413,9 +2124,6 @@ mod tests {
         assert!(!st2.clear_selection());
     }
 
-
-
-
     #[test]
     fn a_double_click_selects_a_path_like_word() {
         let line = ViewportLine::Plain("see src/main.rs:42 for the rest");
@@ -2430,7 +2138,6 @@ mod tests {
 
         assert_eq!(word_at(line, 999), None);
     }
-
 
     fn line_slice(line: ViewportLine<'_>, a: usize, b: usize) -> String {
         let mut out = String::new();
@@ -2447,11 +2154,6 @@ mod tests {
         });
         out
     }
-
-
-
-
-
 
     #[test]
     fn the_text_width_does_not_depend_on_whether_the_bar_is_painted() {
@@ -2477,11 +2179,6 @@ mod tests {
         assert_eq!(width_of(&short), width_of(&long));
         assert_eq!(width_of(&short), TextViewport::text_width(area.width));
     }
-
-
-
-
-
 
     #[test]
     fn the_focus_gutter_is_the_only_focus_affordance_and_it_is_painted() {
@@ -2552,11 +2249,6 @@ mod tests {
         }
     }
 
-
-
-
-
-
     #[test]
     fn a_rebuilt_layout_paints_what_the_warm_one_did() {
         let area = Rect {
@@ -2572,13 +2264,8 @@ mod tests {
         st.set_follow(false);
         let before = st.clone();
 
-
-
-
         let mut frames = Vec::new();
         for f in 0..3 {
-
-
             if f == 2 {
                 st.invalidate();
             }
@@ -2602,11 +2289,6 @@ mod tests {
         assert_eq!(st.selection(), before.selection());
     }
 
-
-
-
-
-
     #[test]
     fn tabs_expand_to_a_fixed_width_everywhere() {
         let line = ViewportLine::Plain("\tif x:");
@@ -2621,13 +2303,6 @@ mod tests {
         assert!(st.copy_into(&lines, &mut out));
         assert_eq!(out, "    if", "the tab did not copy as its expansion");
     }
-
-
-
-
-
-
-
 
     #[test]
     fn every_declared_part_is_one_a_drawn_viewport_styles() {
@@ -2665,10 +2340,6 @@ mod tests {
             );
         }
     }
-
-
-
-
 
     #[test]
     fn the_slot_addressable_parts_are_exactly_the_documented_ones() {

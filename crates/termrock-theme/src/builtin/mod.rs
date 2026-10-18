@@ -1,5 +1,3 @@
-
-
 pub(crate) mod junie;
 pub(crate) mod paper;
 
@@ -21,8 +19,6 @@ fn part(m: &mut PartMap<PartRecipe>, part: Part, base: StylePatch) -> &mut PartR
     r.base = r.base.merge(base);
     r
 }
-
-
 
 fn row_like(m: &mut PartMap<PartRecipe>) {
     part(
@@ -497,7 +493,6 @@ fn empty(m: &mut PartMap<PartRecipe>) {
 }
 
 fn brand(m: &mut PartMap<PartRecipe>) {
-
     part(
         m,
         Part::LABEL,
@@ -607,15 +602,11 @@ fn button(r: &mut Recipe) {
     }
 }
 
-
-
-
 pub(crate) fn neutral_recipe() -> Recipe {
     let mut r = Recipe::default();
     row_like(&mut r.parts);
     r
 }
-
 
 pub(crate) fn default_recipes() -> Recipes {
     let mut rs = Recipes::default();
@@ -644,8 +635,6 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::KEYHINT => keyhint(&mut r.parts),
             Family::PROGRESS => progress(&mut r.parts),
             Family::METER => {
-
-
                 part(&mut r.parts, Part::LABEL, p());
                 part(&mut r.parts, Part::TRACK, p());
                 part(&mut r.parts, Part::ICON, p())
@@ -692,10 +681,6 @@ mod tests {
         }
     }
 
-
-
-
-
     fn hovered_and_disabled_parts() -> Vec<(Family, Variant, Part, StylePatch)> {
         let rs = default_recipes();
         let mut out = Vec::new();
@@ -739,10 +724,6 @@ mod tests {
         out
     }
 
-
-
-
-
     #[test]
     fn hovered_and_disabled_are_declared_together_on_the_parts_that_matter() {
         let found = hovered_and_disabled_parts();
@@ -763,20 +744,6 @@ mod tests {
             found.len()
         );
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     #[test]
     fn disabled_is_applied_after_hovered_on_every_part_declaring_both() {
@@ -799,7 +766,6 @@ mod tests {
             }
         }
 
-
         let live = StateFlags::HOVERED | StateFlags::DISABLED;
         for (f, v, part, _) in hovered_and_disabled_parts() {
             let r = t.resolve(f, v, part, live, Surface::Canvas);
@@ -814,32 +780,11 @@ mod tests {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     const DISABLED_BG_LOST_TO_HOVER: [(Family, Variant, Part); 3] = [
         (Family::BUTTON, Variant::SUBTLE, Part::CONTAINER),
         (Family::BUTTON, Variant::QUIET, Part::CONTAINER),
         (Family::BUTTON, Variant::GHOST, Part::CONTAINER),
     ];
-
-
-
-
-
-
-
-
 
     #[test]
     fn a_hovered_disabled_part_keeps_every_slot_the_disabled_rule_writes() {

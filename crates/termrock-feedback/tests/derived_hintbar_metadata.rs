@@ -1,4 +1,3 @@
-
 use ratatui_core::style::Color;
 use termrock::{
     App, Button, Chord, Cx, Family, Hint, HintBar, HintLayer, Id, KeyCode, Part, Rect, Response,

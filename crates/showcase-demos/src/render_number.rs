@@ -1,7 +1,3 @@
-
-
-
-
 #[derive(Debug)]
 pub struct RenderNumber {
     bytes: [u8; 32],

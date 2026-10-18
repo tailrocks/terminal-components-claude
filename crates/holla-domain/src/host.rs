@@ -1,11 +1,5 @@
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Environment {
-
     Local,
 
     Dev,
@@ -25,7 +19,6 @@ impl Environment {
         }
     }
 
-
     pub fn glyph(self) -> Option<&'static str> {
         match self {
             Environment::Local | Environment::Dev => None,
@@ -34,7 +27,6 @@ impl Environment {
         }
     }
 
-
     pub fn sensitive(self) -> bool {
         matches!(self, Environment::Staging | Environment::Production)
     }
@@ -42,7 +34,6 @@ impl Environment {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HostKind {
-
     Local,
 
     Remote,
@@ -56,8 +47,6 @@ impl HostKind {
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HostMetrics {
@@ -94,7 +83,6 @@ pub struct Host {
     pub env: Environment,
     pub metrics: HostMetrics,
 
-
     pub osc52: bool,
 
     pub osc52_limit: usize,
@@ -126,7 +114,6 @@ impl Host {
             osc52_limit: 100_000,
         }
     }
-
 
     pub fn identity(&self) -> String {
         let role = match (self.kind, self.env) {

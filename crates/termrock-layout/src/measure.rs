@@ -1,18 +1,12 @@
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Size {
-
     pub min: (u16, u16),
 
     pub preferred: (u16, u16),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Constraints {
-
     pub max: (u16, u16),
 
     pub tight_w: bool,
@@ -21,7 +15,6 @@ pub struct Constraints {
 }
 
 impl Constraints {
-
     pub const fn loose(w: u16, h: u16) -> Self {
         Constraints {
             max: (w, h),
@@ -29,7 +22,6 @@ impl Constraints {
             tight_h: false,
         }
     }
-
 
     pub const fn tight(w: u16, h: u16) -> Self {
         Constraints {
@@ -41,14 +33,12 @@ impl Constraints {
 }
 
 impl Size {
-
     pub const fn exact(w: u16, h: u16) -> Self {
         Size {
             min: (w, h),
             preferred: (w, h),
         }
     }
-
 
     #[must_use]
     pub fn fit(self, c: Constraints) -> Size {

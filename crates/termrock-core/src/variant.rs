@@ -1,15 +1,11 @@
-
-
 use crate::id::fnv1a;
 
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Variant(u16);
 
 impl Variant {
-
     pub const DEFAULT: Variant = Variant(0);
 
     pub const PRIMARY: Variant = Variant(1);
@@ -26,7 +22,6 @@ impl Variant {
 
     pub const GHOST: Variant = Variant(7);
 
-
     pub const ALL: &'static [Variant] = &[
         Variant::DEFAULT,
         Variant::PRIMARY,
@@ -38,12 +33,10 @@ impl Variant {
         Variant::GHOST,
     ];
 
-
     pub const fn custom(name: &'static str) -> Variant {
         let h = fnv1a(FNV_OFFSET, name.as_bytes());
         Variant(0x8000 | ((h as u16) & 0x7FFF))
     }
-
 
     pub const fn name(self) -> Option<&'static str> {
         match self {
@@ -58,7 +51,6 @@ impl Variant {
             _ => None,
         }
     }
-
 
     pub const fn raw(self) -> u16 {
         self.0

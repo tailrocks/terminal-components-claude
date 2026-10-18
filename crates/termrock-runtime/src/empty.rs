@@ -1,5 +1,3 @@
-
-
 use ratatui_core::layout::Rect;
 
 use crate::id::Part;
@@ -8,12 +6,9 @@ use crate::text::width;
 use crate::theme::{Family, GlyphRole, PaintStyle, Slot, Variant};
 use crate::ui::{FrameRead, Ui};
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
 pub enum Status {
-
     #[default]
     Ready,
 
@@ -25,7 +20,6 @@ pub enum Status {
 }
 
 impl Status {
-
     pub const fn flags(self) -> StateFlags {
         match self {
             Status::Ready => StateFlags::empty(),
@@ -36,10 +30,8 @@ impl Status {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowTotal {
-
     Exact(usize),
 
     Estimated(usize),
@@ -47,24 +39,19 @@ pub enum RowTotal {
     Unknown,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EmptyState<'a> {
-
     Empty {
-
         title: &'a str,
 
         hint: Option<&'a str>,
     },
 
     Loading {
-
         label: &'a str,
     },
 
     Partial {
-
         loaded: usize,
 
         total: RowTotal,
@@ -73,7 +60,6 @@ pub enum EmptyState<'a> {
     },
 
     Error {
-
         message: &'a str,
 
         detail: Option<&'a str>,
@@ -81,7 +67,6 @@ pub enum EmptyState<'a> {
 }
 
 impl EmptyState<'_> {
-
     pub const fn status(&self) -> Status {
         match self {
             EmptyState::Empty { .. } => Status::Ready,
@@ -89,7 +74,6 @@ impl EmptyState<'_> {
             EmptyState::Error { .. } => Status::Error,
         }
     }
-
 
     pub const fn title(&self) -> &str {
         match self {
@@ -100,7 +84,6 @@ impl EmptyState<'_> {
         }
     }
 
-
     pub const fn detail(&self) -> Option<&str> {
         match self {
             EmptyState::Empty { hint, .. } | EmptyState::Error { detail: hint, .. } => *hint,
@@ -108,20 +91,12 @@ impl EmptyState<'_> {
         }
     }
 
-
-
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, frame: usize) -> u16 {
         if area.is_empty() {
             return 0;
         }
         self.paint_inherited(ui, area, frame, None)
     }
-
-
-
-
-
 
     pub fn draw_inherited(
         &self,
@@ -182,8 +157,6 @@ impl EmptyState<'_> {
         };
         let icon_width = glyph.map_or(0, width);
 
-
-
         let title_owned = if width(self.title()) > area.width {
             Some(crate::text::truncate(self.title(), area.width))
         } else {
@@ -215,16 +188,12 @@ impl EmptyState<'_> {
     }
 }
 
-
 #[derive(Clone, Copy)]
 pub struct CenteredText<'a> {
     pub title: &'a str,
     pub detail: Option<&'a str>,
     pub icon_width: u16,
 }
-
-
-
 
 pub fn draw_centered(
     ui: &mut Ui<'_>,
@@ -332,9 +301,6 @@ mod tests {
         (text, rows)
     }
 
-
-
-
     #[test]
     fn empty_state_covers_empty_loading_partial_error() {
         let empty = EmptyState::Empty {
@@ -371,12 +337,10 @@ mod tests {
         assert!(t.contains("Failed") && t.contains("timed out"), "{t}");
         assert_eq!(error.status().flags(), StateFlags::ERROR);
 
-
         let a = render(&loading, 0).0;
         let b = render(&loading, 1).0;
         assert_ne!(a, b, "the spinner must advance with the frame");
         assert_eq!(a, render(&loading, 0).0);
-
 
         assert_eq!(render(&empty, 0).1, 3);
     }

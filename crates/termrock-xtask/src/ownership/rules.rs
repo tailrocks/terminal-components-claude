@@ -1,19 +1,9 @@
-
-
-
-
-
-
-
-
 use std::collections::BTreeMap;
 
 use super::scan::{ScannedFile, is_raw_buffer_path, receiver_before, words};
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Finding {
-
     pub rule: &'static str,
 
     pub file: String,
@@ -27,18 +17,14 @@ pub struct Finding {
     pub generated: bool,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scope {
-
-
     Preview,
 
     Library,
 
     Production,
 }
-
 
 #[derive(Debug, Clone, Copy)]
 pub struct Rule {
@@ -47,7 +33,6 @@ pub struct Rule {
     pub scope: Scope,
     pub summary: &'static str,
 }
-
 
 pub const RULES: &[Rule] = &[
     Rule {
@@ -136,8 +121,6 @@ pub const RULES: &[Rule] = &[
     },
 ];
 
-
-
 const UI_PAINT_METHODS: &[&str] = &[
     "paint_cell",
     "paint_str",
@@ -154,8 +137,6 @@ const UI_PAINT_METHODS: &[&str] = &[
     "scroll_edges_except",
 ];
 
-
-
 const BUFFER_PAINT_METHODS: &[&str] = &[
     "set_string",
     "set_stringn",
@@ -165,10 +146,7 @@ const BUFFER_PAINT_METHODS: &[&str] = &[
     "cell_mut",
 ];
 
-
-
 pub const TOOLING_MEMBERS: &[&str] = &["termrock-test-support", "termrock-xtask"];
-
 
 pub fn is_library_member(member: &str) -> bool {
     member == "crates/termrock"
@@ -176,13 +154,10 @@ pub fn is_library_member(member: &str) -> bool {
         || member.starts_with("crates/termrock/")
 }
 
-
 pub fn is_production_member(member: &str) -> bool {
     let name = member.rsplit('/').next().unwrap_or(member);
     !TOOLING_MEMBERS.contains(&name)
 }
-
-
 
 pub fn preview_crate_names(members: &[String]) -> Vec<String> {
     members
@@ -191,8 +166,6 @@ pub fn preview_crate_names(members: &[String]) -> Vec<String> {
         .map(|m| m.rsplit('/').next().unwrap_or(m).replace('-', "_"))
         .collect()
 }
-
-
 
 pub fn match_file(file: &ScannedFile, preview_crates: &[String]) -> Vec<Finding> {
     let mut findings = Vec::new();
@@ -210,7 +183,6 @@ pub fn match_file(file: &ScannedFile, preview_crates: &[String]) -> Vec<Finding>
         match_size_switches(file, &mut findings);
     } else {
         match_library_preview_deps(file, preview_crates, &mut findings);
-
 
         if is_production_member(&file.member) {
             match_library_stored_frames(file, &mut findings);
@@ -239,7 +211,6 @@ fn finding(file: &ScannedFile, rule: &'static str, line: usize, detail: String) 
     }
 }
 
-
 fn match_imports(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for (local, path) in &file.aliases {
         if !is_raw_buffer_path(path) {
@@ -258,16 +229,12 @@ fn match_imports(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-
 fn import_line(file: &ScannedFile, local: &str) -> Option<usize> {
     production_lines(file)
         .filter(|line| line.code.contains("use "))
         .find(|line| words(&line.code).contains(&local))
         .map(|line| line.number)
 }
-
-
-
 
 fn match_paint_calls(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
@@ -291,8 +258,6 @@ fn match_paint_calls(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-
-
 fn match_raw_escapes(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         for method in ["raw", "peek"] {
@@ -314,9 +279,6 @@ fn match_raw_escapes(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-
-
-
 fn macro_body_paints(body: &str, method: &str) -> bool {
     for receiver in ["ui.", "$ui."] {
         let needle = format!("{receiver}{method}");
@@ -336,7 +298,6 @@ fn macro_body_paints(body: &str, method: &str) -> bool {
     }
     false
 }
-
 
 fn call_dots(code: &str, method: &str) -> Vec<usize> {
     let mut dots = Vec::new();
@@ -359,9 +320,6 @@ fn call_dots(code: &str, method: &str) -> Vec<usize> {
     }
     dots
 }
-
-
-
 
 fn match_macros(file: &ScannedFile, findings: &mut Vec<Finding>) {
     let mut painted = Vec::new();
@@ -401,7 +359,6 @@ fn match_macros(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-
 fn match_includes(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         if line.code.contains("include_str!") || line.code.contains("include_bytes!") {
@@ -414,8 +371,6 @@ fn match_includes(file: &ScannedFile, findings: &mut Vec<Finding>) {
         }
     }
 }
-
-
 
 fn match_screen_literals(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for span in &file.strings {
@@ -442,9 +397,6 @@ fn is_box_char(char: char) -> bool {
     ('\u{2500}'..='\u{257f}').contains(&char)
 }
 
-
-
-
 fn match_fixture_gates(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         let code = &line.code;
@@ -463,8 +415,6 @@ fn match_fixture_gates(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-
-
 fn match_paused(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         if words(&line.code).contains(&"paused") {
@@ -477,7 +427,6 @@ fn match_paused(file: &ScannedFile, findings: &mut Vec<Finding>) {
         }
     }
 }
-
 
 fn match_scenario_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
@@ -503,8 +452,6 @@ fn match_scenario_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-
-
 fn match_size_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         let tokens = words(&line.code);
@@ -527,7 +474,6 @@ fn match_size_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-
 fn match_library_preview_deps(
     file: &ScannedFile,
     preview_crates: &[String],
@@ -549,7 +495,6 @@ fn match_library_preview_deps(
     }
 }
 
-
 fn match_library_stored_frames(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for span in &file.strings {
         if span.text.contains("baselines/") {
@@ -562,8 +507,6 @@ fn match_library_stored_frames(file: &ScannedFile, findings: &mut Vec<Finding>) 
         }
     }
 }
-
-
 
 fn match_expects(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
@@ -585,15 +528,12 @@ fn match_expects(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct Wrapper {
     pub member: String,
     pub file: String,
     pub name: String,
 }
-
 
 pub fn collect_wrappers(
     files: &BTreeMap<String, ScannedFile>,
@@ -628,8 +568,6 @@ pub fn collect_wrappers(
     wrappers
 }
 
-
-
 fn takes_ui_param(file: &ScannedFile, name: &str) -> bool {
     let Some((_, range)) = file.functions.iter().find(|(n, _)| n == name) else {
         return false;
@@ -652,9 +590,6 @@ fn takes_ui_param(file: &ScannedFile, name: &str) -> bool {
                     || signature.contains(&format!("&{alias}")))
         })
 }
-
-
-
 
 pub fn match_wrapper_calls(
     files: &BTreeMap<String, ScannedFile>,
@@ -826,7 +761,6 @@ mod tests {
             2,
             "definition plus call site"
         );
-
 
         let file = scan_file(
             "crates/demo/src/lib.rs",

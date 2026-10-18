@@ -1,4 +1,3 @@
-
 use ratatui_core::layout::Rect;
 use termrock_grid::{CellRef, Column, ColumnKey, Grid, GridAction, GridModel, GridState};
 use termrock_runtime::{App, Cx, Id, ItemKey, KeyCode, Response, Ui};

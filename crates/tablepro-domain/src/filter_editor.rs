@@ -1,11 +1,7 @@
-
-
 use tablepro_demo::db::{ColType, Value};
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FilterOp {
-
     Eq,
 
     Ne,
@@ -44,7 +40,6 @@ pub enum FilterOp {
 }
 
 impl FilterOp {
-
     pub const ALL: [Self; 18] = [
         Self::Eq,
         Self::Ne,
@@ -144,10 +139,8 @@ impl FilterOp {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Filter {
-
     pub column: String,
 
     pub op: FilterOp,
@@ -160,7 +153,6 @@ pub struct Filter {
 }
 
 impl Filter {
-
     pub fn chip_label(&self) -> String {
         match self.op {
             FilterOp::Between => {

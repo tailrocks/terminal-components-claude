@@ -1,20 +1,15 @@
-
 use super::workspace::{Workspace, WorkspaceId};
 use std::fmt;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SaveTicket {
-
     pub operation: u64,
 
     pub workspace: WorkspaceId,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SaveError {
-
     NoReview,
 
     ChangedReview,
@@ -38,14 +33,11 @@ impl fmt::Display for SaveError {
 }
 impl std::error::Error for SaveError {}
 
-
 #[derive(Clone, PartialEq, Eq)]
 pub enum SaveResult {
-
     Ignored,
 
     Saved {
-
         ticket: SaveTicket,
 
         workspace: Box<Workspace>,
@@ -66,7 +58,6 @@ impl fmt::Debug for SaveResult {
     }
 }
 impl SaveResult {
-
     pub const fn ticket(&self) -> Option<SaveTicket> {
         match self {
             Self::Ignored => None,
@@ -77,11 +68,8 @@ impl SaveResult {
     }
 }
 
-
-
 #[derive(Clone)]
 pub struct PendingWrite {
-
     pub ticket: SaveTicket,
 
     pub due_ms: i64,

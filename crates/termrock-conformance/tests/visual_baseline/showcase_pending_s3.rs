@@ -1,86 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -107,12 +24,9 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, SHOWCASE};
 
-
 const BOOT: &str = "Junie Design system";
 
-
 const PORT_OF: &str = "b712422fcc23a19859b851c9ec583b08a1b40136";
-
 
 fn s3_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> Case {
     Case::dynamic(
@@ -126,7 +40,6 @@ fn s3_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> C
     )
 }
 
-
 fn s3_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -134,8 +47,6 @@ fn s3_dir(test: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     dir
 }
-
-
 
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
@@ -155,7 +66,6 @@ fn write_provenance(dir: &Path, case: &Case) {
         .unwrap_or_else(|e| panic!("write provenance.txt: {e}"));
     eprintln!("s3 provenance: {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -177,7 +87,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -185,7 +94,6 @@ fn live_text(s: &mut Session) -> String {
         .unwrap_or_else(|e| panic!("live sample failed: {e:#}"));
     support::screen_text(&obs.screen)
 }
-
 
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
@@ -197,7 +105,6 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-
 fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     Input::down(MouseButton::Left, col, row).send(s);
@@ -206,7 +113,6 @@ fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     (row, col)
 }
 
-
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
@@ -214,12 +120,10 @@ fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     }
 }
 
-
 fn type_text(s: &mut Session, text: &str) {
     s.type_text(text).expect("type_text");
     std::thread::sleep(Duration::from_millis(120));
 }
-
 
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
@@ -228,17 +132,12 @@ fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         !text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: a line holds both {needle:?} and {also:?}\n{text}"
     );
 }
-
-
-
-
 
 fn sentinel_buf(cols: u16, rows: u16) -> Buffer {
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
@@ -278,14 +177,9 @@ fn buf_is_bold(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::BOLD)
 }
 
-
 fn buf_is_underlined(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::UNDERLINED)
 }
-
-
-
-
 
 fn render_isolated(
     cols: u16,
@@ -313,8 +207,6 @@ fn render_isolated(
     buf
 }
 
-
-
 fn convert_color(c: RColor) -> TColor {
     match c {
         RColor::Reset => TColor::Default,
@@ -339,7 +231,6 @@ fn convert_color(c: RColor) -> TColor {
     }
 }
 
-
 fn convert_mods(m: Modifier) -> Mods {
     Mods {
         hidden: m.contains(Modifier::HIDDEN),
@@ -357,10 +248,6 @@ fn convert_mods(m: Modifier) -> Mods {
         reverse: m.contains(Modifier::REVERSED),
     }
 }
-
-
-
-
 
 fn capture_buffer(buf: &Buffer) -> Frame {
     let cols = buf.area.width;
@@ -432,7 +319,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-
 fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     let frame = capture_buffer(buf);
     std::fs::write(
@@ -444,15 +330,12 @@ fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     frame
 }
 
-
-
 fn char_col(line: &str, needle: &str) -> u16 {
     let byte = line
         .find(needle)
         .unwrap_or_else(|| panic!("{needle:?} not in {line:?}"));
     line[..byte].chars().count() as u16
 }
-
 
 fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     let deadline = std::time::Instant::now() + timeout;
@@ -471,7 +354,6 @@ fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     }
 }
 
-
 fn row_below(text: &str, label: &str, what: &str) -> String {
     let mut lines = text.lines();
     while let Some(l) = lines.next() {
@@ -485,20 +367,15 @@ fn row_below(text: &str, label: &str, what: &str) -> String {
     panic!("{what}: label {label:?} not on screen\n{text}");
 }
 
-
 fn count_glyph(text: &str, glyph: char) -> usize {
     text.chars().filter(|c| *c == glyph).count()
 }
 
-
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
 
 fn caret_x<A: App>(app: &Harness<A>) -> u16 {
     app.cursor().expect("editing owns the caret").x
 }
-
-
 
 fn assert_selection_run(
     buf: &Buffer,
@@ -511,7 +388,6 @@ fn assert_selection_run(
         assert_eq!(buf[(x, y)].bg, sel_bg, "{what}: cell ({x},{y}) selected");
     }
 }
-
 
 fn assert_no_selection(
     buf: &Buffer,
@@ -537,7 +413,6 @@ const S3_TIKEYS_AREA: Rect = Rect {
     height: 1,
 };
 
-
 struct KeysApp {
     value: String,
     st: TextInputState,
@@ -560,7 +435,6 @@ impl App for KeysApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_keys() {
@@ -570,7 +444,6 @@ fn s3_input_keys() {
     let sel_fg = t.color.selection_fg;
 
     let at = |off: u16| 6 + off;
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -630,7 +503,6 @@ fn s3_input_keys() {
     let _ = app.key_mod(KeyCode::Right, KeyModifiers::CONTROL);
     let _ = app.key_mod(KeyCode::End, KeyModifiers::SHIFT);
     assert_eq!(caret_x(&app), at(15), "A1: Shift+End moves to line end");
-
 
     assert_selection_run(app.buffer(), 1, at(7)..at(15), sel_bg, "V2");
     assert_eq!(
@@ -717,7 +589,6 @@ fn s3_input_keys() {
         buf_row_text(app.buffer(), 1).contains("illing"),
         "A1: Delete kills one grapheme"
     );
-
 
     let mut st = TextInputState::default();
     st.begin("has x");
@@ -822,7 +693,6 @@ fn s3_input_keys() {
     assert_eq!(caret_x(&app), at(15), "N2: cursor at doc end");
     assert_no_selection(app.buffer(), 1, at(0)..at(15), sel_bg, "N2: Shift+Ctrl+End");
 
-
     let case = s3_case("input_keys", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -871,13 +741,11 @@ fn s3_input_keys() {
         |screen| {
             let row = row_below(&support::screen_text(screen), "Search files", "A1 live");
 
-
             row.contains('▎') && !row.contains("billing")
         },
     );
     eprintln!("s3 input_keys: isolated key map + live clear roundtrip");
 }
-
 
 fn no_x_keys(s: &str) -> Result<(), FieldError> {
     if s.contains('x') {
@@ -886,7 +754,6 @@ fn no_x_keys(s: &str) -> Result<(), FieldError> {
         Ok(())
     }
 }
-
 
 struct ValidApp {
     value: String,
@@ -919,7 +786,6 @@ const S3_TINOOP_AREA: Rect = Rect {
     height: 1,
 };
 
-
 struct NoopApp {
     value: String,
     st: TextInputState,
@@ -942,7 +808,6 @@ impl App for NoopApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_noop() {
@@ -950,7 +815,6 @@ fn s3_input_noop() {
     let t = Theme::junie();
     let sel_bg = t.color.selection_bg;
     let at = |off: u16| 6 + off;
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -1007,7 +871,6 @@ fn s3_input_noop() {
     assert_eq!(before, after, "V1: frame identical across Ctrl+Z");
     capture_isolated(&dir, "ti-noop-stable", app.buffer());
 
-
     let r = app.ctrl('z');
     assert_eq!(r.flow(), Flow::Consumed, "N1: Ctrl+Z swallows");
     assert!(
@@ -1026,7 +889,6 @@ fn s3_input_noop() {
         row.contains("payments-gateway") && !row.contains("gatewayx"),
         "N1: Esc reverts to snapshot"
     );
-
 
     let mut app = Harness::new(
         NoopApp {
@@ -1124,9 +986,6 @@ fn s3_input_noop() {
         "A2: pasted text lands"
     );
 
-
-
-
     let case = s3_case("input_noop", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1177,7 +1036,6 @@ const S3_TISELECT_AREA: Rect = Rect {
     height: 1,
 };
 
-
 struct SelectApp {
     value: String,
     st: TextInputState,
@@ -1200,7 +1058,6 @@ impl App for SelectApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_select() {
@@ -1208,7 +1065,6 @@ fn s3_input_select() {
     let t = Theme::junie();
     let sel_bg = t.color.selection_bg;
     let at = |off: u16| 6 + off;
-
 
     let mut b = TextBuffer::single("aé日b");
 
@@ -1370,7 +1226,6 @@ fn s3_input_select() {
     let _ = app.key(KeyCode::Esc);
     assert_no_selection(app.buffer(), 1, at(0)..at(16), sel_bg, "N2: cancel clears");
 
-
     let case = s3_case("input_select", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1424,7 +1279,6 @@ const S3_TIPASTE_AREA: Rect = Rect {
     height: 1,
 };
 
-
 struct PasteApp {
     value: String,
     st: TextInputState,
@@ -1447,12 +1301,10 @@ impl App for PasteApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_paste() {
     let dir = s3_dir("s3_input_paste");
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -1633,7 +1485,6 @@ fn s3_input_paste() {
     );
     assert!(!text.contains('\r'), "N2: no carriage return survives");
 
-
     let case = s3_case("input_paste", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1675,7 +1526,6 @@ const S3_TIMASK_AREA: Rect = Rect {
     height: 1,
 };
 
-
 struct MaskApp {
     value: String,
     st: TextInputState,
@@ -1708,11 +1558,6 @@ impl App for MaskApp {
     }
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_mask() {
@@ -1720,7 +1565,6 @@ fn s3_input_mask() {
 
     let secret = format!("{}c1f2", "s".repeat(24));
     assert_eq!(secret.chars().count(), 28, "fixture is 28 graphemes");
-
 
     let mut app = Harness::new(
         MaskApp {
@@ -1873,7 +1717,6 @@ fn s3_input_mask() {
         "A2: snapshot wiped, revert keeps empty"
     );
 
-
     let mut app = Harness::new(
         MaskApp {
             value: secret.clone(),
@@ -1894,7 +1737,6 @@ fn s3_input_mask() {
         before,
         "N1: masking is display-only"
     );
-
 
     let case = s3_case("input_mask", &["--page", "inputs"], 120, 40);
     write_provenance(&dir, &case);
@@ -1949,7 +1791,6 @@ fn s3_input_mask() {
 
 const S3_TISCROLL: Id = Id::root("s3.tiscroll");
 
-
 struct ScrollApp {
     value: String,
     st: TextInputState,
@@ -1971,16 +1812,12 @@ impl App for ScrollApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_scroll() {
     let dir = s3_dir("s3_input_scroll");
     let digits: String = "0123456789".repeat(6);
     assert_eq!(digits.len(), 60, "fixture is 60 chars");
-
-
-
 
     let mut app = Harness::new(
         ScrollApp {
@@ -2144,12 +1981,10 @@ fn s3_input_scroll() {
         }
     }
 
-
     let case = s3_case("input_scroll", &["--page", "inputs"], 72, 20);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-
 
     support::wait_screen(
         &mut s,
@@ -2173,14 +2008,11 @@ fn s3_input_scroll() {
     }
     checkpoint(&mut s, &dir, "narrow-contained");
 
-
-
     let value_row = row_below(&narrow, "Owner email", "N2 live");
     assert!(
         value_row.contains("mira@example"),
         "N2 live: the value fits live"
     );
-
 
     let page_col = value_row.split(['┃', '│']).nth(1).unwrap_or(&value_row);
     let left = page_col.split("jb_live").next().unwrap_or(page_col);
@@ -2196,8 +2028,6 @@ fn s3_input_scroll() {
         case_timeout(&case),
         "Search files never focused",
         |screen| {
-
-
             support::screen_text(screen)
                 .lines()
                 .any(|l| l.contains('▎') && l.contains("Type a path"))
@@ -2205,7 +2035,6 @@ fn s3_input_scroll() {
     );
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "EDIT", "editing Search files");
-
 
     let long = format!("{}MIDMARK{}", "x".repeat(50), "y".repeat(9));
     type_text(&mut s, &long);
@@ -2263,7 +2092,6 @@ const S3_TALIFE_AREA: Rect = Rect {
     height: 6,
 };
 
-
 struct LifeApp {
     value: String,
     st: TextAreaState,
@@ -2289,14 +2117,12 @@ impl App for LifeApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_area_lifecycle() {
     let dir = s3_dir("s3_area_lifecycle");
     let t = Theme::junie();
     let sel_bg = t.color.selection_bg;
-
 
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -2313,12 +2139,7 @@ fn s3_area_lifecycle() {
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "Enter begins editing");
 
-
-
-
     assert!(app.cursor().is_some(), "editing after Enter");
-
-
 
     assert_eq!(
         app.cursor(),
@@ -2484,7 +2305,6 @@ fn s3_area_lifecycle() {
         "A1: modified Enter reports Committed"
     );
 
-
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         LifeApp {
@@ -2517,7 +2337,6 @@ fn s3_area_lifecycle() {
         buf_row_text(app.buffer(), 1).contains('x'),
         "A2: value kept across the roundtrip"
     );
-
 
     let long = (1..=28)
         .map(|i| format!("line {i}"))
@@ -2558,7 +2377,6 @@ fn s3_area_lifecycle() {
         buf_row_text(app.buffer(), 1).contains("line 1"),
         "S2: an editing key re-follows too"
     );
-
 
     let case = s3_case("area_lifecycle", &["--page", "textareas"], 80, 24);
     write_provenance(&dir, &case);
@@ -2605,7 +2423,6 @@ const S3_TAVIEW_AREA: Rect = Rect {
     height: 10,
 };
 
-
 struct ViewApp {
     value: String,
     st: TextAreaState,
@@ -2626,7 +2443,6 @@ impl App for ViewApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_area_view() {
@@ -2635,7 +2451,6 @@ fn s3_area_view() {
         .map(|i| format!("{i:>2}. a long scrollable documentation line number {i}"))
         .collect::<Vec<_>>()
         .join("\n");
-
 
     let mut app = Harness::new(
         ViewApp {
@@ -2753,7 +2568,6 @@ fn s3_area_view() {
         "N2: typing never starts editing"
     );
 
-
     let case = s3_case("area_view", &["--page", "textareas"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2803,7 +2617,6 @@ fn s3_area_view() {
 
 const S3_TAFOLLOW: Id = Id::root("s3.tafollow");
 
-
 struct FollowApp {
     value: String,
     st: TextAreaState,
@@ -2824,17 +2637,13 @@ impl App for FollowApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_area_follow() {
     let dir = s3_dir("s3_area_follow");
 
-
-
     let uni = "日本語 · 👩\u{200d}💻 · cafe\u{301} tail · padding extra";
     let doc = format!("first\n{uni}\nlast");
-
 
     let line1 = "first\n".len();
     let pos_cjk = TextBuffer::pos_of(&doc, line1 + "日".len());
@@ -2866,8 +2675,6 @@ fn s3_area_follow() {
         "N2: col 3 floors to the 本 start"
     );
 
-
-
     let mut st = TextAreaState::default();
     st.begin(&doc);
     let mut app = Harness::new(
@@ -2887,7 +2694,6 @@ fn s3_area_follow() {
         2,
         "End stays on begin's line (doc end; VB: cursor starts at end)"
     );
-
 
     let _ = app.key(KeyCode::Up);
     let _ = app.key(KeyCode::End);
@@ -2971,7 +2777,6 @@ fn s3_area_follow() {
         "A1: line clamps to line_count-1"
     );
 
-
     let case = s3_case("area_follow", &["--page", "textareas"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2993,7 +2798,6 @@ fn s3_area_follow() {
     waits::wait_state(&mut s, "ln 1/28", "End lands on line 1");
     support::press_step(&s, "ctrl+end");
     waits::wait_state(&mut s, "ln 28/28", "S1 live: doc end followed");
-
 
     support::press_step(&s, "home");
     support::wait_screen(
@@ -3033,7 +2837,6 @@ const S3_CHIPS_AREA: Rect = Rect {
     width: 100,
     height: 1,
 };
-
 
 struct ChipApp {
     items: Vec<String>,
@@ -3075,19 +2878,16 @@ impl App for ChipApp {
     }
 }
 
-
 fn chip_probe(app: &mut Harness<ChipApp>, log: &Rc<RefCell<Vec<ChipBarAction>>>) -> ChipBarAction {
     log.borrow_mut().clear();
     let _ = app.key(KeyCode::Enter);
     log.borrow().last().copied().expect("probe action")
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_chip_bar() {
     let dir = s3_dir("s3_chip_bar");
-
 
     let mut bar = ChipApp::bar();
     bar.st.set_cursor(99, ItemKey::index(99));
@@ -3254,7 +3054,6 @@ fn s3_chip_bar() {
         "V2: no overflow marker when everything fits"
     );
 
-
     let enabled = [true, true, false];
     assert_eq!(
         enabled.iter().filter(|e| **e).count(),
@@ -3267,17 +3066,10 @@ fn s3_chip_bar() {
     let mut narrow = Harness::new(bar, Theme::junie(), 30, 3);
     assert!(narrow.tab_to(S3_CHIPS), "navigating focus");
 
-
     assert!(
         buf_row_text(narrow.buffer(), 0).contains('…'),
         "V2: an unfitting chip becomes …"
     );
-
-
-
-
-
-
 
     let case = s3_case("chip_bar", &["--page", "chips-selects"], 80, 24);
     write_provenance(&dir, &case);
@@ -3372,7 +3164,6 @@ fn s3_chip_bar() {
 
 const S3_LISTSINGLE: Id = Id::root("s3.listsingle");
 
-
 struct SingleApp {
     items: Vec<String>,
     st: ListState,
@@ -3400,7 +3191,6 @@ impl SingleApp {
     }
 }
 
-
 fn single_disabled(item: &&str) -> bool {
     *item == "Java"
 }
@@ -3425,7 +3215,6 @@ impl App for SingleApp {
     }
 }
 
-
 fn list_probe(app: &mut Harness<SingleApp>, log: &Rc<RefCell<Vec<ListAction>>>) -> Option<ItemKey> {
     log.borrow_mut().clear();
     let _ = app.key(KeyCode::Enter);
@@ -3435,17 +3224,14 @@ fn list_probe(app: &mut Harness<SingleApp>, log: &Rc<RefCell<Vec<ListAction>>>) 
     })
 }
 
-
 fn chosen_row(app: &Harness<SingleApp>, height: u16) -> Option<u16> {
     (0..height).find(|y| app.buffer()[(1, *y)].symbol() == "›")
 }
-
 
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_list_single() {
     let dir = s3_dir("s3_list_single");
-
 
     let mut list = SingleApp {
         items: SingleApp::langs(),
@@ -3507,7 +3293,6 @@ fn s3_list_single() {
         Some(ItemKey::index(0)),
         "A2: Home jumps first"
     );
-
 
     let log3 = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
@@ -3648,7 +3433,6 @@ fn s3_list_single() {
     let lead = mid.find("No").unwrap_or(0);
     assert!(lead > 2, "V2: empty text centres ({lead} cells in)");
 
-
     let case = s3_case("list_single", &["--page", "lists"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3713,7 +3497,6 @@ fn s3_list_single() {
 
 const S3_LISTMULTI: Id = Id::root("s3.listmulti");
 
-
 struct MultiApp {
     items: Vec<String>,
     st: ListState,
@@ -3754,7 +3537,6 @@ impl MultiApp {
     }
 }
 
-
 fn multi_disabled(item: &&str) -> bool {
     *item == "src/db/schema.rs" || *item == "Cargo.lock"
 }
@@ -3779,16 +3561,13 @@ impl App for MultiApp {
     }
 }
 
-
 fn is_checked(app: &Harness<MultiApp>, y: u16) -> bool {
     app.buffer()[(1, y)].symbol() == "✓"
 }
 
-
 fn checked_count(app: &Harness<MultiApp>) -> usize {
     (0..8).filter(|y| is_checked(app, *y)).count()
 }
-
 
 fn multi_probe(app: &mut Harness<MultiApp>, log: &Rc<RefCell<Vec<ListAction>>>) -> Option<ItemKey> {
     log.borrow_mut().clear();
@@ -3799,13 +3578,10 @@ fn multi_probe(app: &mut Harness<MultiApp>, log: &Rc<RefCell<Vec<ListAction>>>) 
     })
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_list_multi() {
     let dir = s3_dir("s3_list_multi");
-
-
 
     let (rig, log) = MultiApp::rig();
     let mut app = Harness::new(rig, Theme::junie(), 40, 12);
@@ -3823,10 +3599,6 @@ fn s3_list_multi() {
     assert!(!is_checked(&app, 2), "S1: disabled row 2 skipped");
     assert_eq!(checked_count(&app), 3, "S1: rows 0, 1, 3 checked");
     let _ = app.key(KeyCode::Down);
-
-
-
-
 
     let _ = app.key(KeyCode::Down);
     assert_eq!(
@@ -3929,7 +3701,6 @@ fn s3_list_multi() {
     );
     assert_eq!(checked_count(&app), 6, "V1: six feed the `N selected` meta");
 
-
     let plain = (
         app.buffer()[(3, 2)].fg,
         app.buffer()[(3, 2)].bg,
@@ -3948,7 +3719,6 @@ fn s3_list_multi() {
         "N2: no gutter on disabled rows"
     );
     capture_isolated(&dir, "list-multi-all", app.buffer());
-
 
     let case = s3_case("list_multi", &["--page", "lists"], 80, 24);
     write_provenance(&dir, &case);
@@ -4029,7 +3799,6 @@ fn s3_list_multi() {
 
 const S3_PICKQUERY: Id = Id::root("s3.pickquery");
 
-
 struct PItem {
     key: ItemKey,
     label: String,
@@ -4053,7 +3822,6 @@ impl AsItem for PItem {
         item
     }
 }
-
 
 struct QueryApp {
     items: Vec<PItem>,
@@ -4119,7 +3887,6 @@ impl QueryApp {
         Picker::new(S3_PICKQUERY)
             .title("Open quickly")
             .placeholder("Files and tasks…")
-
             .width(76)
             .scopes(&self.scopes)
     }
@@ -4129,8 +3896,6 @@ impl App for QueryApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let log = Rc::clone(&self.log);
         let scopes = self.scopes;
-
-
 
         if !self.booted {
             self.booted = true;
@@ -4171,18 +3936,14 @@ impl App for QueryApp {
     }
 }
 
-
 fn query_blank(app: &Harness<QueryApp>) -> bool {
     app.text().contains("Files and tasks…")
 }
-
 
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_picker_query() {
     let dir = s3_dir("s3_picker_query");
-
-
 
     let (rig, log) = QueryApp::rig(QueryApp::auth_items(), PickerState::default());
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -4196,7 +3957,6 @@ fn s3_picker_query() {
         "S1: typing emits QueryChanged"
     );
     assert!(!query_blank(&app), "query accumulates");
-
 
     let mut ranked = QueryApp::auth_items();
     ranked[0].disabled = true;
@@ -4381,7 +4141,6 @@ fn s3_picker_query() {
         .count();
     assert_eq!(group_rows, 1, "V3: one Files label on the first group row");
 
-
     let case = s3_case("picker_query", &["--page", "pickers"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4415,7 +4174,6 @@ fn s3_picker_query() {
             text.contains("Chose ") && !text.contains("All · Tab scope")
         },
     );
-
 
     support::press_step(&s, "tab");
     support::wait_screen(
@@ -4455,7 +4213,6 @@ fn s3_picker_query() {
         |screen| !support::screen_text(screen).contains("All · Tab scope"),
     );
 
-
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -4475,7 +4232,6 @@ fn s3_picker_query() {
 }
 
 const S3_PICKCHOICE: Id = Id::root("s3.pickchoice");
-
 
 struct ChoiceApp {
     items: Vec<PItem>,
@@ -4602,7 +4358,6 @@ impl App for ChoiceApp {
     }
 }
 
-
 fn choice_probe(
     app: &mut Harness<ChoiceApp>,
     log: &Rc<RefCell<Vec<PickerAction>>>,
@@ -4614,8 +4369,6 @@ fn choice_probe(
         _ => None,
     })
 }
-
-
 
 struct StatusApp {
     items: Vec<PItem>,
@@ -4643,14 +4396,10 @@ impl App for StatusApp {
     }
 }
 
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_picker_choice() {
     let dir = s3_dir("s3_picker_choice");
-
-
-
 
     let mut st = PickerState::default();
     st.set_cursor(1, ItemKey::text("b"));
@@ -4753,7 +4502,6 @@ fn s3_picker_choice() {
             .any(|a| *a == PickerAction::Secondary(ItemKey::text("level-3"))),
         "S2: Delete emits Secondary when eligible"
     );
-
 
     for status in [Status::Loading, Status::Error] {
         for code in [KeyCode::Delete, KeyCode::Enter] {
@@ -4943,7 +4691,6 @@ fn s3_picker_choice() {
         .expect("V2: active tag on the orders row");
     assert!(tagged.contains("orders"), "V2: tag rides the right row");
 
-
     let case = s3_case("picker_choice", &["--page", "pickers"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4964,9 +4711,6 @@ fn s3_picker_choice() {
         "Tabs modal never closed",
         |screen| !support::screen_text(screen).contains("Filter tabs…"),
     );
-
-
-
 
     support::wait_screen(
         &mut s,
@@ -5016,8 +4760,6 @@ fn s3_picker_choice() {
         "A1 live: Result level follows",
     );
 
-
-
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -5058,7 +4800,6 @@ fn s3_picker_choice() {
     eprintln!("s3 picker_choice: isolated fixed-choice + live level flow");
 }
 
-
 struct EmptyListApp {
     st: ListState,
 }
@@ -5087,7 +4828,6 @@ impl App for EmptyListApp {
             .draw(ui, Rect::new(0, 0, 30, 12), &self.st, &items);
     }
 }
-
 
 struct MaskValidApp {
     value: String,
@@ -5118,7 +4858,6 @@ impl App for MaskValidApp {
     }
 }
 
-
 fn non_empty(s: &str) -> Result<(), FieldError> {
     if s.is_empty() {
         Err(FieldError::new("required"))
@@ -5126,7 +4865,6 @@ fn non_empty(s: &str) -> Result<(), FieldError> {
         Ok(())
     }
 }
-
 
 struct RequiredApp {
     value: String,
@@ -5151,7 +4889,6 @@ impl App for RequiredApp {
     }
 }
 
-
 struct DisabledPasteApp {
     value: String,
     st: TextInputState,
@@ -5175,7 +4912,6 @@ impl App for DisabledPasteApp {
 
 const S3_TIPASTE_AREA_NOTES: Id = Id::root("s3.tipaste.notes");
 
-
 struct NotesApp {
     value: String,
     st: TextAreaState,
@@ -5196,13 +4932,6 @@ impl App for NotesApp {
     }
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_nav_shell() {
@@ -5211,7 +4940,6 @@ fn s3_nav_shell() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-
 
     fn sidebar(text: &str) -> Vec<String> {
         text.lines().map(|l| l.chars().take(19).collect()).collect()
@@ -5261,7 +4989,6 @@ fn s3_nav_shell() {
     assert_line_has(&opened, "›", "Buttons", "V1 live: › marks the open page");
     assert_line_has(&opened, "▎", "Buttons", "V1 live: ▎ marks the cursor");
 
-
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -5286,11 +5013,6 @@ fn s3_nav_shell() {
                 .any(|l| l.contains('▎') && l.contains("Buttons"))
         },
     );
-
-
-
-
-
 
     support::press_step(&s, "]");
     waits::wait_state(&mut s, "/ Components / Inputs", "S2 live: ] cycles");
@@ -5356,13 +5078,6 @@ fn s3_nav_shell() {
     eprintln!("s3 nav_shell: live sidebar cycle (PTY-only)");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_nav_side() {
@@ -5372,7 +5087,6 @@ fn s3_nav_side() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
     checkpoint(&mut s, &dir, "sidebars-initial");
-
 
     fn nav_col(text: &str) -> Vec<String> {
         text.lines()
@@ -5421,8 +5135,6 @@ fn s3_nav_side() {
                 .any(|l| l.contains('▎') && l.contains("Tasks"))
         },
     );
-
-
 
     support::press_step(&s, "j");
     support::wait_screen(
@@ -5574,7 +5286,6 @@ fn s3_nav_side() {
 
 const S3_TREE: Id = Id::root("s3.tree");
 
-
 #[derive(Clone)]
 struct TreeRow {
     node: TreeNode,
@@ -5590,9 +5301,6 @@ fn tree_key_of(row: &TreeRow) -> ItemKey {
     row.node.key().expect("keyed fixture row")
 }
 
-
-
-
 fn tree_row_disabled(row: &TreeRow) -> bool {
     row.label == "empty section"
 }
@@ -5603,8 +5311,6 @@ fn tree_row_paint(row: &TreeRow, out: &mut RowUi<'_>) {
         out.meta(row.meta);
     }
 }
-
-
 
 fn tree_mirror() -> Vec<TreeRow> {
     let row =
@@ -5684,23 +5390,12 @@ impl App for TreeApp {
     }
 }
 
-
 fn tree_cursor_text(app: &Harness<TreeApp>, height: u16) -> Option<String> {
     (0..height).find_map(|y| {
         let row = buf_row_text(app.buffer(), y);
         row.starts_with('▎').then_some(row)
     })
 }
-
-
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
@@ -5711,9 +5406,6 @@ fn s3_tree_fold() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
     checkpoint(&mut s, &dir, "trees-initial");
-
-
-
 
     fn tree_zone(text: &str) -> Vec<String> {
         text.lines().map(|l| l.chars().take(56).collect()).collect()
@@ -5726,7 +5418,6 @@ fn s3_tree_fold() {
             .iter()
             .any(|l| l.contains('▎') && l.contains(label))
     }
-
 
     let boot = live_text(&mut s);
     assert_line_has(&boot, "▾", "src", "V1 live: src open");
@@ -5829,12 +5520,7 @@ fn s3_tree_fold() {
     );
     let all = live_text(&mut s);
 
-
-
     assert_line_has(&all, "open", "10 folders", "live: 10 folders open");
-
-
-
 
     s.type_text("-")
         .unwrap_or_else(|e| panic!("key `-` failed: {e:#}"));
@@ -5883,17 +5569,10 @@ fn s3_tree_fold() {
     eprintln!("s3 tree_fold: live page + isolated Tree");
 }
 
-
-
-
-
-
-
 fn tree_fold_isolated(dir: &Path) {
     let src = ItemKey::text("src");
     let api = ItemKey::text("api");
     let auth = ItemKey::text("auth.rs");
-
 
     let mut st = TreeState::new();
     st.expand(src);
@@ -5918,7 +5597,6 @@ fn tree_fold_isolated(dir: &Path) {
         "V2 isolated: meta shows when wide"
     );
 
-
     let mut st = TreeState::new();
     st.expand(src);
     let (mut rig, _) = TreeApp::rig(tree_mirror(), st);
@@ -5941,7 +5619,6 @@ fn tree_fold_isolated(dir: &Path) {
     assert!(st.is_expanded(api), "S1 isolated: api open by key");
     assert!(!st.toggle(api), "S1 isolated: re-toggle closes");
     assert!(!st.is_expanded(api), "S1 isolated: api closed by key");
-
 
     let mut st = TreeState::new();
     st.expand(src);
@@ -5989,7 +5666,6 @@ fn tree_fold_isolated(dir: &Path) {
         log.borrow().contains(&TreeAction::Activated(auth)),
         "S2 isolated: Activate(auth.rs)"
     );
-
 
     let r = app.key(KeyCode::Char(' '));
     assert_eq!(r.flow(), Flow::Consumed, "S2 isolated: Space applies");
@@ -6160,7 +5836,6 @@ fn tree_fold_isolated(dir: &Path) {
 
 const S3_STEPS: Id = Id::root("s3.steps");
 
-
 #[derive(Clone)]
 struct StepRow {
     label: &'static str,
@@ -6178,9 +5853,6 @@ fn step_row_paint(row: &StepRow, out: &mut RowUi<'_>) {
         out.meta(m);
     }
 }
-
-
-
 
 fn steps_lifecycle() -> Vec<StepRow> {
     vec![
@@ -6240,31 +5912,14 @@ impl App for StepsApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_steps_life() {
     let dir = s3_dir("s3_steps_life");
 
-
     let case = s3_case("steps_life", &["--page", "terminal"], 80, 24).timeout(30_000);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
-
-
 
     fn rail_done_count(text: &str) -> usize {
         text.lines().filter(|l| l.contains("✓ 0")).count()
@@ -6283,13 +5938,11 @@ fn s3_steps_life() {
     );
     assert!(boot.contains("0 of 7"), "S1 live: 0 of 7 running at boot");
 
-
     assert!(
         !boot.contains("queued") && !boot.contains("0.1 s"),
         "N1 live: no rail metas on narrow rows"
     );
     checkpoint(&mut s, &dir, "rail-running");
-
 
     support::wait_screen(
         &mut s,
@@ -6311,7 +5964,6 @@ fn s3_steps_life() {
         "A1 live: six rail rows Done (the seventh is skipped: 7 of 7)"
     );
 
-
     let prompts: Vec<&str> = done
         .lines()
         .filter(|l| l.contains("payments-platform ❯"))
@@ -6321,7 +5973,6 @@ fn s3_steps_life() {
         !prompts[0].contains("jackin"),
         "A1 live: the finished run returns a fresh prompt"
     );
-
 
     let settled = settle_text(&mut s, case_timeout(&case), "finished run steady");
     assert!(
@@ -6337,7 +5988,6 @@ fn s3_steps_life() {
         !SPINNER.iter().any(|g| settled.contains(g)),
         "N2 live: no spinner once nothing runs"
     );
-
 
     click_at(&mut s, "Run with", case_timeout(&case));
     support::wait_screen(
@@ -6400,14 +6050,7 @@ fn s3_steps_life() {
     eprintln!("s3 steps_life: live page + isolated Steps");
 }
 
-
-
-
-
-
 fn steps_life_isolated(dir: &Path) {
-
-
     let items = steps_lifecycle();
     let rail = Steps::navigable(S3_STEPS)
         .step(&step_state_of)
@@ -6485,7 +6128,6 @@ fn steps_life_isolated(dir: &Path) {
         "V3 isolated: queued label not bold"
     );
 
-
     let rig = StepsApp {
         items: steps_lifecycle(),
         st: StepsState::default(),
@@ -6549,15 +6191,6 @@ impl App for TabsApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_tabs_strip() {
@@ -6566,7 +6199,6 @@ fn s3_tabs_strip() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-
 
     let boot = live_text(&mut s);
     assert!(
@@ -6581,7 +6213,6 @@ fn s3_tabs_strip() {
     );
     assert!(rule.contains('─'), "V1 live: inactive tabs sit on ─");
     checkpoint(&mut s, &dir, "tabs-general");
-
 
     support::press_step(&s, "tab");
     support::press_step(&s, "right");
@@ -6638,7 +6269,6 @@ fn s3_tabs_strip() {
         "V3 live: no gutter on the tab strip"
     );
 
-
     support::press_step(&s, "x");
     let after_x = settle_text(&mut s, case_timeout(&case), "x steady");
     assert!(
@@ -6664,16 +6294,9 @@ fn s3_tabs_strip() {
     eprintln!("s3 tabs_strip: live page + isolated Tabs");
 }
 
-
-
-
-
-
-
 fn tabs_strip_isolated(dir: &Path) {
     let t = Theme::junie();
     let strip = || vec!["General", "Members", "Environment"];
-
 
     let (rig, _) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
@@ -6706,8 +6329,6 @@ fn tabs_strip_isolated(dir: &Path) {
         "V3 isolated: no gutter on the strip"
     );
 
-
-
     let (rig, _) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
     assert!(app.tab_to(S3_TABS), "focusing the cursor strip");
@@ -6736,7 +6357,6 @@ fn tabs_strip_isolated(dir: &Path) {
         buf_is_bold(app.buffer(), mx, 0),
         "V2 isolated: cursor tab bold"
     );
-
 
     let (rig, log) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
@@ -6863,7 +6483,6 @@ fn tabs_strip_isolated(dir: &Path) {
         14,
         "A2 isolated: ━ follows the click"
     );
-
 
     let (rig, log) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);

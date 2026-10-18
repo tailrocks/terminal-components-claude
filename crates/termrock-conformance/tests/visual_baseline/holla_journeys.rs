@@ -1,36 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 
 use crate::support::Session;
@@ -40,10 +7,6 @@ use crate::support::{self, Case, Color, HOLLA};
 const BOOT: &str = "holla❯";
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
-
-
-
-
 
 const ROUTES: [(&[&str], &str, &[&str]); 3] = [
     (
@@ -84,7 +47,6 @@ const ROUTES: [(&[&str], &str, &[&str]); 3] = [
     ),
 ];
 
-
 fn journey_case(name: &str, args: &'static [&'static str]) -> Case {
     Case::dynamic(
         format!("journeys/holla/{name}"),
@@ -97,7 +59,6 @@ fn journey_case(name: &str, args: &'static [&'static str]) -> Case {
     )
 }
 
-
 fn journey_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -106,14 +67,9 @@ fn journey_dir(test: &str) -> PathBuf {
     dir
 }
 
-
-
-
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
-
-
 
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
@@ -134,7 +90,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     eprintln!("journey provenance ({file}): {body}");
 }
 
-
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -150,10 +105,6 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     std::fs::write(&path, body).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
-
-
-
-
 
 #[test]
 #[ignore = "holla journey; run with --ignored"]
@@ -182,8 +133,6 @@ fn journey_holla_core_routes() {
     }
     eprintln!("enumeration: parity-discovery, parity-history, parity-files all listed");
 
-
-
     for (i, (args, slug, needles)) in ROUTES.into_iter().enumerate() {
         let case = journey_case(&format!("core_routes_{slug}"), args);
         write_provenance_named(&dir, &case, &format!("provenance-{slug}.txt"));
@@ -195,11 +144,6 @@ fn journey_holla_core_routes() {
     }
     eprintln!("journey core_routes: visited {} routes", ROUTES.len());
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla journey; run with --ignored"]
@@ -231,21 +175,12 @@ fn journey_holla_trust_accept() {
         |screen| {
             let text = support::screen_text(screen);
 
-
             text.contains(ACCEPTED) && !text.contains(PROMPT)
         },
     );
     checkpoint(&mut s, &dir, "02-trusted");
     eprintln!("journey trust_accept: prompt raised, accepted, dialog closed");
 }
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla journey; run with --ignored"]
@@ -267,9 +202,6 @@ fn journey_holla_jump_error_recovery() {
     checkpoint(&mut s, &dir, "01-listing");
     support::press_step(&s, "g");
 
-
-
-
     waits::wait_state(&mut s, "Enter Switch", "jump picker open");
     checkpoint(&mut s, &dir, "02-picker");
     support::drive_with_timeout(
@@ -278,7 +210,6 @@ fn journey_holla_jump_error_recovery() {
         case.timeout_ms,
     );
     checkpoint(&mut s, &dir, "03-error");
-
 
     support::press_step(&s, "escape");
     support::wait_screen(&mut s, support::DEFAULT_WAIT, "query cleared", |screen| {

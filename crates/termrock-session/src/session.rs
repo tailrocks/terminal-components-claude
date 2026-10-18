@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use std::io::{self, Stdout, Write, stdout};
 use std::time::{Duration, Instant};
 
@@ -30,10 +18,7 @@ use termrock_core::event::Input;
 use termrock_runtime::{App, FeedbackClock, Moment, Runtime};
 use termrock_theme::Theme;
 
-
 pub type DefaultTerminal = Terminal<CrosstermBackend<Stdout>>;
-
-
 
 pub struct TerminalSession {
     terminal: DefaultTerminal,
@@ -48,7 +33,6 @@ impl core::fmt::Debug for TerminalSession {
     }
 }
 
-
 fn restore_modes() -> io::Result<()> {
     let mut out = stdout();
     restore_modes_with(&mut out, disable_raw_mode)
@@ -59,7 +43,6 @@ fn restore_modes_with(
     restore_raw: impl FnOnce() -> io::Result<()>,
 ) -> io::Result<()> {
     let mut first = Ok(());
-
 
     first = first.and(execute!(out, EnableLineWrap));
     first = first.and(execute!(out, DisableBracketedPaste));
@@ -108,8 +91,6 @@ fn leave_with(
     result
 }
 
-
-
 pub fn chain_panic_hook(restore: impl Fn() + Send + Sync + 'static) {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
@@ -119,13 +100,6 @@ pub fn chain_panic_hook(restore: impl Fn() + Send + Sync + 'static) {
 }
 
 impl TerminalSession {
-
-
-
-
-
-
-
     pub fn enter() -> io::Result<Self> {
         chain_panic_hook(|| {
             let _ = restore_modes();
@@ -151,15 +125,9 @@ impl TerminalSession {
         })
     }
 
-
     pub const fn terminal(&mut self) -> &mut DefaultTerminal {
         &mut self.terminal
     }
-
-
-
-
-
 
     pub fn leave(&mut self) -> io::Result<()> {
         leave_with(
@@ -176,32 +144,9 @@ impl Drop for TerminalSession {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub fn run<A: App>(app: A, theme: Theme) -> io::Result<()> {
     run_with_feedback_clock(app, theme, FeedbackClock::Elapsed)
 }
-
-
-
-
-
-
-
 
 #[expect(
     clippy::needless_pass_by_value,
@@ -219,8 +164,6 @@ pub fn run_with_feedback_clock<A: App>(
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut pending = None;
     loop {
-
-
         rt.advance_to(Moment::from_duration(origin.elapsed()))
             .map_err(io::Error::other)?;
         loop {
@@ -256,8 +199,6 @@ pub fn run_with_feedback_clock<A: App>(
         }
         let now = Moment::from_duration(origin.elapsed());
         let ready = match rt.next_deadline() {
-
-
             Some(at) => poll(
                 at.saturating_duration_since(now)
                     .min(Duration::from_secs(60)),
@@ -267,18 +208,11 @@ pub fn run_with_feedback_clock<A: App>(
         if ready {
             pending = Input::from_crossterm(read()?);
         }
-
-
     }
     session.leave()
 }
 
 fn reset_frame_colors(buffer: &mut ratatui_core::buffer::Buffer) {
-
-
-
-
-
     for cell in &mut buffer.content {
         cell.fg = ratatui_core::style::Color::Reset;
         cell.bg = ratatui_core::style::Color::Reset;

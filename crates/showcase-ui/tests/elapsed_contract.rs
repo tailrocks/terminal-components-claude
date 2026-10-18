@@ -1,6 +1,3 @@
-
-
-
 use std::time::Duration;
 
 use showcase_ui::{App, PageId};

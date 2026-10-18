@@ -1,7 +1,3 @@
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Family {
     CargoTarget,
@@ -28,7 +24,6 @@ impl Family {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Freshness {
@@ -92,11 +87,9 @@ impl DiskState {
         u32::try_from(percent).unwrap_or(u32::MAX)
     }
 
-
     pub fn inspected_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
         crate::accounting::bytes(self.candidates.iter().map(|c| c.size_bytes))
     }
-
 
     pub fn reclaimable_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
         crate::accounting::bytes(
@@ -107,9 +100,6 @@ impl DiskState {
         )
     }
 }
-
-
-
 
 pub fn cleanup_path(cwd: &str, path: &str) -> Option<std::path::PathBuf> {
     use std::path::{Component, Path, PathBuf};

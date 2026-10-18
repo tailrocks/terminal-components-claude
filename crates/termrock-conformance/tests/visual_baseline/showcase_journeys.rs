@@ -1,30 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 
 use crate::support::Session;
@@ -34,8 +7,6 @@ use crate::support::{self, Case, Color, SHOWCASE};
 const BOOT: &str = "Junie Design system";
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
-
-
 
 const PAGES: [(&str, &str); 23] = [
     ("overview", "/ Foundations / Overview"),
@@ -63,7 +34,6 @@ const PAGES: [(&str, &str); 23] = [
     ("taskrunner", "/ Screens / Task runner"),
 ];
 
-
 fn journey_case(name: &str, args: &'static [&'static str]) -> Case {
     Case::dynamic(
         format!("journeys/showcase/{name}"),
@@ -76,7 +46,6 @@ fn journey_case(name: &str, args: &'static [&'static str]) -> Case {
     )
 }
 
-
 fn journey_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -84,9 +53,6 @@ fn journey_dir(test: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     dir
 }
-
-
-
 
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
@@ -107,7 +73,6 @@ fn write_provenance(dir: &Path, case: &Case) {
     eprintln!("journey provenance: {body}");
 }
 
-
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -123,8 +88,6 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     std::fs::write(&path, body).unwrap_or_else(|e| panic!("write {}: {e}", path.display()));
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
-
-
 
 #[test]
 #[ignore = "showcase journey; run with --ignored"]
@@ -143,9 +106,6 @@ fn journey_showcase_all_pages() {
     }
     eprintln!("journey all_pages: visited {} pages", PAGES.len());
 }
-
-
-
 
 #[test]
 #[ignore = "showcase journey; run with --ignored"]
@@ -169,15 +129,10 @@ fn journey_showcase_form_save_transient() {
     eprintln!("journey form_save_transient: transient then success, both seen");
 }
 
-
-
-
 #[test]
 #[ignore = "showcase journey; run with --ignored"]
 fn journey_showcase_dialog_action_and_menu() {
     let dir = journey_dir("journey_showcase_dialog_action_and_menu");
-
-
 
     let dialogs = journey_case("dialog_action", &["--page", "dialogs"]);
     write_provenance(&dir, &dialogs);
@@ -197,8 +152,6 @@ fn journey_showcase_dialog_action_and_menu() {
         },
     );
     checkpoint(&mut s, &dir, "02-dialog-action-done");
-
-
 
     let chrome = journey_case("menu_traversal", &["--page", "chrome"]);
     let mut s = support::spawn_boot(&chrome);
@@ -220,9 +173,6 @@ fn journey_showcase_dialog_action_and_menu() {
     checkpoint(&mut s, &dir, "04-menu-view");
     eprintln!("journey dialog_action_and_menu: delete ran, file→view crossed");
 }
-
-
-
 
 #[test]
 #[ignore = "showcase journey; run with --ignored"]

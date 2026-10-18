@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 
 use crate::action::ActionKey;
@@ -13,16 +6,12 @@ use crate::id::Id;
 use crate::keys::KeyPhase;
 use crate::layer_types::LayerId;
 
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Diagnostic {
-
-
     HoverLayoutDidNotSettle,
 
     DuplicateId {
-
         id: Id,
 
         first: Rect,
@@ -31,14 +20,12 @@ pub enum Diagnostic {
     },
 
     CursorRejected {
-
         owner: Id,
 
         layer: LayerId,
     },
 
     TypingTargetConflict {
-
         a: Id,
 
         b: Id,
@@ -47,12 +34,10 @@ pub enum Diagnostic {
     },
 
     UndeliveredIntent {
-
         owner: Id,
     },
 
     BindingConflict {
-
         chord: Chord,
 
         phase: KeyPhase,
@@ -63,28 +48,23 @@ pub enum Diagnostic {
     },
 
     DuplicateBindingAction {
-
         owner: Id,
 
         action: ActionKey,
     },
 
     FocusTransitionDidNotSettle {
-
         target: Option<Id>,
     },
 
     UnaddressableId {
-
         id: Id,
     },
 
     DuplicateLayerDraw {
-
         id: Id,
     },
 }
-
 
 #[derive(Debug, Default, Clone)]
 pub struct Diagnostics {
@@ -93,7 +73,6 @@ pub struct Diagnostics {
 }
 
 impl Diagnostics {
-
     pub(crate) const CAPACITY: usize = 64;
 
     pub fn push(&mut self, d: Diagnostic) {

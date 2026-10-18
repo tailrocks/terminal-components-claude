@@ -1,8 +1,3 @@
-
-
-
-
-
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -13,8 +8,6 @@
     clippy::too_many_lines,
     reason = "This migrated in-memory domain adapter preserves the product fixture vocabulary; generated values use bounded catalog data and deterministic arithmetic."
 )]
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Engine {
@@ -40,11 +33,8 @@ impl Engine {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SafeMode {
-
     Silent,
 
     Alert,
@@ -78,7 +68,6 @@ impl SafeMode {
             SafeMode::ReadOnly => "Read-Only",
         }
     }
-
 
     pub fn token(self) -> &'static str {
         match self {
@@ -133,7 +122,6 @@ impl Environment {
         }
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Connection {
@@ -255,10 +243,8 @@ pub fn connections() -> Vec<Connection> {
     ]
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColType {
-
     Uuid,
 
     Text,
@@ -319,7 +305,6 @@ pub struct Constraint {
     pub kind: &'static str,
     pub definition: String,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Table {
@@ -409,7 +394,6 @@ fn idx(name: &str, cols: &[&str], unique: bool) -> Index {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Catalog {
     pub database: String,
@@ -418,7 +402,6 @@ pub struct Catalog {
 }
 
 impl Catalog {
-
     pub fn acme_prod() -> Self {
         let created = || dflt(col("created_at", ColType::Timestamp), "now()");
         let updated = || nullable(col("updated_at", ColType::Timestamp));
@@ -748,7 +731,6 @@ impl Catalog {
         }
     }
 
-
     pub fn find(&self, schema: Option<&str>, name: &str) -> Option<&Table> {
         self.tables.iter().find(|t| {
             t.name.eq_ignore_ascii_case(name)
@@ -763,12 +745,8 @@ impl Catalog {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
-
     Null,
 
     Default,
@@ -810,7 +788,6 @@ impl Value {
         }
     }
 }
-
 
 #[derive(Clone)]
 struct Rng(u64);
@@ -952,7 +929,6 @@ fn timestamp(r: &mut Rng, year: i32) -> String {
 fn date(r: &mut Rng, year: i32) -> String {
     format!("{year}-{:02}-{:02}", 1 + r.below(12), 1 + r.below(28))
 }
-
 
 pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
     let mut out = Vec::with_capacity(n);

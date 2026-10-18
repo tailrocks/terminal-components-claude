@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 
@@ -536,13 +532,6 @@ fn pointer_move_never_focuses() {
     assert_eq!(rt.app().count(B, "phase: Click"), 0);
 }
 
-
-
-
-
-
-
-
 #[test]
 fn ac1_a_disabled_control_refuses_every_activating_pointer_intent() {
     let mut s = three();
@@ -563,20 +552,11 @@ fn ac1_a_disabled_control_refuses_every_activating_pointer_intent() {
     assert_eq!(rt.app().count(B, "phase: Secondary"), 0);
     assert_eq!(rt.app().count(B, "Pointer"), 0);
 
-
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 4));
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 3, 4));
     assert_eq!(rt.focus(), Some(C));
     assert_eq!(rt.app().count(C, "phase: Click"), 1);
 }
-
-
-
-
-
-
-
-
 
 #[test]
 fn ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact() {
@@ -603,11 +583,9 @@ fn ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact() {
         .push((popover, vec![Control::new(B, Rect::new(0, 9, 10, 1))]));
     let (mut rt, mut buf) = runtime(s);
 
-
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Move, 22, 3));
     assert_eq!(rt.hover(), Some(disabled));
     assert_eq!(rt.app().count(disabled, "phase: Move"), 1);
-
 
     let _ = step(
         &mut rt,
@@ -616,14 +594,11 @@ fn ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact() {
     );
     assert!(rt.app().saw(disabled, "Wheel { axis: V, delta: 3"));
 
-
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 6));
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 3, 6));
     assert_eq!(rt.app().count(click_only, "phase: Press"), 1);
     assert_eq!(rt.app().count(click_only, "phase: Click"), 1);
     assert_eq!(rt.focus(), Some(A), "a ClickOnly owner took focus");
-
-
 
     rt.app_mut().open_request = Some((
         popover,
@@ -711,7 +686,6 @@ fn resize_releases_capture_and_relayouts() {
 
 #[test]
 fn focus_transition_settles() {
-
     let mut s = three();
     s.chase = vec![C, B];
     let (mut rt, mut buf) = runtime(s);
@@ -740,9 +714,6 @@ fn a_fifth_focus_pass_is_diagnosed_and_applied() {
             .any(|d| matches!(d, Diagnostic::FocusTransitionDidNotSettle { .. }))
     );
     let settled = rt.focus().expect("the give-up path applies the transition");
-
-
-
 
     rt.app_mut().chase.clear();
     rt.app_mut().log.clear();
@@ -870,20 +841,6 @@ fn layer_scope_is_armed_at_open_and_the_cursor_is_kept_on_the_top_layer() {
     assert!(rt.app().saw(dlg, "Layer(Opened)"));
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 fn a_decorative_owner_is_not_diagnosed_for_a_pointer_intent() {
     let decor = Id::root("decor");
@@ -922,9 +879,6 @@ fn disabled_controls_are_registered_but_never_focused() {
     assert_eq!(rt.focus(), Some(C));
 }
 
-
-
-
 #[test]
 fn a_programmatic_focus_request_for_a_disabled_control_is_refused() {
     let mut s = three();
@@ -940,9 +894,6 @@ fn a_programmatic_focus_request_for_a_disabled_control_is_refused() {
     assert!(!rt.app().saw(A, "FocusOut"), "{:?}", rt.app().log);
 }
 
-
-
-
 #[test]
 fn a_programmatic_focus_request_for_a_click_only_control_is_refused() {
     let mut s = three();
@@ -957,10 +908,6 @@ fn a_programmatic_focus_request_for_a_click_only_control_is_refused() {
     assert_eq!(rt.focus(), Some(A));
     assert!(!rt.app().saw(B, "FocusIn"), "{:?}", rt.app().log);
 }
-
-
-
-
 
 #[test]
 fn a_focus_request_for_a_control_the_open_modal_made_inert_is_refused() {
@@ -984,10 +931,6 @@ fn a_focus_request_for_a_control_the_open_modal_made_inert_is_refused() {
         "step 14 reconciliation puts focus inside the modal instead"
     );
 }
-
-
-
-
 
 #[test]
 fn initial_focus_into_a_layer_that_has_never_drawn_is_still_admitted() {

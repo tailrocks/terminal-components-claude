@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use holla_ui::{App, Motion, Scenario};
 use termrock::{ColorLevel, FeedbackClock, SimulationMoment, Theme};
 use termrock_test_support::{Baseline, Harness};

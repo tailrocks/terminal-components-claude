@@ -1,7 +1,3 @@
-
-
-
-
 #![cfg_attr(
     test,
     allow(
@@ -34,11 +30,7 @@ use termrock_viewport::{TextViewport, ViewportLine, ViewportState, ViewportWorkP
 #[global_allocator]
 static GLOBAL: Counting = Counting;
 
-
-
 const BASELINE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt");
-
-
 
 const TREE_ID: Id = Id::root("perf.tree");
 const STEPS_ID: Id = Id::root("perf.steps");
@@ -133,9 +125,6 @@ fn viewport_lines(n: usize, extra_capacity: usize) -> Vec<ViewportLine<'static>>
     lines.resize(n, ViewportLine::Plain("row: lorem ipsum dolor sit amet"));
     lines
 }
-
-
-
 
 fn collection_runtime<A: App>(app: A, area: Rect) -> (Runtime<A>, Buffer) {
     let mut runtime = Runtime::new(app, Theme::junie());
@@ -401,8 +390,6 @@ fn perf_tree_nodes(n: usize) -> Vec<PerfTreeNode> {
     }));
     nodes
 }
-
-
 
 struct TreeApp<'a> {
     nodes: Vec<PerfTreeNode>,
@@ -793,9 +780,6 @@ fn grid_500x12_render() {
         env_flag("PERF_STRICT"),
     );
 }
-
-
-
 
 #[test]
 fn grid_500x12_load() {

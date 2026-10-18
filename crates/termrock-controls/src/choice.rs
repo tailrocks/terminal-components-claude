@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -30,27 +21,18 @@ use termrock_collections::collection::{
 };
 use termrock_runtime::{RowFn, RowUi};
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct InheritedFormState {
-
-
     pub disabled: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RadioGroupAction {
-
     Chose(ItemKey),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChoiceCmd {
-
     Choose,
 
     Prev,
@@ -73,7 +55,6 @@ const fn b(chord: Chord, cmd: ChoiceCmd, label: &'static str, visible: bool) -> 
     }
 }
 
-
 const FLAG: &[Binding<ChoiceCmd>] = &[
     b(
         Chord::key(KeyCode::Char(' ')),
@@ -88,7 +69,6 @@ const FLAG: &[Binding<ChoiceCmd>] = &[
         false,
     ),
 ];
-
 
 const RADIO: &[Binding<ChoiceCmd>] = &[
     b(
@@ -121,10 +101,6 @@ const RADIO: &[Binding<ChoiceCmd>] = &[
     b(Chord::key(KeyCode::End), ChoiceCmd::Last, "Last", false),
 ];
 
-
-
-
-
 struct FlagRow<'r> {
     id: Id,
     ov: PartStyle<'r>,
@@ -134,7 +110,6 @@ struct FlagRow<'r> {
 }
 
 impl FlagRow<'_> {
-
     fn draw(
         &self,
         ui: &mut Ui<'_>,
@@ -188,7 +163,6 @@ impl FlagRow<'_> {
         } else {
             let ls = style(ui, Part::LABEL);
             let used = if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
-
                 let l = ui.glyph(text, GlyphRole::PressLeft, ls.style);
                 let mut t = super::shift(text, l);
                 let w = ui.paint_str(t, label, ls.style);
@@ -207,64 +181,6 @@ impl FlagRow<'_> {
         area
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Checkbox<'a> {
     id: Id,
@@ -288,12 +204,9 @@ impl fmt::Debug for Checkbox<'_> {
 }
 
 impl<'a> Checkbox<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
 
-
     const MARKER_W: u16 = 3;
-
 
     pub const fn new(id: Id, label: &'a str) -> Self {
         Checkbox {
@@ -306,13 +219,11 @@ impl<'a> Checkbox<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn checked(mut self, yes: bool) -> Self {
         self.checked = yes;
         self
     }
-
 
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
@@ -320,13 +231,11 @@ impl<'a> Checkbox<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -334,20 +243,17 @@ impl<'a> Checkbox<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
 
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
@@ -363,7 +269,6 @@ impl<'a> Checkbox<'a> {
             ov: self.ov,
         }
     }
-
 
     pub fn update(&self, cx: &mut Cx<'_>, value: &mut bool) -> Response<Activated> {
         let mut acc = Acc::<Activated>::new();
@@ -400,20 +305,17 @@ impl<'a> Checkbox<'a> {
             .update(cx, value)
     }
 
-
     fn natural_width(&self) -> u16 {
         Self::MARKER_W
             .saturating_add(2)
             .saturating_add(width(self.label))
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = first_row(area);
         if area.is_empty() {
             return area;
         }
-
 
         let mut derived = StateFlags::empty();
         if self.checked {
@@ -478,7 +380,6 @@ impl<'a> Checkbox<'a> {
             .draw(ui, area)
     }
 
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(), 1).fit(c)
     }
@@ -508,63 +409,6 @@ impl FieldControl for Checkbox<'_> {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct Toggle<'a> {
     id: Id,
     label: &'a str,
@@ -587,7 +431,6 @@ impl fmt::Debug for Toggle<'_> {
 }
 
 impl<'a> Toggle<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -596,9 +439,7 @@ impl<'a> Toggle<'a> {
         Part::META,
     ];
 
-
     const MARKER_W: u16 = 3;
-
 
     pub const fn new(id: Id, label: &'a str) -> Self {
         Toggle {
@@ -611,13 +452,11 @@ impl<'a> Toggle<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn on(mut self, yes: bool) -> Self {
         self.on = yes;
         self
     }
-
 
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
@@ -625,13 +464,11 @@ impl<'a> Toggle<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -639,20 +476,17 @@ impl<'a> Toggle<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
 
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
@@ -668,7 +502,6 @@ impl<'a> Toggle<'a> {
             ov: self.ov,
         }
     }
-
 
     pub fn update(&self, cx: &mut Cx<'_>, value: &mut bool) -> Response<Activated> {
         let mut acc = Acc::<Activated>::new();
@@ -712,13 +545,11 @@ impl<'a> Toggle<'a> {
             .saturating_add(4)
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = first_row(area);
         if area.is_empty() {
             return area;
         }
-
 
         let mut derived = StateFlags::empty();
         if self.on {
@@ -761,7 +592,6 @@ impl<'a> Toggle<'a> {
             area,
             live,
             &move |ui: &mut Ui<'_>, cell: Rect, style| {
-
                 let (knob, track) = if on {
                     (cell.right().saturating_sub(1), cell.x)
                 } else {
@@ -793,7 +623,6 @@ impl<'a> Toggle<'a> {
             .draw(ui, area)
     }
 
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(), 1).fit(c)
     }
@@ -823,13 +652,7 @@ impl FieldControl for Toggle<'_> {
     }
 }
 
-
-
 pub type LabelRadio<'a> = RadioGroup<'a, &'a str, ByIndex, DefaultRow>;
-
-
-
-
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RadioGroupState {
@@ -837,16 +660,13 @@ pub struct RadioGroupState {
 }
 
 impl RadioGroupState {
-
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-
     pub const fn cursor_index(&self) -> usize {
         self.core.cursor_index()
     }
-
 
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
@@ -862,79 +682,6 @@ impl Reconcile for RadioGroupState {
         self.core.invalidate();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct RadioGroup<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
@@ -959,7 +706,6 @@ impl<T, K, R> fmt::Debug for RadioGroup<'_, T, K, R> {
 }
 
 impl<T> RadioGroup<'_, T, ByIndex, DefaultRow> {
-
     pub const fn new(id: Id) -> Self {
         RadioGroup {
             id,
@@ -1020,17 +766,13 @@ impl<'a> RadioGroup<'a, &'a str, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
-
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::GUTTER, Part::MARKER, Part::LABEL];
 
-
     const MARKER_W: u16 = 3;
-
 
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> RadioGroup<'a, T, K2, R> {
         RadioGroup {
@@ -1045,7 +787,6 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
         }
     }
 
-
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> RadioGroup<'a, T, K, R2> {
         RadioGroup {
             id: self.id,
@@ -1059,20 +800,11 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
         }
     }
 
-
-
-
-
-
-
-
-
     #[must_use]
     pub const fn value(mut self, k: ItemKey) -> Self {
         self.value = Some(k);
         self
     }
-
 
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
@@ -1080,13 +812,11 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -1094,20 +824,17 @@ impl<'a, T, K, R> RadioGroup<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
 
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
@@ -1146,7 +873,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         let key = self.key_at(items, to);
         st.core.set_cursor(to, key);
 
-
         acc.changed();
     }
 
@@ -1167,8 +893,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         acc.action(RadioGroupAction::Chose(key));
     }
 
-
-
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -1180,8 +904,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         if !self.disabled {
             let _ = st.core.reconcile(len, |i| self.key_at(items, i));
             if st.core.cursor().is_none() && len > 0 {
-
-
                 let i = self
                     .value
                     .and_then(|v| self.index_of(items, v, None))
@@ -1236,7 +958,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-
     fn used_rect(area: Rect, len: usize) -> Rect {
         let rows = usize::from(area.height).min(len);
         Rect {
@@ -1244,10 +965,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             ..area
         }
     }
-
-
-
-
 
     fn register(&self, ui: &mut Ui<'_>, used: Rect) {
         if ui.is_inert() {
@@ -1262,11 +979,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         };
         ui.register_control(self.id, used, f);
     }
-
-
-
-
-
 
     fn row_flags(
         &self,
@@ -1301,7 +1013,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         (flags, on)
     }
 
-
     fn paint_gutter(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags) {
         if let Some(f) = self.ov.slot_for(Part::GUTTER) {
             f(ui, cell);
@@ -1323,7 +1034,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         }
     }
 
-
     fn paint_marker(&self, ui: &mut Ui<'_>, cell: Rect, flags: StateFlags, on: bool) {
         if let Some(f) = self.ov.slot_for(Part::MARKER) {
             f(ui, cell);
@@ -1344,8 +1054,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         };
         ui.glyph(cell, g, ms.style);
     }
-
-
 
     fn paint_row(
         &self,
@@ -1397,7 +1105,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         }
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &RadioGroupState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;
@@ -1407,7 +1114,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
             return used;
         }
         self.register(ui, used);
-
 
         let live = PartStyle::flags(
             crate::ui::FrameRead::state(ui, self.id),
@@ -1441,7 +1147,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> RadioGroup<'_, T, K, R> {
         }
         used
     }
-
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
@@ -1537,8 +1242,6 @@ mod tests {
         assert_ne!(draw_toggle(true), draw_toggle(false));
     }
 
-
-
     #[test]
     fn disabled_update_does_not_initialize_collection_state() {
         let mut runtime = Runtime::new(DisabledRadioApp::default(), Theme::junie());
@@ -1546,9 +1249,6 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         assert_eq!(runtime.app().state, RadioGroupState::default());
     }
-
-
-
 
     #[test]
     fn radio_group_separates_cursor_from_value() {
@@ -1714,8 +1414,6 @@ mod tests {
         );
         assert_eq!(state.cursor(), Some(ItemKey::text("beta")));
     }
-
-
 
     #[test]
     fn the_radio_marker_is_a_glyph_pair() {

@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -24,10 +22,8 @@ use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ListAction {
-
     Moved,
 
     Chose(ItemKey),
@@ -43,10 +39,8 @@ pub enum ListAction {
     LeaveForward,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ListCmd {
-
     Up,
 
     Down,
@@ -226,8 +220,6 @@ const MULTI: [Binding<ListCmd>; 15] = [
 
 const NONE: [Binding<ListCmd>; 11] = BASE;
 
-
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ListState {
     core: CollectionCore,
@@ -241,37 +233,29 @@ pub struct ListState {
 }
 
 impl ListState {
-
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
-
 
     pub const fn chosen(&self) -> Option<ItemKey> {
         self.chosen
     }
 
-
     pub const fn checked(&self) -> &KeySet {
         self.core.checked()
     }
-
 
     pub const fn checked_mut(&mut self) -> &mut KeySet {
         self.core.checked_mut()
     }
 
-
-
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
-
 
     pub fn choose(&mut self, key: Option<ItemKey>) {
         self.chosen = key;
@@ -302,88 +286,6 @@ impl Reconcile for ListState {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[expect(
     clippy::struct_excessive_bools,
     reason = "whole rows, boundary exit, click activation and bare row chrome are independent opt-ins"
@@ -405,11 +307,6 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     bare: bool,
     bare_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
-
-
-
-
-
 
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -446,7 +343,6 @@ impl<T, K, R> fmt::Debug for List<'_, T, K, R> {
 }
 
 impl<T> List<'_, T, ByIndex, DefaultRow> {
-
     pub const fn new(id: Id) -> Self {
         List {
             id,
@@ -474,7 +370,6 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> List<'a, T, K, R> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::ICON,
@@ -487,20 +382,11 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         Part::EMPTY,
     ];
 
-
-
     pub const PREFERRED_WIDTH: u16 = 24;
-
 
     pub const fn id(&self) -> Id {
         self.id
     }
-
-
-
-
-
-
 
     #[must_use]
     pub const fn leave_at_boundary(mut self, leave: bool) -> Self {
@@ -508,25 +394,11 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
-
-
-
     #[must_use]
     pub const fn activate_focused_on_click(mut self, enabled: bool) -> Self {
         self.activate_focused_on_click = enabled;
         self
     }
-
-
-
-
-
-
 
     #[must_use]
     pub const fn row_height(mut self, height: u16) -> Self {
@@ -534,16 +406,11 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn row_gap(mut self, gap: u16) -> Self {
         self.row_gap = gap;
         self
     }
-
-
-
-
 
     #[must_use]
     pub const fn whole_rows(mut self, enabled: bool) -> Self {
@@ -567,8 +434,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
                 usize::from(self.row_gap)
             })
     }
-
-
 
     fn scroll_extent(&self, len: usize, viewport: usize) -> usize {
         row_scroll_extent(len, self.stride(), self.row_gap, viewport)
@@ -604,7 +469,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         scroll
     }
 
-
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> List<'a, T, K2, R> {
         List {
             id: self.id,
@@ -629,7 +493,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             _t: PhantomData,
         }
     }
-
 
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> List<'a, T, K, R2> {
         List {
@@ -656,29 +519,12 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     #[must_use]
     pub fn render_row(self, renderer: ListRowRenderer<'a, T>) -> List<'a, T, K, impl RowFn<T>> {
-
-
-
         let mut list = self.row(|_: &T, _: &mut RowUi<'_>| {});
         list.render_row = Some(renderer);
         list
     }
-
 
     #[must_use]
     pub fn select_mode(mut self, m: SelectMode) -> Self {
@@ -686,13 +532,11 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub fn empty(mut self, e: EmptyState<'a>) -> Self {
         self.empty = Some(e);
         self
     }
-
 
     #[must_use]
     pub fn disabled_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
@@ -700,22 +544,11 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
-
-
     #[must_use]
     pub fn pointer_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.pointer_item = Some(f);
         self
     }
-
-
-
-
 
     #[must_use]
     pub fn bare(mut self, yes: bool) -> Self {
@@ -723,22 +556,17 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-
-
-
     #[must_use]
     pub fn bare_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.bare_item = Some(f);
         self
     }
 
-
     #[must_use]
     pub fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
-
 
     #[must_use]
     pub fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -747,7 +575,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
@@ -755,18 +582,11 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
-
-
-
-
-
 
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut sr = ScrollRegion::new(self.id).patch_part(self.parts);
@@ -780,7 +600,6 @@ impl<'a, T, K, R> List<'a, T, K, R> {
         }
         sr
     }
-
 
     fn table(&self) -> &'static [Binding<ListCmd>] {
         match self.select_mode {
@@ -805,7 +624,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
     fn enabled_at(&self, items: &[T], i: usize) -> bool {
         items.get(i).is_some_and(|it| !self.is_disabled(it))
     }
-
 
     fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
         if let Some(h) = hint
@@ -894,7 +712,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             SelectMode::None => acc.consumed(),
         }
     }
-
 
     #[expect(
         clippy::too_many_lines,
@@ -1138,7 +955,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the visible rows with gutter, marker and renderer"
@@ -1224,9 +1040,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         let cursor = st.core.cursor();
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
-
-
-
 
         let status = live
             & (StateFlags::ERROR | StateFlags::WARNING | StateFlags::BUSY | StateFlags::LOADING);
@@ -1356,7 +1169,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         area
     }
 
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, 1),
@@ -1364,14 +1176,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
         }
         .fit(c)
     }
-
-
-
-
-
-
-
-
 
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         let d = cx.design();
@@ -1439,9 +1243,6 @@ mod tests {
 
     #[test]
     fn select_all_selects_only_enabled_items() {
-
-
-
         fn disabled(item: &u8) -> bool {
             matches!(*item, 1 | 3)
         }

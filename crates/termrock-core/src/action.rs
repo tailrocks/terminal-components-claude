@@ -1,11 +1,6 @@
-
-
-
 use crate::event::Chord;
 use crate::id::fnv1a;
 use crate::variant::Variant;
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct ActionKey(u16);
@@ -42,24 +37,20 @@ action_keys! {
 }
 
 impl ActionKey {
-
     pub const fn application(name: &'static str) -> ActionKey {
         let h = fnv1a(0xcbf2_9ce4_8422_2325, name.as_bytes());
         ActionKey(0x4000 | ((h as u16) & 0x3FFF))
     }
-
 
     pub const fn custom(name: &'static str) -> ActionKey {
         let h = fnv1a(0xcbf2_9ce4_8422_2325, name.as_bytes());
         ActionKey(0x8000 | ((h as u16) & 0x7FFF))
     }
 
-
     pub const fn raw(self) -> u16 {
         self.0
     }
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Action<'a> {
@@ -72,7 +63,6 @@ pub struct Action<'a> {
 }
 
 impl<'a> Action<'a> {
-
     pub const fn new(key: ActionKey, label: &'a str) -> Self {
         Action {
             key,
@@ -83,7 +73,6 @@ impl<'a> Action<'a> {
             danger: false,
         }
     }
-
 
     pub const fn danger(key: ActionKey, label: &'a str) -> Self {
         Action {
@@ -96,7 +85,6 @@ impl<'a> Action<'a> {
         }
     }
 
-
     pub const fn quiet(key: ActionKey, label: &'a str) -> Self {
         Action {
             key,
@@ -108,13 +96,11 @@ impl<'a> Action<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn chord(mut self, c: Chord) -> Self {
         self.chord = Some(c);
         self
     }
-
 
     #[must_use]
     pub const fn enabled(mut self, yes: bool) -> Self {
@@ -122,31 +108,25 @@ impl<'a> Action<'a> {
         self
     }
 
-
     pub const fn key(&self) -> ActionKey {
         self.key
     }
-
 
     pub const fn label(&self) -> &'a str {
         self.label
     }
 
-
     pub const fn variant(&self) -> Variant {
         self.variant
     }
-
 
     pub const fn chord_ref(&self) -> Option<Chord> {
         self.chord
     }
 
-
     pub const fn is_enabled(&self) -> bool {
         self.enabled
     }
-
 
     pub const fn is_danger(&self) -> bool {
         self.danger

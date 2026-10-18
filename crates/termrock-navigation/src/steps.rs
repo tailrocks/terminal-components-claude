@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -33,10 +20,8 @@ use termrock_core::response::{Response, StateFlags};
 use termrock_runtime::rowui::{RowFn, RowUi};
 use termrock_runtime::scroll_region::ScrollRegion;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum StepState {
-
     #[default]
     Queued,
 
@@ -52,8 +37,6 @@ pub enum StepState {
 }
 
 impl StepState {
-
-
     #[must_use]
     pub const fn label(self) -> &'static str {
         match self {
@@ -66,8 +49,6 @@ impl StepState {
         }
     }
 
-
-
     #[must_use]
     pub const fn terminal(self) -> bool {
         matches!(
@@ -75,7 +56,6 @@ impl StepState {
             StepState::Done | StepState::Skipped | StepState::Failed
         )
     }
-
 
     #[must_use]
     pub const fn flags(self) -> StateFlags {
@@ -89,7 +69,6 @@ impl StepState {
         }
     }
 
-
     #[must_use]
     pub const fn glyph(self) -> Option<GlyphRole> {
         match self {
@@ -102,19 +81,15 @@ impl StepState {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StepsAction {
-
     Moved(ItemKey),
 
     Activated(ItemKey),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StepsCmd {
-
     Up,
 
     Down,
@@ -227,9 +202,6 @@ const TABLE: [Binding<StepsCmd>; 11] = [
     ),
 ];
 
-
-
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct StepsState {
     core: CollectionCore,
@@ -237,7 +209,6 @@ pub struct StepsState {
 }
 
 impl StepsState {
-
     #[must_use]
     pub const fn new() -> Self {
         StepsState {
@@ -246,30 +217,19 @@ impl StepsState {
         }
     }
 
-
-
     #[must_use]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
-
 
     #[must_use]
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
-
-
-
-
-
-
-
 
     pub fn invalidate(&mut self) {
         self.frontier_revision = self.frontier_revision.saturating_add(1);
@@ -287,99 +247,6 @@ impl Reconcile for StepsState {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -388,9 +255,6 @@ pub struct Steps<'a, T, K = ByIndex, R = DefaultRow> {
     navigable: bool,
     disabled: bool,
     ov: PartStyle<'a>,
-
-
-
 
     fwd_patch: Option<&'a StylePatch>,
     fwd_parts: &'a [(Part, StylePatch)],
@@ -410,7 +274,6 @@ impl<T, K, R> fmt::Debug for Steps<'_, T, K, R> {
 }
 
 impl<T> Steps<'_, T, ByIndex, DefaultRow> {
-
     #[must_use]
     pub const fn new(id: Id) -> Self {
         Steps {
@@ -428,7 +291,6 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
         }
     }
 
-
     #[must_use]
     pub const fn navigable(id: Id) -> Self {
         let mut s = Steps::new(id);
@@ -438,7 +300,6 @@ impl<T> Steps<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> Steps<'a, T, K, R> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::LABEL,
@@ -449,28 +310,23 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         Part::THUMB,
     ];
 
-
     pub const PREFERRED_WIDTH: u16 = 32;
-
 
     #[must_use]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-
     #[must_use]
     pub const fn is_navigable(&self) -> bool {
         self.navigable
     }
-
 
     #[must_use]
     pub const fn step(mut self, f: &'a dyn Fn(&T) -> StepState) -> Self {
         self.step = Some(f);
         self
     }
-
 
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Steps<'a, T, K2, R> {
         Steps {
@@ -488,7 +344,6 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         }
     }
 
-
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Steps<'a, T, K, R2> {
         Steps {
             id: self.id,
@@ -505,14 +360,11 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         }
     }
 
-
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -521,7 +373,6 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
@@ -529,14 +380,12 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self.fwd_slot = Some((p, f));
         self
     }
-
 
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut s = ScrollRegion::new(self.id).patch_part(self.fwd_parts);
@@ -548,7 +397,6 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         }
         s
     }
-
 
     const fn derived(&self) -> StateFlags {
         if self.disabled {
@@ -570,10 +418,6 @@ impl<'a, T, K, R> Steps<'a, T, K, R> {
         }
     }
 }
-
-
-
-
 
 #[derive(Clone, Copy, Debug, Default)]
 struct FrontierCache {
@@ -663,9 +507,6 @@ impl<T, K: KeyFn<T>, R> Steps<'_, T, K, R> {
             .map_or(ItemKey::index(i), |it| self.key.key(it, i))
     }
 
-
-
-
     pub fn frontier(&self, items: &[T]) -> Option<ItemKey> {
         items
             .iter()
@@ -675,7 +516,6 @@ impl<T, K: KeyFn<T>, R> Steps<'_, T, K, R> {
 }
 
 impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
-
     fn index_of(&self, items: &[T], key: ItemKey, hint: Option<usize>) -> Option<usize> {
         if let Some(h) = hint
             && h < items.len()
@@ -700,7 +540,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         st.core.set_cursor(to, key);
         acc.action(StepsAction::Moved(key));
     }
-
 
     pub fn update(
         &self,
@@ -802,7 +641,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         }
         acc.finish(self.id)
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &StepsState, items: &[T]) -> Rect {
         if area.is_empty() {
@@ -979,7 +817,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Steps<'_, T, K, R> {
         }
     }
 
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, 1),
@@ -1037,8 +874,6 @@ mod tests {
         ItemKey::text(s.0)
     }
 
-
-
     struct StepsApp {
         rail: Steps<'static, S, fn(&S) -> ItemKey>,
         state: StepsState,
@@ -1092,9 +927,6 @@ mod tests {
         panic!("steps fixture focus did not settle");
     }
 
-
-
-
     fn click_row(rt: &mut Runtime<StepsApp>, key: ItemKey) {
         use crate::event::MouseKind;
         use termrock_runtime::stub::{deliver, mouse};
@@ -1106,8 +938,6 @@ mod tests {
         let _ = deliver(rt, mouse(MouseKind::Down, x, y));
         let _ = deliver(rt, mouse(MouseKind::Up, x, y));
     }
-
-
 
     fn render<T: core::fmt::Display>(
         rail: &Steps<'_, T>,
@@ -1137,10 +967,6 @@ mod tests {
         (rows, runtime.ring().reachable().map(|e| e.id).collect())
     }
 
-
-
-
-
     #[test]
     fn the_frontier_is_the_first_unfinished_step() {
         let rail: Steps<'_, S> = Steps::new(RAIL).step(&state);
@@ -1152,23 +978,16 @@ mod tests {
         ];
         assert_eq!(rail.frontier(&items), Some(ItemKey::index(2)));
 
-
-
         items[2].1 = StepState::Failed;
         assert_eq!(rail.frontier(&items), Some(ItemKey::index(3)));
 
-
         items[3].1 = StepState::Blocked;
         assert_eq!(rail.frontier(&items), Some(ItemKey::index(3)));
-
 
         items[3].1 = StepState::Done;
         assert_eq!(rail.frontier(&items), None);
         assert_eq!(rail.frontier(&[]), None);
     }
-
-
-
 
     #[test]
     fn a_display_rail_is_click_only_and_a_navigable_rail_is_in_the_ring() {
@@ -1190,7 +1009,6 @@ mod tests {
             "a navigable rail is exactly one reachable stop"
         );
         assert!(!nav.table().is_empty());
-
 
         let off: Steps<'_, S> = Steps::navigable(RAIL).step(&state).disabled(true);
         let (_, ring) = render(&off, &items, 2);
@@ -1221,14 +1039,8 @@ mod tests {
             })
             .commit_presented();
 
-
         assert_eq!(runtime.ring().reachable().count(), 0);
     }
-
-
-
-
-
 
     #[test]
     fn every_lifecycle_state_paints_a_symbol_that_separates_it() {
@@ -1293,7 +1105,6 @@ mod tests {
 
         let mut rt = steps_runtime(rail, steps_state, items.to_vec());
 
-
         use termrock_runtime::stub::{deliver, key};
         let _ = deliver(&mut rt, key(crate::event::KeyCode::Enter));
         assert_eq!(rt.app().last, Some(StepsAction::Activated(skip)));
@@ -1313,8 +1124,6 @@ mod tests {
 
         let mut rt = steps_runtime(rail, StepsState::new(), items.to_vec());
         assert_eq!(rt.app().state.cursor(), Some(ItemKey::text("stable-first")));
-
-
 
         {
             let app = rt.app_mut();
@@ -1344,7 +1153,6 @@ mod tests {
         click_row(&mut rt, key);
         assert_eq!(rt.app().last, Some(StepsAction::Moved(key)));
         assert_eq!(rt.app().state.cursor(), Some(key));
-
 
         click_row(&mut rt, key);
         assert_eq!(rt.app().last, Some(StepsAction::Activated(key)));
@@ -1741,7 +1549,6 @@ mod tests {
         let mut state = StepsState::new();
         state.set_cursor(4, ItemKey::num(4));
         let area = Rect::new(0, 0, 30, 2);
-
 
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut page = Buffer::empty(area);

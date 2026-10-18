@@ -1,30 +1,17 @@
-
-
-
-
-
-
-
-
-
 use crate::id::ItemKey;
 use crate::scroll::ScrollState;
 
 use super::key::KeySet;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StepDir {
-
     Next,
 
     Prev,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Reconciliation {
-
     Unchanged,
 
     CursorMoved(ItemKey),
@@ -34,11 +21,8 @@ pub enum Reconciliation {
     SelectionDropped(usize),
 }
 
-
 pub trait Reconcile {
-
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation;
-
 
     fn invalidate(&mut self);
 }
@@ -50,8 +34,6 @@ struct Stamp {
     last: Option<ItemKey>,
 }
 
-
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct CollectionCore {
     cursor: Option<ItemKey>,
@@ -62,7 +44,6 @@ pub struct CollectionCore {
 }
 
 impl CollectionCore {
-
     pub const fn new() -> Self {
         CollectionCore {
             cursor: None,
@@ -73,16 +54,13 @@ impl CollectionCore {
         }
     }
 
-
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.cursor
     }
 
-
     pub const fn cursor_index(&self) -> usize {
         self.cursor_index
     }
-
 
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.cursor = Some(key);
@@ -90,33 +68,26 @@ impl CollectionCore {
         self.scroll.ensure_visible_on_next_layout(index);
     }
 
-
     pub fn clear_cursor(&mut self) {
         self.cursor = None;
         self.cursor_index = 0;
     }
 
-
     pub const fn checked(&self) -> &KeySet {
         &self.checked
     }
-
 
     pub const fn checked_mut(&mut self) -> &mut KeySet {
         &mut self.checked
     }
 
-
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
 
-
     pub const fn scroll_mut(&mut self) -> &mut ScrollState {
         &mut self.scroll
     }
-
-
 
     pub fn first_enabled(
         len: usize,
@@ -126,8 +97,6 @@ impl CollectionCore {
         (0..len).find(|&i| enabled(i)).map(|i| (i, key(i)))
     }
 
-
-
     pub fn last_enabled(
         len: usize,
         key: impl Fn(usize) -> ItemKey,
@@ -135,10 +104,6 @@ impl CollectionCore {
     ) -> Option<(usize, ItemKey)> {
         (0..len).rev().find(|&i| enabled(i)).map(|i| (i, key(i)))
     }
-
-
-
-
 
     pub fn seek(
         len: usize,
@@ -161,11 +126,6 @@ impl CollectionCore {
         }
     }
 
-
-
-
-
-
     pub fn step(
         len: usize,
         from: usize,
@@ -184,10 +144,6 @@ impl CollectionCore {
                 .and_then(|f| Self::seek(len, f, StepDir::Prev, key, enabled)),
         }
     }
-
-
-
-
 
     pub fn step_wrapping(
         len: usize,
@@ -251,7 +207,6 @@ impl CollectionCore {
         None
     }
 
-
     pub fn reconcile_with(
         &mut self,
         len: usize,
@@ -261,9 +216,6 @@ impl CollectionCore {
         self.reconcile_with_extent(len, len, key, enabled)
     }
 
-
-
-
     pub fn reconcile_first_with(
         &mut self,
         len: usize,
@@ -272,7 +224,6 @@ impl CollectionCore {
     ) -> Reconciliation {
         self.reconcile_inner(len, len, key, enabled, true)
     }
-
 
     pub fn reconcile_with_extent(
         &mut self,
@@ -321,7 +272,6 @@ impl CollectionCore {
         let outcome = match self.cursor {
             None => Reconciliation::Unchanged,
             Some(cur) => {
-
                 let probe = self.cursor_index < len && key(self.cursor_index) == cur;
                 let found = if probe {
                     Some(self.cursor_index)
@@ -449,8 +399,6 @@ mod tests {
 
     #[test]
     fn reconcile_runs_before_any_action_is_emitted() {
-
-
         let mut c = CollectionCore::new();
         c.set_cursor(1, ItemKey::num(20));
         let _ = c.reconcile(3, keys(&[10, 20, 30]));
@@ -542,9 +490,6 @@ mod tests {
 
     #[test]
     fn wrapping_prev_reaches_the_last_row_for_any_length() {
-
-
-
         let key = ItemKey::index;
         for len in 1..8usize {
             assert_eq!(

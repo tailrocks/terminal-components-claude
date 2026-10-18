@@ -1,4 +1,3 @@
-
 use ratatui_core::style::Color;
 use std::cell::RefCell;
 use termrock_core::{Id, ItemKey, KeyCode, Response, StateFlags, Variant};
@@ -188,7 +187,6 @@ fn ancestor_clip_preserves_logical_alignment_and_skips_invisible_callbacks() {
 
 #[test]
 fn custom_prefix_keeps_shared_disclosure_hit_and_branch_identity() {
-
     struct BranchPage {
         state: TreeState,
         items: Vec<Step>,

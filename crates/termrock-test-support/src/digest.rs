@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
@@ -20,7 +5,6 @@ use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
 use termrock::{App, ColorLevel, Cx, FocusRing, Registry, Response, Runtime, Theme, Ui};
-
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct NoApp;
@@ -33,7 +17,6 @@ impl App for NoApp {
     fn draw(&self, _ui: &mut Ui<'_>) {}
 }
 
-
 pub struct Scene {
     name: &'static str,
     theme_name: &'static str,
@@ -43,8 +26,6 @@ pub struct Scene {
     rt: Option<Runtime<NoApp>>,
     snapshot: termrock::RenderSnapshot,
 }
-
-
 
 pub struct SceneProjection<'a, M: ?Sized, F> {
     scene: &'a mut Scene,
@@ -58,7 +39,6 @@ impl<M: ?Sized, F> core::fmt::Debug for SceneProjection<'_, M, F> {
 }
 
 impl<M: ?Sized, F: Fn(&M, &mut Ui<'_>, Rect)> SceneProjection<'_, M, F> {
-
     pub fn draw(&mut self) {
         let Some(rt) = self.scene.rt.as_mut() else {
             return;
@@ -67,7 +47,6 @@ impl<M: ?Sized, F: Fn(&M, &mut Ui<'_>, Rect)> SceneProjection<'_, M, F> {
         rt.draw_bound_projection(self.scene.area, &mut self.scene.buf, &self.binding)
             .commit_inspected();
     }
-
 
     pub const fn scene(&self) -> &Scene {
         self.scene
@@ -116,7 +95,6 @@ fn theme_label(theme: &Theme) -> &'static str {
 }
 
 impl Scene {
-
     pub fn new(name: &'static str, theme: Theme, color: ColorLevel, w: u16, h: u16) -> Self {
         let theme_name = theme_label(&theme);
         let theme = if color == ColorLevel::TrueColor {
@@ -136,7 +114,6 @@ impl Scene {
         }
     }
 
-
     pub fn from_buffer(
         name: &'static str,
         theme_name: &'static str,
@@ -155,19 +132,15 @@ impl Scene {
         }
     }
 
-
     #[must_use]
     pub const fn named(mut self, name: &'static str) -> Self {
         self.name = name;
         self
     }
 
-
     pub fn set_snapshot(&mut self, snapshot: termrock::RenderSnapshot) {
         self.snapshot = snapshot;
     }
-
-
 
     pub fn bind_model<'a, M: ?Sized, F>(
         &'a mut self,
@@ -184,22 +157,6 @@ impl Scene {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     pub fn bind_app<'a, A: App>(
         &'a mut self,
         app: &'a A,
@@ -207,16 +164,9 @@ impl Scene {
         self.bind_model(app, |app, ui, _| app.draw(ui))
     }
 
-
-
-
     pub fn draw_app<A: App>(&mut self, app: &A) {
         self.draw(|ui, _| app.draw(ui));
     }
-
-
-
-
 
     pub fn draw(&mut self, f: impl FnOnce(&mut Ui<'_>, Rect)) {
         let area = self.area;
@@ -227,7 +177,6 @@ impl Scene {
         rt.draw_projection(area, &mut self.buf, &self.snapshot, f)
             .commit_inspected();
     }
-
 
     pub fn draw_over(
         &mut self,
@@ -244,7 +193,6 @@ impl Scene {
             .commit_inspected();
     }
 
-
     pub fn digest(&self) -> u64 {
         let mut h = FNV_OFFSET;
         for pos in self.area.positions() {
@@ -260,7 +208,6 @@ impl Scene {
         h
     }
 
-
     pub fn text(&self) -> String {
         let mut out = String::new();
         for y in 0..self.area.height {
@@ -272,29 +219,21 @@ impl Scene {
         out
     }
 
-
     pub const fn buffer(&self) -> &Buffer {
         &self.buf
     }
-
 
     pub const fn area(&self) -> Rect {
         self.area
     }
 
-
-
-
     pub const fn runtime(&self) -> Option<&Runtime<NoApp>> {
         self.rt.as_ref()
     }
 
-
-
     pub const fn runtime_mut(&mut self) -> Option<&mut Runtime<NoApp>> {
         self.rt.as_mut()
     }
-
 
     pub fn registry(&self) -> Option<&Registry> {
         self.rt
@@ -302,18 +241,15 @@ impl Scene {
             .map(|rt| rt.projection_registry().unwrap_or_else(|| rt.registry()))
     }
 
-
     pub fn ring(&self) -> Option<&FocusRing> {
         self.rt
             .as_ref()
             .map(|rt| rt.projection_ring().unwrap_or_else(|| rt.ring()))
     }
 
-
     pub fn cursor_position(&self) -> Option<ratatui_core::layout::Position> {
         self.rt.as_ref().and_then(Runtime::projection_cursor)
     }
-
 
     pub fn key(&self) -> String {
         format!(
@@ -326,13 +262,6 @@ impl Scene {
         )
     }
 
-
-
-
-
-
-
-
     pub fn assert_against(&self, baseline: &Baseline) {
         let key = self.key();
         let digest = self.digest();
@@ -340,8 +269,6 @@ impl Scene {
             baseline.bless(&key, &format!("{digest:016x}"));
             return;
         }
-
-
 
         let why = match baseline.lookup(&key, digest) {
             Lookup::Match => return,
@@ -358,11 +285,6 @@ impl Scene {
     }
 }
 
-
-
-
-
-
 fn bless_enabled() -> bool {
     let enabled = |v: std::ffi::OsString| !v.is_empty() && v != "0";
     match std::env::var_os("BLESS") {
@@ -370,8 +292,6 @@ fn bless_enabled() -> bool {
         None => std::env::var_os("UPDATE_BASELINE").is_some_and(enabled),
     }
 }
-
-
 
 enum Lookup {
     Match,
@@ -382,18 +302,12 @@ enum Lookup {
 const HEADER: &str =
     "# digest baseline: name w h theme color hash — regenerate with BLESS=1, review like source\n";
 
-
-
-
 fn store() -> MutexGuard<'static, BTreeMap<&'static str, BTreeMap<String, String>>> {
     static STORE: OnceLock<Mutex<BTreeMap<&'static str, BTreeMap<String, String>>>> =
         OnceLock::new();
     STORE
         .get_or_init(|| Mutex::new(BTreeMap::new()))
         .lock()
-
-
-
         .unwrap_or_else(PoisonError::into_inner)
 }
 
@@ -422,25 +336,19 @@ fn render(entries: &BTreeMap<String, String>) -> String {
     s
 }
 
-
 #[derive(Debug, Clone, Copy)]
 pub struct Baseline {
     path: &'static str,
 }
 
 impl Baseline {
-
     pub const fn new(path: &'static str) -> Self {
         Baseline { path }
     }
 
-
     pub const fn path(&self) -> &'static str {
         self.path
     }
-
-
-
 
     fn lookup(&self, key: &str, digest: u64) -> Lookup {
         let mut store = store();
@@ -459,13 +367,6 @@ impl Baseline {
         }
     }
 
-
-
-
-
-
-
-
     fn bless(&self, key: &str, digest: &str) {
         let mut store = store();
         let entries = store.entry(self.path).or_default();
@@ -483,12 +384,10 @@ impl Baseline {
         self.publish(&text);
     }
 
-
     fn publish(&self, text: &str) {
         if let Some(dir) = Path::new(self.path).parent() {
             let _ = std::fs::create_dir_all(dir);
         }
-
 
         let tmp = format!("{}.tmp.{}", self.path, std::process::id());
         std::fs::write(&tmp, text).expect("write baseline");
@@ -509,7 +408,6 @@ mod tests {
 
     use super::*;
 
-
     const PATH_ENV: &str = "TUI_NEXT_DIGEST_TEST_BASELINE";
 
     const SLICE_ENV: &str = "TUI_NEXT_DIGEST_TEST_SLICE";
@@ -525,10 +423,6 @@ mod tests {
         "bless.35", "bless.36", "bless.37", "bless.38", "bless.39", "bless.40", "bless.41",
         "bless.42", "bless.43", "bless.44", "bless.45", "bless.46", "bless.47",
     ];
-
-
-
-
 
     #[test]
     #[ignore = "spawned by the concurrent-bless driver tests"]
@@ -582,13 +476,9 @@ mod tests {
         dir.join("baseline.txt")
     }
 
-
     fn run_worker(path: &Path, slice: usize, bless: bool) -> std::process::Output {
         run_worker_with_flags(path, slice, bless.then_some("1"), None)
     }
-
-
-
 
     fn run_worker_with_flags(
         path: &Path,
@@ -691,11 +581,6 @@ mod tests {
         )
     }
 
-
-
-
-
-
     #[test]
     fn concurrent_bless_keeps_every_entry() {
         let path = temp_baseline("concurrent");
@@ -734,9 +619,6 @@ mod tests {
         );
         let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
     }
-
-
-
 
     #[test]
     fn non_bless_run_fails_loudly_and_never_writes() {
@@ -783,12 +665,6 @@ mod tests {
         );
         let _ = std::fs::remove_dir_all(path.parent().expect("temp dir"));
     }
-
-
-
-
-
-
 
     #[test]
     fn a_missing_baseline_prints_the_frame_it_would_record() {

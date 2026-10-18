@@ -1,8 +1,3 @@
-
-
-
-
-
 use std::{
     cell::RefCell,
     collections::{BTreeMap, hash_map::DefaultHasher},
@@ -51,7 +46,6 @@ use crate::sim::provider;
 use crate::sim::pty::{Daemon, Maximized, Pane, PaneId, PaneNode, SplitDir, Tab};
 use crate::sim::world::{World, world_for};
 
-
 #[derive(Debug, Clone)]
 struct ManagerRow {
     domain: ManagerRowKey,
@@ -71,7 +65,6 @@ impl std::fmt::Display for ManagerRow {
         f.write_str(&self.label)
     }
 }
-
 
 pub const APP: Id = Id::root("jackin.preview");
 
@@ -270,10 +263,8 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 mod historical_paint;
 use historical_paint::HistoricalPalette;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Route {
-
     Intro,
 
     Manager,
@@ -316,10 +307,6 @@ impl Route {
             Self::Outro => "Leaving the Construct",
         }
     }
-
-
-
-
 
     pub const fn tick_ms(self) -> u64 {
         match self {
@@ -413,17 +400,8 @@ impl AsItem for AgentOption {
     }
 }
 
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Default)]
 struct CapsuleFrameCaches {
-
     transcripts: BTreeMap<PaneId, (u64, ProjectedText)>,
 
     tabs: Option<(u64, Vec<String>)>,
@@ -432,9 +410,6 @@ struct CapsuleFrameCaches {
 
     layouts: Option<(u64, Vec<(PaneId, Rect)>)>,
 }
-
-
-
 
 #[derive(Debug, Clone)]
 struct HintLayerSet {
@@ -511,10 +486,8 @@ impl Default for HintLayerSet {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct App {
-
     pub world: World,
 
     pub manager: ManagerState,
@@ -562,7 +535,6 @@ pub struct App {
 
     editor_exit_open: bool,
     editor_exit_state: DialogState,
-
 
     editor_leaf_focused: bool,
     settings_save_preview: bool,
@@ -621,7 +593,6 @@ pub struct App {
 }
 
 impl App {
-
     fn role_label<'a>(&'a self, key: &'a str) -> &'a str {
         self.world
             .roles
@@ -634,15 +605,9 @@ impl App {
             .map_or(key, |role| role.name.as_str())
     }
 
-
     pub fn for_scenario(scenario: Scenario, motion: Motion) -> Self {
         Self::for_scenario_at(scenario, motion, 0)
     }
-
-
-
-
-
 
     pub fn for_scenario_at(scenario: Scenario, motion: Motion, frame: u64) -> Self {
         let mut world = world_for(scenario);
@@ -824,21 +789,17 @@ impl App {
         app
     }
 
-
     pub const fn route(&self) -> Route {
         self.route
     }
-
 
     pub const fn motion(&self) -> Motion {
         self.motion
     }
 
-
     pub const fn route_tick_ms(&self) -> u64 {
         self.route.tick_ms()
     }
-
 
     pub fn frame(&self) -> u64 {
         match self.route {
@@ -850,18 +811,15 @@ impl App {
         }
     }
 
-
     pub fn selected_role(&self) -> &str {
         self.roles
             .get(self.selected_role)
             .map_or("chainargos/the-architect", |role| role.key.as_str())
     }
 
-
     pub const fn launch(&self) -> Option<&LaunchRun> {
         self.launch.as_ref()
     }
-
 
     pub const fn should_quit(&self) -> bool {
         self.quit
@@ -941,12 +899,6 @@ impl App {
             .collect()
     }
 
-
-
-
-
-
-
     fn launch_available(&self) -> bool {
         let id = self
             .manager
@@ -972,9 +924,6 @@ impl App {
     fn active_running_instance_id(&self) -> Option<String> {
         Self::active_running_instance_id_ref(&self.active_instance, &self.world).map(str::to_owned)
     }
-
-
-
 
     fn active_running_instance_id_ref<'a>(
         active_instance: &'a Option<String>,
@@ -1317,8 +1266,6 @@ impl App {
         self.status = None;
     }
 
-
-
     fn prepare_quit_body(&mut self) {
         let running = self.world.running_count();
         self.quit_body = match running {
@@ -1382,8 +1329,6 @@ impl App {
         lines.push(format!("Run id        {run_id}"));
         lines.push("jackin        0.6.4 · preview".into());
         if self.cockpit_debug_open {
-
-
             lines.push("Telemetry     otlp://collector.internal:4317".into());
         }
         lines
@@ -1433,17 +1378,11 @@ impl App {
         }
     }
 
-
-
-
-
     fn dismiss_editor_env_form(&mut self, cx: &mut Cx<'_>) {
         self.editor.clear_env_form();
         self.editor_leaf_focused = false;
         cx.focus(crate::screens::editor::SAVE);
     }
-
-
 
     fn focus_editor_tab(&mut self, cx: &mut Cx<'_>) {
         self.editor_leaf_focused = match self.editor.tab {
@@ -1471,9 +1410,6 @@ impl App {
             Self::cockpit_cancel_dialog().layer(cx),
         );
     }
-
-
-
 
     fn acknowledge_launch_failure(&mut self) {
         let run_id = self.launch.as_ref().map(|run| run.run_id);
@@ -1969,7 +1905,6 @@ impl App {
         let now_ms = self.world.now_ms();
         let now_secs = self.world.now_secs();
 
-
         let snapshot = match crate::sim::fixtures::live_capsule() {
             DaemonSnapshot::Tabs(mut tabs) => {
                 tabs.truncate(1);
@@ -2309,11 +2244,6 @@ impl App {
         }
     }
 
-
-
-
-
-
     fn project_term(term: &crate::sim::pty::TextViewport, out: &mut ProjectedText) {
         out.clear();
         let mut joined = String::new();
@@ -2325,9 +2255,6 @@ impl App {
             out.push_line([(joined.as_str(), None, Modifier::empty())]);
         }
     }
-
-
-
 
     fn ensure_capsule_transcript(caches: &mut CapsuleFrameCaches, pane: &Pane) {
         let revision = pane.term.revision();
@@ -2341,8 +2268,6 @@ impl App {
             caches.transcripts.insert(pane.id, (revision, text));
         }
     }
-
-
 
     fn hash_topology(hasher: &mut DefaultHasher, node: &PaneNode) {
         match node {
@@ -2375,9 +2300,6 @@ impl App {
         }
     }
 
-
-
-
     fn hash_tab_pane(
         hasher: &mut DefaultHasher,
         daemon: &Daemon,
@@ -2407,7 +2329,6 @@ impl App {
         pane.state().hash(hasher);
     }
 
-
     fn hash_tab_labels(
         hasher: &mut DefaultHasher,
         daemon: &Daemon,
@@ -2422,8 +2343,6 @@ impl App {
             }
         }
     }
-
-
 
     fn capsule_tabs_fingerprint(
         world: &World,
@@ -2454,8 +2373,6 @@ impl App {
         hasher.write_usize(tab_title_index);
         hasher.finish()
     }
-
-
 
     fn build_capsule_tabs(
         world: &World,
@@ -2511,8 +2428,6 @@ impl App {
             .collect()
     }
 
-
-
     fn ensure_capsule_tabs(
         caches: &mut CapsuleFrameCaches,
         world: &World,
@@ -2533,8 +2448,6 @@ impl App {
             ));
         }
     }
-
-
 
     fn pane_title_fingerprint(accounts: &AccountRegistry, pane: &Pane) -> u64 {
         let mut hasher = DefaultHasher::new();
@@ -2557,7 +2470,6 @@ impl App {
         hasher.finish()
     }
 
-
     fn build_pane_title(accounts: &AccountRegistry, pane: &Pane) -> String {
         let label = pane
             .proc
@@ -2576,7 +2488,6 @@ impl App {
         }
     }
 
-
     fn ensure_pane_title(caches: &mut CapsuleFrameCaches, accounts: &AccountRegistry, pane: &Pane) {
         let fingerprint = Self::pane_title_fingerprint(accounts, pane);
         let fresh = caches
@@ -2590,7 +2501,6 @@ impl App {
             );
         }
     }
-
 
     fn pane_layouts_fingerprint(tab: &Tab, area: Rect) -> u64 {
         let mut hasher = DefaultHasher::new();
@@ -2609,7 +2519,6 @@ impl App {
         hasher.finish()
     }
 
-
     fn build_pane_layouts(tab: &Tab, area: Rect) -> Vec<(PaneId, Rect)> {
         let mut layouts = Vec::new();
         if let Some(zoomed) = tab.zoomed {
@@ -2621,8 +2530,6 @@ impl App {
         layouts
     }
 
-
-
     fn ensure_pane_layouts(caches: &mut CapsuleFrameCaches, tab: &Tab, area: Rect) {
         let fingerprint = Self::pane_layouts_fingerprint(tab, area);
         let fresh = caches
@@ -2633,8 +2540,6 @@ impl App {
             caches.layouts = Some((fingerprint, Self::build_pane_layouts(tab, area)));
         }
     }
-
-
 
     fn ensure_tab_projections(
         caches: &mut CapsuleFrameCaches,
@@ -2781,9 +2686,6 @@ impl App {
 
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
-
-
-
 
         if self.capsule_help_open {
             Self::with_capsule_help(|sections| {
@@ -2962,11 +2864,6 @@ impl App {
                 Some(DialogAction::Action(_)) | None => {}
             }
         }
-
-
-
-
-
 
         let dialog = Self::launch_dialog();
         let response = dialog.update(cx, &mut self.launch_dialog);
@@ -3253,7 +3150,6 @@ impl App {
                 .is_some_and(|action| *action == TextAction::Cancelled);
             let mut result = filter.erase();
 
-
             if let Some(draft) = self.accounts.filter_input.draft_text()
                 && self.accounts.filter_query != draft
             {
@@ -3288,9 +3184,6 @@ impl App {
                 &mut self.accounts.draft_name,
             );
             let mut result = name.erase();
-
-
-
 
             let agent = Self::account_agent_button().update(cx);
             result |= agent.erase();
@@ -3333,8 +3226,6 @@ impl App {
                 let label = self.accounts.selected_op.as_ref().map_or(
                     "Choose 1Password reference…",
                     |reference| {
-
-
                         let _ = reference;
                         "Selected 1Password reference"
                     },
@@ -3926,8 +3817,6 @@ impl App {
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
 
-
-
         if self.capsule_prefix {
             let prefix_key = [
                 CAPSULE_INPUT,
@@ -3985,8 +3874,6 @@ impl App {
             if let Some(response) = self.update_command(cx, action) {
                 result |= response;
             }
-
-
 
             self.capsule_menu_state = MenuState::default();
             cx.close_layer(CAPSULE_MENU_BAR, None);
@@ -4091,8 +3978,6 @@ impl App {
             result |= palette_response.erase();
         }
 
-
-
         if self.capsule_prefix {
             let prefix_key = cx.intents(CAPSULE_INPUT).find_map(|intent| match intent {
                 Intent::Key(key) => key.bare_char(),
@@ -4105,8 +3990,6 @@ impl App {
             }
             return result;
         }
-
-
 
         let exit_requested = cx.intents(CAPSULE_INPUT).any(|intent| {
             matches!(
@@ -4123,7 +4006,6 @@ impl App {
             return result;
         }
 
-
         let inspect_manager_requested = self.inspect.instance.is_some()
             && self.inspect_detail
             && cx.intents(CAPSULE_INPUT).any(|intent| {
@@ -4139,9 +4021,6 @@ impl App {
             }
             return result;
         }
-
-
-
 
         let pending_capsule_confirm = self.pending_capsule_action.is_some()
             && !self.capsule_input_state.is_editing()
@@ -4450,8 +4329,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_MENU_OPEN if self.route == Route::Capsule => {
-
-
                 self.capsule_menu_state = MenuState::default();
                 let index = 0;
                 let response =
@@ -4533,7 +4410,6 @@ impl App {
             {
                 self.cockpit_debug_open = !self.cockpit_debug_open;
 
-
                 self.status = None;
                 Some(Response::changed())
             }
@@ -4558,8 +4434,6 @@ impl App {
                 self.route = Route::Editor;
                 if let Some(workspace) = self.world.workspaces.first() {
                     self.editor.load_workspace(workspace);
-
-
 
                     if self.world.scenario == Scenario::HardCases
                         && self.editor.pending.role_env.is_empty()
@@ -4658,8 +4532,6 @@ impl App {
                 self.capsule_palette_state = PickerState::default();
                 let palette = Self::capsule_command_palette();
                 cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
-
-
 
                 let _ = palette
                     .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
@@ -4845,9 +4717,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_EDITOR_NEXT if self.route == Route::Editor => {
-
-
-
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.next_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
@@ -4970,7 +4839,6 @@ impl App {
         for message in messages {
             match message {
                 crate::sim::world::Msg::WorkspaceSaved { id, ok } => {
-
                     let workspace_label = self
                         .world
                         .workspace(id)
@@ -5027,11 +4895,7 @@ impl App {
                         self.status = Some(format!("Account {account} refreshed"));
                     }
                 }
-                crate::sim::world::Msg::ManagerOperation { .. } => {
-
-
-
-                }
+                crate::sim::world::Msg::ManagerOperation { .. } => {}
             }
         }
 
@@ -5208,7 +5072,6 @@ impl App {
             Rect::new(area.x, area.bottom().saturating_sub(1), 14, 1),
         );
     }
-
 
     fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
@@ -6189,9 +6052,6 @@ impl App {
         );
     }
 
-
-
-
     fn draw_historical_editor(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
         ui.fill(area, palette.primary_on_canvas);
@@ -6358,9 +6218,6 @@ impl App {
             );
         }
     }
-
-
-
 
     fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
@@ -7228,8 +7085,6 @@ impl App {
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
-
-
         let _ = ui.layer(CAPSULE_HELP, |ui, area| {
             Self::with_capsule_help(|sections| {
                 let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
@@ -7326,10 +7181,6 @@ impl App {
     }
 
     fn animating(&self, cx: &Cx<'_>) -> bool {
-
-
-
-
         !self.world.jobs.is_empty()
             || self
                 .world
@@ -7346,14 +7197,8 @@ impl App {
     }
 
     fn update_parts(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
-
-
-
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx, product_tick);
-
-
-
 
         let entry = Self::enter_button().update(cx);
         let enter_chosen = entry.activated();
@@ -7428,7 +7273,6 @@ impl TuiApp for App {
         let last = *self.last_tick.get_or_insert(now);
         let due = last.saturating_add(interval);
 
-
         let product_tick = self.motion != Motion::Paused
             && cx.update_cause() == UpdateCause::Tick
             && now > last
@@ -7438,8 +7282,6 @@ impl TuiApp for App {
         }
         let result = self.update_parts(cx, product_tick);
         if self.motion != Motion::Paused {
-
-
             let next = self
                 .last_tick
                 .unwrap_or(now)

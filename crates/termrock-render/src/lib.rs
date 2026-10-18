@@ -1,5 +1,3 @@
-
-
 pub use ratatui_core::buffer::{Buffer, Cell};
 pub use ratatui_core::layout::{Position, Rect};
 pub use ratatui_core::style::{Color, Style};
@@ -8,7 +6,6 @@ pub use termrock_core::id::Part;
 pub use termrock_core::response::StateFlags;
 pub use termrock_theme::{Modifier, PaintStyle, Role, StyleDefaults, StylePatch};
 
-
 #[derive(Clone, Copy, Debug)]
 pub struct PartStyle<'a> {
     pub patch: Option<&'a StylePatch>,
@@ -16,7 +13,6 @@ pub struct PartStyle<'a> {
 }
 
 impl<'a> PartStyle<'a> {
-
     pub const fn new() -> Self {
         Self {
             patch: None,
@@ -24,20 +20,17 @@ impl<'a> PartStyle<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn global(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
         self
     }
 
-
     #[must_use]
     pub const fn part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.parts = parts;
         self
     }
-
 
     pub fn part_patch(&self, part: Part) -> Option<StylePatch> {
         let mut patch = self.patch.copied();
@@ -49,7 +42,6 @@ impl<'a> PartStyle<'a> {
         patch
     }
 
-
     pub const fn flags(runtime: StateFlags, derived: StateFlags) -> StateFlags {
         StateFlags::from_bits_truncate(runtime.bits() | derived.bits())
     }
@@ -60,7 +52,6 @@ impl Default for PartStyle<'_> {
         Self::new()
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TerminalCell<'a> {
@@ -89,13 +80,11 @@ impl<'a> TerminalCell<'a> {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TerminalCursor {
     pub pos: Position,
     pub visible: bool,
 }
-
 
 pub trait TerminalSource {
     fn revision(&self) -> termrock_core::Revision;

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 pub mod exceptions;
 pub mod rules;
 pub mod scan;
@@ -17,10 +9,8 @@ use exceptions::{Failure, FailureKind, reconcile};
 use rules::{Finding, Wrapper, collect_wrappers, match_file, match_wrapper_calls};
 use scan::{ScannedFile, scan_file};
 
-
 #[derive(Debug, Clone)]
 pub struct Report {
-
     pub root: PathBuf,
 
     pub findings: Vec<Finding>,
@@ -33,11 +23,9 @@ pub struct Report {
 }
 
 impl Report {
-
     pub fn passed(&self) -> bool {
         self.failures.is_empty()
     }
-
 
     pub fn counts(&self) -> BTreeMap<(String, String), usize> {
         let mut counts = BTreeMap::new();
@@ -49,9 +37,6 @@ impl Report {
         counts
     }
 }
-
-
-
 
 pub fn check_workspace(root: &Path, exceptions_path: &Path) -> Report {
     let mut failures = Vec::new();
@@ -152,11 +137,6 @@ pub fn check_workspace(root: &Path, exceptions_path: &Path) -> Report {
     }
 }
 
-
-
-
-
-
 pub fn workspace_members(root: &Path) -> Result<Vec<String>, String> {
     let manifest = root.join("Cargo.toml");
     let text = std::fs::read_to_string(&manifest)
@@ -191,7 +171,6 @@ pub fn workspace_members(root: &Path) -> Result<Vec<String>, String> {
     Ok(members)
 }
 
-
 fn quoted_strings(line: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut rest = line;
@@ -205,7 +184,6 @@ fn quoted_strings(line: &str) -> Vec<String> {
     }
     out
 }
-
 
 fn member_sources(root: &Path, member: &str) -> Vec<PathBuf> {
     let mut sources = Vec::new();
@@ -228,8 +206,6 @@ fn member_sources(root: &Path, member: &str) -> Vec<PathBuf> {
     sources
 }
 
-
-
 pub fn find_workspace_root(start: &Path) -> Option<PathBuf> {
     let mut current = start.to_path_buf();
     loop {
@@ -244,7 +220,6 @@ pub fn find_workspace_root(start: &Path) -> Option<PathBuf> {
         }
     }
 }
-
 
 pub fn render_human(report: &Report) -> String {
     let mut text = String::new();

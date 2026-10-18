@@ -1,5 +1,3 @@
-
-
 use termrock::{
     ActionKey, Button, Constraints, Cx, Dialog, DialogAction, DialogState, Id, Panel, Rect,
     Response, Ui, Variant, layout,
@@ -51,7 +49,6 @@ enum OpenDialog {
     Confirm,
     Prompt,
 }
-
 
 #[derive(Debug)]
 pub struct DialogsPage {
@@ -137,9 +134,6 @@ impl Page for DialogsPage {
             self.result = String::from("Cancelled");
         }
         response |= delete_button.erase();
-
-
-
 
         let action = Self::confirm().update(cx, &mut self.confirm_state);
         if self.open == OpenDialog::Confirm

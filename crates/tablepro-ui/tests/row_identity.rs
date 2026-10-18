@@ -1,4 +1,3 @@
-
 use tablepro_ui::{ColType, GridView, ResultGrid, ResultSet, Tab, TableProApp, Value};
 use termrock::{ColumnKey, GridEditor, GridModel, ItemKey, SortDir};
 

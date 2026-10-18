@@ -1,21 +1,11 @@
-
-
-
-
-
-
 use ratatui_core::style::Color;
-
 
 pub const SURFACE_LEVELS: usize = 5;
 
 pub const FG_STEPS: usize = 5;
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum Surface {
-
     #[default]
     Canvas,
 
@@ -33,7 +23,6 @@ pub enum Surface {
 }
 
 impl Surface {
-
     pub const fn level(self) -> Option<usize> {
         match self {
             Surface::Canvas => Some(0),
@@ -44,7 +33,6 @@ impl Surface {
             Surface::Field | Surface::FieldHover => None,
         }
     }
-
 
     pub const fn from_level(i: usize) -> Surface {
         match i {
@@ -57,10 +45,8 @@ impl Surface {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum FgStep {
-
     Primary,
 
     Secondary,
@@ -73,7 +59,6 @@ pub enum FgStep {
 }
 
 impl FgStep {
-
     pub const fn index(self) -> usize {
         match self {
             FgStep::Primary => 0,
@@ -85,10 +70,8 @@ impl FgStep {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum SyntaxRole {
-
     Keyword,
 
     Ident,
@@ -128,10 +111,8 @@ pub enum SyntaxRole {
     DiagInfo,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum MeterRole {
-
     Low,
 
     Medium,
@@ -149,15 +130,11 @@ pub enum MeterRole {
     Series(u8),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Role {
-
     CurrentSurface,
 
     RaisedSurface,
-
-
 
     HoverSurface,
 
@@ -230,10 +207,8 @@ pub enum Role {
     Custom(Color),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum Align {
-
     #[default]
     Left,
 
@@ -243,8 +218,6 @@ pub enum Align {
 }
 
 impl Role {
-
-
     pub const fn painted(self, surface: Surface) -> Self {
         match self {
             Self::HoverSurface => Self::Surface(match surface {

@@ -1,18 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
 use termrock::{App, Axis, MouseKind, Response};
 
 use crate::harness::Harness;
-
 
 pub fn frame_size<A: App>(h: &Harness<A>) -> (u16, u16) {
     let area = h.buffer().area();
@@ -27,27 +15,21 @@ fn assert_on_grid<A: App>(h: &Harness<A>, what: &str, x: u16, y: u16) {
     );
 }
 
-
 pub fn hover<A: App>(h: &mut Harness<A>, x: u16, y: u16) -> Response<()> {
     assert_on_grid(h, "hover", x, y);
     h.mouse(MouseKind::Move, x, y)
 }
-
 
 pub fn click_cell<A: App>(h: &mut Harness<A>, x: u16, y: u16) -> Response<()> {
     assert_on_grid(h, "click", x, y);
     h.click(x, y)
 }
 
-
-
-
 pub fn drag_cells<A: App>(h: &mut Harness<A>, from: (u16, u16), to: (u16, u16)) -> Response<()> {
     assert_on_grid(h, "drag-from", from.0, from.1);
     assert_on_grid(h, "drag-to", to.0, to.1);
     h.drag(from, to)
 }
-
 
 pub fn wheel_at<A: App>(
     h: &mut Harness<A>,

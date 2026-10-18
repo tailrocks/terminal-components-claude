@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use std::collections::VecDeque;
 
 use termrock::{FgStep, Position, Rect, Role, SplitAxis, SplitModel, width};
@@ -13,25 +6,18 @@ use jackin_preview_domain::account::AccountId;
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::instance::{AgentState, DaemonSnapshot};
 
-
 pub type PaneId = u64;
-
 
 pub const SCROLLBACK: usize = 2_000;
 
-
 pub const MIN_PANE_COLS: u16 = 20;
-
 
 pub const MIN_PANE_ROWS: u16 = 4;
 
-
 pub const MAX_LABEL: usize = 16;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SplitDir {
-
     Horizontal,
 
     Vertical,
@@ -46,10 +32,8 @@ impl SplitDir {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Maximized {
-
     None,
 
     First,
@@ -57,10 +41,8 @@ pub enum Maximized {
     Second,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Split {
-
     pub percent: u16,
 
     pub min_first: u16,
@@ -71,7 +53,6 @@ pub struct Split {
 }
 
 impl Split {
-
     pub const fn new(percent: u16, min_first: u16, min_second: u16) -> Self {
         Self {
             percent,
@@ -92,7 +73,6 @@ impl Split {
         model
     }
 
-
     pub fn toggle_max(&mut self, which: Maximized) {
         self.maximized = if self.maximized == which {
             Maximized::None
@@ -101,22 +81,18 @@ impl Split {
         };
     }
 
-
     pub fn grow(&mut self, delta: i16) {
         let next = i32::from(self.percent).saturating_add(i32::from(delta));
         self.percent = next.clamp(5, 95) as u16;
     }
 
-
     pub fn layout(&self, dir: SplitDir, area: Rect, gap: u16) -> (Rect, Rect) {
         self.model(dir).layout(area, gap)
     }
 
-
     pub fn handle(&self, dir: SplitDir, area: Rect, gap: u16) -> Rect {
         self.model(dir).handle(area, gap)
     }
-
 
     pub fn drag_to(&mut self, dir: SplitDir, area: Rect, gap: u16, pos: Position) -> bool {
         let mut model = self.model(dir);
@@ -127,32 +103,26 @@ impl Split {
         changed
     }
 
-
     pub fn nudge(&mut self, dir: SplitDir, area: Rect, gap: u16, delta: i16) {
         let mut model = self.model(dir);
         model.nudge(area, gap, delta);
         self.percent = u16::from(model.percent);
     }
 
-
     pub fn vertical(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         self.layout(SplitDir::Vertical, area, gap)
     }
-
 
     pub fn horizontal(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         self.layout(SplitDir::Horizontal, area, gap)
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PaneNode {
-
     Leaf(PaneId),
 
     Split {
-
         dir: SplitDir,
 
         split: Split,
@@ -164,7 +134,6 @@ pub enum PaneNode {
 }
 
 impl PaneNode {
-
     pub fn leaves(&self) -> Vec<PaneId> {
         match self {
             Self::Leaf(id) => vec![*id],
@@ -176,8 +145,6 @@ impl PaneNode {
         }
     }
 
-
-
     pub fn leaf_count(&self) -> usize {
         match self {
             Self::Leaf(_) => 1,
@@ -186,7 +153,6 @@ impl PaneNode {
             }
         }
     }
-
 
     pub fn layout(
         &self,
@@ -220,7 +186,6 @@ impl PaneNode {
         }
     }
 
-
     pub fn node_at_mut(&mut self, path: &[u8]) -> Option<&mut PaneNode> {
         let mut current = self;
         for child in path {
@@ -237,7 +202,6 @@ impl PaneNode {
         }
         Some(current)
     }
-
 
     pub fn split_leaf(
         &mut self,
@@ -271,7 +235,6 @@ impl PaneNode {
         }
     }
 
-
     pub fn remove_leaf(&mut self, target: PaneId) -> bool {
         let Self::Split { first, second, .. } = self else {
             return false;
@@ -286,7 +249,6 @@ impl PaneNode {
         }
         first.remove_leaf(target) || second.remove_leaf(target)
     }
-
 
     pub fn path_to(&self, target: PaneId, path: &mut Vec<u8>) -> bool {
         match self {
@@ -308,10 +270,8 @@ impl PaneNode {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Seam {
-
     pub path: Vec<u8>,
 
     pub dir: SplitDir,
@@ -321,10 +281,8 @@ pub struct Seam {
     pub handle: Rect,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
-
     Left,
 
     Right,
@@ -333,7 +291,6 @@ pub enum Direction {
 
     Down,
 }
-
 
 pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, direction: Direction) -> Option<PaneId> {
     let (_, from_rect) = leaves.iter().find(|(id, _)| *id == from)?;
@@ -362,10 +319,8 @@ pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, direction: Direction) ->
         .map(|(id, _)| *id)
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tab {
-
     pub custom_label: Option<String>,
 
     pub root: PaneNode,
@@ -376,22 +331,17 @@ pub struct Tab {
 }
 
 impl Tab {
-
     pub fn leaves(&self) -> Vec<PaneId> {
         self.root.leaves()
     }
-
 
     pub fn leaf_count(&self) -> usize {
         self.root.leaf_count()
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tone {
-
     Normal,
 
     Muted,
@@ -406,7 +356,6 @@ pub enum Tone {
 }
 
 impl Tone {
-
     pub const fn role(self) -> Role {
         match self {
             Self::Normal => Role::Fg(FgStep::Primary),
@@ -419,10 +368,8 @@ impl Tone {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span {
-
     pub text: String,
 
     pub tone: Tone,
@@ -431,7 +378,6 @@ pub struct Span {
 }
 
 impl Span {
-
     pub fn new(text: impl Into<String>, tone: Tone) -> Self {
         Self {
             text: text.into(),
@@ -440,26 +386,21 @@ impl Span {
         }
     }
 
-
     #[must_use]
     pub const fn bold(mut self) -> Self {
         self.bold = true;
         self
     }
 
-
     pub const fn role(&self) -> Role {
         self.tone.role()
     }
 }
 
-
 pub type Line = Vec<Span>;
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextViewport {
-
     pub lines: Vec<Line>,
 
     pub follow: bool,
@@ -473,7 +414,6 @@ pub struct TextViewport {
 }
 
 impl TextViewport {
-
     pub const fn new() -> Self {
         Self {
             lines: Vec::new(),
@@ -486,28 +426,23 @@ impl TextViewport {
         }
     }
 
-
     #[must_use]
     pub const fn max_lines(mut self, max_lines: usize) -> Self {
         self.max_lines = max_lines;
         self
     }
 
-
     pub const fn set_follow(&mut self, follow: bool) {
         self.follow = follow;
     }
-
 
     pub const fn revision(&self) -> u64 {
         self.revision
     }
 
-
     pub const fn retained(&self) -> usize {
         self.retained
     }
-
 
     pub fn push(&mut self, line: Line) {
         self.lines.push(line);
@@ -518,7 +453,6 @@ impl TextViewport {
         }
         self.revision = self.revision.saturating_add(1);
     }
-
 
     pub fn replace_last(&mut self, line: Line) {
         if let Some(last) = self.lines.last_mut() {
@@ -537,7 +471,6 @@ impl TextViewport {
         removed
     }
 
-
     pub fn clear(&mut self) {
         self.retained = self.retained.saturating_add(self.lines.len());
         self.lines.clear();
@@ -552,10 +485,8 @@ impl Default for TextViewport {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Step {
-
     Emit(i64, Line),
 
     State(AgentState),
@@ -565,10 +496,8 @@ pub enum Step {
     Await,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentProcess {
-
     pub agent: Option<Agent>,
 
     pub account: Option<AccountId>,
@@ -626,7 +555,6 @@ fn muted(text: &str) -> Line {
 fn done_line() -> Line {
     mixed(&[("○ ", Tone::Secondary), ("Done", Tone::Muted)])
 }
-
 
 pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
     let ws = format!("~/{workspace}");
@@ -1270,7 +1198,6 @@ pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
     }
 }
 
-
 fn replies(agent: Option<Agent>) -> Vec<Vec<Line>> {
     match agent {
         Some(Agent::ClaudeCode) => vec![vec![
@@ -1295,7 +1222,6 @@ fn replies(agent: Option<Agent>) -> Vec<Vec<Line>> {
 }
 
 impl AgentProcess {
-
     pub fn new(
         agent: Option<Agent>,
         account: Option<AccountId>,
@@ -1329,7 +1255,6 @@ impl AgentProcess {
         }
     }
 
-
     pub fn awaiting(&self) -> bool {
         self.pc > 0
             && matches!(
@@ -1338,7 +1263,6 @@ impl AgentProcess {
             )
             && self.reply_queue.is_empty()
     }
-
 
     pub fn boot_all(&mut self, out: &mut Vec<Line>) {
         while self.pc < self.script.len() {
@@ -1358,7 +1282,6 @@ impl AgentProcess {
             self.pc = self.pc.saturating_add(1);
         }
     }
-
 
     pub fn tick(&mut self, now_ms: i64) -> Vec<Line> {
         let mut out = Vec::new();
@@ -1415,7 +1338,6 @@ impl AgentProcess {
         }
         out
     }
-
 
     pub fn on_input(&mut self, input: &str, now_ms: i64, workspace: &str) -> Vec<Line> {
         let mut out = vec![mixed(&[
@@ -1505,10 +1427,8 @@ impl AgentProcess {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pane {
-
     pub id: PaneId,
 
     pub proc: AgentProcess,
@@ -1521,7 +1441,6 @@ pub struct Pane {
 }
 
 impl Pane {
-
     pub fn new(
         id: PaneId,
         agent: Option<Agent>,
@@ -1537,7 +1456,6 @@ impl Pane {
             received_output: false,
         }
     }
-
 
     pub fn label(&self) -> String {
         self.proc
@@ -1612,14 +1530,12 @@ impl Pane {
         self.refresh_prompt();
     }
 
-
     pub fn boot_all(&mut self) {
         let mut output = Vec::new();
         self.proc.boot_all(&mut output);
         self.push_lines(output);
         self.refresh_prompt();
     }
-
 
     pub fn tick(&mut self, now_ms: i64) -> bool {
         let output = self.proc.tick(now_ms);
@@ -1629,20 +1545,17 @@ impl Pane {
         changed
     }
 
-
     pub fn type_char(&mut self, character: char, _now_ms: i64, _workspace: &str) {
         self.term.set_follow(true);
         self.input.push(character);
         self.refresh_prompt();
     }
 
-
     pub fn backspace(&mut self) {
         self.term.set_follow(true);
         self.input.pop();
         self.refresh_prompt();
     }
-
 
     pub fn commit(&mut self, now_ms: i64, workspace: &str) {
         self.term.set_follow(true);
@@ -1660,23 +1573,19 @@ impl Pane {
         self.refresh_prompt();
     }
 
-
     pub fn clear(&mut self) {
         self.term.clear();
         self.term.set_follow(true);
         self.refresh_prompt();
     }
 
-
     pub const fn state(&self) -> AgentState {
         self.proc.state
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Daemon {
-
     pub workspace: String,
 
     pub tabs: Vec<Tab>,
@@ -1691,7 +1600,6 @@ pub struct Daemon {
 }
 
 impl Daemon {
-
     pub fn new(workspace: &str) -> Self {
         Self {
             workspace: workspace.to_owned(),
@@ -1703,16 +1611,7 @@ impl Daemon {
         }
     }
 
-
-
-
-
     pub fn from_snapshot(snapshot: &DaemonSnapshot, workspace: &str, now_ms: i64) -> Self {
-
-
-
-
-
         let workspace = workspace.strip_prefix("jackin-").unwrap_or(workspace);
         let mut daemon = Self::new(workspace);
         let DaemonSnapshot::Tabs(tabs) = snapshot else {
@@ -1784,26 +1683,21 @@ impl Daemon {
         }
     }
 
-
     pub fn pane(&self, id: PaneId) -> Option<&Pane> {
         self.panes.iter().find(|pane| pane.id == id)
     }
-
 
     pub fn pane_mut(&mut self, id: PaneId) -> Option<&mut Pane> {
         self.panes.iter_mut().find(|pane| pane.id == id)
     }
 
-
     pub fn active_tab(&self) -> Option<&Tab> {
         self.tabs.get(self.active)
     }
 
-
     pub fn active_tab_mut(&mut self) -> Option<&mut Tab> {
         self.tabs.get_mut(self.active)
     }
-
 
     pub fn focused_pane(&self) -> Option<PaneId> {
         self.active_tab().map(|tab| tab.focused)
@@ -1814,7 +1708,6 @@ impl Daemon {
         self.next_id = self.next_id.saturating_add(1);
         id
     }
-
 
     pub fn new_pane(
         &mut self,
@@ -1831,7 +1724,6 @@ impl Daemon {
         self.panes.push(pane);
         id
     }
-
 
     pub fn new_tab(
         &mut self,
@@ -1850,7 +1742,6 @@ impl Daemon {
         self.active = self.tabs.len().saturating_sub(1);
         self.active
     }
-
 
     pub fn split(
         &mut self,
@@ -1873,7 +1764,6 @@ impl Daemon {
             None
         }
     }
-
 
     pub fn close_pane(&mut self, id: PaneId) -> bool {
         let Some(tab_index) = self.tabs.iter().position(|tab| tab.leaves().contains(&id)) else {
@@ -1902,7 +1792,6 @@ impl Daemon {
         false
     }
 
-
     pub fn close_tab(&mut self, index: usize) {
         let Some(tab) = self.tabs.get(index) else {
             return;
@@ -1914,7 +1803,6 @@ impl Daemon {
             self.active = self.tabs.len().saturating_sub(1);
         }
     }
-
 
     pub fn tab_label(&self, tab: &Tab, account_suffix: &dyn Fn(&Pane) -> Option<String>) -> String {
         if let Some(label) = &tab.custom_label {
@@ -1957,7 +1845,6 @@ impl Daemon {
         }
     }
 
-
     pub fn tab_state(&self, tab: &Tab) -> AgentState {
         tab.leaves()
             .iter()
@@ -1966,7 +1853,6 @@ impl Daemon {
             .unwrap_or(AgentState::Unknown)
     }
 
-
     pub fn tick(&mut self, now_ms: i64) -> bool {
         let mut changed = false;
         for pane in &mut self.panes {
@@ -1974,7 +1860,6 @@ impl Daemon {
         }
         changed
     }
-
 
     pub fn touched_files(&self) -> Vec<String> {
         let mut paths: Vec<String> = self
@@ -1986,7 +1871,6 @@ impl Daemon {
         paths.dedup();
         paths
     }
-
 
     pub fn snapshot(&self) -> DaemonSnapshot {
         use jackin_preview_domain::instance::{PaneSnapshot, TabSnapshot};

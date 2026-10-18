@@ -1,4 +1,3 @@
-
 use termrock_grid::*;
 use termrock_runtime::*;
 use termrock_test_support::Harness;

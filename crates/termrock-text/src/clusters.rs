@@ -1,39 +1,14 @@
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 
 use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete};
 
-
-
-
-
 const INLINE: usize = 64;
-
-
-
 
 fn wipe(bytes: &mut [u8]) {
     bytes.fill(0);
     core::hint::black_box(&bytes);
     core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
 }
-
-
-
-
-
-
-
-
 
 pub struct ClusterScratch {
     inline: [u8; INLINE],
@@ -42,7 +17,6 @@ pub struct ClusterScratch {
 }
 
 impl ClusterScratch {
-
     pub const fn new() -> Self {
         ClusterScratch {
             inline: [0; INLINE],
@@ -51,12 +25,9 @@ impl ClusterScratch {
         }
     }
 
-
     pub(crate) const fn is_empty(&self) -> bool {
         self.len == 0
     }
-
-
 
     fn text(&self) -> &str {
         if self.len > INLINE {
@@ -65,13 +36,9 @@ impl ClusterScratch {
         self.inline.get(..self.len).map_or("", Self::checked_text)
     }
 
-
-
-
     fn checked_text(bytes: &[u8]) -> &str {
         core::str::from_utf8(bytes).unwrap_or("")
     }
-
 
     fn push(&mut self, scalar: &str) {
         let Some(end) = self.len.checked_add(scalar.len()) else {
@@ -94,10 +61,6 @@ impl ClusterScratch {
         self.len = end;
     }
 
-
-
-
-
     fn discard_prefix(&mut self, bytes: usize) {
         let rest = self.len.saturating_sub(bytes);
         if self.len > INLINE {
@@ -110,8 +73,6 @@ impl ClusterScratch {
                 }
                 self.clear_heap();
             } else {
-
-
                 let upto = bytes.min(self.heap.len());
                 if self.heap.is_char_boundary(upto) {
                     self.heap.drain(..upto);
@@ -124,10 +85,6 @@ impl ClusterScratch {
         } else {
             self.inline.copy_within(bytes.min(self.len)..self.len, 0);
 
-
-
-
-
             if let Some(tail) = self.inline.get_mut(rest.min(INLINE)..self.len) {
                 wipe(tail);
             }
@@ -135,17 +92,11 @@ impl ClusterScratch {
         self.len = rest;
     }
 
-
     pub(crate) fn clear(&mut self) {
         wipe(&mut self.inline);
         self.clear_heap();
         self.len = 0;
     }
-
-
-
-
-
 
     fn clear_heap(&mut self) {
         let mut bytes = core::mem::take(&mut self.heap).into_bytes();
@@ -177,16 +128,6 @@ impl Drop for ClusterScratch {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 pub struct ClusterFeed<'s, S: Copy> {
     scratch: &'s mut ClusterScratch,
     cursor: GraphemeCursor,
@@ -207,8 +148,6 @@ impl<S: Copy> fmt::Debug for ClusterFeed<'_, S> {
 }
 
 impl<'s, S: Copy> ClusterFeed<'s, S> {
-
-
     pub fn new(scratch: &'s mut ClusterScratch) -> Self {
         scratch.clear();
         ClusterFeed {
@@ -219,9 +158,6 @@ impl<'s, S: Copy> ClusterFeed<'s, S> {
             done: false,
         }
     }
-
-
-
 
     pub fn push(&mut self, fragment: &str, style: S, emit: &mut dyn FnMut(&str, S) -> bool) {
         for (cursor, scalar) in fragment.char_indices() {
@@ -240,9 +176,6 @@ impl<'s, S: Copy> ClusterFeed<'s, S> {
         }
     }
 
-
-
-
     pub fn finish(&mut self, style: S, emit: &mut dyn FnMut(&str, S) -> bool) {
         if self.done || self.scratch.is_empty() {
             self.scratch.clear();
@@ -254,11 +187,6 @@ impl<'s, S: Copy> ClusterFeed<'s, S> {
         self.scratch.clear();
         self.pending_style = None;
     }
-
-
-
-
-
 
     fn drain(&mut self, style: S, emit: &mut dyn FnMut(&str, S) -> bool) {
         loop {

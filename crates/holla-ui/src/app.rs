@@ -1,4 +1,3 @@
-
 use crate::{
     dispatch::{self, Destination},
     domain::{action::Scope, fixtures, ranking::Pin},
@@ -147,11 +146,6 @@ enum Overlay {
     Gate(PlanGate),
 }
 
-
-
-
-
-
 pub struct App {
     world: World,
     motion: Motion,
@@ -178,8 +172,6 @@ impl std::fmt::Debug for App {
     }
 }
 fn menu_bar() -> MenuBar<'static> {
-
-
     const FILE: &[MenuItem<'static>] = &[MenuItem::new(QUIT, "Quit").chord(Chord::with(
         KeyCode::Char('q'),
         termrock::KeyModifiers::CONTROL,
@@ -210,16 +202,13 @@ fn gate_dialog() -> Dialog<'static> {
 }
 
 impl App {
-
     pub fn effect_revision(&self) -> u64 {
         self.world.effect_revision
     }
 
-
     pub fn fixture_time_ms(&self) -> i64 {
         self.world.now_ms()
     }
-
 
     pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64) -> Self {
         let mut world = fixtures::world_for(scenario);
@@ -716,7 +705,6 @@ impl App {
     }
     fn discovery_item(&self) -> Option<StatusItem<'static>> {
         self.world.discovering().then(|| {
-
             let frame = usize::try_from(self.world.now_ms().div_euclid(80)).unwrap_or_default();
             StatusItem::new("discovering…")
                 .spinner(frame)
@@ -822,8 +810,6 @@ impl App {
         self.status_until_ms = Some(self.world.now_ms().saturating_add(5_000));
     }
 
-
-
     fn copy_osc52(&mut self, value: &str) {
         let report = Self::osc52_report(value, self.world.host.osc52, self.world.host.osc52_limit);
         debug_assert!(!report.contains('\u{1b}'));
@@ -844,7 +830,6 @@ impl App {
         let flat = value.replace('\n', " · ");
         let shown: String = flat.chars().take(40).collect();
 
-
         format!("Copied · simulated clipboard · OSC 52 sequence was not written · {shown}")
     }
     fn plan_event(&mut self, event: plan::Event, cx: &mut Cx<'_>) {
@@ -860,7 +845,6 @@ impl App {
         }
     }
     fn update_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-
         let retired = self
             .retired_overlay
             .take()
@@ -870,7 +854,6 @@ impl App {
                 Overlay::Clone(picker) => picker.update(cx).0,
                 Overlay::Actions(picker) => picker.update(cx).0,
             });
-
 
         let (home_response, home_action) = self.home.update(&self.world, cx);
         let (plan_response, plan_event) = self
@@ -970,7 +953,6 @@ impl termrock::App for App {
             let anchor = *self.last_step_at.get_or_insert(cx.now());
             let due = anchor.saturating_add(std::time::Duration::from_millis(cadence));
             if cx.update_cause() == termrock::UpdateCause::Tick && cx.now() >= due {
-
                 let mut next_clock = self.world.clock;
                 next_clock.advance(cadence as i64);
                 if self.synchronize_feedback(cx, next_clock) {
@@ -1053,7 +1035,6 @@ impl termrock::App for App {
                 Overlay::Gate(gate) => gate.draw(ui),
             }
         }
-
 
         let _ = gate_dialog();
     }
@@ -2215,8 +2196,6 @@ mod historical_tests;
 #[cfg(test)]
 mod independent_draw_review {
 
-
-
     use super::*;
 
     struct Borrowed<'a>(&'a App);
@@ -2230,8 +2209,6 @@ mod independent_draw_review {
             termrock::App::draw(self.0, ui);
         }
     }
-
-
 
     fn fingerprint(a: &App) -> String {
         format!(

@@ -1,13 +1,9 @@
-
-
 use core::cell::Cell;
 
 use crate::id::ItemKey;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum SelectMode {
-
     #[default]
     Single,
 
@@ -18,19 +14,13 @@ pub enum SelectMode {
     None,
 }
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct ByIndex;
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct DefaultRow;
 
-
 pub trait KeyFn<T> {
-
     fn key(&self, item: &T, index: usize) -> ItemKey;
 }
 
@@ -46,19 +36,9 @@ impl<T> KeyFn<T> for ByIndex {
     }
 }
 
-
-
-
-
-
 pub fn key_at<T, K: KeyFn<T>>(key: &K, items: &[T], i: usize) -> ItemKey {
     items.get(i).map_or(ItemKey::index(i), |it| key.key(it, i))
 }
-
-
-
-
-
 
 pub fn index_of<T, K: KeyFn<T>>(
     key: &K,
@@ -75,12 +55,9 @@ pub fn index_of<T, K: KeyFn<T>>(
     (0..items.len()).find(|&i| key_at(key, items, i) == item)
 }
 
-
-
 pub fn key_at_with<T>(items: &[T], i: usize, f: impl Fn(&T) -> ItemKey) -> ItemKey {
     items.get(i).map_or(ItemKey::index(i), f)
 }
-
 
 pub fn index_of_with<T>(
     items: &[T],
@@ -97,12 +74,8 @@ pub fn index_of_with<T>(
     items.iter().position(|it| f(it) == item)
 }
 
-
-
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum KeySet {
-
     Only(Vec<ItemKey>),
 
     AllExcept(Vec<ItemKey>),
@@ -115,7 +88,6 @@ impl Default for KeySet {
 }
 
 impl KeySet {
-
     pub const fn new() -> Self {
         KeySet::Only(Vec::new())
     }
@@ -136,12 +108,9 @@ impl KeySet {
         matches!(self, KeySet::AllExcept(_))
     }
 
-
     pub fn contains(&self, k: ItemKey) -> bool {
         self.contains_counting(k).0
     }
-
-
 
     pub fn contains_counting(&self, k: ItemKey) -> (bool, usize) {
         let count = Cell::new(0usize);
@@ -167,7 +136,6 @@ impl KeySet {
         }
     }
 
-
     pub fn insert(&mut self, k: ItemKey) {
         match self {
             KeySet::Only(v) => Self::add(v, k),
@@ -175,14 +143,12 @@ impl KeySet {
         }
     }
 
-
     pub fn remove(&mut self, k: ItemKey) {
         match self {
             KeySet::Only(v) => Self::drop(v, k),
             KeySet::AllExcept(v) => Self::add(v, k),
         }
     }
-
 
     pub fn toggle(&mut self, k: ItemKey) {
         if self.contains(k) {
@@ -192,16 +158,13 @@ impl KeySet {
         }
     }
 
-
     pub fn all(&mut self) {
         *self = KeySet::AllExcept(Vec::new());
     }
 
-
     pub fn none(&mut self) {
         *self = KeySet::Only(Vec::new());
     }
-
 
     pub fn len_in(&self, total: usize) -> usize {
         match self {
@@ -210,13 +173,9 @@ impl KeySet {
         }
     }
 
-
     pub fn is_empty(&self) -> bool {
         matches!(self, KeySet::Only(v) if v.is_empty())
     }
-
-
-
 
     pub fn retain(&mut self, mut keep: impl FnMut(ItemKey) -> bool) -> usize {
         let inverted = self.inverted();
@@ -229,7 +188,6 @@ impl KeySet {
             before.saturating_sub(list.len())
         }
     }
-
 
     pub fn keys(&self) -> &[ItemKey] {
         self.list()

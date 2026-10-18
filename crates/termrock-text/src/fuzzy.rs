@@ -1,8 +1,4 @@
-
-
-
 use unicode_segmentation::UnicodeSegmentation;
-
 
 fn eq_fold(a: &str, b: &str) -> bool {
     if a == b {
@@ -17,10 +13,8 @@ fn eq_fold(a: &str, b: &str) -> bool {
             .map(|c| if c == 'ς' { 'σ' } else { c }))
 }
 
-
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum FuzzyBoundary {
-
     #[default]
     Word,
 
@@ -32,25 +26,9 @@ impl FuzzyBoundary {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
     fuzzy_with_boundary(label, word, FuzzyBoundary::default())
 }
-
-
-
-
 
 pub fn fuzzy_with_boundary(
     label: &str,
@@ -110,8 +88,6 @@ mod tests {
 
     #[test]
     fn fuzzy_returns_grapheme_indices_into_the_original_label() {
-
-
         let label = "İstanbul_Ünïted";
         let (score, idx) = fuzzy(label, "ün").unwrap_or((u32::MAX, Vec::new()));
         assert_eq!(score, 10);

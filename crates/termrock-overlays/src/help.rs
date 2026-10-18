@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -20,8 +17,6 @@ use crate::ui::{Cx, FrameRead, Ui};
 use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
 
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct HelpSection<'a> {
     title: &'a str,
@@ -29,16 +24,13 @@ pub struct HelpSection<'a> {
 }
 
 impl<'a> HelpSection<'a> {
-
     pub const fn new(title: &'a str, layer: &'a HintLayer) -> Self {
         HelpSection { title, layer }
     }
 
-
     pub const fn title(&self) -> &'a str {
         self.title
     }
-
 
     pub const fn layer(&self) -> &'a HintLayer {
         self.layer
@@ -49,30 +41,24 @@ impl<'a> HelpSection<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct HelpOverlayState {
     scroll: ScrollState,
 }
 
 impl HelpOverlayState {
-
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum HelpAction {
-
     Closed(DismissReason),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum HelpCmd {
-
     Prev,
 
     Next,
@@ -167,64 +153,6 @@ const BINDINGS: &[Binding<HelpCmd>] = &[
     ),
 ];
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct HelpOverlay<'a> {
     id: Id,
     scope: &'a str,
@@ -245,12 +173,9 @@ impl fmt::Debug for HelpOverlay<'_> {
 }
 
 impl<'a> HelpOverlay<'a> {
-
-
     pub const COLUMN_WIDTH: u16 = 36;
 
     pub const MAX_COLUMNS: usize = 3;
-
 
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -264,7 +189,6 @@ impl<'a> HelpOverlay<'a> {
         Part::THUMB,
     ];
 
-
     pub const fn new(id: Id, scope: &'a str, sections: &'a [HelpSection<'a>]) -> Self {
         HelpOverlay {
             id,
@@ -276,14 +200,12 @@ impl<'a> HelpOverlay<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
         self.ov = self.ov.global(patch);
         self
     }
-
 
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
@@ -292,13 +214,11 @@ impl<'a> HelpOverlay<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
         self
     }
-
 
     pub fn measured_size(&self, cx: &Cx<'_>) -> LayerSize {
         let d = cx.design();
@@ -310,7 +230,6 @@ impl<'a> HelpOverlay<'a> {
             content.min(max_body).saturating_add(4),
         )
     }
-
 
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         LayerSpec::modal(self.id).size(self.measured_size(cx))
@@ -329,7 +248,6 @@ impl<'a> HelpOverlay<'a> {
             .max()
             .unwrap_or(0)
     }
-
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut HelpOverlayState) -> Response<HelpAction> {
         if cx.is_open(self.id) {
@@ -373,7 +291,6 @@ impl<'a> HelpOverlay<'a> {
         }
         acc.finish(self.id)
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &HelpOverlayState) -> Rect {
         if area.is_empty() {
@@ -563,7 +480,6 @@ impl<'a> HelpOverlay<'a> {
         self.paint_text(ui, part, row, text, flags);
         ui.register_decor(self.id, PartRef::of(part), row);
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let width = ui.design().size.dialog_width_wide;

@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -43,10 +40,6 @@ const fn b(chord: Chord, cmd: TextCmd, label: &'static str, visible: bool) -> Bi
         visible,
     }
 }
-
-
-
-
 
 const BINDINGS: &[Binding<TextCmd>] = &[
     b(Chord::key(KeyCode::Esc), TextCmd::Commit, "Done", true),
@@ -250,10 +243,6 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     ),
 ];
 
-
-
-
-
 #[derive(Default)]
 pub struct TextAreaState {
     draft: EditorDraft,
@@ -316,12 +305,6 @@ impl fmt::Debug for TextAreaState {
 }
 
 impl TextAreaState {
-
-
-
-
-
-
     #[must_use]
     pub fn sensitive() -> Self {
         let mut state = Self::default();
@@ -329,11 +312,9 @@ impl TextAreaState {
         state
     }
 
-
     pub const fn is_editing(&self) -> bool {
         matches!(self.phase, EditPhase::Editing)
     }
-
 
     pub const fn phase(&self) -> EditPhase {
         self.phase
@@ -343,21 +324,13 @@ impl TextAreaState {
         self.draft.is_sensitive()
     }
 
-
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
 
-
     pub const fn scroll_mut(&mut self) -> &mut ScrollState {
         &mut self.scroll
     }
-
-
-
-
-
-
 
     pub const fn error(&self) -> Option<&FieldError> {
         match &self.error {
@@ -389,7 +362,6 @@ impl TextAreaState {
         }
     }
 
-
     pub fn set_error(&mut self, e: Option<FieldError>) {
         self.clear_error();
         self.error = match (self.sensitivity, e) {
@@ -415,7 +387,6 @@ impl TextAreaState {
         }
     }
 
-
     pub fn begin(&mut self, current: &str) {
         if self.is_editing() {
             return;
@@ -424,10 +395,6 @@ impl TextAreaState {
         self.draft.begin_multi(current);
         self.phase = EditPhase::Editing;
     }
-
-
-
-
 
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError> {
         self.commit_target(value, v)
@@ -451,7 +418,6 @@ impl TextAreaState {
         self.draft.zeroize();
     }
 
-
     pub fn cancel(&mut self) {
         self.phase = EditPhase::Idle;
         self.redacted_snapshot = false;
@@ -460,11 +426,6 @@ impl TextAreaState {
             self.clear_error();
         }
     }
-
-
-
-
-
 
     pub fn blur(
         &mut self,
@@ -494,7 +455,6 @@ impl TextAreaState {
             BlurPolicy::Keep => Ok(()),
         }
     }
-
 
     pub fn zeroize(&mut self) {
         self.draft.zeroize();
@@ -528,92 +488,6 @@ impl TextAreaState {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct TextArea<'a> {
     id: Id,
     rows: u16,
@@ -645,7 +519,6 @@ impl fmt::Debug for TextArea<'_> {
 }
 
 impl<'a> TextArea<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::FIELD,
         Part::TEXT,
@@ -658,7 +531,6 @@ impl<'a> TextArea<'a> {
         Part::THUMB,
         Part::CONTAINER,
     ];
-
 
     pub const fn new(id: Id, rows: u16) -> Self {
         TextArea {
@@ -676,13 +548,11 @@ impl<'a> TextArea<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn value(mut self, v: &'a str) -> Self {
         self.value = Some(v);
         self
     }
-
 
     #[must_use]
     pub const fn placeholder(mut self, s: &'a str) -> Self {
@@ -690,21 +560,17 @@ impl<'a> TextArea<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn validate(mut self, v: &'a dyn Validate) -> Self {
         self.validate = Some(v);
         self
     }
 
-
-
     #[must_use]
     pub const fn blur(mut self, p: BlurPolicy) -> Self {
         self.blur = p;
         self
     }
-
 
     #[must_use]
     pub const fn secret(mut self, policy: SecretPolicy) -> Self {
@@ -716,7 +582,6 @@ impl<'a> TextArea<'a> {
         self.secret.is_some()
     }
 
-
     #[must_use]
     pub const fn rows(mut self, n: u16) -> Self {
         self.rows = n;
@@ -727,13 +592,11 @@ impl<'a> TextArea<'a> {
         self.rows
     }
 
-
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
-
 
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
@@ -741,13 +604,11 @@ impl<'a> TextArea<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn status(mut self, s: termrock_runtime::Status) -> Self {
         self.status = s;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -755,13 +616,11 @@ impl<'a> TextArea<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -789,7 +648,6 @@ impl<'a> TextArea<'a> {
         }
     }
 
-
     const fn scroll_region(&self) -> ScrollRegion<'a> {
         ScrollRegion::new(self.id)
     }
@@ -797,7 +655,6 @@ impl<'a> TextArea<'a> {
     fn validator(&self) -> Dyn<'_> {
         Dyn(self.validate.unwrap_or(&NoValidate))
     }
-
 
     const fn body_rows(&self, area: Rect) -> u16 {
         if self.rows < area.height {
@@ -807,17 +664,9 @@ impl<'a> TextArea<'a> {
         }
     }
 
-
-
-
-
-
-
     const fn inner_width(width: u16) -> u16 {
         width.saturating_sub(3)
     }
-
-
 
     pub fn update(
         &self,
@@ -951,9 +800,6 @@ impl<'a> TextArea<'a> {
                 }
                 Intent::Pointer { .. } => acc.consumed(),
                 Intent::Cancel if st.is_editing() => {
-
-
-
                     let _ = st.blur_target(value, &self.validator(), self.blur);
                     acc.action(TextAction::Committed);
                 }
@@ -993,8 +839,6 @@ impl<'a> TextArea<'a> {
                 acc.action(TextAction::Cancelled);
             }
             TextCmd::Commit => {
-
-
                 let _ = match self.blur {
                     BlurPolicy::CommitAndValidate => st.commit_target(value, &self.validator()),
                     _ => st.blur_target(value, &self.validator(), BlurPolicy::Commit),
@@ -1045,9 +889,6 @@ impl<'a> TextArea<'a> {
         }
     }
 
-
-
-
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the body, the visible lines and the shared trailing cell"
@@ -1077,7 +918,6 @@ impl<'a> TextArea<'a> {
         } else {
             StateFlags::empty()
         };
-
 
         let mut derived = self.status.flags();
         if editing {
@@ -1230,10 +1070,6 @@ impl<'a> TextArea<'a> {
             }
         }
 
-
-
-
-
         let trailing = cell_at(
             first_row(content),
             content.right().saturating_sub(1).max(content.x),
@@ -1308,8 +1144,6 @@ impl<'a> TextArea<'a> {
             .draw(ui, area, st)
     }
 
-
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, self.rows.max(1)),
@@ -1332,7 +1166,6 @@ fn paint_masked_line(
     cells.glyphs(policy.mask, total);
 }
 
-
 fn column_span(row: Rect, a: usize, b: usize) -> Rect {
     let a = a.min(usize::from(u16::MAX)) as u16;
     let b = b.min(usize::from(u16::MAX)) as u16;
@@ -1345,11 +1178,9 @@ fn column_span(row: Rect, a: usize, b: usize) -> Rect {
     .intersection(row)
 }
 
-
 fn line_count(s: &str) -> usize {
     s.split('\n').count()
 }
-
 
 struct Dyn<'a>(&'a dyn Validate);
 
@@ -1646,10 +1477,6 @@ mod tests {
         );
     }
 
-
-
-
-
     #[test]
     fn blur_commits_without_validation() {
         let mut value = "first".to_owned();
@@ -1750,7 +1577,6 @@ mod tests {
         }
     }
 
-
     fn draw_with(status: termrock_runtime::Status) -> Buffer {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
@@ -1765,12 +1591,10 @@ mod tests {
         buf
     }
 
-
     fn symbol_at(buf: &Buffer, x: u16, y: u16) -> String {
         buf.cell(Position::new(x, y))
             .map_or_else(String::new, |c| c.symbol().to_owned())
     }
-
 
     fn text_run(buf: &Buffer) -> String {
         (0..SCREEN.width - 1)
@@ -1778,14 +1602,7 @@ mod tests {
             .collect()
     }
 
-
-
-
     const READINESS_X: u16 = SCREEN.width - 1;
-
-
-
-
 
     #[test]
     fn busy_and_loading_paint_the_readiness_spinner() {
@@ -1810,19 +1627,12 @@ mod tests {
         }
     }
 
-
-
     #[test]
     fn status_error_paints_the_icon_fallback_in_the_readiness_cell() {
         let glyph = Theme::junie().design.glyphs.get(GlyphRole::Error);
         let buf = draw_with(termrock_runtime::Status::Error);
         assert_eq!(symbol_at(&buf, READINESS_X, 0), glyph);
     }
-
-
-
-
-
 
     #[test]
     fn ready_paints_no_readiness_affordance() {
@@ -1832,8 +1642,6 @@ mod tests {
         assert_ne!(cell, design.glyphs.get(GlyphRole::Error));
         assert_eq!(cell, " ", "the reserved pad column must stay blank");
     }
-
-
 
     #[test]
     fn the_icon_slot_replaces_the_readiness_spinner() {

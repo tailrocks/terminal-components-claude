@@ -1,4 +1,3 @@
-
 use crate::{
     domain::host::{Environment, HostKind},
     sim::world::World,

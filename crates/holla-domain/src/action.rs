@@ -1,12 +1,5 @@
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Scope {
-
     Here,
 
     Project,
@@ -37,7 +30,6 @@ impl Scope {
         }
     }
 
-
     pub fn weight(self) -> i32 {
         match self {
             Scope::Here => 100,
@@ -49,11 +41,8 @@ impl Scope {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Risk {
-
     ReadOnly,
 
     Bounded,
@@ -71,7 +60,6 @@ impl Risk {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Availability {
     Ready,
@@ -80,7 +68,6 @@ pub enum Availability {
 
     Blocked(String),
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ActionKind {
@@ -93,15 +80,12 @@ pub enum ActionKind {
     System,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionIntent {
     Canonical(String),
     FixtureCommand(FixtureCommand),
     Unavailable,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FixtureCommand {
@@ -127,7 +111,6 @@ impl FixtureCommand {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Action {
     intent: ActionIntent,
-
 
     pub id: String,
     pub title: String,
@@ -195,7 +178,6 @@ impl Action {
         }
     }
 
-
     pub fn remembered(mut self, row_id: String, reason: String, pinned: bool) -> Self {
         self.id = row_id;
         self.title = self.command.clone();
@@ -237,7 +219,6 @@ impl Action {
             Availability::Blocked("stored command has no current action policy".into());
         action
     }
-
 
     pub fn changes(&self) -> String {
         match self.risk {
