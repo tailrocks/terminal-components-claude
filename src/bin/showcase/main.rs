@@ -99,13 +99,13 @@ const NO_MOTION_ENV: &str = "SHOWCASE_NO_MOTION";
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum NavArg {
-    #[doc = " Only the current page's group (default)."]
+    #[value(help = "Only the current page's group (default)")]
     Current,
 
-    #[doc = " Only the current page's group, after every navigation too."]
+    #[value(help = "Only the current page's group, after every navigation too")]
     Accordion,
 
-    #[doc = " Every group."]
+    #[value(help = "Every group")]
     All,
 }
 
@@ -129,17 +129,17 @@ struct Cli {
     #[command(flatten)]
     common: CommonArgs,
 
-    #[doc = " The page to open"]
+    #[arg(help = "The page to open")]
     #[arg(short = 'p', long, value_parser = parse_page, value_name = "NAME")]
     page: Option<PageId>,
 
-    #[doc = " Which sidebar groups are open."]
+    #[arg(help = "Which sidebar groups are open")]
     #[arg(long, value_enum, value_name = "POLICY")]
     nav: Option<NavArg>,
 
-    #[doc = " Set a live option at launch, as the Inspector's Options tab would"]
-    #[doc = " (repeatable): shell.KEY=VALUE or PAGE.KEY=VALUE. An"]
-    #[doc = " unknown key or value lists the valid ones."]
+    #[arg(
+        help = "Set a live option at launch, as the Inspector's Options tab would (repeatable): shell.KEY=VALUE or PAGE.KEY=VALUE. An unknown key or value lists the valid ones"
+    )]
     #[arg(long = "opt", value_parser = options::parse_opt, value_name = "KEY=VALUE")]
     opt: Vec<options::OptSet>,
 }

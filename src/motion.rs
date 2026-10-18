@@ -1,13 +1,13 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
 pub enum Motion {
-    #[doc = " Tick-driven state and decorative motion."]
+    #[value(help = "Tick-driven state and decorative motion")]
     #[default]
     Full,
 
-    #[doc = " State advances; decorative motion stays still."]
+    #[value(help = "State advances; decorative motion stays still")]
     Reduced,
 
-    #[doc = " Ticks never advance; `--frame` selects the frame shown."]
+    #[value(help = "Ticks never advance; `--frame` selects the frame shown")]
     Paused,
 }
 
