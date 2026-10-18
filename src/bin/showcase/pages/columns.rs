@@ -1,14 +1,14 @@
-//! Columns (Tables): the library's column rules and column sizing.
-//!
-//! - **Width solver**: `ui::columns::Col` rules (content, fixed, flex,
-//!   max, droppable) solved by `columns::solve` at a chosen row width; the
-//!   row under the rules is a `DataTable` laid out at the solved widths, so
-//!   a narrow row drops its least important columns first.
-//! - **Resizable columns**: `ColumnSizing` on a `DataTable` (seams you drag,
-//!   double-click to fit, the header menu's Size Column to Fit and Reset
-//!   Column Widths), with its hit width and narrowest drag as options.
-//! - **Header menu**: what `columns::header_menu` offers for the table's
-//!   cursor column, with its `HeaderLabels`.
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
@@ -34,14 +34,14 @@ use junie_tui::widgets::table::{Cell, Column, DataTable, Tone};
 const ID: WidgetId = WidgetId::of("columns");
 const HEADER_MENU: WidgetId = WidgetId::of("columns.header-menu");
 
-/// The `columns.width` values: the card's width, then fixed row widths.
+
 const WIDTHS: [Option<u16>; 5] = [None, Some(72), Some(56), Some(40), Some(28)];
 const SEAM_WIDTHS: [u16; 3] = [1, 2, 3];
 const MIN_WIDTHS: [u16; 3] = [3, 6, 10];
-/// Cells between two solved columns.
+
 const GAP: u16 = 2;
 
-/// Labels an app might use instead of the defaults (`columns.header_labels`).
+
 const CUSTOM_LABELS: HeaderLabels = HeaderLabels {
     sort_asc: "Sort A to Z",
     sort_desc: "Sort Z to A",
@@ -50,8 +50,8 @@ const CUSTOM_LABELS: HeaderLabels = HeaderLabels {
     reset_widths: "Default Widths",
 };
 
-/// One column of the solver demo: its name, rule, the rule as text and a
-/// sample value.
+
+
 struct Rule {
     name: &'static str,
     col: Col,
@@ -94,7 +94,7 @@ fn rules() -> [Rule; 5] {
     ]
 }
 
-/// The resizable task table.
+
 fn sized_table(resizable: bool, seam_w: u16, min_width: u16, labels: HeaderLabels) -> DataTable {
     let mut t = DataTable::new(
         ID.sub("sized"),
@@ -109,7 +109,7 @@ fn sized_table(resizable: bool, seam_w: u16, min_width: u16, labels: HeaderLabel
     t
 }
 
-/// The States grid: the resizable table and a fixed one.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -143,12 +143,12 @@ pub struct ColumnsPage {
     seam_w: usize,
     min_width: usize,
     labels: usize,
-    /// The rules as a table, with the solved width of each column.
+
     rules: DataTable,
-    /// The row the rules lay out.
+
     row: DataTable,
     pub sized: DataTable,
-    /// The row width the rules were last solved at.
+
     solved_at: u16,
     header_menu: RowMenu<usize>,
     sections: crate::pages::layout::Sections,
@@ -188,8 +188,8 @@ impl ColumnsPage {
         );
     }
 
-    /// Solve the rules for a row `avail` cells wide: the rules table shows
-    /// each solved width, the row table the surviving columns at them.
+
+
     fn solve(&mut self, avail: u16) {
         self.solved_at = avail;
         let rules = rules();
@@ -254,14 +254,14 @@ impl ColumnsPage {
             .selection_mode(junie_tui::core::selection::SelectionMode::None);
     }
 
-    /// The row every column of the solver reaches its ideal in: what the
-    /// "full" width lays the row out at (the same at every screen size).
+
+
     fn ideal_row() -> u16 {
         let cols = rules();
         cols.iter().map(|r| r.col.ideal).sum::<u16>() + GAP * (cols.len() as u16).saturating_sub(1)
     }
 
-    /// The header menu's facts for the cursor column.
+
     fn menu_facts(&self) -> Vec<Prop> {
         let c = self.sized.cursor_col;
         self.sized
@@ -276,8 +276,8 @@ impl ColumnsPage {
             .collect()
     }
 
-    /// The sections' heights at `width`: the solver, the resizable table
-    /// (every row), the header menu.
+
+
     fn heights(&self, width: u16) -> [u16; 3] {
         let menu = Panel::card(Some("Header menu"));
         [
@@ -301,12 +301,12 @@ impl ColumnsPage {
         let l = self
             .sections
             .layout(area, &heights.map(StackChild::fixed), focus, buf, ctx);
-        // the width solver
+
         if let Some(r) = l.slot(0) {
             let panel = Panel::card(Some("Width solver"));
             let bg = panel.bg(t);
             let inner = panel.render(r, buf, t);
-            // the table's gutter and edge take 5 cells around the row
+
             let room = inner.width.saturating_sub(5);
             let avail = WIDTHS[self.width].unwrap_or(Self::ideal_row()).min(room);
             if avail != self.solved_at {
@@ -322,8 +322,8 @@ impl ColumnsPage {
                 crate::pages::layout::caption(inner.x, y, buf, t, &caption, bg);
                 let row = Rect::new(inner.x, y + 1, (avail + 5).min(inner.width), 2);
                 self.row.render(row, buf, ctx, bg);
-                // the dropped columns end the row in `…`, which reveals
-                // them (columns::reveal_dropped, R-apps-3)
+
+
                 let spec = self::rules();
                 let cols: Vec<Col> = spec.iter().map(|r| r.col).collect();
                 let widths = columns::solve(&cols, avail, GAP);
@@ -336,7 +336,7 @@ impl ColumnsPage {
             }
             panel.draw_meta(r, buf, t, "Col rules · columns::solve");
         }
-        // the resizable table
+
         let panel =
             Panel::card(Some("Resizable columns")).focused(ctx.interaction.focused(self.sized.id));
         let bg = panel.bg(t);
@@ -355,7 +355,7 @@ impl ColumnsPage {
             }
             None => ctx.focus_stop(self.sized.id),
         }
-        // the header menu of the cursor column
+
         if let Some(r) = l.slot(2) {
             let c = self.sized.cursor_col;
             let title = format!("Header menu · {}", self.sized.columns[c].title);
@@ -370,9 +370,9 @@ impl ColumnsPage {
 }
 
 impl ColumnsPage {
-    /// A secondary click on a header opens its menu; the sized table takes
-    /// its headers, seams (a press focuses it), cells, bar and wheel; the
-    /// two specimen tables their cells.
+
+
+
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.is(Phase::Secondary) {
             let Some(c) = self.sized.header_menu_at(ev) else {
@@ -419,8 +419,8 @@ impl Page for ColumnsPage {
         "Column rules, droppable columns, resizable seams and the header menu"
     }
 
-    /// The solver's row at its ideal, every table's columns whole, the
-    /// resizable table's rows, the header menu's facts.
+
+
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         use junie_tui::ui::measure::Measure;
         let any = ratatui::layout::Size::new(0, 0);
@@ -428,7 +428,7 @@ impl Page for ColumnsPage {
         let w = [
             Self::ideal_row() + 5 + 4,
             self.rules.min_width(any, ctx) + 4,
-            // the resizable table's widths are the demo: they stay whole
+
             self.sized.measure(any, ctx).width + 4,
             sheet_width(&menu, &self.menu_facts()),
         ]

@@ -1,6 +1,6 @@
-//! The Splits & stacks page through the real app (plan §7 SC23): seams
-//! drag, reset and pad their hit target as the options say, zoom hides a
-//! pane, and the stack shrinks, scrolls or clips.
+
+
+
 
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
@@ -13,7 +13,7 @@ fn outer() -> WidgetId {
     WidgetId::of("splitsstacks").sub("outer")
 }
 
-/// Width of the Explorer pane: its frame from `╭` to `╮`.
+
 fn explorer_width(h: &Harness) -> u16 {
     let (x, y) = h.at("╭─ Explorer");
     let row: Vec<String> = (x..h.term.backend().buffer().area.width)
@@ -59,7 +59,7 @@ fn splits_hit_pad_widens_the_press_target() {
         h.opt(&format!("splitsstacks.hit_pad={pad}"));
         let before = explorer_width(&h);
         let seam = h.area(outer());
-        // one cell right of the seam: the editor pane's frame
+
         drag(&mut h, (seam.x + 1, seam.y + 2), (seam.x + 9, seam.y + 2));
         assert_eq!(explorer_width(&h) != before, moves, "pad {pad}");
     }
@@ -71,8 +71,8 @@ fn splits_minimum_clamps_the_default_ratio() {
     assert!(explorer_width(&h) < 40);
     h.opt("splitsstacks.min=40");
     assert_eq!(explorer_width(&h), 40, "{}", h.text());
-    // a 70% explorer with the editor whole beside it wants more than 120
-    // columns: wide enough that the page needs no sideways scroll
+
+
     let mut h = Harness::new(240, 40, PageId::SplitsStacks);
     h.opt("splitsstacks.min=40");
     let at_30 = explorer_width(&h);
@@ -121,7 +121,7 @@ fn splits_direction_stacks_the_panes() {
 
 #[test]
 fn stack_children_shrink_then_scroll_or_clip() {
-    // tall enough for the stack card under the panes at their natural size
+
     let mut h = Harness::new(120, 50, PageId::SplitsStacks);
     assert!(h.text().contains("▸ Danger zone · 1 row"));
     assert!(!h.text().contains("not in view"));
@@ -181,11 +181,11 @@ fn splits_states_grid_shows_both_seams() {
     }
 }
 
-/// Hovering or pressing a seam restyles only that seam's own line of
-/// cells: no other seam or rule changes, the hover is the heavy rule in a
-/// brighter grey without an underline (it drew a ladder of ticks on `┃`
-/// and a double rule under `━`), and a held seam is the phosphor accent.
-/// Checked on the Splits & stacks page and the Query workbench.
+
+
+
+
+
 #[test]
 fn hovering_or_pressing_a_seam_restyles_only_its_own_line() {
     let theme = junie_tui::theme::Theme::junie();

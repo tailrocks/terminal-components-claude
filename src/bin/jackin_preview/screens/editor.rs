@@ -1,6 +1,6 @@
-//! Workspace Editor: General · Mounts · Roles · Environments · Accounts, with a
-//! separate original and pending state, `• N changes` in the strip, a save
-//! preview and an asynchronous save that returns to the manager.
+
+
+
 
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
@@ -47,7 +47,7 @@ use junie_tui::ui::text::plural;
 pub const TABS: WidgetId = WidgetId::of("editor.tabs");
 pub const NAME: WidgetId = WidgetId::of("editor.name");
 pub const WORKDIR: WidgetId = WidgetId::of("editor.workdir");
-/// The General tab's field stack (its wheel region and scrollbar).
+
 const GENERAL: WidgetId = WidgetId::of("editor.general");
 pub const KEEP_AWAKE: WidgetId = WidgetId::of("editor.keep_awake");
 pub const GIT_PULL: WidgetId = WidgetId::of("editor.git_pull");
@@ -86,7 +86,7 @@ impl EdTab {
     }
 }
 
-/// One row of the Accounts tab: a provider heading or a registry account.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum AcctRow {
     Provider(Provider),
@@ -133,7 +133,7 @@ pub struct EditorScreen {
     pending_load: Option<String>,
     picker_targets: Vec<String>,
     row_status: Option<String>,
-    /// Names of the other workspaces, for uniqueness checks.
+
     taken: Vec<(String, WorkspaceId)>,
 }
 
@@ -147,7 +147,7 @@ impl EditorScreen {
                 let mut o = pending
                     .clone()
                     .unwrap_or_else(|| Workspace::new(0, "new", "/workspace"));
-                // a freshly created Workspace starts one change away from "nothing"
+
                 o.name = String::new();
                 o
             });
@@ -303,7 +303,7 @@ impl EditorScreen {
         }
     }
 
-    // ------------------------------------------------------------- save
+
 
     fn validate(&mut self, cx: &mut Cx) -> bool {
         if !self.name.validate() {
@@ -536,14 +536,14 @@ impl EditorScreen {
         }
     }
 
-    // ----------------------------------------------------------- general
+
 
     fn render_general(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         let bg = t.canvas;
         let fw = area.width.saturating_sub(4).min(72);
-        // a measured stack: on a short terminal the fields scroll (and Tab
-        // brings each into view) instead of running into Cancel and Save
+
+
         let kids = [
             StackChild::fixed(3),
             StackChild::fixed(1),
@@ -832,7 +832,7 @@ impl EditorScreen {
                     );
                 }
             }
-            // the cursor row is a fill: its details step up to stay readable
+
             legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
@@ -848,10 +848,10 @@ impl EditorScreen {
         }
     }
 
-    // ---------------------------------------------------------- accounts
 
-    /// Registry accounts grouped by provider; the Workspace decides which of
-    /// them are active. Only providers that have accounts appear.
+
+
+
     fn build_accounts(&mut self, w: &World) {
         let q = self.acct.filter.as_ref().map(|f| f.to_lowercase());
         let mut rows = vec![];
@@ -1066,7 +1066,7 @@ impl EditorScreen {
                     } else {
                         st
                     };
-                    // a discovered host login carries no operator-given name
+
                     let label = if a.origin == crate::domain::account::AccountOrigin::Discovered
                         && a.display_name == "discovered"
                     {
@@ -1325,8 +1325,8 @@ impl EditorScreen {
                         .cloned();
                     if let Some(e) = failed {
                         if e.trusted {
-                            // a failed load of a trusted Role: Enter retries
-                            // ("retry from the Roles tab"), no second trust ask
+
+
                             self.start_role_load(name, w, cx);
                         } else {
                             self.pending_load = Some(name.clone());
@@ -1420,8 +1420,8 @@ impl EditorScreen {
 
     fn start_role_load(&mut self, name: &str, w: &mut World, cx: &mut Cx) {
         self.pending_load = Some(name.to_owned());
-        // a load starts only for a trusted Role; it can still fail (fetch,
-        // I/O, manifest parse), which the registry fixture reports
+
+
         let error = w
             .roles
             .iter()
@@ -1613,7 +1613,7 @@ impl EditorScreen {
 }
 
 impl EditorScreen {
-    /// Names of other workspaces (filled on enter) for uniqueness checks.
+
     fn refresh_taken(&mut self, w: &World) {
         self.taken = w
             .workspaces
@@ -1674,14 +1674,14 @@ impl Page<Jackin> for EditorScreen {
         if self.cfg.menu_open() {
             let o = self.cfg.menu_key(key, w, cx);
             self.sync_pending();
-            // K14: a key the menu had no use for closed it; the page gets it
+
             if o != Outcome::Ignored {
                 return o;
             }
         }
         let focus = cx.focus.current();
         let editing = self.is_editing();
-        // global chords
+
         if key.ctrl() && key.code == KeyCode::Char('s') {
             self.open_preview(w, cx);
             return Outcome::Changed;
@@ -1762,7 +1762,7 @@ impl Page<Jackin> for EditorScreen {
                 _ => {}
             }
         }
-        // body
+
         let body = match self.tab {
             EdTab::General
                 if matches!(
@@ -1813,11 +1813,11 @@ impl Page<Jackin> for EditorScreen {
         }
     }
 
-    /// The General tab's stack takes its bar and the wheel; a click on
-    /// the tab strip switches the tab (the wheel moves its window); the
-    /// name field and the dirty-exit select take their own gestures; a
-    /// click on a control or a row acts on it; the wheel scrolls the list
-    /// under the pointer; the configuration tabs take their own events.
+
+
+
+
+
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         if self.saving && (click || ev.is(Phase::Secondary)) {
@@ -2109,7 +2109,7 @@ impl Page<Jackin> for EditorScreen {
                 self.row_status = self.cfg.render(t.cfg().unwrap(), body, buf, ctx, w);
             }
         }
-        // action row
+
         let n = self.change_count();
         self.save.disabled = n == 0 && !self.is_create() && !self.saving;
         self.save.label = if self.saving {
@@ -2285,7 +2285,7 @@ impl Screen for EditorScreen {
 }
 
 impl EditorScreen {
-    /// A completed click on a control or a row of the current tab.
+
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if id == CANCEL {

@@ -1,13 +1,13 @@
-//! Reachability gate (owner rule 2026-10-17): every screen and overlay of
-//! TablePro keeps all of its content reachable at every size of the
-//! matrix: shown, scrolled to, or cut with its `…` reveal
-//! ([`junie_tui::shell::reach`]). Known gaps are the `tablepro` lines of
-//! `tests/reach_allow.txt`, each with its finding id
-//! (docs/audits/design-review-2026-10/responsive.md); the gate fails on a
-//! new gap and on a fixed one whose line is still there.
-//!
-//! `REACH_DUMP=<case>:<w>:<h>` prints one case's frame at a size
-//! (`cargo nextest run --bin tablepro reach_dump --no-capture`).
+
+
+
+
+
+
+
+
+
+
 
 use junie_tui::core::event::{Input, Key};
 use junie_tui::runtime::Application;
@@ -87,8 +87,8 @@ fn pending_edit(h: &mut H) {
     h.key(KeyCode::Enter);
 }
 
-/// Below 100 columns the explorer is a drawer that follows focus: it
-/// covers the tab while focused and steps aside when focus leaves.
+
+
 const DRAWER: &[Reveal<H>] = &[
     Reveal {
         step: |h| {
@@ -109,8 +109,8 @@ const DRAWER: &[Reveal<H>] = &[
     },
 ];
 
-/// A history row cut with `…` shows in full in the detail beside the
-/// list as the cursor steps onto it.
+
+
 const HISTORY: &[Reveal<H>] = &[
     DRAWER[0],
     DRAWER[1],
@@ -122,7 +122,7 @@ const HISTORY: &[Reveal<H>] = &[
     },
 ];
 
-/// Focus the structure section strip (a Tab stop of the table tab).
+
 fn focus_sections(h: &mut H) {
     let id = match h.wb().active_tab() {
         Some(WorkTab::Table(t)) => t.structure_tabs.id,
@@ -132,9 +132,9 @@ fn focus_sections(h: &mut H) {
     h.draw();
 }
 
-/// The structure section strip cut with `N› +N` steps through its
-/// sections with `←→` (the footer's "←→ Section"), scrolling the active
-/// one into view.
+
+
+
 const SECTIONS: &[Reveal<H>] = &[
     DRAWER[0],
     DRAWER[1],
@@ -154,9 +154,9 @@ const SECTIONS: &[Reveal<H>] = &[
     },
 ];
 
-/// The cursor `N` rows down the connections list, then Tab: narrow, the
-/// selected connection's card opens as a drawer (`ui::master_detail`);
-/// wide, Tab focuses its Connect button.
+
+
+
 fn drawer<const N: usize>(h: &mut H) {
     for _ in 0..N {
         h.key(KeyCode::Down);
@@ -164,7 +164,7 @@ fn drawer<const N: usize>(h: &mut H) {
     h.key(KeyCode::Tab);
 }
 
-/// One reveal per connections row, each from the case's fresh state.
+
 const DRAWERS: &[Reveal<H>] = &[
     Reveal {
         step: drawer::<0>,
@@ -218,7 +218,7 @@ const DRAWERS: &[Reveal<H>] = &[
 
 fn cases() -> Vec<Case<H>> {
     let mut cases = vec![
-        // the connections screen
+
         page("connections", |_| {}).reveals(DRAWERS),
         page("connections-empty", |h| {
             h.app.connections.connections.clear();
@@ -265,7 +265,7 @@ fn cases() -> Vec<Case<H>> {
                 shift_f10(h);
             },
         ),
-        // the workbench
+
         page("workbench", connected),
         page("query-editing", |h| {
             connected(h);
@@ -339,7 +339,7 @@ fn cases() -> Vec<Case<H>> {
             connected(h);
             h.ctrl('b');
         }),
-        // workbench overlays
+
         layer("help", connected, |h| {
             h.key(KeyCode::Char('?'));
         }),
@@ -429,7 +429,7 @@ fn cases() -> Vec<Case<H>> {
             shift_f10,
         ),
     ];
-    // every workbench case reaches the explorer drawer and the tab under it
+
     for case in &mut cases {
         if !case.name.starts_with("conn") && case.reveals.is_empty() {
             case.reveals = DRAWER;
@@ -480,8 +480,8 @@ junie_tui::reach_tests! {
     explorer_menu = "explorer-menu",
 }
 
-/// R-apps-6: on a short screen the executed-statement card keeps its
-/// facts in a scroll view: the wheel over them reaches the last one.
+
+
 #[test]
 fn a_short_result_pane_scrolls_the_statement_facts() {
     use junie_tui::core::event::MouseKind;

@@ -1,8 +1,8 @@
-//! Files: the folder browser with safe previews (HP04) and the home file
-//! search (HP03). Listings, previews and jump suggestions carry a
-//! generation; a late response for an earlier folder is discarded, never
-//! shown over the current one. Previews are bounded and sanitised by the
-//! filesystem model; file content is displayed, never executed.
+
+
+
+
+
 
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
@@ -53,9 +53,9 @@ struct Entry {
     size: u64,
     mtime: i64,
     hidden: bool,
-    /// The entry cannot be activated (broken link, unreadable).
+
     error: Option<String>,
-    /// Display name is lossy for this host path (a collision).
+
     lossy: bool,
 }
 
@@ -80,10 +80,10 @@ pub struct FilesPage {
     pub cursor: usize,
     scroll: ScrollState,
     pub show_hidden: bool,
-    /// Listing generation: bumps on every navigation.
+
     generation: u64,
     pending: Option<Pending>,
-    /// Retained cursor and scroll per folder for return navigation.
+
     remembered: Vec<(String, String)>,
     preview: TextViewport,
     preview_for: Option<(String, u64)>,
@@ -91,26 +91,26 @@ pub struct FilesPage {
     preview_meta: String,
     preview_lines: Vec<String>,
     preview_err: Option<String>,
-    /// The listing beside its preview; a drawer when narrow.
+
     md: MasterDetail,
-    // find
+
     pub query: String,
     index: Vec<String>,
     hits: Vec<FindHit>,
-    // in-preview search (F20)
+
     find_query: Option<String>,
     find_matches: Vec<(usize, std::ops::Range<usize>)>,
     find_at: usize,
     last_tick: u64,
     list_area: Rect,
-    /// A jump modal is open with this query and error.
+
     jump_error: Option<String>,
 }
 
 impl FilesPage {
     pub fn new(path: &str, query: Option<&str>, w: &World) -> Self {
         let mut p = Self::blank(Mode::Browse);
-        // a file starting point opens its parent and highlights the file
+
         let (dir, highlight) = if w.fs.is_dir(path) {
             (path.to_owned(), None)
         } else if w.fs.exists(path) {
@@ -196,8 +196,8 @@ impl FilesPage {
         }
     }
 
-    /// Ask for the listing of `dir`; a fixture latency makes it arrive
-    /// later under this generation.
+
+
     fn navigate(&mut self, dir: &str, w: &World, cx: &mut Cx) {
         self.generation += 1;
         self.dir = dir.to_owned();
@@ -224,13 +224,13 @@ impl FilesPage {
 
     fn apply_listing(&mut self, dir: &str, generation: u64, w: &World) {
         if generation != self.generation || dir != self.dir {
-            // a late response for an earlier folder: discarded
+
             return;
         }
         match w.fs.list(dir) {
             Ok(nodes) => {
                 let mut entries: Vec<Entry> = nodes.iter().map(|n| self.entry_of(n, w)).collect();
-                // lossy display collisions keep distinct host identities
+
                 let mut seen: std::collections::BTreeMap<String, usize> = Default::default();
                 for e in &entries {
                     let key = unicode_normalize(&e.name);
@@ -249,7 +249,7 @@ impl FilesPage {
                 self.listing_error = Some(e.message());
             }
         }
-        // restore the remembered cursor for this folder
+
         let target = self
             .remembered
             .iter()
@@ -289,7 +289,7 @@ impl FilesPage {
         };
         let leaving = self.dir.clone();
         self.remember();
-        // the folder just left is highlighted on return
+
         self.remembered.retain(|(d, _)| d != &parent);
         self.remembered.push((parent.clone(), leaving));
         self.navigate(&parent, w, cx);
@@ -338,8 +338,8 @@ impl FilesPage {
                     long_lines,
                     link,
                 } => {
-                    // safety facts first: when the frame is narrow the
-                    // tail (the size) gives way, never a cap or a link
+
+
                     let mut m = vec![];
                     if let Some(l) = &link {
                         m.push(format!("link → {}", w.location.short(l)));
@@ -412,7 +412,7 @@ impl FilesPage {
     }
 
     fn apply_marks(&mut self) {
-        let prefix = 6; // "NNNNN " gutter bytes
+        let prefix = 6;
         let marks: Vec<Mark> = self
             .find_matches
             .iter()
@@ -429,7 +429,7 @@ impl FilesPage {
         }
     }
 
-    // ---------------------------------------------------------- find mode
+
 
     fn indexed(&self, w: &World) -> (usize, bool) {
         match w.source_state("index") {
@@ -464,7 +464,7 @@ impl FilesPage {
         self.path_at(self.cursor)
     }
 
-    /// The path of display row `i`.
+
     fn path_at(&self, i: usize) -> Option<String> {
         match self.mode {
             Mode::Browse => self.visible().get(i).map(|e| e.path.clone()),
@@ -486,7 +486,7 @@ impl FilesPage {
         self.open_actions_at(path, anchor, cx)
     }
 
-    /// The file actions menu for `path`, below `anchor`.
+
     fn open_actions_at(&mut self, path: String, anchor: Rect, cx: &mut Cx) -> Outcome {
         let items = vec![
             MenuItem::new("Open in the OS").shortcut("Enter"),
@@ -528,7 +528,7 @@ impl FilesPage {
                 let argv = if opener == "open" {
                     Command::argv("open", &["-R", path], &cwd, &host)
                 } else {
-                    // no portable reveal-and-select on Linux: the parent opens
+
                     let parent = Fs::parent(path).unwrap_or("/".into());
                     Command::argv(&opener, &[&parent], &cwd, &host)
                 };
@@ -539,7 +539,7 @@ impl FilesPage {
             }
             2 => cx.go(Go::Osc52(path.to_owned())),
             3 => {
-                // a directory is analysed itself; a file hands off its parent
+
                 let root = if is_dir {
                     path.to_owned()
                 } else {
@@ -559,10 +559,10 @@ impl FilesPage {
         }
     }
 
-    // ---------------------------------------------------------- jump
 
-    /// The jump picker's rows: each is keyed by its full path and inserts
-    /// it ([`Item::insertion`]), the target a chosen row jumps to.
+
+
+
     fn jump_suggestions(&self, query: &str, w: &World) -> Vec<Item> {
         let q = query.trim();
         let expanded = expand(q, &self.dir, &w.location.home);
@@ -578,7 +578,7 @@ impl FilesPage {
                     .insert(expanded.clone()),
             );
         }
-        // local prefix completion in the current subtree, directories first
+
         if !q.is_empty() {
             let (dir, prefix) = match expanded.rsplit_once('/') {
                 Some((d, p)) if w.fs.is_dir(if d.is_empty() { "/" } else { d }) => (
@@ -665,7 +665,7 @@ impl FilesPage {
         Ok(())
     }
 
-    // ---------------------------------------------------------- render
+
 
     fn render_browse_list(
         &mut self,
@@ -757,7 +757,7 @@ impl FilesPage {
             } else {
                 st
             };
-            // a cut name reveals on hover, the cursor row's on the peek line
+
             let name_cell = Rect::new(row.x + 3, y, name_w, 1);
             let shown = junie_tui::ui::reveal::fit(ctx, name_cell, &name, s.focused);
             buf.set_string(row.x + 3, y, fit(&shown, name_w as usize), ns);
@@ -772,8 +772,8 @@ impl FilesPage {
                 Some(err) => err.clone(),
                 None => format!("{}{}", e.kind, if e.hidden { " · hidden" } else { "" }),
             };
-            // the columns that do not fit end the row in `…`, which
-            // reveals them (R-apps-3)
+
+
             let mut shown_w = [0u16; 3];
             if x + 10 <= row.right() {
                 shown_w[0] = 9;
@@ -811,7 +811,7 @@ impl FilesPage {
                     }),
                 );
             }
-            // the cursor row is a fill: its details step up to stay readable
+
             legible_on_fill(buf, row, t, bg);
             ctx.clickable(rid, row);
         }
@@ -882,7 +882,7 @@ impl FilesPage {
                 st.fg(t.text_secondary).remove_modifier(Modifier::BOLD),
             );
             let name = h.path.rsplit('/').next().unwrap_or(&h.path);
-            // matched byte offsets are translated to whole graphemes
+
             let mut x = row.x + 3;
             let mut used = 0usize;
             for (bi, g) in unicode_segmentation::UnicodeSegmentation::grapheme_indices(name, true) {
@@ -911,7 +911,7 @@ impl FilesPage {
                     st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
                 );
             }
-            // the cursor row is a fill: its details step up to stay readable
+
             legible_on_fill(buf, row, t, bg);
             ctx.clickable(rid, row);
         }
@@ -974,7 +974,7 @@ impl FilesPage {
                     Tone::Muted,
                 ));
             }
-            // context markers and preview-only command recommendations
+
             let markers: Vec<&str> = [
                 ".git",
                 "Cargo.toml",
@@ -1036,9 +1036,9 @@ impl FilesPage {
         } else {
             self.preview_meta.clone()
         };
-        // the meta carries safety facts (caps, links, binary): the path
-        // title gives way, in the middle then entirely, so the meta is
-        // always visible; an over-long meta keeps its leading facts
+
+
+
         let room = area.width.saturating_sub(6) as usize;
         let meta = if width(&meta) + 3 > room {
             truncate(&meta, room.saturating_sub(3).max(4))
@@ -1077,7 +1077,7 @@ impl FilesPage {
 }
 
 fn unicode_normalize(name: &str) -> String {
-    // a lossy display key: precomposed and decomposed forms collide
+
     name.chars()
         .filter(|c| !unicode_is_combining(*c))
         .collect::<String>()
@@ -1088,7 +1088,7 @@ fn unicode_is_combining(c: char) -> bool {
     matches!(c as u32, 0x0300..=0x036f | 0x1ab0..=0x1aff | 0x1dc0..=0x1dff | 0x20d0..=0x20ff | 0xfe20..=0xfe2f)
 }
 
-/// Expand `~`, relative paths against the browser folder and trim.
+
 pub fn expand(q: &str, dir: &str, home: &str) -> String {
     let q = q.trim();
     if q == "~" {
@@ -1106,8 +1106,8 @@ pub fn expand(q: &str, dir: &str, home: &str) -> String {
     Fs::join(dir, q.trim_end_matches('/'))
 }
 
-/// Preview-only command recommendations for a folder from its markers
-/// (I-B14): never executable from this view.
+
+
 pub fn recommendations(path: &str, markers: &[&str], w: &World) -> Vec<String> {
     let mut v = vec![];
     if markers.contains(&".git") {
@@ -1178,7 +1178,7 @@ impl ShellPage<Holla> for FilesPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(PREVIEW) {
             if let Some(q) = self.find_query.clone() {
-                // the find field owns typing while a query is open
+
                 match key.code {
                     KeyCode::Esc => {
                         self.find_query = None;
@@ -1240,14 +1240,14 @@ impl ShellPage<Holla> for FilesPage {
                 Some(ViewportAction::FollowChanged(_)) => {}
                 _ => {}
             }
-            // an unhandled key (Tab, the shell chords) belongs to the shell:
-            // the preview never traps the keyboard
+
+
             return o;
         }
         if !cx.focus.is(LIST) {
             return Outcome::Ignored;
         }
-        // chords owned here
+
         if key.ctrl() {
             return match key.code {
                 KeyCode::Char('h') => {
@@ -1463,8 +1463,8 @@ impl ShellPage<Holla> for FilesPage {
 
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
-        // the preview: a press anchors a selection and a drag extends it;
-        // its bars and the wheel (on both axes) scroll it
+
+
         if ev.on(PREVIEW) && !ev.is(Phase::Secondary) {
             if ev.is(Phase::Click) {
                 cx.focus.focus(PREVIEW);
@@ -1473,7 +1473,7 @@ impl ShellPage<Holla> for FilesPage {
         }
         let row = self.scroll.visible_range().find(|&i| LIST.child(i) == id);
         if let Some((axis, delta)) = ev.wheel() {
-            // a sideways notch never scrolls the vertical list
+
             if id == LIST && axis == Axis::Vertical {
                 self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
@@ -1495,8 +1495,8 @@ impl ShellPage<Holla> for FilesPage {
                 if let Some(i) = row {
                     let again = self.cursor == i;
                     self.cursor = i;
-                    // the row opens on the library's data-view activation
-                    // (a double click)
+
+
                     if ClickPolicy::DATA.activates(ev.count(), again) {
                         return match self.mode {
                             Mode::Browse => self.open_current(w, cx),
@@ -1520,7 +1520,7 @@ impl ShellPage<Holla> for FilesPage {
                         self.cursor = i;
                     }
                     cx.focus.focus(LIST);
-                    // the menu opens at the pointer, about the row under it
+
                     return self.open_actions_at(path, Rect::new(pos.x, pos.y, 1, 1), cx);
                 }
                 Outcome::Ignored
@@ -1750,8 +1750,8 @@ impl ShellPage<Holla> for FilesPage {
             Mode::Find => vec![
                 hint("Type", "Find"),
                 hint("↑↓", "Move"),
-                // Enter on a hit opens the same menu as Alt+Enter (HP03,
-                // I-F08), so it carries the same name
+
+
                 hint("Enter", "Alternatives…"),
                 hint("Tab", "Preview"),
                 hint(
@@ -1838,8 +1838,8 @@ impl Screen for FilesPage {
 }
 
 impl FilesPage {
-    /// Rows for the jump picker at `query`, and whether an exact path
-    /// exists; used by the shell while the modal is open.
+
+
     pub fn jump_rows(&self, query: &str, w: &World) -> (Vec<Item>, PickerStatus) {
         let items = self.jump_suggestions(query, w);
         let status = match &self.jump_error {
@@ -1856,8 +1856,8 @@ impl FilesPage {
         self.jump_error = e;
     }
 
-    /// Resolve Enter in the jump picker: an exact existing path wins over
-    /// the selected suggestion (I-B08).
+
+
     pub fn jump_target(&self, query: &str, selected: Option<&str>, w: &World) -> Option<String> {
         let expanded = expand(query, &self.dir, &w.location.home);
         if !query.trim().is_empty() && w.fs.exists(&expanded) {

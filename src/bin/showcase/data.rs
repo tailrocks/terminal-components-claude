@@ -1,5 +1,5 @@
-//! Demo/example data. Kept apart from components so the showcase content can
-//! change without touching rendering or interaction code.
+
+
 
 use junie_tui::widgets::tree::TreeNode;
 

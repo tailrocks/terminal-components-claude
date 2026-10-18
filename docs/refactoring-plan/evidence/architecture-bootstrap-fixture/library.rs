@@ -1,5 +1,5 @@
-//! Frozen miniature architecture subject, not a terminal-components API.
-//! Integer cells are actual writes; the private driver compares the whole buffer.
+
+
 
 #[derive(Clone, Copy)]
 pub struct Props { pub id: u32, pub disabled: bool }
@@ -60,7 +60,7 @@ impl Widget {
     }
 }
 
-/// Same-id child composition is owned; a caller row is not owned.
+
 pub fn compose(props: Props, ui: &mut Ui) {
     ui.resolve(props.id, 1);
     ui.row(|ui| {

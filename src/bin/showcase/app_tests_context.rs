@@ -1,7 +1,7 @@
-//! Context menus across the showcase: a secondary click on a row opens
-//! the row's menu at the pointer, Shift+F10 opens it under the cursor row,
-//! and a secondary click outside an open popup closes it and opens the new
-//! menu at the new spot.
+
+
+
+
 
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::id::WidgetId;
@@ -50,8 +50,8 @@ impl Harness {
         self.send(Input::Mouse(Mouse::new(kind, Position::new(x, y))))
     }
 
-    /// Rest the pointer at `at` (a disabled menu row says why in the
-    /// menu's status row, SI21).
+
+
     fn point(&mut self, at: (u16, u16)) -> Outcome {
         self.mouse(MouseKind::Move, at)
     }
@@ -77,7 +77,7 @@ impl Harness {
         s
     }
 
-    /// The text of `r` on screen.
+
     fn text_in(&self, r: Rect) -> String {
         let buf = self.term.backend().buffer();
         let mut s = String::new();
@@ -90,7 +90,7 @@ impl Harness {
         s
     }
 
-    /// Cell position of the first `needle` on screen.
+
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         let want: Vec<&str> =
@@ -111,7 +111,7 @@ impl Harness {
             .unwrap_or_else(|| panic!("{needle:?} on screen\n{}", self.text()))
     }
 
-    /// The open menu `id`'s rectangle this frame.
+
     fn menu(&self, id: WidgetId) -> Option<Rect> {
         self.app.shell.hits.area_of(id)
     }
@@ -131,7 +131,7 @@ const LISTS_MENU: WidgetId = WidgetId::of("lists.menu");
 const TREES_MENU: WidgetId = WidgetId::of("trees.menu");
 const TABLES_MENU: WidgetId = WidgetId::of("tables.menu");
 
-// ------------------------------------------------------------------ router
+
 
 #[test]
 fn a_secondary_click_outside_an_open_menu_reopens_it_on_the_new_row() {
@@ -193,7 +193,7 @@ fn a_secondary_click_outside_a_dialog_stays_swallowed() {
     let mut h = Harness::new(PageId::Chrome);
     h.key(KeyCode::Char('?'));
     assert!(h.text().contains("Keyboard & mouse"));
-    // a sidebar row the help overlay leaves uncovered (it dims it)
+
     let row = h.at("Overview");
     assert_eq!(h.right_click(row), Outcome::Consumed);
     assert!(h.text().contains("Keyboard & mouse"), "the dialog stays");
@@ -203,7 +203,7 @@ fn a_secondary_click_outside_a_dialog_stays_swallowed() {
     );
 }
 
-// ------------------------------------------------------------------ chrome
+
 
 #[test]
 fn chrome_shift_f10_opens_the_tab_menu_under_the_cursor_row() {
@@ -232,7 +232,7 @@ fn chrome_shift_f10_opens_the_tab_menu_under_the_cursor_row() {
     assert!(h.text().contains("Shift+F10"), "the hint names the key");
 }
 
-// ------------------------------------------------------------------ lists
+
 
 #[test]
 fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
@@ -252,7 +252,7 @@ fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
     assert!(h.menu(LISTS_MENU).is_none(), "choosing closes the menu");
     assert!(h.text().contains("1 selected"), "the file was excluded");
 
-    // a locked file says why it cannot be included
+
     let lock = h.at("Cargo.lock");
     h.right_click((lock.0 + 1, lock.1));
     let menu = h.menu(LISTS_MENU).expect("the row menu");
@@ -260,7 +260,7 @@ fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
     let include = h.at("Include");
     h.point((include.0 + 1, include.1));
     assert!(h.text_in(menu).contains("locked file"));
-    // the cursor starts on the first available item
+
     h.key(KeyCode::Enter);
     assert!(h.menu(LISTS_MENU).is_none());
     assert!(
@@ -269,9 +269,9 @@ fn lists_right_click_opens_the_row_menu_and_choosing_toggles_the_file() {
     );
 }
 
-/// Standards gap 8: an open popup repositions when the terminal is
-/// resized; it never ends up cut off or outside the screen. The row menu
-/// opens near the right edge, then the window narrows under it.
+
+
+
 #[test]
 fn an_open_menu_stays_on_screen_when_the_terminal_shrinks() {
     let mut h = Harness::new(PageId::Lists);
@@ -292,9 +292,9 @@ fn an_open_menu_stays_on_screen_when_the_terminal_shrinks() {
     assert_eq!(after.width, before.width, "moved, not cut");
 }
 
-/// Keyboard audit #14: the shortcut letters menus show did nothing. A
-/// row's one-character shortcut chooses it; any other key the menu has no
-/// use for closes it and reaches the page (macOS).
+
+
+
 #[test]
 fn a_menu_rows_shortcut_chooses_it_and_other_keys_pass_through() {
     let mut h = Harness::new(PageId::Lists);
@@ -303,11 +303,11 @@ fn a_menu_rows_shortcut_chooses_it_and_other_keys_pass_through() {
     h.right_click((billing.0 + 2, billing.1));
     let menu = h.menu(LISTS_MENU).expect("the row menu");
     assert!(h.text_in(menu).contains("Select all"));
-    // `a` is the shortcut shown beside "Select all"
+
     h.key(KeyCode::Char('a'));
     assert!(h.menu(LISTS_MENU).is_none(), "choosing closes the menu");
     assert!(h.text().contains("10 selected"), "{}", h.text());
-    // `?` is not the menu's: it closes and the page's help opens
+
     h.right_click((billing.0 + 2, billing.1));
     assert!(h.menu(LISTS_MENU).is_some());
     h.key(KeyCode::Char('?'));
@@ -336,7 +336,7 @@ fn lists_shift_f10_opens_under_the_cursor_row_and_chooses() {
     assert!(h.menu(LISTS_MENU).is_none());
 }
 
-// ------------------------------------------------------------------ trees
+
 
 #[test]
 fn trees_right_click_folds_a_folder_and_shift_f10_opens_a_file() {
@@ -370,7 +370,7 @@ fn trees_right_click_folds_a_folder_and_shift_f10_opens_a_file() {
     assert!(h.text().contains("src/api/billing.rs"), "{}", h.text());
 }
 
-// ------------------------------------------------------------------ tables
+
 
 #[test]
 fn tables_right_click_a_cell_sorts_its_column_and_selects_its_row() {
@@ -386,7 +386,7 @@ fn tables_right_click_a_cell_sorts_its_column_and_selects_its_row() {
         "titled by the task\n{shown}"
     );
     assert!(shown.contains("Sort by owner"));
-    // edit is unavailable here: the pointer on it says why
+
     assert!(!shown.contains("Read-only"), "{shown}");
     let edit = h.at("Edit cell");
     h.point((edit.0 + 1, edit.1));
@@ -421,7 +421,7 @@ fn tables_header_seam_resizes_and_the_header_menu_sorts_and_resets() {
     let before = h.app.shell.hits.area_of(head).expect("the Owner title");
     let s = h.app.shell.hits.area_of(seam).expect("a seam after Owner");
     assert_eq!(s.x, before.right());
-    // drag the seam four cells right: the Owner column follows the pointer
+
     h.mouse(MouseKind::Down, (s.x, s.y));
     h.mouse(MouseKind::Drag, (s.x + 4, s.y));
     h.mouse(MouseKind::Up, (s.x + 4, s.y));
@@ -429,7 +429,7 @@ fn tables_header_seam_resizes_and_the_header_menu_sorts_and_resets() {
         h.app.shell.hits.area_of(head).unwrap().width,
         before.width + 4
     );
-    // right-click the title: the header menu
+
     h.right_click((before.x + 1, before.y));
     let menu = h
         .menu(WidgetId::of("tables.header-menu"))

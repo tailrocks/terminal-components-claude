@@ -1,27 +1,27 @@
-//! Terminal runtime shared by every application built on the library:
-//! one terminal-session guard that owns raw mode, the alternate screen,
-//! mouse capture, bracketed paste, the kitty keyboard protocol
-//! ([`crate::core::keyboard`]), cursor visibility and line-wrap state
-//! (restored on every exit path, including panics), an event loop that
-//! drains unchanged input while rendering state changes before the next queued
-//! event, and animation ticks on demand.
-//!
-//! Bursts of the same continuous input (wheel notches, pointer moves, a
-//! held navigation key, a window being resized) are coalesced: every event is handled, but the
-//! frame is drawn once for the burst instead of once per event (see
-//! [`Coalesce`]). Any other input still waits for the frame of the change
-//! before it, so an activation always sees the controls it activates.
-//!
-//! Job control is part of the session's lifecycle, not only of its start and
-//! end: an external `SIGTSTP` is recorded by a handler that touches nothing
-//! but an atomic flag, and the event loop then leaves every owned mode,
-//! stops the process with the default disposition, and on `SIGCONT`
-//! re-acquires the modes, rebuilds geometry and redraws in full. Repeated
-//! transitions are idempotent. Unsupported and unrecoverable cases are
-//! explicit: non-Unix targets have no job control here; `SIGSTOP` and
-//! `SIGKILL` cannot be intercepted, so a process stopped that way keeps raw
-//! mode until it continues; and an output device that is gone cannot
-//! receive restoration escapes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::io::{Write, stdout};
 use std::time::{Duration, Instant};
@@ -49,78 +49,78 @@ pub trait Application {
     fn handle(&mut self, input: Input) -> Outcome;
     fn render(&mut self, frame: &mut Frame);
     fn should_quit(&self) -> bool;
-    /// How often to deliver `Input::Tick`.
+
     fn tick_interval(&self) -> Duration;
-    /// Which queued input bursts draw one frame instead of one per event.
-    /// Default [`Coalesce::default`]; [`Coalesce::OFF`] draws every change.
+
+
     fn coalesce(&self) -> Coalesce {
         Coalesce::default()
     }
-    /// The pointer and caret shapes to show after the last frame (see
-    /// [`crate::core::shape`]; [`crate::core::shape::shapes_for`] reads
-    /// them off an app's pointer state and hit regions). Default: none,
-    /// the terminal's own.
+
+
+
+
     fn shapes(&self) -> crate::core::shape::Shapes {
         crate::core::shape::Shapes::default()
     }
-    /// How raw terminal events become [`Input`] (Shift+wheel sideways,
-    /// Ctrl+click as a secondary click, legacy Ctrl punctuation). Default
-    /// [`InputConfig::default`], the client platform's conventions. Read
-    /// before each burst of input, so an app can change it live.
+
+
+
+
     fn input_config(&self) -> InputConfig {
         InputConfig::default()
     }
-    /// Whether the session enables the kitty keyboard protocol. Default
-    /// [`KeyboardProtocol::current`]: [`KeyboardProtocol::ENV`], else
-    /// [`KeyboardProtocol::Auto`]. Read once, when the session starts.
+
+
+
     fn keyboard_protocol(&self) -> KeyboardProtocol {
         KeyboardProtocol::current()
     }
-    /// Escape sequences to write to the terminal after the frame (an
-    /// OSC 52 clipboard write, [`crate::shell::Clipboard`]). Default none.
+
+
     fn take_output(&mut self) -> Vec<String> {
         Vec::new()
     }
 }
 
-/// Input coalescing policy of the event loop.
-///
-/// A terminal delivers a wheel gesture as many notches, a pointer sweep as
-/// one move per cell and a held key as auto-repeat, all queued faster than
-/// a frame can be drawn and written. Drawing after each of them makes the
-/// screen trail the input (it keeps scrolling after the wheel stops). With
-/// coalescing, consecutive events of one enabled kind are all handled and
-/// then drawn once. Every other input, and a different kind, still waits
-/// for the frame of the change before it.
-///
-/// Wheel notches in a burst are routed with the hit regions of the frame
-/// the burst started on, so the burst stays with the container under the
-/// pointer when it began (scroll latching, as on macOS).
+
+
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Coalesce {
-    /// Wheel notches with the same modifiers, on either axis. Default on.
+
     pub wheel: bool,
-    /// Pointer moves (hover). The burst's last move is handled again after
-    /// its frame, against the new hit regions, so hover always settles on
-    /// what is drawn. Default on.
+
+
+
     pub pointer_moves: bool,
-    /// Repeats of one navigation key with the same modifiers: arrows,
-    /// PageUp/PageDown and Home/End, plain or with Shift/Ctrl. Default on.
-    /// Other keys (Enter, Tab, characters) are never coalesced.
+
+
+
     pub key_repeat: bool,
-    /// Terminal resizes (a window being dragged): every size is handled,
-    /// the frame is drawn at the last one. Default on.
+
+
     pub resize: bool,
-    /// Most events folded into one frame; a longer burst draws an
-    /// intermediate frame every this many events. Default 64.
+
+
     pub max_batch: usize,
-    /// Longest time spent handling one burst before a frame is drawn, so a
-    /// flood never freezes the screen. Default 16 ms (one 60 Hz frame).
+
+
     pub max_latency: Duration,
 }
 
 impl Coalesce {
-    /// Draw after every state change (the behaviour before coalescing).
+
     pub const OFF: Self = Self {
         wheel: false,
         pointer_moves: false,
@@ -130,7 +130,7 @@ impl Coalesce {
         max_latency: Duration::ZERO,
     };
 
-    /// Whether `next` continues a burst whose last event was `last`.
+
     pub fn folds(&self, last: &Input, next: &Input) -> bool {
         match (last, next) {
             (Input::Mouse(a), Input::Mouse(b)) => {
@@ -176,18 +176,18 @@ fn is_navigation(key: &Key) -> bool {
         .is_empty()
 }
 
-/// Owns every piece of terminal state the application changes and puts it
-/// back in reverse order when dropped: the kitty keyboard flags popped,
-/// bracketed paste and mouse capture off, cursor shown, line wrap re-enabled, alternate screen left, raw mode
-/// off. A panic inside the event loop unwinds through the guard, so the
-/// host shell is restored before the panic message is printed.
+
+
+
+
+
 pub struct TerminalSession {
     terminal: ratatui::DefaultTerminal,
     restoration: Restoration,
 }
 
-/// This owner exists before terminal construction, so partial setup has the
-/// same rollback path as a fully initialized session.
+
+
 struct Restoration {
     restore: fn(),
     active: bool,
@@ -201,7 +201,7 @@ impl Restoration {
         }
     }
 
-    /// Own the terminal again after a suspension; a no-op while active.
+
     fn reacquire(&mut self) {
         self.active = true;
     }
@@ -224,33 +224,33 @@ fn initialize_with_restoration<T>(
     Ok((initialize()?, restoration))
 }
 
-/// DECAWM: automatic line wrap. Applications that draw to the last column
-/// turn it off; the guard turns it back on for the host shell.
+
+
 const ENABLE_WRAP: &str = "\x1b[?7h";
 
 impl TerminalSession {
-    /// Enter raw mode, the alternate screen, mouse capture and bracketed
-    /// paste. Installs a panic hook that restores the terminal first.
-    ///
-    /// # Errors
-    /// Returns a terminal I/O error if setup fails. Once raw mode is enabled,
-    /// every later setup failure restores the terminal before returning.
+
+
+
+
+
+
     pub fn enter() -> std::io::Result<Self> {
         Self::enter_with(KeyboardProtocol::current())
     }
 
-    /// [`Self::enter`] under keyboard-protocol policy `protocol` (an app's
-    /// [`Application::keyboard_protocol`]).
-    ///
-    /// # Errors
-    /// As [`Self::enter`].
+
+
+
+
+
     pub fn enter_with(protocol: KeyboardProtocol) -> std::io::Result<Self> {
         enable_raw_mode()?;
         let (terminal, restoration) = initialize_with_restoration(restore_terminal, || {
-            // start crossterm's input reader now: it registers its SIGWINCH
-            // handler only when first polled, and a resize that lands
-            // before that (right after the first frame) would be ignored
-            // by the default disposition, so the app never repaints
+
+
+
+
             prime_input()?;
             let mut out = stdout();
             execute!(
@@ -260,8 +260,8 @@ impl TerminalSession {
                 EnableBracketedPaste,
                 EnableFocusChange
             )?;
-            // progressive enhancement: Cmd (super) chords reach the app
-            // where the terminal speaks the kitty keyboard protocol
+
+
             if let Some(push) = keyboard::session::enter(protocol, || {
                 ratatui::crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false)
             }) {
@@ -286,20 +286,20 @@ impl TerminalSession {
         &mut self.terminal
     }
 
-    /// Restore explicitly (idempotent); `Drop` does the same.
+
     pub fn leave(&mut self) {
         self.restoration.leave();
     }
 
-    /// Supported job-control suspension: give the host shell its canonical,
-    /// echoing terminal back, stop until continued, then own the terminal
-    /// again. Returns the geometry after continuation so the caller can
-    /// rebuild layout and redraw in full; the previous frame cache is
-    /// dropped because the alternate screen was left and re-entered.
-    ///
-    /// # Errors
-    /// Re-entry can fail like `enter` (raw mode or the escape sequences); the
-    /// terminal is then left restored and the error is returned.
+
+
+
+
+
+
+
+
+
     #[cfg(unix)]
     pub fn suspend(&mut self) -> std::io::Result<(u16, u16)> {
         self.restoration.leave();
@@ -328,10 +328,10 @@ impl TerminalSession {
             return Err(e);
         }
         self.restoration.reacquire();
-        // clear the screen and drop the frame cache so the next draw paints
-        // every cell; `Terminal::clear` is avoided because it round-trips a
-        // cursor-position query, which a stopped-and-continued session (or
-        // a headless pty) may never answer
+
+
+
+
         execute!(out, Clear(ClearType::All))?;
         self.terminal.swap_buffers();
         self.terminal.swap_buffers();
@@ -340,8 +340,8 @@ impl TerminalSession {
     }
 }
 
-/// Signal plumbing for supported suspension. The handler only records the
-/// request; every terminal write happens on the event loop.
+
+
 #[cfg(unix)]
 pub mod job_control {
     use std::ffi::c_int;
@@ -371,29 +371,29 @@ pub mod job_control {
     }
 
     extern "C" fn on_tstp(_sig: c_int) {
-        // async-signal-safe: one atomic store, nothing else
+
         REQUESTED.store(true, Ordering::SeqCst);
     }
 
-    /// Route `SIGTSTP` through the event loop instead of stopping mid-draw.
+
     pub fn install() {
-        // SAFETY: installing a handler that performs one atomic store.
+
         let handler: extern "C" fn(c_int) = on_tstp;
         unsafe {
             signal(SIGTSTP, handler as *const () as usize);
         }
     }
 
-    /// Take a pending suspension request.
+
     pub fn take_request() -> bool {
         REQUESTED.swap(false, Ordering::SeqCst)
     }
 
-    /// Stop with the default disposition (the terminal is already restored);
-    /// returns after `SIGCONT` with the handler reinstalled.
+
+
     pub fn stop_self() {
-        // SAFETY: default disposition then raise; both are signal-safe libc
-        // calls made from ordinary (non-handler) context.
+
+
         unsafe {
             signal(SIGTSTP, SIG_DFL);
             raise(SIGTSTP);
@@ -404,7 +404,7 @@ pub mod job_control {
 
 fn restore_terminal() {
     let mut out = stdout();
-    // the arrow pointer and the terminal's own caret, if they were set
+
     let _ = out.write_all(crate::core::shape::reset_sequence().as_bytes());
     if let Some(pop) = keyboard::session::leave() {
         let _ = out.write_all(pop.as_bytes());
@@ -422,8 +422,8 @@ fn restore_terminal() {
     let _ = disable_raw_mode();
 }
 
-/// Run an application until it asks to quit. The terminal is restored on
-/// every exit path: normal quit, I/O error, or panic.
+
+
 pub fn run(app: &mut impl Application) -> std::io::Result<()> {
     let mut session = TerminalSession::enter_with(app.keyboard_protocol())?;
     #[cfg(unix)]
@@ -433,21 +433,21 @@ pub fn run(app: &mut impl Application) -> std::io::Result<()> {
     result
 }
 
-/// Start the terminal input source without reading anything from it.
-/// crossterm builds its reader, and with it the `SIGWINCH` handler that
-/// turns a resize into `Input::Resize`, on the first poll; priming it as
-/// the session starts means no resize after that point is lost. (The
-/// keyboard-protocol probe used to do this by accident, only under
-/// `KeyboardProtocol::Auto`.)
+
+
+
+
+
+
 fn prime_input() -> std::io::Result<()> {
     poll_uninterrupted(Duration::ZERO).map(|_| ())
 }
 
-/// Test instrumentation: `JUNIE_TUI_FIRST_POLL_DELAY_MS` holds the event
-/// loop for that long after the first frame, before it first reads input,
-/// so a PTY test can resize the terminal inside that window
-/// deterministically (`tests/visual_baseline/startup_resize.rs`). Unset in
-/// normal use.
+
+
+
+
+
 fn first_poll_delay() -> Option<Duration> {
     std::env::var("JUNIE_TUI_FIRST_POLL_DELAY_MS")
         .ok()?
@@ -456,8 +456,8 @@ fn first_poll_delay() -> Option<Duration> {
         .map(Duration::from_millis)
 }
 
-/// `poll` interrupted by a signal is not an error: the loop re-checks the
-/// suspension flag and polls again.
+
+
 fn poll_uninterrupted(wait: Duration) -> std::io::Result<bool> {
     match poll_input(wait) {
         Err(e) if e.kind() == std::io::ErrorKind::Interrupted => Ok(false),
@@ -465,18 +465,18 @@ fn poll_uninterrupted(wait: Duration) -> std::io::Result<bool> {
     }
 }
 
-/// Wait up to `wait` for an input event, seeing every byte the terminal
-/// has queued. Every input poll of the runtime goes through here.
-///
-/// crossterm 0.29 waits on the terminal with an edge-triggered readiness
-/// (mio: epoll on Linux, kqueue on macOS) and, on a readiness, reads one
-/// buffer (1 KiB) and stops as soon as that buffer parses into an event.
-/// Bytes queued past that buffer raise no new readiness, so they stay in
-/// the kernel, unseen, until the terminal sends more: the tail of a burst
-/// longer than one buffer (a key flood, a paste without bracketed paste),
-/// a quit included, waits for the next keystroke. When crossterm has
-/// nothing while the terminal still has bytes queued, [`tty_input::rearm`]
-/// raises a fresh readiness for its reader.
+
+
+
+
+
+
+
+
+
+
+
+
 fn poll_input(wait: Duration) -> std::io::Result<bool> {
     if event::poll(Duration::ZERO)? {
         return Ok(true);
@@ -491,19 +491,19 @@ fn poll_input(wait: Duration) -> std::io::Result<bool> {
     event::poll(wait)
 }
 
-/// The terminal crossterm reads, seen with level-triggered checks.
+
 #[cfg(unix)]
 mod tty_input {
     use std::mem::MaybeUninit;
     use std::os::fd::{AsRawFd, RawFd};
     use std::sync::OnceLock;
 
-    /// crossterm's input descriptor: stdin when it is a terminal, otherwise
-    /// `/dev/tty` (crossterm `tty_fd`).
+
+
     fn fd() -> Option<RawFd> {
         static TTY: OnceLock<Option<(RawFd, Option<std::fs::File>)>> = OnceLock::new();
         TTY.get_or_init(|| {
-            // SAFETY: isatty only inspects a descriptor number.
+
             if unsafe { libc::isatty(libc::STDIN_FILENO) } == 1 {
                 return Some((libc::STDIN_FILENO, None));
             }
@@ -514,24 +514,24 @@ mod tty_input {
         .map(|(fd, _)| *fd)
     }
 
-    /// The terminal has input queued that nobody has read.
+
     fn queued(fd: RawFd) -> bool {
         let mut p = libc::pollfd {
             fd,
             events: libc::POLLIN,
             revents: 0,
         };
-        // SAFETY: one valid pollfd, no wait.
+
         unsafe { libc::poll(&mut p, 1, 0) > 0 && p.revents & libc::POLLIN != 0 }
     }
 
-    /// When input is queued, re-apply the terminal's own attributes: the
-    /// line discipline wakes its readers on every attribute change, which
-    /// is the fresh readiness crossterm's reader waits for. Nothing changes
-    /// in the terminal (`TCSANOW`, the attributes it already has; no drain,
-    /// no flush). Only the foreground process group sets attributes: a
-    /// background one would be stopped by `SIGTTOU`. Returns whether it
-    /// re-armed.
+
+
+
+
+
+
+
     pub fn rearm() -> bool {
         let Some(fd) = fd() else {
             return false;
@@ -539,8 +539,8 @@ mod tty_input {
         if !queued(fd) {
             return false;
         }
-        // SAFETY: plain queries on an open descriptor; `tcsetattr` gets the
-        // attributes `tcgetattr` just filled in.
+
+
         unsafe {
             if libc::tcgetpgrp(fd) != libc::getpgrp() {
                 return false;
@@ -555,14 +555,14 @@ mod tty_input {
 }
 
 fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std::io::Result<()> {
-    // Use the backend's own memoized policy, including force_color_output,
-    // rather than independently interpreting the environment.
+
+
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut dirty = true;
     let mut last_tick = Instant::now();
     let mut pump = InputPump::new(app.coalesce());
-    // hover content held back by a frame (a delayed reveal or tooltip):
-    // that frame and when it may show
+
+
     let mut shapes =
         crate::core::shape::ShapeSync::new(crate::core::shape::ShapeSupport::current());
     let mut hover_due: Option<(u64, Instant)> = None;
@@ -572,9 +572,9 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
         #[cfg(unix)]
         if job_control::take_request() {
             let (w, h) = session.suspend()?;
-            // the shapes were reset on the way out: send them again
+
             shapes.forget();
-            // geometry may have changed while stopped: rebuild, then a full draw
+
             let resize = Input::Resize(w, h);
             sizes.observe(&resize);
             app.handle(resize);
@@ -588,11 +588,11 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                 std::thread::sleep(delay);
             }
         }
-        // the pointer and caret shapes of what the last frame drew
+
         if shapes.apply(app.shapes(), terminal.backend_mut())? {
             terminal.backend_mut().flush()?;
         }
-        // what the app asked to write besides the frame (a clipboard copy)
+
         let output = app.take_output();
         if !output.is_empty() {
             for seq in output {
@@ -600,14 +600,14 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
             }
             terminal.backend_mut().flush()?;
         }
-        // a tick-driven transition may have asked to quit without any input
+
         if app.should_quit() {
             return Ok(());
         }
         let interval = app.tick_interval();
         let mut wait = interval.saturating_sub(last_tick.elapsed());
-        // hover content waiting for the pointer to rest (a delayed reveal
-        // or tooltip) shows on time, not at the next tick
+
+
         let now = Instant::now();
         hover_due = match (crate::ui::reveal::hover_wait(), hover_due) {
             (None, _) => None,
@@ -617,7 +617,7 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
         if let Some((_, due)) = hover_due {
             wait = wait.min(due.saturating_duration_since(now));
         }
-        // an input held back for the previous frame is ready without polling
+
         if pump.has_pending() || poll_uninterrupted(wait)? {
             pump.set_policy(app.coalesce());
             let config = effective_input_config(app.input_config(), keyboard::active());
@@ -632,8 +632,8 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                 return Ok(());
             }
             if changed {
-                // Rendering also rebuilds hit regions and reconciles focus.
-                // The next queued key must see the newly active controls.
+
+
                 terminal.draw(|f| render_frame(app, f, suppress_colors))?;
                 if pump.settle(app) {
                     terminal.draw(|f| render_frame(app, f, suppress_colors))?;
@@ -641,10 +641,10 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
             }
         }
         if hover_due.is_some_and(|(_, due)| due <= now + wait) {
-            // the pointer has rested long enough: draw the held-back content
+
             dirty = true;
         }
-        // a resize crossterm never reported still reaches the app
+
         if let Some(size) = terminal_size(terminal)
             && let Some(resize) = sizes.check(size)
             && app.handle(resize) == Outcome::Changed
@@ -657,7 +657,7 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                 dirty = true;
             }
             if app.should_quit() {
-                // draw the final frame so a closing caption is seen before restore
+
                 if dirty {
                     terminal.draw(|f| render_frame(app, f, suppress_colors))?;
                 }
@@ -667,42 +667,42 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
     }
 }
 
-/// The terminal's size now, if the backend can tell.
+
 fn terminal_size(terminal: &ratatui::DefaultTerminal) -> Option<(u16, u16)> {
     terminal.size().ok().map(|s| (s.width, s.height))
 }
 
-/// The terminal size the application was last told, so a resize whose
-/// `SIGWINCH` crossterm never reported still reaches it.
-///
-/// crossterm 0.29's reader returns the first key a poll parses and drops
-/// the rest of that poll's readiness; the `SIGWINCH` pipe is
-/// edge-triggered, so a resize that arrives while a key is waiting is never
-/// reported and the app keeps drawing at the old size (the
-/// `showcase/resize/overview_shrunk` flake: a resize, then Ctrl+L at once).
-/// The event loop compares the real size once per pass and delivers the
-/// missed [`Input::Resize`].
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct SizeWatch {
     known: Option<(u16, u16)>,
 }
 
 impl SizeWatch {
-    /// Start from the size the first frame is drawn at.
+
     pub fn new(size: Option<(u16, u16)>) -> Self {
         Self { known: size }
     }
 
-    /// An input on its way to the application: a resize is what it now
-    /// knows.
+
+
     pub fn observe(&mut self, input: &Input) {
         if let Input::Resize(w, h) = input {
             self.known = Some((*w, *h));
         }
     }
 
-    /// The terminal reports `actual`: the resize the application missed,
-    /// if any (once; it is then what the application knows).
+
+
     pub fn check(&mut self, actual: (u16, u16)) -> Option<Input> {
         if self.known == Some(actual) {
             return None;
@@ -712,9 +712,9 @@ impl SizeWatch {
     }
 }
 
-/// The app's input configuration under the session's keyboard protocol:
-/// the protocol reports Ctrl+\\ and friends as themselves, so the legacy
-/// mapping applies only without it.
+
+
+
 fn effective_input_config(app: InputConfig, protocol_active: bool) -> InputConfig {
     InputConfig {
         legacy_ctrl_punctuation: app.legacy_ctrl_punctuation && !protocol_active,
@@ -722,27 +722,27 @@ fn effective_input_config(app: InputConfig, protocol_active: bool) -> InputConfi
     }
 }
 
-/// Ignores the click that brings the terminal window to the front (SIg1).
-///
-/// With focus reporting on (`?1004`), the terminal says when its window
-/// gains focus. A press that lands within [`Self::window`] of that is the
-/// click the user made to activate the window, not one aimed at the app:
-/// macOS does not deliver a window's first click to its content either
-/// (except where the content opts in). The press, its drags and its
-/// release are dropped; the wheel and pointer motion pass.
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FocusClickGuard {
-    /// How long after focus arrives a press is the activating click.
-    /// Default [`Self::DEFAULT_WINDOW`] (300 ms); zero turns it off.
+
+
     pub window: Duration,
     gained_at: Option<Instant>,
     swallowing: bool,
 }
 
 impl FocusClickGuard {
-    /// 300 ms: long enough for the activating click's press to follow the
-    /// focus report, short enough that a deliberate click right after
-    /// switching windows still lands.
+
+
+
     pub const DEFAULT_WINDOW: Duration = Duration::from_millis(300);
 
     pub const fn new(window: Duration) -> Self {
@@ -753,8 +753,8 @@ impl FocusClickGuard {
         }
     }
 
-    /// Whether `ev`, read at `now`, is dropped. Focus reports are always
-    /// consumed here (they are not application input).
+
+
     pub fn drops(&mut self, ev: &Event, now: Instant) -> bool {
         match ev {
             Event::FocusGained => {
@@ -794,9 +794,9 @@ thread_local! {
         std::cell::Cell::new(FocusClickGuard::default());
 }
 
-/// Set how long after the terminal window gains focus a click is ignored
-/// ([`FocusClickGuard`]); `Duration::ZERO` turns the guard off. Applies to
-/// the runtime on this thread.
+
+
+
 pub fn set_focus_click_guard(window: Duration) {
     FOCUS_GUARD.with(|g| g.set(FocusClickGuard::new(window)));
 }
@@ -821,21 +821,21 @@ fn next_ready_input(config: InputConfig) -> std::io::Result<Option<Input>> {
     Ok(None)
 }
 
-/// Unchanged events drained in one pass before the loop returns to its tick
-/// check. A sustained flood of ignored input (a held key the page does not
-/// bind, a paste of nothing that matters) therefore delays a tick by at most
-/// this many dispatches instead of indefinitely; a changed event returns
-/// immediately so its frame is drawn before the next queued event.
+
+
+
+
+
 pub const DRAIN_BUDGET: usize = 256;
 
-/// Dispatch queued input until one event changes state, the application
-/// asks to quit, the queue is empty, or `DRAIN_BUDGET` unchanged events have
-/// been handled; no coalescing ([`Coalesce::OFF`]: the input after a change
-/// is not read, so nothing is held back). Returns whether state changed.
-/// The runtime itself uses [`InputPump`].
-///
-/// # Errors
-/// Propagates the input source's error.
+
+
+
+
+
+
+
+
 pub fn drain_ready_inputs(
     app: &mut impl Application,
     next: impl FnMut() -> std::io::Result<Option<Input>>,
@@ -843,19 +843,19 @@ pub fn drain_ready_inputs(
     InputPump::new(Coalesce::OFF).drain(app, next)
 }
 
-/// The event loop's input dispatcher: drains queued input, folds bursts per
-/// its [`Coalesce`] policy, and holds back the first input that must wait
-/// for a frame. Public so an application's own tests can pump the same
-/// batched-versus-separated sequences the runtime does: call
-/// [`Self::drain`], draw when it returns `true`, then [`Self::settle`] (and
-/// draw again when that returns `true`).
+
+
+
+
+
+
 #[derive(Debug, Clone, Default)]
 pub struct InputPump {
     policy: Coalesce,
-    /// Read from the queue but due only after the next frame.
+
     pending: Option<Input>,
-    /// The last pointer move of a coalesced burst, handled again after the
-    /// burst's frame so hover resolves against what was drawn.
+
+
     settle: Option<Mouse>,
 }
 
@@ -868,27 +868,27 @@ impl InputPump {
         }
     }
 
-    /// Change the policy for the next drain (an app may switch it at
-    /// runtime); a held-back input stays queued.
+
+
     pub fn set_policy(&mut self, policy: Coalesce) {
         self.policy = policy;
     }
 
-    /// An input was held back for the next frame.
+
     pub fn has_pending(&self) -> bool {
         self.pending.is_some()
     }
 
-    /// Dispatch queued input until a state change is complete, the
-    /// application asks to quit, the queue is empty, or `DRAIN_BUDGET`
-    /// unchanged events have been handled. A change is complete when the
-    /// next input does not continue its burst (that input is held back
-    /// until after the frame), or when the burst reaches `max_batch` events
-    /// or `max_latency`. Returns whether state changed, that is whether a
-    /// frame is due.
-    ///
-    /// # Errors
-    /// Propagates the input source's error.
+
+
+
+
+
+
+
+
+
+
     pub fn drain(
         &mut self,
         app: &mut impl Application,
@@ -896,12 +896,12 @@ impl InputPump {
     ) -> std::io::Result<bool> {
         let started = Instant::now();
         let mut unchanged = 0;
-        // the burst in progress: its last input and how many it folded
+
         let mut burst: Option<(Input, usize)> = None;
         self.settle = None;
         loop {
-            // a burst that cannot grow ends before the next input is read,
-            // so nothing is held back without need
+
+
             if let Some((last, folded)) = &burst
                 && (!self.policy.folds(last, last)
                     || *folded >= self.policy.max_batch
@@ -922,10 +922,10 @@ impl InputPump {
                 self.pending = Some(input);
                 break;
             }
-            // the wheel over a pointer-only reveal tooltip scrolls it; no
-            // widget owns that tooltip, so the app never sees the notch.
-            // Esc over a shown tooltip dismisses it (WCAG 1.4.13) and goes
-            // no further.
+
+
+
+
             let changed = crate::ui::reveal::on_pointer_wheel(&input)
                 .or_else(|| crate::ui::tooltip::on_input(&input))
                 .unwrap_or_else(|| app.handle(input.clone()))
@@ -934,8 +934,8 @@ impl InputPump {
                 return Ok(changed || burst.is_some());
             }
             match &mut burst {
-                // inside a burst an unchanged event (a notch past the end)
-                // still belongs to it
+
+
                 Some((last, folded)) => {
                     *last = input;
                     *folded += 1;
@@ -958,9 +958,9 @@ impl InputPump {
         Ok(burst.is_some())
     }
 
-    /// After the frame of a coalesced pointer-move burst: handle its last
-    /// move again so hover resolves against the regions just drawn. Returns
-    /// whether that changed state (another frame is due).
+
+
+
     pub fn settle(&mut self, app: &mut impl Application) -> bool {
         match self.settle.take() {
             Some(m) => app.handle(Input::Mouse(m)) == Outcome::Changed,
@@ -977,11 +977,11 @@ fn render_frame(app: &mut impl Application, frame: &mut Frame, suppress_colors: 
 }
 
 fn reset_frame_colors(buffer: &mut Buffer) {
-    // Crossterm 0.29 serializes suppressed SetColors as ESC[;m, which resets
-    // modifiers emitted immediately before it. Reset color values prevent
-    // Ratatui from emitting those commands, preserving bold/underline/reverse.
-    // Keep semantic theme colors during rendering: widgets use them to select
-    // planes and state styles before this final backend boundary.
+
+
+
+
+
     for cell in &mut buffer.content {
         cell.fg = Color::Reset;
         cell.bg = Color::Reset;
@@ -989,14 +989,14 @@ fn reset_frame_colors(buffer: &mut Buffer) {
     }
 }
 
-/// Drain any input that is already queued (stale key presses from the
-/// command that started the application) so it cannot skip an opening
-/// sequence. Returns how many events were discarded.
-///
-/// A terminal in its usual line-buffered (canonical) mode holds keys typed
-/// without Enter where `poll` cannot see them; they become readable the
-/// moment raw mode starts. So the drain runs in raw mode, and puts back the
-/// mode it found.
+
+
+
+
+
+
+
+
 pub fn drain_pending_input() -> std::io::Result<usize> {
     let was_raw = ratatui::crossterm::terminal::is_raw_mode_enabled()?;
     if !was_raw {
@@ -1052,9 +1052,9 @@ mod tests {
         );
     }
 
-    /// SIg1: the click that activates the terminal window (within 300 ms
-    /// of the focus report) is dropped, press, drags and release together;
-    /// a later click, the wheel and motion pass; a zero window is off.
+
+
+
     #[test]
     fn the_window_activating_click_is_ignored() {
         use ratatui::crossterm::event::{MouseButton, MouseEvent};
@@ -1082,7 +1082,7 @@ mod tests {
         assert!(g.drops(&up, ms(1150)), "and its release");
         assert!(!g.drops(&down, ms(1200)), "the next click is the user's");
         assert!(!g.drops(&up, ms(1210)));
-        // a press after the window has passed is aimed at the app
+
         assert!(g.drops(&Event::FocusGained, ms(2000)));
         assert!(!g.drops(&down, ms(2400)));
         assert!(!g.drops(&up, ms(2410)));
@@ -1114,22 +1114,22 @@ mod tests {
         }
     }
 
-    /// A resize the input reader never reported is delivered once from the
-    /// size check; a reported one is not delivered twice.
+
+
     #[test]
     fn the_size_watch_delivers_a_missed_resize_once() {
         let mut w = SizeWatch::new(Some((120, 40)));
         assert_eq!(w.check((120, 40)), None, "nothing changed");
-        // the SIGWINCH was dropped: only the size check sees it
+
         assert_eq!(w.check((100, 30)), Some(Input::Resize(100, 30)));
         assert_eq!(w.check((100, 30)), None, "delivered once");
-        // a reported resize is what the app knows: no duplicate
+
         w.observe(&Input::Resize(72, 20));
         assert_eq!(w.check((72, 20)), None);
-        // other input changes nothing
+
         w.observe(&Input::Tick);
         assert_eq!(w.check((72, 20)), None);
-        // no size at start: the first known size is delivered
+
         let mut unknown = SizeWatch::new(None);
         assert_eq!(unknown.check((80, 24)), Some(Input::Resize(80, 24)));
     }
@@ -1161,7 +1161,7 @@ mod tests {
         RESTORATIONS.set(0);
         let (_, mut restoration) =
             initialize_with_restoration(record_restoration, || Ok(())).unwrap();
-        // leave for the shell, come back, leave again: one restore per cycle
+
         restoration.leave();
         restoration.leave();
         assert_eq!(RESTORATIONS.get(), 1);
@@ -1180,7 +1180,7 @@ mod tests {
 
     #[test]
     fn interrupted_poll_is_not_an_error() {
-        // the signal-interrupted case is mapped to "nothing ready"
+
         let mapped = match Err::<bool, _>(io::Error::from(ErrorKind::Interrupted)) {
             Err(e) if e.kind() == ErrorKind::Interrupted => Ok(false),
             other => other,
@@ -1205,8 +1205,8 @@ mod tests {
     fn no_color_backend_preserves_selection_attributes() {
         const CHILD: &str = "JUNIE_NO_COLOR_TEST_CHILD";
         if std::env::var_os(CHILD).is_none() {
-            // Crossterm memoizes NO_COLOR. A child process tests its real policy
-            // without mutating the environment of parallel tests.
+
+
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([
                     "--exact",
@@ -1266,8 +1266,8 @@ mod tests {
         }
     }
 
-    /// Records every handled input; wheel, arrows, Enter and pointer moves
-    /// to a new cell change state.
+
+
     #[derive(Default)]
     struct Recorder {
         handled: Vec<Input>,
@@ -1320,8 +1320,8 @@ mod tests {
         })
     }
 
-    /// Run `queue` through the pump the way the event loop does; returns
-    /// the number of frames drawn.
+
+
     fn frames(app: &mut Recorder, policy: Coalesce, queue: Vec<Input>) -> usize {
         let mut queue = std::collections::VecDeque::from(queue);
         let mut pump = InputPump::new(policy);
@@ -1340,8 +1340,8 @@ mod tests {
         frames
     }
 
-    /// A policy whose latency bound never ends a burst, so counts are
-    /// deterministic on a slow machine.
+
+
     fn unbounded() -> Coalesce {
         Coalesce {
             max_latency: Duration::MAX,
@@ -1359,8 +1359,8 @@ mod tests {
         use ratatui::backend::TestBackend;
         use ratatui::layout::{Position, Rect};
 
-        /// A cut cell under a resting pointer whose full text is longer
-        /// than its 4-row tooltip; every wheel the app sees is counted.
+
+
         struct TipApp {
             text: String,
             reveal: Reveal,
@@ -1426,23 +1426,23 @@ mod tests {
         let rows = draw(&mut app);
         assert!(rows[1].contains("↑"), "scrolled: {rows:#?}");
         assert!(!rows.iter().any(|r| r.contains("line01 ")), "{rows:#?}");
-        // outside the tooltip the app scrolls as before
+
         assert!(send(&mut app, wheel(3, 10)));
         assert_eq!(app.wheels, 1);
-        // a frame without the tooltip leaves every notch to the app
+
         app.reveal = app.reveal.hover(false);
         draw(&mut app);
         send(&mut app, wheel(3, 1));
         assert_eq!(app.wheels, 2);
-        // with scrolling off the tooltip stays put and the app scrolls
+
         app.reveal = Reveal::default().max_rows(4).scroll(false);
         draw(&mut app);
         send(&mut app, wheel(3, 1));
         assert_eq!(app.wheels, 3);
     }
 
-    /// WCAG 1.4.13: Esc over a shown tooltip hides it and goes no further
-    /// (a dialog under it stays open); with no tooltip the app gets Esc.
+
+
     #[test]
     fn esc_dismisses_a_shown_tooltip_before_the_app_sees_it() {
         use crate::core::focus::FocusRing;
@@ -1531,7 +1531,7 @@ mod tests {
         let n = frames(&mut app, unbounded(), vec![wheel_at(3); 60]);
         assert_eq!(n, 1, "60 notches, one frame");
         assert_eq!(app.handled.len(), 60, "no notch is dropped");
-        // the policy is the knob: off draws every change
+
         let mut app = Recorder::default();
         assert_eq!(frames(&mut app, Coalesce::OFF, vec![wheel_at(3); 60]), 60);
     }
@@ -1748,7 +1748,7 @@ mod tests {
             key(KeyCode::Char(']')),
             key(KeyCode::Enter),
         ]);
-        // the runtime's own pump, with its default coalescing
+
         let mut pump = InputPump::new(Coalesce::default());
         assert!(pump.drain(&mut app, || Ok(queued.pop_front())).unwrap());
         assert_eq!(app.handled, 3, "unchanged events remain batched");

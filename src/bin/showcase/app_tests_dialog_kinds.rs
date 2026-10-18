@@ -1,7 +1,7 @@
-//! The Dialog kinds page (plan §7.5, SC18), driven through the real app:
-//! the form's live preview, disclosure, chooser (a picker stacked over the
-//! form), Test action and Save; the info dialog's copy; the choice; the
-//! keyboard reference; the options; the States grid.
+
+
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -37,7 +37,7 @@ fn form(h: &Harness) -> &FormDialog {
         .expect("the form is on top")
 }
 
-/// The page has a layer open on the shell's stack.
+
 fn is_open(h: &Harness) -> bool {
     h.app
         .layers
@@ -58,11 +58,11 @@ fn the_form_previews_discloses_tests_and_saves() {
         h.text()
             .contains("postgres://db.eu-west-1.internal/orders-prod")
     );
-    // the masked password shows only its last four characters
+
     assert!(h.text().contains("7731"), "{}", h.text());
     assert!(!h.text().contains("hunter2"));
-    // the name field opens with its text selected: typing replaces it,
-    // and the live preview follows once the field commits (Tab)
+
+
     for c in "billing".chars() {
         h.key(KeyCode::Char(c));
     }
@@ -73,17 +73,17 @@ fn the_form_previews_discloses_tests_and_saves() {
         "the preview follows the field\n{}",
         h.text()
     );
-    // the tunnel check discloses the hidden key chooser
+
     assert!(!form(&h).field("key").unwrap().visible);
     let (x, y) = h.find("Connect through an SSH tunnel").unwrap();
     h.click(x, y);
     assert!(form(&h).field("key").unwrap().visible, "{}", last(&h));
-    // the Test action reports in the form
+
     let (x, y) = h.find("Test connection").unwrap();
     h.click(x + 1, y);
     assert!(h.text().contains("Connected in 42 ms"), "{}", h.text());
     assert!(last(&h).contains("Action(\"test\")"));
-    // Save closes with the values; focus goes back to the button
+
     let (x, y) = h.find("Save").unwrap();
     h.click(x + 1, y);
     assert!(!is_open(&h));
@@ -110,14 +110,14 @@ fn the_chooser_stacks_a_picker_over_the_form_and_returns_to_it() {
     h.key(KeyCode::Enter);
     assert_eq!(h.app.layers.len(), 1, "back on the form");
     assert!(h.text().contains("~/.ssh/prod_rsa"), "{}", h.text());
-    // Esc on a stacked picker closes only the picker
+
     let (x, y) = h.find("Choose…").unwrap();
     h.click(x + 1, y);
     h.key(KeyCode::Esc);
     assert_eq!(h.app.layers.len(), 1);
     assert!(h.app.layers.top_as::<FormDialog>().is_some());
-    // a click outside the stacked picker lands on its backdrop: the host
-    // hands it to the picker, which cancels under its policy
+
+
     let (x, y) = h.find("Choose…").unwrap();
     h.click(x + 1, y);
     assert_eq!(h.app.layers.len(), 2);
@@ -154,7 +154,7 @@ fn the_info_dialog_copies_a_row_and_stays_open() {
     h.key(KeyCode::Esc);
     assert!(!is_open(&h));
     assert!(last(&h).contains("Info · Closed"), "{}", last(&h));
-    // the ctrl key map replaces y
+
     h.opt("dialogkinds.info_keymap=ctrl");
     open(&mut h, "Server info");
     h.key(KeyCode::Tab);
@@ -165,10 +165,10 @@ fn the_info_dialog_copies_a_row_and_stays_open() {
     assert!(last(&h).contains("Copy"), "{}", last(&h));
 }
 
-/// A light-dismiss info dialog and help overlay close on a click outside
-/// them: their frame registers its backdrop and the layer stack turns the
-/// click into an outside-click dismissal (mouse.md, SC18 finding); a form
-/// whose policy refuses it stays.
+
+
+
+
 #[test]
 fn a_click_outside_a_light_info_or_help_closes_it_and_a_form_stays() {
     let mut h = harness();
@@ -237,8 +237,8 @@ fn the_states_grid_draws_every_row() {
     assert!(h.text().contains("Release channel"));
 }
 
-/// A form a page hosts on the shell's layer stack that counts its ticks
-/// and has no use for Esc (its fields are wired to the page).
+
+
 struct TickingForm {
     form: FormDialog,
     ticks: std::rc::Rc<std::cell::Cell<u32>>,
@@ -274,9 +274,9 @@ impl junie_tui::ui::layer::Layer<crate::pages::LayerRes> for TickingForm {
     }
 }
 
-/// A page's layer lives on the shell's stack: it keeps receiving ticks
-/// while it is on top, and an Esc it has no use for dismisses it under
-/// its policy through the shell, giving focus back to the page.
+
+
+
 #[test]
 fn a_page_hosted_form_ticks_and_esc_dismisses_through_the_shell() {
     use junie_tui::runtime::Application;

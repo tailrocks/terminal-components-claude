@@ -1,5 +1,5 @@
-//! Deterministic provider operations: validate a credential source and
-//! refresh an account's usage. Secret material never leaves the call.
+
+
 
 use crate::domain::account::{
     Account, AccountIdentity, Confidence, CredentialSource, DetectedKind, IdentitySubject,
@@ -11,7 +11,7 @@ use crate::domain::usage::{
 };
 use crate::sim::onepassword::{KeyOutcome, OpError, SecretClass, SimOnePassword, classify_plain};
 
-/// Three-level validation result.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationOutcome {
     pub level: Option<ValidationLevel>,
@@ -20,7 +20,7 @@ pub struct ValidationOutcome {
     pub lifecycle: Lifecycle,
     pub issue: Option<RecoverableIssue>,
     pub usage: Option<AccountUsage>,
-    /// Three rows for the validation card.
+
     pub material: CheckRow,
     pub identity_row: CheckRow,
     pub quota_row: CheckRow,
@@ -33,14 +33,14 @@ pub enum CheckRow {
     Skipped(String),
 }
 
-/// Simulated local folder inventory for folder-backed sources.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FolderProbe {
     Missing,
     Unreadable,
-    /// Folder exists, holds no credential file.
+
     NoCredential,
-    /// Credential file exists but does not parse.
+
     Malformed,
     Found(DetectedKind),
 }
@@ -92,7 +92,7 @@ fn identity_for(provider: Provider, tag: &str) -> (AccountIdentity, Confidence) 
     )
 }
 
-/// Windows a freshly validated key-backed account reports.
+
 pub fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec<QuotaWindow> {
     let h = 3600;
     match provider {
@@ -174,8 +174,8 @@ pub fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec<QuotaW
     }
 }
 
-/// Validate a credential source for `provider`. Runs the provider op
-/// inside the 1Password closure when the source is a reference.
+
+
 pub fn validate(
     provider: Provider,
     source: &CredentialSource,
@@ -453,8 +453,8 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
                     level: Some(ValidationLevel::MaterialDiscovered),
                     identity: AccountIdentity::default(),
                     confidence: Confidence::PresenceOnly,
-                    // key material is present: the agent can run, only the
-                    // public identity stays unresolved
+
+
                     lifecycle: Lifecycle::Available,
                     issue: Some(issue(
                         IssueCode::IdentityUnresolved,
@@ -498,7 +498,7 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
     }
 }
 
-/// Apply a validation outcome to an account (never touches the source).
+
 pub fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64) {
     a.validation = match (&v.level, &v.issue) {
         (Some(l), None) => crate::domain::account::ValidationState::Valid(*l),
@@ -526,7 +526,7 @@ pub fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64) {
     }
 }
 
-/// Refresh duration in virtual ms for an account (deterministic table).
+
 pub fn refresh_duration_ms(a: &Account) -> i64 {
     let base = match a.provider {
         Provider::Anthropic => 800,

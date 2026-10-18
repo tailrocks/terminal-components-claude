@@ -1,11 +1,11 @@
-//! A modal form: text inputs (masked secrets included), selects,
-//! checkboxes, radio groups, "choose…" buttons and notes, with Save /
-//! Cancel and per-field values read back by name ([`FormValues`]). Moved
-//! from jackin-preview so every app can use it; values are strings, bools
-//! and indices ([`FieldValue`]), never app types. An owner that needs a
-//! picker or a file browser for a "choose…" field opens its own modal on
-//! [`FormAction::Choose`] and writes the result back with
-//! [`FormDialog::set_chooser`].
+
+
+
+
+
+
+
+
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
@@ -41,14 +41,14 @@ pub enum FormFieldKind {
     Select(Select),
     Check(Checkbox),
     Radio(RadioGroup),
-    /// Read-only value with a `Choose…` button that the owner handles.
+
     Chooser {
         label: String,
         value: String,
         detail: Option<String>,
         button: Button,
     },
-    /// Static text rows (helper lines, validation results).
+
     Note(Vec<(String, Tone)>),
 }
 
@@ -144,8 +144,8 @@ impl FormField {
         }
     }
 
-    /// The field's Tab stop, `None` when it takes no focus (a note or a
-    /// disabled control).
+
+
     fn tab_stop(&self) -> Option<WidgetId> {
         let disabled = match &self.kind {
             FormFieldKind::Input(i) => i.disabled,
@@ -159,10 +159,10 @@ impl FormField {
     }
 }
 
-/// The footer while the form is on top: a field being edited shows
-/// [`EDIT_FIELD`](crate::widgets::keyhint::EDIT_FIELD); otherwise Tab moves
-/// between fields, Enter presses the focused button or, on a field, Save,
-/// and Esc names the cancel button when the dismiss policy lets it close.
+
+
+
+
 impl HasHints for FormDialog {
     fn hints(&self, cx: &HintCx) -> Vec<Hint> {
         if self.is_editing() {
@@ -190,69 +190,69 @@ impl HasHints for FormDialog {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FormAction {
     Changed(String),
-    /// A chooser button fired.
+
     Choose(String),
-    /// A named action button fired (`validate`, `plain`, …).
+
     Action(String),
     Save,
     Cancel,
 }
 
 pub struct FormDialog {
-    /// The `×` its frame draws when its [`Dismiss`] policy lets Esc close
-    /// it ([`Dismiss::shows_close`]); a click on it means Esc. Default
-    /// [`IconButton::close`] (three-cell plate, `Close · Esc` tooltip);
-    /// every modal takes a custom one the same way
-    /// ([`crate::ui::layer::Overlay::close_button`]).
-    ///
-    /// [`Dismiss`]: crate::ui::popup::Dismiss
-    /// [`Dismiss::shows_close`]: crate::ui::popup::Dismiss::shows_close
-    /// [`IconButton::close`]: crate::widgets::icon_button::IconButton::close
+
+
+
+
+
+
+
+
+
     pub close_button: crate::widgets::icon_button::IconButton,
-    /// Which dismissals close it. Default `Dismiss::ESCAPE`.
+
     pub dismiss: crate::ui::popup::Dismiss,
     pub id: WidgetId,
     pub title: String,
     pub meta: Option<String>,
     pub fields: Vec<FormField>,
-    /// Extra buttons before Cancel/Save: (name, button).
+
     pub actions: Vec<(String, Button)>,
     pub cancel: Button,
     pub save: Button,
     pub width: u16,
     pub error: Option<String>,
-    /// The fields' scroll and the bar ([`Scrollable`]).
+
     pub scroll: ScrollPane,
-    /// The focus the view last scrolled to: the view follows focus only
-    /// when it moves, so the wheel can still scroll away from the focused
-    /// field (R-apps-9).
+
+
+
     kept: Option<WidgetId>,
     pub area: Rect,
     pub events: Vec<FormAction>,
     pub dirty: bool,
-    /// When false, Save emits `Action("save")` and the owner closes the form
-    /// once validation passes.
+
+
     pub pop_on_save: bool,
-    /// The theme's strings as of the last render; Cancel and Save labels
-    /// still reading them follow a change ([`Strings::follow`]).
+
+
     strings: Strings,
-    /// Which keys move between the buttons while no field is editing.
-    /// Default [`NavKeys::NO_VIM`]: ←/→ only, so letters stay with the
-    /// fields.
+
+
+
     pub nav: NavKeys,
-    /// How ←/→ move between the buttons ([`ButtonRow::step`](crate::widgets::button::ButtonRow::step)). Default
-    /// [`ButtonRow::new`](crate::widgets::button::ButtonRow::new): disabled buttons are skipped, no wrap.
+
+
     pub button_row: crate::widgets::button::ButtonRow,
 }
 
 impl FormDialog {
-    /// See [`Self::button_row`].
+
     pub fn button_row(mut self, row: crate::widgets::button::ButtonRow) -> Self {
         self.button_row = row;
         self
     }
 
-    /// See [`Self::close_button`].
+
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
@@ -395,11 +395,11 @@ impl FormDialog {
         }
     }
 
-    /// Save: validate every visible text input first (submit is where an
-    /// untouched required field is judged, [`crate::widgets::input::ValidateOn`]).
-    /// An invalid field shows its error inline and takes focus, the first
-    /// one in form order, and the form does not save (the HTML form and
-    /// macOS sheet convention); otherwise the save event goes out.
+
+
+
+
+
     fn submit(&mut self, focus: &mut Focus) {
         let mut first_invalid = None;
         for f in self.fields.iter_mut().filter(|f| f.visible) {
@@ -563,8 +563,8 @@ impl FormDialog {
                 Outcome::Changed
             }
             _ if !editing && matches!(self.nav.action(key), Some(Nav::Left | Nav::Right)) => {
-                // one button-row rule (K32): skips disabled buttons,
-                // stops at the ends unless the row wraps
+
+
                 let row = self
                     .actions
                     .iter()
@@ -576,8 +576,8 @@ impl FormDialog {
                 }
                 Outcome::Changed
             }
-            // a field that edits as soon as it has focus passes a clean Esc
-            // on: it cancels the form, as Esc on any other control does
+
+
             KeyCode::Esc if self.dismiss.escape => {
                 self.events.push(FormAction::Cancel);
                 Outcome::Changed
@@ -586,7 +586,7 @@ impl FormDialog {
         }
     }
 
-    /// The form's text inputs, for pointer routing.
+
     fn inputs(&mut self) -> impl Iterator<Item = &mut TextInput> {
         self.fields.iter_mut().filter_map(|f| match &mut f.kind {
             FormFieldKind::Input(i) => Some(i),
@@ -594,12 +594,12 @@ impl FormDialog {
         })
     }
 
-    /// A press on `id` with the click count it starts: an input
-    /// remembers it for the drag (the second press of a double click
-    /// selects the word).
+
+
+
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
         if let Some(s) = self.select_owning(id) {
-            // a select opens on the press (press-drag-release)
+
             return s.on_press(id, pos);
         }
         self.inputs()
@@ -607,8 +607,8 @@ impl FormDialog {
             .map_or(Outcome::Ignored, |i| i.on_press_count(pos, count))
     }
 
-    /// A drag held since a press on `pressed`: an input selects its text,
-    /// a select's cursor follows the pointer over its options.
+
+
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if scrollbar::is_bar_of(pressed, self.id) {
             return match self.pane().bar_of(pressed) {
@@ -624,8 +624,8 @@ impl FormDialog {
             .map_or(Outcome::Ignored, |i| i.on_drag(pos))
     }
 
-    /// The button went up away from `pressed` (no click): a select whose
-    /// press-drag ended on an option chooses it.
+
+
     pub fn on_release(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         for f in self.fields.iter_mut() {
             if let FormFieldKind::Select(s) = &mut f.kind
@@ -649,14 +649,14 @@ impl FormDialog {
         })
     }
 
-    /// A completed click. Same as [`Self::on_click_count`] with a count
-    /// of 1.
+
+
     pub fn on_click(&mut self, id: WidgetId, pos: Position, focus: &mut Focus) -> Outcome {
         self.on_click_count(id, pos, 1, focus)
     }
 
-    /// A completed click with its multi-click `count`: in an input 2
-    /// selects the word and 3 the line.
+
+
     pub fn on_click_count(
         &mut self,
         id: WidgetId,
@@ -733,7 +733,7 @@ impl FormDialog {
             }
             return Outcome::Changed;
         }
-        // click elsewhere closes an open select
+
         for f in self.fields.iter_mut() {
             if let FormFieldKind::Select(s) = &mut f.kind {
                 s.close();
@@ -742,8 +742,8 @@ impl FormDialog {
         Outcome::Consumed
     }
 
-    /// A control lost focus: the form field ends its edit; a committed
-    /// value marks the form dirty and queues `Changed` like Enter does.
+
+
     pub fn on_blur(&mut self, ch: crate::core::focus::FocusChange) -> Outcome {
         for f in self.fields.iter_mut() {
             match &mut f.kind {
@@ -784,7 +784,7 @@ impl FormDialog {
         h
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -810,7 +810,7 @@ impl FormDialog {
         let body_h = inner.height.saturating_sub(3 + err);
         self.scroll.set_content(content as usize);
         self.scroll.set_viewport(body_h as usize);
-        // bring the focused field into view when focus moves to it
+
         let cur = ctx.interaction.focus;
         let moved = cur != self.kept;
         self.kept = cur;
@@ -838,8 +838,8 @@ impl FormDialog {
             let fh = f.height() as i32;
             let whole = y >= body.y as i32 && y < body.bottom() as i32;
             if !whole && let Some(id) = f.tab_stop() {
-                // scrolled out of the body (or cut at its top): not drawn,
-                // still in the Tab order; focusing it scrolls it into view
+
+
                 ctx.focus_stop(id);
             }
             if y + fh > body.y as i32 && y < body.bottom() as i32 {
@@ -917,7 +917,7 @@ impl FormDialog {
             y += fh + 1;
         }
         if self.scroll.overflows() {
-            // the bar sits in the padding just inside the frame
+
             let rows = Rect::new(
                 area.x,
                 body.y,
@@ -953,7 +953,7 @@ impl FormDialog {
         }
         self.cancel.render(rects[n], buf, ctx, bg);
         self.save.render(rects[n + 1], buf, ctx, bg);
-        // hits on top of the surface
+
         for f in &self.fields {
             if !f.visible {
                 continue;
@@ -977,7 +977,7 @@ impl FormDialog {
         }
         ctx.hits.register(self.cancel.id, self.cancel.area);
         ctx.hits.register(self.save.id, self.save.area);
-        // an open select popup draws last
+
         if let Some(fi) = open_select {
             let mut y: i32 = body.y as i32 - self.scroll.offset as i32;
             for (i, f) in self.fields.iter_mut().enumerate() {
@@ -1012,15 +1012,15 @@ impl Scrollable for FormDialog {
 }
 
 impl FormDialog {
-    /// One pointer event the router resolved to the form (its layer's
-    /// [`crate::ui::layer::Layer::pointer`]), routed by the event's owner:
-    /// a select field takes its own gestures (an open list scrolls under
-    /// the wheel, its press-drag-release chooses, its backdrop closes it;
-    /// a chosen value marks the form dirty and queues `Changed`); an input
-    /// takes its press, drag and click (a click focuses it); a wheel or a
-    /// bar press on the form scrolls it, and a wheel over anything else
-    /// (nothing under a modal) moves nothing; any other completed click
-    /// is [`Self::on_click_count`].
+
+
+
+
+
+
+
+
+
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -1035,7 +1035,7 @@ impl FormDialog {
                     let Some(mut r) = s.route(ev) else {
                         continue;
                     };
-                    // a wheel the closed field passes on goes to the form
+
                     if ev.wheel().is_some() && !r.is_consumed() {
                         break;
                     }
@@ -1120,9 +1120,9 @@ mod tests {
         );
     }
 
-    /// Keyboard audit #32: ←/→ between a form's buttons follow the one
-    /// button-row rule Dialog uses: disabled buttons are skipped and the
-    /// arrows stop at the ends (they wrapped and landed on disabled ones).
+
+
+
     #[test]
     fn arrows_between_form_buttons_skip_disabled_and_stop_at_the_ends() {
         use crate::core::focus::{Focus, FocusRing};
@@ -1167,11 +1167,11 @@ mod tests {
         assert_eq!(focus.current(), Some(w.cancel.id), "wraps when asked");
     }
 
-    /// Fields scrolled out of a short form stay in the Tab order. Found
-    /// re-approving jackin: at 72x20 the New account form's Credential
-    /// source and 1Password reference were below the body, never drawn,
-    /// so Tab went from Provider straight to the buttons and they could
-    /// not be reached by keyboard.
+
+
+
+
+
     #[test]
     fn fields_scrolled_out_of_the_body_stay_in_the_tab_order() {
         let t = Theme::junie();
@@ -1199,11 +1199,11 @@ mod tests {
         assert_eq!(order, ids, "every field, in form order");
     }
 
-    /// Submit judges the fields an edit only passed (ValidateOn::Change):
-    /// Save with an empty required field marks it inline, moves focus to
-    /// it and does not save. Found re-approving jackin against
-    /// visual-baseline: after f7e8b7538 the add-account form saved past
-    /// the empty Display name and only the owner's form-level line said so.
+
+
+
+
+
     #[test]
     fn save_marks_the_first_invalid_field_and_does_not_save() {
         use crate::core::focus::{Focus, FocusRing};
@@ -1239,10 +1239,10 @@ mod tests {
         assert_eq!(f.events, vec![FormAction::Save]);
     }
 
-    /// A field that edits as soon as it has focus passes a clean Esc on
-    /// (nothing to revert): the form cancels, as Esc on a button does. It
-    /// swallowed the key, so a form opened on such a field never closed
-    /// by Esc.
+
+
+
+
     #[test]
     fn a_clean_esc_in_an_immediate_edit_cancels_the_form() {
         use crate::core::focus::{Focus, FocusRing};
@@ -1266,7 +1266,7 @@ mod tests {
         f.on_key(&esc, &mut focus, &ring);
         assert_eq!(f.events, vec![FormAction::Cancel]);
 
-        // a dirty field reverts first
+
         let mut f = FormDialog::new(
             WidgetId::of("f"),
             "Form",
@@ -1284,10 +1284,10 @@ mod tests {
         assert!(!f.events.contains(&FormAction::Cancel), "{:?}", f.events);
     }
 
-    /// M18: a wheel over an open select's list inside a form scrolls the
-    /// list, not the form behind it. The event reaches the form's layer
-    /// resolved from the frame's hit regions, as the pointer router
-    /// delivers it.
+
+
+
+
     #[test]
     fn a_wheel_over_an_open_select_scrolls_its_list_not_the_form() {
         use crate::core::hit::Axis;

@@ -1,5 +1,5 @@
-//! Small shell modals: a scrollable text modal used for the key reference,
-//! About, and "Why is this here?". It is a [`Layer`] on the shell's stack.
+
+
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
@@ -20,7 +20,7 @@ use ratatui::style::Style;
 
 use super::ModalResult;
 
-/// One line of a text modal: an optional bold key column and a value.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextLine {
     pub key: String,
@@ -60,8 +60,8 @@ pub struct TextModal {
     pub width: u16,
     pub closed: bool,
     pub area: Rect,
-    /// Which dismissals close the viewer. Default [`Dismiss::LIGHT`](junie_tui::ui::popup::Dismiss::LIGHT): it
-    /// holds nothing to lose.
+
+
     pub dismiss: junie_tui::ui::popup::Dismiss,
     scroll_area: Rect,
     wrapped: Vec<(String, String, Tone, bool)>,
@@ -168,9 +168,9 @@ impl TextModal {
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // the shared modal frame, placed in the body clear of the menu bar,
-        // the status bar and the footer, with the dialog's margin around it;
-        // the title is drawn inside, so the frame carries none
+
+
+
         let width_ = self.width;
         let frame = move |h: u16| {
             junie_tui::ui::modal::Frame::new(width_, h)
@@ -282,8 +282,8 @@ impl Layer<ModalResult> for TextModal {
     fn on_key(&mut self, key: &Key, _: &mut LayerCx<'_>) -> Outcome {
         TextModal::on_key(self, key)
     }
-    /// The body's bar takes a click on its track and a drag of its thumb;
-    /// a vertical wheel notch scrolls the body.
+
+
     fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_>) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
             if axis == Axis::Vertical {
@@ -345,8 +345,8 @@ mod tests {
             .collect();
         let mut m = TextModal::new(WidgetId::of("about"), "About", lines);
         m.render(screen, &mut buf, &mut ctx);
-        // the body is rows 1..28 (menu bar above, status and footer
-        // below): 72 wide, 4 lines + 6 rows of chrome, centred there
+
+
         assert_eq!(m.area, Rect::new(14, 9, 72, 10));
     }
 }

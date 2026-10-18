@@ -11,4 +11,3 @@ impl Add<Duration> for Instant {
     fn add(self, rhs: Duration) -> Self { Self(self.0.checked_add(rhs).expect("clock overflow")) }
 }
 pub fn set_millis(value: u64) { NOW.with(|now| now.set(Duration::from_millis(value))); }
-

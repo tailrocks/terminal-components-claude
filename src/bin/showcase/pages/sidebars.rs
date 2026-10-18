@@ -1,9 +1,9 @@
-//! Sidebars (Navigation): the library `NavList` (sections, the current
-//! item, the focus cursor, hover, a collapsed icon mode) in a sidebar whose
-//! frame carries the `SidebarRail` collapse button; hidden, the sidebar
-//! leaves the rail, and a click on it (or Ctrl+B) brings it back.
-//! Options: `crate::options::SIDEBARS`; States: the open and collapsed list
-//! and the rail.
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -26,7 +26,7 @@ use junie_tui::widgets::rail::{RailAction, SidebarRail};
 
 const ID: WidgetId = WidgetId::of("sidebars");
 
-/// The demo's items: `(label, icon, section, badge, disabled)`.
+
 const ITEMS: [(&str, &str, &str, Option<&str>, bool); 8] = [
     ("Tasks", "T", "Workspace", Some("3"), false),
     ("Runs", "R", "Workspace", None, false),
@@ -59,11 +59,11 @@ pub struct SidebarsPage {
     opts: PageValues,
     pub nav: NavList,
     collapse: Button,
-    /// The sidebar's collapse button and the rail it leaves.
+
     rail: SidebarRail,
-    /// The sidebar is hidden behind its rail.
+
     pub hidden: bool,
-    /// What the list and the rail reported last.
+
     last: String,
 }
 
@@ -83,8 +83,8 @@ impl SidebarsPage {
         page
     }
 
-    /// Rebuild the list and the rail from the options through their
-    /// builders, keeping the open item and the cursor.
+
+
     fn apply(&mut self) {
         let o = &self.opts;
         let (current, cursor) = (self.nav.current, self.nav.cursor);
@@ -112,15 +112,15 @@ impl SidebarsPage {
         }
     }
 
-    /// Collapse the list to its icons, or open it (the Collapse button).
+
     fn toggle_collapsed(&mut self) {
         let on = !self.nav.collapsed;
         self.opts.set("sidebars.collapsed", usize::from(on));
         self.nav.collapsed = on;
     }
 
-    /// Hide the sidebar behind its rail, or bring it back (the rail's
-    /// buttons or Ctrl+B).
+
+
     fn set_hidden(&mut self, on: bool, cx: &mut Cx) {
         self.hidden = on;
         self.opts.set("sidebars.hidden", usize::from(on));
@@ -135,8 +135,8 @@ impl SidebarsPage {
         }
     }
 
-    /// The content card's lines: the keys, the three marks, the rules,
-    /// the last item opened.
+
+
     fn lines(&self) -> [String; 11] {
         let keys = if self.opts.value("sidebars.keys") == "desktop" {
             "One focus stop. ↑↓ move the cursor, Enter opens."
@@ -159,8 +159,8 @@ impl SidebarsPage {
         .map(str::to_owned)
     }
 
-    /// The content card's height `width` columns wide: its lines wrapped
-    /// to the card's inner width, and the title rows.
+
+
     fn card_height(&self, width: u16) -> u16 {
         let current = &self.nav.items[self.nav.current].label;
         let panel = Panel::card(Some(current));
@@ -173,8 +173,8 @@ impl SidebarsPage {
         panel.outer(Size::new(0, rows as u16)).height
     }
 
-    /// Columns left of the content card: the sidebar's frame and a gap,
-    /// or the rail it hides behind.
+
+
     fn side_width(&self) -> u16 {
         if self.hidden {
             self.rail.width() + 1
@@ -186,7 +186,7 @@ impl SidebarsPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let content_x = if self.hidden {
-            // the hidden sidebar leaves its rail (none without one)
+
             let col = Rect::new(area.x, area.y, SidebarRail::WIDTH, area.height.min(20));
             self.rail.render_rail(col, buf, ctx, t.canvas);
             area.x + self.side_width()
@@ -272,8 +272,8 @@ impl SidebarsPage {
     }
 }
 
-/// The States grid: the open list, the collapsed list and the rail the
-/// hidden sidebar leaves.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let sample = || NavList::new(ID.sub("states-nav"), items(true)).widths(22, 6);
@@ -297,7 +297,7 @@ fn states_grid() -> StateGrid {
         .column("Rail", SidebarRail::new(ID.sub("states-rail"), "Nav"))
 }
 
-/// The narrowest the content card is laid out: its lines wrap to it.
+
 const CARD_MIN: u16 = 24;
 
 impl Page for SidebarsPage {
@@ -308,10 +308,10 @@ impl Page for SidebarsPage {
         "Sections, current item, focus cursor, hover, collapsed mode; text first, no icons"
     }
 
-    /// The sidebar beside the content card as wide as the room (never
-    /// under [`CARD_MIN`]), the card as tall as its lines wrapped to that
-    /// width: the text wraps instead of scrolling the page sideways, and
-    /// the nav scrolls itself when the card is shorter than its rows.
+
+
+
+
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let card = avail.width.saturating_sub(self.side_width()).max(CARD_MIN);
         Size::new(self.side_width() + card, self.card_height(card))
@@ -327,7 +327,7 @@ impl Page for SidebarsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-        // Ctrl+B is the sidebar's shortcut wherever focus is on the page
+
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('b')
             && self.template.section() == Section::Playground

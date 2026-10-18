@@ -32,7 +32,7 @@ fn button_focus_remains_unambiguous_without_colour() {
             ButtonKind::Danger,
             ButtonKind::Toggle,
         ] {
-            // Render onto the same buffer: losing focus must erase its old bar.
+
             let area = Rect::new(0, 0, 12, 1);
             let mut buf = Buffer::empty(area);
             for (focused, disabled, expected) in
@@ -56,15 +56,15 @@ fn button_focus_remains_unambiguous_without_colour() {
                     &mut ctx,
                     theme.canvas,
                 );
-                // NO_COLOR removes colours in the backend; symbols must carry
-                // focus without relying on foreground/background equality.
+
+
                 assert_eq!(
                     buf[(0, 0)].symbol(),
                     expected,
                     "{level:?} {kind:?}: focused={focused}, disabled={disabled}"
                 );
-                // dim intensity marks disabled only: always without colour,
-                // and at 16 colours where the disabled grey is the plane
+
+
                 let dim = buf[(1, 0)].modifier.contains(Modifier::DIM);
                 assert!(!dim || disabled, "{level:?} {kind:?}: dim while enabled");
                 if level == ColorLevel::Mono {
@@ -111,8 +111,8 @@ fn list_focus_and_selection_have_distinct_symbols_without_colour() {
     }
 }
 
-/// Reverse video where colour cannot carry a selection: monochrome, and 16
-/// colours, whose only blue is the menu cursor fill.
+
+
 #[test]
 fn text_selection_uses_reverse_video_only_without_a_selection_hue() {
     let id = WidgetId::of("test.selection");

@@ -1,8 +1,8 @@
-//! Usage memory (HP02): bounded, decaying frecency per action, learned
-//! query→action choices, a versioned serialised form with atomic-style
-//! merge, and an opt-out that performs neither reads nor writes. The store
-//! is deterministic over the fixture clock; production adapters persist the
-//! same text at `$XDG_CACHE_HOME/holla/frecency.json`.
+
+
+
+
+
 
 use std::collections::BTreeSet;
 
@@ -11,16 +11,16 @@ pub const HALF_LIFE_DAYS: f64 = 10.0;
 pub const STALE_DAYS: i64 = 90;
 pub const RECENT_THRESHOLD: f64 = 0.05;
 pub const RECENT_MAX: usize = 5;
-/// Frecency may add at most a quarter of one text bucket to a match.
+
 pub const BOOST_CAP: f64 = 0.25;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionUse {
     pub item: String,
-    /// `None` counts as global use on the host.
+
     pub path: Option<String>,
     pub host: String,
-    /// Newest last, at most `MAX_USES`.
+
     pub stamps: Vec<i64>,
 }
 
@@ -35,7 +35,7 @@ impl ActionUse {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QueryChoice {
-    /// Normalised: trimmed, lowercased, whitespace collapsed.
+
     pub query: String,
     pub item: String,
     pub host: String,
@@ -46,7 +46,7 @@ pub struct QueryChoice {
 pub struct UsageStore {
     pub actions: Vec<ActionUse>,
     pub queries: Vec<QueryChoice>,
-    /// `HOLLA_NO_HISTORY=1`: nothing is read or written and nothing learns.
+
     pub enabled: bool,
     pub load_error: Option<String>,
     pub save_error: Option<String>,
@@ -100,8 +100,8 @@ impl UsageStore {
         self.actions.last_mut().unwrap()
     }
 
-    /// Record a use (path-scoped when `path` is given). Recorded before the
-    /// result is known, so failed invocations count too.
+
+
     pub fn used(&mut self, item: &str, path: Option<&str>, host: &str, now_secs: i64) {
         if !self.enabled {
             return;
@@ -115,7 +115,7 @@ impl UsageStore {
         }
     }
 
-    /// Seed a fixture entry with `count` uses ending at `last_secs`.
+
     pub fn seed(&mut self, item: &str, path: Option<&str>, host: &str, count: u32, last_secs: i64) {
         let e = self.entry(item, path, host);
         e.stamps = (0..count.min(MAX_USES as u32) as i64)
@@ -154,9 +154,9 @@ impl UsageStore {
             .find(|u| u.item == item && u.path.as_deref() == path && u.host == host)
     }
 
-    /// Decayed use weight: each use counts `0.5^(age / 10 days)`; a future
-    /// stamp (clock skew) counts as now. The sum is diminished so frequent
-    /// use saturates instead of dominating.
+
+
+
     pub fn frecency(&self, item: &str, path: Option<&str>, host: &str, now_secs: i64) -> f64 {
         let Some(u) = self.find(item, path, host) else {
             return 0.0;
@@ -172,15 +172,15 @@ impl UsageStore {
         raw / (raw + 1.0)
     }
 
-    /// Frecency across the path-scoped and global records of an item.
+
     pub fn frecency_any(&self, item: &str, path: &str, host: &str, now_secs: i64) -> f64 {
         let here = self.frecency(item, Some(path), host, now_secs);
         let global = self.frecency(item, None, host, now_secs);
         here.max(global)
     }
 
-    /// Items recently used here: above the threshold, at most five,
-    /// ordered by score then item id for deterministic ties.
+
+
     pub fn recent(&self, path: &str, host: &str, now_secs: i64) -> Vec<(String, f64)> {
         let items: BTreeSet<&str> = self
             .actions
@@ -202,8 +202,8 @@ impl UsageStore {
         v
     }
 
-    /// Drop stamps older than 90 days, empty records, and learned queries
-    /// whose action has no remaining use.
+
+
     pub fn prune(&mut self, now_secs: i64) {
         let cutoff = now_secs - STALE_DAYS * 86_400;
         for u in &mut self.actions {
@@ -215,15 +215,15 @@ impl UsageStore {
             .retain(|q| alive.contains(q.item.as_str()) && q.last >= cutoff);
     }
 
-    /// Forget every learned signal for one item.
+
     pub fn forget(&mut self, item: &str) {
         self.actions.retain(|u| u.item != item);
         self.queries.retain(|q| q.item != item);
     }
 
-    // -------------------------------------------------------- persistence
 
-    /// Versioned JSON; deterministic ordering.
+
+
     pub fn serialize(&self) -> String {
         let mut actions: Vec<&ActionUse> = self.actions.iter().collect();
         actions.sort_by(|a, b| {
@@ -269,9 +269,9 @@ impl UsageStore {
         )
     }
 
-    /// Load persisted text. Missing, corrupt or unknown-schema input is an
-    /// empty store with the reason kept for the status line; `now` clamps
-    /// stamps from the future.
+
+
+
     pub fn load(text: Option<&str>, now_secs: i64) -> Self {
         let mut store = Self::default();
         let Some(text) = text else {
@@ -357,9 +357,9 @@ impl UsageStore {
         store
     }
 
-    /// Merge another writer's store into this one: stamps union (capped,
-    /// newest kept), newest query choice wins. Used before an atomic save
-    /// so a concurrent writer's updates are never lost.
+
+
+
     pub fn merge(&mut self, other: &UsageStore) {
         for o in &other.actions {
             let e = self.entry(&o.item, o.path.as_deref(), &o.host);
@@ -385,8 +385,8 @@ impl UsageStore {
         }
     }
 
-    /// Save: merge the on-disk text first, then produce the new text. A
-    /// save failure is reported but never changes an action's outcome.
+
+
     pub fn save(&mut self, on_disk: Option<&str>, now_secs: i64) -> Result<String, String> {
         if !self.enabled {
             return Err("history disabled (HOLLA_NO_HISTORY=1)".into());
@@ -437,11 +437,11 @@ mod tests {
             MAX_USES as u32
         );
         assert!(s.frecency("a", Some("/p"), "h", now) < 1.0);
-        // clock skew: a future stamp never inflates the score
+
         s.seed("f", None, "h", 1, now + 400 * DAY);
         let loaded = UsageStore::load(Some(&s.serialize()), now);
         assert_eq!(loaded.find("f", None, "h").unwrap().last_secs(), now);
-        // a stale use falls below the recent threshold and is pruned
+
         s.seed("old", Some("/p"), "h", 1, now - 60 * DAY);
         assert!(s.frecency("old", Some("/p"), "h", now) < RECENT_THRESHOLD);
         s.seed("gone", Some("/p"), "h", 3, now - 95 * DAY);
@@ -468,7 +468,7 @@ mod tests {
         assert!(!r.iter().any(|(i, _)| i == "weak" || i == "elsewhere"));
         let ids: Vec<&str> = r.iter().map(|(i, _)| i.as_str()).collect();
         assert_eq!(ids, vec!["b", "a", "c", "d", "e"], "score then id: {ids:?}");
-        // ties resolve by id
+
         let mut t = UsageStore::default();
         t.seed("tie1", Some("/p"), "h", 1, now);
         t.seed("tie0", Some("/p"), "h", 1, now);
@@ -522,7 +522,7 @@ mod tests {
                 .is_some()
         );
         assert!(UsageStore::load(None, now).load_error.is_none());
-        // two writers: the save merges what is on disk first
+
         let mut a = UsageStore::default();
         a.used("x", Some("/p"), "h", now - 5);
         let mut b = UsageStore::default();
@@ -538,7 +538,7 @@ mod tests {
         );
         assert!(merged.find("y", None, "h").is_some());
         assert_eq!(merged.learned_for("q", "h"), Some("y"));
-        // a save error is reported, not fatal, and changes nothing else
+
         let mut c = UsageStore {
             save_error: Some("EACCES".into()),
             ..Default::default()
@@ -546,7 +546,7 @@ mod tests {
         c.used("z", None, "h", now);
         assert!(c.save(None, now).is_err());
         assert_eq!(c.find("z", None, "h").unwrap().count(), 1);
-        // opt-out performs neither reads nor writes nor learning
+
         let mut off = UsageStore::disabled();
         off.used("z", None, "h", now);
         off.learn_query("q", "z", "h", now);

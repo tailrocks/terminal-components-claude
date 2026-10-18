@@ -1,16 +1,16 @@
-//! Copy-audit regressions: one key, one meaning across TablePro's screens.
+
 
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::Route;
 use crate::app_tests::H;
 
-/// Ctrl+D switches Data / Structure in the workbench; duplicating is Alt+D
-/// everywhere, on a connection and on a grid row.
+
+
 #[test]
 fn ctrl_d_is_data_structure_and_alt_d_duplicates() {
-    // Alt chords delivered (a Linux client, WezTerm): the hints this
-    // test reads do not depend on the host terminal (A29)
+
+
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = H::new(200, 40);
     assert_eq!(h.app.route(), Route::Connections);
@@ -32,10 +32,10 @@ fn ctrl_d_is_data_structure_and_alt_d_duplicates() {
     );
 }
 
-/// A29: on macOS Terminal (Option types a character) no footer names an
-/// Alt chord: the connection list drops Alt+D (Shift+F10 › Duplicate
-/// remains), the query editor names Shift+F5 for Run all, and Shift+F5
-/// runs all. With the kitty keyboard protocol Alt+D and Alt+R are back.
+
+
+
+
 #[test]
 fn alt_hints_hide_on_macos_terminal_and_show_with_the_kitty_protocol() {
     use junie_tui::core::event::{ClientPlatform, Input, Key};
@@ -45,7 +45,7 @@ fn alt_hints_hide_on_macos_terminal_and_show_with_the_kitty_protocol() {
     let footer = |h: &H| h.text().lines().last().unwrap_or_default().to_owned();
     let workbench = || {
         let mut w = H::connected(200, 40);
-        w.key(KeyCode::Tab); // editor
+        w.key(KeyCode::Tab);
         w.type_str("SELECT * FROM orders LIMIT 5");
         w.key(KeyCode::Esc);
         w
@@ -77,10 +77,10 @@ fn alt_hints_hide_on_macos_terminal_and_show_with_the_kitty_protocol() {
     keyboard::session::leave();
 }
 
-/// S14 (SC34, truthful clipboard): `y` on a grid and on a history entry
-/// puts the text on the clipboard ([`junie_tui::shell::Clipboard`]) and
-/// the status says what really happened, instead of claiming a copy that
-/// never reached any clipboard.
+
+
+
+
 #[test]
 fn y_copies_a_cell_and_a_history_query_for_real() {
     use junie_tui::core::edit::clipboard;
@@ -121,9 +121,9 @@ fn y_copies_a_cell_and_a_history_query_for_real() {
     assert!(h.text().contains("Copied query"), "{}", h.text());
 }
 
-/// SI17 copy-first: Ctrl+C over a grid's cell range copies the range and
-/// neither cancels nor quits; with nothing selected it still quits. The
-/// shell reads the focused grid's selection from the frame (no app code).
+
+
+
 #[test]
 fn ctrl_c_over_a_grid_range_copies_instead_of_quitting() {
     use junie_tui::core::edit::clipboard;
@@ -151,7 +151,7 @@ fn ctrl_c_over_a_grid_range_copies_instead_of_quitting() {
     let copied = clipboard::text().unwrap_or_default();
     assert_eq!(copied.lines().count(), 2, "two rows copied: {copied:?}");
     assert!(h.text().contains("Copied "), "{}", h.text());
-    // Esc drops the range: Ctrl+C quits again
+
     h.key(KeyCode::Esc);
     h.ctrl('c');
     assert!(h.app.shell.quit, "Ctrl+C with nothing selected quits");

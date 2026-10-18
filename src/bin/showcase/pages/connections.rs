@@ -1,17 +1,17 @@
-//! Connections (Screens, plan §7.5 SC47): tablepro's connection manager
-//! composed from the library only. A `MasterDetail`: the list card
-//! (`TextInput` filter over a `TreeView` grouped by folder or environment,
-//! env glyphs from `Glyphs::env` in `EnvKind::tone`) beside a `DetailCard`
-//! (its facts with a Warning row, the connect bar or a `Notice` with the
-//! failure, and an `ActionRow` of Connect (Reconnect after a failure) /
-//! Edit… / Duplicate / Delete…). Narrow, the list takes the page with a
-//! one-line summary and the card is a drawer. New and Edit open the
-//! library `FormDialog`; Delete asks through a destructive `Dialog`.
-//! Options: `crate::options::CONNECTIONS`.
-//!
-//! Gaps (recorded in docs/remaining-work.md SC47): the inline
-//! `FormPanel` form (S18; today the modal `FormDialog`) and the
-//! `FilterTree` (S21).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -50,7 +50,7 @@ const ID: WidgetId = WidgetId::of("connections");
 const FORM: WidgetId = ID.sub("form");
 const DELETE_DLG: WidgetId = ID.sub("delete");
 const NEW_EMPTY: WidgetId = ID.sub("new-empty");
-/// Ticks a connect attempt takes.
+
 const CONNECT_TICKS: u8 = 8;
 
 const ENVS: &[&str] = &["production", "staging", "development", "local"];
@@ -65,7 +65,7 @@ fn env_kind(i: usize) -> EnvKind {
     }
 }
 
-/// What connecting to a demo connection does.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Reach {
     Ok,
@@ -202,7 +202,7 @@ pub struct ConnectionsPage {
     conns: Vec<Conn>,
     pub filter: TextInput,
     pub tree: TreeView,
-    /// The connection the detail card shows.
+
     selected: Option<usize>,
     state: ConnState,
     pub connect: Button,
@@ -210,9 +210,9 @@ pub struct ConnectionsPage {
     pub duplicate: Button,
     pub delete: Button,
     pub new: Button,
-    /// The connection the open form edits (`None`: a new one).
+
     editing: Option<Option<usize>>,
-    /// The list beside its detail card; narrow, a drawer.
+
     pub md: MasterDetail,
 }
 
@@ -237,18 +237,18 @@ impl ConnectionsPage {
             md: master_detail(40),
         };
         page.rebuild_tree();
-        // the riskiest connection first, as tablepro opens it
+
         page.select_name("Production");
         page
     }
 
-    /// The list's share of the width from the option (percent).
+
     fn list_share(&self) -> u16 {
         self.opts.number("connections.list_width").unwrap_or(40)
     }
 
-    /// The tree from the connections and the option values, keeping the
-    /// filter and the selection.
+
+
     fn rebuild_tree(&mut self) {
         let by_env = self.opts.value("connections.group_by") == "environment";
         let mut groups: Vec<String> = Vec::new();
@@ -300,7 +300,7 @@ impl ConnectionsPage {
         }
     }
 
-    /// Put the tree cursor on the connection named `name`.
+
     fn select_name(&mut self, name: &str) {
         let row = self.tree.rows().iter().position(|r| {
             r.path.len() == 2 && self.tree.node(&r.path).is_some_and(|n| n.label == name)
@@ -311,7 +311,7 @@ impl ConnectionsPage {
         self.sync_selected();
     }
 
-    /// The detail card follows the tree cursor (a group row keeps it).
+
     fn sync_selected(&mut self) {
         let Some(row) = self.tree.rows().get(self.tree.cursor) else {
             return;
@@ -337,7 +337,7 @@ impl ConnectionsPage {
         };
     }
 
-    /// The connect attempt finished: connected, or the failure block.
+
     fn finish_connect(&mut self, name: String, cx: &mut Cx) {
         let Some(c) = self.conns.iter_mut().find(|c| c.name == name) else {
             self.state = ConnState::Idle;
@@ -371,8 +371,8 @@ impl ConnectionsPage {
         }
     }
 
-    /// The form for connection `index` (`None`: a new one), as an app
-    /// builds it.
+
+
     fn form(&self, index: Option<usize>) -> FormDialog {
         let c = index.map(|i| self.conns[i].clone());
         let text = |f: fn(&Conn) -> String, default: &str| c.as_ref().map_or(default.to_owned(), f);
@@ -502,7 +502,7 @@ impl ConnectionsPage {
         ));
     }
 
-    /// A button's activation (keyboard or click).
+
     fn activate(&mut self, id: WidgetId, cx: &mut Cx) -> Outcome {
         if id == self.connect.id {
             self.start_connect(cx);
@@ -526,8 +526,8 @@ impl ConnectionsPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // the list beside the detail card; narrow, the list takes the body
-        // with a one-line summary and the card becomes a drawer
+
+
         let l = self.md.layout(area, buf, ctx, t.canvas);
         if !l.master.is_empty() {
             self.render_list(l.master, buf, ctx);
@@ -601,7 +601,7 @@ impl ConnectionsPage {
         let selected = if self.empty() { None } else { self.selected };
         let focused = ctx.interaction.focused(self.md.detail);
         let Some(i) = selected else {
-            // nothing to detail: the card keeps its frame and says so
+
             let panel = Panel::card(Some("Details")).focused(focused);
             let bg = panel.bg(t);
             if let Some(inner) = panel.try_render(r, buf, t) {
@@ -624,7 +624,7 @@ impl ConnectionsPage {
             Prop::new("Environment", ENVS[c.env]).tone(env.tone()),
         ];
         if env == EnvKind::Production {
-            // the Warning row: what this connection asks before a write
+
             facts.push(
                 Prop::new(
                     "Safe Mode",
@@ -659,7 +659,7 @@ impl ConnectionsPage {
             } if *name == c.name => Some(Notice::error(message.as_str()).detail(detail.as_str())),
             _ => None,
         };
-        // a failed connection is tried again from the same button
+
         self.connect.label = if failure.is_some() {
             "Reconnect".into()
         } else {
@@ -667,8 +667,8 @@ impl ConnectionsPage {
         };
         let connecting =
             matches!(&self.state, ConnState::Connecting { name, .. } if *name == c.name);
-        // the facts leave room for the state (the bar or the notice), a
-        // blank row and the action row
+
+
         let state_h = match &failure {
             Some(n) => n.height(r.width.saturating_sub(4)) + 1,
             None if connecting => 2,
@@ -752,7 +752,7 @@ impl ConnectionsPage {
             }
             return o;
         }
-        // the empty list's own button
+
         if click && ev.on(NEW_EMPTY) {
             return self.activate(ev.id, cx);
         }
@@ -819,7 +819,7 @@ impl ConnectionsPage {
         Outcome::Changed
     }
 
-    /// Force the option's connect state on the selected connection.
+
     fn apply_state_option(&mut self) {
         let Some(i) = self.selected else {
             return;
@@ -841,7 +841,7 @@ impl ConnectionsPage {
     }
 }
 
-/// The States grid: the connection list and the destructive action.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -903,7 +903,7 @@ impl Page for ConnectionsPage {
                 let name = self.conns.remove(i).name;
                 self.state = ConnState::Idle;
                 self.rebuild_tree();
-                // the neighbour takes the selection, as a macOS list does
+
                 if let Some(next) = self.conns.get(i.min(self.conns.len().saturating_sub(1))) {
                     let next = next.name.clone();
                     self.select_name(&next);
@@ -1019,14 +1019,14 @@ impl Page for ConnectionsPage {
     }
 }
 
-/// The list and its detail card: a resizable seam (the list takes
-/// `share` percent, at least 24 columns; the card at least 44), a
-/// one-row summary and a drawer below 80 columns.
+
+
+
 fn master_detail(share: u16) -> MasterDetail {
     MasterDetail::new(ID.sub("tree"), ID.sub("connect"))
         .detail_owns(&[ID.sub("edit"), ID.sub("duplicate"), ID.sub("delete-btn")])
         .resizable(Split::new(share, 24, 44))
-        // both panes fit from 80 columns (24 + 2 + 44 and room to spare)
+
         .collapse_below(80)
         .summary_rows(1)
 }

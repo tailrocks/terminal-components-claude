@@ -1,7 +1,7 @@
-//! TablePro's layer stack (plan S5): every layer kind the app opens is
-//! dismissed through the stack under its own policy (Esc, an outside
-//! click, the frame's `×`, a refused click that flashes), and closing it
-//! gives the focus back to the control it covered (K9).
+
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -40,12 +40,12 @@ fn shift_f10(h: &mut H) {
     h.draw();
 }
 
-/// A click on the dimmed page, away from every layer.
+
 fn click_outside(h: &mut H) {
     h.click(2, 30);
 }
 
-/// The frame flashes: a refused outside click under `Flash` feedback.
+
 fn flashing(h: &H) -> bool {
     h.app.interaction().flash == Some(SURFACE)
 }
@@ -59,11 +59,11 @@ fn the_filter_editor_closes_on_esc_only_and_gives_the_grid_its_focus_back() {
     h.key(KeyCode::Char('f'));
     assert!(h.app.top_as::<FilterEditor>().is_some(), "{}", h.text());
     assert_ne!(h.focus(), Some(g), "focus moved into the editor");
-    // ESCAPE: a stray click outside is refused, and the frame says so
+
     click_outside(&mut h);
     assert!(h.app.top_as::<FilterEditor>().is_some(), "the form stays");
     assert!(flashing(&h), "a refused click flashes the frame");
-    // Esc dismisses it as cancelled: no filter, focus back on the grid
+
     h.key(KeyCode::Esc);
     assert!(h.app.modal().is_none(), "{}", h.text());
     assert_eq!(h.focus(), Some(g), "K9: the grid has its focus back");
@@ -79,7 +79,7 @@ fn the_filter_editor_applies_through_its_result() {
     open_orders(&mut h);
     let g = grid(&h);
     h.key(KeyCode::Char('f'));
-    // prefilled from the cursor cell, it opens on its Apply button
+
     let apply = h.app.top_as::<FilterEditor>().unwrap().apply.id;
     assert_eq!(h.focus(), Some(apply));
     h.key(KeyCode::Enter);
@@ -177,8 +177,8 @@ fn the_switcher_scope_cycles_both_ways_through_the_layer_events() {
     assert!(scope(&h).starts_with("Queries"), "{}", scope(&h));
 }
 
-/// Fix: a paste while a picker is open goes into its search, not into the
-/// page under it.
+
+
 #[test]
 fn a_paste_lands_in_the_open_pickers_search() {
     let mut h = H::connected(120, 40);
@@ -214,9 +214,9 @@ fn a_context_menu_closes_on_esc_and_on_an_outside_click_back_to_its_owner() {
     assert_eq!(h.focus(), Some(g), "K9");
 }
 
-/// CO4: the footer names the open picker's own keys (it showed nothing
-/// before: the library picker reported no hints), and Esc says Clear
-/// while a query is typed, since that is what Esc does then.
+
+
+
 #[test]
 fn the_footer_names_the_open_pickers_keys() {
     let mut h = H::connected(120, 40);
@@ -231,10 +231,10 @@ fn the_footer_names_the_open_pickers_keys() {
     assert!(footer.contains("Esc Clear"), "{footer}");
 }
 
-/// The tab list's filter only narrows the list it opened with: a filtered
-/// row keeps its tab's glyph, detail and tag (it was rebuilt with `≡`, the
-/// tab's index as its detail and no `unsaved` tag), on screen too, and
-/// choosing it still switches to that tab.
+
+
+
+
 #[test]
 fn filtering_the_tab_list_keeps_each_rows_glyph_detail_and_tag() {
     let mut h = H::connected(120, 40);

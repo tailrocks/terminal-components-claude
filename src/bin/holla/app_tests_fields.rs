@@ -1,5 +1,5 @@
-//! Pointer text selection in holla's fields through the real App: click
-//! counts, press and drag reach the argument fields (interaction #16).
+
+
 
 use crate::screens::Holla;
 use junie_tui::core::event::MouseKind;
@@ -12,7 +12,7 @@ use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{Go, Page};
 
-/// The selected cells of row `y`, as drawn.
+
 fn selected_on_row(h: &H, y: u16) -> String {
     let sel = Theme::junie().selection().bg.expect("a selection colour");
     let buf = h.term.backend().buffer();
@@ -22,7 +22,7 @@ fn selected_on_row(h: &H, y: u16) -> String {
         .collect()
 }
 
-/// The arguments page with "alpha beta gamma" in its first field.
+
 fn args() -> (H, u16, u16) {
     let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);
     let item = h
@@ -35,7 +35,7 @@ fn args() -> (H, u16, u16) {
         .id;
     h.app.go(Go::Push(Page::Args { item }));
     h.draw();
-    // the first field is focused and editing (EditEntry::Immediate)
+
     for _ in 0..40 {
         h.key(KeyCode::Backspace);
     }
@@ -69,7 +69,7 @@ fn dragging_in_an_argument_field_selects_and_a_double_press_drags_by_words() {
     assert_eq!(selected_on_row(&h, y), "alpha beta", "{}", h.text());
 }
 
-/// A background screen whose field reports its blur in the status bar.
+
 struct BlurReporter;
 
 const REPORTED: junie_tui::core::id::WidgetId = junie_tui::core::id::WidgetId::of("test.reported");
@@ -131,13 +131,13 @@ fn a_status_raised_by_blur_in_a_background_tab_shows_when_it_activates() {
     assert!(h.app.tabs.len() > 2, "several tabs");
     let bg = 1;
     assert_ne!(h.app.active(), bg);
-    // the background tab's top page: pushed while it is shown, then the
-    // shown tab again
+
+
     let shown = h.app.active();
     h.app.router.select(bg);
     h.app.router.push(Box::new(BlurReporter));
     h.app.router.select(shown);
-    // the background field loses focus: its blur hook reports
+
     h.app.shell.focus.focus(REPORTED);
     h.app
         .shell
@@ -150,15 +150,15 @@ fn a_status_raised_by_blur_in_a_background_tab_shows_when_it_activates() {
         "not over another tab's page\n{}",
         h.text()
     );
-    // activating the tab delivers it
+
     h.alt(KeyCode::Char('1'));
     assert_eq!(h.app.active(), bg);
     assert!(h.text().contains("Background field saved"), "{}", h.text());
 }
 
-/// Keyboard audit #1 and #15: an argument field shows its caret the moment
-/// focus lands, typed letters edit it (never `q` quit), a dirty Esc
-/// reverts, Tab leaves, and coming back shows the caret again.
+
+
+
 #[test]
 fn argument_fields_edit_on_focus_and_tab_moves_on_with_the_caret() {
     let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);

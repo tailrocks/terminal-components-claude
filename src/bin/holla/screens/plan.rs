@@ -1,7 +1,7 @@
-//! Plans as graphs: the review page (a stage outline with inclusion,
-//! `needs` and lane columns, a consequence line after exclusions, and the
-//! selected step's facts) and the executing plan tab (the same outline with
-//! live states, aggregate progress and per-step retained output).
+
+
+
+
 
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
@@ -49,10 +49,10 @@ pub const CANCEL: WidgetId = WidgetId::of("plan.cancel");
 pub const CONFIRM: WidgetId = WidgetId::of("plan.confirm");
 pub const OUTPUT: WidgetId = WidgetId::of("plan.output");
 const FOLLOW_UP: WidgetId = WidgetId::of("plan.follow");
-/// A step's context menu.
+
 pub const STEP_MENU: WidgetId = WidgetId::of("plan.step.menu");
 
-/// The key each review step-menu row stands for, in menu order.
+
 const REVIEW_STEP_KEYS: [char; 5] = [' ', 'u', 'p', 'c', 'x'];
 
 fn plain_key(c: char) -> Key {
@@ -62,14 +62,14 @@ fn plain_key(c: char) -> Key {
     }
 }
 
-/// The step a secondary click on `id` names, if it is an outline row.
+
 fn step_at(id: WidgetId, w: &World, plan: &str) -> Option<usize> {
     let n = w.plan(plan).map(|p| p.steps.len()).unwrap_or(0);
     (0..n).find(|&i| OUTLINE.child(i) == id)
 }
 
-/// Lane label for a step: `·` for roots, a letter per parallel branch,
-/// `join` where branches converge.
+
+
 pub fn lane(p: &Plan, i: usize) -> String {
     fn go(p: &Plan, i: usize, depth: usize) -> String {
         if depth > p.steps.len() {
@@ -80,7 +80,7 @@ pub fn lane(p: &Plan, i: usize) -> String {
             return "join".into();
         }
         let Some(&parent) = deps.first() else {
-            // independent roots are branches of their own
+
             let roots: Vec<usize> = (0..p.steps.len())
                 .filter(|&j| p.steps[j].deps.is_empty())
                 .collect();
@@ -113,7 +113,7 @@ fn state_glyph(s: StepState, tick: u64) -> (&'static str, Tone, bool) {
     }
 }
 
-/// The selected step's facts.
+
 fn step_props(p: &Plan, i: usize, w: &World) -> Vec<Prop> {
     let s = &p.steps[i];
     let mut v = vec![];
@@ -201,9 +201,9 @@ fn step_props(p: &Plan, i: usize, w: &World) -> Vec<Prop> {
     v
 }
 
-/// The final line of a run: only the non-zero classes, in outcome order.
-/// `succeeded` reads in success and `failed` in error; the rest stays
-/// secondary.
+
+
+
 fn outcome_line(
     ok: usize,
     failed: usize,
@@ -235,7 +235,7 @@ fn outcome_line(
     line
 }
 
-/// The consequence line under an outline: which steps are blocked and why.
+
 fn consequences(p: &Plan) -> Vec<String> {
     let mut v: Vec<String> = p
         .steps
@@ -277,7 +277,7 @@ fn render_outline(
     let has_sb = scroll.overflows();
     let row_w = area.width.saturating_sub(u16::from(has_sb));
     let label_w = p.steps.iter().map(|s| width(&s.label)).max().unwrap_or(10) as u16;
-    // columns: ▎ mark 01 label · needs · lane · meta
+
     let needs_w = p
         .steps
         .iter()
@@ -316,10 +316,10 @@ fn render_outline(
         let plain = st.remove_modifier(Modifier::BOLD);
         let mut x = row.x + 1;
         if review {
-            // inclusion marker: checked in the accent while the list has
-            // focus (primary otherwise), unchecked muted, required faint
-            // on the selected row the faint tier would vanish into the
-            // tint at 16 colours: step up one rung there
+
+
+
+
             let quiet = if vs.selected {
                 t.text_muted
             } else {
@@ -389,8 +389,8 @@ fn render_outline(
             } else if s.optional {
                 "optional".to_owned()
             } else if !s.privilege.is_empty() {
-                // the faint marker is the required step's lock; the word
-                // says why it cannot be toggled
+
+
                 format!("required · {}", s.privilege)
             } else {
                 "required".to_owned()
@@ -407,7 +407,7 @@ fn render_outline(
                         .ended_tick
                         .unwrap_or(0)
                         .saturating_sub(s.started_tick.unwrap_or(0));
-                    // a failed row names its reason: the last error line
+
                     let reason = if s.state == StepState::Failed {
                         s.output
                             .iter()
@@ -445,7 +445,7 @@ fn render_outline(
                 StepState::Skipped => "skipped".into(),
             }
         };
-        // blocked is a quiet consequence; only failure takes the error tone
+
         let meta_tone = match s.state {
             StepState::Failed => t.error,
             StepState::Running => t.text_secondary,
@@ -471,7 +471,7 @@ fn render_outline(
     }
 }
 
-// ------------------------------------------------------------- review
+
 
 pub struct PlanReviewPage {
     pub plan: String,
@@ -519,7 +519,7 @@ impl PlanReviewPage {
             .meta(if s.optional { "optional" } else { "required" });
         let bg = panel.bg(t);
         let props = step_props(p, self.cursor, w);
-        // wrap into lines first: the card ends after its content
+
         let label_w = props.iter().map(|p| width(&p.label)).max().unwrap_or(4) as u16 + 2;
         let vw = area.width.saturating_sub(4 + label_w) as usize;
         let mut flat: Vec<(String, String, Tone)> = vec![];
@@ -573,7 +573,7 @@ impl PlanReviewPage {
 }
 
 impl PlanReviewPage {
-    /// The context menu of step `i`: the outline's own keys.
+
     fn step_menu(&self, i: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let Some(s) = w.plan(&self.plan).and_then(|p| p.steps.get(i)) else {
             return Outcome::Ignored;
@@ -747,7 +747,7 @@ impl ShellPage<Holla> for PlanReviewPage {
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-            // a sideways notch never scrolls these vertical panes
+
             if axis != Axis::Vertical {
                 return Outcome::Ignored;
             }
@@ -783,8 +783,8 @@ impl ShellPage<Holla> for PlanReviewPage {
                 Outcome::Ignored
             }
             Some(Phase::Click) => {
-                // a step's activation (the library's data-view click: a
-                // double click) includes or excludes it
+
+
                 if let Some(i) = step
                     && ClickPolicy::DATA.activates(ev.count(), self.cursor == i)
                     && let Some(p) = w.plan_mut(&self.plan)
@@ -850,7 +850,7 @@ impl ShellPage<Holla> for PlanReviewPage {
             && let Ok(i) = tag.key.parse::<usize>()
             && let Some(&c) = REVIEW_STEP_KEYS.get(k)
         {
-            // the chosen row runs its key on the step it was opened for
+
             self.cursor = i;
             return self.on_key(&plain_key(c), w, cx).or(Outcome::Changed);
         }
@@ -863,7 +863,7 @@ impl ShellPage<Holla> for PlanReviewPage {
             return;
         };
         self.cursor = self.cursor.min(p.steps.len().saturating_sub(1));
-        // title row
+
         let summary = format!(
             "{} · {} included · {} excluded · ~{}",
             plural(p.steps.len(), "step", "steps"),
@@ -905,7 +905,7 @@ impl ShellPage<Holla> for PlanReviewPage {
         } else {
             (body, None)
         };
-        // column headings
+
         Heading::new("step").render(
             Rect::new(
                 outline_area.x + 8,
@@ -990,9 +990,9 @@ impl ShellPage<Holla> for PlanReviewPage {
             self.outline_area = rows;
             ctx.control(DETAIL, Rect::ZERO, false);
         }
-        // consequence lines: one blank row under the outline, never lower
-        // than the space above the buttons. They summarise the outline:
-        // while the detail drawer covers the body they are not drawn over it
+
+
+
         let drawer_open = self.drawer && !(detail_area.is_some() && split);
         let cy = (rows.y + p.steps.len() as u16 + 1).min(body.bottom() + 1);
         for (i, c) in cons.iter().take(2).enumerate().filter(|_| !drawer_open) {
@@ -1011,7 +1011,7 @@ impl ShellPage<Holla> for PlanReviewPage {
                 Style::new().fg(tone),
             );
         }
-        // buttons, right-aligned
+
         let label = if p.phrase.is_some() {
             "Continue…"
         } else {
@@ -1091,7 +1091,7 @@ impl Screen for PlanReviewPage {
     }
 }
 
-// ------------------------------------------------------------ executing
+
 
 pub struct PlanTab {
     pub plan: String,
@@ -1102,7 +1102,7 @@ pub struct PlanTab {
     rendered: (usize, usize),
     pub maximized: bool,
     follow_ups: Vec<Button>,
-    /// The cursor has been moved onto the result once the run ended.
+
     landed: bool,
 }
 
@@ -1134,8 +1134,8 @@ impl PlanTab {
         let Some(p) = w.plan(&self.plan) else {
             return;
         };
-        // when the run ends, land on the result: the failed step, else the
-        // last step that ran (CONCEPT §6.8: the frontier is the outcome)
+
+
         if p.phase == PlanPhase::Done && !self.landed {
             self.landed = true;
             let target = p
@@ -1188,7 +1188,7 @@ impl PlanTab {
     }
 }
 
-/// What a run step-menu row does, in menu order.
+
 #[derive(Debug, Clone, Copy)]
 enum RunStep {
     Expand,
@@ -1239,7 +1239,7 @@ impl PlanTab {
         Outcome::Changed
     }
 
-    /// The context menu of step `i` in the running plan.
+
     fn step_menu(&self, i: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let Some(p) = w.plan(&self.plan) else {
             return Outcome::Ignored;
@@ -1288,7 +1288,7 @@ impl PlanTab {
 
 impl ShellPage<Holla> for PlanTab {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-        // follow-up buttons after the run
+
         for i in 0..self.follow_ups.len() {
             if cx.focus.is(self.follow_ups[i].id) {
                 let (o, fired) = self.follow_ups[i].on_key(key);
@@ -1405,7 +1405,7 @@ impl ShellPage<Holla> for PlanTab {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
             if id == OUTLINE {
-                // a sideways notch never scrolls the vertical outline
+
                 if axis != Axis::Vertical {
                     return Outcome::Ignored;
                 }
@@ -1501,7 +1501,7 @@ impl ShellPage<Holla> for PlanTab {
         let (ok, failed, excluded, skipped, never) = p.outcome();
         let included = p.included_count();
         let running = p.running();
-        // title row
+
         buf.set_string(area.x + 1, area.y, &p.title, t.title());
         let next_wait = p
             .steps
@@ -1534,7 +1534,7 @@ impl ShellPage<Holla> for PlanTab {
         {
             mid.push_str(&format!(" · {nw}"));
         }
-        // only the failed clause takes the error tone
+
         let mx = area.x + 1 + width(&p.title) as u16;
         match mid
             .find(" · ")
@@ -1576,7 +1576,7 @@ impl ShellPage<Holla> for PlanTab {
                 t.muted()
             },
         );
-        // aggregate progress
+
         let ratio = if included == 0 {
             0.0
         } else {
@@ -1606,7 +1606,7 @@ impl ShellPage<Holla> for PlanTab {
             t.canvas,
         );
         let has_follow = p.phase == PlanPhase::Done && !self.follow_ups.is_empty();
-        // the follow-ups after "Next" wrap instead of dropping (R-apps-7)
+
         let follow_w: Vec<u16> = self.follow_ups.iter().map(|b| b.width()).collect();
         let follow_lines = if has_follow {
             junie_tui::widgets::button::row_lines(area.width.saturating_sub(7), &follow_w, 2)
@@ -1690,8 +1690,8 @@ impl ShellPage<Holla> for PlanTab {
             let inner = panel.render(out_area, buf, t);
             self.view.render(inner, buf, ctx, t.canvas);
         } else {
-            // the outline keeps its column heading when it is alone too
-            // (R-apps-3: the heading was dropped below the split width)
+
+
             Heading::new("step").render(
                 Rect::new(
                     rail_area.x + 7,
@@ -1811,8 +1811,8 @@ impl ShellPage<Holla> for PlanTab {
         Outcome::Changed
     }
 
-    /// Ctrl+C cancels the remaining steps of a running plan (asking
-    /// first); with nothing to cancel the shell's quit guard takes it.
+
+
     fn on_interrupt(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
         let running = w
             .plan_mut(&self.plan)

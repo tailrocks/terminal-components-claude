@@ -1,10 +1,10 @@
-//! Editable text model shared by single-line inputs and text areas.
-//!
-//! Stores text as a `String` and addresses positions by byte offset, while
-//! every cursor movement is grapheme aware. Rendering code asks for the
-//! logical lines and cursor column; it never edits the string itself.
-//! Single-line buffers discard line breaks at every text entry point;
-//! multiline buffers normalize CRLF and CR to LF.
+
+
+
+
+
+
+
 
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -32,9 +32,9 @@ fn normalize_owned(text: String, multiline: bool) -> String {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TextBuffer {
     text: String,
-    /// Byte offset of the cursor.
+
     cursor: usize,
-    /// Byte offset of the selection anchor when a selection is active.
+
     anchor: Option<usize>,
     multiline: bool,
 }
@@ -42,7 +42,7 @@ pub struct TextBuffer {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CursorPos {
     pub line: usize,
-    /// Display column (in cells) within the line.
+
     pub col: usize,
 }
 
@@ -84,20 +84,20 @@ impl TextBuffer {
         self.cursor
     }
 
-    /// Select `a..b` (either order), cursor at `b`. Offsets are clamped to
-    /// the preceding grapheme boundary, including offsets inside UTF-8 bytes.
+
+
     pub fn select_range(&mut self, a: usize, b: usize) {
         self.anchor = Some(Self::floor_boundary(&self.text, a));
         self.cursor = Self::floor_boundary(&self.text, b);
     }
 
-    /// First and last line touched by the selection (or the cursor line).
+
     pub fn selection_lines(&self) -> (usize, usize) {
         match self.selection() {
             Some(r) => {
                 let a = Self::pos_of(&self.text, r.start).line;
-                // An exclusive endpoint at the next line's start does not
-                // select that line. Count newlines without slicing a UTF-8 byte.
+
+
                 let before = &self.text[..r.end];
                 let b = before.matches('\n').count() - usize::from(before.ends_with('\n'));
                 (a, b)
@@ -114,8 +114,8 @@ impl TextBuffer {
             .is_some_and(|r| self.text[r].contains('\n'))
     }
 
-    /// Insert at an arbitrary offset, clamped to the preceding grapheme
-    /// boundary, keeping cursor/anchor consistent.
+
+
     pub fn insert_at(&mut self, at: usize, s: &str) {
         let at = Self::floor_boundary(&self.text, at);
         let s = normalized_text(s, self.multiline);
@@ -131,8 +131,8 @@ impl TextBuffer {
         self.normalize_positions();
     }
 
-    /// Remove all graphemes touched by a nonempty byte range. Endpoints are
-    /// clamped to the text; reversed or empty ranges do nothing.
+
+
     pub fn remove_range(&mut self, r: std::ops::Range<usize>) {
         let r = r.start.min(self.text.len())..r.end.min(self.text.len());
         if r.start >= r.end {
@@ -169,7 +169,7 @@ impl TextBuffer {
         Some(a.min(self.cursor)..a.max(self.cursor))
     }
 
-    /// Some text is selected.
+
     pub fn has_selection(&self) -> bool {
         self.selection().is_some()
     }
@@ -183,8 +183,8 @@ impl TextBuffer {
         self.anchor = None;
     }
 
-    /// Extend the selection to `offset` (a drag): the anchor stays where
-    /// the selection started (the cursor, when there was none).
+
+
     pub fn select_to(&mut self, offset: usize) {
         if self.anchor.is_none() {
             self.anchor = Some(self.cursor);
@@ -192,9 +192,9 @@ impl TextBuffer {
         self.cursor = Self::floor_boundary(&self.text, offset);
     }
 
-    /// The word around `offset` (a double click): a run of word
-    /// characters, a run of whitespace, or a single other grapheme, never
-    /// crossing a line break.
+
+
+
     pub fn word_range_at(&self, offset: usize) -> std::ops::Range<usize> {
         let offset = Self::floor_boundary(&self.text, offset);
         let (start, end) = (self.line_start(offset), self.line_end(offset));
@@ -240,21 +240,21 @@ impl TextBuffer {
         gs[lo].0..gs[hi].0 + gs[hi].1.len()
     }
 
-    /// Select the word around `offset`, cursor at its end.
+
     pub fn select_word_at(&mut self, offset: usize) {
         let r = self.word_range_at(offset);
         self.select_range(r.start, r.end);
     }
 
-    /// Select the line around `offset` (a triple click), without its line
-    /// break; the whole text in a single-line buffer.
+
+
     pub fn select_line_at(&mut self, offset: usize) {
         let offset = Self::floor_boundary(&self.text, offset);
         let (start, end) = (self.line_start(offset), self.line_end(offset));
         self.select_range(start, end);
     }
 
-    /// The selected text, `None` without a selection.
+
     pub fn selected_text(&self) -> Option<&str> {
         self.selection().map(|r| &self.text[r])
     }
@@ -269,7 +269,7 @@ impl TextBuffer {
         }
     }
 
-    // --- byte offset helpers -------------------------------------------------
+
 
     fn floor_boundary(text: &str, offset: usize) -> usize {
         if offset >= text.len() {
@@ -292,9 +292,9 @@ impl TextBuffer {
             .unwrap_or(text.len())
     }
 
-    // Inserting or removing text can join previously separate clusters (a
-    // combining mark, ZWJ sequence or regional-indicator pair). Repair both
-    // positions against the new string, not just by adding byte lengths.
+
+
+
     fn normalize_positions(&mut self) {
         self.cursor = Self::ceil_boundary(&self.text, self.cursor);
         self.anchor = self.anchor.map(|a| Self::floor_boundary(&self.text, a));
@@ -367,7 +367,7 @@ impl TextBuffer {
         from + i
     }
 
-    // --- movement ------------------------------------------------------------
+
 
     pub fn move_left(&mut self, select: bool) {
         if !select && let Some(r) = self.selection() {
@@ -419,7 +419,7 @@ impl TextBuffer {
         self.cursor = self.text.len();
     }
 
-    /// Move to the same display column on the previous line.
+
     pub fn move_up(&mut self, select: bool) -> bool {
         if !self.multiline {
             return false;
@@ -451,7 +451,7 @@ impl TextBuffer {
         self.cursor = self.offset_at(line, col);
     }
 
-    // --- editing -------------------------------------------------------------
+
 
     fn delete_selection(&mut self) -> bool {
         match self.selection() {
@@ -479,8 +479,8 @@ impl TextBuffer {
 
     pub fn insert_str(&mut self, s: &str) {
         let s = normalized_text(s, self.multiline);
-        // Replace atomically: deleting first can join the neighboring
-        // graphemes and move the cursor before insertion occurs.
+
+
         if let Some(r) = self.selection() {
             self.cursor = r.start + s.len();
             self.text.replace_range(r, &s);
@@ -540,19 +540,19 @@ impl TextBuffer {
         self.normalize_positions();
     }
 
-    // --- geometry ------------------------------------------------------------
+
 
     pub fn line_count(&self) -> usize {
         self.text.split('\n').count()
     }
 
-    /// Cursor as (line, display column).
+
     pub fn cursor_pos(&self) -> CursorPos {
         Self::pos_of(&self.text, self.cursor)
     }
 
-    /// Resolve a byte offset to a display position, clamping to the preceding
-    /// grapheme boundary. Arbitrary offsets never split UTF-8 or a cluster.
+
+
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
         let offset = Self::floor_boundary(text, offset);
         let before = &text[..offset];
@@ -562,7 +562,7 @@ impl TextBuffer {
         CursorPos { line, col }
     }
 
-    /// Byte offset for a (line, display column), clamped to the line.
+
     pub fn offset_at(&self, line: usize, col: usize) -> usize {
         let mut start = 0;
         for (i, l) in self.text.split('\n').enumerate() {
@@ -582,7 +582,7 @@ impl TextBuffer {
         self.text.len()
     }
 
-    /// Display width of the whole (single-line) text.
+
     pub fn width(&self) -> usize {
         UnicodeWidthStr::width(self.text.as_str())
     }

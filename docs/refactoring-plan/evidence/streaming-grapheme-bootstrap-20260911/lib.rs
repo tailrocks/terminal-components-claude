@@ -1,9 +1,9 @@
 #![forbid(unsafe_code)]
 #![cfg(test)]
-//! Disposable storage/consumer feasibility only; not a TC replacement implementation.
+
 use std::fmt::{self, Write};
 use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete};
-// Same safe best-effort clearing contract as pinned TC Secret; no erasure guarantee.
+
 trait Wipe {
     fn wipe(&mut self);
 }

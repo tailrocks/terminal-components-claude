@@ -1,5 +1,5 @@
-//! Interaction tests for the Capsule chrome (menu bar, tab context menu,
-//! status bar), the shell hint bar, the inspector and palette scrolling.
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
@@ -34,7 +34,7 @@ fn capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line() {
     assert!(top.contains("payments-platform ›"), "{top}");
     let status = row(&h, 38);
     assert!(status.contains("PR #482"), "{status}");
-    // a stale meter draws its run dashed (`Glyphs::bar_stale`)
+
     assert!(
         status.contains('%') && (status.contains("━") || status.contains("╍")),
         "usage meter missing: {status}"
@@ -85,7 +85,7 @@ fn menu_bar_opens_switches_and_runs_an_action() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("New tab"), "spawn picker: {}", h.text());
     h.key(KeyCode::Esc);
-    // mouse: click the View label, then Usage
+
     let (x, y) = h.find("View").unwrap();
     h.click(x, y);
     assert!(h.text().contains("Zoom pane"), "{}", h.text());
@@ -114,7 +114,7 @@ fn tab_context_menu_renames_and_closes_by_mouse_and_keyboard() {
         h.key(KeyCode::Enter);
     }
     assert!(row(&h, 2).contains("ops"), "{}", row(&h, 2));
-    // keyboard path: prefix m opens the menu for the active tab; the last row is Close
+
     h.ctrl('b');
     h.key(KeyCode::Char('m'));
     assert!(h.text().contains("Change title…"), "{}", h.text());
@@ -122,7 +122,7 @@ fn tab_context_menu_renames_and_closes_by_mouse_and_keyboard() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Close tab?"), "{}", h.text());
     h.key(KeyCode::Esc);
-    // dismissal
+
     h.ctrl('b');
     h.key(KeyCode::Char('m'));
     h.key(KeyCode::Esc);
@@ -142,7 +142,7 @@ fn hint_bar_stays_on_the_last_row_across_layers() {
     h.key(KeyCode::Enter);
     let picker = last_row(&h);
     assert!(picker.contains("Choose"), "{picker}");
-    // the picker draws no hint row of its own
+
     let t = h.text();
     assert_eq!(t.matches("Enter Choose").count(), 1, "{t}");
     h.key(KeyCode::Esc);
@@ -187,7 +187,7 @@ fn command_palette_scrolls_with_the_wheel_and_keeps_the_selection() {
     assert!(h.text().contains("Command palette"));
     let (x, y) = h.find("New tab").unwrap();
     let before = h.text();
-    // a sideways swipe never scrolls the rows
+
     h.mouse(MouseKind::WheelRight, x, y + 2);
     assert_eq!(h.text(), before, "a sideways wheel scrolled vertically");
     h.mouse(MouseKind::WheelDown, x, y + 2);
@@ -221,8 +221,8 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
     let product = "jackin-preview · deterministic redesign preview";
     let construct = "simulated · nothing here touches a real container";
     assert!(h.text().contains("Scenario"), "{}", h.text());
-    // above the footer the value is cut; the footer's peek line shows the
-    // focused cursor row's value in full (SI8)
+
+
     let body = |h: &H| {
         let text = h.text();
         let lines: Vec<&str> = text.lines().collect();
@@ -239,13 +239,13 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
         "the reveal key is hinted on a cut cursor row: {}",
         last_row(&h)
     );
-    // keyboard: → expands the cursor row, ← collapses it
+
     h.key(KeyCode::Right);
     assert!(h.text().contains(product), "{}", h.text());
     assert!(last_row(&h).contains("← Collapse"), "{}", last_row(&h));
     h.key(KeyCode::Left);
     assert!(!body(&h).contains(product), "{}", h.text());
-    // the reveal follows the cursor; Esc closes the reveal, not the dialog
+
     h.key(KeyCode::Right);
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
@@ -257,8 +257,8 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
         "dialog still open: {}",
         h.text()
     );
-    // pointer: resting on a cut value shows its expansion tooltip, once the
-    // pointer has rested (Reveal::delay_ms): a pass over it shows nothing
+
+
     let (vx, vy) = h.find("simulated").unwrap();
     h.mouse(MouseKind::Move, vx + 2, vy);
     assert!(!body(&h).contains(construct), "not at once: {}", h.text());
@@ -275,7 +275,7 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
     );
 }
 
-/// Focus cues on screen: `▎` bars and cells tinted with the focus green.
+
 fn focus_cues(h: &H) -> (usize, usize) {
     let t = h.app.theme;
     let buf = h.term.backend().buffer();
@@ -292,12 +292,12 @@ fn focus_cues(h: &H) -> (usize, usize) {
 fn the_new_tab_picker_is_the_only_layer_showing_focus() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     h.key(KeyCode::F(10));
-    // the open menu owns the keyboard: nothing on the page reads as focused
+
     assert_eq!(focus_cues(&h).0, 0, "{}", h.text());
     h.key(KeyCode::Enter);
     assert!(h.text().contains("New tab"), "{}", h.text());
-    // one bar (the query field), no green anywhere else: not on the cursor
-    // row, not on the page's active tab under the modal
+
+
     assert_eq!(focus_cues(&h), (1, 0), "{}", h.text());
 }
 
@@ -320,19 +320,19 @@ fn the_usage_dialog_tab_strip_shows_focus_once_and_its_selection_in_the_accent()
         assert!(!rule.is_empty(), "{}", h.text());
         rule.iter().all(|c| c.fg == t.accent)
     };
-    // the strip row from the dialog's left edge: the `▎` sits on the
-    // cursor tab (the dialog opens on the current account's tab)
+
+
     let strip_bar = |h: &H| {
         let buf = h.term.backend().buffer();
         (ox - 1..ox + 60).any(|x| buf[(x, oy)].symbol() == "▎")
     };
-    // the tab bar holds the dialog's keys: one `▎`, on the cursor tab
+
     assert_eq!(focus_cues(&h).0, 1, "{}", h.text());
     assert!(strip_bar(&h), "{}", h.text());
-    // the active tab's rule is the accent: the dialog is the top layer
+
     assert!(rule(&h), "{}", h.text());
-    // Tab moves the keys to the body: the strip drops its `▎` but keeps
-    // the selection in the accent
+
+
     h.key(KeyCode::Tab);
     assert!(!strip_bar(&h), "{}", h.text());
     assert!(rule(&h), "{}", h.text());
@@ -340,8 +340,8 @@ fn the_usage_dialog_tab_strip_shows_focus_once_and_its_selection_in_the_accent()
 
 #[test]
 fn legacy_ctrl_4_from_the_terminal_opens_the_palette() {
-    // copy #5: a legacy-encoding terminal reports Ctrl+\ as Ctrl+4; the
-    // library's key decoding maps it back, so the capsule's Ctrl+\ works
+
+
     use junie_tui::core::event::Input;
     use ratatui::crossterm::event::{Event, KeyEvent, KeyModifiers};
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 24);
@@ -352,9 +352,9 @@ fn legacy_ctrl_4_from_the_terminal_opens_the_palette() {
     assert!(h.text().contains("Command palette"), "{}", h.text());
 }
 
-/// A25: `Ctrl+B i` on `capsule-multi` opened Container info by byte-slicing
-/// `run-7f3a` (seven characters once the dash goes) to eight bytes and
-/// panicked. The short id now comes from `ui::text::clip`.
+
+
+
 #[test]
 fn container_info_opens_on_a_short_run_id_without_panicking() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
@@ -367,9 +367,9 @@ fn container_info_opens_on_a_short_run_id_without_panicking() {
     assert!(t.contains("run-7f3a-4f11"), "invocation id: {t}");
 }
 
-/// The footer's peek line (the cut cursor row in full) takes only the room
-/// the key hints leave: at 72x20 the launch picker keeps its primary hint
-/// (`Enter Choose`) beside the peek instead of dropping to `Esc Cancel`.
+
+
+
 #[test]
 fn the_peek_line_never_drops_the_primary_hint() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 72, 20);
