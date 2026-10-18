@@ -1,6 +1,3 @@
-//! Pointer journeys through the shared router (plan S6): every gesture
-//! reaches the widget that owns the part under the pointer.
-
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::{Part, WidgetId};
 use ratatui::crossterm::event::KeyCode;
@@ -10,7 +7,6 @@ use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::{Go, Page};
 
-/// The area of the latest region of `owner`'s `part`.
 fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
     h.app
         .shell
@@ -22,7 +18,6 @@ fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
         .map(|r| r.area)
 }
 
-/// M1: a footer hint naming one key is a click target that runs the key.
 #[test]
 fn a_click_on_a_footer_hint_runs_its_key() {
     let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);
@@ -46,8 +41,6 @@ fn a_click_on_a_footer_hint_runs_its_key() {
     );
 }
 
-/// M17 (routing): a press on the files page's jump picker's scrollbar
-/// pages its list; the app delivered no press to the picker's bar.
 #[test]
 fn a_press_on_the_jump_picker_scrollbar_pages_its_list() {
     let mut h = H::new(Scenario::ParityBrowser, Motion::Reduced, 40, 100, 20);
@@ -55,7 +48,7 @@ fn a_press_on_the_jump_picker_scrollbar_pages_its_list() {
     h.app.go(Go::Push(Page::Files { path, query: None }));
     h.ticks(8);
     h.key(KeyCode::Char('g'));
-    // every entry of the folder is a suggestion: more than the list shows
+
     h.type_str("~/work/site/");
     let picker = h
         .app
@@ -85,8 +78,6 @@ fn scroll_of(h: &H) -> usize {
         .offset
 }
 
-/// The arguments page of the first fixture item with a choice argument,
-/// and that choice field's id.
 fn choice_args() -> (H, WidgetId) {
     let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);
     let (item, i) = h
@@ -104,14 +95,10 @@ fn choice_args() -> (H, WidgetId) {
     (h, crate::screens::review::ARG.child(i))
 }
 
-/// The Release drift (plan §3): a press on a choice field opens its list
-/// and a release on an option chooses it (press-drag-release, as macOS
-/// pop-up buttons do); a release in place leaves the list open. The page
-/// got no press, drag or release before, so the drag chose nothing.
 #[test]
 fn a_press_dragged_onto_a_choice_option_chooses_it_on_release() {
     let (mut h, field) = choice_args();
-    // the field's value row, by its disclosure mark
+
     let (x, y) = h.find("▾").expect("the choice field is drawn");
     let under = h
         .app
@@ -151,7 +138,7 @@ fn a_press_dragged_onto_a_choice_option_chooses_it_on_release() {
         "the release chose the second option\n{}",
         h.text()
     );
-    // a release in place keeps the list open
+
     h.click(x, y);
     assert!(
         part_area(&h, field, Part::ROW).is_some(),
@@ -160,15 +147,12 @@ fn a_press_dragged_onto_a_choice_option_chooses_it_on_release() {
     );
 }
 
-/// Plan §3 'Dead-space release with the menu bar open': a click on
-/// anything but the open menu closes it, dead space included (the menu
-/// bar's own light dismiss, through its backdrop).
 #[test]
 fn a_click_on_dead_space_closes_the_open_menu_bar() {
     let mut h = H::new(Scenario::RustDirty, Motion::Paused, 40, 120, 40);
     h.key(KeyCode::F(10));
     assert!(h.app.menu_open());
-    // the blank row between the body and the status bar
+
     let y = h.text().lines().count() as u16 - 3;
     h.click(100, y);
     assert!(!h.app.menu_open(), "the menu bar closed\n{}", h.text());

@@ -1,10 +1,3 @@
-//! Deterministic demo database: catalog (connections, databases, schemas,
-//! tables, columns, indexes, keys) and generated rows. No drivers: a small
-//! in-memory engine evaluates the SQL subset the workbench needs, so every
-//! interaction is real while results stay reproducible.
-
-// ------------------------------------------------------------------ catalog
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Engine {
     Postgres,
@@ -29,21 +22,18 @@ impl Engine {
     }
 }
 
-/// TablePro's per-connection Safe Mode level (`SafeModeLevel.swift`).
-/// Destructive statements always confirm regardless of level.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SafeMode {
-    /// Default: writes and reads run; only dangerous statements ask.
     Silent,
-    /// Writes ask for confirmation.
+
     Alert,
-    /// Every statement asks for confirmation.
+
     AlertFull,
-    /// Writes ask and require authentication (Touch ID on macOS).
+
     Safe,
-    /// Every statement asks and requires authentication.
+
     SafeFull,
-    /// Writes are refused.
+
     ReadOnly,
 }
 
@@ -68,7 +58,6 @@ impl SafeMode {
         }
     }
 
-    /// Short token for the identity strip.
     pub fn token(self) -> &'static str {
         match self {
             SafeMode::Silent => "silent",
@@ -122,8 +111,6 @@ impl Environment {
         }
     }
 
-    /// The library's environment kind: its badge glyph and tone come from
-    /// [`junie_tui::theme::Theme::env`].
     pub fn kind(self) -> junie_tui::theme::EnvKind {
         use junie_tui::theme::EnvKind;
         match self {
@@ -149,7 +136,7 @@ pub struct Connection {
     pub ssh: Option<String>,
     pub group: String,
     pub last_used: String,
-    /// Simulated behaviour when connecting.
+
     pub outcome: ConnectOutcome,
 }
 
@@ -749,8 +736,6 @@ impl Catalog {
     }
 }
 
-// ---------------------------------------------------------------- values
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Null,
@@ -787,7 +772,6 @@ impl Value {
     }
 }
 
-/// Deterministic pseudo-random stream (SplitMix64).
 #[derive(Clone)]
 struct Rng(u64);
 impl Rng {
@@ -929,7 +913,6 @@ fn date(r: &mut Rng, year: i32) -> String {
     format!("{year}-{:02}-{:02}", 1 + r.below(12), 1 + r.below(28))
 }
 
-/// Generate deterministic rows for a table. `n` rows starting at `offset`.
 pub fn rows(table: &Table, offset: usize, n: usize) -> Vec<Vec<Value>> {
     let mut out = Vec::with_capacity(n);
     for i in offset..offset + n {

@@ -1,6 +1,6 @@
-//! A keyboard-shortcut reference overlay: titled sections of key/action
-//! rows laid out in as many columns as fit, scrollable, in the shared
-//! modal [`Frame`].
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -20,11 +20,11 @@ use crate::widgets::button::Button;
 use crate::widgets::keyhint::Hint;
 use crate::widgets::scrollbar;
 
-/// A [`HelpOverlay`] action a key can be bound to. Esc (per the
-/// [`Dismiss`](crate::ui::popup::Dismiss) policy) and Enter always close.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HelpCmd {
-    /// Close the overlay. Default `?` and `q`.
+
     Close,
 }
 
@@ -43,14 +43,14 @@ impl Actions for HelpCmd {
     }
 }
 
-/// One titled group of a [`HelpOverlay`]: key rows read from live key
-/// maps ([`Self::bindings`], [`crate::shell::ShellKeys::help_section`]),
-/// so the reference lists only keys that work, spelled as hints spell
-/// them (S8b, K23).
+
+
+
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct HelpSection {
     pub title: String,
-    /// `(keys, action)` rows in order.
+
     pub rows: Vec<(String, String)>,
 }
 
@@ -62,9 +62,9 @@ impl HelpSection {
         }
     }
 
-    /// Add a row by hand (a mouse gesture, a key group such as `a–z`);
-    /// keys the terminal does not deliver are left out
-    /// ([`crate::core::keyboard::label_deliverable`]).
+
+
+
     pub fn row(mut self, keys: impl Into<String>, action: impl Into<String>) -> Self {
         let keys = keys.into();
         if crate::core::keyboard::label_deliverable(&keys) {
@@ -73,11 +73,11 @@ impl HelpSection {
         self
     }
 
-    /// Add a widget's or a page's [`Binding`]s: rows with the same action
-    /// share one row (`F1 ?  Help`). A binding with an empty action is
-    /// left out.
-    ///
-    /// [`Binding`]: crate::core::hints::Binding
+
+
+
+
+
     pub fn bindings(mut self, bindings: &[crate::core::hints::Binding]) -> Self {
         for b in bindings.iter().filter(|b| !b.action.is_empty()) {
             match self.rows.iter_mut().find(|(_, a)| *a == b.action) {
@@ -93,53 +93,53 @@ impl HelpSection {
         self
     }
 
-    /// Whether the section lists nothing (it is then left out).
+
     pub fn is_empty(&self) -> bool {
         self.rows.is_empty()
     }
 }
 
 pub struct HelpOverlay {
-    /// The `×` its frame draws when its [`Dismiss`] policy lets Esc close
-    /// it ([`Dismiss::shows_close`]); a click on it means Esc. Default
-    /// [`IconButton::close`] (three-cell plate, `Close · Esc` tooltip);
-    /// every modal takes a custom one the same way
-    /// ([`crate::ui::layer::Overlay::close_button`]).
-    ///
-    /// [`Dismiss`]: crate::ui::popup::Dismiss
-    /// [`Dismiss::shows_close`]: crate::ui::popup::Dismiss::shows_close
-    /// [`IconButton::close`]: crate::widgets::icon_button::IconButton::close
+
+
+
+
+
+
+
+
+
     pub close_button: crate::widgets::icon_button::IconButton,
-    /// Which dismissals close it. Default `Dismiss::LIGHT`.
+
     pub dismiss: crate::ui::popup::Dismiss,
     pub id: WidgetId,
     pub scope: String,
     pub sections: Vec<(String, Vec<(String, String)>)>,
-    /// The rows and the bar ([`Scrollable`]).
+
     pub scroll: ScrollPane,
     pub area: Rect,
     pub closed: bool,
-    /// Frame title. Default "Keyboard shortcuts".
+
     pub title: String,
-    /// A hint line beside the Done button. Default empty: the app's
-    /// footer is the one hint surface and names the overlay's keys
-    /// ([`HasHints`], CO4), so the overlay does not repeat them.
-    /// [`crate::theme::Strings::help_footer`] holds the old line for an
-    /// app without a footer.
+
+
+
+
+
     pub hint: String,
-    /// Which keys scroll (default [`NavKeys::default`]).
+
     pub nav: NavKeys,
-    /// The overlay's action keys (default [`HelpCmd::default_keymap`]).
+
     pub keymap: KeyMap<HelpCmd>,
-    /// Largest share of the screen the overlay takes, in percent of its
-    /// width and height. Default 80, so the dimmed page stays visible
-    /// around it and a click there closes it (under `Dismiss::LIGHT`).
+
+
+
     pub max_percent: u16,
-    /// The button that closes the overlay by pointer. Its label follows
-    /// [`crate::theme::Strings::done`].
+
+
     pub done: Button,
-    /// The theme's strings as of the last render: a title and hint still
-    /// reading them follow a change ([`crate::theme::Strings::follow`]).
+
+
     strings: crate::theme::Strings,
 }
 
@@ -155,7 +155,7 @@ impl std::fmt::Debug for HelpOverlay {
     }
 }
 
-/// The footer while the reference is on top: how it scrolls and Esc.
+
 impl HasHints for HelpOverlay {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         let mut v = vec![];
@@ -170,19 +170,19 @@ impl HasHints for HelpOverlay {
 }
 
 impl HelpOverlay {
-    /// See [`Self::close_button`].
+
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<HelpCmd>) -> Self {
         self.keymap = keymap;
         self
@@ -219,11 +219,11 @@ impl HelpOverlay {
         }
     }
 
-    /// The reference built from key maps: each [`HelpSection`] with rows
-    /// becomes a titled group, in order (the shell's keys from
-    /// [`crate::shell::ShellKeys::help_section`], the page's and the
-    /// focused widget's [`crate::core::hints::Bindings`]). Empty sections
-    /// are left out, so the overlay never lists a group with nothing in it.
+
+
+
+
+
     pub fn from_keymaps(id: WidgetId, scope: &str, sections: Vec<HelpSection>) -> Self {
         let mut h = Self::new(id, scope, vec![]);
         h.sections = sections
@@ -234,14 +234,14 @@ impl HelpOverlay {
         h
     }
 
-    /// See [`Self::max_percent`] (clamped to 20..=100).
+
     pub fn max_percent(mut self, percent: u16) -> Self {
         self.max_percent = percent.clamp(20, 100);
         self
     }
 
-    /// A completed click inside the overlay: the Done button and the
-    /// frame's close button close it.
+
+
     pub fn on_click(&mut self, id: WidgetId) -> Outcome {
         if id == self.done.id && self.done.on_click()
             || id == crate::ui::modal::CLOSE && self.dismiss.shows_close()
@@ -308,12 +308,12 @@ impl HelpOverlay {
         self.area = area;
         let t = ctx.theme;
         let bg = t.surface_elevated;
-        // columns: as many as fit at 36 cells each, sharing the width
+
         let cols = (inner.width / 36).clamp(1, 3);
         let col_w = inner.width / cols;
         let cols = cols as usize;
-        // the key column fits the widest key, up to 40 % of a column; a
-        // description wraps and hangs under its own column (never cut)
+
+
         let widest = self
             .sections
             .iter()
@@ -322,7 +322,7 @@ impl HelpOverlay {
             .unwrap_or(0) as u16;
         let key_w = widest.clamp(4, col_w * 2 / 5);
         let action_w = col_w.saturating_sub(key_w + 3).max(8) as usize;
-        // flatten sections into column blocks: (key, text, heading) lines
+
         let mut blocks: Vec<Vec<(String, String, bool)>> = vec![];
         for (title, rows) in &self.sections {
             let mut b = vec![(title.clone(), String::new(), true)];
@@ -335,7 +335,7 @@ impl HelpOverlay {
             b.push((String::new(), String::new(), false));
             blocks.push(b);
         }
-        // distribute blocks round-robin into columns
+
         let mut columns: Vec<Vec<(String, String, bool)>> = vec![vec![]; cols];
         for (i, b) in blocks.into_iter().enumerate() {
             columns[i % cols].extend(b);
@@ -365,15 +365,15 @@ impl HelpOverlay {
                         x + key_w + 1,
                         y,
                         truncate(action, action_w),
-                        // a reference sheet: the description is read, so
-                        // it is secondary text, not the hint bar's muted
+
+
                         t.secondary().bg(bg),
                     );
                 }
             }
         }
         if self.scroll.overflows() {
-            // the bar sits in the padding just inside the frame
+
             let body = Rect::new(
                 area.x,
                 inner.y,
@@ -384,7 +384,7 @@ impl HelpOverlay {
                 .draw_with_fade(body, buf, ctx, self.id, true, &[]);
             let pos = scrollbar::position_label(&self.scroll);
             let pw = width(&pos) as u16;
-            // left of the close button when the frame draws one
+
             let reserve = if self.dismiss.shows_close() {
                 crate::ui::modal::CLOSE_WIDTH + 1
             } else {
@@ -421,10 +421,10 @@ impl Scrollable for HelpOverlay {
     }
 }
 
-/// The overlay's pointer gestures: a wheel or a bar press scrolls it; a
-/// completed click on Done or the frame's `×` closes it
-/// ([`HelpOverlay::on_click`]); any other click inside is consumed. Done
-/// and the `×` are the overlay's too ([`Self::route`]).
+
+
+
+
 impl crate::core::pointer::MouseTarget for HelpOverlay {
     type Action = ();
 
@@ -469,9 +469,9 @@ mod tests {
     use crate::ui::popup::Dismiss;
     use ratatui::crossterm::event::KeyModifiers;
 
-    /// S8b: a long description wraps and hangs under its own column
-    /// instead of being cut, and sections built from key maps merge the
-    /// keys of one action into one row.
+
+
+
     #[test]
     fn long_descriptions_wrap_under_their_column_and_keys_share_a_row() {
         use crate::core::hints::Binding;
@@ -534,7 +534,7 @@ mod tests {
         h.render(screen, &mut buf, &mut ctx);
         let text: String = buf.content().iter().map(|c| c.symbol()).collect();
         assert!(text.contains("Keyboard shortcuts") && text.contains("Select"));
-        // keys primary bold, descriptions secondary
+
         let at = |needle: &str| {
             let want: Vec<String> = needle.chars().map(String::from).collect();
             let i = buf

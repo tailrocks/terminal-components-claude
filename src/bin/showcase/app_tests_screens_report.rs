@@ -1,8 +1,3 @@
-//! The Screens pages Read-only report (SC56), Launch cockpit (SC55) and
-//! Accounts & usage (SC53) through the real app: each page shows its
-//! composed library widgets, not the planned-page stub; options set
-//! through `--opt` change the playground, and the key interactions work.
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -10,14 +5,10 @@ use crate::app_tests_feedback::Harness;
 use crate::pages::template::Section;
 use junie_tui::core::id::WidgetId;
 
-// --------------------------------------------------------- Read-only report
-
 const REPORT: WidgetId = WidgetId::of("readonlyreport");
 
 #[test]
 fn report_shows_its_snapshot_not_the_stub() {
-    // at its natural size the report scrolls: read what scrolling the
-    // page brings into view
     for (w, h) in [(120, 40), (80, 24)] {
         let mut h = Harness::new(w, h, PageId::ReadOnlyReport);
         let text = h.page_text();
@@ -99,9 +90,6 @@ fn report_options_drive_the_widgets() {
     }
 }
 
-/// P0-G6, S14: "Disk cleanup →" opens that page over the report (the
-/// header trail shows the stack); Esc goes back with focus on the button
-/// it left from.
 #[test]
 fn report_link_pushes_the_page_and_esc_returns_to_the_button() {
     let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
@@ -115,13 +103,11 @@ fn report_link_pushes_the_page_and_esc_returns_to_the_button() {
     h.key(KeyCode::Esc);
     assert_eq!(h.app.page(), PageId::ReadOnlyReport);
     assert!(h.app.shell.focus.is(REPORT.sub("next-disk")));
-    // the other link too
+
     h.click_id(REPORT.sub("next-activity"));
     assert_eq!(h.app.page(), PageId::Activity);
 }
 
-/// S14, M5: on a pushed page the header trail's earlier level is a link
-/// back to it.
 #[test]
 fn report_header_trail_pops_back_to_the_report() {
     let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
@@ -134,8 +120,6 @@ fn report_header_trail_pops_back_to_the_report() {
     assert!(!h.row(0).contains("Disk cleanup"), "{}", h.row(0));
 }
 
-/// S14: a copy the terminal cannot take says so instead of claiming it
-/// was copied.
 #[test]
 fn report_copy_over_the_terminal_limit_is_not_reported_as_copied() {
     let mut h = Harness::new(120, 40, PageId::ReadOnlyReport);
@@ -143,8 +127,6 @@ fn report_copy_over_the_terminal_limit_is_not_reported_as_copied() {
     h.click_id(REPORT.sub("copy"));
     assert!(h.status().starts_with("Not copied"), "{}", h.status());
 }
-
-// --------------------------------------------------------- Accounts & usage
 
 const ACCOUNTS: WidgetId = WidgetId::of("accountsusage");
 
@@ -185,14 +167,14 @@ fn accounts_inspector_follows_the_tree_cursor() {
         !text.contains("Opus weekly is at 86 %"),
         "no warning: {text}"
     );
-    // past the OpenAI fold to the broken account
+
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     let text = h.text();
     assert!(text.contains("The API key was revoked"), "{text}");
     assert!(text.contains("Monthly spend"), "{text}");
-    // a provider row shows the provider's facts
+
     h.key(KeyCode::Up);
     h.key(KeyCode::Up);
     assert!(h.text().contains("monthly spend"), "{}", h.text());
@@ -242,8 +224,6 @@ fn accounts_narrow_collapse_to_a_summary_and_a_drawer() {
     assert!(h.text().contains("Tab shows details"), "{}", h.text());
 }
 
-// ----------------------------------------------------------- Launch cockpit
-
 const COCKPIT: WidgetId = WidgetId::of("launchcockpit");
 
 fn ticks(h: &mut Harness, n: usize) {
@@ -254,8 +234,6 @@ fn ticks(h: &mut Harness, n: usize) {
 
 #[test]
 fn cockpit_shows_rail_log_and_actions_not_the_stub() {
-    // at its natural size the cockpit scrolls: read what scrolling the
-    // page brings into view
     for (w, h) in [(120, 40), (80, 24)] {
         let mut h = Harness::new(w, h, PageId::LaunchCockpit);
         let text = h.page_text();
@@ -309,7 +287,7 @@ fn cockpit_credentials_failure_holds_until_retry() {
     let text = h.text();
     assert!(text.contains("Credential source unavailable"), "{text}");
     assert!(text.contains("vault Engineering is locked"), "{text}");
-    // held: ticks do not move the launch on
+
     ticks(&mut h, 10);
     assert!(h.text().contains("Credential source unavailable"));
     let (x, y) = h.at("Retry");
@@ -355,8 +333,6 @@ fn cockpit_cancel_asks_then_stops_the_launch() {
     assert!(h.text().contains("cancelled ·"), "{}", h.text());
 }
 
-/// The key path the overlay scenarios take: Launch is the fourth stop
-/// (strip, facts, log, Launch) and Cancel launch… the fifth.
 #[test]
 fn cockpit_keyboard_reaches_launch_and_cancel() {
     let mut h = Harness::new(120, 40, PageId::LaunchCockpit);

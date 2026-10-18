@@ -1,5 +1,5 @@
-//! Framework-level primitives that the future component library would
-//! expose: ids, focus, hit-testing, scrolling, text editing, event outcomes.
+
+
 
 pub mod edit;
 pub mod event;

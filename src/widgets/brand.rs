@@ -1,7 +1,7 @@
-//! Brand lockup: the one filled pill an application uses for its identity.
-//! It is the only control that fills with the accent, so it reads as the
-//! product mark rather than as a button; every screen that shows the
-//! identity draws this same lockup rather than composing its own glyphs.
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -13,10 +13,10 @@ use crate::ui::ctx::{RenderCtx, VisualState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lockup {
-    /// The mark text, supplied by the application (never baked in here).
+
     pub text: String,
-    /// Compact drops the outer padding for tight strips; the treatment
-    /// (accent fill, on-accent bold text) never changes.
+
+
     pub compact: bool,
 }
 
@@ -47,8 +47,8 @@ impl Lockup {
         crate::ui::text::width(&self.label()) as u16
     }
 
-    /// A primary control at rest: the brand is an accent fill like a
-    /// primary button, so it walks the same ladder.
+
+
     pub fn style(t: &Theme) -> Style {
         Self::state_style(t, VisualState::default())
     }
@@ -58,15 +58,15 @@ impl Lockup {
             .style
     }
 
-    /// Draw at a position; returns the width used.
+
     pub fn render(&self, x: u16, y: u16, buf: &mut Buffer, t: &Theme) -> u16 {
         let label = self.label();
         buf.set_string(x, y, &label, Self::style(t));
         crate::ui::text::width(&label) as u16
     }
 
-    /// Draw as a clickable region: rest, hover and pressed walk the accent
-    /// ladder.
+
+
     pub fn render_clickable(
         &self,
         x: u16,

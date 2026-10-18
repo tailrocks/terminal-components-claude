@@ -1,7 +1,3 @@
-//! Pointer text selection in jackin's fields through the real app: click
-//! counts, press and drag reach the editor's fields and the fields of its
-//! dialogs (interaction #16).
-
 use crate::pages::Pages;
 use junie_tui::core::event::MouseKind;
 use junie_tui::widgets::dialog::DialogBody;
@@ -20,9 +16,6 @@ fn editor() -> H {
     h
 }
 
-/// Ctrl+Q reaches past the editing Name field: the field binds no Ctrl+Q
-/// and passes it on (`field_common::unbound_key`), and the edited editor
-/// asks Save / Discard / Cancel before quitting.
 #[test]
 fn ctrl_q_reaches_past_an_editing_name_field() {
     let mut h = editor();
@@ -44,7 +37,7 @@ fn name_selection(h: &H) -> Option<String> {
 #[test]
 fn dragging_across_the_editor_name_selects_it() {
     let mut h = editor();
-    // the value inside the name field as drawn
+
     let field = h
         .app
         .shell
@@ -65,7 +58,7 @@ fn dragging_across_the_editor_name_selects_it() {
     h.mouse(MouseKind::Drag, x + 3, y);
     h.mouse(MouseKind::Up, x + 3, y);
     assert_eq!(name_selection(&h).as_deref(), Some("pay"), "{}", h.text());
-    // a triple click selects the whole value
+
     h.click(x + 1, y);
     h.click(x + 1, y);
     h.click(x + 1, y);
@@ -92,13 +85,13 @@ fn a_double_click_in_a_prompt_selects_the_word_and_a_drag_extends_by_words() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     h.ctrl('b');
     h.key(KeyCode::Char(','));
-    // the label field edits on Enter (16 characters at most)
+
     h.type_str("ab cd ef");
     let (x, y) = h.find("ab cd ef").unwrap_or_else(|| panic!("{}", h.text()));
     h.click(x + 3, y);
     h.click(x + 3, y);
     assert_eq!(rename_input(&h).as_deref(), Some("cd"), "{}", h.text());
-    // the second press of another double click, then a drag: by words
+
     h.click(x, y);
     h.mouse(MouseKind::Down, x, y);
     h.mouse(MouseKind::Drag, x + 4, y);
@@ -120,7 +113,7 @@ fn a_press_on_the_dialog_body_ends_its_fields_edit() {
         _ => panic!("the rename prompt is open"),
     };
     assert_eq!(editing(&h), (true, "xy".to_owned()));
-    // dead space inside the dialog: its title row
+
     let (x, y) = h.find("Change tab title").expect("the dialog title");
     h.click(x + 20, y);
     assert_eq!(
@@ -131,10 +124,6 @@ fn a_press_on_the_dialog_body_ends_its_fields_edit() {
     );
 }
 
-/// Keyboard audit #1 and #15: the workspace Name field shows its caret the
-/// moment focus lands, the value is selected so typing replaces it, typed
-/// `[`/`]`/`q` stay in the name, and one Tab applies and moves on (the
-/// editor used to keep focus until a second Tab).
 #[test]
 fn the_name_field_edits_on_focus_and_one_tab_moves_on() {
     let mut h = editor();

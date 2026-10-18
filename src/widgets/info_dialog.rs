@@ -1,6 +1,6 @@
-//! A read-only information dialog: an intro, a property list whose rows
-//! can be copied, an optional detail block and action buttons. Moved from
-//! jackin-preview so every app can use it.
+
+
+
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
@@ -27,23 +27,23 @@ use ratatui::style::{Modifier, Style};
 pub enum InfoResult {
     Closed,
     Copy(String),
-    /// Extra action button index fired.
+
     Action(usize),
 }
 
-/// Read-only facts with copyable rows and explicit actions.
+
 pub struct InfoDialog {
-    /// The `×` its frame draws when its [`Dismiss`] policy lets Esc close
-    /// it ([`Dismiss::shows_close`]); a click on it means Esc. Default
-    /// [`IconButton::close`] (three-cell plate, `Close · Esc` tooltip);
-    /// every modal takes a custom one the same way
-    /// ([`crate::ui::layer::Overlay::close_button`]).
-    ///
-    /// [`Dismiss`]: crate::ui::popup::Dismiss
-    /// [`Dismiss::shows_close`]: crate::ui::popup::Dismiss::shows_close
-    /// [`IconButton::close`]: crate::widgets::icon_button::IconButton::close
+
+
+
+
+
+
+
+
+
     pub close_button: crate::widgets::icon_button::IconButton,
-    /// Which dismissals close it. Default `Dismiss::LIGHT`.
+
     pub dismiss: crate::ui::popup::Dismiss,
     pub id: WidgetId,
     pub title: String,
@@ -57,21 +57,21 @@ pub struct InfoDialog {
     pub width: u16,
     pub result: Option<InfoResult>,
     pub area: Rect,
-    /// Copies of copyable values by row index.
+
     pub copy_values: Vec<Option<String>>,
     pub error_title: bool,
-    /// Which keys scroll the detail text (default [`NavKeys::default`]).
+
     pub nav: NavKeys,
-    /// The dialog's action keys (default [`InfoCmd::default_keymap`]).
+
     pub keymap: KeyMap<InfoCmd>,
-    /// The theme's strings as of the last render; a Close label still
-    /// reading them follows a change ([`crate::theme::Strings::follow`]).
+
+
     strings: crate::theme::Strings,
 }
 
-/// The footer while the dialog is on top: how to move through the facts,
-/// the reveal key while the cursor row is cut, the copy key from the key
-/// map (only when a fact is copyable), and Esc.
+
+
+
 impl HasHints for InfoDialog {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         let mut v = nav_hints(&self.nav, false, false);
@@ -90,13 +90,13 @@ impl HasHints for InfoDialog {
     }
 }
 
-/// An [`InfoDialog`] action a key can be bound to. Esc and Enter always
-/// close.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InfoCmd {
-    /// Close the dialog. Default `q`.
+
     Close,
-    /// Copy the first copyable value. Default `y`.
+
     Copy,
 }
 
@@ -117,7 +117,7 @@ impl Actions for InfoCmd {
 }
 
 impl InfoDialog {
-    /// See [`Self::close_button`].
+
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
@@ -151,13 +151,13 @@ impl InfoDialog {
         }
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<InfoCmd>) -> Self {
         self.keymap = keymap;
         self
@@ -223,7 +223,7 @@ impl InfoDialog {
             if o.consumed() {
                 return o;
             }
-            // detail scrolling from the list
+
             match key.code {
                 KeyCode::PageDown => {
                     self.detail_scroll.page_down();
@@ -264,7 +264,7 @@ impl InfoDialog {
                 return Outcome::Changed;
             }
             Some(InfoCmd::Copy) => {
-                // copy the first copyable value
+
                 if let Some(Some(v)) = self.copy_values.iter().find(|v| v.is_some()) {
                     self.result = Some(InfoResult::Copy(v.clone()));
                 }
@@ -307,8 +307,8 @@ impl InfoDialog {
     pub fn on_click(&mut self, id: WidgetId, pos: Position, focus: &mut Focus) -> Outcome {
         if let Some(i) = self.props.row_of(id) {
             focus.focus(self.props.id);
-            // a single click selects the row; it copies only when the
-            // sheet's click policy activates on one click (M32)
+
+
             let (o, act) = self.props.on_click(i);
             if act.is_some()
                 && let Some(Some(v)) = self.copy_values.get(i)
@@ -342,8 +342,8 @@ impl InfoDialog {
         Outcome::Consumed
     }
 
-    /// The pointer moved while held on a scrollbar: the detail text's or
-    /// the property sheet's.
+
+
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if scrollbar::is_bar_of(pressed, self.props.id) {
             return match self.props.pane().bar_of(pressed) {
@@ -428,7 +428,7 @@ impl InfoDialog {
                 buf.set_string(inner.x, y + k as u16, &wrapped[i], t.secondary().bg(bg));
             }
             if self.detail_scroll.overflows() {
-                // the bar sits in the padding just inside the frame
+
                 let body = Rect::new(area.x, y, (area.right() - 1).saturating_sub(area.x), dh);
                 self.detail_scroll
                     .draw_with_fade(body, buf, ctx, self.id, true, &[]);
@@ -457,7 +457,7 @@ impl Scrollable for InfoDialog {
         &mut self.detail_scroll
     }
 
-    /// Without a detail text the property sheet takes the wheel.
+
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         self.detail
             .is_empty()
@@ -466,13 +466,13 @@ impl Scrollable for InfoDialog {
 }
 
 impl InfoDialog {
-    /// One pointer event the router resolved to the dialog (its layer's
-    /// [`crate::ui::layer::Layer::pointer`]): the property sheet takes its
-    /// own gestures ([`crate::core::pointer::MouseTarget::route`]: a wheel
-    /// over it scrolls it; a click on a row focuses it and reports the
-    /// row's copy value); a wheel or a bar press on the dialog scrolls the
-    /// detail, and a wheel over anything else moves nothing; a drag is
-    /// [`Self::on_drag`] and any other completed click [`Self::on_click`].
+
+
+
+
+
+
+
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -485,8 +485,8 @@ impl InfoDialog {
             if ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
                 focus.focus(self.props.id);
             }
-            // a click selects a row; only its activation (a double click,
-            // the sheet's `ClickPolicy`) copies the value (M32)
+
+
             if let Some(crate::widgets::props::PropsAction::Activate(i)) = r.take_action()
                 && let Some(Some(v)) = self.copy_values.get(i)
             {
@@ -551,8 +551,8 @@ mod tests {
         assert_eq!(d.result, Some(InfoResult::Closed));
     }
 
-    /// M32: a click meant to select a fact never copies it; a double click
-    /// (the sheet's activation) does.
+
+
     #[test]
     fn a_click_selects_a_fact_and_a_double_click_copies_it() {
         use crate::core::intent::Phase;

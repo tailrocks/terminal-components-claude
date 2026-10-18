@@ -1,14 +1,3 @@
-//! Trees (plan §7, SC15): the `TreeView`.
-//!
-//! Playground: a project tree with a row menu and the selection read back,
-//! and a connections tree whose environment glyphs carry their own tone, a
-//! degraded node's label its tone, an empty folder a note, and lazy nodes
-//! that load their children (busy, then `set_children`) when first
-//! expanded (`TreeAction::Expand`). The built trees and the last
-//! `TreeAction` are read back. Options: every `TreeView` builder. States:
-//! the tree by itself in every state it has. Hints name only keys the
-//! tree's `NavKeys` deliver.
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -37,14 +26,12 @@ use ratatui::crossterm::event::KeyCode;
 
 const ID: WidgetId = WidgetId::of("trees");
 const MENU: WidgetId = WidgetId::of("trees.menu");
-/// The project tree and the connections tree.
+
 pub const PROJECT: WidgetId = ID.sub("tree");
 pub const CONNECTIONS: WidgetId = ID.sub("connections");
 
-/// Ticks a lazy node takes to load.
 const LOAD_TICKS: u8 = 4;
 
-/// The connections (demo data): environments with lazy databases.
 fn connections() -> Vec<TreeNode> {
     vec![
         TreeNode::dir(
@@ -67,7 +54,6 @@ fn connections() -> Vec<TreeNode> {
     ]
 }
 
-/// What a lazy node loads (demo data).
 fn tables() -> Vec<TreeNode> {
     vec![
         TreeNode::leaf_meta("customers", "48k rows"),
@@ -80,17 +66,16 @@ pub struct TreesPage {
     template: Template,
     tree: TreeView,
     conns: TreeView,
-    /// The lazy node loading and the ticks left.
+
     loading: Option<(Vec<usize>, u8)>,
-    /// What the trees reported last.
+
     last: String,
-    /// The row menu and the visible row it is about.
+
     menu: RowMenu<usize>,
-    /// Value indices of the page options, in `page_options` order.
+
     opts: Vec<usize>,
 }
 
-/// What the row menu's items do.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RowAction {
     Open,
@@ -119,13 +104,11 @@ impl TreesPage {
         page
     }
 
-    /// The connections tree (tests read it back).
     #[allow(dead_code)]
     pub fn conns(&self) -> &TreeView {
         &self.conns
     }
 
-    /// The value of option `key` as the table spells it.
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::Trees);
         let i = table
@@ -135,7 +118,6 @@ impl TreesPage {
         table[i].values[self.opts[i]]
     }
 
-    /// `t` with the options applied through its builders.
     fn build(&self, t: TreeView) -> TreeView {
         let mut t = t
             .branch_activate(match self.opt("trees.branch") {
@@ -175,8 +157,6 @@ impl TreesPage {
         t
     }
 
-    /// Rebuild both trees through their builders, keeping their nodes,
-    /// open folders, cursor and selection.
     fn rebuild(&mut self) {
         let keep = |old: &TreeView, new: TreeView| {
             let mut new = new;
@@ -199,7 +179,6 @@ impl TreesPage {
             .find(|t| t.id == id)
     }
 
-    /// What a tree reported.
     fn on_action(&mut self, id: WidgetId, a: Option<TreeAction>, cx: &mut Cx) {
         let Some(a) = a else { return };
         let t = if id == CONNECTIONS {
@@ -212,7 +191,7 @@ impl TreesPage {
         match a {
             TreeAction::Expand(p) => {
                 self.last = format!("Expand({})", name(t, &p));
-                // a lazy node: fetch its children (here, a few ticks)
+
                 t.set_busy(&p, true);
                 self.loading = Some((p, LOAD_TICKS));
             }
@@ -223,7 +202,6 @@ impl TreesPage {
         }
     }
 
-    /// The trees as built, read back.
     fn readout(&self) -> Vec<String> {
         let t = &self.tree;
         let keys = format!(
@@ -261,7 +239,6 @@ impl TreesPage {
         ]
     }
 
-    /// What visible row `i` offers: only what the tree's keys already do.
     fn row_items(&self, i: usize) -> Vec<(RowAction, MenuItem)> {
         let row = &self.tree.rows()[i];
         let first = if row.has_children {
@@ -311,8 +288,6 @@ impl TreesPage {
         self.menu.open(req.menu(MENU, items).title(title), row);
     }
 
-    /// Item `i` of the menu about visible row `row`: the same path the
-    /// item's key takes.
     fn choose(&mut self, row: usize, i: usize) -> Outcome {
         let Some(&(action, _)) = self.row_items(row).get(i) else {
             return Outcome::Consumed;
@@ -332,18 +307,14 @@ impl TreesPage {
         }
     }
 
-    /// The connections card: every row of the tree in view.
     fn conns_h(&self) -> u16 {
         self.conns.rows().len() as u16 + 3
     }
 
-    /// The tree card's row: the tree, or the selection and connections
-    /// cards beside it when they are taller.
     fn top_h(&self) -> u16 {
         TREE_H.max(SELECTION_H + 1 + self.conns_h())
     }
 
-    /// The readout lines wrapped to `width`.
     fn readout_lines(&self, width: u16) -> Vec<String> {
         self.readout()
             .iter()
@@ -418,7 +389,6 @@ impl TreesPage {
             y += 1;
         }
 
-        // the connections: toned glyphs, a toned label, a note, lazy nodes
         let top = r.y + r.height.min(SELECTION_H) + 1;
         if top + 4 < r.bottom() {
             let meta = if self.loading.is_some() {
@@ -440,7 +410,6 @@ impl TreesPage {
             self.conns.render(inner, buf, ctx, bg);
         }
 
-        // the built trees, read back
         for (y, l) in (area.y + self.top_h() + 1..).zip(self.readout_lines(area.width)) {
             buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
         }
@@ -448,17 +417,14 @@ impl TreesPage {
     }
 }
 
-/// The tree card's height (the tree scrolls in it); the right column's
-/// cards end with it.
 const TREE_H: u16 = 18;
-/// The selection card's height.
+
 const SELECTION_H: u16 = 10;
-/// The narrowest Playground that keeps the tree beside its readouts.
+
 const MIN_W: u16 = 76;
-/// A tree row's cursor gutter, disclosure, glyph and card padding.
+
 const ROW_CHROME: u16 = 12;
 
-/// The States grid: a small tree, drawn by itself.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -507,11 +473,7 @@ impl Page for TreesPage {
         "Indent carries hierarchy; the focus bar never moves"
     }
 
-    /// The tree card beside the selection and connections cards (never
-    /// so narrow that they stack), then the readout, wrapped.
     fn measure(&self, avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
-        // the connections column shows every row whole (its indent,
-        // glyph, label and meta); it gets two fifths of the page
         let row = self
             .conns
             .rows()
@@ -554,7 +516,7 @@ impl Page for TreesPage {
             if *left == 0 {
                 let path = path.clone();
                 self.loading = None;
-                // the owner hands the loaded children back
+
                 for t in [&mut self.tree, &mut self.conns] {
                     if t.node(&path).is_some_and(|n| n.busy) {
                         t.set_children(&path, tables());
@@ -604,7 +566,7 @@ impl Page for TreesPage {
                     let Some(t) = self.tree_mut(tid) else {
                         continue;
                     };
-                    // Alt-click opens or closes the whole subtree
+
                     let Some(r) = t.route(ev) else {
                         continue;
                     };
@@ -628,7 +590,7 @@ impl Page for TreesPage {
         if let Some(h) = self.template.hints(focus) {
             return h;
         }
-        // only keys the tree's NavKeys and key map deliver
+
         let t = if focus == Some(self.conns.id) {
             &self.conns
         } else {

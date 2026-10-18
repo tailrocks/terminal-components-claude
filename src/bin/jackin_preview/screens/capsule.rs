@@ -1,8 +1,3 @@
-//! Capsule: the attached in-Construct terminal workspace. Tabs, a nested
-//! pane tree of simulated PTYs, the exact mode priority (dialog › drag ›
-//! select › prefix › normal), scrollback, selection, copy, the command
-//! palette and every Capsule dialog, detach, takeover and dirty exit.
-
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::{Axis, Bar};
@@ -65,9 +60,9 @@ pub const CONTEXT: WidgetId = WidgetId::of("capsule.context");
 pub const USAGE_CHIP: WidgetId = WidgetId::of("capsule.chip.usage");
 pub const CONTAINER_CHIP: WidgetId = WidgetId::of("capsule.chip.container");
 pub const PANES: WidgetId = WidgetId::of("capsule.panes");
-/// The takeover notice's Reconnect button.
+
 pub const TAKEOVER_RECONNECT: WidgetId = WidgetId::of("capsule.takeover.reconnect");
-/// The takeover notice's Workspace manager button.
+
 pub const TAKEOVER_LEAVE: WidgetId = WidgetId::of("capsule.takeover.leave");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -87,34 +82,29 @@ enum Intent {
 
 pub struct CapsuleScreen {
     pub instance: String,
-    /// While the Ctrl+B prefix waits for its command: until this world
-    /// time, or `i64::MAX` when it waits until a key or Esc.
+
     pub prefix_until: Option<i64>,
-    /// How long the Ctrl+B prefix waits for its command. Default `None`:
-    /// sticky until the next key, and Esc cancels it (K26: a timeout
-    /// fails slower typists); `Some(ms)` restores a timeout.
+
     pub prefix_timeout_ms: Option<i64>,
     drag: Option<(Vec<u8>, Rect)>,
     selecting: Option<PaneId>,
-    /// The pane whose horizontal bar the pointer holds.
+
     hbar_held: Option<PaneId>,
     pub pane_rects: Vec<(PaneId, Rect)>,
     seams: Vec<Seam>,
-    /// Shared tab strip; rebuilt from the daemon every frame, keeps its window.
+
     tabs: Tabs,
-    /// Application menu bar (row one of the Capsule).
+
     menubar: MenuBar,
-    /// Context menu anchored to one agent tab.
+
     tab_menu: Option<(usize, ContextMenu)>,
-    /// Keys that open the active tab's context menu from the panes
-    /// (Shift+F10 and the Menu key by default; they are not forwarded to
-    /// the pane's program).
+
     pub context: ContextConfig,
     pub body: Rect,
     pending_intent: Option<Intent>,
     pending_agent: Option<Agent>,
     picker_accounts: Vec<AccountId>,
-    /// Agents behind the spawn picker rows (offered ones only).
+
     picker_agents: Vec<Option<Agent>>,
     palette_cmds: Vec<&'static str>,
     pub dialog_open: bool,
@@ -124,8 +114,6 @@ pub struct CapsuleScreen {
     pending_spawn: Option<PendingSpawn>,
 }
 
-/// Intent, agent, account, workspace name and request time of a spawn that
-/// waits for its picker chain.
 type PendingSpawn = (Intent, Option<Agent>, Option<AccountId>, String, i64);
 
 const PALETTE: [&str; 20] = [
@@ -254,10 +242,6 @@ impl CapsuleScreen {
         }
     }
 
-    // -------------------------------------------------------- commands
-
-    // ------------------------------------------------------------ chrome
-
     fn build_menubar() -> MenuBar {
         let entries: Vec<(&str, Vec<MenuItem>)> = vec![
             (
@@ -319,7 +303,6 @@ impl CapsuleScreen {
         MenuBar::new(MENUBAR, entries).brand(Lockup::new(crate::app::BRAND_MARK))
     }
 
-    /// The brand lockup opens the application menu.
     fn open_brand_menu(&mut self) {
         let anchor = self.menubar.brand_area;
         let items = vec![
@@ -333,9 +316,6 @@ impl CapsuleScreen {
         ));
     }
 
-    /// The focused pane's context menu, opened below `at`: its selection,
-    /// the clipboard and the pane layout. Commands that cannot run now
-    /// stay listed with a reason.
     fn open_pane_menu(&mut self, at: Position, w: &World) {
         let pane = self
             .focused_pane(w)
@@ -441,7 +421,6 @@ impl CapsuleScreen {
         cx.open(d, LayerTag::new("about"));
     }
 
-    /// Runs a menu action by label so menus stay data, not code.
     fn run_menu(&mut self, label: &str, tab: Option<usize>, w: &mut World, cx: &mut Cx) {
         match label {
             "New tab" => self.spawn_flow(Intent::NewTab, w, cx),
@@ -547,7 +526,6 @@ impl CapsuleScreen {
         }
     }
 
-    /// The change inspector for this instance.
     fn open_inspect(&mut self, w: &World, cx: &mut Cx, from_exit: bool) {
         let touched = self
             .daemon(w)
@@ -603,8 +581,7 @@ impl CapsuleScreen {
         let role = w.instance(&self.instance).map(|i| i.role.clone());
         let mut items = vec![];
         self.picker_agents.clear();
-        // only agents with a usable account for this Workspace are offered;
-        // a configured-but-blocked agent shows its reason, disabled
+
         for (a, offer) in w.offered_agents(ws, role.as_deref()) {
             let detail = match (&offer.blocked, offer.accounts.len()) {
                 (Some(why), _) => why.clone(),
@@ -717,7 +694,7 @@ impl CapsuleScreen {
             .daemon(w)
             .map(|d| d.workspace.clone())
             .unwrap_or_default();
-        // split refusal by minimum pane size
+
         if let Intent::Split(dir, _) = intent
             && let Some(f) = self.focused_pane(w)
             && let Some((_, r)) = self.pane_rects.iter().find(|(id, _)| *id == f)
@@ -760,9 +737,7 @@ impl CapsuleScreen {
         }
         let d = w.daemons.get(&self.instance);
         let _ = d;
-        // mutate through a request: the app hands us &World here, so queue
-        // the spawn as a message via status; simpler: perform it directly
-        // in on_modal where we hold &mut World.
+
         self.pending_spawn = Some((intent, agent, account, ws, now));
         cx.status("spawning");
     }
@@ -844,7 +819,7 @@ impl CapsuleScreen {
         if !tab.root.path_to(from, &mut path) {
             return;
         }
-        // deepest split whose orientation matches and which the direction crosses
+
         let want_dir = match dir {
             Direction::Left | Direction::Right => SplitDir::Horizontal,
             Direction::Up | Direction::Down => SplitDir::Vertical,
@@ -956,7 +931,7 @@ impl CapsuleScreen {
                 "Usage" => ("Ctrl+B u", false),
                 "Close" => ("Ctrl+B x", false),
                 "Quit" => ("Ctrl+Q", false),
-                // shown unavailable up front instead of failing once chosen
+
                 "Stage image from clipboard path"
                 | "Paste image from host clipboard"
                 | "Stage image without pasting" => ("Not in this preview", true),
@@ -1301,7 +1276,6 @@ impl CapsuleScreen {
     fn handle_prefix_cmd(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         self.prefix_until = None;
         if key.ctrl_char('b') {
-            // literal prefix forwarded to the pane
             return Outcome::Changed;
         }
         if key.ctrl_char('l') {
@@ -1333,8 +1307,7 @@ impl CapsuleScreen {
             KeyCode::Char('j') => self.move_focus(Direction::Down, w, cx),
             KeyCode::Char('k') => self.move_focus(Direction::Up, w, cx),
             KeyCode::Char('l') => self.move_focus(Direction::Right, w, cx),
-            // tmux's common H J K L resize: the deliverable stand-in for
-            // Alt+Shift+arrows where the terminal keeps Option (A29)
+
             KeyCode::Char('H') => self.resize(Direction::Left, w, cx),
             KeyCode::Char('J') => self.resize(Direction::Down, w, cx),
             KeyCode::Char('K') => self.resize(Direction::Up, w, cx),
@@ -1402,7 +1375,7 @@ impl CapsuleScreen {
         let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(p)) else {
             return Outcome::Consumed;
         };
-        // scrollback keys are intercepted while scrolled back
+
         if !pane.term.follow {
             match key.code {
                 KeyCode::Up => {
@@ -1426,7 +1399,7 @@ impl CapsuleScreen {
                     pane.term.scroll.jump_start();
                     return Outcome::Changed;
                 }
-                // scrolled back there is no caret: the arrows pan
+
                 KeyCode::Left if key.plain() => {
                     return pane.term.wheel(Axis::Horizontal, -1).outcome();
                 }
@@ -1468,8 +1441,6 @@ impl CapsuleScreen {
         Outcome::Changed
     }
 
-    /// The pane's viewport in the world never renders (a copy does), so give
-    /// it the geometry of the last frame before it handles an event.
     fn prime(&self, pid: PaneId, w: &mut World) {
         let Some((_, r)) = self.pane_rects.iter().find(|(p, _)| *p == pid).copied() else {
             return;
@@ -1486,8 +1457,6 @@ impl CapsuleScreen {
             .find(|(_, r)| r.contains(pos))
             .map(|(id, _)| *id)
     }
-
-    // ---------------------------------------------------------- render
 
     fn draw_strip(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
@@ -1508,8 +1477,7 @@ impl CapsuleScreen {
                         (i + 1).to_string()
                     });
                 }
-                // a finished agent is done (`✓` in success), not a quiet
-                // `○`; the other states keep their glyphs
+
                 let g = match d.tab_state(tab) {
                     AgentState::Blocked => "●",
                     AgentState::Done => {
@@ -1634,7 +1602,7 @@ impl CapsuleScreen {
                     }
                 }
             }
-            // the terminal body
+
             let mut term = pane.term.clone();
             term.caret_visible = pane.term.caret_visible
                 && !dialog
@@ -1642,7 +1610,7 @@ impl CapsuleScreen {
                 && self.selecting.is_none()
                 && self.drag.is_none();
             let saved_focus = ctx.interaction.focus;
-            // the viewport is not a ring stop: the pane is
+
             ctx.inert = true;
             term.render(inner, buf, ctx, t.canvas);
             ctx.inert = false;
@@ -1651,14 +1619,12 @@ impl CapsuleScreen {
                 && term.caret_visible
                 && let Some(c) = term.caret
             {
-                // re-place the hardware cursor (render skipped it while
-                // inert), through both scroll offsets
                 if let Some(p) = term.screen_pos(c) {
                     ctx.set_cursor(p);
                 }
             }
             let _ = saved_focus;
-            // scrollbar while scrolled back
+
             if !pane.term.follow {
                 scrollbar::render_with_fade(
                     inner,
@@ -1672,11 +1638,9 @@ impl CapsuleScreen {
             ctx.clickable(PANES.child(*pid as usize), *r);
             ctx.scrollable(PANES.child(*pid as usize), *r);
         }
-        // seams on top
+
         let seams = self.seams.clone();
         for (i, s) in seams.iter().enumerate() {
-            // the shared splitter: the same rest, hover and drag ladder as
-            // every other split in the library
             let sid = PANES.sub("seam").child(i);
             let held = self.drag.as_ref().is_some_and(|(p, _)| *p == s.path);
             Splitter::new(sid, s.dir).render_held(s.handle, buf, ctx, t.canvas, held);
@@ -1684,8 +1648,6 @@ impl CapsuleScreen {
         ctx.control(PANES, Rect::new(body.x, body.y, 1, 1), false);
     }
 
-    /// Right side of the menu-bar row: where the operator is (Workspace and
-    /// Role), the container, and how many instances share the Construct.
     fn draw_identity(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         let Some(i) = w.instance(&self.instance) else {
@@ -1725,16 +1687,13 @@ impl CapsuleScreen {
         segments::render(rest, buf, ctx, &[], &right, t.canvas);
     }
 
-    /// Bottom chrome: the work (branch or PR and its dirty state) on the
-    /// left, the focused session in the middle, the focused account's
-    /// capacity as live meters on the right.
     fn draw_status(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let Some(i) = w.instance(&self.instance) else {
             return;
         };
         let d = self.daemon(w);
         let mut bar = StatusBar::new();
-        // left: the work
+
         let branch = i.branch.clone().unwrap_or(i.default_branch.clone());
         let work = match &i.pr {
             Some((n, title)) => format!("PR #{n} · {}", truncate(title, 32)),
@@ -1762,7 +1721,7 @@ impl CapsuleScreen {
             bar.left
                 .push(StatusItem::new("clean", Tone::Muted).priority(4));
         }
-        // center: the focused session
+
         let pane = self.focused_pane(w).and_then(|p| d.and_then(|d| d.pane(p)));
         if let Some(pane) = pane {
             let agent = pane.proc.agent.map(|a| a.label()).unwrap_or("shell");
@@ -1797,7 +1756,7 @@ impl CapsuleScreen {
                 .priority(2),
             );
         }
-        // right: capacity of the focused account, as meters
+
         let acc = pane
             .and_then(|p| p.proc.account.clone())
             .and_then(|id| w.accounts.get(&id).cloned());
@@ -1852,15 +1811,13 @@ impl CapsuleScreen {
                     .priority(5),
             ),
         }
-        // the row first, its clickable items above it: registered after
-        // the bar, the row covered the usage, container and context chips
+
         ctx.clickable(STATUS, area);
         bar.render(area, buf, ctx);
     }
 }
 
 impl CapsuleScreen {
-    /// Take the attach back from the client that took it over.
     fn reconnect(&mut self, w: &mut World, cx: &mut Cx) {
         self.takeover = None;
         if let Some(d) = self.daemon_mut(w) {
@@ -1869,7 +1826,6 @@ impl CapsuleScreen {
         cx.status("Reconnected · the other client was displaced");
     }
 
-    /// Leave the taken-over instance for the workspace manager.
     fn leave_takeover(&mut self, cx: &mut Cx) {
         self.takeover = None;
         cx.go(Go::Detach);
@@ -1906,7 +1862,7 @@ impl Page<Jackin> for CapsuleScreen {
         if self.pending_spawn.is_some() {
             self.apply_pending_spawn(w, cx);
         }
-        // agent output touches the repo state
+
         let touched = self.daemon(w).map(|d| d.touched_files().len()).unwrap_or(0);
         let now_secs = w.clock.now_secs();
         if let Some(i) = w.instance_mut(&self.instance) {
@@ -1940,8 +1896,7 @@ impl Page<Jackin> for CapsuleScreen {
         }
         if let Some((tab, mut m)) = self.tab_menu.take() {
             let (o, ev) = m.on_key(key);
-            // K14: a key the menu has no use for closed it (`Ignored`) and
-            // reaches the page below (CO15)
+
             let pass = o == Outcome::Ignored && ev == Some(MenuAction::Dismissed);
             match ev {
                 Some(MenuAction::Chosen(i)) => {
@@ -1969,9 +1924,6 @@ impl Page<Jackin> for CapsuleScreen {
             return o.or(Outcome::Changed);
         }
         if self.context.keys.matches(key) {
-            // the context key: the focused pane's menu at its selection,
-            // caret or followed tail; with no pane, the active tab's menu
-            // under its tab (Ctrl+B m opens that one from a pane)
             self.prefix_until = None;
             let at = self
                 .focused_pane(w)
@@ -2035,13 +1987,6 @@ impl Page<Jackin> for CapsuleScreen {
         self.forward_key(key, w, cx)
     }
 
-    /// The Capsule's chrome and panes: the menu bar (a title opens on the
-    /// press) and the session strip (a click activates a tab, the wheel
-    /// moves its window, a secondary click opens its menu, a double click
-    /// renames it) through their widgets; a press in a pane focuses it and
-    /// anchors a selection (or grabs its horizontal bar), a drag extends
-    /// the selection or moves a seam or the bar, its end copies the
-    /// selection; the wheel scrolls the pane under the pointer.
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
@@ -2061,7 +2006,6 @@ impl Page<Jackin> for CapsuleScreen {
             Some(Phase::Drag) => self.drag(id, pos, w),
             Some(Phase::DragEnd | Phase::Release) => self.drag_end(w, cx),
             Some(Phase::Click) => {
-                // a press held on a pane's bar ends with its click
                 let o = self.drag_end(w, cx);
                 if ClickPolicy::DATA.activates(ev.count(), false) {
                     let d = self.double_click(ev, w, cx);
@@ -2116,7 +2060,6 @@ impl Page<Jackin> for CapsuleScreen {
                 let account = self.picker_accounts.get(i).cloned();
                 let agent = self.pending_agent.take();
                 if let (Some(a), Some(acc)) = (agent, account.clone()) {
-                    // a session choice mutates only session scope
                     let next_id = self.daemon(w).map(|d| d.next_id).unwrap_or(0);
                     w.session_accounts
                         .insert((self.instance.clone(), next_id), acc.clone());
@@ -2328,7 +2271,7 @@ impl Page<Jackin> for CapsuleScreen {
                 let x = area.x + area.width.saturating_sub(w_) / 2;
                 buf.set_string(x, y0 + i as u16, text, style.bg(t.canvas));
             }
-            // the same two ways out as buttons, for the pointer
+
             let y = y0 + lines.len() as u16 + 1;
             if y < area.bottom() {
                 let mut reconnect = Button::primary(TAKEOVER_RECONNECT, "Reconnect");
@@ -2347,8 +2290,7 @@ impl Page<Jackin> for CapsuleScreen {
             }
             return;
         }
-        // row 0 menu bar · row 1 breathing room · rows 2–3 agent tabs ·
-        // body · status bar
+
         let menu = Rect::new(area.x, area.y, area.width, 1);
         let strip = Rect::new(area.x, area.y + 2, area.width, 2);
         let status = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
@@ -2475,8 +2417,6 @@ impl Screen for CapsuleScreen {
     }
 }
 
-// ------------------------------------------------------------- usage dialog
-
 pub struct UsageDialog {
     pub accounts: Vec<AccountId>,
     pub tab: usize,
@@ -2503,8 +2443,6 @@ impl UsageDialog {
     }
 }
 
-/// The Usage dialog on the app's layer stack. Light dismiss (Esc on the
-/// tab bar, an outside click, its close button) reports `Custom("close")`.
 impl Layer<ModalResult, World> for UsageDialog {
     fn animating(&self) -> bool {
         true
@@ -2570,7 +2508,6 @@ impl Layer<ModalResult, World> for UsageDialog {
         }
     }
 
-    /// A vertical wheel notch scrolls the body; a click picks a tab.
     fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, World>) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
             if axis == Axis::Horizontal {
@@ -2634,7 +2571,7 @@ impl Layer<ModalResult, World> for UsageDialog {
         self.area = area;
         let t: &Theme = ctx.theme;
         let bg = t.surface_elevated;
-        // tab row
+
         let mut labels = vec!["Overview".to_owned()];
         for id in &self.accounts {
             if let Some(a) = w.accounts.get(id) {
@@ -2646,14 +2583,9 @@ impl Layer<ModalResult, World> for UsageDialog {
             }
         }
         let y = inner.y;
-        // the shared tab strip with its default rule: the active tab shows
-        // the accent (the dialog is the top layer). While the dialog's tab
-        // bar holds the keys the strip draws as focused: the one `▎` on the
-        // cursor tab
+
         let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
-        // keys stay with the dialog: the strip is passive (not a ring stop,
-        // only its tabs are click targets) and draws as focused while the
-        // dialog's keys drive it
+
         let mut strip = Tabs::new(WidgetId::of("capsule.usage.tab"), &label_refs)
             .passive(true)
             .passive_focused(self.tabbar_focus);
@@ -2671,7 +2603,7 @@ impl Layer<ModalResult, World> for UsageDialog {
             height: body.height.saturating_sub(2),
             ..body
         };
-        // build body lines
+
         enum Line {
             Text(String, Tone),
             Meter(String, u8, String, super::accounts::QuotaTone),
@@ -2820,8 +2752,6 @@ impl Layer<ModalResult, World> for UsageDialog {
                     Style::new().fg(t.tone(*tone)).bg(bg),
                 ),
                 Line::Meter(label, pct, value, tone) => {
-                    // the label column never outgrows a narrow body; the
-                    // meter fills the row and is left out below 12 cells
                     MeterList::new(vec![MeterRow::new(
                         label.as_str(),
                         tone.on(Meter::new(Some(*pct)))
@@ -2869,15 +2799,7 @@ impl Layer<ModalResult, World> for UsageDialog {
     }
 }
 
-// ------------------------------------------------------------ pointer
-
-/// The Capsule's pointer gestures by phase ([`Screen::pointer`]). The
-/// panes and seams keep their derived ids (the pane's viewport is a copy
-/// in the world, primed with the last frame's geometry).
 impl CapsuleScreen {
-    /// The horizontal bar of `pane`'s viewport as the layout recorded it
-    /// ([`TextViewport::hbar`]): the pane's own region owns the pointer,
-    /// so the bar is reached by position.
     fn hbar_of(term: &TextViewport) -> Bar {
         Bar {
             id: scrollbar::h_id_for(term.id),
@@ -2887,13 +2809,6 @@ impl CapsuleScreen {
         }
     }
 
-    /// The open tab or pane menu's share of a click or a wheel notch,
-    /// routed by the event's part through the menu's `MouseTarget`: a row
-    /// chooses it (a disabled row never), a ▲/▼ marker pages, the wheel
-    /// scrolls it, a click on its backdrop closes it per its `Dismiss`. A
-    /// click that is not the menu's is outside it and closes it the same
-    /// way (`layer::dismiss`). `None` when no menu is open or the event is
-    /// not its own (the wheel over the backdrop reaches the pane).
     fn tab_menu_pointer(
         &mut self,
         ev: &PointerEvent,
@@ -2926,7 +2841,6 @@ impl CapsuleScreen {
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if self.takeover.is_some() {
-            // the takeover notice's buttons (mouse #6)
             if id == TAKEOVER_RECONNECT {
                 self.reconnect(w, cx);
                 return Outcome::Changed;
@@ -2938,7 +2852,7 @@ impl CapsuleScreen {
             return Outcome::Consumed;
         }
         self.prefix_until = None;
-        // anchored menus take the click first
+
         if let Some(o) = self.tab_menu_pointer(ev, w, cx) {
             return o;
         }
@@ -2997,15 +2911,13 @@ impl CapsuleScreen {
     }
 
     fn press(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
-        // a menu-bar title opens on the press (MenuBar::open_on)
         if let Some(r) = self.menubar.route(ev)
             && r.outcome() != Outcome::Ignored
         {
             return Outcome::Changed;
         }
         let pos = ev.pos();
-        // anchor a text selection on the press so the drag that follows can
-        // extend it; the release completes the click
+
         if let Some(pid) = self.pane_at(pos) {
             cx.focus.focus(PANES);
             if let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut()) {
@@ -3013,8 +2925,6 @@ impl CapsuleScreen {
             }
             self.prime(pid, w);
             if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
-                // a press on the horizontal bar scrolls sideways and holds
-                // the bar for the drag that follows
                 if pane.term.hbar().contains(pos) {
                     self.hbar_held = Some(pid);
                     let bar = Self::hbar_of(&pane.term);
@@ -3044,9 +2954,6 @@ impl CapsuleScreen {
         }
         let pos = ev.pos();
         if let Some(pid) = self.pane_at(pos) {
-            // the pane's own context at the pointer; its commands act on
-            // the pane under the pointer, which takes focus (per
-            // ContextConfig::moves_cursor)
             if self.context.moves_cursor
                 && let Some(t) = self.daemon_mut(w).and_then(|d| d.active_tab_mut())
             {
@@ -3080,7 +2987,6 @@ impl CapsuleScreen {
     }
 
     fn drag(&mut self, pressed: WidgetId, pos: Position, w: &mut World) -> Outcome {
-        // seam drag
         for i in 0..self.seams.len() {
             if PANES.sub("seam").child(i) == pressed {
                 let s = self.seams[i].clone();
@@ -3093,7 +2999,7 @@ impl CapsuleScreen {
                 return Outcome::Changed;
             }
         }
-        // the horizontal bar of a pane follows the pointer
+
         if let Some(pid) = self.hbar_held {
             self.prime(pid, w);
             if let Some(pane) = self.daemon_mut(w).and_then(|d| d.pane_mut(pid)) {
@@ -3101,7 +3007,7 @@ impl CapsuleScreen {
                 return pane.term.bar_input(&bar, pos, false).outcome();
             }
         }
-        // text selection drag within a pane
+
         if let Some(pid) = (0..64u64).find(|p| PANES.child(*p as usize) == pressed) {
             self.prime(pid, w);
         }
@@ -3114,9 +3020,6 @@ impl CapsuleScreen {
         Outcome::Ignored
     }
 
-    /// The end of a held press ([`Phase::DragEnd`], a release away from
-    /// it, or its click): the bar lets go, a seam drag reports, a
-    /// selection is copied.
     fn drag_end(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.hbar_held.take().is_some() {
             return Outcome::Changed;
@@ -3137,7 +3040,6 @@ impl CapsuleScreen {
         Outcome::Ignored
     }
 
-    /// The wheel scrolls the pane under the pointer on its axis.
     fn wheel(&mut self, axis: Axis, delta: i32, pos: Position, w: &mut World) -> Outcome {
         if let Some(pid) = self.pane_at(pos) {
             self.prime(pid, w);

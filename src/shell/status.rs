@@ -1,22 +1,22 @@
-//! The status line: one transient message that reaches the user without
-//! taking focus (WCAG 2.2 SC 4.1.3, Status Messages).
-//!
-//! - An information message expires [`StatusLine::DEFAULT_TTL_MS`] (5 s)
-//!   after it is set, measured on the shell's [`Clock`](crate::clock::Clock)
-//!   (so a paused capture, whose clock does not move, never ages it out).
-//! - An error ([`Tone::Error`]) never times out (SC 2.2.1, Timing
-//!   Adjustable): it stays until the user's next action
-//!   ([`StatusLine::on_input`]) or until a newer message replaces it
-//!   (standards-visual review, item 11).
-//!
-//! - A progress status ("Saving settings…", [`StatusLine::progress`])
-//!   belongs to a background job ([`JobKey`]) and ends when that job's
-//!   result arrives ([`StatusLine::end_job`]): a failure that only opens a
-//!   dialog never leaves "Saving…" under it.
-//!
-//! The application draws [`StatusLine::get`] in its footer; the line holds
-//! state only. A message can carry a presentation payload `P` (toned parts,
-//! a status kind) that comes and goes with it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::clock::Moment;
 use crate::core::event::{Input, MouseKind};
@@ -28,15 +28,15 @@ struct Message<P> {
     tone: Tone,
     at: Moment,
     payload: P,
-    /// The job this message reports progress on.
+
     job: Option<JobKey>,
 }
 
-/// The background job a progress status reports on
-/// ([`StatusLine::progress`]): a name the app gives each kind of job
-/// ("workspace.save"). When the job's result arrives the app ends it
-/// ([`StatusLine::end_job`]), which removes its progress status if that is
-/// still the one showing.
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JobKey(&'static str);
 
@@ -45,20 +45,20 @@ impl JobKey {
         Self(name)
     }
 
-    /// The job's name.
+
     pub const fn name(self) -> &'static str {
         self.0
     }
 }
 
-/// One transient status message with its expiry rule, and an optional
-/// presentation payload `P` per message.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StatusLine<P = ()> {
     message: Option<Message<P>>,
     ttl_ms: u64,
-    /// The latest clock reading ([`StatusLine::observe`],
-    /// [`StatusLine::expire`]); a message set now starts here.
+
+
     now: Moment,
 }
 
@@ -69,7 +69,7 @@ impl<P> Default for StatusLine<P> {
 }
 
 impl<P> StatusLine<P> {
-    /// How long an information message stays: 5 s.
+
     pub const DEFAULT_TTL_MS: u64 = 5_000;
 
     pub const fn new() -> Self {
@@ -80,22 +80,22 @@ impl<P> StatusLine<P> {
         }
     }
 
-    /// Information messages stay `ms` instead of
-    /// [`DEFAULT_TTL_MS`](Self::DEFAULT_TTL_MS).
+
+
     pub const fn ttl_ms(mut self, ms: u64) -> Self {
         self.ttl_ms = ms;
         self
     }
 
-    /// Record the clock's current reading; a message set afterwards starts
-    /// its time here.
+
+
     pub fn observe(&mut self, now: Moment) {
         self.now = self.now.max(now);
     }
 
-    /// Show `text` in `tone` with `payload`, replacing any message. An
-    /// error stays until the next action; any other tone expires after the
-    /// TTL.
+
+
+
     pub fn set_with(&mut self, text: impl Into<String>, tone: Tone, payload: P) {
         self.message = Some(Message {
             text: text.into(),
@@ -106,11 +106,11 @@ impl<P> StatusLine<P> {
         });
     }
 
-    /// The job whose result has arrived is over: its progress status goes
-    /// if it is still the one showing (a newer message stays). Call it
-    /// when the result is delivered, before the owner handles it, so a
-    /// status the owner sets for the result stays. Returns whether the
-    /// line changed.
+
+
+
+
+
     pub fn end_job(&mut self, job: JobKey) -> bool {
         let showing = self.message.as_ref().is_some_and(|m| m.job == Some(job));
         if showing {
@@ -119,40 +119,40 @@ impl<P> StatusLine<P> {
         showing
     }
 
-    /// The job the message showing reports progress on.
+
     pub fn job(&self) -> Option<JobKey> {
         self.message.as_ref().and_then(|m| m.job)
     }
 
-    /// [`set_with`](Self::set_with) after [`observe`](Self::observe)`(now)`.
+
     pub fn set_with_at(&mut self, text: impl Into<String>, tone: Tone, payload: P, now: Moment) {
         self.observe(now);
         self.set_with(text, tone, payload)
     }
 
-    /// Remove the message. Returns whether one was showing.
+
     pub fn clear(&mut self) -> bool {
         self.message.take().is_some()
     }
 
-    /// The message and its tone, if one is showing.
+
     pub fn get(&self) -> Option<(&str, Tone)> {
         self.message.as_ref().map(|m| (m.text.as_str(), m.tone))
     }
 
-    /// The message, its tone and its payload, if one is showing.
+
     pub fn entry(&self) -> Option<(&str, Tone, &P)> {
         self.message
             .as_ref()
             .map(|m| (m.text.as_str(), m.tone, &m.payload))
     }
 
-    /// The payload of the message showing.
+
     pub fn payload(&self) -> Option<&P> {
         self.message.as_ref().map(|m| &m.payload)
     }
 
-    /// The message text, if one is showing.
+
     pub fn text(&self) -> Option<&str> {
         self.get().map(|(text, _)| text)
     }
@@ -165,13 +165,13 @@ impl<P> StatusLine<P> {
         self.message.is_none()
     }
 
-    /// Whether an error is showing.
+
     pub fn is_error(&self) -> bool {
         self.message.as_ref().is_some_and(|m| m.tone == Tone::Error)
     }
 
-    /// Read the clock and drop an information message older than the TTL.
-    /// Returns whether the line changed (a repaint is due).
+
+
     pub fn expire(&mut self, now: Moment) -> bool {
         self.observe(now);
         let due = self
@@ -184,10 +184,10 @@ impl<P> StatusLine<P> {
         due
     }
 
-    /// The user acted: an error has been seen and goes. A key, a paste or a
-    /// button press counts; pointer moves, wheel, ticks and resizes do not.
-    /// Call before the input is handled, so a message the action sets
-    /// stays. Returns whether the line changed.
+
+
+
+
     pub fn on_input(&mut self, input: &Input) -> bool {
         let acts = match input {
             Input::Key(_) | Input::Paste(_) => true,
@@ -206,25 +206,25 @@ impl<P> StatusLine<P> {
 }
 
 impl<P: Default> StatusLine<P> {
-    /// Show `text` in `tone` (see [`set_with`](Self::set_with)).
+
     pub fn set(&mut self, text: impl Into<String>, tone: Tone) {
         self.set_with(text, tone, P::default())
     }
 
-    /// [`set`](Self::set) after [`observe`](Self::observe)`(now)`.
+
     pub fn set_at(&mut self, text: impl Into<String>, tone: Tone, now: Moment) {
         self.observe(now);
         self.set(text, tone)
     }
 
-    /// Show an error ([`Tone::Error`]).
+
     pub fn error(&mut self, text: impl Into<String>) {
         self.set(text, Tone::Error)
     }
 
-    /// Show `text` as the progress of `job` ("Saving settings…"): an
-    /// information message that also ends with the job
-    /// ([`end_job`](Self::end_job)).
+
+
+
     pub fn progress(&mut self, job: JobKey, text: impl Into<String>) {
         self.set(text, Tone::Secondary);
         if let Some(m) = self.message.as_mut() {
@@ -232,7 +232,7 @@ impl<P: Default> StatusLine<P> {
         }
     }
 
-    /// [`progress`](Self::progress) after [`observe`](Self::observe)`(now)`.
+
     pub fn progress_at(&mut self, job: JobKey, text: impl Into<String>, now: Moment) {
         self.observe(now);
         self.progress(job, text)
@@ -277,7 +277,7 @@ mod tests {
         s.error("Connection refused");
         assert!(!s.expire(ms(60_000)));
         assert!(s.is_error());
-        // moves, wheel, ticks and resizes are not actions
+
         assert!(!s.on_input(&Input::Tick));
         assert!(!s.on_input(&Input::Resize(80, 24)));
         assert!(!s.on_input(&Input::Mouse(Mouse::new(
@@ -285,7 +285,7 @@ mod tests {
             Position::new(1, 1)
         ))));
         assert!(s.is_error());
-        // a key press is the next action
+
         let key = Key {
             code: KeyCode::Char('x'),
             mods: KeyModifiers::NONE,
@@ -295,7 +295,7 @@ mod tests {
         assert!(!s.on_input(&Input::Key(key)), "nothing left to clear");
     }
 
-    /// A27: a job's progress status ends with the job, and only its own.
+
     #[test]
     fn a_progress_status_ends_with_its_job() {
         const SAVE: JobKey = JobKey::new("save");
@@ -306,7 +306,7 @@ mod tests {
         assert!(!s.end_job(LOAD), "another job's result leaves it");
         assert!(s.end_job(SAVE));
         assert!(s.is_none());
-        // a newer message is not the job's: it stays
+
         s.progress(SAVE, "Saving settings…");
         s.set("Copied", Tone::Secondary);
         assert!(!s.end_job(SAVE));

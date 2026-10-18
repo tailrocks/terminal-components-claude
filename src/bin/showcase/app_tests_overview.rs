@@ -1,7 +1,3 @@
-//! Overview, the theme reference (plan §7, SC3), driven through the real
-//! app: its options rebuild the explorer and the States grid through the
-//! theme builders, and the Options section changes them like `--opt`.
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -66,7 +62,6 @@ impl Harness {
         s
     }
 
-    /// Where `needle` starts on screen.
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         for y in 0..buf.area.height {
@@ -115,7 +110,7 @@ fn playground_scrolls_by_card_band_on_a_short_terminal() {
     let mut h = Harness::new(120, 40);
     assert!(h.text().contains("Tokens · planes and text"));
     assert!(!h.text().contains("Spacing · buttons · badges"));
-    // the page scrolls in the template's view, a few rows a notch
+
     for _ in 0..100 {
         h.app
             .handle(Input::Mouse(junie_tui::core::event::Mouse::new(
@@ -131,8 +126,6 @@ fn playground_scrolls_by_card_band_on_a_short_terminal() {
     );
 }
 
-/// The background of the explorer's sample in state row `row` (0 rest,
-/// 1 hover, 2 pressed, ...).
 fn sample_bg(h: &Harness, row: u16) -> ratatui::style::Color {
     let (x, y) = h.find("plane ").expect("explorer");
     h.term.backend().buffer()[(x + 11, y + 3 + row)].bg
@@ -145,7 +138,7 @@ fn explorer_follows_the_kind_and_plane_options() {
     let before = sample_bg(&h, 2);
     h.opt("overview.kind=primary");
     assert!(h.text().contains("plane Card · kind Primary"));
-    // a primary control paints the accent ladder's pressed step
+
     let t = Theme::junie();
     assert_ne!(before, sample_bg(&h, 2));
     assert_eq!(sample_bg(&h, 2), t.ladders.accent.pressed);
@@ -156,7 +149,7 @@ fn explorer_follows_the_kind_and_plane_options() {
 #[test]
 fn custom_ladder_repaints_the_explorer_through_with_ladder() {
     let mut h = Harness::new(220, 80);
-    // a row paints the plane it sits on, so it walks that plane's ladder
+
     h.opt("overview.kind=row");
     let theme_hover = sample_bg(&h, 1);
     h.opt("overview.ladder=custom");
@@ -203,7 +196,7 @@ fn states_grid_draws_every_kind_with_one_focus_bar() {
     ] {
         assert!(rows.contains(&s), "{s:?}");
     }
-    // the focused row is depicted; the strip holds the one live bar
+
     assert!(h.live_bars() <= 1, "{text}");
     let before = h.cells();
     h.opt("overview.plane=accent");
@@ -218,7 +211,7 @@ fn options_section_sets_an_option_like_opt() {
     for label in ["Plane", "Kind", "Ladder", "State modifiers"] {
         assert!(text.contains(label), "{label}:\n{text}");
     }
-    // focus the strip, then Tab to the first option (Plane) and step it
+
     let strip = h.app.pages[PageId::Overview.index()]
         .template()
         .unwrap()
@@ -227,7 +220,7 @@ fn options_section_sets_an_option_like_opt() {
     h.app.shell.focus.focus(strip);
     h.draw();
     h.key(KeyCode::Tab);
-    // ↓ opens the option's list (SI13), ↓ moves, Enter chooses
+
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
@@ -240,7 +233,6 @@ fn options_section_sets_an_option_like_opt() {
     assert_eq!(h.live_bars(), 1, "{}", h.text());
 }
 
-/// Not a check: prints the page for review (`--no-capture`).
 #[test]
 fn print_overview() {
     if std::env::var("PRINT_PAGES").is_err() {

@@ -1,7 +1,3 @@
-//! Colour as meaning (design review 2026-10, colour follow-ups for holla):
-//! each status, count and outcome takes the library role that says what it
-//! is, checked on the rendered cells of the real App.
-
 use ratatui::buffer::Cell;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::style::{Color, Modifier};
@@ -21,7 +17,6 @@ fn cell(h: &H, x: u16, y: u16) -> Cell {
     h.term.backend().buffer()[(x, y)].clone()
 }
 
-/// The cell at the first character of `needle` on row `y`.
 fn at_row(h: &H, y: u16, needle: &str) -> (u16, Cell) {
     let row = h.row(y);
     let i = row
@@ -55,7 +50,7 @@ fn a_batch_summary_colours_each_count_by_what_it_says() {
     let y = h.term.backend().buffer().area.height - 1;
     let (_, ok) = at_row(&h, y, " ok · ");
     let (x, _) = at_row(&h, y, " ok · ");
-    // the digit before ` ok`
+
     assert_eq!(cell(&h, x - 1, y).fg, t.success, "{}", h.last_row());
     assert_eq!(ok.fg, t.success);
     let (x, _) = at_row(&h, y, " failed · ");
@@ -63,7 +58,7 @@ fn a_batch_summary_colours_each_count_by_what_it_says() {
     assert_eq!(cell(&h, x + 1, y).fg, t.error);
     let (_, cancelled) = at_row(&h, y, "0 cancelled");
     assert_eq!(cancelled.fg, t.text_muted);
-    // the failure still marks the message, bold, so mono keeps the weight
+
     let (_, mark) = at_row(&h, y, "! ");
     assert_eq!(mark.fg, t.error);
     assert!(mark.modifier.contains(Modifier::BOLD));
@@ -116,7 +111,7 @@ fn a_finished_plan_says_succeeded_in_success_and_failed_in_error() {
 fn a_required_plan_step_says_why_it_cannot_be_toggled() {
     let t = theme();
     let h = H::new(Scenario::UpgradePlan, Motion::Reduced, 0, 120, 40);
-    // the faint marker stays on the row, the word is its lock
+
     let y = (0..40u16)
         .find(|&y| {
             let r = h.row(y);
@@ -154,7 +149,7 @@ fn a_checked_cleanup_category_is_primary_until_its_list_has_focus() {
     h.draw();
     let list = crate::screens::cleanup::LIST;
     assert_eq!(h.app.shell.focus.current(), Some(list));
-    // a category with every eligible item checked
+
     let (x, y) = h.find("[✓]").unwrap_or_else(|| panic!("{}", h.text()));
     assert_eq!(cell(&h, x + 1, y).fg, t.accent, "focused: {}", h.row(y));
     h.key(KeyCode::Tab);
@@ -193,8 +188,6 @@ fn section_headings_are_muted_not_faint() {
 
 #[test]
 fn a_filesystem_meter_warns_at_its_own_thresholds() {
-    // `/` is 90% full: attention for a disk (80 / 95), not danger as it
-    // would be for a quota (60 / 85)
     let t = theme();
     let mut h = H::new(Scenario::DiskCleanup, Motion::Reduced, 0, 120, 40);
     h.ticks(80);
@@ -223,8 +216,6 @@ fn a_succeeded_activity_tab_is_done() {
 
 #[test]
 fn details_on_the_cursor_row_stay_readable_on_its_fill() {
-    // the Files result row under the cursor is an accent-tinted fill; the
-    // parent path drew muted on it (256 colours: 245 on 22, 2.3:1)
     for level in [
         junie_tui::theme::ColorLevel::TrueColor,
         junie_tui::theme::ColorLevel::Ansi256,

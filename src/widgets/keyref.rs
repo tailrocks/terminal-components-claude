@@ -1,12 +1,12 @@
-//! A keyboard reference: key combinations in one column, what they do in
-//! the next, grouped into optional sections.
-//!
-//! Built for help overlays. The entries are laid out as aligned text whose
-//! key column is separated by a wide gap, so [`crate::ui::text::wrap`]
-//! hangs a wrapped description under the description column instead of
-//! returning to column 0 (see [`WrapOpts::hang_at_gap`]). The text drops
-//! straight into a dialog's text body, which wraps it at whatever width the
-//! dialog gets.
+
+
+
+
+
+
+
+
+
 
 use crate::ui::text::{WrapOpts, width, wrap_with};
 
@@ -19,13 +19,13 @@ enum Entry {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyReference {
     entries: Vec<Entry>,
-    /// Spaces between the key column and the description column. Values
-    /// below 3 are raised to 3: that is the gap a wrapped description hangs
-    /// under ([`WrapOpts::default`]). Default `3`.
+
+
+
     pub gap: u16,
-    /// The key column never takes more than this share of the width, in
-    /// percent; a longer key pushes its own description along instead of
-    /// widening every row. Default `40`.
+
+
+
     pub key_max_share: u16,
 }
 
@@ -44,7 +44,7 @@ impl KeyReference {
         }
     }
 
-    /// Start a titled group; a blank line separates it from the previous one.
+
     pub fn section(mut self, title: &str) -> Self {
         self.entries.push(Entry::Section(title.to_owned()));
         self
@@ -104,14 +104,14 @@ impl KeyReference {
         out.join("\n")
     }
 
-    /// The reference as aligned text, for a body that wraps it later (a
-    /// dialog's text body). The key column is as wide as the widest key.
+
+
     pub fn text(&self) -> String {
         self.layout(self.key_column(None))
     }
 
-    /// The reference wrapped to `w` cells: descriptions hang under their
-    /// column, and the key column is capped at `key_max_share`.
+
+
     pub fn lines(&self, w: usize) -> Vec<String> {
         wrap_with(
             &self.layout(self.key_column(Some(w))),
@@ -121,14 +121,14 @@ impl KeyReference {
     }
 }
 
-/// Width a [`KeyReference`] sample is laid out at in a States grid; a
-/// narrow slot wraps it narrower.
+
+
 const SPECIMEN_W: usize = 32;
 
-/// The reference drawn alone for a States grid ([`crate::ui::specimen`]):
-/// rest at the sample width, overflow with a description too long for
-/// its row (it hangs under the description column), narrow in the narrow
-/// slot. Sections read bold; keys take the key-hint ink.
+
+
+
+
 impl crate::ui::specimen::Specimen for KeyReference {
     fn specimen_id(&self) -> crate::core::id::WidgetId {
         crate::core::id::WidgetId::of("keyref.specimen")
@@ -141,7 +141,7 @@ impl crate::ui::specimen::Specimen for KeyReference {
 
     fn specimen_height(&self, state: crate::ui::specimen::SpecimenState) -> u16 {
         let w = if state == crate::ui::specimen::SpecimenState::Narrow {
-            // the grid's default narrow slot
+
             24
         } else {
             SPECIMEN_W
@@ -183,7 +183,7 @@ impl crate::ui::specimen::Specimen for KeyReference {
                 continue;
             }
             buf.set_string(area.x, y, line, t.secondary().bg(bg));
-            // the key column of a row that starts one (not a hanging line)
+
             let head: String = line.chars().take(key_w).collect();
             if !head.starts_with(' ') {
                 buf.set_string(area.x, y, head.trim_end(), t.key_hint_key().bg(bg));
@@ -193,7 +193,7 @@ impl crate::ui::specimen::Specimen for KeyReference {
 }
 
 impl KeyReference {
-    /// The reference as a States sample shows it in `state`.
+
     fn sample(&self, state: crate::ui::specimen::SpecimenState) -> Self {
         let mut r = self.clone();
         if state == crate::ui::specimen::SpecimenState::Overflow {
@@ -242,7 +242,7 @@ mod tests {
         let lines = r.lines(20);
         assert_eq!(lines[0], "Editor");
         assert!(lines.contains(&String::new()));
-        // the 8-cell cap (40% of 20) leaves "q" its own short column
+
         assert!(lines.contains(&"q          quit".to_owned()), "{lines:?}");
     }
 }

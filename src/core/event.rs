@@ -1,23 +1,23 @@
-//! Input normalisation and event outcomes.
-//!
-//! Widgets receive already-normalised [`Input`] values and reply with an
-//! [`Outcome`], so the routing layer can decide whether to keep propagating
-//! an event and whether a redraw is needed.
+
+
+
+
+
 
 use ratatui::crossterm::event::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 use ratatui::layout::Position;
 
-/// Result of offering an event to a widget.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Outcome {
-    /// Not interested; keep propagating.
+
     #[default]
     Ignored,
-    /// Consumed, nothing visible changed.
+
     Consumed,
-    /// Consumed and the UI must be redrawn.
+
     Changed,
 }
 
@@ -26,7 +26,7 @@ impl Outcome {
         !matches!(self, Outcome::Ignored)
     }
 
-    /// Combine with a later outcome (`Changed` dominates).
+
     pub fn or(self, other: Outcome) -> Outcome {
         match (self, other) {
             (Outcome::Changed, _) | (_, Outcome::Changed) => Outcome::Changed,
@@ -61,13 +61,13 @@ impl Key {
     pub fn alt(&self) -> bool {
         self.mods.contains(KeyModifiers::ALT)
     }
-    /// Cmd (the super modifier): delivered only through the kitty keyboard
-    /// protocol ([`crate::core::keyboard`]).
+
+
     pub fn cmd(&self) -> bool {
         self.mods.contains(KeyModifiers::SUPER)
     }
-    /// Ctrl, Alt or Cmd is held: the key is a command chord, never typed
-    /// text and never a plain letter shortcut.
+
+
     pub fn chord(&self) -> bool {
         self.ctrl() || self.alt() || self.cmd()
     }
@@ -91,20 +91,20 @@ pub enum MouseKind {
     Down,
     Up,
     Drag,
-    /// Secondary (right) button pressed: a context action. With
-    /// [`InputConfig::ctrl_click_secondary`], Ctrl + primary click too.
+
+
     Secondary,
-    /// Secondary button moved while held (a right-drag into an open
-    /// context menu). With [`InputConfig::ctrl_click_secondary`], a
-    /// primary drag with Ctrl held too.
+
+
+
     SecondaryDrag,
-    /// Secondary button released. Over a menu row after the pointer moved
-    /// from the opening press, it chooses the row (press, drag, release:
-    /// [`crate::widgets::menu::ContextMenu::release_selects`]). With
-    /// [`InputConfig::ctrl_click_secondary`], a primary release with Ctrl
-    /// held too.
+
+
+
+
+
     SecondaryUp,
-    /// Middle button pressed (closes a tab, as in browsers and editors).
+
     Middle,
     WheelUp,
     WheelDown,
@@ -116,13 +116,13 @@ pub enum MouseKind {
 pub struct Mouse {
     pub kind: MouseKind,
     pub pos: Position,
-    /// Modifier keys held with the event (Shift-click extends, Ctrl/⌘-click
-    /// toggles, Alt-click picks the alternative).
+
+
     pub mods: KeyModifiers,
 }
 
 impl Mouse {
-    /// An event with no modifier held.
+
     pub const fn new(kind: MouseKind, pos: Position) -> Self {
         Self {
             kind,
@@ -131,7 +131,7 @@ impl Mouse {
         }
     }
 
-    /// This event with `mods` held.
+
     pub const fn with_mods(mut self, mods: KeyModifiers) -> Self {
         self.mods = mods;
         self
@@ -147,10 +147,10 @@ impl Mouse {
         self.mods.contains(KeyModifiers::ALT)
     }
 
-    /// The wheel step on each axis, in notches: `(dx, dy)` with negative
-    /// meaning left / up. `None` for anything but a wheel event. Widgets
-    /// without a horizontal axis ignore `dx` instead of folding it into
-    /// vertical scrolling.
+
+
+
+
     pub fn wheel(&self) -> Option<(i32, i32)> {
         match self.kind {
             MouseKind::WheelUp => Some((0, -1)),
@@ -162,54 +162,54 @@ impl Mouse {
     }
 }
 
-/// How raw terminal events are normalised into [`Input`].
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InputConfig {
-    /// Shift+wheel scrolls sideways (most terminals report it as a
-    /// vertical wheel with Shift held), as on macOS and every desktop.
+
+
     pub shift_wheel_horizontal: bool,
-    /// Ctrl + primary click is a secondary (context) click, as on macOS.
-    /// On by default when the client terminal is on macOS
-    /// ([`ClientPlatform::current`]), where Ctrl-click is the one-button
-    /// context click; elsewhere Ctrl-click stays a primary click with Ctrl
-    /// held (toggle selection).
+
+
+
+
+
     pub ctrl_click_secondary: bool,
-    /// Terminals using the legacy key encoding report Ctrl+\\, Ctrl+],
-    /// Ctrl+^ and Ctrl+_ as Ctrl+4..7 (the same control bytes). Map them
-    /// back so a binding names the key the user pressed. On by default.
+
+
+
     pub legacy_ctrl_punctuation: bool,
 }
 
-/// The platform of the terminal the user sits at, whose conventions a
-/// default follows. Defaults that differ by platform (Ctrl+click as a
-/// secondary click, the click modifier that toggles a row) take one, so
-/// both branches can be built and tested on any host.
-///
-/// This is the *client* platform, not the build target: an app running on
-/// Linux over SSH from a Mac is used with macOS conventions, and the other
-/// way round. [`ClientPlatform::current`] is the one shared detector
-/// ([`ClientPlatform::from_env`] on the process environment, read once).
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClientPlatform {
-    /// macOS: Ctrl+click is the one-button secondary click.
+
     MacOs,
-    /// Linux, Windows and the BSDs: Ctrl+click is a primary click with Ctrl
-    /// held.
+
+
     Other,
 }
 
 impl ClientPlatform {
-    /// The environment variable that overrides detection: `macos` (or
-    /// `mac`, `darwin`) and `other` (or `linux`, `windows`), any case.
+
+
     pub const OVERRIDE_ENV: &'static str = "JUNIE_TUI_CLIENT_PLATFORM";
 
-    /// `TERM_PROGRAM` values only macOS terminals set. Cross-platform
-    /// terminals (WezTerm, Ghostty, kitty, VS Code) do not say which OS
-    /// they run on, so they decide nothing.
+
+
+
     pub const MACOS_TERM_PROGRAMS: [&'static str; 2] = ["Apple_Terminal", "iTerm.app"];
 
-    /// The build target's platform: the fallback when the environment
-    /// names no client.
+
+
     pub const fn build_target() -> Self {
         if cfg!(target_os = "macos") {
             Self::MacOs
@@ -218,10 +218,10 @@ impl ClientPlatform {
         }
     }
 
-    /// Detect the client platform from environment lookups `get`, in order:
-    /// [`Self::OVERRIDE_ENV`]; `LC_TERMINAL` (`iTerm2` sets it and forwards
-    /// it over SSH); `TERM_PROGRAM` when it names a macOS-only terminal
-    /// ([`Self::MACOS_TERM_PROGRAMS`]); otherwise [`Self::build_target`].
+
+
+
+
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
         if let Some(v) = get(Self::OVERRIDE_ENV) {
             match v.trim().to_ascii_lowercase().as_str() {
@@ -239,8 +239,8 @@ impl ClientPlatform {
         Self::build_target()
     }
 
-    /// The client platform of this process: [`Self::from_env`] on the
-    /// process environment, detected once.
+
+
     pub fn current() -> Self {
         static CURRENT: std::sync::OnceLock<ClientPlatform> = std::sync::OnceLock::new();
         *CURRENT.get_or_init(|| Self::from_env(|k| std::env::var(k).ok()))
@@ -252,9 +252,9 @@ impl ClientPlatform {
 }
 
 impl InputConfig {
-    /// The defaults for `platform`: Ctrl+click is a secondary click on
-    /// macOS only; the other options are on everywhere. Pass a platform to
-    /// override detection.
+
+
+
     pub const fn for_platform(platform: ClientPlatform) -> Self {
         Self {
             shift_wheel_horizontal: true,
@@ -265,7 +265,7 @@ impl InputConfig {
 }
 
 impl Default for InputConfig {
-    /// [`InputConfig::for_platform`] for [`ClientPlatform::current`].
+
     fn default() -> Self {
         Self::for_platform(ClientPlatform::current())
     }
@@ -276,7 +276,7 @@ impl Input {
         Self::from_crossterm_with(ev, InputConfig::default())
     }
 
-    /// [`from_crossterm`](Self::from_crossterm) under `config`.
+
     pub fn from_crossterm_with(ev: Event, config: InputConfig) -> Option<Self> {
         let ev = match ev {
             Event::Mouse(mut m)
@@ -330,9 +330,9 @@ impl Input {
                     {
                         MouseKind::Secondary
                     }
-                    // a one-button context click held with Ctrl: its drag and
-                    // release stay secondary, so press-drag-release reaches
-                    // the context menu it opened
+
+
+
                     MouseEventKind::Drag(MouseButton::Left)
                         if config.ctrl_click_secondary
                             && modifiers.contains(KeyModifiers::CONTROL) =>
@@ -355,9 +355,9 @@ impl Input {
                     MouseEventKind::Down(MouseButton::Middle) => MouseKind::Middle,
                     MouseEventKind::ScrollUp => MouseKind::WheelUp,
                     MouseEventKind::ScrollDown => MouseKind::WheelDown,
-                    // SGR buttons 66 and 67: the native horizontal wheel
-                    // (trackpad swipes in iTerm2, kitty, WezTerm), with or
-                    // without Shift
+
+
+
                     MouseEventKind::ScrollLeft => MouseKind::WheelLeft,
                     MouseEventKind::ScrollRight => MouseKind::WheelRight,
                     _ => return None,
@@ -463,7 +463,7 @@ mod tests {
         };
         let mac = ClientPlatform::MacOs;
         let other = ClientPlatform::Other;
-        // macOS-only terminals, also when the app runs on Linux
+
         assert_eq!(
             ClientPlatform::from_env(env(&[("TERM_PROGRAM", "Apple_Terminal")])),
             mac
@@ -472,12 +472,12 @@ mod tests {
             ClientPlatform::from_env(env(&[("TERM_PROGRAM", "iTerm.app")])),
             mac
         );
-        // iTerm2 forwards LC_TERMINAL over SSH
+
         assert_eq!(
             ClientPlatform::from_env(env(&[("LC_TERMINAL", "iTerm2")])),
             mac
         );
-        // the override wins either way
+
         let forced_other = env(&[
             ("TERM_PROGRAM", "iTerm.app"),
             (ClientPlatform::OVERRIDE_ENV, "Linux"),
@@ -485,8 +485,8 @@ mod tests {
         assert_eq!(ClientPlatform::from_env(forced_other), other);
         let forced_mac = env(&[(ClientPlatform::OVERRIDE_ENV, "macos")]);
         assert_eq!(ClientPlatform::from_env(forced_mac), mac);
-        // cross-platform terminals, an unknown override or nothing at all
-        // fall back to the build target
+
+
         let fallback = ClientPlatform::build_target();
         for pairs in [
             &[("TERM_PROGRAM", "WezTerm")][..],
@@ -597,7 +597,7 @@ mod tests {
                 MouseKind::SecondaryUp
             );
         }
-        // a Ctrl-click context press keeps its drag and release secondary
+
         let ctrl = KeyModifiers::CONTROL;
         assert_eq!(
             kind(MouseEventKind::Drag(MouseButton::Left), ctrl, on),
@@ -613,9 +613,9 @@ mod tests {
         );
     }
 
-    /// SGR mouse reports buttons 66/67 for a native horizontal wheel;
-    /// crossterm decodes them as `ScrollLeft`/`ScrollRight`. They stay
-    /// horizontal with Shift held and with Shift+wheel mapping off.
+
+
+
     #[test]
     fn native_horizontal_wheel_stays_horizontal() {
         let off = InputConfig {

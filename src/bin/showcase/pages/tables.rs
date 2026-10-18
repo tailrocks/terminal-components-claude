@@ -37,7 +37,6 @@ pub fn task_columns() -> Vec<Column> {
 }
 
 pub fn status_cell(s: TaskStatus) -> Cell {
-    // status is text + tone; green is not spent on rows
     let (tone, text) = match s {
         TaskStatus::Running => (Tone::Normal, "▸ Running"),
         TaskStatus::Failed => (Tone::Error, "Failed"),
@@ -76,15 +75,12 @@ pub fn task_rows() -> Vec<Vec<Cell>> {
         .collect()
 }
 
-/// The `basictable.selection` values, in option order.
 const SELECTION_MODES: [SelectionMode; 3] = [
     SelectionMode::None,
     SelectionMode::Single,
     SelectionMode::Multi,
 ];
 
-/// The task table in selection `mode`: a multi-select table gets its
-/// checkbox column.
 fn tasks_table(mode: SelectionMode) -> DataTable {
     DataTable::new(ID.sub("tasks"), task_columns(), task_rows())
         .numeric(&[0, 5, 6])
@@ -92,8 +88,6 @@ fn tasks_table(mode: SelectionMode) -> DataTable {
         .selection_column(mode == SelectionMode::Multi)
 }
 
-/// The States grid: a short task table in each selection mode, drawn by
-/// `DataTable` itself.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -135,22 +129,19 @@ fn states_grid() -> StateGrid {
 
 pub struct TablesPage {
     template: Template,
-    /// The `basictable.selection` value index.
+
     selection: usize,
     pub table: DataTable,
-    /// A multi-select table with a mixed selection.
+
     pub reviewers: DataTable,
     empty: DataTable,
     sections: crate::pages::layout::Sections,
-    /// The task table's cell menu and the `(display row, column)` it is
-    /// about.
+
     menu: RowMenu<(usize, usize)>,
-    /// The task table's header menu (sort, fit, reset widths) and the
-    /// column it is about.
+
     header_menu: RowMenu<usize>,
 }
 
-/// What the cell menu's items do.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum CellAction {
     Select,
@@ -159,8 +150,6 @@ enum CellAction {
 }
 
 impl TablesPage {
-    /// What cell `(row, col)` of the task table offers: only what the
-    /// table's keys and header clicks already do.
     fn cell_items(&self, (row, col): (usize, usize)) -> Vec<(CellAction, MenuItem)> {
         let t = &self.table;
         let src = t.source_row(row);
@@ -179,7 +168,7 @@ impl TablesPage {
             Some((c, SortDir::Desc)) if c == col => MenuItem::new("Clear sort"),
             _ => MenuItem::new(format!("Sort by {name}")),
         };
-        // `s` sorts the cursor column; a header click any column
+
         let sort = if !column.sortable {
             sort.reason("Not sortable")
         } else if col == t.cursor_col {
@@ -188,7 +177,7 @@ impl TablesPage {
             sort
         };
         let edit = MenuItem::new("Edit cell");
-        // F2 edits the cursor cell of a cell-navigating table
+
         let edit = if column.editable && t.cell_nav && col == t.cursor_col {
             edit.shortcut("F2")
         } else {
@@ -213,8 +202,6 @@ impl TablesPage {
             .open(req.menu(MENU, items).title(title), req.target);
     }
 
-    /// Item `i` of the menu about `cell`: the same path the item's key or
-    /// header click takes.
     fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut Cx) -> Outcome {
         let Some(&(action, _)) = self.cell_items(cell).get(i) else {
             return Outcome::Consumed;
@@ -235,8 +222,7 @@ impl TablesPage {
     pub fn new() -> Self {
         let selection = 1;
         let table = tasks_table(SELECTION_MODES[selection]);
-        // a multi-select list with some rows chosen: the header checkbox
-        // shows the mixed state
+
         let mut reviewers = DataTable::new(
             ID.sub("reviewers"),
             vec![
@@ -281,11 +267,6 @@ impl TablesPage {
     }
 }
 
-/// `ev` routed to `t` when it is `t`'s (its header checkbox, row
-/// checkboxes, headers, seams, cells, scrollbar or wheel). A completed
-/// click on anything but the scrollbar focuses `t`: its rows and headers
-/// are not in the focus ring, so the router does not. `None` when `ev` is
-/// not `t`'s.
 pub fn route_table(
     t: &mut DataTable,
     ev: &PointerEvent,
@@ -341,8 +322,7 @@ impl TablesPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // the table keeps at least four rows; on a short terminal the page
-        // scrolls to the checks instead of squeezing the table to one row
+
         let focus = if ctx.interaction.has_focus(self.table.id) {
             Some(0)
         } else if ctx.interaction.has_focus(self.reviewers.id) {
@@ -424,8 +404,6 @@ impl TablesPage {
     }
 }
 
-/// The cards' heights: the tasks table shows twenty rows (and its sideways bar) and scrolls the
-/// rest; the reviewers and the empty checks table show all of theirs.
 const TASKS_H: u16 = 3 + 1 + 20 + 1;
 const REVIEWERS_H: u16 = 8;
 const CHECKS_H: u16 = 6;
@@ -438,15 +416,11 @@ impl Page for TablesPage {
         "Sort by header, hover rows, select with Enter, overflow scrolls"
     }
 
-    /// Every table with all its columns in view, the cards at their set
-    /// heights.
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         use junie_tui::ui::measure::Measure;
         let any = ratatui::layout::Size::new(0, 0);
         let w = [&self.table, &self.reviewers, &self.empty]
             .iter()
-            // the tables scroll sideways themselves: they take the room
-            // the page has
             .map(|t| t.min_width(any, ctx) + 4)
             .fold(avail.width, u16::max);
         ratatui::layout::Size::new(w, TASKS_H + REVIEWERS_H + CHECKS_H + 2)

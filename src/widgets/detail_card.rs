@@ -1,24 +1,24 @@
-//! A detail card: the facts of the selected item, a free slot for its live
-//! state, and its actions along the bottom.
-//!
-//! ```text
-//! ╭ prod-eu ───────────────────────────── postgres ╮
-//! │ Engine      PostgreSQL 16                      │   (props)
-//! │ Host        db.eu.example.com:5432             │
-//! │ Safe Mode   Safe · asks before writes          │
-//! │                                                │
-//! │ ⠋ Authenticating…                              │   (slot: a spinner, a Notice)
-//! │                                                │
-//! │ [ Connect ]  [ Edit… ]  [ Duplicate ]          │   (actions: an ActionRow)
-//! ╰────────────────────────────────────────────────╯
-//! ```
-//!
-//! The master-detail screens' right pane (a connection, a history entry, a
-//! plan step, a finder result): a [`Panel::card`] titled with the item,
-//! the facts as [`props`], the owner's slot under them (one blank row
-//! apart) and an [`ActionRow`] on the card's last row. With nothing
-//! selected, [`DetailCard::empty`] shows an [`EmptyState`] in place of the
-//! card.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -31,47 +31,47 @@ use crate::widgets::empty::{self, EmptyState};
 use crate::widgets::panel::Panel;
 use crate::widgets::props::{self, Prop};
 
-/// A detail card; see the module docs.
+
 #[derive(Debug, Clone)]
 pub struct DetailCard {
     pub title: String,
-    /// The card's meta, at the right end of its title row.
+
     pub meta: Option<String>,
-    /// The item's facts.
+
     pub props: Vec<Prop>,
-    /// The bottom row's layout and message. Default [`ActionRow::new`].
+
     pub actions: ActionRow,
-    /// The widest the card grows. `None` (default): the area's width.
+
     pub max_width: Option<u16>,
-    /// The tallest the card grows. `None` (default): the area's height.
+
     pub max_height: Option<u16>,
-    /// Rows the facts leave under them for the slot and the actions.
-    /// Default 3: a blank row, a slot row and the action row.
+
+
     pub reserve: u16,
-    /// Shown instead of the card when there is nothing to detail.
+
     pub empty: Option<EmptyState>,
-    /// The card is the focused pane (its frame shows it).
+
     pub focused: bool,
-    /// The card takes only the height it needs (its facts and
-    /// [`Self::reserve`]), so the actions follow the facts instead of
-    /// sitting at the foot of a tall pane. Default off: the card fills
-    /// the area up to [`Self::max_height`].
+
+
+
+
     pub fit: bool,
 }
 
-/// Where a rendered [`DetailCard`] put its parts.
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DetailLayout {
-    /// The card, frame included (empty when the empty state showed).
+
     pub card: Rect,
-    /// The card's plane, for whatever the owner draws in the slot.
+
     pub bg: Color,
-    /// Rows the facts took.
+
     pub props_h: u16,
-    /// The owner's slot: under the facts and one blank row, above the
-    /// actions.
+
+
     pub slot: Rect,
-    /// Each action button's area.
+
     pub actions: Vec<Rect>,
 }
 
@@ -91,13 +91,13 @@ impl DetailCard {
         }
     }
 
-    /// See [`Self::fit`].
+
     pub fn fit(mut self, on: bool) -> Self {
         self.fit = on;
         self
     }
 
-    /// A card with nothing to detail: it shows `state` instead.
+
     pub fn empty(state: EmptyState) -> Self {
         Self {
             empty: Some(state),
@@ -105,45 +105,45 @@ impl DetailCard {
         }
     }
 
-    /// See [`Self::meta`].
+
     pub fn meta(mut self, meta: &str) -> Self {
         self.meta = Some(meta.to_owned());
         self
     }
 
-    /// See [`Self::props`].
+
     pub fn props(mut self, props: Vec<Prop>) -> Self {
         self.props = props;
         self
     }
 
-    /// See [`Self::actions`].
+
     pub fn actions(mut self, row: ActionRow) -> Self {
         self.actions = row;
         self
     }
 
-    /// See [`Self::max_width`] and [`Self::max_height`].
+
     pub fn max_size(mut self, width: Option<u16>, height: Option<u16>) -> Self {
         self.max_width = width;
         self.max_height = height;
         self
     }
 
-    /// See [`Self::reserve`].
+
     pub fn reserve(mut self, rows: u16) -> Self {
         self.reserve = rows;
         self
     }
 
-    /// See [`Self::focused`].
+
     pub fn focused(mut self, on: bool) -> Self {
         self.focused = on;
         self
     }
 
-    /// Draw the card in `area` (on the plane `bg`) with `buttons` on its
-    /// last row; returns where its parts went.
+
+
     pub fn render(
         &self,
         area: Rect,
@@ -171,7 +171,7 @@ impl DetailCard {
             panel = panel.meta(m);
         }
         if self.fit {
-            // the card's chrome, measured on a scratch buffer
+
             let mut scratch = Buffer::empty(card);
             let probe = panel.render(card, &mut scratch, t);
             let chrome = card.height.saturating_sub(probe.height);

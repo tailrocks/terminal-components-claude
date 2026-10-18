@@ -1,9 +1,3 @@
-//! Pane seams in TablePro through the real App: the explorer, the query
-//! editor / results split and the history list / detail split resize by
-//! mouse (they were fixed or keyboard-only), cell by cell, and a
-//! double-click restores the default. Toolbar buttons show their tooltip
-//! after a rest; the pointer takes the shape of fields and seams.
-
 use junie_tui::core::event::MouseKind;
 use ratatui::layout::Rect;
 
@@ -27,7 +21,6 @@ fn drag(h: &mut H, from: (u16, u16), to: (u16, u16)) {
 }
 
 fn double_click(h: &mut H, x: u16, y: u16) {
-    // let the click chain of the drag release run out first
     h.ticks(20);
     h.click(x, y);
     h.click(x, y);
@@ -59,7 +52,7 @@ fn the_explorer_resizes_by_its_seam() {
     let seam = h.wb().explorer_seam.area;
     assert!(!seam.is_empty(), "the explorer has a seam");
     let y = seam.y + seam.height / 2;
-    // grab the seam one cell left of the rule (the padding)
+
     drag(&mut h, (seam.x - 1, y), (seam.x + 5, y));
     assert_eq!(h.wb().explorer_seam.area.x, seam.x + 6);
     double_click(&mut h, seam.x + 6, y);
@@ -88,8 +81,6 @@ fn the_history_list_and_detail_resize_by_the_seam() {
     assert_eq!(now.x, seam.x - 4);
 }
 
-/// The history toolbar's buttons say what they do and which list key does
-/// the same, once the pointer rests on them (no tooltips existed).
 #[test]
 fn history_buttons_show_their_tooltip_after_a_rest() {
     let mut h = H::connected(120, 40);
@@ -109,13 +100,11 @@ fn history_buttons_show_their_tooltip_after_a_rest() {
         text.contains("Open the selected query in a new tab  Enter"),
         "{text}"
     );
-    // leaving the button and its tooltip hides it
+
     h.mouse(MouseKind::Move, 0, 0);
     assert!(!h.text().contains("Open the selected query"));
 }
 
-/// The pointer takes the shape of what is under it: an I-beam over a text
-/// field, resize arrows over the seams (it never changed).
 #[test]
 fn the_pointer_shape_follows_fields_and_seams() {
     use junie_tui::core::shape::{CaretShape, PointerShape, shapes_for};
@@ -135,7 +124,7 @@ fn the_pointer_shape_follows_fields_and_seams() {
     assert_eq!(shape(&h), Some(PointerShape::Default), "a tab: the arrow");
     let caret = shapes_for(&h.app.shell.pointer, &h.app.shell.hits).caret;
     assert_eq!(caret, Some(CaretShape::Bar), "the macOS caret");
-    // the knob turns pointer shapes off
+
     h.app.shell.pointer.config = h.app.shell.pointer.config.pointer_shapes(false);
     assert_eq!(shape(&h), None);
 }

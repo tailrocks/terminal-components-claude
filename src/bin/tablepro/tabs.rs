@@ -1,6 +1,3 @@
-//! Workbench tab kinds: table (data | structure), query (editor + results),
-//! history. Each tab owns its widgets and answers to routed events.
-
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
@@ -44,14 +41,10 @@ use crate::db::{Catalog, ColType, Table, Value};
 use crate::model::{self, History, HistoryEntry, HistorySource};
 use crate::sql::{self, PlanNode, Statement};
 
-/// Ctrl+D switches Data / Structure in TablePro, so only Alt+D duplicates
-/// a grid row.
 const ALT_D: junie_tui::core::event::Key = junie_tui::core::event::Key {
     code: KeyCode::Char('d'),
     mods: ratatui::crossterm::event::KeyModifiers::ALT,
 };
-
-// ------------------------------------------------------------- filters
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FilterOp {
@@ -124,8 +117,7 @@ impl FilterOp {
             FilterOp::IsNull | FilterOp::IsNotNull | FilterOp::IsEmpty | FilterOp::IsNotEmpty
         )
     }
-    /// Type-aware ordering: the operators that make sense for the column
-    /// come first; TablePro offers all 18 for every column.
+
     pub fn ordered_for(ty: ColType) -> Vec<FilterOp> {
         let first: &[FilterOp] = match ty {
             ColType::Int | ColType::Numeric | ColType::Timestamp | ColType::Date => &[
@@ -194,7 +186,7 @@ impl Filter {
             op => format!("{} {} {}", self.column, op.label(), quote(&self.value)),
         }
     }
-    /// SQL predicate text for the demo engine (subset it understands).
+
     pub fn to_sql(&self) -> String {
         let c = &self.column;
         let v = &self.value;
@@ -231,7 +223,7 @@ impl Filter {
             FilterOp::Regex => format!("{c} ~ '{v}'"),
         }
     }
-    /// Predicates the demo engine can evaluate.
+
     pub fn predicates(&self) -> Vec<sql::Predicate> {
         use sql::Cmp;
         let p = |cmp: Cmp, value: &str| sql::Predicate {
@@ -272,8 +264,6 @@ fn quote(v: &str) -> String {
         format!("'{v}'")
     }
 }
-
-// ------------------------------------------------------------- helpers
 
 pub fn cell_kind(ty: ColType) -> CellKind {
     match ty {
@@ -363,8 +353,6 @@ pub fn segment_sql(src: &str) -> Vec<Range<usize>> {
         .collect()
 }
 
-// ------------------------------------------------------------- table tab
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableMode {
     Data,
@@ -412,9 +400,7 @@ impl TableTab {
         grid.empty = EmptyState::new("No rows").hint("f changes the filter");
         let mut chips = ChipBar::new(id.sub("chips"));
         chips.lead = Some("match all ▾".into());
-        // the mode and structure strips keep the default `TabRule::Auto`:
-        // like a macOS segmented control in the front window, the chosen
-        // view shows the accent until a modal or popup covers the page
+
         let mut mode_tabs = Tabs::new(id.sub("mode"), &["Data", "Structure"]);
         mode_tabs.active = 0;
         let mut structure_tabs = Tabs::new(
@@ -483,7 +469,6 @@ impl TableTab {
         }
     }
 
-    /// Re-run the table query with the current sort/filters.
     pub fn load(&mut self, cat: &Catalog) {
         let sel = self.select();
         match sql::run_select(cat, &sel) {
@@ -662,7 +647,7 @@ impl TableTab {
             _ => "Nothing here",
         };
         self.structure = DataTable::new(self.id.sub("structure"), cols, rows).empty_text(empty);
-        // DDL
+
         let mut ddl = vec![format!("CREATE TABLE {} (", table.qualified())];
         for (i, c) in table.columns.iter().enumerate() {
             let mut line = format!("    {} {}", c.name, c.ty.sql());
@@ -732,7 +717,6 @@ impl TableTab {
                 vec![hint("←→", "Switch"), hint("Ctrl+D", "Data / Structure")]
             }
             Some(f) if f == self.chips.id => {
-                // action keys come from the chip bar's keymap
                 let km = &self.chips.keymap;
                 let mut h = vec![hint("Enter", "Edit filter"), hint("Space", "Enable")];
                 h.extend(hint_key(km, ChipCmd::Remove).map(|k| hint(k, "Remove")));
@@ -743,10 +727,9 @@ impl TableTab {
                 vec![hint("←→", "Section"), hint("1–6", "Jump")]
             }
             Some(f) if f == self.grid.id => {
-                // action keys come from the grid's keymap
                 let km = &self.grid.keymap;
                 let mut h = vec![hint("↑↓←→", "Cell")];
-                // Edit only where Enter edits (keyboard audit #25)
+
                 if self.grid.cell_editable() {
                     h.push(junie_tui::widgets::widget_hints::EDIT);
                 }
@@ -798,10 +781,9 @@ impl TableTab {
                     self.grid.loading = true;
                 }
                 self.grid.render(grid_area, buf, ctx, bg);
-                // status line
+
                 let sy = body.bottom().saturating_sub(1);
-                // state first (sort, filter), position second, reason last
-                // (text, priority): lower priorities are dropped first when narrow
+
                 let mut parts: Vec<(String, u8)> = vec![];
                 if let Some((c, d)) = self.sort {
                     parts.push((
@@ -899,9 +881,7 @@ impl TableTab {
     }
 }
 
-// ------------------------------------------------------------- query tab
-
-#[allow(clippy::large_enum_variant)] // one result per tab; the grid dominates by design
+#[allow(clippy::large_enum_variant)]
 pub enum ResultBody {
     Rows(DataGrid),
     Affected {
@@ -965,17 +945,16 @@ pub struct QueryTab {
     pub running: Option<Running>,
     pub completion: Completion,
     pub split: Split,
-    /// The editor / results seam (drag resizes, double-click resets).
+
     pub seam: Splitter,
-    /// The rect the split was last laid out in.
+
     pub split_area: Rect,
     pub last_status: Option<(String, bool)>,
     pub last_duration: Option<u32>,
     pub result_counter: usize,
     pub unseen: bool,
     pub saved_text: String,
-    /// The executed-statement card's facts: their natural height,
-    /// scrolled when the result pane is too short for them (R-apps-6).
+
     pub result_facts: ScrollView,
 }
 
@@ -1034,13 +1013,10 @@ impl QueryTab {
         }
     }
 
-    /// The editor (or its find bar) or a result cell takes typed keys:
-    /// letter shortcuts (`z`, `[`, `]`, `q`) wait.
     pub fn is_editing(&self) -> bool {
         self.editor.wants_text_input() || self.active_grid().is_some_and(|g| g.is_editing())
     }
 
-    /// Statements to run: selection, statement at cursor, or all.
     pub fn statements_to_run(&self, all: bool) -> Vec<(String, Range<usize>)> {
         let text = self.editor.text();
         if all {
@@ -1065,7 +1041,6 @@ impl QueryTab {
         }
     }
 
-    /// Begin a simulated run. Duration comes from the engine's estimate.
     pub fn start(
         &mut self,
         statements: Vec<(String, Range<usize>)>,
@@ -1076,7 +1051,7 @@ impl QueryTab {
             self.last_status = Some(("nothing to run".into(), false));
             return;
         }
-        // pinned results survive; unpinned are replaced by the new run
+
         let pinned: Vec<ResultSet> = self.results.drain(..).filter(|r| r.pinned).collect();
         self.results = pinned;
         self.editor.set_running(Some(statements[0].1.clone()));
@@ -1111,7 +1086,6 @@ impl QueryTab {
         false
     }
 
-    /// Advance the simulation by one tick; returns finished history entries.
     pub fn tick(&mut self, cat: &Catalog, connection: &str, database: &str) -> Vec<HistoryEntry> {
         let mut out = vec![];
         let Some(r) = self.running.as_mut() else {
@@ -1210,7 +1184,7 @@ impl QueryTab {
             })
             .collect();
         let active = self.active_result.min(items.len().saturating_sub(1));
-        // replace the items in place: the strip keeps its scroll window
+
         debug_assert_eq!(self.result_tabs.id, self.id.sub("result-tabs"));
         self.result_tabs.set_items(items);
         self.result_tabs.set_active(active);
@@ -1237,7 +1211,7 @@ impl QueryTab {
     pub fn toggle_pin(&mut self, i: usize) {
         if i < self.results.len() {
             self.results[i].pinned = !self.results[i].pinned;
-            // pinned results move to the front
+
             let r = self.results.remove(i);
             if r.pinned {
                 self.results.insert(0, r);
@@ -1250,7 +1224,6 @@ impl QueryTab {
         }
     }
 
-    /// Ask the completion provider and open the popup.
     pub fn trigger_completion(&mut self, cat: &Catalog, manual: bool) {
         let cur = self.editor.cursor_offset();
         let text = self.editor.text();
@@ -1282,8 +1255,6 @@ impl QueryTab {
     }
 
     fn accept_completion(&mut self, i: usize) {
-        // the prefix gives way to the insertion; a function gets its parens
-        // with the cursor inside
         self.completion.apply(i, &mut self.editor.field.buffer);
         self.completion.close();
     }
@@ -1313,7 +1284,7 @@ impl QueryTab {
             if g.is_editing() {
                 return vec![hint("Enter", "Apply"), hint("Esc", "Cancel")];
             }
-            // action keys come from the grid's keymap
+
             let km = &g.keymap;
             let mut hints = vec![hint("↑↓←→", "Cell")];
             if g.cell_editable() {
@@ -1422,7 +1393,7 @@ impl QueryTab {
             }
             return o;
         }
-        // active result body
+
         let Some(r) = self.results.get_mut(self.active_result) else {
             return Outcome::Ignored;
         };
@@ -1461,9 +1432,6 @@ impl QueryTab {
         }
     }
 
-    /// A press: the scrollbars of the editor, the result grid and the raw
-    /// plan take it; a result grid also starts a range or resizes a
-    /// column.
     pub fn press(&mut self, ev: &PointerEvent) -> Outcome {
         if let Some(r) = self.editor.route(ev) {
             return r.outcome();
@@ -1476,7 +1444,6 @@ impl QueryTab {
         self.plan_route(ev)
     }
 
-    /// The plan tree and the raw plan of the active result, if it is one.
     fn plan_route(&mut self, ev: &PointerEvent) -> Outcome {
         let Some(r) = self.results.get_mut(self.active_result) else {
             return Outcome::Ignored;
@@ -1491,7 +1458,6 @@ impl QueryTab {
         }
     }
 
-    /// A middle click on a result tab closes it.
     pub fn middle(&mut self, ev: &PointerEvent) -> Outcome {
         match self.result_tabs.route(ev).map(|r| r.into_parts()) {
             Some((_, Some(TabAction::Close(i)))) => {
@@ -1580,7 +1546,6 @@ impl QueryTab {
     }
 
     pub fn wheel(&mut self, ev: &PointerEvent) -> Outcome {
-        // a sideways wheel reaches only horizontal scrolling
         let horizontal = matches!(ev.wheel(), Some((Axis::Horizontal, _)));
         if ev.on(self.completion.id) {
             return if horizontal {
@@ -1612,8 +1577,6 @@ impl QueryTab {
         }
     }
 
-    /// Run, Run all, Explain and (while running) Cancel, left-aligned on
-    /// one row; they lift on hover and press like every button.
     fn render_toolbar(
         &mut self,
         area: Rect,
@@ -1643,12 +1606,11 @@ impl QueryTab {
                     .shortcut("Esc"),
             );
         }
-        // the commands have chords: the toolbar takes no Tab stops
+
         let mut buttons: Vec<Button> = buttons.into_iter().map(|b| b.focusable(false)).collect();
         let widths: Vec<u16> = buttons.iter().map(Button::width).collect();
         let rects = junie_tui::widgets::button::row_layout(area, &widths, 1);
         for (b, r) in buttons.iter_mut().zip(rects) {
-            // the toolbar is one row; its commands keep their chords
             if r.bottom() <= area.bottom() {
                 b.render(r, buf, ctx, bg);
             }
@@ -1674,7 +1636,7 @@ impl QueryTab {
     ) {
         let t = ctx.theme;
         let (top, bottom) = self.split.vertical(area, 1);
-        // the toolbar row, then the editor
+
         let top = if top.height > 3 {
             self.render_toolbar(Rect::new(top.x, top.y, top.width, 1), buf, ctx, bg);
             Rect::new(top.x, top.y + 1, top.width, top.height - 1)
@@ -1690,7 +1652,7 @@ impl QueryTab {
         if bottom.is_empty() {
             return;
         }
-        // results header: sub-tabs + status
+
         let has_results = !self.results.is_empty();
         let mut y = bottom.y;
         if has_results {
@@ -1698,7 +1660,7 @@ impl QueryTab {
                 .render(Rect::new(bottom.x, y, bottom.width, 2), buf, ctx, bg);
             y += 2;
         }
-        // status line
+
         let status_line = if let Some(r) = &self.running {
             format!(
                 "{} running {} · Esc cancels",
@@ -1764,8 +1726,6 @@ impl QueryTab {
             String::new()
         };
         if !status_line.is_empty() {
-            // a finished statement leads with its status (Theme::status):
-            // ✓ rows or affected, ✗ failed
             let done = self
                 .results
                 .get(self.active_result)
@@ -1888,7 +1848,6 @@ impl QueryTab {
                             let inner = card.render(body, buf, t);
                             raw.render(inner, buf, ctx, cbg, |t, _| t.secondary());
                         } else {
-                            // tree + detail card on wide layouts
                             let detail_w = if body.width >= 110 { 40 } else { 0 };
                             let tree_area = Rect::new(
                                 body.x,
@@ -1897,9 +1856,7 @@ impl QueryTab {
                                     .saturating_sub(detail_w + if detail_w > 0 { 2 } else { 0 }),
                                 body.height,
                             );
-                            // the metric columns are the tree's reserved
-                            // trailing strip: labels end before it with `…`
-                            // and the header and cells share its x
+
                             tree.reserve_right = PLAN_COLS_W;
                             tree.show_meta = false;
                             buf.set_string(
@@ -1929,7 +1886,7 @@ impl QueryTab {
                                     t.muted().bg(bg),
                                 );
                             }
-                            // metric columns on each visible row
+
                             let rows = tree.rows().to_vec();
                             for (i, ri) in tree.scroll.visible_range().enumerate() {
                                 let y = tree_area.y + 1 + i as u16;
@@ -1970,8 +1927,7 @@ impl QueryTab {
                                 );
                                 let bgc = buf[(cols_x, y)].bg;
                                 buf.set_string(cols_x, y, &text, base.bg(bgc));
-                                // the share sits under its "%" header, the
-                                // hot marker one cell past it
+
                                 let sh = format!(
                                     "{:>4} {}",
                                     share.round() as u32,
@@ -2062,7 +2018,7 @@ impl QueryTab {
             }
             let _ = tick;
         }
-        // completion popup last (on top of everything in the tab)
+
         if self.completion.is_open() {
             let screen = *buf.area();
             self.completion.render(screen, buf, ctx);
@@ -2070,20 +2026,10 @@ impl QueryTab {
     }
 }
 
-/// LIMIT nodes report a smaller total than their inputs, so cost share is
-/// measured against the most expensive node rather than the root.
-/// A plan node taking more than this share of the total is hot: `▲` and
-/// its name in warning.
 const HOT_SHARE: f64 = 0.5;
 
-/// Width of the EXPLAIN metric columns: cost, rows, actual and the share
-/// with its hot marker (`{:>13} {:>8} {:>10} {:>4} ▲`).
 const PLAN_COLS_W: u16 = 40;
 
-/// The query toolbar's commands: Run, Run all, Explain and, while a query
-/// runs, Cancel, as buttons above the editor (mouse audit #7). Each one is
-/// also a chord (Ctrl+R, Alt+R or Shift+F5, Ctrl+X, Esc) the toolbar's
-/// tooltips name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolbarAction {
     Run,
@@ -2097,7 +2043,6 @@ pub const TOOLBAR_RUN_ALL: WidgetId = WidgetId::of("query.toolbar.run_all");
 pub const TOOLBAR_EXPLAIN: WidgetId = WidgetId::of("query.toolbar.explain");
 pub const TOOLBAR_CANCEL: WidgetId = WidgetId::of("query.toolbar.cancel");
 
-/// The toolbar command a click on `id` stands for.
 pub fn toolbar_action(id: WidgetId) -> Option<ToolbarAction> {
     match id {
         i if i == TOOLBAR_RUN => Some(ToolbarAction::Run),
@@ -2108,8 +2053,6 @@ pub fn toolbar_action(id: WidgetId) -> Option<ToolbarAction> {
     }
 }
 
-/// The EXPLAIN metric header; every cell lines up with [`PLAN_COLS_W`]'s
-/// columns (the share's last digit sits under `%`).
 fn plan_header() -> String {
     format!("{:>13} {:>8} {:>10} {:>4}", "cost", "rows", "actual", "%")
 }
@@ -2155,14 +2098,13 @@ fn plan_to_tree(node: &PlanNode, nodes: &mut Vec<PlanInfo>, root_total: f64) -> 
     } else {
         TreeNode::dir(&label, children)
     };
-    // the hot node names itself in warning, beside its `▲` share
+
     if share > HOT_SHARE {
         n = n.label_tone(Tone::Warning);
     }
     n.meta(&idx.to_string())
 }
 
-/// Execute one statement against the demo engine.
 fn execute(
     cat: &Catalog,
     text: &str,
@@ -2240,9 +2182,7 @@ fn execute(
                     });
                 let mut grid =
                     DataGrid::new(WidgetId::of("result").child(n), specs).duplicate_keys(&[ALT_D]);
-                // a result grid has no save path (its changes would be
-                // dropped), so it is editable only where one is wired: the
-                // table tab (keyboard audit #24)
+
                 grid.editable = false;
                 grid.read_only_reason = Some(if rs.editable {
                     "Query results are read-only · open the table to edit its rows.".into()
@@ -2379,7 +2319,6 @@ fn execute(
             }
         },
         other => {
-            // writes and DDL are simulated: affected rows from the catalog
             let target = other.target().map(str::to_owned);
             let table = target.as_deref().and_then(|t| cat.find(None, t));
             let (rows, ms) = match &other {
@@ -2445,8 +2384,6 @@ fn execute(
     }
 }
 
-// ------------------------------------------------------------- history tab
-
 pub struct HistoryTab {
     pub id: WidgetId,
     pub list: ListBox,
@@ -2454,19 +2391,17 @@ pub struct HistoryTab {
     pub search: TextInput,
     pub scope_all: bool,
     pub failed_only: bool,
-    /// A run longer than this many milliseconds is slow: its duration
-    /// takes the warning tone in the list and the detail. Default 1000.
+
     pub slow_ms: u32,
     pub filtered: Vec<usize>,
     pub open_btn: Button,
     pub rerun_btn: Button,
     pub copy_btn: Button,
     pub split: Split,
-    /// The list / detail seam.
+
     pub seam: Splitter,
     pub split_area: Rect,
-    /// The detail card's body (the query, its facts, the actions) at its
-    /// natural height, scrolled when the card is too short (R-apps-6).
+
     pub detail_view: ScrollView,
 }
 
@@ -2488,7 +2423,7 @@ impl HistoryTab {
             failed_only: false,
             slow_ms: 1000,
             filtered: vec![],
-            // the tooltips name the list keys that do the same
+
             open_btn: Button::primary(id.sub("open"), "Open in new tab")
                 .tooltip("Open the selected query in a new tab")
                 .shortcut("Enter"),
@@ -2595,7 +2530,7 @@ impl HistoryTab {
         connection: &str,
     ) {
         let t = ctx.theme;
-        // toolbar: search + scope/status
+
         let scope = format!(
             "scope: {}  ·  status: {}",
             if self.scope_all {
@@ -2605,7 +2540,7 @@ impl HistoryTab {
             },
             if self.failed_only { "failed" } else { "any" }
         );
-        // the search field yields to the scope readout before either truncates
+
         let scope_w = junie_tui::ui::text::width(&scope) as u16;
         let search_w = area
             .width
@@ -2642,9 +2577,9 @@ impl HistoryTab {
             ctx,
             bg,
         );
-        // day grouping is shown as a muted header on the first row of each group
+
         self.list.render(l, buf, ctx, bg);
-        // annotate rows: outcome glyph
+
         let entries: Vec<&HistoryEntry> = self
             .filtered
             .iter()
@@ -2677,7 +2612,7 @@ impl HistoryTab {
         let card = Panel::card(Some("Query")).focused(focused).meta(&meta);
         let cbg = card.bg(t);
         let inner = card.render(r, buf, t);
-        // the query is read-only here, so it can be re-flowed to the pane
+
         let wrapped = e
             .sql
             .lines()
@@ -2711,15 +2646,14 @@ impl HistoryTab {
         if let Some(err) = &e.error {
             facts.push(Prop::new("Error", err.clone()).tone(Tone::Error).wrap());
         }
-        // the query, its facts and the actions at their natural height:
-        // a card too short for them scrolls instead of dropping the facts
+
         let editor_nat = (wrapped.lines().count() as u16 + 1).max(3);
         let action_widths = [
             self.open_btn.width(),
             self.rerun_btn.width(),
             self.copy_btn.width(),
         ];
-        // a narrow card wraps the actions instead of dropping one (R-apps-7)
+
         let natural = |a: Size| {
             Size::new(
                 a.width,
@@ -2754,7 +2688,7 @@ impl HistoryTab {
                 &facts,
                 cbg,
             );
-            // actions follow the facts instead of sinking to the bottom
+
             let lines = junie_tui::widgets::button::row_lines(inner.width, &action_widths, 2);
             let ay = (fy + used + 1).min(inner.bottom().saturating_sub(lines));
             let rects = junie_tui::widgets::button::row_layout(

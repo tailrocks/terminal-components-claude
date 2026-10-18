@@ -1,22 +1,22 @@
-//! A list beside the details of its current row, responsive (S19).
-//!
-//! Wide, the master (a list, a tree, a table) and its detail sit side by
-//! side; the seam between them is either fixed (the detail takes a share
-//! of the width, clamped) or a draggable [`Splitter`] that the panes also
-//! resize from the keyboard ([`SplitKeys`], K18). Narrow (below
-//! [`MasterDetail::collapse_below`]), the master takes the whole body
-//! with an optional summary of the current row under it, and the detail
-//! becomes a drawer that covers the body: focusing the detail (Tab, a
-//! click, [`MasterDetail::toggle_drawer`]) opens it, focusing the master
-//! or Esc closes it. The pane that is not drawn stays a focus stop, so
-//! Tab and Shift+Tab still reach it, as macOS keeps a collapsed split
-//! view's sidebar one command away.
-//!
-//! The owner draws the panes: [`MasterDetail::layout`] decides the mode
-//! and returns the rects, the owner renders its master, detail and summary
-//! into them, then calls [`MasterDetail::finish`]. Two calls (not one with
-//! closures) keep the focus order master → detail and let the panes borrow
-//! the owner freely.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -34,93 +34,93 @@ use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::menu::MenuItem;
 use crate::widgets::splitter::Splitter;
 
-/// The width below which a master-detail collapses to one pane: the
-/// shell's 120-column default minus its margins keeps both panes, an
-/// 80- or 100-column terminal does not.
+
+
+
 pub const SPLIT_MIN: u16 = 108;
 
-/// How the detail pane is sized while both panes show.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetailSize {
-    /// The detail takes `pct` percent of the width, clamped to
-    /// `min..=max` columns; the seam does not move.
+
+
     Share { pct: u16, min: u16, max: u16 },
-    /// The master takes `pct` percent of the width (rounded to the
-    /// nearest column), clamped to `min..=max` columns; the detail takes
-    /// the rest. For a list that should stay narrow whatever the width (a
-    /// connections sidebar) while the detail grows; the seam does not
-    /// move.
+
+
+
+
+
     MasterShare { pct: u16, min: u16, max: u16 },
-    /// The seam is a draggable [`Splitter`]; [`MasterDetail::split`]
-    /// holds the master's share and both minimums, and
-    /// [`MasterDetail::keys`] resizes it from either pane.
+
+
+
     Resizable,
 }
 
-/// What a [`MasterDetail`] shows this frame.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Mode {
-    /// Both panes, side by side.
+
     #[default]
     Split,
-    /// Narrow: the master (and the summary under it).
+
     Master,
-    /// Narrow: the detail drawer covers the body.
+
     Drawer,
 }
 
-/// Where a [`MasterDetail`] placed its panes. A pane that is not drawn
-/// this frame has an empty rect.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct MdLayout {
     pub mode: Mode,
     pub master: Rect,
     pub detail: Rect,
-    /// Narrow only: the summary of the current row under the master.
+
     pub summary: Rect,
-    /// The drawn seam (resizable split only).
+
     pub seam: Rect,
 }
 
-/// A responsive master-detail layout. See the module docs.
+
 #[derive(Debug, Clone)]
 pub struct MasterDetail {
-    /// The master pane's focus id.
+
     pub master: WidgetId,
-    /// The detail pane's focus id.
+
     pub detail: WidgetId,
-    /// Further focus stops inside the detail (its action buttons): focus
-    /// on any of them keeps the drawer open, like focus on the detail.
+
+
     pub detail_owns: Vec<WidgetId>,
-    /// How the detail is sized while both show. Default a resizable seam.
+
     pub size: DetailSize,
-    /// The master's share and the panes' minimums ([`DetailSize::Resizable`]).
+
     pub split: Split,
-    /// The seam handle ([`DetailSize::Resizable`]).
+
     pub seam: Splitter,
-    /// Keyboard resize from either pane. Default [`SplitKeys::default`].
+
     pub keys: SplitKeys,
-    /// Columns between the panes; a drawn seam sits in the middle one.
-    /// Default 2.
+
+
     pub gap: u16,
-    /// Below this width the layout collapses to one pane. Default
-    /// [`SPLIT_MIN`].
+
+
     pub collapse_below: u16,
-    /// Rows of the narrow summary under the master (at most a third of
-    /// the body), after one blank row. Default 0: no summary.
+
+
     pub summary_rows: u16,
-    /// Esc on the detail returns focus to the master (and closes the
-    /// drawer). Default on.
+
+
     pub esc_returns: bool,
     drawer: bool,
     last: MdLayout,
-    /// The rect the split was laid out in, for the seam's drags.
+
     container: Rect,
 }
 
 impl MasterDetail {
-    /// A resizable master-detail: the master takes 40 % (at least 28
-    /// columns), the detail at least 40.
+
+
     pub fn new(master: WidgetId, detail: WidgetId) -> Self {
         Self {
             master,
@@ -140,28 +140,28 @@ impl MasterDetail {
         }
     }
 
-    /// The natural width of the layout (plan §1.4 `Measure`): the fewest
-    /// columns that show both panes side by side (never under
-    /// [`Self::collapse_below`]) with the master at least `master` and
-    /// the detail at least `detail` columns wide, at the detail's share
-    /// or the split's starting ratio and minima ([`Split::natural_extent`]:
-    /// a seam drag never resizes the container). Laid out at it, the
-    /// layout does not collapse and neither pane is squeezed.
+
+
+
+
+
+
+
     pub fn natural_width(&self, master: u16, detail: u16) -> u16 {
         self.panes_width(master, detail).max(self.collapse_below)
     }
 
-    /// The fewest columns that show the master at least `master` and the
-    /// detail at least `detail` columns wide side by side, as
-    /// [`Self::natural_width`] but without its [`Self::collapse_below`]
-    /// floor: an owner that lets the layout collapse on purpose (a
-    /// threshold set above what its panes need, to show the drawer)
-    /// measures with this, so the collapse still happens below it.
+
+
+
+
+
+
     pub fn panes_width(&self, master: u16, detail: u16) -> u16 {
         match self.size {
             DetailSize::Resizable => self.split.natural_extent(master, detail, self.gap),
             DetailSize::Share { pct, min, max } => {
-                // the share never draws the detail wider than its max
+
                 let detail = detail.min(max.max(min));
                 let fits = |w: u16| {
                     let dw = ((w as u32 * pct as u32 / 100) as u16).clamp(min, max.max(min));
@@ -174,7 +174,7 @@ impl MasterDetail {
                 w
             }
             DetailSize::MasterShare { pct, min, max } => {
-                // the share never draws the master wider than its max
+
                 let master = master.min(max.max(min));
                 let fits = |w: u16| {
                     let mw = (((w as u32 * pct as u32 + 50) / 100) as u16).clamp(min, max.max(min));
@@ -189,11 +189,11 @@ impl MasterDetail {
         }
     }
 
-    /// The master's and the detail's rects in `area` while both panes
-    /// show side by side; `None` when `area` is narrower than
-    /// [`Self::collapse_below`] (one pane). [`Self::layout`] places the
-    /// panes here, so an owner measuring its content (a pane's height at
-    /// the width it gets) reads the same widths.
+
+
+
+
+
     pub fn split_rects(&self, area: Rect) -> Option<(Rect, Rect)> {
         if area.width < self.collapse_below {
             return None;
@@ -226,12 +226,12 @@ impl MasterDetail {
         })
     }
 
-    /// The pane the collapsed layout shows with `focus` this frame: the
-    /// drawer while focus is in the detail (or the drawer was open and
-    /// focus did not return to the master), else the master. An owner
-    /// measuring its collapsed content reads it before [`Self::layout`].
+
+
+
+
     pub fn collapsed_mode(&self, focus: &crate::ui::ctx::Interaction) -> Mode {
-        // focus returned to the master: the drawer gives the body back
+
         let open = self.drawer && !focus.focused(self.master);
         let detail_focused = focus.focus.is_some_and(|f| self.in_detail(f)) && !focus.focus_hidden;
         if detail_focused || open {
@@ -241,89 +241,89 @@ impl MasterDetail {
         }
     }
 
-    /// See [`Self::collapse_below`].
+
     pub fn collapse_below(mut self, width: u16) -> Self {
         self.collapse_below = width;
         self
     }
 
-    /// A fixed seam: the detail takes `pct` percent of the width, clamped
-    /// to `min..=max` columns ([`DetailSize::Share`]).
+
+
     pub fn detail_share(mut self, pct: u16, min: u16, max: u16) -> Self {
         self.size = DetailSize::Share { pct, min, max };
         self
     }
 
-    /// A fixed seam sized by the master: it takes `pct` percent of the
-    /// width, clamped to `min..=max` columns, and the detail the rest
-    /// ([`DetailSize::MasterShare`]).
+
+
+
     pub fn master_share(mut self, pct: u16, min: u16, max: u16) -> Self {
         self.size = DetailSize::MasterShare { pct, min, max };
         self
     }
 
-    /// A draggable seam with this split ([`DetailSize::Resizable`]).
+
     pub fn resizable(mut self, split: Split) -> Self {
         self.size = DetailSize::Resizable;
         self.split = split;
         self
     }
 
-    /// See [`Self::seam`].
+
     pub fn seam(mut self, seam: Splitter) -> Self {
         self.seam = seam;
         self
     }
 
-    /// See [`Self::keys`].
+
     pub fn keys(mut self, keys: SplitKeys) -> Self {
         self.keys = keys;
         self
     }
 
-    /// See [`Self::gap`].
+
     pub fn gap(mut self, cols: u16) -> Self {
         self.gap = cols;
         self
     }
 
-    /// See [`Self::summary_rows`].
+
     pub fn summary_rows(mut self, rows: u16) -> Self {
         self.summary_rows = rows;
         self
     }
 
-    /// See [`Self::esc_returns`].
+
     pub fn esc_returns(mut self, on: bool) -> Self {
         self.esc_returns = on;
         self
     }
 
-    /// See [`Self::detail_owns`].
+
     pub fn detail_owns(mut self, ids: &[WidgetId]) -> Self {
         self.detail_owns = ids.to_vec();
         self
     }
 
-    /// Whether `id` is the detail or a stop inside it.
+
     pub fn in_detail(&self, id: WidgetId) -> bool {
         id == self.detail || self.detail_owns.contains(&id)
     }
 
-    /// Whether the narrow drawer is open (it stays open across frames
-    /// until the master takes focus, Esc, or [`Self::toggle_drawer`]).
+
+
     pub fn drawer_open(&self) -> bool {
         self.drawer
     }
 
-    /// The layout of the last frame.
+
     pub fn last(&self) -> MdLayout {
         self.last
     }
 
-    /// Open or close the narrow drawer and move focus with it (the
-    /// "Show details" command). Wide, it only moves focus between the
-    /// panes.
+
+
+
     pub fn toggle_drawer(&mut self, focus: &mut Focus) {
         self.drawer = !self.drawer;
         focus.focus(if self.drawer {
@@ -333,21 +333,21 @@ impl MasterDetail {
         });
     }
 
-    /// Open the drawer (narrow) and focus the detail: a master row whose
-    /// "open" shows its details.
+
+
     pub fn open_drawer(&mut self, focus: &mut Focus) {
         self.drawer = true;
         focus.focus(self.detail);
     }
 
-    /// Close the drawer and give focus back to the master.
+
     pub fn close_drawer(&mut self, focus: &mut Focus) {
         self.drawer = false;
         focus.focus(self.master);
     }
 
-    /// The command that toggles the details, for an app's menu (its
-    /// shortcut is the app's: add it with [`MenuItem::shortcut`]).
+
+
     pub fn menu_item(&self) -> MenuItem {
         MenuItem::new(if self.drawer {
             "Hide details"
@@ -356,10 +356,10 @@ impl MasterDetail {
         })
     }
 
-    /// Decide this frame's mode and place the panes in `area`. Draws the
-    /// seam of a resizable split (on `bg`); in the drawer registers the
-    /// master's hidden focus stop. Render the panes into the returned
-    /// rects, then call [`Self::finish`].
+
+
+
+
     pub fn layout(
         &mut self,
         area: Rect,
@@ -386,7 +386,7 @@ impl MasterDetail {
             if self.drawer {
                 l.mode = Mode::Drawer;
                 l.detail = area;
-                // the master keeps its focus stop so Shift+Tab still reaches it
+
                 ctx.control(self.master, Rect::ZERO, false);
             } else {
                 l.mode = Mode::Master;
@@ -408,19 +408,19 @@ impl MasterDetail {
         l
     }
 
-    /// After the panes are drawn: in the narrow master view, register the
-    /// detail's hidden focus stop (after the master, so Tab reaches it
-    /// and opens the drawer).
+
+
+
     pub fn finish(&self, ctx: &mut RenderCtx) {
         if self.last.mode == Mode::Master {
             ctx.control(self.detail, Rect::ZERO, false);
         }
     }
 
-    /// The master-detail's own keys while `focus` is on one of its panes:
-    /// the resize chords ([`Self::keys`]) on a resizable split, and Esc
-    /// on the detail, which returns to the master. `None` for any other
-    /// key: the pane has it.
+
+
+
+
     pub fn on_key(&mut self, key: &Key, focus: &mut Focus) -> Option<Outcome> {
         let f = focus.current()?;
         let on_master = f == self.master;
@@ -444,9 +444,9 @@ impl MasterDetail {
         None
     }
 
-    /// A press, drag or click on the seam: it drags cell by cell and a
-    /// double-click restores the starting ratio. `None` when the event is
-    /// not the seam's.
+
+
+
     pub fn on_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         if ev.id != self.seam.id || self.size != DetailSize::Resizable {
             return None;
@@ -463,8 +463,8 @@ impl MasterDetail {
         }
     }
 
-    /// The footer hints for the master-detail's own keys while `focus` is
-    /// on one of its panes (add them after the pane's own).
+
+
     pub fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         let Some(f) = focus else { return Vec::new() };
         let on_detail = self.in_detail(f);
@@ -485,8 +485,8 @@ impl MasterDetail {
     }
 }
 
-/// In a States grid: both panes with the seam at rest, under the pointer
-/// and pressed, and the narrow master with its summary.
+
+
 impl crate::ui::specimen::Specimen for MasterDetail {
     fn specimen_id(&self) -> WidgetId {
         self.seam.id
@@ -608,8 +608,8 @@ mod tests {
         Key { code, mods }
     }
 
-    /// Laid out at its natural width, the layout shows both panes at
-    /// least as wide as asked, resizable or shared, and never collapses.
+
+
     #[test]
     fn at_its_natural_width_both_panes_get_their_columns() {
         for mut md in [
@@ -625,7 +625,7 @@ mod tests {
                 let w = md.natural_width(m, d);
                 let (l, _) = frame(&mut md, w, None);
                 assert_eq!(l.mode, Mode::Split, "{w} for {m},{d}");
-                // a share draws its pane at most its max
+
                 let m = match md.size {
                     DetailSize::MasterShare { max, .. } => m.min(max),
                     _ => m,
@@ -640,8 +640,8 @@ mod tests {
         }
     }
 
-    /// An owner measuring a pane reads the widths the layout draws:
-    /// `split_rects` is the layout's split, and `None` where it collapses.
+
+
     #[test]
     fn split_rects_are_the_panes_the_layout_draws() {
         for mut md in [
@@ -662,9 +662,9 @@ mod tests {
         }
     }
 
-    /// `collapsed_mode` read before a frame is the mode the narrow
-    /// layout then draws: the drawer while focus is in the detail and
-    /// after, until focus returns to the master.
+
+
+
     #[test]
     fn collapsed_mode_is_the_mode_the_narrow_layout_draws() {
         let mut md = MasterDetail::new(M, D);
@@ -679,8 +679,8 @@ mod tests {
         }
     }
 
-    /// `panes_width` is what the panes need: a collapse threshold set
-    /// above it still collapses the layout there.
+
+
     #[test]
     fn panes_width_leaves_a_higher_collapse_threshold_in_force() {
         let mut md = MasterDetail::new(M, D)
@@ -697,8 +697,8 @@ mod tests {
         assert!(l.master.width >= 50 && l.detail.width >= 30, "{l:?}");
     }
 
-    /// A moved seam shares the same room out: the natural width is the
-    /// starting ratio's, so the container never resizes under a drag.
+
+
     #[test]
     fn a_moved_seam_leaves_the_natural_width_as_it_was() {
         let mut md = MasterDetail::new(M, D).resizable(Split::new(30, 10, 10));
@@ -720,7 +720,7 @@ mod tests {
         assert!(narrow.detail.is_empty());
         assert_eq!(narrow.summary.height, 1);
         assert_eq!(narrow.master.height, 18, "summary and its blank row");
-        // the hidden detail is still the next stop after the master
+
         assert_eq!(ring, vec![M, D]);
     }
 
@@ -731,7 +731,7 @@ mod tests {
         assert_eq!(l.mode, Mode::Drawer);
         assert_eq!(l.detail.width, 80);
         assert_eq!(ring, vec![M, D], "the master stays reachable");
-        // sticky while focus is elsewhere
+
         let (l, _) = frame(&mut md, 80, None);
         assert_eq!(l.mode, Mode::Drawer);
         let (l, _) = frame(&mut md, 80, Some(M));
@@ -748,7 +748,7 @@ mod tests {
         let o = md.on_key(&key(KeyCode::Esc, KeyModifiers::NONE), &mut focus);
         assert_eq!(o, Some(Outcome::Changed));
         assert!(focus.is(M) && !md.drawer_open());
-        // Esc on the master is the master's
+
         assert_eq!(
             md.on_key(&key(KeyCode::Esc, KeyModifiers::NONE), &mut focus),
             None
@@ -763,8 +763,8 @@ mod tests {
 
     #[test]
     fn the_resize_chords_move_the_seam_from_either_pane() {
-        // Alt chords delivered (a Linux client, WezTerm): the hints this
-        // test reads do not depend on the host terminal (A29)
+
+
         crate::core::keyboard::set_alt_keys(crate::core::keyboard::AltKeys::Delivered);
         let mut md = MasterDetail::new(M, D);
         let (l, _) = frame(&mut md, 120, None);
@@ -775,7 +775,7 @@ mod tests {
         let (after, _) = frame(&mut md, 120, None);
         assert_eq!(after.master.width, l.master.width + 2);
         assert_eq!(md.hints(Some(M))[0].key, "Alt+Shift+←→");
-        // a fixed share has no resize chord
+
         let mut fixed = MasterDetail::new(M, D).detail_share(34, 34, 48);
         let (l, _) = frame(&mut fixed, 120, None);
         assert_eq!(l.detail.width, 40);
@@ -789,7 +789,7 @@ mod tests {
         let mut md = MasterDetail::new(M, D)
             .master_share(33, 26, 40)
             .collapse_below(80);
-        // a third of the width, as `width / 3` gives it, clamped 26..40
+
         for (w, mw) in [
             (80, 26),
             (81, 27),
@@ -836,7 +836,7 @@ mod tests {
         assert_eq!(md.on_pointer(&drag), Some(Outcome::Changed));
         let (moved, _) = frame(&mut md, 120, None);
         assert_eq!(moved.master.width, l.master.width + 6);
-        // not the seam: not the master-detail's
+
         let other = PointerEvent::new(
             &HitRegistry::default(),
             Phase::Click,

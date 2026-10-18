@@ -1,11 +1,3 @@
-//! The `PageEvent` adapter: the one place the shell's page contract
-//! ([`junie_tui::shell::Page`]) turns into the showcase pages' own
-//! `handle(&PageEvent, ..)` calls. The app drives every page through the
-//! library trait (a key, the one pointer entry `PageEvent::Pointer`, a
-//! paste, a blur, a tick, a layer's result) and never builds a
-//! `PageEvent` for a page itself; the pages keep their single `handle`
-//! until they implement the library trait directly.
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -20,9 +12,6 @@ use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::leave::Stakes;
 use junie_tui::widgets::keyhint::{Hint, hint};
 
-/// The types the showcase's pages work with: no app state (each page owns
-/// its widgets), no messages, [`LayerRes`] from the shell's layers and
-/// [`Go`] for the showcase's own requests.
 pub struct Showcase;
 
 impl PageTypes for Showcase {
@@ -34,10 +23,6 @@ impl PageTypes for Showcase {
 }
 
 impl shell::Page<Showcase> for dyn Page {
-    /// A key the page leaves unused scrolls a templated page's body
-    /// (Page Up/Down, Home/End: [`ScrollView::on_key`]).
-    ///
-    /// [`ScrollView::on_key`]: junie_tui::ui::scroll_view::ScrollView::on_key
     fn on_key(&mut self, key: &Key, _: &mut (), cx: &mut Cx) -> Outcome {
         let out = self.handle(&PageEvent::Key(*key), cx);
         if out == Outcome::Ignored
@@ -64,9 +49,6 @@ impl shell::Page<Showcase> for dyn Page {
         self.handle(&PageEvent::Tick, cx)
     }
 
-    /// A dialog the page opened closed, or another of its layers
-    /// reported; a library result (a keyboard reference closing) is the
-    /// shell's.
     fn on_layer_result(
         &mut self,
         tag: &LayerTag,
@@ -83,11 +65,6 @@ impl shell::Page<Showcase> for dyn Page {
         }
     }
 
-    /// A templated page draws its section body inside the template's
-    /// scroll view: laid out at its natural size (the page's
-    /// [`Page::measure`] for the Playground), scrolled where that is
-    /// larger than the page. Every page gets it here, with no code of its
-    /// own.
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, _: &()) {
         let avail = super::template::Template::body_of(area).as_size();
         let playground = match self.template() {
@@ -118,7 +95,6 @@ impl shell::Page<Showcase> for dyn Page {
         self.title().to_owned()
     }
 
-    /// The shell's focus upkeep picks the first control of a new page.
     fn primary_focus(&self) -> Option<WidgetId> {
         None
     }

@@ -1,46 +1,46 @@
-//! The one reply type of every widget and page, and the state flags a
-//! widget wears.
-//!
-//! `flow` (was the input consumed?) and `invalidate` (what must be
-//! redrawn?) are orthogonal, so "a wheel at a boundary is consumed without
-//! a repaint" is expressible. The optional action replaces the six return
-//! shapes in use today (`Outcome`, `(Outcome, bool)`, `bool`, `Option<E>`,
-//! ...; docs/architecture/shared-components-plan.md §1.3). [`Outcome`]
-//! stays as an adapter ([`Response::outcome`], `From<Outcome>`) until step
-//! S15 removes it. Names and shapes follow termrock-core on `main`.
+
+
+
+
+
+
+
+
+
+
 
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not, Sub};
 
 use super::event::Outcome;
 
-/// Whether an input was consumed.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord, Hash)]
 pub enum Flow {
-    /// Not interested; keep offering the input to the next handler.
+
     #[default]
     Ignored,
-    /// Handled; stop propagation.
+
     Consumed,
 }
 
-/// What must be redrawn. Ordered: `None < Paint < Layout`.
-///
-/// `Layout` behaves as `Paint` today; it is reserved for layout caching.
+
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord, Hash)]
 pub enum Invalidate {
-    /// Nothing visible changed.
+
     #[default]
     None,
-    /// Repaint.
+
     Paint,
-    /// Re-layout, then repaint.
+
     Layout,
 }
 
-/// The reply of every `update`: flow, invalidation and an optional action.
-///
-/// `#[must_use]`: dropping a response loses the consumed and repaint
-/// answer the router needs.
+
+
+
+
 #[must_use = "a Response carries the consumed/repaint answer; fold it with `|` or read it"]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Response<A = ()> {
@@ -56,7 +56,7 @@ impl<A> Default for Response<A> {
 }
 
 impl<A> Response<A> {
-    /// Not consumed, nothing changed.
+
     pub const fn ignored() -> Self {
         Self {
             flow: Flow::Ignored,
@@ -65,7 +65,7 @@ impl<A> Response<A> {
         }
     }
 
-    /// Consumed without a repaint (the boundary-wheel rule).
+
     pub const fn consumed() -> Self {
         Self {
             flow: Flow::Consumed,
@@ -74,7 +74,7 @@ impl<A> Response<A> {
         }
     }
 
-    /// Consumed and repaint.
+
     pub const fn changed() -> Self {
         Self {
             flow: Flow::Consumed,
@@ -83,7 +83,7 @@ impl<A> Response<A> {
         }
     }
 
-    /// Consumed, repaint, and carry `action` (`main`: `Response::action`).
+
     pub const fn emit(action: A) -> Self {
         Self {
             flow: Flow::Consumed,
@@ -92,47 +92,47 @@ impl<A> Response<A> {
         }
     }
 
-    /// Raise invalidation to at least `Paint`.
+
     pub fn repaint(mut self) -> Self {
         self.invalidate = self.invalidate.max(Invalidate::Paint);
         self
     }
 
-    /// Raise invalidation to `Layout`.
+
     pub const fn relayout(mut self) -> Self {
         self.invalidate = Invalidate::Layout;
         self
     }
 
-    /// Lower invalidation to `None` (the boundary-wheel rule).
+
     pub const fn no_repaint(mut self) -> Self {
         self.invalidate = Invalidate::None;
         self
     }
 
-    /// The flow.
+
     pub const fn flow(&self) -> Flow {
         self.flow
     }
 
-    /// Whether the input was consumed.
+
     pub fn is_consumed(&self) -> bool {
         self.flow == Flow::Consumed
     }
 
-    /// The invalidation.
+
     pub const fn invalidate(&self) -> Invalidate {
         self.invalidate
     }
 
-    /// Whether a repaint is needed (`invalidate >= Paint`).
+
     pub fn is_changed(&self) -> bool {
         self.invalidate >= Invalidate::Paint
     }
 
-    /// The legacy [`Outcome`] for callers not yet migrated: `Changed` when
-    /// a repaint is needed, else `Consumed` or `Ignored` by flow. Removed
-    /// with `Outcome` in S15.
+
+
+
     pub fn outcome(&self) -> Outcome {
         match (self.flow, self.is_changed()) {
             (_, true) => Outcome::Changed,
@@ -141,29 +141,29 @@ impl<A> Response<A> {
         }
     }
 
-    /// Borrow the action, if any.
+
     pub const fn action(&self) -> Option<&A> {
         self.action.as_ref()
     }
 
-    /// Take the action out, leaving flow and invalidation in place.
+
     pub fn take_action(&mut self) -> Option<A> {
         self.action.take()
     }
 
-    /// Consume the response for its action.
+
     pub fn into_action(self) -> Option<A> {
         self.action
     }
 
-    /// Split into the legacy outcome and the action: the adapter for the
-    /// `(Outcome, Option<E>)` call sites.
+
+
     pub fn into_parts(self) -> (Outcome, Option<A>) {
         (self.outcome(), self.action)
     }
 
-    /// Attach `action` to this response; an `Ignored` response becomes
-    /// consumed and repaints, as an action is always a visible result.
+
+
     pub fn with_action<B>(self, action: B) -> Response<B> {
         Response {
             flow: Flow::Consumed,
@@ -172,8 +172,8 @@ impl<A> Response<A> {
         }
     }
 
-    /// Translate the action at a composition boundary; flow and
-    /// invalidation cross unchanged.
+
+
     pub fn map_action<B>(self, f: impl FnOnce(A) -> B) -> Response<B> {
         Response {
             flow: self.flow,
@@ -182,7 +182,7 @@ impl<A> Response<A> {
         }
     }
 
-    /// Run `f` on the action, if any, and erase it.
+
     pub fn on_action(self, f: impl FnOnce(A)) -> Response<()> {
         if let Some(a) = self.action {
             f(a);
@@ -194,7 +194,7 @@ impl<A> Response<A> {
         }
     }
 
-    /// Drop the action, keep flow and invalidation.
+
     pub fn erase(self) -> Response<()> {
         Response {
             flow: self.flow,
@@ -205,8 +205,8 @@ impl<A> Response<A> {
 }
 
 impl Response<()> {
-    /// The same flow and invalidation, typed for an owner whose action is
-    /// `B` (a scroll or a bar press inside a widget that emits actions).
+
+
     pub fn lift<B>(self) -> Response<B> {
         Response {
             flow: self.flow,
@@ -216,8 +216,8 @@ impl Response<()> {
     }
 }
 
-/// Adapter from the legacy [`Outcome`]: `Changed` repaints, `Consumed`
-/// does not, `Ignored` keeps propagating. No action.
+
+
 impl<A> From<Outcome> for Response<A> {
     fn from(o: Outcome) -> Self {
         match o {
@@ -228,9 +228,9 @@ impl<A> From<Outcome> for Response<A> {
     }
 }
 
-/// Adapter from the legacy `(Outcome, Option<A>)` pair the per-gesture
-/// methods return: the outcome's flow and repaint, with the action (an
-/// action always repaints, [`Response::with_action`]).
+
+
+
 impl<A> From<(Outcome, Option<A>)> for Response<A> {
     fn from((o, a): (Outcome, Option<A>)) -> Self {
         let r = Self::from(o);
@@ -241,8 +241,8 @@ impl<A> From<(Outcome, Option<A>)> for Response<A> {
     }
 }
 
-/// Fold: `flow`, `Consumed` wins; `invalidate`, the maximum. Defined for
-/// `Response<()>` only, so two actions are never silently merged.
+
+
 impl BitOr for Response<()> {
     type Output = Response<()>;
 
@@ -259,44 +259,44 @@ impl BitOrAssign for Response<()> {
     }
 }
 
-/// The visual state a widget or row wears: the single state input to
-/// `Theme` and the row painter. Bit layout identical to `main`'s
-/// `StateFlags` (termrock-core `response.rs`).
+
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct StateFlags(u16);
 
 impl StateFlags {
-    /// Owns keyboard focus.
+
     pub const FOCUSED: Self = Self(1 << 0);
-    /// Focus should be painted (the last input was a key).
+
     pub const FOCUS_VISIBLE: Self = Self(1 << 1);
-    /// The pointer is over it.
+
     pub const HOVERED: Self = Self(1 << 2);
-    /// The primary button is down on it (or the press flash is live).
+
     pub const PRESSED: Self = Self(1 << 3);
-    /// Selected within its collection.
+
     pub const SELECTED: Self = Self(1 << 4);
-    /// The active item (the current tab, the current page, a chosen value).
+
     pub const ACTIVE: Self = Self(1 << 5);
-    /// Checked (checkbox, toggle, multi-select).
+
     pub const CHECKED: Self = Self(1 << 6);
-    /// Disabled: drawn but never reachable or activatable.
+
     pub const DISABLED: Self = Self(1 << 7);
-    /// Read-only: reachable, never editable.
+
     pub const READ_ONLY: Self = Self(1 << 8);
-    /// Carries a validation error.
+
     pub const ERROR: Self = Self(1 << 9);
-    /// Carries a warning.
+
     pub const WARNING: Self = Self(1 << 10);
-    /// Busy with an operation.
+
     pub const BUSY: Self = Self(1 << 11);
-    /// An edit is in flight (the terminal cursor belongs to it).
+
     pub const EDITING: Self = Self(1 << 12);
-    /// Has uncommitted changes.
+
     pub const DIRTY: Self = Self(1 << 13);
-    /// Expanded (tree node, section).
+
     pub const EXPANDED: Self = Self(1 << 14);
-    /// Loading data.
+
     pub const LOADING: Self = Self(1 << 15);
 
     const NAMES: [(Self, &'static str); 16] = [
@@ -318,52 +318,52 @@ impl StateFlags {
         (Self::LOADING, "LOADING"),
     ];
 
-    /// No flag set.
+
     pub const fn empty() -> Self {
         Self(0)
     }
 
-    /// The raw bits.
+
     pub const fn bits(self) -> u16 {
         self.0
     }
 
-    /// Flags from raw bits (every bit is a defined flag).
+
     pub const fn from_bits(bits: u16) -> Self {
         Self(bits)
     }
 
-    /// Whether no flag is set.
+
     pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
 
-    /// Whether every flag in `other` is set.
+
     pub const fn contains(self, other: Self) -> bool {
         self.0 & other.0 == other.0
     }
 
-    /// Whether any flag in `other` is set.
+
     pub const fn intersects(self, other: Self) -> bool {
         self.0 & other.0 != 0
     }
 
-    /// Both sets.
+
     pub const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
-    /// Set the flags in `other`.
+
     pub fn insert(&mut self, other: Self) {
         self.0 |= other.0;
     }
 
-    /// Clear the flags in `other`.
+
     pub fn remove(&mut self, other: Self) {
         self.0 &= !other.0;
     }
 
-    /// Set or clear the flags in `other`.
+
     pub fn set(&mut self, other: Self, on: bool) {
         if on {
             self.insert(other);
@@ -372,8 +372,8 @@ impl StateFlags {
         }
     }
 
-    /// These flags with `other` set or cleared: the builder form of
-    /// [`StateFlags::set`].
+
+
     pub const fn with(self, other: Self, on: bool) -> Self {
         if on {
             Self(self.0 | other.0)

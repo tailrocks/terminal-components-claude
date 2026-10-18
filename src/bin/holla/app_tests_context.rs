@@ -1,8 +1,3 @@
-//! Context menus through the real App: a right click on a row opens its
-//! menu at the pointer, Shift+F10 and the Menu key open it below the cursor
-//! row, and a right click outside an open menu (or the menu bar) closes it
-//! and opens the new menu at the new spot.
-
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Position, Rect};
@@ -38,7 +33,6 @@ pub(crate) fn right_click(h: &mut H, x: u16, y: u16) {
     h.mouse(MouseKind::Secondary, x, y);
 }
 
-/// The open menu's rectangle (its hit area as drawn this frame).
 pub(crate) fn menu_area(h: &H, id: WidgetId) -> Rect {
     h.app
         .shell
@@ -47,7 +41,6 @@ pub(crate) fn menu_area(h: &H, id: WidgetId) -> Rect {
         .unwrap_or_else(|| panic!("menu {id:?} not drawn\n{}", h.text()))
 }
 
-/// The menu's top-left corner sits right at the pointer (below it).
 pub(crate) fn assert_at_pointer(h: &H, id: WidgetId, x: u16, y: u16) {
     let a = menu_area(h, id);
     assert_eq!(
@@ -58,15 +51,11 @@ pub(crate) fn assert_at_pointer(h: &H, id: WidgetId, x: u16, y: u16) {
     );
 }
 
-/// The menu sits right below row `y`.
 pub(crate) fn assert_below_row(h: &H, id: WidgetId, y: u16) {
     let a = menu_area(h, id);
     assert_eq!(a.y, y + 1, "menu not below the cursor row\n{}", h.text());
 }
 
-/// Choose the menu row labelled `label` with the pointer.
-/// Rest the pointer on the open menu's row `label`: a disabled row says
-/// why in the menu's status row (its bottom border, SI21).
 pub(crate) fn point(h: &mut H, label: &str) {
     let (x, y) = h
         .find(label)
@@ -123,7 +112,7 @@ fn shift_f10_and_the_menu_key_open_the_finder_alternatives_below_the_cursor_row(
     );
     assert_below_row(&h, ALTERNATIVES, y);
     h.key(KeyCode::Esc);
-    // plain F10 still opens the menu bar
+
     h.key(KeyCode::F(10));
     assert!(h.app.menu_open());
 }
@@ -132,7 +121,7 @@ fn shift_f10_and_the_menu_key_open_the_finder_alternatives_below_the_cursor_row(
 fn a_right_click_outside_an_open_menu_closes_it_and_opens_the_new_menu_there() {
     let mut h = rust();
     let (x, y) = h.find("Run tests").unwrap();
-    // every finder row on screen, from the frame before the menu opens
+
     let rows: Vec<u16> = (1..h.app.shell.size.1 - 2)
         .filter(|&yy| yy != y)
         .filter(|&yy| {
@@ -146,13 +135,13 @@ fn a_right_click_outside_an_open_menu_closes_it_and_opens_the_new_menu_there() {
     right_click(&mut h, x + 12, y);
     assert_eq!(h.app.modals.len(), 1);
     let first = menu_area(&h, ALTERNATIVES);
-    // another row, clear of the open menu
+
     let oy = *rows
         .iter()
         .find(|&&yy| yy < first.y || yy >= first.bottom())
         .unwrap_or_else(|| panic!("no other finder row\n{}", h.text()));
     let ox = x + 12;
-    // the open menu's own backdrop is what is under the pointer now
+
     right_click(&mut h, ox, oy);
     assert_eq!(h.app.modals.len(), 1, "one menu, not a stack");
     assert_eq!(h.app.shell.focus.current(), Some(ALTERNATIVES));
@@ -167,7 +156,7 @@ fn a_right_click_while_the_menu_bar_is_open_closes_it_and_opens_the_row_menu() {
     let (x, y) = h.find("Run tests").unwrap();
     h.key(KeyCode::F(10));
     assert!(h.app.menu_open());
-    // to the right of the open File menu
+
     right_click(&mut h, x + 60, y);
     assert!(!h.app.menu_open(), "the menu bar closed\n{}", h.text());
     assert_eq!(
@@ -233,7 +222,7 @@ fn files_rows_open_their_actions_at_the_pointer_and_under_the_cursor() {
 fn a_right_press_dragged_onto_a_menu_row_chooses_it_on_release() {
     let mut h = rust();
     let (x, y) = h.find("Run tests").unwrap();
-    // a plain right-click: the release where it opened chooses nothing
+
     right_click(&mut h, x + 12, y);
     h.mouse(MouseKind::SecondaryUp, x + 12, y);
     assert_eq!(
@@ -243,7 +232,7 @@ fn a_right_press_dragged_onto_a_menu_row_chooses_it_on_release() {
         h.text()
     );
     h.key(KeyCode::Esc);
-    // press, drag onto a row, release: the row is chosen
+
     right_click(&mut h, x + 12, y);
     let (ax, ay) = h
         .find("Arguments…")

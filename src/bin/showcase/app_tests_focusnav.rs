@@ -1,7 +1,3 @@
-//! The Focus & navigation page (plan §7.5, SC28), driven through the real
-//! app: the ring read back, the shell's focus fallback, Tab in a field,
-//! per-widget nav keys, and the shell's input and protocol options.
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -39,7 +35,6 @@ fn tab_moves_through_the_ring_and_the_page_reads_the_change_back() {
 
 #[test]
 fn a_removed_focused_tag_falls_back_per_the_shell_option() {
-    // the showcase shows the library default (`FocusFallback::Nearest`)
     let mut h = harness();
     let (alpha, beta) = (page(&h).tags[0].id, page(&h).tags[1].id);
     h.focus(beta);
@@ -136,12 +131,12 @@ fn the_shell_input_and_protocol_options_reach_the_runtime_hooks() {
     assert_eq!(h.app.keyboard_protocol(), KeyboardProtocol::Off);
     h.opt("shell.keyboard_protocol=on");
     assert_eq!(h.app.keyboard_protocol(), KeyboardProtocol::On);
-    // A29: the Alt detection an app or the user overrides
+
     h.opt("shell.alt_keys=refused");
     assert!(!junie_tui::core::keyboard::alt_delivered());
     h.opt("shell.alt_keys=delivered");
     assert!(junie_tui::core::keyboard::alt_delivered());
-    // the keys card sits below the fold: the body scrolls to it
+
     let i = h.app.page().index();
     h.app.pages[i]
         .template_mut()

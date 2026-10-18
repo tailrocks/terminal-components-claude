@@ -1,22 +1,15 @@
-//! A deterministic in-memory filesystem. Every path Holla lists, previews,
-//! measures, indexes or removes is a node here: files, directories,
-//! symlinks, FIFOs and devices with apparent and allocated bytes, hardlink
-//! identity, modification time, readability and macOS dataless flags. The
-//! preview never touches the real filesystem; the operational adapters that
-//! replace this model must honour the same contracts.
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::scenario::EPOCH_SECS;
 
 pub const BLOCK: u64 = 4096;
-/// Preview bounds (I-P01).
+
 pub const PREVIEW_MAX_BYTES: usize = 256 * 1024;
 pub const PREVIEW_MAX_LINES: usize = 2000;
 pub const PREVIEW_MAX_LINE_CHARS: usize = 4096;
-/// Directory count bound for a listing preview (I-B12).
+
 pub const COUNT_CAP: usize = 2048;
-/// Home index result bound (I-F04).
+
 pub const FIND_MAX_RESULTS: usize = 100;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,9 +36,9 @@ pub struct Node {
     pub allocated: u64,
     pub mtime: i64,
     pub readable: bool,
-    /// Hardlink identity: two paths with one inode count once.
+
     pub inode: u64,
-    /// macOS dataless (evicted to iCloud): never materialised by a scan.
+
     pub dataless: bool,
     pub content: Content,
 }
@@ -79,9 +72,9 @@ pub enum FsError {
     NotFound(String),
     PermissionDenied(String),
     NotADirectory(String),
-    /// A FIFO or device: refused before any read.
+
     SpecialFile(String),
-    /// A symlink loop or dangling link while resolving.
+
     BrokenLink(String),
     Dataless(String),
 }
@@ -112,7 +105,7 @@ pub struct Volume {
     pub mount: String,
     pub total: u64,
     pub used: u64,
-    /// Purgeable bytes the OS may reclaim: excluded from estimates.
+
     pub purgeable: u64,
 }
 
@@ -122,26 +115,23 @@ pub struct Fs {
     next_inode: u64,
     pub trash: Vec<Trashed>,
     pub volumes: Vec<Volume>,
-    /// The Trash cannot accept items (full, unwritable): every Trash
-    /// removal fails visibly instead of falling back to permanent.
+
     pub trash_broken: Option<String>,
-    /// Transient `AlreadyExists` failures left in the Trash mount before a
-    /// retry succeeds (LD057: at most three attempts).
+
     pub trash_collisions: u32,
 }
 
-/// Directory-size scan node (LD004).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScanNode {
     pub path: String,
     pub is_dir: bool,
     pub allocated: u64,
     pub apparent: u64,
-    /// Non-directory entries below (including self for a file).
+
     pub entries: u64,
     pub error: Option<FsError>,
     pub children: Vec<ScanNode>,
-    /// Symlink leaf: never traversed.
+
     pub link: bool,
 }
 
@@ -161,12 +151,11 @@ impl ScanNode {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ScanOptions {
     pub include_hidden: bool,
-    /// Whole subtrees to omit.
+
     pub skip: Vec<String>,
     pub max_depth: Option<usize>,
 }
 
-/// Bounded, sanitised text preview (I-P01…I-P04).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Preview {
     Text {
@@ -176,7 +165,7 @@ pub enum Preview {
         truncated_bytes: bool,
         truncated_lines: bool,
         long_lines: usize,
-        /// The link target when the path was a symlink.
+
         link: Option<String>,
     },
     Empty,
@@ -191,16 +180,15 @@ pub enum Preview {
 pub struct DirCount {
     pub visible: usize,
     pub hidden: usize,
-    /// The count stopped at the cap: a lower bound.
+
     pub capped: bool,
 }
 
-/// One home-index hit (I-F04/I-F05).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FindHit {
     pub path: String,
     pub is_dir: bool,
-    /// Byte offsets into the file name that matched.
+
     pub matched: Vec<usize>,
     pub score: u32,
 }
@@ -283,7 +271,6 @@ impl Fs {
         self
     }
 
-    /// A file with `bytes` apparent size; allocation rounds up to blocks.
     pub fn file(&mut self, path: &str, bytes: u64, age_days: i64) -> &mut Self {
         self.put(Node {
             path: path.into(),
@@ -299,7 +286,6 @@ impl Fs {
         self
     }
 
-    /// A sparse file: apparent bytes larger than what is allocated.
     pub fn sparse(
         &mut self,
         path: &str,
@@ -336,7 +322,7 @@ impl Fs {
             kind: NodeKind::Symlink {
                 target: target.into(),
             },
-            // a link owns no data: neither size counts toward a tree
+
             apparent: 0,
             allocated: 0,
             mtime: EPOCH_SECS - 86_400,
@@ -378,7 +364,6 @@ impl Fs {
         self
     }
 
-    /// A second name for an existing file: same inode, counted once.
     pub fn hardlink(&mut self, path: &str, of: &str) -> &mut Self {
         if let Some(src) = self.nodes.get(of).cloned() {
             let mut n = src;
@@ -419,8 +404,6 @@ impl Fs {
         }
     }
 
-    // ------------------------------------------------------------ queries
-
     pub fn get(&self, path: &str) -> Option<&Node> {
         self.nodes.get(path)
     }
@@ -456,7 +439,6 @@ impl Fs {
         }
     }
 
-    /// Direct children of a directory, directories first, then names.
     pub fn list(&self, dir: &str) -> Result<Vec<&Node>, FsError> {
         let d = self
             .nodes
@@ -489,7 +471,6 @@ impl Fs {
         Ok(v)
     }
 
-    /// Every node below `root` (not the root itself), in path order.
     pub fn subtree(&self, root: &str) -> Vec<&Node> {
         let prefix = if root == "/" {
             "/".to_owned()
@@ -503,7 +484,6 @@ impl Fs {
             .collect()
     }
 
-    /// Count a directory's entries with the listing-preview bound (I-B12).
     pub fn count(&self, dir: &str) -> Result<DirCount, FsError> {
         let all = self.list(dir)?;
         let mut c = DirCount {
@@ -525,10 +505,6 @@ impl Fs {
         Ok(c)
     }
 
-    /// Resolve a path's ancestors through symlinks. The final component is
-    /// preserved unresolved (a selected link removes the link only).
-    /// Ancestors that are symlinks are reported so a deletion policy can
-    /// refuse them.
     pub fn canonical_parent(&self, path: &str) -> Result<(String, Vec<String>), FsError> {
         let Some(parent) = Self::parent(path) else {
             return Ok(("/".into(), vec![]));
@@ -561,7 +537,6 @@ impl Fs {
         Ok((resolved, links))
     }
 
-    /// Follow a symlink chain to its final target.
     pub fn resolve(&self, path: &str) -> Result<&Node, FsError> {
         let mut cur = path.to_owned();
         for _ in 0..16 {
@@ -577,11 +552,6 @@ impl Fs {
         Err(FsError::BrokenLink(path.into()))
     }
 
-    // ------------------------------------------------------------ preview
-
-    /// Bounded, sanitised preview. Symlinks follow their target and disclose
-    /// it; FIFOs and devices are refused by the opened descriptor's kind, not
-    /// by pre-open metadata; NUL or invalid UTF-8 classifies binary.
     pub fn preview(&self, path: &str) -> Preview {
         let mut link = None;
         let node = match self.nodes.get(path) {
@@ -598,8 +568,7 @@ impl Fs {
             }
             Some(n) => n,
         };
-        // the opened descriptor is rechecked: a file swapped for a FIFO or
-        // device between stat and open is never read
+
         match node.kind {
             NodeKind::Fifo | NodeKind::Device => {
                 return Preview::Error(FsError::SpecialFile(path.into()));
@@ -631,7 +600,7 @@ impl Fs {
         let total = raw.len() as u64;
         let truncated_bytes = raw.len() > PREVIEW_MAX_BYTES;
         let mut cut = raw.len().min(PREVIEW_MAX_BYTES);
-        // keep the valid prefix when the byte cap splits a code point
+
         while cut < raw.len() && cut > 0 && (raw[cut] & 0b1100_0000) == 0b1000_0000 {
             cut -= 1;
         }
@@ -678,10 +647,6 @@ impl Fs {
         }
     }
 
-    // ------------------------------------------------------------ sizes
-
-    /// Recursive allocated/apparent totals with hardlink deduplication,
-    /// symlink leaves, hidden policy and skip roots (LD004–LD006).
     pub fn scan(&self, root: &str, opts: &ScanOptions) -> ScanNode {
         let mut seen = BTreeSet::new();
         self.scan_node(root, opts, 0, &mut seen)
@@ -761,8 +726,6 @@ impl Fs {
             return out;
         }
         if opts.max_depth.is_some_and(|d| depth >= d) {
-            // below the depth bound the totals are still exact: sum without
-            // materialising children
             for n in self.subtree(path) {
                 if matches!(n.kind, NodeKind::Symlink { .. }) {
                     out.entries += 1;
@@ -815,7 +778,6 @@ impl Fs {
         out
     }
 
-    /// Allocated bytes below a path without following links.
     pub fn size_of(&self, path: &str) -> u64 {
         self.scan(
             path,
@@ -838,12 +800,6 @@ impl Fs {
             .max_by_key(|v| v.mount.len())
     }
 
-    // ------------------------------------------------------------ removal
-
-    /// Move a path to the Trash: the entry leaves its place but the volume's
-    /// used bytes stay until the Trash is emptied (LD016). Transient
-    /// AlreadyExists collisions retry at most three times; every other
-    /// failure is final and never falls back to permanent deletion.
     pub fn trash(&mut self, path: &str, now_secs: i64) -> Result<u64, String> {
         if let Some(reason) = &self.trash_broken {
             return Err(format!("Trash unavailable: {reason}"));
@@ -868,8 +824,6 @@ impl Fs {
         Ok(bytes)
     }
 
-    /// Remove a path permanently: files and links by unlink, directories
-    /// recursively. Volume used bytes drop by the allocated size.
     pub fn remove_permanent(&mut self, path: &str) -> Result<u64, String> {
         let bytes = self.detach(path)?;
         if let Some(v) = self.volume_mut_for(path) {
@@ -883,9 +837,6 @@ impl Fs {
         self.volumes.iter_mut().find(|v| v.mount == mount)
     }
 
-    /// Detach a node (and its subtree for a directory) from the tree.
-    /// Returns the allocated bytes that left. A symlink removes the link
-    /// only; its target is untouched.
     fn detach(&mut self, path: &str) -> Result<u64, String> {
         let node = self
             .nodes
@@ -922,8 +873,6 @@ impl Fs {
         }
     }
 
-    /// Empty the Trash: the volume's used bytes drop now. Holla never
-    /// empties the Trash itself; the fixture proves the accounting.
     #[cfg(test)]
     pub fn empty_trash(&mut self) -> u64 {
         let total: u64 = self.trash.iter().map(|t| t.bytes).sum();
@@ -940,11 +889,6 @@ impl Fs {
         total
     }
 
-    // ------------------------------------------------------------ index
-
-    /// Index the home directory the way the old finder did: hidden entries
-    /// and `.ignore`d names skipped, symlinks never followed, cloud roots
-    /// (`Library/Mobile Documents*`) omitted, no filesystem-root scan.
     pub fn home_index(&self, home: &str) -> Vec<String> {
         let mut out = vec![];
         let ignores = self.ignore_names(home);
@@ -985,7 +929,6 @@ impl Fs {
                 continue;
             }
             if dir == home && c.name() == "Library" {
-                // Library is split so cloud roots are omitted
                 if let Ok(lib) = self.list(&c.path) {
                     for l in lib {
                         if l.name().starts_with("Mobile Documents") || l.hidden() {
@@ -1014,9 +957,6 @@ impl Fs {
         }
     }
 
-    /// Rank indexed paths for a query: exact file name or stem, then name
-    /// substring, then fuzzy, then path; at most 100 results. Match offsets
-    /// are byte offsets into the file name (I-F04/I-F05).
     pub fn find(&self, index: &[String], query: &str) -> Vec<FindHit> {
         let q = query.trim();
         if q.is_empty() {
@@ -1060,8 +1000,6 @@ impl Fs {
     }
 }
 
-/// Replace every control byte so a preview cannot drive the terminal
-/// (I-P03); tabs become four spaces.
 pub fn sanitize(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -1135,7 +1073,7 @@ mod tests {
     fn scan_deduplicates_hardlinks_and_never_follows_links() {
         let fs = home();
         let s = fs.scan("/Users/alex/work", &ScanOptions::default());
-        // a: big 10 blocks counted once (hardlink), small 1 block, dir 1 block, link 0
+
         let a = s.find("/Users/alex/work/a").unwrap();
         assert_eq!(a.allocated, BLOCK * (10 + 1 + 1));
         assert_eq!(a.apparent, 10 * BLOCK + 100);
@@ -1158,10 +1096,10 @@ mod tests {
         );
         assert!(hidden.allocated > s.allocated);
         assert!(s.find("/Users/alex/work/.hidden").is_none());
-        // sparse: apparent 100 blocks, allocated 2
+
         let sp = hidden.find("/Users/alex/work/sparse.img").unwrap();
         assert_eq!((sp.apparent, sp.allocated), (100 * BLOCK, 2 * BLOCK));
-        // skip roots and depth bounds keep exact totals
+
         let skipped = fs.scan(
             "/Users/alex/work",
             &ScanOptions {
@@ -1188,7 +1126,7 @@ mod tests {
                 .children
                 .is_empty()
         );
-        // errors stay visible and partial accounting proceeds
+
         let e = fs.scan("/Users/alex", &ScanOptions::default());
         assert_eq!(e.errors(), 1);
         assert!(e.find("/Users/alex/locked").unwrap().error.is_some());
@@ -1233,7 +1171,7 @@ mod tests {
             f2.preview("/Users/alex/dangling"),
             Preview::Error(FsError::BrokenLink(_))
         ));
-        // byte cap keeps a valid UTF-8 prefix; line and length caps annotate
+
         let mut big = String::new();
         for _ in 0..(PREVIEW_MAX_BYTES / 2) {
             big.push('é');
@@ -1293,7 +1231,7 @@ mod tests {
         let b = fs.remove_permanent("/Users/alex/work/b/other.txt").unwrap();
         assert_eq!(b, 3 * BLOCK);
         assert_eq!(fs.volume_for("/").unwrap().used, used - b);
-        // a selected link removes the link only
+
         assert!(fs.exists("/Users/alex/work/a/to-b"));
         fs.remove_permanent("/Users/alex/work/a/to-b").unwrap();
         assert!(!fs.exists("/Users/alex/work/a/to-b"));
@@ -1308,7 +1246,7 @@ mod tests {
                 .unwrap_err()
                 .contains("permission denied")
         );
-        // Trash failures are final: no permanent fallback
+
         fs.trash_broken = Some("~/.Trash is not writable".into());
         assert!(
             fs.trash("/Users/alex/notes.md", 0)

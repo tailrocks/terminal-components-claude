@@ -1,32 +1,32 @@
-//! The file browser modal: choose a file or a folder (plan S22, moved
-//! from jackin's `modals.rs`). The macOS Open panel is the reference: a
-//! location the user can type (the path field, the S11
-//! [`EditField`](crate::widgets::edit::EditField) through [`TextInput`]),
-//! an optional path bar ([`Breadcrumb`]), the folder's listing with
-//! folders first, type-ahead on the list, an optional name filter, hidden
-//! files off by default with a toggle, and Cancel / Choose.
-//!
-//! What it lists comes from a [`FileSource`]: [`MemorySource`] is an
-//! in-memory tree (fixtures, tests, a simulated world), [`FsSource`] the
-//! real filesystem. The browser owns its source, so an app opens it on its
-//! [`ShellLayers`](crate::ui::layer::ShellLayers) as is
-//! (`impl Layer for FileBrowser` in [`crate::ui::layers`]) and receives a
-//! [`FileBrowserResult`] through [`crate::ui::layers::LayerResult::File`].
-//!
-//! Keys ([`FileCmd`], overridable with [`FileBrowser::keys`]): on the list
-//! Enter or → opens the folder under the cursor, ← or Backspace goes to the
-//! parent, Space chooses, `.` shows or hides hidden files (Finder's
-//! ⇧⌘. without the Cmd a terminal does not deliver), `/` or `~` types a
-//! location (Finder's Go to Folder), Ctrl+F the filter. Enter does not
-//! choose because the list's Enter already means "go into" in every
-//! terminal file manager; Space is the choose key (deviation from the
-//! macOS panel, where ⌘↓ goes into a folder: a terminal has no Cmd).
-//! Letters are the list's type-ahead. [`FileCmd::vim_keymap`] adds
-//! `h`/`l`/`s`/`g` for apps on vim keys.
-//!
-//! Esc, the close button and an outside click close it as
-//! [`FileBrowserResult::Cancelled`] exactly as its [`Dismiss`] policy
-//! allows (default [`Dismiss::ESCAPE`]).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::rc::Rc;
 
@@ -54,19 +54,19 @@ use crate::widgets::input::{InputAction, TextInput};
 use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::list::{ListBox, ListItem, SelectMode};
 
-// ------------------------------------------------------------------ source
 
-/// One entry of a folder listing.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileEntry {
-    /// The full path (`/Users/ada/src/api`).
+
     pub path: String,
-    /// A folder (it opens; a file is chosen).
+
     pub dir: bool,
-    /// The right-hand detail (`git · main`, `12 items`, `4.1 KB`).
+
     pub meta: String,
-    /// Hidden unless the browser shows hidden files. Default: the name
-    /// starts with `.`.
+
+
     pub hidden: bool,
 }
 
@@ -81,51 +81,51 @@ impl FileEntry {
         }
     }
 
-    /// A folder at `path`.
+
     pub fn dir(path: &str) -> Self {
         Self::new(path, true)
     }
 
-    /// A file at `path`.
+
     pub fn file(path: &str) -> Self {
         Self::new(path, false)
     }
 
-    /// See [`Self::meta`].
+
     pub fn meta(mut self, meta: &str) -> Self {
         self.meta = meta.to_owned();
         self
     }
 
-    /// See [`Self::hidden`].
+
     pub fn hidden(mut self, hidden: bool) -> Self {
         self.hidden = hidden;
         self
     }
 
-    /// The last path segment.
+
     pub fn name(&self) -> &str {
         self.path.rsplit('/').next().unwrap_or(&self.path)
     }
 }
 
-/// Where a [`FileBrowser`] reads folders from.
+
 pub trait FileSource {
-    /// The entries directly inside `dir` (any order: the browser sorts),
-    /// or why it cannot be read.
+
+
     fn list(&self, dir: &str) -> Result<Vec<FileEntry>, String>;
-    /// Whether `path` is a folder the browser can open.
+
     fn is_dir(&self, path: &str) -> bool;
-    /// The home folder: shown as `~` and what a typed `~` means.
+
     fn home(&self) -> Option<String> {
         None
     }
-    /// The folder above `path`, `None` at the top.
+
     fn parent(&self, path: &str) -> Option<String> {
         let (parent, _) = path.trim_end_matches('/').rsplit_once('/')?;
         (!parent.is_empty()).then(|| parent.to_owned())
     }
-    /// `path` as the path field shows it (`~/src` under home).
+
     fn display(&self, path: &str) -> String {
         match self.home() {
             Some(home) => match path.strip_prefix(home.as_str()) {
@@ -135,7 +135,7 @@ pub trait FileSource {
             None => path.to_owned(),
         }
     }
-    /// A typed location as a path (`~/src` to the home's `src`).
+
     fn expand(&self, typed: &str) -> String {
         match (typed.strip_prefix('~'), self.home()) {
             (Some(rest), Some(home)) => format!("{home}{rest}"),
@@ -144,9 +144,9 @@ pub trait FileSource {
     }
 }
 
-/// An in-memory tree: every folder and file by full path. For fixtures,
-/// tests and simulated worlds; a folder lists the entries whose parent it
-/// is.
+
+
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct MemorySource {
     pub entries: Vec<FileEntry>,
@@ -161,7 +161,7 @@ impl MemorySource {
         }
     }
 
-    /// See [`FileSource::home`].
+
     pub fn home(mut self, home: &str) -> Self {
         self.home = Some(home.to_owned());
         self
@@ -186,11 +186,11 @@ impl FileSource for MemorySource {
     }
 }
 
-/// The real filesystem (`std::fs`). Files carry their size as the detail;
-/// a folder that cannot be read reports the system's error.
+
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FsSource {
-    /// Default `$HOME`.
+
     pub home: Option<String>,
 }
 
@@ -208,7 +208,7 @@ impl FileSource for FsSource {
         let mut out = Vec::new();
         for entry in read.flatten() {
             let path = entry.path().to_string_lossy().into_owned();
-            // follow links: a linked folder opens like a folder
+
             let meta = std::fs::metadata(entry.path()).ok();
             let is_dir = meta.as_ref().is_some_and(std::fs::Metadata::is_dir);
             let mut e = FileEntry::new(&path, is_dir);
@@ -232,36 +232,36 @@ impl FileSource for FsSource {
     }
 }
 
-// ----------------------------------------------------------------- options
 
-/// What Choose accepts.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Choose {
-    /// A folder; files are listed dimmed and cannot be chosen.
+
     #[default]
     Dirs,
-    /// A file; Choose on a folder opens it.
+
     Files,
-    /// Either.
+
     Any,
 }
 
-/// The browser's commands ([`FileBrowser::keys`]).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileCmd {
-    /// Open the folder under the cursor.
+
     Open,
-    /// Go to the parent folder.
+
     Parent,
-    /// Choose the entry under the cursor (the folder itself on `..`).
+
     Choose,
-    /// Show or hide hidden files.
+
     ToggleHidden,
-    /// Type a location in the path field.
+
     GoTo,
-    /// Move to the name filter.
+
     Filter,
-    /// Switch to the URL entry and back ([`FileBrowser::url_entry`]).
+
     Url,
 }
 
@@ -294,9 +294,9 @@ impl Actions for FileCmd {
 }
 
 impl FileCmd {
-    /// The keys for apps on vim keys: `l` opens, `h` goes up, `s`
-    /// chooses, `g` switches to the URL entry, beside the arrows, Enter,
-    /// Backspace and Space.
+
+
+
     pub fn vim_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::Enter), FileCmd::Open),
@@ -312,27 +312,27 @@ impl FileCmd {
     }
 }
 
-/// Accepts a URL or says why not ([`UrlEntry::validate`]).
+
 pub type UrlValidator = Rc<dyn Fn(&str) -> Result<(), String>>;
 
-/// A second way to answer: a URL (a Git repository) typed in the path
-/// field instead of a folder, behind a button beside Cancel.
+
+
 #[derive(Clone)]
 pub struct UrlEntry {
-    /// The button that switches to it (`Git URL…`).
+
     pub button: String,
-    /// The same button while the URL entry is on (`Browse folders`).
+
     pub back: String,
-    /// The field's label in URL mode (`Git URL`).
+
     pub label: String,
     pub placeholder: String,
-    /// Lines in place of the listing.
+
     pub help: Vec<String>,
-    /// The footer hint's action (`Git URL`).
+
     pub hint: String,
-    /// The error for an empty URL.
+
     pub empty_error: String,
-    /// Accepts a URL or says why not. Default: any non-empty text.
+
     pub validate: UrlValidator,
 }
 
@@ -384,71 +384,71 @@ impl std::fmt::Debug for UrlEntry {
     }
 }
 
-/// What the browser reports when it closes.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileBrowserResult {
-    /// A path was chosen; `checked` is the option check box
-    /// ([`FileBrowser::checkbox`]), `false` without one.
+
+
     Chosen {
         path: String,
         checked: bool,
     },
-    /// The URL entry answered ([`FileBrowser::url_entry`]).
+
     Url(String),
     Cancelled,
 }
 
-// ----------------------------------------------------------------- browser
 
-/// The file browser modal. See the module docs.
+
+
 pub struct FileBrowser {
     pub id: WidgetId,
-    /// Which dismissals close it. Default [`Dismiss::ESCAPE`].
+
     pub dismiss: Dismiss,
     pub title: String,
-    /// The folder shown.
+
     pub cwd: String,
     pub path: TextInput,
     pub list: ListBox,
-    /// The listed entries after the hidden and filter rules, in list
-    /// order (row 0 is `..`, so entry `i` is row `i + 1`).
+
+
     pub entries: Vec<FileEntry>,
-    /// What Choose accepts. Default [`Choose::Dirs`].
+
     pub choose_kind: Choose,
-    /// An option the result carries (`Mount read-only`).
+
     pub checkbox: Option<Checkbox>,
-    /// Hidden entries are listed. Default off.
+
     pub show_hidden: bool,
-    /// The "Show hidden files" check box beside the buttons. Default on.
+
     pub hidden_box: Option<Checkbox>,
-    /// A path bar above the field. Default off: the path field already
-    /// names the folder.
+
+
     pub breadcrumb: Option<Breadcrumb>,
-    /// The folders the path bar's segments open, outermost first.
+
     crumb_paths: Vec<String>,
-    /// A name filter beside the path field. Default off.
+
     pub filter: Option<TextInput>,
-    /// Type-ahead on the list. Default the list's (the nav profile's).
+
     pub type_ahead: bool,
     pub keys: KeyMap<FileCmd>,
     pub url: Option<UrlEntry>,
     url_button: Button,
     pub cancel: Button,
     pub choose: Button,
-    /// The URL entry is on: the field holds a URL and Choose checks it.
+
     pub url_mode: bool,
     pub error: Option<String>,
     pub result: Option<FileBrowserResult>,
-    /// The frame drawn last.
+
     pub area: Rect,
-    /// A progress line above the path (`✓ Source · Folder`), set by a flow
-    /// that opens the browser as one of its steps.
+
+
     pub stepper: Option<String>,
     source: Box<dyn FileSource>,
 }
 
 impl FileBrowser {
-    /// A browser titled `title` on `source`, showing `start`.
+
     pub fn new(id: WidgetId, title: &str, source: impl FileSource + 'static, start: &str) -> Self {
         let list = ListBox::new(id.sub("list"), vec![], SelectMode::Single);
         let type_ahead = list.type_ahead;
@@ -484,26 +484,26 @@ impl FileBrowser {
         b
     }
 
-    /// See [`Self::dismiss`].
+
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
     }
 
-    /// See [`Self::choose_kind`].
+
     pub fn choose(mut self, kind: Choose) -> Self {
         self.choose_kind = kind;
         self.load();
         self
     }
 
-    /// An option check box the result carries (see [`Self::checkbox`]).
+
     pub fn checkbox(mut self, label: &str, checked: bool) -> Self {
         self.checkbox = Some(Checkbox::new(self.id.sub("ro"), label, checked));
         self
     }
 
-    /// See [`Self::show_hidden`].
+
     pub fn show_hidden(mut self, on: bool) -> Self {
         self.show_hidden = on;
         if let Some(c) = self.hidden_box.as_mut() {
@@ -513,23 +513,23 @@ impl FileBrowser {
         self
     }
 
-    /// Whether the "Show hidden files" check box shows (see
-    /// [`Self::hidden_box`]); the [`FileCmd::ToggleHidden`] key works
-    /// either way.
+
+
+
     pub fn hidden_toggle(mut self, on: bool) -> Self {
         self.hidden_box =
             on.then(|| Checkbox::new(self.id.sub("hidden"), "Show hidden files", self.show_hidden));
         self
     }
 
-    /// See [`Self::breadcrumb`].
+
     pub fn path_bar(mut self, on: bool) -> Self {
         self.breadcrumb = on.then(|| Breadcrumb::new(self.id.sub("crumb"), vec![]));
         self.load();
         self
     }
 
-    /// See [`Self::filter`].
+
     pub fn filter(mut self, on: bool) -> Self {
         self.filter = on.then(|| {
             TextInput::new(self.id.sub("filter"), "Filter")
@@ -540,38 +540,38 @@ impl FileBrowser {
         self
     }
 
-    /// See [`Self::type_ahead`].
+
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self.list.type_ahead = on;
         self
     }
 
-    /// See [`Self::keys`].
+
     pub fn keys(mut self, keys: KeyMap<FileCmd>) -> Self {
         self.keys = keys;
         self
     }
 
-    /// See [`Self::url`].
+
     pub fn url_entry(mut self, entry: UrlEntry) -> Self {
         self.url_button.label = entry.button.clone();
         self.url = Some(entry);
         self
     }
 
-    /// See [`Self::stepper`].
+
     pub fn stepper(mut self, line: &str) -> Self {
         self.stepper = Some(line.to_owned());
         self
     }
 
-    /// The URL button (present with [`Self::url_entry`]).
+
     pub fn url_button(&self) -> Option<&Button> {
         self.url.is_some().then_some(&self.url_button)
     }
 
-    /// Read the current folder again (after the source changed).
+
     pub fn load(&mut self) {
         let cwd = self.cwd.trim_end_matches('/').to_owned();
         let (mut items, err) = match self.source.list(&cwd) {
@@ -587,7 +587,7 @@ impl FileBrowser {
             (self.show_hidden || !e.hidden)
                 && (query.is_empty() || e.name().to_lowercase().contains(&query))
         });
-        // folders first, then by path
+
         items.sort_by(|a, b| b.dir.cmp(&a.dir).then(a.path.cmp(&b.path)));
         let mut rows = vec![ListItem::new("..").meta("parent")];
         for e in &items {
@@ -755,7 +755,7 @@ impl FileBrowser {
         Outcome::Changed
     }
 
-    /// A key while the browser is the top layer.
+
     pub fn on_key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing) -> Outcome {
         let cur = focus.current();
         if cur == Some(self.path.id) {
@@ -903,11 +903,11 @@ impl FileBrowser {
         }
     }
 
-    /// The fields take their gestures (a press anchors a drag, a drag
-    /// selects, a click places the caret or selects a word); the wheel
-    /// anywhere scrolls the list and its bar pages and drags it; a click
-    /// picks an entry (a double click opens it), opens a path bar segment
-    /// or presses a control.
+
+
+
+
+
     pub fn pointer(&mut self, ev: &PointerEvent, focus: &mut Focus) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
@@ -944,8 +944,8 @@ impl FileBrowser {
             .flatten()
         {
             focus.focus(self.list.id);
-            // the list's click policy opens an entry (a double click by
-            // default, as in Finder); one click picks it
+
+
             let open = self.list.click.activates(ev.count(), self.list.cursor == i);
             self.list.cursor = i;
             self.list.chosen = Some(i);
@@ -990,7 +990,7 @@ impl FileBrowser {
         Outcome::Consumed
     }
 
-    /// Pasted text goes to the field being edited.
+
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if let Some(f) = self.filter.as_mut()
             && f.editing
@@ -1002,12 +1002,12 @@ impl FileBrowser {
         self.path.on_paste(text)
     }
 
-    /// A field is editing text.
+
     pub fn is_editing(&self) -> bool {
         self.path.editing || self.filter.as_ref().is_some_and(|f| f.editing)
     }
 
-    /// An edit ends on blur.
+
     pub fn on_blur(&mut self, change: FocusChange) -> Outcome {
         match self.filter.as_mut() {
             Some(f) => crate::core::focus::forward_blur(change, &mut [&mut self.path, f]),
@@ -1015,7 +1015,7 @@ impl FileBrowser {
         }
     }
 
-    /// Draw the frame (centred, the page dimmed) and its content.
+
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let (w, h) = if screen.width < 100 {
             (
@@ -1107,7 +1107,7 @@ impl FileBrowser {
             ctx.hits.register(b.id, b.area);
         }
         if let Some(c) = self.hidden_box.as_mut() {
-            // left of the buttons, when it fits beside them
+
             let room = row.width.saturating_sub(used + 1);
             let cw = crate::ui::text::width(&c.label) as u16 + 6;
             if room >= cw {
@@ -1121,13 +1121,13 @@ impl FileBrowser {
         }
     }
 
-    /// The control focused when it opens: the list.
+
     pub fn initial_focus(&self) -> WidgetId {
         self.list.id
     }
 
-    /// The footer hints: the bound keys of the commands it offers, then
-    /// Tab, and Esc when its policy lets Esc close it.
+
+
     pub fn hints(&self, _focused: Option<WidgetId>) -> Vec<Hint> {
         let mut v = Vec::new();
         let mut push = |cmd: FileCmd, action: &str| {
@@ -1171,7 +1171,7 @@ impl Overlay for FileBrowser {
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(self.dismiss).initial_focus(self.initial_focus())
     }
-    /// A dismissal means Cancel.
+
     fn on_dismiss(&mut self, _: DismissReason) -> Response<FileBrowserResult> {
         self.result = Some(FileBrowserResult::Cancelled);
         Response::emit(FileBrowserResult::Cancelled)
@@ -1297,12 +1297,12 @@ mod tests {
     fn choose_respects_the_kind() {
         let mut b = FileBrowser::new(ID, "Open", source(), "/home/ada");
         let mut r = Rig::new(&b);
-        b.list.cursor = 3; // todo.md
+        b.list.cursor = 3;
         r.key(&mut b, ch(' '));
         assert_eq!(b.error.as_deref(), Some("Choose a folder, not a file"));
         let mut b = FileBrowser::new(ID, "Open", source(), "/home/ada").choose(Choose::Files);
         assert!(!b.list.items[3].disabled);
-        b.list.cursor = 2; // src/: Choose opens a folder
+        b.list.cursor = 2;
         r.key(&mut b, ch(' '));
         assert_eq!(b.cwd, "/home/ada/src");
         assert!(b.result.is_none());

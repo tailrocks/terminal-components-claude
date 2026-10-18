@@ -1,5 +1,5 @@
-//! `theme::Strings` reaches the library's own copy, and per-widget
-//! builders win over it (api #27, #28).
+
+
 
 use junie_tui::core::{focus::FocusRing, hit::HitRegistry, id::WidgetId};
 use junie_tui::theme::{Strings, Theme};
@@ -91,12 +91,12 @@ fn dialogs_follow_the_theme_and_keep_a_set_label() {
     assert!(!text.contains("Cancel"), "{text}");
     let hints: Vec<String> = d.hints(None).iter().map(|h| h.action.to_string()).collect();
     assert!(hints.iter().any(|a| a == "Wählen"), "{hints:?}");
-    // back to the default theme: the label follows back
+
     let text = draw(&Theme::junie(), (60, 20), |buf, ctx| {
         d.render(Rect::new(0, 0, 60, 20), buf, ctx)
     });
     assert!(text.contains("Cancel"), "{text}");
-    // a label the caller set stays
+
     let mut d = Dialog::confirm(id, "Delete", "Sure?", "Delete").cancel_label("Keep");
     let text = draw(&de(), (60, 20), |buf, ctx| {
         d.render(Rect::new(0, 0, 60, 20), buf, ctx)
@@ -105,7 +105,7 @@ fn dialogs_follow_the_theme_and_keep_a_set_label() {
         text.contains("Keep") && !text.contains("Abbrechen"),
         "{text}"
     );
-    // the typed acknowledgement's instruction
+
     let confirm = junie_tui::widgets::button::Button::danger(id.sub("go"), "Drop");
     let mut d = Dialog::facts(id, "Drop", vec![], vec![], Some("DROP"), confirm);
     let text = draw(&de(), (60, 24), |buf, ctx| {
@@ -248,7 +248,7 @@ fn required_fields_and_their_suffix_follow_the_theme() {
     });
     i.validate();
     assert_eq!(i.error(), Some("Pflichtfeld"));
-    // an error already shown follows a theme change
+
     draw(&Theme::junie(), (40, 3), |buf, ctx| {
         i.render(
             Rect::new(0, 0, 40, 3),
@@ -320,8 +320,8 @@ fn diffs_help_and_reveal_follow_the_theme() {
         h.render(Rect::new(0, 0, 60, 20), buf, ctx)
     });
     assert!(text.contains("Tastenkürzel"), "{text}");
-    // the overlay names its keys in the app's footer (S8b, CO4), in the
-    // theme's words
+
+
     let hints: Vec<String> =
         junie_tui::core::hints::HasHints::hints(&h, &junie_tui::core::hints::HintCx::default())
             .iter()

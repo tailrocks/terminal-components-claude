@@ -1,6 +1,6 @@
-//! [`DataGrid`] constrained column editors ([`ColumnEditor`]): the popup
-//! opens on the cell, commits into the pending-change queue, and follows
-//! the grid's validator.
+
+
+
 
 use super::*;
 use crate::core::{focus::FocusRing, hit::HitRegistry};
@@ -17,7 +17,7 @@ fn key(code: KeyCode) -> Key {
     }
 }
 
-/// id · plan (Select over 6 plans) · tier (Segmented) · beta (Checkbox)
+
 fn grid() -> DataGrid {
     let plans = Options::values(&["free", "team", "pro", "enterprise", "edu", "nonprofit"]);
     let cols = vec![
@@ -38,7 +38,7 @@ fn grid() -> DataGrid {
         ],
         vec![
             CellValue::Text("2".into()),
-            CellValue::Text("legacy-gold".into()), // imported: outside the options
+            CellValue::Text("legacy-gold".into()),
             CellValue::Text("S".into()),
             CellValue::Text("yes".into()),
         ],
@@ -102,7 +102,7 @@ fn a_select_cell_commits_into_the_pending_queue() {
         g.pending.is_dirty(0, 1),
         "a pending change, as typed edits are"
     );
-    // Esc cancels without a change
+
     g.on_key(&key(KeyCode::Enter));
     g.on_key(&key(KeyCode::Home));
     assert_eq!(g.on_key(&key(KeyCode::Esc)), (Outcome::Changed, None));
@@ -124,7 +124,7 @@ fn alt_down_and_the_mouse_open_and_choose() {
     let (_, ev) = g.on_click(opt, Position::new(0, 0));
     assert_eq!(ev, Some(GridAction::CellChanged { row: 0, col: 1 }));
     assert_eq!(g.value(0, 1), &CellValue::Text("free".into()));
-    // the ▾ on the cursor cell opens in one click; outside cancels
+
     let (_, hits) = draw(&mut g);
     let mark = g.open_id(0, 1);
     assert!(hits.area_of(mark).is_some(), "▾ on the cursor cell");
@@ -164,13 +164,13 @@ fn an_out_of_set_value_is_flagged_and_the_validator_still_decides() {
         .position(|l| l.contains("legacy"))
         .expect("shown as stored");
     let x = rows.lines().nth(y).unwrap().find("legacy").unwrap();
-    // byte index equals the cell column on this ASCII row prefix
+
     assert_eq!(
         buf[(x as u16, y as u16)].fg,
         Theme::junie().error,
         "flagged"
     );
-    // a validator that rejects a plan keeps the popup open
+
     let mut g = grid();
     g.validator = crate::widgets::grid::cell_validator(|_, v| {
         if v == "edu" {
@@ -185,14 +185,14 @@ fn an_out_of_set_value_is_flagged_and_the_validator_still_decides() {
     }
     assert_eq!(g.on_key(&key(KeyCode::Enter)).1, None);
     assert_eq!(g.edit_error(), Some("Not for this account"));
-    // blur cancels by default
+
     assert_eq!(g.on_blur(), (Outcome::Changed, None));
     assert!(!g.is_editing());
 }
 
-/// A constrained editor opened on a column the view was scrolled away
-/// from brings the column back first, so its popup anchors to a cell on
-/// screen (finding T3: with no cell drawn the popup did not appear).
+
+
+
 #[test]
 fn an_editor_opened_off_screen_scrolls_its_cell_into_view() {
     use crate::core::scroll::Scrollable;

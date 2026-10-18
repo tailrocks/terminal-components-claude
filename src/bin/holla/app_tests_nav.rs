@@ -1,7 +1,3 @@
-//! Navigation and quitting on the library router (S14): every move that
-//! drops a page, and quitting, ask the pages first (K4, K6), through the
-//! real App.
-
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
 use junie_tui::shell::Page as ShellPage;
@@ -16,7 +12,6 @@ use crate::scenario::{Motion, Scenario};
 use crate::screens::{Cx, Holla};
 use crate::sim::world::World;
 
-/// A page holding one unsaved edit in its one control.
 struct Dirty;
 
 const FIELD: WidgetId = WidgetId::of("test.dirty");
@@ -55,7 +50,6 @@ impl ShellPage<Holla> for Dirty {
 
 impl crate::screens::Screen for Dirty {}
 
-/// The Here tab with the dirty page on top of its finder.
 fn with_dirty_page() -> H {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
     h.app.router.push(Box::new(Dirty));
@@ -78,11 +72,11 @@ fn going_back_from_a_page_with_unsaved_edits_asks_first() {
     h.key(KeyCode::Esc);
     assert_eq!(h.app.router.depth(), 2, "nothing dropped yet\n{}", h.text());
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
-    // Cancel stays on the page
+
     h.key(KeyCode::Esc);
     assert!(h.app.modals.is_empty(), "{}", h.text());
     assert_eq!(h.app.router.depth(), 2, "{}", h.text());
-    // a crumb click back asks the same, and Discard goes
+
     let root = h.app.crumbs.areas[0];
     h.click(root.x, root.y);
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
@@ -103,8 +97,7 @@ fn quitting_with_unsaved_page_edits_asks_first() {
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
     h.key(KeyCode::Esc);
     assert!(!h.app.shell.quit, "Cancel stays\n{}", h.text());
-    // Ctrl+C with nothing selected and nothing to interrupt quits the
-    // same way (SI17)
+
     h.ctrl(KeyCode::Char('c'));
     assert!(!h.app.shell.quit, "{}", h.text());
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());

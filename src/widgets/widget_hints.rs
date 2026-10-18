@@ -1,9 +1,9 @@
-//! [`HasHints`] for the focusable widgets whose hints come from their own
-//! configuration: the footer a page composes names what the focused
-//! widget's keys do now, never a key it does not take (K10, CO3).
-//!
-//! The modals' hints live with them (`Dialog`, `Picker`, `ContextMenu`,
-//! `MenuBar`, `ChoiceDialog`, `FormDialog`, `InfoDialog`, `HelpOverlay`).
+
+
+
+
+
+
 
 use crate::core::hints::{
     Binding, Bindings, HasHints, HintCx, actions_bindings, nav_bindings, nav_hints,
@@ -22,16 +22,16 @@ use crate::widgets::tabs::Tabs;
 use crate::widgets::textarea::TextArea;
 use crate::widgets::tree::TreeView;
 
-/// `Enter Edit`: the hint of a control whose Enter starts an edit. Every
-/// app takes it from here (or from the widget's [`HasHints`]), never
-/// spells it (K10).
+
+
+
 pub const EDIT: Hint = hint(EDIT_PAIR.0, EDIT_PAIR.1);
 
-/// [`EDIT`] as a `(key, action)` pair, for footers that list pairs.
+
 pub const EDIT_PAIR: (&str, &str) = ("Enter", "Edit");
 
-/// A list: how the cursor moves; a multi-select list's toggle and
-/// select-all keys.
+
+
 impl HasHints for ListBox {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         if self.items.is_empty() {
@@ -48,7 +48,7 @@ impl HasHints for ListBox {
     }
 }
 
-/// A tree: how the cursor moves and how a branch folds.
+
 impl HasHints for TreeView {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         let mut v = nav_hints(&self.nav, self.type_ahead, false);
@@ -57,8 +57,8 @@ impl HasHints for TreeView {
     }
 }
 
-/// A select: `Enter Open` while closed; open, how the list moves, Enter
-/// chooses and Esc closes.
+
+
 impl HasHints for Select {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         if self.disabled {
@@ -73,30 +73,30 @@ impl HasHints for Select {
     }
 }
 
-/// An open completion list: its own keys ([`Completion::NAV`]: ↑↓ and
-/// paging only, letters keep typing into the editor), Enter accepts, Esc
-/// closes (CO3). Closed, none.
+
+
+
 impl HasHints for Completion {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         if !self.is_open() {
             return vec![];
         }
-        // the editor under it types the letters: never "Type to jump"
+
         let mut v = nav_hints(&self.list.nav, false, false);
         v.extend([hint("Enter", "Accept"), hint("Esc", "Close")]);
         v
     }
 }
 
-/// A tab strip with focus: ←→ switch tabs.
+
 impl HasHints for Tabs {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         vec![hint("←→", "Switch tab")]
     }
 }
 
-/// A table: how the cursor moves, type-ahead, sort and select-all from its
-/// key map.
+
+
 impl HasHints for DataTable {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         if self.is_editing() {
@@ -110,8 +110,8 @@ impl HasHints for DataTable {
     }
 }
 
-/// A grid: the cell cursor, `Enter Edit` only on a cell Enter edits (K25),
-/// the edit keys while a cell edits.
+
+
 impl HasHints for DataGrid {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         if self.is_editing() {
@@ -146,7 +146,7 @@ impl HasHints for CodeEditor {
     }
 }
 
-/// A focused button names what Enter does, or that it is working (K35).
+
 impl HasHints for Button {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         if self.disabled {
@@ -156,9 +156,9 @@ impl HasHints for Button {
     }
 }
 
-// ------------------------------------------------------------ Bindings
 
-/// A list: navigation, activation, and its key map.
+
+
 impl Bindings for ListBox {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = nav_bindings(&self.nav, self.type_ahead);
@@ -171,7 +171,7 @@ impl Bindings for ListBox {
     }
 }
 
-/// A tree: navigation, folding, and its key map.
+
 impl Bindings for TreeView {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = nav_bindings(&self.nav, self.type_ahead);
@@ -182,7 +182,7 @@ impl Bindings for TreeView {
     }
 }
 
-/// A tab strip: switching, and its key map (close, new, digits).
+
 impl Bindings for Tabs {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = vec![Binding::group("←→", "Switch tab")];
@@ -191,7 +191,7 @@ impl Bindings for Tabs {
     }
 }
 
-/// A table: navigation and its key map.
+
 impl Bindings for DataTable {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = nav_bindings(&self.nav, self.type_ahead);
@@ -201,7 +201,7 @@ impl Bindings for DataTable {
     }
 }
 
-/// A grid: the cell cursor, editing, and its key map.
+
 impl Bindings for DataGrid {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = vec![Binding::group("↑↓←→", "Cell")];
@@ -213,7 +213,7 @@ impl Bindings for DataGrid {
     }
 }
 
-/// A select: open, choose, and the open list's navigation.
+
 impl Bindings for Select {
     fn bindings(&self) -> Vec<Binding> {
         let mut v = vec![Binding::group("Enter Space", "Open")];

@@ -14,28 +14,28 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::list_core::ListCore;
 use crate::ui::row::{MarkKind, RowLook, RowUi};
 
-/// A node in a tree: label, optional trailing metadata, children.
+
 #[derive(Debug, Clone)]
 pub struct TreeNode {
     pub label: String,
     pub children: Vec<TreeNode>,
     pub meta: Option<String>,
-    /// One-cell muted glyph before the label (object kind).
+
     pub glyph: Option<std::borrow::Cow<'static, str>>,
-    /// The glyph's tone. Default [`Tone::Muted`] (an object kind); a
-    /// glyph that carries meaning (an environment, a status) takes its
-    /// own, made readable on the row ([`crate::theme::Theme::tone_on`]).
+
+
+
     pub glyph_tone: Tone,
-    /// The label's tone on a row that is neither selected nor a note
-    /// (e.g. the hot node of a query plan in warning). Default `None`:
-    /// the row's ink.
+
+
+
     pub label_tone: Option<Tone>,
-    /// Children are fetched on first expand; until then the node shows `▸`
-    /// and expanding emits [`TreeAction::Expand`].
+
+
     pub lazy: bool,
-    /// A load is in flight (spinner instead of the fold glyph).
+
     pub busy: bool,
-    /// Muted, not selectable, e.g. an empty-section note.
+
     pub note: bool,
 }
 
@@ -68,7 +68,7 @@ impl TreeNode {
         }
     }
 
-    /// A folder whose children arrive later via [`TreeView::set_children`].
+
     pub fn lazy(label: &str) -> Self {
         Self {
             lazy: true,
@@ -81,13 +81,13 @@ impl TreeNode {
         self
     }
 
-    /// The glyph's tone (see [`Self::glyph_tone`](TreeNode::glyph_tone)).
+
     pub fn glyph_tone(mut self, tone: Tone) -> Self {
         self.glyph_tone = tone;
         self
     }
 
-    /// The label's tone (see [`TreeNode::label_tone`]).
+
     pub fn label_tone(mut self, tone: Tone) -> Self {
         self.label_tone = Some(tone);
         self
@@ -106,7 +106,7 @@ impl TreeNode {
     }
 }
 
-/// Path of child indices from the root.
+
 pub type Path = Vec<usize>;
 
 #[derive(Debug, Clone)]
@@ -126,23 +126,23 @@ pub struct FlatRow {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TreeAction {
-    /// A lazy node was expanded: the owner should fetch and `set_children`.
+
     Expand(Path),
-    /// Enter on a leaf.
+
     Activate(Path),
 }
 
-/// What Enter/Space (and an activating row click, see [`TreeView::click`])
-/// do on a branch row.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BranchAction {
-    /// Expand or collapse it (the long-standing behaviour).
+
     #[default]
     Toggle,
-    /// Activate it like a leaf ([`TreeAction::Activate`]); ←/→ and the
-    /// disclosure still expand and collapse.
+
+
     Activate,
-    /// Toggle it and activate it.
+
     Both,
 }
 
@@ -151,52 +151,52 @@ pub struct TreeView {
     pub id: WidgetId,
     pub nodes: Vec<TreeNode>,
     pub expanded: std::collections::HashSet<Path>,
-    /// The shared row model ([`ListCore`]): `cursor`, `wrap`, `nav`,
-    /// `scroll`, `click` (when a click on a row activates it; default
-    /// [`ClickPolicy::DATA`], [`ClickPolicy::NAVIGATION`] for a sidebar),
-    /// type-ahead, `content` (loading, an error) and `empty`. The tree
-    /// dereferences to it.
+
+
+
+
+
     pub core: ListCore,
     pub selected: Option<Path>,
     pub area: Rect,
     rows: Vec<FlatRow>,
-    /// Case-insensitive substring filter; ancestors of matches stay visible.
+
     pub filter: Option<String>,
-    /// Cells kept free at the right of every row (left of the scrollbar)
-    /// for columns the owner draws there (a tree table's metrics). Labels
-    /// and metadata end before them and are cut with `…`, so the trailing
-    /// columns never paint over a label. Default 0: the label row uses the
-    /// full width.
+
+
+
+
+
     pub reserve_right: u16,
-    /// Draw each row's trailing metadata. Default true; an owner that keeps
-    /// a key in `meta` (and draws its own trailing columns) turns it off.
+
+
     pub show_meta: bool,
-    /// The trailing column strip as last drawn (`x` and `width`; `y` and
-    /// `height` span the rows), or `Rect::ZERO` when nothing is reserved or
-    /// the strip does not fit. Owners align their headers and cells to it.
+
+
+
     trailing: Rect,
-    /// What Enter/Space do on a branch row. Default
-    /// [`BranchAction::Toggle`].
+
+
     pub branch_activate: BranchAction,
-    /// Columns of indentation per depth level. Default 2.
+
     pub indent: u16,
-    /// Flat rows built so far (a complexity guard: an expand or collapse
-    /// builds only the rows it reveals, never the whole tree).
+
+
     rows_built: usize,
-    /// The tree's own action keys (default [`TreeCmd::default_keymap`]).
+
     pub keymap: KeyMap<TreeCmd>,
-    /// Keep the last column as a divider at every size: a track when the
-    /// rows fit, the scrollbar when they overflow (a sidebar edge). Off by
-    /// default: the column is taken only while the tree scrolls.
+
+
+
     pub divider: bool,
-    /// A marker drawn in the disclosure slot of the selected leaf (`›` in a
-    /// navigation sidebar: the current page). Accent while the tree has
-    /// focus, primary ink otherwise. Default `None`.
+
+
+
     pub selected_marker: Option<&'static str>,
-    /// An Alt-click (Option-click) on a branch's disclosure or row expands
-    /// or collapses it with every descendant, as Option-click on a
-    /// disclosure triangle does in macOS outline views. Default `true`;
-    /// off, the modifier is ignored and the click toggles one level.
+
+
+
+
     pub alt_click_recursive: bool,
 }
 
@@ -213,12 +213,12 @@ impl std::ops::DerefMut for TreeView {
     }
 }
 
-/// A [`TreeView`] action a key can be bound to.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TreeCmd {
-    /// Open every branch. Default `*`.
+
     ExpandAll,
-    /// Close every branch. Default `-`.
+
     CollapseAll,
 }
 
@@ -242,8 +242,8 @@ fn matches(n: &TreeNode, q: &str) -> bool {
     n.label.to_lowercase().contains(q) || n.children.iter().any(|c| matches(c, q))
 }
 
-/// Append the visible rows of `nodes` (preorder, open folders descended)
-/// to `out`. `path` is the parent's path and is restored on return.
+
+
 fn walk(
     nodes: &[TreeNode],
     path: &mut Path,
@@ -260,7 +260,7 @@ fn walk(
         }
         path.push(i);
         let has_children = !n.children.is_empty() || (n.lazy && !n.note);
-        // while filtering, folders that contain matches are open
+
         let expanded = has_children
             && (exp.contains(path)
                 || filter.is_some_and(|q| {
@@ -308,7 +308,7 @@ impl TreeView {
             selected_marker: None,
             alt_click_recursive: true,
         };
-        // expand the first level by default
+
         for i in 0..tv.nodes.len() {
             tv.expanded.insert(vec![i]);
         }
@@ -321,25 +321,25 @@ impl TreeView {
         self
     }
 
-    /// See [`Self::click`].
+
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.core.click = policy;
         self
     }
 
-    /// See [`Self::wrap`].
+
     pub fn wrap(mut self, on: bool) -> Self {
         self.core.wrap = on;
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.core.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<TreeCmd>) -> Self {
         self.keymap = keymap;
         self
@@ -350,21 +350,21 @@ impl TreeView {
         self
     }
 
-    /// The pause after which the next letter starts a new type-ahead
-    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
-    /// (1 s; APG suggests 500–1000 ms).
+
+
+
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.core.typeahead.timeout = timeout;
         self
     }
 
-    /// See [`Self::type_ahead`].
+
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.core.type_ahead = on;
         self
     }
 
-    /// See [`Self::type_ahead_precedence`].
+
     pub fn type_ahead_precedence(
         mut self,
         precedence: crate::core::list::TypeAheadPrecedence,
@@ -373,40 +373,40 @@ impl TreeView {
         self
     }
 
-    /// See [`ListCore::content`]: loading or a load error replaces the
-    /// rows.
+
+
     pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
         self.core.content = content;
         self
     }
 
-    /// What a tree with no rows shows ([`ListCore::empty`]). Default none:
-    /// blank.
+
+
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.core.empty = Some(state);
         self
     }
 
-    /// See [`ListCore::skip_when_empty`].
+
     pub fn skip_when_empty(mut self, on: bool) -> Self {
         self.core.skip_when_empty = on;
         self
     }
 
-    /// See [`Self::divider`].
+
     pub fn divider(mut self, on: bool) -> Self {
         self.divider = on;
         self
     }
 
-    /// The selected row's look while this widget is unfocused, over the
-    /// theme's [`crate::theme::Theme::inactive_selection`].
+
+
     pub fn inactive_selection(mut self, look: crate::theme::InactiveSelection) -> Self {
         self.core.inactive_selection = Some(look);
         self
     }
 
-    /// See [`Self::selected_marker`].
+
     pub fn selected_marker(mut self, marker: Option<&'static str>) -> Self {
         self.selected_marker = marker;
         self
@@ -417,7 +417,7 @@ impl TreeView {
         self
     }
 
-    /// Run [`Self::branch_activate`] on branch row `i`.
+
     fn branch(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         let path = self.rows[i].path.clone();
         match self.branch_activate {
@@ -441,32 +441,32 @@ impl TreeView {
         &self.rows
     }
 
-    /// Keep `cells` free at the right of every row for owner-drawn columns.
+
     pub fn reserve_right(mut self, cells: u16) -> Self {
         self.reserve_right = cells;
         self
     }
 
-    /// Show or hide the per-row trailing metadata.
+
     pub fn show_meta(mut self, on: bool) -> Self {
         self.show_meta = on;
         self
     }
 
-    /// The reserved trailing strip as last drawn; `Rect::ZERO` when there is
-    /// none (nothing reserved, or the tree is too narrow to keep a label of
-    /// at least [`TreeView::MIN_LABEL`] cells beside it).
+
+
+
     pub fn trailing(&self) -> Rect {
         self.trailing
     }
 
-    /// The narrowest label the reserved strip may leave; below it the strip
-    /// is dropped rather than starve the labels.
+
+
     pub const MIN_LABEL: u16 = 12;
 
     pub fn flatten(&mut self) {
-        // the focused node is an identity, not a display position: capture
-        // it before the rebuild and resolve it afterwards
+
+
         let focused: Option<Path> = self.rows.get(self.core.cursor).map(|r| r.path.clone());
         let before: Option<Path> = self
             .cursor
@@ -497,8 +497,8 @@ impl TreeView {
         self.core.scroll.set_content(self.rows.len());
     }
 
-    /// Where the focused node went: itself, else its nearest visible
-    /// ancestor, else the surviving neighbour (next, then previous).
+
+
     fn relocate(
         &self,
         focused: Option<&[usize]>,
@@ -518,7 +518,7 @@ impl TreeView {
         after.and_then(find).or_else(|| before.and_then(find))
     }
 
-    /// The path under the cursor, when the tree has rows.
+
     pub fn cursor_path(&self) -> Option<&[usize]> {
         self.rows.get(self.core.cursor).map(|r| r.path.as_slice())
     }
@@ -542,7 +542,7 @@ impl TreeView {
         nodes.get_mut(*last)
     }
 
-    /// Deliver lazily fetched children; marks the node loaded and open.
+
     pub fn set_children(&mut self, path: &[usize], children: Vec<TreeNode>) {
         if let Some(n) = self.node_mut(path) {
             n.children = children;
@@ -567,7 +567,7 @@ impl TreeView {
         self.core.cursor = 0;
     }
 
-    /// Move the cursor to a path (expanding ancestors) and select it.
+
     pub fn reveal(&mut self, path: &[usize]) {
         for k in 1..path.len() {
             self.expanded.insert(path[..k].to_vec());
@@ -582,13 +582,13 @@ impl TreeView {
         self.id.part(PartRef::item(Part::ROW, ItemKey::index(i)))
     }
 
-    /// A branch's disclosure (`Part::ICON`, as on `main`).
+
     pub fn toggle_id(&self, i: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::ICON, ItemKey::index(i)))
     }
 
-    /// The row a pointer event on this tree landed on: the row itself, its
-    /// disclosure or its glyph. `None` for any other part or widget.
+
+
     pub fn row_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
             return None;
@@ -598,14 +598,14 @@ impl TreeView {
             .or_else(|| ev.index_of(Part::MARKER))
     }
 
-    /// A row's glyph ([`TreeNode::glyph`], `Part::MARKER`): an owner whose
-    /// glyph is a check mark reads a click on it as a click on the check
-    /// box ([`crate::core::selection::CheckClick::BoxOnly`]).
+
+
+
     pub fn glyph_id(&self, i: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::MARKER, ItemKey::index(i)))
     }
 
-    /// The cursor with this tree's rules.
+
     fn nav_cursor(&self) -> Cursor {
         self.core.cursor_model()
     }
@@ -641,18 +641,18 @@ impl TreeView {
         (Outcome::Changed, None)
     }
 
-    /// Row `i` was just expanded or collapsed in [`Self::expanded`]: splice
-    /// its subtree in or out of the flat rows instead of rebuilding them.
-    /// The cost is the rows revealed or hidden (plus a move of the rows
-    /// after them), not the whole tree. While a filter is active the
-    /// visible set depends on it, so the tree is flattened in full.
+
+
+
+
+
     fn refold(&mut self, i: usize) {
         if self.filter.as_deref().is_some_and(|f| !f.trim().is_empty()) {
             self.flatten();
             return;
         }
         let depth = self.rows[i].depth;
-        // the subtree shown under row `i`: every following deeper row
+
         let end = self.rows[i + 1..]
             .iter()
             .position(|r| r.depth <= depth)
@@ -684,9 +684,9 @@ impl TreeView {
         let removed = end - (i + 1);
         let added = shown.len();
         self.rows.splice(i + 1..end, shown);
-        // the focused node is an identity: a cursor inside the hidden
-        // subtree moves to its nearest visible ancestor (row `i`), one
-        // after it keeps its node
+
+
+
         if self.core.cursor > i {
             self.core.cursor = if self.core.cursor < end {
                 if removed > 0 { i } else { self.core.cursor }
@@ -718,7 +718,7 @@ impl TreeView {
         self.flatten();
     }
 
-    /// Every branch with children is open.
+
     fn all_expanded(&self) -> bool {
         fn walk(
             nodes: &[TreeNode],
@@ -736,15 +736,15 @@ impl TreeView {
         walk(&self.nodes, &mut Vec::new(), &self.expanded)
     }
 
-    /// The tree's default context menu (M22), from its key map
-    /// ([`crate::ui::context::command_items`]): Expand all, Collapse all,
-    /// each with the key the map binds to it. A command with nothing to do
-    /// stays with its reason (every branch already open or closed). Open
-    /// it at a [`ContextRequest`] from the tree's [`ContextSource`] and run
-    /// the chosen command with [`Self::run`].
-    ///
-    /// [`ContextRequest`]: crate::ui::context::ContextRequest
-    /// [`ContextSource`]: crate::ui::context::ContextSource
+
+
+
+
+
+
+
+
+
     pub fn context_items(&self) -> Vec<(TreeCmd, crate::widgets::menu::MenuItem)> {
         use crate::ui::context::{ContextCmd, command_items};
         let cmds = [
@@ -756,8 +756,8 @@ impl TreeView {
         command_items(&self.keymap, &cmds)
     }
 
-    /// Run `cmd` exactly as its key does (a chosen [`Self::context_items`]
-    /// row, a toolbar button).
+
+
     pub fn run(&mut self, cmd: TreeCmd) -> (Outcome, Option<TreeAction>) {
         match cmd {
             TreeCmd::ExpandAll => self.expand_all(),
@@ -771,7 +771,7 @@ impl TreeView {
             return (Outcome::Ignored, None);
         }
         if unassigned_chord(key, &self.keymap) {
-            // an unassigned modified chord never performs a plain action
+
             return (Outcome::Ignored, None);
         }
         if let Some(action) = lookup(&self.keymap, key) {
@@ -791,7 +791,7 @@ impl TreeView {
         let (nav, moved) = nav;
         let out = match nav {
             Nav::Up | Nav::Down | Nav::PageUp | Nav::PageDown | Nav::Home | Nav::End => {
-                // notes are not selectable: the cursor steps over them
+
                 if let Some(i) = moved.index() {
                     self.set_cursor(i);
                 }
@@ -813,7 +813,7 @@ impl TreeView {
                 if row.has_children && row.expanded {
                     return self.toggle(self.core.cursor);
                 } else if row.depth > 0 {
-                    // the parent is the nearest shallower row above
+
                     let depth = row.depth;
                     if let Some(pi) = self.rows[..self.core.cursor]
                         .iter()
@@ -830,7 +830,7 @@ impl TreeView {
         (out, None)
     }
 
-    /// Activation keys (not navigation, not a mapped action).
+
     fn on_plain_key(&mut self, key: &Key) -> (Outcome, Option<TreeAction>) {
         let out = match key.code {
             KeyCode::Enter | KeyCode::Char(' ') => {
@@ -852,15 +852,15 @@ impl TreeView {
         (out, None)
     }
 
-    /// A single click on row `i` ([`Self::on_click_row_count`]).
+
     pub fn on_click_row(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         self.on_click_row_count(i, 1)
     }
 
-    /// The `count`th click of a multi-click on row `i` (not its
-    /// disclosure): the cursor moves there, and when [`Self::click`]
-    /// activates on this click a leaf reports [`TreeAction::Activate`] and
-    /// a branch runs [`Self::branch_activate`].
+
+
+
+
     pub fn on_click_row_count(&mut self, i: usize, count: u8) -> (Outcome, Option<TreeAction>) {
         if i >= self.rows.len() {
             return (Outcome::Consumed, None);
@@ -891,10 +891,10 @@ impl TreeView {
         self.toggle(i)
     }
 
-    /// A completed click on row `i` (its disclosure when `toggle`) with the
-    /// modifiers held. Alt on a branch (per [`Self::alt_click_recursive`])
-    /// opens or closes the whole subtree; otherwise it is
-    /// [`Self::on_click_toggle`] / [`Self::on_click_row`].
+
+
+
+
     pub fn on_click_with(
         &mut self,
         i: usize,
@@ -904,9 +904,9 @@ impl TreeView {
         self.on_click_at(i, toggle, mods, 1)
     }
 
-    /// [`Self::on_click_with`] for the `count`th click of a multi-click
-    /// (the pointer's click count): a row click activates per
-    /// [`Self::click`].
+
+
+
     pub fn on_click_at(
         &mut self,
         i: usize,
@@ -928,10 +928,10 @@ impl TreeView {
         }
     }
 
-    /// Open (when row `i` is closed) or close (when open) the branch at row
-    /// `i` together with every loaded descendant branch. A lazy branch
-    /// still asks for its first level ([`TreeAction::Expand`]); deeper
-    /// levels load as they are opened.
+
+
+
+
     pub fn toggle_recursive(&mut self, i: usize) -> (Outcome, Option<TreeAction>) {
         let Some(row) = self.rows.get(i) else {
             return (Outcome::Consumed, None);
@@ -981,8 +981,8 @@ impl TreeView {
         (Outcome::Changed, None)
     }
 
-    /// Override the app-wide vertical track-click policy
-    /// (`TrackClick::Page` pages toward the pointer).
+
+
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.core.scroll.track_click = Some(click);
         self
@@ -999,13 +999,13 @@ impl TreeView {
         let focused = ctx.interaction.focused(self.id);
         self.core.scroll.set_viewport(area.height as usize);
         let n = self.rows.len();
-        // a tree with nothing to act on is no focus stop (K37)
+
         if self.core.is_focus_stop(n, focused) {
             ctx.control(self.id, area, false);
             ctx.scrollable(self.id, area);
         }
-        // loading, an error or a set empty state replace the rows; an
-        // empty tree without one stays blank (its divider still draws)
+
+
         if (!self.core.content.is_ready() || self.core.empty.is_some())
             && self.core.draw_content(n, area, buf, ctx, bg, None)
         {
@@ -1015,8 +1015,8 @@ impl TreeView {
         let full_w = area
             .width
             .saturating_sub(if has_sb || self.divider { 1 } else { 0 });
-        // the owner's trailing columns keep their strip while a usable label
-        // column remains beside them; labels end before the strip
+
+
         let reserve = if self.reserve_right > 0 && full_w >= self.reserve_right + Self::MIN_LABEL {
             self.reserve_right
         } else {
@@ -1028,7 +1028,7 @@ impl TreeView {
             Rect::ZERO
         };
         let row_w = full_w - reserve;
-        // metadata is a column: either every visible row shows it or none does
+
         let show_meta = self.show_meta
             && self.core.scroll.visible_range().all(|ri| {
                 let row = &self.rows[ri];
@@ -1047,20 +1047,20 @@ impl TreeView {
             let y = area.y + i as u16;
             let row = &self.rows[ri];
             let rect = Rect::new(area.x, y, row_w, 1);
-            // the row (fill, press, click) spans the reserved strip too
+
             let full = Rect::new(area.x, y, full_w, 1);
             let rid = self.row_id(ri);
             let mut s = ctx.child_state(self.id, rid, ri == self.core.cursor);
             let tid = self.toggle_id(ri);
-            // the expander is part of the row: its hover and press are the row's
+
             s.hovered |= ctx.interaction.hovered(tid);
             s.pressed |= ctx.interaction.pressed(tid);
-            // so is the node's glyph (a check mark an owner may toggle)
+
             let gid = self.glyph_id(ri);
             s.hovered |= ctx.interaction.hovered(gid);
             s.pressed |= ctx.interaction.pressed(gid);
             if row.note {
-                // a note is text, not a control: it never hovers or presses
+
                 s.hovered = false;
                 s.pressed = false;
             }
@@ -1071,9 +1071,9 @@ impl TreeView {
             let st = rp.style();
             let indent = (row.depth as u16) * self.indent;
             let mut x = rect.x + 1 + indent;
-            // the row is a target even when its indent leaves no room for
-            // the label (registered before the early `continue`); the
-            // disclosure, registered later, wins hit-testing over it
+
+
+
             if !row.note {
                 ctx.register_part(self.id, PartRef::item(Part::ROW, ItemKey::index(ri)), full);
             }
@@ -1092,8 +1092,8 @@ impl TreeView {
                 " "
             };
             let gs = if row.busy {
-                // a graphic on the row's plane: 3:1 even on a 16-colour
-                // DarkGray hover, where the accent is 2.9:1
+
+
                 st.fg(t.legible_mark(t.accent, st.bg.unwrap_or(bg)))
             } else if row.has_children {
                 st.fg(t.text_secondary)
@@ -1111,7 +1111,7 @@ impl TreeView {
                 && !row.busy
                 && let Some(m) = self.selected_marker
             {
-                // the current item is a fact: accent only while focused
+
                 rp.mark(ctx, buf, x, y, MarkKind::Glyph(m), focused);
             }
             x += 2;
@@ -1121,15 +1121,15 @@ impl TreeView {
                 .map(|m| crate::ui::text::width(m))
                 .unwrap_or(0) as u16;
             let avail = rect.right().saturating_sub(x);
-            // hide metadata rather than starve the label
+
             let meta_w = if !show_meta || avail.saturating_sub(meta_w + 2) < 10 {
                 0
             } else {
                 meta_w
             };
             let lw = avail.saturating_sub(if meta_w > 0 { meta_w + 2 } else { 1 });
-            // the selected node is accent only while the tree has focus;
-            // otherwise it is a fact, not a position: primary and bold
+
+
             let mut label_style = match (s.selected, focused) {
                 (true, true) => st.fg(t.chosen(true)),
                 (true, false) => st
@@ -1146,10 +1146,10 @@ impl TreeView {
             let mut lx = x;
             if let Some(g) = row.glyph.as_deref() {
                 if !row.note {
-                    // the glyph is its own part of the row (`Part::MARKER`):
-                    // an owner whose glyph is a check mark toggles it there
-                    // (CheckClick::BoxOnly); a click on it is a row click
-                    // otherwise
+
+
+
+
                     ctx.register_part(
                         self.id,
                         PartRef::item(Part::MARKER, ItemKey::index(ri)),
@@ -1160,7 +1160,7 @@ impl TreeView {
                     lx,
                     y,
                     g,
-                    // an object-kind glyph keeps the plain muted ink
+
                     st.fg(if row.glyph_tone == Tone::Muted {
                         t.text_muted
                     } else {
@@ -1187,7 +1187,7 @@ impl TreeView {
                     st.fg(t.text_muted),
                 );
             }
-            // toggle region registered after row so it wins hit-testing
+
             if row.has_children {
                 ctx.register_part(
                     self.id,
@@ -1196,9 +1196,9 @@ impl TreeView {
                 );
             }
         }
-        // the scroll region also sits above the rows: a wheel burst handled
-        // before the next frame (see `runtime::Coalesce`) then routes to the
-        // widget, not to a row whose display index it already scrolled away
+
+
+
         ctx.scrollable(self.id, area);
         if self.divider && !has_sb {
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
@@ -1231,11 +1231,11 @@ impl TreeView {
     }
 }
 
-/// The narrowest the tree shows every shown row's label and meta whole,
-/// one row a shown node (plan §1.4 `Measure`): the row's indent, its
-/// disclosure and glyph, the label (never under the room a row keeps for
-/// it before it hides the meta) and the meta column, the divider and the
-/// owner's reserved strip. An empty or loading tree measures its state.
+
+
+
+
+
 impl crate::ui::measure::Measure for TreeView {
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         if self.rows.is_empty() || !self.core.content.is_ready() {
@@ -1252,7 +1252,7 @@ impl crate::ui::measure::Measure for TreeView {
                 let lead = 1 + (row.depth as u16) * self.indent + 2;
                 let label = if row.glyph.is_some() { 2 } else { 0 } + w(&row.label);
                 let rest = match row.meta.as_deref().filter(|_| self.show_meta) {
-                    // the meta shows while the label keeps 10 cells
+
                     Some(m) => label.max(10) + 2 + w(m) + 1,
                     None => label + 1,
                 };
@@ -1273,7 +1273,7 @@ impl Scrollable for TreeView {
     }
 }
 
-/// Visible rows; notes are not selectable.
+
 impl RowSource for [FlatRow] {
     fn len(&self) -> usize {
         <[FlatRow]>::len(self)
@@ -1304,14 +1304,14 @@ impl Navigable for TreeView {
     }
 }
 
-/// Rows a [`TreeView`] sample shows in a States grid.
+
 const SPECIMEN_ROWS: usize = 4;
 
-/// A tree drawn alone, in a forced state, for a States grid
-/// ([`crate::ui::specimen`]): its first visible rows with the cursor on
-/// the second. Hover and press land on the cursor row (where the pointer
-/// would be), selected opens it (the selected leaf), busy shows the first
-/// branch loading, overflow lengthens the cursor row's label past the row.
+
+
+
+
+
 impl crate::ui::specimen::Specimen for TreeView {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -1388,10 +1388,10 @@ impl crate::ui::specimen::Specimen for TreeView {
     }
 }
 
-/// The tree's pointer gestures: a wheel or a bar press scrolls it; a
-/// completed click on a row or its disclosure is
-/// [`TreeView::on_click_with`] with the modifiers held (Alt opens or
-/// closes the whole subtree).
+
+
+
+
 impl crate::core::pointer::MouseTarget for TreeView {
     type Action = TreeAction;
 
@@ -1410,7 +1410,7 @@ impl crate::core::pointer::MouseTarget for TreeView {
         if !ev.is(Phase::Click) {
             return crate::core::response::Response::ignored();
         }
-        // the glyph (`Part::MARKER`) is part of the row
+
         let hit = match (ev.index_of(Part::ICON), ev.index_of(Part::ROW)) {
             (Some(row), _) => Some((row, true)),
             (None, Some(row)) => Some((row, false)),
@@ -1427,8 +1427,8 @@ impl crate::core::pointer::MouseTarget for TreeView {
 mod identity_tests {
     use super::*;
 
-    /// `folders` open folders of `leaves` leaves each; folder 0 also holds
-    /// an open sub-folder, so an expand must restore nested state.
+
+
     fn big(folders: usize, leaves: usize) -> TreeView {
         let dirs = (0..folders)
             .map(|d| {
@@ -1449,16 +1449,16 @@ mod identity_tests {
             .collect()
     }
 
-    /// Guard (performance): expanding or collapsing one folder of a
-    /// 100k-row tree builds only the rows it reveals, not the whole tree,
-    /// and lands on exactly the rows (and cursor) a full flatten gives.
+
+
+
     #[test]
     fn a_toggle_builds_only_the_rows_it_reveals() {
         let mut t = big(1_000, 100);
-        let per = 102; // the folder, its leaves and the closed sub-folder
+        let per = 102;
         assert_eq!(t.rows().len(), 1_000 * per);
         let folder = 500 * per;
-        // open the sub-folder of folder 500, so a re-expand restores it
+
         t.toggle(folder + 101);
         t.cursor = folder + 40;
         let built = t.rows_built;
@@ -1500,9 +1500,9 @@ mod identity_tests {
         let (_, ev) = a.on_key(&enter);
         assert_eq!(ev, Some(TreeAction::Activate(vec![0])));
         assert_eq!(a.rows().len(), 2, "activating does not collapse");
-        // M15, SI14: one click on a row only moves the cursor, however
-        // often; a double click runs the branch action, the disclosure
-        // toggles on one click
+
+
+
         let mut data = TreeView::new(WidgetId::of("t"), nodes.clone());
         data.on_click_row(0);
         data.on_click_row(0);
@@ -1518,7 +1518,7 @@ mod identity_tests {
             Some(TreeAction::Activate(vec![0, 0])),
             "a leaf double click activates"
         );
-        // a sidebar navigates on one click
+
         let mut nav = TreeView::new(WidgetId::of("t"), nodes).click(ClickPolicy::NAVIGATION);
         assert_eq!(
             nav.on_click_row(1).1,
@@ -1551,7 +1551,7 @@ mod identity_tests {
     #[test]
     fn delayed_children_above_the_cursor_keep_the_focused_node() {
         let mut t = tree();
-        // focus beta (row 1), then alpha's children arrive above it
+
         t.on_key(&key(KeyCode::Down));
         assert_eq!(t.cursor_path(), Some(&[1][..]));
         t.set_children(
@@ -1564,12 +1564,12 @@ mod identity_tests {
         );
         assert_eq!(t.cursor_path(), Some(&[1][..]), "beta stays focused");
         assert_eq!(t.cursor, 4);
-        // a nested delayed load deeper in the tree does not steal focus either
+
         t.set_children(&[1], vec![TreeNode::lazy("b1")]);
         assert_eq!(t.cursor_path(), Some(&[1][..]));
         t.set_children(&[1, 0], vec![TreeNode::leaf("b1a")]);
         assert_eq!(t.cursor_path(), Some(&[1][..]));
-        // selection is distinct from the cursor
+
         t.on_key(&key(KeyCode::Down));
         t.on_key(&key(KeyCode::Down));
         t.on_key(&key(KeyCode::Enter));
@@ -1586,7 +1586,7 @@ mod identity_tests {
         t.on_key(&key(KeyCode::Down));
         t.on_key(&key(KeyCode::Down));
         assert_eq!(t.cursor_path(), Some(&[0, 1][..]));
-        // Left from a leaf climbs to alpha; Left again collapses it in place
+
         t.on_key(&key(KeyCode::Left));
         assert_eq!(t.cursor_path(), Some(&[0][..]));
         t.on_key(&key(KeyCode::Left));
@@ -1594,11 +1594,11 @@ mod identity_tests {
         assert_eq!(t.cursor_path(), Some(&[0][..]));
         t.toggle(0);
         assert!(t.rows[0].expanded);
-        // mouse toggle path: click the fold glyph of alpha while a child is focused
+
         t.on_key(&key(KeyCode::Down));
         t.on_click_toggle(0);
         assert_eq!(t.cursor_path(), Some(&[0][..]));
-        // a child that vanishes on reload: the surviving neighbour keeps focus
+
         t.toggle(0);
         t.on_key(&key(KeyCode::Down));
         t.on_key(&key(KeyCode::Down));
@@ -1609,7 +1609,7 @@ mod identity_tests {
             Some(&[0][..]),
             "ancestor wins over neighbour"
         );
-        // an empty reload is an empty folder, not a crash
+
         t.set_children(&[0], vec![]);
         assert!(!t.rows[0].has_children);
         assert_eq!(t.cursor_path(), Some(&[0][..]));
@@ -1637,7 +1637,7 @@ mod identity_tests {
             Some(&[2, 1][..]),
             "revealed target survives insertion above"
         );
-        // modified chords never navigate
+
         let before = t.cursor;
         t.on_key(&Key {
             code: KeyCode::Char('j'),
@@ -1657,9 +1657,9 @@ mod scroll_tests {
     use crate::ui::ctx::Interaction;
     use ratatui::layout::Position;
 
-    /// A1: a busy node's spinner reads on its row (3:1) at every level,
-    /// hovered too; at 16 colours a hovered row is xterm's DarkGray, where
-    /// the LightGreen spinner was 2.9:1.
+
+
+
     #[test]
     fn a_busy_nodes_spinner_reads_on_its_row_at_every_level() {
         use crate::theme::{ColorLevel, contrast_ratio};
@@ -1690,7 +1690,7 @@ mod scroll_tests {
         }
     }
 
-    /// At its measure every shown row's label and meta show whole.
+
     #[test]
     fn a_tree_at_its_measure_shows_every_label_and_meta() {
         use crate::ui::measure::Measure;
@@ -1749,8 +1749,8 @@ mod scroll_tests {
             .join("\n")
     }
 
-    /// S13: a tree shows `ContentState` in place of its rows, and one with
-    /// nothing to act on is no focus stop (K37).
+
+
     #[test]
     fn content_states_replace_the_rows_and_an_empty_tree_is_skipped() {
         use crate::ui::content::ContentState;
@@ -1814,7 +1814,7 @@ mod scroll_tests {
 
     #[test]
     fn the_selected_node_is_accent_only_while_the_tree_has_focus() {
-        let theme = Theme::junie().with_inactive_selection(crate::theme::InactiveSelection::None); // the focus-only look (owner default is Accent)
+        let theme = Theme::junie().with_inactive_selection(crate::theme::InactiveSelection::None);
         let nodes = (0..3)
             .map(|i| TreeNode::leaf(&format!("Node {i:02}")))
             .collect();
@@ -1880,7 +1880,7 @@ mod scroll_tests {
         let mut tv = TreeView::new(WidgetId::of("t"), nodes.clone()).type_ahead(true);
         assert_eq!(tv.on_key(&key('o')).0, Outcome::Changed);
         assert_eq!(tv.cursor_path(), Some(&[1][..]));
-        tv.typeahead.reset(); // a pause: the next letter starts a new prefix
+        tv.typeahead.reset();
         tv.on_key(&key('d'));
         assert_eq!(
             tv.cursor_path(),
@@ -1909,7 +1909,7 @@ mod scroll_tests {
 
     #[test]
     fn a_divider_keeps_the_last_column_and_the_marker_names_the_selected_leaf() {
-        let theme = Theme::junie().with_inactive_selection(crate::theme::InactiveSelection::None); // the focus-only look (owner default is Accent)
+        let theme = Theme::junie().with_inactive_selection(crate::theme::InactiveSelection::None);
         let nodes = vec![TreeNode::dir("Group", vec![TreeNode::leaf("Page")])];
         let mut tv = TreeView::new(WidgetId::of("t"), nodes)
             .divider(true)
@@ -1992,7 +1992,7 @@ mod scroll_tests {
             row[20..].iter().all(|c| *c == ' '),
             "the strip is left for the owner: {out}"
         );
-        // too narrow for a usable label beside the strip: the strip goes
+
         let mut narrow =
             TreeView::new(WidgetId::of("t"), vec![TreeNode::leaf("x")]).reserve_right(30);
         render(&mut narrow);
@@ -2002,7 +2002,7 @@ mod scroll_tests {
     #[test]
     fn deep_rows_stay_clickable_and_notes_are_inert() {
         let theme = Theme::junie();
-        // a chain deep enough that its indent leaves no room for a label
+
         let mut deep = TreeNode::leaf("leaf");
         for k in 0..12 {
             deep = TreeNode::dir(&format!("d{k}"), vec![deep]);
@@ -2033,7 +2033,7 @@ mod scroll_tests {
             Some(t.row_id(note)),
             "a note row is not a control"
         );
-        // hovered, the note row draws exactly as at rest
+
         let rest = buf[(5, note as u16)].style();
         let mut hits = HitRegistry::default();
         let mut buf = Buffer::empty(area);
@@ -2058,27 +2058,27 @@ mod scroll_tests {
                 )],
             )],
         );
-        // root starts open; close it, then Alt-click opens every level
+
         t.on_click_toggle(0);
         assert_eq!(t.rows().len(), 1);
         t.on_click_with(0, true, KeyModifiers::ALT);
         let labels: Vec<_> = t.rows().iter().map(|r| r.label.clone()).collect();
         assert_eq!(labels, ["root", "a", "b", "c"]);
-        // Alt-click on the row closes it with every descendant
+
         t.on_click_with(0, false, KeyModifiers::ALT);
         assert_eq!(t.rows().len(), 1);
         t.on_click_toggle(0);
         assert_eq!(t.rows().len(), 2, "descendants were closed too");
-        // the knob turns it off: a plain one-level toggle
+
         let mut t = t.alt_click_recursive(false);
         t.on_click_toggle(0);
         t.on_click_with(0, true, KeyModifiers::ALT);
         assert_eq!(t.rows().len(), 2);
     }
 
-    /// M22: a right click on a row offers Expand all and Collapse all,
-    /// named by the tree's key map; one with nothing to do says why, and a
-    /// chosen row runs exactly as its key does.
+
+
+
     #[test]
     fn a_right_click_offers_expand_and_collapse_all_from_the_key_map() {
         use crate::core::intent::Phase;
@@ -2129,7 +2129,7 @@ mod scroll_tests {
             row(&t, TreeCmd::CollapseAll),
             ("Collapse all".into(), Some("-".into()), None)
         );
-        // choose Expand all through the menu
+
         let items = t.context_items();
         let mut menu = req.menu(
             WidgetId::of("t.menu"),
@@ -2148,7 +2148,7 @@ mod scroll_tests {
             row(&t, TreeCmd::CollapseAll).2.as_deref(),
             Some("Every branch is closed")
         );
-        // a remapped key shows its own chord
+
         t.keymap = vec![(KeyBinding::char('e'), TreeCmd::ExpandAll)];
         assert_eq!(row(&t, TreeCmd::ExpandAll).1.as_deref(), Some("e"));
         assert_eq!(row(&t, TreeCmd::CollapseAll).1, None);

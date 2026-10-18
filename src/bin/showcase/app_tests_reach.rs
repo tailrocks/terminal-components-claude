@@ -1,22 +1,3 @@
-//! The whole content is always reachable (owner priority 2026-10-17):
-//! every templated page, every section, at 80x24, 100x25, 106x29 and
-//! 120x40, shows at some scroll position of its section body everything
-//! it shows on a large screen. The body sits in the template's
-//! `ScrollView`, so a section laid out at its natural size scrolls to
-//! every row and column; a section whose own layout squeezes instead of
-//! overflowing (its Playground has no `Page::measure` yet) loses words,
-//! and is listed in `tests/showcase_reach_allow.txt` with its
-//! `docs/remaining-work.md` row until its page is fixed. An inner
-//! scroller that shows a scrollbar (a list, a table, a log) holds more
-//! than its window by design: what wheeling it to its end shows counts
-//! as reachable, and so does one whose bar is out of view (the wheel
-//! over its body still scrolls it). Words are read by the library's one
-//! reach rule (`shell::reach::Words`, the apps' audits use it too): a
-//! word cut with `…` is reached through its reveal, and so is the full
-//! text a cut reveals on hover or a strip collapsed into its `…`. A
-//! listed entry
-//! that passes fails as stale, so the list only shrinks.
-
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Input, Mouse, MouseKind};
@@ -33,18 +14,12 @@ use crate::app::{App, NAV_ENTRIES};
 use crate::pages::template::Section;
 use junie_tui::theme::Theme;
 
-/// The sizes the owner checks pages at.
 const SIZES: [(u16, u16); 4] = [(80, 24), (100, 25), (106, 29), (120, 40)];
 
-/// A screen large enough to show every page whole.
 const REFERENCE: (u16, u16) = (220, 70);
 
-/// Wheel notches an inner scroller gets to reach its end.
 const INNER_NOTCHES: usize = 400;
 
-/// Words of three or more letters or digits in `area`, and the
-/// prefixes of words cut with `…` (the shared reach rule): what a reader
-/// would miss when the section cuts it off.
 fn words(buf: &Buffer, area: Rect, out: &mut Words) {
     out.add_area(buf, area);
 }
@@ -52,7 +27,7 @@ fn words(buf: &Buffer, area: Rect, out: &mut Words) {
 struct Shot {
     app: App,
     term: Terminal<TestBackend>,
-    /// Words to look for: scrolling stops once all are seen.
+
     want: Option<Words>,
 }
 
@@ -81,17 +56,12 @@ impl Shot {
         &mut self.app.pages[i].template_mut().unwrap().view
     }
 
-    /// Words in the section body in view, and the text the frame's cuts
-    /// and strips reveal.
     fn words(&mut self, out: &mut Words) {
         let area = self.view().last_layout().viewport;
         words(self.term.backend().buffer(), area, out);
         out.add_overflowed();
     }
 
-    /// Words in the section body at every scroll position: a window per
-    /// view on each axis, and the end of each.
-    /// Whether every wanted word was seen.
     fn done(&self, out: &Words) -> bool {
         self.want
             .as_ref()
@@ -103,8 +73,6 @@ impl Shot {
         self.words(&mut out);
         let l = self.view().last_layout();
         let steps = |content: u16, view: u16| -> Vec<usize> {
-            // windows overlap by half, so a word cut by one edge is
-            // whole in the next
             let max = content.saturating_sub(view) as usize;
             let step = (view / 2).max(1) as usize;
             let mut v: Vec<usize> = (0..=max).step_by(step).collect();
@@ -127,14 +95,6 @@ impl Shot {
         out
     }
 
-    /// The shared rule for inner scrollers: a scroller in the section
-    /// that shows a scrollbar (a list, a table, a log, a stack of panels)
-    /// says it holds more than its window, so what scrolling it brings
-    /// into view is reachable. Wheel each such scroller in view from its
-    /// bars to its start and then to its end (until it stops moving, or
-    /// the notch chains on to the section's view); one with both bars is
-    /// swept sideways at each window of rows. Then put the section back
-    /// where it was.
     fn inner(&mut self, out: &mut Words) {
         let view = self.view().id;
         let viewport = self.view().last_layout().viewport;
@@ -153,8 +113,7 @@ impl Shot {
                 owners.push(b.owner);
             }
         }
-        // a scroller whose bars are out of view (a table whose sideways
-        // bar is below the screen): the wheel over its body scrolls it
+
         let scrollers: Vec<(WidgetId, Rect)> = self
             .app
             .shell
@@ -172,7 +131,7 @@ impl Shot {
             if self.done(out) {
                 return;
             }
-            // over its bar, else over the middle of its body in view
+
             let body = scrollers
                 .iter()
                 .find(|(id, _)| *id == owner)
@@ -188,8 +147,7 @@ impl Shot {
                     .or_else(|| body.map(|a| Position::new(a.x + a.width / 2, a.y + a.height / 2)))
             };
             let (v, h) = (at(Axis::Vertical), at(Axis::Horizontal));
-            // sideways once a window of rows went by (a notch moves about
-            // three rows; the track is as tall as the window)
+
             let rows = bars
                 .iter()
                 .find(|b| b.owner == owner && b.axis == Axis::Vertical)
@@ -204,7 +162,6 @@ impl Shot {
                     return;
                 }
                 if let Some(h) = h {
-                    // to its end sideways and back
                     s.sweep(MouseKind::WheelRight, h, start, out, &mut |_, _| {});
                     s.sweep(MouseKind::WheelLeft, h, start, out, &mut |_, _| {});
                 }
@@ -214,18 +171,12 @@ impl Shot {
                 self.sweep(MouseKind::WheelLeft, h, start, out, &mut |_, _| {});
             }
             if let Some(v) = v {
-                // to its start (a log that follows sits at its end), then
-                // to its end
                 self.sweep(MouseKind::WheelUp, v, start, out, &mut across);
                 self.sweep(MouseKind::WheelDown, v, start, out, &mut across);
             }
         }
     }
 
-    /// Wheel `kind` at `pos` until the screen stops changing or the notch
-    /// chains on to the section's view (it left `start`), calling `each`
-    /// after every notch that moved something; then the section's view
-    /// back at `start`.
     fn sweep(
         &mut self,
         kind: MouseKind,
@@ -251,7 +202,6 @@ impl Shot {
     }
 }
 
-/// `slug | section | WxH` entries of the allowlist.
 fn allowed() -> BTreeSet<String> {
     let text = include_str!("../../../tests/showcase_reach_allow.txt");
     text.lines()
@@ -268,9 +218,6 @@ fn allowed() -> BTreeSet<String> {
         .collect()
 }
 
-/// The gate over every `PARTS`-th page from `part` (the pages split so
-/// nextest runs the parts side by side): each section at each size, and
-/// the allowlist's entries for those pages.
 fn reach_part(part: usize) {
     let allowed = allowed();
     let mut problems = Vec::new();
@@ -326,7 +273,6 @@ fn reach_part(part: usize) {
     );
 }
 
-/// The parts the gate runs in.
 const PARTS: usize = 8;
 
 #[test]
@@ -362,8 +308,6 @@ fn every_section_reaches_its_whole_content_by_scrolling_7() {
     reach_part(7);
 }
 
-/// Every allowlisted page is a page the gate walks (a renamed page's
-/// lines would otherwise never be checked).
 #[test]
 fn every_reach_allowlist_entry_names_a_page() {
     let pages: BTreeSet<String> = NAV_ENTRIES.iter().map(|e| format!("{:?}", e.id)).collect();
@@ -376,7 +320,6 @@ fn every_reach_allowlist_entry_names_a_page() {
     }
 }
 
-/// Toggles enough to fill any page twice over.
 static LONG: &[crate::options::Opt] = &{
     use crate::options::{Effect, Opt};
     const fn opt(key: &'static str, label: &'static str) -> Opt {
@@ -417,8 +360,6 @@ static LONG: &[crate::options::Opt] = &{
     ]
 };
 
-/// One frame of a template's Options section over [`LONG`] in a 60x16
-/// page, with `focus` focused: the screen and the hit regions.
 fn options_frame(
     t: &mut crate::pages::template::Template,
     focus: Option<junie_tui::core::id::WidgetId>,
@@ -458,10 +399,6 @@ fn text(buf: &Buffer) -> String {
         .join("\n")
 }
 
-/// S17 data point (coordinator, 2026-10-17): a long option table pushed
-/// options out of view. The Options section scrolls: its bar shows, every
-/// option is reachable by scrolling, and Tab onto one out of view brings it
-/// into view.
 #[test]
 fn a_long_option_table_scrolls_and_follows_focus() {
     use crate::pages::template::{Section, Template};
@@ -474,11 +411,11 @@ fn a_long_option_table_scrolls_and_follows_focus() {
     let l = t.view.last_layout();
     assert!(l.v_track.is_some(), "the section shows its bar");
     assert!(!text(&buf).contains("The last option"));
-    // scrolled to the end, the last option is in view
+
     t.view.scroll_to(0, usize::MAX);
     let (buf, _) = options_frame(&mut t, None);
     assert!(text(&buf).contains("The last option"), "{}", text(&buf));
-    // focus on the last option from the top: it comes into view
+
     t.view.reset();
     let last = t.option_control("long.a24").unwrap();
     let (buf, hits) = options_frame(&mut t, Some(last));
@@ -487,8 +424,6 @@ fn a_long_option_table_scrolls_and_follows_focus() {
     assert!(text(&buf).contains("The last option"));
 }
 
-/// The Inspector's Options pane holds the page's options and every shell
-/// option: on a short screen it scrolls, by wheel, to the last of them.
 #[test]
 fn the_inspector_options_pane_scrolls_to_its_last_option() {
     use junie_tui::core::event::{Input, Mouse, MouseKind};

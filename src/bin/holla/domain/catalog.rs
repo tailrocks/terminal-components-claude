@@ -1,13 +1,3 @@
-//! The catalogue: turns the world into rows. Capability (a domain being
-//! present) becomes actions (items); live state adds reasons that make some
-//! of them recommendations. Every row carries scope, risk, confirmation,
-//! provenance and the exact typed command it stands for; the display
-//! string derives from that specification, never the other way round.
-//!
-//! Providers contribute in a fixed order and are merged by canonical id:
-//! the earlier contribution wins a collision and the collision is reported
-//! as a warning, never by retargeting an existing row.
-
 use std::collections::BTreeSet;
 
 use crate::domain::action::{
@@ -21,7 +11,6 @@ use crate::domain::exec::Command;
 use crate::domain::manifest;
 use crate::sim::world::{BatchMode, SourceState, World};
 
-/// Where a directory sits relative to the working directory.
 fn tag_for_dir(w: &World, dir: &str) -> ScopeTag {
     let cwd = &w.location.cwd;
     if dir == cwd {
@@ -33,8 +22,6 @@ fn tag_for_dir(w: &World, dir: &str) -> ScopeTag {
     } else if let Some(ws) = &w.location.workspace
         && dir.starts_with(&format!("{}/", ws.root))
     {
-        // a sibling project under the same workspace root: reached through
-        // the parent, runs in its own folder
         ScopeTag {
             direction: Scope::Parent,
             defined_at: dir.to_owned(),
@@ -67,11 +54,10 @@ fn freshness(w: &World, source: &str) -> Freshness {
                 .unwrap_or(0);
             let age_ms = (w.tick.saturating_sub(done_at) as i64) * crate::sim::world::TICK_MS;
             match source {
-                // gh answers from its own cache; say so
                 "github" => Freshness::Cached {
                     age_ms: age_ms + 40_000,
                 },
-                // an unreadable folder makes child discovery partial
+
                 "children" if w.disk.partial_reason.is_some() => Freshness::Partial {
                     loaded: w.location.children.len(),
                     total: w.location.children.len() + 2,
@@ -82,8 +68,6 @@ fn freshness(w: &World, source: &str) -> Freshness {
     }
 }
 
-/// A source that has not answered yet contributes nothing: rows arrive
-/// when it completes, and the first paint never waits for it.
 fn source_ready(w: &World, source: &str) -> bool {
     !matches!(w.source_state(source), SourceState::Loading)
 }
@@ -116,7 +100,6 @@ fn script_for_task(w: &World, name: &str, dir: &str) -> Option<String> {
     Some(key.into())
 }
 
-/// Fill usage, pins, aliases and hidden state from memory.
 fn apply_memory(w: &World, mut item: Item) -> Item {
     let cwd = &w.location.cwd;
     let project_root = w.location.project.as_ref().map(|p| p.root.as_str());
@@ -182,8 +165,6 @@ fn apply_memory(w: &World, mut item: Item) -> Item {
     item
 }
 
-/// Every built-in id the catalogue can produce for this world, for custom
-/// action reservation.
 pub fn builtin_ids(w: &World) -> Vec<String> {
     let mut items = vec![];
     contribute(w, &mut items, false);
@@ -194,8 +175,6 @@ pub fn build(w: &World) -> Vec<Item> {
     build_with_warnings(w).0
 }
 
-/// Build the catalogue and the discovery warnings (collisions, malformed
-/// sources). The latest warning is what the status line shows.
 pub fn build_with_warnings(w: &World) -> (Vec<Item>, Vec<String>) {
     let mut items: Vec<Item> = vec![];
     contribute(w, &mut items, true);
@@ -227,9 +206,6 @@ pub fn build_with_warnings(w: &World) -> (Vec<Item>, Vec<String>) {
 }
 
 fn contribute(w: &World, items: &mut Vec<Item>, with_custom: bool) {
-    // registry order: find, disk, cleanup, current folder, node, just,
-    // make, taskfile, cargo, git hygiene, repos, system, brew, docker,
-    // gradle, idea, insights, then contributed providers
     explore(w, items);
     file_items(w, items);
     disk_items(w, items);
@@ -307,7 +283,7 @@ fn explore(w: &World, out: &mut Vec<Item>) {
         &["y"],
         "resources, processes, monitors, upgrades",
     );
-    // scope directions
+
     if let Some(p) = &w.location.workspace {
         out.push(
             Item::new(
@@ -397,8 +373,6 @@ fn explore(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-// ------------------------------------------------------------------ tasks
-
 fn mise_items(w: &World, out: &mut Vec<Item>) {
     if !w.mise.installed || !w.tools.contains("mise") || !source_ready(w, "mise") {
         return;
@@ -452,8 +426,7 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
             if t.name == "test" && tag.direction == Scope::Here {
                 item = item.aliases(&["test"]);
             }
-            // every discovered task is mutating: its recipe is the tool's,
-            // not holla's, whatever its name says
+
             item = item.risk(Risk::Mutating);
             if !trusted {
                 item = item.confirm(Confirmation::Trust {
@@ -488,7 +461,7 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
             out.push(item);
         }
     }
-    // tools
+
     let outdated = w.mise.outdated();
     if !outdated.is_empty() {
         let names: Vec<String> = outdated
@@ -602,7 +575,6 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
-/// Native package.json / Just / Make / Taskfile adapters (HP07).
 fn native_task_items(w: &World, out: &mut Vec<Item>) {
     let cwd = w.location.cwd.clone();
     let here = ScopeTag::here(&cwd);
@@ -613,7 +585,7 @@ fn native_task_items(w: &World, out: &mut Vec<Item>) {
         }
     };
     let mut discoveries: Vec<(manifest::Discovery, Kind, &'static str, &'static str)> = vec![];
-    // node: package.json without a runner check
+
     if w.fs.exists(&format!("{cwd}/package.json")) {
         let locks: Vec<&str> = ["pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"]
             .into_iter()
@@ -669,8 +641,7 @@ fn native_task_items(w: &World, out: &mut Vec<Item>) {
             file,
         ));
     }
-    // mise: the tool's own listing is authoritative only when it succeeded;
-    // tasks already known from the configuration chain are not duplicated
+
     if w.tools.contains("mise")
         && let Some(Ok(text)) = &w.outputs.mise_tasks
     {
@@ -755,8 +726,6 @@ fn native_task_items(w: &World, out: &mut Vec<Item>) {
         }
     }
 }
-
-// ------------------------------------------------------------------ git
 
 fn git_items(w: &World, out: &mut Vec<Item>) {
     if !w.tools.contains("git") || !source_ready(w, "git") {
@@ -912,7 +881,6 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
         && g.conflicts == 0
         && g.in_progress.is_none()
     {
-        // a configured strategy integrates diverged history: not a block
         pull = pull
             .effects(&[&format!(
                 "{} ahead, {} behind · integrated with the configured {} strategy",
@@ -929,8 +897,6 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
         && g.conflicts == 0
         && g.in_progress.is_none()
     {
-        // divergence is handled by the configured strategy; the dirty tree
-        // is the real block and is named as such
         let r = format!("{} modified", g.changed() + g.untracked);
         pull = pull
             .effects(&[&format!(
@@ -1108,7 +1074,7 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
         }
         out.push(sw);
     }
-    // hygiene: only when the primary branch resolves (OP10)
+
     if g.default_from.is_some() && g.command_failure.is_none() {
         let (cands, total) = g.merged_candidates();
         out.push(
@@ -1316,8 +1282,6 @@ fn git_children_items(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-/// Immediate child repositories of cwd (OP05): sorted names, more than one
-/// required for the batch group.
 fn sibling_repos(w: &World) -> Vec<&crate::domain::stack::GitState> {
     let cwd = &w.location.cwd;
     let mut v: Vec<&crate::domain::stack::GitState> = w
@@ -1510,11 +1474,9 @@ fn github_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
-// ------------------------------------------------------------------ cargo
-
 fn rust_items(w: &World, out: &mut Vec<Item>) {
     let cwd = w.location.cwd.clone();
-    // legacy: the manifest must be in cwd and cargo on PATH
+
     let manifest_here = w.fs.exists(&format!("{cwd}/Cargo.toml"));
     let Some(p) = &w.location.project else {
         return;
@@ -1669,8 +1631,6 @@ fn rust_items(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-// ------------------------------------------------------------------ docker
-
 fn docker_items(w: &World, out: &mut Vec<Item>) {
     if !w.tools.contains("docker") || !source_ready(w, "docker") {
         return;
@@ -1699,8 +1659,7 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
                 .launch(Launch::Snapshot { snapshot: "docker-unavailable".into() })
                 .reason(Signal::Default, "capability present, daemon unreachable"),
         );
-        // the executable alone enables the legacy system actions; they will
-        // fail truthfully against the daemon
+
         docker_system_items(w, out, &htag, &fresh);
         if let Some(f) = compose_file {
             docker_compose_items(w, out, &f);
@@ -1985,8 +1944,7 @@ fn docker_system_items(w: &World, out: &mut Vec<Item>, htag: &ScopeTag, fresh: &
         .map(|c| c.name.as_str())
         .collect();
     let all: Vec<&str> = d.containers.iter().map(|c| c.name.as_str()).collect();
-    // with no containers captured, the action is the capture itself: a
-    // truthful listing that succeeds as a no-op or fails against the daemon
+
     let ids = |names: &[&str]| -> Vec<Command> {
         if names.is_empty() {
             return vec![cmd(w, "docker", &["ps", "-q"], &cwd)];
@@ -2207,8 +2165,6 @@ fn docker_system_items(w: &World, out: &mut Vec<Item>, htag: &ScopeTag, fresh: &
     );
 }
 
-// ------------------------------------------------------------------ system
-
 fn system_items(w: &World, out: &mut Vec<Item>) {
     let s = &w.system;
     let htag = host_tag(w);
@@ -2334,10 +2290,6 @@ fn system_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
-// ------------------------------------------------------------------ upgrade managers
-
-/// Where Oh My Zsh lives: `$ZSH` when it is an existing directory, else
-/// `~/.oh-my-zsh`; the script's existence is not checked (OP51/OP57).
 pub fn omz_dir(w: &World) -> Option<String> {
     if let Some(z) = &w.upgrade.zsh_env
         && w.fs.is_dir(z)
@@ -2507,11 +2459,6 @@ fn upgrade_items(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-// ------------------------------------------------------------------ brew services
-
-/// Parse `brew services list --json`: a top-level array or a `services`
-/// array; nonempty string names, sorted, deduplicated; malformed rows
-/// ignored (OP39).
 pub fn parse_brew_services(text: &str) -> Result<Vec<String>, String> {
     use manifest::{Json, parse_json};
     let json = parse_json(text).map_err(|e| format!("brew services list --json: {e}"))?;
@@ -2535,7 +2482,6 @@ pub fn parse_brew_services(text: &str) -> Result<Vec<String>, String> {
     Ok(names)
 }
 
-/// Names from a fresh cache, else the tool; `(names, cache_state)`.
 pub fn brew_service_names(w: &World) -> (Result<Vec<String>, String>, String) {
     let Some(b) = &w.brew else {
         return (Err("brew is not installed".into()), "no brew".into());
@@ -2663,8 +2609,6 @@ fn capitalize(s: &str) -> String {
     }
 }
 
-// ------------------------------------------------------------------ gradle / idea
-
 fn gradle_items(w: &World, out: &mut Vec<Item>) {
     let cwd = w.location.cwd.clone();
     let here = ScopeTag::here(&cwd);
@@ -2755,7 +2699,6 @@ fn gradle_items(w: &World, out: &mut Vec<Item>) {
         );
     }
     if installed {
-        // recursive cleanup whenever gradle is on PATH: no manifest needed
         let cands = cleanup::walk_candidates(&w.fs, &cwd, &|p, is_dir| {
             is_dir && (p.ends_with("/.gradle") || p.ends_with("/build"))
         });
@@ -2804,8 +2747,6 @@ fn idea_items(w: &World, out: &mut Vec<Item>) {
             .reason(if cands.is_empty() { Signal::Default } else { Signal::Context }, &if cands.is_empty() { "no candidates · a successful no-op".to_owned() } else { format!("{} candidates", cands.len()) }),
     );
 }
-
-// ------------------------------------------------------------------ disk / cleanup
 
 fn disk_items(w: &World, out: &mut Vec<Item>) {
     let d = &w.disk;
@@ -2964,7 +2905,7 @@ fn disk_items(w: &World, out: &mut Vec<Item>) {
                 .reason(Signal::Default, &format!("{} log records", w.ops_log.lines.len() + d.history.len())),
         );
     }
-    // destructive, first-class, always present
+
     let items = d
         .candidates
         .iter()
@@ -2988,7 +2929,6 @@ fn disk_items(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-/// Process observation for a guard name from the world's process table.
 pub fn observe_process(w: &World, name: &str) -> ProcessObservation {
     if let Err(e) = &w.platform.process_probe {
         return ProcessObservation::Unknown(e.clone());
@@ -3004,7 +2944,6 @@ pub fn observe_process(w: &World, name: &str) -> ProcessObservation {
     }
 }
 
-/// Detected insight categories with their candidates and eligibility.
 pub fn insight_candidates(w: &World) -> Vec<InsightCategory> {
     let home = w.location.home.clone();
     let mut out = vec![];
@@ -3089,7 +3028,7 @@ pub fn insight_candidates(w: &World) -> Vec<InsightCategory> {
 pub struct InsightCandidate {
     pub path: String,
     pub bytes: u64,
-    /// Sizing hit an unreadable entry: the number is a lower bound.
+
     pub partial: bool,
     pub age_days: Option<i64>,
     pub eligibility: Eligibility,
@@ -3100,7 +3039,7 @@ pub struct InsightCategory {
     pub category: &'static cleanup::Category,
     pub candidates: Vec<InsightCandidate>,
     pub process: ProcessObservation,
-    /// Folders the discovery walk could not read: the list is a lower bound.
+
     pub unreadable: Vec<String>,
 }
 
@@ -3175,8 +3114,6 @@ fn cleanup_items(w: &World, out: &mut Vec<Item>) {
         );
     }
 }
-
-// ------------------------------------------------------------------ pg / ssh / services
 
 fn pg_items(w: &World, out: &mut Vec<Item>) {
     let Some(p) = &w.pg else {
@@ -3484,8 +3421,6 @@ fn service_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
-// ------------------------------------------------------------------ custom actions
-
 fn custom_items(w: &World, out: &mut Vec<Item>) {
     let cwd = w.location.cwd.clone();
     for cfg in [&w.custom_global, &w.custom_project].into_iter().flatten() {
@@ -3650,12 +3585,10 @@ fn custom_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
-// ------------------------------------------------------------------ files
-
 fn file_items(w: &World, out: &mut Vec<Item>) {
     let here = ScopeTag::here(&w.location.cwd);
     let cwd = w.location.cwd.clone();
-    // always available, no tool prerequisite (I-F01)
+
     out.push(
         Item::new("find.files", "Find files under home…", Kind::Files, ResultType::Flow, ScopeTag::host(&w.host.name))
             .summary(&format!("search {} · exact name and stem first, then name substring, then fuzzy · at most 100 results · hidden, ignored and iCloud entries excluded", w.location.short(&w.location.home)))

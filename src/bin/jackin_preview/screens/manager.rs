@@ -1,7 +1,3 @@
-//! Host Workspace Manager: the current directory, saved Workspaces with
-//! their instance children, `+ New workspace`, and a detail projection of
-//! the selected row. Row identity is stable across background refreshes.
-
 use crate::screens::Jackin;
 use junie_tui::shell::Page;
 use std::collections::HashSet;
@@ -52,8 +48,6 @@ pub const TREE: WidgetId = WidgetId::of("manager.tree");
 pub const DETAIL: WidgetId = WidgetId::of("manager.detail");
 pub const ROSTER: WidgetId = WidgetId::of("manager.roster");
 
-/// A running instance's row in the roster: keyed by the instance, so a
-/// click selects that instance wherever its row is drawn.
 fn roster_row(instance: &str) -> PartRef {
     PartRef::item(Part::ROW, ItemKey::text(instance))
 }
@@ -68,9 +62,6 @@ pub enum RowKey {
     NewWorkspace,
 }
 
-/// The glyph of an instance's status: running `◉` in the accent (live
-/// state, [`Tone::Active`]), crashed or failed `!` in error, the rest `◌`
-/// muted.
 fn instance_mark(s: InstanceStatus) -> (&'static str, Tone) {
     match s {
         InstanceStatus::Crashed | InstanceStatus::FailedSetup => ("!", Tone::Error),
@@ -79,14 +70,10 @@ fn instance_mark(s: InstanceStatus) -> (&'static str, Tone) {
     }
 }
 
-/// The tone of an instance's status word: `running` in the accent, the
-/// rest in `otherwise`.
 fn status_word_tone(s: InstanceStatus, otherwise: Tone) -> Tone {
     if s.is_live() { Tone::Active } else { otherwise }
 }
 
-/// An instance as one line: its status glyph, then id, role and agent in
-/// `tone`, then the status word ([`status_word_tone`]).
 fn instance_line(i: &crate::domain::instance::Instance, tone: Tone) -> Vec<Span> {
     let (g, gt) = instance_mark(i.status);
     vec![
@@ -117,7 +104,6 @@ struct Row {
     expandable: bool,
 }
 
-/// Rows of the detail projection that can take the cursor.
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum DetailRow {
     Pane { tab: usize, pane: u64, text: String },
@@ -134,8 +120,7 @@ pub struct ManagerScreen {
     pub detail_scroll: ScrollState,
     pub detail_cursor: usize,
     detail_rows: Vec<DetailRow>,
-    /// The workspace tree beside the detail: a resizable seam wide, the
-    /// tree with a summary and the detail as a drawer narrow.
+
     md: MasterDetail,
     tree_area: Rect,
     detail_area: Rect,
@@ -147,8 +132,7 @@ pub struct ManagerScreen {
     picker_targets: Vec<(Agent, Option<String>)>,
     last_refresh_error: bool,
     wide: bool,
-    /// The tree rows' context menu (right-click, Shift+F10, Menu key);
-    /// its `config` is the knob.
+
     pub menu: RowMenu<RowKey, &'static str>,
 }
 
@@ -187,7 +171,6 @@ impl ManagerScreen {
         }
     }
 
-    /// Select the instance row that was just left.
     pub fn select_instance(&mut self, id: &str, w: &World) {
         if let Some(i) = w.instance(id)
             && let Some(ws) = i.workspace
@@ -343,7 +326,7 @@ impl ManagerScreen {
             expandable: false,
         });
         self.rows = rows;
-        // selection identity survives; a vanished row snaps to its parent
+
         if !self.rows.iter().any(|r| r.key == self.selected) {
             self.selected = match &self.selected {
                 RowKey::Instance(id) => w
@@ -412,8 +395,6 @@ impl ManagerScreen {
             self.expanded.insert(ws);
         }
     }
-
-    // ------------------------------------------------------------ actions
 
     fn open_launch_picker(&mut self, w: &World, cx: &mut Cx) {
         let (ws, role) = match &self.selected {
@@ -500,7 +481,6 @@ impl ManagerScreen {
             InstanceStatus::RestoreAvailable
             | InstanceStatus::PreservedDirty
             | InstanceStatus::PreservedUnpushed => {
-                // restore: the container restarts; a fresh daemon with one shell
                 let wsname = i.workdir.trim_start_matches("/workspace/").to_owned();
                 let agent = i.agent;
                 let now_secs = w.clock.now_secs();
@@ -736,10 +716,6 @@ impl ManagerScreen {
         }
     }
 
-    // ------------------------------------------------------- context menu
-
-    /// The commands a tree row offers: the row's own actions (the detail
-    /// buttons and keys), unavailable ones with the reason.
     fn menu_items(&self, key: &RowKey, w: &World) -> (String, Vec<(MenuItem, &'static str)>) {
         let item = |label: &str, key: &'static str| MenuItem::new(label).shortcut(key);
         match key {
@@ -827,7 +803,6 @@ impl ManagerScreen {
         }
     }
 
-    /// Open row `i`'s menu at `anchor`.
     fn open_menu(&mut self, i: usize, anchor: ContextAnchor, w: &World) {
         let Some(key) = self.rows.get(i).map(|r| r.key.clone()) else {
             return;
@@ -838,8 +813,6 @@ impl ManagerScreen {
         }
     }
 
-    /// Run a chosen menu command on `target` through the same path its key
-    /// or button takes.
     fn run_menu(
         &mut self,
         target: RowKey,
@@ -854,14 +827,12 @@ impl ManagerScreen {
         } else {
             self.fire_action(cmd, w, cx)
         };
-        // a menu that leaves the cursor in place runs on its row only
+
         if !self.menu.config.moves_cursor && self.selected == target {
             self.selected = prev;
         }
         out.or(Outcome::Changed)
     }
-
-    // -------------------------------------------------------------- detail
 
     fn build_detail(&mut self, w: &World) {
         let mut rows = vec![];
@@ -1044,8 +1015,6 @@ impl ManagerScreen {
         }
     }
 
-    // ------------------------------------------------------------- render
-
     fn draw_tree(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(TREE);
@@ -1077,13 +1046,13 @@ impl ManagerScreen {
         let has_sb = self.scroll.overflows();
         let row_w = inner.width.saturating_sub(u16::from(has_sb));
         let cursor = self.cursor();
-        // metadata is all-or-none for the pane
+
         let show_meta = row_w >= 44;
         for (k, i) in self.scroll.visible_range().enumerate() {
             let y = inner.y + k as u16;
             let row = &self.rows[i];
             let rid = Self::row_id(i);
-            // the expander is part of the row; Enter flashes the cursor row
+
             let mut s = ctx.child_state(TREE, rid, cursor == Some(i));
             s.hovered |= ctx.interaction.hovered(Self::toggle_id(i));
             s.pressed |= ctx.interaction.pressed(Self::toggle_id(i));
@@ -1148,7 +1117,7 @@ impl ManagerScreen {
             if let Some((g, tone)) = row.trailing {
                 buf.set_string(rect.right().saturating_sub(2), y, g, st.fg(t.tone(tone)));
             }
-            // the cursor row is a fill: its details step up to stay readable
+
             legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
             if row.expandable {
@@ -1170,9 +1139,6 @@ impl ManagerScreen {
         }
     }
 
-    /// The detail card. It draws its action row before its header stop,
-    /// so Tab follows the card's visual order instead
-    /// ([`RenderCtx::visual_order`], K30).
     fn draw_detail(
         &mut self,
         area: Rect,
@@ -1246,8 +1212,6 @@ impl ManagerScreen {
                 .meta(&scope_word)
                 .render(area, buf, t)
         } else {
-            // a workspace's card is itself the focus stop (an instance's
-            // pane rows carry their own `▎`): its title shows the bar
             let card_is_stop =
                 ctx.interaction.focused(DETAIL) && !matches!(self.selected, RowKey::Instance(_));
             Panel::card(Some(&title))
@@ -1623,8 +1587,7 @@ impl ManagerScreen {
                 y = inner.bottom().saturating_sub(2);
             }
         }
-        // action row at the bottom of the card
-        // a narrow card wraps the actions upward instead of dropping one
+
         let widths: Vec<u16> = self.actions.iter().map(|b| b.width()).collect();
         let lines = row_lines(inner.width + 1, &widths, 2);
         let ay = inner.bottom().saturating_sub(lines).max(y);
@@ -1635,7 +1598,6 @@ impl ManagerScreen {
             }
         }
         if !matches!(self.selected, RowKey::Instance(_)) {
-            // the card itself is the stop when there are no pane rows
             ctx.control(DETAIL, Rect::new(inner.x, inner.y, inner.width, 1), false);
         }
     }
@@ -1717,7 +1679,7 @@ impl ManagerScreen {
                 ),
                 st.fg(t.text_muted).remove_modifier(Modifier::BOLD),
             );
-            // live state: the `◉` and the word `running` in the accent
+
             let active = t.tone_on(Tone::Active, st.bg.unwrap_or(bg));
             buf.set_style(Rect::new(inner.x, y, 1, 1), Style::new().fg(active));
             let word = width("running") as u16;
@@ -1832,7 +1794,6 @@ impl ManagerScreen {
     }
 }
 
-/// Picker rows for every Agent with its resolved account and why.
 fn agent_rows(
     w: &World,
     ws: Option<WorkspaceId>,
@@ -1841,7 +1802,7 @@ fn agent_rows(
     let wsr = ws.and_then(|id| w.workspace(id));
     let mut items = vec![];
     let mut targets = vec![];
-    // agents without any configured account are not offered at all
+
     for (a, offer) in w.offered_agents(wsr, role) {
         let (detail, disabled, tag) = match (&offer.preselected, &offer.blocked) {
             (Some(id), _) => {
@@ -1900,7 +1861,7 @@ impl Page<Jackin> for ManagerScreen {
         if !self.busy_rows.is_empty() {
             out = Outcome::Changed;
         }
-        // throttled refresh every 5 s of virtual time
+
         if w.now_secs() - w.last_refresh_secs >= 5 {
             w.last_refresh_secs = w.now_secs();
             if w.refresh_fails && !self.last_refresh_error {
@@ -1981,8 +1942,7 @@ impl Page<Jackin> for ManagerScreen {
             let (o, chosen) = self.menu.on_key(key);
             match chosen {
                 Some((target, cmd)) => return self.run_menu(target, cmd, w, cx),
-                // K14: a key the menu has no use for closed it; the page
-                // gets it
+
                 None if o == Outcome::Ignored => {}
                 None => return o,
             }
@@ -2013,9 +1973,6 @@ impl Page<Jackin> for ManagerScreen {
             && self.menu.is_context_key(key)
             && let Some(i) = self.cursor()
         {
-            // the detail drawer and its action buttons are about the
-            // selected row: its menu, under the focused button or the
-            // detail cursor row
             let anchor = match action_focus {
                 Some(b) => ContextAnchor::Control {
                     id: self.actions[b].id,
@@ -2037,7 +1994,7 @@ impl Page<Jackin> for ManagerScreen {
             self.open_menu(i, anchor, w);
             return Outcome::Changed;
         }
-        // global letters (any focus)
+
         match key.code {
             KeyCode::Char('n') if key.plain() && action_focus.is_none() => {
                 if let RowKey::Instance(id) = self.selected.clone() {
@@ -2262,7 +2219,6 @@ impl Page<Jackin> for ManagerScreen {
                     return Outcome::Changed;
                 }
                 KeyCode::Tab => {
-                    // the actions are inside the detail: the drawer stays
                     cx.focus_next();
                     return Outcome::Changed;
                 }
@@ -2326,17 +2282,11 @@ impl Page<Jackin> for ManagerScreen {
                 _ => {}
             }
         }
-        // Esc at the top of the ladder falls through to the shell, which
-        // never quits on it by default (`QuitKeys::esc_quits`)
+
         Outcome::Ignored
     }
 
-    /// A click picks a row (a double click activates it), runs an action
-    /// or chooses from the open row menu; a secondary click opens a row's
-    /// menu; a drag moves the seam or the tree's bar; the wheel scrolls
-    /// the pane under the pointer.
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
-        // the seam drags, and a double-click resets it
         if let Some(o) = self.md.on_pointer(ev) {
             return o;
         }
@@ -2517,7 +2467,7 @@ impl Page<Jackin> for ManagerScreen {
         } else {
             self.draw_detail(right, buf, ctx, w, false);
         }
-        // after the rows: a keyboard-opened menu anchors to the cursor row
+
         self.menu.render(area, buf, ctx);
     }
 
@@ -2613,8 +2563,6 @@ impl Page<Jackin> for ManagerScreen {
     }
 
     fn on_esc_top(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
-        // the root has nowhere to go back to; the shell decides whether Esc
-        // may quit (`QuitKeys::esc_quits`, off by default)
         Outcome::Ignored
     }
 }
@@ -2755,10 +2703,6 @@ impl ManagerScreen {
     }
 }
 
-// ------------------------------------------------------------ pointer
-
-/// The screen's pointer gestures by phase (its hand-drawn rows keep
-/// their derived ids until S16 moves them onto widgets).
 impl ManagerScreen {
     fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);
@@ -2821,8 +2765,6 @@ impl ManagerScreen {
         }
         for i in 0..self.detail_rows.len() {
             if Self::detail_row_id(i) == id {
-                // a pane row is not an input box: the first click selects,
-                // the second attaches
                 let was = self.detail_cursor == i && cx.focus.is(DETAIL);
                 self.detail_cursor = i;
                 cx.focus.focus(DETAIL);
@@ -2869,7 +2811,7 @@ impl ManagerScreen {
             cx.focus.focus(ROSTER);
             return Outcome::Changed;
         }
-        // a roster row names its instance: select that one
+
         if let Some(inst) = w
             .running()
             .into_iter()
@@ -2885,8 +2827,7 @@ impl ManagerScreen {
 
     fn secondary(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);
-        // the detail pane (or drawer), its rows and its action buttons are
-        // about the selected row: its menu at the pointer
+
         let in_detail = id == DETAIL
             || (0..self.detail_rows.len()).any(|k| Self::detail_row_id(k) == id)
             || self.actions.iter().any(|b| b.id == id);
@@ -2918,7 +2859,6 @@ impl ManagerScreen {
 
     fn double_click(&mut self, id: WidgetId, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.menu.is_open() {
-            // the menu takes the click (on_click)
             return Outcome::Ignored;
         }
         for i in self.scroll.visible_range() {

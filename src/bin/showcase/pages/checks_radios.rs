@@ -1,7 +1,3 @@
-//! Checks & radios (plan §7 SC9): `Checkbox` (checked, mixed, disabled,
-//! its click target), `RadioGroup` (disabled, its keys) and `Toggle`, with
-//! a States grid for all three. Options: `crate::options::CHECKS`.
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -51,8 +47,6 @@ impl ChecksRadiosPage {
         page
     }
 
-    /// Build the controls from the option values through their builders,
-    /// keeping their values.
     fn rebuild(&mut self) {
         let o = &self.opts;
         let hit = match o.value("checksradios.hit") {
@@ -217,8 +211,6 @@ impl ChecksRadiosPage {
     }
 }
 
-/// The States grid: a checkbox off, on and mixed, a radio group, and a
-/// toggle off and on, each drawn by the widget itself.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

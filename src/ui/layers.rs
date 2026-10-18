@@ -1,11 +1,11 @@
-//! The library's modals and popups as [`Layer`]s: an app pushes a
-//! `Dialog`, `Picker`, `ContextMenu`, `FormDialog`, `ChoiceDialog`,
-//! `InfoDialog`, `HelpOverlay` or `FileBrowser` onto its [`ShellLayers`] as is, and
-//! receives a [`LayerResult`] (through `From<LayerResult>` for its own
-//! result type). Input routing, focus restore and dismissal are the
-//! stack's; no app matches on which modal is open (plan S5).
-//!
-//! [`ShellLayers`]: crate::ui::layer::ShellLayers
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
@@ -29,34 +29,34 @@ use crate::widgets::keyhint::Hint;
 use crate::widgets::menu::{ContextMenu, MenuAction};
 use crate::widgets::picker::{Picker, PickerAction};
 
-/// What a library modal reports to its owner.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerResult {
-    /// A [`Dialog`] resolved: the pressed action's index (`None`:
-    /// cancelled) and a prompt's text.
+
+
     Dialog {
         action: Option<usize>,
         text: Option<String>,
     },
-    /// A [`Picker`] reported: `Chosen`, `ChosenAlt` and `Cancelled` close
-    /// it; every other action is an event (the owner re-supplies rows on
-    /// `QueryChanged`, cycles scopes on `NextScope`/`PrevScope`).
+
+
+
     Picker(PickerAction),
-    /// A [`ContextMenu`] closed: `Chosen(i)` or `Dismissed`.
+
     Menu(MenuAction),
-    /// A [`FormDialog`] reported: `Save` and `Cancel` close it (read the
-    /// values from the closed entry); `Changed`, `Choose` and `Action`
-    /// are events.
+
+
+
     Form(FormAction),
-    /// A [`ChoiceDialog`] closed with the chosen option (`None`:
-    /// cancelled).
+
+
     Choice(Option<usize>),
-    /// An [`InfoDialog`] reported: `Copy` is an event (the dialog stays
-    /// open), the rest close it.
+
+
     Info(InfoResult),
-    /// A [`HelpOverlay`] closed.
+
     Help,
-    /// A [`FileBrowser`] closed: the chosen path, the URL or `Cancelled`.
+
     File(FileBrowserResult),
 }
 
@@ -68,7 +68,7 @@ fn out<R: From<LayerResult>>(r: LayerResult, closes: bool) -> LayerOut<R> {
     }
 }
 
-// ------------------------------------------------------------------ Dialog
+
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Dialog {
     fn spec(&self) -> LayerSpec {
@@ -135,10 +135,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Dialog
     }
 }
 
-// ------------------------------------------------------------------ Picker
 
-/// A picker reports through its return values; the adapter keeps the
-/// last one until the stack takes it.
+
+
+
 fn picker_event(p: &mut Picker, ev: Option<PickerAction>) {
     if let Some(ev) = ev {
         p.pending = Some(ev);
@@ -146,7 +146,7 @@ fn picker_event(p: &mut Picker, ev: Option<PickerAction>) {
 }
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker {
-    /// Its own footer hints ([`HasHints`]).
+
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -161,11 +161,11 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
         picker_event(self, ev);
         o.or(Outcome::Consumed)
     }
-    /// The picker's own gestures ([`MouseTarget`]), its backdrop's click
-    /// included: an outside click cancels it under its dismiss policy.
+
+
     fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_, W>) -> Outcome {
-        // its backdrop is the stack's outside click (ShellLayers::pointer);
-        // its query's Edit menu has a backdrop of its own
+
+
         if ev.part().part == crate::core::id::Part::BACKDROP && !self.edit_menu.owns(ev) {
             return Outcome::Ignored;
         }
@@ -201,10 +201,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Picker
     }
 }
 
-// ------------------------------------------------------------- ContextMenu
+
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ContextMenu {
-    /// Its own footer hints ([`HasHints`]).
+
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -244,10 +244,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Contex
     }
 }
 
-// -------------------------------------------------------------- FormDialog
+
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDialog {
-    /// Its own footer hints ([`HasHints`]).
+
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -263,8 +263,8 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome {
         FormDialog::on_key(self, key, cx.focus, cx.ring).or(Outcome::Consumed)
     }
-    /// Routed by the event's owner: a wheel over an open select scrolls
-    /// its list, not the form behind it (M18).
+
+
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
         FormDialog::pointer_in(self, ev, cx.focus).outcome()
     }
@@ -311,10 +311,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FormDi
     }
 }
 
-// ------------------------------------------------------------ ChoiceDialog
+
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for ChoiceDialog {
-    /// Its own footer hints ([`HasHints`]).
+
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -343,10 +343,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for Choice
     }
 }
 
-// -------------------------------------------------------------- InfoDialog
+
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDialog {
-    /// Its own footer hints ([`HasHints`]).
+
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -365,13 +365,13 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
     fn on_click(&mut self, id: WidgetId, pos: Position, cx: &mut LayerCx<'_, W>) -> Outcome {
         InfoDialog::on_click(self, id, pos, cx.focus)
     }
-    /// A drag from a press on the detail's scrollbar keeps placing the
-    /// thumb under the pointer, as the press on the track does.
+
+
     fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if pressed != crate::widgets::scrollbar::id_for(self.id) {
             return Outcome::Ignored;
         }
-        // the scrollbar takes no focus
+
         InfoDialog::on_click(
             self,
             pressed,
@@ -392,10 +392,10 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for InfoDi
     }
 }
 
-// ------------------------------------------------------------- HelpOverlay
+
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOverlay {
-    /// Its own footer hints ([`HasHints`]).
+
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         HasHints::hints(self, &HintCx::new(focused))
     }
@@ -429,7 +429,7 @@ impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for HelpOv
     }
 }
 
-// -------------------------------------------------------------- FileBrowser
+
 
 impl<R: From<LayerResult> + 'static, W: ?Sized + 'static> Layer<R, W> for FileBrowser {
     fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
@@ -479,8 +479,8 @@ mod tests {
         }
     }
 
-    /// The library modals on one stack: results reach the owner, events
-    /// leave the layer open, and focus comes back to the page (K9).
+
+
     #[test]
     fn library_modals_report_through_the_stack() {
         let page = WidgetId::of("page");
@@ -506,7 +506,7 @@ mod tests {
             panic!("Esc resolved the dialog");
         };
         assert_eq!(entry.tag.kind, "confirm");
-        // Esc runs the dialog's Cancel action
+
         let cancel = entry.get::<Dialog>().unwrap().cancel_index;
         assert_eq!(
             r,
@@ -517,7 +517,7 @@ mod tests {
         );
         assert_eq!(focus.current(), Some(page), "K9: focus back on the page");
 
-        // a picker's query edit is an event; Esc closes it as cancelled
+
         let p = Picker::new(WidgetId::of("p"), "Go to");
         layers.open(Box::new(p), LayerTag::new("go"), (), &mut focus);
         let mut cx = LayerCx {
@@ -545,7 +545,7 @@ mod tests {
         }
         assert_eq!(focus.current(), Some(page));
 
-        // a refused dismissal leaves an ESCAPE form open
+
         let f = FormDialog::new(WidgetId::of("f"), "Form", vec![]);
         assert_eq!(Overlay::dismiss(&f), Dismiss::ESCAPE);
         layers.open(Box::new(f), LayerTag::new("form"), (), &mut focus);

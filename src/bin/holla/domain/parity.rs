@@ -1,7 +1,3 @@
-//! Parity fixtures: one deterministic world per legacy capability family
-//! (HP01–HP23). Each names the exact states its acceptance contract lists;
-//! nothing here reaches a real process or filesystem.
-
 use crate::domain::activity::{Branch, LineTone, Script, line, prompt, toned};
 use crate::domain::context::{Host, HostRole, Location, Os, Project, ProjectKind};
 use crate::domain::custom::{Origin, TrustStore, parse_config};
@@ -123,8 +119,6 @@ pub fn world_for(scenario: Scenario, motion: Motion) -> World {
     }
 }
 
-// ------------------------------------------------------------ HP01
-
 fn discovery(motion: Motion) -> World {
     let root = format!("{HOME}/work/probe");
     let mut w = base(
@@ -133,8 +127,7 @@ fn discovery(motion: Motion) -> World {
         mac(),
         loc(&root, HOME, Some(rust_project(&root))),
     );
-    // every legacy provider individually present; some sources slow, one
-    // failed, one out of order; one colliding id from a project config
+
     w.tools = [
         "git", "cargo", "docker", "mise", "just", "make", "task", "brew", "gradle", "idea", "npm",
         "ssh", "kill", "ps", "lsof", "less", "find", "sh", "open", "mdfind", "psql", "lazygit",
@@ -195,7 +188,7 @@ fn discovery(motion: Motion) -> World {
     w.outputs.task_list = Some(Ok(r#"{"tasks":[{"name":"lint"}]}"#.into()));
     w.fs.text(&format!("{root}/build.gradle"), "apply plugin: 'java'\n", 3);
     w.fs.dir(&format!("{root}/.idea"), 3);
-    // a project action colliding with a built-in id and a malformed sibling
+
     let toml = "[[action]]\nid = \"git.pull\"\nlabel = \"Collides\"\ncommand = [\"true\"]\ndanger = \"safe\"\n\n[[action]]\nid = \"deploy\"\nlabel = \"Deploy\"\ncommand = [\"tools/deploy.sh\"]\ndanger = \"mutating\"\n\n[[action]]\nid = \"broken\"\nlabel = \"\"\ncommand = \"rm -rf\"\ndanger = \"safe\"\n";
     let path = format!("{root}/.holla.toml");
     w.fs.text(&path, toml, 1);
@@ -231,8 +224,6 @@ fn discovery(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP02
-
 fn history(motion: Motion) -> World {
     let root = format!("{HOME}/work/holla");
     let mut w = base(
@@ -245,20 +236,20 @@ fn history(motion: Motion) -> World {
     w.mise = crate::domain::fixtures::mise_holla_pub(true);
     let now = EPOCH_SECS;
     let mut usage = crate::domain::usage::UsageStore::default();
-    // threshold/ties: two items with equal fresh use, one below threshold
+
     usage.seed("cargo.test", Some(&root), "mbp", 3, now - 600);
     usage.seed("cargo.build", Some(&root), "mbp", 3, now - 600);
     usage.seed("cargo.check", Some(&root), "mbp", 1, now - 80 * 86_400);
-    // 20-use bound and 10-day decay
+
     usage.seed("git.pull", Some(&root), "mbp", 25, now - 10 * 86_400);
-    // a learned query choice that competes with an exact alias
+
     usage.learn_query("pull", "git.fetch", "mbp", now - 3_600);
     usage.learn_query("Ünï  Code", "cargo.clippy", "mbp", now - 3_600);
-    // a stale learned query whose action is gone
+
     usage.seed("gone.action", Some(&root), "mbp", 1, now - 95 * 86_400);
     usage.learn_query("gone", "gone.action", "mbp", now - 95 * 86_400);
     w.memory.usage = usage;
-    // the persisted store as another writer left it (concurrent merge)
+
     let mut other = crate::domain::usage::UsageStore::default();
     other.seed("system.resources", None, "mbp", 2, now - 100);
     other.seed("git.pull", Some(&root), "mbp", 1, now - 50);
@@ -272,8 +263,6 @@ fn history(motion: Motion) -> World {
     ];
     w
 }
-
-// ------------------------------------------------------------ HP03
 
 fn files(motion: Motion) -> World {
     let root = format!("{HOME}/work/notes");
@@ -311,8 +300,6 @@ fn files(motion: Motion) -> World {
     ];
     w
 }
-
-// ------------------------------------------------------------ HP04
 
 fn browser(motion: Motion) -> World {
     let root = format!("{HOME}/work/site");
@@ -371,8 +358,6 @@ fn browser(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP05
-
 fn git_current(motion: Motion) -> World {
     let root = format!("{HOME}/work/svc");
     let sub = format!("{root}/src/api");
@@ -401,8 +386,6 @@ fn git_current(motion: Motion) -> World {
     ];
     w
 }
-
-// ------------------------------------------------------------ HP06
 
 fn git_batch(motion: Motion) -> World {
     let root = format!("{HOME}/work/repos");
@@ -441,7 +424,7 @@ fn git_batch(motion: Motion) -> World {
     c.default_from = None;
     let mut d = GitState::clean(&format!("{root}/delta"), "main", "main");
     d.command_failure = Some("index file corrupt".into());
-    // two leaf names collide across nested paths: identity is the full path
+
     let e = GitState::clean(&format!("{root}/nested/alpha"), "main", "main");
     w.git = vec![a, b, c, d, e];
     w.location.children = vec!["alpha", "beta", "gamma", "delta"]
@@ -460,8 +443,6 @@ fn git_batch(motion: Motion) -> World {
     ];
     w
 }
-
-// ------------------------------------------------------------ HP07
 
 fn task_sources(motion: Motion) -> World {
     let root = format!("{HOME}/work/poly");
@@ -505,8 +486,6 @@ fn task_sources(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP08
-
 fn cargo(motion: Motion) -> World {
     let root = format!("{HOME}/work/engine");
     let mut w = base(
@@ -529,8 +508,6 @@ fn cargo(motion: Motion) -> World {
     ];
     w
 }
-
-// ------------------------------------------------------------ HP09
 
 fn docker(motion: Motion) -> World {
     let root = format!("{HOME}/work/stack");
@@ -556,8 +533,6 @@ fn docker(motion: Motion) -> World {
     ];
     w
 }
-
-// ------------------------------------------------------------ HP10
 
 fn brew_services(motion: Motion) -> World {
     let root = format!("{HOME}/work");
@@ -618,8 +593,6 @@ fn brew_services(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP11
-
 fn gradle(motion: Motion) -> World {
     let root = format!("{HOME}/work/android");
     let mut w = base(
@@ -664,8 +637,6 @@ fn gradle(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP12
-
 fn idea(motion: Motion) -> World {
     let root = format!("{HOME}/work/ide");
     let mut w = base(Scenario::ParityIdea, motion, mac(), loc(&root, HOME, None));
@@ -688,8 +659,6 @@ fn idea(motion: Motion) -> World {
     w.sources = vec![src("filesystem", 2, motion), src("system", 3, motion)];
     w
 }
-
-// ------------------------------------------------------------ HP13
 
 fn upgrade_managers(motion: Motion) -> World {
     let mut w = base(
@@ -746,8 +715,6 @@ fn upgrade_managers(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP14
-
 fn executor(motion: Motion) -> World {
     let root = format!("{HOME}/work/batch");
     let mut w = base(
@@ -778,7 +745,7 @@ fn executor(motion: Motion) -> World {
             kind: ProjectKind::Service,
         })
         .collect();
-    // scripts with CRLF, ANSI, invalid UTF-8 and no final newline
+
     let raw: Vec<u8> = b"first\r\n\x1b[32mgreen\x1b[0m\nbad \xff byte\nlast fragment".to_vec();
     let lines: Vec<_> = crate::domain::activity::split_stream(&raw)
         .into_iter()
@@ -792,7 +759,7 @@ fn executor(motion: Motion) -> World {
         .collect();
     w.scripts
         .insert("./emit-burst".into(), Script::ending(burst, 16, 0));
-    // the two scripts are reachable as trusted project actions
+
     let toml = "[[action]]\nid = \"stream\"\nlabel = \"Emit a mixed stream\"\ncommand = [\"./emit-stream\"]\ndanger = \"safe\"\ndescription = \"CRLF, ANSI, invalid UTF-8 and a final fragment\"\n\n[[action]]\nid = \"burst\"\nlabel = \"Emit a burst\"\ncommand = [\"./emit-burst\"]\ndanger = \"safe\"\ndescription = \"4500 lines in sixteen ticks\"\n";
     let path = format!("{root}/.holla.toml");
     w.fs.text(&path, toml, 1);
@@ -807,8 +774,6 @@ fn executor(motion: Motion) -> World {
     ];
     w
 }
-
-// ------------------------------------------------------------ HP15
 
 fn task_input(motion: Motion) -> World {
     let mut w = base(
@@ -830,7 +795,7 @@ fn task_input(motion: Motion) -> World {
     w.tools.insert("systemctl".into());
     w.tools.insert("sudo".into());
     w.tools.insert("journalctl".into());
-    // a prompt without newline, then a q/h/j/i payload consumer
+
     w.scripts.insert(
         "./deploy.sh".into(),
         Script::ending(
@@ -893,8 +858,6 @@ fn task_input(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP17
-
 fn custom_actions(motion: Motion) -> World {
     let root = format!("{HOME}/work/team");
     let mut w = base(
@@ -919,8 +882,7 @@ fn custom_actions(motion: Motion) -> World {
         &["git.pull"],
         &reserved,
     );
-    // legacy digest-only trust for the same bytes, plus an entry for a
-    // moved copy
+
     let mut trust = TrustStore::load(Some(&format!("{{\"v\":1,\"hashes\":[\"{}\"]}}", p.digest)));
     trust.entries.push(crate::domain::custom::TrustEntry {
         digest: p.digest.clone(),
@@ -941,8 +903,6 @@ fn custom_actions(motion: Motion) -> World {
     ];
     w
 }
-
-// ------------------------------------------------------------ HP18
 
 fn disk_scan(motion: Motion) -> World {
     let root = format!("{HOME}/work/data");
@@ -974,7 +934,7 @@ fn disk_scan(motion: Motion) -> World {
     for i in 0..60 {
         fs.file(&format!("{root}/many/f{i:03}.bin"), BLOCK * (i % 5 + 1), 5);
     }
-    // an old cache with one valid, one stale-mtime and one missing node
+
     let mut cache = crate::domain::cleanup::SizeCache::default();
     let media = fs
         .get(&format!("{root}/media"))
@@ -1010,8 +970,6 @@ fn disk_scan(motion: Motion) -> World {
     w.sources = vec![src("filesystem", 2, motion), src("system", 3, motion)];
     w
 }
-
-// ------------------------------------------------------------ HP19
 
 fn disk_navigation(motion: Motion) -> World {
     let root = format!("{HOME}/work/big");
@@ -1054,8 +1012,6 @@ fn disk_navigation(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP20
-
 fn insights(motion: Motion) -> World {
     let root = format!("{HOME}/Projects/web");
     let mut w = base(
@@ -1091,8 +1047,7 @@ fn insights(motion: Motion) -> World {
         800 * mb,
         3,
     );
-    // the age rule reads the candidate directory itself: the two device
-    // support roots sit on either side of the 90-day rule
+
     fs.dir(
         &format!("{HOME}/Library/Developer/Xcode/iOS DeviceSupport"),
         91,
@@ -1234,8 +1189,6 @@ fn insights(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP21
-
 fn delete_safety(motion: Motion) -> World {
     let root = format!("{HOME}/Projects/safe");
     let mut w = base(
@@ -1293,8 +1246,6 @@ fn delete_safety(motion: Motion) -> World {
     w
 }
 
-// ------------------------------------------------------------ HP22
-
 fn cleanup_results(motion: Motion) -> World {
     let mut w = delete_safety(motion);
     w.scenario = Scenario::ParityCleanupResults;
@@ -1322,8 +1273,6 @@ fn cleanup_results(motion: Motion) -> World {
     w.persisted.ops_log = w.ops_log.lines.clone();
     w
 }
-
-// ------------------------------------------------------------ HP23
 
 fn platforms_mac(motion: Motion) -> World {
     let root = format!("{HOME}/work/mac");
@@ -1403,8 +1352,7 @@ fn platforms_linux(motion: Motion) -> World {
         100 * BLOCK,
         40,
     );
-    // one stale project artifact: the only cleanup this host can review,
-    // and the one that proves the missing Trash backend never falls back
+
     w.fs.text(&format!("{LHOME}/Projects/app/package.json"), "{}", 40);
     w.fs.file(
         &format!("{LHOME}/Projects/app/node_modules/x"),

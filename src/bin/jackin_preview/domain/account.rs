@@ -1,6 +1,3 @@
-//! Provider accounts and API-key profiles: identity, credential source
-//! metadata (never secret material), lifecycle, validation, usage.
-
 use super::agent::{Agent, Provider, UsageSurface};
 use super::onepassword::OpReference;
 use super::usage::{AccountUsage, Freshness};
@@ -9,9 +6,8 @@ pub type AccountId = String;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccountOrigin {
-    /// Created in the Center; editable, removable.
     Registered,
-    /// Found by simulated host discovery; read-only.
+
     Discovered,
 }
 
@@ -23,10 +19,8 @@ pub enum CredentialSource {
         detected: DetectedKind,
     },
     PlainApiKey {
-        /// 8 hex chars, deterministic from the fixture handle; never derived
-        /// from the secret bytes.
         fingerprint: String,
-        /// Exactly four synthetic characters shown as `…k7Qz`.
+
         tail: String,
     },
     HostEnv {
@@ -45,7 +39,6 @@ impl CredentialSource {
         }
     }
 
-    /// Non-secret detail: reference path, folder path, or key fingerprint.
     pub fn safe_detail(&self) -> String {
         match self {
             CredentialSource::OnePassword(r) => r.display_path(),
@@ -58,13 +51,10 @@ impl CredentialSource {
     }
 }
 
-/// `••••••••…k7Qz`
 pub fn masked(tail: &str) -> String {
     format!("••••••••…{tail}")
 }
 
-/// Deterministic 8-hex fingerprint of a fixture key (not of secret bytes
-/// in the real product; here of the synthetic value so duplicates match).
 pub fn fingerprint(value: &str) -> String {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     for b in value.bytes() {
@@ -74,7 +64,6 @@ pub fn fingerprint(value: &str) -> String {
     format!("{:08x}", (h >> 32) as u32 ^ h as u32)
 }
 
-/// Last four characters of a typed key become the synthetic tail.
 pub fn tail_of(value: &str) -> String {
     let n = value.chars().count();
     value.chars().skip(n.saturating_sub(4)).collect()
@@ -325,7 +314,6 @@ impl RecoverableIssue {
         self
     }
 
-    /// Issues that are status, not errors.
     pub fn is_informational(&self) -> bool {
         matches!(self.code, IssueCode::Stale | IssueCode::IdentityUnresolved)
     }
@@ -356,7 +344,7 @@ pub struct Account {
     pub validation: ValidationState,
     pub last_refresh_secs: Option<i64>,
     pub issue: Option<RecoverableIssue>,
-    /// Only Grok fixtures carry one; the constructor refuses others.
+
     pub endpoint: Option<Endpoint>,
     pub usage: AccountUsage,
 }
@@ -407,12 +395,10 @@ impl Account {
         self.origin == AccountOrigin::Registered
     }
 
-    /// `Codex · Primary`
     pub fn title(&self) -> String {
         format!("{} · {}", self.surface.surface_name(), self.display_name)
     }
 
-    /// Row status word: exhausted > error > needs … > warning > stale > refreshing > ok.
     pub fn status_word(&self) -> &'static str {
         if !self.enabled {
             return "disabled";
@@ -529,7 +515,6 @@ impl AccountRegistry {
         })
     }
 
-    /// Soft warning: same display name for the same provider.
     pub fn name_taken(&self, provider: Provider, name: &str, except: Option<&str>) -> bool {
         self.accounts.iter().any(|a| {
             a.provider == provider
@@ -538,7 +523,6 @@ impl AccountRegistry {
         })
     }
 
-    /// One default per provider: clears the sibling.
     pub fn set_default(&mut self, id: &str) -> Result<(), String> {
         let Some(target) = self.get(id) else {
             return Err("account not found".into());
@@ -567,7 +551,6 @@ impl AccountRegistry {
         self.revision += 1;
     }
 
-    /// Registry order: surface registry order, defaults first, then name.
     pub fn sorted(&self) -> Vec<&Account> {
         let mut v: Vec<&Account> = self.accounts.iter().collect();
         v.sort_by(|a, b| {

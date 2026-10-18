@@ -8,38 +8,38 @@ use crate::core::scroll::{ScrollPane, ScrollState, ScrollbarVisibility, TrackCli
 use crate::theme::{Glyphs, Kind, Plane};
 use crate::ui::ctx::{RenderCtx, VisualState};
 
-// The default glyphs. Scrollbars draw `Theme::glyphs`
-// (`scroll_track`, `scroll_thumb`, `scroll_h_track`, `scroll_h_thumb`);
-// these constants name the `Glyphs::UNICODE` set. The track is a dotted
-// rail (`┆` `┄`) in `Theme::scroll_track` ink, so it never reads as a
-// panel border or divider (`│` `─`). The thumb keeps its glyph in every
-// state: rest, hover and held differ in colour only (`Ladders::handle`),
-// plus a modifier in monochrome.
+
+
+
+
+
+
+
 pub const TRACK: &str = Glyphs::UNICODE.scroll_track;
 pub const THUMB: &str = Glyphs::UNICODE.scroll_thumb;
-/// Horizontal track and thumb: the vertical glyphs turned on their side.
+
 pub const H_TRACK: &str = Glyphs::UNICODE.scroll_h_track;
 pub const H_THUMB: &str = Glyphs::UNICODE.scroll_h_thumb;
 
-/// Id used for a container's scrollbar hit region.
+
 pub fn id_for(container: WidgetId) -> WidgetId {
     container.sub("scrollbar")
 }
 
-/// Id used for a container's horizontal scrollbar hit region. Separate
-/// from [`id_for`] so hovering or holding one bar never lights the other.
+
+
 pub fn h_id_for(container: WidgetId) -> WidgetId {
     container.sub("hscrollbar")
 }
 
-/// Either of `container`'s scrollbars.
+
 pub fn is_bar_of(id: WidgetId, container: WidgetId) -> bool {
     id == id_for(container) || id == h_id_for(container)
 }
 
-/// The thumb's style for the bar `sb_id`: rest (neutral), hover (lighter)
-/// and pressed (the accent) are distinct colours of one glyph. Container
-/// focus does not change it: the `▎` is the only focus indicator.
+
+
+
 fn thumb_style(ctx: &RenderCtx, sb_id: WidgetId) -> Style {
     let s = VisualState {
         hovered: ctx.interaction.hovered(sb_id),
@@ -49,12 +49,12 @@ fn thumb_style(ctx: &RenderCtx, sb_id: WidgetId) -> Style {
     ctx.theme.interactive(Kind::Handle, s, Plane::Canvas).style
 }
 
-/// A 1-column divider that is also the container's scrollbar. While the
-/// content overflows it is a scrollbar: the dotted track, the thumb and
-/// its click region, exactly as [`render_vertical`]. While the content
-/// fits it is a plain divider: the solid [`Glyphs::divider`] in the
-/// border ink, with no click region. The pane edge is there at every
-/// size, and only a line that scrolls looks like a scrollbar.
+
+
+
+
+
+
 pub fn render_divider(
     area: Rect,
     buf: &mut Buffer,
@@ -78,10 +78,10 @@ pub fn render_divider(
     }
 }
 
-/// Render a vertical scrollbar into a 1-column area. Draws nothing when the
-/// content fits. Registers a clickable region for track clicks and drags.
-/// `_focused` (the container's focus) does not change the bar: the thumb
-/// shows rest, hover and pressed only.
+
+
+
+
 pub fn render_vertical(
     area: Rect,
     buf: &mut Buffer,
@@ -113,9 +113,9 @@ pub fn render_vertical(
     ctx.scrollbar_thumb(sb_id, thumb_rect, container);
 }
 
-/// Render a horizontal scrollbar into a 1-row area: the mirror of
-/// [`render_vertical`]. Draws nothing when the content fits. Registers a
-/// clickable region under [`h_id_for`] for track clicks and drags.
+
+
+
 pub fn render_horizontal(
     area: Rect,
     buf: &mut Buffer,
@@ -127,9 +127,9 @@ pub fn render_horizontal(
     render_horizontal_with(area, buf, ctx, container, scroll, focused, false);
 }
 
-/// [`render_horizontal`] that, with `always` (the
-/// [`ScrollbarVisibility::Always`](crate::core::scroll::ScrollbarVisibility)
-/// policy), also draws a full-length thumb when the content fits.
+
+
+
 pub fn render_horizontal_with(
     area: Rect,
     buf: &mut Buffer,
@@ -164,9 +164,9 @@ pub fn render_horizontal_with(
     }
 }
 
-/// Where a scrolled region's content and bars go. The vertical bar takes
-/// the right column, the horizontal bar the bottom row; with both, the
-/// horizontal track stops short of the corner cell, which stays blank.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bars {
     pub content: Rect,
@@ -187,33 +187,33 @@ impl Bars {
     }
 }
 
-/// Blank columns between scrolled content and its vertical bar, the
-/// default for every widget's `scrollbar_gap`. One cell keeps text from
-/// touching the track (`TypeScript┃`) without costing a narrow pane much.
+
+
+
 pub const GAP: u16 = 1;
 
-/// Columns a vertical bar takes from its content: the track and the gap.
+
 pub const fn reserve(gap: u16) -> u16 {
     1 + gap
 }
 
-/// A region with a vertical bar on its right, split once so every widget
-/// keeps the same distance between its text and the bar.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VSplit {
-    /// Everything left of the track: row fills and cursor highlights
-    /// reach up to the bar.
+
+
     pub body: Rect,
-    /// Where text goes: the body less the gap. Equal to `body` when there
-    /// is no bar.
+
+
     pub content: Rect,
-    /// The bar's column, when the content overflows.
+
     pub track: Option<Rect>,
 }
 
-/// Split `area` for a vertical bar when `overflows`, leaving `gap` blank
-/// columns between the content and the track. Too narrow to spare the gap,
-/// the gap goes first and the track last.
+
+
+
 pub fn split(area: Rect, overflows: bool, gap: u16) -> VSplit {
     if !overflows || area.width < 2 {
         return VSplit {
@@ -231,63 +231,63 @@ pub fn split(area: Rect, overflows: bool, gap: u16) -> VSplit {
     }
 }
 
-/// Map a pointer position on a vertical track to a scroll offset.
+
 pub fn offset_for_click(track: Rect, pos: Position, scroll: &ScrollState) -> usize {
     let rel = pos.y.saturating_sub(track.y) as usize;
     scroll.offset_for_track_pos(rel, track.height as usize)
 }
 
-/// Row of `track` under `pos`, clamped to the track (a pointer above or
-/// below the track still drags to the ends).
+
+
 fn track_row(track: Rect, pos: Position) -> usize {
     pos.y
         .saturating_sub(track.y)
         .min(track.height.saturating_sub(1)) as usize
 }
 
-/// Column of a horizontal `track` under `pos`, clamped to the track.
+
 fn track_col(track: Rect, pos: Position) -> usize {
     pos.x
         .saturating_sub(track.x)
         .min(track.width.saturating_sub(1)) as usize
 }
 
-/// The pointer went down on `track`: on the thumb this grabs it, on the
-/// bare track it acts per the default [`TrackClick`] (one page toward the
-/// pointer). Returns whether the offset changed. `track` must be the
-/// rectangle the scrollbar was drawn in.
+
+
+
+
 pub fn press(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
     press_with(track, pos, scroll, TrackClick::default())
 }
 
-/// [`press`] under a track-click policy: with [`TrackClick::Page`] a
-/// press on the bare track moves one page toward the pointer instead of
-/// jumping the thumb under it (the macOS "next page" behaviour).
+
+
+
 pub fn press_with(track: Rect, pos: Position, scroll: &mut ScrollState, click: TrackClick) -> bool {
     scroll.press_track_with(track_row(track, pos), track.height as usize, click)
 }
 
-/// The pointer moved while held after [`press`]: the thumb follows,
-/// keeping the grabbed row under the pointer. Returns whether the offset
-/// changed.
+
+
+
 pub fn drag(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
     scroll.drag_track(track_row(track, pos), track.height as usize)
 }
 
-/// [`press`] for a horizontal `track`; `click` decides what a press on the
-/// bare track does.
+
+
 pub fn press_h(track: Rect, pos: Position, scroll: &mut ScrollState, click: TrackClick) -> bool {
     scroll.press_track_with(track_col(track, pos), track.width as usize, click)
 }
 
-/// [`drag`] for a horizontal `track`.
+
 pub fn drag_h(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
     scroll.drag_track(track_col(track, pos), track.width as usize)
 }
 
-/// A pointer press or drag on a [`Bar`](crate::core::hit::Bar), routed by
-/// the pointer layer: `scroll` is the owner's state on the bar's axis.
-/// Returns whether the offset changed.
+
+
+
 pub fn apply(
     bar: &crate::core::hit::Bar,
     pos: Position,
@@ -297,8 +297,8 @@ pub fn apply(
     apply_with(bar, pos, pressed, scroll, TrackClick::default())
 }
 
-/// [`apply`] under a track-click policy (`click` decides what a press on
-/// the bare track does, on either axis).
+
+
 pub fn apply_with(
     bar: &crate::core::hit::Bar,
     pos: Position,
@@ -315,13 +315,13 @@ pub fn apply_with(
     }
 }
 
-/// A scrolled list's faded edges and its vertical bar, the pair every
-/// hand-drawn scrolling region needs. `area` is the whole region with the
-/// bar's column on its right. Call it after the rows are painted: while
-/// `scroll` overflows, the rows nearest an edge that hides more content
-/// fade ([`crate::ui::fade::scroll_edges`]) and the bar is drawn in the
-/// right column. Returns the content rectangle (the area less the bar's
-/// column while there is a bar).
+
+
+
+
+
+
+
 pub fn render_with_fade(
     area: Rect,
     buf: &mut Buffer,
@@ -333,9 +333,9 @@ pub fn render_with_fade(
     render_with_fade_except(area, buf, ctx, container, scroll, focused, &[])
 }
 
-/// [`render_with_fade`] keeping the rows in `keep` whole (a cursor row
-/// whose focus bar sits on the container plane; see
-/// [`crate::ui::fade::scroll_edges_except`]).
+
+
+
 pub fn render_with_fade_except(
     area: Rect,
     buf: &mut Buffer,
@@ -362,9 +362,9 @@ pub fn render_with_fade_except(
 }
 
 impl ScrollPane {
-    /// Draw the vertical bar for `owner` in `area` ([`render_vertical`]) and
-    /// remember its track for presses and drags. Nothing is drawn, and
-    /// nothing can be pressed, while the content fits.
+
+
+
     pub fn draw_v(
         &mut self,
         area: Rect,
@@ -377,8 +377,8 @@ impl ScrollPane {
         self.remember(Axis::Vertical, owner, area, buf);
     }
 
-    /// [`ScrollPane::draw_v`] for a bar that is also a divider
-    /// ([`render_divider`]): solid while the content fits.
+
+
     pub fn draw_divider(
         &mut self,
         area: Rect,
@@ -391,9 +391,9 @@ impl ScrollPane {
         self.remember(Axis::Vertical, owner, area, buf);
     }
 
-    /// Draw the horizontal bar for `owner` in `area` per
-    /// [`HScroll::bar`](crate::core::scroll::HScroll) (a full thumb when
-    /// the policy is `Always` and the content fits) and remember its track.
+
+
+
     pub fn draw_h(
         &mut self,
         area: Rect,
@@ -407,7 +407,7 @@ impl ScrollPane {
         self.remember(Axis::Horizontal, owner, area, buf);
     }
 
-    /// [`render_with_fade`] over the vertical state, remembering the track.
+
     pub fn draw_with_fade(
         &mut self,
         area: Rect,
@@ -421,9 +421,9 @@ impl ScrollPane {
         if content != area {
             let track = Rect::new(area.right() - 1, area.y, 1, area.height);
             self.remember(Axis::Vertical, owner, track, buf);
-            // the wheel scrolls the pane anywhere over it: over a field
-            // that does not scroll, a label or the padding beside the bar
-            // (R-apps-9)
+
+
+
             ctx.scrollable_under(owner, area.intersection(*buf.area()));
         }
         content
@@ -443,7 +443,7 @@ impl ScrollPane {
     }
 }
 
-/// "12–24 of 120" style position label.
+
 pub fn position_label(scroll: &ScrollState) -> String {
     if !scroll.overflows() {
         return String::new();
@@ -531,7 +531,7 @@ mod tests {
             buf[(0, 2)].fg,
             "nothing above: the top stays"
         );
-        // content that fits: no bar, no fade, the whole area is content
+
         s.set_viewport(30);
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         assert_eq!(
@@ -565,7 +565,7 @@ mod tests {
         assert_eq!(part(9, 4), Some((id, PartRef::of(Part::TRACK))));
         assert_eq!(part(0, 5), Some((id, PartRef::of(Part::THUMB))));
         assert_eq!(part(8, 5), Some((id, PartRef::of(Part::TRACK))));
-        // the content fits next frame: nothing drawn, nothing to press
+
         pane.set_viewport(50);
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         pane.begin(ctx.track_click);
@@ -623,8 +623,8 @@ mod tests {
         );
     }
 
-    /// Rest, hover and pressed thumbs on both axes at `level`: (symbol,
-    /// fg, modifiers) of the first thumb cell.
+
+
     fn thumb_cells(
         level: crate::theme::ColorLevel,
     ) -> Vec<
@@ -661,7 +661,7 @@ mod tests {
                 let mut buf = Buffer::empty(area);
                 {
                     let mut ctx = RenderCtx::new(&theme, i, &mut hits, &mut ring);
-                    // a focused container: focus must not change the thumb
+
                     if vertical {
                         render_vertical(area, &mut buf, &mut ctx, c, &s, true);
                     } else {
@@ -692,7 +692,7 @@ mod tests {
                     assert_eq!(cell.0, glyph, "{name} keeps the thumb glyph: {ctx}");
                 }
                 if level == ColorLevel::Mono {
-                    // colour cannot carry state: a modifier does
+
                     assert_ne!(rest.2, hover.2, "{ctx}");
                     assert_ne!(hover.2, pressed.2, "{ctx}");
                     assert_ne!(rest.2, pressed.2, "{ctx}");
@@ -751,13 +751,13 @@ mod tests {
         assert_eq!(s.offset, 0);
     }
 
-    /// A cell's ink: foreground and modifiers.
+
     fn ink(s: Style) -> (Option<ratatui::style::Color>, ratatui::style::Modifier) {
         (s.fg, s.add_modifier)
     }
 
-    /// A grey's lightness on the level's own scale: the RGB channel, the
-    /// 256-colour grey ramp, the 16-colour greys.
+
+
     fn grey(c: ratatui::style::Color) -> u16 {
         use ratatui::style::Color::*;
         match c {
@@ -774,8 +774,8 @@ mod tests {
         }
     }
 
-    /// A vertical and a horizontal bar over overflowing content at
-    /// `theme`: every (symbol, style) cell of each, track first.
+
+
     fn both_bars(theme: &Theme) -> [Vec<(String, Style)>; 2] {
         let mut s = ScrollState::new(40);
         s.set_viewport(10);
@@ -833,8 +833,8 @@ mod tests {
                         assert_eq!(sym, track_glyph, "{ctx}");
                         assert_eq!(ink(*style), ink(track), "{ctx}: the track style");
                     }
-                    // the shape alone tells a track from a border or a
-                    // divider (WCAG 1.4.1), so it holds in monochrome too
+
+
                     assert_ne!(track_glyph, line, "{ctx}");
                     assert_ne!(track_glyph, edge, "{ctx}");
                     assert_ne!(track_glyph, thumb_glyph, "{ctx}");
@@ -866,7 +866,7 @@ mod tests {
         use crate::theme::Glyphs;
         use unicode_width::UnicodeWidthStr;
         let u = Glyphs::UNICODE;
-        // U+2506 / U+2504: light triple dash, vertical and horizontal
+
         assert_eq!((u.scroll_track, u.scroll_h_track), ("┆", "┄"));
         assert_eq!((u.scroll_thumb, u.scroll_h_thumb), ("┃", "━"));
         assert_eq!((u.divider, u.h_divider), ("│", "─"));

@@ -1,14 +1,14 @@
-//! A padded glyph button: the close `×` of modal frames, tabs and chips,
-//! and a tab strip's `+` (docs/design/close-button.md).
-//!
-//! The plate is the glyph with [`IconButton::pad`] cells either side
-//! (default one: ` × `, three cells, the terminal analogue of WCAG 2.2
-//! SC 2.5.8's 24 px target). At rest only the glyph shows, in secondary
-//! ink on the host plane; hovered or pressed the whole plate takes the
-//! next step of the plane it sits on (as a macOS or browser tab close
-//! button shows its hover plate), and the hit region is exactly the plate.
-//! A close button never carries the focus `▎`: keyboard focus stays on its
-//! owner, which closes by its own key (Esc, `x`, Delete).
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -20,46 +20,46 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::text::width;
 use crate::ui::tooltip::Tip;
 
-/// Which ladder an [`IconButton`] walks.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum IconLook {
-    /// A close or remove button: [`Theme::close_plate`] (`Kind::Close`).
+
     #[default]
     Close,
-    /// A text-like action such as `+`: the title ladder (`Kind::Title`).
+
     Title,
 }
 
-/// A glyph on a padded plate. See the [module docs](self).
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IconButton {
     pub id: WidgetId,
-    /// The glyph. `None`: the theme's close glyph ([`Glyphs::close`],
-    /// `×`, ASCII `x`).
-    ///
-    /// [`Glyphs::close`]: crate::theme::Glyphs::close
+
+
+
+
     pub glyph: Option<String>,
     pub look: IconLook,
-    /// Cells of plate either side of the glyph. Default
-    /// [`Self::DEFAULT_PAD`] (a three-cell plate).
+
+
     pub pad: u16,
-    /// Hover takes the danger ink and press the danger fill (the Windows
-    /// window-close idiom). Default off: closing a tab or a dialog is not
-    /// destructive (macOS).
+
+
+
     pub danger_hover: bool,
-    /// The tooltip. `None`: the owner's default (`Close · Esc` on a modal
-    /// frame, `Close tab · x` on a tab, ...); an empty [`Tip`] shows none.
+
+
     pub tip: Option<Tip>,
-    /// The widget and part this button is (a tab's or a chip's ×): it
-    /// then registers as that part of the owner ([`Self::part_of`]).
+
+
     pub part: Option<(WidgetId, PartRef)>,
 }
 
 impl IconButton {
-    /// One cell of plate either side of the glyph.
+
     pub const DEFAULT_PAD: u16 = 1;
 
-    /// A close button with the theme's close glyph.
+
     pub fn close(id: WidgetId) -> Self {
         Self {
             id,
@@ -72,7 +72,7 @@ impl IconButton {
         }
     }
 
-    /// A text-like glyph button (`+`) on the title ladder.
+
     pub fn new(id: WidgetId, glyph: &str) -> Self {
         Self {
             glyph: Some(glyph.to_owned()),
@@ -81,7 +81,7 @@ impl IconButton {
         }
     }
 
-    /// The same button under another id (a template applied per tab).
+
     pub fn with_id(&self, id: WidgetId) -> Self {
         Self {
             id,
@@ -90,8 +90,8 @@ impl IconButton {
         }
     }
 
-    /// The same button as `part` of `owner` (a template applied per tab):
-    /// its id is [`WidgetId::part`] and its hit resolves to the owner.
+
+
     pub fn part_of(&self, owner: WidgetId, part: PartRef) -> Self {
         Self {
             id: owner.part(part),
@@ -100,7 +100,7 @@ impl IconButton {
         }
     }
 
-    /// The same button showing `glyph` (a `+N` count set each frame).
+
     pub fn with_glyph(&self, glyph: &str) -> Self {
         Self {
             glyph: Some(glyph.to_owned()),
@@ -108,42 +108,42 @@ impl IconButton {
         }
     }
 
-    /// See [`Self::pad`].
+
     pub fn pad(mut self, cells: u16) -> Self {
         self.pad = cells;
         self
     }
 
-    /// The plate `cells` wide (odd widths centre the glyph): sets
-    /// [`Self::pad`] to `(cells - 1) / 2`.
+
+
     pub fn plate(self, cells: u16) -> Self {
         self.pad(cells.saturating_sub(1) / 2)
     }
 
-    /// See [`Self::danger_hover`].
+
     pub fn danger_hover(mut self, on: bool) -> Self {
         self.danger_hover = on;
         self
     }
 
-    /// See [`Self::tip`].
+
     pub fn tip(mut self, tip: Tip) -> Self {
         self.tip = Some(tip);
         self
     }
 
-    /// The glyph drawn under `t`.
+
     pub fn glyph<'a>(&'a self, t: &Theme) -> &'a str {
         self.glyph.as_deref().unwrap_or(t.glyphs.close)
     }
 
-    /// The plate's width in cells.
+
     pub fn width(&self, t: &Theme) -> u16 {
         width(self.glyph(t)) as u16 + 2 * self.pad
     }
 
-    /// The plate's style inside a host styled `host`, for this frame's
-    /// pointer state.
+
+
     pub fn style(&self, ctx: &RenderCtx, host: Style) -> Style {
         let t = ctx.theme;
         let mut s = ctx.state(self.id);
@@ -157,9 +157,9 @@ impl IconButton {
         }
     }
 
-    /// Draw the plate with its left edge at `(x, y)` over whatever was
-    /// there (a frame border), register it and show its tooltip. Returns
-    /// the plate (clipped to the buffer).
+
+
+
     pub fn render(
         &self,
         x: u16,
@@ -174,11 +174,11 @@ impl IconButton {
         self.render_in(plate, x + self.pad, buf, ctx, host, default_tip)
     }
 
-    /// Draw the glyph at `glyph_x` on `plate`, cells an owner laid out
-    /// itself (inside a tab or a chip, styled `host`): at rest only the
-    /// glyph changes; hovered or pressed every cell of the plate takes the
-    /// plate's style, keeping its symbol. Registers `plate` as the button
-    /// and shows its tooltip.
+
+
+
+
+
     pub fn render_in(
         &self,
         plate: Rect,
@@ -215,8 +215,8 @@ impl IconButton {
     }
 }
 
-/// An icon button has rest, hover and press looks; it never shows focus
-/// (its owner holds it) and has no disabled look.
+
+
 impl crate::ui::specimen::Specimen for IconButton {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -255,8 +255,8 @@ mod tests {
 
     const ID: WidgetId = WidgetId::of("icon");
 
-    /// Draw `b` at (2, 0) on a modal frame's border; returns the buffer,
-    /// the hits and the plate.
+
+
     fn draw(t: &Theme, b: &IconButton, inter: Interaction) -> (Buffer, HitRegistry, Rect) {
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
@@ -286,7 +286,7 @@ mod tests {
         }
     }
 
-    /// What a terminal at `level` shows of a cell: no colours in mono.
+
     fn look(t: &Theme, b: &Buffer, x: u16) -> (Option<ratatui::style::Color>, Modifier) {
         let c = &b[(x, 0)];
         let bg = (t.level != ColorLevel::Mono).then_some(c.bg);
@@ -306,7 +306,7 @@ mod tests {
                 assert_eq!(hits.hit(Position::new(x, 0)), want, "pad {pad} x {x}");
             }
         }
-        // `plate(cells)` is the plate width; three cells by default
+
         assert_eq!(IconButton::close(ID).width(&t), 3);
         assert_eq!(IconButton::close(ID).plate(5).width(&t), 5);
         assert_eq!(IconButton::close(ID).plate(1).width(&t), 1);
@@ -327,16 +327,16 @@ mod tests {
                     assert_ne!(a, h, "rest = hover at {x}: {ctx}");
                     assert_ne!(h, p, "hover = pressed at {x}: {ctx}");
                     assert_ne!(a, p, "rest = pressed at {x}: {ctx}");
-                    // one plate: every cell of it looks the same
+
                     assert_eq!(h, look(&t, &hover, r.x), "hover plate at {x}: {ctx}");
                     assert_eq!(p, look(&t, &press, r.x), "pressed plate at {x}: {ctx}");
                 }
-                // cells beside the plate never change
+
                 for x in [r.x - 1, r.right()] {
                     assert_eq!(look(&t, &rest, x), look(&t, &hover, x), "{ctx}");
                     assert_eq!(look(&t, &rest, x), look(&t, &press, x), "{ctx}");
                 }
-                // the glyph stays legible on its plate
+
                 for buf in [&rest, &hover, &press] {
                     let c = &buf[(r.x + 1, 0)];
                     assert_eq!(c.symbol(), "×", "{ctx}");

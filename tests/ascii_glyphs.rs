@@ -1,5 +1,5 @@
-//! `Glyphs::ASCII` reaches every widget family: rendered with it, no cell
-//! holds a character outside 7-bit ASCII (api #25, #26).
+
+
 
 use junie_tui::core::selection::SelectionMode;
 use junie_tui::core::{focus::FocusRing, hit::HitRegistry, id::WidgetId};
@@ -30,7 +30,7 @@ fn ascii() -> Theme {
         .with_strings(Strings::ASCII)
 }
 
-/// Render with `theme`, focus on `focus`, then flush overlays.
+
 fn draw(
     theme: &Theme,
     size: (u16, u16),
@@ -54,7 +54,7 @@ fn draw(
     buf
 }
 
-/// Every non-ASCII cell, with its position, for the failure message.
+
 fn non_ascii(buf: &Buffer) -> Vec<(u16, u16, String)> {
     let a = buf.area;
     let mut out = vec![];
@@ -81,8 +81,8 @@ fn rows(buf: &Buffer) -> String {
         .join("\n")
 }
 
-/// The same scene drawn with the default glyphs must contain Unicode (so
-/// the test exercises real glyphs) and with ASCII must contain none.
+
+
 fn check(
     name: &str,
     size: (u16, u16),
