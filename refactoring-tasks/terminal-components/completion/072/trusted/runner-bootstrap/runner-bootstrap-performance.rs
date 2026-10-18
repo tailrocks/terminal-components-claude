@@ -1,4 +1,4 @@
-
+//! Independently frozen synthetic production workload and measurement instrument.
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::hint::black_box;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -9,16 +9,16 @@ static ALLOCATIONS: AtomicU64 = AtomicU64::new(0);
 static STYLE_CALLS: AtomicU64 = AtomicU64::new(0);
 static DRAW_CALLS: AtomicU64 = AtomicU64::new(0);
 static WORK: AtomicU64 = AtomicU64::new(0);
-
-
+// SAFETY: This wrapper preserves System's pointer/layout contract and performs
+// only allocation-free atomic increments before forwarding each allocation.
 unsafe impl GlobalAlloc for Instrument {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
-
+        // SAFETY: GlobalAlloc supplies a valid layout; System owns allocation.
         unsafe { System.alloc(layout) }
     }
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
-
+        // SAFETY: The caller provides the original System pointer and layout.
         unsafe { System.dealloc(pointer, layout) }
     }
 }
