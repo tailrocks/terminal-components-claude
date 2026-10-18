@@ -4209,6 +4209,8 @@ def render_status(
 
     return """# Termrock status
 
+This page is a recorded visibility report, not current project guidance. Its selected comparison source pair is candidate [{remote_candidate_sha}](https://github.com/{repository}/commit/{remote_candidate_sha}) and reference [{remote_reference_sha}](https://github.com/{repository}/commit/{remote_reference_sha}), recorded at {remote_observed_at}. Each evidence row remains bound to its explicitly named source, test set, command, and observation time; historical observations do not describe later branch tips or imply current readiness. For current project direction, see the [documentation index](docs/README.md), [architecture](docs/architecture.md), [design reference](docs/design.md), and [plan](docs/plan.md).
+
 | Conclusion | State | Evidence |
 | --- | --- | --- |
 | Visibility / Complete | {readiness_state} | {visibility_evidence} |
@@ -4219,6 +4221,8 @@ def render_status(
 
 ## Required commands
 
+### Recorded command requirements
+
 The table reports each metric separately for the reference and candidate. The Ready column is separate from Build, Launch, First frame, Interaction, Exit, Restoration, Visual, and Ownership.
 Reference ownership is NOT_APPLICABLE because the reference is not required to use the candidate Termrock architecture.
 
@@ -4226,7 +4230,7 @@ Reference ownership is NOT_APPLICABLE because the reference is not required to u
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 {command_rows}
 
-The status reporter generated this report from measured facts in [source-facts.json](tools/visibility/source-facts.json). A run receipt records execution results tied to an exact source pair and required test set. {receipt_statement} Product requirements remain in {checklist_markdown_link} and {checklist_json_link}.
+The status reporter generated this report from measured facts in [source-facts.json](tools/visibility/source-facts.json). A run receipt records execution results tied to an exact source pair and required test set. {receipt_statement} Product requirements remain in {checklist_markdown_link} and {checklist_json_link}; these are the requirements used for the recorded measurements.
 
 ## Recorded source pair
 
@@ -4284,7 +4288,7 @@ The DCO observations above describe the captured local commit message. They do n
 
 Tool versions recorded at {tools_observed_at}: Python {python}, Rust {rust}, and cargo-nextest {nextest} through mise on {host}. This records installed tools only; it does not show that a product check ran.
 
-## Applications
+## Recorded application measurements
 
 Visual, interaction, API, and ownership remain separate. API and ownership are candidate-only obligations.
 
@@ -4302,7 +4306,7 @@ The required shared-case and per-component checkpoint sets are unknown until the
 
 {trend_statement}
 
-## Next work
+## Recorded next work at the accepted queue snapshot
 
 {task_section}
 

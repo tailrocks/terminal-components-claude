@@ -39,7 +39,7 @@ The facade's headless example tests require its `testing` feature, as in `cargo 
 
 ## Generated visibility records
 
-Root `STATUS.md` and `WORK_QUEUE.md` are generated publisher/test records, not product documentation or readiness claims. Tests consume the checked-in records as fixtures. The visibility publisher provides `python3 tools/visibility/status.py --check` and `python3 tools/visibility/queue.py check`; regeneration is an explicit data-maintenance operation, not part of editing documentation. The JSON task/source records remain the structured inputs.
+Root `STATUS.md` and `WORK_QUEUE.md` are generated publisher/test records, not product documentation or readiness claims. Tests consume the checked-in records as fixtures. Their prose summarizes source-pinned evidence; changing explanatory prose does not remeasure or requalify the recorded source pair. The structured task/source records and receipts remain the evidence inputs. Maintain explanatory prose in `tools/visibility/status.py` and `tools/visibility/queue.py`, then regenerate the corresponding Markdown so it remains consistent with the renderer. `python3 tools/visibility/status.py --write --role candidate` writes the candidate-role status; use `--role reference` for a reference-role record. `python3 tools/visibility/queue.py repair-render` refreshes the queue view. These commands render from existing evidence and do not refresh or qualify that evidence. Check with `python3 tools/visibility/status.py --check` and `python3 tools/visibility/queue.py check`. For current project readiness and acceptance, use the [plan](plan.md) and [design authority](design.md), not a historical generated report.
 
 ## Source comments
 

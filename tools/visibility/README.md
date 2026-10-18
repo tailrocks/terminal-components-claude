@@ -2,7 +2,7 @@
 
 `tools/visibility/status.py` renders the repository's source-pinned visibility observations from `source-facts.json`, task records, and queue helpers. It writes a root `STATUS.md`; generated output is an observation artifact, not current product authority or proof of readiness.
 
-Run `python3 tools/visibility/status.py --help` for supported options. `--write` regenerates the root report, `--check` compares it with the report derived from current inputs, and `--role candidate|reference` selects the local presentation role. Do not regenerate the retired status report as part of routine project documentation work.
+Run `python3 tools/visibility/status.py --help` for supported options. Edit explanatory prose in the renderer, then use `python3 tools/visibility/status.py --write --role candidate` (or `--role reference`) to regenerate the matching root record; `--check` compares it with current inputs. Rendering updates report prose and presentation only: it does not refresh or requalify the source-pinned measurements. For the queue view, use `python3 tools/visibility/queue.py repair-render` after renderer-prose changes, then check it with `python3 tools/visibility/queue.py check`.
 
 The black-box CLI contract is exercised by `crates/termrock-visibility-tests/tests/status.rs`; queue operations are covered in `queue_v2.rs`. Run the package tests with `cargo nextest run --manifest-path crates/termrock-visibility-tests/Cargo.toml --locked`. These tests validate report/schema and command behavior, not application parity.
 

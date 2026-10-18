@@ -1027,9 +1027,11 @@ def render_queue(records_value: Any) -> str:
             records["queue_revision"], records["accepted_by"]
         ),
         "",
+        "This is a recorded queue snapshot. Owners, branches, claim tokens, expiries, and handoffs below preserve accepted records; they are not current assignments or instructions. Expiry does not itself release a claim. For current project direction, see the [documentation index](docs/README.md), [architecture](docs/architecture.md), [design reference](docs/design.md), and [plan](docs/plan.md).",
+        "",
     ]
     if highest is None:
-        lines.append("Highest open priority: **none**. All recorded work is verified.")
+        lines.append("Highest open priority: **none**. All tasks in this accepted queue snapshot are verified; product readiness is separate.")
     else:
         lines.append("Highest open priority: **{}**.".format(highest))
     lines.extend([
@@ -1074,13 +1076,14 @@ def render_queue(records_value: Any) -> str:
                 ))
         handoff = task.get("handoff")
         if handoff is not None:
-            lines.extend(["", "Last handoff: {} → {} by `{}`. Recorded next action at handoff: {}".format(
+            lines.extend(["", "Recorded last handoff: {} → {} by `{}`. Recorded next action at handoff: {}".format(
                 _markdown_cell(handoff["from_owner"]), _markdown_cell(handoff["to_owner"]),
                 _markdown_cell(handoff["handoff_by"]), _markdown_cell(handoff["next_action"]),
             )])
         lines.append("")
     lines.extend([
         "Expiry does not release an active claim. Reassignment requires a recorded safe handoff.",
+        "The statement above describes queue semantics; it does not establish current ownership of these historical records.",
         "Task state is assignment state; it does not prove test results or requirement completion.",
         "",
     ])
@@ -1100,9 +1103,11 @@ def render_queue_v2(records_value: Any) -> str:
             records["queue_revision"], records["accepted_by"]
         ),
         "",
+        "This is a recorded queue snapshot. Owners, branches, claim tokens, expiries, and handoffs below preserve accepted records; they are not current assignments or instructions. Expiry does not itself release a claim. For current project direction, see the [documentation index](docs/README.md), [architecture](docs/architecture.md), [design reference](docs/design.md), and [plan](docs/plan.md).",
+        "",
     ]
     if highest is None:
-        lines.append("Highest open priority: **none**. All recorded work is verified.")
+        lines.append("Highest open priority: **none**. All tasks in this accepted queue snapshot are verified; product readiness is separate.")
     else:
         lines.append("Highest open priority: **{}**.".format(highest))
     lines.extend([
@@ -1146,13 +1151,14 @@ def render_queue_v2(records_value: Any) -> str:
         ])
         handoff = task.get("handoff")
         if handoff is not None:
-            lines.extend(["", "Last handoff: {} → {} by `{}`. Recorded next action at handoff: {}.".format(
+            lines.extend(["", "Recorded last handoff: {} → {} by `{}`. Recorded next action at handoff: {}.".format(
                 _markdown_cell(handoff["from_owner"]), _markdown_cell(handoff["to_owner"]),
                 _markdown_cell(handoff["handoff_by"]), _markdown_cell(handoff["next_action"]),
             )])
         lines.append("")
     lines.extend([
         "Expiry does not release an active claim. Reassignment requires a recorded safe handoff.",
+        "The statement above describes queue semantics; it does not establish current ownership of these historical records.",
         "Task state is assignment state; it does not prove test results or requirement completion.",
         "",
     ])
