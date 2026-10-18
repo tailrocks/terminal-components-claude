@@ -2010,11 +2010,16 @@ fn hash_reader(mut reader: impl Read) -> io::Result<(u64, String)> {
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "byte counter overflow"))?;
         hasher.update(&buffer[..read]);
     }
-    Ok((bytes, format!("{:x}", hasher.finalize())))
+    let digest = hasher.finalize();
+    let digest_hex = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    Ok((bytes, digest_hex))
 }
 
 fn sha256_bytes(bytes: &[u8]) -> String {
-    format!("{:x}", Sha256::digest(bytes))
+    termrock_visibility_tests::sha256_hex(bytes)
 }
 
 fn valid_sha256(value: &str) -> bool {

@@ -467,7 +467,7 @@ fn actual_initial_routes_draw_without_mutating_restored_domain_records() {
         assert_eq!(h.app().world.workspaces, workspaces);
         assert_eq!(h.app().world.accounts, accounts);
         assert_eq!(h.app().world.now_ms(), time);
-        assert!(!h.text().trim().is_empty());
+        assert_ne!(h.text().trim(), "");
     }
 }
 

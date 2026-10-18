@@ -41,7 +41,7 @@ fn help_aliases_exit_success_without_a_terminal() -> io::Result<()> {
     for alias in ["--help", "-h"] {
         let output = invoke(&[alias], None)?;
         assert_eq!(output.status.code(), Some(0));
-        assert!(output.stderr.is_empty());
+        assert_eq!(output.stderr.as_slice(), &[]);
         let text = String::from_utf8_lossy(&output.stdout);
         assert!(text.contains("USAGE: jackin-preview"));
         assert!(text.contains("Everything is simulated in memory"));
@@ -68,8 +68,8 @@ fn invalid_and_missing_reference_options_exit_two_before_terminal_setup() -> io:
         for args in [vec![option], vec![option, "invalid-value"]] {
             let output = invoke(&args, None)?;
             assert_eq!(output.status.code(), Some(2), "{option}");
-            assert!(output.stdout.is_empty());
-            assert!(!output.stderr.is_empty());
+            assert_eq!(output.stdout.as_slice(), &[]);
+            assert_ne!(output.stderr.as_slice(), &[]);
             assert!(
                 !output.stderr.contains(&0x1b),
                 "error entered terminal protocol"
@@ -128,7 +128,7 @@ fn accepted_aliases_and_environment_do_not_prevent_help_exit() -> io::Result<()>
             no_motion,
         )?;
         assert_eq!(output.status.code(), Some(0));
-        assert!(output.stderr.is_empty());
+        assert_eq!(output.stderr.as_slice(), &[]);
     }
     Ok(())
 }

@@ -3,7 +3,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
-use serde::de::{self, Deserializer, MapAccess, SeqAccess, Visitor};
+use serde::de::{self, DeserializeSeed, Deserializer, MapAccess, SeqAccess, Visitor};
 use serde_json::{Map, Value};
 
 /// Serialize JSON with sorted object keys and compact separators (no trailing newline).
@@ -31,7 +31,10 @@ fn sort_value(value: &Value) -> Value {
 /// SHA-256 hex digest of raw bytes.
 pub fn sha256_bytes(data: &[u8]) -> String {
     use sha2::{Digest, Sha256};
-    format!("{:x}", Sha256::digest(data))
+    Sha256::digest(data)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 /// SHA-256 hex digest of canonical JSON bytes.
@@ -52,8 +55,24 @@ pub fn canonical_json_line(value: &Value) -> String {
 /// Parse JSON while rejecting duplicate object keys at any depth.
 pub fn parse_json_strict(text: &str) -> Result<Value, String> {
     let mut de = serde_json::Deserializer::from_str(text);
-    de.deserialize_any(NoDupVisitor)
-        .map_err(|error| error.to_string())
+    let value = StrictValueSeed
+        .deserialize(&mut de)
+        .map_err(|error| error.to_string())?;
+    de.end().map_err(|error| error.to_string())?;
+    Ok(value)
+}
+
+struct StrictValueSeed;
+
+impl<'de> DeserializeSeed<'de> for StrictValueSeed {
+    type Value = Value;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(NoDupVisitor)
+    }
 }
 
 struct NoDupVisitor;
@@ -107,7 +126,7 @@ impl<'de> Visitor<'de> for NoDupVisitor {
         A: SeqAccess<'de>,
     {
         let mut values = Vec::new();
-        while let Some(value) = seq.next_element()? {
+        while let Some(value) = seq.next_element_seed(StrictValueSeed)? {
             values.push(value);
         }
         Ok(Value::Array(values))
@@ -119,10 +138,11 @@ impl<'de> Visitor<'de> for NoDupVisitor {
     {
         let mut object = Map::new();
         let mut seen = HashSet::new();
-        while let Some((key, value)) = map.next_entry::<String, Value>()? {
+        while let Some(key) = map.next_key::<String>()? {
             if !seen.insert(key.clone()) {
                 return Err(de::Error::custom(format!("duplicate JSON key: {key}")));
             }
+            let value = map.next_value_seed(StrictValueSeed)?;
             object.insert(key, value);
         }
         Ok(Value::Object(object))

@@ -3,7 +3,7 @@ schema = 1
 [workflow]
 policy = "consumer-v1"
 default_branch = "main"
-runner_label = "ubuntu-24.04"
+runner_label = "ubuntu-26.04"
 
 [stacks.rust]
 compile_driver = "cargo"
@@ -15,3 +15,6 @@ run_ignored = "default"
 
 [discovery]
 exclude = ["xtask/fixtures/**", "tools/termrock-visibility-publisher/**", "crates/termrock-e2e/**", "crates/termrock-visibility-tests/**", "crates/showcase-data/**", "crates/holla-catalog/**", "crates/holla-plan/**"]
+
+[tools]
+mr-boxington = "1.24.1"
