@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 use termrock::{ItemKey, Status};
 
 use jackin_preview_sim::onepassword::OpError;
@@ -152,10 +147,6 @@ impl OpFlowState {
             .get(Self::index(stage))
             .and_then(Option::as_deref)
     }
-
-
-
-
 
 
     pub fn reconcile_selection(&mut self, stage: OpFlowStage, valid: &[String]) -> bool {

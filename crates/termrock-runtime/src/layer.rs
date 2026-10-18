@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 use ratatui_core::layout::{Constraint, Position, Rect};
 
 pub use termrock_core::layer_types::{DismissReason, LayerEvent, LayerId};
@@ -129,11 +124,6 @@ pub enum Backdrop {
 }
 
 
-
-
-
-
-
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerSize {
@@ -245,7 +235,6 @@ impl LayerSpec {
     }
 
 
-
     #[must_use]
     pub const fn size(mut self, s: LayerSize) -> Self {
         self.size = s;
@@ -271,12 +260,6 @@ impl LayerSpec {
         self.dismiss.focus_out && !matches!(self.kind, LayerKind::Modal)
     }
 }
-
-
-
-
-
-
 
 
 #[expect(
@@ -379,7 +362,6 @@ const fn cross(start: u16, len: u16, size: u16, align: CrossAlign) -> u16 {
 }
 
 
-
 pub const fn backdrop_area(screen: Rect, backdrop: Backdrop) -> Rect {
     match backdrop {
         Backdrop::None => Rect::ZERO,
@@ -450,10 +432,6 @@ impl LayerStack {
     }
 
 
-
-
-
-
     pub(crate) fn spec_mut(&mut self, id: Id) -> Option<&mut LayerSpec> {
         self.open
             .iter_mut()
@@ -473,7 +451,6 @@ impl LayerStack {
             .find(|l| l.spec.inert_below)
             .map_or(LayerId::PAGE, |l| l.layer)
     }
-
 
 
     pub(crate) fn open(
@@ -496,7 +473,6 @@ impl LayerStack {
         self.pending.push((id, LayerEvent::Opened));
         Some(layer)
     }
-
 
 
     pub(crate) fn close(&mut self, id: Id, event: LayerEvent) -> Vec<OpenLayer> {
@@ -702,9 +678,6 @@ mod tests {
     }
 
 
-
-
-
     #[test]
     fn fixed_size_is_clamped_never_grown() {
         let screen = Rect::new(0, 0, 40, 10);
@@ -740,7 +713,6 @@ mod tests {
     }
 
 
-
     #[test]
     fn popover_flips_above_when_the_content_does_not_fit_below() {
         let screen = Rect::new(0, 0, 40, 20);
@@ -762,7 +734,6 @@ mod tests {
             Rect::new(4, 3, 12, 6)
         );
     }
-
 
 
     #[test]
@@ -872,8 +843,6 @@ mod runtime_tests {
     }
 
 
-
-
     fn popover_stub() -> Stub {
         Stub {
             page: vec![
@@ -885,7 +854,6 @@ mod runtime_tests {
             ..Stub::default()
         }
     }
-
 
 
     #[test]
@@ -914,8 +882,6 @@ mod runtime_tests {
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         assert_eq!(rt.layer_area(DLG), Some(grown));
     }
-
-
 
 
     #[test]
@@ -1022,15 +988,6 @@ mod runtime_tests {
     }
 
 
-
-
-
-
-
-
-
-
-
     #[test]
     fn focus_out_dismisses_a_popover_but_never_a_modal() {
         let (mut rt, mut buf) = runtime(popover_stub());
@@ -1068,7 +1025,6 @@ mod runtime_tests {
             "the dismissal is one more pass, not an unsettled loop: {:?}",
             rt.diagnostics()
         );
-
 
 
         let (mut rt, mut buf) = runtime(dialog_stub());

@@ -1,7 +1,5 @@
 
 
-
-
 use crate::domain::action::{Action, ActionKind, Availability, Risk, Scope};
 use crate::domain::docker::Health;
 use crate::domain::human_bytes;
@@ -14,8 +12,6 @@ pub struct Section {
     pub name: &'static str,
     pub actions: Vec<Action>,
 }
-
-
 
 
 pub fn catalogue(w: &World) -> Vec<Action> {
@@ -32,8 +28,6 @@ pub fn catalogue(w: &World) -> Vec<Action> {
     recent_actions(w, &mut out);
     out
 }
-
-
 
 
 pub fn sections(w: &World) -> Vec<Section> {
@@ -80,7 +74,6 @@ pub fn sections(w: &World) -> Vec<Section> {
 }
 
 
-
 #[expect(
     clippy::arithmetic_side_effects,
     reason = "Closed scope weights and capped usage bound the total score to 390"
@@ -119,7 +112,6 @@ fn urgent(a: &Action) -> bool {
         || a.reason.contains("% full")
         || a.reason.contains("detached")
 }
-
 
 
 fn mise_actions(w: &World, out: &mut Vec<Action>) {
@@ -604,7 +596,6 @@ fn inventory_note(
 }
 
 
-
 fn flow_actions(w: &World, out: &mut Vec<Action>) {
     let mut btm = Action::new(
         "flow.monitor",
@@ -669,11 +660,6 @@ fn memory_action(w: &World, canonical: &[Action], command: &str) -> Action {
 }
 
 
-
-
-
-
-
 pub fn resolve_intent(w: &World, row: &Action) -> Result<Action, IntentError> {
     use crate::domain::action::ActionIntent;
     let all = catalogue(w);
@@ -723,7 +709,6 @@ impl std::fmt::Display for IntentError {
 impl std::error::Error for IntentError {}
 
 
-
 const GB: u64 = 1_073_741_824;
 
 fn times(n: u32) -> String {
@@ -763,10 +748,6 @@ fn scope_place(cwd: &str, workdir: &str) -> String {
         })
         .unwrap_or_default()
 }
-
-
-
-
 
 
 pub fn visible(

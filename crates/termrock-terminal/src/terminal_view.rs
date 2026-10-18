@@ -1,9 +1,5 @@
 
 
-
-
-
-
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Modifier, Style};
 

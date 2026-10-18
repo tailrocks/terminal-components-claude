@@ -1,9 +1,5 @@
 
 
-
-
-
-
 use std::any::TypeId;
 use std::borrow::Cow;
 
@@ -14,7 +10,6 @@ use crate::id::Id;
 use crate::response::StateFlags;
 
 pub use termrock_core::keys::KeyPhase;
-
 
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -146,8 +141,6 @@ impl KeyMap {
     }
 
 
-
-
     #[must_use]
     pub fn bind_before_typing(mut self, owner: Id, chord: Chord, command: ActionKey) -> Self {
         self.add_before_typing(owner, chord, command);
@@ -190,7 +183,6 @@ impl KeyMap {
             }
         }
     }
-
 
 
     #[must_use]
@@ -276,7 +268,6 @@ impl KeyMap {
         }
         out
     }
-
 
 
     pub fn lookup(&self, phase: KeyPhase, key: &Key, swallows_typing: bool) -> Option<ActionKey> {
@@ -764,7 +755,6 @@ impl HintLayer {
     }
 
 
-
     pub fn from_bindings<C: Copy + 'static>(table: &[Binding<C>]) -> Self {
         let mut hints: Vec<Hint> = table
             .iter()
@@ -1136,9 +1126,6 @@ mod tests {
     }
 
 
-
-
-
     #[test]
     fn table_conflicts_use_effective_chord_identity() {
         #[derive(Clone, Copy)]
@@ -1197,7 +1184,6 @@ mod tests {
             "structural identity still distinguishes modifier forms"
         );
     }
-
 
 
     #[test]
@@ -1271,7 +1257,6 @@ mod tests {
     }
 
 
-
     #[test]
     fn keymap_conflicts_use_effective_chord_identity() {
         let owner = Id::root("effective-scopes");
@@ -1310,7 +1295,6 @@ mod tests {
             );
         }
     }
-
 
 
     #[test]

@@ -625,9 +625,6 @@ impl TableProApp {
     }
 
 
-
-
-
     pub fn set_surface(&mut self, surface: Surface) {
         self.form_open = false;
         self.draft = None;
@@ -3172,12 +3169,6 @@ impl App for TableProApp {
         }
     }
 }
-
-
-
-
-
-
 
 
 pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {

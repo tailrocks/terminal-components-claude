@@ -1,8 +1,5 @@
 
 
-
-
-
 use std::collections::BTreeMap;
 
 use crate::arbiter::Arbiter;
@@ -326,11 +323,6 @@ impl World {
     }
 
 
-
-
-
-
-
     pub fn cwd_workspace(&self) -> Option<&Workspace> {
         self.workspaces.iter().find(|workspace| {
             workspace.mounts.iter().any(|mount| {
@@ -491,11 +483,6 @@ impl World {
     }
 
 
-
-
-
-
-
     pub fn has_offer_for(&self, agent: Agent, workspace: Option<&Workspace>) -> bool {
         let provider = agent.provider();
         if let Some(workspace) = workspace {
@@ -513,12 +500,6 @@ impl World {
                 || self.accounts.discovered_current(provider).is_some()
         }
     }
-
-
-
-
-
-
 
 
     pub fn has_offered_agents(&self, workspace: Option<&Workspace>) -> bool {
@@ -651,7 +632,6 @@ mod tests {
         assert_eq!(first.running_count(), 0);
 
         let returning = world_for(Scenario::Returning);
-
 
 
         assert_eq!(returning.workspaces.len(), 4);

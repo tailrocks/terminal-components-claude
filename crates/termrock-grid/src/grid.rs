@@ -1,22 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 
 use crate::theme::PaintStyle;
@@ -50,19 +33,6 @@ const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnKey(u16);
 
@@ -70,10 +40,6 @@ pub struct ColumnKey(u16);
 const COLUMN_KEY_MAX: u16 = 0x7FFF;
 
 impl ColumnKey {
-
-
-
-
 
 
     pub const fn num(n: u16) -> Self {
@@ -114,10 +80,6 @@ pub enum NavUnit {
     #[default]
     Cell,
 }
-
-
-
-
 
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -162,11 +124,6 @@ impl Default for CellRef<'_> {
 }
 
 
-
-
-
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct GridCell<'a> {
 
@@ -186,9 +143,6 @@ pub struct GridCell<'a> {
 }
 
 type CellRenderer<'a> = &'a dyn Fn(GridCell<'_>, &mut CellUi<'_>);
-
-
-
 
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -247,12 +201,6 @@ pub enum EditIntent<'a> {
 }
 
 
-
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Column<'a> {
 
@@ -270,7 +218,6 @@ pub struct Column<'a> {
     pub max_width: u16,
 
     pub sortable: bool,
-
 
 
     pub editable: bool,
@@ -311,20 +258,12 @@ pub enum SortDir {
 }
 
 
-
-
-
-
 pub trait GridModel {
 
     fn row_count(&self) -> usize;
 
 
     fn row_key(&self, row: usize) -> ItemKey;
-
-
-
-
 
 
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>>;
@@ -350,15 +289,9 @@ pub trait GridModel {
     }
 
 
-
-
-
     fn read_only_reason(&self) -> Option<&str> {
         None
     }
-
-
-
 
 
     fn actions(&self, _row: usize, _col: usize) -> &[CellAction] {
@@ -367,20 +300,12 @@ pub trait GridModel {
 }
 
 
-
-
-
-
 pub trait GridEditor: GridModel {
 
     fn edit_intent(&self, row: usize, col: usize) -> EditIntent<'_>;
 
 
     fn apply_cycle(&mut self, row: usize, col: usize);
-
-
-
-
 
 
     fn commit_cell(
@@ -476,7 +401,6 @@ const fn b(
         visible,
     }
 }
-
 
 
 const BINDINGS: [Binding<GridCmd>; 25] = [
@@ -652,12 +576,6 @@ const BINDINGS: [Binding<GridCmd>; 25] = [
 ];
 
 
-
-
-
-
-
-
 pub const GRID_MAX_COLUMNS: usize = 64;
 
 
@@ -682,10 +600,6 @@ impl fmt::Display for GridCursorError {
 }
 
 impl core::error::Error for GridCursorError {}
-
-
-
-
 
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -714,8 +628,6 @@ impl fmt::Display for WidthSampleError {
 impl std::error::Error for WidthSampleError {}
 
 impl WidthSample {
-
-
 
 
     pub const fn new(rows: usize, percentile: u8) -> Result<Self, WidthSampleError> {
@@ -772,8 +684,6 @@ pub enum GridColumnFit {
     Whole,
 
 
-
-
     CompleteWithPreview {
 
         min_width: u16,
@@ -814,14 +724,6 @@ pub enum GridOverflowIndicator {
 
     Ellipsis,
 }
-
-
-
-
-
-
-
-
 
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -889,7 +791,6 @@ impl GridState {
     }
 
 
-
     pub fn clear_sampled_widths(&mut self) {
         self.sampled_widths.fill(None);
         self.sampled_len = 0;
@@ -946,10 +847,6 @@ impl GridState {
     }
 
 
-
-
-
-
     pub fn cancel_edit(&mut self) -> bool {
         let changed = self.edit.is_some() || self.editor.error().is_some();
         if changed {
@@ -970,11 +867,6 @@ impl GridState {
         self.col_index = col_index;
         self.col = Some(col);
     }
-
-
-
-
-
 
 
     fn cancel_editor(&mut self) {
@@ -1004,7 +896,6 @@ impl Reconcile for GridState {
         self.core.invalidate();
     }
 }
-
 
 
 #[derive(Clone, Copy, Debug)]
@@ -1146,116 +1037,6 @@ impl Geometry {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct Grid<'a> {
     id: Id,
     columns: &'a [Column<'a>],
@@ -1344,12 +1125,6 @@ impl<'a> Grid<'a> {
     }
 
 
-
-
-
-
-
-
     pub fn sample_column_widths<M: GridModel + ?Sized>(
         &self,
         st: &mut GridState,
@@ -1417,16 +1192,11 @@ impl<'a> Grid<'a> {
     }
 
 
-
-
-
-
     #[must_use]
     pub const fn fetch_on_activate(mut self, enabled: bool) -> Self {
         self.fetch_on_activate = enabled;
         self
     }
-
 
 
     #[must_use]
@@ -1441,8 +1211,6 @@ impl<'a> Grid<'a> {
         self.fetch_glyph = glyph;
         self
     }
-
-
 
 
     #[must_use]
@@ -1464,8 +1232,6 @@ impl<'a> Grid<'a> {
         self.gutter = gutter;
         self
     }
-
-
 
 
     #[must_use]
@@ -1531,23 +1297,11 @@ impl<'a> Grid<'a> {
     }
 
 
-
-
-
-
-
-
-
     #[must_use]
     pub const fn cell(mut self, render: &'a dyn Fn(GridCell<'_>, &mut CellUi<'_>)) -> Self {
         self.cell = Some(render);
         self
     }
-
-
-
-
-
 
 
     #[must_use]
@@ -1562,7 +1316,6 @@ impl<'a> Grid<'a> {
         self.empty = Some(e);
         self
     }
-
 
 
     #[must_use]
@@ -1610,14 +1363,6 @@ impl<'a> Grid<'a> {
     }
 
 
-
-
-
-
-
-
-
-
     fn assert_distinct_column_keys(&self) {
         #[cfg(debug_assertions)]
         {
@@ -1648,7 +1393,6 @@ impl<'a> Grid<'a> {
     fn col_key(&self, i: usize) -> Option<ColumnKey> {
         self.columns.get(i).map(|c| c.key)
     }
-
 
 
     fn cursor_col(&self, st: &GridState) -> usize {
@@ -1767,8 +1511,6 @@ impl<'a> Grid<'a> {
     }
 
 
-
-
     fn geometry<M: GridModel + ?Sized>(
         &self,
         body: Rect,
@@ -1824,7 +1566,6 @@ impl<'a> Grid<'a> {
         if count == 0 {
             return g;
         }
-
 
 
         let offset = if ordinal < g.offset {
@@ -1959,7 +1700,6 @@ impl<'a> Grid<'a> {
 }
 
 
-
 fn paint_aligned(ui: &mut Ui<'_>, area: Rect, text: &str, align: Align, style: PaintStyle) {
     if area.is_empty() || text.is_empty() {
         return;
@@ -2027,7 +1767,6 @@ fn push_grouped(out: &mut String, n: usize) {
 }
 
 
-
 #[derive(Clone, Copy, Debug)]
 struct Num {
     buf: [u8; 20],
@@ -2092,7 +1831,6 @@ struct Pending {
 }
 
 
-
 enum Begin {
     Inline(String),
     Cycle,
@@ -2128,9 +1866,6 @@ impl Grid<'_> {
         }
         (0..len).find(|&i| model.row_key(i) == key)
     }
-
-
-
 
 
     pub fn rows_label<M: GridModel + ?Sized>(
@@ -2195,12 +1930,6 @@ impl Grid<'_> {
     }
 
 
-
-
-
-
-
-
     fn range<M: GridModel + ?Sized>(
         &self,
         st: &GridState,
@@ -2221,8 +1950,6 @@ impl Grid<'_> {
         };
         Some(((r0, r1), (c0, c1)))
     }
-
-
 
 
     fn copy_tsv<M: GridModel + ?Sized>(
@@ -2265,18 +1992,6 @@ impl Grid<'_> {
         }
         out
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     pub fn move_cursor_to<M: GridModel + ?Sized>(
@@ -2367,7 +2082,6 @@ impl Grid<'_> {
     }
 
 
-
     fn reveal_column(&self, st: &mut GridState, col: usize) {
         if self.columns.get(col).is_some_and(|c| c.sticky) {
             if self.column_fit != GridColumnFit::Whole {
@@ -2417,7 +2131,6 @@ impl Grid<'_> {
     }
 
 
-
     #[expect(
         clippy::too_many_lines,
         reason = "the keymap dispatch and the three pointer surfaces in one drain loop"
@@ -2442,7 +2155,6 @@ impl Grid<'_> {
                 None
             };
         }
-
 
 
         if st.core.cursor().is_some_and(|key| {
@@ -2832,9 +2544,6 @@ impl Grid<'_> {
     }
 
 
-
-
-
     pub fn update<M: GridModel + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -2863,9 +2572,6 @@ impl Grid<'_> {
     }
 
 
-
-
-
     pub fn update_editable<M: GridEditor + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -2879,9 +2585,6 @@ impl Grid<'_> {
             return Response::ignored();
         }
         let mut acc = Acc::<GridAction>::new();
-
-
-
 
 
         if st.edit.is_none() {
@@ -3155,7 +2858,6 @@ impl Grid<'_> {
         };
         paint_aligned(ui, title, col.title, Align::Left, style);
     }
-
 
 
     fn draw_header(
@@ -3436,7 +3138,6 @@ impl Grid<'_> {
         if self.gutter == GridGutter::Compact {
 
 
-
             if is_cursor && live.contains(StateFlags::FOCUSED) {
                 ui.glyph(super::cell_at(band, band.x), GlyphRole::FocusBar, row_style);
             }
@@ -3466,7 +3167,6 @@ impl Grid<'_> {
                 continue;
             }
             let cell = model.cell(row, i);
-
 
 
             let editing = cell.is_some()
@@ -3620,7 +3320,6 @@ impl Grid<'_> {
                 }
             }
             if editing {
-
 
 
                 TextInput::new(self.id.part(Part::TEXT))
@@ -3877,7 +3576,6 @@ impl Grid<'_> {
         ui.fill(bar, s.style);
         self.ov.slot_for(Part::ACTIONS).unwrap_or(f)(ui, bar);
     }
-
 
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
@@ -4297,9 +3995,6 @@ mod tests {
     }
 
 
-
-
-
     #[cfg(debug_assertions)]
     #[test]
     #[should_panic(expected = "columns \"Name\" and \"Value\" share ColumnKey::num(1)")]
@@ -4392,8 +4087,6 @@ mod tests {
     }
 
 
-
-
     #[test]
     #[should_panic(expected = "ColumnKey::num is 0..=0x7FFF")]
     fn column_key_num_rejects_the_hashed_range() {
@@ -4409,7 +4102,6 @@ mod tests {
     }
 
 
-
     #[test]
     fn numbered_and_named_column_keys_never_meet() {
         for name in ["id", "name", "schema.table", "", "\u{1f600}"] {
@@ -4420,7 +4112,6 @@ mod tests {
             }
         }
     }
-
 
 
     #[test]
@@ -4434,7 +4125,6 @@ mod tests {
     }
 
 
-
     #[test]
     fn column_key_debug_names_its_range() {
         assert_eq!(format!("{:?}", ColumnKey::num(2)), "ColumnKey::num(2)");
@@ -4443,8 +4133,6 @@ mod tests {
             format!("ColumnKey::of(#{:04x})", ColumnKey::of("id").raw())
         );
     }
-
-
 
 
     #[test]
