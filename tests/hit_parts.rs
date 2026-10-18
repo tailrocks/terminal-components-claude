@@ -1,7 +1,7 @@
-//! Part-tagged hits (shared-components plan S1): every region a widget
-//! registers resolves to that widget and a typed part
-//! ([`HitRegistry::resolve`]), never to a derived id the caller has to
-//! invert by hand.
+
+
+
+
 
 use junie_tui::core::hit::{Hit, HitRegistry};
 use junie_tui::core::id::{Part, PartRef, WidgetId};
@@ -21,7 +21,7 @@ use junie_tui::widgets::tree::{TreeNode, TreeView};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Position, Rect};
 
-/// Render one widget alone and return the frame's hit registry.
+
 fn hits_of(area: Rect, draw: impl FnOnce(&mut Buffer, &mut RenderCtx)) -> HitRegistry {
     let theme = Theme::for_level(ColorLevel::TrueColor);
     let mut hits = HitRegistry::default();
@@ -34,7 +34,7 @@ fn hits_of(area: Rect, draw: impl FnOnce(&mut Buffer, &mut RenderCtx)) -> HitReg
     hits
 }
 
-/// Every clickable region resolves to `owner`, and `parts` all occur.
+
 fn assert_parts(name: &str, hits: &HitRegistry, owner: WidgetId, parts: &[PartRef]) {
     let mut seen = vec![];
     for r in hits
@@ -43,7 +43,7 @@ fn assert_parts(name: &str, hits: &HitRegistry, owner: WidgetId, parts: &[PartRe
         .filter(|r| !r.scroll_only && !r.hover_only)
     {
         assert_eq!(r.owner, owner, "{name}: {r:?} belongs to another owner");
-        // a 2-D part (a cell, its `▾`) keeps one id per column
+
         if !matches!(r.part.part, Part::CELL | Part::ACTIONS) {
             assert_eq!(
                 r.id,
@@ -90,7 +90,7 @@ fn list_tree_props_and_steps_rows_resolve_to_their_widget() {
             part: row(1)
         })
     );
-    // a row's id names its part: what the router hands the list
+
     assert_eq!(
         hits.part_of(list.row_id(1)),
         Some(Hit {
@@ -215,7 +215,7 @@ fn table_rows_cells_and_headers_resolve_to_the_table() {
     let header = PartRef::item(Part::HEADER, ItemKey::index(0));
     let cell = PartRef::item(Part::CELL, ItemKey::index(1));
     assert_parts("table", &hits, id, &[header, row(0), cell]);
-    // a cell keeps its own id (hover per cell) and names its column
+
     for r in hits.regions().iter().filter(|r| r.part == cell) {
         assert_eq!(r.owner, id);
     }

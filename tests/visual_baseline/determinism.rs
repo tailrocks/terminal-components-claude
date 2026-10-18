@@ -1,25 +1,25 @@
-//! Determinism audit (plan §B3, task T6), as a cheap source check in the
-//! default run. A capture is only reproducible if what the apps render
-//! derives from tick counts, `--frame N` and fixture clocks (holla and
-//! jackin `clock.rs`, tablepro's seeded data and demo clock), never from the
-//! wall clock or a random source.
-//!
-//! - Wall-clock dates and random sources are forbidden in non-test code
-//!   under `src/` ([`FORBIDDEN`]).
-//! - `Instant::now` is allowed only where it times *when* something
-//!   happens, never *what* is drawn, and only as often as listed in
-//!   [`INSTANT_ALLOWED`]; `target_os` (output that follows the build OS)
-//!   only as listed in [`TARGET_OS_ALLOWED`]. A new use fails until it is
-//!   reviewed and listed.
-//!
-//! String literals and comments are ignored (a fixture may show code that
-//! calls `rand::`), as are test modules (`#[cfg(test)] mod …`) and files
-//! whose name contains `tests`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::collections::BTreeMap;
 use std::path::Path;
 
-/// Wall-clock and randomness APIs no rendered value may depend on.
+
 const FORBIDDEN: [&str; 13] = [
     "SystemTime",
     "UNIX_EPOCH",
@@ -36,8 +36,8 @@ const FORBIDDEN: [&str; 13] = [
     "fastrand",
 ];
 
-/// Reviewed `Instant::now` uses per file, with why they cannot change a
-/// frame's content.
+
+
 const INSTANT_ALLOWED: [(&str, usize, &str); 3] = [
     (
         "src/runtime.rs",
@@ -56,11 +56,11 @@ const INSTANT_ALLOWED: [(&str, usize, &str); 3] = [
     ),
 ];
 
-/// Patterns counted per file and compared with the reviewed lists.
+
 const REVIEWED_PATTERNS: [&str; 2] = ["Instant::now", "target_os"];
 
-/// Reviewed `target_os` uses: output that follows the build OS would make
-/// a macOS capture differ from the ubuntu CI runner's.
+
+
 const TARGET_OS_ALLOWED: [(&str, usize, &str); 2] = [
     (
         "src/runtime.rs",
@@ -74,7 +74,7 @@ const TARGET_OS_ALLOWED: [(&str, usize, &str); 2] = [
     ),
 ];
 
-/// `text` with comments removed and string/char literal contents blanked.
+
 pub fn code_only(text: &str) -> String {
     let c: Vec<char> = text.chars().collect();
     let mut out = String::with_capacity(text.len());
@@ -133,7 +133,7 @@ pub fn code_only(text: &str) -> String {
                 out.push_str("\"\"");
             }
             '\'' => {
-                // char literal ('x', '\n', '\u{..}') or a lifetime ('a)
+
                 if c.get(i + 1) == Some(&'\\') {
                     let mut j = i + 2;
                     while j < c.len() && c[j] != '\'' {
@@ -158,8 +158,8 @@ pub fn code_only(text: &str) -> String {
     out
 }
 
-/// `pat` in `line`, not as the tail of a longer identifier (`brand::`
-/// is not `rand::`).
+
+
 fn contains_word(line: &str, pat: &str) -> bool {
     line.match_indices(pat).any(|(at, _)| {
         !line[..at]
@@ -169,8 +169,8 @@ fn contains_word(line: &str, pat: &str) -> bool {
     })
 }
 
-/// Non-test part of a source file: everything before a `#[cfg(test)]`
-/// that introduces a module.
+
+
 pub fn non_test(text: &str) -> &str {
     let mut offset = 0;
     let mut lines = text.split_inclusive('\n').peekable();
@@ -203,7 +203,7 @@ fn sources(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
-/// `(forbidden hits, count per (reviewed pattern, file))` over `src/`.
+
 fn scan(root: &Path) -> (Vec<String>, BTreeMap<(String, String), usize>) {
     let mut files = Vec::new();
     sources(&root.join("src"), &mut files);
@@ -235,7 +235,7 @@ fn scan(root: &Path) -> (Vec<String>, BTreeMap<(String, String), usize>) {
     (hits, instants)
 }
 
-/// The default-run check.
+
 pub fn sources_are_deterministic() {
     let (hits, instants) = scan(Path::new(env!("CARGO_MANIFEST_DIR")));
     assert!(
@@ -258,7 +258,7 @@ pub fn sources_are_deterministic() {
     );
 }
 
-/// The scanner itself, on fixed text.
+
 pub fn scanner_ignores_strings_comments_and_tests() {
     let src = concat!(
         "fn a() { let s = \"rand::thread_rng()\"; } // SystemTime\n",

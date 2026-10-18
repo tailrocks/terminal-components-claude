@@ -1,7 +1,7 @@
-//! The command-line contract of the four binaries (visual-testing plan F2):
-//! `--help` prints usage with the shared options and exits 0; an unknown
-//! option or an invalid value prints an error and exits non-zero, before
-//! the terminal is touched.
+
+
+
+
 
 use std::process::{Command, Output};
 
@@ -96,9 +96,9 @@ fn an_unknown_option_or_value_exits_non_zero() {
     }
 }
 
-/// The showcase's `--opt KEY=VALUE` (plan §7, SC1): listed in the help;
-/// a bad key, value or shape exits non-zero before the terminal is touched
-/// and names what would be valid.
+
+
+
 #[test]
 fn showcase_opt_is_validated_and_explains() {
     let bin = env!("CARGO_BIN_EXE_showcase");
@@ -117,7 +117,7 @@ fn showcase_opt_is_validated_and_explains() {
             &["invalid value \"purple\" for shell.color; valid values: truecolor, 256, 16, mono"],
         ),
         (&["--opt", "shell.color"], &["expected KEY=VALUE"]),
-        // repeatable: the second, bad one still fails
+
         (
             &["--opt", "shell.glyphs=ascii", "--opt", "shell.motion=fast"],
             &["valid values: full, reduced, paused"],

@@ -1,8 +1,8 @@
-//! Diff viewer: a unified-diff data model and a viewer that renders one file
-//! in two presentations — the classic unified `git diff` listing, and a
-//! review layout with old and new columns side by side. Scrolling, wheel,
-//! scrollbar, drag selection and copy come from the [`TextViewport`] it
-//! wraps; the viewer only turns hunks into styled lines.
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
@@ -61,14 +61,14 @@ pub struct DiffHunk {
 }
 
 impl DiffHunk {
-    /// Number of lines on the old side (context + removes).
+
     pub fn old_len(&self) -> usize {
         self.lines
             .iter()
             .filter(|l| l.kind != DiffLineKind::Add)
             .count()
     }
-    /// Number of lines on the new side (context + adds).
+
     pub fn new_len(&self) -> usize {
         self.lines
             .iter()
@@ -95,7 +95,7 @@ pub enum DiffStatus {
 }
 
 impl DiffStatus {
-    /// One-letter marker: `A M D R`.
+
     pub fn marker(&self) -> &'static str {
         match self {
             DiffStatus::Added => "A",
@@ -112,8 +112,8 @@ impl DiffStatus {
             DiffStatus::Renamed { .. } => "renamed",
         }
     }
-    /// Tone of the marker: additions succeed, deletions err, the rest is
-    /// ordinary text.
+
+
     pub fn tone(&self) -> Tone {
         match self {
             DiffStatus::Added => Tone::Success,
@@ -146,11 +146,11 @@ impl DiffFile {
             .filter(|l| l.kind == DiffLineKind::Remove)
             .count()
     }
-    /// `+12 −4 · 3 hunks`
+
     pub fn summary(&self) -> String {
         self.summary_with(&Glyphs::UNICODE)
     }
-    /// [`Self::summary`] with the glyphs `g` (`removed`, `separator`).
+
     pub fn summary_with(&self, g: &Glyphs) -> String {
         let n = self.hunks.len();
         format!(
@@ -163,11 +163,11 @@ impl DiffFile {
             if n == 1 { "" } else { "s" }
         )
     }
-    /// The header line of the diff: `M path  +12 −4 · 3 hunks`.
+
     pub fn header(&self) -> String {
         self.header_with(&Glyphs::UNICODE)
     }
-    /// [`Self::header`] with the glyphs `g` (`arrow` for a rename).
+
     pub fn header_with(&self, g: &Glyphs) -> String {
         match &self.status {
             DiffStatus::Renamed { from } => {
@@ -180,10 +180,10 @@ impl DiffFile {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DiffMode {
-    /// Classic unified listing: gutter with old/new numbers, `+`/`-` lines.
+
     #[default]
     Unified,
-    /// Review layout: old and new columns side by side, changed runs bold.
+
     Review,
 }
 
@@ -202,7 +202,7 @@ impl DiffMode {
     }
 }
 
-/// Renders one [`DiffFile`] into a [`TextViewport`].
+
 #[derive(Debug, Clone)]
 pub struct DiffView {
     pub term: TextViewport,
@@ -212,8 +212,8 @@ pub struct DiffView {
     laid_mode: DiffMode,
     dirty: bool,
     rendered_size: Option<(u16, u16, DiffMode, bool)>,
-    /// The theme's glyphs and strings as of the last render; lines are
-    /// rebuilt when they change.
+
+
     glyphs: Glyphs,
     strings: Strings,
 }
@@ -263,11 +263,11 @@ impl DiffView {
         self.mode
     }
 
-    /// Presentation used at this available text width, excluding a scrollbar.
-    /// [`Self::render`] reserves that column automatically when needed.
-    /// Review falls back to unified when
-    /// either side would have fewer than 16 text cells after its line number.
-    /// The requested mode is retained, so widening restores review.
+
+
+
+
+
     pub fn layout_mode(&self, width: u16) -> DiffMode {
         match &self.file {
             Some(file) if self.mode == DiffMode::Review && review_fits(file, width) => {
@@ -277,7 +277,7 @@ impl DiffView {
         }
     }
 
-    /// Rebuild the viewport lines for `width` cells when something changed.
+
     pub fn layout(&mut self, width: u16) {
         let mode = self.layout_mode(width);
         if !self.dirty && self.laid_width == width && self.laid_mode == mode {
@@ -334,8 +334,8 @@ impl DiffView {
                         )),
                 );
             }
-            // Cache the final scrollbar-aware layout, avoiding a rebuild at
-            // full width and then reduced width on every idle frame.
+
+
             self.rendered_size = Some(size);
         }
         self.term.render(area, buf, ctx, bg);
@@ -360,13 +360,13 @@ fn num_width(f: &DiffFile) -> usize {
     max.to_string().len().max(3)
 }
 
-/// Unified listing: header, then per hunk a muted `@@` line and one row per
-/// diff line with old/new numbers in the gutter.
+
+
 pub fn unified_lines(f: &DiffFile) -> Vec<Line> {
     unified_lines_with(f, &Glyphs::UNICODE, &Strings::DEFAULT)
 }
 
-/// [`unified_lines`] drawn with the glyphs `g` and the copy `s`.
+
 pub fn unified_lines_with(f: &DiffFile, g: &Glyphs, s: &Strings) -> Vec<Line> {
     let nw = num_width(f);
     let mut out: Vec<Line> = vec![];
@@ -415,8 +415,8 @@ pub fn unified_lines_with(f: &DiffFile, g: &Glyphs, s: &Strings) -> Vec<Line> {
     out
 }
 
-/// Longest common prefix and suffix (in graphemes) of two strings, so the
-/// differing middle can be emphasised.
+
+
 fn changed_range(a: &str, b: &str) -> (usize, usize) {
     let ac: Vec<&str> = a.graphemes(true).collect();
     let bc: Vec<&str> = b.graphemes(true).collect();
@@ -431,14 +431,14 @@ fn changed_range(a: &str, b: &str) -> (usize, usize) {
     (p, s)
 }
 
-/// Text with the middle `[p .. len-s]` in bold.
+
 fn emphasised(text: &str, p: usize, s: usize, tone: Tone, col_w: usize) -> Vec<Span> {
     let graphemes: Vec<&str> = text.graphemes(true).collect();
     let end = graphemes.len().saturating_sub(s).max(p);
     let head = graphemes[..p.min(graphemes.len())].concat();
     let mid = graphemes[p.min(graphemes.len())..end].concat();
     let tail = graphemes[end..].concat();
-    // clip to the column, keeping the emphasis where it falls
+
     let mut spans = vec![];
     let mut used = 0usize;
     for (text, bold) in [(head, false), (mid, true), (tail, false)] {
@@ -458,23 +458,23 @@ fn emphasised(text: &str, p: usize, s: usize, tone: Tone, col_w: usize) -> Vec<S
     spans
 }
 
-/// Review layout: `old │ new` columns with line numbers; paired changes get
-/// their differing run in bold; unpaired sides stay blank.
-/// Falls back to unified when either side cannot hold 16 text cells.
-/// Tabs expand to the viewport's four spaces before measuring, emphasizing,
-/// and clipping, so columns and copied displayed text use identical geometry.
+
+
+
+
+
 pub fn review_lines(f: &DiffFile, width: u16) -> Vec<Line> {
     review_lines_with(f, width, &Glyphs::UNICODE, &Strings::DEFAULT)
 }
 
-/// [`review_lines`] drawn with the glyphs `g` and the copy `s`.
+
 pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs, s: &Strings) -> Vec<Line> {
     if !review_fits(f, width) {
         return unified_lines_with(f, g, s);
     }
     let nw = num_width(f);
     let total = width as usize;
-    // each column: number + space + text; separator " │ "
+
     let col = total.saturating_sub(3) / 2;
     let text_w = col.saturating_sub(nw + 1).max(4);
     let mut out: Vec<Line> = vec![];
@@ -529,7 +529,7 @@ pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs, s: &Strings) -> V
                     i += 1;
                 }
                 _ => {
-                    // a run of removes followed by a run of adds pairs up
+
                     let mut removes = vec![];
                     while i < h.lines.len() && h.lines[i].kind == DiffLineKind::Remove {
                         removes.push(expand_tabs(&h.lines[i].text));
@@ -582,8 +582,8 @@ fn review_fits(file: &DiffFile, width: u16) -> bool {
     usize::from(width) >= 2 * (num_width(file) + 1 + 16) + 3
 }
 
-/// The diff scrolls through its viewport's pane, with the viewport's
-/// hooks (unified lines wider than the view scroll sideways).
+
+
 impl Scrollable for DiffView {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.term.scroll
@@ -598,10 +598,10 @@ impl Scrollable for DiffView {
     }
 }
 
-/// The diff's pointer gestures, as the apps route them: a wheel or a bar
-/// press scrolls it; a press anchors a selection ([`DiffView::on_click`])
-/// and a drag extends it ([`DiffView::on_drag`]); the click that
-/// completes the press is consumed.
+
+
+
+
 impl crate::core::pointer::MouseTarget for DiffView {
     type Action = ();
 
@@ -615,8 +615,8 @@ impl crate::core::pointer::MouseTarget for DiffView {
     ) -> crate::core::response::Response<()> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-        // the viewport's Edit menu (Copy, Select all): a secondary click
-        // on the diff opens it, its rows and backdrop are its own
+
+
         if ev.is(Phase::Secondary) || self.term.edit_menu.owns(ev) {
             return self.term.pointer(ev);
         }
@@ -703,10 +703,10 @@ mod tests {
         let bold: Vec<&Span> = lines[4].iter().filter(|s| s.bold).collect();
         assert!(bold.iter().any(|s| s.text.contains('3')));
         assert!(bold.iter().any(|s| s.text.contains('5')));
-        // the unpaired add leaves the old column blank
+
         assert!(texts[5].trim_start().starts_with("│") || texts[5].starts_with("     "));
         assert!(texts[5].contains("Backoff::exponential"));
-        // hunk separator between hunks
+
         assert!(texts.iter().any(|t| t.starts_with("────")));
     }
 

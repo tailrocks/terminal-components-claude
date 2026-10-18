@@ -1,6 +1,6 @@
-//! The Splits & stacks page through the real app (plan §7 SC23): seams
-//! drag, reset and pad their hit target as the options say, zoom hides a
-//! pane, and the stack shrinks, scrolls or clips.
+
+
+
 
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
@@ -13,7 +13,7 @@ fn outer() -> WidgetId {
     WidgetId::of("splitsstacks").sub("outer")
 }
 
-/// Width of the Explorer pane: its frame from `╭` to `╮`.
+
 fn explorer_width(h: &Harness) -> u16 {
     let (x, y) = h.at("╭─ Explorer");
     let row: Vec<String> = (x..h.term.backend().buffer().area.width)
@@ -56,7 +56,7 @@ fn splits_hit_pad_widens_the_press_target() {
         h.opt(&format!("splitsstacks.hit_pad={pad}"));
         let before = explorer_width(&h);
         let seam = h.area(outer());
-        // one cell right of the seam: the editor pane's frame
+
         drag(&mut h, (seam.x + 1, seam.y + 2), (seam.x + 9, seam.y + 2));
         assert_eq!(explorer_width(&h) != before, moves, "pad {pad}");
     }

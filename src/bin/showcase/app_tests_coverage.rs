@@ -114,8 +114,8 @@ impl Harness {
         let buffer = self.term.backend().buffer();
         for y in 0..buffer.area.height {
             let row = self.row(y);
-            // a byte offset is not a column: a `│` before the label is
-            // three bytes and one cell
+
+
             if let Some(x) = row.find(needle) {
                 return Some((junie_tui::ui::text::width(&row[..x]) as u16, y));
             }
@@ -214,7 +214,7 @@ fn navigation_edges_and_page_entry_are_deterministic() {
 
     h.key(KeyCode::End);
     assert_eq!(h.app.nav.cursor, last);
-    // the nav tree type-selects, so its letters are a prefix, not vim keys
+
     h.key(KeyCode::Up);
     assert_eq!(h.app.nav.cursor, last - 1);
     h.key(KeyCode::Down);
@@ -222,7 +222,7 @@ fn navigation_edges_and_page_entry_are_deterministic() {
     h.key(KeyCode::Home);
     assert_eq!(h.app.nav.cursor, 0, "Overview, the top-level page");
 
-    // → on a page opens it
+
     h.key(KeyCode::Right);
     assert_eq!(h.app.page(), PageId::Overview);
     assert_eq!(h.app.page(), PageId::Overview);
@@ -285,7 +285,7 @@ fn chips_selection_and_disabled_behavior() {
     h.key(KeyCode::Char('x'));
     assert!(h.text().contains("last action: removed status = 'pending'"));
 
-    // End reaches the add button past every chip (the error chip too)
+
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
     assert!(
@@ -343,7 +343,7 @@ fn dialogs_cover_choice_destructive_and_prompt_validation() {
     h.key(KeyCode::Enter);
     h.assert_status("Branch feat/rate-limit deleted");
 
-    // the prompt opens editing (EditEntry::Immediate): no Enter first
+
     h.click_label("Rename task");
     h.key_mod(KeyCode::Char('a'), KeyModifiers::SUPER);
     h.type_str(&"x".repeat(41));
@@ -433,9 +433,9 @@ fn inputs_paste_validation_and_disabled_field() {
     h.key(KeyCode::Enter);
     h.assert_status("Branch to check out once the task is done saved");
 
-    // a click on the disabled field neither focuses nor edits it: focus
-    // stays on Branch (the library's `FocusFallback::Nearest`, the
-    // showcase default; `First` used to send it to the sidebar)
+
+
+
     h.click_id(api_token);
     assert_eq!(h.app.shell.focus.current(), Some(branch));
 }
@@ -470,9 +470,9 @@ fn pickers_cancel_scope_and_secondary_action() {
     h.assert_status_prefix("Closed ");
 }
 
-/// Keyboard audit #13: Tab in an open select chose nothing and was
-/// swallowed. It now chooses the highlighted option, closes the list and
-/// moves focus on, as a macOS popup button does.
+
+
+
 #[test]
 fn tab_in_an_open_select_chooses_and_moves_focus_on() {
     let mut h = Harness::new(100, 40, PageId::Chips);
@@ -490,10 +490,10 @@ fn tab_in_an_open_select_chooses_and_moves_focus_on() {
     assert!(!text.contains("created_at"), "and the list closed\n{text}");
 }
 
-/// Keyboard audit #9: closing a picker dropped focus to the sidebar, not
-/// the button that opened it. The picker is a layer on the library's
-/// stack now, which gives the owner its focus back on every close (Esc,
-/// a choice).
+
+
+
+
 #[test]
 fn closing_a_picker_gives_focus_back_to_the_button_that_opened_it() {
     let mut h = Harness::new(120, 40, PageId::Pickers);
@@ -529,8 +529,8 @@ fn closing_a_picker_gives_focus_back_to_the_button_that_opened_it() {
     }
 }
 
-/// Keyboard audit #31: Tab cycles the picker's scope forward and Shift+Tab
-/// goes back (it did nothing).
+
+
 #[test]
 fn picker_shift_tab_goes_back_a_scope() {
     let mut h = Harness::new(120, 40, PageId::Pickers);
@@ -561,7 +561,7 @@ fn grid_pending_save_and_discard_lifecycle() {
     h.key(KeyCode::Enter);
     h.assert_status("1 pending");
 
-    // the save review asks for the table's name first
+
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
     assert!(h.app.dialog().is_some(), "Ctrl+S opens the save review");
     h.type_str("customers");
@@ -594,7 +594,7 @@ fn grid_fetch_refresh_and_viewer_paths_are_reachable() {
     h.assert_status("Reloaded from the source");
 
     h.key_mod(KeyCode::Home, KeyModifiers::CONTROL);
-    // notes is the ninth column (after account_id)
+
     for _ in 0..8 {
         h.key(KeyCode::Right);
     }
@@ -711,7 +711,7 @@ fn terminal_selection_and_status_actions() {
 fn editor_completion_paste_and_diagnostic_paths() {
     let mut h = Harness::new(140, 45, PageId::Editor);
 
-    // focus starts the edit (EditEntry::Immediate): no `i` first
+
     h.focus(WidgetId::of("editor").sub("code"));
     h.type_str("cl");
     assert!(h.text().contains("Client"));
@@ -729,7 +729,7 @@ fn editor_completion_paste_and_diagnostic_paths() {
 
     let mut diagnostic = Harness::new(140, 45, PageId::Editor);
     diagnostic.focus(WidgetId::of("editor").sub("code"));
-    // Esc ends the edit focus started ("Done"); `}` is navigation again
+
     diagnostic.key(KeyCode::Esc);
     diagnostic.key(KeyCode::Char('}'));
     diagnostic.key_mod(KeyCode::Char('r'), KeyModifiers::CONTROL);
@@ -775,7 +775,7 @@ fn an_open_context_menu_hides_the_page_focus_under_it() {
     };
     h.mouse(MouseKind::Secondary, x, y);
     assert!(h.text().contains("Change title"));
-    // the panel title, the session row and the nav would each draw a bar
+
     assert_eq!(bars(&h), 0, "the menu owns the keyboard\n{}", h.text());
     let t = h.app.theme;
     let buf = h.term.backend().buffer();
@@ -829,7 +829,7 @@ fn a_panel_with_wide_lines_shows_and_moves_its_horizontal_position() {
         h.row(bar.y)
     );
 
-    // a sideways wheel over the log moves its lines and the thumb
+
     let area = h.area(log);
     let before = h.text();
     assert_eq!(
@@ -839,7 +839,7 @@ fn a_panel_with_wide_lines_shows_and_moves_its_horizontal_position() {
     assert_ne!(h.text(), before);
     assert!(thumb_x(&h) > Some(bar.x));
 
-    // dragging the thumb back to the left edge restores the start
+
     let grab = thumb_x(&h).unwrap();
     h.mouse(MouseKind::Down, grab, bar.y);
     h.mouse(MouseKind::Drag, 0, bar.y);
@@ -865,7 +865,7 @@ fn sidebars_collapse_round_trips_and_disabled_rows_do_nothing() {
     assert!(!h.row(button_y).contains("›"));
 
     let mut disabled = Harness::new(120, 40, PageId::Sidebars);
-    // the template's section strip is the page's first stop, the list next
+
     disabled.key(KeyCode::Tab);
     disabled.key(KeyCode::Tab);
     let nav = WidgetId::of("sidebars").sub("nav");
@@ -882,7 +882,7 @@ fn sidebars_collapse_round_trips_and_disabled_rows_do_nothing() {
 fn the_next_row_is_an_action_row_with_its_message_and_arrows() {
     let mut h = Harness::new(120, 40, PageId::Buttons);
     let next = WidgetId::of("buttons").sub("next");
-    // scroll the row into view through focus, then walk it
+
     h.focus(next.child(0));
     assert!(h.text().contains("2 not available yet"), "{}", h.text());
     h.key(KeyCode::Right);
@@ -914,7 +914,7 @@ fn the_sidebar_hides_behind_its_rail_and_comes_back() {
     let mut h = Harness::new(120, 40, PageId::Sidebars);
     let rail = WidgetId::of("sidebars").sub("rail");
     let nav = WidgetId::of("sidebars").sub("nav");
-    // the open sidebar's frame carries the collapse button
+
     let collapse = rail.part(junie_tui::core::id::PartRef::of(
         junie_tui::core::id::Part::ICON,
     ));
@@ -927,12 +927,12 @@ fn the_sidebar_hides_behind_its_rail_and_comes_back() {
     assert!(!page(&h), "a click on the rail brings it back");
     assert_eq!(h.app.shell.focus.current(), Some(nav));
     assert!(h.text().contains("Branches"));
-    // Ctrl+B toggles it from the keyboard
+
     h.key_mod(KeyCode::Char('b'), KeyModifiers::CONTROL);
     assert!(page(&h));
     h.key_mod(KeyCode::Char('b'), KeyModifiers::CONTROL);
     assert!(!page(&h));
-    // a click on an item opens it and reports the NavAction
+
     let (x, y) = h.find("Members").expect("item");
     h.click(x, y);
     assert!(
@@ -966,7 +966,7 @@ fn textareas_paste_and_disabled_state_are_routed() {
 fn lists_and_trees_accept_mouse_selection() {
     let mut lists = Harness::new(120, 40, PageId::Lists);
     let (x, y) = lists.find("TypeScript").expect("language row");
-    // a double click chooses (one click only moves the cursor)
+
     lists.click(x, y);
     lists.click(x, y);
     assert_eq!(
@@ -976,7 +976,7 @@ fn lists_and_trees_accept_mouse_selection() {
     assert!(lists.text().contains("Chosen: TypeScript"));
 
     let mut trees = Harness::new(120, 40, PageId::Trees);
-    // the section strip, then the tree
+
     trees.key(KeyCode::Tab);
     trees.key(KeyCode::Tab);
     trees.key(KeyCode::Left);
@@ -1138,8 +1138,8 @@ fn terminal_reaches_success_failure_and_splitter_states() {
     assert!(failure.text().contains("failed"));
 }
 
-/// Mouse audit #30: chips past the `+N` marker were unreachable by mouse.
-/// The marker opens a menu of them; clicking one edits it.
+
+
 #[test]
 fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
     let mut h = Harness::new(80, 40, PageId::Chips);
@@ -1154,10 +1154,10 @@ fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
     let marker: String = (more.x..more.right())
         .map(|x| h.term.backend().buffer()[(x, more.y)].symbol().to_owned())
         .collect();
-    // a padded plate: ` +N ` (docs/design/close-button.md)
+
     assert!(marker.starts_with(" +"), "{marker:?}\n{}", h.text());
     h.click(more.x, more.y);
-    // the last chip added is hidden behind the marker and listed below it
+
     let label = "seats between 5 and 50";
     let text = h.text();
     let (x, y) = text
@@ -1173,8 +1173,8 @@ fn the_chip_overflow_marker_opens_a_menu_of_the_hidden_chips() {
     h.assert_status(&format!("Would open the editor for {label}"));
 }
 
-/// Mouse audit #34: a click on blank space right of a checkbox's label
-/// toggled it. Only the box and label take the click.
+
+
 #[test]
 fn blank_space_right_of_a_checkbox_label_does_not_toggle_it() {
     let mut h = Harness::new(160, 40, PageId::Forms);
@@ -1200,8 +1200,8 @@ fn blank_space_right_of_a_checkbox_label_does_not_toggle_it() {
     assert_ne!(row(&h.text()), row(&before), "a click on the label toggles");
 }
 
-/// Keyboard audit #21: `q` never quits over unsaved settings, and Ctrl+C
-/// asks Cancel / Discard first; a clean showcase quits at once.
+
+
 #[test]
 fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
     let mut h = Harness::new(140, 45, PageId::Settings);
@@ -1214,11 +1214,11 @@ fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
     h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
     assert!(!h.app.shell.quit, "Ctrl+C asks first");
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
-    // Cancel (the default) stays
+
     h.key(KeyCode::Enter);
     assert!(!h.app.shell.quit);
     assert!(h.app.dialog().is_none());
-    // Discard quits
+
     h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
     h.key(KeyCode::Char('d'));
     assert!(h.app.shell.quit);
@@ -1228,11 +1228,11 @@ fn quitting_with_unsaved_settings_asks_and_q_never_drops_them() {
     assert!(clean.app.shell.quit, "a clean quit never asks");
 }
 
-/// Focus decision 2026-10-16 (docs/audits/design-review-2026-10/focus.md):
-/// a focused tab strip shows the screen's one `▎`, on its cursor tab. Focus
-/// elsewhere leaves the strip without one, and so does a modal over the
-/// page (the gutter lives only in the topmost layer). The selected tab's
-/// accent rule is selection, not focus.
+
+
+
+
+
 #[test]
 fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
     let mut h = Harness::new(140, 45, PageId::Settings);
@@ -1240,7 +1240,7 @@ fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
     let tabs = settings.sub("tabs");
     let strip = h.area(tabs);
     let gutters = |h: &Harness| h.text().matches('▎').count();
-    // `▎` cells on the strip's own row, inside the strip
+
     let strip_gutters = |h: &Harness| -> Vec<u16> {
         let buffer = h.term.backend().buffer();
         (strip.x..strip.right())
@@ -1248,7 +1248,7 @@ fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
             .collect()
     };
 
-    // focused: exactly one `▎` on screen, on the cursor tab, in the focus colour
+
     h.focus(tabs);
     assert_eq!(gutters(&h), 1, "{}", h.text());
     let first = h.area(tabs.child(0));
@@ -1257,19 +1257,19 @@ fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
         h.term.backend().buffer()[(first.x, strip.y)].fg,
         Theme::junie().focus
     );
-    // the gutter follows the keyboard cursor
+
     h.key(KeyCode::Right);
     let second = h.area(tabs.child(1));
     assert_eq!(strip_gutters(&h), vec![second.x], "{}", h.text());
     assert_eq!(gutters(&h), 1, "{}", h.text());
     h.key(KeyCode::Left);
 
-    // focus elsewhere: the strip shows none, the focused control has the one
+
     h.click_id(settings.sub("automerge"));
     assert!(strip_gutters(&h).is_empty(), "{}", h.text());
     assert_eq!(gutters(&h), 1, "{}", h.text());
 
-    // a modal over the focused strip: the strip shows none
+
     h.focus(tabs);
     assert_eq!(strip_gutters(&h).len(), 1, "{}", h.text());
     h.key_mod(KeyCode::Char('c'), KeyModifiers::CONTROL);
@@ -1279,9 +1279,9 @@ fn the_tab_strip_shows_the_gutter_only_while_it_holds_focus() {
     assert!(gutters(&h) <= 1, "{}", h.text());
 }
 
-/// Ctrl+Q reaches the quit guard from inside an editing text field and an
-/// editing text area: neither binds it, so each passes it on
-/// (`field_common::unbound_key`).
+
+
+
 #[test]
 fn ctrl_q_reaches_past_editing_text_controls() {
     let forms = WidgetId::of("forms");

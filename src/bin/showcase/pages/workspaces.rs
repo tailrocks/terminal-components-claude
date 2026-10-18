@@ -1,13 +1,13 @@
-//! Workspaces (Screens, plan §7 SC52): jackin's workspace manager
-//! composed from library components only. A `MasterDetail` (resizable
-//! seam, narrow drawer) holds the workspace tree (`TreeView`: instances
-//! under their workspace, state glyphs in their tones, a per-row spinner
-//! while one starts) and the detail card of the cursor's workspace
-//! (`PropsList`), its actions (`Button`s, Prewarm busy while it runs) and
-//! the instance roster (`ListBox`), beside the facts when the detail is
-//! wide and under them when not. Delete… purges a workspace behind a
-//! typed confirmation (`Dialog::facts`). Options:
-//! `crate::options::WORKSPACES`.
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -35,18 +35,18 @@ use junie_tui::widgets::splitter::Splitter;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
 const ID: WidgetId = WidgetId::of("workspaces");
-/// The workspace tree (the master).
+
 pub const TREE: WidgetId = ID.sub("tree");
-/// The detail card's facts (the detail).
+
 pub const DETAIL: WidgetId = ID.sub("detail");
-/// The instance roster.
+
 pub const ROSTER: WidgetId = ID.sub("roster");
-/// The purge confirmation.
+
 pub const PURGE: WidgetId = ID.sub("purge");
 
-/// Ticks a launch takes before its instance runs.
+
 const LAUNCH_TICKS: u16 = 16;
-/// Ticks a prewarm takes.
+
 const PREWARM_TICKS: u16 = 12;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -172,7 +172,7 @@ impl State {
             State::Failed => ("!", Tone::Error),
         }
     }
-    /// The tree's short state column.
+
     fn short(self, since: &str) -> &str {
         match self {
             State::Running => since,
@@ -224,16 +224,16 @@ pub struct WorkspacesPage {
     md: MasterDetail,
     tree: TreeView,
     facts: PropsList,
-    /// The workspace the facts show.
+
     facts_for: Option<usize>,
     roster: ListBox,
     launch: Button,
     edit: Button,
     prewarm: Button,
     delete: Button,
-    /// A launch in progress: workspace, instance, ticks left.
+
     launching: Option<(usize, usize, u16)>,
-    /// Ticks left of a prewarm.
+
     prewarming: u16,
 }
 
@@ -261,7 +261,7 @@ impl WorkspacesPage {
         p
     }
 
-    /// The master-detail through its builders, from the options.
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let md = MasterDetail::new(TREE, DETAIL)
@@ -282,8 +282,8 @@ impl WorkspacesPage {
         };
     }
 
-    /// The tree and the roster from the data; open folders and the
-    /// cursor survive.
+
+
     fn sync_data(&mut self) {
         let nodes = self
             .data
@@ -351,7 +351,7 @@ impl WorkspacesPage {
         self.facts_for = None;
     }
 
-    /// The workspace under the tree's cursor.
+
     fn current(&self) -> Option<usize> {
         self.tree.cursor_path().and_then(|p| p.first().copied())
     }
@@ -434,8 +434,8 @@ impl WorkspacesPage {
         }
         self.md.finish(ctx);
         if l.detail.is_empty() {
-            // collapsed: the detail's stops stay reachable, after the
-            // detail itself (the master-detail registers it in `finish`)
+
+
             for id in [
                 ROSTER,
                 self.launch.id,
@@ -473,7 +473,7 @@ impl WorkspacesPage {
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
         let roster_on = self.opts.value("workspaces.roster") != "off";
-        // wide: the roster beside the facts; narrow: under them
+
         let beside = roster_on && inner.width >= 84;
         let body = Rect::new(
             inner.x,
@@ -490,7 +490,7 @@ impl WorkspacesPage {
                 Rect::new(body.x + fw + 2, body.y, body.width - fw - 2, body.height),
             )
         } else {
-            // the facts take what they measure, the roster the rest
+
             let fh = props::measure(&self.facts(wi), body.width)
                 .min(body.height.saturating_sub(4).max(body.height / 2));
             (
@@ -518,7 +518,7 @@ impl WorkspacesPage {
         } else {
             ctx.focus_stop(ROSTER);
         }
-        // the actions on the card's last row
+
         self.prewarm.busy = self.prewarming > 0;
         self.launch.busy = self.launching.is_some();
         let y = inner.bottom().saturating_sub(1);
@@ -569,7 +569,7 @@ impl WorkspacesPage {
         }
     }
 
-    /// The purge gate: the facts, and the workspace's name typed.
+
     fn purge_dialog(&self, wi: usize) -> Dialog {
         let ws = &self.data[wi];
         let token = self.opts.on("workspaces.typed").then_some(ws.name);
@@ -652,8 +652,8 @@ impl WorkspacesPage {
     }
 }
 
-/// The States grid: the workspace tree and the roster, and the
-/// master-detail's seam and collapsed layout.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

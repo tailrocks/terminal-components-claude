@@ -1,7 +1,7 @@
-//! Host modal families composed from the design-system primitives: the
-//! file browser, choice dialog (radio + buttons), form dialog (selects,
-//! inputs, masked secrets, choose-buttons), the 1Password reference chain,
-//! the read-only info dialog with copyable rows, and the help overlay.
+
+
+
+
 
 use junie_tui::core::event::{Key, Outcome};
 
@@ -25,8 +25,8 @@ use crate::sim::world::World;
 use super::ModalResult;
 use junie_tui::core::scroll::Scrollable;
 
-/// Dim the page (footer excluded), start the modal barrier and draw an
-/// elevated rounded frame. Returns the inner content area.
+
+
 #[allow(clippy::too_many_arguments)]
 pub fn modal_frame(
     screen: Rect,
@@ -36,12 +36,12 @@ pub fn modal_frame(
     height: u16,
     title: &str,
     meta: Option<&str>,
-    // the modal's dismissal policy: its close button shows when Esc may
-    // close it (mouse #13)
+
+
     dismiss: junie_tui::ui::popup::Dismiss,
 ) -> (Rect, Rect) {
-    // placed in the body, clear of the header and the footer, with the
-    // dialog's margin around it
+
+
     junie_tui::ui::modal::Frame::new(width_, height)
         .title(title)
         .meta(meta)
@@ -50,16 +50,16 @@ pub fn modal_frame(
         .render(screen, buf, ctx)
 }
 
-// ------------------------------------------------------------ file browser
 
-// The file browser is the library's (S22); this app opens it on its
-// simulated filesystem with vim keys, hidden profiles shown and the Git URL
-// entry.
+
+
+
+
 use junie_tui::widgets::file_browser::{Choose, FileCmd, FileEntry, MemorySource, UrlEntry};
 pub use junie_tui::widgets::file_browser::{FileBrowser, FileBrowserResult as BrowserResult};
 
-/// A file browser on `w`'s filesystem starting at `cwd`; `with_readonly`
-/// adds the "Mount read-only" option, `dirs_only` accepts only folders.
+
+
 pub fn file_browser(
     id: WidgetId,
     title: &str,
@@ -114,17 +114,17 @@ pub fn file_browser(
     }
 }
 
-// ------------------------------------------------------- library dialogs
 
-// The choice, form and info dialogs moved into the library; the paths
-// below keep this app's call sites unchanged.
+
+
+
 pub use junie_tui::widgets::choice_dialog::ChoiceDialog;
 pub use junie_tui::widgets::form_dialog::{
     FieldValue, FormAction, FormDialog, FormField, FormFieldKind as FieldKindW, FormValues,
 };
 pub use junie_tui::widgets::info_dialog::{InfoDialog, InfoResult};
 
-// ------------------------------------------------------- 1Password chain
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpStep {
@@ -134,10 +134,10 @@ pub enum OpStep {
     Field,
 }
 
-/// Account → vault → item → field, each stage a searchable picker fed by
-/// the simulated service; only reference metadata leaves the flow.
+
+
 pub struct OpFlow {
-    /// Which dismissals close it. Default `Dismiss::LIGHT`.
+
     pub dismiss: junie_tui::ui::popup::Dismiss,
     pub step: OpStep,
     pub account: Option<String>,
@@ -145,12 +145,12 @@ pub struct OpFlow {
     pub item: Option<(String, String)>,
     pub picker: Picker,
     pub result: Option<Option<OpReference>>,
-    /// Closed by a dismissal (an outside click): the owner hears
-    /// `Cancelled`, not a finished chain.
+
+
     pub dismissed: bool,
     pub loading_until: Option<i64>,
     pub last_error: Option<OpError>,
-    /// Restricts the field stage to concealed fields.
+
     pub concealed_only: bool,
 }
 
@@ -170,7 +170,7 @@ impl OpFlow {
             concealed_only: true,
         };
         f.picker.list.width = (64, 64);
-        // a single available account is chosen automatically
+
         let avail: Vec<&crate::sim::onepassword::OpAccount> = op
             .accounts
             .iter()
@@ -230,7 +230,7 @@ impl OpFlow {
         self.loading_until = Some(now_ms + op.latency_ms);
     }
 
-    /// Called by the app on ticks: finish loading when due.
+
     pub fn tick(&mut self, now_ms: i64, op: &SimOnePassword) -> Outcome {
         if let Some(t) = self.loading_until
             && now_ms >= t
@@ -267,7 +267,7 @@ impl OpFlow {
         self.last_error = Some(e);
     }
 
-    /// Rebuild rows for the current step and query.
+
     pub fn refresh(&mut self, op: &SimOnePassword) {
         self.picker.status = PickerStatus::Ready;
         self.last_error = None;
@@ -481,9 +481,9 @@ impl OpFlow {
         }
     }
 
-    /// The picker takes its gestures (a click chooses a row, its bar
-    /// pages and drags, the wheel scrolls it); a click on its backdrop
-    /// cancels under the flow's own policy, as any outside click.
+
+
+
     pub fn pointer(&mut self, ev: &PointerEvent, now_ms: i64, op: &SimOnePassword) -> Outcome {
         let Some(r) = self.picker.route(ev) else {
             return match ev.wheel() {
@@ -507,7 +507,7 @@ impl OpFlow {
         }
     }
 
-    /// Footer hints for the current step (the shell's hint bar shows them).
+
     pub fn hints(&self) -> Vec<Hint> {
         match (self.step, &self.picker.status) {
             (_, PickerStatus::Error { .. }) => vec![hint("r", "Retry"), hint("Esc", "Back")],
@@ -535,8 +535,8 @@ impl OpFlow {
     }
 }
 
-/// The 1Password chain on the app's layer stack: it reads the simulated
-/// service and the clock from the world.
+
+
 impl Layer<ModalResult, World> for OpFlow {
     fn animating(&self) -> bool {
         true
@@ -572,6 +572,6 @@ impl Layer<ModalResult, World> for OpFlow {
     }
 }
 
-// ------------------------------------------------------------------ help
+
 
 pub use junie_tui::widgets::help::HelpOverlay;

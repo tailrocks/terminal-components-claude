@@ -1,5 +1,5 @@
-//! `--motion` / `--frame`: captures pin every tick-derived and
-//! wall-clock-derived state (docs/visual-testing/plan.md §B3).
+
+
 
 use junie_tui::runtime::Application;
 use std::time::Duration;
@@ -18,8 +18,8 @@ fn parse(args: &[&str]) -> Result<(Motion, u64), clap::Error> {
     Ok((cli.common.motion.unwrap_or_default(), cli.common.frame))
 }
 
-/// Connected, with the explorer loading two tables' columns (3 ticks each,
-/// spinners on both rows).
+
+
 fn loading() -> H {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Right);
@@ -45,8 +45,8 @@ fn motion_and_frame_flags_parse_like_the_other_binaries() {
     assert!(parse(&["--frame", "-1"]).is_err());
 }
 
-/// Paused never ticks: the spinner phase and the load stay exactly where
-/// they are, however many ticks arrive.
+
+
 #[test]
 fn paused_freezes_the_frame() {
     let mut live = loading();
@@ -69,8 +69,8 @@ fn paused_freezes_the_frame() {
     );
 }
 
-/// `--frame N` fast-forwards the world N live ticks (the load finishes
-/// exactly as under live ticks) and pins the decorative phase at N.
+
+
 #[test]
 fn paused_frame_matches_live_ticks() {
     let mut live = loading();
@@ -83,8 +83,8 @@ fn paused_frame_matches_live_ticks() {
     assert_eq!(paused.text(), live.text());
 }
 
-/// Paused holds a press flash (the keyboard activation flash is 140 ms of
-/// wall clock otherwise), so a pressed control can be captured.
+
+
 #[test]
 fn paused_holds_the_press_flash() {
     let id = WidgetId::of("motion-test");
@@ -98,8 +98,8 @@ fn paused_holds_the_press_flash() {
     assert_eq!(paused.app.interaction().flash, Some(id));
 }
 
-/// Reduced advances the world but not the decorative phase: the spinner
-/// glyph stays, the load still finishes.
+
+
 #[test]
 fn reduced_advances_the_world_without_animating_glyphs() {
     let mut h = loading();

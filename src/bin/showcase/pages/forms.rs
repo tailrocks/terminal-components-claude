@@ -1,11 +1,11 @@
-//! Forms (Inputs & forms): a "New task" form composed of library fields:
-//! required and optional `TextInput`s with validators, a `TextArea`, a
-//! `RadioGroup`, `Checkbox`es, `Toggle`s (one managed, so disabled) and a
-//! primary and subtle `Button`; Ctrl+S submits, an invalid submit focuses
-//! the first field in error, a valid one shows the busy button and then
-//! the result. Two columns when there is room; on a short page one column
-//! that scrolls part by part. Options: `crate::options::FORMS`; States:
-//! the required field, the optional field and the description.
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -42,7 +42,7 @@ fn email(s: &str) -> Option<String> {
     }
 }
 
-/// The task name's check: empty is an error only while it is required.
+
 fn name(s: &str, required: bool) -> Option<String> {
     if s.trim().is_empty() {
         required.then(|| "Required".into())
@@ -60,7 +60,7 @@ enum Submit {
     Done,
 }
 
-/// The form's parts in the one-column layout, top to bottom.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Part {
     Name,
@@ -99,7 +99,7 @@ pub struct FormsPage {
     reset: Button,
     state: Submit,
     attempted: bool,
-    /// The one-column layout's scroll, on a short page.
+
     sections: crate::pages::layout::Sections,
 }
 
@@ -131,8 +131,8 @@ impl FormsPage {
         page
     }
 
-    /// Rebuild the fields from the options through their builders,
-    /// keeping what was typed.
+
+
     fn apply(&mut self) {
         let o = &self.opts;
         let when = match o.value("forms.validate_when") {
@@ -172,7 +172,7 @@ impl FormsPage {
             .disabled(o.on("forms.managed"));
     }
 
-    /// The description's rows from the option (one on a short page).
+
     fn desc_rows(&self) -> u16 {
         self.opts.number("forms.desc_rows").unwrap_or(4)
     }
@@ -214,7 +214,7 @@ impl FormsPage {
         cx.status("Form reset");
     }
 
-    /// The submit result beside the actions, if any.
+
     fn message(
         &self,
         t: &junie_tui::theme::Theme,
@@ -261,8 +261,8 @@ impl FormsPage {
             buf,
             t,
         );
-        // Two columns when every control fits with the action row
-        // reserved; otherwise one column that scrolls part by part.
+
+
         if inner.height < 11 || inner.width < 40 {
             self.render_column(inner, buf, ctx, bg);
             return;
@@ -272,7 +272,7 @@ impl FormsPage {
         let body = Rect::new(inner.x, inner.y, inner.width, inner.height - 2);
         let (l, r) = crate::pages::layout::columns(body, body.width / 2 - 2, 4);
 
-        // left: task section
+
         let mut y = l.y;
         if !compact {
             buf.set_string(l.x, y, "Task", t.faint().bg(bg));
@@ -281,7 +281,7 @@ impl FormsPage {
         self.name
             .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
         y += TextInput::HEIGHT;
-        // the description takes the rows the reviewer leaves it
+
         let room = (l.bottom().saturating_sub(y))
             .saturating_sub(TextInput::HEIGHT + 2 * u16::from(!compact));
         self.description.rows = self.description.rows.min(room.saturating_sub(2).max(1));
@@ -300,7 +300,7 @@ impl FormsPage {
         self.reviewer
             .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
 
-        // right: options section
+
         let mut y = r.y;
         if !compact {
             buf.set_string(r.x, y, "Options", t.faint().bg(bg));
@@ -317,12 +317,12 @@ impl FormsPage {
         y += 1 + u16::from(!compact);
         self.render_toggles(Rect::new(r.x, y, r.width, 3), buf, ctx, bg);
 
-        // actions
+
         let ay = inner.bottom().saturating_sub(1);
         self.render_actions(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
     }
 
-    /// The toggles and, under a managed one, who manages it.
+
     fn render_toggles(
         &mut self,
         area: Rect,
@@ -371,8 +371,8 @@ impl FormsPage {
         }
     }
 
-    /// One column on a short page: each part a stack child, so the page
-    /// scrolls by whole parts and focus brings its part into view.
+
+
     fn render_column(
         &mut self,
         area: Rect,
@@ -393,7 +393,7 @@ impl FormsPage {
         let l = self.sections.layout(area, &children, focus, buf, ctx);
         for (i, part) in Part::ALL.into_iter().enumerate() {
             let Some(r) = l.slot(i) else {
-                // a part out of view keeps its focus stops
+
                 for id in self.part_ids(part) {
                     if !(id == self.notify.id && self.notify.disabled) {
                         ctx.focus_stop(id);
@@ -420,8 +420,8 @@ impl FormsPage {
 }
 
 impl FormsPage {
-    /// Each control takes its own pointer events; a click on a text field
-    /// or a radio option focuses it (the options are not focus stops).
+
+
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         for inp in [&mut self.name, &mut self.reviewer] {
@@ -473,15 +473,15 @@ impl FormsPage {
                 Outcome::Ignored
             };
         }
-        // the one-column layout's own scroll
+
         self.sections
             .handle(&PageEvent::Pointer(*ev))
             .unwrap_or(Outcome::Ignored)
     }
 }
 
-/// The States grid: the required task name, the optional reviewer with its
-/// help line, and the description.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))
@@ -556,8 +556,8 @@ impl Page for FormsPage {
             }
             return Outcome::Ignored;
         }
-        // Ctrl+S submits wherever focus is on the Playground (the strip
-        // included)
+
+
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('s')
             && self.template.section() == Section::Playground
@@ -713,9 +713,9 @@ mod tests {
     use junie_tui::theme::{ColorLevel, Theme};
     use junie_tui::ui::ctx::Interaction;
 
-    /// The Playground keeps every control inside the page at every size:
-    /// two columns when they fit, one scrolling column below that (the
-    /// controls out of view keep their focus stops).
+
+
+
     #[test]
     fn form_keeps_all_controls_inside_small_normal_and_wide_page() {
         for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
@@ -731,7 +731,7 @@ mod tests {
                 let mut ring = FocusRing::default();
                 let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
                 page.render(area, &mut buf, &mut ctx);
-                // the section strip, then the nine controls
+
                 assert_eq!(ring.reachable().len(), 10, "{width}×{height}");
                 for id in ring.reachable() {
                     if *id == page.template.tabs.id {
@@ -739,13 +739,13 @@ mod tests {
                     }
                     let control = if *id == page.mode.id {
                         if page.mode.areas.len() != 3 {
-                            continue; // out of view on a short page
+                            continue;
                         }
                         page.mode.areas[2]
                     } else {
                         match hits.area_of(*id) {
                             Some(a) => a,
-                            None => continue, // out of view on a short page
+                            None => continue,
                         }
                     };
                     assert_eq!(

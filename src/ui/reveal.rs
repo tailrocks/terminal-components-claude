@@ -1,42 +1,42 @@
-//! Reveal the full text of a truncated cell.
-//!
-//! Text cut to fit its space keeps the `…` ellipsis as the truncation
-//! signal, and stays cut: rows never re-flow on their own. The full text is
-//! one gesture away, following desktop conventions:
-//!
-//! - **Pointer.** Resting the pointer on a truncated cell shows an
-//!   *expansion tooltip* (the macOS behaviour for clipped table and list
-//!   cells): the full text drawn over the cell, starting at the same
-//!   column, wrapped to the screen width when it is longer than a line and
-//!   clamped on screen. It goes through the overlay layer, so it is never
-//!   clipped by its container, never shifts layout and never claims a hit
-//!   region: clicks land on the cell beneath exactly as before.
-//! - **Keyboard.** The focused widget's cursor row expands with the reveal
-//!   key (default `→`, the Finder list "disclose" key) and collapses with
-//!   `←` or Esc. While open the reveal follows the cursor, like Quick Look
-//!   follows the selection, so a list of cut values can be read with the
-//!   arrow keys. Keyboard use hides pointer hover until the pointer moves
-//!   ([`Interaction::live_hover`](crate::ui::ctx::Interaction::live_hover)).
-//!
-//! - **In place.** With [`RevealMode::InlineWrap`] the keyboard reveal
-//!   wraps the cursor row in place instead, accordion style: the row grows
-//!   to every line of its text and the rows below move down. Owners that
-//!   can re-flow their rows ([`ListBox`](crate::widgets::list::ListBox),
-//!   [`PropsList`](crate::widgets::props::PropsList))
-//!   draw it through [`RevealState::inline`]; the others keep the tooltip.
-//! - **Long text.** A reveal longer than its rows (the screen, or
-//!   [`Reveal::max_rows`]) shows `↑ N more` / `↓ N more` markers and
-//!   scrolls with PgUp/PgDn and the wheel ([`Reveal::scroll`]), instead of
-//!   ending in `…`.
-//!
-//! Only one reveal is visible per frame: the live pointer's beats the
-//! keyboard's, otherwise the first registered wins. Copying a value is the
-//! owner's business and is unaffected (it always copies the full value).
-//!
-//! A widget that truncates text calls [`truncated`] (pointer only) or
-//! [`RevealState::cell`] (pointer and keyboard) with the cell range the text
-//! was cut to and the full text. [`Reveal`] is the policy: a global default
-//! on [`RenderCtx::reveal`] and an optional per-widget override.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::rc::Rc;
 
@@ -52,55 +52,55 @@ use crate::ui::ctx::{RenderCtx, fill};
 use crate::ui::popup::{self, Placement};
 use crate::ui::text::{truncate, wider_than, width, wrap};
 
-/// How the keyboard reveal shows the full text of the cursor row.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RevealMode {
-    /// An expansion tooltip over the row, through the overlay layer: the
-    /// rows around it never move (the default).
+
+
     #[default]
     Tooltip,
-    /// The cursor row wraps in place, accordion style: it grows to show
-    /// every line and the rows below it move down. Owners that cannot
-    /// re-flow their rows (tables, grids) fall back to the tooltip.
-    /// Pointer hover always uses the tooltip: rows must not move under the
-    /// pointer.
+
+
+
+
+
     InlineWrap,
 }
 
-/// How the full text of a truncated cell can be revealed.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Reveal {
-    /// Resting the pointer on a truncated cell shows its expansion tooltip.
+
     pub hover: bool,
-    /// The key that expands the focused cursor row (`←` and Esc collapse
-    /// it). `None` turns the keyboard reveal off.
+
+
     pub keyboard: Option<KeyCode>,
-    /// How the keyboard reveal shows (default [`RevealMode::Tooltip`]).
+
     pub mode: RevealMode,
-    /// Most rows a reveal takes before its text scrolls. `0` (the default)
-    /// takes as many as fit: the screen for a tooltip, the owner's viewport
-    /// for an inline reveal.
+
+
+
     pub max_rows: u16,
-    /// A reveal longer than its rows scrolls with PgUp/PgDn and the wheel
-    /// (default on). Off, it stays at its first lines and ends with
-    /// `↓ N more`.
+
+
+
     pub scroll: bool,
-    /// Lines one wheel notch scrolls a pointer-only tooltip (one shown by
-    /// [`truncated`] or [`queue_cut`], which no widget state owns; see
-    /// [`on_pointer_wheel`]). Default 3, the pointer's default. A
-    /// [`RevealState`] owner passes its own wheel delta instead.
+
+
+
+
     pub wheel_lines: u16,
-    /// How long the pointer rests on a cut cell before its expansion
-    /// tooltip shows (ms). Default 300: sweeping across a list does not
-    /// flash a tooltip per row. The keyboard reveal is immediate.
+
+
+
     pub delay_ms: u64,
-    /// At either end of a scrolling tooltip the wheel goes on to the
-    /// content beneath (default on), instead of stalling there.
+
+
     pub wheel_passes_at_ends: bool,
 }
 
 impl Reveal {
-    /// No reveal at all: truncated text stays cut.
+
     pub const OFF: Self = Self {
         hover: false,
         keyboard: None,
@@ -152,7 +152,7 @@ impl Reveal {
         self
     }
 
-    /// The reveal key as a key-hint label (`→`, `Space`, `i`).
+
     pub fn key_label(&self) -> Option<&'static str> {
         const PRINTABLE: &str = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
         Some(match self.keyboard? {
@@ -173,7 +173,7 @@ impl Reveal {
 }
 
 impl Default for Reveal {
-    /// Pointer hover on, keyboard on `→` as a tooltip, long text scrolls.
+
     fn default() -> Self {
         Self {
             hover: true,
@@ -188,47 +188,47 @@ impl Default for Reveal {
     }
 }
 
-/// What the last drawn reveal of a [`RevealState`] could scroll: written
-/// when the reveal is laid out (in the overlay, for a tooltip), read by the
-/// next key or wheel event.
+
+
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 struct Extent {
-    /// Furthest scroll offset; `0`: the text fits, nothing scrolls.
+
     max: u16,
-    /// Lines one page moves.
+
     page: u16,
 }
 
 type SharedExtent = std::rc::Rc<std::cell::Cell<Extent>>;
 
-/// A widget's keyboard reveal: its policy override and whether the cursor
-/// row is expanded. Owners call [`RevealState::begin`] at the start of
-/// render, [`RevealState::cell`] per truncated cell (and
-/// [`RevealState::inline`] for the cursor row first, when they can re-flow
-/// it), and [`RevealState::on_key`] / [`RevealState::on_wheel`] before
-/// their own handling.
+
+
+
+
+
+
 #[derive(Debug, Clone, Default)]
 pub struct RevealState {
-    /// Per-widget policy; `None` follows [`RenderCtx::reveal`].
+
     pub config: Option<Reveal>,
-    /// The cursor row is expanded (stays open while the cursor moves).
+
     pub open: bool,
-    /// The policy in effect at the last render.
+
     effective: Reveal,
-    /// The focused cursor row was truncated at the last render: the reveal
-    /// key has something to show.
+
+
     available: bool,
-    /// The owner drew the cursor row's reveal inline this frame.
+
     inlined: bool,
-    /// First line shown of a reveal longer than its rows.
+
     scroll: u16,
-    /// The cell the scroll offset belongs to: another cell starts at its
-    /// first line.
+
+
     target: Option<WidgetId>,
-    /// Shared with the queued tooltip, which lays itself out at frame end.
+
     extent: SharedExtent,
-    /// The theme's hint labels (`reveal_open`, `reveal_close`) as of the
-    /// last frame; `None` before the first is the default copy.
+
+
     labels: Option<(&'static str, &'static str)>,
 }
 
@@ -241,18 +241,18 @@ impl RevealState {
         }
     }
 
-    /// The policy in effect (as of the last render).
+
     pub fn effective(&self) -> Reveal {
         self.effective
     }
 
-    /// The focused cursor row was cut at the last render, so the reveal key
-    /// does something: owners show its key hint only then.
+
+
     pub fn available(&self) -> bool {
         self.available && self.effective.keyboard.is_some()
     }
 
-    /// The key hint for the reveal key, when it applies: `(key, label)`.
+
     pub fn hint(&self) -> Option<(&'static str, &'static str)> {
         if !self.available() {
             return None;
@@ -267,12 +267,12 @@ impl RevealState {
         Some((key, if self.open { close } else { open }))
     }
 
-    /// The reveal drawn last is longer than its rows and scrolls.
+
     pub fn scrolls(&self) -> bool {
         self.effective.scroll && self.extent.get().max > 0
     }
 
-    /// Start a frame: resolve the policy against the global default.
+
     pub fn begin(&mut self, ctx: &RenderCtx) {
         self.effective = self.config.unwrap_or(ctx.reveal);
         let s = &ctx.theme.strings;
@@ -289,10 +289,10 @@ impl RevealState {
         self.open = false;
     }
 
-    /// The reveal key opens, `←` and Esc close, PgUp/PgDn scroll a reveal
-    /// longer than its rows. Keys are only taken when they do something
-    /// visible: the reveal key on a cut cursor row, a close or scroll key
-    /// while the reveal shows. Everything else is the owner's.
+
+
+
+
     pub fn on_key(&mut self, key: &Key) -> Option<Outcome> {
         let open_key = self.effective.keyboard?;
         if !key.plain() {
@@ -324,15 +324,15 @@ impl RevealState {
         None
     }
 
-    /// The wheel scrolls this widget's reveal when it is longer than its
-    /// rows (the open keyboard reveal, or the pointer's tooltip). `None`
-    /// when nothing scrolls: the owner scrolls its own content.
+
+
+
     pub fn on_wheel(&mut self, delta: i32) -> Option<Outcome> {
         if !self.scrolls() {
             return None;
         }
         let out = self.scroll_by(delta);
-        // at an end the wheel goes on to the content, per policy
+
         if out == Outcome::Consumed && self.effective.wheel_passes_at_ends {
             return None;
         }
@@ -343,8 +343,8 @@ impl RevealState {
         let max = self.extent.get().max as i32;
         let next = (self.scroll as i32 + delta).clamp(0, max) as u16;
         if next == self.scroll {
-            // at an end the reveal still holds the event, so the content
-            // beneath does not jump while the text is being read
+
+
             Outcome::Consumed
         } else {
             self.scroll = next;
@@ -352,8 +352,8 @@ impl RevealState {
         }
     }
 
-    /// A reveal of `id` is about to show: the scroll offset belongs to one
-    /// cell, so another starts at its first line.
+
+
     fn track(&mut self, id: WidgetId) {
         if self.target != Some(id) {
             self.target = Some(id);
@@ -361,14 +361,14 @@ impl RevealState {
         }
     }
 
-    /// The rows an inline reveal ([`RevealMode::InlineWrap`]) of the cursor
-    /// row takes, when it applies: the keyboard reveal is open and `full`
-    /// does not fit `width`. Call it before drawing the cursor row; the
-    /// owner then draws the returned rows in place of the cut label, one per
-    /// screen row, and skips [`RevealState::cell`] for that row. `room` is
-    /// the most rows the owner can give the row; a longer text scrolls.
-    /// `None`: draw the row as usual (a cut cursor row still counts as
-    /// available, so the reveal key works).
+
+
+
+
+
+
+
+
     pub fn inline(
         &mut self,
         ctx: &mut RenderCtx,
@@ -407,9 +407,9 @@ impl RevealState {
         Some(shown)
     }
 
-    /// Register a cell showing `full` cut to `area`. `cursor` is true for
-    /// the focused widget's cursor row: it is the one the keyboard reveal
-    /// expands. Returns whether the text was cut.
+
+
+
     pub fn cell(
         &mut self,
         ctx: &mut RenderCtx,
@@ -444,8 +444,8 @@ impl RevealState {
         cut
     }
 
-    /// The focused cursor row is cut: publish the reveal key hint for the
-    /// app's footer ([`RenderCtx::reveal_hint`]).
+
+
     fn advertise(&self, ctx: &mut RenderCtx) {
         if let Some(h) = self.hint() {
             ctx.reveal_hint = Some(h);
@@ -466,15 +466,15 @@ impl RevealState {
     }
 }
 
-/// One row of a reveal: a line of the text, or a `↑ N more` / `↓ N more`
-/// marker for lines scrolled out of view (`more`; drawn muted).
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RevealLine {
     pub text: String,
     pub more: bool,
 }
 
-/// The rows a reveal may take: `room`, capped by `max_rows` when set.
+
 fn cap(room: u16, max_rows: u16) -> u16 {
     if max_rows > 0 {
         room.min(max_rows)
@@ -483,8 +483,8 @@ fn cap(room: u16, max_rows: u16) -> u16 {
     }
 }
 
-/// The `rows` of `lines` shown at `scroll`, with markers for what is
-/// scrolled out above and below, and how far it scrolls.
+
+
 fn window(
     lines: &[String],
     rows: usize,
@@ -522,8 +522,8 @@ fn window(
         };
         return (vec![line(&lines[scroll.min(max)])], extent);
     }
-    // at the top the last row is the ↓ marker, at the end the first row is
-    // the ↑ marker, in between both (when a line fits between them)
+
+
     let max = n - (rows - 1);
     let o = scroll.min(max);
     let extent = Extent {
@@ -549,11 +549,11 @@ fn window(
     (out, extent)
 }
 
-/// Register a pointer-only reveal for a cell showing `full` cut to `area`,
-/// under `config` (or the global default). Returns whether the text was
-/// cut. A tooltip longer than the screen shows `↓ N more` and scrolls with
-/// the wheel over it ([`on_pointer_wheel`], which the runtime calls before
-/// the app sees the wheel); off with [`Reveal::scroll`].
+
+
+
+
+
 pub fn truncated(
     ctx: &mut RenderCtx,
     config: Option<Reveal>,
@@ -590,19 +590,19 @@ pub fn truncated(
     cut
 }
 
-/// The scroll state of the pointer-only tooltip ([`truncated`]): no widget
-/// owns it, and only one reveal shows per frame.
+
+
 #[derive(Debug, Default)]
 struct PointerTip {
-    /// The cell the scroll offset belongs to.
+
     target: Option<WidgetId>,
     scroll: u16,
     extent: SharedExtent,
-    /// Where the tooltip was drawn in the last frame, if it was.
+
     drawn: Option<Rect>,
     wheel_lines: u16,
     scrolls: bool,
-    /// [`Reveal::wheel_passes_at_ends`] of the drawn tooltip.
+
     passes: bool,
 }
 
@@ -611,8 +611,8 @@ thread_local! {
         std::cell::RefCell::new(PointerTip::default());
 }
 
-/// A frame starts: a pointer-only tooltip is under the pointer only if
-/// this frame draws it again.
+
+
 pub(crate) fn begin_frame() {
     POINTER.with(|p| p.borrow_mut().drawn = None);
     HOVER_WAIT.with(|w| w.set(None));
@@ -620,18 +620,18 @@ pub(crate) fn begin_frame() {
 }
 
 thread_local! {
-    /// The shortest wait (ms) before hover content held back this frame
-    /// may show ([`hover_ready`]); `None` when nothing waits.
+
+
     static HOVER_WAIT: std::cell::Cell<Option<u64>> = const { std::cell::Cell::new(None) };
-    /// Frames started, so a reader tells one frame's wait from the next.
+
     static FRAME: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
 }
 
-/// Whether hover content that waits `delay_ms` for the pointer to rest may
-/// show this frame, per [`crate::ui::ctx::Interaction::hover_ms`]. When it
-/// must still wait, the time left is recorded for [`hover_wait`], so
-/// the runtime draws again once it has passed (no input arrives to cause
-/// a frame while the pointer rests).
+
+
+
+
+
 pub fn hover_ready(ctx: &RenderCtx, delay_ms: u64) -> bool {
     let Some(rested) = ctx.interaction.hover_ms else {
         return true;
@@ -644,22 +644,22 @@ pub fn hover_ready(ctx: &RenderCtx, delay_ms: u64) -> bool {
     false
 }
 
-/// How long (ms) after the last frame hover content it held back may show
-/// ([`hover_ready`]), with that frame's number: the runtime draws again
-/// then.
+
+
+
 pub fn hover_wait() -> Option<(u64, u64)> {
     let frame = FRAME.with(|f| f.get());
     HOVER_WAIT.with(|w| w.get()).map(|ms| (frame, ms))
 }
 
-/// The wheel over a pointer-only tooltip ([`truncated`], [`queue_cut`])
-/// longer than its rows scrolls the tooltip, the way a [`RevealState`]
-/// owner scrolls its own. `None` when the event is not a vertical wheel
-/// over such a tooltip, as last drawn: the app handles it as usual. At
-/// either end the wheel goes on to the content beneath
-/// ([`Reveal::wheel_passes_at_ends`], default on); off, the tooltip holds
-/// it (`Consumed`).
-/// [`crate::runtime`] calls this before dispatching each input.
+
+
+
+
+
+
+
+
 pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
     let crate::core::event::Input::Mouse(m) = input else {
         return None;
@@ -679,7 +679,7 @@ pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
         let next =
             (p.scroll as i32 + dy * p.wheel_lines.max(1) as i32).clamp(0, extent.max as i32) as u16;
         if next == p.scroll && p.passes {
-            // at an end the wheel goes on to the content beneath
+
             return None;
         }
         Some(if next == p.scroll {
@@ -691,23 +691,23 @@ pub fn on_pointer_wheel(input: &crate::core::event::Input) -> Option<Outcome> {
     })
 }
 
-/// Put the frame's reveal key hint ([`RenderCtx::reveal_hint`]: `→ Full
-/// text` while the focused cursor row is cut, `← Collapse` while it shows)
-/// into a footer's hints. It goes after the first hint (usually the move
-/// keys), so a narrow footer that drops hints from the right keeps it, and
-/// is skipped when its key is already advertised. `key_of` reads a hint's
-/// key, `make` builds one, so any hint type works.
-/// Publish `full`, the cut value under the focused widget's cursor, for
-/// the peek line ([`RenderCtx::peek`]): the footer shows it in full while
-/// nothing else is in its status slot. The first value of a frame wins;
-/// an inert frame (content under a modal) publishes nothing. Widgets with
-/// a [`RevealState`] publish through [`RevealState::cell`]; a table or grid
-/// calls this for its cursor cell (K12, SI8).
+
+
+
+
+
+
+
+
+
+
+
+
 pub fn peek(ctx: &mut RenderCtx, full: &str) {
     if ctx.inert || ctx.peek.is_some() {
         return;
     }
-    // one line: a value's line breaks read as spaces
+
     let one: String = full
         .split(['\n', '\r', '\t'])
         .filter(|p| !p.is_empty())
@@ -732,25 +732,25 @@ pub fn advertise<T>(
 }
 
 thread_local! {
-    /// Cut text drawn this frame by code that renders without a
-    /// [`RenderCtx`] (panel title rows, static property sheets),
-    /// registered at the next overlay flush.
+
+
+
     static CUTS: std::cell::RefCell<Vec<(Rect, String)>> =
         const { std::cell::RefCell::new(Vec::new()) };
 }
 
-/// Most cut texts queued per frame: chrome rendered over and over without
-/// a frame to flush it never grows the queue.
+
+
 const CUTS_MAX: usize = 64;
 
-/// Queue text shown cut to `area` whose full text is `full`, for code that
-/// draws without a [`RenderCtx`] (panel titles, [`props::render`] sheets).
-/// At the next overlay flush its cells become a hover-only region (clicks
-/// still reach what is beneath) that shows the expansion tooltip under the
-/// global [`RenderCtx::reveal`] policy. Text that fits is ignored. There
-/// is no keyboard reveal: such text has no focus or cursor row.
-///
-/// [`props::render`]: crate::widgets::props::render
+
+
+
+
+
+
+
+
 pub fn queue_cut(area: Rect, full: &str) {
     if !is_cut(area, full) {
         return;
@@ -764,17 +764,17 @@ pub fn queue_cut(area: Rect, full: &str) {
     });
 }
 
-/// Cut text queued so far this frame (a
-/// [`ScrollView`](crate::ui::scroll_view::ScrollView) marks where its
-/// content's start).
+
+
+
 pub(crate) fn cuts_len() -> usize {
     CUTS.with(|q| q.borrow().len())
 }
 
-/// Put cut text queued since `from` inside `content` on screen, like
-/// [`HitRegistry::scroll_since`](crate::core::hit::HitRegistry::scroll_since):
-/// cut to `window`, moved so `window`'s top-left lands on `to`, dropped
-/// when out of view.
+
+
+
+
 pub(crate) fn scroll_cuts_since(from: usize, content: Rect, window: Rect, to: Position) {
     let (dx, dy) = (window.x.saturating_sub(to.x), window.y.saturating_sub(to.y));
     CUTS.with(|q| {
@@ -794,19 +794,19 @@ pub(crate) fn scroll_cuts_since(from: usize, content: Rect, window: Rect, to: Po
     });
 }
 
-/// Drop text queued outside a frame (a new frame starts clean).
+
 pub(crate) fn clear_cuts() {
     CUTS.with(|q| q.borrow_mut().clear());
 }
 
-/// The hover id of queued cut text at `area`: by position, so two panels
-/// with the same title reveal each their own.
+
+
 pub fn cut_id(area: Rect) -> WidgetId {
     WidgetId::of("junie.reveal.cut").child(((area.x as usize) << 16) | area.y as usize)
 }
 
-/// Register the queued cut text as hover regions with their reveal.
-/// Behind a modal (`inert`) it is dropped: nothing beneath it reveals.
+
+
 pub(crate) fn flush_cuts(ctx: &mut RenderCtx) {
     let cuts = CUTS.with(|q| std::mem::take(&mut *q.borrow_mut()));
     if ctx.inert {
@@ -831,14 +831,14 @@ enum Source {
     Pointer,
 }
 
-/// Where a tooltip starts reading, its row cap, and where it reports how
-/// far it could scroll.
+
+
 #[derive(Debug, Clone, Default)]
 struct Feed {
     scroll: u16,
     max_rows: u16,
     extent: Option<SharedExtent>,
-    /// A pointer-only tooltip: its drawn box is where the wheel scrolls it.
+
     pointer_only: bool,
 }
 
@@ -846,27 +846,27 @@ struct Feed {
 struct Tip {
     anchor: Rect,
     id: WidgetId,
-    /// Shared with the wrap cache: a reveal resting on the same value
-    /// frame after frame neither copies nor re-wraps it.
+
+
     text: Rc<str>,
     source: Source,
     feed: Feed,
-    /// The scrolled views the anchor was drawn in
-    /// ([`RenderCtx::shifts`]): the anchor moves by their offsets when
-    /// the reveal is drawn.
+
+
+
     shifts: Vec<crate::ui::ctx::Shift>,
 }
 
-/// The frame's single reveal, drawn by one queued overlay.
+
 #[derive(Debug, Default)]
 pub(crate) struct Slot {
     tip: Option<Tip>,
     queued: bool,
 }
 
-/// The wrapped lines of the last reveal drawn: a reveal stays on screen
-/// for many frames (a resting pointer, an open keyboard reveal), and
-/// wrapping a long value costs time linear in its length.
+
+
+
 #[derive(Debug)]
 struct Wrapped {
     id: WidgetId,
@@ -876,15 +876,15 @@ struct Wrapped {
 }
 
 thread_local! {
-    /// One entry: only one reveal shows per frame.
+
     static WRAPPED: std::cell::RefCell<Option<Wrapped>> =
         const { std::cell::RefCell::new(None) };
-    /// Texts wrapped for a reveal so far (a complexity guard).
+
     static WRAPS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-/// `full` as the shared text of the cached reveal when it is the same
-/// value (a length check, then one comparison: no copy), else a new copy.
+
+
 fn shared(full: &str) -> Rc<str> {
     WRAPPED.with(|w| match &*w.borrow() {
         Some(c) if c.text.len() == full.len() && *c.text == *full => c.text.clone(),
@@ -892,9 +892,9 @@ fn shared(full: &str) -> Rc<str> {
     })
 }
 
-/// The lines of `full` wrapped to `width` for the reveal of `id`, from the
-/// cache when the cell, its text and the width are unchanged. Any change
-/// (another cell, an edited value, a resize) wraps again.
+
+
+
 fn wrapped(id: WidgetId, full: &str, width: usize) -> Rc<Vec<String>> {
     WRAPPED.with(|w| {
         let mut w = w.borrow_mut();
@@ -938,7 +938,7 @@ fn show(ctx: &mut RenderCtx, id: WidgetId, anchor: Rect, full: &str, source: Sou
     });
     if !slot.queued {
         slot.queued = true;
-        // the tip carries its own views' offsets ([`Tip::shifts`])
+
         ctx.overlay_unshifted(|buf, ctx| {
             ctx.reveal_slot.queued = false;
             if let Some(tip) = ctx.reveal_slot.tip.take() {
@@ -948,11 +948,11 @@ fn show(ctx: &mut RenderCtx, id: WidgetId, anchor: Rect, full: &str, source: Sou
     }
 }
 
-/// Where a reveal of `text` for `anchor` lands on `screen`, and its rows.
-/// The first line starts at the anchor's column (one cell of padding to
-/// its left), over the anchor itself; a long text wraps to the screen and
-/// the box moves left, then up, to stay on screen. Text taller than the
-/// box shows the window at `feed.scroll`, with `↑`/`↓ N more` markers.
+
+
+
+
+
 fn layout(
     screen: Rect,
     anchor: Rect,
@@ -971,11 +971,11 @@ fn layout(
     let w = shown.iter().map(|l| width(&l.text)).max().unwrap_or(0) as u16 + 2;
     let h = shown.len() as u16;
     let at = Rect::new(anchor.x.saturating_sub(1), anchor.y, 0, 0);
-    // a tooltip covers the very cell it explains: no edge margin
+
     let mut area = popup::place_with(screen, at, w, h, Placement::Below, popup::Place::FLUSH);
-    // the window is laid out for `h` rows: when the room below the anchor
-    // is shorter the box keeps its height and moves up, so a marker row is
-    // never cut off
+
+
+
     if area.height < h {
         area.height = h.min(screen.height);
         area.y = screen.bottom().saturating_sub(area.height);
@@ -986,7 +986,7 @@ fn layout(
 fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {
     let screen = *buf.area();
     let t = ctx.theme;
-    // an anchor in a scrolled view is where the view shows it
+
     let (dx, dy) = crate::ui::ctx::total_shift(&tip.shifts);
     if tip.anchor.x < dx || tip.anchor.y < dy {
         return;
@@ -1005,9 +1005,9 @@ fn draw(buf: &mut Buffer, ctx: &mut RenderCtx, tip: &Tip) {
     if tip.feed.pointer_only {
         POINTER.with(|p| p.borrow_mut().drawn = Some(area));
     }
-    // the popover plane, the strongest neutral; over content already on
-    // that plane (a menu) it steps down a plane, so the tooltip always
-    // reads as its own layer
+
+
+
     let on_popover = area
         .positions()
         .any(|p| buf.cell(p).is_some_and(|c| c.bg == t.popover));
@@ -1075,8 +1075,8 @@ mod tests {
         );
     }
 
-    /// Guard (performance): a reveal resting on a long value wraps it
-    /// once, not every frame; a change of cell, text or width wraps again.
+
+
     #[test]
     fn a_resting_reveal_wraps_its_text_once() {
         let wraps = || WRAPS.with(std::cell::Cell::get);
@@ -1107,7 +1107,7 @@ mod tests {
         assert_eq!(wraps() - start, 4, "another cell wraps its own text");
         show(60, &edited, WidgetId::of("other"));
         assert_eq!(wraps() - start, 4);
-        // the open keyboard reveal, inline or as a tooltip, uses the cache
+
         let mut state = RevealState::new(Some(Reveal::default().mode(RevealMode::InlineWrap)));
         state.open = true;
         let focus = Interaction {
@@ -1136,14 +1136,14 @@ mod tests {
             assert!(truncated(ctx, None, id, area, FULL));
         });
         assert_eq!(row_text(&buf, 2).trim(), FULL);
-        // starts at the cell's own column: the cut text is expanded in place
+
         assert_eq!(buf[(4, 2)].symbol(), "j");
         assert_eq!(buf[(4, 2)].bg, Theme::junie().popover);
     }
 
-    /// The expansion tooltip waits for the pointer to rest
-    /// ([`Reveal::delay_ms`], 300) and says when to draw again (it showed
-    /// at once, flashing one tooltip per row while sweeping a list).
+
+
+
     #[test]
     fn the_hover_reveal_waits_for_the_pointer_to_rest() {
         let id = WidgetId::of("cell");
@@ -1168,7 +1168,7 @@ mod tests {
             at(Some(0), Some(Reveal::default().delay_ms(0))),
             (true, None)
         );
-        // the keyboard reveal does not wait
+
         let mut state = RevealState::default();
         let focus = Interaction {
             focus: Some(id),
@@ -1189,8 +1189,8 @@ mod tests {
         assert_eq!(row_text(&buf, 2).trim(), FULL);
     }
 
-    /// At the ends of a scrolling pointer tooltip the wheel goes on to the
-    /// content beneath (it stalled there).
+
+
     #[test]
     fn the_wheel_passes_through_at_a_pointer_tooltips_ends() {
         use crate::core::event::{Input, Mouse, MouseKind};
@@ -1209,7 +1209,7 @@ mod tests {
         };
         let wheel = |kind| Input::Mouse(Mouse::new(kind, Position::new(1, 1)));
         draw(Reveal::default());
-        // at the top, up passes; down scrolls the tooltip
+
         assert_eq!(on_pointer_wheel(&wheel(MouseKind::WheelUp)), None);
         assert_eq!(
             on_pointer_wheel(&wheel(MouseKind::WheelDown)),
@@ -1224,7 +1224,7 @@ mod tests {
             None,
             "the end"
         );
-        // the policy holds the wheel at the ends instead
+
         let hold = Reveal::default().wheel_passes_at_ends(false);
         draw(hold);
         assert_eq!(
@@ -1311,7 +1311,7 @@ mod tests {
             .collect::<Vec<_>>()
             .join(" ");
         assert_eq!(text, long.trim());
-        // the bottom row anchor pushed the box up, inside the screen
+
         let (rect, _) = layout(
             Rect::new(0, 0, 40, 10),
             area,
@@ -1342,7 +1342,7 @@ mod tests {
         );
     }
 
-    /// Long text on the open keyboard reveal: one frame per call.
+
     fn long_reveal(state: &mut RevealState, text: &str) -> Buffer {
         frame(30, 6, Interaction::default(), |_, ctx| {
             state.begin(ctx);
@@ -1366,7 +1366,7 @@ mod tests {
 
     #[test]
     fn a_long_keyboard_reveal_scrolls_with_page_keys_and_the_wheel() {
-        // 40 words at 28 columns wrap to many more rows than the 6 on screen
+
         let text = numbered(40);
         let mut state = RevealState::default();
         long_reveal(&mut state, &text);
@@ -1376,7 +1376,7 @@ mod tests {
         assert!(first.contains("line01"), "{first}");
         assert!(first.contains("↓") && first.contains("more"), "{first}");
         assert!(state.scrolls());
-        // PgDn moves down a page: the first line scrolls out, ↑ says so
+
         assert_eq!(
             state.on_key(&key(KeyCode::PageDown)),
             Some(Outcome::Changed)
@@ -1385,7 +1385,7 @@ mod tests {
         let paged = screen_text(&buf);
         assert!(!paged.contains("line01 "), "{paged}");
         assert!(paged.contains("↑"), "{paged}");
-        // the wheel reaches the end; past it the wheel goes on to the content
+
         while state.on_wheel(3) == Some(Outcome::Changed) {
             long_reveal(&mut state, &text);
         }
@@ -1394,11 +1394,11 @@ mod tests {
         assert!(end.contains("line40"), "{end}");
         assert!(!end.contains("↓"), "{end}");
         assert_eq!(state.on_wheel(1), None, "the wheel passes at the end");
-        // a policy holds it there instead
+
         state.config = Some(Reveal::default().wheel_passes_at_ends(false));
         long_reveal(&mut state, &text);
         assert_eq!(state.on_wheel(1), Some(Outcome::Consumed));
-        // PgUp goes back
+
         assert_eq!(state.on_key(&key(KeyCode::PageUp)), Some(Outcome::Changed));
     }
 
@@ -1481,7 +1481,7 @@ mod tests {
             (0..6).all(|y| !row_text(&buf, y).contains("redesign")),
             "no tooltip while the row wraps in place"
         );
-        // the tooltip mode never returns inline rows
+
         let mut tip = RevealState::default();
         let mut got = Some(Vec::new());
         frame(80, 6, Interaction::default(), |_, ctx| {

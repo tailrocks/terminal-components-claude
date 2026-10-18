@@ -1,9 +1,9 @@
-//! jackin's pages on the library router ([`junie_tui::shell::Router`]):
-//! one tab per host surface that keeps its state while another is shown
-//! (the workspace manager, the Account & Usage Center, Usage), and the
-//! pages a route opens over the manager (settings, the editor, the
-//! prelude, the launch cockpit, the Capsule). Back from any of them is
-//! the manager, the root of its tab.
+
+
+
+
+
+
 
 use junie_tui::shell::Router;
 
@@ -18,14 +18,14 @@ use crate::screens::prelude::PreludeScreen;
 use crate::screens::settings::SettingsScreen;
 use crate::screens::usage::UsageScreen;
 
-/// The manager's tab: the pages a route opens stack over it.
+
 pub const TAB_MANAGER: usize = 0;
-/// The Account & Usage Center's tab.
+
 pub const TAB_ACCOUNTS: usize = 1;
-/// Usage's tab.
+
 pub const TAB_USAGE: usize = 2;
 
-/// One page on jackin's router: a route's screen.
+
 pub enum Page {
     Manager(Box<ManagerScreen>),
     Accounts(Box<AccountsScreen>),
@@ -44,7 +44,7 @@ impl std::fmt::Debug for Page {
 }
 
 impl Page {
-    /// The route this page shows.
+
     pub fn route(&self) -> Route {
         match self {
             Page::Manager(_) => Route::Manager,
@@ -85,7 +85,7 @@ impl Page {
     }
 }
 
-/// A fresh router: the three host tabs, the manager shown.
+
 pub fn router() -> Router<Page> {
     Router::with_tabs(vec![
         Page::Manager(Box::default()),
@@ -94,14 +94,14 @@ pub fn router() -> Router<Page> {
     ])
 }
 
-/// The pages of a router, found by route (every route has at most one
-/// page on the router at a time).
+
+
 pub trait Pages {
-    /// The screen of `route`, if it has a page.
+
     fn screen(&self, route: Route) -> Option<&dyn Screen>;
-    /// The screen of `route`, mutably.
+
     fn screen_mut(&mut self, route: Route) -> Option<&mut dyn Screen>;
-    /// The routes that have a page, for a fan-out to every screen.
+
     fn routes(&self) -> Vec<Route>;
     fn manager(&self) -> &ManagerScreen;
     fn manager_mut(&mut self) -> &mut ManagerScreen;

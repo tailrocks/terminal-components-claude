@@ -1,8 +1,8 @@
-//! Composed screen: project settings with tabs, a form, an editable
-//! members table with a destructive dialog, and an environment list with a
-//! prompt dialog, on the Playground | Options | States template. Options:
-//! `crate::options::SETTINGS`; States: the section tabs, the members table
-//! and the environment list.
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
@@ -61,7 +61,7 @@ pub struct SettingsPage {
     template: Template,
     opts: PageValues,
     tabs: Tabs,
-    // general
+
     name: TextInput,
     description: TextArea,
     visibility: RadioGroup,
@@ -69,17 +69,17 @@ pub struct SettingsPage {
     protect: Toggle,
     save: Button,
     dirty: bool,
-    // members
+
     members: DataTable,
     remove: Button,
     invite: Button,
-    // env
+
     env: ListBox,
     add_var: Button,
     remove_vars: Button,
 }
 
-/// The members table's rows.
+
 fn member_rows() -> Vec<Vec<Cell>> {
     [
         ("Mira Okafor", "mira@acme.dev", "Owner", "today"),
@@ -101,7 +101,7 @@ fn member_rows() -> Vec<Vec<Cell>> {
     .collect()
 }
 
-/// The members table: name and role edit in place.
+
 fn members_table(id: WidgetId, rows: Vec<Vec<Cell>>) -> DataTable {
     DataTable::new(
         id,
@@ -116,7 +116,7 @@ fn members_table(id: WidgetId, rows: Vec<Vec<Cell>>) -> DataTable {
     .validator(role_validator)
 }
 
-/// The environment's variables.
+
 fn env_items() -> Vec<ListItem> {
     [
         ("DATABASE_URL", "postgres://…"),
@@ -130,8 +130,8 @@ fn env_items() -> Vec<ListItem> {
     .collect()
 }
 
-/// The States grid: the section tabs (General unsaved), the members table
-/// and the environment list.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let tabs = Tabs::new(ID.sub("states-tabs"), &["General", "Members", "Env"]);
@@ -198,8 +198,8 @@ impl SettingsPage {
         page
     }
 
-    /// Rebuild the widgets from the options through their builders,
-    /// keeping their content.
+
+
     fn apply(&mut self) {
         let o = &self.opts;
         self.members = self.members.clone().cell_nav(o.on("settings.cell_nav"));
@@ -217,7 +217,7 @@ impl SettingsPage {
         .value(self.description.field.text());
     }
 
-    /// Save: through a confirmation (`settings.save_confirm`), or at once.
+
     fn save(&mut self, cx: &mut Cx) {
         if !self.dirty {
             cx.status("Nothing to save");
@@ -377,8 +377,8 @@ impl Page for SettingsPage {
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         let out = match self.template.handle(ev, cx) {
             Some(o) => o,
-            // a dialog's result and a field's blur reach the page from any
-            // section; the rest only on the Playground
+
+
             None if self.template.section() == Section::Playground
                 || matches!(ev, PageEvent::DialogClosed { .. } | PageEvent::Blur(_)) =>
             {
@@ -386,7 +386,7 @@ impl Page for SettingsPage {
             }
             None => Outcome::Ignored,
         };
-        // the tab of the section with unsaved edits carries the dirty mark
+
         if let Some(general) = self.tabs.items.get_mut(0) {
             general.dirty = self.dirty && self.opts.on("settings.tab_dirty");
         }
@@ -540,15 +540,15 @@ impl SettingsPage {
     }
 }
 
-/// A button's share of a pointer event: `Some(activated)` when the event
-/// was its click, `None` when it was not the button's.
+
+
 fn clicked(b: &mut Button, ev: &PointerEvent) -> Option<bool> {
     let r = b.route(ev)?;
     (r.outcome() != Outcome::Ignored).then(|| r.into_action().is_some())
 }
 
 impl SettingsPage {
-    /// The page's events; [`Page::handle`] syncs the tabs after them.
+
     fn handle_event(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(

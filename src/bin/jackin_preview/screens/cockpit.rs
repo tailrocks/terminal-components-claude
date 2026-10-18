@@ -1,6 +1,6 @@
-//! Launch cockpit: the 11-stage rail advancing on deterministic ticks,
-//! identity, credentials origin, activity, atmosphere, and the build log,
-//! failure, container-info and quit overlays.
+
+
+
 
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
@@ -40,7 +40,7 @@ pub const LOG: WidgetId = WidgetId::of("cockpit.log");
 pub const CHIP_CONTAINER: WidgetId = WidgetId::of("cockpit.chip.container");
 pub const CHIP_ACTIVITY: WidgetId = WidgetId::of("cockpit.chip.activity");
 pub const CHIP_RUN: WidgetId = WidgetId::of("cockpit.chip.run");
-/// The "Cancel launch…" button under a running launch (mouse #6).
+
 pub const CANCEL_BTN: WidgetId = WidgetId::of("cockpit.cancel_btn");
 
 pub struct CockpitScreen {
@@ -49,8 +49,8 @@ pub struct CockpitScreen {
     pub role: String,
     pub agent: Agent,
     pub account: Option<AccountId>,
-    /// The Workspace's effective account set: every account the container
-    /// receives, not just the one the first session starts with.
+
+
     pub accounts: Vec<AccountId>,
     pub rail: StepRail,
     pub activity: String,
@@ -146,7 +146,7 @@ impl CockpitScreen {
         }
     }
 
-    /// Fast-forward to a fixture tick (paused captures).
+
     pub fn seek(&mut self, ticks: u64, w: &mut World, cx: &mut Cx) {
         for _ in 0..ticks {
             self.step(w, cx);
@@ -165,9 +165,9 @@ impl CockpitScreen {
         if others.is_empty() {
             (origin, val, tone)
         } else {
-            // the container receives every effective account, not only the
-            // one this session starts with; the primary keeps its origin,
-            // the rest are named so the line stays readable
+
+
+
             let primary = self
                 .account
                 .as_ref()
@@ -186,8 +186,8 @@ impl CockpitScreen {
         }
     }
 
-    /// Why this launch runs with its account: the resolver's level when the
-    /// resolver picked it, else it was chosen by hand for this session.
+
+
     fn why_label(&self, account: &crate::domain::account::Account, w: &World) -> &'static str {
         let r = w.account_for(
             account.provider,
@@ -298,7 +298,7 @@ impl CockpitScreen {
                 }
                 LaunchEvent::Ready => {
                     self.activity = "Hardline open · handing off to the Capsule".into();
-                    // the instance becomes durable now
+
                     let record = self.instance_record(w, InstanceStatus::Running);
                     let id = record.id.clone();
                     w.instances.push(record);
@@ -459,8 +459,8 @@ impl CockpitScreen {
         });
     }
 
-    /// Ask before cancelling a running launch (`x`, or the Cancel launch…
-    /// button).
+
+
     fn ask_cancel(&mut self, cx: &mut Cx) -> Outcome {
         if self.run.is_terminal() {
             return Outcome::Consumed;
@@ -495,7 +495,7 @@ impl CockpitScreen {
         };
         let w = screen.width.saturating_sub(6).min(110);
         let h = screen.height.saturating_sub(4);
-        // a light-dismiss frame: its close button closes the log by mouse
+
         let (_, inner) = junie_tui::ui::modal::Frame::new(w, h)
             .title(title)
             .meta(Some(&meta))
@@ -536,8 +536,8 @@ impl CockpitScreen {
     }
 }
 
-/// Fixture ANSI-like markup → styled spans: `#N` step prefixes muted,
-/// `DONE`/`CACHED` secondary, `warning` amber, `error` red.
+
+
 pub fn ansi_line(l: &str) -> Vec<Span> {
     let mut spans = vec![];
     if let Some(rest) = l.strip_prefix('#') {
@@ -561,8 +561,8 @@ pub fn ansi_line(l: &str) -> Vec<Span> {
 }
 
 fn wrapped_arrow(buf: &mut Buffer, area: Rect, t: &Theme) {
-    // continuation glyph for wrapped lines is the viewer's own wrap; mark the
-    // left edge of the log body once
+
+
     let _ = (buf, area, t);
 }
 
@@ -580,13 +580,13 @@ impl Page<Jackin> for CockpitScreen {
     }
 
     fn on_tick(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
-        // paused motion stops the world clock; an explicit clock step
-        // (`App::advance_clock`) runs it, and the pipeline with it
+
+
         if !w.clock.running {
             return Outcome::Ignored;
         }
         if self.motion == Motion::Reduced {
-            // reduced motion: the pipeline still advances, atmosphere is static
+
             let mut changed = false;
             for _ in 0..3 {
                 changed |= self.step(w, cx);
@@ -606,10 +606,10 @@ impl Page<Jackin> for CockpitScreen {
     }
 
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-        // Ctrl+C over the open log's selection copies it (copy-first,
-        // SI17); otherwise it is the hard abort
+
+
         if key.ctrl_char('c') && !(self.log_open && self.log.has_selection()) {
-            // hard abort: immediate, no cleanup wait
+
             cx.status("Aborted · terminal restored, cleanup deferred");
             self.run.cancel();
             let record = self.instance_record(w, InstanceStatus::FailedSetup);
@@ -677,10 +677,10 @@ impl Page<Jackin> for CockpitScreen {
         }
     }
 
-    /// The build log's close button, the launch's cancel button and the
-    /// chips take a click; the open log is a viewport (a press anchors a
-    /// selection, a drag extends it, its bar and the wheel scroll it), and
-    /// the wheel over the log's frame scrolls it too.
+
+
+
+
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.log_open {
             if let Some(r) = self.log.route(ev) {
@@ -727,7 +727,7 @@ impl Page<Jackin> for CockpitScreen {
             ("failure", ModalResult::Info(InfoResult::Copy(v))) => {
                 cx.copy(v);
                 cx.status("Run id copied");
-                // keep the failure acknowledged only on explicit close
+
                 self.open_failure(w, cx);
                 Outcome::Changed
             }
@@ -765,7 +765,7 @@ impl Page<Jackin> for CockpitScreen {
             }
             ("cred", ModalResult::Dialog { action, .. }) => match action {
                 Some(0) => {
-                    // retry: the fixture 1Password session unlocks
+
                     w.op.session = crate::sim::onepassword::OpSession::SignedIn;
                     self.credential_hold = false;
                     self.run.retry_credentials();
@@ -803,14 +803,14 @@ impl Page<Jackin> for CockpitScreen {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         fill(buf, area, t.base());
-        // layout: identity block (4 rows), rail, activity, chips
+
         let rail_h = (Stage::ALL.len() as u16).min(area.height.saturating_sub(9));
         let rail_w = 44u16.min(area.width.saturating_sub(4));
         let rail_x = area.x + (area.width.saturating_sub(rail_w)) / 2;
         let ident_y = area.y + 1;
         let rail_y = ident_y + 5;
         let rail = Rect::new(rail_x, rail_y, rail_w, rail_h);
-        // atmosphere behind everything, excluding the rail and identity block
+
         let exclude = [
             Rect::new(
                 rail_x.saturating_sub(2),
@@ -834,7 +834,7 @@ impl Page<Jackin> for CockpitScreen {
             self.frozen_at.is_some(),
             t,
         );
-        // identity
+
         let ws_name = self.target_label.clone();
         let head = if self.rail.frontier().is_none() && self.tick == 0 {
             "Preparing launch…".to_owned()
@@ -903,14 +903,14 @@ impl Page<Jackin> for CockpitScreen {
             &format!("{frontier} · {done} done · {skipped} skipped"),
             t.muted(),
         );
-        // rail on a canvas strip so rain never shows through
+
         fill(
             buf,
             Rect::new(rail.x - 1, rail.y, rail.width + 2, rail.height),
             t.base(),
         );
         self.rail.render(rail, buf, ctx, t.canvas);
-        // credentials line under the rail when relevant
+
         let mut y = rail.bottom() + 1;
         if let Some((origin, val, tone)) = &self.credentials
             && y + 1 < area.bottom().saturating_sub(3)
@@ -929,7 +929,7 @@ impl Page<Jackin> for CockpitScreen {
             y += 3;
         }
         let _ = y;
-        // bottom chrome: activity chip (clickable → build log), container, run id
+
         let ay = area.bottom().saturating_sub(2);
         fill(buf, Rect::new(area.x, ay - 1, area.width, 3), t.base());
         let spinner = if running {
@@ -945,7 +945,7 @@ impl Page<Jackin> for CockpitScreen {
         } else {
             t.secondary()
         };
-        // with a build log the activity line is a link to it
+
         let act_style = if self.log.is_empty() {
             act_style
         } else {
@@ -975,8 +975,8 @@ impl Page<Jackin> for CockpitScreen {
             let chip = format!(" {} ", self.run.run_id);
             let cw = width(&chip) as u16;
             rx = rx.saturating_sub(cw);
-            // the run id is a link (it copies), not a warning: link ink,
-            // underlined while hovered or focused
+
+
             let vs = ctx.state(CHIP_RUN);
             let chrome = ctx.title_style(CHIP_RUN, t.canvas);
             let st = chrome
@@ -996,7 +996,7 @@ impl Page<Jackin> for CockpitScreen {
                 ctx.clickable(CHIP_CONTAINER, Rect::new(rx, ay, cw, 1));
             }
         }
-        // the launch's way out by pointer, on the row under the chips
+
         if !self.run.is_terminal() {
             let mut b = Button::secondary(CANCEL_BTN, "Cancel launch…");
             let bw = b.width();

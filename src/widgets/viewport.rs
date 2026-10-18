@@ -1,26 +1,26 @@
-//! Selectable read-only text viewport: styled lines with bounded retention,
-//! tail-follow, optional wrapping, wheel/scrollbar scrolling, drag, word and
-//! keyboard selection, copy, search marks, and an optional caret exposed as
-//! the hardware cursor. Serves log bodies and simulated terminals alike; it
-//! knows nothing about what the text means.
-//!
-//! Ownership contract:
-//!
-//! - Content is only reachable through the mutation methods (`set_lines`,
-//!   `push`, `extend`, `replace_last`, `pop`, `clear`, `set_max_lines`).
-//!   Every mutation bumps [`TextViewport::revision`] and marks exactly the
-//!   changed logical lines for re-segmentation, so text, copy and cursor
-//!   agree on the next frame while unchanged frames reuse their layout.
-//! - The retention cap is enforced by one transaction at construction,
-//!   replacement, append, tail replacement and limit change. Every line has
-//!   a stable identity independent of its index; selection, drag anchor,
-//!   producer caret and the retained reading position are reconciled through
-//!   that identity, never by clamping an index.
-//! - A logical line is segmented into graphemes as one string; span
-//!   boundaries never split a cluster. A cluster that crosses two spans takes
-//!   the style of the span containing its first byte. Tabs expand to four
-//!   cells, other C0 controls render as `^X`, and copy returns the source
-//!   bytes (tabs and controls included), never the display text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::ops::Range;
 
@@ -47,8 +47,8 @@ use crate::widgets::field_common::PointerSelect;
 use crate::widgets::scrollbar;
 use crate::widgets::text_select::{self, TextSelect};
 
-/// One styled run. Tone maps through `Theme::tone`; bold/italic/underline
-/// are the only modifiers.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span {
     pub text: String,
@@ -56,7 +56,7 @@ pub struct Span {
     pub bold: bool,
     pub italic: bool,
     pub underline: bool,
-    /// Draw reversed (canvas on text-primary): a terminal's cursor block.
+
     pub reversed: bool,
 }
 
@@ -101,12 +101,12 @@ pub fn line_text(line: &[Span]) -> String {
     line.iter().map(|s| s.text.as_str()).collect()
 }
 
-/// Draw one line of spans at `(x, y)` in at most `max` cells, outside a
-/// viewport (a summary row, a health line, a table cell). Each span takes
-/// its tone made readable on `bg` ([`Theme::tone_on`](crate::theme::Theme::tone_on))
-/// and its own modifiers, so a line can carry `2 ok` in success beside
-/// `1 failed` in error. A line wider than `max` is cut with `…`. The
-/// cells' background is left as it is. Returns the cells drawn.
+
+
+
+
+
+
 pub fn render_spans(
     buf: &mut ratatui::buffer::Buffer,
     x: u16,
@@ -153,11 +153,11 @@ pub fn render_spans(
     w
 }
 
-/// Word-wrap a line of spans into lines of at most `w` cells (plain word
-/// wrap, [`crate::ui::text::WrapOpts::PLAIN`]): every wrapped piece keeps
-/// the tone and modifiers of the span its text came from, so a toned
-/// summary (`2 ok · 1 failed`) wraps the way plain text does instead of
-/// being cut by [`render_spans`].
+
+
+
+
+
 pub fn wrap_spans(line: &[Span], w: usize) -> Vec<Line> {
     let full: Vec<(char, usize)> = line
         .iter()
@@ -170,14 +170,14 @@ pub fn wrap_spans(line: &[Span], w: usize) -> Vec<Line> {
     for part in crate::ui::text::wrap_with(&text, w, crate::ui::text::WrapOpts::PLAIN) {
         let mut pieces: Line = Vec::new();
         for pc in part.chars() {
-            // the wrap drops the spaces it breaks at: skip to this char
+
             let found = full[at..].iter().position(|(c, _)| *c == pc);
             let si = match found {
                 Some(k) => {
                     at += k + 1;
                     full[at - 1].1
                 }
-                // a stand-in the wrap drew (`…`): the last span's style
+
                 None => full[at.saturating_sub(1).min(full.len().saturating_sub(1))].1,
             };
             let src = &line[si];
@@ -202,14 +202,14 @@ fn same_style(a: &Span, b: &Span) -> bool {
         && a.reversed == b.reversed
 }
 
-/// Logical position: line index and display column.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CellPos {
     pub line: usize,
     pub col: usize,
 }
 
-/// A search or emphasis mark over a source byte range of a logical line.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mark {
     pub line: usize,
@@ -219,27 +219,27 @@ pub struct Mark {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ViewportAction {
-    /// `y` with a selection: the owner puts the text on its clipboard.
+
     Copy(String),
     SelectionChanged,
     FollowChanged(bool),
 }
 
-/// Layout work performed since construction, for performance proofs.
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct WorkCounters {
-    /// Logical lines segmented into cells.
+
     pub segmented_lines: usize,
-    /// Logical lines whose wrapped rows were recomputed.
+
     pub reflowed_lines: usize,
-    /// Visual row index rebuilds from scratch (dataset replacement, width or
-    /// wrap change, removal from the tail).
+
+
     pub index_rebuilds: usize,
-    /// Visual row index extensions: appended or replaced tail lines added
-    /// their rows without touching retained ones.
+
+
     pub index_extends: usize,
-    /// Visual row index shifts: leading rows dropped by retention, retained
-    /// rows renumbered, nothing re-laid out.
+
+
     pub index_shifts: usize,
 }
 
@@ -255,39 +255,39 @@ struct CellStyle {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CellKind {
     Text,
-    /// One of the cells a tab expands to.
+
     TabPad,
-    /// A visible stand-in for a control byte (`^X`).
+
     Control,
 }
 
 #[derive(Debug, Clone)]
 struct Cell {
-    /// Display grapheme (or a stand-in).
+
     g: String,
     w: usize,
-    /// Source byte range this cell stands for (shared by tab pads).
+
     src: Range<usize>,
     style: CellStyle,
     kind: CellKind,
 }
 
-/// Wrapped row boundaries (cell index ranges) at one `(width, wrap)` key.
+
 type RowCache = ((u16, bool), Vec<(usize, usize)>);
 
 #[derive(Debug, Clone)]
 struct Logical {
     id: u64,
     spans: Line,
-    /// Concatenated source text of the spans.
+
     text: String,
     cells: Vec<Cell>,
-    /// Display width of `cells` (set by `segment`).
+
     width: usize,
-    /// Whether `cells` reflects `spans`.
+
     segmented: bool,
-    /// Wrapped row boundaries (cell index ranges) per layout width; the
-    /// scrollbar decision alternates between two widths, so both are kept.
+
+
     rows: Vec<RowCache>,
 }
 
@@ -326,7 +326,7 @@ impl Logical {
 
     fn segment(&mut self) {
         let mut cells: Vec<Cell> = vec![];
-        // span byte boundaries in the concatenated text
+
         let mut bounds: Vec<(usize, CellStyle)> = vec![];
         let mut at = 0;
         for sp in &self.spans {
@@ -389,7 +389,7 @@ impl Logical {
             }
             let w = width(g);
             if w == 0 {
-                // a lone zero-width cluster attaches to the cell before it
+
                 if let Some(prev) = cells.last_mut() {
                     prev.g.push_str(g);
                     prev.src.end = src.end;
@@ -469,9 +469,9 @@ struct VisualRow {
     end: usize,
 }
 
-/// A position anchored to a line identity rather than an index. Identities
-/// are handed out in line order (lines are only appended, replaced at the
-/// tail or evicted from the head), so `(id, col)` orders as the text reads.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Anchor {
     id: u64,
@@ -481,14 +481,14 @@ struct Anchor {
 #[derive(Debug, Clone)]
 pub struct TextViewport {
     pub id: WidgetId,
-    /// Rows (`scroll`, the vertical state) and cells (`scroll.h`) with both bars
-    /// ([`Scrollable`]).
+
+
     pub scroll: ScrollPane,
     pub follow: bool,
     pub wrap: bool,
-    /// Caret exposed as the hardware cursor while following and focused.
-    /// Owned by the producer; reconciled through eviction, cleared when its
-    /// line leaves retention.
+
+
+
     pub caret: Option<CellPos>,
     pub caret_visible: bool,
     pub area: Rect,
@@ -496,60 +496,60 @@ pub struct TextViewport {
     max_lines: Option<usize>,
     next_id: u64,
     revision: u64,
-    /// The selection and the pointer gesture in progress (the model
-    /// [`crate::widgets::panel::ScrollPanel`] shares).
+
+
     select: TextSelect<Anchor>,
-    /// Keyboard browse caret for selection extension.
+
     browse: Option<Anchor>,
     marks: Vec<Mark>,
     visual: Vec<VisualRow>,
     layout_width: u16,
     layout_wrap: bool,
     index_valid: bool,
-    /// Leading logical lines whose rows the index holds; lines beyond it were
-    /// appended since and extend the index on the next layout.
+
+
     indexed_lines: usize,
-    /// `(width, height, wrap, horizontal)` the cached layout was made for.
+
     layout_size: Option<(u16, u16, bool, bool)>,
-    /// Text rows of the area: the area less the horizontal bar's row.
+
     rows_h: u16,
-    /// Retained reading position while follow is off: the line identity and
-    /// wrapped sub-row at the top of the viewport.
+
+
     reading: Option<(u64, usize)>,
     work: WorkCounters,
-    /// Blank columns between the text and the scrollbar (default
-    /// [`scrollbar::GAP`]).
+
+
     pub scrollbar_gap: u16,
-    /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
+
     pub horizontal: Option<HScroll>,
-    /// Which keys scroll (default [`NavKeys::default`]). Shift+arrows
-    /// always extend a keyboard selection.
+
+
     pub nav: NavKeys,
-    /// The viewport's own action keys (default
-    /// [`ViewportCmd::default_keymap`]).
+
+
     pub keymap: KeyMap<ViewportCmd>,
-    /// What a drag, a double and a triple click select (the text fields'
-    /// policy). Default [`PointerSelect::DEFAULT`] (macOS): a drag selects,
-    /// a double click a word (a drag from it extends by words), a triple
-    /// click the line; Shift with a press extends the selection.
+
+
+
+
     pub pointer_select: PointerSelect,
-    /// The standard Edit context menu for read-only text (Copy, Select
-    /// all) a secondary click or Shift+F10 / the Menu key opens
-    /// ([`crate::ui::edit_menu`]). [`Self::context_menu`] turns it off.
+
+
+
     pub edit_menu: EditMenu,
 }
 
-/// A [`TextViewport`] action a key can be bound to.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViewportCmd {
-    /// Toggle following the tail. Default `f`.
+
     ToggleFollow,
-    /// Copy the selection ([`ViewportAction::Copy`]). Default Cmd+C where
-    /// the terminal delivers Cmd, and `y` (a hint names the first
-    /// deliverable).
+
+
+
     Copy,
-    /// Select every retained line, ready for Copy. Default Cmd+A where the
-    /// terminal delivers Cmd, and Ctrl+A ([`crate::core::keymap::SELECT_ALL`]).
+
+
     SelectAll,
 }
 
@@ -576,13 +576,13 @@ impl Actions for ViewportCmd {
 }
 
 impl TextViewport {
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<ViewportCmd>) -> Self {
         self.keymap = keymap;
         self
@@ -622,32 +622,32 @@ impl TextViewport {
         }
     }
 
-    /// Override the app-wide horizontal scrolling policy.
+
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
 
-    /// See [`Self::pointer_select`].
+
     pub fn pointer_select(mut self, policy: PointerSelect) -> Self {
         self.pointer_select = policy;
         self
     }
 
-    /// Override the app-wide vertical track-click policy.
+
     pub fn track_click(mut self, click: TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
     }
 
-    /// Lines scroll sideways: not wrapping (wrapped text never overflows
-    /// sideways) and the policy allows it.
+
+
     pub fn h_enabled(&self) -> bool {
         !self.wrap && self.scroll.h_cfg.enabled
     }
 
-    /// The horizontal offset in cells applied to drawing and pointer
-    /// mapping (0 while horizontal scrolling is off).
+
+
     fn hoff(&self) -> usize {
         if self.h_enabled() {
             self.scroll.h.offset
@@ -656,12 +656,12 @@ impl TextViewport {
         }
     }
 
-    /// Width of the text columns of the last layout.
+
     fn text_w(&self) -> usize {
         self.layout_width as usize
     }
 
-    /// The rows that show text (the area less the horizontal bar).
+
     fn text_rect(&self) -> Rect {
         let h = if self.rows_h == 0 {
             self.area.height
@@ -671,8 +671,8 @@ impl TextViewport {
         Rect::new(self.area.x, self.area.y, self.area.width, h)
     }
 
-    /// Scroll sideways the minimum so content columns `cols` are visible
-    /// (the start wins when the range is wider than the view).
+
+
     pub fn reveal_cols(&mut self, cols: Range<usize>) -> bool {
         if !self.h_enabled() {
             return false;
@@ -685,7 +685,7 @@ impl TextViewport {
         self.scroll.h.offset != before
     }
 
-    /// Display columns covered by a source byte range of a logical line.
+
     fn cols_of_bytes(&self, line: usize, range: &Range<usize>) -> Option<Range<usize>> {
         let l = self.lines.get(line)?;
         let mut col = 0;
@@ -701,7 +701,7 @@ impl TextViewport {
         start.map(|s| s..end)
     }
 
-    /// Scroll a search match into view on both axes; pauses follow.
+
     pub fn reveal_mark(&mut self, line: usize, range: Range<usize>) {
         self.reveal_line(line);
         if let Some(cols) = self.cols_of_bytes(line, &range) {
@@ -709,14 +709,14 @@ impl TextViewport {
         }
     }
 
-    /// Scroll sideways by `delta` steps of [`HScroll::step`] cells (the
-    /// wheel's rule: nothing wider than the text leaves the arrows free for
-    /// the owner).
+
+
+
     fn scroll_h(&mut self, delta: isize) -> Outcome {
         self.wheel(Axis::Horizontal, delta as i32).outcome()
     }
 
-    /// Blank columns between the text and the scrollbar.
+
     pub fn scrollbar_gap(mut self, gap: u16) -> Self {
         self.scrollbar_gap = gap;
         self
@@ -738,9 +738,9 @@ impl TextViewport {
         self
     }
 
-    // ------------------------------------------------------------ content
 
-    /// Monotonic content revision: bumps on every mutation.
+
+
     pub fn revision(&self) -> u64 {
         self.revision
     }
@@ -769,7 +769,7 @@ impl TextViewport {
         self.lines.get(i).map(|l| &l.spans)
     }
 
-    /// Source text of a logical line.
+
     pub fn line_text(&self, i: usize) -> Option<&str> {
         self.lines.get(i).map(|l| l.text.as_str())
     }
@@ -784,19 +784,19 @@ impl TextViewport {
         Logical::new(id, spans)
     }
 
-    /// A structural change: the whole index is rebuilt on the next layout.
+
     fn touched(&mut self) {
         self.revision += 1;
         self.index_valid = false;
     }
 
-    /// Lines were appended: retained rows stay valid, the tail extends.
+
     fn appended(&mut self) {
         self.revision += 1;
     }
 
-    /// Retention dropped `drop` leading lines: their rows leave the index
-    /// and the remaining rows are renumbered; nothing is re-laid out.
+
+
     fn shift_index(&mut self, drop: usize) {
         if !self.index_valid {
             return;
@@ -810,13 +810,13 @@ impl TextViewport {
         self.work.index_shifts += 1;
         self.scroll.set_content(self.visual.len());
         if !self.follow {
-            // the reading row keeps its content, not its number
+
             self.scroll.offset = self.scroll.offset.saturating_sub(gone);
         }
     }
 
-    /// Enforce the retention cap: drop the oldest lines and reconcile every
-    /// retained identity. Returns how many lines were evicted.
+
+
     fn enforce_cap(&mut self) -> usize {
         let Some(max) = self.max_lines else {
             return 0;
@@ -831,11 +831,11 @@ impl TextViewport {
         drop
     }
 
-    /// Reconcile anchored state after `drop` leading lines were evicted.
+
     fn reconcile(&mut self, drop: usize, evicted: &[u64]) {
         let gone = |id: u64| evicted.contains(&id);
-        // a selection whose ends are both evicted disappears; a partially
-        // surviving range clips to the first retained line start
+
+
         if let Some((a, b)) = self.select.sel {
             let (lo, hi) = if (a.id, a.col) <= (b.id, b.col) {
                 (a, b)
@@ -865,8 +865,8 @@ impl TextViewport {
             self.select.word = None;
         }
         if self.select.press.is_some_and(|d| gone(d.id)) {
-            // the press began on a line that no longer exists: the drag
-            // continues from the first retained line, never a random one
+
+
             self.select.press = self.lines.first().map(|l| Anchor { id: l.id, col: 0 });
         }
         if self.browse.is_some_and(|b| gone(b.id)) {
@@ -892,7 +892,7 @@ impl TextViewport {
     }
 
     pub fn set_lines(&mut self, lines: Vec<Line>) {
-        // dataset replacement: identities do not survive, retained state resets
+
         let mut fresh = Vec::with_capacity(lines.len());
         for l in lines {
             let lg = self.alloc(l);
@@ -929,9 +929,9 @@ impl TextViewport {
         self.enforce_cap();
     }
 
-    /// Replace the last line in place (a terminal updating its live row).
-    /// The identity is retained; selection on the line is clipped to its
-    /// new width on the next layout.
+
+
+
     pub fn replace_last(&mut self, line: Line) {
         match self.lines.last_mut() {
             Some(last) => {
@@ -1003,7 +1003,7 @@ impl TextViewport {
         }
     }
 
-    // ------------------------------------------------------------ marks
+
 
     pub fn set_marks(&mut self, marks: Vec<Mark>) {
         self.marks = marks;
@@ -1017,9 +1017,9 @@ impl TextViewport {
         &self.marks
     }
 
-    /// Scroll so a logical line is visible; pauses follow. The current
-    /// search mark on that line, if any, is also scrolled into view
-    /// sideways, so a search jump lands on the match.
+
+
+
     pub fn reveal_line(&mut self, line: usize) {
         self.ensure_index();
         if let Some(vi) = self.visual.iter().position(|v| v.line == line) {
@@ -1037,13 +1037,13 @@ impl TextViewport {
         }
     }
 
-    // ------------------------------------------------------------ layout
+
 
     fn ensure_layout(&mut self, text_w: u16) {
         let wrap = self.wrap;
         let same_key = self.layout_width == text_w && self.layout_wrap == wrap;
         if self.index_valid && same_key {
-            // incremental: only lines appended since the index was built
+
             let from = self.indexed_lines.min(self.lines.len());
             let key = (text_w, wrap);
             let mut extended = false;
@@ -1110,7 +1110,7 @@ impl TextViewport {
     }
 
     fn clip_selection(&mut self) {
-        // clip a selection whose columns overflow a replaced line
+
         if let Some((a, b)) = self.select.sel {
             let clip = |x: Anchor, lines: &[Logical]| -> Anchor {
                 match lines.iter().find(|l| l.id == x.id) {
@@ -1143,7 +1143,7 @@ impl TextViewport {
 
     fn remember_reading(&mut self) {
         if self.follow || !self.index_valid {
-            // a stale index (after a dataset replacement) names no row
+
             self.reading = None;
             return;
         }
@@ -1184,9 +1184,9 @@ impl TextViewport {
         self.scroll.scroll_to(target);
     }
 
-    /// Lay the text out for `area` without drawing: owners that render a
-    /// copy of the viewport call this before routing mouse or key events to
-    /// the original so positions and page sizes match the last frame.
+
+
+
     pub fn set_area(&mut self, area: Rect) {
         self.area = area;
         let h_on = self.h_enabled();
@@ -1198,9 +1198,9 @@ impl TextViewport {
             if h_on {
                 self.sync_h();
                 if area.height > 1 && self.scroll.h_cfg.shows_bar(&self.scroll.h) {
-                    // the horizontal bar takes the bottom row; fewer text
-                    // rows may make the text overflow vertically, which
-                    // only narrows it (the bar stays)
+
+
+
                     rows = area.height - 1;
                     self.lay_out(area.width, rows);
                     self.sync_h();
@@ -1210,8 +1210,8 @@ impl TextViewport {
             }
             self.rows_h = rows;
             self.layout_size = Some(size);
-            // the horizontal bar's row, known before drawing so a copy
-            // rendered elsewhere still routes presses on the original
+
+
             if rows < area.height && h_on {
                 let w = area
                     .width
@@ -1229,21 +1229,21 @@ impl TextViewport {
         }
     }
 
-    /// The horizontal axis: the widest line against the text width.
+
     fn sync_h(&mut self) {
         let widest = self.lines.iter().map(|l| l.width).max().unwrap_or(0);
         self.scroll.h.set_content(widest);
         self.scroll.h.set_viewport(self.text_w());
     }
 
-    /// Lay the text out for a `width` × `rows` text region, deciding the
-    /// vertical scrollbar.
+
+
     fn lay_out(&mut self, width: u16, rows: u16) {
-        // Cache the final layout, including the scrollbar decision. The
-        // width that settled last time is tried first, so a live stream
-        // that already overflows extends its index at the scrollbar
-        // width instead of rebuilding at both widths every frame.
-        // overflowing text keeps the gap clear of the scrollbar
+
+
+
+
+
         let narrow = width.saturating_sub(scrollbar::reserve(self.scrollbar_gap));
         let preferred = if self.layout_width == narrow && self.wrap == self.layout_wrap {
             narrow
@@ -1263,7 +1263,7 @@ impl TextViewport {
         }
     }
 
-    // -------------------------------------------------------- positions
+
 
     fn index_of(&self, id: u64) -> Option<usize> {
         self.lines.iter().position(|l| l.id == id)
@@ -1282,7 +1282,7 @@ impl TextViewport {
         })
     }
 
-    /// True after a press anchored a selection and before it was cleared.
+
     pub fn has_anchor(&self) -> bool {
         self.select.press.is_some()
     }
@@ -1301,8 +1301,8 @@ impl TextViewport {
         Some((a.min(b), a.max(b)))
     }
 
-    /// Select All: every retained line, from the first column of the first
-    /// line to the end of the last. `Changed` when the selection changed.
+
+
     pub fn select_all(&mut self) -> Outcome {
         self.ensure_index();
         let (Some(first), Some(last)) = (self.lines.first(), self.lines.last()) else {
@@ -1335,7 +1335,7 @@ impl TextViewport {
         self.scroll.offset >= self.scroll.max_offset()
     }
 
-    /// Lines behind the live tail (scrollback depth).
+
     pub fn scrollback_depth(&self) -> usize {
         self.scroll.max_offset().saturating_sub(self.scroll.offset)
     }
@@ -1358,9 +1358,9 @@ impl TextViewport {
         self.lines.get(line).map(|l| l.cell_at(col)).unwrap_or(0)
     }
 
-    /// Map a screen position to a logical position (line, column). The
-    /// horizontal offset is added, so a column is a content column
-    /// whatever part of the line is in view.
+
+
+
     pub fn pos_at(&self, pos: Position) -> Option<CellPos> {
         if self.area.is_empty() || self.visual.is_empty() {
             return None;
@@ -1379,7 +1379,7 @@ impl TextViewport {
         })
     }
 
-    /// Source bytes of a cell range within a line.
+
     fn source_slice(&self, line: usize, from: usize, to: usize) -> String {
         let Some(l) = self.lines.get(line) else {
             return String::new();
@@ -1394,8 +1394,8 @@ impl TextViewport {
         l.text[start..end].to_owned()
     }
 
-    /// The selected text as source bytes (tabs and controls preserved);
-    /// trailing spaces of each line are dropped.
+
+
     pub fn selected_text(&self) -> Option<String> {
         let (a, b) = self.selection()?;
         let mut out = String::new();
@@ -1420,7 +1420,7 @@ impl TextViewport {
         Some(out)
     }
 
-    /// A cell of a word ([`text_select::is_word`]); controls never are.
+
     fn is_word(c: &Cell) -> bool {
         c.kind == CellKind::Text && text_select::is_word(&c.g)
     }
@@ -1429,7 +1429,7 @@ impl TextViewport {
         text_select::word_bounds(&self.lines.get(line)?.cells, ci, Self::is_word)
     }
 
-    /// The word at a logical position, as anchors.
+
     fn word_at(&self, p: CellPos) -> Option<(Anchor, Anchor)> {
         let ci = self.cell_at(p.line, p.col);
         let (s, e) = self.word_bounds(p.line, ci)?;
@@ -1444,8 +1444,8 @@ impl TextViewport {
         self.anchor_at(a).zip(self.anchor_at(b))
     }
 
-    /// The logical line at a position (a wrapped paragraph whole), as
-    /// anchors.
+
+
     fn line_at(&self, p: CellPos) -> Option<(Anchor, Anchor)> {
         let l = self.lines.get(p.line)?;
         (!l.cells.is_empty()).then_some((
@@ -1457,14 +1457,14 @@ impl TextViewport {
         ))
     }
 
-    /// The browse caret follows the selection head.
+
     fn follow_head(&mut self) {
         if let Some((_, head)) = self.select.sel {
             self.browse = Some(head);
         }
     }
 
-    /// Double-click: select the word under the pointer.
+
     pub fn select_word_at(&mut self, pos: Position) -> Outcome {
         let Some(p) = self.pos_at(pos) else {
             return Outcome::Ignored;
@@ -1481,23 +1481,23 @@ impl TextViewport {
         Outcome::Changed
     }
 
-    /// Mouse down: anchor a drag; no selection yet. Apps that deliver the
-    /// release of a drag here keep the dragged selection. A plain
-    /// [`Self::on_press_with`].
+
+
+
     pub fn on_click(&mut self, pos: Position) -> Outcome {
-        // the release that ends a drag keeps the dragged selection (apps
-        // deliver it as a click on the control the press started on)
+
+
         if self.select.dragged.take() == Some(pos) && self.select.sel.is_some() {
             return Outcome::Consumed;
         }
         self.on_press_with(pos, 1, ratatui::crossterm::event::KeyModifiers::NONE)
     }
 
-    /// Mouse down with its multi-click `count` and modifiers, per
-    /// [`Self::pointer_select`]: anchors a drag; Shift extends the
-    /// selection from its anchor; the second press of a double click
-    /// selects the word (a drag from it extends by words) and a third
-    /// the line.
+
+
+
+
+
     pub fn on_press_with(
         &mut self,
         pos: Position,
@@ -1516,10 +1516,10 @@ impl TextViewport {
         o
     }
 
-    /// A completed click with its multi-click `count`, per
-    /// [`Self::pointer_select`]: a double click selects the word under
-    /// it, a triple click the line; the release that ends a drag or a
-    /// Shift press keeps the selection.
+
+
+
+
     pub fn on_click_with(&mut self, pos: Position, count: u8) -> Outcome {
         let p = self.pos_at(pos);
         let word = p.and_then(|p| self.word_at(p));
@@ -1531,16 +1531,16 @@ impl TextViewport {
         o
     }
 
-    /// Drag: extend the selection from the anchor; auto-scroll at the
-    /// edges (vertically by a row, sideways by a step).
+
+
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         if self.select.press.is_none() {
             return Outcome::Ignored;
         }
         let text = self.text_rect();
-        // one row or column per cell the pointer is past the edge, so a
-        // held drag (replayed by the edge autoscroll tick) speeds up with
-        // the distance
+
+
+
         if pos.y < text.y {
             self.scroll.scroll_by(-((text.y - pos.y) as isize));
             self.follow = false;
@@ -1549,7 +1549,7 @@ impl TextViewport {
             self.scroll.scroll_by((pos.y + 1 - text.bottom()) as isize);
             self.remember_reading();
         }
-        // the text columns end before the vertical bar's gap
+
         let text_right = if self.h_enabled() {
             self.area.x + (self.text_w() as u16).min(self.area.width)
         } else {
@@ -1578,10 +1578,10 @@ impl TextViewport {
         o
     }
 
-    // ------------------------------------------------- keyboard selection
 
-    /// The browse caret: the selection head, else the last cell of the last
-    /// visible line.
+
+
+
     fn browse_caret(&self) -> Option<CellPos> {
         if let Some(b) = self.browse.and_then(|b| self.resolve(b)) {
             return Some(b);
@@ -1734,7 +1734,7 @@ impl TextViewport {
         self.select.sel = Some((anchor, head));
         self.browse = Some(head);
         self.select.press = None;
-        // the caret stays on screen; selection pauses follow
+
         if let Some(vi) = self.visual.iter().position(|v| {
             v.line == to.line
                 && self.col_of(v.line, v.start) <= to.col
@@ -1744,18 +1744,18 @@ impl TextViewport {
             self.scroll.ensure_visible(vi);
             self.remember_reading();
         }
-        // and sideways: the head's column comes into view
+
         self.reveal_cols(to.col..to.col + 1);
         Outcome::Changed
     }
 
-    /// ↑↓ j k · PgUp PgDn · Home End g G · `f` follow · `y` copy ·
-    /// ←→ h l scroll sideways while lines overflow and no producer caret
-    /// is shown (Home/End stay vertical, as on `ScrollPanel`) ·
-    /// Shift+arrows extend a keyboard selection (Ctrl/Alt by word,
-    /// Ctrl+Shift+Home/End to the document ends) · Esc clears.
+
+
+
+
+
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<ViewportAction>) {
-        // the open Edit menu takes the keys; Shift+F10 opens it
+
         if let Some(o) = edit_menu_key(self, key) {
             return (o, None);
         }
@@ -1774,8 +1774,8 @@ impl TextViewport {
             let o = self.extend_selection(key.code, word);
             return (o, Some(ViewportAction::SelectionChanged));
         }
-        // Ctrl+C over a selection copies (copy-first, SI17); the shell
-        // passes it here only while the frame marked the selection
+
+
         let cmd = lookup(&self.keymap, key)
             .or_else(|| (key.ctrl_char('c') && self.has_selection()).then_some(ViewportCmd::Copy));
         match cmd {
@@ -1802,7 +1802,7 @@ impl TextViewport {
         }
         let nav = self.nav.action(key).filter(|_| key.plain());
         let moved = match (nav, key.code) {
-            // no caret to move, so the arrows scroll sideways
+
             (Some(Nav::Left), _) if self.caret.is_none() => {
                 return (self.scroll_h(-1), None);
             }
@@ -1838,11 +1838,11 @@ impl TextViewport {
         (Outcome::Changed, ev)
     }
 
-    // ------------------------------------------------------------ render
+
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.render_view(area, buf, ctx, bg);
-        // the Edit menu floats above everything drawn after the viewport
+
         self.edit_menu.render(self.area, buf, ctx);
     }
 
@@ -1852,7 +1852,7 @@ impl TextViewport {
             return;
         }
         let t = ctx.theme;
-        // under its open Edit menu the viewport shows no focus
+
         let focused = ctx
             .interaction
             .focused_under(self.id, self.edit_menu.is_open());
@@ -1886,15 +1886,15 @@ impl TextViewport {
             };
             let l = &self.lines[vr.line];
             let line_marks: Vec<&Mark> = self.marks.iter().filter(|m| m.line == vr.line).collect();
-            // the row's first column plus the horizontal offset is drawn
-            // at the left edge (a wrapped row never has an offset)
+
+
             let left = l.col_of(vr.start) + hoff;
             let mut col = l.col_of(vr.start);
             for c in &l.cells[vr.start..vr.end] {
                 let at = col;
                 col += c.w;
-                // left of the horizontal offset (a wide cell cut by the
-                // edge leaves its visible half blank)
+
+
                 if at < left {
                     continue;
                 }
@@ -1940,7 +1940,7 @@ impl TextViewport {
                 }
                 buf.set_string(x, y, &c.g, st);
             }
-            // a selection that spans to the line end paints the trailing gap
+
             let end_col = l.col_of(vr.end);
             if let Some((a, b)) = sel
                 && vr.line >= a.line
@@ -1960,14 +1960,14 @@ impl TextViewport {
                 .draw_with_fade(body, buf, ctx, self.id, focused, &[]);
         }
         if text.height < area.height && self.h_enabled() {
-            // the bottom row: the horizontal bar; the corner under the
-            // vertical bar stays blank
+
+
             let w = area.width.saturating_sub(u16::from(has_sb));
             let hb = Rect::new(area.x, text.bottom(), w, 1);
             self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
-        // the hardware cursor: the keyboard selection head while selecting,
-        // else the producer caret while following
+
+
         let cursor_pos = if focused {
             match self.browse.and_then(|b| self.resolve(b)) {
                 Some(b) if self.select.sel.is_some() => Some(b),
@@ -1982,10 +1982,10 @@ impl TextViewport {
         }
     }
 
-    /// Where a logical position is drawn after the last layout, through
-    /// both scroll offsets: `None` while it is scrolled out of view on
-    /// either axis. Owners that place the hardware cursor themselves (a
-    /// pane drawing a copy of the viewport) map the caret through this.
+
+
+
+
     pub fn screen_pos(&self, c: CellPos) -> Option<Position> {
         let vi = self.visual.iter().position(|v| {
             v.line == c.line
@@ -2000,7 +2000,7 @@ impl TextViewport {
         let hoff = self.hoff();
         let base = self.col_of(vr.line, vr.start) + hoff;
         let text_w = self.layout_width;
-        // a caret scrolled out of view sideways is not drawn at an edge
+
         let inside = c.col >= base && c.col - base < text_w as usize;
         if !inside && hoff > 0 {
             return None;
@@ -2010,11 +2010,11 @@ impl TextViewport {
         Some(Position::new(cx, cy))
     }
 
-    /// Where a keyboard context menu about the viewport opens (it opens
-    /// below this cell): the end of the selection when it is in view, else
-    /// the caret when it is shown, else the last drawn line while the view
-    /// follows its tail, else the top line. A viewport has no cursor row,
-    /// so this stands in for one.
+
+
+
+
+
     pub fn context_point(&self) -> Position {
         if let Some((_, end)) = self.selection()
             && let Some(p) = self.screen_pos(end)
@@ -2037,8 +2037,8 @@ impl TextViewport {
         top
     }
 
-    /// The horizontal bar's track after the last layout (empty without
-    /// one): owners that route presses by position test it.
+
+
     pub fn hbar(&self) -> Rect {
         self.scroll.h_track()
     }
@@ -2049,14 +2049,14 @@ impl Scrollable for TextViewport {
         &mut self.scroll
     }
 
-    /// Wrapped text never scrolls sideways.
+
     fn wheel_first(&mut self, axis: Axis, _delta: i32) -> Option<Response<()>> {
         (axis == Axis::Horizontal && !self.h_enabled()).then(Response::ignored)
     }
 
-    /// Scrolling back pauses the tail follow and the reading position is
-    /// kept; reaching the tail follows again. Sideways scrolling leaves
-    /// follow alone.
+
+
+
     fn after_scroll(&mut self, axis: Axis, moved: bool) -> bool {
         if axis == Axis::Vertical && moved {
             self.follow = self.is_at_tail();
@@ -2066,12 +2066,12 @@ impl Scrollable for TextViewport {
     }
 }
 
-/// The viewport's pointer gestures, as the apps route them: a wheel or a
-/// bar press scrolls it; a press anchors a selection, or extends it with
-/// Shift ([`TextViewport::on_press_with`]), and a drag extends it
-/// ([`TextViewport::on_drag`]); the click that completes the press keeps
-/// a dragged selection, and a double or triple click selects the word or
-/// the line ([`TextViewport::on_click_with`]).
+
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for TextViewport {
     type Action = ();
 
@@ -2094,8 +2094,8 @@ impl crate::core::pointer::MouseTarget for TextViewport {
         match ev.phase() {
             Some(Phase::Press) => self.on_press_with(ev.pos(), ev.count(), ev.mods()).into(),
             Some(Phase::Drag) => self.on_drag(ev.pos()).into(),
-            // a double click selects the word under it, a triple click
-            // the line (macOS text)
+
+
             Some(Phase::Click) => self.on_click_with(ev.pos(), ev.count()).into(),
             _ => Response::ignored(),
         }
@@ -2106,9 +2106,9 @@ impl crate::core::pointer::MouseTarget for TextViewport {
     }
 }
 
-/// The viewport's Edit menu for read-only text: Copy (the selection onto
-/// the field clipboard and its OSC 52 hook) and Select all, named by the
-/// viewport's own key map. The selection stays where a right click lands.
+
+
+
 impl EditMenuHost for TextViewport {
     fn edit_menu(&mut self) -> &mut EditMenu {
         &mut self.edit_menu
@@ -2128,7 +2128,7 @@ impl EditMenuHost for TextViewport {
         crate::core::keymap::label_for(&self.keymap, cmd)
     }
     fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
-        // the text, not a scrollbar
+
         ev.id == self.id
     }
     fn edit_run(&mut self, cmd: TextCmd) -> bool {
@@ -2228,11 +2228,11 @@ mod tests {
         assert_eq!(buf[(9, 0)].fg, t.text_primary);
         assert!(!buf[(9, 0)].modifier.contains(Modifier::BOLD));
         assert_eq!(buf[(11, 0)].fg, t.warning);
-        // on the popover the error steps up to its strong ink
+
         let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
         render_spans(&mut buf, 0, 0, 30, &t, &line, t.popover);
         assert_eq!(buf[(0, 0)].fg, t.legible(t.error, t.popover));
-        // narrow: cut with `…`, never past `max`
+
         let mut buf = Buffer::empty(Rect::new(0, 0, 30, 1));
         assert_eq!(render_spans(&mut buf, 0, 0, 10, &t, &line, t.canvas), 10);
         assert_eq!(row(&buf, 0), "degraded …");
@@ -2284,11 +2284,11 @@ mod tests {
             "the text is the autoscroll body"
         );
         v.on_click(Position::new(0, 1));
-        // one row past the bottom: a row a step
+
         v.on_drag(Position::new(4, 10));
         assert_eq!(v.scroll.offset, 1);
-        // three rows past it: three rows a step (each autoscroll tick
-        // replays the drag at the resting pointer)
+
+
         v.on_drag(Position::new(4, 12));
         v.on_drag(Position::new(4, 12));
         assert_eq!(v.scroll.offset, 7);
@@ -2350,16 +2350,16 @@ mod tests {
         assert_eq!(render(&mut v, 40, 10), render(&mut fresh, 40, 10));
     }
 
-    // ---------------------------------------------------------- F10
+
 
     #[test]
     fn split_styles_never_split_a_grapheme_cluster() {
-        // one span
+
         let mut one =
             TextViewport::with_lines(WidgetId::of("v"), vec![vec![Span::plain("👩\u{200d}💻X")]]);
         one.follow = false;
         let a = render(&mut one, 10, 1);
-        // the same cluster split across a ZWJ boundary
+
         let mut split = TextViewport::with_lines(
             WidgetId::of("v"),
             vec![vec![
@@ -2374,7 +2374,7 @@ mod tests {
         assert_eq!(one.lines[0].cells.len(), 2);
         assert_eq!(split.lines[0].cells.len(), 2);
         assert_eq!(split.lines[0].col_of(1), 2, "X sits at column 2 both ways");
-        // combining accent split from its base survives copy
+
         let mut acc = TextViewport::with_lines(
             WidgetId::of("v"),
             vec![vec![
@@ -2387,9 +2387,9 @@ mod tests {
         render(&mut acc, 10, 1);
         acc.select.sel = Some((Anchor { id: 1, col: 0 }, Anchor { id: 1, col: 2 }));
         assert_eq!(acc.selected_text().as_deref(), Some("a\u{301}X"));
-        // the cluster takes the style of the span holding its first byte
+
         assert_eq!(acc.lines[0].cells[0].style.tone, Tone::Normal);
-        // flags and variation selectors keep one cell each
+
         let mut flags = TextViewport::with_lines(
             WidgetId::of("v"),
             vec![vec![
@@ -2426,7 +2426,7 @@ mod tests {
         );
     }
 
-    // ---------------------------------------------------------- F14
+
 
     #[test]
     fn tabs_and_controls_display_visibly_and_copy_as_source() {
@@ -2448,12 +2448,12 @@ mod tests {
             Some("A\tB\u{1b}[0m\u{7}C\r"),
             "copy returns the source bytes"
         );
-        // selecting inside a tab pad selects the whole tab
+
         v.select.sel = Some((Anchor { id: 1, col: 2 }, Anchor { id: 1, col: 4 }));
         assert_eq!(v.selected_text().as_deref(), Some("\t"));
     }
 
-    // ---------------------------------------------------------- F11
+
 
     #[test]
     fn retention_is_enforced_on_every_ingestion_path() {
@@ -2482,11 +2482,11 @@ mod tests {
         assert!(v.revision() > 0);
     }
 
-    // ---------------------------------------------------------- F12
+
 
     #[test]
     fn eviction_never_retargets_a_selection() {
-        // cap 3, A/B/C: select A, append D → the selection is gone, never B
+
         let mut v = TextViewport::new(WidgetId::of("v")).max_lines(3);
         v.follow = false;
         for s in ["A", "B", "C"] {
@@ -2499,7 +2499,7 @@ mod tests {
         v.push(vec![Span::plain("D")]);
         render(&mut v, 10, 5);
         assert_eq!(v.selected_text(), None, "an evicted selection is cleared");
-        // partial eviction clips to the first retained line
+
         let mut p = TextViewport::new(WidgetId::of("v")).max_lines(3);
         p.follow = false;
         for s in ["A", "B", "C"] {
@@ -2522,10 +2522,10 @@ mod tests {
             v.push(vec![Span::plain(s)]);
         }
         render(&mut v, 10, 5);
-        v.on_click(Position::new(0, 1)); // press on B
+        v.on_click(Position::new(0, 1));
         v.push(vec![Span::plain("D")]);
         render(&mut v, 10, 5);
-        v.on_drag(Position::new(1, 2)); // now B C D; drag to D
+        v.on_drag(Position::new(1, 2));
         assert_eq!(v.selected_text().as_deref(), Some("B\nC\nD"));
         let mut a = TextViewport::new(WidgetId::of("v")).max_lines(3);
         a.follow = false;
@@ -2533,7 +2533,7 @@ mod tests {
             a.push(vec![Span::plain(s)]);
         }
         render(&mut a, 10, 5);
-        a.on_click(Position::new(0, 0)); // press on A
+        a.on_click(Position::new(0, 0));
         a.push(vec![Span::plain("D")]);
         a.push(vec![Span::plain("E")]);
         render(&mut a, 10, 5);
@@ -2563,7 +2563,7 @@ mod tests {
         v.push(vec![Span::plain("E")]);
         let buf = render(&mut v, 10, 2);
         assert_eq!(row(&buf, 0), "C", "B is gone: the first retained line");
-        // wrapped rows: the sub-row of the reading position is kept
+
         let mut w = TextViewport::new(WidgetId::of("w")).wrap(true);
         w.follow = false;
         w.push(vec![Span::plain("aaaaaaaaa bbbbbbbbb ccccccccc")]);
@@ -2616,7 +2616,7 @@ mod tests {
         );
     }
 
-    // ---------------------------------------------------------- F13
+
 
     #[test]
     fn every_mutation_is_visible_next_frame() {
@@ -2638,7 +2638,7 @@ mod tests {
         assert_eq!(row(&d, 1), "");
     }
 
-    // ---------------------------------------------------------- F15
+
 
     #[test]
     fn tail_update_reparses_only_the_changed_line() {
@@ -2651,8 +2651,8 @@ mod tests {
         }
         let w1 = v.work_counters();
         assert_eq!(w1.segmented_lines - w0.segmented_lines, 20);
-        // the scrollbar decision lays out two widths: at most two reflows
-        // per changed line, none for the unchanged 999
+
+
         assert!(w1.reflowed_lines - w0.reflowed_lines <= 40);
         for i in 0..20 {
             v.push(vec![Span::plain(format!("append {i}"))]);
@@ -2660,11 +2660,11 @@ mod tests {
         }
         let w2 = v.work_counters();
         assert_eq!(w2.segmented_lines - w1.segmented_lines, 20);
-        // fresh-layout equality after the churn
+
         let mut fresh =
             TextViewport::with_lines(WidgetId::of("v"), v.lines().cloned().collect()).wrap(true);
         assert_eq!(render(&mut v, 80, 20), render(&mut fresh, 80, 20));
-        // a resize reflows every line once, without re-segmenting any
+
         let w3 = v.work_counters();
         render(&mut v, 60, 20);
         let w4 = v.work_counters();
@@ -2673,7 +2673,7 @@ mod tests {
         assert!(w4.reflowed_lines - w3.reflowed_lines >= v.len());
     }
 
-    // ---------------------------------------------------------- F19
+
 
     #[test]
     fn keyboard_selection_matches_mouse_selection() {
@@ -2687,10 +2687,10 @@ mod tests {
         let mut m = TextViewport::with_lines(WidgetId::of("v"), text);
         m.follow = false;
         render(&mut m, 40, 4);
-        // mouse: from col 5 line 0 to col 6 line 1
+
         m.on_click(Position::new(5, 0));
         m.on_drag(Position::new(6, 1));
-        // keyboard: put the caret at line 0 col 5 with a click, then extend
+
         k.on_click(Position::new(5, 0));
         k.browse = k.anchor_at(CellPos { line: 0, col: 5 });
         k.on_key(&key(KeyCode::Down, KeyModifiers::SHIFT));
@@ -2700,7 +2700,7 @@ mod tests {
             k.selected_text().as_deref(),
             Some("日本 👩\u{200d}💻 done\nsecond")
         );
-        // word extension and line ends
+
         k.on_key(&key(
             KeyCode::Right,
             KeyModifiers::SHIFT | KeyModifiers::CONTROL,
@@ -2719,18 +2719,18 @@ mod tests {
             KeyModifiers::SHIFT | KeyModifiers::CONTROL,
         ));
         assert_eq!(k.selected_text().as_deref(), Some("café"));
-        // Esc clears, the second Esc is ignored so the owner may act on it
+
         let (o, _) = k.on_key(&key(KeyCode::Esc, KeyModifiers::NONE));
         assert_eq!(o, Outcome::Changed);
         assert!(!k.has_selection());
         let (o, _) = k.on_key(&key(KeyCode::Esc, KeyModifiers::NONE));
         assert_eq!(o, Outcome::Ignored);
-        // empty viewport: selection keys are consumed, nothing panics
+
         let mut e = TextViewport::new(WidgetId::of("e"));
         render(&mut e, 10, 2);
         let (o, _) = e.on_key(&key(KeyCode::Right, KeyModifiers::SHIFT));
         assert_eq!(o, Outcome::Consumed);
-        // copy without a selection is consumed without an event
+
         let (o, ev) = e.on_key(&key(KeyCode::Char('y'), KeyModifiers::NONE));
         assert_eq!((o, ev), (Outcome::Consumed, None));
     }
@@ -2763,7 +2763,7 @@ mod tests {
         let _ = buf;
     }
 
-    // ---------------------------------------------------------- marks
+
 
     #[test]
     fn marks_paint_and_survive_eviction() {
@@ -2785,8 +2785,8 @@ mod tests {
             },
         ]);
         let buf = render(&mut v, 10, 3);
-        // the current match is the accent fill, not reversed back to accent
-        // ink on black (weaker than the other matches)
+
+
         let t = crate::theme::Theme::junie();
         assert_eq!(buf[(0, 1)].bg, t.accent);
         assert_eq!(buf[(0, 1)].fg, t.text_on_accent);
@@ -2799,9 +2799,9 @@ mod tests {
         assert!(!v.follow);
     }
 
-    // ------------------------------------------------- horizontal scroll
 
-    /// Ten lines; line 2 is 80 cells wide (`0123456789` eight times).
+
+
     fn wide() -> TextViewport {
         let mut ls = lines(10);
         ls[2] = vec![Span::plain("0123456789".repeat(8))];
@@ -2820,7 +2820,7 @@ mod tests {
     fn long_lines_scroll_sideways_under_a_horizontal_bar() {
         let mut v = wide();
         let buf = render(&mut v, 30, 6);
-        // 5 text rows, the bottom row is the bar
+
         assert_eq!(v.scroll.viewport_len, 5);
         assert!(v.scroll.h.overflows());
         assert_eq!(v.scroll.h.content_len, 80);
@@ -2832,17 +2832,17 @@ mod tests {
         assert_eq!(v.scroll.h.offset, 4, "one notch is HScroll::step cells");
         let buf = render(&mut v, 30, 6);
         assert!(row(&buf, 2).starts_with("456789"), "{}", row(&buf, 2));
-        // short lines scroll too: `line 0 alpha beta` loses `line`
+
         assert!(row(&buf, 0).starts_with(" 0 alpha"), "{}", row(&buf, 0));
         assert_ne!(bar_row(&buf, 5), bar0, "the thumb moved");
-        // the arrows scroll sideways too (no producer caret)
+
         let (o, _) = v.on_key(&key(KeyCode::Right, KeyModifiers::NONE));
         assert_eq!(o, Outcome::Changed);
         assert_eq!(v.scroll.h.offset, 8);
         v.on_key(&key(KeyCode::Left, KeyModifiers::NONE));
         v.on_key(&key(KeyCode::Left, KeyModifiers::NONE));
         assert_eq!(v.scroll.h.offset, 0);
-        // the end stops at the widest line
+
         for _ in 0..40 {
             v.wheel(Axis::Horizontal, 1).outcome();
         }
@@ -2883,12 +2883,12 @@ mod tests {
         let sel_bg = t.selection().bg.unwrap();
         assert_eq!(buf[(0, 2)].bg, sel_bg, "selection painted at the view");
         assert_ne!(buf[(5, 2)].bg, sel_bg);
-        // a drag past the right edge scrolls sideways and keeps selecting
+
         v.on_drag(Position::new(40, 2));
         assert_eq!(v.scroll.h.offset, 17);
         let sel = v.selected_text().unwrap();
         assert!(sel.starts_with("3456789"), "{sel}");
-        // a double-click selects the word under the pointer, offset-aware
+
         v.scroll.h.scroll_to(4);
         v.select_word_at(Position::new(4, 0));
         assert_eq!(v.selected_text().as_deref(), Some("alpha"));
@@ -2918,10 +2918,10 @@ mod tests {
             "the current match is drawn in view"
         );
         assert_eq!(buf[(x, 2)].symbol(), "1");
-        // reveal_mark scrolls back to an earlier match
+
         v.reveal_mark(2, 2..3);
         assert!(v.scroll.h.visible_range().contains(&2));
-        // a keyboard selection head is kept in view sideways
+
         v.scroll.h.scroll_to(0);
         v.on_click(Position::new(0, 2));
         v.on_drag(Position::new(1, 2));
@@ -2947,7 +2947,7 @@ mod tests {
         assert!(v.follow && v.is_at_tail());
         assert_eq!(v.scroll.h.offset, 8, "the horizontal position is kept");
         assert_eq!(v.scroll.viewport_len, 5);
-        // the producer caret is not drawn at an edge while scrolled away
+
         let t = Theme::junie();
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
@@ -2964,7 +2964,7 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 30, 6));
         v.render(Rect::new(0, 0, 30, 6), &mut buf, &mut ctx, t.canvas);
         assert_eq!(ctx.cursor, None);
-        // in view, it is
+
         v.scroll.h.scroll_to(0);
         v.render(Rect::new(0, 0, 30, 6), &mut buf, &mut ctx, t.canvas);
         assert_eq!(ctx.cursor, Some(Position::new(2, 4)));
@@ -2977,7 +2977,7 @@ mod tests {
         assert!(!v.scroll.h.overflows());
         assert_eq!(v.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
         assert!(!bar_row(&buf, 5).contains(scrollbar::H_TRACK));
-        // and the policy can switch it off without wrapping
+
         let mut v = wide().horizontal(HScroll::off());
         let buf = render(&mut v, 30, 6);
         assert_eq!(v.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
@@ -2987,10 +2987,10 @@ mod tests {
 
     #[test]
     fn the_horizontal_bar_clicks_and_drags() {
-        // Jump: the thumb lands under the pointer and the drag carries it
+
         let mut v = wide().horizontal(HScroll::default().track_click(TrackClick::Jump));
         render(&mut v, 30, 6);
-        // the bar stops short of the vertical bar's corner, which stays blank
+
         assert_eq!(v.scroll.h_track(), Rect::new(0, 5, 29, 1));
         assert_eq!(
             v.bar_press(Position::new(28, 5))
@@ -3008,7 +3008,7 @@ mod tests {
             Outcome::Changed
         );
         assert_eq!(v.scroll.h.offset, 0);
-        // TrackClick::Page (the default) on the horizontal axis pages
+
         let mut v = wide();
         render(&mut v, 30, 6);
         v.bar_press(Position::new(28, 5))
@@ -3019,7 +3019,7 @@ mod tests {
 
     #[test]
     fn the_vertical_bar_can_page_on_a_track_click() {
-        // the default pages (macOS, Windows)
+
         let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(50));
         v.follow = false;
         render(&mut v, 30, 10);
@@ -3030,7 +3030,7 @@ mod tests {
             Outcome::Changed
         );
         assert_eq!(v.scroll.offset, 10, "one page down, not a jump to the end");
-        // Jump stays available
+
         let mut v =
             TextViewport::with_lines(WidgetId::of("v"), lines(50)).track_click(TrackClick::Jump);
         v.follow = false;
@@ -3042,7 +3042,7 @@ mod tests {
     }
 }
 
-/// Select All in read-only text: every retained line, then Copy.
+
 #[cfg(test)]
 mod select_all_tests {
     use super::*;
@@ -3079,7 +3079,7 @@ mod select_all_tests {
                 mods: M::NONE,
             });
             assert_eq!(ev, Some(ViewportAction::Copy(all)));
-            // again: nothing changes
+
             assert_eq!(
                 v.on_key(&Key {
                     code: KeyCode::Char('a'),
@@ -3092,8 +3092,8 @@ mod select_all_tests {
     }
 }
 
-/// Cmd+C copies the selection, as `y` does; the hint names it only once
-/// the terminal delivers Cmd.
+
+
 #[cfg(test)]
 mod cmd_copy_tests {
     use super::*;
@@ -3133,9 +3133,9 @@ mod cmd_copy_tests {
         assert_eq!(hint_key(&v.keymap, ViewportCmd::Copy), Some(label.as_str()));
     }
 
-    /// M31: through the pointer route, Shift with a press extends the
-    /// selection from its anchor, a triple click selects the line and a
-    /// double click the word; `pointer_select` turns them off.
+
+
+
     #[test]
     fn shift_click_extends_and_a_triple_click_selects_the_line() {
         use ratatui::crossterm::event::KeyModifiers;
@@ -3166,12 +3166,12 @@ mod cmd_copy_tests {
         };
         let none = KeyModifiers::NONE;
         let shift = KeyModifiers::SHIFT;
-        // "line 0 alpha beta": a drag from "alpha" to "be"
+
         send(&mut v, Phase::Press, 7, 0, 1, none);
         send(&mut v, Phase::Drag, 15, 0, 1, none);
         send(&mut v, Phase::Click, 15, 0, 1, none);
         assert_eq!(v.selected_text().as_deref(), Some("alpha be"));
-        // Shift+press on the next line extends from the anchor ("alpha")
+
         send(&mut v, Phase::Press, 4, 1, 1, shift);
         send(&mut v, Phase::Click, 4, 1, 1, shift);
         assert_eq!(
@@ -3179,28 +3179,28 @@ mod cmd_copy_tests {
             Some("alpha beta\nline"),
             "Shift-click extends from the anchor"
         );
-        // and before the anchor it extends backwards from the same anchor
+
         send(&mut v, Phase::Press, 2, 0, 1, shift);
         send(&mut v, Phase::Click, 2, 0, 1, shift);
         assert_eq!(v.selected_text().as_deref(), Some("ne 0"));
-        // a triple click selects the line
+
         for count in 1..=3 {
             send(&mut v, Phase::Press, 9, 2, count, none);
             send(&mut v, Phase::Click, 9, 2, count, none);
         }
         assert_eq!(v.selected_text().as_deref(), Some("line 2 alpha beta"));
-        // a double click the word
+
         send(&mut v, Phase::Press, 14, 1, 1, none);
         send(&mut v, Phase::Click, 14, 1, 1, none);
         send(&mut v, Phase::Press, 14, 1, 2, none);
         send(&mut v, Phase::Click, 14, 1, 2, none);
         assert_eq!(v.selected_text().as_deref(), Some("beta"));
-        // a single click clears
+
         send(&mut v, Phase::Press, 1, 1, 1, none);
         send(&mut v, Phase::Click, 1, 1, 1, none);
         assert_eq!(v.selected_text(), None);
 
-        // the policy turns the triple click off
+
         let mut v = TextViewport::with_lines(id, lines(3))
             .pointer_select(crate::widgets::field_common::PointerSelect::DEFAULT.line(false));
         draw(&mut v);

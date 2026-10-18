@@ -1,15 +1,15 @@
-//! Query workbench (Screens, plan §7.5 SC46): tablepro's workbench
-//! composed from the library only. An explorer (`TextInput` filter over a
-//! lazy `TreeView`) beside the main area: query `Tabs` with `×` and `+`,
-//! a `Toolbar`, a `CodeEditor` over the results (`DataTable`, an
-//! `EmptyState` error card or a running bar) in a draggable `Split`, and
-//! a status line of `segments`. Options: `crate::options::QUERY_WORKBENCH`.
-//!
-//! Pieces the library does not have yet are shown with the closest
-//! widget and recorded in docs/remaining-work.md (SC46 gaps): the filter
-//! tree (`FilterTree`, S21), the EXPLAIN tree-table (S16d), the result
-//! sub-tabs and `ActivityLine` (S23), the table tab (Data/Structure, DDL
-//! card, filter chips, pending bar, S17/S18/S23) and the Safe Mode gate.
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::ops::Range;
 
@@ -45,15 +45,15 @@ use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 const ID: WidgetId = WidgetId::of("queryworkbench");
 const OUTER: WidgetId = WidgetId::of("queryworkbench").sub("outer");
 const INNER: WidgetId = WidgetId::of("queryworkbench").sub("inner");
-/// Ticks a query (or a lazy explorer node) takes.
+
 const RUN_TICKS: u8 = 6;
-/// Rows the work area needs: tabs, toolbar, an editor and results.
+
 const WORK_MIN: u16 = 15;
-/// Below this many rows the work area drops its toolbar (Ctrl+R still
-/// runs), so the editor and the results both stay in view.
+
+
 const TOOLBAR_MIN: u16 = 20;
 
-/// The `public` schema's tables, with their row counts.
+
 const TABLES: &[(&str, &str)] = &[
     ("organizations", "1.2k"),
     ("customers", "48k"),
@@ -79,9 +79,9 @@ const KEYWORDS: &[&str] = &[
     "insert", "update", "delete", "set", "values", "into", "count", "distinct",
 ];
 
-/// SQL tones for the editor ([`CodeEditor::highlighter`]): keywords,
-/// strings, numbers and `--` comments. Demo configuration, as an app
-/// passes its own language's highlighter.
+
+
+
 fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
     let b = src.as_bytes();
     let mut out = Vec::new();
@@ -118,32 +118,32 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
     out
 }
 
-/// What a query tab's last run returned.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Outcome2 {
-    /// Rows of `table` (`0` rows shows the table's empty state).
+
     Rows {
         table: String,
         count: usize,
         ms: u32,
     },
-    /// The plan of the query.
+
     Plan { ms: u32 },
-    /// The server refused it.
+
     Error { message: String, detail: String },
-    /// Not run yet.
+
     None,
 }
 
-/// One query tab: its title, its SQL and its last result.
+
 struct Doc {
     title: String,
     sql: String,
     result: Outcome2,
 }
 
-/// The explorer's tree: database › schemas › object folders; `Views`,
-/// `Functions` and the other schemas load when first opened.
+
+
 fn explorer_nodes() -> Vec<TreeNode> {
     let tables = TABLES
         .iter()
@@ -170,7 +170,7 @@ fn explorer_nodes() -> Vec<TreeNode> {
     ]
 }
 
-/// What a lazy node loads (demo data).
+
 fn lazy_children(label: &str) -> Vec<TreeNode> {
     match label {
         "Views" => vec![
@@ -194,7 +194,7 @@ const CUSTOMERS: &[&str] = &[
     "Hooli",
 ];
 
-/// The result grid for `table`: `count` rows of demo data.
+
 fn result_table(table: &str, count: usize) -> DataTable {
     let id = ID.sub("results");
     let (cols, rows): (Vec<Column>, Vec<Vec<Cell>>) = match table {
@@ -255,7 +255,7 @@ fn result_table(table: &str, count: usize) -> DataTable {
         .empty(EmptyState::new("0 rows").hint("The query ran; nothing matched"))
 }
 
-/// The plan grid an Explain shows (the tree-table waits for S16d).
+
 fn plan_table() -> DataTable {
     let rows = [
         ("Limit", "0.42..2.10", "25"),
@@ -282,8 +282,8 @@ fn plan_table() -> DataTable {
     )
 }
 
-/// The table a statement reads (the word after `FROM`), with its byte
-/// range in `sql`.
+
+
 fn from_table(sql: &str) -> Option<(String, Range<usize>)> {
     let lower = sql.to_ascii_lowercase();
     let at = lower.find("from ")? + 5;
@@ -328,16 +328,16 @@ pub struct QueryWorkbenchPage {
     opts: PageValues,
     pub filter: TextInput,
     pub explorer: TreeView,
-    /// Lazy explorer nodes loading: their path and ticks left.
+
     loading: Vec<(Vec<usize>, u8)>,
     pub tabs: Tabs,
     docs: Vec<Doc>,
-    /// Query tabs opened so far (names the next `Query N`).
+
     opened: usize,
     pub toolbar: Toolbar,
     pub editor: CodeEditor,
     pub results: DataTable,
-    /// The running query: its tab, whether it is an Explain, ticks left.
+
     running: Option<(usize, bool, u8)>,
     outer: Split,
     inner: Split,
@@ -408,8 +408,8 @@ impl QueryWorkbenchPage {
         }
     }
 
-    /// Widgets from the option values, through their builders; the tabs,
-    /// documents and results are kept.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let active = self.tabs.active;
@@ -438,8 +438,8 @@ impl QueryWorkbenchPage {
         }
     }
 
-    /// The result the `result` option forces on the active tab (`None`:
-    /// the tab's own).
+
+
     fn result_option(&self) -> Option<Outcome2> {
         Some(match self.opts.value("queryworkbench.result") {
             "empty" => Outcome2::Rows {
@@ -475,7 +475,7 @@ impl QueryWorkbenchPage {
             .collect()
     }
 
-    /// Refresh the strip's flags (busy, error) keeping its position.
+
     fn sync_tabs(&mut self) {
         let items = self.tab_items();
         for (t, it) in self.tabs.items.iter_mut().zip(items) {
@@ -484,7 +484,7 @@ impl QueryWorkbenchPage {
         }
     }
 
-    /// The active tab's SQL into the editor, through its builders.
+
     fn load_editor(&mut self) {
         let sql = self
             .docs
@@ -497,7 +497,7 @@ impl QueryWorkbenchPage {
         self.sync_results();
     }
 
-    /// The active tab's editor text back into its document.
+
     fn store_editor(&mut self) {
         let text = self.editor.text().to_owned();
         if let Some(d) = self.docs.get_mut(self.tabs.active) {
@@ -505,7 +505,7 @@ impl QueryWorkbenchPage {
         }
     }
 
-    /// The results grid for the active tab's result.
+
     fn sync_results(&mut self) {
         self.editor.diagnostics.clear();
         match self.docs.get(self.tabs.active).map(|d| d.result.clone()) {
@@ -561,7 +561,7 @@ impl QueryWorkbenchPage {
         cx.status(format!("Closed {title}"));
     }
 
-    /// Run (or explain) the active tab's query.
+
     fn run(&mut self, explain: bool, cx: &mut Cx) {
         if self.running.is_some() || self.docs.is_empty() {
             return;
@@ -589,8 +589,8 @@ impl QueryWorkbenchPage {
         }
     }
 
-    /// The query finished: its result from the SQL (an unknown table is
-    /// the server's error).
+
+
     fn finish(&mut self, tab: usize, explain: bool, cx: &mut Cx) {
         self.toolbar.items = toolbar_items(false);
         let Some(doc) = self.docs.get_mut(tab) else {
@@ -720,8 +720,8 @@ impl QueryWorkbenchPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // the work area keeps the rows its editor and results need; on a
-        // short terminal the page scrolls (the status line goes first)
+
+
         let l = self.sections.layout(
             area,
             &[
@@ -757,7 +757,7 @@ impl QueryWorkbenchPage {
         let Some(inner) = panel.try_render(r, buf, t) else {
             return;
         };
-        // the field's own row and its rule, flush with the card's edge
+
         self.filter.render(
             Rect::new(inner.x.saturating_sub(1), inner.y, inner.width + 1, 2),
             buf,
@@ -907,7 +907,7 @@ impl QueryWorkbenchPage {
     }
 
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
-        // the seams: press, drag, click (a double click resets)
+
         let (id, pos) = (ev.id, ev.pos());
         let seam = if id == OUTER {
             Some((&mut self.outer_seam, &mut self.outer, self.outer_area))
@@ -979,7 +979,7 @@ impl QueryWorkbenchPage {
     }
 
     fn key(&mut self, key: &Key, cx: &mut Cx) -> Outcome {
-        // Ctrl+R runs from anywhere on the page (tablepro's binding)
+
         if key.ctrl_char('r') {
             self.run(false, cx);
             return Outcome::Changed;
@@ -1048,8 +1048,8 @@ impl QueryWorkbenchPage {
     }
 }
 
-/// The States grid: the query tab strip and the explorer, as the screen
-/// shows them in each state.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

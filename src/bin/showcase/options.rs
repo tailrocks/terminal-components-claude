@@ -1,15 +1,15 @@
-//! Live options (plan §7, SCP3): one declaration per knob, read by the
-//! Inspector's Options tab, a page's Options section and `--opt`.
-//!
-//! An option is a key (`shell.<name>` for the shell-wide ones,
-//! `<page slug>.<name>` for a page's own), a label and a closed list of
-//! values. Setting one rebuilds the configuration through the same builder
-//! calls an application makes (`Theme::for_level_with`, `with_glyphs`,
-//! `PointerConfig::focus_on`, ...); see `App::apply_shell`.
-//!
-//! The controls are library widgets: an `off | on` option is a `Toggle`,
-//! any other a `Select` ([`OptionsView`]). Values live only for the
-//! session; nothing is written to disk.
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -27,30 +27,30 @@ use junie_tui::ui::layout::StackChild;
 use junie_tui::widgets::choice::Toggle;
 use junie_tui::widgets::select::{Select, SelectAction};
 
-/// What setting an option changes, so the coverage gate knows what to
-/// compare.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Effect {
-    /// The rendered frame (colours, glyphs, strings, a widget's look).
+
     Frame,
-    /// Behaviour only (pointer timing, key presets, motion): the frame is
-    /// the same until the user acts, the live configuration is not.
+
+
     Behaviour,
 }
 
-/// One live option.
+
 #[derive(Debug, Clone, Copy)]
 pub struct Opt {
-    /// `shell.<name>` or `<page slug>.<name>`.
+
     pub key: &'static str,
     pub label: &'static str,
-    /// The values `--opt` accepts and the control offers, in order.
+
     pub values: &'static [&'static str],
-    /// Index into [`Self::values`] of the default.
+
     pub default: usize,
     pub effect: Effect,
-    /// Options the effect needs first (`(key, value)`): level overrides
-    /// only show at the level they override.
+
+
     pub needs: &'static [(&'static str, &'static str)],
 }
 
@@ -77,11 +77,11 @@ impl Opt {
         self.needs = needs;
         self
     }
-    /// An `off | on` option, shown as a `Toggle`.
+
     pub fn is_toggle(&self) -> bool {
         self.values == OFF_ON
     }
-    /// Index of `value` (any case).
+
     pub fn index_of(&self, value: &str) -> Option<usize> {
         self.values
             .iter()
@@ -91,9 +91,9 @@ impl Opt {
 
 const OFF_ON: &[&str] = &["off", "on"];
 
-/// The shell-wide options, in Options-tab order.
+
 pub static SHELL: &[Opt] = &[
-    // appearance
+
     Opt::new(
         "shell.color",
         "Colour level",
@@ -106,12 +106,12 @@ pub static SHELL: &[Opt] = &[
     )
     .needs(&[("shell.color", "mono")]),
     Opt::new("shell.glyphs", "Glyphs", &["unicode", "ascii"]),
-    // the copy shows where a widget says something (a picker's placeholder, a
-    // "… N more" cut, the help footer), not on a page at rest
+
+
     Opt::new("shell.strings", "Strings", &["default", "ascii"]).behaviour(),
     Opt::new("shell.motion", "Motion", &["full", "reduced", "paused"]).behaviour(),
-    // pointer
-    // the library default (plan §3): a press focuses, as on macOS
+
+
     Opt::new("shell.focus_on", "Focus on", &["press", "release"]).behaviour(),
     Opt::new(
         "shell.double_click_ms",
@@ -184,7 +184,7 @@ pub static SHELL: &[Opt] = &[
     Opt::new("shell.reveal", "Reveal cut text", OFF_ON)
         .default(1)
         .behaviour(),
-    // keys and editing
+
     Opt::new(
         "shell.platform",
         "Client platform",
@@ -203,13 +203,13 @@ pub static SHELL: &[Opt] = &[
         &["immediate", "type-to-edit", "explicit"],
     )
     .behaviour(),
-    // focus and input (SC28)
+
     Opt::new(
         "shell.focus_fallback",
         "Focus fallback",
         &["first", "nearest"],
     )
-    // the library default (`FocusFallback::default()`)
+
     .default(1)
     .behaviour(),
     Opt::new(
@@ -226,16 +226,16 @@ pub static SHELL: &[Opt] = &[
     )
     .default(1)
     .behaviour(),
-    // read once, when the terminal session starts; auto honours
-    // JUNIE_TUI_KEYBOARD_PROTOCOL
+
+
     Opt::new(
         "shell.keyboard_protocol",
         "Keyboard protocol",
         &["auto", "on", "off"],
     )
     .behaviour(),
-    // whether the terminal delivers Alt (Option) chords (A29); auto
-    // honours JUNIE_TUI_ALT_KEYS and the terminal detection
+
+
     Opt::new(
         "shell.alt_keys",
         "Alt keys",
@@ -250,9 +250,9 @@ pub static SHELL: &[Opt] = &[
     .behaviour(),
 ];
 
-/// A page's own option table. Each page step (SC3 onward) adds its page's
-/// arm with keys `<slug>.<name>`, and the page implements
-/// `Page::option_value` and `Page::set_option` for them.
+
+
+
 pub fn page_options(page: PageId) -> &'static [Opt] {
     match page {
         PageId::Columns => COLUMNS,
@@ -312,8 +312,8 @@ pub fn page_options(page: PageId) -> &'static [Opt] {
     }
 }
 
-/// Query workbench (SC46): the screen's layout and the builders of its
-/// tabs, editor and status line (`pages/query_workbench.rs`, `rebuild`).
+
+
 pub static QUERY_WORKBENCH: &[Opt] = &[
     Opt::new("queryworkbench.explorer", "Explorer", OFF_ON).default(1),
     Opt::new(
@@ -345,9 +345,9 @@ pub static QUERY_WORKBENCH: &[Opt] = &[
     ),
 ];
 
-/// Connections (SC47): the list's grouping, meta and width, the empty
-/// list, the selected connection's connect state and the form's width
-/// (`pages/connections.rs`).
+
+
+
 pub static CONNECTIONS: &[Opt] = &[
     Opt::new(
         "connections.group_by",
@@ -369,8 +369,8 @@ pub static CONNECTIONS: &[Opt] = &[
     Opt::new("connections.form_width", "Form width", &["60", "52", "72"]).behaviour(),
 ];
 
-/// Finder (SC48): the query, the scope, the risk column and the preview
-/// layout (`pages/finder.rs`).
+
+
 pub static FINDER: &[Opt] = &[
     Opt::new("finder.query", "Query", &["typed", "empty", "nomatch"]),
     Opt::new("finder.scope", "Scope", &["here", "project", "everywhere"]),
@@ -378,7 +378,7 @@ pub static FINDER: &[Opt] = &[
     Opt::new("finder.preview", "Preview", &["auto", "line"]),
 ];
 
-/// Panels (SC22): `Panel` chrome and the `ScrollPanel` knobs.
+
 pub static PANELS: &[Opt] = &[
     Opt::new("panels.focus_mark", "Card focus mark", &["title", "bar"]),
     Opt::new("panels.title_min", "Title keeps", &["12", "4", "20"]),
@@ -400,8 +400,8 @@ pub static PANELS: &[Opt] = &[
     Opt::new("panels.keymap", "Follow key", &["f", "t"]),
 ];
 
-/// Scrolling (SC22, SC29): `ScrollState`, `ScrollPane` and the cursor
-/// model (`NavProfile`, type-ahead, its pause and precedence).
+
+
 pub static SCROLLING: &[Opt] = &[
     Opt::new("scrolling.context", "Context rows", &["0", "1", "2"]).default(1),
     Opt::new("scrolling.follow", "Mirror follows", &["on-move", "always"]),
@@ -437,7 +437,7 @@ pub static SCROLLING: &[Opt] = &[
     Opt::new("scrolling.skip_disabled", "Skip disabled", OFF_ON).default(1),
 ];
 
-/// Buttons (SC7): `Button`, `ButtonRow`, `IconButton` and the States grid.
+
 pub static BUTTONS: &[Opt] = &[
     Opt::new(
         "buttons.focus_visible",
@@ -465,7 +465,7 @@ pub static BUTTONS: &[Opt] = &[
     ),
 ];
 
-/// Inputs (SC8): how a `TextInput` starts, ends and selects, and its keys.
+
 pub static INPUTS: &[Opt] = &[
     Opt::new(
         "inputs.edit_entry",
@@ -504,8 +504,8 @@ pub static INPUTS: &[Opt] = &[
     ),
 ];
 
-/// Text areas (SC8): the `TextInput` knobs a `TextArea` shares, and its
-/// own.
+
+
 pub static TEXTAREAS: &[Opt] = &[
     Opt::new(
         "textareas.edit_entry",
@@ -551,7 +551,7 @@ pub static TEXTAREAS: &[Opt] = &[
     Opt::new("textareas.label_hit", "Label click focuses", OFF_ON).default(1),
 ];
 
-/// Checks & radios (SC9): `Checkbox`, `RadioGroup` and `Toggle`.
+
 pub static CHECKS: &[Opt] = &[
     Opt::new(
         "checksradios.hit",
@@ -567,9 +567,9 @@ pub static CHECKS: &[Opt] = &[
     Opt::new("checksradios.disabled", "Disable every control", OFF_ON),
 ];
 
-/// Chips & selects (SC10): every `ChipBar` and `Select` knob.
+
 pub static CHIPS: &[Opt] = &[
-    // chip bar
+
     Opt::new(
         "chipsselects.bar_width",
         "Chip bar width",
@@ -603,7 +603,7 @@ pub static CHIPS: &[Opt] = &[
         &["default", "custom"],
     ),
     Opt::new("chipsselects.digit_toggles", "1–9 toggle streams", OFF_ON).default(1),
-    // selects
+
     Opt::new("chipsselects.arrows", "Select arrows", &["open", "step"]),
     Opt::new(
         "chipsselects.wheel",
@@ -657,9 +657,9 @@ pub static CHIPS: &[Opt] = &[
     Opt::new("chipsselects.mixed", "Sort shows mixed", OFF_ON),
 ];
 
-/// A page's option values: an index into each option's values, in the
-/// order of the page's table. The page reads them when it rebuilds its
-/// widgets through their builders (`Page::set_option`).
+
+
+
 #[derive(Debug, Clone)]
 pub struct PageValues {
     opts: &'static [Opt],
@@ -676,12 +676,12 @@ impl PageValues {
     fn index(&self, key: &str) -> Option<usize> {
         self.opts.iter().position(|o| o.key == key)
     }
-    /// The value index of `key`; `None` for a key the table does not have.
+
     pub fn get(&self, key: &str) -> Option<usize> {
         self.index(key).map(|i| self.values[i])
     }
-    /// Set `key` to value index `value` (clamped); `false` for an unknown
-    /// key.
+
+
     pub fn set(&mut self, key: &str, value: usize) -> bool {
         let Some(i) = self.index(key) else {
             return false;
@@ -689,23 +689,23 @@ impl PageValues {
         self.values[i] = value.min(self.opts[i].values.len() - 1);
         true
     }
-    /// The value of `key` as `--opt` spells it (`""` for an unknown key).
+
     pub fn value(&self, key: &str) -> &'static str {
         self.index(key)
             .map_or("", |i| self.opts[i].values[self.values[i]])
     }
-    /// An `off | on` option is on.
+
     pub fn on(&self, key: &str) -> bool {
         self.value(key) == "on"
     }
-    /// A numeric value (`None` for a word such as `theme` or `full`).
+
     pub fn number(&self, key: &str) -> Option<u16> {
         self.value(key).parse().ok()
     }
 }
 
-/// Cell editors (SC13): every `EditorConfig` field
-/// (`pages/celleditors.rs`, `config`).
+
+
 static CELL_EDITORS: &[Opt] = &[
     Opt::new("celleditors.dismiss", "Dismiss", &["light", "escape"]),
     Opt::new("celleditors.blur", "On blur", &["cancel", "commit"]),
@@ -740,8 +740,8 @@ static CELL_EDITORS: &[Opt] = &[
     ),
 ];
 
-/// Selection (SC13): the multi-select members table
-/// (`pages/selectable.rs`, `members_table`).
+
+
 static SELECTION: &[Opt] = &[
     Opt::new("selection.esc_clears", "Esc clears the selection", OFF_ON).default(1),
     Opt::new(
@@ -762,8 +762,8 @@ static SELECTION: &[Opt] = &[
     ),
 ];
 
-/// Editable (SC13): the cell-navigating `DataTable`'s knobs
-/// (`pages/editable.rs`, `build`).
+
+
 static EDITABLE: &[Opt] = &[
     Opt::new("editable.rows", "Rows", &["tasks", "empty"]),
     Opt::new("editable.type_ahead", "Type-ahead", &["off", "any", "task"]),
@@ -791,8 +791,8 @@ static EDITABLE: &[Opt] = &[
     ),
 ];
 
-/// Data grid (SC12): every `DataGrid` knob, each rebuilding the grid
-/// through its builder (`pages/grid.rs`, `build`).
+
+
 static DATA_GRID: &[Opt] = &[
     Opt::new(
         "datagrid.access",
@@ -841,7 +841,7 @@ static DATA_GRID: &[Opt] = &[
     Opt::new("datagrid.blur_action", "On blur", &["commit", "cancel"]),
 ];
 
-/// Columns (SC11): the width solver and `ColumnSizing` on a `DataTable`.
+
 static COLUMNS: &[Opt] = &[
     Opt::new(
         "columns.width",
@@ -858,17 +858,17 @@ static COLUMNS: &[Opt] = &[
     ),
 ];
 
-/// Basic table (SC11): the selection model.
+
 static BASIC_TABLE: &[Opt] = &[Opt::new(
     "basictable.selection",
     "Selection",
     &["none", "single", "multi"],
 )
 .default(1)];
-/// Chrome (SC4): the menu bar's builders. The readout under the bar reads
-/// the built widget back, so every knob shows in the frame.
+
+
 static CHROME: &[Opt] = &[
-    // narrow enough that the titles overflow (`chrome.overflow`)
+
     Opt::new("chrome.bar", "Bar width", &["full", "narrow"]),
     Opt::new("chrome.open_on", "Open on", &["press", "release"]),
     Opt::new("chrome.overflow", "Overflow", &["hide", "chevron"])
@@ -883,10 +883,10 @@ static CHROME: &[Opt] = &[
     Opt::new("chrome.brand", "Brand", &["lockup", "compact", "none"]),
 ];
 
-/// Status & hints (SC4): the resolved hint bar and the theme's
-/// `HintBarStyle`.
+
+
 static STATUS_HINTS: &[Opt] = &[
-    // which layers exist: the topmost one wins
+
     Opt::new(
         "statushints.layer",
         "Top layer",
@@ -913,7 +913,7 @@ static STATUS_HINTS: &[Opt] = &[
     ),
     Opt::new("statushints.badge", "EDIT badge", OFF_ON),
     Opt::new("statushints.hidden", "Hidden files shown", OFF_ON),
-    // the too-small screen's builders (SC30)
+
     Opt::new(
         "statushints.too_small_min",
         "Too small below",
@@ -927,8 +927,8 @@ static STATUS_HINTS: &[Opt] = &[
     Opt::new("statushints.brand", "Too-small brand", &["title", "accent"]),
 ];
 
-/// Text utilities (SC26): the helpers' width and styles, and the
-/// `PropsList` builders (its readout reads the built list back).
+
+
 static TEXT_UTILITIES: &[Opt] = &[
     Opt::new("textutilities.width", "Width", &["8", "12", "20", "32"]).default(2),
     Opt::new(
@@ -967,8 +967,8 @@ static TEXT_UTILITIES: &[Opt] = &[
     ),
 ];
 
-/// Breadcrumbs & rails (SC5): the trail's links, its width, and the
-/// collapsible sidebar's rail.
+
+
 static BREADCRUMBS_RAILS: &[Opt] = &[
     Opt::new("breadcrumbsrails.clickable", "Links", OFF_ON).default(1),
     Opt::new(
@@ -982,8 +982,8 @@ static BREADCRUMBS_RAILS: &[Opt] = &[
         .needs(&[("breadcrumbsrails.collapsed", "on")]),
 ];
 
-/// Help & keys (SC6): the `KeyReference` layout and the `HelpOverlay`
-/// builders (the readout reads the overlay the options build).
+
+
 static HELP_KEYS: &[Opt] = &[
     Opt::new("helpkeys.width", "Reference width", &["full", "40", "28"]),
     Opt::new(
@@ -999,8 +999,8 @@ static HELP_KEYS: &[Opt] = &[
     Opt::new("helpkeys.dismiss", "Dismiss", &["light", "escape"]),
 ];
 
-/// Quit & leave (SC6): the page's `LeaveGuard`, the stakes at start, and
-/// the `QuitKeys` its table classifies with.
+
+
 static QUIT_LEAVE: &[Opt] = &[
     Opt::new(
         "quitleave.stakes",
@@ -1014,8 +1014,8 @@ static QUIT_LEAVE: &[Opt] = &[
     Opt::new("quitleave.ctrl_q", "Ctrl+Q quits", OFF_ON).default(1),
 ];
 
-/// Lists (SC15): every `ListBox` builder (the readout reads the built
-/// lists back).
+
+
 static LISTS: &[Opt] = &[
     Opt::new("lists.nav", "Nav keys", &["default", "vim"]),
     Opt::new("lists.type_ahead", "Type-ahead", OFF_ON).default(1),
@@ -1036,8 +1036,8 @@ static LISTS: &[Opt] = &[
     Opt::new("lists.content", "Content", &["ready", "loading", "error"]),
 ];
 
-/// Trees (SC15): every `TreeView` builder (the readout reads the built
-/// tree back).
+
+
 static TREES: &[Opt] = &[
     Opt::new(
         "trees.branch",
@@ -1058,8 +1058,8 @@ static TREES: &[Opt] = &[
     Opt::new("trees.marker", "Selected marker", &["none", "chevron"]),
 ];
 
-/// Overview (SC3): the explorer resolves one `Kind` on one `Plane` through
-/// `Theme::interactive`; the States grid draws every kind on the plane.
+
+
 static OVERVIEW: &[Opt] = &[
     Opt::new(
         "overview.plane",
@@ -1100,9 +1100,9 @@ static OVERVIEW: &[Opt] = &[
         ],
     )
     .default(4),
-    // `Theme::with_ladder` on the chosen plane
+
     Opt::new("overview.ladder", "Ladder", &["theme", "custom"]),
-    // `Theme::with_state_modifiers`
+
     Opt::new(
         "overview.mods",
         "State modifiers",
@@ -1110,7 +1110,7 @@ static OVERVIEW: &[Opt] = &[
     ),
 ];
 
-/// Toolbars (SC28): the `Toolbar` builders.
+
 pub static TOOLBARS: &[Opt] = &[
     Opt::new("toolbars.nav", "Nav keys", &["desktop", "vim"]),
     Opt::new("toolbars.wrap", "Wrap", OFF_ON),
@@ -1119,8 +1119,8 @@ pub static TOOLBARS: &[Opt] = &[
     Opt::new("toolbars.overflow", "Overflow button", &["»", "…", "off"]),
 ];
 
-/// Focus & navigation (SC28): one list's navigation keys and what Tab
-/// does in a field. The app-wide focus and input options are shell ones.
+
+
 pub static FOCUS_NAV: &[Opt] = &[
     Opt::new(
         "focusnavigation.nav",
@@ -1134,8 +1134,8 @@ pub static FOCUS_NAV: &[Opt] = &[
     ),
 ];
 
-/// The Menus page (SC16): the menu builders and the row menus'
-/// `ContextConfig`.
+
+
 pub static MENUS: &[Opt] = &[
     Opt::new(
         "menus.placement",
@@ -1164,8 +1164,8 @@ pub static MENUS: &[Opt] = &[
     Opt::new("menus.extra_key", "Extra key", &["none", "m"]),
 ];
 
-/// The Dialogs page (SC17): the `Dialog` builders, applied to every
-/// dialog the page opens and read back in its "Applied" card.
+
+
 pub static DIALOGS: &[Opt] = &[
     Opt::new("dialogs.width", "Width", &["auto", "44", "80"]),
     Opt::new(
@@ -1221,8 +1221,8 @@ pub static DIALOGS: &[Opt] = &[
     ),
 ];
 
-/// The Dialog kinds page (SC18): the form, info, choice and help
-/// builders, read back in the page's "Applied" card.
+
+
 pub static DIALOG_KINDS: &[Opt] = &[
     Opt::new("dialogkinds.width", "Width", &["auto", "48", "72"]),
     Opt::new("dialogkinds.nav", "Nav keys", &["desktop", "vim"]),
@@ -1249,9 +1249,9 @@ pub static DIALOG_KINDS: &[Opt] = &[
     ),
 ];
 
-/// The Popups & tooltips page (SC19): the popover's placement, fit and
-/// dismissal, the modal frame of its States grid, the tooltip policy and
-/// the reveal policy.
+
+
+
 pub static POPUPS_TOOLTIPS: &[Opt] = &[
     Opt::new(
         "popupstooltips.placement",
@@ -1357,8 +1357,8 @@ pub static POPUPS_TOOLTIPS: &[Opt] = &[
     .default(1),
 ];
 
-/// The Pickers page (SC20): the `Picker` builders, applied to every picker
-/// the page opens and read back in its "Applied" card.
+
+
 pub static PICKERS: &[Opt] = &[
     Opt::new("pickers.width", "Width", &["auto", "48", "96"]),
     Opt::new("pickers.max_rows", "Max rows", &["12", "6"]),
@@ -1375,7 +1375,7 @@ pub static PICKERS: &[Opt] = &[
     Opt::new("pickers.remote", "Remote fetch", &["works", "fails"]),
 ];
 
-/// The Tabs page (SC14): the editor strip's builders.
+
 pub static TABS: &[Opt] = &[
     Opt::new(
         "tabs.rule",
@@ -1400,8 +1400,8 @@ pub static TABS: &[Opt] = &[
     Opt::new("tabs.count", "Tabs", &["few", "many"]).default(1),
 ];
 
-/// Progress (SC21): the bar layout every bar shares, and the meters'
-/// visual and stale style.
+
+
 pub static PROGRESS: &[Opt] = &[
     Opt::new(
         "progress.label_width",
@@ -1413,10 +1413,10 @@ pub static PROGRESS: &[Opt] = &[
     Opt::new("progress.stale_style", "Stale style", &["dashed", "faint"]),
 ];
 
-/// Settings: the section it opens on, the members table's cell
-/// navigation, the environment list's selection, the description's rows,
-/// the dirty mark on the tab and the save confirmation
-/// (`pages/settings.rs`, `apply`).
+
+
+
+
 pub static SETTINGS: &[Opt] = &[
     Opt::new(
         "settings.tab",
@@ -1437,9 +1437,9 @@ pub static SETTINGS: &[Opt] = &[
     Opt::new("settings.save_confirm", "Confirm on save", OFF_ON).default(1),
 ];
 
-/// Task runner: the targets `TreeView`'s folds, indent, environment glyphs
-/// and folder metas, and the log `ScrollPanel`'s tail and wrap
-/// (`pages/taskrunner.rs`, `apply`).
+
+
+
 pub static TASKRUNNER: &[Opt] = &[
     Opt::new("taskrunner.expanded", "Targets expanded", OFF_ON).default(1),
     Opt::new("taskrunner.indent", "Tree indent", &["2", "3", "4"]),
@@ -1449,9 +1449,9 @@ pub static TASKRUNNER: &[Opt] = &[
     Opt::new("taskrunner.wrap", "Log wraps", OFF_ON),
 ];
 
-/// Forms: the fields' validation timing and blur action, whether the task
-/// name is required, the description's rows, the help and placeholder
-/// texts, and the managed (disabled) toggle (`pages/forms.rs`, `apply`).
+
+
+
 pub static FORMS: &[Opt] = &[
     Opt::new("forms.required", "Task name required", OFF_ON).default(1),
     Opt::new(
@@ -1466,8 +1466,8 @@ pub static FORMS: &[Opt] = &[
     Opt::new("forms.managed", "Managed toggle", OFF_ON).default(1),
 ];
 
-/// Sidebars: the `NavList`'s mode, widths, keys and badges, and the
-/// `SidebarRail` the hidden sidebar leaves (`pages/sidebars.rs`, `apply`).
+
+
 pub static SIDEBARS: &[Opt] = &[
     Opt::new("sidebars.collapsed", "Collapsed (icons)", OFF_ON),
     Opt::new("sidebars.width", "Open width", &["24", "20", "30"]),
@@ -1491,8 +1491,8 @@ pub static SIDEBARS: &[Opt] = &[
     .needs(&[("sidebars.hidden", "on")]),
 ];
 
-/// Meters (SC36): the columns every `MeterList` on the page shares, the
-/// quota list's visual, and the offline look.
+
+
 pub static METERS: &[Opt] = &[
     Opt::new(
         "meters.label_width",
@@ -1508,10 +1508,10 @@ pub static METERS: &[Opt] = &[
     Opt::new("meters.stale_style", "Stale style", &["dashed", "faint"]),
 ];
 
-/// File browser (SC41): what Choose accepts, the optional parts (path
-/// bar, filter, hidden-files check box, option check box, URL entry, step
-/// line), type-ahead, the key map and the dismissal policy of the
-/// `FileBrowser` the page opens.
+
+
+
+
 pub static FILE_BROWSER: &[Opt] = &[
     Opt::new("filebrowser.choose", "Choose", &["folders", "files", "any"]),
     Opt::new("filebrowser.source", "Source", &["fixture", "real"]),
@@ -1531,8 +1531,8 @@ pub static FILE_BROWSER: &[Opt] = &[
     ),
 ];
 
-/// Notices (SC36): the kind of the query's error card, and the parts and
-/// limits every `Notice` on the page shares.
+
+
 pub static NOTICES: &[Opt] = &[
     Opt::new(
         "notices.kind",
@@ -1552,9 +1552,9 @@ pub static NOTICES: &[Opt] = &[
     Opt::new("notices.width", "Width", &["wide", "narrow"]),
 ];
 
-/// Disk cleanup (SC49): the cleanup mode, the typed gate, the checklist's
-/// click policy, the tree's size column, the meters' visual and a held
-/// scan.
+
+
+
 pub static DISK_CLEANUP: &[Opt] = &[
     Opt::new(
         "diskcleanup.mode",
@@ -1577,8 +1577,8 @@ pub static DISK_CLEANUP: &[Opt] = &[
     ),
 ];
 
-/// Activity (SC51): the run's state, the log's wrap, retention and find
-/// query, and the stream chips' digit keys.
+
+
 pub static ACTIVITY: &[Opt] = &[
     Opt::new(
         "activity.state",
@@ -1593,8 +1593,8 @@ pub static ACTIVITY: &[Opt] = &[
         .behaviour(),
 ];
 
-/// Workspaces (SC52): the master-detail's collapse width, seam and Esc,
-/// the roster, and the purge's typed confirmation.
+
+
 pub static WORKSPACES: &[Opt] = &[
     Opt::new(
         "workspaces.collapse_below",
@@ -1611,9 +1611,9 @@ pub static WORKSPACES: &[Opt] = &[
         .behaviour(),
 ];
 
-/// Accounts & usage (SC53): the demo frame's width (narrow shows the
-/// collapsed master-detail), the quota meters' visual, offline usage and
-/// the account warnings.
+
+
+
 pub static ACCOUNTS_USAGE: &[Opt] = &[
     Opt::new("accountsusage.width", "Width", &["fill", "72"]),
     Opt::new(
@@ -1625,8 +1625,8 @@ pub static ACCOUNTS_USAGE: &[Opt] = &[
     Opt::new("accountsusage.warnings", "Account warnings", OFF_ON).default(1),
 ];
 
-/// Launch cockpit (SC55): the path the launch takes, and the rail's and
-/// the build log's knobs.
+
+
 pub static LAUNCH_COCKPIT: &[Opt] = &[
     Opt::new(
         "launchcockpit.outcome",
@@ -1639,8 +1639,8 @@ pub static LAUNCH_COCKPIT: &[Opt] = &[
     Opt::new("launchcockpit.wrap", "Wrap the log", OFF_ON).default(1),
 ];
 
-/// Read-only report (SC56): the report's state, its meters' visual,
-/// the attention notices and whether facts copy.
+
+
 pub static READONLY_REPORT: &[Opt] = &[
     Opt::new("readonlyreport.offline", "Offline (last-good)", OFF_ON),
     Opt::new("readonlyreport.visual", "Meter visual", &["block", "line"]),
@@ -1648,8 +1648,8 @@ pub static READONLY_REPORT: &[Opt] = &[
     Opt::new("readonlyreport.copyable", "Facts copy", OFF_ON).default(1),
 ];
 
-/// Empty & error (SC21): the empty state's kind, hint and actions, and
-/// the read-only reason.
+
+
 pub static EMPTY_ERROR: &[Opt] = &[
     Opt::new("emptyerror.kind", "Kind", &["empty", "error"]),
     Opt::new("emptyerror.hint", "Hint", OFF_ON).default(1),
@@ -1661,7 +1661,7 @@ pub static EMPTY_ERROR: &[Opt] = &[
     ),
 ];
 
-/// Splits & stacks (SC23): the split, its seams and the stack.
+
 pub static SPLITS_STACKS: &[Opt] = &[
     Opt::new(
         "splitsstacks.dir",
@@ -1704,9 +1704,9 @@ pub static SPLITS_STACKS: &[Opt] = &[
     ),
 ];
 
-/// Master-detail (SC38): the `MasterDetail` builders, its `SplitKeys`, and
-/// the demo frame's width (so the collapsed layout shows on a wide
-/// terminal).
+
+
+
 pub static MASTER_DETAIL: &[Opt] = &[
     Opt::new("masterdetail.width", "Demo width", &["fill", "100", "72"]),
     Opt::new(
@@ -1731,7 +1731,7 @@ pub static MASTER_DETAIL: &[Opt] = &[
     Opt::new("masterdetail.gap", "Gap between panes", &["2", "1", "4"]),
 ];
 
-/// Pane tree (SC45): the `PaneTree` builders and its starting layout.
+
 pub static PANE_TREE: &[Opt] = &[
     Opt::new(
         "panetree.layout",
@@ -1749,8 +1749,8 @@ pub static PANE_TREE: &[Opt] = &[
     Opt::new("panetree.hit_pad", "Seam hit padding", &["1", "0", "3"]),
 ];
 
-/// Code editor (SC24): every `CodeEditor` knob, then the completion
-/// popup's.
+
+
 pub static CODE_EDITOR: &[Opt] = &[
     Opt::new("codeeditor.read_only", "Read-only", OFF_ON),
     Opt::new(
@@ -1791,7 +1791,7 @@ pub static CODE_EDITOR: &[Opt] = &[
         &["1", "0", "2"],
     ),
     Opt::new("codeeditor.track_click", "Track click", &["page", "jump"]),
-    // completion
+
     Opt::new("codeeditor.completion_rows", "Completion rows", &["8", "4"]),
     Opt::new(
         "codeeditor.completion_width",
@@ -1825,14 +1825,14 @@ pub static CODE_EDITOR: &[Opt] = &[
     ),
 ];
 
-/// Diff (SC25): the view's mode, the no-file state and a narrow pane.
+
 pub static DIFF: &[Opt] = &[
     Opt::new("diff.mode", "Mode", &["unified", "review"]),
     Opt::new("diff.file", "File", &["changes", "none"]),
     Opt::new("diff.width", "Page width", &["full", "narrow"]),
 ];
 
-/// Terminal (SC25): every `TextViewport` knob, then the step rail's.
+
 pub static TERMINAL: &[Opt] = &[
     Opt::new("terminal.wrap", "Wrap long lines", OFF_ON),
     Opt::new("terminal.max_lines", "Lines kept", &["2000", "20"]),
@@ -1850,7 +1850,7 @@ pub static TERMINAL: &[Opt] = &[
     ),
     Opt::new("terminal.keymap", "Command keys", &["default", "custom"]),
     Opt::new("terminal.mark", "Find marks", OFF_ON),
-    // step rail
+
     Opt::new("terminal.selectable", "Selectable rail", OFF_ON),
     Opt::new("terminal.numbered", "Numbered steps", OFF_ON).default(1),
     Opt::new(
@@ -1860,7 +1860,7 @@ pub static TERMINAL: &[Opt] = &[
     ),
 ];
 
-/// Every option `--opt` accepts: the shell-wide ones, then each page's.
+
 pub fn all() -> impl Iterator<Item = &'static Opt> {
     SHELL.iter().chain(
         crate::app::NAV_ENTRIES
@@ -1869,13 +1869,13 @@ pub fn all() -> impl Iterator<Item = &'static Opt> {
     )
 }
 
-/// The option named `key`.
+
 pub fn find(key: &str) -> Option<&'static Opt> {
     let key = key.trim();
     all().find(|o| o.key.eq_ignore_ascii_case(key))
 }
 
-/// The page that owns a page option's key (`None` for `shell.*`).
+
 pub fn page_of(key: &str) -> Option<PageId> {
     let (scope, _) = key.split_once('.')?;
     if scope == "shell" {
@@ -1884,16 +1884,16 @@ pub fn page_of(key: &str) -> Option<PageId> {
     PageId::from_name(scope)
 }
 
-/// One validated `--opt` assignment.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OptSet {
     pub key: &'static str,
-    /// Index into the option's values.
+
     pub value: usize,
 }
 
-/// Parse `KEY=VALUE` (`--opt`). An unknown key lists the valid keys; an
-/// invalid value lists the option's values.
+
+
 pub fn parse_opt(arg: &str) -> Result<OptSet, String> {
     let Some((key, value)) = arg.split_once('=') else {
         return Err(format!(
@@ -1926,8 +1926,8 @@ fn keys() -> String {
     all().map(|o| o.key).collect::<Vec<_>>().join(", ")
 }
 
-/// The shell-wide option values of a session (indices into each
-/// option's values, in [`SHELL`] order).
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShellOptions {
     values: Vec<usize>,
@@ -1948,16 +1948,16 @@ impl ShellOptions {
             .position(|o| o.key == key)
             .unwrap_or_else(|| panic!("no shell option {key}"))
     }
-    /// The value index of `key`.
+
     pub fn get(&self, key: &str) -> usize {
         self.values[Self::index(key)]
     }
-    /// The value of `key`, as `--opt` spells it.
+
     pub fn value(&self, key: &str) -> &'static str {
         let i = Self::index(key);
         SHELL[i].values[self.values[i]]
     }
-    /// Set `key` to value index `value` (clamped to its values).
+
     pub fn set(&mut self, key: &str, value: usize) {
         let i = Self::index(key);
         self.values[i] = value.min(SHELL[i].values.len() - 1);
@@ -1967,7 +1967,7 @@ impl ShellOptions {
     }
 }
 
-// ---------------------------------------------------------------- controls
+
 
 enum Control {
     Toggle(Toggle),
@@ -1984,33 +1984,33 @@ impl Control {
     fn height(&self) -> u16 {
         match self {
             Self::Toggle(_) => 1,
-            // label row and field row
+
             Self::Select(_) => 2,
         }
     }
 }
 
-/// One row of an [`OptionsView`]: a group heading or an option's control.
+
 enum Row {
     Heading(&'static str),
-    /// A group with no options yet, and why.
+
     Note(&'static str),
     Option(&'static Opt, Control),
 }
 
-/// The controls for a list of option groups, stacked and scrolling by
-/// row: the Inspector's Options tab, and a page's Options section.
-///
-/// The view holds no values: [`Self::sync`] reads them from their owner
-/// before each frame, and an event that changes one returns it as an
-/// [`OptSet`] for the owner to apply.
+
+
+
+
+
+
 pub struct OptionsView {
     rows: Vec<Row>,
     sections: Sections,
 }
 
-/// A group of the view: its heading, its options, and what to show when it
-/// has none.
+
+
 pub struct Group {
     pub heading: &'static str,
     pub opts: &'static [Opt],
@@ -2059,16 +2059,16 @@ impl OptionsView {
         })
     }
 
-    /// The control id of option `key`.
-    #[allow(dead_code)] // tests reach controls by key
+
+    #[allow(dead_code)]
     pub fn control_id(&self, key: &str) -> Option<WidgetId> {
         self.controls()
             .find(|(o, _)| o.key == key)
             .map(|(_, c)| c.id())
     }
 
-    /// Load the current value of every option from its owner. An open
-    /// select keeps its list.
+
+
     pub fn sync(&mut self, value: impl Fn(&Opt) -> usize) {
         for (opt, c) in self.controls_mut() {
             let v = value(opt);
@@ -2082,19 +2082,19 @@ impl OptionsView {
         }
     }
 
-    /// Whether `id` is one of the view's option controls.
+
     pub fn has_control(&self, id: WidgetId) -> bool {
         self.controls().any(|(_, c)| c.id() == id)
     }
 
-    /// Whether an option's select has its list open.
+
     pub fn popup_open(&self) -> bool {
         self.controls()
             .any(|(_, c)| matches!(c, Control::Select(s) if s.open))
     }
 
-    /// The rows every group and control take, at `avail`'s width (the
-    /// controls fit any width): what a scroll view lays the view out at.
+
+
     pub fn measure(&self, avail: ratatui::layout::Size) -> ratatui::layout::Size {
         let rows: u16 = self
             .rows
@@ -2116,7 +2116,7 @@ impl OptionsView {
             .iter()
             .enumerate()
             .map(|(i, r)| match r {
-                // a blank row above every group but the first
+
                 Row::Heading(_) => StackChild::fixed(1 + u16::from(i > 0)),
                 Row::Note(_) => StackChild::fixed(1),
                 Row::Option(_, c) => StackChild::fixed(c.height()),
@@ -2140,14 +2140,14 @@ impl OptionsView {
                 }
                 (Row::Option(_, Control::Toggle(tg)), Some(r)) => tg.render(r, buf, ctx, bg),
                 (Row::Option(_, Control::Select(s)), Some(r)) => s.render(r, buf, ctx, bg),
-                // scrolled out: still a Tab stop, so focus scrolls it in
+
                 (Row::Option(_, c), None) => ctx.focus_stop(c.id()),
                 _ => {}
             }
         }
     }
 
-    /// A focus change: an open list closes when its select loses focus.
+
     pub fn on_blur(&mut self, from: Option<WidgetId>) -> Outcome {
         let mut out = Outcome::Ignored;
         for (_, c) in self.controls_mut() {
@@ -2160,8 +2160,8 @@ impl OptionsView {
         out
     }
 
-    /// Route `ev` to the control it targets. Returns the outcome and the
-    /// option it changed, if any; `None` when the view does not own it.
+
+
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Option<OptSet>)> {
         if let Some(o) = self.sections.handle(ev) {
             return Some((o, None));
@@ -2196,7 +2196,7 @@ impl OptionsView {
                 }
                 (Control::Select(s), PageEvent::Pointer(p)) => {
                     let Some(r) = s.route(p) else { continue };
-                    // a press opens the list, so it takes focus with it
+
                     if p.id == s.id && (p.is(Phase::Press) || p.is(Phase::Click)) {
                         cx.focus.focus(s.id);
                     }
@@ -2210,8 +2210,8 @@ impl OptionsView {
         None
     }
 
-    /// Footer hints for the focused control; `None` when focus is not in
-    /// the view.
+
+
     pub fn hints(&self, focus: Option<WidgetId>) -> Option<Vec<Hint>> {
         let (_, c) = self.controls().find(|(_, c)| Some(c.id()) == focus)?;
         Some(match c {

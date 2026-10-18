@@ -1,14 +1,14 @@
-//! Overview: the theme reference (plan §7, SC3).
-//!
-//! Playground: every `Theme` token as a swatch, the colour roles, the
-//! plane ladders, a contrast table per colour level, the state modifiers,
-//! spacing, glyphs and strings, and an explorer that resolves one `Kind`
-//! on one `Plane` through `Theme::interactive`. Options: the explorer's
-//! plane and kind, a custom ladder (`Theme::with_ladder`) and the state
-//! modifiers (`Theme::with_state_modifiers`). States: every `Kind` in every
-//! state on the chosen plane, drawn by the library's `KindSample`.
-//!
-//! Nothing here picks a colour: every value is read from the theme.
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -32,7 +32,7 @@ use junie_tui::widgets::props::{self, Prop};
 
 const ID: WidgetId = WidgetId::of("overview");
 
-/// The planes of `overview.plane`, in its value order.
+
 const PLANES: [(Plane, &str); 10] = [
     (Plane::Canvas, "Canvas"),
     (Plane::Surface, "Surface"),
@@ -46,8 +46,8 @@ const PLANES: [(Plane, &str); 10] = [
     (Plane::Danger, "Danger"),
 ];
 
-/// The kinds of `overview.kind`, in its value order, with their column
-/// label.
+
+
 const KINDS: [(Kind, &str); 15] = [
     (Kind::Row, "Row"),
     (Kind::CursorRow(CursorStyle::Fill), "Cursor fill"),
@@ -66,17 +66,17 @@ const KINDS: [(Kind, &str); 15] = [
     (Kind::Seam, "Seam"),
 ];
 
-/// Default value indices of the page options (`crate::options`).
+
 const DEFAULT_PLANE: usize = 2;
 const DEFAULT_KIND: usize = 4;
 
-/// Narrowest card: the contrast table's label and four level columns.
+
 const CARD_MIN: u16 = 50;
 
 pub struct OverviewPage {
     template: Template,
     sections: Sections,
-    /// `overview.plane`, `overview.kind`, `overview.ladder`, `overview.mods`.
+
     plane: usize,
     kind: usize,
     ladder: usize,
@@ -95,8 +95,8 @@ impl OverviewPage {
         }
     }
 
-    /// The explorer's theme: the page theme with the chosen ladder and
-    /// state modifiers, through the builders an app calls.
+
+
     fn explorer_theme(&self, t: &Theme) -> Theme {
         let plane = PLANES[self.plane].0;
         let mut th = *t;
@@ -169,8 +169,8 @@ impl OverviewPage {
         }
     }
 
-    /// One kind on one plane in the states a sample can show without a
-    /// second focus bar (focus is in the States section, depicted).
+
+
     fn render_explorer(&self, area: Rect, buf: &mut Buffer, t: &Theme, xt: &Theme, bg: Color) {
         let (plane, plane_name) = PLANES[self.plane];
         let (kind, kind_name) = KINDS[self.kind];
@@ -234,8 +234,8 @@ impl OverviewPage {
     }
 }
 
-/// The States grid: every `Kind` on the chosen plane, in every state the
-/// state model resolves, drawn by the library's [`KindSample`].
+
+
 fn states_grid(plane: Plane) -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -258,7 +258,7 @@ fn states_grid(plane: Plane) -> StateGrid {
     g
 }
 
-/// The playground's cards, in reading order (row-major bands).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Card {
     Planes,
@@ -308,7 +308,7 @@ impl Card {
         }
     }
 
-    /// Rows the card takes at `width` (a titled card adds 3).
+
     fn height(self, width: u16) -> u16 {
         let body = match self {
             Card::Planes | Card::Accents => 20,
@@ -336,7 +336,7 @@ impl Card {
     }
 }
 
-/// `text` at row `row`, column `col` of `area`, cut to fit.
+
 fn put(buf: &mut Buffer, area: Rect, row: u16, col: u16, text: &str, style: Style) {
     if row >= area.height || col >= area.width {
         return;
@@ -396,9 +396,9 @@ fn accent_and_status(t: &Theme) -> Vec<(&'static str, Color)> {
     ]
 }
 
-/// The swatch's value as the terminal receives it: the hex at truecolor,
-/// the palette index at 256, the colour name at 16. Read from the theme,
-/// so the label never drifts from the token.
+
+
+
 fn swatch_note(c: Color) -> String {
     match c {
         Color::Rgb(r, g, b) => format!("#{r:02x}{g:02x}{b:02x}"),
@@ -407,8 +407,8 @@ fn swatch_note(c: Color) -> String {
     }
 }
 
-/// A column of swatches: the colour, a faint edge (so surface-coloured
-/// swatches stay visible on the card), the token and its value.
+
+
 fn render_swatches(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color, all: &[(&str, Color)]) {
     for (i, (name, color)) in all.iter().enumerate() {
         let row = i as u16;
@@ -432,8 +432,8 @@ fn render_swatches(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color, all: &[(&
     }
 }
 
-/// Each plane's ladder (rest, hover, pressed) and the plane one step up;
-/// then the glyph inks of handles and seams.
+
+
 fn render_ladders(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     put(
         buf,
@@ -463,7 +463,7 @@ fn render_ladders(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
             .map_or("", |(_, n)| n);
         put(buf, area, row, 32, &format!("→ {up}"), t.muted().bg(bg));
     }
-    // glyph inks: the thumb and the seam keep one glyph in every state
+
     let inks = [
         ("handle", t.ladders.handle, t.glyphs.scroll_thumb),
         ("seam", t.ladders.seam, t.glyphs.divider),
@@ -484,9 +484,9 @@ fn render_ladders(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     }
 }
 
-/// Ink tokens and how they read on the card at each colour level: the
-/// WCAG ratio, and where it falls under 4.5:1 the step `Theme::legible`
-/// takes.
+
+
+
 fn render_contrast(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     type Ink = fn(&Theme) -> Color;
     let inks: [(&str, Ink); 10] = [
@@ -544,7 +544,7 @@ fn render_contrast(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     );
 }
 
-/// A contrast ratio in at most three cells: one decimal under 10.
+
 fn ratio_label(r: f64) -> String {
     if r >= 10.0 {
         format!("{r:.0}")
@@ -560,7 +560,7 @@ fn render_principles(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
         for (k, l) in lines.iter().enumerate() {
             put(buf, area, row, 0, l, t.secondary().bg(bg));
             if k == 0 {
-                // the title in bold over the start of its first line
+
                 let head = format!("{title}.");
                 let bold = t.primary().bg(bg).add_modifier(Modifier::BOLD);
                 put(buf, area, row, 0, &head, bold);
@@ -570,8 +570,8 @@ fn render_principles(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     }
 }
 
-/// The modifiers that carry state where colour cannot, at the page's
-/// colour level, each applied to a sample.
+
+
 fn render_mods(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     let m = t.mods;
     put(
@@ -614,7 +614,7 @@ fn render_mods(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     }
 }
 
-/// Theme-wide settings and the level overrides.
+
 fn render_settings(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     let h = t.hintbar;
     let on = |b: bool| if b { "on" } else { "off" };
@@ -647,9 +647,9 @@ fn render_settings(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     props::render(area, buf, t, &list, bg);
 }
 
-/// What each state looks like, in words.
+
 fn render_legend(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
-    // the focus bar is depicted (▏): the one live bar is where focus is
+
     let legend: [(&str, &str, Style); 7] = [
         ("▏", "focus: the bar (depicted)", t.accent_fg()),
         ("░", "hover lifts the surface", t.secondary()),
@@ -665,8 +665,8 @@ fn render_legend(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     }
 }
 
-/// Spacing tokens, then every button kind and the badge, drawn by the
-/// theme's resolvers.
+
+
 fn render_spacing(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     let s = t.spacing;
     let ins = |i: Insets| format!("Insets {{ x: {}, y: {} }}", i.x, i.y);
@@ -701,13 +701,13 @@ fn render_spacing(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     put(buf, area, row + 2, 17, " EDIT ", t.badge(BadgeKind::Edit));
 }
 
-/// Glyphs: Unicode beside ASCII; strings: the default copy beside an
-/// override (`Strings::ASCII`).
+
+
 fn render_glyphs(area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
     type Draw = fn(&Glyphs) -> String;
     let (u, a) = (Glyphs::UNICODE, Glyphs::ASCII);
     let col = |k: u16| 15 + k * 18;
-    // one cell of the two-column table, cut to its column
+
     let cell = |buf: &mut Buffer, row: u16, k: u16, text: &str, style: Style| {
         put(
             buf,
@@ -836,7 +836,7 @@ impl Page for OverviewPage {
     }
 }
 
-/// The page's option keys, in the order of [`OverviewPage::option_value`].
+
 const OPTION_KEYS: [&str; 4] = [
     "overview.plane",
     "overview.kind",
@@ -871,12 +871,12 @@ const PRINCIPLES: &[(&str, &str)] = &[
     ),
 ];
 
-/// The colour roles, each drawn by the library: status kinds
-/// ([`Theme::status`], label in [`Theme::status_label`]), environments
-/// ([`Theme::env`]), tones ([`Theme::tone_on`]), syntax
-/// ([`Theme::syntax`]) and a link ([`Theme::link_style`]). Every text is
-/// stepped up through [`Theme::legible`] where its hue would not read on
-/// the card (skipped and faint).
+
+
+
+
+
+
 fn render_roles(area: Rect, buf: &mut Buffer, t: &Theme) {
     if area.height < 4 {
         return;

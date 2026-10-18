@@ -1,7 +1,7 @@
-//! The "Inputs & forms" widget pages through the real app (plan §7, SC7
-//! Buttons, SC8 Inputs and Text areas, SC9 Checks & radios, SC10 Chips &
-//! selects): options set through `--opt` change the playground, the States
-//! rows render, and the key interactions work.
+
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -20,7 +20,7 @@ struct Harness {
     term: Terminal<TestBackend>,
 }
 
-#[allow(dead_code)] // each page's tests use what they need
+#[allow(dead_code)]
 impl Harness {
     fn new(w: u16, h: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
@@ -93,7 +93,7 @@ impl Harness {
             .join("\n")
     }
 
-    /// Column and row of `needle`'s first cell.
+
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         let want: Vec<&str> =
@@ -119,8 +119,8 @@ impl Harness {
     }
 }
 
-/// Print every section of the pages in `DUMP_PAGES` at 120×40, after the
-/// `--opt` values in `DUMP_OPTS` (`--run-ignored only --no-capture`).
+
+
 #[test]
 #[ignore]
 fn dump_pages() {
@@ -140,7 +140,7 @@ fn dump_pages() {
     }
 }
 
-// ------------------------------------------------------------------ SC7
+
 
 fn tool_id(i: usize) -> junie_tui::core::id::WidgetId {
     junie_tui::core::id::WidgetId::of("buttons")
@@ -148,7 +148,7 @@ fn tool_id(i: usize) -> junie_tui::core::id::WidgetId {
         .child(i)
 }
 
-/// The focus bar (`▎` in the focus ink) on row `y`, if any.
+
 fn focus_bar_on(h: &Harness, y: u16) -> bool {
     let buf = h.term.backend().buffer();
     (0..buf.area.width).any(|x| {
@@ -174,7 +174,7 @@ fn buttons_toolbar_is_off_the_tab_order_until_the_option_puts_it_in() {
 #[test]
 fn buttons_toolbar_runs_and_cancels_by_shortcut_and_click() {
     let mut h = Harness::new(120, 40, PageId::Buttons);
-    // Cancel is disabled until a query runs: a click does nothing
+
     let (ex, y) = h.at("Explain");
     let cancel = ex + "Explain".len() as u16 + 4;
     h.click(cancel, y);
@@ -213,11 +213,11 @@ fn buttons_row_folds_wraps_and_aligns_through_the_options() {
         "{}",
         h.text()
     );
-    // the `…` button names what folded
+
     let (x, y) = h.at("…    Remove…");
     h.click(x, y);
     assert_eq!(h.status(), "3 more: Validate, Duplicate, Edit…");
-    // wrapping keeps every label on screen
+
     h.opt("buttons.row_overflow=wrap");
     for label in ["Refresh", "Validate", "Duplicate", "Edit…", "Remove…"] {
         assert!(h.find(label).is_some(), "{label}");
@@ -225,7 +225,7 @@ fn buttons_row_folds_wraps_and_aligns_through_the_options() {
     let (_, refresh) = h.at("Refresh");
     let (_, remove) = h.at("Remove…");
     assert!(remove > refresh, "the row wraps onto a second line");
-    // End packs the row against its right edge
+
     h.opt("buttons.row_overflow=more");
     let start = h.at("Refresh").0;
     h.opt("buttons.row_align=end");
@@ -239,7 +239,7 @@ fn buttons_options_section_drives_the_playground() {
     h.section(Section::Options);
     let (x, y) = h.at("start");
     h.click(x, y);
-    // the list is open; End is its second option
+
     let (ex, ey) = h.at("end ");
     h.click(ex, ey);
     assert_eq!(
@@ -264,8 +264,8 @@ fn buttons_states_grid_follows_its_options_and_shows_the_icon_button() {
     assert_eq!(marks(&h), 0);
 }
 
-/// The States legend explains the mark the grid draws: `:` under ASCII
-/// glyphs or a `focus_mark` override, never a `▏` the grid no longer shows.
+
+
 #[test]
 fn states_legend_names_the_mark_the_grid_draws() {
     for opt in ["shell.glyphs=ascii", "buttons.focus_mark=colon"] {
@@ -314,7 +314,7 @@ fn buttons_row_arrows_stop_at_the_ends_unless_wrap_is_on() {
     }
 }
 
-// ------------------------------------------------------------------ SC8
+
 
 fn input_field(h: &Harness, i: usize) -> &junie_tui::widgets::input::TextInput {
     let page = h.app.pages[PageId::Inputs.index()]
@@ -328,7 +328,7 @@ fn input_text(h: &Harness, i: usize) -> String {
     input_field(h, i).field.buffer.text().to_owned()
 }
 
-/// Focus Project name from the keyboard (strip, then Tab).
+
 fn tab_to_project(h: &mut Harness) {
     let (x, y) = h.at("Playground    Options");
     h.click(x + 1, y);
@@ -343,13 +343,13 @@ fn tab_to_project(h: &mut Harness) {
 
 #[test]
 fn inputs_edit_entry_and_focus_select_shape_how_focus_starts_an_edit() {
-    // the default: focus edits with the whole value selected
+
     let mut h = Harness::new(120, 40, PageId::Inputs);
     tab_to_project(&mut h);
     assert!(input_field(&h, 0).editing);
     h.type_str("x");
     assert_eq!(input_text(&h, 0), "x");
-    // caret at the end: typing continues the value
+
     let mut h = Harness::new(120, 40, PageId::Inputs);
     h.opt("inputs.focus_select=caret-end");
     tab_to_project(&mut h);
@@ -360,7 +360,7 @@ fn inputs_edit_entry_and_focus_select_shape_how_focus_starts_an_edit() {
     tab_to_project(&mut h);
     h.type_str("x");
     assert_eq!(input_text(&h, 0), "xpayments-gateway");
-    // explicit: focus waits for Enter
+
     let mut h = Harness::new(120, 40, PageId::Inputs);
     h.opt("inputs.edit_entry=explicit");
     tab_to_project(&mut h);
@@ -425,7 +425,7 @@ fn inputs_label_options_wrap_hide_optional_and_take_clicks() {
     assert!(text.contains("Search files  optional"));
     h.opt("inputs.plain_label=on");
     assert!(!h.text().contains("optional"));
-    // a label click focuses its field, unless label_hit is off
+
     for (value, focused) in [("on", true), ("off", false)] {
         let mut h = Harness::new(120, 40, PageId::Inputs);
         h.opt(&format!("inputs.label_hit={value}"));
@@ -512,7 +512,7 @@ fn textareas_states_rows_render() {
     assert!(text.contains("Explain why, in the imperative"));
 }
 
-// ------------------------------------------------------------------ SC9
+
 
 #[test]
 fn checks_hit_decides_whether_blank_row_space_toggles() {
@@ -520,7 +520,7 @@ fn checks_hit_decides_whether_blank_row_space_toggles() {
         let mut h = Harness::new(120, 40, PageId::ChecksRadios);
         h.opt(&format!("checksradios.hit={value}"));
         let (x, y) = h.at("[ ] Include archived projects");
-        // blank space right of the label, inside the control's row
+
         h.click(x + 34, y);
         let row = h.row(y);
         assert_eq!(
@@ -615,7 +615,7 @@ fn checks_states_grid_shows_all_three_widgets() {
     assert!(rows.contains(&junie_tui::ui::specimen::SpecimenState::Disabled));
 }
 
-// ----------------------------------------------------------------- SC10
+
 
 fn sort_select(h: &Harness) -> &junie_tui::widgets::select::Select {
     h.app.pages[PageId::Chips.index()]
@@ -645,7 +645,7 @@ fn chips_digits_switch_streams_only_when_the_bar_asks() {
             "{value}"
         );
     }
-    // Space switches the cursor stream either way
+
     let mut h = Harness::new(120, 40, PageId::Chips);
     focus(&mut h, CHIPS.sub("streams"));
     h.key(KeyCode::Char(' '));
@@ -658,7 +658,7 @@ fn chips_overflow_marker_and_menu_follow_the_options() {
     h.opt("chipsselects.bar_width=40");
     let (x, y) = h.at("+3");
     h.click(x, y);
-    // the menu lists the hidden chips; choosing one activates it
+
     let (mx, my) = h.at("country in (DE, FR)");
     h.click(mx, my);
     assert_eq!(h.status(), "Would open the editor for country in (DE, FR)");
@@ -687,7 +687,7 @@ fn chips_custom_keymap_rebinds_remove_add_and_clear() {
 
 #[test]
 fn chips_select_arrows_step_or_open() {
-    // SI13: by default ↓ opens the list and never changes the value
+
     let mut h = Harness::new(120, 40, PageId::Chips);
     focus(&mut h, CHIPS.sub("sort"));
     h.key(KeyCode::Down);
@@ -714,13 +714,13 @@ fn chips_select_list_rows_placement_and_tab() {
     let text = h.text();
     assert!(text.contains("customer"), "{text}");
     assert!(!text.contains("currency"), "4 rows only: {text}");
-    // Swallow keeps the list open on Tab
+
     h.opt("chipsselects.tab_in_open=swallow");
     focus(&mut h, CHIPS.sub("sort"));
     h.key(KeyCode::Enter);
     h.key(KeyCode::Tab);
     assert!(sort_select(&h).open);
-    // above the field
+
     let mut h = Harness::new(120, 40, PageId::Chips);
     let (_, field) = h.at("created_at  ");
     h.opt("chipsselects.placement=above");
@@ -732,8 +732,8 @@ fn chips_select_list_rows_placement_and_tab() {
 
 #[test]
 fn chips_select_dismiss_and_mixed_follow_the_options() {
-    // light: an outside click closes the list; escape-only (with the
-    // list kept open on blur) leaves it open, and Esc closes it
+
+
     for (value, closes) in [("light", true), ("escape", false)] {
         let mut h = Harness::new(120, 40, PageId::Chips);
         h.opt(&format!("chipsselects.dismiss={value}"));
@@ -753,12 +753,12 @@ fn chips_select_dismiss_and_mixed_follow_the_options() {
     assert!(h.text().contains("Mixed"));
 }
 
-/// SC10 finding (interaction.md): under `Dismiss::ESCAPE` with the default
-/// blur option, a click on empty page space still closed a select's list:
-/// the refused click fell through to dead space, ended the field's edit,
-/// and `close_on_blur` closed it behind the policy's back. The policy is
-/// the one source: the refused click is consumed and `focus_out` decides
-/// blur, so only Esc closes it.
+
+
+
+
+
+
 #[test]
 fn an_escape_only_select_stays_open_on_a_click_outside() {
     let mut h = Harness::new(120, 40, PageId::Chips);
@@ -774,9 +774,9 @@ fn an_escape_only_select_stays_open_on_a_click_outside() {
     assert!(!sort_select(&h).open, "Esc closes it");
 }
 
-/// M3: a right click on a field the keyboard is not in focuses it and
-/// opens the standard Edit menu above the page; the keys then drive the
-/// menu (Enter chooses), and the page needs no code for it.
+
+
+
 #[test]
 fn a_right_click_on_a_field_focuses_it_and_opens_the_edit_menu() {
     let mut h = Harness::new(120, 40, PageId::Inputs);
@@ -798,8 +798,8 @@ fn a_right_click_on_a_field_focuses_it_and_opens_the_edit_menu() {
             h.text()
         );
     }
-    // nothing is selected and nothing copied: the cursor starts on the
-    // one available command, Select all; Enter chooses it
+
+
     h.key(KeyCode::Enter);
     h.draw();
     assert!(
@@ -812,11 +812,11 @@ fn a_right_click_on_a_field_focuses_it_and_opens_the_edit_menu() {
         Some("mira@example")
     );
 }
-// ----------------------------------------------------------------- forms --
 
-/// Forms on the template: the options rebuild the fields through their
-/// builders, the States section draws the fields, and Ctrl+S submits from
-/// the section strip too.
+
+
+
+
 #[test]
 fn forms_options_states_and_submit_from_the_strip() {
     let mut h = Harness::new(120, 40, PageId::Forms);
@@ -831,7 +831,7 @@ fn forms_options_states_and_submit_from_the_strip() {
     assert!(!text.contains("Short imperative summary"), "{text}");
     assert!(!text.contains("Optional · Markdown"));
     assert!(!text.contains("Managed by your organization"));
-    // the description's rows
+
     let rows = |h: &Harness| {
         let (_, top) = h.at("Description");
         let (_, rev) = h.at("Reviewer");
@@ -840,7 +840,7 @@ fn forms_options_states_and_submit_from_the_strip() {
     let four = rows(&h);
     h.opt("forms.desc_rows=6");
     assert_eq!(rows(&h), four + 2, "two more description rows");
-    // not required: an empty task name submits
+
     h.opt("forms.required=off");
     h.key(KeyCode::Tab);
     assert_eq!(
@@ -871,8 +871,8 @@ fn forms_options_states_and_submit_from_the_strip() {
     }
 }
 
-/// On a short page the form is one column that scrolls part by part:
-/// Tab reaches the actions below the fold and brings them into view.
+
+
 #[test]
 fn a_short_forms_page_scrolls_its_column_to_the_focused_control() {
     let mut h = Harness::new(72, 20, PageId::Forms);

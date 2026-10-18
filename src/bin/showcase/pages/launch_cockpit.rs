@@ -1,14 +1,14 @@
-//! Launch cockpit (Screens, plan §7.5 SC55): jackin's launch cockpit
-//! composed from library widgets only. A card of launch facts
-//! (`PropsList`: target, agent, account, credentials origin) over a
-//! `StepRail` of the eleven launch stages beside the build log
-//! (`TextViewport`, following its tail, with the activity in the panel's
-//! meta); Launch and Cancel launch… under them. The outcome option walks
-//! the paths: a clean launch, a credential source that is unavailable
-//! (a dialog: Retry or Cancel launch), and a failed Docker build (a facts
-//! dialog with the run id and the next step). The cockpit-to-capsule
-//! handoff cross-fade stays jackin-only (owner decision 2026-10-17).
-//! Options: `crate::options::LAUNCH_COCKPIT`.
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -42,8 +42,8 @@ const CANCEL_DLG: WidgetId = ID.sub("cancel-dialog");
 const CRED_DLG: WidgetId = ID.sub("cred-dialog");
 const FAIL_DLG: WidgetId = ID.sub("fail-dialog");
 
-/// The launch stages, as jackin's cockpit names them, with the ticks
-/// each runs.
+
+
 const STAGES: [(&str, u32); 11] = [
     ("Identity", 3),
     ("Role", 3),
@@ -61,8 +61,8 @@ const CREDENTIALS: usize = 2;
 const DERIVED_IMAGE: usize = 5;
 const RUN_ID: &str = "run-7f3a91c2";
 
-/// What a stage reports as it runs: the activity line, and its log lines
-/// by tick.
+
+
 fn activity(stage: usize) -> &'static str {
     match stage {
         0 => "Resolving identity…",
@@ -110,12 +110,12 @@ pub fn page() -> Box<dyn Page> {
     Box::new(LaunchCockpitPage::new())
 }
 
-/// Where the launch is.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Run {
     Idle,
     Running,
-    /// Paused at the Credentials stage, the dialog open.
+
     Held,
     Ready,
     Failed,
@@ -133,7 +133,7 @@ pub struct LaunchCockpitPage {
     run: Run,
     stage: usize,
     stage_tick: u32,
-    /// The credential failure fires once per launch; Retry resolves it.
+
     cred_failed: bool,
     sections: crate::pages::layout::Sections,
 }
@@ -161,8 +161,8 @@ impl LaunchCockpitPage {
         p
     }
 
-    /// The rail and the log from the option values, through their
-    /// builders; their steps and lines survive.
+
+
     fn rebuild(&mut self) {
         let rail = std::mem::replace(&mut self.rail, StepRail::new(RAIL, vec![]));
         let mut rail = rail.selectable(self.opts.on("launchcockpit.selectable"));
@@ -196,7 +196,7 @@ impl LaunchCockpitPage {
         cx.status("Launching payments-platform…");
     }
 
-    /// Stop every stage still to run, as `state`.
+
     fn stop(&mut self, run: Run, state: StepState) {
         self.run = run;
         self.rail.set_state(self.stage, state);
@@ -300,7 +300,7 @@ impl LaunchCockpitPage {
                     .push(vec![Span::plain("Hardline open · capsule ready").bold()]);
                 cx.status("Launched ✓ capsule cap-payments-01");
             } else if self.stage == 3 {
-                // nothing to construct twice: the cached base is reused
+
                 self.rail.set_state(3, StepState::Skipped);
                 self.rail.set_meta(3, Some("cached".into()));
                 self.stage = 4;
@@ -312,8 +312,8 @@ impl LaunchCockpitPage {
         Outcome::Changed
     }
 
-    /// The build log panel's meta: the activity, with the theme's spinner
-    /// while the launch runs.
+
+
     fn activity(&self, spinner: &str) -> String {
         let lines = self.log.len();
         match self.run {
@@ -445,7 +445,7 @@ impl LaunchCockpitPage {
     }
 }
 
-/// The launch facts, with the credentials origin as the run has it.
+
 fn facts(run: Run, cred_error: bool) -> Vec<Prop> {
     let creds = if cred_error && run == Run::Held {
         Prop::new("Credentials", "1Password · vault Engineering is locked").tone(Tone::Error)
@@ -471,8 +471,8 @@ fn facts(run: Run, cred_error: bool) -> Vec<Prop> {
     ]
 }
 
-/// The States grid: the stage rail in every step state and the build log
-/// viewport.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -546,7 +546,7 @@ impl Page for LaunchCockpitPage {
             match (*id, result) {
                 (CANCEL_DLG, DialogResult::Action(1)) if self.running() => self.cancel_now(cx),
                 (CRED_DLG, DialogResult::Action(0)) => {
-                    // Retry: the vault answers this time
+
                     self.run = Run::Running;
                     self.facts.set_props(facts(self.run, false));
                     self.log

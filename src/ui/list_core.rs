@@ -1,21 +1,21 @@
-//! The model every row widget shares: cursor rules, scrolling, selection,
-//! click policy, type-ahead, reveal and what shows instead of rows.
-//!
-//! [`ListBox`](crate::widgets::list::ListBox),
-//! [`TreeView`](crate::widgets::tree::TreeView),
-//! [`PropsList`](crate::widgets::props::PropsList) and
-//! [`StepRail`](crate::widgets::steps::StepRail) embed one `ListCore` as
-//! `core` and dereference to it, so `list.cursor`, `tree.scroll` or
-//! `props.content` read and write the shared fields. The widget keeps only
-//! what is its own: its rows, its key map, how a row is painted.
-//!
-//! One rule per concern, here:
-//! - the [`Cursor`] a key moves ([`Self::cursor_model`], [`Self::key_step`]);
-//! - the content shown instead of rows ([`ContentState`],
-//!   [`Self::draw_content`]);
-//! - the focus-stop policy ([`Self::is_focus_stop`]): a list with nothing
-//!   to act on is skipped by Tab (K37), unless
-//!   [`Self::skip_when_empty`] is off.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -32,51 +32,51 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::reveal::RevealState;
 use crate::widgets::empty::EmptyState;
 
-/// The shared state of a row widget (see the module docs).
+
 #[derive(Debug, Clone)]
 pub struct ListCore {
-    /// The keyboard row.
+
     pub cursor: usize,
-    /// ↑ on the first row lands on the last and ↓ on the last on the
-    /// first. Default off: it stops at the end.
+
+
     pub wrap: bool,
-    /// Arrow, page and Home/End movement steps over disabled rows (they
-    /// cannot be used, so the cursor never parks on them). Default `true`.
+
+
     pub skip_disabled: bool,
-    /// Which keys move the cursor (default [`NavKeys::default`]).
+
     pub nav: NavKeys,
-    /// The scrolled rows and the bar.
+
     pub scroll: ScrollPane,
-    /// The rows selected (multi selection; marks).
+
     pub selection: RowSelection,
-    /// What a click does beyond moving the cursor. Default
-    /// [`ClickPolicy::DATA`].
+
+
     pub click: ClickPolicy,
-    /// Revealing cut labels; `reveal.config` overrides the global default.
+
     pub reveal: RevealState,
-    /// Typing a prefix jumps to the matching row. Default from the
-    /// [`NavProfile`]: on under `Desktop`, off under `Vim`.
+
+
     pub type_ahead: bool,
-    /// Whether single-character shortcuts win over type-ahead. Default
-    /// `None`: the app-wide [`TypeAheadPrecedence::current`].
+
+
     pub type_ahead_precedence: Option<TypeAheadPrecedence>,
-    /// The typed prefix and its timeout.
+
     pub typeahead: TypeAhead,
-    /// Loading, a load error, or the rows. Default [`ContentState::Ready`].
+
     pub content: ContentState,
-    /// What a ready widget with no rows shows. `None`: the widget's own
-    /// default (the theme's empty-list text for a list, nothing for a
-    /// tree, facts or steps).
+
+
+
     pub empty: Option<EmptyState>,
-    /// A widget with no rows to act on (empty, loading or failed) is no
-    /// focus stop: Tab passes it (K37; APG "a composite with no items is
-    /// not in the tab sequence"). Its error actions stay focusable.
-    /// Default `true`.
+
+
+
+
     pub skip_when_empty: bool,
 }
 
 impl ListCore {
-    /// A core over `len` rows with the defaults above.
+
     pub fn new(len: usize) -> Self {
         Self {
             cursor: 0,
@@ -96,18 +96,18 @@ impl ListCore {
         }
     }
 
-    /// The cursor with this core's rules.
+
     pub fn cursor_model(&self) -> Cursor {
         Cursor::new(self.cursor)
             .wrap(self.wrap)
             .skip_disabled(self.skip_disabled)
     }
 
-    /// A key as cursor movement over `src`: a navigation key or a
-    /// type-ahead letter (per [`Self::nav`], [`Self::type_ahead`] and its
-    /// precedence). `None` when the key is neither; the widget then
-    /// handles it. The cursor is not written: the widget applies the
-    /// [`Moved`] (it may extend a selection on the way).
+
+
+
+
+
     pub fn key_step<S: RowSource + ?Sized>(
         &mut self,
         key: &Key,
@@ -126,24 +126,24 @@ impl ListCore {
         Some((step, moved))
     }
 
-    /// Whether `len` rows show (ready, and at least one).
+
     pub fn has_rows(&self, len: usize) -> bool {
         self.content.is_ready() && len > 0
     }
 
-    /// Whether the widget registers as a focus stop with `len` rows
-    /// ([`Self::skip_when_empty`]). A widget that holds focus keeps it
-    /// while it empties (a filter that matches nothing, the last row
-    /// deleted): Tab then moves on and does not come back, and focus never
-    /// jumps away under the user's typing.
+
+
+
+
+
     pub fn is_focus_stop(&self, len: usize, focused: bool) -> bool {
         focused || !self.skip_when_empty || self.has_rows(len)
     }
 
-    /// Draw what shows instead of `len` rows in `area`, if anything:
-    /// loading, the error, or (ready with no rows) [`Self::empty`], else
-    /// `default_empty` as one muted line. Returns `true` when the rows are
-    /// not drawn.
+
+
+
+
     pub fn draw_content(
         &self,
         len: usize,
@@ -245,7 +245,7 @@ mod tests {
         assert_eq!(core.content.actions().len(), 1);
     }
 
-    /// K37: an empty, loading or failed list is no focus stop by default.
+
     #[test]
     fn a_widget_with_nothing_to_act_on_is_no_focus_stop() {
         let mut core = ListCore::new(0);

@@ -1,12 +1,12 @@
-//! Accounts & usage (Screens, plan §7.5 SC53): jackin's account centre
-//! composed from library widgets only. A card whose meta is the health
-//! line holds a `MasterDetail`: the account tree with provider folds
-//! (`TreeView`) beside the inspector, which shows the account's warning
-//! (`Notice`), its facts (`PropsList`), its quota windows (`MeterList`)
-//! and Refresh / Set default. Under it, a usage table (`DataTable`) of
-//! the last seven days per account. Narrow, the tree takes the card with
-//! a one-line summary and the inspector opens as a drawer (the library's
-//! `MasterDetail`). Options: `crate::options::ACCOUNTS_USAGE`.
+
+
+
+
+
+
+
+
+
 
 use std::borrow::Cow;
 
@@ -44,25 +44,25 @@ const REFRESH: WidgetId = ID.sub("refresh");
 const DEFAULT: WidgetId = ID.sub("default");
 const USAGE: WidgetId = ID.sub("usage");
 
-/// How an account stands.
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Health {
     Ok,
-    /// A quota window near its limit.
+
     Warning,
-    /// The credential does not work.
+
     Broken,
     Disabled,
 }
 
-/// A registered account and its last-seven-days usage.
+
 struct Account {
     name: &'static str,
     provider: &'static str,
     plan: &'static str,
     credential: &'static str,
     health: Health,
-    /// Quota windows: label, used %, tone, detail.
+
     quotas: &'static [(&'static str, Option<u8>, MeterTone, &'static str)],
     sessions: u32,
     tokens: &'static str,
@@ -161,7 +161,7 @@ const ACCOUNTS: [Account; 5] = [
     },
 ];
 
-/// The account the tree's `path` names, or `None` on a provider row.
+
 fn account_at(path: &[usize]) -> Option<&'static Account> {
     let [p, a] = path else { return None };
     ACCOUNTS
@@ -208,7 +208,7 @@ pub struct AccountsUsagePage {
     refresh: Button,
     set_default: Button,
     usage: DataTable,
-    /// The tree path the inspector shows.
+
     shown: Vec<usize>,
     sections: crate::pages::layout::Sections,
 }
@@ -217,7 +217,7 @@ impl AccountsUsagePage {
     pub fn new() -> Self {
         let mut tree = TreeView::new(TREE, tree_nodes());
         tree.expand_all();
-        // the cursor starts on the default account, not its provider
+
         tree.cursor = 1;
         let mut page = Self {
             template: Template::new(ID, states_grid()),
@@ -236,7 +236,7 @@ impl AccountsUsagePage {
         page
     }
 
-    /// The master-detail from the option values, through its builders.
+
     fn rebuild(&mut self) {
         self.md = MasterDetail::new(TREE, INSPECTOR)
             .collapse_below(80)
@@ -246,8 +246,8 @@ impl AccountsUsagePage {
             .resizable(Split::new(40, 26, 44));
     }
 
-    /// Columns the demo frame gets: the whole body, or a fixed width that
-    /// shows the collapsed layout on a wide terminal.
+
+
     fn frame_width(&self, avail: u16) -> u16 {
         self.opts
             .number("accountsusage.width")
@@ -265,7 +265,7 @@ impl AccountsUsagePage {
             .unwrap_or_default()
     }
 
-    /// Point the inspector at the tree's cursor row.
+
     fn sync_inspector(&mut self) {
         let path = self.cursor_path();
         if path == self.shown {
@@ -453,7 +453,7 @@ impl AccountsUsagePage {
         }
         let meters = account.map(|a| self.quotas(a));
         let meters_h = meters.as_ref().map_or(0, |m| m.height() + 1);
-        // the facts take what the meters and the action row leave
+
         let facts_h = (self.facts.props.len() as u16)
             .min(r.bottom().saturating_sub(y).saturating_sub(meters_h + 2));
         self.facts
@@ -581,8 +581,8 @@ fn usage_table() -> DataTable {
     .numeric(&[2, 3, 4])
 }
 
-/// The States grid: an account's quota list and its warning notice in
-/// their content states.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))
@@ -618,7 +618,7 @@ fn states_grid() -> StateGrid {
         )
 }
 
-/// A library hint as the page's footer pair.
+
 fn page_hint(h: junie_tui::widgets::keyhint::Hint) -> Hint {
     let action = match h.action {
         Cow::Borrowed(s) => s,

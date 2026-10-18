@@ -1,13 +1,13 @@
-//! The whole content is always reachable (owner priority 2026-10-17):
-//! every templated page, every section, at 80x24, 100x25, 106x29 and
-//! 120x40, shows at some scroll position of its section body everything
-//! it shows on a large screen. The body sits in the template's
-//! `ScrollView`, so a section laid out at its natural size scrolls to
-//! every row and column; a section whose own layout squeezes instead of
-//! overflowing (its Playground has no `Page::measure` yet) loses words,
-//! and is listed in `tests/showcase_reach_allow.txt` with its
-//! `docs/remaining-work.md` row until its page is fixed. A listed entry
-//! that passes fails as stale, so the list only shrinks.
+
+
+
+
+
+
+
+
+
+
 
 use std::collections::BTreeSet;
 
@@ -21,14 +21,14 @@ use crate::app::{App, NAV_ENTRIES};
 use crate::pages::template::Section;
 use junie_tui::theme::Theme;
 
-/// The sizes the owner checks pages at.
+
 const SIZES: [(u16, u16); 4] = [(80, 24), (100, 25), (106, 29), (120, 40)];
 
-/// A screen large enough to show every page whole.
+
 const REFERENCE: (u16, u16) = (220, 70);
 
-/// Words of three or more letters or digits in `area`: what a reader
-/// would miss when the section cuts it off.
+
+
 fn words(buf: &Buffer, area: Rect, out: &mut BTreeSet<String>) {
     for y in area.top()..area.bottom() {
         let row: String = (area.left()..area.right())
@@ -68,21 +68,21 @@ impl Shot {
         &mut self.app.pages[i].template_mut().unwrap().view
     }
 
-    /// Words in the section body in view.
+
     fn words(&mut self, out: &mut BTreeSet<String>) {
         let area = self.view().last_layout().viewport;
         words(self.term.backend().buffer(), area, out);
     }
 
-    /// Words in the section body at every scroll position: a window per
-    /// view on each axis, and the end of each.
+
+
     fn reachable(&mut self) -> BTreeSet<String> {
         let mut out = BTreeSet::new();
         self.words(&mut out);
         let l = self.view().last_layout();
         let steps = |content: u16, view: u16| -> Vec<usize> {
-            // windows overlap by half, so a word cut by one edge is
-            // whole in the next
+
+
             let max = content.saturating_sub(view) as usize;
             let step = (view / 2).max(1) as usize;
             let mut v: Vec<usize> = (0..=max).step_by(step).collect();
@@ -100,7 +100,7 @@ impl Shot {
     }
 }
 
-/// `slug | section | WxH` entries of the allowlist.
+
 fn allowed() -> BTreeSet<String> {
     let text = include_str!("../../../tests/showcase_reach_allow.txt");
     text.lines()
@@ -163,7 +163,7 @@ fn every_section_reaches_its_whole_content_by_scrolling() {
     );
 }
 
-/// Toggles enough to fill any page twice over.
+
 static LONG: &[crate::options::Opt] = &{
     use crate::options::{Effect, Opt};
     const fn opt(key: &'static str, label: &'static str) -> Opt {
@@ -204,8 +204,8 @@ static LONG: &[crate::options::Opt] = &{
     ]
 };
 
-/// One frame of a template's Options section over [`LONG`] in a 60x16
-/// page, with `focus` focused: the screen and the hit regions.
+
+
 fn options_frame(
     t: &mut crate::pages::template::Template,
     focus: Option<junie_tui::core::id::WidgetId>,
@@ -245,10 +245,10 @@ fn text(buf: &Buffer) -> String {
         .join("\n")
 }
 
-/// S17 data point (coordinator, 2026-10-17): a long option table pushed
-/// options out of view. The Options section scrolls: its bar shows, every
-/// option is reachable by scrolling, and Tab onto one out of view brings it
-/// into view.
+
+
+
+
 #[test]
 fn a_long_option_table_scrolls_and_follows_focus() {
     use crate::pages::template::{Section, Template};
@@ -261,11 +261,11 @@ fn a_long_option_table_scrolls_and_follows_focus() {
     let l = t.view.last_layout();
     assert!(l.v_track.is_some(), "the section shows its bar");
     assert!(!text(&buf).contains("The last option"));
-    // scrolled to the end, the last option is in view
+
     t.view.scroll_to(0, usize::MAX);
     let (buf, _) = options_frame(&mut t, None);
     assert!(text(&buf).contains("The last option"), "{}", text(&buf));
-    // focus on the last option from the top: it comes into view
+
     t.view.reset();
     let last = t.option_control("long.a24").unwrap();
     let (buf, hits) = options_frame(&mut t, Some(last));
@@ -274,8 +274,8 @@ fn a_long_option_table_scrolls_and_follows_focus() {
     assert!(text(&buf).contains("The last option"));
 }
 
-/// The Inspector's Options pane holds the page's options and every shell
-/// option: on a short screen it scrolls, by wheel, to the last of them.
+
+
 #[test]
 fn the_inspector_options_pane_scrolls_to_its_last_option() {
     use junie_tui::core::event::{Input, Mouse, MouseKind};

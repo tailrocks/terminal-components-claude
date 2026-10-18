@@ -1,8 +1,8 @@
-//! Custom actions and trust (HP17). Global `actions.toml` and the project's
-//! `.holla.toml` are parsed with a bounded TOML subset into typed argv
-//! actions with source-indexed diagnostics. Trust binds to the whole file's
-//! SHA-256, its path and the effective cwd; a store is versioned, tolerant
-//! of corruption (untrusted) and refuses to launch when it cannot save.
+
+
+
+
+
 
 use crate::domain::digest::sha256_hex;
 
@@ -56,7 +56,7 @@ impl Danger {
 pub struct CustomAction {
     pub id: String,
     pub label: String,
-    /// Exact argument vector, program first. Never a shell string.
+
     pub argv: Vec<String>,
     pub danger: Danger,
     pub confirm: bool,
@@ -64,11 +64,11 @@ pub struct CustomAction {
     pub keywords: Vec<String>,
     pub group: String,
     pub origin: Origin,
-    /// Zero-based `[[action]]` index in its file.
+
     pub index: usize,
 }
 
-/// A parse or validation problem: file plus optional entry index.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diagnostic {
     pub path: String,
@@ -95,7 +95,7 @@ pub struct CustomConfig {
     pub diagnostics: Vec<Diagnostic>,
 }
 
-// ------------------------------------------------------------ TOML subset
+
 
 #[derive(Debug, Clone, PartialEq)]
 enum Val {
@@ -172,7 +172,7 @@ fn parse_value(s: &str) -> Result<Val, String> {
     Ok(Val::Other)
 }
 
-/// Strip a trailing `# comment` outside quotes.
+
 fn strip_comment(line: &str) -> &str {
     let mut in_str: Option<char> = None;
     for (i, c) in line.char_indices() {
@@ -196,9 +196,9 @@ fn id_ok(id: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '_' | '-'))
 }
 
-/// Parse one configuration file. Malformed entries are skipped with an
-/// indexed diagnostic while valid siblings survive; a whole-file syntax
-/// error reports the file without an entry.
+
+
+
 pub fn parse_config(
     path: &str,
     origin: Origin,
@@ -275,7 +275,7 @@ pub fn parse_config(
         }
     }
     if !saw_action_key && !text.trim().is_empty() && cfg.diagnostics.is_empty() {
-        // a file without [[action]] contributes nothing, silently
+
     }
     let mut ids_here: Vec<String> = vec![];
     for (index, e) in entries.iter().enumerate() {
@@ -419,11 +419,11 @@ pub fn parse_config(
     cfg
 }
 
-// ------------------------------------------------------------ trust
 
-/// One accepted review: the whole-file digest, the reviewed path and the
-/// effective cwd. Legacy digest-only entries carry no path and require a
-/// renewed review before broader binding.
+
+
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrustEntry {
     pub digest: String,
@@ -434,21 +434,21 @@ pub struct TrustEntry {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TrustStore {
     pub entries: Vec<TrustEntry>,
-    /// The persisted store could not be read: everything is untrusted and
-    /// the reason is shown.
+
+
     pub corrupt: Option<String>,
-    /// Saving fails: no launch may proceed on a new approval.
+
     pub save_failure: Option<String>,
     pub saves: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrustStatus {
-    /// Digest, path and cwd match a reviewed entry.
+
     Trusted,
-    /// The bytes were once accepted at another path: review again.
+
     Moved,
-    /// A legacy digest-only record: review again to bind path and cwd.
+
     LegacyDigestOnly,
     Untrusted,
 }
@@ -473,8 +473,8 @@ impl TrustStore {
         best
     }
 
-    /// Record an approval. Returns the persisted text, or the save error;
-    /// on error nothing is remembered.
+
+
     pub fn approve(&mut self, digest: &str, path: &str, cwd: &str) -> Result<String, String> {
         if let Some(e) = &self.save_failure {
             return Err(format!("trust store not saved: {e}"));
@@ -498,7 +498,7 @@ impl TrustStore {
         before != self.entries.len()
     }
 
-    /// `{"v":2,"entries":[{"digest":…,"path":…,"cwd":…}]}` (sorted).
+
     pub fn serialize(&self) -> String {
         let items: Vec<String> = self
             .entries
@@ -515,8 +515,8 @@ impl TrustStore {
         format!("{{\"v\":2,\"entries\":[{}]}}", items.join(","))
     }
 
-    /// Load a persisted store. v1 (`{"v":1,"hashes":[…]}`) is read as
-    /// digest-only legacy evidence; unknown or corrupt input is untrusted.
+
+
     pub fn load(text: Option<&str>) -> Self {
         let Some(text) = text else {
             return Self::default();
@@ -704,7 +704,7 @@ confirm = "yes"
             "{}",
             d[4]
         );
-        // the id collision with a built-in is diagnosed only when otherwise valid
+
         let text =
             "[[action]]\nid = \"git.pull\"\nlabel = \"x\"\ncommand = [\"a\"]\ndanger = \"safe\"\n";
         let c = parse_config("/p/.holla.toml", Origin::Project, text, &["git.pull"], &[]);
@@ -717,7 +717,7 @@ confirm = "yes"
             &["reserved".into()],
         );
         assert!(c.diagnostics[0].text().contains("global configuration"));
-        // whole-file syntax error: file only, no entry index
+
         let c = parse_config(
             "/p/.holla.toml",
             Origin::Project,
@@ -732,7 +732,7 @@ confirm = "yes"
                 .text()
                 .starts_with("/p/.holla.toml: line 2")
         );
-        // `action = ...` that is not an array of tables
+
         let c = parse_config(
             "/p/.holla.toml",
             Origin::Project,
@@ -741,10 +741,10 @@ confirm = "yes"
             &[],
         );
         assert!(c.diagnostics[0].text().contains("array of tables"));
-        // an empty or missing action list is a successful zero configuration
+
         let c = parse_config("/p/.holla.toml", Origin::Project, "# nothing\n", &[], &[]);
         assert!(c.actions.is_empty() && c.diagnostics.is_empty());
-        // quoting keeps spaces, newlines and metacharacters as one argument
+
         let c = parse_config(
             "/p/.holla.toml",
             Origin::Project,
@@ -780,13 +780,13 @@ confirm = "yes"
             TrustStatus::Trusted
         );
         assert!(again.corrupt.is_none());
-        // legacy digest-only records are migration evidence, not trust
+
         let legacy = TrustStore::load(Some(r#"{"v":1,"hashes":["d1"]}"#));
         assert_eq!(
             legacy.status("d1", "/p/.holla.toml", "/p"),
             TrustStatus::LegacyDigestOnly
         );
-        // corruption and unknown versions are untrusted and say why
+
         let bad = TrustStore::load(Some("{nope"));
         assert!(bad.corrupt.is_some());
         assert_eq!(
@@ -795,7 +795,7 @@ confirm = "yes"
         );
         let v9 = TrustStore::load(Some(r#"{"v":9}"#));
         assert!(v9.corrupt.unwrap().contains("version 9"));
-        // a save failure remembers nothing and refuses
+
         let mut f = TrustStore {
             save_failure: Some("read-only cache dir".into()),
             ..Default::default()
@@ -807,7 +807,7 @@ confirm = "yes"
         );
         assert!(t.revoke("d1"));
         assert!(!t.revoke("d1"));
-        // entries are sorted for a stable file
+
         t.approve("zz", "/a", "/a").unwrap();
         t.approve("aa", "/b", "/b").unwrap();
         assert!(t.serialize().find("\"aa\"").unwrap() < t.serialize().find("\"zz\"").unwrap());

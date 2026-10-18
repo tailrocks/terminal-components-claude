@@ -1,8 +1,8 @@
-//! Hint bar: the one key-hint surface an application shell owns, pinned to
-//! the bottom row. Every interaction context contributes a layer; the
-//! topmost layer that exists wins (topmost modal or menu › temporary mode ›
-//! active screen › global fallback), so a modal never renders its own hint
-//! row and the footer never moves.
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -15,12 +15,12 @@ pub struct HintLayer {
     pub hints: Vec<Hint>,
     pub badge: Option<(&'static str, BadgeKind)>,
     pub status: Option<(String, Tone)>,
-    /// The status as parts in their own tones ([`Self::status_parts`]);
-    /// empty for a status in one tone.
+
+
     pub status_parts: Vec<(String, Tone)>,
-    /// Alignment for this layer only. `None` (the default) follows the
-    /// theme's [`HintBarStyle::align`](crate::theme::HintBarStyle::align),
-    /// which is where an app sets it once for every screen.
+
+
+
     pub align: Option<HintAlign>,
 }
 
@@ -34,7 +34,7 @@ impl HintLayer {
             align: None,
         }
     }
-    /// Override the theme's alignment for this layer.
+
     pub fn align(mut self, align: HintAlign) -> Self {
         self.align = Some(align);
         self
@@ -48,9 +48,9 @@ impl HintLayer {
         self.status_parts.clear();
         self
     }
-    /// A status made of parts in their own tones (`2 ok` in success,
-    /// `1 failed` in error). `tone` is the message's severity: it picks the
-    /// `!` or `▲` mark, as for [`Self::status`].
+
+
+
     pub fn status_parts(mut self, parts: Vec<(String, Tone)>, tone: Tone) -> Self {
         let text: String = parts.iter().map(|(p, _)| p.as_str()).collect();
         self.status = Some((text, tone));
@@ -61,17 +61,17 @@ impl HintLayer {
 
 pub struct HintBar;
 
-/// The keys of the hints a footer drew this frame
-/// ([`HintBar::render_ctx`]): a click on a hint replays its key (M1).
+
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HintKeys(Vec<Option<crate::core::event::Key>>);
 
 impl HintKeys {
-    /// Make the drawn hints click targets: `spots` are where each of
-    /// `hints` landed ([`keyhint::render_parts_at`],
-    /// [`keyhint::render_status_at`]). Every hint that names one key
-    /// ([`keyhint::key_of`]) registers as a [`Part::KEY`](crate::core::id::Part::KEY)
-    /// of [`HintBar::ID`]; hover underlines it and a press reverses it.
+
+
+
+
+
     pub fn register(
         ctx: &mut crate::ui::ctx::RenderCtx,
         buf: &mut Buffer,
@@ -97,8 +97,8 @@ impl HintKeys {
         HintKeys(keys)
     }
 
-    /// The key a click on the footer replays: the hint under a completed
-    /// click on [`HintBar::ID`].
+
+
     pub fn clicked(
         &self,
         ev: &crate::core::pointer::PointerEvent,
@@ -112,14 +112,14 @@ impl HintKeys {
 }
 
 impl HintBar {
-    /// The footer's hit owner: each clickable hint is its
-    /// `Part::KEY` item.
+
+
     pub const ID: crate::core::id::WidgetId = crate::core::id::WidgetId::of("hintbar");
 
-    /// [`Self::render`] with every hint that names one key
-    /// ([`keyhint::key_of`]) a click target: hover underlines it, a press
-    /// reverses its key, and a click replays the key through the app
-    /// ([`HintKeys::clicked`]). Hints naming several keys (`↑↓`) stay text.
+
+
+
+
     pub fn render_ctx(
         area: Rect,
         buf: &mut Buffer,
@@ -130,11 +130,11 @@ impl HintBar {
         HintKeys::register(ctx, buf, &layer.hints, spots)
     }
 
-    /// [`Self::render`] reporting where each hint landed, for a footer
-    /// whose hits register later ([`HintKeys::register`]): an app that
-    /// draws its footer under popups still painted as overlays registers
-    /// the hints after them, so the footer stays on the topmost layer and
-    /// the layers in between keep only their own regions.
+
+
+
+
+
     pub fn render_at(
         area: Rect,
         buf: &mut Buffer,
@@ -158,14 +158,14 @@ impl HintBar {
         spots
     }
 
-    /// The first present layer wins; `layers` is ordered from the topmost
-    /// context down to the global fallback.
+
+
     pub fn resolve(layers: &[Option<HintLayer>]) -> HintLayer {
         layers.iter().flatten().next().cloned().unwrap_or_default()
     }
 
-    /// Draws the layer on `area` (one row). Returns how many hints fit;
-    /// dropped hints leave a `…` marker so the operator knows there is more.
+
+
     pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, layer: &HintLayer) -> usize {
         let style = crate::theme::HintBarStyle {
             align: layer.align.unwrap_or(t.hintbar.align),
@@ -184,10 +184,10 @@ impl HintBar {
     }
 }
 
-/// A hint layer drawn in a forced state for a States grid
-/// ([`crate::ui::specimen`]): the bar at rest, with its status cut
-/// (overflow), with an error status, with the EDIT badge (editing) and in
-/// the grid's narrow slot, where hints drop by priority.
+
+
+
+
 impl crate::ui::specimen::Specimen for HintLayer {
     fn specimen_id(&self) -> crate::core::id::WidgetId {
         crate::core::id::WidgetId::of("hintbar.specimen")
@@ -229,9 +229,9 @@ mod tests {
     use super::*;
     use crate::widgets::keyhint::hint;
 
-    /// M1: every hint that names one key is a click target whose click
-    /// replays the key; a hint naming several keys stays text; the cells
-    /// at rest are those `render` draws.
+
+
+
     #[test]
     fn a_click_on_a_footer_hint_replays_its_key() {
         use crate::core::event::Key;
@@ -296,7 +296,7 @@ mod tests {
         let layer = HintLayer::new(vec![hint("Esc", "Back")]);
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
         HintBar::render(Rect::new(0, 0, 40, 1), &mut buf, &t, &layer);
-        // "Esc Back" is 8 cells: centred in 40 it starts at 16
+
         assert_eq!(buf[(16, 0)].symbol(), "E");
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
         let start = layer.align(HintAlign::Start);
@@ -322,7 +322,7 @@ mod tests {
             .collect();
         assert!(row.contains("Enter Open"));
         assert!(row.contains('…'), "{row:?}");
-        // normal hints go from the right; Esc is pinned and stays
+
         assert!(!row.contains("Next"), "{row:?}");
         assert!(row.contains("Esc Cancel"), "{row:?}");
         let mut wide = Buffer::empty(Rect::new(0, 0, 120, 1));

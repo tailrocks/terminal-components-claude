@@ -1,7 +1,7 @@
-//! The navigation sidebar as a tree driven through the real `App`: every
-//! page sits under a group, groups open and close by keyboard and mouse,
-//! the current page's group opens on navigation, type-ahead, the wheel,
-//! `[`/`]` in tree order and stable `--page` names.
+
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -54,7 +54,7 @@ impl Harness {
         self.mouse(MouseKind::Up, x, y);
     }
 
-    /// The sidebar's rows as drawn.
+
     fn sidebar(&self) -> Vec<String> {
         let side = self.app.sidebar_area();
         let buf = self.term.backend().buffer();
@@ -69,13 +69,13 @@ impl Harness {
             .collect()
     }
 
-    /// Screen position of the first sidebar row whose label is `label`.
+
     fn nav_row(&self, label: &str) -> Option<(u16, u16)> {
         let side = self.app.sidebar_area();
         self.sidebar()
             .iter()
             .position(|r| {
-                // a label longer than the sidebar is cut with `…`
+
                 let shown = r.trim_start_matches(['▎', ' ', '›', '▸', '▾']).trim();
                 shown == label
                     || shown
@@ -97,7 +97,7 @@ impl Harness {
     }
 }
 
-/// Root index of a group in the sidebar tree.
+
 fn root_of(group: &'static str) -> usize {
     nav_roots()
         .iter()
@@ -120,11 +120,11 @@ fn every_page_but_overview_sits_under_a_group_two_levels_at_most() {
             assert_eq!(path.len(), 2, "{}: a leaf under a group", e.label);
         }
         assert_eq!(PageId::from_nav_path(&path), Some(e.id));
-        // a group never holds a page with its own name
+
         assert_ne!(e.label, e.group, "{} repeats its group", e.label);
     }
-    // groups appear in order and their pages follow each other, so
-    // `[`/`]` (NAV_ENTRIES order) walk the tree top to bottom
+
+
     let mut order: Vec<&str> = NAV_ENTRIES
         .iter()
         .map(|e| e.group)
@@ -154,7 +154,7 @@ fn the_current_pages_group_is_open_by_default_and_follows_navigation() {
         "Overview is top level: {:#?}",
         h.sidebar()
     );
-    // navigation opens the new group and closes the one it opened itself
+
     h.app.open_page(PageId::Grid);
     h.draw();
     assert_eq!(h.open_groups(), ["Tables"], "{:#?}", h.sidebar());
@@ -162,7 +162,7 @@ fn the_current_pages_group_is_open_by_default_and_follows_navigation() {
     h.app.open_page(PageId::Buttons);
     h.draw();
     assert_eq!(h.open_groups(), ["Inputs & forms"]);
-    // a group the user opens stays open
+
     h.key(KeyCode::Char('0'));
     let (x, y) = h.nav_row("Overlays").unwrap();
     h.click(x, y);
@@ -198,18 +198,18 @@ fn arrows_fold_groups_and_enter_opens_pages() {
         Some(&[tables, 2][..]),
         "on the current page"
     );
-    // ← from a page goes to its group, ← again closes it
+
     h.key(KeyCode::Left);
     assert_eq!(h.app.nav.cursor_path(), Some(&[tables][..]));
     h.key(KeyCode::Left);
     assert!(h.open_groups().is_empty(), "{:#?}", h.sidebar());
     assert!(h.nav_row("Data grid").is_none());
-    // → opens it again, Enter on a group toggles it
+
     h.key(KeyCode::Right);
     assert_eq!(h.open_groups(), ["Tables"]);
     h.key(KeyCode::Enter);
     assert!(h.open_groups().is_empty());
-    // open it, step in, open "Editable"
+
     h.key(KeyCode::Right);
     h.key(KeyCode::Right);
     h.key(KeyCode::Down);
@@ -220,7 +220,7 @@ fn arrows_fold_groups_and_enter_opens_pages() {
         Some(NAV),
         "Enter keeps the sidebar focus"
     );
-    // the footer names the keys of the row under the cursor
+
     let footer = |h: &Harness| {
         let buf = h.term.backend().buffer();
         let y = buf.area.height - 1;
@@ -236,7 +236,7 @@ fn arrows_fold_groups_and_enter_opens_pages() {
 #[test]
 fn clicks_toggle_groups_and_open_pages() {
     let mut h = Harness::new(120, 40, PageId::Overview);
-    // the disclosure of a closed group opens it
+
     let (_, y) = h.nav_row("Tables").unwrap();
     let side = h.app.sidebar_area();
     let disclosure = (side.x..side.right())
@@ -245,12 +245,12 @@ fn clicks_toggle_groups_and_open_pages() {
     h.click(disclosure, y);
     assert!(h.open_groups().contains(&"Tables"));
     assert_eq!(h.app.page(), PageId::Overview, "a group is not a page");
-    // a single click on a page row opens the page (navigation, not data)
+
     let (x, y) = h.nav_row("Selection").unwrap();
     h.click(x, y);
     assert_eq!(h.app.page(), PageId::Selectable);
     assert_eq!(h.app.shell.focus.current(), Some(NAV));
-    // the group row itself toggles too
+
     let (x, y) = h.nav_row("App shell").unwrap();
     h.click(x, y);
     assert!(h.nav_row("Chrome").is_some());
@@ -269,17 +269,17 @@ fn typing_a_name_jumps_in_the_sidebar_unless_the_page_claims_the_letter() {
     let at = h.app.nav.cursor_path().map(<[usize]>::to_vec);
     let text = root_of("Text & code");
     assert_eq!(at, Some(vec![text]), "te: Text & code");
-    // the shell's own letters are never type-ahead
+
     h.key(KeyCode::Char('i'));
     assert!(h.app.inspector, "i toggles the inspector");
     assert_eq!(h.app.nav.cursor_path(), Some(&[text][..]));
 }
 
-/// Type-ahead and single-letter shortcuts (keyboard.md decision log): a
-/// list on a page type-selects (S4), but the shell's letters stay
-/// shortcuts while it has focus, through the library's one rule
-/// (`core::list::route_key`) rather than a sidebar-only exception. On the
-/// S4 tip the focused list swallowed `i`, `0` and `q` as type-ahead misses.
+
+
+
+
+
 #[test]
 fn shell_letters_win_over_a_focused_page_list() {
     let mut h = Harness::new(120, 40, PageId::Lists);
@@ -319,13 +319,13 @@ fn slash_filters_the_sidebar_and_enter_opens_the_match() {
         "its group as context"
     );
     assert!(!rows.iter().any(|r| r.contains("Buttons")), "{rows:#?}");
-    // the card's title, its padding row, then the query field
+
     assert!(rows[0].contains("Components"), "the card title: {rows:#?}");
     assert!(rows[2].contains("/ grid"), "the query row: {rows:#?}");
     h.key(KeyCode::Enter);
     assert_eq!(h.app.page(), PageId::Grid);
     assert!(h.app.nav_filter.is_none(), "opening ends the filter");
-    // Esc clears a filter and shows the whole tree again
+
     h.key(KeyCode::Char('/'));
     h.key(KeyCode::Char('z'));
     h.key(KeyCode::Esc);
@@ -341,7 +341,7 @@ fn brackets_walk_pages_in_tree_order_across_groups() {
     for _ in 0..NAV_ENTRIES.len() {
         h.key(KeyCode::Char(']'));
         seen.push(h.app.page());
-        // the current page is always visible in the tree
+
         let label = NAV_ENTRIES[h.app.page().index()].label;
         assert!(h.nav_row(label).is_some(), "{label}: {:#?}", h.sidebar());
     }
@@ -413,7 +413,7 @@ fn the_current_page_marker_is_neutral_unless_the_sidebar_has_focus() {
     h.key(KeyCode::Tab);
     assert_ne!(h.app.shell.focus.current(), Some(NAV));
     assert_eq!(marker(&h), t.text_primary);
-    // no focus bar in the sidebar while the page holds focus
+
     let side = h.app.sidebar_area();
     let buf = h.term.backend().buffer();
     assert!(
@@ -424,9 +424,9 @@ fn the_current_page_marker_is_neutral_unless_the_sidebar_has_focus() {
     );
 }
 
-/// The sidebar's card belongs to the tree: its title shows focus-within
-/// (primary and bold, never a second `▎`), and a click on the title or the
-/// padding focuses the tree instead of landing on nothing.
+
+
+
 #[test]
 fn the_sidebar_card_title_shows_focus_and_its_padding_focuses_the_tree() {
     use ratatui::style::Modifier;

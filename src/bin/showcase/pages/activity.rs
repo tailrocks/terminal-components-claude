@@ -1,17 +1,17 @@
-//! Activity (Screens, plan §7 SC51): holla's activity tab composed from
-//! library components only. A header of state clauses (`segments`), the
-//! command line, stream chips that show or hide each service of a merged
-//! log (`ChipBar`, digits toggle), the live log (`TextViewport`: follow
-//! tail, scrollback, retention, find marks over a query), the job's step
-//! rail (`StepRail`), its facts (`props`), a failure `Notice`, and
-//! Stop / Restart with their busy states (`Button::busy`). Options:
-//! `crate::options::ACTIVITY`.
-//!
-//! Gaps (recorded in docs/remaining-work.md, Priority 0): typing a find
-//! query and stepping through its matches waits for S22's `FindState`
-//! (the page shows a query's marks through `TextViewport::set_marks`);
-//! attach/detach and stdin input mode stay app-level behaviour (plan
-//! §7.7 row 68).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -38,12 +38,12 @@ use junie_tui::widgets::steps::{Step, StepRail, StepState};
 use junie_tui::widgets::viewport::{Line, Mark, Span, TextViewport, ViewportAction};
 
 const ID: WidgetId = WidgetId::of("activity");
-/// The live log.
+
 pub const LOG: WidgetId = ID.sub("log");
-/// The stream chips.
+
 pub const STREAMS: WidgetId = ID.sub("streams");
 
-/// The services of the merged log and their tones.
+
 const SERVICES: [(&str, Tone); 4] = [
     ("api", Tone::Info),
     ("worker", Tone::Secondary),
@@ -51,7 +51,7 @@ const SERVICES: [(&str, Tone); 4] = [
     ("db", Tone::Muted),
 ];
 
-/// What each service says while it runs, in turn.
+
 const CHATTER: [(usize, &str); 12] = [
     (0, "GET /health 200 2 ms"),
     (1, "job 4821 send-digest done in 184 ms"),
@@ -67,7 +67,7 @@ const CHATTER: [(usize, &str); 12] = [
     (1, "job 4823 send-digest done in 233 ms"),
 ];
 
-/// The job's stages.
+
 const STAGES: [&str; 5] = [
     "Resolve tools",
     "Install dependencies",
@@ -76,9 +76,9 @@ const STAGES: [&str; 5] = [
     "Healthy",
 ];
 
-/// Ticks between two log lines while the services run.
+
 const LINE_TICKS: u32 = 3;
-/// Ticks a stop takes before the process group is gone.
+
 const STOP_TICKS: u32 = 6;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -101,21 +101,21 @@ pub struct ActivityPage {
     rail: StepRail,
     stop: Button,
     restart: Button,
-    /// Every line the services wrote: (service, text). The viewport shows
-    /// the ones whose stream chip is on.
+
+
     log: Vec<(Option<usize>, Line)>,
     run: Run,
-    /// Ticks since the run started (the elapsed clause, the spinner).
+
     tick: u32,
-    /// Ticks left of a stop.
+
     stopping: u32,
-    /// The next chatter line.
+
     next: usize,
     exit: Option<i32>,
 }
 
-/// A service's line: its name in its tone, then the text (an error in
-/// the error tone).
+
+
 fn service_line(svc: usize, text: &str) -> Line {
     let (name, tone) = SERVICES[svc];
     let body = if text.contains("error") || text.contains(" 404 ") {
@@ -126,7 +126,7 @@ fn service_line(svc: usize, text: &str) -> Line {
     vec![Span::new(format!("{name:<9} │ "), tone), body]
 }
 
-/// A line holla itself writes (no stream).
+
 fn holla_line(text: &str, tone: Tone) -> Line {
     vec![Span::new(text, tone)]
 }
@@ -167,8 +167,8 @@ impl ActivityPage {
         p
     }
 
-    /// The viewport and the chips through their builders, from the
-    /// options; the log survives.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let view = std::mem::replace(&mut self.view, TextViewport::new(LOG));
@@ -180,7 +180,7 @@ impl ActivityPage {
         self.sync_view();
     }
 
-    /// Start a run in the state the option names.
+
     fn start(&mut self) {
         self.log.clear();
         self.tick = 0;
@@ -195,7 +195,7 @@ impl ActivityPage {
                 Tone::Muted,
             ),
         );
-        // the services have been up for a while: their recent output
+
         for _ in 0..CHATTER.len() * 2 {
             self.chatter();
         }
@@ -234,7 +234,7 @@ impl ActivityPage {
 
     fn push(&mut self, svc: Option<usize>, line: Line) {
         self.log.push((svc, line.clone()));
-        // the retained log keeps what the viewport keeps
+
         let keep = self.view.retention().unwrap_or(usize::MAX).max(1) * 2;
         if self.log.len() > keep {
             self.log.drain(..self.log.len() - keep);
@@ -268,7 +268,7 @@ impl ActivityPage {
         self.sync_rail();
     }
 
-    /// The viewport shows the lines whose stream is on.
+
     fn sync_view(&mut self) {
         let lines = self
             .log
@@ -282,7 +282,7 @@ impl ActivityPage {
         self.mark();
     }
 
-    /// The find query's matches as the viewport's marks.
+
     fn mark(&mut self) {
         let q = match self.opts.value("activity.find") {
             "off" => {
@@ -432,7 +432,7 @@ impl ActivityPage {
                 )),
             )
         } else {
-            // narrow: the log takes the room, the actions sit under it
+
             (
                 Rect::new(body.x, body.y, body.width, body.height.saturating_sub(2)),
                 None,
@@ -573,7 +573,7 @@ impl ActivityPage {
         if self.run == Run::Stopping {
             return;
         }
-        // a restart always runs, whatever state the page opened in
+
         self.opts.set("activity.state", 0);
         self.start();
         cx.status("Restarted api dev");
@@ -597,7 +597,7 @@ impl ActivityPage {
     }
 }
 
-/// The States grid: the log, the stream chips and the step rail.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

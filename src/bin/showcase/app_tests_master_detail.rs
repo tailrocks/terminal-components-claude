@@ -1,7 +1,7 @@
-//! The Master-detail page through the real app (plan §7 SC38): both panes
-//! wide with a seam that drags and moves with the resize chords, the
-//! collapsed list with its summary, the drawer that Tab or Show details
-//! opens and Esc closes, and the options that drive the `MasterDetail`.
+
+
+
+
 
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
@@ -19,7 +19,7 @@ fn seam() -> WidgetId {
     LIST.sub("seam")
 }
 
-/// Width of the Tables pane: its frame from `╭` to `╮`.
+
 fn tables_width(h: &Harness) -> u16 {
     let (x, y) = h.at("╭─ Tables");
     let row: Vec<String> = (x..h.term.backend().buffer().area.width)
@@ -49,8 +49,8 @@ fn master_detail_follows_the_list_cursor() {
 
 #[test]
 fn master_detail_seam_drags_and_the_chords_resize_it() {
-    // Alt chords delivered (a Linux client, WezTerm): the hints this
-    // test reads do not depend on the host terminal (A29)
+
+
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = Harness::new(120, 40, PageId::MasterDetail);
     let before = tables_width(&h);
@@ -63,7 +63,7 @@ fn master_detail_seam_drags_and_the_chords_resize_it() {
     h.key_mod(KeyCode::Left, KeyModifiers::ALT | KeyModifiers::SHIFT);
     assert_eq!(tables_width(&h), before + 6);
     assert!(h.text().contains("Alt+Shift+←→ Resize"), "{}", h.text());
-    // the custom chords and step
+
     h.opt("masterdetail.keys=custom");
     h.opt("masterdetail.step=5");
     let w = tables_width(&h);
@@ -103,21 +103,21 @@ fn master_detail_show_details_toggles_the_drawer() {
 #[test]
 fn master_detail_options_drive_the_layout() {
     let mut h = Harness::new(120, 40, PageId::MasterDetail);
-    // a fixed share: the chords do not move it and are not hinted
+
     h.opt("masterdetail.size=share");
     let w = tables_width(&h);
     h.focus(LIST);
     h.key_mod(KeyCode::Right, KeyModifiers::ALT | KeyModifiers::SHIFT);
     assert_eq!(tables_width(&h), w);
     assert!(!h.text().contains("Resize"), "{}", h.text());
-    // collapsing above the frame width
+
     h.opt("masterdetail.size=resizable");
     h.opt("masterdetail.collapse=140");
     assert!(h.find("╭─ orders").is_none(), "{}", h.text());
-    // no summary
+
     h.opt("masterdetail.summary=0");
     assert!(!h.text().contains("→ orders"));
-    // Esc does not leave the drawer when turned off
+
     h.opt("masterdetail.esc_returns=off");
     h.focus(DETAIL);
     h.key(KeyCode::Esc);

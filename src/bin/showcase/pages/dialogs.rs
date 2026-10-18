@@ -1,19 +1,19 @@
-//! Dialogs (Overlays, plan §7.5 SC17): the library `Dialog` in each of its
-//! bodies and action sets, with every builder.
-//!
-//! - **Playground**: buttons that open a confirm, a prompt, a three-way
-//!   choice, a destructive confirmation, a read-only viewer, a two-gate
-//!   drop (facts and code, then a typed token), a multi-action failure and
-//!   a long body that scrolls; a card reading back what the options build;
-//!   the results as the dialogs return them.
-//! - **Options**: one control per builder (`dialogs.<key>`), applied to
-//!   every dialog the page opens.
-//! - **States**: a confirm and a typed-token dialog in every state they
-//!   have, drawn by the dialog.
-//!
-//! The page is wiring and demo data only: the shell owns the open dialog
-//! (`Cx::open`) and draws it; keys, pointer and dismissal are the
-//! dialog's own.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Margin, Rect};
@@ -52,7 +52,7 @@ const GATE2: WidgetId = ID.sub("gate2");
 const PUSH: WidgetId = ID.sub("push");
 const NOTES: WidgetId = ID.sub("notes");
 
-/// The variants: button label and what the button's dialog shows.
+
 const VARIANTS: &[(&str, &str)] = &[
     ("Confirm run", "Text body"),
     ("Rename task…", "Input body"),
@@ -122,7 +122,7 @@ impl DialogsPage {
         }
     }
 
-    /// Variant `i`'s dialog as an app builds it, before the options.
+
     fn variant(&self, i: usize) -> Dialog {
         match i {
             0 => Dialog::confirm(
@@ -229,7 +229,7 @@ impl DialogsPage {
         }
     }
 
-    /// The typed-token gate (2 of 2).
+
     fn gate2(&self) -> Dialog {
         Dialog::facts(
             GATE2,
@@ -242,8 +242,8 @@ impl DialogsPage {
         .title_status(StatusKind::Fail)
     }
 
-    /// The options applied to `d`, through the builders an app calls.
-    /// `anchor` is the button that opened it.
+
+
     fn style(&self, mut d: Dialog, anchor: Rect) -> Dialog {
         let o = &self.opts;
         match o.value("dialogs.width") {
@@ -347,8 +347,8 @@ impl DialogsPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // as many buttons per row as fit; with four per row each has a note
-        // under it saying what its dialog shows, narrower rows drop them
+
+
         let per = (area.width.saturating_sub(2) / 22).max(1) as usize;
         let notes = per >= 4;
         let per = per.min(4);
@@ -419,7 +419,7 @@ impl DialogsPage {
         }
     }
 
-    /// What the options built, read back from the dialogs themselves.
+
     fn readout(&self) -> Vec<Prop> {
         let d = self.style(self.variant(0), Rect::ZERO);
         let gate = self.style(self.gate2(), Rect::ZERO);
@@ -584,7 +584,7 @@ impl DialogsPage {
     }
 }
 
-/// The States grid: a confirm and a typed-token dialog.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -641,7 +641,7 @@ impl Page for DialogsPage {
                 self.task_name = v.clone();
             }
             self.result_line(*id, *result, cx);
-            // the first gate passed: the typed token is the second
+
             if *id == GATE1 && *result == DialogResult::Action(1) {
                 let anchor = self.buttons[5].area;
                 cx.open_dialog(self.style(self.gate2(), anchor));
@@ -656,8 +656,8 @@ impl Page for DialogsPage {
         }
         match ev {
             PageEvent::Key(key) => {
-                // direct access keeps the destructive flow reachable even
-                // when the buttons cannot all show
+
+
                 if key.is_char('d') {
                     self.open(3, cx);
                     return Outcome::Changed;

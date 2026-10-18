@@ -1,28 +1,28 @@
-//! The widget-page template (plan §7, SCP2): a `Tabs` strip of three
-//! sections at the top of the page, then the section's body.
-//!
-//! - **Playground**: the live widget with demo data (the page draws it).
-//! - **Options**: the page's option table (`crate::options::page_options`),
-//!   the same declarations the Inspector's Options tab and `--opt` read.
-//!   [`Template::render_options`] is the extension point: a page with
-//!   options draws an `OptionsView` over its table there.
-//! - **States**: the page's [`StateGrid`], rows = states and columns =
-//!   variants, drawn by the real widget at the current colour level, with a
-//!   "Compare levels" toggle that draws it at all four.
-//!
-//! Every section's body sits in a library
-//! [`ScrollView`](junie_tui::ui::scroll_view::ScrollView): it is laid out
-//! at its natural size (the page's [`super::Page::measure`] for the
-//! Playground, the option rows, the grid) and, when that is larger than the
-//! page, it scrolls on the axes that overflow, with their scrollbars, by
-//! wheel, Shift+wheel, bar drag and keyboard focus, instead of being cut
-//! off. The page shell brackets the page's drawing with
-//! [`Template::begin`] and [`Template::end`] (`pages::adapter`), so no page
-//! has scrolling code of its own.
-//!
-//! The template is showcase wiring only: the strip is the library `Tabs`,
-//! the toggle a library `Button`, the grid the library `StateGrid`, the
-//! scrolling the library `ScrollView`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
@@ -39,7 +39,7 @@ use junie_tui::widgets::button::Button;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::tabs::Tabs;
 
-/// One section of a templated page.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Section {
     Playground,
@@ -58,7 +58,7 @@ impl Section {
         }
     }
 
-    /// What the section shows, beside the strip when there is room.
+
     pub fn caption(self) -> &'static str {
         match self {
             Self::Playground => "the live widget",
@@ -68,16 +68,16 @@ impl Section {
     }
 }
 
-/// Page width from which the strip carries its section caption and the
-/// States section its focus legend.
+
+
 pub const WIDE: u16 = 76;
 
-/// The legend beside the Compare toggle: what the focus mark means.
-/// It starts with the grid's own mark ([`StateGrid::mark`]): `▏` by
-/// default, `:` under ASCII glyphs.
+
+
+
 pub const FOCUS_LEGEND: &str = "▏ depicts a focused sample; it is not where your focus is";
 
-/// [`FOCUS_LEGEND`] after `mark`, the glyph the grid really draws.
+
 pub fn focus_legend(mark: &str) -> String {
     let rest = FOCUS_LEGEND.trim_start_matches('▏');
     format!("{mark}{rest}")
@@ -85,22 +85,22 @@ pub fn focus_legend(mark: &str) -> String {
 
 pub struct Template {
     pub tabs: Tabs,
-    /// "Compare levels": the grid at all four colour levels.
+
     pub compare: Button,
     pub grid: StateGrid,
-    /// The section body: laid out at its natural size, scrolled on the
-    /// axes where that is larger than the page.
+
+
     pub view: ScrollView,
-    /// Where the body draws this frame, between [`Self::begin`] and
-    /// [`Self::end`]: the full-size content.
+
+
     content: Option<Rect>,
-    /// Rows the States grid drew whole in the last frame.
+
     shown: Vec<SpecimenState>,
-    /// Each drawn grid row's rows in the body's content (top, height), so
-    /// [`Self::end`] keeps only the rows in view in [`Self::shown`].
+
+
     spans: Vec<(SpecimenState, u16, u16)>,
-    /// The page's option table (`crate::options::page_options`) as live
-    /// controls, built on the first [`Self::sync_options`].
+
+
     options: Option<OptionsView>,
     owner: WidgetId,
 }
@@ -121,11 +121,11 @@ impl Template {
         }
     }
 
-    /// Load the page's option values before a frame: `opts` is the page's
-    /// table, `value` its current value index per option. The controls
-    /// are the same declarations the Inspector's Options tab and `--opt`
-    /// read; a change goes back to the shell as [`super::Go::SetOption`], so
-    /// all three take one path (`App::apply_opt`).
+
+
+
+
+
     pub fn sync_options(&mut self, opts: &'static [Opt], value: impl Fn(&Opt) -> usize) {
         if opts.is_empty() {
             return;
@@ -144,14 +144,14 @@ impl Template {
         view.sync(value);
     }
 
-    /// The control of option `key` in the Options section.
-    #[allow(dead_code)] // tests reach controls by key
+
+    #[allow(dead_code)]
     pub fn option_control(&self, key: &str) -> Option<WidgetId> {
         self.options.as_ref()?.control_id(key)
     }
 
-    /// Whether an option's select has its list open in the Options
-    /// section: a layer over the page.
+
+
     pub fn popup_open(&self) -> bool {
         self.section() == Section::Options && self.options.as_ref().is_some_and(|v| v.popup_open())
     }
@@ -160,7 +160,7 @@ impl Template {
         Section::ALL[self.tabs.active.min(Section::ALL.len() - 1)]
     }
 
-    #[allow(dead_code)] // tests and the coverage gate drive it
+    #[allow(dead_code)]
     pub fn set_section(&mut self, section: Section) {
         let i = Section::ALL.iter().position(|s| *s == section).unwrap_or(0);
         self.tabs.set_active(i);
@@ -168,16 +168,16 @@ impl Template {
         self.view.reset();
     }
 
-    /// The section body of a page drawn in `area`: below the strip and a
-    /// blank row.
+
+
     pub fn body_of(area: Rect) -> Rect {
         let top = area.y.saturating_add(3).min(area.bottom());
         Rect::new(area.x, top, area.width, area.bottom() - top)
     }
 
-    /// The natural size of the shown section's body offered `avail`:
-    /// `playground` for the Playground (the page's measure), the option
-    /// rows, or the toggle and the grid (all four levels when comparing).
+
+
+
     pub fn measure(&self, avail: Size, playground: Size, ctx: &RenderCtx) -> Size {
         match self.section() {
             Section::Playground => playground,
@@ -192,7 +192,7 @@ impl Template {
                 } else {
                     grid.height
                 };
-                // the toggle and its legend, a blank row, the grid
+
                 let legend = focus_legend(self.grid.mark(ctx.theme));
                 let toggle = (self.compare.width() + 3)
                     .saturating_add(junie_tui::ui::text::width(&legend) as u16);
@@ -201,10 +201,10 @@ impl Template {
         }
     }
 
-    /// Start a frame of a page drawn in `area` whose Playground measures
-    /// `playground`: the section body gets its natural size in the
-    /// returned frame. The page draws into [`ScrollFrame::buffer`] (its
-    /// strip too: it lands on screen unchanged), then [`Self::end`].
+
+
+
+
     pub fn begin(
         &mut self,
         area: Rect,
@@ -219,11 +219,11 @@ impl Template {
         frame
     }
 
-    /// End a frame [`Self::begin`] started: the body's window, its bars.
+
     pub fn end(&mut self, frame: ScrollFrame, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.content = None;
         self.view.end(frame, buf, ctx);
-        // a grid row counts as shown while it is whole in view
+
         if !self.spans.is_empty() {
             let l = self.view.last_layout();
             let top = l.viewport.y as usize + self.view.offset().1;
@@ -237,13 +237,13 @@ impl Template {
         }
     }
 
-    /// A key the page left unused: the body's scroll keys
-    /// ([`ScrollView::on_key`]).
+
+
     pub fn on_unused_key(&mut self, key: &junie_tui::core::event::Key) -> Option<Outcome> {
         self.view.on_key(key)
     }
 
-    /// Draw the strip; returns the body under it (one blank row between).
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) -> Rect {
         let t = ctx.theme;
         let strip = Rect::new(area.x, area.y, area.width, area.height.min(2));
@@ -263,13 +263,13 @@ impl Template {
                 buf.set_string(x, area.y, caption, t.faint().bg(t.canvas));
             }
         }
-        // inside a frame the body is the full-size content
+
         self.content.unwrap_or_else(|| Self::body_of(area))
     }
 
-    /// The Options body of a page with no option table yet: its page step
-    /// adds the table (and draws an `OptionsView` here); the shell-wide
-    /// options are in the Inspector meanwhile.
+
+
+
     pub fn render_options(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         if let Some(view) = &mut self.options {
@@ -281,10 +281,10 @@ impl Template {
         empty::render_ctx(area, buf, ctx, &e, t.canvas);
     }
 
-    /// The States body: the toggle (and, when wide, the legend), a blank
-    /// row, then the grid at the current level, or at all four. Inside the
-    /// template's frame the body has the grid's natural size; the view
-    /// scrolls it.
+
+
+
+
     pub fn render_states(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let comparing = self.compare.on == Some(true);
@@ -314,7 +314,7 @@ impl Template {
         } else {
             let r = Rect::new(grid.x, grid.y, grid.width.min(w), grid.height);
             self.grid.render(r, buf, ctx, t.canvas);
-            // the rows sit under the column header, top to bottom
+
             let mut y = grid.y + 1;
             for (&st, h) in self
                 .grid
@@ -329,15 +329,15 @@ impl Template {
         self.shown.extend_from_slice(self.grid.rendered_rows());
     }
 
-    /// Rows the States grid drew whole in the last frame (at the current
-    /// level, or at every level when comparing them side by side).
-    #[allow(dead_code)] // the coverage gate reads it
+
+
+    #[allow(dead_code)]
     pub fn state_rows(&self) -> &[SpecimenState] {
         &self.shown
     }
 
-    /// The template's own events: the strip, and in the States section the
-    /// toggle and the body's scroll. `None` leaves the event to the page.
+
+
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<Outcome> {
         let before = self.tabs.active;
         let out = self.handle_inner(ev, cx)?;
@@ -349,7 +349,7 @@ impl Template {
 
     fn handle_inner(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<Outcome> {
         let states = self.section() == Section::States;
-        // the body's own wheel and bars
+
         if let PageEvent::Pointer(p) = ev
             && let Some(r) = self.view.pointer(p)
         {
@@ -401,7 +401,7 @@ impl Template {
         }
     }
 
-    /// Hints for the template's own controls; `None` for the page's.
+
     pub fn hints(&self, focus: Option<WidgetId>) -> Option<Vec<Hint>> {
         let f = focus?;
         if f == self.tabs.id {

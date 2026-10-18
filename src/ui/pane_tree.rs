@@ -1,20 +1,20 @@
-//! A tree of panes split side by side and stacked (S26): tmux's or an
-//! editor's window layout as a library type.
-//!
-//! [`PaneNode`] is the binary split tree (every split holds a [`Split`],
-//! so nested splits give any number of panes); [`PaneTree`] adds the
-//! focused pane, zoom, keyboard focus moves and resize chords, the seams
-//! as draggable [`Splitter`]s, and the pane frames: rounded borders that
-//! mark the focused pane (strong border, bright title) and the hovered one
-//! (brighter title). Zoom maximises the focused pane through
-//! [`Split::toggle_max`] on every split above it, so the zoomed layout is
-//! the same split arithmetic as any other.
-//!
-//! The owner draws each pane's content into the inner rect
-//! [`PaneTree::render`] hands back, and offers keys and pointer events to
-//! [`PaneTree::on_key`] and [`PaneTree::on_pointer`] first. A refused
-//! command ("unzoom to resize") comes back as a [`PaneRefusal`] whose
-//! message the owner shows in its status line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -31,10 +31,10 @@ use crate::ui::layout::{Maximized, Split, SplitDir, SplitKeys};
 use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::splitter::Splitter;
 
-/// A pane's id: the owner's key for the pane's content.
+
 pub type PaneId = u64;
 
-/// A node of the split tree: a pane, or a split of two subtrees.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PaneNode {
     Leaf(PaneId),
@@ -47,7 +47,7 @@ pub enum PaneNode {
 }
 
 impl PaneNode {
-    /// The panes, first to last (left to right, top to bottom).
+
     pub fn leaves(&self) -> Vec<PaneId> {
         match self {
             PaneNode::Leaf(id) => vec![*id],
@@ -59,8 +59,8 @@ impl PaneNode {
         }
     }
 
-    /// Geometry of every pane and every seam laid out in `area`, with
-    /// `gap` cells between the panes of a split.
+
+
     pub fn layout(
         &self,
         area: Rect,
@@ -95,7 +95,7 @@ impl PaneNode {
         }
     }
 
-    /// The node at `path` (0 = first, 1 = second at each split).
+
     pub fn node_at_mut(&mut self, path: &[u8]) -> Option<&mut PaneNode> {
         let mut cur = self;
         for p in path {
@@ -109,8 +109,8 @@ impl PaneNode {
         Some(cur)
     }
 
-    /// Replace the pane `target` with a split holding it and `new`
-    /// (`new` first when `new_first`). Returns whether `target` was found.
+
+
     pub fn split_leaf(
         &mut self,
         target: PaneId,
@@ -143,7 +143,7 @@ impl PaneNode {
         }
     }
 
-    /// Remove a pane; its parent split collapses into the sibling.
+
     pub fn remove_leaf(&mut self, target: PaneId) -> bool {
         if let PaneNode::Split { first, second, .. } = self {
             if matches!(**first, PaneNode::Leaf(id) if id == target) {
@@ -161,7 +161,7 @@ impl PaneNode {
         false
     }
 
-    /// The path (0/1 steps) from the root to a pane.
+
     pub fn path_to(&self, target: PaneId, path: &mut Vec<u8>) -> bool {
         match self {
             PaneNode::Leaf(id) => *id == target,
@@ -181,7 +181,7 @@ impl PaneNode {
         }
     }
 
-    /// Every split's zoom back to none.
+
     fn unzoom(&mut self) {
         if let PaneNode::Split {
             split,
@@ -196,7 +196,7 @@ impl PaneNode {
         }
     }
 
-    /// The pane every split above it maximises, if any.
+
     fn zoomed(&self) -> Option<PaneId> {
         match self {
             PaneNode::Leaf(id) => Some(*id),
@@ -214,19 +214,19 @@ impl PaneNode {
     }
 }
 
-/// A seam of the tree as last laid out.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Seam {
-    /// The split's path in the tree.
+
     pub path: Vec<u8>,
     pub dir: SplitDir,
-    /// The rect the split was laid out in.
+
     pub container: Rect,
-    /// The gap strip between its panes.
+
     pub handle: Rect,
 }
 
-/// A direction to move focus or a seam in.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     Left,
@@ -235,8 +235,8 @@ pub enum Direction {
     Down,
 }
 
-/// The pane nearest `from` in `dir`, by centre distance, among the laid
-/// out `leaves`.
+
+
 pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, dir: Direction) -> Option<PaneId> {
     let (_, fr) = leaves.iter().find(|(id, _)| *id == from)?;
     let (fx, fy) = (
@@ -262,25 +262,25 @@ pub fn nearest(leaves: &[(PaneId, Rect)], from: PaneId, dir: Direction) -> Optio
         .map(|(id, _)| *id)
 }
 
-/// Why a pane command did nothing; [`Self::message`] is the status line.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaneRefusal {
-    /// Focus cannot move while a pane is zoomed.
+
     ZoomedFocus,
-    /// Seams cannot move while a pane is zoomed.
+
     ZoomedResize,
-    /// No pane lies that way.
+
     NoNeighbour,
-    /// No split above the pane runs that way.
+
     NothingToResize,
-    /// The seam would make a pane smaller than its minimum.
+
     AtMinimum,
-    /// One pane: nothing to zoom or close.
+
     OnePane,
 }
 
 impl PaneRefusal {
-    /// What the owner tells the user.
+
     pub fn message(self) -> &'static str {
         match self {
             PaneRefusal::ZoomedFocus => "Unzoom to move focus",
@@ -293,29 +293,29 @@ impl PaneRefusal {
     }
 }
 
-/// A [`PaneTree`] command a key can be bound to (the resize chords are
-/// the tree's [`SplitKeys`]).
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaneCmd {
-    /// Focus the next pane (wraps).
+
     Next,
-    /// Focus the previous pane (wraps).
+
     Prev,
     FocusLeft,
     FocusRight,
     FocusUp,
     FocusDown,
-    /// Zoom the focused pane, or restore the layout.
+
     Zoom,
 }
 
 impl Actions for PaneCmd {
-    /// F6 and Shift+F6 cycle the panes (the Windows and GNOME pane key);
-    /// Alt+arrows move to the pane that way; Alt+Z zooms, and so does
-    /// Ctrl+Shift+F12 (JetBrains' maximize-editor chord). Terminals that
-    /// send Option as a character (macOS Terminal without "Use Option as
-    /// Meta") do not deliver the Alt chords (A29), so hints name F6 and
-    /// Ctrl+Shift+F12 there; F-keys always arrive.
+
+
+
+
+
+
     fn default_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::F(6)), PaneCmd::Next),
@@ -363,51 +363,51 @@ impl Actions for PaneCmd {
     }
 }
 
-/// When the panes get a frame.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Frames {
-    /// Once there is more than one pane, or one is zoomed (a lone pane
-    /// uses every cell, as a terminal does). The default.
+
+
     #[default]
     WhenSplit,
-    /// Always.
+
     Always,
-    /// Never: the seams alone separate the panes.
+
     Never,
 }
 
-/// What a pane command did.
+
 pub type PaneResult = Result<Outcome, PaneRefusal>;
 
-/// A split tree of panes with focus, zoom, seams and frames. See the
-/// module docs.
+
+
 #[derive(Debug, Clone)]
 pub struct PaneTree {
-    /// The tree's focus id; pane `p` is the clickable part `id.child(p)`,
-    /// seam `i` is `id.sub("seam").child(i)`.
+
+
     pub id: WidgetId,
     pub root: PaneNode,
-    /// The focused pane.
+
     pub focused: PaneId,
-    /// Focus and zoom keys (default [`PaneCmd::default_keymap`]).
+
     pub keys: KeyMap<PaneCmd>,
-    /// The resize chords on the focused pane (default Alt+Shift+arrows).
+
     pub split_keys: SplitKeys,
-    /// The smallest pane, frame included: (columns, rows). Default (12, 3).
+
     pub min_size: (u16, u16),
-    /// When the panes are framed. Default [`Frames::WhenSplit`].
+
     pub frames: Frames,
-    /// Seam hit padding ([`Splitter::hit_pad`]). Default 1.
+
     pub hit_pad: u16,
     rects: Vec<(PaneId, Rect)>,
     seams: Vec<Seam>,
     handles: Vec<Splitter>,
-    /// The seam a drag holds.
+
     held: Option<usize>,
 }
 
 impl PaneTree {
-    /// One pane, `first`, focused.
+
     pub fn new(id: WidgetId, first: PaneId) -> Self {
         Self {
             id,
@@ -425,53 +425,53 @@ impl PaneTree {
         }
     }
 
-    /// See [`Self::keys`].
+
     pub fn keys(mut self, keys: KeyMap<PaneCmd>) -> Self {
         self.keys = keys;
         self
     }
 
-    /// See [`Self::split_keys`].
+
     pub fn split_keys(mut self, keys: SplitKeys) -> Self {
         self.split_keys = keys;
         self
     }
 
-    /// See [`Self::min_size`].
+
     pub fn min_size(mut self, cols: u16, rows: u16) -> Self {
         self.min_size = (cols, rows);
         self
     }
 
-    /// See [`Self::frames`].
+
     pub fn frames(mut self, frames: Frames) -> Self {
         self.frames = frames;
         self
     }
 
-    /// See [`Self::hit_pad`].
+
     pub fn hit_pad(mut self, cells: u16) -> Self {
         self.hit_pad = cells;
         self
     }
 
-    /// The panes, first to last.
+
     pub fn leaves(&self) -> Vec<PaneId> {
         self.root.leaves()
     }
 
-    /// Each pane's outer rect as last laid out (only the zoomed pane while
-    /// one is zoomed).
+
+
     pub fn panes(&self) -> &[(PaneId, Rect)] {
         &self.rects
     }
 
-    /// The seams as last laid out (none while a pane is zoomed).
+
     pub fn seams(&self) -> &[Seam] {
         &self.seams
     }
 
-    /// The zoomed pane, if any.
+
     pub fn zoomed(&self) -> Option<PaneId> {
         match self.root {
             PaneNode::Leaf(_) => None,
@@ -479,7 +479,7 @@ impl PaneTree {
         }
     }
 
-    /// Whether the panes are framed now.
+
     pub fn framed(&self) -> bool {
         match self.frames {
             Frames::Always => true,
@@ -488,9 +488,9 @@ impl PaneTree {
         }
     }
 
-    /// Split `target` with a new pane `new` beside it (`Horizontal`) or
-    /// under it (`Vertical`), `new` first when `new_first`; the new pane
-    /// takes focus and any zoom ends.
+
+
+
     pub fn split(&mut self, target: PaneId, new: PaneId, dir: SplitDir, new_first: bool) -> bool {
         self.root.unzoom();
         let done = self.root.split_leaf(target, new, dir, new_first);
@@ -500,8 +500,8 @@ impl PaneTree {
         done
     }
 
-    /// Close pane `target`; its sibling takes its room. The last pane does
-    /// not close.
+
+
     pub fn close(&mut self, target: PaneId) -> Result<(), PaneRefusal> {
         if self.leaves().len() <= 1 {
             return Err(PaneRefusal::OnePane);
@@ -518,8 +518,8 @@ impl PaneTree {
         Ok(())
     }
 
-    /// Zoom the focused pane to the whole tree (every split above it
-    /// maximises its side, [`Split::toggle_max`]), or restore the layout.
+
+
     pub fn toggle_zoom(&mut self) -> PaneResult {
         if self.zoomed().is_some() {
             self.root.unzoom();
@@ -544,7 +544,7 @@ impl PaneTree {
         Ok(Outcome::Changed)
     }
 
-    /// Focus the pane `dir` of the focused one.
+
     pub fn focus_toward(&mut self, dir: Direction) -> PaneResult {
         if self.zoomed().is_some() {
             return Err(PaneRefusal::ZoomedFocus);
@@ -554,7 +554,7 @@ impl PaneTree {
         Ok(Outcome::Changed)
     }
 
-    /// Focus the next pane (or the previous one), wrapping.
+
     pub fn focus_next(&mut self, back: bool) -> PaneResult {
         if self.zoomed().is_some() {
             return Err(PaneRefusal::ZoomedFocus);
@@ -569,10 +569,10 @@ impl PaneTree {
         Ok(Outcome::Changed)
     }
 
-    /// Move the seam of the deepest split above the focused pane that
-    /// runs across `dir` `cells` toward `dir` (the edge moves that way, as
-    /// tmux's resize-pane does). Refused when it would leave a pane under
-    /// [`Self::min_size`].
+
+
+
+
     pub fn resize(&mut self, dir: Direction, cells: u16) -> PaneResult {
         if self.zoomed().is_some() {
             return Err(PaneRefusal::ZoomedResize);
@@ -591,7 +591,7 @@ impl PaneTree {
             if let Some(PaneNode::Split { dir: sd, .. }) = self.root.node_at_mut(&path[..k])
                 && *sd == want
             {
-                // the seam moves toward `dir`, whichever side the pane is on
+
                 let delta = cells.min(i16::MAX as u16) as i16;
                 chosen = Some((path[..k].to_vec(), if grows_first { delta } else { -delta }));
                 break;
@@ -622,7 +622,7 @@ impl PaneTree {
         Ok(Outcome::Changed)
     }
 
-    /// Lay the panes out in `area`: [`Self::panes`] and [`Self::seams`].
+
     pub fn layout(&mut self, area: Rect) {
         self.rects.clear();
         self.seams.clear();
@@ -630,7 +630,7 @@ impl PaneTree {
         let mut seams = Vec::new();
         self.root
             .layout(area, 1, &mut rects, &mut seams, &mut Vec::new());
-        // a zoomed tree lays out only the zoomed pane and no seams
+
         let zoomed = self.zoomed();
         self.rects = rects
             .into_iter()
@@ -641,17 +641,17 @@ impl PaneTree {
         }
     }
 
-    /// The seam handle of seam `i`.
+
     pub fn seam_id(&self, i: usize) -> WidgetId {
         self.id.sub("seam").child(i)
     }
 
-    /// Lay out and draw the tree in `area` on `bg`: the seams, and each
-    /// pane's frame with the title `title(pane)` (the focused pane's frame
-    /// strong while the tree holds focus, a hovered pane's title
-    /// brighter). Registers the tree as a focus stop and each pane as a
-    /// clickable part. Returns each pane's content rect for the owner to
-    /// draw into.
+
+
+
+
+
+
     pub fn render(
         &mut self,
         area: Rect,
@@ -665,7 +665,7 @@ impl PaneTree {
         ctx.control(self.id, area, false);
         let tree_focused = ctx.interaction.focused(self.id);
         let framed = self.framed();
-        // the seams: one Splitter each, keeping a held drag across frames
+
         let n = self.seams.len();
         self.handles.truncate(n);
         for i in self.handles.len()..n {
@@ -694,8 +694,8 @@ impl PaneTree {
             }
             let focused = tree_focused && pid == self.focused;
             let hovered = ctx.interaction.hovered(part);
-            // the frame is a framed Panel: the theme's border glyphs, the
-            // strong border on the focused pane
+
+
             let name = title(pid);
             let meta = if zoomed { Some("zoomed") } else { None };
             let mut panel = crate::widgets::panel::Panel::framed(Some(&name)).focused(focused);
@@ -705,7 +705,7 @@ impl PaneTree {
             }
             panel.render(r, buf, t);
             if hovered && !focused && r.width > 4 {
-                // a hovered pane's title brightens (the pointer target)
+
                 let w = crate::ui::text::width(&name) as u16 + 2;
                 for x in r.x + 2..(r.x + 2 + w).min(r.right().saturating_sub(2)) {
                     buf[(x, r.y)].set_style(t.primary().bg(bg));
@@ -716,10 +716,10 @@ impl PaneTree {
         inner
     }
 
-    /// The tree's own keys while it holds focus: the pane keys
-    /// ([`Self::keys`]) and the resize chords ([`Self::split_keys`]) on
-    /// the focused pane. `None` for any other key: the focused pane's
-    /// content has it.
+
+
+
+
     pub fn on_key(&mut self, key: &Key) -> Option<PaneResult> {
         if let Some(cmd) = lookup(&self.keys, key) {
             return Some(match cmd {
@@ -745,9 +745,9 @@ impl PaneTree {
         Some(self.resize(dir, self.split_keys.step))
     }
 
-    /// A press, drag or click on a seam (drags cell by cell, a
-    /// double-click restores its starting ratio), or a click on a pane
-    /// (focuses it). `None` when the event is not the tree's.
+
+
+
     pub fn on_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         if let Some(i) = (0..self.seams.len()).find(|&i| self.seam_id(i) == ev.id) {
             let s = self.seams[i].clone();
@@ -786,7 +786,7 @@ impl PaneTree {
         None
     }
 
-    /// The footer hints for the tree's keys while it holds focus.
+
     pub fn hints(&self) -> Vec<Hint> {
         let mut v = Vec::new();
         if self.zoomed().is_none() {
@@ -813,8 +813,8 @@ impl PaneTree {
     }
 }
 
-/// In a States grid: two panes side by side, the left one focused or
-/// hovered, and a zoomed pane.
+
+
 impl crate::ui::specimen::Specimen for PaneTree {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -875,7 +875,7 @@ mod tests {
 
     const ID: WidgetId = WidgetId::of("panes");
 
-    /// shell | (build over logs)
+
     fn three() -> PaneTree {
         let mut t = PaneTree::new(ID, 1);
         t.split(1, 2, SplitDir::Horizontal, false);
@@ -941,7 +941,7 @@ mod tests {
             Err(PaneRefusal::ZoomedFocus)
         );
         assert_eq!(t.resize(Direction::Left, 2), Err(PaneRefusal::ZoomedResize));
-        // Alt+Z restores
+
         assert_eq!(
             t.on_key(&key(KeyCode::Char('z'), KeyModifiers::ALT)),
             Some(Ok(Outcome::Changed))
@@ -960,19 +960,19 @@ mod tests {
         assert_eq!(t.on_key(&chord), Some(Ok(Outcome::Changed)));
         t.layout(Rect::new(0, 0, 80, 24));
         assert_eq!(rect(&t, 1).width, w + 2);
-        // the stacked panes resize on the vertical seam
+
         t.focused = 2;
         let h = rect(&t, 2).height;
         t.on_key(&key(KeyCode::Down, KeyModifiers::ALT | KeyModifiers::SHIFT));
         t.layout(Rect::new(0, 0, 80, 24));
         assert_eq!(rect(&t, 2).height, h + 2);
-        // the left pane has no vertical seam above it
+
         t.focused = 1;
         assert_eq!(
             t.resize(Direction::Up, 2),
             Err(PaneRefusal::NothingToResize)
         );
-        // a minimum refuses
+
         let mut tight = three().min_size(39, 3);
         tight.focused = 1;
         assert_eq!(
@@ -981,9 +981,9 @@ mod tests {
         );
     }
 
-    /// A29: on macOS Terminal (Option types a character) the hints name
-    /// F6, Ctrl+Shift+arrows and Ctrl+Shift+F12, and Ctrl+Shift+F12
-    /// zooms; with the kitty protocol the Alt chords are named.
+
+
+
     #[test]
     fn hints_name_no_alt_chord_where_the_terminal_keeps_option() {
         use crate::core::keyboard::{self, AltKeys, KeyboardProtocol};
@@ -1034,7 +1034,7 @@ mod tests {
         assert_eq!(buf[(0, 0)].symbol(), "╭");
         let row: String = (0..80).map(|x| buf[(x, 0)].symbol().to_owned()).collect();
         assert!(row.contains("pane 1"), "{row}");
-        // the focused pane's frame is the strong border
+
         let (_, r3) = t.panes()[2];
         assert_eq!(buf[(r3.x, r3.y)].fg, th.border_strong);
         let (_, r1) = t.panes()[0];
@@ -1049,7 +1049,7 @@ mod tests {
         );
         assert_eq!(t.on_pointer(&click), Some(Outcome::Changed));
         assert_eq!(t.focused, 1);
-        // a seam drags
+
         let s = t.seams()[0].handle;
         let press = PointerEvent::new(
             &hits,

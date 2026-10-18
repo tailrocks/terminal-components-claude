@@ -1,5 +1,5 @@
-//! Independent regressions found against tui-snap e45d3fa.
-//! Run in a crate depending on tuisnap and the same vendored vt100.
+
+
 #[cfg(test)]
 mod tests {
     #[test]

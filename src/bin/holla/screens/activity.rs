@@ -1,10 +1,10 @@
-//! An activity tab: one long-lived piece of work with its retained output,
-//! state, scope and actions (CONCEPT §8.14, HP14, HP15). Output reaches the
-//! viewport by appending, so selection, marks and scrollback identity
-//! survive new lines; a retention drop is shown, never hidden. Merged logs
-//! keep each service's identity and can be shown or hidden per stream.
-//! Monitors can be attached (keys go to the program) and detached with
-//! Ctrl+]. Tasks with a live stdin take typed input in input mode (`i`).
+
+
+
+
+
+
+
 
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
@@ -38,7 +38,7 @@ use junie_tui::ui::layer::LayerTag;
 pub const VIEW: WidgetId = WidgetId::of("activity.view");
 pub const CHIPS: WidgetId = WidgetId::of("activity.chips");
 const FOLLOW_UP: WidgetId = WidgetId::of("activity.follow");
-/// The output's and a stream chip's context menu.
+
 pub const MENU: WidgetId = WidgetId::of("activity.menu");
 
 pub struct ActivityTab {
@@ -46,13 +46,13 @@ pub struct ActivityTab {
     view: TextViewport,
     chips: ChipBar,
     pub attached: bool,
-    /// Typed keys go to the program's stdin.
+
     pub input: bool,
-    /// Output lines mirrored into the viewport so far.
+
     synced: usize,
     synced_dropped: usize,
     synced_hidden: Vec<String>,
-    /// Text of the last mirrored line: a prompt row changes in place.
+
     synced_last: Option<String>,
     synced_services: Vec<String>,
     follow_ups: Vec<Button>,
@@ -89,9 +89,9 @@ impl ActivityTab {
         if let Some(s) = svc {
             line.push(Span::new(format!("{:<w$}  ", s, w = svc_w), Tone::Secondary).bold());
         }
-        // failure output reads as text: the body stays primary and a bold
-        // `!` gutter in the error tone marks the line (the cue survives
-        // without colour); red is kept for the status chip
+
+
+
         if *tone == LineTone::Error {
             line.push(Span::new("! ", Tone::Error).bold());
         }
@@ -105,15 +105,15 @@ impl ActivityTab {
         line
     }
 
-    /// Mirror the activity's output into the viewport. Appends push; a
-    /// changed last line (a prompt taking its answer) is replaced in place;
-    /// only a stream visibility change or a retention drop rebuilds.
+
+
+
     fn sync(&mut self, w: &World) {
         let Some(a) = w.activity(&self.id) else {
             return;
         };
         if self.input && !a.accepts_input() {
-            // the program stopped reading: the keyboard is holla's again
+
             self.input = false;
         }
         let services = a.services();
@@ -138,10 +138,10 @@ impl ActivityTab {
             e.0.as_ref().is_none_or(|s| !a.hidden_services.contains(s))
         };
         let mut changed = false;
-        // retention: the activity dropped `delta` leading lines since the
-        // last sync; the viewport's own cap evicts the same lines as new
-        // ones are pushed, so the mirror index moves back by `delta` and
-        // nothing retained is rebuilt
+
+
+
+
         let delta = a.dropped.saturating_sub(self.synced_dropped);
         let rebuild = self.synced_hidden != a.hidden_services
             || a.output.len() + delta < self.synced
@@ -190,8 +190,8 @@ impl ActivityTab {
                 .follow_ups
                 .iter()
                 .enumerate()
-                // a follow-up the preview cannot run is shown disabled up
-                // front instead of failing once pressed
+
+
                 .map(|(i, f)| {
                     Button::subtle(FOLLOW_UP.child(i), f).disabled(!follow_up_supported(f))
                 })
@@ -213,7 +213,7 @@ impl ActivityTab {
                 self.find_matches.push((i, r));
             }
         }
-        // keep the current match when it survives, else start over
+
         self.find_at = before
             .and_then(|b| self.find_matches.iter().position(|m| *m == b))
             .unwrap_or(0);
@@ -275,7 +275,7 @@ impl ActivityTab {
         }
     }
 
-    /// Runs a follow-up; [`follow_up_supported`] lists what it understands.
+
     fn follow_up(&self, label: &str, w: &World, cx: &mut Cx) {
         let l = label.to_lowercase();
         if l.starts_with("find the process on port") {
@@ -328,14 +328,14 @@ impl ActivityTab {
                 None => cx.status(format!("{label}: no such action here")),
             }
         }
-        // anything else is unreachable: its button is disabled up front
-        // (see [`follow_up_supported`])
+
+
     }
 }
 
 impl ActivityTab {
-    /// The output's context menu: the tab's own keys. Each item stands for
-    /// the key at its index in the tag.
+
+
     fn output_menu(&self, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let Some(a) = w.activity(&self.id) else {
             return Outcome::Ignored;
@@ -395,7 +395,7 @@ impl ActivityTab {
         )
     }
 
-    /// A stream chip's context menu: show or hide that stream.
+
     fn chip_menu(&self, i: usize, anchor: ContextAnchor, w: &World, cx: &mut Cx) -> Outcome {
         let Some(chip) = self.chips.chips.get(i) else {
             return Outcome::Ignored;
@@ -421,14 +421,14 @@ impl ShellPage<Holla> for ActivityTab {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let tick = w.tick;
         if self.attached {
-            // legacy Ctrl+5 arrives decoded as Ctrl+] (InputConfig)
+
             if key.ctrl_char(']') {
                 self.attached = false;
                 cx.status("Detached · the program keeps running in its tab");
                 return Outcome::Changed;
             }
             if key.is_char('q') {
-                // the program exits on its own quit key
+
                 if let Some(a) = w.activity_mut(&self.id) {
                     a.state = ActivityState::Stopped;
                     a.ended_tick = Some(tick);
@@ -443,12 +443,12 @@ impl ShellPage<Holla> for ActivityTab {
             return Outcome::Consumed;
         }
         if self.input && !w.activity(&self.id).is_some_and(|a| a.accepts_input()) {
-            // the program stopped reading: the keyboard is holla's again
+
             self.input = false;
         }
         if self.input {
-            // every key is bytes for the program; Esc alone returns the
-            // keyboard; Alt chords belong to the shell (tabs, alternatives)
+
+
             if key.code == KeyCode::Esc && key.plain() {
                 self.input = false;
                 cx.status("Keyboard returned to holla · the program keeps running");
@@ -499,7 +499,7 @@ impl ShellPage<Holla> for ActivityTab {
                 _ => {}
             }
         }
-        // follow-up buttons
+
         for i in 0..self.follow_ups.len() {
             if cx.focus.is(self.follow_ups[i].id) {
                 let (o, fired) = self.follow_ups[i].on_key(key);
@@ -649,7 +649,7 @@ impl ShellPage<Holla> for ActivityTab {
         if self.input {
             let tick = w.tick;
             if let Some(a) = w.activity_mut(&self.id) {
-                // pasted text is bytes for the program, never keys for holla
+
                 let _ = a.send_input(text.as_bytes(), tick);
             }
             return Outcome::Changed;
@@ -686,7 +686,7 @@ impl ShellPage<Holla> for ActivityTab {
                     }
                 }
                 if id == VIEW {
-                    // the viewport selects the word under a double click
+
                     cx.focus.focus(VIEW);
                 }
                 self.view
@@ -694,7 +694,7 @@ impl ShellPage<Holla> for ActivityTab {
                     .map_or(Outcome::Ignored, |r| r.outcome())
             }
             Some(Phase::Secondary) => {
-                // a program owning the keyboard, or an open find, keeps it
+
                 if self.is_editing() {
                     return Outcome::Ignored;
                 }
@@ -712,8 +712,8 @@ impl ShellPage<Holla> for ActivityTab {
                 }
                 Outcome::Ignored
             }
-            // the output: a press anchors a selection and a drag extends
-            // it; its bar and the wheel scroll it
+
+
             _ => self
                 .view
                 .route(ev)
@@ -740,7 +740,7 @@ impl ShellPage<Holla> for ActivityTab {
                 let Some(c) = tag.key.chars().nth(k) else {
                     return Outcome::Changed;
                 };
-                // the chosen row runs its key on the output
+
                 cx.focus.focus(VIEW);
                 let key = Key {
                     code: if c == '\n' {
@@ -784,7 +784,7 @@ impl ShellPage<Holla> for ActivityTab {
             );
             return;
         };
-        // header: name · state · elapsed · exit, then scope on the right
+
         let state_tone = match a.state {
             ActivityState::Failed => Tone::Error,
             ActivityState::Succeeded => Tone::Secondary,
@@ -812,7 +812,7 @@ impl ShellPage<Holla> for ActivityTab {
         if self.attached {
             head.push_str(" · attached");
         }
-        // an attached monitor's frame says so once; the hint bar owns the key
+
         let right = if a.scope.direction == crate::domain::context::Scope::System {
             a.host.clone()
         } else {
@@ -828,7 +828,7 @@ impl ShellPage<Holla> for ActivityTab {
         } else {
             state_tone
         };
-        // the exact command, then insights or origin
+
         let mut insight = if a.insights.is_empty() {
             format!("started by {}", a.origin)
         } else {
@@ -929,7 +929,7 @@ impl ShellPage<Holla> for ActivityTab {
             }
         }
         if self.attached {
-            // the program owns the keyboard: no cursor of ours
+
             ctx.cursor = None;
         }
     }
@@ -1025,8 +1025,8 @@ impl Screen for ActivityTab {
             return self.chip_menu(i, anchor, w, cx);
         }
         if cx.focus.is(VIEW) {
-            // the output has no cursor row: the menu opens at the
-            // selection, the caret or the followed tail
+
+
             let at = self.view.context_point();
             return self.output_menu(ContextAnchor::Pointer(at), w, cx);
         }
@@ -1035,8 +1035,8 @@ impl Screen for ActivityTab {
 
     fn status(&self, w: &World) -> StatusBits {
         let mut bits = StatusBits::default();
-        // the header names the activity and its state; the status bar keeps
-        // only the live fact
+
+
         if let Some(a) = w.activity(&self.id) {
             let elapsed = ticks_label(a.duration_ticks(w.tick));
             bits.center = Some(if a.waiting.is_some() {
@@ -1072,13 +1072,13 @@ impl Screen for ActivityTab {
 
 #[cfg(test)]
 impl ActivityTab {
-    /// The retained output viewport (work counters, marks, selection).
+
     pub fn view(&self) -> &TextViewport {
         &self.view
     }
 }
 
-/// The follow-ups [`ActivityTab::follow_up`] can run, by label prefix.
+
 const FOLLOW_UPS: [&str; 8] = [
     "find the process on port",
     "retry",

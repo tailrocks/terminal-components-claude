@@ -22,79 +22,79 @@ use crate::widgets::field_common::{EditAction, PointerField, PointerSelect, past
 use crate::widgets::input::InputAction;
 use crate::widgets::scrollbar;
 
-/// Multi-line editor. Focus starts editing per its [`EditEntry`] like
-/// [`TextInput`](super::input::TextInput) (default
-/// [`EditEntry::Immediate`]: the caret shows the moment Tab lands here).
-/// While editing Enter inserts a newline, Tab ends the edit and moves focus
-/// on, and Esc ends the edit keeping the text ("Done": a document is not
-/// cancelled by leaving it; [`Self::esc_reverts`] opts into reverting).
-/// After Esc the area is in navigation: arrows scroll, Tab moves on,
-/// Enter, F2 or typing edit again.
-/// Long lines scroll horizontally with the insertion cursor. Explicit vertical
-/// scrolling stays in place until editing or cursor movement requests follow.
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct TextArea {
     pub id: WidgetId,
     pub label: String,
     pub placeholder: String,
-    /// The text: caret and selection, undo history, keys, pointer
-    /// selection and the error shown under the area (the shared
-    /// [`EditField`]).
+
+
+
     pub field: EditField,
     pub disabled: bool,
     pub help: String,
     pub editing: bool,
-    /// The rows and the bar; `scroll.h` mirrors the sideways position
-    /// ([`Scrollable`]).
+
+
     pub scroll: ScrollPane,
     pub area: Rect,
     text_area: Rect,
     hscroll: usize,
     last_cursor: Option<CursorPos>,
     follow_cursor: bool,
-    /// Fixed height of the text region (rows).
+
     pub rows: u16,
-    /// What an edit in progress does when the area loses focus
-    /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
+
+
     pub blur_action: BlurAction,
-    /// Text before editing began, for [`BlurAction::Cancel`].
+
     snapshot: String,
-    /// Which keys scroll the area while it is not being edited (default
-    /// [`NavKeys::default`]). Editing keys are the text buffer's own.
+
+
     pub nav: NavKeys,
-    /// How focus starts an edit. `None` (default) follows the theme's
-    /// [`crate::theme::Theme::edit_entry`] ([`EditEntry::Immediate`]).
+
+
     pub edit_entry: Option<EditEntry>,
     entry: EditEntry,
-    /// Where the caret lands when the keyboard starts an immediate edit.
-    /// Default [`FocusSelect::CaretEnd`]: a document is continued, not
-    /// replaced.
+
+
+
     pub focus_select: FocusSelect,
-    /// Esc reverts the text to what it was when the edit began instead of
-    /// keeping it. Default `false` (Esc is "Done"; Ctrl+Z undoes).
+
+
     pub esc_reverts: bool,
-    /// The control-key preset. `None` (default) follows the theme's
-    /// [`crate::theme::Theme::field_keys`].
+
+
     pub field_keys: Option<FieldKeys>,
     focus_seen: bool,
-    /// Horizontal scrolling of long lines. `None` (default) follows
-    /// [`RenderCtx::hscroll`]; the wheel moves [`HScroll::step`] cells
-    /// per notch ([`Self::on_wheel_h`]).
+
+
+
     pub horizontal: Option<HScroll>,
-    /// Widest line in the last frame, in cells.
+
     content_cols: usize,
-    /// The area was editing in the last frame: an edit that ends returns
-    /// the view to the first column.
+
+
     was_editing: bool,
-    /// A click on the label focuses the area (the HTML `<label>`
-    /// convention, macOS form labels). Default `true`.
+
+
     pub label_hit: bool,
-    /// The edit in progress was started by focus, so it may end quietly
-    /// with the focus.
+
+
     focus_edit: bool,
-    /// The standard Edit context menu (Cut, Copy, Paste, Select all) a
-    /// secondary click or Shift+F10 / the Menu key opens
-    /// ([`crate::ui::edit_menu`]). [`Self::context_menu`] turns it off.
+
+
+
     pub edit_menu: EditMenu,
 }
 
@@ -133,30 +133,30 @@ impl TextArea {
         }
     }
 
-    /// Whether a secondary click or a context key opens the Edit menu
-    /// ([`EditMenu::enabled`]). Default `true`.
+
+
     pub fn context_menu(mut self, on: bool) -> Self {
         self.edit_menu.enabled = on;
         self
     }
 
-    /// See [`Self::edit_entry`].
+
     pub fn edit_entry(mut self, entry: EditEntry) -> Self {
         self.edit_entry = Some(entry);
         self.entry = entry;
         self
     }
-    /// See [`Self::focus_select`].
+
     pub fn focus_select(mut self, select: FocusSelect) -> Self {
         self.focus_select = select;
         self
     }
-    /// See [`Self::esc_reverts`].
+
     pub fn esc_reverts(mut self, on: bool) -> Self {
         self.esc_reverts = on;
         self
     }
-    /// See [`Self::text_keymap`].
+
     pub fn text_keymap(
         mut self,
         keymap: crate::core::keymap::KeyMap<crate::core::edit::TextCmd>,
@@ -164,36 +164,36 @@ impl TextArea {
         self.field.text_keymap = Some(keymap);
         self
     }
-    /// The edit action `key` means under the resolved preset and text keys.
+
     fn edit_action(&self, key: &Key) -> EditAction {
         self.field.action(key)
     }
-    /// See [`Self::field_keys`].
+
     pub fn field_keys(mut self, keys: FieldKeys) -> Self {
         self.field_keys = Some(keys);
         self.field.keys = keys;
         self
     }
-    /// The entry policy in effect.
+
     pub fn entry(&self) -> EditEntry {
         self.edit_entry.unwrap_or(self.entry)
     }
-    /// The focused area takes printable keys before page shortcuts (see
-    /// [`TextInput::wants_text_input`](super::input::TextInput::wants_text_input)).
+
+
     pub fn wants_text_input(&self) -> bool {
         !self.disabled && (self.editing || self.entry() != EditEntry::Explicit)
     }
-    /// The text differs from the one the edit began with.
+
     pub fn is_dirty(&self) -> bool {
         self.editing && self.field.buffer.text() != self.snapshot
     }
-    /// The footer hints for this area while it holds focus:
-    /// [`crate::widgets::keyhint::EDIT_TEXT`] while editing (Esc
-    /// "Cancel" under [`Self::esc_reverts`]), `Enter Edit · ↑↓ Scroll`
-    /// after Esc ended the edit.
+
+
+
+
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
         use crate::widgets::keyhint::{EDIT_TEXT, hint};
-        // the open Edit menu's keys while it holds the keyboard
+
         if let Some(m) = self.edit_menu.menu() {
             return crate::core::hints::HasHints::hints(m, &crate::core::hints::HintCx::new(None));
         }
@@ -208,8 +208,8 @@ impl TextArea {
         }
     }
 
-    /// See [`Self::pointer_select`].
-    /// See [`Self::nav`].
+
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -220,16 +220,16 @@ impl TextArea {
         self
     }
 
-    /// See [`Self::blur_action`].
+
     pub fn blur_action(mut self, action: BlurAction) -> Self {
         self.blur_action = action;
         self
     }
 
-    /// Focus left the area (see [`crate::core::focus::Focus::take_changes`]).
-    /// An edit in progress ends per [`Self::blur_action`] and reports
-    /// `Committed` (or `Cancelled`, which restores the text from before
-    /// editing) so the owner's hooks run; `None` when not editing.
+
+
+
+
     pub fn on_blur(&mut self) -> Option<InputAction> {
         if !self.editing {
             return None;
@@ -299,42 +299,42 @@ impl TextArea {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
-        // the open Edit menu takes the keys; Shift+F10 opens it
+
         if let Some(o) = edit_menu_key(self, key) {
             return (
                 o,
                 self.edit_menu.take_edited().then_some(InputAction::Changed),
             );
         }
-        // Ctrl+C copies only a selection; with nothing selected it is not
-        // the field's, so it reaches the app's quit guard
+
+
         if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
             return (Outcome::Ignored, None);
         }
         let entry = self.entry();
         if !self.editing {
             if entry == EditEntry::Immediate && !self.focus_seen {
-                // focus arrived and this key beat the first render
+
                 self.begin_edit();
                 self.focus_select.apply(&mut self.field.buffer);
             } else if matches!(key.code, KeyCode::Enter | KeyCode::F(2)) && key.plain() {
                 self.begin_edit();
                 return (Outcome::Changed, None);
             } else if matches!(self.edit_action(key), EditAction::SelectAll) {
-                // Select All picks the edit up with the whole text selected
+
                 self.begin_edit();
                 self.field.buffer.select_all();
                 return (Outcome::Changed, None);
             } else if matches!(self.edit_action(key), EditAction::Paste) {
-                // Paste (Cmd+V, the preset's key) goes the bracketed-paste
-                // way, which picks the edit up where typing would
+
+
                 let o = paste_clipboard(|t| self.on_paste(t));
                 return (o, (o == Outcome::Changed).then_some(InputAction::Changed));
             } else if entry != EditEntry::Explicit
                 && let KeyCode::Char(c) = key.code
                 && !key.chord()
             {
-                // typing after Esc ("Done") picks the edit up again
+
                 self.begin_edit();
                 self.field.record(EditKind::Typing);
                 self.field.buffer.insert_char(c);
@@ -391,7 +391,7 @@ impl TextArea {
                     }
                     (Outcome::Changed, None)
                 }
-                // an unbound chord passes on (Ctrl+Q, Ctrl+PageDown)
+
                 _ => (crate::widgets::field_common::unbound_key(key), None),
             },
             action => {
@@ -404,8 +404,8 @@ impl TextArea {
         }
     }
 
-    /// End the edit restoring the text it began with (Esc under
-    /// [`Self::esc_reverts`]); the revert is itself undoable.
+
+
     fn revert(&mut self) {
         if self.field.buffer.text() != self.snapshot {
             self.field.record(EditKind::Other);
@@ -425,15 +425,15 @@ impl TextArea {
         Outcome::Changed
     }
 
-    /// `pos` is on the label row above the body ([`Self::label_hit`]).
+
     fn on_label(&self, pos: Position) -> bool {
         self.label_hit && pos.y < self.area.y
     }
 
-    /// Byte offset under `pos`, clamped to the text.
+
     fn offset_at(&self, pos: Position) -> usize {
-        // a pointer above or left of the text names the line or column
-        // before the first visible one, so a drag past the edge scrolls
+
+
         let line = (self.scroll.offset as isize + (pos.y as isize - self.text_area.y as isize))
             .max(0) as usize;
         let col =
@@ -442,48 +442,48 @@ impl TextArea {
         self.field.buffer.offset_at(line, col)
     }
 
-    /// A click enters editing (one click, never two) and places the cursor
-    /// at the pointer. Same as [`Self::on_click_count`] with a count of 1.
+
+
     pub fn on_click(&mut self, pos: Position) -> Outcome {
         self.on_click_count(pos, 1)
     }
 
-    /// A completed click with its multi-click `count`: 1 places the caret,
-    /// 2 selects the word, 3 the line, per [`Self::pointer_select`]. The
-    /// release that ends a drag keeps the dragged selection.
+
+
+
     pub fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
         PointerField::on_click_count(self, pos, count)
     }
 
-    /// Button down on the area: remembers where, so a drag selects from
-    /// there. The press alone changes nothing; the completed click (or the
-    /// drag) starts editing.
+
+
+
     pub fn on_press(&mut self, pos: Position) -> Outcome {
         self.on_press_count(pos, 1)
     }
 
-    /// A press with the click `count` it starts: the second press of a
-    /// double click selects the word, and a drag from it extends by words
-    /// ([`PointerSelect::drag_by_word`]).
+
+
+
     pub fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
         PointerField::on_press_count(self, pos, count)
     }
 
-    /// Drag with the button held since a press on the area: starts
-    /// editing and selects from the press to the pointer
-    /// ([`PointerSelect::drag`]). Past an edge the selection runs on and
-    /// the area scrolls to follow it.
+
+
+
+
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         PointerField::on_drag(self, pos)
     }
 
-    /// See [`Self::horizontal`].
+
     pub fn horizontal(mut self, h: HScroll) -> Self {
         self.horizontal = Some(h);
         self
     }
 
-    /// See [`Self::label_hit`].
+
     pub fn label_hit(mut self, on: bool) -> Self {
         self.label_hit = on;
         self
@@ -491,7 +491,7 @@ impl TextArea {
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.render_area(area, buf, ctx, bg);
-        // the Edit menu floats above everything drawn after the area
+
         self.edit_menu.render(self.text_area, buf, ctx);
     }
 
@@ -500,8 +500,8 @@ impl TextArea {
         self.field.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.scroll.begin(ctx.track_click);
-        // focus newly gained starts an immediate edit: the caret shows the
-        // moment Tab lands here
+
+
         let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
         if has_focus && !self.focus_seen && self.entry == EditEntry::Immediate && !self.editing {
             self.begin_edit();
@@ -513,8 +513,8 @@ impl TextArea {
             && self.focus_edit
             && !self.is_dirty()
         {
-            // a clean edit focus started ends with the focus even when the
-            // owner never forwarded the blur
+
+
             self.commit();
         }
         self.focus_seen = has_focus;
@@ -526,8 +526,8 @@ impl TextArea {
         }
         let t = ctx.theme;
         let mut s = ctx.state(self.id);
-        // under its open Edit menu the area shows no focus (the menu holds
-        // the one indicator) but keeps its edit, view and selection
+
+
         let menu_open = self.edit_menu.is_open();
         s.focused = ctx.interaction.focused_under(self.id, menu_open);
         s.disabled = self.disabled;
@@ -536,11 +536,11 @@ impl TextArea {
         if self.disabled {
             s.hovered = false;
         }
-        // An edit that lost focus is ended by `on_blur` on the event path,
-        // never here (`s.editing` needs focus); render only starts the
-        // edit a newly gained focus asks for (above).
 
-        // label
+
+
+
+
         let label_style = if self.disabled {
             t.faint().bg(bg)
         } else {
@@ -553,7 +553,7 @@ impl TextArea {
             label_style,
         );
 
-        // body
+
         let rows = self.rows.min(area.height.saturating_sub(2));
         if rows == 0 {
             self.area = Rect::ZERO;
@@ -564,8 +564,8 @@ impl TextArea {
         let resized = body.width != self.area.width || body.height != self.area.height;
         self.area = body;
         if self.label_hit && !self.label.is_empty() {
-            // the label row is the area's own target: a click there focuses
-            // and edits it like a click in the body
+
+
             let lw = width(&self.label).min(area.width.saturating_sub(2) as usize) as u16;
             ctx.clickable(self.id, Rect::new(area.x, area.y, lw + 2, 1));
         }
@@ -609,8 +609,8 @@ impl TextArea {
                 self.hscroll = cur.col + 1 - width;
             }
         } else if !s.editing && self.was_editing {
-            // the edit ended: back to the first column; a wheel scroll
-            // outside an edit stays where the user left it
+
+
             self.hscroll = 0;
         }
         self.was_editing = s.editing;
@@ -621,8 +621,8 @@ impl TextArea {
         self.last_cursor = Some(cur);
         self.follow_cursor = false;
         if text.is_empty() {
-            // the placeholder stays until the first character, with the
-            // caret on it while editing (macOS)
+
+
             let p = crate::ui::text::truncate(&self.placeholder, inner.width as usize);
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
             if s.editing && inner.width > 0 {
@@ -671,7 +671,7 @@ impl TextArea {
                         buf.set_string(inner.right() - 1, y, t.glyphs.ellipsis, st);
                     }
                     if s.editing && li == cur.line {
-                        // accent underline on the cursor line marks where input goes
+
                         for xx in inner.x..inner.right() {
                             if let Some(c) = buf.cell_mut(Position::new(xx, y)) {
                                 c.set_style(
@@ -695,7 +695,7 @@ impl TextArea {
                 ctx.set_cursor(Position::new(cx, cy));
             }
         }
-        // scrollbar in the last column of the body
+
         let rows_area = Rect::new(body.x, body.y, body.width, rows);
         self.scroll
             .draw_with_fade(rows_area, buf, ctx, self.id, s.focused, &[]);
@@ -708,7 +708,7 @@ impl TextArea {
             );
         }
 
-        // footer row: help / error left, position right
+
         let fy = body.bottom();
         if fy < area.bottom() {
             let pos = if s.editing {
@@ -762,9 +762,9 @@ impl crate::core::focus::BlurTarget for TextArea {
     }
 }
 
-/// The text for the pointer ([`PointerField`] through [`Editable`]): a
-/// press anchors a drag (the pointer owns this focus), a label click
-/// edits as focus would, every gesture keeps the caret in view.
+
+
+
 impl Editable for TextArea {
     fn field(&mut self) -> &mut EditField {
         &mut self.field
@@ -782,7 +782,7 @@ impl Editable for TextArea {
         TextArea::on_label(self, pos)
     }
     fn label_click(&mut self) {
-        // a label click edits without moving the caret
+
         if !self.editing {
             self.begin_edit();
             self.focus_select.apply(&mut self.field.buffer);
@@ -800,9 +800,9 @@ impl Editable for TextArea {
     }
 }
 
-/// Every state a text area has: rest, hover, focused, editing (a static
-/// caret: samples never move the terminal cursor), error, disabled, empty
-/// (the placeholder) and overflow (a line longer than the area).
+
+
+
 impl crate::ui::specimen::Specimen for TextArea {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -866,8 +866,8 @@ impl crate::ui::specimen::Specimen for TextArea {
 }
 
 impl Scrollable for TextArea {
-    /// The pane, its sideways state brought in step with the caret-driven
-    /// sideways scroll (`TextArea::hscroll`) over the widest line and the text width.
+
+
     fn pane(&mut self) -> &mut ScrollPane {
         let width = self.text_area.width as usize;
         self.scroll.h.content_len = self.content_cols;
@@ -885,11 +885,11 @@ impl Scrollable for TextArea {
     }
 }
 
-/// The area's pointer gestures: a wheel or a bar press scrolls it; a
-/// press anchors a drag with the click count it starts
-/// ([`TextArea::on_press_count`]), a drag selects ([`TextArea::on_drag`])
-/// and a completed click places the caret or selects a word or the line
-/// ([`TextArea::on_click_count`]).
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for TextArea {
     type Action = ();
 
@@ -925,8 +925,8 @@ impl crate::core::pointer::MouseTarget for TextArea {
     }
 }
 
-/// The area's Edit menu: Cut, Copy, Paste, Select all through its
-/// [`EditField`].
+
+
 impl EditMenuHost for TextArea {
     fn edit_menu(&mut self) -> &mut EditMenu {
         &mut self.edit_menu
@@ -961,9 +961,9 @@ impl EditMenuHost for TextArea {
 mod tests {
     use super::*;
 
-    /// An editing text area consumes only the keys it uses: unbound
-    /// chords (Ctrl+Q, Ctrl+N, Ctrl+PageDown) pass on to the container;
-    /// bound ones (Cmd+A, Ctrl+E) and plain PageDown still act.
+
+
+
     #[test]
     fn an_editing_area_passes_unbound_chords_on() {
         use ratatui::crossterm::event::KeyModifiers as M;
@@ -1009,7 +1009,7 @@ mod tests {
         render(&mut a, area, &mut buf, ColorLevel::TrueColor);
         let ta = a.text_area;
         a.on_press(Position::new(ta.x + 2, ta.y + 1));
-        // two rows above the text: the selection runs into hidden lines
+
         a.on_drag(Position::new(ta.x + 2, ta.y.saturating_sub(2)));
         render(&mut a, area, &mut buf, ColorLevel::TrueColor);
         assert!(
@@ -1078,7 +1078,7 @@ mod tests {
         let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
         let mut a = TextArea::new(WidgetId::of("r"), "Notes", 3).value("v");
         a.begin_edit();
-        // dirty: a clean immediate edit ends quietly with the focus
+
         a.field.buffer.insert_str("w");
         let area = Rect::new(0, 0, 30, 5);
         let mut buf = Buffer::empty(area);
@@ -1185,10 +1185,10 @@ mod tests {
         }
     }
 
-    /// Keyboard audit #1, #15 and #16: focus starts the edit with the caret
-    /// at the end; Enter is a newline; Tab applies and asks the ring to
-    /// move on; Esc is "Done" (keeps the text) and a typed letter picks the
-    /// edit up again; `esc_reverts` restores the text instead.
+
+
+
+
     #[test]
     fn immediate_entry_esc_is_done_and_tab_moves_on() {
         let area = Rect::new(0, 0, 30, 6);
@@ -1374,7 +1374,7 @@ mod tests {
             "one notch moves HScroll::step cells: {:?}",
             row(&buf, 1)
         );
-        // the far end stops the wheel
+
         for _ in 0..20 {
             input.wheel(Axis::Horizontal, 1).outcome();
         }
@@ -1384,11 +1384,11 @@ mod tests {
         );
         let (buf, _) = draw_hits(&mut input, area, false);
         assert!(row(&buf, 1).contains('9'));
-        // short text: the notch is left to the container
+
         let mut short = TextArea::new(WidgetId::of("s"), "Notes", 2).value("ab");
         draw_hits(&mut short, area, false);
         assert_eq!(short.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
-        // switched off by policy
+
         let mut off = TextArea::new(WidgetId::of("o"), "Notes", 2)
             .value("abcdefghijklmnopqrstuvwxyz")
             .horizontal(HScroll::off());

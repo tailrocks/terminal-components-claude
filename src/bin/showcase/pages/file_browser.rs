@@ -1,9 +1,9 @@
-//! File browser (Overlays, plan §7 SC41): the library `FileBrowser` modal
-//! on the shell's layer stack, over an in-memory `MemorySource` fixture
-//! (or the real filesystem through `FsSource`), as jackin's mount form and
-//! new-workspace flow open it. Browse… opens it with the page's options;
-//! the result comes back as `LayerResult::File`. Options:
-//! `crate::options::FILE_BROWSER`.
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -34,7 +34,7 @@ use junie_tui::widgets::panel::Panel;
 const ID: WidgetId = WidgetId::of("filebrowser");
 const HOME: &str = "/Users/ada";
 
-/// The fixture: a home folder with projects, profiles and notes.
+
 fn fixture() -> MemorySource {
     let d = |p: &str, meta: &str| FileEntry::dir(&format!("{HOME}{p}")).meta(meta);
     let f = |p: &str, meta: &str| FileEntry::file(&format!("{HOME}{p}")).meta(meta);
@@ -67,7 +67,7 @@ fn fixture() -> MemorySource {
     .home(HOME)
 }
 
-/// The repositories the URL entry resolves.
+
 const REPOS: [&str; 2] = ["acme/payments-platform", "acme/customer-portal"];
 
 pub fn page() -> Box<dyn Page> {
@@ -78,9 +78,9 @@ pub struct FileBrowserPage {
     template: Template,
     opts: PageValues,
     browse: Button,
-    /// What the browser answered last.
+
     pub(crate) chosen: String,
-    /// Every result, oldest first.
+
     pub(crate) log: Vec<String>,
     sections: crate::pages::layout::Sections,
 }
@@ -113,7 +113,7 @@ impl FileBrowserPage {
         }
     }
 
-    /// The browser the options describe.
+
     fn browser(&self) -> FileBrowser {
         let title = match self.choose_kind() {
             Choose::Dirs => "Choose a folder",
@@ -347,8 +347,8 @@ impl FileBrowserPage {
     }
 }
 
-/// The States grid: the browser's listing (folders, a disabled file in
-/// Choose folders) and its hidden-files check box.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let b = FileBrowser::new(ID.sub("sample"), "Choose", fixture(), HOME);

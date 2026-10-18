@@ -1,20 +1,20 @@
-//! Simulated 1Password: accounts, vaults, items and fields with the
-//! session states the real picker can meet. Secret material exists only
-//! inside [`SimOnePassword::resolve_into`]'s closure; nothing else in the
-//! preview can observe it.
+
+
+
+
 
 use crate::domain::agent::Provider;
 use crate::domain::onepassword::OpReference;
 
-/// Opaque secret handle. Not `Clone`, not `Debug`; constructible only here.
+
 pub struct Secret {
     bytes: Vec<u8>,
 }
 
 impl Secret {
-    /// Which provider family the material belongs to, and whether the
-    /// provider would accept it. This is the only question a provider
-    /// operation may ask; it never sees the bytes as text.
+
+
+
     pub fn classify(&self) -> SecretClass {
         let s = String::from_utf8_lossy(&self.bytes);
         if s.is_empty() {
@@ -68,7 +68,7 @@ pub enum SecretClass {
     },
 }
 
-/// Marker for closure results that cannot carry the secret out.
+
 pub trait SecretFree {}
 impl SecretFree for SecretClass {}
 impl SecretFree for () {}
@@ -116,9 +116,9 @@ pub struct OpField {
     pub id: String,
     pub label: String,
     pub kind: FieldKind,
-    /// Synthetic material tag (`openai:valid-cdx01`); never shown.
+
     material: Option<String>,
-    /// Synthetic four-character tail for masked previews.
+
     pub tail: String,
 }
 
@@ -160,7 +160,7 @@ pub enum OpError {
 }
 
 impl OpError {
-    /// Operator-facing message (sentence case, colon introduces the reason).
+
     pub fn message(&self) -> String {
         match self {
             OpError::Locked => "1Password locked: unlock the app and retry".into(),
@@ -201,7 +201,7 @@ pub struct FieldDescriptor {
 pub struct SimOnePassword {
     pub session: OpSession,
     pub accounts: Vec<OpAccount>,
-    /// Simulated latency for listing/validation, in virtual ms.
+
     pub latency_ms: i64,
 }
 
@@ -231,7 +231,7 @@ fn item(
 }
 
 impl SimOnePassword {
-    /// The fixture directory shared by every scenario.
+
     pub fn fixture(epoch: i64) -> Self {
         let d = 86_400;
         let engineering = OpVault {
@@ -508,7 +508,7 @@ impl SimOnePassword {
         Ok(self.item(account, vault, item)?.1.fields.iter().collect())
     }
 
-    /// Full reference (with names) for chosen ids.
+
     pub fn reference(
         &self,
         account: &str,
@@ -537,7 +537,7 @@ impl SimOnePassword {
         })
     }
 
-    /// Non-secret metadata plus a masked preview.
+
     pub fn describe(&self, r: &OpReference) -> Result<FieldDescriptor, OpError> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id)?;
         let f = it
@@ -563,8 +563,8 @@ impl SimOnePassword {
         })
     }
 
-    /// The only path to secret bytes: the closure is the transient provider
-    /// operation and its result cannot carry the secret.
+
+
     pub fn resolve_into<R: SecretFree>(
         &self,
         r: &OpReference,
@@ -584,7 +584,7 @@ impl SimOnePassword {
         Ok(op(&secret))
     }
 
-    /// Endpoint URL stored beside a credential (Grok fixture only).
+
     pub fn endpoint_of(&self, r: &OpReference) -> Option<String> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id).ok()?;
         it.fields
@@ -594,9 +594,9 @@ impl SimOnePassword {
     }
 }
 
-/// Classify plain-text key material typed by the operator. Fixture rule:
-/// keys that contain `valid` are accepted; `rotated` is rejected;
-/// `throttled` is rate limited; anything else is rejected.
+
+
+
 pub fn classify_plain(provider: Provider, value: &str) -> SecretClass {
     if value.trim().is_empty() {
         return SecretClass::Empty;
@@ -610,7 +610,7 @@ pub fn classify_plain(provider: Provider, value: &str) -> SecretClass {
     } else {
         KeyOutcome::Rejected
     };
-    // provider prefix classes let a mismatch be detected
+
     let detected = if value.starts_with("sk-ant-") {
         Provider::Anthropic
     } else if value.starts_with("sk-") {

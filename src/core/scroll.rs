@@ -1,10 +1,10 @@
-//! Scrolling as a first-class behaviour.
-//!
-//! [`ScrollState`] is a pure model: content length, viewport length and
-//! offset. It knows nothing about rendering; the scrollbar widget derives
-//! geometry from it. [`ScrollPane`] puts both axes, the policies and the
-//! drawn tracks together, and [`Scrollable`] gives every widget the same
-//! wheel and scrollbar handling.
+
+
+
+
+
+
+
 
 use ratatui::layout::{Position, Rect};
 
@@ -17,28 +17,28 @@ pub struct ScrollState {
     pub offset: usize,
     pub content_len: usize,
     pub viewport_len: usize,
-    /// Rows between the thumb's top and the pointer while the thumb is
-    /// held, so a drag moves the thumb with the pointer instead of
-    /// centring it under the pointer on the first motion.
+
+
+
     pub(crate) grab: Option<usize>,
-    /// The held press pages the track ([`TrackClick::Page`]): motion while
-    /// it is held never jumps the thumb under the pointer.
+
+
     pub(crate) paging: bool,
-    /// When [`follow`](Self::follow) brings the cursor back into view.
+
     pub follow_cursor: FollowCursor,
-    /// The cursor and viewport length of the last [`follow`](Self::follow),
-    /// so `OnMove` can tell a cursor move from a repaint.
+
+
     pub(crate) followed: Option<(usize, usize)>,
-    /// Rows kept visible beyond a row brought into view
-    /// ([`Self::ensure_visible`]), so the focused row need not sit on the
-    /// edge of a view that hides more (standards-visual SVg9). Default 1:
-    /// the row itself is always brought fully into view (WCAG 2.4.11), and
-    /// one row beyond it shows there is more, as macOS lists do. 0 keeps
-    /// the row on the edge; views of no more than twice the context keep
-    /// none.
+
+
+
+
+
+
+
     pub context: usize,
-    /// The next [`Self::ensure_visible`] brings its row in without
-    /// [`context`](Self::context): see [`Self::pointer_move`].
+
+
     pub(crate) exact: bool,
 }
 
@@ -63,13 +63,13 @@ impl ScrollState {
         }
     }
 
-    /// Builder for [`context`](Self::context).
+
     pub fn with_context(mut self, rows: usize) -> Self {
         self.context = rows;
         self
     }
 
-    /// Builder for [`follow_cursor`](Self::follow_cursor).
+
     pub fn with_follow_cursor(mut self, follow: FollowCursor) -> Self {
         self.follow_cursor = follow;
         self
@@ -83,7 +83,7 @@ impl ScrollState {
         self.content_len > self.viewport_len && self.viewport_len > 0
     }
 
-    /// The viewport shows the last row of the content.
+
     pub fn at_end(&self) -> bool {
         self.offset >= self.max_offset()
     }
@@ -102,9 +102,9 @@ impl ScrollState {
         self.offset = self.offset.min(self.max_offset());
     }
 
-    /// Move the viewport by `delta` rows, clamped. Returns whether the
-    /// offset changed, so a caller can tell a repaint from a consumed
-    /// no-op at the boundary.
+
+
+
     pub fn scroll_by(&mut self, delta: isize) -> bool {
         let before = self.offset;
         self.offset = self
@@ -136,28 +136,28 @@ impl ScrollState {
         self.scroll_to(self.max_offset())
     }
 
-    /// The next [`Self::ensure_visible`] (or [`Self::follow`]) comes from
-    /// the pointer: it brings its row in exactly, without
-    /// [`context`](Self::context). The pointer is already on that row, so
-    /// context would move the content under it: a click on the last
-    /// visible row would scroll it away from a second click, and a held
-    /// drag past the edge would step two rows a tick. Call it right before
-    /// a pointer path moves the cursor; the next reveal clears it.
+
+
+
+
+
+
+
     pub fn pointer_move(&mut self) {
         self.exact = true;
     }
 
-    /// Move the viewport the minimum amount so `index` is visible, with
-    /// [`context`](Self::context) rows beyond it where the view can spare
-    /// them.
+
+
+
     pub fn ensure_visible(&mut self, index: usize) -> bool {
         let exact = std::mem::take(&mut self.exact);
         if self.viewport_len == 0 {
             return false;
         }
         let before = self.offset;
-        // context rows only where the view can spare them, and never for a
-        // row the pointer placed
+
+
         let ctx = if !exact && self.viewport_len > 2 * self.context {
             self.context
         } else {
@@ -172,12 +172,12 @@ impl ScrollState {
         self.offset != before
     }
 
-    /// Bring rows `start..start + len` fully into view, scrolling the
-    /// least, with [`context`](Self::context) rows beyond them where the
-    /// view can spare them (a focused control several rows tall, a
-    /// [`ScrollView`](crate::ui::scroll_view::ScrollView) child). A span
-    /// taller than the view shows its start. Returns whether the offset
-    /// moved.
+
+
+
+
+
+
     pub fn reveal_span(&mut self, start: usize, len: usize) -> bool {
         if self.viewport_len == 0 {
             return false;
@@ -202,13 +202,13 @@ impl ScrollState {
         self.offset != before
     }
 
-    /// Keep a list cursor in view the way the list's
-    /// [`follow_cursor`](Self::follow_cursor) policy says. Call it from
-    /// render: under the default `OnMove` the viewport moves only when the
-    /// cursor (or the viewport size) changed since the last call, so the
-    /// wheel and the scrollbar can move the view away from the cursor
-    /// without the next frame snapping it back. Returns whether the offset
-    /// changed.
+
+
+
+
+
+
+
     pub fn follow(&mut self, cursor: usize) -> bool {
         let key = (cursor, self.viewport_len);
         if self.follow_cursor == FollowCursor::OnMove && self.followed == Some(key) {
@@ -218,13 +218,13 @@ impl ScrollState {
         self.ensure_visible(cursor)
     }
 
-    /// Range of content indices currently in view.
+
     pub fn visible_range(&self) -> std::ops::Range<usize> {
         let end = (self.offset + self.viewport_len).min(self.content_len);
         self.offset..end
     }
 
-    /// Thumb geometry for a track of `track_len` cells: (start, len).
+
     pub fn thumb(&self, track_len: usize) -> (usize, usize) {
         if !self.overflows() || track_len == 0 {
             return (0, track_len);
@@ -238,8 +238,8 @@ impl ScrollState {
         (start.min(track_len - len), len)
     }
 
-    /// The offset whose thumb starts at `start` on a track of `track_len`
-    /// cells: the inverse of [`thumb`](Self::thumb).
+
+
     pub fn offset_for_thumb_start(&self, start: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
             return 0;
@@ -250,8 +250,8 @@ impl ScrollState {
         (start * self.max_offset() + usable / 2) / usable
     }
 
-    /// Map a track position to an offset, centring the thumb under the
-    /// pointer (a click on the track).
+
+
     pub fn offset_for_track_pos(&self, pos: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
             return 0;
@@ -260,9 +260,9 @@ impl ScrollState {
         self.offset_for_thumb_start(pos.saturating_sub(len / 2), track_len)
     }
 
-    /// The pointer went down on the track at row `pos`. On the thumb this
-    /// only remembers where the thumb was grabbed; on the track it jumps
-    /// the thumb under the pointer. Returns whether the offset changed.
+
+
+
     pub fn press_track(&mut self, pos: usize, track_len: usize) -> bool {
         self.paging = false;
         if !self.overflows() || track_len == 0 {
@@ -278,16 +278,16 @@ impl ScrollState {
         self.scroll_to(self.offset_for_track_pos(pos, track_len))
     }
 
-    /// The pointer moved to row `pos` while held: the thumb follows it,
-    /// keeping the grabbed row under the pointer. A drag without a press
-    /// behaves like a press. Returns whether the offset changed.
+
+
+
     pub fn drag_track(&mut self, pos: usize, track_len: usize) -> bool {
         if !self.overflows() || track_len == 0 {
             return false;
         }
         let Some(grab) = self.grab else {
-            // a held page press keeps paging (on the app tick); motion
-            // never turns it into a jump
+
+
             if self.paging {
                 return false;
             }
@@ -297,16 +297,16 @@ impl ScrollState {
         self.scroll_to(target)
     }
 
-    /// The pointer was released: the next press starts a new grab.
+
     pub fn release_track(&mut self) {
         self.grab = None;
         self.paging = false;
     }
 
-    /// A press on the track under `click`. Off the thumb, `Jump` moves the
-    /// thumb under the pointer and `Page` moves one viewport toward the
-    /// pointer; on the thumb this only grabs it. Returns whether the offset
-    /// changed.
+
+
+
+
     pub fn press_track_with(&mut self, pos: usize, track_len: usize, click: TrackClick) -> bool {
         if click == TrackClick::Jump || !self.overflows() || track_len == 0 {
             return self.press_track(pos, track_len);
@@ -316,8 +316,8 @@ impl ScrollState {
             self.grab = Some(pos - start);
             return false;
         }
-        // paging never grabs: motion while held pages no further and never
-        // jumps; the app tick repeats the page toward the pointer
+
+
         self.grab = None;
         self.paging = true;
         if pos < start {
@@ -328,37 +328,37 @@ impl ScrollState {
     }
 }
 
-/// When a list's viewport follows its cursor
-/// ([`ScrollState::follow`]).
+
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum FollowCursor {
-    /// Only after the cursor moves. Scrolling by wheel or scrollbar moves
-    /// the view, never the cursor, and the view stays where the user left
-    /// it until the cursor moves again (macOS and WAI-ARIA listbox: the
-    /// selection is scrolled into view when it changes, not on every
-    /// repaint).
+
+
+
+
+
     #[default]
     OnMove,
-    /// On every call: the cursor is pinned in view and the view can only
-    /// leave it by moving the cursor.
+
+
     Always,
 }
 
-/// When a scrollbar is drawn.
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ScrollbarVisibility {
-    /// Only while the content overflows (the macOS default).
+
     #[default]
     Auto,
-    /// Always, with a full-length thumb when the content fits; the bar's
-    /// row or column is reserved either way.
+
+
     Always,
-    /// Never; the content still scrolls by wheel and keyboard.
+
     Never,
 }
 
 impl ScrollbarVisibility {
-    /// Whether a bar for `scroll` is drawn under this policy.
+
     pub fn shows(self, scroll: &ScrollState) -> bool {
         match self {
             ScrollbarVisibility::Auto => scroll.overflows(),
@@ -368,35 +368,35 @@ impl ScrollbarVisibility {
     }
 }
 
-/// What a press on the bare scrollbar track (off the thumb) does.
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum TrackClick {
-    /// The thumb jumps under the pointer (macOS "Jump to the spot that's
-    /// clicked", GTK's primary click).
+
+
     Jump,
-    /// The view moves one page toward the pointer, repeating while the
-    /// button is held until the thumb reaches it
-    /// ([`PointerState::track_repeat_due`](crate::core::pointer::PointerState::track_repeat_due)).
-    /// The default: macOS System Settings ("Click in the scroll bar to:
-    /// Jump to the next page") and Windows both page.
+
+
+
+
+
     #[default]
     Page,
 }
 
-/// Horizontal scrolling policy for a widget whose content can be wider
-/// than its area. [`RenderCtx::hscroll`](crate::ui::ctx::RenderCtx::hscroll)
-/// holds the app-wide default; a widget's `horizontal` field overrides it.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HScroll {
-    /// Content wider than the area scrolls sideways. Off, the widget keeps
-    /// its cut-off behaviour (truncation marks only) and draws no bar.
+
+
     pub enabled: bool,
-    /// When the horizontal scrollbar is drawn.
+
     pub bar: ScrollbarVisibility,
-    /// Cells per wheel notch or arrow press for free text. Column-based
-    /// widgets (grids, tables) always move one column.
+
+
     pub step: usize,
-    /// What a press on the bare track does.
+
     pub track_click: TrackClick,
 }
 
@@ -412,7 +412,7 @@ impl Default for HScroll {
 }
 
 impl HScroll {
-    /// Horizontal scrolling switched off: cut-off text only, no bar.
+
     pub fn off() -> Self {
         Self {
             enabled: false,
@@ -436,58 +436,58 @@ impl HScroll {
         self
     }
 
-    /// Whether the bar shows for `scroll` (never while disabled).
+
     pub fn shows_bar(&self, scroll: &ScrollState) -> bool {
         self.enabled && self.bar.shows(scroll)
     }
 }
 
-/// A scrolled region: the vertical and horizontal [`ScrollState`], the
-/// horizontal policy, the track-click policy and the bars as last drawn.
-///
-/// Every scrolling widget embeds one (as its `scroll` field) and implements
-/// [`Scrollable`], so the wheel, a press on either track, a thumb drag and
-/// the paging repeat behave the same in every widget. The pane dereferences
-/// to its vertical state, so `widget.scroll.offset` and
-/// `widget.scroll.jump_end()` read as they did on a bare [`ScrollState`].
-///
-/// The bars are drawn by `ScrollPane::draw_v`, `draw_h` and `draw_divider`
-/// (in [`crate::widgets::scrollbar`]), which remember the tracks they drew:
-/// a press maps through the track the user saw, and a bar that was not
-/// drawn this frame has nothing to press.
+
+
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ScrollPane {
-    /// The vertical state (rows).
+
     pub v: ScrollState,
-    /// The horizontal state (cells for free text, columns for tables and
-    /// grids; see [`ScrollPane::columns`]).
+
+
     pub h: ScrollState,
-    /// Horizontal policy: on or off, bar visibility, step, track click.
+
     pub h_cfg: HScroll,
-    /// What a press on the bare vertical track does; `None` follows the
-    /// app-wide [`RenderCtx::track_click`](crate::ui::ctx::RenderCtx::track_click).
+
+
     pub track_click: Option<TrackClick>,
-    /// The horizontal unit is a column: a wheel notch moves one column
-    /// whatever [`HScroll::step`] says (tables and grids).
+
+
     pub columns: bool,
-    /// The resolved vertical policy, set by [`Self::begin`].
+
     v_click: TrackClick,
-    /// The vertical track as last drawn (empty when no bar was drawn).
+
     v_track: Rect,
-    /// The horizontal track as last drawn.
+
     h_track: Rect,
-    /// The widget the bars were drawn for (their hit ids derive from it).
+
     owner: Option<WidgetId>,
-    /// The axis of the bar the held press started on.
+
     held: Option<Axis>,
-    /// Column panes: each column's width as last laid out, the gap between
-    /// columns and the cells they shared (see [`Self::layout_columns`]).
+
+
     col_widths: Vec<u16>,
     col_gap: u16,
     col_avail: u16,
-    /// The column [`Self::reveal_column`] keeps whole in view at every
-    /// layout (the widths or the view may change), and the offset it
-    /// left. Any other horizontal scroll ends it.
+
+
+
     col_reveal: Option<(usize, usize)>,
 }
 
@@ -514,88 +514,88 @@ impl From<ScrollState> for ScrollPane {
 }
 
 impl ScrollPane {
-    /// A pane over `content_len` rows.
+
     pub fn new(content_len: usize) -> Self {
         ScrollState::new(content_len).into()
     }
 
-    // The vertical state's movers, forwarded so `pane.set_content(self.n())`
-    // borrows the field (two-phase) instead of going through `DerefMut`.
 
-    /// [`ScrollState::set_content`] on the vertical state.
+
+
+
     pub fn set_content(&mut self, len: usize) {
         self.v.set_content(len);
     }
 
-    /// [`ScrollState::set_viewport`] on the vertical state.
+
     pub fn set_viewport(&mut self, len: usize) {
         self.v.set_viewport(len);
     }
 
-    /// [`ScrollState::scroll_by`] on the vertical state.
+
     pub fn scroll_by(&mut self, delta: isize) -> bool {
         self.v.scroll_by(delta)
     }
 
-    /// [`ScrollState::scroll_to`] on the vertical state.
+
     pub fn scroll_to(&mut self, offset: usize) -> bool {
         self.v.scroll_to(offset)
     }
 
-    /// [`ScrollState::ensure_visible`] on the vertical state.
+
     pub fn ensure_visible(&mut self, index: usize) -> bool {
         self.v.ensure_visible(index)
     }
 
-    /// [`ScrollState::follow`] on the vertical state.
+
     pub fn follow(&mut self, cursor: usize) -> bool {
         self.v.follow(cursor)
     }
 
-    /// Builder for [`Self::h_cfg`].
+
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.h_cfg = policy;
         self
     }
 
-    /// Builder for [`Self::track_click`].
+
     pub fn track_click(mut self, click: TrackClick) -> Self {
         self.track_click = Some(click);
         self
     }
 
-    /// Builder for [`Self::columns`].
+
     pub fn columns(mut self, columns: bool) -> Self {
         self.columns = columns;
         self
     }
 
-    /// Start a frame: resolve the vertical track-click policy against the
-    /// app-wide default and forget last frame's tracks (a bar that is not
-    /// drawn again cannot be pressed).
+
+
+
     pub fn begin(&mut self, app_click: TrackClick) {
         self.v_click = self.track_click.unwrap_or(app_click);
         self.v_track = Rect::ZERO;
         self.h_track = Rect::ZERO;
     }
 
-    /// The vertical track-click policy in force this frame.
+
     pub fn v_click(&self) -> TrackClick {
         self.v_click
     }
 
-    /// The vertical track as last drawn, empty when no bar was drawn.
+
     pub fn v_track(&self) -> Rect {
         self.v_track
     }
 
-    /// The horizontal track as last drawn, empty when no bar was drawn.
+
     pub fn h_track(&self) -> Rect {
         self.h_track
     }
 
-    /// Record a track drawn for `owner` on `axis` (the `draw_*` methods do
-    /// this; a widget that draws a bar by hand calls it itself).
+
+
     pub fn set_track(&mut self, owner: WidgetId, axis: Axis, track: Rect) {
         self.owner = Some(owner);
         match axis {
@@ -604,7 +604,7 @@ impl ScrollPane {
         }
     }
 
-    /// Forget the track drawn on `axis` (its bar is gone this frame).
+
     pub fn clear_track(&mut self, axis: Axis) {
         match axis {
             Axis::Vertical => self.v_track = Rect::ZERO,
@@ -612,12 +612,12 @@ impl ScrollPane {
         }
     }
 
-    /// The axis of the bar a held press started on.
+
     pub fn held(&self) -> Option<Axis> {
         self.held
     }
 
-    /// The state on `axis`.
+
     pub fn axis(&mut self, axis: Axis) -> &mut ScrollState {
         match axis {
             Axis::Vertical => &mut self.v,
@@ -625,13 +625,13 @@ impl ScrollPane {
         }
     }
 
-    /// Lay the columns out from the horizontal offset: `widths` are the
-    /// columns' widths, `gap` the cells between two columns and `avail`
-    /// the cells they share. A column asked for by
-    /// [`Self::reveal_column`] is first brought whole into view against
-    /// these widths. Returns how many columns from the offset fit whole
-    /// (0 when not even the first does); the widget sets
-    /// [`Self::h`]'s viewport from it.
+
+
+
+
+
+
+
     pub fn layout_columns(&mut self, widths: Vec<u16>, gap: u16, avail: u16) -> usize {
         self.col_widths = widths;
         self.col_gap = gap;
@@ -647,21 +647,21 @@ impl ScrollPane {
         self.columns_fit(self.h.offset)
     }
 
-    /// Bring column `index` whole into view (WCAG 2.4.11, focus not
-    /// obscured): the least horizontal scroll that shows all of it, or its
-    /// start when it is wider than the view. It is measured against the
-    /// last layout now and again at the next
-    /// [`Self::layout_columns`] until something else scrolls sideways, so
-    /// a move onto wider columns (or a narrower view) never leaves the
-    /// column cut off or out of view. Returns whether the offset moved
-    /// now.
+
+
+
+
+
+
+
+
     pub fn reveal_column(&mut self, index: usize) -> bool {
         let moved = self.place_column(index);
         self.col_reveal = Some((index, self.h.offset));
         moved
     }
 
-    /// How many columns from `from` fit whole in the last layout's width.
+
     fn columns_fit(&self, from: usize) -> usize {
         let mut used = 0u16;
         let mut fit = 0;
@@ -680,7 +680,7 @@ impl ScrollPane {
         fit
     }
 
-    /// The offset move behind [`Self::reveal_column`].
+
     fn place_column(&mut self, index: usize) -> bool {
         let n = self.col_widths.len();
         if n == 0 || self.col_avail == 0 {
@@ -692,12 +692,12 @@ impl ScrollPane {
         if index < offset {
             offset = index;
         }
-        // scroll right until the column ends inside the view; a column
-        // wider than the view stops at its own start
+
+
         while offset < index && offset + self.columns_fit(offset) <= index {
             offset += 1;
         }
-        // no empty space after the last column while an earlier one fits
+
         while offset > 0 && offset - 1 + self.columns_fit(offset - 1) >= n {
             offset -= 1;
         }
@@ -705,7 +705,7 @@ impl ScrollPane {
         offset != before
     }
 
-    /// Cells (or columns) one horizontal wheel notch or arrow press moves.
+
     pub fn h_step(&self) -> usize {
         if self.columns {
             1
@@ -714,21 +714,21 @@ impl ScrollPane {
         }
     }
 
-    /// Whether horizontal scrolling can move at all: it is enabled and the
-    /// content is wider than the view.
+
+
     pub fn h_scrolls(&self) -> bool {
         self.h_cfg.enabled && self.h.overflows()
     }
 
-    /// A wheel notch of `delta` on `axis`. Vertical moves `delta` rows.
-    /// Horizontal moves one [`Self::h_step`] per notch whatever the
-    /// notch's size, and is ignored while horizontal scrolling is off or
-    /// the content fits. A pane whose content fits on the notch's axis
-    /// ignores it either way, so the notch reaches an owner that can
-    /// scroll (scroll chaining: a short list inside a scrolled page lets
-    /// the page scroll). At a boundary of content that overflows the notch
-    /// is consumed without a repaint: the pane under the pointer keeps the
-    /// wheel while the user scrolls it to its end.
+
+
+
+
+
+
+
+
+
     pub fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         let moved = match axis {
             Axis::Vertical => {
@@ -749,10 +749,10 @@ impl ScrollPane {
         changed(moved)
     }
 
-    /// The pointer went down at `pos`: on the horizontal track or the
-    /// vertical one (they never overlap). On the thumb this grabs it; on
-    /// the bare track it acts per the axis's [`TrackClick`]. A press on
-    /// neither track holds nothing and is ignored.
+
+
+
+
     pub fn press(&mut self, pos: Position) -> Response<()> {
         let axis = if self.h_track.contains(pos) {
             Axis::Horizontal
@@ -765,7 +765,7 @@ impl ScrollPane {
         self.press_on(axis, pos)
     }
 
-    /// [`Self::press`] on the bar of `axis`, wherever `pos` is.
+
     pub fn press_on(&mut self, axis: Axis, pos: Position) -> Response<()> {
         let (track, click) = match axis {
             Axis::Vertical => (self.v_track, self.v_click),
@@ -783,15 +783,15 @@ impl ScrollPane {
         changed(self.axis(axis).press_track_with(cell, len, click))
     }
 
-    /// The pointer moved to `pos` while held after [`Self::press`]: the
-    /// thumb of the held bar follows, keeping the grabbed cell under the
-    /// pointer. With no held bar the vertical one takes the drag.
+
+
+
     pub fn drag(&mut self, pos: Position) -> Response<()> {
         let axis = self.held.unwrap_or(Axis::Vertical);
         self.drag_on(axis, pos)
     }
 
-    /// [`Self::drag`] on the bar of `axis` (a drag that names its bar).
+
     pub fn drag_on(&mut self, axis: Axis, pos: Position) -> Response<()> {
         let track = match axis {
             Axis::Vertical => self.v_track,
@@ -808,15 +808,15 @@ impl ScrollPane {
         changed(self.axis(axis).drag_track(cell, len))
     }
 
-    /// The button was released: the next press starts a new grab.
+
     pub fn release(&mut self) {
         self.v.release_track();
         self.h.release_track();
         self.held = None;
     }
 
-    /// The axis of the bar with hit id `bar_id`, when it is one of this
-    /// pane's bars.
+
+
     pub fn axis_of(&self, bar_id: WidgetId) -> Option<Axis> {
         let owner = self.owner?;
         if bar_id == owner.sub("scrollbar") {
@@ -828,9 +828,9 @@ impl ScrollPane {
         }
     }
 
-    /// The [`Bar`] of this pane with hit id `bar_id` (its axis and the
-    /// track drawn this frame), for a press or drag that names its bar by
-    /// id ([`Scrollable::bar_input`]).
+
+
+
     pub fn bar_of(&self, bar_id: WidgetId) -> Option<Bar> {
         let axis = self.axis_of(bar_id)?;
         let track = match axis {
@@ -845,8 +845,8 @@ impl ScrollPane {
         })
     }
 
-    /// A press (`pressed`) or drag on a [`Bar`] the pointer layer grabbed:
-    /// the bar names its axis, so nothing is inferred.
+
+
     pub fn bar(&mut self, bar: &Bar, pos: Position, pressed: bool) -> Response<()> {
         if pressed {
             self.press_on(bar.axis, pos)
@@ -856,8 +856,8 @@ impl ScrollPane {
     }
 }
 
-/// The cell of `track` under `pos` on `axis`, clamped to the track (a
-/// pointer past either end still drags to that end), and the track length.
+
+
 fn track_cell(track: Rect, axis: Axis, pos: Position) -> (usize, usize) {
     match axis {
         Axis::Vertical => (
@@ -875,7 +875,7 @@ fn track_cell(track: Rect, axis: Axis, pos: Position) -> (usize, usize) {
     }
 }
 
-/// `changed` when the view moved, else consumed without a repaint.
+
 fn changed(moved: bool) -> Response<()> {
     if moved {
         Response::changed()
@@ -884,30 +884,30 @@ fn changed(moved: bool) -> Response<()> {
     }
 }
 
-/// A widget that scrolls through a [`ScrollPane`]. The wheel, the bars and
-/// their drags come from the provided methods, once for every widget; a
-/// widget only hands out its pane and, when scrolling has side effects
-/// (a log's tail follow, a reading position), reacts in
-/// [`Self::after_scroll`].
+
+
+
+
+
 pub trait Scrollable {
-    /// The widget's pane.
+
     fn pane(&mut self) -> &mut ScrollPane;
 
-    /// The view on `axis` may have moved by wheel or bar (`moved` says
-    /// whether it did). Returns whether anything else changed that needs a
-    /// repaint (a tail follow switching off, for instance).
+
+
+
     fn after_scroll(&mut self, _axis: Axis, _moved: bool) -> bool {
         false
     }
 
-    /// A wheel notch the widget handles before its pane (a revealed label
-    /// that reads on, an open popup that takes the wheel). `None` lets the
-    /// pane scroll.
+
+
+
     fn wheel_first(&mut self, _axis: Axis, _delta: i32) -> Option<Response<()>> {
         None
     }
 
-    /// A wheel notch of `delta` on `axis` ([`ScrollPane::wheel`]).
+
     fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         if let Some(r) = self.wheel_first(axis, delta) {
             return r;
@@ -916,7 +916,7 @@ pub trait Scrollable {
         settle(self, axis, r)
     }
 
-    /// A press on either of the widget's bars ([`ScrollPane::press`]).
+
     fn bar_press(&mut self, pos: Position) -> Response<()> {
         let r = self.pane().press(pos);
         match self.pane().held() {
@@ -925,23 +925,23 @@ pub trait Scrollable {
         }
     }
 
-    /// A drag along the held bar ([`ScrollPane::drag`]).
+
     fn bar_drag(&mut self, pos: Position) -> Response<()> {
         let axis = self.pane().held().unwrap_or(Axis::Vertical);
         let r = self.pane().drag_on(axis, pos);
         settle(self, axis, r)
     }
 
-    /// A press or drag on a [`Bar`] grabbed by the pointer layer
-    /// ([`ScrollPane::bar`]): how a router reaches any widget's bars.
+
+
     fn bar_input(&mut self, bar: &Bar, pos: Position, pressed: bool) -> Response<()> {
         let r = self.pane().bar(bar, pos, pressed);
         settle(self, bar.axis, r)
     }
 }
 
-/// Run the widget's [`Scrollable::after_scroll`] and fold what it changed
-/// into `r`.
+
+
 fn settle<S: Scrollable + ?Sized>(w: &mut S, axis: Axis, r: Response<()>) -> Response<()> {
     if w.after_scroll(axis, r.is_changed()) {
         r.repaint()
@@ -955,9 +955,9 @@ mod tests {
     use super::*;
     use crate::core::event::Outcome;
 
-    /// A pane over 100 rows in a 10-row view and 40 cells in a 10-cell
-    /// view, with both tracks drawn: vertical at column 10, rows 0..10;
-    /// horizontal on row 10, columns 0..10.
+
+
+
     fn pane() -> ScrollPane {
         let mut p = ScrollPane::new(100);
         p.set_viewport(10);
@@ -984,18 +984,18 @@ mod tests {
         let mut p = pane();
         assert!(p.wheel(Axis::Vertical, 3).is_changed());
         assert_eq!(p.offset, 3);
-        // a notch of any size moves one step sideways
+
         assert!(p.wheel(Axis::Horizontal, 3).is_changed());
         assert_eq!(p.h.offset, 4, "HScroll::step cells");
         let mut cols = pane().columns(true);
         assert!(cols.wheel(Axis::Horizontal, 3).is_changed());
         assert_eq!(cols.h.offset, 1, "a column per notch");
-        // the boundary consumes the notch without a repaint
+
         let r = p.wheel(Axis::Vertical, -10);
         assert!(r.is_changed());
         let r = p.wheel(Axis::Vertical, -1);
         assert!(r.is_consumed() && !r.is_changed());
-        // nothing wider than the view, or sideways off: the notch passes on
+
         let mut fits = pane();
         fits.h.set_viewport(40);
         assert!(!fits.wheel(Axis::Horizontal, 1).is_consumed());
@@ -1006,19 +1006,19 @@ mod tests {
     #[test]
     fn a_press_picks_its_bar_and_the_drag_stays_on_it() {
         let mut p = pane();
-        // the bare vertical track pages (the default)
+
         assert!(p.press(Position::new(10, 9)).is_changed());
         assert_eq!((p.offset, p.held()), (10, Some(Axis::Vertical)));
         p.release();
         assert_eq!(p.held(), None);
-        // the horizontal thumb is grabbed and dragged; the drag stays on
-        // the horizontal bar even over the vertical track
+
+
         assert!(!p.press(Position::new(0, 10)).is_changed());
         assert_eq!(p.held(), Some(Axis::Horizontal));
         assert!(p.drag(Position::new(9, 10)).is_changed());
         assert!(p.h.at_end());
         assert_eq!(p.offset, 10, "the vertical view did not move");
-        // a press on neither bar holds nothing
+
         assert!(!p.press(Position::new(3, 3)).is_consumed());
         assert_eq!(p.held(), None);
     }
@@ -1063,7 +1063,7 @@ mod tests {
         assert_eq!(p.offset, 0);
     }
 
-    /// A widget whose pane scrolls and whose tail follow is a side effect.
+
     struct Log {
         pane: ScrollPane,
         follow: bool,
@@ -1094,8 +1094,8 @@ mod tests {
             first: false,
         };
         log.pane.jump_end();
-        // at the end the wheel cannot move, but the follow switching on is
-        // a change
+
+
         assert_eq!(log.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
         assert!(log.follow);
         assert_eq!(
@@ -1105,11 +1105,11 @@ mod tests {
         );
         assert_eq!(log.wheel(Axis::Vertical, -1).outcome(), Outcome::Changed);
         assert!(!log.follow);
-        // the widget's own wheel handling goes first
+
         log.first = true;
         assert_eq!(log.wheel(Axis::Vertical, -5).outcome(), Outcome::Consumed);
         assert_eq!(log.pane.offset, 89);
-        // the bar adapters reach the same pane
+
         log.pane.scroll_to(80);
         assert_eq!(
             log.bar_press(Position::new(10, 9))
@@ -1153,7 +1153,7 @@ mod tests {
     fn a_paging_track_press_moves_one_viewport_toward_the_pointer() {
         let mut s = ScrollState::new(100);
         s.set_viewport(10);
-        // the thumb is the first cell of a 10-cell track
+
         assert_eq!(TrackClick::default(), TrackClick::Page, "macOS, Windows");
         assert!(s.press_track_with(9, 10, TrackClick::Page));
         assert_eq!(s.offset, 10, "one page right, not a jump to the end");
@@ -1170,10 +1170,10 @@ mod tests {
         s.set_viewport(10);
         assert!(s.press_track_with(9, 10, TrackClick::Page));
         assert_eq!(s.offset, 10);
-        // the pointer slides along the held track: no jump under it
+
         assert!(!s.drag_track(8, 10));
         assert_eq!(s.offset, 10);
-        // a fresh press under Jump drags as before
+
         s.release_track();
         assert!(s.press_track_with(9, 10, TrackClick::Jump));
         assert!(s.drag_track(0, 10));
@@ -1208,21 +1208,21 @@ mod tests {
         let track = 31;
         let (start, len) = s.thumb(track);
         assert_eq!((start, len), (0, 8));
-        // a press inside the thumb does not move the view
+
         assert!(!s.press_track(7, track));
         assert_eq!(s.offset, 0);
-        // one row of pointer motion moves the thumb one row, not fifteen
+
         assert!(s.drag_track(8, track));
         assert_eq!(s.thumb(track).0, 1);
         assert!(s.offset > 0 && s.offset < 8, "{}", s.offset);
-        // dragging to the bottom of the track reaches the end exactly
+
         assert!(s.drag_track(track - 1, track));
         assert!(s.at_end());
         assert_eq!(s.thumb(track).0, track - len);
-        // and back to the top
+
         assert!(s.drag_track(0, track));
         assert_eq!(s.offset, 0);
-        // a press on the bare track jumps the thumb under the pointer
+
         s.release_track();
         assert!(s.press_track(20, track));
         let (start, len) = s.thumb(track);
@@ -1231,7 +1231,7 @@ mod tests {
             "{start}..{}",
             start + len
         );
-        // a drag without a press falls back to a press
+
         let mut fresh = ScrollState::new(120);
         fresh.set_viewport(31);
         assert!(fresh.drag_track(track - 1, track));
@@ -1267,7 +1267,7 @@ mod tests {
         assert_eq!(s.offset, 0, "the edges of the content clamp");
         s.ensure_visible(49);
         assert!(s.at_end());
-        // a view too short to spare the context keeps the row only
+
         let mut short = ScrollState::new(50).with_context(1);
         short.set_viewport(2);
         short.ensure_visible(5);
@@ -1276,8 +1276,8 @@ mod tests {
 
     #[test]
     fn the_default_keeps_one_row_of_context_around_a_row_brought_into_view() {
-        // SVg9: a keyboard move to the edge of the view shows the next row
-        // too, so the focused row never sits where more hides beyond it.
+
+
         let mut s = ScrollState::new(50);
         assert_eq!(s.context, 1);
         s.set_viewport(10);
@@ -1296,14 +1296,14 @@ mod tests {
         s.pointer_move();
         assert!(s.ensure_visible(10), "a row past the edge comes in exactly");
         assert_eq!(s.offset, 1);
-        // the next keyboard move keeps its context again
+
         assert!(s.ensure_visible(10));
         assert_eq!(s.offset, 2);
     }
 
     #[test]
     fn ensure_visible_moves_minimally() {
-        // context 0: the row may sit on the edge of the view
+
         let mut s = ScrollState::new(50).with_context(0);
         s.set_viewport(10);
         s.ensure_visible(25);
@@ -1320,15 +1320,15 @@ mod tests {
         s.set_viewport(10);
         s.follow(3);
         assert_eq!(s.offset, 0);
-        // the wheel moves the view away from the cursor
+
         s.scroll_by(20);
         s.follow(3);
         assert_eq!(s.offset, 20, "a repaint must not snap back");
-        // a cursor move brings it back into view, with the default row of
-        // context above it (SVg9)
+
+
         s.follow(4);
         assert_eq!(s.offset, 3);
-        // so does a viewport resize
+
         s.scroll_by(20);
         s.set_viewport(8);
         s.follow(4);

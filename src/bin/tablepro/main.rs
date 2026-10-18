@@ -1,5 +1,5 @@
-//! TablePro, terminal edition: the core database workbench built on the
-//! Junie-inspired design system.
+
+
 
 mod app;
 #[cfg(test)]
@@ -42,7 +42,7 @@ use junie_tui::cli::CommonArgs;
 use crate::app::App;
 use crate::db::Connection;
 
-/// Set to `1` (anything but empty or `0`) for reduced motion.
+
 const NO_MOTION_ENV: &str = "TABLEPRO_NO_MOTION";
 
 #[derive(Debug, Parser)]
@@ -54,7 +54,7 @@ const NO_MOTION_ENV: &str = "TABLEPRO_NO_MOTION";
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
-    /// Connect to the named connection at start
+
     #[arg(long, value_name = "NAME")]
     connect: Option<String>,
 }

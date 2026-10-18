@@ -1,9 +1,9 @@
-//! Notices (Feedback, plan §7 SC36): `Notice`, the inline error, warning,
-//! information and success block, as the apps use it: a connection test's
-//! failure under the connection card (tablepro connections), a query's
-//! error card (tablepro results) and the inline notices of a form. Test
-//! connection walks the outcomes (auth failure, unreachable host,
-//! connected). Options: `crate::options::NOTICES`.
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -25,7 +25,7 @@ use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("notices");
 
-/// What Test connection answers, in turn.
+
 const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
     (
         NoticeKind::Error,
@@ -52,7 +52,7 @@ pub struct NoticesPage {
     template: Template,
     opts: PageValues,
     test: Button,
-    /// The answer Test connection gave last (an index into [`OUTCOMES`]).
+
     outcome: usize,
     sections: crate::pages::layout::Sections,
 }
@@ -68,7 +68,7 @@ impl NoticesPage {
         }
     }
 
-    /// A notice with the page's options applied through its builders.
+
     fn styled(&self, n: Notice) -> Notice {
         let mut n = n
             .max_lines(self.opts.value("notices.max_lines").parse().unwrap_or(2))
@@ -116,7 +116,7 @@ impl NoticesPage {
         )
     }
 
-    /// The four kinds as a form shows them inline.
+
     fn inline(&self) -> [Notice; 4] {
         [
             self.styled(Notice::error("Port must be a number between 1 and 65535")),
@@ -129,7 +129,7 @@ impl NoticesPage {
         ]
     }
 
-    /// The notices' width: the card's, or narrow to show the wrap.
+
     fn width(&self, w: u16) -> u16 {
         match self.opts.value("notices.width") {
             "narrow" => w.min(44),
@@ -143,8 +143,8 @@ impl NoticesPage {
         let connection = self.connection();
         let query = self.query();
         let inline = self.inline();
-        let inline_h: u16 = inline.iter().map(|n| n.height(w)).sum::<u16>() + 3; // a blank row between the four
-        // a card takes its title row, a blank row and a bottom row
+        let inline_h: u16 = inline.iter().map(|n| n.height(w)).sum::<u16>() + 3;
+
         let l = self.sections.layout(
             area,
             &[
@@ -219,8 +219,8 @@ impl NoticesPage {
     }
 }
 
-/// The States grid: an error with a detail and a warning with a hint, in
-/// rest, error, overflow (the cut detail) and narrow (the wrap).
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))

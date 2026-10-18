@@ -1,12 +1,12 @@
-//! Editable tables: a cell-navigating `DataTable` whose text cells edit in
-//! place, a constrained Owner column, validation, and every table knob as a
-//! live option (plan §7, SC13).
-//!
-//! Playground: the task table, the legend, the columns as the table
-//! describes them, and the events each key asks the page for. Options:
-//! the table's knobs, rebuilt through `DataTable`'s builders. States: a
-//! table of text cells and one with a constrained column, drawn by
-//! `DataTable` itself.
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
@@ -46,8 +46,8 @@ fn columns() -> Vec<Column> {
     vec![
         Column::new("ID", Constraint::Length(5)),
         Column::new("Task", Constraint::Min(24)).editable(),
-        // only known people: a dropdown (8 values, the option-count
-        // ladder) instead of free text
+
+
         Column::new("Owner", Constraint::Length(8)).editor(ColumnEditor::for_options(
             Options::values(&[
                 "ana", "jonas", "kai", "lena", "mira", "omar", "priya", "sofia",
@@ -78,8 +78,8 @@ fn rows(n: usize) -> Vec<Vec<Cell>> {
         .collect()
 }
 
-/// Every option of the page, as value indices (`editable.*`), in
-/// [`KEYS`] order.
+
+
 const KEYS: [&str; 12] = [
     "editable.rows",
     "editable.type_ahead",
@@ -95,8 +95,8 @@ const KEYS: [&str; 12] = [
     "editable.header_labels",
 ];
 
-/// An app's own keys: `o` sorts, Ctrl+A alone selects all
-/// (`editable.keymap`).
+
+
 fn custom_keymap() -> KeyMap<TableCmd> {
     vec![
         (KeyBinding::char('o'), TableCmd::SortByColumn),
@@ -104,7 +104,7 @@ fn custom_keymap() -> KeyMap<TableCmd> {
     ]
 }
 
-/// The table as the options say, through `DataTable`'s builders.
+
 fn build(k: &[usize; 12]) -> DataTable {
     let [
         rows_k,
@@ -160,7 +160,7 @@ fn build(k: &[usize; 12]) -> DataTable {
         };
     }
     if !table.rows.is_empty() {
-        // one pre-existing error to show the cell error state
+
         table.rows[2][4].error = Some("Branch names cannot contain spaces".into());
         table.rows[2][4].text = "fix/checkout flake".into();
     }
@@ -168,7 +168,7 @@ fn build(k: &[usize; 12]) -> DataTable {
     table
 }
 
-/// The events each key asks the page for.
+
 const EVENTS: &[(&str, &str)] = &[
     ("Enter / F2 / click twice", "Edit · Enter again Committed"),
     ("Esc", "Cancel the edit · Cancelled"),
@@ -184,7 +184,7 @@ const EVENTS: &[(&str, &str)] = &[
     ),
 ];
 
-/// The States grid: text cells, and a constrained column.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -253,7 +253,7 @@ impl EditablePage {
         }
     }
 
-    /// The columns as the table describes them.
+
     fn column_props(&self) -> Vec<Prop> {
         self.table
             .columns
@@ -403,8 +403,8 @@ impl Page for EditablePage {
             }
             PageEvent::Paste(text) => self.table.on_paste(text),
             PageEvent::Pointer(p) => {
-                // the editor's popup, a header, a cell, a seam, the bar or
-                // the wheel; a click focuses the table
+
+
                 let Some((out, tev)) = route_table(&mut self.table, p, cx) else {
                     return Outcome::Ignored;
                 };
@@ -430,7 +430,7 @@ impl Page for EditablePage {
             ("↑↓←→", "Cell"),
             junie_tui::widgets::widget_hints::EDIT_PAIR,
         ];
-        // the key the table's key map binds now (`editable.keymap`)
+
         if let Some(k) = hint_key(&self.table.keymap, TableCmd::SortByColumn) {
             h.push((k, "Sort"));
         }

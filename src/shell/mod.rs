@@ -1,29 +1,29 @@
-//! The application shell: behaviour every application gets from the
-//! library instead of writing it (docs/architecture/shared-components-plan.md
-//! §1.8). This module grows step by step; today it holds the leaf pieces:
-//!
-//! - [`Shell`] and [`App`]: the state every app keeps and the trait that
-//!   gives an app [`Application`](crate::runtime::Application): the render prologue and epilogue, focus
-//!   upkeep ([`PageKey`]) and the blur fan-out.
-//! - [`Cx`] and [`Request`]: the event context a page handles input in and
-//!   what it asks of the shell, with the background-request policy
-//!   ([`background`]).
-//! - [`Page`]: what every page of every app can do, so an app's screen
-//!   trait only adds its own extras.
-//! - [`KeyRouter`], [`ShellKeys`] and [`ShellAction`]: the one key order
-//!   every app routes keys in ([`KeyHost`] names its stages).
-//! - [`Router`] and [`Nav`]: the page stacks (one per tab), navigation
-//!   requests, the leave guard on every move that drops a page, and the
-//!   clickable trail ([`Breadcrumb`]).
-//! - [`Chrome`]: the frame's header, body and footer regions, and
-//!   [`Menus`] whose items carry typed commands.
-//! - [`Clipboard`]: copies with a truthful result (OSC 52).
-//! - [`Footer`]: the one footer composition (hints of the top layer, the
-//!   EDIT badge, the status line with errors over hints, click targets).
-//! - [`StatusLine`]: the transient status message and its expiry rule;
-//!   [`JobKey`] ties a progress status to the job it reports on.
-//! - [`run`]: start an [`App`] on a terminal, after discarding
-//!   input queued before it started.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 mod app;
 mod chrome;
@@ -49,11 +49,11 @@ pub use page::{
 pub use router::{KeyHost, KeyRouter, ShellAction, ShellKeys};
 pub use status::{JobKey, StatusLine};
 
-/// Run `app` until it asks to quit. Input already queued when the process
-/// starts (key presses typed into the launching shell) is discarded first,
-/// so it cannot act on the first screen or skip an opening sequence.
-/// Every field's Copy and Cut reach the system clipboard through the
-/// app's [`Shell::clipboard`] ([`Clipboard::install`]).
+
+
+
+
+
 pub fn run<A: App>(app: &mut A) -> std::io::Result<()> {
     app.shell().clipboard.install();
     if let Some(delay) = start_delay() {
@@ -63,10 +63,10 @@ pub fn run<A: App>(app: &mut A) -> std::io::Result<()> {
     crate::runtime::run(app)
 }
 
-/// Test instrumentation: `JUNIE_TUI_START_DELAY_MS` holds [`run`] for that
-/// long before it discards queued input, so a PTY test can type keys
-/// "before startup" deterministically
-/// (`tests/visual_baseline/startup_input.rs`). Unset in normal use.
+
+
+
+
 fn start_delay() -> Option<std::time::Duration> {
     std::env::var("JUNIE_TUI_START_DELAY_MS")
         .ok()?

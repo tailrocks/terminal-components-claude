@@ -1,14 +1,14 @@
-//! Copy audit #20: every `Esc` label in every app starts with a verb from
-//! one small vocabulary (see `junie_tui::widgets::keyhint`): Cancel leaves
-//! an edit or a modal without saving, Close closes an overlay or a menu,
-//! Back returns to the previous page or level. A destination noun such as
-//! `Esc Outline` or `Esc List` names no action and is refused.
+
+
+
+
+
 
 use std::path::{Path, PathBuf};
 
-/// First words an `Esc` label may start with. Besides the three core verbs:
-/// Clear (empties a query), Done (leaves a text editor keeping the text),
-/// Discard, Exit, Release and Restore name what Esc does on their screen.
+
+
+
 const VERBS: [&str; 9] = [
     "cancel", "close", "back", "clear", "done", "discard", "exit", "release", "restore",
 ];
@@ -24,8 +24,8 @@ fn sources(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// Every string literal that directly follows an `"Esc",` key literal: the
-/// `hint("Esc", "…")` calls and the `("Esc", "…")` help and hint tuples.
+
+
 fn esc_labels(text: &str) -> Vec<(usize, String)> {
     let mut found = vec![];
     let mut rest = text;
@@ -33,8 +33,8 @@ fn esc_labels(text: &str) -> Vec<(usize, String)> {
     while let Some(i) = rest.find("\"Esc\",") {
         let after = &rest[i + 6..];
         let trimmed = after.trim_start();
-        // a key/label pair opens with `(`; key lists such as `&["Esc", "?"]`
-        // are not labels
+
+
         let opens_pair = rest[..i].trim_end().ends_with('(');
         if opens_pair
             && let Some(lit) = trimmed.strip_prefix('"')

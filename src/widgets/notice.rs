@@ -1,20 +1,20 @@
-//! Inline notices: an error, warning, information or success block drawn
-//! in the flow of a card or a form, not floating over it.
-//!
-//! ```text
-//! ! Authentication failed                       (message, kind tone)
-//!   FATAL: password authentication failed for   (detail, wrapped)
-//!   user "acme_app" (SQLSTATE 28P01). Check …   (cut marked)
-//!   Enter retries · e edits the connection      (hint, muted, one line)
-//! ```
-//!
-//! The leading glyph carries the kind without colour (`!` bold for an
-//! error, the theme's warning, information and done glyphs for the
-//! others), so a notice stays readable at every colour level. A notice
-//! takes the space it is given: the message and the detail wrap to the
-//! width beside the glyph and stop at their line limits, and the cut is
-//! marked with `…` (macOS and WAI-ARIA: truncated text says it is
-//! truncated).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -25,22 +25,22 @@ use crate::theme::{Theme, Tone};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{truncate, wrap};
 
-/// What a notice reports: picks its glyph and tone.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NoticeKind {
-    /// A failure: bold `!`, message in the error tone.
+
     #[default]
     Error,
-    /// Needs attention: the warning glyph, message in the warning tone.
+
     Warning,
-    /// Information: the info glyph in the info tone, message in body text.
+
     Info,
-    /// Done: the done glyph in the success tone, message in body text.
+
     Success,
 }
 
 impl NoticeKind {
-    /// The glyph and its style.
+
     fn glyph(self, t: &Theme) -> (&'static str, Style) {
         match self {
             NoticeKind::Error => ("!", t.error_fg().add_modifier(Modifier::BOLD)),
@@ -50,7 +50,7 @@ impl NoticeKind {
         }
     }
 
-    /// The tone the message is drawn in.
+
     pub fn message_tone(self) -> Tone {
         match self {
             NoticeKind::Error => Tone::Error,
@@ -60,22 +60,22 @@ impl NoticeKind {
     }
 }
 
-/// An inline notice: a glyph, a message, an optional wrapped detail and
-/// an optional one-line hint, indented under the message.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Notice {
     pub kind: NoticeKind,
     pub message: String,
     pub detail: Option<String>,
     pub hint: Option<String>,
-    /// Lines the message wraps to at most. Default 2.
+
     pub message_lines: usize,
-    /// Lines the detail wraps to at most ([`Self::max_lines`]). Default 2.
+
     pub max_lines: usize,
-    /// The detail's tone. Default [`Tone::Secondary`].
+
     pub detail_tone: Tone,
-    /// Mark a message or detail cut at its line limit with ` …`.
-    /// Default on.
+
+
     pub mark_cut: bool,
 }
 
@@ -104,43 +104,43 @@ impl Notice {
     pub fn success(message: impl Into<String>) -> Self {
         Self::new(NoticeKind::Success, message)
     }
-    /// The kind (glyph and tone). See [`NoticeKind`].
+
     pub fn kind(mut self, kind: NoticeKind) -> Self {
         self.kind = kind;
         self
     }
-    /// The detail under the message: wrapped, at most [`Self::max_lines`].
+
     pub fn detail(mut self, detail: impl Into<String>) -> Self {
         self.detail = Some(detail.into());
         self
     }
-    /// A muted line after the detail: what the reader can do next.
+
     pub fn hint(mut self, hint: impl Into<String>) -> Self {
         self.hint = Some(hint.into());
         self
     }
-    /// Lines the detail wraps to at most. Default 2.
+
     pub fn max_lines(mut self, n: usize) -> Self {
         self.max_lines = n;
         self
     }
-    /// Lines the message wraps to at most. Default 2.
+
     pub fn message_lines(mut self, n: usize) -> Self {
         self.message_lines = n;
         self
     }
-    /// The detail's tone. Default [`Tone::Secondary`].
+
     pub fn detail_tone(mut self, tone: Tone) -> Self {
         self.detail_tone = tone;
         self
     }
-    /// Whether a cut message or detail ends in ` …`. Default on.
+
     pub fn mark_cut(mut self, on: bool) -> Self {
         self.mark_cut = on;
         self
     }
 
-    /// The lines of `text` at `w` cells, at most `max`, the cut marked.
+
     fn lines(&self, text: &str, w: usize, max: usize) -> Vec<String> {
         let wrapped = wrap(text, w.max(1));
         let cut = wrapped.len() > max;
@@ -154,8 +154,8 @@ impl Notice {
         lines
     }
 
-    /// Rows the notice takes at `width`: the message, the detail and the
-    /// hint lines.
+
+
     pub fn height(&self, width: u16) -> u16 {
         let w = width.saturating_sub(2) as usize;
         let message = self.lines(&self.message, w, self.message_lines).len();
@@ -166,13 +166,13 @@ impl Notice {
         (message.max(1) + detail + usize::from(self.hint.is_some())) as u16
     }
 
-    /// Draw into `area` from its top row on `bg`; returns the rows drawn
-    /// (clipped to `area`).
+
+
     pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) -> u16 {
         self.render_theme(area, buf, ctx.theme, bg)
     }
 
-    /// [`Self::render`] with only a theme at hand.
+
     pub fn render_theme(&self, area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) -> u16 {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -213,11 +213,11 @@ impl Notice {
     }
 }
 
-/// The id a notice answers to in a States grid (it is not interactive).
+
 const SAMPLE_ID: WidgetId = WidgetId::of("notice-sample");
 
-/// In a States grid a notice shows its kinds and its cut: Error is the
-/// error kind, Overflow a detail past its limit, Narrow the wrap.
+
+
 impl crate::ui::specimen::Specimen for Notice {
     fn specimen_id(&self) -> WidgetId {
         SAMPLE_ID
@@ -302,7 +302,7 @@ mod tests {
         let rows = n.render_theme(buf.area, &mut buf, &t, t.canvas);
         assert_eq!(rows, 3);
         assert!(text(&buf, 2).ends_with('…'), "{:?}", text(&buf, 2));
-        // without the marker the cut is silent
+
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, 6));
         n.clone()
             .mark_cut(false)
