@@ -1,34 +1,34 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//! Black-box coverage for the deferred behavior CLI.
+//!
+//! Migration map from `tools/visibility/tests/test_deferred.py`:
+//!
+//! | Former Python test | Rust CLI test |
+//! | --- | --- |
+//! | `test_inventory_has_23_ignored_tests_and_25_case_references` | `inventory_uses_canonical_23_rows_and_25_case_references` |
+//! | `test_filter_uses_exact_names_and_explicit_writer_exclusion` | `filter_uses_exact_names_and_explicit_writer_exclusion` |
+//! | `test_claim_records_accepted_revision_separately_from_current_queue` | `receipt_separates_accepted_and_current_queue_revisions` |
+//! | `test_environment_pins_toolchain_jobs_and_aqua_nextest_without_mbx` | `environment_pins_toolchain_jobs_and_aqua_nextest_after_path_sanitizing` |
+//! | `test_digest_tracks_workspace_sources_and_ignores_nonworkspace_crates` | `source_digest_tracks_workspace_and_ignores_nonworkspace_crates` |
+//! | `test_run_command_keeps_failures_red_and_runs_all_selected_tests` | `run_command_keeps_all_selected_failures_visible` |
+//! | `test_list_requires_exact_ignored_set_in_one_target` | `list_requires_the_exact_canonical_selection` |
+//! | `test_list_reconciles_selected_ids_separately_from_nextest_total` | `list_reconciles_selected_count_separately_from_nextest_total` |
+//! | `test_list_rejects_total_smaller_than_selected_set` | `list_rejects_total_smaller_than_the_selection` |
+//! | `test_list_rejects_missing_or_new_test` | `list_rejects_missing_and_writer_like_selected_tests` |
+//! | `test_list_rejects_nonignored_selection` | `list_accepts_mixed_registration_and_rejects_metadata_drift` |
+//! | `test_list_rejects_wrong_package_or_binary` | `list_rejects_a_wrong_package_or_binary` |
+//! | `test_assertion_failure_stays_failed_without_expected_failure_inversion` | `assertion_failure_stays_failed_without_expected_failure_inversion` |
+//! | `test_receipt_rows_retain_stable_deferral_ids_and_test_mapping` | `receipt_rows_keep_stable_ids_and_test_metadata` |
+//! | `test_prefixed_nextest_event_name_maps_to_stable_test_name` | `prefixed_nextest_event_names_map_to_stable_test_names` |
+//! | `test_unselected_libtest_cases_must_finish_ignored` | `unselected_case_events_are_rejected_with_run_ignored_all` |
+//! | `test_unselected_nonignored_result_is_rejected` | `unselected_terminal_results_are_rejected` |
+//! | `test_build_error_is_blocked_with_raw_positive_exit` | `build_error_is_blocked_with_raw_exit_and_zero_executions` |
+//! | `test_zero_exit_with_result_validation_error_is_blocked_nonzero` | `zero_exit_with_invalid_results_is_blocked_nonzero` |
+//! | `test_signal_termination_maps_to_shell_status_and_cannot_pass` | `signal_termination_is_blocked_and_maps_to_shell_status` |
+//! | `test_assertion_failure_remains_failed_even_if_another_event_is_unreadable` | `assertion_failure_remains_failed_with_an_unreadable_event` |
+//!
+//! Each Rust test copies and invokes the production CLI in a disposable Git
+//! repository. Nextest output comes from the compiled Rust protocol fixture;
+//! no Python test module or test runner is used.
 
 use std::collections::BTreeMap;
 use std::env;
