@@ -10960,7 +10960,7 @@ mod tests {
             assert_rejected(&trust_path, None, &expected);
         }
 
-        let suite_record = Path::new(env!("CARGO_MANIFEST_DIR")).join("README.md");
+        let suite_record = Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml");
         assert_rejected(&suite_record, None, "outside protected suite_checkout root");
 
         let expected_root = fixture.base.join("expected");
