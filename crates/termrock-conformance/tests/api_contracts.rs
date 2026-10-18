@@ -31,3 +31,33 @@ fn authored_monochrome_palette_and_generic_fallback_are_public() {
     };
     assert!(generic.capability_palettes.is_none());
 }
+
+#[test]
+fn mono_rules_can_select_chosen_glyph() {
+    use termrock::theme::{
+        ColorLevel, Family, GlyphRole, Part, Slot, StateFlags, StylePatch, Surface, Theme, Variant,
+    };
+
+    let family = Family::custom("segment");
+    let theme = Theme::junie()
+        .builder()
+        .mono_rules(
+            family,
+            &[(
+                Part::MARKER,
+                StateFlags::ACTIVE,
+                StylePatch::new().set_glyph(GlyphRole::Chosen),
+            )],
+        )
+        .build()
+        .downgrade(ColorLevel::Mono);
+
+    let resolved = theme.resolve(
+        family,
+        Variant::DEFAULT,
+        Part::MARKER,
+        StateFlags::ACTIVE,
+        Surface::Canvas,
+    );
+    assert_eq!(resolved.glyph, Slot::Set(GlyphRole::Chosen));
+}
