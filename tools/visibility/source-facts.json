@@ -1225,7 +1225,7 @@
         "test_name": "w13_filter_wide_trail_cells_clear",
         "component_id": "W13",
         "component_owner": "termrock-navigation",
-        "failure_summary": "W13-05: wide-character trail cells were not cleared; the reviewer observed an unexpected y in the rendered 旧日本 cells.",
+        "failure_summary": "W13-05: wide-character trail cells were not cleared; the reviewer observed an unexpected y in the rendered \u65e7\u65e5\u672c cells.",
         "registry_status": "NOT_RUN"
       },
       "source_manifest_sha256": "aeea57da7e576c174e768e12876fe6303c4880c49ce826dacf2e448407a327cb",
@@ -1249,7 +1249,7 @@
       "acceptance_decision": "NOT_RECORDED",
       "packet_manifest": {
         "path": "docs/implementation/visibility/evidence/deferred/product23-s1d-20261009/SHA256SUMS.json",
-        "sha256": "4928eb13c7e242d79a80b7d8d710a0d95f34fc4ad54a4255d361500eea748053"
+        "sha256": "7d1524c2dad5d5369badfa4f3cb3974eb1b52da1ab01a37b7bb8175643f2f4f1"
       }
     }
   },

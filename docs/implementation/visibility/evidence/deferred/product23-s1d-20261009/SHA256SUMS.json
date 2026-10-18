@@ -1,5 +1,5 @@
 {
-  "schema": "termrock-evidence-file-hashes/v1",
+  "schema": "termrock-evidence-file-hashes/v2",
   "includes_self": false,
   "files": [
     {
@@ -73,11 +73,6 @@
       "sha256": "0ed0c5112c3c4090c3455dc710b12336db242ecfa62d479d163c9d2c54e21f65"
     },
     {
-      "path": "README.md",
-      "bytes": 3484,
-      "sha256": "ac2ecd357d079f544595987fd4e932a60eea45583f8999a5f0e86d18c799402c"
-    },
-    {
       "path": "runs/2026-10-09T03-04-14-975Z-10bae096/actual-independent-review-luna.json",
       "bytes": 6126,
       "sha256": "8d397a4d2fb9e866e197792bf4eafd4c09e30fb66d9709b8b22523e83242eaf4"
@@ -138,5 +133,10 @@
       "path": "/private/tmp/termrock-vis06-cargo-home-vis06-holla-20261009-44968e82-6442-42c6-a5b4-8aaac2bc64fa",
       "copied": false
     }
-  ]
+  ],
+  "retired_documentation": {
+    "path": "README.md",
+    "sha256": "ac2ecd357d079f544595987fd4e932a60eea45583f8999a5f0e86d18c799402c"
+  },
+  "supersedes_manifest_sha256": "4928eb13c7e242d79a80b7d8d710a0d95f34fc4ad54a4255d361500eea748053"
 }
