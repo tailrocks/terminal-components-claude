@@ -50,8 +50,7 @@ const NO_MOTION_ENV: &str = "TABLEPRO_NO_MOTION";
 struct Cli {
     #[command(flatten)]
     common: CommonArgs,
-
-    #[arg(help = "Connect to the named connection at start")]
+    /// Connect to the named connection at start
     #[arg(long, value_name = "NAME")]
     connect: Option<String>,
 }
@@ -86,7 +85,6 @@ fn main() -> std::io::Result<()> {
         app.connect(i);
     }
     app.set_motion(cli.common.motion(NO_MOTION_ENV), cli.common.frame);
-
     app.shell.clipboard.install();
     junie_tui::shell::run(&mut app)
 }
