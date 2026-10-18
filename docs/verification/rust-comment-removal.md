@@ -14,7 +14,7 @@ Initial comment-removal commits preserved non-comment token streams. Final sourc
 
 | Branch | Starting revision | Initial comment-removal commit | Final reviewed source commit | Rust files | Comments removed in initial pass |
 |---|---|---|---|---:|---:|
-| `main` | `d1122f69e6b9c2364aa6ede8174e7d35b8cfff39` | `b03f80527b73456fbad7d24ecbc54222a3f8157f` | `039daab014ae492b9a08888a9ee468b60a7c0a28` | 508 | 27,358 |
+| `main` | `d1122f69e6b9c2364aa6ede8174e7d35b8cfff39` | `b03f80527b73456fbad7d24ecbc54222a3f8157f` | `bcc0f9f9bd87c84fffafcab2c04f63bd5928dded` | 508 | 27,358 |
 | `design/interaction-polish` | `d9e569bf6fd33d90266db597c458442c729340ad` | `55ae07eb2ee6ea0d5c5891889b45a2079d06e050` | `7b7cfa04dffdd46b57fa85fff4677dba75928107` | 418 | 25,373 |
 | `wip/reach-pages-a-2` | `267a8d08575765f4e77a732eaa87aeec27986719` | `a820c80074c3dcfc6c571375b6ed7f02f0e6eff0` | `a76de88250eb3d40a4e88f97ec4f799882312a19` | 418 | 25,431 |
 | `wip/rapps-3-7-14` | `81be99a79c5158a27713d4f6f0ed06f6f4e1faf0` | `79b2d5c10fa3926d3a579f65c5bd3cf42d54cc67` | `73c93bc7f86bf4348bc2fe94ce24b154a091e785` | 418 | 25,368 |
@@ -23,7 +23,7 @@ Initial comment-removal commits preserved non-comment token streams. Final sourc
 | `wip/s14-followups` | `95f62ca33eaf7b02fc5a2551572fa3258b81a880` | `29a0ffd5d6513853966c88849cc4bfbd2dcbe65f` | `f548c7f74961341fedd8e6d871fd978cc4d3c012` | 414 | 23,849 |
 | `wip/v1-showcase` | `c1a49af0f6ade36838c6330ce8a034e8d589ea79` | `92cd52ab010299a18ff5a2f04e942a4764a75527` | `8f58710690bb69f1ee0fbf53c99649425cb6414b` | 383 | 20,630 |
 
-The seven final source commits after the main row are from `/tmp/termrock-doc-cleanup/final-source-commits.json`; each records CLI metadata preservation. Main’s final reviewed source includes the formatter commit after its initial comment-removal commit.
+The seven final source commits after the main row are from `/tmp/termrock-doc-cleanup/final-source-commits.json`; each records CLI metadata preservation. Main’s final reviewed source includes the formatter commit and three comment-derived blank-line removals after attributes. The latter change alters whitespace only.
 
 The final main formatting review found whitespace-only changes in 453 files and formatter syntax changes in 19 files: 18 files changed optional enum-field trailing commas; `crates/holla-sim/src/catalogue.rs` lost redundant closure braces while retaining the same expression. The exception set is recorded below. No blanket final token-equality claim applies.
 
