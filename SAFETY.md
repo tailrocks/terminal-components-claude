@@ -1,16 +1,10 @@
-# SAFETY
+# Safety rationales
 
-## Status
+These records preserve the original justifications for unsafe operations. They are maintenance obligations, not a new safety audit or evidence of product readiness. Compiler safety settings and existing tests remain authoritative constraints.
 
-Retained safety rationales for unchanged unsafe operations. Removing Rust comments does not remove these obligations. This record is not a new proof that the incomplete product refactor is ready.
+## Original rationales
 
-## Authority
-
-Preserve existing validation and safety contracts. `main` supplies architectural direction; `design/interaction-polish` supplies product behavior. No unsafe operation or safety lint is changed by this documentation migration.
-
-## Current evidence
-
-Rationales below came from Rust comments at `d1122f69e6b9c2364aa6ede8174e7d35b8cfff39`. Comment removal and reviewed formatting preserve their operations. Original line links retain the exact source context; current source line numbers may differ.
+The excerpts below identify their exact source context at `d1122f69e6b9c2364aa6ede8174e7d35b8cfff39`. Inspect the current operation before relying on a rationale; source line numbers may change.
 
 ### crates/holla/tests/holla_pty.rs, original line 67
 
@@ -259,10 +253,6 @@ SAFETY: `file_fd` is now owned by this File.
 SAFETY: inherited anonymous pipe ends are owned by this host process for the fixture lifetime.
 ```
 
-## Remaining work
+## Maintenance
 
-Keep each rationale synchronized with its operation. Any future change to an unsafe operation requires a fresh safety review and applicable verification; this comment-only cleanup does not authorize such changes.
-
-## Verification
-
-Compare the original source context and current operation. Preserve compiler safety settings and existing tests. The retained text documents the prior justification; it does not substitute for inspecting changed code.
+Keep each rationale synchronized with its operation. Changes to unsafe operations require a fresh safety review and applicable verification. This documentation does not authorize changes to unsafe code or safety lints.
