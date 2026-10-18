@@ -1,7 +1,7 @@
-//! Plan builders: turn a Broad catalogue action into a reviewable DAG of
-//! fixture-deterministic steps, and apply the honest world mutation after a
-//! run. Phrases are bound to the target host (`REMOVE ALL DOCKER DATA ON
-//! devbox`); the broadest plans demand the `I UNDERSTAND:` prefix.
+#![doc = r" Plan builders: turn a Broad catalogue action into a reviewable DAG of"]
+#![doc = r" fixture-deterministic steps, and apply the honest world mutation after a"]
+#![doc = r" run. Phrases are bound to the target host (`REMOVE ALL DOCKER DATA ON"]
+#![doc = r" devbox`); the broadest plans demand the `I UNDERSTAND:` prefix."]
 
 use crate::domain::disk::Freshness;
 use crate::domain::docker::{ContainerState, Health};
@@ -12,8 +12,8 @@ use crate::domain::plan::{Plan, PlanEffect, PlanSpec, PlanStep, StepState};
 use crate::world::World;
 use std::sync::Arc;
 
-/// A review bound to the exact simulated host and effect target facts.
-/// It cannot be cloned, reconstructed from UI fields, or executed twice.
+#[doc = r" A review bound to the exact simulated host and effect target facts."]
+#[doc = r" It cannot be cloned, reconstructed from UI fields, or executed twice."]
 pub struct ReviewedPlan {
     plan: Plan,
     target: Arc<TargetSnapshot>,
@@ -29,7 +29,7 @@ impl ReviewedPlan {
         &self.plan
     }
 
-    /// Bind a confirmation surface to this exact review and its complete plan.
+    #[doc = r" Bind a confirmation surface to this exact review and its complete plan."]
     pub fn binding(&self) -> ReviewBinding {
         ReviewBinding {
             target: Arc::clone(&self.target),
@@ -45,11 +45,11 @@ impl ReviewedPlan {
         self.plan.toggle(index)
     }
 
-    /// Bind an exact typed confirmation to this review and current target.
-    ///
-    /// # Errors
-    /// Refuses a wrong phrase, an already-consumed review or changed target.
-    /// The phrase is never retained or included in the error.
+    #[doc = r" Bind an exact typed confirmation to this review and current target."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" Refuses a wrong phrase, an already-consumed review or changed target."]
+    #[doc = r" The phrase is never retained or included in the error."]
     pub fn approve<'a>(
         &'a mut self,
         phrase: &str,
@@ -73,35 +73,34 @@ impl ReviewedPlan {
     }
 }
 
-/// Opaque, non-executable binding held by a confirmation surface.
-/// Regenerating even an identical plan creates a distinct identity. The complete
-/// plan snapshot also detects selection or effect changes within the same review.
-/// Target facts remain immutable and private; no address or token is exposed.
+#[doc = r" Opaque, non-executable binding held by a confirmation surface."]
+#[doc = r" Regenerating even an identical plan creates a distinct identity. The complete"]
+#[doc = r" plan snapshot also detects selection or effect changes within the same review."]
+#[doc = r" Target facts remain immutable and private; no address or token is exposed."]
 pub struct ReviewBinding {
     target: Arc<TargetSnapshot>,
     plan: Plan,
 }
 
-/// Exclusive, one-use permission to apply this in-memory simulation.
-/// Dropping approval cancels it without running or consuming the review.
+#[doc = r" Exclusive, one-use permission to apply this in-memory simulation."]
+#[doc = r" Dropping approval cancels it without running or consuming the review."]
 pub struct Approval<'a> {
     review: &'a mut ReviewedPlan,
 }
 
 impl Approval<'_> {
-    /// Revalidate immediately before running and applying deterministic effects.
-    ///
-    /// # Errors
-    /// A changed target refuses the whole run with no model mutation. Successful
-    /// execution consumes the review even when fixture steps fail partway.
+    #[doc = r" Revalidate immediately before running and applying deterministic effects."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" A changed target refuses the whole run with no model mutation. Successful"]
+    #[doc = r" execution consumes the review even when fixture steps fail partway."]
     pub fn execute(self, world: &mut World) -> Result<EffectReport, ApprovalError> {
         self.review.validate(world)?;
         let next_revision = world
             .effect_revision
             .checked_add(1)
             .ok_or(ApprovalError::RevisionExhausted)?;
-        // Simulate completion on a private candidate first. Invalid accounting
-        // never consumes the review or mutates the world.
+
         let mut completed = self.review.plan.clone();
         completed
             .run()
@@ -159,7 +158,7 @@ impl Approval<'_> {
     }
 }
 
-/// Executed mutation groups, including truthful partial failures.
+#[doc = r" Executed mutation groups, including truthful partial failures."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppliedStep {
     pub id: String,
@@ -176,7 +175,7 @@ pub struct EffectReport {
     pub skipped: usize,
 }
 
-/// Failure codes never contain typed confirmation text or target payloads.
+#[doc = r" Failure codes never contain typed confirmation text or target payloads."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ApprovalError {
     WrongPhrase,
@@ -199,9 +198,6 @@ impl std::fmt::Display for ApprovalError {
 }
 impl std::error::Error for ApprovalError {}
 
-// Only effect-relevant facts participate; discovery time and unrelated UI
-// activity cannot invalidate a review. Exact value comparison detects direct
-// fixture edits, while the revision detects intervening simulated commits.
 #[derive(PartialEq, Eq)]
 struct TargetSnapshot {
     host: (
@@ -248,7 +244,7 @@ impl TargetSnapshot {
     }
 }
 
-/// The plan behind a Broad action, if this world has one.
+#[doc = r" The plan behind a Broad action, if this world has one."]
 pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
     let plan = match action_id {
         "docker.cleanup" => docker_cleanup(w),
@@ -261,7 +257,7 @@ pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
     Some(ReviewedPlan::new(plan, w))
 }
 
-/// Apply only the mutations attached to the actual terminal step outcome.
+#[doc = r" Apply only the mutations attached to the actual terminal step outcome."]
 fn apply_effect(plan: &Plan, world: &mut World) {
     for step in plan.steps() {
         let effects = match step.state {
@@ -364,8 +360,8 @@ fn apply_effect(plan: &Plan, world: &mut World) {
     }
 }
 
-/// Complete Docker cleanup: inspection, the containers → images/volumes
-/// chain, builder cache and networks as parallel branches, verification.
+#[doc = r" Complete Docker cleanup: inspection, the containers → images/volumes"]
+#[doc = r" chain, builder cache and networks as parallel branches, verification."]
 #[expect(
     clippy::too_many_lines,
     reason = "The complete declarative Docker DAG remains contiguous for dependency and output review"
@@ -387,8 +383,7 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
         "containers",
         &[0],
     );
-    // fixture truth: payments-old still has a bind mount registered, so the
-    // removal fails partway — dependents (images, volumes) must propagate
+
     if exited.contains(&"payments-old") {
         let removed = d
             .containers
@@ -522,8 +517,8 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
     .ok()
 }
 
-/// Disk reclaim: one removal step per inactive/unknown candidate; artifacts
-/// in use today are policy-skipped and shown, never removed.
+#[doc = r" Disk reclaim: one removal step per inactive/unknown candidate; artifacts"]
+#[doc = r" in use today are policy-skipped and shown, never removed."]
 fn disk_reclaim(w: &World) -> Option<Plan> {
     let disk = w.disk.as_ref()?;
     disk.validate(&w.cwd).ok()?;
@@ -565,7 +560,7 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
             .required()
             .lines(&["df -h /", "free space recounted · next scan is honest"]),
     );
-    // reclaim excludes what policy keeps: active-today artifacts stay
+
     let reclaim: u64 = disk
         .candidates
         .iter()
@@ -587,8 +582,8 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
     .ok()
 }
 
-/// Upgrade everything on a Debian host: apt branch and mise branch in
-/// parallel, optional cleanup, final verification (CONCEPT §8.16).
+#[doc = r" Upgrade everything on a Debian host: apt branch and mise branch in"]
+#[doc = r" parallel, optional cleanup, final verification (CONCEPT §8.16)."]
 #[expect(
     clippy::too_many_lines,
     reason = "The complete declarative upgrade DAG remains contiguous for dependency and output review"
@@ -793,10 +788,10 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
     .ok()
 }
 
-/// Update every nested child repo: one fetch→checkout-primary→pull chain
-/// per child, all parallel off a shared preflight. The primary branch is
-/// resolved per child, never assumed; diverged children fail their pull and
-/// detached children are policy-skipped, shown, never touched.
+#[doc = r" Update every nested child repo: one fetch→checkout-primary→pull chain"]
+#[doc = r" per child, all parallel off a shared preflight. The primary branch is"]
+#[doc = r" resolved per child, never assumed; diverged children fail their pull and"]
+#[doc = r" detached children are policy-skipped, shown, never touched."]
 #[expect(
     clippy::too_many_lines,
     reason = "The per-child declarative Git DAG remains contiguous for dependency and policy review"
@@ -874,8 +869,7 @@ fn git_sync(w: &World) -> Option<Plan> {
             name,
             &[checkout_i],
         );
-        // A diverged child cannot fast-forward. Its whole chain is policy
-        // skipped to preserve the untouched promise; siblings remain independent.
+
         let pull = if c.diverged() {
             pull.fails_with(
                 &format!(
@@ -926,8 +920,8 @@ fn git_sync(w: &World) -> Option<Plan> {
     }).ok()
 }
 
-/// Restart one unhealthy service: inspect → restart → verify. On a
-/// production host this is Broad: two gates, typed phrase.
+#[doc = r" Restart one unhealthy service: inspect → restart → verify. On a"]
+#[doc = r" production host this is Broad: two gates, typed phrase."]
 fn restart_service(w: &World, name: &str) -> Option<Plan> {
     let d = w.docker.as_ref()?;
     d.validate().ok()?;
@@ -1027,7 +1021,7 @@ mod tests {
             p.plan().phrase(),
             "I UNDERSTAND: UPGRADE EVERYTHING ON devbox-deb"
         );
-        p.toggle(2).unwrap(); // exclude Apply upgrades
+        p.toggle(2).unwrap();
         assert!(
             p.plan().blocked_by_exclusion(3).is_some(),
             "autoremove blocked"

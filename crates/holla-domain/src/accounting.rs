@@ -1,4 +1,4 @@
-//! Checked fixture accounting shared by views, review and simulation effects.
+#![doc = r" Checked fixture accounting shared by views, review and simulation effects."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InventoryError {
     Overflow,

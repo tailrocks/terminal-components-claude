@@ -1,4 +1,4 @@
-//! CodeEditor and DiffView presentation, selections, completion/highlighting contracts and responsive diff modes.
+#![doc = r" CodeEditor and DiffView presentation, selections, completion/highlighting contracts and responsive diff modes."]
 
 pub(crate) use termrock_collections as scroll;
 pub(crate) use termrock_core as event;

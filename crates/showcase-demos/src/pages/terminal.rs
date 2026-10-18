@@ -1,4 +1,4 @@
-//! Terminal-style output with a scrollable viewport and a seven-step rail.
+#![doc = r" Terminal-style output with a scrollable viewport and a seven-step rail."]
 
 use core::fmt;
 use termrock::author::PaintStyle;
@@ -169,8 +169,8 @@ fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
     paint_narrow_adornments(ui, inner, [running, queued, time, primary]);
 }
 
-/// The page keeps terminal text and lifecycle data in app state; public
-/// controls retain ownership of scrolling, focus, and activation semantics.
+#[doc = r" The page keeps terminal text and lifecycle data in app state; public"]
+#[doc = r" controls retain ownership of scrolling, focus, and activation semantics."]
 #[derive(Debug)]
 pub struct TerminalPage {
     output: String,
@@ -248,8 +248,7 @@ impl Page for TerminalPage {
             self.reset(true);
         }
         response |= fail.erase();
-        // Both phases build the same panels and spinner (§13); the update pass
-        // only needs the construction to stay the single source of the props.
+
         let _ = output_panel();
         let _ = rail_panel(self.running);
         let _ = step_spinner();
@@ -279,8 +278,7 @@ impl Page for TerminalPage {
                         ..inner
                     };
                     step_rail().draw(ui, rail_area, &self.steps_state, &self.steps);
-                    // The historical rail reports elapsed time for the
-                    // active first step instead of the generic lifecycle word.
+
                     let _ = step_spinner().draw(
                         ui,
                         Rect {

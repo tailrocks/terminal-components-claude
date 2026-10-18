@@ -1,4 +1,4 @@
-//! Keyed collection rows, single selection and multi-selection.
+#![doc = r" Keyed collection rows, single selection and multi-selection."]
 
 use termrock::{
     Cx, EmptyState, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListAction, ListState,
@@ -189,8 +189,8 @@ fn single_list() -> List<
         .patch_part(LIST_GUTTER)
 }
 
-/// The one multi-selection list constructor (§13): both phase paths build the
-/// same keyed, patched, disabled-aware list and differ only in the row glyph.
+#[doc = r" The one multi-selection list constructor (§13): both phase paths build the"]
+#[doc = r" same keyed, patched, disabled-aware list and differ only in the row glyph."]
 fn multi_list_with(
     row: impl Fn(&FileRow, &mut RowUi<'_>),
 ) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
@@ -212,14 +212,14 @@ fn compact_multi_list()
     multi_list_with(compact_file_row)
 }
 
-/// The one empty-list constructor (§13): the update path drives it and the
-/// draw path renders it, so the empty state cannot drift between phases.
+#[doc = r" The one empty-list constructor (§13): the update path drives it and the"]
+#[doc = r" draw path renders it, so the empty state cannot drift between phases."]
 fn empty_list(title: &'static str) -> List<'static, &'static str> {
     List::new(EMPTY).empty(EmptyState::Empty { title, hint: None })
 }
 
-/// Two independent keyed list states; selecting a row never relies on its
-/// position after reconciliation.
+#[doc = r" Two independent keyed list states; selecting a row never relies on its"]
+#[doc = r" position after reconciliation."]
 #[derive(Debug, Default)]
 pub struct ListsPage {
     single: ListState,

@@ -1,12 +1,12 @@
-//! Action identity for dialogs, menus, forms and cell actions
-//! (`COMPONENT_ARCHITECTURE.md` §17.0 A4).
+#![doc = r" Action identity for dialogs, menus, forms and cell actions"]
+#![doc = r" (`COMPONENT_ARCHITECTURE.md` §17.0 A4)."]
 
 use crate::event::Chord;
 use crate::id::fnv1a;
 use crate::variant::Variant;
 
-/// A typed action identity, `const`-constructible so binding tables, key
-/// maps and dialog action rows can name it without allocation.
+#[doc = r" A typed action identity, `const`-constructible so binding tables, key"]
+#[doc = r" maps and dialog action rows can name it without allocation."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct ActionKey(u16);
 
@@ -15,7 +15,7 @@ macro_rules! action_keys {
         impl ActionKey {
             $( $(#[$m])* pub const $name: ActionKey = ActionKey($v); )*
 
-            /// The library name of an action key, or `None` for a custom key.
+            #[doc = r" The library name of an action key, or `None` for a custom key."]
             pub const fn name(self) -> Option<&'static str> {
                 match self {
                     $( ActionKey::$name => Some(stringify!($name)), )*
@@ -27,40 +27,40 @@ macro_rules! action_keys {
 }
 
 action_keys! {
-    /// Confirm / OK.
+    #[doc = r" Confirm / OK."]
     CONFIRM = 0,
-    /// Cancel.
+    #[doc = r" Cancel."]
     CANCEL = 1,
-    /// Close.
+    #[doc = r" Close."]
     CLOSE = 2,
-    /// Save.
+    #[doc = r" Save."]
     SAVE = 3,
-    /// Discard.
+    #[doc = r" Discard."]
     DISCARD = 4,
-    /// Retry.
+    #[doc = r" Retry."]
     RETRY = 5,
 }
 
 impl ActionKey {
-    /// An application-owned key in the middle range, isolated from component keys.
+    #[doc = r" An application-owned key in the middle range, isolated from component keys."]
     pub const fn application(name: &'static str) -> ActionKey {
         let h = fnv1a(0xcbf2_9ce4_8422_2325, name.as_bytes());
         ActionKey(0x4000 | ((h as u16) & 0x3FFF))
     }
 
-    /// A component-owned custom key; lands in the high range.
+    #[doc = r" A component-owned custom key; lands in the high range."]
     pub const fn custom(name: &'static str) -> ActionKey {
         let h = fnv1a(0xcbf2_9ce4_8422_2325, name.as_bytes());
         ActionKey(0x8000 | ((h as u16) & 0x7FFF))
     }
 
-    /// The raw key number.
+    #[doc = r" The raw key number."]
     pub const fn raw(self) -> u16 {
         self.0
     }
 }
 
-/// One action in a dialog or form action row.
+#[doc = r" One action in a dialog or form action row."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Action<'a> {
     key: ActionKey,
@@ -72,7 +72,7 @@ pub struct Action<'a> {
 }
 
 impl<'a> Action<'a> {
-    /// A default-variant action.
+    #[doc = r" A default-variant action."]
     pub const fn new(key: ActionKey, label: &'a str) -> Self {
         Action {
             key,
@@ -84,7 +84,7 @@ impl<'a> Action<'a> {
         }
     }
 
-    /// A destructive action.
+    #[doc = r" A destructive action."]
     pub const fn danger(key: ActionKey, label: &'a str) -> Self {
         Action {
             key,
@@ -96,7 +96,7 @@ impl<'a> Action<'a> {
         }
     }
 
-    /// A quiet (low-emphasis) action.
+    #[doc = r" A quiet (low-emphasis) action."]
     pub const fn quiet(key: ActionKey, label: &'a str) -> Self {
         Action {
             key,
@@ -108,46 +108,46 @@ impl<'a> Action<'a> {
         }
     }
 
-    /// Attach a chord that both renders as the hint and registers the binding.
+    #[doc = r" Attach a chord that both renders as the hint and registers the binding."]
     #[must_use]
     pub const fn chord(mut self, c: Chord) -> Self {
         self.chord = Some(c);
         self
     }
 
-    /// The §9.2 arming predicate, evaluated in `update`.
+    #[doc = r" The §9.2 arming predicate, evaluated in `update`."]
     #[must_use]
     pub const fn enabled(mut self, yes: bool) -> Self {
         self.enabled = yes;
         self
     }
 
-    /// The key.
+    #[doc = r" The key."]
     pub const fn key(&self) -> ActionKey {
         self.key
     }
 
-    /// The label.
+    #[doc = r" The label."]
     pub const fn label(&self) -> &'a str {
         self.label
     }
 
-    /// The variant.
+    #[doc = r" The variant."]
     pub const fn variant(&self) -> Variant {
         self.variant
     }
 
-    /// The chord, if any.
+    #[doc = r" The chord, if any."]
     pub const fn chord_ref(&self) -> Option<Chord> {
         self.chord
     }
 
-    /// Whether the action is armed.
+    #[doc = r" Whether the action is armed."]
     pub const fn is_enabled(&self) -> bool {
         self.enabled
     }
 
-    /// Whether the action is destructive.
+    #[doc = r" Whether the action is destructive."]
     pub const fn is_danger(&self) -> bool {
         self.danger
     }

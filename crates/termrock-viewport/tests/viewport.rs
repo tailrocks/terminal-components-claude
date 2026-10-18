@@ -1,4 +1,4 @@
-//! Current viewport and successfully published control geometry have distinct lifetimes.
+#![doc = r" Current viewport and successfully published control geometry have distinct lifetimes."]
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;

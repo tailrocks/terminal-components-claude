@@ -1,4 +1,4 @@
-//! Regression coverage for live and reference `StatusBar` hover state.
+#![doc = r" Regression coverage for live and reference `StatusBar` hover state."]
 
 use termrock::{
     App, Cx, Family, FrameRead, Id, ItemKey, KeyCode, MouseKind, Part, PartRef, ReferenceState,

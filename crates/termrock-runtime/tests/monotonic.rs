@@ -1,4 +1,4 @@
-//! Explicit monotonic time, deadline ordering and real terminal driver fixtures.
+#![doc = r" Explicit monotonic time, deadline ordering and real terminal driver fixtures."]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,

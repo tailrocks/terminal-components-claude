@@ -1,5 +1,5 @@
-//! `KeyHint` — the `key Action` pair (`COMPONENT_ARCHITECTURE.md` §18.2,
-//! Appendix A 4G).
+#![doc = r" `KeyHint` — the `key Action` pair (`COMPONENT_ARCHITECTURE.md` §18.2,"]
+#![doc = r" Appendix A 4G)."]
 
 use core::fmt::{self, Write as _};
 
@@ -15,18 +15,18 @@ use crate::text::width;
 use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::Ui;
 
-/// Bytes reserved for a rendered chord label. The longest chord the
-/// [`Chord`] `Display` can produce is `Ctrl+Alt+Shift+Backspace` (24 bytes);
-/// the arrow keys are three bytes each and far shorter.
+#[doc = r" Bytes reserved for a rendered chord label. The longest chord the"]
+#[doc = r" [`Chord`] `Display` can produce is `Ctrl+Alt+Shift+Backspace` (24 bytes);"]
+#[doc = r" the arrow keys are three bytes each and far shorter."]
 const CHORD_CAP: usize = 32;
 
-/// A [`Chord`]'s label rendered into a fixed stack buffer.
-///
-/// `Chord` is `Display`, but a component may not allocate once per frame per
-/// hint (§20.9-6, R5), and there is no `Ui::paint_fmt`. Writing into a fixed
-/// buffer keeps the hint bar allocation-free; a chord whose label does not
-/// fit keeps the prefix that does, which cannot split a `char` because only
-/// whole `write_str` fragments are appended.
+#[doc = r" A [`Chord`]'s label rendered into a fixed stack buffer."]
+#[doc = r""]
+#[doc = r" `Chord` is `Display`, but a component may not allocate once per frame per"]
+#[doc = r" hint (§20.9-6, R5), and there is no `Ui::paint_fmt`. Writing into a fixed"]
+#[doc = r" buffer keeps the hint bar allocation-free; a chord whose label does not"]
+#[doc = r" fit keeps the prefix that does, which cannot split a `char` because only"]
+#[doc = r" whole `write_str` fragments are appended."]
 #[derive(Clone, Copy, Debug)]
 pub struct ChordText {
     buf: [u8; CHORD_CAP],
@@ -34,7 +34,7 @@ pub struct ChordText {
 }
 
 impl ChordText {
-    /// Render `c`.
+    #[doc = r" Render `c`."]
     pub fn of(c: Chord) -> Self {
         Self::with_case(c, ChordCase::Preserve)
     }
@@ -49,12 +49,12 @@ impl ChordText {
             buf: [0; CHORD_CAP],
             len: 0,
         };
-        // `write!` on a `fmt::Write` that never errors cannot fail
+
         let _ = write!(t, "{c}");
         t
     }
 
-    /// The rendered label.
+    #[doc = r" The rendered label."]
     pub fn as_str(&self) -> &str {
         self.buf
             .get(..self.len)
@@ -67,7 +67,6 @@ impl fmt::Write for ChordText {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         let end = self.len.saturating_add(s.len());
         if end > CHORD_CAP {
-            // drop the fragment whole: a partial copy could split a `char`
             return Ok(());
         }
         if let Some(dst) = self.buf.get_mut(self.len..end) {
@@ -78,76 +77,76 @@ impl fmt::Write for ChordText {
     }
 }
 
-/// One `key Action` pair: the chord in the key tone, the label beside it.
-///
-/// ## Construction
-/// `KeyHint::new(id, chord, label)`; [`KeyHint::from_hint`] builds one from a
-/// [`Hint`] as the hint bar derives it from a component's bindings (§13.1).
-///
-/// ## Ownership
-/// Stateless. The caller owns nothing; the chord and label are borrowed or
-/// `Copy`. The runtime owns nothing for this component: it registers no
-/// region and no ring entry.
-///
-/// ## Configuration
-/// `.variant(Variant)` (default `Recipe.default_variant`), `.patch`,
-/// `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::KEYHINT`; `DEFAULT` only. A theme may define more.
-///
-/// ## States
-/// None. A key hint is chrome: it is never focused, hovered, pressed or
-/// disabled, and it derives nothing.
-///
-/// ## Actions
-/// None; `KeyHint` has no `update` phase.
-///
-/// ## Focus
-/// Never a focus stop; `Focusability` does not apply and `autofocus` does not
-/// exist.
-///
-/// ## Keyboard
-/// None. The chord it *renders* is bound by whichever component declared it;
-/// the hint never handles a key itself.
-///
-/// ## Mouse
-/// None; no `PartRef` is registered, so no pointer intent is delivered.
-///
-/// ## Layout
-/// `measure` returns `(chord + 1 + label, 1)`. `draw` uses the first row of
-/// `area`, clipped to that width, and returns the rect it painted; a
-/// degenerate rect paints nothing and returns it unchanged (R5).
-///
-/// ## Parts
-/// `KEY` (the chord), `ACTION` (the label).
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach `Part::KEY` and `Part::ACTION`.
-/// `.slot(p, …)` changes painted cells for exactly `Part::KEY` and
-/// `Part::ACTION` — every part `KeyHint` declares, so nothing is excluded,
-/// and there is no `CONTAINER` to exclude because a hint paints no fill of
-/// its own and sits on whatever surface its owner laid down. `ACTION` is
-/// painted, and therefore slot-addressable, only when the label is
-/// non-empty and the clipped row still has columns after the chord and its
-/// separating space; a hint built with an empty label paints no `ACTION`
-/// cell for a slot to replace.
-///
-/// ## Identity
-/// One `Id` per instance, used only to attribute style resolution and
-/// overrides; no items.
-///
-/// ## Testing
-/// `KeyHintCase` with no capabilities;
-/// `render::components::key_hint::{default, disabled, empty}`;
-/// `keyhint::a_slot_changes_painted_cells_for_exactly_key_and_action`, which
-/// asserts Invariant R (§45.3) in both directions — a named part that stops
-/// changing cells and an unnamed part that starts changing them each fail
-/// it.
-///
-/// ## Invariants
-/// Never allocates: the chord is rendered into a fixed stack buffer. Never
-/// writes outside `area`.
+#[doc = r" One `key Action` pair: the chord in the key tone, the label beside it."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `KeyHint::new(id, chord, label)`; [`KeyHint::from_hint`] builds one from a"]
+#[doc = r" [`Hint`] as the hint bar derives it from a component's bindings (§13.1)."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" Stateless. The caller owns nothing; the chord and label are borrowed or"]
+#[doc = r" `Copy`. The runtime owns nothing for this component: it registers no"]
+#[doc = r" region and no ring entry."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.variant(Variant)` (default `Recipe.default_variant`), `.patch`,"]
+#[doc = r" `.patch_part`, `.slot`."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::KEYHINT`; `DEFAULT` only. A theme may define more."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" None. A key hint is chrome: it is never focused, hovered, pressed or"]
+#[doc = r" disabled, and it derives nothing."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" None; `KeyHint` has no `update` phase."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" Never a focus stop; `Focusability` does not apply and `autofocus` does not"]
+#[doc = r" exist."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" None. The chord it *renders* is bound by whichever component declared it;"]
+#[doc = r" the hint never handles a key itself."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" None; no `PartRef` is registered, so no pointer intent is delivered."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" `measure` returns `(chord + 1 + label, 1)`. `draw` uses the first row of"]
+#[doc = r" `area`, clipped to that width, and returns the rect it painted; a"]
+#[doc = r" degenerate rect paints nothing and returns it unchanged (R5)."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `KEY` (the chord), `ACTION` (the label)."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch` and `.patch_part` reach `Part::KEY` and `Part::ACTION`."]
+#[doc = r" `.slot(p, …)` changes painted cells for exactly `Part::KEY` and"]
+#[doc = r" `Part::ACTION` — every part `KeyHint` declares, so nothing is excluded,"]
+#[doc = r" and there is no `CONTAINER` to exclude because a hint paints no fill of"]
+#[doc = r" its own and sits on whatever surface its owner laid down. `ACTION` is"]
+#[doc = r" painted, and therefore slot-addressable, only when the label is"]
+#[doc = r" non-empty and the clipped row still has columns after the chord and its"]
+#[doc = r" separating space; a hint built with an empty label paints no `ACTION`"]
+#[doc = r" cell for a slot to replace."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" One `Id` per instance, used only to attribute style resolution and"]
+#[doc = r" overrides; no items."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `KeyHintCase` with no capabilities;"]
+#[doc = r" `render::components::key_hint::{default, disabled, empty}`;"]
+#[doc = r" `keyhint::a_slot_changes_painted_cells_for_exactly_key_and_action`, which"]
+#[doc = r" asserts Invariant R (§45.3) in both directions — a named part that stops"]
+#[doc = r" changing cells and an unnamed part that starts changing them each fail"]
+#[doc = r" it."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" Never allocates: the chord is rendered into a fixed stack buffer. Never"]
+#[doc = r" writes outside `area`."]
 pub struct KeyHint<'a> {
     id: Id,
     key: HintKey,
@@ -191,11 +190,11 @@ impl fmt::Debug for KeyHint<'_> {
 }
 
 impl<'a> KeyHint<'a> {
-    /// The parts this component styles.
+    #[doc = r" The parts this component styles."]
     pub const PARTS: &'static [Part] = &[Part::KEY, Part::ACTION];
 
-    /// Override chord display casing without changing its physical identity.
-    /// Descriptive labels retain their literal text.
+    #[doc = r" Override chord display casing without changing its physical identity."]
+    #[doc = r" Descriptive labels retain their literal text."]
     #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
         self.key = match self.key {
@@ -207,7 +206,7 @@ impl<'a> KeyHint<'a> {
         self
     }
 
-    /// A hint showing `chord` and `label`.
+    #[doc = r" A hint showing `chord` and `label`."]
     pub const fn new(id: Id, chord: Chord, label: &'a str) -> Self {
         KeyHint {
             id,
@@ -218,7 +217,7 @@ impl<'a> KeyHint<'a> {
         }
     }
 
-    /// A descriptive keycap such as `Type`, with no associated routing chord.
+    #[doc = r" A descriptive keycap such as `Type`, with no associated routing chord."]
     pub const fn descriptive(id: Id, key: &'static str, label: &'a str) -> Self {
         KeyHint {
             id,
@@ -229,8 +228,8 @@ impl<'a> KeyHint<'a> {
         }
     }
 
-    /// The hint a [`Hint`] describes — the shape `HintBar` derives from a
-    /// component's visible bindings (§13.1).
+    #[doc = r" The hint a [`Hint`] describes — the shape `HintBar` derives from a"]
+    #[doc = r" component's visible bindings (§13.1)."]
     pub const fn from_hint(id: Id, h: &Hint) -> KeyHint<'static> {
         KeyHint {
             id,
@@ -241,33 +240,33 @@ impl<'a> KeyHint<'a> {
         }
     }
 
-    /// The id.
+    #[doc = r" The id."]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// Set the variant.
+    #[doc = r" Set the variant."]
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
         self.variant = v;
         self
     }
 
-    /// An instance patch over every part (precedence 6).
+    #[doc = r" An instance patch over every part (precedence 6)."]
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part patches.
+    #[doc = r" Per-part patches."]
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting; layout stays.
+    #[doc = r" Replace one part's painting; layout stays."]
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -278,7 +277,7 @@ impl<'a> KeyHint<'a> {
         HintText::of(self.key)
     }
 
-    /// The columns this hint occupies: the chord, one space, the label.
+    #[doc = r" The columns this hint occupies: the chord, one space, the label."]
     pub fn width(&self) -> u16 {
         let key = width(self.key_text().as_str());
         if self.label.is_empty() {
@@ -287,7 +286,7 @@ impl<'a> KeyHint<'a> {
         key.saturating_add(1).saturating_add(width(self.label))
     }
 
-    /// The draw phase; returns the rect painted.
+    #[doc = r" The draw phase; returns the rect painted."]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = Rect {
             width: self.width().min(area.width),
@@ -297,7 +296,7 @@ impl<'a> KeyHint<'a> {
         if area.is_empty() {
             return area;
         }
-        // neither half: a key hint is static chrome
+
         let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
         let ov = self.ov;
         let key_text = self.key_text();
@@ -330,7 +329,7 @@ impl<'a> KeyHint<'a> {
         area
     }
 
-    /// The natural size: one row, the chord plus the label.
+    #[doc = r" The natural size: one row, the chord plus the label."]
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.width(), 1).fit(c)
     }
@@ -351,9 +350,9 @@ mod tests {
     const HINT: Id = Id::root("keyhint.tests");
     const LABEL: &str = "Open";
 
-    /// Every part the slot sweep installs on, and whether `KeyHint` is
-    /// expected to honour it: the two parts it declares, then four it does
-    /// not, so the sweep can fail in either direction.
+    #[doc = r" Every part the slot sweep installs on, and whether `KeyHint` is"]
+    #[doc = r" expected to honour it: the two parts it declares, then four it does"]
+    #[doc = r" not, so the sweep can fail in either direction."]
     const SWEPT: &[(Part, bool)] = &[
         (Part::KEY, true),
         (Part::ACTION, true),
@@ -363,7 +362,7 @@ mod tests {
         (Part::MARKER, false),
     ];
 
-    /// One hint, optionally with one part replaced.
+    #[doc = r" One hint, optionally with one part replaced."]
     struct SlotPage(Option<Part>);
 
     impl App for SlotPage {
@@ -384,7 +383,7 @@ mod tests {
         }
     }
 
-    /// The cells one draw paints, with `slot` installed or with none.
+    #[doc = r" The cells one draw paints, with `slot` installed or with none."]
     fn painted(slot: Option<Part>) -> Buffer {
         let mut rt = Runtime::new(SlotPage(slot), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
@@ -392,11 +391,11 @@ mod tests {
         buf
     }
 
-    /// Invariant R (§45.3): the parts the `## Overrides` section names as
-    /// slot-addressable are **exactly** the parts for which installing
-    /// `.slot(p, …)` changes the painted cells. Asserted in both
-    /// directions, so a dropped `slot_for` consult and a slot honoured
-    /// without being named each fail.
+    #[doc = r" Invariant R (§45.3): the parts the `## Overrides` section names as"]
+    #[doc = r" slot-addressable are **exactly** the parts for which installing"]
+    #[doc = r" `.slot(p, …)` changes the painted cells. Asserted in both"]
+    #[doc = r" directions, so a dropped `slot_for` consult and a slot honoured"]
+    #[doc = r" without being named each fail."]
     #[test]
     fn a_slot_changes_painted_cells_for_exactly_key_and_action() {
         let plain = painted(None);
@@ -429,7 +428,7 @@ mod tests {
             "Ctrl+s"
         );
         assert_eq!(ChordText::of(Chord::key(KeyCode::Left)).as_str(), "←");
-        // the buffer never holds a partial `char`
+
         let long = ChordText::of(Chord::with(
             KeyCode::Backspace,
             KeyModifiers::CONTROL

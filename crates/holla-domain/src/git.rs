@@ -1,5 +1,5 @@
-//! git: one repository's truth. Dirty/ahead/behind/diverged/detached are all
-//! first-class; the primary branch is resolved per repo, never hard-coded.
+#![doc = r" git: one repository's truth. Dirty/ahead/behind/diverged/detached are all"]
+#![doc = r" first-class; the primary branch is resolved per repo, never hard-coded."]
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Worktree {
@@ -10,7 +10,7 @@ pub struct Worktree {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GitRepo {
     pub root: String,
-    /// `None` when detached; `detached_sha` then carries the commit.
+    #[doc = r" `None` when detached; `detached_sha` then carries the commit."]
     pub branch: Option<String>,
     pub detached_sha: Option<String>,
     pub upstream: Option<String>,
@@ -19,13 +19,13 @@ pub struct GitRepo {
     pub modified: u32,
     pub staged: u32,
     pub untracked: u32,
-    /// Resolved primary branch for THIS repo (`trunk`, `main`, …).
+    #[doc = r" Resolved primary branch for THIS repo (`trunk`, `main`, …)."]
     pub primary_branch: String,
     pub worktrees: Vec<Worktree>,
-    /// Submodules: children tracked by this repo.
+    #[doc = r" Submodules: children tracked by this repo."]
     pub submodules: Vec<String>,
-    /// Nested independent repositories that are NOT submodules — each a
-    /// full repo so bulk plans resolve per-child primary branches.
+    #[doc = r" Nested independent repositories that are NOT submodules — each a"]
+    #[doc = r" full repo so bulk plans resolve per-child primary branches."]
     pub children: Vec<GitRepo>,
 }
 
@@ -42,7 +42,7 @@ impl GitRepo {
         self.ahead > 0 && self.behind > 0
     }
 
-    /// Short truth for reasons: `3 commits behind`, `4 modified files`.
+    #[doc = r" Short truth for reasons: `3 commits behind`, `4 modified files`."]
     pub fn summary(&self) -> Vec<String> {
         let mut out = vec![];
         if self.detached() {

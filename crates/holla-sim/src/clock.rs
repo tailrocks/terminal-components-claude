@@ -1,19 +1,17 @@
-//! Fixture clock. The launcher never reads wall-clock time: every duration,
-//! timestamp, spinner frame and discovery step derives from virtual
-//! milliseconds that advance in fixed steps at admitted runtime deadlines, so a given
-//! `--scenario … --frame N` renders the same picture every time.
-
-// Timestamp formatting (`ago`, `stamp`, …) serves the P1 fixture world.
+#![doc = r" Fixture clock. The launcher never reads wall-clock time: every duration,"]
+#![doc = r" timestamp, spinner frame and discovery step derives from virtual"]
+#![doc = r" milliseconds that advance in fixed steps at admitted runtime deadlines, so a given"]
+#![doc = r" `--scenario … --frame N` renders the same picture every time."]
 #![allow(dead_code)]
 
-/// Fixed epoch for fixture timestamps: 2026-09-06 09:14:00 local (UTC+7).
+#[doc = r" Fixed epoch for fixture timestamps: 2026-09-06 09:14:00 local (UTC+7)."]
 pub const EPOCH_SECS: i64 = 1_788_660_840;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Clock {
-    /// Virtual milliseconds since the fixture epoch.
+    #[doc = r" Virtual milliseconds since the fixture epoch."]
     pub now_ms: i64,
-    /// Whether ticks advance at all (`--motion paused` freezes them).
+    #[doc = r" Whether ticks advance at all (`--motion paused` freezes them)."]
     pub running: bool,
 }
 
@@ -25,14 +23,14 @@ impl Clock {
         }
     }
 
-    /// Advance by one admitted, fixed simulation interval of `interval_ms`.
+    #[doc = r" Advance by one admitted, fixed simulation interval of `interval_ms`."]
     pub fn advance(&mut self, interval_ms: i64) {
         if self.running {
             self.now_ms = self.now_ms.saturating_add(interval_ms.max(0));
         }
     }
 
-    /// Seconds since the fixture epoch.
+    #[doc = r" Seconds since the fixture epoch."]
     #[expect(
         clippy::arithmetic_side_effects,
         reason = "Division by 1000 bounds every i64 clock value before adding the fixed epoch"
@@ -41,7 +39,7 @@ impl Clock {
         EPOCH_SECS + self.now_ms.div_euclid(1000)
     }
 
-    /// `HH:MM` for a fixture instant, local to the fixture zone (UTC+7).
+    #[doc = r" `HH:MM` for a fixture instant, local to the fixture zone (UTC+7)."]
     #[expect(
         clippy::arithmetic_side_effects,
         reason = "Widened i64 seconds plus a fixed timezone offset fit i128"
@@ -52,7 +50,7 @@ impl Clock {
         format!("{:02}:{:02}", day / 3600, (day % 3600) / 60)
     }
 
-    /// `2026-09-06 09:14` for a fixture instant.
+    #[doc = r" `2026-09-06 09:14` for a fixture instant."]
     #[expect(
         clippy::arithmetic_side_effects,
         reason = "Widened i64 seconds and the fixed timezone offset fit i128"
@@ -64,7 +62,7 @@ impl Clock {
         format!("{y:04}-{m:02}-{d:02} {}", Self::hhmm(secs))
     }
 
-    /// `9 s ago`, `3 min ago`, `2 h ago`, `yesterday`, `3 d ago`.
+    #[doc = r" `9 s ago`, `3 min ago`, `2 h ago`, `yesterday`, `3 d ago`."]
     #[expect(
         clippy::arithmetic_side_effects,
         reason = "The difference of two widened i64 timestamps fits i128"
@@ -87,7 +85,7 @@ impl Default for Clock {
     }
 }
 
-/// Howard Hinnant's days-to-civil algorithm.
+#[doc = r" Howard Hinnant's days-to-civil algorithm."]
 #[expect(
     clippy::arithmetic_side_effects,
     reason = "Private calendar algorithm receives only timezone-adjusted i64 seconds divided by 86400; all intermediates fit i128"
@@ -110,8 +108,8 @@ fn civil_from_days(days: i128) -> (i128, u32, u32) {
     (if month <= 2 { year + 1 } else { year }, month, day)
 }
 
-/// Human duration with spaced units: `38 s`, `3 min 2 s`, `2 h 14 min`,
-/// `1 d 2 h`. Two most significant units, never more.
+#[doc = r" Human duration with spaced units: `38 s`, `3 min 2 s`, `2 h 14 min`,"]
+#[doc = r" `1 d 2 h`. Two most significant units, never more."]
 pub fn format_duration(secs: u64) -> String {
     let d = secs / 86_400;
     let h = (secs % 86_400) / 3600;

@@ -1,10 +1,10 @@
-//! Cursor ownership (`COMPONENT_ARCHITECTURE.md` §8.4, §21 item 15).
-//!
-//! `ui.set_cursor(owner, pos)` records `(layer, owner, pos)`. The runtime
-//! keeps a top-layer write from the resolved cursor owner (focused by default,
-//! or an explicitly published fallback typing editor);
-//! otherwise it drops it and records `CursorRejected` — except for a write
-//! from a suppressed (inert) layer, which is discarded silently.
+#![doc = r" Cursor ownership (`COMPONENT_ARCHITECTURE.md` §8.4, §21 item 15)."]
+#![doc = r""]
+#![doc = r" `ui.set_cursor(owner, pos)` records `(layer, owner, pos)`. The runtime"]
+#![doc = r" keeps a top-layer write from the resolved cursor owner (focused by default,"]
+#![doc = r" or an explicitly published fallback typing editor);"]
+#![doc = r" otherwise it drops it and records `CursorRejected` — except for a write"]
+#![doc = r" from a suppressed (inert) layer, which is discarded silently."]
 
 use ratatui_core::layout::Position;
 
@@ -12,19 +12,19 @@ use crate::diagnostics::Diagnostic;
 use crate::id::Id;
 use crate::layer::LayerId;
 
-/// A cursor request made during draw.
+#[doc = r" A cursor request made during draw."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct CursorRequest {
     pub(crate) layer: LayerId,
     pub(crate) owner: Id,
     pub(crate) pos: Position,
-    /// The layer was inert (below an `inert_below` layer) when written.
+    #[doc = r" The layer was inert (below an `inert_below` layer) when written."]
     pub(crate) inert: bool,
-    /// Conditional caret for an explicitly declared typing candidate.
+    #[doc = r" Conditional caret for an explicitly declared typing candidate."]
     pub(crate) typing_offer: bool,
 }
 
-/// The outcome of resolving the frame's cursor requests.
+#[doc = r" The outcome of resolving the frame's cursor requests."]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum CursorDecision {
     Keep(Position),
@@ -32,7 +32,7 @@ pub(crate) enum CursorDecision {
     Silent,
 }
 
-/// Resolve one request against the top layer and the resolved cursor owner.
+#[doc = r" Resolve one request against the top layer and the resolved cursor owner."]
 pub(crate) fn resolve(req: CursorRequest, top: LayerId, focus: Option<Id>) -> CursorDecision {
     if req.inert {
         return CursorDecision::Silent;
@@ -47,7 +47,7 @@ pub(crate) fn resolve(req: CursorRequest, top: LayerId, focus: Option<Id>) -> Cu
     }
 }
 
-/// Resolve all requests after the complete frame determines cursor ownership.
+#[doc = r" Resolve all requests after the complete frame determines cursor ownership."]
 pub(crate) fn resolve_requests(
     requests: &[CursorRequest],
     top: LayerId,
@@ -126,7 +126,7 @@ mod tests {
                 layer: LayerId::PAGE
             })
         ));
-        // an inert lower layer is discarded silently (§21 item 15)
+
         assert_eq!(
             resolve(req(LayerId::PAGE, true), LayerId(1), Some(OWNER)),
             CursorDecision::Silent
@@ -149,11 +149,11 @@ mod tests {
         ));
     }
 
-    /// Two same-layer writers (two focusable text controls in one form) are
-    /// legitimate: §8.4 makes filtering the runtime's job, so components write
-    /// unconditionally. `Ui::set_cursor` must keep the **focused** owner's
-    /// write, not the first one drawn — otherwise `cursor::resolve` drops the
-    /// retained request and the frame ends with no cursor at all (BL-6).
+    #[doc = r" Two same-layer writers (two focusable text controls in one form) are"]
+    #[doc = r" legitimate: §8.4 makes filtering the runtime's job, so components write"]
+    #[doc = r" unconditionally. `Ui::set_cursor` must keep the **focused** owner's"]
+    #[doc = r" write, not the first one drawn — otherwise `cursor::resolve` drops the"]
+    #[doc = r" retained request and the frame ends with no cursor at all (BL-6)."]
     #[test]
     fn the_focused_owners_write_wins_on_the_same_layer() {
         use ratatui_core::buffer::Buffer;
@@ -178,7 +178,7 @@ mod tests {
             last.snapshot.focus = Some(focused);
             {
                 let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
-                // drawn in this order regardless of which one is focused
+
                 ui.set_cursor(FIRST, Position::new(1, 1));
                 ui.set_cursor(SECOND, Position::new(9, 2));
             }
@@ -198,7 +198,7 @@ mod tests {
                     Position::new(9, 2)
                 })
             );
-            // exactly one loser is diagnosed, and it is the other control
+
             let rejected: Vec<Id> = diagnostics
                 .iter()
                 .filter_map(|d| match d {

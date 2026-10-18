@@ -1,155 +1,155 @@
-//! Backend-neutral keyboard vocabulary. Values describe keys, never terminal I/O.
+#![doc = r" Backend-neutral keyboard vocabulary. Values describe keys, never terminal I/O."]
 
-/// A media control key.
+#[doc = r" A media control key."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MediaKeyCode {
-    /// Play key.
+    #[doc = r" Play key."]
     Play,
-    /// Pause key.
+    #[doc = r" Pause key."]
     Pause,
-    /// Play pause key.
+    #[doc = r" Play pause key."]
     PlayPause,
-    /// Reverse key.
+    #[doc = r" Reverse key."]
     Reverse,
-    /// Stop key.
+    #[doc = r" Stop key."]
     Stop,
-    /// Fast forward key.
+    #[doc = r" Fast forward key."]
     FastForward,
-    /// Rewind key.
+    #[doc = r" Rewind key."]
     Rewind,
-    /// Track next key.
+    #[doc = r" Track next key."]
     TrackNext,
-    /// Track previous key.
+    #[doc = r" Track previous key."]
     TrackPrevious,
-    /// Record key.
+    #[doc = r" Record key."]
     Record,
-    /// Lower volume key.
+    #[doc = r" Lower volume key."]
     LowerVolume,
-    /// Raise volume key.
+    #[doc = r" Raise volume key."]
     RaiseVolume,
-    /// Mute volume key.
+    #[doc = r" Mute volume key."]
     MuteVolume,
 }
 
-/// A modifier key pressed as a key in its own right.
+#[doc = r" A modifier key pressed as a key in its own right."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ModifierKeyCode {
-    /// Left shift key.
+    #[doc = r" Left shift key."]
     LeftShift,
-    /// Left control key.
+    #[doc = r" Left control key."]
     LeftControl,
-    /// Left alt key.
+    #[doc = r" Left alt key."]
     LeftAlt,
-    /// Left super key.
+    #[doc = r" Left super key."]
     LeftSuper,
-    /// Left hyper key.
+    #[doc = r" Left hyper key."]
     LeftHyper,
-    /// Left meta key.
+    #[doc = r" Left meta key."]
     LeftMeta,
-    /// Right shift key.
+    #[doc = r" Right shift key."]
     RightShift,
-    /// Right control key.
+    #[doc = r" Right control key."]
     RightControl,
-    /// Right alt key.
+    #[doc = r" Right alt key."]
     RightAlt,
-    /// Right super key.
+    #[doc = r" Right super key."]
     RightSuper,
-    /// Right hyper key.
+    #[doc = r" Right hyper key."]
     RightHyper,
-    /// Right meta key.
+    #[doc = r" Right meta key."]
     RightMeta,
-    /// Iso level3 shift key.
+    #[doc = r" Iso level3 shift key."]
     IsoLevel3Shift,
-    /// Iso level5 shift key.
+    #[doc = r" Iso level5 shift key."]
     IsoLevel5Shift,
 }
 
-/// A keyboard key, independent of the terminal backend.
+#[doc = r" A keyboard key, independent of the terminal backend."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum KeyCode {
-    /// Backspace key.
+    #[doc = r" Backspace key."]
     Backspace,
-    /// Enter key.
+    #[doc = r" Enter key."]
     Enter,
-    /// Left key.
+    #[doc = r" Left key."]
     Left,
-    /// Right key.
+    #[doc = r" Right key."]
     Right,
-    /// Up key.
+    #[doc = r" Up key."]
     Up,
-    /// Down key.
+    #[doc = r" Down key."]
     Down,
-    /// Home key.
+    #[doc = r" Home key."]
     Home,
-    /// End key.
+    #[doc = r" End key."]
     End,
-    /// Page up key.
+    #[doc = r" Page up key."]
     PageUp,
-    /// Page down key.
+    #[doc = r" Page down key."]
     PageDown,
-    /// Tab key.
+    #[doc = r" Tab key."]
     Tab,
-    /// Back tab key.
+    #[doc = r" Back tab key."]
     BackTab,
-    /// Delete key.
+    #[doc = r" Delete key."]
     Delete,
-    /// Insert key.
+    #[doc = r" Insert key."]
     Insert,
-    /// Null key.
+    #[doc = r" Null key."]
     Null,
-    /// Esc key.
+    #[doc = r" Esc key."]
     Esc,
-    /// Caps lock key.
+    #[doc = r" Caps lock key."]
     CapsLock,
-    /// Scroll lock key.
+    #[doc = r" Scroll lock key."]
     ScrollLock,
-    /// Num lock key.
+    #[doc = r" Num lock key."]
     NumLock,
-    /// Print screen key.
+    #[doc = r" Print screen key."]
     PrintScreen,
-    /// Pause key.
+    #[doc = r" Pause key."]
     Pause,
-    /// Menu key.
+    #[doc = r" Menu key."]
     Menu,
-    /// Keypad begin key.
+    #[doc = r" Keypad begin key."]
     KeypadBegin,
-    /// Function key number.
+    #[doc = r" Function key number."]
     F(u8),
-    /// Unicode character.
+    #[doc = r" Unicode character."]
     Char(char),
-    /// Media control.
+    #[doc = r" Media control."]
     Media(MediaKeyCode),
-    /// Physical modifier key.
+    #[doc = r" Physical modifier key."]
     Modifier(ModifierKeyCode),
 }
 
 bitflags::bitflags! {
-    /// Keyboard modifiers held during a key or pointer event.
+    #[doc = r" Keyboard modifiers held during a key or pointer event."]
     #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct KeyModifiers: u8 {
-        /// Shift modifier.
+        #[doc = r" Shift modifier."]
         const SHIFT = 1;
-        /// Control modifier.
+        #[doc = r" Control modifier."]
         const CONTROL = 2;
-        /// Alt modifier.
+        #[doc = r" Alt modifier."]
         const ALT = 4;
-        /// Super modifier.
+        #[doc = r" Super modifier."]
         const SUPER = 8;
-        /// Hyper modifier.
+        #[doc = r" Hyper modifier."]
         const HYPER = 16;
-        /// Meta modifier.
+        #[doc = r" Meta modifier."]
         const META = 32;
-        /// No modifiers.
+        #[doc = r" No modifiers."]
         const NONE = 0;
     }
 }
 
-/// The phase in which an application chord is matched (§3.3 steps 2 and 8).
+#[doc = r" The phase in which an application chord is matched (§3.3 steps 2 and 8)."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum KeyPhase {
-    /// Before dispatch; a bare `Char` chord is skipped while the focused
-    /// control or an admitted fallback editor swallows typing.
+    #[doc = r" Before dispatch; a bare `Char` chord is skipped while the focused"]
+    #[doc = r" control or an admitted fallback editor swallows typing."]
     Capture,
-    /// After dispatch, for keys no component consumed.
+    #[doc = r" After dispatch, for keys no component consumed."]
     Bubble,
 }

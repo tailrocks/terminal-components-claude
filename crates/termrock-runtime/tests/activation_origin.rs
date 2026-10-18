@@ -1,4 +1,4 @@
-//! A narrow physical activation-key origin exists only in its admitted event passes.
+#![doc = r" A narrow physical activation-key origin exists only in its admitted event passes."]
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};

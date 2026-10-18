@@ -1,4 +1,4 @@
-//! Visual digest matrix for the migrated showcase shell.
+#![doc = r" Visual digest matrix for the migrated showcase shell."]
 use showcase_ui::{App, PageId};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;
@@ -16,8 +16,8 @@ const COLORS: [ColorLevel; 4] = [
     ColorLevel::Mono,
 ];
 
-/// Keep the legacy test name while covering every page in the full visual
-/// matrix: four supported sizes, four terminal colour levels, and both themes.
+#[doc = r" Keep the legacy test name while covering every page in the full visual"]
+#[doc = r" matrix: four supported sizes, four terminal colour levels, and both themes."]
 #[test]
 fn showcase_visual_baseline() {
     for page in PageId::ALL {

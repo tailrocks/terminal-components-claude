@@ -1,5 +1,5 @@
-//! Multi-column key-reference overlay (`COMPONENT_ARCHITECTURE.md` §14.2
-//! J5, §18.3 #18, Appendix A 4F).
+#![doc = r" Multi-column key-reference overlay (`COMPONENT_ARCHITECTURE.md` §14.2"]
+#![doc = r" J5, §18.3 #18, Appendix A 4F)."]
 
 use core::fmt;
 
@@ -20,8 +20,8 @@ use crate::ui::{Cx, FrameRead, Ui};
 use termrock_feedback::keyhint::HintText;
 use termrock_runtime::scroll_region::ScrollRegion;
 
-/// One titled group, borrowing the same derived binding metadata a
-/// [`termrock_feedback::HintBar`] consumes.
+#[doc = r" One titled group, borrowing the same derived binding metadata a"]
+#[doc = r" [`termrock_feedback::HintBar`] consumes."]
 #[derive(Clone, Copy, Debug)]
 pub struct HelpSection<'a> {
     title: &'a str,
@@ -29,17 +29,17 @@ pub struct HelpSection<'a> {
 }
 
 impl<'a> HelpSection<'a> {
-    /// A section over a [`HintLayer::from_bindings`] result.
+    #[doc = r" A section over a [`HintLayer::from_bindings`] result."]
     pub const fn new(title: &'a str, layer: &'a HintLayer) -> Self {
         HelpSection { title, layer }
     }
 
-    /// Heading.
+    #[doc = r" Heading."]
     pub const fn title(&self) -> &'a str {
         self.title
     }
 
-    /// Derived key bindings.
+    #[doc = r" Derived key bindings."]
     pub const fn layer(&self) -> &'a HintLayer {
         self.layer
     }
@@ -49,38 +49,38 @@ impl<'a> HelpSection<'a> {
     }
 }
 
-/// Durable help viewport state.
+#[doc = r" Durable help viewport state."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct HelpOverlayState {
     scroll: ScrollState,
 }
 
 impl HelpOverlayState {
-    /// Scroll position.
+    #[doc = r" Scroll position."]
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
 }
 
-/// Help-overlay output.
+#[doc = r" Help-overlay output."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum HelpAction {
-    /// Overlay closed by its close key or the layer policy.
+    #[doc = r" Overlay closed by its close key or the layer policy."]
     Closed(DismissReason),
 }
 
-/// Help navigation commands.
+#[doc = r" Help navigation commands."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum HelpCmd {
-    /// One row up.
+    #[doc = r" One row up."]
     Prev,
-    /// One row down.
+    #[doc = r" One row down."]
     Next,
-    /// One page up.
+    #[doc = r" One page up."]
     PageUp,
-    /// One page down.
+    #[doc = r" One page down."]
     PageDown,
-    /// Close the overlay.
+    #[doc = r" Close the overlay."]
     Close,
 }
 
@@ -167,64 +167,64 @@ const BINDINGS: &[Binding<HelpCmd>] = &[
     ),
 ];
 
-/// Scrollable key reference. Sections are assigned round-robin across one
-/// to three 36-cell columns, preserving each section as one block.
-///
-/// ## Construction
-/// Build [`HintLayer`]s from component binding tables, wrap them in
-/// [`HelpSection`]s, then call `HelpOverlay::new(id, scope, sections)`.
-/// Open [`HelpOverlay::layer`] and draw inside `ui.layer(id, ...)`.
-///
-/// ## Ownership
-/// Caller owns derived binding layers, sections and [`HelpOverlayState`].
-/// Runtime owns modal lifecycle, focus trap, backdrop and pointer barrier.
-///
-/// ## Configuration
-/// `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::HELP`, `Variant::DEFAULT`.
-///
-/// ## States
-/// Modal border wears `FOCUSED`; runtime hover/press do not change reference
-/// rows because they are decorative.
-///
-/// ## Actions
-/// [`HelpAction::Closed`] reports close-key and layer dismissal reasons.
-///
-/// ## Focus
-/// One focusable modal stop, trapped by the runtime's modal scope.
-///
-/// ## Keyboard
-/// Up/down (`k`/`j`), PageUp/PageDown; `?`, `q`, Enter close. Esc belongs to
-/// layer dismissal policy.
-///
-/// ## Mouse
-/// Wheel and scrollbar intents route through [`ScrollRegion`]. Reference
-/// rows are decorative.
-///
-/// ## Layout
-/// Modal requests wide-dialog width. Resolved body chooses 1–3 columns at
-/// 36 cells and assigns whole sections round-robin. All columns share one
-/// vertical scroll offset.
-///
-/// ## Parts
-/// `CONTAINER`, `BORDER`, `TITLE`, `DETAIL` (scope), `HEADER`, `KEY`,
-/// `ACTION`, `TRACK`, `THUMB`.
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach every part. Slots reach text, border and
-/// scrollbar chrome; `CONTAINER` remains the owned surface fill.
-///
-/// ## Identity
-/// One overlay `Id`; reference rows are facts, not actionable keyed items.
-///
-/// ## Testing
-/// `HelpOverlayCase`; `render::components::help_overlay::*`.
-///
-/// ## Invariants
-/// Help and hint bar consume the same derived [`HintLayer`] metadata.
-/// Sections never split between columns. Sizing is asserted from update.
+#[doc = r" Scrollable key reference. Sections are assigned round-robin across one"]
+#[doc = r" to three 36-cell columns, preserving each section as one block."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" Build [`HintLayer`]s from component binding tables, wrap them in"]
+#[doc = r" [`HelpSection`]s, then call `HelpOverlay::new(id, scope, sections)`."]
+#[doc = r" Open [`HelpOverlay::layer`] and draw inside `ui.layer(id, ...)`."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" Caller owns derived binding layers, sections and [`HelpOverlayState`]."]
+#[doc = r" Runtime owns modal lifecycle, focus trap, backdrop and pointer barrier."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.patch`, `.patch_part`, `.slot`."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::HELP`, `Variant::DEFAULT`."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" Modal border wears `FOCUSED`; runtime hover/press do not change reference"]
+#[doc = r" rows because they are decorative."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" [`HelpAction::Closed`] reports close-key and layer dismissal reasons."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" One focusable modal stop, trapped by the runtime's modal scope."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" Up/down (`k`/`j`), PageUp/PageDown; `?`, `q`, Enter close. Esc belongs to"]
+#[doc = r" layer dismissal policy."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" Wheel and scrollbar intents route through [`ScrollRegion`]. Reference"]
+#[doc = r" rows are decorative."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" Modal requests wide-dialog width. Resolved body chooses 1–3 columns at"]
+#[doc = r" 36 cells and assigns whole sections round-robin. All columns share one"]
+#[doc = r" vertical scroll offset."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `CONTAINER`, `BORDER`, `TITLE`, `DETAIL` (scope), `HEADER`, `KEY`,"]
+#[doc = r" `ACTION`, `TRACK`, `THUMB`."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch` and `.patch_part` reach every part. Slots reach text, border and"]
+#[doc = r" scrollbar chrome; `CONTAINER` remains the owned surface fill."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" One overlay `Id`; reference rows are facts, not actionable keyed items."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `HelpOverlayCase`; `render::components::help_overlay::*`."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" Help and hint bar consume the same derived [`HintLayer`] metadata."]
+#[doc = r" Sections never split between columns. Sizing is asserted from update."]
 pub struct HelpOverlay<'a> {
     id: Id,
     scope: &'a str,
@@ -245,13 +245,13 @@ impl fmt::Debug for HelpOverlay<'_> {
 }
 
 impl<'a> HelpOverlay<'a> {
-    /// Natural column width and maximum column count from the accepted
-    /// migrated control.
+    #[doc = r" Natural column width and maximum column count from the accepted"]
+    #[doc = r" migrated control."]
     pub const COLUMN_WIDTH: u16 = 36;
-    /// Maximum parallel columns.
+    #[doc = r" Maximum parallel columns."]
     pub const MAX_COLUMNS: usize = 3;
 
-    /// Styled parts.
+    #[doc = r" Styled parts."]
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BORDER,
@@ -264,7 +264,7 @@ impl<'a> HelpOverlay<'a> {
         Part::THUMB,
     ];
 
-    /// A scoped key reference over derived binding layers.
+    #[doc = r" A scoped key reference over derived binding layers."]
     pub const fn new(id: Id, scope: &'a str, sections: &'a [HelpSection<'a>]) -> Self {
         HelpOverlay {
             id,
@@ -276,7 +276,7 @@ impl<'a> HelpOverlay<'a> {
         }
     }
 
-    /// Instance patch.
+    #[doc = r" Instance patch."]
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
@@ -284,7 +284,7 @@ impl<'a> HelpOverlay<'a> {
         self
     }
 
-    /// Per-part patches.
+    #[doc = r" Per-part patches."]
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.parts = patches;
@@ -292,14 +292,14 @@ impl<'a> HelpOverlay<'a> {
         self
     }
 
-    /// Replace one paintable part.
+    #[doc = r" Replace one paintable part."]
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
         self
     }
 
-    /// Fixed request supplied to the one layer resolver.
+    #[doc = r" Fixed request supplied to the one layer resolver."]
     pub fn measured_size(&self, cx: &Cx<'_>) -> LayerSize {
         let d = cx.design();
         let cols = columns_for(d.size.dialog_width_wide.saturating_sub(2));
@@ -311,7 +311,7 @@ impl<'a> HelpOverlay<'a> {
         )
     }
 
-    /// Modal layer spec; the runtime owns centring, backdrop, trap and Esc.
+    #[doc = r" Modal layer spec; the runtime owns centring, backdrop, trap and Esc."]
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         LayerSpec::modal(self.id).size(self.measured_size(cx))
     }
@@ -330,7 +330,7 @@ impl<'a> HelpOverlay<'a> {
             .unwrap_or(0)
     }
 
-    /// Re-assert size, update scroll, then drain navigation/lifecycle input.
+    #[doc = r" Re-assert size, update scroll, then drain navigation/lifecycle input."]
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut HelpOverlayState) -> Response<HelpAction> {
         if cx.is_open(self.id) {
             cx.resize_layer(self.id, self.measured_size(cx));
@@ -374,7 +374,7 @@ impl<'a> HelpOverlay<'a> {
         acc.finish(self.id)
     }
 
-    /// Paint resolved layer content.
+    #[doc = r" Paint resolved layer content."]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &HelpOverlayState) -> Rect {
         if area.is_empty() {
             return area;
@@ -564,7 +564,7 @@ impl<'a> HelpOverlay<'a> {
         ui.register_decor(self.id, PartRef::of(part), row);
     }
 
-    /// Preferred modal size.
+    #[doc = r" Preferred modal size."]
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let width = ui.design().size.dialog_width_wide;
         let columns = columns_for(width.saturating_sub(2));

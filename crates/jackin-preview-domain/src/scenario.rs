@@ -1,30 +1,30 @@
-//! Deterministic scenario contract: which fixture world the preview starts
-//! in, how motion behaves, and which tick a paused capture shows.
+#![doc = r" Deterministic scenario contract: which fixture world the preview starts"]
+#![doc = r" in, how motion behaves, and which tick a paused capture shows."]
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Deterministic fixture world and journey selected by the preview.
+#[doc = r" Deterministic fixture world and journey selected by the preview."]
 pub enum Scenario {
-    /// Zero instances, no saved Workspaces, no accounts: intro then an
-    /// empty manager.
+    #[doc = r" Zero instances, no saved Workspaces, no accounts: intro then an"]
+    #[doc = r" empty manager."]
     FirstUse,
-    /// An instance is already running: no intro, populated manager.
+    #[doc = r" An instance is already running: no intro, populated manager."]
     Returning,
-    /// Several providers, several accounts, mixed health.
+    #[doc = r" Several providers, several accounts, mixed health."]
     AccountsMixed,
-    /// Straight into an active launch cockpit.
+    #[doc = r" Straight into an active launch cockpit."]
     LaunchRunning,
-    /// A launch that fails at a stage.
+    #[doc = r" A launch that fails at a stage."]
     LaunchFailure,
-    /// Attached Capsule with several tabs and nested panes.
+    #[doc = r" Attached Capsule with several tabs and nested panes."]
     CapsuleMulti,
-    /// Attached to the last running instance; exiting plays the outro.
+    #[doc = r" Attached to the last running instance; exiting plays the outro."]
     OutroLast,
-    /// Long labels, missing daemon data, discovery failure, many rows.
+    #[doc = r" Long labels, missing daemon data, discovery failure, many rows."]
     HardCases,
 }
 
 impl Scenario {
-    /// All scenarios in their stable CLI/display order.
+    #[doc = r" All scenarios in their stable CLI/display order."]
     pub const ALL: [Scenario; 8] = [
         Scenario::FirstUse,
         Scenario::Returning,
@@ -36,7 +36,7 @@ impl Scenario {
         Scenario::HardCases,
     ];
 
-    /// Return the stable CLI name for this scenario.
+    #[doc = r" Return the stable CLI name for this scenario."]
     pub fn name(self) -> &'static str {
         match self {
             Scenario::FirstUse => "first-use",
@@ -50,26 +50,26 @@ impl Scenario {
         }
     }
 
-    /// Parse a stable CLI scenario name.
+    #[doc = r" Parse a stable CLI scenario name."]
     pub fn from_name(s: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|sc| sc.name() == s)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-/// Deterministic animation policy for a preview scenario.
+#[doc = r" Deterministic animation policy for a preview scenario."]
 pub enum Motion {
-    /// Tick-driven rituals and atmosphere.
+    #[doc = r" Tick-driven rituals and atmosphere."]
     #[default]
     Full,
-    /// One static meaningful boundary frame, then an immediate transition.
+    #[doc = r" One static meaningful boundary frame, then an immediate transition."]
     Reduced,
-    /// Ticks never advance; `--frame` selects the exact frame shown.
+    #[doc = r" Ticks never advance; `--frame` selects the exact frame shown."]
     Paused,
 }
 
 impl Motion {
-    /// Parse a stable CLI motion name.
+    #[doc = r" Parse a stable CLI motion name."]
     pub fn from_name(s: &str) -> Option<Self> {
         match s {
             "full" => Some(Motion::Full),
@@ -79,8 +79,8 @@ impl Motion {
         }
     }
 
-    /// Explicit CLI motion wins; otherwise `JACKIN_NO_MOTION` selects the
-    /// reduced path.
+    #[doc = r" Explicit CLI motion wins; otherwise `JACKIN_NO_MOTION` selects the"]
+    #[doc = r" reduced path."]
     pub fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
         match cli {
             Some(m) => m,

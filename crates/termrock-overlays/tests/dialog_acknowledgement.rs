@@ -1,4 +1,4 @@
-//! Acknowledgement is exact current input, never a stale committed value.
+#![doc = r" Acknowledgement is exact current input, never a stale committed value."]
 use termrock_core::action::ActionKey;
 use termrock_core::event::KeyCode;
 use termrock_core::id::Id;
@@ -104,7 +104,7 @@ fn changing_committed_acknowledgement_disarms_confirmation() {
     let _ = h.type_str(TOKEN);
     let _ = h.key(KeyCode::Enter);
     assert_eq!(h.app().confirmations, 0);
-    let _ = h.click_id(dialog().input_id()); // Re-enter the committed value after action focus.
+    let _ = h.click_id(dialog().input_id());
     assert!(h.app().state.is_editing());
     let _ = h.type_str("x");
     let _ = h.click_id(dialog().action_id(1));

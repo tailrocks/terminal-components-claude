@@ -1,4 +1,4 @@
-//! Three independent scroll surfaces: prose, a long list, and a following log.
+#![doc = r" Three independent scroll surfaces: prose, a long list, and a following log."]
 
 use termrock::{
     Cx, FrameRead, Id, Panel, Rect, Response, ScrollRegion, ScrollState, StateFlags, TextViewport,
@@ -61,8 +61,8 @@ fn position_label(state: &ViewportState) -> String {
     )
 }
 
-/// The three pane cards are built once each (§13): update builds the same
-/// props the draw pass renders, with the live scroll label passed in.
+#[doc = r" The three pane cards are built once each (§13): update builds the same"]
+#[doc = r" props the draw pass renders, with the live scroll label passed in."]
 fn prose_panel(meta: &str) -> Panel<'_> {
     Panel::new(PROSE_PANEL).title("Wrapped text").meta(meta)
 }
@@ -75,8 +75,8 @@ fn log_panel(meta: &str) -> Panel<'_> {
     Panel::new(LOG_PANEL).title("Log").meta(meta)
 }
 
-/// One raw `ScrollRegion` under the three viewports: the caller paints the
-/// content rows itself and the component owns only the scrollbar.
+#[doc = r" One raw `ScrollRegion` under the three viewports: the caller paints the"]
+#[doc = r" content rows itself and the component owns only the scrollbar."]
 fn region() -> ScrollRegion<'static> {
     ScrollRegion::new(REGION)
 }
@@ -128,8 +128,8 @@ fn columns(area: Rect) -> [Rect; 3] {
     ]
 }
 
-/// Each viewport receives its own state and source projection. No scroll
-/// state is shared across the three panes.
+#[doc = r" Each viewport receives its own state and source projection. No scroll"]
+#[doc = r" state is shared across the three panes."]
 #[derive(Debug)]
 pub struct ScrollingPage {
     prose: Vec<ViewportLine<'static>>,
@@ -159,7 +159,7 @@ impl ScrollingPage {
         Self {
             prose,
             list: list_lines(),
-            // The capture starts at the historical follow-tail window.
+
             log: log_lines(409),
             region: region_lines(),
             prose_state,
@@ -223,7 +223,7 @@ impl Page for ScrollingPage {
         if self.region_state.offset() != region_offset {
             self.last = "region scrolled";
         }
-        // The update pass builds the same four pane cards draw will render (§13).
+
         let log_meta = position_label(&self.log_state);
         let _ = prose_panel(&position_label(&self.prose_state));
         let _ = list_panel(&position_label(&self.list_state));
@@ -334,8 +334,8 @@ impl Page for ScrollingPage {
 }
 
 impl ScrollingPage {
-    /// The raw region's rows are caller-painted: the component returns the
-    /// content rect and the page walks the visible range inside it.
+    #[doc = r" The raw region's rows are caller-painted: the component returns the"]
+    #[doc = r" content rect and the page walks the visible range inside it."]
     fn draw_region(&self, ui: &mut Ui<'_>, inner: Rect) {
         let content = region().draw(ui, inner, &self.region_state, REGION_LEN);
         let view = ScrollRegion::view(&self.region_state, content, REGION_LEN);

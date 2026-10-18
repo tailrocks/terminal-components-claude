@@ -1,17 +1,17 @@
-//! Observer IPC message types (`tc-proof-observer-request/v1`, `tc-proof-observation/v1`).
+#![doc = r" Observer IPC message types (`tc-proof-observer-request/v1`, `tc-proof-observation/v1`)."]
 
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-/// Fixed verify-phase step order enforced by the planner observer.
+#[doc = r" Fixed verify-phase step order enforced by the planner observer."]
 pub(super) const OBSERVER_STEP_ORDER: [ObserverStep; 3] = [
     ObserverStep::Build,
     ObserverStep::Test,
     ObserverStep::Taskfmt,
 ];
 
-/// Environment keys supplied by the observer to the host process only.
+#[doc = r" Environment keys supplied by the observer to the host process only."]
 pub struct ObserverEnv;
 
 impl ObserverEnv {
@@ -20,7 +20,7 @@ impl ObserverEnv {
     pub const NONCE: &'static str = "TC_PROOF_OBSERVER_NONCE";
 }
 
-/// Host-to-observer execution step.
+#[doc = r" Host-to-observer execution step."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ObserverStep {
@@ -45,7 +45,7 @@ pub enum ObserverRequestSchema {
     V1,
 }
 
-/// Newline-terminated host request (max 4096 bytes including newline).
+#[doc = r" Newline-terminated host request (max 4096 bytes including newline)."]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObserverRequest {
     pub schema: ObserverRequestSchema,
@@ -62,7 +62,7 @@ pub enum ObserverResponse {
     Error(ObserverError),
 }
 
-/// Independently captured process evidence returned by the observer.
+#[doc = r" Independently captured process evidence returned by the observer."]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObserverObservation {
     pub step: ObserverStep,
@@ -74,7 +74,7 @@ pub struct ObserverObservation {
     pub files: BTreeMap<String, String>,
 }
 
-/// Protocol violation reported instead of fabricated success.
+#[doc = r" Protocol violation reported instead of fabricated success."]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObserverError {
     pub error: String,

@@ -1,5 +1,5 @@
-//! `Props` — a two-column label / value list (`COMPONENT_ARCHITECTURE.md`
-//! §12.4, §17.0 A7).
+#![doc = r" `Props` — a two-column label / value list (`COMPONENT_ARCHITECTURE.md`"]
+#![doc = r" §12.4, §17.0 A7)."]
 
 use core::fmt;
 
@@ -23,16 +23,16 @@ use ratatui_core::layout::Rect;
 use termrock_collections::collection::{Reconcile, Reconciliation};
 use termrock_runtime::rowui::CellUi;
 
-/// A borrowed value displayed by an interactive property row.
-///
-/// `Secret` values are rendered through [`Secret::write_mask`] and can never
-/// become a [`PropsAction::Copy`] action. The component does not clone or
-/// expose either value variant.
+#[doc = r" A borrowed value displayed by an interactive property row."]
+#[doc = r""]
+#[doc = r" `Secret` values are rendered through [`Secret::write_mask`] and can never"]
+#[doc = r" become a [`PropsAction::Copy`] action. The component does not clone or"]
+#[doc = r" expose either value variant."]
 #[derive(Clone, Copy)]
 pub enum PropsValue<'a> {
-    /// Ordinary borrowed text.
+    #[doc = r" Ordinary borrowed text."]
     Text(&'a str),
-    /// A borrowed secret, rendered as a mask with a synthetic tail.
+    #[doc = r" A borrowed secret, rendered as a mask with a synthetic tail."]
     Secret(&'a Secret),
 }
 
@@ -58,12 +58,12 @@ impl PartialEq for PropsValue<'_> {
 impl Eq for PropsValue<'_> {}
 
 impl<'a> PropsValue<'a> {
-    /// Whether this value is secret and therefore masked and non-copyable.
+    #[doc = r" Whether this value is secret and therefore masked and non-copyable."]
     pub const fn is_secret(self) -> bool {
         matches!(self, PropsValue::Secret(_))
     }
 
-    /// The plain text, if this is not a secret value.
+    #[doc = r" The plain text, if this is not a secret value."]
     pub const fn text(self) -> Option<&'a str> {
         match self {
             PropsValue::Text(value) => Some(value),
@@ -72,39 +72,39 @@ impl<'a> PropsValue<'a> {
     }
 }
 
-/// One keyed, borrowed property row.
-///
-/// The key is the identity carried by [`PropsAction`]. `tone` is a semantic
-/// [`Role`], never a concrete colour. `wrap` affects the value's visual row
-/// count; `copyable` is forced off for secret values.
+#[doc = r" One keyed, borrowed property row."]
+#[doc = r""]
+#[doc = r" The key is the identity carried by [`PropsAction`]. `tone` is a semantic"]
+#[doc = r" [`Role`], never a concrete colour. `wrap` affects the value's visual row"]
+#[doc = r" count; `copyable` is forced off for secret values."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PropsRow<'a> {
-    /// Stable item identity.
+    #[doc = r" Stable item identity."]
     pub key: ItemKey,
-    /// Borrowed label text.
+    #[doc = r" Borrowed label text."]
     pub label: &'a str,
-    /// Borrowed display value.
+    #[doc = r" Borrowed display value."]
     pub value: PropsValue<'a>,
-    /// Optional semantic foreground role for the value.
+    #[doc = r" Optional semantic foreground role for the value."]
     pub tone: Option<Role>,
-    /// Word-wrap the value into additional visual rows.
+    #[doc = r" Word-wrap the value into additional visual rows."]
     pub wrap: bool,
-    /// Whether keyboard or pointer copy is allowed.
+    #[doc = r" Whether keyboard or pointer copy is allowed."]
     pub copyable: bool,
 }
 
 impl<'a> PropsRow<'a> {
-    /// Construct a plain, non-copyable row.
+    #[doc = r" Construct a plain, non-copyable row."]
     pub const fn new(key: ItemKey, label: &'a str, value: &'a str) -> Self {
         Self::value(key, label, PropsValue::Text(value))
     }
 
-    /// Construct a row whose value is masked and never copyable.
+    #[doc = r" Construct a row whose value is masked and never copyable."]
     pub const fn secret(key: ItemKey, label: &'a str, value: &'a Secret) -> Self {
         Self::value(key, label, PropsValue::Secret(value))
     }
 
-    /// Construct a row from an explicit borrowed value.
+    #[doc = r" Construct a row from an explicit borrowed value."]
     pub const fn value(key: ItemKey, label: &'a str, value: PropsValue<'a>) -> Self {
         PropsRow {
             key,
@@ -116,76 +116,76 @@ impl<'a> PropsRow<'a> {
         }
     }
 
-    /// Set the value's semantic foreground role.
+    #[doc = r" Set the value's semantic foreground role."]
     #[must_use]
     pub const fn tone(mut self, tone: Role) -> Self {
         self.tone = Some(tone);
         self
     }
 
-    /// Alias for [`Self::tone`] when the caller is emphasizing semantic role.
+    #[doc = r" Alias for [`Self::tone`] when the caller is emphasizing semantic role."]
     #[must_use]
     pub const fn role(self, role: Role) -> Self {
         self.tone(role)
     }
 
-    /// Enable word wrapping for the value.
+    #[doc = r" Enable word wrapping for the value."]
     #[must_use]
     pub const fn wrap(mut self) -> Self {
         self.wrap = true;
         self
     }
 
-    /// Set wrapping explicitly.
+    #[doc = r" Set wrapping explicitly."]
     #[must_use]
     pub const fn wrap_if(mut self, yes: bool) -> Self {
         self.wrap = yes;
         self
     }
 
-    /// Allow copy for a plain value; secret rows remain non-copyable.
+    #[doc = r" Allow copy for a plain value; secret rows remain non-copyable."]
     #[must_use]
     pub const fn copyable(mut self) -> Self {
         self.copyable = !self.value.is_secret();
         self
     }
 
-    /// Set copyability explicitly, still refusing secret rows.
+    #[doc = r" Set copyability explicitly, still refusing secret rows."]
     #[must_use]
     pub const fn copyable_if(mut self, yes: bool) -> Self {
         self.copyable = yes && !self.value.is_secret();
         self
     }
 
-    /// Whether this row can produce a copy action.
+    #[doc = r" Whether this row can produce a copy action."]
     pub const fn can_copy(&self) -> bool {
         self.copyable && !self.value.is_secret()
     }
 }
 
-/// What an interactive property surface reports.
+#[doc = r" What an interactive property surface reports."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PropsAction {
-    /// Copy the caller-owned value identified by this row key.
+    #[doc = r" Copy the caller-owned value identified by this row key."]
     Copy(ItemKey),
 }
 
-/// The const-constructible commands of [`PropsList`].
+#[doc = r" The const-constructible commands of [`PropsList`]."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PropsCmd {
-    /// Move to the previous row.
+    #[doc = r" Move to the previous row."]
     Up,
-    /// Move to the next row.
+    #[doc = r" Move to the next row."]
     Down,
-    /// Move up one viewport.
+    #[doc = r" Move up one viewport."]
     PageUp,
-    /// Move down one viewport.
+    #[doc = r" Move down one viewport."]
     PageDown,
-    /// Move to the first row.
+    #[doc = r" Move to the first row."]
     Home,
-    /// Move to the last row.
+    #[doc = r" Move to the last row."]
     End,
-    /// Copy the current row when it is copyable.
+    #[doc = r" Copy the current row when it is copyable."]
     Copy,
 }
 
@@ -293,34 +293,34 @@ const PROPS_BINDINGS: [Binding<PropsCmd>; 12] = [
     ),
 ];
 
-/// Caller-owned interaction state for [`PropsList`].
+#[doc = r" Caller-owned interaction state for [`PropsList`]."]
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PropsState {
     core: termrock_collections::collection::CollectionCore,
 }
 
 impl PropsState {
-    /// The current row key.
+    #[doc = r" The current row key."]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-    /// The current row index from the last reconciliation.
+    #[doc = r" The current row index from the last reconciliation."]
     pub const fn cursor_index(&self) -> usize {
         self.core.cursor_index()
     }
 
-    /// The vertical scroll state.
+    #[doc = r" The vertical scroll state."]
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-    /// Point the cursor at a keyed row.
+    #[doc = r" Point the cursor at a keyed row."]
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
 
-    /// Invalidate the keyed collection after in-place row changes.
+    #[doc = r" Invalidate the keyed collection after in-place row changes."]
     pub fn invalidate(&mut self) {
         self.core.invalidate();
     }
@@ -336,92 +336,92 @@ impl Reconcile for PropsState {
     }
 }
 
-/// A keyed, scrollable two-column property list over borrowed rows.
-///
-/// ## Construction
-///
-/// `PropsList::new(id)`; rows are borrowed and passed to `update` and `draw`
-/// for each phase. Use [`PropsRow::new`] for ordinary values and
-/// [`PropsRow::secret`] for values that must remain masked and non-copyable.
-///
-/// ## Ownership
-///
-/// The caller owns rows and [`PropsState`]. The runtime owns focus, hover,
-/// pressed state, pointer routing, and scrollbar capture.
-///
-/// ## Configuration
-///
-/// `.variant(Variant::DEFAULT)`, `.patch`, `.patch_part`, and `.slot`; the
-/// default variant is `Variant::DEFAULT`.
-///
-/// ## Variants
-///
-/// `Family::PROPS`; `.variant` selects the theme variant and defaults to
-/// `Variant::DEFAULT`.
-///
-/// ## States
-///
-/// The list wears `FOCUSED` and `FOCUS_VISIBLE`; keyed rows add `HOVERED` and
-/// `PRESSED` from runtime pointer state. Cursor and scroll state live in
-/// [`PropsState`]. It derives no disabled, selected, editing, or readiness
-/// state.
-///
-/// ## Actions
-///
-/// Navigation changes state. Copy emits [`PropsAction::Copy`] with only the
-/// row's [`ItemKey`]; the caller resolves the borrowed value and owns the
-/// clipboard effect. Secret rows and non-copyable rows consume copy without
-/// emitting an action.
-///
-/// ## Focus
-///
-/// One `Focusability::Focusable` stop when the list is not inert. It does not
-/// swallow typing and has no autofocus or focus trap.
-///
-/// ## Keyboard
-///
-/// `Up`/`Down` and `k`/`j` move one row; `PageUp`/`PageDown`, `Home`/`g`, and
-/// `End`/`G` navigate by range; `y` and `Enter` request copy of the cursor row.
-///
-/// ## Mouse
-///
-/// `PartRef::item(Part::ROW, key)` selects on press and selects plus copies on
-/// click or double-click. Wheel, `TRACK`, and `THUMB` intents are handled by
-/// the embedded scrollbar.
-///
-/// ## Layout
-///
-/// Labels occupy the widest label column; values use the remaining column and
-/// may wrap into multiple visual rows. The scrollbar reserves its own column;
-/// `measure` prefers `(32, available height)` with a minimum of `(12, 1)`, and
-/// `draw` returns `area`. An empty area registers nothing.
-///
-/// ## Parts
-///
-/// `CONTAINER` (row fill), `META` (labels), `LABEL` (values), `ROW` (keyed row
-/// hit regions), `TRACK`, and `THUMB` (scrollbar).
-///
-/// ## Overrides
-///
-/// `.patch` and `.patch_part` apply to named style resolutions. `.slot` is
-/// honoured for `TRACK` and `THUMB`; row, label, value, and container painters
-/// are not slot-addressable.
-///
-/// ## Identity
-///
-/// Rows are keyed by [`PropsRow::key`]. Keep keys stable across reorder; the
-/// list has no separate positional identity.
-///
-/// ## Testing
-///
-/// Module tests cover keyed metadata, secret masking and redaction, and copy
-/// through keyboard and mouse runtime intents.
-///
-/// ## Invariants
-///
-/// Secret values never appear in painted text or debug output and cannot emit
-/// `Copy`. Reconciliation is keyed; `draw` never mutates rows or
-/// [`PropsState`].
+#[doc = r" A keyed, scrollable two-column property list over borrowed rows."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r""]
+#[doc = r" `PropsList::new(id)`; rows are borrowed and passed to `update` and `draw`"]
+#[doc = r" for each phase. Use [`PropsRow::new`] for ordinary values and"]
+#[doc = r" [`PropsRow::secret`] for values that must remain masked and non-copyable."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r""]
+#[doc = r" The caller owns rows and [`PropsState`]. The runtime owns focus, hover,"]
+#[doc = r" pressed state, pointer routing, and scrollbar capture."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r""]
+#[doc = r" `.variant(Variant::DEFAULT)`, `.patch`, `.patch_part`, and `.slot`; the"]
+#[doc = r" default variant is `Variant::DEFAULT`."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r""]
+#[doc = r" `Family::PROPS`; `.variant` selects the theme variant and defaults to"]
+#[doc = r" `Variant::DEFAULT`."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r""]
+#[doc = r" The list wears `FOCUSED` and `FOCUS_VISIBLE`; keyed rows add `HOVERED` and"]
+#[doc = r" `PRESSED` from runtime pointer state. Cursor and scroll state live in"]
+#[doc = r" [`PropsState`]. It derives no disabled, selected, editing, or readiness"]
+#[doc = r" state."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r""]
+#[doc = r" Navigation changes state. Copy emits [`PropsAction::Copy`] with only the"]
+#[doc = r" row's [`ItemKey`]; the caller resolves the borrowed value and owns the"]
+#[doc = r" clipboard effect. Secret rows and non-copyable rows consume copy without"]
+#[doc = r" emitting an action."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r""]
+#[doc = r" One `Focusability::Focusable` stop when the list is not inert. It does not"]
+#[doc = r" swallow typing and has no autofocus or focus trap."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r""]
+#[doc = r" `Up`/`Down` and `k`/`j` move one row; `PageUp`/`PageDown`, `Home`/`g`, and"]
+#[doc = r" `End`/`G` navigate by range; `y` and `Enter` request copy of the cursor row."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r""]
+#[doc = r" `PartRef::item(Part::ROW, key)` selects on press and selects plus copies on"]
+#[doc = r" click or double-click. Wheel, `TRACK`, and `THUMB` intents are handled by"]
+#[doc = r" the embedded scrollbar."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r""]
+#[doc = r" Labels occupy the widest label column; values use the remaining column and"]
+#[doc = r" may wrap into multiple visual rows. The scrollbar reserves its own column;"]
+#[doc = r" `measure` prefers `(32, available height)` with a minimum of `(12, 1)`, and"]
+#[doc = r" `draw` returns `area`. An empty area registers nothing."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r""]
+#[doc = r" `CONTAINER` (row fill), `META` (labels), `LABEL` (values), `ROW` (keyed row"]
+#[doc = r" hit regions), `TRACK`, and `THUMB` (scrollbar)."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r""]
+#[doc = r" `.patch` and `.patch_part` apply to named style resolutions. `.slot` is"]
+#[doc = r" honoured for `TRACK` and `THUMB`; row, label, value, and container painters"]
+#[doc = r" are not slot-addressable."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r""]
+#[doc = r" Rows are keyed by [`PropsRow::key`]. Keep keys stable across reorder; the"]
+#[doc = r" list has no separate positional identity."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r""]
+#[doc = r" Module tests cover keyed metadata, secret masking and redaction, and copy"]
+#[doc = r" through keyboard and mouse runtime intents."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r""]
+#[doc = r" Secret values never appear in painted text or debug output and cannot emit"]
+#[doc = r" `Copy`. Reconciliation is keyed; `draw` never mutates rows or"]
+#[doc = r" [`PropsState`]."]
 pub struct PropsList<'a> {
     id: Id,
     variant: Variant,
@@ -442,7 +442,7 @@ impl fmt::Debug for PropsList<'_> {
 }
 
 impl<'a> PropsList<'a> {
-    /// The parts this component styles or registers.
+    #[doc = r" The parts this component styles or registers."]
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::META,
@@ -452,7 +452,7 @@ impl<'a> PropsList<'a> {
         Part::THUMB,
     ];
 
-    /// Construct a property list with the default variant.
+    #[doc = r" Construct a property list with the default variant."]
     pub const fn new(id: Id) -> Self {
         PropsList {
             id,
@@ -463,14 +463,14 @@ impl<'a> PropsList<'a> {
         }
     }
 
-    /// Select the theme variant.
+    #[doc = r" Select the theme variant."]
     #[must_use]
     pub const fn variant(mut self, variant: Variant) -> Self {
         self.variant = variant;
         self
     }
 
-    /// An instance patch over every part.
+    #[doc = r" An instance patch over every part."]
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
@@ -478,7 +478,7 @@ impl<'a> PropsList<'a> {
         self
     }
 
-    /// Per-part instance patches.
+    #[doc = r" Per-part instance patches."]
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.parts = patches;
@@ -486,7 +486,7 @@ impl<'a> PropsList<'a> {
         self
     }
 
-    /// Replace one part's painting.
+    #[doc = r" Replace one part's painting."]
     #[must_use]
     pub const fn slot(mut self, part: Part, painter: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, painter);
@@ -596,8 +596,8 @@ impl<'a> PropsList<'a> {
         }
     }
 
-    /// The update phase: reconcile rows, then drain binding, pointer and
-    /// scrollbar intents from the modern runtime.
+    #[doc = r" The update phase: reconcile rows, then drain binding, pointer and"]
+    #[doc = r" scrollbar intents from the modern runtime."]
     #[expect(
         clippy::too_many_lines,
         reason = "the keyed navigation and pointer dispatch are one intent drain"
@@ -718,7 +718,7 @@ impl<'a> PropsList<'a> {
         acc.finish(self.id)
     }
 
-    /// The draw phase.
+    #[doc = r" The draw phase."]
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over scrolling, state styling, value painting and row registration"
@@ -843,7 +843,7 @@ impl<'a> PropsList<'a> {
         area
     }
 
-    /// A conservative natural size for a property list.
+    #[doc = r" A conservative natural size for a property list."]
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (12, 1),
@@ -996,58 +996,58 @@ fn paint_piece(
     *x = (*x).saturating_add(used);
 }
 
-/// Label / value rows: muted labels in a column sized to the widest, values
-/// beside them.
-///
-/// ## Construction
-/// `Props::new(rows)` over `&[(&str, &str)]`, or [`Props::rich`] over
-/// borrowed [`PropsRow`] values with wrapping, semantic tone and secret masking.
-///
-/// ## Ownership
-/// Stateless; the rows are borrowed.
-///
-/// ## Configuration
-/// `.patch_part`.
-///
-/// ## Variants
-/// `Family::PROPS`, `DEFAULT` only.
-///
-/// ## States
-/// None.
-///
-/// ## Actions
-/// None.
-///
-/// ## Focus
-/// Never a focus stop; registers nothing (it has no id).
-///
-/// ## Keyboard
-/// None.
-///
-/// ## Mouse
-/// None.
-///
-/// ## Layout
-/// One row per pair; `measure` is `(widest label + 2 + widest value,
-/// rows)`. Rich rows share the [`PropsList`] wrapping engine and measure their
-/// wrapped height at the constrained width. `draw` returns the rows painted,
-/// clipped to `area`.
-///
-/// ## Parts
-/// `META` (the label column), `LABEL` (the value column).
-///
-/// ## Overrides
-/// `.patch_part` on both parts.
-///
-/// ## Identity
-/// None.
-///
-/// ## Testing
-/// `PropsCase` with no capabilities; `render::components::dialog::*` covers
-/// it inside a body.
-///
-/// ## Invariants
-/// Never writes outside `area`; never allocates.
+#[doc = r" Label / value rows: muted labels in a column sized to the widest, values"]
+#[doc = r" beside them."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `Props::new(rows)` over `&[(&str, &str)]`, or [`Props::rich`] over"]
+#[doc = r" borrowed [`PropsRow`] values with wrapping, semantic tone and secret masking."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" Stateless; the rows are borrowed."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.patch_part`."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::PROPS`, `DEFAULT` only."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" None."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" None."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" Never a focus stop; registers nothing (it has no id)."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" None."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" None."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" One row per pair; `measure` is `(widest label + 2 + widest value,"]
+#[doc = r" rows)`. Rich rows share the [`PropsList`] wrapping engine and measure their"]
+#[doc = r" wrapped height at the constrained width. `draw` returns the rows painted,"]
+#[doc = r" clipped to `area`."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `META` (the label column), `LABEL` (the value column)."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch_part` on both parts."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" None."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `PropsCase` with no capabilities; `render::components::dialog::*` covers"]
+#[doc = r" it inside a body."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" Never writes outside `area`; never allocates."]
 pub struct Props<'a> {
     rows: PropsRows<'a>,
     ov: PartStyle<'a>,
@@ -1077,10 +1077,10 @@ impl fmt::Debug for Props<'_> {
 }
 
 impl<'a> Props<'a> {
-    /// The parts this component styles.
+    #[doc = r" The parts this component styles."]
     pub const PARTS: &'static [Part] = &[Part::META, Part::LABEL];
 
-    /// Rows of `(label, value)`.
+    #[doc = r" Rows of `(label, value)`."]
     pub const fn new(rows: &'a [(&'a str, &'a str)]) -> Self {
         Props {
             rows: PropsRows::Pairs(rows),
@@ -1088,11 +1088,11 @@ impl<'a> Props<'a> {
         }
     }
 
-    /// Decorative rich rows with borrowed text or masked secrets.
-    ///
-    /// Wrapping and explicit newlines use the same engine as [`PropsList`].
-    /// Row tones are author defaults below theme, scope and instance overrides.
-    /// Keys and copyability do not create controls, bindings or copy actions.
+    #[doc = r" Decorative rich rows with borrowed text or masked secrets."]
+    #[doc = r""]
+    #[doc = r" Wrapping and explicit newlines use the same engine as [`PropsList`]."]
+    #[doc = r" Row tones are author defaults below theme, scope and instance overrides."]
+    #[doc = r" Keys and copyability do not create controls, bindings or copy actions."]
     pub const fn rich(rows: &'a [PropsRow<'a>]) -> Self {
         Props {
             rows: PropsRows::Rich(rows),
@@ -1100,7 +1100,7 @@ impl<'a> Props<'a> {
         }
     }
 
-    /// Per-part instance patches.
+    #[doc = r" Per-part instance patches."]
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
@@ -1114,7 +1114,7 @@ impl<'a> Props<'a> {
         }
     }
 
-    /// The draw phase.
+    #[doc = r" The draw phase."]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let rows = match self.rows {
             PropsRows::Pairs(rows) => rows,
@@ -1230,8 +1230,7 @@ impl<'a> Props<'a> {
                     )
                     .style
             };
-            // The tone has already entered normal resolution as an author default.
-            // Do not reapply it after explicit theme/scope/instance customization.
+
             let resolved_row = PropsRow { tone: None, ..*row };
             paint_value(
                 ui,
@@ -1252,7 +1251,7 @@ impl<'a> Props<'a> {
         }
     }
 
-    /// The natural size; rich wrapping uses the chosen constrained width.
+    #[doc = r" The natural size; rich wrapping uses the chosen constrained width."]
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         match self.rows {
             PropsRows::Pairs(rows) => {

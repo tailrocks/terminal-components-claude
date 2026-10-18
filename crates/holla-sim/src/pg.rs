@@ -1,4 +1,4 @@
-//! Target-bound `PostgreSQL` fixture review. No query or process is executed.
+#![doc = r" Target-bound `PostgreSQL` fixture review. No query or process is executed."]
 use super::world::World;
 use crate::domain::{
     host::{Environment, HostKind},
@@ -30,8 +30,8 @@ impl std::fmt::Display for ReviewError {
 }
 impl std::error::Error for ReviewError {}
 
-/// Owned review is consumed on confirmation or cancellation. Activity duration
-/// is display-only; PID, query, user and wait relationship identify the target.
+#[doc = r" Owned review is consumed on confirmation or cancellation. Activity duration"]
+#[doc = r" is display-only; PID, query, user and wait relationship identify the target."]
 pub struct Review {
     target: PgSession,
     operation: Operation,

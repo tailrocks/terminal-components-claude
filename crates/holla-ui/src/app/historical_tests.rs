@@ -1,5 +1,5 @@
-//! Pinned 794b095 actual-App assertions restored through the shared production runtime.
-//! Fixture selection, frames, dimensions and product assertions remain source-derived.
+#![doc = r" Pinned 794b095 actual-App assertions restored through the shared production runtime."]
+#![doc = r" Fixture selection, frames, dimensions and product assertions remain source-derived."]
 use super::{App, Motion, Route, Scenario};
 use termrock::{FeedbackClock, KeyCode, SimulationMoment, Theme};
 use termrock_test_support::Harness;
@@ -43,7 +43,7 @@ fn paused_ticks_do_not_advance_the_world() {
         let _ = h.advance(std::time::Duration::from_millis(200));
     }
     assert_eq!(before, h.text());
-    // discovery is a virtual-clock event: paused means it never fires
+
     assert!(h.app().world.discovering());
 }
 
@@ -63,7 +63,7 @@ fn too_small_notice_below_minimum() {
     assert!(t.contains("Terminal too small"), "{t}");
     assert!(t.contains("Need 72×20, have 71×19"), "{t}");
     assert!(t.contains("holla❯"), "{t}");
-    // q quits from the notice
+
     let _ = h.key(KeyCode::Char('q'));
     assert!(h.app().quit);
 }
@@ -80,7 +80,7 @@ fn hard_cases_shows_docker_failure_and_detached_head() {
 fn monorepo_child_shows_parent_ecosystem_with_scope_tags() {
     let h = fixture(Scenario::MonorepoChild, Motion::Paused, 4_000, 120, 40);
     let t = h.text();
-    // local frontend task ranks; parent workspace rows are tagged
+
     assert!(t.contains("Run dev"), "{t}");
     assert!(t.contains("workspace"), "{t}");
 }
@@ -93,11 +93,11 @@ fn chrome_has_brand_menu_crumb_host_and_hint_bar() {
     assert!(t.contains("File"), "{t}");
     assert!(t.contains("~/work/pave"), "{t}");
     assert!(t.contains("devbox · local"), "{t}");
-    // the hint bar owns the last row, once
+
     let last = t.lines().nth(39).unwrap_or("");
     assert!(last.contains("Type") && last.contains("Filter"), "{last:?}");
     assert_eq!(t.matches("Run top match").count(), 1, "{t}");
-    // the query is armed: EDIT badge and placeholder
+
     assert!(last.contains("EDIT"), "{last:?}");
     assert!(t.contains("Type to filter"), "{t}");
 }
@@ -109,11 +109,11 @@ fn menu_bar_opens_and_quit_is_confirmable() {
     let t = h.text();
     assert!(t.contains("Quit"), "{t}");
     assert!(t.contains("Ctrl+Q"), "{t}");
-    // the menu layer owns the hint bar while open
+
     let last = t.lines().nth(39).unwrap_or("");
     assert!(last.contains("Menu"), "{last:?}");
     let _ = h.key(KeyCode::Esc);
-    // quit goes through a confirmation whose default is Cancel
+
     let _ = h.ctrl('q');
     let t = h.text();
     assert!(t.contains("Quit holla?"), "{t}");
@@ -133,15 +133,13 @@ fn help_opens_from_empty_query_question_mark() {
     assert!(!h.text().contains("Key reference"));
 }
 
-// -------------------------------------------------------------- query
-
 #[test]
 fn empty_query_q_asks_to_quit_but_typed_q_filters() {
     let mut h = fixture(Scenario::FirstUse, Motion::Paused, 0, 120, 40);
     let _ = h.key(KeyCode::Char('q'));
     assert!(h.text().contains("Quit holla?"));
     let _ = h.key(KeyCode::Esc);
-    // with text in the query, q is just a character
+
     let _ = h.type_str("se");
     let before = h.app().home.query().to_owned();
     let _ = h.key(KeyCode::Char('q'));
@@ -183,18 +181,17 @@ fn down_moves_into_results_and_back() {
     let _ = h.type_str("monit");
     let _ = h.key(KeyCode::Down);
     let _ = h.key(KeyCode::Enter);
-    // §8.6: Enter opens the snapshot; the btm handoff is one confirm away
+
     let t = h.text();
     assert!(t.contains("System snapshot"), "{t}");
     assert!(t.contains("Handoff"), "{t}");
-    let _ = h.key(KeyCode::Right); // Close → Open btm (simulated)
+    let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::Enter);
     assert!(h.text().contains("simulated handoff"), "{}", h.text());
 }
 
 #[test]
 fn enter_on_top_match_reports_simulated_run() {
-    // rust-dirty's pinned `make test` outranks everything at this path
     let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
     let _ = h.key(KeyCode::Enter);
     let t = h.text();
@@ -212,7 +209,7 @@ fn actions_menu_offers_alternatives_and_pinning() {
     assert!(t.contains("Copy command"), "{t}");
     let _ = h.key(KeyCode::Esc);
     let _ = h.key(KeyCode::Esc);
-    // pinning a row makes it outrank everything next time
+
     let _ = h.type_str("status");
     let _ = h.ctrl('o');
     let _ = h.key(KeyCode::Down);
@@ -231,7 +228,7 @@ fn alias_prompt_saves_and_query_matches_expansion() {
     let _ = h.ctrl('o');
     let t = h.text();
     assert!(t.contains("Set alias…"), "{t}");
-    // Run, Preview, Copy, Pin, Alias
+
     for _ in 0..4 {
         let _ = h.key(KeyCode::Down);
     }
@@ -242,9 +239,9 @@ fn alias_prompt_saves_and_query_matches_expansion() {
     let _ = h.key(KeyCode::Enter);
     assert!(h.text().contains("Alias cb → cargo build"), "{}", h.text());
     assert_eq!(h.app().world.memory.alias_for("cargo build"), Some("cb"));
-    // the alias query finds the command's row
+
     let _ = h.key(KeyCode::Esc);
-    let _ = h.key(KeyCode::Esc); // clear the old query
+    let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("cb");
     assert!(h.text().contains("cargo build"), "{}", h.text());
 }
@@ -254,7 +251,7 @@ fn hide_removes_row_exact_query_resurfaces_and_reset_restores() {
     let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
     let _ = h.type_str("cargo build");
     let _ = h.ctrl('o');
-    // Run, Preview, Copy, Pin, Alias, Hide
+
     for _ in 0..5 {
         let _ = h.key(KeyCode::Down);
     }
@@ -266,7 +263,7 @@ fn hide_removes_row_exact_query_resurfaces_and_reset_restores() {
         h.text()
     );
     assert!(h.app().world.memory.hidden_at("~/work/pave", "cargo build"));
-    // hidden: a partial query no longer finds it
+
     let _ = h.key(KeyCode::Esc);
     let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("cargo b");
@@ -276,13 +273,13 @@ fn hide_removes_row_exact_query_resurfaces_and_reset_restores() {
         h.text()
     );
     assert!(!h.text().contains("used 6 times"), "{}", h.text());
-    // the exact command resurfaces the row so it can be managed
+
     let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("cargo build");
     let _ = h.ctrl('o');
     let t = h.text();
     assert!(t.contains("Unhide here"), "{t}");
-    // Reset ranking clears pin, alias and hide (last menu item)
+
     for _ in 0..6 {
         let _ = h.key(KeyCode::Down);
     }
@@ -297,7 +294,6 @@ fn hide_removes_row_exact_query_resurfaces_and_reset_restores() {
 
 #[test]
 fn actions_picker_omits_search_query_as_pinned() {
-    // Reference home.rs actions_menu passes searchable=false to PickerModal.
     let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
     let _ = h.type_str("cargo build");
     let _ = h.ctrl('o');
@@ -308,7 +304,7 @@ fn actions_picker_omits_search_query_as_pinned() {
 fn strip_lists_seeded_activities_with_states() {
     let h = fixture(Scenario::ActivitiesMulti, Motion::Paused, 4_000, 120, 40);
     let t = h.text();
-    // the strip docks under the menu bar on every route
+
     let row1: String = t.lines().nth(1).unwrap_or_default().to_owned();
     assert!(row1.contains("● 1 dev server"), "{row1}");
     assert!(row1.contains("… 2 test watch"), "{row1}");
@@ -325,15 +321,15 @@ fn follow_logs_merges_services_with_identity() {
     assert!(h.app().route == Route::Activity, "{}", h.text());
     let t = h.text();
     assert!(t.contains("Activity · container logs"), "{t}");
-    // one merged stream, service prefix per line, interleaved
+
     assert!(t.contains("api"), "{t}");
     assert!(t.contains("redis"), "{t}");
     assert!(t.contains("worker"), "{t}");
     assert!(t.contains("GET /health 200"), "{t}");
     assert!(t.contains("background save done"), "{t}");
-    // the fixture's exited containers never speak in the stream
+
     assert!(!t.contains("payments-old |"), "{t}");
-    // the strip grew the new activity; switching away and back keeps it
+
     let _ = h.key(KeyCode::Char('0'));
     assert!(h.app().route == Route::Home);
     assert!(
@@ -348,14 +344,14 @@ fn follow_logs_merges_services_with_identity() {
 #[test]
 fn ctrl_a_cycles_activities_from_any_route() {
     let mut h = fixture(Scenario::ActivitiesMulti, Motion::Paused, 4_000, 120, 40);
-    // keyboard never needs the mouse: Ctrl+A enters the strip from home
+
     let _ = h.ctrl('a');
     assert!(h.app().route == Route::Activity, "{}", h.text());
     assert!(h.text().contains("Activity · dev server"), "{}", h.text());
-    // same chord advances to the next activity
+
     let _ = h.ctrl('a');
     assert!(h.text().contains("Activity · test watch"), "{}", h.text());
-    // wraps around
+
     let _ = h.ctrl('a');
     let _ = h.ctrl('a');
     let _ = h.ctrl('a');
@@ -365,11 +361,11 @@ fn ctrl_a_cycles_activities_from_any_route() {
 #[test]
 fn digit_switches_to_activity_page() {
     let mut h = fixture(Scenario::ActivitiesMulti, Motion::Paused, 4_000, 120, 40);
-    // home digits stay in the query — switching starts from a strip click
+
     let _ = h.type_str("1");
     assert!(h.app().route == Route::Home, "home digits filter the query");
     let _ = h.key(KeyCode::Backspace);
-    // click the strip tab for "seed db"
+
     let (x, _) = find(&h, "4 seed db");
     assert!(x < u16::MAX, "activity label coordinate fits");
     let _ = h.click(x.saturating_add(1), 1);
@@ -378,11 +374,11 @@ fn digit_switches_to_activity_page() {
     assert!(t.contains("Activity · seed db"), "{t}");
     assert!(t.contains("failed"), "{t}");
     assert!(t.contains("psql: connection to server"), "{t}");
-    // now digits switch between activities
+
     let _ = h.key(KeyCode::Char('1'));
     assert!(h.text().contains("Activity · dev server"), "{}", h.text());
     assert!(h.text().contains("http://localhost:5199/"), "{}", h.text());
-    // 0 returns to the root without losing anything
+
     let _ = h.key(KeyCode::Char('0'));
     assert!(h.app().route == Route::Home);
     assert_eq!(h.app().world.activities.len(), 4);
@@ -391,7 +387,7 @@ fn digit_switches_to_activity_page() {
 #[test]
 fn switching_away_and_back_preserves_output_and_scope() {
     let mut h = fixture(Scenario::ActivitiesMulti, Motion::Paused, 4_000, 120, 40);
-    // open activity 1 via the strip, note the page
+
     let (x, _) = find(&h, "1 dev server");
     assert!(x < u16::MAX, "activity label coordinate fits");
     let _ = h.click(x.saturating_add(1), 1);
@@ -400,12 +396,12 @@ fn switching_away_and_back_preserves_output_and_scope() {
     assert!(page.contains("Scope"), "{page}");
     assert!(page.contains("~/work/monorepo/apps/frontend"), "{page}");
     assert!(page.contains("vite v5.4 ready in 412 ms"), "{page}");
-    // leave for another activity, then home
+
     let _ = h.key(KeyCode::Char('4'));
     assert!(h.text().contains("seed db"), "{}", h.text());
     let _ = h.key(KeyCode::Char('0'));
     assert!(h.app().route == Route::Home);
-    // back again: same output, same scope, nothing lost
+
     let (x, _) = find(&h, "1 dev server");
     assert!(x < u16::MAX, "activity label coordinate fits");
     let _ = h.click(x.saturating_add(1), 1);
@@ -420,7 +416,7 @@ fn merged_logs_scroll_retained_per_activity() {
     let mut h = fixture(Scenario::DockerCleanup, Motion::Paused, 4_000, 120, 40);
     let _ = h.type_str("follow container logs");
     let _ = h.key(KeyCode::Enter);
-    // stream is short at 120x40 body, scroll up then away and back
+
     let _ = h.key(KeyCode::Up);
     let _ = h.key(KeyCode::Up);
     let _ = h.key(KeyCode::Char('0'));
@@ -438,10 +434,10 @@ fn open_docker_plan(h: &mut Harness<App>) {
 }
 
 fn try_confirm(h: &mut Harness<App>, phrase: &str) {
-    let _ = h.key(KeyCode::Enter); // open gate 2
+    let _ = h.key(KeyCode::Enter);
     let _ = h.type_str(phrase);
-    let _ = h.key(KeyCode::Enter); // leave the ack input
-    let _ = h.key(KeyCode::Right); // Cancel → Run plan (skipped while disabled)
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::Enter);
 }
 
@@ -457,7 +453,7 @@ fn broad_action_opens_gate_one_review_surface() {
     assert!(t.contains("docker system df"), "{t}");
     assert!(t.contains("· builder"), "{t}");
     assert!(t.contains("· required"), "{t}");
-    // no gate yet: the phrase never shows before gate 2
+
     assert!(!t.contains("REMOVE ALL DOCKER DATA"), "{t}");
 }
 
@@ -465,22 +461,22 @@ fn broad_action_opens_gate_one_review_surface() {
 fn exclusion_recalculates_dependents_live() {
     let mut h = fixture(Scenario::DockerCleanup, Motion::Paused, 4_000, 120, 40);
     open_docker_plan(&mut h);
-    // step 0 is required and refuses exclusion
+
     let _ = h.key(KeyCode::Char(' '));
     assert!(
         h.text().contains("required · cannot exclude"),
         "{}",
         h.text()
     );
-    // exclude the container removal: images + volumes recalculate
+
     let _ = h.key(KeyCode::Down);
     let _ = h.key(KeyCode::Char(' '));
     let t = h.text();
     assert!(t.contains("Excluded Remove stopped containers"), "{t}");
     assert!(t.contains("needs Remove stopped containers"), "{t}");
-    // parallel branches stay free
+
     assert!(!t.contains("needs Inspect Docker usage"), "{t}");
-    // restoring clears the block
+
     let _ = h.key(KeyCode::Char(' '));
     assert!(
         !h.text().contains("needs Remove stopped containers"),
@@ -499,11 +495,11 @@ fn invalid_phrase_cannot_proceed() {
         t.contains("Type REMOVE ALL DOCKER DATA ON devbox to confirm"),
         "{t}"
     );
-    // wrong host bound: the phrase names devbox, not prod-eu-1
+
     let _ = h.type_str("REMOVE ALL DOCKER DATA ON prod-eu-1");
-    let _ = h.key(KeyCode::Enter); // leave input → Cancel
-    let _ = h.key(KeyCode::Right); // Run stays disabled, focus cannot land on it
-    let _ = h.key(KeyCode::Enter); // the only reachable action is Cancel
+    let _ = h.key(KeyCode::Enter);
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
     let t = h.text();
     assert!(!t.contains("Finished:"), "{t}");
     assert!(!plan_ran(&h));
@@ -531,7 +527,7 @@ fn correct_phrase_runs_and_failure_propagates() {
     );
     assert!(t.contains("needs Remove stopped containers"), "{t}");
     assert!(plan_ran(&h));
-    // honest world mutation: cache pruned, web/cron gone, payments-old kept
+
     let d = h.app().world.docker.as_ref();
     assert!(d.is_some(), "expected Docker fixture");
     assert_eq!(
@@ -540,7 +536,7 @@ fn correct_phrase_runs_and_failure_propagates() {
     );
     assert!(!d.is_some_and(|docker| docker.containers.iter().any(|c| c.name == "web")));
     assert!(d.is_some_and(|docker| docker.containers.iter().any(|c| c.name == "payments-old")));
-    // per-step output: focus the failed step, its lines show
+
     let _ = h.key(KeyCode::Down);
     let t = h.text();
     assert!(t.contains("Output — Remove stopped containers"), "{t}");
@@ -556,7 +552,7 @@ fn debian_plan_parallel_branches_and_i_understand_phrase() {
     let t = h.text();
     assert!(t.contains("· apt"), "{t}");
     assert!(t.contains("· mise"), "{t}");
-    // exclude Apply upgrades: autoremove and verify recalculate, mise free
+
     let _ = h.key(KeyCode::Down);
     let _ = h.key(KeyCode::Down);
     let _ = h.key(KeyCode::Char(' '));
@@ -566,7 +562,7 @@ fn debian_plan_parallel_branches_and_i_understand_phrase() {
     let t = h.text();
     assert!(t.contains("Finished:"), "{t}");
     assert!(t.contains("skipped"), "{t}");
-    // apt never applied; the mise branch still ran
+
     assert_eq!(
         h.app().world.debian.as_ref().map(|debian| debian.pending),
         Some(47)
@@ -585,7 +581,7 @@ fn production_restart_goes_through_two_gates() {
     let mut h = fixture(Scenario::RemoteHost, Motion::Paused, 4_000, 120, 40);
     let _ = h.type_str("restart");
     let _ = h.key(KeyCode::Enter);
-    // broad on production: the review surface, not a one-shot confirm
+
     assert!(h.app().route == Route::Plan, "{}", h.text());
     let t = h.text();
     assert!(t.contains("Restart payments"), "{t}");
@@ -605,7 +601,7 @@ fn production_restart_goes_through_two_gates() {
         c.and_then(|container| container.health),
         Some(crate::domain::docker::Health::Healthy)
     );
-    // back home, the urgency row is gone — the fixture kept its word
+
     let _ = h.key(KeyCode::Esc);
     assert!(!h.text().contains("service is unhealthy"), "{}", h.text());
 }
@@ -637,11 +633,11 @@ fn mise_trust_gate_then_child_task_runs() {
         "{t}"
     );
     assert!(t.contains("this exact file only"), "{t}");
-    // focus starts on Close; move right to Trust file, confirm
+
     let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::Enter);
     assert!(h.text().contains("Trusted mise.toml"), "{}", h.text());
-    // the task is now ready and runs simulated
+
     let _ = h.key(KeyCode::Enter);
     assert!(
         h.text()
@@ -717,8 +713,6 @@ fn nothing_matches_state() {
     assert!(h.text().contains("Nothing matches"), "{}", h.text());
 }
 
-// ----------------------------------------------------- P2 root experience
-
 #[test]
 fn priority_stack_has_reasons_and_scope_tags() {
     let h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
@@ -726,11 +720,11 @@ fn priority_stack_has_reasons_and_scope_tags() {
     assert!(t.contains("Suggested here"), "{t}");
     assert!(t.contains("Recent here"), "{t}");
     assert!(t.contains("Explore"), "{t}");
-    // a reason on every suggestion: memory, freshness, git truth
+
     assert!(t.contains("pinned here"), "{t}");
     assert!(t.contains("used 6 times in this project"), "{t}");
     assert!(t.contains("branch is 3 commits behind"), "{t}");
-    // nonlocal rows carry explicit scope
+
     assert!(t.contains("· host"), "{t}");
 }
 
@@ -763,7 +757,7 @@ fn ssh_resolution_previews_chain_and_identity_filename() {
     assert!(t.contains("Connect to prod-eu-1?"), "{t}");
     assert!(t.contains("10.20.30.40"), "{t}");
     assert!(t.contains("bastion → prod-eu-1"), "{t}");
-    // identity is a FILENAME only — contents never enter the UI
+
     assert!(t.contains("id_ed25519_prod · filename only"), "{t}");
     assert!(t.contains("Multiplexing"), "{t}");
 }
@@ -781,7 +775,7 @@ fn monitor_snapshot_facts_and_btm_handoff() {
     assert!(t.contains("14200 MB of 16384 MB"), "{t}");
     assert!(t.contains("212 days"), "{t}");
     assert!(t.contains("btm takes over the screen"), "{t}");
-    let _ = h.key(KeyCode::Right); // Close → Open btm (simulated)
+    let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::Enter);
     assert!(h.text().contains("simulated handoff"), "{}", h.text());
 }
@@ -793,7 +787,7 @@ fn quit_confirm_on_production_names_the_remote_identity() {
     let t = h.text();
     assert!(t.contains("Quit holla on prod-eu-1?"), "{t}");
     assert!(t.contains("◆ prod-eu-1"), "{t}");
-    // cancel is the default focus
+
     let _ = h.key(KeyCode::Enter);
     assert!(!h.app().quit);
 }
@@ -807,7 +801,7 @@ fn pg_lock_tree_cancel_resumes_waiters() {
     assert!(t.contains("Database lock tree"), "{t}");
     assert!(t.contains("pid 4201 · payments · ALTER TABLE"), "{t}");
     assert!(t.contains("cancel before terminate"), "{t}");
-    // focus starts on Cancel blocker (the policy-recommended action)
+
     let _ = h.key(KeyCode::Enter);
     assert!(
         h.text()
@@ -815,13 +809,13 @@ fn pg_lock_tree_cancel_resumes_waiters() {
         "{}",
         h.text()
     );
-    // fixture truth: blocker gone, waiters unblocked
+
     let sessions = h.app().world.pg.as_ref();
     assert!(sessions.is_some(), "fixture sessions must exist");
     let Some(sessions) = sessions else { return };
     assert!(!sessions.iter().any(|s| s.pid == 4201));
     assert!(sessions.iter().all(|s| s.blocked_by.is_none()));
-    // reopening revalidates: no blocker, healthy status, no dialog
+
     let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("locks");
     let _ = h.key(KeyCode::Enter);
@@ -837,7 +831,7 @@ fn pg_terminate_revalidates_before_killing() {
     let mut h = fixture(Scenario::RemoteHost, Motion::Paused, 4_000, 120, 40);
     let _ = h.type_str("locks");
     let _ = h.key(KeyCode::Enter);
-    // focus starts on Cancel blocker; one Right reaches Terminate
+
     let _ = h.key(KeyCode::Right);
     let _ = h.key(KeyCode::Enter);
     assert!(
@@ -859,12 +853,12 @@ fn git_sync_plan_resolves_per_child_primary_branches() {
     let _ = h.key(KeyCode::Enter);
     assert!(h.app().route == Route::Plan, "{}", h.text());
     let t = h.text();
-    // primary branches come from each child, never a hard-coded main
+
     assert!(t.contains("Check out main (legacy)"), "{t}");
     assert!(t.contains("Check out trunk (billing)"), "{t}");
-    // detached child is policy-skipped, not offered as excludable
+
     assert!(t.contains("detached at a1b2c3d · skipped"), "{t}");
-    // gate 2 binds the phrase to the monorepo root
+
     let _ = h.key(KeyCode::Enter);
     assert!(
         h.text()
@@ -933,9 +927,7 @@ fn git_sync_run_per_child_results_and_honest_effect() {
     let t = h.text();
     assert!(t.contains("diverged · 2 ahead, 3 behind"), "{t}");
     assert!(t.contains("✓ Pull legacy — fast-forward only"), "{t}");
-    // Reviewed H-S accounting exception: diverged child chains remain untouched,
-    // rather than checking out a branch and then claiming a failed pull.
-    // The original failing assertion is retained in external review evidence.
+
     assert!(t.contains("− Pull billing"), "{t}");
     assert!(
         t.contains("diverged · 2 ahead, 3 behind · untouched"),

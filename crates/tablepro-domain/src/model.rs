@@ -1,5 +1,4 @@
-//! Query-history, completion and quick-switcher models.
-
+#![doc = r" Query-history, completion and quick-switcher models."]
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -35,23 +34,23 @@ impl AsItem for SwitchItem {
     }
 }
 
-/// Origin of a history entry.
+#[doc = r" Origin of a history entry."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HistorySource {
-    /// Editor execution.
+    #[doc = r" Editor execution."]
     Editor,
-    /// Explain-plan execution.
+    #[doc = r" Explain-plan execution."]
     Explain,
-    /// Table browsing.
+    #[doc = r" Table browsing."]
     Browsing,
-    /// Row edits.
+    #[doc = r" Row edits."]
     RowEdits,
-    /// Structure inspection.
+    #[doc = r" Structure inspection."]
     Structure,
 }
 
 impl HistorySource {
-    /// Human-readable source label.
+    #[doc = r" Human-readable source label."]
     pub const fn label(self) -> &'static str {
         match self {
             Self::Editor => "Editor",
@@ -63,37 +62,37 @@ impl HistorySource {
     }
 }
 
-/// One query-history record.
+#[doc = r" One query-history record."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryEntry {
-    /// Stable id.
+    #[doc = r" Stable id."]
     pub id: usize,
-    /// SQL text.
+    #[doc = r" SQL text."]
     pub sql: String,
-    /// Connection name.
+    #[doc = r" Connection name."]
     pub connection: String,
-    /// Database name.
+    #[doc = r" Database name."]
     pub database: String,
-    /// Schema name.
+    #[doc = r" Schema name."]
     pub schema: String,
-    /// Deterministic age in minutes.
+    #[doc = r" Deterministic age in minutes."]
     pub minutes_ago: u32,
-    /// Duration in milliseconds.
+    #[doc = r" Duration in milliseconds."]
     pub duration_ms: Option<u32>,
-    /// Returned/affected rows.
+    #[doc = r" Returned/affected rows."]
     pub rows: Option<usize>,
-    /// Error, when execution failed.
+    #[doc = r" Error, when execution failed."]
     pub error: Option<String>,
-    /// Origin surface.
+    #[doc = r" Origin surface."]
     pub source: HistorySource,
 }
 
 impl HistoryEntry {
-    /// Whether execution succeeded.
+    #[doc = r" Whether execution succeeded."]
     pub fn ok(&self) -> bool {
         self.error.is_none()
     }
-    /// First line for compact rows.
+    #[doc = r" First line for compact rows."]
     pub fn first_line(&self) -> String {
         let mut lines = self.sql.lines();
         let first = lines.next().unwrap_or_default().trim();
@@ -103,7 +102,7 @@ impl HistoryEntry {
             first.to_owned()
         }
     }
-    /// Stable relative time label.
+    #[doc = r" Stable relative time label."]
     pub fn when(&self) -> String {
         match self.minutes_ago {
             0 => "just now".to_owned(),
@@ -112,7 +111,7 @@ impl HistoryEntry {
             n => format!("{} d ago", n / 1_440),
         }
     }
-    /// Stable duration label.
+    #[doc = r" Stable duration label."]
     pub fn duration(&self) -> String {
         match self.duration_ms {
             None => "–".to_owned(),
@@ -124,16 +123,16 @@ impl HistoryEntry {
     }
 }
 
-/// Bounded newest-first history.
+#[doc = r" Bounded newest-first history."]
 #[derive(Debug, Clone, Default)]
 pub struct History {
-    /// Entries, newest first.
+    #[doc = r" Entries, newest first."]
     pub entries: Vec<HistoryEntry>,
     next_id: usize,
 }
 
 impl History {
-    /// Build the deterministic demo history.
+    #[doc = r" Build the deterministic demo history."]
     pub fn seeded() -> Self {
         let mut out = Self::default();
         let rows = [
@@ -225,18 +224,18 @@ impl History {
         out
     }
 
-    /// Whether this history contains no entries.
+    #[doc = r" Whether this history contains no entries."]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
-    /// Add an entry and retain the newest 10,000 records.
+    #[doc = r" Add an entry and retain the newest 10,000 records."]
     pub fn push(&mut self, mut entry: HistoryEntry) {
         self.next_id = self.next_id.saturating_add(1);
         entry.id = self.next_id;
         self.entries.insert(0, entry);
         self.entries.truncate(10_000);
     }
-    /// Search with case-insensitive AND semantics.
+    #[doc = r" Search with case-insensitive AND semantics."]
     pub fn search<'a>(
         &'a self,
         query: &str,
@@ -262,22 +261,22 @@ impl History {
     }
 }
 
-/// Completion item category, preserving SQL context and display semantics.
+#[doc = r" Completion item category, preserving SQL context and display semantics."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompletionKind {
-    /// SQL keyword.
+    #[doc = r" SQL keyword."]
     Keyword,
-    /// Table name.
+    #[doc = r" Table name."]
     Table,
-    /// View name.
+    #[doc = r" View name."]
     View,
-    /// Column name.
+    #[doc = r" Column name."]
     Column,
-    /// SQL function.
+    #[doc = r" SQL function."]
     Function,
-    /// Schema qualifier.
+    #[doc = r" Schema qualifier."]
     Schema,
-    /// Alias declared in the current statement.
+    #[doc = r" Alias declared in the current statement."]
     Alias,
 }
 impl CompletionKind {
@@ -293,20 +292,20 @@ impl CompletionKind {
         }
     }
 }
-/// One SQL completion candidate.
+#[doc = r" One SQL completion candidate."]
 #[derive(Clone, PartialEq, Eq)]
 pub struct Completion {
-    /// Text inserted into the editor, including any necessary qualifier.
+    #[doc = r" Text inserted into the editor, including any necessary qualifier."]
     pub text: String,
-    /// Display label.
+    #[doc = r" Display label."]
     pub label: String,
-    /// Type, relation or alias metadata.
+    #[doc = r" Type, relation or alias metadata."]
     pub detail: String,
-    /// Candidate category.
+    #[doc = r" Candidate category."]
     pub kind: CompletionKind,
-    /// Rank; lower values sort first.
+    #[doc = r" Rank; lower values sort first."]
     pub score: u32,
-    /// Matched grapheme ordinals in the original label.
+    #[doc = r" Matched grapheme ordinals in the original label."]
     pub matched: Vec<usize>,
 }
 impl core::fmt::Debug for Completion {
@@ -321,12 +320,12 @@ impl core::fmt::Debug for Completion {
             .finish()
     }
 }
-/// Suggestions and the exact UTF-8 range they replace in the input.
+#[doc = r" Suggestions and the exact UTF-8 range they replace in the input."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompletionBatch {
-    /// Ranked candidates.
+    #[doc = r" Ranked candidates."]
     pub items: Vec<Completion>,
-    /// Current word, ending at the normalized cursor boundary.
+    #[doc = r" Current word, ending at the normalized cursor boundary."]
     pub replace: core::ops::Range<usize>,
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -475,7 +474,7 @@ impl CompletionPool<'_> {
         }
     }
 }
-/// Complete a token while retaining the byte range needed to apply it safely.
+#[doc = r" Complete a token while retaining the byte range needed to apply it safely."]
 pub fn completion_batch(src: &str, cursor: usize, cat: &Catalog) -> CompletionBatch {
     let cursor = normalized_cursor(src, cursor);
     let (word, clause, qualifier) = context(src, cursor);
@@ -517,7 +516,6 @@ fn member_candidates(
     q: &str,
     pool: &mut CompletionPool<'_>,
 ) {
-    // alias or table name → its columns; schema → its tables
     let table = in_stmt
         .iter()
         .find(|(t, a)| {
@@ -718,7 +716,7 @@ fn col_detail(c: &tablepro_demo::db::Column) -> String {
     d
 }
 
-/// Whether this SQL context has enough input to open completion automatically.
+#[doc = r" Whether this SQL context has enough input to open completion automatically."]
 pub fn auto_trigger(src: &str, cursor: usize) -> bool {
     let (word, clause, _) = context(src, normalized_cursor(src, cursor));
     match clause {
@@ -728,41 +726,41 @@ pub fn auto_trigger(src: &str, cursor: usize) -> bool {
     }
 }
 
-/// Return ranked candidates; use [`completion_batch`] to apply a replacement.
+#[doc = r" Return ranked candidates; use [`completion_batch`] to apply a replacement."]
 pub fn complete(source: &str, cursor: usize, catalog: &Catalog) -> Vec<Completion> {
     completion_batch(source, cursor, catalog).items
 }
 
-/// An actionable switcher destination, independent of its display position.
+#[doc = r" An actionable switcher destination, independent of its display position."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SwitchTarget {
-    /// Catalog table, identified by schema and name.
+    #[doc = r" Catalog table, identified by schema and name."]
     Table {
-        /// Schema name.
+        #[doc = r" Schema name."]
         schema: String,
-        /// Table name.
+        #[doc = r" Table name."]
         name: String,
     },
-    /// Catalog view, identified by schema and name.
+    #[doc = r" Catalog view, identified by schema and name."]
     View {
-        /// Schema name.
+        #[doc = r" Schema name."]
         schema: String,
-        /// View name.
+        #[doc = r" View name."]
         name: String,
     },
-    /// Schema name.
+    #[doc = r" Schema name."]
     Schema(String),
-    /// Database name.
+    #[doc = r" Database name."]
     Database(String),
-    /// Immutable owning tab identity.
+    #[doc = r" Immutable owning tab identity."]
     OpenTab(crate::tabs::TabKey),
-    /// Stable history entry id.
+    #[doc = r" Stable history entry id."]
     Query(usize),
-    /// Additive connection destination.
+    #[doc = r" Additive connection destination."]
     Connection(String),
 }
 impl SwitchTarget {
-    /// Source group label, derived from the actual destination.
+    #[doc = r" Source group label, derived from the actual destination."]
     pub const fn group(&self) -> &'static str {
         match self {
             Self::Table { .. } => "Tables",
@@ -786,22 +784,22 @@ impl SwitchTarget {
         }
     }
 }
-/// One quick-switcher result.
+#[doc = r" One quick-switcher result."]
 #[derive(Clone, PartialEq, Eq)]
 pub struct SwitchItem {
-    /// Stable display key; activation uses the typed target.
+    #[doc = r" Stable display key; activation uses the typed target."]
     pub key: String,
-    /// Main label.
+    #[doc = r" Main label."]
     pub label: String,
-    /// Searchable path metadata.
+    #[doc = r" Searchable path metadata."]
     pub detail: String,
-    /// Typed destination.
+    #[doc = r" Typed destination."]
     pub target: SwitchTarget,
-    /// Whether the represented destination is already open.
+    #[doc = r" Whether the represented destination is already open."]
     pub open: bool,
-    /// Rank; lower values sort first.
+    #[doc = r" Rank; lower values sort first."]
     pub score: u32,
-    /// Matched original-label grapheme ordinals; empty for path-only matches.
+    #[doc = r" Matched original-label grapheme ordinals; empty for path-only matches."]
     pub matched: Vec<usize>,
 }
 impl core::fmt::Debug for SwitchItem {
@@ -817,14 +815,14 @@ impl core::fmt::Debug for SwitchItem {
             .finish()
     }
 }
-/// Owned snapshot of available quick-switcher destinations.
+#[doc = r" Owned snapshot of available quick-switcher destinations."]
 #[derive(Debug, Clone, Default)]
 pub struct SwitcherIndex {
-    /// Indexed targets. Rebuild from the workbench after structural changes.
+    #[doc = r" Indexed targets. Rebuild from the workbench after structural changes."]
     pub items: Vec<SwitchItem>,
 }
 impl SwitcherIndex {
-    /// Build without open-tab metadata for standalone catalog consumers.
+    #[doc = r" Build without open-tab metadata for standalone catalog consumers."]
     pub fn from_catalog(
         catalog: &Catalog,
         history: &History,
@@ -935,7 +933,7 @@ impl SwitcherIndex {
         }
         index
     }
-    /// Rank name matches before path matches, preserving source group priorities.
+    #[doc = r" Rank name matches before path matches, preserving source group priorities."]
     pub fn search(&self, query: &str) -> Vec<SwitchItem> {
         let query = query.trim();
         let path_query = query.to_lowercase();
@@ -968,7 +966,7 @@ impl SwitcherIndex {
     }
 }
 
-/// Return the columns of a table for filter/editor construction.
+#[doc = r" Return the columns of a table for filter/editor construction."]
 pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
@@ -977,7 +975,7 @@ pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
         .collect()
 }
 
-/// Explicit app-level wrapper around the SQL tokenizer for tests and editor UI.
+#[doc = r" Explicit app-level wrapper around the SQL tokenizer for tests and editor UI."]
 pub fn statement_tokens(source: &str) -> Vec<String> {
     tokenize(source)
         .into_iter()

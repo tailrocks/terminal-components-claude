@@ -1,47 +1,47 @@
-//! Core layer types: LayerId, DismissReason, LayerEvent.
+#![doc = r" Core layer types: LayerId, DismissReason, LayerEvent."]
 
 use crate::action::ActionKey;
 
-/// Unique identifier for an open layer.
+#[doc = r" Unique identifier for an open layer."]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct LayerId(pub u16);
 
 impl LayerId {
-    /// The page.
+    #[doc = r" The page."]
     pub const PAGE: LayerId = LayerId(0);
 
-    /// The stack position.
+    #[doc = r" The stack position."]
     pub const fn index(self) -> u16 {
         self.0
     }
 
-    /// Return the raw integer id.
+    #[doc = r" Return the raw integer id."]
     pub const fn raw(self) -> u16 {
         self.0
     }
 }
 
-/// Why a layer was dismissed.
+#[doc = r" Why a layer was dismissed."]
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DismissReason {
-    /// Esc.
+    #[doc = r" Esc."]
     Esc,
-    /// A click outside.
+    #[doc = r" A click outside."]
     OutsideClick,
-    /// Focus left.
+    #[doc = r" Focus left."]
     FocusOut,
-    /// Programmatic close.
+    #[doc = r" Programmatic close."]
     Programmatic,
 }
 
-/// Events emitted during layer transitions.
+#[doc = r" Events emitted during layer transitions."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerEvent {
-    /// The layer opened.
+    #[doc = r" The layer opened."]
     Opened,
-    /// The layer was dismissed.
+    #[doc = r" The layer was dismissed."]
     Dismissed(DismissReason),
-    /// The layer was closed with an action.
+    #[doc = r" The layer was closed with an action."]
     Closed(ActionKey),
 }

@@ -1,4 +1,4 @@
-//! `CodeEditor` — a language-agnostic document editor.
+#![doc = r" `CodeEditor` — a language-agnostic document editor."]
 
 use core::fmt;
 use core::ops::Range;
@@ -25,12 +25,12 @@ const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 
-/// A caller-supplied syntax highlighter.
-///
-/// Returned byte ranges may be in any order; the editor sorts and clamps them
-/// once per edit generation before painting.
+#[doc = r" A caller-supplied syntax highlighter."]
+#[doc = r""]
+#[doc = r" Returned byte ranges may be in any order; the editor sorts and clamps them"]
+#[doc = r" once per edit generation before painting."]
 pub trait Highlighter {
-    /// Highlight `text` with byte ranges and semantic syntax roles.
+    #[doc = r" Highlight `text` with byte ranges and semantic syntax roles."]
     fn highlight(&self, text: &str) -> Vec<(Range<usize>, SyntaxRole)>;
 }
 
@@ -43,9 +43,9 @@ where
     }
 }
 
-/// A caller-supplied statement/block segmenter.
+#[doc = r" A caller-supplied statement/block segmenter."]
 pub trait Segmenter {
-    /// Return block byte ranges for `text`.
+    #[doc = r" Return block byte ranges for `text`."]
     fn segments(&self, text: &str) -> Vec<Range<usize>>;
 }
 
@@ -58,24 +58,24 @@ where
     }
 }
 
-/// Diagnostic severity.
+#[doc = r" Diagnostic severity."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CodeSeverity {
-    /// An error.
+    #[doc = r" An error."]
     Error,
-    /// A warning.
+    #[doc = r" A warning."]
     Warning,
-    /// Informational feedback.
+    #[doc = r" Informational feedback."]
     Info,
 }
 
-/// What Tab does while the editor is active.
+#[doc = r" What Tab does while the editor is active."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum TabBehavior {
-    /// Insert or remove indentation.
+    #[doc = r" Insert or remove indentation."]
     #[default]
     Indent,
-    /// Ask the surrounding focus scope to move.
+    #[doc = r" Ask the surrounding focus scope to move."]
     Leave,
 }
 
@@ -89,19 +89,19 @@ impl CodeSeverity {
     }
 }
 
-/// A byte-range diagnostic attached to a document.
+#[doc = r" A byte-range diagnostic attached to a document."]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CodeDiagnostic {
-    /// A byte range in the current document.
+    #[doc = r" A byte range in the current document."]
     pub range: Range<usize>,
-    /// Severity.
+    #[doc = r" Severity."]
     pub severity: CodeSeverity,
-    /// Human-readable detail.
+    #[doc = r" Human-readable detail."]
     pub message: String,
 }
 
 impl CodeDiagnostic {
-    /// A diagnostic.
+    #[doc = r" A diagnostic."]
     pub fn new(range: Range<usize>, severity: CodeSeverity, message: impl Into<String>) -> Self {
         CodeDiagnostic {
             range,
@@ -120,60 +120,60 @@ fn nearest_diagnostic(diagnostics: &[CodeDiagnostic], cursor: usize) -> Option<&
         .min_by_key(|diagnostic| diagnostic.range.start.abs_diff(cursor))
 }
 
-/// What a [`CodeEditor`] reports.
+#[doc = r" What a [`CodeEditor`] reports."]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CodeAction {
-    /// The document changed.
+    #[doc = r" The document changed."]
     Changed,
-    /// Navigation moved the cursor or selection.
+    #[doc = r" Navigation moved the cursor or selection."]
     CursorMoved,
-    /// Editing ended; the document remains in the state.
+    #[doc = r" Editing ended; the document remains in the state."]
     Committed,
-    /// Tab asked the surrounding form to move focus.
+    #[doc = r" Tab asked the surrounding form to move focus."]
     Leave {
-        /// Move backwards when true.
+        #[doc = r" Move backwards when true."]
         backward: bool,
     },
 }
 
-/// Const-constructible commands used by the editor's default keymap.
+#[doc = r" Const-constructible commands used by the editor's default keymap."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CodeCmd {
-    /// Begin editing at the cursor.
+    #[doc = r" Begin editing at the cursor."]
     InsertMode,
-    /// Begin editing after the cursor.
+    #[doc = r" Begin editing after the cursor."]
     AppendMode,
-    /// End editing.
+    #[doc = r" End editing."]
     Commit,
-    /// Move the cursor.
+    #[doc = r" Move the cursor."]
     Move(Motion, Extend),
-    /// Move a page vertically.
+    #[doc = r" Move a page vertically."]
     Page(bool),
-    /// Delete backwards.
+    #[doc = r" Delete backwards."]
     Backspace,
-    /// Delete forwards.
+    #[doc = r" Delete forwards."]
     Delete,
-    /// Delete the previous word.
+    #[doc = r" Delete the previous word."]
     DeleteWordLeft,
-    /// Delete to line end.
+    #[doc = r" Delete to line end."]
     DeleteToLineEnd,
-    /// Delete to line start.
+    #[doc = r" Delete to line start."]
     DeleteToLineStart,
-    /// Insert a newline.
+    #[doc = r" Insert a newline."]
     Newline,
-    /// Indent or leave the control.
+    #[doc = r" Indent or leave the control."]
     Tab(bool),
-    /// Open find.
+    #[doc = r" Open find."]
     Find,
-    /// Accept the current find query.
+    #[doc = r" Accept the current find query."]
     FindAccept,
-    /// Remove one character from the find query.
+    #[doc = r" Remove one character from the find query."]
     FindBackspace,
-    /// Close find without moving.
+    #[doc = r" Close find without moving."]
     FindCancel,
-    /// Move to the next or previous find result.
+    #[doc = r" Move to the next or previous find result."]
     FindNext(bool),
-    /// Move to the previous or next block.
+    #[doc = r" Move to the previous or next block."]
     Block(bool),
 }
 
@@ -501,7 +501,7 @@ struct FindState {
     typing: bool,
 }
 
-/// Durable state of a [`CodeEditor`]. `Debug` redacts document and find text.
+#[doc = r" Durable state of a [`CodeEditor`]. `Debug` redacts document and find text."]
 #[derive(Clone, PartialEq, Eq)]
 pub struct CodeEditorState {
     editor: TextEditorCore,
@@ -537,7 +537,7 @@ impl fmt::Debug for CodeEditorState {
 }
 
 impl CodeEditorState {
-    /// State containing `text`.
+    #[doc = r" State containing `text`."]
     pub fn new(text: &str) -> Self {
         let mut editor = TextEditorCore::multi(text);
         editor.set_cursor_line_col(0, 0);
@@ -553,12 +553,12 @@ impl CodeEditorState {
         }
     }
 
-    /// The document.
+    #[doc = r" The document."]
     pub fn text(&self) -> &str {
         self.editor.text()
     }
 
-    /// Replace the document, reset navigation, and invalidate highlighting.
+    #[doc = r" Replace the document, reset navigation, and invalidate highlighting."]
     pub fn set_text(&mut self, text: &str) {
         if self.editor.apply(EditAction::SetText(text)).changed() {
             self.bump_generation();
@@ -570,27 +570,27 @@ impl CodeEditorState {
         self.refind();
     }
 
-    /// Whether the editor is in insert mode.
+    #[doc = r" Whether the editor is in insert mode."]
     pub const fn is_editing(&self) -> bool {
         self.editing
     }
 
-    /// The vertical scroll.
+    #[doc = r" The vertical scroll."]
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
 
-    /// Cursor byte offset.
+    #[doc = r" Cursor byte offset."]
     pub const fn cursor_offset(&self) -> usize {
         self.editor.cursor_offset()
     }
 
-    /// Selected bytes, if any.
+    #[doc = r" Selected bytes, if any."]
     pub fn selected_text(&self) -> Option<&str> {
         self.editor.selected_text()
     }
 
-    /// Replace and sort diagnostics.
+    #[doc = r" Replace and sort diagnostics."]
     pub fn set_diagnostics(&mut self, mut diagnostics: Vec<CodeDiagnostic>) {
         diagnostics.sort_by_key(|d| d.range.start);
         self.has_error = diagnostics
@@ -599,28 +599,28 @@ impl CodeEditorState {
         self.diagnostics = diagnostics;
     }
 
-    /// Current diagnostics, sorted by start offset.
+    #[doc = r" Current diagnostics, sorted by start offset."]
     pub fn diagnostics(&self) -> &[CodeDiagnostic] {
         &self.diagnostics
     }
 
-    /// Mark one block as running.
+    #[doc = r" Mark one block as running."]
     pub fn set_running(&mut self, block: Option<Range<usize>>) {
         self.running = block;
     }
 
-    /// Start insert mode.
+    #[doc = r" Start insert mode."]
     pub const fn begin_edit(&mut self) {
         self.editing = true;
     }
 
-    /// End insert mode, preserving the document.
+    #[doc = r" End insert mode, preserving the document."]
     pub fn commit(&mut self) {
         self.editing = false;
         let _ = self.editor.apply(EditAction::ClearSelection);
     }
 
-    /// Jump to a byte offset.
+    #[doc = r" Jump to a byte offset."]
     pub fn jump_to(&mut self, offset: usize) {
         let offset = floor_boundary(self.text(), offset.min(self.text().len()));
         let (line, col) = line_col(self.text(), offset);
@@ -628,8 +628,8 @@ impl CodeEditorState {
         self.scroll.ensure_visible(line);
     }
 
-    /// Explicitly invalidate derived highlighting after caller-owned semantic
-    /// inputs captured by a highlighter change.
+    #[doc = r" Explicitly invalidate derived highlighting after caller-owned semantic"]
+    #[doc = r" inputs captured by a highlighter change."]
     pub fn invalidate(&mut self) {
         self.bump_generation();
     }
@@ -736,73 +736,73 @@ impl HighlightCache {
     }
 }
 
-/// A language-agnostic code editor over [`TextEditorCore`].
-///
-/// ## Construction
-/// `CodeEditor::new(id, rows)` with [`CodeEditorState::new`] holding the
-/// document.
-///
-/// ## Ownership
-/// The caller owns `CodeEditorState` (document, cursor, selection, diagnostics,
-/// find and scroll). The runtime owns focus, pointer routing, capture and the
-/// derived highlight cache.
-///
-/// ## Configuration
-/// `.highlighter`, `.segmenter`, `.placeholder`, `.indent`, `.tab_behavior`,
-/// `.read_only`, `.disabled`, `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::CODE`, `Variant::DEFAULT` only.
-///
-/// ## States
-/// Runtime focus/hover/press plus state-owned `EDITING`; `READ_ONLY`,
-/// `DISABLED` and diagnostic `ERROR` are derived.
-///
-/// ## Actions
-/// [`CodeAction::Changed`], `CursorMoved`, `Committed`, and `Leave`.
-///
-/// ## Focus
-/// One focusable editor stop; it swallows typing. Read-only remains reachable,
-/// disabled does not.
-///
-/// ## Keyboard
-/// Navigation defaults to vim-compatible `i/a`, `h/j/k/l`, `g/G`, `{`/`}`,
-/// `/`, `n/N`; insert mode uses the shared editor motions and mutations. The
-/// table is ordinary [`Bindings`] metadata and can be remapped by `KeyMap`.
-/// `/` enters find input: bare characters extend the query, `Backspace`
-/// removes one character, `Enter` accepts it, and `Esc` closes it.
-///
-/// ## Mouse
-/// Pressing `TEXT` places the cursor and enters insert mode; wheel and
-/// `TRACK`/`THUMB` are delegated to [`ScrollRegion`].
-///
-/// ## Layout
-/// `rows` includes a one-row find/status footer. The body has focus, marker,
-/// line-number and scrollbar columns. `measure` returns a 20-column minimum;
-/// zero area registers nothing.
-///
-/// ## Parts
-/// `CONTAINER`, `GUTTER`, `MARKER`, `META` (numbers/footer), `TEXT`,
-/// `PLACEHOLDER`, `ROW` (selection), `QUERY`, `DETAIL` (diagnostic), `ICON`,
-/// `TRACK`, `THUMB`.
-///
-/// ## Overrides
-/// `.patch`/`.patch_part` reach all parts. `.slot` replaces `GUTTER`, `MARKER`,
-/// `ICON`, `PLACEHOLDER`, `QUERY`, `TRACK`, or `THUMB`; text geometry remains
-/// owned by the editor.
-///
-/// ## Identity
-/// One caller `Id`; diagnostics and byte ranges refer to the state's current
-/// document.
-///
-/// ## Testing
-/// `CodeEditorCase`; `render::components::code_editor::*`; unit coverage pins
-/// the edit-generation cache and sorted-span walk.
-///
-/// ## Invariants
-/// `draw(&self, ..., &CodeEditorState)` cannot commit or mutate semantic state.
-/// Highlighting runs once per edit generation and painting advances sorted
-/// span/diagnostic/find cursors alongside the grapheme walk.
+#[doc = r" A language-agnostic code editor over [`TextEditorCore`]."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `CodeEditor::new(id, rows)` with [`CodeEditorState::new`] holding the"]
+#[doc = r" document."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" The caller owns `CodeEditorState` (document, cursor, selection, diagnostics,"]
+#[doc = r" find and scroll). The runtime owns focus, pointer routing, capture and the"]
+#[doc = r" derived highlight cache."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.highlighter`, `.segmenter`, `.placeholder`, `.indent`, `.tab_behavior`,"]
+#[doc = r" `.read_only`, `.disabled`, `.patch`, `.patch_part`, `.slot`."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::CODE`, `Variant::DEFAULT` only."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" Runtime focus/hover/press plus state-owned `EDITING`; `READ_ONLY`,"]
+#[doc = r" `DISABLED` and diagnostic `ERROR` are derived."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" [`CodeAction::Changed`], `CursorMoved`, `Committed`, and `Leave`."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" One focusable editor stop; it swallows typing. Read-only remains reachable,"]
+#[doc = r" disabled does not."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" Navigation defaults to vim-compatible `i/a`, `h/j/k/l`, `g/G`, `{`/`}`,"]
+#[doc = r" `/`, `n/N`; insert mode uses the shared editor motions and mutations. The"]
+#[doc = r" table is ordinary [`Bindings`] metadata and can be remapped by `KeyMap`."]
+#[doc = r" `/` enters find input: bare characters extend the query, `Backspace`"]
+#[doc = r" removes one character, `Enter` accepts it, and `Esc` closes it."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" Pressing `TEXT` places the cursor and enters insert mode; wheel and"]
+#[doc = r" `TRACK`/`THUMB` are delegated to [`ScrollRegion`]."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" `rows` includes a one-row find/status footer. The body has focus, marker,"]
+#[doc = r" line-number and scrollbar columns. `measure` returns a 20-column minimum;"]
+#[doc = r" zero area registers nothing."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `CONTAINER`, `GUTTER`, `MARKER`, `META` (numbers/footer), `TEXT`,"]
+#[doc = r" `PLACEHOLDER`, `ROW` (selection), `QUERY`, `DETAIL` (diagnostic), `ICON`,"]
+#[doc = r" `TRACK`, `THUMB`."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch`/`.patch_part` reach all parts. `.slot` replaces `GUTTER`, `MARKER`,"]
+#[doc = r" `ICON`, `PLACEHOLDER`, `QUERY`, `TRACK`, or `THUMB`; text geometry remains"]
+#[doc = r" owned by the editor."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" One caller `Id`; diagnostics and byte ranges refer to the state's current"]
+#[doc = r" document."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `CodeEditorCase`; `render::components::code_editor::*`; unit coverage pins"]
+#[doc = r" the edit-generation cache and sorted-span walk."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" `draw(&self, ..., &CodeEditorState)` cannot commit or mutate semantic state."]
+#[doc = r" Highlighting runs once per edit generation and painting advances sorted"]
+#[doc = r" span/diagnostic/find cursors alongside the grapheme walk."]
 pub struct CodeEditor<'a> {
     id: Id,
     rows: u16,
@@ -833,7 +833,7 @@ impl fmt::Debug for CodeEditor<'_> {
 }
 
 impl<'a> CodeEditor<'a> {
-    /// Styled parts.
+    #[doc = r" Styled parts."]
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -849,7 +849,7 @@ impl<'a> CodeEditor<'a> {
         Part::THUMB,
     ];
 
-    /// An editor `rows` cells tall.
+    #[doc = r" An editor `rows` cells tall."]
     pub const fn new(id: Id, rows: u16) -> Self {
         CodeEditor {
             id,
@@ -865,70 +865,70 @@ impl<'a> CodeEditor<'a> {
         }
     }
 
-    /// Syntax highlighter.
+    #[doc = r" Syntax highlighter."]
     #[must_use]
     pub const fn highlighter(mut self, highlighter: &'a dyn Highlighter) -> Self {
         self.highlighter = Some(highlighter);
         self
     }
 
-    /// Block segmenter.
+    #[doc = r" Block segmenter."]
     #[must_use]
     pub const fn segmenter(mut self, segmenter: &'a dyn Segmenter) -> Self {
         self.segmenter = Some(segmenter);
         self
     }
 
-    /// Empty-document placeholder.
+    #[doc = r" Empty-document placeholder."]
     #[must_use]
     pub const fn placeholder(mut self, placeholder: &'a str) -> Self {
         self.placeholder = Some(placeholder);
         self
     }
 
-    /// Spaces inserted by Tab.
+    #[doc = r" Spaces inserted by Tab."]
     #[must_use]
     pub const fn indent(mut self, spaces: u8) -> Self {
         self.indent = spaces;
         self
     }
 
-    /// Configure whether Tab indents or leaves the editor.
+    #[doc = r" Configure whether Tab indents or leaves the editor."]
     #[must_use]
     pub const fn tab_behavior(mut self, behavior: TabBehavior) -> Self {
         self.tab_behavior = behavior;
         self
     }
 
-    /// Read-only: reachable but never edits.
+    #[doc = r" Read-only: reachable but never edits."]
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
 
-    /// Disabled: registered but skipped.
+    #[doc = r" Disabled: registered but skipped."]
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// Patch every part.
+    #[doc = r" Patch every part."]
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.ov = self.ov.global(patch);
         self
     }
 
-    /// Patch selected parts.
+    #[doc = r" Patch selected parts."]
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(patches);
         self
     }
 
-    /// Replace a part painter.
+    #[doc = r" Replace a part painter."]
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, slot);
@@ -959,7 +959,7 @@ impl<'a> CodeEditor<'a> {
         digits.max(2).saturating_add(4)
     }
 
-    /// Selection, or the block containing the cursor.
+    #[doc = r" Selection, or the block containing the cursor."]
     pub fn selection_or_block(&self, st: &CodeEditorState) -> Option<(String, Range<usize>)> {
         if let Some(range) = st.editor.selection() {
             return Some((st.text().get(range.clone())?.to_owned(), range));
@@ -968,7 +968,7 @@ impl<'a> CodeEditor<'a> {
         Some((st.text().get(range.clone())?.to_owned(), range))
     }
 
-    /// Blocks returned by the configured segmenter.
+    #[doc = r" Blocks returned by the configured segmenter."]
     pub fn blocks(&self, st: &CodeEditorState) -> Vec<Range<usize>> {
         let mut blocks = self
             .segmenter
@@ -977,7 +977,7 @@ impl<'a> CodeEditor<'a> {
         blocks
     }
 
-    /// Block at or immediately before the cursor.
+    #[doc = r" Block at or immediately before the cursor."]
     pub fn current_block(&self, st: &CodeEditorState) -> Option<Range<usize>> {
         let cursor = st.cursor_offset();
         let blocks = self.blocks(st);
@@ -988,7 +988,7 @@ impl<'a> CodeEditor<'a> {
             .cloned()
     }
 
-    /// Last-frame cursor cell, suitable for anchoring completion.
+    #[doc = r" Last-frame cursor cell, suitable for anchoring completion."]
     pub fn cursor_cell(&self, cx: &Cx<'_>, st: &CodeEditorState) -> Option<Rect> {
         let area = cx.area(self.id)?;
         let cursor = st.editor.cursor_pos();
@@ -1017,7 +1017,7 @@ impl<'a> CodeEditor<'a> {
         })
     }
 
-    /// Update interaction and editing state.
+    #[doc = r" Update interaction and editing state."]
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) -> Response<CodeAction> {
         if self.disabled {
             return Response::ignored();
@@ -1256,7 +1256,7 @@ impl<'a> CodeEditor<'a> {
         }
     }
 
-    /// Draw the editor without semantic state mutation.
+    #[doc = r" Draw the editor without semantic state mutation."]
     #[expect(
         clippy::too_many_lines,
         reason = "single sorted cursor walk over visible code"
@@ -1602,7 +1602,7 @@ impl<'a> CodeEditor<'a> {
         used
     }
 
-    /// Natural editor size.
+    #[doc = r" Natural editor size."]
     pub fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
         Size {
             min: (20, 2),

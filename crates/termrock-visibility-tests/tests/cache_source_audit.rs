@@ -1,9 +1,9 @@
-//! One-time, read-only audit of the Cargo source trees added during VIS-06 R11.
-//!
-//! This ignored case compares the 153 new extracted package trees with the
-//! lock-checksummed archives used by the R11 run. It never unpacks an archive
-//! and never writes to the Cargo cache. Its receipt is separate from the
-//! original R11 result.
+#![doc = r" One-time, read-only audit of the Cargo source trees added during VIS-06 R11."]
+#![doc = r""]
+#![doc = r" This ignored case compares the 153 new extracted package trees with the"]
+#![doc = r" lock-checksummed archives used by the R11 run. It never unpacks an archive"]
+#![doc = r" and never writes to the Cargo cache. Its receipt is separate from the"]
+#![doc = r" original R11 result."]
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;

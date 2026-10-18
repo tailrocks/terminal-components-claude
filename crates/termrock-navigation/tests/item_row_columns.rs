@@ -1,4 +1,4 @@
-//! Public semantic row layout: one projection, measured cells and full-row activation.
+#![doc = r" Public semantic row layout: one projection, measured cells and full-row activation."]
 use ratatui_core::layout::Rect;
 use termrock_navigation::{
     FilterList, FilterListAction, FilterListState, FilterPolicy, Item, ItemRowLayout,
@@ -129,7 +129,7 @@ fn columns_align_complete_projection_and_emphasize_original_graphemes() {
         let a = row(&h, 1);
         at(&h, a, 1, "T");
         at(&h, a, 3, "e\u{301}界x");
-        // Long off-row label fixes the complete projection label column at 15 cells.
+
         at(&h, a, 20, "public.alpha");
         at(&h, a, a.width.saturating_sub(14), "open");
         at(&h, a, a.width.saturating_sub(8), "Tables");
@@ -142,7 +142,7 @@ fn columns_align_complete_projection_and_emphasize_original_graphemes() {
         );
         let c = row(&h, 3);
         at(&h, c, c.width.saturating_sub(8), "History");
-        // Move focus away so only matched graphemes, not the focused recipe, are bold.
+
         let mut h = h;
         let _ = h.key(KeyCode::Down);
         let a = row(&h, 1);
@@ -470,8 +470,4 @@ fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("; "));
-    // Scope note: instance patches (`patch_part`) address component chrome,
-    // exactly as for the Compact row painter and every other collection row;
-    // they do not enter row-cell part resolution. Row cells answer to the
-    // theme recipe and overlay tiers, asserted above.
 }

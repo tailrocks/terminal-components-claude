@@ -1,45 +1,45 @@
-//! Ownership rules: what counts as raw preview painting and where the
-//! consumer/author boundary lies.
-//!
-//! Every rule carries a stable `OWN-nn` id, a scope (preview crates,
-//! library crates, or all production sources), and a matcher over scanned
-//! files. Findings route to the versioned exceptions file, which ratchets
-//! the grandfathered corpus: counts may shrink, never grow.
+#![doc = r" Ownership rules: what counts as raw preview painting and where the"]
+#![doc = r" consumer/author boundary lies."]
+#![doc = r""]
+#![doc = r" Every rule carries a stable `OWN-nn` id, a scope (preview crates,"]
+#![doc = r" library crates, or all production sources), and a matcher over scanned"]
+#![doc = r" files. Findings route to the versioned exceptions file, which ratchets"]
+#![doc = r" the grandfathered corpus: counts may shrink, never grow."]
 
 use std::collections::BTreeMap;
 
 use super::scan::{ScannedFile, is_raw_buffer_path, receiver_before, words};
 
-/// A single rule hit.
+#[doc = r" A single rule hit."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Finding {
-    /// Stable rule id (`OWN-01` …).
+    #[doc = r" Stable rule id (`OWN-01` …)."]
     pub rule: &'static str,
-    /// Workspace-relative file path.
+    #[doc = r" Workspace-relative file path."]
     pub file: String,
-    /// 1-based line number.
+    #[doc = r" 1-based line number."]
     pub line: usize,
-    /// Enclosing production `fn`, if any.
+    #[doc = r" Enclosing production `fn`, if any."]
     pub symbol: Option<String>,
-    /// Human-readable detail (method, import, macro name …).
+    #[doc = r" Human-readable detail (method, import, macro name …)."]
     pub detail: String,
-    /// True when the hit sits in a generated file.
+    #[doc = r" True when the hit sits in a generated file."]
     pub generated: bool,
 }
 
-/// Rule scope over workspace members.
+#[doc = r" Rule scope over workspace members."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scope {
-    /// Preview applications and their supporting crates
-    /// (every member outside `crates/termrock*`).
+    #[doc = r" Preview applications and their supporting crates"]
+    #[doc = r" (every member outside `crates/termrock*`)."]
     Preview,
-    /// Library crates (`crates/termrock*`).
+    #[doc = r" Library crates (`crates/termrock*`)."]
     Library,
-    /// All production sources except tooling crates.
+    #[doc = r" All production sources except tooling crates."]
     Production,
 }
 
-/// A rule definition.
+#[doc = r" A rule definition."]
 #[derive(Debug, Clone, Copy)]
 pub struct Rule {
     pub id: &'static str,
@@ -48,7 +48,7 @@ pub struct Rule {
     pub summary: &'static str,
 }
 
-/// The full catalog. Ids are stable: never reuse or renumber.
+#[doc = r" The full catalog. Ids are stable: never reuse or renumber."]
 pub const RULES: &[Rule] = &[
     Rule {
         id: "OWN-01",
@@ -136,8 +136,8 @@ pub const RULES: &[Rule] = &[
     },
 ];
 
-/// Cell-writing `Ui` methods. Registration, measurement, and style
-/// resolution are intentionally absent: they are not painting.
+#[doc = r" Cell-writing `Ui` methods. Registration, measurement, and style"]
+#[doc = r" resolution are intentionally absent: they are not painting."]
 const UI_PAINT_METHODS: &[&str] = &[
     "paint_cell",
     "paint_str",
@@ -154,8 +154,8 @@ const UI_PAINT_METHODS: &[&str] = &[
     "scroll_edges_except",
 ];
 
-/// Distinctive ratatui `Buffer` methods. These names are buffer-specific,
-/// so unlike the `Ui` list they match on any receiver.
+#[doc = r" Distinctive ratatui `Buffer` methods. These names are buffer-specific,"]
+#[doc = r" so unlike the `Ui` list they match on any receiver."]
 const BUFFER_PAINT_METHODS: &[&str] = &[
     "set_string",
     "set_stringn",
@@ -165,25 +165,25 @@ const BUFFER_PAINT_METHODS: &[&str] = &[
     "cell_mut",
 ];
 
-/// Tooling crates excluded from [`Scope::Production`]: harness and xtask
-/// code fails fast on violated test protocol by design.
+#[doc = r" Tooling crates excluded from [`Scope::Production`]: harness and xtask"]
+#[doc = r" code fails fast on violated test protocol by design."]
 pub const TOOLING_MEMBERS: &[&str] = &["termrock-test-support", "termrock-xtask"];
 
-/// True for members under `crates/termrock*` (library and tooling).
+#[doc = r" True for members under `crates/termrock*` (library and tooling)."]
 pub fn is_library_member(member: &str) -> bool {
     member == "crates/termrock"
         || member.starts_with("crates/termrock-")
         || member.starts_with("crates/termrock/")
 }
 
-/// True for production-scope members: everything but tooling crates.
+#[doc = r" True for production-scope members: everything but tooling crates."]
 pub fn is_production_member(member: &str) -> bool {
     let name = member.rsplit('/').next().unwrap_or(member);
     !TOOLING_MEMBERS.contains(&name)
 }
 
-/// Crate names (`jackin_preview_app`) of preview members, derived from the
-/// workspace member list.
+#[doc = r" Crate names (`jackin_preview_app`) of preview members, derived from the"]
+#[doc = r" workspace member list."]
 pub fn preview_crate_names(members: &[String]) -> Vec<String> {
     members
         .iter()
@@ -192,8 +192,8 @@ pub fn preview_crate_names(members: &[String]) -> Vec<String> {
         .collect()
 }
 
-/// Run every rule over one scanned file. Wrapper call-site detection
-/// ([`RULES`] `OWN-04`) runs separately per crate once wrappers are known.
+#[doc = r" Run every rule over one scanned file. Wrapper call-site detection"]
+#[doc = r" ([`RULES`] `OWN-04`) runs separately per crate once wrappers are known."]
 pub fn match_file(file: &ScannedFile, preview_crates: &[String]) -> Vec<Finding> {
     let mut findings = Vec::new();
     let preview = !is_library_member(&file.member);
@@ -210,8 +210,7 @@ pub fn match_file(file: &ScannedFile, preview_crates: &[String]) -> Vec<Finding>
         match_size_switches(file, &mut findings);
     } else {
         match_library_preview_deps(file, preview_crates, &mut findings);
-        // Verification tooling (test-support, xtask) legitimately handles
-        // baseline paths; the rule targets production library APIs.
+
         if is_production_member(&file.member) {
             match_library_stored_frames(file, &mut findings);
         }
@@ -239,7 +238,7 @@ fn finding(file: &ScannedFile, rule: &'static str, line: usize, detail: String) 
     }
 }
 
-/// OWN-01: raw buffer/cell imports resolve through aliases.
+#[doc = r" OWN-01: raw buffer/cell imports resolve through aliases."]
 fn match_imports(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for (local, path) in &file.aliases {
         if !is_raw_buffer_path(path) {
@@ -258,7 +257,7 @@ fn match_imports(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// The production line importing `local` (best effort for diagnostics).
+#[doc = r" The production line importing `local` (best effort for diagnostics)."]
 fn import_line(file: &ScannedFile, local: &str) -> Option<usize> {
     production_lines(file)
         .filter(|line| line.code.contains("use "))
@@ -266,9 +265,9 @@ fn import_line(file: &ScannedFile, local: &str) -> Option<usize> {
         .map(|line| line.number)
 }
 
-/// OWN-02: `Ui` paint methods on Ui-typed receivers (the conventional
-/// `ui` plus import-alias params), and distinctive `Buffer` methods on
-/// any receiver.
+#[doc = r" OWN-02: `Ui` paint methods on Ui-typed receivers (the conventional"]
+#[doc = r" `ui` plus import-alias params), and distinctive `Buffer` methods on"]
+#[doc = r" any receiver."]
 fn match_paint_calls(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         for method in UI_PAINT_METHODS.iter().chain(BUFFER_PAINT_METHODS.iter()) {
@@ -291,8 +290,8 @@ fn match_paint_calls(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// OWN-03: `Ui::raw`/`peek` escapes, receiver-resolved so iterator
-/// `peek` and unrelated `raw` methods never match.
+#[doc = r" OWN-03: `Ui::raw`/`peek` escapes, receiver-resolved so iterator"]
+#[doc = r" `peek` and unrelated `raw` methods never match."]
 fn match_raw_escapes(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         for method in ["raw", "peek"] {
@@ -314,9 +313,9 @@ fn match_raw_escapes(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// True when a macro body calls `ui.<method>(` or `$ui.<method>(`.
-/// Macro bodies lack type context, so only the conventional `ui` receiver
-/// (concrete or fragment) counts; other receivers stay silent.
+#[doc = r" True when a macro body calls `ui.<method>(` or `$ui.<method>(`."]
+#[doc = r" Macro bodies lack type context, so only the conventional `ui` receiver"]
+#[doc = r" (concrete or fragment) counts; other receivers stay silent."]
 fn macro_body_paints(body: &str, method: &str) -> bool {
     for receiver in ["ui.", "$ui."] {
         let needle = format!("{receiver}{method}");
@@ -337,7 +336,7 @@ fn macro_body_paints(body: &str, method: &str) -> bool {
     false
 }
 
-/// Byte offsets of `.method(` call dots in blanked code.
+#[doc = r" Byte offsets of `.method(` call dots in blanked code."]
 fn call_dots(code: &str, method: &str) -> Vec<usize> {
     let mut dots = Vec::new();
     let mut search = 0;
@@ -346,7 +345,7 @@ fn call_dots(code: &str, method: &str) -> Vec<usize> {
         let dot = search + offset;
         let after = dot + needle.len();
         let rest = &code[after..];
-        // `method(` or `method::<` (turbofish) or `method!`? calls only.
+
         let is_call = rest.starts_with('(') || rest.starts_with("::");
         let boundary = rest
             .chars()
@@ -360,9 +359,9 @@ fn call_dots(code: &str, method: &str) -> Vec<usize> {
     dots
 }
 
-/// OWN-05: macro definitions whose body paints, plus their call sites.
-/// Macro bodies lack type context, so only the conventional `ui` receiver
-/// counts inside a definition; call sites of a flagged macro always count.
+#[doc = r" OWN-05: macro definitions whose body paints, plus their call sites."]
+#[doc = r" Macro bodies lack type context, so only the conventional `ui` receiver"]
+#[doc = r" counts inside a definition; call sites of a flagged macro always count."]
 fn match_macros(file: &ScannedFile, findings: &mut Vec<Finding>) {
     let mut painted = Vec::new();
     for (name, range) in &file.macros {
@@ -401,7 +400,7 @@ fn match_macros(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// OWN-06: `include_str!`/`include_bytes!` (stored frames/assets as output).
+#[doc = r" OWN-06: `include_str!`/`include_bytes!` (stored frames/assets as output)."]
 fn match_includes(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         if line.code.contains("include_str!") || line.code.contains("include_bytes!") {
@@ -415,8 +414,8 @@ fn match_includes(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// OWN-07: screen-shaped literals: 3+ physical lines with box-drawing
-/// characters on 2+ lines. Single box glyphs in content strings never match.
+#[doc = r" OWN-07: screen-shaped literals: 3+ physical lines with box-drawing"]
+#[doc = r" characters on 2+ lines. Single box glyphs in content strings never match."]
 fn match_screen_literals(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for span in &file.strings {
         if span.end_line - span.start_line < 2 {
@@ -442,9 +441,9 @@ fn is_box_char(char: char) -> bool {
     ('\u{2500}'..='\u{257f}').contains(&char)
 }
 
-/// OWN-08: `cfg!(test/debug_assertions)` branches and compile-time env
-/// reads gating preview rendering. `env::args`/`std::env::var` (runtime
-/// CLI handling) are not compile-time gates and never match.
+#[doc = r" OWN-08: `cfg!(test/debug_assertions)` branches and compile-time env"]
+#[doc = r" reads gating preview rendering. `env::args`/`std::env::var` (runtime"]
+#[doc = r" CLI handling) are not compile-time gates and never match."]
 fn match_fixture_gates(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         let code = &line.code;
@@ -463,8 +462,8 @@ fn match_fixture_gates(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// OWN-09: `paused` keys behavior off paused state; each site needs a
-/// review verdict that input, layers, and component behavior stay live.
+#[doc = r" OWN-09: `paused` keys behavior off paused state; each site needs a"]
+#[doc = r" review verdict that input, layers, and component behavior stay live."]
 fn match_paused(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         if words(&line.code).contains(&"paused") {
@@ -478,7 +477,7 @@ fn match_paused(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// OWN-10: `match` on a scenario scrutinee and scenario-id equality.
+#[doc = r" OWN-10: `match` on a scenario scrutinee and scenario-id equality."]
 fn match_scenario_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         let tokens = words(&line.code);
@@ -503,8 +502,8 @@ fn match_scenario_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// OWN-11: width/height comparisons selecting behavior. `->` and `=>`
-/// are removed first so return types and match arms never match.
+#[doc = r" OWN-11: width/height comparisons selecting behavior. `->` and `=>`"]
+#[doc = r" are removed first so return types and match arms never match."]
 fn match_size_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         let tokens = words(&line.code);
@@ -527,7 +526,7 @@ fn match_size_switches(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// OWN-12: library code naming a preview crate as a dependency path.
+#[doc = r" OWN-12: library code naming a preview crate as a dependency path."]
 fn match_library_preview_deps(
     file: &ScannedFile,
     preview_crates: &[String],
@@ -549,7 +548,7 @@ fn match_library_preview_deps(
     }
 }
 
-/// OWN-13: library string literals referencing `baselines/` frame stores.
+#[doc = r" OWN-13: library string literals referencing `baselines/` frame stores."]
 fn match_library_stored_frames(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for span in &file.strings {
         if span.text.contains("baselines/") {
@@ -563,8 +562,8 @@ fn match_library_stored_frames(file: &ScannedFile, findings: &mut Vec<Finding>) 
     }
 }
 
-/// OWN-14: `.expect(`/`expect!` in production sources. The `#[expect]`
-/// lint attribute and `expect_used` never match: only real calls count.
+#[doc = r" OWN-14: `.expect(`/`expect!` in production sources. The `#[expect]`"]
+#[doc = r" lint attribute and `expect_used` never match: only real calls count."]
 fn match_expects(file: &ScannedFile, findings: &mut Vec<Finding>) {
     for line in production_lines(file) {
         for (offset, _) in line.code.match_indices("expect") {
@@ -585,8 +584,8 @@ fn match_expects(file: &ScannedFile, findings: &mut Vec<Finding>) {
     }
 }
 
-/// A paint wrapper: a production `fn` taking `&mut Ui` (or alias) that
-/// contains an OWN-02/OWN-03 hit.
+#[doc = r" A paint wrapper: a production `fn` taking `&mut Ui` (or alias) that"]
+#[doc = r" contains an OWN-02/OWN-03 hit."]
 #[derive(Debug, Clone)]
 pub struct Wrapper {
     pub member: String,
@@ -594,7 +593,7 @@ pub struct Wrapper {
     pub name: String,
 }
 
-/// Collect paint wrappers from OWN-02/OWN-03 findings.
+#[doc = r" Collect paint wrappers from OWN-02/OWN-03 findings."]
 pub fn collect_wrappers(
     files: &BTreeMap<String, ScannedFile>,
     findings: &[Finding],
@@ -628,8 +627,8 @@ pub fn collect_wrappers(
     wrappers
 }
 
-/// True when the `fn` signature mentions `&mut Ui` (or a file-local Ui
-/// alias) before its opening brace.
+#[doc = r" True when the `fn` signature mentions `&mut Ui` (or a file-local Ui"]
+#[doc = r" alias) before its opening brace."]
 fn takes_ui_param(file: &ScannedFile, name: &str) -> bool {
     let Some((_, range)) = file.functions.iter().find(|(n, _)| n == name) else {
         return false;
@@ -653,9 +652,9 @@ fn takes_ui_param(file: &ScannedFile, name: &str) -> bool {
         })
 }
 
-/// OWN-04: call sites of paint wrappers elsewhere in the same crate.
-/// Definitions, method calls (`.name(`), and macro calls (`name!`) never
-/// match; qualified `path::name(` calls do.
+#[doc = r" OWN-04: call sites of paint wrappers elsewhere in the same crate."]
+#[doc = r" Definitions, method calls (`.name(`), and macro calls (`name!`) never"]
+#[doc = r" match; qualified `path::name(` calls do."]
 pub fn match_wrapper_calls(
     files: &BTreeMap<String, ScannedFile>,
     wrappers: &[Wrapper],
@@ -827,7 +826,6 @@ mod tests {
             "definition plus call site"
         );
 
-        // A macro over any other receiver stays silent.
         let file = scan_file(
             "crates/demo/src/lib.rs",
             "crates/demo",

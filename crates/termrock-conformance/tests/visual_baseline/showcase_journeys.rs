@@ -1,29 +1,29 @@
-//! Showcase app-journey suite, slice 1 (VB Phase-7a, §15) — impl port.
-//!
-//! Ported verbatim from VB commit `e9428745`
-//! (`tests/harness/tests/visual_baseline/showcase_journeys.rs`), adapting
-//! only paths, binary resolution, and harness API:
-//!
-//! - `Session` is the impl [`support::Session`] wrapper (live samples via
-//!   `s.inner.observe_now()`), not `tuiscotti::tui::Session` directly.
-//! - The subject is the `showcase` binary built from this impl worktree's
-//!   sources, resolved via [`support::try_resolve_bin`] (name → executed
-//!   path + sha256); [`write_provenance`] records path, digest, size,
-//!   mtime, and argv behind each journey.
-//! - `support::drive` (3-arg) becomes [`support::drive_with_timeout`]
-//!   (timeout in ms); single steps use [`support::press_step`].
-//!
-//! Multi-step PTY journeys assert needle state across steps — they never
-//! gate snapshots, so every case here uses owned (dynamic) names: the
-//! approval-inventory parser in [`crate::support::suite_capture_names`]
-//! only expands the vendored case registry (never suite sources), and
-//! journey names stay out of the committed `snapshots/` inventory.
-//!
-//! Per-test scratch (checkpoints + provenance) lands under this
-//! conformance crate's `target/tuiscotti/journeys/<test>/` (gitignored,
-//! unique per test fn). Checkpoints are text frames (`.txt`);
-//! `provenance.txt` records the binary identity and argv behind each
-//! journey. Typed input is synthetic and in-memory only (simulation data).
+#![doc = r" Showcase app-journey suite, slice 1 (VB Phase-7a, §15) — impl port."]
+#![doc = r""]
+#![doc = r" Ported verbatim from VB commit `e9428745`"]
+#![doc = r" (`tests/harness/tests/visual_baseline/showcase_journeys.rs`), adapting"]
+#![doc = r" only paths, binary resolution, and harness API:"]
+#![doc = r""]
+#![doc = r" - `Session` is the impl [`support::Session`] wrapper (live samples via"]
+#![doc = r"   `s.inner.observe_now()`), not `tuiscotti::tui::Session` directly."]
+#![doc = r" - The subject is the `showcase` binary built from this impl worktree's"]
+#![doc = r"   sources, resolved via [`support::try_resolve_bin`] (name → executed"]
+#![doc = r"   path + sha256); [`write_provenance`] records path, digest, size,"]
+#![doc = r"   mtime, and argv behind each journey."]
+#![doc = r" - `support::drive` (3-arg) becomes [`support::drive_with_timeout`]"]
+#![doc = r"   (timeout in ms); single steps use [`support::press_step`]."]
+#![doc = r""]
+#![doc = r" Multi-step PTY journeys assert needle state across steps — they never"]
+#![doc = r" gate snapshots, so every case here uses owned (dynamic) names: the"]
+#![doc = r" approval-inventory parser in [`crate::support::suite_capture_names`]"]
+#![doc = r" only expands the vendored case registry (never suite sources), and"]
+#![doc = r" journey names stay out of the committed `snapshots/` inventory."]
+#![doc = r""]
+#![doc = r" Per-test scratch (checkpoints + provenance) lands under this"]
+#![doc = r" conformance crate's `target/tuiscotti/journeys/<test>/` (gitignored,"]
+#![doc = r" unique per test fn). Checkpoints are text frames (`.txt`);"]
+#![doc = r" `provenance.txt` records the binary identity and argv behind each"]
+#![doc = r" journey. Typed input is synthetic and in-memory only (simulation data)."]
 
 use std::path::{Path, PathBuf};
 
@@ -35,8 +35,8 @@ const BOOT: &str = "Junie Design system";
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
 
-/// Every Showcase page in `]`-cycle order (`NAV_ENTRIES`): slug for the
-/// checkpoint filename, header crumb (`/ <section> / <label>`) as proof.
+#[doc = r" Every Showcase page in `]`-cycle order (`NAV_ENTRIES`): slug for the"]
+#[doc = r" checkpoint filename, header crumb (`/ <section> / <label>`) as proof."]
 const PAGES: [(&str, &str); 23] = [
     ("overview", "/ Foundations / Overview"),
     ("buttons", "/ Components / Buttons"),
@@ -63,7 +63,7 @@ const PAGES: [(&str, &str); 23] = [
     ("taskrunner", "/ Screens / Task runner"),
 ];
 
-/// Owned-name journey case at the canonical 120x40 truecolor geometry.
+#[doc = r" Owned-name journey case at the canonical 120x40 truecolor geometry."]
 fn journey_case(name: &str, args: &'static [&'static str]) -> Case {
     Case::dynamic(
         format!("journeys/showcase/{name}"),
@@ -76,7 +76,7 @@ fn journey_case(name: &str, args: &'static [&'static str]) -> Case {
     )
 }
 
-/// Unique scratch dir for one journey test (created, never shared).
+#[doc = r" Unique scratch dir for one journey test (created, never shared)."]
 fn journey_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -85,9 +85,9 @@ fn journey_dir(test: &str) -> PathBuf {
     dir
 }
 
-/// Record the binary identity behind a journey: resolved absolute path,
-/// sha256 digest, byte size, mtime, and argv. Written to
-/// `provenance.txt`, echoed too.
+#[doc = r" Record the binary identity behind a journey: resolved absolute path,"]
+#[doc = r" sha256 digest, byte size, mtime, and argv. Written to"]
+#[doc = r" `provenance.txt`, echoed too."]
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
         support::try_resolve_bin(case.bin).unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
@@ -107,7 +107,7 @@ fn write_provenance(dir: &Path, case: &Case) {
     eprintln!("journey provenance: {body}");
 }
 
-/// Save the live screen text as `<name>.txt` in the journey dir.
+#[doc = r" Save the live screen text as `<name>.txt` in the journey dir."]
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -124,8 +124,8 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
 
-/// Slice 1, journey 1: visit every Showcase page in one session (`]`
-/// cycles `NAV_ENTRIES` order), proving each with its header crumb.
+#[doc = r" Slice 1, journey 1: visit every Showcase page in one session (`]`"]
+#[doc = r" cycles `NAV_ENTRIES` order), proving each with its header crumb."]
 #[test]
 #[ignore = "showcase journey; run with --ignored"]
 fn journey_showcase_all_pages() {
@@ -144,9 +144,9 @@ fn journey_showcase_all_pages() {
     eprintln!("journey all_pages: visited {} pages", PAGES.len());
 }
 
-/// Slice 1, journey 2: fill the task form and submit, asserting the
-/// pre-success transient (`Creating task…`, ~1.8 s busy window) before
-/// the success state (`Task created ✓`). Synthetic input, in-memory.
+#[doc = r" Slice 1, journey 2: fill the task form and submit, asserting the"]
+#[doc = r" pre-success transient (`Creating task…`, ~1.8 s busy window) before"]
+#[doc = r" the success state (`Task created ✓`). Synthetic input, in-memory."]
 #[test]
 #[ignore = "showcase journey; run with --ignored"]
 fn journey_showcase_form_save_transient() {
@@ -169,16 +169,14 @@ fn journey_showcase_form_save_transient() {
     eprintln!("journey form_save_transient: transient then success, both seen");
 }
 
-/// Slice 1, journey 3: one dialog action (confirm the destructive
-/// `Delete branch?` dialog via its action button) plus one menu level
-/// traversal (chrome File menu open, then across to the View menu).
+#[doc = r" Slice 1, journey 3: one dialog action (confirm the destructive"]
+#[doc = r" `Delete branch?` dialog via its action button) plus one menu level"]
+#[doc = r" traversal (chrome File menu open, then across to the View menu)."]
 #[test]
 #[ignore = "showcase journey; run with --ignored"]
 fn journey_showcase_dialog_action_and_menu() {
     let dir = journey_dir("journey_showcase_dialog_action_and_menu");
 
-    // Dialog action: `d` opens with Cancel focused; `right` moves to the
-    // Delete action, `enter` runs it; the result proves the dialog closed.
     let dialogs = journey_case("dialog_action", &["--page", "dialogs"]);
     write_provenance(&dir, &dialogs);
     let mut s = support::spawn_boot(&dialogs);
@@ -198,8 +196,6 @@ fn journey_showcase_dialog_action_and_menu() {
     );
     checkpoint(&mut s, &dir, "02-dialog-action-done");
 
-    // Menu level traversal: focus the menu bar, open File, cross one
-    // level to View; File's items must be gone, View's shown.
     let chrome = journey_case("menu_traversal", &["--page", "chrome"]);
     let mut s = support::spawn_boot(&chrome);
     support::press_step(&s, "tab");
@@ -221,9 +217,9 @@ fn journey_showcase_dialog_action_and_menu() {
     eprintln!("journey dialog_action_and_menu: delete ran, file→view crossed");
 }
 
-/// Slice 1, journey 4: choose a picker level, assert the transient
-/// footer feedback (`Chose Safe Mode (Full)`) before its 4 s expiry,
-/// then prove the expiry (absence after presence — never vacuous).
+#[doc = r" Slice 1, journey 4: choose a picker level, assert the transient"]
+#[doc = r" footer feedback (`Chose Safe Mode (Full)`) before its 4 s expiry,"]
+#[doc = r" then prove the expiry (absence after presence — never vacuous)."]
 #[test]
 #[ignore = "showcase journey; run with --ignored"]
 fn journey_showcase_feedback_expiry() {

@@ -1,5 +1,4 @@
-//! End-to-end interaction tests through the public runtime harness.
-
+#![doc = r" End-to-end interaction tests through the public runtime harness."]
 #![allow(
     dead_code,
     missing_debug_implementations,
@@ -31,7 +30,7 @@ fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
     h.ticks(45);
     assert!(h.text().contains("Stand up, operator…"), "{}", h.text());
     assert!(h.text().contains("jackin❯"));
-    // skip during phrases jumps to the warp, then finishes into the manager
+
     h.ticks(3);
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Intro);
@@ -85,7 +84,7 @@ fn manager_navigation_expand_and_detail_focus() {
     assert!(h.text().contains("Live topology"));
     h.key(KeyCode::Esc);
     assert_eq!(h.focus(), Some(jackin_preview_app::screens::manager::TREE));
-    // mouse: click the row of infra-control-plane
+
     let (x, y) = h.find("infra-control-plane").unwrap();
     h.click(x, y);
     assert!(h.text().contains("Workspaces › infra-control-plane"));
@@ -109,7 +108,7 @@ fn launch_runs_all_stages_and_hands_off_to_the_capsule() {
     h.ticks(15);
     assert_eq!(h.app().route(), Route::Capsule);
     assert!(h.text().contains("jackin❯"));
-    // type into the pane and see the echo
+
     h.ticks(60);
     h.type_str("hello");
     assert!(h.text().contains("hello"));
@@ -149,7 +148,7 @@ fn detach_reconnect_and_final_exit_plays_one_outro() {
     assert!(h.text().contains("Unsaved work"));
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
-    h.key(KeyCode::Enter); // exit & keep
+    h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Outro);
     h.key(KeyCode::Enter);
     h.ticks(25);
@@ -226,7 +225,7 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
         !h.text().contains("valid-ant01"),
         "secret leaked into the frame"
     );
-    // the same reference already backs Claude · Work: duplicate protection refuses
+
     h.tab_to(jackin_preview_app::screens::accounts::FORM.sub("save"));
     h.key(KeyCode::Enter);
     assert!(
@@ -236,7 +235,7 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
         h.text()
     );
     assert!(h.app().world.accounts.get("acct-anthropic-team").is_none());
-    // switch to Codex and pick the throttled sandbox item instead
+
     h.tab_to(jackin_preview_app::screens::accounts::FORM.sub("provider"));
     h.key(KeyCode::Down);
     assert!(h.text().contains("Codex · OpenAI"), "{}", h.text());
@@ -264,7 +263,7 @@ fn accounts_register_with_a_1password_reference_and_never_render_the_secret() {
     assert!(h.text().contains("Rate limited"), "{}", h.text());
     assert!(!h.text().contains("throttled-thr01"));
     assert!(h.app().world.accounts.get("acct-openai-team").is_some());
-    // refresh the new account: the job completes and the status reports it honestly
+
     h.key(KeyCode::Char('r'));
     assert!(h.text().contains("Refreshing"), "{}", h.text());
     h.ticks(60);
@@ -335,9 +334,9 @@ fn one_password_picker_uses_active_items_and_stable_stage_two_keys() {
     assert!(h.text().contains("OpenAI · Throttled sandbox › credential"));
 }
 
-/// §16.4's stable name for the secret-frame acceptance journey.  Keep the
-/// product-specific test above as the readable inventory entry while exposing
-/// the architecture name used by the cross-workspace gate.
+#[doc = r" §16.4's stable name for the secret-frame acceptance journey.  Keep the"]
+#[doc = r" product-specific test above as the readable inventory entry while exposing"]
+#[doc = r" the architecture name used by the cross-workspace gate."]
 #[test]
 fn form_dialog_secret_never_reaches_the_screen_as_a_string() {
     accounts_register_with_a_1password_reference_and_never_render_the_secret();
@@ -409,7 +408,7 @@ fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
     assert_eq!(h.app().route(), Route::Prelude);
     assert!(h.text().contains("step 1 of 5"), "{}", h.text());
     assert!(h.text().contains("~/src/payments-platform"));
-    // up to ~/src, choose data-pipeline (second folder)
+
     h.key(KeyCode::Backspace);
     assert!(h.text().contains("▸ payments-platform/"), "{}", h.text());
     assert!(h.text().contains("customer-portal/"), "{}", h.text());
@@ -426,7 +425,7 @@ fn prelude_creates_a_pending_workspace_and_opens_the_editor() {
         h.text()
     );
     assert!(h.text().contains("✓ Source"));
-    // Esc rewinds to the browser at the same folder, Space re-chooses
+
     h.key(KeyCode::Esc);
     assert!(h.text().contains("step 1 of 5"), "{}", h.text());
     assert!(h.text().contains("~/src"), "{}", h.text());
@@ -458,7 +457,7 @@ fn prelude_refuses_a_duplicate_name_and_cancels_cleanly() {
     h.key(KeyCode::Enter);
     h.key(KeyCode::Backspace);
     h.key(KeyCode::Down);
-    h.key(KeyCode::Char(' ')); // customer-portal: an existing workspace name
+    h.key(KeyCode::Char(' '));
     h.key(KeyCode::Enter);
     h.key(KeyCode::Enter);
     assert!(h.text().contains("step 5 of 5"), "{}", h.text());
@@ -470,7 +469,7 @@ fn prelude_refuses_a_duplicate_name_and_cancels_cleanly() {
         h.text()
     );
     assert_eq!(h.app().route(), Route::Prelude);
-    // rewind all the way out
+
     for _ in 0..8 {
         h.key(KeyCode::Esc);
         if h.app().route() != Route::Prelude {
@@ -498,7 +497,7 @@ fn editor_edits_count_once_preview_then_saves_and_returns() {
     h.key(KeyCode::Char('i'));
     assert!(h.text().contains("• 1 change"), "{}", h.text());
     assert!(h.text().contains("Mounts •"));
-    // leaving asks first
+
     h.key(KeyCode::Esc);
     h.key(KeyCode::Esc);
     assert!(
@@ -508,7 +507,7 @@ fn editor_edits_count_once_preview_then_saves_and_returns() {
     );
     h.key(KeyCode::Esc);
     assert_eq!(h.app().route(), Route::Editor);
-    // preview lists the modified mount, then the save job completes
+
     h.ctrl('s');
     assert!(h.text().contains("Save workspace"));
     assert!(h.text().contains("1 modified"));
@@ -545,7 +544,7 @@ fn editor_env_plain_value_stays_masked() {
         "{}",
         h.text()
     );
-    // add a variable through the form
+
     h.key(KeyCode::Char('a'));
     assert!(
         h.text().contains("New workspace environment key"),
@@ -595,7 +594,7 @@ fn editor_env_plain_value_stays_masked() {
     );
 }
 
-/// §16.4's stable name for the controlled secret draft journey.
+#[doc = r" §16.4's stable name for the controlled secret draft journey."]
 #[test]
 fn form_dialog_toggles_visibility_and_keeps_drafts() {
     editor_env_plain_value_stays_masked();
@@ -664,14 +663,13 @@ fn settings_trust_toggle_and_failed_save_keep_edits() {
     h.key(KeyCode::Esc);
     assert_eq!(h.app().route(), Route::Settings);
     assert!(h.text().contains("• 1 change"));
-    // second attempt succeeds
+
     h.ctrl('s');
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     h.ticks(20);
     assert_eq!(h.app().route(), Route::Manager, "{}", h.text());
-    // the manager's own refresh may overwrite the status in the hard cases;
-    // the persisted config is the proof
+
     assert!(!h.app().world.global.trust[0].trusted);
 }
 
@@ -701,24 +699,24 @@ fn hard_cases_refresh_keeps_last_good_and_help_opens_everywhere() {
     assert!(h.text().contains("Reading meters"));
 }
 
-/// Section 34 of the goal: the connected keyboard-first journey from a
-/// fresh Construct with zero instances to the final outro.
+#[doc = r" Section 34 of the goal: the connected keyboard-first journey from a"]
+#[doc = r" fresh Construct with zero instances to the final outro."]
 #[test]
 fn complete_jackin_flow_keyboard_first() {
     use termrock::Id;
     let form_save = jackin_preview_app::screens::accounts::FORM.sub("save");
     let cfg_save = Id::root("editor.cfg").sub("form").sub("save");
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
-    // 1–3 intro → manager with zero instances
+
     assert_eq!(h.app().route(), Route::Intro);
     h.ticks(3);
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Manager);
     assert_eq!(h.app().world.running_count(), 0);
-    // 4 Account & Usage Center
+
     h.key(KeyCode::Char('c'));
     assert_eq!(h.app().route(), Route::Accounts);
-    // 5–6 two Claude Code local-folder accounts
+
     for (name, folder) in [("Personal", "~/.claude"), ("Work", "~/.claude-work")] {
         h.key(KeyCode::Char('a'));
         h.key(KeyCode::Enter);
@@ -740,7 +738,7 @@ fn complete_jackin_flow_keyboard_first() {
             h.text()
         );
     }
-    // 7–8 Codex and Grok Build through 1Password references
+
     for (name, provider_steps, item) in [("Primary", 1, "Codex Primary"), ("Team", 2, "Grok Team")]
     {
         h.key(KeyCode::Char('a'));
@@ -779,7 +777,7 @@ fn complete_jackin_flow_keyboard_first() {
             .is_some_and(|a| a.endpoint.is_some()),
         "Grok keeps its endpoint"
     );
-    // 9 OpenCode through the masked plain-text fallback
+
     h.key(KeyCode::Char('a'));
     h.key(KeyCode::Enter);
     h.type_str("Go");
@@ -800,7 +798,7 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Saved OpenCode · Go"), "{}", h.text());
     assert_eq!(h.app().world.accounts.accounts.len(), 5);
-    // 10 validate one, set a provider default
+
     h.key(KeyCode::Char('v'));
     h.ticks(20);
     assert!(
@@ -819,18 +817,18 @@ fn complete_jackin_flow_keyboard_first() {
     );
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("Default set"), "{}", h.text());
-    // 11–12 overview, one provider, one account
+
     h.key(KeyCode::Home);
     assert!(h.text().contains("Health"));
     h.key(KeyCode::Down);
     assert!(h.text().contains("Registration"), "{}", h.text());
     h.key(KeyCode::Down);
     assert!(h.text().contains("Quota"), "{}", h.text());
-    // 13 back to the manager, focus on the tree
+
     h.key(KeyCode::Esc);
     assert_eq!(h.app().route(), Route::Manager);
     assert_eq!(h.focus(), Some(jackin_preview_app::screens::manager::TREE));
-    // 14 create a workspace through the prelude (current directory as source)
+
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Prelude);
@@ -842,7 +840,7 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Editor, "{}", h.text());
     assert!(h.text().contains("new workspace › edit"));
-    // 15 configure every tab
+
     h.key(KeyCode::Char(']'));
     h.key(KeyCode::Enter);
     h.key(KeyCode::Char('i'));
@@ -869,12 +867,12 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Esc);
     h.key(KeyCode::Char(']'));
     h.key(KeyCode::Enter);
-    // 16 activate and prefer the non-default Claude account for this Workspace
+
     assert!(h.text().contains("Active accounts"), "{}", h.text());
     let (_, py) = h.find("Personal").expect("Personal row");
     let (_, wy) = h.find("Work").expect("Work row");
     assert!(h.text().contains("inherited default"), "{}", h.text());
-    // move onto the Personal row (rows are provider-grouped; the default sorts first)
+
     if py > wy {
         h.key(KeyCode::Down);
     }
@@ -894,7 +892,7 @@ fn complete_jackin_flow_keyboard_first() {
         "{}",
         h.text()
     );
-    // 17 preview and save
+
     h.ctrl('s');
     assert!(h.text().contains("Create workspace"), "{}", h.text());
     h.key(KeyCode::Right);
@@ -902,7 +900,7 @@ fn complete_jackin_flow_keyboard_first() {
     h.ticks(20);
     assert_eq!(h.app().route(), Route::Manager, "{}", h.text());
     assert_eq!(h.app().world.workspaces.len(), 1);
-    // 18–20 launch: already inside the Construct, straight to the cockpit
+
     h.key(KeyCode::Home);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
@@ -910,7 +908,7 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Cockpit, "{}", h.text());
     h.ticks(40);
-    // 21 build log
+
     h.key(KeyCode::Char('b'));
     assert!(h.text().contains("Docker build"), "{}", h.text());
     h.key(KeyCode::PageUp);
@@ -923,7 +921,7 @@ fn complete_jackin_flow_keyboard_first() {
         }
     }
     h.ticks(15);
-    // 22–23 capsule, typing
+
     assert_eq!(h.app().route(), Route::Capsule, "{}", h.text());
     h.ticks(40);
     h.type_str("hello");
@@ -938,7 +936,7 @@ fn complete_jackin_flow_keyboard_first() {
         })
         .map(|instance| instance.id.clone())
         .expect("running instance");
-    // 24 second session with a different account
+
     h.ctrl('b');
     h.key(KeyCode::Char('c'));
     assert!(h.text().contains("New tab"), "{}", h.text());
@@ -948,7 +946,7 @@ fn complete_jackin_flow_keyboard_first() {
     h.key(KeyCode::Enter);
     assert_eq!(h.app().world.daemons[&inst].tabs.len(), 2);
     assert!(h.text().contains("(Work)"), "{}", h.text());
-    // 25–27 split, focus, resize, zoom
+
     h.ctrl('b');
     h.key(KeyCode::Char('%'));
     h.key(KeyCode::Enter);
@@ -968,7 +966,7 @@ fn complete_jackin_flow_keyboard_first() {
     assert!(h.text().contains("zoom"), "{}", h.text());
     h.ctrl('b');
     h.key(KeyCode::Char('z'));
-    // 28 scrollback, selection by mouse, copy, live again
+
     h.ticks(60);
     h.key(KeyCode::PageUp);
     h.key(KeyCode::End);
@@ -982,7 +980,7 @@ fn complete_jackin_flow_keyboard_first() {
         "{}",
         h.text()
     );
-    // a second press within the double-click window selects the word
+
     h.app_mut().world.clipboard = None;
     h.mouse(MouseKind::Down, x + 2, y);
     h.mouse(MouseKind::Up, x + 2, y);
@@ -1001,7 +999,7 @@ fn complete_jackin_flow_keyboard_first() {
         h.text()
     );
     h.key(KeyCode::End);
-    // 29 palette
+
     h.ctrl('\\');
     assert!(
         h.text().contains("palette") || h.text().contains("Palette"),
@@ -1009,19 +1007,19 @@ fn complete_jackin_flow_keyboard_first() {
         h.text()
     );
     h.key(KeyCode::Esc);
-    // 30–31 capsule Usage
+
     h.ctrl('b');
     h.key(KeyCode::Char('u'));
     assert!(h.text().contains("Usage"), "{}", h.text());
     h.key(KeyCode::Esc);
-    // 32–33 detach, reconnect with retained tabs
+
     h.ctrl('b');
     h.key(KeyCode::Char('d'));
     assert_eq!(h.app().route(), Route::Manager);
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Capsule);
     assert_eq!(h.app().world.daemons[&inst].tabs.len(), 2);
-    // 34 a second instance of the same Workspace
+
     h.ctrl('b');
     h.key(KeyCode::Char('d'));
     h.key(KeyCode::Home);
@@ -1038,7 +1036,7 @@ fn complete_jackin_flow_keyboard_first() {
     h.ticks(15);
     assert_eq!(h.app().route(), Route::Capsule);
     assert_eq!(h.app().world.running_count(), 2);
-    // 35–36 exit this one, stay inside
+
     h.ctrl('q');
     if h.text().contains("Unsaved work") {
         h.key(KeyCode::Down);
@@ -1055,7 +1053,7 @@ fn complete_jackin_flow_keyboard_first() {
         h.text()
     );
     assert_eq!(h.app().world.running_count(), 1);
-    // 37 reconnect the first (still running) instance and leave through the exit flow
+
     h.key(KeyCode::Home);
     h.key(KeyCode::Right);
     let running_id = h
@@ -1089,11 +1087,10 @@ fn complete_jackin_flow_keyboard_first() {
         h.key(KeyCode::Right);
         h.key(KeyCode::Enter);
     }
-    // 38–40 outro with the elapsed caption, then the terminal is restored
+
     assert_eq!(h.app().route(), Route::Outro, "{}", h.text());
     h.ticks(5);
     if !h.text().contains("You were in the Construct for") {
-        // full motion: skip the warp to reach the caption
         h.key(KeyCode::Enter);
         h.ticks(25);
     }
@@ -1106,8 +1103,8 @@ fn complete_jackin_flow_keyboard_first() {
     assert!(h.app().should_quit());
 }
 
-/// §16.4's stable name for the complete keyboard-first journey.  The retained
-/// product test above carries the detailed step inventory.
+#[doc = r" §16.4's stable name for the complete keyboard-first journey.  The retained"]
+#[doc = r" product test above carries the detailed step inventory."]
 #[test]
 fn complete_flow_keyboard_first() {
     complete_jackin_flow_keyboard_first();
@@ -1124,7 +1121,7 @@ fn editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on() {
     assert!(t.contains("Active accounts"), "{t}");
     assert!(t.contains("inherited default"), "{t}");
     assert!(t.contains("enabled here"), "{t}");
-    // the first account row is the Anthropic default: switch it off here
+
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("off for this Workspace"), "{}", h.text());
     assert!(h.text().contains("disabled here"), "{}", h.text());
@@ -1143,14 +1140,14 @@ fn editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on() {
                 .any(|e| e.id == "acct-claude-work" && e.preferred)
         );
     }
-    // and back on
+
     h.key(KeyCode::Char(' '));
     assert!(
         h.text().contains("active for this Workspace"),
         "{}",
         h.text()
     );
-    // enable a second Codex account: two accounts of one provider coexist
+
     let (x, y) = h.find("Experiments").expect("Experiments row");
     h.click(x, y);
     h.key(KeyCode::Char(' '));
@@ -1171,7 +1168,7 @@ fn editor_accounts_tab_switches_inherited_defaults_off_and_extra_accounts_on() {
         assert_eq!(codex.len(), 2);
     }
     assert!(h.text().contains("• 1 change"), "{}", h.text());
-    // prefer it, then save
+
     h.key(KeyCode::Char('p'));
     assert!(h.text().contains("Preferred for OpenAI"), "{}", h.text());
     h.ctrl('s');
@@ -1203,7 +1200,7 @@ fn manager_launch_picker_hides_agents_without_an_account() {
     h.ticks(3);
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Manager);
-    // First-use has no saved workspace, so Launch is intentionally disabled.
+
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Manager);
     assert!(!h.harness.is_open(jackin_preview_app::LAUNCH_DIALOG));
@@ -1261,7 +1258,7 @@ fn environments_stay_readable_with_a_hundred_roles() {
         "{t}"
     );
     assert!(t.contains("+ Add role override…"), "{t}");
-    // add an override for a Role that has none through the searchable picker
+
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Add role override"), "{}", h.text());
@@ -1285,7 +1282,7 @@ fn environments_stay_readable_with_a_hundred_roles() {
     assert!(t.contains("Role: svc-010"), "{t}");
     assert!(t.contains("SVC_FLAG"), "{t}");
     assert!(t.contains("2 configured · "), "{t}");
-    // the Roles tab scrolls and filters instead of overflowing
+
     h.key(KeyCode::Esc);
     h.key(KeyCode::Char('3'));
     h.key(KeyCode::Enter);

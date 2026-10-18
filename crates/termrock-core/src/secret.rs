@@ -1,4 +1,4 @@
-//! Memory zeroization helper.
+#![doc = r" Memory zeroization helper."]
 
 pub fn wipe_string(value: String) {
     let mut bytes = value.into_bytes();

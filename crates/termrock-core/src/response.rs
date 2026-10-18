@@ -1,10 +1,10 @@
-//! The one reply type (`COMPONENT_ARCHITECTURE.md` §6.1, §21 item 4).
-//!
-//! `flow` (was the event consumed?) and `invalidate` (what must be redrawn?)
-//! are orthogonal, which is what makes "a wheel at a boundary is consumed
-//! without a repaint" expressible. Folding with `|` is defined for
-//! `Response<()>` only: composing two action-carrying responses is a type
-//! error, never silent loss.
+#![doc = r" The one reply type (`COMPONENT_ARCHITECTURE.md` §6.1, §21 item 4)."]
+#![doc = r""]
+#![doc = r" `flow` (was the event consumed?) and `invalidate` (what must be redrawn?)"]
+#![doc = r#" are orthogonal, which is what makes "a wheel at a boundary is consumed"#]
+#![doc = r#" without a repaint" expressible. Folding with `|` is defined for"#]
+#![doc = r" `Response<()>` only: composing two action-carrying responses is a type"]
+#![doc = r" error, never silent loss."]
 
 use core::ops::{BitOr, BitOrAssign};
 
@@ -12,75 +12,75 @@ use bitflags::bitflags;
 
 use crate::id::Id;
 
-/// Whether an input was consumed.
+#[doc = r" Whether an input was consumed."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord)]
 pub enum Flow {
-    /// Not interested; keep offering the input to the next handler.
+    #[doc = r" Not interested; keep offering the input to the next handler."]
     #[default]
     Ignored,
-    /// Handled; stop propagation.
+    #[doc = r" Handled; stop propagation."]
     Consumed,
 }
 
-/// What must be redrawn. Ordered: `None < Paint < Layout`.
-///
-/// `Layout` ships from day one but currently behaves as `Paint`; it is
-/// reserved for layout caching and only its ordering is asserted (§8.5).
+#[doc = r" What must be redrawn. Ordered: `None < Paint < Layout`."]
+#[doc = r""]
+#[doc = r" `Layout` ships from day one but currently behaves as `Paint`; it is"]
+#[doc = r" reserved for layout caching and only its ordering is asserted (§8.5)."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord)]
 pub enum Invalidate {
-    /// Nothing visible changed.
+    #[doc = r" Nothing visible changed."]
     #[default]
     None,
-    /// Repaint.
+    #[doc = r" Repaint."]
     Paint,
-    /// Re-layout, then repaint.
+    #[doc = r" Re-layout, then repaint."]
     Layout,
 }
 
 bitflags! {
-    /// The visual state a component wears, as resolved by the runtime and
-    /// declared by the component.
+    #[doc = r" The visual state a component wears, as resolved by the runtime and"]
+    #[doc = r" declared by the component."]
     #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
     pub struct StateFlags: u16 {
-        /// Owns keyboard focus.
+        #[doc = r" Owns keyboard focus."]
         const FOCUSED       = 1 << 0;
-        /// Focus should be painted (the last input was a key).
+        #[doc = r" Focus should be painted (the last input was a key)."]
         const FOCUS_VISIBLE = 1 << 1;
-        /// The pointer is over it.
+        #[doc = r" The pointer is over it."]
         const HOVERED       = 1 << 2;
-        /// The primary button is down on it (or the press flash is live).
+        #[doc = r" The primary button is down on it (or the press flash is live)."]
         const PRESSED       = 1 << 3;
-        /// Selected within its collection.
+        #[doc = r" Selected within its collection."]
         const SELECTED      = 1 << 4;
-        /// The active item (tab, cursor row).
+        #[doc = r" The active item (tab, cursor row)."]
         const ACTIVE        = 1 << 5;
-        /// Checked (checkbox, toggle, multi-select).
+        #[doc = r" Checked (checkbox, toggle, multi-select)."]
         const CHECKED       = 1 << 6;
-        /// Disabled: registered but never reachable or activatable.
+        #[doc = r" Disabled: registered but never reachable or activatable."]
         const DISABLED      = 1 << 7;
-        /// Read-only: reachable, never editable.
+        #[doc = r" Read-only: reachable, never editable."]
         const READ_ONLY     = 1 << 8;
-        /// Carries a validation error.
+        #[doc = r" Carries a validation error."]
         const ERROR         = 1 << 9;
-        /// Carries a warning.
+        #[doc = r" Carries a warning."]
         const WARNING       = 1 << 10;
-        /// Busy with an operation.
+        #[doc = r" Busy with an operation."]
         const BUSY          = 1 << 11;
-        /// An edit is in flight (the hardware cursor belongs to it).
+        #[doc = r" An edit is in flight (the hardware cursor belongs to it)."]
         const EDITING       = 1 << 12;
-        /// Has uncommitted changes.
+        #[doc = r" Has uncommitted changes."]
         const DIRTY         = 1 << 13;
-        /// Expanded (tree node, section).
+        #[doc = r" Expanded (tree node, section)."]
         const EXPANDED      = 1 << 14;
-        /// Loading data.
+        #[doc = r" Loading data."]
         const LOADING       = 1 << 15;
     }
 }
 
-/// The reply of every `update`.
-///
-/// `#[must_use]`: dropping a response silently loses the consumed / repaint
-/// answer the runtime needs.
+#[doc = r" The reply of every `update`."]
+#[doc = r""]
+#[doc = r" `#[must_use]`: dropping a response silently loses the consumed / repaint"]
+#[doc = r" answer the runtime needs."]
 #[must_use = "a Response carries the consumed/repaint answer; fold it with `|` or read it"]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Response<A = ()> {
@@ -98,7 +98,7 @@ impl<A> Default for Response<A> {
 }
 
 impl<A> Response<A> {
-    /// Not consumed, nothing changed, no id.
+    #[doc = r" Not consumed, nothing changed, no id."]
     pub const fn ignored() -> Self {
         Response {
             id: None,
@@ -109,7 +109,7 @@ impl<A> Response<A> {
         }
     }
 
-    /// Consumed without a repaint (the boundary-wheel rule).
+    #[doc = r" Consumed without a repaint (the boundary-wheel rule)."]
     pub const fn consumed() -> Self {
         Response {
             id: None,
@@ -120,7 +120,7 @@ impl<A> Response<A> {
         }
     }
 
-    /// Consumed and repaint.
+    #[doc = r" Consumed and repaint."]
     pub const fn changed() -> Self {
         Response {
             id: None,
@@ -131,7 +131,7 @@ impl<A> Response<A> {
         }
     }
 
-    /// Consumed, repaint, and carry an action.
+    #[doc = r" Consumed, repaint, and carry an action."]
     pub const fn action(a: A) -> Self {
         Response {
             id: None,
@@ -142,108 +142,108 @@ impl<A> Response<A> {
         }
     }
 
-    /// Tag the response with the component that produced it.
+    #[doc = r" Tag the response with the component that produced it."]
     pub const fn for_id(mut self, id: Id) -> Self {
         self.id = Some(id);
         self
     }
 
-    /// Record the state the component ended in.
+    #[doc = r" Record the state the component ended in."]
     pub const fn with_state(mut self, s: StateFlags) -> Self {
         self.state = s;
         self
     }
 
-    /// Raise invalidation to at least `Paint`.
+    #[doc = r" Raise invalidation to at least `Paint`."]
     pub fn repaint(mut self) -> Self {
         self.invalidate = self.invalidate.max(Invalidate::Paint);
         self
     }
 
-    /// Raise invalidation to `Layout`.
+    #[doc = r" Raise invalidation to `Layout`."]
     pub const fn relayout(mut self) -> Self {
         self.invalidate = Invalidate::Layout;
         self
     }
 
-    /// Lower invalidation to `None` (the boundary-wheel rule).
+    #[doc = r" Lower invalidation to `None` (the boundary-wheel rule)."]
     pub const fn no_repaint(mut self) -> Self {
         self.invalidate = Invalidate::None;
         self
     }
 
-    /// The component that produced this response, or `None` when nothing
-    /// tagged it.
-    ///
-    /// Every constructor starts untagged — [`Response::action`] included —
-    /// and [`Response::for_id`] is the only writer, so `id()` answers `None`
-    /// for a consumed, repainting, action-carrying response that simply never
-    /// named itself. It is not a "was this ignored?" test; read
-    /// [`Response::flow`] for that.
+    #[doc = r" The component that produced this response, or `None` when nothing"]
+    #[doc = r" tagged it."]
+    #[doc = r""]
+    #[doc = r" Every constructor starts untagged — [`Response::action`] included —"]
+    #[doc = r" and [`Response::for_id`] is the only writer, so `id()` answers `None`"]
+    #[doc = r" for a consumed, repainting, action-carrying response that simply never"]
+    #[doc = r#" named itself. It is not a "was this ignored?" test; read"#]
+    #[doc = r" [`Response::flow`] for that."]
     pub const fn id(&self) -> Option<Id> {
         self.id
     }
 
-    /// The flow.
+    #[doc = r" The flow."]
     pub const fn flow(&self) -> Flow {
         self.flow
     }
 
-    /// Whether the input was consumed.
+    #[doc = r" Whether the input was consumed."]
     pub fn is_consumed(&self) -> bool {
         self.flow == Flow::Consumed
     }
 
-    /// The invalidation.
+    #[doc = r" The invalidation."]
     pub const fn invalidate(&self) -> Invalidate {
         self.invalidate
     }
 
-    /// Whether a repaint is needed (`invalidate >= Paint`).
+    #[doc = r" Whether a repaint is needed (`invalidate >= Paint`)."]
     pub fn is_changed(&self) -> bool {
         self.invalidate >= Invalidate::Paint
     }
 
-    /// The recorded state flags.
+    #[doc = r" The recorded state flags."]
     pub const fn state(&self) -> StateFlags {
         self.state
     }
 
-    /// Whether the recorded state carries `FOCUSED`.
+    #[doc = r" Whether the recorded state carries `FOCUSED`."]
     pub const fn focused(&self) -> bool {
         self.state.contains(StateFlags::FOCUSED)
     }
 
-    /// Whether the recorded state carries `HOVERED`.
+    #[doc = r" Whether the recorded state carries `HOVERED`."]
     pub const fn hovered(&self) -> bool {
         self.state.contains(StateFlags::HOVERED)
     }
 
-    /// Whether the recorded state carries `PRESSED`.
+    #[doc = r" Whether the recorded state carries `PRESSED`."]
     pub const fn pressed(&self) -> bool {
         self.state.contains(StateFlags::PRESSED)
     }
 
-    /// Borrow the action, if any.
+    #[doc = r" Borrow the action, if any."]
     pub const fn action_ref(&self) -> Option<&A> {
         self.action.as_ref()
     }
 
-    /// Take the action out, leaving flow, invalidation, state and id in place.
+    #[doc = r" Take the action out, leaving flow, invalidation, state and id in place."]
     pub const fn take_action(&mut self) -> Option<A> {
         self.action.take()
     }
 
-    /// Consume the response for its action.
+    #[doc = r" Consume the response for its action."]
     pub fn into_action(self) -> Option<A> {
         self.action
     }
 
-    /// Translate the action at a composition boundary.
-    ///
-    /// Every other field crosses unchanged: flow, invalidation, the recorded
-    /// state flags and the id. Only the action is rewritten, so a parent may
-    /// re-type a child's action without losing the child's identity.
+    #[doc = r" Translate the action at a composition boundary."]
+    #[doc = r""]
+    #[doc = r" Every other field crosses unchanged: flow, invalidation, the recorded"]
+    #[doc = r" state flags and the id. Only the action is rewritten, so a parent may"]
+    #[doc = r" re-type a child's action without losing the child's identity."]
     pub fn map_action<B>(self, f: impl FnOnce(A) -> B) -> Response<B> {
         Response {
             id: self.id,
@@ -254,7 +254,7 @@ impl<A> Response<A> {
         }
     }
 
-    /// Run `f` on the action, if any, and erase it.
+    #[doc = r" Run `f` on the action, if any, and erase it."]
     pub fn on_action(self, f: impl FnOnce(A)) -> Response<()> {
         let erased = Response {
             id: self.id,
@@ -269,35 +269,35 @@ impl<A> Response<A> {
         erased
     }
 
-    /// Drop the action, keep flow and invalidation.
+    #[doc = r" Drop the action, keep flow and invalidation."]
     pub fn erase(self) -> Response<()> {
         self.on_action(|_| {})
     }
 }
 
-/// The unit action of buttons, menu items and chips.
+#[doc = r" The unit action of buttons, menu items and chips."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Activated;
 
 impl Response<Activated> {
-    /// Whether the control fired.
+    #[doc = r" Whether the control fired."]
     pub const fn activated(&self) -> bool {
         self.action.is_some()
     }
 
-    /// Run `f` iff the control fired, then erase the action.
+    #[doc = r" Run `f` iff the control fired, then erase the action."]
     pub fn on_activated(self, f: impl FnOnce()) -> Response<()> {
         self.on_action(|Activated| f())
     }
 }
 
-/// Fold: `flow` — `Consumed` wins; `invalidate` — max; `id` — the left-hand
-/// side if it carries one, otherwise the right-hand side; `state` — the
-/// left-hand side; `action` — cleared. The fold is a control-flow summary;
-/// read `state`, `id` and the action from the individual responses.
-///
-/// [`BitOrAssign`] is defined to agree with this field by field, so
-/// `a = a | b` and `a |= b` are interchangeable.
+#[doc = r" Fold: `flow` — `Consumed` wins; `invalidate` — max; `id` — the left-hand"]
+#[doc = r" side if it carries one, otherwise the right-hand side; `state` — the"]
+#[doc = r" left-hand side; `action` — cleared. The fold is a control-flow summary;"]
+#[doc = r" read `state`, `id` and the action from the individual responses."]
+#[doc = r""]
+#[doc = r" [`BitOrAssign`] is defined to agree with this field by field, so"]
+#[doc = r" `a = a | b` and `a |= b` are interchangeable."]
 impl BitOr for Response<()> {
     type Output = Response<()>;
 
@@ -307,7 +307,7 @@ impl BitOr for Response<()> {
     }
 }
 
-/// The in-place form of [`BitOr`], field for field.
+#[doc = r" The in-place form of [`BitOr`], field for field."]
 impl BitOrAssign for Response<()> {
     fn bitor_assign(&mut self, rhs: Self) {
         if self.id.is_none() {
@@ -315,7 +315,7 @@ impl BitOrAssign for Response<()> {
         }
         self.flow = self.flow.max(rhs.flow);
         self.invalidate = self.invalidate.max(rhs.invalidate);
-        // `state` stays the left-hand side.
+
         self.action = None;
     }
 }
@@ -367,7 +367,7 @@ mod tests {
         assert_eq!(r.invalidate(), Invalidate::Paint);
         let r = r.relayout();
         assert_eq!(r.invalidate(), Invalidate::Layout);
-        // repaint never lowers
+
         assert_eq!(r.repaint().invalidate(), Invalidate::Layout);
     }
 
@@ -396,9 +396,9 @@ mod tests {
         assert_eq!(m.invalidate(), Invalidate::Layout);
         assert!(m.is_consumed());
         assert_eq!(m.id(), Some(Id::root("m")));
-        // the documented "only the action is rewritten" half
+
         assert_eq!(m.state(), StateFlags::FOCUSED | StateFlags::DIRTY);
-        // and `take_action` leaves the same four fields behind
+
         let mut taken = m;
         assert_eq!(taken.take_action(), Some(6));
         assert_eq!(taken.state(), StateFlags::FOCUSED | StateFlags::DIRTY);
@@ -407,8 +407,8 @@ mod tests {
         assert!(taken.is_consumed());
     }
 
-    /// Acceptance: `id()` is `None` until [`Response::for_id`] tags it, for
-    /// every constructor — it is not a proxy for "this response was ignored".
+    #[doc = r" Acceptance: `id()` is `None` until [`Response::for_id`] tags it, for"]
+    #[doc = r#" every constructor — it is not a proxy for "this response was ignored"."#]
     #[test]
     fn id_is_none_until_for_id_tags_it() {
         assert!(Response::<u8>::ignored().id().is_none());
@@ -436,11 +436,11 @@ mod tests {
         assert!(fired && r.is_changed());
     }
 
-    /// Acceptance: `a |= b` must equal `a | b` on every field of `Response`.
-    ///
-    /// The destructuring pattern below is exhaustive on purpose: adding a
-    /// field to `Response` breaks this test at compile time, forcing both
-    /// fold implementations to be revisited together.
+    #[doc = r" Acceptance: `a |= b` must equal `a | b` on every field of `Response`."]
+    #[doc = r""]
+    #[doc = r" The destructuring pattern below is exhaustive on purpose: adding a"]
+    #[doc = r" field to `Response` breaks this test at compile time, forcing both"]
+    #[doc = r" fold implementations to be revisited together."]
     #[test]
     fn bitor_assign_agrees_with_bitor_on_every_field() {
         let ids = [None, Some(Id::root("l")), Some(Id::root("r"))];
@@ -489,7 +489,6 @@ mod tests {
                 let mut assigned = lhs.clone();
                 assigned |= rhs.clone();
 
-                // Exhaustive destructuring: a new field must be folded here.
                 let Response {
                     id,
                     flow,
@@ -514,7 +513,6 @@ mod tests {
                 assert_eq!(state, a_state, "state diverged for {lhs:?} | {rhs:?}");
                 assert_eq!(action, a_action, "action diverged for {lhs:?} | {rhs:?}");
 
-                // The documented per-field contract itself.
                 assert_eq!(*id, lhs.id.or(rhs.id));
                 assert_eq!(*flow, lhs.flow.max(rhs.flow));
                 assert_eq!(*invalidate, lhs.invalidate.max(rhs.invalidate));

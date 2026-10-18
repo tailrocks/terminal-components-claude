@@ -1,4 +1,4 @@
-//! Public branch activation/click policies preserve shared hierarchy ownership.
+#![doc = r" Public branch activation/click policies preserve shared hierarchy ownership."]
 use termrock_core::{Id, ItemKey, KeyCode, Response};
 use termrock_navigation::{
     Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeNode, TreeState,

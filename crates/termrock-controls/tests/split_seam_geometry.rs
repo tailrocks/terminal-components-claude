@@ -1,4 +1,4 @@
-//! Split seam paint, hits and capture use one published rectangle.
+#![doc = r" Split seam paint, hits and capture use one published rectangle."]
 use ratatui_core::layout::Rect;
 
 use termrock_controls::{SplitPane, SplitPaneState};

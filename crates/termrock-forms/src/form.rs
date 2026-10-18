@@ -1,4 +1,4 @@
-//! Declared-field form composition (`COMPONENT_ARCHITECTURE.md` §15.1, §67).
+#![doc = r" Declared-field form composition (`COMPONENT_ARCHITECTURE.md` §15.1, §67)."]
 
 use core::fmt;
 use std::borrow::Cow;
@@ -29,50 +29,50 @@ use termrock_navigation::chip::{ChipBarState, LabelChips};
 use termrock_overlays::select::{LabelSelect, SelectAction, SelectState};
 use termrock_runtime::scroll_region::ScrollRegion;
 
-/// Width participation in a two-column form.
+#[doc = r" Width participation in a two-column form."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FieldSpan {
-    /// Occupy the whole row.
+    #[doc = r" Occupy the whole row."]
     Full,
-    /// Share a row with the next visible half-width field when possible.
+    #[doc = r" Share a row with the next visible half-width field when possible."]
     Half,
 }
 
 pub use termrock_controls::choice::InheritedFormState;
 
-/// A section identity. [`GroupKey::ALL`] is visible in every section.
+#[doc = r" A section identity. [`GroupKey::ALL`] is visible in every section."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct GroupKey(u16);
 
 impl GroupKey {
-    /// Fields shared by every section.
+    #[doc = r" Fields shared by every section."]
     pub const ALL: GroupKey = GroupKey(0);
 
-    /// A stable application-defined section key.
+    #[doc = r" A stable application-defined section key."]
     pub const fn custom(name: &'static str) -> GroupKey {
         GroupKey(1 | ((fnv1a(0xcbf2_9ce4_8422_2325, name.as_bytes()) as u16) & 0x7fff))
     }
 }
 
-/// A configured field control. Values and option lists remain in [`FormData`].
+#[doc = r" A configured field control. Values and option lists remain in [`FormData`]."]
 pub enum FieldKind<'a> {
-    /// Single-line text.
+    #[doc = r" Single-line text."]
     Text(TextInput<'a>),
-    /// Multi-line text.
+    #[doc = r" Multi-line text."]
     Area(TextArea<'a>),
-    /// Positional select.
+    #[doc = r" Positional select."]
     Select(LabelSelect<'a>),
-    /// Positional radio group.
+    #[doc = r" Positional radio group."]
     Radio(LabelRadio<'a>),
-    /// Positional chip set.
+    #[doc = r" Positional chip set."]
     Chips(LabelChips<'a>),
-    /// Boolean checkbox.
+    #[doc = r" Boolean checkbox."]
     Check(Checkbox<'a>),
-    /// Boolean toggle.
+    #[doc = r" Boolean toggle."]
     Toggle(Toggle<'a>),
-    /// Owner-driven rich chooser.
+    #[doc = r" Owner-driven rich chooser."]
     Chooser(Button<'a>),
-    /// Static decorative rows.
+    #[doc = r" Static decorative rows."]
     Note,
 }
 
@@ -92,23 +92,23 @@ impl fmt::Debug for FieldKind<'_> {
     }
 }
 
-/// One declared field.
+#[doc = r" One declared field."]
 pub struct FieldSpec<'a> {
-    /// Control identity.
+    #[doc = r" Control identity."]
     pub id: Id,
-    /// Label painted by [`Field`](termrock_fields::field::Field).
+    #[doc = r" Label painted by [`Field`](termrock_fields::field::Field)."]
     pub label: &'a str,
-    /// Configured control.
+    #[doc = r" Configured control."]
     pub kind: FieldKind<'a>,
-    /// Whether to paint the required marker.
+    #[doc = r" Whether to paint the required marker."]
     pub required: bool,
-    /// Optional help row.
+    #[doc = r" Optional help row."]
     pub help: Option<&'a str>,
-    /// Full- or half-width layout.
+    #[doc = r" Full- or half-width layout."]
     pub span: FieldSpan,
-    /// Section membership.
+    #[doc = r" Section membership."]
     pub group: GroupKey,
-    /// Suppress optional-label chrome.
+    #[doc = r" Suppress optional-label chrome."]
     pub plain: bool,
 }
 
@@ -128,7 +128,7 @@ impl fmt::Debug for FieldSpec<'_> {
 }
 
 impl<'a> FieldSpec<'a> {
-    /// Declare a field.
+    #[doc = r" Declare a field."]
     pub const fn new(id: Id, label: &'a str, kind: FieldKind<'a>) -> Self {
         FieldSpec {
             id,
@@ -142,35 +142,35 @@ impl<'a> FieldSpec<'a> {
         }
     }
 
-    /// Set required chrome.
+    #[doc = r" Set required chrome."]
     #[must_use]
     pub const fn required(mut self, yes: bool) -> Self {
         self.required = yes;
         self
     }
 
-    /// Set help text.
+    #[doc = r" Set help text."]
     #[must_use]
     pub const fn help(mut self, text: &'a str) -> Self {
         self.help = Some(text);
         self
     }
 
-    /// Set width participation.
+    #[doc = r" Set width participation."]
     #[must_use]
     pub const fn span(mut self, span: FieldSpan) -> Self {
         self.span = span;
         self
     }
 
-    /// Set section membership.
+    #[doc = r" Set section membership."]
     #[must_use]
     pub const fn group(mut self, group: GroupKey) -> Self {
         self.group = group;
         self
     }
 
-    /// Set plain-label chrome.
+    #[doc = r" Set plain-label chrome."]
     #[must_use]
     pub const fn plain(mut self, yes: bool) -> Self {
         self.plain = yes;
@@ -178,19 +178,19 @@ impl<'a> FieldSpec<'a> {
     }
 }
 
-/// Mutable controlled value borrowed for one field update.
+#[doc = r" Mutable controlled value borrowed for one field update."]
 pub enum FieldMut<'d> {
-    /// Plain text.
+    #[doc = r" Plain text."]
     Text(&'d mut String),
-    /// Secret text; never cloned by the form.
+    #[doc = r" Secret text; never cloned by the form."]
     Secret(&'d mut Secret),
-    /// Positional option index.
+    #[doc = r" Positional option index."]
     Choice(&'d mut usize),
-    /// Boolean value.
+    #[doc = r" Boolean value."]
     Flag(&'d mut bool),
-    /// Positional checked set.
+    #[doc = r" Positional checked set."]
     Chips(&'d mut KeySet),
-    /// No mutable value.
+    #[doc = r" No mutable value."]
     ReadOnly,
 }
 
@@ -207,26 +207,26 @@ impl fmt::Debug for FieldMut<'_> {
     }
 }
 
-/// Shared controlled value borrowed for one field draw or validation.
+#[doc = r" Shared controlled value borrowed for one field draw or validation."]
 pub enum FieldRef<'d> {
-    /// Plain text.
+    #[doc = r" Plain text."]
     Text(&'d str),
-    /// Secret text; display and debug remain redacted.
+    #[doc = r" Secret text; display and debug remain redacted."]
     Secret(&'d Secret),
-    /// Positional option index.
+    #[doc = r" Positional option index."]
     Choice(usize),
-    /// Boolean value.
+    #[doc = r" Boolean value."]
     Flag(bool),
-    /// Positional checked set.
+    #[doc = r" Positional checked set."]
     Chips(&'d KeySet),
-    /// Rich chooser display.
+    #[doc = r" Rich chooser display."]
     Display {
-        /// Main value line.
+        #[doc = r" Main value line."]
         value: &'d str,
-        /// Optional detail line.
+        #[doc = r" Optional detail line."]
         detail: Option<&'d str>,
     },
-    /// Decorative note rows.
+    #[doc = r" Decorative note rows."]
     Note(&'d [(&'d str, Role)]),
 }
 
@@ -244,76 +244,76 @@ impl fmt::Debug for FieldRef<'_> {
     }
 }
 
-/// Owner-supplied values, visibility, options and validation.
+#[doc = r" Owner-supplied values, visibility, options and validation."]
 pub trait FormData {
-    /// Borrow one value for draw or validation.
+    #[doc = r" Borrow one value for draw or validation."]
     fn value(&self, id: Id) -> FieldRef<'_>;
-    /// Borrow one value for update.
+    #[doc = r" Borrow one value for update."]
     fn value_mut(&mut self, id: Id) -> FieldMut<'_>;
 
-    /// Choice labels, empty for non-choice fields.
+    #[doc = r" Choice labels, empty for non-choice fields."]
     fn options(&self, _id: Id) -> &[&str] {
         &[]
     }
 
-    /// Value and choice labels under one mutable borrow.
+    #[doc = r" Value and choice labels under one mutable borrow."]
     fn value_and_options(&mut self, id: Id) -> (FieldMut<'_>, &[&str]) {
         (self.value_mut(id), &[])
     }
 
-    /// Whether a field participates this frame.
+    #[doc = r" Whether a field participates this frame."]
     fn visible(&self, _id: Id) -> bool {
         true
     }
 
-    /// Dynamic disabled state inherited by the configured control.
+    #[doc = r" Dynamic disabled state inherited by the configured control."]
     fn disabled(&self, _id: Id) -> bool {
         false
     }
 
-    /// External validation error.
+    #[doc = r" External validation error."]
     fn error(&self, _id: Id) -> Option<&str> {
         None
     }
 
-    /// Validate one field.
-    ///
-    /// # Errors
-    /// Returns the local validation failure for this value.
+    #[doc = r" Validate one field."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" Returns the local validation failure for this value."]
     fn validate(&self, _id: Id, _value: FieldRef<'_>) -> Result<(), FieldError> {
         Ok(())
     }
 
-    /// Validate cross-field rules.
-    ///
-    /// # Errors
-    /// Returns the field to focus and its cross-field validation failure.
+    #[doc = r" Validate cross-field rules."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" Returns the field to focus and its cross-field validation failure."]
     fn validate_all(&self) -> Result<(), (Id, FieldError)> {
         Ok(())
     }
 }
 
-/// Enter-key arbitration.
+#[doc = r" Enter-key arbitration."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EnterPolicy {
-    /// Submit only when the focused control was idle.
+    #[doc = r" Submit only when the focused control was idle."]
     SubmitsWhenIdle,
-    /// Never synthesize submit from Enter.
+    #[doc = r" Never synthesize submit from Enter."]
     Never,
 }
 
-/// A form action. Values never leave through this type.
+#[doc = r" A form action. Values never leave through this type."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FormAction {
-    /// An in-flight draft changed.
+    #[doc = r" An in-flight draft changed."]
     Changed(Id),
-    /// A value committed.
+    #[doc = r" A value committed."]
     Committed(Id),
-    /// A chooser fired.
+    #[doc = r" A chooser fired."]
     Chose(Id),
-    /// An action-row command fired.
+    #[doc = r" An action-row command fired."]
     Action(ActionKey),
-    /// Submit failed and focus was staged to this field.
+    #[doc = r" Submit failed and focus was staged to this field."]
     Invalid(Id),
 }
 
@@ -462,7 +462,7 @@ impl fmt::Debug for FieldSlot {
     }
 }
 
-/// Durable form control state. It stores no field declarations or other props.
+#[doc = r" Durable form control state. It stores no field declarations or other props."]
 #[derive(Default)]
 pub struct FormState {
     slots: Vec<FieldSlot>,
@@ -525,22 +525,22 @@ impl fmt::Debug for FormState {
 }
 
 impl FormState {
-    /// Whether a committed value differs from the owner's clean point.
+    #[doc = r" Whether a committed value differs from the owner's clean point."]
     pub const fn is_dirty(&self) -> bool {
         self.dirty
     }
 
-    /// Mark the current owner values clean.
+    #[doc = r" Mark the current owner values clean."]
     pub fn mark_clean(&mut self) {
         self.dirty = false;
     }
 
-    /// Local validation error for `id`.
-    ///
-    /// Errors are returned as the generic `"Invalid value"`.
-    /// `FormState` has no owner-data reference with which to classify a dynamic
-    /// secret between updates; `Form` resolves plain detail privately while
-    /// rendering against the current [`FormData`].
+    #[doc = r" Local validation error for `id`."]
+    #[doc = r""]
+    #[doc = r#" Errors are returned as the generic `"Invalid value"`."#]
+    #[doc = r" `FormState` has no owner-data reference with which to classify a dynamic"]
+    #[doc = r" secret between updates; `Form` resolves plain detail privately while"]
+    #[doc = r" rendering against the current [`FormData`]."]
     pub fn error(&self, id: Id) -> Option<&FieldError> {
         self.errors
             .iter()
@@ -554,9 +554,8 @@ impl FormState {
             })
     }
 
-    /// Set or clear a local validation error.
+    #[doc = r" Set or clear a local validation error."]
     pub fn set_error(&mut self, id: Id, error: Option<FieldError>) {
-        // A cached plain slot may be stale for owner-driven dynamic fields.
         let sensitivity = self.slot_sensitivity(id).filter(|sensitive| *sensitive);
         self.set_error_with_sensitivity(id, error, sensitivity);
     }
@@ -648,19 +647,19 @@ impl FormState {
         }
     }
 
-    /// Clear every local validation error.
+    #[doc = r" Clear every local validation error."]
     pub fn clear_errors(&mut self) {
         for (_, error) in self.errors.drain(..) {
             error.discard();
         }
     }
 
-    /// Request reveal after the next update-side layout.
+    #[doc = r" Request reveal after the next update-side layout."]
     pub fn reveal(&mut self, id: Id) {
         self.reveal = Some(id);
     }
 
-    /// Overwrite every in-flight text draft.
+    #[doc = r" Overwrite every in-flight text draft."]
     pub fn zeroize(&mut self) {
         for slot in &mut self.slots {
             slot.zeroize();
@@ -745,82 +744,82 @@ impl FormState {
     }
 }
 
-/// Ordered, validated form composition.
-///
-/// ## Construction
-/// `Form::new(id, fields)` receives one declaration-order field slice. Values
-/// and option lists remain in the owner's [`FormData`].
-///
-/// ## Ownership
-/// Caller owns every value and [`FormState`]. The form stores only borrowed
-/// configuration; state stores per-field control state keyed by [`Id`].
-///
-/// ## Configuration
-/// `.actions`, `.submit`, `.enter`, `.columns`, `.group`, and
-/// `.patch_part` configure one instance used in both phases.
-///
-/// ## Variants
-/// Uses `Family::FORM`'s default variant. Child controls retain their configured
-/// variants.
-///
-/// ## States
-/// Visible fields expose their child control states. Dynamic disabled state is
-/// inherited and combined with each configured control's disabled state.
-///
-/// ## Actions
-/// Reports [`FormAction`]: field changes and commits carry the field [`Id`],
-/// chooser events carry the field [`Id`], and action-row commands carry their
-/// [`ActionKey`]. No field value leaves through an action. The submit identity
-/// comes from `.submit`; action-row commands retain their declared key,
-/// including an ordinary cancel action.
-///
-/// ## Focus
-/// The form is not itself a focus stop. Visible child controls and enabled
-/// action-row buttons own their focus stops; child controls decide whether they
-/// `swallows_typing`. The form adds no autofocus or focus trap.
-///
-/// ## Keyboard
-/// Child controls publish their own bindings. Action chords are declared on
-/// [`Action`]. Enter submission obeys [`EnterPolicy`] and is claimed only for
-/// a focused idle child that does not swallow typing.
-///
-/// ## Mouse
-/// Field controls receive pointer input through their own ids and parts;
-/// action-row buttons use `id.part(Part::ACTIONS).index(index)`. The form's
-/// `BODY` and `ACTIONS` registrations are decorative.
-///
-/// ## Layout
-/// `update` reconciles slots, updates visible controls in declaration order,
-/// tracks commits, updates scrolling, and runs submit validation. `draw`
-/// registers and paints visible fields in declaration order, omits hidden
-/// fields, and paints the optional action row. Field heights derive only from
-/// declarations and current design tokens; two adjacent half-width fields
-/// share one row. `measure` reports the declared field rows plus the optional
-/// action row, and `draw` returns `area`.
-///
-/// ## Parts
-/// `CONTAINER` (form fill), `BODY` (scrollable field region), `ACTIONS`
-/// (action row), `HELP` (help, error and note chrome), `MARKER` (required
-/// marker), `TRACK` and `THUMB` (the embedded scrollbar).
-///
-/// ## Overrides
-/// `.patch_part` is the form-level override for [`Form::PARTS`]; matching
-/// entries reach form chrome and the embedded scrollbar. Child controls and
-/// action buttons retain their own overrides. Form has no `.patch` or `.slot`.
-///
-/// ## Identity
-/// The form and every field use caller-supplied [`Id`] values. No parallel
-/// field-key namespace exists.
-///
-/// ## Testing
-/// `FormCase` supplies `EDITS | SECRET | FOCUSABLE | SCROLLS | TYPES`
-/// conformance coverage; the `render::components::form::*` matrix and module
-/// tests cover declaration order, visibility, validation, scrolling, dirty
-/// state, and secret handling.
-///
-/// ## Invariants
-/// Draw never mutates state or values. At most one action is returned per
-/// update. Hidden fields retain drafts. Debug output redacts text drafts.
+#[doc = r" Ordered, validated form composition."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `Form::new(id, fields)` receives one declaration-order field slice. Values"]
+#[doc = r" and option lists remain in the owner's [`FormData`]."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" Caller owns every value and [`FormState`]. The form stores only borrowed"]
+#[doc = r" configuration; state stores per-field control state keyed by [`Id`]."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.actions`, `.submit`, `.enter`, `.columns`, `.group`, and"]
+#[doc = r" `.patch_part` configure one instance used in both phases."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" Uses `Family::FORM`'s default variant. Child controls retain their configured"]
+#[doc = r" variants."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" Visible fields expose their child control states. Dynamic disabled state is"]
+#[doc = r" inherited and combined with each configured control's disabled state."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" Reports [`FormAction`]: field changes and commits carry the field [`Id`],"]
+#[doc = r" chooser events carry the field [`Id`], and action-row commands carry their"]
+#[doc = r" [`ActionKey`]. No field value leaves through an action. The submit identity"]
+#[doc = r" comes from `.submit`; action-row commands retain their declared key,"]
+#[doc = r" including an ordinary cancel action."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" The form is not itself a focus stop. Visible child controls and enabled"]
+#[doc = r" action-row buttons own their focus stops; child controls decide whether they"]
+#[doc = r" `swallows_typing`. The form adds no autofocus or focus trap."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" Child controls publish their own bindings. Action chords are declared on"]
+#[doc = r" [`Action`]. Enter submission obeys [`EnterPolicy`] and is claimed only for"]
+#[doc = r" a focused idle child that does not swallow typing."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" Field controls receive pointer input through their own ids and parts;"]
+#[doc = r" action-row buttons use `id.part(Part::ACTIONS).index(index)`. The form's"]
+#[doc = r" `BODY` and `ACTIONS` registrations are decorative."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" `update` reconciles slots, updates visible controls in declaration order,"]
+#[doc = r" tracks commits, updates scrolling, and runs submit validation. `draw`"]
+#[doc = r" registers and paints visible fields in declaration order, omits hidden"]
+#[doc = r" fields, and paints the optional action row. Field heights derive only from"]
+#[doc = r" declarations and current design tokens; two adjacent half-width fields"]
+#[doc = r" share one row. `measure` reports the declared field rows plus the optional"]
+#[doc = r" action row, and `draw` returns `area`."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `CONTAINER` (form fill), `BODY` (scrollable field region), `ACTIONS`"]
+#[doc = r" (action row), `HELP` (help, error and note chrome), `MARKER` (required"]
+#[doc = r" marker), `TRACK` and `THUMB` (the embedded scrollbar)."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" `.patch_part` is the form-level override for [`Form::PARTS`]; matching"]
+#[doc = r" entries reach form chrome and the embedded scrollbar. Child controls and"]
+#[doc = r" action buttons retain their own overrides. Form has no `.patch` or `.slot`."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" The form and every field use caller-supplied [`Id`] values. No parallel"]
+#[doc = r" field-key namespace exists."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" `FormCase` supplies `EDITS | SECRET | FOCUSABLE | SCROLLS | TYPES`"]
+#[doc = r" conformance coverage; the `render::components::form::*` matrix and module"]
+#[doc = r" tests cover declaration order, visibility, validation, scrolling, dirty"]
+#[doc = r" state, and secret handling."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" Draw never mutates state or values. At most one action is returned per"]
+#[doc = r" update. Hidden fields retain drafts. Debug output redacts text drafts."]
 pub struct Form<'a> {
     id: Id,
     fields: &'a [FieldSpec<'a>],
@@ -929,7 +928,7 @@ impl Placements<'_, '_> {
 }
 
 impl<'a> Form<'a> {
-    /// The parts this composition styles.
+    #[doc = r" The parts this composition styles."]
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BODY,
@@ -940,7 +939,7 @@ impl<'a> Form<'a> {
         Part::THUMB,
     ];
 
-    /// Declare a form over one field array.
+    #[doc = r" Declare a form over one field array."]
     pub const fn new(id: Id, fields: &'a [FieldSpec<'a>]) -> Self {
         Form {
             id,
@@ -955,42 +954,42 @@ impl<'a> Form<'a> {
         }
     }
 
-    /// Set action-row declarations.
+    #[doc = r" Set action-row declarations."]
     #[must_use]
     pub const fn actions(mut self, actions: &'a [Action<'a>]) -> Self {
         self.actions = actions;
         self
     }
 
-    /// Set the submit identity.
+    #[doc = r" Set the submit identity."]
     #[must_use]
     pub const fn submit(mut self, key: ActionKey) -> Self {
         self.submit = key;
         self
     }
 
-    /// Set Enter arbitration.
+    #[doc = r" Set Enter arbitration."]
     #[must_use]
     pub const fn enter(mut self, policy: EnterPolicy) -> Self {
         self.enter = policy;
         self
     }
 
-    /// Set one or two columns; other values clamp to that supported range.
+    #[doc = r" Set one or two columns; other values clamp to that supported range."]
     #[must_use]
     pub const fn columns(mut self, columns: u8) -> Self {
         self.columns = if columns > 1 { 2 } else { 1 };
         self
     }
 
-    /// Select the active field section.
+    #[doc = r" Select the active field section."]
     #[must_use]
     pub const fn group(mut self, group: GroupKey) -> Self {
         self.group = group;
         self
     }
 
-    /// Set per-part patches.
+    #[doc = r" Set per-part patches."]
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(patches);
@@ -1250,7 +1249,7 @@ impl<'a> Form<'a> {
         FormAction::Action(self.submit)
     }
 
-    /// Update controls, scrolling, validation and the action row.
+    #[doc = r" Update controls, scrolling, validation and the action row."]
     pub fn update<D: FormData + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -1386,7 +1385,7 @@ impl<'a> Form<'a> {
         }
     }
 
-    /// Draw the visible fields and action row. This method never mutates state.
+    #[doc = r" Draw the visible fields and action row. This method never mutates state."]
     pub fn draw<D: FormData + ?Sized>(
         &self,
         ui: &mut Ui<'_>,
@@ -1688,7 +1687,7 @@ impl<'a> Form<'a> {
         }
     }
 
-    /// Preferred form extent under the declared fields and design tokens.
+    #[doc = r" Preferred form extent under the declared fields and design tokens."]
     pub fn measure(&self, ui: &Ui<'_>, constraints: Constraints) -> Size {
         let rows = self
             .fields

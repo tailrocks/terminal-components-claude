@@ -1,4 +1,4 @@
-//! Post-resolution footer metadata keeps the focused control's real hints.
+#![doc = r" Post-resolution footer metadata keeps the focused control's real hints."]
 use ratatui_core::style::Color;
 use termrock::{
     App, Button, Chord, Cx, Family, Hint, HintBar, HintLayer, Id, KeyCode, Part, Rect, Response,

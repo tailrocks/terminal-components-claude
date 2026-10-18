@@ -1,7 +1,7 @@
 use termrock_e2e::{ORACLE_CAPTURE_RECEIPT_SCHEMA, run_tag_capture};
 
-/// This explicit ignored lane launches only the immutable-tag Holla binary.
-/// It records actual captures but cannot admit an expected generation.
+#[doc = r" This explicit ignored lane launches only the immutable-tag Holla binary."]
+#[doc = r" It records actual captures but cannot admit an expected generation."]
 #[test]
 #[ignore = "requires an independently built immutable-tag Holla binary and isolated capture roots"]
 fn captures_holla_from_pinned_immutable_tag() {

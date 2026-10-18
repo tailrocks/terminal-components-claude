@@ -1,4 +1,4 @@
-//! Form and Wizard orchestration, field order/eligibility, generic validation and typed submit/navigation requests.
+#![doc = r" Form and Wizard orchestration, field order/eligibility, generic validation and typed submit/navigation requests."]
 
 pub(crate) use termrock_collections as scroll;
 pub(crate) use termrock_core as action;

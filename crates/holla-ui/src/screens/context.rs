@@ -1,4 +1,4 @@
-//! Context identity captured before opening a product choice.
+#![doc = r" Context identity captured before opening a product choice."]
 use crate::{
     domain::host::{Environment, HostKind},
     sim::world::World,

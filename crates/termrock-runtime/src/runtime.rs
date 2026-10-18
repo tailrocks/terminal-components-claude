@@ -1,10 +1,10 @@
-//! The runtime (`COMPONENT_ARCHITECTURE.md` §3.3, §8, §9, §17.0 A1).
-//!
-//! `Runtime<A>` owns all interaction state — focus, hover, press, flash,
-//! capture, layers, cursor and regions. `initialize`, `handle` and `settle`
-//! run updates without a buffer. `draw` paints an exclusively borrowed candidate;
-//! only `PaintedFrame::commit_presented` publishes its routing geometry after
-//! successful output. Painting and publication never call application updates.
+#![doc = r" The runtime (`COMPONENT_ARCHITECTURE.md` §3.3, §8, §9, §17.0 A1)."]
+#![doc = r""]
+#![doc = r" `Runtime<A>` owns all interaction state — focus, hover, press, flash,"]
+#![doc = r" capture, layers, cursor and regions. `initialize`, `handle` and `settle`"]
+#![doc = r" run updates without a buffer. `draw` paints an exclusively borrowed candidate;"]
+#![doc = r" only `PaintedFrame::commit_presented` publishes its routing geometry after"]
+#![doc = r" successful output. Painting and publication never call application updates."]
 
 pub(crate) mod feedback;
 #[cfg(feature = "crossterm")]
@@ -39,25 +39,25 @@ use crate::theme::Theme;
 use crate::ui::cx::{FrameServices, LastFrame};
 use crate::ui::{Cx, FrameState, Ui, UiCore};
 
-/// The application entry point.
+#[doc = r" The application entry point."]
 pub trait App {
-    /// The only input entry point: intents are already resolved.
+    #[doc = r" The only input entry point: intents are already resolved."]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()>;
 
-    /// Pure paint.
+    #[doc = r" Pure paint."]
     fn draw(&self, ui: &mut Ui<'_>);
 
-    /// Whether the runtime loop should exit.
+    #[doc = r" Whether the runtime loop should exit."]
     fn should_quit(&self) -> bool {
         false
     }
 
-    /// The application chord layer.
+    #[doc = r" The application chord layer."]
     fn keymap(&self) -> &KeyMap {
         KeyMap::EMPTY_REF
     }
 
-    /// The smallest and preferred terminal size.
+    #[doc = r" The smallest and preferred terminal size."]
     fn min_size(&self) -> Size {
         Size {
             min: (72, 20),
@@ -65,37 +65,37 @@ pub trait App {
         }
     }
 
-    /// The product Esc ladder (§3.3 step 8c): called when Esc was consumed
-    /// by no component and dismissed no layer.
+    #[doc = r" The product Esc ladder (§3.3 step 8c): called when Esc was consumed"]
+    #[doc = r" by no component and dismissed no layer."]
     fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
         Response::ignored()
     }
 }
 
-/// Narrow physical key origin for an admitted update; never an activation grant.
+#[doc = r" Narrow physical key origin for an admitted update; never an activation grant."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ActivationKey {
-    /// An unmodified Enter press or repeat.
+    #[doc = r" An unmodified Enter press or repeat."]
     Enter,
-    /// An unmodified Space press or repeat.
+    #[doc = r" An unmodified Space press or repeat."]
     Space,
 }
 
-/// Why the runtime is invoking [`App::update`].
-///
-/// The cause is scoped to one update pass. A focus-settling rerun is always
-/// [`UpdateCause::Settle`], so a single physical timer delivery cannot advance
-/// application time more than once.
+#[doc = r" Why the runtime is invoking [`App::update`]."]
+#[doc = r""]
+#[doc = r" The cause is scoped to one update pass. A focus-settling rerun is always"]
+#[doc = r" [`UpdateCause::Settle`], so a single physical timer delivery cannot advance"]
+#[doc = r" application time more than once."]
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UpdateCause {
-    /// The first update, before the first draw or externally handled event.
+    #[doc = r" The first update, before the first draw or externally handled event."]
     Bootstrap,
-    /// An externally supplied key, mouse, paste or resize event.
+    #[doc = r" An externally supplied key, mouse, paste or resize event."]
     Event,
-    /// A timer/deadline delivery.
+    #[doc = r" A timer/deadline delivery."]
     Tick,
-    /// A rerun used to settle a focus transition staged by an earlier pass.
+    #[doc = r" A rerun used to settle a focus transition staged by an earlier pass."]
     Settle,
 }
 
@@ -105,12 +105,12 @@ struct Press {
     part: PartRef,
     area: Rect,
     dragging: bool,
-    /// Where the pointer was when the button went down — `Cx::capture`'s
-    /// `origin`, so `pos - origin` is the offset within the thumb (MA-5).
+    #[doc = r" Where the pointer was when the button went down — `Cx::capture`'s"]
+    #[doc = r" `origin`, so `pos - origin` is the offset within the thumb (MA-5)."]
     pos: Position,
 }
 
-/// Runtime-owned interaction bookkeeping (§1.2(4), §8.6).
+#[doc = r" Runtime-owned interaction bookkeeping (§1.2(4), §8.6)."]
 #[derive(Clone, Copy, Debug, Default)]
 struct Interaction {
     pointer_position: Option<Position>,
@@ -122,11 +122,11 @@ struct Interaction {
     last_input_key: bool,
 }
 
-/// Passes of `app.update` before the runtime gives up settling focus.
+#[doc = r" Passes of `app.update` before the runtime gives up settling focus."]
 const MAX_FOCUS_PASSES: usize = 4;
 
-/// Immutable read facts for deterministic, effect-free production-view projection.
-/// The default is an explicitly empty interaction snapshot, suitable for fixtures.
+#[doc = r" Immutable read facts for deterministic, effect-free production-view projection."]
+#[doc = r" The default is an explicitly empty interaction snapshot, suitable for fixtures."]
 #[derive(Clone, Default)]
 pub struct RenderSnapshot {
     cache_identity: std::sync::Arc<()>,
@@ -137,9 +137,9 @@ pub struct RenderSnapshot {
     keymap: KeyMap,
 }
 
-/// An immutable model and painter bound to one projection cache epoch.
-/// Ordinary model mutation is excluded for the binding's lifetime. Derived
-/// caches may therefore be reused across captures of this same binding.
+#[doc = r" An immutable model and painter bound to one projection cache epoch."]
+#[doc = r" Ordinary model mutation is excluded for the binding's lifetime. Derived"]
+#[doc = r" caches may therefore be reused across captures of this same binding."]
 #[cfg(feature = "testing")]
 pub struct RenderModel<'a, M: ?Sized, F> {
     model: &'a M,
@@ -156,9 +156,9 @@ impl<M: ?Sized, F> core::fmt::Debug for RenderModel<'_, M, F> {
 
 #[cfg(feature = "testing")]
 impl RenderSnapshot {
-    /// Bind an immutable model and painter to a fresh derived-cache epoch.
-    /// Rebinding, including a replacement at the same address, always isolates
-    /// model caches. Interior mutation must obey the same view contract as App.
+    #[doc = r" Bind an immutable model and painter to a fresh derived-cache epoch."]
+    #[doc = r" Rebinding, including a replacement at the same address, always isolates"]
+    #[doc = r" model caches. Interior mutation must obey the same view contract as App."]
     pub fn bind_model<'a, M: ?Sized, F>(&self, model: &'a M, paint: F) -> RenderModel<'a, M, F>
     where
         F: Fn(&M, &mut Ui<'_>, Rect),
@@ -182,14 +182,14 @@ impl core::fmt::Debug for RenderSnapshot {
     }
 }
 
-/// Why a runtime cannot provide a compatible, settled render snapshot.
+#[doc = r" Why a runtime cannot provide a compatible, settled render snapshot."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderSnapshotError {
-    /// Explicit initialization has not completed.
+    #[doc = r" Explicit initialization has not completed."]
     Uninitialized,
-    /// A committed focus transition still requires an update.
+    #[doc = r" A committed focus transition still requires an update."]
     NeedsSettle,
-    /// Model, theme or interaction changes require successful presentation.
+    #[doc = r" Model, theme or interaction changes require successful presentation."]
     NeedsPresentation,
 }
 
@@ -211,8 +211,8 @@ struct ProjectionFacts {
     cursor: Option<Position>,
 }
 
-/// A completed projection candidate. Its acknowledgment updates inspection
-/// outputs only; it never publishes live input compatibility or focus callbacks.
+#[doc = r" A completed projection candidate. Its acknowledgment updates inspection"]
+#[doc = r" outputs only; it never publishes live input compatibility or focus callbacks."]
 #[cfg(feature = "testing")]
 #[must_use = "acknowledge the completed projection to inspect its geometry"]
 pub struct ProjectedFrame<'a, A: App> {
@@ -229,7 +229,7 @@ impl<A: App> core::fmt::Debug for ProjectedFrame<'_, A> {
 
 #[cfg(feature = "testing")]
 impl<A: App> ProjectedFrame<'_, A> {
-    /// Record a completed buffer's geometry and cursor for inspection.
+    #[doc = r" Record a completed buffer's geometry and cursor for inspection."]
     pub fn commit_inspected(self) {
         let output = self
             .runtime
@@ -257,12 +257,12 @@ impl<A: App> Drop for ProjectedFrame<'_, A> {
     }
 }
 
-/// An input retained until initialization, presentation and focus settling finish.
-/// Debug deliberately omits the event, including pasted text.
+#[doc = r" An input retained until initialization, presentation and focus settling finish."]
+#[doc = r" Debug deliberately omits the event, including pasted text."]
 pub struct PendingInput(Input);
 
 impl PendingInput {
-    /// Recover the original owned event for retry.
+    #[doc = r" Recover the original owned event for retry."]
     pub fn into_input(self) -> Input {
         self.0
     }
@@ -274,38 +274,38 @@ impl core::fmt::Debug for PendingInput {
     }
 }
 
-/// A painted candidate, exclusively borrowing its originating runtime.
-/// Commit only after output succeeds. Dropping it aborts publication.
-///
-/// A pending frame prevents mutation of the runtime it belongs to:
-/// ```compile_fail,E0499
-/// use termrock_runtime::{App, Runtime};
-/// use ratatui_core::terminal::Frame;
-/// fn stale<A: App>(rt: &mut Runtime<A>, buf: &mut Frame<'_>) {
-///     let frame = rt.draw(buf);
-///     let _ = rt.app_mut();
-///     frame.commit_presented();
-/// }
-/// ```
-/// Publication cannot be redirected to a different runtime:
-/// ```compile_fail,E0061
-/// use termrock_runtime::{App, Runtime};
-/// use ratatui_core::terminal::Frame;
-/// fn wrong<A: App>(one: &mut Runtime<A>, two: &mut Runtime<A>, buf: &mut Frame<'_>) {
-///     let frame = one.draw(buf);
-///     frame.commit_presented(two);
-/// }
-/// ```
-/// A successful acknowledgment consumes the frame:
-/// ```compile_fail,E0382
-/// use termrock_runtime::{App, Runtime};
-/// use ratatui_core::terminal::Frame;
-/// fn twice<A: App>(rt: &mut Runtime<A>, buf: &mut Frame<'_>) {
-///     let frame = rt.draw(buf);
-///     frame.commit_presented();
-///     frame.commit_presented();
-/// }
-/// ```
+#[doc = r" A painted candidate, exclusively borrowing its originating runtime."]
+#[doc = r" Commit only after output succeeds. Dropping it aborts publication."]
+#[doc = r""]
+#[doc = r" A pending frame prevents mutation of the runtime it belongs to:"]
+#[doc = r" ```compile_fail,E0499"]
+#[doc = r" use termrock_runtime::{App, Runtime};"]
+#[doc = r" use ratatui_core::terminal::Frame;"]
+#[doc = r" fn stale<A: App>(rt: &mut Runtime<A>, buf: &mut Frame<'_>) {"]
+#[doc = r"     let frame = rt.draw(buf);"]
+#[doc = r"     let _ = rt.app_mut();"]
+#[doc = r"     frame.commit_presented();"]
+#[doc = r" }"]
+#[doc = r" ```"]
+#[doc = r" Publication cannot be redirected to a different runtime:"]
+#[doc = r" ```compile_fail,E0061"]
+#[doc = r" use termrock_runtime::{App, Runtime};"]
+#[doc = r" use ratatui_core::terminal::Frame;"]
+#[doc = r" fn wrong<A: App>(one: &mut Runtime<A>, two: &mut Runtime<A>, buf: &mut Frame<'_>) {"]
+#[doc = r"     let frame = one.draw(buf);"]
+#[doc = r"     frame.commit_presented(two);"]
+#[doc = r" }"]
+#[doc = r" ```"]
+#[doc = r" A successful acknowledgment consumes the frame:"]
+#[doc = r" ```compile_fail,E0382"]
+#[doc = r" use termrock_runtime::{App, Runtime};"]
+#[doc = r" use ratatui_core::terminal::Frame;"]
+#[doc = r" fn twice<A: App>(rt: &mut Runtime<A>, buf: &mut Frame<'_>) {"]
+#[doc = r"     let frame = rt.draw(buf);"]
+#[doc = r"     frame.commit_presented();"]
+#[doc = r"     frame.commit_presented();"]
+#[doc = r" }"]
+#[doc = r" ```"]
 #[must_use = "commit only after successful output; dropping aborts publication"]
 pub struct PaintedFrame<'a, A: App> {
     runtime: &'a mut Runtime<A>,
@@ -319,7 +319,7 @@ impl<A: App> core::fmt::Debug for PaintedFrame<'_, A> {
 }
 
 impl<A: App> PaintedFrame<'_, A> {
-    /// Publish this candidate after its buffer and cursor were presented.
+    #[doc = r" Publish this candidate after its buffer and cursor were presented."]
     pub fn commit_presented(mut self) {
         self.runtime.commit_frame();
         self.committed = true;
@@ -346,7 +346,7 @@ struct FocusRestore {
     target: Option<Id>,
 }
 
-/// The runtime.
+#[doc = r" The runtime."]
 pub struct Runtime<A: App> {
     app: A,
     theme: Theme,
@@ -368,8 +368,8 @@ pub struct Runtime<A: App> {
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
     layer_events_pending: Vec<(Id, LayerEvent)>,
-    /// Layers closed by `DismissReason::FocusOut` since the last settle
-    /// (§29.8 D2). Drained in lockstep with `services.closed_layers`.
+    #[doc = r" Layers closed by `DismissReason::FocusOut` since the last settle"]
+    #[doc = r" (§29.8 D2). Drained in lockstep with `services.closed_layers`."]
     focus_out_closed: Vec<Id>,
     unsettled: usize,
     bootstrapped: bool,
@@ -392,20 +392,20 @@ impl<A: App> core::fmt::Debug for Runtime<A> {
 }
 
 impl<A: App> Runtime<A> {
-    /// Hidden test accessor: the capacity of the focused-hints cache for the
-    /// page layer. Supports the hint-cache invalidation regression test.
+    #[doc = r" Hidden test accessor: the capacity of the focused-hints cache for the"]
+    #[doc = r" page layer. Supports the hint-cache invalidation regression test."]
     #[doc(hidden)]
     pub fn focused_hints_capacity(&self) -> usize {
         self.core.focused_hints.layer.hints.capacity()
     }
 
-    /// A runtime for `app` under `theme`.
+    #[doc = r" A runtime for `app` under `theme`."]
     pub fn new(app: A, theme: Theme) -> Self {
         Self::new_with_feedback_clock(app, theme, FeedbackClock::Elapsed)
     }
 
-    /// Construct with an immutable feedback clock, before bootstrap or activation.
-    /// Simulation origins must match the already-seeked domain fixture.
+    #[doc = r" Construct with an immutable feedback clock, before bootstrap or activation."]
+    #[doc = r" Simulation origins must match the already-seeked domain fixture."]
     pub fn new_with_feedback_clock(app: A, theme: Theme, clock: FeedbackClock) -> Self {
         let mut core = UiCore::default();
         core.keymap.clone_from(app.keymap());
@@ -444,79 +444,79 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// The application.
+    #[doc = r" The application."]
     pub const fn app(&self) -> &A {
         &self.app
     }
 
-    /// The application, mutably.
+    #[doc = r" The application, mutably."]
     pub const fn app_mut(&mut self) -> &mut A {
         self.presented = false;
         &mut self.app
     }
 
-    /// Effective typing owner from compatible, successfully presented geometry.
-    /// Returns `None` while initialization, settling or publication is required.
+    #[doc = r" Effective typing owner from compatible, successfully presented geometry."]
+    #[doc = r" Returns `None` while initialization, settling or publication is required."]
     pub fn typing_owner(&self) -> Option<Id> {
         (self.bootstrapped && self.presented && !self.needs_settle())
             .then_some(self.last.typing.owner)
             .flatten()
     }
 
-    /// The theme.
+    #[doc = r" The theme."]
     pub const fn theme(&self) -> &Theme {
         &self.theme
     }
 
-    /// Replace the theme; derived caches are dropped.
+    #[doc = r" Replace the theme; derived caches are dropped."]
     pub fn set_theme(&mut self, t: Theme) {
         self.presented = false;
         self.theme = t;
         self.core.clear_caches();
     }
 
-    /// Last successfully presented area of a control (`None` before publication).
+    #[doc = r" Last successfully presented area of a control (`None` before publication)."]
     pub fn area_of(&self, id: Id) -> Option<Rect> {
         self.last.registry.area_of(id)
     }
 
-    /// Last successfully presented area of a component's sub-region.
+    #[doc = r" Last successfully presented area of a component's sub-region."]
     pub fn area_of_part(&self, id: Id, p: PartRef) -> Option<Rect> {
         self.last.registry.area_of_part(id, p)
     }
 
-    /// Last successfully presented focus ring.
+    #[doc = r" Last successfully presented focus ring."]
     pub const fn ring(&self) -> &FocusRing {
         &self.last.ring
     }
 
-    /// The focused control.
+    #[doc = r" The focused control."]
     pub const fn focus(&self) -> Option<Id> {
         self.focus.current()
     }
 
-    /// Diagnostics recorded since the last `handle`.
+    #[doc = r" Diagnostics recorded since the last `handle`."]
     pub fn diagnostics(&self) -> &[Diagnostic] {
         self.services.diagnostics.items()
     }
 
-    /// Diagnostics dropped beyond the retained 64.
+    #[doc = r" Diagnostics dropped beyond the retained 64."]
     pub fn diagnostics_dropped(&self) -> usize {
         self.services.diagnostics.dropped()
     }
 
-    /// Whether `Cx::quit` was called.
+    #[doc = r" Whether `Cx::quit` was called."]
     pub const fn quit_requested(&self) -> bool {
         self.services.quit
     }
 
-    /// Whether immediate repaint or timed work is pending.
-    /// Drivers schedule `next_deadline`; this does not imply a tick cadence.
+    #[doc = r" Whether immediate repaint or timed work is pending."]
+    #[doc = r" Drivers schedule `next_deadline`; this does not imply a tick cadence."]
     pub fn wants_tick(&self) -> bool {
         self.needs_present() || self.needs_settle() || self.next_deadline().is_some()
     }
 
-    /// Earliest absolute application or runtime-feedback deadline.
+    #[doc = r" Earliest absolute application or runtime-feedback deadline."]
     pub fn next_deadline(&self) -> Option<Moment> {
         if self.pending_tick {
             return Some(self.now());
@@ -530,23 +530,23 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// The one current activation-feedback record, independent of held press/capture.
+    #[doc = r" The one current activation-feedback record, independent of held press/capture."]
     pub fn activation_feedback(&self) -> Option<ActivationFeedback> {
         self.services.feedback.active(self.now())
     }
 
-    /// Explicit monotonic elapsed time, independent of input count.
+    #[doc = r" Explicit monotonic elapsed time, independent of input count."]
     pub const fn now(&self) -> Moment {
         self.services.now
     }
 
-    /// Advance explicit elapsed time and stage at most one due update.
-    /// This never calls `App::update`. Settle and publish before retrying input.
-    /// Equal time may stage work armed since the previous scheduler turn.
-    /// A due callback's immediate rearm waits for the next `advance_to` call.
-    ///
-    /// # Errors
-    /// Backwards time is rejected without changing any runtime state.
+    #[doc = r" Advance explicit elapsed time and stage at most one due update."]
+    #[doc = r" This never calls `App::update`. Settle and publish before retrying input."]
+    #[doc = r" Equal time may stage work armed since the previous scheduler turn."]
+    #[doc = r" A due callback's immediate rearm waits for the next `advance_to` call."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" Backwards time is rejected without changing any runtime state."]
     pub fn advance_to(&mut self, now: Moment) -> Result<(), ClockError> {
         if now < self.now() {
             return Err(ClockError {
@@ -569,12 +569,12 @@ impl<A: App> Runtime<A> {
         Ok(())
     }
 
-    /// Explicit elapsed milliseconds, truncated only for this legacy inspector.
+    #[doc = r" Explicit elapsed milliseconds, truncated only for this legacy inspector."]
     pub fn clock_ms(&self) -> u64 {
         u64::try_from(self.now().as_duration().as_millis()).unwrap_or(u64::MAX)
     }
 
-    /// The terminal size as last resized or successfully presented.
+    #[doc = r" The terminal size as last resized or successfully presented."]
     pub const fn screen(&self) -> Rect {
         self.services.viewport
     }
@@ -587,8 +587,7 @@ impl<A: App> Runtime<A> {
         let keymap = snapshot.unwrap_or_else(|| self.app.keymap());
         if &self.core.keymap != keymap {
             self.core.keymap.clone_from(keymap);
-            // Caches retain only the immediately previous equality key; wrapping
-            // changes that key while explicit invalidation clears both consumers.
+
             self.core.keymap_revision = self.core.keymap_revision.wrapping_add(1);
             self.core.focused_hints.invalidate();
             self.keymap_conflict_key = None;
@@ -614,9 +613,7 @@ impl<A: App> Runtime<A> {
             typing_owner: typing.map(|(owner, _)| owner),
             revision: self.core.keymap_revision,
         };
-        // A captured filter can change the accepted subset without changing
-        // its static source table. Exact descriptors are the cache identity;
-        // comparing only BindingTableId would retain stale conflict results.
+
         if self.keymap_conflict_key == Some(key) && self.keymap_conflict_typing == typing_table {
             return;
         }
@@ -635,8 +632,8 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// A newly opened top layer can reparent an existing owner. Until its first
-    /// successful publication, the prior ring cannot prove that owner's scope.
+    #[doc = r" A newly opened top layer can reparent an existing owner. Until its first"]
+    #[doc = r" successful publication, the prior ring cannot prove that owner's scope."]
     fn provisional_focus_layer(&self, to: Id) -> Option<OpenLayer> {
         let layer = self.services.initial_focus_layer?;
         self.services
@@ -646,35 +643,35 @@ impl<A: App> Runtime<A> {
             .filter(|top| top.spec.initial_focus == Some(to) && top.layer == layer)
     }
 
-    /// Whether `to` may be staged as a focus target.
-    ///
-    /// Immediate transition producers — `Tab` traversal, a press,
-    /// `Cx::focus` and `LayerSpec::initial_focus` — funnel through
-    /// [`Self::stage_focus`], which judges immediate focus admission.
-    /// A newly opened layer's initial focus is provisional until its first
-    /// publication: that owner may be moving from a prior scope. Otherwise a
-    /// target is refused when the last frame proves it cannot hold focus:
-    ///
-    /// * the ring holds it as `Disabled`, so it is registered and never
-    ///   reachable;
-    /// * the ring holds it outside the armed trap, which is what a trap
-    ///   means;
-    /// * the ring holds it on a layer the live stack has since made inert —
-    ///   the frame in which a modal opens over a control that is still in
-    ///   last frame's ring;
-    /// * it registered a region last frame but took no ring entry at all,
-    ///   which is `Focusability::ClickOnly` and a decoration-only owner.
-    ///
-    /// An id the last frame never saw is **unknown**, not proven bad, and is
-    /// admitted. A layer's own controls are absent from the ring until they
-    /// first draw, so `LayerSpec::initial_focus` names an unknown id by
-    /// construction. Historical layer restoration is instead validated only
-    /// against successful publication. Step 14 reconciliation settles fresh
-    /// targets against the ring the next frame actually produces.
-    ///
-    /// A refusal is silent: `Diagnostic` has no variant for a rejected focus
-    /// target and adding one is a §17.0 A9 amendment, not an implementation
-    /// choice.
+    #[doc = r" Whether `to` may be staged as a focus target."]
+    #[doc = r""]
+    #[doc = r" Immediate transition producers — `Tab` traversal, a press,"]
+    #[doc = r" `Cx::focus` and `LayerSpec::initial_focus` — funnel through"]
+    #[doc = r" [`Self::stage_focus`], which judges immediate focus admission."]
+    #[doc = r" A newly opened layer's initial focus is provisional until its first"]
+    #[doc = r" publication: that owner may be moving from a prior scope. Otherwise a"]
+    #[doc = r" target is refused when the last frame proves it cannot hold focus:"]
+    #[doc = r""]
+    #[doc = r" * the ring holds it as `Disabled`, so it is registered and never"]
+    #[doc = r"   reachable;"]
+    #[doc = r" * the ring holds it outside the armed trap, which is what a trap"]
+    #[doc = r"   means;"]
+    #[doc = r" * the ring holds it on a layer the live stack has since made inert —"]
+    #[doc = r"   the frame in which a modal opens over a control that is still in"]
+    #[doc = r"   last frame's ring;"]
+    #[doc = r" * it registered a region last frame but took no ring entry at all,"]
+    #[doc = r"   which is `Focusability::ClickOnly` and a decoration-only owner."]
+    #[doc = r""]
+    #[doc = r" An id the last frame never saw is **unknown**, not proven bad, and is"]
+    #[doc = r" admitted. A layer's own controls are absent from the ring until they"]
+    #[doc = r" first draw, so `LayerSpec::initial_focus` names an unknown id by"]
+    #[doc = r" construction. Historical layer restoration is instead validated only"]
+    #[doc = r" against successful publication. Step 14 reconciliation settles fresh"]
+    #[doc = r" targets against the ring the next frame actually produces."]
+    #[doc = r""]
+    #[doc = r" A refusal is silent: `Diagnostic` has no variant for a rejected focus"]
+    #[doc = r" target and adding one is a §17.0 A9 amendment, not an implementation"]
+    #[doc = r" choice."]
     fn focus_target_admissible(&self, to: Id) -> bool {
         if self.provisional_focus_layer(to).is_some() {
             return true;
@@ -704,7 +701,7 @@ impl<A: App> Runtime<A> {
         self.staged_focus = Some((to, via));
     }
 
-    /// Apply a staged transition: enqueue `FocusOut` then `FocusIn`.
+    #[doc = r" Apply a staged transition: enqueue `FocusOut` then `FocusIn`."]
     fn apply_staged_focus(&mut self) -> bool {
         let Some((to, via)) = self.staged_focus.take() else {
             return false;
@@ -721,27 +718,22 @@ impl<A: App> Runtime<A> {
         }
         self.focus.set(to);
         self.last.snapshot.focus = to;
-        // Focus is visible state. Terminal sessions redraw only when the
-        // response asks for paint; without this request a rapid Tab+Enter
-        // sequence can deliver Enter against the previous frame's binding
-        // table, so the newly focused control never sees its activation.
+
         self.services.repaint = true;
 
-        // Detaching a closed owner is not navigation out of surviving layers.
-        // The restoration target has no focus authority until publication.
         if via != FocusVia::Restore || self.restore_after_publication.is_none() {
             self.dismiss_on_focus_out(to);
         }
         true
     }
 
-    /// Whether `to` is *known* to sit outside `scope`.
-    ///
-    /// An unregistered target is deliberately not "outside": a layer's own
-    /// controls are absent from the last frame's ring until they first draw,
-    /// so a `LayerSpec::initial_focus` into a freshly opened layer would
-    /// otherwise read as a focus-out and dismiss the layer that asked for
-    /// it. Focus at `None` is outside every scope.
+    #[doc = r" Whether `to` is *known* to sit outside `scope`."]
+    #[doc = r""]
+    #[doc = r#" An unregistered target is deliberately not "outside": a layer's own"#]
+    #[doc = r" controls are absent from the last frame's ring until they first draw,"]
+    #[doc = r" so a `LayerSpec::initial_focus` into a freshly opened layer would"]
+    #[doc = r" otherwise read as a focus-out and dismiss the layer that asked for"]
+    #[doc = r" it. Focus at `None` is outside every scope."]
     fn focus_left_scope(&self, to: Option<Id>, scope: ScopeId) -> bool {
         let Some(id) = to else {
             return true;
@@ -758,21 +750,21 @@ impl<A: App> Runtime<A> {
             .is_some_and(|e| !self.last.ring.within(e.scope, scope))
     }
 
-    /// §29.8 D2: close every top layer that dismisses on focus-out and whose
-    /// scope no longer contains the new focus target.
-    ///
-    /// This is the producer `DismissReason::FocusOut` never had, and it is
-    /// what keeps focus from resting on a control *behind* an open popover:
-    /// `Tab` is runtime focus policy, intercepted before any intent is
-    /// enqueued, so the component itself can never see it.
-    ///
-    /// The walk stops at the first layer that keeps the target or refuses
-    /// focus-out dismissal. A `Modal` refuses through
-    /// `LayerSpec::dismisses_on_focus_out` itself, which is the only
-    /// exclusion there is; and because `LayerStack::close` takes everything
-    /// above a layer with it, stopping there is also what stops a popover
-    /// underneath a modal being closed out from under a modal that
-    /// legitimately holds focus.
+    #[doc = r" §29.8 D2: close every top layer that dismisses on focus-out and whose"]
+    #[doc = r" scope no longer contains the new focus target."]
+    #[doc = r""]
+    #[doc = r" This is the producer `DismissReason::FocusOut` never had, and it is"]
+    #[doc = r" what keeps focus from resting on a control *behind* an open popover:"]
+    #[doc = r" `Tab` is runtime focus policy, intercepted before any intent is"]
+    #[doc = r" enqueued, so the component itself can never see it."]
+    #[doc = r""]
+    #[doc = r" The walk stops at the first layer that keeps the target or refuses"]
+    #[doc = r" focus-out dismissal. A `Modal` refuses through"]
+    #[doc = r" `LayerSpec::dismisses_on_focus_out` itself, which is the only"]
+    #[doc = r" exclusion there is; and because `LayerStack::close` takes everything"]
+    #[doc = r" above a layer with it, stopping there is also what stops a popover"]
+    #[doc = r" underneath a modal being closed out from under a modal that"]
+    #[doc = r" legitimately holds focus."]
     fn dismiss_on_focus_out(&mut self, to: Option<Id>) {
         while let Some(top) = self.services.layers.top_layer().copied() {
             if !top.spec.dismisses_on_focus_out() || !self.focus_left_scope(to, top.scope()) {
@@ -792,7 +784,7 @@ impl<A: App> Runtime<A> {
             .is_some_and(|e| e.swallows_typing)
     }
 
-    /// Step 1 for a resize.
+    #[doc = r" Step 1 for a resize."]
     fn resize(&mut self, w: u16, h: u16) {
         self.services.viewport = Rect {
             x: 0,
@@ -811,7 +803,7 @@ impl<A: App> Runtime<A> {
         self.last_invalidate = Invalidate::Layout;
     }
 
-    /// Steps 3–6 for a key.
+    #[doc = r" Steps 3–6 for a key."]
     fn enqueue_key(&mut self, k: Key) {
         self.inter.last_input_key = true;
         self.inter.hover_suppressed = true;
@@ -833,8 +825,7 @@ impl<A: App> Runtime<A> {
                 return;
             }
         }
-        // An explicitly published Tab/BackTab command belongs to the focused
-        // component. Only an unbound Tab reaches runtime focus traversal.
+
         if let Some(owner) = current
             && let Some((_, table)) = self.last.bindings.get(owner)
             && let Some((action, chord)) = self.core.keymap.component_binding(owner, table, &k)
@@ -842,7 +833,7 @@ impl<A: App> Runtime<A> {
             self.intents.binding(owner, action, chord);
             return;
         }
-        // Tab / Shift+Tab are runtime focus policy (step 5), against the last ring.
+
         if k.code == KeyCode::Tab && k.mods.difference(KeyModifiers::SHIFT).is_empty() {
             let next = if k.mods.contains(KeyModifiers::SHIFT) {
                 self.last.ring.prev(current)
@@ -862,39 +853,39 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// Whether last frame's ring **proves** `id` cannot be interacted with.
-    ///
-    /// The ring is the only record of a registered-but-unreachable control:
-    /// `Focusability::Disabled` takes an entry with `disabled: true`, so an
-    /// id the ring never saw — an unknown id, or the `Focusability::ClickOnly`
-    /// hit target that takes no entry at all — is not proven anything here.
-    /// This is the single authority both [`Self::focus_target_admissible`] and
-    /// [`Self::deliverable`] read, so keyboard reachability and pointer
-    /// activation can no longer disagree about the same control (§73).
+    #[doc = r" Whether last frame's ring **proves** `id` cannot be interacted with."]
+    #[doc = r""]
+    #[doc = r" The ring is the only record of a registered-but-unreachable control:"]
+    #[doc = r" `Focusability::Disabled` takes an entry with `disabled: true`, so an"]
+    #[doc = r" id the ring never saw — an unknown id, or the `Focusability::ClickOnly`"]
+    #[doc = r" hit target that takes no entry at all — is not proven anything here."]
+    #[doc = r" This is the single authority both [`Self::focus_target_admissible`] and"]
+    #[doc = r" [`Self::deliverable`] read, so keyboard reachability and pointer"]
+    #[doc = r" activation can no longer disagree about the same control (§73)."]
     fn ring_proves_disabled(&self, id: Id) -> bool {
         self.last.ring.entry(id).is_some_and(|e| e.disabled)
     }
 
-    /// Whether a hit may receive an **activating** pointer intent — `Press`
-    /// and the `Release`/`Click`/`DoubleClick`/`DragStart`/`Drag`/`DragEnd`
-    /// sequence that a press owns, and `Secondary`.
-    ///
-    /// §73. A disabled control is registered, hit-testable and hoverable, and
-    /// it is exactly as unreachable by pointer as it already was by `Tab`:
-    /// keyboard refused it in [`Self::focus_target_admissible`] while a click
-    /// still delivered `Press`/`Click` to it, so a disabled `Button` could be
-    /// activated with the mouse. The refusal is scoped to activation:
-    ///
-    /// * `Phase::Move` and hover come from `hit_live` and are untouched — a
-    ///   disabled control still reports hover and still paints it;
-    /// * `Intent::Wheel` comes from `hit_scroll` and is untouched — a disabled
-    ///   control that owns a scroll region still scrolls;
-    /// * a `ClickOnly` owner takes no ring entry, so it is never proven
-    ///   disabled and keeps delivering;
-    /// * a hit below the top layer is still `outside`, so outside-click
-    ///   dismissal is decided before this predicate is ever consulted.
-    ///
-    /// The refusal is silent, like the focus refusal it now matches.
+    #[doc = r" Whether a hit may receive an **activating** pointer intent — `Press`"]
+    #[doc = r" and the `Release`/`Click`/`DoubleClick`/`DragStart`/`Drag`/`DragEnd`"]
+    #[doc = r" sequence that a press owns, and `Secondary`."]
+    #[doc = r""]
+    #[doc = r" §73. A disabled control is registered, hit-testable and hoverable, and"]
+    #[doc = r" it is exactly as unreachable by pointer as it already was by `Tab`:"]
+    #[doc = r" keyboard refused it in [`Self::focus_target_admissible`] while a click"]
+    #[doc = r" still delivered `Press`/`Click` to it, so a disabled `Button` could be"]
+    #[doc = r" activated with the mouse. The refusal is scoped to activation:"]
+    #[doc = r""]
+    #[doc = r" * `Phase::Move` and hover come from `hit_live` and are untouched — a"]
+    #[doc = r"   disabled control still reports hover and still paints it;"]
+    #[doc = r" * `Intent::Wheel` comes from `hit_scroll` and is untouched — a disabled"]
+    #[doc = r"   control that owns a scroll region still scrolls;"]
+    #[doc = r" * a `ClickOnly` owner takes no ring entry, so it is never proven"]
+    #[doc = r"   disabled and keeps delivering;"]
+    #[doc = r" * a hit below the top layer is still `outside`, so outside-click"]
+    #[doc = r"   dismissal is decided before this predicate is ever consulted."]
+    #[doc = r""]
+    #[doc = r" The refusal is silent, like the focus refusal it now matches."]
     fn deliverable(&self, hit: Hit) -> bool {
         crate::capture::target_eligible(&self.last.ring, self.top(), hit.owner, hit.layer, hit.kind)
     }
@@ -918,7 +909,7 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// Steps 3–6 for a pointer event.
+    #[doc = r" Steps 3–6 for a pointer event."]
     fn enqueue_mouse(&mut self, m: Mouse) {
         self.inter.pointer_position = Some(m.pos);
         if m.kind == MouseKind::Up {
@@ -933,7 +924,7 @@ impl<A: App> Runtime<A> {
             self.inter.hover_suppressed = false;
             self.last.snapshot.hover_suppressed = false;
         }
-        // a live capture short-circuits hit-testing (§8.2)
+
         if let Some(cap) = self.services.capture.get() {
             self.pointer_captured(cap, m);
             return;
@@ -1002,8 +993,6 @@ impl<A: App> Runtime<A> {
             }
             MouseKind::SecondaryUp => {}
             MouseKind::Wheel(axis, delta) => {
-                // a wheel over the page below a popover must not scroll the
-                // page: the same top-layer filter `deliverable` applies (MI-5)
                 if let Some(h) = self.last.registry.hit_scroll(m.pos, axis)
                     && h.layer == top
                 {
@@ -1037,7 +1026,7 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// Primary button down on a deliverable hit: press bookkeeping, press-focuses-owner.
+    #[doc = r" Primary button down on a deliverable hit: press bookkeeping, press-focuses-owner."]
     fn pointer_down(&mut self, h: Hit, m: Mouse) {
         if !self.deliverable(h) {
             return;
@@ -1065,8 +1054,8 @@ impl<A: App> Runtime<A> {
         );
     }
 
-    /// Primary button up after a press: release, then click / double-click
-    /// on the same target, or drag end.
+    #[doc = r" Primary button up after a press: release, then click / double-click"]
+    #[doc = r" on the same target, or drag end."]
     fn pointer_up(&mut self, p: Press, hit: Option<Hit>, m: Mouse) {
         self.last.snapshot.pressed = None;
         let local = Self::local_in(p.area, m.pos);
@@ -1140,7 +1129,7 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// A click whose hit is below the top layer, or nowhere.
+    #[doc = r" A click whose hit is below the top layer, or nowhere."]
     fn outside_click(&mut self) {
         let Some(top) = self.services.layers.top_layer().copied() else {
             return;
@@ -1159,16 +1148,15 @@ impl<A: App> Runtime<A> {
             .layers
             .close(top.id, LayerEvent::Dismissed(reason));
         self.services.closed_layers.extend(closed);
-        // §6.1: `Cancel` is "Esc reached this owner after layer dismissal".
-        // An outside click or a programmatic close is not a cancellation.
+
         if reason == DismissReason::Esc {
             self.intents.cancel(top.spec.owner);
         }
         true
     }
 
-    /// Handle closed layers staged by `close_layer` / dismissal: stage the
-    /// focus restore and release captures whose layer vanished (F8).
+    #[doc = r" Handle closed layers staged by `close_layer` / dismissal: stage the"]
+    #[doc = r" focus restore and release captures whose layer vanished (F8)."]
     fn settle_closed_layers(&mut self) {
         let closed: Vec<OpenLayer> = core::mem::take(&mut self.services.closed_layers);
         if closed.is_empty() {
@@ -1183,11 +1171,7 @@ impl<A: App> Runtime<A> {
                 self.last.snapshot.capture = None;
             }
         }
-        // The lowest closed layer's restore target wins — except on the
-        // focus-out path (§29.8 D2). `LayerSpec::popover` sets
-        // `restore_focus`, so restoring here would put focus straight back
-        // on the opener, making the `Tab` that dismissed the layer a no-op
-        // and re-creating the legacy key swallow by accident.
+
         if let Some(first) = closed.first()
             && first.spec.restore_focus
             && !focus_out.contains(&first.id)
@@ -1196,8 +1180,7 @@ impl<A: App> Runtime<A> {
                 .restore_to
                 .or_else(|| self.focus.take_restore(first.scope()));
             self.restore_after_publication = Some(FocusRestore { target });
-            // Deliver the existing owner's FocusOut during close settlement,
-            // but never send FocusIn to an unvalidated historical opener.
+
             if self.focus.current().is_some_and(|owner| {
                 self.last
                     .ring
@@ -1210,8 +1193,8 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// Move staged layer lifecycle events into the queue (as `Intent::Layer`
-    /// to the layer's owner) and into the `Cx::layer_event` list.
+    #[doc = r" Move staged layer lifecycle events into the queue (as `Intent::Layer`"]
+    #[doc = r" to the layer's owner) and into the `Cx::layer_event` list."]
     fn pump_layer_events(&mut self) {
         for (id, ev) in self.services.layers.take_pending() {
             self.layer_events_pending.push((id, ev));
@@ -1223,7 +1206,7 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// Step 7: `app.update` with the frozen queue, re-run while focus moves.
+    #[doc = r" Step 7: `app.update` with the frozen queue, re-run while focus moves."]
     fn run_update(
         &mut self,
         command: Option<ActionKey>,
@@ -1242,9 +1225,7 @@ impl<A: App> Runtime<A> {
             };
             self.pump_layer_events();
             self.apply_staged_focus();
-            // a focus-out dismissal fired inside `apply_staged_focus` staged
-            // its `Dismissed(FocusOut)` after the pump above; deliver it in
-            // this same pass rather than a frame later (§29.8 D2)
+
             self.pump_layer_events();
             self.services.focus_request = None;
             let events = core::mem::take(&mut self.layer_events_pending);
@@ -1263,14 +1244,7 @@ impl<A: App> Runtime<A> {
                 self.app.update(&mut cx)
             };
             folded |= r;
-            // Undelivered intents are diagnosed per pass, before buckets are
-            // cleared. A bucket the RUNTIME addressed (`Layer`, `Cancel`,
-            // `FocusIn`/`FocusOut`) is diagnosed whatever the owner
-            // registered: pointer intents already cannot reach a `Decorative`
-            // owner (`deliverable`), so §21 item 13's escape for container
-            // regions does not apply to them, and a layer owner that
-            // registers only decor — every `Dialog` — would otherwise lose
-            // its own dismissal in silence.
+
             for owner in self.intents.undrained() {
                 if self.last.registry.delivers_to(owner)
                     || self.intents.has_runtime_addressed(owner)
@@ -1280,9 +1254,9 @@ impl<A: App> Runtime<A> {
                         .push(Diagnostic::UndeliveredIntent { owner });
                 }
             }
-            // unread layer events are kept for the next handle
+
             self.layer_events_pending = core::mem::take(&mut self.services.events);
-            // remember the opener of every newly opened layer (§8.1 restore map)
+
             for l in self.services.layers.layers() {
                 if let Some(id) = l.restore_to
                     && self.focus.restore_target(l.scope()).is_none()
@@ -1314,9 +1288,6 @@ impl<A: App> Runtime<A> {
                     .push(Diagnostic::FocusTransitionDidNotSettle { target });
                 let from = self.focus.current();
                 if self.apply_staged_focus() {
-                    // §21 item 11: the pair is *applied*. `intents.clear()`
-                    // below would swallow it, so it is delivered by the next
-                    // `handle` through `pending_focus` (MI-7).
                     self.pending_focus = Some((from, target, via));
                 }
                 self.intents.clear();
@@ -1327,14 +1298,14 @@ impl<A: App> Runtime<A> {
         folded
     }
 
-    /// Run the application's bootstrap update exactly once.
-    ///
-    /// Live drivers call this before their first frame so initialization can
-    /// establish focus, layers and repaint deadlines. It never advances time.
-    /// Repeated calls return an ignored response without updating the app.
-    ///
-    /// Painting never calls this method: rendering a supplied model, including
-    /// its very first frame, cannot run application initialization or effects.
+    #[doc = r" Run the application's bootstrap update exactly once."]
+    #[doc = r""]
+    #[doc = r" Live drivers call this before their first frame so initialization can"]
+    #[doc = r" establish focus, layers and repaint deadlines. It never advances time."]
+    #[doc = r" Repeated calls return an ignored response without updating the app."]
+    #[doc = r""]
+    #[doc = r" Painting never calls this method: rendering a supplied model, including"]
+    #[doc = r" its very first frame, cannot run application initialization or effects."]
     pub fn initialize(&mut self) -> Response<()> {
         if self.bootstrapped {
             return Response::ignored();
@@ -1351,17 +1322,17 @@ impl<A: App> Runtime<A> {
         self.finish(r)
     }
 
-    /// Whether an update must settle focus discovered by a committed frame.
+    #[doc = r" Whether an update must settle focus discovered by a committed frame."]
     pub const fn needs_settle(&self) -> bool {
         self.pending_focus.is_some() || (self.bootstrapped && self.pending_tick)
     }
 
-    /// Whether another successful presentation is required before input.
+    #[doc = r" Whether another successful presentation is required before input."]
     pub const fn needs_present(&self) -> bool {
         !self.presented
     }
 
-    /// Deliver committed focus transitions without consuming external input.
+    #[doc = r" Deliver committed focus transitions without consuming external input."]
     pub fn settle(&mut self) -> Response<()> {
         if !self.bootstrapped {
             return Response::ignored();
@@ -1387,11 +1358,11 @@ impl<A: App> Runtime<A> {
         self.finish(r)
     }
 
-    /// Route one event using compatible, successfully presented geometry.
-    ///
-    /// # Errors
-    /// Returns the original event without effects if initialization, presentation
-    /// or explicit focus settling is still required. Retry after completing it.
+    #[doc = r" Route one event using compatible, successfully presented geometry."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" Returns the original event without effects if initialization, presentation"]
+    #[doc = r" or explicit focus settling is still required. Retry after completing it."]
     pub fn handle(&mut self, input: Input) -> Result<Response<()>, PendingInput> {
         if !self.bootstrapped || !self.presented || self.needs_settle() {
             return Err(PendingInput(input));
@@ -1419,10 +1390,7 @@ impl<A: App> Runtime<A> {
         match &input {
             Input::Resize(w, h) => {
                 self.resize(*w, *h);
-                // step 1 then the ordinary update pass: the `FocusOut`/
-                // `FocusIn` pair staged for a `pending_focus` is already in
-                // the queue and must reach `app.update` before `finish`
-                // clears it (MA-7).
+
                 let r = self.run_update(None, UpdateCause::Event, activation_key)
                     | Response::changed().relayout();
                 drop(input);
@@ -1430,11 +1398,8 @@ impl<A: App> Runtime<A> {
             }
             Input::Tick => {
                 update_cause = UpdateCause::Tick;
-                // Explicit ticks request an update at unchanged time. Only
-                // advance_to consumes an elapsed absolute deadline.
             }
             Input::Key(k) => {
-                // step 2: capture chords first
                 let swallows = self.swallows_typing() || self.last.typing.fallback.is_some();
                 let scoped = self
                     .last
@@ -1459,15 +1424,10 @@ impl<A: App> Runtime<A> {
             }
         }
         let mut r = self.run_update(None, update_cause, activation_key);
-        // step 8: bubble
+
         if let Some(k) = key_input
             && !r.is_consumed()
         {
-            // The raw pass already delivered (or diagnosed) every intent in
-            // the frozen queue. A follow-up bubble or Esc-dismissal pass must
-            // observe only its own command and fresh layer/focus
-            // notifications — never the same physical Key twice — while
-            // per-pass iteration stays immutable.
             self.intents.clear();
             if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
                 r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
@@ -1508,7 +1468,7 @@ impl<A: App> Runtime<A> {
         Ok(self.finish(r))
     }
 
-    /// Step 9.
+    #[doc = r" Step 9."]
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
         self.reconcile_held_pointer();
         if self.services.repaint {
@@ -1519,9 +1479,9 @@ impl<A: App> Runtime<A> {
         r
     }
 
-    /// Paint a candidate into a terminal frame without publishing input geometry.
-    /// Keep the returned guard until terminal output succeeds, then call
-    /// [`PaintedFrame::commit_presented`]. Dropping it requires another frame.
+    #[doc = r" Paint a candidate into a terminal frame without publishing input geometry."]
+    #[doc = r" Keep the returned guard until terminal output succeeds, then call"]
+    #[doc = r" [`PaintedFrame::commit_presented`]. Dropping it requires another frame."]
     pub fn draw(&mut self, frame: &mut Frame<'_>) -> PaintedFrame<'_, A> {
         let area = frame.area();
         let buf = frame.buffer_mut();
@@ -1544,9 +1504,7 @@ impl<A: App> Runtime<A> {
     ) {
         self.presented = false;
         self.sync_keymap(snapshot.map(|value| &value.keymap));
-        // Cache storage follows the painted size and immutable snapshot identity,
-        // not live screen publication. A projection must neither clear every warm
-        // frame nor lend derived data to a different snapshot or live model.
+
         let same_snapshot = match (&self.cache_snapshot, snapshot) {
             (None, None) => true,
             (Some(previous), Some(next)) => std::sync::Arc::ptr_eq(previous, &next.cache_identity),
@@ -1559,7 +1517,7 @@ impl<A: App> Runtime<A> {
             self.cache_snapshot =
                 snapshot.map(|value| std::sync::Arc::clone(&value.cache_identity));
         }
-        // step 10: new frame state
+
         self.generation = self.generation.wrapping_add(1);
         self.core.begin_cache_frame(self.generation);
         self.core.style_cache.clear();
@@ -1569,8 +1527,7 @@ impl<A: App> Runtime<A> {
             |value| value.inert_floor,
         );
         self.frame.top = snapshot.map_or_else(|| self.services.layers.top(), |value| value.top);
-        // Prepare every open layer's draw target. Its focus scope is armed
-        // only when `Ui::layer` performs a live draw.
+
         let layers = snapshot.map_or_else(
             || self.services.layers.layers(),
             |value| value.layers.as_slice(),
@@ -1579,7 +1536,7 @@ impl<A: App> Runtime<A> {
             let rect = resolve_anchor(area, l.spec.anchor, l.spec.size);
             self.frame.layers.push(l.id, l.layer, l.spec, rect, area);
         }
-        // step 11: app.draw into the page, layers into pooled buffers
+
         {
             let app = &self.app;
             let mut ui = Ui::new(
@@ -1590,7 +1547,7 @@ impl<A: App> Runtime<A> {
                 snapshot.map_or(&self.last, |value| &value.last),
             );
             paint(app, &mut ui);
-            // step 12: composite bottom-to-top
+
             for i in 0..ui_layer_count(&ui) {
                 composite_layer(&mut ui, i, area);
             }
@@ -1609,7 +1566,7 @@ impl<A: App> Runtime<A> {
 
     fn commit_geometry(&mut self) {
         self.services.viewport = self.frame.screen;
-        // Step 13: registry swap; held targets reconcile after the ring swap.
+
         let mut diags = core::mem::take(&mut self.frame.diagnostics);
         self.services.diagnostics.extend(diags.drain(..));
         core::mem::swap(&mut self.last.registry, &mut self.frame.registry);
@@ -1634,10 +1591,7 @@ impl<A: App> Runtime<A> {
         self.services.initial_focus_layer = None;
         self.commit_geometry();
         self.presented = true;
-        // step 14: focus reconcile. A modal's trap moves focus into it by
-        // rule (c); a popover leaves focus where it is unless the spec named
-        // an `initial_focus` (§16.2 case 17: a component stays focused under
-        // a popover and its cursor write is rejected)
+
         let previous = self.focus.current();
         let restoration = self.restore_after_publication.take();
         let restoring = restoration.is_some() && self.services.deferred_focus.is_none();
@@ -1681,8 +1635,7 @@ impl<A: App> Runtime<A> {
             if admissible(id) {
                 return Some(id);
             }
-            // An ambiguous duplicate ID can make the first reachable entry
-            // inadmissible. Continue in registration order to a valid owner.
+
             let entries = self.last.ring.entries();
             let after = entries
                 .iter()
@@ -1715,13 +1668,11 @@ impl<A: App> Runtime<A> {
             } else {
                 FocusVia::Programmatic
             };
-            // No update has observed the intermediate target yet. Preserve the
-            // original source when several presentations precede explicit settle.
+
             let from = self.pending_focus.map_or(previous, |(from, _, _)| from);
             self.pending_focus = (from != reconciled).then_some((from, reconciled, via));
             self.focus.set(reconciled);
-            // This output used the old focus. Even a coalesced round trip with
-            // no callback needs another presentation before input is compatible.
+
             self.presented = false;
             self.services.repaint = true;
         }
@@ -1730,7 +1681,7 @@ impl<A: App> Runtime<A> {
         self.last.snapshot.focus_visible = self.focus.visible();
         self.reconcile_held_pointer();
         self.reconcile_hover();
-        // Cursor matches the actual output, painted before focus reconciliation.
+
         self.cursor = self.painted_cursor;
     }
 
@@ -1761,7 +1712,7 @@ impl<A: App> Runtime<A> {
             self.inter.press = None;
             self.services.press_pos = None;
         }
-        // Gesture cancellation never erases independently timed feedback.
+
         let pressed = self
             .inter
             .press
@@ -1777,8 +1728,6 @@ impl<A: App> Runtime<A> {
     }
 
     fn reconcile_hover(&mut self) {
-        // Only successful live publication can change hover from new geometry.
-        // Repaint uses these facts; no synthetic Move or application update runs.
         let painted_hover = if self.last.snapshot.hover_suppressed {
             None
         } else {
@@ -1799,9 +1748,6 @@ impl<A: App> Runtime<A> {
         } else {
             self.inter.hover_passes = self.inter.hover_passes.saturating_add(1);
             if self.inter.hover_passes == 4 {
-                // An immutable view may move away whenever it is hovered, so
-                // no fixed point exists. Publish an explicitly suppressed
-                // hover state rather than starving retained input forever.
                 self.inter.hover_suppressed = true;
                 self.last.snapshot.hover_suppressed = true;
                 hover = None;
@@ -1820,11 +1766,11 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// Capture frozen read facts without updating or initializing the application.
-    ///
-    /// # Errors
-    /// Rejects uninitialized, unsettled or incompatible runtime state. An old
-    /// registry after `app_mut` is never presented as the current model's snapshot.
+    #[doc = r" Capture frozen read facts without updating or initializing the application."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" Rejects uninitialized, unsettled or incompatible runtime state. An old"]
+    #[doc = r" registry after `app_mut` is never presented as the current model's snapshot."]
     pub fn render_snapshot(&self) -> Result<RenderSnapshot, RenderSnapshotError> {
         if !self.bootstrapped {
             return Err(RenderSnapshotError::Uninitialized);
@@ -1845,7 +1791,7 @@ impl<A: App> Runtime<A> {
         })
     }
 
-    /// The cursor position kept by the last successful presentation.
+    #[doc = r" The cursor position kept by the last successful presentation."]
     pub const fn cursor_position(&self) -> Option<Position> {
         self.cursor
     }
@@ -1868,49 +1814,49 @@ fn composite_layer(ui: &mut Ui<'_>, i: usize, screen: Rect) {
     }
 }
 
-/// Inspection for the test harness (§17.0 A1). Never in a release binary.
+#[doc = r" Inspection for the test harness (§17.0 A1). Never in a release binary."]
 #[cfg(feature = "testing")]
 impl<A: App> Runtime<A> {
-    /// The hovered control.
+    #[doc = r" The hovered control."]
     pub fn hover(&self) -> Option<Id> {
         self.inter.hover.map(|(o, _)| o)
     }
 
-    /// Runtime-resolved flags for `id`.
+    #[doc = r" Runtime-resolved flags for `id`."]
     pub fn state_of(&self, id: Id) -> StateFlags {
         self.last.state(id)
     }
 
-    /// Whether focus is painted.
+    #[doc = r" Whether focus is painted."]
     pub const fn focus_visible(&self) -> bool {
         self.focus.visible()
     }
 
-    /// The top layer.
+    #[doc = r" The top layer."]
     pub fn top_layer(&self) -> LayerId {
         self.services.layers.top()
     }
 
-    /// Whether layer `id` is open.
+    #[doc = r" Whether layer `id` is open."]
     pub fn is_open(&self, id: Id) -> bool {
         self.services.layers.is_open(id)
     }
 
-    /// The cursor kept by the last draw.
+    #[doc = r" The cursor kept by the last draw."]
     pub const fn cursor(&self) -> Option<Position> {
         self.cursor
     }
 
-    /// What `id` actually got for `p` in the last draw.
-    ///
-    /// Returns the `Resolved` the component recorded when it queried the
-    /// style, so the family and variant are the ones the component itself
-    /// used — a `List`, a `Tabs` or a `Field` is never resolved through the
-    /// button recipe (§16.4's theme-coupling migration contract). When `id`
-    /// never styled `p`, the family and variant of any other query `id` made
-    /// this frame are reused; when `id` styled nothing at all this falls back
-    /// to `Family::BUTTON`. [`Runtime::resolved_in`] is the explicit escape
-    /// hatch for a part that is never painted.
+    #[doc = r" What `id` actually got for `p` in the last draw."]
+    #[doc = r""]
+    #[doc = r" Returns the `Resolved` the component recorded when it queried the"]
+    #[doc = r" style, so the family and variant are the ones the component itself"]
+    #[doc = r" used — a `List`, a `Tabs` or a `Field` is never resolved through the"]
+    #[doc = r" button recipe (§16.4's theme-coupling migration contract). When `id`"]
+    #[doc = r" never styled `p`, the family and variant of any other query `id` made"]
+    #[doc = r" this frame are reused; when `id` styled nothing at all this falls back"]
+    #[doc = r" to `Family::BUTTON`. [`Runtime::resolved_in`] is the explicit escape"]
+    #[doc = r" hatch for a part that is never painted."]
     pub fn resolved(&self, id: Id, p: Part) -> crate::theme::Resolved {
         let mine = self.frame.styled_queries.iter().rev();
         if let Some((_, _, _, _, r)) = mine.clone().find(|(o, _, _, q, _)| *o == id && *q == p) {
@@ -1923,7 +1869,7 @@ impl<A: App> Runtime<A> {
         self.resolved_in(f, v, id, p)
     }
 
-    /// Resolve `p` for `id` under an explicit family and variant.
+    #[doc = r" Resolve `p` for `id` under an explicit family and variant."]
     pub fn resolved_in(
         &self,
         f: crate::theme::Family,
@@ -1935,39 +1881,39 @@ impl<A: App> Runtime<A> {
             .resolve(f, v, p, self.last.state(id), crate::theme::Surface::Canvas)
     }
 
-    /// The invalidation returned by the last `handle`.
+    #[doc = r" The invalidation returned by the last `handle`."]
     pub const fn last_invalidate(&self) -> Invalidate {
         self.last_invalidate
     }
 
-    /// Tags recorded through `Cx::record`.
+    #[doc = r" Tags recorded through `Cx::record`."]
     pub fn records(&self) -> &[&'static str] {
         &self.services.records
     }
 
-    /// Drop recorded tags.
+    #[doc = r" Drop recorded tags."]
     pub fn clear_records(&mut self) {
         self.services.records.clear();
     }
 
-    /// Registry produced by the last acknowledged projection, separate from live geometry.
+    #[doc = r" Registry produced by the last acknowledged projection, separate from live geometry."]
     pub fn projection_registry(&self) -> Option<&crate::hit::Registry> {
         self.projection.as_ref().map(|output| &output.last.registry)
     }
 
-    /// Focus ring produced by the last acknowledged projection.
+    #[doc = r" Focus ring produced by the last acknowledged projection."]
     pub fn projection_ring(&self) -> Option<&FocusRing> {
         self.projection.as_ref().map(|output| &output.last.ring)
     }
 
-    /// Cursor produced by the last acknowledged projection.
+    #[doc = r" Cursor produced by the last acknowledged projection."]
     pub fn projection_cursor(&self) -> Option<Position> {
         self.projection.as_ref().and_then(|output| output.cursor)
     }
 
-    /// Project a one-shot painter without reconciling focus or running callbacks.
-    /// Its derived model caches are fresh: an arbitrary closure carries no
-    /// persistent model identity. Use `draw_bound_projection` for warmed captures.
+    #[doc = r" Project a one-shot painter without reconciling focus or running callbacks."]
+    #[doc = r" Its derived model caches are fresh: an arbitrary closure carries no"]
+    #[doc = r" persistent model identity. Use `draw_bound_projection` for warmed captures."]
     pub fn draw_projection(
         &mut self,
         area: Rect,
@@ -1983,7 +1929,7 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// Project a scoped immutable model, reusing only this binding's caches.
+    #[doc = r" Project a scoped immutable model, reusing only this binding's caches."]
     pub fn draw_bound_projection<M: ?Sized, F>(
         &mut self,
         area: Rect,
@@ -2002,7 +1948,7 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// The draw phase with a closure instead of `App::draw` (headless scenes).
+    #[doc = r" The draw phase with a closure instead of `App::draw` (headless scenes)."]
     pub fn draw_scene(
         &mut self,
         area: Rect,
@@ -2016,7 +1962,7 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// The draw phase into a bare buffer.
+    #[doc = r" The draw phase into a bare buffer."]
     pub fn draw_buffer(&mut self, area: Rect, buf: &mut Buffer) -> PaintedFrame<'_, A> {
         self.draw_with_buffer(area, buf, None, A::draw);
         PaintedFrame {
@@ -2025,17 +1971,17 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// The number of regions registered last frame.
+    #[doc = r" The number of regions registered last frame."]
     pub fn region_count(&self) -> usize {
         self.last.registry.len()
     }
 
-    /// Last frame's registry.
+    #[doc = r" Last frame's registry."]
     pub const fn registry(&self) -> &crate::hit::Registry {
         &self.last.registry
     }
 
-    /// Advance explicit elapsed milliseconds through the public clock contract.
+    #[doc = r" Advance explicit elapsed milliseconds through the public clock contract."]
     pub fn advance_clock(&mut self, ms: u64) {
         let _ = self.advance_to(
             self.now()
@@ -2043,20 +1989,20 @@ impl<A: App> Runtime<A> {
         );
     }
 
-    /// Whether a timed repaint was requested.
+    #[doc = r" Whether a timed repaint was requested."]
     pub fn repaint_after(&self) -> Option<core::time::Duration> {
         self.services
             .repaint_at
             .map(|at| at.saturating_duration_since(self.now()))
     }
 
-    /// The live capture's owner.
+    #[doc = r" The live capture's owner."]
     pub fn capture_owner(&self) -> Option<Id> {
         self.services.capture.get().map(|c| c.owner)
     }
 
-    /// Force focus (a harness `blur`); delivered as `FocusOut`/`FocusIn` on
-    /// the next `handle`.
+    #[doc = r" Force focus (a harness `blur`); delivered as `FocusOut`/`FocusIn` on"]
+    #[doc = r" the next `handle`."]
     pub fn set_focus(&mut self, id: Option<Id>) {
         let from = self.focus.current();
         if from != id {
@@ -2067,19 +2013,19 @@ impl<A: App> Runtime<A> {
         }
     }
 
-    /// Intent-queue bucket probes since the runtime was built (adjudication
-    /// 2.6): a frame with an empty queue must perform **zero**, and a frame
-    /// with intents exactly one per `cx.intents` call.
+    #[doc = r" Intent-queue bucket probes since the runtime was built (adjudication"]
+    #[doc = r" 2.6): a frame with an empty queue must perform **zero**, and a frame"]
+    #[doc = r" with intents exactly one per `cx.intents` call."]
     pub fn intent_probes(&self) -> usize {
         self.intents.probes()
     }
 
-    /// `(hits, misses)` of the §11.1 A3 style memo (adjudication 2.8).
+    #[doc = r" `(hits, misses)` of the §11.1 A3 style memo (adjudication 2.8)."]
     pub fn style_cache_stats(&self) -> (u64, u64) {
         self.core.style_cache.stats()
     }
 
-    /// The live spec of an open layer.
+    #[doc = r" The live spec of an open layer."]
     pub fn open_spec(&self, id: Id) -> Option<crate::layer::LayerSpec> {
         self.services
             .layers
@@ -2089,7 +2035,7 @@ impl<A: App> Runtime<A> {
             .map(|l| l.spec)
     }
 
-    /// The area the resolver gave layer `id` in the last draw.
+    #[doc = r" The area the resolver gave layer `id` in the last draw."]
     pub fn layer_area(&self, id: Id) -> Option<Rect> {
         self.frame
             .layers
@@ -2099,13 +2045,13 @@ impl<A: App> Runtime<A> {
             .map(|l| l.area)
     }
 
-    /// Record a diagnostic on the harness's behalf (`UnaddressableId`).
+    #[doc = r" Record a diagnostic on the harness's behalf (`UnaddressableId`)."]
     pub fn record_diagnostic(&mut self, d: Diagnostic) {
         self.services.diagnostics.push(d);
     }
 }
 
-/// A scripted application for runtime-level tests.
+#[doc = r" A scripted application for runtime-level tests."]
 #[cfg(any(test, feature = "testing"))]
 pub mod stub {
     use ratatui_core::buffer::Buffer;
@@ -2122,7 +2068,7 @@ pub mod stub {
     use crate::theme::Theme;
     use crate::ui::{Cx, Ui};
 
-    /// One control the stub draws.
+    #[doc = r" One control the stub draws."]
     #[derive(Clone, Debug)]
     #[expect(
         clippy::struct_excessive_bools,
@@ -2132,14 +2078,14 @@ pub mod stub {
         pub id: Id,
         pub area: Rect,
         pub focus: Focusability,
-        /// Registers as an editor (swallows typing, consumes Esc as cancel).
+        #[doc = r" Registers as an editor (swallows typing, consumes Esc as cancel)."]
         pub editor: bool,
-        /// Claims capture on `Press`.
+        #[doc = r" Claims capture on `Press`."]
         pub captures: bool,
-        /// Also registers a scroll region.
+        #[doc = r" Also registers a scroll region."]
         pub scroll: bool,
-        /// Registers a `Decorative` region only — no control, no part. This
-        /// is what a `Dialog` registers for its own id.
+        #[doc = r" Registers a `Decorative` region only — no control, no part. This"]
+        #[doc = r" is what a `Dialog` registers for its own id."]
         pub decor: bool,
     }
 
@@ -2161,20 +2107,20 @@ pub mod stub {
     pub struct Stub {
         pub page: Vec<Control>,
         pub layers: Vec<(Id, Vec<Control>)>,
-        /// Every intent seen, as `(owner, Debug text)`.
+        #[doc = r" Every intent seen, as `(owner, Debug text)`."]
         pub log: Vec<(Id, String)>,
         pub consume_keys: bool,
         pub focus_request: Option<Id>,
         pub open_request: Option<(Id, LayerSpec)>,
         pub close_request: Option<Id>,
         pub resize_request: Option<(Id, crate::layer::LayerSize)>,
-        /// `update` calls so far.
+        #[doc = r" `update` calls so far."]
         pub updates: usize,
         pub events_started: bool,
-        /// Focus requests issued from inside `update` on each pass (settling tests).
+        #[doc = r" Focus requests issued from inside `update` on each pass (settling tests)."]
         pub chase: Vec<Id>,
         pub esc_hits: usize,
-        /// An owner whose bucket `update` never drains (the gated-shape app).
+        #[doc = r" An owner whose bucket `update` never drains (the gated-shape app)."]
         pub skip_drain: Option<Id>,
     }
 
@@ -2200,8 +2146,7 @@ pub mod stub {
     impl App for Stub {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             self.updates = self.updates.saturating_add(1);
-            // The bootstrap pass is lifecycle plumbing. Keep this fixture's
-            // queued test actions for the first externally handled event.
+
             if cx.update_cause() == UpdateCause::Bootstrap {
                 return Response::ignored();
             }
@@ -2314,7 +2259,7 @@ pub mod stub {
         height: 12,
     };
 
-    /// A runtime that has drawn once.
+    #[doc = r" A runtime that has drawn once."]
     pub fn runtime(stub: Stub) -> (Runtime<Stub>, Buffer) {
         let mut rt = Runtime::new(stub, Theme::junie());
         let _ = rt.initialize();
@@ -2344,7 +2289,7 @@ pub mod stub {
         })
     }
 
-    /// Behavioral fixture delivery: publish real geometry, settle, then assert acceptance.
+    #[doc = r" Behavioral fixture delivery: publish real geometry, settle, then assert acceptance."]
     pub fn deliver<A: App>(rt: &mut Runtime<A>, input: Input) -> Response<()> {
         assert!(
             rt.bootstrapped,
@@ -2370,7 +2315,7 @@ pub mod stub {
         panic!("fixture publication did not settle: {:?}", rt.diagnostics());
     }
 
-    /// Handle then draw, like the harness.
+    #[doc = r" Handle then draw, like the harness."]
     pub fn step(rt: &mut Runtime<Stub>, buf: &mut Buffer, input: Input) -> Response<()> {
         let r = deliver(rt, input);
         rt.draw_buffer(SCREEN, buf).commit_presented();
@@ -2649,9 +2594,7 @@ mod tests {
                 _ => None,
             })
             .collect();
-        // the guard runs per *pass*, and the dismissal re-runs `update` while
-        // the focus restore settles, so the owner is named once per pass; what
-        // the invariant claims is that it is named, and that nobody else is.
+
         assert!(!undelivered.is_empty(), "the dismissal was lost in silence");
         assert!(
             undelivered.iter().all(|o| *o == dlg),

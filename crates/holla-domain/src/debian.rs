@@ -1,5 +1,5 @@
-//! Debian/apt metadata for the upgrade-everything plan (P3): pending
-//! upgrades, how many are security, held-back packages, reboot flag.
+#![doc = r" Debian/apt metadata for the upgrade-everything plan (P3): pending"]
+#![doc = r" upgrades, how many are security, held-back packages, reboot flag."]
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DebianState {
@@ -50,7 +50,7 @@ impl DebianState {
     }
 }
 
-/// Explicit simulated orphan package accounting; no package manager is invoked.
+#[doc = r" Explicit simulated orphan package accounting; no package manager is invoked."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OrphanPackage {
     pub id: String,

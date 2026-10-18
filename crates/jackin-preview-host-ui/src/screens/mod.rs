@@ -1,4 +1,4 @@
-//! Host screens owned by `jackin-preview-host-ui`.
+#![doc = r" Host screens owned by `jackin-preview-host-ui`."]
 
 pub mod accounts;
 pub mod cockpit;

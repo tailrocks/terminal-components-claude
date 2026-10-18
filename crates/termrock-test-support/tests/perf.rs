@@ -1,12 +1,12 @@
-//! Library-level performance benchmarks (`COMPONENT_ARCHITECTURE.md` §16.6,
-//! `docs/audit/performance-audit.md` §7.2 B–F) implementable on the
-//! foundations. Run in release, single-threaded, with output visible:
-//!
-//! ```text
-//! cargo test -p termrock-test-support --test perf --release -- --test-threads=1 --nocapture
-//! ```
-//!
-//! See `termrock_test_support::perf` for the environment knobs.
+#![doc = r" Library-level performance benchmarks (`COMPONENT_ARCHITECTURE.md` §16.6,"]
+#![doc = r" `docs/audit/performance-audit.md` §7.2 B–F) implementable on the"]
+#![doc = r" foundations. Run in release, single-threaded, with output visible:"]
+#![doc = r""]
+#![doc = r" ```text"]
+#![doc = r" cargo test -p termrock-test-support --test perf --release -- --test-threads=1 --nocapture"]
+#![doc = r" ```"]
+#![doc = r""]
+#![doc = r" See `termrock_test_support::perf` for the environment knobs."]
 #![cfg_attr(
     test,
     allow(
@@ -59,11 +59,9 @@ use termrock_viewport::{TextViewport, ViewportLine, ViewportState};
 #[global_allocator]
 static GLOBAL: Counting = Counting;
 
-/// The split-crate baseline lives beside this test; the shared perf module's
-/// default path (`../tui/tests/perf_baseline.txt`) is a monolith relic.
+#[doc = r" The split-crate baseline lives beside this test; the shared perf module's"]
+#[doc = r" default path (`../tui/tests/perf_baseline.txt`) is a monolith relic."]
 const BASELINE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt");
-
-// ------------------------------------------------------------ A. frames
 
 #[test]
 fn frame_testbackend_empty_120x40() {
@@ -76,8 +74,6 @@ fn frame_testbackend_empty_120x40() {
     });
     report_to(BASELINE, "frame_testbackend_empty_120x40", &s);
 }
-
-// ------------------------------------------------------------ B. events
 
 #[test]
 fn mouse_move_over_1000_regions() {
@@ -113,7 +109,7 @@ fn mouse_move_over_1000_regions() {
 #[test]
 fn focus_tab_traversal_ring_200() {
     let _g = lock();
-    // the ring is built the way the runtime builds it: 200 controls registered in draw order
+
     let mut scene = Scene::new("ring200", Theme::junie(), ColorLevel::TrueColor, 200, 1);
     scene.draw(|ui, _| {
         for i in 0..200u16 {
@@ -136,8 +132,6 @@ fn focus_tab_traversal_ring_200() {
     report_to(BASELINE, "focus_tab_traversal_ring_200", &s);
     assert_eq!(s.allocs, 0, "focus traversal must not allocate");
 }
-
-// ------------------------------------------------------------ C. styles
 
 const STATES: [StateFlags; 8] = [
     StateFlags::empty(),
@@ -204,8 +198,7 @@ fn style_resolve_10k_parts() {
     });
     report_to(BASELINE, "style_resolve_10k_parts", &s);
     assert_eq!(s.allocs, 0, "style resolution must not allocate (R2)");
-    // adjudication 2.8: the binding assertion is the memo's health, not a
-    // per-query ns ratio. A broken cache key shows up here and nowhere else.
+
     let (hits, misses) = scene
         .runtime()
         .map(|rt: &Runtime<NoApp>| rt.style_cache_stats())
@@ -219,13 +212,6 @@ fn style_resolve_10k_parts() {
         "style memo hit rate {rate:.3} < 0.90 (hits={hits}, misses={misses})"
     );
     if env_flag("PERF_STRICT") {
-        // Adjudication O4a correction 2: the *binding* style budget lives
-        // here, not in `style_resolve_per_frame`'s differential. This is a
-        // pure resolution loop of exactly 10 000 queries with no differencing,
-        // so it is the low-noise measurement; §25.8's own arithmetic —
-        // "≈ 13 ns per query × ~2 000 queries per realistic frame ≈ 26 µs,
-        // under 0.2 % of a 16 ms budget" — turned into code is
-        // `ns / 10 000 × 2 000 <= 32 000`, i.e. <= 16.0 ns per query.
         const QUERIES: u128 = 10_000;
         const FRAME_QUERIES: u128 = 2_000;
         const BUDGET_NS: u128 = 32_000;
@@ -239,23 +225,23 @@ fn style_resolve_10k_parts() {
     }
 }
 
-/// Adjudication 2.8: §20.9-1's "ns ≤ 2× the pre-refactor `Theme::row`+`gutter`
-/// baseline" is struck — it compared a 30-field `Copy` read with a six-level
-/// precedence resolution and was unmeetable by construction. The bound that
-/// replaces it is a **per-frame budget**: style resolution is a small share of
-/// a realistic frame.
-///
-/// §16.6 names `frame_showcase_lists_120x40` as the subject; that benchmark
-/// needs the showcase application (Slice 5). The stand-in is the same shape
-/// built from foundations only: a 40-row `RowUi` frame at 120×40. The two
-/// measured frames paint **identically** and differ only in whether the five
-/// part styles are resolved per row or hoisted, so the difference is the
-/// style-resolution cost and nothing else.
-///
-/// This test deliberately calls no `report`, so it carries **no** line in
-/// `perf_baseline.txt` (named there in the `#` header): it measures a
-/// difference of two medians, and a baselined `ns` for a differential invites
-/// a meaningless `× 1.2` regression check (Adjudication O4a correction 3).
+#[doc = r#" Adjudication 2.8: §20.9-1's "ns ≤ 2× the pre-refactor `Theme::row`+`gutter`"#]
+#[doc = r#" baseline" is struck — it compared a 30-field `Copy` read with a six-level"#]
+#[doc = r" precedence resolution and was unmeetable by construction. The bound that"]
+#[doc = r" replaces it is a **per-frame budget**: style resolution is a small share of"]
+#[doc = r" a realistic frame."]
+#[doc = r""]
+#[doc = r" §16.6 names `frame_showcase_lists_120x40` as the subject; that benchmark"]
+#[doc = r" needs the showcase application (Slice 5). The stand-in is the same shape"]
+#[doc = r" built from foundations only: a 40-row `RowUi` frame at 120×40. The two"]
+#[doc = r" measured frames paint **identically** and differ only in whether the five"]
+#[doc = r" part styles are resolved per row or hoisted, so the difference is the"]
+#[doc = r" style-resolution cost and nothing else."]
+#[doc = r""]
+#[doc = r" This test deliberately calls no `report`, so it carries **no** line in"]
+#[doc = r" `perf_baseline.txt` (named there in the `#` header): it measures a"]
+#[doc = r" difference of two medians, and a baselined `ns` for a differential invites"]
+#[doc = r" a meaningless `× 1.2` regression check (Adjudication O4a correction 3)."]
 #[test]
 fn style_resolve_per_frame() {
     let _g = lock();
@@ -287,7 +273,6 @@ fn style_resolve_per_frame() {
         ui.paint_str(meta, "42", st[4]);
     };
 
-    // A: resolve the five parts for every row
     let resolved_per_row = |ui: &mut Ui<'_>, area: Rect| {
         for (i, row) in area.rows().enumerate() {
             let flags = STATES[i % STATES.len()];
@@ -298,7 +283,7 @@ fn style_resolve_per_frame() {
             paint_row(ui, row, &st);
         }
     };
-    // B: the identical painting with the styles hoisted out of the loop
+
     let hoisted = |ui: &mut Ui<'_>, area: Rect| {
         let mut by_state = [[termrock_theme::PaintStyle::new(); 5]; STATES.len()];
         for (slot, flags) in by_state.iter_mut().zip(STATES) {
@@ -324,29 +309,16 @@ fn style_resolve_per_frame() {
     );
     assert_eq!(a.allocs, 0);
     if env_flag("PERF_STRICT") {
-        // Adjudication O4a correction 1: the difference covers `DELTA`
-        // queries, not `QUERIES_A`. The old `× 10` extrapolated to 1 600
-        // queries while claiming 2 000, making the assertion ~20 % weaker
-        // than it read. Correction 2: this differential is now the *second*,
-        // looser net — the binding per-query budget is asserted in
-        // `style_resolve_10k_parts`, which does no differencing — and it is
-        // kept because it is the only measurement that includes real painting
-        // alongside resolution, and the number Slice 5 will compare against
-        // `frame_showcase_lists_120x40`.
-        const QUERIES_A: u128 = 200; // 40 rows × 5 parts
-        const QUERIES_B: u128 = 40; // 8 states × 5 parts, hoisted
-        const DELTA: u128 = QUERIES_A - QUERIES_B; // 160
+        const QUERIES_A: u128 = 200;
+        const QUERIES_B: u128 = 40;
+        const DELTA: u128 = QUERIES_A - QUERIES_B;
         let per_frame_2k = resolution_ns.saturating_mul(2_000) / DELTA;
         assert!(
             per_frame_2k <= 32_000,
             "style resolution extrapolates to {per_frame_2k} ns for a 2 000-query frame, \
              over the 32 µs (0.2 % of 16 ms) budget"
         );
-        // The ≤ 5 % *share* of §16.6 is written against
-        // `frame_showcase_lists_120x40`, which needs Slice 5. This stand-in is
-        // the style-densest possible frame — 5 resolutions per painted row,
-        // no panel chrome, no borders, no status bar — so its share is an
-        // upper bound on the real one and is reported, not asserted.
+
         println!(
             "PERF-NOTE style_resolve_per_frame: the <= 5 % share binds frame_showcase_lists_120x40 (Slice 5); this stand-in reports {share:.3}"
         );
@@ -447,8 +419,6 @@ fn style_downgrade_theme_all_levels() {
     report_to(BASELINE, "style_downgrade_theme_all_levels", &s);
 }
 
-// ------------------------------------------------------------ E. text
-
 #[test]
 fn width_10k_grapheme_line() {
     let _g = lock();
@@ -470,10 +440,10 @@ fn truncate_10k_grapheme_line_to_80() {
     report_to(BASELINE, "truncate_10k_grapheme_line_to_80", &s);
 }
 
-/// The `RowUi` equivalent of the legacy `fit`: paint a 10 k-grapheme line
-/// into 80 columns through `RowUi::label` — the ellipsis path this benchmark
-/// is named for — over a corpus whose symbols fit ratatui `Cell`'s inline
-/// storage. R5: the painter allocates **nothing**.
+#[doc = r" The `RowUi` equivalent of the legacy `fit`: paint a 10 k-grapheme line"]
+#[doc = r" into 80 columns through `RowUi::label` — the ellipsis path this benchmark"]
+#[doc = r" is named for — over a corpus whose symbols fit ratatui `Cell`'s inline"]
+#[doc = r" storage. R5: the painter allocates **nothing**."]
 #[test]
 fn fit_10k_grapheme_line_to_80() {
     let _g = lock();
@@ -502,10 +472,10 @@ fn fit_10k_grapheme_line_to_80() {
     );
 }
 
-/// The ZWJ-emoji corpus, **reported**. Allocations here are ratatui `Cell`
-/// heap symbols — a property of the buffer, not of the painter — so the
-/// binding assertion is that they are bounded by the **columns painted** and
-/// independent of the line length (adjudication 4).
+#[doc = r" The ZWJ-emoji corpus, **reported**. Allocations here are ratatui `Cell`"]
+#[doc = r" heap symbols — a property of the buffer, not of the painter — so the"]
+#[doc = r" binding assertion is that they are bounded by the **columns painted** and"]
+#[doc = r" independent of the line length (adjudication 4)."]
 #[test]
 fn fit_10k_grapheme_line_to_80_wide() {
     let _g = lock();
@@ -545,14 +515,14 @@ fn fit_10k_grapheme_line_to_80_wide() {
     );
 }
 
-/// BL-4: `Ui::paint_spans` used to collect a `Vec<RawSpan>` per call, on the
-/// row path — one allocation per span-rendered row per frame. It now walks the
-/// spans through `Buffer::set_span`, so painting 500 rows × 3 spans records
-/// **0** allocations.
-///
-/// The differential half of `ui::paint_spans_matches_row_ui_label_spans` lives
-/// in `tests/render.rs`; the allocation half is here because §16.6 declares
-/// `#[global_allocator]` only in this binary.
+#[doc = r" BL-4: `Ui::paint_spans` used to collect a `Vec<RawSpan>` per call, on the"]
+#[doc = r" row path — one allocation per span-rendered row per frame. It now walks the"]
+#[doc = r" spans through `Buffer::set_span`, so painting 500 rows × 3 spans records"]
+#[doc = r" **0** allocations."]
+#[doc = r""]
+#[doc = r" The differential half of `ui::paint_spans_matches_row_ui_label_spans` lives"]
+#[doc = r" in `tests/render.rs`; the allocation half is here because §16.6 declares"]
+#[doc = r" `#[global_allocator]` only in this binary."]
 #[test]
 fn paint_spans_500_rows_is_allocation_free() {
     let _g = lock();
@@ -586,8 +556,8 @@ fn paint_spans_500_rows_is_allocation_free() {
     );
 }
 
-/// Adjudication N2: measurement is `&Ui` and uncached, and must stay
-/// allocation-free — it runs once per component per frame.
+#[doc = r" Adjudication N2: measurement is `&Ui` and uncached, and must stay"]
+#[doc = r" allocation-free — it runs once per component per frame."]
 #[test]
 fn measure_is_allocation_free() {
     let _g = lock();
@@ -688,9 +658,7 @@ fn textbuffer_offset_at_10k_line() {
     assert_eq!(s.allocs, 0);
 }
 
-// ------------------------------------------------------------ F. invariants
-
-/// `N` controls that each probe their (empty) intent bucket.
+#[doc = r" `N` controls that each probe their (empty) intent bucket."]
 struct Probes(usize);
 
 impl App for Probes {
@@ -725,8 +693,6 @@ fn probe_runtime(n: usize) -> (Runtime<Probes>, ratatui_core::buffer::Buffer) {
     (rt, buf)
 }
 
-// Use the same public presentation/settle lifecycle as deliver_buffer, but
-// allow operation-only benchmarks to keep setup outside measured sections.
 fn publish_for_input<A: App>(rt: &mut Runtime<A>, buf: &mut ratatui_core::buffer::Buffer) {
     for _ in 0..16 {
         if rt.needs_settle() {
@@ -755,23 +721,21 @@ fn report_drain_lifecycle(
     assert_eq!(stats.allocs, 0);
 }
 
-/// Adjudication 2.6: a ±10 % wall-clock band on a ~600 ns measurement cannot
-/// detect a regression in the 500 probes it names (they are ≈0.1 % of it). The
-/// binding assertion is a **deterministic probe count**; the ratio is reported
-/// always and asserted only under `PERF_STRICT=1`, with a 1.25× band.
+#[doc = r" Adjudication 2.6: a ±10 % wall-clock band on a ~600 ns measurement cannot"]
+#[doc = r" detect a regression in the 500 probes it names (they are ≈0.1 % of it). The"]
+#[doc = r" binding assertion is a **deterministic probe count**; the ratio is reported"]
+#[doc = r" always and asserted only under `PERF_STRICT=1`, with a 1.25× band."]
 #[test]
 fn intents_drain_is_o_1_when_the_queue_is_empty() {
     let _g = lock();
     let (mut small, mut small_buf) = probe_runtime(20);
     let (mut large, mut large_buf) = probe_runtime(500);
 
-    // settle the initial focus, whose `FocusOut`/`FocusIn` pair is delivered
-    // by the first `handle` and does fill the queue
     for _ in 0..2 {
         let _ = termrock_test_support::deliver_buffer(&mut small, &mut small_buf, Input::Tick);
         let _ = termrock_test_support::deliver_buffer(&mut large, &mut large_buf, Input::Tick);
     }
-    // an empty queue short-circuits before the bucket table is touched
+
     let before = large.intent_probes();
     let _ = termrock_test_support::deliver_buffer(&mut large, &mut large_buf, Input::Tick);
     assert_eq!(
@@ -787,8 +751,6 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
         "probe cost is independent of the component count when the queue is empty"
     );
 
-    // Original baseline measures handle/update only. Required publication is
-    // setup, while every measured handle still checks real compatibility.
     let s20 = bench_sampled(2, iters(200), &mut |sample| {
         publish_for_input(&mut small, &mut small_buf);
         let _ = sample.measure(|| black_box(small.handle(Input::Tick).expect("published input")));
@@ -822,18 +784,6 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
     );
     assert_eq!(s500.allocs, 0);
 
-    // With an intent in the queue, each `cx.intents` call performs exactly one
-    // probe: the 500-control frame costs exactly 480 probes more than the
-    // 20-control frame, and neither allocates. The difference is the asserted
-    // form because `intent_probes()` is cumulative since construction and also
-    // counts the enqueue path, so no absolute count is stable.
-    //
-    // Adjudication O4b correction 2: the constant 480 encodes **one update
-    // pass**. `Runtime::handle`'s focus re-run loop is bounded at four passes
-    // (§3.3 step 7), so a legitimate second pass makes the delta 960 — which
-    // is a real behaviour change and is exactly what this equality is here to
-    // catch. Do **not** relax it to `% 480 == 0`; re-adjudicate the pass count
-    // instead.
     let key = || {
         Input::Key(Key {
             code: KeyCode::Enter,
@@ -873,10 +823,7 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
         s2.ns, s2.allocs
     );
     assert_eq!(s2.allocs, 0, "probing must not allocate");
-    // The raw 500-vs-20 wall-clock ratio measures the *stub application's*
-    // own `for i in 0..n` update loop, which is O(n) by construction, so it is
-    // reported and never asserted. What §16.6 means by "costs the same" is the
-    // per-drain cost, which is O(1): that is the asserted ratio.
+
     check_ratio("intents_drain_500_vs_20", s500.ns, s20.ns, 1.25, false);
     check_ratio(
         "intents_drain_ns_per_control",
@@ -906,7 +853,7 @@ fn render_twice_allocates_the_same() {
             ui.register_control(Id::root("twice").index(i), row, Focusability::Focusable);
         }
     };
-    // two warm-up frames: the runtime double-buffers the registry and ring
+
     scene.draw(draw);
     scene.draw(draw);
     let a = measure_once(&mut || scene.draw(draw));
@@ -946,20 +893,12 @@ fn hit_registry_size_is_bounded() {
     assert_eq!(hits, 80);
 }
 
-// ---------------------------------------------------- G. components (Slice 2)
-//
-// Appended by the Slice 2 prototype package. Every threshold is §16.6's:
-// `list_100k_rows_render` < 500 allocs/frame and ns <= 1.5x the 1 k control,
-// `list_100k_select_all` < 100 allocs, `event_dispatch_is_not_o_n` 0 allocs
-// and ns within 3x of the 100-row case, `frame_showcase_buttons_120x40` the
-// migrated showcase page's frame.
-
 use termrock_test_support::perf::{Stats, big};
 
 const LIST_ID: Id = Id::root("perf.list");
 
-/// Rows are `u32`s formatted in place, so the fixture itself contributes no
-/// per-row allocation and the numbers measure the component.
+#[doc = r" Rows are `u32`s formatted in place, so the fixture itself contributes no"]
+#[doc = r" per-row allocation and the numbers measure the component."]
 fn perf_rows(n: usize) -> Vec<u32> {
     (0..n).map(|i| i as u32).collect()
 }
@@ -1002,11 +941,11 @@ fn perf_list<'a>() -> List<'a, u32, PerfKeyFn, PerfRowFn> {
     List::new(LIST_ID).key(k).row(p)
 }
 
-/// One `List::draw` of `rows.len()` rows into a 120x40 scene, with `checked`
-/// keys already selected (the `KeySet` lookup per visible row is what §16.6's
-/// 1.5x bound is really about). Returns the per-frame stats and the number of
-/// regions the frame registered — the deterministic half of "render cost is a
-/// function of the viewport, not of the collection".
+#[doc = r" One `List::draw` of `rows.len()` rows into a 120x40 scene, with `checked`"]
+#[doc = r" keys already selected (the `KeySet` lookup per visible row is what §16.6's"]
+#[doc = r" 1.5x bound is really about). Returns the per-frame stats and the number of"]
+#[doc = r#" regions the frame registered — the deterministic half of "render cost is a"#]
+#[doc = r#" function of the viewport, not of the collection"."#]
 fn bench_list_render(rows: &[u32], checked: usize) -> (Stats, usize) {
     let mut scene = Scene::new("list", Theme::junie(), ColorLevel::TrueColor, 120, 40);
     let mut st = ListState::default();
@@ -1050,17 +989,13 @@ fn list_100k_rows_render() {
         "R1: a 100 k list frame must stay under 500 allocations, got {}",
         s.allocs
     );
-    // The binding half of R1 is deterministic, not statistical: only the
-    // viewport is painted, so a hundred-times-larger collection registers the
-    // same regions and paints the same rows. A wall-clock ratio taken from two
-    // adjacent benches on a loaded machine drifts by several x; this does not.
+
     assert!(control_regions > 0);
     assert_eq!(
         regions, control_regions,
         "a 100 k list must register exactly what the 1 k list does"
     );
-    // …and the ns ratio is reported, asserted only under `PERF_STRICT=1` on a
-    // pinned runner, exactly like every other ns bound in this file.
+
     check_ratio(
         "list_100k_vs_1k_render",
         s.ns,
@@ -1116,7 +1051,7 @@ fn no_full_collection_clone_per_frame() {
     );
 }
 
-/// An application that owns the list and forwards one update per frame.
+#[doc = r" An application that owns the list and forwards one update per frame."]
 struct ListApp {
     rows: Vec<u32>,
     st: ListState,
@@ -1158,8 +1093,8 @@ fn list_runtime(n: usize, mode: SelectMode) -> (Runtime<ListApp>, ratatui_core::
     (rt, buf)
 }
 
-/// R7: `ToggledAll` is a set-level operation. Materialising 100 000
-/// `ItemKey`s to express "everything is checked" is the defect this pins.
+#[doc = r" R7: `ToggledAll` is a set-level operation. Materialising 100 000"]
+#[doc = r#" `ItemKey`s to express "everything is checked" is the defect this pins."#]
 #[test]
 fn list_100k_select_all() {
     let _g = lock();
@@ -1171,7 +1106,7 @@ fn list_100k_select_all() {
             mods: KeyModifiers::NONE,
         })
     };
-    // warm: the first toggle also settles focus
+
     let _ = termrock_test_support::deliver_buffer(&mut rt, &mut buf, toggle());
     rt.draw_buffer(area, &mut buf).commit_presented();
     let s = measure_once(&mut || {
@@ -1191,15 +1126,14 @@ fn list_100k_select_all() {
         "R7: `ToggledAll` must not materialise 100 000 keys, got {} allocs",
         s.allocs
     );
-    // `a` toggles: the measured press cleared the set the warm press filled,
-    // so one more press proves the set-level "everything" is reachable at all
+
     let _ = termrock_test_support::deliver_buffer(&mut rt, &mut buf, toggle());
     assert!(rt.app().st.checked().contains(ItemKey::num(99)));
     assert!(rt.app().st.checked().contains(ItemKey::num(99_999)));
 }
 
-/// Dispatch cost is a function of the **registered** regions, which is a
-/// function of the viewport — never of the collection behind it.
+#[doc = r" Dispatch cost is a function of the **registered** regions, which is a"]
+#[doc = r" function of the viewport — never of the collection behind it."]
 #[test]
 fn event_dispatch_is_not_o_n() {
     let _g = lock();
@@ -1229,9 +1163,7 @@ fn event_dispatch_is_not_o_n() {
         }
         rt.draw_buffer(area, buf).commit_presented();
     };
-    // Full lifecycle includes the now-required publication between Down and
-    // Up. Keep this visible separately from the historical two-input/one-draw
-    // operation boundary; no baseline or ratio ceiling is rewritten.
+
     let full_small = bench(2, iters(50), &mut || run(&mut small, &mut small_buf));
     let full_large = bench(2, iters(50), &mut || run(&mut large, &mut large_buf));
     report_to(BASELINE, "event_dispatch_full_lifecycle_100", &full_small);
@@ -1283,12 +1215,10 @@ fn event_dispatch_is_not_o_n() {
     );
 }
 
-// ------------------------------------------------ the migrated showcase page
-
 const SHOW: Id = Id::root("perf.showcase.buttons");
 
-/// `(label, variant, disabled, checked)` — the nine buttons of
-/// `src/bin/showcase/pages/buttons.rs`, migrated.
+#[doc = r" `(label, variant, disabled, checked)` — the nine buttons of"]
+#[doc = r" `src/bin/showcase/pages/buttons.rs`, migrated."]
 const SHOWCASE_BUTTONS: [(&str, Variant, bool, Option<bool>); 9] = [
     ("Run task", Variant::PRIMARY, false, None),
     ("Preview", Variant::SECONDARY, false, None),
@@ -1301,8 +1231,8 @@ const SHOWCASE_BUTTONS: [(&str, Variant, bool, Option<bool>); 9] = [
     ("Start long job", Variant::SECONDARY, false, None),
 ];
 
-/// The Buttons page as a frame profile: nine buttons, four group captions and
-/// a twenty-four-cell reference matrix.
+#[doc = r" The Buttons page as a frame profile: nine buttons, four group captions and"]
+#[doc = r" a twenty-four-cell reference matrix."]
 struct ShowcaseButtons;
 
 impl ShowcaseButtons {
@@ -1351,7 +1281,7 @@ fn frame_showcase_buttons_120x40() {
     let mut rt = Runtime::new(ShowcaseButtons, Theme::junie());
     let _ = rt.initialize();
     let mut buf = ratatui_core::buffer::Buffer::empty(area);
-    // two warm frames: the runtime double-buffers the registry and the ring
+
     rt.draw_buffer(area, &mut buf).commit_presented();
     rt.draw_buffer(area, &mut buf).commit_presented();
     let s = bench(2, iters(200), &mut || {

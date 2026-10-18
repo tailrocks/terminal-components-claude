@@ -1,4 +1,4 @@
-//! Shared public-runtime harness for Jackin integration scenarios.
+#![doc = r" Shared public-runtime harness for Jackin integration scenarios."]
 
 use jackin_preview_app::{App, Motion, Scenario};
 use termrock::{
@@ -6,17 +6,17 @@ use termrock::{
 };
 use termrock_test_support::Harness;
 
-/// Public-runtime test session. The application remains owned by
-/// `tui-next::Runtime`; tests access it through the runtime's public app
-/// projection instead of calling a legacy `render`/`handle` pair.
+#[doc = r" Public-runtime test session. The application remains owned by"]
+#[doc = r" `tui-next::Runtime`; tests access it through the runtime's public app"]
+#[doc = r" projection instead of calling a legacy `render`/`handle` pair."]
 #[derive(Debug)]
 pub struct H {
-    /// Deterministic runtime and test buffer.
+    #[doc = r" Deterministic runtime and test buffer."]
     pub harness: Harness<App>,
 }
 
 impl H {
-    /// Build a pinned scenario and draw its first frame.
+    #[doc = r" Build a pinned scenario and draw its first frame."]
     pub fn new(scenario: Scenario, motion: Motion, frame: u64, w: u16, h: u16) -> Self {
         Self {
             harness: Harness::new(
@@ -28,104 +28,104 @@ impl H {
         }
     }
 
-    /// Immutable app projection.
+    #[doc = r" Immutable app projection."]
     pub fn app(&self) -> &App {
         self.harness.app()
     }
 
-    /// Mutable app projection for fixture-only state setup.
+    #[doc = r" Mutable app projection for fixture-only state setup."]
     pub fn app_mut(&mut self) -> &mut App {
         self.harness.app_mut()
     }
 
-    /// Draw the current public app.
+    #[doc = r" Draw the current public app."]
     pub fn draw(&mut self) {
         self.harness.draw();
     }
 
-    /// Send one key.
+    #[doc = r" Send one key."]
     pub fn key(&mut self, code: KeyCode) {
         let _ = self.harness.key(code);
     }
 
-    /// Send one key with modifiers.
+    #[doc = r" Send one key with modifiers."]
     pub fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) {
         let _ = self.harness.key_mod(code, mods);
     }
 
-    /// Send a control key.
+    #[doc = r" Send a control key."]
     pub fn ctrl(&mut self, c: char) {
         let _ = self.harness.ctrl(c);
     }
 
-    /// Type text through the public input boundary.
+    #[doc = r" Type text through the public input boundary."]
     pub fn type_str(&mut self, s: &str) {
         let _ = self.harness.type_str(s);
     }
 
-    /// Admit one coalesced product tick per delayed monotonic wake.
+    #[doc = r" Admit one coalesced product tick per delayed monotonic wake."]
     pub fn ticks(&mut self, n: usize) {
         for _ in 0..n {
             let _ = self.harness.advance(std::time::Duration::from_millis(200));
         }
     }
 
-    /// Send one pointer event.
+    #[doc = r" Send one pointer event."]
     pub fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) {
         let _ = self.harness.mouse(kind, x, y);
     }
 
-    /// Press and release at a coordinate.
+    #[doc = r" Press and release at a coordinate."]
     pub fn click(&mut self, x: u16, y: u16) {
         let _ = self.harness.click(x, y);
     }
 
-    /// Resize the public test terminal.
+    #[doc = r" Resize the public test terminal."]
     pub fn resize(&mut self, w: u16, h: u16) {
         let _ = self.harness.resize(w, h);
     }
 
-    /// Tab until an id owns focus.
-    ///
-    /// # Panics
-    ///
-    /// Panics when the requested id cannot be reached by the runtime focus
-    /// traversal.
+    #[doc = r" Tab until an id owns focus."]
+    #[doc = r""]
+    #[doc = r" # Panics"]
+    #[doc = r""]
+    #[doc = r" Panics when the requested id cannot be reached by the runtime focus"]
+    #[doc = r" traversal."]
     pub fn tab_to(&mut self, id: Id) {
         assert!(self.harness.tab_to(id), "focus never reached {id:?}");
     }
 
-    /// Current focus id.
+    #[doc = r" Current focus id."]
     pub fn focus(&self) -> Option<Id> {
         self.harness.focus()
     }
 
-    /// Current frame text.
+    #[doc = r" Current frame text."]
     pub fn text(&self) -> String {
         self.harness.text()
     }
 
-    /// Find a grapheme-safe text coordinate.
+    #[doc = r" Find a grapheme-safe text coordinate."]
     pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
         self.harness.find(needle)
     }
 
-    /// Public buffer projection for digest/perf assertions.
+    #[doc = r" Public buffer projection for digest/perf assertions."]
     pub fn buffer(&self) -> &Buffer {
         self.harness.buffer()
     }
 
-    /// Forward one fully-formed public input event.
+    #[doc = r" Forward one fully-formed public input event."]
     pub fn handle(&mut self, input: Input) -> Response<()> {
         self.harness.handle(input)
     }
 
-    /// Send a key event directly to the runtime.
+    #[doc = r" Send a key event directly to the runtime."]
     pub fn send_key(&mut self, code: KeyCode, mods: KeyModifiers) -> Response<()> {
         self.handle(Input::Key(Key { code, mods }))
     }
 
-    /// Send a mouse event directly to the runtime.
+    #[doc = r" Send a mouse event directly to the runtime."]
     pub fn send_mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Response<()> {
         self.handle(Input::Mouse(Mouse {
             kind,

@@ -1,6 +1,6 @@
-//! Routing and hint integration: keymap ownership changes must suppress
-//! the matching hint row, and typed default actions must route to commands.
-//! Lives beside `HintBar` (the paint side) against the public runtime API.
+#![doc = r" Routing and hint integration: keymap ownership changes must suppress"]
+#![doc = r" the matching hint row, and typed default actions must route to commands."]
+#![doc = r" Lives beside `HintBar` (the paint side) against the public runtime API."]
 
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
@@ -444,12 +444,12 @@ fn press_focuses_the_owner_and_click_is_delivered_with_local_coordinates() {
     assert!(rt.app().saw(B, "phase: Press"));
     assert!(rt.app().saw(B, "phase: Click"));
     assert!(rt.app().saw(B, "local: Position { x: 3, y: 0 }"));
-    // hover never focuses
+
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Move, 3, 4));
     assert_eq!(rt.hover(), Some(C));
     assert_eq!(rt.focus(), Some(B));
     assert!(rt.state_of(C).contains(StateFlags::HOVERED));
-    // a key suppresses hover until the pointer moves
+
     let _ = step(&mut rt, &mut buf, key(KeyCode::Down));
     assert!(!rt.state_of(C).contains(StateFlags::HOVERED));
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Move, 4, 4));
@@ -536,13 +536,13 @@ fn pointer_move_never_focuses() {
     assert_eq!(rt.app().count(B, "phase: Click"), 0);
 }
 
-/// §73 AC-1. A control the last frame registered as
-/// `Focusability::Disabled` is registered and never reachable — by `Tab`
-/// through `focus_target_admissible`, and now by the pointer through
-/// `deliverable`. No `Press`, no `Release`, no `Click`, no `Secondary`
-/// reaches it, no press is recorded for it, and a refused press moves no
-/// focus. Before §73 the two disagreed: keyboard refused the control
-/// while a click still activated it.
+#[doc = r" §73 AC-1. A control the last frame registered as"]
+#[doc = r" `Focusability::Disabled` is registered and never reachable — by `Tab`"]
+#[doc = r" through `focus_target_admissible`, and now by the pointer through"]
+#[doc = r" `deliverable`. No `Press`, no `Release`, no `Click`, no `Secondary`"]
+#[doc = r" reaches it, no press is recorded for it, and a refused press moves no"]
+#[doc = r" focus. Before §73 the two disagreed: keyboard refused the control"]
+#[doc = r" while a click still activated it."]
 #[test]
 fn ac1_a_disabled_control_refuses_every_activating_pointer_intent() {
     let mut s = three();
@@ -563,21 +563,20 @@ fn ac1_a_disabled_control_refuses_every_activating_pointer_intent() {
     assert_eq!(rt.app().count(B, "phase: Secondary"), 0);
     assert_eq!(rt.app().count(B, "Pointer"), 0);
 
-    // the enabled neighbour is untouched by the refusal
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 4));
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 3, 4));
     assert_eq!(rt.focus(), Some(C));
     assert_eq!(rt.app().count(C, "phase: Click"), 1);
 }
 
-/// §73 AC-2. The refusal is scoped to activation and to the ring's own
-/// proof. Hover and `Phase::Move` come from `hit_live`, so a disabled
-/// control still hovers; `Intent::Wheel` comes from `hit_scroll`, so its
-/// scroll region still scrolls; a `Focusability::ClickOnly` owner takes
-/// no ring entry at all, so it is never proven disabled and still
-/// presses and clicks; and a hit below the top layer is `outside`
-/// before deliverability is consulted, so the disabled control does not
-/// swallow an outside-click dismissal.
+#[doc = r" §73 AC-2. The refusal is scoped to activation and to the ring's own"]
+#[doc = r" proof. Hover and `Phase::Move` come from `hit_live`, so a disabled"]
+#[doc = r" control still hovers; `Intent::Wheel` comes from `hit_scroll`, so its"]
+#[doc = r" scroll region still scrolls; a `Focusability::ClickOnly` owner takes"]
+#[doc = r" no ring entry at all, so it is never proven disabled and still"]
+#[doc = r" presses and clicks; and a hit below the top layer is `outside`"]
+#[doc = r" before deliverability is consulted, so the disabled control does not"]
+#[doc = r" swallow an outside-click dismissal."]
 #[test]
 fn ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact() {
     let disabled = Id::root("disabled-scroll");
@@ -603,12 +602,10 @@ fn ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact() {
         .push((popover, vec![Control::new(B, Rect::new(0, 9, 10, 1))]));
     let (mut rt, mut buf) = runtime(s);
 
-    // hover and Move still reach a disabled control
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Move, 22, 3));
     assert_eq!(rt.hover(), Some(disabled));
     assert_eq!(rt.app().count(disabled, "phase: Move"), 1);
 
-    // and its scroll region still scrolls
     let _ = step(
         &mut rt,
         &mut buf,
@@ -616,15 +613,12 @@ fn ac2_the_refusal_leaves_move_wheel_click_only_and_outside_clicks_intact() {
     );
     assert!(rt.app().saw(disabled, "Wheel { axis: V, delta: 3"));
 
-    // a ClickOnly owner has no ring entry, so nothing proves it disabled
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 3, 6));
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Up, 3, 6));
     assert_eq!(rt.app().count(click_only, "phase: Press"), 1);
     assert_eq!(rt.app().count(click_only, "phase: Click"), 1);
     assert_eq!(rt.focus(), Some(A), "a ClickOnly owner took focus");
 
-    // a press on the disabled control below an open popover is still an
-    // outside click
     rt.app_mut().open_request = Some((
         popover,
         LayerSpec::popover(
@@ -691,7 +685,7 @@ fn double_click_within_the_window_and_wheel_routing() {
         mouse(MouseKind::Wheel(termrock_runtime::event::Axis::V, 1), 25, 5),
     );
     assert!(rt.app().saw(Id::root("list"), "Wheel { axis: V, delta: 3"));
-    // a wheel over a non-scroll region is dropped, never chained
+
     let r = step(
         &mut rt,
         &mut buf,
@@ -711,7 +705,6 @@ fn resize_releases_capture_and_relayouts() {
 
 #[test]
 fn focus_transition_settles() {
-    // one programmatic hop per pass: A → B → C settles within the budget
     let mut s = three();
     s.chase = vec![C, B];
     let (mut rt, mut buf) = runtime(s);
@@ -722,7 +715,7 @@ fn focus_transition_settles() {
             .iter()
             .all(|d| !matches!(d, Diagnostic::FocusTransitionDidNotSettle { .. }))
     );
-    // FocusOut/FocusIn were enqueued per hop, never an input intent twice
+
     assert_eq!(rt.app().count(A, "Key("), 1);
     assert!(rt.app().saw(B, "FocusIn { via: Programmatic }"));
     assert!(rt.app().saw(C, "FocusIn { via: Programmatic }"));
@@ -740,10 +733,7 @@ fn a_fifth_focus_pass_is_diagnosed_and_applied() {
             .any(|d| matches!(d, Diagnostic::FocusTransitionDidNotSettle { .. }))
     );
     let settled = rt.focus().expect("the give-up path applies the transition");
-    // §21 item 11 says the pair is *applied*: the give-up path used to
-    // enqueue `FocusOut`/`FocusIn` and then `intents.clear()` them, so
-    // neither ever reached a component (MI-7). They are now delivered by
-    // the next `handle`.
+
     rt.app_mut().chase.clear();
     rt.app_mut().log.clear();
     let _ = step(&mut rt, &mut buf, Input::Tick);
@@ -765,7 +755,7 @@ fn undelivered_intents_are_diagnosed_only_for_control_owners() {
     s.page.clear();
     s.page.push(Control::new(A, Rect::new(0, 0, 10, 1)));
     let (mut rt, mut buf) = runtime(s);
-    // Keep A in actual presented geometry while deliberately leaving its bucket undrained.
+
     rt.app_mut().skip_drain = Some(A);
     let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 1, 0));
     assert!(
@@ -827,7 +817,7 @@ fn capture_keymap_runs_before_dispatch_and_skips_bare_chars_while_typing() {
     let _ = rt.initialize();
     let mut buf = Buffer::empty(SCREEN);
     rt.draw_buffer(SCREEN, &mut buf).commit_presented();
-    // the editor swallows typing: `q` reaches the editor, not the keymap
+
     let _ = deliver(&mut rt, key(KeyCode::Char('q')));
     assert!(rt.app().0.saw(A, "Char('q')"));
     assert!(!rt.app().0.saw(KeyMap::OWNER, "cmd"));
@@ -858,7 +848,7 @@ fn layer_scope_is_armed_at_open_and_the_cursor_is_kept_on_the_top_layer() {
     let _ = step(&mut rt, &mut buf, Input::Tick);
     assert!(rt.is_open(dlg));
     assert_eq!(rt.top_layer(), LayerId(1));
-    // focus reconciled into the trap; the page editor's cursor is silently discarded (inert)
+
     assert_eq!(rt.focus(), Some(ok));
     assert_eq!(rt.cursor(), Some(Position::new(5, 5)));
     assert!(
@@ -870,20 +860,20 @@ fn layer_scope_is_armed_at_open_and_the_cursor_is_kept_on_the_top_layer() {
     assert!(rt.app().saw(dlg, "Layer(Opened)"));
 }
 
-/// §3.3 step 9: the dismissal of a layer whose owner registers only
-/// decoration — every `Dialog` (`components/dialog.rs` registers
-/// `Decorative` regions for its own id) — must still be reported when
-/// the owner does not drain it. This is the gated
-/// `if cx.is_open(id) { dialog.update(cx, …) }` shape: `is_open` is
-/// false by the time `update` re-runs, so the `Cancel` and
-/// `Layer(Dismissed)` the runtime addressed to the owner are dropped.
-/// Before the guard was widened this loss was **silent**, because
-/// `Registry::delivers_to` requires a `Control` or `Part` region.
-/// The other half of the same rule (§21 item 13): widening the guard for
-/// runtime-addressed intents must not start diagnosing a decorative
-/// container for a **pointer** intent. It cannot: `deliverable` never
-/// routes a pointer intent to a `Decorative` region, so the bucket is
-/// never created.
+#[doc = r" §3.3 step 9: the dismissal of a layer whose owner registers only"]
+#[doc = r" decoration — every `Dialog` (`components/dialog.rs` registers"]
+#[doc = r" `Decorative` regions for its own id) — must still be reported when"]
+#[doc = r" the owner does not drain it. This is the gated"]
+#[doc = r" `if cx.is_open(id) { dialog.update(cx, …) }` shape: `is_open` is"]
+#[doc = r" false by the time `update` re-runs, so the `Cancel` and"]
+#[doc = r" `Layer(Dismissed)` the runtime addressed to the owner are dropped."]
+#[doc = r" Before the guard was widened this loss was **silent**, because"]
+#[doc = r" `Registry::delivers_to` requires a `Control` or `Part` region."]
+#[doc = r" The other half of the same rule (§21 item 13): widening the guard for"]
+#[doc = r" runtime-addressed intents must not start diagnosing a decorative"]
+#[doc = r" container for a **pointer** intent. It cannot: `deliverable` never"]
+#[doc = r" routes a pointer intent to a `Decorative` region, so the bucket is"]
+#[doc = r" never created."]
 #[test]
 fn a_decorative_owner_is_not_diagnosed_for_a_pointer_intent() {
     let decor = Id::root("decor");
@@ -922,9 +912,9 @@ fn disabled_controls_are_registered_but_never_focused() {
     assert_eq!(rt.focus(), Some(C));
 }
 
-/// S1: a `Cx::focus` naming a `Disabled` entry is refused outright — not
-/// applied for one frame and then undone by step 14 reconciliation,
-/// which would deliver `FocusIn` to a control that can never be focused.
+#[doc = r" S1: a `Cx::focus` naming a `Disabled` entry is refused outright — not"]
+#[doc = r" applied for one frame and then undone by step 14 reconciliation,"]
+#[doc = r" which would deliver `FocusIn` to a control that can never be focused."]
 #[test]
 fn a_programmatic_focus_request_for_a_disabled_control_is_refused() {
     let mut s = three();
@@ -940,9 +930,9 @@ fn a_programmatic_focus_request_for_a_disabled_control_is_refused() {
     assert!(!rt.app().saw(A, "FocusOut"), "{:?}", rt.app().log);
 }
 
-/// S1: `ClickOnly` is "a hit target, never in the ring". Such an id is
-/// registered in the *registry* but has no ring entry, and that pair is
-/// exactly the proof a focus request naming it is wrong.
+#[doc = r#" S1: `ClickOnly` is "a hit target, never in the ring". Such an id is"#]
+#[doc = r" registered in the *registry* but has no ring entry, and that pair is"]
+#[doc = r" exactly the proof a focus request naming it is wrong."]
 #[test]
 fn a_programmatic_focus_request_for_a_click_only_control_is_refused() {
     let mut s = three();
@@ -958,10 +948,10 @@ fn a_programmatic_focus_request_for_a_click_only_control_is_refused() {
     assert!(!rt.app().saw(B, "FocusIn"), "{:?}", rt.app().log);
 }
 
-/// S1: opening a modal makes the page inert in the very same pass, while
-/// the page controls are still in *last* frame's ring. A focus request
-/// naming one of them is refused, so nothing behind the modal can take
-/// focus out of it.
+#[doc = r" S1: opening a modal makes the page inert in the very same pass, while"]
+#[doc = r" the page controls are still in *last* frame's ring. A focus request"]
+#[doc = r" naming one of them is refused, so nothing behind the modal can take"]
+#[doc = r" focus out of it."]
 #[test]
 fn a_focus_request_for_a_control_the_open_modal_made_inert_is_refused() {
     const DLG: Id = Id::root("runtime.inert-dialog");
@@ -985,10 +975,10 @@ fn a_focus_request_for_a_control_the_open_modal_made_inert_is_refused() {
     );
 }
 
-/// S1's counterpart: an id the last frame never saw is *unknown*, not
-/// proven unreachable, and must still be admitted — a layer's own
-/// controls are absent from the ring until they first draw, so
-/// `LayerSpec::initial_focus` names an unknown id by construction.
+#[doc = r" S1's counterpart: an id the last frame never saw is *unknown*, not"]
+#[doc = r" proven unreachable, and must still be admitted — a layer's own"]
+#[doc = r" controls are absent from the ring until they first draw, so"]
+#[doc = r" `LayerSpec::initial_focus` names an unknown id by construction."]
 #[test]
 fn initial_focus_into_a_layer_that_has_never_drawn_is_still_admitted() {
     const DLG: Id = Id::root("runtime.initial-focus-dialog");

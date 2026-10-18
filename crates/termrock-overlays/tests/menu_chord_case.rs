@@ -1,4 +1,4 @@
-//! Menu shortcut casing is presentation only, including dropdown measurement.
+#![doc = r" Menu shortcut casing is presentation only, including dropdown measurement."]
 use ratatui_core::layout::Rect;
 
 use termrock_core::action::ActionKey;

@@ -1,18 +1,18 @@
-//! The derived per-component cache (`COMPONENT_ARCHITECTURE.md` §5 R8).
-//!
-//! Live entries are keyed by `(Id, TypeId)`; the isolated reference store
-//! additionally keys explicit targets by their stable `ReferenceTarget` and
-//! targetless scopes by a unique one-shot identity. Both are cleared on
-//! resize, theme change and generation gap. Nothing semantic lives here: a
-//! dropped entry must only cost work.
-//!
-//! This file is the **one** place in `crates/tui/src` allowed to name
-//! `expect` (`xtask` forbidden-pattern rule 19's path exception). `dyn
-//! Any::downcast_mut` returns `Option` and safe Rust cannot express "this
-//! slot holds a `Box<T>` because it was keyed by `TypeId::of::<T>()`", so the
-//! invariant is stated once, here, next to the code that establishes it —
-//! rather than being laundered into a livelock (BL-2) or spread across the
-//! crate.
+#![doc = r" The derived per-component cache (`COMPONENT_ARCHITECTURE.md` §5 R8)."]
+#![doc = r""]
+#![doc = r" Live entries are keyed by `(Id, TypeId)`; the isolated reference store"]
+#![doc = r" additionally keys explicit targets by their stable `ReferenceTarget` and"]
+#![doc = r" targetless scopes by a unique one-shot identity. Both are cleared on"]
+#![doc = r" resize, theme change and generation gap. Nothing semantic lives here: a"]
+#![doc = r" dropped entry must only cost work."]
+#![doc = r""]
+#![doc = r" This file is the **one** place in `crates/tui/src` allowed to name"]
+#![doc = r" `expect` (`xtask` forbidden-pattern rule 19's path exception). `dyn"]
+#![doc = r#" Any::downcast_mut` returns `Option` and safe Rust cannot express "this"#]
+#![doc = r#" slot holds a `Box<T>` because it was keyed by `TypeId::of::<T>()`", so the"#]
+#![doc = r" invariant is stated once, here, next to the code that establishes it —"]
+#![doc = r" rather than being laundered into a livelock (BL-2) or spread across the"]
+#![doc = r" crate."]
 
 use core::any::{Any, TypeId};
 
@@ -20,17 +20,17 @@ use crate::id::Id;
 
 use super::ReferenceTarget;
 
-/// The cache namespace of one reference scope.
+#[doc = r" The cache namespace of one reference scope."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum ReferenceCacheKey {
-    /// Explicit targets retain derived work across frames and draw-order changes.
+    #[doc = r" Explicit targets retain derived work across frames and draw-order changes."]
     Target(ReferenceTarget),
-    /// `reference(None, ..)` has no caller-supplied stable identity, so each
-    /// invocation is isolated instead of aliasing an unrelated sibling.
+    #[doc = r" `reference(None, ..)` has no caller-supplied stable identity, so each"]
+    #[doc = r" invocation is isolated instead of aliasing an unrelated sibling."]
     Targetless(u64),
 }
 
-/// The derived cache store.
+#[doc = r" The derived cache store."]
 #[derive(Default)]
 pub(crate) struct DerivedCache {
     entries: Vec<Entry>,
@@ -55,7 +55,7 @@ impl core::fmt::Debug for DerivedCache {
 }
 
 impl DerivedCache {
-    /// Start a cache generation, dropping entries unseen in the prior one.
+    #[doc = r" Start a cache generation, dropping entries unseen in the prior one."]
     pub(crate) fn begin_frame(&mut self, generation: u32) {
         if self.generation == Some(generation) {
             return;
@@ -66,12 +66,12 @@ impl DerivedCache {
         self.generation = Some(generation);
     }
 
-    /// The `T` derived for `id`, created with `T::default()` if absent.
+    #[doc = r" The `T` derived for `id`, created with `T::default()` if absent."]
     pub(crate) fn get_mut<T: Default + 'static>(&mut self, id: Id) -> &mut T {
         self.get_mut_in(id, None)
     }
 
-    /// The `T` derived for one stable reference target and component id.
+    #[doc = r" The `T` derived for one stable reference target and component id."]
     pub(crate) fn get_mut_reference<T: Default + 'static>(
         &mut self,
         id: Id,
@@ -118,12 +118,12 @@ impl DerivedCache {
             .expect("slot keyed by TypeId::of::<T>() holds a Box<T>")
     }
 
-    /// Drop every entry.
+    #[doc = r" Drop every entry."]
     pub(crate) fn clear(&mut self) {
         self.entries.clear();
     }
 
-    /// The number of live entries.
+    #[doc = r" The number of live entries."]
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.entries.len()

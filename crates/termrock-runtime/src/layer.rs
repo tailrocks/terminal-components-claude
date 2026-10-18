@@ -1,9 +1,9 @@
-//! The runtime-owned layer stack (`COMPONENT_ARCHITECTURE.md` §9, §21 items 8, 14, 20).
-//!
-//! A layer is opened from `update` with [`LayerSpec`], drawn from `draw`
-//! inside `ui.layer(id, …)`, and composited bottom-to-top after `app.draw`
-//! returns, so z-order is the layer order and never the call order.
-//! Placement is one resolver: anchor, flip, then clamp (`Rect::clamp`).
+#![doc = r" The runtime-owned layer stack (`COMPONENT_ARCHITECTURE.md` §9, §21 items 8, 14, 20)."]
+#![doc = r""]
+#![doc = r" A layer is opened from `update` with [`LayerSpec`], drawn from `draw`"]
+#![doc = r" inside `ui.layer(id, …)`, and composited bottom-to-top after `app.draw`"]
+#![doc = r" returns, so z-order is the layer order and never the call order."]
+#![doc = r" Placement is one resolver: anchor, flip, then clamp (`Rect::clamp`)."]
 
 use ratatui_core::layout::{Constraint, Position, Rect};
 
@@ -14,101 +14,101 @@ use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
 
-/// What a layer traps.
+#[doc = r" What a layer traps."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerKind {
-    /// Focus + pointer trap, dim backdrop, inert below.
+    #[doc = r" Focus + pointer trap, dim backdrop, inert below."]
     Modal,
-    /// Pointer barrier only.
+    #[doc = r" Pointer barrier only."]
     Popover,
-    /// Pointer barrier only, no focus scope of its own.
+    #[doc = r" Pointer barrier only, no focus scope of its own."]
     Tooltip,
 }
 
-/// Where the layer's area is placed.
+#[doc = r" Where the layer's area is placed."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Anchor {
-    /// Relative to the whole screen.
+    #[doc = r" Relative to the whole screen."]
     Screen(ScreenAlign),
-    /// Adjacent to a rect, flipping when there is no room.
+    #[doc = r" Adjacent to a rect, flipping when there is no room."]
     Rect {
-        /// The anchor rect.
+        #[doc = r" The anchor rect."]
         rect: Rect,
-        /// Which side of the rect.
+        #[doc = r" Which side of the rect."]
         side: Side,
-        /// Alignment along the other axis.
+        #[doc = r" Alignment along the other axis."]
         align: CrossAlign,
     },
-    /// At a point (a tooltip or context menu).
+    #[doc = r" At a point (a tooltip or context menu)."]
     Point(Position),
 }
 
-/// Screen placement for `Anchor::Screen`.
+#[doc = r" Screen placement for `Anchor::Screen`."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ScreenAlign {
-    /// Horizontally centred, vertically in the optical centre (upper third).
+    #[doc = r" Horizontally centred, vertically in the optical centre (upper third)."]
     Center,
-    /// Horizontally centred, near the top.
+    #[doc = r" Horizontally centred, near the top."]
     UpperThird,
-    /// Horizontally centred, at the bottom.
+    #[doc = r" Horizontally centred, at the bottom."]
     Bottom,
 }
 
-/// Which side of an anchor rect.
+#[doc = r" Which side of an anchor rect."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Side {
-    /// Below the rect.
+    #[doc = r" Below the rect."]
     Below,
-    /// Above the rect.
+    #[doc = r" Above the rect."]
     Above,
-    /// Left of the rect.
+    #[doc = r" Left of the rect."]
     Left,
-    /// Right of the rect.
+    #[doc = r" Right of the rect."]
     Right,
 }
 
-/// Alignment along the axis perpendicular to `Side`.
+#[doc = r" Alignment along the axis perpendicular to `Side`."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CrossAlign {
-    /// Align starts.
+    #[doc = r" Align starts."]
     Start,
-    /// Centre.
+    #[doc = r" Centre."]
     Center,
-    /// Align ends.
+    #[doc = r" Align ends."]
     End,
 }
 
-/// How a layer may be dismissed.
+#[doc = r" How a layer may be dismissed."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Dismiss {
-    /// Esc in the bubble phase.
+    #[doc = r" Esc in the bubble phase."]
     pub esc: bool,
-    /// A click whose hit is below the layer, or nowhere.
+    #[doc = r" A click whose hit is below the layer, or nowhere."]
     pub outside_click: bool,
-    /// Focus leaving the layer (honoured for `Popover`/`Tooltip` only).
+    #[doc = r" Focus leaving the layer (honoured for `Popover`/`Tooltip` only)."]
     pub focus_out: bool,
 }
 
 impl Dismiss {
-    /// Programmatic only.
+    #[doc = r" Programmatic only."]
     pub const NONE: Dismiss = Dismiss {
         esc: false,
         outside_click: false,
         focus_out: false,
     };
-    /// Esc only.
+    #[doc = r" Esc only."]
     pub const ESC: Dismiss = Dismiss {
         esc: true,
         outside_click: false,
         focus_out: false,
     };
-    /// Esc and outside click.
+    #[doc = r" Esc and outside click."]
     pub const ESC_AND_OUTSIDE: Dismiss = Dismiss {
         esc: true,
         outside_click: true,
         focus_out: false,
     };
-    /// Esc, outside click and focus out.
+    #[doc = r" Esc, outside click and focus out."]
     pub const ALL: Dismiss = Dismiss {
         esc: true,
         outside_click: true,
@@ -116,60 +116,60 @@ impl Dismiss {
     };
 }
 
-/// The backdrop behind a layer.
+#[doc = r" The backdrop behind a layer."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Backdrop {
-    /// No backdrop.
+    #[doc = r" No backdrop."]
     None,
-    /// Dim the page below.
+    #[doc = r" Dim the page below."]
     Dim {
-        /// Keep the last row (the hint bar) undimmed.
+        #[doc = r" Keep the last row (the hint bar) undimmed."]
         exclude_footer: bool,
     },
 }
 
-/// How large a layer asks to be (Adjudication N1).
-///
-/// The resolver clamps to the screen; it never grows a layer, so a `Fixed`
-/// size is a maximum as well as a request ("size, then clamp, then documented
-/// degradation", §9.1). The size is the opener's, the placement is the
-/// runtime's: a component computes a size, never a rect.
+#[doc = r" How large a layer asks to be (Adjudication N1)."]
+#[doc = r""]
+#[doc = r" The resolver clamps to the screen; it never grows a layer, so a `Fixed`"]
+#[doc = r#" size is a maximum as well as a request ("size, then clamp, then documented"#]
+#[doc = r#" degradation", §9.1). The size is the opener's, the placement is the"#]
+#[doc = r" runtime's: a component computes a size, never a rect."]
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerSize {
-    /// The whole screen. The content is responsible for its own internal
-    /// layout; `Anchor` is ignored. Help overlays, file browsers, `TooSmall`.
+    #[doc = r" The whole screen. The content is responsible for its own internal"]
+    #[doc = r" layout; `Anchor` is ignored. Help overlays, file browsers, `TooSmall`."]
     Fill,
-    /// Exactly `w × h` cells before clamping.
+    #[doc = r" Exactly `w × h` cells before clamping."]
     Fixed(u16, u16),
 }
 
-/// A layer's configuration. Construct through the builders.
+#[doc = r" A layer's configuration. Construct through the builders."]
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LayerSpec {
-    /// The kind.
+    #[doc = r" The kind."]
     pub kind: LayerKind,
-    /// Anchor owner and focus-restore target.
+    #[doc = r" Anchor owner and focus-restore target."]
     pub owner: Id,
-    /// Placement.
+    #[doc = r" Placement."]
     pub anchor: Anchor,
-    /// Dismissal.
+    #[doc = r" Dismissal."]
     pub dismiss: Dismiss,
-    /// Restore focus to the opener on close.
+    #[doc = r" Restore focus to the opener on close."]
     pub restore_focus: bool,
-    /// Initial focus inside the layer.
+    #[doc = r" Initial focus inside the layer."]
     pub initial_focus: Option<Id>,
-    /// The requested content size (§9.1).
+    #[doc = r" The requested content size (§9.1)."]
     pub size: LayerSize,
-    /// The backdrop.
+    #[doc = r" The backdrop."]
     pub backdrop: Backdrop,
-    /// No registrations from the layers below.
+    #[doc = r" No registrations from the layers below."]
     pub inert_below: bool,
 }
 
 impl LayerSpec {
-    /// Modal: `Screen(Center)`, esc + outside click, dim, inert below.
+    #[doc = r" Modal: `Screen(Center)`, esc + outside click, dim, inert below."]
     pub const fn modal(owner: Id) -> LayerSpec {
         LayerSpec {
             kind: LayerKind::Modal,
@@ -186,7 +186,7 @@ impl LayerSpec {
         }
     }
 
-    /// Popover: pointer barrier only, no dim.
+    #[doc = r" Popover: pointer barrier only, no dim."]
     pub const fn popover(owner: Id, anchor: Anchor) -> LayerSpec {
         LayerSpec {
             kind: LayerKind::Popover,
@@ -201,7 +201,7 @@ impl LayerSpec {
         }
     }
 
-    /// Tooltip at a point: no focus, dismissed by anything.
+    #[doc = r" Tooltip at a point: no focus, dismissed by anything."]
     pub const fn tooltip(owner: Id, at: Position) -> LayerSpec {
         LayerSpec {
             kind: LayerKind::Tooltip,
@@ -216,69 +216,69 @@ impl LayerSpec {
         }
     }
 
-    /// Set the anchor.
+    #[doc = r" Set the anchor."]
     #[must_use]
     pub const fn anchor(mut self, a: Anchor) -> Self {
         self.anchor = a;
         self
     }
 
-    /// Set dismissal.
+    #[doc = r" Set dismissal."]
     #[must_use]
     pub const fn dismiss(mut self, d: Dismiss) -> Self {
         self.dismiss = d;
         self
     }
 
-    /// Set the backdrop.
+    #[doc = r" Set the backdrop."]
     #[must_use]
     pub const fn backdrop(mut self, b: Backdrop) -> Self {
         self.backdrop = b;
         self
     }
 
-    /// Set the initial focus.
+    #[doc = r" Set the initial focus."]
     #[must_use]
     pub const fn initial_focus(mut self, id: Id) -> Self {
         self.initial_focus = Some(id);
         self
     }
 
-    /// Set the requested size. `LayerSize::Fixed(w, h)` is a request *and* a
-    /// maximum: the resolver clamps to the screen and never grows a layer.
+    #[doc = r" Set the requested size. `LayerSize::Fixed(w, h)` is a request *and* a"]
+    #[doc = r" maximum: the resolver clamps to the screen and never grows a layer."]
     #[must_use]
     pub const fn size(mut self, s: LayerSize) -> Self {
         self.size = s;
         self
     }
 
-    /// Set inertness of the layers below.
+    #[doc = r" Set inertness of the layers below."]
     #[must_use]
     pub const fn inert_below(mut self, yes: bool) -> Self {
         self.inert_below = yes;
         self
     }
 
-    /// Set focus restoration.
+    #[doc = r" Set focus restoration."]
     #[must_use]
     pub const fn restore_focus(mut self, yes: bool) -> Self {
         self.restore_focus = yes;
         self
     }
 
-    /// Whether `focus_out` dismissal applies (never for a modal, §21 item 30 A10).
+    #[doc = r" Whether `focus_out` dismissal applies (never for a modal, §21 item 30 A10)."]
     pub const fn dismisses_on_focus_out(&self) -> bool {
         self.dismiss.focus_out && !matches!(self.kind, LayerKind::Modal)
     }
 }
 
-/// Resolve a layer's area: anchor, flip, then clamp (§9.1).
-///
-/// [`LayerSize::Fill`] yields the whole screen. A `Fixed` size is clipped to
-/// the screen first, then anchored, then flipped if the chosen side has no
-/// room, then `Rect::clamp`ed. A layer is **never grown** to meet its
-/// request ("size, then clamp, then documented degradation"). A zero
-/// dimension is an empty layer, not the screen.
+#[doc = r" Resolve a layer's area: anchor, flip, then clamp (§9.1)."]
+#[doc = r""]
+#[doc = r" [`LayerSize::Fill`] yields the whole screen. A `Fixed` size is clipped to"]
+#[doc = r" the screen first, then anchored, then flipped if the chosen side has no"]
+#[doc = r" room, then `Rect::clamp`ed. A layer is **never grown** to meet its"]
+#[doc = r#" request ("size, then clamp, then documented degradation"). A zero"#]
+#[doc = r" dimension is an empty layer, not the screen."]
 #[expect(
     clippy::many_single_char_names,
     reason = "w/h/x/y/p are the geometry vocabulary of the anchor arms"
@@ -341,8 +341,7 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
                 height: h,
             }
         }
-        // a tooltip or a context menu near an edge is placed above/left of
-        // the pointer rather than sliding over it (Adjudication N1, change 2)
+
         Anchor::Point(p) => {
             let below = p.y.saturating_add(1);
             let fits_below = below.saturating_add(h) <= screen.bottom();
@@ -378,8 +377,8 @@ const fn cross(start: u16, len: u16, size: u16, align: CrossAlign) -> u16 {
     }
 }
 
-/// The area a backdrop dims: the screen, minus the last row when the footer
-/// is excluded (`DESIGN.md:537`).
+#[doc = r" The area a backdrop dims: the screen, minus the last row when the footer"]
+#[doc = r" is excluded (`DESIGN.md:537`)."]
 pub const fn backdrop_area(screen: Rect, backdrop: Backdrop) -> Rect {
     match backdrop {
         Backdrop::None => Rect::ZERO,
@@ -396,13 +395,13 @@ pub const fn backdrop_area(screen: Rect, backdrop: Backdrop) -> Rect {
     }
 }
 
-/// One open layer.
+#[doc = r" One open layer."]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct OpenLayer {
     pub(crate) id: Id,
     pub(crate) layer: LayerId,
     pub(crate) spec: LayerSpec,
-    /// Focus to restore when this layer closes.
+    #[doc = r" Focus to restore when this layer closes."]
     pub(crate) restore_to: Option<Id>,
 }
 
@@ -412,13 +411,13 @@ impl OpenLayer {
     }
 }
 
-/// The runtime's layer stack.
+#[doc = r" The runtime's layer stack."]
 #[derive(Clone, Debug)]
 pub(crate) struct LayerStack {
     open: Vec<OpenLayer>,
-    /// Events staged for delivery on the next `handle`.
+    #[doc = r" Events staged for delivery on the next `handle`."]
     pending: Vec<(Id, LayerEvent)>,
-    /// The next monotonic layer number. It is not reduced when layers close.
+    #[doc = r" The next monotonic layer number. It is not reduced when layers close."]
     next: u32,
 }
 
@@ -449,11 +448,11 @@ impl LayerStack {
         self.get(id).is_some()
     }
 
-    /// The spec of an open layer, mutable. Only the geometry (`size`,
-    /// `anchor`) may change while a layer is open: `kind`, `inert_below`,
-    /// `restore_focus` and `initial_focus` were armed by the runtime when the
-    /// layer was pushed and re-deriving them would desync the focus scope and
-    /// the inert floor (§21 item 14).
+    #[doc = r" The spec of an open layer, mutable. Only the geometry (`size`,"]
+    #[doc = r" `anchor`) may change while a layer is open: `kind`, `inert_below`,"]
+    #[doc = r" `restore_focus` and `initial_focus` were armed by the runtime when the"]
+    #[doc = r" layer was pushed and re-deriving them would desync the focus scope and"]
+    #[doc = r" the inert floor (§21 item 14)."]
     pub(crate) fn spec_mut(&mut self, id: Id) -> Option<&mut LayerSpec> {
         self.open
             .iter_mut()
@@ -465,7 +464,7 @@ impl LayerStack {
         self.open.last()
     }
 
-    /// The lowest layer with `inert_below`; everything beneath it is inert.
+    #[doc = r" The lowest layer with `inert_below`; everything beneath it is inert."]
     pub(crate) fn inert_floor(&self) -> LayerId {
         self.open
             .iter()
@@ -474,8 +473,8 @@ impl LayerStack {
             .map_or(LayerId::PAGE, |l| l.layer)
     }
 
-    /// Open a layer; its `LayerId` is assigned monotonically. Re-opening an
-    /// open id is a no-op.
+    #[doc = r" Open a layer; its `LayerId` is assigned monotonically. Re-opening an"]
+    #[doc = r" open id is a no-op."]
     pub(crate) fn open(
         &mut self,
         id: Id,
@@ -497,8 +496,8 @@ impl LayerStack {
         Some(layer)
     }
 
-    /// Close a layer and everything above it. Returns the closed layers,
-    /// bottom-most first.
+    #[doc = r" Close a layer and everything above it. Returns the closed layers,"]
+    #[doc = r" bottom-most first."]
     pub(crate) fn close(&mut self, id: Id, event: LayerEvent) -> Vec<OpenLayer> {
         let Some(pos) = self.open.iter().position(|l| l.id == id) else {
             return Vec::new();
@@ -545,7 +544,7 @@ mod tests {
         let closed = s.close(PICK, LayerEvent::Closed(ActionKey::CONFIRM));
         assert_eq!(closed.len(), 1);
         assert_eq!(s.top(), LayerId(1));
-        // closing a lower layer closes everything above it
+
         s.open(PICK, LayerSpec::modal(PICK), None);
         let closed = s.close(DLG, LayerEvent::Dismissed(DismissReason::Esc));
         assert_eq!(
@@ -701,10 +700,10 @@ mod tests {
         );
     }
 
-    /// The field was never a minimum: the resolver clamps down and never
-    /// grows (Adjudication N1). A zero dimension is an *empty* layer, which
-    /// is what §16.2 case 19 and `draw_registers_nothing_when_it_cannot_draw`
-    /// assume — not the whole screen.
+    #[doc = r" The field was never a minimum: the resolver clamps down and never"]
+    #[doc = r" grows (Adjudication N1). A zero dimension is an *empty* layer, which"]
+    #[doc = r" is what §16.2 case 19 and `draw_registers_nothing_when_it_cannot_draw`"]
+    #[doc = r" assume — not the whole screen."]
     #[test]
     fn fixed_size_is_clamped_never_grown() {
         let screen = Rect::new(0, 0, 40, 10);
@@ -730,7 +729,7 @@ mod tests {
             ),
             Rect::ZERO
         );
-        // a request smaller than the screen is honoured exactly
+
         let small = resolve_anchor(
             screen,
             Anchor::Screen(ScreenAlign::Center),
@@ -739,8 +738,8 @@ mod tests {
         assert_eq!((small.width, small.height), (10, 4));
     }
 
-    /// Now reachable: while every spec asked for the whole screen the flip
-    /// arms of `Anchor::Rect` could never run.
+    #[doc = r" Now reachable: while every spec asked for the whole screen the flip"]
+    #[doc = r" arms of `Anchor::Rect` could never run."]
     #[test]
     fn popover_flips_above_when_the_content_does_not_fit_below() {
         let screen = Rect::new(0, 0, 40, 20);
@@ -751,7 +750,7 @@ mod tests {
         };
         let r = resolve_anchor(screen, below, LayerSize::Fixed(12, 6));
         assert_eq!(r, Rect::new(4, 11, 12, 6));
-        // there is room below, so no flip
+
         let high = Anchor::Rect {
             rect: Rect::new(4, 2, 6, 1),
             side: Side::Below,
@@ -763,8 +762,8 @@ mod tests {
         );
     }
 
-    /// A context menu near the bottom-right must not slide up *over* the
-    /// pointer; it flips above and left of it (Adjudication N1, change 2).
+    #[doc = r" A context menu near the bottom-right must not slide up *over* the"]
+    #[doc = r" pointer; it flips above and left of it (Adjudication N1, change 2)."]
     #[test]
     fn point_anchor_flips_instead_of_covering_the_pointer() {
         let screen = Rect::new(0, 0, 40, 10);
@@ -775,7 +774,7 @@ mod tests {
         );
         assert_eq!(p, Rect::new(28, 6, 10, 3));
         assert!(!p.contains(Position::new(38, 9)));
-        // room below and to the right: placed one row under the pointer
+
         let q = resolve_anchor(
             screen,
             Anchor::Point(Position::new(2, 1)),
@@ -871,9 +870,9 @@ mod runtime_tests {
         }
     }
 
-    /// Two page controls and a popover that registers one control of its
-    /// own, so that `Tab` off the opener lands on a control which is
-    /// genuinely outside the popover's scope.
+    #[doc = r" Two page controls and a popover that registers one control of its"]
+    #[doc = r" own, so that `Tab` off the opener lands on a control which is"]
+    #[doc = r" genuinely outside the popover's scope."]
     fn popover_stub() -> Stub {
         Stub {
             page: vec![
@@ -886,8 +885,8 @@ mod runtime_tests {
         }
     }
 
-    /// The size a component asserts from `update` takes effect in the very
-    /// next draw — the same frame, no flash (Adjudication N1).
+    #[doc = r" The size a component asserts from `update` takes effect in the very"]
+    #[doc = r" next draw — the same frame, no flash (Adjudication N1)."]
     #[test]
     fn resize_layer_re_resolves_the_anchor_on_the_next_draw() {
         let (mut rt, mut buf) = runtime(dialog_stub());
@@ -900,7 +899,7 @@ mod runtime_tests {
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         let grown = rt.layer_area(DLG).expect("the layer is still open");
         assert_eq!((grown.width, grown.height), (40, 10));
-        // the resolver still centres it; the component computed no rect
+
         assert_eq!(
             grown,
             resolve_anchor(
@@ -909,15 +908,15 @@ mod runtime_tests {
                 LayerSize::Fixed(40, 10)
             )
         );
-        // a no-op resize does not request a repaint
+
         rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(40, 10)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         assert_eq!(rt.layer_area(DLG), Some(grown));
     }
 
-    /// Geometry is the only part of a spec that may change while a layer is
-    /// open: `kind`, `inert_below`, `restore_focus` and `initial_focus` were
-    /// armed when the layer was pushed (§21 item 14).
+    #[doc = r" Geometry is the only part of a spec that may change while a layer is"]
+    #[doc = r" open: `kind`, `inert_below`, `restore_focus` and `initial_focus` were"]
+    #[doc = r" armed when the layer was pushed (§21 item 14)."]
     #[test]
     fn spec_geometry_is_the_only_mutable_field() {
         let (mut rt, mut buf) = runtime(dialog_stub());
@@ -929,8 +928,7 @@ mod runtime_tests {
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(24, 6)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
-        // `Cx` exposes exactly two spec mutators, both geometric; every other
-        // field still reads back as it was armed
+
         let open = rt.open_spec(DLG).expect("the layer is open");
         assert_eq!(open.size, LayerSize::Fixed(24, 6));
         assert_eq!(open.kind, spec.kind);
@@ -970,12 +968,12 @@ mod runtime_tests {
         rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).initial_focus(INPUT)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
         assert_eq!(rt.focus(), Some(INPUT));
-        // the editor consumes Esc (cancel); the layer stays open
+
         let r = step(&mut rt, &mut buf, key(KeyCode::Esc));
         assert!(r.is_consumed());
         assert!(rt.is_open(DLG));
         assert!(rt.app().saw(INPUT, "Key("));
-        // move to the button: Esc now bubbles to the layer
+
         let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
         assert_eq!(rt.focus(), Some(OK));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Esc));
@@ -985,7 +983,7 @@ mod runtime_tests {
     #[test]
     fn layer_id_is_assigned_at_open_not_at_draw() {
         let mut s = dialog_stub();
-        // drawn first in `draw`, but opened second
+
         s.layers
             .insert(0, (PICK, vec![Control::new(ROW, Rect::new(20, 2, 5, 1))]));
         let (mut rt, mut buf) = runtime(s);
@@ -999,7 +997,7 @@ mod runtime_tests {
         assert_eq!(rt.top_layer(), LayerId(2));
         assert_eq!(rt.registry().layer_of(ROW), Some(LayerId(2)));
         assert_eq!(rt.registry().layer_of(OK), Some(LayerId(1)));
-        // the popover's row is the pointer target even though it was drawn first
+
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 21, 2));
         assert!(rt.app().saw(ROW, "Press"));
     }
@@ -1009,11 +1007,11 @@ mod runtime_tests {
         let (mut rt, mut buf) = runtime(dialog_stub());
         rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
-        // a click on nothing: outside
+
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 30, 10));
         assert!(!rt.is_open(DLG));
         assert!(rt.app().saw(DLG, "Dismissed(OutsideClick)"));
-        // reopen; a click on a page control (inert, unregistered) is also outside
+
         rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 1, 0));
@@ -1021,16 +1019,16 @@ mod runtime_tests {
         assert!(!rt.app().saw(PAGE_A, "Press"));
     }
 
-    /// §29.8 D2: `Dismiss.focus_out` has a producer.
-    ///
-    /// A `Popover` is a pointer barrier, not a focus trap, so nothing stops
-    /// `Tab` — runtime focus policy, intercepted before any intent is
-    /// enqueued — from parking focus on a control *behind* an open popup.
-    /// The runtime closes the layer instead, with `DismissReason::FocusOut`,
-    /// and the focus restore that `LayerSpec::popover` arms must **not**
-    /// fire: restoring to the opener would make `Tab` a no-op and re-create
-    /// the legacy key swallow by accident. A `Modal` is excluded by
-    /// `dismisses_on_focus_out` itself, whatever its `Dismiss` says.
+    #[doc = r" §29.8 D2: `Dismiss.focus_out` has a producer."]
+    #[doc = r""]
+    #[doc = r" A `Popover` is a pointer barrier, not a focus trap, so nothing stops"]
+    #[doc = r" `Tab` — runtime focus policy, intercepted before any intent is"]
+    #[doc = r" enqueued — from parking focus on a control *behind* an open popup."]
+    #[doc = r" The runtime closes the layer instead, with `DismissReason::FocusOut`,"]
+    #[doc = r" and the focus restore that `LayerSpec::popover` arms must **not**"]
+    #[doc = r" fire: restoring to the opener would make `Tab` a no-op and re-create"]
+    #[doc = r" the legacy key swallow by accident. A `Modal` is excluded by"]
+    #[doc = r" `dismisses_on_focus_out` itself, whatever its `Dismiss` says."]
     #[test]
     fn focus_out_dismisses_a_popover_but_never_a_modal() {
         let (mut rt, mut buf) = runtime(popover_stub());
@@ -1069,8 +1067,6 @@ mod runtime_tests {
             rt.diagnostics()
         );
 
-        // the other direction: a modal asking for `Dismiss::ALL` still never
-        // dismisses on focus-out, and its trap keeps focus in its own scope
         let (mut rt, mut buf) = runtime(dialog_stub());
         rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).dismiss(Dismiss::ALL)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Enter));

@@ -1,1 +1,1 @@
-//! Library crate `termrock-conformance`
+#![doc = r" Library crate `termrock-conformance`"]

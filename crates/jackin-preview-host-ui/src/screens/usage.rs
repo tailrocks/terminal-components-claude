@@ -1,37 +1,37 @@
-//! Read-only usage route state.
+#![doc = r" Read-only usage route state."]
 
 use termrock::Id;
 
-/// Usage root.
+#[doc = r" Usage root."]
 pub const ROOT: Id = Id::root("jackin.usage");
-/// Usage tab strip.
+#[doc = r" Usage tab strip."]
 pub const TABS: Id = ROOT.sub("tabs");
-/// Usage list.
+#[doc = r" Usage list."]
 pub const LIST: Id = ROOT.sub("list");
-/// Read-only detail overlay.
+#[doc = r" Read-only detail overlay."]
 pub const DETAIL: Id = ROOT.sub("detail");
-/// Close action for the detail overlay.
+#[doc = r" Close action for the detail overlay."]
 pub const CLOSE: Id = DETAIL.sub("close");
-/// Handoff action from usage detail to Accounts.
+#[doc = r" Handoff action from usage detail to Accounts."]
 pub const MANAGE: Id = DETAIL.sub("manage");
 
-/// Usage tab.
+#[doc = r" Usage tab."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tab {
-    /// Account health overview.
+    #[doc = r" Account health overview."]
     #[default]
     Overview,
-    /// Registration details.
+    #[doc = r" Registration details."]
     Registration,
-    /// Provider quota.
+    #[doc = r" Provider quota."]
     Quota,
 }
 
 impl Tab {
-    /// Ordered tabs used by keyboard and click navigation.
+    #[doc = r" Ordered tabs used by keyboard and click navigation."]
     pub const ALL: [Self; 3] = [Self::Overview, Self::Registration, Self::Quota];
 
-    /// Next tab, wrapping at the end of the strip.
+    #[doc = r" Next tab, wrapping at the end of the strip."]
     pub const fn next(self) -> Self {
         match self {
             Self::Overview => Self::Registration,
@@ -40,7 +40,7 @@ impl Tab {
         }
     }
 
-    /// Previous tab, wrapping at the beginning of the strip.
+    #[doc = r" Previous tab, wrapping at the beginning of the strip."]
     pub const fn previous(self) -> Self {
         match self {
             Self::Overview => Self::Quota,
@@ -50,19 +50,19 @@ impl Tab {
     }
 }
 
-/// Read-only usage state.
+#[doc = r" Read-only usage state."]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct UsageState {
-    /// Active usage tab.
+    #[doc = r" Active usage tab."]
     pub tab: Tab,
-    /// Stable account id selected for the read-only detail projection.
+    #[doc = r" Stable account id selected for the read-only detail projection."]
     selected: Option<String>,
-    /// Whether the detail overlay is visible.
+    #[doc = r" Whether the detail overlay is visible."]
     detail_open: bool,
 }
 
 impl UsageState {
-    /// Select an account without copying or exposing usage material.
+    #[doc = r" Select an account without copying or exposing usage material."]
     pub fn select(&mut self, id: Option<impl Into<String>>) {
         self.selected = id.map(Into::into).filter(|id| !id.is_empty());
         if self.selected.is_none() {
@@ -70,22 +70,22 @@ impl UsageState {
         }
     }
 
-    /// Selected account id, if the list has one.
+    #[doc = r" Selected account id, if the list has one."]
     pub fn selected(&self) -> Option<&str> {
         self.selected.as_deref()
     }
 
-    /// Move to the next read-only tab.
+    #[doc = r" Move to the next read-only tab."]
     pub const fn next_tab(&mut self) {
         self.tab = self.tab.next();
     }
 
-    /// Move to the previous read-only tab.
+    #[doc = r" Move to the previous read-only tab."]
     pub const fn previous_tab(&mut self) {
         self.tab = self.tab.previous();
     }
 
-    /// Open the detail overlay only when an account is selected.
+    #[doc = r" Open the detail overlay only when an account is selected."]
     pub const fn open_detail(&mut self) -> bool {
         if self.selected.is_some() {
             self.detail_open = true;
@@ -93,27 +93,27 @@ impl UsageState {
         self.detail_open
     }
 
-    /// Close the detail overlay while retaining list selection.
+    #[doc = r" Close the detail overlay while retaining list selection."]
     pub const fn close_detail(&mut self) {
         self.detail_open = false;
     }
 
-    /// Whether the read-only detail overlay is visible.
+    #[doc = r" Whether the read-only detail overlay is visible."]
     pub const fn detail_open(&self) -> bool {
         self.detail_open
     }
 
-    /// Return the selected account for the Accounts handoff.
+    #[doc = r" Return the selected account for the Accounts handoff."]
     pub fn manage_target(&self) -> Option<&str> {
         self.selected()
     }
 
-    /// Restore the overview list and close any detail projection.
+    #[doc = r" Restore the overview list and close any detail projection."]
     pub fn reset(&mut self) {
         *self = Self::default();
     }
 
-    /// Header breadcrumb. Detail wins when it is open and an account is known.
+    #[doc = r" Header breadcrumb. Detail wins when it is open and an account is known."]
     pub fn crumb(&self, account: Option<(&str, &str)>) -> String {
         if self.detail_open()
             && let Some((surface, name)) = account

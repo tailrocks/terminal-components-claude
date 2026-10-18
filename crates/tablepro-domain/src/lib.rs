@@ -1,6 +1,5 @@
-//! Domain model for the `TablePro` application: connections, switcher
-//! index, result grids, and pending-edit bookkeeping.
-
+#![doc = r" Domain model for the `TablePro` application: connections, switcher"]
+#![doc = r" index, result grids, and pending-edit bookkeeping."]
 #![forbid(unsafe_code)]
 
 pub mod connections;

@@ -3,9 +3,9 @@ use termrock_e2e::{
     receipt_has_blocking_result, run_case,
 };
 
-/// Resolve the policy for an external trust record that has not been written.
-/// This test does not load trust, launch a product, create a capture, or admit
-/// expected data. Run this exact ignored test separately from acceptance.
+#[doc = r" Resolve the policy for an external trust record that has not been written."]
+#[doc = r" This test does not load trust, launch a product, create a capture, or admit"]
+#[doc = r" expected data. Run this exact ignored test separately from acceptance."]
 #[test]
 #[ignore = "read-only preparation for an independently created trust record"]
 fn holla_write_policy_preflight() {
@@ -14,8 +14,8 @@ fn holla_write_policy_preflight() {
     println!("TERMROCK_E2E_WRITE_POLICY_PREFLIGHT={json}");
 }
 
-/// Run with the same subject manifest and executable case on both pinned
-/// Holla binaries. This remains ignored until the paired launcher is ready.
+#[doc = r" Run with the same subject manifest and executable case on both pinned"]
+#[doc = r" Holla binaries. This remains ignored until the paired launcher is ready."]
 #[test]
 #[ignore = "requires source-pinned reference and candidate binaries plus a shared expected generation"]
 fn holla_help_overlay() {
@@ -41,9 +41,9 @@ fn holla_help_overlay() {
     }
 }
 
-/// Validate immutable-tag source/build evidence and output policy without launching
-/// the tag binary. The helper's source closure is not an independent execution
-/// anchor, so this preflight must remain blocked and capture/admission stay NOT_RUN.
+#[doc = r" Validate immutable-tag source/build evidence and output policy without launching"]
+#[doc = r" the tag binary. The helper's source closure is not an independent execution"]
+#[doc = r" anchor, so this preflight must remain blocked and capture/admission stay NOT_RUN."]
 #[test]
 #[ignore = "requires the pinned VIS-06 validator, immutable-tag builder receipt, and isolated output roots"]
 fn holla_help_overlay_frozen_tag_capture_preflight() {

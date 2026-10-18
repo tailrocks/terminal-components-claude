@@ -1,6 +1,5 @@
-//! Deterministic in-memory services: the world, 1Password, provider
-//! operations, and the launch pipeline.
-
+#![doc = r" Deterministic in-memory services: the world, 1Password, provider"]
+#![doc = r" operations, and the launch pipeline."]
 #![forbid(unsafe_code)]
 #![expect(
     clippy::pedantic,
@@ -20,23 +19,23 @@
     )
 )]
 
-/// Construct entry/exit boundary arbiter.
+#[doc = r" Construct entry/exit boundary arbiter."]
 pub mod arbiter;
-/// Deterministic changed-file and diff fixture model.
+#[doc = r" Deterministic changed-file and diff fixture model."]
 pub mod changes;
-/// Virtual clock, jobs, and service state.
+#[doc = r" Virtual clock, jobs, and service state."]
 pub mod clock;
-/// Deterministic scenario data and precedence fixtures.
+#[doc = r" Deterministic scenario data and precedence fixtures."]
 pub mod fixtures;
-/// Deterministic launch-pipeline state machine.
+#[doc = r" Deterministic launch-pipeline state machine."]
 pub mod launch;
-/// In-memory 1Password account and vault service.
+#[doc = r" In-memory 1Password account and vault service."]
 pub mod onepassword;
-/// Deterministic credential validation and usage refresh operations.
+#[doc = r" Deterministic credential validation and usage refresh operations."]
 pub mod provider;
-/// Capsule tabs, panes, transcripts, and daemon simulation.
+#[doc = r" Capsule tabs, panes, transcripts, and daemon simulation."]
 pub mod pty;
-/// Virtual world assembled from the domain fixtures.
+#[doc = r" Virtual world assembled from the domain fixtures."]
 pub mod world;
 
 pub use world::{GithubRepo, GlobalConfig, TrustRow, World, world_for};

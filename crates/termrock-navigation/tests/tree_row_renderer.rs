@@ -1,4 +1,4 @@
-//! External non-Display consumer of Tree's full-row renderer.
+#![doc = r" External non-Display consumer of Tree's full-row renderer."]
 use ratatui_core::style::Color;
 use std::cell::RefCell;
 use termrock_core::{Id, ItemKey, KeyCode, Response, StateFlags, Variant};
@@ -34,7 +34,7 @@ fn paint(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _: ItemKey, step: &Step)
         step.title,
         style,
     );
-    // A maliciously oversized request remains clipped to the shared row.
+
     ui.paint_str(Rect::new(40, row.y, 2, 1), "XX", style);
 }
 struct Page {
@@ -70,7 +70,7 @@ impl App for Page {
             self.seen.borrow_mut().push((key, flags));
             paint(ui, row, flags, key, item);
         };
-        // Type-changing builders must preserve the installed full-row painter.
+
         Tree::new(ID)
             .render_row(&renderer)
             .key(key)
@@ -188,7 +188,6 @@ fn ancestor_clip_preserves_logical_alignment_and_skips_invisible_callbacks() {
 
 #[test]
 fn custom_prefix_keeps_shared_disclosure_hit_and_branch_identity() {
-    // The standalone Page below uses a hierarchy and exactly the same custom painter.
     struct BranchPage {
         state: TreeState,
         items: Vec<Step>,

@@ -1,4 +1,4 @@
-//! A cancellable task runner using the public lifecycle rail.
+#![doc = r" A cancellable task runner using the public lifecycle rail."]
 
 use std::{cmp::Ordering, time::Duration};
 use termrock::author::PaintStyle;
@@ -294,8 +294,8 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
     }
 }
 
-/// The runner advances one lifecycle step per virtual tick and confirms
-/// cancellation through a modal layer.
+#[doc = r" The runner advances one lifecycle step per virtual tick and confirms"]
+#[doc = r" cancellation through a modal layer."]
 #[derive(Debug)]
 pub struct TaskRunnerPage {
     steps: Vec<RunStep>,

@@ -1,8 +1,8 @@
-//! Button playground and the complete inert state reference matrix.
-//!
-//! The nine controls and six-by-four matrix are the legacy showcase fixture.
-//! The matrix uses the public `Ui::reference` scope around the same Button
-//! props used by the live controls, so captures cannot drift from behavior.
+#![doc = r" Button playground and the complete inert state reference matrix."]
+#![doc = r""]
+#![doc = r" The nine controls and six-by-four matrix are the legacy showcase fixture."]
+#![doc = r" The matrix uses the public `Ui::reference` scope around the same Button"]
+#![doc = r" props used by the live controls, so captures cannot drift from behavior."]
 
 use std::time::Duration;
 
@@ -32,7 +32,7 @@ fn matrix_panel() -> Panel<'static> {
         .meta("reference rendering ")
 }
 
-/// The nine playground buttons, in the legacy declaration order.
+#[doc = r" The nine playground buttons, in the legacy declaration order."]
 const SPECS: [(&str, Variant, bool, Option<bool>); 9] = [
     ("Run task", Variant::PRIMARY, false, None),
     ("Preview", Variant::SECONDARY, false, None),
@@ -54,7 +54,7 @@ const GROUPS: [(&str, &[usize]); 4] = [
 
 const LONG_JOB: usize = 8;
 
-/// Six reference states × four variants. Each cell is still a real Button.
+#[doc = r" Six reference states × four variants. Each cell is still a real Button."]
 const MATRIX_STATES: [(&str, StateFlags); 6] = [
     ("default", StateFlags::empty()),
     ("hover", StateFlags::HOVERED),
@@ -85,9 +85,7 @@ fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlag
     }
     let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
     let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
-    // The old showcase painted a gutter glyph for every button. The modern
-    // Button only binds that glyph to focus, so preserve the old picture at
-    // this page seam without changing the shared component contract.
+
     gutter = gutter.with_bg_from(container.style);
     if !flags.contains(StateFlags::FOCUSED) {
         gutter = gutter.with_fg_from_bg(container.style);
@@ -112,7 +110,7 @@ fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
     present.then_some(state)
 }
 
-/// Application-owned state for the button demonstrations.
+#[doc = r" Application-owned state for the button demonstrations."]
 #[derive(Debug)]
 pub struct ButtonsPage {
     checked: [Option<bool>; 9],
@@ -208,7 +206,7 @@ impl Page for ButtonsPage {
         {
             cx.request_repaint_at(deadline);
         }
-        // Both phases build the same two cards (§13).
+
         let _ = playground_panel();
         let _ = matrix_panel();
         PageUpdate { response, status }

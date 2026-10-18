@@ -1,8 +1,8 @@
-//! Deterministic Jackin atmosphere and entry/exit timing.
-//!
-//! The renderer owns no product state.  It consumes semantic `Role`s through
-//! the public facade when the shell paints it, while this module keeps the
-//! exact virtual-frame contracts used by the preview and its tests.
+#![doc = r" Deterministic Jackin atmosphere and entry/exit timing."]
+#![doc = r""]
+#![doc = r" The renderer owns no product state.  It consumes semantic `Role`s through"]
+#![doc = r" the public facade when the shell paints it, while this module keeps the"]
+#![doc = r" exact virtual-frame contracts used by the preview and its tests."]
 
 use termrock::{
     Buffer, Color, Family, FgStep, Part, Rect, Role, StateFlags, Style, StylePatch, Surface, Theme,
@@ -11,21 +11,21 @@ use termrock::{
 
 use jackin_preview_domain::scenario::Motion;
 
-/// Intro/outro cadence.  This is a product constant, not the runtime poll
-/// interval; the virtual clock advances by the active route's cadence.
+#[doc = r" Intro/outro cadence.  This is a product constant, not the runtime poll"]
+#[doc = r" interval; the virtual clock advances by the active route's cadence."]
 pub const TICK_MS: u64 = 33;
-/// Seed used by all deterministic atmosphere fields.
+#[doc = r" Seed used by all deterministic atmosphere fields."]
 pub const MOTION_SEED: u64 = 0x4A41_434B_494E_5E5E;
-/// Number of two-tick glitch passes around the handoff.
+#[doc = r" Number of two-tick glitch passes around the handoff."]
 pub const GLITCH_PASS_TICKS: u64 = 2;
-/// Number of glitch passes in the intro and outro cadence.
+#[doc = r" Number of glitch passes in the intro and outro cadence."]
 pub const GLITCH_PASSES: u64 = 5;
-/// Warp duration in 33 ms ticks.
+#[doc = r" Warp duration in 33 ms ticks."]
 pub const WARP_TICKS: u64 = 95;
 
 const POOL: &[u8] = b" .,:;+=*#%@";
 
-/// Stable integer mixer used for atmosphere placement.
+#[doc = r" Stable integer mixer used for atmosphere placement."]
 pub const fn mix(mut a: u64, b: u64, c: u64) -> u64 {
     a ^= b.wrapping_mul(0x9E37_79B9_7F4A_7C15);
     a = a.rotate_left(17).wrapping_mul(0xBF58_476D_1CE4_E5B9);
@@ -33,24 +33,24 @@ pub const fn mix(mut a: u64, b: u64, c: u64) -> u64 {
     a ^ (a >> 31)
 }
 
-/// Map a mixed value to a percentage without floating point.
+#[doc = r" Map a mixed value to a percentage without floating point."]
 pub const fn pct(value: u64) -> u64 {
     value % 100
 }
 
-/// Stable atmosphere glyph.
+#[doc = r" Stable atmosphere glyph."]
 pub fn glyph(x: u64, y: u64, epoch: u64) -> char {
     POOL.get((mix(x, y, epoch) as usize) % POOL.len())
         .copied()
         .unwrap_or(b' ') as char
 }
 
-/// Semantic tone accepted by the compatibility painting helpers.
+#[doc = r" Semantic tone accepted by the compatibility painting helpers."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tone {
-    /// One of the five foreground ladder levels, ghost through primary.
+    #[doc = r" One of the five foreground ladder levels, ghost through primary."]
     Ladder(u8),
-    /// Accent trace.
+    #[doc = r" Accent trace."]
     Accent,
 }
 
@@ -74,9 +74,9 @@ fn role_style(theme: &Theme, patch: StylePatch) -> Style {
         .into_style()
 }
 
-/// Resolve a tone to a theme style.  Dim is index arithmetic over the
-/// foreground ladder; no colour equality is used, so themes with distinct
-/// accent/focus/success colours remain distinct.
+#[doc = r" Resolve a tone to a theme style.  Dim is index arithmetic over the"]
+#[doc = r" foreground ladder; no colour equality is used, so themes with distinct"]
+#[doc = r" accent/focus/success colours remain distinct."]
 pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     let role = match tone {
         Tone::Ladder(level) => {
@@ -97,7 +97,7 @@ pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     Some(role_style(theme, StylePatch::new().set_fg(role)))
 }
 
-/// Fill a field with the theme canvas colour.
+#[doc = r" Fill a field with the theme canvas colour."]
 pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
     buf.set_style(
         area,
@@ -108,8 +108,8 @@ pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
     );
 }
 
-/// Dim existing cells by replacing their foreground with a ladder step.
-/// Caller-owned background and glyphs remain untouched.
+#[doc = r" Dim existing cells by replacing their foreground with a ladder step."]
+#[doc = r" Caller-owned background and glyphs remain untouched."]
 pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, theme: &Theme) {
     for row in area.rows() {
         for column in area.columns() {
@@ -130,31 +130,31 @@ pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, theme: &Theme) {
     }
 }
 
-/// One deterministic warp cell.
+#[doc = r" One deterministic warp cell."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WarpCell {
-    /// Painted glyph.
+    #[doc = r" Painted glyph."]
     pub ch: char,
-    /// Foreground ladder level, ghost through primary.
+    #[doc = r" Foreground ladder level, ghost through primary."]
     pub level: u8,
-    /// Whether the cell is an accent streak.
+    #[doc = r" Whether the cell is an accent streak."]
     pub accent: bool,
 }
 
-/// A bounded, reproducible star/warp field.  The implementation is integer
-/// only: it is cheap enough for captures and byte-identical across machines.
+#[doc = r" A bounded, reproducible star/warp field.  The implementation is integer"]
+#[doc = r" only: it is cheap enough for captures and byte-identical across machines."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Starfield {
     seed: u64,
     cols: u16,
     rows: u16,
     cells: Vec<Option<WarpCell>>,
-    /// Number of frames painted.
+    #[doc = r" Number of frames painted."]
     pub frame: u64,
 }
 
 impl Starfield {
-    /// Build a seeded field for `cols × rows`.
+    #[doc = r" Build a seeded field for `cols × rows`."]
     pub fn new(cols: u16, rows: u16, salt: u64) -> Self {
         Self {
             seed: mix(MOTION_SEED ^ salt, u64::from(cols), u64::from(rows)),
@@ -165,7 +165,7 @@ impl Starfield {
         }
     }
 
-    /// Advance and regenerate one field frame.
+    #[doc = r" Advance and regenerate one field frame."]
     pub fn advance(&mut self, accelerating: bool, frame: u64) {
         self.cells.fill(None);
         let cols = usize::from(self.cols);
@@ -199,12 +199,12 @@ impl Starfield {
         self.seed = mix(self.seed, frame, u64::from(accelerating));
     }
 
-    /// Dimensions of the field.
+    #[doc = r" Dimensions of the field."]
     pub const fn size(&self) -> (u16, u16) {
         (self.cols, self.rows)
     }
 
-    /// Paint the last generated frame.
+    #[doc = r" Paint the last generated frame."]
     pub fn paint(&self, buf: &mut Buffer, area: Rect, dim: u8, theme: &Theme) {
         let cols = self.cols.min(area.width);
         let rows = self.rows.min(area.height);
@@ -241,46 +241,46 @@ const fn phrase_ticks(chars: u64, char_ms: u64, hold_ms: u64) -> u64 {
     (chars * char_ms + hold_ms).div_ceil(TICK_MS)
 }
 
-/// Phrase texts and original pacing.
+#[doc = r" Phrase texts and original pacing."]
 pub const PHRASES: [(&str, u64, u64); 3] = [
     ("Stand up, operator…", 60, 950),
     ("Host stays outside…", 55, 950),
     ("Follow the green.", 50, 850),
 ];
-/// Caption shown during the entry knock.
+#[doc = r" Caption shown during the entry knock."]
 pub const CAPTION: &str = "Knock, knock, operator.";
-/// Caption hold duration in milliseconds.
+#[doc = r" Caption hold duration in milliseconds."]
 pub const CAPTION_HOLD_MS: u64 = 850;
-/// First phrase duration in virtual ticks.
+#[doc = r" First phrase duration in virtual ticks."]
 pub const P1_LEN: u64 = phrase_ticks(19, 60, 950);
-/// Second phrase duration in virtual ticks.
+#[doc = r" Second phrase duration in virtual ticks."]
 pub const P2_LEN: u64 = phrase_ticks(19, 55, 950);
-/// Third phrase duration in virtual ticks.
+#[doc = r" Third phrase duration in virtual ticks."]
 pub const P3_LEN: u64 = phrase_ticks(17, 50, 850);
-/// Start of the knock phase.
+#[doc = r" Start of the knock phase."]
 pub const KNOCK_START: u64 = P1_LEN + P2_LEN + P3_LEN;
-/// Duration of the knock phase.
+#[doc = r" Duration of the knock phase."]
 pub const KNOCK_LEN: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + CAPTION_HOLD_MS.div_ceil(TICK_MS);
-/// Start of the warp phase.
+#[doc = r" Start of the warp phase."]
 pub const WARP_START: u64 = KNOCK_START + KNOCK_LEN;
-/// End of the intro ritual.
+#[doc = r" End of the intro ritual."]
 pub const INTRO_END: u64 = WARP_START + WARP_TICKS;
-/// Reduced-motion intro hold duration.
+#[doc = r" Reduced-motion intro hold duration."]
 pub const REDUCED_HOLD: u64 = 45;
 
-/// Intro phase.
+#[doc = r" Intro phase."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntroPhase {
-    /// Entry phrases and the knock sequence.
+    #[doc = r" Entry phrases and the knock sequence."]
     Phrases,
-    /// Warp transition into the Construct.
+    #[doc = r" Warp transition into the Construct."]
     Warp,
-    /// Entry ritual is complete.
+    #[doc = r" Entry ritual is complete."]
     Done,
 }
 
 impl IntroPhase {
-    /// Resolve phase at a virtual frame.
+    #[doc = r" Resolve phase at a virtual frame."]
     pub const fn of(tick: u64) -> Self {
         if tick < WARP_START {
             Self::Phrases
@@ -292,22 +292,22 @@ impl IntroPhase {
     }
 }
 
-/// Deterministic intro state.
+#[doc = r" Deterministic intro state."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntroState {
-    /// Current virtual frame.
+    #[doc = r" Current virtual frame."]
     pub tick: u64,
-    /// Motion policy.
+    #[doc = r" Motion policy."]
     pub mode: Motion,
 }
 
 impl IntroState {
-    /// Construct at an exact frame.
+    #[doc = r" Construct at an exact frame."]
     pub const fn new(mode: Motion, frame: u64) -> Self {
         Self { tick: frame, mode }
     }
 
-    /// Current phase.
+    #[doc = r" Current phase."]
     pub const fn phase(&self) -> IntroPhase {
         match self.mode {
             Motion::Reduced if self.tick < REDUCED_HOLD => IntroPhase::Phrases,
@@ -316,12 +316,12 @@ impl IntroState {
         }
     }
 
-    /// Whether the entry ritual finished.
+    #[doc = r" Whether the entry ritual finished."]
     pub const fn is_done(&self) -> bool {
         matches!(self.phase(), IntroPhase::Done)
     }
 
-    /// Advance one virtual frame.
+    #[doc = r" Advance one virtual frame."]
     pub fn advance_tick(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
             return false;
@@ -330,7 +330,7 @@ impl IntroState {
         true
     }
 
-    /// Skip phrases to warp, then warp to done.
+    #[doc = r" Skip phrases to warp, then warp to done."]
     pub fn skip(&mut self) {
         self.tick = match self.mode {
             Motion::Paused => INTRO_END,
@@ -344,35 +344,35 @@ impl IntroState {
     }
 }
 
-/// Outro phase.
+#[doc = r" Outro phase."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutroPhase {
-    /// Warp transition out of the Construct.
+    #[doc = r" Warp transition out of the Construct."]
     Warp,
-    /// Exit caption is being held.
+    #[doc = r" Exit caption is being held."]
     Caption,
-    /// Exit ritual is complete.
+    #[doc = r" Exit ritual is complete."]
     Done,
 }
 
-/// Deterministic exit ritual state.
+#[doc = r" Deterministic exit ritual state."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OutroState {
-    /// Current virtual frame.
+    #[doc = r" Current virtual frame."]
     pub tick: u64,
-    /// Duration spent inside the Construct, if discovery supplied it.
+    #[doc = r" Duration spent inside the Construct, if discovery supplied it."]
     pub elapsed_secs: Option<u64>,
-    /// Motion policy.
+    #[doc = r" Motion policy."]
     pub mode: Motion,
 }
 
-/// Warp duration for the outro.
+#[doc = r" Warp duration for the outro."]
 pub const OUT_WARP: u64 = WARP_TICKS;
-/// Glitch reveal plus the original 2.4-second caption hold duration.
+#[doc = r" Glitch reveal plus the original 2.4-second caption hold duration."]
 pub const OUT_CAPTION: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + 2_400u64.div_ceil(TICK_MS);
 
 impl OutroState {
-    /// Construct at an exact frame.
+    #[doc = r" Construct at an exact frame."]
     pub const fn new(mode: Motion, elapsed_secs: Option<u64>, frame: u64) -> Self {
         Self {
             tick: frame,
@@ -381,7 +381,7 @@ impl OutroState {
         }
     }
 
-    /// End frame.
+    #[doc = r" End frame."]
     pub const fn end(&self) -> u64 {
         match self.mode {
             Motion::Reduced => REDUCED_HOLD,
@@ -390,7 +390,7 @@ impl OutroState {
         }
     }
 
-    /// Current phase.
+    #[doc = r" Current phase."]
     pub const fn phase(&self) -> OutroPhase {
         match self.mode {
             Motion::Reduced => {
@@ -406,12 +406,12 @@ impl OutroState {
         }
     }
 
-    /// Whether the exit ritual finished.
+    #[doc = r" Whether the exit ritual finished."]
     pub const fn is_done(&self) -> bool {
         matches!(self.phase(), OutroPhase::Done)
     }
 
-    /// Advance one virtual frame.
+    #[doc = r" Advance one virtual frame."]
     pub fn advance_tick(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
             return false;
@@ -420,7 +420,7 @@ impl OutroState {
         true
     }
 
-    /// Skip warp to caption, then caption to done.
+    #[doc = r" Skip warp to caption, then caption to done."]
     pub fn skip(&mut self) {
         self.tick = match self.phase() {
             OutroPhase::Warp => OUT_WARP,
@@ -428,7 +428,7 @@ impl OutroState {
         };
     }
 
-    /// Product wording for the elapsed caption.
+    #[doc = r" Product wording for the elapsed caption."]
     pub fn caption(&self) -> Option<String> {
         self.elapsed_secs.map(|secs| {
             format!(
@@ -439,7 +439,7 @@ impl OutroState {
     }
 }
 
-/// Format the two largest duration units, using the original wording.
+#[doc = r" Format the two largest duration units, using the original wording."]
 pub fn format_universe_duration(secs: u64) -> String {
     fn unit(n: u64, name: &str) -> String {
         format!("{n} {name}{}", if n == 1 { "" } else { "s" })
@@ -459,20 +459,20 @@ pub fn format_universe_duration(secs: u64) -> String {
     }
 }
 
-/// Handoff stage used to coordinate cockpit/capsule cross-fade.
+#[doc = r" Handoff stage used to coordinate cockpit/capsule cross-fade."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HandoffStage {
-    /// Dim the cockpit by the given ladder step.
+    #[doc = r" Dim the cockpit by the given ladder step."]
     CockpitDim(u8),
-    /// Paint only the shared canvas during the transition.
+    #[doc = r" Paint only the shared canvas during the transition."]
     Canvas,
-    /// Dim the capsule by the given ladder step.
+    #[doc = r" Dim the capsule by the given ladder step."]
     CapsuleDim(u8),
-    /// Capsule is fully revealed.
+    #[doc = r" Capsule is fully revealed."]
     Capsule,
 }
 
-/// Resolve a handoff frame without consulting wall time.
+#[doc = r" Resolve a handoff frame without consulting wall time."]
 pub const fn handoff_stage(frame: u64) -> HandoffStage {
     match frame {
         0..=3 => HandoffStage::CockpitDim((frame + 1) as u8),
@@ -482,10 +482,10 @@ pub const fn handoff_stage(frame: u64) -> HandoffStage {
     }
 }
 
-/// Number of handoff frames.
+#[doc = r" Number of handoff frames."]
 pub const HANDOFF_LEN: u64 = 12;
 
-/// Paint deterministic atmosphere cells outside excluded rectangles.
+#[doc = r" Paint deterministic atmosphere cells outside excluded rectangles."]
 pub fn paint_atmosphere(
     buf: &mut Buffer,
     area: Rect,

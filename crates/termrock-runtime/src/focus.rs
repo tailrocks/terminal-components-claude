@@ -1,10 +1,10 @@
-//! Focus ring, scopes, traps and restoration (`COMPONENT_ARCHITECTURE.md` §8.1).
-//!
-//! The ring is rebuilt every frame in registration order, so Tab order is
-//! reading order. Scopes nest; a `Trap` scope confines traversal to itself
-//! and its descendants and wraps inside it. A layer scope is armed only by
-//! its live `Ui::layer` draw, so an inert reference attempt cannot create a
-//! trap. Restoration is runtime-owned (`restore: ScopeId → Id`).
+#![doc = r" Focus ring, scopes, traps and restoration (`COMPONENT_ARCHITECTURE.md` §8.1)."]
+#![doc = r""]
+#![doc = r" The ring is rebuilt every frame in registration order, so Tab order is"]
+#![doc = r" reading order. Scopes nest; a `Trap` scope confines traversal to itself"]
+#![doc = r" and its descendants and wraps inside it. A layer scope is armed only by"]
+#![doc = r" its live `Ui::layer` draw, so an inert reference attempt cannot create a"]
+#![doc = r" trap. Restoration is runtime-owned (`restore: ScopeId → Id`)."]
 
 use std::collections::HashMap;
 
@@ -13,72 +13,72 @@ use ratatui_core::layout::Rect;
 use crate::id::Id;
 use crate::layer::LayerId;
 
-/// A focus scope's identity (usually the owning layer's or container's id).
+#[doc = r" A focus scope's identity (usually the owning layer's or container's id)."]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct ScopeId(Id);
 
 impl ScopeId {
-    /// The implicit root scope of the page.
+    #[doc = r" The implicit root scope of the page."]
     pub const ROOT: ScopeId = ScopeId(Id::root("tui.focus.root"));
 
-    /// A scope named by an id.
+    #[doc = r" A scope named by an id."]
     pub const fn new(id: Id) -> Self {
         ScopeId(id)
     }
 
-    /// The id.
+    #[doc = r" The id."]
     pub const fn id(self) -> Id {
         self.0
     }
 }
 
-/// Whether a scope traps traversal.
+#[doc = r" Whether a scope traps traversal."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ScopeMode {
-    /// Traversal flows through.
+    #[doc = r" Traversal flows through."]
     Normal,
-    /// Tab / Shift+Tab are confined to the scope and wrap inside it.
+    #[doc = r" Tab / Shift+Tab are confined to the scope and wrap inside it."]
     Trap,
 }
 
-/// How a control participates in focus.
+#[doc = r" How a control participates in focus."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Focusability {
-    /// In the ring and reachable.
+    #[doc = r" In the ring and reachable."]
     Focusable,
-    /// In the ring and reachable; the runtime marks it `READ_ONLY`.
+    #[doc = r" In the ring and reachable; the runtime marks it `READ_ONLY`."]
     FocusableReadOnly,
-    /// Recorded in the ring with `disabled: true`, never reachable.
+    #[doc = r" Recorded in the ring with `disabled: true`, never reachable."]
     Disabled,
-    /// A hit target only; never in the ring.
+    #[doc = r" A hit target only; never in the ring."]
     ClickOnly,
 }
 
-/// Focus as seen by one control.
+#[doc = r" Focus as seen by one control."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FocusVis {
-    /// Not focused.
+    #[doc = r" Not focused."]
     None,
-    /// Focused, indicator hidden (the last input was a pointer).
+    #[doc = r" Focused, indicator hidden (the last input was a pointer)."]
     Focused,
-    /// Focused, indicator shown (the last input was a key).
+    #[doc = r" Focused, indicator shown (the last input was a key)."]
     FocusedVisible,
 }
 
-/// One ring entry.
+#[doc = r" One ring entry."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct FocusEntry {
-    /// The control.
+    #[doc = r" The control."]
     pub id: Id,
-    /// Its scope.
+    #[doc = r" Its scope."]
     pub scope: ScopeId,
-    /// Registered but never reachable.
+    #[doc = r" Registered but never reachable."]
     pub disabled: bool,
-    /// Its area this frame.
+    #[doc = r" Its area this frame."]
     pub area: Rect,
-    /// The layer it was registered from.
+    #[doc = r" The layer it was registered from."]
     pub layer: LayerId,
-    /// Bare `Char` chords are typing for this control (capture skips them).
+    #[doc = r" Bare `Char` chords are typing for this control (capture skips them)."]
     pub swallows_typing: bool,
 }
 
@@ -90,12 +90,12 @@ struct ScopeRecord {
     layer: LayerId,
 }
 
-/// The per-frame focus ring.
+#[doc = r" The per-frame focus ring."]
 #[derive(Clone, Debug)]
 pub struct FocusRing {
     entries: Vec<FocusEntry>,
     scopes: Vec<ScopeRecord>,
-    /// The scope stack while drawing.
+    #[doc = r" The scope stack while drawing."]
     open: Vec<ScopeId>,
 }
 
@@ -106,7 +106,7 @@ impl Default for FocusRing {
 }
 
 impl FocusRing {
-    /// An empty ring with the root scope.
+    #[doc = r" An empty ring with the root scope."]
     pub fn new() -> Self {
         FocusRing {
             entries: Vec::new(),
@@ -120,7 +120,7 @@ impl FocusRing {
         }
     }
 
-    /// Reset for a new frame, keeping allocations.
+    #[doc = r" Reset for a new frame, keeping allocations."]
     pub(crate) fn reset(&mut self) {
         self.entries.clear();
         self.scopes.truncate(1);
@@ -128,17 +128,17 @@ impl FocusRing {
         self.open.push(ScopeId::ROOT);
     }
 
-    /// Every entry, in registration order, disabled ones included.
+    #[doc = r" Every entry, in registration order, disabled ones included."]
     pub fn entries(&self) -> &[FocusEntry] {
         &self.entries
     }
 
-    /// The scope currently open during draw.
+    #[doc = r" The scope currently open during draw."]
     pub(crate) fn current_scope(&self) -> ScopeId {
         self.open.last().copied().unwrap_or(ScopeId::ROOT)
     }
 
-    /// Open a nested scope during draw.
+    #[doc = r" Open a nested scope during draw."]
     pub(crate) fn push_scope(&mut self, id: ScopeId, mode: ScopeMode, layer: LayerId) {
         let parent = Some(self.current_scope());
         if let Some(r) = self.scopes.iter_mut().find(|r| r.id == id) {
@@ -158,14 +158,14 @@ impl FocusRing {
         self.open.push(id);
     }
 
-    /// Close the innermost open scope.
+    #[doc = r" Close the innermost open scope."]
     pub(crate) fn pop_scope(&mut self) {
         if self.open.len() > 1 {
             self.open.pop();
         }
     }
 
-    /// Arm a scope (a layer's trap) whether or not anything draws into it.
+    #[doc = r" Arm a scope (a layer's trap) whether or not anything draws into it."]
     pub(crate) fn ensure_scope(
         &mut self,
         id: ScopeId,
@@ -189,7 +189,7 @@ impl FocusRing {
         }
     }
 
-    /// Register a control in the current scope.
+    #[doc = r" Register a control in the current scope."]
     pub(crate) fn register(&mut self, entry: FocusEntry) {
         self.entries.push(entry);
     }
@@ -198,7 +198,7 @@ impl FocusRing {
         self.scopes.iter().find(|r| r.id == id)
     }
 
-    /// The innermost armed trap: the highest layer, then the latest record.
+    #[doc = r" The innermost armed trap: the highest layer, then the latest record."]
     pub fn active_trap(&self) -> Option<ScopeId> {
         self.scopes
             .iter()
@@ -207,12 +207,12 @@ impl FocusRing {
             .map(|r| r.id)
     }
 
-    /// The innermost active scope: the **latest** scope on the highest layer.
-    ///
-    /// `Iterator::max_by` keeps the *last* maximum, so the iteration must not
-    /// be reversed — `.rev().max_by(layer)` returned the *earliest* scope on
-    /// the highest layer, contradicting this doc (MI-1). Harmless while there
-    /// is one scope per layer; wrong the moment there are two.
+    #[doc = r" The innermost active scope: the **latest** scope on the highest layer."]
+    #[doc = r""]
+    #[doc = r" `Iterator::max_by` keeps the *last* maximum, so the iteration must not"]
+    #[doc = r" be reversed — `.rev().max_by(layer)` returned the *earliest* scope on"]
+    #[doc = r" the highest layer, contradicting this doc (MI-1). Harmless while there"]
+    #[doc = r" is one scope per layer; wrong the moment there are two."]
     pub fn innermost_scope(&self) -> ScopeId {
         self.scopes
             .iter()
@@ -220,10 +220,10 @@ impl FocusRing {
             .map_or(ScopeId::ROOT, |r| r.id)
     }
 
-    /// Whether `scope` is `ancestor` or nested inside it.
+    #[doc = r" Whether `scope` is `ancestor` or nested inside it."]
     pub fn within(&self, scope: ScopeId, ancestor: ScopeId) -> bool {
         let mut cur = Some(scope);
-        // bounded by the scope count so a malformed parent chain cannot loop
+
         for _ in 0..=self.scopes.len() {
             match cur {
                 Some(s) if s == ancestor => return true,
@@ -238,7 +238,7 @@ impl FocusRing {
         !e.disabled && trap.is_none_or(|t| self.within(e.scope, t))
     }
 
-    /// Enabled entries inside the innermost trap, in registration order.
+    #[doc = r" Enabled entries inside the innermost trap, in registration order."]
     pub fn reachable(&self) -> impl Iterator<Item = &FocusEntry> + '_ {
         let trap = self.active_trap();
         self.entries
@@ -246,23 +246,23 @@ impl FocusRing {
             .filter(move |e| self.is_reachable(e, trap))
     }
 
-    /// Whether `id` is reachable.
+    #[doc = r" Whether `id` is reachable."]
     pub fn contains(&self, id: Id) -> bool {
         self.reachable().any(|e| e.id == id)
     }
 
-    /// Whether `id` is registered at all (disabled included).
+    #[doc = r" Whether `id` is registered at all (disabled included)."]
     pub fn is_registered(&self, id: Id) -> bool {
         self.entries.iter().any(|e| e.id == id)
     }
 
-    /// The entry for `id`, if registered.
+    #[doc = r" The entry for `id`, if registered."]
     pub fn entry(&self, id: Id) -> Option<&FocusEntry> {
         self.entries.iter().find(|e| e.id == id)
     }
 
-    /// The reachable entry after `from`, wrapping; the first when `from` is
-    /// `None` or not reachable.
+    #[doc = r" The reachable entry after `from`, wrapping; the first when `from` is"]
+    #[doc = r" `None` or not reachable."]
     pub fn next(&self, from: Option<Id>) -> Option<Id> {
         let first = self.reachable().next()?.id;
         let Some(from) = from else {
@@ -280,8 +280,8 @@ impl FocusRing {
         Some(first)
     }
 
-    /// The reachable entry before `from`, wrapping; the last when `from` is
-    /// `None` or not reachable.
+    #[doc = r" The reachable entry before `from`, wrapping; the last when `from` is"]
+    #[doc = r" `None` or not reachable."]
     pub fn prev(&self, from: Option<Id>) -> Option<Id> {
         let last = self.reachable().last()?.id;
         let Some(from) = from else {
@@ -297,19 +297,19 @@ impl FocusRing {
         Some(last)
     }
 
-    /// The first reachable entry in `scope` or its descendants.
+    #[doc = r" The first reachable entry in `scope` or its descendants."]
     pub fn first_in(&self, scope: ScopeId) -> Option<Id> {
         self.reachable()
             .find(|e| self.within(e.scope, scope))
             .map(|e| e.id)
     }
 
-    /// The §3.3 step 14 reconciliation rule, applied when `current` is absent
-    /// from this ring (or `None`):
-    /// (a) the nearest surviving entry of the same scope by previous index,
-    /// (b) else that scope's first reachable entry,
-    /// (c) else the innermost active scope's first reachable entry,
-    /// (d) else `None`.
+    #[doc = r" The §3.3 step 14 reconciliation rule, applied when `current` is absent"]
+    #[doc = r" from this ring (or `None`):"]
+    #[doc = r" (a) the nearest surviving entry of the same scope by previous index,"]
+    #[doc = r" (b) else that scope's first reachable entry,"]
+    #[doc = r" (c) else the innermost active scope's first reachable entry,"]
+    #[doc = r" (d) else `None`."]
     pub fn reconcile(&self, prev: &FocusRing, current: Option<Id>) -> Option<Id> {
         if let Some(cur) = current
             && self.contains(cur)
@@ -320,7 +320,7 @@ impl FocusRing {
         if let Some(pe) = prev_entry {
             let prev_index = prev.entries.iter().position(|e| e.id == pe.id);
             let trap = self.active_trap();
-            // (a) nearest surviving entry in the same scope by previous index
+
             let mut best: Option<(usize, Id, bool)> = None;
             for e in self.entries.iter().filter(|e| e.scope == pe.scope) {
                 if !self.is_reachable(e, trap) {
@@ -345,24 +345,18 @@ impl FocusRing {
             if let Some((_, id, _)) = best {
                 return Some(id);
             }
-            // (b) that scope's first enabled entry
+
             if let Some(id) = self.first_in(pe.scope) {
                 return Some(id);
             }
         }
-        // (c) the innermost active scope's first enabled entry, then (d) None.
-        //
-        // The trailing `or_else` is an accepted amendment to §3.3 step 14
-        // (MI-2): rather than yielding `None` while a reachable entry exists
-        // somewhere else in the ring, focus lands on the first reachable
-        // entry. Strictly better behaviour, recorded here because it is a
-        // divergence from the literal ladder.
+
         self.first_in(self.innermost_scope())
             .or_else(|| self.reachable().next().map(|e| e.id))
     }
 }
 
-/// Runtime-owned focus state.
+#[doc = r" Runtime-owned focus state."]
 #[derive(Clone, Debug, Default)]
 pub struct FocusState {
     current: Option<Id>,
@@ -371,17 +365,17 @@ pub struct FocusState {
 }
 
 impl FocusState {
-    /// The focused control.
+    #[doc = r" The focused control."]
     pub const fn current(&self) -> Option<Id> {
         self.current
     }
 
-    /// Focus-visible: true iff the last input was a key.
+    #[doc = r" Focus-visible: true iff the last input was a key."]
     pub const fn visible(&self) -> bool {
         self.visible
     }
 
-    /// Focus as seen by `id`.
+    #[doc = r" Focus as seen by `id`."]
     pub fn vis(&self, id: Id) -> FocusVis {
         if self.current != Some(id) {
             FocusVis::None
@@ -400,17 +394,17 @@ impl FocusState {
         self.visible = yes;
     }
 
-    /// Remember where focus should return when `scope` closes.
+    #[doc = r" Remember where focus should return when `scope` closes."]
     pub(crate) fn save_restore(&mut self, scope: ScopeId, id: Id) {
         self.restore.insert(scope, id);
     }
 
-    /// Take the restore target for `scope`.
+    #[doc = r" Take the restore target for `scope`."]
     pub(crate) fn take_restore(&mut self, scope: ScopeId) -> Option<Id> {
         self.restore.remove(&scope)
     }
 
-    /// Peek the restore target for `scope`.
+    #[doc = r" Peek the restore target for `scope`."]
     pub fn restore_target(&self, scope: ScopeId) -> Option<Id> {
         self.restore.get(&scope).copied()
     }
@@ -459,7 +453,7 @@ mod tests {
             assert_eq!(r.prev(r.next(here)), here);
             assert_eq!(r.next(r.prev(here)), here);
         }
-        // a full forward walk read backwards is a full backward walk
+
         let mut cur = None;
         let fwd: Vec<Option<Id>> = (0..4)
             .map(|_| {
@@ -547,19 +541,19 @@ mod tests {
     #[test]
     fn reconcile_prefers_nearest_surviving_entry_by_previous_index() {
         let prev = ring(&["a", "b", "c", "d", "e"]);
-        // c vanished: forward neighbour d wins over backward neighbour b
+
         let now = ring(&["a", "b", "d", "e"]);
         assert_eq!(
             now.reconcile(&prev, Some(Id::root("c"))),
             Some(Id::root("d"))
         );
-        // d also gone: b (distance 1 backward) beats e (distance 2 forward)
+
         let now = ring(&["a", "b", "e"]);
         assert_eq!(
             now.reconcile(&prev, Some(Id::root("c"))),
             Some(Id::root("b"))
         );
-        // survivors keep focus
+
         assert_eq!(
             now.reconcile(&prev, Some(Id::root("a"))),
             Some(Id::root("a"))
@@ -569,7 +563,7 @@ mod tests {
     #[test]
     fn reconcile_falls_back_to_scope_first_enabled() {
         let prev = ring(&["x", "y"]);
-        // nothing survives from the previous ring; new entries in the same scope
+
         let now = ring(&["n1", "n2"]);
         assert_eq!(
             now.reconcile(&prev, Some(Id::root("y"))),
@@ -614,8 +608,6 @@ mod tests {
 
     #[test]
     fn trap_is_armed_when_the_layer_is_pushed_not_when_it_draws() {
-        // the runtime arms the layer's scope with `ensure_scope` before any
-        // draw; a layer that draws nothing still traps
         let mut r = ring(&["a", "b"]);
         r.ensure_scope(
             ScopeId::new(Id::root("modal")),
@@ -628,9 +620,9 @@ mod tests {
     }
 }
 
-/// MI-3: three §16.1 names whose mechanism lives in `Ui::register_entry` and
-/// in `Runtime`, not in `FocusRing`. As `FocusRing`-level tests they asserted
-/// nothing about the thing they are named for.
+#[doc = r" MI-3: three §16.1 names whose mechanism lives in `Ui::register_entry` and"]
+#[doc = r" in `Runtime`, not in `FocusRing`. As `FocusRing`-level tests they asserted"]
+#[doc = r" nothing about the thing they are named for."]
 #[cfg(test)]
 mod runtime_tests {
     use ratatui_core::layout::Rect;
@@ -664,8 +656,8 @@ mod runtime_tests {
         }
     }
 
-    /// `Focusability::FocusableReadOnly` registers a ring entry that Tab
-    /// reaches, and declares `READ_ONLY` for the next frame.
+    #[doc = r" `Focusability::FocusableReadOnly` registers a ring entry that Tab"]
+    #[doc = r" reaches, and declares `READ_ONLY` for the next frame."]
     #[test]
     fn read_only_entries_stay_in_the_ring() {
         let (mut rt, mut buf) = runtime(page());
@@ -676,7 +668,7 @@ mod runtime_tests {
             rt.state_of(RO).contains(StateFlags::READ_ONLY),
             "register_editor/FocusableReadOnly declares READ_ONLY"
         );
-        // and Tab actually lands on it
+
         let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
         let first = rt.focus();
         let _ = step(&mut rt, &mut buf, key(KeyCode::Tab));
@@ -687,8 +679,8 @@ mod runtime_tests {
         );
     }
 
-    /// `Focusability::ClickOnly` registers a hit region but **no** ring
-    /// entry: it is clickable and unreachable by Tab.
+    #[doc = r" `Focusability::ClickOnly` registers a hit region but **no** ring"]
+    #[doc = r" entry: it is clickable and unreachable by Tab."]
     #[test]
     fn click_only_entries_are_never_reachable() {
         let (mut rt, mut buf) = runtime(page());
@@ -699,12 +691,12 @@ mod runtime_tests {
         );
         assert!(!rt.ring().contains(CLICKY));
         assert!(rt.ring().contains(A));
-        // but the region is still hit-testable
+
         assert!(rt.registry().area_of(CLICKY).is_some());
     }
 
-    /// §21 item 15, publication amendment: after close, retain the next key
-    /// until successful publication validates and focuses the restore target.
+    #[doc = r" §21 item 15, publication amendment: after close, retain the next key"]
+    #[doc = r" until successful publication validates and focuses the restore target."]
     #[test]
     fn restore_target_receives_retained_key_after_the_next_publication() {
         let mut s = page();
@@ -716,8 +708,7 @@ mod runtime_tests {
         rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).initial_focus(OK)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         assert_eq!(rt.focus(), Some(OK));
-        // Esc dismisses the layer and detaches its owner. Historical opener
-        // identity cannot receive focus until successful publication.
+
         let _ = rt
             .handle(key(KeyCode::Esc))
             .expect("modal frame is published");
@@ -726,7 +717,7 @@ mod runtime_tests {
             None,
             "restoration must validate the opener before granting focus"
         );
-        // The exact next key remains retained and then reaches the valid opener.
+
         rt.app_mut().log.clear();
         let pending = rt.handle(key(KeyCode::Char('z'))).unwrap_err();
         assert!(!rt.app().saw(A, "Key"));

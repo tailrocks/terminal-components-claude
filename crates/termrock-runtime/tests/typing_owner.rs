@@ -1,4 +1,4 @@
-//! Explicit typing ownership remains independent of navigation focus.
+#![doc = r" Explicit typing ownership remains independent of navigation focus."]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -133,7 +133,7 @@ impl App for Model {
                 self.commands.push(command);
             }
         }
-        // This fixture owns the generic layer/control declarations directly.
+
         for owner in [MODAL, MODAL_ROW, NESTED, NESTED_ROW] {
             for _ in cx.intents(owner) {}
         }
@@ -454,8 +454,7 @@ fn readonly_primary_blocks_fallback_and_focused_primary_initializes_its_own_draf
         }
         rt.app_mut().request_focus = Some(OTHER);
         send(&mut rt, &mut buf, Input::Tick);
-        // A focused ordinary TextInput starts editing through its real FocusIn.
-        // Readonly remains non-editable and blocks the background query.
+
         assert_eq!(rt.focus(), Some(OTHER));
         if readonly {
             assert_eq!(rt.typing_owner(), None);
@@ -681,7 +680,7 @@ fn declared_fallback_caret_offers_are_silent_when_complete_frame_selects_no_fall
             "primary" | "readonly-primary" => {
                 rt.app_mut().second = true;
                 rt.app_mut().second_readonly = case == "readonly-primary";
-                // The newly mounted editor must be published before direct focus.
+
                 present(&mut rt, &mut buf);
                 rt.app_mut().request_focus = Some(OTHER);
             }

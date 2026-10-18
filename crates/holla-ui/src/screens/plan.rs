@@ -1,4 +1,4 @@
-//! Compound review: caller-owned inclusion, shared scrolling, no draw effects.
+#![doc = r" Compound review: caller-owned inclusion, shared scrolling, no draw effects."]
 use crate::domain::plan::{Plan, PlanStep, StepState};
 use crate::sim::plans::ReviewedPlan;
 use termrock::{

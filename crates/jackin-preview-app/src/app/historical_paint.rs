@@ -1,5 +1,5 @@
-//! Authored custom-painter pairs. Mono policy targets text pairs explicitly;
-//! intentional same-surface fills retain their invisible glyphs.
+#![doc = r" Authored custom-painter pairs. Mono policy targets text pairs explicitly;"]
+#![doc = r" intentional same-surface fills retain their invisible glyphs."]
 use termrock::author::PaintStyle;
 use termrock::theme::{MonoRule, StyleDefaults};
 use termrock::{

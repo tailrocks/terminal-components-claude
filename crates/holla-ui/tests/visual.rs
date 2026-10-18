@@ -1,8 +1,8 @@
-//! Visual digest matrix for the holla launcher.
-//!
-//! Every deterministic scenario renders one paused fixture frame (`4000`,
-//! the same tick the capture matrix freezes), so the matrix is stable across
-//! machines and can only change with an authored render change.
+#![doc = r" Visual digest matrix for the holla launcher."]
+#![doc = r""]
+#![doc = r" Every deterministic scenario renders one paused fixture frame (`4000`,"]
+#![doc = r" the same tick the capture matrix freezes), so the matrix is stable across"]
+#![doc = r" machines and can only change with an authored render change."]
 
 use holla_ui::{App, Motion, Scenario};
 use termrock::{ColorLevel, FeedbackClock, SimulationMoment, Theme};

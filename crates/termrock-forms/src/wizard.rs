@@ -1,4 +1,4 @@
-//! Stateful multi-step flow controller (`COMPONENT_ARCHITECTURE.md` §14.2 J7).
+#![doc = r" Stateful multi-step flow controller (`COMPONENT_ARCHITECTURE.md` §14.2 J7)."]
 
 use ratatui_core::layout::Rect;
 use std::collections::BTreeMap;
@@ -14,19 +14,19 @@ use crate::response::{Response, StateFlags};
 use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
-/// One declared wizard step.
+#[doc = r" One declared wizard step."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct WizardStep<'a> {
-    /// Stable step identity.
+    #[doc = r" Stable step identity."]
     pub key: ItemKey,
-    /// Display label.
+    #[doc = r" Display label."]
     pub label: &'a str,
-    /// Whether forward navigation may enter this step.
+    #[doc = r" Whether forward navigation may enter this step."]
     pub enabled: bool,
 }
 
 impl<'a> WizardStep<'a> {
-    /// Declare an enabled step.
+    #[doc = r" Declare an enabled step."]
     pub const fn new(key: ItemKey, label: &'a str) -> Self {
         Self {
             key,
@@ -35,7 +35,7 @@ impl<'a> WizardStep<'a> {
         }
     }
 
-    /// Enable or disable the step.
+    #[doc = r" Enable or disable the step."]
     #[must_use]
     pub const fn enabled(mut self, enabled: bool) -> Self {
         self.enabled = enabled;
@@ -43,23 +43,23 @@ impl<'a> WizardStep<'a> {
     }
 }
 
-/// Semantic wizard output.
+#[doc = r" Semantic wizard output."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum WizardAction {
-    /// The active step changed.
+    #[doc = r" The active step changed."]
     Moved(ItemKey),
-    /// The current step requested completion.
+    #[doc = r" The current step requested completion."]
     Finish(ItemKey),
 }
 
-/// Wizard key commands.
+#[doc = r" Wizard key commands."]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum WizardCmd {
-    /// Rewind one visited step.
+    #[doc = r" Rewind one visited step."]
     Back,
-    /// Advance one enabled step.
+    #[doc = r" Advance one enabled step."]
     Next,
-    /// Finish on the last step.
+    #[doc = r" Finish on the last step."]
     Finish,
 }
 
@@ -90,10 +90,10 @@ const BINDINGS: &[Binding<WizardCmd>] = &[
     },
 ];
 
-/// Durable navigation plus caller-selected per-step state.
-///
-/// State slots are keyed, so rewinding and later returning never rebuilds a
-/// step's state. The payload type defaults to `()` for stateless flows.
+#[doc = r" Durable navigation plus caller-selected per-step state."]
+#[doc = r""]
+#[doc = r" State slots are keyed, so rewinding and later returning never rebuilds a"]
+#[doc = r" step's state. The payload type defaults to `()` for stateless flows."]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct WizardState<S = ()> {
     current: Option<ItemKey>,
@@ -112,12 +112,12 @@ impl<S> Default for WizardState<S> {
 }
 
 impl<S> WizardState<S> {
-    /// Active step key.
+    #[doc = r" Active step key."]
     pub const fn current(&self) -> Option<ItemKey> {
         self.current
     }
 
-    /// The retained state for `key`, inserting it exactly once.
+    #[doc = r" The retained state for `key`, inserting it exactly once."]
     pub fn state_mut(&mut self, key: ItemKey, init: impl FnOnce() -> S) -> &mut S {
         self.slots.entry(key).or_insert_with(init)
     }
@@ -138,55 +138,55 @@ impl<S> WizardState<S> {
     }
 }
 
-/// A keyed wizard controller with an inline stepper rail.
-///
-/// ## Construction
-/// `Wizard::new(id, steps)`; step payload remains in caller-owned
-/// [`WizardState`].
-///
-/// ## Ownership
-/// The caller owns state and step payloads. The component owns navigation.
-///
-/// ## Configuration
-/// `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::WIZARD`, `Variant::DEFAULT`.
-///
-/// ## States
-/// `FOCUSED`; active step uses `ACTIVE`, disabled steps use `DISABLED`.
-///
-/// ## Actions
-/// [`WizardAction::Moved`] and [`WizardAction::Finish`], both keyed.
-///
-/// ## Focus
-/// One focus stop for the complete flow.
-///
-/// ## Keyboard
-/// Left rewinds; Right advances; Enter advances or finishes.
-///
-/// ## Mouse
-/// Clicking an enabled step enters it.
-///
-/// ## Layout
-/// One horizontal stepper row; labels share the available width.
-///
-/// ## Parts
-/// `CONTAINER`, `MARKER`, `LABEL`.
-///
-/// ## Overrides
-/// Patch all parts; slots replace `MARKER` or `LABEL`.
-///
-/// ## Identity
-/// One component id; enabled steps publish root-owned keyed label parts.
-///
-/// ## Testing
-/// Conformance plus retained-state rewind coverage.
-///
-/// ## Invariants
-/// Forward navigation and pointer activation skip disabled steps, which are
-/// not registered as clickable parts. `update` emits at most one keyed action;
-/// `draw` does not mutate [`WizardState`], and per-step state survives rewind.
+#[doc = r" A keyed wizard controller with an inline stepper rail."]
+#[doc = r""]
+#[doc = r" ## Construction"]
+#[doc = r" `Wizard::new(id, steps)`; step payload remains in caller-owned"]
+#[doc = r" [`WizardState`]."]
+#[doc = r""]
+#[doc = r" ## Ownership"]
+#[doc = r" The caller owns state and step payloads. The component owns navigation."]
+#[doc = r""]
+#[doc = r" ## Configuration"]
+#[doc = r" `.patch`, `.patch_part`, `.slot`."]
+#[doc = r""]
+#[doc = r" ## Variants"]
+#[doc = r" `Family::WIZARD`, `Variant::DEFAULT`."]
+#[doc = r""]
+#[doc = r" ## States"]
+#[doc = r" `FOCUSED`; active step uses `ACTIVE`, disabled steps use `DISABLED`."]
+#[doc = r""]
+#[doc = r" ## Actions"]
+#[doc = r" [`WizardAction::Moved`] and [`WizardAction::Finish`], both keyed."]
+#[doc = r""]
+#[doc = r" ## Focus"]
+#[doc = r" One focus stop for the complete flow."]
+#[doc = r""]
+#[doc = r" ## Keyboard"]
+#[doc = r" Left rewinds; Right advances; Enter advances or finishes."]
+#[doc = r""]
+#[doc = r" ## Mouse"]
+#[doc = r" Clicking an enabled step enters it."]
+#[doc = r""]
+#[doc = r" ## Layout"]
+#[doc = r" One horizontal stepper row; labels share the available width."]
+#[doc = r""]
+#[doc = r" ## Parts"]
+#[doc = r" `CONTAINER`, `MARKER`, `LABEL`."]
+#[doc = r""]
+#[doc = r" ## Overrides"]
+#[doc = r" Patch all parts; slots replace `MARKER` or `LABEL`."]
+#[doc = r""]
+#[doc = r" ## Identity"]
+#[doc = r" One component id; enabled steps publish root-owned keyed label parts."]
+#[doc = r""]
+#[doc = r" ## Testing"]
+#[doc = r" Conformance plus retained-state rewind coverage."]
+#[doc = r""]
+#[doc = r" ## Invariants"]
+#[doc = r" Forward navigation and pointer activation skip disabled steps, which are"]
+#[doc = r" not registered as clickable parts. `update` emits at most one keyed action;"]
+#[doc = r" `draw` does not mutate [`WizardState`], and per-step state survives rewind."]
 #[derive(Debug)]
 pub struct Wizard<'a> {
     id: Id,
@@ -195,10 +195,10 @@ pub struct Wizard<'a> {
 }
 
 impl<'a> Wizard<'a> {
-    /// Styled parts.
+    #[doc = r" Styled parts."]
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::MARKER, Part::LABEL];
 
-    /// Build a wizard over borrowed declarations.
+    #[doc = r" Build a wizard over borrowed declarations."]
     pub const fn new(id: Id, steps: &'a [WizardStep<'a>]) -> Self {
         Self {
             id,
@@ -207,26 +207,26 @@ impl<'a> Wizard<'a> {
         }
     }
 
-    /// Patch every part.
+    #[doc = r" Patch every part."]
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.ov = self.ov.global(patch);
         self
     }
-    /// Patch selected parts.
+    #[doc = r" Patch selected parts."]
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(parts);
         self
     }
-    /// Replace a supported part painter.
+    #[doc = r" Replace a supported part painter."]
     #[must_use]
     pub const fn slot(mut self, part: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(part, f);
         self
     }
 
-    /// Update navigation. Declarations are borrowed in both phases.
+    #[doc = r" Update navigation. Declarations are borrowed in both phases."]
     pub fn update<S>(&self, cx: &mut Cx<'_>, st: &mut WizardState<S>) -> Response<WizardAction> {
         if st.current.is_none() {
             st.current = self.steps.iter().find(|s| s.enabled).map(|s| s.key);
@@ -300,7 +300,7 @@ impl<'a> Wizard<'a> {
         .for_id(self.id)
     }
 
-    /// Draw the inline stepper.
+    #[doc = r" Draw the inline stepper."]
     #[expect(
         clippy::too_many_lines,
         reason = "one pass owns keyed step geometry, state and painting"
@@ -379,9 +379,6 @@ impl<'a> Wizard<'a> {
                     flags,
                 );
                 if flags.contains(StateFlags::FOCUSED) {
-                    // Focus must remain visible when colour is unavailable.
-                    // Keep the active marker in the second cell so focus does
-                    // not erase the step's current-state affordance.
                     ui.glyph(
                         Rect {
                             width: marker.width.min(1),
@@ -435,7 +432,7 @@ impl<'a> Wizard<'a> {
         row
     }
 
-    /// Natural single-row size.
+    #[doc = r" Natural single-row size."]
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let w = self.steps.iter().fold(0u16, |n, s| {
             n.saturating_add(crate::text::width(s.label))

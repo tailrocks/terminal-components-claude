@@ -1,9 +1,9 @@
-//! The text corpus (`COMPONENT_ARCHITECTURE.md` §21 item 29): ≥ 200 strings
-//! covering ASCII, CJK wide, combining marks, ZWJ emoji, RTL, control
-//! characters and widths `0..=120`, shared by the width, `RowUi` and
-//! truncation tests.
+#![doc = r" The text corpus (`COMPONENT_ARCHITECTURE.md` §21 item 29): ≥ 200 strings"]
+#![doc = r" covering ASCII, CJK wide, combining marks, ZWJ emoji, RTL, control"]
+#![doc = r" characters and widths `0..=120`, shared by the width, `RowUi` and"]
+#![doc = r" truncation tests."]
 
-/// Hand-written seeds covering every category.
+#[doc = r" Hand-written seeds covering every category."]
 pub(crate) const SEEDS: &[&str] = &[
     "",
     "a",
@@ -49,8 +49,8 @@ pub(crate) const SEEDS: &[&str] = &[
     "\u{FEFF}bom",
 ];
 
-/// The full corpus: the seeds plus generated strings of every width from
-/// 0 to 120 in ASCII, CJK and mixed alphabets.
+#[doc = r" The full corpus: the seeds plus generated strings of every width from"]
+#[doc = r" 0 to 120 in ASCII, CJK and mixed alphabets."]
 pub(crate) fn corpus() -> Vec<String> {
     let mut out: Vec<String> = SEEDS.iter().map(|s| (*s).to_owned()).collect();
     for w in 0..=120usize {

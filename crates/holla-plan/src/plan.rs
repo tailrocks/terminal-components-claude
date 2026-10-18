@@ -1,9 +1,9 @@
-//! Plan: a compound intent as a reviewable DAG. Steps declare dependencies
-//! and branches; the reviewer may exclude optional steps and the exclusion
-//! recalculates dependents; a failed step propagates to everything that
-//! needed it. Nothing executes — outcomes are fixture-deterministic.
+#![doc = r" Plan: a compound intent as a reviewable DAG. Steps declare dependencies"]
+#![doc = r" and branches; the reviewer may exclude optional steps and the exclusion"]
+#![doc = r" recalculates dependents; a failed step propagates to everything that"]
+#![doc = r" needed it. Nothing executes — outcomes are fixture-deterministic."]
 
-/// A review fact expressed as domain text; the application view chooses its UI.
+#[doc = r" A review fact expressed as domain text; the application view chooses its UI."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlanFact {
     pub label: String,
@@ -19,18 +19,18 @@ impl PlanFact {
     }
 }
 
-/// Where a step stands. `Pending` becomes a terminal state on `run()`;
-/// `Excluded` is the reviewer's choice and recalculates dependents.
+#[doc = r" Where a step stands. `Pending` becomes a terminal state on `run()`;"]
+#[doc = r" `Excluded` is the reviewer's choice and recalculates dependents."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StepState {
     Pending,
-    /// Excluded in review; dependents become blocked.
+    #[doc = r" Excluded in review; dependents become blocked."]
     Excluded,
-    /// Seeded before the run by policy (never executed, never excludable).
+    #[doc = r" Seeded before the run by policy (never executed, never excludable)."]
     PolicySkipped(String),
     Succeeded,
     Failed(String),
-    /// A dependency failed, was skipped or excluded.
+    #[doc = r" A dependency failed, was skipped or excluded."]
     Skipped(String),
 }
 
@@ -52,18 +52,18 @@ pub struct PlanStep {
     pub id: String,
     pub title: String,
     pub command: String,
-    /// Parallel branches share a label (`apt`, `mise`, `builder`).
+    #[doc = r" Parallel branches share a label (`apt`, `mise`, `builder`)."]
     pub branch: String,
-    /// Indexes of steps that must succeed first (always earlier indexes).
+    #[doc = r" Indexes of steps that must succeed first (always earlier indexes)."]
     pub deps: Vec<usize>,
-    /// The reviewer may exclude optional steps; exclusion cascades.
+    #[doc = r" The reviewer may exclude optional steps; exclusion cascades."]
     pub optional: bool,
-    /// Deterministic failure reason when the step runs, if any.
+    #[doc = r" Deterministic failure reason when the step runs, if any."]
     pub fails: Option<String>,
     pub ok_lines: Vec<String>,
     pub fail_lines: Vec<String>,
     pub state: StepState,
-    /// Output lines after the run (empty while pending).
+    #[doc = r" Output lines after the run (empty while pending)."]
     pub lines: Vec<String>,
 }
 
@@ -136,30 +136,30 @@ impl PlanStep {
     }
 }
 
-/// A world mutation applied after a plan runs — the fixture stays honest:
-/// what the plan claimed to change is changed. Payloads stay markers; the
-/// apply step reads which steps actually succeeded.
+#[doc = r" A world mutation applied after a plan runs — the fixture stays honest:"]
+#[doc = r" what the plan claimed to change is changed. Payloads stay markers; the"]
+#[doc = r" apply step reads which steps actually succeeded."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlanEffect {
-    /// A restarted container becomes Running + Healthy.
+    #[doc = r" A restarted container becomes Running + Healthy."]
     RestartContainer(String),
-    /// Prune what succeeded: cache bytes, removed exited containers.
+    #[doc = r" Prune what succeeded: cache bytes, removed exited containers."]
     DockerCleanup,
-    /// Remove the candidates whose removal step succeeded.
+    #[doc = r" Remove the candidates whose removal step succeeded."]
     DiskReclaim,
-    /// Upgrades applied: security pending clears, held stays, reboot stays.
+    #[doc = r" Upgrades applied: security pending clears, held stays, reboot stays."]
     DebianUpgraded,
-    /// Each succeeded child pull zeroes that child's behind count.
+    #[doc = r" Each succeeded child pull zeroes that child's behind count."]
     GitSync,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlanSpec {
-    /// The catalogue action this plan reviews (`docker.cleanup`).
+    #[doc = r" The catalogue action this plan reviews (`docker.cleanup`)."]
     pub action_id: String,
     pub title: String,
     pub host: String,
-    /// The gate-2 typed phrase, bound to the target host.
+    #[doc = r" The gate-2 typed phrase, bound to the target host."]
     pub phrase: String,
     pub will_change: String,
     pub steps: Vec<PlanStep>,
@@ -168,11 +168,11 @@ pub struct PlanSpec {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Plan {
-    /// The catalogue action this plan reviews (`docker.cleanup`).
+    #[doc = r" The catalogue action this plan reviews (`docker.cleanup`)."]
     action_id: String,
     title: String,
     host: String,
-    /// The gate-2 typed phrase, bound to the target host.
+    #[doc = r" The gate-2 typed phrase, bound to the target host."]
     phrase: String,
     will_change: String,
     steps: Vec<PlanStep>,
@@ -180,7 +180,7 @@ pub struct Plan {
     ran: bool,
 }
 
-/// Invalid plan declarations and review transitions fail before execution.
+#[doc = r" Invalid plan declarations and review transitions fail before execution."]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlanError {
     DuplicateId,
@@ -208,11 +208,11 @@ impl std::fmt::Display for PlanError {
 impl std::error::Error for PlanError {}
 
 impl Plan {
-    /// Validate a declaration-ordered DAG before it can enter review.
-    ///
-    /// # Errors
-    /// Rejects duplicate/empty IDs, non-earlier dependencies, and pre-executed
-    /// states. Earlier-only edges guarantee acyclic, bounded traversal.
+    #[doc = r" Validate a declaration-ordered DAG before it can enter review."]
+    #[doc = r""]
+    #[doc = r" # Errors"]
+    #[doc = r" Rejects duplicate/empty IDs, non-earlier dependencies, and pre-executed"]
+    #[doc = r" states. Earlier-only edges guarantee acyclic, bounded traversal."]
     pub fn try_new(spec: PlanSpec) -> Result<Self, PlanError> {
         let mut ids = std::collections::BTreeSet::new();
         for (index, step) in spec.steps.iter().enumerate() {
@@ -278,7 +278,7 @@ impl Plan {
         self.effect.as_ref()
     }
 
-    /// Included = not excluded and not policy-skipped.
+    #[doc = r" Included = not excluded and not policy-skipped."]
     pub fn included_count(&self) -> usize {
         self.steps
             .iter()
@@ -286,8 +286,8 @@ impl Plan {
             .count()
     }
 
-    /// The first excluded dependency of a pending step, if any — the
-    /// recalculated consequence a reviewer sees before running anything.
+    #[doc = r" The first excluded dependency of a pending step, if any — the"]
+    #[doc = r" recalculated consequence a reviewer sees before running anything."]
     #[expect(
         clippy::arithmetic_side_effects,
         clippy::indexing_slicing,
@@ -309,7 +309,7 @@ impl Plan {
             .map(|&dependency| self.steps[dependency].title.clone())
     }
 
-    /// Space on a row: toggle exclusion of an optional, not-yet-run step.
+    #[doc = r" Space on a row: toggle exclusion of an optional, not-yet-run step."]
     pub fn toggle(&mut self, i: usize) -> Result<String, PlanError> {
         let s = self.steps.get_mut(i).ok_or(PlanError::MissingStep)?;
         if self.ran {
@@ -329,8 +329,8 @@ impl Plan {
         })
     }
 
-    /// Deterministic execution in declaration order (deps are always
-    /// earlier indexes). A failure or skip propagates to dependents.
+    #[doc = r" Deterministic execution in declaration order (deps are always"]
+    #[doc = r" earlier indexes). A failure or skip propagates to dependents."]
     #[expect(
         clippy::indexing_slicing,
         reason = "Private Plan construction validates every dependency as an earlier row; execution changes only states and never indexes or vector length"
@@ -384,7 +384,7 @@ impl Plan {
         parts.join(" · ")
     }
 
-    /// Gate-1 review facts (the full-body surface shows these plus the DAG).
+    #[doc = r" Gate-1 review facts (the full-body surface shows these plus the DAG)."]
     pub fn facts(&self) -> Vec<PlanFact> {
         vec![
             PlanFact::new("Target", format!("host {}", self.host)),

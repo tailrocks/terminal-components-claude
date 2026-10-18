@@ -1,4 +1,4 @@
-//! Explicit spinner spacing preserves measurement and authoritative painting.
+#![doc = r" Explicit spinner spacing preserves measurement and authoritative painting."]
 use termrock::{ColorLevel, Constraints, Id, Rect, Spinner, Theme};
 use termrock_test_support::Scene;
 #[test]
