@@ -1,49 +1,5 @@
 # Upstream feedback prompts
 
-## Status
-
-Current project documentation; individual evidence and task state may be revision-scoped.
-
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-
-## Current evidence
-
-Use the cited sources and current repository state; historical records retain their original scope.
-
-## Remaining work
-
-Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
-
-## Verification
-
-Run current task-specific checks before treating implementation as complete.
-
-
-Each file here is a self-contained prompt for an AI agent working in an
-upstream repository. The product owner copies a file verbatim into that
-agent's session. The files contain no conversation context and point at
-this repository and branch (`design/interaction-polish`) for evidence.
-Nobody opens issues or PRs upstream from here; we only review the PRs
-the upstream agents open (see [Upstream PR loop](#upstream-pr-loop)).
-
-| File | Upstream | Our pin today | Asks | Status |
-|---|---|---|---|---|
-| [`velnor-new-feedback.md`](velnor-new-feedback.md) | [tailrocks/velnor-new](https://github.com/tailrocks/velnor-new) | `v0.1.12` (`.velnor/release-manifest.json`, 2026-10-17) | visual-test suites: named nextest profile, real `--partition` shards, schedule/dispatch triggers, artifact upload, timeouts, required membership, preserved workflows; opt-in `.github/CLAUDE.md` symlink; repository Rust toolchain and tool overrides (§8) | §2–§5 and §8 done: PR [#155](https://github.com/tailrocks/velnor-new/pull/155) released in v0.1.9 and adopted 2026-10-17. v0.1.10 to v0.1.12 adopted 2026-10-17 without fixing any open item. Open: §9 Problem D (`Publish baseline`, no PR yet) and two non-blocking §8 follow-ups (default Rust/zizmor catalog, `[tools]` versions only shape-checked), all re-checked on v0.1.12; see the tracker in the file |
-| [`tuiscotti-feedback.md`](tuiscotti-feedback.md) | [tailrocks/tuiscotti](https://github.com/tailrocks/tuiscotti) | `rev = a1ea27f757d75d07b05499276cd932e9f8e067ad` (`Cargo.toml`, 2026-10-17) | lone `f` key, exact dependency pins, `.ansi`+cursor artifact mode with CLI accept, non-unique locators, last screen in `WaitError`, render speed, no absolute paths, clock/pointer/docs | done: PR [#11](https://github.com/tailrocks/tuiscotti/pull/11) merged as `be860d1` (2026-10-16) and adopted 2026-10-17, workarounds deleted; open on our side only the legacy four-file store migration (see the tracker in the file) |
-
-When an upstream agent reports back:
-
-1. Record the new version or rev and the date in the table.
-2. Apply the consumer changes it lists. velnor: replace the manifest,
-   edit `.velnor/config.toml`, run `velnor-actions generate`, update
-   `docs/ci.md`.
-   tuiscotti: bump the `rev`, delete the local gate and `ansi_cursor.rs`
-   where upstream replaces them, and re-run the visual gate.
-3. Mark the row done, or write a follow-up prompt here for anything it
-   declined.
-
 ## Upstream PR loop
 
 Separate agents in [tailrocks/velnor-new](https://github.com/tailrocks/velnor-new)

@@ -1,23 +1,5 @@
 
-## Status
-
-WIP-specific findings and accepted decisions recorded in the document copy at `b249a81be807879212bd4bf50a9246aff5c18d60`. Existing finding IDs and any explicitly recorded closures are retained.
-
-## Authority
-
-`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
-
-## Current evidence
-
-The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
-
-## Remaining work
-
-Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
-
-## Verification
-
-Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+> Source-pinned design review. The observations, proposed contracts, and any results below describe the recorded review only; they do not prove the current split-crate implementation or readiness. Preserve concrete requirements in the active branch work register and verify them against current code before closing work.
 
 Audited `origin/design/interaction-polish` at 9776abef7, mouse first. Most findings were checked against the code. Throwaway harness tests in showcase, tablepro, holla and jackin confirmed each probed behaviour as broken or missing at that revision; they were not committed. Severity scale: H = dead end or clearly wrong, M = gap against desktop behaviour, L = polish.
 

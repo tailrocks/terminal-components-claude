@@ -1,21 +1,19 @@
-# Design and interaction contract
+# Product design and interaction contract
 
-## Status
+## Product authority
 
-`design/interaction-polish` defines the intended visual language, colors, layout, interaction, and behavior. Planned improvements remain active until their individual acceptance evidence is recorded.
+Use `design/interaction-polish` as the exact authority for visual language, color, layout, focus, keyboard and pointer interaction, states, and user-visible behavior. Use `main` for structural direction; its split-crate refactor remains incomplete and not ready. The `wip/plan-s16` implementation and captures are branch-specific evidence and do not imply that every design-target feature is present.
 
-## Authority
+## Detailed specifications
 
-Use this branch's UI/UX as the target. Preserve its established appearance and behavior while implementing the split-crate architecture described in `docs/architecture.md`. The `main` branch's incomplete refactor is not the visual or behavioral authority. Reusable API proposals from either branch may inform the final API, subject to the crate architecture.
+The full design contract is [DESIGN.md](design/DESIGN.md). Focused source findings are in [design review](audits/design-review-2026-10/); prioritized reusable changes are in [improvements](improvements/PLAN.md); app capability status and evidence are under [parity](parity/). Check each row and its scoped evidence instead of inferring blanket completion.
 
-## Current evidence
+The visual harness and commands are in [visual testing](visual-testing/README.md). Captures and approval stores are revision-scoped data. The `visual-baseline` tag is immutable historical evidence, not the current design authority.
 
-The specifications and plans under `docs/design/`, `docs/audits/`, `docs/improvements/`, `docs/parity/`, and `docs/visual-testing/` record intended behavior, findings, and historical verification. Each record's own scope and date controls what it proves. A planned behavior is not implemented merely because it appears here; a historical pass is not proof for the current revision.
+## Remaining acceptance work
 
-## Remaining work
+Keep every open design, behavior, accessibility, visual, parity, API, app-coverage, and verification requirement in [remaining work](remaining-work.md), improvements, audits, parity plans, and task contracts. Keep scenario coverage aligned with actual states, overlay open and dismissal paths, keyboard/pointer behavior, terminal sizes, and color modes. A source change closes an item only with its stated current acceptance evidence.
 
-Keep all planned work from `design/interaction-polish`, including open audits, improvements, parity gaps, and refactoring tasks. Resolve contradictory or superseded prose by updating the relevant active contract and linking historical evidence as historical. Do not silently discard a concrete requirement or finding.
+## Visual verification
 
-## Verification
-
-Use `docs/visual-testing/README.md` and the current visual baseline procedures to verify rendered appearance and interaction. Use the relevant component or app tests for behavior. Record the tested revision, scope, and result. No documentation change authorizes a code or behavior change by itself.
+Compare matched scenarios, terminal sizes, and color levels against `design/interaction-polish`; inspect rendered output, not only cell deltas. For implementation changes run the corresponding app/component tests and `cargo xtask visual check-touched`. Record the exact revision, scenario set, color level, and disposition for every approval change.

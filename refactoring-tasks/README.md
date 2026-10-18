@@ -6,7 +6,7 @@ Historical task-format catalog. Its packages are pinned contract artifacts pendi
 
 ## Authority
 
-`main` supplies the split-crate architecture and reusable API direction. `design/interaction-polish` supplies the current UI/UX, colors, and behavior. Historical package inputs and oracle pins do not override that design authority. The current readiness record is [docs/status.md](../docs/status.md), and open work is tracked in [docs/remaining-work.md](../docs/remaining-work.md).
+`main` supplies the split-crate architecture and reusable API direction. `design/interaction-polish` supplies the current UI/UX, colors, and behavior. Historical package inputs and oracle pins do not override that design authority. The current readiness record is [docs/README.md](../docs/README.md), and open work is tracked in [docs/remaining-work.md](../docs/remaining-work.md).
 
 ## Current evidence
 
@@ -18,6 +18,6 @@ Retain every package requirement, acceptance criterion, check, task dependency, 
 
 ## Verification
 
-The package schema is `task/v5`, `verify/v2`, and `task-meta/v1` at task-format revision `52d9f1eb7721f409bc47beb9fced7997b5c13ede`. Each task README follows the schema’s fixed sections. The [task artifact disposition inventory](../docs/refactoring-task-disposition.tsv) classifies and hashes every Markdown artifact in this tree. Partition review ledgers also record per-task README SHA-256 and semantic coverage. Changing pinned task files requires a newly reviewed contract set and updated inventories. Schema lint alone does not establish current authority or implementation readiness.
+The package schema is `task/v5`, `verify/v2`, and `task-meta/v1` at task-format revision `52d9f1eb7721f409bc47beb9fced7997b5c13ede`. Each task README follows the schema’s fixed sections. Each task keeps its own source pins, writable scope, trusted inputs, and acceptance criteria. A necessary change to pinned task files requires an intentional, reviewed task/proof migration that updates dependent contracts and verification inputs. Schema lint alone does not establish current authority or implementation readiness.
 
 Read the [historical proof contract](../docs/refactoring-plan/proof-contract.md), [task index](../docs/refactoring-plan/task-index.tsv), and [bidirectional traceability](../docs/refactoring-plan/traceability.tsv) as source records only. Do not use the old dispatcher or promotion lifecycle as current workflow.

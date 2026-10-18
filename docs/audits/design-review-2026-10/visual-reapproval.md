@@ -1,24 +1,6 @@
 # Historical visual comparison: `visual-baseline` (tablepro, holla, jackin)
 
-## Status
-
-Historical report retained as branch-scoped evidence from `b249a81be807879212bd4bf50a9246aff5c18d60`. It does not grant current visual approval or establish parity with the accepted product reference.
-
-## Authority
-
-`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
-
-## Current evidence
-
-The report describes comparisons made against the immutable `visual-baseline` tag at its recorded source revision. Those comparisons are historical evidence; the accepted target for visual and interaction work is `design/interaction-polish`.
-
-## Remaining work
-
-Re-run or complete any open approval rows against the accepted design reference at matching states, sizes, and color capabilities. Keep old comparison results attributed to their historical scope.
-
-## Verification
-
-Use the visual-testing plan and its pinned capture tooling; compare current captures with the accepted design branch. Never retarget or rewrite `visual-baseline`.
+> Source-pinned design review. The observations, proposed contracts, and any results below describe the recorded review only; they do not prove the current split-crate implementation or readiness. Preserve concrete requirements in the active branch work register and verify them against current code before closing work.
 
 Historical status at the report revision: tablepro, holla and jackin were recorded as re-approved against the historical baseline. This is not current product approval.
 

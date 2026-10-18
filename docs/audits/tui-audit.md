@@ -1,25 +1,7 @@
 # Rich-TUI design-system audit
 
-## Status
 
-Historical evidence. Its dated findings and source pins describe the recorded review only.
-
-## Authority
-
-Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
-
-## Current evidence
-
-Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
-
-## Remaining work
-
-Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
-
-## Verification
-
-Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
-
+> Historical evidence; claims below apply to the revisions and scope identified in the report.
 
 Scope: `holla-fable` in `donbeave/terminal-components-claude`, starting at
 `7962b7b9913cf8bb736f309815e20a5d9036e0d9` with a clean worktree on
@@ -109,7 +91,7 @@ Additional reproduced defects closed during verification:
   becomes `…`; fitting graphemes stay intact. Tests cover widths 0–7, CJK, emoji
   and combining marks. Risk is limited to allocations narrower than one glyph.
 
-Detailed evidence: [interactions](tui-audit-interactions.md),
+Active contracts: [interactions](tui-audit-interactions.md),
 [editor/search](tui-audit-editor.md), [inventory/API](tui-audit-inventory.md),
 [research](tui-audit-research.md), and [verification](tui-audit-verification.md).
 

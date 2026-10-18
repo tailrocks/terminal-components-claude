@@ -1,23 +1,5 @@
 # Holla improvement scope
 
-## Status
-
-This scope bounds the Holla prototype improvement plan, not the repository-wide refactor. The main-branch refactor remains incomplete, broken, and not ready.
-
-## Authority
-
-Use this file for Holla prototype delivery scope. Keep product requirements in `docs/product/CONCEPT.md`, UI/UX in `design/interaction-polish`, and crate/API direction in `docs/architecture.md`.
-
-## Current evidence
-
-The current Holla implementation lives in `src/bin/holla/`. Each status and completion claim must be checked against current source and its task evidence.
-
-## Remaining work
-
-Keep Current, Later, and deferred requirements recorded below and in `docs/improvements/PLAN.md`. This scope does not cancel later work or repository-wide refactoring.
-
-## Verification
-
 Use each slice's acceptance criteria and current Rust and visual checks. Historical test and capture results apply only to their named revision.
 
 ## Prototype delivery scope

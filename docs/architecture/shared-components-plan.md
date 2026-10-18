@@ -1,30 +1,12 @@
 # Shared components plan
 
-## Status
+This is the detailed candidate architecture and implementation plan, including its API contracts, component work, audit findings, and showcase requirements. The document copy is scoped to `plan-s16` at `17ae62aad6d4`; any recorded status is evidence for that scope only. The split-crate architecture on `main` remains incomplete and not ready. Use [the branch backlog](../remaining-work.md) for its active work items and [the visual-testing guide](../visual-testing/README.md) for current procedures. Design/interaction-polish remains the reference for appearance, UI/UX, colors, and behavior.
 
-WIP-specific implementation plan with step outcomes and open work, document copy at `b249a81be807879212bd4bf50a9246aff5c18d60`. The detailed S/SC identifiers and outcome records below are preserved.
+The requirements below originate in the design-branch analysis. Their detailed API and behavior proposals are candidate contracts; reconcile implementation to `main`'s split-crate boundaries. Any status attached to a task remains scoped to the cited WIP revision.
 
-## Authority
+**Branch work register:** [`docs/remaining-work.md`](../remaining-work.md) records branch-specific open items, dependencies, acceptance criteria, and scoped closures. This plan retains detailed technical requirements and task relationships.
 
-`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
-
-## Current evidence
-
-Step status and outcome sections record implementation decisions and closures from this branch. They are not evidence of equivalent implementation or readiness in the split-crate `main` checkout.
-
-## Remaining work
-
-Complete the unclosed plan steps and carry-overs. Preserve their dependencies, acceptance criteria, recorded deviations, and paired showcase work.
-
-## Verification
-
-For each step, use its stated acceptance tests and gate. Compare visible behavior against `design/interaction-polish`; migrate accepted APIs into the appropriate `main` crates.
-
-This detailed plan records product/API contracts and branch-local step outcomes for `design/interaction-polish`; individual implementation claims remain scoped to their cited revisions. Its proposed implementation structure is candidate input; `main`'s split-crate architecture controls placement and boundaries.
-
-**What is left:** [`docs/remaining-work.md`](../remaining-work.md) is the single list of every step, carry-over, audit follow-up and owner decision still open on this branch.
-
-Inputs: [`duplication-shell.md`](../audits/design-review-2026-10/duplication-shell.md), [`duplication-widgets.md`](../audits/design-review-2026-10/duplication-widgets.md) and [`duplication-screens.md`](../audits/design-review-2026-10/duplication-screens.md); [`mouse.md`](../audits/design-review-2026-10/mouse.md) and [`keyboard.md`](../audits/design-review-2026-10/keyboard.md); [`standards-interaction.md`](../audits/design-review-2026-10/standards-interaction.md) and [`standards-visual.md`](../audits/design-review-2026-10/standards-visual.md); the status sections of the other audits; and [`docs/visual-testing/plan.md`](../visual-testing/plan.md), which records the product appearance and behavior that a `main` implementation must match while retaining `main`'s split-crate architecture. The showcase coverage track (§7) also takes [`showcase-coverage-library.md`](../audits/design-review-2026-10/showcase-coverage-library.md) and [`showcase-coverage-apps.md`](../audits/design-review-2026-10/showcase-coverage-apps.md). Finding references: **M#** is a mouse audit finding, **K#** a keyboard audit finding, **SI#** a standards-interaction verdict, **SV#** a standards-visual verdict, and **SIg#** / **SVg#** a "gaps not yet raised" item in those two reviews.
+Inputs: [`duplication-shell.md`](../audits/design-review-2026-10/duplication-shell.md), [`duplication-widgets.md`](../audits/design-review-2026-10/duplication-widgets.md) and [`duplication-screens.md`](../audits/design-review-2026-10/duplication-screens.md); [`mouse.md`](../audits/design-review-2026-10/mouse.md) and [`keyboard.md`](../audits/design-review-2026-10/keyboard.md); [`standards-interaction.md`](../audits/design-review-2026-10/standards-interaction.md) and [`standards-visual.md`](../audits/design-review-2026-10/standards-visual.md); the findings in the related audits; and [`docs/visual-testing/plan.md`](../visual-testing/plan.md), which records the product appearance and behavior that a `main` implementation must match while retaining `main`'s split-crate architecture. The showcase coverage track (§7) also takes [`showcase-coverage-library.md`](../audits/design-review-2026-10/showcase-coverage-library.md) and [`showcase-coverage-apps.md`](../audits/design-review-2026-10/showcase-coverage-apps.md). Finding references: **M#** is a mouse audit finding, **K#** a keyboard audit finding, **SI#** a standards-interaction verdict, **SV#** a standards-visual verdict, and **SIg#** / **SVg#** a "gaps not yet raised" item in those two reviews.
 
 **The problem.** The four apps hold about 11k lines of shell code and about 11.5k lines of hand-built screen UI. Inside `src/widgets` there are about 145 duplicated functions (about 1,750 lines). The copies have drifted: the same gesture behaves differently in different apps and widgets. This plan specifies shared behavior and component capabilities, decides divergences, and names acceptance work. On `main`, implement those contracts through its modular crate boundaries; do not transplant this branch's monolithic source layout.
 

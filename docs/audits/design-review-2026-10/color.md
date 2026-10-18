@@ -1,19 +1,6 @@
+# Color
 
-## Status
-
-Historical evidence. Its dated findings and source pins describe the recorded review only.
-## Authority
-
-Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
-## Current evidence
-
-Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
-## Remaining work
-
-Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
-## Verification
-
-Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+> Historical evidence; claims below apply to the revisions and scope identified in the report.
 
 Found 22 issues, ranked below. The "Debug info" white-on-white bug comes from one shared cause in the theme, not from the screens. Contrast figures are WCAG ratios computed from the `palette::*` RGB values. I backed them with a scan of every snapshot `.ansi` file for cells whose text contrast falls below 4.5:1 or where text and background colours are equal. 256-colour values use `nearest_256` output. 16-colour values use the snapshot renderer's palette (DarkGray `#7f7f7f`, LightRed `#ff0000`, Gray `#e5e5e5`). `none` = `ColorLevel::Mono`. I did not run any tests or change anything in the repo.
 
