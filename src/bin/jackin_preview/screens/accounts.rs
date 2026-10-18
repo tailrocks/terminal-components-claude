@@ -2634,7 +2634,7 @@ impl Page<Jackin> for AccountsScreen {
         let t = ctx.theme;
         self.narrow = area.width < 100;
         let focus = ctx.interaction.focus;
-        if w.accounts.accounts.is_empty() && self.filter.is_none() {}
+        let _ = w.accounts.accounts.is_empty() && self.filter.is_none();
         if self.narrow {
             let drawer = self.drawer_open
                 || focus.is_some_and(|f| f == INSPECTOR || self.actions.iter().any(|b| b.id == f));

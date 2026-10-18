@@ -154,10 +154,8 @@ pub fn edit_key_in(
     if key.code == KeyCode::Char('h') && key.ctrl() {
         return EditAction::Apply(|b| b.backspace());
     }
-    if keys == FieldKeys::Desktop && key.ctrl() && !key.alt() {
-        if key.code == KeyCode::Char('a') {
-            return EditAction::None;
-        }
+    if keys == FieldKeys::Desktop && key.ctrl() && !key.alt() && key.code == KeyCode::Char('a') {
+        return EditAction::None;
     }
     match key.code {
         KeyCode::Esc => EditAction::Cancel,
