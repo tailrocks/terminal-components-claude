@@ -1,26 +1,5 @@
 # Showcase: navigation tree and constrained cell editors
 
-## Status
-
-Current project documentation; individual evidence and task state may be revision-scoped.
-
-## Authority
-
-design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
-
-## Current evidence
-
-Use the cited sources and current repository state; historical records retain their original scope.
-
-## Remaining work
-
-Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
-
-## Verification
-
-Run current task-specific checks before treating implementation as complete.
-
-
 Plan for the product-owner request "improve the showcase": (1) group the
 pages in a tree in the sidebar, tables first among equals; (2) show
 editable table columns that only accept a fixed set of values. Revised

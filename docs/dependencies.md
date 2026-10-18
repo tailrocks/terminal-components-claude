@@ -1,23 +1,5 @@
 # Dependencies
 
-## Status
-
-Dependency policy plus a dated version snapshot, scoped to `c1a49af0f6ade36838c6330ce8a034e8d589ea79`; the table is historical until refreshed.
-
-## Authority
-
-`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
-
-## Current evidence
-
-Version rows and blockers record the branch snapshot shown in the document. They are not guaranteed current after the snapshot date.
-
-## Remaining work
-
-Refresh version and blocker evidence when performing dependency work; retain any documented blocker until the dependency or upstream condition changes.
-
-## Verification
-
 Verify current upstream releases and tool pins, update the lockfile, and run the exact validation gates required by AGENTS.md and the visual-testing plan.
 
 Policy (AGENTS.md): keep every dependency, the Rust toolchain, tuiscotti and

@@ -1,36 +1,5 @@
 # Visual testing
 
-## Status
-
-Branch visual-testing guide scoped to `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Captures and approvals remain branch-specific.
-
-## Authority
-
-`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
-
-## Current evidence
-
-The guide describes scenario definitions, stored captures, and tooling. Existing captures record their own source revision and are not interchangeable with `main` results.
-
-## Remaining work
-
-Complete the open visual plan and migration items; design-branch captures define product appearance, UI/UX, color, and behavior expectations.
-
-## Verification
-
-Run the pinned visual pilot/smoke procedure and compare against `design/interaction-polish` at matched scenario, size, and color level. Treat `visual-baseline` as historical comparison only.
-
-The real binaries (`showcase`, `tablepro`, `jackin-preview`, `holla`) run in
-a PTY under [tuiscotti](https://github.com/tailrocks/tuiscotti) (exact `rev`
-in `Cargo.toml`). Scripted keys, mouse and resize drive them, and each
-captured screen is compared against one committed `.ansi` file (cells,
-styles and a cursor trailer) in `snapshots/`, and in `baselines/oracle/`
-once oracle v0 is imported (see "Oracle store" below).
-
-- Plan and decisions: [`plan.md`](plan.md)
-- Migration and re-approval status: [`tuiscotti-migration.md`](tuiscotti-migration.md)
-- Evidence: [`research/`](research/)
-
 ## Scenarios
 
 Scenarios are typed table rows in `tests/visual_baseline/scenarios/<app>.rs`:

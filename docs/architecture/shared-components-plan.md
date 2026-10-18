@@ -1,23 +1,5 @@
 # Shared components plan
 
-## Status
-
-WIP-specific implementation plan with step outcomes and open work, document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. The detailed S/SC identifiers and outcome records below are preserved.
-
-## Authority
-
-`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
-
-## Current evidence
-
-Step status and outcome sections record implementation decisions and closures from this branch. They are not evidence of equivalent implementation or readiness in the split-crate `main` checkout.
-
-## Remaining work
-
-Complete the unclosed plan steps and carry-overs. Preserve their dependencies, acceptance criteria, recorded deviations, and paired showcase work.
-
-## Verification
-
 For each step, use its stated acceptance tests and gate. Compare visible behavior against `design/interaction-polish`; migrate accepted APIs into the appropriate `main` crates.
 
 This detailed plan records product/API contracts and branch-local step outcomes for `design/interaction-polish`; individual implementation claims remain scoped to their cited revisions. Its proposed implementation structure is candidate input; `main`'s split-crate architecture controls placement and boundaries.

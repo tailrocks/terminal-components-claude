@@ -1,22 +1,7 @@
 # Duplication review: screens
 
-## Status
 
-WIP-specific findings and accepted decisions recorded in the document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Existing finding IDs and any explicitly recorded closures are retained.
-
-## Authority
-
-`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
-
-## Current evidence
-
-The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
-
-## Remaining work
-
-Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
-
-## Verification
+> Historical evidence; claims below apply to the revisions and scope identified in the report.
 
 Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
 

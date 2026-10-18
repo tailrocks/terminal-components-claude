@@ -182,7 +182,7 @@ Full body SHA-256 fingerprints below identify evidence, not test results. Origin
 | 7b27732a | docs/reviews/adjudication-q-residuals.md | 244 | 422391112470eb5a627d952b5db2791a6db096cf | 27f860b6f28c43b10958e0dc2b2c0806956ddbd7bad8bf7ebf6c2db5f7fe3cda | full bounded body |
 | 4e15e97e | docs/reviews/slice2-architecture-review.md | 821 | 066f25ae244497445c8bbe2ae90fb619e5ffc233 | 18f92d40b91f46bd5e5f918740147db7ab671e3e32029d2aff3b38820c08bda5 | full bounded body |
 | 2e86bf61 | docs/reviews/slice3-foundations-review.md | 609 | 6477044a48b39e7c9a0010e2341ddc9d0c01c39f | 04a2e23045c1947488342c79bf8ad08510a8c647b8377b5e854b3dcf2cdf4009 | full bounded body |
-| a156054d | REFACTORING_STATE.md | 58 | 9a1e7b1a788699c1f63784c50e3cba76651c63e4 | d3fef252d7d8e722f0e11b0ad163c7d2318152f535c427d6bb1c88cc89a545dd | full bounded body |
+| a156054d | [REFACTORING_STATE.md](https://github.com/tailrocks/terminal-components-claude/blob/d9e569bf6fd33d90266db597c458442c729340ad/docs/sources/main/REFACTORING_STATE.md) | 58 | 9a1e7b1a788699c1f63784c50e3cba76651c63e4 | d3fef252d7d8e722f0e11b0ad163c7d2318152f535c427d6bb1c88cc89a545dd | full bounded body |
 
 ### Material amendment reads
 
