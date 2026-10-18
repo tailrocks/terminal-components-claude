@@ -23,7 +23,7 @@ The committed manifests and locks currently select the following shared versions
 | `sha2` test dependency | 0.11.1 |
 | Tuiscotti Git dependency and CLI | `a1ea27f757d75d07b05499276cd932e9f8e067ad` |
 
-The repo-local tool pins in `mise.toml` are Rust 1.99.1, cargo-nextest 0.9.148, actionlint 1.7.12, shellcheck 0.11.0, zizmor 1.31.1, GitHub CLI 2.102.0, Velnor Actions 0.1.13, and mr-boxington 1.24.1. Velnor's per-target release artifacts are hash-pinned in `.velnor/release-manifest.json`; `mise.lock` records install checksums for supported platforms. Use `mise install` to install the declared tools. The `mbx` executable is not an automatic command wrapper; invoke it explicitly through mise, for example `mise exec -- mbx --help`.
+The repo-local tool pins in `mise.toml` are Rust 1.99.1, cargo-nextest 0.9.148, actionlint 1.7.12, shellcheck 0.11.0, zizmor 1.31.1, GitHub CLI 2.102.0, Velnor Actions 0.1.14, and mr-boxington 1.24.1. Velnor's per-target release artifacts are hash-pinned in `.velnor/release-manifest.json`; `mise.lock` records install checksums for supported platforms. Use `mise install` to install the declared tools. The `mbx` executable is not an automatic command wrapper; invoke it explicitly through mise, for example `mise exec -- mbx --help`.
 
 
 For Velnor Actions, “latest” means the newest official `vX.Y.Z` generator release with its matching binary artifacts and release manifest published. The repository’s unfiltered latest release can refer to the separate Velnor host binary. Verify the generator release and manifest pair before updating `mise.toml` and `.velnor/release-manifest.json`.
