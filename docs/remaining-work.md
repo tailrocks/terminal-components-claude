@@ -462,3 +462,16 @@ known gap with its row id here, and a fix drops its lines. Branch
 | R-apps-11 | Tabs behind the `+N` overflow (reachable). | — | recorded (kind b) | `responsive.md` R-apps-11 |
 | R-apps-12 | Audit limits (3-row grid sweep budget, mid-word wrap, page changed under a modal). | — | recorded (kind c) | `responsive.md` R-apps-12 |
 | R-apps-13 | Too-small screen below 72×20 in every app. | R-apps-2, R-apps-6 | each app's true minimum | `responsive.md` R-apps-13 |
+
+## Cross-cutting interaction and API follow-ups
+
+These unresolved items were retained from the interaction audit; the dated audit tables and completion narratives are retired. They are branch-local future work and do not establish readiness or design parity.
+
+| Item | Remaining work | Acceptance |
+|---|---|---|
+| Visual determinism: `holla/flows/task/input_cancelled` | The row varied across A1 gates at 80×24 `none` and 160×50 `256`; identify and remove the unpinned source of the digit change. | `cargo xtask visual determinism` passes repeatedly for the row at both sizes/levels, with captures stable across reruns. |
+| TextViewport keyboard ranges | Define keyboard creation/extension of text selection ranges alongside pointer selection; keep cell/line mapping and copy behavior coherent. | Focused tests cover anchor, extension, collapse, and retained-line boundaries; the existing selection readout alone does not close this item. |
+| Public collection mutation contracts | Audit currently supported mutable collection APIs and setters. Add transactional/invariant-preserving setters only when a concrete consumer needs them; avoid broad speculative API growth. | Documented invariants have regression tests, and any new API is justified by an actual app consumer. |
+| App-level keyboard lifecycle | Add real-app regression cases for modified chords and modal lifecycle before extracting or broadening shared abstractions. | Each accepted app journey verifies modifier routing, modal entry, dismissal, and return focus at the owning page. |
+| Async work (conditional) | If a real app consumer requires asynchronous work, validate ownership, cancellation, stale-result rejection, and shutdown at that consumer boundary. | Consumer-backed tests prove cancellation and stale results cannot mutate current UI state. No consumer means no generic worker framework. |
+| Trait/glyph API (conditional) | Do not add a generic widget trait or glyph abstraction without a concrete consumer and demonstrated shared contract. | A proposal names the consuming apps, compatibility boundary, and tests before API work begins. |
