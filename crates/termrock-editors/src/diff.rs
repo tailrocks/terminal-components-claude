@@ -48,10 +48,6 @@ pub enum DiffRow<'a> {
 }
 
 
-
-
-
-
 pub trait DiffSource {
 
     fn revision(&self) -> u64;
@@ -230,57 +226,6 @@ impl DiffLayout {
         true
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 pub struct DiffView<'a> {

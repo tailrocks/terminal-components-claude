@@ -1,6 +1,5 @@
 
 
-
 use std::collections::BTreeMap;
 
 use ratatui_core::buffer::Buffer;
@@ -653,8 +652,6 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 {
 
 
-
-
         if !C::PARTS.is_empty() {
             if patched.snapshot().digest() == plain_digest {
                 assert_ne!(
@@ -795,8 +792,6 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
     }
 
 
-
-
     let k2 = keys[1];
     let mut core = CollectionCore::new();
     let ordered = |ks: &[ItemKey]| {
@@ -827,7 +822,6 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
         "{}: the checked set must still name k1 and k2 after a reorder",
         C::NAME
     );
-
 
 
     let mut after: Vec<ItemKey> = reversed.clone();
@@ -948,7 +942,6 @@ pub fn focus_trap_and_restore<C: Conformance>() {
     );
 
 
-
     let kind = h
         .runtime()
         .open_spec(layer)
@@ -986,8 +979,6 @@ pub fn focus_trap_and_restore<C: Conformance>() {
              {SENTINEL_BEFORE:?} nor {SENTINEL_AFTER:?}",
             C::NAME
         );
-
-
 
 
         assert!(

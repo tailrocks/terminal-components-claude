@@ -1,15 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 
 pub enum DiscoveryError {
@@ -108,7 +98,6 @@ impl Arbiter {
     }
 
 
-
     pub fn request_entry(&mut self) -> EntryDecision {
         match self.discovery {
             Err(e) => EntryDecision::Unknown(e),
@@ -136,7 +125,6 @@ impl Arbiter {
             self.entered_at_ms = Some(now_ms);
         }
     }
-
 
 
     pub fn request_exit(&mut self, now_ms: i64) -> ExitDecision {

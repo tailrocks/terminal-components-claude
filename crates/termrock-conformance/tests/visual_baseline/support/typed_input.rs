@@ -1,24 +1,11 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 use tuiscotti::tui::{MouseButton, MouseMods, Wheel};
 
 use super::Session;
 
 
 pub type MouseModes = Vec<u16>;
-
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,7 +137,6 @@ impl Input {
     }
 
 
-
     pub fn send(&self, s: &mut Session) {
         match *self {
             Self::Move { col, row } => {
@@ -271,7 +257,6 @@ pub fn focus_reporting(s: &mut Session) -> bool {
 }
 
 
-
 fn require_mode(s: &mut Session, what: &str, need: ModeNeed) -> Sampled {
     let sampled = sample(s);
     let ok = match need {
@@ -305,8 +290,6 @@ fn require_in_grid(what: &str, (cols, rows): (u16, u16), pts: &[(u16, u16)]) {
         );
     }
 }
-
-
 
 
 #[test]
@@ -372,7 +355,6 @@ fn smoke_typed_helpers() {
     target.refresh_same(&mut s);
 
 
-
     s.resize(100, 30).expect("resize down");
     waits::wait_size(&mut s, 100, 30, "smoke shrink");
     target.refresh_same(&mut s);
@@ -402,8 +384,6 @@ fn smoke_typed_helpers() {
         );
     }));
     assert!(phase.is_err(), "impossible phase must time out");
-
-
 
 
     let settled =

@@ -1,7 +1,5 @@
 
 
-
-
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -14,7 +12,6 @@
 )]
 
 use tablepro_demo::db::{Catalog, ColType, Table, Value};
-
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -275,8 +272,6 @@ pub fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
 }
 
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Cmp {
 
@@ -488,11 +483,6 @@ pub struct ParseError {
 
     pub at: usize,
 }
-
-
-
-
-
 
 
 pub fn parse(stmt: &str) -> Result<Statement, ParseError> {
@@ -764,13 +754,6 @@ fn parse_select(w: &mut Words<'_>) -> Result<Select, ParseError> {
 }
 
 
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Tier {
     Safe,
@@ -964,8 +947,6 @@ pub fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
 }
 
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct ResultSet {
 
@@ -1050,12 +1031,6 @@ pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
         },
     }
 }
-
-
-
-
-
-
 
 
 pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
@@ -1200,7 +1175,6 @@ pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
 }
 
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlanNode {
     pub op: String,
@@ -1213,10 +1187,6 @@ pub struct PlanNode {
     pub warning: Option<String>,
     pub children: Vec<PlanNode>,
 }
-
-
-
-
 
 
 pub fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, ExecError> {

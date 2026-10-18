@@ -26,9 +26,6 @@ const ALT: KeyModifiers = KeyModifiers::ALT;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 
 
-
-
-
 pub trait Highlighter {
 
     fn highlight(&self, text: &str) -> Vec<(Range<usize>, SyntaxRole)>;
@@ -629,7 +626,6 @@ impl CodeEditorState {
     }
 
 
-
     pub fn invalidate(&mut self) {
         self.bump_generation();
     }
@@ -735,72 +731,6 @@ impl HighlightCache {
         self.valid = true;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 pub struct CodeEditor<'a> {

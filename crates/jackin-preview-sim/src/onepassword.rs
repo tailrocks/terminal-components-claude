@@ -1,8 +1,5 @@
 
 
-
-
-
 use std::fmt;
 
 use jackin_preview_domain::agent::Provider;
@@ -22,7 +19,6 @@ impl fmt::Debug for Secret {
 }
 
 impl Secret {
-
 
 
     pub fn classify(&self) -> SecretClass {
@@ -569,18 +565,10 @@ impl SimOnePassword {
     }
 
 
-
-
-
-
     pub fn list_accounts(&self) -> Result<Vec<&OpAccount>, OpError> {
         self.gate()?;
         Ok(self.accounts.iter().collect())
     }
-
-
-
-
 
 
     pub fn list_vaults(&self, account: &str) -> Result<Vec<&OpVault>, OpError> {
@@ -605,11 +593,6 @@ impl SimOnePassword {
     }
 
 
-
-
-
-
-
     pub fn list_items(&self, account: &str, vault: &str) -> Result<Vec<&OpItem>, OpError> {
         Ok(self.vault(account, vault)?.items.iter().collect())
     }
@@ -628,11 +611,6 @@ impl SimOnePassword {
     }
 
 
-
-
-
-
-
     pub fn list_fields(
         &self,
         account: &str,
@@ -641,11 +619,6 @@ impl SimOnePassword {
     ) -> Result<Vec<&OpField>, OpError> {
         Ok(self.item(account, vault, item)?.1.fields.iter().collect())
     }
-
-
-
-
-
 
 
     pub fn reference(
@@ -677,11 +650,6 @@ impl SimOnePassword {
     }
 
 
-
-
-
-
-
     pub fn describe(&self, r: &OpReference) -> Result<FieldDescriptor, OpError> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id)?;
         let f = it
@@ -706,12 +674,6 @@ impl SimOnePassword {
             masked: jackin_preview_domain::account::masked(&f.tail),
         })
     }
-
-
-
-
-
-
 
 
     pub fn resolve_into<R: SecretFree>(
@@ -743,8 +705,6 @@ impl SimOnePassword {
             .map(|_| "https://api.x.ai/v1".to_owned())
     }
 }
-
-
 
 
 pub fn classify_plain(provider: Provider, value: &str) -> SecretClass {

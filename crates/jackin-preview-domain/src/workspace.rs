@@ -1,7 +1,5 @@
 
 
-
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::{fmt, mem};
 
@@ -39,9 +37,6 @@ pub struct Workspace {
 
     pub dirty_policy: DirtyExitPolicy,
 }
-
-
-
 
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -170,10 +165,6 @@ impl Workspace {
             dirty_policy: DirtyExitPolicy::Ask,
         }
     }
-
-
-
-
 
 
     pub fn effective_accounts(&self, registry: &AccountRegistry) -> Vec<EffectiveAccount> {
@@ -312,8 +303,6 @@ impl DirtyExitPolicy {
         }
     }
 }
-
-
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -475,8 +464,6 @@ impl MountScope {
 }
 
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RolePolicy {
 
@@ -514,7 +501,6 @@ impl RolePolicy {
         }
     }
 }
-
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -568,8 +554,6 @@ impl RoleSource {
         }
     }
 }
-
-
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -648,10 +632,6 @@ impl EnvValue {
 }
 
 
-
-
-
-
 pub fn mask(v: &str) -> String {
     if v.is_empty() {
         return "(empty)".into();
@@ -672,7 +652,6 @@ pub fn mask(v: &str) -> String {
         "*".repeat(n.min(16))
     }
 }
-
 
 
 pub fn env_key_error(key: &str) -> Option<String> {

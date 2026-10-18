@@ -1,7 +1,5 @@
 
 
-
-
 use termrock::StepState;
 
 use jackin_preview_domain::agent::Agent;
@@ -231,9 +229,6 @@ pub const BUILD_LOG: [&str; 44] = [
 ];
 
 impl LaunchRun {
-
-
-
 
 
     pub fn container_ready(&self) -> bool {

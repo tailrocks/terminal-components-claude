@@ -1,6 +1,5 @@
 
 
-
 use super::agent::{Agent, Provider, UsageSurface};
 use super::onepassword::OpReference;
 use super::usage::{AccountUsage, Freshness};
@@ -74,7 +73,6 @@ impl CredentialSource {
 pub fn masked(tail: &str) -> String {
     format!("••••••••…{tail}")
 }
-
 
 
 pub fn fingerprint(value: &str) -> String {
@@ -534,11 +532,9 @@ impl Account {
     }
 
 
-
     pub fn title(&self) -> String {
         format!("{} · {}", self.surface.surface_name(), self.display_name)
     }
-
 
 
     pub fn status_word(&self) -> &'static str {
@@ -681,7 +677,6 @@ impl AccountRegistry {
     }
 
 
-
     pub fn name_taken(&self, provider: Provider, name: &str, except: Option<&str>) -> bool {
         self.accounts.iter().any(|a| {
             a.provider == provider
@@ -689,11 +684,6 @@ impl AccountRegistry {
                 && Some(a.id.as_str()) != except
         })
     }
-
-
-
-
-
 
 
     pub fn set_default(&mut self, id: &str) -> Result<(), String> {
@@ -725,7 +715,6 @@ impl AccountRegistry {
         self.accounts.push(account);
         self.revision += 1;
     }
-
 
 
     pub fn sorted(&self) -> Vec<&Account> {

@@ -1,6 +1,5 @@
 
 
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -97,9 +96,6 @@ const ACK_ACTIONS: [Action<'static>; 2] = [
 const INFO_ACTIONS: [Action<'static>; 1] = [Action::new(ActionKey::CLOSE, "Close")];
 
 
-
-
-
 #[derive(Default)]
 pub struct DialogState {
     input: TextInputState,
@@ -152,7 +148,6 @@ impl DialogState {
     }
 
 
-
     pub fn draft(&self) -> &str {
         if self.input.is_sensitive() {
             ""
@@ -184,86 +179,6 @@ impl DialogState {
 fn zeroize_string(value: &mut String) {
     crate::secret::wipe_string(core::mem::take(value));
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 pub struct Dialog<'a> {
@@ -361,13 +276,11 @@ impl<'a> Dialog<'a> {
     }
 
 
-
     #[must_use]
     pub const fn input_label(mut self, label: &'a str) -> Self {
         self.input_label = Some(label);
         self
     }
-
 
 
     pub const fn acknowledge(id: Id, title: &'a str, token: &'a str) -> Self {
@@ -380,14 +293,11 @@ impl<'a> Dialog<'a> {
     }
 
 
-
-
     pub fn facts(id: Id, title: &'a str, props: &'a [(&'a str, &'a str)]) -> Self {
         let mut d = Self::info(id, title);
         d.body_rows = Some(props.len().min(usize::from(u16::MAX)) as u16);
         d
     }
-
 
 
     pub fn choice(id: Id, title: &'a str, options: &'a [&'a str]) -> Self {
@@ -435,14 +345,11 @@ impl<'a> Dialog<'a> {
     }
 
 
-
-
     #[must_use]
     pub const fn error(mut self, error: Option<&'a str>) -> Self {
         self.error = error;
         self
     }
-
 
 
     #[must_use]
@@ -536,9 +443,7 @@ impl<'a> Dialog<'a> {
     }
 
 
-
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut DialogState) -> Response<DialogAction> {
-
 
 
         let size = LayerSize::Fixed(
@@ -554,9 +459,6 @@ impl<'a> Dialog<'a> {
                     st.zeroize();
                     acc.action(DialogAction::Dismissed(r));
                 }
-
-
-
 
 
                 Intent::Layer(_) => acc.repaint(),
@@ -661,7 +563,6 @@ impl<'a> Dialog<'a> {
     }
 
 
-
     fn inner_width(&self, d: &DesignTokens) -> u16 {
         self.measured_width(d)
             .saturating_sub(2)
@@ -691,12 +592,6 @@ impl<'a> Dialog<'a> {
     }
 
 
-
-
-
-
-
-
     pub fn measured_height(&self, d: &DesignTokens) -> u16 {
         let inner = self.inner_width(d);
         let desc = self.description.map_or(0, |s| wrapped_rows(s, inner));
@@ -708,9 +603,6 @@ impl<'a> Dialog<'a> {
     }
 
 
-
-
-
     pub fn layer(&self, cx: &Cx<'_>) -> LayerSpec {
         let d = cx.design();
         LayerSpec::modal(self.id).size(LayerSize::Fixed(
@@ -718,9 +610,6 @@ impl<'a> Dialog<'a> {
             self.measured_height(d),
         ))
     }
-
-
-
 
 
     fn frame_rect(&self, ui: &Ui<'_>, area: Rect) -> (Rect, u16) {
@@ -738,11 +627,6 @@ impl<'a> Dialog<'a> {
             desc_h,
         )
     }
-
-
-
-
-
 
 
     #[expect(
@@ -769,7 +653,6 @@ impl<'a> Dialog<'a> {
         };
         let ov = self.ov;
         let id = self.id;
-
 
 
         let live = StateFlags::empty();
@@ -948,7 +831,6 @@ impl<'a> Dialog<'a> {
             },
         )
     }
-
 
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
@@ -1199,10 +1081,6 @@ mod tests {
     }
 
 
-
-
-
-
     #[test]
     fn layer_size_is_a_pure_function_of_props_and_design_tokens() {
         for theme in [Theme::junie(), Theme::paper()] {
@@ -1431,8 +1309,6 @@ mod tests {
     }
 
 
-
-
     #[test]
     fn a_prompt_dialog_sizes_its_own_field_row() {
         let (mut rt, _) = scene();
@@ -1446,7 +1322,6 @@ mod tests {
             prompt().draw(ui, a, &st, |_, _| {});
         })
         .commit_presented();
-
 
 
         let field = rt
@@ -1502,10 +1377,6 @@ mod tests {
         assert_eq!(st, DialogState::default(), "draw mutated prompt state");
         assert_eq!(before, prompt().measured_height(&Theme::junie().design));
     }
-
-
-
-
 
 
     #[test]
@@ -1642,9 +1513,6 @@ mod tests {
         let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(5)));
         assert_eq!(runtime.app().chosen, None);
     }
-
-
-
 
 
     #[test]
