@@ -1,17 +1,7 @@
-//! Ownership-check admission: the check passes on the workspace and
-//! fails closed on violations.
-//!
-//! This integration test is the CI execution path for the FIX-008
-//! ownership check: the generated CI runs `cargo nextest` for every
-//! crate lane (including `termrock-xtask`), and the Velnor generator
-//! schema offers no supported input for a bespoke step, so the check
-//! runs here instead of as its own workflow step.
-
 use std::path::{Path, PathBuf};
 
 use termrock_xtask::ownership::{check_workspace, exceptions, rules};
 
-/// The workspace root above this crate's manifest dir.
 fn workspace_root() -> PathBuf {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     manifest
@@ -21,8 +11,6 @@ fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
-/// The ownership check passes on the current tree: every finding is
-/// admitted by the versioned exceptions file and no exception is stale.
 #[test]
 fn ownership_check_passes_on_workspace() {
     let root = workspace_root();
@@ -44,7 +32,6 @@ fn ownership_check_passes_on_workspace() {
     );
 }
 
-/// Write a scratch mini-workspace with one preview member.
 fn scratch_workspace(member_src: &str, exceptions_json: &str) -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("scratch dir");
     let root = dir.path();
@@ -67,8 +54,6 @@ fn empty_exceptions() -> String {
     )
 }
 
-/// A forbidden pattern in a scratch tree fails the check: raw buffer
-/// import through an alias, a buffer paint call, and a production expect.
 #[test]
 fn negative_probe_forbidden_pattern_fails() {
     let dir = scratch_workspace(
@@ -96,7 +81,7 @@ fn negative_probe_forbidden_pattern_fails() {
         kinds.iter().any(|m| m.contains("OWN-14")),
         "production expect must fail: {kinds:?}"
     );
-    // Alias resolution: the finding names the canonical buffer path.
+
     let import = report
         .findings
         .iter()
@@ -109,7 +94,6 @@ fn negative_probe_forbidden_pattern_fails() {
     );
 }
 
-/// Growth beyond a pinned ratchet maximum fails the check.
 #[test]
 fn negative_probe_growth_beyond_max_fails() {
     let capped = format!(
@@ -136,7 +120,6 @@ fn negative_probe_growth_beyond_max_fails() {
     );
 }
 
-/// An exception that matches nothing is stale and fails the check.
 #[test]
 fn negative_probe_stale_exception_fails() {
     let stale = format!(
@@ -156,7 +139,6 @@ fn negative_probe_stale_exception_fails() {
     );
 }
 
-/// An unknown exceptions schema fails closed.
 #[test]
 fn negative_probe_unknown_schema_fails() {
     let dir = scratch_workspace("fn clean() {}\n", r#"{"schema":"nope/v9","exceptions":[]}"#);
@@ -164,7 +146,6 @@ fn negative_probe_unknown_schema_fails() {
     assert!(!report.passed(), "an unknown schema must fail");
 }
 
-/// The rule catalog is stable: 14 rules with unique ids in order.
 #[test]
 fn rule_catalog_is_stable() {
     let ids: Vec<&str> = rules::RULES.iter().map(|r| r.id).collect();
@@ -177,7 +158,6 @@ fn rule_catalog_is_stable() {
     );
 }
 
-/// Every exception entry in the shipped file is well-formed.
 #[test]
 fn shipped_exceptions_parse() {
     let root = workspace_root();

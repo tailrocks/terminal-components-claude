@@ -1,5 +1,3 @@
-//! Termrock Runtime: context, interaction ownership, hit mapping, and layer stacking.
-
 pub(crate) use termrock_collections as scroll;
 pub use termrock_core as id;
 pub use termrock_core as event;
@@ -32,7 +30,6 @@ pub mod scroll_region;
 pub mod support;
 pub mod ui;
 
-// Re-exports
 pub use author::*;
 pub use capture::*;
 pub use decor::*;

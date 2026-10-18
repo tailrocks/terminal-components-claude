@@ -1,4 +1,3 @@
-//! Tree cache ownership survives replacement and clone divergence.
 #![cfg(test)]
 use termrock_core::{Id, ItemKey, Response};
 use termrock_navigation::{Tree, TreeNode, TreeState};

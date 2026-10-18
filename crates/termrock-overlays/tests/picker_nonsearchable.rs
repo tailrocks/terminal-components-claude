@@ -1,4 +1,3 @@
-//! Nonsearchable picker preserves navigation and rejects invisible query edits.
 use ratatui_core::layout::Rect;
 
 use termrock_core::event::KeyCode;

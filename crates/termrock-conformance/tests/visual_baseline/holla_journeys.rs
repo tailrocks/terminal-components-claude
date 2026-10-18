@@ -1,36 +1,3 @@
-//! Holla app-journey suite, slice 1 (VB Phase-7c, §15) — impl port.
-//!
-//! Ported verbatim from VB commit `a91d0ebf4bef97fa5138dafad54ed9fd57e3362e`
-//! (`tests/harness/tests/visual_baseline/holla_journeys.rs`), adapting
-//! only paths, binary resolution, and harness API:
-//!
-//! - `Session` is the impl [`support::Session`] wrapper (live samples via
-//!   `s.inner.observe_now()`), not `tuiscotti::tui::Session` directly.
-//! - The subject is the `holla` binary built from this impl worktree's
-//!   sources, resolved via [`support::try_resolve_bin`] (name → executed
-//!   path + sha256); [`write_provenance`] records path, digest, size,
-//!   mtime, and argv behind each journey.
-//! - `support::drive` (3-arg) becomes [`support::drive_with_timeout`]
-//!   (timeout in ms); single steps use [`support::press_step`].
-//! - The `--help` enumeration shells the resolved binary path (impl
-//!   `HOLLA` is a name, not a `CARGO_BIN_EXE_*` absolute path).
-//!
-//! Multi-step PTY journeys assert needle state across steps — they never
-//! gate snapshots, so every case here uses owned (dynamic) names: the
-//! approval-inventory parser in [`crate::support::suite_capture_names`]
-//! only expands the vendored case registry (never suite sources), and
-//! journey names stay out of the committed `snapshots/` inventory.
-//!
-//! Per-test scratch (checkpoints + provenance) lands under this
-//! conformance crate's `target/tuiscotti/journeys/<test>/` (gitignored,
-//! unique per test fn). Checkpoints are text frames (`.txt`);
-//! `provenance.txt` records the binary identity and argv behind each
-//! journey. Typed input is synthetic and in-memory only (simulation data).
-//! Journeys never run real cleanup, never touch Git state, and never
-//! perform destructive operations: the trust flow accepts a
-//! fixture-world prompt and the error flow cancels its picker without
-//! jumping anywhere.
-
 use std::path::{Path, PathBuf};
 
 use crate::support::Session;
@@ -41,10 +8,6 @@ const BOOT: &str = "holla❯";
 const COLS: u16 = 120;
 const ROWS: u16 = 40;
 
-/// Core routes visited in journey 1: argv, checkpoint slug, and the route
-/// needles that prove each boot landed in its own fixture world (header
-/// project label plus one content row, both read off the approved
-/// `holla/parity/<route>/120x40/truecolor` frames these argvs reproduce).
 const ROUTES: [(&[&str], &str, &[&str]); 3] = [
     (
         &[
@@ -84,7 +47,6 @@ const ROUTES: [(&[&str], &str, &[&str]); 3] = [
     ),
 ];
 
-/// Owned-name journey case at the canonical 120x40 truecolor geometry.
 fn journey_case(name: &str, args: &'static [&'static str]) -> Case {
     Case::dynamic(
         format!("journeys/holla/{name}"),
@@ -97,7 +59,6 @@ fn journey_case(name: &str, args: &'static [&'static str]) -> Case {
     )
 }
 
-/// Unique scratch dir for one journey test (created, never shared).
 fn journey_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -106,15 +67,10 @@ fn journey_dir(test: &str) -> PathBuf {
     dir
 }
 
-/// Record the binary identity behind a journey: resolved absolute path,
-/// sha256 digest, byte size, mtime, and argv. Written to
-/// `provenance.txt`, echoed too.
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
 
-/// [`write_provenance`] with an explicit filename, for multi-session
-/// journeys where each session's argv deserves its own record.
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
         support::try_resolve_bin(case.bin).unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
@@ -134,7 +90,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     eprintln!("journey provenance ({file}): {body}");
 }
 
-/// Save the live screen text as `<name>.txt` in the journey dir.
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -151,10 +106,6 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
 
-/// Slice 1, journey 1: enumerate the scenario definitions (the binary's
-/// own `--help` must list the core route scenarios), then visit the core
-/// routes — discovery, history, files — one session per scenario, proving
-/// each with its header project label plus a content row.
 #[test]
 #[ignore = "holla journey; run with --ignored"]
 fn journey_holla_core_routes() {
@@ -182,8 +133,6 @@ fn journey_holla_core_routes() {
     }
     eprintln!("enumeration: parity-discovery, parity-history, parity-files all listed");
 
-    // By-value iteration copies each `&[&str]` out of the const's promoted
-    // statics, so `args` already is `&'static [&'static str]`.
     for (i, (args, slug, needles)) in ROUTES.into_iter().enumerate() {
         let case = journey_case(&format!("core_routes_{slug}"), args);
         write_provenance_named(&dir, &case, &format!("provenance-{slug}.txt"));
@@ -196,11 +145,6 @@ fn journey_holla_core_routes() {
     eprintln!("journey core_routes: visited {} routes", ROUTES.len());
 }
 
-/// Slice 1, journey 2: the trust/confirmation flow on the monorepo-child
-/// fixture with a synthetic query (`test`, in-memory only): Enter raises
-/// the `Trust …mise.toml?` prompt, Right+Enter accepts it, and the
-/// `Trusted …` status plus the closed prompt prove the accept. The accept
-/// runs the fixture world's simulated task — no real command executes.
 #[test]
 #[ignore = "holla journey; run with --ignored"]
 fn journey_holla_trust_accept() {
@@ -230,8 +174,7 @@ fn journey_holla_trust_accept() {
         "trust accepted and dialog closed",
         |screen| {
             let text = support::screen_text(screen);
-            // The full prompt (with `?`) is checked for absence: it is a
-            // prefix of the accepted line, so a short needle would lie.
+
             text.contains(ACCEPTED) && !text.contains(PROMPT)
         },
     );
@@ -239,14 +182,6 @@ fn journey_holla_trust_accept() {
     eprintln!("journey trust_accept: prompt raised, accepted, dialog closed");
 }
 
-/// Slice 1, journey 3: an error/empty-data case with assertion-proven
-/// state. In the finished browser listing (`16 entries`), `g` opens the
-/// Go-to-path picker, a synthetic bad path (`nope`) produces the
-/// `no such file or directory` picker error (checkpointed while present),
-/// then two Escapes recover (the first clears the query, the second
-/// cancels the picker) — proven by the picker's non-vacuous disappearance
-/// plus the intact listing behind it. Nothing jumps, nothing is trashed:
-/// the bad path never leaves the picker.
 #[test]
 #[ignore = "holla journey; run with --ignored"]
 fn journey_holla_jump_error_recovery() {
@@ -266,10 +201,7 @@ fn journey_holla_jump_error_recovery() {
     );
     checkpoint(&mut s, &dir, "01-listing");
     support::press_step(&s, "g");
-    // The picker title "Go to path" also lives in the browser footer
-    // (`g` hint), so it proves nothing in either direction. The footer
-    // swap is the signal: picker footer says "Enter Switch", browser
-    // footer says "Enter Open / preview" — each absent in the other.
+
     waits::wait_state(&mut s, "Enter Switch", "jump picker open");
     checkpoint(&mut s, &dir, "02-picker");
     support::drive_with_timeout(
@@ -278,8 +210,7 @@ fn journey_holla_jump_error_recovery() {
         case.timeout_ms,
     );
     checkpoint(&mut s, &dir, "03-error");
-    // Recovery takes two Escapes by construction (`Picker::on_key`): the
-    // first clears the non-empty query, the second cancels the picker.
+
     support::press_step(&s, "escape");
     support::wait_screen(&mut s, support::DEFAULT_WAIT, "query cleared", |screen| {
         !support::screen_text(screen).contains("▎ nope")

@@ -1,4 +1,3 @@
-//! Rendered progress boundaries stay deterministic at fill and sweep edges.
 use termrock::{
     ColorLevel, GlyphRole, Id, Meter, MeterTone, MeterVisual, ProgressBar, Spinner, Status, Theme,
 };

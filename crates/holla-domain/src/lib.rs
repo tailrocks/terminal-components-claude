@@ -1,6 +1,3 @@
-//! Typed fixture model for the simulated world: hosts, places, projects,
-//! tools, containers, activities. Plain data; nothing here spawns a process.
-
 pub mod accounting;
 pub mod action;
 pub mod activity;
@@ -17,10 +14,8 @@ pub mod ssh;
 
 pub use host::Environment;
 
-/// Fixed home directory of the simulated user, shared by path fixtures.
 pub const HOME: &str = "/home/dev";
 
-/// Human byte size per the design-system number grammar: `8.4 GB`, `900 MB`.
 pub fn human_bytes(bytes: u64) -> String {
     const KB: u64 = 1_024;
     const MB: u64 = KB * 1_024;

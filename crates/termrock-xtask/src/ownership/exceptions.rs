@@ -1,34 +1,18 @@
-//! Versioned ownership exceptions with ratchet semantics.
-//!
-//! The G1 corpus (historical painters pending FIX-002…FIX-005) is admitted
-//! file by file, each entry pinning the observed finding count as a
-//! maximum: the corpus may shrink as fixes land, never grow. An entry
-//! whose count reaches zero is stale and must be removed; an unknown
-//! schema version fails the check outright.
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
-/// The only schema version this check accepts.
 pub const SCHEMA_VERSION: &str = "termrock-ownership-exceptions/v1";
 
-/// One ratcheted admission.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Exception {
-    /// Workspace-relative file path.
     pub path: String,
-    /// Stable rule id (`OWN-01` …).
     pub rule: String,
-    /// Maximum admitted findings for this file and rule.
     pub max: usize,
-    /// What the admitted corpus is and why it stands.
     pub reason: String,
-    /// Review receipt or work item that admitted it.
     pub review: String,
 }
 
-/// The versioned exceptions document.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExceptionsFile {
     pub schema: String,
@@ -36,8 +20,6 @@ pub struct ExceptionsFile {
     pub exceptions: Vec<Exception>,
 }
 
-/// A failure to report: over-max, stale, unexcepted, unknown rule, or a
-/// structural problem with the exceptions document itself.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Failure {
     pub kind: FailureKind,
@@ -46,13 +28,9 @@ pub struct Failure {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FailureKind {
-    /// A finding no exception admits (or admitted count exceeded).
     Unexcepted,
-    /// Growth beyond the pinned ratchet maximum.
     Growth,
-    /// An exception that matches nothing anymore.
     Stale,
-    /// Unknown rule id or schema version.
     Unknown,
 }
 
@@ -62,7 +40,6 @@ impl Failure {
     }
 }
 
-/// Parse and validate the exceptions document.
 pub fn load_exceptions(text: &str) -> Result<ExceptionsFile, Failure> {
     let parsed: ExceptionsFile = serde_json::from_str(text).map_err(|err| {
         Failure::new(
@@ -106,11 +83,6 @@ pub fn load_exceptions(text: &str) -> Result<ExceptionsFile, Failure> {
     Ok(parsed)
 }
 
-/// Reconcile finding counts against exceptions.
-///
-/// `counts` maps `(file, rule)` to the observed finding count.
-/// `known_files` is the set of scanned workspace-relative paths, used to
-/// flag exceptions pointing at files that no longer exist.
 pub fn reconcile(
     counts: &BTreeMap<(String, String), usize>,
     known_files: &BTreeSet<String>,

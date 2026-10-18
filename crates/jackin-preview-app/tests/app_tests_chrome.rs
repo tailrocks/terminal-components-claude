@@ -1,6 +1,3 @@
-//! Interaction tests for the Capsule chrome (menu bar, tab context menu,
-//! status bar), the shell hint bar, the inspector and palette scrolling.
-
 #![allow(
     dead_code,
     missing_debug_implementations,
@@ -118,7 +115,7 @@ fn menu_bar_opens_switches_and_runs_an_action() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("New tab"), "spawn picker: {}", h.text());
     h.key(KeyCode::Esc);
-    // mouse: click the View label, then Usage
+
     let (x, y) = h.find("View").unwrap();
     h.click(x, y);
     assert!(h.text().contains("Zoom pane"), "{}", h.text());
@@ -148,7 +145,7 @@ fn tab_context_menu_renames_and_closes_by_mouse_and_keyboard() {
         h.key(KeyCode::Enter);
     }
     assert!(row(&h, 2).contains("ops"), "{}", row(&h, 2));
-    // keyboard path: prefix m opens the menu for the active tab; the last row is Close
+
     h.ctrl('b');
     h.key(KeyCode::Char('m'));
     assert!(h.text().contains("Change title…"), "{}", h.text());
@@ -156,7 +153,7 @@ fn tab_context_menu_renames_and_closes_by_mouse_and_keyboard() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Close tab?"), "{}", h.text());
     h.key(KeyCode::Esc);
-    // dismissal
+
     h.ctrl('b');
     h.key(KeyCode::Char('m'));
     h.key(KeyCode::Esc);
@@ -172,16 +169,13 @@ fn hint_bar_stays_on_the_last_row_across_layers() {
     let help = last_row(&h);
     assert!(help.contains("Esc") && help.contains("Close"), "{help}");
     h.key(KeyCode::Esc);
-    // The pinned Returning registry gives every workspace a reconnectable
-    // child, so Enter on a workspace row re-attaches to that Capsule instead of
-    // launching. The Current directory row owns no instance, so it is the list
-    // path into the picker layer.
+
     h.key(KeyCode::Home);
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
     let picker = last_row(&h);
     assert!(picker.contains("Choose"), "{picker}");
-    // the picker draws no hint row of its own
+
     let t = h.text();
     assert_eq!(t.matches("Enter Choose").count(), 1, "{t}");
     h.key(KeyCode::Esc);

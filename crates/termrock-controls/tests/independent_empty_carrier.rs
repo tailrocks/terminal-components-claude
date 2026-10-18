@@ -1,4 +1,3 @@
-//! Independent owner-surface retention probe.
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Color;
 

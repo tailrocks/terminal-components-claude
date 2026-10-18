@@ -1,50 +1,28 @@
-//! `TablePro`'s typed filter editor and local filtering policy.
-
 use tablepro_demo::db::{ColType, Value};
 
-/// All operators exposed by the filter editor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FilterOp {
-    /// Equal.
     Eq,
-    /// Not equal.
     Ne,
-    /// Substring.
     Contains,
-    /// Negated substring.
     NotContains,
-    /// Prefix.
     StartsWith,
-    /// Suffix.
     EndsWith,
-    /// Greater than.
     Gt,
-    /// Greater than or equal.
     Ge,
-    /// Less than.
     Lt,
-    /// Less than or equal.
     Le,
-    /// NULL.
     IsNull,
-    /// Not NULL.
     IsNotNull,
-    /// Empty text.
     IsEmpty,
-    /// Non-empty text.
     IsNotEmpty,
-    /// Membership.
     In,
-    /// Negated membership.
     NotIn,
-    /// Inclusive range.
     Between,
-    /// Wildcard pattern.
     Regex,
 }
 
 impl FilterOp {
-    /// Stable menu order.
     pub const ALL: [Self; 18] = [
         Self::Eq,
         Self::Ne,
@@ -65,7 +43,6 @@ impl FilterOp {
         Self::Between,
         Self::Regex,
     ];
-    /// Display label.
     pub const fn label(self) -> &'static str {
         match self {
             Self::Eq => "=",
@@ -88,14 +65,12 @@ impl FilterOp {
             Self::Regex => "matches",
         }
     }
-    /// Whether the operator needs a value.
     pub const fn needs_value(self) -> bool {
         !matches!(
             self,
             Self::IsNull | Self::IsNotNull | Self::IsEmpty | Self::IsNotEmpty
         )
     }
-    /// Put type-appropriate options first, retaining the complete menu.
     #[expect(
         dead_code,
         reason = "typed operator ordering remains available to the private filter adapter"
@@ -144,23 +119,16 @@ impl FilterOp {
     }
 }
 
-/// One filter predicate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Filter {
-    /// Column name.
     pub column: String,
-    /// Operator.
     pub op: FilterOp,
-    /// Primary value.
     pub value: String,
-    /// Secondary value.
     pub value2: String,
-    /// Whether this filter is active.
     pub enabled: bool,
 }
 
 impl Filter {
-    /// Compact chip text.
     pub fn chip_label(&self) -> String {
         match self.op {
             FilterOp::Between => {
@@ -175,7 +143,6 @@ impl Filter {
             ),
         }
     }
-    /// SQL predicate.
     pub fn to_sql(&self) -> String {
         let c = identifier(&self.column);
         let q = |s: &str| format!("'{}'", s.replace('\'', "''"));
@@ -214,7 +181,6 @@ impl Filter {
             FilterOp::Regex => format!("{c} ~ {}", q(&self.value)),
         }
     }
-    /// Apply this filter to one value.
     pub fn matches(&self, value: &Value) -> bool {
         if !self.enabled {
             return true;

@@ -1,4 +1,3 @@
-//! Historical focus restoration waits for authoritative live geometry.
 #![cfg(test)]
 use termrock::{
     App, Cx, Focusability, Id, Intent, Item, ItemKey, KeyCode, Picker, PickerState, Rect, Response,

@@ -1,6 +1,3 @@
-//! Route-owned compositions for Jackin overlays: capsule screens
-//! (capsule, inspect, file browser, operation flow).
-
 #![forbid(unsafe_code)]
 #![expect(
     clippy::pedantic,

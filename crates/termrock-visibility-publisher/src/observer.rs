@@ -1,5 +1,3 @@
-//! In-memory parser for the single-member observer artifact ZIP.
-
 use std::io::{Cursor, Read};
 
 use flate2::read::DeflateDecoder;
@@ -10,9 +8,6 @@ const LOCAL_SIGNATURE: u32 = 0x0403_4b50;
 const DATA_DESCRIPTOR_SIGNATURE: u32 = 0x0807_4b50;
 const MAX_ZIP_ENTRIES: usize = 16;
 const MAX_ZIP_COMMENT: usize = 65_535;
-/// The selected observer producer uploads this exact report path at ZIP root.
-/// The current V1 producer lacks observer-run identity fields; the typed
-/// ingestion schema requires those V2 additions before it accepts an artifact.
 pub const OBSERVER_REPORT_MEMBER: &str = "ci-observer-report.json";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,8 +57,6 @@ impl std::fmt::Display for ObserverError {
 
 impl std::error::Error for ObserverError {}
 
-/// Decode only one regular root member named `ci-observer-report.json` into memory.
-/// No path from the archive is ever joined to a filesystem path.
 pub fn decode_observer_zip(
     archive: &[u8],
     max_archive_bytes: usize,
@@ -301,7 +294,7 @@ fn check_member_type(made_by: u16, external_attributes: u32) -> Result<(), Obser
             return Err(ObserverError::SymlinkMember);
         }
     }
-    // DOS directory attribute is bit 4; the observer report must be a regular file.
+
     if external_attributes & 0x10 != 0 {
         return Err(ObserverError::SymlinkMember);
     }

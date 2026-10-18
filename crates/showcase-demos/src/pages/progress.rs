@@ -1,5 +1,3 @@
-//! Determinate, indeterminate and compact activity indicators.
-
 use std::time::Duration;
 
 use termrock::{
@@ -76,8 +74,6 @@ fn halfway_bar() -> ProgressBar<'static> {
     ProgressBar::new(HALFWAY).label("Halfway").ratio(0.5)
 }
 
-/// Meters report capacity with a semantic tone; the busy one carries the
-/// shared animation frame so its spinner keeps step with the bars (§13).
 fn quota_meter() -> Meter<'static> {
     Meter::new(QUOTA_METER)
         .ratio(0.72)
@@ -102,8 +98,6 @@ fn sync_meter() -> Meter<'static> {
         .suffix_width(4)
 }
 
-/// Live progress owns only values and animation state; controls remain public
-/// facade components so focus and activation are still runtime-owned.
 #[derive(Debug)]
 pub struct ProgressPage {
     frame: usize,
@@ -160,8 +154,6 @@ impl Page for ProgressPage {
             .next_tick
             .get_or_insert_with(|| now.saturating_add(interval));
         if cx.update_cause() == termrock::UpdateCause::Tick && now >= deadline {
-            // Holla coalesces a delayed wake into one eligible tick. Hidden
-            // time never becomes a loop replaying missed progress steps.
             if !self.paused && self.build < 1.0 {
                 self.build = (self.build + 0.006).min(1.0);
                 if self.build >= 1.0 {
@@ -177,8 +169,7 @@ impl Page for ProgressPage {
         {
             cx.request_repaint_at(deadline);
         }
-        // The update pass builds every indicator the draw pass will render,
-        // so each set of props keeps exactly one construction site (§13).
+
         let _ = build_bar(self.build, self.frame, self.paused);
         let _ = resolving_bar(self.frame);
         let _ = waiting_spinner(self.frame);
