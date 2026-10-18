@@ -1,27 +1,9 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
 
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::RenderCtx;
-
 
 pub const OUTER_KEEP: f32 = 0.55;
 
@@ -31,15 +13,9 @@ pub const DEEP_FROM: u16 = 12;
 
 pub const MIN_ROWS: u16 = 4;
 
-
-
-
 pub fn scroll_edges(buf: &mut Buffer, ctx: &RenderCtx, area: Rect, scroll: &ScrollState) {
     scroll_edges_except(buf, ctx, area, scroll, &[]);
 }
-
-
-
 
 pub fn scroll_edges_except(
     buf: &mut Buffer,
@@ -80,9 +56,6 @@ pub fn scroll_edges_except(
         fade_row(buf, area, y, strength, container);
     }
 }
-
-
-
 
 fn majority_bg(buf: &Buffer, area: Rect) -> Color {
     let mut counts: Vec<(Color, usize)> = vec![];

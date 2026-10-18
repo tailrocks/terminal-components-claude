@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use std::fmt;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -27,28 +17,17 @@ const fn fnv1a(mut hash: u64, bytes: &[u8]) -> u64 {
 }
 
 impl WidgetId {
-
     pub const fn of(path: &str) -> Self {
         Self(fnv1a(FNV_OFFSET, path.as_bytes()))
     }
-
 
     pub const fn child(self, index: usize) -> Self {
         Self(fnv1a(self.0, &index.to_le_bytes()))
     }
 
-
     pub const fn sub(self, name: &str) -> Self {
         Self(fnv1a(self.0, name.as_bytes()))
     }
-
-
-
-
-
-
-
-
 
     pub const fn part(self, p: PartRef) -> Self {
         let base = match p.item {
@@ -63,12 +42,6 @@ impl WidgetId {
             _ => Self(fnv1a(fnv1a(base.0, b"#part"), &p.part.raw().to_le_bytes())),
         }
     }
-
-
-
-
-
-
 
     pub fn item_of(
         self,
@@ -88,25 +61,13 @@ impl fmt::Debug for WidgetId {
     }
 }
 
-
-
-
-
-
-
-
 pub const fn custom_hash16(name: &str) -> u16 {
     let h = fnv1a(FNV_OFFSET, name.as_bytes());
     0x8000 | ((h ^ (h >> 16) ^ (h >> 32) ^ (h >> 48)) as u16 & 0x7FFF)
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ItemKey {
-
     Index(usize),
 
     Num(u64),
@@ -115,27 +76,22 @@ pub enum ItemKey {
 }
 
 impl ItemKey {
-
     pub const fn index(i: usize) -> Self {
         ItemKey::Index(i)
     }
-
 
     pub const fn num(n: u64) -> Self {
         ItemKey::Num(n)
     }
 
-
     pub const fn text(s: &str) -> Self {
         ItemKey::Text(fnv1a(FNV_OFFSET, s.as_bytes()))
     }
-
 
     pub const fn pair(a: u64, b: u64) -> Self {
         let h = fnv1a(FNV_OFFSET, &a.to_le_bytes());
         ItemKey::Text(fnv1a(h, &b.to_le_bytes()))
     }
-
 
     pub const fn as_index(self) -> Option<usize> {
         match self {
@@ -144,12 +100,6 @@ impl ItemKey {
         }
     }
 }
-
-
-
-
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Part(u16);
@@ -249,12 +199,9 @@ parts! {
 }
 
 impl Part {
-
-
     pub const fn custom(name: &str) -> Part {
         Part(custom_hash16(name))
     }
-
 
     pub const fn raw(self) -> u16 {
         self.0
@@ -270,29 +217,21 @@ impl fmt::Debug for Part {
     }
 }
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct PartRef {
-
     pub part: Part,
 
     pub item: Option<ItemKey>,
 }
 
 impl PartRef {
-
-
-
     pub const OVERFLOW_BEFORE: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(0));
 
     pub const OVERFLOW_AFTER: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(1));
 
-
     pub const fn of(part: Part) -> Self {
         Self { part, item: None }
     }
-
 
     pub const fn item(part: Part, key: ItemKey) -> Self {
         Self {

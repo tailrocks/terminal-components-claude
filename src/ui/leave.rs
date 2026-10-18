@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::core::event::Key;
@@ -21,26 +6,24 @@ use crate::theme::Strings;
 use crate::widgets::button::Button;
 use crate::widgets::dialog::{Dialog, DialogResult};
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Stakes {
-
     #[default]
     Clean,
 
-    Unsaved { changes: usize },
+    Unsaved {
+        changes: usize,
+    },
 
-
-    Running { what: String },
+    Running {
+        what: String,
+    },
 }
 
 impl Stakes {
-
     pub fn is_clean(&self) -> bool {
         *self == Self::Clean
     }
-
-
 
     pub fn max(self, other: Self) -> Self {
         match (self, other) {
@@ -54,19 +37,15 @@ impl Stakes {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LeaveKey {
-
     Copy,
 
     Quit,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct KeyContext {
-
     pub text_focus: bool,
 
     pub dirty: bool,
@@ -74,19 +53,13 @@ pub struct KeyContext {
     pub selection: bool,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QuitKeys {
-
-
-
     pub ctrl_c: bool,
 
     pub ctrl_q: bool,
 
-
     pub letter: Option<char>,
-
 
     pub esc_quits: bool,
 }
@@ -98,7 +71,6 @@ impl Default for QuitKeys {
 }
 
 impl QuitKeys {
-
     pub const DEFAULT: Self = Self {
         ctrl_c: true,
         ctrl_q: true,
@@ -106,18 +78,15 @@ impl QuitKeys {
         esc_quits: false,
     };
 
-
     pub const fn letter(mut self, letter: Option<char>) -> Self {
         self.letter = letter;
         self
     }
 
-
     pub const fn esc_quits(mut self, on: bool) -> Self {
         self.esc_quits = on;
         self
     }
-
 
     pub fn classify(&self, key: &Key, cx: KeyContext) -> Option<LeaveKey> {
         if self.ctrl_c && key.ctrl_char('c') {
@@ -143,26 +112,19 @@ impl QuitKeys {
     }
 }
 
-
-
-
 pub fn letters_allowed(cx: KeyContext) -> bool {
     !cx.text_focus && !cx.dirty
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Leave<T> {
-
     Quit,
 
     To(T),
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Resolved<T> {
-
     Stay,
 
     Save(Leave<T>),
@@ -170,17 +132,11 @@ pub enum Resolved<T> {
     Discard(Leave<T>),
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct LeaveGuard<T> {
-
     pub id: WidgetId,
 
     pending: Option<(Leave<T>, bool)>,
-
-
-
 
     pub save: bool,
 }
@@ -194,13 +150,10 @@ impl<T: Clone> LeaveGuard<T> {
         }
     }
 
-
     pub fn save(mut self, on: bool) -> Self {
         self.save = on;
         self
     }
-
-
 
     pub fn request(
         &mut self,
@@ -226,7 +179,6 @@ impl<T: Clone> LeaveGuard<T> {
         Err(Box::new(d))
     }
 
-
     pub fn request_quit(
         &mut self,
         stakes: &Stakes,
@@ -235,16 +187,13 @@ impl<T: Clone> LeaveGuard<T> {
         self.request(Leave::Quit, stakes, strings)
     }
 
-
     pub fn is_dialog(&self, dialog: WidgetId) -> bool {
         dialog == self.id
     }
 
-
     pub fn pending(&self) -> Option<&Leave<T>> {
         self.pending.as_ref().map(|(to, _)| to)
     }
-
 
     pub fn resolve(&mut self, result: DialogResult) -> Resolved<T> {
         let Some((to, unsaved)) = self.pending.take() else {
@@ -257,8 +206,6 @@ impl<T: Clone> LeaveGuard<T> {
         }
     }
 }
-
-
 
 pub fn unsaved_dialog(id: WidgetId, changes: usize, s: &Strings) -> Dialog {
     let body = Strings::fill(s.leave_unsaved_body, &[&lost(changes, s)]);
@@ -274,8 +221,6 @@ pub fn unsaved_dialog(id: WidgetId, changes: usize, s: &Strings) -> Dialog {
     d
 }
 
-
-
 pub fn discard_dialog(id: WidgetId, changes: usize, s: &Strings) -> Dialog {
     let body = Strings::fill(s.leave_discard_body, &[&lost(changes, s)]);
     Dialog::destructive(id, s.leave_unsaved_title, &body, s.discard)
@@ -288,7 +233,6 @@ fn lost(changes: usize, s: &Strings) -> String {
         n => Strings::fill(s.leave_unsaved_many, &[&n]),
     }
 }
-
 
 pub fn running_dialog(id: WidgetId, what: &str, s: &Strings) -> Dialog {
     let body = Strings::fill(s.leave_running_body, &[&what]);

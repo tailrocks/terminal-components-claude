@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use junie_tui::core::event::{Input, Key};
 use junie_tui::runtime::Application;
 use junie_tui::shell::reach::{Case, Harness, Reveal};
@@ -87,8 +76,6 @@ fn pending_edit(h: &mut H) {
     h.key(KeyCode::Enter);
 }
 
-
-
 const DRAWER: &[Reveal<H>] = &[
     Reveal {
         step: |h| {
@@ -109,8 +96,6 @@ const DRAWER: &[Reveal<H>] = &[
     },
 ];
 
-
-
 const HISTORY: &[Reveal<H>] = &[
     DRAWER[0],
     DRAWER[1],
@@ -122,7 +107,6 @@ const HISTORY: &[Reveal<H>] = &[
     },
 ];
 
-
 fn focus_sections(h: &mut H) {
     let id = match h.wb().active_tab() {
         Some(WorkTab::Table(t)) => t.structure_tabs.id,
@@ -131,9 +115,6 @@ fn focus_sections(h: &mut H) {
     h.app.shell.focus.focus(id);
     h.draw();
 }
-
-
-
 
 const SECTIONS: &[Reveal<H>] = &[
     DRAWER[0],
@@ -154,16 +135,12 @@ const SECTIONS: &[Reveal<H>] = &[
     },
 ];
 
-
-
-
 fn drawer<const N: usize>(h: &mut H) {
     for _ in 0..N {
         h.key(KeyCode::Down);
     }
     h.key(KeyCode::Tab);
 }
-
 
 const DRAWERS: &[Reveal<H>] = &[
     Reveal {
@@ -218,7 +195,6 @@ const DRAWERS: &[Reveal<H>] = &[
 
 fn cases() -> Vec<Case<H>> {
     let mut cases = vec![
-
         page("connections", |_| {}).reveals(DRAWERS),
         page("connections-empty", |h| {
             h.app.connections.connections.clear();
@@ -265,7 +241,6 @@ fn cases() -> Vec<Case<H>> {
                 shift_f10(h);
             },
         ),
-
         page("workbench", connected),
         page("query-editing", |h| {
             connected(h);
@@ -339,7 +314,6 @@ fn cases() -> Vec<Case<H>> {
             connected(h);
             h.ctrl('b');
         }),
-
         layer("help", connected, |h| {
             h.key(KeyCode::Char('?'));
         }),
@@ -479,8 +453,6 @@ junie_tui::reach_tests! {
     grid_menu = "grid-menu",
     explorer_menu = "explorer-menu",
 }
-
-
 
 #[test]
 fn a_short_result_pane_scrolls_the_statement_facts() {

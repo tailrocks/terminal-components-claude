@@ -1,6 +1,3 @@
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app_tests::H;
@@ -13,8 +10,6 @@ fn footer(h: &H) -> String {
 
 #[test]
 fn alt_enter_is_alternatives_in_the_finder_and_the_files_find_page() {
-
-
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 200, 40);
     h.ticks(4);
@@ -25,7 +20,6 @@ fn alt_enter_is_alternatives_in_the_finder_and_the_files_find_page() {
     open(&mut h, "Find files under home");
     h.ticks(8);
     let f = footer(&h);
-
 
     assert!(f.contains("Type Find"), "find: {f}");
     assert!(f.contains("Enter Alternatives…"), "find: {f}");
@@ -41,8 +35,6 @@ fn alt_enter_is_alternatives_in_the_finder_and_the_files_find_page() {
 
 #[test]
 fn the_files_browser_names_alt_enter_alternatives() {
-
-
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     let mut h = H::new(Scenario::ParityBrowser, Motion::Reduced, 0, 200, 40);
     h.ticks(4);
@@ -53,17 +45,12 @@ fn the_files_browser_names_alt_enter_alternatives() {
     assert!(!f.contains("Actions"), "browse: {f}");
 }
 
-
-
 #[test]
 fn the_hint_bar_is_left_aligned() {
     let h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 200, 40);
     let f = footer(&h);
     assert!(f.starts_with(' ') && !f.starts_with("  "), "{f:?}");
 }
-
-
-
 
 #[test]
 fn an_error_status_is_never_cut_for_the_hints() {
@@ -78,9 +65,6 @@ fn an_error_status_is_never_cut_for_the_hints() {
     let f = footer(&h);
     assert!(f.contains(msg), "{f}");
 }
-
-
-
 
 #[test]
 fn alt_enter_is_hinted_only_where_the_terminal_delivers_alt() {

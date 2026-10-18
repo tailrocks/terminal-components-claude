@@ -1,25 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
@@ -27,15 +5,11 @@ use ratatui::style::{Color, Style};
 use crate::theme::{Theme, Tone};
 use crate::ui::text::width;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PageHeader {
     pub title: String,
 
-
     pub status: Option<(String, Tone)>,
-
-
 
     pub right: Option<String>,
 
@@ -58,48 +32,39 @@ impl PageHeader {
         }
     }
 
-
     pub fn status(mut self, text: &str, tone: Tone) -> Self {
         self.status = Some((text.to_owned(), tone));
         self
     }
-
 
     pub fn right(mut self, text: &str) -> Self {
         self.right = Some(text.to_owned());
         self
     }
 
-
     pub fn right_gap(mut self, cells: u16) -> Self {
         self.right_gap = cells;
         self
     }
-
 
     pub fn subtitle(mut self, text: &str, tone: Tone) -> Self {
         self.subtitle = Some((text.to_owned(), tone));
         self
     }
 
-
     pub fn inset(mut self, cells: u16) -> Self {
         self.inset = cells;
         self
     }
 
-
     pub fn height(&self) -> u16 {
         1 + u16::from(self.subtitle.is_some())
     }
-
-
 
     pub fn body(&self, area: Rect) -> Rect {
         let off = (self.height() + 1).min(area.height);
         Rect::new(area.x, area.y + off, area.width, area.height - off)
     }
-
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, t: &Theme) -> u16 {
         let area = area.intersection(*buf.area());
@@ -148,11 +113,9 @@ impl PageHeader {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Heading {
     pub text: String,
-
 
     pub meta: Option<String>,
 
@@ -168,18 +131,15 @@ impl Heading {
         }
     }
 
-
     pub fn meta(mut self, meta: &str) -> Self {
         self.meta = Some(meta.to_owned());
         self
     }
 
-
     pub fn tone(mut self, tone: Tone) -> Self {
         self.tone = tone;
         self
     }
-
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, t: &Theme, bg: Color) {
         let area = area.intersection(*buf.area());
@@ -207,8 +167,6 @@ impl Heading {
     }
 }
 
-
-
 impl crate::ui::measure::Measure for PageHeader {
     fn measure(
         &self,
@@ -218,7 +176,6 @@ impl crate::ui::measure::Measure for PageHeader {
         let w = |s: &str| width(s) as u16;
         let used = w(&self.title) + self.status.as_ref().map_or(0, |(s, _)| w(s));
         let row = match &self.right {
-
             Some(r) => (used + self.right_gap + w(r) + 1).max(used + 2 * self.inset),
             None => used + 2 * self.inset,
         };
@@ -230,7 +187,6 @@ impl crate::ui::measure::Measure for PageHeader {
     }
 }
 
-
 impl crate::ui::measure::Measure for Heading {
     fn measure(
         &self,
@@ -241,7 +197,6 @@ impl crate::ui::measure::Measure for Heading {
         ratatui::layout::Size::new(width(&self.text) as u16 + meta, 1)
     }
 }
-
 
 fn ink(t: &Theme, tone: Tone) -> Style {
     Style::new().fg(t.tone(tone))
@@ -256,8 +211,6 @@ mod tests {
             .map(|x| buf[(x, y)].symbol().to_owned())
             .collect()
     }
-
-
 
     #[test]
     fn a_cut_heading_and_subtitle_reveal_on_hover() {
@@ -291,7 +244,6 @@ mod tests {
             );
         }
     }
-
 
     #[test]
     fn a_header_and_a_heading_at_their_measure_show_everything() {

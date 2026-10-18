@@ -1,9 +1,3 @@
-
-
-
-
-
-
 mod app;
 #[cfg(test)]
 mod app_tests;
@@ -50,7 +44,6 @@ use junie_tui::cli::CommonArgs;
 use crate::app::App;
 use crate::scenario::Scenario;
 
-
 const NO_MOTION_ENV: &str = "HOLLA_NO_MOTION";
 
 #[derive(Debug, Parser)]
@@ -63,6 +56,7 @@ struct Cli {
     #[command(flatten)]
     common: CommonArgs,
 
+    #[doc = " The fixture scenario to open"]
     #[arg(short = 's', long, value_parser = parse_scenario, default_value = "first-use")]
     scenario: Scenario,
 }

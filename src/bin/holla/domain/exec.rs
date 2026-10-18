@@ -1,16 +1,8 @@
-
-
-
-
-
-
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExecKind {
-
     Argv,
-
 
     Shell,
 
@@ -58,14 +50,11 @@ impl Command {
         }
     }
 
-
     pub fn argv_vec(&self) -> Vec<String> {
         let mut v = vec![self.program.clone()];
         v.extend(self.args.iter().cloned());
         v
     }
-
-
 
     pub fn display(&self) -> String {
         self.argv_vec()
@@ -74,7 +63,6 @@ impl Command {
             .collect::<Vec<_>>()
             .join(" ")
     }
-
 
     pub fn argv_facts(&self) -> Vec<(String, String)> {
         self.argv_vec()
@@ -91,7 +79,6 @@ impl fmt::Display for Command {
     }
 }
 
-
 pub fn quote(a: &str) -> String {
     let safe = !a.is_empty()
         && a.chars().all(|c| {
@@ -104,7 +91,6 @@ pub fn quote(a: &str) -> String {
         format!("'{}'", a.replace('\'', "'\\''"))
     }
 }
-
 
 pub fn displays(cmds: &[Command]) -> Vec<String> {
     cmds.iter().map(Command::display).collect()

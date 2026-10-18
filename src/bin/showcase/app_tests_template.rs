@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -91,7 +88,6 @@ impl Harness {
             .count()
     }
 
-
     fn focus_strip(&mut self) {
         self.key(KeyCode::Tab);
         assert_eq!(
@@ -115,8 +111,6 @@ fn wheel_down(h: &mut Harness, x: u16, y: u16) {
     h.draw();
 }
 
-
-
 #[test]
 fn the_strip_switches_sections_by_key_and_click() {
     let mut h = Harness::new(120, 40, PageId::Buttons);
@@ -137,10 +131,6 @@ fn the_strip_switches_sections_by_key_and_click() {
     assert_eq!(h.app.shell.focus.current(), Some(h.strip_id()));
     assert!(h.text().contains("Run task"));
 }
-
-
-
-
 
 #[test]
 fn the_template_lays_out_wide_and_narrow() {
@@ -187,9 +177,6 @@ fn the_template_lays_out_wide_and_narrow() {
     );
 }
 
-
-
-
 #[test]
 fn the_states_grid_never_adds_a_live_focus_bar() {
     for level in [
@@ -215,8 +202,6 @@ fn the_states_grid_never_adds_a_live_focus_bar() {
         }
     }
 }
-
-
 
 #[test]
 fn compare_levels_shows_every_colour_level() {
@@ -259,10 +244,6 @@ fn compare_levels_shows_every_colour_level() {
     assert!(h.text().contains("no color"), "{}", h.text());
 }
 
-
-
-
-
 fn slug(s: &str) -> String {
     s.chars()
         .filter(|c| c.is_ascii_alphanumeric())
@@ -271,8 +252,6 @@ fn slug(s: &str) -> String {
 }
 
 const SLUGS: &str = include_str!("../../../tests/showcase_slugs.txt");
-
-
 
 fn golden() -> Vec<(&'static str, &'static str)> {
     SLUGS
@@ -285,11 +264,6 @@ fn golden() -> Vec<(&'static str, &'static str)> {
         })
         .collect()
 }
-
-
-
-
-
 
 #[test]
 fn the_tree_keeps_its_rules_and_its_page_names_only_grow() {
@@ -365,8 +339,6 @@ fn the_tree_keeps_its_rules_and_its_page_names_only_grow() {
     );
 }
 
-
-
 #[test]
 fn every_page_opens_by_its_slug() {
     for e in NAV_ENTRIES {
@@ -382,9 +354,6 @@ fn every_page_opens_by_its_slug() {
         );
     }
 }
-
-
-
 
 #[test]
 fn every_page_is_on_the_template() {

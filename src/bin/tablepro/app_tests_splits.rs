@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use junie_tui::core::event::MouseKind;
 use ratatui::layout::Rect;
 
@@ -27,7 +21,6 @@ fn drag(h: &mut H, from: (u16, u16), to: (u16, u16)) {
 }
 
 fn double_click(h: &mut H, x: u16, y: u16) {
-
     h.ticks(20);
     h.click(x, y);
     h.click(x, y);
@@ -88,8 +81,6 @@ fn the_history_list_and_detail_resize_by_the_seam() {
     assert_eq!(now.x, seam.x - 4);
 }
 
-
-
 #[test]
 fn history_buttons_show_their_tooltip_after_a_rest() {
     let mut h = H::connected(120, 40);
@@ -113,8 +104,6 @@ fn history_buttons_show_their_tooltip_after_a_rest() {
     h.mouse(MouseKind::Move, 0, 0);
     assert!(!h.text().contains("Open the selected query"));
 }
-
-
 
 #[test]
 fn the_pointer_shape_follows_fields_and_seams() {

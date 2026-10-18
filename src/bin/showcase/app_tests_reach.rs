@@ -1,22 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeSet;
 
 use junie_tui::core::event::{Input, Mouse, MouseKind};
@@ -33,17 +14,11 @@ use crate::app::{App, NAV_ENTRIES};
 use crate::pages::template::Section;
 use junie_tui::theme::Theme;
 
-
 const SIZES: [(u16, u16); 4] = [(80, 24), (100, 25), (106, 29), (120, 40)];
-
 
 const REFERENCE: (u16, u16) = (220, 70);
 
-
 const INNER_NOTCHES: usize = 400;
-
-
-
 
 fn words(buf: &Buffer, area: Rect, out: &mut Words) {
     out.add_area(buf, area);
@@ -81,16 +56,11 @@ impl Shot {
         &mut self.app.pages[i].template_mut().unwrap().view
     }
 
-
-
     fn words(&mut self, out: &mut Words) {
         let area = self.view().last_layout().viewport;
         words(self.term.backend().buffer(), area, out);
         out.add_overflowed();
     }
-
-
-
 
     fn done(&self, out: &Words) -> bool {
         self.want
@@ -103,8 +73,6 @@ impl Shot {
         self.words(&mut out);
         let l = self.view().last_layout();
         let steps = |content: u16, view: u16| -> Vec<usize> {
-
-
             let max = content.saturating_sub(view) as usize;
             let step = (view / 2).max(1) as usize;
             let mut v: Vec<usize> = (0..=max).step_by(step).collect();
@@ -127,14 +95,6 @@ impl Shot {
         out
     }
 
-
-
-
-
-
-
-
-
     fn inner(&mut self, out: &mut Words) {
         let view = self.view().id;
         let viewport = self.view().last_layout().viewport;
@@ -153,7 +113,6 @@ impl Shot {
                 owners.push(b.owner);
             }
         }
-
 
         let scrollers: Vec<(WidgetId, Rect)> = self
             .app
@@ -189,7 +148,6 @@ impl Shot {
             };
             let (v, h) = (at(Axis::Vertical), at(Axis::Horizontal));
 
-
             let rows = bars
                 .iter()
                 .find(|b| b.owner == owner && b.axis == Axis::Vertical)
@@ -204,7 +162,6 @@ impl Shot {
                     return;
                 }
                 if let Some(h) = h {
-
                     s.sweep(MouseKind::WheelRight, h, start, out, &mut |_, _| {});
                     s.sweep(MouseKind::WheelLeft, h, start, out, &mut |_, _| {});
                 }
@@ -214,17 +171,11 @@ impl Shot {
                 self.sweep(MouseKind::WheelLeft, h, start, out, &mut |_, _| {});
             }
             if let Some(v) = v {
-
-
                 self.sweep(MouseKind::WheelUp, v, start, out, &mut across);
                 self.sweep(MouseKind::WheelDown, v, start, out, &mut across);
             }
         }
     }
-
-
-
-
 
     fn sweep(
         &mut self,
@@ -251,7 +202,6 @@ impl Shot {
     }
 }
 
-
 fn allowed() -> BTreeSet<String> {
     let text = include_str!("../../../tests/showcase_reach_allow.txt");
     text.lines()
@@ -267,9 +217,6 @@ fn allowed() -> BTreeSet<String> {
         })
         .collect()
 }
-
-
-
 
 fn reach_part(part: usize) {
     let allowed = allowed();
@@ -326,7 +273,6 @@ fn reach_part(part: usize) {
     );
 }
 
-
 const PARTS: usize = 8;
 
 #[test]
@@ -362,8 +308,6 @@ fn every_section_reaches_its_whole_content_by_scrolling_7() {
     reach_part(7);
 }
 
-
-
 #[test]
 fn every_reach_allowlist_entry_names_a_page() {
     let pages: BTreeSet<String> = NAV_ENTRIES.iter().map(|e| format!("{:?}", e.id)).collect();
@@ -375,7 +319,6 @@ fn every_reach_allowlist_entry_names_a_page() {
         );
     }
 }
-
 
 static LONG: &[crate::options::Opt] = &{
     use crate::options::{Effect, Opt};
@@ -417,8 +360,6 @@ static LONG: &[crate::options::Opt] = &{
     ]
 };
 
-
-
 fn options_frame(
     t: &mut crate::pages::template::Template,
     focus: Option<junie_tui::core::id::WidgetId>,
@@ -458,10 +399,6 @@ fn text(buf: &Buffer) -> String {
         .join("\n")
 }
 
-
-
-
-
 #[test]
 fn a_long_option_table_scrolls_and_follows_focus() {
     use crate::pages::template::{Section, Template};
@@ -486,8 +423,6 @@ fn a_long_option_table_scrolls_and_follows_focus() {
     assert!(t.view.last_layout().viewport.contains(at.as_position()));
     assert!(text(&buf).contains("The last option"));
 }
-
-
 
 #[test]
 fn the_inspector_options_pane_scrolls_to_its_last_option() {

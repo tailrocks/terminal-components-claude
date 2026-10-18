@@ -1,28 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::io::{Write, stdout};
 use std::time::{Duration, Instant};
 
@@ -52,75 +27,43 @@ pub trait Application {
 
     fn tick_interval(&self) -> Duration;
 
-
     fn coalesce(&self) -> Coalesce {
         Coalesce::default()
     }
-
-
-
 
     fn shapes(&self) -> crate::core::shape::Shapes {
         crate::core::shape::Shapes::default()
     }
 
-
-
-
     fn input_config(&self) -> InputConfig {
         InputConfig::default()
     }
 
-
-
     fn keyboard_protocol(&self) -> KeyboardProtocol {
         KeyboardProtocol::current()
     }
-
 
     fn take_output(&mut self) -> Vec<String> {
         Vec::new()
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Coalesce {
-
     pub wheel: bool,
-
-
 
     pub pointer_moves: bool,
 
-
-
     pub key_repeat: bool,
-
 
     pub resize: bool,
 
-
     pub max_batch: usize,
-
 
     pub max_latency: Duration,
 }
 
 impl Coalesce {
-
     pub const OFF: Self = Self {
         wheel: false,
         pointer_moves: false,
@@ -129,7 +72,6 @@ impl Coalesce {
         max_batch: 1,
         max_latency: Duration::ZERO,
     };
-
 
     pub fn folds(&self, last: &Input, next: &Input) -> bool {
         match (last, next) {
@@ -176,17 +118,10 @@ fn is_navigation(key: &Key) -> bool {
         .is_empty()
 }
 
-
-
-
-
-
 pub struct TerminalSession {
     terminal: ratatui::DefaultTerminal,
     restoration: Restoration,
 }
-
-
 
 struct Restoration {
     restore: fn(),
@@ -200,7 +135,6 @@ impl Restoration {
             (self.restore)();
         }
     }
-
 
     fn reacquire(&mut self) {
         self.active = true;
@@ -224,33 +158,16 @@ fn initialize_with_restoration<T>(
     Ok((initialize()?, restoration))
 }
 
-
-
 const ENABLE_WRAP: &str = "\x1b[?7h";
 
 impl TerminalSession {
-
-
-
-
-
-
     pub fn enter() -> std::io::Result<Self> {
         Self::enter_with(KeyboardProtocol::current())
     }
 
-
-
-
-
-
     pub fn enter_with(protocol: KeyboardProtocol) -> std::io::Result<Self> {
         enable_raw_mode()?;
         let (terminal, restoration) = initialize_with_restoration(restore_terminal, || {
-
-
-
-
             prime_input()?;
             let mut out = stdout();
             execute!(
@@ -260,7 +177,6 @@ impl TerminalSession {
                 EnableBracketedPaste,
                 EnableFocusChange
             )?;
-
 
             if let Some(push) = keyboard::session::enter(protocol, || {
                 ratatui::crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false)
@@ -286,19 +202,9 @@ impl TerminalSession {
         &mut self.terminal
     }
 
-
     pub fn leave(&mut self) {
         self.restoration.leave();
     }
-
-
-
-
-
-
-
-
-
 
     #[cfg(unix)]
     pub fn suspend(&mut self) -> std::io::Result<(u16, u16)> {
@@ -329,9 +235,6 @@ impl TerminalSession {
         }
         self.restoration.reacquire();
 
-
-
-
         execute!(out, Clear(ClearType::All))?;
         self.terminal.swap_buffers();
         self.terminal.swap_buffers();
@@ -339,8 +242,6 @@ impl TerminalSession {
         Ok((size.width, size.height))
     }
 }
-
-
 
 #[cfg(unix)]
 pub mod job_control {
@@ -371,29 +272,21 @@ pub mod job_control {
     }
 
     extern "C" fn on_tstp(_sig: c_int) {
-
         REQUESTED.store(true, Ordering::SeqCst);
     }
 
-
     pub fn install() {
-
         let handler: extern "C" fn(c_int) = on_tstp;
         unsafe {
             signal(SIGTSTP, handler as *const () as usize);
         }
     }
 
-
     pub fn take_request() -> bool {
         REQUESTED.swap(false, Ordering::SeqCst)
     }
 
-
-
     pub fn stop_self() {
-
-
         unsafe {
             signal(SIGTSTP, SIG_DFL);
             raise(SIGTSTP);
@@ -422,8 +315,6 @@ fn restore_terminal() {
     let _ = disable_raw_mode();
 }
 
-
-
 pub fn run(app: &mut impl Application) -> std::io::Result<()> {
     let mut session = TerminalSession::enter_with(app.keyboard_protocol())?;
     #[cfg(unix)]
@@ -433,20 +324,9 @@ pub fn run(app: &mut impl Application) -> std::io::Result<()> {
     result
 }
 
-
-
-
-
-
-
 fn prime_input() -> std::io::Result<()> {
     poll_uninterrupted(Duration::ZERO).map(|_| ())
 }
-
-
-
-
-
 
 fn first_poll_delay() -> Option<Duration> {
     std::env::var("JUNIE_TUI_FIRST_POLL_DELAY_MS")
@@ -456,26 +336,12 @@ fn first_poll_delay() -> Option<Duration> {
         .map(Duration::from_millis)
 }
 
-
-
 fn poll_uninterrupted(wait: Duration) -> std::io::Result<bool> {
     match poll_input(wait) {
         Err(e) if e.kind() == std::io::ErrorKind::Interrupted => Ok(false),
         other => other,
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 fn poll_input(wait: Duration) -> std::io::Result<bool> {
     if event::poll(Duration::ZERO)? {
@@ -491,19 +357,15 @@ fn poll_input(wait: Duration) -> std::io::Result<bool> {
     event::poll(wait)
 }
 
-
 #[cfg(unix)]
 mod tty_input {
     use std::mem::MaybeUninit;
     use std::os::fd::{AsRawFd, RawFd};
     use std::sync::OnceLock;
 
-
-
     fn fd() -> Option<RawFd> {
         static TTY: OnceLock<Option<(RawFd, Option<std::fs::File>)>> = OnceLock::new();
         TTY.get_or_init(|| {
-
             if unsafe { libc::isatty(libc::STDIN_FILENO) } == 1 {
                 return Some((libc::STDIN_FILENO, None));
             }
@@ -513,7 +375,6 @@ mod tty_input {
         .as_ref()
         .map(|(fd, _)| *fd)
     }
-
 
     fn queued(fd: RawFd) -> bool {
         let mut p = libc::pollfd {
@@ -525,13 +386,6 @@ mod tty_input {
         unsafe { libc::poll(&mut p, 1, 0) > 0 && p.revents & libc::POLLIN != 0 }
     }
 
-
-
-
-
-
-
-
     pub fn rearm() -> bool {
         let Some(fd) = fd() else {
             return false;
@@ -539,7 +393,6 @@ mod tty_input {
         if !queued(fd) {
             return false;
         }
-
 
         unsafe {
             if libc::tcgetpgrp(fd) != libc::getpgrp() {
@@ -555,13 +408,10 @@ mod tty_input {
 }
 
 fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std::io::Result<()> {
-
-
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut dirty = true;
     let mut last_tick = Instant::now();
     let mut pump = InputPump::new(app.coalesce());
-
 
     let mut shapes =
         crate::core::shape::ShapeSync::new(crate::core::shape::ShapeSupport::current());
@@ -607,7 +457,6 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
         let interval = app.tick_interval();
         let mut wait = interval.saturating_sub(last_tick.elapsed());
 
-
         let now = Instant::now();
         hover_due = match (crate::ui::reveal::hover_wait(), hover_due) {
             (None, _) => None,
@@ -632,8 +481,6 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                 return Ok(());
             }
             if changed {
-
-
                 terminal.draw(|f| render_frame(app, f, suppress_colors))?;
                 if pump.settle(app) {
                     terminal.draw(|f| render_frame(app, f, suppress_colors))?;
@@ -641,7 +488,6 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
             }
         }
         if hover_due.is_some_and(|(_, due)| due <= now + wait) {
-
             dirty = true;
         }
 
@@ -657,7 +503,6 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
                 dirty = true;
             }
             if app.should_quit() {
-
                 if dirty {
                     terminal.draw(|f| render_frame(app, f, suppress_colors))?;
                 }
@@ -667,20 +512,9 @@ fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std:
     }
 }
 
-
 fn terminal_size(terminal: &ratatui::DefaultTerminal) -> Option<(u16, u16)> {
     terminal.size().ok().map(|s| (s.width, s.height))
 }
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct SizeWatch {
@@ -688,20 +522,15 @@ pub struct SizeWatch {
 }
 
 impl SizeWatch {
-
     pub fn new(size: Option<(u16, u16)>) -> Self {
         Self { known: size }
     }
-
-
 
     pub fn observe(&mut self, input: &Input) {
         if let Input::Resize(w, h) = input {
             self.known = Some((*w, *h));
         }
     }
-
-
 
     pub fn check(&mut self, actual: (u16, u16)) -> Option<Input> {
         if self.known == Some(actual) {
@@ -712,9 +541,6 @@ impl SizeWatch {
     }
 }
 
-
-
-
 fn effective_input_config(app: InputConfig, protocol_active: bool) -> InputConfig {
     InputConfig {
         legacy_ctrl_punctuation: app.legacy_ctrl_punctuation && !protocol_active,
@@ -722,27 +548,14 @@ fn effective_input_config(app: InputConfig, protocol_active: bool) -> InputConfi
     }
 }
 
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FocusClickGuard {
-
-
     pub window: Duration,
     gained_at: Option<Instant>,
     swallowing: bool,
 }
 
 impl FocusClickGuard {
-
-
-
     pub const DEFAULT_WINDOW: Duration = Duration::from_millis(300);
 
     pub const fn new(window: Duration) -> Self {
@@ -752,8 +565,6 @@ impl FocusClickGuard {
             swallowing: false,
         }
     }
-
-
 
     pub fn drops(&mut self, ev: &Event, now: Instant) -> bool {
         match ev {
@@ -794,9 +605,6 @@ thread_local! {
         std::cell::Cell::new(FocusClickGuard::default());
 }
 
-
-
-
 pub fn set_focus_click_guard(window: Duration) {
     FOCUS_GUARD.with(|g| g.set(FocusClickGuard::new(window)));
 }
@@ -821,20 +629,7 @@ fn next_ready_input(config: InputConfig) -> std::io::Result<Option<Input>> {
     Ok(None)
 }
 
-
-
-
-
-
 pub const DRAIN_BUDGET: usize = 256;
-
-
-
-
-
-
-
-
 
 pub fn drain_ready_inputs(
     app: &mut impl Application,
@@ -843,18 +638,11 @@ pub fn drain_ready_inputs(
     InputPump::new(Coalesce::OFF).drain(app, next)
 }
 
-
-
-
-
-
-
 #[derive(Debug, Clone, Default)]
 pub struct InputPump {
     policy: Coalesce,
 
     pending: Option<Input>,
-
 
     settle: Option<Mouse>,
 }
@@ -868,26 +656,13 @@ impl InputPump {
         }
     }
 
-
-
     pub fn set_policy(&mut self, policy: Coalesce) {
         self.policy = policy;
     }
 
-
     pub fn has_pending(&self) -> bool {
         self.pending.is_some()
     }
-
-
-
-
-
-
-
-
-
-
 
     pub fn drain(
         &mut self,
@@ -900,8 +675,6 @@ impl InputPump {
         let mut burst: Option<(Input, usize)> = None;
         self.settle = None;
         loop {
-
-
             if let Some((last, folded)) = &burst
                 && (!self.policy.folds(last, last)
                     || *folded >= self.policy.max_batch
@@ -923,9 +696,6 @@ impl InputPump {
                 break;
             }
 
-
-
-
             let changed = crate::ui::reveal::on_pointer_wheel(&input)
                 .or_else(|| crate::ui::tooltip::on_input(&input))
                 .unwrap_or_else(|| app.handle(input.clone()))
@@ -934,8 +704,6 @@ impl InputPump {
                 return Ok(changed || burst.is_some());
             }
             match &mut burst {
-
-
                 Some((last, folded)) => {
                     *last = input;
                     *folded += 1;
@@ -958,9 +726,6 @@ impl InputPump {
         Ok(burst.is_some())
     }
 
-
-
-
     pub fn settle(&mut self, app: &mut impl Application) -> bool {
         match self.settle.take() {
             Some(m) => app.handle(Input::Mouse(m)) == Outcome::Changed,
@@ -977,25 +742,12 @@ fn render_frame(app: &mut impl Application, frame: &mut Frame, suppress_colors: 
 }
 
 fn reset_frame_colors(buffer: &mut Buffer) {
-
-
-
-
-
     for cell in &mut buffer.content {
         cell.fg = Color::Reset;
         cell.bg = Color::Reset;
         cell.underline_color = Color::Reset;
     }
 }
-
-
-
-
-
-
-
-
 
 pub fn drain_pending_input() -> std::io::Result<usize> {
     let was_raw = ratatui::crossterm::terminal::is_raw_mode_enabled()?;
@@ -1051,9 +803,6 @@ mod tests {
             "an app may opt out"
         );
     }
-
-
-
 
     #[test]
     fn the_window_activating_click_is_ignored() {
@@ -1113,8 +862,6 @@ mod tests {
             Ok(())
         }
     }
-
-
 
     #[test]
     fn the_size_watch_delivers_a_missed_resize_once() {
@@ -1180,7 +927,6 @@ mod tests {
 
     #[test]
     fn interrupted_poll_is_not_an_error() {
-
         let mapped = match Err::<bool, _>(io::Error::from(ErrorKind::Interrupted)) {
             Err(e) if e.kind() == ErrorKind::Interrupted => Ok(false),
             other => other,
@@ -1205,8 +951,6 @@ mod tests {
     fn no_color_backend_preserves_selection_attributes() {
         const CHILD: &str = "JUNIE_NO_COLOR_TEST_CHILD";
         if std::env::var_os(CHILD).is_none() {
-
-
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([
                     "--exact",
@@ -1266,8 +1010,6 @@ mod tests {
         }
     }
 
-
-
     #[derive(Default)]
     struct Recorder {
         handled: Vec<Input>,
@@ -1320,8 +1062,6 @@ mod tests {
         })
     }
 
-
-
     fn frames(app: &mut Recorder, policy: Coalesce, queue: Vec<Input>) -> usize {
         let mut queue = std::collections::VecDeque::from(queue);
         let mut pump = InputPump::new(policy);
@@ -1340,8 +1080,6 @@ mod tests {
         frames
     }
 
-
-
     fn unbounded() -> Coalesce {
         Coalesce {
             max_latency: Duration::MAX,
@@ -1358,8 +1096,6 @@ mod tests {
         use crate::ui::reveal::Reveal;
         use ratatui::backend::TestBackend;
         use ratatui::layout::{Position, Rect};
-
-
 
         struct TipApp {
             text: String,
@@ -1440,8 +1176,6 @@ mod tests {
         send(&mut app, wheel(3, 1));
         assert_eq!(app.wheels, 3);
     }
-
-
 
     #[test]
     fn esc_dismisses_a_shown_tooltip_before_the_app_sees_it() {

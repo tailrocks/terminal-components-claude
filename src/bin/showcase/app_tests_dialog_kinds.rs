@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -37,7 +32,6 @@ fn form(h: &Harness) -> &FormDialog {
         .expect("the form is on top")
 }
 
-
 fn is_open(h: &Harness) -> bool {
     h.app
         .layers
@@ -61,7 +55,6 @@ fn the_form_previews_discloses_tests_and_saves() {
 
     assert!(h.text().contains("7731"), "{}", h.text());
     assert!(!h.text().contains("hunter2"));
-
 
     for c in "billing".chars() {
         h.key(KeyCode::Char(c));
@@ -117,7 +110,6 @@ fn the_chooser_stacks_a_picker_over_the_form_and_returns_to_it() {
     assert_eq!(h.app.layers.len(), 1);
     assert!(h.app.layers.top_as::<FormDialog>().is_some());
 
-
     let (x, y) = h.find("Choose…").unwrap();
     h.click(x + 1, y);
     assert_eq!(h.app.layers.len(), 2);
@@ -164,10 +156,6 @@ fn the_info_dialog_copies_a_row_and_stays_open() {
     );
     assert!(last(&h).contains("Copy"), "{}", last(&h));
 }
-
-
-
-
 
 #[test]
 fn a_click_outside_a_light_info_or_help_closes_it_and_a_form_stays() {
@@ -237,8 +225,6 @@ fn the_states_grid_draws_every_row() {
     assert!(h.text().contains("Release channel"));
 }
 
-
-
 struct TickingForm {
     form: FormDialog,
     ticks: std::rc::Rc<std::cell::Cell<u32>>,
@@ -273,9 +259,6 @@ impl junie_tui::ui::layer::Layer<crate::pages::LayerRes> for TickingForm {
         None
     }
 }
-
-
-
 
 #[test]
 fn a_page_hosted_form_ticks_and_esc_dismisses_through_the_shell() {

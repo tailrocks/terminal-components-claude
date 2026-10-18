@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
 use junie_tui::core::id::WidgetId;
@@ -19,7 +16,6 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 
 use super::ModalResult;
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextLine {
@@ -60,7 +56,6 @@ pub struct TextModal {
     pub width: u16,
     pub closed: bool,
     pub area: Rect,
-
 
     pub dismiss: junie_tui::ui::popup::Dismiss,
     scroll_area: Rect,
@@ -168,8 +163,6 @@ impl TextModal {
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-
-
 
         let width_ = self.width;
         let frame = move |h: u16| {
@@ -283,7 +276,6 @@ impl Layer<ModalResult> for TextModal {
         TextModal::on_key(self, key)
     }
 
-
     fn pointer(&mut self, ev: &PointerEvent, _: &mut LayerCx<'_>) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
             if axis == Axis::Vertical {
@@ -345,7 +337,6 @@ mod tests {
             .collect();
         let mut m = TextModal::new(WidgetId::of("about"), "About", lines);
         m.render(screen, &mut buf, &mut ctx);
-
 
         assert_eq!(m.area, Rect::new(14, 9, 72, 10));
     }

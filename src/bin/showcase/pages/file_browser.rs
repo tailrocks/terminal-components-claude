@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -33,7 +26,6 @@ use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("filebrowser");
 const HOME: &str = "/Users/ada";
-
 
 fn fixture() -> MemorySource {
     let d = |p: &str, meta: &str| FileEntry::dir(&format!("{HOME}{p}")).meta(meta);
@@ -67,7 +59,6 @@ fn fixture() -> MemorySource {
     .home(HOME)
 }
 
-
 const INTRO: [&str; 2] = [
     "The folder mounted into the workspace. Browse… opens the modal over this page;",
     "Esc, the × or (with Dismiss light) a click outside cancels it.",
@@ -76,7 +67,6 @@ const NEW_META: &str = "FileBrowser on the layer stack · LayerResult::File";
 const SOURCE_HEAD: &str =
     "FileEntry rows of ~ (folders first in the browser; hidden ones wait for the toggle):";
 const RESULTS_META: &str = "FileBrowserResult: Chosen { path, checked } · Url · Cancelled";
-
 
 const REPOS: [&str; 2] = ["acme/payments-platform", "acme/customer-portal"];
 
@@ -122,7 +112,6 @@ impl FileBrowserPage {
             FileCmd::default_keymap()
         }
     }
-
 
     fn browser(&self) -> FileBrowser {
         let title = match self.choose_kind() {
@@ -180,7 +169,6 @@ impl FileBrowserPage {
         b
     }
 
-
     const CMDS: [FileCmd; 7] = [
         FileCmd::Open,
         FileCmd::Parent,
@@ -190,7 +178,6 @@ impl FileBrowserPage {
         FileCmd::Filter,
         FileCmd::Url,
     ];
-
 
     fn source_rows() -> Vec<String> {
         let home = fixture().list(HOME).unwrap_or_default();
@@ -202,7 +189,6 @@ impl FileBrowserPage {
             })
             .collect()
     }
-
 
     fn key_rows(&self) -> Vec<String> {
         let keys = self.keymap();
@@ -222,7 +208,6 @@ impl FileBrowserPage {
     fn keys_meta(&self) -> String {
         format!("FileCmd · {} key map", self.opts.value("filebrowser.keys"))
     }
-
 
     fn children(&self) -> [StackChild; 4] {
         [
@@ -356,8 +341,6 @@ impl FileBrowserPage {
     }
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let b = FileBrowser::new(ID.sub("sample"), "Choose", fixture(), HOME);
@@ -380,8 +363,6 @@ impl Page for FileBrowserPage {
     fn blurb(&self) -> &'static str {
         "FileBrowser: choose a file or folder from a FileSource, with a path bar, filter, type-ahead and hidden files"
     }
-
-
 
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;

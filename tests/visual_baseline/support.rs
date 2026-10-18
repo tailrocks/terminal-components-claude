@@ -1,34 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
@@ -42,13 +11,9 @@ use tuiscotti::{Frame, Observation, Profile, VENDORED_FACES};
 
 pub use tuiscotti::MouseButton;
 
-
 pub const SETTLE: Duration = Duration::from_millis(400);
 
-
 pub const TIMEOUT_MS: u64 = 8_000;
-
-
 
 pub const CANONICAL_SIZES: [(u16, u16); 5] = [(72, 20), (80, 24), (100, 30), (120, 40), (160, 50)];
 pub const CANONICAL_COLORS: [Color; 5] = [
@@ -59,12 +24,9 @@ pub const CANONICAL_COLORS: [Color; 5] = [
     Color::NoColorEnv,
 ];
 
-
-
 pub fn is_macos_platform_metadata(path: &Path) -> bool {
     path.file_name() == Some(std::ffi::OsStr::new(".DS_Store"))
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Color {
@@ -76,7 +38,6 @@ pub enum Color {
 }
 
 impl Color {
-
     pub fn suffix(self) -> &'static str {
         match self {
             Color::Truecolor => "truecolor",
@@ -88,10 +49,7 @@ impl Color {
     }
 }
 
-
 pub struct Case {
-
-
     pub name: Cow<'static, str>,
     pub bin: &'static str,
 
@@ -100,16 +58,10 @@ pub struct Case {
     pub rows: u16,
     pub color: Color,
 
-
-
     pub needle: &'static str,
-
-
 
     pub sends: &'static [&'static str],
     pub timeout_ms: u64,
-
-
 
     pub env: &'static [(&'static str, &'static str)],
 }
@@ -157,29 +109,11 @@ pub fn argv_for(case: &Case) -> Vec<String> {
     argv
 }
 
-
-
-
-
-
-
-
-
 pub const ARTIFACTS: ArtifactSet = ArtifactSet::AnsiCursor;
-
-
 
 pub const COMMITTED: &[&str] = &["ansi"];
 
-
-
 pub const LEGACY_EXTS: [&str; 4] = ["ansi", "txt", "png", "html"];
-
-
-
-
-
-
 
 pub fn is_reapproved(name: &str) -> bool {
     let root = approved_root();
@@ -189,14 +123,9 @@ pub fn is_reapproved(name: &str) -> bool {
     })
 }
 
-
 pub fn visual_full() -> bool {
     std::env::var_os("VISUAL_FULL").is_some_and(|v| v == "1")
 }
-
-
-
-
 
 pub fn review_enabled() -> bool {
     std::env::var_os("VISUAL_REVIEW").is_none_or(|v| v != "0")
@@ -206,9 +135,6 @@ pub fn manifest_path(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join(rel)
 }
 
-
-
-
 pub fn approved_root() -> PathBuf {
     if crate::oracle::active() {
         crate::oracle::root()
@@ -216,7 +142,6 @@ pub fn approved_root() -> PathBuf {
         snapshots_root()
     }
 }
-
 
 pub fn snapshots_root() -> PathBuf {
     manifest_path("snapshots")
@@ -230,12 +155,6 @@ pub fn diff_root() -> PathBuf {
     manifest_path("target/tuiscotti/diff")
 }
 
-
-
-
-
-
-
 pub fn store() -> GroupedStore {
     GroupedStore::new(&approved_root())
         .with_artifacts(ARTIFACTS)
@@ -243,8 +162,6 @@ pub fn store() -> GroupedStore {
         .with_diff_root(&diff_root())
         .with_review_evidence(review_enabled())
 }
-
-
 
 const ACTUAL_EXTS: [&str; 8] = [
     "ansi",
@@ -257,9 +174,6 @@ const ACTUAL_EXTS: [&str; 8] = [
     "html",
 ];
 
-
-
-
 pub fn clear_actual(name: &str) {
     for ext in ACTUAL_EXTS {
         let path = actual_root().join(format!("{name}.{ext}"));
@@ -270,8 +184,6 @@ pub fn clear_actual(name: &str) {
         }
     }
 }
-
-
 
 pub fn clear_actual_leaves_nothing() {
     let name = format!("probe/clear-check-{}/1x1/truecolor", std::process::id());
@@ -301,19 +213,11 @@ thread_local! {
     );
 }
 
-
 fn profile_name() -> String {
     Profile::default_profile().name
 }
 
-
-
-
-
-
 pub fn assert_gated(name: &str, frame: &Frame) {
-
-
     let outcome = RENDERER
         .with(|r| store().check_with(&mut r.borrow_mut(), name, frame, 1.0))
         .unwrap_or_else(|e| panic!("baseline `{name}` could not be checked: {e}"));
@@ -326,41 +230,30 @@ pub fn assert_gated(name: &str, frame: &Frame) {
     }
 }
 
-
-
-
 #[derive(Clone, Copy, Debug)]
 pub enum Scroll {
     Up,
     Down,
 }
 
-
 pub struct Screen<'a>(&'a tuiscotti::Screen);
 
 impl Screen<'_> {
-
     pub fn text(&self) -> String {
         render::frame_from_screen(self.0, "query").text()
     }
-
 
     pub fn size(&self) -> (u16, u16) {
         (self.0.cols(), self.0.rows())
     }
 }
 
-
-
-
 pub struct Session {
     inner: tuiscotti::Session,
     timeout: Duration,
 
-
     sent_at: Option<u64>,
 }
-
 
 fn wait_failure(what: &str, err: &WaitError) -> String {
     format!("{what}: {err}")
@@ -372,14 +265,11 @@ impl Session {
             .wait_predicate(pred, Instant::now() + self.timeout, &CancelToken::new())
     }
 
-
     pub fn wait_until(&mut self, pred: impl Fn(&Screen<'_>) -> bool) -> Result<(), String> {
         self.wait(|obs| pred(&Screen(&obs.screen)))
             .map(|_| ())
             .map_err(|e| wait_failure("wait_until", &e))
     }
-
-
 
     fn expect_visible(&self, locator: Locator, what: &str) -> Result<Span, String> {
         self.inner
@@ -396,8 +286,6 @@ impl Session {
             })
     }
 
-
-
     pub fn find(&mut self, needle: &str) -> Result<(u16, u16), String> {
         let span = self.expect_visible(
             Locator::text(needle).physical_rows(),
@@ -410,8 +298,6 @@ impl Session {
         self.find(needle).map(|_| ())
     }
 
-
-
     pub fn assert_wait_not_vacuous(&self, needle: &str) {
         let obs = self.inner.observe_now().expect("observe live session");
         let screen = render::frame_from_screen(&obs.screen, "evidence").text();
@@ -423,18 +309,9 @@ impl Session {
         );
     }
 
-
-
     fn sending(&mut self) {
         self.sent_at = Some(self.inner.revision());
     }
-
-
-
-
-
-
-
 
     pub fn wait_answer(&mut self) -> Result<(), String> {
         let Some(before) = self.sent_at.take() else {
@@ -445,8 +322,6 @@ impl Session {
             .map_err(|e| wait_failure("the screen never changed after the last input", &e))
     }
 
-
-
     pub fn wait_idle(&mut self, quiet: Duration) -> Result<(), String> {
         let painted = Locator::regex(r"\S").expect("`\\S` is a valid locator regex");
         self.expect_visible(painted, "the screen stayed blank")?;
@@ -455,7 +330,6 @@ impl Session {
             .map(|_| ())
             .map_err(|e| wait_failure("idle", &e))
     }
-
 
     pub fn wait_stable(&mut self, quiet: Duration) -> Result<Frame, String> {
         self.wait_answer()?;
@@ -466,9 +340,6 @@ impl Session {
         Ok(render::frame_from_screen(&obs.screen, &profile_name()))
     }
 
-
-
-
     pub fn send_key(&mut self, name: &str) -> Result<(), tuiscotti::TuiError> {
         self.sending();
         self.inner.press(name)
@@ -478,11 +349,6 @@ impl Session {
         self.sending();
         self.inner.send_text(text)
     }
-
-
-
-
-
 
     pub fn advance_clock(&mut self, ms: u64) -> Result<(), tuiscotti::TuiError> {
         self.sending();
@@ -513,8 +379,6 @@ impl Session {
         self.inner.click(button, col, row, MouseMods::NONE)
     }
 
-
-
     pub fn mouse_down(
         &mut self,
         button: MouseButton,
@@ -524,8 +388,6 @@ impl Session {
         self.sending();
         self.inner.mouse_down(button, col, row, MouseMods::NONE)
     }
-
-
 
     pub fn drag(&mut self, c0: u16, r0: u16, c1: u16, r1: u16) -> Result<(), tuiscotti::TuiError> {
         let left = MouseButton::Left;
@@ -552,8 +414,6 @@ impl Session {
         self.inner.resize(cols, rows)
     }
 
-
-
     pub fn modes(&self) -> Vec<u16> {
         let obs = self.inner.observe_now().expect("observe live session");
         obs.state
@@ -564,20 +424,9 @@ impl Session {
     }
 }
 
-
-
-
 pub fn scenario_home(name: &str) -> PathBuf {
     manifest_path("target/tuiscotti/home").join(name)
 }
-
-
-
-
-
-
-
-
 
 pub const PINNED_ENV: [(&str, &str); 9] = [
     ("SHELL", "/bin/sh"),
@@ -591,14 +440,9 @@ pub const PINNED_ENV: [(&str, &str); 9] = [
     ("HOLLA_NO_HISTORY", "1"),
 ];
 
-
-
-
 pub fn spawn(case: &Case) -> Session {
     spawn_with_env(case, &[])
 }
-
-
 
 pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
     let home = scenario_home(&case.name);
@@ -620,7 +464,6 @@ pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
         tui = tui.env("NO_COLOR", "1");
     }
 
-
     if case.sends.iter().any(|s| s.starts_with("advance:")) {
         tui = tui.env(junie_tui::clock::ClockStep::ENV, "1");
     }
@@ -637,8 +480,6 @@ pub fn spawn_with_env(case: &Case, extra: &[(&str, &str)]) -> Session {
     }
 }
 
-
-
 pub fn capture_enabled(name: &str) -> bool {
     if is_reapproved(name) || visual_full() {
         return true;
@@ -646,8 +487,6 @@ pub fn capture_enabled(name: &str) -> bool {
     eprintln!("baseline skipped   {name} (pending tuiscotti re-approval; VISUAL_FULL=1 runs it)");
     false
 }
-
-
 
 pub fn spawn_boot(case: &Case) -> Session {
     let mut session = spawn(case);
@@ -657,8 +496,6 @@ pub fn spawn_boot(case: &Case) -> Session {
     }
     session
 }
-
-
 
 pub fn boot(session: &mut Session, needle: &str) {
     if !needle.is_empty() {
@@ -671,15 +508,6 @@ pub fn boot(session: &mut Session, needle: &str) {
         .wait_idle(Duration::from_millis(200))
         .unwrap_or_else(|e| panic!("boot idle failed: {e}"));
 }
-
-
-
-
-
-
-
-
-
 
 pub fn drive(session: &mut Session, steps: &[&str]) {
     let mut segment_start = true;
@@ -714,7 +542,6 @@ pub fn drive(session: &mut Session, steps: &[&str]) {
         }
     }
 }
-
 
 pub fn settle_and_gate(session: &mut Session, name: &str) {
     let frame = session

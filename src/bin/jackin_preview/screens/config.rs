@@ -1,8 +1,3 @@
-
-
-
-
-
 use std::collections::{BTreeMap, HashSet};
 
 use junie_tui::core::event::{Key, Outcome};
@@ -47,7 +42,6 @@ use junie_tui::ui::context::ContextAnchor;
 use junie_tui::widgets::menu::MenuItem;
 use ratatui::crossterm::event::KeyModifiers;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scope {
     Workspace,
@@ -68,7 +62,6 @@ pub enum Tab {
     Mounts,
     Environments,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Doc {
@@ -119,7 +112,6 @@ impl Doc {
             Some(r) => self.role_env.entry(r.to_owned()).or_default(),
         }
     }
-
 
     fn roles(&self) -> Vec<RoleName> {
         let mut v: Vec<RoleName> = self
@@ -188,7 +180,6 @@ struct ListState {
     area: Rect,
 }
 
-
 #[derive(Debug, Clone)]
 enum Editing {
     Mount {
@@ -219,9 +210,7 @@ pub struct ConfigTabs {
     role_targets: Vec<RoleName>,
     ids: Ids,
 
-
     pub menu: RowMenu<(Tab, RowKey), KeyCode>,
-
 
     md: MasterDetail,
 }
@@ -282,12 +271,10 @@ impl ConfigTabs {
         }
     }
 
-
     pub fn owns(&self, tab: Tab, focus: Option<WidgetId>) -> bool {
         focus == Some(self.list_id(tab))
             || (tab == Tab::Environments && focus == Some(self.ids.card))
     }
-
 
     fn has_card(&self, tab: Tab) -> bool {
         let st = self.state_ref(tab);
@@ -319,8 +306,6 @@ impl ConfigTabs {
         }
     }
 
-
-
     pub fn tab_dirty(&self, tab: Tab) -> bool {
         match tab {
             Tab::Mounts => self.pending.mounts != self.original.mounts,
@@ -346,7 +331,6 @@ impl ConfigTabs {
         }
     }
 
-
     pub fn blockers(&self) -> Vec<String> {
         let mut v = vec![];
         for m in &self.pending.mounts {
@@ -363,14 +347,12 @@ impl ConfigTabs {
         v
     }
 
-
     pub fn clean_up(&mut self) {
         for m in &mut self.pending.mounts {
             m.drift = None;
             m.running_isolated = false;
         }
     }
-
 
     pub fn diff_lines(&self) -> Vec<String> {
         let mut v = vec![];
@@ -476,11 +458,7 @@ impl ConfigTabs {
         v
     }
 
-
-
     fn build_rows(&mut self, tab: Tab, w: &World) {
-
-
         let mut roles = self.original.roles();
         for r in self.pending.roles() {
             if !roles.contains(&r) {
@@ -739,8 +717,6 @@ impl ConfigTabs {
                 meta: String::new(),
             });
             if s.is_none() {
-
-
                 rows.push(Row {
                     key: RowKey::RoleSummary,
                     change: Change::None,
@@ -774,9 +750,6 @@ impl ConfigTabs {
         rows
     }
 
-
-
-
     pub fn render(
         &mut self,
         tab: Tab,
@@ -798,7 +771,6 @@ impl ConfigTabs {
             let l = self.md.layout(area, buf, ctx, bg);
             match l.mode {
                 Mode::Drawer => {
-
                     if has_card {
                         self.render_inspector(tab, l.detail, buf, ctx);
                     }
@@ -847,8 +819,6 @@ impl ConfigTabs {
                 );
                 x += widths[i] + 2;
             }
-
-
 
             junie_tui::ui::columns::reveal_dropped(
                 ctx,
@@ -1002,13 +972,11 @@ impl ConfigTabs {
                         cs = cs.add_modifier(Modifier::CROSSED_OUT);
                     }
 
-
                     let cell = Rect::new(x, y, cw, 1);
                     let shown = junie_tui::ui::reveal::fit(ctx, cell, text, s.focused);
                     buf.set_string(x, y, fit(&shown, cw as usize), cs);
                     x += cw + 2;
                 }
-
 
                 let cells: Vec<&str> = row.cells.iter().map(|(c, _)| c.as_str()).collect();
                 junie_tui::ui::columns::reveal_dropped(
@@ -1058,7 +1026,6 @@ impl ConfigTabs {
                     break;
                 }
 
-
                 y += Notice::error(p.as_str()).render(
                     Rect::new(
                         list_area.x + 3,
@@ -1076,7 +1043,6 @@ impl ConfigTabs {
             self.render_inspector(tab, card, buf, ctx);
         }
         if has_card {
-
             self.md.finish(ctx);
         }
         status
@@ -1180,7 +1146,6 @@ impl ConfigTabs {
             _ => return,
         };
 
-
         let focused = ctx.interaction.focused(self.ids.card);
         ctx.control(self.ids.card, area, false);
         let inner = Panel::card(Some(&title))
@@ -1212,8 +1177,6 @@ impl ConfigTabs {
             );
         }
     }
-
-
 
     pub fn hints(&self, tab: Tab, focus: Option<WidgetId>) -> Vec<Hint> {
         if tab == Tab::Environments && focus == Some(self.ids.card) {
@@ -1273,7 +1236,6 @@ impl ConfigTabs {
             let r = &st.rows[i as usize];
             if r.header && r.folded.is_none() {
                 if i == 0 && delta < 0 || i == n as isize - 1 && delta > 0 {
-
                     break;
                 }
                 continue;
@@ -1524,8 +1486,6 @@ impl ConfigTabs {
         Outcome::Changed
     }
 
-
-
     fn row_title(row: &Row) -> String {
         match &row.key {
             RowKey::Mount(d) | RowKey::RemovedMount(d) => d.clone(),
@@ -1539,8 +1499,6 @@ impl ConfigTabs {
                 .unwrap_or_default(),
         }
     }
-
-
 
     fn menu_items(&self, row: &Row) -> Vec<(MenuItem, KeyCode)> {
         let item = |label: &str, key: &'static str| MenuItem::new(label).shortcut(key);
@@ -1692,12 +1650,9 @@ impl ConfigTabs {
         self.menu.is_open()
     }
 
-
     pub fn menu_hides_focus(&self) -> bool {
         self.menu.hides_page_focus()
     }
-
-
 
     pub fn menu_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         let (o, chosen) = self.menu.on_key(key);
@@ -1709,7 +1664,6 @@ impl ConfigTabs {
         }
     }
 
-
     pub fn menu_click(&mut self, id: WidgetId, w: &mut World, cx: &mut Cx) -> Outcome {
         let (o, chosen) = self.menu.on_click(id);
         match chosen {
@@ -1717,7 +1671,6 @@ impl ConfigTabs {
             None => o,
         }
     }
-
 
     fn run_menu(
         &mut self,
@@ -1750,9 +1703,6 @@ impl ConfigTabs {
         out.or(Outcome::Changed)
     }
 
-
-
-
     pub fn pointer(&mut self, tab: Tab, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
@@ -1767,7 +1717,6 @@ impl ConfigTabs {
             _ => Outcome::Ignored,
         }
     }
-
 
     fn secondary(
         &mut self,
@@ -1794,7 +1743,6 @@ impl ConfigTabs {
         self.open_menu(tab, i, ContextAnchor::Pointer(pos), w);
         Outcome::Changed
     }
-
 
     pub fn render_menu(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.menu.render(screen, buf, ctx);
@@ -1915,8 +1863,6 @@ impl ConfigTabs {
         Outcome::Ignored
     }
 
-
-
     fn scope_options(&self) -> Vec<String> {
         let mut v = vec![self.scope.label().to_owned()];
         v.extend(self.registry.iter().map(|r| format!("role {r}")));
@@ -1974,9 +1920,6 @@ impl ConfigTabs {
         cx.open(d, LayerTag::new("cfg.scope").key(&k));
     }
 
-
-
-
     fn open_role_picker(&mut self, cx: &mut Cx) {
         let mut p = Picker::new(self.ids.form.sub("rolepick"), "Add role override");
         p.list.width = (72, 72);
@@ -1985,8 +1928,6 @@ impl ConfigTabs {
         p.set_items(items);
         cx.open(p, LayerTag::new("cfg.role"));
     }
-
-
 
     pub fn role_picker_items(&mut self, query: &str) -> Vec<Item> {
         let q = query.to_lowercase();
@@ -2235,7 +2176,6 @@ impl ConfigTabs {
         ];
         let _ = scope_word;
         if e.is_some() {
-
             if let Some(fld) = fields.iter_mut().find(|x| x.name == "key")
                 && let FieldKindW::Input(i) = &mut fld.kind
             {
@@ -2271,8 +2211,6 @@ impl ConfigTabs {
             _ => {}
         }
     }
-
-
 
     pub fn on_modal(
         &mut self,
@@ -2348,7 +2286,6 @@ impl ConfigTabs {
                 Outcome::Changed
             }
             ("cfg.env.op", ModalResult::Op(Some(r))) => {
-
                 if let Some(Editing::Env {
                     role,
                     original: Some(k),
@@ -2627,8 +2564,6 @@ impl ConfigTabs {
     }
 }
 
-
-
 fn counts<T: PartialEq>(
     pending: &[T],
     original: &[T],
@@ -2653,7 +2588,6 @@ fn counts<T: PartialEq>(
 fn column_widths(tab: Tab, scope: Scope, avail: u16) -> Vec<u16> {
     match (tab, scope) {
         (Tab::Mounts, Scope::Workspace) => {
-
             let fixed = 4 + 9 + 6;
             if avail >= 90 {
                 let rest = avail.saturating_sub(fixed + 8);

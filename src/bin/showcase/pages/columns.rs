@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
@@ -34,13 +22,11 @@ use junie_tui::widgets::table::{Cell, Column, DataTable, Tone};
 const ID: WidgetId = WidgetId::of("columns");
 const HEADER_MENU: WidgetId = WidgetId::of("columns.header-menu");
 
-
 const WIDTHS: [Option<u16>; 5] = [None, Some(72), Some(56), Some(40), Some(28)];
 const SEAM_WIDTHS: [u16; 3] = [1, 2, 3];
 const MIN_WIDTHS: [u16; 3] = [3, 6, 10];
 
 const GAP: u16 = 2;
-
 
 const CUSTOM_LABELS: HeaderLabels = HeaderLabels {
     sort_asc: "Sort A to Z",
@@ -49,8 +35,6 @@ const CUSTOM_LABELS: HeaderLabels = HeaderLabels {
     autofit: "Fit Width",
     reset_widths: "Default Widths",
 };
-
-
 
 struct Rule {
     name: &'static str,
@@ -94,7 +78,6 @@ fn rules() -> [Rule; 5] {
     ]
 }
 
-
 fn sized_table(resizable: bool, seam_w: u16, min_width: u16, labels: HeaderLabels) -> DataTable {
     let mut t = DataTable::new(
         ID.sub("sized"),
@@ -108,7 +91,6 @@ fn sized_table(resizable: bool, seam_w: u16, min_width: u16, labels: HeaderLabel
     t.header_labels = labels;
     t
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -188,8 +170,6 @@ impl ColumnsPage {
         );
     }
 
-
-
     fn solve(&mut self, avail: u16) {
         self.solved_at = avail;
         let rules = rules();
@@ -254,13 +234,10 @@ impl ColumnsPage {
             .selection_mode(junie_tui::core::selection::SelectionMode::None);
     }
 
-
-
     fn ideal_row() -> u16 {
         let cols = rules();
         cols.iter().map(|r| r.col.ideal).sum::<u16>() + GAP * (cols.len() as u16).saturating_sub(1)
     }
-
 
     fn menu_facts(&self) -> Vec<Prop> {
         let c = self.sized.cursor_col;
@@ -275,8 +252,6 @@ impl ColumnsPage {
             })
             .collect()
     }
-
-
 
     fn heights(&self, width: u16) -> [u16; 3] {
         let menu = Panel::card(Some("Header menu"));
@@ -322,7 +297,6 @@ impl ColumnsPage {
                 crate::pages::layout::caption(inner.x, y, buf, t, &caption, bg);
                 let row = Rect::new(inner.x, y + 1, (avail + 5).min(inner.width), 2);
                 self.row.render(row, buf, ctx, bg);
-
 
                 let spec = self::rules();
                 let cols: Vec<Col> = spec.iter().map(|r| r.col).collect();
@@ -370,9 +344,6 @@ impl ColumnsPage {
 }
 
 impl ColumnsPage {
-
-
-
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.is(Phase::Secondary) {
             let Some(c) = self.sized.header_menu_at(ev) else {
@@ -419,8 +390,6 @@ impl Page for ColumnsPage {
         "Column rules, droppable columns, resizable seams and the header menu"
     }
 
-
-
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         use junie_tui::ui::measure::Measure;
         let any = ratatui::layout::Size::new(0, 0);
@@ -428,7 +397,6 @@ impl Page for ColumnsPage {
         let w = [
             Self::ideal_row() + 5 + 4,
             self.rules.min_width(any, ctx) + 4,
-
             self.sized.measure(any, ctx).width + 4,
             sheet_width(&menu, &self.menu_facts()),
         ]

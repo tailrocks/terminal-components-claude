@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use std::collections::BTreeSet;
 
 pub const MAX_USES: usize = 20;
@@ -35,7 +29,6 @@ impl ActionUse {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QueryChoice {
-
     pub query: String,
     pub item: String,
     pub host: String,
@@ -100,8 +93,6 @@ impl UsageStore {
         self.actions.last_mut().unwrap()
     }
 
-
-
     pub fn used(&mut self, item: &str, path: Option<&str>, host: &str, now_secs: i64) {
         if !self.enabled {
             return;
@@ -114,7 +105,6 @@ impl UsageStore {
             e.stamps.drain(..drop);
         }
     }
-
 
     pub fn seed(&mut self, item: &str, path: Option<&str>, host: &str, count: u32, last_secs: i64) {
         let e = self.entry(item, path, host);
@@ -154,9 +144,6 @@ impl UsageStore {
             .find(|u| u.item == item && u.path.as_deref() == path && u.host == host)
     }
 
-
-
-
     pub fn frecency(&self, item: &str, path: Option<&str>, host: &str, now_secs: i64) -> f64 {
         let Some(u) = self.find(item, path, host) else {
             return 0.0;
@@ -172,14 +159,11 @@ impl UsageStore {
         raw / (raw + 1.0)
     }
 
-
     pub fn frecency_any(&self, item: &str, path: &str, host: &str, now_secs: i64) -> f64 {
         let here = self.frecency(item, Some(path), host, now_secs);
         let global = self.frecency(item, None, host, now_secs);
         here.max(global)
     }
-
-
 
     pub fn recent(&self, path: &str, host: &str, now_secs: i64) -> Vec<(String, f64)> {
         let items: BTreeSet<&str> = self
@@ -202,8 +186,6 @@ impl UsageStore {
         v
     }
 
-
-
     pub fn prune(&mut self, now_secs: i64) {
         let cutoff = now_secs - STALE_DAYS * 86_400;
         for u in &mut self.actions {
@@ -215,14 +197,10 @@ impl UsageStore {
             .retain(|q| alive.contains(q.item.as_str()) && q.last >= cutoff);
     }
 
-
     pub fn forget(&mut self, item: &str) {
         self.actions.retain(|u| u.item != item);
         self.queries.retain(|q| q.item != item);
     }
-
-
-
 
     pub fn serialize(&self) -> String {
         let mut actions: Vec<&ActionUse> = self.actions.iter().collect();
@@ -268,9 +246,6 @@ impl UsageStore {
             q.join(",")
         )
     }
-
-
-
 
     pub fn load(text: Option<&str>, now_secs: i64) -> Self {
         let mut store = Self::default();
@@ -357,9 +332,6 @@ impl UsageStore {
         store
     }
 
-
-
-
     pub fn merge(&mut self, other: &UsageStore) {
         for o in &other.actions {
             let e = self.entry(&o.item, o.path.as_deref(), &o.host);
@@ -384,8 +356,6 @@ impl UsageStore {
             }
         }
     }
-
-
 
     pub fn save(&mut self, on_disk: Option<&str>, now_secs: i64) -> Result<String, String> {
         if !self.enabled {

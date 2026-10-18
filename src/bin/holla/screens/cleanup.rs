@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use crate::screens::Holla;
 use junie_tui::shell::Page as ShellPage;
 use junie_tui::widgets::page_header::{Heading, PageHeader};
@@ -55,8 +49,6 @@ enum Row {
     Note(String),
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Special {
     id: String,
@@ -66,7 +58,6 @@ struct Special {
 }
 
 pub struct CleanupPage {
-
     pub filter: Option<String>,
     cats: Vec<InsightCategory>,
     special: Option<Special>,
@@ -89,7 +80,6 @@ pub struct CleanupPage {
 
     pub reviewed: Option<u64>,
 }
-
 
 fn row_part(i: usize) -> PartRef {
     PartRef::item(Part::ROW, ItemKey::index(i))
@@ -195,7 +185,6 @@ impl CleanupPage {
             }
         }
 
-
         let live: BTreeSet<&str> = self
             .cats
             .iter()
@@ -291,7 +280,6 @@ impl CleanupPage {
             }
         }
     }
-
 
     pub fn selected_items(&self) -> Vec<DeleteItem> {
         let mut v = vec![];
@@ -865,9 +853,6 @@ impl CleanupPage {
         }
     }
 
-
-
-
     fn row_menu(&self, row: usize, anchor: ContextAnchor, cx: &mut Cx) -> Outcome {
         let mut items = vec![];
         let mut keys = String::new();
@@ -973,7 +958,6 @@ impl CleanupPage {
 
 impl ShellPage<Holla> for CleanupPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-
         if let Some(o) = self.md.on_key(key, cx.focus) {
             return o;
         }
@@ -1144,7 +1128,6 @@ impl ShellPage<Holla> for CleanupPage {
 
         let row = ev.on(LIST).then(|| ev.index_of(Part::ROW)).flatten();
         if let Some((axis, delta)) = ev.wheel() {
-
             if axis != Axis::Vertical {
                 return Outcome::Ignored;
             }
@@ -1236,7 +1219,6 @@ impl ShellPage<Holla> for CleanupPage {
         }
         self.last_tick = w.tick;
 
-
         super::rebuild_on_tick(
             self,
             |s| {
@@ -1313,7 +1295,6 @@ impl ShellPage<Holla> for CleanupPage {
         cx: &mut Cx,
     ) -> Outcome {
         if let Some((row, Some(key), _)) = row_choice(tag, "cleanup-row", result.menu_chosen()) {
-
             self.cursor = row.min(self.rows.len().saturating_sub(1));
             return self.on_key(&key, w, cx).or(Outcome::Changed);
         }
@@ -1391,8 +1372,6 @@ impl Screen for CleanupPage {
         }
     }
 }
-
-
 
 pub fn plan_facts(plan: &DeletePlan, w: &World) -> Vec<Prop> {
     let home = w.location.home.clone();
@@ -1494,9 +1473,6 @@ pub fn plan_facts(plan: &DeletePlan, w: &World) -> Vec<Prop> {
     v
 }
 
-
-
-
 pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
     if plan.fingerprint() != plan.revision {
         return Err("the reviewed plan changed · confirm again".into());
@@ -1547,8 +1523,6 @@ pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
     Ok(report_index)
 }
 
-
-
 pub fn step(w: &mut World) -> Option<usize> {
     let mut job = w.cleanup_job.take()?;
     let home = w.location.home.clone();
@@ -1589,7 +1563,6 @@ pub fn step(w: &mut World) -> Option<usize> {
     }
 }
 
-
 fn settle(w: &mut World, idx: usize, report: cleanup::Report) {
     w.persisted.ops_log = w.ops_log.lines.clone();
 
@@ -1604,7 +1577,6 @@ fn settle(w: &mut World, idx: usize, report: cleanup::Report) {
         })
         .map(|i| i.path.clone())
         .collect();
-
 
     for p in &removed {
         w.disk

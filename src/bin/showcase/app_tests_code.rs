@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use junie_tui::core::id::WidgetId;
@@ -10,8 +6,6 @@ use junie_tui::theme::Theme;
 use crate::app::PageId;
 use crate::app_tests_feedback::Harness;
 use crate::pages::template::Section;
-
-
 
 fn code() -> WidgetId {
     WidgetId::of("editor").sub("code")
@@ -22,7 +16,6 @@ fn editor(opts: &[&str]) -> Harness {
     for o in opts {
         h.opt(o);
     }
-
 
     h.focus(code());
     h.key(KeyCode::Esc);
@@ -194,8 +187,6 @@ fn code_states_grid_shows_every_editor_state() {
     }
 }
 
-
-
 #[test]
 fn diff_follows_the_changes_list_cursor() {
     let mut h = Harness::new(140, 45, PageId::Diff);
@@ -249,8 +240,6 @@ fn diff_states_grid_shows_unified_and_review() {
         assert!(text.contains(label), "{label}: {text}");
     }
 }
-
-
 
 fn term_id() -> WidgetId {
     WidgetId::of("terminal").sub("term")

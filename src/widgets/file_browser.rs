@@ -1,33 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::rc::Rc;
 
 use ratatui::buffer::Buffer;
@@ -54,18 +24,13 @@ use crate::widgets::input::{InputAction, TextInput};
 use crate::widgets::keyhint::{Hint, hint};
 use crate::widgets::list::{ListBox, ListItem, SelectMode};
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileEntry {
-
     pub path: String,
 
     pub dir: bool,
 
     pub meta: String,
-
 
     pub hidden: bool,
 }
@@ -81,38 +46,30 @@ impl FileEntry {
         }
     }
 
-
     pub fn dir(path: &str) -> Self {
         Self::new(path, true)
     }
 
-
     pub fn file(path: &str) -> Self {
         Self::new(path, false)
     }
-
 
     pub fn meta(mut self, meta: &str) -> Self {
         self.meta = meta.to_owned();
         self
     }
 
-
     pub fn hidden(mut self, hidden: bool) -> Self {
         self.hidden = hidden;
         self
     }
-
 
     pub fn name(&self) -> &str {
         self.path.rsplit('/').next().unwrap_or(&self.path)
     }
 }
 
-
 pub trait FileSource {
-
-
     fn list(&self, dir: &str) -> Result<Vec<FileEntry>, String>;
 
     fn is_dir(&self, path: &str) -> bool;
@@ -144,9 +101,6 @@ pub trait FileSource {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct MemorySource {
     pub entries: Vec<FileEntry>,
@@ -160,7 +114,6 @@ impl MemorySource {
             home: None,
         }
     }
-
 
     pub fn home(mut self, home: &str) -> Self {
         self.home = Some(home.to_owned());
@@ -186,11 +139,8 @@ impl FileSource for MemorySource {
     }
 }
 
-
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FsSource {
-
     pub home: Option<String>,
 }
 
@@ -232,12 +182,8 @@ impl FileSource for FsSource {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Choose {
-
     #[default]
     Dirs,
 
@@ -246,10 +192,8 @@ pub enum Choose {
     Any,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileCmd {
-
     Open,
 
     Parent,
@@ -294,9 +238,6 @@ impl Actions for FileCmd {
 }
 
 impl FileCmd {
-
-
-
     pub fn vim_keymap() -> KeyMap<Self> {
         vec![
             (KeyBinding::key(KeyCode::Enter), FileCmd::Open),
@@ -312,14 +253,10 @@ impl FileCmd {
     }
 }
 
-
 pub type UrlValidator = Rc<dyn Fn(&str) -> Result<(), String>>;
-
-
 
 #[derive(Clone)]
 pub struct UrlEntry {
-
     pub button: String,
 
     pub back: String,
@@ -384,22 +321,13 @@ impl std::fmt::Debug for UrlEntry {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileBrowserResult {
-
-
-    Chosen {
-        path: String,
-        checked: bool,
-    },
+    Chosen { path: String, checked: bool },
 
     Url(String),
     Cancelled,
 }
-
-
-
 
 pub struct FileBrowser {
     pub id: WidgetId,
@@ -411,7 +339,6 @@ pub struct FileBrowser {
     pub path: TextInput,
     pub list: ListBox,
 
-
     pub entries: Vec<FileEntry>,
 
     pub choose_kind: Choose,
@@ -421,7 +348,6 @@ pub struct FileBrowser {
     pub show_hidden: bool,
 
     pub hidden_box: Option<Checkbox>,
-
 
     pub breadcrumb: Option<Breadcrumb>,
 
@@ -442,13 +368,11 @@ pub struct FileBrowser {
 
     pub area: Rect,
 
-
     pub stepper: Option<String>,
     source: Box<dyn FileSource>,
 }
 
 impl FileBrowser {
-
     pub fn new(id: WidgetId, title: &str, source: impl FileSource + 'static, start: &str) -> Self {
         let list = ListBox::new(id.sub("list"), vec![], SelectMode::Single);
         let type_ahead = list.type_ahead;
@@ -484,12 +408,10 @@ impl FileBrowser {
         b
     }
 
-
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
     }
-
 
     pub fn choose(mut self, kind: Choose) -> Self {
         self.choose_kind = kind;
@@ -497,12 +419,10 @@ impl FileBrowser {
         self
     }
 
-
     pub fn checkbox(mut self, label: &str, checked: bool) -> Self {
         self.checkbox = Some(Checkbox::new(self.id.sub("ro"), label, checked));
         self
     }
-
 
     pub fn show_hidden(mut self, on: bool) -> Self {
         self.show_hidden = on;
@@ -513,22 +433,17 @@ impl FileBrowser {
         self
     }
 
-
-
-
     pub fn hidden_toggle(mut self, on: bool) -> Self {
         self.hidden_box =
             on.then(|| Checkbox::new(self.id.sub("hidden"), "Show hidden files", self.show_hidden));
         self
     }
 
-
     pub fn path_bar(mut self, on: bool) -> Self {
         self.breadcrumb = on.then(|| Breadcrumb::new(self.id.sub("crumb"), vec![]));
         self.load();
         self
     }
-
 
     pub fn filter(mut self, on: bool) -> Self {
         self.filter = on.then(|| {
@@ -540,19 +455,16 @@ impl FileBrowser {
         self
     }
 
-
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self.list.type_ahead = on;
         self
     }
 
-
     pub fn keys(mut self, keys: KeyMap<FileCmd>) -> Self {
         self.keys = keys;
         self
     }
-
 
     pub fn url_entry(mut self, entry: UrlEntry) -> Self {
         self.url_button.label = entry.button.clone();
@@ -560,17 +472,14 @@ impl FileBrowser {
         self
     }
 
-
     pub fn stepper(mut self, line: &str) -> Self {
         self.stepper = Some(line.to_owned());
         self
     }
 
-
     pub fn url_button(&self) -> Option<&Button> {
         self.url.is_some().then_some(&self.url_button)
     }
-
 
     pub fn load(&mut self) {
         let cwd = self.cwd.trim_end_matches('/').to_owned();
@@ -755,7 +664,6 @@ impl FileBrowser {
         Outcome::Changed
     }
 
-
     pub fn on_key(&mut self, key: &Key, focus: &mut Focus, ring: &FocusRing) -> Outcome {
         let cur = focus.current();
         if cur == Some(self.path.id) {
@@ -903,11 +811,6 @@ impl FileBrowser {
         }
     }
 
-
-
-
-
-
     pub fn pointer(&mut self, ev: &PointerEvent, focus: &mut Focus) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
@@ -944,7 +847,6 @@ impl FileBrowser {
             .flatten()
         {
             focus.focus(self.list.id);
-
 
             let open = self.list.click.activates(ev.count(), self.list.cursor == i);
             self.list.cursor = i;
@@ -990,7 +892,6 @@ impl FileBrowser {
         Outcome::Consumed
     }
 
-
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if let Some(f) = self.filter.as_mut()
             && f.editing
@@ -1002,11 +903,9 @@ impl FileBrowser {
         self.path.on_paste(text)
     }
 
-
     pub fn is_editing(&self) -> bool {
         self.path.editing || self.filter.as_ref().is_some_and(|f| f.editing)
     }
-
 
     pub fn on_blur(&mut self, change: FocusChange) -> Outcome {
         match self.filter.as_mut() {
@@ -1014,7 +913,6 @@ impl FileBrowser {
             None => crate::core::focus::forward_blur(change, &mut [&mut self.path]),
         }
     }
-
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let (w, h) = if screen.width < 100 {
@@ -1107,7 +1005,6 @@ impl FileBrowser {
             ctx.hits.register(b.id, b.area);
         }
         if let Some(c) = self.hidden_box.as_mut() {
-
             let room = row.width.saturating_sub(used + 1);
             let cw = crate::ui::text::width(&c.label) as u16 + 6;
             if room >= cw {
@@ -1121,12 +1018,9 @@ impl FileBrowser {
         }
     }
 
-
     pub fn initial_focus(&self) -> WidgetId {
         self.list.id
     }
-
-
 
     pub fn hints(&self, _focused: Option<WidgetId>) -> Vec<Hint> {
         let mut v = Vec::new();

@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
@@ -22,11 +8,8 @@ use crate::theme::Kind;
 use crate::ui::ctx::{RenderCtx, VisualState};
 use crate::ui::layout::{Split, SplitDir};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SeamDoubleClick {
-
-
     #[default]
     Reset,
 
@@ -40,11 +23,9 @@ pub struct Splitter {
 
     pub area: Rect,
 
-
     pub hit_pad: u16,
 
     pub double_click: SeamDoubleClick,
-
 
     grab: Option<i32>,
 }
@@ -71,8 +52,6 @@ impl Splitter {
         self
     }
 
-
-
     pub fn hit_area(&self, clip: Rect) -> Rect {
         if self.area.is_empty() {
             return Rect::ZERO;
@@ -91,13 +70,9 @@ impl Splitter {
         r.intersection(clip)
     }
 
-
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.render_held(area, buf, ctx, bg, false);
     }
-
-
 
     pub fn render_held(
         &mut self,
@@ -112,7 +87,6 @@ impl Splitter {
 
         let pressed = held || ctx.interaction.pressed == Some(self.id);
         if !pressed {
-
             self.grab = None;
         }
         if area.is_empty() {
@@ -136,7 +110,6 @@ impl Splitter {
             buf.set_string(pos.x, pos.y, glyph, style);
         }
 
-
         let hit = self.hit_area(*buf.area());
         ctx.clickable_under(self.id, hit);
         ctx.clickable(self.id, area);
@@ -159,14 +132,9 @@ impl Splitter {
         at.clamp(-pad, (span as i32 - 1).max(0) + pad)
     }
 
-
-
     pub fn on_press(&mut self, split: &Split, container: Rect, gap: u16, pos: Position) {
         self.grab = Some(self.grab_at(split, container, gap, pos));
     }
-
-
-
 
     pub fn on_drag(
         &mut self,
@@ -195,8 +163,6 @@ impl Splitter {
         }
     }
 
-
-
     pub fn on_click(&mut self, split: &mut Split, count: u8) -> Outcome {
         self.grab = None;
         if count != 2 {
@@ -216,8 +182,6 @@ impl Splitter {
         }
     }
 }
-
-
 
 impl crate::ui::specimen::Specimen for Splitter {
     fn specimen_id(&self) -> WidgetId {
@@ -301,10 +265,6 @@ mod tests {
         }
     }
 
-
-
-
-
     #[test]
     fn seam_states_are_thin_grey_heavy_grey_and_heavy_accent() {
         let id = WidgetId::of("seam");
@@ -371,8 +331,6 @@ mod tests {
         hits
     }
 
-
-
     #[test]
     fn the_seam_takes_presses_one_cell_either_side() {
         let id = WidgetId::of("seam");
@@ -386,7 +344,6 @@ mod tests {
         }
         assert_eq!(hits.hit(Position::new(x + 2, 2)), None);
 
-
         let mut hits = render_seam(&mut seam, &split, container);
         let bar = WidgetId::of("bar");
         hits.register(bar, Rect::new(x - 1, 0, 1, 5));
@@ -396,9 +353,6 @@ mod tests {
         let hits = render_seam(&mut tight, &split, container);
         assert_eq!(hits.hit(Position::new(x - 1, 2)), None, "hit_pad(0)");
     }
-
-
-
 
     #[test]
     fn a_drag_keeps_the_grab_offset_and_moves_cell_by_cell() {
@@ -425,7 +379,6 @@ mod tests {
         seam.on_drag(&mut split, container, 1, Position::new(x0 - 4, 2));
         assert_eq!(split.handle(SplitDir::Horizontal, container, 1).x, x0 - 3);
     }
-
 
     #[test]
     fn a_double_click_resets_the_split() {

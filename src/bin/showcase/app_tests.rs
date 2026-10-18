@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -85,19 +81,15 @@ impl Harness {
             .collect()
     }
 
-
     fn find_row(&self, needle: &str) -> Option<u16> {
         let buf = self.term.backend().buffer();
         (0..buf.area.height).find(|&y| self.row(y).contains(needle))
     }
 
-
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
-        let want: Vec<&str> = {
-
-            unicode_segmentation::UnicodeSegmentation::graphemes(needle, true).collect()
-        };
+        let want: Vec<&str> =
+            { unicode_segmentation::UnicodeSegmentation::graphemes(needle, true).collect() };
         for y in 0..buf.area.height {
             let cells: Vec<&str> = (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect();
             for x in 0..cells.len().saturating_sub(want.len() - 1) {
@@ -108,7 +100,6 @@ impl Harness {
         }
         None
     }
-
 
     fn focus_bar_x(&self, y: u16) -> Option<u16> {
         let buf = self.term.backend().buffer();
@@ -206,8 +197,6 @@ fn tab_traversal_is_deterministic_and_wraps() {
         "focus ring wraps back to start"
     );
 
-
-
     assert_eq!(seen.len(), 16, "{seen:?}");
 
     let mut back = vec![];
@@ -256,7 +245,6 @@ fn hover_and_focus_render_differently() {
     assert_eq!(cell.bg, t.lift(t.surface));
     assert!(!cell.modifier.contains(ratatui::style::Modifier::BOLD));
 
-
     h.key(tab());
     h.key(tab());
     h.key(KeyCode::Down);
@@ -288,8 +276,6 @@ fn hit_testing_prefers_rows_over_their_container() {
 
 #[test]
 fn table_sorts_both_directions_and_clears() {
-
-
     let mut h = Harness::new(120, 51, PageId::Tables);
 
     h.key(tab());
@@ -301,7 +287,6 @@ fn table_sorts_both_directions_and_clears() {
     assert!(h.row(h.find_row("#10").unwrap()).contains("#1040"));
     h.key(KeyCode::Char('s'));
     assert!(h.text().contains("ID ▾"));
-
 
     assert!(h.text().contains("5–24 of 24"), "{}", h.text());
 
@@ -403,7 +388,6 @@ fn input_editing_commit_and_revert() {
     assert!(h.app.pages[PageId::Inputs.index()].editing());
 }
 
-
 fn selected_on_row(h: &Harness, y: u16) -> String {
     let sel = Theme::junie().selection().bg;
     let buf = h.term.backend().buffer();
@@ -417,7 +401,6 @@ fn selected_on_row(h: &Harness, y: u16) -> String {
 fn typing_into_a_type_to_edit_field_starts_editing_and_a_default_field_edits_on_focus() {
     let mut h = Harness::new(120, 40, PageId::Inputs);
 
-
     h.app.shell.focus.focus(WidgetId::of("inputs").child(4));
     h.draw();
     assert!(!h.app.pages[PageId::Inputs.index()].editing());
@@ -425,8 +408,6 @@ fn typing_into_a_type_to_edit_field_starts_editing_and_a_default_field_edits_on_
     assert!(h.app.pages[PageId::Inputs.index()].editing());
     assert!(h.text().contains("src"), "{}", h.text());
     h.key(KeyCode::Enter);
-
-
 
     h.app.shell.focus.focus(WidgetId::of("inputs").child(1));
     h.draw();
@@ -493,7 +474,6 @@ fn clicking_another_field_commits_through_the_owner() {
     h.key(KeyCode::End);
     h.type_str("-v3");
 
-
     let (bx, by) = h.find("feat/").unwrap();
     h.click(bx, by);
     assert!(
@@ -537,7 +517,6 @@ fn textarea_scrolls_with_wheel_and_keys() {
     h.mouse(MouseKind::WheelDown, x, y + 2);
     assert!(!h.text().contains(" 1. Read"));
     assert!(h.text().contains(" 4. Run"));
-
 
     h.key(tab());
     h.key(tab());
@@ -776,9 +755,6 @@ fn scrollbar_click_and_drag_move_the_view() {
     let _ = y0;
 }
 
-
-
-
 #[test]
 fn ctrl_page_keys_step_pages_and_f1_opens_help() {
     let mut h = Harness::new(120, 40, PageId::Overview);
@@ -792,8 +768,6 @@ fn ctrl_page_keys_step_pages_and_f1_opens_help() {
 
 #[test]
 fn keyboard_navigation_between_pages() {
-
-
     let mut h = Harness::new(120, 40, PageId::Overview);
     h.key(KeyCode::Char(']'));
     assert_eq!(h.app.page(), PageId::Chrome);
@@ -856,9 +830,6 @@ fn settings_screen_remove_member_flow() {
     assert!(h.text().contains("5 members"));
 }
 
-
-
-
 #[test]
 fn reduced_motion_runs_the_work_but_keeps_the_decorative_phase_still() {
     use junie_tui::motion::Motion;
@@ -881,8 +852,6 @@ fn reduced_motion_runs_the_work_but_keeps_the_decorative_phase_still() {
         assert_eq!(h.app.tick, phase, "{motion:?}: decorative phase");
     }
 }
-
-
 
 #[test]
 fn a_status_stays_five_seconds_on_the_pointer_clock() {
@@ -959,12 +928,6 @@ fn page_context_and_shell_do_not_duplicate_tab_hints() {
     }
 }
 
-
-
-
-
-
-
 #[test]
 fn short_pages_scroll_by_section_and_never_draw_past_their_area() {
     let pages = [
@@ -1011,13 +974,6 @@ fn short_pages_scroll_by_section_and_never_draw_past_their_area() {
     );
 }
 
-
-
-
-
-
-
-
 #[test]
 fn the_navigation_tree_sits_in_a_titled_card_at_every_size() {
     use junie_tui::widgets::scrollbar::{THUMB, TRACK};
@@ -1032,7 +988,6 @@ fn the_navigation_tree_sits_in_a_titled_card_at_every_size() {
         let text = h.text();
         let buf = h.term.backend().buffer();
         let rows = h.app.nav.area;
-
 
         for y in nav.top()..nav.bottom() {
             for x in nav.left()..nav.right() {
@@ -1056,7 +1011,6 @@ fn the_navigation_tree_sits_in_a_titled_card_at_every_size() {
             "{w}x{hh}: the title row is {title:?}\n{text}"
         );
 
-
         assert_eq!(rows.y, nav.y + 2, "{w}x{hh}");
         assert_eq!(rows.bottom(), nav.bottom() - 1, "{w}x{hh}");
         assert_eq!((rows.x, rows.right()), (nav.x + 1, nav.right() - 1));
@@ -1079,13 +1033,6 @@ fn the_navigation_tree_sits_in_a_titled_card_at_every_size() {
         assert!(!title.contains('▎'), "{w}x{hh}");
     }
 }
-
-
-
-
-
-
-
 
 fn frame_digest(h: &Harness) -> u64 {
     let sidebar = h.app.sidebar_area();
@@ -1114,8 +1061,6 @@ fn frame_digest(h: &Harness) -> u64 {
 
 #[test]
 fn showcase_visual_baseline() {
-
-
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     use std::fmt::Write as _;
     let mut out = String::new();
@@ -1126,7 +1071,6 @@ fn showcase_visual_baseline() {
             [TrueColor, Ansi256, Ansi16, Mono].map(|level| (w, h, level))
         })
     {
-
         let rows = crate::app::NAV_ENTRIES.iter().flat_map(|entry| {
             let sections: &[Option<crate::pages::template::Section>] =
                 if Harness::new(w, hgt, entry.id).app.pages[entry.id.index()]
@@ -1161,7 +1105,6 @@ fn showcase_visual_baseline() {
             writeln!(out, "{}x{} {:?} {label} {hash:016x}", w, hgt, level).unwrap();
         }
 
-
         for tab in crate::inspector::Tab::ALL {
             let mut h = Harness::new(w, hgt, PageId::Overview);
             h.app.theme = Theme::for_level(level);
@@ -1186,11 +1129,6 @@ fn showcase_visual_baseline() {
         "showcase rendering changed; inspect before updating the baseline"
     );
 }
-
-
-
-
-
 
 #[test]
 fn the_data_grid_draws_both_tracks_dotted_in_one_frame() {
@@ -1227,20 +1165,13 @@ fn the_data_grid_draws_both_tracks_dotted_in_one_frame() {
     }
 }
 
-
-
-
 fn titles(h: &Harness) -> String {
-
-
     h.text()
         .lines()
         .find(|l| (l.contains(" of ") || l.contains('/')) && l.contains('–'))
         .map(str::to_owned)
         .unwrap_or_default()
 }
-
-
 
 fn thumb_rows(h: &Harness, x: u16) -> Vec<u16> {
     let buf = h.term.backend().buffer();
@@ -1259,7 +1190,6 @@ fn thumb_rows(h: &Harness, x: u16) -> Vec<u16> {
         })
         .collect()
 }
-
 
 fn list_scrollbar_x(h: &Harness) -> u16 {
     let id = junie_tui::widgets::scrollbar::id_for(WidgetId::of("scrolling").sub("list"));
@@ -1312,12 +1242,10 @@ fn scrolling_labels_are_exact_on_the_first_frame_after_a_resize_and_after_a_tick
     let title = titles(&h);
     let drawn = h.text().lines().filter(|l| l.contains("Row ")).count() as u32;
 
-
     assert!(
         title.contains(&format!("1–{drawn} of")) || title.contains(&format!("1–{drawn}/")),
         "the list label matches the rows drawn at 80x24: {title}"
     );
-
 
     let log = h
         .app
@@ -1334,7 +1262,6 @@ fn scrolling_labels_are_exact_on_the_first_frame_after_a_resize_and_after_a_tick
 
 #[test]
 fn a_press_on_the_thumb_grabs_it_and_a_drag_moves_the_view_with_the_pointer() {
-
     let mut h = Harness::new(160, 60, PageId::Scrolling);
     let x = list_scrollbar_x(&h);
     let thumb = thumb_rows(&h, x);
@@ -1411,7 +1338,6 @@ fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
         titles(&h)
     );
 
-
     h.key(KeyCode::Tab);
     h.key(KeyCode::Tab);
     assert_eq!(
@@ -1431,7 +1357,6 @@ fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
         titles(&h) != title_before,
         "the resize re-laid the prose out"
     );
-
 
     let row = titles(&h);
     assert_eq!(row.matches('–').count(), 3, "all three labels stay: {row}");
@@ -1527,9 +1452,6 @@ fn tables_take_the_horizontal_wheel_and_the_sidebar_nav_keeps_its_cursor_visible
         "the header shows the next columns: {}",
         h.row(header)
     );
-
-
-
 
     let mut s = Harness::new(160, 20, PageId::Sidebars);
 
@@ -1664,7 +1586,6 @@ fn cli_parser_accepts_aliases_and_rejects_invalid_values() {
 
 #[test]
 fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
-
     let mut h = Harness::new(120, 30, PageId::Chips);
     let size = WidgetId::of("chips").sub("size");
     let field = h.app.shell.hits.area_of(size).expect("page size field");
@@ -1692,9 +1613,7 @@ fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
         "the last option is clickable, not shadowed by the page"
     );
 
-
     let before = h.text();
-
 
     let outside = [29 - 2, field.y.saturating_sub(2), 8]
         .into_iter()
@@ -1708,7 +1627,6 @@ fn select_list_floats_above_the_page_and_closes_on_an_outside_click() {
     );
     assert!(before.contains("50"));
     assert!(h.text().contains("Page size"));
-
 
     h.click(field.x + 2, field.y);
     let last = h.app.shell.hits.area_of(size.child(3)).unwrap();
@@ -1767,11 +1685,9 @@ fn menu_bar_switches_menus_under_the_pointer_and_closes_on_an_outside_click() {
             .collect()
     };
 
-
     let file = title(&h, 0);
     h.click(file.x + 1, file.y);
     assert_eq!(open(&h), vec![0]);
-
 
     let view = title(&h, 1);
     h.mouse(MouseKind::Move, view.x + 1, view.y);
@@ -1784,15 +1700,12 @@ fn menu_bar_switches_menus_under_the_pointer_and_closes_on_an_outside_click() {
     h.mouse(MouseKind::Move, row.x + 2, row.y);
     assert_eq!(open(&h), vec![2]);
 
-
-
     h.mouse(MouseKind::Move, file.x + 1, file.y);
     assert_eq!(open(&h), vec![0], "pointing at File swapped the menu");
     h.mouse(MouseKind::Down, file.x + 1, file.y);
     assert!(open(&h).is_empty(), "pressing the open title closes it");
     h.mouse(MouseKind::Up, file.x + 1, file.y);
     assert!(open(&h).is_empty());
-
 
     h.click(file.x + 1, file.y);
     let status_before = h.text();
@@ -1812,7 +1725,6 @@ fn a_pass_through_select_closes_and_lets_the_outside_click_land() {
     let sort_field = h.app.shell.hits.area_of(sort).unwrap();
     let size_field = h.app.shell.hits.area_of(size).unwrap();
 
-
     h.click(sort_field.x + 2, sort_field.y);
     assert!(h.app.shell.hits.area_of(sort.child(0)).is_some());
     h.click(size_field.x + 2, size_field.y);
@@ -1824,7 +1736,6 @@ fn a_pass_through_select_closes_and_lets_the_outside_click_land() {
         h.app.shell.hits.area_of(size.child(0)).is_none(),
         "size not opened"
     );
-
 
     h.click(size_field.x + 2, size_field.y);
     assert!(h.app.shell.hits.area_of(size.child(0)).is_some());
@@ -1910,8 +1821,6 @@ fn the_current_page_marker_is_neutral_while_focus_is_on_the_page() {
 
 #[test]
 fn a_cut_list_row_advertises_the_reveal_key_in_the_footer() {
-
-
     let mut h = Harness::new(120, 40, PageId::PopupsTooltips);
     let footer = |h: &Harness| h.row(39);
     h.app
@@ -1947,7 +1856,6 @@ fn a_cut_list_row_advertises_the_reveal_key_in_the_footer() {
 
 #[test]
 fn a_focused_tab_strip_takes_home_and_end() {
-
     let mut h = Harness::new(120, 40, PageId::Settings);
     h.key(tab());
     h.key(tab());
@@ -2012,7 +1920,6 @@ fn the_terminal_viewport_scrolls_a_long_line_sideways_under_its_bar() {
     );
     assert!(thumb(&h) > 0, "the thumb moved right");
 
-
     let grip = bar.x + thumb(&h) as u16;
     h.mouse(MouseKind::Down, grip, bar.y);
     h.mouse(MouseKind::Drag, bar.x, bar.y);
@@ -2023,7 +1930,6 @@ fn the_terminal_viewport_scrolls_a_long_line_sideways_under_its_bar() {
 
 #[test]
 fn a_grid_range_drag_held_below_the_grid_autoscrolls_on_the_tick() {
-
     let mut h = Harness::new(120, 40, PageId::Grid);
     let (x, y) = h.find("1001").unwrap();
     h.mouse(MouseKind::Down, x, y);
@@ -2074,11 +1980,6 @@ fn the_horizontal_wheel_scrolls_a_text_area_sideways() {
     assert!(h.row(y).contains(" 4. Run"), "{}", h.row(y));
 }
 
-
-
-
-
-
 #[test]
 fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
     let mut h = Harness::new(120, 40, PageId::Inputs);
@@ -2124,9 +2025,6 @@ fn tab_walk_shows_a_caret_at_every_text_stop_and_letters_edit() {
     assert!(h.term.backend().cursor_visible());
 }
 
-
-
-
 #[test]
 fn every_page_shows_a_caret_at_every_text_stop() {
     let mut stops = 0;
@@ -2151,7 +2049,6 @@ fn every_page_shows_a_caret_at_every_text_stop() {
 
 #[test]
 fn a_track_press_held_keeps_paging_until_the_thumb_reaches_the_pointer() {
-
     let mut h = Harness::new(160, 60, PageId::Scrolling);
     let list_area = {
         let id = junie_tui::core::id::WidgetId::of("scrolling").sub("list");
@@ -2184,10 +2081,6 @@ fn a_track_press_held_keeps_paging_until_the_thumb_reaches_the_pointer() {
     h.mouse(MouseKind::Up, sx, sy);
     assert!(h.app.tick_interval() > std::time::Duration::from_millis(50));
 }
-
-
-
-
 
 #[test]
 fn inputs_select_all_follows_the_client_platform() {
@@ -2227,10 +2120,6 @@ fn inputs_select_all_follows_the_client_platform() {
         );
     }
 }
-
-
-
-
 
 #[test]
 fn inputs_cmd_cut_and_paste_round_trip_through_the_clipboard_hook() {
@@ -2278,9 +2167,6 @@ fn inputs_cmd_cut_and_paste_round_trip_through_the_clipboard_hook() {
     }
 }
 
-
-
-
 #[test]
 fn the_last_key_is_spelled_by_the_library() {
     let mut h = Harness::new(120, 40, PageId::Overview);
@@ -2289,13 +2175,6 @@ fn the_last_key_is_spelled_by_the_library() {
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
     assert_eq!(h.app.last_key.as_deref(), Some("Ctrl+S"));
 }
-
-
-
-
-
-
-
 
 #[test]
 fn no_footer_hint_is_keyboard_only_on_any_page() {

@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use junie_tui::runtime::Application;
 use std::time::{Duration, Instant};
 
@@ -19,8 +9,6 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind};
 use crate::app_tests::H;
 use crate::workbench::WorkTab;
 
-
-
 pub fn customers(w: u16, h: u16) -> H {
     let mut h = H::connected(w, h);
     h.ctrl('o');
@@ -31,7 +19,6 @@ pub fn customers(w: u16, h: u16) -> H {
     h.draw();
     h
 }
-
 
 pub fn query_results(w: u16, h: u16) -> H {
     let mut h = H::connected(w, h);
@@ -45,7 +32,6 @@ pub fn query_results(w: u16, h: u16) -> H {
     h.draw();
     h
 }
-
 
 pub fn grid_of(h: &H) -> (junie_tui::core::id::WidgetId, Rect) {
     match h.wb().active_tab() {
@@ -69,7 +55,6 @@ fn key(code: KeyCode) -> Input {
     })
 }
 
-
 struct Cost {
     events: usize,
     frames: usize,
@@ -88,9 +73,6 @@ impl Cost {
         (self.handle + self.draw).as_secs_f64() * 1e3
     }
 }
-
-
-
 
 fn run(h: &mut H, inputs: &[Input], batch: usize) -> Cost {
     let mut cost = Cost {
@@ -210,8 +192,6 @@ fn measure_table_surfaces() {
     }
 }
 
-
-
 fn pump(h: &mut H, policy: junie_tui::runtime::Coalesce, inputs: &[Input]) -> usize {
     let mut queue: std::collections::VecDeque<Input> = inputs.iter().cloned().collect();
     let mut pump = junie_tui::runtime::InputPump::new(policy);
@@ -228,9 +208,6 @@ fn pump(h: &mut H, policy: junie_tui::runtime::Coalesce, inputs: &[Input]) -> us
     }
     frames
 }
-
-
-
 
 #[test]
 fn input_bursts_over_the_customers_table_draw_once_and_land_identically() {

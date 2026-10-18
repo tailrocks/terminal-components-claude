@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -85,7 +80,6 @@ impl Harness {
         self.draw();
     }
 
-
     fn opt(&mut self, arg: &str) {
         let set = options::parse_opt(arg).unwrap_or_else(|e| panic!("{arg}: {e}"));
         self.app.apply_opt(set);
@@ -107,7 +101,6 @@ fn tables_page(h: &Harness) -> &crate::pages::tables::TablesPage {
         .expect("the Basic table page")
 }
 
-
 fn line_with(text: &str, needle: &str) -> String {
     text.lines()
         .find(|l| l.contains(needle))
@@ -123,7 +116,6 @@ fn columns_width_option_drops_the_least_important_columns_first() {
     assert!(text.contains("seats renew"), "{text}");
     h.opt("columns.width=40");
     let text = h.text();
-
 
     assert!(line_with(&text, "Notes  ").contains("dropped"), "{text}");
     assert!(line_with(&text, "Renews  ").contains("dropped"), "{text}");
@@ -295,7 +287,6 @@ fn grid_page(h: &Harness) -> &crate::pages::grid::GridPage {
         .and_then(|a| a.downcast_ref())
         .expect("the Data grid page")
 }
-
 
 fn grid_cell(h: &mut Harness, col: usize) {
     let id = grid_page(h).grid.id;
@@ -480,7 +471,6 @@ fn cell_editors_page(h: &Harness) -> &crate::pages::celleditors::CellEditorsPage
         .and_then(|a| a.downcast_ref())
         .expect("the Cell editors page")
 }
-
 
 fn focus(h: &mut Harness, id: junie_tui::core::id::WidgetId) {
     h.app.shell.focus.focus(id);

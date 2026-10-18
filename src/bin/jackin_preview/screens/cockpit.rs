@@ -1,7 +1,3 @@
-
-
-
-
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
@@ -49,7 +45,6 @@ pub struct CockpitScreen {
     pub role: String,
     pub agent: Agent,
     pub account: Option<AccountId>,
-
 
     pub accounts: Vec<AccountId>,
     pub rail: StepRail,
@@ -146,7 +141,6 @@ impl CockpitScreen {
         }
     }
 
-
     pub fn seek(&mut self, ticks: u64, w: &mut World, cx: &mut Cx) {
         for _ in 0..ticks {
             self.step(w, cx);
@@ -165,9 +159,6 @@ impl CockpitScreen {
         if others.is_empty() {
             (origin, val, tone)
         } else {
-
-
-
             let primary = self
                 .account
                 .as_ref()
@@ -185,8 +176,6 @@ impl CockpitScreen {
             )
         }
     }
-
-
 
     fn why_label(&self, account: &crate::domain::account::Account, w: &World) -> &'static str {
         let r = w.account_for(
@@ -459,8 +448,6 @@ impl CockpitScreen {
         });
     }
 
-
-
     fn ask_cancel(&mut self, cx: &mut Cx) -> Outcome {
         if self.run.is_terminal() {
             return Outcome::Consumed;
@@ -539,8 +526,6 @@ impl CockpitScreen {
     }
 }
 
-
-
 pub fn ansi_line(l: &str) -> Vec<Span> {
     let mut spans = vec![];
     if let Some(rest) = l.strip_prefix('#') {
@@ -564,8 +549,6 @@ pub fn ansi_line(l: &str) -> Vec<Span> {
 }
 
 fn wrapped_arrow(buf: &mut Buffer, area: Rect, t: &Theme) {
-
-
     let _ = (buf, area, t);
 }
 
@@ -583,13 +566,10 @@ impl Page<Jackin> for CockpitScreen {
     }
 
     fn on_tick(&mut self, w: &mut World, cx: &mut Cx) -> Outcome {
-
-
         if !w.clock.running {
             return Outcome::Ignored;
         }
         if self.motion == Motion::Reduced {
-
             let mut changed = false;
             for _ in 0..3 {
                 changed |= self.step(w, cx);
@@ -609,10 +589,7 @@ impl Page<Jackin> for CockpitScreen {
     }
 
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-
-
         if key.ctrl_char('c') && !(self.log_open && self.log.has_selection()) {
-
             cx.status("Aborted · terminal restored, cleanup deferred");
             self.run.cancel();
             let record = self.instance_record(w, InstanceStatus::FailedSetup);
@@ -679,10 +656,6 @@ impl Page<Jackin> for CockpitScreen {
             _ => Outcome::Consumed,
         }
     }
-
-
-
-
 
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.log_open {
@@ -768,7 +741,6 @@ impl Page<Jackin> for CockpitScreen {
             }
             ("cred", ModalResult::Dialog { action, .. }) => match action {
                 Some(0) => {
-
                     w.op.session = crate::sim::onepassword::OpSession::SignedIn;
                     self.credential_hold = false;
                     self.run.retry_credentials();
@@ -997,7 +969,6 @@ impl Page<Jackin> for CockpitScreen {
             let chip = format!(" {} ", self.run.run_id);
             let cw = width(&chip) as u16;
             rx = rx.saturating_sub(cw);
-
 
             let vs = ctx.state(CHIP_RUN);
             let chrome = ctx.title_style(CHIP_RUN, t.canvas);

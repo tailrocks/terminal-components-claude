@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeSet;
 
 use crate::domain::action::{
@@ -21,7 +11,6 @@ use crate::domain::exec::Command;
 use crate::domain::manifest;
 use crate::sim::world::{BatchMode, SourceState, World};
 
-
 fn tag_for_dir(w: &World, dir: &str) -> ScopeTag {
     let cwd = &w.location.cwd;
     if dir == cwd {
@@ -33,8 +22,6 @@ fn tag_for_dir(w: &World, dir: &str) -> ScopeTag {
     } else if let Some(ws) = &w.location.workspace
         && dir.starts_with(&format!("{}/", ws.root))
     {
-
-
         ScopeTag {
             direction: Scope::Parent,
             defined_at: dir.to_owned(),
@@ -67,7 +54,6 @@ fn freshness(w: &World, source: &str) -> Freshness {
                 .unwrap_or(0);
             let age_ms = (w.tick.saturating_sub(done_at) as i64) * crate::sim::world::TICK_MS;
             match source {
-
                 "github" => Freshness::Cached {
                     age_ms: age_ms + 40_000,
                 },
@@ -81,8 +67,6 @@ fn freshness(w: &World, source: &str) -> Freshness {
         }
     }
 }
-
-
 
 fn source_ready(w: &World, source: &str) -> bool {
     !matches!(w.source_state(source), SourceState::Loading)
@@ -115,7 +99,6 @@ fn script_for_task(w: &World, name: &str, dir: &str) -> Option<String> {
     };
     Some(key.into())
 }
-
 
 fn apply_memory(w: &World, mut item: Item) -> Item {
     let cwd = &w.location.cwd;
@@ -182,8 +165,6 @@ fn apply_memory(w: &World, mut item: Item) -> Item {
     item
 }
 
-
-
 pub fn builtin_ids(w: &World) -> Vec<String> {
     let mut items = vec![];
     contribute(w, &mut items, false);
@@ -193,8 +174,6 @@ pub fn builtin_ids(w: &World) -> Vec<String> {
 pub fn build(w: &World) -> Vec<Item> {
     build_with_warnings(w).0
 }
-
-
 
 pub fn build_with_warnings(w: &World) -> (Vec<Item>, Vec<String>) {
     let mut items: Vec<Item> = vec![];
@@ -227,9 +206,6 @@ pub fn build_with_warnings(w: &World) -> (Vec<Item>, Vec<String>) {
 }
 
 fn contribute(w: &World, items: &mut Vec<Item>, with_custom: bool) {
-
-
-
     explore(w, items);
     file_items(w, items);
     disk_items(w, items);
@@ -397,8 +373,6 @@ fn explore(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-
-
 fn mise_items(w: &World, out: &mut Vec<Item>) {
     if !w.mise.installed || !w.tools.contains("mise") || !source_ready(w, "mise") {
         return;
@@ -452,7 +426,6 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
             if t.name == "test" && tag.direction == Scope::Here {
                 item = item.aliases(&["test"]);
             }
-
 
             item = item.risk(Risk::Mutating);
             if !trusted {
@@ -602,7 +575,6 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
-
 fn native_task_items(w: &World, out: &mut Vec<Item>) {
     let cwd = w.location.cwd.clone();
     let here = ScopeTag::here(&cwd);
@@ -669,7 +641,6 @@ fn native_task_items(w: &World, out: &mut Vec<Item>) {
             file,
         ));
     }
-
 
     if w.tools.contains("mise")
         && let Some(Ok(text)) = &w.outputs.mise_tasks
@@ -755,8 +726,6 @@ fn native_task_items(w: &World, out: &mut Vec<Item>) {
         }
     }
 }
-
-
 
 fn git_items(w: &World, out: &mut Vec<Item>) {
     if !w.tools.contains("git") || !source_ready(w, "git") {
@@ -912,7 +881,6 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
         && g.conflicts == 0
         && g.in_progress.is_none()
     {
-
         pull = pull
             .effects(&[&format!(
                 "{} ahead, {} behind · integrated with the configured {} strategy",
@@ -929,8 +897,6 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
         && g.conflicts == 0
         && g.in_progress.is_none()
     {
-
-
         let r = format!("{} modified", g.changed() + g.untracked);
         pull = pull
             .effects(&[&format!(
@@ -1316,8 +1282,6 @@ fn git_children_items(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-
-
 fn sibling_repos(w: &World) -> Vec<&crate::domain::stack::GitState> {
     let cwd = &w.location.cwd;
     let mut v: Vec<&crate::domain::stack::GitState> = w
@@ -1510,8 +1474,6 @@ fn github_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
-
-
 fn rust_items(w: &World, out: &mut Vec<Item>) {
     let cwd = w.location.cwd.clone();
 
@@ -1669,8 +1631,6 @@ fn rust_items(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-
-
 fn docker_items(w: &World, out: &mut Vec<Item>) {
     if !w.tools.contains("docker") || !source_ready(w, "docker") {
         return;
@@ -1699,7 +1659,6 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
                 .launch(Launch::Snapshot { snapshot: "docker-unavailable".into() })
                 .reason(Signal::Default, "capability present, daemon unreachable"),
         );
-
 
         docker_system_items(w, out, &htag, &fresh);
         if let Some(f) = compose_file {
@@ -1986,7 +1945,6 @@ fn docker_system_items(w: &World, out: &mut Vec<Item>, htag: &ScopeTag, fresh: &
         .collect();
     let all: Vec<&str> = d.containers.iter().map(|c| c.name.as_str()).collect();
 
-
     let ids = |names: &[&str]| -> Vec<Command> {
         if names.is_empty() {
             return vec![cmd(w, "docker", &["ps", "-q"], &cwd)];
@@ -2207,8 +2165,6 @@ fn docker_system_items(w: &World, out: &mut Vec<Item>, htag: &ScopeTag, fresh: &
     );
 }
 
-
-
 fn system_items(w: &World, out: &mut Vec<Item>) {
     let s = &w.system;
     let htag = host_tag(w);
@@ -2333,10 +2289,6 @@ fn system_items(w: &World, out: &mut Vec<Item>) {
         );
     }
 }
-
-
-
-
 
 pub fn omz_dir(w: &World) -> Option<String> {
     if let Some(z) = &w.upgrade.zsh_env
@@ -2507,11 +2459,6 @@ fn upgrade_items(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-
-
-
-
-
 pub fn parse_brew_services(text: &str) -> Result<Vec<String>, String> {
     use manifest::{Json, parse_json};
     let json = parse_json(text).map_err(|e| format!("brew services list --json: {e}"))?;
@@ -2534,7 +2481,6 @@ pub fn parse_brew_services(text: &str) -> Result<Vec<String>, String> {
     names.dedup();
     Ok(names)
 }
-
 
 pub fn brew_service_names(w: &World) -> (Result<Vec<String>, String>, String) {
     let Some(b) = &w.brew else {
@@ -2663,8 +2609,6 @@ fn capitalize(s: &str) -> String {
     }
 }
 
-
-
 fn gradle_items(w: &World, out: &mut Vec<Item>) {
     let cwd = w.location.cwd.clone();
     let here = ScopeTag::here(&cwd);
@@ -2755,7 +2699,6 @@ fn gradle_items(w: &World, out: &mut Vec<Item>) {
         );
     }
     if installed {
-
         let cands = cleanup::walk_candidates(&w.fs, &cwd, &|p, is_dir| {
             is_dir && (p.ends_with("/.gradle") || p.ends_with("/build"))
         });
@@ -2804,8 +2747,6 @@ fn idea_items(w: &World, out: &mut Vec<Item>) {
             .reason(if cands.is_empty() { Signal::Default } else { Signal::Context }, &if cands.is_empty() { "no candidates · a successful no-op".to_owned() } else { format!("{} candidates", cands.len()) }),
     );
 }
-
-
 
 fn disk_items(w: &World, out: &mut Vec<Item>) {
     let d = &w.disk;
@@ -2988,7 +2929,6 @@ fn disk_items(w: &World, out: &mut Vec<Item>) {
     );
 }
 
-
 pub fn observe_process(w: &World, name: &str) -> ProcessObservation {
     if let Err(e) = &w.platform.process_probe {
         return ProcessObservation::Unknown(e.clone());
@@ -3003,7 +2943,6 @@ pub fn observe_process(w: &World, name: &str) -> ProcessObservation {
         ProcessObservation::NotRunning
     }
 }
-
 
 pub fn insight_candidates(w: &World) -> Vec<InsightCategory> {
     let home = w.location.home.clone();
@@ -3175,8 +3114,6 @@ fn cleanup_items(w: &World, out: &mut Vec<Item>) {
         );
     }
 }
-
-
 
 fn pg_items(w: &World, out: &mut Vec<Item>) {
     let Some(p) = &w.pg else {
@@ -3484,8 +3421,6 @@ fn service_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
-
-
 fn custom_items(w: &World, out: &mut Vec<Item>) {
     let cwd = w.location.cwd.clone();
     for cfg in [&w.custom_global, &w.custom_project].into_iter().flatten() {
@@ -3649,8 +3584,6 @@ fn custom_items(w: &World, out: &mut Vec<Item>) {
         );
     }
 }
-
-
 
 fn file_items(w: &World, out: &mut Vec<Item>) {
     let here = ScopeTag::here(&w.location.cwd);

@@ -1,29 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -38,7 +12,6 @@ use junie_tui::ui::specimen::{SpecimenState, StateGrid};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::empty::{self, EmptyState};
 use junie_tui::widgets::tabs::Tabs;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Section {
@@ -58,7 +31,6 @@ impl Section {
         }
     }
 
-
     pub fn caption(self) -> &'static str {
         match self {
             Self::Playground => "the live widget",
@@ -68,15 +40,9 @@ impl Section {
     }
 }
 
-
-
 pub const WIDE: u16 = 76;
 
-
-
-
 pub const FOCUS_LEGEND: &str = "▏ depicts a focused sample; it is not where your focus is";
-
 
 pub fn focus_legend(mark: &str) -> String {
     let rest = FOCUS_LEGEND.trim_start_matches('▏');
@@ -89,17 +55,13 @@ pub struct Template {
     pub compare: Button,
     pub grid: StateGrid,
 
-
     pub view: ScrollView,
-
 
     content: Option<Rect>,
 
     shown: Vec<SpecimenState>,
 
-
     spans: Vec<(SpecimenState, u16, u16)>,
-
 
     options: Option<OptionsView>,
     owner: WidgetId,
@@ -121,11 +83,6 @@ impl Template {
         }
     }
 
-
-
-
-
-
     pub fn sync_options(&mut self, opts: &'static [Opt], value: impl Fn(&Opt) -> usize) {
         if opts.is_empty() {
             return;
@@ -144,13 +101,10 @@ impl Template {
         view.sync(value);
     }
 
-
     #[allow(dead_code)]
     pub fn option_control(&self, key: &str) -> Option<WidgetId> {
         self.options.as_ref()?.control_id(key)
     }
-
-
 
     pub fn popup_open(&self) -> bool {
         self.section() == Section::Options && self.options.as_ref().is_some_and(|v| v.popup_open())
@@ -168,15 +122,10 @@ impl Template {
         self.view.reset();
     }
 
-
-
     pub fn body_of(area: Rect) -> Rect {
         let top = area.y.saturating_add(3).min(area.bottom());
         Rect::new(area.x, top, area.width, area.bottom() - top)
     }
-
-
-
 
     pub fn measure(&self, avail: Size, playground: Size, ctx: &RenderCtx) -> Size {
         match self.section() {
@@ -201,10 +150,6 @@ impl Template {
         }
     }
 
-
-
-
-
     pub fn begin(
         &mut self,
         area: Rect,
@@ -214,7 +159,6 @@ impl Template {
     ) -> ScrollFrame {
         let body = Self::body_of(area);
 
-
         let size = self
             .view
             .fit(body.as_size(), |a| self.measure(a, playground, ctx));
@@ -222,7 +166,6 @@ impl Template {
         self.content = Some(frame.area());
         frame
     }
-
 
     pub fn end(&mut self, frame: ScrollFrame, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.content = None;
@@ -241,12 +184,9 @@ impl Template {
         }
     }
 
-
-
     pub fn on_unused_key(&mut self, key: &junie_tui::core::event::Key) -> Option<Outcome> {
         self.view.on_key(key)
     }
-
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) -> Rect {
         let t = ctx.theme;
@@ -271,9 +211,6 @@ impl Template {
         self.content.unwrap_or_else(|| Self::body_of(area))
     }
 
-
-
-
     pub fn render_options(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         if let Some(view) = &mut self.options {
@@ -284,10 +221,6 @@ impl Template {
             .hint("Shell-wide options: i, then Options · or --opt shell.<key>=<value>");
         empty::render_ctx(area, buf, ctx, &e, t.canvas);
     }
-
-
-
-
 
     pub fn render_states(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
@@ -333,14 +266,10 @@ impl Template {
         self.shown.extend_from_slice(self.grid.rendered_rows());
     }
 
-
-
     #[allow(dead_code)]
     pub fn state_rows(&self) -> &[SpecimenState] {
         &self.shown
     }
-
-
 
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<Outcome> {
         let before = self.tabs.active;
@@ -404,7 +333,6 @@ impl Template {
             _ => None,
         }
     }
-
 
     pub fn hints(&self, focus: Option<WidgetId>) -> Option<Vec<Hint>> {
         let f = focus?;

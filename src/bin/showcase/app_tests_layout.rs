@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
 
@@ -12,7 +8,6 @@ use crate::pages::template::Section;
 fn outer() -> WidgetId {
     WidgetId::of("splitsstacks").sub("outer")
 }
-
 
 fn explorer_width(h: &Harness) -> u16 {
     let (x, y) = h.at("╭─ Explorer");
@@ -72,7 +67,6 @@ fn splits_minimum_clamps_the_default_ratio() {
     h.opt("splitsstacks.min=40");
     assert_eq!(explorer_width(&h), 40, "{}", h.text());
 
-
     let mut h = Harness::new(240, 40, PageId::SplitsStacks);
     h.opt("splitsstacks.min=40");
     let at_30 = explorer_width(&h);
@@ -121,7 +115,6 @@ fn splits_direction_stacks_the_panes() {
 
 #[test]
 fn stack_children_shrink_then_scroll_or_clip() {
-
     let mut h = Harness::new(120, 50, PageId::SplitsStacks);
     assert!(h.text().contains("▸ Danger zone · 1 row"));
     assert!(!h.text().contains("not in view"));
@@ -180,11 +173,6 @@ fn splits_states_grid_shows_both_seams() {
         assert!(text.contains(label), "{label}: {text}");
     }
 }
-
-
-
-
-
 
 #[test]
 fn hovering_or_pressing_a_seam_restyles_only_its_own_line() {

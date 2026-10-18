@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
 
@@ -14,8 +9,6 @@ use crate::app::Route;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 
-
-
 fn backdrop(h: &H, hit: WidgetId) -> bool {
     use junie_tui::core::id::Part;
     h.app
@@ -24,8 +17,6 @@ fn backdrop(h: &H, hit: WidgetId) -> bool {
         .part_of(hit)
         .is_some_and(|x| x.part.part == Part::BACKDROP)
 }
-
-
 
 fn outside(h: &H) -> Position {
     let area = h.term.backend().buffer().area;
@@ -38,9 +29,6 @@ fn outside(h: &H) -> Position {
         .or_else(|| cells().find(|p| h.app.shell.hits.hit(*p).is_some_and(|id| backdrop(h, id))))
         .unwrap_or_else(|| panic!("no free cell outside the layer:\n{}", h.text()))
 }
-
-
-
 
 struct Kind {
     name: &'static str,
@@ -119,8 +107,6 @@ fn form() -> (H, Option<Option<WidgetId>>) {
     );
     (h, Some(owner))
 }
-
-
 
 fn op() -> (H, Option<Option<WidgetId>>) {
     let (mut h, _) = form();
@@ -261,7 +247,6 @@ const KINDS: [Kind; 10] = [
     },
 ];
 
-
 fn assert_closed(name: &str, how: &str, h: &H, below: usize, owner: Option<Option<WidgetId>>) {
     assert_eq!(
         h.app.layer_count(),
@@ -283,7 +268,6 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
     for kind in &KINDS {
         let name = kind.name;
 
-
         let (mut h, owner) = (kind.open)();
         let below = h.app.layer_count() - 1;
         assert_ne!(
@@ -298,8 +282,6 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
             }
         }
         assert_closed(name, "Esc", &h, below, owner);
-
-
 
         let (mut h, owner) = (kind.open)();
         let policy = h.app.top_dismiss().expect("a layer is open");
@@ -320,8 +302,6 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
             );
         }
 
-
-
         let (mut h, owner) = (kind.open)();
         let close = h.app.shell.hits.area_of(CLOSE);
         if let Some(x) = close {
@@ -334,9 +314,6 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
         }
     }
 }
-
-
-
 
 #[test]
 fn the_failure_details_scrollbar_drags_through_the_layer() {
@@ -371,8 +348,6 @@ fn the_failure_details_scrollbar_drags_through_the_layer() {
     h.mouse(MouseKind::Up, track.x, track.bottom() - 1);
 }
 
-
-
 #[test]
 fn a_paste_into_the_palette_filters_it() {
     let (mut h, _) = picker();
@@ -390,9 +365,6 @@ fn a_paste_into_the_palette_filters_it() {
         p.items.iter().map(|i| &i.label).collect::<Vec<_>>()
     );
 }
-
-
-
 
 #[test]
 fn a_focus_change_reaches_the_form_under_the_layer_it_opened() {
@@ -430,11 +402,6 @@ fn a_focus_change_reaches_the_form_under_the_layer_it_opened() {
         .unwrap();
     assert_eq!(f.text("name"), "Team", "and kept what was typed");
 }
-
-
-
-
-
 
 #[test]
 fn only_the_new_workspace_browser_shows_the_flow_progress() {
@@ -476,9 +443,6 @@ fn only_the_new_workspace_browser_shows_the_flow_progress() {
     );
     assert!(!h.text().contains("✓ Source"), "{}", h.text());
 }
-
-
-
 
 #[test]
 fn the_form_footer_names_the_focused_button() {

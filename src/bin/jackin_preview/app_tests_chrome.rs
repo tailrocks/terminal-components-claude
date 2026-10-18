@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
@@ -222,7 +219,6 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
     let construct = "simulated · nothing here touches a real container";
     assert!(h.text().contains("Scenario"), "{}", h.text());
 
-
     let body = |h: &H| {
         let text = h.text();
         let lines: Vec<&str> = text.lines().collect();
@@ -258,7 +254,6 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
         h.text()
     );
 
-
     let (vx, vy) = h.find("simulated").unwrap();
     h.mouse(MouseKind::Move, vx + 2, vy);
     assert!(!body(&h).contains(construct), "not at once: {}", h.text());
@@ -274,7 +269,6 @@ fn about_dialog_reveals_a_cut_value_by_keyboard_and_by_hover() {
         h.text()
     );
 }
-
 
 fn focus_cues(h: &H) -> (usize, usize) {
     let t = h.app.theme;
@@ -296,7 +290,6 @@ fn the_new_tab_picker_is_the_only_layer_showing_focus() {
     assert_eq!(focus_cues(&h).0, 0, "{}", h.text());
     h.key(KeyCode::Enter);
     assert!(h.text().contains("New tab"), "{}", h.text());
-
 
     assert_eq!(focus_cues(&h), (1, 0), "{}", h.text());
 }
@@ -321,7 +314,6 @@ fn the_usage_dialog_tab_strip_shows_focus_once_and_its_selection_in_the_accent()
         rule.iter().all(|c| c.fg == t.accent)
     };
 
-
     let strip_bar = |h: &H| {
         let buf = h.term.backend().buffer();
         (ox - 1..ox + 60).any(|x| buf[(x, oy)].symbol() == "▎")
@@ -332,7 +324,6 @@ fn the_usage_dialog_tab_strip_shows_focus_once_and_its_selection_in_the_accent()
 
     assert!(rule(&h), "{}", h.text());
 
-
     h.key(KeyCode::Tab);
     assert!(!strip_bar(&h), "{}", h.text());
     assert!(rule(&h), "{}", h.text());
@@ -340,8 +331,6 @@ fn the_usage_dialog_tab_strip_shows_focus_once_and_its_selection_in_the_accent()
 
 #[test]
 fn legacy_ctrl_4_from_the_terminal_opens_the_palette() {
-
-
     use junie_tui::core::event::Input;
     use ratatui::crossterm::event::{Event, KeyEvent, KeyModifiers};
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 24);
@@ -351,9 +340,6 @@ fn legacy_ctrl_4_from_the_terminal_opens_the_palette() {
     h.draw();
     assert!(h.text().contains("Command palette"), "{}", h.text());
 }
-
-
-
 
 #[test]
 fn container_info_opens_on_a_short_run_id_without_panicking() {
@@ -366,9 +352,6 @@ fn container_info_opens_on_a_short_run_id_without_panicking() {
     assert!(t.contains("3f9crun7f3ae21a"), "short container id: {t}");
     assert!(t.contains("run-7f3a-4f11"), "invocation id: {t}");
 }
-
-
-
 
 #[test]
 fn the_peek_line_never_drops_the_primary_hint() {

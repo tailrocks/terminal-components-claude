@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
@@ -84,19 +76,15 @@ impl TextBuffer {
         self.cursor
     }
 
-
-
     pub fn select_range(&mut self, a: usize, b: usize) {
         self.anchor = Some(Self::floor_boundary(&self.text, a));
         self.cursor = Self::floor_boundary(&self.text, b);
     }
 
-
     pub fn selection_lines(&self) -> (usize, usize) {
         match self.selection() {
             Some(r) => {
                 let a = Self::pos_of(&self.text, r.start).line;
-
 
                 let before = &self.text[..r.end];
                 let b = before.matches('\n').count() - usize::from(before.ends_with('\n'));
@@ -114,8 +102,6 @@ impl TextBuffer {
             .is_some_and(|r| self.text[r].contains('\n'))
     }
 
-
-
     pub fn insert_at(&mut self, at: usize, s: &str) {
         let at = Self::floor_boundary(&self.text, at);
         let s = normalized_text(s, self.multiline);
@@ -130,8 +116,6 @@ impl TextBuffer {
         }
         self.normalize_positions();
     }
-
-
 
     pub fn remove_range(&mut self, r: std::ops::Range<usize>) {
         let r = r.start.min(self.text.len())..r.end.min(self.text.len());
@@ -169,7 +153,6 @@ impl TextBuffer {
         Some(a.min(self.cursor)..a.max(self.cursor))
     }
 
-
     pub fn has_selection(&self) -> bool {
         self.selection().is_some()
     }
@@ -183,17 +166,12 @@ impl TextBuffer {
         self.anchor = None;
     }
 
-
-
     pub fn select_to(&mut self, offset: usize) {
         if self.anchor.is_none() {
             self.anchor = Some(self.cursor);
         }
         self.cursor = Self::floor_boundary(&self.text, offset);
     }
-
-
-
 
     pub fn word_range_at(&self, offset: usize) -> std::ops::Range<usize> {
         let offset = Self::floor_boundary(&self.text, offset);
@@ -240,20 +218,16 @@ impl TextBuffer {
         gs[lo].0..gs[hi].0 + gs[hi].1.len()
     }
 
-
     pub fn select_word_at(&mut self, offset: usize) {
         let r = self.word_range_at(offset);
         self.select_range(r.start, r.end);
     }
-
-
 
     pub fn select_line_at(&mut self, offset: usize) {
         let offset = Self::floor_boundary(&self.text, offset);
         let (start, end) = (self.line_start(offset), self.line_end(offset));
         self.select_range(start, end);
     }
-
 
     pub fn selected_text(&self) -> Option<&str> {
         self.selection().map(|r| &self.text[r])
@@ -268,8 +242,6 @@ impl TextBuffer {
             self.anchor = None;
         }
     }
-
-
 
     fn floor_boundary(text: &str, offset: usize) -> usize {
         if offset >= text.len() {
@@ -291,9 +263,6 @@ impl TextBuffer {
             .find(|i| *i >= offset)
             .unwrap_or(text.len())
     }
-
-
-
 
     fn normalize_positions(&mut self) {
         self.cursor = Self::ceil_boundary(&self.text, self.cursor);
@@ -367,8 +336,6 @@ impl TextBuffer {
         from + i
     }
 
-
-
     pub fn move_left(&mut self, select: bool) {
         if !select && let Some(r) = self.selection() {
             self.anchor = None;
@@ -419,7 +386,6 @@ impl TextBuffer {
         self.cursor = self.text.len();
     }
 
-
     pub fn move_up(&mut self, select: bool) -> bool {
         if !self.multiline {
             return false;
@@ -451,8 +417,6 @@ impl TextBuffer {
         self.cursor = self.offset_at(line, col);
     }
 
-
-
     fn delete_selection(&mut self) -> bool {
         match self.selection() {
             Some(r) => {
@@ -479,7 +443,6 @@ impl TextBuffer {
 
     pub fn insert_str(&mut self, s: &str) {
         let s = normalized_text(s, self.multiline);
-
 
         if let Some(r) = self.selection() {
             self.cursor = r.start + s.len();
@@ -540,18 +503,13 @@ impl TextBuffer {
         self.normalize_positions();
     }
 
-
-
     pub fn line_count(&self) -> usize {
         self.text.split('\n').count()
     }
 
-
     pub fn cursor_pos(&self) -> CursorPos {
         Self::pos_of(&self.text, self.cursor)
     }
-
-
 
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
         let offset = Self::floor_boundary(text, offset);
@@ -561,7 +519,6 @@ impl TextBuffer {
         let col = UnicodeWidthStr::width(&text[line_start..offset]);
         CursorPos { line, col }
     }
-
 
     pub fn offset_at(&self, line: usize, col: usize) -> usize {
         let mut start = 0;
@@ -581,7 +538,6 @@ impl TextBuffer {
         }
         self.text.len()
     }
-
 
     pub fn width(&self) -> usize {
         UnicodeWidthStr::width(self.text.as_str())
