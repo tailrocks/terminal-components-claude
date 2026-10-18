@@ -76,6 +76,8 @@ For a behavior change, combine focused unit tests with a real consumer regressio
 
 Visual evidence names application, route, state, dimensions, color level, focus/hover/pressed/disabled condition, and source revision. Complete frames include cursor placement and all rendered cells; tests should inspect semantic state/effects as well as pixels/ANSI output. Direct and PTY journeys cover actual input, not just function calls. Capture-to-ANSI round trips preserve colors, cursor placement, and screen contents. A golden image or approved baseline applies only to its named scenario and dimensions.
 
+Operational report publication must preserve source and receipt identity while avoiding a second maintained documentation tree. Migrate historical publisher cursor and output-path contracts deliberately before integrating them with the replacement documentation system; local report rendering alone does not migrate a remote publishing protocol.
+
 Performance evidence uses production-representative workloads and records allocation/byte/work bounds alongside controlled timing uncertainty, environment, and baseline. CLI verification covers supported flags, defaults, invalid arguments, deterministic output, and relevant exit status. Portability work names supported OS/terminal capabilities and tests fallbacks. Evidence is reproducible and traceable; historical passes do not verify current source. API changes require source compatibility review and compilation of real consumers.
 
 ## Deferred proposals and external dependencies

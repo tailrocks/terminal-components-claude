@@ -10,7 +10,7 @@ Preserve public APIs and documented runtime behavior unless a deliberate archite
 
 ## Evidence limits
 
-Build success demonstrates compilation for the selected workspace and configuration. Tests demonstrate only their exercised cases. Captures demonstrate only their named states and dimensions. Historical source comments and safety rationale are evidence of prior reasoning, not fresh safety certification. The former Markdown proof inputs and generated-document contracts need an explicit protocol migration before their validators can certify this replacement tree.
+Build success demonstrates compilation for the selected workspace and configuration. Tests demonstrate only their exercised cases. Captures demonstrate only their named states and dimensions. Historical source comments and safety rationale are evidence of prior reasoning, not fresh safety certification. Documentation link and cross-branch content checks certify documentation integrity. Operational proof validators certify only their named artifacts and source snapshots. A versioned packaging migration must identify retired prose explicitly without rewriting measured evidence or weakening operational checks.
 
 ## Scope discipline
 
