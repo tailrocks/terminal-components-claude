@@ -1,8 +1,8 @@
-//! Inputs (plan §7 SC8): `TextInput` fields, how they start, end and
-//! select (`EditEntry`, `FocusSelect`, `BlurAction`, `PointerSelect`), their
-//! keys (`FieldKeys`, a custom `TextCmd` key map and the bound-command
-//! list) and how undo groups typing. Every knob is an option of the page
-//! (`crate::options::INPUTS`).
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -38,7 +38,7 @@ fn email(s: &str) -> Option<String> {
     }
 }
 
-/// The text commands in list order, with their names (demo data).
+
 pub const TEXT_COMMANDS: [(TextCmd, &str); 14] = [
     (TextCmd::SelectAll, "Select all"),
     (TextCmd::Copy, "Copy"),
@@ -56,16 +56,16 @@ pub const TEXT_COMMANDS: [(TextCmd, &str); 14] = [
     (TextCmd::SelectToDocEnd, "Select to text end"),
 ];
 
-/// The custom text key map the `text_keymap` option installs: the preset's
-/// bindings plus Alt+A for Select All.
+
+
 pub fn custom_text_keymap(keys: FieldKeys) -> KeyMap<TextCmd> {
     let mut map = vec![(KeyBinding::alt('a'), TextCmd::SelectAll)];
     map.extend(keys.text_keymap());
     map
 }
 
-/// `cmd`'s keys in `map`, the Cmd chords left out (they depend on the
-/// terminal delivering Cmd, and are the same under both presets).
+
+
 fn keys_of(map: &KeyMap<TextCmd>, cmd: TextCmd) -> String {
     let keys: Vec<String> = map
         .iter()
@@ -89,7 +89,7 @@ fn keys_of(map: &KeyMap<TextCmd>, cmd: TextCmd) -> String {
     }
 }
 
-/// The values an option turns into builder arguments.
+
 fn edit_entry(opts: &PageValues, key: &str) -> Option<EditEntry> {
     match opts.value(key) {
         "immediate" => Some(EditEntry::Immediate),
@@ -155,8 +155,8 @@ impl InputsPage {
         page
     }
 
-    /// Build the fields from the option values through the builders an
-    /// application calls, keeping what was typed.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let mut owner = TextInput::new(ID.child(2), "Owner email")
@@ -213,7 +213,7 @@ impl InputsPage {
             if o.on("inputs.plain_label") {
                 g = g.plain_label();
             }
-            // what was typed survives a rebuild
+
             if let Some(old) = self.fields.get(i)
                 && !old.disabled
             {
@@ -225,7 +225,7 @@ impl InputsPage {
         self.fields = fields;
     }
 
-    /// Field `i` of the playground (tests read it).
+
     #[allow(dead_code)]
     pub fn field(&self, i: usize) -> &TextInput {
         &self.fields[i]
@@ -248,7 +248,7 @@ impl InputsPage {
                     .unwrap_or(TextInput::HEIGHT)
             })
             .collect();
-        // the card's title, padding and border around the rows
+
         let fields_h = rows.iter().sum::<u16>() + 5;
         let focus = self
             .fields
@@ -300,8 +300,8 @@ impl InputsPage {
         }
     }
 
-    /// The text commands and their keys under each preset (the custom key
-    /// map adds its binding to both).
+
+
     fn render_commands(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let custom = self.opts.value("inputs.text_keymap") == "custom";
@@ -340,7 +340,7 @@ impl InputsPage {
     }
 }
 
-/// How undo groups edits (the `UndoStack` every text control keeps).
+
 fn render_undo(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     let t = ctx.theme;
     let panel = Panel::card(Some("Undo history")).meta("Ctrl+Z · Ctrl+Shift+Z");
@@ -364,8 +364,8 @@ fn render_undo(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     }
 }
 
-/// The States grid: a plain and a masked field in every state they have,
-/// drawn by `TextInput` itself ([`junie_tui::ui::specimen`]).
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

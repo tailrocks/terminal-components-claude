@@ -1,8 +1,8 @@
-//! Terminal (plan §7 SC25): a text viewport with scrollback, follow-tail,
-//! selection, copy, styled spans and find marks; a draggable splitter
-//! between two panes; and a step rail that reports a multi-stage job.
-//! Every `TextViewport` and `StepRail` knob is an option, and the States
-//! grid shows both. Options: `crate::options::TERMINAL`.
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -131,8 +131,8 @@ impl TerminalPage {
         p
     }
 
-    /// The viewport and the rail from the option values, through their
-    /// builders; their lines and steps survive.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = |key| match o.value(key) {
@@ -145,7 +145,7 @@ impl TerminalPage {
             _ => TrackClick::Page,
         };
         let keymap = match o.value("terminal.keymap") {
-            // an app's own keys: `F` follows, `c` copies, Ctrl+A selects
+
             "custom" => vec![
                 (KeyBinding::char('F'), ViewportCmd::ToggleFollow),
                 (KeyBinding::char('c'), ViewportCmd::Copy),
@@ -167,7 +167,7 @@ impl TerminalPage {
             _ => {}
         }
         if o.on("terminal.mark") {
-            // find marks over "jackin" in the prompt line
+
             let at = term.line_text(0).and_then(|l| l.find("jackin"));
             term.set_marks(
                 at.map(|a| Mark {
@@ -264,7 +264,7 @@ impl TerminalPage {
                     .push(vec![Span::plain("payments-platform ❯ ").bold()]);
             } else {
                 if self.stage == 3 {
-                    // one stage is skipped when nothing needs mounting twice
+
                     self.rail.set_state(self.stage, StepState::Skipped);
                     self.rail.set_meta(self.stage, Some("cached".into()));
                     self.stage += 1;
@@ -276,8 +276,8 @@ impl TerminalPage {
     }
 }
 
-/// The States grid: the viewport (plain and wrapped) and a selectable
-/// step rail in every step state.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -345,7 +345,7 @@ impl TerminalPage {
         } else {
             format!("scrollback ↑{depth}")
         };
-        // retention: the oldest lines leave past the limit
+
         let meta = match self.term.retention() {
             Some(n) if self.term.len() >= n => format!("{meta} · last {n} kept"),
             _ => meta,
@@ -392,7 +392,7 @@ impl TerminalPage {
         );
         self.run.render(rects[0], buf, ctx, bg);
         self.fail.render(rects[1], buf, ctx, bg);
-        // the viewport's layout work, as its performance proofs count it
+
         let work = self.term.work_counters();
         let y = inner.bottom().saturating_sub(5);
         if y > rail_area.y + STAGES.len() as u16 {

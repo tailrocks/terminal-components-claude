@@ -1,6 +1,6 @@
-//! The "Selectable table" page driven through the real `App`: keyboard and
-//! mouse selection (with modifiers), the editor it drives, bulk edits, the
-//! delete confirmation and the empty state.
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -19,13 +19,13 @@ struct Harness {
 }
 
 impl Harness {
-    /// The page with the Ctrl+click toggle (`ClientPlatform::Other`), so these
-    /// tests read the same on every host.
+
+
     fn new(w: u16, h: u16) -> Self {
         Self::on(w, h, ClientPlatform::Other)
     }
 
-    /// The page following `platform`'s conventions.
+
     fn on(w: u16, h: u16, platform: ClientPlatform) -> Self {
         let mut app = App::new(Theme::junie());
         app.pages[PageId::Selectable.index()] = Box::new(SelectablePage::for_platform(platform));
@@ -33,8 +33,8 @@ impl Harness {
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
-        // focus the members table: the first Tab stop is the page's
-        // section strip
+
+
         h.key(KeyCode::Tab);
         h.key(KeyCode::Tab);
         h
@@ -58,16 +58,16 @@ impl Harness {
         self.key_mod(code, KeyModifiers::NONE);
     }
 
-    /// One deliberate click: the clicks before it are forgotten, so two
-    /// test clicks on one row are two single clicks, never a double click
-    /// (the wall clock barely moves between them). [`Self::double_click`]
-    /// is the double click.
+
+
+
+
     fn click_mod(&mut self, x: u16, y: u16, mods: KeyModifiers) {
         self.app.shell.pointer.reset_clicks();
         self.press_release(x, y, mods);
     }
 
-    /// Two clicks on one cell inside the double-click time.
+
     #[allow(dead_code)]
     fn double_click(&mut self, x: u16, y: u16) {
         self.click_mod(x, y, KeyModifiers::NONE);
@@ -83,8 +83,8 @@ impl Harness {
         }
     }
 
-    /// A raw terminal click normalised under `config`, as the runtime
-    /// does: on macOS Ctrl+click arrives as a secondary click.
+
+
     fn raw_click(&mut self, needle: &str, mods: KeyModifiers, config: InputConfig) {
         let (column, row) = self
             .find(needle)
@@ -92,7 +92,7 @@ impl Harness {
         self.raw_click_at(column, row, mods, config);
     }
 
-    /// [`Self::raw_click`] at a cell.
+
     fn raw_click_at(&mut self, column: u16, row: u16, mods: KeyModifiers, config: InputConfig) {
         use ratatui::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
         self.app.shell.pointer.reset_clicks();
@@ -113,7 +113,7 @@ impl Harness {
         }
     }
 
-    /// The footer row.
+
     fn footer(&self) -> String {
         self.row(self.term.backend().buffer().area.height - 1)
     }
@@ -135,7 +135,7 @@ impl Harness {
             .join("\n")
     }
 
-    /// Column-accurate position of `needle` (cells hold one grapheme).
+
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         let want: Vec<&str> =
@@ -151,7 +151,7 @@ impl Harness {
         None
     }
 
-    /// Click the first cell showing `needle`.
+
     fn click_text(&mut self, needle: &str, mods: KeyModifiers) {
         let (x, y) = self
             .find(needle)
@@ -159,7 +159,7 @@ impl Harness {
         self.click_mod(x, y, mods);
     }
 
-    /// The table row showing `name`.
+
     fn table_row(&self, name: &str) -> String {
         let (_, y) = self.find(name).expect(name);
         self.row(y)
@@ -194,7 +194,7 @@ fn nothing_selected_shows_an_empty_state_that_says_what_to_do() {
 #[test]
 fn keyboard_selects_extends_and_clears_rows() {
     let mut h = Harness::new(120, 43);
-    // the owner row is first and disabled: Space does nothing there
+
     h.key(KeyCode::Char(' '));
     assert!(h.has("No member selected"));
     h.key(KeyCode::Down);
@@ -203,7 +203,7 @@ fn keyboard_selects_extends_and_clears_rows() {
     assert!(h.has("Edit member"));
     assert!(h.table_row("Ari Moreno").contains("[✓]"));
     assert!(h.has("[–]"), "the header box turns indeterminate");
-    // the editor holds Ari's values
+
     assert!(h.has("ari@northwind.dev"));
 
     h.key_mod(KeyCode::Down, KeyModifiers::SHIFT);
@@ -211,7 +211,7 @@ fn keyboard_selects_extends_and_clears_rows() {
     assert!(h.has("3 selected"), "{}", h.text());
     assert!(h.has("Edit 3 members"));
     assert!(h.table_row("Bo Lindqvist").contains("[✓]"));
-    // Ari is an admin, Cleo and Bo are editors
+
     assert!(h.has("— mixed —"), "{}", h.text());
 
     h.key_mod(KeyCode::Char('a'), KeyModifiers::CONTROL);
@@ -229,21 +229,21 @@ fn mouse_selects_with_desktop_modifiers_and_checkboxes() {
     h.click_text("Cleo Barnes", KeyModifiers::NONE);
     assert!(h.has("1 selected"), "{}", h.text());
     assert!(h.has("cleo@northwind.dev"));
-    // Shift-click extends from Cleo to Fay (display order)
+
     h.click_text("Fay Okafor", KeyModifiers::SHIFT);
     assert!(h.has("4 selected"), "{}", h.text());
-    // Ctrl-click (Cmd where reported) toggles one row out
+
     h.click_text("Eli Nakamura", KeyModifiers::CONTROL);
     assert!(h.has("3 selected"));
     assert!(!h.table_row("Eli Nakamura").contains("[✓]"));
-    // a checkbox click toggles without touching the rest
+
     let (x, y) = h.find("Gus Petrov").unwrap();
     h.click(x - 4, y);
     assert!(h.has("4 selected"), "{}", h.text());
-    // the disabled owner row never selects
+
     h.click_text("Dana Whitfield", KeyModifiers::CONTROL);
     assert!(h.has("4 selected"));
-    // the header box: mixed → all → none
+
     let (hx, hy) = h.find("[–]").expect("indeterminate header box");
     h.click(hx + 1, hy);
     assert!(h.has("11 selected"));
@@ -257,14 +257,14 @@ fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
     let mut h = Harness::on(120, 43, ClientPlatform::MacOs);
     h.raw_click("Cleo Barnes", KeyModifiers::NONE, mac);
     assert!(h.has("1 selected"), "{}", h.text());
-    // the footer names the macOS toggle click
+
     assert!(
         h.footer().contains("Option+click Toggle row"),
         "{}",
         h.footer()
     );
     assert!(!h.footer().contains("Ctrl+click"), "{}", h.footer());
-    // Option+click adds a row, and removes it again
+
     h.raw_click("Fay Okafor", KeyModifiers::ALT, mac);
     assert!(h.has("2 selected"), "{}", h.text());
     assert!(h.table_row("Cleo Barnes").contains("[✓]"));
@@ -274,8 +274,8 @@ fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
     assert!(!h.table_row("Fay Okafor").contains("[✓]"));
     h.raw_click("Bo Lindqvist", KeyModifiers::ALT, mac);
     assert!(h.has("2 selected"));
-    // Ctrl+click is the secondary click: the row menu opens; on a selected
-    // row the selection stays as it was (M10)
+
+
     h.raw_click("Bo Lindqvist", KeyModifiers::CONTROL, mac);
     assert!(h.has("Delete…") && h.has("Edit"), "{}", h.text());
     assert!(h.footer().contains("Esc Close"), "{}", h.footer());
@@ -283,21 +283,21 @@ fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
     h.key(KeyCode::Esc);
     assert!(h.has("2 selected"));
     assert!(!h.table_row("Hana Sato").contains("[✓]"));
-    // Option+click is a fallback: a click on the checkbox, with no
-    // modifier, toggles too (iTerm2 and Terminal.app may keep Option)
+
+
     let (x, y) = h.find("Hana Sato").unwrap();
     h.raw_click_at(x - 4, y, KeyModifiers::NONE, mac);
     assert!(h.has("3 selected"), "{}", h.text());
     assert!(h.table_row("Hana Sato").contains("[✓]"));
-    // and Space toggles the cursor row (the checkbox click moved it there)
+
     h.key(KeyCode::Char(' '));
     assert!(h.has("2 selected"), "{}", h.text());
     assert!(!h.table_row("Hana Sato").contains("[✓]"));
 }
 
-/// M15, SI14: one click selects a row, however often; a double click
-/// opens it in the editor (`ClickPolicy::DATA`). The earlier rule, a second
-/// click on the selected row, is the `selection.activate=again` option.
+
+
+
 #[test]
 fn a_double_click_opens_a_row_and_a_slow_second_click_only_selects() {
     let mut h = Harness::new(120, 43);
@@ -317,7 +317,7 @@ fn a_double_click_opens_a_row_and_a_slow_second_click_only_selects() {
         table,
         "the double click moved into the editor"
     );
-    // the earlier rule is an option
+
     let mut h = Harness::new(120, 43);
     h.opt("selection.activate=again");
     let (x, y) = h.find("Cleo Barnes").unwrap();
@@ -339,7 +339,7 @@ fn other_platforms_toggle_with_ctrl_click_and_name_it() {
     );
     h.raw_click("Fay Okafor", KeyModifiers::CONTROL, other);
     assert!(h.has("2 selected"), "{}", h.text());
-    // Alt+click is a plain click there: it selects only that row
+
     h.raw_click("Bo Lindqvist", KeyModifiers::ALT, other);
     assert!(h.has("1 selected"), "{}", h.text());
     assert!(h.table_row("Bo Lindqvist").contains("[✓]"));
@@ -354,30 +354,30 @@ fn row_menu_edits_or_deletes_the_row_it_opened_on() {
         Position::new(x, y),
     )));
     h.draw();
-    // a right click outside the selection selects only that row, so the
-    // menu acts on what the user sees selected (M10, macOS)
+
+
     assert!(h.has("1 selected"), "{}", h.text());
     assert!(h.table_row("June Park").contains("[✓]"), "{}", h.text());
-    // Delete… acts on the row it opened on, then asks
+
     h.click_text("Delete…", KeyModifiers::NONE);
     assert!(h.has("Delete 1 member?"), "{}", h.text());
     assert!(h.has("1 selected"), "{}", h.text());
     assert!(h.has("june@northwind.dev"), "the editor loaded June");
-    // the Delete button's mnemonic (no `y` one-key answer)
+
     h.key(KeyCode::Char('d'));
     assert!(!h.has("June Park"), "{}", h.text());
-    // Edit on another row moves into the editor with that row loaded
+
     let (x, y) = h.find("Kai Mensah").unwrap();
     h.app.handle(Input::Mouse(Mouse::new(
         MouseKind::Secondary,
         Position::new(x, y),
     )));
     h.draw();
-    // the menu owns the keyboard: Enter chooses its first item, Edit
+
     h.key(KeyCode::Enter);
     assert!(h.has("kai@northwind.dev"), "{}", h.text());
     assert!(h.has("Edit member"), "{}", h.text());
-    // the owner's items name why they are unavailable
+
     let (x, y) = h.find("Dana Whitfield").unwrap();
     h.app.handle(Input::Mouse(Mouse::new(
         MouseKind::Secondary,
@@ -392,7 +392,7 @@ fn selection_survives_sorting() {
     let mut h = Harness::new(120, 43);
     h.click_text("Hana Sato", KeyModifiers::NONE);
     h.click_text("Bo Lindqvist", KeyModifiers::CONTROL);
-    // sort by name: the selected rows move, the selection follows them
+
     h.click_text("Name", KeyModifiers::NONE);
     assert!(h.has("2 selected"));
     assert!(h.table_row("Hana Sato").contains("[✓]"));
@@ -406,7 +406,7 @@ fn bulk_edit_applies_shared_fields_to_every_selected_member() {
     h.click_text("Ari Moreno", KeyModifiers::NONE);
     h.click_text("Bo Lindqvist", KeyModifiers::SHIFT);
     assert!(h.has("Edit 3 members"));
-    // open the role list (the first mixed field) and choose Viewer
+
     h.click_text(super::pages::selectable::MIXED, KeyModifiers::NONE);
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
@@ -417,10 +417,10 @@ fn bulk_edit_applies_shared_fields_to_every_selected_member() {
         let row = h.table_row(name);
         assert!(row.contains("Viewer"), "{name}: {row}");
     }
-    // fields left as `— mixed —` keep each member's own value
+
     assert!(h.table_row("Ari Moreno").contains("US"));
     assert!(h.table_row("Cleo Barnes").contains("EU"));
-    // the selection stays, the form reloads clean
+
     assert!(h.has("3 selected"));
     assert!(!h.has("Unsaved changes"));
 }
@@ -429,14 +429,14 @@ fn bulk_edit_applies_shared_fields_to_every_selected_member() {
 fn single_edit_and_revert() {
     let mut h = Harness::new(120, 43);
     h.click_text("June Park", KeyModifiers::NONE);
-    // Enter from the table moves into the editor's first field
+
     let rename = |h: &mut Harness| {
-        h.key(KeyCode::Enter); // start editing the name
+        h.key(KeyCode::Enter);
         h.key(KeyCode::End);
         for c in " Lee".chars() {
             h.key(KeyCode::Char(c));
         }
-        h.key(KeyCode::Enter); // commit the field, not the form
+        h.key(KeyCode::Enter);
     };
     h.key(KeyCode::Enter);
     rename(&mut h);
@@ -450,8 +450,8 @@ fn single_edit_and_revert() {
     h.click(rx + 1, ry);
     assert!(!h.has("June Park Lee"));
     assert!(!h.has("Unsaved changes"));
-    // edit again and apply with the button
-    // the name field is the row under its label; a click edits in one go
+
+
     let (lx, ly) = h.find("Name *").unwrap();
     h.click(lx + 2, ly + 1);
     h.key(KeyCode::End);
@@ -472,10 +472,10 @@ fn delete_asks_with_the_count_and_removes_the_rows() {
     h.key(KeyCode::Char('d'));
     assert!(h.has("Delete 2 members?"), "{}", h.text());
     assert!(h.has("Delete 2 members"));
-    // cancel keeps everything
+
     h.key(KeyCode::Esc);
     assert!(h.has("Gus Petrov") && h.has("2 selected"));
-    // the editor's Delete… asks the same
+
     h.click_text("Delete…", KeyModifiers::NONE);
     assert!(h.has("Delete 2 members?"));
     let (x, y) = h
@@ -499,7 +499,7 @@ fn narrow_terminal_stacks_the_editor_under_the_table() {
     }
 }
 
-/// Selection is its own mark (`[✓]`), apart from the one focus bar.
+
 #[test]
 fn selection_marks_stay_apart_from_the_single_focus_bar() {
     let mut h = Harness::new(160, 50);
@@ -518,12 +518,12 @@ fn selection_marks_stay_apart_from_the_single_focus_bar() {
             .count()
     };
     assert_eq!(bars(&h), 1, "one focus bar\n{}", h.text());
-    // the cursor (Bo) is not selected; the two selected rows carry no bar
+
     let (_, bo) = h.find("Bo Lindqvist").unwrap();
     assert!(h.row(bo).contains("▎") && h.row(bo).contains("[ ]"));
     let (_, ari) = h.find("Ari Moreno").unwrap();
     assert!(!h.row(ari).contains("▎") && h.row(ari).contains("[✓]"));
-    // with focus in the editor the table shows no bar of its own
+
     h.key(KeyCode::Tab);
     assert_eq!(bars(&h), 1, "{}", h.text());
 }
@@ -532,16 +532,16 @@ fn selection_marks_stay_apart_from_the_single_focus_bar() {
 fn changing_the_selection_commits_valid_edits() {
     let mut h = Harness::new(120, 43);
     h.click_text("June Park", KeyModifiers::NONE);
-    h.key(KeyCode::Enter); // into the editor's name field
-    h.key(KeyCode::Enter); // edit it
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
     h.key(KeyCode::End);
     for c in " Lee".chars() {
         h.key(KeyCode::Char(c));
     }
     h.key(KeyCode::Enter);
     assert!(h.has("Unsaved changes"), "{}", h.text());
-    // another row: the edit is applied (as blur commits) and the new
-    // selection loads, no question asked
+
+
     h.click_text("Cleo Barnes", KeyModifiers::NONE);
     assert!(!h.has("Save changes?"), "{}", h.text());
     assert!(
@@ -561,7 +561,7 @@ impl Harness {
         self.draw();
     }
 
-    /// `needle` on a row below `below`, left of column `right`.
+
     fn find_below(&self, needle: &str, below: u16, right: u16) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         (below + 1..buf.area.height).find_map(|y| {
@@ -582,12 +582,12 @@ fn a_select_chooses_by_press_drag_release_and_its_label_focuses_it() {
     let (lx, ly) = h.find_below("Role", ey, 120).expect("the Role field");
     let field_y = ly + 1;
     assert!(h.row(field_y).contains("Editor"), "{}", h.text());
-    // press the closed field: the list opens under the held button
+
     h.mouse(MouseKind::Down, lx + 2, field_y);
     let (vx, vy) = h
         .find_below("Viewer", field_y, lx + 40)
         .unwrap_or_else(|| panic!("the press opens the list:\n{}", h.text()));
-    // drag onto an option and let go: chosen in one gesture
+
     h.mouse(MouseKind::Drag, vx + 1, vy);
     h.mouse(MouseKind::Up, vx + 1, vy);
     assert!(h.row(field_y).contains("Viewer"), "{}", h.text());
@@ -596,7 +596,7 @@ fn a_select_chooses_by_press_drag_release_and_its_label_focuses_it() {
         "the list closed:\n{}",
         h.text()
     );
-    // a click on the label focuses the field without opening it
+
     h.click(lx + 1, ly);
     assert!(
         h.find_below("Admin", field_y, lx + 40).is_none(),
@@ -615,29 +615,29 @@ fn a_select_chooses_by_press_drag_release_and_its_label_focuses_it() {
 fn changing_the_selection_with_invalid_edits_asks_save_dont_save_cancel() {
     let mut h = Harness::new(120, 43);
     h.click_text("June Park", KeyModifiers::NONE);
-    h.key(KeyCode::Enter); // into the editor's name field
-    h.key(KeyCode::Enter); // edit it
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
     h.key(KeyCode::End);
     for _ in "June Park".chars() {
         h.key(KeyCode::Backspace);
     }
     h.key(KeyCode::Enter);
     assert!(h.has("Unsaved changes"), "{}", h.text());
-    // an empty name cannot be saved: the question comes first
+
     h.click_text("Cleo Barnes", KeyModifiers::NONE);
     assert!(h.has("Save changes?"), "{}", h.text());
     assert!(h.has("Don't Save") && h.has("Cancel"), "{}", h.text());
-    // Cancel (Esc): the edit and the selection stay
+
     h.key(KeyCode::Esc);
     assert!(!h.has("Save changes?"));
     assert!(h.has("Unsaved changes"));
     assert!(!h.table_row("Cleo Barnes").contains("[✓]"), "{}", h.text());
-    // Save: the field still fails, the editor keeps the selection
+
     h.click_text("Cleo Barnes", KeyModifiers::NONE);
     h.key(KeyCode::Enter);
     assert!(!h.table_row("Cleo Barnes").contains("[✓]"), "{}", h.text());
     assert!(h.has("Unsaved changes"));
-    // Don't Save: the new selection loads, the edit is dropped
+
     h.click_text("Cleo Barnes", KeyModifiers::NONE);
     h.key(KeyCode::BackTab);
     h.key(KeyCode::Enter);
@@ -648,8 +648,8 @@ fn changing_the_selection_with_invalid_edits_asks_save_dont_save_cancel() {
 
 #[test]
 fn a_clicked_row_anchors_a_shift_arrow_range() {
-    // terminals often keep Shift+click for their own text selection: the
-    // range also grows from the clicked row with Shift+↑↓
+
+
     let mut h = Harness::new(120, 43);
     h.click_text("Ari Moreno", KeyModifiers::NONE);
     h.key_mod(KeyCode::Down, KeyModifiers::SHIFT);

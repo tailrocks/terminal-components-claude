@@ -1,5 +1,5 @@
-//! [`DataTable`] constrained column editors ([`ColumnEditor`]) driven by
-//! keys, clicks and rendered cells.
+
+
 
 use super::*;
 use crate::core::{focus::FocusRing, hit::HitRegistry};
@@ -28,7 +28,7 @@ fn envs() -> Options {
     ])
 }
 
-/// Name · Env (Select) · Notify (Checkbox) · Labels (Tags) · Tier (Segmented)
+
 fn table() -> DataTable {
     let columns = vec![
         Column::new("Name", Constraint::Length(8)).editable(),
@@ -50,7 +50,7 @@ fn table() -> DataTable {
         ],
         vec![
             Cell::new("beta"),
-            Cell::new("qa"), // imported: outside the options
+            Cell::new("qa"),
             Cell::new("off"),
             Cell::new(""),
             Cell::new("S"),
@@ -111,7 +111,7 @@ fn a_select_cell_opens_chooses_and_commits_by_keyboard() {
     assert_eq!(ev, Some(TableAction::Committed { row: 0, col: 1 }));
     assert_eq!(t.rows[0][1].text, "prod");
     assert!(!t.is_editing());
-    // Esc cancels and keeps the value
+
     t.on_key(&key(KeyCode::F(2)));
     t.on_key(&key(KeyCode::Up));
     assert_eq!(t.on_key(&key(KeyCode::Esc)).1, Some(TableAction::Cancelled));
@@ -146,8 +146,8 @@ fn space_opens_type_ahead_jumps_and_a_disabled_option_is_never_chosen() {
 fn a_select_cell_opens_chooses_and_cancels_by_mouse() {
     let mut t = table();
     let (_, hits) = draw(&mut t, None);
-    // one click on the current cell never opens it (M9); a double click
-    // does (as it edits text)
+
+
     let cell = hits.area_of(t.cell_id(0, 1)).unwrap();
     let at = Position::new(cell.x, cell.y);
     let (out, _) = t.on_click_cell(0, 1, at);
@@ -172,7 +172,7 @@ fn a_select_cell_opens_chooses_and_cancels_by_mouse() {
         ))
     );
     assert_eq!(t.rows[0][1].text, "dev");
-    // the `▾` on a hovered cell opens it in one click; outside cancels
+
     let mark = t.open_id(1, 1);
     let hover = t.cell_id(1, 1);
     let (_, hits) = draw(&mut t, Some(hover));
@@ -265,10 +265,10 @@ fn the_validator_still_decides_and_blur_follows_the_config() {
     assert_eq!(t.on_key(&key(KeyCode::Enter)).1, None);
     assert!(t.choice.is_some(), "a rejected choice keeps the popup open");
     assert_eq!(t.edit_error(), Some("No dev here"));
-    // default blur: cancel
+
     assert_eq!(t.on_blur(), Some(TableAction::Cancelled));
     assert_eq!(t.rows[0][1].text, "stage");
-    // configured: commit the highlighted option
+
     let mut t = table().editor_config(EditorConfig {
         blur: BlurAction::Commit,
         ..EditorConfig::default()
@@ -330,9 +330,9 @@ fn read_only_and_text_cells_show_no_affordance() {
     assert!(!text(&buf).contains(glyph), "{}", text(&buf));
 }
 
-/// A constrained editor opened on a column the view was scrolled away
-/// from brings the column back first, so its popup anchors to a cell on
-/// screen (finding T3: with no cell drawn the popup did not appear).
+
+
+
 #[test]
 fn an_editor_opened_off_screen_scrolls_its_cell_into_view() {
     use crate::core::scroll::Scrollable;

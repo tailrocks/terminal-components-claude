@@ -12,100 +12,100 @@ use crate::ui::text::width;
 use crate::widgets::edit::{EditField, Editable, FieldError, LineLook, ValidateWhen, Validator};
 use crate::widgets::field_common::{EditAction, PointerField, PointerSelect, paste_clipboard};
 
-/// Single-line text input.
-///
-/// How focus becomes an edit is the field's [`EditEntry`] (default: the
-/// theme's, [`EditEntry::Immediate`]): focus starts the edit with the
-/// caret shown at once ([`Self::focus_select`] selects the value, so
-/// typing replaces it; a click puts the caret at the pointer), typing
-/// edits, Enter applies, Tab applies and moves focus on through the ring
-/// ([`request_focus_next`]), Esc reverts while the value is dirty and
-/// otherwise passes on. Under [`EditEntry::Explicit`] the field has a
-/// navigation mode (the gutter bar shows focus, Enter or F2 starts
-/// editing) and an editing mode (caret shown, Enter commits, Esc reverts).
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct TextInput {
     pub id: WidgetId,
     pub label: String,
     pub placeholder: String,
-    /// The value: its text, caret and selection, undo history, keys,
-    /// pointer selection, validator and error (the shared [`EditField`]).
-    /// The error shows under the field; owners set it with
-    /// [`Self::set_error`] (a server reply) and read [`Self::error`].
+
+
+
+
     pub field: EditField,
     pub disabled: bool,
     pub required: bool,
-    /// The error a required field left empty shows. `None` (default)
-    /// follows the theme's [`crate::theme::Strings::required`].
+
+
     pub required_message: Option<String>,
-    /// The theme's `required` text as of the last render.
+
     required_text: &'static str,
     pub help: String,
     pub editing: bool,
-    /// Value before editing began, for Esc.
+
     snapshot: String,
-    /// Validation state before editing began: Esc restores it with the
-    /// value.
+
+
     snapshot_error: Option<FieldError>,
     pub area: Rect,
-    /// Area of the text run (inside the field), for click-to-cursor.
+
     text_area: Rect,
-    /// Hide the "optional" suffix on non-required fields.
+
     pub plain_label: bool,
-    /// Draw every grapheme as `•`. `text()` still returns the raw value,
-    /// which is transient edit state only: never log or render it.
+
+
     pub masked: bool,
-    /// While not editing, show the last N graphemes in clear after the
-    /// mask (`••••••••k7Qz`). Editing always masks everything.
+
+
     pub reveal_tail: u8,
-    /// Wrap a label longer than the field onto several rows instead of
-    /// cutting it with `…`. Off by default (form labels are short); a
-    /// typed-acknowledgement prompt turns it on, because its label is the
-    /// instruction and must be read whole. Measure with [`Self::height_for`].
+
+
+
+
     pub wrap_label: bool,
-    /// What an edit in progress does when the field loses focus
-    /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
+
+
     pub blur_action: BlurAction,
-    /// How focus starts an edit. `None` (default) follows the theme's
-    /// [`crate::theme::Theme::edit_entry`] ([`EditEntry::Immediate`]).
+
+
     pub edit_entry: Option<EditEntry>,
-    /// The entry policy resolved at the last render (events use it).
+
     entry: EditEntry,
-    /// Where the caret lands when the keyboard starts an immediate edit.
-    /// Default [`FocusSelect::SelectAll`].
+
+
     pub focus_select: FocusSelect,
-    /// The control-key preset. `None` (default) follows the theme's
-    /// [`crate::theme::Theme::field_keys`] (the client platform's preset).
+
+
     pub field_keys: Option<FieldKeys>,
-    /// The field held focus at its last render, so a newly gained focus
-    /// starts an immediate edit exactly once.
+
+
     focus_seen: bool,
-    /// The edit in progress was started by focus (not by the pointer or
-    /// Enter), so it may end quietly with the focus.
+
+
     focus_edit: bool,
-    /// A click on the label focuses the field and starts its edit (the
-    /// HTML `<label>` convention, macOS form labels). Default `true`.
+
+
     pub label_hit: bool,
-    /// Which ended edits run validation. Default [`ValidateOn::Change`].
+
     pub validate_on: ValidateOn,
 }
 
-/// Which ended edits (Enter, Tab, Esc, blur) validate the value.
-///
-/// Focus starts an edit ([`EditEntry::Immediate`]), so Tab through a form
-/// commits every field it passes. Flagging an untouched empty required
-/// field as an error before the user typed anything or submitted is
-/// premature validation (WAI-ARIA APG and the W3C forms tutorial validate
-/// after input or on submit; macOS forms do the same). Owners still
-/// validate on submit ([`TextInput::validate`]).
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ValidateOn {
-    /// Validate when the edit changed the value, or when the field already
-    /// shows an error (so a corrected value clears it). An untouched value
-    /// keeps its state.
+
+
+
     #[default]
     Change,
-    /// Validate on every ended edit, changed or not.
+
     EveryCommit,
 }
 
@@ -113,7 +113,7 @@ pub enum ValidateOn {
 pub enum InputAction {
     Committed,
     Cancelled,
-    /// Committed via Tab: caller should also move focus forward/backward.
+
     CommittedTab {
         backward: bool,
     },
@@ -158,7 +158,7 @@ impl TextInput {
         self
     }
 
-    /// See [`Self::required_message`].
+
     pub fn required_message(mut self, message: &str) -> Self {
         self.required_message = Some(message.to_owned());
         self
@@ -183,26 +183,26 @@ impl TextInput {
         self.plain_label = true;
         self
     }
-    /// Check the value: `Some(message)` rejects it. A closure, so it can
-    /// capture state (an allowed list, a schema). It owns validation:
-    /// [`Self::required`] is then the validator's to enforce.
+
+
+
     pub fn validator(mut self, v: impl Fn(&str) -> Option<String> + 'static) -> Self {
         self.field.validator = Some(Validator::check(v));
         self
     }
-    /// See [`EditField::validate_when`]. Default
-    /// [`ValidateWhen::AfterError`]: an ended edit validates, and typing
-    /// re-checks only while an error shows.
+
+
+
     pub fn validate_when(mut self, when: ValidateWhen) -> Self {
         self.field.validate_when = when;
         self
     }
-    /// The error shown under the field, if any.
+
     pub fn error(&self) -> Option<&str> {
         self.field.error_message()
     }
-    /// Show `error` under the field (`None` clears it): an owner-level
-    /// check, a server reply.
+
+
     pub fn set_error(&mut self, error: Option<String>) {
         self.field.set_error(error.map(FieldError::from));
     }
@@ -214,33 +214,33 @@ impl TextInput {
         self.reveal_tail = n;
         self
     }
-    /// See [`Self::wrap_label`].
+
     pub fn wrap_label(mut self, on: bool) -> Self {
         self.wrap_label = on;
         self
     }
-    /// See [`Self::blur_action`].
+
     pub fn blur_action(mut self, action: BlurAction) -> Self {
         self.blur_action = action;
         self
     }
-    /// See [`Self::validate_on`].
+
     pub fn validate_on(mut self, on: ValidateOn) -> Self {
         self.validate_on = on;
         self
     }
-    /// See [`Self::edit_entry`].
+
     pub fn edit_entry(mut self, entry: EditEntry) -> Self {
         self.set_edit_entry(entry);
         self
     }
-    /// [`Self::edit_entry`] on a field already built.
+
     pub fn set_edit_entry(&mut self, entry: EditEntry) {
         self.edit_entry = Some(entry);
         self.entry = entry;
     }
-    /// The former type-to-edit switch: `true` is
-    /// [`EditEntry::TypeToEdit`], `false` [`EditEntry::Explicit`].
+
+
     #[deprecated(note = "use `edit_entry(EditEntry::TypeToEdit)` or `EditEntry::Explicit`")]
     pub fn type_to_edit(self, on: bool) -> Self {
         self.edit_entry(if on {
@@ -249,12 +249,12 @@ impl TextInput {
             EditEntry::Explicit
         })
     }
-    /// See [`Self::focus_select`].
+
     pub fn focus_select(mut self, select: FocusSelect) -> Self {
         self.focus_select = select;
         self
     }
-    /// See [`Self::text_keymap`].
+
     pub fn text_keymap(
         mut self,
         keymap: crate::core::keymap::KeyMap<crate::core::edit::TextCmd>,
@@ -262,39 +262,39 @@ impl TextInput {
         self.field.text_keymap = Some(keymap);
         self
     }
-    /// The edit action `key` means under the resolved preset and text keys.
+
     fn edit_action(&self, key: &Key) -> EditAction {
         self.field.action(key)
     }
-    /// See [`Self::field_keys`].
+
     pub fn field_keys(mut self, keys: FieldKeys) -> Self {
         self.field_keys = Some(keys);
         self.field.keys = keys;
         self
     }
-    /// The entry policy in effect (the field's own, or the theme's as of
-    /// the last render).
+
+
     pub fn entry(&self) -> EditEntry {
         self.edit_entry.unwrap_or(self.entry)
     }
-    /// The focused field takes printable keys before page and app letter
-    /// shortcuts: it is editing, or focus alone makes it edit (or typing
-    /// starts the edit). Applications ask the focused control this before
-    /// running a plain-letter shortcut.
+
+
+
+
     pub fn wants_text_input(&self) -> bool {
         !self.disabled && (self.editing || self.entry() != EditEntry::Explicit)
     }
-    /// The value differs from the one the edit began with.
+
     pub fn is_dirty(&self) -> bool {
         self.editing && self.field.buffer.text() != self.snapshot
     }
-    /// Something to undo in this field.
+
     pub fn can_undo(&self) -> bool {
         self.field.can_undo()
     }
-    /// The footer hints for this field while it holds focus: the edit keys
-    /// ([`crate::widgets::keyhint::EDIT_FIELD`]) once focus edits, `Enter
-    /// Edit` while an [`EditEntry::Explicit`] field waits.
+
+
+
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
         use crate::widgets::keyhint::EDIT_FIELD;
         if self.disabled {
@@ -305,22 +305,22 @@ impl TextInput {
             vec![crate::widgets::widget_hints::EDIT]
         }
     }
-    /// See [`Self::pointer_select`].
+
     pub fn pointer_select(mut self, sel: PointerSelect) -> Self {
         self.field.sel = sel;
         self
     }
 
-    /// Focus left the field (see [`crate::core::focus::Focus::take_changes`]).
-    /// An edit in progress ends per [`Self::blur_action`] and reports the
-    /// same event Enter or Esc would, so the owner's validation and save
-    /// hooks run; a field that is not editing returns `None`.
+
+
+
+
     pub fn on_blur(&mut self) -> Option<InputAction> {
         if !self.editing {
             return None;
         }
-        // an edit focus started and nothing changed ends quietly: tabbing
-        // through a form is not a round of commits
+
+
         if self.entry() == EditEntry::Immediate && !self.is_dirty() {
             self.editing = false;
             self.field.buffer.clear_selection();
@@ -339,7 +339,7 @@ impl TextInput {
         }
     }
 
-    /// Overwrite and drop the value (owners clear secrets this way).
+
     pub fn clear(&mut self) {
         self.field.buffer.set_text("");
         self.snapshot.clear();
@@ -348,9 +348,9 @@ impl TextInput {
         self.field.clear_history();
     }
 
-    /// Graphemes as they will be drawn: raw, or `mask` (one cell, `•` by
-    /// default) per grapheme when masked (the tail stays in clear while not
-    /// editing).
+
+
+
     fn display_graphemes(&self, editing: bool, mask: &str) -> Vec<(usize, String, usize)> {
         let text = self.field.buffer.text();
         let gs: Vec<(usize, &str)> =
@@ -397,26 +397,26 @@ impl TextInput {
     pub fn cancel(&mut self) {
         self.editing = false;
         if self.field.buffer.text() != self.snapshot {
-            // the revert is one more step back: Ctrl+Z brings the text back
+
             self.field.record(EditKind::Other);
         }
         let snap = self.snapshot.clone();
         self.field.buffer.set_text(snap);
-        // the value is the one the edit started from: it validates again
-        // only if it was marked before or during the edit
+
+
         let marked = self.snapshot_error.is_some() || self.field.error.is_some();
         self.validate_ended_edit(marked);
     }
 
-    /// Validation after an ended edit, per [`Self::validate_on`].
+
     fn validate_ended_edit(&mut self, changed: bool) {
         if changed || self.field.error.is_some() || self.validate_on == ValidateOn::EveryCommit {
             self.validate();
         }
     }
 
-    /// Start the edit focus gained ([`EditEntry::Immediate`]): the value
-    /// is selected or the caret placed per [`Self::focus_select`].
+
+
     fn begin_focus_edit(&mut self) {
         if self.disabled || self.editing {
             return;
@@ -426,25 +426,25 @@ impl TextInput {
         self.focus_edit = true;
     }
 
-    /// After Enter applied (or Esc reverted) an immediate edit, the field
-    /// keeps the caret: a new edit starts from the applied value. Owners
-    /// that end the edit themselves (a submit the validation blocked) call
-    /// it to hand the caret back.
+
+
+
+
     pub fn resume(&mut self) {
         if self.entry() == EditEntry::Immediate {
             self.begin_edit();
         }
     }
 
-    /// Recompute validation from the current value. A custom validator owns
-    /// validation when supplied; otherwise `required` rejects an empty value.
+
+
     pub fn validate(&mut self) -> bool {
         self.sync_required();
         self.field.validate()
     }
 
-    /// Hand the field the required rule as it stands (the flag and the
-    /// message can change between events).
+
+
     fn sync_required(&mut self) {
         self.field.required = self.required.then(|| {
             self.required_message
@@ -453,24 +453,24 @@ impl TextInput {
         });
     }
 
-    /// Height of the tallest single-label field: label + field +
-    /// (help|error) line. Layouts that reserve a fixed slot use it; a
-    /// layout that measures uses [`Self::height`] or [`Self::height_for`].
+
+
+
     pub const HEIGHT: u16 = 3;
 
-    /// Columns the field's focus gutter takes left of the label and the
-    /// text. Render the field at `x - GUTTER` to line its label up with
-    /// text that starts at `x` (a dialog title, a paragraph).
+
+
+
     pub const GUTTER: u16 = 2;
 
-    /// Rows this field draws: the label, the field, and the help or error
-    /// row only when there is something to show in it.
+
+
     pub fn height(&self) -> u16 {
         2 + self.message_rows()
     }
 
-    /// [`Self::height`] for a field `width` columns wide, counting every
-    /// row of a wrapped label ([`Self::wrap_label`]).
+
+
     pub fn height_for(&self, cols: u16) -> u16 {
         self.label_lines(cols).len().max(1) as u16 + 1 + self.message_rows()
     }
@@ -479,8 +479,8 @@ impl TextInput {
         u16::from(self.field.error.is_some() || !self.help.is_empty())
     }
 
-    /// The label as drawn in a field `width` wide: one line, unless the
-    /// label wraps and is longer than the room beside the gutter.
+
+
     fn label_lines(&self, cols: u16) -> Vec<String> {
         let room = cols.saturating_sub(Self::GUTTER) as usize;
         if self.wrap_label && room > 0 && width(&self.label) > room {
@@ -490,23 +490,23 @@ impl TextInput {
         }
     }
 
-    /// Handle a key while focused. The caller decides what to do with the
-    /// returned event (e.g. move focus on `CommittedTab`).
+
+
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<InputAction>) {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
-        // Ctrl+C copies only a selection; with nothing selected it is not
-        // the field's, so it reaches the app's quit guard
+
+
         if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
             return (Outcome::Ignored, None);
         }
         let entry = self.entry();
         if !self.editing {
             match entry {
-                // a key before the first render after the focus move starts
-                // the focus edit here; after an edit ended in place (a click
-                // on dead space) typing resumes at the caret
+
+
+
                 EditEntry::Immediate if self.focus_seen => self.begin_edit(),
                 EditEntry::Immediate => self.begin_focus_edit(),
                 EditEntry::TypeToEdit | EditEntry::Explicit => {
@@ -514,15 +514,15 @@ impl TextInput {
                         self.begin_edit();
                         return (Outcome::Changed, None);
                     }
-                    // Select All on a focused field starts the edit with
-                    // the whole value selected, as in any desktop field
+
+
                     if matches!(self.edit_action(key), EditAction::SelectAll) {
                         self.begin_edit();
                         self.field.buffer.select_all();
                         return (Outcome::Changed, None);
                     }
-                    // Paste (Cmd+V, the preset's key) is a paste: it picks
-                    // the edit up through the bracketed-paste path
+
+
                     if matches!(self.edit_action(key), EditAction::Paste) {
                         let o = paste_clipboard(|t| self.on_paste(t));
                         return (o, (o == Outcome::Changed).then_some(InputAction::Changed));
@@ -552,8 +552,8 @@ impl TextInput {
             }
             EditAction::Cancel => {
                 if entry == EditEntry::Immediate && !self.is_dirty() {
-                    // nothing to revert: Esc belongs to the page (close,
-                    // back, clear)
+
+
                     return (Outcome::Ignored, None);
                 }
                 self.cancel();
@@ -562,18 +562,18 @@ impl TextInput {
             }
             EditAction::Tab { backward } => {
                 self.commit();
-                // the ring moves on whether or not the owner does
+
                 request_focus_next(backward);
                 (
                     Outcome::Changed,
                     Some(InputAction::CommittedTab { backward }),
                 )
             }
-            // a key the field has no use for (↑↓, PgUp, an unbound chord)
-            // passes on from an immediate edit, so a list under a search
-            // field and the page's shortcuts still answer it
+
+
+
             EditAction::None if entry == EditEntry::Immediate => (Outcome::Ignored, None),
-            // an unbound chord passes on from any edit (Ctrl+Q, Ctrl+N)
+
             EditAction::None => (crate::widgets::field_common::unbound_key(key), None),
             action => {
                 self.sync_required();
@@ -586,11 +586,11 @@ impl TextInput {
         }
     }
 
-    /// Insert pasted text (only while editing).
-    /// A paste is typing: a focused field that is not editing yet starts
-    /// editing, exactly as the first typed character would.
-    /// A multi-line paste flattens: its line breaks become spaces (a
-    /// trailing break is dropped), so words never run together.
+
+
+
+
+
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if self.disabled {
             return Outcome::Ignored;
@@ -607,62 +607,62 @@ impl TextInput {
         Outcome::Changed
     }
 
-    /// Byte offset of the grapheme under `pos`. Mouse positions use the
-    /// same display geometry as rendering: a masked CJK/emoji grapheme
-    /// occupies one cell, regardless of raw width.
+
+
+
     fn offset_at(&self, pos: Position) -> usize {
-        // a pointer left of the text names the column before the first
-        // visible one, so a drag past the edge scrolls the field
+
+
         let glyphs = self.display_graphemes(true, crate::theme::Glyphs::UNICODE.mask);
         self.field.glyph_offset_at(pos, &glyphs)
     }
 
-    /// See [`Self::label_hit`].
+
     pub fn label_hit(mut self, on: bool) -> Self {
         self.label_hit = on;
         self
     }
 
-    /// `pos` is on the label above the field row ([`Self::label_hit`]).
+
     fn on_label(&self, pos: Position) -> bool {
         self.label_hit && pos.y < self.area.y
     }
 
-    /// Mouse click on the field. Focus is handled by the app; the click
-    /// enters editing (one click, never two) and places the cursor at the
-    /// pointer. Same as [`Self::on_click_count`] with a count of 1.
+
+
+
     pub fn on_click(&mut self, pos: Position) -> Outcome {
         self.on_click_count(pos, 1)
     }
 
-    /// A completed click with its multi-click `count`
-    /// ([`crate::core::pointer::PointerState::count_click`]): 1 places the
-    /// caret, 2 selects the word (the whole value when masked), 3 the
-    /// line, per [`Self::pointer_select`]. The release that ends a drag
-    /// keeps the dragged selection.
+
+
+
+
+
     pub fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome {
         PointerField::on_click_count(self, pos, count)
     }
 
-    /// Button down on the field: remembers where, so a drag selects from
-    /// there. The press alone changes nothing; the completed click (or the
-    /// drag) starts editing.
+
+
+
     pub fn on_press(&mut self, pos: Position) -> Outcome {
         self.on_press_count(pos, 1)
     }
 
-    /// A press with the click `count` it starts
-    /// ([`crate::core::pointer::PointerState::press_count`]): the second
-    /// press of a double click selects the word, and a drag from it
-    /// extends by words ([`PointerSelect::drag_by_word`]).
+
+
+
+
     pub fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome {
         PointerField::on_press_count(self, pos, count)
     }
 
-    /// Drag with the button held since a press on the field: starts
-    /// editing and selects from the press to the pointer
-    /// ([`PointerSelect::drag`]). Past the field's left or right edge the
-    /// selection runs on and the field scrolls to follow it.
+
+
+
+
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         PointerField::on_drag(self, pos)
     }
@@ -685,8 +685,8 @@ impl TextInput {
         }
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
         self.field.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
-        // focus newly gained starts an immediate edit, so the caret shows
-        // the moment Tab lands here
+
+
         let has_focus = ctx.interaction.has_focus(self.id) && !ctx.inert;
         if has_focus && !self.focus_seen && self.entry == EditEntry::Immediate {
             self.begin_focus_edit();
@@ -696,8 +696,8 @@ impl TextInput {
             && self.focus_edit
             && !self.is_dirty()
         {
-            // a clean edit focus started ends with the focus even when the
-            // owner never forwarded the blur (nothing to commit or report)
+
+
             self.editing = false;
             self.field.buffer.clear_selection();
         }
@@ -716,11 +716,11 @@ impl TextInput {
         if self.disabled {
             s.hovered = false;
         }
-        // An edit that lost focus is ended by `on_blur` on the event path,
-        // never here (`s.editing` needs focus); render only starts the
-        // edit a newly gained focus asks for (above).
 
-        // a wrapped label takes as many rows as it needs, every one whole
+
+
+
+
         let wrapped = self.label_lines(area.width);
         let label_rows = wrapped.len().max(1) as u16;
         let label_x = area.x + Self::GUTTER.min(area.width);
@@ -741,11 +741,11 @@ impl TextInput {
                 buf.set_string(label_x, y, line, st);
             }
         }
-        // label row
+
         let mut label = self.label.clone();
         let name_w = width(&self.label);
-        // the "optional" suffix only appears when the field is wide enough to
-        // hold it whole; a clipped suffix reads worse than none
+
+
         let show_optional = !self.required
             && !self.label.is_empty()
             && !self.plain_label
@@ -766,10 +766,10 @@ impl TextInput {
             );
         }
         if label_rows > 1 {
-            // the wrapped label carries no suffix marks
+
         } else if self.required && !self.disabled && name_w + 4 <= area.width as usize {
-            // the marker is neutral (the accent means focus); it takes the
-            // error tone only once the field is invalid
+
+
             let ink = if self.field.error.is_some() {
                 t.tone_on(crate::theme::Tone::Error, bg)
             } else {
@@ -790,15 +790,15 @@ impl TextInput {
             );
         }
 
-        // field row
+
         if area.height < label_rows + 1 {
             return;
         }
         let field = Rect::new(area.x, area.y + label_rows, area.width, 1);
         self.area = field;
         if self.label_hit && !self.label.is_empty() {
-            // the label is the field's own target: clicking it focuses and
-            // edits the field
+
+
             let lw = if label_rows > 1 {
                 wrapped.iter().map(|l| width(l)).max().unwrap_or(0)
             } else {
@@ -825,16 +825,16 @@ impl TextInput {
         }
         let text = self.field.buffer.text();
         if text.is_empty() {
-            // the placeholder stays until the first character, with the
-            // caret on it while editing (macOS)
+
+
             let p = crate::ui::text::truncate(&self.placeholder, inner.width as usize);
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
             if s.editing && inner.width > 0 {
                 ctx.set_cursor(Position::new(inner.x, inner.y));
             }
         } else {
-            // the shared one-line drawing: it scrolls sideways so the
-            // caret stays visible while editing, and cuts with `…`
+
+
             let glyphs = self.display_graphemes(s.editing, t.glyphs.mask);
             let look = LineLook {
                 text: fs,
@@ -862,7 +862,7 @@ impl TextInput {
             ctx.pointer_shape(self.id, crate::core::shape::PointerShape::Text);
         }
 
-        // help / error row
+
         if area.height >= label_rows + 2 {
             let msg_y = field.y + 1;
             if let Some(e) = &self.field.error {
@@ -896,10 +896,10 @@ impl crate::core::focus::BlurTarget for TextInput {
     }
 }
 
-/// The value for the pointer ([`PointerField`] through [`Editable`]): a
-/// press anchors a drag (the pointer owns this focus, so the keyboard's
-/// focus selection does not apply), a click on the label edits as focus
-/// would, a masked value selects whole on a double click.
+
+
+
+
 impl Editable for TextInput {
     fn field(&mut self) -> &mut EditField {
         &mut self.field
@@ -920,7 +920,7 @@ impl Editable for TextInput {
         TextInput::on_label(self, pos)
     }
     fn label_click(&mut self) {
-        // a label click edits as focus would, without placing a caret
+
         if !self.editing {
             self.begin_focus_edit();
         }
@@ -934,11 +934,11 @@ impl Editable for TextInput {
     }
 }
 
-/// The field's pointer gestures: a press anchors a drag with the click
-/// count it starts ([`TextInput::on_press_count`]), a drag selects
-/// ([`TextInput::on_drag`]) and a completed click places the caret or
-/// selects a word or the line ([`TextInput::on_click_count`]). Focus is
-/// the router's ([`crate::core::pointer::PointerConfig::focus_on`]).
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for TextInput {
     type Action = ();
 
@@ -1032,8 +1032,8 @@ mod tests {
         key(code, ratatui::crossterm::event::KeyModifiers::NONE)
     }
 
-    /// Render with focus somewhere else, so the next render with focus is
-    /// a focus gain.
+
+
     fn render_unfocused(input: &mut TextInput, area: Rect, buf: &mut Buffer) {
         let theme = Theme::for_level(ColorLevel::TrueColor);
         let mut hits = HitRegistry::default();
@@ -1048,7 +1048,7 @@ mod tests {
             KeyCode::Char('c'),
             ratatui::crossterm::event::KeyModifiers::CONTROL,
         );
-        // Desktop keys: Ctrl+C is Copy there
+
         let mut input = TextInput::new(WidgetId::of("f"), "Name")
             .value("draft")
             .field_keys(FieldKeys::Desktop);
@@ -1085,7 +1085,7 @@ mod tests {
             Some("ab"),
             "Tab selects all"
         );
-        // typing replaces the selection, Enter applies and keeps the caret
+
         i.on_key(&plain('x'));
         assert_eq!(i.text(), "x");
         assert_eq!(
@@ -1093,7 +1093,7 @@ mod tests {
             (Outcome::Changed, Some(InputAction::Committed))
         );
         assert!(i.editing, "Enter applies; the field keeps the caret");
-        // Esc reverts while dirty, then passes on
+
         i.on_key(&plain('y'));
         assert_eq!(
             i.on_key(&bare(KeyCode::Esc)).1,
@@ -1105,7 +1105,7 @@ mod tests {
             (Outcome::Ignored, None),
             "a clean Esc belongs to the page"
         );
-        // a clean blur is quiet
+
         assert_eq!(i.on_blur(), None);
         assert!(!i.editing);
     }
@@ -1127,7 +1127,7 @@ mod tests {
             .focus_select(FocusSelect::CaretStart);
         render(&mut start, area, &mut buf);
         assert_eq!(start.field.buffer.cursor_offset(), 0);
-        // pointer focus: the click lands first, the render keeps its caret
+
         let mut click = TextInput::new(WidgetId::of("c"), "Name")
             .value("abc")
             .edit_entry(EditEntry::Immediate);
@@ -1166,14 +1166,14 @@ mod tests {
         assert_eq!(o, Outcome::Changed);
         assert_eq!(ev, Some(InputAction::CommittedTab { backward: false }));
         assert!(!i.editing);
-        // the owner did nothing with the event: the ring still moves
+
         f.settle(&r);
         assert!(f.is(WidgetId::of("next")), "Tab lands on the next stop");
     }
 
     #[test]
     fn each_entry_mode_starts_the_edit_its_own_way() {
-        // Explicit: today's navigation mode
+
         let mut off = TextInput::new(WidgetId::of("off"), "Name")
             .value("ab")
             .edit_entry(EditEntry::Explicit);
@@ -1182,7 +1182,7 @@ mod tests {
         assert!(!off.editing, "letters stay with the page");
         assert_eq!(off.on_key(&bare(KeyCode::Enter)).0, Outcome::Changed);
         assert!(off.editing, "Enter starts the edit");
-        // TypeToEdit: the first character starts it, at the end
+
         let mut on = TextInput::new(WidgetId::of("on"), "Name")
             .value("ab")
             .edit_entry(EditEntry::TypeToEdit);
@@ -1203,11 +1203,11 @@ mod tests {
             ratatui::crossterm::event::KeyModifiers::CONTROL,
         );
         assert_eq!(on.on_key(&ctrl).0, Outcome::Ignored, "shortcuts pass");
-        // the deprecated switch maps onto the policy
+
         #[allow(deprecated)]
         let legacy = TextInput::new(WidgetId::of("l"), "Name").type_to_edit(true);
         assert_eq!(legacy.entry(), EditEntry::TypeToEdit);
-        // Immediate: any key reaching an unrendered focused field edits
+
         let mut now = TextInput::new(WidgetId::of("n"), "Name")
             .value("ab")
             .edit_entry(EditEntry::Immediate);
@@ -1221,10 +1221,10 @@ mod tests {
         assert_eq!(locked.on_key(&plain('x')).0, Outcome::Ignored);
     }
 
-    /// A field consumes only the keys it uses: while editing, under every
-    /// entry mode and preset, an unbound Ctrl / Alt / Cmd chord (Ctrl+Q,
-    /// Ctrl+N, Alt+X, Cmd+K) passes on to the container, while the bound
-    /// chords (readline keys, the preset's text keys, Cmd+A) still edit.
+
+
+
+
     #[test]
     fn an_editing_field_passes_unbound_chords_on() {
         use ratatui::crossterm::event::KeyModifiers as M;
@@ -1253,8 +1253,8 @@ mod tests {
                     assert!(i.editing, "the edit stays open");
                 }
                 assert_eq!(i.text(), "abc");
-                // a bound chord still edits: Cmd+A everywhere, Ctrl+E
-                // (Emacs line end) or Ctrl+A (Desktop select all)
+
+
                 assert_eq!(
                     i.on_key(&key(KeyCode::Char('a'), M::SUPER)).0,
                     Outcome::Changed,
@@ -1269,7 +1269,7 @@ mod tests {
                     Outcome::Changed,
                     "{entry:?} {keys:?}: Ctrl+{bound}"
                 );
-                // an unbound plain key stays with a modal edit
+
                 if entry != EditEntry::Immediate {
                     assert_eq!(
                         i.on_key(&bare(KeyCode::F(5))).0,
@@ -1296,8 +1296,8 @@ mod tests {
         assert_eq!(i.text(), "ab ", "one undo takes back the last word");
         i.on_key(&key(KeyCode::Char('z'), M::CONTROL | M::SHIFT));
         assert_eq!(i.text(), "ab cd", "Ctrl+Shift+Z redoes it");
-        // Emacs (macOS): Ctrl+A is line start, Ctrl+L selects all,
-        // Alt+W copies, Ctrl+W cuts, Ctrl+Y yanks
+
+
         i.on_key(&key(KeyCode::Char('a'), M::CONTROL));
         assert_eq!(i.field.buffer.cursor_offset(), 0);
         i.on_key(&key(KeyCode::Char('l'), M::CONTROL));
@@ -1310,7 +1310,7 @@ mod tests {
         assert_eq!(i.text(), "", "Ctrl+W cuts the selection");
         i.on_key(&key(KeyCode::Char('y'), M::CONTROL));
         assert_eq!(i.text(), "ab cd", "Ctrl+Y yanks it back");
-        // Desktop: Ctrl+A selects all, Ctrl+X cuts, Ctrl+V pastes
+
         let mut d = TextInput::new(WidgetId::of("d"), "Name")
             .value("xyz")
             .field_keys(FieldKeys::Desktop);
@@ -1335,7 +1335,7 @@ mod tests {
 
     #[test]
     fn drag_double_and_triple_click_select_text() {
-        // pointer mechanics from a field that is not editing yet
+
         let mut i = TextInput::new(WidgetId::of("s"), "Name")
             .value("hello big world")
             .edit_entry(EditEntry::Explicit);
@@ -1344,7 +1344,7 @@ mod tests {
         render(&mut i, area, &mut buf);
         let ta = i.text_area;
         let at = |col: u16| Position::new(ta.x + col, ta.y);
-        // press at "e", drag to after "ll": the release keeps the selection
+
         let (p, d) = (at(1), at(4));
         i.on_press(p);
         assert!(!i.editing, "the press alone changes nothing");
@@ -1357,15 +1357,15 @@ mod tests {
             Some("ell"),
             "release keeps it"
         );
-        // a plain click afterwards places the caret
+
         i.on_click_count(at(2), 1);
         assert_eq!(i.field.buffer.selected_text(), None);
-        // double click: the word; triple: the whole line
+
         i.on_click_count(at(7), 2);
         assert_eq!(i.field.buffer.selected_text(), Some("big"));
         i.on_click_count(at(7), 3);
         assert_eq!(i.field.buffer.selected_text(), Some("hello big world"));
-        // a masked field selects the whole secret on a double click
+
         let mut m = TextInput::new(WidgetId::of("m"), "Key")
             .value("ab cd")
             .masked();
@@ -1373,7 +1373,7 @@ mod tests {
         let p = Position::new(m.text_area.x, m.text_area.y);
         m.on_click_count(p, 2);
         assert_eq!(m.field.buffer.selected_text(), Some("ab cd"));
-        // configurable off: clicks only place the caret, drags select nothing
+
         let mut off = TextInput::new(WidgetId::of("o"), "Name")
             .value("hello big world")
             .pointer_select(PointerSelect::OFF);
@@ -1396,7 +1396,7 @@ mod tests {
         render(&mut i, area, &mut buf);
         let ta = i.text_area;
         let at = |col: u16| Position::new(ta.x + col, ta.y);
-        // first click, then the second press of the double click on "beta"
+
         i.on_click_count(at(7), 1);
         assert_eq!(i.on_press_count(at(7), 2), Outcome::Changed);
         assert_eq!(
@@ -1404,10 +1404,10 @@ mod tests {
             Some("beta"),
             "the press selects"
         );
-        // dragging into "gamma" takes the whole word, not the characters
+
         i.on_drag(at(12));
         assert_eq!(i.field.buffer.selected_text(), Some("beta gamma"));
-        // backwards into "alpha": from the start of alpha to the end of beta
+
         i.on_drag(at(1));
         assert_eq!(i.field.buffer.selected_text(), Some("alpha beta"));
         i.on_click_count(at(1), 2);
@@ -1416,7 +1416,7 @@ mod tests {
             Some("alpha beta"),
             "release keeps"
         );
-        // configurable: by characters from the press
+
         let mut c = TextInput::new(WidgetId::of("c"), "Name")
             .value("alpha beta gamma delta")
             .pointer_select(PointerSelect::DEFAULT.drag_by_word(false));
@@ -1434,7 +1434,7 @@ mod tests {
         let area = Rect::new(0, 0, 16, 3);
         let mut buf = Buffer::empty(area);
         render(&mut i, area, &mut buf);
-        // show the end: the caret at the end scrolls the start out
+
         i.begin_edit();
         i.field.buffer.select_range(long.len(), long.len());
         i.field.buffer.clear_selection();
@@ -1443,7 +1443,7 @@ mod tests {
         assert!(first > 0, "the start is scrolled out");
         let ta = i.text_area;
         i.on_press(Position::new(ta.x + 3, ta.y));
-        // past the left edge: the selection runs on and the field follows
+
         i.on_drag(Position::new(ta.x.saturating_sub(1), ta.y));
         render(&mut i, area, &mut buf);
         assert!(
@@ -1479,7 +1479,7 @@ mod tests {
         let mut a = TextInput::new(WidgetId::of("a"), "A").value("a");
         let mut b = TextInput::new(WidgetId::of("b"), "B").value("b");
         a.begin_edit();
-        // a dirty edit: a clean immediate one would end quietly
+
         a.field.buffer.insert_str("x");
         b.begin_edit();
         let change = FocusChange {
@@ -1518,7 +1518,7 @@ mod tests {
         let area = Rect::new(0, 0, 30, 3);
         let mut buf = Buffer::empty(area);
         render(&mut input, area, &mut buf);
-        // "Name" starts at x = 2; the marker sits one cell after it
+
         let star = &buf[(2 + 4 + 1, 0)];
         assert_eq!(star.symbol(), "*");
         assert_eq!(star.fg, theme.text_muted, "the accent means focus");
@@ -1531,7 +1531,7 @@ mod tests {
     #[test]
     fn passing_through_an_untouched_required_field_marks_no_error() {
         let mut input = TextInput::new(WidgetId::of("required"), "Name").required(true);
-        // focus starts the edit, Tab or blur ends it without a change
+
         input.begin_edit();
         input.commit();
         assert!(
@@ -1541,7 +1541,7 @@ mod tests {
         input.begin_edit();
         input.cancel();
         assert!(input.field.error.is_none());
-        // a changed value validates
+
         input.begin_edit();
         input.on_paste("x");
         input.commit();
@@ -1551,7 +1551,7 @@ mod tests {
         input.field.buffer.backspace();
         input.commit();
         assert!(input.field.error.is_some(), "an edit that empties it is");
-        // a marked field validates on every ended edit, so a fix clears it
+
         input.begin_edit();
         input.on_paste("ok");
         input.cancel();
@@ -1563,7 +1563,7 @@ mod tests {
         input.on_paste("ok");
         input.commit();
         assert!(input.field.error.is_none());
-        // the override validates untouched values too
+
         let mut input = TextInput::new(WidgetId::of("required"), "Name")
             .required(true)
             .validate_on(ValidateOn::EveryCommit);
@@ -1572,10 +1572,10 @@ mod tests {
         assert!(input.field.error.is_some());
     }
 
-    /// SIg9 (S11): when typing re-validates is the field's
-    /// `ValidateWhen`: by default only once an error shows (WCAG 3.3.1, no
-    /// error while the value is still being typed); `Live` checks every
-    /// keystroke; `Commit` leaves a shown error until the next commit.
+
+
+
+
     #[test]
     fn validate_when_decides_whether_typing_rechecks_the_value() {
         use crate::widgets::edit::ValidateWhen;
@@ -1651,7 +1651,7 @@ mod tests {
             2,
             "the caret lands under the pointer"
         );
-        // a second click only moves the caret
+
         input.on_click(Position::new(input.text_area.x + 4, 1));
         assert!(input.editing);
         assert_eq!(input.field.buffer.cursor(), 4);

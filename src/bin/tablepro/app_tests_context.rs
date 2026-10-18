@@ -1,4 +1,4 @@
-//! Secondary clicks and context menus through the real App.
+
 
 use crate::filter_editor::FilterEditor;
 use junie_tui::core::event::{Input, Key, MouseKind};
@@ -12,7 +12,7 @@ use crate::app_tests::H;
 use crate::context::{CtxMenu, Target};
 use crate::workbench::WorkTab;
 
-/// Open `orders` from the explorer (its grid focused).
+
 fn open_orders(h: &mut H) {
     for _ in 0..5 {
         h.key(KeyCode::Down);
@@ -30,12 +30,12 @@ fn a_right_click_outside_the_filter_editors_open_select_closes_it() {
     let mut h = H::connected(120, 40);
     open_orders(&mut h);
     h.key(KeyCode::Char('f'));
-    // the column select, opened from the keyboard
+
     let column = WidgetId::of("filter-editor").sub("col");
     h.tab_to(column);
     h.key(KeyCode::Enter);
     assert_eq!(filter_column_open(&h), Some(true), "the select is open");
-    // a right-click on the dimmed page, outside the popup
+
     h.mouse(MouseKind::Secondary, 3, 30);
     assert_eq!(
         filter_column_open(&h),
@@ -62,12 +62,12 @@ fn table(h: &H) -> &crate::tabs::TableTab {
     }
 }
 
-/// Where hit `id` was drawn this frame.
+
 fn area(h: &H, id: WidgetId) -> Rect {
     h.app.shell.hits.area_of(id).expect("drawn this frame")
 }
 
-/// Click the open menu's item labelled `label`.
+
 fn choose(h: &mut H, label: &str) {
     let m = menu(h);
     let i = m
@@ -129,7 +129,7 @@ fn a_right_click_on_a_grid_cell_opens_its_menu_at_the_pointer() {
         text.contains("No pending changes"),
         "Save is unavailable, with its reason"
     );
-    // the menu's command runs the grid's own `-`
+
     choose(&mut h, "Delete row");
     assert!(h.app.modal().is_none(), "choosing closes the menu");
     assert_eq!(h.focus(), Some(grid), "focus returns to the grid");
@@ -138,7 +138,7 @@ fn a_right_click_on_a_grid_cell_opens_its_menu_at_the_pointer() {
         g.pending.deleted.contains(&g.source_row(2)),
         "row 3 deleted"
     );
-    // now the row offers its restore, and the pending edit can be saved
+
     h.mouse(MouseKind::Secondary, x, y);
     let text = h.text();
     assert!(text.contains("Restore row"));
@@ -162,7 +162,7 @@ fn shift_f10_opens_the_grid_menu_under_the_cursor_cell() {
     let m = menu(&h);
     assert_eq!(m.target, Target::Grid(2, 1));
     assert_eq!(m.menu.area.y, cell.y + 1, "right under the cursor cell");
-    // keyboard choice: Copy cell is first
+
     h.key(KeyCode::Enter);
     assert!(h.app.modal().is_none());
     assert!(
@@ -173,7 +173,7 @@ fn shift_f10_opens_the_grid_menu_under_the_cursor_cell() {
             .is_some_and(|s| s.starts_with("Copied")),
         "the grid's y ran"
     );
-    // the knob turns the key off
+
     h.app.context = ContextConfig::DEFAULT.keys(ContextKeys::NONE);
     shift_f10(&mut h);
     assert!(h.app.modal().is_none(), "no context key configured");
@@ -186,7 +186,7 @@ fn a_right_click_outside_an_open_menu_reopens_it_at_the_new_spot() {
     let cell = area(&h, table(&h).grid.cell_id(1, 0));
     h.mouse(MouseKind::Secondary, cell.x + 1, cell.y);
     assert!(matches!(menu(&h).target, Target::Grid(1, 0)));
-    // a right-click on the first tab of the strip, outside the menu
+
     let tab = area(&h, h.wb().strip.tab_id(0));
     h.mouse(MouseKind::Secondary, tab.x + 1, tab.y);
     let m = menu(&h);
@@ -203,7 +203,7 @@ fn a_right_click_outside_an_open_menu_reopens_it_at_the_new_spot() {
     );
     let below = m.menu.area.bottom();
     assert_eq!(h.app.layers.len(), 1, "one menu at a time");
-    // a right-click on an explorer row below that menu: the row's menu
+
     let i = (0..h.wb().explorer.rows().len())
         .find(|&i| {
             h.app
@@ -227,7 +227,7 @@ fn the_tab_menu_closes_the_tab_it_was_opened_on() {
     open_orders(&mut h);
     let n = h.wb().tabs.len();
     assert!(n >= 2, "a query tab and orders");
-    // the query tab (not the active one)
+
     let tab = area(&h, h.wb().strip.tab_id(0));
     h.mouse(MouseKind::Secondary, tab.x + 1, tab.y);
     assert!(h.text().contains("Close tab"));
@@ -239,7 +239,7 @@ fn the_tab_menu_closes_the_tab_it_was_opened_on() {
 #[test]
 fn the_explorer_menu_opens_a_table_and_shift_f10_follows_the_cursor() {
     let mut h = H::connected(120, 40);
-    // the cursor on `orders`, as open_orders finds it
+
     for _ in 0..5 {
         h.key(KeyCode::Down);
     }
@@ -287,7 +287,7 @@ fn a_read_only_result_grid_names_why_edits_are_unavailable() {
 fn a_right_click_on_a_connection_row_offers_its_commands() {
     let mut h = H::new(120, 40);
     let tree = h.app.connections.tree().id;
-    // the second connection row (row 0 is its group)
+
     let row = (0..h.app.connections.tree().rows().len())
         .filter(|&r| h.app.connections.connection_at_row(r).is_some())
         .nth(1)
@@ -397,7 +397,7 @@ fn a_header_seam_resizes_and_the_header_menu_resets_widths() {
         before.right(),
         "the seam sits in the gap after the title"
     );
-    // press on the seam, drag three cells right, release
+
     h.mouse(MouseKind::Down, s.x, s.y);
     h.mouse(MouseKind::Drag, s.x + 3, s.y);
     h.mouse(MouseKind::Up, s.x + 3, s.y);
@@ -406,7 +406,7 @@ fn a_header_seam_resizes_and_the_header_menu_resets_widths() {
         before.width + 3,
         "cell-precise resize"
     );
-    // right-click the header: its menu resets the widths
+
     h.mouse(MouseKind::Secondary, before.x + 1, before.y);
     assert_eq!(menu(&h).target, Target::Header(1));
     choose(&mut h, "Reset Column Widths");

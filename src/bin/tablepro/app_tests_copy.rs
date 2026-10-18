@@ -1,12 +1,12 @@
-//! Copy-audit regressions: one key, one meaning across TablePro's screens.
+
 
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::Screen;
 use crate::app_tests::H;
 
-/// Ctrl+D switches Data / Structure in the workbench; duplicating is Alt+D
-/// everywhere, on a connection and on a grid row.
+
+
 #[test]
 fn ctrl_d_is_data_structure_and_alt_d_duplicates() {
     let mut h = H::new(200, 40);

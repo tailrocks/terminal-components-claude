@@ -23,8 +23,8 @@ use crate::widgets::scrollbar;
 pub struct ListItem {
     pub label: String,
     pub meta: Option<String>,
-    /// The metadata's tone. Default [`Tone::Muted`]; a value that carries
-    /// meaning (a slow duration) takes its own.
+
+
     pub meta_tone: Tone,
     pub disabled: bool,
 }
@@ -42,7 +42,7 @@ impl ListItem {
         self.meta = Some(m.to_owned());
         self
     }
-    /// The metadata's tone (see [`ListItem::meta_tone`]).
+
     pub fn meta_tone(mut self, tone: Tone) -> Self {
         self.meta_tone = tone;
         self
@@ -59,20 +59,20 @@ pub enum SelectMode {
     Multi,
 }
 
-/// Scrollable list. The list is one focus stop; `cursor` is the keyboard row.
-/// Single mode: `›` marks the chosen item. Multi mode: `✓` marks each
-/// selected row ([`ListBox::selection`]).
-/// A cut label reveals its full text on hover and with `→` on the cursor
-/// row (see [`crate::ui::reveal`]).
-///
-/// Clicks follow [`ListBox::click`] (default [`ClickPolicy::DATA`]): one
-/// click moves the cursor, a double click chooses (single mode). In multi
-/// mode a click is a [`SelectGesture`]: Shift-click extends from the
-/// anchor, the platform toggle click ([`ListBox::toggle_mods`]) toggles a
-/// row, a plain click selects only that row, and a click on a row's `✓`
-/// column toggles it with no modifier ([`CheckClick::BoxOnly`](crate::core::selection::CheckClick::BoxOnly);
-/// [`CheckClick::Row`](crate::core::selection::CheckClick::Row) makes the whole row the check box). Space toggles,
-/// Shift+arrows extend (and shrink) the range.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct ListBox {
     pub id: WidgetId,
@@ -80,65 +80,65 @@ pub struct ListBox {
     pub cursor: usize,
     pub mode: SelectMode,
     pub chosen: Option<usize>,
-    /// The rows selected in multi mode (row indices; the `✓` marks).
+
     pub selection: RowSelection,
-    /// The scrolled rows and the bar ([`Scrollable`]).
+
     pub scroll: ScrollPane,
     pub area: Rect,
     pub empty_text: String,
-    /// The theme's strings as of the last render: default text still
-    /// reading them follows a change ([`crate::theme::Strings::follow`]).
+
+
     strings: crate::theme::Strings,
-    /// A full empty state (title, hint, error tone) shown instead of
-    /// [`Self::empty_text`] when set. Default `None`.
+
+
     pub empty: Option<crate::widgets::empty::EmptyState>,
-    /// Revealing cut labels; `reveal.config` overrides the global default.
+
     pub reveal: RevealState,
-    /// Blank columns between the labels and the scrollbar (default
-    /// [`scrollbar::GAP`]).
+
+
     pub scrollbar_gap: u16,
-    /// Arrow, page and Home/End movement steps over disabled rows (they
-    /// cannot be used, so the cursor never parks on them). Default `true`.
+
+
     pub skip_disabled: bool,
-    /// What a click does beyond moving the cursor: when it chooses a row
-    /// (single mode) and what toggles a check (multi mode). Default
-    /// [`ClickPolicy::DATA`]: a double click chooses, only the `✓` column
-    /// toggles (SI14, M15); [`ClickPolicy::NAVIGATION`] for a list that
-    /// navigates on one click.
+
+
+
+
+
     pub click: ClickPolicy,
-    /// Modifiers that make a click toggle one row in multi mode; Shift
-    /// always extends. Default [`SelectGesture::toggle_mods`] (Option or
-    /// Cmd on macOS, Ctrl or Cmd elsewhere).
+
+
+
     pub toggle_mods: KeyModifiers,
-    /// Typing a prefix jumps to the matching row (macOS lists, APG
-    /// listbox). Default from the [`crate::core::list::NavProfile`]: on
-    /// under `Desktop`, off under `Vim`. A bound key (Multi `a`) wins.
+
+
+
     pub type_ahead: bool,
-    /// Whether the page's and the app's single-character shortcuts win over
-    /// type-ahead ([`TypeAheadPrecedence`]). Default `None`: the app-wide
-    /// [`TypeAheadPrecedence::current`] (shortcuts first).
+
+
+
     pub type_ahead_precedence: Option<TypeAheadPrecedence>,
-    /// ↑ on the first row lands on the last and ↓ on the last on the
-    /// first. Default off: it stops at the end.
+
+
     pub wrap: bool,
-    /// Which keys move the cursor (default [`NavKeys::default`]: arrows,
-    /// vim letters, paging, Home/End).
+
+
     pub nav: NavKeys,
-    /// The list's own action keys (default [`ListCmd::default_keymap`]).
+
     pub keymap: KeyMap<ListCmd>,
     typeahead: crate::core::typeahead::TypeAhead,
 }
 
-/// A [`ListBox`] action a key can be bound to.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListCmd {
-    /// Multi mode: check every enabled row, or uncheck all when all are
-    /// checked. Default `a`.
+
+
     ToggleAll,
-    /// Multi mode: check every enabled row (Select All). Default Cmd+A
-    /// where the terminal delivers Cmd, and Ctrl+A
-    /// ([`crate::core::keymap::SELECT_ALL`]). A single-selection list
-    /// leaves the key alone.
+
+
+
+
     SelectAll,
 }
 
@@ -186,27 +186,27 @@ impl ListBox {
         }
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<ListCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-    /// See [`Self::wrap`].
+
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
 
-    /// The pause after which the next letter starts a new type-ahead
-    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
-    /// (1 s; APG suggests 500–1000 ms).
+
+
+
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
         self
@@ -217,7 +217,7 @@ impl ListBox {
         self
     }
 
-    /// See [`Self::type_ahead_precedence`].
+
     pub fn type_ahead_precedence(mut self, precedence: TypeAheadPrecedence) -> Self {
         self.type_ahead_precedence = Some(precedence);
         self
@@ -228,27 +228,27 @@ impl ListBox {
         self
     }
 
-    /// See [`Self::click`].
+
     pub fn click(mut self, click: ClickPolicy) -> Self {
         self.click = click;
         self
     }
 
-    /// See [`Self::toggle_mods`].
+
     pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
         self.toggle_mods = mods;
         self
     }
 
-    /// Display order = row order (a list does not sort): the order the
-    /// selection's ranges resolve against.
+
+
     fn order(&self) -> Vec<usize> {
         (0..self.items.len()).collect()
     }
 
-    /// Apply `g` aimed at row `to` to the multi selection
-    /// ([`RowSelection::apply`]); disabled rows are never selected.
-    /// Returns whether it changed.
+
+
+
     pub fn select(&mut self, g: SelectGesture, to: usize) -> bool {
         let order = self.order();
         let items = &self.items;
@@ -257,8 +257,8 @@ impl ListBox {
         })
     }
 
-    /// Remove `rows` (indices); the selection, the chosen row and the
-    /// cursor follow the rows that stay. Returns how many were removed.
+
+
     pub fn remove_rows(&mut self, rows: &[usize]) -> usize {
         let gone: std::collections::BTreeSet<usize> = rows
             .iter()
@@ -284,12 +284,12 @@ impl ListBox {
         gone.len()
     }
 
-    /// Whether row `i` is selected (multi mode: its `✓`).
+
     pub fn is_checked(&self, i: usize) -> bool {
         self.selection.contains(i)
     }
 
-    /// Check or uncheck row `i` (an owner seeding or restoring marks).
+
     pub fn set_checked(&mut self, i: usize, on: bool) {
         if i < self.items.len() {
             self.selection.set(i, on);
@@ -301,35 +301,35 @@ impl ListBox {
         self
     }
 
-    /// The cursor with this list's rules.
+
     fn nav_cursor(&self) -> Cursor {
         Cursor::new(self.cursor)
             .wrap(self.wrap)
             .skip_disabled(self.skip_disabled)
     }
 
-    /// Blank columns between the labels and the scrollbar.
+
     pub fn scrollbar_gap(mut self, gap: u16) -> Self {
         self.scrollbar_gap = gap;
         self
     }
 
-    /// How cut labels are revealed (default: [`RenderCtx::reveal`]).
+
     pub fn reveal(mut self, config: Reveal) -> Self {
         self.reveal.config = Some(config);
         self
     }
 
-    /// The footer hint for the reveal key while the focused cursor row is
-    /// cut (`→ Full text`, or `← Collapse` while it shows), as of the last
-    /// render. Apps append it to the list's hints so the key is advertised
-    /// exactly when it does something.
+
+
+
+
     pub fn reveal_hint(&self) -> Option<(&'static str, &'static str)> {
         self.reveal.hint()
     }
 
-    /// Label and metadata widths of a row in `text_w` cells: the metadata
-    /// hides rather than starve the label.
+
+
     fn label_width(item: &ListItem, text_w: usize) -> (usize, usize) {
         let label_w = text_w.saturating_sub(2);
         let meta_w = item
@@ -346,8 +346,8 @@ impl ListBox {
         (lw, meta_w)
     }
 
-    /// The rows the focused cursor row wraps to in place, when the reveal
-    /// is open in [`crate::ui::reveal::RevealMode::InlineWrap`].
+
+
     fn inline_rows(
         &mut self,
         ctx: &mut RenderCtx,
@@ -361,7 +361,7 @@ impl ListBox {
         self.reveal.inline(ctx, rid, lw as u16, &label, true, room)
     }
 
-    /// See [`Self::empty`].
+
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.empty = Some(state);
         self
@@ -380,7 +380,7 @@ impl ListBox {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// The `✓` column of row `i` in multi mode (its check box).
+
     pub fn mark_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::mark_part(i))
     }
@@ -393,9 +393,9 @@ impl ListBox {
         self.selection.len()
     }
 
-    /// Move the cursor to `to`; `extend` (Shift in multi mode) extends the
-    /// selection from its anchor to it ([`SelectGesture::Extend`]), so the
-    /// range grows and shrinks with the cursor.
+
+
+
     fn move_cursor(&mut self, to: usize, extend: bool) {
         let to = to.min(self.items.len().saturating_sub(1));
         let from = self.cursor;
@@ -428,15 +428,15 @@ impl ListBox {
         }
         let shift = key.shift();
         if unassigned_chord(key, &self.keymap) {
-            // an unassigned modified chord never performs a plain action
+
             return Outcome::Ignored;
         }
         if self.mode == SelectMode::Single && lookup(&self.keymap, key) == Some(ListCmd::SelectAll)
         {
-            // nothing to select all of: the chord stays the app's
+
             return Outcome::Ignored;
         }
-        // a bound command wins over type-ahead (Multi `a` toggles all)
+
         if let Some(action) = lookup(&self.keymap, key)
             && self.mode == SelectMode::Multi
         {
@@ -473,7 +473,7 @@ impl ListBox {
                 let moved = self
                     .nav_cursor()
                     .apply(nav, &self.items[..], self.scroll.viewport_len);
-                // ←/→ are not list keys
+
                 let Some(to) = moved.index() else {
                     return Outcome::Ignored;
                 };
@@ -492,19 +492,19 @@ impl ListBox {
         self.on_click_count(row, 1)
     }
 
-    /// A plain click on `row` that is the `count`th of a multi-click (from
-    /// [`crate::core::pointer::PointerState::count_click`])
-    /// ([`Self::on_click_at`]).
+
+
+
     pub fn on_click_count(&mut self, row: usize, count: u8) -> Outcome {
         self.on_click_at(row, count, KeyModifiers::NONE, false)
     }
 
-    /// The `count`th click on `row` with `mods` held; `on_box` when it
-    /// landed on the row's `✓` column. The cursor moves to the row. Single
-    /// mode: the row is chosen when [`Self::click`] activates on this click
-    /// (a double click by default). Multi mode: a click on the `✓` column
-    /// (or anywhere under [`CheckClick::Row`](crate::core::selection::CheckClick::Row)) toggles the row; any other is
-    /// the [`SelectGesture`] its modifiers make.
+
+
+
+
+
+
     pub fn on_click_at(
         &mut self,
         row: usize,
@@ -533,7 +533,7 @@ impl ListBox {
                 } else {
                     SelectGesture::from_mods(mods, self.toggle_mods, from)
                 };
-                // a disabled row takes the cursor; the selection stays
+
                 if g == SelectGesture::Only && self.items[row].disabled {
                     return Outcome::Changed;
                 }
@@ -543,8 +543,8 @@ impl ListBox {
         Outcome::Changed
     }
 
-    /// Override the app-wide vertical track-click policy
-    /// (`TrackClick::Page` pages toward the pointer).
+
+
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
@@ -565,7 +565,7 @@ impl ListBox {
         self.reveal.begin(ctx);
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(area.height as usize);
-        // the container registers first so rows drawn later win hit-testing
+
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
         if self.items.is_empty() {
@@ -584,11 +584,11 @@ impl ListBox {
             return;
         }
         let mut has_sb = self.scroll.overflows();
-        // labels stop at the content edge, the gap clear of the bar
+
         let mut sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
         let mut text_w = sp.content.width.saturating_sub(1) as usize;
-        // an inline reveal grows the cursor row: the rows it adds come out
-        // of the viewport, and the cursor row stays on screen
+
+
         let mut expanded = None;
         if focused {
             expanded = self.inline_rows(ctx, text_w, area.height);
@@ -619,7 +619,7 @@ impl ListBox {
             let rid = self.row_id(li);
             let mut s = ctx.child_state(self.id, rid, li == self.cursor);
             if self.mode == SelectMode::Multi {
-                // the row counts its `✓` column's hover and press as its own
+
                 let mark = self.mark_id(li);
                 s.hovered |= ctx.interaction.hovered(mark);
                 s.pressed |= ctx.interaction.pressed(mark);
@@ -650,8 +650,8 @@ impl ListBox {
             let label_w = text_w.saturating_sub(2);
             let (lw, meta_w) = Self::label_width(item, text_w);
             if let Some(rows) = block {
-                // the cursor row wrapped in place: every line, then a
-                // marker when a long text scrolls
+
+
                 for (k, line) in rows.iter().take(h as usize).enumerate() {
                     let ls = if line.more { st.fg(t.text_muted) } else { st };
                     let text = crate::ui::text::fit(&line.text, lw);
@@ -681,16 +681,16 @@ impl ListBox {
             }
             ctx.register_part(self.id, Self::row_part(li), row);
             if self.mode == SelectMode::Multi {
-                // the `✓` column (the gutter, the mark and its space) is
-                // the row's check box: a click there toggles the row
+
+
                 let mark = Rect::new(row.x, row.y, row.width.min(3), row.height);
                 ctx.register_part(self.id, Self::mark_part(li), mark);
             }
             y += h;
         }
-        // the scroll region also sits above the rows: a wheel burst handled
-        // before the next frame (see `runtime::Coalesce`) then routes to the
-        // widget, not to a row whose display index it already scrolled away
+
+
+
         ctx.scrollable(self.id, area);
         if let Some(sb) = sp.track {
             crate::ui::fade::scroll_edges_except(
@@ -716,8 +716,8 @@ impl Scrollable for ListBox {
         &mut self.scroll
     }
 
-    /// A revealed label longer than its rows reads on before the list
-    /// moves.
+
+
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         if axis != Axis::Vertical {
             return None;
@@ -756,12 +756,12 @@ impl Navigable for ListBox {
     }
 }
 
-/// A list drawn alone, in a forced state, for a States grid
-/// ([`crate::ui::specimen`]): its first three rows with the cursor on the
-/// second. Hover and press land on the cursor row (where the pointer
-/// would be), selected chooses (or checks) it, disabled disables it under
-/// the pointer (no reaction), empty clears the rows, overflow lengthens its
-/// label past the row.
+
+
+
+
+
+
 impl crate::ui::specimen::Specimen for ListBox {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -828,7 +828,7 @@ impl crate::ui::specimen::Specimen for ListBox {
             }
             _ => {}
         }
-        // the pointer rests on the cursor row, not on the list
+
         let v = state.visual();
         if (v.hovered || state == Disabled) && !l.items.is_empty() {
             ctx.interaction.hover = Some(l.row_id(c));
@@ -841,9 +841,9 @@ impl crate::ui::specimen::Specimen for ListBox {
     }
 }
 
-/// The list's pointer gestures: a wheel or a bar press scrolls it
-/// ([`crate::core::pointer::scroll_input`]); a completed click on a row is
-/// [`ListBox::on_click_count`] with its multi-click count.
+
+
+
 impl crate::core::pointer::MouseTarget for ListBox {
     type Action = ();
 
@@ -937,8 +937,8 @@ mod reveal_tests {
         assert_eq!(slow.fg, theme.tone_on(Tone::Warning, slow.bg));
     }
 
-    /// Cut labels stop one blank column short of the scrollbar, never
-    /// touching it (`TypeScript┃`, layout audit #14).
+
+
     #[test]
     fn a_cut_label_keeps_the_gap_before_the_scrollbar() {
         let items: Vec<ListItem> = (0..8)
@@ -953,7 +953,7 @@ mod reveal_tests {
         );
         assert_eq!(row[18], ' ', "one blank column before the bar: {row:?}");
         assert_eq!(row[17], '…', "the label ends with its ellipsis: {row:?}");
-        // the gap is the caller's to change
+
         let mut tight = ListBox::new(WidgetId::of("l"), items, SelectMode::Single).scrollbar_gap(0);
         let text = render(&mut tight, Interaction::default());
         let row: Vec<char> = text.lines().next().unwrap().chars().take(20).collect();
@@ -999,7 +999,7 @@ mod reveal_tests {
         assert!(render(&mut l, focus).contains(LONG));
         l.on_key(&key(KeyCode::Left));
         assert!(!render(&mut l, focus).contains(LONG));
-        // the policy turns it off
+
         let mut l = list().reveal(Reveal::OFF);
         l.on_key(&key(KeyCode::Down));
         render(&mut l, focus);
@@ -1013,7 +1013,7 @@ mod reveal_tests {
         })
     }
 
-    /// The list alone in a `w`×`h` buffer (no room for a tooltip beside it).
+
     fn render_in(l: &mut ListBox, w: u16, h: u16, interaction: Interaction) -> Vec<String> {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -1059,7 +1059,7 @@ mod reveal_tests {
             .map(|r| r.chars().skip(3).collect::<String>().trim().to_owned())
             .collect();
         assert_eq!(label.join(" "), LONG, "every line of the label, in place");
-        // the cursor block keeps the one focus gutter on every row
+
         for r in &rows[..n] {
             assert!(r.starts_with('▎'), "{rows:#?}");
         }
@@ -1093,7 +1093,7 @@ mod reveal_tests {
         let rows = render_in(&mut l, 16, 6, focus);
         assert!(rows[0].contains("↑"), "{rows:#?}");
         assert_eq!(l.scroll.offset, offset, "the list itself did not move");
-        // collapsed, the wheel scrolls the list again
+
         press(&mut l, KeyCode::Left);
         render_in(&mut l, 16, 6, focus);
         assert_eq!(l.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
@@ -1149,7 +1149,7 @@ mod scroll_tests {
 
     #[test]
     fn a_type_ahead_miss_is_consumed_and_a_bound_letter_still_runs() {
-        // plan §3: a miss never leaks a half-typed prefix to the page
+
         let mut l = disabled_list().type_ahead(true);
         l.cursor = 1;
         let o = l.on_key(&Key {
@@ -1158,7 +1158,7 @@ mod scroll_tests {
         });
         assert_eq!(o, Outcome::Consumed);
         assert_eq!(l.cursor, 1);
-        // a Multi list's `a` (ToggleAll) is a binding, not a prefix
+
         let mut m = ListBox::new(
             WidgetId::of("m"),
             vec![ListItem::new("apple"), ListItem::new("bean")],
@@ -1173,7 +1173,7 @@ mod scroll_tests {
 
     #[test]
     fn the_type_ahead_pause_is_configurable() {
-        // SIg10: a pause starts a new prefix; the pause is a knob
+
         let items = || {
             vec![
                 ListItem::new("alpha"),
@@ -1212,8 +1212,8 @@ mod scroll_tests {
 
     #[test]
     fn select_clicks_move_the_cursor_and_double_clicks_activate() {
-        // the default (SI14, M15): one click moves the cursor, however
-        // often; a double click chooses
+
+
         let mut l = disabled_list();
         l.on_click_count(3, 1);
         assert_eq!((l.cursor, l.chosen), (3, None));
@@ -1221,7 +1221,7 @@ mod scroll_tests {
         assert_eq!(l.chosen, None, "a slow second click only selects");
         l.on_click_count(3, 2);
         assert_eq!(l.chosen, Some(3));
-        // a navigation list chooses on one click
+
         let mut act = disabled_list().click(ClickPolicy::NAVIGATION);
         act.on_click(1);
         assert_eq!(act.chosen, Some(1));
@@ -1236,8 +1236,8 @@ mod scroll_tests {
             .toggle_mods(SelectGesture::TOGGLE_CTRL_CMD)
     }
 
-    /// M16: a multi list takes the desktop click modifiers; M15/SI5: only
-    /// the `✓` column toggles with no modifier.
+
+
     #[test]
     fn multi_clicks_follow_the_selection_gestures() {
         let none = KeyModifiers::NONE;
@@ -1261,7 +1261,7 @@ mod scroll_tests {
             vec![0, 1, 4],
             "...and the selection stays"
         );
-        // a checklist makes the whole row its box
+
         let mut c = multi().click(ClickPolicy::DATA.check(crate::core::selection::CheckClick::Row));
         c.on_click_at(0, 1, none, false);
         c.on_click_at(2, 1, none, false);
@@ -1270,8 +1270,8 @@ mod scroll_tests {
         assert_eq!(c.selection.to_vec(), vec![2]);
     }
 
-    /// Through the hit regions: a click on a row's `✓` column reaches the
-    /// list as the row's check box, a click on its label as the row.
+
+
     #[test]
     fn a_click_on_the_mark_column_toggles_through_the_hit_regions() {
         use crate::core::focus::FocusRing;
@@ -1302,9 +1302,9 @@ mod scroll_tests {
         assert_eq!(l.cursor, 4);
     }
 
-    /// Shift+arrows extend from the anchor and shrink back (the list used
-    /// to only add); a click sets the anchor Shift+arrows extend from
-    /// (SIg2: the fallback where the terminal keeps Shift-click).
+
+
+
     #[test]
     fn shift_arrows_extend_and_shrink_from_the_clicked_anchor() {
         let shift = |code| Key {
@@ -1363,7 +1363,7 @@ mod scroll_tests {
             Color::Rgb(r, _, _) => r,
             other => panic!("{other:?}"),
         };
-        // at the top: the last row hints at more below, the first row is whole
+
         let b = render(&mut l);
         assert_eq!(b[(4, 0)].fg, theme.text_primary, "cursor row untouched");
         assert!(
@@ -1371,12 +1371,12 @@ mod scroll_tests {
             "bottom row fades: {}",
             grey(&b, 5)
         );
-        // scrolled: the top row fades too, the cursor row never does
+
         l.wheel(Axis::Vertical, 10).outcome();
         let b = render(&mut l);
         assert!(grey(&b, 0) < grey(&b, 1), "top row fades");
         assert!(grey(&b, 5) < grey(&b, 4));
-        // at the end: only the top row hints
+
         l.scroll.jump_end();
         let b = render(&mut l);
         assert!(grey(&b, 0) < grey(&b, 1));
@@ -1398,7 +1398,7 @@ mod scroll_tests {
         assert_eq!(l.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
         assert_eq!(l.wheel(Axis::Vertical, -1).outcome(), Outcome::Changed);
         assert_eq!(l.wheel(Axis::Vertical, -1).outcome(), Outcome::Consumed);
-        // the track is the drawn scrollbar: six rows, thumb one row at the top
+
         let x = 39;
         assert_eq!(
             l.bar_press(Position::new(x, 0))
@@ -1458,7 +1458,7 @@ mod scroll_tests {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
-        // applications flash the focused id, which is the list itself
+
         let interaction = Interaction {
             focus: Some(l.id),
             flash: Some(l.id),
@@ -1506,8 +1506,8 @@ mod track_click_tests {
     }
 }
 
-/// Select All in a multi-selection list; a single-selection list leaves
-/// the chord to the app.
+
+
 #[cfg(test)]
 mod select_all_tests {
     use super::*;

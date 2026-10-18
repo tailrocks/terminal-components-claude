@@ -1,21 +1,21 @@
-//! Key maps shared by every navigable widget.
-//!
-//! Two layers:
-//!
-//! - [`NavKeys`] decides which keys *move* (arrows, vim letters, paging,
-//!   Home/End). Every navigable widget asks [`NavKeys::action`] instead of
-//!   matching key codes itself, so a single setting (`vim: false`, say)
-//!   changes List, Tree, Table, Grid, Select, menus and the rest alike.
-//! - [`KeyMap<A>`] binds a widget's own *actions* (chips `x`, tree `*`,
-//!   Grid's letters) to keys. Each action enum implements [`Actions`], whose
-//!   [`Actions::default_keymap`] reproduces the long-standing letters; a
-//!   widget's `.keymap(..)` builder replaces it. Hints that name a key read
-//!   it back with [`label_for`], so a remapped key is advertised correctly.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::core::event::{ClientPlatform, Key};
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
-/// A navigation step, independent of the key that produced it.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Nav {
     Up,
@@ -28,37 +28,37 @@ pub enum Nav {
     End,
 }
 
-/// Which keys navigate. One table for every widget.
-///
-/// | key | `Nav` | enabled by |
-/// |---|---|---|
-/// | `↑ ↓ ← →` (any modifiers) | `Up Down Left Right` | `arrows` |
-/// | `k j h l` and `K J H L` (no Ctrl/Alt) | `Up Down Left Right` | `vim` |
-/// | `PageUp PageDown` (any modifiers) | `PageUp PageDown` | `page` |
-/// | `Home End` (any modifiers) | `Home End` | `home_end` |
-/// | `g` / `G` (no Ctrl/Alt) | `Home` / `End` | `vim` |
-///
-/// Named keys come back whatever modifiers are held, so a widget can still
-/// treat Shift+↓ as "extend" or Ctrl+Home as "first cell"; letters never
-/// match with Ctrl or Alt held, so `Ctrl+K` is free for an app. The
-/// uppercase vim letters are the Shift variants (`J` extends like Shift+↓
-/// where a widget extends).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NavKeys {
-    /// The arrow keys.
+
     pub arrows: bool,
-    /// `h j k l` (and uppercase) plus `g`/`G` for first/last.
+
     pub vim: bool,
-    /// PageUp / PageDown.
+
     pub page: bool,
-    /// Home / End.
+
     pub home_end: bool,
 }
 
 impl NavKeys {
-    /// Desktop keys: arrows, paging and Home/End; letters stay free for
-    /// type-ahead, typing or app shortcuts (APG, WCAG 2.1.4). What
-    /// [`crate::core::list::NavProfile::Desktop`] uses.
+
+
+
     pub const DESKTOP: Self = Self {
         arrows: true,
         vim: false,
@@ -66,48 +66,48 @@ impl NavKeys {
         home_end: true,
     };
 
-    /// Everything on, vim letters included. What
-    /// [`crate::core::list::NavProfile::Vim`] uses.
+
+
     pub const VIM: Self = Self {
         vim: true,
         ..Self::DESKTOP
     };
 
-    /// The library default, [`Self::DESKTOP`] (APG, WCAG 2.1.4). Widgets
-    /// take [`NavKeys::default`], which follows the installed
-    /// [`crate::core::list::NavProfile`].
+
+
+
     pub const DEFAULT: Self = Self::DESKTOP;
 
-    /// Same as [`Self::DESKTOP`] (the name used before the desktop keys
-    /// became the default).
+
+
     pub const NO_VIM: Self = Self::DESKTOP;
 
-    /// See [`Self::vim`].
+
     pub const fn vim(mut self, on: bool) -> Self {
         self.vim = on;
         self
     }
 
-    /// See [`Self::page`].
+
     pub const fn page(mut self, on: bool) -> Self {
         self.page = on;
         self
     }
 
-    /// See [`Self::home_end`].
+
     pub const fn home_end(mut self, on: bool) -> Self {
         self.home_end = on;
         self
     }
 
-    /// See [`Self::arrows`].
+
     pub const fn arrows(mut self, on: bool) -> Self {
         self.arrows = on;
         self
     }
 
-    /// The navigation step `key` means, or `None` when it does not
-    /// navigate under this configuration.
+
+
     pub fn action(&self, key: &Key) -> Option<Nav> {
         let nav = match key.code {
             KeyCode::Up if self.arrows => Nav::Up,
@@ -132,11 +132,11 @@ impl NavKeys {
         Some(nav)
     }
 
-    /// The hint key for moving up and down under these keys: `↑↓` with
-    /// the arrows, `j k` when only the vim letters move, `None` when
-    /// nothing does. `type_ahead`: the widget type-selects, so a letter
-    /// types instead of moving ([`crate::core::list::KeyStep::of`]). Hints
-    /// never advertise a key that does not work.
+
+
+
+
+
     pub const fn move_hint(&self, type_ahead: bool) -> Option<&'static str> {
         if self.arrows {
             Some("↑↓")
@@ -147,15 +147,15 @@ impl NavKeys {
         }
     }
 
-    /// The hint key for paging, `None` when paging is off.
+
     pub const fn page_hint(&self) -> Option<&'static str> {
         if self.page { Some("PgUp PgDn") } else { None }
     }
 
-    /// The hint key for jumping to the first and last row: `g G` under
-    /// vim keys (when no type-ahead takes the letters), else `Home End`
-    /// when they are on, `None` when nothing jumps. `type_ahead` as for
-    /// [`Self::move_hint`].
+
+
+
+
     pub const fn ends_hint(&self, type_ahead: bool) -> Option<&'static str> {
         if self.vim && !type_ahead {
             Some("g G")
@@ -166,9 +166,9 @@ impl NavKeys {
         }
     }
 
-    /// True when `key` is one of the vim letters this table maps (whatever
-    /// `vim` is set to). Widgets with type-ahead use it to tell a letter
-    /// that would navigate from one that only types.
+
+
+
     pub fn is_vim_letter(key: &Key) -> bool {
         matches!(
             key.code,
@@ -178,24 +178,24 @@ impl NavKeys {
 }
 
 impl Default for NavKeys {
-    /// The installed [`crate::core::list::NavProfile`]'s keys
-    /// ([`Self::DESKTOP`] unless an app installed [`NavProfile::Vim`]).
-    ///
-    /// [`NavProfile::Vim`]: crate::core::list::NavProfile::Vim
+
+
+
+
     fn default() -> Self {
         crate::core::list::NavProfile::current().nav()
     }
 }
 
-/// One key chord a [`KeyMap`] binds.
-///
-/// For a character the Shift modifier is part of the character (`X` is
-/// Shift+x), so it is ignored when matching: `KeyBinding::char('X')`
-/// matches `X` whether or not the terminal reports Shift. A character
-/// binding that names Shift itself (Cmd+Shift+Z, [`Self::shift`]) does
-/// require it, so list it before the same chord without Shift. Every other
-/// modifier must match exactly, so `KeyBinding::char('x')` never fires on
-/// Ctrl+X.
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KeyBinding {
     pub code: KeyCode,
@@ -207,46 +207,46 @@ impl KeyBinding {
         Self { code, mods }
     }
 
-    /// `code` with no modifier.
+
     pub const fn key(code: KeyCode) -> Self {
         Self::new(code, KeyModifiers::NONE)
     }
 
-    /// A plain character.
+
     pub const fn char(c: char) -> Self {
         Self::key(KeyCode::Char(c))
     }
 
-    /// Ctrl + a character.
+
     pub const fn ctrl(c: char) -> Self {
         Self::new(KeyCode::Char(c), KeyModifiers::CONTROL)
     }
 
-    /// Alt + a character.
+
     pub const fn alt(c: char) -> Self {
         Self::new(KeyCode::Char(c), KeyModifiers::ALT)
     }
 
-    /// Cmd (super) + a character. Delivered only where the terminal
-    /// speaks the kitty keyboard protocol ([`crate::core::keyboard`]).
+
+
     pub const fn cmd(c: char) -> Self {
         Self::new(KeyCode::Char(c), KeyModifiers::SUPER)
     }
 
-    /// This chord with Shift held too (Cmd+Shift+Z): a character binding
-    /// that names Shift requires it ([`Self::matches`]).
+
+
     pub const fn shift(self) -> Self {
         Self::new(self.code, self.mods.union(KeyModifiers::SHIFT))
     }
 
-    /// Whether the terminal delivers this chord: a Cmd (super) chord only
-    /// once [`crate::core::keyboard::super_delivered`] confirms it. Hints
-    /// skip chords that are not deliverable.
+
+
+
     pub fn deliverable(&self) -> bool {
         !self.mods.contains(KeyModifiers::SUPER) || crate::core::keyboard::super_delivered()
     }
 
-    /// True when `key` is this chord.
+
     pub fn matches(&self, key: &Key) -> bool {
         if self.code != key.code {
             return false;
@@ -260,14 +260,14 @@ impl KeyBinding {
         }
     }
 
-    /// How hints spell this chord: `x`, `Ctrl+S`, `Delete`, `F2`, `Space`;
-    /// Cmd chords per [`ClientPlatform::current`] ([`Self::label_on`]).
+
+
     pub fn label(&self) -> String {
         self.label_on(ClientPlatform::current())
     }
 
-    /// [`Self::label`] for a client on `platform`: Cmd is `⌘` on macOS
-    /// (`⌘A`, and `⇧⌘Z` with Shift), `Super+` elsewhere.
+
+
     pub fn label_on(&self, platform: ClientPlatform) -> String {
         let mut out = String::new();
         let char_shift =
@@ -293,7 +293,7 @@ impl KeyBinding {
             .mods
             .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER);
         let mac_cmd = self.mods.contains(KeyModifiers::SUPER) && platform.is_macos();
-        // BackTab names Shift itself
+
         let back_tab = self.code == KeyCode::BackTab;
         if self.mods.contains(KeyModifiers::SHIFT)
             && !mac_cmd
@@ -340,40 +340,40 @@ impl From<char> for KeyBinding {
     }
 }
 
-/// A widget's action bindings, first match wins. Several keys may bind the
-/// same action; an action with no entry is unbound.
+
+
 pub type KeyMap<A> = Vec<(KeyBinding, A)>;
 
-/// A widget's action enum.
+
 pub trait Actions: Copy + PartialEq + Sized + 'static {
-    /// The bindings the widget has always had.
+
     fn default_keymap() -> KeyMap<Self>;
 
-    /// What the action does, as help and the component docs name it
-    /// (`Select all`, `Sort`).
+
+
     fn label(self) -> &'static str;
 }
 
-/// The action `key` is bound to in `map`.
+
 pub fn lookup<A: Copy>(map: &[(KeyBinding, A)], key: &Key) -> Option<A> {
     map.iter().find(|(b, _)| b.matches(key)).map(|&(_, a)| a)
 }
 
-/// True when `key` is a Ctrl, Alt or Cmd character chord that `map` does
-/// not bind. Such a chord never performs a widget's plain action (Ctrl+J is
-/// not `j`, Alt+A is not type-ahead): it is left to the app. Every widget
-/// asks this one guard first (until the key router asks it for them, S8a).
+
+
+
+
 pub fn unassigned_chord<A: Copy>(key: &Key, map: &[(KeyBinding, A)]) -> bool {
     matches!(key.code, KeyCode::Char(_)) && key.chord() && lookup(map, key).is_none()
 }
 
-/// The first key bound to `action`, if any.
+
 pub fn binding_for<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<KeyBinding> {
     map.iter().find(|(_, a)| *a == action).map(|&(b, _)| b)
 }
 
-/// The first key bound to `action` that the terminal delivers
-/// ([`KeyBinding::deliverable`]): what a hint may name.
+
+
 pub fn deliverable_binding_for<A: PartialEq>(
     map: &[(KeyBinding, A)],
     action: A,
@@ -383,29 +383,29 @@ pub fn deliverable_binding_for<A: PartialEq>(
         .map(|&(b, _)| b)
 }
 
-/// The hint label of the first deliverable key bound to `action`, if any.
+
 pub fn label_for<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<String> {
     deliverable_binding_for(map, action).map(|b| b.label())
 }
 
-/// Select All for anything that is not a text field (multi-selection rows,
-/// read-only text): Cmd+A where the terminal delivers Cmd, then Ctrl+A.
-/// Outside a text field Ctrl+A has no line-start meaning, so it is the
-/// deliverable Select All on every platform. Text fields take theirs from
-/// [`crate::core::edit::FieldKeys::text_keymap`].
+
+
+
+
+
 pub const SELECT_ALL: [KeyBinding; 2] = [KeyBinding::cmd('a'), KeyBinding::ctrl('a')];
 
-/// [`SELECT_ALL`] bound to `action`: the default Select All entries of a
-/// widget's [`KeyMap`].
+
+
 pub fn select_all_bindings<A: Copy>(action: A) -> impl Iterator<Item = (KeyBinding, A)> {
     SELECT_ALL.into_iter().map(move |b| (b, action))
 }
 
-/// [`label_for`] as a `&'static str`, for [`crate::widgets::keyhint::Hint`]
-/// keys (the first deliverable binding, so a Cmd chord is named only where
-/// it arrives): each distinct chord's label is interned once, so a footer built
-/// every frame names the bound key (or drops the hint when the action is
-/// unbound) without allocating.
+
+
+
+
+
 pub fn hint_key<A: PartialEq>(map: &[(KeyBinding, A)], action: A) -> Option<&'static str> {
     use std::collections::HashMap;
     use std::sync::{Mutex, OnceLock};
@@ -437,12 +437,12 @@ mod tests {
         Key { code, mods }
     }
 
-    /// Each hint names keys its table really maps, and never a letter
-    /// that type-ahead takes.
+
+
     #[test]
     fn nav_hints_name_only_keys_that_navigate() {
         use crate::core::list::KeyStep;
-        // the key a hint names navigates through `KeyStep`, as widgets read it
+
         let navigates = |n: &NavKeys, ta: bool, code: KeyCode| {
             matches!(
                 KeyStep::of(&key(code), n, ta),
@@ -643,10 +643,10 @@ mod tests {
     }
 }
 
-/// Every navigable widget reads [`NavKeys`] and its [`KeyMap`]: a remapped
-/// binding fires, the default it replaced does not, and `NavKeys::NO_VIM`
-/// frees the letters. Each test runs under the `Vim` profile, so the vim
-/// letters are the profile's and `.nav(..)` overrides it.
+
+
+
+
 #[cfg(test)]
 mod widget_tests {
     use super::*;
@@ -1021,7 +1021,7 @@ mod widget_tests {
             .1,
             Some(GridAction::Copy(_))
         ));
-        // duplicate_keys rewrites only the DuplicateRow bindings
+
         let g = grid().duplicate_keys(&[]);
         assert_eq!(binding_for(&g.keymap, GridCmd::DuplicateRow), None);
         assert_eq!(

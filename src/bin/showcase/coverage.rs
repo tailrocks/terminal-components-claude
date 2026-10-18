@@ -1,44 +1,44 @@
-//! How the showcase demonstrates each library capability.
-//!
-//! One declaration per capability id of `junie_tui::catalog`. The coverage
-//! gate (`app_tests_catalog.rs`) checks every declaration against the
-//! running showcase, so a declaration cannot exist without the thing it
-//! claims:
-//!
-//! - [`Shown::Demo`]: the page (its `--page` slug) renders the label text;
-//! - [`Shown::Option`]: a live option of a page's option table (SC1), which
-//!   `--opt <page>.<key>` flips;
-//! - [`Shown::StateRow`]: a row of a page's States grid (SC2);
-//! - [`Shown::Via`]: a function covered by the demo of its owning type
-//!   ([`VIA`]), valid only while that owner is itself declared directly
-//!   (`Demo`, `Option` or `StateRow`).
-//!
-//! The option tables (SC1) and States grids (SC2) generate their entries
-//! from these declarations. A capability that is not declared here must be
-//! listed in `tests/showcase_coverage_allow.txt` with a reason.
 
-// The showcase binary reads these declarations once the option tables
-// (SC1) land; until then only the gate does.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #![cfg_attr(not(test), allow(dead_code))]
 
-/// How one capability is shown.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Shown {
-    /// An option key of a page's option table: `(page slug, key)`.
+
     Option(&'static str, &'static str),
-    /// A row of a page's States grid: `(page slug, state row)`.
+
     StateRow(&'static str, &'static str),
-    /// Rendered on a page: `(page slug, text the page shows)`.
+
     Demo(&'static str, &'static str),
-    /// A function covered by the demo of its owning type (the type's
-    /// capability id). Only from [`VIA`], through [`declarations`].
+
+
     Via(&'static str),
 }
 
 use Shown::{Demo, Option, StateRow};
 use ViaRole::{Operation, Plumbing, Protocol};
 
-/// Every declared demonstration, keyed by capability id.
+
 pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme", Demo("overview", "Tokens and principles")),
     ("theme::ColorLevel", Demo("overview", "truecolor ·")),
@@ -102,7 +102,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::Theme::warning", Demo("overview", "▏ warning #")),
     ("theme::Theme::error", Demo("overview", "▏ error #")),
     ("theme::Theme::danger_label", Demo("overview", "▏ danger #")),
-    // SC25: Diff and Terminal
+
     (
         "widgets::diff::DiffLineKind",
         Demo("diff", "+ attempts = 5"),
@@ -250,7 +250,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::viewport::TextViewport::max_lines",
         Option("terminal", "terminal.max_lines"),
     ),
-    // SC24: Code editor
+
     ("widgets::code::Severity", StateRow("codeeditor", "error")),
     (
         "widgets::code::Severity::Error",
@@ -389,7 +389,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::completion::Completion::dismiss",
         Option("codeeditor", "codeeditor.completion_dismiss"),
     ),
-    // SC23: Splits & stacks
+
     (
         "ui::layout::SplitDir",
         Option("splitsstacks", "splitsstacks.dir"),
@@ -490,7 +490,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::splitter::Splitter::double_click",
         Option("splitsstacks", "splitsstacks.double_click"),
     ),
-    // SC21: Progress, Empty & error
+
     (
         "widgets::progress::BarLayout",
         Option("progress", "progress.label_width"),
@@ -543,7 +543,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::empty::EmptyState::hint",
         Option("emptyerror", "emptyerror.hint"),
     ),
-    // SC26: Text utilities
+
     (
         "core::text::TextBuffer",
         Demo(
@@ -635,7 +635,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::props::PropsList::reveal",
         Option("textutilities", "textutilities.reveal"),
     ),
-    // SC4: Chrome, Status & hints
+
     (
         "widgets::hintbar::HintLayer",
         Demo("statushints", "screen layer"),
@@ -696,7 +696,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "theme::HintBarStyle",
         Demo("statushints", "HintBarStyle · align Start"),
     ),
-    // the shell pieces on Status & hints (SC30)
+
     (
         "theme::Theme::centred_hints",
         Demo("statushints", "Theme::centred_hints"),
@@ -875,7 +875,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::statusbar::Placed",
         Demo("chrome", "StatusBar::layout places"),
     ),
-    // SC3: Overview theme reference
+
     (
         "theme::Theme::field_hover",
         Demo("overview", "▏ field.hover #"),
@@ -1093,8 +1093,8 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::hintbar::HintBar",
         Demo("chrome", "hint bar · topmost layer wins"),
     ),
-    // the shell footer (M1): every hint naming one key is a click target
-    // that replays it (`HintBar::render_ctx`)
+
+
     (
         "widgets::hintbar::HintKeys",
         Demo("overview", "Tab Into page"),
@@ -1127,7 +1127,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "theme::ButtonKind::Danger",
         Demo("buttons", "Primary Secondary Subtle Danger"),
     ),
-    // SC7 Buttons
+
     (
         "ui::ctx::FocusVisible",
         Option("buttons", "buttons.focus_visible"),
@@ -1241,7 +1241,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "ui::specimen::StateGrid::focus_mark",
         Option("buttons", "buttons.focus_mark"),
     ),
-    // SC10 Chips & selects
+
     (
         "widgets::chips::ChipCmd",
         Option("chipsselects", "chipsselects.chip_keymap"),
@@ -1414,7 +1414,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::select::Select::disabled",
         Demo("chipsselects", "Fixed by the connection"),
     ),
-    // SC9 Checks & radios
+
     (
         "widgets::choice::CheckHit",
         Option("checksradios", "checksradios.hit"),
@@ -1443,7 +1443,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::choice::Toggle::disabled",
         Option("checksradios", "checksradios.disabled"),
     ),
-    // SC8 Inputs and Text areas
+
     (
         "core::edit::EditEntry",
         Option("inputs", "inputs.edit_entry"),
@@ -1770,7 +1770,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::table::DataTable::validator",
         Demo("editable", "fix/checkout flake !"),
     ),
-    // Editable, Selection and Cell editors (SC13)
+
     (
         "widgets::option_editor::OptionItem",
         Demo("celleditors", "Priority P1 (Page on-call now)"),
@@ -2023,7 +2023,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::table::DataTable::track_click",
         Option("editable", "editable.track_click"),
     ),
-    // Data grid (SC12)
+
     (
         "widgets::grid::CellValue",
         Demo("datagrid", "1001 Northwind Traders enterprise 3 57.00 true"),
@@ -2419,7 +2419,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::grid::DataGrid::track_click",
         Option("datagrid", "datagrid.track_click"),
     ),
-    // Columns and Basic table (SC11)
+
     (
         "core::selection::SelectionMode",
         Option("basictable", "basictable.selection"),
@@ -2789,7 +2789,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::splitter::Splitter",
         Demo("terminal", "drag the seam"),
     ),
-    // States grids (SC2): rows the page's States section draws
+
     ("ui::ctx::VisualState", StateRow("buttons", "focused")),
     ("state::rest", StateRow("buttons", "rest")),
     ("state::hover", StateRow("buttons", "hover")),
@@ -2992,7 +2992,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::hintbar::HintLayer::status_parts",
         Demo("chrome", "last: nothing yet"),
     ),
-    // ---- shell-wide options (the Inspector's Options tab, `--opt`; SC1)
+
     (
         "theme::ColorLevel::Ansi256",
         Option("overview", "shell.color=256"),
@@ -3161,7 +3161,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::shape::CaretShape::Terminal",
         Option("overview", "shell.caret_shape=terminal"),
     ),
-    // Tabs (SC14)
+
     ("widgets::tabs::TabItem", Demo("tabs", "◆ Overview")),
     (
         "widgets::tabs::TabItem::closable",
@@ -3276,7 +3276,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::tabs::Tabs::middle_click_closes",
         Option("tabs", "tabs.middle_click"),
     ),
-    // Menus (SC16)
+
     (
         "ui::context::ContextKeys",
         Option("menus", "menus.shift_f10"),
@@ -3432,7 +3432,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::menu::UnknownKey::Swallow",
         Option("menus", "menus.unknown_key=swallow"),
     ),
-    // Focus & navigation (SC28)
+
     (
         "core::event::InputConfig",
         Option("focusnavigation", "shell.shift_wheel_horizontal"),
@@ -3527,7 +3527,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "core::keymap::KeyBinding::shift",
         Demo("focusnavigation", "back Shift+Tab"),
     ),
-    // Toolbars (SC28)
+
     (
         "widgets::toolbar::Toolbar",
         Demo("toolbars", "Query toolbar"),
@@ -3597,7 +3597,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::toolbar::ToolItem::reason",
         Demo("toolbars", "No query is running"),
     ),
-    // ---- Breadcrumbs & rails (SC5)
+
     (
         "widgets::breadcrumb::Breadcrumb",
         StateRow("breadcrumbsrails", "overflow"),
@@ -3626,7 +3626,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::rail::RailAction::Collapse",
         Demo("breadcrumbsrails", "RailAction::Collapse"),
     ),
-    // ---- Help & keys, Quit & leave (SC6)
+
     (
         "widgets::help::HelpOverlay",
         Demo("helpkeys", "Open help overlay"),
@@ -3730,7 +3730,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "ui::leave::LeaveGuard::save",
         Option("quitleave", "quitleave.save"),
     ),
-    // ---- Lists & trees (SC15)
+
     ("core::typeahead::TypeAhead", Demo("lists", "(TypeAhead,")),
     (
         "widgets::list::ListItem",
@@ -4164,7 +4164,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::tree::TreeView::type_ahead_timeout",
         Option("scrolling", "scrolling.timeout"),
     ),
-    // SC17: Dialogs
+
     (
         "widgets::dialog::DialogBody",
         Demo("dialogs", "Text · Input · Facts"),
@@ -4306,7 +4306,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::dialog::Dialog::confirm_index",
         Option("dialogs", "dialogs.confirm_index"),
     ),
-    // SC18: Dialog kinds
+
     (
         "widgets::choice_dialog::ChoiceDialog",
         StateRow("dialogkinds", "rest"),
@@ -4541,7 +4541,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::info_dialog::InfoDialog::close_button",
         Option("dialogkinds", "dialogkinds.close_button"),
     ),
-    // SC19: Popups & tooltips
+
     (
         "ui::ctx::Backdrop",
         Option("popupstooltips", "popupstooltips.frame_dim"),
@@ -4784,7 +4784,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         "widgets::statusbar::StatusItem::tooltip",
         Demo("popupstooltips", "Region of the connection ⌘R"),
     ),
-    // SC20: Pickers
+
     (
         "widgets::picker::PickerItem",
         Demo("pickers", "▶ Run query (run.query)"),
@@ -4956,7 +4956,7 @@ pub static SHOWN: &[(&str, Shown)] = &[
         StateRow("pickers", "loading"),
     ),
     ("state::loading", StateRow("pickers", "loading")),
-    // public functions the showcase already shows (SC-G1)
+
     (
         "core::focus::request_focus_next",
         Demo("focusnavigation", "request_focus_next"),
@@ -5053,25 +5053,25 @@ pub static SHOWN: &[(&str, Shown)] = &[
     ("theme::contrast_ratio", Demo("overview", "contrast_ratio")),
 ];
 
-/// Why a function counts as shown by the demo of its owning type. The one
-/// place these categories are defined: nothing else of a type is covered
-/// this way. Queries, labels and render helpers with something of their
-/// own to show get a direct declaration or a pending allowlist line.
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ViaRole {
-    /// The widget protocol: `render*`, input handlers (`on_*`, `route*`),
-    /// hit-region ids and measurement. Every demo of the owner runs them.
+
+
     Protocol,
-    /// An operation an app calls on an event (open, select, scroll, edit,
-    /// commit, ...). The owner's playground drives it.
+
+
     Operation,
-    /// Plumbing of a shared `core`/`ui` type behind the widgets. Every
-    /// demo of a widget built on the owner runs it.
+
+
     Plumbing,
 }
 
 impl ViaRole {
-    /// The reason a function of this role needs no surface of its own.
+
     pub const fn reason(self) -> &'static str {
         match self {
             Self::Protocol => "widget protocol: every demo of its owner runs it",
@@ -5083,15 +5083,15 @@ impl ViaRole {
     }
 }
 
-/// Functions covered by the demo of their owner: `(owner type id, role,
-/// functions)`. A bare name is a method of the owner (`owner::name`); a
-/// path is a free function, filed under the type whose demo runs it.
-///
-/// The gate (`app_tests_catalog.rs`) fails a `Via` whose owner is not a
-/// type declared directly in [`SHOWN`] (a `Via` never counts: the owner
-/// must be demonstrated itself), a name that is not a function of the
-/// catalog, a bare name of another type, a path that is a method, and a
-/// function that is also declared directly or allowlisted.
+
+
+
+
+
+
+
+
+
 pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     ("core::edit::FieldKeys", Plumbing, &["text_keymap"]),
     ("core::edit::FocusSelect", Plumbing, &["apply"]),
@@ -6145,14 +6145,14 @@ pub static VIA: &[(&str, ViaRole, &[&str])] = &[
     ),
 ];
 
-/// [`SHOWN`] plus every [`VIA`] entry as a [`Shown::Via`] declaration:
-/// what the coverage gate counts as shown.
+
+
 pub fn declarations() -> &'static [(&'static str, Shown)] {
     static ALL: std::sync::OnceLock<Vec<(&'static str, Shown)>> = std::sync::OnceLock::new();
     ALL.get_or_init(|| expand(SHOWN, VIA))
 }
 
-/// `shown` plus each function of `via` as a [`Shown::Via`] of its owner.
+
 pub fn expand(
     shown: &[(&'static str, Shown)],
     via: &[(&'static str, ViaRole, &'static [&'static str])],

@@ -1,6 +1,6 @@
-//! Searchable picker: a centered modal with a query field and grouped,
-//! ranked rows. Used for quick switchers, tab lists and enum pickers.
-//! Ranking is the owner's job (it supplies the rows for the query).
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -27,18 +27,18 @@ pub struct PickerItem {
     pub detail: String,
     pub glyph: &'static str,
     pub group: &'static str,
-    /// Trailing hint on the row (e.g. "open").
+
     pub tag: Option<&'static str>,
     pub matched: Vec<usize>,
     pub disabled: bool,
-    /// Owner identity the row stands for (a tab, an activity, a path).
-    /// Stable across refreshes; empty when the owner keys by index.
+
+
     pub key: String,
 }
 
 impl PickerItem {
-    /// The glyph of a new item; it draws as
-    /// [`Glyphs::bullet`](crate::theme::Glyphs::bullet).
+
+
     pub const DEFAULT_GLYPH: &'static str = "·";
 
     pub fn new(label: impl Into<String>) -> Self {
@@ -79,9 +79,9 @@ impl PickerItem {
 pub enum PickerStatus {
     #[default]
     Ready,
-    /// Spinner row in the list area; Enter is refused.
+
     Loading(String),
-    /// `! message` with an optional faint detail; Enter is refused.
+
     Error {
         message: String,
         detail: Option<String>,
@@ -94,91 +94,91 @@ pub struct Picker {
     pub status: PickerStatus,
     pub title: String,
     pub placeholder: String,
-    /// The query field: its text, caret, selection, undo and keys are the
-    /// shared [`EditField`]'s, so it edits, selects (Select All, a double
-    /// click on a word, a drag) and undoes like every text field. Owners
-    /// read [`EditField::text`] and replace it with [`EditField::set_text`]
-    /// (the caret goes to the end).
+
+
+
+
+
     pub query: EditField,
     pub items: Vec<PickerItem>,
     pub cursor: usize,
-    /// The rows and the bar ([`Scrollable`]).
+
     pub scroll: ScrollPane,
     pub width: u16,
     pub max_rows: u16,
-    /// Where the picker sits and how it keeps off the screen edges.
-    /// Default [`Place::DEFAULT`](crate::ui::popup::Place): centred like a
-    /// dialog, one free cell from every edge.
+
+
+
     pub fit: crate::ui::popup::Place,
-    /// Where the picker opens relative to [`Self::anchor`]. Default
-    /// [`Placement::Center`] (the quick-switcher position, ignoring the
-    /// anchor); an anchored placement turns it into a drop-down under (or
-    /// beside) a control.
+
+
+
+
     pub placement: Placement,
-    /// The rectangle an anchored [`Self::placement`] opens next to.
-    /// Default `Rect::ZERO`.
+
+
     pub anchor: Rect,
-    /// The hint row at the bottom of the picker (e.g. "↵ open · esc
-    /// close"). Default empty: no hint row, for owners with a shell-level
-    /// hint bar.
+
+
+
     pub hints: String,
-    /// Which screen rows the dimmed backdrop leaves live. Default
-    /// [`Backdrop::DEFAULT`] (the footer row).
+
+
     pub backdrop: Backdrop,
-    /// Optional right-aligned scope label in the query row.
+
     pub scope: Option<String>,
     pub empty_text: String,
-    /// The theme's strings as of the last render: default text still
-    /// reading them follows a change ([`crate::theme::Strings::follow`]).
+
+
     strings: crate::theme::Strings,
-    /// A full empty state (title, hint, error tone) shown instead of
-    /// [`Self::empty_text`] when set. Default `None`.
+
+
     pub empty: Option<crate::widgets::empty::EmptyState>,
     pub area: Rect,
-    /// Show the query field (false for fixed-choice pickers).
+
     pub searchable: bool,
-    /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
-    /// query field that owns the list keeps the only focus bar.
+
+
     pub cursor_style: CursorStyle,
-    /// The cursor moved since the last render: the next render pulls it
-    /// into view. Wheel scrolling leaves it alone so the viewport and the
-    /// selection never fight.
+
+
+
     cursor_dirty: bool,
-    /// How a cut label or detail reveals its full text on hover (see
-    /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+
+
     pub reveal: Option<crate::ui::reveal::Reveal>,
-    /// Which dismissals close the picker without choosing. Default
-    /// [`Dismiss::LIGHT`](crate::ui::popup::Dismiss::LIGHT): Esc and a click outside both cancel.
+
+
     pub dismiss: crate::ui::popup::Dismiss,
-    /// The last action, kept for the stack while the picker is a
-    /// [`crate::ui::layer::Layer`].
+
+
     pub(crate) pending: Option<PickerAction>,
-    /// Delete on the query emits [`PickerAction::Secondary`] for the
-    /// cursor row (close a tab, forget an entry) instead of deleting
-    /// forward. Default `true` (today's binding); off, Delete deletes the
-    /// character after the caret like a search field.
+
+
+
+
     pub delete_is_secondary: bool,
-    /// Which keys move the list cursor (default [`NavKeys::default`]). A
-    /// searchable picker types its letters and edits the query with
-    /// ←/→ and Home/End, so there only ↑/↓ and paging move; a plain list
-    /// takes the whole table.
+
+
+
+
     pub nav: NavKeys,
-    /// What the footer says Enter does on a row ([`HasHints`]). Default
-    /// `Choose`; a tab switcher says `Switch`.
+
+
     pub choose_hint: std::borrow::Cow<'static, str>,
 }
 
-/// The footer while the picker is on top: `Type Filter` when it searches,
-/// how the cursor moves (from [`Picker::nav`]), Enter
-/// ([`Picker::choose_hint`]), and Esc as it acts now (`Clear` while a
-/// query is typed, `Cancel` when the dismiss policy lets Esc close it).
+
+
+
+
 impl HasHints for Picker {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
         let mut v = vec![];
         if self.searchable {
             v.push(Hint::new("Type", "Filter"));
         }
-        // a searchable picker's letters edit the query
+
         v.extend(
             nav_hints(&self.nav, self.searchable, false)
                 .into_iter()
@@ -196,22 +196,22 @@ impl HasHints for Picker {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PickerAction {
-    /// Query text changed; the owner re-supplies items.
+
     QueryChanged,
     Chosen(usize),
-    /// Chosen with the alternate modifier (e.g. open in new tab).
+
     ChosenAlt(usize),
-    /// Enter with a query but no eligible row: the owner may act on the
-    /// query text itself (a path typed into a jump picker).
+
+
     Submit,
-    /// Secondary action on the cursor row (e.g. close tab).
+
     Secondary(usize),
-    /// Tab: the owner moves to the next scope and re-supplies items.
+
     NextScope,
-    /// Shift+Tab: the owner moves to the previous scope (K31).
+
     PrevScope,
     Cancelled,
-    /// Backspace on an empty query: the owner rewinds one step.
+
     Back,
 }
 
@@ -250,13 +250,13 @@ impl Picker {
         }
     }
 
-    /// See [`Self::choose_hint`].
+
     pub fn choose_hint(mut self, action: impl Into<std::borrow::Cow<'static, str>>) -> Self {
         self.choose_hint = action.into();
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -267,67 +267,67 @@ impl Picker {
         self
     }
 
-    /// The query caret as a byte offset.
+
     pub fn caret(&self) -> usize {
         self.query.buffer.cursor_offset()
     }
 
-    /// Width in cells before clamping to the screen. Default 64.
+
     pub fn width(mut self, width: u16) -> Self {
         self.width = width;
         self
     }
 
-    /// See [`Self::placement`].
+
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
         self
     }
 
-    /// Open next to `anchor` per `placement` (see [`Self::anchor`]).
+
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = anchor;
         self.placement = placement;
         self
     }
 
-    /// See [`Self::fit`].
+
     pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
         self.fit = fit;
         self
     }
 
-    /// See [`Self::backdrop`].
+
     pub fn backdrop(mut self, backdrop: Backdrop) -> Self {
         self.backdrop = backdrop;
         self
     }
 
-    /// See [`Self::hints`].
+
     pub fn hints(mut self, hints: &str) -> Self {
         self.hints = hints.to_owned();
         self
     }
 
-    /// Most rows shown before the list scrolls. Default 12.
+
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.max_rows = rows;
         self
     }
 
-    /// The query field's placeholder.
+
     pub fn placeholder(mut self, text: &str) -> Self {
         self.placeholder = text.to_owned();
         self
     }
 
-    /// See [`Self::empty`].
+
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.empty = Some(state);
         self
     }
 
-    /// What an empty result says.
+
     pub fn empty_text(mut self, text: &str) -> Self {
         self.empty_text = text.to_owned();
         self
@@ -338,8 +338,8 @@ impl Picker {
         self
     }
 
-    /// A click outside the picker: cancels it when its [`Self::dismiss`]
-    /// policy allows.
+
+
     pub fn on_click_outside(&mut self) -> Option<PickerAction> {
         self.dismiss
             .outside_click
@@ -351,10 +351,10 @@ impl Picker {
         self
     }
 
-    /// The frame's height in rows before it is fitted to a screen: the
-    /// title, the search field (when searchable), the rows up to
-    /// [`Self::max_rows`] (two for a loading or failed status) and the
-    /// hint row.
+
+
+
+
     pub fn height(&self) -> u16 {
         let rows = if self.status == PickerStatus::Ready {
             (self.items.len() as u16).clamp(1, self.max_rows)
@@ -365,8 +365,8 @@ impl Picker {
         2 + 1 + query_rows + rows + 2
     }
 
-    /// Replace the rows for a new query: the cursor deliberately returns to
-    /// the first eligible row.
+
+
     pub fn set_items(&mut self, items: Vec<PickerItem>) {
         self.items = items;
         self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
@@ -374,9 +374,9 @@ impl Picker {
         self.cursor_dirty = true;
     }
 
-    /// Refresh the rows while the picker stays open: the cursor follows the
-    /// row's `key`, so an insertion or removal above it never retargets the
-    /// selection. A vanished key falls to the first eligible row.
+
+
+
     pub fn refresh_items(&mut self, items: Vec<PickerItem>) {
         let keep = self
             .items
@@ -393,8 +393,8 @@ impl Picker {
         self.cursor_dirty = true;
     }
 
-    /// The row an action may target: only a real, enabled row of a ready
-    /// picker. Every path (Enter, Delete, click) resolves through this.
+
+
     pub fn eligible(&self, i: usize) -> Option<usize> {
         if self.status != PickerStatus::Ready {
             return None;
@@ -402,21 +402,21 @@ impl Picker {
         self.items.get(i).filter(|it| !it.disabled).map(|_| i)
     }
 
-    /// The key of the eligible cursor row, for owners that map identity.
+
     pub fn current_key(&self) -> Option<&str> {
         self.eligible(self.cursor)
             .map(|i| self.items[i].key.as_str())
             .filter(|k| !k.is_empty())
     }
 
-    /// Pasted text enters the query as one edit: line breaks become spaces
-    /// and exactly one `QueryChanged` is emitted.
+
+
     pub fn on_paste(&mut self, text: &str) -> (Outcome, Option<PickerAction>) {
         if !self.searchable || self.status == PickerStatus::Loading(String::new()) {
             return (Outcome::Consumed, None);
         }
-        // a tab is a space in a one-line query; line breaks flatten in
-        // the field ([`EditField::paste`])
+
+
         let flat = text.replace('\t', " ");
         if flat.is_empty() || !self.query.paste(&flat) {
             return (Outcome::Consumed, None);
@@ -424,7 +424,7 @@ impl Picker {
         (Outcome::Changed, Some(PickerAction::QueryChanged))
     }
 
-    /// Move the cursor and ask the next render to keep it in view.
+
     pub fn set_cursor(&mut self, i: usize) {
         self.cursor = i.min(self.items.len().saturating_sub(1));
         self.cursor_dirty = true;
@@ -439,7 +439,7 @@ impl Picker {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// A keyboard move: the next render keeps the cursor in view.
+
     fn move_to(&mut self, i: usize) {
         self.cursor = i;
         self.cursor_dirty = true;
@@ -447,8 +447,8 @@ impl Picker {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<PickerAction>) {
-        // a searchable picker types its letters, and its Home/End and ←/→
-        // edit the query; the list keeps ↑/↓ and paging
+
+
         let typing = self.searchable;
         let nav = self.nav.action(key).filter(|n| {
             !(typing
@@ -522,8 +522,8 @@ impl Picker {
             KeyCode::Backspace if self.query.text().is_empty() || !self.searchable => {
                 (Outcome::Changed, Some(PickerAction::Back))
             }
-            // everything else edits the query: typing, the caret keys,
-            // Select All, the clipboard keys, undo
+
+
             _ if self.searchable => {
                 let r = self.query.on_key(key);
                 if r.edited {
@@ -531,7 +531,7 @@ impl Picker {
                 } else if r.outcome == Outcome::Changed && r.exit.is_none() {
                     (Outcome::Changed, None)
                 } else {
-                    // the picker is modal: an unused key or chord stops here
+
                     (Outcome::Consumed, None)
                 }
             }
@@ -539,14 +539,14 @@ impl Picker {
         }
     }
 
-    /// The row `id` is (the inverse [`Self::on_click`] needs until S15
-    /// hands it the routed part).
+
+
     fn row_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<PickerAction> {
-        // a click outside lands on the picker's backdrop
+
         if id == crate::ui::popup::backdrop_id(self.id) {
             return self.on_click_outside();
         }
@@ -557,14 +557,14 @@ impl Picker {
         Some(PickerAction::Chosen(i))
     }
 
-    /// Dim `screen` and draw the picker with its [`Self::hints`] row.
+
     pub fn draw(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let hints = std::mem::take(&mut self.hints);
         self.paint(screen, buf, ctx, &hints);
         self.hints = hints;
     }
 
-    /// Draw with `hints` for this frame only.
+
     #[deprecated(note = "set `Picker::hints` and call `Picker::draw`")]
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, hints: &str) {
         self.paint(screen, buf, ctx, hints);
@@ -582,12 +582,12 @@ impl Picker {
         );
         Strings::follow(&mut self.empty_text, old.no_matches, s.no_matches);
         let t = ctx.theme;
-        // dim + modal like Dialog
+
         ctx.modal_backdrop_with(buf, screen, self.backdrop);
-        // light dismiss is the picker's: a click outside it lands on its
-        // backdrop (under the modal barrier), resolved to the picker's
-        // `Part::BACKDROP`. Modal: nothing beneath is reachable, so the
-        // click never passes through.
+
+
+
+
         let modal = crate::ui::popup::Dismiss {
             pass_through: false,
             ..self.dismiss
@@ -618,7 +618,7 @@ impl Picker {
             t.title().bg(bg),
         );
         if let Some(scope) = &self.scope {
-            // the scope never overwrites the title: it takes the room that is left
+
             let room = inner.width.saturating_sub(width(&self.title) as u16 + 3) as usize;
             if room >= 6 {
                 let scope = truncate(scope, room);
@@ -649,7 +649,7 @@ impl Picker {
             );
             self.query.keys = ctx.theme.field_keys.unwrap_or_default();
             let w = field.width.saturating_sub(3) as usize;
-            // the text and the cell after it, where the caret can sit
+
             let line = Rect::new(field.x + 2, y, field.width.saturating_sub(2), 1);
             let caret = if self.query.text().is_empty() {
                 buf.set_string(
@@ -660,8 +660,8 @@ impl Picker {
                 );
                 line.as_position()
             } else {
-                // a neutral underline: the field's bar is the one green cue;
-                // a long query scrolls so its caret stays in view (M21)
+
+
                 let look = crate::widgets::edit::LineLook {
                     text: fs,
                     selection: t.selection(),
@@ -673,15 +673,15 @@ impl Picker {
                 self.query.draw_line(buf, line, &look)
             };
             if line.width > 0 {
-                // the whole field row past the gutter is the text target
+
                 let id = ctx.register_part(self.id, PartRef::of(Part::QUERY), line);
                 ctx.pointer_shape(id, crate::core::shape::PointerShape::Text);
             }
             ctx.set_cursor(caret);
             y += 2;
         }
-        // the hint row yields before the list does: a short screen still
-        // shows at least one row of what Enter would choose
+
+
         let hints_fit = inner.bottom() > y + 1;
         let hints = if hints_fit { hints } else { "" };
         let list = Rect::new(
@@ -692,7 +692,7 @@ impl Picker {
         );
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(list.height as usize);
-        // only a cursor move pulls the viewport; a wheel scroll must survive
+
         if self.cursor_dirty {
             self.scroll.ensure_visible(self.cursor);
             self.cursor_dirty = false;
@@ -706,7 +706,7 @@ impl Picker {
                     label,
                     bg,
                 );
-                // hints row still applies
+
                 if !hints.is_empty() {
                     let hy = inner.bottom().saturating_sub(1);
                     buf.set_string(
@@ -751,10 +751,10 @@ impl Picker {
         }
         let has_sb = self.scroll.overflows();
         let row_w = list.width.saturating_sub(u16::from(has_sb));
-        // column widths come from every item, not just the visible ones,
-        // so scrolling never shifts the columns; one solver shares the row
-        // between label and detail by what they measure, so neither is cut
-        // beside cells the other does not use
+
+
+
+
         let measure = |f: &dyn Fn(&PickerItem) -> u16| self.items.iter().map(f).max().unwrap_or(0);
         let label_need = measure(&|i| width(&i.label) as u16).max(6);
         let detail_need = measure(&|i| width(&i.detail) as u16);
@@ -763,7 +763,7 @@ impl Picker {
         let label_cap = label_need.min((row_w * 45 / 100).max(6));
         let mut cols = vec![
             Col::content(label_cap.min(12), label_cap),
-            // the detail gives way first when the row is short
+
             Col::content(detail_need.min(4), detail_need)
                 .flex(1, u16::MAX)
                 .droppable(0),
@@ -790,7 +790,7 @@ impl Picker {
             let row = Rect::new(list.x, ry, list.width.saturating_sub(u16::from(has_sb)), 1);
             fill(buf, row, st);
             buf.set_string(row.x, ry, cr.gutter, cr.gutter_style);
-            // group label inline (first row of a group shows it right-aligned muted)
+
             let show_group = it.group != last_group && !it.group.is_empty();
             last_group = it.group;
             buf.set_string(
@@ -808,7 +808,7 @@ impl Picker {
                 })
                 .remove_modifier(Modifier::BOLD),
             );
-            // fixed columns: label · detail · tag · group, so rows line up
+
             let mut x = row.x + 3;
             let label = truncate(&it.label, label_col as usize);
             let label_cut = !it.disabled
@@ -885,7 +885,7 @@ impl Picker {
             self.scroll
                 .draw_with_fade(list, buf, ctx, self.id, true, &[]);
         }
-        // hints row: owners with a shell-level hint bar pass an empty string
+
         if !hints.is_empty() {
             let hy = inner.bottom().saturating_sub(1);
             buf.set_string(
@@ -922,11 +922,11 @@ impl Scrollable for Picker {
     }
 }
 
-/// The picker's pointer gestures: a wheel or a bar press scrolls its
-/// list; a completed click on a row chooses it ([`Picker::on_click`]); a
-/// click outside it lands on its backdrop and cancels it when its
-/// [`Picker::dismiss`] policy allows ([`Picker::on_click_outside`]; a
-/// refused one is consumed); any other click on it is consumed.
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for Picker {
     type Action = PickerAction;
 
@@ -940,16 +940,16 @@ impl crate::core::pointer::MouseTarget for Picker {
     ) -> crate::core::response::Response<PickerAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-        // the wheel outside the picker (its backdrop) moves nothing
+
         if ev.wheel().is_some() && ev.part().part == Part::BACKDROP {
             return Response::ignored();
         }
         if let Some(r) = crate::core::pointer::scroll_input(self, ev) {
             return r.lift();
         }
-        // the query field takes the text gestures (M21): a click places
-        // the caret, a double click selects a word, a triple click the
-        // query, a drag selects what it crosses
+
+
+
         if self.searchable && ev.part().part == Part::QUERY {
             let at = self.query.line_offset_at(ev.pos());
             match ev.phase() {
@@ -971,8 +971,8 @@ impl crate::core::pointer::MouseTarget for Picker {
             self.on_click_outside()
         } else {
             match self.on_click(ev.id) {
-                // Alt (Option) picks the alternative, as Alt+Enter does
-                // (A24); a terminal that keeps Option-click leaves the key
+
+
                 Some(PickerAction::Chosen(i))
                     if ev
                         .mods()
@@ -1016,7 +1016,7 @@ mod tests {
         assert_eq!(p.query.text(), "ordrs");
         p.on_key(&k(KeyCode::Home, M::NONE));
         assert_eq!(p.caret(), 0);
-        // Delete stays the secondary action by default
+
         assert!(matches!(
             p.on_key(&k(KeyCode::Delete, M::NONE)).1,
             Some(PickerAction::Secondary(_)) | None
@@ -1070,11 +1070,11 @@ mod tests {
         Key { code, mods }
     }
 
-    /// M21 (S11): the query is the shared text field. A click places the
-    /// caret, a double click selects the word, a drag selects, through the
-    /// router (a click did nothing); Cmd+A selects the query (it was
-    /// typed or dropped); a long query scrolls so the caret never sits on
-    /// the ellipsis (it was cut with `…` and the caret clamped onto it).
+
+
+
+
+
     #[test]
     fn the_query_takes_clicks_word_selection_select_all_and_scrolls() {
         use crate::core::intent::Phase;
@@ -1116,7 +1116,7 @@ mod tests {
             "typing replaces the selection"
         );
         assert_eq!(p.query.text(), "x");
-        // a query longer than the field keeps its caret on a character
+
         p.query.set_text("long ".repeat(30));
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
@@ -1131,10 +1131,10 @@ mod tests {
 
     #[test]
     fn home_end_and_paging_never_land_on_a_disabled_end_row() {
-        // duplication-widgets P0: `step(±n)` clamped onto a disabled end row
+
         use ratatui::crossterm::event::KeyModifiers as M;
         let mut p = picker(5);
-        // Home/End edit a searchable picker's query; a plain one moves
+
         p.searchable = false;
         p.items[0].disabled = true;
         p.items[4].disabled = true;
@@ -1204,20 +1204,20 @@ mod tests {
     fn refresh_keeps_identity_and_query_reset_selects_first() {
         let mut p = picker(4);
         p.cursor = 2;
-        // a row above the cursor disappears: the cursor follows its key
+
         let mut items = p.items.clone();
         items.remove(0);
         p.refresh_items(items);
         assert_eq!(p.cursor, 1);
         assert_eq!(p.current_key(), Some("k2"));
-        // the cursor row itself disappears: first eligible row, never a
-        // neighbour pretending to be it
+
+
         let mut items = p.items.clone();
         items.remove(1);
         items[0].disabled = true;
         p.refresh_items(items);
         assert_eq!(p.current_key(), Some("k3"));
-        // a query reset deliberately selects the first eligible row
+
         p.cursor = 1;
         p.set_items(picker(3).items);
         assert_eq!(p.cursor, 0);
@@ -1257,12 +1257,12 @@ mod tests {
         p.on_key(&k(KeyCode::Char('u'), M::CONTROL));
         assert_eq!(p.query.text(), "");
         assert_eq!(p.on_key(&k(KeyCode::Char('u'), M::CONTROL)).1, None);
-        // a search-disabled picker ignores paste and typing
+
         p.searchable = false;
         assert_eq!(p.on_paste("x"), (Outcome::Consumed, None));
         let (_, ev) = p.on_key(&k(KeyCode::Char('x'), M::NONE));
         assert_eq!(ev, None);
-        // an unassigned modified chord is consumed by the modal, not typed
+
         p.searchable = true;
         let (_, ev) = p.on_key(&k(KeyCode::Char('s'), M::CONTROL));
         assert_eq!(ev, None);
@@ -1346,7 +1346,7 @@ mod tests {
         let field = out.lines().position(|l| l.contains('▎')).unwrap();
         let row = out.lines().position(|l| l.contains("Item 00")).unwrap();
         assert!(field < row, "the bar sits on the field, not the cursor row");
-        // the cursor row is the highlight fill, never green
+
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();
         let mut ctx = RenderCtx::new(&t, Interaction::default(), &mut hits, &mut ring);
@@ -1355,11 +1355,11 @@ mod tests {
         let x = out.lines().nth(row).unwrap().find("Item 00").unwrap();
         let x = out.lines().nth(row).unwrap()[..x].chars().count() as u16;
         assert_eq!(buf[(x, row as u16)].style().bg, Some(t.highlight));
-        // the query underline is neutral: one green cue per row
+
         let q = out.lines().nth(field).unwrap();
         let qx = q[..q.find("it").unwrap()].chars().count() as u16;
         assert_eq!(buf[(qx, field as u16)].underline_color, t.text_secondary);
-        // the bar look stays available as configuration
+
         let mut barred = picker(4).cursor_style(CursorStyle::Bar);
         assert_eq!(render(&mut barred).matches('▎').count(), 2);
     }
@@ -1375,7 +1375,7 @@ mod tests {
         assert!(!after.contains("Item 00"), "wheel moved the viewport");
         assert!(after.contains("Item 03"));
         assert_eq!(p.scroll.offset, 3);
-        // a second render keeps the offset
+
         let again = render(&mut p);
         assert_eq!(again, after);
         assert_eq!(p.scroll.offset, 3);
@@ -1464,8 +1464,8 @@ mod tests {
         assert_eq!((p.area.x, p.area.y), (6, 5), "{:?}", p.area);
     }
 
-    /// The picker over a page, and the pointer event a click at `pos`
-    /// resolves to in that frame (`None`: nothing there is reachable).
+
+
     fn click_over_page(
         p: &mut Picker,
         pos: ratatui::layout::Position,
@@ -1493,8 +1493,8 @@ mod tests {
         ))
     }
 
-    /// A24: Alt+click on a row picks its alternative, as Alt+Enter does; a
-    /// plain click picks the row.
+
+
     #[test]
     fn an_alt_click_on_a_row_chooses_its_alternative() {
         use crate::core::intent::Phase;
@@ -1529,9 +1529,9 @@ mod tests {
         );
     }
 
-    /// S5 deviation 5: a click outside the picker lands on its own
-    /// light-dismiss backdrop (under its modal barrier) and cancels it
-    /// through its layer, as Esc does.
+
+
+
     #[test]
     fn a_click_outside_the_picker_lands_on_its_backdrop_and_cancels_it() {
         use crate::ui::layer::{Dismissed, LayerPointer, LayerTag, ShellLayers};
@@ -1556,8 +1556,8 @@ mod tests {
         assert!(stack.is_empty());
     }
 
-    /// A picker whose policy refuses an outside click stays open: the
-    /// click on its backdrop is consumed.
+
+
     #[test]
     fn a_refused_outside_click_on_the_picker_is_consumed() {
         use crate::core::pointer::MouseTarget;

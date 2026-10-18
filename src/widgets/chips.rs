@@ -1,5 +1,5 @@
-//! Chip bar: a row of removable, toggleable chips (filters, tags). One
-//! focus stop; ← → move the cursor, Enter activates, Delete removes.
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -19,11 +19,11 @@ use crate::ui::tooltip::Tip;
 use crate::widgets::icon_button::IconButton;
 use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
-/// How many items of a horizontal run fit in `avail` cells (`widths` each,
-/// `gap` cells between them), and the `+N` marker naming the ones that do
-/// not. When the whole run fits the marker is `None`; otherwise as many
-/// items as leave room for the marker are kept, so a cut run always says
-/// how much it hides instead of ending silently.
+
+
+
+
+
 pub fn overflow_run(widths: &[u16], avail: u16, gap: u16) -> (usize, Option<String>) {
     let total: u32 = widths.iter().map(|&w| w as u32).sum::<u32>()
         + gap as u32 * widths.len().saturating_sub(1) as u32;
@@ -70,63 +70,63 @@ pub struct ChipBar {
     pub chips: Vec<Chip>,
     pub cursor: usize,
     pub add_label: Option<String>,
-    /// Leading label such as `match all ▾` (clickable, emits `Toggle`).
+
     pub lead: Option<String>,
     pub area: Rect,
-    /// Chips that do not fit are counted in a muted `+N` marker after the
-    /// last one shown. Default true; off, the run just ends.
+
+
     pub overflow_marker: bool,
-    /// Which keys move between chips (default [`NavKeys::default`]: ←/→,
-    /// `h`/`l`, Home/End, `g`/`G`).
+
+
     pub nav: NavKeys,
-    /// The bar's action keys (default [`ChipCmd::default_keymap`]).
+
     pub keymap: KeyMap<ChipCmd>,
-    /// The template of every chip's `×` (its id is replaced per chip): a
-    /// plate centred on the glyph and kept inside the chip, drawn and hit
-    /// as one target (a one-cell target is too small to hit reliably).
-    /// Default [`IconButton::close`]: three cells, neutral hover, tooltip
-    /// `Remove` with the first [`ChipCmd::Remove`] key.
+
+
+
+
+
     pub close_button: IconButton,
-    /// The `+N` marker is a button: a click opens a menu of the chips that
-    /// do not fit, and choosing one activates it. Default `true` (with
-    /// [`Self::overflow_marker`]).
+
+
+
     pub overflow_menu: bool,
-    /// The `+N` overflow button: a padded plate like `+` and `×`, its glyph
-    /// set to `+N` each frame (docs/design/close-button.md). Default
-    /// [`IconButton::new`] on the title ladder, tooltip `Show hidden`
-    /// ([`crate::theme::Strings::tip_overflow`]).
+
+
+
+
     pub more_button: IconButton,
-    /// `1`–`9` toggle the first nine chips while the bar has focus (a
-    /// stream filter: each digit switches one source on or off). Default
-    /// off: digits are left to the page.
+
+
+
     pub digit_toggles: bool,
-    /// The open overflow menu and the chip each of its rows stands for.
+
     menu: Option<(ContextMenu, Vec<usize>)>,
-    /// Chips shown in the last render (the rest sit behind `+N`).
+
     shown: usize,
-    /// Where the `+N` marker was drawn (the menu's anchor).
+
     more_area: Rect,
 }
 
-/// A [`ChipBar`] action a key can be bound to.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChipCmd {
-    /// Remove the cursor chip (when removable). Default Delete, Backspace
-    /// and `x`.
+
+
     Remove,
-    /// Ask to add a chip. Default `+`.
+
     Add,
-    /// Ask to clear every chip. Default `X`.
+
     ClearAll,
-    /// Open the menu of the chips the bar hides (what the `+N` button
-    /// opens), with its first row highlighted. Default ↓, the menu-button
-    /// key. Only while chips are hidden; otherwise the key does what it
-    /// did.
+
+
+
+
     ShowHidden,
-    /// Run the leading label (`match all ▾`), as a click on it does
-    /// ([`ChipAction::Lead`]), so the lead is not click-only (K38). Default
-    /// `m`. Only while the bar has a [`ChipBar::lead`]; otherwise the key
-    /// passes on.
+
+
+
+
     Lead,
 }
 
@@ -186,42 +186,42 @@ impl ChipBar {
         }
     }
 
-    /// The `×` plate `cells` wide, drawn and hit (default 3): sets the
-    /// padding of [`Self::close_button`].
+
+
     pub fn close_target_w(mut self, cells: u16) -> Self {
         self.close_button = self.close_button.plate(cells);
         self
     }
 
-    /// See [`Self::close_button`].
+
     pub fn close_button(mut self, button: IconButton) -> Self {
         self.close_button = button;
         self
     }
 
-    /// See [`Self::more_button`].
+
     pub fn more_button(mut self, button: IconButton) -> Self {
         self.more_button = button;
         self
     }
 
-    /// See [`Self::overflow_menu`].
+
     pub fn overflow_menu(mut self, on: bool) -> Self {
         self.overflow_menu = on;
         self
     }
 
-    /// The `+N` overflow button.
+
     pub fn more_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::OVERFLOW))
     }
 
-    /// The overflow menu.
+
     pub fn menu_id(&self) -> WidgetId {
         self.id.sub("more-menu")
     }
 
-    /// The overflow menu is open: it owns the bar's keys.
+
     pub fn menu_open(&self) -> bool {
         self.menu.is_some()
     }
@@ -255,25 +255,25 @@ impl ChipBar {
         }
     }
 
-    /// See [`Self::digit_toggles`].
+
     pub fn digit_toggles(mut self, on: bool) -> Self {
         self.digit_toggles = on;
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<ChipCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-    /// Show (default) or hide the `+N` count of chips that do not fit.
+
     pub fn overflow_marker(mut self, on: bool) -> Self {
         self.overflow_marker = on;
         self
@@ -288,12 +288,12 @@ impl ChipBar {
     pub fn add_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::NEW))
     }
-    /// The leading label (`Filters:`), a `Part::TITLE`.
+
     pub fn lead_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::TITLE))
     }
 
-    /// Cursor positions: 0..n chips, n = add button.
+
     fn stops(&self) -> usize {
         self.chips.len() + usize::from(self.add_label.is_some())
     }
@@ -320,7 +320,7 @@ impl ChipBar {
         }
         let action = lookup(&self.keymap, key);
         if unassigned_chord(key, &self.keymap) {
-            // an unassigned modified chord never performs a plain action
+
             return (Outcome::Ignored, None);
         }
         match action {
@@ -378,7 +378,7 @@ impl ChipBar {
             }
             return (Outcome::Changed, None);
         }
-        // any other click on the bar closes an open overflow menu
+
         self.menu = None;
         if id == self.add_id() {
             self.cursor = self.chips.len();
@@ -434,10 +434,10 @@ impl ChipBar {
             if i >= shown {
                 if let Some(m) = marker.as_ref().filter(|_| self.overflow_marker) {
                     if self.overflow_menu {
-                        // a padded plate like `+` and `×` (the gap cells
-                        // either side are its padding, so nothing moves at
-                        // rest): the hit area is the plate, which lights
-                        // whole on hover (docs/design/close-button.md)
+
+
+
+
                         let left = x.saturating_sub(1).max(area.x);
                         let r = Rect::new(left, y, x + width(m) as u16 + 1 - left, 1)
                             .intersection(area);
@@ -469,7 +469,7 @@ impl ChipBar {
                 break;
             }
             let cid = self.chip_id(i);
-            // the × is its own control: hovering it does not hover the chip
+
             let mut s = ctx.child_state(self.id, cid, i == self.cursor);
             s.focused = focused && i == self.cursor;
             s.selected = chip.enabled;
@@ -486,8 +486,8 @@ impl ChipBar {
             buf.set_string(x + 1, y, truncate(&chip.label, label_w as usize), st);
             if chip.removable {
                 ctx.register_part(self.id, PartRef::item(Part::ROW, ItemKey::index(i)), r);
-                // the × plate centred on the glyph, inside the chip: drawn
-                // and hit as one target, on top of the chip
+
+
                 let gx = x + 2 + label_w;
                 let cw = self.close_button.width(t).max(1).min(w);
                 let left = gx
@@ -527,7 +527,7 @@ impl ChipBar {
         }
         self.more_area = more_area;
         if more_area.is_empty() {
-            // nothing hides any more: the menu has nothing to list
+
             self.menu = None;
         }
         if let Some((menu, _)) = self.menu.as_mut() {
@@ -536,7 +536,7 @@ impl ChipBar {
     }
 }
 
-/// The chips, then the add button when there is one.
+
 impl RowSource for ChipBar {
     fn len(&self) -> usize {
         self.stops()
@@ -552,8 +552,8 @@ impl Navigable for ChipBar {
     }
 }
 
-/// The bar at rest, hovered (over its first chip), focused, with an error
-/// chip, overflowing into `+N`, and narrow.
+
+
 impl crate::ui::specimen::Specimen for ChipBar {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -580,7 +580,7 @@ impl crate::ui::specimen::Specimen for ChipBar {
         b.menu = None;
         let v = state.visual();
         if v.hovered && !b.chips.is_empty() {
-            // the pointer rests on a chip, not on the bar
+
             ctx.interaction.hover = Some(b.chip_id(0));
         }
         match state {
@@ -600,10 +600,10 @@ impl crate::ui::specimen::Specimen for ChipBar {
     }
 }
 
-/// The bar's pointer gestures: a completed click on a chip, its `×`, the
-/// lead, the add button, the `+N` button or a row of its open menu is
-/// [`ChipBar::on_click`]. The overflow menu is the bar's too
-/// ([`Self::route`]).
+
+
+
+
 impl crate::core::pointer::MouseTarget for ChipBar {
     type Action = ChipAction;
 
@@ -660,8 +660,8 @@ mod tests {
         bar
     }
 
-    /// `1`–`9` toggle the chip of that number only when the bar asks for
-    /// it; otherwise digits pass on to the page.
+
+
     #[test]
     fn digit_toggles_switch_the_numbered_chip() {
         let key = |c| Key {
@@ -676,12 +676,12 @@ mod tests {
             (Outcome::Changed, Some(ChipAction::Toggle(1)))
         );
         assert_eq!(b.cursor, 1);
-        // no third chip: the digit passes on
+
         assert_eq!(b.on_key(&key('3')), (Outcome::Ignored, None));
     }
 
-    /// K38: the lead (`match all ▾`) has a key, so it is not click-only;
-    /// without a lead the key passes on to the page.
+
+
     #[test]
     fn the_lead_key_runs_the_lead_like_a_click() {
         let m = Key {
@@ -692,7 +692,7 @@ mod tests {
         assert_eq!(b.on_key(&m), (Outcome::Ignored, None));
         b.lead = Some("match all ▾".into());
         assert_eq!(b.on_key(&m), (Outcome::Changed, Some(ChipAction::Lead)));
-        // the click on the lead and the key report the same action
+
         let lead = b.lead_id();
         assert_eq!(b.on_click(lead).1, Some(ChipAction::Lead));
     }
@@ -702,7 +702,7 @@ mod tests {
         let t = Theme::junie();
         let mut b = bar();
         let x_id = b.close_id(0);
-        // " alpha × ": the × sits after the label and a space
+
         let rest = draw(&mut b, &t, Interaction::default());
         let x = (0..40).find(|&x| rest[(x, 0)].symbol() == "×").unwrap();
         let hover = draw(
@@ -732,8 +732,8 @@ mod tests {
         );
     }
 
-    // docs/design/close-button.md: the × is a three-cell plate, drawn as
-    // wide as it hits, on hover and on press, at every colour level
+
+
     #[test]
     fn the_remove_plate_lights_as_wide_as_it_hits() {
         for level in ColorLevel::ALL {
@@ -815,9 +815,9 @@ mod overflow_tests {
     #[test]
     fn a_run_that_does_not_fit_keeps_room_for_its_count() {
         assert_eq!(overflow_run(&[5, 5, 5], 17, 1), (3, None));
-        // 5+1+5+1 = 12, "+1" needs 2 more: 14 <= 16
+
         assert_eq!(overflow_run(&[5, 5, 5], 16, 1), (2, Some("+1".into())));
-        // only the marker fits
+
         assert_eq!(overflow_run(&[9, 9], 4, 1), (0, Some("+2".into())));
         assert_eq!(overflow_run(&[9, 9], 1, 1), (0, None));
     }
@@ -873,8 +873,8 @@ mod overflow_tests {
             .join("\n")
     }
 
-    /// Mouse audit #30: chips past the `+N` marker were unreachable by
-    /// mouse; the marker now opens a menu of them.
+
+
     #[test]
     fn the_plus_n_marker_opens_a_menu_of_the_hidden_chips() {
         let mut bar = ChipBar::new(WidgetId::of("c"));
@@ -887,8 +887,8 @@ mod overflow_tests {
         let more = hits
             .area_of(bar.more_id())
             .expect("the +N marker is a target");
-        // a padded plate (docs/design/close-button.md): one cell either
-        // side of `+N`, the gap cells, so nothing moves at rest
+
+
         let (buf, hits) = render_hits(&mut bar, 24);
         let plate: String = (more.left()..more.right())
             .map(|x| buf[(x, 0)].symbol().to_owned())
@@ -907,7 +907,7 @@ mod overflow_tests {
         assert_eq!(bar.on_click(last).1, Some(ChipAction::Activate(3)));
         assert_eq!(bar.cursor, 3);
         assert!(!bar.menu_open());
-        // Esc and an outside click close it without a choice
+
         bar.on_click(bar.more_id());
         let esc = Key {
             code: KeyCode::Esc,
@@ -923,15 +923,15 @@ mod overflow_tests {
         assert_eq!(hits.part_of(outside).map(|h| h.owner), Some(bar.menu_id()));
         bar.on_click(outside);
         assert!(!bar.menu_open());
-        // off: the marker is plain text
+
         let mut plain = bar.clone().overflow_menu(false);
         let (_, hits) = render_hits(&mut plain, 24);
         assert!(hits.area_of(plain.more_id()).is_none());
     }
 
-    /// SC14 finding: the `+N` menu had no keyboard opener. ↓ (the
-    /// menu-button key, `ChipCmd::ShowHidden`) opens it while chips are
-    /// hidden; the `+N` tooltip names the key.
+
+
+
     #[test]
     fn down_opens_the_menu_of_the_hidden_chips() {
         let key = |code| Key {
@@ -957,8 +957,8 @@ mod overflow_tests {
         );
     }
 
-    /// AGENTS.md: exactly one `▎`, in the topmost layer. The open `+N`
-    /// menu is that layer, so the focused bar under it shows none.
+
+
     #[test]
     fn the_focused_bar_under_its_open_menu_shows_no_focus() {
         let mut bar = ChipBar::new(WidgetId::of("c"));

@@ -1,31 +1,31 @@
-//! Clocks the shell reads time from: [`WallClock`] for live applications,
-//! [`SimClock`] for deterministic previews whose time advances only with
-//! runtime ticks (a given `--frame N` renders the same picture every
-//! time). Both implement [`Clock`]; time-based shell behaviour (the status
-//! line's expiry, [`crate::shell::StatusLine`]) reads a [`Moment`] from it.
-//!
-//! Explicit clock steps: under `--motion paused` a [`SimClock`] is stopped,
-//! so a job scheduled on virtual time (a save that fails after 900 ms, a
-//! role load after 1,100 ms) never fires and a capture cannot reach the
-//! dialog it opens. A [`ClockStep`] request (a bracketed paste of
-//! [`ClockStep::request`], sent by the visual harness's `advance:<ms>`
-//! step) asks the shell to run the stopped clock for that long through the
-//! app's own tick ([`crate::shell::App::advance_clock`], [`run_step`]),
-//! then stop it again, so the frame settles. Only a paused app whose
-//! process opted in (`JUNIE_TUI_TEST_CLOCK=1`, set by the harness for a
-//! scenario that sends a step) honours it; everywhere else the paste is
-//! an ordinary paste, so real users can never step a clock.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::core::event::Outcome;
 
 use std::time::{Duration, Instant};
 
-/// A point on a [`Clock`]: milliseconds since that clock's origin.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Moment(u64);
 
 impl Moment {
-    /// The clock's origin.
+
     pub const ZERO: Moment = Moment(0);
 
     pub const fn from_millis(ms: u64) -> Moment {
@@ -36,37 +36,37 @@ impl Moment {
         self.0
     }
 
-    /// Milliseconds from `earlier` to `self`, zero if `earlier` is later.
+
     pub const fn since(self, earlier: Moment) -> u64 {
         self.0.saturating_sub(earlier.0)
     }
 
-    /// `self` moved `ms` later.
+
     pub const fn after(self, ms: u64) -> Moment {
         Moment(self.0.saturating_add(ms))
     }
 }
 
-/// A source of [`Moment`]s.
+
 pub trait Clock {
     fn now(&self) -> Moment;
 }
 
-/// Real time, measured from when the clock was made.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WallClock {
     origin: Instant,
 }
 
 impl WallClock {
-    /// A clock whose origin is now.
+
     pub fn new() -> Self {
         Self {
             origin: Instant::now(),
         }
     }
 
-    /// A clock whose origin is `origin` (tests rewind it).
+
     pub fn with_origin(origin: Instant) -> Self {
         Self { origin }
     }
@@ -75,12 +75,12 @@ impl WallClock {
         self.origin
     }
 
-    /// Milliseconds since the origin.
+
     pub fn now_ms(&self) -> u64 {
         self.origin.elapsed().as_millis() as u64
     }
 
-    /// Time since the origin.
+
     pub fn elapsed(&self) -> Duration {
         self.origin.elapsed()
     }
@@ -98,24 +98,24 @@ impl Clock for WallClock {
     }
 }
 
-/// Fixture time for deterministic previews: virtual milliseconds since a
-/// fixed epoch that advance only with runtime ticks. Calendar helpers
-/// format instants (Unix seconds) in the fixture's zone.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SimClock {
-    /// Virtual milliseconds since the epoch.
+
     pub now_ms: i64,
-    /// Whether ticks advance at all (`--motion paused` freezes them).
+
     pub running: bool,
-    /// Unix seconds of virtual millisecond 0.
+
     pub epoch_secs: i64,
-    /// Offset of the fixture zone from UTC, in seconds.
+
     pub utc_offset_secs: i64,
 }
 
 impl SimClock {
-    /// A running clock at `epoch_secs` (Unix seconds), formatting in a zone
-    /// `utc_offset_secs` from UTC.
+
+
     pub const fn new(epoch_secs: i64, utc_offset_secs: i64) -> Self {
         Self {
             now_ms: 0,
@@ -125,14 +125,14 @@ impl SimClock {
         }
     }
 
-    /// Advance by one runtime tick of `interval_ms`, unless stopped.
+
     pub fn advance(&mut self, interval_ms: i64) {
         if self.running {
             self.now_ms += interval_ms;
         }
     }
 
-    /// Unix seconds now.
+
     pub fn now_secs(&self) -> i64 {
         self.epoch_secs + self.now_ms.div_euclid(1000)
     }
@@ -141,28 +141,28 @@ impl SimClock {
         secs + self.utc_offset_secs
     }
 
-    /// `HH:MM` for an instant, in the fixture zone.
+
     pub fn hhmm(&self, secs: i64) -> String {
         let day = self.local(secs).rem_euclid(86_400);
         format!("{:02}:{:02}", day / 3600, (day % 3600) / 60)
     }
 
-    /// `2026-09-03 09:14` for an instant, in the fixture zone.
+
     pub fn stamp(&self, secs: i64) -> String {
         let days = self.local(secs).div_euclid(86_400);
         let (y, m, d) = civil_from_days(days);
         format!("{y:04}-{m:02}-{d:02} {}", self.hhmm(secs))
     }
 
-    /// Weekday short name for an instant (`Mon`), in the fixture zone.
+
     pub fn weekday(&self, secs: i64) -> &'static str {
         let days = self.local(secs).div_euclid(86_400);
-        // 1970-01-01 was a Thursday
+
         const NAMES: [&str; 7] = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
         NAMES[days.rem_euclid(7) as usize]
     }
 
-    /// `12 s ago`, `3 min ago`, `2 h ago`, `yesterday`, `3 d ago`.
+
     pub fn ago(&self, then_secs: i64) -> String {
         let delta = (self.now_secs() - then_secs).max(0) as u64;
         match delta {
@@ -174,8 +174,8 @@ impl SimClock {
         }
     }
 
-    /// `resets in 2 h 14 min` within a day, `resets Mon 09:00` beyond it,
-    /// `resets now` once past.
+
+
     pub fn reset_label(&self, then_secs: i64) -> String {
         let delta = then_secs - self.now_secs();
         if delta <= 0 {
@@ -198,34 +198,34 @@ impl SimClock {
     }
 }
 
-/// The in-band request for an explicit clock step: the whole text of one
-/// bracketed paste. It travels with the keys, so a step lands after the
-/// inputs sent before it, which a signal could not promise.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ClockStep;
 
 impl ClockStep {
-    /// What a request starts with; the rest is the step in milliseconds.
+
     pub const PREFIX: &'static str = "junie-tui:advance-clock:";
 
-    /// The environment variable a test harness sets to `1` to opt in.
+
     pub const ENV: &'static str = "JUNIE_TUI_TEST_CLOCK";
 
-    /// Whether this process opted in to clock steps: [`Self::ENV`] is `1`.
-    /// Read once, at the first call (the shell's start).
+
+
     pub fn opted_in() -> bool {
         static OPTED_IN: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
         *OPTED_IN.get_or_init(|| std::env::var_os(Self::ENV).is_some_and(|v| v == "1"))
     }
 
-    /// The paste that asks for a step of `ms` virtual milliseconds.
+
     pub fn request(ms: u64) -> String {
         format!("{}{ms}", Self::PREFIX)
     }
 
-    /// The step a pasted `text` asks for: the whole paste must be a
-    /// request (no surrounding text) for a positive number of
-    /// milliseconds.
+
+
+
     pub fn parse(text: &str) -> Option<u64> {
         let digits = text.strip_prefix(Self::PREFIX)?;
         if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
@@ -235,12 +235,12 @@ impl ClockStep {
     }
 }
 
-/// Run `app`'s clock for an explicit step of `ms` virtual milliseconds: the
-/// clock (`clock`) runs for the step even when stopped, `tick` is called
-/// until it has advanced the clock by at least `ms` (each call is one of
-/// the app's own ticks, so scheduled jobs fire and state advances exactly
-/// as on a running clock), then the clock's `running` flag is restored.
-/// A tick that does not advance the clock ends the step (no endless loop).
+
+
+
+
+
+
 pub fn run_step<A: ?Sized>(
     app: &mut A,
     clock: fn(&mut A) -> &mut SimClock,
@@ -274,7 +274,7 @@ impl Clock for SimClock {
     }
 }
 
-/// Howard Hinnant's days-to-civil algorithm.
+
 fn civil_from_days(z: i64) -> (i64, u32, u32) {
     let z = z + 719_468;
     let era = z.div_euclid(146_097);
@@ -292,7 +292,7 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
 mod tests {
     use super::*;
 
-    const EPOCH: i64 = 1_788_401_640; // 2026-09-03 09:14 UTC+7
+    const EPOCH: i64 = 1_788_401_640;
     const ZONE: i64 = 7 * 3600;
 
     #[test]
@@ -356,7 +356,7 @@ mod tests {
         assert_eq!(out, Outcome::Changed);
         assert_eq!((t.clock.now_ms, t.ticks), (1_500, 3));
         assert!(!t.clock.running, "the paused clock is stopped again");
-        // stopped again: an ordinary tick does not move it
+
         t.clock.advance(500);
         assert_eq!(t.clock.now_ms, 1_500);
     }

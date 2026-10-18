@@ -1,6 +1,6 @@
-//! Composed screen: project settings with tabs, a form, an editable
-//! members table with a destructive dialog, and an environment list with a
-//! prompt dialog.
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
@@ -53,7 +53,7 @@ fn var_validator(s: &str) -> Option<String> {
 
 pub struct SettingsPage {
     tabs: Tabs,
-    // general
+
     name: TextInput,
     description: TextArea,
     visibility: RadioGroup,
@@ -61,11 +61,11 @@ pub struct SettingsPage {
     protect: Toggle,
     save: Button,
     dirty: bool,
-    // members
+
     members: DataTable,
     remove: Button,
     invite: Button,
-    // env
+
     env: ListBox,
     add_var: Button,
     remove_vars: Button,
@@ -278,7 +278,7 @@ impl Page for SettingsPage {
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         let out = self.handle_event(ev, cx);
-        // the tab of the section with unsaved edits carries the dirty mark
+
         if let Some(general) = self.tabs.items.get_mut(0) {
             general.dirty = self.dirty;
         }
@@ -412,15 +412,15 @@ impl SettingsPage {
     }
 }
 
-/// A button's share of a pointer event: `Some(activated)` when the event
-/// was its click, `None` when it was not the button's.
+
+
 fn clicked(b: &mut Button, ev: &PointerEvent) -> Option<bool> {
     let r = b.route(ev)?;
     (r.outcome() != Outcome::Ignored).then(|| r.into_action().is_some())
 }
 
 impl SettingsPage {
-    /// The page's events; [`Page::handle`] syncs the tabs after them.
+
     fn handle_event(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(

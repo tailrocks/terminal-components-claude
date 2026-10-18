@@ -1,6 +1,6 @@
-//! The Feedback pages through the real app (plan §7 SC21, Progress and
-//! Empty & error): options set through `--opt` change the playground, the
-//! States rows render, and the key interactions work.
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -21,7 +21,7 @@ pub(crate) struct Harness {
     pub term: Terminal<TestBackend>,
 }
 
-#[allow(dead_code)] // each page's tests use what they need
+#[allow(dead_code)]
 impl Harness {
     pub fn new(w: u16, h: u16, page: PageId) -> Self {
         let mut app = App::new(Theme::junie());
@@ -111,7 +111,7 @@ impl Harness {
             .join("\n")
     }
 
-    /// Column and row of `needle`'s first cell.
+
     pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         let want: Vec<&str> =
@@ -137,9 +137,9 @@ impl Harness {
     }
 }
 
-/// Print every section of the pages in `DUMP_PAGES` at `DUMP_SIZE`
-/// (default 120x40), after the `--opt` values in `DUMP_OPTS`
-/// (`--run-ignored only --no-capture`).
+
+
+
 #[test]
 #[ignore]
 fn dump_feedback_pages() {
@@ -161,9 +161,9 @@ fn dump_feedback_pages() {
     }
 }
 
-// ------------------------------------------------------------------ Progress
 
-/// The first column of the track (`━` or `─`) right of `label`.
+
+
 fn track_start(h: &Harness, label: &str) -> u16 {
     let t = Theme::junie();
     let (x, y) = h.at(label);
@@ -172,7 +172,7 @@ fn track_start(h: &Harness, label: &str) -> u16 {
         .expect("a track")
 }
 
-/// The last track column of the row holding `label`.
+
 fn track_end(h: &Harness, label: &str) -> u16 {
     let t = Theme::junie();
     let (x, y) = h.at(label);
@@ -193,7 +193,7 @@ fn progress_label_width_lines_the_bars_up_or_measures_each_label() {
     h.opt("progress.label_width=measured");
     assert!(track_start(&h, "Build image") < track_start(&h, "Push to registry"));
     h.opt("progress.label_width=10");
-    // a label longer than the column is cut, the tracks still line up
+
     assert_eq!(track_start(&h, "Build ima"), track_start(&h, "Push to r"));
 }
 
@@ -259,7 +259,7 @@ fn progress_states_grid_shows_bars_and_meters_in_every_content_state() {
     }
 }
 
-// ------------------------------------------------------------ Empty & error
+
 
 #[test]
 fn empty_kind_hint_and_actions_follow_the_options() {
@@ -313,7 +313,7 @@ fn read_only_row_actions_stay_listed_with_their_reason() {
     h.click_id(WidgetId::of("emptyerror").sub("actions"));
     let (_, y) = h.at("Edit cell");
     assert!(h.row(y).contains("read-only view"), "{}", h.row(y));
-    // the cursor starts on the first enabled item; Enter chooses it
+
     h.key(KeyCode::Enter);
     assert_eq!(h.status(), "Copied row 1041");
     assert!(h.find("Edit cell").is_none(), "the menu closed");

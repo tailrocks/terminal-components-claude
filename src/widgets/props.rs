@@ -1,5 +1,5 @@
-//! Label / value facts, e.g. a connection's details or a plan node's
-//! metadata. Labels are muted and right-padded to a shared width.
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -26,7 +26,7 @@ pub struct Prop {
     pub value: String,
     pub tone: Tone,
     pub wrap: bool,
-    /// This row may be copied with `y`; everything else is read-only.
+
     pub copyable: bool,
 }
 
@@ -54,18 +54,18 @@ impl Prop {
     }
 }
 
-/// How a property sheet shares its width between labels and values.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Sheet {
-    /// When the full label column would leave the values fewer than
-    /// `value_min` cells, the column shrinks to this share of the width, in
-    /// percent: a label longer than that sits on its own row with its value
-    /// below it, instead of pushing every value off the edge. Default `40`.
+
+
+
+
     pub label_max_share: u16,
-    /// The fewest cells the values keep beside the labels. Below it the
-    /// label column is capped ([`Sheet::label_max_share`]), and if that is
-    /// still too little the whole sheet stacks: each label on its own row,
-    /// its value indented below. Default `12`.
+
+
+
+
     pub value_min: u16,
 }
 
@@ -78,12 +78,12 @@ impl Default for Sheet {
     }
 }
 
-/// Indent of a value under its own label in a stacked row.
+
 const STACK_INDENT: u16 = 2;
 
-/// One visual row of a property sheet: the property it belongs to, its
-/// label (first row only), the value text for that row and the column the
-/// value starts at, relative to the sheet.
+
+
+
 struct Row<'a> {
     prop: &'a Prop,
     label: Option<&'a str>,
@@ -91,17 +91,17 @@ struct Row<'a> {
     value_x: u16,
 }
 
-/// The label column at `width` for labels of these widths (gap included):
-/// as wide as the widest label while the values keep `value_min` cells,
-/// otherwise the widest label within the sheet's share, or `None` when even
-/// that leaves too little and the sheet stacks.
+
+
+
+
 fn column(widths: impl Iterator<Item = u16> + Clone, width: u16, sheet: Sheet) -> Option<u16> {
     let full = widths.clone().max().unwrap_or(2);
     if width.saturating_sub(full) >= sheet.value_min {
         return Some(full);
     }
     let cap = (width as u32 * sheet.label_max_share.min(100) as u32 / 100) as u16;
-    // the widest label that fits the cap sets the column; longer ones stack
+
     let label_w = widths.filter(|w| *w <= cap).max().unwrap_or(cap.max(1));
     (width.saturating_sub(label_w) >= sheet.value_min).then_some(label_w)
 }
@@ -137,20 +137,20 @@ fn value_rows<'a>(p: &'a Prop, label: Option<&'a str>, x: u16, vw: usize, out: &
     }
 }
 
-/// The rows a sheet occupies at `width`, computed once for measuring and
-/// rendering so a dialog sized by `measure` never overflows its frame.
+
+
 fn rows(props: &[Prop], width: u16, sheet: Sheet) -> Vec<Row<'_>> {
     let column = label_column(props, width, sheet);
     let mut out = vec![];
     for p in props {
         match column {
-            // the label fits its column: label and value share a row
+
             Some(label_w) if crate::ui::text::width(&p.label) as u16 + 2 <= label_w => {
                 let vw = width.saturating_sub(label_w) as usize;
                 value_rows(p, Some(&p.label), label_w, vw, &mut out);
             }
-            // a label too long for the column, or a stacked sheet: the
-            // label takes its own row and the value goes under it
+
+
             _ => {
                 out.push(Row {
                     prop: p,
@@ -167,22 +167,22 @@ fn rows(props: &[Prop], width: u16, sheet: Sheet) -> Vec<Row<'_>> {
     out
 }
 
-/// Rows the sheet needs at `width`, including wrapped values.
+
 pub fn measure(props: &[Prop], width: u16) -> u16 {
     measure_with(props, width, Sheet::default())
 }
 
-/// [`measure`] with explicit column rules.
+
 pub fn measure_with(props: &[Prop], width: u16, sheet: Sheet) -> u16 {
     rows(props, width, sheet).len() as u16
 }
 
-/// Draw the sheet; returns the number of rows used.
+
 pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, props: &[Prop], bg: Color) -> u16 {
     render_with(area, buf, t, props, bg, Sheet::default())
 }
 
-/// [`render`] with explicit column rules.
+
 pub fn render_with(
     area: Rect,
     buf: &mut Buffer,
@@ -212,7 +212,7 @@ pub fn render_with(
         if !row.value.is_empty() {
             buf.set_string(area.x + row.value_x, y, &row.value, style);
             if !row.prop.wrap {
-                // a value cut to the sheet reveals its full text on hover
+
                 let cut = Rect::new(
                     area.x + row.value_x,
                     y,
@@ -233,7 +233,7 @@ pub enum PropsAction {
     Activate(usize),
 }
 
-/// The columns of a [`PropsList`] row at one scrollbar split.
+
 #[derive(Debug, Clone, Copy)]
 struct Geometry {
     row_w: u16,
@@ -241,47 +241,47 @@ struct Geometry {
     value_right: u16,
 }
 
-/// Interactive facts: one focus stop with a row cursor, `y` copies the
-/// copyable row under the cursor, Enter activates it.
-///
-/// A value cut to fit keeps its `…` and reveals the full text on demand
-/// (see [`crate::ui::reveal`]): hovering it shows an expansion tooltip, and
-/// the reveal key (`→` by default) expands the cursor row until `←` or Esc.
-/// With [`RevealMode::InlineWrap`](crate::ui::reveal::RevealMode) the
-/// cursor row's value wraps in place instead, and the rows below move down.
-/// Copy always copies the full value.
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct PropsList {
     pub id: WidgetId,
     pub props: Vec<Prop>,
     pub cursor: usize,
-    /// The scrolled rows and the bar ([`Scrollable`]).
+
     pub scroll: ScrollPane,
     pub area: Rect,
-    /// Revealing cut values; `reveal.config` overrides the global default.
+
     pub reveal: RevealState,
-    /// Blank columns between the values and the scrollbar (default
-    /// [`scrollbar::GAP`]).
+
+
     pub scrollbar_gap: u16,
-    /// How the label column shares a row with the values: when the full
-    /// column would starve the values it is capped, and labels longer than
-    /// the cap are cut with `…` (rows never stack in a list). Default
-    /// [`Sheet::default`].
+
+
+
+
     pub sheet: Sheet,
-    /// Which keys move the cursor (default [`NavKeys::default`]).
+
     pub nav: NavKeys,
-    /// The list's action keys (default [`PropsCmd::default_keymap`]).
+
     pub keymap: KeyMap<PropsCmd>,
-    /// When a click activates a row ([`PropsAction::Activate`]). Default
-    /// [`ClickPolicy::DATA`]: one click selects the row, a double click (or
-    /// Enter) activates it, so a click meant to select never acts (M32).
+
+
+
     pub click: ClickPolicy,
 }
 
-/// A [`PropsList`] action a key can be bound to. Enter always activates.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PropsCmd {
-    /// Copy the cursor row's value when it is copyable. Default `y`.
+
     Copy,
 }
 
@@ -298,13 +298,13 @@ impl Actions for PropsCmd {
 }
 
 impl PropsList {
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<PropsCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -327,26 +327,26 @@ impl PropsList {
         }
     }
 
-    /// Override the app-wide vertical track-click policy
-    /// (`TrackClick::Page` pages toward the pointer).
+
+
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
     }
 
-    /// Blank columns between the values and the scrollbar.
+
     pub fn scrollbar_gap(mut self, gap: u16) -> Self {
         self.scrollbar_gap = gap;
         self
     }
 
-    /// How the label column shares a row with the values.
+
     pub fn sheet(mut self, sheet: Sheet) -> Self {
         self.sheet = sheet;
         self
     }
 
-    /// How cut values are revealed (default: [`RenderCtx::reveal`]).
+
     pub fn reveal(mut self, config: Reveal) -> Self {
         self.reveal.config = Some(config);
         self
@@ -366,8 +366,8 @@ impl PropsList {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// The row `id` is: the inverse an owner's id-taking click (an info
-    /// dialog's, S15) needs.
+
+
     pub(crate) fn row_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.props.len())
     }
@@ -410,14 +410,14 @@ impl PropsList {
         }
     }
 
-    /// A single click on `row` ([`Self::on_click_count`]).
+
     pub fn on_click(&mut self, row: usize) -> (Outcome, Option<PropsAction>) {
         self.on_click_count(row, 1)
     }
 
-    /// The `count`th click of a multi-click on `row`: the cursor moves
-    /// there; the row activates only when [`Self::click`] says so (a
-    /// double click by default, M32).
+
+
+
     pub fn on_click_count(&mut self, row: usize, count: u8) -> (Outcome, Option<PropsAction>) {
         if row >= self.props.len() {
             return (Outcome::Consumed, None);
@@ -429,25 +429,25 @@ impl PropsList {
         (Outcome::Changed, act.then_some(PropsAction::Activate(row)))
     }
 
-    /// See [`Self::click`].
+
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.click = policy;
         self
     }
 
-    /// Cells kept for the `y copy` hint on the focused copyable row.
+
     fn hint_width(p: &Prop, focused: bool) -> u16 {
         if p.copyable && focused { 8 } else { 0 }
     }
 
-    /// Where the label column and the values sit, for a row body and
-    /// content area from [`scrollbar::split`].
+
+
     fn geometry(&self, body: Rect, content: Rect) -> Geometry {
         let row_w = body.width;
-        // values end one cell short of the row, or the gap short of the bar
+
         let value_right = content.right().min(body.right().saturating_sub(1));
-        // the labels start after the 2-cell gutter; a list never stacks, so
-        // a starved sheet keeps its capped column and cuts the longer labels
+
+
         let label_area = row_w.saturating_sub(2);
         let widths = self
             .props
@@ -463,8 +463,8 @@ impl PropsList {
         }
     }
 
-    /// The rows the focused cursor row's value wraps to in place, when the
-    /// reveal is open in [`crate::ui::reveal::RevealMode::InlineWrap`].
+
+
     fn inline_rows(
         &mut self,
         ctx: &mut RenderCtx,
@@ -498,8 +498,8 @@ impl PropsList {
         let mut has_sb = self.scroll.overflows();
         let mut sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
         let mut geo = self.geometry(sp.body, sp.content);
-        // an inline reveal grows the cursor row: the rows it adds come out
-        // of the viewport, and the cursor row stays on screen
+
+
         let mut expanded = None;
         if focused {
             expanded = self.inline_rows(ctx, geo, area.height);
@@ -552,8 +552,8 @@ impl PropsList {
             let vw = value_right.saturating_sub(vx + hint_w) as usize;
             let vs = st.fg(t.tone(p.tone));
             if let Some(lines) = block {
-                // the cursor row wrapped in place: every line of the value,
-                // then a marker when a long value scrolls
+
+
                 for (k, line) in lines.iter().take(h as usize).enumerate() {
                     let ls = if line.more { st.fg(t.text_muted) } else { vs };
                     let text = crate::ui::text::truncate(&line.text, vw);
@@ -586,8 +586,8 @@ impl Scrollable for PropsList {
         &mut self.scroll
     }
 
-    /// A revealed value longer than its rows reads on before the view
-    /// moves.
+
+
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         if axis != Axis::Vertical {
             return None;
@@ -611,10 +611,10 @@ impl Navigable for PropsList {
     }
 }
 
-/// A property list drawn in a forced state for a States grid
-/// ([`crate::ui::specimen`]): at rest, focused (the cursor row's gutter,
-/// depicted by the grid, and the copy hint on a copyable row), with a value
-/// too long for its row (overflow) and in the narrow slot.
+
+
+
+
 impl crate::ui::specimen::Specimen for PropsList {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -647,8 +647,8 @@ impl crate::ui::specimen::Specimen for PropsList {
     }
 }
 
-/// The sheet's pointer gestures: a wheel or a bar press scrolls it; a
-/// completed click on a row is [`PropsList::on_click`].
+
+
 impl crate::core::pointer::MouseTarget for PropsList {
     type Action = PropsAction;
 
@@ -730,9 +730,9 @@ mod reveal_scroll_tests {
             .collect()
     }
 
-    /// `RevealMode::InlineWrap` wraps the cursor row's value in place (it
-    /// used to fall back to the tooltip): the rows below move down, the
-    /// focus gutter covers the whole block, and `←` puts it back.
+
+
+
     #[test]
     fn inline_wrap_grows_the_cursor_row_and_pushes_the_rest_down() {
         let long = "alpha bravo charlie delta echo foxtrot golf hotel";
@@ -759,7 +759,7 @@ mod reveal_scroll_tests {
         let rows = rows_of(&mut l, 24, 8, focus);
         let n = rows.iter().position(|r| r.contains("second")).unwrap();
         assert!(n > 1, "the rows below moved down: {rows:#?}");
-        // the value column starts after the label column ("Path" + gap)
+
         let vx = rows[0]
             .find("alpha")
             .map(|b| rows[0][..b].chars().count())
@@ -782,8 +782,8 @@ mod reveal_scroll_tests {
         assert!(rows[1].contains("second"));
     }
 
-    /// A value longer than the sheet wraps up to its rows and scrolls with
-    /// the wheel before the sheet itself does.
+
+
     #[test]
     fn a_long_inline_value_scrolls_before_the_sheet() {
         let long = (1..=40)
@@ -842,8 +842,8 @@ mod tests {
             .collect()
     }
 
-    /// A long label no longer pushes every value to the edge: it takes its
-    /// own row and the others keep a short column (layout audit #14).
+
+
     #[test]
     fn a_label_wider_than_its_share_sits_above_its_value() {
         let props = vec![
@@ -855,7 +855,7 @@ mod tests {
         assert_eq!(lines[1], "A rather long label for one fact");
         assert_eq!(lines[2], "      value");
         assert_eq!(measure(&props, 40), 3);
-        // with room for the values the column stays as wide as its labels
+
         let lines = sheet_text(&props, 60);
         assert_eq!(lines[0], "Name                              orders");
     }
@@ -866,7 +866,7 @@ mod tests {
         let lines = sheet_text(&props, 16);
         assert_eq!(lines[0], "Database");
         assert_eq!(lines[1], "  warehouse");
-        // with the rules relaxed it keeps one row
+
         let t = Theme::junie();
         let area = Rect::new(0, 0, 16, 2);
         let mut buf = Buffer::empty(area);
@@ -894,7 +894,7 @@ mod tests {
         let mut buf = Buffer::empty(area);
         l.render(area, &mut buf, &mut ctx, t.canvas);
         let row: String = (0..40).map(|x| buf[(x, 1)].symbol()).collect();
-        // the label column is capped at 40% of the row: values stay visible
+
         assert!(row.contains("orders"), "{row:?}");
         let first: String = (0..40).map(|x| buf[(x, 0)].symbol()).collect();
         assert!(first.contains('…') && first.contains("value"), "{first:?}");
@@ -943,7 +943,7 @@ mod static_reveal_tests {
     fn a_static_sheet_reveals_a_cut_value_on_hover() {
         let (text, hits) = frame(None);
         assert!(!text.contains(PATH), "cut: {text}");
-        // labels are 4 cells + 2: the value starts at column 6, row 1
+
         let id = hits
             .hover_at(Position::new(8, 1))
             .expect("the cut value hovers");
@@ -983,7 +983,7 @@ mod track_click_tests {
         l.scroll.offset
     }
 
-    /// The vertical bar follows the track-click policy (it always jumped).
+
     #[test]
     fn a_props_track_click_can_page() {
         assert_eq!(

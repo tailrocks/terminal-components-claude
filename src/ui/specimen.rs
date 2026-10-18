@@ -1,26 +1,26 @@
-//! Widgets drawn in a forced state, and the States grid that lays them out.
-//!
-//! A [`Specimen`] is a widget that can draw a copy of itself in any
-//! [`SpecimenState`] through its own `render`: focus, hover and press come
-//! from a forced [`Interaction`], the widget's own flags (disabled, busy,
-//! error, editing, ...) from the specimen implementation. A [`StateGrid`]
-//! lays specimens out as rows = states and columns = variants, so every
-//! state of a widget shows at once, exactly as the widget draws it.
-//!
-//! # One focus indicator
-//!
-//! A sample in the `focused` row would draw the live focus bar
-//! (`Theme::glyphs.focus_bar`, `▎`), and the screen would then show a second
-//! "you are here" next to the real one. The grid therefore depicts focus
-//! instead of showing it: every focus-bar cell a sample draws is replaced
-//! with [`StateGrid::focus_mark`] (default `▏`, `:` under ASCII glyphs) in
-//! the muted ink (a filled control keeps its own ink so the mark stays
-//! legible on the fill). The mark has a different shape from the live bar,
-//! so it reads as a depiction at every colour level, monochrome included.
-//! The live bar stays the only `▎` on screen.
-//!
-//! The same holds for the editing caret: samples are inert, so they never
-//! move the terminal cursor; an editing sample draws a static caret cell.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
@@ -32,44 +32,44 @@ use crate::core::id::WidgetId;
 use crate::theme::{ColorLevel, Kind, Plane, Theme};
 use crate::ui::ctx::{Interaction, RenderCtx, VisualState};
 
-/// A state a [`Specimen`] can be drawn in: one row of a [`StateGrid`].
-///
-/// Interaction states (hover, press, focus) are forced through the
-/// render context; the rest are the widget's own flags or content.
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SpecimenState {
-    /// No interaction.
+
     Rest,
-    /// The pointer is over it.
+
     Hover,
-    /// The primary button is held on it.
+
     Pressed,
-    /// It holds keyboard focus (depicted, see the module docs).
+
     Focused,
-    /// Focused with the pointer over it.
+
     FocusedHover,
-    /// Selected or on (a toggle that is on).
+
     Selected,
-    /// Drawn but not reachable or activatable.
+
     Disabled,
-    /// Working: a spinner instead of the action.
+
     Busy,
-    /// Carries a validation error.
+
     Error,
-    /// Editing its value (the caret is shown).
+
     Editing,
-    /// No content (a field's placeholder, an empty list).
+
     Empty,
-    /// Content is still arriving.
+
     Loading,
-    /// Content longer than the room it has.
+
     Overflow,
-    /// Drawn in the grid's narrow slot ([`StateGrid::narrow_width`]).
+
     Narrow,
 }
 
 impl SpecimenState {
-    /// Every state, in the order a grid lists them.
+
     pub const ALL: [Self; 14] = [
         Self::Rest,
         Self::Hover,
@@ -87,8 +87,8 @@ impl SpecimenState {
         Self::Narrow,
     ];
 
-    /// Stable name: the catalog's `state::<slug>` and the showcase's
-    /// States-row declarations use it.
+
+
     pub fn slug(self) -> &'static str {
         match self {
             Self::Rest => "rest",
@@ -108,7 +108,7 @@ impl SpecimenState {
         }
     }
 
-    /// The row label a grid draws.
+
     pub fn label(self) -> &'static str {
         match self {
             Self::FocusedHover => "focus + hover",
@@ -116,18 +116,18 @@ impl SpecimenState {
         }
     }
 
-    /// The state from its [`Self::slug`].
+
     pub fn from_slug(slug: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|s| s.slug() == slug)
     }
 
-    /// The visual flags this state forces. Content states (empty, loading,
-    /// overflow, narrow) force none: the specimen changes its content.
+
+
     pub fn visual(self) -> VisualState {
         let mut v = VisualState::default();
         match self {
             Self::Hover => v.hovered = true,
-            // a pointer press is always over the control
+
             Self::Pressed => {
                 v.hovered = true;
                 v.pressed = true;
@@ -150,7 +150,7 @@ impl SpecimenState {
         v
     }
 
-    /// The forced interaction that makes `id` render in this state.
+
     fn interaction(self, id: WidgetId, tick: u64) -> Interaction {
         let v = self.visual();
         Interaction {
@@ -163,20 +163,20 @@ impl SpecimenState {
     }
 }
 
-/// A widget that can draw itself in a forced [`SpecimenState`].
+
 pub trait Specimen {
-    /// The id the forced interaction points at (the widget's own id).
+
     fn specimen_id(&self) -> WidgetId;
-    /// Whether the widget has a look for `state`. A grid cell for an
-    /// unsupported state shows a faint `–`.
+
+
     fn supports(&self, state: SpecimenState) -> bool;
-    /// Rows the sample takes in `state`.
+
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         1
     }
-    /// Draw a copy of the widget in `state` into `area`. `ctx` is inert
-    /// and already forces focus, hover and press on [`Self::specimen_id`];
-    /// the implementation sets the widget's own flags and content.
+
+
+
     fn specimen(
         &self,
         state: SpecimenState,
@@ -187,7 +187,7 @@ pub trait Specimen {
     );
 }
 
-/// The four colour levels "Compare levels" shows.
+
 const LEVELS: [ColorLevel; 4] = [
     ColorLevel::TrueColor,
     ColorLevel::Ansi256,
@@ -195,27 +195,27 @@ const LEVELS: [ColorLevel; 4] = [
     ColorLevel::Mono,
 ];
 
-/// Rows = states, columns = variants: a static reference of every state of
-/// a widget, drawn by the widget itself ([`Specimen`]).
-///
-/// It is not interactive: samples register no hit region, focus stop or
-/// cursor, and the focus look is depicted, never live (module docs).
+
+
+
+
+
 pub struct StateGrid {
     pub id: WidgetId,
-    /// The rows, top to bottom.
+
     pub rows: Vec<SpecimenState>,
     columns: Vec<(String, Box<dyn Specimen>)>,
-    /// Width of the row-label column. Default 15.
+
     pub label_width: u16,
-    /// Width of each variant column, its gap included. Default 15.
+
     pub column_width: u16,
-    /// Width of the slot the [`SpecimenState::Narrow`] row draws in
-    /// (capped by [`Self::column_width`]). Default 24.
+
+
     pub narrow_width: u16,
-    /// The glyph that depicts a focus bar. `None` (default): `▏`, or `:`
-    /// when the theme's focus bar is ASCII.
+
+
     pub focus_mark: Option<&'static str>,
-    /// Rows drawn whole by the last render.
+
     rendered: Vec<SpecimenState>,
 }
 
@@ -246,19 +246,19 @@ impl StateGrid {
         }
     }
 
-    /// Append one row.
+
     pub fn row(mut self, state: SpecimenState) -> Self {
         self.rows.push(state);
         self
     }
 
-    /// Append rows.
+
     pub fn rows(mut self, states: &[SpecimenState]) -> Self {
         self.rows.extend_from_slice(states);
         self
     }
 
-    /// Append a variant column headed `label`.
+
     pub fn column(mut self, label: &str, specimen: impl Specimen + 'static) -> Self {
         self.columns.push((label.to_owned(), Box::new(specimen)));
         self
@@ -284,12 +284,12 @@ impl StateGrid {
         self
     }
 
-    /// The column labels, left to right.
+
     pub fn column_labels(&self) -> impl Iterator<Item = &str> {
         self.columns.iter().map(|(l, _)| l.as_str())
     }
 
-    /// Rows the last render drew whole (both renders record them).
+
     pub fn rendered_rows(&self) -> &[SpecimenState] {
         &self.rendered
     }
@@ -304,16 +304,16 @@ impl StateGrid {
             .max(1)
     }
 
-    /// Natural size: the label column, every variant column, a header row
-    /// and every row.
+
+
     pub fn size(&self) -> (u16, u16) {
         let w = self.label_width + self.column_width * self.columns.len() as u16;
         let h = 1 + self.rows.iter().map(|&r| self.row_height(r)).sum::<u16>();
         (w, h)
     }
 
-    /// The glyph that depicts a focus bar under `t`: [`Self::focus_mark`],
-    /// or its default. A legend that explains the mark draws this one.
+
+
     pub fn mark(&self, t: &Theme) -> &'static str {
         self.focus_mark.unwrap_or(if t.glyphs.focus_bar.is_ascii() {
             ":"
@@ -322,20 +322,20 @@ impl StateGrid {
         })
     }
 
-    /// Draw the grid at the context's colour level.
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.render_rows(0..self.rows.len(), true, area, buf, ctx, bg);
     }
 
-    /// Height of each row, top to bottom (the header row not included).
+
     pub fn row_heights(&self) -> Vec<u16> {
         self.rows.iter().map(|&r| self.row_height(r)).collect()
     }
 
-    /// Draw `rows` (indices into [`Self::rows`]) at the context's colour
-    /// level, under the column header when `header`: an owner that
-    /// scrolls the grid row by row (a [`crate::ui::layout::Stack`] child
-    /// per row) draws each band with it.
+
+
+
+
     pub fn render_rows(
         &mut self,
         rows: std::ops::Range<usize>,
@@ -351,16 +351,16 @@ impl StateGrid {
         self.draw_rows(theme, tick, rows, header, area, buf, bg);
     }
 
-    /// Height of [`Self::render_levels`] in `width` columns.
+
     pub fn levels_height(&self, width: u16) -> u16 {
         let (w, h) = self.size();
         let per_row = Self::per_row(w, width);
         let bands = LEVELS.len().div_ceil(per_row) as u16;
-        // a title row per pane, one blank row between bands
+
         bands * (h + 1) + bands.saturating_sub(1)
     }
 
-    /// Panes side by side in `width`: all four, two, or one.
+
     fn per_row(grid_w: u16, width: u16) -> usize {
         [4usize, 2]
             .into_iter()
@@ -368,10 +368,10 @@ impl StateGrid {
             .unwrap_or(1)
     }
 
-    /// "Compare levels": the grid at every colour level (truecolor, 256,
-    /// 16, none), each pane on its own level's surface under its level
-    /// name. Panes sit side by side when they fit (four, then two) and
-    /// stack otherwise; whatever does not fit `area` is cut.
+
+
+
+
     pub fn render_levels(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let (w, h) = self.size();
         let per_row = Self::per_row(w, area.width);
@@ -388,7 +388,7 @@ impl StateGrid {
                 continue;
             }
             self.render_level(level, pane, buf, ctx);
-            // a row counts when every pane drew it
+
             let rows = std::mem::take(&mut self.rendered);
             drawn = Some(match drawn {
                 None => rows,
@@ -401,8 +401,8 @@ impl StateGrid {
         self.rendered = drawn.unwrap_or_default();
     }
 
-    /// One "Compare levels" pane: the grid at `level`, on that level's
-    /// surface under the level's name (one title row, then the grid).
+
+
     pub fn render_level(
         &mut self,
         level: ColorLevel,
@@ -513,14 +513,14 @@ impl StateGrid {
     }
 }
 
-/// Replace every live focus-bar cell in `area` with `mark` (module docs).
+
 fn depict_focus(buf: &mut Buffer, area: Rect, t: &Theme, mark: &str, bg: Color) {
     let bar = t.glyphs.focus_bar;
     for pos in area.positions() {
         let Some(c) = buf.cell_mut(pos) else {
             continue;
         };
-        // an ASCII bar (`|`) is ordinary text too: only the focus inks mark it
+
         let live =
             c.symbol() == bar && (!bar.is_ascii() || c.fg == t.focus || c.fg == t.text_on_accent);
         if !live {
@@ -533,20 +533,20 @@ fn depict_focus(buf: &mut Buffer, area: Rect, t: &Theme, mark: &str, bg: Color) 
     }
 }
 
-/// A theme [`Kind`] resolved on a [`Plane`] through
-/// [`Theme::interactive`]: the state model itself, without a widget. A
-/// token explorer shows one per kind, so every state of the ladder
-/// (rest, hover, pressed), the focus gutter, selection and disabled read
-/// side by side for the plane a control sits on.
-///
-/// The sample paints the plane, then the gutter cell and the label in the
-/// resolved style. [`Kind::Handle`] and [`Kind::Seam`] are glyph inks: the
-/// label is drawn in the ink on the plane.
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct KindSample {
     pub id: WidgetId,
     pub kind: Kind,
-    /// The container the control sits on.
+
     pub plane: Plane,
     pub label: String,
 }
@@ -561,13 +561,13 @@ impl KindSample {
         }
     }
 
-    /// The same sample on another plane.
+
     pub fn plane(mut self, plane: Plane) -> Self {
         self.plane = plane;
         self
     }
 
-    /// Draw the sample in visual state `s` with theme `t`.
+
     pub fn draw(&self, t: &Theme, s: VisualState, area: Rect, buf: &mut Buffer) {
         let area = area.intersection(buf.area);
         if area.is_empty() {
@@ -577,7 +577,7 @@ impl KindSample {
         crate::ui::ctx::fill(buf, area, Style::new().bg(plane_bg));
         let r = t.interactive(self.kind, s, self.plane);
         let row = Rect::new(area.x, area.y, area.width, 1);
-        // the body: gutter cell, then the label with a cell of padding
+
         let body = Style::new().bg(plane_bg).patch(r.style);
         let gutter = Style::new().bg(plane_bg).patch(r.gutter_style);
         buf.set_string(row.x, row.y, r.gutter, gutter);
@@ -643,7 +643,7 @@ mod kind_sample_tests {
         assert_eq!(cell(&row, &t, VisualState::default()).bg, ladder.rest);
         assert_eq!(cell(&row, &t, hover).bg, ladder.hover);
         assert_eq!(cell(&row, &t, pressed).bg, ladder.pressed);
-        // a primary button paints the accent fill whatever it sits on
+
         let primary = row.clone().plane(Plane::Popover);
         let primary = KindSample {
             kind: Kind::Button(ButtonKind::Primary),
@@ -732,7 +732,7 @@ impl Specimen for crate::widgets::input::TextInput {
         }
     }
 
-    /// The label and the field; an error adds its message row.
+
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         if state == SpecimenState::Error || self.field.error.is_some() {
             3
@@ -774,7 +774,7 @@ impl Specimen for crate::widgets::input::TextInput {
             _ => {}
         }
         f.render(area, buf, ctx, bg);
-        // samples never move the terminal cursor: draw the caret as a cell
+
         if v.editing && f.area.width > 3 {
             let field = f.area;
             let text_w = crate::ui::text::width(f.field.buffer.text()) as u16;
@@ -786,10 +786,10 @@ impl Specimen for crate::widgets::input::TextInput {
     }
 }
 
-/// A tab strip: hover and press land on the tab after the active one
-/// (the strip's own id only takes focus), busy and error mark that tab,
-/// overflow adds tabs until the strip scrolls with its `‹ ›` counts and
-/// `+N` button.
+
+
+
+
 impl Specimen for crate::widgets::tabs::Tabs {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -805,7 +805,7 @@ impl Specimen for crate::widgets::tabs::Tabs {
         }
     }
 
-    /// The labels and the rule row.
+
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         2
     }
@@ -843,10 +843,10 @@ impl Specimen for crate::widgets::tabs::Tabs {
     }
 }
 
-/// A context menu, opened in the sample's top-left corner: hover and press
-/// land on its second row, disabled is that row disabled under the
-/// pointer (it does not react), overflow caps it at two rows so it
-/// scrolls with its more-below marker.
+
+
+
+
 impl Specimen for crate::widgets::menu::ContextMenu {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -860,7 +860,7 @@ impl Specimen for crate::widgets::menu::ContextMenu {
         }
     }
 
-    /// The frame, the title and the rows.
+
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         let mut m = self.clone();
         if state == SpecimenState::Overflow {
@@ -905,12 +905,12 @@ impl Specimen for crate::widgets::menu::ContextMenu {
     }
 }
 
-/// A dialog drawn whole in the sample's cell over the cell dimmed as its
-/// backdrop: hover and press land on its confirming action (the gated
-/// action, else the primary or danger one), focus on that action (on the
-/// typed field when editing), disabled is that action disabled (a typed
-/// acknowledgement that does not match yet), overflow a body longer than
-/// the dialog's height, so it scrolls with its more-below marker.
+
+
+
+
+
+
 impl Specimen for crate::widgets::dialog::Dialog {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -927,8 +927,8 @@ impl Specimen for crate::widgets::dialog::Dialog {
         }
     }
 
-    /// The dialog's natural height at its width; overflow keeps that
-    /// height and scrolls a longer body.
+
+
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         self.height(self.width)
     }
@@ -986,7 +986,7 @@ impl Specimen for crate::widgets::dialog::Dialog {
     }
 }
 
-/// The action a dialog sample's hover, press, focus and disabled land on.
+
 fn dialog_target(d: &crate::widgets::dialog::Dialog) -> usize {
     d.confirm_index
         .or_else(|| {
@@ -1000,7 +1000,7 @@ fn dialog_target(d: &crate::widgets::dialog::Dialog) -> usize {
         .unwrap_or(d.actions.len().saturating_sub(1))
 }
 
-/// The dialog's text field (a prompt or a typed acknowledgement).
+
 fn dialog_field(d: &crate::widgets::dialog::Dialog) -> Option<WidgetId> {
     use crate::widgets::dialog::DialogBody;
     match &d.body {
@@ -1010,11 +1010,11 @@ fn dialog_field(d: &crate::widgets::dialog::Dialog) -> Option<WidgetId> {
     }
 }
 
-/// A choice dialog drawn in its modal frame over the sample's cell dimmed
-/// as its backdrop (the frame keeps its outer margin inside the cell):
-/// hover and press land on its primary button, focus on the option group
-/// (or the primary button with the pointer over it), selected moves the
-/// choice to the last option, disabled is the primary button disabled.
+
+
+
+
+
 impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
     fn specimen_id(&self) -> WidgetId {
         self.radio.id
@@ -1030,7 +1030,7 @@ impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
         }
     }
 
-    /// The frame and its outer margin (one row above and below).
+
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         self.height() + 2
     }
@@ -1070,13 +1070,13 @@ impl Specimen for crate::widgets::choice_dialog::ChoiceDialog {
     }
 }
 
-/// A modal frame drawn in the sample's cell as its screen: the cell is
-/// dimmed per [`Frame::dim`](crate::ui::modal::Frame::dim) (its kept rows
-/// stay live), the frame sits clear of its chrome rows with the outer
-/// margin, and an anchored placement opens next to a marked anchor in the
-/// cell's top-left corner. Hover and press land on its close button (`×`),
-/// which shows while its [`Dismiss`](crate::ui::popup::Dismiss) lets Esc
-/// close it.
+
+
+
+
+
+
+
 impl Specimen for crate::ui::modal::Frame<'static> {
     fn specimen_id(&self) -> WidgetId {
         crate::ui::modal::CLOSE
@@ -1092,8 +1092,8 @@ impl Specimen for crate::ui::modal::Frame<'static> {
         }
     }
 
-    /// The frame, the outer margin around it, the chrome rows and the
-    /// anchor row with a row of room beside it.
+
+
     fn specimen_height(&self, _state: SpecimenState) -> u16 {
         let m = crate::widgets::dialog::OUTER_MARGIN;
         self.height.max(self.min_height) + 2 * m.vertical + self.top + self.bottom + 2
@@ -1122,11 +1122,11 @@ impl Specimen for crate::ui::modal::Frame<'static> {
     }
 }
 
-/// A picker drawn centred in the sample's cell over the cell dimmed as its
-/// backdrop: hover and press land on its second row, disabled is that row
-/// disabled, empty has no rows (its empty text), loading and error are
-/// its [`PickerStatus`](crate::widgets::picker::PickerStatus), overflow
-/// caps it at three rows so it scrolls.
+
+
+
+
+
 impl Specimen for crate::widgets::picker::Picker {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -1142,7 +1142,7 @@ impl Specimen for crate::widgets::picker::Picker {
         }
     }
 
-    /// The frame and one row of margin above and below.
+
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         picker_sample(self, state).height() + 2
     }
@@ -1167,7 +1167,7 @@ impl Specimen for crate::widgets::picker::Picker {
     }
 }
 
-/// The picker as a sample in `state`: centred, dimming its whole cell.
+
 fn picker_sample(
     p: &crate::widgets::picker::Picker,
     state: SpecimenState,
@@ -1252,12 +1252,12 @@ mod tests {
             assert!(row_text(&buf, 1 + i as u16).starts_with(s.label()), "{s:?}");
         }
         assert_eq!(g.rendered_rows(), g.rows.as_slice());
-        // a disabled primary is drawn in the disabled ink, as the widget does
+
         let x = (15..30)
             .find(|&x| buf[(x, 4)].symbol() == "L")
             .expect("disabled label");
         assert_eq!(buf[(x, 4)].fg, t.disabled);
-        // a toggle that is on shows its on dot; a primary has no selected look
+
         assert!(row_text(&buf, 5).contains(t.glyphs.dot_on));
         assert!(row_text(&buf, 5)[..30].contains('–'));
         assert!(hits.hit(Position::new(16, 1)).is_none(), "no hit regions");
@@ -1280,7 +1280,7 @@ mod tests {
             .column_width(30)
             .column("Plain", Tabs::new(id.child(0), &["Data", "Logs"]));
         let (buf, _) = draw(&mut g, &t, Rect::new(0, 0, 60, 14), false);
-        // two rows per state: the labels, then the rule
+
         let logs = |y: u16| {
             let x = (15..45)
                 .find(|&x| buf[(x, y)].symbol() == "L")
@@ -1357,7 +1357,7 @@ mod tests {
                     .any(|c| c.symbol() == t.glyphs.focus_bar),
                 "{level:?}: no second live focus bar"
             );
-            // the focused row carries the depiction, at the sample's gutter
+
             let focused = row_text(&buf, 2);
             assert!(focused.contains('▏'), "{level:?}: {focused}");
             assert!(!row_text(&buf, 1).contains('▏'), "rest has no mark");
@@ -1383,7 +1383,7 @@ mod tests {
         let t = Theme::junie();
         let mut g = grid();
         let (w, h) = g.size();
-        // all four side by side when they fit
+
         let wide = Rect::new(0, 0, w * 4 + 6, h + 1);
         let (buf, _) = draw(&mut g, &t, wide, true);
         let title = row_text(&buf, 0);
@@ -1392,13 +1392,13 @@ mod tests {
         }
         assert_eq!(g.levels_height(wide.width), h + 1);
         assert_eq!(g.rendered_rows(), g.rows.as_slice());
-        // stacked one per band when narrow
+
         let narrow = Rect::new(0, 0, w, g.levels_height(w));
         let (buf, _) = draw(&mut g, &t, narrow, true);
         for (i, level) in LEVELS.into_iter().enumerate() {
             assert!(row_text(&buf, i as u16 * (h + 2)).starts_with(level.label()));
         }
-        // the mono pane carries no colour
+
         let mono_y = 3 * (h + 2) + 1;
         assert!((0..w).all(|x| buf[(x, mono_y)].fg == Color::Reset
             || buf[(x, mono_y)].fg == Theme::for_level(ColorLevel::Mono).text_muted));
@@ -1424,23 +1424,23 @@ mod tests {
         let (w, h) = g.size();
         assert_eq!(h, 1 + 2 + 3 + 2 + 2 + 1);
         let (buf, _) = draw(&mut g, &t, Rect::new(0, 0, w, h), false);
-        // editing: a static caret cell after the text, no terminal cursor
+
         let text = row_text(&buf, 2);
         let end = text.find("gateway").unwrap() + "gateway".len();
         let caret = text[..end].chars().count() as u16;
         assert_eq!(buf[(caret, 2)].bg, t.text_primary);
-        // error: the message row
+
         assert!((0..buf.area.height).any(|y| row_text(&buf, y).contains("Enter a valid value")));
-        // empty: the placeholder
+
         assert!((0..buf.area.height).any(|y| row_text(&buf, y).contains("Type a value")));
-        // narrow: the field ends inside the 24-column slot
+
         let narrow_field = 1 + 2 + 3 + 2 + 1;
         let x0 = g.label_width;
         assert!(buf[(x0 + 24, narrow_field)].bg != buf[(x0 + 1, narrow_field)].bg);
     }
 
-    /// An owner that scrolls row by row draws bands: a band without the
-    /// header starts with its first row, and only that band is recorded.
+
+
     #[test]
     fn a_band_draws_its_rows_only() {
         let t = Theme::junie();
@@ -1458,7 +1458,7 @@ mod tests {
             g.rendered_rows(),
             &[SpecimenState::Focused, SpecimenState::Pressed]
         );
-        // a single pane is titled with its level
+
         let area = Rect::new(0, 0, 60, 7);
         let mut buf = Buffer::empty(area);
         g.render_level(ColorLevel::Ansi16, area, &mut buf, &mut ctx);

@@ -5,12 +5,12 @@ use ratatui::style::Color;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 
-/// The default spinner frames. Widgets draw `Theme::glyphs.spinner`
-/// ([`crate::theme::Glyphs::spinner_frame`]); this is the Unicode set.
+
+
 pub const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-/// A frame of [`SPINNER`], for app code without a theme at hand. Widgets
-/// use [`crate::theme::Glyphs::spinner_frame`].
+
+
 pub fn spinner_frame(tick: u64) -> &'static str {
     SPINNER[(tick % SPINNER.len() as u64) as usize]
 }
@@ -23,22 +23,22 @@ pub enum ProgressStatus {
     Paused,
 }
 
-/// Cells the value column takes at the end of a determinate bar: the
-/// percentage (` 100%`) and the 2-cell status glyph.
+
+
 pub const VALUE_W: u16 = 7;
 
-/// How a progress bar lays out its label and the end of its track. Bars
-/// stacked in one column line up when they share a layout.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BarLayout {
-    /// The label column's width. `None` measures each label, so bars with
-    /// labels of different lengths start their tracks at different
-    /// columns; `Some(w)` pads or cuts every label to `w`. Default `None`.
+
+
+
     pub label_width: Option<u16>,
-    /// Keep the value column ([`VALUE_W`]) at the end of the track even
-    /// when the bar shows no value (indeterminate), so a determinate and an
-    /// indeterminate bar of the same width end at the same column.
-    /// Default `true`.
+
+
+
+
     pub reserve_value: bool,
 }
 
@@ -61,7 +61,7 @@ impl BarLayout {
         self
     }
 
-    /// Draw the label, if it fits, and return the column the track starts at.
+
     fn label(&self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, label: &str, bg: Color) -> u16 {
         let label_w = self.label_width.unwrap_or(width(label) as u16);
         let has_label = label_w > 0 && !label.is_empty() && area.width > label_w + 8;
@@ -74,7 +74,7 @@ impl BarLayout {
     }
 }
 
-/// Determinate progress bar: `label ━━━━━━───── 64%`.
+
 pub fn render_bar(
     area: Rect,
     buf: &mut Buffer,
@@ -96,7 +96,7 @@ pub fn render_bar(
     );
 }
 
-/// [`render_bar`] with an explicit label and value layout.
+
 #[allow(clippy::too_many_arguments)]
 pub fn render_bar_with(
     area: Rect,
@@ -117,7 +117,7 @@ pub fn render_bar_with(
     let pct = format!("{:>4}", format!("{}%", (ratio * 100.0).round() as u32));
     let mut x = layout.label(area, buf, ctx, label, bg);
     let pct_w = 5u16;
-    // fixed 2-cell trailing glyph column keeps percentages aligned
+
     let suffix = match status {
         ProgressStatus::Done => format!(" {}", t.glyphs.done),
         ProgressStatus::Error => " !".to_owned(),
@@ -126,15 +126,15 @@ pub fn render_bar_with(
     };
     let track_w = area.right().saturating_sub(x).saturating_sub(VALUE_W);
     if track_w < 6 {
-        // too narrow for a meaningful bar: percentage only
+
         buf.set_string(x, area.y, pct.trim_start(), t.secondary().bg(bg));
         return;
     }
     let filled = ((track_w as f64) * ratio).round() as u16;
-    // a running bar is live state (`Tone::Active`, the accent), the same
-    // hue as the indeterminate sweep and the spinner, so a task keeps its
-    // colour when its progress becomes known; completion is the success
-    // hue with `✓`, so done never reads as running without colour either
+
+
+
+
     let fill_color = match status {
         ProgressStatus::Active => t.tone(crate::theme::Tone::Active),
         ProgressStatus::Done => t.success,
@@ -161,10 +161,10 @@ pub fn render_bar_with(
     buf.set_string(x + pct_w, area.y, &suffix, st);
 }
 
-/// Consumption thresholds shared by every meter: a value at or below
-/// `METER_LOW_MAX` is healthy, up to `METER_MEDIUM_MAX` needs attention,
-/// above that it is danger. Owners with a domain status (quota warning,
-/// exhausted) pass that status instead of recomputing these.
+
+
+
+
 pub const METER_LOW_MAX: u8 = 59;
 pub const METER_MEDIUM_MAX: u8 = 84;
 
@@ -180,8 +180,8 @@ impl MeterLevel {
         Self::with_thresholds(pct, METER_LOW_MAX + 1, METER_MEDIUM_MAX + 1)
     }
 
-    /// The level of `pct` against owner thresholds: at or above `warn` is
-    /// medium, at or above `crit` high.
+
+
     pub fn with_thresholds(pct: u8, warn: u8, crit: u8) -> Self {
         if pct >= crit {
             MeterLevel::High
@@ -193,50 +193,50 @@ impl MeterLevel {
     }
 }
 
-/// How the meter draws its track.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MeterVisual {
-    /// Compact `━━━━────` run followed by the value.
+
     #[default]
     Line,
-    /// The used share is a filled background block with the value inside;
-    /// the remaining share is a subtle block, so the bar reads as filled.
+
+
     Block,
 }
 
-/// Semantic state of a meter. `Normal` derives the level from the value;
-/// the explicit variants come from the owner's domain (a quota status,
-/// a refresh in flight, a failed read).
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MeterTone {
-    /// Healthy / attention / danger by the shared thresholds
-    /// ([`METER_LOW_MAX`], [`METER_MEDIUM_MAX`]).
+
+
     #[default]
     Normal,
-    /// Healthy / attention / danger by the owner's thresholds: at or above
-    /// `warn` percent is attention, at or above `crit` danger (a disk at
-    /// 80 / 95 rather than a quota's 60 / 85).
+
+
+
     Level { warn: u8, crit: u8 },
-    /// An owner-chosen level (when the domain classifies the value itself).
+
     Fixed(MeterLevel),
-    /// The domain says warning: warning run and `▲`.
+
     Warning,
-    /// The domain says exhausted: error run, bold `!`.
+
     Exhausted,
-    /// Last-good data by the shared thresholds: shorthand for
-    /// [`MeterTone::Normal`] with [`Meter::stale`]. The level stays
-    /// readable; [`StaleStyle`] picks the stale cue.
+
+
+
     Stale,
-    /// A refresh is in flight: muted run, spinner in place of the value.
+
     Refreshing,
-    /// The read failed: no run, `!` and the message in the error tone.
+
     Error,
-    /// No quota to show: no run, a faint `—`.
+
     Unknown,
 }
 
 impl MeterTone {
-    /// The level a tone renders with, given the value.
+
     pub fn level(self, used_pct: Option<u8>) -> Option<MeterLevel> {
         match self {
             MeterTone::Normal | MeterTone::Stale => used_pct.map(MeterLevel::of),
@@ -251,53 +251,53 @@ impl MeterTone {
     }
 }
 
-/// How a meter shows that its data is last-good ([`Meter::stale`]).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum StaleStyle {
-    /// The run keeps its level hue (a stale 76 % still reads as attention)
-    /// and is drawn dashed ([`crate::theme::Glyphs::bar_stale`]); the value
-    /// is muted and italic and the level glyph stays. The dashes are the
-    /// cue without colour, so staleness and level both survive `NO_COLOR`.
+
+
+
+
     #[default]
     Dashed,
-    /// The run goes faint and the value muted, hiding the level: for
-    /// owners that would rather not show a level they cannot vouch for.
+
+
     Faint,
 }
 
-/// A capacity meter: value, semantic tone and visual mode. A healthy run is
-/// the information blue, attention the warning hue with `▲`, danger the
-/// error hue with `!` (the glyph is the cue without colour). Green is never
-/// used: a quota is not a completion.
-///
-/// ```text
-/// Session   ━━━━━━━━━━━───────────  38%     (Line)
-/// Session   ▐ 38% used ▌            ▲       (Block: used share filled)
-/// ```
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct Meter {
     pub used_pct: Option<u8>,
     pub value: String,
     pub tone: MeterTone,
     pub visual: MeterVisual,
-    /// The value is last-good data ([`Meter::stale`]).
+
     pub stale: bool,
-    /// How staleness shows ([`Meter::stale_style`]).
+
     pub stale_style: StaleStyle,
 }
 
-/// What a meter draws with, resolved from its tone and staleness.
+
 struct MeterPaint {
     run: Color,
     text: ratatui::style::Style,
     suffix: String,
     has_run: bool,
-    /// The run glyph: [`crate::theme::Glyphs::bar_fill`], or the dashed
-    /// stale run.
+
+
     fill: &'static str,
-    /// Stale with [`StaleStyle::Faint`].
+
     faint: bool,
-    /// Stale with [`StaleStyle::Dashed`].
+
     dashed: bool,
 }
 
@@ -324,21 +324,21 @@ impl Meter {
         self.visual = visual;
         self
     }
-    /// Mark the value as last-good data while keeping its tone: a quota at
-    /// warning that could not be refreshed stays a warning, drawn stale.
-    /// Ignored by the tones without a level (refreshing, error, unknown).
+
+
+
     pub fn stale(mut self, on: bool) -> Self {
         self.stale = on;
         self
     }
-    /// How staleness shows. Default [`StaleStyle::Dashed`].
+
     pub fn stale_style(mut self, style: StaleStyle) -> Self {
         self.stale_style = style;
         self
     }
 
-    /// Whether the meter draws as stale: the flag or [`MeterTone::Stale`],
-    /// on a tone that has a level to keep.
+
+
     pub fn is_stale(&self) -> bool {
         (self.stale || self.tone == MeterTone::Stale)
             && !matches!(
@@ -396,8 +396,8 @@ impl Meter {
         if self.is_stale() {
             match self.stale_style {
                 StaleStyle::Dashed => {
-                    // level hue and glyph stay; dashes and a muted italic
-                    // value say "last-good"
+
+
                     paint.fill = t.glyphs.bar_stale;
                     paint.text = Style::new()
                         .fg(t.legible(t.text_muted, bg))
@@ -442,7 +442,7 @@ impl Meter {
             suffix_style = suffix_style.add_modifier(ratatui::style::Modifier::BOLD);
         }
         if !has_run {
-            // no track: the message and the marker only
+
             let text = crate::ui::text::truncate(&value, area.width.saturating_sub(2) as usize);
             buf.set_string(area.x, area.y, &text, text_style);
             let sx = area.x + width(&text) as u16;
@@ -453,7 +453,7 @@ impl Meter {
         }
         match self.visual {
             MeterVisual::Line => {
-                // value + suffix always fit; the track takes what is left
+
                 let track_w = area.width.saturating_sub(vw + 3);
                 if track_w < 6 {
                     buf.set_string(
@@ -484,8 +484,8 @@ impl Meter {
                 buf.set_string(x + vw, area.y, suffix, suffix_style);
             }
             MeterVisual::Block => {
-                // the whole width minus the marker is the bar; the value sits
-                // inside it so the used share reads as a filled block
+
+
                 let bar_w = area.width.saturating_sub(2);
                 if bar_w < 4 {
                     buf.set_string(
@@ -504,7 +504,7 @@ impl Meter {
                     t.canvas
                 };
                 let on_rest = if paint.faint || paint.dashed || self.tone == MeterTone::Refreshing {
-                    // muted is 4.4:1 on a lifted card; step up when needed
+
                     t.legible(t.text_muted, rest_bg)
                 } else {
                     t.text_primary
@@ -520,10 +520,10 @@ impl Meter {
                         st = st.add_modifier(ratatui::style::Modifier::BOLD);
                     }
                     if paint.dashed {
-                        // a block cannot be dashed: italic is the stale cue
+
                         st = st.add_modifier(ratatui::style::Modifier::ITALIC);
                     }
-                    // text starts one cell in
+
                     let sym = if i >= 1 && (i as usize - 1) < chars.len() {
                         chars[i as usize - 1].as_str()
                     } else {
@@ -537,8 +537,8 @@ impl Meter {
     }
 }
 
-/// Line-mode quota meter with a known value: the compact form of
-/// [`Meter`]. Kept for callers that only need the default visual.
+
+
 pub fn render_meter(
     area: Rect,
     buf: &mut Buffer,
@@ -554,7 +554,7 @@ pub fn render_meter(
         .render(area, buf, ctx, bg);
 }
 
-/// Indeterminate bar: a short accent segment sweeping over the track.
+
 pub fn render_indeterminate(
     area: Rect,
     buf: &mut Buffer,
@@ -565,7 +565,7 @@ pub fn render_indeterminate(
     render_indeterminate_with(area, buf, ctx, label, bg, BarLayout::default());
 }
 
-/// [`render_indeterminate`] with an explicit label and value layout.
+
 pub fn render_indeterminate_with(
     area: Rect,
     buf: &mut Buffer,
@@ -582,7 +582,7 @@ pub fn render_indeterminate_with(
     let x = layout.label(area, buf, ctx, label, bg);
     let reserve = if layout.reserve_value { VALUE_W } else { 0 };
     let room = area.right().saturating_sub(x);
-    // the reserve goes first when the bar would shrink below 6 cells
+
     let reserve = if room >= reserve + 6 { reserve } else { 0 };
     let track_w = room.saturating_sub(reserve).max(1) as i64;
     let seg = (track_w / 5).clamp(2, 8);
@@ -605,7 +605,7 @@ pub fn render_indeterminate_with(
     }
 }
 
-/// Compact activity state: `⠋ label`.
+
 pub fn render_spinner(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, label: &str, bg: Color) {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
@@ -630,22 +630,22 @@ pub fn render_spinner(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, label: 
     );
 }
 
-/// One progress bar as a value: the label, the ratio (`None` for an
-/// indeterminate sweep), the status and the [`BarLayout`]. It draws through
-/// [`render_bar_with`] or [`render_indeterminate_with`], so a bar kept in
-/// a list (a job table, a States grid) looks exactly like a drawn one.
+
+
+
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProgressBar {
     pub label: String,
-    /// `Some(0.0..=1.0)` for a determinate bar, `None` for an
-    /// indeterminate one (the status is then ignored).
+
+
     pub ratio: Option<f64>,
     pub status: ProgressStatus,
     pub layout: BarLayout,
 }
 
 impl ProgressBar {
-    /// A determinate bar, [`ProgressStatus::Active`].
+
     pub fn new(label: &str, ratio: f64) -> Self {
         Self {
             label: label.to_owned(),
@@ -654,7 +654,7 @@ impl ProgressBar {
             layout: BarLayout::default(),
         }
     }
-    /// An indeterminate bar: work whose size is not known yet.
+
     pub fn indeterminate(label: &str) -> Self {
         Self {
             ratio: None,
@@ -680,10 +680,10 @@ impl ProgressBar {
     }
 }
 
-/// The aggregate of a set of tasks, for a header over their bars:
-/// `3 of 6 done · 2 running · 1 failed`. Clauses with a zero count are
-/// left out; only the failed clause takes the error tone (the word is the
-/// cue without colour), the rest stay secondary.
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Tally {
     pub done: usize,
@@ -694,8 +694,8 @@ pub struct Tally {
 }
 
 impl Tally {
-    /// Count `statuses`: done, running (active), paused and failed
-    /// (error) tasks out of all of them.
+
+
     pub fn of(statuses: impl IntoIterator<Item = ProgressStatus>) -> Self {
         let mut t = Self::default();
         for s in statuses {
@@ -710,7 +710,7 @@ impl Tally {
         t
     }
 
-    /// The clauses in order, each with whether it is the failed one.
+
     fn clauses(&self) -> Vec<(String, bool)> {
         let mut out = vec![(format!("{} of {} done", self.done, self.total), false)];
         for (n, what, failed) in [
@@ -725,7 +725,7 @@ impl Tally {
         out
     }
 
-    /// The plain text: `3 of 6 done · 2 running · 1 failed`.
+
     pub fn text(&self) -> String {
         self.clauses()
             .into_iter()
@@ -734,8 +734,8 @@ impl Tally {
             .join(" · ")
     }
 
-    /// Draw on `area`'s first row, cut to its width. Returns the columns
-    /// drawn.
+
+
     pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &RenderCtx, bg: Color) -> u16 {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -760,7 +760,7 @@ impl Tally {
     }
 }
 
-/// The id a non-interactive sample answers to in a States grid.
+
 const SAMPLE_ID: crate::core::id::WidgetId = crate::core::id::WidgetId::of("progress-sample");
 
 impl crate::ui::specimen::Specimen for ProgressBar {
@@ -768,13 +768,13 @@ impl crate::ui::specimen::Specimen for ProgressBar {
         SAMPLE_ID
     }
 
-    /// A bar is not interactive: its states are its content (empty,
-    /// still loading, failed, a long label, a narrow slot).
+
+
     fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
         use crate::ui::specimen::SpecimenState::*;
         match state {
             Rest | Empty | Loading | Error | Narrow => true,
-            // a long label needs a label to lengthen
+
             Overflow => !self.label.is_empty(),
             _ => false,
         }
@@ -806,8 +806,8 @@ impl crate::ui::specimen::Specimen for Meter {
         SAMPLE_ID
     }
 
-    /// A meter is not interactive: loading is a refresh in flight, error
-    /// a failed read, empty no quota to show.
+
+
     fn supports(&self, state: crate::ui::specimen::SpecimenState) -> bool {
         use crate::ui::specimen::SpecimenState::*;
         matches!(state, Rest | Empty | Loading | Error | Overflow | Narrow)
@@ -849,10 +849,10 @@ mod tests {
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
 
-    /// A1: the activity spinner reads at 3:1 and its label at 4.5:1 on
-    /// every plane it is given, at every level; at 16 colours the raised
-    /// and popover planes are xterm's DarkGray (LightGreen 2.9:1, Gray
-    /// 3.2:1).
+
+
+
+
     #[test]
     fn the_activity_spinner_and_label_read_on_every_plane_at_every_level() {
         use crate::theme::{ColorLevel, contrast_ratio};
@@ -891,7 +891,7 @@ mod tests {
         let fx = width(&tally.text()[..failed]) as u16;
         assert_eq!(buf[(fx, 0)].fg, theme.error);
         assert_eq!(buf[(0, 0)].fg, theme.text_secondary);
-        // cut to the room it has
+
         let mut buf = Buffer::empty(Rect::new(0, 0, 8, 1));
         assert_eq!(
             tally.render(Rect::new(0, 0, 8, 1), &mut buf, &ctx, theme.canvas),
@@ -983,7 +983,7 @@ mod tests {
             .collect()
     }
 
-    /// The last track cell of each bar, rendered in one column.
+
     fn track_ends(layout: BarLayout, labels: [&str; 2]) -> (u16, u16, u16, u16) {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -1015,17 +1015,17 @@ mod tests {
         (a0, a1, b0, b1)
     }
 
-    /// A determinate and an indeterminate bar of the same width start and
-    /// end their tracks at the same columns (layout audit #18).
+
+
     #[test]
     fn determinate_and_indeterminate_tracks_line_up() {
         let (a0, a1, b0, b1) = track_ends(BarLayout::default(), ["Build", "Build"]);
         assert_eq!((a0, a1), (b0, b1));
-        // a shared label column lines up labels of different lengths
+
         let (a0, a1, b0, b1) =
             track_ends(BarLayout::default().label_width(9), ["Build", "Resolving"]);
         assert_eq!((a0, a1), (b0, b1));
-        // without the reserve the sweep runs to the edge
+
         let (_, a1, _, b1) = track_ends(
             BarLayout::default().reserve_value(false),
             ["Build", "Build"],
@@ -1043,11 +1043,11 @@ mod tests {
         assert_eq!(MeterLevel::of(85), MeterLevel::High);
         assert_eq!(MeterLevel::of(100), MeterLevel::High);
         assert_eq!(MeterTone::Normal.level(Some(70)), Some(MeterLevel::Medium));
-        // stale keeps the level of its value (holla-jackin "Session meter
-        // at 76%")
+
+
         assert_eq!(MeterTone::Stale.level(Some(70)), Some(MeterLevel::Medium));
         assert_eq!(MeterTone::Refreshing.level(Some(70)), None);
-        // owner thresholds: a disk warns at 80 and is critical at 95
+
         let disk = MeterTone::Level { warn: 80, crit: 95 };
         assert_eq!(disk.level(Some(66)), Some(MeterLevel::Low));
         assert_eq!(disk.level(Some(80)), Some(MeterLevel::Medium));
@@ -1096,7 +1096,7 @@ mod tests {
             .value("50% used")
             .visual(MeterVisual::Block);
         let (buf, t) = render(&m, 22);
-        // bar is 20 cells, half filled
+
         assert_eq!(buf[(0, 0)].bg, t.info);
         assert_eq!(buf[(9, 0)].bg, t.info);
         assert_eq!(buf[(10, 0)].bg, t.lift(t.canvas));
@@ -1148,10 +1148,10 @@ mod tests {
         assert!(text(&buf).contains("refreshing"));
     }
 
-    /// A stale 76 % meter still reads as attention: the warning hue and
-    /// `▲` stay, the run is dashed and the value muted italic, so level
-    /// and staleness both read at every colour level and without colour
-    /// (holla-jackin "Session meter at 76%"; colour follow-ups, Deferred).
+
+
+
+
     #[test]
     fn stale_meter_keeps_its_level_with_a_cue_that_survives_mono() {
         use crate::theme::{ColorLevel, contrast_ratio};
@@ -1175,14 +1175,14 @@ mod tests {
                     let c = contrast_ratio(v.fg, bg).unwrap();
                     assert!(c >= 4.5, "{level:?}: stale value {c:.2}:1");
                 }
-                // the fresh meter differs from the stale one in shape, not
-                // only in colour
+
+
                 let fresh = render_at(&Meter::new(Some(76)).value("76%"), 30, &t, bg);
                 assert_ne!(fresh[(0, 0)].symbol(), buf[(0, 0)].symbol());
                 assert!(!fresh[(25, 0)].modifier.contains(Modifier::ITALIC));
             }
         }
-        // ASCII glyphs keep the dashed cue
+
         let mut t = Theme::for_level(ColorLevel::Mono);
         t.glyphs = crate::theme::Glyphs::ASCII;
         let buf = render_at(
@@ -1195,9 +1195,9 @@ mod tests {
         assert_ne!(t.glyphs.bar_stale, t.glyphs.bar_fill);
     }
 
-    /// `stale` composes with the owner's tone: a stale disk meter keeps its
-    /// own thresholds, a stale quota warning stays a warning. The faint
-    /// style keeps the old look for owners that want it.
+
+
+
     #[test]
     fn stale_composes_with_tones_and_the_faint_style_is_an_override() {
         let disk = Meter::new(Some(90))
@@ -1214,7 +1214,7 @@ mod tests {
         let (buf, t) = render(&warn, 30);
         assert_eq!(buf[(0, 0)].fg, t.warning);
         assert!(text(&buf).ends_with(&format!("40% {}", t.glyphs.warning)));
-        // tones without a level ignore the flag
+
         let err = Meter::new(None)
             .value("read failed")
             .tone(MeterTone::Error)
@@ -1228,14 +1228,14 @@ mod tests {
         assert_eq!(buf[(0, 0)].fg, t.text_faint);
         assert_eq!(buf[(0, 0)].symbol(), t.glyphs.bar_fill);
         assert!(text(&buf).ends_with("76%  "));
-        // block visual: level fill, italic value
+
         let block = Meter::new(Some(76))
             .value("76% used")
             .tone(MeterTone::Stale)
             .visual(MeterVisual::Block);
         let (buf, t) = render(&block, 22);
         assert_eq!(buf[(1, 0)].bg, t.warning);
-        // the value's tail on the lifted rest of a card's bar stays readable
+
         let low = Meter::new(Some(30))
             .value("30% used")
             .tone(MeterTone::Stale)
@@ -1253,10 +1253,10 @@ mod tests {
         );
     }
 
-    /// A running bar is live state: the accent (`Tone::Active`), as the
-    /// indeterminate sweep and the spinner, not the secondary grey; done
-    /// is a different hue at every colour level and a different glyph in
-    /// all of them.
+
+
+
+
     #[test]
     fn active_bar_runs_in_the_active_tone_apart_from_done() {
         use crate::theme::{ColorLevel, Tone, contrast_ratio};
@@ -1271,7 +1271,7 @@ mod tests {
             if level != ColorLevel::Mono {
                 assert_ne!(active[(0, 0)].fg, done[(0, 0)].fg, "{level:?}");
                 assert_ne!(active[(0, 0)].fg, t.text_secondary, "{level:?}");
-                // a graphic object: at least 3:1 (WCAG 1.4.11)
+
                 let c = contrast_ratio(active[(0, 0)].fg, t.canvas).unwrap();
                 assert!(c >= 3.0, "{level:?}: run {c:.2}:1");
             }

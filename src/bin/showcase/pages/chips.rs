@@ -1,8 +1,8 @@
-//! Chips & selects (plan §7 SC10): filter chips (lead, enable toggle, an
-//! error chip, `+N` overflow), stream chips that cannot be removed and
-//! toggle with 1–9, popup selects with every knob, and the small read-only
-//! pieces (a segment strip that drops low-priority items when narrow, a
-//! property block, an empty state). Options: `crate::options::CHIPS`.
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -109,8 +109,8 @@ impl ChipsPage {
         page
     }
 
-    /// Build the bars and selects from the option values through their
-    /// builders, keeping their content and values.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = match o.value("chipsselects.chip_nav") {
@@ -119,8 +119,8 @@ impl ChipsPage {
             _ => NavKeys::default(),
         };
         let keymap = match o.value("chipsselects.chip_keymap") {
-            // Delete only removes; `n` adds; Shift+Delete clears; `*`
-            // runs the lead
+
+
             "custom" => vec![
                 (KeyBinding::key(KeyCode::Delete), ChipCmd::Remove),
                 (KeyBinding::char('n'), ChipCmd::Add),
@@ -226,8 +226,8 @@ impl ChipsPage {
             sort = sort.mixed("Mixed");
         }
         self.sort = sort;
-        // demonstrates the pass-through policy: a click outside the open
-        // list closes it and also reaches the control beneath
+
+
         self.page_size = select(&self.page_size).dismiss(Dismiss::LIGHT.pass_through(true));
         self.engine = select(&self.engine)
             .disabled(true)
@@ -235,7 +235,7 @@ impl ChipsPage {
         self.sync_lead();
     }
 
-    /// The Sort by select (tests read it).
+
     #[allow(dead_code)]
     pub fn sort(&self) -> &Select {
         &self.sort
@@ -291,7 +291,7 @@ impl ChipsPage {
         }
     }
 
-    /// A stream chip: Enter, Space, a click or its digit switches it.
+
     fn on_stream(&mut self, ev: Option<ChipAction>) {
         if let Some(ChipAction::Toggle(i) | ChipAction::Activate(i)) = ev {
             let c = &mut self.streams.chips[i];
@@ -315,8 +315,8 @@ impl ChipsPage {
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        // whole sections scroll on a short terminal; nothing is drawn
-        // past the page into the row above the footer
+
+
         let has = |id| ctx.interaction.has_focus(id);
         let focus = if has(self.filters.id) {
             Some(0)
@@ -425,7 +425,7 @@ impl ChipsPage {
                 Select::HEIGHT,
             ),
         ];
-        // an open list is an overlay: it lands above everything drawn below
+
         for (sel, cell) in self.selects().into_iter().zip(cells) {
             sel.render(cell, buf, ctx, bg);
         }
@@ -438,8 +438,8 @@ impl ChipsPage {
     }
 }
 
-/// The States grid: a filter bar and a select in every state they have,
-/// each drawn by the widget itself.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -541,10 +541,10 @@ impl Page for ChipsPage {
                     self.on_stream(ev);
                     return o;
                 }
-                // a click outside an open list lands on its backdrop, which
-                // the select owns: it closes itself per its dismiss policy;
-                // a press on the field opens the list, so it takes focus
-                // with it
+
+
+
+
                 for sel in self.selects() {
                     let sid = sel.id;
                     if let Some(r) = sel.route(ev) {
@@ -612,7 +612,7 @@ impl Page for ChipsPage {
     }
 }
 
-/// The segment strip at full width and at 44 columns.
+
 fn render_strip(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     let t = ctx.theme;
     let panel = Panel::card(Some("Segment strip"));
@@ -655,7 +655,7 @@ fn render_strip(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     }
 }
 
-/// Properties beside an empty state.
+
 fn render_below(below: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     let t = ctx.theme;
     let (l, r) = crate::pages::layout::columns(below, (below.width * 55 / 100).max(36), 2);

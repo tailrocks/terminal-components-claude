@@ -1,7 +1,7 @@
-//! The showcase shell on the library's pointer router (plan S6): focus on
-//! press, the activation flash on every target, the clickable footer, a
-//! scrollbar inside a modal and a page layer's light dismiss, each driven
-//! through the real app.
+
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -81,9 +81,9 @@ impl Harness {
     }
 }
 
-/// Plan §3 row 1: a press focuses the control under it at once
-/// (`FocusOn::Press`, the macOS convention); `shell.focus_on=release` keeps
-/// the old behaviour as the override.
+
+
+
 #[test]
 fn a_press_focuses_the_control_under_it_before_the_release() {
     let mut h = Harness::new(120, 40, PageId::Buttons);
@@ -109,11 +109,11 @@ fn a_press_focuses_the_control_under_it_before_the_release() {
     );
 }
 
-/// Plan §3 'Click flash': every activated target flashes, the shell's own
-/// header links, sidebar rows and dialog buttons included.
+
+
 #[test]
 fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
-    // a header link
+
     let mut h = Harness::new(120, 40, PageId::Overview);
     let inspect = h.area_of(WidgetId::of("app.header.inspect"));
     h.click(inspect.x + 1, inspect.y);
@@ -124,16 +124,16 @@ fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
         "the header link flashes"
     );
 
-    // a sidebar row
+
     let mut h = Harness::new(120, 40, PageId::Overview);
-    // a group row (the start page sits in no group): the click opens it
+
     let i = (0..h.app.nav.rows().len())
         .find(|&i| PageId::from_nav_path(&h.app.nav.rows()[i].path).is_none())
         .expect("a group row in the sidebar");
     let rows = h.app.nav.rows().len();
     let area = h.area_of(h.app.nav.row_id(i));
     let at = Position::new(area.x + 2, area.y);
-    // the row or its disclosure, whichever part is under the pointer
+
     let target = h
         .app
         .shell
@@ -149,7 +149,7 @@ fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
     assert!(h.app.nav.rows().len() > rows, "the row opened its group");
     assert_eq!(h.flashing(), Some(target), "the sidebar row flashes");
 
-    // a dialog button
+
     let mut h = Harness::new(120, 40, PageId::Overview);
     let brand = h.area_of(crate::app::HEADER_BRAND);
     h.click(brand.x, brand.y);
@@ -161,7 +161,7 @@ fn every_activated_target_flashes_header_sidebar_and_dialog_buttons_included() {
     assert_eq!(h.flashing(), Some(cancel), "the dialog button flashes");
 }
 
-/// M1: the footer is clickable; a click on a hint naming one key runs it.
+
 #[test]
 fn a_click_on_a_footer_hint_runs_its_key() {
     let mut h = Harness::new(120, 40, PageId::Overview);
@@ -178,8 +178,8 @@ fn a_click_on_a_footer_hint_runs_its_key() {
     );
 }
 
-/// M17 (routing): a press and a drag on the scrollbar of a modal the shell
-/// shows (the keyboard reference) reach the widget's bar.
+
+
 #[test]
 fn a_drag_on_the_keyboard_references_scrollbar_scrolls_it() {
     let mut h = Harness::new(72, 20, PageId::Overview);
@@ -188,7 +188,7 @@ fn a_drag_on_the_keyboard_references_scrollbar_scrolls_it() {
     let bar = scrollbar::id_for(help.id);
     let track = h.area_of(bar);
     assert_eq!(help.scroll.v.offset, 0);
-    // grab the thumb at the top and drag it down the track
+
     h.mouse(MouseKind::Down, track.x, track.y);
     h.mouse(MouseKind::Drag, track.x, track.bottom() - 1);
     let offset = h.app.help().unwrap().scroll.v.offset;
@@ -197,8 +197,8 @@ fn a_drag_on_the_keyboard_references_scrollbar_scrolls_it() {
     assert!(h.app.help().is_some(), "the drag is no outside click");
 }
 
-/// S5 deviation 5: a click outside an open picker (on its light-dismiss
-/// backdrop) closes it, as Esc does.
+
+
 #[test]
 fn a_click_outside_an_open_picker_closes_it() {
     let mut h = Harness::new(120, 40, PageId::Pickers);
@@ -213,11 +213,11 @@ fn a_click_outside_an_open_picker_closes_it() {
     );
 }
 
-/// SC24 finding (shell, SC34): under `shell.focus_on=release` a click whose
-/// handler hands focus to the control that already holds it (Find while the
-/// code editor is focused) keeps that focus. The router used to focus the
-/// clicked button whenever focus was left unchanged, so the page's choice
-/// was overridden and the find bar opened with focus on the button.
+
+
+
+
+
 #[test]
 fn a_click_that_keeps_focus_on_purpose_is_not_overridden_on_release() {
     let mut h = Harness::new(120, 40, PageId::Editor);

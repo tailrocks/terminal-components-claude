@@ -1,11 +1,11 @@
-//! Data grid: dense tabular data with a cursor cell, row/range selection,
-//! typed cell rendering, and a pending-change queue with dirty / inserted /
-//! deleted / error states. Sorting and filtering are *requests* to the
-//! owner (server-side), never local reordering, except when the owner
-//! opts into local sort for fully loaded data.
-//!
-//! Row anatomy: `▎` focus · `✓` selection · change slot (`•` `+` `−` `!`) ·
-//! row number · cells. Current cell is reversed; editing shows the cursor.
+
+
+
+
+
+
+
+
 
 use std::collections::{BTreeSet, HashMap};
 
@@ -37,12 +37,12 @@ use crate::widgets::option_editor::{
 use crate::widgets::scrollbar;
 use crate::widgets::table::SortDir;
 
-// ------------------------------------------------------------------ values
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum CellValue {
     Null,
-    /// Server default (inserted rows).
+
     Default,
     Text(String),
     Int(i64),
@@ -55,8 +55,8 @@ impl CellValue {
     pub fn text(&self) -> String {
         self.text_ref().into_owned()
     }
-    /// [`Self::text`] without copying text and JSON values: rendering
-    /// compares and measures values on every frame and never needs a copy.
+
+
     pub fn text_ref(&self) -> std::borrow::Cow<'_, str> {
         match self {
             CellValue::Null => "NULL".into(),
@@ -67,7 +67,7 @@ impl CellValue {
             CellValue::Bool(b) => b.to_string().into(),
         }
     }
-    /// Text to put in the editor (empty for NULL/DEFAULT).
+
     pub fn edit_text(&self) -> String {
         match self {
             CellValue::Null | CellValue::Default => String::new(),
@@ -76,7 +76,7 @@ impl CellValue {
     }
 }
 
-/// Rendering behaviour; the owner maps its own types onto these.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CellKind {
     Text,
@@ -117,13 +117,13 @@ pub struct ColumnSpec {
     pub sortable: bool,
     pub min_width: u16,
     pub max_width: u16,
-    /// The column's type as the database names it (`numeric(10,2)`,
-    /// `jsonb`): the header's tooltip says it after the name when the
-    /// pointer rests on the header. Empty shows no tooltip. The header
-    /// stays one row, so the type is not drawn at rest.
+
+
+
+
     pub type_label: String,
-    /// How the column's cells are edited: typed text (default) or a value
-    /// from a fixed set ([`ColumnEditor`]).
+
+
     pub editor: ColumnEditor,
 }
 
@@ -145,7 +145,7 @@ impl ColumnSpec {
             editor: ColumnEditor::Text,
         }
     }
-    /// Edit the column with a constrained `editor`.
+
     pub fn editor(mut self, editor: ColumnEditor) -> Self {
         self.editor = editor;
         self
@@ -187,11 +187,11 @@ pub enum RowTotal {
 pub struct GridRows {
     pub rows: Vec<Vec<CellValue>>,
     pub total: RowTotal,
-    /// More rows can be fetched (the result was capped at this many).
+
     pub more: bool,
 }
 
-// ------------------------------------------------------------- pending edits
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum UndoAction {
@@ -209,8 +209,8 @@ pub enum UndoAction {
     },
 }
 
-/// Nothing reaches the server until the owner commits. Row keys are source
-/// row indices, so sorting (a permutation) never invalidates them.
+
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct PendingChanges {
     pub cells: HashMap<(usize, usize), CellValue>,
@@ -229,7 +229,7 @@ impl PendingChanges {
             .filter(|r| !self.inserted.contains(r))
             .collect()
     }
-    /// (updates, inserts, deletes)
+
     pub fn counts(&self) -> (usize, usize, usize) {
         (
             self.dirty_rows().len(),
@@ -262,7 +262,7 @@ pub enum RowState {
 pub struct EditState {
     pub row: usize,
     pub col: usize,
-    /// The cell's text, keys, undo, pointer selection and validation.
+
     pub field: EditField,
 }
 
@@ -298,24 +298,24 @@ pub enum GridAction {
     Activated(usize),
     LeaveForward,
     LeaveBackward,
-    /// Enter (or F2) on a cell that cannot be edited: a read-only column,
-    /// a row marked for deletion, or a grid that is not editable and says
-    /// why ([`DataGrid::read_only_reason`]). The owner shows `reason`
-    /// (a status line), so the key is never silently dropped.
+
+
+
+
     ReadOnly {
         reason: String,
     },
 }
 
-/// Validate text typed into a cell for a column: the grid's validator is a
-/// [`Validator`] whose context is the column's [`ColumnSpec`] and whose
-/// value is the parsed [`CellValue`]. The owner can replace it with
-/// engine-aware parsing ([`DataGrid::validator`]); a closure, so it can
-/// capture state (a schema, an enum list). The default is
-/// [`default_validator`] ([`cell_validator`]).
+
+
+
+
+
+
 pub type CellParser = Validator<CellValue, ColumnSpec>;
 
-/// A [`CellParser`] from a parse function in the message form.
+
 pub fn cell_validator(
     f: impl Fn(&ColumnSpec, &str) -> Result<CellValue, String> + 'static,
 ) -> CellParser {
@@ -324,9 +324,9 @@ pub fn cell_validator(
     })
 }
 
-/// What a cell edit's text means: an empty text is an empty string in a
-/// text-like column, NULL in a nullable one, an error otherwise; anything
-/// else goes through the column's `parser`.
+
+
+
 fn parse_cell(parser: &CellParser, spec: &ColumnSpec, text: &str) -> Result<CellValue, FieldError> {
     if text.is_empty() {
         return match spec.kind {
@@ -395,14 +395,14 @@ pub fn default_validator(col: &ColumnSpec, text: &str) -> Result<CellValue, Stri
     }
 }
 
-// ------------------------------------------------------------------ grid
 
-/// A pointer drag on a [`DataGrid`].
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GridDrag {
-    /// A range selection from the pressed cell.
+
     Cells(WidgetId),
-    /// Mark painting from the pressed row number at display row `from`.
+
     Rows {
         id: WidgetId,
         from: usize,
@@ -412,7 +412,7 @@ enum GridDrag {
 
 #[derive(Debug, Clone)]
 pub struct DataGrid {
-    /// The cells, row numbers and `▾`s registered in the last render.
+
     parts: PartMap,
     pub id: WidgetId,
     pub columns: Vec<ColumnSpec>,
@@ -421,32 +421,32 @@ pub struct DataGrid {
     pub total: RowTotal,
     pub more: bool,
     pub sort: Option<(usize, SortDir)>,
-    /// Sort locally instead of asking the owner (only for fully loaded data).
+
     pub local_sort: bool,
     pub filtered_cols: BTreeSet<usize>,
     pub cursor: (usize, usize),
-    /// Range selection anchor (display row, col).
+
     anchor: Option<(usize, usize)>,
-    /// The marked rows (source rows; the gutter `✓`): Space, the row
-    /// numbers and Select All change them through [`RowSelection::apply`].
+
+
     pub selection: RowSelection,
     pub pending: PendingChanges,
     undo: Vec<UndoAction>,
-    /// Rows (`scroll`, the vertical state) and columns (`scroll.h`) with both bars
-    /// ([`Scrollable`]).
+
+
     pub scroll: ScrollPane,
     pub edit: Option<EditState>,
     pub editable: bool,
-    /// What a click on a cell does beyond moving the cursor: when it
-    /// starts editing (or, read-only, activates the row). Default
-    /// [`ClickPolicy::DATA`]: a double click, so the focusing click never
-    /// edits (M9).
+
+
+
+
     pub click: ClickPolicy,
-    /// Modifiers that make a click on a row number toggle that row's mark;
-    /// Shift extends. Default [`SelectGesture::toggle_mods`].
+
+
     pub toggle_mods: KeyModifiers,
-    /// What a cell edit in progress does when the grid loses focus
-    /// ([`Self::on_blur`]). Default [`BlurAction::Commit`].
+
+
     pub blur_action: BlurAction,
     pub read_only_reason: Option<String>,
     pub loading: bool,
@@ -457,115 +457,115 @@ pub struct DataGrid {
     pub row_numbers: bool,
     pub area: Rect,
     body: Rect,
-    /// The pointer drag in progress, kept by the pressed id so it goes on
-    /// after edge autoscroll moved its origin out of view.
+
+
     drag: Option<GridDrag>,
     widths: Vec<u16>,
-    /// User column widths from dragging a header seam or autofit
-    /// ([`ColumnSizing`]); `sizing.resizable` turns the seams off.
+
+
     pub sizing: ColumnSizing,
-    /// Labels of the header context menu ([`Self::header_menu`]).
+
     pub header_labels: HeaderLabels,
     col_rects: Vec<Rect>,
     show_bar: bool,
     bar: [Button; 3],
-    /// The theme's strings as of the last render: the empty state and bar
-    /// labels still reading them follow a change
-    /// ([`crate::theme::Strings::follow`]).
+
+
+
     strings: crate::theme::Strings,
-    /// How a cut cell reveals its full value on hover (see
-    /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+
+
     pub reveal: Option<crate::ui::reveal::Reveal>,
-    /// Horizontal scrolling policy; `None` follows [`RenderCtx::hscroll`].
-    /// The grid always moves by whole columns and its bar counts columns.
+
+
     pub horizontal: Option<HScroll>,
-    /// The `‹n` / `n›` header badges counting columns hidden on either
-    /// side (clickable, one column per click). They complement the bar:
-    /// the bar shows where, the badges how many.
+
+
+
     pub overflow_badges: bool,
-    /// Which keys move the cursor (default [`NavKeys::default`]). `g`/`G`
-    /// go to the first/last row, Home/End to the row's first/last cell,
-    /// Ctrl+Home/End to the first/last row; Ctrl+←/→ page sideways.
+
+
+
     pub nav: NavKeys,
-    /// The grid's action keys (default [`GridCmd::default_keymap`]).
+
     pub keymap: KeyMap<GridCmd>,
-    /// Typing a prefix jumps to the first row whose cell in
-    /// [`Self::type_ahead_column`] starts with it (macOS table type-select).
-    /// Off by default: plain letters keep their vim and action bindings.
+
+
+
     pub type_ahead: bool,
-    /// The column type-ahead matches; `None` (default) is the cursor's
-    /// column.
+
+
     pub type_ahead_column: Option<usize>,
-    /// Whether the page's and the app's single-character shortcuts win over
-    /// type-ahead ([`TypeAheadPrecedence`](crate::core::list::TypeAheadPrecedence)). Default `None`: the app-wide
-    /// [`TypeAheadPrecedence::current`](crate::core::list::TypeAheadPrecedence::current) (shortcuts first).
+
+
+
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
     typeahead: crate::core::typeahead::TypeAhead,
-    /// How many leading rows [`Self::set_rows`] measures to size columns
-    /// (the 95th percentile of their widths, clamped to each column's
-    /// min/max). Default [`DEFAULT_WIDTH_SAMPLE_ROWS`]; widths are measured
-    /// once per dataset, never per frame.
+
+
+
+
     pub width_sample_rows: usize,
-    /// The constrained editor open on a cell, if any.
+
     pub choice: Option<GridChoice>,
-    /// Behaviour of every constrained column editor
-    /// ([`EditorConfig::default`]).
+
+
     pub editor_config: EditorConfig,
 }
 
-/// A constrained editor open on one grid cell ([`DataGrid::choice`]).
+
 #[derive(Debug, Clone)]
 pub struct GridChoice {
-    /// Source row.
+
     pub row: usize,
     pub col: usize,
     pub editor: ChoiceEditor,
 }
 
-/// A [`DataGrid`] action a key can be bound to. Enter/F2 (edit or
-/// activate), Space (mark the row) and Esc (clear the selection) are fixed.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GridCmd {
-    /// Set the cell to NULL, or mark the selected rows deleted. Default Del
-    /// and Backspace.
+
+
     ClearCell,
-    /// Mark the cursor row deleted (again: restore it). Default `-`.
+
     ToggleDelete,
-    /// Insert a row. Default `+`.
+
     InsertRow,
-    /// Duplicate the cursor row. Default Ctrl+D and Alt+D.
+
     DuplicateRow,
-    /// Copy the cell, range or marked rows. Default Cmd+C where the
-    /// terminal delivers Cmd, and `y` (a hint names the first deliverable).
+
+
     Copy,
-    /// Copy with the column names. Default `Y`.
+
     CopyWithHeader,
-    /// Ask the app to save the pending changes. Default Ctrl+S.
+
     Commit,
-    /// Sort by the cursor column (asc, desc, off). Default `s`.
+
     Sort,
-    /// Drop the sort. Default `S`.
+
     ClearSort,
-    /// Filter on the cursor cell's value (an empty grid opens the
-    /// filters). Default `f`.
+
+
     FilterOnCell,
-    /// Open the filter editor. Default `/`.
+
     OpenFilters,
-    /// Clear every filter. Default `F`.
+
     ClearFilters,
-    /// Reload. Default `r` and F5.
+
     Refresh,
-    /// Undo the last pending change. Default `u`.
+
     Undo,
-    /// Ask the app to discard the pending changes. Default `U`.
+
     Discard,
-    /// Ask the app to preview the SQL. Default `p`.
+
     PreviewSql,
-    /// Follow the cell's foreign key. Default Ctrl+].
+
     FollowReference,
-    /// Mark every row (Select All), as Space marks one. Default Cmd+A
-    /// where the terminal delivers Cmd, and Ctrl+A
-    /// ([`crate::core::keymap::SELECT_ALL`]).
+
+
+
     SelectAll,
 }
 
@@ -622,8 +622,8 @@ impl Actions for GridCmd {
     }
 }
 
-/// Rows sampled for column widths by default (see
-/// [`DataGrid::width_sample_rows`]).
+
+
 pub const DEFAULT_WIDTH_SAMPLE_ROWS: usize = 200;
 
 impl DataGrid {
@@ -690,18 +690,18 @@ impl DataGrid {
         }
     }
 
-    /// See [`Self::editor_config`].
+
     pub fn editor_config(mut self, cfg: EditorConfig) -> Self {
         self.editor_config = cfg;
         self
     }
 
-    /// The id of the popup a constrained editor opens.
+
     pub fn choice_id(&self) -> WidgetId {
         self.id.sub("choice")
     }
 
-    /// The `▾` of a constrained cell (on the cursor cell and on hover).
+
     pub fn open_id(&self, display: usize, col: usize) -> WidgetId {
         self.cell_id(display, col).part(PartRef::of(Part::ACTIONS))
     }
@@ -710,8 +710,8 @@ impl DataGrid {
         self.parts.cell(id, Part::ACTIONS)
     }
 
-    /// The cell at (source row, column) holds text outside its column's
-    /// options (imported data).
+
+
     pub fn out_of_set(&self, src: usize, col: usize) -> bool {
         let Some(spec) = self.columns.get(col) else {
             return false;
@@ -722,8 +722,8 @@ impl DataGrid {
         }
     }
 
-    /// Store a chosen value through the grid's validator and pending
-    /// queue.
+
+
     fn apply_choice(
         &mut self,
         src: usize,
@@ -741,8 +741,8 @@ impl DataGrid {
         Ok(GridAction::CellChanged { row: src, col })
     }
 
-    /// The next (previous) writable column of the cursor row, or the
-    /// event that leaves the grid.
+
+
     fn next_writable(&self, backward: bool) -> Result<usize, GridAction> {
         let n = self.columns.len();
         let mut col = self.cursor.1;
@@ -764,7 +764,7 @@ impl DataGrid {
         }
     }
 
-    /// Resolve what an open constrained editor reported.
+
     fn on_choice(&mut self, r: Option<ChoiceResult>) -> Option<GridAction> {
         let (value, tab) = match r? {
             ChoiceResult::Cancel => {
@@ -798,21 +798,21 @@ impl DataGrid {
         }
     }
 
-    /// The pause after which the next letter starts a new type-ahead
-    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
-    /// (1 s; APG suggests 500–1000 ms).
+
+
+
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
         self
     }
 
-    /// See [`Self::type_ahead`].
+
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
     }
 
-    /// See [`Self::type_ahead_precedence`].
+
     pub fn type_ahead_precedence(
         mut self,
         precedence: crate::core::list::TypeAheadPrecedence,
@@ -821,19 +821,19 @@ impl DataGrid {
         self
     }
 
-    /// See [`Self::type_ahead_column`].
+
     pub fn type_ahead_column(mut self, col: Option<usize>) -> Self {
         self.type_ahead_column = col;
         self
     }
 
-    /// Override the app-wide horizontal scrolling policy.
+
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
 
-    /// Move the default text still reading the last strings to `s`.
+
     fn follow_strings(&mut self, s: crate::theme::Strings) {
         use crate::theme::Strings;
         let old = std::mem::replace(&mut self.strings, s);
@@ -851,15 +851,15 @@ impl DataGrid {
         }
     }
 
-    /// Show or hide the `‹n` / `n›` hidden-column badges.
+
     pub fn overflow_badges(mut self, on: bool) -> Self {
         self.overflow_badges = on;
         self
     }
 
-    /// The pending-changes bar's labels: preview, discard, save. Default
-    /// the theme's `Preview SQL`, `Discard`, `Save`
-    /// ([`crate::theme::Strings`]); labels set here no longer follow it.
+
+
+
     pub fn bar_labels(mut self, labels: [&str; 3]) -> Self {
         for (b, l) in self.bar.iter_mut().zip(labels) {
             b.label = l.to_owned();
@@ -867,13 +867,13 @@ impl DataGrid {
         self
     }
 
-    /// What an empty grid shows.
+
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.empty = state;
         self
     }
 
-    /// Replace the cell validator (default [`default_validator`]).
+
     pub fn validator(
         mut self,
         f: impl Fn(&ColumnSpec, &str) -> Result<CellValue, String> + 'static,
@@ -887,22 +887,22 @@ impl DataGrid {
         self
     }
 
-    /// See [`Self::click`].
+
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.click = policy;
         self
     }
 
-    /// See [`Self::toggle_mods`].
+
     pub fn toggle_mods(mut self, mods: KeyModifiers) -> Self {
         self.toggle_mods = mods;
         self
     }
 
-    /// The keys that duplicate the cursor row (default Ctrl+D and Alt+D):
-    /// replaces the [`GridCmd::DuplicateRow`] bindings in
-    /// [`Self::keymap`]. An empty list turns the shortcut off;
-    /// [`Self::duplicate_row`] stays.
+
+
+
+
     pub fn duplicate_keys(mut self, keys: &[Key]) -> Self {
         self.keymap.retain(|(_, a)| *a != GridCmd::DuplicateRow);
         self.keymap.extend(
@@ -912,48 +912,48 @@ impl DataGrid {
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<GridCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-    /// How many leading rows size the columns (default
-    /// [`DEFAULT_WIDTH_SAMPLE_ROWS`]). Takes effect on the next
-    /// [`Self::set_rows`].
+
+
+
     pub fn width_sample_rows(mut self, rows: usize) -> Self {
         self.width_sample_rows = rows;
         self
     }
 
-    /// Header seams resize columns by drag (double-click autofits).
-    /// Default on.
+
+
     pub fn resizable_columns(mut self, on: bool) -> Self {
         self.sizing.resizable = on;
         self
     }
 
-    /// Hit width of a header seam in cells (default
-    /// [`crate::ui::columns::DEFAULT_SEAM_W`]).
+
+
     pub fn seam_hit_w(mut self, cells: u16) -> Self {
         self.sizing.seam_w = cells.max(1);
         self
     }
 
-    /// The width column `c` draws at: its user width, else the measured one.
+
     fn col_w(&self, c: usize) -> u16 {
         self.sizing
             .width(c, self.widths.get(c).copied().unwrap_or(0))
     }
 
-    /// Fit column `c` to its header and the values of the visible rows
-    /// (no wider than the grid), as a user width.
+
+
     pub fn autofit(&mut self, c: usize) {
         let Some(col) = self.columns.get(c) else {
             return;
@@ -976,8 +976,8 @@ impl DataGrid {
         self.sizing.set(c, need.min(cap) as u16);
     }
 
-    /// The header context menu of column `c`: sort, autofit and reset
-    /// widths, each paired with the action [`Self::on_header_action`] runs.
+
+
     pub fn header_menu(&self, c: usize) -> Vec<(HeaderAction, crate::widgets::menu::MenuItem)> {
         let sortable = self.columns.get(c).is_some_and(|col| col.sortable);
         let sorted = self.sort.and_then(|(sc, d)| (sc == c).then_some(d));
@@ -990,7 +990,7 @@ impl DataGrid {
         )
     }
 
-    /// Run a header menu command on column `c`.
+
     pub fn on_header_action(
         &mut self,
         c: usize,
@@ -1011,7 +1011,7 @@ impl DataGrid {
         }
     }
 
-    // ---- data -------------------------------------------------------
+
 
     pub fn len(&self) -> usize {
         self.rows.len()
@@ -1025,7 +1025,7 @@ impl DataGrid {
     pub fn source_row(&self, display: usize) -> usize {
         self.order.get(display).copied().unwrap_or(display)
     }
-    /// Effective value (pending edit or stored).
+
     pub fn value(&self, src: usize, col: usize) -> &CellValue {
         self.pending.value(src, col).unwrap_or_else(|| {
             self.rows
@@ -1035,7 +1035,7 @@ impl DataGrid {
         })
     }
 
-    /// Replace all rows: resets pending edits, cursor and widths.
+
     pub fn set_rows(&mut self, data: GridRows) {
         self.rows = data.rows;
         self.total = data.total;
@@ -1059,7 +1059,7 @@ impl DataGrid {
         self.scroll.ensure_visible(self.cursor.0);
     }
 
-    /// Fetch-more result: keeps widths, cursor and pending changes.
+
     pub fn append_rows(&mut self, data: GridRows) {
         let start = self.rows.len();
         self.rows.extend(data.rows);
@@ -1085,10 +1085,10 @@ impl DataGrid {
             .enumerate()
             .map(|(ci, c)| {
                 let header = width(&c.name) as u16 + if c.primary { 2 } else { 0 } + 2;
-                // a header never ellipsises below its own name (up to a sane cap)
+
                 let max = c.max_width.max(header.min(24));
-                // the result is clamped to `max`, so a value only needs
-                // measuring up to it: a long one costs its first cells
+
+
                 let mut ws: Vec<usize> = self
                     .rows
                     .iter()
@@ -1119,9 +1119,9 @@ impl DataGrid {
         self.row_state_with(src, |src| self.pending.cells.keys().any(|(r, _)| *r == src))
     }
 
-    /// [`Self::row_state`] with the "has an edited cell" test supplied: a
-    /// frame collects the edited rows once instead of scanning every
-    /// pending cell for every visible row.
+
+
+
     fn row_state_with(&self, src: usize, edited: impl Fn(usize) -> bool) -> RowState {
         if self.row_errors.contains_key(&src) {
             RowState::Error
@@ -1136,7 +1136,7 @@ impl DataGrid {
         }
     }
 
-    // ---- editing ----------------------------------------------------
+
 
     pub fn is_editing(&self) -> bool {
         if self.choice.is_some() {
@@ -1144,10 +1144,10 @@ impl DataGrid {
         }
         self.edit.is_some()
     }
-    /// The byte offset of the open cell editor's text under `pos`, by the
-    /// geometry it was drawn with (the text scrolls by the caret column).
-    /// Left of the cell names the first character, right of it the last,
-    /// so a drag past an edge selects on.
+
+
+
+
     fn edit_offset(&self, pos: Position) -> Option<usize> {
         let e = self.edit.as_ref()?;
         let rect = self
@@ -1175,8 +1175,8 @@ impl DataGrid {
         self.order.get(self.cursor.0).copied()
     }
 
-    /// Why the cursor cell cannot be edited, or `None` when it can (or
-    /// when the grid is not editable and gives no reason).
+
+
     pub fn read_only_reason_at_cursor(&self) -> Option<String> {
         let src = self.cursor_src()?;
         if !self.editable {
@@ -1195,8 +1195,8 @@ impl DataGrid {
         }
     }
 
-    /// Whether Enter would edit the cursor cell: hints offer "Edit" only
-    /// then.
+
+
     pub fn cell_editable(&self) -> bool {
         self.editable
             && !self.on_more_row()
@@ -1215,13 +1215,13 @@ impl DataGrid {
         if let Some(reason) = self.read_only_reason_at_cursor() {
             return (Outcome::Changed, Some(GridAction::ReadOnly { reason }));
         }
-        // the editor (and a popup's anchor) is the cell on screen, even
-        // after the view was scrolled away from it
+
+
         self.scroll.ensure_visible(self.cursor.0);
         self.ensure_col_visible();
         let spec = &self.columns[col];
         let v = self.value(src, col).clone();
-        // a constrained column: a checkbox flips, the others open a popup
+
         if spec.editor.is_constrained() {
             let raw = v.edit_text();
             if let Some(next) = spec.editor.toggled(&raw) {
@@ -1269,8 +1269,8 @@ impl DataGrid {
             _ => {}
         }
         let mut field = EditField::single(v.edit_text());
-        // typing re-checks the value once an error shows (SIg9), with the
-        // same rule the commit uses
+
+
         let (parser, spec) = (self.validator.clone(), self.columns[col].clone());
         field.validator = Some(Validator::new(move |text| {
             parse_cell(&parser, &spec, text).map(|_| ())
@@ -1306,10 +1306,10 @@ impl DataGrid {
         self.edit.take().is_some()
     }
 
-    /// Focus left the grid (see [`crate::core::focus::Focus::take_changes`]).
-    /// A cell edit in progress ends per [`Self::blur_action`]: a commit
-    /// reports `CellChanged` like Enter (an invalid value stays open with
-    /// its error), a cancel drops the edit.
+
+
+
+
     pub fn on_blur(&mut self) -> (Outcome, Option<GridAction>) {
         if let Some(c) = &self.choice {
             let r = match self.editor_config.blur {
@@ -1335,7 +1335,7 @@ impl DataGrid {
         }
     }
 
-    /// Set a pending value; reverting to the stored value clears the change.
+
     pub fn record_cell(&mut self, src: usize, col: usize, value: CellValue) {
         let before = self.pending.cells.get(&(src, col)).cloned();
         let stored = self
@@ -1362,7 +1362,7 @@ impl DataGrid {
             return None;
         }
         if self.pending.inserted.contains(&src) {
-            // deleting an inserted row removes it entirely
+
             self.remove_inserted(src);
             return Some(GridAction::RowDeleted(src));
         }
@@ -1421,7 +1421,7 @@ impl DataGrid {
         self.pending.inserted.insert(src);
         self.undo.push(UndoAction::Insert { row: src });
         self.scroll.set_content(self.content_rows());
-        // cursor to the new row, first writable column
+
         let disp = self.order.iter().position(|&r| r == src).unwrap_or(0);
         let col = self
             .columns
@@ -1432,8 +1432,8 @@ impl DataGrid {
         Some(GridAction::RowInserted(src))
     }
 
-    /// Duplicate the current row, resetting generated columns to defaults.
-    /// [`Self::duplicate_keys`] invoke this; read-only grids refuse it.
+
+
     pub fn duplicate_row(&mut self) -> Option<GridAction> {
         let src = self.cursor_src()?;
         if !self.editable {
@@ -1487,11 +1487,11 @@ impl DataGrid {
         true
     }
 
-    /// The owner reports the commit outcome.
+
     pub fn apply_commit_result(&mut self, result: Result<(), (usize, String)>) {
         match result {
             Ok(()) => {
-                // fold pending values into stored rows; drop deleted rows
+
                 for ((r, c), v) in self.pending.cells.drain() {
                     if let Some(row) = self.rows.get_mut(r)
                         && let Some(cell) = row.get_mut(c)
@@ -1532,7 +1532,7 @@ impl DataGrid {
         self.row_errors.clear();
     }
 
-    // ---- navigation ------------------------------------------------
+
 
     fn set_cursor(&mut self, row: usize, col: usize, extend: bool) {
         let n = self.content_rows();
@@ -1550,19 +1550,19 @@ impl DataGrid {
         self.ensure_col_visible();
     }
 
-    /// [`Self::set_cursor`] for a row the pointer placed: the row comes in
-    /// without context ([`crate::core::scroll::ScrollState::pointer_move`]).
+
+
     fn point_cursor(&mut self, row: usize, col: usize, extend: bool) {
         self.scroll.pointer_move();
         self.set_cursor(row, col, extend);
     }
 
     fn ensure_col_visible(&mut self) {
-        // the whole cursor column, measured at the offset it lands on
+
         self.scroll.reveal_column(self.cursor.1);
     }
 
-    /// Is the display cell inside the current range selection?
+
     fn in_range(&self, row: usize, col: usize) -> bool {
         let Some(a) = self.anchor else {
             return false;
@@ -1633,7 +1633,7 @@ impl DataGrid {
             let (out, r) = c.editor.on_key(key, &self.editor_config);
             return (out, self.on_choice(r));
         }
-        // Alt+↓ opens a constrained cell's popup (plain ↓ moves)
+
         if key.code == KeyCode::Down
             && key.alt()
             && self.editable
@@ -1660,7 +1660,7 @@ impl DataGrid {
                     if self.edit.is_some() {
                         return (Outcome::Changed, None);
                     }
-                    // next writable cell
+
                     let n = self.columns.len();
                     let mut col = self.cursor.1;
                     loop {
@@ -1686,14 +1686,14 @@ impl DataGrid {
                 None => (r.outcome, None),
             };
         }
-        // pending bar buttons are separate focus stops; grid keys only here
+
         let (r, c) = self.cursor;
         let shift = key.shift();
         let ctrl = key.ctrl();
         let n_rows = self.content_rows();
         if n_rows == 0 {
-            // an empty grid: only the actions that do not need a row (the
-            // filter-on-cell key opens the filters instead)
+
+
             return match lookup(&self.keymap, key) {
                 Some(GridCmd::InsertRow) if self.editable => (Outcome::Changed, self.insert_row()),
                 Some(GridCmd::Refresh) => (Outcome::Changed, Some(GridAction::Refresh)),
@@ -1730,8 +1730,8 @@ impl DataGrid {
             return self.on_action(action);
         }
         if let Some(nav) = self.nav.action(key) {
-            // `g`/`G` jump to the first/last row; Home/End stay in the row
-            // (spreadsheet convention) and Ctrl+Home/End go to the ends
+
+
             let letter = matches!(key.code, KeyCode::Char(_));
             let rows = RowFn {
                 len: n_rows,
@@ -1769,8 +1769,8 @@ impl DataGrid {
                     return (Outcome::Changed, Some(GridAction::FetchMore));
                 }
                 if !self.editable {
-                    // a grid that says why it is read-only says so on
-                    // Enter; one without a reason is a list (activation)
+
+
                     if let Some(reason) = self.read_only_reason_at_cursor() {
                         return (Outcome::Changed, Some(GridAction::ReadOnly { reason }));
                     }
@@ -1917,13 +1917,13 @@ impl DataGrid {
         }
     }
 
-    // ---- ids / hit-testing -----------------------------------------
+
 
     pub fn header_id(&self, c: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::HEADER, ItemKey::index(c)))
     }
-    /// One id per cell, under its row's; the part is the row's
-    /// `Part::CELL` (the column comes from the position on `main`).
+
+
     pub fn cell_id(&self, display: usize, c: usize) -> WidgetId {
         self.id
             .part(PartRef::item(Part::ROW, ItemKey::index(display)))
@@ -1932,16 +1932,16 @@ impl DataGrid {
     fn cell_part(display: usize) -> PartRef {
         PartRef::item(Part::CELL, ItemKey::index(display))
     }
-    /// The resize seam after column `c` in the header.
+
     pub fn seam_id(&self, c: usize) -> WidgetId {
         self.id.part(crate::ui::columns::seam_part(c))
     }
-    /// The column whose seam `id` is.
+
     fn seam_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::SEAM, 0..self.columns.len())
     }
-    /// The column whose header menu the secondary click `ev` opens (its
-    /// header or its seam).
+
+
     pub fn header_menu_at(&self, ev: &crate::core::pointer::PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
             return None;
@@ -1955,7 +1955,7 @@ impl DataGrid {
     fn rownum_part(display: usize) -> PartRef {
         PartRef::item(Part::ROW_NUMBER, ItemKey::index(display))
     }
-    /// The fetch-more row: `Part::ROW` without an item, as on `main`.
+
     pub fn more_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::ROW))
     }
@@ -1966,28 +1966,28 @@ impl DataGrid {
         self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
-    // The inverses the id-taking methods (`on_press`, `on_click`,
-    // `on_drag`) need until S15 hands them the routed part.
 
-    /// The (display row, column) of the cell `id`.
+
+
+
     fn cell_of(&self, id: WidgetId) -> Option<(usize, usize)> {
         self.parts.cell(id, Part::CELL)
     }
-    /// The column whose header `id` is.
+
     fn header_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::HEADER, 0..self.columns.len())
     }
-    /// The display row whose number `id` is.
+
     fn rownum_of(&self, id: WidgetId) -> Option<usize> {
         self.parts.index(id, Part::ROW_NUMBER)
     }
 
-    /// Button down on `id` with the click count it starts: a press on a
-    /// header seam starts a resize (keeping the grab offset); the second
-    /// press of a double click autofits the column.
+
+
+
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
-        // the open cell editor anchors a drag selection; the second press
-        // of a double click selects the word
+
+
         if let Some((d, c)) = self.cell_of(id)
             && self
                 .edit
@@ -2017,16 +2017,16 @@ impl DataGrid {
         Outcome::Changed
     }
 
-    /// A single plain click on `id` ([`Self::on_click_with`]).
+
     pub fn on_click(&mut self, id: WidgetId, pos: Position) -> (Outcome, Option<GridAction>) {
         self.on_click_with(id, pos, KeyModifiers::NONE, 1)
     }
 
-    /// The right-click selection rule (M10) on the cell at (`display`,
-    /// `col`), a valid cell: inside the cell range the range and the cursor
-    /// stay, so Copy acts on the range; outside it the range ends and the
-    /// cursor moves there. Row marks the row is not part of give way to
-    /// that row alone ([`RowSelection::context_select`]).
+
+
+
+
+
     pub fn context_selection(&mut self, display: usize, col: usize) {
         if self.anchor.is_some() && self.in_range(display, col) {
             return;
@@ -2039,20 +2039,20 @@ impl DataGrid {
         }
     }
 
-    /// Apply `g` aimed at display row `display` to the row marks
-    /// ([`RowSelection::apply`]). Returns whether they changed.
+
+
     pub fn select_rows(&mut self, g: SelectGesture, display: usize) -> bool {
         self.selection.apply(g, display, &self.order, |_| true)
     }
 
-    /// The `count`th click of a multi-click on `id` with `mods` held. A
-    /// click on a row number is a [`SelectGesture`] on the row marks
-    /// ([`SelectGesture::from_mods`] with [`Self::toggle_mods`]: a plain
-    /// click marks only that row, the toggle modifiers toggle it, Shift
-    /// extends; M16). A click on a cell moves the cursor; it edits the cell
-    /// (or activates the row of a read-only grid) only when
-    /// [`Self::click`] says so: a double click by default, so the click
-    /// that gives a cell the cursor never edits (M9).
+
+
+
+
+
+
+
+
     pub fn on_click_with(
         &mut self,
         id: WidgetId,
@@ -2062,7 +2062,7 @@ impl DataGrid {
     ) -> (Outcome, Option<GridAction>) {
         let count = count.max(1);
         if self.seam_of(id).is_some() {
-            // the release of a seam press or drag: the resize is done
+
             self.sizing.release();
             return (Outcome::Consumed, None);
         }
@@ -2071,7 +2071,7 @@ impl DataGrid {
                 let (out, r) = c.editor.on_click(id, &self.editor_config);
                 return (out, self.on_choice(r));
             }
-            // a click anywhere else ends the popup without a choice
+
             self.choice = None;
         }
         if let Some((d, c)) = self.locate_open(id) {
@@ -2120,8 +2120,8 @@ impl DataGrid {
             return self.request_sort(next);
         }
         if let Some(d) = self.rownum_of(id) {
-            // the release that ends a mark-painting drag back on its
-            // origin keeps the painted marks
+
+
             if let Some(GridDrag::Rows { id: from_id, .. }) = self.drag.take()
                 && from_id == id
             {
@@ -2138,8 +2138,8 @@ impl DataGrid {
         if let Some((d, c)) = self.cell_of(id) {
             if let Some(e) = &self.edit {
                 if self.order.get(d) == Some(&e.row) && e.col == c {
-                    // a click inside the editor places the caret, a double
-                    // click selects a word, a triple click the value
+
+
                     if let Some(at) = self.edit_offset(pos)
                         && let Some(e) = self.edit.as_mut()
                     {
@@ -2153,7 +2153,7 @@ impl DataGrid {
                 }
             }
             let same = self.cursor == (d, c) && self.anchor.is_none();
-            // click on the trailing → of a reference cell follows it
+
             if let Some(rect) = self.col_rects.get(c.saturating_sub(self.scroll.h.offset))
                 && self.columns[c].references.is_some()
                 && pos.x + 1 == rect.right()
@@ -2164,7 +2164,7 @@ impl DataGrid {
                     Some(GridAction::FollowReference { row: src, col: c }),
                 );
             }
-            // Shift-click extends the cell range from the cursor (M16)
+
             let extend = mods.contains(KeyModifiers::SHIFT);
             self.point_cursor(d, c, extend);
             if extend {
@@ -2205,7 +2205,7 @@ impl DataGrid {
                 None => Outcome::Consumed,
             };
         }
-        // a drag from a row number paints the rows' marks
+
         let row_origin = match self.drag {
             Some(GridDrag::Rows { id, .. }) if id == pressed => None,
             _ => self.rownum_of(pressed),
@@ -2215,9 +2215,9 @@ impl DataGrid {
         {
             return self.drag_rows(pressed, row_origin, pos);
         }
-        // range selection from a cell: the cell under the pointer, or past
-        // an edge the row or column beyond it (as many as the pointer is
-        // past the edge), so a held drag autoscrolls
+
+
+
         let from_cell = matches!(self.drag, Some(GridDrag::Cells(id)) if id == pressed)
             || self.cell_of(pressed).is_some();
         if !from_cell || self.body.height == 0 {
@@ -2232,15 +2232,15 @@ impl DataGrid {
         Outcome::Ignored
     }
 
-    /// The display row a drag at `y` names: past the top or bottom of the
-    /// body, the row as many rows beyond the visible ones.
+
+
     fn drag_row(&self, y: u16) -> usize {
         let d = self.scroll.offset as isize + (y as isize - self.body.y as isize);
         (d.max(0) as usize).min(self.content_rows().saturating_sub(1))
     }
 
-    /// The column drawn under screen column `x` this frame (a cell's
-    /// column: the router resolves a cell to its row only).
+
+
     pub(crate) fn column_at(&self, x: u16) -> Option<usize> {
         self.col_rects
             .iter()
@@ -2248,8 +2248,8 @@ impl DataGrid {
             .map(|k| self.scroll.h.offset + k)
     }
 
-    /// The column a drag at `x` names: left of the cells the one before
-    /// the first visible, right of them the one after the last.
+
+
     fn drag_col(&self, x: u16) -> usize {
         let (Some(first), Some(last)) = (self.col_rects.first(), self.col_rects.last()) else {
             return self.cursor.1;
@@ -2269,8 +2269,8 @@ impl DataGrid {
         c.min(self.columns.len().saturating_sub(1))
     }
 
-    /// A drag that started on a row number: every row between it and the
-    /// pointer takes the mark the origin's click would give it.
+
+
     fn drag_rows(&mut self, pressed: WidgetId, origin: Option<usize>, pos: Position) -> Outcome {
         let d = self.drag_row(pos.y);
         let (from, mark) = match (self.drag, origin) {
@@ -2315,9 +2315,9 @@ impl DataGrid {
         }
     }
 
-    // ---- labels ----------------------------------------------------
 
-    /// `rows 120–150 of 1,203,338 · cols 3–9 of 14`
+
+
     pub fn position_label(&self) -> String {
         match self.cols_label() {
             Some(c) => format!("{} · {c}", self.rows_label()),
@@ -2325,7 +2325,7 @@ impl DataGrid {
         }
     }
 
-    /// `rows 120–150 of 1,203,338`
+
     pub fn rows_label(&self) -> String {
         use crate::ui::text::thousands;
         if self.rows.is_empty() {
@@ -2351,7 +2351,7 @@ impl DataGrid {
         format!("rows {}–{} of {total}", thousands(a), thousands(b))
     }
 
-    /// `cols 3–9 of 14` when columns overflow horizontally.
+
     pub fn cols_label(&self) -> Option<String> {
         if self.rows.is_empty() || !self.scroll.h.overflows() {
             return None;
@@ -2379,7 +2379,7 @@ impl DataGrid {
         Some(parts.join(" · "))
     }
 
-    // ---- rendering -------------------------------------------------
+
 
     fn layout_columns(&mut self, area: Rect) {
         let n = self.columns.len();
@@ -2399,8 +2399,8 @@ impl DataGrid {
             self.col_rects.push(Rect::new(x, area.y, w, area.height));
             x += w + gap;
         }
-        // the next column shows clipped rather than leaving the pane blank;
-        // it is not part of the viewport, so moving onto it scrolls
+
+
         let next = self.scroll.h.offset + fit;
         if next < n && x < area.right() {
             let rest = area.right() - x;
@@ -2410,7 +2410,7 @@ impl DataGrid {
         }
     }
 
-    /// Widen a column so its header keeps room for the sort/filter marks.
+
     fn fit_header_marks(&mut self) {
         for ci in 0..self.columns.len() {
             let sorted = self.sort.is_some_and(|(c, _)| c == ci);
@@ -2431,8 +2431,8 @@ impl DataGrid {
         }
     }
 
-    /// Override the app-wide vertical track-click policy
-    /// (`TrackClick::Page` pages toward the pointer).
+
+
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
@@ -2440,7 +2440,7 @@ impl DataGrid {
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.parts.clear();
-        // a drag ends with its press
+
         if let Some(GridDrag::Cells(id) | GridDrag::Rows { id, .. }) = self.drag
             && ctx.interaction.pressed != Some(id)
         {
@@ -2456,7 +2456,7 @@ impl DataGrid {
         self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
-        // a cell edit that lost focus is ended by `on_blur`, never here
+
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
 
@@ -2479,12 +2479,12 @@ impl DataGrid {
         );
         let h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.scroll.h_cfg = h_cfg;
-        // the viewport is settled once both bars are known: setting a
-        // provisional taller one first would clamp the offset and drop
-        // the cursor row off the bottom
+
+
+
         let rows_len = self.content_rows();
         let mut has_sb = body.height > 0 && rows_len > body.height as usize;
-        // gutter: bar(1) marker(1) change(1) rownum(w) space(1)
+
         let num_w = if self.row_numbers {
             (self.rows.len().max(1).to_string().len() as u16).max(2)
         } else {
@@ -2502,9 +2502,9 @@ impl DataGrid {
             )
         };
         self.layout_columns(cols_for(has_sb));
-        // the horizontal bar takes the body's bottom row; losing that row
-        // can make the rows overflow, which costs a column for the
-        // vertical bar, so the columns are laid out again
+
+
+
         let has_rows = !self.rows.is_empty() || self.more;
         let has_hb = has_rows && body.height > 1 && h_cfg.shows_bar(&self.scroll.h);
         if has_hb {
@@ -2522,7 +2522,7 @@ impl DataGrid {
             ctx.autoscroll(body);
         }
 
-        // header
+
         let header_y = grid_area.y;
         fill(
             buf,
@@ -2569,7 +2569,7 @@ impl DataGrid {
                 }
                 _ => {}
             }
-            // the key glyph is drawn over the prefix's first cell, faint
+
             let prefix = if col.primary { "  " } else { "" };
             let avail = (rect.width as usize).saturating_sub(width(&suffix) + width(prefix));
             let shown = truncate(&col.name, avail.max(1));
@@ -2597,14 +2597,14 @@ impl DataGrid {
                     head,
                 );
             } else if (cut || !col.type_label.is_empty()) && !ctx.inert {
-                // a cut title or a typed column answers hover even when it
-                // does not sort
+
+
                 ctx.hits.register_hover(hid, head);
             }
             if !col.type_label.is_empty() {
-                // the column's type is its header's tooltip (as macOS's
-                // header tool tip, DataGrip and Sequel Ace show it); the tip
-                // names the whole title too, so a cut one needs no reveal
+
+
+
                 let tip = crate::ui::tooltip::Tip::new(&format!(
                     "{}{}{}",
                     col.name, t.glyphs.separator, col.type_label
@@ -2658,7 +2658,7 @@ impl DataGrid {
             return;
         }
 
-        // rows
+
         let edited_rows: std::collections::HashSet<usize> =
             self.pending.cells.keys().map(|&(r, _)| r).collect();
         let editing_here = self
@@ -2669,7 +2669,7 @@ impl DataGrid {
         let choice_here = self.choice.as_ref().map(|c| (c.row, c.col));
         let mut choice_anchor: Option<Rect> = None;
         let mut open_marks: Vec<(usize, usize, Rect)> = Vec::new();
-        // stands in for a cell error on a value outside its options
+
         let flagged_msg = String::new();
         for (i, d) in self.scroll.visible_range().enumerate() {
             let y = body.y + i as u16;
@@ -2680,7 +2680,7 @@ impl DataGrid {
                 1,
             );
             if d >= self.rows.len() {
-                // fetch-more virtual row
+
                 let mid = self.more_id();
                 let mut s = ctx.child_state(self.id, mid, d == self.cursor.0);
                 s.focused = focused && d == self.cursor.0;
@@ -2713,7 +2713,7 @@ impl DataGrid {
             let hovered_cell = visible_cols
                 .clone()
                 .find(|&c| ctx.interaction.hovered(self.cell_id(d, c)));
-            // cell hover and press count as the row's
+
             s.hovered |= hovered_cell.is_some();
             s.pressed |= ctx
                 .interaction
@@ -2818,8 +2818,8 @@ impl DataGrid {
                         choice_anchor = Some(cell_rect);
                     }
                     let is_cursor = is_cursor || in_choice;
-                    // a constrained cell shows its option label; a value
-                    // outside the options is flagged like an error
+
+
                     let flagged = cfg.flag_out_of_set && self.out_of_set(src, ci);
                     let err = self.cell_errors.get(&(src, ci));
                     let err = err.or(flagged.then_some(&flagged_msg));
@@ -2834,9 +2834,9 @@ impl DataGrid {
                             Affordance::Always => true,
                             Affordance::Focused => is_cursor || hovered_cell == Some(ci),
                         };
-                    // a followable reference ends in `→` on the cell's last
-                    // column: a value that would reach it gives way, as a
-                    // right-aligned number always would
+
+
+
                     let ref_mark = col.references.is_some()
                         && !matches!(v, CellValue::Null | CellValue::Default)
                         && rect.width > 6;
@@ -2854,9 +2854,9 @@ impl DataGrid {
                         }
                         _ => cell_text_with(v, col.kind, text_w, &t.glyphs),
                     };
-                    // tone: typed literals take the syntax hues (NULL and
-                    // booleans the literal, JSON the string); italic keeps
-                    // NULL apart from text without colour
+
+
+
                     let on = st.bg.unwrap_or(bg);
                     let literal = |st: Style, tone: SyntaxTone| {
                         let syn = t.syntax(tone);
@@ -2882,7 +2882,7 @@ impl DataGrid {
                         st = st.patch(t.selection());
                     }
                     if dirty {
-                        // changed values read in the warning tone; underline stays the editing token
+
                         st = st.fg(t.warning).remove_modifier(Modifier::ITALIC);
                     }
                     if err.is_some() {
@@ -2921,8 +2921,8 @@ impl DataGrid {
                         buf.set_string(mark.x, y, t.glyphs.disclosure_open, ms);
                         open_marks.push((d, ci, mark));
                     }
-                    // a cut value (long text, JSON) shows in full on hover,
-                    // with its real line breaks
+
+
                     let full = v.text_ref();
                     if text != *full {
                         crate::ui::reveal::truncated(
@@ -2956,7 +2956,7 @@ impl DataGrid {
                 ctx.register_part_as(cid, self.id, cell.0, cell_rect);
             }
         }
-        // a cell's `▾` sits above the cell: a click on it opens the editor
+
         for (d, ci, rect) in open_marks {
             let oid = self.open_id(d, ci);
             let open = (PartRef::item(Part::ACTIONS, ItemKey::index(d)), ci);
@@ -2966,9 +2966,9 @@ impl DataGrid {
         if let (Some(anchor), Some(c)) = (choice_anchor, self.choice.as_mut()) {
             c.editor.render(anchor, buf, ctx, &self.editor_config);
         }
-        // the scroll region also sits above the rows: a wheel burst handled
-        // before the next frame (see `runtime::Coalesce`) then routes to the
-        // widget, not to a row whose display index it already scrolled away
+
+
+
         ctx.scrollable(self.id, area);
         if has_sb {
             crate::ui::fade::scroll_edges(
@@ -2986,8 +2986,8 @@ impl DataGrid {
             self.scroll.draw_v(sb, buf, ctx, self.id, focused);
         }
         if has_hb {
-            // under the scrolling columns only: the row-number gutter is
-            // frozen, and the corner under the vertical bar stays blank
+
+
             let y = body.bottom();
             let right = area.right() - u16::from(has_sb);
             fill(
@@ -2999,7 +2999,7 @@ impl DataGrid {
             self.scroll.draw_h(hb, buf, ctx, self.id, focused);
         }
 
-        // pending bar
+
         if bar_h > 0 {
             let by = area.bottom() - 1;
             let bar_area = Rect::new(area.x, by, area.width, 1);
@@ -3008,7 +3008,7 @@ impl DataGrid {
             let count = u + i + d;
             let text = format!("{} {count} pending", t.glyphs.dirty);
             buf.set_string(area.x + 1, by, &text, t.primary().fg(t.warning).bg(bg));
-            // the row under the cursor explains its own rejection; otherwise the breakdown
+
             let cursor_src = self.order.get(self.cursor.0).copied();
             let dot = t.glyphs.separator.trim_start();
             let (detail, ds) = match cursor_src.and_then(|r| self.row_errors.get(&r)) {
@@ -3044,7 +3044,7 @@ impl DataGrid {
         [self.bar[0].id, self.bar[1].id, self.bar[2].id]
     }
 
-    /// Keyboard activation of a pending-bar button (they are focus stops).
+
     pub fn on_bar_key(&mut self, id: WidgetId, key: &Key) -> (Outcome, Option<GridAction>) {
         for (i, b) in self.bar.iter_mut().enumerate() {
             if b.id == id {
@@ -3082,13 +3082,13 @@ fn cmp_cells(a: &CellValue, b: &CellValue) -> std::cmp::Ordering {
     }
 }
 
-/// Display text for a cell within `w` cells, with the default glyphs.
+
 pub fn cell_text(v: &CellValue, kind: CellKind, w: usize) -> String {
     cell_text_with(v, kind, w, &crate::theme::Glyphs::UNICODE)
 }
 
-/// [`cell_text`] drawing its marks (cut JSON, line breaks, tabs, control
-/// characters) with `g`.
+
+
 pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme::Glyphs) -> String {
     match v {
         CellValue::Null => "NULL".into(),
@@ -3096,7 +3096,7 @@ pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme:
         CellValue::Text(s) if s.is_empty() => "''".into(),
         CellValue::Json(j) => {
             if w < 8 {
-                // the first non-blank character of the one-line form
+
                 if j.trim_start().starts_with('[') {
                     format!("[{}]", g.ellipsis)
                 } else {
@@ -3108,7 +3108,7 @@ pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme:
         }
         CellValue::Text(s) => {
             if kind == CellKind::Id {
-                // the middle cut keeps the end too: sanitise all of it
+
                 truncate_middle(&sanitized(s, usize::MAX, g).0, w)
             } else {
                 truncate(&shown_prefix(w, |limit| sanitized(s, limit, g)), w)
@@ -3118,13 +3118,13 @@ pub fn cell_text_with(v: &CellValue, kind: CellKind, w: usize, g: &crate::theme:
     }
 }
 
-/// Characters of a text cell shown at most (control characters mapped to
-/// visible marks); a longer value is cut there before it is measured.
+
+
 const TEXT_CELL_CHARS: usize = 10_000;
 
-/// The cell form of `s` (`↵`, `⇥`, `·` for line breaks, tabs and other
-/// control characters; at most [`TEXT_CELL_CHARS`] characters), built
-/// until it holds `limit` bytes. Returns it and whether it is complete.
+
+
+
 fn sanitized(s: &str, limit: usize, g: &crate::theme::Glyphs) -> (String, bool) {
     let mut out = String::new();
     let mut chars = s.chars();
@@ -3145,8 +3145,8 @@ fn sanitized(s: &str, limit: usize, g: &crate::theme::Glyphs) -> (String, bool) 
     (out, true)
 }
 
-/// JSON on one line (whitespace runs collapsed to one space), built until
-/// it holds `limit` bytes. Returns it and whether it is complete.
+
+
 fn one_line_json(j: &str, limit: usize) -> (String, bool) {
     let mut out = String::new();
     for word in j.split_whitespace() {
@@ -3161,12 +3161,12 @@ fn one_line_json(j: &str, limit: usize) -> (String, bool) {
     (out, true)
 }
 
-/// Display text for `w` cells built from a prefix of a long value:
-/// `make(limit)` returns at least `limit` bytes of the text (or all of it)
-/// and whether that is all. The prefix grows until it is complete or wider
-/// than `w` plus a margin, so truncating it to `w` gives what truncating
-/// the whole text would, at a cost bounded by `w` instead of the value's
-/// length (see [`wider_than`]).
+
+
+
+
+
+
 fn shown_prefix(w: usize, make: impl Fn(usize) -> (String, bool)) -> String {
     let mut limit = w.saturating_mul(4).saturating_add(64);
     loop {
@@ -3179,7 +3179,7 @@ fn shown_prefix(w: usize, make: impl Fn(usize) -> (String, bool)) -> String {
 }
 
 impl Theme {
-    /// Convenience for owners that render matching glyphs elsewhere.
+
     pub fn change_glyph(&self, state: RowState) -> (&'static str, Color) {
         match state {
             RowState::Clean => (" ", self.text_faint),
@@ -3191,8 +3191,8 @@ impl Theme {
     }
 }
 
-/// A column header: sortable headers walk the title ladder; the sorted,
-/// filtered or cursor column reads in primary ink, the rest muted.
+
+
 pub(crate) fn header_style(
     ctx: &RenderCtx,
     id: WidgetId,
@@ -3213,8 +3213,8 @@ pub(crate) fn header_style(
         t.text_muted
     };
     let st = base.fg(t.legible(ink, base.bg.unwrap_or(bg)));
-    // where muted ink must lift to stay readable (a card plane), weight
-    // keeps the active column apart
+
+
     if active {
         st.add_modifier(ratatui::style::Modifier::BOLD)
     } else {
@@ -3236,21 +3236,21 @@ impl Scrollable for DataGrid {
         &mut self.scroll
     }
 
-    /// An open choice popup takes the vertical wheel.
+
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         let c = self.choice.as_mut().filter(|_| axis == Axis::Vertical)?;
         Some(c.editor.on_wheel(delta).into())
     }
 }
 
-/// Display rows (the fetch-more row included); type-ahead reads
-/// [`DataGrid::type_ahead_column`] or the cursor's column.
+
+
 impl RowSource for DataGrid {
     fn len(&self) -> usize {
         self.content_rows()
     }
     fn label(&self, _: usize) -> &str {
-        // cells format on demand; type-ahead builds its own column texts
+
         ""
     }
 }
@@ -3261,13 +3261,13 @@ impl Navigable for DataGrid {
     }
 }
 
-/// The grid's pointer gestures, as the apps route them: a wheel or a bar
-/// press scrolls it; a press on a header seam starts a resize (a double
-/// press fits the column); a drag resizes, paints row marks or selects a
-/// range ([`DataGrid::on_drag`]); a completed click is
-/// [`DataGrid::on_click`] (cells, headers, row numbers, the overflow
-/// arrows, the fetch-more row, the pending bar's buttons and an open
-/// constrained editor, which are the grid's too: [`Self::route`]).
+
+
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for DataGrid {
     type Action = GridAction;
 
@@ -3292,8 +3292,8 @@ impl crate::core::pointer::MouseTarget for DataGrid {
     ) -> crate::core::response::Response<GridAction> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-        // a wheel over the open choice popup (the widget's too) reaches it
-        // first ([`Scrollable::wheel_first`])
+
+
         if (ev.on(self.id) || ev.wheel().is_some())
             && let Some(r) = crate::core::pointer::scroll_input(self, ev)
         {
@@ -3423,7 +3423,7 @@ mod tests {
         let mut keep = edited(BlurAction::Keep);
         assert_eq!(keep.on_blur(), (Outcome::Ignored, None));
         assert!(keep.is_editing());
-        // an invalid value stays open with its error
+
         let mut bad = grid();
         bad.set_cursor(0, 2, false);
         bad.begin_edit();
@@ -3476,7 +3476,7 @@ mod tests {
             .field
             .buffer
             .set_text("not a number");
-        // a click names a cell the grid drew
+
         render_at(&mut g, Rect::new(0, 0, 80, 10), Interaction::default());
         g.on_click(g.cell_id(1, 2), Position::ORIGIN);
         assert_eq!(g.cursor, (0, 2));
@@ -3487,11 +3487,11 @@ mod tests {
         assert!(g.pending.is_empty());
     }
 
-    /// SIg9 (S11): a cell edit validates on commit; once its error shows,
-    /// typing re-checks the value, so the error stays while the text is
-    /// still invalid and goes the moment it is valid (it used to clear on
-    /// any typed character). Ctrl+Z undoes typing in the cell (A21), and
-    /// a pasted line break never lands in the one-line cell.
+
+
+
+
+
     #[test]
     fn a_cell_edit_rechecks_after_an_error_undoes_and_flattens_pastes() {
         let ctrl = |c| Key {
@@ -3624,12 +3624,12 @@ mod tests {
             .collect()
     }
 
-    /// The thumb's first column on the grid's horizontal bar.
+
     fn thumb_x(buf: &Buffer, y: u16) -> Option<u16> {
         (0..buf.area.width).find(|&x| buf[(x, y)].symbol() == scrollbar::H_THUMB)
     }
 
-    /// The first cell on header row `y` whose hit is `id`.
+
     fn hit_x(hits: &HitRegistry, y: u16, w: u16, id: WidgetId) -> Option<u16> {
         (0..w).find(|&x| hits.hit(Position::new(x, y)) == Some(id))
     }
@@ -3676,8 +3676,8 @@ mod tests {
 
     #[test]
     fn a_reference_arrow_never_covers_the_value() {
-        // a right-aligned number ends at the cell's edge, where the
-        // reference arrow goes; a long text reaches it too
+
+
         let cols = vec![
             ColumnSpec::new("account_id", CellKind::Number).references("accounts"),
             ColumnSpec::new("owner", CellKind::Text).references("users"),
@@ -3706,14 +3706,14 @@ mod tests {
         let (_, hits) = render_at(&mut g, area, Interaction::default());
         let before = g.col_rects[0].width;
         let sid = g.seam_id(0);
-        // the seam sits in the gap right after the first column
+
         let x = hit_x(&hits, area.y, area.width, sid).expect("a seam after column 0");
         assert_eq!(x, g.col_rects[0].right());
         assert_eq!(
             g.on_press(sid, Position::new(x + 1, 0), 1),
             Outcome::Changed
         );
-        // the first move does not jump: the grab offset is kept
+
         g.on_drag(sid, Position::new(x + 1, 0));
         render_at(&mut g, area, Interaction::default());
         assert_eq!(g.col_rects[0].width, before);
@@ -3721,7 +3721,7 @@ mod tests {
         let (buf, _) = render_at(&mut g, area, Interaction::default());
         assert_eq!(g.col_rects[0].width, before + 5);
         assert_eq!(g.col_rects[1].x, x + 5 + 2, "the next column follows");
-        // held, the seam shows the heavy rule; the release ends the drag
+
         let glyphs = Theme::junie().glyphs;
         assert_eq!(buf[(x + 5, 0)].symbol(), glyphs.scroll_thumb);
         g.on_click(sid, Position::new(x + 6, 0));
@@ -3734,7 +3734,7 @@ mod tests {
         let (hovered, _) = render_at(&mut g, area, hover);
         assert_eq!(rest[(x + 5, 0)].symbol(), " ", "invisible at rest");
         assert_eq!(hovered[(x + 5, 0)].symbol(), glyphs.divider);
-        // off: no seam is registered
+
         let mut g = wide_grid().resizable_columns(false);
         let (_, hits) = render_at(&mut g, area, Interaction::default());
         assert_eq!(hit_x(&hits, 0, area.width, g.seam_id(0)), None);
@@ -3760,11 +3760,11 @@ mod tests {
         g.on_drag(sid, Position::new(20, 0));
         render_at(&mut g, area, Interaction::default());
         assert_eq!(g.col_rects[1].width, w0 + 20, "dragged wider");
-        // a double click on the seam fits the header and the values
+
         g.on_press(sid, Position::new(20, 0), 2);
         render_at(&mut g, area, Interaction::default());
         assert_eq!(g.col_rects[1].width, 4, "\"name\" is the widest text");
-        // the header menu sorts, autofits and resets
+
         let menu = g.header_menu(1);
         let labels: Vec<_> = menu.iter().map(|(_, m)| m.label.as_str()).collect();
         assert_eq!(
@@ -3826,9 +3826,9 @@ mod tests {
         assert!(all.contains(long), "{all}");
     }
 
-    /// `ColumnSpec::type_label` is the header's tooltip: not drawn at
-    /// rest, named after the title once the pointer rests on the header
-    /// (finding T2: it was documented as drawn and never was).
+
+
+
     #[test]
     fn a_column_type_label_is_its_header_tooltip() {
         let long = "customer_lifetime_value_in_reporting_currency";
@@ -3873,7 +3873,7 @@ mod tests {
         let (h0, h1) = (g.header_id(0), g.header_id(1));
         let on_price = screen(&mut g, Some(h0));
         assert!(on_price.contains("price · numeric(10,2)"), "{on_price}");
-        // a cut title: the tooltip names it whole, with its type
+
         let on_long = screen(&mut g, Some(h1));
         assert!(
             on_long.contains(&format!("{long} ·")) && on_long.contains("bigint"),
@@ -3890,8 +3890,8 @@ mod tests {
         let track = hits.area_of(bar).expect("vertical bar");
         let (start, len) = g.scroll.thumb(track.height as usize);
         assert!(len >= 2 && start == 0, "{start} {len}");
-        // grab the thumb on its second row, then pull it down two rows: a
-        // drag is a drag, not a fresh press that would leave it in place
+
+
         g.on_drag(bar, Position::new(track.x, track.y + 1));
         g.on_drag(bar, Position::new(track.x, track.y + 3));
         let (moved, _) = g.scroll.thumb(track.height as usize);
@@ -3925,13 +3925,13 @@ mod tests {
             "rows are not drawn over"
         );
 
-        // a wheel to the right moves one column and the thumb with it
+
         assert_eq!(g.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
         assert_eq!(g.scroll.h.offset, 1);
         let (buf, _) = render_at(&mut g, area, Interaction::default());
         assert!(thumb_x(&buf, y) > Some(g.scroll.h_track().x));
 
-        // dragging the thumb to the right end shows the last columns
+
         let grab = Position::new(thumb_x(&buf, y).unwrap(), y);
         let (out, _) = g.on_click(scrollbar::h_id_for(g.id), grab);
         assert_eq!(out, Outcome::Consumed, "pressing the thumb only grabs it");
@@ -3971,7 +3971,7 @@ mod tests {
         render_at(&mut off, area, Interaction::default());
         assert_eq!(off.wheel(Axis::Horizontal, 1).outcome(), Outcome::Ignored);
 
-        // content that fits draws no bar by default
+
         let mut fits = grid();
         let (buf, _) = render_at(&mut fits, Rect::new(0, 0, 80, 8), Interaction::default());
         assert!(!row_text(&buf, 7).contains(scrollbar::H_THUMB));
@@ -4022,7 +4022,7 @@ mod tests {
         assert_eq!(g.edit_error(), Some("Must be a number"));
         g.cancel_edit();
         g.cursor = (0, 3);
-        g.begin_edit(); // bool cycles without an editor
+        g.begin_edit();
         assert!(!g.is_editing());
         assert_eq!(g.value(0, 3), &CellValue::Bool(false));
     }
@@ -4054,12 +4054,12 @@ mod tests {
             code: KeyCode::Char('d'),
             mods: KeyModifiers::ALT,
         };
-        // an app that gives Ctrl+D another meaning keeps only Alt+D
+
         let mut g = grid().editable(true).duplicate_keys(&[alt_d]);
         assert_eq!(g.on_key(&ctrl_d).1, None);
         assert_eq!(g.rows().len(), 10);
         assert_eq!(g.on_key(&alt_d).1, Some(GridAction::RowInserted(10)));
-        // an empty list turns the shortcut off
+
         let mut g = grid().editable(true).duplicate_keys(&[]);
         assert_eq!(g.on_key(&alt_d).1, None);
         assert_eq!(g.rows().len(), 10);
@@ -4081,7 +4081,7 @@ mod tests {
         assert!(!g.is_editing());
         g.on_key(&key(KeyCode::Right));
         assert!(g.cell_editable());
-        // a grid that is not editable and says why reports that reason
+
         let mut ro = grid();
         ro.editable = false;
         ro.read_only_reason = Some("Views cannot be edited".into());
@@ -4093,7 +4093,7 @@ mod tests {
                 reason: "Views cannot be edited".into()
             })
         );
-        // without a reason it stays a list: Enter activates the row
+
         ro.read_only_reason = None;
         let (_, ev) = ro.on_key(&key(KeyCode::Enter));
         assert_eq!(ev, Some(GridAction::Activated(0)));
@@ -4138,9 +4138,9 @@ mod tests {
         assert_eq!(ev, Some(GridAction::SortRequested(None)));
         g.local_sort = true;
         g.on_key(&key(KeyCode::Char('s')));
-        g.on_key(&key(KeyCode::Char('s'))); // desc by name
+        g.on_key(&key(KeyCode::Char('s')));
         assert_eq!(g.source_row(0), 9);
-        // dirty key survives sorting
+
         g.record_cell(9, 1, CellValue::Text("z".into()));
         assert!(g.pending.is_dirty(9, 1));
         assert_eq!(g.row_state(g.source_row(0)), RowState::Modified);
@@ -4186,7 +4186,7 @@ mod tests {
         let mut g = grid();
         g.more = true;
         g.scroll.set_content(g.content_rows());
-        // Ctrl+End: the last row (`G` only under the Vim keys)
+
         g.on_key(&Key {
             code: KeyCode::End,
             mods: ratatui::crossterm::event::KeyModifiers::CONTROL,
@@ -4210,7 +4210,7 @@ mod tests {
         assert_eq!(g.row_state(0), RowState::Error);
     }
 
-    /// `cell_text` before bounded measurement, as the reference.
+
     fn cell_text_reference(v: &CellValue, kind: CellKind, w: usize) -> String {
         match v {
             CellValue::Null => "NULL".into(),
@@ -4276,7 +4276,7 @@ mod tests {
                 )));
             }
         }
-        // longer than the 10,000-character cap of a text cell
+
         values.push(CellValue::Text("ab\n".repeat(6_000)));
         for v in &values {
             for kind in [CellKind::Text, CellKind::Id, CellKind::Json] {
@@ -4291,8 +4291,8 @@ mod tests {
         }
     }
 
-    /// Guard (P2): a cut cell reads a prefix bounded by its width, however
-    /// long the value is.
+
+
     #[test]
     fn cell_text_reads_a_prefix_bounded_by_the_cell_width() {
         let long = "word ".repeat(400_000);
@@ -4338,7 +4338,7 @@ mod tests {
             g.widths[0] > narrow,
             "the wider sample sees the long values"
         );
-        // the long values clamp to the column max
+
         assert_eq!(g.widths[0], g.columns[0].max_width.max(8));
     }
 
@@ -4385,7 +4385,7 @@ mod tests {
         assert!(!draw(Some(grid().cell_id(1, 1))).contains(long));
     }
 
-    /// The interaction of a press held on `id`.
+
     fn holding(id: WidgetId) -> Interaction {
         Interaction {
             pressed: Some(id),
@@ -4393,8 +4393,8 @@ mod tests {
         }
     }
 
-    /// M9: the click that gives a cell the cursor never edits it, nor does
-    /// a slow second click; a double click does (`ClickPolicy::DATA`).
+
+
     #[test]
     fn a_double_click_edits_a_cell_and_one_click_never_does() {
         let mut g = grid();
@@ -4408,7 +4408,7 @@ mod tests {
         assert_eq!(g.cursor, (2, 1));
         g.on_click_with(cell, at, KeyModifiers::NONE, 2);
         assert!(g.edit.is_some(), "a double click edits");
-        // the earlier rule stays an option
+
         let mut again =
             grid().click(ClickPolicy::DATA.edit_on(crate::core::selection::Activate::ClickAgain));
         render_at(&mut again, area, Interaction::default());
@@ -4417,9 +4417,9 @@ mod tests {
         assert!(again.edit.is_some());
     }
 
-    /// M16: a row number takes the desktop click modifiers (a plain click
-    /// marks only that row, Ctrl toggles, Shift extends; it used to toggle
-    /// on any click), and Shift-click on a cell extends the cell range.
+
+
+
     #[test]
     fn row_numbers_and_cells_take_the_click_modifiers() {
         let mut g = grid().toggle_mods(SelectGesture::TOGGLE_CTRL_CMD);
@@ -4435,7 +4435,7 @@ mod tests {
         assert_eq!(g.selection.to_vec(), vec![1, 3], "Ctrl toggles");
         g.on_click_with(g.rownum_id(0), p, KeyModifiers::NONE, 1);
         assert_eq!(g.selection.to_vec(), vec![0]);
-        // Shift-click on a cell extends the range from the cursor
+
         let from = g.cell_id(1, 1);
         g.on_click(from, Position::new(g.col_rects[1].x, g.body.y + 1));
         let to = g.cell_id(3, 2);
@@ -4449,8 +4449,8 @@ mod tests {
         assert_eq!(g.cursor, (3, 2));
     }
 
-    /// M10: a right click inside the cell range keeps it (and the cursor);
-    /// outside, the range gives way to the clicked cell.
+
+
     #[test]
     fn a_right_click_outside_the_range_ends_it() {
         use crate::ui::context::ContextSource;
@@ -4469,7 +4469,7 @@ mod tests {
         assert_eq!((g.anchor, g.cursor), (Some((0, 1)), (2, 2)), "inside: kept");
         g.context_select((4, 3));
         assert_eq!((g.anchor, g.cursor), (None, (4, 3)), "outside: ends");
-        // marks the row is not part of give way to it
+
         g.select_rows(SelectGesture::Toggle, 0);
         g.select_rows(SelectGesture::Toggle, 1);
         g.context_select((1, 0));
@@ -4491,8 +4491,8 @@ mod tests {
             Some(g.body),
             "the rows are the autoscroll body"
         );
-        // the pointer rests one row below the body: every replayed drag
-        // (the app's autoscroll tick) moves on by a row, with no motion
+
+
         let below = Position::new(g.col_rects[1].x, g.body.bottom());
         let mut last = g.cursor.0;
         for _ in 0..5 {
@@ -4504,7 +4504,7 @@ mod tests {
         assert!(g.scroll.offset > 0, "the rows scrolled");
         assert_eq!(g.anchor, Some((0, 1)), "the range keeps its anchor");
         assert_eq!(g.cursor.1, 1);
-        // the press ends: a later stray drag from the origin id is no drag
+
         render_at(&mut g, area, Interaction::default());
         assert_eq!(g.on_drag(origin, below), Outcome::Ignored);
     }
@@ -4522,14 +4522,14 @@ mod tests {
             Outcome::Changed
         );
         assert_eq!(g.selection.to_vec(), [0, 1, 2]);
-        // back on the origin and released there: the click keeps the
-        // painted marks instead of toggling the origin off
+
+
         g.on_drag(origin, Position::new(gutter_x, g.body.y));
         let (out, _) = g.on_click(origin, Position::new(gutter_x, g.body.y));
         assert_eq!(out, Outcome::Changed);
         assert!(g.selection.contains(0), "{:?}", g.selection);
-        // a fresh press and drag held below the body marks rows as they
-        // scroll in
+
+
         render_at(&mut g, area, Interaction::default());
         let origin = g.rownum_id(3);
         render_at(&mut g, area, holding(origin));
@@ -4546,7 +4546,7 @@ mod tests {
 #[path = "grid_choice_tests.rs"]
 mod choice_tests;
 
-/// Select All marks every row of a grid, as Space marks one.
+
 #[cfg(test)]
 mod select_all_tests {
     use super::*;
@@ -4578,8 +4578,8 @@ mod select_all_tests {
     }
 }
 
-/// Cmd+C copies the cell, range or marked rows, as `y` does; the hint
-/// names it only once the terminal delivers Cmd.
+
+
 #[cfg(test)]
 mod cmd_copy_tests {
     use super::*;

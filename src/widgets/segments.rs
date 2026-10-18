@@ -1,7 +1,7 @@
-//! Segment bar: a single line of labelled facts (identity strip, status
-//! line). Segments carry a tone and a priority; low-priority segments drop
-//! first when the line is narrow. Segments with an id are clickable and
-//! lift on hover.
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -17,9 +17,9 @@ pub struct Segment {
     pub tone: Tone,
     pub bold: bool,
     pub id: Option<WidgetId>,
-    /// Higher survives longer when space is short.
+
     pub priority: u8,
-    /// A glyph before the text in its own tone ([`Self::lead`]).
+
     pub lead: Option<(String, Tone)>,
 }
 
@@ -46,14 +46,14 @@ impl Segment {
         self.priority = p;
         self
     }
-    /// Lead the text with a glyph in its own tone, one space apart: a
-    /// count in secondary behind a live dot in [`Tone::Active`]
-    /// (`● 2 running`). The glyph and the text drop together.
+
+
+
     pub fn lead(mut self, glyph: impl Into<String>, tone: Tone) -> Self {
         self.lead = Some((glyph.into(), tone));
         self
     }
-    /// The text as drawn: the lead glyph, a space, the text.
+
     fn shown(&self) -> String {
         match &self.lead {
             Some((g, _)) => format!("{g} {}", self.text),
@@ -62,8 +62,8 @@ impl Segment {
     }
 }
 
-/// Render `left` segments from the left and `right` segments from the
-/// right, separated by two cells. Returns the areas of clickable segments.
+
+
 pub fn render(
     area: Rect,
     buf: &mut Buffer,
@@ -78,10 +78,10 @@ pub fn render(
     }
     let t = ctx.theme;
     let sep = 2u16;
-    // the same inset on both sides: the theme's chrome edge
+
     let edge = t.spacing.chrome_edge;
     let w = |s: &Segment| crate::ui::text::width(&s.shown()) as u16;
-    // decide which segments survive
+
     let mut keep_l: Vec<bool> = vec![true; left.len()];
     let mut keep_r: Vec<bool> = vec![true; right.len()];
     let total = |kl: &[bool], kr: &[bool]| -> u16 {
@@ -97,11 +97,11 @@ pub fn render(
             .filter(|(_, k)| **k)
             .map(|(s, _)| w(s) + sep)
             .sum();
-        // separators sit between segments only; the edges are kept clear
+
         (l + r).saturating_sub(sep) + 2 * edge
     };
     while total(&keep_l, &keep_r) > area.width {
-        // drop the lowest priority surviving segment (rightmost on ties)
+
         let mut best: Option<(u8, bool, usize)> = None;
         for (i, s) in left.iter().enumerate() {
             if keep_l[i] && best.is_none_or(|b| s.priority < b.0) {
@@ -120,7 +120,7 @@ pub fn render(
         }
     }
     let draw = |buf: &mut Buffer, ctx: &mut RenderCtx, x: u16, s: &Segment| {
-        // a clickable segment walks the ladder; its tone survives hover
+
         let mut st = match s.id {
             Some(id) => {
                 let mut vs = ctx.state(id);
@@ -188,9 +188,9 @@ pub fn render(
     }
 }
 
-/// A segment drawn alone, in a forced state, for a States grid
-/// ([`crate::ui::specimen`]): a clickable segment lifts on hover and
-/// press; in the narrow slot a long segment is cut or dropped.
+
+
+
 impl crate::ui::specimen::Specimen for Segment {
     fn specimen_id(&self) -> WidgetId {
         self.id.unwrap_or(WidgetId::of("segments.specimen"))

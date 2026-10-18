@@ -1,7 +1,7 @@
-//! A planned page (plan §7.2) whose step has not filled it yet. It is
-//! registered with its label, group and `--page` slug, so the steps that
-//! fill pages in parallel never collide on the tree, and shows an
-//! `EmptyState` naming the step that brings it.
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -14,9 +14,9 @@ use junie_tui::widgets::empty::{self, EmptyState};
 
 pub struct StubPage {
     title: &'static str,
-    /// The plan step that fills the page (`SC4`).
+
     step: &'static str,
-    /// What the page will show: the page's blurb.
+
     what: &'static str,
 }
 

@@ -1,15 +1,15 @@
-//! Modal dialogs. A dialog owns its own focus scope; the app draws it over a
-//! dimmed backdrop and routes every event to it while it is open.
-//!
-//! Closing without an action is a [`Dismiss`] policy on the dialog, never a
-//! decision of the app. A dismissal resolves to the cancel action when there
-//! is one, so by default Esc and a click on the dimmed backdrop both close
-//! (cancelling is the safe answer, destructive dialogs included). Dialogs
-//! with a typed acknowledgement close on Esc only: a stray click must not
-//! throw away what was typed. A dialog whose cancel action is itself
-//! destructive (a danger "Cancel launch") refuses light dismissal too
-//! ([`Dialog::guard_destructive_dismiss`]): the stray click would take that
-//! action.
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -35,8 +35,8 @@ use crate::widgets::scrollbar;
 pub enum DialogBody {
     Text(String),
     Input(TextInput),
-    /// Label/value facts, an optional preformatted block (SQL), and an
-    /// optional typed acknowledgement that arms the confirming action.
+
+
     Facts {
         facts: Vec<crate::widgets::props::Prop>,
         code: Vec<String>,
@@ -52,7 +52,7 @@ pub struct AckInput {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogResult {
-    /// Index into `actions`.
+
     Action(usize),
     Cancelled,
 }
@@ -61,130 +61,130 @@ pub enum DialogResult {
 pub struct Dialog {
     pub id: WidgetId,
     pub title: String,
-    /// A status glyph before the title ([`crate::theme::Theme::status`]),
-    /// e.g. [`StatusKind::Warn`] on a write gate against production.
-    /// Default `None`.
+
+
+
     pub title_status: Option<StatusKind>,
     pub body: DialogBody,
     pub actions: Vec<Button>,
-    /// Index of the action Esc maps to (usually a Cancel button).
+
     pub cancel_index: Option<usize>,
     pub width: u16,
-    /// Extra action keys on a text dialog (default
-    /// [`DialogCmd::default_keymap`]: none; the label mnemonics are the
-    /// letter keys, see [`Self::mnemonics`]).
+
+
+
     pub keymap: KeyMap<DialogCmd>,
-    /// Which keys scroll a tall body (↑/↓, paging, Home/End) and move
-    /// between the actions (←/→). Default [`NavKeys::default`].
+
+
     pub nav: NavKeys,
     pub area: Rect,
     pub result: Option<DialogResult>,
     pub initial_focus: WidgetId,
-    /// How the dialog closes without an action (Esc, backdrop click).
+
     pub dismiss: Dismiss,
-    /// The `×` in the top border while [`Self::dismiss`] shows one (id
-    /// always [`crate::ui::modal::CLOSE`]). Default
-    /// [`IconButton::close`](crate::widgets::icon_button::IconButton::close).
+
+
+
     pub close_button: crate::widgets::icon_button::IconButton,
-    /// The action a typed acknowledgement arms: disabled, and refused even
-    /// if triggered, until the token matches. `None`: nothing is gated.
+
+
     pub confirm_index: Option<usize>,
-    /// A body taller than the room scrolls (wheel, ↑↓, PgUp/PgDn,
-    /// Home/End, the scrollbar) and says how much is below. Default on.
-    /// Off: the body is cut at the bottom, as before.
+
+
+
     pub body_scroll: bool,
-    /// Cap on the dialog's height in rows; the body scrolls past it.
-    /// `None` (default): as tall as the content, up to the bounds.
+
+
     pub max_height: Option<u16>,
-    /// Space kept free between the dialog and the edges of the area it is
-    /// placed in, so its frame never touches a panel border underneath.
-    /// Default 3 columns, 1 row.
+
+
+
     pub outer_margin: Margin,
-    /// Where the dialog opens in its bounds. Default
-    /// [`Placement::Center`]; an anchored placement (a popover-style
-    /// confirmation under the button that asked) opens next to
-    /// [`Self::anchor`], kept [`Self::outer_margin`] off the bounds' edges.
+
+
+
+
     pub placement: Placement,
-    /// The rectangle an anchored [`Self::placement`] opens next to.
-    /// Default `Rect::ZERO`.
+
+
     pub anchor: Rect,
-    /// Which screen rows the dimmed backdrop leaves live. Default
-    /// [`Backdrop::DEFAULT`]: the footer row, whose hints belong to the
-    /// dialog.
+
+
+
     pub backdrop: Backdrop,
-    /// Rows of app chrome the dialog is placed clear of when drawn through
-    /// [`Self::render`] (and so as a layer): `(top, bottom)`, a header
-    /// above and status and footer rows below ([`body_bounds`]). The
-    /// backdrop still dims the whole screen. Default `(0, 0)`: the whole
-    /// screen.
+
+
+
+
+
     pub chrome: (u16, u16),
-    /// How the actions are laid out. Default: packed right, the theme's
-    /// button gap, and a row that wraps onto a second line rather than cut
-    /// or hide an action ([`RowOverflow::Wrap`]).
+
+
+
     pub button_row: ButtonRow,
-    /// The theme's button gap, captured at render so the natural height
-    /// can be measured without a theme.
+
+
     gap: u16,
-    /// The theme's dialog padding (`spacing.dialog`), captured at render
-    /// like `gap`.
+
+
     pad: crate::theme::Insets,
-    /// Body scroll position (Text and Facts bodies) and, in `scroll.h`,
-    /// the code preview's horizontal position in cells ([`Scrollable`]).
+
+
     pub scroll: ScrollPane,
-    /// Horizontal scrolling of the code preview; `None` follows
-    /// [`RenderCtx::hscroll`]. Preformatted lines are never wrapped, so a
-    /// line wider than the dialog scrolls sideways (Shift+←/→, the
-    /// sideways wheel, the bar under the preview).
+
+
+
+
     pub horizontal: Option<HScroll>,
-    /// The theme's strings as of the last render: labels built from them
-    /// follow a change ([`Strings::follow`]), and hints read them.
+
+
     strings: Strings,
-    /// What Enter in a typed acknowledgement does. Default
-    /// [`AckEnter::Submit`]: it presses the gated action once the token
-    /// matches, and says the text does not match otherwise.
+
+
+
     pub ack_enter: AckEnter,
-    /// Letter keys that press an action, derived from the labels and
-    /// shown underlined in them ([`Self::mnemonic_keys`]), as Windows
-    /// dialogs do. They work only while the dialog has no text field, so
-    /// typing never presses a button. Default on.
+
+
+
+
     pub mnemonics: bool,
-    /// The prompt's text when the dialog opened: once the field differs, a
-    /// backdrop click no longer dismisses (see [`Self::guard_dirty_prompt`]).
+
+
     pristine: String,
-    /// A prompt whose field was edited ignores backdrop clicks, so a stray
-    /// click never throws away what was typed (Esc and Cancel still
-    /// close). Default on.
+
+
+
     pub guard_dirty_prompt: bool,
-    /// A dialog whose dismissal resolves to a destructive action (its
-    /// cancel action is a [`ButtonKind::Danger`] button, such as "Cancel
-    /// launch") refuses light dismissal: a click on the backdrop (which
-    /// flashes the frame instead) and focus leaving it. Esc and the `×`
-    /// still follow [`Self::dismiss`], since they are deliberate. Default
-    /// on, as macOS alert sheets never close on an outside click and a
-    /// WAI-ARIA `alertdialog` needs an explicit answer. Off: the policy
-    /// applies unchanged.
+
+
+
+
+
+
+
+
     pub guard_destructive_dismiss: bool,
 }
 
-/// What Enter in a dialog's typed acknowledgement does
-/// ([`Dialog::ack_enter`]).
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AckEnter {
-    /// Press the gated action when the typed text matches the token; when
-    /// it does not, keep editing and show that it does not match.
+
+
     #[default]
     Submit,
-    /// Move focus to the next control (the buttons), so the gated action
-    /// is pressed in a second, deliberate step.
+
+
     NextField,
 }
 
-/// A [`Dialog`] action a key can be bound to (text dialogs only).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogCmd {
-    /// Press the primary (or danger) action. Unbound by default.
+
     Confirm,
-    /// Press the cancel action. Unbound by default.
+
     Cancel,
 }
 
@@ -196,14 +196,14 @@ impl Actions for DialogCmd {
         }
     }
 
-    /// Empty: the label mnemonics ([`Dialog::mnemonics`]) are the
-    /// letter keys of a dialog. Bind `y`/`n` here to restore them.
+
+
     fn default_keymap() -> KeyMap<Self> {
         vec![]
     }
 }
 
-/// Default [`Dialog::outer_margin`].
+
 pub const OUTER_MARGIN: Margin = Margin {
     horizontal: 3,
     vertical: 1,
@@ -216,14 +216,14 @@ impl HasHints for Dialog {
 }
 
 impl Dialog {
-    /// Width in cells before clamping to the screen.
+
     pub fn width(mut self, width: u16) -> Self {
         self.width = width;
         self
     }
 
-    /// Letter accelerators `(yes, no)` on a text dialog; `None` turns them
-    /// off. A shortcut for [`Self::keymap`].
+
+
     pub fn accelerators(mut self, keys: Option<(char, char)>) -> Self {
         self.keymap = match keys {
             Some((yes, no)) => vec![
@@ -235,55 +235,55 @@ impl Dialog {
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<DialogCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::ack_enter`].
+
     pub fn ack_enter(mut self, ack_enter: AckEnter) -> Self {
         self.ack_enter = ack_enter;
         self
     }
 
-    /// See [`Self::mnemonics`].
+
     pub fn mnemonics(mut self, on: bool) -> Self {
         self.mnemonics = on;
         self
     }
 
-    /// See [`Self::guard_dirty_prompt`].
+
     pub fn guard_dirty_prompt(mut self, on: bool) -> Self {
         self.guard_dirty_prompt = on;
         self
     }
 
-    /// See [`Self::guard_destructive_dismiss`].
+
     pub fn guard_destructive_dismiss(mut self, on: bool) -> Self {
         self.guard_destructive_dismiss = on;
         self
     }
 
-    /// Whether a dismissal resolves to a destructive action: the cancel
-    /// action is a danger button.
+
+
     fn dismissal_is_destructive(&self) -> bool {
         self.cancel_index
             .and_then(|i| self.actions.get(i))
             .is_some_and(|b| b.kind == ButtonKind::Danger)
     }
 
-    /// The dismissal policy in force now: [`Self::dismiss`] with light
-    /// dismissal refused while a guard holds (an edited prompt under
-    /// [`Self::guard_dirty_prompt`] refuses the outside click; a
-    /// destructive cancel under [`Self::guard_destructive_dismiss`]
-    /// refuses the outside click and focus out).
+
+
+
+
+
     pub(crate) fn dismiss_in_force(&self) -> Dismiss {
         let mut d = self.dismiss;
         if self.guard_dirty_prompt && self.prompt_dirty() {
@@ -296,8 +296,8 @@ impl Dialog {
         d
     }
 
-    /// Whether the body has a text field (a prompt or a typed
-    /// acknowledgement): letters then type, they never press a button.
+
+
     fn has_text_field(&self) -> bool {
         matches!(
             self.body,
@@ -305,9 +305,9 @@ impl Dialog {
         )
     }
 
-    /// Each action's mnemonic as `(key, char index in its label)`: the
-    /// first letter or digit of the label that no earlier action took,
-    /// compared without case. `None` when every character is taken.
+
+
+
     pub fn mnemonic_keys(&self) -> Vec<Option<(char, usize)>> {
         let mut taken: Vec<char> = vec![];
         self.actions
@@ -328,12 +328,12 @@ impl Dialog {
             .collect()
     }
 
-    /// Whether mnemonics are live: on, and no text field to type into.
+
     fn mnemonics_live(&self) -> bool {
         self.mnemonics && !self.has_text_field()
     }
 
-    /// The action whose mnemonic `key` is, if mnemonics are live.
+
     fn mnemonic_action(&self, key: &Key) -> Option<usize> {
         let KeyCode::Char(c) = key.code else {
             return None;
@@ -347,13 +347,13 @@ impl Dialog {
             .position(|m| m.is_some_and(|(k, _)| k == c))
     }
 
-    /// Whether the prompt's text differs from what it opened with.
+
     pub fn prompt_dirty(&self) -> bool {
         matches!(&self.body, DialogBody::Input(i) if i.text() != self.pristine)
     }
 
-    /// The action a typed acknowledgement arms (the gated one, else the
-    /// primary or danger action).
+
+
     fn gated_action(&self) -> Option<usize> {
         self.confirm_index.or_else(|| {
             self.actions
@@ -492,8 +492,8 @@ impl Dialog {
         }
     }
 
-    /// Move the labels still reading the last strings (the cancel button,
-    /// the acknowledgement's instruction) to `s`.
+
+
     fn follow_strings(&mut self, s: Strings) {
         let old = std::mem::replace(&mut self.strings, s);
         if old == s {
@@ -512,7 +512,7 @@ impl Dialog {
         }
     }
 
-    /// Safety-style dialog: facts, code preview, optional typed token.
+
     pub fn facts(
         id: WidgetId,
         title: &str,
@@ -524,7 +524,7 @@ impl Dialog {
         let cancel = Button::secondary(id.sub("cancel"), Strings::DEFAULT.cancel);
         let cancel_id = cancel.id;
         let ack = token.map(|tok| AckInput {
-            // the label is the instruction: it wraps, it is never cut
+
             input: TextInput::new(
                 id.sub("ack"),
                 &Strings::fill(Strings::DEFAULT.type_to_confirm, &[&tok]),
@@ -577,7 +577,7 @@ impl Dialog {
         }
     }
 
-    /// True when no acknowledgement is required or its token matches.
+
     pub fn armed(&self) -> bool {
         match &self.body {
             DialogBody::Facts { ack: Some(a), .. } => a.input.text().trim() == a.token,
@@ -585,11 +585,11 @@ impl Dialog {
         }
     }
 
-    /// The footer hints for this dialog, built from its state so they can
-    /// never disagree with what the keys do: Enter names the focused
-    /// button, y and n name the real primary and cancel actions, Esc names
-    /// what a dismissal resolves to, and a typed acknowledgement says what
-    /// to type. `focused` is the widget that has keyboard focus.
+
+
+
+
+
     pub fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         let s = &self.strings;
         let cancel_label = self
@@ -614,8 +614,8 @@ impl Dialog {
             && focused == Some(inp.id)
         {
             if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
-                // the gated action stays disabled until the token is typed;
-                // with `AckEnter::Submit` Enter presses it once armed
+
+
                 let gated = self
                     .gated_action()
                     .and_then(|i| self.actions.get(i))
@@ -649,14 +649,14 @@ impl Dialog {
                 v.push(hint("Tab", s.hint_next));
             }
             if inp.editing {
-                // Esc reverts the field first; the dialog stays open
+
                 v.push(hint("Esc", s.hint_cancel));
             } else {
                 v.extend(dismiss_hint());
             }
             return v;
         }
-        // the gated action is disabled until armed, even before a redraw
+
         let usable =
             |i: usize, b: &Button| !b.disabled && (Some(i) != self.confirm_index || self.armed());
         let enabled = self
@@ -683,8 +683,8 @@ impl Dialog {
             v.push(hint("⇧←→", s.hint_scroll_code));
         }
         v.extend(dismiss_hint());
-        // explicit accelerators (the keymap; empty by default) name what
-        // they press; the label mnemonics show in the buttons themselves
+
+
         if matches!(self.body, DialogBody::Text(_)) {
             if let Some(k) = crate::core::keymap::hint_key(&self.keymap, DialogCmd::Confirm)
                 && let Some(p) = self.actions.iter().find(|b| {
@@ -702,10 +702,10 @@ impl Dialog {
         v
     }
 
-    /// Rename the cancel (dismiss) action. `Cancel` is the default, but it
-    /// is ambiguous next to an action that itself cancels or stops
-    /// something: `Keep launching   Cancel launch` reads unambiguously where
-    /// `Cancel   Cancel launch` does not. The footer hints follow the label.
+
+
+
+
     pub fn cancel_label(mut self, label: &str) -> Self {
         if let Some(b) = self.cancel_index.and_then(|i| self.actions.get_mut(i)) {
             b.label = label.to_owned();
@@ -713,28 +713,28 @@ impl Dialog {
         self
     }
 
-    /// A status glyph before the title (see [`Dialog::title_status`]).
+
     pub fn title_status(mut self, kind: StatusKind) -> Self {
         self.title_status = Some(kind);
         self
     }
 
-    /// Set how the dialog closes without an action.
+
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
     }
 
-    /// See [`Self::close_button`].
+
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
     }
 
-    /// How the prompt's (or the typed acknowledgement's) field starts
-    /// editing. By default the field follows the theme
-    /// ([`EditEntry::Immediate`](crate::core::edit::EditEntry::Immediate)):
-    /// the dialog opens with the caret in the field, ready for typing.
+
+
+
+
     pub fn edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
         if let Some(inp) = self.input_mut() {
             inp.set_edit_entry(entry);
@@ -742,11 +742,11 @@ impl Dialog {
         self
     }
 
-    /// The result a dismissal resolves to: the cancel action if there is
-    /// one, so the owner handles "closed" and "Cancel" the same way.
-    /// Resolve to the cancel action (`cancel_index`, else `Cancelled`):
-    /// what Esc, the × and an allowed outside click mean, and what
-    /// [`crate::ui::layer::Overlay::on_dismiss`] resolves to.
+
+
+
+
+
     pub(crate) fn dismissed(&mut self) -> Outcome {
         match self.cancel_index {
             Some(ci) => self.finish(DialogResult::Action(ci)),
@@ -754,8 +754,8 @@ impl Dialog {
         }
     }
 
-    /// Replace the action buttons; `cancel_index` is the one Esc and a
-    /// dismissal resolve to.
+
+
     pub fn actions(mut self, actions: Vec<Button>, cancel_index: Option<usize>) -> Self {
         self.actions = actions;
         self.cancel_index = cancel_index;
@@ -785,9 +785,9 @@ impl Dialog {
         }
     }
 
-    /// Rows the code preview takes below the facts: at most six lines,
-    /// the blank row above them and, when a line is wider than the text
-    /// column `inner_w`, the horizontal bar under them.
+
+
+
     fn code_rows(code: &[String], inner_w: u16, h_cfg: &HScroll) -> u16 {
         if code.is_empty() {
             0
@@ -797,8 +797,8 @@ impl Dialog {
         }
     }
 
-    /// The code preview's horizontal extent: its widest shown line
-    /// against the text column.
+
+
     fn code_extent(code: &[String], inner_w: u16) -> ScrollState {
         let widest = code
             .iter()
@@ -811,14 +811,14 @@ impl Dialog {
         s
     }
 
-    /// Scroll the code preview sideways by `delta` steps.
+
     fn scroll_code(&mut self, delta: isize) -> Outcome {
         self.scroll.wheel(Axis::Horizontal, delta as i32).outcome()
     }
 
-    /// The pointer moved while held on one of the dialog's scrollbars.
+
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-        // a drag from a press on the input selects its text
+
         if let Some(inp) = self.input_mut()
             && inp.id == pressed
         {
@@ -833,26 +833,26 @@ impl Dialog {
         Outcome::Consumed
     }
 
-    /// Rows the typed acknowledgement takes in a dialog `width` wide: the
-    /// field with its whole (wrapped) label, and the blank row above it.
+
+
     fn ack_rows(&self, ack: Option<&AckInput>, width: u16) -> u16 {
         ack.map_or(0, |a| a.input.height_for(self.field_width(width)) + 1)
     }
 
-    /// Width of an input field: the text column plus the focus gutter to
-    /// its left, so the field's label lines up with the title.
+
+
     fn field_width(&self, width: u16) -> u16 {
         self.inner_width(width) + TextInput::GUTTER
     }
 
-    /// Text column of a dialog `width` wide: inside the border and the
-    /// theme's dialog padding (`spacing.dialog.x`) on each side.
+
+
     fn inner_width(&self, width: u16) -> u16 {
         width.saturating_sub(2 * (1 + self.pad.x))
     }
 
-    /// Rows the body's scrolling part needs at `width`: every wrapped line
-    /// of a Text body, every fact row of a Facts body. Zero for a prompt.
+
+
     fn scroll_rows(&self, width: u16) -> u16 {
         let inner_w = self.inner_width(width);
         match &self.body {
@@ -862,8 +862,8 @@ impl Dialog {
         }
     }
 
-    /// Rows the body takes that never scroll: the prompt field, the code
-    /// preview and the typed acknowledgement.
+
+
     fn fixed_rows(&self, width: u16) -> u16 {
         match &self.body {
             DialogBody::Text(_) => 0,
@@ -875,22 +875,22 @@ impl Dialog {
         }
     }
 
-    /// Rows around the body and the actions: border(2) + the padding
-    /// above and below (`spacing.dialog.y` each) + title(1) + gap(1) +
-    /// gap(1).
+
+
+
     fn chrome_rows(&self) -> u16 {
         5 + 2 * self.pad.y
     }
 
-    /// Lines the actions take at `width` (more than one only when they
-    /// wrap).
+
+
     fn action_rows(&self, width: u16) -> u16 {
         self.button_row
             .rows_at_gap(self.inner_width(width), &self.actions, self.gap)
             .max(1)
     }
 
-    /// Natural height at `width`: every row of the body shown.
+
     pub fn height(&self, width: u16) -> u16 {
         self.chrome_rows()
             + self.action_rows(width)
@@ -898,64 +898,64 @@ impl Dialog {
             + self.fixed_rows(width)
     }
 
-    /// See [`Self::button_row`].
+
     pub fn button_row(mut self, row: ButtonRow) -> Self {
         self.button_row = row;
         self
     }
 
-    /// See [`Self::body_scroll`].
+
     pub fn body_scroll(mut self, on: bool) -> Self {
         self.body_scroll = on;
         self
     }
 
-    /// See [`Self::max_height`].
+
     pub fn max_height(mut self, rows: Option<u16>) -> Self {
         self.max_height = rows;
         self
     }
 
-    /// See [`Self::outer_margin`].
+
     pub fn outer_margin(mut self, margin: Margin) -> Self {
         self.outer_margin = margin;
         self
     }
 
-    /// See [`Self::backdrop`].
+
     pub fn backdrop(mut self, backdrop: Backdrop) -> Self {
         self.backdrop = backdrop;
         self
     }
 
-    /// See [`Self::chrome`].
+
     pub fn chrome(mut self, top: u16, bottom: u16) -> Self {
         self.chrome = (top, bottom);
         self
     }
 
-    /// See [`Self::placement`].
+
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
         self
     }
 
-    /// Open next to `anchor` per `placement` (see [`Self::anchor`]).
+
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = anchor;
         self.placement = placement;
         self
     }
 
-    /// See [`Self::confirm_index`].
+
     pub fn confirm_index(mut self, index: Option<usize>) -> Self {
         self.confirm_index = index;
         self
     }
 
     fn finish(&mut self, r: DialogResult) -> Outcome {
-        // the gated action is checked here, not only drawn disabled: a key
-        // or click between an edit and the next frame cannot slip through
+
+
         if let DialogResult::Action(i) = r
             && Some(i) == self.confirm_index
             && !self.armed()
@@ -970,7 +970,7 @@ impl Dialog {
                 inp.commit();
             }
             if !inp.validate() {
-                // the field keeps the caret for the correction
+
                 inp.resume();
                 return Outcome::Changed;
             }
@@ -986,9 +986,9 @@ impl Dialog {
         ring: &crate::core::focus::FocusRing,
     ) -> Outcome {
         let cur = focus.current();
-        // Esc in an immediately edited field cancels the dialog at once (a
-        // sheet's Esc is its Cancel): reverting the field first would only
-        // cost a keystroke, the cancel discards it anyway
+
+
+
         if key.is(KeyCode::Esc)
             && self.dismiss.escape
             && let Some(inp) = self.input_mut()
@@ -997,7 +997,7 @@ impl Dialog {
         {
             return self.dismissed();
         }
-        // input editing captures first
+
         let is_facts = matches!(self.body, DialogBody::Facts { .. });
         if let Some(inp) = self.input_mut()
             && cur == Some(inp.id)
@@ -1013,10 +1013,10 @@ impl Dialog {
                     return Outcome::Changed;
                 }
                 Some(InputAction::Committed) => {
-                    // Enter submits a prompt. A typed acknowledgement presses
-                    // its gated action once the token matches
-                    // (`AckEnter::Submit`), or only moves on to the buttons
-                    // (`AckEnter::NextField`)
+
+
+
+
                     if is_facts {
                         if self.ack_enter == AckEnter::NextField {
                             focus.next(ring);
@@ -1029,7 +1029,7 @@ impl Dialog {
                         }
                         let mismatch = self.strings.ack_mismatch;
                         if let Some(inp) = self.input_mut() {
-                            // keep typing; the message clears on the next edit
+
                             inp.begin_edit();
                             inp.field.error = Some(mismatch.into());
                         }
@@ -1081,8 +1081,8 @@ impl Dialog {
                 None => {}
             }
         }
-        // a label mnemonic presses its action (not while a field takes
-        // letters; a disabled or unarmed action stays put)
+
+
         if let Some(i) = self.mnemonic_action(key) {
             let usable =
                 !self.actions[i].disabled && (Some(i) != self.confirm_index || self.armed());
@@ -1104,7 +1104,7 @@ impl Dialog {
                 focus.prev(ring);
                 Outcome::Changed
             }
-            // a body taller than the dialog scrolls under the keyboard too
+
             (Some(Nav::Up), _) if overflows => self.wheel(Axis::Vertical, -1).outcome(),
             (Some(Nav::Down), _) if overflows => self.wheel(Axis::Vertical, 1).outcome(),
             (Some(Nav::PageUp), _) if overflows => {
@@ -1123,8 +1123,8 @@ impl Dialog {
                 self.scroll.jump_end();
                 Outcome::Changed
             }
-            // Shift+←/→ scroll a code preview wider than the dialog; the
-            // plain arrows keep moving between the actions
+
+
             (Some(Nav::Left), _) if arrow && key.shift() && self.scroll.h.overflows() => {
                 self.scroll_code(-1)
             }
@@ -1132,7 +1132,7 @@ impl Dialog {
                 self.scroll_code(1)
             }
             (Some(nav @ (Nav::Left | Nav::Right)), _) => {
-                // move between actions (one button-row rule, K32)
+
                 if let Some(id) = self.button_row.step(&self.actions, cur, nav == Nav::Right) {
                     focus.focus(id);
                 }
@@ -1142,10 +1142,10 @@ impl Dialog {
         }
     }
 
-    /// Focus moved off one of the dialog's controls (see
-    /// [`crate::core::focus::Focus::take_changes`]): its field ends the
-    /// edit per its `blur_action`. Leaving the field never submits the
-    /// dialog; only Enter or a button does.
+
+
+
+
     pub fn on_blur(&mut self, change: crate::core::focus::FocusChange) -> Outcome {
         match self.input_mut() {
             Some(inp) if inp.id == change.from => match inp.on_blur() {
@@ -1163,10 +1163,10 @@ impl Dialog {
         }
     }
 
-    /// A press on `id` with the click count it starts
-    /// ([`crate::core::pointer::PointerState::press_count`]): the input
-    /// remembers it for the drag, and the second press of a double click
-    /// selects the word.
+
+
+
+
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
         match self.input_mut() {
             Some(inp) if inp.id == id => inp.on_press_count(pos, count),
@@ -1174,8 +1174,8 @@ impl Dialog {
         }
     }
 
-    /// A completed click on `id`. Same as [`Self::on_click_count`] with a
-    /// count of 1.
+
+
     pub fn on_click(
         &mut self,
         id: WidgetId,
@@ -1185,9 +1185,9 @@ impl Dialog {
         self.on_click_count(id, pos, 1, focus)
     }
 
-    /// A completed click on `id` with its multi-click `count`
-    /// ([`crate::core::pointer::PointerState::count_click`]): in the input
-    /// 2 selects the word and 3 the line.
+
+
+
     pub fn on_click_count(
         &mut self,
         id: WidgetId,
@@ -1195,7 +1195,7 @@ impl Dialog {
         count: u8,
         focus: &mut crate::core::focus::Focus,
     ) -> Outcome {
-        // the close button in the frame: what Esc does
+
         if id == crate::ui::modal::CLOSE && self.dismiss.shows_close() {
             return self.dismissed();
         }
@@ -1208,7 +1208,7 @@ impl Dialog {
         if scrollbar::is_bar_of(id, self.id) {
             let o = self.bar_press(pos).outcome().or(Outcome::Consumed);
             if id == scrollbar::id_for(self.id) {
-                // a completed click: the vertical grab ends with it
+
                 self.scroll.v.release_track();
             }
             return o;
@@ -1225,8 +1225,8 @@ impl Dialog {
         Outcome::Consumed
     }
 
-    /// Click on the dimmed backdrop: dismisses when the policy allows,
-    /// consumed either way (nothing under a modal is reachable).
+
+
     pub fn on_click_outside(&mut self) -> Outcome {
         if self.dismiss_in_force().outside_click {
             self.dismissed()
@@ -1235,31 +1235,31 @@ impl Dialog {
         }
     }
 
-    /// Draw the dialog centred on `screen`. Prefer [`Self::render_in`] with
-    /// the app's body area, so the dialog never covers the app's chrome.
+
+
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let bounds = body_bounds(screen, self.chrome.0, self.chrome.1);
         self.render_in(screen, bounds, buf, ctx);
     }
 
-    /// Dim `screen` and draw the dialog centred in `bounds` (the app's body:
-    /// below its header, above its status and footer rows), kept
-    /// [`Self::outer_margin`] away from the edges of `bounds`. A body taller
-    /// than the room scrolls ([`Self::body_scroll`]).
+
+
+
+
     pub fn render_in(&mut self, screen: Rect, bounds: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.follow_strings(ctx.theme.strings);
         let t = ctx.theme;
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         self.scroll.begin(ctx.track_click);
         self.gap = t.spacing.button_gap;
-        // at least one column of padding: the scrollbar lives there
+
         self.pad = crate::theme::Insets::new(t.spacing.dialog.x.max(1), t.spacing.dialog.y);
-        // dim backdrop; the footer row stays live because its hints belong to the dialog
+
         ctx.modal_backdrop_with(buf, screen, self.backdrop);
         let bounds = bounds.intersection(screen);
         let bounds = if bounds.is_empty() { screen } else { bounds };
         let m = self.outer_margin;
-        // never wider than the bounds, however narrow they get
+
         let width = self
             .width
             .min(bounds.width.saturating_sub(m.horizontal * 2))
@@ -1271,7 +1271,7 @@ impl Dialog {
             .min(self.max_height.unwrap_or(u16::MAX));
         let height = self.height(width).min(room);
         let area = match self.placement {
-            // ratatui's centring (the odd cell goes after): kept as it was
+
             Placement::Center => {
                 bounds.centered(Constraint::Length(width), Constraint::Length(height))
             }
@@ -1321,9 +1321,9 @@ impl Dialog {
         let body_y = inner.y + 2;
         let action_rows = self.action_rows(width);
         let actions_y = area.bottom().saturating_sub(1 + self.pad.y + action_rows);
-        // the scrolling part of the body ends above the parts anchored over
-        // the actions; the row right below it is a blank separator, where
-        // "↓ N more" goes while there is more below
+
+
+
         let fixed = self.fixed_rows(width);
         let scroll_bottom = actions_y.saturating_sub(1 + fixed).max(body_y);
         let viewport = scroll_bottom - body_y;
@@ -1335,7 +1335,7 @@ impl Dialog {
         }
         self.scroll.clamp();
         let offset = self.scroll.offset as u16;
-        // the gutter goes in the padding, never over the frame
+
         let field_x = inner.x.saturating_sub(TextInput::GUTTER).max(area.x + 1);
         let field_w = inner.right() - field_x;
         match &mut self.body {
@@ -1355,9 +1355,9 @@ impl Dialog {
                 inp.render(r, buf, ctx, bg);
             }
             DialogBody::Facts { facts, code, ack } => {
-                // the acknowledgement and the code preview are anchored above
-                // the actions; the facts get the remaining rows and scroll
-                // when the screen is too short
+
+
+
                 let sheet_area = Rect::new(0, 0, inner.width, content);
                 let mut sheet = Buffer::empty(sheet_area);
                 fill(&mut sheet, sheet_area, ratatui::style::Style::new().bg(bg));
@@ -1372,8 +1372,8 @@ impl Dialog {
                 if !code.is_empty() {
                     y += 1;
                     let max = code.len().min(6);
-                    // preformatted lines never wrap: a wider one scrolls
-                    // sideways, cut with … on the side it continues past
+
+
                     let extent = Self::code_extent(code, inner.width);
                     let off = self.scroll.h.offset;
                     self.scroll.h.set_content(extent.content_len);
@@ -1420,8 +1420,8 @@ impl Dialog {
             }
         }
         if self.scroll.overflows() && viewport > 0 {
-            // the scrollbar sits in the padding just inside the frame, one
-            // column off the text, so the text keeps its width
+
+
             let track = Rect::new(area.right() - 2, body_y, 1, viewport);
             self.scroll.set_track(self.id, Axis::Vertical, track);
             let below = self.scroll.max_offset() - self.scroll.offset;
@@ -1441,20 +1441,20 @@ impl Dialog {
                 );
             }
         }
-        // the confirming action stays disabled until the acknowledgement matches
+
         if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
             let armed = a.input.text().trim() == a.token;
             if let Some(b) = self.confirm_index.and_then(|i| self.actions.get_mut(i)) {
                 b.disabled = !armed;
             }
         }
-        // the label mnemonics are underlined while they work
+
         let live = self.mnemonics_live();
         let keys = self.mnemonic_keys();
         for (b, m) in self.actions.iter_mut().zip(keys) {
             b.mnemonic = m.filter(|_| live).map(|(_, i)| i);
         }
-        // actions: the shared button row, packed right, never cut
+
         self.button_row.render(
             self.id,
             Rect::new(inner.x, actions_y, inner.width, action_rows),
@@ -1463,10 +1463,10 @@ impl Dialog {
             ctx,
             bg,
         );
-        // the dialog surface itself blocks clicks from falling through;
-        // a press on it is dead space inside the dialog
+
+
         ctx.hits.register_surface(self.id, area);
-        // re-register the controls on top of the surface
+
         match &self.body {
             DialogBody::Input(inp) => ctx.hits.register(inp.id, inp.area),
             DialogBody::Facts { ack: Some(a), .. } => ctx.hits.register(a.input.id, a.input.area),
@@ -1478,7 +1478,7 @@ impl Dialog {
         if !close.is_empty() {
             ctx.clickable(crate::ui::modal::CLOSE, close);
         }
-        // the bars go on top of the surface and buttons registered above
+
         let track = self.scroll.v_track();
         if !track.is_empty() {
             self.scroll.draw_v(track, buf, ctx, self.id, true);
@@ -1490,10 +1490,10 @@ impl Dialog {
     }
 }
 
-/// The area a modal is placed in: `screen` without the app's chrome rows,
-/// `top` rows of header and `bottom` rows of status and footer. Pass it to
-/// [`Dialog::render_in`] so a dialog never covers the header or the hints
-/// that belong to it. Falls back to `screen` when nothing would be left.
+
+
+
+
 pub fn body_bounds(screen: Rect, top: u16, bottom: u16) -> Rect {
     let h = screen.height.saturating_sub(top + bottom);
     if h == 0 {
@@ -1502,8 +1502,8 @@ pub fn body_bounds(screen: Rect, top: u16, bottom: u16) -> Rect {
     Rect::new(screen.x, screen.y + top, screen.width, h)
 }
 
-/// Copy rows `from..` of `src` into `dst` at `at` (as many as fit), so a
-/// part drawn whole off screen can be shown through a scrolled window.
+
+
 fn blit_rows(src: &Buffer, from: u16, dst: &mut Buffer, at: Rect) {
     let at = at.intersection(*dst.area());
     for dy in 0..at.height {
@@ -1527,8 +1527,8 @@ impl Scrollable for Dialog {
         &mut self.scroll
     }
 
-    /// Nothing under a modal scrolls: a notch the body or the code
-    /// preview cannot take is still consumed.
+
+
     fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         let r = self.scroll.wheel(axis, delta);
         if r.is_consumed() {
@@ -1540,13 +1540,13 @@ impl Scrollable for Dialog {
 }
 
 impl Dialog {
-    /// One pointer event the router resolved to the dialog (its layer's
-    /// [`crate::ui::layer::Layer::pointer`]). The prompt's input takes its
-    /// own gestures ([`crate::core::pointer::MouseTarget::route`]; a click
-    /// focuses it); a wheel or a bar press on the dialog scrolls it, and a
-    /// wheel over anything else (nothing under a modal) moves nothing; a
-    /// press, a drag and a completed click reach the per-gesture handlers
-    /// ([`Self::on_press`], [`Self::on_drag`], [`Self::on_click_count`]).
+
+
+
+
+
+
+
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -1685,7 +1685,7 @@ mod tests {
         };
         assert!(line(&buf).contains("DELETE FROM"));
 
-        // Shift+→ scrolls the preview; the plain arrows still move between buttons
+
         let mut focus = crate::core::focus::Focus::default();
         let ring = FocusRing::default();
         let shift = Key {
@@ -1701,7 +1701,7 @@ mod tests {
             "the thumb moved"
         );
 
-        // the wheel and the bar reach the end
+
         assert_eq!(d.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
         let (buf, _) = draw(&mut d);
         let grab = (bar.x..bar.right())
@@ -1761,7 +1761,7 @@ mod tests {
                 "actions sit below the field: {b:?} vs {ack:?}"
             );
         }
-        // the height accounts for every wrapped row: nothing collides
+
         let measured = d.height(78);
         assert_eq!(area.height, measured);
         let facts_rows = crate::widgets::props::measure(
@@ -1784,12 +1784,12 @@ mod tests {
         plain.on_click_outside();
         assert_eq!(plain.result, Some(DialogResult::Action(0)));
 
-        // a typed acknowledgement ignores a stray click
+
         let mut gated = gate(78);
         assert_eq!(gated.on_click_outside(), Outcome::Consumed);
         assert_eq!(gated.result, None);
 
-        // the policy is the caller's to choose either way
+
         let mut del =
             Dialog::destructive(id, "Delete?", "Gone for good.", "Delete").dismiss(Dismiss::ESCAPE);
         assert_eq!(del.on_click_outside(), Outcome::Consumed);
@@ -1807,9 +1807,9 @@ mod tests {
         assert_eq!(locked.result, None);
     }
 
-    /// A28: a dialog whose cancel action is destructive ("Cancel launch")
-    /// must not take it on a stray backdrop click or a focus loss; Esc
-    /// still resolves to it, and the guard is the dialog's to turn off.
+
+
+
     #[test]
     fn a_destructive_cancel_refuses_light_dismissal_but_not_esc() {
         use crate::core::intent::DismissReason as R;
@@ -1843,12 +1843,12 @@ mod tests {
         d.on_key(&esc, &mut focus, &ring);
         assert_eq!(d.result, Some(DialogResult::Action(1)), "Esc still cancels");
 
-        // the guard is the dialog's to turn off
+
         let mut light = destructive_cancel().guard_destructive_dismiss(false);
         light.on_click_outside();
         assert_eq!(light.result, Some(DialogResult::Action(1)));
 
-        // a destructive confirm with a safe cancel keeps light dismissal
+
         let mut del = Dialog::destructive(id, "Delete?", "Gone for good.", "Delete");
         del.on_click_outside();
         assert_eq!(del.result, Some(DialogResult::Action(0)));
@@ -1858,7 +1858,7 @@ mod tests {
     fn the_gated_action_is_refused_until_the_token_matches_even_before_a_redraw() {
         let mut d = gate(78);
         assert_eq!(d.confirm_index, Some(1));
-        // never rendered, so the button was never drawn disabled
+
         assert_eq!(d.finish(DialogResult::Action(1)), Outcome::Consumed);
         assert_eq!(d.result, None);
         if let DialogBody::Facts { ack: Some(a), .. } = &mut d.body {
@@ -1895,12 +1895,12 @@ mod tests {
     #[test]
     fn a_destructive_dialog_names_the_focused_cancel_button_not_confirm() {
         let d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete");
-        // destructive dialogs open on Cancel, so Enter cancels; `y` is held
-        // back until Delete has focus (`QuickAnswer::Safe`)
+
+
         let text = hint_text(&d.hints(Some(d.initial_focus)));
         assert_eq!(text, "←→ Choose · Enter Cancel · Esc Cancel");
         assert!(!text.contains("Confirm"), "{text}");
-        // moving to the destructive button renames Enter
+
         let text = hint_text(&d.hints(Some(d.actions[1].id)));
         assert!(text.contains("Enter Delete"), "{text}");
     }
@@ -1918,7 +1918,7 @@ mod tests {
             hint_text(&next.hints(Some(next.initial_focus))),
             "Type \"TRASH 4 UNDER /Users/alex/work/ide ON mbp\" to confirm · Enter Next · Esc Cancel"
         );
-        // on the buttons, the unarmed action offers no choice and no Enter
+
         let text = hint_text(&d.hints(Some(d.actions[1].id)));
         assert_eq!(text, "Esc Cancel");
     }
@@ -1953,14 +1953,14 @@ mod tests {
             hint_text(&d.hints(Some(d.initial_focus))),
             "←→ Choose · Enter Keep launching · Esc Keep launching"
         );
-        // no y/n answers by default: the label mnemonics replace them
+
         assert_eq!(
             hint_text(&d.hints(Some(d.actions[1].id))),
             "←→ Choose · Enter Cancel launch · Esc Keep launching"
         );
     }
 
-    /// Draw `d` in `bounds` on a `screen`, returning the buffer.
+
     fn draw(d: &mut Dialog, screen: Rect, bounds: Rect) -> Buffer {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -1971,8 +1971,8 @@ mod tests {
         buf
     }
 
-    /// `chrome` places a dialog drawn through `render` (as a layer is)
-    /// exactly where `render_in` with the app's body bounds would.
+
+
     #[test]
     fn chrome_rows_place_render_like_render_in_body_bounds() {
         let screen = Rect::new(0, 0, 60, 20);
@@ -1987,7 +1987,7 @@ mod tests {
         b.render(screen, &mut got, &mut ctx);
         assert_eq!(rows(&got), rows(&want));
         assert_eq!(a.area, b.area);
-        // the default is the whole screen
+
         let mut c = Dialog::confirm(WidgetId::of("c"), "Quit?", "Leave now.", "Quit");
         let whole = draw(&mut c, screen, screen);
         assert_ne!(rows(&whole), rows(&want));
@@ -2018,8 +2018,8 @@ mod tests {
             .join("\n")
     }
 
-    /// A typed-confirm dialog drawn once (so its focus ring is built), with
-    /// focus on the acknowledgement.
+
+
     fn ack_dialog(enter: AckEnter) -> (Dialog, crate::core::focus::Focus, FocusRing) {
         let mut d = Dialog::facts(
             WidgetId::of("drop"),
@@ -2052,7 +2052,7 @@ mod tests {
     fn enter_in_a_matching_acknowledgement_presses_the_gated_action() {
         let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
         let ack = d.initial_focus;
-        // the ack field takes typing at once (EditEntry::Immediate)
+
         type_into(&mut d, &mut focus, &ring, "orders");
         assert_eq!(hint_text(&d.hints(Some(ack))), "Enter Drop · Esc Cancel");
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
@@ -2067,10 +2067,10 @@ mod tests {
     fn enter_in_a_mismatched_acknowledgement_keeps_editing_and_says_so() {
         let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
         let ack = d.initial_focus;
-        // the ack field takes typing at once (EditEntry::Immediate)
+
         type_into(&mut d, &mut focus, &ring, "order");
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-        // a second Enter must not reach Cancel either
+
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
         assert_eq!(d.result, None);
         assert_eq!(focus.current(), Some(ack), "focus stays in the field");
@@ -2079,7 +2079,7 @@ mod tests {
             unreachable!()
         };
         assert_eq!(a.input.field.error.as_deref(), Some("Does not match"));
-        // typing the missing letter clears the message and arms the action
+
         type_into(&mut d, &mut focus, &ring, "s");
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
         assert_eq!(d.result, Some(DialogResult::Action(1)));
@@ -2089,7 +2089,7 @@ mod tests {
     fn ack_enter_next_field_keeps_the_two_step_confirmation() {
         let (mut d, mut focus, ring) = ack_dialog(AckEnter::NextField);
         let ack = d.initial_focus;
-        // the ack field takes typing at once (EditEntry::Immediate)
+
         type_into(&mut d, &mut focus, &ring, "orders");
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
         assert_eq!(d.result, None);
@@ -2102,20 +2102,20 @@ mod tests {
         let d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete")
             .cancel_label("Keep");
         assert_eq!(d.mnemonic_keys(), vec![Some(('k', 0)), Some(('d', 0))]);
-        // `y` is no longer a one-key Delete while Keep is focused
+
         let mut y = d.clone();
         let mut focus = crate::core::focus::Focus::default();
         focus.focus(y.initial_focus);
         y.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
         assert_eq!(y.result, None, "y with Keep focused does nothing");
-        // the letter shown on the button presses it
+
         let mut del = d.clone();
         del.on_key(&key(KeyCode::Char('d')), &mut focus, &ring);
         assert_eq!(del.result, Some(DialogResult::Action(1)));
         let mut keep = d.clone();
         keep.on_key(&key(KeyCode::Char('K')), &mut focus, &ring);
         assert_eq!(keep.result, Some(DialogResult::Action(0)));
-        // later labels skip letters already taken
+
         let three = Dialog::confirm(WidgetId::of("x"), "Unsaved", "Save?", "Save").actions(
             vec![
                 Button::subtle(WidgetId::of("c"), "Cancel"),
@@ -2131,7 +2131,7 @@ mod tests {
         let clash =
             Dialog::confirm(WidgetId::of("x"), "Stop?", "Stop it?", "Stop").cancel_label("Stay");
         assert_eq!(clash.mnemonic_keys(), vec![Some(('s', 0)), Some(('t', 1))]);
-        // off: letters are inert
+
         let mut off = d.clone().mnemonics(false);
         off.on_key(&key(KeyCode::Char('d')), &mut focus, &ring);
         assert_eq!(off.result, None);
@@ -2141,7 +2141,7 @@ mod tests {
     fn mnemonics_never_fire_while_a_text_field_takes_letters() {
         let (mut d, mut focus, ring) = ack_dialog(AckEnter::Submit);
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
-        // `c` is Cancel's mnemonic, but here it is typed
+
         type_into(&mut d, &mut focus, &ring, "c");
         assert_eq!(d.result, None);
         let DialogBody::Facts { ack: Some(a), .. } = &d.body else {
@@ -2162,7 +2162,7 @@ mod tests {
         assert!(cell.modifier.contains(ratatui::style::Modifier::UNDERLINED));
         let next = buf.cell((b.x + 2, b.y)).unwrap();
         assert!(!next.modifier.contains(ratatui::style::Modifier::UNDERLINED));
-        // a prompt has no mnemonics, so nothing is underlined
+
         let mut p = Dialog::prompt(
             WidgetId::of("p"),
             "Rename",
@@ -2179,11 +2179,11 @@ mod tests {
     fn an_edited_prompt_ignores_a_backdrop_click() {
         let input = TextInput::new(WidgetId::of("name"), "Name").value("draft");
         let mut d = Dialog::prompt(WidgetId::of("p"), "Rename", input, "Rename");
-        // untouched: the backdrop dismisses (to Cancel)
+
         let mut clean = d.clone();
         clean.on_click_outside();
         assert_eq!(clean.result, Some(DialogResult::Action(0)));
-        // edited: the click is swallowed, Esc still cancels
+
         d.on_paste(" v2");
         assert!(d.prompt_dirty());
         assert_eq!(d.on_click_outside(), Outcome::Consumed);
@@ -2197,7 +2197,7 @@ mod tests {
     fn letter_accelerators_follow_the_dialog_config() {
         let mut focus = crate::core::focus::Focus::default();
         let ring = FocusRing::default();
-        // no accelerators by default: `y` is inert, the mnemonic works
+
         let mut d = Dialog::confirm(WidgetId::of("q"), "Quit?", "Leave now?", "Quit");
         d.on_key(&key(KeyCode::Char('y')), &mut focus, &ring);
         assert_eq!(d.result, None);
@@ -2231,21 +2231,21 @@ mod tests {
         let text = rows(&buf).join("\n");
         assert!(text.contains("line 01"), "{text}");
         assert!(!text.contains("line 30"), "{text}");
-        // the cut is announced, with a scrollbar beside the text
+
         assert!(text.contains("more"), "a \"↓ N more\" marker: {text}");
         assert!(text.contains(scrollbar::THUMB), "{text}");
         assert!(
             hint_text(&d.hints(Some(d.initial_focus))).contains("↑↓ Scroll"),
             "the hints say the body scrolls"
         );
-        // End reaches the last line, and the marker goes away
+
         let mut focus = crate::core::focus::Focus::default();
         let ring = FocusRing::default();
         d.on_key(&key(KeyCode::End), &mut focus, &ring);
         let text = rows(&draw(&mut d, screen, screen)).join("\n");
         assert!(text.contains("line 30"), "{text}");
         assert!(!text.contains("more"), "{text}");
-        // the wheel scrolls back up
+
         d.wheel(Axis::Vertical, -100).outcome();
         let text = rows(&draw(&mut d, screen, screen)).join("\n");
         assert!(text.contains("line 01"), "{text}");
@@ -2271,7 +2271,7 @@ mod tests {
         let screen = Rect::new(0, 0, 72, 20);
         let mut d = gate(66);
         let text = rows(&draw(&mut d, screen, screen)).join("\n");
-        // the instruction wraps instead of being cut
+
         assert!(text.contains("ON mbp to confirm"), "{text}");
         assert!(!text.contains("confi…"), "{text}");
         assert!(text.contains("more"), "{text}");
@@ -2286,7 +2286,7 @@ mod tests {
         for label in ["Action", "Mode", "Estimate", "Threat model", "Paths"] {
             assert!(seen.contains(label), "{label} is reachable: {seen}");
         }
-        // the field has no help, so it takes no empty help row
+
         let ack = match &d.body {
             DialogBody::Facts { ack: Some(a), .. } => a.input.area,
             _ => unreachable!(),
@@ -2333,7 +2333,7 @@ mod tests {
             a.right() + OUTER_MARGIN.horizontal <= bounds.right(),
             "{a:?}"
         );
-        // the margin is the caller's to choose
+
         let mut d = gate(78).outer_margin(Margin::new(0, 0));
         draw(&mut d, screen, bounds);
         assert_eq!(d.area.width, 72);
@@ -2422,8 +2422,8 @@ mod track_click_tests {
         d.scroll.offset
     }
 
-    /// The body's vertical bar follows the track-click policy (it always
-    /// jumped).
+
+
     #[test]
     fn a_dialog_body_track_click_can_page() {
         let page = pressed_at_the_bottom(Some(TrackClick::Page), TrackClick::Jump);

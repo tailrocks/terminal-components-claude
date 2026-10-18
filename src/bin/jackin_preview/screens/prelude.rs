@@ -1,6 +1,6 @@
-//! Create Workspace prelude: a five-step modal chain over an empty stage.
-//! Nothing is persisted here; the last step hands a pending Workspace to
-//! the Editor. Every rewind reopens the previous modal with its last state.
+
+
+
 
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
@@ -45,7 +45,7 @@ enum Source {
 }
 
 impl Source {
-    /// Absolute path the mount lands on when the destination is not edited.
+
     fn default_destination(&self) -> String {
         match self {
             Source::Host { path, .. } => path.clone(),
@@ -66,11 +66,11 @@ fn basename(path: &str) -> &str {
 
 pub struct PreludeScreen {
     step: Step,
-    /// Last browser location, restored on rewind.
+
     cwd: String,
     source: Option<Source>,
     dest_choice: usize,
-    /// Edited destination text, kept across rewinds.
+
     dest_text: Option<String>,
     destination: Option<String>,
     edit_used: bool,
@@ -95,7 +95,7 @@ impl PreludeScreen {
         }
     }
 
-    /// `✓ Source · Destination · Edit skipped · Working dir · Name`
+
     pub fn stepper_line(&self) -> String {
         let order = [
             Step::Source,
@@ -255,8 +255,8 @@ impl PreludeScreen {
         }
     }
 
-    /// Destination first, then its first-level subdirectories mapped from the
-    /// source folder onto the destination.
+
+
     fn workdir_candidates(&self, w: &World) -> Vec<String> {
         let Some(dest) = self.destination.clone() else {
             return vec![];
@@ -280,7 +280,7 @@ impl PreludeScreen {
         rows
     }
 
-    /// Rows show the home-shortened path (the picker caps its label column).
+
     fn workdir_items(&self, rows: &[String], query: &str, w: &World) -> Vec<PickerItem> {
         let q = query.trim().to_lowercase();
         rows.iter()
@@ -378,7 +378,7 @@ impl Page<Jackin> for PreludeScreen {
     }
 
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-        // no modal on top: the chain was interrupted; reopen the current step
+
         match key.code {
             KeyCode::Esc => self.rewind(w, cx),
             _ => self.open(self.step, w, cx, None),

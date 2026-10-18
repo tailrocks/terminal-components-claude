@@ -1,4 +1,4 @@
-//! Empty states: a quiet title, an optional hint, never a big glyph.
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -13,18 +13,18 @@ use crate::widgets::button::Button;
 pub enum EmptyKind {
     #[default]
     Empty,
-    /// A failed state: bold `!` in error tone before the title.
+
     Error,
 }
 
-/// A button under an empty state's text: the way out of the empty state
-/// by pointer (WAI-ARIA and HIG: an empty view offers the action that
-/// fills it, not only a shortcut to type).
+
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmptyAction {
     pub id: WidgetId,
     pub label: String,
-    /// Drawn as the primary button (one per state). Otherwise secondary.
+
     pub primary: bool,
 }
 
@@ -50,7 +50,7 @@ pub struct EmptyState {
     pub title: String,
     pub hint: Option<String>,
     pub kind: EmptyKind,
-    /// Buttons drawn under the text by [`render_ctx`]. Default none.
+
     pub actions: Vec<EmptyAction>,
 }
 
@@ -71,18 +71,18 @@ impl EmptyState {
             actions: vec![],
         }
     }
-    /// See [`Self::actions`].
+
     pub fn actions(mut self, actions: Vec<EmptyAction>) -> Self {
         self.actions = actions;
         self
     }
-    /// The action a completed click on `id` chose.
+
     pub fn on_click(&self, id: WidgetId) -> Option<&EmptyAction> {
         self.actions.iter().find(|a| a.id == id)
     }
-    /// A key while `focus` holds focus: Enter or Space on an action's
-    /// button chooses it, as on any [`Button`]. `Ignored` when `focus`
-    /// is not one of the actions.
+
+
+
     pub fn on_key(
         &self,
         focus: WidgetId,
@@ -100,15 +100,15 @@ impl EmptyState {
     }
 }
 
-/// Render centred in `area` with the [`EmptyState::actions`] as buttons
-/// below the text, registered for hover, press and click.
+
+
 pub fn render_ctx(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, e: &EmptyState, bg: Color) {
     let area = area.intersection(*buf.area());
     if e.actions.is_empty() || area.height < 4 {
         render(area, buf, ctx.theme, e, bg);
         return;
     }
-    // the text above, one blank row, then the button row
+
     let text = Rect::new(area.x, area.y, area.width, area.height.saturating_sub(2));
     render(text, buf, ctx.theme, e, bg);
     let hint_rows = e
@@ -146,7 +146,7 @@ pub fn render_ctx(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, e: &EmptySt
     }
 }
 
-/// Render centred in `area`.
+
 pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color) {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
@@ -176,7 +176,7 @@ pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color
         EmptyKind::Error => {
             let title = format!("! {}", e.title);
             put(buf, y0, &title, t.error_fg());
-            // the `!` is bold on its own
+
             let s = crate::ui::text::truncate(&title, area.width as usize);
             let x = area.x + area.width.saturating_sub(crate::ui::text::width(&s) as u16) / 2;
             if y0 < area.bottom() {
@@ -196,11 +196,11 @@ pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, e: &EmptyState, bg: Color
     }
 }
 
-/// The id an empty state without actions answers to in a States grid.
+
 const SAMPLE_ID: WidgetId = WidgetId::of("empty-sample");
 
-/// Rows [`render_ctx`] needs for `e` at `width`: the title, the hint
-/// (after a blank row) and the button row (after a blank row).
+
+
 pub fn height(e: &EmptyState, width: u16) -> u16 {
     let hint = e
         .hint
@@ -211,8 +211,8 @@ pub fn height(e: &EmptyState, width: u16) -> u16 {
     1 + hint + actions
 }
 
-/// In a States grid an empty state is drawn by [`render_ctx`]; its
-/// interactive states are those of its first action button.
+
+
 impl crate::ui::specimen::Specimen for EmptyState {
     fn specimen_id(&self) -> WidgetId {
         self.actions.first().map_or(SAMPLE_ID, |a| a.id)
@@ -228,7 +228,7 @@ impl crate::ui::specimen::Specimen for EmptyState {
     }
 
     fn specimen_height(&self, _state: crate::ui::specimen::SpecimenState) -> u16 {
-        // the hint wraps at most once more in the narrow slot
+
         height(self, 24) + u16::from(self.hint.is_some())
     }
 
@@ -346,7 +346,7 @@ mod tests {
         let mut p = crate::widgets::picker::Picker::new(WidgetId::of("p"), "Pick").empty(state());
         let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
         p.draw(Rect::new(0, 0, 80, 24), &mut buf, &mut ctx);
-        // a picker sizes to its rows: one row shows the title
+
         assert!(text(&buf).contains("No connections"));
     }
 }

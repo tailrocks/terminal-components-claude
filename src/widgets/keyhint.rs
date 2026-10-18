@@ -1,48 +1,48 @@
-//! Contextual key hints for a footer line: `key Action` pairs, dropping the
-//! least important from the right when the line is narrow.
-//!
-//! # Hint vocabulary
-//!
-//! Key labels: `↑↓`, `←→`, `↑↓←→` (no spaces), ranges with an en dash
-//! (`1–6`), `Delete` in full. [`normalize_key`] enforces this at render.
-//!
-//! Actions start with a verb, and an action that opens a dialog or a
-//! further step ends with `…`. Toggles name the switch, not the state
-//! ([`toggle_hint`]). A focused button names itself (`Button::hint`), and a
-//! dialog builds its own row (`Dialog::hints`).
-//!
-//! A modified click names the modifier, then `click`: `Option+click` on
-//! macOS, `Ctrl+click` elsewhere, for the same toggle ([`modifier_click`]
-//! picks the label from a widget's modifier set and the [`ClientPlatform`]).
-//!
-//! Esc: `Esc Cancel` leaves an edit or a modal without saving, `Esc Close`
-//! closes an overlay or menu, `Esc Back` returns to the previous page.
-//! Field edits use [`EDIT_FIELD`]: `Enter Apply · Esc Cancel · Tab Next
-//! field`; a multi-line field [`EDIT_TEXT`] (`Tab Next field · Esc Done`)
-//! and a code editor whose Tab indents [`EDIT_CODE`] (`Tab Indent · Esc
-//! Done`: Esc ends the edit, then Tab leaves). "Done" is the one Esc word
-//! for documents, whose Esc keeps the text. A hint never names a chord the
-//! terminal may not deliver (Ctrl+Tab). The text controls build these
-//! from their own state (`TextInput::hints`, `TextArea::hints`,
-//! `CodeEditor::hints`).
-//!
-//! Within one app a letter keeps one meaning across screens:
-//!
-//! | Key      | Meaning                                         | Apps          |
-//! |----------|-------------------------------------------------|---------------|
-//! | `d`      | delete or remove (`…` when it asks first)       | all           |
-//! | `x`      | close or stop what is in front (pane, launch)   | jackin        |
-//! | `t`      | turn a thing on or off (account, debug, stop)   | jackin        |
-//! | `c`      | open Accounts                                   | jackin        |
-//! | `v`      | switch the view (unified / side by side)        | jackin        |
-//! | `!`      | open a shell                                    | jackin        |
-//! | `Ctrl+S` | save or submit what the screen is about         | all           |
-//! | `Ctrl+D` | switch Data / Structure                         | TablePro      |
-//! | `Alt+D`  | duplicate (a row, a connection)                 | TablePro      |
-//!
-//! Pane commands behind a prefix (`Ctrl+B c`, `Ctrl+B d`, `Ctrl+B x`) follow
-//! tmux, the convention their users already know, and are a separate
-//! layer: the prefix names the namespace.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::borrow::Cow;
 
@@ -55,22 +55,22 @@ use crate::core::event::ClientPlatform;
 
 use crate::theme::{BadgeKind, HintAlign, HintBarStyle, StatusKind, Theme, Tone};
 
-/// The key-label vocabulary. Every hint names keys the same way: arrow
-/// pairs without a space, ranges with an en dash, `Delete` in full.
+
+
 pub const UP_DOWN: &str = "↑↓";
 pub const LEFT_RIGHT: &str = "←→";
 pub const ARROWS: &str = "↑↓←→";
 pub const DELETE: &str = "Delete";
 
-/// A key range such as `1–6`.
+
 pub fn range(from: u32, to: u32) -> String {
     format!("{from}–{to}")
 }
 
-/// Normalise a key label to the vocabulary: spaces between arrow glyphs
-/// are dropped (`↑ ↓` → `↑↓`), a hyphen between digits becomes an en dash
-/// (`1-6` → `1–6`) and `Del` is spelled `Delete`. Rendering applies this,
-/// so a stray spelling cannot reach the screen.
+
+
+
+
 pub fn normalize_key(key: &str) -> Cow<'_, str> {
     const ARROW: [char; 4] = ['↑', '↓', '←', '→'];
     if key == "Del" {
@@ -106,16 +106,16 @@ pub fn normalize_key(key: &str) -> Cow<'_, str> {
     }
 }
 
-/// The key label for a click with one of `mods` held, naming the modifier
-/// `platform`'s users reach for first: Option, then Cmd, then Ctrl on
-/// macOS (where Ctrl+click is a secondary click); Ctrl, then Alt, then
-/// Super elsewhere. `None` when `mods` holds none of them. A multi-select
-/// table's toggle reads `modifier_click(table.toggle_mods, platform)`:
-/// `Option+click` on macOS, `Ctrl+click` elsewhere.
-///
-/// Shift is never named: many terminals keep Shift+click and Shift+drag
-/// for their own text selection while the app captures the mouse, so a
-/// hint naming it would advertise a gesture that may never arrive.
+
+
+
+
+
+
+
+
+
+
 pub fn modifier_click(mods: KeyModifiers, platform: ClientPlatform) -> Option<&'static str> {
     const MAC: [(KeyModifiers, &str); 3] = [
         (KeyModifiers::ALT, "Option+click"),
@@ -134,11 +134,11 @@ pub fn modifier_click(mods: KeyModifiers, platform: ClientPlatform) -> Option<&'
         .map(|&(_, label)| label)
 }
 
-/// The hint for a two-state toggle. A toggle hint starts with a verb and
-/// names what pressing the key does from the current state, so it never
-/// reads like the state itself: `Ctrl+H Show hidden` while hidden files
-/// are hidden, `Ctrl+H Hide hidden` while they are shown.
-/// `when_on` is the action offered while `on` is true.
+
+
+
+
+
 pub const fn toggle_hint(
     key: &'static str,
     on: bool,
@@ -148,68 +148,68 @@ pub const fn toggle_hint(
     hint(key, if on { when_on } else { when_off })
 }
 
-/// The hints for an inline field being edited, in every app: Enter
-/// applies the edit, Esc cancels it, Tab applies and moves on. "Commit"
-/// is avoided because it collides with a database commit.
+
+
+
 pub const EDIT_FIELD: [Hint; 3] = [
     hint("Enter", "Apply"),
     hint("Esc", "Cancel"),
     hint("Tab", "Next field"),
 ];
 
-/// The hint for the keyboard context menu ([`crate::ui::context::ContextKeys`]
-/// default): `Shift+F10 Menu`. A screen whose focused widget has a context
-/// menu lists it last, so a narrow bar drops it first.
+
+
+
 pub const CONTEXT_MENU: Hint = hint("Shift+F10", "Menu");
 
-/// A multi-line field being edited: Enter is a newline, Tab applies and
-/// moves on, Esc ends the edit keeping the text.
+
+
 pub const EDIT_TEXT: [Hint; 2] = [hint("Tab", "Next field"), hint("Esc", "Done")];
 
-/// A code editor being edited while Tab indents: F6 leaves from any mode
-/// (the pane key, K17), Esc ends the edit (the text stays), and then Tab
-/// and Shift+Tab leave.
+
+
+
 pub const EDIT_CODE: [Hint; 3] = [
     hint("Tab", "Indent"),
     hint("F6", "Leave"),
     hint("Esc", "Done"),
 ];
 
-/// [`EDIT_FIELD`] for a grid cell: Tab moves to the next cell.
+
 pub const EDIT_CELL: [Hint; 3] = [
     hint("Enter", "Apply"),
     hint("Esc", "Cancel"),
     hint("Tab", "Next cell"),
 ];
 
-/// One `key Action` pair. The action is usually a literal, but a component
-/// that knows its own state (a dialog naming its focused button) builds it
-/// at runtime, so it is a [`Cow`].
+
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hint {
     pub key: &'static str,
     pub action: Cow<'static, str>,
-    /// Whether the hint survives a narrow row. Default
-    /// [`HintPriority::Auto`]: pinned when its key is one of the theme's
-    /// [`HintBarStyle::pinned_keys`] (Esc, ?, F1).
+
+
+
     pub priority: HintPriority,
 }
 
-/// How a hint competes for room in a narrow footer.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HintPriority {
-    /// Pinned when the key is one of the theme's pinned keys, otherwise
-    /// normal.
+
+
     #[default]
     Auto,
-    /// Dropped from the right when the row is too narrow.
+
     Normal,
-    /// Kept while any normal hint can still be dropped.
+
     Pinned,
 }
 
 impl Hint {
-    /// A hint whose action is computed (owned) or borrowed.
+
     pub fn new(key: &'static str, action: impl Into<Cow<'static, str>>) -> Self {
         Self {
             key,
@@ -218,18 +218,18 @@ impl Hint {
         }
     }
 
-    /// Set how the hint competes for room.
+
     pub fn priority(mut self, priority: HintPriority) -> Self {
         self.priority = priority;
         self
     }
 
-    /// Never drop this hint while a normal one can go.
+
     pub fn pinned(self) -> Self {
         self.priority(HintPriority::Pinned)
     }
 
-    /// Whether the hint is pinned under `style`.
+
     pub fn is_pinned(&self, style: &HintBarStyle) -> bool {
         match self.priority {
             HintPriority::Pinned => true,
@@ -247,9 +247,9 @@ pub const fn hint(key: &'static str, action: &'static str) -> Hint {
     }
 }
 
-/// Render hints left-aligned; `badge` (e.g. EDIT) leads; `right` is a
-/// status message that always wins the right edge. Returns the number of
-/// hints that fit.
+
+
+
 pub fn render(
     area: Rect,
     buf: &mut Buffer,
@@ -268,12 +268,12 @@ pub fn render(
     )
 }
 
-/// Like [`render`], with a toned status: an error status is drawn as
-/// `! message` in the error tone and a warning as `▲ message` in the
-/// warning tone, so the weight survives monochrome. Layout follows the
-/// theme's [`HintBarStyle`]: hints that do not fit are first shown as keys
-/// only, then dropped from the right (pinned ones last), and a faint `…`
-/// marks the cut.
+
+
+
+
+
+
 pub fn render_toned(
     area: Rect,
     buf: &mut Buffer,
@@ -285,7 +285,7 @@ pub fn render_toned(
     render_styled(area, buf, t, hints, badge, right, &t.hintbar)
 }
 
-/// Like [`render_toned`], with the theme's style but an explicit alignment.
+
 pub fn render_aligned(
     area: Rect,
     buf: &mut Buffer,
@@ -299,11 +299,11 @@ pub fn render_aligned(
     render_styled(area, buf, t, hints, badge, right, &style)
 }
 
-/// Gap after each hint, and before the cut marker.
+
 const GAP: u16 = 2;
 
-/// Cells one hint takes, without the gap after it. A compact hint shows
-/// its key alone.
+
+
 fn hint_width(h: &Hint, compact: bool) -> u16 {
     let kw = crate::ui::text::width(&normalize_key(h.key)) as u16;
     if compact {
@@ -313,8 +313,8 @@ fn hint_width(h: &Hint, compact: bool) -> u16 {
     }
 }
 
-/// Cells the hints at `keep` take, each followed by a gap, plus a gap for
-/// the cut marker when some are left out.
+
+
 fn cost(hints: &[Hint], keep: &[usize], compact: &[bool]) -> u32 {
     let mut c: u32 = keep
         .iter()
@@ -326,10 +326,10 @@ fn cost(hints: &[Hint], keep: &[usize], compact: &[bool]) -> u32 {
     c
 }
 
-/// Which hints are drawn, and which of them compactly, so they fit in
-/// `room` cells: all in full; else all with normal hints as keys only
-/// (pinned hints keep their action, they are the way out); else in full
-/// with normal hints dropped from the right, then pinned ones.
+
+
+
+
 fn fit(hints: &[Hint], room: u16, style: &HintBarStyle) -> (Vec<usize>, Vec<bool>) {
     let room = room as u32;
     let all: Vec<usize> = (0..hints.len()).collect();
@@ -356,11 +356,11 @@ fn fit(hints: &[Hint], room: u16, style: &HintBarStyle) -> (Vec<usize>, Vec<bool
     (keep, full)
 }
 
-/// Like [`render`], with a status of a [`StatusKind`]: its glyph and
-/// colour from [`Theme::status`] (`✓ Saved` in success, `✗` bold in
-/// error, `▲` in warning, `i` in info), the message in
-/// [`Theme::status_label`]. `None` for the kind is a neutral message,
-/// drawn as [`render`] draws it.
+
+
+
+
+
 pub fn render_status(
     area: Rect,
     buf: &mut Buffer,
@@ -372,9 +372,9 @@ pub fn render_status(
     render_status_at(area, buf, t, hints, badge, right).0
 }
 
-/// [`render_status`] that also reports where each drawn hint landed (see
-/// [`render_parts_at`]), for a footer whose hints are click targets
-/// ([`crate::widgets::hintbar::HintKeys::register`]).
+
+
+
 pub fn render_status_at(
     area: Rect,
     buf: &mut Buffer,
@@ -410,8 +410,8 @@ pub fn render_status_at(
     (n, spots)
 }
 
-/// [`render_status_at`] with an explicit [`HintBarStyle`] (the footer's
-/// alignment and pinned keys).
+
+
 pub fn render_status_styled_at(
     area: Rect,
     buf: &mut Buffer,
@@ -438,8 +438,8 @@ pub fn render_status_styled_at(
     (n, spots)
 }
 
-/// The status at the right edge: a message, and the glyph that leads it
-/// (empty for none).
+
+
 struct Right<'a> {
     text: &'a str,
     mark: &'a str,
@@ -448,8 +448,8 @@ struct Right<'a> {
 }
 
 impl<'a> Right<'a> {
-    /// A toned status: an error leads with a bold `!`, a warning with a
-    /// bold `▲`, so the weight survives monochrome.
+
+
     fn toned(t: &'a Theme, text: &'a str, tone: Tone) -> Self {
         let mark = match tone {
             Tone::Error => "!",
@@ -466,7 +466,7 @@ impl<'a> Right<'a> {
     }
 }
 
-/// [`render_toned`] with an explicit [`HintBarStyle`].
+
 pub fn render_styled(
     area: Rect,
     buf: &mut Buffer,
@@ -490,11 +490,11 @@ pub fn render_styled(
     )
 }
 
-/// [`render_styled`] with a status made of toned parts (a batch summary
-/// whose `ok` count is success and whose `failed` count is error). The
-/// status text is the parts joined; its tone still picks the `!` or `▲`
-/// mark. Each part is drawn in its own tone, so the severity a word
-/// carries stays on that word instead of colouring the whole message.
+
+
+
+
+
 #[allow(clippy::too_many_arguments)]
 pub fn render_parts(
     area: Rect,
@@ -520,9 +520,9 @@ pub fn render_parts(
     )
 }
 
-/// [`render_parts`] that also reports where each drawn hint landed: the
-/// index into `hints` and its cells (key and action), for a footer whose
-/// hints are click targets ([`crate::widgets::hintbar::HintBar::render_ctx`]).
+
+
+
 #[allow(clippy::too_many_arguments)]
 pub fn render_parts_at(
     area: Rect,
@@ -540,12 +540,12 @@ pub fn render_parts_at(
     (n, spots)
 }
 
-/// The key a hint's label names, when it names exactly one: `Esc`,
-/// `Enter`, `Tab`, `Shift+Tab`, `Space`, `Delete`, `Backspace`, `Home`,
-/// `End`, `PgUp`, `PgDn`, one arrow, `F1`–`F12`, one character, each with
-/// optional `Ctrl+`, `Alt+` or `Shift+` prefixes. Labels that name several
-/// keys (`↑↓`, `1–6`, `Tab/Shift+Tab`) or a sequence (`Ctrl+B c`) name
-/// none: such a hint is not a click target.
+
+
+
+
+
+
 pub fn key_of(label: &str) -> Option<crate::core::event::Key> {
     use ratatui::crossterm::event::KeyCode;
     let label = normalize_key(label);
@@ -644,7 +644,7 @@ fn render_right(
         style: st,
     }) = right
     {
-        // the glyph carries the meaning in monochrome, the tone in colour
+
         let text = if mark.is_empty() {
             r.to_owned()
         } else {
@@ -652,8 +652,8 @@ fn render_right(
         };
         let mut available = area.right().saturating_sub(x + 1) as usize;
         if !hints.is_empty() {
-            // the pinned hints (the way out, help) keep their room; the
-            // status still keeps its minimum share of the row
+
+
             let share = area.width as usize * style.status_min_share.min(100) as usize / 100;
             let pinned: Vec<usize> = (0..hints.len())
                 .filter(|&i| hints[i].is_pinned(style))
@@ -670,8 +670,8 @@ fn render_right(
             if !mark.is_empty() {
                 buf.set_string(area.right() - w - 1, area.y, mark, mark_style);
             }
-            // the parts keep their own tones over the message's, up to
-            // where the truncated text ends
+
+
             let mut px = area.right() - w - 1;
             if !mark.is_empty() {
                 px += crate::ui::text::width(mark) as u16 + 1;
@@ -695,8 +695,8 @@ fn render_right(
     let (keep, compact) = fit(hints, limit.saturating_sub(x), style);
     let cut = keep.len() < hints.len();
     if style.align == HintAlign::Center {
-        // centre the drawn block itself: the gap after the last hint is
-        // not part of it, the cut marker is
+
+
         let mut used = cost(hints, &keep, &compact) as u16;
         used = if cut {
             used.saturating_sub(GAP) + 1
@@ -705,7 +705,7 @@ fn render_right(
         };
         let free = area.width.saturating_sub(used);
         let mid = area.x + free / 2;
-        // never past the badge, never under the status
+
         x = mid.max(x).min(limit.saturating_sub(used).max(x));
     }
     for &i in &keep {
@@ -765,7 +765,7 @@ mod tests {
             modifier_click(DataTable::toggle_mods_for(other), other),
             Some("Ctrl+click")
         );
-        // all three accepted: each platform names its own first choice
+
         assert_eq!(
             modifier_click(DataTable::TOGGLE_WITH_ALT, mac),
             Some("Option+click")
@@ -895,7 +895,7 @@ mod tests {
                 "{kind:?}"
             );
         }
-        // no kind: the neutral status `render` draws
+
         let mut a = Buffer::empty(Rect::new(0, 0, 40, 1));
         let mut b = Buffer::empty(Rect::new(0, 0, 40, 1));
         render_status(*a.area(), &mut a, &t, &[], None, Some(("Copied", None)));
@@ -937,7 +937,7 @@ mod tests {
         assert_eq!(normalize_key("↑ ↓ ← →"), ARROWS);
         assert_eq!(normalize_key("1-6"), range(1, 6));
         assert_eq!(normalize_key("Del"), DELETE);
-        // labels that are already right, or merely contain spaces, stay as they are
+
         assert!(matches!(
             normalize_key("PgUp PgDn"),
             Cow::Borrowed("PgUp PgDn")
@@ -990,9 +990,9 @@ mod tests {
         assert!(row.contains("? Help"), "{row:?}");
         assert!(row.contains("Esc Cancel"), "{row:?}");
         assert!(!row.contains("Next") && row.contains('…'), "{row:?}");
-        // the order stays the caller's
+
         assert!(row.find("Help") < row.find("Cancel"), "{row:?}");
-        // pinning is per hint too, and Auto follows the theme's keys
+
         let row = draw(
             36,
             &t,
@@ -1032,12 +1032,12 @@ mod tests {
         assert!(row.contains("Esc Back"), "{row:?}");
         assert!(row.contains("? Help"), "{row:?}");
         assert!(row.contains("Saved the preview"), "{row:?}");
-        // but the status keeps its minimum share of the row
+
         let mut narrow = t;
         narrow.hintbar.status_min_share = 90;
         let row = draw(72, &narrow, &hints, Some((status, Tone::Secondary)));
         assert!(!row.contains("Esc Back"), "{row:?}");
-        // a short status is never cut for hints
+
         let row = draw(40, &t, &hints, Some(("Saved", Tone::Secondary)));
         assert!(row.contains("Saved"), "{row:?}");
     }
@@ -1051,7 +1051,7 @@ mod tests {
             hint("u", "Add URL"),
             hint("Esc", "Cancel"),
         ];
-        // off by default: hints drop from the right in full
+
         let row = draw(30, &t, &hints, None);
         assert!(
             row.contains("Enter Open") && !row.contains("URL"),
@@ -1067,7 +1067,7 @@ mod tests {
     fn a_centred_row_is_centred_on_its_text_not_its_trailing_gap() {
         let mut t = Theme::junie();
         t.hintbar.align = HintAlign::Center;
-        // "Esc Back" is 8 cells: 32 free in 40, 16 a side
+
         let row = draw(40, &t, &[hint("Esc", "Back")], None);
         assert_eq!(row.find("Esc"), Some(16), "{row:?}");
         assert_eq!(row.len() - row.trim_end().len(), 16, "{row:?}");

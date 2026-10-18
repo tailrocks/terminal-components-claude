@@ -1,8 +1,8 @@
-//! Splits & stacks (plan §7 SC23): three panes from two nested `Split`s
-//! with draggable `Splitter` seams (min sizes, a clamped default, double
-//! click, hit padding, zoom through `Split::toggle_max`), and a `Stack` of
-//! flexible children that shrink, then scroll or clip. Options:
-//! `crate::options::SPLITS_STACKS`.
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -29,7 +29,7 @@ const ID: WidgetId = WidgetId::of("splitsstacks");
 const OUTER: WidgetId = WidgetId::of("splitsstacks").sub("outer");
 const INNER: WidgetId = WidgetId::of("splitsstacks").sub("inner");
 const STACK: WidgetId = WidgetId::of("splitsstacks").sub("stack");
-/// Rows the stack demo gets: less than its children want.
+
 const STACK_ROWS: u16 = 8;
 
 const EXPLORER: &[&str] = &[
@@ -56,7 +56,7 @@ const OUTPUT: &[&str] = &[
     "    Finished `dev` profile in 4.12s",
     "     Running tests (14 passed)",
 ];
-/// The stack's children: a title and the rows it would like.
+
 const CARDS: [(&str, u16); 5] = [
     ("Connection", 3),
     ("Credentials", 3),
@@ -76,7 +76,7 @@ pub struct SplitsStacksPage {
     inner: Split,
     outer_seam: Splitter,
     inner_seam: Splitter,
-    /// The rects each split was laid out in, for the seams' drags.
+
     outer_area: Rect,
     inner_area: Rect,
     zoom: [Button; 3],
@@ -117,14 +117,14 @@ impl SplitsStacksPage {
         }
     }
 
-    /// The splits, seams and stack from the option values, through their
-    /// constructors and builders.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let percent = o.number("splitsstacks.percent").unwrap_or(30);
         let min = o.number("splitsstacks.min").unwrap_or(16);
-        // the minima are cells along the split axis: columns side by
-        // side, rows when stacked
+
+
         self.outer = match self.dir() {
             SplitDir::Horizontal => Split::new(percent, min, 24),
             SplitDir::Vertical => Split::new(percent, (min / 5).max(3), 6),
@@ -206,7 +206,7 @@ impl SplitsStacksPage {
         let panel = Panel::card(Some("Three panes")).meta(&meta);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
-        // the zoom buttons, then the panes under them
+
         let widths: Vec<u16> = self.zoom.iter().map(Button::width).collect();
         let rects = junie_tui::widgets::button::row_layout(
             Rect::new(inner.x, inner.y, inner.width, 1),
@@ -292,7 +292,7 @@ impl SplitsStacksPage {
         Outcome::Changed
     }
 
-    /// The seam a press, drag or click is on, with its split and area.
+
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.scroll.pointer(STACK, ev) {
             return o;
@@ -340,7 +340,7 @@ impl SplitsStacksPage {
     }
 }
 
-/// A framed pane with its lines; nothing when the split hid it.
+
 fn pane(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, title: &str, lines: &[&str]) {
     if area.width < 4 || area.height < 3 {
         return;
@@ -363,8 +363,8 @@ fn pane(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, title: &str, lines: &
     }
 }
 
-/// The States grid: a vertical and a horizontal seam at rest, under the
-/// pointer and dragged.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

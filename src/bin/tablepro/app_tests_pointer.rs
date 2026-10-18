@@ -1,5 +1,5 @@
-//! Pointer journeys through the shared router (plan S6): every gesture
-//! reaches the widget that owns the part under the pointer.
+
+
 
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::{ItemKey, Part, PartRef, WidgetId};
@@ -16,13 +16,13 @@ fn open_orders(h: &mut H) {
     h.ticks(3);
 }
 
-/// The cells of the bottom row, as text.
+
 fn footer(h: &H) -> String {
     h.text().lines().last().unwrap_or_default().to_owned()
 }
 
-/// M14: a middle click on a closable query tab closes it, as in browsers
-/// and editors (`Tabs::middle_click_closes`); the router used to drop it.
+
+
 #[test]
 fn a_middle_click_on_a_query_tab_closes_it() {
     let mut h = H::connected(120, 40);
@@ -42,7 +42,7 @@ fn a_middle_click_on_a_query_tab_closes_it() {
     assert_eq!(h.wb().tabs.len(), before - 1, "{}", h.text());
 }
 
-/// M1: a footer hint naming one key is a click target that runs the key.
+
 #[test]
 fn a_click_on_a_footer_hint_runs_its_key() {
     let mut h = H::connected(120, 40);
@@ -60,8 +60,8 @@ fn a_click_on_a_footer_hint_runs_its_key() {
     );
 }
 
-/// M18: the wheel over the filter editor's open column list scrolls the
-/// list, not the form behind it (the editor used to swallow the notch).
+
+
 #[test]
 fn the_wheel_over_the_filter_editors_open_select_scrolls_its_list() {
     let mut h = H::connected(120, 40);
@@ -80,7 +80,7 @@ fn the_wheel_over_the_filter_editors_open_select_scrolls_its_list() {
         sel.options.len() > sel.max_rows as usize,
         "orders has more columns than the list shows"
     );
-    // a cell of the open list: a row part of the select
+
     let row = h
         .app
         .shell
@@ -96,8 +96,8 @@ fn the_wheel_over_the_filter_editors_open_select_scrolls_its_list() {
     assert!(sel.scroll > 0, "the list scrolled\n{}", h.text());
 }
 
-/// M17 (routing): a press on the switcher picker's scrollbar pages its
-/// list; the app never routed a bar press to the picker.
+
+
 #[test]
 fn a_press_on_the_switcher_scrollbar_pages_its_list() {
     let mut h = H::connected(120, 40);

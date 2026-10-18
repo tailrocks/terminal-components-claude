@@ -1,8 +1,8 @@
-//! Every library widget with pointer behaviour is a
-//! [`MouseTarget`](junie_tui::core::pointer::MouseTarget) (shared-components
-//! plan S6): an event resolved from the frame's hit regions on any of its
-//! clickable parts routes to it, an event of another owner does not, and a
-//! wheel over a scrolling widget is taken.
+
+
+
+
+
 
 use junie_tui::core::focus::FocusRing;
 use junie_tui::core::hit::{Axis, HitRegistry};
@@ -42,7 +42,7 @@ use ratatui::layout::{Constraint, Position, Rect};
 const SCREEN: Rect = Rect::new(0, 0, 60, 20);
 const NONE: KeyModifiers = KeyModifiers::NONE;
 
-/// Render one widget alone on the screen; the frame's hit regions.
+
 fn hits_of(draw: impl FnOnce(&mut Buffer, &mut RenderCtx)) -> HitRegistry {
     let theme = Theme::for_level(ColorLevel::TrueColor);
     let mut hits = HitRegistry::default();
@@ -55,11 +55,11 @@ fn hits_of(draw: impl FnOnce(&mut Buffer, &mut RenderCtx)) -> HitRegistry {
     hits
 }
 
-/// With `wheel`, a notch there is taken; a press and a click on each
-/// clickable part of `w` route to it; an event of another owner does not.
+
+
 fn check<T: MouseTarget>(name: &str, w: &mut T, hits: &HitRegistry, wheel: Option<Position>) {
     let me = w.mouse_id();
-    // the wheel first: a click on a popup's row chooses it and closes it
+
     if let Some(pos) = wheel {
         let id = hits
             .scroll_stack(pos)

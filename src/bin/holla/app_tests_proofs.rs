@@ -1,9 +1,9 @@
-//! F23 proofs through the real App on a TestBackend: the executable
-//! page/state inventory (F23a), batched-versus-separated event pumping and
-//! resize (F23c), bounded input draining (F23d), rendering work and
-//! fresh-layout equivalence (F23e), and the subsidiary input regressions
-//! (F23h). Palette matrices in a fresh process live in `tests/holla_color.rs`;
-//! the owned-PTY flood is `tests/input_flood.rs`.
+
+
+
+
+
+
 
 use junie_tui::runtime::Application;
 use std::collections::VecDeque;
@@ -47,10 +47,10 @@ fn with_theme(scenario: Scenario, frame: u64, w: u16, h: u16, theme: Theme) -> H
     hh
 }
 
-// ------------------------------------------------------------ F23a inventory
 
-/// One reachable state: the route from the scenario's opening frame, the
-/// control that must own focus there, and a semantic marker of the page.
+
+
+
 struct State {
     name: &'static str,
     scenario: Scenario,
@@ -58,7 +58,7 @@ struct State {
     route: Vec<Input>,
     focus: WidgetId,
     marker: &'static str,
-    /// A modal is open (the finder underneath does not own the keyboard).
+
     modal: bool,
 }
 
@@ -233,7 +233,7 @@ fn inventory() -> Vec<State> {
     );
     let mut port = args.clone();
     port.extend(typed("5173"));
-    // typing started the edit; Ctrl+S submits the facts page
+
     port.push(key_mods(KeyCode::Char('s'), KeyModifiers::CONTROL));
     add(
         "port snapshot",
@@ -321,13 +321,13 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
                         "{} at {w}x{hgt} {level:?}: focus owner\n{text}",
                         state.name
                     );
-                    // the owner is a registered hit target with an area
+
                     assert!(
                         h.app.shell.hits.area_of(state.focus).is_some(),
                         "{} at {w}x{hgt}: focus owner has no visible target",
                         state.name
                     );
-                    // keyboard traversal never leaves the page without focus
+
                     for _ in 0..3 {
                         h.key(KeyCode::Tab);
                         assert!(
@@ -344,7 +344,7 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
                             state.name
                         );
                     }
-                    // the ring is a cycle: Tab comes back to the owner
+
                     let mut back = false;
                     for _ in 0..16 {
                         h.key(KeyCode::Tab);
@@ -358,7 +358,7 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
                         "{} at {w}x{hgt}: Tab never returned to the owner",
                         state.name
                     );
-                    // mouse: clicking the owner's area keeps or gives it focus
+
                     if let Some(area) = h.app.shell.hits.area_of(state.focus) {
                         h.click(area.x, area.y);
                         assert!(
@@ -368,7 +368,7 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
                         );
                     }
                 }
-                // a disabled control is never a traversal stop: every stop is hittable
+
                 let start = h.app.shell.focus.current();
                 let mut seen = vec![];
                 for _ in 0..12 {
@@ -391,10 +391,10 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
     }
 }
 
-// ------------------------------------------------------------ F23c freshness
 
-/// The runtime's pump: drain until a change, render, continue. A resize in
-/// the batch resizes the backend the way the terminal would have.
+
+
+
 fn pump(h: &mut H, inputs: Vec<Input>) {
     let mut q = VecDeque::from(inputs);
     loop {
@@ -432,8 +432,8 @@ fn snapshot_state(h: &mut H) -> (String, Option<WidgetId>, usize, Option<Positio
 
 #[test]
 fn batched_and_separated_event_sequences_agree_on_focus_hits_drafts_and_cursor() {
-    // page → modal → resize → activation → paste → mouse, as one batch and
-    // as separately rendered events, on the real App
+
+
     let sequence = |w: u16, h: u16| {
         let mut v = typed("port");
         v.push(key(KeyCode::Enter));
@@ -514,11 +514,11 @@ fn resize_below_minimum_then_normal_then_wide_then_minimum_keeps_every_state_con
                     "{scenario:?} {w}x{hgt}: focused {f:?} has no visible area"
                 );
             }
-            // a key after the resize lands on the current owner, never on a
-            // stale region
+
+
             h.key(KeyCode::Down);
             h.key(KeyCode::Up);
-            // a text field's caret sits inside the field it belongs to
+
             if let Some(f) = h.app.shell.focus.current()
                 && f == files::QUERY
                 && let (Some(area), Ok(c)) =
@@ -538,12 +538,12 @@ fn resize_below_minimum_then_normal_then_wide_then_minimum_keeps_every_state_con
     }
 }
 
-// ------------------------------------------------------------ F23d fairness
+
 
 #[test]
 fn a_finite_flood_of_ignored_input_never_starves_the_tick_check() {
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 100, 30);
-    // an unbound chord is ignored by every owner: the worst case for draining
+
     let flood: Vec<Input> = (0..10_000)
         .map(|_| key_mods(KeyCode::Char('x'), KeyModifiers::ALT))
         .collect();
@@ -557,7 +557,7 @@ fn a_finite_flood_of_ignored_input_never_starves_the_tick_check() {
         assert!(!changed, "ignored input never reports a change");
         let dispatched = before - q.len();
         dispatched_max = dispatched_max.max(dispatched);
-        // the runtime reaches its tick check here
+
         h.app.handle(Input::Tick);
         passes += 1;
     }
@@ -571,11 +571,11 @@ fn a_finite_flood_of_ignored_input_never_starves_the_tick_check() {
     );
     let per_event = start.elapsed() / 10_000;
     eprintln!("F23d: 10000 ignored events in {passes} passes · {per_event:?} per dispatch");
-    // a quit request queued behind a flood is honoured within one budget
+
     let mut q: VecDeque<Input> = (0..DRAIN_BUDGET * 3)
         .map(|_| key_mods(KeyCode::Char('x'), KeyModifiers::ALT))
         .collect();
-    // Esc never quits (keyboard audit #21); Ctrl+Q on a clean shell does
+
     q.push_back(key_mods(KeyCode::Char('q'), KeyModifiers::CONTROL));
     let mut passes = 0;
     while !h.app.shell.quit {
@@ -585,7 +585,7 @@ fn a_finite_flood_of_ignored_input_never_starves_the_tick_check() {
     }
 }
 
-// ------------------------------------------------------------ F23e performance
+
 
 fn activity_view(h: &mut H) -> &junie_tui::widgets::viewport::TextViewport {
     let i = h.app.active;
@@ -652,8 +652,8 @@ fn a_burst_of_output_is_appended_not_rebuilt_and_equals_a_fresh_layout() {
     eprintln!(
         "F23e burst: {n} lines · {total:?} for 24 ticks+draws · median {median:?} · tail {tail:?}"
     );
-    // fresh-layout equivalence: a viewport built from scratch with the same
-    // lines renders identically
+
+
     let incremental = h.text();
     let lines: Vec<_> = activity_view(&mut h).lines().cloned().collect();
     let mut fresh = junie_tui::widgets::viewport::TextViewport::new(activity::VIEW)
@@ -733,7 +733,7 @@ fn idle_ticks_rebuild_nothing_on_the_finder_and_the_disk_tree() {
     eprintln!("F23e idle: {idle:?} per idle tick+draw at 160x50");
 }
 
-// ------------------------------------------------------------ F23h subsidiary
+
 
 #[test]
 fn facts_page_takes_an_actual_paste_into_the_editing_field_only() {
@@ -741,7 +741,7 @@ fn facts_page_takes_an_actual_paste_into_the_editing_field_only() {
     h.type_str("port");
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Arguments"));
-    // the paste is one payload: no per-character key dispatch, exact text
+
     let o = h.app.handle(Input::Paste("51\t73\n".into()));
     h.draw();
     assert_eq!(o, Outcome::Changed);
@@ -751,7 +751,7 @@ fn facts_page_takes_an_actual_paste_into_the_editing_field_only() {
         h.text()
     );
     assert!(!h.text().contains("51\t73"));
-    // no field is editing after Tab to a button: a paste is ignored, not misrouted
+
     h.key(KeyCode::Tab);
     h.key(KeyCode::Tab);
     let before = h.text();
@@ -763,8 +763,8 @@ fn facts_page_takes_an_actual_paste_into_the_editing_field_only() {
 
 #[test]
 fn enter_with_modifiers_maps_to_exact_picker_and_finder_semantics() {
-    // picker: plain Enter opens; Alt+Enter is the alternate choice; Ctrl and
-    // Shift do not turn Enter into anything else
+
+
     let mut h = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40);
     h.ctrl(KeyCode::Char('g'));
     assert!(!h.app.modals.is_empty());
@@ -778,7 +778,7 @@ fn enter_with_modifiers_maps_to_exact_picker_and_finder_semantics() {
     h.app.handle(key_mods(KeyCode::Enter, KeyModifiers::SHIFT));
     h.draw();
     assert!(h.app.modals.is_empty(), "Shift+Enter chooses like Enter");
-    // finder: Alt+Enter opens alternatives; Shift+Enter runs like Enter
+
     h.alt(KeyCode::Char('0'));
     h.app.handle(key_mods(KeyCode::Enter, KeyModifiers::ALT));
     h.draw();
@@ -810,7 +810,7 @@ fn output_scrollbar_press_and_drag_redraw_and_find_index_resets_on_a_new_query()
     let pressed = h.text();
     assert_ne!(before, pressed, "a press on the scrollbar moves the view");
     h.mouse(MouseKind::Up, area.x, area.y + 2);
-    // the press paged (TrackClick::Page); the thumb drags
+
     let thumb = crate::app_tests_coverage::thumb_row(&h, area);
     h.mouse(MouseKind::Down, area.x, thumb);
     h.mouse(MouseKind::Drag, area.x, area.y + area.height / 2);
@@ -821,7 +821,7 @@ fn output_scrollbar_press_and_drag_redraw_and_find_index_resets_on_a_new_query()
         !activity_view(&mut h).follow,
         "dragging away from the tail pauses follow"
     );
-    // find: advance to a nonzero match, then a query with no such match resets
+
     h.key(KeyCode::Char('/'));
     h.type_str("line 44");
     h.key(KeyCode::Enter);

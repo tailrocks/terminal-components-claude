@@ -1,37 +1,37 @@
-//! Activities: long-lived work that stays reachable after launch (CONCEPT
-//! §8.14). The output is produced by a deterministic script that emits lines
-//! at fixture ticks, so a frame is reproducible.
-//!
-//! The simulation owns the task lifecycle the way a real supervisor would:
-//! queued work never spawns after a cancel, a stop request enters
-//! `Cancelling` and only settles once the modeled process group is gone
-//! (SIGTERM, then SIGKILL after 750 ms for a resistant child), prompts pause
-//! the script until exact input bytes arrive, secret input is never echoed
-//! or retained, and output retention is bounded with a visible drop count.
+
+
+
+
+
+
+
+
+
+
 
 use crate::domain::context::ScopeTag;
 use crate::domain::effect::Effect;
 use crate::domain::exec::Command;
 
-/// Retained output lines per activity; older lines are dropped and counted.
+
 pub const RETAIN_LINES: usize = 4000;
-/// Ticks between SIGTERM and SIGKILL for a child that ignores TERM (750 ms).
+
 pub const KILL_AFTER_TICKS: u64 = 10;
-/// Ticks a cooperative child needs to exit after SIGTERM.
+
 pub const TERM_EXIT_TICKS: u64 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActivityState {
-    /// Owned but not started: waits for a predecessor in a sequential batch.
+
     Queued,
     Running,
-    /// Stop requested; the process group is being torn down.
+
     Cancelling,
     Succeeded,
     Failed,
-    /// Stopped by holla (cancelled) or exited on its own quit key.
+
     Stopped,
-    /// Running without this terminal attached (a monitor left open).
+
     Detached,
 }
 
@@ -47,7 +47,7 @@ impl ActivityState {
             ActivityState::Detached => "detached",
         }
     }
-    /// Still owned: running, detached, queued or being torn down.
+
     pub fn live(self) -> bool {
         matches!(
             self,
@@ -64,13 +64,13 @@ impl ActivityState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActivityKind {
-    /// A project task or command with streaming output.
+
     Task,
-    /// Merged logs from several services; each keeps its identity.
+
     Logs { services: Vec<String> },
-    /// A specialist TUI kept open (`btm`, `pg_activity`).
+
     Monitor { tool: String },
-    /// An SSH session.
+
     Ssh { alias: String },
 }
 
@@ -86,15 +86,15 @@ pub enum LineTone {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LineKind {
     Output,
-    /// The program waits for input after printing this text without a
-    /// newline. `secret` prompts are answered without echo.
+
+
     Prompt {
         secret: bool,
     },
 }
 
-/// One scripted output line: emitted `at` ticks after start, with an
-/// optional service prefix for merged logs, and a tone hint.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScriptLine {
     pub at: u64,
@@ -104,29 +104,29 @@ pub struct ScriptLine {
     pub kind: LineKind,
 }
 
-/// What a prompt does with the input it receives. `matches: None` is the
-/// fallback branch; `Some("\u{4}")` matches end of input.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Branch {
     pub matches: Option<String>,
-    /// Lines relative to the tick the input arrived.
+
     pub lines: Vec<ScriptLine>,
-    /// Ends the activity `ticks` after the input with `exit`.
+
     pub end: Option<(u64, i32)>,
 }
 
-/// The deterministic script behind an activity.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Script {
     pub lines: Vec<ScriptLine>,
-    /// Ticks until the activity ends; `None` keeps it running.
+
     pub ends_at: Option<u64>,
     pub exit: i32,
-    /// Branches per prompt, in prompt order.
+
     pub branches: Vec<Vec<Branch>>,
-    /// The child ignores SIGTERM: cancellation escalates to SIGKILL.
+
     pub resistant: bool,
-    /// The child cannot be started at all (missing executable, cwd).
+
     pub spawn_failure: Option<String>,
 }
 
@@ -151,7 +151,7 @@ impl Script {
             spawn_failure: None,
         }
     }
-    /// A child that cannot start: the failure is the output.
+
     pub fn spawn_failed(reason: &str) -> Self {
         Self {
             lines: vec![],
@@ -162,7 +162,7 @@ impl Script {
             spawn_failure: Some(reason.into()),
         }
     }
-    /// The truthful outcome for a command this preview does not model.
+
     pub fn unmodeled(display: &str) -> Self {
         Self::ending(
             vec![
@@ -237,16 +237,16 @@ pub fn prompt(at: u64, text: &str, secret: bool) -> ScriptLine {
     }
 }
 
-/// Normalise one raw output line the way the executor does: a CR before the
-/// newline is dropped, ANSI bytes are kept (the viewer shows them visibly),
-/// invalid UTF-8 becomes U+FFFD.
+
+
+
 pub fn normalize_line(raw: &[u8]) -> String {
     let raw = raw.strip_suffix(b"\n").unwrap_or(raw);
     let raw = raw.strip_suffix(b"\r").unwrap_or(raw);
     String::from_utf8_lossy(raw).into_owned()
 }
 
-/// Split a raw stream into lines, emitting the final unterminated fragment.
+
 pub fn split_stream(raw: &[u8]) -> Vec<String> {
     let mut out = vec![];
     let mut start = 0;
@@ -262,8 +262,8 @@ pub fn split_stream(raw: &[u8]) -> Vec<String> {
     out
 }
 
-/// Bytes forwarded to a task's stdin, retained for inspection. Secret
-/// input keeps only its length.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InputRecord {
     pub at: u64,
@@ -277,7 +277,7 @@ pub struct Prompt {
     pub text: String,
     pub secret: bool,
     pub since_tick: u64,
-    /// Index into `script.branches`.
+
     pub index: usize,
 }
 
@@ -289,11 +289,11 @@ pub struct CancelState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InputError {
-    /// The activity is not live: no bytes are delivered.
+
     Finished,
-    /// Queued work has no stdin yet.
+
     NotStarted,
-    /// The program has no writable stdin (a detached monitor).
+
     NoStdin,
 }
 
@@ -301,7 +301,7 @@ pub enum InputError {
 pub struct Activity {
     pub id: String,
     pub name: String,
-    /// The action that started it.
+
     pub origin: String,
     pub kind: ActivityKind,
     pub scope: ScopeTag,
@@ -310,36 +310,36 @@ pub struct Activity {
     pub started_tick: u64,
     pub ended_tick: Option<u64>,
     pub exit: Option<i32>,
-    /// Lines emitted so far: (service, text, tone).
+
     pub output: Vec<(Option<String>, String, LineTone)>,
-    /// Lines dropped from the head of `output` by retention.
+
     pub dropped: usize,
-    /// Whether input may be attached safely.
+
     pub attachable: bool,
     pub script: Script,
-    /// Follow-up suggestions after the activity ends.
+
     pub follow_ups: Vec<String>,
-    /// Program insight lines (ports, PIDs, hot files) for the header.
+
     pub insights: Vec<(String, String)>,
-    /// Services hidden in a merged log view.
+
     pub hidden_services: Vec<String>,
-    /// Next script line to emit.
+
     pub cursor: usize,
-    /// What a successful end changes in the world.
+
     pub effect: Option<Effect>,
-    /// The exact executed specification.
+
     pub argv: Vec<Command>,
-    /// Sequential batch predecessor: starts once it finished.
+
     pub after: Option<String>,
     pub batch: Option<String>,
     pub waiting: Option<Prompt>,
-    /// Ticks spent waiting for input; the script clock excludes them.
+
     pub paused_ticks: u64,
     pub stdin: Vec<InputRecord>,
-    /// Bytes typed since the last line end: a prompt answer is a line, and
-    /// the program reads it only when the line ends.
+
+
     pub pending: Vec<u8>,
-    /// The last output line is the echo of `pending` (no prompt waiting).
+
     echo_active: bool,
     pub cancel: Option<CancelState>,
     prompts_seen: usize,
@@ -400,7 +400,7 @@ impl Activity {
         }
     }
 
-    /// Script time elapsed: wall ticks minus time spent waiting for input.
+
     pub fn elapsed(&self, tick: u64) -> u64 {
         let wall = tick.saturating_sub(self.started_tick);
         let paused = self.paused_ticks
@@ -412,14 +412,14 @@ impl Activity {
         wall.saturating_sub(paused)
     }
 
-    /// The program accepts stdin: a task or logs stream that is running.
+
     pub fn accepts_input(&self) -> bool {
         matches!(self.kind, ActivityKind::Task | ActivityKind::Ssh { .. })
             && matches!(self.state, ActivityState::Running)
     }
 
-    /// Advance to `tick`: emit every line whose time has come and settle
-    /// the end state. Returns true when anything changed.
+
+
     pub fn advance(&mut self, tick: u64) -> bool {
         match self.state {
             ActivityState::Cancelling => return self.advance_cancel(tick),
@@ -469,7 +469,7 @@ impl Activity {
             && elapsed >= end
             && self.state != ActivityState::Detached
         {
-            // final buffered bytes arrive before the terminal state
+
             while let Some(l) = self.script.lines.get(self.cursor).cloned() {
                 self.cursor += 1;
                 if let LineKind::Output = l.kind {
@@ -540,8 +540,8 @@ impl Activity {
         }
     }
 
-    /// Request a stop. Queued work is cancelled before it ever starts; live
-    /// work enters `Cancelling` and settles through `advance`.
+
+
     pub fn stop(&mut self, tick: u64) {
         match self.state {
             ActivityState::Queued => {
@@ -565,7 +565,7 @@ impl Activity {
         }
     }
 
-    /// Start queued work now.
+
     pub fn start(&mut self, tick: u64) {
         if self.state == ActivityState::Queued {
             self.state = ActivityState::Running;
@@ -588,10 +588,10 @@ impl Activity {
         self.prompts_seen = 0;
     }
 
-    /// Deliver exact bytes to the program's stdin. The bytes are recorded
-    /// (redacted while a secret prompt is active); a waiting prompt chooses
-    /// its branch by the text before the CR. Ctrl-C (0x03) is a stop
-    /// request; Ctrl-D (0x04) is end of input.
+
+
+
+
     pub fn send_input(&mut self, bytes: &[u8], tick: u64) -> Result<(), InputError> {
         match self.state {
             ActivityState::Queued => return Err(InputError::NotStarted),
@@ -616,8 +616,8 @@ impl Activity {
             return Ok(());
         }
         if bytes == [0x04] {
-            // EOF: a pending line is delivered as it stands, an empty line
-            // is end of input; either way the mark is visible, never secret
+
+
             if self.waiting.is_some() {
                 let pending = std::mem::take(&mut self.pending);
                 let answer = if pending.is_empty() {
@@ -644,7 +644,7 @@ impl Activity {
                             .into_owned();
                         self.answer_prompt(line, None, tick);
                     } else {
-                        // the program reads it later; the typed line stays
+
                         self.echo_pending(None);
                         self.pending.clear();
                         self.echo_active = false;
@@ -659,8 +659,8 @@ impl Activity {
         Ok(())
     }
 
-    /// Show the pending line: on the prompt row (masked when secret) or
-    /// as the trailing muted echo row when nothing prompts.
+
+
     fn echo_pending(&mut self, mark: Option<&str>) {
         let text = String::from_utf8_lossy(&self.pending).into_owned();
         if let Some(p) = self.waiting.clone() {
@@ -686,13 +686,13 @@ impl Activity {
         }
     }
 
-    /// A prompt received its line: choose the branch by the exact text.
+
     fn answer_prompt(&mut self, answer: String, mark: Option<&str>, tick: u64) {
         let Some(p) = self.waiting.clone() else {
             return;
         };
-        // echo: the prompt row shows the answer, masked when secret; an EOF
-        // mark is a control action and stays visible
+
+
         if let Some(last) = self.output.last_mut() {
             let shown = if p.secret || answer == "\u{4}" {
                 String::new()
@@ -727,9 +727,9 @@ impl Activity {
             let rest = self.script.lines.split_off(self.cursor);
             self.script.lines.append(&mut spliced);
             if let Some((ticks, exit)) = b.end {
-                // the program exits along this branch: the lines after the
-                // prompt are never reached, so none of them is flushed as
-                // final output
+
+
+
                 self.script.ends_at = Some(elapsed + ticks);
                 self.script.exit = exit;
             } else {
@@ -738,12 +738,12 @@ impl Activity {
         }
     }
 
-    /// Run time on the script clock: the time a prompt waited for the
-    /// operator is not counted. The fixture clock advances with runtime
-    /// ticks, which arrive on wall time, so a wait on the operator lasts as
-    /// long as the operator (or a capture harness) takes to answer; counting
-    /// it would make the same scenario and keys show a different duration
-    /// from run to run.
+
+
+
+
+
+
     pub fn duration_ticks(&self, now: u64) -> u64 {
         match self.ended_tick {
             Some(end) => end
@@ -760,15 +760,15 @@ impl Activity {
         }
     }
 
-    /// Output lines that the program itself produced (excluding holla's
-    /// supervisor notes) for a result check.
+
+
     #[cfg(test)]
     pub fn last_line(&self) -> Option<&str> {
         self.output.last().map(|(_, t, _)| t.as_str())
     }
 }
 
-/// Map a key event to the bytes a terminal would forward (E34).
+
 pub fn key_bytes(key: &junie_tui::core::event::Key) -> Option<Vec<u8>> {
     use ratatui::crossterm::event::KeyCode;
     let ctrl = key.ctrl();
@@ -861,7 +861,7 @@ mod tests {
         assert_eq!(a.state, ActivityState::Stopped);
         assert_eq!(a.exit, Some(130));
         assert!(a.last_line().unwrap().contains("SIGTERM"));
-        // a resistant child escalates to SIGKILL after 750 ms
+
         let mut r = act(
             Script::running(vec![line(0, "ignores TERM")]).resistant(),
             0,
@@ -880,7 +880,7 @@ mod tests {
         r.advance(10 + KILL_AFTER_TICKS + 2);
         assert_eq!(r.state, ActivityState::Stopped);
         assert_eq!(r.exit, Some(137));
-        // stop and restart keep the identity
+
         r.restart(40);
         assert_eq!(r.output.len(), 0);
         r.advance(40);
@@ -944,10 +944,10 @@ mod tests {
         a.advance(2);
         assert!(a.waiting.as_ref().is_some_and(|p| p.secret));
         assert_eq!(a.last_line(), Some("Password: "));
-        // time passes without input: nothing else is emitted
+
         assert!(!a.advance(40));
         assert_eq!(a.output.len(), 2);
-        // ordinary bytes while a prompt waits are never echoed or retained
+
         a.send_input(b"s3cret\r", 41).unwrap();
         assert_eq!(a.stdin.len(), 1);
         assert!(a.stdin[0].secret);
@@ -955,14 +955,14 @@ mod tests {
         assert_eq!(a.stdin[0].redacted_len, 7);
         assert_eq!(a.last_line(), Some("Password: "), "no echo of a secret");
         assert!(a.waiting.is_none());
-        // the script clock excludes the waiting time: line 3 lands one tick later
+
         assert!(!a.advance(41));
         a.advance(42);
         assert_eq!(a.last_line(), Some("restarted"));
         a.advance(43);
         assert_eq!(a.state, ActivityState::Succeeded);
         assert_eq!(a.ended_tick, Some(43));
-        // EOF chooses the EOF branch
+
         let script = Script::ending(vec![prompt(0, "Password: ", true)], 9, 0).branches(vec![
             vec![Branch {
                 matches: Some("\u{4}".into()),
@@ -982,7 +982,7 @@ mod tests {
         e.advance(4);
         assert_eq!(e.state, ActivityState::Failed);
         assert_eq!(e.exit, Some(1));
-        // non-secret prompts echo the answer on the prompt row
+
         let script =
             Script::ending(vec![prompt(0, "Overwrite? [y/N] ", false)], 5, 0).branches(vec![vec![
                 Branch {
@@ -1037,7 +1037,7 @@ mod tests {
                 },
             ]])
         };
-        // the same keys answered after 1 tick and after 30: one duration
+
         let run = |answer_at: u64| {
             let mut a = act(script(), 0);
             a.advance(2);
@@ -1052,13 +1052,13 @@ mod tests {
         assert_eq!(slow.state, ActivityState::Failed);
         assert_eq!(fast.duration_ticks(100), 3);
         assert_eq!(slow.duration_ticks(100), fast.duration_ticks(100));
-        // the branch ended the program: the line after the prompt never runs
+
         assert_eq!(slow.last_line(), Some("cancelled by operator"));
         assert!(
             !slow.output.iter().any(|(_, t, _)| t == "rolling out"),
             "a line the program never reached is not flushed"
         );
-        // while a prompt waits, the running duration stands still too
+
         let mut w = act(script(), 0);
         w.advance(2);
         assert_eq!(w.duration_ticks(2), 2);
@@ -1087,7 +1087,7 @@ mod tests {
         let mut q = act(Script::running(vec![]), 0);
         q.state = ActivityState::Queued;
         assert_eq!(q.send_input(b"x", 1), Err(InputError::NotStarted));
-        // input without a prompt is delivered and echoed once
+
         let mut t = act(Script::running(vec![line(0, "reading stdin…")]), 0);
         t.advance(0);
         t.send_input("héllo\ttab\r".as_bytes(), 1).unwrap();

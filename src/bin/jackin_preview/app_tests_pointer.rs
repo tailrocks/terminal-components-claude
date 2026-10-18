@@ -1,5 +1,5 @@
-//! Pointer journeys through the shared router (plan S6): every gesture
-//! reaches the widget that owns the part under the pointer.
+
+
 
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::{Part, WidgetId};
@@ -10,7 +10,7 @@ use crate::app::Route;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 
-/// The area of the latest region of `owner`'s `part`.
+
 fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
     h.app
         .shell
@@ -22,14 +22,14 @@ fn part_area(h: &H, owner: WidgetId, part: Part) -> Option<Rect> {
         .map(|r| r.area)
 }
 
-/// The manager, after the intro.
+
 fn manager() -> H {
     let h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     assert_eq!(h.app.route, Route::Manager, "{}", h.text());
     h
 }
 
-/// The cell of `needle` on the footer row.
+
 fn footer_at(h: &H, needle: &str) -> (u16, u16) {
     let text = h.text();
     let y = text.lines().count() as u16 - 1;
@@ -40,7 +40,7 @@ fn footer_at(h: &H, needle: &str) -> (u16, u16) {
     (line[..at].chars().count() as u16, y)
 }
 
-/// M1: a footer hint naming one key is a click target that runs the key.
+
 #[test]
 fn a_click_on_a_footer_hint_runs_its_key() {
     let mut h = manager();
@@ -54,8 +54,8 @@ fn a_click_on_a_footer_hint_runs_its_key() {
     );
 }
 
-/// M17 (routing): a press on the help overlay's scrollbar pages it; the
-/// app delivered no press to the overlay's bar.
+
+
 #[test]
 fn a_press_on_the_help_overlay_scrollbar_pages_it() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 100, 20);
@@ -80,14 +80,14 @@ fn a_press_on_the_help_overlay_scrollbar_pages_it() {
     h.mouse(MouseKind::Up, bar.x, bar.bottom() - 1);
 }
 
-/// M14: the wheel over the Capsule's session strip moves its window one
-/// tab per notch (Tabs' MouseTarget); jackin's router sent the wheel only
-/// to the pane under the pointer.
+
+
+
 #[test]
 fn the_wheel_over_the_session_strip_moves_its_window() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 72, 24);
     assert_eq!(h.app.route, Route::Capsule, "{}", h.text());
-    // more sessions than the strip shows
+
     for d in h.app.world.daemons.values_mut() {
         if let Some(t) = d.tabs.last().cloned() {
             d.tabs.extend(std::iter::repeat_n(t, 6));
@@ -108,8 +108,8 @@ fn the_wheel_over_the_session_strip_moves_its_window() {
     assert_ne!(row(&h), before, "the wheel moved the strip\n{}", h.text());
 }
 
-/// The host menu bar opens a title on the press (MenuBar::open_on through
-/// its MouseTarget); a click away from it closes it.
+
+
 #[test]
 fn the_host_menu_opens_on_the_press_and_a_click_away_closes_it() {
     let mut h = manager();
@@ -126,10 +126,10 @@ fn the_host_menu_opens_on_the_press_and_a_click_away_closes_it() {
     assert!(!h.app.host_menu.is_open(), "a click away closed the menu");
 }
 
-/// K11: the host menu bar is a focus stop that handles its own keys, as
-/// holla's does: with focus on it (Tab reaches it), Enter opens its first
-/// menu and Esc hands focus back. Before, its keys went to the page and
-/// nothing happened.
+
+
+
+
 #[test]
 fn the_focused_host_menu_bar_opens_with_enter() {
     let mut h = manager();

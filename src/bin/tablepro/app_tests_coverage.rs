@@ -39,7 +39,7 @@ fn accept_dialog(h: &mut H) {
 }
 
 fn confirm_destructive(h: &mut H, token: &str) {
-    // the ack field opens editing (EditEntry::Immediate)
+
     h.type_str(token);
     h.key(KeyCode::Enter);
     h.key(KeyCode::Right);
@@ -163,13 +163,13 @@ fn structure_sections_and_workbench_grid_routes() {
     }
 
     h.ctrl('d');
-    // Ctrl+End: the grid's last row (`G` only under the Vim profile)
+
     h.app.handle(Input::Key(junie_tui::core::event::Key {
         code: KeyCode::End,
         mods: ratatui::crossterm::event::KeyModifiers::CONTROL,
     }));
     h.key(KeyCode::Enter);
-    // the status speaks about the result, not the preview's engine
+
     assert!(
         h.text().contains("Showing the first 500 rows") && !h.text().contains("demo engine"),
         "{}",
@@ -259,8 +259,8 @@ fn query_execution_and_result_routes() {
         }));
     }
 
-    // the dialog handed focus back to the editor, editing again: Esc ends
-    // the edit ("Done"), then Tab leaves (Tab indents while editing)
+
+
     h.key(KeyCode::Esc);
     h.key(KeyCode::Tab);
     h.key(KeyCode::Char('p'));
@@ -340,8 +340,8 @@ fn table_preview_discard_and_query_close_quit_routes_are_confirmed() {
     assert!(h.app.modal().is_some());
     h.key(KeyCode::Esc);
     assert_eq!(h.wb().tabs.len(), tabs);
-    // focus came back to the editor, editing again (Ctrl+W deletes a word
-    // there): Esc ends the edit so Ctrl+W reaches the tab
+
+
     h.key(KeyCode::Esc);
     h.ctrl('w');
     h.key(KeyCode::Right);
@@ -446,14 +446,14 @@ fn a_click_on_dead_space_ends_a_form_field_edit_in_place() {
     h.click(dead.x, dead.y);
     assert!(!h.app.connections.is_editing(), "the edit ended");
     assert_eq!(h.focus(), focused, "focus stays on the field");
-    // the value was committed, not reverted
+
     assert!(h.text().contains("••"));
 }
 
 #[test]
 fn tabbing_past_the_untouched_name_flags_nothing_until_save() {
-    // focus starts the Name edit; Shift+Tab ends it unchanged. The empty
-    // required Name is not an error yet, so the Basic tab carries no `!`
+
+
     let mut h = H::new(120, 40);
     h.ctrl('n');
     h.key(KeyCode::BackTab);
@@ -464,7 +464,7 @@ fn tabbing_past_the_untouched_name_flags_nothing_until_save() {
         "untouched Name flagged:\n{}",
         h.text()
     );
-    // saving validates: the error and the tab mark appear then
+
     h.ctrl('s');
     assert!(h.find("Basic !").is_some(), "{}", h.text());
 }
@@ -529,8 +529,8 @@ fn overlays_trap_focus_and_restore_after_outside_dismissal() {
     assert!(h.app.modal().is_none());
     assert_eq!(h.focus(), origin);
 
-    // a form holds typed input: a stray click outside keeps it (its
-    // dismiss policy is Esc-only, interaction #5); Esc closes it
+
+
     h.ctrl('f');
     assert!(h.app.top_as::<FilterEditor>().is_some());
     let typed = match h.app.top_as::<FilterEditor>() {
@@ -706,7 +706,7 @@ fn result_tabs_route_back_to_statement_anchor() {
     assert!(h.text().contains("SELECT orders (1)"));
 }
 
-/// The thumb's first column on the row `y`.
+
 fn h_thumb_x(h: &H, y: u16) -> Option<u16> {
     let buf = h.term.backend().buffer();
     (0..buf.area.width).find(|&x| buf[(x, y)].symbol() == scrollbar::H_THUMB)
@@ -732,13 +732,13 @@ fn a_wide_table_shows_its_horizontal_position_and_scrolls_by_wheel_and_drag() {
     let start = h_thumb_x(&h, bar.y).expect("the thumb is drawn");
     assert_eq!(start, bar.x, "first columns: the thumb sits left");
 
-    // a sideways wheel moves one column and the thumb follows
+
     let grid_area = h.app.shell.hits.area_of(grid_id).expect("grid hit");
     h.mouse(MouseKind::WheelRight, grid_area.x + 8, grid_area.y + 3);
     assert_eq!(h.wb_table().grid.scroll.h.offset, 1);
     assert!(h_thumb_x(&h, bar.y).unwrap() > start);
 
-    // dragging the thumb to the right end reaches the last column
+
     let grab = h_thumb_x(&h, bar.y).unwrap();
     h.mouse(MouseKind::Down, grab, bar.y);
     h.mouse(MouseKind::Drag, bar.right() + 5, bar.y);
@@ -751,8 +751,8 @@ fn a_wide_table_shows_its_horizontal_position_and_scrolls_by_wheel_and_drag() {
 
 #[test]
 fn open_quickly_query_edits_at_the_caret() {
-    // interaction #19: ←/→ move the caret in the search field and typing
-    // inserts there, as in a macOS search field
+
+
     let mut h = H::connected(120, 40);
     open_orders(&mut h);
     h.ctrl('o');
@@ -766,9 +766,9 @@ fn open_quickly_query_edits_at_the_caret() {
     }
 }
 
-/// Keyboard audit #24 and #25: a query result has no save path, so it is
-/// read-only, and Enter on it says why instead of starting an edit whose
-/// changes would be dropped; the footer offers no Edit.
+
+
+
 #[test]
 fn query_results_are_read_only_and_enter_says_why() {
     let mut h = H::connected(120, 40);
@@ -805,8 +805,8 @@ fn query_results_are_read_only_and_enter_says_why() {
     );
 }
 
-/// Open the Local PostgreSQL form and append ` v2` to its name, leaving
-/// focus on the engine select (not a text field).
+
+
 fn edited_form() -> H {
     let mut h = H::new(120, 40);
     let (x, y) = h.find("Local PostgreSQL").unwrap();
@@ -816,8 +816,8 @@ fn edited_form() -> H {
     if !h.app.connections.is_editing() {
         h.key(KeyCode::Enter);
     }
-    // keyboard focus selected the name (FocusSelect::SelectAll): End puts
-    // the caret after it so the typing appends
+
+
     h.key(KeyCode::End);
     h.type_str(" v2");
     h.key(KeyCode::Enter);
@@ -827,9 +827,9 @@ fn edited_form() -> H {
     h
 }
 
-/// The global chords work while the connection Name field is editing: the
-/// field binds neither Ctrl+N nor Ctrl+Q, so it passes them on (the shared
-/// `field_common::unbound_key`) and each asks before dropping the edit.
+
+
+
 #[test]
 fn global_chords_reach_past_an_editing_field() {
     let editing = || {
@@ -864,9 +864,9 @@ fn global_chords_reach_past_an_editing_field() {
     assert!(h.app.shell.quit, "Discard quits");
 }
 
-/// Ctrl+Q quits through the shared quit keys (`QuitKeys`), as in every
-/// other app: at once when nothing is unsaved, through Save / Discard /
-/// Cancel over an edited connection form.
+
+
+
 #[test]
 fn ctrl_q_quits_through_the_leave_guard() {
     let mut h = H::new(120, 40);
@@ -885,8 +885,8 @@ fn ctrl_q_quits_through_the_leave_guard() {
     assert!(h.app.shell.quit, "Discard quits");
 }
 
-/// Keyboard audit #6: `e` and `q` never wipe or abandon an edited
-/// connection form; Esc and quitting ask Save / Discard / Cancel.
+
+
 #[test]
 fn an_edited_connection_form_is_never_wiped_without_asking() {
     let mut h = edited_form();
@@ -901,7 +901,7 @@ fn an_edited_connection_form_is_never_wiped_without_asking() {
     h.key(KeyCode::Char('q'));
     assert!(!h.app.shell.quit, "q never abandons a dirty form");
     assert!(h.text().contains("Local PostgreSQL v2"));
-    // Esc cancels the form, asking first; Discard closes it
+
     h.key(KeyCode::Esc);
     assert!(
         h.text().contains("Unsaved changes"),
@@ -912,7 +912,7 @@ fn an_edited_connection_form_is_never_wiped_without_asking() {
     assert!(!h.text().contains("Test connection"), "{}", h.text());
     assert!(!h.app.shell.quit);
 
-    // Ctrl+C asks too; Discard then quits
+
     let mut h = edited_form();
     h.ctrl('c');
     assert!(!h.app.shell.quit, "Ctrl+C never drops the edit");
@@ -920,7 +920,7 @@ fn an_edited_connection_form_is_never_wiped_without_asking() {
     h.key(KeyCode::Char('d'));
     assert!(h.app.shell.quit);
 
-    // a clean form closes on Esc without a question
+
     let mut h = H::new(120, 40);
     let (x, y) = h.find("Local PostgreSQL").unwrap();
     h.click(x, y);

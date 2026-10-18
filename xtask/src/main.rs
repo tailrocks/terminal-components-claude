@@ -1,33 +1,33 @@
-//! Repository tasks. `cargo xtask visual …` manages the visual store of the
-//! tuiscotti suite in `tests/visual_baseline/`: `snapshots/` until oracle
-//! v0 is imported, then `baselines/oracle/` (with `ORACLE.toml`):
-//!
-//! | Command | What it does |
-//! |---|---|
-//! | `list [<filterset>]` | every scenario (TSV: name, test, table, tier, pending/stored, approval), optionally narrowed by a nextest filterset |
-//! | `import <dir> [--dry-run] [--oracle [--source <c>]]` | copy a captured `actual/` tree (a CI `oracle-candidate`) into the store with a change list per app/group; `--oracle` writes `baselines/oracle/` and seals it (oracle v0, plan §E2) |
-//! | `seal [--source <c>]` | rewrite `ORACLE.toml` (counts, harness hash, tuiscotti pin, approver, date) |
-//! | `determinism <filterset>` | capture the selection twice (pending included, review rendering off) and fail on any byte difference (plan T6) |
-//! | `ratchet [--check] [<filterset>]` | plan §F1: listed passing scenarios must still pass; newly passing ones are recorded in `tests/visual_baseline/progress/main-passing.txt` |
-//! | `sync-oracle --from <c> …` | plan §E3: install `baselines/oracle/` and the harness from an approved commit, hash-checked |
-//! | `check-touched [--base <ref>] [--dry-run]` | pre-push guard: run the re-approved groups of every app the branch touched |
-//!
-//! `cargo xtask docs components` rewrites `docs/components/` from the
-//! widgets' docs, key maps and hints (`src/docs.rs`, plan §5); the default
-//! test `docs_components_fresh` fails when a page is stale.
-//!
-//! Commands that write the store or the progress list (`import`, `seal`,
-//! `ratchet`, `sync-oracle`) refuse to run when `CI` is set: approval is
-//! explicit and local only (AGENTS.md, plan §B5). There is no environment
-//! variable that blesses snapshots. Approving reviewed actuals and viewing
-//! an approved screen are tuiscotti's own CLI (`tuiscotti accept`,
-//! `tuiscotti render`; docs/visual-testing/README.md), which refuses under
-//! `CI` and takes only sealed actuals of one run.
-//!
-//! The scenario inventory comes from the test binary itself
-//! (`VISUAL_TOOL=list`, `tests/visual_baseline/tool.rs`); filtersets
-//! are resolved by `cargo nextest list`, so they mean exactly what they mean
-//! to `cargo nextest run`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -55,7 +55,7 @@ usage: cargo xtask visual <command>
 filterset examples: 'test(/^tablepro::/)', 'test(/::connections::/) & test(/::120x40::/)',
                     'test(=showcase::pages::lists::72x20::nocolor)'";
 
-/// tuisnap's per-scenario files; only `.ansi` survives an approval.
+
 const LEGACY_EXTS: [&str; 3] = ["txt", "png", "html"];
 
 fn main() -> ExitCode {
@@ -97,8 +97,8 @@ fn root() -> PathBuf {
         .to_path_buf()
 }
 
-/// The approved store the gate reads: `baselines/oracle/` once a capture
-/// was imported into it (`pending = false`), else the legacy `snapshots/`.
+
+
 fn store() -> PathBuf {
     if oracle_active() {
         oracle_dir()
@@ -111,7 +111,7 @@ fn actual() -> PathBuf {
     root().join("target/tuiscotti/actual")
 }
 
-/// `import`, `seal`, `ratchet` and `sync-oracle` write the store: never in CI.
+
 fn refuse_in_ci(what: &str) -> Result<(), String> {
     match std::env::var_os("CI") {
         Some(v) if !v.is_empty() => Err(format!(
@@ -122,8 +122,8 @@ fn refuse_in_ci(what: &str) -> Result<(), String> {
     }
 }
 
-/// `docs components`: run the generator's freshness test with
-/// `UPDATE_DOCS=1`, which writes the pages instead of comparing them.
+
+
 fn docs_components() -> Result<(), String> {
     let status = cargo()
         .args([
@@ -149,7 +149,7 @@ fn cargo() -> Command {
     cmd
 }
 
-/// Build the visual test binary and return its path.
+
 fn test_binary() -> Result<PathBuf, String> {
     let out = cargo()
         .args([
@@ -177,7 +177,7 @@ fn test_binary() -> Result<PathBuf, String> {
         .ok_or_else(|| "no visual_baseline executable in cargo's output".into())
 }
 
-/// The value of a top-level `"field":"…"` in one line of cargo's JSON.
+
 fn json_string_field(line: &str, field: &str) -> Option<String> {
     let start = line.find(&format!(r#""{field}":""#))? + field.len() + 4;
     let mut out = String::new();
@@ -196,7 +196,7 @@ fn json_string_field(line: &str, field: &str) -> Option<String> {
     None
 }
 
-/// One row of the test binary's `VISUAL_TOOL=list` output.
+
 struct Row {
     name: String,
     test: String,
@@ -235,8 +235,8 @@ fn inventory(binary: &Path) -> Result<Vec<Row>, String> {
         .collect()
 }
 
-/// Test names in the visual binary that `filter` selects, through
-/// `cargo nextest list` (ignored tests included).
+
+
 fn select(filter: &str) -> Result<BTreeSet<String>, String> {
     let out = cargo()
         .args([
@@ -301,8 +301,8 @@ fn list(filter: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
-/// Write one approved `.ansi` into `into` and drop tuisnap's other files
-/// for it.
+
+
 fn approve(into: &Path, name: &str, ansi: &[u8]) -> Result<(), String> {
     let target = into.join(format!("{name}.ansi"));
     std::fs::create_dir_all(target.parent().expect("nested name"))
@@ -341,8 +341,8 @@ fn walk_ansi(root: &Path, dir: &Path, out: &mut Vec<String>) -> Result<(), Strin
     Ok(())
 }
 
-/// Cells only: an `.ansi` without its cursor trailer (tuisnap's approvals
-/// carry none), for the change list against the legacy store.
+
+
 fn cells(ansi: &[u8]) -> &[u8] {
     let text = ansi;
     let marker = b"\x1b[?25";
@@ -352,7 +352,7 @@ fn cells(ansi: &[u8]) -> &[u8] {
     }
 }
 
-/// `import <dir> [--dry-run] [--oracle [--source <commit>]]`.
+
 fn import_args(args: &[&str]) -> Result<(), String> {
     let mut dir = None;
     let mut dry_run = false;
@@ -379,10 +379,10 @@ fn import_args(args: &[&str]) -> Result<(), String> {
     )
 }
 
-/// Import a captured `actual/` tree. With `oracle = Some(source commit)`
-/// every scenario is written into `baselines/oracle/` (the change list is
-/// still against the current store) and the manifest is sealed at that
-/// commit with `pending = false`: oracle v0 (plan §E2).
+
+
+
+
 fn import(dir: &Path, dry_run: bool, oracle: Option<&str>) -> Result<(), String> {
     if !dry_run {
         refuse_in_ci("import")?;
@@ -397,7 +397,7 @@ fn import(dir: &Path, dry_run: bool, oracle: Option<&str>) -> Result<(), String>
     let mut found = Vec::new();
     walk_ansi(dir, dir, &mut found)?;
     found.sort();
-    // status per group: new, changed, cursor-only, unchanged
+
     let mut groups: BTreeMap<String, [usize; 4]> = BTreeMap::new();
     let mut unknown = Vec::new();
     let current = store();
@@ -457,11 +457,11 @@ fn import(dir: &Path, dry_run: bool, oracle: Option<&str>) -> Result<(), String>
     Ok(())
 }
 
-/// Run the visual scenarios matching `filter` (pending ones included,
-/// review rendering off) after deleting their old actuals; returns the
-/// fresh actual `.ansi` of every selected scenario that produced one. The
-/// nextest exit status is ignored: a mismatch against a stale approval is
-/// expected here, only the captured bytes matter.
+
+
+
+
+
 fn capture_fresh(filter: &str, rows: &[Row]) -> Result<BTreeMap<String, Vec<u8>>, String> {
     for r in rows {
         let _ = std::fs::remove_file(actual().join(format!("{}.ansi", r.name)));
@@ -496,8 +496,8 @@ fn capture_fresh(filter: &str, rows: &[Row]) -> Result<BTreeMap<String, Vec<u8>>
         .collect())
 }
 
-/// `determinism <filterset>`: capture the selection twice and compare the
-/// two `.ansi` sets byte for byte (plan T6). Fails on any difference.
+
+
 fn determinism(filter: &str) -> Result<(), String> {
     let rows = selected_rows(Some(filter))?;
     if rows.is_empty() {
@@ -557,7 +557,7 @@ fn compare_runs(
     out
 }
 
-// ------------------------------------------------------------- oracle --
+
 
 const ORACLE: &str = "baselines/oracle";
 const MANIFEST: &str = "ORACLE.toml";
@@ -567,8 +567,8 @@ fn oracle_dir() -> PathBuf {
     root().join(ORACLE)
 }
 
-/// One flat `key = value` of `ORACLE.toml`, unquoted. The test binary's
-/// `oracle_integrity` validates the whole format; xtask only reads keys.
+
+
 fn manifest_value(text: &str, key: &str) -> Option<String> {
     text.lines().find_map(|l| {
         let l = l.split('#').next()?.trim();
@@ -581,7 +581,7 @@ fn read_manifest() -> Option<String> {
     std::fs::read_to_string(oracle_dir().join(MANIFEST)).ok()
 }
 
-/// The oracle is the approved store once a capture was imported.
+
 fn oracle_active() -> bool {
     read_manifest()
         .and_then(|t| manifest_value(&t, "pending"))
@@ -606,8 +606,8 @@ fn git(args: &[&str]) -> Result<String, String> {
     )
 }
 
-/// `harness_sha256` of a harness directory, computed by the test binary
-/// (`VISUAL_TOOL=harness-hash`) so there is one implementation.
+
+
 fn harness_hash(dir: Option<&Path>) -> Result<String, String> {
     let binary = test_binary()?;
     let mut cmd = Command::new(&binary);
@@ -682,8 +682,8 @@ fn oracle_counts() -> Result<BTreeMap<String, u64>, String> {
     Ok(counts)
 }
 
-/// Rewrite `ORACLE.toml` for the store as it is now: counts, harness hash,
-/// tuiscotti pin, approver and date; `source` / `version` when given.
+
+
 fn seal(source: Option<&str>, version: Option<u64>) -> Result<(), String> {
     refuse_in_ci("seal")?;
     let old = read_manifest().ok_or_else(|| format!("{ORACLE}/{MANIFEST} is missing"))?;
@@ -715,10 +715,10 @@ fn seal(source: Option<&str>, version: Option<u64>) -> Result<(), String> {
     );
     Ok(())
 }
-// ------------------------------------------------------------ ratchet --
 
-/// Scenarios that pass on a refactor branch (plan §F1). Not part of the
-/// harness hash, so `main` can grow it without a sync.
+
+
+
 const PROGRESS: &str = "tests/visual_baseline/progress/main-passing.txt";
 
 fn read_progress() -> Result<BTreeSet<String>, String> {
@@ -734,8 +734,8 @@ fn read_progress() -> Result<BTreeSet<String>, String> {
     }
 }
 
-/// `(regressed, newly passing)` for the selected scenarios: listed ones
-/// that no longer pass, and passing ones not listed yet.
+
+
 fn ratchet_verdict(
     selected: &BTreeSet<String>,
     listed: &BTreeSet<String>,
@@ -750,11 +750,11 @@ fn ratchet_verdict(
     (regressed, new)
 }
 
-/// `ratchet [--check] [<filterset>]`: capture the selection (default: every
-/// scenario), count a scenario as passing when its capture equals the
-/// approved `.ansi` byte for byte, and hold the progress list: a listed
-/// scenario that fails is an error; newly passing ones are added (or, with
-/// `--check`, which CI may run, reported as an error until added).
+
+
+
+
+
 fn ratchet(check: bool, filter: Option<&str>) -> Result<(), String> {
     if !check {
         refuse_in_ci("ratchet")?;
@@ -834,7 +834,7 @@ fn ratchet(check: bool, filter: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
-// -------------------------------------------------------- sync-oracle --
+
 
 fn copy_tree(from: &Path, to: &Path) -> Result<usize, String> {
     std::fs::create_dir_all(to).map_err(|e| format!("mkdir {}: {e}", to.display()))?;
@@ -893,12 +893,12 @@ fn parse_sync_args<'a>(args: &[&'a str]) -> Result<SyncArgs<'a>, String> {
     Ok(out)
 }
 
-/// `sync-oracle --from <commit>` (plan §E3): take `baselines/oracle/` and
-/// the harness from an approved commit of the reference branch (`--repo`,
-/// default this checkout) and install them here, the harness at
-/// `--harness-dest` (keeping its `progress/`). Refuses a pending oracle,
-/// one below v1 unless `--allow-interim`, and a harness whose hash differs
-/// from the manifest.
+
+
+
+
+
+
 fn sync_oracle(args: &[&str]) -> Result<(), String> {
     refuse_in_ci("sync-oracle")?;
     let a = parse_sync_args(args)?;
@@ -976,9 +976,9 @@ fn sync_oracle(args: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
-// ------------------------------------------------------- check-touched --
 
-/// Apps whose captures a change to `path` can affect (`*` = all four).
+
+
 fn affected_by(path: &str) -> Vec<&'static str> {
     const ALL: [&str; 4] = APPS;
     let bins = [
@@ -1002,7 +1002,7 @@ fn affected_by(path: &str) -> Vec<&'static str> {
     if shared { ALL.to_vec() } else { Vec::new() }
 }
 
-/// nextest filterset for the re-approved groups of `apps`.
+
 fn touched_filter(rows: &[Row], apps: &BTreeSet<&str>) -> Option<String> {
     let groups: BTreeSet<String> = rows
         .iter()
@@ -1022,12 +1022,12 @@ fn touched_filter(rows: &[Row], apps: &BTreeSet<&str>) -> Option<String> {
     )
 }
 
-/// `check-touched [--base <ref>] [--dry-run]`: the pre-push guard for UI
-/// changes. Maps every file changed since the merge base with `--base`
-/// (default `origin/design/interaction-polish`; committed, staged,
-/// unstaged and untracked) to the apps it can affect and runs their
-/// re-approved scenario groups. A failure means an approval went stale:
-/// review `target/tuiscotti/` and re-approve on purpose, or fix the change.
+
+
+
+
+
+
 fn check_touched(args: &[&str]) -> Result<(), String> {
     let mut base = "origin/design/interaction-polish";
     let mut dry_run = false;
@@ -1181,7 +1181,7 @@ mod tests {
         let listed = set(&["a", "b", "z"]);
         let passing = set(&["a", "c"]);
         let (regressed, new) = ratchet_verdict(&selected, &listed, &passing);
-        // `z` is listed but not selected: not judged by this run
+
         assert_eq!(regressed, ["b"]);
         assert_eq!(new, ["c"]);
     }
@@ -1207,7 +1207,7 @@ mod tests {
         );
         assert_eq!(manifest_value(&text, "holla").as_deref(), Some("3"));
         assert_eq!(manifest_value(&text, "showcase").as_deref(), Some("0"));
-        // the committed skeleton reads as pending
+
         let skeleton = std::fs::read_to_string(root().join(ORACLE).join(MANIFEST)).unwrap();
         assert_eq!(
             manifest_value(&skeleton, "pending").as_deref(),
@@ -1269,12 +1269,12 @@ mod tests {
 
     #[test]
     fn store_writers_refuse_under_ci() {
-        // The process environment is shared by the test thread only in this
-        // binary's own process (nextest runs each test in its own process).
-        // SAFETY: single-threaded test process under nextest.
+
+
+
         unsafe { std::env::set_var("CI", "true") };
         assert!(refuse_in_ci("import").is_err());
-        // every store- or list-writing command stops before doing anything
+
         let ci = |r: Result<(), String>| r.is_err_and(|e| e.contains("CI is set"));
         assert!(ci(seal(None, None)));
         assert!(ci(ratchet(false, None)));
@@ -1286,8 +1286,8 @@ mod tests {
         assert!(refuse_in_ci("import").is_ok());
     }
 
-    /// The first `"…"` value on the first line of `text` that starts with
-    /// `key`, after the key.
+
+
     fn quoted_value(text: &str, key: &str) -> String {
         let line = text
             .lines()
@@ -1299,10 +1299,10 @@ mod tests {
         rest[start..start + len].to_string()
     }
 
-    /// `mise.toml` pins the developer tools (docs/dependencies.md, "Tools
-    /// via mise"). Its Rust, tuiscotti CLI and velnor-actions must stay the
-    /// versions `rust-toolchain.toml` (what CI installs), the tuiscotti
-    /// dev-dependency and the velnor release manifest name.
+
+
+
+
     #[test]
     fn mise_pins_match_the_repository_pins() {
         let read = |p: &str| std::fs::read_to_string(root().join(p)).unwrap();

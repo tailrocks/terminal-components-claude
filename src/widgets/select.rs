@@ -1,11 +1,11 @@
-//! Dropdown field: closed it looks like a text field with a trailing `▾`;
-//! open it shows an anchored popup list. One focus stop.
-//!
-//! The list is an overlay ([`RenderCtx::overlay`]): it is drawn above the
-//! whole page whatever is rendered after the field, flips or shrinks to stay
-//! on screen, and scrolls when it has more options than rows. How it closes
-//! without a choice is the [`Dismiss`] policy (default: Esc or a click
-//! outside).
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -25,28 +25,28 @@ use crate::widgets::scrollbar;
 
 pub use crate::widgets::option_list::{SelectArrows, WheelMode};
 
-/// What Tab (and Shift+Tab) do while the list is open (K13).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TabInOpen {
-    /// Choose the highlighted option, close the list and let Tab move
-    /// focus on (macOS popup buttons, WAI-ARIA select-only combobox).
+
+
     #[default]
     Choose,
-    /// Close the list without choosing and let Tab move focus on.
+
     Close,
-    /// Keep the list open; Tab does nothing (the old behaviour).
+
     Swallow,
 }
 
-/// A press held since it landed on the field (see [`Select::on_press`]).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Press {
-    /// The press opened the list: its own release keeps the list open.
+
     opened: bool,
-    /// The press was on the label ([`Select::label_hit`]).
+
     label: bool,
     origin: Position,
-    /// The pointer has left the cell the press started on.
+
     moved: bool,
 }
 
@@ -61,92 +61,92 @@ pub struct Select {
     pub disabled: bool,
     pub help: String,
     pub area: Rect,
-    /// How the open list closes without a choice.
+
     pub dismiss: Dismiss,
-    /// Most option rows the open list shows before it scrolls.
+
     pub max_rows: u16,
-    /// Where the open list goes: under the field (flipping above when
-    /// there is no room) or centered on the screen.
+
+
     pub placement: Placement,
-    /// Width range of the open list, frame included; inside it the list
-    /// takes the field's width.
+
+
     pub popup_width: (u16, u16),
-    /// How the open list keeps off the screen edges and where a centred
-    /// list sits. Default [`Place::DEFAULT`](crate::ui::popup::Place):
-    /// one free cell from every edge.
+
+
+
     pub popup_fit: crate::ui::popup::Place,
-    /// First option row shown in the open list.
+
     pub scroll: usize,
-    /// How the open list marks its cursor row. Default
-    /// [`CursorStyle::Fill`]: the field owns the list and keeps the only
-    /// focus bar.
+
+
+
     pub cursor_style: CursorStyle,
-    /// Option rows the open list showed in the last frame.
+
     visible_rows: usize,
-    /// How a cut value or option reveals its full text on hover (see
-    /// [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+
+
     pub reveal: Option<crate::ui::reveal::Reveal>,
-    /// What arrows do while the list is closed. Default
-    /// [`SelectArrows::Step`] (the long-standing behaviour; `Open` is the macOS
-    /// popup-button convention).
+
+
+
     pub arrows: SelectArrows,
-    /// What Tab does while the list is open. Default
-    /// [`TabInOpen::Choose`]. Help (`?`, F1) and the other function keys
-    /// close the list without choosing and pass through to the page.
+
+
+
     pub tab_in_open: TabInOpen,
-    /// A placeholder shown instead of the value while the field stands for
-    /// several differing values (a bulk edit: `— mixed —`). Choosing any
-    /// option clears it. Default `None`.
+
+
+
     pub mixed: Option<String>,
-    /// Typing a prefix picks the matching option (closed) or moves the
-    /// list cursor (open), as macOS popup buttons do. Default from the
-    /// [`crate::core::list::NavProfile`]: on under `Desktop`, off under
-    /// `Vim`.
+
+
+
+
     pub type_ahead: bool,
-    /// Whether the page's and the app's single-character shortcuts win over
-    /// type-ahead ([`TypeAheadPrecedence`](crate::core::list::TypeAheadPrecedence)). Default `None`: the app-wide
-    /// [`TypeAheadPrecedence::current`](crate::core::list::TypeAheadPrecedence::current) (shortcuts first).
+
+
+
     pub type_ahead_precedence: Option<crate::core::list::TypeAheadPrecedence>,
-    /// Stepping past either end (open list ↑/↓, closed field arrows)
-    /// lands on the other end. Default off: it stops at the end.
+
+
     pub wrap: bool,
     typeahead: crate::core::typeahead::TypeAhead,
-    /// Which keys move the open list's cursor (default
-    /// [`NavKeys::default`]). The closed field steps its value with the
-    /// arrows only, so letters stay with the page's own shortcuts.
+
+
+
     pub nav: NavKeys,
-    /// What the wheel does over the open list. Default
-    /// [`WheelMode::Viewport`].
+
+
     pub wheel: WheelMode,
-    /// The pointer moving over an option moves the list cursor there, so
-    /// the list shows one highlight, as macOS menus do. Off, a hovered row
-    /// gets the hover tint beside the cursor fill. Default `true`.
+
+
+
     pub hover_moves_cursor: bool,
-    /// Press the closed field, drag onto an option and release to choose
-    /// it in one gesture (macOS popup buttons). The press opens the list;
-    /// a release without movement leaves it open for a click. Needs the
-    /// owner to route [`Self::on_press`], [`Self::on_drag`] and
-    /// [`Self::on_release`]. Default `true`.
+
+
+
+
+
     pub press_drag: bool,
-    /// A click on the label focuses the field (the HTML `<label>`
-    /// convention) without opening the list. Default `true`.
+
+
     pub label_hit: bool,
-    /// What a press on the bare track of the list's scrollbar does.
-    /// `None` (default) follows [`RenderCtx::track_click`].
+
+
     pub track_click: Option<TrackClick>,
     v_click: TrackClick,
-    /// The list's scroll bookkeeping for its scrollbar (thumb grab).
+
     bar: ScrollState,
-    /// The list's scrollbar track in the last frame.
+
     bar_track: Rect,
-    /// The option rows of the open list in the last frame.
+
     rows_area: Rect,
-    /// The label row in the last frame.
+
     label_area: Rect,
-    /// Hover target applied to the cursor last ([`Self::hover_moves_cursor`]).
+
     last_hover: Option<WidgetId>,
-    /// Cursor the list last showed: a cursor that moved is scrolled into
-    /// view, a list scrolled by the wheel or the bar stays put.
+
+
     shown_cursor: Option<usize>,
     press: Option<Press>,
 }
@@ -158,9 +158,9 @@ pub enum SelectAction {
 
 impl Select {
     pub const HEIGHT: u16 = 3;
-    /// Default for [`Select::max_rows`].
+
     pub const MAX_ROWS: u16 = 8;
-    /// Default for [`Select::popup_width`].
+
     pub const POPUP_WIDTH: (u16, u16) = (12, 40);
 
     pub fn new(id: WidgetId, label: &str, options: &[&str], selected: usize) -> Self {
@@ -207,42 +207,42 @@ impl Select {
         }
     }
 
-    /// See [`Self::wheel`].
+
     pub fn wheel(mut self, mode: WheelMode) -> Self {
         self.wheel = mode;
         self
     }
 
-    /// See [`Self::hover_moves_cursor`].
+
     pub fn hover_moves_cursor(mut self, on: bool) -> Self {
         self.hover_moves_cursor = on;
         self
     }
 
-    /// See [`Self::press_drag`].
+
     pub fn press_drag(mut self, on: bool) -> Self {
         self.press_drag = on;
         self
     }
 
-    /// See [`Self::label_hit`].
+
     pub fn label_hit(mut self, on: bool) -> Self {
         self.label_hit = on;
         self
     }
 
-    /// See [`Self::track_click`].
+
     pub fn track_click(mut self, click: TrackClick) -> Self {
         self.track_click = Some(click);
         self
     }
 
-    /// Hit id of the open list's scrollbar.
+
     pub fn bar_id(&self) -> WidgetId {
         scrollbar::id_for(self.id)
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -259,7 +259,7 @@ impl Select {
         self.placement = placement;
         self
     }
-    /// See [`Self::popup_fit`].
+
     pub fn popup_fit(mut self, fit: crate::ui::popup::Place) -> Self {
         self.popup_fit = fit;
         self
@@ -281,19 +281,19 @@ impl Select {
         self.disabled = d;
         self
     }
-    /// Show `placeholder` instead of the value (see [`Self::mixed`]).
+
     pub fn mixed(mut self, placeholder: &str) -> Self {
         self.mixed = Some(placeholder.to_owned());
         self
     }
 
-    /// Set or clear the mixed-values placeholder.
+
     pub fn set_mixed(&mut self, placeholder: Option<&str>) {
         self.mixed = placeholder.map(str::to_owned);
     }
 
-    /// Choose option `i`, leaving the mixed state. Returns the change
-    /// event when the shown value changed.
+
+
     fn choose(&mut self, i: usize) -> Option<SelectAction> {
         let changed = i != self.selected || self.mixed.is_some();
         self.selected = i;
@@ -313,16 +313,16 @@ impl Select {
     fn option_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
-    /// The option `id` is: the inverse the id-taking methods
-    /// ([`Self::on_click`] and the hover in [`Self::render`]) need until
-    /// S15 hands them the routed part.
+
+
+
     fn option_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.options.len())
     }
-    /// Whether `id` is the field, its backdrop, its list's bar or an
-    /// option: how a container's id-taking methods (a form's, S15) find
-    /// the select a click belongs to. Routed events use
-    /// [`PointerEvent::on`](crate::core::pointer::PointerEvent::on).
+
+
+
+
     pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
         id == self.id
             || id == backdrop_id(self.id)
@@ -348,11 +348,11 @@ impl Select {
             return (Outcome::Ignored, None);
         }
         if unassigned_chord::<()>(key, &[]) {
-            // an unassigned modified chord never performs a plain action
+
             return (Outcome::Ignored, None);
         }
-        // closed, the select sits in a page: shortcuts first; open, its
-        // popup is the topmost layer and types first
+
+
         let precedence = if self.open {
             crate::core::list::TypeAheadPrecedence::TypeAhead
         } else {
@@ -361,7 +361,7 @@ impl Select {
         };
         let step = KeyStep::ordered(key, &self.nav, self.type_ahead, precedence);
         if let Some(KeyStep::Type(c)) = step {
-            // open: the popup's cursor; closed: the value itself
+
             let moved = self
                 .cursor()
                 .type_ahead(c, &mut self.typeahead, &self.options[..]);
@@ -383,7 +383,7 @@ impl Select {
                         self.cursor = i;
                         (Outcome::Changed, None)
                     }
-                    // ←/→ in the open list do nothing
+
                     None => (Outcome::Consumed, None),
                 };
             }
@@ -397,8 +397,8 @@ impl Select {
                     self.cursor = self.selected;
                     (Outcome::Changed, None)
                 }
-                // Tab chooses and moves on (K13): `Ignored` lets the
-                // owner's Tab move focus after the list closed
+
+
                 KeyCode::Tab | KeyCode::BackTab => match self.tab_in_open {
                     TabInOpen::Choose => {
                         self.open = false;
@@ -411,8 +411,8 @@ impl Select {
                     }
                     TabInOpen::Swallow => (Outcome::Consumed, None),
                 },
-                // help (`?`, F1) and the other function keys close the
-                // list and pass through to the page; letters stay with it
+
+
                 KeyCode::Char('?') | KeyCode::F(_) => {
                     self.open = false;
                     self.cursor = self.selected;
@@ -425,7 +425,7 @@ impl Select {
             self.open_list();
             return (Outcome::Changed, None);
         }
-        // the closed field: arrows only (letters belong to the page)
+
         let nav = self
             .nav
             .action(key)
@@ -453,15 +453,15 @@ impl Select {
         }
     }
 
-    /// See [`Self::wrap`].
+
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
 
-    /// The pause after which the next letter starts a new type-ahead
-    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`]
-    /// (1 s; APG suggests 500–1000 ms).
+
+
+
     pub fn type_ahead_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.typeahead.timeout = timeout;
         self
@@ -472,7 +472,7 @@ impl Select {
         self
     }
 
-    /// See [`Self::type_ahead_precedence`].
+
     pub fn type_ahead_precedence(
         mut self,
         precedence: crate::core::list::TypeAheadPrecedence,
@@ -481,13 +481,13 @@ impl Select {
         self
     }
 
-    /// See [`Self::tab_in_open`].
+
     pub fn tab_in_open(mut self, tab: TabInOpen) -> Self {
         self.tab_in_open = tab;
         self
     }
 
-    /// What arrows do while the list is closed.
+
     pub fn arrows(mut self, arrows: SelectArrows) -> Self {
         self.arrows = arrows;
         self
@@ -498,13 +498,13 @@ impl Select {
             return (Outcome::Consumed, None);
         }
         if id == self.bar_id() {
-            // the press already moved the list
+
             self.bar.release_track();
             return (Outcome::Consumed, None);
         }
         if id == self.id {
-            // the release of a press that opened the list (or landed on
-            // the label) leaves it as the press made it
+
+
             if let Some(p) = self.press.take()
                 && (p.opened || p.label)
             {
@@ -529,8 +529,8 @@ impl Select {
         (Outcome::Ignored, None)
     }
 
-    /// Close without changing, whatever the [`Dismiss`] policy (focus moved
-    /// away, the owner closes it).
+
+
     pub fn close(&mut self) -> Outcome {
         if self.open {
             self.open = false;
@@ -541,18 +541,18 @@ impl Select {
         }
     }
 
-    /// Whether the open list closes (without changing the value) when the
-    /// field loses focus: sets [`Dismiss::focus_out`] on [`Self::dismiss`],
-    /// the one policy for every dismissal (on for [`Dismiss::LIGHT`]).
-    /// Set it after [`Self::dismiss`], which replaces the whole policy.
+
+
+
+
     pub fn close_on_blur(mut self, on: bool) -> Self {
         self.dismiss.focus_out = on;
         self
     }
 
-    /// Focus left the field (see [`crate::core::focus::Focus::take_changes`]):
-    /// an open list closes when [`Dismiss::focus_out`] allows it, so the
-    /// next key never sees a stale `open`.
+
+
+
     pub fn on_blur(&mut self) -> Outcome {
         if self.dismiss.focus_out {
             self.close()
@@ -561,8 +561,8 @@ impl Select {
         }
     }
 
-    /// A click outside the open list: closes it when the policy allows,
-    /// and is consumed either way while the list is open.
+
+
     pub fn on_click_outside(&mut self) -> Outcome {
         if !self.open {
             return Outcome::Ignored;
@@ -574,11 +574,11 @@ impl Select {
         }
     }
 
-    /// Button down on one of the select's targets (`id` from
-    /// [`Self::owns`]). On the closed field it opens the list
-    /// ([`Self::press_drag`]), so a drag can carry on to an option; on the
-    /// label it only marks the press ([`Self::label_hit`]); on the list's
-    /// scrollbar it grabs the thumb or pages the track.
+
+
+
+
+
     pub fn on_press(&mut self, id: WidgetId, pos: Position) -> Outcome {
         if self.disabled {
             return Outcome::Consumed;
@@ -613,9 +613,9 @@ impl Select {
         }
     }
 
-    /// The pointer moved with the button held since a press on `pressed`:
-    /// on the scrollbar the thumb follows; from the field the list cursor
-    /// follows the pointer over the options.
+
+
+
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if self.disabled || !self.open {
             return Outcome::Ignored;
@@ -643,11 +643,11 @@ impl Select {
         Outcome::Changed
     }
 
-    /// The button went up after a press on the field that the pointer
-    /// carried elsewhere (the owner's pointer layer reports no click: the
-    /// press and the release landed on different targets). Over an option
-    /// it chooses that option; back on the field, or with no movement, the
-    /// list stays open; anywhere else it closes unchanged.
+
+
+
+
+
     pub fn on_release(&mut self, pos: Position) -> (Outcome, Option<SelectAction>) {
         self.bar.release_track();
         let Some(p) = self.press.take() else {
@@ -666,7 +666,7 @@ impl Select {
         (self.close(), None)
     }
 
-    /// The option under `pos` in the open list.
+
     fn row_at(&self, pos: Position) -> Option<usize> {
         if !self.rows_area.contains(pos) {
             return None;
@@ -675,16 +675,16 @@ impl Select {
         (i < self.options.len()).then_some(i)
     }
 
-    /// Bring the scrollbar's state up to the list's window.
+
     fn sync_bar(&mut self) {
         self.bar.set_content(self.options.len());
         self.bar.set_viewport(self.visible_rows);
         self.bar.offset = self.scroll;
     }
 
-    /// Wheel over the open list: scrolls the list under
-    /// [`WheelMode::Viewport`] (default), moves the cursor under
-    /// [`WheelMode::Cursor`].
+
+
+
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
         if !self.open || self.disabled {
             return Outcome::Ignored;
@@ -728,7 +728,7 @@ impl Select {
             s.hovered = false;
             self.open = false;
         }
-        // an open list that lost focus is closed by `on_blur`, never here
+
         let label_style = if self.disabled {
             t.faint().bg(bg)
         } else {
@@ -757,7 +757,7 @@ impl Select {
         let shown = self.mixed.as_deref().unwrap_or(self.value());
         let value = crate::ui::text::truncate(shown, field.width.saturating_sub(5) as usize);
         let vs = if self.mixed.is_some() {
-            // a placeholder, not a value: the text field's placeholder ink
+
             fs.patch(t.placeholder(s))
         } else {
             fs
@@ -795,9 +795,9 @@ impl Select {
         }
     }
 
-    /// Place the open list and queue it as an overlay. Placement and the
-    /// scroll window are resolved now, so key handling in the next event
-    /// knows how many rows are visible.
+
+
+
     fn queue_list(&mut self, field: Rect, buf: &Buffer, ctx: &mut RenderCtx) {
         let screen = *buf.area();
         let rows = (self.options.len() as u16).clamp(1, self.max_rows);
@@ -808,7 +808,7 @@ impl Select {
         self.visible_rows = visible;
         let inner = pa.intersection(screen).inner(Margin::new(1, 1));
         let overflows = self.options.len() > visible;
-        // the scrollbar takes the right column of the rows
+
         let with_bar = overflows && inner.width > 1;
         let rows_w = inner.width.saturating_sub(u16::from(with_bar));
         self.rows_area = Rect::new(inner.x, inner.y, rows_w, inner.height);
@@ -817,8 +817,8 @@ impl Select {
         } else {
             Rect::ZERO
         };
-        // the pointer moving onto an option moves the cursor there: one
-        // highlight, as in a macOS menu
+
+
         let hover = ctx.interaction.live_hover();
         if self.hover_moves_cursor && hover != self.last_hover {
             if let Some(i) = hover.and_then(|h| self.option_of(h)) {
@@ -827,8 +827,8 @@ impl Select {
             }
             self.last_hover = hover;
         }
-        // a cursor that moved comes into view; a list the wheel or the bar
-        // scrolled stays where it was left
+
+
         if self.shown_cursor != Some(self.cursor) {
             if self.cursor < self.scroll {
                 self.scroll = self.cursor;
@@ -845,7 +845,7 @@ impl Select {
         let (id, cursor, selected, scroll, dismiss, cursor_style, reveal) = (
             self.id,
             self.cursor,
-            // mixed values: no option is the current one
+
             if self.mixed.is_some() {
                 usize::MAX
             } else {
@@ -869,7 +869,7 @@ impl Select {
         ctx.overlay(move |buf, ctx| {
             let t = ctx.theme;
             let inner = surface_for(pa, buf, ctx, t, Some((id, dismiss)));
-            // the list scrolls under the wheel like any container
+
             ctx.scrollable(id, inner);
             let rows_w = inner.width.saturating_sub(u16::from(!bar_track.is_empty()));
             for (row_i, (rid, opt)) in options.iter().enumerate() {
@@ -881,7 +881,7 @@ impl Select {
                 let mut rs = ctx.state(*rid);
                 rs.focused = i == cursor;
                 rs.selected = i == selected;
-                // the cursor follows the pointer: the hover is the cursor
+
                 rs.hovered &= hover_tint;
                 let cr = t.cursor_row(rs, t.surface_elevated, cursor_style);
                 let st = cr.style;
@@ -889,7 +889,7 @@ impl Select {
                 fill(buf, row, st);
                 buf.set_string(row.x, y, cr.gutter, cr.gutter_style);
                 if rs.selected {
-                    // the chosen value is a fact, not a position: neutral
+
                     let ink = st.fg(t.row_ink(&cr, t.text_secondary));
                     buf.set_string(row.x + 1, y, t.glyphs.current, ink);
                 }
@@ -906,7 +906,7 @@ impl Select {
             if !bar_track.is_empty() {
                 scrollbar::render_vertical(bar_track, buf, ctx, id, &bar_state, false);
             }
-            // more options than rows: arrows on the frame say which way
+
             let edge = t.text_secondary;
             let x = pa.right().saturating_sub(3);
             if more_above {
@@ -948,7 +948,7 @@ impl RowSource for Select {
 }
 
 impl Navigable for Select {
-    /// The open popup's cursor, or the closed field's value.
+
     fn cursor(&self) -> Cursor {
         let at = if self.open {
             self.cursor
@@ -959,8 +959,8 @@ impl Navigable for Select {
     }
 }
 
-/// The closed field in every state it has: rest, hover, press, focus,
-/// disabled, mixed values (empty), a long value (overflow) and narrow.
+
+
 impl crate::ui::specimen::Specimen for Select {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -1005,14 +1005,14 @@ impl crate::ui::specimen::Specimen for Select {
     }
 }
 
-/// The select's pointer gestures, as the apps route them: a press opens
-/// the list (press-drag-release) or grabs its bar; a drag follows the
-/// pointer over the options or along the bar; the release of a press
-/// carried elsewhere chooses the option under it
-/// ([`Select::on_release`]); a completed click on the field, an option,
-/// the bar or the backdrop is [`Select::on_click`] (the backdrop closes it
-/// per its dismiss policy); a vertical wheel over the open list
-/// scrolls it, and over the closed field passes on.
+
+
+
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for Select {
     type Action = SelectAction;
 
@@ -1027,14 +1027,14 @@ impl crate::core::pointer::MouseTarget for Select {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-            // the wheel over the backdrop, outside the list, is not the
-            // list's: it moves nothing
+
+
             if ev.part().part == Part::BACKDROP {
                 return Response::ignored();
             }
             return match axis {
                 crate::core::hit::Axis::Vertical => self.on_wheel(delta).into(),
-                // a sideways notch has nothing to move in an open list
+
                 crate::core::hit::Axis::Horizontal if self.open => Response::consumed(),
                 crate::core::hit::Axis::Horizontal => Response::ignored(),
             };
@@ -1169,10 +1169,10 @@ mod tests {
             buf[chosen].fg, t.text_secondary,
             "chosen is neutral, not accent"
         );
-        // the cursor row (one below the chosen row) is the highlight fill
+
         let cursor = (chosen.0 + 2, chosen.1 + 1);
         assert_eq!(buf[cursor].bg, t.highlight);
-        // the bar look stays available
+
         let mut barred = sel.clone().cursor_style(CursorStyle::Bar);
         let buf = draw(&mut barred);
         let bars = buf.content().iter().filter(|c| c.symbol() == "▎").count();
@@ -1232,11 +1232,11 @@ mod tests {
         assert!(row(&buf, 1).contains("— mixed —"), "{}", row(&buf, 1));
         assert!(!row(&buf, 1).contains("Admin"));
         assert_ne!(buf[(2, 1)].fg, t.text_primary, "a placeholder is muted");
-        // the open list marks no option as the current one
+
         sel.open = true;
         let buf = draw(&mut sel);
         assert!(!buf.content().iter().any(|c| c.symbol() == "›"));
-        // choosing the option already under the cursor still changes
+
         let key = Key {
             code: KeyCode::Enter,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
@@ -1245,7 +1245,7 @@ mod tests {
         assert_eq!(sel.mixed, None);
         let buf = draw(&mut sel);
         assert!(row(&buf, 1).contains("Admin"));
-        // a click on an option clears it as well
+
         sel.set_mixed(Some("— mixed —"));
         assert_eq!(
             sel.on_click(sel.option_id(1)).1,
@@ -1259,8 +1259,8 @@ mod tests {
         "o14", "o15", "o16", "o17", "o18", "o19",
     ];
 
-    /// Draw `sel` (field at the top of a 40x24 screen) with the pointer
-    /// over `hover`; the frame's hit regions come back with the buffer.
+
+
     fn draw_with(sel: &mut Select, hover: Option<WidgetId>) -> (Buffer, HitRegistry) {
         let t = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -1296,18 +1296,18 @@ mod tests {
         );
         draw_with(&mut sel, None);
         assert_eq!(sel.scroll, 3, "the next frame keeps the scrolled view");
-        // the end stops it
+
         sel.on_wheel(30);
         assert_eq!(sel.scroll, 15);
         assert_eq!(sel.on_wheel(1), Outcome::Consumed);
-        // a key move brings the cursor back into view
+
         sel.on_key(&Key {
             code: KeyCode::Down,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
         });
         draw_with(&mut sel, None);
         assert_eq!((sel.cursor, sel.scroll), (1, 1));
-        // the old behaviour stays available
+
         let mut by_cursor = many().wheel(WheelMode::Cursor);
         by_cursor.on_click(by_cursor.id);
         draw_with(&mut by_cursor, None);
@@ -1334,7 +1334,7 @@ mod tests {
             1,
             "one highlighted row, not a cursor and a hover"
         );
-        // a key moves the cursor away while the pointer rests: the key wins
+
         sel.on_key(&Key {
             code: KeyCode::Up,
             mods: ratatui::crossterm::event::KeyModifiers::NONE,
@@ -1344,7 +1344,7 @@ mod tests {
             draw_with(&mut sel, Some(h))
         };
         assert_eq!(sel.cursor, 1);
-        // off: hover tints, the cursor stays
+
         let mut off = Select::new(WidgetId::of("o"), "Mode", &["One", "Two", "Three"], 0)
             .hover_moves_cursor(false);
         off.on_click(off.id);
@@ -1365,7 +1365,7 @@ mod tests {
             .expect("the list registers its scrollbar");
         assert_eq!(bar.owner, sel.id);
         let track = bar.track;
-        // the bare track below the thumb pages
+
         let bottom = Position::new(track.x, track.bottom() - 1);
         assert_eq!(sel.on_press(sel.bar_id(), bottom), Outcome::Changed);
         assert_eq!(sel.scroll, 5);
@@ -1373,7 +1373,7 @@ mod tests {
         assert!(sel.open, "a click on the bar never closes the list");
         draw_with(&mut sel, None);
         assert_eq!(sel.scroll, 5);
-        // grab the thumb and drag it to the bottom
+
         let (_, hits) = draw_with(&mut sel, None);
         let track = hits.bar(sel.bar_id()).unwrap().track;
         let thumb = (track.y..track.bottom())
@@ -1413,12 +1413,12 @@ mod tests {
         assert!(!sel.open);
         assert_eq!(sel.selected, 2);
 
-        // a press and release in place leaves the list open for a click
+
         sel.on_press(sel.id, field);
         draw_with(&mut sel, None);
         assert_eq!(sel.on_release(field).1, None);
         assert!(sel.open);
-        // a click released on the field itself keeps it open as well
+
         let mut c = Select::new(WidgetId::of("c"), "Mode", &["One", "Two"], 0);
         draw_with(&mut c, None);
         c.on_press(c.id, Position::new(c.area.x + 3, c.area.y));
@@ -1428,7 +1428,7 @@ mod tests {
         c.on_click(c.id);
         assert!(!c.open, "a second click on the field closes it");
 
-        // dragged out to nowhere: closes unchanged
+
         let mut d = Select::new(WidgetId::of("d"), "Mode", &["One", "Two"], 1);
         draw_with(&mut d, None);
         d.on_press(d.id, Position::new(d.area.x + 3, d.area.y));
@@ -1438,7 +1438,7 @@ mod tests {
         assert!(!d.open);
         assert_eq!(d.selected, 1);
 
-        // off: the press does not open the list
+
         let mut off = Select::new(WidgetId::of("x"), "Mode", &["One", "Two"], 0).press_drag(false);
         draw_with(&mut off, None);
         off.on_press(off.id, Position::new(off.area.x + 3, off.area.y));
@@ -1464,11 +1464,11 @@ mod tests {
         assert_eq!(hits.hit(label), None);
     }
 
-    /// Keyboard audit #13: Tab in an open list chose nothing and was
-    /// swallowed, as were `?` and the function keys. Tab now chooses the
-    /// highlighted option and lets focus move on (`Ignored`); `?` closes the
-    /// list without choosing and reaches the page; `tab_in_open` keeps the
-    /// other behaviours.
+
+
+
+
+
     #[test]
     fn tab_in_an_open_list_chooses_and_moves_on() {
         let k = |code| Key {

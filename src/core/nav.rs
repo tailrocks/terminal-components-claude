@@ -1,8 +1,8 @@
-//! Cursor stepping shared by list-like widgets.
 
-/// Step `cursor` by `delta` in a list of `len` rows. `wrap`: past either
-/// end lands on the other end (menus); otherwise it stops at the end
-/// (lists, trees, tabs, selects).
+
+
+
+
 pub fn step_index(cursor: usize, len: usize, delta: isize, wrap: bool) -> usize {
     if len == 0 {
         return 0;

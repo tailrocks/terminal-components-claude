@@ -1,7 +1,7 @@
-//! Buttons (plan §7 SC7): `Button` kinds and states, a toolbar of buttons
-//! outside the Tab order, `ButtonRow` alignment, gap and overflow, a "Next"
-//! row, and `IconButton` plates. Every knob is an option of the page
-//! (`crate::options::BUTTONS`).
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -30,11 +30,11 @@ const ID: WidgetId = WidgetId::of("buttons");
 const LONG_JOB_TICKS: u8 = 28;
 const RUN_TICKS: u8 = 24;
 
-/// The toolbar: Run, Format, Explain, Cancel.
+
 const RUN: usize = 0;
 const CANCEL: usize = 3;
 
-/// The row's owner: its `…` button is `ButtonRow::more_id(ROW)`.
+
 const ROW: WidgetId = WidgetId::of("buttons.row");
 
 pub struct ButtonsPage {
@@ -45,7 +45,7 @@ pub struct ButtonsPage {
     row: Vec<Button>,
     next: Vec<Button>,
     icons: Vec<IconButton>,
-    /// Where the row put its buttons in the last frame.
+
     layout: RowLayout,
     sections: crate::pages::layout::Sections,
     clicks: u32,
@@ -76,8 +76,8 @@ impl ButtonsPage {
         page
     }
 
-    /// Build every widget from the option values, through the builders an
-    /// application calls.
+
+
     fn rebuild(&mut self) {
         let fv = match self.opts.value("buttons.focus_visible") {
             "keyboard-only" => FocusVisible::KeyboardOnly,
@@ -85,7 +85,7 @@ impl ButtonsPage {
         };
         let busy = self.buttons.get(8).is_some_and(|b| b.busy);
         self.buttons = vec![
-            // rest the pointer on a button for its tooltip (Esc hides it)
+
             Button::primary(ID.child(0), "Run task").tooltip("Start the task in the background"),
             Button::secondary(ID.child(1), "Preview").tooltip("Show what the task would change"),
             Button::subtle(ID.child(2), "Cancel").tooltip("Leave without running anything"),
@@ -102,8 +102,8 @@ impl ButtonsPage {
         .collect();
         self.buttons[8].busy = busy;
 
-        // toolbar buttons: clicks only, unless the option puts them in the
-        // Tab order; the tooltip names the shortcut that does the same
+
+
         let tab = self.opts.on("buttons.toolbar_focus");
         let running = self.run_ticks.is_some();
         let tid = ID.sub("tools");
@@ -185,7 +185,7 @@ impl ButtonsPage {
         self.last = Some(msg);
     }
 
-    /// A toolbar command, from its button or its shortcut.
+
     fn tool(&mut self, i: usize, cx: &mut Cx) {
         if !self.tools[i].can_activate() {
             return;
@@ -204,7 +204,7 @@ impl ButtonsPage {
         self.sync_run();
     }
 
-    /// Run is busy and Cancel enabled while the query runs.
+
     fn sync_run(&mut self) {
         let running = self.run_ticks.is_some();
         self.tools[RUN].busy = running;
@@ -289,7 +289,7 @@ impl ButtonsPage {
         }
     }
 
-    /// Kinds and states, live.
+
     fn render_kinds(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Playground")).meta("hover · click · Tab · Enter / Space");
@@ -322,9 +322,9 @@ impl ButtonsPage {
         }
     }
 
-    /// A toolbar: buttons outside the Tab order (unless the option puts
-    /// them in), each with a shortcut; Run is busy and Cancel enabled while
-    /// the query runs.
+
+
+
     fn render_toolbar(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let meta = if self.tools[0].focusable {
@@ -351,8 +351,8 @@ impl ButtonsPage {
         }
     }
 
-    /// The `ButtonRow` at the option's width, align, gap and overflow,
-    /// what folded behind `…`, and a right-aligned "Next" row.
+
+
     fn render_rows(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Button row")).meta("align · gap · overflow in Options");
@@ -362,7 +362,7 @@ impl ButtonsPage {
         let row = self.button_row();
         let lines = row.rows(w, &self.row, t);
         let r = Rect::new(inner.x, inner.y, w, lines).intersection(inner);
-        // the row's extent, so alignment and folding read at any width
+
         let edge = Rect::new(inner.x, r.bottom(), w, 1).intersection(inner);
         buf.set_string(
             edge.x,
@@ -391,7 +391,7 @@ impl ButtonsPage {
                 t.muted().bg(bg),
             );
         }
-        // a "Next" row: subtle follow-up actions, some not available yet
+
         let y = y + 2;
         if y < inner.bottom() {
             crate::pages::layout::caption(inner.x, y, buf, t, "Next", bg);
@@ -407,8 +407,8 @@ impl ButtonsPage {
         }
     }
 
-    /// Icon buttons: the close plate, a title-ladder `+` on a five-cell
-    /// plate, and a close with the danger hover.
+
+
     fn render_icons(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Icon buttons")).meta("hover · press · click");
@@ -460,9 +460,9 @@ impl ButtonsPage {
     }
 }
 
-/// The States grid: every button kind in every state it has, drawn by
-/// `Button` itself ([`junie_tui::ui::specimen`]), and the close
-/// `IconButton`.
+
+
+
 fn states_grid(opts: &PageValues) -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -484,7 +484,7 @@ fn states_grid(opts: &PageValues) -> StateGrid {
         .column("Danger", Button::danger(id.child(3), "Label"))
         .column("Toggle", Button::toggle(id.child(4), "Label", false))
         .column("Icon ×", IconButton::close(id.child(5)))
-        // six columns fit a 120-column terminal beside the sidebar
+
         .column_width(13);
     if let Some(w) = opts.number("buttons.label_width") {
         grid = grid.label_width(w);
@@ -547,7 +547,7 @@ impl Page for ButtonsPage {
                 out
             }
             PageEvent::Key(key) => {
-                // the toolbar's shortcuts work wherever focus is on the page
+
                 if key.code == KeyCode::F(5) {
                     self.tool(if key.shift() { CANCEL } else { RUN }, cx);
                     return Outcome::Changed;
@@ -569,7 +569,7 @@ impl Page for ButtonsPage {
                     }
                     return out;
                 }
-                // ←/→ move along the row (its shown buttons, then `…`)
+
                 let arrow = [KeyCode::Left, KeyCode::Right]
                     .into_iter()
                     .find(|c| key.is(*c));

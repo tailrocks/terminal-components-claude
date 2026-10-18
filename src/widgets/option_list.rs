@@ -1,25 +1,25 @@
-//! The one body of every popup list: Select's open list, the cell
-//! editors' option list (`ChoiceEditor`), Picker, Completion and the menus
-//! (plan S12, `OptionList`).
-//!
-//! [`OptionList`] owns what those popups used to copy: the cursor
-//! ([`Cursor`]), the scroll pane and its bar ([`ScrollPane`],
-//! [`Scrollable`]), the wheel ([`WheelMode`]), hover (one highlight that
-//! clears when the pointer leaves the rows), row hit parts, key navigation
-//! and type-ahead ([`KeyStep`]), the cursor-row look, the disabled reason
-//! ([`OptionList::status`]) and the popup policy the `Overlay` impls read
-//! (dismiss, placement, fit, width, max rows). The owning widget keeps
-//! what is its own: the closed field, the query, the frame and title, and
-//! the row *content* ([`OptionList::paint_rows`] hands it each row).
-//!
-//! Rows are [`Item`]s (main's `termrock_navigation::Item` shape, owned,
-//! plus a disabled `reason` and an owner `value`); any slice of a type
-//! that is [`AsItem`] is a [`RowSource`].
-//!
-//! Standards: WAI-ARIA APG listbox (arrows, paging by a viewport,
-//! Home/End, type-ahead; the wheel moves the view, never the choice);
-//! macOS menus and popup buttons (the pointer moves the one highlight, and
-//! it clears when the pointer leaves the menu).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::borrow::Cow;
 
@@ -41,54 +41,54 @@ use crate::ui::ctx::{RenderCtx, VisualState, fill};
 use crate::ui::popup::{Dismiss, Place, Placement, backdrop_id};
 use crate::widgets::scrollbar;
 
-/// What ↑/↓ (and ←/→) do on a closed select.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectArrows {
-    /// Step the value without opening the list.
+
     Step,
-    /// ↑/↓ open the list (macOS popup buttons); ←/→ are left to the page.
-    /// Arrows never change the value unseen.
+
+
     Open,
 }
 
-/// What the wheel does over an open popup list.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WheelMode {
-    /// Scroll the list; the cursor (and the value) stay where they are
-    /// (macOS menus, WAI-ARIA listbox: the wheel moves the view, never the
-    /// choice).
+
+
+
     #[default]
     Viewport,
-    /// Move the cursor one option per line (the old behaviour).
+
     Cursor,
 }
 
-/// One option row: main's `termrock_navigation::Item` shape, owned, plus
-/// why a disabled row is disabled and a payload for the owner.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
-    /// Stable identity ([`ItemKey::text`] for string keys). Default
-    /// `ItemKey::Index(0)`: the owner keys by position.
+
+
     pub key: ItemKey,
     pub label: String,
-    /// One-cell kind glyph (T, V, C, ƒ, ·, …).
+
     pub glyph: Cow<'static, str>,
     pub detail: String,
-    /// Trailing hint on the row ("open", a shortcut).
+
     pub tag: Option<Cow<'static, str>>,
-    /// The group the row belongs to (a section heading).
+
     pub group: Cow<'static, str>,
-    /// Byte positions in `label` that matched the typed text.
+
     pub matched: Vec<usize>,
-    /// The text a completion inserts; `None` inserts the label
-    /// ([`Self::insertion`]).
+
+
     pub insert: Option<String>,
-    /// Shown but never chosen.
+
     pub disabled: bool,
-    /// Why the row is disabled, shown in the popup's status row while the
-    /// cursor is on it ([`OptionList::status`]).
+
+
     pub reason: Option<String>,
-    /// A payload for the owner (an index into its own data).
+
     pub value: usize,
 }
 
@@ -99,7 +99,7 @@ impl Default for Item {
 }
 
 impl Item {
-    /// An enabled row showing `label`, keyed by position.
+
     pub fn new(label: impl Into<String>) -> Self {
         Self {
             key: ItemKey::index(0),
@@ -116,77 +116,77 @@ impl Item {
         }
     }
 
-    /// See [`Self::key`].
+
     pub fn key(mut self, key: ItemKey) -> Self {
         self.key = key;
         self
     }
 
-    /// See [`Self::glyph`].
+
     pub fn glyph(mut self, glyph: impl Into<Cow<'static, str>>) -> Self {
         self.glyph = glyph.into();
         self
     }
 
-    /// See [`Self::detail`].
+
     pub fn detail(mut self, detail: impl Into<String>) -> Self {
         self.detail = detail.into();
         self
     }
 
-    /// See [`Self::tag`].
+
     pub fn tag(mut self, tag: impl Into<Cow<'static, str>>) -> Self {
         self.tag = Some(tag.into());
         self
     }
 
-    /// See [`Self::group`].
+
     pub fn group(mut self, group: impl Into<Cow<'static, str>>) -> Self {
         self.group = group.into();
         self
     }
 
-    /// See [`Self::matched`].
+
     pub fn matched(mut self, matched: Vec<usize>) -> Self {
         self.matched = matched;
         self
     }
 
-    /// See [`Self::insert`].
+
     pub fn insert(mut self, insert: impl Into<String>) -> Self {
         self.insert = Some(insert.into());
         self
     }
 
-    /// See [`Self::disabled`].
+
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
     }
 
-    /// Disable the row and say why ([`Self::reason`]).
+
     pub fn reason(mut self, reason: impl Into<String>) -> Self {
         self.reason = Some(reason.into());
         self.disabled = true;
         self
     }
 
-    /// See [`Self::value`].
+
     pub fn value(mut self, value: usize) -> Self {
         self.value = value;
         self
     }
 
-    /// The text a completion inserts: [`Self::insert`], or the label.
+
     pub fn insertion(&self) -> &str {
         self.insert.as_deref().unwrap_or(&self.label)
     }
 }
 
-/// A row type that carries an [`Item`] (a menu item, a picker row), so a
-/// slice of it is a [`RowSource`] and [`OptionList`] can read it.
+
+
 pub trait AsItem {
-    /// The row as an [`Item`].
+
     fn as_item(&self) -> &Item;
 }
 
@@ -208,90 +208,90 @@ impl<T: AsItem> RowSource for [T] {
     }
     fn key(&self, i: usize) -> ItemKey {
         match self[i].as_item().key {
-            // a positional default keys by the row's position
+
             ItemKey::Index(_) => ItemKey::index(i),
             k => k,
         }
     }
 }
 
-/// One row as [`OptionList::paint_rows`] hands it to the owner, after the
-/// fill and the gutter are drawn: the owner draws the content.
+
+
 #[derive(Debug, Clone, Copy)]
 pub struct RowPaint {
-    /// The row's index in the source.
+
     pub index: usize,
-    /// The row's cells, scrollbar column excluded; content starts at
-    /// `area.x + 1` (after the gutter).
+
+
     pub area: Rect,
-    /// The row's state: `focused` on the highlighted row, `hovered`
-    /// only where hover does not move the cursor, `disabled` from the
-    /// source.
+
+
+
     pub state: VisualState,
-    /// The resolved row look ([`crate::theme::Theme::cursor_row`]).
+
     pub look: CursorRow,
 }
 
-/// The body of a popup list. See the module docs.
+
 #[derive(Debug, Clone)]
 pub struct OptionList {
-    /// The owner's id: rows are `id.part(PartRef::item(Part::ROW,
-    /// ItemKey::index(i)))` ([`Self::row_id`]), the bar is the owner's.
+
+
     pub id: WidgetId,
-    /// The highlighted row and its rules (wrap, disabled-row skipping).
+
     pub cursor: Cursor,
-    /// The rows' vertical scroll state and the bar's track.
+
     pub scroll: ScrollPane,
-    /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
-    /// owner (a field, an editor, a query) keeps the only focus bar.
+
+
     pub look: CursorStyle,
-    /// What the wheel does. Default [`WheelMode::Viewport`] (plan §3
-    /// "Wheel in popup lists").
+
+
     pub wheel: WheelMode,
-    /// The pointer moving onto a row moves the cursor there, so the list
-    /// shows one highlight (macOS menus); it clears when the pointer
-    /// leaves the rows. Off, a hovered row gets the hover tint beside the
-    /// cursor fill. Default `true`.
+
+
+
+
     pub hover_moves_cursor: bool,
-    /// Which keys move the cursor. Default [`NavKeys::default`].
+
     pub nav: NavKeys,
-    /// Typing a prefix moves the cursor to the matching row. Default from
-    /// the [`crate::core::list::NavProfile`].
+
+
     pub type_ahead: bool,
-    /// The rows fade at an edge with more rows beyond it, beside the bar
-    /// ([`scrollbar::render_with_fade`]). Default `true`.
+
+
     pub fade_edges: bool,
-    /// How the popup closes without a choice. Default [`Dismiss::LIGHT`].
+
     pub dismiss: Dismiss,
-    /// Which side of its anchor the popup opens on. Default
-    /// [`Placement::Below`].
+
+
     pub placement: Placement,
-    /// How the popup keeps off the screen edges. Default
-    /// [`Place::DEFAULT`].
+
+
     pub fit: Place,
-    /// Most rows shown before the list scrolls. Default 8.
+
     pub max_rows: u16,
-    /// Popup width bounds `(min, max)` in cells, frame included. Default
-    /// `(12, 40)`.
+
+
     pub width: (u16, u16),
     typeahead: TypeAhead,
-    /// The hover last applied to the cursor.
+
     hover: Option<WidgetId>,
-    /// The cursor sits where the pointer put it.
+
     hovering: bool,
-    /// The pointer left the rows it moved over: no row is highlighted.
+
     hidden: bool,
-    /// The rows' cells in the last layout (bar column excluded).
+
     rows_area: Rect,
 }
 
 impl OptionList {
-    /// Default for [`Self::max_rows`].
+
     pub const MAX_ROWS: u16 = 8;
-    /// Default for [`Self::width`].
+
     pub const WIDTH: (u16, u16) = (12, 40);
 
-    /// An empty list for the popup `id`.
+
     pub fn new(id: WidgetId) -> Self {
         Self {
             id,
@@ -316,74 +316,74 @@ impl OptionList {
         }
     }
 
-    /// See [`Self::wheel`] (named apart from [`Scrollable::wheel`]).
+
     pub fn wheel_mode(mut self, mode: WheelMode) -> Self {
         self.wheel = mode;
         self
     }
 
-    /// See [`Self::hover_moves_cursor`].
+
     pub fn hover_moves_cursor(mut self, on: bool) -> Self {
         self.hover_moves_cursor = on;
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::type_ahead`].
+
     pub fn type_ahead(mut self, on: bool) -> Self {
         self.type_ahead = on;
         self
     }
 
-    /// See [`Self::fade_edges`].
+
     pub fn fade_edges(mut self, on: bool) -> Self {
         self.fade_edges = on;
         self
     }
 
-    /// See [`Self::look`].
+
     pub fn look(mut self, look: CursorStyle) -> Self {
         self.look = look;
         self
     }
 
-    /// See [`Self::dismiss`].
+
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
     }
 
-    /// See [`Self::placement`].
+
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
         self
     }
 
-    /// See [`Self::fit`].
+
     pub fn fit(mut self, fit: Place) -> Self {
         self.fit = fit;
         self
     }
 
-    /// See [`Self::max_rows`].
+
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.max_rows = rows;
         self
     }
 
-    /// See [`Self::width`]; `max` never under `min`.
+
     pub fn width(mut self, min: u16, max: u16) -> Self {
         self.width = (min, max.max(min));
         self
     }
 
-    /// New rows: `len` of them, the cursor on the first, the view at the
-    /// top, no hover or typed prefix carried over.
+
+
     pub fn reset(&mut self, len: usize) {
         self.cursor.index = 0;
         self.scroll.v = ScrollState::new(len);
@@ -393,28 +393,28 @@ impl OptionList {
         self.hidden = false;
     }
 
-    /// The highlighted row: the cursor, unless the pointer left the rows
-    /// it moved the cursor over ([`Self::hover_moves_cursor`]).
+
+
     pub fn highlighted(&self) -> Option<usize> {
         (!self.hidden).then_some(self.cursor.index)
     }
 
-    /// The hit part of row `i`.
+
     pub fn row_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// The hit id of row `i`.
+
     pub fn row_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::row_part(i))
     }
 
-    /// The row a hit id stands for, among `len` rows.
+
     pub fn row_of(&self, id: WidgetId, len: usize) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..len)
     }
 
-    /// The row a routed pointer event is on.
+
     pub fn row_of_event(&self, ev: &PointerEvent) -> Option<usize> {
         if !ev.on(self.id) {
             return None;
@@ -423,14 +423,14 @@ impl OptionList {
             .filter(|&i| i < self.scroll.content_len)
     }
 
-    /// Whether a routed pointer event is on the popup's light-dismiss
-    /// backdrop ([`backdrop_id`]).
+
+
     pub fn on_backdrop(&self, ev: &PointerEvent) -> bool {
         ev.id == backdrop_id(self.id)
     }
 
-    /// The row under `pos` in the last layout (a press-drag-release
-    /// gesture, which has no hit part of its own).
+
+
     pub fn row_at(&self, pos: Position) -> Option<usize> {
         if !self.rows_area.contains(pos) {
             return None;
@@ -439,14 +439,14 @@ impl OptionList {
         (i < self.scroll.content_len).then_some(i)
     }
 
-    /// The rows' cells in the last layout.
+
     pub fn rows_area(&self) -> Rect {
         self.rows_area
     }
 
-    /// A key: a navigation step per [`Self::nav`] (paging by the
-    /// viewport), or a type-ahead letter when [`Self::type_ahead`] is on.
-    /// `Ignored` when the key is neither.
+
+
+
     pub fn key<S: RowSource + ?Sized>(&mut self, key: &Key, src: &S) -> Moved {
         match KeyStep::of(key, &self.nav, self.type_ahead) {
             Some(KeyStep::Nav(nav)) => self.nav_step(nav, src),
@@ -458,21 +458,21 @@ impl OptionList {
         }
     }
 
-    /// A navigation step (paging by the viewport).
+
     pub fn nav_step<S: RowSource + ?Sized>(&mut self, nav: Nav, src: &S) -> Moved {
         let page = self.scroll.viewport_len;
         let moved = self.cursor.apply(nav, src, page);
         self.keyed(moved)
     }
 
-    /// Step `delta` rows (Ctrl+N / Ctrl+P in an editor's popup).
+
     pub fn step<S: RowSource + ?Sized>(&mut self, delta: isize, src: &S) -> Moved {
         let moved = self.cursor.step(delta, src);
         self.keyed(moved)
     }
 
-    /// The pointer placed the cursor on row `i` (a click, a drag over the
-    /// rows): it comes into view exactly, without context rows.
+
+
     pub fn select<S: RowSource + ?Sized>(&mut self, i: usize, src: &S) -> Moved {
         let moved = self.cursor.select(i, src);
         if let Some(i) = moved.index() {
@@ -483,24 +483,24 @@ impl OptionList {
         moved
     }
 
-    /// A keyboard move: the highlight shows again and the cursor comes
-    /// into view now (the viewport follows only a moved cursor, so a
-    /// wheel scroll survives the next frame).
+
+
+
     fn keyed(&mut self, moved: Moved) -> Moved {
         if let Some(i) = moved.index() {
             self.hidden = false;
             self.scroll.follow(i);
-            // a key after a hover: the next hover applies again
+
             self.hovering = false;
         }
         moved
     }
 
-    /// Lay the rows out in `inner` (the popup's frame excluded) for this
-    /// frame: the content and viewport, the hover (which may move the
-    /// cursor), the cursor brought into view if it moved, and the bar's
-    /// track recorded for presses and drags. Call it from render, before
-    /// queuing the overlay that paints the rows from a copy.
+
+
+
+
+
     pub fn layout<S: RowSource + ?Sized>(&mut self, inner: Rect, src: &S, ctx: &RenderCtx) {
         let len = src.len();
         self.scroll.set_content(len);
@@ -525,9 +525,9 @@ impl OptionList {
         }
     }
 
-    /// Apply the pointer's hover ([`Self::hover_moves_cursor`]): onto an
-    /// enabled row it moves the cursor there; leaving the rows it moved
-    /// over clears the highlight.
+
+
+
     fn hover<S: RowSource + ?Sized>(&mut self, ctx: &RenderCtx, src: &S) {
         if !self.hover_moves_cursor {
             return;
@@ -542,12 +542,12 @@ impl OptionList {
                 self.cursor.index = i;
                 self.hovering = true;
                 self.hidden = false;
-                // the row is on screen under the pointer: never scroll it
+
                 self.scroll.pointer_move();
                 self.scroll.follow(i);
             }
-            // the pointer left the rows it was moving over: no row stays
-            // highlighted (macOS menus)
+
+
             _ if self.hovering => {
                 self.hovering = false;
                 self.hidden = true;
@@ -556,11 +556,11 @@ impl OptionList {
         }
     }
 
-    /// Paint the visible rows in `inner` (the area given to
-    /// [`Self::layout`]) on the plane `bg`: each row's fill and gutter,
-    /// then `content` draws the row's own cells, then its hit part is
-    /// registered; last the bar (with the edge fade per
-    /// [`Self::fade_edges`]).
+
+
+
+
+
     pub fn paint_rows<S: RowSource + ?Sized>(
         &self,
         inner: Rect,
@@ -582,7 +582,7 @@ impl OptionList {
             let mut state = ctx.state(self.row_id(i));
             state.focused = highlighted == Some(i);
             state.disabled = !src.enabled(i);
-            // the cursor follows the pointer: the hover is the cursor
+
             state.hovered &= !self.hover_moves_cursor;
             let look = t.cursor_row(state, bg, self.look);
             let area = Rect::new(inner.x, y, inner.width.saturating_sub(u16::from(has_sb)), 1);
@@ -607,8 +607,8 @@ impl OptionList {
         }
     }
 
-    /// The status line for the highlighted row: its disabled reason
-    /// (SI21/SV15). `None` on an enabled row or with no highlight.
+
+
     pub fn status<'a, T: AsItem>(&self, items: &'a [T]) -> Option<&'a str> {
         let it = items.get(self.highlighted()?)?.as_item();
         if it.disabled {
@@ -619,9 +619,9 @@ impl OptionList {
     }
 }
 
-/// The wheel and the bar move the rows' view ([`ScrollPane`]); under
-/// [`WheelMode::Cursor`] the wheel moves the cursor instead. A sideways
-/// notch is consumed: what is beneath the popup does not move.
+
+
+
 impl Scrollable for OptionList {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.scroll
@@ -673,8 +673,8 @@ mod tests {
 
     const INNER: Rect = Rect::new(1, 1, 20, 5);
 
-    /// One frame: layout under `hover`, then the rows painted; the frame's
-    /// buffer and hits come back.
+
+
     fn frame(l: &mut OptionList, rows: &[Item], hover: Option<WidgetId>) -> (Buffer, HitRegistry) {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -802,7 +802,7 @@ mod tests {
         assert_eq!(l.cursor.index, 2, "the cursor stays for the keys");
         l.key(&key(KeyCode::Down), &rows[..]);
         assert_eq!(l.highlighted(), Some(3), "a key shows it again");
-        // off: hover tints, the cursor stays
+
         let mut tint = OptionList::new(WidgetId::of("l")).hover_moves_cursor(false);
         tint.reset(rows.len());
         frame(&mut tint, &rows, Some(row2));

@@ -1,17 +1,17 @@
-//! Panels (Layout, plan §7.5 SC22): the `Panel` surface (card and framed,
-//! its title row, meta and focus mark) and the `ScrollPanel` inside it.
-//!
-//! - **Playground**: a titled card with meta, an untitled card, a card
-//!   holding a group, a framed split pane of wrapped prose and a card
-//!   holding a scrolling log.
-//! - **Options** (`panels.*`): the card focus mark, how much of the title a
-//!   long meta leaves, the card padding, the meta's short form, and the
-//!   scrolling panels' wrap, tail, sideways policy, track click, keys and
-//!   follow key.
-//! - **States**: a card, a card whose focus is its own bar and a framed
-//!   pane at rest, focused, overflowing and narrow.
-//!
-//! The page is wiring and demo data only.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -82,8 +82,8 @@ impl PanelsPage {
         page
     }
 
-    /// Build both scrolling panels from the option values through their
-    /// builders, keeping their positions.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = match o.value("panels.nav") {
@@ -92,7 +92,7 @@ impl PanelsPage {
             _ => NavKeys::default(),
         };
         let keymap = match o.value("panels.keymap") {
-            // the defaults (Follow, Copy, Select All) with Follow on `t`
+
             "t" => PanelCmd::default_keymap()
                 .into_iter()
                 .map(|(k, c)| match c {
@@ -146,7 +146,7 @@ impl PanelsPage {
         [&mut self.prose, &mut self.log]
     }
 
-    /// A card with this page's chrome options.
+
     fn card<'a>(&self, title: Option<&'a str>) -> Panel<'a> {
         let mut p = Panel::card(title)
             .pad_x(self.opts.number("panels.pad_x").unwrap_or(2))
@@ -160,8 +160,8 @@ impl PanelsPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (l, r) = crate::pages::layout::columns(area, area.width / 2 - 1, 2);
-        // the left column's cards scroll as whole sections on a short
-        // terminal rather than drawing into the row under the page
+
+
         let focus = ctx.interaction.has_focus(self.nested.id).then_some(2);
         let lrows = self.sections.layout(
             l,
@@ -175,7 +175,7 @@ impl PanelsPage {
             ctx,
         );
 
-        // titled card
+
         let panel = self.card(Some("Titled card")).meta("surface");
         let bg = panel.bg(t);
         if let Some(inner) = lrows.slot(0).and_then(|r| panel.try_render(r, buf, t)) {
@@ -190,7 +190,7 @@ impl PanelsPage {
             }
         }
 
-        // untitled card
+
         let panel = self.card(None);
         let bg = panel.bg(t);
         if let Some(inner) = lrows.slot(1).and_then(|r| panel.try_render(r, buf, t)) {
@@ -207,7 +207,7 @@ impl PanelsPage {
             }
         }
 
-        // nested: card containing a framed pane containing a list
+
         let panel = self.card(Some("Nested"));
         let bg = panel.bg(t);
         match lrows.slot(2).and_then(|r| panel.try_render(r, buf, t)) {
@@ -225,7 +225,7 @@ impl PanelsPage {
         bg: ratatui::style::Color,
     ) {
         let t = ctx.theme;
-        // nested grouping is a muted label and indent, never a second box
+
         buf.set_string(inner.x, inner.y, "Target", t.muted().bg(bg));
         let group = Rect::new(
             inner.x,
@@ -250,7 +250,7 @@ impl PanelsPage {
 
     fn render_panes(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // right: two framed scrollable panes
+
         let rrows = crate::pages::layout::rows(r, &[r.height / 2, 0]);
         let pf = ctx.interaction.focused(self.prose.id);
         let panel = Panel::framed(Some("Framed · split pane"))
@@ -277,9 +277,9 @@ impl PanelsPage {
         let bg = panel.bg(t);
         let inner = panel.render(card, buf, t);
         self.log.render(inner, buf, ctx, bg, log_style);
-        // the label is read after the content laid itself out
+
         let pos = scrollbar::position_label(&self.log.scroll);
-        // the custom short form keeps the range and drops the total
+
         let short = pos.split(" of ").next().unwrap_or_default().to_owned();
         let panel = if self.opts.value("panels.meta_short") == "custom" {
             panel.meta_short(&short)
@@ -295,8 +295,8 @@ impl PanelsPage {
     }
 }
 
-/// The States grid: a card, a card that is itself the focus stop (its
-/// title carries the bar) and a framed pane, each drawn by `Panel`.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -391,8 +391,8 @@ impl Page for PanelsPage {
         } else {
             &self.prose
         };
-        // read from the panel's live keys: a key it does not take is never
-        // advertised (`g G` only under the vim keys)
+
+
         let mut v = Vec::new();
         if let Some(k) = panel.nav.move_hint(false) {
             v.push((k, "Scroll"));

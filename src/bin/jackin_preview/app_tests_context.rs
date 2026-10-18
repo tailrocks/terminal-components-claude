@@ -1,7 +1,7 @@
-//! Context menus through the real app: a right-click on a row opens its
-//! menu at the pointer, the context keys (Shift+F10, the Menu key) open it
-//! under the cursor row, and a right-click outside an open menu closes it
-//! and reopens at the new spot.
+
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -30,8 +30,8 @@ fn row(h: &H, y: u16) -> String {
     h.text().lines().nth(y as usize).unwrap_or("").to_owned()
 }
 
-/// `needle` in the left column (`x < max_x`): a tree row, not the crumb or
-/// the detail pane.
+
+
 fn find_left(h: &H, needle: &str, max_x: u16) -> Option<(u16, u16)> {
     let text = h.text();
     text.lines().enumerate().find_map(|(y, line)| {
@@ -43,7 +43,7 @@ fn find_left(h: &H, needle: &str, max_x: u16) -> Option<(u16, u16)> {
     })
 }
 
-/// Click item `i` of the open menu `id` where it is drawn.
+
 fn choose(h: &mut H, id: WidgetId, i: usize) {
     let r = h
         .app
@@ -61,8 +61,8 @@ fn capsule_tab_menu_reopens_on_another_tab_and_opens_with_shift_f10() {
     let (sx, sy) = h.find("Shell").expect("the Shell tab");
     h.mouse(MouseKind::Secondary, sx, sy);
     let first = h.find("Change title…").expect("the Shell tab's menu");
-    // the right-click lands on the open menu's backdrop: it closes the
-    // menu and opens the docs tab's menu under the docs tab
+
+
     let (dx, dy) = h.find("docs").expect("the docs tab");
     h.mouse(MouseKind::Secondary, dx, dy);
     let second = h.find("Change title…").expect("the menu reopens");
@@ -75,7 +75,7 @@ fn capsule_tab_menu_reopens_on_another_tab_and_opens_with_shift_f10() {
     h.key(KeyCode::Esc);
     assert!(!h.text().contains("Change title…"));
 
-    // Shift+F10 opens the focused pane's menu, not the menu bar
+
     shift_f10(&mut h);
     let t = h.text();
     assert!(t.contains("Copy selection"), "{t}");
@@ -83,12 +83,12 @@ fn capsule_tab_menu_reopens_on_another_tab_and_opens_with_shift_f10() {
     assert!(!t.contains("Change title…"), "{t}");
     assert!(!t.contains("Key reference"), "not the menu bar\n{t}");
     h.key(KeyCode::Esc);
-    // the tab's own menu stays on the prefix: Ctrl+B m
+
     h.ctrl('b');
     h.key(KeyCode::Char('m'));
     assert!(h.text().contains("Change title…"), "{}", h.text());
     h.key(KeyCode::Esc);
-    // plain F10 still opens the menu bar
+
     h.key(KeyCode::F(10));
     assert!(h.text().contains("Split below"), "{}", h.text());
 }
@@ -97,12 +97,12 @@ fn capsule_tab_menu_reopens_on_another_tab_and_opens_with_shift_f10() {
 fn capsule_pane_right_click_opens_the_pane_menu_at_the_pointer() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     let (sx, sy) = h.find("Shell").expect("the Shell tab");
-    // a cell inside the pane area, a few rows below the strip
+
     let (x, y) = (sx + 10, sy + 6);
     h.mouse(MouseKind::Secondary, x, y);
     let (mx, my) = h.find("Copy selection").expect("the pane menu");
-    // the menu's frame opens right below the pointer, its first item
-    // under the frame
+
+
     assert_eq!(my, y + 2, "below the pointer\n{}", h.text());
     assert!(
         mx >= x.saturating_sub(2) && mx <= x + 3,
@@ -111,7 +111,7 @@ fn capsule_pane_right_click_opens_the_pane_menu_at_the_pointer() {
     assert!(h.text().contains("Close pane"));
 }
 
-// ------------------------------------------------------------- manager
+
 
 fn manager() -> H {
     let h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
@@ -123,7 +123,7 @@ fn tree_row(h: &H, needle: &str) -> (u16, u16) {
     find_left(h, needle, 38).unwrap_or_else(|| panic!("{needle} in the tree: {}", h.text()))
 }
 
-/// The open manager menu's rectangle.
+
 fn manager_menu(h: &H) -> Rect {
     h.app
         .screens
@@ -161,7 +161,7 @@ fn manager_row_menu_opens_at_the_pointer_and_runs_the_row_action() {
         Some("e"),
         "the row's key is shown"
     );
-    // Edit: the same path as the e key
+
     choose(&mut h, MENU, 1);
     assert_eq!(h.app.route, Route::Editor, "{}", h.text());
 }
@@ -169,7 +169,7 @@ fn manager_row_menu_opens_at_the_pointer_and_runs_the_row_action() {
 #[test]
 fn manager_instance_menu_disables_what_cannot_run_and_inspects() {
     let mut h = manager();
-    // expand payments-platform and right-click its preserved instance
+
     let (x, y) = tree_row(&h, "payments-platform");
     h.click(x, y);
     h.key(KeyCode::Right);
@@ -211,13 +211,13 @@ fn manager_shift_f10_opens_under_the_cursor_row() {
         h.text()
     );
     assert_eq!(manager_menu(&h).y, y + 1, "under the cursor row");
-    // the menu owns the keyboard: a global letter does not leave the page
+
     h.key(KeyCode::Char('s'));
     assert_eq!(h.app.route, Route::Manager);
     h.key(KeyCode::Esc);
     assert!(h.app.screens.manager.menu.menu().is_none());
     assert_eq!(h.app.route, Route::Manager, "Esc closes only the menu");
-    // the Menu key opens it too; Enter runs Launch…
+
     h.key(KeyCode::Menu);
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
@@ -231,7 +231,7 @@ fn manager_action_buttons_and_detail_open_the_selected_rows_menu() {
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     let (_, row_y) = tree_row(&h, "release-automation");
-    // Shift+F10 on a focused action button: the row's menu under it
+
     let prewarm = DETAIL.sub("prewarm");
     h.app.shell.focus.focus(prewarm);
     h.draw();
@@ -243,7 +243,7 @@ fn manager_action_buttons_and_detail_open_the_selected_rows_menu() {
         .expect("the Prewarm button");
     shift_f10(&mut h);
     let area = manager_menu(&h);
-    // below the button, or flipped above it near the bottom edge
+
     assert!(
         area.y == b.y + 1 || area.bottom() == b.y,
         "at the focused button {b:?}: {area:?}\n{}",
@@ -252,7 +252,7 @@ fn manager_action_buttons_and_detail_open_the_selected_rows_menu() {
     assert_ne!(area.y, row_y + 1, "not under the tree row");
     h.key(KeyCode::Esc);
     assert_eq!(h.app.shell.focus.current(), Some(prewarm), "focus returns");
-    // a right-click on a button opens it at the pointer
+
     h.mouse(MouseKind::Secondary, b.x + 1, b.y);
     let area = manager_menu(&h);
     assert_eq!(area.x, b.x + 1, "at the pointer");
@@ -261,7 +261,7 @@ fn manager_action_buttons_and_detail_open_the_selected_rows_menu() {
         "at the pointer row: {area:?}"
     );
     assert!(h.text().contains("Prewarm"), "{}", h.text());
-    // Enter runs the first item (Launch…) on the selected row
+
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Launch · choose Agent"), "{}", h.text());
 }
@@ -271,7 +271,7 @@ fn manager_right_click_outside_a_menu_reopens_on_the_new_row() {
     let mut h = manager();
     let (x, y) = tree_row(&h, "infra-control-plane");
     h.mouse(MouseKind::Secondary, x + 8, y);
-    // payments-platform, above the open menu, sits under its backdrop
+
     let (px, py) = tree_row(&h, "payments-platform");
     h.mouse(MouseKind::Secondary, px + 2, py);
     let area = manager_menu(&h);
@@ -283,19 +283,19 @@ fn manager_right_click_outside_a_menu_reopens_on_the_new_row() {
     assert_eq!(h.text().matches("Open on GitHub").count(), 1, "one menu");
     assert!(row(&h, area.y + 1).contains("payments-platform"));
 
-    // the host menu bar is a popup too: a right-click on a row closes it
-    // and opens the row's menu
+
+
     h.key(KeyCode::Esc);
     let (cx, cy) = tree_row(&h, "customer-portal");
     h.key(KeyCode::F(10));
     assert!(h.app.host_menu.is_open());
-    // the row's start, left of the open File menu
+
     h.mouse(MouseKind::Secondary, cx, cy);
     assert!(!h.app.host_menu.is_open(), "the menu bar closed");
     assert_eq!(manager_menu(&h).y, cy + 1, "the row menu opened");
 }
 
-// ------------------------------------------------------------ accounts
+
 
 fn accounts() -> H {
     let h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
@@ -347,7 +347,7 @@ fn accounts_row_menu_sets_the_default_and_explains_what_cannot_run() {
     assert!(accounts_menu(&h).items[6].danger);
     let id = selected_account(&h);
     assert!(!h.app.world.accounts.get(&id).unwrap().default_for_provider);
-    // Set default: the Space key's path
+
     choose(&mut h, ACCOUNTS_MENU, 4);
     assert!(h.app.screens.accounts.menu.menu().is_none(), "closed");
     assert!(
@@ -356,13 +356,13 @@ fn accounts_row_menu_sets_the_default_and_explains_what_cannot_run() {
         h.text()
     );
 
-    // the provider default cannot become the default again
+
     let (px, py) = find_left(&h, "Personal", 40).unwrap();
     h.mouse(MouseKind::Secondary, px, py);
     let set_default = &accounts_menu(&h).items[4];
     assert!(set_default.disabled, "{set_default:?}");
     h.key(KeyCode::Esc);
-    // a discovered account is read-only: no edit, no remove
+
     let (dx, dy) = find_left(&h, "discovered", 40).unwrap();
     h.mouse(MouseKind::Secondary, dx, dy);
     let m = accounts_menu(&h);
@@ -378,7 +378,7 @@ fn accounts_shift_f10_opens_under_the_cursor_row_and_folds() {
     shift_f10(&mut h);
     assert_eq!(accounts_menu(&h).area.y, y + 1, "under the cursor row");
     assert!(h.text().contains("Refresh provider"), "{}", h.text());
-    // the last item collapses the provider
+
     h.key(KeyCode::End);
     h.key(KeyCode::Enter);
     assert!(h.app.screens.accounts.menu.menu().is_none());
@@ -398,7 +398,7 @@ fn accounts_right_click_outside_a_menu_reopens_on_the_new_row() {
     assert_eq!(h.text().matches("Show usage").count(), 1, "one menu");
 }
 
-// ------------------------------------------------- config (editor, settings)
+
 
 fn editor_mounts() -> H {
     let mut h = manager();
@@ -455,7 +455,7 @@ fn editor_mount_menu_opens_at_the_pointer_and_toggles_read_only() {
     assert!(m.items[5].disabled, "nothing to revert yet");
     assert!(m.items[7].danger);
     let id = m.id;
-    // Make read-write: the r key's path
+
     choose(&mut h, id, 1);
     let libs = row(&h, y);
     assert!(libs.contains(" rw "), "{libs}");
@@ -468,12 +468,12 @@ fn editor_mount_menu_opens_at_the_pointer_and_toggles_read_only() {
 #[test]
 fn editor_shift_f10_opens_under_the_cursor_row_and_removes() {
     let mut h = editor_mounts();
-    // into the list: the cursor rests on the first mount
+
     h.key(KeyCode::Enter);
     let (_, y) = h.find("/workspace/payments-platform").unwrap();
     shift_f10(&mut h);
     assert_eq!(editor_menu(&h).area.y, y + 1, "under the cursor row");
-    // K14: a key the menu has no use for closes it without choosing
+
     h.key(KeyCode::Char(']'));
     assert!(!h.text().contains("Make read-only"), "{}", h.text());
     assert!(h.text().contains("/workspace/payments-platform"));
@@ -499,7 +499,7 @@ fn settings_env_menu_reopens_on_another_row_and_shows_a_value() {
     h.mouse(MouseKind::Secondary, 90, gy);
     let m = settings_menu(&h).expect("GH_TOKEN's menu");
     assert!(m.items[1].disabled, "a 1Password reference cannot be shown");
-    // KUBECONFIG sits under the open menu's backdrop, left of the menu
+
     let (kx, ky) = h.find("KUBECONFIG").unwrap();
     h.mouse(MouseKind::Secondary, kx, ky);
     let m = settings_menu(&h).expect("reopened");
@@ -513,9 +513,9 @@ fn settings_env_menu_reopens_on_another_row_and_shows_a_value() {
     assert_eq!(settings_menu(&h).unwrap().items[1].label, "Mask value");
 }
 
-/// K26: the Capsule's Ctrl+B prefix waits for its command without a
-/// timeout (slower typists), and Esc cancels it. Before, it timed out
-/// after 2 s.
+
+
+
 #[test]
 fn the_capsule_prefix_waits_until_esc() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
@@ -533,8 +533,8 @@ fn the_capsule_prefix_waits_until_esc() {
     assert!(waiting(&h), "the prefix still waits after 200 ticks");
     h.key(KeyCode::Esc);
     assert!(!waiting(&h), "Esc cancels the prefix");
-    // the override brings a timeout back (and shows the ticks above
-    // outlast it)
+
+
     if let Some(c) = h.app.screens.capsule.as_mut() {
         c.prefix_timeout_ms = Some(2_000);
     }

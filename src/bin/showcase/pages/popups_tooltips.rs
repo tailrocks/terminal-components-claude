@@ -1,20 +1,20 @@
-//! Popups & tooltips (Overlays, plan §7.5 SC19): where floating layers go
-//! and how they close, the modal frame every dialog is drawn in, tooltips
-//! and the reveal of cut text.
-//!
-//! - **Playground**: a popover (a library `ContextMenu`) anchored to its
-//!   button, placed and fitted by `popup::Placement` and `popup::Place`
-//!   and closed under a `popup::Dismiss` policy, with the rectangle
-//!   `popup::place_with` gives it read back; buttons and a status bar
-//!   whose tooltips (`Tip`, with a shortcut) follow the page's `Tooltips`
-//!   policy; a list of long paths that reveals its cut rows under a
-//!   `Reveal` policy; a card reading every policy back.
-//! - **Options**: one control per knob (`popupstooltips.<key>`).
-//! - **States**: a `modal::Frame` built from the frame options, at rest
-//!   and with its close button hovered and pressed, drawn by the frame.
-//!
-//! The page is wiring and demo data only: placement, dismissal, tooltips
-//! and reveal are the library's own.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -73,7 +73,7 @@ pub struct PopupsTooltipsPage {
     pub new_tab: Button,
     pub status: StatusBar,
     pub paths: ListBox,
-    /// The last thing the popover did.
+
     pub last: String,
 }
 
@@ -113,7 +113,7 @@ impl PopupsTooltipsPage {
         page
     }
 
-    /// Apply the options that live on widgets.
+
     fn rebuild(&mut self) {
         self.paths.reveal = RevealState::new(Some(self.reveal()));
         self.template.grid = frame_grid(&self.opts);
@@ -129,7 +129,7 @@ impl PopupsTooltipsPage {
         }
     }
 
-    /// How the popover is fitted to the screen.
+
     fn place(&self) -> Place {
         let o = &self.opts;
         Place::DEFAULT
@@ -150,7 +150,7 @@ impl PopupsTooltipsPage {
             .text_inset(o.value("popupstooltips.text_inset").parse().unwrap_or(0))
     }
 
-    /// How the popover closes without a choice.
+
     fn dismiss(&self) -> Dismiss {
         let o = &self.opts;
         let mut d = Dismiss::LIGHT;
@@ -206,7 +206,7 @@ impl PopupsTooltipsPage {
         self.popover.open(m, ());
     }
 
-    /// Every policy, read back from what the page built.
+
     fn readout(&self, screen: Rect) -> Vec<Prop> {
         let place = self.place();
         let at = popup::place_with(
@@ -334,8 +334,8 @@ impl PopupsTooltipsPage {
             buf.set_string(inner.x, inner.y + 2 + i as u16, line, t.muted().bg(bg));
         }
 
-        // the page's tooltip policy for its own controls, the app-wide one
-        // around it
+
+
         let app_tooltips = ctx.tooltips;
         ctx.tooltips = self.tooltips();
         let panel = Panel::card(Some("Tooltips")).meta("rest the pointer");
@@ -378,12 +378,12 @@ impl PopupsTooltipsPage {
         let screen = *buf.area();
         props::render(inner, buf, t, &self.readout(screen), bg);
 
-        // the open popover floats above the page, placed on the whole screen
+
         self.popover.render(screen, buf, ctx);
     }
 }
 
-/// The States grid: the modal frame the frame options build.
+
 fn frame_grid(o: &PageValues) -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

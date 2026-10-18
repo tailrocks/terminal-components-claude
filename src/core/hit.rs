@@ -1,14 +1,14 @@
-//! Mouse hit-testing.
-//!
-//! Widgets register the rectangles they occupy while rendering. The registry
-//! is rebuilt every frame, so hit regions always match what is on screen.
-//! Later registrations win, which makes overlays (dialogs) naturally shadow
-//! the content below them.
-//!
-//! Every region also records the widget that owns it and which [`PartRef`]
-//! of that widget it is ([`HitRegistry::register_part`]), so a position
-//! resolves to a typed [`Hit`] instead of a derived id each widget has to
-//! invert by hand.
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::layout::{Position, Rect};
 
@@ -17,41 +17,41 @@ use super::id::{ItemKey, Part, PartRef, WidgetId};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HitRegion {
     pub id: WidgetId,
-    /// The widget the region belongs to: the id itself for a widget's own
-    /// surface, the widget for one of its parts.
+
+
     pub owner: WidgetId,
-    /// Which part of `owner` the region is (`Part::CONTAINER` for a
-    /// widget's own surface).
+
+
     pub part: PartRef,
     pub area: Rect,
-    /// A region that only serves as a scroll container: wheel events are
-    /// routed to it, but it is not hoverable/clickable on its own.
+
+
     pub scroll_only: bool,
-    /// A light-dismiss backdrop whose click also reaches the region
-    /// beneath it (see [`HitRegistry::pass_through_target`]).
+
+
     pub pass_through: bool,
-    /// A region that only takes hover (a cut title revealing its full
-    /// text): presses, clicks and the wheel go to what is beneath it.
+
+
     pub hover_only: bool,
-    /// A light-dismiss backdrop ([`HitRegistry::register_backdrop`]): a
-    /// click on it means "outside the popup that owns it".
+
+
     pub backdrop: bool,
-    /// A modal's own body ([`HitRegistry::register_surface`]): it catches
-    /// presses so nothing falls through, but it is no control, so a press
-    /// on it is dead space inside the modal.
+
+
+
     pub surface: bool,
 }
 
-/// Which way a scrollbar moves its content.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Axis {
     Vertical,
     Horizontal,
 }
 
-/// A scrollbar as drawn this frame: its hit id, the container it scrolls,
-/// its axis and its track. The pointer layer grabs it on press, so a drag
-/// carries the axis and track instead of each widget inferring them.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bar {
     pub id: WidgetId,
@@ -63,37 +63,37 @@ pub struct Bar {
 #[derive(Debug, Default, Clone)]
 pub struct HitRegistry {
     regions: Vec<HitRegion>,
-    /// Barrier stack: each entry is the region index a layer starts at.
-    /// Only the top layer is reachable; the one below it is what a
-    /// pass-through backdrop lets a click fall into.
+
+
+
     barriers: Vec<usize>,
-    /// Scrollbars registered this frame.
+
     bars: Vec<Bar>,
-    /// Pointer shapes declared this frame ([`Self::set_shape`]).
+
     shapes: Vec<(WidgetId, super::shape::PointerShape)>,
-    /// Edge-autoscroll areas registered this frame, each with the layer
-    /// (barrier count) it was registered in, so barriers apply to it too.
+
+
     autoscroll: Vec<(usize, Rect)>,
-    /// Regions a release may complete a click on although the press
-    /// started elsewhere ([`HitRegistry::accept_release`]).
+
+
     releases: Vec<(WidgetId, ReleaseFrom)>,
 }
 
-/// Where a press that may complete on another region started
-/// ([`HitRegistry::accept_release`]).
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReleaseFrom {
-    /// A primary press on this control (a menu-bar title: press, drag onto
-    /// a row, release chooses it).
+
+
     Press(WidgetId),
-    /// A secondary press anywhere (the press that opened a context menu:
-    /// right-drag onto a row, release chooses it).
+
+
     Secondary,
 }
 
-/// A resolved pointer position: the widget that owns the region under it
-/// and which part of that widget it is. Same shape as `main`'s `Hit`
-/// (termrock-runtime `hit.rs`), without the layer and kind it adds.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Hit {
     pub owner: WidgetId,
@@ -101,7 +101,7 @@ pub struct Hit {
 }
 
 impl HitRegion {
-    /// A clickable region that is its own owner's surface.
+
     fn plain(id: WidgetId, area: Rect) -> Self {
         Self {
             id,
@@ -116,7 +116,7 @@ impl HitRegion {
         }
     }
 
-    /// The typed hit this region resolves to.
+
     pub fn hit(&self) -> Hit {
         Hit {
             owner: self.owner,
@@ -137,18 +137,18 @@ impl HitRegistry {
         self.regions.push(HitRegion::plain(id, area));
     }
 
-    /// Register `part` of `owner` as a clickable region and return its id
-    /// ([`WidgetId::part`]). [`Self::resolve`] then reports the owner and
-    /// the part for any position inside `area`.
+
+
+
     pub fn register_part(&mut self, owner: WidgetId, part: PartRef, area: Rect) -> WidgetId {
         let id = owner.part(part);
         self.register_part_as(id, owner, part, area);
         id
     }
 
-    /// [`Self::register_part`] under an id finer than the part: a grid's
-    /// cells are one `Part::CELL` per row (the column comes from the
-    /// position, as on `main`) but each cell keeps its own id for hover.
+
+
+
     pub fn register_part_as(&mut self, id: WidgetId, owner: WidgetId, part: PartRef, area: Rect) {
         if area.is_empty() {
             return;
@@ -160,8 +160,8 @@ impl HitRegistry {
         });
     }
 
-    /// The owner and part of the topmost clickable region under `pos`: the
-    /// typed form of [`Self::hit`].
+
+
     pub fn resolve(&self, pos: Position) -> Option<Hit> {
         self.reachable()
             .iter()
@@ -170,8 +170,8 @@ impl HitRegistry {
             .map(HitRegion::hit)
     }
 
-    /// The owner and part of the region registered under `id` this frame
-    /// (the latest registration wins, as for [`Self::area_of`]).
+
+
     pub fn part_of(&self, id: WidgetId) -> Option<Hit> {
         self.regions
             .iter()
@@ -180,12 +180,12 @@ impl HitRegistry {
             .map(HitRegion::hit)
     }
 
-    /// Register the latest region under `id` again, owner and part
-    /// included, so it lands on top of what was registered since (a
-    /// dialog lifting its open select's options above its own surface).
+
+
+
     pub fn raise(&mut self, id: WidgetId) {
         if let Some(bar) = self.bar(id) {
-            // a scrollbar is its track and, above it, its thumb
+
             let parts: Vec<HitRegion> = self
                 .regions
                 .iter()
@@ -201,14 +201,14 @@ impl HitRegistry {
         }
     }
 
-    /// Every region registered this frame, in registration order.
+
     pub fn regions(&self) -> &[HitRegion] {
         &self.regions
     }
 
-    /// [`Self::register`] at the bottom of the current layer (just above
-    /// the top barrier): the region only takes cells that no other region
-    /// of the layer covers, whenever those register.
+
+
+
     pub fn register_under(&mut self, id: WidgetId, area: Rect) {
         if area.is_empty() {
             return;
@@ -217,11 +217,11 @@ impl HitRegistry {
         self.regions.insert(at, HitRegion::plain(id, area));
     }
 
-    /// Register a modal's body (a dialog's or a modal frame's surface): it
-    /// blocks presses from falling through like [`Self::register`], and
-    /// [`Self::is_surface`] tells the pointer layer a press on it is dead
-    /// space inside the modal
-    /// ([`crate::core::pointer::PointerState::surface_press`]).
+
+
+
+
+
     pub fn register_surface(&mut self, id: WidgetId, area: Rect) {
         if area.is_empty() {
             return;
@@ -232,22 +232,22 @@ impl HitRegistry {
         });
     }
 
-    /// Whether `id` was registered this frame as a modal's surface.
+
     pub fn is_surface(&self, id: WidgetId) -> bool {
         self.regions.iter().rev().any(|r| r.id == id && r.surface)
     }
 
-    /// Register a scrollbar: a clickable region that the pointer layer
-    /// also knows as `owner`'s bar on `axis`.
-    /// The pointer shape over `id` (an I-beam over text, a resize arrow
-    /// over a seam); controls without one show the arrow. See
-    /// [`super::shape`].
+
+
+
+
+
     pub fn set_shape(&mut self, id: WidgetId, shape: super::shape::PointerShape) {
         self.shapes.retain(|(i, _)| *i != id);
         self.shapes.push((id, shape));
     }
 
-    /// The pointer shape declared for `id` this frame.
+
     pub fn shape_of(&self, id: WidgetId) -> Option<super::shape::PointerShape> {
         self.shapes.iter().find(|(i, _)| *i == id).map(|(_, s)| *s)
     }
@@ -260,11 +260,11 @@ impl HitRegistry {
         self.bars.push(bar);
     }
 
-    /// Register the thumb of the scrollbar `bar_id` (drawn in `thumb`)
-    /// above its track: the cells under the thumb resolve to the owner's
-    /// [`Part::THUMB`], the rest of the bar to [`Part::TRACK`]. The hit id
-    /// stays the bar's, so hover, press and the pointer grab are one
-    /// control.
+
+
+
+
+
     pub fn register_thumb(&mut self, bar_id: WidgetId, owner: WidgetId, thumb: Rect) {
         if self.bar(bar_id).is_none() {
             return;
@@ -272,34 +272,34 @@ impl HitRegistry {
         self.register_part_as(bar_id, owner, PartRef::of(Part::THUMB), thumb);
     }
 
-    /// Let a release over `id` complete a click although the press started
-    /// `from` somewhere else: press-drag-release menus. Without it, a press
-    /// and a release on different controls cancel the click.
+
+
+
     pub fn accept_release(&mut self, id: WidgetId, from: ReleaseFrom) {
         self.releases.push((id, from));
     }
 
-    /// Whether a release over `id` completes a press that started `from`
-    /// ([`Self::accept_release`]).
+
+
     pub fn accepts_release(&self, id: WidgetId, from: ReleaseFrom) -> bool {
         self.releases.contains(&(id, from))
     }
 
-    /// The scrollbar registered under `id` this frame.
+
     pub fn bar(&self, id: WidgetId) -> Option<Bar> {
         self.bars.iter().rev().find(|b| b.id == id).copied()
     }
 
-    /// Register a light-dismiss backdrop for a popup layer. With
-    /// `pass_through`, a click on it also lands on what is beneath.
+
+
     pub fn register_backdrop(&mut self, id: WidgetId, area: Rect, pass_through: bool) {
         self.register_backdrop_of(id, id, area, pass_through);
     }
 
-    /// [`Self::register_backdrop`] owned by the popup's `owner`: the
-    /// backdrop resolves to `owner`'s [`Part::BACKDROP`], so a pointer
-    /// router delivers an outside click to the popup that dismisses itself
-    /// ([`crate::ui::popup::backdrop`]).
+
+
+
+
     pub fn register_backdrop_of(
         &mut self,
         id: WidgetId,
@@ -329,8 +329,8 @@ impl HitRegistry {
         });
     }
 
-    /// Register a hover-only region: [`HitRegistry::hover_at`] finds it,
-    /// while presses, clicks and the wheel reach whatever is beneath it.
+
+
     pub fn register_hover(&mut self, id: WidgetId, area: Rect) {
         if area.is_empty() {
             return;
@@ -341,18 +341,18 @@ impl HitRegistry {
         });
     }
 
-    /// Register the scrolling body of a widget whose pointer drag selects
-    /// (a grid's cells, a text field's text): while a press that started
-    /// inside it is held with the pointer past its edges, the pointer
-    /// state autoscrolls (see
-    /// [`PointerState::autoscroll_due`](super::pointer::PointerState::autoscroll_due)).
+
+
+
+
+
     pub fn register_autoscroll(&mut self, area: Rect) {
         if !area.is_empty() {
             self.autoscroll.push((self.barriers.len(), area));
         }
     }
 
-    /// The topmost reachable autoscroll area under `pos`.
+
     pub fn autoscroll_at(&self, pos: Position) -> Option<Rect> {
         let layer = self.barriers.len();
         self.autoscroll
@@ -362,7 +362,7 @@ impl HitRegistry {
             .map(|(_, area)| *area)
     }
 
-    /// Everything registered before this call is unreachable by the mouse.
+
     pub fn push_barrier(&mut self) {
         self.barriers.push(self.regions.len());
     }
@@ -374,7 +374,7 @@ impl HitRegistry {
         }
     }
 
-    /// The layer directly under the top barrier.
+
     fn beneath(&self) -> &[HitRegion] {
         match self.barriers.as_slice() {
             [] => &[],
@@ -383,8 +383,8 @@ impl HitRegistry {
         }
     }
 
-    /// When `id` is a pass-through backdrop under `pos`, the clickable
-    /// region beneath it that the same click should also reach.
+
+
     pub fn pass_through_target(&self, id: WidgetId, pos: Position) -> Option<WidgetId> {
         let top = self
             .reachable()
@@ -401,15 +401,15 @@ impl HitRegistry {
             .map(|r| r.id)
     }
 
-    /// When the topmost clickable region under `pos` is a light-dismiss
-    /// backdrop: its id, and the clickable region the same position lands
-    /// on in the first non-empty layer beneath it (whatever its
-    /// `pass_through`). A secondary click there closes the popup and opens
-    /// the context menu of what is beneath (macOS), see
-    /// [`crate::core::pointer::PointerState::route_secondary`]. Empty
-    /// layers (a modal layer opened only to hold the popup) are skipped; a
-    /// non-empty layer with nothing under `pos` (a dialog the click missed)
-    /// stops the search, since what is under a dialog is unreachable.
+
+
+
+
+
+
+
+
+
     pub fn backdrop_at(&self, pos: Position) -> Option<(WidgetId, Option<WidgetId>)> {
         let top = self
             .reachable()
@@ -438,7 +438,7 @@ impl HitRegistry {
             .map(|r| r.id)
     }
 
-    /// Topmost clickable widget under the position.
+
     pub fn hit(&self, pos: Position) -> Option<WidgetId> {
         self.reachable()
             .iter()
@@ -447,8 +447,8 @@ impl HitRegistry {
             .map(|r| r.id)
     }
 
-    /// Topmost hoverable widget under the position: the clickable ones and
-    /// hover-only regions ([`HitRegistry::register_hover`]).
+
+
     pub fn hover_at(&self, pos: Position) -> Option<WidgetId> {
         self.reachable()
             .iter()
@@ -457,8 +457,8 @@ impl HitRegistry {
             .map(|r| r.id)
     }
 
-    /// Topmost scroll container under the position (any registered region
-    /// whose owner can scroll counts, including scroll-only ones).
+
+
     pub fn hit_scroll(&self, pos: Position) -> Option<WidgetId> {
         self.reachable()
             .iter()
@@ -467,11 +467,11 @@ impl HitRegistry {
             .map(|r| r.id)
     }
 
-    /// Every region a wheel at `pos` can reach, topmost first: the
-    /// candidates [`hit_scroll`](Self::hit_scroll) picks the first of. A
-    /// wheel router offers the notch to each in turn until one owner takes
-    /// it, so a wheel over a list row (registered above its list) still
-    /// scrolls the list.
+
+
+
+
+
     pub fn scroll_stack(&self, pos: Position) -> Vec<WidgetId> {
         let mut out: Vec<WidgetId> = Vec::new();
         for r in self.reachable().iter().rev() {
@@ -490,10 +490,10 @@ impl HitRegistry {
         self.regions.is_empty()
     }
 
-    /// Clip every region registered at index `from` or later to `area`:
-    /// regions are cut to the visible part, and dropped when nothing of
-    /// them is left. Backs [`RenderCtx::clip`](crate::ui::ctx::RenderCtx::clip),
-    /// so a widget drawn into a clip rect is never clickable outside it.
+
+
+
+
     pub fn clip_since(&mut self, from: usize, area: Rect) {
         let from = from.min(self.regions.len());
         let mut kept = Vec::with_capacity(self.regions.len() - from);
@@ -507,7 +507,7 @@ impl HitRegistry {
     }
 
     pub fn area_of(&self, id: WidgetId) -> Option<Rect> {
-        // a scrollbar's area is its whole track, not the thumb above it
+
         if let Some(bar) = self.bar(id) {
             return Some(bar.track);
         }
@@ -519,35 +519,35 @@ impl HitRegistry {
     }
 }
 
-/// One part a widget recorded in its last render ([`PartMap::record`]).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct PartEntry {
     id: WidgetId,
     part: PartRef,
-    /// The column of a 2-D part (a grid cell): the router resolves a cell
-    /// to its row only, so the id-taking methods read the column here.
+
+
     col: Option<usize>,
 }
 
-/// The parts a widget recorded in its last render, keyed by region id:
-/// crate-private, kept only by the widgets whose id-taking methods
-/// (`DataTable::on_click_editor`, `DataGrid::on_click`/`on_drag`, deleted
-/// in S15) still map an id back to a 2-D cell. Everything else reads the
-/// part the router resolved ([`PointerEvent::part`]).
-///
-/// [`PointerEvent::part`]: crate::core::pointer::PointerEvent::part
+
+
+
+
+
+
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct PartMap {
     entries: Vec<PartEntry>,
 }
 
 impl PartMap {
-    /// Forget the last render's parts; call at the start of a render.
+
     pub fn clear(&mut self) {
         self.entries.clear();
     }
 
-    /// Record that `id` is `part` (of the widget keeping the map).
+
     pub fn record(&mut self, id: WidgetId, part: PartRef) {
         self.entries.push(PartEntry {
             id,
@@ -556,7 +556,7 @@ impl PartMap {
         });
     }
 
-    /// Record a 2-D part: `part` (keyed by its row) at column `col`.
+
     pub fn record_cell(&mut self, id: WidgetId, part: PartRef, col: usize) {
         self.entries.push(PartEntry {
             id,
@@ -565,13 +565,13 @@ impl PartMap {
         });
     }
 
-    /// The entry recorded under `id`.
+
     fn entry(&self, id: WidgetId) -> Option<&PartEntry> {
         self.entries.iter().rev().find(|e| e.id == id)
     }
 
-    /// The positional item of `id` when it is a `part` part
-    /// ([`ItemKey::Index`]).
+
+
     pub fn index(&self, id: WidgetId, part: Part) -> Option<usize> {
         self.entry(id)
             .filter(|e| e.part.part == part)
@@ -579,7 +579,7 @@ impl PartMap {
             .and_then(ItemKey::as_index)
     }
 
-    /// The `(row, column)` of `id` when it is a 2-D `part` part.
+
     pub fn cell(&self, id: WidgetId, part: Part) -> Option<(usize, usize)> {
         let e = self.entry(id).filter(|e| e.part.part == part)?;
         Some((e.part.item?.as_index()?, e.col?))
@@ -712,7 +712,7 @@ mod tests {
         let pop = WidgetId::of("pop");
         let back = WidgetId::of("pop.backdrop");
         h.register(row, Rect::new(0, 5, 20, 1));
-        // a modal layer opened only to hold the popup
+
         h.push_barrier();
         h.push_barrier();
         h.register_backdrop(back, Rect::new(0, 0, 40, 20), false);

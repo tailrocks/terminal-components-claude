@@ -1,19 +1,19 @@
-//! Tabs (Navigation, plan §7.5 SC14): the library `Tabs` strip with every
-//! `TabItem` flag, its close, new-tab and overflow affordances, its keys,
-//! and nested strips.
-//!
-//! - **Playground**: an editor-style strip (icons, suffix, closable `×`,
-//!   dirty, busy, error, done, `+`, overflow `‹ ›` and `+N`) over a card
-//!   that reads back the active tab, the strip's keys and the last action;
-//!   closing a dirty tab asks first (`leave::unsaved_dialog`). Below it,
-//!   nested strips: table › Data | Structure | DDL › sub-tabs with 1-6.
-//! - **Options**: one control per `Tabs` builder (`tabs.<key>`), applied to
-//!   the editor strip through the builder an app calls.
-//! - **States**: plain, closable and flagged strips in every state the
-//!   strip has, drawn by `Tabs` itself.
-//!
-//! The page is wiring and demo data only: drawing, keys, pointer and
-//! scrolling are the strip's own.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -38,7 +38,7 @@ use junie_tui::widgets::tabs::{CloseReveal, TabAction, TabCmd, TabItem, TabRule,
 const ID: WidgetId = WidgetId::of("tabs-page");
 const CLOSE_DLG: WidgetId = ID.sub("close-dialog");
 
-/// The editor strip's tabs: icons (prefix), a state suffix, every flag.
+
 fn editor_items(many: bool) -> Vec<TabItem> {
     let mut items = vec![
         TabItem::new("Overview").prefix("◆"),
@@ -52,7 +52,7 @@ fn editor_items(many: bool) -> Vec<TabItem> {
         TabItem::new("users").prefix("▦").suffix("●").closable(),
     ];
     if !many {
-        // few: the strip fits at 120 columns
+
         items.truncate(4);
     } else {
         for name in ["audit_log", "sessions", "invoices", "payments", "events"] {
@@ -62,7 +62,7 @@ fn editor_items(many: bool) -> Vec<TabItem> {
     items
 }
 
-/// The page's option values (indices into `options::TABS` values).
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Opts {
     values: Vec<(&'static str, usize)>,
@@ -97,7 +97,7 @@ impl Opts {
     }
 }
 
-/// The editor strip as an app would build it from the options.
+
 fn editor_strip(o: &Opts, items: Vec<TabItem>) -> Tabs {
     let id = ID.sub("editor");
     let rule = match o.get("tabs.rule") {
@@ -122,7 +122,7 @@ fn editor_strip(o: &Opts, items: Vec<TabItem>) -> Tabs {
             _ => NavKeys::DESKTOP,
         });
     if o.get("tabs.close_button") == 1 {
-        // a custom `×`: red on hover, like a destructive close
+
         t = t.close_button(IconButton::close(id.sub("close-template")).danger_hover(true));
     }
     t = t.close_target_w(match o.get("tabs.close_w") {
@@ -131,11 +131,11 @@ fn editor_strip(o: &Opts, items: Vec<TabItem>) -> Tabs {
         _ => 3,
     });
     if o.get("tabs.more_button") == 1 {
-        // a tight `+N`: no padding around the count
+
         t = t.more_button(IconButton::new(id.sub("more-template"), "+").pad(0));
     }
     if o.get("tabs.keymap") == 1 {
-        // an app's own key map: Ctrl+W closes, Ctrl+T opens a tab
+
         let mut map: KeyMap<TabCmd> = vec![
             (KeyBinding::ctrl('w'), TabCmd::Close),
             (KeyBinding::ctrl('t'), TabCmd::New),
@@ -160,12 +160,12 @@ pub struct TabsPage {
     template: Template,
     opts: Opts,
     pub editor: Tabs,
-    /// Nested strips: the table's sections, then the Structure sub-tabs.
+
     pub outer: Tabs,
     pub sub: Tabs,
-    /// New tabs opened so far (for their names).
+
     opened: usize,
-    /// The dirty tab whose close is waiting on the dialog.
+
     closing: Option<usize>,
     pub last: String,
 }
@@ -202,8 +202,8 @@ impl TabsPage {
         }
     }
 
-    /// Rebuild the editor strip from the options, keeping its tabs.
-    /// `reset`: start again from the demo tabs (the tab count changed).
+
+
     fn rebuild(&mut self, reset: bool) {
         let items = if reset {
             editor_items(self.opts.on("tabs.count"))
@@ -236,7 +236,7 @@ impl TabsPage {
             TabAction::Close(i) => {
                 let it = &self.editor.items[i];
                 if it.dirty {
-                    // a dirty tab asks first: Cancel, Discard, Save
+
                     self.closing = Some(i);
                     self.last = format!("{a:?} · {} has unsaved changes: asked first", it.label);
                     cx.open_dialog(junie_tui::ui::leave::unsaved_dialog(
@@ -308,7 +308,7 @@ impl TabsPage {
             );
         }
 
-        // nested strips: table › section › sub-tab
+
         let nest = Panel::card(Some("Nested strips")).meta("orders › section › sub-tab · 1–6 jump");
         let nbg = nest.bg(t);
         let inner = nest.render(rows[4], buf, t);
@@ -327,8 +327,8 @@ impl TabsPage {
         buf.set_string(r[4].x, r[4].y, crumb, t.muted().bg(nbg));
     }
 
-    /// The strip whose id is `id` (the focused one); the sub strip only
-    /// while it is shown.
+
+
     fn strip_mut(&mut self, id: WidgetId) -> Option<&mut Tabs> {
         if id == self.editor.id {
             Some(&mut self.editor)
@@ -342,7 +342,7 @@ impl TabsPage {
     }
 }
 
-/// The strip's keys, read from its key map.
+
 fn keys_readout(t: &Tabs) -> String {
     let mut parts = vec![
         if t.nav.vim {
@@ -363,7 +363,7 @@ fn keys_readout(t: &Tabs) -> String {
     {
         parts.push(format!("{k} new tab"));
     }
-    // the `+N` menu's keyboard opener, while the strip has one
+
     if t.overflow_menu
         && let Some(k) = label_for(&t.keymap, TabCmd::ShowHidden)
     {
@@ -378,7 +378,7 @@ fn keys_readout(t: &Tabs) -> String {
     parts.join(" · ")
 }
 
-/// The States grid: a plain, a closable and a flagged strip.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -446,7 +446,7 @@ impl Page for TabsPage {
         }
         match ev {
             PageEvent::Tick => {
-                // the busy tab's spinner
+
                 if self.editor.items.iter().any(|t| t.busy) {
                     Outcome::Changed
                 } else {
@@ -469,8 +469,8 @@ impl Page for TabsPage {
                     None => Outcome::Ignored,
                 }
             }
-            // every strip takes its own events: a click activates, a
-            // middle click closes a closable tab, the wheel scrolls it
+
+
             PageEvent::Pointer(ev) => {
                 let click = ev.is(Phase::Click);
                 if let Some(r) = self.editor.route(ev) {
@@ -506,7 +506,7 @@ impl Page for TabsPage {
                 };
                 let label = self.editor.items[i].label.clone();
                 self.last = match result {
-                    // Discard and Save both close the tab
+
                     DialogResult::Action(1) => {
                         self.editor.remove(i);
                         format!("Closed {label}, changes discarded")

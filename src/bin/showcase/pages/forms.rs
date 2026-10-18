@@ -121,8 +121,8 @@ impl FormsPage {
 }
 
 impl FormsPage {
-    /// Each control takes its own pointer events; a click on a text field
-    /// or a radio option focuses it (the options are not focus stops).
+
+
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         for inp in [&mut self.name, &mut self.reviewer] {
@@ -195,9 +195,9 @@ impl Page for FormsPage {
             buf,
             t,
         );
-        // Reserve the action row before laying out fields. At the minimum
-        // terminal size, retain every control and let the text area's own
-        // viewport scroll its content instead of painting over the footer.
+
+
+
         if inner.height < 11 || inner.width < 40 {
             return;
         }
@@ -206,7 +206,7 @@ impl Page for FormsPage {
         let body = Rect::new(inner.x, inner.y, inner.width, inner.height - 2);
         let (l, r) = crate::pages::layout::columns(body, body.width / 2 - 2, 4);
 
-        // left: task section
+
         let mut y = l.y;
         if !compact {
             buf.set_string(l.x, y, "Task", t.faint().bg(bg));
@@ -230,7 +230,7 @@ impl Page for FormsPage {
         self.reviewer
             .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
 
-        // right: options section
+
         let mut y = r.y;
         if !compact {
             buf.set_string(r.x, y, "Options", t.faint().bg(bg));
@@ -261,7 +261,7 @@ impl Page for FormsPage {
             t.faint().bg(bg),
         );
 
-        // actions
+
         let ay = inner.bottom().saturating_sub(1);
         let widths = [self.submit.width(), self.reset.width()];
         let rects = row_layout(Rect::new(inner.x, ay, inner.width, 1), &widths, 2);

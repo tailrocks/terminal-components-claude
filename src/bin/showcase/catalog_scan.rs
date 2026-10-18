@@ -1,45 +1,45 @@
-//! Source scan behind the showcase coverage gate (`app_tests_catalog.rs`).
-//!
-//! A small token scanner, not a Rust parser: it strips comments, strings
-//! and character literals, splits the rest into identifiers and
-//! punctuation, and walks item headers with balanced-bracket skipping. It
-//! finds exactly what `junie_tui::catalog` must list:
-//!
-//! - `pub struct` and `pub enum` (not `pub(crate)`), and every variant of
-//!   a public enum;
-//! - builders: `pub fn`/`pub const fn` in an inherent `impl`, taking
-//!   `self` or `mut self` and returning `Self` (or the impl's own type);
-//! - functions: every other `pub fn`/`pub const fn`, free (in a module) or
-//!   in an inherent `impl` of a public type, except constructors (no
-//!   by-value `self`, returning `Self` or the impl's own type);
-//! - the public fields of `theme::Theme` (theme tokens).
-//!
-//! Private inline modules, `#[cfg(test)]` items, function bodies, trait
-//! impls and macro bodies are skipped. Out-of-line `pub mod x;` children
-//! are followed from the roots (`core`, `ui`, `widgets`, `theme`,
-//! `runtime`).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::collections::HashMap;
 use std::path::Path;
 
 use junie_tui::catalog::CapKind;
 
-/// One public item found in the source.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
     pub id: String,
     pub kind: CapKind,
-    /// `file:line`, for messages.
+
     pub at: String,
 }
 
-/// Structs whose public fields are capabilities (theme tokens).
+
 const TOKEN_STRUCTS: &[&str] = &["theme::Theme"];
 
-/// Module roots the gate scans (below `src/`).
+
 pub const ROOTS: &[&str] = &["core", "ui", "widgets", "theme", "runtime"];
 
-/// Scans the library source under `src_dir` from [`ROOTS`].
+
 pub fn scan_tree(src_dir: &Path) -> Vec<Item> {
     let mut raw = Vec::new();
     for root in ROOTS {
@@ -68,7 +68,7 @@ fn scan_module(dir: &Path, module: &[String], out: &mut Vec<RawItem>) {
     }
 }
 
-/// Scans one source text as module `module` (fixtures use this directly).
+
 pub fn scan_source(module: &[&str], src: &str) -> Vec<Item> {
     let module: Vec<String> = module.iter().map(|s| s.to_string()).collect();
     let mut raw = Vec::new();
@@ -79,17 +79,17 @@ pub fn scan_source(module: &[&str], src: &str) -> Vec<Item> {
 #[derive(Debug, Clone)]
 struct RawItem {
     module: Vec<String>,
-    /// For members: the impl or enum type; `None` for types.
+
     owner: Option<String>,
     name: String,
     kind: CapKind,
     at: String,
 }
 
-/// Builds ids. A builder or method in an `impl` outside the type's own
-/// module is filed under the module that defines the type when that is
-/// unambiguous. A method of a type that is not public (no `pub struct` or
-/// `pub enum` of that name) is not a capability.
+
+
+
+
 fn resolve(raw: Vec<RawItem>) -> Vec<Item> {
     let mut homes: HashMap<&str, Vec<&[String]>> = HashMap::new();
     for item in raw.iter().filter(|i| i.kind == CapKind::Type) {
@@ -130,7 +130,7 @@ fn resolve(raw: Vec<RawItem>) -> Vec<Item> {
     out
 }
 
-// ---------------------------------------------------------------- lexing
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Tok {
@@ -144,8 +144,8 @@ struct Token {
     line: usize,
 }
 
-/// Replaces comments, string and char literals with spaces (keeping
-/// newlines), so braces inside them never count.
+
+
 fn strip(src: &str) -> String {
     let c: Vec<char> = src.chars().collect();
     let mut out = String::with_capacity(src.len());
@@ -184,7 +184,7 @@ fn strip(src: &str) -> String {
             && raw_string_start(&c, i + 1).is_some()
         {
             let hashes = raw_string_start(&c, i + 1).unwrap_or(0);
-            // r, hashes, opening quote
+
             for _ in 0..(2 + hashes) {
                 out.push(' ');
             }
@@ -220,7 +220,7 @@ fn strip(src: &str) -> String {
                 }
             }
         } else if ch == '\'' {
-            // Char literal (`'x'`, `'\n'`, `'\u{..}'`) or a lifetime.
+
             if next == Some('\\') {
                 out.push(' ');
                 i += 1;
@@ -249,8 +249,8 @@ fn prev_is_ident(c: &[char], i: usize) -> bool {
     i > 0 && (c[i - 1].is_alphanumeric() || c[i - 1] == '_')
 }
 
-/// At `c[i]` (just after an `r`): `#…#"` or `"` opens a raw string;
-/// returns the number of hashes.
+
+
 fn raw_string_start(c: &[char], i: usize) -> Option<usize> {
     let mut n = 0;
     while c.get(i + n) == Some(&'#') {
@@ -298,7 +298,7 @@ fn tokenize(src: &str) -> Vec<Token> {
     out
 }
 
-// ---------------------------------------------------------------- parsing
+
 
 fn is_punct(t: &Token, c: char) -> bool {
     t.tok == Tok::Punct(c)
@@ -311,7 +311,7 @@ fn ident(t: &Token) -> Option<&str> {
     }
 }
 
-/// Index just past the bracket group opening at `toks[i]`.
+
 fn skip_group(toks: &[Token], i: usize) -> usize {
     let mut depth = 0i32;
     let mut j = i;
@@ -331,7 +331,7 @@ fn skip_group(toks: &[Token], i: usize) -> usize {
     toks.len()
 }
 
-/// Index just past an angle-bracket group opening at `toks[i]` (`<`).
+
 fn skip_angles(toks: &[Token], i: usize) -> usize {
     let mut depth = 0i32;
     let mut j = i;
@@ -360,8 +360,8 @@ fn skip_angles(toks: &[Token], i: usize) -> usize {
     toks.len()
 }
 
-/// The header of an item with its outer attributes removed, and whether
-/// one of them was `#[cfg(test)]`.
+
+
 fn split_attrs(header: &[Token]) -> (Vec<Token>, bool) {
     let mut out = Vec::new();
     let mut test = false;
@@ -395,7 +395,7 @@ enum Vis {
     Private,
 }
 
-/// Visibility and the index of the first token after it.
+
 fn visibility(h: &[Token]) -> (Vis, usize) {
     match h.first().and_then(ident) {
         Some("pub") if h.get(1).is_some_and(|t| is_punct(t, '(')) => {
@@ -406,8 +406,8 @@ fn visibility(h: &[Token]) -> (Vis, usize) {
     }
 }
 
-/// Skips the `const`/`async`/`unsafe`/`extern`/`default` qualifiers of a
-/// `fn` or `impl` starting at `i`.
+
+
 fn skip_quals(h: &[Token], mut i: usize) -> usize {
     loop {
         let here = h.get(i).and_then(ident);
@@ -456,8 +456,8 @@ fn scan_raw(module: &[String], src: &str, label: &str, out: &mut Vec<RawItem>) -
     ctx.children
 }
 
-/// The item headers in `toks[start..end]`: yields (header range, the index
-/// of the `{` or `;` that ends it).
+
+
 fn next_header(toks: &[Token], start: usize, end: usize) -> Option<(usize, usize)> {
     let mut j = start;
     while j < end {
@@ -470,8 +470,8 @@ fn next_header(toks: &[Token], start: usize, end: usize) -> Option<(usize, usize
     None
 }
 
-/// Walks module-level items. `top` is false inside an inline module (whose
-/// out-of-line children would be relative to it; we do not follow those).
+
+
 fn walk_items(
     toks: &[Token],
     start: usize,
@@ -535,21 +535,21 @@ fn walk_items(
                     walk_impl(toks, stop + 1, body_end - 1, module, &ty, ctx);
                 }
             }
-            // a free function (its body was skipped above)
+
             (Some("fn"), true) if vis == Vis::Pub => {
                 if let Some(n) = name {
                     ctx.push(module, None, n, CapKind::Function, line);
                 }
             }
-            // `const X: T = T { .. };` and the like: the brace was an
-            // initializer; the `;` after it reads as an empty header.
+
+
             _ => {}
         }
     }
 }
 
-/// The self type of an inherent impl header (`impl<..> Type<..>`); `None`
-/// for a trait impl.
+
+
 fn impl_type(h: &[Token]) -> Option<String> {
     let mut i = 1;
     if h.get(i).is_some_and(|t| is_punct(t, '<')) {
@@ -601,18 +601,18 @@ fn walk_impl(toks: &[Token], start: usize, end: usize, module: &[String], ty: &s
     }
 }
 
-/// What an inherent `pub fn` is, by its signature.
+
 #[derive(Debug, PartialEq, Eq)]
 enum FnShape {
-    /// `self` or `mut self` in, `Self` (or the impl's own type) out.
+
     Builder,
-    /// `Self` out without a by-value `self` (`new`, `&self -> Self`).
+
     Constructor,
-    /// Anything else: a method or an associated function.
+
     Other,
 }
 
-/// `<generics>? (params) -> ret`.
+
 fn fn_shape(sig: &[Token], ty: &str) -> FnShape {
     let mut i = 0;
     if sig.first().is_some_and(|t| is_punct(t, '<')) {
@@ -627,7 +627,7 @@ fn fn_shape(sig: &[Token], ty: &str) -> FnShape {
         Some("self") => !params.get(1).is_some_and(|t| is_punct(t, ':')),
         Some("mut") => {
             params.get(1).and_then(|t| ident(t)) == Some("self")
-                // `self: Box<Self>` and friends are not builders.
+
                 && !params.get(2).is_some_and(|t| is_punct(t, ':'))
         }
         _ => false,
@@ -657,7 +657,7 @@ fn fn_shape(sig: &[Token], ty: &str) -> FnShape {
     }
 }
 
-/// Splits `toks[start..end]` on top-level commas.
+
 fn segments(toks: &[Token], start: usize, end: usize, angles: bool) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut seg = start;

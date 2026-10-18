@@ -1,6 +1,6 @@
-//! Component implementations. Each widget is a plain state struct with
-//! `render` (draws + registers hit/focus regions) and small `on_*` handlers
-//! returning [`Outcome`](crate::core::event::Outcome).
+
+
+
 
 pub mod brand;
 pub mod breadcrumb;

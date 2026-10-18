@@ -1,7 +1,7 @@
-//! Stage rail: an ordered list of steps with a lifecycle state each. The
-//! rail knows nothing about what the steps mean; it draws the frontier,
-//! the completed count and one row per step, optionally as a focus stop
-//! with a cursor for detail selection.
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -50,7 +50,7 @@ impl StepState {
 pub struct Step {
     pub label: String,
     pub state: StepState,
-    /// Right-aligned meta: activity text or duration.
+
     pub meta: Option<String>,
 }
 
@@ -70,18 +70,18 @@ pub struct StepRail {
     pub steps: Vec<Step>,
     pub selectable: bool,
     pub cursor: usize,
-    /// The scrolled rows and the bar ([`Scrollable`]).
+
     pub scroll: ScrollPane,
     pub area: Rect,
-    /// Show the ordinal (`03`) before the label.
+
     pub numbered: bool,
-    /// Which keys move the cursor of a selectable rail (default
-    /// [`NavKeys::default`]).
+
+
     pub nav: NavKeys,
 }
 
 impl StepRail {
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -101,8 +101,8 @@ impl StepRail {
         }
     }
 
-    /// Override the app-wide vertical track-click policy
-    /// (`TrackClick::Page` pages toward the pointer).
+
+
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
         self
@@ -125,12 +125,12 @@ impl StepRail {
         }
     }
 
-    /// First step that is not finished: the frontier.
+
     pub fn frontier(&self) -> Option<usize> {
         self.steps.iter().position(|s| !s.state.terminal())
     }
 
-    /// (done, skipped, failed)
+
     pub fn counts(&self) -> (usize, usize, usize) {
         let c = |st| self.steps.iter().filter(|s| s.state == st).count();
         (
@@ -211,7 +211,7 @@ impl StepRail {
             let y = area.y + k as u16;
             let step = &self.steps[i];
             let rid = self.row_id(i);
-            // a read-only step list is inert: no hover, press or focus
+
             let mut s = if self.selectable {
                 ctx.child_state(self.id, rid, i == self.cursor)
             } else {
@@ -220,8 +220,8 @@ impl StepRail {
             s.focused = focused && i == self.cursor;
             let row = Rect::new(area.x, y, row_w, 1);
             let st = RowUi::paint(ctx, buf, row, s, RowLook::Bar, bg).style();
-            // the state glyph is a graphic on the row's plane (hover and
-            // press lift it): at 3:1 there at every colour level
+
+
             let plane = st.bg.unwrap_or(bg);
             let mark = |ink| st.fg(t.legible_mark(ink, plane));
             let (glyph, gstyle) = match step.state {
@@ -344,8 +344,8 @@ impl Navigable for StepRail {
     }
 }
 
-/// The rail's pointer gestures: a wheel or a bar press scrolls it; a
-/// completed click on a step is [`StepRail::on_click`].
+
+
 impl crate::core::pointer::MouseTarget for StepRail {
     type Action = ();
 
@@ -419,9 +419,9 @@ mod tests {
         assert_eq!(rest, pressed);
     }
 
-    /// A1: a step's state glyph reads on its row (3:1) in every state at
-    /// every level; at 16 colours a hovered row is xterm's DarkGray, where
-    /// the LightGreen spinner was 2.9:1 and the Green check 1.9:1.
+
+
+
     #[test]
     fn a_steps_state_glyph_reads_on_its_row_at_every_level() {
         use crate::core::{focus::FocusRing, hit::HitRegistry};
@@ -496,7 +496,7 @@ mod track_click_tests {
         r.scroll.offset
     }
 
-    /// The vertical bar follows the track-click policy (it always jumped).
+
     #[test]
     fn a_step_rail_track_click_can_page() {
         let page = pressed_at_the_bottom(Some(TrackClick::Page), TrackClick::Jump);

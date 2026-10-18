@@ -1,74 +1,74 @@
-//! Design tokens derived from junie.jetbrains.com.
-//!
-//! Evidence (computed styles / CSS custom properties on the live site):
-//! - canvas `#000000` (`--colors-bg: black`), chrome/panels `#111111`,
-//!   cards `#18181b` (`--color-card`, zinc-900), input surface `#27272a`
-//!   (`--color-input`, zinc-800), popover `#3f3f46` (zinc-700).
-//! - accent `#48e054` (`--colors-primary`), hover = accent at 80% over black
-//!   (`#3ab343`), tints = accent at 10–20% alpha.
-//! - text is an alpha ladder on white: 100% / 70% / 50% / 30%.
-//! - borders are white at 10% (subtle) and 30% (strong); selection uses a
-//!   2px white/green ring, never a colour flood.
-//! - destructive `#e44545` (red-400), warning `#f59e09`, info `#8787ff`.
-//!
-//! Everything in the UI goes through these tokens; rendering code never
-//! spells out an RGB value.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::ui::ctx::VisualState;
 
-/// How the cursor row of a list is marked. See [`Theme::cursor_row`].
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CursorStyle {
-    /// Highlight fill, no focus bar: for lists whose focus belongs to an
-    /// owner (popup lists under a search field, an editor, a select).
+
+
     #[default]
     Fill,
-    /// Focus bar plus the focused-row tint: for lists that are themselves
-    /// the focus stop.
+
+
     Bar,
 }
 
-/// A resolved interactive control: its body style and its gutter cell.
-/// Returned by [`Theme::interactive`].
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Interactive {
     pub style: Style,
     pub gutter: &'static str,
     pub gutter_style: Style,
-    /// The control sits on a coloured fill (a cursor row, a primary or a
-    /// destructive fill): secondary ink must use [`Theme::row_ink`].
+
+
     pub on_fill: bool,
 }
 
-/// A resolved list row (see [`Theme::cursor_row`]).
+
 pub type CursorRow = Interactive;
 
-/// The plane a control sits on. Every plane owns a rest → hover → pressed
-/// [`Ladder`]; see [`Theme::ladder`].
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Plane {
-    /// The page itself (`Theme::canvas`).
+
     Canvas,
-    /// Chrome and panels (`Theme::surface`).
+
     Surface,
-    /// Cards and dialogs (`Theme::surface_elevated`).
+
     Card,
-    /// Text field bodies (`Theme::field`).
+
     Field,
-    /// Raised controls: secondary buttons, chips, status chips
-    /// (`Theme::surface_overlay`).
+
+
     Raised,
-    /// Menus and popovers (`Theme::popover`).
+
     Popover,
-    /// The cursor row of a popup or menu list (`Theme::highlight`).
+
     Highlight,
-    /// The cursor row of a destructive menu item.
+
     HighlightDanger,
-    /// The accent fill of a primary control.
+
     Accent,
-    /// A destructive fill.
+
     Danger,
 }
 
@@ -86,8 +86,8 @@ impl Plane {
         Plane::Danger,
     ];
 
-    /// A coloured fill whose hue carries meaning (cursor, primary,
-    /// destructive): in monochrome it renders as reversed video.
+
+
     pub fn is_fill(self) -> bool {
         matches!(
             self,
@@ -95,8 +95,8 @@ impl Plane {
         )
     }
 
-    /// The plane one step up: where an active tab, an open menu title or a
-    /// raised control sits relative to its container.
+
+
     pub fn up(self) -> Plane {
         match self {
             Plane::Canvas | Plane::Surface | Plane::Card | Plane::Field => Plane::Raised,
@@ -106,41 +106,41 @@ impl Plane {
     }
 }
 
-/// What kind of interactive element is being resolved; selects its ink,
-/// its body plane and whether it carries a focus gutter.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
-    /// A row of a list, tree, table or form that is itself the focus stop.
+
     Row,
-    /// A list row whose cursor is marked per [`CursorStyle`].
+
     CursorRow(CursorStyle),
     Button(ButtonKind),
-    /// A tab; `selected` is the active tab.
+
     Tab,
-    /// A text-like clickable: menu-bar title, header link, overflow badge,
-    /// status item, `+`. `selected` is "open".
+
+
     Title,
-    /// A chip: filter chip, status chip, segment. `selected` is "on".
+
     Chip,
-    /// A close or remove glyph (`×`).
+
     Close,
-    /// A text field body (input, textarea, select field).
+
     Field,
-    /// A draggable thumb (scrollbar). Foreground only.
+
     Handle,
-    /// A draggable seam (splitter). Foreground only.
+
     Seam,
 }
 
 impl Kind {
-    /// Kinds that paint only a foreground glyph and keep the container's
-    /// background.
+
+
     pub fn is_glyph(self) -> bool {
         matches!(self, Kind::Handle | Kind::Seam)
     }
 }
 
-/// Rest → hover → pressed colours of one plane (or one glyph ink).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ladder {
     pub rest: Color,
@@ -157,7 +157,7 @@ impl Ladder {
         }
     }
 
-    /// The step for a state: pressed wins over hover.
+
     pub fn step(&self, hovered: bool, pressed: bool) -> Color {
         if pressed {
             self.pressed
@@ -173,9 +173,9 @@ impl Ladder {
     }
 }
 
-/// Every plane's ladder plus the glyph inks of handles and seams. All
-/// values are explicit per colour level (see [`Theme::for_level`]); never
-/// derived by nearest-match at render time.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ladders {
     pub canvas: Ladder,
@@ -188,46 +188,46 @@ pub struct Ladders {
     pub highlight_danger: Ladder,
     pub accent: Ladder,
     pub danger: Ladder,
-    /// Scrollbar thumb ink: rest is a neutral grey, hover a lighter grey,
-    /// pressed (held or dragged) the phosphor accent. The thumb keeps one
-    /// glyph in every state, so colour carries the state (plus
-    /// [`StateModifiers::thumb_hover`] / [`StateModifiers::thumb_pressed`]
-    /// where colour cannot).
+
+
+
+
+
     pub handle: Ladder,
-    /// Splitter seam ink.
+
     pub seam: Ladder,
 }
 
-/// Modifiers that carry state where colour cannot (16 colours, `NO_COLOR`).
-/// Per colour level; configurable through [`Theme::mods`].
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StateModifiers {
-    /// Added to every hovered control.
+
     pub hover: Modifier,
-    /// Added on hover when the plane's hover colour equals its rest colour.
+
     pub hover_flat: Modifier,
-    /// Added to every pressed control on a neutral plane.
+
     pub pressed: Modifier,
-    /// Added to a coloured fill (cursor, primary, destructive) at rest.
+
     pub fill: Modifier,
-    /// Pressed on a fill: [`Self::fill`] is removed and this is added.
+
     pub pressed_fill: Modifier,
-    /// Added to a focused control (with the `▎` gutter where it has one).
+
     pub focused: Modifier,
-    /// Added to a disabled control.
+
     pub disabled: Modifier,
-    /// Added to a hovered scrollbar thumb. Empty where the handle ladder
-    /// carries hover in colour; `BOLD` in monochrome (WCAG 1.4.1: colour
-    /// alone cannot carry state there).
+
+
+
     pub thumb_hover: Modifier,
-    /// Added to a pressed (held, dragged) scrollbar thumb. Empty where the
-    /// ladder's accent step carries it; `REVERSED` in monochrome.
+
+
     pub thumb_pressed: Modifier,
 }
 
 impl StateModifiers {
-    /// Truecolor and 256 colours: the planes carry state, weight marks
-    /// pressed and focus.
+
+
     pub const COLOR: Self = Self {
         hover: Modifier::empty(),
         hover_flat: Modifier::UNDERLINED,
@@ -239,8 +239,8 @@ impl StateModifiers {
         thumb_hover: Modifier::empty(),
         thumb_pressed: Modifier::empty(),
     };
-    /// 16 colours: four greys cannot carry three steps, so pressed is
-    /// reversed video and hover on a grey plane underlines.
+
+
     pub const ANSI16: Self = Self {
         hover: Modifier::empty(),
         hover_flat: Modifier::UNDERLINED,
@@ -252,8 +252,8 @@ impl StateModifiers {
         thumb_hover: Modifier::empty(),
         thumb_pressed: Modifier::empty(),
     };
-    /// `NO_COLOR`: only modifiers survive. Hover underlines, pressed is
-    /// reversed, fills are reversed and pressing one drops the reverse.
+
+
     pub const MONO: Self = Self {
         hover: Modifier::UNDERLINED,
         hover_flat: Modifier::UNDERLINED,
@@ -267,9 +267,9 @@ impl StateModifiers {
     };
 }
 
-/// Explicit per-level adjustments applied after the built-in token tables
-/// by [`Theme::for_level_with`]: pin a token or a ladder for one colour
-/// level instead of relying on the defaults.
+
+
+
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LevelOverrides {
     pub truecolor: Option<fn(&mut Theme)>,
@@ -279,9 +279,9 @@ pub struct LevelOverrides {
 }
 
 impl LevelOverrides {
-    /// Mono draws with [`Glyphs::ASCII`] and [`Strings::ASCII`]; every
-    /// other level keeps its defaults. For a terminal that has no colour
-    /// and no Unicode either.
+
+
+
     pub const ASCII_MONO: Self = Self {
         truecolor: None,
         ansi256: None,
@@ -299,13 +299,13 @@ impl LevelOverrides {
     }
 }
 
-/// A [`LevelOverrides`] hook that switches the theme to [`Glyphs::ASCII`].
+
 pub fn ascii_glyphs(t: &mut Theme) {
     t.glyphs = Glyphs::ASCII;
 }
 
-/// A [`LevelOverrides`] hook that switches the theme to 7-bit output:
-/// [`Glyphs::ASCII`] and [`Strings::ASCII`].
+
+
 pub fn ascii(t: &mut Theme) {
     t.glyphs = Glyphs::ASCII;
     t.strings = Strings::ASCII;
@@ -352,7 +352,7 @@ impl ColorLevel {
     }
 }
 
-/// Raw palette. Values are the Junie references (see module docs).
+
 mod palette {
     use ratatui::style::Color;
 
@@ -371,54 +371,54 @@ mod palette {
     pub const INPUT_HOVER: Color = rgb(0x2f2f34);
     pub const OVERLAY: Color = rgb(0x27272a);
     pub const POPOVER: Color = rgb(0x3f3f46);
-    /// Menu selection: a cool blue that does not compete with the accent.
+
     pub const HIGHLIGHT: Color = rgb(0x2f5aa8);
     pub const WHITE: Color = rgb(0xffffff);
     pub const WHITE_70: Color = rgb(0xb3b3b3);
     pub const WHITE_50: Color = rgb(0x808080);
     pub const WHITE_30: Color = rgb(0x4d4d4d);
     pub const WHITE_15: Color = rgb(0x262626);
-    /// Faint metadata: at least 3:1 on every dark plane (the 30% step was
-    /// 2.1:1 on a card), and one step above the disabled grey.
+
+
     pub const WHITE_43: Color = rgb(0x737373);
-    /// Subtle borders: visible on the canvas, surfaces and cards.
+
     pub const WHITE_23: Color = rgb(0x3a3a3a);
-    /// Scrollbar track: a dotted rail between the subtle and the strong
-    /// border greys, so it is neither, and well below the thumb at rest.
+
+
     pub const WHITE_28: Color = rgb(0x474747);
-    /// Success: its own green, apart from the accent that marks focus.
+
     pub const SUCCESS: Color = rgb(0x3fb950);
     pub const GREEN: Color = rgb(0x48e054);
     pub const GREEN_80: Color = rgb(0x3ab343);
     pub const GREEN_60: Color = rgb(0x2e9a38);
     pub const GREEN_10: Color = rgb(0x0a1c0c);
     pub const ON_GREEN: Color = rgb(0x19191c);
-    /// Error text and glyphs: ≥ 4.5:1 on canvas, surface, card, field and
-    /// raised (the old #e44545 was 4.4:1 on a card).
+
+
     pub const RED: Color = rgb(0xf05d5d);
-    /// Error text lifted for the popover plane, where [`RED`] is 3.2:1.
+
     pub const RED_STRONG: Color = rgb(0xff8a8a);
-    /// Success lifted for the popover plane, where [`SUCCESS`] is 4.1:1.
+
     pub const SUCCESS_STRONG: Color = rgb(0x56d364);
-    /// Muted text: ≥ 4.5:1 on canvas, surface, card and field, and the
-    /// same grey as its 256-colour pin (245).
+
+
     pub const MUTED: Color = rgb(0x8a8a8a);
     pub const RED_20: Color = rgb(0x2e0f0f);
-    /// Soft rose: a destructive label at rest on a neutral plane.
+
     pub const RED_SOFT: Color = rgb(0xe8a0a0);
-    /// Deep red: the highlight of a destructive menu row under the cursor.
+
     pub const RED_45: Color = rgb(0x7a2a2a);
     pub const AMBER: Color = rgb(0xf59e09);
-    /// Information, links and running labels: a light blue in the family
-    /// of the highlight fill, apart from the accent green.
+
+
     pub const BLUE_INFO: Color = rgb(0x79b8ff);
-    /// Syntax: string literals (teal).
+
     pub const SYNTAX_STRING: Color = rgb(0x8bd5ca);
-    /// Syntax: numbers, booleans and NULL (lavender).
+
     pub const SYNTAX_LITERAL: Color = rgb(0xc6a0f6);
 
-    // Interactive ladders: rest → hover → pressed per plane. Adjacent steps
-    // are at least 1.2:1 apart so each state reads on its own.
+
+
     pub const CANVAS_HOVER: Color = rgb(0x1c1c1f);
     pub const CANVAS_PRESSED: Color = rgb(0x303036);
     pub const CHROME_HOVER: Color = rgb(0x26262a);
@@ -434,20 +434,20 @@ mod palette {
     pub const HIGHLIGHT_PRESSED: Color = rgb(0x244a8c);
     pub const RED_45_HOVER: Color = rgb(0x8c3030);
     pub const RED_45_PRESSED: Color = rgb(0x5a1f1f);
-    /// Destructive fill: dark enough for white text (≥ 4.5:1) at every step.
+
     pub const RED_FILL: Color = rgb(0xd93636);
     pub const RED_FILL_HOVER: Color = rgb(0xc22e2e);
     pub const RED_FILL_PRESSED: Color = rgb(0x9e2424);
-    /// A destructive label at full strength on a raised or popover plane.
+
     pub const RED_LABEL: Color = rgb(0xff6b6b);
-    /// Focused-selected tint and its hover step.
+
     pub const GREEN_25: Color = rgb(0x173f1c);
     pub const GREEN_35: Color = rgb(0x1e5024);
-    /// Text selection and grid ranges.
+
     pub const BLUE_20: Color = rgb(0x1f3460);
 }
 
-/// Semantic tokens. Field names are the vocabulary used everywhere else.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Theme {
     pub level: ColorLevel,
@@ -459,28 +459,28 @@ pub struct Theme {
     pub field: Color,
     pub field_hover: Color,
     pub popover: Color,
-    /// The cursor row of an anchored menu: a hue reserved for transient
-    /// command lists so the accent keeps its meaning.
+
+
     pub highlight: Color,
-    /// The cursor row of a destructive menu item: a deep red fill.
+
     pub highlight_danger: Color,
-    /// A destructive label at rest on a neutral plane: desaturated so it
-    /// sits in tone with grey rather than shouting.
+
+
     pub error_soft: Color,
 
     pub border_subtle: Color,
     pub border_strong: Color,
-    /// Scrollbar track ink ([`Self::scrollbar_track`]): the dotted rail
-    /// under the thumb. Its own token, apart from [`Self::border_subtle`],
-    /// so a track never reads as a panel border, and clearly fainter than
-    /// the thumb at rest ([`Ladders::handle`]).
+
+
+
+
     pub scroll_track: Color,
 
     pub text_primary: Color,
     pub text_secondary: Color,
     pub text_muted: Color,
     pub text_faint: Color,
-    /// One step below faint: dimmed backdrops only.
+
     pub text_ghost: Color,
     pub text_on_accent: Color,
 
@@ -496,65 +496,65 @@ pub struct Theme {
     pub error_bg: Color,
     pub warning: Color,
     pub success: Color,
-    /// Information: links, running labels, the healthy run of a meter,
-    /// the development environment.
+
+
     pub info: Color,
-    /// Link ink ([`Self::link`] adds the underline on hover and focus).
+
     pub link: Color,
-    /// Error text on planes where [`Self::error`] falls under 4.5:1 (the
-    /// popover). [`Self::tone_on`] and [`Self::legible`] pick it.
+
+
     pub error_strong: Color,
-    /// Success on planes where [`Self::success`] falls under 4.5:1.
+
     pub success_strong: Color,
-    /// Syntax: keywords (bold). Only in code ([`Self::syntax`]).
+
     pub syntax_keyword: Color,
-    /// Syntax: string literals and JSON values.
+
     pub syntax_string: Color,
-    /// Syntax: numbers, booleans and NULL (italic).
+
     pub syntax_literal: Color,
 
-    /// Text selection and grid range tint (see [`Self::selection`]).
+
     pub selection_bg: Color,
-    /// Hover step of the focused-selected tint ([`Self::accent_bg`]): hover
-    /// keeps the selection hue instead of replacing it.
+
+
     pub accent_bg_hover: Color,
-    /// A destructive label at rest on a raised or popover plane (danger
-    /// buttons): full strength, readable at ≥ 4.5:1.
+
+
     pub danger_label: Color,
-    /// Rest → hover → pressed per plane. See [`Theme::interactive`].
+
     pub ladders: Ladders,
-    /// Modifiers that carry state at this colour level.
+
     pub mods: StateModifiers,
-    /// Whether the focused-selected row carries the `accent_bg` tint. Off
-    /// at 16 colours and in monochrome, where the tint would collide with
-    /// a hover or pressed plane; the selection marker glyph carries it.
+
+
+
     pub tint_selection: bool,
-    /// Footer hint bar layout: alignment, the status's share of the row,
-    /// compact mode and which keys are never dropped.
+
+
     pub hintbar: HintBarStyle,
-    /// Gaps and container insets shared by every component.
+
     pub spacing: Spacing,
-    /// Every glyph a widget draws: focus bar, markers, chevrons, checks,
-    /// scrollbars, spinner and borders. Default [`Glyphs::UNICODE`].
+
+
     pub glyphs: Glyphs,
-    /// The library's own copy (button labels, empty and loading states,
-    /// validation messages, widget hints). Default [`Strings::DEFAULT`].
+
+
     pub strings: Strings,
-    /// How a focused text control starts editing, for every control that
-    /// does not set its own (`TextInput`, `TextArea`, `CodeEditor`,
-    /// `Dialog::prompt`). Default [`EditEntry::Immediate`](crate::core::edit::EditEntry::Immediate) (macOS).
+
+
+
     pub edit_entry: crate::core::edit::EditEntry,
-    /// The control-key preset of text fields that do not set their own.
-    /// Default `None`: the client platform's preset
-    /// ([`FieldKeys::for_platform`](crate::core::edit::FieldKeys::for_platform):
-    /// the Cocoa bindings on macOS, Desktop elsewhere). An app profile
-    /// sets one for every platform ([`Self::with_field_keys`]).
+
+
+
+
+
     pub field_keys: Option<crate::core::edit::FieldKeys>,
 }
 
 impl Theme {
-    /// The library's default [`Self::edit_entry`]: what every text control
-    /// starts from before its first render reads the theme.
+
+
     pub const DEFAULT_EDIT_ENTRY: crate::core::edit::EditEntry =
         crate::core::edit::EditEntry::Immediate;
 
@@ -627,20 +627,20 @@ impl Theme {
         }
     }
 
-    /// Junie theme resolved for the given colour capability.
+
     pub fn for_level(level: ColorLevel) -> Self {
         Self::for_level_with(level, &LevelOverrides::default())
     }
 
-    /// This theme with the footer hints centred
-    /// (`hintbar.align = HintAlign::Center`) on every screen, set once
-    /// instead of per hint layer. The default is left-aligned.
+
+
+
     pub fn centred_hints(mut self) -> Self {
         self.hintbar.align = HintAlign::Center;
         self
     }
 
-    /// [`Self::for_level`] plus explicit per-level adjustments.
+
     pub fn for_level_with(level: ColorLevel, overrides: &LevelOverrides) -> Self {
         let mut t = Self::junie();
         t.level = level;
@@ -654,7 +654,7 @@ impl Theme {
         t
     }
 
-    /// Nearest-match fallback for every token, ladder and modifier set.
+
     fn downgrade_all(&mut self, level: ColorLevel) {
         macro_rules! map {
             ($($f:ident),*) => { $( self.$f = downgrade(self.$f, level); )* };
@@ -728,9 +728,9 @@ impl Theme {
         self.tint_selection = matches!(level, ColorLevel::TrueColor | ColorLevel::Ansi256);
     }
 
-    /// Hand-picked tokens for reduced colour levels. Nearest-match collapses
-    /// dark planes onto one grey and dark saturated fills onto greys, so
-    /// every token a state depends on is pinned here explicitly.
+
+
+
     fn apply_level_table(&mut self, level: ColorLevel) {
         match level {
             ColorLevel::TrueColor => {}
@@ -772,7 +772,7 @@ impl Theme {
         self.success = i(71);
         self.success_strong = i(77);
         self.disabled = i(239);
-        // 203 keeps error text ≥ 4.5:1 on the raised plane (167 was 4.1:1)
+
         self.error = i(203);
         self.error_strong = i(210);
         self.warning = i(214);
@@ -815,14 +815,14 @@ impl Theme {
         self.highlight_danger = Red;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
-        // the only grey below the thumb's Gray: the dotted glyph, not the
-        // colour, keeps the track apart from a border here
+
+
         self.scroll_track = DarkGray;
         self.text_primary = White;
         self.text_secondary = Gray;
         self.text_muted = Gray;
-        // faint text must stay readable on the grey planes; hierarchy is
-        // carried by weight at this level
+
+
         self.text_faint = Gray;
         self.text_ghost = DarkGray;
         self.text_on_accent = Black;
@@ -831,9 +831,9 @@ impl Theme {
         self.accent_pressed = Green;
         self.accent_bg = Black;
         self.accent_bg_hover = DarkGray;
-        // the highlight fill is Blue: text selection is reversed video
-        // instead ([`Theme::selection`]), so a menu cursor and a selection
-        // never look alike
+
+
+
         self.selection_bg = Black;
         self.accent_bg_subtle = Black;
         self.focus = LightGreen;
@@ -869,9 +869,9 @@ impl Theme {
 
     fn apply_mono(&mut self) {
         use Color::*;
-        // the backend strips every colour under NO_COLOR; these values only
-        // keep planes and inks apart for code that compares them, and every
-        // state is carried by `StateModifiers::MONO`
+
+
+
         let flat = |c| Ladder::new(c, c, c);
         self.canvas = Black;
         self.surface = Black;
@@ -884,8 +884,8 @@ impl Theme {
         self.highlight_danger = DarkGray;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
-        // the only grey below the thumb's Gray: the dotted glyph, not the
-        // colour, keeps the track apart from a border here
+
+
         self.scroll_track = DarkGray;
         self.text_primary = White;
         self.text_secondary = Gray;
@@ -906,9 +906,9 @@ impl Theme {
         self.disabled = DarkGray;
         self.error = White;
         self.error_strong = White;
-        // NO_COLOR strips the hues: glyphs and modifiers carry the status,
-        // link and syntax roles (status glyphs, the link underline, bold
-        // keywords, italic literals)
+
+
+
         self.error_soft = White;
         self.danger_label = White;
         self.error_bg = Black;
@@ -928,49 +928,49 @@ impl Theme {
         };
     }
 
-    /// Replace one plane's ladder.
+
     pub fn with_ladder(mut self, plane: Plane, ladder: Ladder) -> Self {
         *self.ladder_mut(plane) = ladder;
         self
     }
 
-    /// The same theme drawing with `glyphs` (for example [`Glyphs::ASCII`]
-    /// on a terminal without Unicode).
+
+
     pub const fn with_glyphs(mut self, glyphs: Glyphs) -> Self {
         self.glyphs = glyphs;
         self
     }
 
-    /// The same theme with the library copy `strings` (a translation, or
-    /// [`Strings::ASCII`]).
+
+
     pub const fn with_strings(mut self, strings: Strings) -> Self {
         self.strings = strings;
         self
     }
 
-    /// The same theme with `entry` as every text control's default
-    /// [`EditEntry`](crate::core::edit::EditEntry).
+
+
     pub const fn with_edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
         self.edit_entry = entry;
         self
     }
 
-    /// The same theme with `keys` as every text field's default
-    /// [`FieldKeys`](crate::core::edit::FieldKeys) preset.
+
+
     pub const fn with_field_keys(mut self, keys: crate::core::edit::FieldKeys) -> Self {
         self.field_keys = Some(keys);
         self
     }
 
-    /// Replace the state modifiers (for example [`StateModifiers::MONO`]
-    /// on a colour terminal whose user wants state carried by weight and
-    /// reverse video too).
+
+
+
     pub fn with_state_modifiers(mut self, mods: StateModifiers) -> Self {
         self.mods = mods;
         self
     }
 
-    // --- base styles -------------------------------------------------------
+
 
     pub fn base(&self) -> Style {
         Style::new().fg(self.text_primary).bg(self.canvas)
@@ -1036,10 +1036,10 @@ impl Theme {
         })
     }
 
-    /// Style for a backdrop cell under a modal: surfaces stay so the page
-    /// keeps its shape, every colour collapses to the faint text tier, and
-    /// any coloured fill (accent, error, selection tint, reversed cursor)
-    /// drops to a neutral overlay.
+
+
+
+
     pub fn backdrop(&self, style: Style) -> Style {
         let bg = match style.bg {
             Some(c) if c == self.canvas || c == self.surface || c == self.surface_elevated => c,
@@ -1047,9 +1047,9 @@ impl Theme {
             Some(_) => self.surface_overlay,
             None => self.canvas,
         };
-        // scale the alpha ladder instead of collapsing it: hierarchy survives
-        // a dark plane under the cell: canvas-coloured ink there is a blank,
-        // not text; on any lighter fill it is reversed text and must stay
+
+
+
         let dark_plane = style.bg.is_none_or(|c| {
             [
                 self.canvas,
@@ -1060,11 +1060,11 @@ impl Theme {
             ]
             .contains(&c)
         });
-        // Preserve cells with no visible foreground when dimming a plane.
-        // A "dark" plane token can still be a light fill at a reduced
-        // level (16 colours draw the raised plane DarkGray, with canvas
-        // ink on it for a selected tab or a button): ink that reads on
-        // its plane is text, never a blank.
+
+
+
+
+
         let reads = |fg: Color, bg: Color| contrast_ratio(fg, bg).is_some_and(|r| r >= 3.0);
         let plane = style.bg.unwrap_or(self.canvas);
         let blank = match style.fg {
@@ -1075,9 +1075,9 @@ impl Theme {
         let fg = match style.fg {
             _ if blank => bg,
             Some(c) if c == self.canvas || c == self.surface => self.text_muted,
-            // focus and accent cues (an active tab rule, a selection
-            // marker) drop to the faint tier: under a modal nothing on the
-            // page may still read as "here" or "active"
+
+
+
             Some(c) if c == self.accent || c == self.focus => self.text_faint,
             Some(c) if c == self.text_primary || c == self.error || c == self.warning => {
                 self.text_muted
@@ -1085,10 +1085,10 @@ impl Theme {
             Some(c) if c == self.text_secondary || c == self.text_on_accent => self.text_faint,
             _ => self.text_ghost,
         };
-        // Dimming keeps the hierarchy but never erases text: ink that read
-        // on its own plane (3:1, the faint floor) still reads on the
-        // backdrop plane, stepping up ghost → faint → muted. Ink that was
-        // already decoration (a ghost rule, a dotted track) stays dim.
+
+
+
+
         let fg = match style.fg {
             Some(c) if !blank && reads(c, plane) && !reads(fg, bg) => {
                 [self.text_faint, self.text_muted, self.text_secondary]
@@ -1098,9 +1098,9 @@ impl Theme {
             }
             _ => fg,
         };
-        // 16 colours and monochrome have no tiers left to dim through: the
-        // ladder lands on the backdrop's own grey. Keep a readable ink and
-        // dim it with the intensity attribute instead.
+
+
+
         if !blank && (fg == bg || matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono)) {
             let ink = if self.text_muted != bg {
                 self.text_muted
@@ -1112,13 +1112,13 @@ impl Theme {
         Style::new().fg(fg).bg(bg)
     }
 
-    // --- component resolvers ----------------------------------------------
-    //
-    // All resolvers take the container background so a control looks right
-    // on the canvas, on a surface, or inside a dialog.
 
-    /// Disabled text uses dim intensity in monochrome, where colour alone
-    /// cannot distinguish an unavailable control.
+
+
+
+
+
+
     pub fn disabled_style(&self) -> Style {
         let style = Style::new().fg(self.disabled);
         if self.level == ColorLevel::Mono {
@@ -1128,14 +1128,14 @@ impl Theme {
         }
     }
 
-    // --- interactive state model -----------------------------------------
-    //
-    // One resolver for every clickable: rest, hover and pressed walk the
-    // plane's ladder; focus is the `▎` gutter plus weight; selection is a
-    // marker glyph plus (on the focused list only) the accent tint;
-    // disabled ignores hover and press. Widgets never pick state colours.
 
-    /// The ladder of one plane.
+
+
+
+
+
+
+
     pub fn ladder(&self, plane: Plane) -> Ladder {
         let l = &self.ladders;
         match plane {
@@ -1168,9 +1168,9 @@ impl Theme {
         }
     }
 
-    /// The plane a container background belongs to. Accepts the plane
-    /// tokens and any step of their ladders (a control inside a hovered
-    /// row). A colour that is no plane is a caller bug.
+
+
+
     pub fn plane_of(&self, bg: Color) -> Plane {
         let tokens = [
             (self.canvas, Plane::Canvas),
@@ -1184,7 +1184,7 @@ impl Theme {
             (self.highlight_danger, Plane::HighlightDanger),
             (self.accent, Plane::Accent),
             (self.error, Plane::Danger),
-            // tinted rows: controls on them read as on the card
+
             (self.accent_bg, Plane::Card),
             (self.accent_bg_hover, Plane::Card),
             (self.accent_bg_subtle, Plane::Card),
@@ -1203,12 +1203,12 @@ impl Theme {
         Plane::Canvas
     }
 
-    /// Resolve an interactive element of `kind` in state `s` sitting on
-    /// `plane` (its container). States apply in a fixed order: disabled
-    /// (wins, ignores hover and press), pressed, hover, selected, focused.
+
+
+
     pub fn interactive(&self, kind: Kind, s: VisualState, plane: Plane) -> Interactive {
         let m = self.mods;
-        // the plane the control's own body paints
+
         let body = match kind {
             Kind::Button(ButtonKind::Primary) => Plane::Accent,
             Kind::Button(ButtonKind::Subtle) => plane,
@@ -1227,8 +1227,8 @@ impl Theme {
         let glyph = kind.is_glyph();
 
         if s.disabled {
-            // the kind's rest plane, never a fill: a disabled primary is a
-            // grey control, not a dim green one
+
+
             let rest = if body.is_fill() {
                 match kind {
                     Kind::Button(_) => self.ladder(Plane::Raised).rest,
@@ -1241,15 +1241,15 @@ impl Theme {
             let mut fg = self.disabled;
             let mut dim = m.disabled;
             if fg == bg {
-                // a grey plane at 16 colours: the disabled grey is the plane
-                // itself, so keep the plane and dim a readable ink instead
+
+
                 fg = self.text_muted;
                 dim |= Modifier::DIM;
             }
             let mut style = Style::new().fg(fg).add_modifier(dim);
             if glyph {
-                // a glyph keeps the container's plane; dim intensity tells
-                // it from a seam at rest
+
+
                 style = style.add_modifier(Modifier::DIM);
             } else {
                 style = style.bg(bg);
@@ -1263,10 +1263,10 @@ impl Theme {
         }
 
         if kind == Kind::Handle {
-            // a scrollbar thumb keeps one glyph in every state: rest is the
-            // neutral step, hover the lighter one, pressed the accent.
-            // Focus does not light it (the `▎` is the only focus cue); in
-            // monochrome the state modifiers carry hover and press
+
+
+
+
             let lad = self.ladders.handle;
             let mut style = Style::new().fg(lad.step(s.hovered, s.pressed));
             if s.pressed {
@@ -1284,8 +1284,8 @@ impl Theme {
 
         if glyph {
             let lad = self.ladders.seam;
-            // focus raises the ink one step and hover one more; pressed is
-            // the top step plus weight
+
+
             let fg = if s.pressed {
                 lad.pressed
             } else if s.hovered {
@@ -1322,7 +1322,7 @@ impl Theme {
         } else {
             (lad.rest, lad.hover)
         };
-        // a destructive button presses into the danger fill
+
         let danger_press = kind == Kind::Button(ButtonKind::Danger) && s.pressed;
         let mut bg = rest;
         if s.pressed {
@@ -1345,7 +1345,7 @@ impl Theme {
             }
         }
 
-        // ink
+
         let lifted = s.hovered || s.pressed || s.focused;
         let mut fg = match kind {
             Kind::Row | Kind::CursorRow(_) | Kind::Field => {
@@ -1386,7 +1386,7 @@ impl Theme {
         }
         fg = self.legible(fg, bg);
 
-        // weight: focus, the always-bold fills and the active tab
+
         let weighted = match kind {
             Kind::Button(ButtonKind::Primary) => true,
             Kind::CursorRow(CursorStyle::Fill) => fill,
@@ -1407,12 +1407,12 @@ impl Theme {
         let gutter_fg = if !bar {
             bg
         } else if fill || danger_press {
-            // on a fill the bar takes the fill's ink: the accent green on
-            // a green or red fill is unreadable
+
+
             fg
         } else {
-            // the bar is a graphic: at 3:1 on its plane (at 16 colours the
-            // accent is 2.9:1 on the DarkGray raised plane)
+
+
             self.legible_mark(self.focus, bg)
         };
         Interactive {
@@ -1423,15 +1423,15 @@ impl Theme {
         }
     }
 
-    /// `fg` if it reads on `bg` (≥ 4.5:1). Otherwise the closest step that
-    /// does: an error or success hue takes its strong step
-    /// ([`Self::error_strong`], [`Self::success_strong`]); a text-ladder
-    /// ink steps up the ladder (faint → muted → secondary), never jumping
-    /// to primary, so a faint segment does not become the brightest thing
-    /// on a bar. Only when no step reads (a coloured fill) does it fall
-    /// back to the most legible of the primary and on-accent inks. Colours
-    /// the terminal resolves (named and indexed) are measured against the
-    /// xterm defaults.
+
+
+
+
+
+
+
+
+
     pub fn legible(&self, fg: Color, bg: Color) -> Color {
         let Some(c) = contrast_ratio(fg, bg) else {
             return fg;
@@ -1466,14 +1466,14 @@ impl Theme {
             .0
     }
 
-    /// Ink for a graphic mark (a spinner, a state dot, a check) on `bg`:
-    /// `fg` if it stands off the plane at the non-text minimum (3:1, WCAG
-    /// 1.4.11). Otherwise the same hue's bright step where the terminal
-    /// palette has one that does (Yellow → LightYellow), the strong step of
-    /// an error or success hue, and only then primary text (or the
-    /// on-accent ink on a light fill). The glyph keeps its shape, so a mark
-    /// that loses its hue on a grey plane still reads as itself. Colours the
-    /// terminal resolves are measured against the xterm defaults.
+
+
+
+
+
+
+
+
     pub fn legible_mark(&self, fg: Color, bg: Color) -> Color {
         const MARK: f64 = 3.0;
         let reads = |ink: Color| contrast_ratio(ink, bg).is_none_or(|r| r >= MARK);
@@ -1505,13 +1505,13 @@ impl Theme {
             .0
     }
 
-    /// Secondary text beside a label of ink `label` on `bg` (a tab's
-    /// prefix, a count beside a chip label): `ink` stepped up the text
-    /// ladder until it reads at 4.5:1 ([`Self::legible`]). Where no ladder
-    /// step reads (the 16-colour grey plane, where xterm's DarkGray leaves
-    /// every grey under 4.5:1) it takes the label's own ink, so the label
-    /// and its companion read alike and hierarchy rides on weight, as on a
-    /// cursor row ([`Self::row_ink`]).
+
+
+
+
+
+
+
     pub fn beside_label(&self, ink: Color, bg: Color, label: Color) -> Color {
         let reads = |c: Color| contrast_ratio(c, bg).is_none_or(|r| r >= 4.5);
         if reads(ink) {
@@ -1525,13 +1525,13 @@ impl Theme {
             .unwrap_or(label)
     }
 
-    /// The frame ink of a floating surface (a menu, a popover) drawn on
-    /// `bg`. At truecolor and 256 colours the subtle border: the lifted
-    /// plane carries the edge and the frame stays soft, as a macOS menu's
-    /// does. At 16 colours and `none` the popover plane and the subtle
-    /// border are the same `DarkGray`, so the frame would vanish; there it
-    /// takes the first of the strong border, muted and primary inks that
-    /// stands off the plane at 3:1 (WCAG 1.4.11).
+
+
+
+
+
+
+
     pub fn frame_on(&self, bg: Color) -> Color {
         let subtle = self.border_subtle;
         if matches!(self.level, ColorLevel::TrueColor | ColorLevel::Ansi256) && subtle != bg {
@@ -1549,32 +1549,32 @@ impl Theme {
         .unwrap_or(self.text_primary)
     }
 
-    /// Row-like control (nav item, list item, table row, tree node).
+
     pub fn row(&self, s: VisualState, bg: Color) -> Style {
         self.interactive(Kind::Row, s, self.plane_of(bg)).style
     }
 
-    /// A row of a list whose keyboard focus belongs to something else (a
-    /// popup list driven by a search field, an editor or a select field).
-    /// With [`CursorStyle::Fill`] the cursor row is a highlight fill and
-    /// carries no focus bar, so the owner's `▎` stays the only focus
-    /// indicator on screen; [`CursorStyle::Bar`] is the in-page list look.
+
+
+
+
+
     pub fn cursor_row(&self, s: VisualState, bg: Color, cursor: CursorStyle) -> CursorRow {
         self.interactive(Kind::CursorRow(cursor), s, self.plane_of(bg))
     }
 
-    /// Secondary ink (details, groups, tags, kind glyphs) on a row from
-    /// [`Self::cursor_row`]: muted tones are unreadable on the highlight
-    /// fill, so there they become primary text and keep hierarchy by
-    /// weight instead.
+
+
+
+
     pub fn row_ink(&self, row: &CursorRow, ink: Color) -> Color {
         if row.on_fill { self.text_primary } else { ink }
     }
 
-    /// Ink for a chosen-value mark (a checked box, the on radio, a selected
-    /// node): the accent only while its control has keyboard focus, primary
-    /// text otherwise, so an active-but-unfocused value never competes
-    /// with the one focus indicator.
+
+
+
+
     pub fn chosen(&self, focused: bool) -> Color {
         if focused {
             self.accent
@@ -1583,19 +1583,19 @@ impl Theme {
         }
     }
 
-    /// One ladder step up from `bg`: rest lifts to hover, hover to pressed.
-    /// Prefer [`Self::interactive`], which picks the step from the state.
+
+
     pub fn lift(&self, bg: Color) -> Color {
         let l = self.ladder(self.plane_of(bg));
         if bg == l.hover { l.pressed } else { l.hover }
     }
 
-    /// Focus gutter content, independent of terminal colour support.
-    ///
-    /// Always render the returned cell, including the blank for unfocused or
-    /// disabled controls. Painting a focus bar in the background colour cannot
-    /// hide it when a backend suppresses colours (for example with `NO_COLOR`).
-    /// Pair this with [`Self::gutter`] for its style.
+
+
+
+
+
+
     pub fn gutter_symbol(&self, s: VisualState) -> &'static str {
         if s.focused && !s.disabled {
             self.glyphs.focus_bar
@@ -1604,9 +1604,9 @@ impl Theme {
         }
     }
 
-    /// Style for [`Self::gutter_symbol`]. `on_accent` is used when the control
-    /// itself is filled with the accent (primary button): the bar then takes
-    /// the on-accent ink, never the accent on the accent.
+
+
+
     pub fn gutter(&self, s: VisualState, bg: Color, on_accent: bool) -> Style {
         let fg = if !s.focused || s.disabled {
             bg
@@ -1623,8 +1623,8 @@ impl Theme {
             .style
     }
 
-    /// Text field body (input, textarea, editable cell). Editing suppresses
-    /// hover: the caret is the state.
+
+
     pub fn field_style(&self, s: VisualState) -> Style {
         let s = VisualState {
             hovered: s.hovered && !s.editing,
@@ -1642,9 +1642,9 @@ impl Theme {
         })
     }
 
-    /// A close glyph (`×`) inside a control styled `host`: at rest it takes
-    /// the host's plane, hovered or pressed it walks the close ladder of the
-    /// plane it sits on, so its hover never reads as the host's hover.
+
+
+
     pub fn close_glyph(&self, s: VisualState, host: Style) -> Style {
         let bg = host.bg.unwrap_or(self.canvas);
         let s = VisualState {
@@ -1659,17 +1659,17 @@ impl Theme {
         }
     }
 
-    /// The plate of a close button inside a control styled `host`
-    /// ([`crate::widgets::icon_button::IconButton`]): every cell of the
-    /// plate takes [`Self::close_glyph`], so hover and press paint the whole
-    /// target, not the glyph alone; with `danger` see [`Self::danger_plate`].
+
+
+
+
     pub fn close_plate(&self, s: VisualState, host: Style, danger: bool) -> Style {
         self.danger_plate(s, self.close_glyph(s, host), danger)
     }
 
-    /// A button plate's resolved `style` with the danger tint when
-    /// `danger`: hover takes the danger ink, press the danger fill (the
-    /// Windows window-close idiom). Rest and disabled stay as they are.
+
+
+
     pub fn danger_plate(&self, s: VisualState, style: Style, danger: bool) -> Style {
         if !danger || s.disabled {
             return style;
@@ -1685,9 +1685,9 @@ impl Theme {
         }
     }
 
-    /// The cursor cell of a table or data grid: the cursor fill on the cell
-    /// only (never the white flood a pressed control once used), the
-    /// destructive fill for a cell with an error.
+
+
+
     pub fn cell_cursor(&self, error: bool, pressed: bool) -> Style {
         let s = VisualState {
             focused: true,
@@ -1699,9 +1699,9 @@ impl Theme {
             .style
     }
 
-    /// A rule or separator that reads on `bg`: the subtle border on the dark
-    /// planes, the strong one on raised, popover and field planes where the
-    /// subtle one disappears.
+
+
+
     pub fn rule_on(&self, bg: Color) -> Color {
         let rule = match self.plane_of(bg) {
             Plane::Raised | Plane::Popover | Plane::Field => self.border_strong,
@@ -1710,9 +1710,9 @@ impl Theme {
         if rule == bg { self.text_muted } else { rule }
     }
 
-    /// The current search or find match: the accent fill with on-accent ink,
-    /// apart from the selection tint and from the other matches (underlined).
-    /// Reversed video only where colour is gone.
+
+
+
     pub fn match_current(&self) -> Style {
         let style = Style::new()
             .fg(self.text_on_accent)
@@ -1725,11 +1725,11 @@ impl Theme {
         }
     }
 
-    /// Text selection and a grid range: a cool tint of its own, apart
-    /// from the pressed planes and from the current find match (popover).
-    /// Stays visible when `NO_COLOR` suppresses colours.
-    /// At 16 colours the highlight fill already takes the only blue, so
-    /// the selection is reversed video there too.
+
+
+
+
+
     pub fn selection(&self) -> Style {
         let style = Style::new().fg(self.text_primary).bg(self.selection_bg);
         if matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono) {
@@ -1739,15 +1739,15 @@ impl Theme {
         }
     }
 
-    /// The scrollbar track: [`Glyphs::scroll_track`] /
-    /// [`Glyphs::scroll_h_track`] (dotted) in [`Self::scroll_track`] ink.
+
+
     pub fn scrollbar_track(&self) -> Style {
         Style::new().fg(self.scroll_track)
     }
 
-    /// A scrollbar thumb at rest, hovered or pressed (held, dragged): one
-    /// glyph, the state in the handle ladder's colour (see
-    /// [`Ladders::handle`]).
+
+
+
     pub fn scrollbar_thumb(&self, hovered: bool, pressed: bool) -> Style {
         let s = VisualState {
             hovered,
@@ -1772,15 +1772,15 @@ impl Theme {
         }
     }
 
-    /// [`Self::tone`] made readable on `bg` ([`Self::legible`]): the
-    /// popover takes the strong error and success steps, muted text steps
-    /// up the ladder.
+
+
+
     pub fn tone_on(&self, tone: Tone, bg: Color) -> Color {
         self.legible(self.tone(tone), bg)
     }
 
-    /// A link: [`Self::link`] ink, underlined when hovered or focused (the
-    /// underline is also its cue without colour).
+
+
     pub fn link_style(&self, hovered_or_focused: bool) -> Style {
         let style = Style::new().fg(self.link);
         if hovered_or_focused || self.level == ColorLevel::Mono {
@@ -1790,15 +1790,15 @@ impl Theme {
         }
     }
 
-    /// The glyph and style of a status (a task, a check, a connection):
-    /// the glyph is mandatory, so colour is never the only cue. Glyphs come
-    /// from [`Self::glyphs`]; a running status shows the first spinner
-    /// frame ([`Self::status_at`] animates it).
+
+
+
+
     pub fn status(&self, kind: StatusKind) -> (&'static str, Style) {
         self.status_at(kind, 0)
     }
 
-    /// [`Self::status`] at animation tick `tick` (the running spinner).
+
     pub fn status_at(&self, kind: StatusKind, tick: u64) -> (&'static str, Style) {
         let g = &self.glyphs;
         let glyph = match kind {
@@ -1818,8 +1818,8 @@ impl Theme {
         (glyph, style)
     }
 
-    /// The label beside a status glyph: the glyph's hue, except running,
-    /// whose label is information (the spinner keeps the accent).
+
+
     pub fn status_label(&self, kind: StatusKind) -> Style {
         Style::new().fg(match kind {
             StatusKind::Running => self.info,
@@ -1831,9 +1831,9 @@ impl Theme {
         self.tone(kind.tone())
     }
 
-    /// The glyph and style of a deployment environment badge: production
-    /// is the danger label in bold with `◆`, staging the warning with `◇`,
-    /// development information with `·`, local muted with no glyph.
+
+
+
     pub fn env(&self, env: EnvKind) -> (&'static str, Style) {
         let style = Style::new().fg(self.tone(env.tone()));
         let style = if env == EnvKind::Production {
@@ -1844,11 +1844,11 @@ impl Theme {
         (self.glyphs.env(env), style)
     }
 
-    /// Syntax palette, for code only: keywords in the information blue
-    /// (bold), strings teal, literals (numbers, booleans, NULL) lavender
-    /// and italic; identifiers stay primary, operators muted, comments
-    /// faint italic. Weight and italic keep the classes apart without
-    /// colour.
+
+
+
+
+
     pub fn syntax(&self, tone: SyntaxTone) -> Style {
         match tone {
             SyntaxTone::Keyword => Style::new()
@@ -1876,9 +1876,9 @@ impl Theme {
     }
 }
 
-/// Text tone for values, segments, cells. Maps to the alpha ladder plus the
-/// semantic colours. Only [`Tone::Active`] uses the accent, for live or
-/// running state; status hues appear only where they carry meaning.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tone {
     #[default]
@@ -1889,33 +1889,33 @@ pub enum Tone {
     Error,
     Warning,
     Success,
-    /// Information: links, running labels, ids, refreshing.
+
     Info,
-    /// Live or running (the accent as a foreground). Never "done".
+
     Active,
-    /// A destructive or production label ([`Theme::danger_label`]).
+
     Danger,
 }
 
-/// A status [`Theme::status`] draws: each has its own glyph, so colour is
-/// never the only cue.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusKind {
-    /// Done, passed, connected: `✓` in success.
+
     Ok,
-    /// Failed: `✗` in error, bold.
+
     Fail,
-    /// Needs attention: `▲` in warning.
+
     Warn,
-    /// Pending or dirty: `•` in warning.
+
     Pending,
-    /// Running: the spinner in the accent; its label in info.
+
     Running,
-    /// Waiting its turn: `○` muted.
+
     Queued,
-    /// Information: `i` in info.
+
     Info,
-    /// Skipped: `–` faint.
+
     Skipped,
 }
 
@@ -1931,10 +1931,10 @@ impl StatusKind {
         StatusKind::Skipped,
     ];
 
-    /// The [`Tone`] of this status, for widgets that take a tone (a
-    /// [`Segment`](crate::widgets::segments::Segment), a
-    /// [`Prop`](crate::widgets::props::Prop)): the hue [`Theme::status`]
-    /// draws its glyph in (running: [`Tone::Active`]).
+
+
+
+
     pub const fn tone(self) -> Tone {
         match self {
             StatusKind::Ok => Tone::Success,
@@ -1948,7 +1948,7 @@ impl StatusKind {
     }
 }
 
-/// A deployment environment [`Theme::env`] badges.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnvKind {
     Production,
@@ -1958,9 +1958,9 @@ pub enum EnvKind {
 }
 
 impl EnvKind {
-    /// The [`Tone`] of this environment, for widgets that take a tone:
-    /// production [`Tone::Danger`], staging [`Tone::Warning`], development
-    /// [`Tone::Info`], local [`Tone::Muted`] (the hue of [`Theme::env`]).
+
+
+
     pub const fn tone(self) -> Tone {
         match self {
             EnvKind::Production => Tone::Danger,
@@ -1971,13 +1971,13 @@ impl EnvKind {
     }
 }
 
-/// Language-agnostic syntax classes for the code editor.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyntaxTone {
     Keyword,
     Ident,
     Number,
-    /// Booleans and NULL: the literal hue, like numbers.
+
     Literal,
     Str,
     Operator,
@@ -2000,160 +2000,160 @@ pub enum BadgeKind {
     Edit,
 }
 
-/// Where the footer hints sit in their row.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HintAlign {
-    /// Lead from the left edge (after the mode badge), like a desktop
-    /// status bar.
+
+
     #[default]
     Start,
-    /// Centre the hints that fit in the row.
+
     Center,
 }
 
-/// Every glyph the widgets draw, so a terminal without Unicode (or an app
-/// with its own taste) can swap them in one place. Set on
-/// [`Theme::glyphs`]; [`Glyphs::UNICODE`] is the default look and
-/// [`Glyphs::ASCII`] draws with 7-bit characters only.
-///
-/// Each glyph keeps the cell width of its [`Glyphs::UNICODE`] counterpart
-/// (one cell unless noted), because widgets lay out around it. A
-/// replacement set must do the same.
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Glyphs {
-    /// Keyboard-focus gutter ([`Theme::gutter_symbol`]). `▎`.
+
     pub focus_bar: &'static str,
-    /// The current or chosen row of a list, menu or select. `›`.
+
     pub current: &'static str,
-    /// A select field whose list is open. `▴`.
+
     pub chevron_open: &'static str,
-    /// A select field whose list is closed. `▾`.
+
     pub chevron_closed: &'static str,
-    /// An expanded tree branch. `▾`.
+
     pub disclosure_open: &'static str,
-    /// A collapsed tree branch. `▸`.
+
     pub disclosure_closed: &'static str,
-    /// More rows above a scrolled list or menu. `▴`.
+
     pub more_above: &'static str,
-    /// More rows below a scrolled list or menu. `▾`.
+
     pub more_below: &'static str,
-    /// Ascending sort on a column header. `▴`.
+
     pub sort_asc: &'static str,
-    /// Descending sort on a column header. `▾`.
+
     pub sort_desc: &'static str,
-    /// Cut text and the overflow button. `…`.
+
     pub ellipsis: &'static str,
-    /// Between parts of a status or summary (three cells). ` · `.
+
     pub separator: &'static str,
-    /// Checked checkbox (three cells). `[✓]`.
+
     pub check_on: &'static str,
-    /// Unchecked checkbox (three cells). `[ ]`.
+
     pub check_off: &'static str,
-    /// Partly checked checkbox (three cells). `[–]`.
+
     pub check_mixed: &'static str,
-    /// A check mark: a checked narrow checkbox, a chosen row of a
-    /// multi-select list. `✓`.
+
+
     pub tick: &'static str,
-    /// An unchecked narrow checkbox. `□`.
+
     pub check_off_narrow: &'static str,
-    /// A partly checked narrow checkbox; also a range dash. `–`.
+
     pub dash: &'static str,
-    /// Chosen radio button (three cells). `(●)`.
+
     pub radio_on: &'static str,
-    /// Radio button (three cells). `( )`.
+
     pub radio_off: &'static str,
-    /// An "on" dot: narrow radio and toggle, toggle buttons. `●`.
+
     pub dot_on: &'static str,
-    /// An "off" dot. `○`.
+
     pub dot_off: &'static str,
-    /// Switch turned on (three cells). `──●`.
+
     pub toggle_on: &'static str,
-    /// Switch turned off (three cells). `○──`.
+
     pub toggle_off: &'static str,
-    /// Close a tab or remove a chip. `×`.
+
     pub close: &'static str,
-    /// Items hidden to the left of a strip. `‹`.
+
     pub overflow_left: &'static str,
-    /// Items hidden to the right of a strip. `›`.
+
     pub overflow_right: &'static str,
-    /// The menu-bar title that holds the titles that do not fit
-    /// ([`crate::widgets::menu::Overflow::Chevron`]). `»`.
+
+
     pub more_titles: &'static str,
-    /// Vertical scrollbar track: a dotted rail, so a track never reads as
-    /// a panel border or a [`Self::divider`]. `┆`. Set it to
-    /// [`Self::divider`] for a solid track, or `" "` to hide it.
+
+
+
     pub scroll_track: &'static str,
-    /// Vertical scrollbar thumb in every state (rest, hover, held: colour
-    /// carries the state); also a held divider. `┃`.
+
+
     pub scroll_thumb: &'static str,
-    /// Horizontal scrollbar track, the same dash family as
-    /// [`Self::scroll_track`]. `┄`. [`Self::h_divider`] for a solid track,
-    /// `" "` to hide it.
+
+
+
     pub scroll_h_track: &'static str,
-    /// Horizontal scrollbar thumb in every state; also a held divider. `━`.
+
     pub scroll_h_thumb: &'static str,
-    /// A vertical divider between panes (a splitter seam at rest, a pane
-    /// edge that is not scrolling, a column separator). `│`.
+
+
     pub divider: &'static str,
-    /// A horizontal divider between stacked panes. `─`.
+
     pub h_divider: &'static str,
-    /// Spinner animation frames, one cell each. Braille dots.
+
     pub spinner: &'static [&'static str],
-    /// A finished task or step. `✓`.
+
     pub done: &'static str,
-    /// A failed task or check ([`Theme::status`]). `✗`.
+
     pub fail: &'static str,
-    /// An information marker ([`Theme::status`]). `i`.
+
     pub info: &'static str,
-    /// The production environment ([`Theme::env`]). `◆`.
+
     pub env_production: &'static str,
-    /// The staging environment. `◇`.
+
     pub env_staging: &'static str,
-    /// The development environment. `·`.
+
     pub env_development: &'static str,
-    /// A cut or renamed value continues: `old → new`. `→`.
+
     pub arrow: &'static str,
-    /// Filled part of a horizontal bar (progress, meter, active tab). `━`.
+
     pub bar_fill: &'static str,
-    /// Empty part of a horizontal bar; also a separator rule. `─`.
+
     pub bar_empty: &'static str,
-    /// Filled part of a meter showing last-good (stale) data: the dashed
-    /// run is the stale cue without colour. `╍`.
+
+
     pub bar_stale: &'static str,
-    /// Unsaved changes. `•`.
+
     pub dirty: &'static str,
-    /// A removed row or count. `−`.
+
     pub removed: &'static str,
-    /// A warning marker. `▲`.
+
     pub warning: &'static str,
-    /// A paused task. `‖`.
+
     pub paused: &'static str,
-    /// No value. `—`.
+
     pub none: &'static str,
-    /// A masked character in a secret field. `•`.
+
     pub mask: &'static str,
-    /// The default bullet of a picker item. `·`.
+
     pub bullet: &'static str,
-    /// A filtered column header. `∇`.
+
     pub filter: &'static str,
-    /// A primary-key column header. `⚷`.
+
     pub key: &'static str,
-    /// A newline shown inside a one-line cell. `↵`.
+
     pub newline: &'static str,
-    /// A tab shown inside a one-line cell. `⇥`.
+
     pub tab: &'static str,
-    /// Any other control character shown inside a cell. `·`.
+
     pub control: &'static str,
-    /// Arrow-key names in hints: up, down, left, right. `↑ ↓ ← →`.
+
     pub arrows: [&'static str; 4],
-    /// The Shift key in hints (`⇧←→`). `⇧`.
+
     pub shift: &'static str,
-    /// Popup, dialog, menu and panel borders. Rounded box drawing.
+
     pub border: ratatui::symbols::border::Set<'static>,
 }
 
 impl Glyphs {
-    /// The badge glyph of an environment (local has none: `""`).
+
     pub fn env(&self, env: EnvKind) -> &'static str {
         match env {
             EnvKind::Production => self.env_production,
@@ -2163,7 +2163,7 @@ impl Glyphs {
         }
     }
 
-    /// Today's look: box drawing, geometric shapes and Braille.
+
     pub const UNICODE: Self = Self {
         focus_bar: "▎",
         current: "›",
@@ -2227,8 +2227,8 @@ impl Glyphs {
         border: ratatui::symbols::border::ROUNDED,
     };
 
-    /// 7-bit ASCII only, for terminals and fonts without Unicode. Widths
-    /// match [`Self::UNICODE`], so layouts do not move.
+
+
     pub const ASCII: Self = Self {
         focus_bar: "|",
         current: ">",
@@ -2258,8 +2258,8 @@ impl Glyphs {
         overflow_left: "<",
         overflow_right: ">",
         more_titles: ">",
-        // dotted rails (`:` `.`) like the Unicode `┆` `┄`, so a track never
-        // reads as the `|` `-` of a border or divider; one thumb on both axes
+
+
         scroll_track: ":",
         scroll_thumb: "#",
         scroll_h_track: ".",
@@ -2303,7 +2303,7 @@ impl Glyphs {
         },
     };
 
-    /// The spinner frame for animation tick `tick`.
+
     pub fn spinner_frame(&self, tick: u64) -> &'static str {
         match self.spinner.len() {
             0 => " ",
@@ -2311,9 +2311,9 @@ impl Glyphs {
         }
     }
 
-    /// `s` with every arrow-key character (`↑ ↓ ← →`) replaced by
-    /// [`Self::arrows`], `⇧` by [`Self::shift`] and the range dash `–` by
-    /// [`Self::dash`], for key labels built from the Unicode names.
+
+
+
     pub fn key_label<'a>(&self, s: &'a str) -> std::borrow::Cow<'a, str> {
         if self.arrows == Self::UNICODE.arrows
             && self.dash == Self::UNICODE.dash
@@ -2343,150 +2343,150 @@ impl Default for Glyphs {
     }
 }
 
-/// The English copy the library itself draws: button labels, empty and
-/// loading states, validation messages and the hints widgets add to a
-/// footer. Set on [`Theme::strings`] to translate or reword it in one
-/// place; [`Strings::DEFAULT`] is today's copy and [`Strings::ASCII`] the
-/// same words with 7-bit punctuation.
-///
-/// A widget label still holding the text it was built with follows the
-/// theme's strings when drawn ([`Strings::follow`]); a per-widget builder (`Dialog::cancel_label`,
-/// `Picker::placeholder`, `TextInput::required_message`,
-/// `DataGrid::bar_labels`, ...) sets text that the theme no longer
-/// changes. Templates fill each `{}` in order (see [`Strings::fill`]).
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Strings {
-    /// The cancel button of dialogs. `Cancel`.
+
     pub cancel: &'static str,
-    /// The save button of form dialogs. `Save`.
+
     pub save: &'static str,
-    /// The close button of info dialogs. `Close`.
+
     pub close: &'static str,
-    /// The typed acknowledgement of a dangerous dialog; `{}` is the token.
-    /// `Type {} to confirm`.
+
+
     pub type_to_confirm: &'static str,
-    /// The hint while the acknowledgement is unmet; `{}` is the token.
-    /// `"{}" to confirm` (after the key `Type`).
+
+
     pub type_to_confirm_hint: &'static str,
-    /// The error under a typed acknowledgement when Enter is pressed and
-    /// the text does not match the token. `Does not match`.
+
+
     pub ack_mismatch: &'static str,
-    /// Enter on a read-only grid column; `{}` is the column.
-    /// `{} is read-only`.
+
+
     pub grid_read_only: &'static str,
-    /// Enter on a grid row marked for deletion.
-    /// `This row is marked for deletion`.
+
+
     pub grid_row_deleted: &'static str,
-    /// The leave guard's unsaved-changes dialog title. `Unsaved changes`.
+
     pub leave_unsaved_title: &'static str,
-    /// Its body; `{}` is what would be lost.
-    /// `Save before leaving? {} would be lost.`
+
+
     pub leave_unsaved_body: &'static str,
-    /// The body when leaving can only discard; `{}` is what would be
-    /// lost. `{} will be discarded.`
+
+
     pub leave_discard_body: &'static str,
-    /// What would be lost, uncounted. `Unsaved changes`.
+
     pub leave_unsaved_some: &'static str,
-    /// What would be lost, one. `1 unsaved change`.
+
     pub leave_unsaved_one: &'static str,
-    /// What would be lost, `{}` of them. `{} unsaved changes`.
+
     pub leave_unsaved_many: &'static str,
-    /// The leave guard's running-work dialog title. `Still running`.
+
     pub leave_running_title: &'static str,
-    /// Its body; `{}` names the work. `{} still running. Leaving stops it.`
+
     pub leave_running_body: &'static str,
-    /// Its destructive action. `Stop and leave`.
+
     pub leave_stop: &'static str,
-    /// Its cancel action. `Stay`.
+
     pub leave_stay: &'static str,
-    /// The last shown line of a cut preview; `{}` is the hidden count.
-    /// `… {} more`.
+
+
     pub more_cut: &'static str,
-    /// A count of hidden lines after an arrow glyph. `{} more`.
+
     pub more_count: &'static str,
-    /// A required field left empty. `Required`.
+
     pub required: &'static str,
-    /// The suffix on a field label that is not required. `optional`.
+
     pub optional: &'static str,
-    /// The primary button of a step in a choice dialog. `Next`.
+
     pub next: &'static str,
-    /// A search with no result. `No matches`.
+
     pub no_matches: &'static str,
-    /// The query field of a searchable picker. `Type to search…`.
+
     pub search_placeholder: &'static str,
-    /// An empty list. `Nothing here yet`.
+
     pub empty_list: &'static str,
-    /// An empty table or grid. `No rows`.
+
     pub no_rows: &'static str,
-    /// A grid waiting for its first rows. `Loading rows…`.
+
     pub loading_rows: &'static str,
-    /// The grid's last row while more rows load (after a spinner).
-    /// `fetching…`.
+
+
     pub fetching: &'static str,
-    /// The grid's last row when more rows can be fetched (after an arrow);
-    /// `{}` is the loaded count. `{} loaded · Enter fetches more`.
+
+
     pub fetch_more: &'static str,
-    /// The grid's pending-changes bar buttons. `Preview SQL`.
+
     pub preview_sql: &'static str,
-    /// `Discard`.
+
     pub discard: &'static str,
-    /// `Save` (the grid's bar).
+
     pub save_changes: &'static str,
-    /// Diff review columns. `Old`.
+
     pub diff_old: &'static str,
-    /// `New`.
+
     pub diff_new: &'static str,
-    /// A diff view with no file. `No file selected`.
+
     pub diff_no_file: &'static str,
-    /// A file whose diff has no text. `(no textual changes)`.
+
     pub diff_no_changes: &'static str,
-    /// The review layout's title suffix. `review`.
+
     pub diff_review: &'static str,
-    /// Reveal hint while the text is cut. `Full text`.
+
     pub reveal_open: &'static str,
-    /// Reveal hint while the full text shows. `Collapse`.
+
     pub reveal_close: &'static str,
-    /// Dialog hint: arrows move between actions. `Choose`.
+
     pub hint_choose: &'static str,
-    /// Dialog hint: arrows scroll the body. `Scroll`.
+
     pub hint_scroll: &'static str,
-    /// Dialog hint: Shift+arrows scroll the code preview. `Scroll code`.
+
     pub hint_scroll_code: &'static str,
-    /// Hint: Esc cancels. `Cancel`.
+
     pub hint_cancel: &'static str,
-    /// Hint: Esc closes a dialog without a cancel action. `Close`.
+
     pub hint_close: &'static str,
-    /// Hint: Enter or Tab moves on. `Next`.
+
     pub hint_next: &'static str,
-    /// Hint: Enter applies a field edit with no primary action. `Apply`.
+
     pub hint_apply: &'static str,
-    /// Hint: Enter starts editing a field. `Edit`.
+
     pub hint_edit: &'static str,
-    /// The help overlay's title. `Keyboard shortcuts`.
+
     pub help_title: &'static str,
-    /// The help overlay's footer. `↑↓ Scroll · Esc Close`.
+
     pub help_footer: &'static str,
-    /// The reason on a menu item a preview or demo does not implement.
-    /// `Not in this preview`.
+
+
     pub not_in_preview: &'static str,
-    /// The button that closes a reference overlay with nothing to decide
-    /// (the help overlay). `Done`.
+
+
     pub done: &'static str,
-    /// Tooltip of a modal frame's close button (after it, `Esc`). `Close`.
+
     pub tip_close: &'static str,
-    /// Tooltip of a tab's close button. `Close tab`.
+
     pub tip_close_tab: &'static str,
-    /// Tooltip of a chip's remove button. `Remove`.
+
     pub tip_remove: &'static str,
-    /// Tooltip of a tab strip's `+`. `New tab`.
+
     pub tip_new_tab: &'static str,
-    /// Tooltip of a tab strip's or chip bar's `+N` overflow button, which
-    /// lists what is hidden. `Show hidden`.
+
+
     pub tip_overflow: &'static str,
 }
 
 impl Strings {
-    /// Today's copy.
+
     pub const DEFAULT: Self = Self {
         cancel: "Cancel",
         save: "Save",
@@ -2547,8 +2547,8 @@ impl Strings {
         tip_overflow: "Show hidden",
     };
 
-    /// [`Self::DEFAULT`] with 7-bit punctuation (`...`, `|`, `^v`), to pair
-    /// with [`Glyphs::ASCII`].
+
+
     pub const ASCII: Self = Self {
         more_cut: "... {} more",
         search_placeholder: "Type to search...",
@@ -2559,8 +2559,8 @@ impl Strings {
         ..Self::DEFAULT
     };
 
-    /// `template` with each `{}` replaced by the next of `args`; extra
-    /// placeholders stay as written.
+
+
     pub fn fill(template: &str, args: &[&dyn std::fmt::Display]) -> String {
         let mut out = String::with_capacity(template.len() + 8);
         let mut rest = template;
@@ -2577,9 +2577,9 @@ impl Strings {
         out
     }
 
-    /// Move `text` from `old` to `new` when it still reads `old`: how a
-    /// widget's default label follows a change of [`Theme::strings`] while
-    /// a label the caller set stays.
+
+
+
     pub fn follow(text: &mut String, old: &str, new: &str) {
         if old != new && text == old {
             new.clone_into(text);
@@ -2593,8 +2593,8 @@ impl Default for Strings {
     }
 }
 
-/// Padding inside a container, in cells: `x` on the left and on the right,
-/// `y` above and below.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Insets {
     pub x: u16,
@@ -2607,20 +2607,20 @@ impl Insets {
     }
 }
 
-/// Spacing tokens: one value per kind of gap, so dialogs, panels, popups
-/// and button rows agree instead of each picking its own.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Spacing {
-    /// Cells between buttons in a row. Default 2.
+
     pub button_gap: u16,
-    /// Inside a dialog's border. Default 2 columns, 1 row.
+
     pub dialog: Insets,
-    /// Inside a framed panel's border. Default 2 columns, 0 rows.
+
     pub panel: Insets,
-    /// Inside a popup surface (menus, dropdowns). Default 1 column, 0 rows.
+
     pub popup: Insets,
-    /// Cells between the screen edge and the text of a chrome row (menu
-    /// bar, identity strip, segment bars), the same on both sides. Default 2.
+
+
     pub chrome_edge: u16,
 }
 
@@ -2640,26 +2640,26 @@ impl Default for Spacing {
     }
 }
 
-/// How a footer hint bar lays out one row. Set once on the theme so every
-/// screen of an app agrees; a single layer may still override the
-/// alignment.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HintBarStyle {
-    /// Default [`HintAlign::Start`].
+
     pub align: HintAlign,
-    /// A status long enough to crowd out the pinned hints (Esc, help) is
-    /// cut to leave them room, but keeps at least this share of the row,
-    /// in percent. A status that leaves the pinned hints room is never
-    /// cut for them. Default 50.
+
+
+
+
     pub status_min_share: u8,
-    /// When the full hints do not fit, show the normal ones as keys only
-    /// (pinned hints keep their action) before dropping any. Off by
-    /// default: a bare key without its verb rarely tells the user what it
-    /// does, so dropping from the right reads better. Default false.
+
+
+
+
     pub compact: bool,
-    /// Keys whose hints are pinned by default: never dropped while
-    /// anything else can go, so the way out and the way to help stay
-    /// visible. Default `Esc`, `?`, `F1`.
+
+
+
     pub pinned_keys: &'static [&'static str],
 }
 
@@ -2678,8 +2678,8 @@ impl Default for HintBarStyle {
     }
 }
 
-/// Approximate sRGB of a colour as a terminal renders it (xterm defaults
-/// for named and indexed colours). `None` for `Reset`.
+
+
 fn approx_rgb(c: Color) -> Option<(u8, u8, u8)> {
     const BASIC: [(u8, u8, u8); 16] = [
         (0, 0, 0),
@@ -2731,8 +2731,8 @@ fn approx_rgb(c: Color) -> Option<(u8, u8, u8)> {
     })
 }
 
-/// The bright step of a named terminal colour (Yellow → LightYellow, Gray →
-/// White): the same hue one palette slot lighter.
+
+
 fn bright(c: Color) -> Option<Color> {
     Some(match c {
         Color::Red => Color::LightRed,
@@ -2746,7 +2746,7 @@ fn bright(c: Color) -> Option<Color> {
     })
 }
 
-/// WCAG relative luminance.
+
 fn rel_luminance((r, g, b): (u8, u8, u8)) -> f64 {
     let ch = |v: u8| {
         let v = v as f64 / 255.0;
@@ -2759,8 +2759,8 @@ fn rel_luminance((r, g, b): (u8, u8, u8)) -> f64 {
     0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
 }
 
-/// WCAG contrast ratio of two colours as the terminal renders them; `None`
-/// when either is the terminal default.
+
+
 pub fn contrast_ratio(a: Color, b: Color) -> Option<f64> {
     let (x, y) = (rel_luminance(approx_rgb(a)?), rel_luminance(approx_rgb(b)?));
     Some((x.max(y) + 0.05) / (x.min(y) + 0.05))
@@ -2791,8 +2791,8 @@ fn nearest_256(r: u8, g: u8, b: u8) -> u8 {
     let gi = ((avg - 8).max(0) / 10).min(23);
     let gv = 8 + gi * 10;
     let gray_err = (gv - r as i32).pow(2) + (gv - g as i32).pow(2) + (gv - b as i32).pow(2);
-    // a saturated colour keeps its hue: dark greens and reds must not snap
-    // to the grey that a neutral plane already uses
+
+
     let chroma = r.max(g).max(b) as i32 - r.min(g).min(b) as i32;
     if gray_err < cube_err && chroma <= 30 {
         232 + gi as u8
@@ -2866,10 +2866,10 @@ mod tests {
     #[test]
     fn the_modal_backdrop_keeps_reversed_text_readable() {
         let t = Theme::junie();
-        // dark ink on a light fill (a pressed or reversed cell) under a modal
+
         let st = t.backdrop(Style::new().fg(t.canvas).bg(t.text_primary));
         assert_ne!(st.fg, st.bg);
-        // canvas ink on the canvas is a blank and stays one
+
         let st = t.backdrop(Style::new().fg(t.canvas).bg(t.canvas));
         assert_eq!(st.fg, st.bg);
     }
@@ -2888,9 +2888,9 @@ mod tests {
                 t.popover,
             ];
             for bg in planes {
-                // canvas ink on a plane it reads on (16 colours: a selected
-                // tab or a button, Black on the DarkGray raised plane) is
-                // text, not a blank
+
+
+
                 for fg in [
                     t.canvas,
                     t.text_ghost,
@@ -2910,7 +2910,7 @@ mod tests {
                     );
                 }
             }
-            // ink that was already decoration stays dim
+
             let st = t.backdrop(Style::new().fg(t.text_ghost).bg(t.canvas));
             if level == ColorLevel::TrueColor {
                 assert_eq!(st.fg, Some(t.text_ghost));
@@ -2932,7 +2932,7 @@ mod tests {
                 };
                 let st = t.row(s, bg);
                 let fill = st.bg.unwrap();
-                // widgets re-tint values with the normal tone after row()
+
                 for fg in [st.fg.unwrap(), t.text_primary] {
                     let c = contrast(fg, fill);
                     assert!(c >= 4.5, "{s:?} on {bg:?}: {fg:?}/{fill:?} = {c:.2}");
@@ -3013,8 +3013,8 @@ mod tests {
         Kind::Seam,
     ];
 
-    /// Two resolved controls look different on this level's terminal: in
-    /// monochrome only modifiers and the gutter glyph survive.
+
+
     fn looks_distinct(t: &Theme, kind: Kind, a: &Interactive, b: &Interactive) -> bool {
         let mods = a.style.add_modifier != b.style.add_modifier || a.gutter != b.gutter;
         if t.level == ColorLevel::Mono {
@@ -3043,8 +3043,8 @@ mod tests {
                     if kind.is_glyph() && !glyph_plane(plane) {
                         continue;
                     }
-                    // the same ladder walk with and without focus, selection
-                    // and (for a fill list) the cursor on the row
+
+
                     for base in [
                         VisualState::default(),
                         st(|s| s.focused = true),
@@ -3084,7 +3084,7 @@ mod tests {
                             "rest = flash: {ctx}"
                         );
 
-                        // disabled ignores hover and press, and differs from rest
+
                         let dis = |f: fn(&mut VisualState)| {
                             let mut s = base;
                             s.disabled = true;
@@ -3112,8 +3112,8 @@ mod tests {
                             let bg = it.style.bg.unwrap_or_else(|| t.ladder(plane).rest);
                             assert_ne!(fg, bg, "{name} ink = fill: {ctx}");
                             if level == ColorLevel::TrueColor && name != "disabled" {
-                                // text ≥ 4.5:1; handles and seams are glyphs (≥ 3:1)
-                                // and their rest step is a quiet decoration
+
+
                                 let min = if kind.is_glyph() { 3.0 } else { 4.5 };
                                 if !(kind.is_glyph() && name == "rest") {
                                     let c = contrast(fg, bg);
@@ -3127,7 +3127,7 @@ mod tests {
         }
     }
 
-    /// Planes scrollbars and splitters live on.
+
     fn glyph_plane(p: Plane) -> bool {
         matches!(
             p,
@@ -3154,8 +3154,8 @@ mod tests {
                             looks_distinct(&t, kind, &other, &disabled),
                             "{name} = disabled: {ctx}"
                         );
-                        // a fill-list cursor is a plain row until the cursor
-                        // is on it; Close and Field carry no focus mark
+
+
                         if !matches!(kind, Kind::CursorRow(_) | Kind::Close | Kind::Field) {
                             assert!(
                                 looks_distinct(&t, kind, &other, &focused),
@@ -3179,14 +3179,14 @@ mod tests {
     fn reduced_levels_pin_state_tokens_instead_of_snapping_to_greys() {
         let is_grey = |c: Color| matches!(c, Color::Indexed(i) if i >= 232);
         let t = Theme::for_level(ColorLevel::Ansi256);
-        // primary button: three greens, the pressed one still green and readable
+
         let a = t.ladder(Plane::Accent);
         assert_eq!(
             (a.rest, a.hover, a.pressed),
             (Color::Indexed(78), Color::Indexed(71), Color::Indexed(65))
         );
         assert!(contrast_ratio(t.text_on_accent, a.pressed).unwrap() >= 4.5);
-        // dark saturated tokens keep their hue
+
         for c in [
             t.accent_pressed,
             t.highlight_danger,
@@ -3196,13 +3196,13 @@ mod tests {
             assert!(!is_grey(c), "{c:?} snapped to a grey");
         }
         assert!(!is_grey(Color::Indexed(nearest_256(0x0f, 0x2e, 0x13))));
-        // a destructive menu cursor is not grey on grey
+
         assert_ne!(t.highlight_danger, t.popover);
-        // the selection tint is not the card
+
         assert_ne!(t.accent_bg, t.surface_elevated);
 
         let t = Theme::for_level(ColorLevel::Ansi16);
-        // a disabled button label stays visible on its plane
+
         for kind in [
             ButtonKind::Primary,
             ButtonKind::Secondary,
@@ -3218,13 +3218,13 @@ mod tests {
             );
             assert_ne!(st.fg, st.bg, "{kind:?}");
         }
-        // an off chip label is not grey on grey
+
         let chip = t.interactive(Kind::Chip, VisualState::default(), Plane::Canvas);
         assert_ne!(chip.style.fg, chip.style.bg);
-        // a destructive label on a menu stays readable
+
         let ink = t.legible(t.error_soft, t.popover);
         assert!(contrast_ratio(ink, t.popover).unwrap() >= 4.5);
-        // borders are visible on the black planes
+
         assert_ne!(t.border_subtle, t.canvas);
         assert_ne!(t.border_strong, t.popover);
 
@@ -3254,7 +3254,7 @@ mod tests {
             let h = t.button(kind, hovered, t.canvas);
             assert!(h.add_modifier.contains(Modifier::UNDERLINED), "{kind:?}");
         }
-        // the menu cursor is reversed video, not bold on the same plane
+
         let cursor = VisualState {
             focused: true,
             ..Default::default()
@@ -3330,7 +3330,7 @@ mod tests {
             let (rest, hover, pressed) =
                 (thumb(false, false), thumb(true, false), thumb(true, true));
             if level == ColorLevel::Mono {
-                // NO_COLOR: a modifier, never colour, tells the states apart
+
                 assert_eq!(rest.add_modifier, Modifier::empty());
                 assert_eq!(hover.add_modifier, Modifier::BOLD);
                 assert_eq!(pressed.add_modifier, Modifier::REVERSED);
@@ -3357,7 +3357,7 @@ mod tests {
                     "{level:?}: colour carries it"
                 );
             }
-            // container focus does not light the thumb (one focus cue)
+
             let focused = t.interactive(
                 Kind::Handle,
                 VisualState {
@@ -3368,12 +3368,12 @@ mod tests {
             );
             assert_eq!(focused.style, rest, "{level:?}");
         }
-        // hover is lighter than rest in truecolor
+
         let t = Theme::junie();
         assert!(luminance(t.ladders.handle.hover) > luminance(t.ladders.handle.rest));
     }
 
-    /// Every plane a token can land on, by name, at truecolor.
+
     fn text_planes(t: &Theme) -> [(&'static str, Color); 5] {
         [
             ("canvas", t.canvas),
@@ -3405,13 +3405,13 @@ mod tests {
                 assert!(c >= 4.5, "{name} on {plane} = {c:.2}");
             }
         }
-        // muted text reads on the planes text sits on; raised and popover
-        // step it up through `legible`
+
+
         for (plane, bg) in &text_planes(&t)[..4] {
             let c = contrast(t.text_muted, *bg);
             assert!(c >= 4.5, "text_muted on {plane} = {c:.2}");
         }
-        // the popover: the strong steps and the tone resolver
+
         for tone in [
             Tone::Error,
             Tone::Success,
@@ -3433,9 +3433,9 @@ mod tests {
         assert_eq!(t.tone_on(Tone::Error, t.surface_elevated), t.error);
     }
 
-    /// A1: the pairs a 16-colour or `none` screen draws on its grey planes,
-    /// measured at every level against the xterm palette: text 4.5:1,
-    /// graphics and frames 3:1.
+
+
+
     #[test]
     fn frames_focus_bars_and_tab_marks_read_on_their_plane_at_every_level() {
         let states = [
@@ -3458,20 +3458,20 @@ mod tests {
         for level in ColorLevel::ALL {
             let t = Theme::for_level(level);
             let ratio = |a, b| contrast_ratio(a, b).unwrap();
-            // the popover frame and its separators against the popover plane
+
             let frame = t.frame_on(t.popover);
             assert_ne!(frame, t.popover, "{level:?}: frame vanishes");
             let rule = t.rule_on(t.popover);
             assert_ne!(rule, t.popover, "{level:?}: separator vanishes");
-            // truecolor and 256 keep the soft frame and rule on purpose
-            // (the lifted plane carries the edge; recorded in color.md)
+
+
             if matches!(level, ColorLevel::Ansi16 | ColorLevel::Mono) {
                 for (name, ink) in [("frame", frame), ("separator", rule)] {
                     let r = ratio(ink, t.popover);
                     assert!(r >= 3.0, "{level:?}: popover {name} {r:.2}");
                 }
             }
-            // the selected tab's lifted fill and every ink a tab draws on it
+
             for s in states {
                 for strip in [Plane::Canvas, Plane::Surface, Plane::Card] {
                     let look = t.interactive(Kind::Tab, s, strip).style;
@@ -3499,7 +3499,7 @@ mod tests {
                 }
             }
         }
-        // the focus bar is a graphic on whatever plane its control sits on
+
         for level in ColorLevel::ALL {
             let t = Theme::for_level(level);
             let kinds = [
@@ -3552,7 +3552,7 @@ mod tests {
                 assert!(r >= 3.0, "{level:?} gutter on {plane:?}: {r:.2}");
             }
         }
-        // the marks keep their hue wherever the palette allows it
+
         let t = Theme::for_level(ColorLevel::Ansi16);
         assert_eq!(t.legible_mark(t.warning, t.popover), Color::LightYellow);
         assert_eq!(t.legible_mark(t.accent, t.canvas), t.accent);
@@ -3628,13 +3628,13 @@ mod tests {
                 );
                 assert_ne!(*a, t.text_primary, "{level:?}");
             }
-            // the menu cursor fill and the text selection never look alike
+
             let sel = t.selection();
             assert!(
                 sel.bg != Some(t.highlight) || sel.add_modifier.contains(Modifier::REVERSED),
                 "{level:?}"
             );
-            // ink on the highlight fill stays primary (info would collide)
+
             let row = t.cursor_row(
                 VisualState {
                     focused: true,
@@ -3669,12 +3669,12 @@ mod tests {
                         assert!(g.is_ascii(), "{kind:?}: {g}");
                     }
                 }
-                // the running glyph animates with the spinner
+
                 assert_eq!(
                     t.status_at(StatusKind::Running, 1).0,
                     t.glyphs.spinner_frame(1)
                 );
-                // the tones widgets take are the hues the glyphs draw in
+
                 for kind in StatusKind::ALL {
                     assert_eq!(t.status(kind).1.fg, Some(t.tone(kind.tone())), "{kind:?}");
                 }
@@ -3686,8 +3686,8 @@ mod tests {
                 ] {
                     assert_eq!(t.env(env).1.fg, Some(t.tone(env.tone())), "{env:?}");
                 }
-                // environments: production is bold (its mono cue), the
-                // others have their own glyph
+
+
                 let (g, st) = t.env(EnvKind::Production);
                 assert!(st.add_modifier.contains(Modifier::BOLD));
                 assert_eq!(crate::ui::text::width(g), 1);
@@ -3701,7 +3701,7 @@ mod tests {
         assert_eq!(t.status(StatusKind::Ok), ("✓", Style::new().fg(t.success)));
         assert_eq!(t.status_label(StatusKind::Running).fg, Some(t.info));
         assert_eq!(t.status(StatusKind::Running).1.fg, Some(t.accent));
-        // a link is underlined when hovered or focused, and always in mono
+
         assert!(
             !t.link_style(false)
                 .add_modifier
@@ -3730,7 +3730,7 @@ mod tests {
         assert!(lit.add_modifier.contains(Modifier::ITALIC));
         assert_eq!(id.add_modifier, Modifier::empty());
         assert_eq!(t.syntax(SyntaxTone::Number), lit);
-        // truecolor: hue for keywords, strings and literals only
+
         let t = Theme::junie();
         assert_eq!(t.syntax(SyntaxTone::Keyword).fg, Some(t.syntax_keyword));
         assert_eq!(t.syntax(SyntaxTone::Str).fg, Some(t.syntax_string));
@@ -3741,14 +3741,14 @@ mod tests {
     #[test]
     fn legible_steps_up_the_text_ladder_instead_of_jumping_to_primary() {
         let t = Theme::junie();
-        // faint on the canvas is 4.4:1: muted, not white
+
         assert_eq!(t.legible(t.text_faint, t.canvas), t.text_muted);
-        // muted on the popover: secondary
+
         assert_eq!(t.legible(t.text_muted, t.popover), t.text_secondary);
-        // a readable ink is kept
+
         assert_eq!(t.legible(t.text_faint, t.canvas), t.text_muted);
         assert_eq!(t.legible(t.text_secondary, t.canvas), t.text_secondary);
-        // a fill still takes the best of primary and on-accent
+
         assert_eq!(t.legible(t.text_muted, t.accent), t.text_on_accent);
     }
 }

@@ -1,25 +1,25 @@
-//! Layers: every popup and modal above a page (plan §1.7, step S5).
-//!
-//! Two traits, one stack:
-//!
-//! - [`Overlay`] is the widget capability: a popup or modal says how it may
-//!   be dismissed ([`Dismiss`]), what kind of layer it is ([`LayerSpec`])
-//!   and what a dismissal resolves to ([`Overlay::on_dismiss`], always its
-//!   cancel result). Implemented by `Select`, `Picker`, `Completion`,
-//!   `ContextMenu`, `MenuBar`, `Dialog`, `FormDialog`, `ChoiceDialog`,
-//!   `InfoDialog` and `HelpOverlay`.
-//! - [`Layer`] is the object-safe entry an app puts on its stack: the
-//!   overlay plus input, rendering, hints and a typed result `R` the owner
-//!   receives when it closes. An app's own modal (tablepro's filter
-//!   editor, jackin's operation flow) implements it directly.
-//! - [`ShellLayers`] is the stack ([`ModalStack`] of [`LayerEntry`]): it
-//!   moves focus into a layer when it opens, gives the owner its focus
-//!   back when it closes (K9), and runs every dismissal through the top
-//!   layer's policy, so no app checks "may Esc close this?" itself.
-//!
-//! Names follow `main` (termrock): `LayerSpec`, `LayerKind`,
-//! `DismissReason`; [`Dismiss`] keeps this branch's richer policy
-//! (pass-through, refusal feedback, focus-out).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::any::Any;
 
@@ -40,49 +40,49 @@ use crate::ui::popup::{Dismiss, Placement};
 use crate::widgets::icon_button::IconButton;
 use crate::widgets::keyhint::Hint;
 
-/// What kind of layer a popup or modal is.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LayerKind {
-    /// Dims the page and traps focus until it closes (dialogs, forms,
-    /// help, pickers).
+
+
     Modal,
-    /// Floats next to an anchor without dimming (select lists, menus,
-    /// completion); the owner keeps keyboard focus.
+
+
     Popover,
-    /// Shows on hover or focus and never takes input.
+
     Tooltip,
 }
 
-/// How a layer opens, where it goes and how it closes (`main`:
-/// termrock `LayerSpec`). Built from the existing [`Placement`],
-/// [`Backdrop`] and [`Dismiss`].
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LayerSpec {
     pub kind: LayerKind,
-    /// Where it goes relative to [`Self::anchor`] (centred without one).
+
     pub placement: Placement,
-    /// The rectangle it opens next to. `None`: centred in the body.
+
     pub anchor: Option<Rect>,
-    /// The dimmed backdrop under a modal; `None` dims nothing.
+
     pub backdrop: Option<Backdrop>,
-    /// Which dismissals close it.
+
     pub dismiss: Dismiss,
-    /// Where focus goes when it opens. `None`: focus stays (a popover
-    /// whose owner keeps the keyboard).
+
+
     pub initial_focus: Option<WidgetId>,
-    /// Closing it gives focus back to the control it covered (K9).
-    /// Default on.
+
+
     pub restore_focus: bool,
-    /// Nothing below it reacts to the pointer while it is open.
+
     pub inert_below: bool,
-    /// The page under it draws no focus indicator, so the only one on
-    /// screen is in this layer (AGENTS.md). Off for a context menu whose
-    /// owner row stays marked.
+
+
+
     pub hides_page_focus: bool,
 }
 
 impl LayerSpec {
-    /// A centred modal: dims the page, traps focus, hides the page focus.
+
     pub const fn modal(dismiss: Dismiss) -> Self {
         Self {
             kind: LayerKind::Modal,
@@ -97,8 +97,8 @@ impl LayerSpec {
         }
     }
 
-    /// An anchored popover: no dimming; the page below is inert while it
-    /// is open (a click there is the outside click).
+
+
     pub const fn popover(dismiss: Dismiss) -> Self {
         Self {
             kind: LayerKind::Popover,
@@ -113,7 +113,7 @@ impl LayerSpec {
         }
     }
 
-    /// A tooltip: takes no input and changes no focus.
+
     pub const fn tooltip() -> Self {
         Self {
             kind: LayerKind::Tooltip,
@@ -128,69 +128,69 @@ impl LayerSpec {
         }
     }
 
-    /// Open next to `anchor` per `placement`.
+
     pub const fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = Some(anchor);
         self.placement = placement;
         self
     }
-    /// See [`Self::backdrop`].
+
     pub const fn backdrop(mut self, backdrop: Option<Backdrop>) -> Self {
         self.backdrop = backdrop;
         self
     }
-    /// See [`Self::initial_focus`].
+
     pub const fn initial_focus(mut self, id: WidgetId) -> Self {
         self.initial_focus = Some(id);
         self
     }
-    /// See [`Self::restore_focus`].
+
     pub const fn restore_focus(mut self, on: bool) -> Self {
         self.restore_focus = on;
         self
     }
-    /// See [`Self::inert_below`].
+
     pub const fn inert_below(mut self, on: bool) -> Self {
         self.inert_below = on;
         self
     }
-    /// See [`Self::hides_page_focus`].
+
     pub const fn hides_page_focus(mut self, on: bool) -> Self {
         self.hides_page_focus = on;
         self
     }
 }
 
-/// The widget capability of a popup or modal (plan §1.4).
+
 pub trait Overlay {
-    /// What the widget reports (`SelectAction`, `PickerAction`, ...).
+
     type Action;
 
-    /// Which dismissals close it without choosing.
+
     fn dismiss(&self) -> Dismiss;
 
-    /// How it opens and closes. Default: a centred modal under
-    /// [`Self::dismiss`].
+
+
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(self.dismiss())
     }
 
-    /// Close it as cancelled for `reason`. Call it through [`dismiss`],
-    /// which checks the policy first; a dismissal always resolves to the
-    /// cancel result (AGENTS.md).
+
+
+
     fn on_dismiss(&mut self, reason: DismissReason) -> Response<Self::Action>;
 
-    /// The `×` its frame draws when [`Dismiss::shows_close`]. `None`: the
-    /// overlay has no frame button (a popover or a menu, which
-    /// light-dismiss instead).
+
+
+
     fn close_button(&self) -> Option<&IconButton> {
         None
     }
 }
 
-/// Run `reason` through `overlay`'s [`Dismiss`] policy: `None` when the
-/// policy refuses it (the layer stays; an outside click may flash it),
-/// otherwise the overlay's cancel result.
+
+
+
 pub fn dismiss<O: Overlay + ?Sized>(
     overlay: &mut O,
     reason: DismissReason,
@@ -201,36 +201,36 @@ pub fn dismiss<O: Overlay + ?Sized>(
         .then(|| overlay.on_dismiss(reason))
 }
 
-/// What a layer's handlers may touch: focus and the ring of the frame
-/// they were drawn in, and the app's own state `W` (read-only; changes go
-/// through the result the layer reports).
+
+
+
 pub struct LayerCx<'a, W: ?Sized = ()> {
     pub focus: &'a mut Focus,
     pub ring: &'a FocusRing,
     pub app: &'a W,
 }
 
-/// An entry on an app's layer stack (plan §1.7): an [`Overlay`] with
-/// input, rendering and hints, reporting a typed result `R` to the owner
-/// when it closes. Object-safe; `W` is app state a layer reads while it
-/// draws or handles input (default none).
-///
-/// Every handler has a "do nothing" default except the three a layer
-/// cannot do without: [`Self::spec`], [`Self::render`] and
-/// [`Self::on_key`]. A layer that resolves (a button chose, a dismissal
-/// cancelled) keeps the result until [`Self::take_result`].
+
+
+
+
+
+
+
+
+
 pub trait Layer<R, W: ?Sized = ()>: Any {
-    /// How it opens and closes.
+
     fn spec(&self) -> LayerSpec;
-    /// Draw it (the frame, its backdrop and its content).
+
     fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, app: &W);
-    /// A key while it is the top layer.
+
     fn on_key(&mut self, key: &Key, cx: &mut LayerCx<'_, W>) -> Outcome;
-    /// A pointer event the router resolved to this layer
-    /// ([`crate::core::pointer::PointerRouter`]): the one entry an app's
-    /// host calls. The default hands each phase to the per-gesture
-    /// handlers below (a press, a completed click with its count, a drag
-    /// of the held press, a release away from it, a wheel on either axis).
+
+
+
+
+
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, W>) -> Outcome {
         if let Some((axis, delta)) = ev.wheel() {
             return match axis {
@@ -246,11 +246,11 @@ pub trait Layer<R, W: ?Sized = ()>: Any {
             _ => Outcome::Ignored,
         }
     }
-    /// A completed click on `id` inside it.
+
     fn on_click(&mut self, _id: WidgetId, _pos: Position, _cx: &mut LayerCx<'_, W>) -> Outcome {
         Outcome::Consumed
     }
-    /// A click on `id` with a click count (double, triple).
+
     fn on_click_count(
         &mut self,
         id: WidgetId,
@@ -260,85 +260,85 @@ pub trait Layer<R, W: ?Sized = ()>: Any {
     ) -> Outcome {
         self.on_click(id, pos, cx)
     }
-    /// The primary button went down on `id` inside it.
+
     fn on_press(&mut self, _id: WidgetId, _pos: Position, _count: u8) -> Outcome {
         Outcome::Ignored
     }
-    /// A drag that started on `pressed`.
+
     fn on_drag(&mut self, _pressed: WidgetId, _pos: Position) -> Outcome {
         Outcome::Ignored
     }
-    /// The button came up after a press on `pressed`.
+
     fn on_release(&mut self, _pressed: WidgetId, _pos: Position) -> Outcome {
         Outcome::Ignored
     }
-    /// The vertical wheel over it.
+
     fn on_wheel(&mut self, _delta: i32, _pos: Position) -> Outcome {
         Outcome::Consumed
     }
-    /// The horizontal wheel (or Shift+wheel) over it.
+
     fn on_wheel_h(&mut self, _delta: i32, _pos: Position) -> Outcome {
         Outcome::Consumed
     }
-    /// Pasted text.
+
     fn on_paste(&mut self, _text: &str) -> Outcome {
         Outcome::Ignored
     }
-    /// Focus moved between controls inside it (an edit ends on blur).
+
     fn on_blur(&mut self, _change: FocusChange) -> Outcome {
         Outcome::Ignored
     }
-    /// The app's tick while it is open (a spinner, a live list).
+
     fn on_tick(&mut self, _app: &W) -> Outcome {
         Outcome::Ignored
     }
-    /// The footer's key hints while it is on top.
+
     fn hints(&self, _focused: Option<WidgetId>) -> Vec<Hint> {
         Vec::new()
     }
-    /// A field of the layer is editing text: the footer shows the EDIT
-    /// badge and letters type instead of acting.
+
+
     fn is_editing(&self) -> bool {
         false
     }
-    /// The layer animates (a spinner, a progress run) and needs ticks to
-    /// redraw.
+
+
     fn animating(&self) -> bool {
         false
     }
-    /// Resolve to the cancel result for `reason`. [`ShellLayers::dismiss`]
-    /// calls it only when [`Self::spec`]'s policy allows `reason`.
+
+
     fn on_dismiss(&mut self, reason: DismissReason);
-    /// What it reported since the last call (taken once): a final result
-    /// closes it, an event (a picker's query changed, a form's chooser
-    /// button) goes to the owner while it stays open.
+
+
+
     fn take_result(&mut self) -> Option<LayerOut<R>>;
 }
 
-/// What a [`Layer`] reports to its owner.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayerOut<R> {
-    /// The layer resolved: it closes and the owner gets `R`.
+
     Close(R),
-    /// The owner handles `R` while the layer stays open.
+
     Event(R),
 }
 
 impl<R> LayerOut<R> {
-    /// The reported value.
+
     pub fn into_inner(self) -> R {
         match self {
             Self::Close(r) | Self::Event(r) => r,
         }
     }
-    /// Whether the layer closes.
+
     pub fn closes(&self) -> bool {
         matches!(self, Self::Close(_))
     }
 }
 
-/// Identifies what a layer is for, so its owner can route the result:
-/// a kind, a key (the target's identity) and a number.
+
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct LayerTag {
     pub kind: &'static str,
@@ -364,7 +364,7 @@ impl LayerTag {
     }
 }
 
-/// A layer on the stack with its tag and the page that owns it.
+
 pub struct LayerEntry<R, W: ?Sized = (), O = ()> {
     pub layer: Box<dyn Layer<R, W>>,
     pub tag: LayerTag,
@@ -372,12 +372,12 @@ pub struct LayerEntry<R, W: ?Sized = (), O = ()> {
 }
 
 impl<R: 'static, W: ?Sized + 'static, O> LayerEntry<R, W, O> {
-    /// The layer as its concrete type, if it is an `L`.
+
     pub fn get<L: Layer<R, W>>(&self) -> Option<&L> {
         let any: &dyn Any = &*self.layer;
         any.downcast_ref()
     }
-    /// The layer as its concrete type, if it is an `L`.
+
     pub fn get_mut<L: Layer<R, W>>(&mut self) -> Option<&mut L> {
         let any: &mut dyn Any = &mut *self.layer;
         any.downcast_mut()
@@ -390,46 +390,46 @@ impl<R: 'static, W: ?Sized + 'static, O> Modal for LayerEntry<R, W, O> {
     }
 }
 
-/// An app's layer stack (plan §1.7): opening a layer moves focus to its
-/// [`LayerSpec::initial_focus`] and remembers the focus it covers; closing
-/// it gives that focus back (K9).
+
+
+
 pub type ShellLayers<R, W = (), O = ()> = ModalStack<LayerEntry<R, W, O>>;
 
-/// What [`ShellLayers::take`] found on the top layer.
+
 pub enum Taken<R, W: ?Sized = (), O = ()> {
-    /// An event for the owner; the layer stays open.
+
     Event(R),
-    /// The layer closed with its result.
+
     Closed(LayerEntry<R, W, O>, R),
 }
 
-/// How a dismissal of the top layer went.
+
 pub enum Dismissed<R, W: ?Sized = (), O = ()> {
-    /// No layer is open.
+
     None,
-    /// The policy refuses it: the layer stays.
+
     Refused,
-    /// The layer closed as cancelled; its result goes to the owner.
+
     Closed(LayerEntry<R, W, O>, Option<R>),
 }
 
-/// What [`ShellLayers::pointer`] did with a pointer event.
+
 pub enum LayerPointer<R, W: ?Sized = (), O = ()> {
-    /// The top layer took it (`Ignored` when no layer is open).
+
     Handled(Outcome),
-    /// A click on a backdrop the top layer leaves alone (its frame's
-    /// [`crate::ui::modal::BACKDROP`], a picker's): an outside click,
-    /// dismissed under the layer's policy. A refused one is for the host
-    /// to flash ([`crate::ui::modal::refuse_outside_click`]).
+
+
+
+
     Dismissed(Dismissed<R, W, O>),
 }
 
 impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
-    /// Hand a pointer event to the top layer ([`Layer::pointer`]). A
-    /// completed click on a backdrop that the layer leaves alone is an
-    /// outside click and goes through [`Self::dismiss`]; a popup inside
-    /// the layer (a select in a form) owns its own backdrop and takes it
-    /// first.
+
+
+
+
+
     pub fn pointer(
         &mut self,
         ev: &PointerEvent,
@@ -440,7 +440,7 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         let Some(top) = self.top_mut() else {
             return LayerPointer::Handled(Outcome::Ignored);
         };
-        // the top frame's own backdrop: never a popup's inside the layer
+
         if ev.is(Phase::Click) && ev.id == crate::ui::modal::BACKDROP {
             return LayerPointer::Dismissed(self.dismiss(DismissReason::OutsideClick, focus));
         }
@@ -457,7 +457,7 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         LayerPointer::Handled(out)
     }
 
-    /// Open `layer` on top for `owner`.
+
     pub fn open(
         &mut self,
         layer: Box<dyn Layer<R, W>>,
@@ -469,8 +469,8 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         self.push(LayerEntry { layer, tag, owner }, focus, initial);
     }
 
-    /// What the top layer reported: a final result closes it (restoring
-    /// focus) and hands back its entry; an event leaves it open.
+
+
     pub fn take(&mut self, focus: &mut Focus) -> Option<Taken<R, W, O>> {
         match self.top_mut()?.layer.take_result()? {
             LayerOut::Event(r) => Some(Taken::Event(r)),
@@ -481,8 +481,8 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         }
     }
 
-    /// Dismiss the top layer for `reason` under its policy. A closed layer
-    /// gives focus back and reports its cancel result.
+
+
     pub fn dismiss(&mut self, reason: DismissReason, focus: &mut Focus) -> Dismissed<R, W, O> {
         let Some(top) = self.top_mut() else {
             return Dismissed::None;
@@ -498,32 +498,32 @@ impl<R: 'static, W: ?Sized + 'static, O> ModalStack<LayerEntry<R, W, O>> {
         }
     }
 
-    /// Hand a focus change to every open layer, bottom to top (the blur
-    /// fan-out: a field in a covered layer ends its edit too).
+
+
     pub fn on_blur(&mut self, change: FocusChange) -> Outcome {
         self.iter_mut()
             .fold(Outcome::Ignored, |out, e| out.or(e.layer.on_blur(change)))
     }
 
-    /// Whether a layer that hides the page focus is open: pass it to
-    /// [`RenderCtx::page_under_layer`] at frame start.
+
+
     pub fn hides_page_focus(&self) -> bool {
         self.iter().any(|e| e.layer.spec().hides_page_focus)
     }
 
-    /// The top layer as its concrete type, if it is an `L`.
+
     pub fn top_as<L: Layer<R, W>>(&self) -> Option<&L> {
         self.top()?.get()
     }
-    /// The top layer as its concrete type, if it is an `L`.
+
     pub fn top_as_mut<L: Layer<R, W>>(&mut self) -> Option<&mut L> {
         self.top_mut()?.get_mut()
     }
 }
 
-// ---------------------------------------------------------------- library
-// overlays: every popup and modal of the library resolves a dismissal to
-// its cancel result here, in one place.
+
+
+
 
 use crate::widgets::choice_dialog::ChoiceDialog;
 use crate::widgets::completion::{Completion, CompletionAction};
@@ -537,17 +537,17 @@ use crate::widgets::select::{Select, SelectAction};
 
 impl Overlay for Dialog {
     type Action = DialogResult;
-    /// Its policy with light dismissal refused while a guard holds
-    /// ([`Dialog::guard_dirty_prompt`],
-    /// [`Dialog::guard_destructive_dismiss`]).
+
+
+
     fn dismiss(&self) -> Dismiss {
         self.dismiss_in_force()
     }
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(Overlay::dismiss(self)).initial_focus(self.initial_focus)
     }
-    /// The dialog's own cancel action (its `cancel_index` button, else
-    /// `Cancelled`): a dismissal means exactly what Esc means.
+
+
     fn on_dismiss(&mut self, _: DismissReason) -> Response<DialogResult> {
         let _ = self.dismissed();
         Response::emit(self.result.unwrap_or(DialogResult::Cancelled))
@@ -613,9 +613,9 @@ impl Overlay for HelpOverlay {
     fn dismiss(&self) -> Dismiss {
         self.dismiss
     }
-    /// Focus opens on Done, the reference's one focus stop: the single
-    /// `▎` shows there in the topmost layer (WCAG 2.4.7), and the
-    /// overlay's keys reach it wherever focus is.
+
+
+
     fn spec(&self) -> LayerSpec {
         LayerSpec::modal(self.dismiss).initial_focus(self.done.id)
     }
@@ -676,8 +676,8 @@ impl Overlay for Select {
         self.dismiss
     }
     fn spec(&self) -> LayerSpec {
-        // the field keeps the keyboard; its list marks the cursor with a
-        // fill, never a second focus bar
+
+
         LayerSpec::popover(self.dismiss)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<SelectAction> {
@@ -691,7 +691,7 @@ impl Overlay for Completion {
         self.list.dismiss
     }
     fn spec(&self) -> LayerSpec {
-        // the editor keeps the keyboard and its caret
+
         LayerSpec::popover(self.list.dismiss).hides_page_focus(false)
     }
     fn on_dismiss(&mut self, _: DismissReason) -> Response<CompletionAction> {
@@ -705,7 +705,7 @@ mod tests {
     use super::*;
     use crate::core::intent::DismissReason as R;
 
-    /// A minimal layer: Enter confirms, a dismissal cancels.
+
     struct Ask {
         id: WidgetId,
         dismiss: Dismiss,
@@ -730,15 +730,15 @@ mod tests {
         }
     }
 
-    /// Dismissal per library overlay: the policy decides, and a dismissal
-    /// always resolves to the overlay's cancel result.
+
+
     #[test]
     fn every_library_overlay_resolves_a_dismissal_to_cancel() {
         let id = WidgetId::of("o");
         let mut d = Dialog::confirm(id, "Delete?", "Gone.", "Delete").dismiss(Dismiss::ESCAPE);
         assert!(dismiss(&mut d, R::OutsideClick).is_none(), "refused");
         assert_eq!(d.result, None);
-        // a dismissal is the dialog's Cancel action, exactly as Esc
+
         let cancel = d
             .cancel_index
             .map_or(DialogResult::Cancelled, DialogResult::Action);
@@ -814,11 +814,11 @@ mod tests {
         assert!(!comp.spec().hides_page_focus, "the editor keeps its caret");
     }
 
-    /// Open finding (c): HelpOverlay, FormDialog, ChoiceDialog and
-    /// InfoDialog take a custom close button the way Frame and Dialog do,
-    /// through [`Overlay::close_button`] and [`Frame::overlay`].
-    ///
-    /// [`Frame::overlay`]: crate::ui::modal::Frame::overlay
+
+
+
+
+
     #[test]
     fn every_framed_modal_takes_a_custom_close_button() {
         use crate::ui::ctx::Interaction;
@@ -851,7 +851,7 @@ mod tests {
         assert_eq!(draw(&mut |b, c| choice.render(screen, b, c)), " ✕ ");
         let mut info = InfoDialog::new(id, "Info", vec![]).close_button(custom.clone());
         assert_eq!(draw(&mut |b, c| info.render(screen, b, c)), " ✕ ");
-        // the default stays the theme's `×`
+
         let mut plain = InfoDialog::new(id, "Info", vec![]);
         assert_eq!(draw(&mut |b, c| plain.render(screen, b, c)), " × ");
     }
@@ -880,8 +880,8 @@ mod tests {
         assert!(Dismiss::ESCAPE.focus_out(true).allows(R::FocusOut));
     }
 
-    /// K9: closing a layer, by result or by dismissal, gives the owner its
-    /// focus back; a refused dismissal leaves it open and focus inside.
+
+
     #[test]
     fn layers_restore_the_owner_focus_and_resolve_to_cancel() {
         let mut focus = Focus::default();
@@ -909,7 +909,7 @@ mod tests {
             _ => panic!("Esc closes an ESCAPE layer"),
         }
         assert_eq!(focus.current(), Some(owner));
-        // a result closes it too, through the same focus restore
+
         layers.open(ask("b", Dismiss::NEVER), LayerTag::new("b"), (), &mut focus);
         assert!(layers.take(&mut focus).is_none());
         let ring = FocusRing::default();

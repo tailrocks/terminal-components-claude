@@ -1,5 +1,5 @@
-//! Mouse-only navigation in the showcase (docs/audits/design-review-2026-10/mouse.md):
-//! quitting and leaving every dialog work by pointer alone.
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -68,7 +68,7 @@ impl Harness {
     }
 }
 
-// mouse #40: the brand is the pointer's way to quit
+
 #[test]
 fn the_brand_asks_and_quits_by_mouse() {
     let mut h = Harness::new(120, 40, PageId::Overview);
@@ -82,7 +82,7 @@ fn the_brand_asks_and_quits_by_mouse() {
     assert!(h.app.shell.quit, "{}", h.text());
 }
 
-// mouse #13: the help dialog closes by the × in its frame
+
 #[test]
 fn the_help_dialog_closes_by_its_close_button() {
     let mut h = Harness::new(120, 40, PageId::Overview);
@@ -94,9 +94,9 @@ fn the_help_dialog_closes_by_its_close_button() {
     assert!(h.app.help().is_none(), "{:?} {}", h.app.help(), h.text());
 }
 
-// docs/design/close-button.md: the Rename task dialog's × is a three-cell
-// plate; the pointer on its edge cell lights all three and a click there
-// closes the dialog as Esc does
+
+
+
 #[test]
 fn the_rename_dialog_close_plate_lights_whole_and_closes_on_its_edge() {
     let mut h = Harness::new(120, 40, PageId::Dialogs);
@@ -110,7 +110,7 @@ fn the_rename_dialog_close_plate_lights_whole_and_closes_on_its_edge() {
     assert!(row.contains(" × ─╮"), "{row}");
     let bg = |h: &Harness, x: u16| h.term.backend().buffer()[(x, plate.y)].bg;
     let rest: Vec<_> = (plate.left()..plate.right()).map(|x| bg(&h, x)).collect();
-    // the pointer on the plate's left padding cell
+
     h.app.handle(Input::Mouse(Mouse::new(
         MouseKind::Move,
         Position::new(plate.x, plate.y),

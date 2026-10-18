@@ -1,8 +1,8 @@
-//! tablepro's two pages on the library [`Page`] contract: Connections
-//! (the saved connections and their form) and the Workbench of one open
-//! connection. The app routes input, rendering and hints to the shown one
-//! through [`Page`]; a connection that finishes connecting reports
-//! [`Act::Connected`] instead of a private event.
+
+
+
+
+
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::FocusChange;
@@ -24,8 +24,8 @@ use junie_tui::theme::StatusKind;
 use junie_tui::ui::layout::Maximized;
 use junie_tui::widgets::input::TextInput;
 
-/// The types a tablepro page works with: the pages read and add to the
-/// query history.
+
+
 pub struct Tablepro;
 
 impl PageTypes for Tablepro {
@@ -53,7 +53,7 @@ impl Page<Tablepro> for ConnectionsScreen {
         ConnectionsScreen::on_blur(self, ch)
     }
 
-    /// A connection that finished connecting opens its workbench.
+
     fn on_tick(&mut self, _h: &mut History, cx: &mut Cx) -> Outcome {
         match self.tick() {
             Some(ConnEvent::Connected(i)) => {
@@ -88,8 +88,8 @@ impl Page<Tablepro> for ConnectionsScreen {
         ConnectionsScreen::animating(self)
     }
 
-    /// Esc at the top of the connection list stays here (there is
-    /// nowhere to go back to, and Esc never quits).
+
+
     fn on_esc_top(&mut self, _h: &mut History, _cx: &mut Cx) -> Outcome {
         Outcome::Consumed
     }
@@ -140,9 +140,9 @@ impl Page<Tablepro> for Workbench {
         Workbench::animating(self)
     }
 
-    /// The Esc ladder: restore a maximized pane, then the tab strip hands
-    /// focus to the explorer, the explorer clears its filter, and any
-    /// other control hands focus to the tab strip.
+
+
+
     fn on_esc_top(&mut self, _h: &mut History, cx: &mut Cx) -> Outcome {
         if self.maximized {
             self.maximized = false;
@@ -170,7 +170,7 @@ impl Page<Tablepro> for Workbench {
         Outcome::Changed
     }
 
-    /// Ctrl+C cancels the active tab's running query before it may quit.
+
     fn on_interrupt(&mut self, _h: &mut History, cx: &mut Cx) -> Outcome {
         if let Some(WorkTab::Query(q)) = self.active_tab_mut()
             && q.cancel()

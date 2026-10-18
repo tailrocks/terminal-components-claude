@@ -1,5 +1,5 @@
-//! The Inspector's State | Options pane and `--opt`, driven through the
-//! real app (plan §7, SC1).
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -84,7 +84,7 @@ impl Harness {
             .count()
     }
 
-    /// The cells of `area`, symbols and styles.
+
     fn cells(&self, area: Rect) -> Vec<ratatui::buffer::Cell> {
         let buf = self.term.backend().buffer();
         let mut out = Vec::new();
@@ -103,7 +103,7 @@ impl Harness {
         self.draw();
     }
 
-    /// The area of option `key`'s control.
+
     fn control(&self, key: &str) -> Rect {
         let id = self.app.insp.options.control_id(key).expect("an option");
         self.app.shell.hits.area_of(id).expect("drawn")
@@ -120,7 +120,7 @@ fn the_options_tab_toggles_a_knob_and_the_playground_changes() {
     h.open_options();
     let main = Rect::new(0, 2, 100, 50);
     let before = h.cells(main);
-    // the glyph set: a Select; open it, choose ascii, the page redraws
+
     let field = h.control("shell.glyphs");
     h.click(field.x + 2, field.y);
     assert!(h.app.insp.options.popup_open(), "the list opens");
@@ -141,7 +141,7 @@ fn the_options_tab_toggles_a_knob_and_the_playground_changes() {
         before,
         "the playground redraws with ASCII glyphs"
     );
-    // a toggle: Space flips it, through the PointerConfig builder
+
     let tog = h.control("shell.autoscroll");
     h.click(tog.x + 2, tog.y);
     assert!(!h.app.shell.pointer.config.autoscroll);
@@ -159,7 +159,7 @@ fn a_colour_level_flip_rerenders_at_that_level() {
     h.key(KeyCode::Enter);
     assert_eq!(h.app.theme.level, ColorLevel::Mono);
     assert!(h.text().contains("mono"), "the header names the level");
-    // every cell is drawn at the mono level: no RGB colours
+
     let rgb = h
         .term
         .backend()
@@ -174,11 +174,11 @@ fn a_colour_level_flip_rerenders_at_that_level() {
 fn every_shell_option_flips_through_the_pane_and_through_opt() {
     for o in options::SHELL {
         for (i, value) in o.values.iter().enumerate() {
-            // --opt
+
             let mut by_flag = Harness::new(160, 60, PageId::Overview);
             by_flag.app.apply_opt(opt(&format!("{}={value}", o.key)));
             by_flag.draw();
-            // the pane: the same option through its control
+
             let mut by_pane = Harness::new(160, 60, PageId::Overview);
             by_pane.open_options();
             let id = by_pane.app.insp.options.control_id(o.key).unwrap();
@@ -225,17 +225,17 @@ fn below_100_columns_the_inspector_is_an_overlay() {
     assert!(h.find("Inspector").is_some(), "{}", h.text());
     assert!(h.find("State").is_some() && h.find("Options").is_some());
     assert_eq!(h.focus_bars(), 1, "one focus mark, in the overlay");
-    // Tab stays inside the overlay
+
     for _ in 0..6 {
         h.key(KeyCode::Tab);
         assert!(h.app.insp.has_focus(h.app.shell.focus.current()));
     }
-    // Esc closes and gives focus back
+
     h.key(KeyCode::Esc);
     assert!(!h.app.inspector);
     assert_eq!(h.app.shell.focus.current(), before_focus);
     assert!(h.find("Inspector ").is_none() || !h.text().contains("│ State"));
-    // a click outside closes it too (light dismiss)
+
     h.key(KeyCode::Char('i'));
     assert!(h.app.inspector);
     h.click(2, 10);
@@ -248,7 +248,7 @@ fn the_overlay_options_work_at_80_by_24() {
     h.key(KeyCode::Char('i'));
     h.key(KeyCode::Right);
     assert_eq!(h.app.insp.tab(), Tab::Options);
-    // the page's own options come first, then the shell's
+
     let first = h.app.insp.options.control_id("shell.color").unwrap();
     let page = crate::options::page_options(PageId::Overview).len();
     for _ in 0..=page {
@@ -266,12 +266,12 @@ fn the_overlay_options_work_at_80_by_24() {
 #[test]
 fn docked_pane_focus_and_escape() {
     let mut h = Harness::new(160, 50, PageId::Overview);
-    // the page draws a sample focus mark of its own; the real one is on
-    // the sidebar now
+
+
     let marks = h.focus_bars();
     h.key(KeyCode::Char('i'));
     assert!(!h.app.inspector_overlay());
-    // the docked pane's controls join the Tab order after the page
+
     let mut reached = false;
     for _ in 0..60 {
         h.key(KeyCode::Tab);
@@ -286,11 +286,11 @@ fn docked_pane_focus_and_escape() {
     assert!(h.row(tabs.y).contains('▎'), "it is on the Inspector's tabs");
     h.key(KeyCode::Right);
     assert_eq!(h.app.insp.tab(), Tab::Options);
-    // Esc leaves for navigation, the pane stays open
+
     h.key(KeyCode::Esc);
     assert!(h.app.inspector);
     assert!(!h.app.insp.has_focus(h.app.shell.focus.current()));
-    // `i` closes it
+
     h.key(KeyCode::Char('i'));
     assert!(!h.app.inspector);
 }

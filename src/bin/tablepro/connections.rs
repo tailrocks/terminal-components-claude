@@ -1,5 +1,5 @@
-//! Connection experience: grouped list, detail card, edit form with
-//! BASIC / ADVANCED disclosure, simulated connect states.
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -28,9 +28,9 @@ use crate::app::OpenDialog as _;
 use crate::db::{ConnectOutcome, Connection, Engine, Environment, SafeMode};
 
 const ID: WidgetId = WidgetId::of("connections");
-/// The connection list (where focus lands after a disconnect).
+
 pub const TREE: WidgetId = WidgetId::of("connections").sub("tree");
-/// The empty connection list's "New connection" button.
+
 pub const NEW_ID: WidgetId = WidgetId::of("connections").sub("new");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,23 +67,23 @@ pub struct ConnectionsScreen {
     del_btn: Button,
     retry_btn: Button,
     form: Option<ConnForm>,
-    /// The guard every way out of a dirty form goes through: `e` (edit
-    /// another connection), Ctrl+N (a new one), Esc (close) and quitting
-    /// (keyboard audit #6).
+
+
+
     pub leave: LeaveGuard<FormLeave>,
-    /// The glyph set the tree's environment glyphs were drawn from (the
-    /// theme's, synced at render).
+
+
     glyphs: junie_tui::theme::Glyphs,
 }
 
-/// Where leaving the connection form goes ([`ConnectionsScreen::leave`]).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FormLeave {
-    /// Close the form.
+
     Close,
-    /// Open the form on this connection (the `e` key).
+
     Edit(usize),
-    /// Open an empty form (Ctrl+N).
+
     New,
 }
 
@@ -101,7 +101,7 @@ struct ConnForm {
     env: RadioGroup,
     group: Select,
     safe: RadioGroup,
-    // advanced
+
     ssl: Toggle,
     ssh: Toggle,
     ssh_host: TextInput,
@@ -112,9 +112,9 @@ struct ConnForm {
     cancel_btn: Button,
     save_btn: Button,
     save_connect_btn: Button,
-    /// Scroll of the form's column stacks, per tab: `[tab][column]`.
+
     stacks: [[StackScroll; 2]; 2],
-    /// Every value as the form opened, to tell whether it was edited.
+
     pristine: Vec<String>,
 }
 
@@ -251,7 +251,7 @@ impl ConnForm {
         self
     }
 
-    /// Every value the form edits, as text.
+
     fn values(&self) -> Vec<String> {
         let c = self.to_connection(None);
         vec![
@@ -264,7 +264,7 @@ impl ConnForm {
         ]
     }
 
-    /// Whether any value differs from when the form opened.
+
     fn dirty(&self) -> bool {
         self.values() != self.pristine
     }
@@ -309,10 +309,10 @@ impl ConnForm {
     }
 }
 
-/// An environment's tone, from the library ([`EnvKind::tone`]): production
-/// danger, staging warning, development info, local muted.
-///
-/// [`EnvKind::tone`]: junie_tui::theme::EnvKind::tone
+
+
+
+
 pub fn env_tone(env: Environment) -> Tone {
     env.kind().tone()
 }
@@ -355,7 +355,7 @@ impl ConnectionsScreen {
                     .iter()
                     .filter(|c| &c.group == g)
                     .map(|c| {
-                        // the environment's glyph and tone ([`Theme::env`])
+
                         let env = c.environment.kind();
                         TreeNode::leaf(&c.name)
                             .glyph(self.glyphs.env(env))
@@ -393,7 +393,7 @@ impl ConnectionsScreen {
         }
     }
 
-    /// The connections list (its rows carry the context menu).
+
     pub fn tree(&self) -> &TreeView {
         &self.tree
     }
@@ -402,13 +402,13 @@ impl ConnectionsScreen {
         &mut self.tree
     }
 
-    /// The connection a list row stands for (`None` for a group row).
+
     pub fn connection_at_row(&self, row: usize) -> Option<usize> {
         let path = self.tree.rows().get(row)?.path.clone();
         self.connection_at_path(&path)
     }
 
-    /// Put the list cursor on `row` and select its connection.
+
     pub fn select_row(&mut self, row: usize) {
         use junie_tui::ui::context::ContextSource;
         self.tree.context_select(row);
@@ -419,12 +419,12 @@ impl ConnectionsScreen {
         self.selected.and_then(|i| self.connections.get(i))
     }
 
-    /// Whether the open form has edits that leaving would lose.
+
     pub fn form_dirty(&self) -> bool {
         self.form.as_ref().is_some_and(ConnForm::dirty)
     }
 
-    /// What leaving the form would lose.
+
     pub fn form_stakes(&self) -> Stakes {
         if self.form_dirty() {
             Stakes::Unsaved { changes: 0 }
@@ -433,8 +433,8 @@ impl ConnectionsScreen {
         }
     }
 
-    /// Leave the form for `to`: at once when nothing would be lost,
-    /// otherwise after Save / Discard / Cancel.
+
+
     pub fn leave_form(&mut self, to: FormLeave, cx: &mut crate::app::Cx) -> Outcome {
         let stakes = self.form_stakes();
         match self
@@ -469,8 +469,8 @@ impl ConnectionsScreen {
         }
     }
 
-    /// The leave guard's dialog closed. `true` when the app should quit
-    /// (a quit waited on it and the form was saved or discarded).
+
+
     pub fn resolve_leave(
         &mut self,
         result: junie_tui::widgets::dialog::DialogResult,
@@ -482,7 +482,7 @@ impl ConnectionsScreen {
             Resolved::Save(to) => {
                 self.submit(false, cx);
                 if self.form.is_some() {
-                    // the form did not validate: stay on it
+
                     return false;
                 }
                 to
@@ -490,7 +490,7 @@ impl ConnectionsScreen {
         };
         match to {
             Leave::Quit => {
-                // discarded (or saved): the form is settled
+
                 self.form = None;
                 self.state = ConnState::Idle;
                 true
@@ -545,7 +545,7 @@ impl ConnectionsScreen {
         self.open_form(None);
     }
 
-    /// Advance simulated states. Returns a connected index when a connect completes.
+
     pub fn tick(&mut self) -> Option<ConnEvent> {
         match &mut self.state {
             ConnState::Connecting { ticks, name } => {
@@ -600,13 +600,13 @@ impl ConnectionsScreen {
         None
     }
 
-    // ---- input ---------------------------------------------------------
+
 
     pub fn on_key(&mut self, key: &Key, cx: &mut crate::app::Cx) -> (Outcome, Option<ConnEvent>) {
-        // E edits the current selection from any non-editing focus; this keeps
-        // the form reachable where the action row is responsively hidden.
-        // ... never over a focused text field (the letter is typing), and
-        // never wiping edits without asking (keyboard audit #6)
+
+
+
+
         let text_focus = self.form_text_focus(cx.focus.current());
         if key.is_char('e')
             && !self.is_editing()
@@ -650,8 +650,8 @@ impl ConnectionsScreen {
             return (o, None);
         }
         if f == self.tree.id {
-            // Keyboard equivalents keep connection maintenance usable when the
-            // detail card and its action row are responsively hidden.
+
+
             if key.is_char('e') {
                 let event = self.action(1, cx);
                 return (Outcome::Changed, event);
@@ -680,8 +680,8 @@ impl ConnectionsScreen {
         }
         if let Some(_form) = self.form.as_mut() {
             let o = self.on_form_key(key, f, cx);
-            // Esc the controls did not take cancels the form, asking first
-            // when it was edited
+
+
             if o == Outcome::Ignored && key.is(KeyCode::Esc) {
                 return (self.leave_form(FormLeave::Close, cx), None);
             }
@@ -772,7 +772,7 @@ impl ConnectionsScreen {
         false
     }
 
-    /// Whether `focus` is one of the form's text fields.
+
     fn form_text_focus(&self, focus: Option<WidgetId>) -> bool {
         let (Some(form), Some(f)) = (self.form.as_ref(), focus) else {
             return false;
@@ -959,8 +959,8 @@ impl ConnectionsScreen {
         Outcome::Changed
     }
 
-    /// The text fields the pointer selects in: the filter, and the
-    /// form's inputs and startup script while the form is open.
+
+
     fn pointer_fields(&mut self) -> Vec<&mut dyn PointerField> {
         let mut v: Vec<&mut dyn PointerField> = vec![&mut self.filter];
         if let Some(f) = self.form.as_mut() {
@@ -979,10 +979,10 @@ impl ConnectionsScreen {
         v
     }
 
-    /// A pointer event the router resolved on the connection screen: the
-    /// form's column stacks (wheel and bar), the text fields (press, drag,
-    /// click), the tree, the form's tabs, selects and controls, and the
-    /// buttons.
+
+
+
+
     pub fn pointer(
         &mut self,
         ev: &PointerEvent,
@@ -1006,8 +1006,8 @@ impl ConnectionsScreen {
             }
             _ => {}
         }
-        // the rest of a gesture (a bar press, a press-drag on a select, the
-        // wheel over the tree) goes to the widget that owns it
+
+
         if let Some(r) = self.tree.route(ev) {
             return (r.outcome(), None);
         }
@@ -1027,7 +1027,7 @@ impl ConnectionsScreen {
         cx: &mut crate::app::Cx,
     ) -> (Outcome, Option<ConnEvent>) {
         let (id, pos) = (ev.id, ev.pos());
-        // the empty list's way in (mouse #6)
+
         if id == NEW_ID {
             self.open_new();
             return (Outcome::Changed, None);
@@ -1042,8 +1042,8 @@ impl ConnectionsScreen {
             }
             let (o, act) = self.tree.pointer(ev).into_parts();
             self.sync_selected_from_cursor();
-            // one click selects a connection; the tree's click policy (a
-            // double click) activates it, which connects as Enter does
+
+
             if let Some(TreeAction::Activate(path)) = act
                 && let Some(i) = self.connection_at_path(&path)
             {
@@ -1074,8 +1074,8 @@ impl ConnectionsScreen {
         }
     }
 
-    /// The form's column stacks: a wheel scrolls one, a press or drag on
-    /// its bar moves it.
+
+
     fn form_stack_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let form = self.form.as_mut()?;
         let tab = form.tabs.active.min(1);
@@ -1095,7 +1095,7 @@ impl ConnectionsScreen {
             cx.focus.focus(form.tabs.id);
             return r.outcome();
         }
-        // the text fields take clicks through `pointer_fields` (on_click)
+
         for sel in [&mut form.engine, &mut form.group] {
             if let Some(r) = sel.route(ev) {
                 cx.focus.focus(sel.id);
@@ -1135,8 +1135,8 @@ impl ConnectionsScreen {
         Outcome::Ignored
     }
 
-    /// A control lost focus: its field ends the edit (see
-    /// [`junie_tui::core::focus::Focus::take_changes`]).
+
+
     pub fn on_blur(&mut self, ch: junie_tui::core::focus::FocusChange) -> Outcome {
         use junie_tui::core::focus::forward_blur;
         let mut out = forward_blur(ch, &mut [&mut self.filter]);
@@ -1217,7 +1217,7 @@ impl ConnectionsScreen {
         ]
     }
 
-    // ---- render --------------------------------------------------------
+
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
@@ -1239,7 +1239,7 @@ impl ConnectionsScreen {
         } else {
             (area, Rect::ZERO)
         };
-        // list pane
+
         let lf = ctx.interaction.focused(self.tree.id) || ctx.interaction.focused(self.filter.id);
         let count = format!("{}", self.connections.len());
         let panel = Panel::framed(Some("Connections")).focused(lf).meta(&count);
@@ -1275,7 +1275,7 @@ impl ConnectionsScreen {
         }
         if r.is_empty() {
             if self.form.is_some() {
-                // the form covers the list: the list is inert under it
+
                 ctx.cover(buf);
                 self.render_form(area, buf, ctx);
             }
@@ -1285,7 +1285,7 @@ impl ConnectionsScreen {
             self.render_form(r, buf, ctx);
             return;
         }
-        // detail card
+
         let Some(c) = self.selected_connection().cloned() else {
             junie_tui::widgets::empty::render(
                 r,
@@ -1301,7 +1301,7 @@ impl ConnectionsScreen {
         let panel = Panel::card(Some(&c.name));
         let bg = panel.bg(t);
         let inner = panel.render(Rect::new(r.x, r.y, r.width.min(70), card_h), buf, t);
-        // SSL on is a passed check: the library's ok glyph and tone
+
         let ssl = if c.ssl {
             let ok = junie_tui::theme::StatusKind::Ok;
             Prop::new("SSL", format!("{} on", t.status(ok).0)).tone(ok.tone())
@@ -1373,7 +1373,7 @@ impl ConnectionsScreen {
             &facts,
             bg,
         );
-        // state line
+
         let sy = inner.y + used + 1;
         match &self.state {
             ConnState::Connecting { ticks, name } if *name == c.name => {
@@ -1415,7 +1415,7 @@ impl ConnectionsScreen {
             }
             _ => {}
         }
-        // actions
+
         let ay = inner.bottom().saturating_sub(1);
         let connecting =
             matches!(&self.state, ConnState::Connecting { name, .. } if *name == c.name);
@@ -1452,7 +1452,7 @@ impl ConnectionsScreen {
         let panel = Panel::card(Some(title)).meta("Ctrl+S Save");
         let bg = panel.bg(t);
         let inner = panel.render(Rect::new(r.x, r.y, r.width.min(84), r.height), buf, t);
-        // mark tabs with required-field errors
+
         form.tabs.items[0].error =
             form.name.field.error.is_some() || form.port.field.error.is_some();
         form.tabs
@@ -1465,9 +1465,9 @@ impl ConnectionsScreen {
         );
         let (lc, rc) = junie_tui::ui::layout::Split::new(58, 30, 24).horizontal(body, 4);
         let fh = TextInput::HEIGHT;
-        // each column is a measured stack: on a short terminal it scrolls
-        // by whole fields and keeps the focused one in view, instead of
-        // running into the buttons and the hint bar
+
+
+
         let stack = Stack::default();
         let focus = ctx.interaction.focus;
         let tab = form.tabs.active.min(1);
@@ -1636,7 +1636,7 @@ impl ConnectionsScreen {
                 );
             }
         }
-        // footer: test + actions
+
         let ay = inner.bottom().saturating_sub(1);
         form.test_btn.busy = matches!(self.state, ConnState::Testing { .. });
         let widths = [

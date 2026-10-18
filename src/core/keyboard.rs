@@ -1,26 +1,26 @@
-//! The kitty keyboard protocol: progressive enhancement of key reporting.
-//!
-//! A terminal speaking the legacy encoding cannot report Cmd (the super
-//! modifier) at all, so Cmd+A, the macOS Select All, never reaches an
-//! application. Terminals that implement the kitty keyboard protocol
-//! (<https://sw.kovidgoyal.net/kitty/keyboard-protocol/>) report it once the
-//! application pushes the enhancement flags. The runtime
-//! ([`crate::runtime::TerminalSession`]) does that on enter, pops them on
-//! leave and on suspend, and pushes them again on continue, so the host
-//! shell never inherits them.
-//!
-//! Support is detected with the protocol's own query (`CSI ? u`, answered
-//! with `CSI ? flags u`) when [`KeyboardProtocol::Auto`] is in effect;
-//! [`KeyboardProtocol::ENV`] overrides the decision. Decoding the reports
-//! is crossterm's (the super modifier arrives as
-//! [`KeyModifiers::SUPER`]); [`encode`] and [`decode`] are the reference
-//! codec for PTY drivers and tests.
-//!
-//! Hints must not advertise a Cmd chord the terminal does not deliver
-//! (AGENTS.md). Pushing the flags is not proof: a macOS terminal can still
-//! keep Cmd+A for its own menu. [`super_delivered`] turns true only once a
-//! super-modified key actually arrived ([`observe`]), or when an app that
-//! knows its terminal says so ([`set_super_delivered`]).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
@@ -28,30 +28,30 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::core::event::{Input, Key};
 
-/// `CSI > flags u` flag: report every modified key unambiguously (Esc,
-/// Alt+letter and Ctrl+letter as `CSI … u`).
+
+
 pub const DISAMBIGUATE: u8 = 0b1;
-/// `CSI > flags u` flag: report the shifted and base-layout keys too.
+
 pub const REPORT_ALTERNATE_KEYS: u8 = 0b100;
-/// The flags the runtime pushes: disambiguate plus alternate keys. Key
-/// release events (flag 2) and all-keys-as-escapes (flag 8) stay off, so
-/// plain typing and Enter/Tab/Backspace keep their legacy bytes.
+
+
+
 pub const FLAGS: u8 = DISAMBIGUATE | REPORT_ALTERNATE_KEYS;
 
-/// The support query; a terminal that implements the protocol answers
-/// `CSI ? flags u` (see [`parse_flags_reply`]).
+
+
 pub const QUERY: &str = "\x1b[?u";
-/// Pop the flags this application pushed (one entry of the stack).
+
 pub const POP: &str = "\x1b[<u";
 
-/// `CSI > flags u`: push `flags` onto the terminal's enhancement stack.
+
 pub fn push(flags: u8) -> String {
     format!("\x1b[>{flags}u")
 }
 
-/// The flags in a query reply `CSI ? flags u`, or `None` when `reply` is
-/// not one (a terminal without the protocol answers only the primary
-/// device attributes query that follows it).
+
+
+
 pub fn parse_flags_reply(reply: &[u8]) -> Option<u8> {
     let body = reply.strip_prefix(b"\x1b[?")?.strip_suffix(b"u")?;
     if body.is_empty() || !body.iter().all(u8::is_ascii_digit) {
@@ -60,9 +60,9 @@ pub fn parse_flags_reply(reply: &[u8]) -> Option<u8> {
     std::str::from_utf8(body).ok()?.parse().ok()
 }
 
-/// The protocol's modifier bits (the parameter minus one): shift 1, alt 2,
-/// ctrl 4, super 8. Hyper, meta and the lock bits have no
-/// [`KeyModifiers`] use here and are dropped.
+
+
+
 pub fn modifiers(param: u16) -> KeyModifiers {
     let bits = param.saturating_sub(1);
     let mut m = KeyModifiers::NONE;
@@ -79,7 +79,7 @@ pub fn modifiers(param: u16) -> KeyModifiers {
     m
 }
 
-/// The modifier parameter for `mods` (the inverse of [`modifiers`]).
+
 pub fn modifier_param(mods: KeyModifiers) -> u16 {
     let mut bits = 0;
     for (bit, flag) in [
@@ -95,9 +95,9 @@ pub fn modifier_param(mods: KeyModifiers) -> u16 {
     bits + 1
 }
 
-/// `key` as the protocol reports it under [`FLAGS`]: `CSI code ; mods u`
-/// for a character with a modifier (the code is the unshifted key), `None`
-/// for keys this codec does not cover (named keys keep their legacy form).
+
+
+
 pub fn encode(key: &Key) -> Option<String> {
     let KeyCode::Char(c) = key.code else {
         return None;
@@ -111,8 +111,8 @@ pub fn encode(key: &Key) -> Option<String> {
     })
 }
 
-/// Decode one `CSI code[:alternates] [; mods] u` key report into a [`Key`]
-/// (the inverse of [`encode`]); `None` for anything else.
+
+
 pub fn decode(seq: &[u8]) -> Option<Key> {
     let body = std::str::from_utf8(seq.strip_prefix(b"\x1b[")?.strip_suffix(b"u")?).ok()?;
     if body.starts_with(['?', '>', '<', '=']) {
@@ -137,25 +137,25 @@ pub fn decode(seq: &[u8]) -> Option<Key> {
     })
 }
 
-/// Whether the runtime enables the protocol.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum KeyboardProtocol {
-    /// Ask the terminal ([`QUERY`]) and enable the protocol when it
-    /// answers. The default: progressive enhancement.
+
+
     #[default]
     Auto,
-    /// Push the flags without asking (a terminal known to support it).
+
     On,
-    /// Never push the flags: legacy key reporting only.
+
     Off,
 }
 
 impl KeyboardProtocol {
-    /// The environment variable that overrides the default: `auto`, `on`
-    /// (or `1`, `true`, `kitty`) and `off` (or `0`, `false`, `legacy`).
+
+
     pub const ENV: &'static str = "JUNIE_TUI_KEYBOARD_PROTOCOL";
 
-    /// The policy named by [`Self::ENV`] in `get`, else `Auto`.
+
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
         match get(Self::ENV)
             .map(|v| v.trim().to_ascii_lowercase())
@@ -167,26 +167,26 @@ impl KeyboardProtocol {
         }
     }
 
-    /// [`Self::from_env`] on the process environment.
+
     pub fn current() -> Self {
         Self::from_env(|k| std::env::var(k).ok())
     }
 }
 
-/// What the terminal session pushes and pops, as a pure state machine so
-/// the enter / leave / suspend / continue sequence is testable without a
-/// terminal. The runtime keeps one per process ([`session`]).
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ProtocolState {
-    /// The protocol was chosen for this session (on enter).
+
     pub enabled: bool,
-    /// The flags are on the terminal's stack now.
+
     pub pushed: bool,
 }
 
 impl ProtocolState {
-    /// Decide on enter: `policy`, with `detect` asked only under
-    /// [`KeyboardProtocol::Auto`]. Returns the bytes to write, if any.
+
+
     pub fn enter(
         &mut self,
         policy: KeyboardProtocol,
@@ -200,12 +200,12 @@ impl ProtocolState {
         self.resume()
     }
 
-    /// Leave (exit, panic, suspend): pop once, whatever path calls it.
+
     pub fn leave(&mut self) -> Option<&'static str> {
         std::mem::take(&mut self.pushed).then_some(POP)
     }
 
-    /// Continue after a suspension: push again when the session uses it.
+
     pub fn resume(&mut self) -> Option<String> {
         (self.enabled && !self.pushed).then(|| {
             self.pushed = true;
@@ -216,11 +216,11 @@ impl ProtocolState {
 
 static ENABLED: AtomicBool = AtomicBool::new(false);
 static PUSHED: AtomicBool = AtomicBool::new(false);
-/// 0 unknown, 1 confirmed by an app, 2 refused by an app, 3 observed.
+
 static SUPER: AtomicU8 = AtomicU8::new(0);
 
-/// The process's protocol state (the terminal session is one per
-/// process; the panic hook restores through it too).
+
+
 pub mod session {
     use super::*;
 
@@ -236,7 +236,7 @@ pub mod session {
         PUSHED.store(s.pushed, Ordering::SeqCst);
     }
 
-    /// [`ProtocolState::enter`] on the process state.
+
     pub fn enter(policy: KeyboardProtocol, detect: impl FnOnce() -> bool) -> Option<String> {
         let mut s = load();
         let out = s.enter(policy, detect);
@@ -244,7 +244,7 @@ pub mod session {
         out
     }
 
-    /// [`ProtocolState::leave`] on the process state.
+
     pub fn leave() -> Option<&'static str> {
         let mut s = load();
         let out = s.leave();
@@ -252,7 +252,7 @@ pub mod session {
         out
     }
 
-    /// [`ProtocolState::resume`] on the process state.
+
     pub fn resume() -> Option<String> {
         let mut s = load();
         let out = s.resume();
@@ -261,27 +261,27 @@ pub mod session {
     }
 }
 
-/// True while the enhancement flags are pushed (the terminal reports keys
-/// in the protocol's encoding).
+
+
 pub fn active() -> bool {
     PUSHED.load(Ordering::SeqCst)
 }
 
-/// True when Cmd (super) chords are known to reach the application: a
-/// super-modified key arrived ([`observe`]) or the app said so
-/// ([`set_super_delivered`]). Hints name a Cmd chord only then.
+
+
+
 pub fn super_delivered() -> bool {
     matches!(SUPER.load(Ordering::SeqCst), 1 | 3)
 }
 
-/// An app that knows its terminal delivers Cmd (or does not) says so;
-/// `false` also forgets an observation.
+
+
 pub fn set_super_delivered(on: bool) {
     SUPER.store(if on { 1 } else { 2 }, Ordering::SeqCst);
 }
 
-/// Note an input the runtime decoded: a key carrying the super modifier
-/// proves Cmd chords are delivered.
+
+
 pub fn observe(input: &Input) {
     if let Input::Key(k) = input
         && k.mods.contains(KeyModifiers::SUPER)
@@ -319,7 +319,7 @@ mod tests {
         let ctrl_a = key(KeyCode::Char('a'), KeyModifiers::CONTROL);
         assert_eq!(encode(&ctrl_a).as_deref(), Some("\x1b[97;5u"));
         assert_eq!(decode(b"\x1b[97;5u"), Some(ctrl_a));
-        // alternate keys (flag 4) ride after a colon; the base code decides
+
         let shift_cmd = key(
             KeyCode::Char('a'),
             KeyModifiers::SUPER | KeyModifiers::SHIFT,
@@ -364,12 +364,12 @@ mod tests {
         assert_eq!(s.resume().as_deref(), Some("\x1b[>5u"), "continue pushes");
         assert_eq!(s.resume(), None, "once");
         assert_eq!(s.leave(), Some(POP));
-        // a terminal without the protocol: nothing is written either way
+
         let mut legacy = ProtocolState::default();
         assert_eq!(legacy.enter(KeyboardProtocol::Auto, || false), None);
         assert_eq!(legacy.leave(), None);
         assert_eq!(legacy.resume(), None);
-        // the overrides never ask the terminal
+
         let mut on = ProtocolState::default();
         assert!(
             on.enter(KeyboardProtocol::On, || panic!("no query"))

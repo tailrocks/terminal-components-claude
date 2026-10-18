@@ -1,7 +1,7 @@
-//! Inspect Changes: the change set of an instance in two modes. Compact is
-//! the lightweight list (open a file to read its diff in place); Advanced
-//! is a source-control style viewer with a changed-file tree beside a diff
-//! preview. Both offer the unified listing and the review layout.
+
+
+
+
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::Focus;
@@ -54,41 +54,41 @@ impl InspectMode {
     }
 }
 
-/// Which region has the keyboard in the advanced layout.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Region {
     Tree,
     Diff,
 }
 
-/// The change inspector modal. Emits `Custom("back")` when the operator
-/// leaves towards the exit choices it was opened from, `Custom("close")`
-/// otherwise.
+
+
+
 pub struct InspectChanges {
     pub id: WidgetId,
     pub title: String,
     pub changes: ChangeSet,
     pub mode: InspectMode,
-    /// Compact: cursor over the file rows (the unpushed row comes last).
+
     cursor: usize,
-    /// Compact: a file is open and its diff fills the body.
+
     open: bool,
     list_scroll: ScrollState,
     list_area: Rect,
     tree: TreeView,
-    /// Tree path → index into `changes.files`.
+
     leaves: Vec<(Vec<usize>, usize)>,
     diff: DiffView,
     split: Split,
     seam: Splitter,
     region: Region,
-    /// Areas from the last render: tree, diff (for wheel routing).
+
     tree_area: Rect,
     diff_area: Rect,
     container: Rect,
     stacked: bool,
-    /// Esc at the top level goes back to the exit choices rather than
-    /// closing.
+
+
     returns_to_exit: bool,
     result: Option<ModalResult>,
     pub area: Rect,
@@ -129,7 +129,7 @@ impl InspectChanges {
         s
     }
 
-    /// Esc at the top level returns to the exit choices (`Custom("back")`).
+
     pub fn returns_to_exit(mut self, on: bool) -> Self {
         self.returns_to_exit = on;
         self
@@ -140,7 +140,7 @@ impl InspectChanges {
         self.diff.mode
     }
 
-    /// The file whose diff is shown, if any.
+
     #[cfg(test)]
     pub fn selected_file(&self) -> Option<&ChangedFile> {
         self.diff
@@ -172,7 +172,7 @@ impl InspectChanges {
         self.leaves.iter().find(|(p, _)| p == path).map(|(_, i)| *i)
     }
 
-    /// Compact rows: one per file plus the unpushed-commits row.
+
     fn compact_rows(&self) -> usize {
         self.changes.files.len() + usize::from(self.changes.unpushed > 0)
     }
@@ -209,9 +209,9 @@ impl InspectChanges {
         Outcome::Changed
     }
 
-    /// A wheel notch on `axis` at `pos`: vertically the region under the
-    /// pointer scrolls (the open diff, or the list, in the compact view);
-    /// sideways only the diff under the pointer pans.
+
+
+
     pub fn wheel_at(&mut self, axis: Axis, delta: i32, pos: Position) -> Outcome {
         if axis == Axis::Horizontal {
             let over_diff = match self.mode {
@@ -317,7 +317,7 @@ impl InspectChanges {
                 return Outcome::Changed;
             }
             KeyCode::Esc if self.region == Region::Diff => {
-                // clear a selection first, then hand the keyboard back to the tree
+
                 let (o, _) = self.diff.on_key(key);
                 if o != Outcome::Changed {
                     self.set_region(Region::Tree, focus);
@@ -336,7 +336,7 @@ impl InspectChanges {
                     self.select_file(i);
                     return Outcome::Changed;
                 }
-                // moving the cursor over a file previews it at once
+
                 if o == Outcome::Changed
                     && let Some(row) = self.tree.rows().get(self.tree.cursor)
                     && let Some(i) = self.file_of_path(&row.path)
@@ -474,7 +474,7 @@ impl InspectChanges {
                     st.fg(t.warning),
                 );
             }
-            // the cursor row is a fill: its details step up to stay readable
+
             legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
@@ -516,7 +516,7 @@ impl InspectChanges {
             inner.height.saturating_sub(2),
         );
         self.container = body;
-        // narrow dialogs stack the tree above the diff instead of squeezing both
+
         self.stacked = body.width < 90;
         let (tree_r, diff_r) = if self.stacked {
             let th = (body.height * 35 / 100).clamp(4, 10);
@@ -553,7 +553,7 @@ impl InspectChanges {
         if let Some(u) = Some(self.changes.unpushed).filter(|u| *u > 0)
             && diff_r.height > 2
         {
-            // the unpushed commits live on the last row of the diff column
+
             let text = format!("↑ {u} commit{} not pushed", if u == 1 { "" } else { "s" });
             let y = diff_r.bottom() - 1;
             let w = width(&text) as u16;
@@ -567,14 +567,14 @@ impl InspectChanges {
     }
 }
 
-/// Row index in the flattened tree for file `i`.
+
 fn row_index(tree: &TreeView, i: usize, leaves: &[(Vec<usize>, usize)]) -> Option<usize> {
     let (path, _) = leaves.iter().find(|(_, fi)| *fi == i)?;
     tree.rows().iter().position(|r| &r.path == path)
 }
 
-/// Group files into folder nodes. Returns the nodes and the tree path of
-/// every leaf with its file index.
+
+
 fn build_tree(files: &[ChangedFile]) -> (Vec<TreeNode>, Vec<(Vec<usize>, usize)>) {
     #[derive(Default)]
     struct Dir {
@@ -625,7 +625,7 @@ fn build_tree(files: &[ChangedFile]) -> (Vec<TreeNode>, Vec<(Vec<usize>, usize)>
     (nodes, leaves)
 }
 
-/// The diff view switch names the view it switches to.
+
 fn view_hint(mode: junie_tui::widgets::diff::DiffMode) -> Hint {
     junie_tui::widgets::keyhint::toggle_hint(
         "v",
@@ -636,8 +636,8 @@ fn view_hint(mode: junie_tui::widgets::diff::DiffMode) -> Hint {
 }
 
 impl InspectChanges {
-    /// Where focus lands when it opens: the list, or the tree in the
-    /// advanced view.
+
+
     pub fn initial_focus(&self) -> WidgetId {
         match self.mode {
             InspectMode::Compact => self.id,
@@ -646,8 +646,8 @@ impl InspectChanges {
     }
 }
 
-/// The inspector on the app's layer stack. Light dismiss (Esc at the top
-/// level, an outside click, its close button) reports `Custom("close")`.
+
+
 impl Layer<ModalResult, World> for InspectChanges {
     fn animating(&self) -> bool {
         true
@@ -679,11 +679,11 @@ impl Layer<ModalResult, World> for InspectChanges {
         }
     }
 
-    /// The wheel scrolls the region under the pointer; a drag on the
-    /// seam resizes the split; the tree and the diff take their gestures
-    /// through their widgets (a press anchors a selection in the diff, a
-    /// drag extends it, their bars page and drag); a click picks a row of
-    /// the compact list (again opens it) or pages its bar.
+
+
+
+
+
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut LayerCx<'_, World>) -> Outcome {
         let focus = &mut *cx.focus;
         let (id, pos) = (ev.id, ev.pos());
@@ -827,7 +827,7 @@ mod tests {
     use junie_tui::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
 
-    /// What the inspector reported, if anything.
+
     fn done(m: &mut InspectChanges) -> Option<ModalResult> {
         m.take_result().map(LayerOut::into_inner)
     }
@@ -975,7 +975,7 @@ mod tests {
             m.selected_file().map(|f| f.path.as_str()),
             Some("src/settlement/retry.rs")
         );
-        // walk down the tree: the preview follows the cursor
+
         let mut seen = vec![];
         for _ in 0..8 {
             rig.key(&mut m, KeyCode::Down);
@@ -984,13 +984,13 @@ mod tests {
             }
         }
         assert!(seen.iter().any(|p| p == "Cargo.toml"), "{seen:?}");
-        // Tab into the diff and scroll it
+
         rig.key(&mut m, KeyCode::Tab);
         assert!(rig.focus.is(m.diff.id()));
         let before = m.diff.term.scroll.offset;
         rig.key(&mut m, KeyCode::Down);
         let _ = before;
-        // wheel by position: over the tree scrolls the tree, over the diff the diff
+
         rig.key(&mut m, KeyCode::Tab);
         let big: Vec<String> = (0..30)
             .map(|i| format!("crates/ledger/src/mod{}/file{i}.rs", i % 4))
@@ -1012,8 +1012,8 @@ mod tests {
         let diff_pos = Position::new(m.diff_area.x + 1, m.diff_area.y + 1);
         assert_eq!(m.wheel_at(Axis::Vertical, 2, tree_pos), Outcome::Changed);
         assert_eq!(m.tree.scroll.offset, 2);
-        // the wheel reaches the diff; at a boundary it is consumed, else it
-        // moves the view
+
+
         let d0 = m.diff.term.scroll.offset;
         let out = m.wheel_at(Axis::Vertical, 3, diff_pos);
         assert!(
@@ -1024,7 +1024,7 @@ mod tests {
         rig.draw(&mut m);
         assert_eq!(m.tree.scroll.offset, 2, "render keeps the wheel position");
         rig.h = 40;
-        // switch to compact and back
+
         rig.key(&mut m, KeyCode::Char('m'));
         assert_eq!(m.mode, InspectMode::Compact);
         assert!(rig.focus.is(m.id));

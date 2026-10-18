@@ -1,8 +1,8 @@
-//! One table-driven navigation test for every `Navigable` (plan S4): the
-//! same keys walk every list, tree, table, grid, menu, select, picker,
-//! completion, tab strip, chip bar and radio group, and each must land on
-//! the same rows. Rows 1 and 4 are disabled (or notes) wherever the widget
-//! has disabled rows, and the cursor must never stop on one.
+
+
+
+
+
 
 use junie_tui::core::event::Key;
 use junie_tui::core::hit::Axis;
@@ -36,7 +36,7 @@ fn key(code: KeyCode) -> Key {
     }
 }
 
-/// A widget under test: its keys, its cursor and its rows.
+
 trait Probe {
     fn press(&mut self, k: &Key);
     fn at(&self) -> usize;
@@ -76,12 +76,12 @@ fn id(s: &str) -> WidgetId {
     WidgetId::of(s)
 }
 
-/// Every navigable widget, five rows each: its name, whether rows 1 and 4
-/// are disabled, and whether letters can navigate it.
+
+
 fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
     let d = |i: usize| DISABLED.contains(&i);
-    // an editor's popup: letters and Home/End stay the editor's
-    // (`Completion::NAV`); the cursor model is the same with them on
+
+
     let mut completion = Completion::new(id("c")).nav(NavKeys::DESKTOP);
     completion.open(
         LABELS.iter().map(|l| Item::new(*l).glyph("T")).collect(),
@@ -89,7 +89,7 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
         0,
     );
     let mut picker = Picker::new(id("p"), "Pick");
-    // a searchable picker's Home/End and letters edit its query
+
     picker.searchable = false;
     picker.set_items(
         LABELS
@@ -99,7 +99,7 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
             .collect(),
     );
     let mut select = Select::new(id("s"), "S", &LABELS, 0);
-    select.on_key(&key(KeyCode::Enter)); // the open popup's cursor
+    select.on_key(&key(KeyCode::Enter));
     let table = DataTable::new(
         id("t"),
         vec![Column::new("name", Constraint::Length(10))],
@@ -116,7 +116,7 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
     });
     let mut chips = ChipBar::new(id("chips"));
     chips.chips = LABELS.iter().map(|l| Chip::new(l)).collect();
-    // the "+ Add" button is a sixth stop; five chips walk like the rest
+
     chips.add_label = None;
     let tree = TreeView::new(
         id("tree"),
@@ -248,8 +248,8 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
             "DataGrid",
             false,
             true,
-            // a grid's plain Home/End stay in the row (spreadsheets); its
-            // first and last rows are Ctrl+Home/End
+
+
             probe(grid, |w, k| {
                 let mods = match k.code {
                     KeyCode::Home | KeyCode::End => KeyModifiers::CONTROL,
@@ -297,8 +297,8 @@ fn widgets() -> Vec<(&'static str, bool, bool, Box<dyn Probe>)> {
 #[test]
 fn every_navigable_walks_the_same_rows() {
     NavProfile::Desktop.install();
-    // (key, where the cursor is after it) with and without disabled rows;
-    // the ends stop, or wrap where the widget wraps (menus)
+
+
     let walk = |fwd: KeyCode, back: KeyCode, wrap: bool| {
         let (last, plain_last) = if wrap { (3, 4) } else { (0, 0) };
         let (first, plain_first) = if wrap { (0, 0) } else { (3, 4) };
@@ -338,7 +338,7 @@ fn every_navigable_ignores_the_vim_letters_by_default_and_takes_them_under_vim()
         profile.install();
         for (name, _, letters, mut w) in widgets() {
             if !letters {
-                // an editor's completion types its letters into the editor
+
                 continue;
             }
             let letter = match w.axis() {

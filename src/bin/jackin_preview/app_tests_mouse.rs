@@ -1,5 +1,5 @@
-//! Mouse-only navigation in jackin (docs/audits/design-review-2026-10/mouse.md):
-//! every state is reachable, and every view can be left, by pointer alone.
+
+
 
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
@@ -12,8 +12,8 @@ use crate::scenario::{Motion, Scenario};
 use crate::screens::editor::ROLES;
 use junie_tui::ui::modal::{BACKDROP, CLOSE, SURFACE};
 
-/// A screen cell no control claims (the dimmed page around a modal, where
-/// only the modal frame's backdrop is).
+
+
 fn outside(h: &H) -> Position {
     let area = h.term.backend().buffer().area;
     for y in 1..area.height.saturating_sub(1) {
@@ -43,7 +43,7 @@ fn hard_editor_roles() -> H {
     h
 }
 
-// mouse #4: the wheel scrolls a long list's view and the next frame keeps it
+
 #[test]
 fn the_wheel_scrolls_the_roles_list_without_snapping_back_to_the_cursor() {
     let mut h = hard_editor_roles();
@@ -61,7 +61,7 @@ fn the_wheel_scrolls_the_roles_list_without_snapping_back_to_the_cursor() {
     }
     let scrolled = first_row(&h.text());
     assert_ne!(scrolled, top, "the wheel did not move the Roles list");
-    // a repaint (a tick, a hover) keeps the view where the wheel left it
+
     h.ticks(2);
     h.mouse(MouseKind::Move, at.x, at.y);
     assert_eq!(
@@ -76,8 +76,8 @@ fn the_wheel_scrolls_the_roles_list_without_snapping_back_to_the_cursor() {
     );
 }
 
-// mouse #13: the help overlay leaves the page around it to click, and has
-// a close button in its frame and a Done button
+
+
 #[test]
 fn help_closes_by_its_close_button_its_done_button_and_a_click_beside_it() {
     let open = || {
@@ -128,7 +128,7 @@ fn new_account_form() -> H {
     h
 }
 
-// mouse #13: a form (Dismiss::ESCAPE) closes by the × in its frame
+
 #[test]
 fn a_form_closes_by_the_close_button_in_its_frame() {
     let mut h = new_account_form();
@@ -143,7 +143,7 @@ fn a_form_closes_by_the_close_button_in_its_frame() {
     assert_eq!(h.app.route, Route::Accounts);
 }
 
-// mouse #24: an outside click the policy refuses flashes the frame
+
 #[test]
 fn a_refused_outside_click_flashes_the_form_frame() {
     let mut h = new_account_form();
@@ -159,12 +159,12 @@ fn a_refused_outside_click_flashes_the_form_frame() {
     );
     assert_eq!(corner(&h), h.app.theme.warning, "the frame did not flash");
     assert_ne!(rest, h.app.theme.warning);
-    // the flash ends
+
     h.ticks(20);
     assert_eq!(corner(&h), rest);
 }
 
-// mouse #6: a click skips the intro as Enter does
+
 #[test]
 fn a_click_skips_the_intro() {
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
@@ -172,7 +172,7 @@ fn a_click_skips_the_intro() {
     h.ticks(3);
     h.click(60, 20);
     assert_eq!(h.app.route, Route::Manager, "{}", h.text());
-    // the knob turns it off
+
     let mut off = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
     off.app.shell.pointer.config = off.app.shell.pointer.config.click_skips_animation(false);
     off.ticks(3);
@@ -180,7 +180,7 @@ fn a_click_skips_the_intro() {
     assert_eq!(off.app.route, Route::Intro);
 }
 
-// mouse #6: a running launch can be cancelled and its build log closed by mouse
+
 #[test]
 fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() {
     let mut h = H::new(Scenario::LaunchRunning, Motion::Reduced, 0, 120, 40);
@@ -189,7 +189,7 @@ fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() 
     h.click(x + 1, y);
     assert!(h.text().contains("Cancel the launch?"), "{}", h.text());
     h.key(KeyCode::Esc);
-    // the build log, once there is one
+
     for _ in 0..80 {
         if h.app
             .shell
@@ -219,7 +219,7 @@ fn the_cockpit_cancels_by_button_and_the_build_log_closes_by_its_close_button() 
     assert!(!h.text().contains("Docker build"), "{}", h.text());
 }
 
-// mouse #6: a taken-over capsule offers Reconnect and Workspace manager as buttons
+
 #[test]
 fn a_taken_over_capsule_reconnects_by_mouse() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
@@ -256,7 +256,7 @@ fn a_taken_over_capsule_reconnects_by_mouse() {
     assert_ne!(h.app.route, Route::Capsule, "{}", h.text());
 }
 
-// mouse #13: the app's own modal frames (here the capsule's Usage) close by ×
+
 #[test]
 fn an_app_modal_frame_closes_by_its_close_button() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
@@ -285,8 +285,8 @@ fn an_app_modal_frame_closes_by_its_close_button() {
     assert_eq!(h.app.route, Route::Capsule);
 }
 
-/// Every drawn roster row, as (column of its `◉`, its y, the instance id
-/// suffix it names).
+
+
 fn roster_rows(h: &H) -> Vec<(u16, u16, String)> {
     let Some(card) = h.app.shell.hits.area_of(crate::screens::manager::ROSTER) else {
         return vec![];
@@ -309,10 +309,10 @@ fn roster_rows(h: &H) -> Vec<(u16, u16, String)> {
     rows
 }
 
-/// A click on a running instance in the manager's roster selects that
-/// instance, whichever row of the card it is drawn on (the rows used to
-/// be told apart by their y, and the click guessed the instance from a
-/// fixed offset, so a row could select its neighbour).
+
+
+
+
 #[test]
 fn a_roster_click_selects_the_instance_of_that_row() {
     use crate::screens::manager::RowKey;

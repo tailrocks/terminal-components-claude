@@ -1,24 +1,24 @@
-//! A toolbar: a row of commands that is one focus stop (WAI-ARIA APG
-//! toolbar pattern; a macOS window toolbar).
-//!
-//! Tab enters and leaves the toolbar as one stop; inside it ←/→ move the
-//! cursor between items (skipping disabled ones by default), Home/End jump
-//! to the ends, Enter or Space activates the cursor item and flips a
-//! toggle. A click activates an item directly. Items look like subtle
-//! buttons (a toggle shows its on/off dot), each with an optional shortcut
-//! shown muted after its label and a tooltip; separators group them. The
-//! focused toolbar draws the one `▎` gutter on its cursor item, as a tab
-//! strip does on its cursor tab.
-//!
-//! Items that do not fit go behind an overflow button at the right end
-//! (`»`, [`Toolbar::more_button`]), the last stop of the arrow keys: Enter,
-//! Space, ↓ or a click opens a [`ContextMenu`] of the hidden items (their
-//! shortcuts, toggle state and why a disabled one is unavailable) through
-//! the shared overlay layer, as macOS window toolbars and the APG toolbar
-//! keep every command reachable. [`Toolbar::overflow`] turns it off.
-//!
-//! Navigation goes through [`Cursor`] (one stepping rule for every
-//! collection); the keys are [`NavKeys`], overridable per toolbar.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -37,24 +37,24 @@ use crate::ui::tooltip::Tip;
 use crate::widgets::icon_button::IconButton;
 use crate::widgets::menu::{ContextMenu, MenuAction, MenuItem};
 
-/// One command of a [`Toolbar`].
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolItem {
     pub label: String,
-    /// The key that runs the command anywhere in the app (shown muted after
-    /// the label, and in the tooltip). The owner binds it; the toolbar only
-    /// shows it.
+
+
+
     pub shortcut: Option<String>,
     pub disabled: bool,
-    /// A toggle's state: `Some(on)` draws the on/off dot and flips on
-    /// activation. `None`: a plain command.
+
+
     pub on: Option<bool>,
-    /// A separator follows the item.
+
     pub separator_after: bool,
-    /// What the command does, shown on hover.
+
     pub tip: Option<String>,
-    /// Why a disabled command is unavailable, shown in the overflow menu
-    /// in place of the shortcut ([`MenuItem::reason`]).
+
+
     pub reason: Option<String>,
 }
 
@@ -73,7 +73,7 @@ impl ToolItem {
         self.disabled = d;
         self
     }
-    /// Make the item a toggle, starting `on`.
+
     pub fn toggle(mut self, on: bool) -> Self {
         self.on = Some(on);
         self
@@ -86,14 +86,14 @@ impl ToolItem {
         self.tip = Some(tip.to_owned());
         self
     }
-    /// Disable the item and say why (shown in the overflow menu).
+
     pub fn reason(mut self, why: &str) -> Self {
         self.reason = Some(why.to_owned());
         self.disabled = true;
         self
     }
 
-    /// Cells the item takes: gutter, dot, label, shortcut, padding.
+
     fn width(&self) -> u16 {
         let mut w = 1 + width(&self.label) as u16 + 1;
         if self.on.is_some() {
@@ -106,12 +106,12 @@ impl ToolItem {
     }
 }
 
-/// What a [`Toolbar`] reports.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ToolbarAction {
-    /// The command at this index ran.
+
     Activated(usize),
-    /// The toggle at this index flipped to the given state.
+
     Toggled(usize, bool),
 }
 
@@ -119,38 +119,38 @@ pub enum ToolbarAction {
 pub struct Toolbar {
     pub id: WidgetId,
     pub items: Vec<ToolItem>,
-    /// The item ←/→ move and Enter activates.
+
     pub cursor: usize,
-    /// Which keys move the cursor (default [`NavKeys::default`]: ←/→ and
-    /// Home/End; the vim letters under the Vim profile).
+
+
     pub nav: NavKeys,
-    /// → on the last item lands on the first. Default off (APG: optional;
-    /// macOS toolbars stop at the ends).
+
+
     pub wrap: bool,
-    /// Keyboard steps pass over disabled items. Default on; off keeps them
-    /// reachable so a screen reader user can find them (APG allows both).
+
+
     pub skip_disabled: bool,
-    /// Cells between items. Default 1.
+
     pub gap: u16,
-    /// Where each item was drawn in the last render (`Rect::ZERO` when it
-    /// did not fit).
+
+
     pub areas: Vec<Rect>,
-    /// Items that do not fit go behind [`Self::more_button`]. Default on;
-    /// off: they are not drawn (the app gives the toolbar its
-    /// [`Self::width`]).
+
+
+
     pub overflow: bool,
-    /// The overflow button: a padded plate on the title ladder. Its glyph
-    /// `None` is the theme's [`crate::theme::Glyphs::more_titles`] (`»`,
-    /// ASCII `>`); tooltip `Show hidden`
-    /// ([`crate::theme::Strings::tip_overflow`]).
+
+
+
+
     pub more_button: IconButton,
-    /// The open overflow menu and the item each of its rows stands for.
+
     menu: Option<(ContextMenu, Vec<usize>)>,
-    /// Where the overflow button was drawn (`Rect::ZERO`: nothing hidden).
+
     more_area: Rect,
-    /// Items behind the overflow button as of the last render.
+
     hidden: Vec<usize>,
-    /// The theme's toggle marks as of the last render (the menu's rows).
+
     marks: (&'static str, &'static str),
 }
 
@@ -180,70 +180,70 @@ impl Toolbar {
             .unwrap_or(0);
         t
     }
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-    /// See [`Self::wrap`].
+
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
-    /// See [`Self::skip_disabled`].
+
     pub fn skip_disabled(mut self, on: bool) -> Self {
         self.skip_disabled = on;
         self
     }
-    /// See [`Self::gap`].
+
     pub fn gap(mut self, cells: u16) -> Self {
         self.gap = cells;
         self
     }
-    /// See [`Self::overflow`].
+
     pub fn overflow(mut self, on: bool) -> Self {
         self.overflow = on;
         self
     }
-    /// See [`Self::more_button`].
+
     pub fn more_button(mut self, button: IconButton) -> Self {
         self.more_button = button;
         self
     }
-    /// The overflow button showing `glyph` (`…`, `⋯`) instead of the
-    /// theme's.
+
+
     pub fn more_glyph(mut self, glyph: &str) -> Self {
         self.more_button.glyph = Some(glyph.to_owned());
         self
     }
 
-    /// The overflow button's id.
+
     pub fn more_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::OVERFLOW))
     }
 
-    /// The overflow menu's id.
+
     pub fn menu_id(&self) -> WidgetId {
         self.id.sub("more-menu")
     }
 
-    /// The overflow menu is open: it owns the keyboard.
+
     pub fn menu_open(&self) -> bool {
         self.menu.is_some()
     }
 
-    /// Items behind the overflow button as of the last render, in order.
+
     pub fn hidden(&self) -> &[usize] {
         &self.hidden
     }
 
-    /// The cursor is on the overflow button (index `items.len()`).
+
     pub fn on_more(&self) -> bool {
         self.cursor == self.items.len() && !self.more_area.is_empty()
     }
 
-    /// The stops ←/→ visit, in order: the drawn items, then the overflow
-    /// button (`items.len()`) when it is shown.
+
+
     fn stops(&self) -> Vec<usize> {
         let n = self.items.len();
         let drawn = |i: usize| self.areas.get(i).is_none_or(|r| !r.is_empty());
@@ -293,7 +293,7 @@ impl Toolbar {
             MenuAction::Chosen(k) => {
                 let (_, rows) = self.menu.take()?;
                 let a = self.activate(*rows.get(k)?);
-                // focus returns to the button that opened the menu (APG)
+
                 self.cursor = self.items.len();
                 a
             }
@@ -304,18 +304,18 @@ impl Toolbar {
         }
     }
 
-    /// The hit id of item `i`.
+
     pub fn item_id(&self, i: usize) -> WidgetId {
         self.id.part(PartRef::item(Part::ROW, ItemKey::index(i)))
     }
 
-    /// Which item `id` is (the inverse [`Self::on_click`] needs until S15
-    /// hands it the routed part).
+
+
     fn item_at(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.items.len())
     }
 
-    /// Cells the toolbar takes with every item shown.
+
     pub fn width(&self) -> u16 {
         let n = self.items.len() as u16;
         let seps = self.items.iter().filter(|i| i.separator_after).count() as u16;
@@ -354,7 +354,7 @@ impl Toolbar {
                 KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Down
             )
         {
-            // a menu button: Enter, Space and ↓ open it (APG)
+
             self.open_menu();
             return (Outcome::Changed, None);
         }
@@ -367,7 +367,7 @@ impl Toolbar {
         let Some(nav) = self.nav.action(key).filter(|_| key.plain()) else {
             return (Outcome::Ignored, None);
         };
-        // step along the stops: the drawn items, then the overflow button
+
         let n = self.items.len();
         let stops = self.stops();
         let at = stops
@@ -397,8 +397,8 @@ impl Toolbar {
         (moved.outcome(), None)
     }
 
-    /// A click on `id`: the item under it runs; the overflow button opens
-    /// or closes its menu; a row of the open menu runs its item.
+
+
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ToolbarAction>) {
         if let Some((menu, _)) = self.menu.as_mut()
             && menu.contains_id(id)
@@ -413,7 +413,7 @@ impl Toolbar {
             }
             return (Outcome::Changed, None);
         }
-        // any other click on the toolbar closes an open overflow menu
+
         self.menu = None;
         match self.item_at(id) {
             Some(i) => match self.activate(i) {
@@ -424,9 +424,9 @@ impl Toolbar {
         }
     }
 
-    /// One row: the items left to right. Items that do not fit go behind
-    /// the overflow button at the right end ([`Self::overflow`]); with it
-    /// off they are not drawn.
+
+
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         let n = self.items.len();
@@ -440,8 +440,8 @@ impl Toolbar {
         let t = ctx.theme;
         self.marks = (t.glyphs.dot_on, t.glyphs.dot_off);
         let focused = ctx.interaction.focused_under(self.id, self.menu.is_some());
-        // one focus stop with the geometry it draws in; the items' regions
-        // registered after it take the pointer
+
+
         ctx.control(self.id, area, false);
         let more = match &self.more_button.glyph {
             Some(_) => self.more_button.clone(),
@@ -449,7 +449,7 @@ impl Toolbar {
         };
         let more_w = more.width(t);
         let overflowing = self.overflow && n > 0 && self.width() > area.width;
-        // with the button, items stop where it still fits after them
+
         let limit = if overflowing {
             area.right().saturating_sub(more_w + self.gap)
         } else {
@@ -457,14 +457,14 @@ impl Toolbar {
         };
         let y = area.y;
         let mut x = area.x;
-        // the separator after the last drawn item, cleared if nothing
-        // drawn follows it (a group's divider never ends the row)
+
+
         let mut sep_at: Option<u16> = None;
         for i in 0..n {
             let it = &self.items[i];
             let w = it.width();
             if x + w > limit {
-                // the order is kept: every item after a hidden one hides
+
                 if overflowing {
                     self.hidden.extend(i..n);
                     if let Some(sx) = sep_at {
@@ -540,7 +540,7 @@ impl Toolbar {
             }
         }
         if self.hidden.is_empty() {
-            // nothing hides: no button, and its menu has nothing to list
+
             self.menu = None;
             self.cursor = self.cursor.min(n.saturating_sub(1));
         } else {
@@ -555,7 +555,7 @@ impl Toolbar {
                 Some(Tip::new(t.strings.tip_overflow)),
             );
             self.more_area = plate;
-            // a hidden cursor item moves to the button that holds it
+
             if self.cursor > n || self.hidden.contains(&self.cursor) {
                 self.cursor = n;
             }
@@ -593,10 +593,10 @@ impl Navigable for Toolbar {
     }
 }
 
-/// A toolbar sample: hover and press land on its second item, focus is
-/// the toolbar's (its cursor item), disabled disables that item, selected
-/// turns its first toggle on, overflow draws it one cell short of its
-/// width and narrow in the narrow slot (the rest behind `»`).
+
+
+
+
 impl crate::ui::specimen::Specimen for Toolbar {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -646,7 +646,7 @@ impl crate::ui::specimen::Specimen for Toolbar {
             it.on = Some(true);
         }
         let area = if state == crate::ui::specimen::SpecimenState::Overflow {
-            // one cell short of every item: the last ones go behind `»`
+
             Rect {
                 width: area.width.min(t.width().saturating_sub(1)),
                 ..area
@@ -658,9 +658,9 @@ impl crate::ui::specimen::Specimen for Toolbar {
     }
 }
 
-/// The toolbar's pointer gesture: a completed click on an item or a row
-/// of its open overflow menu runs it ([`Toolbar::on_click`]). The overflow
-/// menu is the toolbar's too ([`Self::route`]).
+
+
+
 impl crate::core::pointer::MouseTarget for Toolbar {
     type Action = ToolbarAction;
 
@@ -719,8 +719,8 @@ mod tests {
         render_w(t, inter, 60, &Theme::junie())
     }
 
-    /// Draw `t` in a `w`-cell row of a 60×12 screen (room for its menu),
-    /// overlays flushed.
+
+
     fn render_w(
         t: &mut Toolbar,
         inter: Interaction,
@@ -742,7 +742,7 @@ mod tests {
         (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect()
     }
 
-    /// Run F5 · Explain │ Format(read-only) · Wrap(on): 38 cells.
+
     fn wide() -> Toolbar {
         Toolbar::new(
             WidgetId::of("tb"),
@@ -816,14 +816,14 @@ mod tests {
             .area_of(t.more_id())
             .expect("the button is a hit target");
         assert_eq!(plate.right(), 24, "at the right end");
-        // ←/→ visit the drawn items, then the button as the last stop
+
         t.on_key(&k(KeyCode::End));
         assert!(t.on_more());
         let (buf, _, _) = render_w(&mut t, focus, 24, &Theme::junie());
         let row = line(&buf, 0);
         assert_eq!(row.matches('▎').count(), 1, "one focus mark: {row:?}");
         assert_eq!(buf[(plate.x, 0)].symbol(), "▎", "on the button");
-        // Enter opens the menu of hidden items through the overlay layer
+
         assert_eq!(t.on_key(&k(KeyCode::Enter)), (Outcome::Changed, None));
         assert!(t.menu_open());
         let (buf, _, hits) = render_w(&mut t, focus, 24, &Theme::junie());
@@ -844,24 +844,24 @@ mod tests {
                 .part(PartRef::item(Part::ROW, ItemKey::index(1))),
         );
         assert!(wrap_row.is_some(), "the menu rows are hit targets");
-        // the read-only Format is skipped; Enter flips Wrap
+
         assert_eq!(
             t.on_key(&k(KeyCode::Enter)).1,
             Some(ToolbarAction::Toggled(3, false))
         );
         assert!(!t.menu_open());
         assert!(t.on_more(), "focus returns to the button");
-        // a click on the button opens it, a second closes it
+
         t.on_click(t.more_id());
         assert!(t.menu_open());
         t.on_click(t.more_id());
         assert!(!t.menu_open());
-        // ↓ opens it too; Esc closes
+
         t.on_key(&k(KeyCode::Down));
         assert!(t.menu_open());
         t.on_key(&k(KeyCode::Esc));
         assert!(!t.menu_open());
-        // ← leaves the button for the last drawn item
+
         t.on_key(&k(KeyCode::Left));
         assert_eq!(t.cursor, 1);
     }
@@ -877,13 +877,13 @@ mod tests {
         ascii.glyphs = crate::theme::Glyphs::ASCII;
         let (buf, _, _) = render_w(&mut t, Interaction::default(), 24, &ascii);
         assert!(line(&buf, 0).trim_end().ends_with('>'), "the theme's glyph");
-        // off: the items that do not fit are not drawn, and nothing hides
+
         let mut t = wide().overflow(false);
         let (buf, _, hits) = render_w(&mut t, Interaction::default(), 24, &Theme::junie());
         assert!(t.hidden().is_empty());
         assert!(hits.area_of(t.more_id()).is_none());
         assert!(!line(&buf, 0).contains('»'));
-        // with room for everything there is no button
+
         let mut t = wide();
         let (_, _, hits) = render_w(&mut t, Interaction::default(), 60, &Theme::junie());
         assert!(hits.area_of(t.more_id()).is_none());

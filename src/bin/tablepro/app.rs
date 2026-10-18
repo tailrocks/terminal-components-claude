@@ -1,5 +1,5 @@
-//! TablePro shell: screens (Connections, Workbench), overlays (dialogs,
-//! pickers, filter editor), identity strip, footer hints, routing.
+
+
 
 use std::time::Duration;
 
@@ -53,7 +53,7 @@ const STRIP_SAFE: WidgetId = WidgetId::of("strip.safe");
 const STRIP_SCOPE: WidgetId = WidgetId::of("strip.scope");
 const STRIP_CONN: WidgetId = WidgetId::of("strip.conn");
 const STRIP_HELP: WidgetId = WidgetId::of("strip.help");
-/// The TablePro segment of the status strip: the app menu (mouse #40).
+
 pub const STRIP_APP: WidgetId = WidgetId::of("strip.app");
 const HELP_DIALOG: WidgetId = WidgetId::of("dialog.help");
 const SAFETY_DIALOG: WidgetId = WidgetId::of("dialog.safety");
@@ -64,8 +64,8 @@ const PREVIEW_DIALOG: WidgetId = WidgetId::of("dialog.preview");
 const VIEWER_DIALOG: WidgetId = WidgetId::of("dialog.viewer");
 const QUIT_DIALOG: WidgetId = WidgetId::of("dialog.quit");
 
-/// What a tablepro page asks of the app beyond the library requests
-/// (its navigation and actions: [`junie_tui::shell::Request::Go`]).
+
+
 pub enum Act {
     EditFilter(Option<usize>),
     FilterOnCell(usize, CellValue),
@@ -76,21 +76,21 @@ pub enum Act {
     OpenTableFiltered(String, String, String),
     OpenViewer(String, CellValue),
     ConfirmCloseTab(usize),
-    /// A connection finished connecting: open its workbench.
+
     Connected(usize),
 }
 
-/// What a tablepro page asks of the shell (the library request).
+
 pub type Request = junie_tui::shell::Request<ModalResult, (), Act>;
 
-/// The event context a tablepro page handles input in (the library one).
+
 pub type Cx<'a> = junie_tui::shell::Cx<'a, ModalResult, (), Act>;
 
-/// Opening one of tablepro's dialogs from a page.
+
 pub trait OpenDialog {
-    /// Open `d` on top, placed on the whole screen a row clear of the
-    /// status strip and the footer on top of its own margin (where
-    /// `body_bounds(screen, 1, 1)` placed it).
+
+
+
     fn open_dialog(&mut self, d: Dialog);
 }
 
@@ -101,7 +101,7 @@ impl OpenDialog for Cx<'_> {
     }
 }
 
-/// Tick delivery (`--motion`): the library's [`Motion`].
+
 pub use junie_tui::motion::Motion;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -110,15 +110,15 @@ pub enum Screen {
     Workbench,
 }
 
-/// The tag kind of the Open Quickly picker.
+
 const SWITCHER: &str = "switcher";
-/// The tag kind of the open-tabs picker.
+
 const TAB_LIST: &str = "tablist";
-/// The tag kind of the Safe Mode picker.
+
 const SAFE_MODE: &str = "safemode";
 
-/// What a layer on tablepro's stack reports: a library modal's result, or
-/// the filter editor's.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModalResult {
     Lib(LayerResult),
@@ -131,8 +131,8 @@ impl From<LayerResult> for ModalResult {
     }
 }
 
-/// The app's layer stack: dialogs, pickers, the filter editor and context
-/// menus, bottom to top.
+
+
 pub type Layers = ShellLayers<ModalResult>;
 
 pub struct App {
@@ -141,28 +141,28 @@ pub struct App {
     pub connections: ConnectionsScreen,
     pub workbench: Option<Workbench>,
     pub history: History,
-    /// Focus, ring, hit regions, pointer, footer status (its kind, `None`
-    /// neutral), size and quit: the library shell's state.
+
+
     pub shell: Shell<Option<StatusKind>>,
-    /// Context menus: which keys open one at the focused cursor, and
-    /// whether a right-click moves the cursor onto its row. Default
-    /// [`ContextConfig::DEFAULT`] (Shift+F10 and the Menu key).
+
+
+
     pub context: ContextConfig,
-    /// The pointer clock (press flash, hover delay, status expiry).
+
     pub(crate) clock: WallClock,
-    /// Open overlays, bottom to top; each restores the focus it covered.
+
     pub layers: Layers,
     pub tick: u64,
-    /// The shell's keys ([`shell::KeyRouter`], [`shell_keys`]): the quit
-    /// keys ([`junie_tui::ui::leave::QuitKeys::DEFAULT`]: Ctrl+C cancels a
-    /// running query first, Ctrl+Q and `q`; Esc never quits) and the
-    /// workbench commands.
+
+
+
+
     pub keys: shell::ShellKeys<TpCmd>,
-    /// Simulated commit in flight: ticks left.
+
     committing: Option<u32>,
     scope: usize,
     switcher_targets: Vec<SwitchTarget>,
-    /// What the open Open Quickly picker searches.
+
     switcher_index: Option<SwitcherIndex>,
 }
 
@@ -190,14 +190,14 @@ impl App {
         }
     }
 
-    /// Connect immediately (used by `--connect` and tests).
+
     pub fn connect(&mut self, index: usize) {
         let Some(c) = self.connections.connections.get(index).cloned() else {
             return;
         };
         let mut wb = Workbench::new(c, Catalog::acme_prod());
         wb.new_query("");
-        // start on the explorer so the first Enter opens a table
+
         self.shell.focus.focus(crate::workbench::EXPLORER);
         self.workbench = Some(wb);
         self.screen = Screen::Workbench;
@@ -210,9 +210,9 @@ impl App {
         );
     }
 
-    /// Apply `--motion` / `--frame`. `Paused` fast-forwards `frame` ticks
-    /// synchronously (each one exactly what a live tick does), then pins the
-    /// decorative phase at `frame`; no tick is delivered afterwards.
+
+
+
     pub fn set_motion(&mut self, motion: Motion, frame: u64) {
         self.shell.motion = Motion::Full;
         if motion == Motion::Paused {
@@ -235,11 +235,11 @@ impl App {
     }
 
     pub fn tick_interval(&self) -> Duration {
-        // a held drag past a selecting body's edge autoscrolls on the tick
+
         if self.shell.pointer.autoscrolling() {
             return Duration::from_millis(self.shell.pointer.config.autoscroll_ms);
         }
-        // a press held on a scrollbar track pages on the tick
+
         if self.shell.pointer.track_repeating() {
             return Duration::from_millis(self.shell.pointer.config.track_repeat_ms);
         }
@@ -250,18 +250,18 @@ impl App {
         }
     }
 
-    /// A neutral footer status.
+
     fn set_status(&mut self, s: String) {
         self.put_status(s, None);
     }
 
-    /// A footer status of `kind` ([`Theme::status`] glyph and tone).
+
     fn set_status_as(&mut self, kind: StatusKind, s: String) {
         self.put_status(s, Some(kind));
     }
 
     fn put_status(&mut self, s: String, kind: Option<StatusKind>) {
-        // a failure is an error: it stays until the next action
+
         let tone = if kind == Some(StatusKind::Fail) {
             Tone::Error
         } else {
@@ -272,13 +272,13 @@ impl App {
             .set_with_at(s, tone, kind, self.clock.now());
     }
 
-    /// Milliseconds on the pointer clock.
+
     fn now_ms(&self) -> u64 {
         self.clock.now_ms()
     }
 
-    /// The clock a press flash is read against: frozen at the epoch under
-    /// paused motion, so a flash stays visible for the capture.
+
+
     fn flash_clock(&self) -> u64 {
         if self.shell.motion == Motion::Paused {
             0
@@ -293,7 +293,7 @@ impl App {
             .interaction(self.now_ms(), self.flash_clock(), self.tick)
     }
 
-    // ---------------------------------------------------------------- input
+
 
     fn handle_input(&mut self, input: Input) -> Outcome {
         match input {
@@ -304,8 +304,8 @@ impl App {
         }
     }
 
-    /// Close the workbench and go back to the connection list. Pending row
-    /// changes or an unsaved query keep it open: the status says why.
+
+
     fn disconnect(&mut self) -> Outcome {
         let Some(w) = self.workbench.as_ref() else {
             return Outcome::Ignored;
@@ -329,8 +329,8 @@ impl App {
         Outcome::Changed
     }
 
-    /// Ctrl+N on the connection list: a new form, asking first when it
-    /// would replace an edited one.
+
+
     fn new_connection(&mut self) -> Outcome {
         let (o, reqs) = self.shell.deliver(true, |cx| {
             self.connections
@@ -340,7 +340,7 @@ impl App {
     }
 
     fn request_quit(&mut self) -> Outcome {
-        // an edited connection form asks Save / Discard / Cancel first
+
         let stakes = self.connections.form_stakes();
         if let Err(d) = self
             .connections
@@ -392,17 +392,17 @@ impl App {
         Outcome::Consumed
     }
 
-    /// A due edge-autoscroll step replays the held drag at the pointer
-    /// ([`PointerState::autoscroll_due`](junie_tui::core::pointer::PointerState::autoscroll_due)).
-    /// A due track repeat replays the press held on a scrollbar track, so
-    /// it keeps paging toward the pointer
-    /// ([`PointerState::track_repeat_due`](junie_tui::core::pointer::PointerState::track_repeat_due)).
+
+
+
+
+
     fn autoscroll(&mut self) -> Outcome {
         PointerRouter::tick(self)
     }
 
     fn on_tick(&mut self) -> Outcome {
-        // edge autoscroll is the user's drag, not motion: it runs paused too
+
         let auto = self.autoscroll();
         if self.shell.motion == Motion::Paused {
             return auto;
@@ -410,8 +410,8 @@ impl App {
         self.advance().or(auto)
     }
 
-    /// One tick of the world. The decorative phase advances only under
-    /// full motion.
+
+
     fn advance(&mut self) -> Outcome {
         let mut out = Outcome::Ignored;
         if self.animating() {
@@ -427,7 +427,7 @@ impl App {
         if self.shell.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
-        // a connect finishes on the Connections page, which is shown
+
         let (o, reqs) = self.shell.deliver(true, |cx| {
             Page::on_tick(&mut self.connections, &mut self.history, cx)
         });
@@ -461,7 +461,7 @@ impl App {
                 for e in entries {
                     self.history.push(e);
                 }
-                // refresh an open history tab
+
                 let hist = &self.history;
                 let conn2 = conn.clone();
                 for t in w.tabs.iter_mut() {
@@ -478,8 +478,8 @@ impl App {
         out
     }
 
-    /// The page shown ([`Screen`]): Connections, or the Workbench once a
-    /// connection is open.
+
+
     fn shown(&self) -> Option<&dyn Page<Tablepro>> {
         match self.screen {
             Screen::Connections => Some(&self.connections),
@@ -487,7 +487,7 @@ impl App {
         }
     }
 
-    /// The page shown and the history it reads, borrowed apart.
+
     fn shown_mut(&mut self) -> (Option<&mut dyn Page<Tablepro>>, &mut History) {
         let page: Option<&mut dyn Page<Tablepro>> = match self.screen {
             Screen::Connections => Some(&mut self.connections),
@@ -499,8 +499,8 @@ impl App {
         (page, &mut self.history)
     }
 
-    /// Hand an event to the shown page in a fresh [`Cx`], then apply what
-    /// it asked for.
+
+
     fn with_page(
         &mut self,
         f: impl FnOnce(&mut dyn Page<Tablepro>, &mut History, &mut Cx) -> Outcome,
@@ -537,7 +537,7 @@ impl App {
                 }
                 Request::Open(layer, tag) => self.open_layer(layer, tag),
                 Request::Go(a) => self.act(a),
-                // tablepro pages do not ask for these
+
                 Request::Close
                 | Request::Top(_)
                 | Request::Back
@@ -549,7 +549,7 @@ impl App {
         out
     }
 
-    /// An action a page asked for ([`Act`]).
+
     fn act(&mut self, a: Act) {
         match a {
             Act::Connected(i) => self.connect(i),
@@ -649,8 +649,8 @@ impl App {
         }
     }
 
-    /// Run a workbench command ([`TpCmd`]). `Ignored` passes the key on
-    /// (no workbench, or a command the active tab has no use for).
+
+
     fn run_cmd(&mut self, cmd: TpCmd) -> Outcome {
         if cmd == TpCmd::NewConnection {
             if self.screen != Screen::Connections {
@@ -681,7 +681,7 @@ impl App {
                 Outcome::Ignored
             }
             TpCmd::Run => self.run_active(false, None),
-            // F5 runs in a query tab and passes on elsewhere
+
             TpCmd::RunOrRefresh if self.active_is_query() => self.run_active(false, None),
             TpCmd::RunOrRefresh => Outcome::Ignored,
             TpCmd::RunAll => self.run_active(true, None),
@@ -776,7 +776,7 @@ impl App {
                     let maximized = w.maximized;
                     let f = self.shell.focus.current();
                     if let Some(WorkTab::Query(q)) = w.active_tab_mut() {
-                        // maximize the pane that has focus inside a query tab
+
                         let target = if f == Some(q.editor.id) {
                             junie_tui::ui::layout::Maximized::First
                         } else {
@@ -810,8 +810,8 @@ impl App {
         }
     }
 
-    /// Show the workbench tab `step` places away (wrapping); focus
-    /// follows into it unless it sits on the explorer or the tab strip.
+
+
     fn step_tab(&mut self, step: isize) -> Outcome {
         if self.screen != Screen::Workbench {
             return Outcome::Ignored;
@@ -839,12 +839,12 @@ impl App {
         )
     }
 
-    // ---- execution + safety ------------------------------------------
 
-    /// Run the current statement / all / explain in the active query tab,
-    /// passing through the Safe Mode gate.
-    /// Show (and focus) or hide the explorer: Ctrl+B, its rail and its
-    /// collapse button.
+
+
+
+
+
     fn set_explorer(&mut self, show: bool) -> Outcome {
         if let Some(w) = self.workbench.as_mut() {
             w.explorer_visible = show;
@@ -860,7 +860,7 @@ impl App {
         Outcome::Changed
     }
 
-    /// Cancel the running query, as Esc does while one runs.
+
     fn cancel_running(&mut self) -> Outcome {
         if let Some(w) = self.workbench.as_mut() {
             for t in w.tabs.iter_mut() {
@@ -897,7 +897,7 @@ impl App {
             self.set_status("Nothing to run".into());
             return Outcome::Changed;
         }
-        // classify the batch by its worst statement (TablePro: OperationKind.worst)
+
         let mut worst: Option<(Decision, sql::Statement, String)> = None;
         let mut parse_errors = false;
         for (text, _) in &statements {
@@ -926,7 +926,7 @@ impl App {
         }
         let _ = parse_errors;
         let Some((decision, stmt, text)) = worst else {
-            // only syntax errors: run so the error surfaces in the result
+
             q.start(statements, all, explain);
             return Outcome::Changed;
         };
@@ -967,7 +967,7 @@ impl App {
                             stmt.target().map(|t| format!(" · {t}")).unwrap_or_default()
                         ),
                     )
-                    // production takes its badge tone (Theme::env)
+
                     .tone(if production {
                         env.kind().tone()
                     } else {
@@ -1023,7 +1023,7 @@ impl App {
                 } else {
                     None
                 };
-                // production is a destructive target whatever the statement
+
                 let confirm = if dangerous || tier == sql::Tier::Destructive || production {
                     Button::danger(SAFETY_DIALOG.sub("ok"), "Execute")
                 } else {
@@ -1035,7 +1035,7 @@ impl App {
                     d = d.title_status(StatusKind::Warn);
                 }
                 if token.is_none() {
-                    // dangerous: Cancel keeps focus; plain writes focus Execute
+
                     d.initial_focus = if dangerous {
                         d.actions[0].id
                     } else {
@@ -1252,10 +1252,10 @@ impl App {
         self.open_dialog(d);
     }
 
-    // ---- overlays ------------------------------------------------------
 
-    /// Open a layer a page asked for: it takes the pointer, so nothing
-    /// under it stays hovered or pressed.
+
+
+
     fn open_layer(
         &mut self,
         layer: Box<dyn junie_tui::ui::layer::Layer<ModalResult>>,
@@ -1266,16 +1266,16 @@ impl App {
         self.shell.pointer.pressed = None;
     }
 
-    /// Open one of the app's own dialogs (placed like a page's).
+
     fn open_dialog(&mut self, mut d: Dialog) {
         d.outer_margin.vertical += 1;
         self.open_layer(Box::new(d), LayerTag::new("dialog"));
     }
 
-    /// `?` and F1: the library `HelpOverlay` (K23). The shell's keys and
-    /// every workbench chord come from the live `ShellKeys` (`TpCmd`
-    /// labels); the page keys the screens handle in their own code are
-    /// listed by hand until they move onto key maps (S16).
+
+
+
+
     fn open_help(&mut self) {
         use junie_tui::widgets::help::{HelpOverlay, HelpSection};
         let shell = self
@@ -1340,7 +1340,7 @@ impl App {
             _ => true,
         });
         if p.query.text().is_empty() && self.scope == 0 {
-            // empty query: recent objects first, keep it short
+
             results.truncate(24);
         }
         let items: Vec<PickerItem> = results
@@ -1368,7 +1368,7 @@ impl App {
             })
             .collect();
         p.set_items(items);
-        // stash the matched targets in order (parallel vector via index)
+
         self.switcher_targets = results.into_iter().map(|r| r.target).collect();
     }
 
@@ -1511,25 +1511,25 @@ impl App {
         );
     }
 
-    /// The topmost overlay.
+
     #[cfg(test)]
     pub fn modal(&self) -> Option<&LayerEntry<ModalResult>> {
         self.layers.top()
     }
 
-    /// The topmost overlay as its concrete type, if it is an `L`.
+
     #[cfg(test)]
     pub fn top_as<L: junie_tui::ui::layer::Layer<ModalResult>>(&self) -> Option<&L> {
         self.layers.top_as()
     }
 
-    /// What the top layer is for (its tag's kind).
+
     fn top_kind(&self) -> Option<&'static str> {
         self.layers.top().map(|e| e.tag.kind)
     }
 
-    /// A key while a layer is open: the top layer has it; Esc it leaves
-    /// alone is a dismissal under the layer's own policy.
+
+
     fn layer_key(&mut self, key: Key) -> Outcome {
         let Some(top) = self.layers.top_mut() else {
             return Outcome::Ignored;
@@ -1546,8 +1546,8 @@ impl App {
         self.take_layer().or(out)
     }
 
-    /// Deliver what the top layer reported: an event to its owner while it
-    /// stays open, a final result once it has closed.
+
+
     fn take_layer(&mut self) -> Outcome {
         match self.layers.take(&mut self.shell.focus) {
             None => Outcome::Ignored,
@@ -1556,15 +1556,15 @@ impl App {
         }
     }
 
-    /// Dismiss the top layer for `reason` under its own policy. A refused
-    /// outside click flashes the frame when the policy asks for it.
+
+
     fn dismiss_layer(&mut self, reason: DismissReason) -> Outcome {
         let dismissed = self.layers.dismiss(reason, &mut self.shell.focus);
         self.dismissed(reason, dismissed)
     }
 
-    /// What a dismissal of the top layer did: a refused outside click
-    /// flashes the frame when the policy asks for it.
+
+
     fn dismissed(&mut self, reason: DismissReason, d: Dismissed<ModalResult>) -> Outcome {
         match d {
             Dismissed::None => Outcome::Ignored,
@@ -1588,7 +1588,7 @@ impl App {
         }
     }
 
-    /// An event from the open top layer (a picker's query or scope).
+
     fn layer_event(&mut self, r: ModalResult) -> Outcome {
         let ModalResult::Lib(LayerResult::Picker(ev)) = r else {
             return Outcome::Ignored;
@@ -1625,13 +1625,13 @@ impl App {
                 }
                 Outcome::Changed
             }
-            // a query that matches nothing is not a command: the picker
-            // stays open with it
+
+
             _ => Outcome::Ignored,
         }
     }
 
-    /// The tab list's simple substring filter.
+
     fn filter_tab_list(&mut self) {
         let Some(w) = self.workbench.as_ref() else {
             return;
@@ -1659,8 +1659,8 @@ impl App {
         p.set_items(items);
     }
 
-    /// A layer closed with `r`; `entry` is what it was (its tag, and the
-    /// widget to read a chosen row's data from).
+
+
     fn layer_closed(&mut self, entry: LayerEntry<ModalResult>, r: ModalResult) -> Outcome {
         match r {
             ModalResult::Lib(LayerResult::Dialog { action, .. }) => {
@@ -1687,7 +1687,7 @@ impl App {
         }
     }
 
-    /// Row `i` of a closed picker was chosen (`alt`: Alt+Enter).
+
     fn picker_chosen(&mut self, entry: &LayerEntry<ModalResult>, i: usize, alt: bool) -> Outcome {
         match entry.tag.kind {
             SWITCHER => {
@@ -1706,7 +1706,7 @@ impl App {
                         if let Some(pf) = w.primary_focus() {
                             self.shell.focus.focus(pf);
                         }
-                        // reveal in the explorer
+
                         self.set_status(format!("Opened {schema}.{name}"));
                     }
                     SwitchTarget::Schema(s) => {
@@ -1716,7 +1716,7 @@ impl App {
                             .plain_label();
                         w.explorer.set_filter(None);
                         let _ = w.explorer.rows();
-                        // rebuild explorer with the new current schema
+
                         let conn = w.connection.clone();
                         let cat = w.catalog.clone();
                         let tabs = std::mem::take(&mut w.tabs);
@@ -1794,7 +1794,7 @@ impl App {
         }
     }
 
-    /// The filter editor resolved to `filter` at `index` (`None`: append).
+
     fn apply_filter(&mut self, index: Option<usize>, filter: Filter) -> Outcome {
         let mut applied = None;
         if let Some(w) = self.workbench.as_mut() {
@@ -1829,7 +1829,7 @@ impl App {
             });
             self.apply_requests(reqs);
             if quit {
-                // the form is settled; anything else still asks
+
                 return self.request_quit().or(Outcome::Changed);
             }
             return Outcome::Changed;
@@ -1896,11 +1896,11 @@ impl App {
         Outcome::Changed
     }
 
-    // ---------------------------------------------------------------- mouse
 
-    /// One pointer event the router resolved: the top layer takes it
-    /// while one is open; otherwise the chrome (rail, toolbar, status
-    /// strip, footer hints) and then the screen.
+
+
+
+
     fn deliver_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if !self.layers.is_empty() {
             return self.layer_pointer(ev);
@@ -1916,9 +1916,9 @@ impl App {
         self.with_page(|p, h, cx| p.pointer(ev, h, cx))
     }
 
-    /// An event while a layer is open: the frame's `×` means what Esc
-    /// means and a click on its backdrop is an outside click, both under
-    /// the layer's own policy; anything else is the layer's.
+
+
+
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Outcome {
         if ev.is(Phase::Click) && ev.id == junie_tui::ui::modal::CLOSE {
             return self.dismiss_layer(DismissReason::CloseButton);
@@ -1932,22 +1932,22 @@ impl App {
         }
     }
 
-    /// A click on the chrome around the screens; `None` when it is not
-    /// the chrome's.
+
+
     fn chrome_click(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let id = ev.id;
-        // a footer hint runs its key (mouse #1)
+
         if let Some(key) = self.shell.footer_keys.clicked(ev) {
             return Some(shell::KeyRouter::replay(self, &key).or(Outcome::Changed));
         }
-        // the explorer's rail and collapse button (mouse #8)
+
         if let Some(r) = self.workbench.as_mut().and_then(|w| w.rail.route(ev)) {
             return Some(match r.into_action() {
                 Some(a) => self.set_explorer(a == junie_tui::widgets::rail::RailAction::Expand),
                 None => Outcome::Consumed,
             });
         }
-        // the query toolbar (mouse #7)
+
         if let Some(action) = crate::tabs::toolbar_action(id) {
             use crate::tabs::ToolbarAction as A;
             return Some(match action {
@@ -1971,7 +1971,7 @@ impl App {
             self.refresh_switcher();
             return Some(Outcome::Changed);
         }
-        // the app menu: quit, open tabs, disconnect (mouse #40)
+
         if id == STRIP_APP || id == STRIP_CONN {
             let name = match (self.screen, self.workbench.as_ref()) {
                 (Screen::Workbench, Some(w)) => Some(w.connection.name.clone()),
@@ -1989,8 +1989,8 @@ impl App {
         None
     }
 
-    /// A secondary click `ev`: the context menu of the row, cell or tab
-    /// under it. Dialogs and the other overlays have none.
+
+
     fn on_secondary(&mut self, ev: &PointerEvent) -> Outcome {
         if !self.layers.is_empty() {
             return Outcome::Consumed;
@@ -1999,7 +1999,7 @@ impl App {
         let menu = match (self.screen, self.workbench.as_mut()) {
             (Screen::Workbench, Some(w)) => {
                 let menu = context::on_secondary(w, &cfg, ev);
-                // the detail pane follows the row the menu is about
+
                 if let Some(WorkTab::History(h)) = w.active_tab_mut() {
                     h.sync_detail_public(&self.history);
                 }
@@ -2016,8 +2016,8 @@ impl App {
         }
     }
 
-    /// Open a context menu; its commands act on `menu.owner`, which takes
-    /// the focus the menu returns to.
+
+
     fn open_context(&mut self, menu: CtxMenu) -> Outcome {
         self.shell.focus.focus(menu.owner);
         self.layers.open(
@@ -2030,13 +2030,13 @@ impl App {
         Outcome::Changed
     }
 
-    /// Item `i` of the closed context menu `m`: replay the key the item
-    /// stands for on the widget it is about.
+
+
     fn context_chosen(&mut self, m: &CtxMenu, i: usize) -> Outcome {
         let (key, target, owner) = (m.keys.get(i).copied().flatten(), m.target, m.owner);
         let header = m.header.get(i).copied();
         let app = m.app.clone();
-        // a header command runs on the grid itself
+
         if let (context::Target::Header(col), Some(action)) = (target, header) {
             self.shell.focus.focus(owner);
             let (o, reqs) = self
@@ -2073,7 +2073,7 @@ impl App {
         shell::KeyRouter::replay(self, &key).or(Outcome::Changed)
     }
 
-    // --------------------------------------------------------------- render
+
 
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let header = Rect::new(area.x, area.y, area.width, 1);
@@ -2090,7 +2090,7 @@ impl App {
             p.render(body, buf, ctx, history);
         }
         self.footer().render(footer, buf, ctx, &mut self.shell);
-        // overlays, bottom to top
+
         let mut layers = std::mem::take(&mut self.layers);
         for e in layers.iter_mut() {
             e.layer.render(area, buf, ctx, &());
@@ -2118,7 +2118,7 @@ impl App {
                 if let Some(w) = &self.workbench {
                     let c = &w.connection;
                     let env = c.environment;
-                    // the environment badge: glyph and tone from Theme::env
+
                     let kind = env.kind();
                     let glyph = t.glyphs.env(kind);
                     let label = if glyph.is_empty() {
@@ -2153,8 +2153,8 @@ impl App {
                         .priority(7),
                     );
                     let level = c.safe_mode;
-                    // safe levels are a passed check (✓ in success); Silent
-                    // on production needs attention (▲ in warning)
+
+
                     let (status, bold) = match level {
                         SafeMode::Silent if env == Environment::Production => {
                             (Some(StatusKind::Warn), true)
@@ -2221,9 +2221,9 @@ impl App {
         segments::render(area, buf, ctx, &left, &right, t.canvas);
     }
 
-    /// The footer: the top layer's hints while one is open (the library
-    /// modals name their own keys), else the shown page's; the EDIT badge
-    /// while the page edits; the status line ([`shell::Footer`]).
+
+
+
     fn footer(&self) -> shell::Footer {
         let focus = self.shell.focus.current();
         let editing = self.shown().is_some_and(|p| p.is_editing());
@@ -2280,11 +2280,11 @@ impl shell::App for App {
     fn on_input(&mut self, input: Input) -> Outcome {
         self.handle_input(input)
     }
-    /// Every focus change goes to every layer and both screens, so fields
-    /// end their edits on the event path.
+
+
     fn on_blur(&mut self, ch: FocusChange) -> Outcome {
         let mut out = self.layers.on_blur(ch);
-        // the hidden page keeps only its statuses (`Shell::deliver`)
+
         let connections = self.screen == Screen::Connections;
         let (o, front) = self.shell.deliver(connections, |cx| {
             Page::on_blur(&mut self.connections, ch, &mut self.history, cx)
@@ -2327,7 +2327,7 @@ impl PointerHost for App {
         self.deliver_pointer(ev).into()
     }
 
-    /// A click outside the top layer: its own policy decides.
+
     fn outside(&mut self, _pos: Position) -> Response<()> {
         if self.layers.is_empty() {
             return Response::changed();
@@ -2338,8 +2338,8 @@ impl PointerHost for App {
     }
 }
 
-/// The open tab a tab-list row stands for: a filtered row carries it in its
-/// detail.
+
+
 fn tab_index(p: &Picker, i: usize) -> usize {
     p.items
         .get(i)
@@ -2348,7 +2348,7 @@ fn tab_index(p: &Picker, i: usize) -> usize {
 }
 
 fn pretty_json(j: &str) -> String {
-    // minimal pretty printer for the demo's flat/simple JSON
+
     let mut out = String::new();
     let mut depth = 0usize;
     let mut in_str = false;
@@ -2382,13 +2382,13 @@ fn pretty_json(j: &str) -> String {
     out
 }
 
-/// tablepro's own shell commands ([`shell::ShellAction::App`]), bound in
-/// [`shell_keys`]. Each passes the key on where it does not apply.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TpCmd {
-    /// Ctrl+N on the connection list.
+
     NewConnection,
-    /// Esc while a query runs.
+
     CancelQuery,
     Run,
     RunOrRefresh,
@@ -2408,12 +2408,12 @@ pub enum TpCmd {
     Maximize,
     GrowEditor,
     GrowResults,
-    /// `0`: show and focus the explorer.
+
     Explorer,
 }
 
 impl TpCmd {
-    /// What the command does, as the help overlay names it.
+
     pub fn label(self) -> &'static str {
         match self {
             TpCmd::NewConnection => "New connection",
@@ -2441,12 +2441,12 @@ impl TpCmd {
     }
 }
 
-/// tablepro's shell keys: the standard set, the workbench chords before
-/// a capturing field (they act while the query editor edits, like menu
-/// key equivalents), `[`/`]` tab order, and `0` the explorer after the
-/// page. Commands
-/// that edit the workbench (close, commit, find, safe mode, structure)
-/// never act over a field that is editing.
+
+
+
+
+
+
 pub fn shell_keys() -> shell::ShellKeys<TpCmd> {
     use junie_tui::core::keymap::KeyBinding;
     use ratatui::crossterm::event::KeyModifiers;
@@ -2487,7 +2487,7 @@ pub fn shell_keys() -> shell::ShellKeys<TpCmd> {
         .bind_priority(KeyBinding::char('['), ShellAction::PrevPage)
         .bind_priority(KeyBinding::char(']'), ShellAction::NextPage)
         .bind_fallback(KeyBinding::char('0'), Cmd(TpCmd::Explorer))
-        // tablepro's form guard keeps a refused `q` quiet
+
         .dirty_letter_note(None);
     for c in [
         TpCmd::CloseTab,
@@ -2542,8 +2542,8 @@ impl shell::KeyHost for App {
         }
     }
 
-    /// The context key opens the focused row's menu (it is not a page
-    /// key: the menu opens on the shell's layer stack).
+
+
     fn chrome_key(&mut self, key: &Key) -> Outcome {
         let focus = self.shell.focus.current();
         let menu = match self.screen {

@@ -1,8 +1,8 @@
-//! Explicit clock steps under paused motion (V12): the layers that open
-//! only from a job on virtual time are reachable in a paused capture, and
-//! the frame is still once the step is done. Driven through the real input
-//! path (`Input::Paste` of a `ClockStep` request, as the visual harness's
-//! `advance:<ms>` step sends it).
+
+
+
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -14,7 +14,7 @@ use crate::scenario::{Motion, Scenario};
 
 fn paused(scenario: Scenario) -> H {
     let mut h = H::new(scenario, Motion::Paused, 40, 120, 40);
-    // the harness's opt-in (`JUNIE_TUI_TEST_CLOCK=1`)
+
     h.app.shell.clock_steps = true;
     assert_eq!(h.app.route, Route::Manager, "{}", h.text());
     h
@@ -24,7 +24,7 @@ fn step(h: &mut H, ms: u64) {
     h.paste(&ClockStep::request(ms));
 }
 
-/// Ticks under paused motion change nothing, so the frame settles.
+
 fn assert_still(h: &mut H) {
     let before = h.text();
     let now = h.app.world.now_ms();
@@ -44,7 +44,7 @@ fn a_clock_step_completes_the_editors_failing_save() {
     h.ctrl('s');
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
-    // paused: the 900 ms save job never fires on its own
+
     h.ticks(20);
     assert!(!h.text().contains("Save failed"), "{}", h.text());
     let pasted = h.app.screens.editor.as_ref().unwrap().change_count();
@@ -106,7 +106,7 @@ fn a_clock_step_runs_the_launch_pipeline_to_the_credential_error() {
         h.app.world.op.session,
         crate::sim::onepassword::OpSession::Locked
     );
-    // payments-platform › the-architect, Codex · Primary (1Password)
+
     h.key(KeyCode::Enter);
     h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
@@ -151,6 +151,6 @@ fn without_the_test_opt_in_a_paused_app_pastes_the_request_unchanged() {
     let now = h.app.world.now_ms();
     step(&mut h, 1_200);
     assert_eq!(h.app.world.now_ms(), now, "the clock did not step");
-    // the picker's filter received the text as typed
+
     assert!(h.text().contains("junie-tui:advance"), "{}", h.text());
 }

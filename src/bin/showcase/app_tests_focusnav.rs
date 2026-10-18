@@ -1,6 +1,6 @@
-//! The Focus & navigation page (plan §7.5, SC28), driven through the real
-//! app: the ring read back, the shell's focus fallback, Tab in a field,
-//! per-widget nav keys, and the shell's input and protocol options.
+
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -39,7 +39,7 @@ fn tab_moves_through_the_ring_and_the_page_reads_the_change_back() {
 
 #[test]
 fn a_removed_focused_tag_falls_back_per_the_shell_option() {
-    // the showcase shows the library default (`FocusFallback::Nearest`)
+
     let mut h = harness();
     let (alpha, beta) = (page(&h).tags[0].id, page(&h).tags[1].id);
     h.focus(beta);

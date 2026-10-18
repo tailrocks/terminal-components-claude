@@ -1,35 +1,35 @@
-//! F21: job-control suspension proved on a tuiscotti PTY session.
-//!
-//! tuiscotti (`tuiscotti::tui`, T17) owns the pseudo-terminal and its
-//! emulator; no hand-rolled pseudo-terminal here. The session runs a minimal
-//! job-control parent (this test binary in helper mode): the parent is the
-//! session leader with the PTY as its controlling terminal, starts the holla
-//! preview in its own foreground process group, takes the terminal back when
-//! the job stops and hands it back on `fg`. That is the shape of a real
-//! shell without a shell's own termios bookkeeping, so the termios observed
-//! while the job is stopped is exactly what the application left behind.
-//!
-//! The helper reports through a marker file (its pty output is the screen
-//! the emulator draws, and markers printed there could land on the
-//! alternate screen and be overwritten). The test reads termios through the
-//! helper's terminal device, opened without becoming its controlling
-//! terminal, and reads terminal modes (1049, 1000/1002/1003/1006, 2004,
-//! 1004, 7) from tuiscotti's observation.
-//!
-//! Proved: an external `SIGTSTP` leaves a canonical, echoing, signalling
-//! terminal identical to the launch state while the process is stopped,
-//! with the alternate screen, mouse capture, bracketed paste and focus
-//! reporting released and line wrap back on; `fg` re-enters raw mode, the
-//! alternate screen, mouse capture, bracketed paste and focus reporting and
-//! redraws exactly the frame a fresh launch draws at the geometry set while
-//! suspended; a second cycle behaves the same; a normal quit afterwards
-//! leaves the launch termios and the main screen. Nothing here touches the
-//! developer's terminal.
-//!
-//! Scope: macOS and Linux. `SIGSTOP`/`SIGKILL` cannot be intercepted and a
-//! lost output device cannot receive escapes; those cases are documented,
-//! not proved. Startup-failure and panic restoration are unit tests of the
-//! setup guard in `runtime.rs`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
@@ -71,7 +71,7 @@ fn exit_code(status: c_int) -> i32 {
     }
 }
 
-/// One marker line, appended and flushed so the test never reads half.
+
 fn mark(path: &Path, line: &str) {
     let mut f = OpenOptions::new()
         .create(true)
@@ -82,28 +82,28 @@ fn mark(path: &Path, line: &str) {
     f.flush().expect("flush a marker");
 }
 
-/// The job-control parent: session leader on the PTY, one foreground job.
-/// Writes `TTY=`, `PID=`, `STOPPED` and `EXIT=` markers; waits for `start`
-/// on its stdin before launching the job (so the test reads the launch
-/// termios first), and `fg` hands the terminal back to the job and
-/// continues it.
+
+
+
+
+
 fn helper_main() -> ! {
     let bin = std::env::var(HELPER_BIN).expect("application path");
     let markers = PathBuf::from(std::env::var(HELPER_MARKERS).expect("marker file"));
-    // SAFETY: plain libc calls on the helper's own process and descriptors.
-    // tuiscotti already made it a session leader with the PTY as its
-    // controlling terminal; repeating both is harmless and keeps the helper
-    // a shell shape on its own.
+
+
+
+
     unsafe {
         libc::setsid();
         libc::ioctl(0, libc::TIOCSCTTY as _, 0);
         libc::signal(libc::SIGTTOU, libc::SIG_IGN);
         libc::signal(libc::SIGTTIN, libc::SIG_IGN);
     }
-    // SAFETY: ttyname returns a static buffer or null.
+
     let tty = unsafe { libc::ttyname(0) };
     assert!(!tty.is_null(), "the helper's stdin is a terminal");
-    // SAFETY: non-null, NUL-terminated per ttyname's contract.
+
     let tty = unsafe { CStr::from_ptr(tty) }
         .to_string_lossy()
         .into_owned();
@@ -117,18 +117,18 @@ fn helper_main() -> ! {
     }
     let mut cmd = Command::new(bin);
     cmd.args(APP_ARGS);
-    // SAFETY: setpgid is async-signal-safe.
+
     unsafe {
         cmd.pre_exec(|| {
             libc::setpgid(0, 0);
             Ok(())
         });
     }
-    // the job is reaped by the raw waitpid loop below, not by `Child::wait`
+
     #[allow(clippy::zombie_processes)]
     let child = cmd.spawn().expect("spawn the application");
     let pid = child.id() as c_int;
-    // SAFETY: both sides set the group so the foreground hand-off is not racy.
+
     unsafe {
         libc::setpgid(pid, pid);
         libc::tcsetpgrp(0, pid);
@@ -136,14 +136,14 @@ fn helper_main() -> ! {
     mark(&markers, &format!("PID={pid}"));
     loop {
         let mut status: c_int = 0;
-        // SAFETY: waiting on the tracked job.
+
         let rc = unsafe { libc::waitpid(pid, &mut status, libc::WUNTRACED) };
         if rc != pid {
             mark(&markers, "EXIT=-1");
             std::process::exit(1);
         }
         if stopped(status) {
-            // SAFETY: the helper takes the terminal back like a shell.
+
             unsafe {
                 libc::tcsetpgrp(0, libc::getpgrp());
             }
@@ -154,7 +154,7 @@ fn helper_main() -> ! {
                 mark(&markers, "EXIT=-2");
                 std::process::exit(2);
             }
-            // SAFETY: foreground back to the job, then continue it.
+
             unsafe {
                 libc::tcsetpgrp(0, pid);
                 libc::kill(pid, libc::SIGCONT);
@@ -166,7 +166,7 @@ fn helper_main() -> ! {
     }
 }
 
-/// A fresh marker file path, unique per test process.
+
 fn marker_path() -> PathBuf {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -177,8 +177,8 @@ fn marker_path() -> PathBuf {
     ))
 }
 
-/// The helper on a tuiscotti PTY session. Every wait is bounded; the
-/// session kills the helper on drop and the marker file is removed.
+
+
 struct Job {
     session: Session,
     markers: PathBuf,
@@ -237,8 +237,8 @@ impl Job {
         self.session.observe_now().ok()
     }
 
-    /// The PTY's termios, read through the helper's terminal device opened
-    /// without becoming its controlling terminal.
+
+
     fn termios(&self) -> libc::termios {
         let tty = self.marker("TTY=").expect("the helper reported its tty");
         let dev: File = OpenOptions::new()
@@ -247,7 +247,7 @@ impl Job {
             .custom_flags(libc::O_NOCTTY | libc::O_NONBLOCK)
             .open(&tty)
             .unwrap_or_else(|e| panic!("open {tty}: {e}"));
-        // SAFETY: zeroed storage of the platform layout, filled by libc.
+
         let mut t: libc::termios = unsafe { std::mem::zeroed() };
         let rc = unsafe { libc::tcgetattr(dev.as_raw_fd(), &mut t) };
         assert_eq!(rc, 0, "tcgetattr on {tty}");
@@ -273,7 +273,7 @@ impl Drop for Job {
 }
 
 fn termios_bytes(t: &libc::termios) -> Vec<u8> {
-    // SAFETY: a plain-old-data C struct viewed as its bytes.
+
     unsafe {
         std::slice::from_raw_parts(
             (t as *const libc::termios).cast::<u8>(),
@@ -305,8 +305,8 @@ fn has_mouse(m: &[u16]) -> bool {
     m.iter().any(|n| [1000, 1002, 1003, 1006].contains(n))
 }
 
-/// The frame a fresh launch of the same scenario draws at `cols`x`rows`:
-/// what the resumed job must redraw, cell text for cell text.
+
+
 fn fresh_frame(cols: u16, rows: u16) -> String {
     let session = Tui::new([env!("CARGO_BIN_EXE_holla")])
         .args(APP_ARGS)
@@ -334,7 +334,7 @@ fn fresh_frame(cols: u16, rows: u16) -> String {
     text(&obs)
 }
 
-/// Helper mode entry: only the re-invoked child runs the job-control parent.
+
 #[test]
 fn helper_entry() {
     if std::env::var_os(HELPER).is_some() {
@@ -362,9 +362,9 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
     let drawn = first.revision;
 
     for cycle in 1..=2 {
-        // an external stop request: the handler defers to the event loop,
-        // which restores the terminal and then stops with the default action
-        // SAFETY: signalling the job whose pid the helper reported.
+
+
+
         assert_eq!(
             unsafe { libc::kill(pid, libc::SIGTSTP) },
             0,
@@ -382,8 +382,8 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
             termios_bytes(&before),
             "cycle {cycle}: exact launch termios while stopped"
         );
-        // the job wrote its restore before it stopped; the observation
-        // after the stop carries it
+
+
         let obs = job.observe().expect("an observation while stopped");
         let m = modes(&obs);
         assert!(
@@ -395,7 +395,7 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
         assert!(!m.contains(&1004), "focus reporting released (SIg1): {m:?}");
         assert!(m.contains(&7), "line wrap re-enabled for the shell: {m:?}");
 
-        // geometry changes while suspended; continuation must rebuild it
+
         let (cols, rows) = if cycle == 1 { (100, 30) } else { (80, 24) };
         let expected = fresh_frame(cols, rows);
         job.session
@@ -403,8 +403,8 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
             .expect("resize while stopped");
         job.session.send_text("fg\n").expect("fg");
         job.wait_until("raw mode after fg", Job::is_raw);
-        // the redraw is the frame a fresh launch draws at the new geometry:
-        // nothing at the stale geometry, nothing half-written
+
+
         let resumed = job.session.wait_predicate(
             |o| modes(o).contains(&1049) && text(o) == expected,
             Instant::now() + BOUND,
@@ -445,8 +445,8 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
         "frames were drawn after the first"
     );
 
-    // a normal quit from the resumed session: Ctrl+Q on a clean shell
-    // (Esc never quits, keyboard audit #21)
+
+
     job.session.send_bytes(b"\x11").expect("Ctrl+Q");
     job.wait_until("exit", |j| j.marker("EXIT=").is_some());
     assert_eq!(job.marker("EXIT=").unwrap().trim(), "0", "clean exit");
@@ -466,9 +466,9 @@ fn external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry() {
         !m.contains(&1049) && !has_mouse(&m) && !m.contains(&2004) && !m.contains(&1004),
         "the exit left the alternate screen and released every mode: {m:?}"
     );
-    // the job was the helper's child, not ours: a wait here has no child
+
     let mut status = 0;
-    // SAFETY: probing a pid that was never this process's child.
+
     assert_eq!(
         unsafe { libc::waitpid(pid, &mut status, libc::WNOHANG) },
         -1

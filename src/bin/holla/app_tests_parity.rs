@@ -1,8 +1,8 @@
-//! Parity journeys (HP01–HP23 except the deferred CLI): one test per task,
-//! each driving the real App through the named parity fixture and asserting
-//! the decisive rows with exact argv, cwd, states, effects and errors. These
-//! are the semantic regressions the capability matrix requires; captures are
-//! the visual half.
+
+
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
@@ -18,8 +18,8 @@ use crate::scenario::{Motion, Scenario};
 const HOME: &str = "/Users/alex";
 
 pub(crate) fn open(h: &mut H, label: &str) {
-    // Alt+0 is the Here tab; Esc leaves any page above the finder; Ctrl+U
-    // clears whatever query was left there
+
+
     h.alt(KeyCode::Char('0'));
     for _ in 0..8 {
         if h.app.tabs[0].stack.len() <= 1 || !h.app.modals.is_empty() {
@@ -32,7 +32,7 @@ pub(crate) fn open(h: &mut H, label: &str) {
     h.key(KeyCode::Enter);
 }
 
-/// Accept a one-step confirmation when one is open (the default is Cancel).
+
 pub(crate) fn confirm(h: &mut H) {
     if !h.app.modals.is_empty() {
         h.key(KeyCode::Right);
@@ -84,14 +84,14 @@ pub(crate) fn output(h: &H, id: &str) -> Vec<String> {
         .collect()
 }
 
-// ------------------------------------------------------------ HP01
+
 
 #[test]
 fn hp01_discovery_is_adaptive_stable_and_reports_failed_sources_and_config_warnings() {
-    // full motion keeps the sources' own timing: discovery is observable
+
     let mut h = H::new(Scenario::ParityDiscovery, Motion::Full, 0, 120, 40);
-    // slow and failed sources are visible while discovery runs; nothing is
-    // invented before a source answers
+
+
     assert!(h.text().contains("discovering"), "{}", h.text());
     let early: Vec<String> = h.app.world.items().iter().map(|i| i.id.clone()).collect();
     assert!(
@@ -127,14 +127,14 @@ fn hp01_discovery_is_adaptive_stable_and_reports_failed_sources_and_config_warni
     ] {
         assert!(ids.contains(&id), "{id} missing from {ids:?}");
     }
-    // the daemon is down: docker resources say so and actions fail truthfully
+
     let daemon = items.iter().find(|i| i.id == "docker.daemon").unwrap();
     assert!(matches!(
         daemon.freshness,
         crate::domain::action::Freshness::Unavailable(_)
     ));
-    // a project action colliding with a built-in id never shadows it; the
-    // malformed sibling is a diagnostic, not an action
+
+
     let pull = items.iter().find(|i| i.id == "git.pull").unwrap();
     assert_eq!(
         argv_of(pull),
@@ -170,7 +170,7 @@ fn hp01_discovery_is_adaptive_stable_and_reports_failed_sources_and_config_warni
         "{}",
         h.text()
     );
-    // unavailable github: the clone action leads to login, not to a clone
+
     let clone = items
         .iter()
         .find(|i| i.id == "github.clone")
@@ -179,7 +179,7 @@ fn hp01_discovery_is_adaptive_stable_and_reports_failed_sources_and_config_warni
         argv_of(clone),
         vec!["gh auth login @/Users/alex/work/probe"]
     );
-    // the configuration page shows the diagnostics with their action index
+
     open(&mut h, "Custom action configuration");
     assert!(
         h.text().contains("action[0]") || h.text().contains("action[2]"),
@@ -195,7 +195,7 @@ pub(crate) fn argv_of(it: &crate::domain::action::Item) -> Vec<String> {
         .collect()
 }
 
-// ------------------------------------------------------------ HP02
+
 
 #[test]
 fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
@@ -204,8 +204,8 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
     let w = &h.app.world;
     let recent = w.memory.usage.recent(&w.location.cwd, "mbp", w.now_secs());
     let names: Vec<&str> = recent.iter().map(|(i, _)| i.as_str()).collect();
-    // the capped 20-use action a half-life ago still leads; equal fresh use
-    // ties deterministically by id; a stale single use is below the threshold
+
+
     assert_eq!(names[0], "git.pull", "{names:?}");
     assert_eq!(names[1], "cargo.build", "{names:?}");
     assert_eq!(names[2], "cargo.test", "{names:?}");
@@ -221,16 +221,16 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
         "remembered uses are never reported as none: {}",
         h.text()
     );
-    // the fixture remembers "pull" → git.fetch, which does not match the
-    // text: an unmatched remembered choice is never shown, the alias-free
-    // best match leads
+
+
+
     h.type_str("pull");
     assert!(!h.text().contains("Fetch and prune"), "{}", h.text());
     assert!(h.row(6).contains("Pull "), "{}", h.row(6));
-    // a remembered choice that still matches leads the rows for its query
+
     let now = h.app.world.now_secs();
-    // a remembered choice always follows an actual use (the app learns on
-    // run); a choice whose action was never used is pruned on save
+
+
     h.app.world.memory.usage.used(
         "git.pull_rebase",
         Some("/Users/alex/work/holla"),
@@ -246,12 +246,12 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
     h.type_str("pull");
     assert!(h.row(6).contains("Pull with rebase"), "{}", h.text());
     assert!(h.text().contains("remembered for “pull”"), "{}", h.text());
-    // the remembered item must still match: an unmatched choice is never shown
+
     h.key(KeyCode::Esc);
     h.type_str("ünï code");
     assert!(!h.text().contains("cargo clippy"), "{}", h.text());
     assert!(h.text().contains("No matches"), "{}", h.text());
-    // query editing: select all, replace, undo, redo, word delete, clear
+
     h.ctrl(KeyCode::Char('a'));
     assert!(
         h.text().contains("Query selected"),
@@ -290,12 +290,12 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
     );
     h.ctrl(KeyCode::Char('u'));
     assert!(!h.row(4).contains("cargo"), "clear: {}", h.row(4));
-    // a paste is one edit
+
     h.app.handle(Input::Paste("cargo\ncheck".into()));
     h.draw();
     assert!(h.row(4).contains("cargo check"), "{}", h.row(4));
-    // running an action records it and saves a merged store: the other
-    // writer's record survives, this run is counted, stale queries are gone
+
+
     h.key(KeyCode::Enter);
     let id = activity_id(&h);
     assert_eq!(argv(&h, &id), vec!["cargo check @/Users/alex/work/holla"]);
@@ -318,11 +318,11 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
         Some("git.pull_rebase"),
         "the newer choice replaced the older"
     );
-    // the Unicode query was remembered for an action never used here: it is
-    // pruned like any other orphaned choice (normalization was proved above
-    // by the lookup that matched "ünï code" against "Ünï  Code")
+
+
+
     assert_eq!(on_disk.learned_for("ünï  code", "mbp"), None);
-    // the opt-out: nothing is read, learned or written
+
     let mut off = H::new(Scenario::ParityHistory, Motion::Reduced, 0, 120, 40);
     off.app.world.memory.usage = crate::domain::usage::UsageStore::disabled();
     off.ticks(8);
@@ -344,7 +344,7 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
     );
 }
 
-// ------------------------------------------------------------ HP05
+
 
 #[test]
 fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
@@ -352,8 +352,8 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
     h.ticks(6);
     let items = h.app.world.items();
     let pull = items.iter().find(|i| i.id == "git.pull").unwrap();
-    // pull.rebase=false and a diverged branch: the plain pull merges; the
-    // dirty tree is what blocks it, and the block is stated, not hidden
+
+
     assert_eq!(
         argv_of(pull),
         vec!["git -C /Users/alex/work/svc pull @/Users/alex/work/svc"]
@@ -377,8 +377,8 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
     );
     let state = settle(&mut h, &id);
     let out = output(&h, &id).join("\n");
-    // git refuses to merge over a modified file it would touch, or merges:
-    // either way the world matches the outcome exactly
+
+
     let g = h.app.world.git_here().unwrap().clone();
     if state == ActivityState::Succeeded {
         assert_eq!(g.behind, 0, "{out}");
@@ -394,7 +394,7 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
         );
         assert_eq!(g.behind, 2, "a failed merge changes nothing: {out}");
     }
-    // a rejected push fails visibly with git's reason and changes nothing
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Push");
     let id = activity_id(&h);
@@ -408,7 +408,7 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
         out.contains("fetch first") || out.contains("rejected"),
         "{out}"
     );
-    // the dry run is read-only and succeeds
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Push dry run");
     let id = activity_id(&h);
@@ -417,7 +417,7 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
         vec!["git -C /Users/alex/work/svc push --dry-run @/Users/alex/work/svc"]
     );
     assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
-    // switching to the primary branch lands the effect
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Switch to main");
     let id = activity_id(&h);
@@ -434,7 +434,7 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
             "{out}"
         );
     } else {
-        // a modified file git would overwrite refuses the switch: nothing moves
+
         assert!(
             out.contains("overwritten") || out.contains("error"),
             "{out}"
@@ -447,7 +447,7 @@ fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
     }
 }
 
-// ------------------------------------------------------------ HP06
+
 
 #[test]
 fn hp06_sibling_batches_carry_exact_members_and_report_each_failure() {
@@ -478,8 +478,8 @@ fn hp06_sibling_batches_carry_exact_members_and_report_each_failure() {
         !cmds.iter().any(|c| c.contains("beta push gitlab")),
         "only alpha has the mirror: {cmds:?}"
     );
-    // merged-branch cleanup (offered inside a repository) excludes the
-    // worktree-occupied and primary branches
+
+
     let mut inside = crate::domain::fixtures::world_for(Scenario::ParityGitBatch, Motion::Reduced);
     inside.location.cwd = "/Users/alex/work/repos/alpha".into();
     let inside_items = inside.items();
@@ -508,8 +508,8 @@ fn hp06_sibling_batches_carry_exact_members_and_report_each_failure() {
             .any(|c| c.contains("feature/wt") || c.contains(" main ")),
         "{del_cmds:?}"
     );
-    // run the pull batch: every member is its own activity with the exact
-    // command; delta fails on its corrupt index, the rest succeed
+
+
     run(&mut h, "Pull 4 sibling repositories");
     h.ticks(1);
     let batch = h
@@ -575,7 +575,7 @@ fn hp06_sibling_batches_carry_exact_members_and_report_each_failure() {
     );
 }
 
-// ------------------------------------------------------------ HP03
+
 
 #[test]
 fn hp03_find_files_indexes_home_truthfully_and_resource_actions_are_exact() {
@@ -595,32 +595,32 @@ fn hp03_find_files_indexes_home_truthfully_and_resource_actions_are_exact() {
         "an .ignore'd tree is never indexed: {text}"
     );
     assert!(!text.contains("scratch"), "{text}");
-    // Unicode names are found by their own text
+
     h.ctrl(KeyCode::Char('u'));
     h.type_str("café");
     assert!(h.text().contains("café menu.txt"), "{}", h.text());
     h.ctrl(KeyCode::Char('u'));
     h.type_str("東京");
-    // wide cells: the buffer text carries the continuation cells
+
     assert!(
         h.text().contains("東") && h.text().contains("京") && h.text().contains(".md"),
         "{}",
         h.text()
     );
-    // hidden entries and cloud-only roots are outside the index
+
     h.ctrl(KeyCode::Char('u'));
     h.type_str("hidden-config");
     assert!(h.text().contains("0 results"), "{}", h.text());
     h.ctrl(KeyCode::Char('u'));
     h.type_str("cloud-only");
     assert!(h.text().contains("0 results"), "{}", h.text());
-    // the symlink is listed as itself, never followed into the app tree
+
     h.ctrl(KeyCode::Char('u'));
     h.type_str("main.rs");
     assert!(h.text().contains("work/app/src/main.rs"), "{}", h.text());
     assert!(!h.text().contains("link-to-app/src"), "{}", h.text());
-    // resource actions on a hit: copy is OSC 52 bounded by the terminal's
-    // limit (64 bytes here), open/reveal are exact opener commands
+
+
     h.ctrl(KeyCode::Char('u'));
     h.type_str("todo");
     h.key(KeyCode::Enter);
@@ -653,7 +653,7 @@ fn hp03_find_files_indexes_home_truthfully_and_resource_actions_are_exact() {
     );
 }
 
-// ------------------------------------------------------------ HP04
+
 
 #[test]
 fn hp04_browser_lists_previews_and_jumps_safely() {
@@ -662,7 +662,7 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
     open(&mut h, "Browse ~/work/site");
     let text = h.text();
     assert!(text.contains("Files ›"), "{text}");
-    // directories first, hidden entries hidden until asked
+
     let assets = h.find("assets").expect("assets");
     let index = h.find("index.html").expect("index.html");
     assert!(assets.1 < index.1, "directories first");
@@ -674,14 +674,14 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
         h.text()
     );
     h.ctrl(KeyCode::Char('h'));
-    // both normalisation forms are distinct entries
+
     assert!(
         h.text().contains("café.txt") && h.text().contains("café.txt"),
         "{}",
         h.text()
     );
-    // previews: text is shown, binary is named not shown, invalid bytes and
-    // controls are sanitized, caps are stated, links and specials are safe
+
+
     let cases: [(&str, &[&str], &[&str]); 8] = [
         ("index.html", &["<html>", "hello"], &[]),
         ("empty.txt", &["empty"], &[]),
@@ -707,7 +707,7 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
             assert!(!t.contains(m), "{name}: raw {m:?} leaked\n{t}");
         }
     }
-    // a broken link and an unreadable directory are errors, never crashes
+
     let (_, y) = h.find("broken").unwrap();
     let cur = h.app.shell.hits.area_of(files::LIST).unwrap();
     h.click(cur.x + 2, y);
@@ -720,7 +720,7 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
         "{}",
         h.text()
     );
-    // a slow listing is pending, not empty, then complete at its full size
+
     let (_, y) = h.find("assets").unwrap();
     h.click(cur.x + 2, y);
     h.key(KeyCode::Enter);
@@ -735,7 +735,7 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
         "{}",
         h.text()
     );
-    // the jump picker: an exact existing path wins, a missing one stays open
+
     h.key(KeyCode::Char('g'));
     assert!(!h.app.modals.is_empty());
     h.type_str("~/nowhere");
@@ -756,15 +756,15 @@ fn hp04_browser_lists_previews_and_jumps_safely() {
 
 use crate::screens::files;
 
-// ------------------------------------------------------------ HP07
+
 
 #[test]
 fn hp07_task_adapters_keep_exact_names_caps_and_diagnostics() {
     let h = H::new(Scenario::ParityTaskSources, Motion::Reduced, 0, 120, 40);
     let items = h.app.world.items();
     let ids: Vec<&str> = items.iter().map(|i| i.id.as_str()).collect();
-    // node: the lockfile picks yarn; odd script names are exact argv, never
-    // interpolated; the visible set is the first thirty by name
+
+
     let quote = items
         .iter()
         .find(|i| i.id == "node.script.it's; rm")
@@ -819,7 +819,7 @@ fn hp07_task_adapters_keep_exact_names_caps_and_diagnostics() {
             .display(),
         "yarn run ünï"
     );
-    // the cap: thirty scripts visible of thirty-five, the note says so
+
     let node: Vec<&crate::domain::action::Item> = items
         .iter()
         .filter(|i| i.id.starts_with("node.script."))
@@ -833,8 +833,8 @@ fn hp07_task_adapters_keep_exact_names_caps_and_diagnostics() {
         "{:?}",
         node.iter().map(|i| i.cap_note.clone()).collect::<Vec<_>>()
     );
-    // just: recipes come from the summary; make: pattern rules and variables
-    // are not targets; Taskfile: a failed listing is a diagnostic, not tasks
+
+
     for id in [
         "just.recipe.build",
         "just.recipe.test",
@@ -857,7 +857,7 @@ fn hp07_task_adapters_keep_exact_names_caps_and_diagnostics() {
     );
     let diag = items.iter().find(|i| i.id == "taskfile.discovery").unwrap();
     assert!(diag.summary.contains("yaml: line 3"), "{}", diag.summary);
-    // a failing script fails with its runner's exit, nothing is pretended
+
     let mut h = h;
     run(&mut h, "yarn s01");
     let id = activity_id(&h);
@@ -871,7 +871,7 @@ fn hp07_task_adapters_keep_exact_names_caps_and_diagnostics() {
     assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
 }
 
-// ------------------------------------------------------------ HP08
+
 
 #[test]
 fn hp08_cargo_results_are_exit_codes_and_clean_lands_its_effect() {
@@ -904,8 +904,8 @@ fn hp08_cargo_results_are_exit_codes_and_clean_lands_its_effect() {
         "cargo test's own exit code: {:?}",
         a.output
     );
-    // clean: the label carries the measured size, the gate names the shared
-    // target, the effect removes exactly the target directory
+
+
     let items = h.app.world.items();
     let clean = items.iter().find(|i| i.id == "cargo.clean").unwrap();
     assert!(clean.label.contains("900.0 MiB"), "{}", clean.label);
@@ -943,8 +943,8 @@ fn hp08_cargo_results_are_exit_codes_and_clean_lands_its_effect() {
     );
     h.alt(KeyCode::Char('0'));
     open(&mut h, "cargo clean");
-    // destructive: a review, then the typed phrase would follow; here the
-    // one-step confirmation is enough for a project-local target
+
+
     confirm(&mut h);
     if !h.app.modals.is_empty() || h.text().contains("gate") {
         h.key(KeyCode::Right);
@@ -960,7 +960,7 @@ fn hp08_cargo_results_are_exit_codes_and_clean_lands_its_effect() {
     assert_eq!(h.app.world.cargo.target_bytes, 0);
 }
 
-// ------------------------------------------------------------ HP09
+
 
 #[test]
 fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_does() {
@@ -976,7 +976,7 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
             .count()
     };
     assert_eq!(running(&h), 5);
-    // a restart lands its effect: the container comes back healthy
+
     run(&mut h, "Restart acme-db-1");
     let id = activity_id(&h);
     assert_eq!(
@@ -993,7 +993,7 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
         .find(|c| c.name == "acme-db-1")
         .unwrap();
     assert!(db.running && db.health.as_deref().is_none_or(|s| s == "healthy"));
-    // this daemon fails every stop: one container stays running too
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Stop acme-redis-1");
     let id = activity_id(&h);
@@ -1012,7 +1012,7 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
             .unwrap()
             .running
     );
-    // stop-all fails at the daemon's stop stage: nothing else is pretended
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Stop all containers");
     let id = activity_id(&h);
@@ -1032,7 +1032,7 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
         running(&h) >= 4,
         "a failed stop leaves the containers running"
     );
-    // remove-all needs the typed phrase bound to the host
+
     h.alt(KeyCode::Char('0'));
     open(&mut h, "Stop and remove all containers");
     assert!(h.text().contains("gate 1 of 2"), "{}", h.text());
@@ -1046,8 +1046,8 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
     );
     h.key(KeyCode::Esc);
     h.key(KeyCode::Esc);
-    // compose down removes the project's containers and nothing else; up
-    // recreates the declared services running
+
+
     run(&mut h, "Stop the Compose project");
     let id = activity_id(&h);
     assert_eq!(
@@ -1116,8 +1116,8 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
             .filter(|c| c.project.as_deref() == Some("acme"))
             .all(|c| c.running)
     );
-    // with the daemon down the actions are shown unavailable with the
-    // daemon's reason and are not runnable; nothing is pretended
+
+
     let mut down = H::new(Scenario::ParityDiscovery, Motion::Reduced, 0, 120, 40);
     down.ticks(4);
     let items = down.app.world.items();
@@ -1144,8 +1144,8 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
         "{}",
         down.text()
     );
-    // the same command against a live daemon with no containers is a
-    // truthful no-op listing
+
+
     let mut none = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
     none.ticks(4);
     if none.app.world.docker.daemon.is_ok() {
@@ -1160,14 +1160,14 @@ fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_
     }
 }
 
-// ------------------------------------------------------------ HP10
+
 
 #[test]
 fn hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason() {
     let mut h = H::new(Scenario::ParityBrewServices, Motion::Reduced, 0, 120, 40);
     h.ticks(6);
     let items = h.app.world.items();
-    // eleven services, malformed rows dropped, three verbs each, capped
+
     let verbs: Vec<&str> = items
         .iter()
         .filter(|i| i.id.starts_with("brew.service."))
@@ -1180,7 +1180,7 @@ fn hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason() {
     );
     let list = items.iter().find(|i| i.id == "brew.services").unwrap();
     assert!(list.label.contains("30 of 33"), "{}", list.label);
-    // a restart lands its status
+
     run(&mut h, "Restart svc01");
     let id = activity_id(&h);
     assert_eq!(
@@ -1201,7 +1201,7 @@ fn hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason() {
             .unwrap()
     };
     assert_eq!(status(&h, "svc01"), "started");
-    // the failing verb fails with brew's own words and changes nothing
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Stop svc02");
     let id = activity_id(&h);
@@ -1214,14 +1214,14 @@ fn hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason() {
         output(&h, &id)
     );
     assert_eq!(status(&h, "svc02"), "error");
-    // the listing snapshot states the failed cache write, never retries
+
     h.alt(KeyCode::Char('0'));
     open(&mut h, "Homebrew services");
     assert!(h.text().contains("fails on this host"), "{}", h.text());
     assert!(h.text().contains("svc10"), "{}", h.text());
 }
 
-/// The item count named in the gate-2 title ("Trash 4 items · gate 2 of 2").
+
 pub(crate) fn gate2_items(h: &H) -> usize {
     let text = h.text();
     let line = text
@@ -1233,7 +1233,7 @@ pub(crate) fn gate2_items(h: &H) -> usize {
         .unwrap_or_else(|| panic!("{line}"))
 }
 
-/// Gate 2: type the exact phrase into the dialog and execute.
+
 pub(crate) fn gate2(h: &mut H, phrase: &str) {
     assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
     h.type_str(phrase);
@@ -1241,11 +1241,11 @@ pub(crate) fn gate2(h: &mut H, phrase: &str) {
     settle_cleanup(h);
 }
 
-/// A committed cleanup runs one item per tick; wait for its report.
+
 pub(crate) fn settle_cleanup(h: &mut H) {
     for _ in 0..64 {
         if h.app.world.cleanup_job.is_none() {
-            // the report page re-read the world on the settling tick
+
             assert!(
                 !h.text().contains("Cleanup running") && !h.text().contains("Dry run running"),
                 "a settled report is never shown as running: {}",
@@ -1258,7 +1258,7 @@ pub(crate) fn settle_cleanup(h: &mut H) {
     panic!("the cleanup never settled: {}", h.text());
 }
 
-// ------------------------------------------------------------ HP11
+
 
 #[test]
 fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
@@ -1282,12 +1282,12 @@ fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
         argv_of(wrapper),
         vec!["./gradlew build @/Users/alex/work/android"]
     );
-    // the build fails with gradle's exit; the daemon stays up
+
     run(&mut h, "./gradlew build");
     let id = activity_id(&h);
     assert_eq!(settle(&mut h, &id), ActivityState::Failed);
     assert!(h.app.world.gradle.daemon_running);
-    // clean lands its effect: the top-level build output is gone
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "gradle clean");
     let id = activity_id(&h);
@@ -1297,8 +1297,8 @@ fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
     );
     assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
     assert!(!h.app.world.fs.exists("/Users/alex/work/android/build"));
-    // the recursive cleanup: depth-bounded, skips node_modules, never follows
-    // the link; the label states the measured size
+
+
     let all = items.iter().find(|i| i.id == "gradle.clean-all").unwrap();
     assert!(all.label.contains("49.0 MiB"), "{}", all.label);
     h.alt(KeyCode::Char('0'));
@@ -1316,8 +1316,8 @@ fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
     );
     assert!(!t.contains("android/node_modules"), "{t}");
     assert!(!t.contains("work/other"), "the link is never followed: {t}");
-    // the deletion runs gradle --stop first; a failing stop cancels the
-    // cleanup (the stale candidates are preselected)
+
+
     assert!(h.text().contains("3 selected"), "{}", h.text());
     h.key(KeyCode::Char('d'));
     assert!(h.text().contains("gradle --stop first"), "{}", h.text());
@@ -1337,7 +1337,7 @@ fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
     assert!(h.app.world.gradle.daemon_running);
 }
 
-// ------------------------------------------------------------ HP12
+
 
 #[test]
 fn hp12_intellij_cleanup_finds_metadata_case_insensitively_and_logs_a_failed_log_write() {
@@ -1349,8 +1349,8 @@ fn hp12_intellij_cleanup_finds_metadata_case_insensitively_and_logs_a_failed_log
     open(&mut h, "Clean IntelliJ metadata");
     h.key(KeyCode::Right);
     let t = h.text();
-    // exact lowercase `.iml` (OP49): the upper-case file is not metadata
-    // rows truncate long paths in the middle: match their visible heads
+
+
     for want in [
         "app.iml",
         "~/work/ide/.idea",
@@ -1378,7 +1378,7 @@ fn hp12_intellij_cleanup_finds_metadata_case_insensitively_and_logs_a_failed_log
         &mut h,
         &format!("TRASH {n} UNDER /Users/alex/work/ide ON mbp"),
     );
-    // the report: removed items, the log failure named, nothing rolled back
+
     assert!(h.text().contains("report"), "{}", h.text());
     assert!(
         h.text().contains("write failures") || h.text().contains("EROFS"),
@@ -1401,7 +1401,7 @@ fn hp12_intellij_cleanup_finds_metadata_case_insensitively_and_logs_a_failed_log
     );
 }
 
-// ------------------------------------------------------------ HP13
+
 
 #[test]
 fn hp13_upgrade_managers_run_exact_stages_and_the_plan_branches() {
@@ -1428,8 +1428,8 @@ fn hp13_upgrade_managers_run_exact_stages_and_the_plan_branches() {
         vec!["sh /Users/alex/.config/omz/tools/upgrade.sh @/Users/alex"],
         "$ZSH wins over ~/.oh-my-zsh"
     );
-    // the sequential batch: doctor fails on this host, the earlier stages
-    // succeeded and the upgrade effect landed
+
+
     run(&mut h, "Upgrade Homebrew packages");
     h.ticks(1);
     let batch = h.app.world.batches.last().cloned().unwrap();
@@ -1455,7 +1455,7 @@ fn hp13_upgrade_managers_run_exact_stages_and_the_plan_branches() {
         h.app.world.upgrade.brew_outdated.is_empty(),
         "the upgrade effect landed"
     );
-    // mise upgrade moves the global tools to their latest versions
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Upgrade mise-managed tools");
     let id = activity_id(&h);
@@ -1469,7 +1469,7 @@ fn hp13_upgrade_managers_run_exact_stages_and_the_plan_branches() {
             .iter()
             .all(|t| t.active.as_deref() == Some(t.latest.as_str()))
     );
-    // the everything plan: branches per manager, brew chained, verify last
+
     h.alt(KeyCode::Char('0'));
     open(&mut h, "Upgrade everything");
     assert!(
@@ -1503,7 +1503,7 @@ fn hp13_upgrade_managers_run_exact_stages_and_the_plan_branches() {
     );
 }
 
-// ------------------------------------------------------------ HP14
+
 
 #[test]
 fn hp14_output_streams_are_exact_and_retention_drops_are_stated() {
@@ -1533,7 +1533,7 @@ fn hp14_output_streams_are_exact_and_retention_drops_are_stated() {
         out[3], "last fragment",
         "a final fragment without newline is a line: {out:?}"
     );
-    // the burst: 4500 lines, the last 4000 kept, the drop stated
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Emit a burst");
     let id = activity_id(&h);
@@ -1547,8 +1547,8 @@ fn hp14_output_streams_are_exact_and_retention_drops_are_stated() {
         "{}",
         h.text()
     );
-    // the sequential batch runs one member after another and stops the rest
-    // when asked; the summary counts what actually happened
+
+
     h.alt(KeyCode::Char('0'));
     let mut hb = H::new(Scenario::ParityGitBatch, Motion::Reduced, 0, 120, 40);
     hb.ticks(6);
@@ -1582,7 +1582,7 @@ fn hp14_output_streams_are_exact_and_retention_drops_are_stated() {
     }
 }
 
-// ------------------------------------------------------------ HP15
+
 
 #[test]
 fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
@@ -1603,7 +1603,7 @@ fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
     );
     assert!(h.text().contains("waiting for input"), "{}", h.text());
     assert!(h.text().contains("input wanted"), "{}", h.text());
-    // input mode: the secret is never echoed or retained; Enter sends it
+
     h.key(KeyCode::Char('i'));
     assert!(h.text().contains("typing goes to stdin"), "{}", h.text());
     h.type_str("hunter2");
@@ -1626,7 +1626,7 @@ fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
         "{:?}",
         output(&h, &id)
     );
-    // the second prompt echoes a plain answer; n cancels the rollout
+
     assert!(
         h.app
             .world
@@ -1649,7 +1649,7 @@ fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
         "{out:?}"
     );
     assert_eq!(h.app.world.activity(&id).unwrap().exit, Some(2));
-    // EOF at the password prompt takes the EOF branch
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Deploy the release");
     let id = activity_id(&h);
@@ -1674,7 +1674,7 @@ fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
         "EOF is visible: {:?}",
         output(&h, &id)
     );
-    // a resistant program: stop sends TERM, KILL follows after the grace
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Run the stubborn worker");
     let id = activity_id(&h);
@@ -1698,7 +1698,7 @@ fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
     );
     let out = output(&h, &id).join("\n");
     assert!(out.contains("SIGKILL"), "{out}");
-    // Ctrl+C in input mode is the same stop request
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Run the stubborn worker");
     let id = activity_id(&h);
@@ -1710,7 +1710,7 @@ fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
         ActivityState::Cancelling
     );
     assert!(output(&h, &id).iter().any(|l| l == "^C"));
-    // a finished program takes no input
+
     h.alt(KeyCode::Char('0'));
     run(&mut h, "Quick no-op");
     let id = activity_id(&h);
@@ -1723,7 +1723,7 @@ fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
     );
 }
 
-// ------------------------------------------------------------ HP17
+
 
 #[test]
 fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved() {
@@ -1731,8 +1731,8 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
     h.ticks(4);
     let items = h.app.world.items();
     let ids: Vec<&str> = items.iter().map(|i| i.id.as_str()).collect();
-    // global and project actions; a project id that repeats a global one is
-    // dropped as a diagnostic; a malformed id never becomes an action
+
+
     for id in [
         "notes",
         "shared",
@@ -1761,7 +1761,7 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
         "{:?}",
         cfg.diagnostics
     );
-    // argv is exact: the shell substitution is a literal argument
+
     let deploy = items.iter().find(|i| i.id == "deploy.preview").unwrap();
     assert_eq!(
         argv_of(deploy),
@@ -1769,9 +1769,9 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
     );
     let multi = items.iter().find(|i| i.id == "multi").unwrap();
     assert_eq!(multi.all_exec()[0].args, vec!["%s\n", "a\nb c"]);
-    // the bytes were trusted at another path (and as a legacy digest-only
-    // record): both mean review again; the trust page names the whole-file
-    // digest and the exact argv, then approval binds path and cwd
+
+
+
     let status = h
         .app
         .world
@@ -1793,7 +1793,7 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
         "{}",
         h.text()
     );
-    // the file changes during review: nothing is trusted or run
+
     let edited = cfg.text.replace("Deploy preview", "Deploy PREVIEW");
     h.app.world.fs.text(&cfg.path, &edited, 0);
     h.key(KeyCode::Right);
@@ -1807,7 +1807,7 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
             .status(&cfg.digest, &cfg.path, "/Users/alex/work/team")
             != crate::domain::custom::TrustStatus::Trusted
     );
-    // reviewed again with the current bytes: approval persists, the action runs
+
     let now_cfg = h.app.world.custom_project.clone().unwrap();
     open(&mut h, "Deploy preview");
     h.key(KeyCode::Right);
@@ -1829,7 +1829,7 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
         saved.contains(&now_cfg.digest) && saved.contains("/Users/alex/work/team/.holla.toml"),
         "{saved}"
     );
-    // a trust store that cannot be saved runs nothing
+
     h.alt(KeyCode::Char('0'));
     h.app.world.trust.save_failure = Some("EROFS".into());
     let _ = h.app.world.trust.revoke(&now_cfg.digest);
@@ -1838,7 +1838,7 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
     h.key(KeyCode::Enter);
     assert!(h.text().contains("nothing was run"), "{}", h.text());
     assert!(matches!(h.tab_kind(), TabKind::Here));
-    // the destructive action confirms once and runs its argv without a shell
+
     h.app.world.trust.save_failure = None;
     open(&mut h, "Wipe local caches");
     h.key(KeyCode::Right);
@@ -1851,7 +1851,7 @@ fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved()
     );
 }
 
-// ------------------------------------------------------------ HP18
+
 
 #[test]
 fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
@@ -1860,7 +1860,7 @@ fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
     open(&mut h, "Analyze disk usage");
     assert!(h.text().contains("Disk › Usage"), "{}", h.text());
     assert!(h.text().contains("scanning ·"), "{}", h.text());
-    // a cached size is a hint with its age until the live number arrives
+
     let scan = h.app.world.scan.clone().unwrap();
     assert_eq!(scan.ticks, 48);
     let now = h.app.world.now_secs();
@@ -1945,8 +1945,8 @@ fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
         "dataless is never materialised"
     );
     assert!(h.text().contains("unreadable"), "{}", h.text());
-    // the finished scan recorded the cache (root plus depth two), skipping
-    // paths that changed during the scan
+
+
     assert!(
         h.app
             .world
@@ -1963,7 +1963,7 @@ fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
             .as_deref()
             .is_some_and(|s| s.contains("\"v\":3") || s.contains("3"))
     );
-    // rescan restarts the generation and keeps hints; cancel keeps a partial tree
+
     h.key(KeyCode::Char('r'));
     assert!(h.text().contains("Rescanning"), "{}", h.text());
     assert_eq!(h.app.world.scan.as_ref().unwrap().generation, 2);
@@ -1988,11 +1988,11 @@ fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
     );
 }
 
-// ------------------------------------------------------------ HP19
 
-/// M15 (the audit's Disk harness): a click on a tree row moves the cursor
-/// and marks nothing for deletion; a click on the row's mark (the glyph
-/// before its name, CheckClick::BoxOnly) selects it, as Space does.
+
+
+
+
 #[test]
 fn m15_a_click_on_a_disk_row_selects_nothing_and_its_mark_selects_it() {
     let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
@@ -2012,7 +2012,7 @@ fn m15_a_click_on_a_disk_row_selects_nothing_and_its_mark_selects_it() {
         "the click moved the cursor there: {}",
         h.text()
     );
-    // the mark sits two cells before the name
+
     h.click(x - 2, y);
     assert!(h.text().contains("1 item selected"), "{}", h.text());
     h.click(x - 2, y);
@@ -2026,8 +2026,8 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
     open(&mut h, "Analyze disk usage");
     h.ticks(40);
     assert!(h.text().contains("scan complete"), "{}", h.text());
-    // largest first with allocated bytes; the sparse image sorts by what it
-    // occupies, not by its apparent size, until s switches the sort
+
+
     let target = h.find("target").unwrap();
     let vm = h.find("vm.img").unwrap();
     assert!(
@@ -2043,7 +2043,7 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
         "apparent: vm.img (900 blocks) above target"
     );
     h.key(KeyCode::Char('s'));
-    // noise folding is presentation only: the size stays, the row is one
+
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
     let before = h.text();
@@ -2051,7 +2051,7 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
     h.key(KeyCode::Char('f'));
     assert!(h.text().contains("unfolded"), "{}", h.text());
     h.key(KeyCode::Char('f'));
-    // selection: a parent dominates its descendants; a selects the visible
+
     h.key(KeyCode::Home);
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
@@ -2079,8 +2079,8 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
     );
     h.key(KeyCode::Char('a'));
     assert!(h.text().contains("Everything unselected"), "{}", h.text());
-    // top files: Spotlight results deduplicated, the vanished one reported,
-    // fed into the same gate
+
+
     h.key(KeyCode::Char('t'));
     assert!(
         h.text().contains("Here › Disk › Usage › Top files"),
@@ -2111,7 +2111,7 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
         "{}",
         h.text()
     );
-    // Linux: no Spotlight, the tree scan is the way
+
     let mut l = H::new(Scenario::ParityPlatformsLinux, Motion::Reduced, 0, 120, 40);
     l.ticks(3);
     open(&mut l, "Top files on this Mac");
@@ -2124,7 +2124,7 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
     assert!(matches!(l.tab_kind(), TabKind::Here));
 }
 
-// ------------------------------------------------------------ HP20
+
 
 #[test]
 fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
@@ -2132,10 +2132,10 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
     h.ticks(8);
     let cats = crate::domain::catalog::insight_candidates(&h.app.world);
     let by = |id: &str| cats.iter().find(|c| c.category.id == id);
-    // Xcode is running: derived data is ineligible with the reason
+
     let dd = by("xcode.derived-data").expect("derived data");
     assert!(dd.candidates.iter().all(|k| matches!(&k.eligibility, crate::domain::cleanup::Eligibility::Ineligible(w) if w.contains("Xcode is running"))), "{:?}", dd.candidates);
-    // device support: 91 days old is preselected, 89 is not
+
     let ds = by("xcode.device-support").unwrap();
     let ios = ds
         .candidates
@@ -2155,7 +2155,7 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
         watch.eligibility,
         crate::domain::cleanup::Eligibility::Ineligible(_)
     ));
-    // the pnpm store comes from the tool's resolved path, not a guess
+
     let pnpm = by("pnpm.store").unwrap();
     assert!(
         pnpm.candidates
@@ -2169,8 +2169,8 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
         2200 * 1024 * 1024 + 2 * crate::sim::fs::BLOCK,
         "the file plus two directory blocks"
     );
-    // project artifacts: every indicator-backed tree, nested never, the
-    // symlinked project skipped, the unreadable folder reported
+
+
     let art = by("project.artifacts").unwrap();
     let paths: Vec<&str> = art.candidates.iter().map(|k| k.path.as_str()).collect();
     for want in [
@@ -2202,7 +2202,7 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
         "{:?}",
         art.unreadable
     );
-    // the page: sizes per category, the Xcode guard visible, the lower bound named
+
     open(&mut h, "Review cleanup candidates");
     let t = h.text();
     assert!(t.contains("18 categories"), "{t}");
@@ -2220,9 +2220,9 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
         t.contains("Project artifacts") && t.contains("2.5 GiB"),
         "{t}"
     );
-    // the list row, not the detail pane's heading of the same name: End
-    // leaves one row of context below the cursor (ScrollState::context),
-    // so the detail heading no longer shares its line with a blank list row
+
+
+
     let list = h
         .app
         .shell
@@ -2251,7 +2251,7 @@ fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
     );
 }
 
-// ------------------------------------------------------------ HP21
+
 
 #[test]
 fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
@@ -2260,8 +2260,8 @@ fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
     open(&mut h, "Analyze disk usage");
     h.ticks(30);
     assert!(h.text().contains("scan complete"), "{}", h.text());
-    // select the target, the odd-named build, the linked tree and the
-    // folder that will vanish; the gate names denials and the threat model
+
+
     for name in ["target", "linked", "gone-later", "locked"] {
         let (_, y) = h
             .find(name)
@@ -2275,7 +2275,7 @@ fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
         h.click(tree.x + 6, y);
     }
     assert!(h.text().contains("4 selected"), "{}", h.text());
-    // the documented deny rules, each with its own reason
+
     let w = &h.app.world;
     let deny = |p: &str| {
         crate::domain::cleanup::validate(p, &w.location.home, w.host.os, &w.fs)
@@ -2326,8 +2326,8 @@ fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
         t.contains("Revision") && t.contains("voids this review"),
         "{t}"
     );
-    // the folder vanishes after review: commit reports it, everything else
-    // proceeds; the Trash collision retries and succeeds
+
+
     h.app
         .world
         .fs
@@ -2383,7 +2383,7 @@ fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
     assert_eq!(r.freed_now, 0, "Trash keeps the bytes on the volume");
     assert!(r.bytes >= 1000 * 1024 * 1024);
     assert!(h.text().contains("Cleanup report"), "{}", h.text());
-    // a review is void once the mode changes: the gate refuses the stale plan
+
     let mut d = H::new(Scenario::ParityDeleteSafety, Motion::Reduced, 0, 120, 40);
     d.ticks(2);
     open(&mut d, "Review cleanup candidates");
@@ -2430,13 +2430,13 @@ fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
     );
 }
 
-// ------------------------------------------------------------ HP22
+
 
 #[test]
 fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
     let mut h = H::new(Scenario::ParityCleanupResults, Motion::Reduced, 0, 120, 40);
     h.ticks(2);
-    // the prior run is in the log and the history before anything happens
+
     assert_eq!(h.app.world.ops_log.lines.len(), 1);
     open(&mut h, "Show cleanup history");
     assert!(
@@ -2449,14 +2449,14 @@ fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
         "{}",
         h.text()
     );
-    // the prior record is a table row, not only a raw line
+
     let row = h
         .text()
         .lines()
         .find(|l| l.contains("legacy/node_modules") && l.contains("trash") && l.contains("trashed"))
         .map(str::to_owned);
     assert!(row.is_some(), "{}", h.text());
-    // trash the clones: the estimate over-counts, the report says so
+
     h.alt(KeyCode::Char('0'));
     open(&mut h, "Analyze disk usage");
     h.ticks(30);
@@ -2492,7 +2492,7 @@ fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
         h.text()
     );
     assert!(h.text().contains("every record written"), "{}", h.text());
-    // the log grew by exactly the items, persisted with the prior record intact
+
     assert_eq!(h.app.world.ops_log.lines.len(), 2);
     assert_eq!(
         h.app.world.persisted.ops_log.len(),
@@ -2504,7 +2504,7 @@ fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
         h.app.world.persisted.ops_log[1].contains("\"outcome\":\"trashed\"")
             && h.app.world.persisted.ops_log[1].contains("/big")
     );
-    // the history snapshot lists both and links the report
+
     h.alt(KeyCode::Char('0'));
     open(&mut h, "Show cleanup history");
     let t = h.text();
@@ -2515,7 +2515,7 @@ fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
         "the new record is a row with its size: {t}"
     );
     assert!(t.contains("Report 1"), "{t}");
-    // the used bytes on the volume stay until the Trash is emptied
+
     let v = h.app.world.fs.volume_for("/").unwrap();
     assert!(v.used > 0);
     assert!(!h.app.world.fs.exists("/Users/alex/Projects/safe/big"));
@@ -2541,15 +2541,15 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
     assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
     h.type_str("TRASH 1 UNDER /Users/alex/Projects/safe ON mbp");
     h.key(KeyCode::Enter);
-    // the gate is gone; the world owns the execution and the report page
-    // shows it running before the first item is processed
+
+
     assert!(h.app.modals.is_empty(), "{}", h.text());
     let job = h.app.world.cleanup_job.as_ref().expect("a running cleanup");
     assert_eq!((job.exec.completed(), job.exec.total()), (0, 1));
     assert!(h.text().contains("Cleanup running"), "{}", h.text());
     assert!(h.text().contains("running · 0 of 1 items"), "{}", h.text());
     assert!(h.app.world.fs.exists("/Users/alex/Projects/safe/big"));
-    // quitting now waits: the dialog says so and Leave defers the quit
+
     h.ctrl(KeyCode::Char('q'));
     assert!(
         h.text().contains("A cleanup is running (0 of 1 items)"),
@@ -2567,8 +2567,8 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
         "{}",
         h.text()
     );
-    // the item lands on the next tick, the report and the log are complete,
-    // and only then does the application quit
+
+
     h.ticks(1);
     let r = h.app.world.reports.last().cloned().unwrap();
     assert_eq!(r.count(crate::domain::cleanup::Outcome::Trashed), 1);
@@ -2586,11 +2586,11 @@ fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
     );
 }
 
-// ------------------------------------------------------------ HP23
+
 
 #[test]
 fn hp23_platform_capabilities_are_stated_and_never_faked() {
-    // macOS: the dataless policy failure and the Spotlight timeout are facts
+
     let mut m = H::new(Scenario::ParityPlatforms, Motion::Reduced, 0, 120, 40);
     m.ticks(4);
     open(&mut m, "Top files on this Mac");
@@ -2613,7 +2613,7 @@ fn hp23_platform_capabilities_are_stated_and_never_faked() {
             .as_deref()
             .is_some_and(|f| f.contains("EPERM"))
     );
-    // /tmp resolves through the macOS alias: validation names the canonical path
+
     assert_eq!(
         crate::domain::cleanup::validate(
             "/private/tmp/x",
@@ -2634,7 +2634,7 @@ fn hp23_platform_capabilities_are_stated_and_never_faked() {
         .unwrap(),
         "/private/tmp/x"
     );
-    // Linux: no Trash backend, no opener, no OSC 52, no pgrep, no Spotlight
+
     let mut l = H::new(Scenario::ParityPlatformsLinux, Motion::Reduced, 0, 120, 40);
     l.ticks(4);
     assert_eq!(
@@ -2694,7 +2694,7 @@ fn hp23_platform_capabilities_are_stated_and_never_faked() {
             .exists("/home/alex/Projects/app/node_modules/x"),
         "nothing fell back to permanent deletion"
     );
-    // copy and open state their missing capability
+
     l.alt(KeyCode::Char('0'));
     open(&mut l, "Copy this folder's path");
     assert!(l.text().contains("does not accept OSC 52"), "{}", l.text());

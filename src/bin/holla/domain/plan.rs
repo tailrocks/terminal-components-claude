@@ -1,22 +1,22 @@
-//! Plans: a dependency graph of steps with optional branches, exclusion
-//! consequences, parallel eligibility and failure propagation (CONCEPT
-//! §8.15). Pure logic; execution timing lives in `sim`.
+
+
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StepState {
-    /// Every prerequisite has succeeded; may start.
+
     Ready,
-    /// Waiting for a prerequisite that has not finished.
+
     Waiting,
     Running,
     Succeeded,
     Failed,
-    /// Optional step the user skipped after it failed.
+
     Skipped,
-    /// A prerequisite failed or was excluded.
+
     Blocked,
     Cancelled,
-    /// The user excluded it before execution.
+
     Excluded,
 }
 
@@ -48,40 +48,40 @@ impl StepState {
     }
 }
 
-/// One inspectable unit of a plan.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Step {
-    /// Short stable id (`preflight`, `apt-apply`).
+
     pub id: String,
     pub label: String,
     pub commands: Vec<String>,
     pub cwd: String,
-    /// `sudo`, `docker socket`, … or empty.
+
     pub privilege: String,
     pub optional: bool,
-    /// Included in the plan (optional steps may be excluded).
+
     pub included: bool,
-    /// Indices of prerequisite steps.
+
     pub deps: Vec<usize>,
-    /// Steps sharing an exclusive resource are ordered even when
-    /// independent (`apt lock`, `docker daemon`).
+
+
     pub exclusive: Option<String>,
     pub effects: Vec<String>,
-    /// The path or resource the step acts on, for the world effect after
-    /// it succeeds (a cleanup candidate, a repository).
+
+
     pub target: Option<String>,
-    /// Known uncertainty, shown in review.
+
     pub note: String,
     pub state: StepState,
-    /// Why the step is blocked or excluded, when it is.
+
     pub because: String,
-    /// Scripted duration in ticks and whether the fixture makes it fail.
+
     pub duration_ticks: u64,
     pub fails: bool,
     pub started_tick: Option<u64>,
     pub ended_tick: Option<u64>,
     pub exit: Option<i32>,
-    /// Retained output lines.
+
     pub output: Vec<String>,
 }
 
@@ -160,33 +160,33 @@ pub enum PlanPhase {
     Done,
 }
 
-/// A reviewable execution graph.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Plan {
     pub id: String,
     pub title: String,
-    /// The intent in plain language.
+
     pub intent: String,
     pub host: String,
     pub steps: Vec<Step>,
-    /// Second-gate phrase when the plan is broadly destructive.
+
     pub phrase: Option<String>,
     pub broad: bool,
     pub phase: PlanPhase,
-    /// Bounded parallelism.
+
     pub max_parallel: usize,
-    /// Independent branches keep running when one fails.
+
     pub continue_on_failure: bool,
-    /// Tick the run started, for durations.
+
     pub started_tick: Option<u64>,
     pub ended_tick: Option<u64>,
-    /// Facts shown at Gate 1 besides the steps.
+
     pub facts: Vec<(String, String)>,
-    /// Fixture-side revalidation: when set, the first Execute finds a
-    /// changed target and invalidates confirmation (CONCEPT §10).
+
+
     pub drift: Option<String>,
     pub drift_consumed: bool,
-    /// What to offer once the plan has finished: (label, item id).
+
     pub follow_ups: Vec<(String, String)>,
 }
 
@@ -231,7 +231,7 @@ impl Plan {
         self
     }
 
-    /// The full second-gate phrase, with the broad prefix.
+
     pub fn gate_phrase(&self) -> Option<String> {
         self.phrase.as_ref().map(|p| {
             if self.broad {
@@ -242,8 +242,8 @@ impl Plan {
         })
     }
 
-    /// Toggle an optional step; recomputes dependents. Returns false when the
-    /// step is required.
+
+
     pub fn toggle(&mut self, i: usize) -> bool {
         if self.phase != PlanPhase::Review {
             return false;
@@ -259,15 +259,15 @@ impl Plan {
         true
     }
 
-    /// Steps that depend directly on `i`.
+
     pub fn dependents(&self, i: usize) -> Vec<usize> {
         (0..self.steps.len())
             .filter(|&j| self.steps[j].deps.contains(&i))
             .collect()
     }
 
-    /// Steps `i` may run beside: included, not in each other's ancestry,
-    /// and not sharing an exclusive resource.
+
+
     pub fn parallel_with(&self, i: usize) -> Vec<usize> {
         (0..self.steps.len())
             .filter(|&j| j != i && self.steps[j].included && self.steps[i].included)
@@ -279,7 +279,7 @@ impl Plan {
             .collect()
     }
 
-    /// True when `a` is an ancestor of `b`.
+
     pub fn ancestor(&self, a: usize, b: usize) -> bool {
         let mut stack = vec![b];
         let mut seen = vec![false; self.steps.len()];
@@ -298,9 +298,9 @@ impl Plan {
         false
     }
 
-    /// Recompute states from inclusion and results. In review, excluded
-    /// prerequisites block their dependents with a reason; while running,
-    /// finished prerequisites unlock dependents and failures block them.
+
+
+
     pub fn recompute(&mut self) {
         let n = self.steps.len();
         for i in 0..n {
@@ -334,8 +334,8 @@ impl Plan {
                         blocked_by = Some(format!("blocked · {:02} failed", d + 1));
                     }
                     StepState::Skipped => {
-                        // an optional failure that was skipped does not unblock
-                        // dependents that need its result
+
+
                         blocked_by = Some(format!("blocked · {:02} skipped", d + 1));
                     }
                     StepState::Succeeded => {}
@@ -355,7 +355,7 @@ impl Plan {
         }
     }
 
-    /// Included steps that are ready to start, in order.
+
     pub fn ready(&self) -> Vec<usize> {
         (0..self.steps.len())
             .filter(|&i| self.steps[i].included && self.steps[i].state == StepState::Ready)
@@ -368,7 +368,7 @@ impl Plan {
             .collect()
     }
 
-    /// The plan is finished when nothing can still start or run.
+
     pub fn is_done(&self) -> bool {
         self.steps
             .iter()
@@ -377,8 +377,8 @@ impl Plan {
             && self.ready().is_empty()
     }
 
-    /// Counts by outcome for the summary: (succeeded, failed, excluded,
-    /// skipped, never started).
+
+
     pub fn outcome(&self) -> (usize, usize, usize, usize, usize) {
         let c = |st: StepState| self.steps.iter().filter(|s| s.state == st).count();
         (
@@ -401,8 +401,8 @@ impl Plan {
         self.steps.iter().filter(|s| s.optional).count()
     }
 
-    /// Estimated duration in ticks along the critical path of included
-    /// steps.
+
+
     pub fn estimate_ticks(&self) -> u64 {
         fn finish(p: &Plan, i: usize, memo: &mut Vec<Option<u64>>) -> u64 {
             if let Some(v) = memo[i] {
@@ -429,15 +429,15 @@ impl Plan {
             .unwrap_or(0)
     }
 
-    /// Included steps with no prerequisites.
+
     pub fn roots(&self) -> Vec<usize> {
         (0..self.steps.len())
             .filter(|&i| self.steps[i].deps.is_empty() && self.steps[i].included)
             .collect()
     }
 
-    /// Branch count: independent included roots, or the widest fan-out
-    /// after a shared prerequisite.
+
+
     pub fn parallel_branches(&self) -> usize {
         let mut best = self.roots().len();
         for i in 0..self.steps.len() {
@@ -451,8 +451,8 @@ impl Plan {
         best
     }
 
-    /// Retry a failed step: it becomes ready again and its blocked
-    /// dependents are recomputed; succeeded unrelated work is untouched.
+
+
     pub fn retry(&mut self, i: usize) -> bool {
         let Some(s) = self.steps.get_mut(i) else {
             return false;
@@ -478,7 +478,7 @@ impl Plan {
         true
     }
 
-    /// Skip an optional failed step; dependents stay blocked.
+
     pub fn skip(&mut self, i: usize) -> bool {
         let Some(s) = self.steps.get_mut(i) else {
             return false;
@@ -491,7 +491,7 @@ impl Plan {
         true
     }
 
-    /// Cancel everything that has not started.
+
     pub fn cancel_remaining(&mut self) {
         for s in &mut self.steps {
             if matches!(s.state, StepState::Ready | StepState::Waiting) {
@@ -502,7 +502,7 @@ impl Plan {
         self.recompute();
     }
 
-    /// Reset every step for a fresh run after confirmation.
+
     pub fn arm(&mut self, tick: u64) {
         for s in &mut self.steps {
             s.state = StepState::Ready;
@@ -583,11 +583,11 @@ mod tests {
     #[test]
     fn parallel_eligibility_respects_ancestry_and_locks() {
         let p = upgrade();
-        // Debian metadata and mise inspection are independent branches
+
         assert!(p.parallel_with(1).contains(&4));
-        // apt-update and apt-apply share the apt lock
+
         assert!(!p.parallel_with(1).contains(&3));
-        // verify depends on both branches: never parallel with apply
+
         assert!(!p.parallel_with(7).contains(&3));
         assert!(p.ancestor(0, 7));
         assert!(!p.ancestor(7, 0));
@@ -631,7 +631,7 @@ mod tests {
         for s in &mut p.steps {
             s.duration_ticks = 10;
         }
-        // preflight → apt-update → review → apply → cleanup = 5 steps
+
         assert_eq!(p.estimate_ticks(), 50);
         p.toggle(6);
         assert_eq!(

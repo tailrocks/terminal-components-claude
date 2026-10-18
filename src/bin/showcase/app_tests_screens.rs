@@ -1,6 +1,6 @@
-//! The Settings and Task runner screens (plan §7.5, SC27), driven through
-//! the real app: the dirty mark on the Settings tab, and the quit guard
-//! while the pipeline runs.
+
+
+
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
@@ -30,7 +30,7 @@ fn quitting_while_the_pipeline_runs_asks_first() {
     let mut h = Harness::on(120, 40, PageId::TaskRunner);
     let (x, y) = h.find("Run pipeline").expect("the Run button");
     h.click(x + 1, y);
-    // Ctrl+Q quits from anywhere (QuitKeys)
+
     h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
     assert!(!h.app.shell.quit, "a running pipeline holds the quit");
     assert!(h.text().contains("Still running"), "{}", h.text());

@@ -1,8 +1,8 @@
-//! The shell's layer stack (plan S5): every dialog, picker, menu and text
-//! modal is a `Layer` on `ShellLayers`. Each kind closes through its own
-//! dismiss policy (Esc, an outside click, the `×`), a refused outside click
-//! flashes the frame, focus goes back to the owner (K9), picker events
-//! leave the picker open, and every open layer hears focus changes.
+
+
+
+
+
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -27,8 +27,8 @@ use crate::app_tests_parity::open;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::ModalResult;
 
-/// A cell outside the top layer: nothing registered there (a modal's dim
-/// backdrop), or the light-dismiss backdrop a popover registers.
+
+
 fn outside(h: &H) -> Position {
     let menu = h
         .app
@@ -64,9 +64,9 @@ fn now(h: &H) -> u64 {
     h.app.world.now_ms().max(0) as u64
 }
 
-/// Open the key reference, the activities picker, the alternatives menu
-/// and gate 2: each is the kind of layer named. Each returns the focus the
-/// layer opened over.
+
+
+
 fn open_text(h: &mut H) -> Option<WidgetId> {
     let owner = h.app.shell.focus.current();
     h.key(KeyCode::F(1));
@@ -107,8 +107,8 @@ fn open_dialog(h: &mut H) -> Option<WidgetId> {
     owner
 }
 
-/// A kind, its app, how to open it, and whether an outside click closes
-/// it (gate 2 with a typed phrase takes Esc only).
+
+
 type Case = (
     &'static str,
     fn() -> H,
@@ -145,10 +145,10 @@ fn cases() -> [Case; 4] {
     ]
 }
 
-/// Esc and an outside click close every kind of layer holla opens (an
-/// outside click its policy refuses flashes the frame and leaves it open),
-/// and focus is back on the control that had it before the layer opened
-/// (K9).
+
+
+
+
 #[test]
 fn every_layer_kind_closes_on_esc_and_an_outside_click_and_restores_focus() {
     for (name, build, open_it, light) in cases() {
@@ -194,8 +194,8 @@ fn every_layer_kind_closes_on_esc_and_an_outside_click_and_restores_focus() {
     }
 }
 
-/// The dialog's `×` closes it as Esc does: the gate is cancelled and focus
-/// returns to the review page.
+
+
 #[test]
 fn the_dialog_close_button_cancels_and_restores_focus() {
     let mut h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 120, 40);
@@ -207,7 +207,7 @@ fn the_dialog_close_button_cancels_and_restores_focus() {
         .area_of(CLOSE)
         .expect("the dialog shows its ×");
     assert_eq!(h.app.shell.hits.hit(x.as_position()), Some(CLOSE));
-    // the page under the dialog had focus when gate 2 opened
+
     let owner = h.app.modals.top().map(|e| e.owner);
     assert_eq!(owner, Some(h.app.active));
     h.click(x.x + 1, x.y);
@@ -221,15 +221,15 @@ fn the_dialog_close_button_cancels_and_restores_focus() {
     assert!(h.app.shell.ring.contains(focus), "focus is on the page");
 }
 
-/// A prompt with typed text refuses a backdrop click (nothing typed is
-/// thrown away) and says so: the frame flashes. Before the layer stack the
-/// shell read the dialog's raw policy, which allows outside clicks, so the
-/// refusal was silent.
+
+
+
+
 #[test]
 fn a_refused_outside_click_on_a_dirty_prompt_flashes_the_frame() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
     let owner = h.app.shell.focus.current();
-    // the alternatives menu ends with Pin · Alias · Hide · Reset · Why
+
     h.alt(KeyCode::Enter);
     h.key(KeyCode::End);
     for _ in 0..3 {
@@ -255,15 +255,15 @@ fn a_refused_outside_click_on_a_dirty_prompt_flashes_the_frame() {
         "the refusal flashes the frame"
     );
     assert_ne!(corner(&h), calm, "the flash shows on the border");
-    // Esc still cancels, and focus is back on the finder
+
     h.key(KeyCode::Esc);
     assert!(h.app.modals.is_empty(), "{}", h.text());
     assert_eq!(h.app.shell.focus.current(), owner);
 }
 
-/// The jump picker's query edits are events: the picker stays open and
-/// its rows follow the query; a failed choice keeps it open with the
-/// error; Esc closes it and focus is back on the files page.
+
+
+
 #[test]
 fn picker_events_keep_the_jump_picker_open() {
     let mut h = H::new(Scenario::ParityBrowser, Motion::Reduced, 40, 120, 40);
@@ -296,13 +296,13 @@ fn picker_events_keep_the_jump_picker_open() {
     assert_eq!(h.app.shell.focus.current(), owner, "K9");
 }
 
-// ------------------------------------------------------------ blur fan-out
+
 
 const PROBE_A: WidgetId = WidgetId::of("probe.a");
 const PROBE_B: WidgetId = WidgetId::of("probe.b");
 
-/// A layer that records every focus change it hears and moves focus
-/// between its two controls on Tab.
+
+
 struct Probe {
     id: WidgetId,
     heard: Rc<RefCell<Vec<FocusChange>>>,
@@ -334,8 +334,8 @@ impl Layer<ModalResult> for Probe {
     }
 }
 
-/// Plan S5 "blur drift": the shell told only dialogs that focus moved.
-/// Every open layer hears it now, the covered one included.
+
+
 #[test]
 fn every_open_layer_hears_focus_changes_not_only_dialogs() {
     let mut h = H::new(Scenario::FirstUse, Motion::Paused, 40, 120, 40);

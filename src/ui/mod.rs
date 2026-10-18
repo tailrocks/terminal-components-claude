@@ -1,4 +1,4 @@
-//! Rendering support shared by widgets and pages.
+
 
 pub mod columns;
 pub mod context;

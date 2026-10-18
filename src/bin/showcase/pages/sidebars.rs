@@ -26,8 +26,8 @@ pub struct NavItem {
     pub disabled: bool,
 }
 
-/// Standalone navigation list with sections, a current item, a keyboard
-/// cursor and a collapsed (icon-only) mode.
+
+
 #[derive(Debug, Clone)]
 pub struct NavList {
     pub id: WidgetId,
@@ -35,13 +35,13 @@ pub struct NavList {
     pub current: usize,
     pub cursor: usize,
     pub collapsed: bool,
-    /// Scroll over the flattened rows (section headings and items).
+
     pub scroll: ScrollState,
     area: Rect,
     track: Rect,
 }
 
-/// One drawn row of the list.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NavRow {
     Section(usize),
@@ -62,8 +62,8 @@ impl NavList {
         if self.collapsed { 6 } else { 24 }
     }
 
-    /// The rows in drawing order: a heading before every section, a blank
-    /// row between sections.
+
+
     fn rows(&self) -> Vec<NavRow> {
         let mut rows = vec![];
         let mut section = "";
@@ -87,7 +87,7 @@ impl NavList {
             .unwrap_or(0)
     }
 
-    /// Keep the cursor's row in view with the smallest scroll.
+
     fn reveal_cursor(&mut self) {
         let row = self.row_of(self.cursor);
         self.scroll.set_content(self.rows().len());
@@ -102,8 +102,8 @@ impl NavList {
         }
     }
 
-    /// A pointer event on the list, its rows or its scrollbar; `None` when
-    /// the event is not the list's.
+
+
     pub fn pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let bar = scrollbar::id_for(self.id);
         if !ev.on(self.id) && ev.id != bar {
@@ -199,7 +199,7 @@ impl NavList {
         self.scroll.set_content(rows.len());
         self.scroll.set_viewport(area.height as usize);
         let has_sb = self.scroll.overflows();
-        // the last column is the divider, and the scrollbar on overflow
+
         let row_w = area.width.saturating_sub(1);
         let mut cursor_y = None;
         for (k, ri) in self.scroll.visible_range().enumerate() {

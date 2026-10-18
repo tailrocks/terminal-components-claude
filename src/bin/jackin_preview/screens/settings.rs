@@ -1,6 +1,6 @@
-//! Global Settings: General · Mounts · Environments · Agents · Trust with the
-//! Editor's stage grammar, a `global` scope column on every scoped row and
-//! the same preview → async save flow.
+
+
+
 
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
@@ -544,7 +544,7 @@ impl SettingsScreen {
             if x + 22 + (width(&roles) as u16) < rect.right() {
                 buf.set_string(x + 21, y, &roles, st.fg(t.text_faint));
             }
-            // the cursor row is a fill: its details step up to stay readable
+
             legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
@@ -571,9 +571,9 @@ impl SettingsScreen {
         }
     }
 
-    /// Agent runtime modes: how each agent is handed credentials inside the
-    /// container. Which account backs it is read-only here — the registry
-    /// (Account & Usage Center) owns that.
+
+
+
     fn render_agents(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         let bg = t.canvas;
@@ -981,9 +981,9 @@ impl Page<Jackin> for SettingsScreen {
         }
     }
 
-    /// A click on the tab strip switches the tab (the wheel moves its
-    /// window); a click on a control or a row acts on it; the
-    /// configuration tabs take their own events (rows, menus, wheel).
+
+
+
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         if self.saving && (click || ev.is(Phase::Secondary)) {
@@ -1266,7 +1266,7 @@ impl Screen for SettingsScreen {
 }
 
 impl SettingsScreen {
-    /// A completed click on a control or a row of the current tab.
+
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let id = ev.id;
         if id == CANCEL {

@@ -1,5 +1,5 @@
-//! Copy-audit regressions: what the app says to the operator is in their
-//! words, never the preview's internal vocabulary.
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -19,7 +19,7 @@ fn status(h: &H) -> String {
         .unwrap_or_default()
 }
 
-/// Words that belong to the preview's implementation, not to the operator.
+
 const JARGON: [&str; 4] = ["ritual", "modeled", "runtime producer", "prefix command"];
 
 fn assert_plain(what: &str, text: &str) {
@@ -73,11 +73,11 @@ fn footer(h: &H) -> String {
     h.text().lines().last().unwrap_or_default().to_owned()
 }
 
-/// One letter, one meaning across jackin's screens: `d` deletes or removes,
-/// `x` closes or stops what is in front, `c` opens Accounts.
+
+
 #[test]
 fn jackin_letters_keep_one_meaning_across_screens() {
-    // Accounts: d removes (as on the manager), t switches enabled
+
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 220, 40);
     h.app.screens.accounts.selected =
         crate::screens::accounts::Sel::Account("acct-claude-work".into());
@@ -99,7 +99,7 @@ fn jackin_letters_keep_one_meaning_across_screens() {
     );
     assert!(footer(&h).contains("t Enable"), "{}", footer(&h));
 
-    // Cockpit: x cancels the launch, c stays Accounts' letter
+
     let mut h = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 220, 40);
     let f = footer(&h);
     assert!(
@@ -109,7 +109,7 @@ fn jackin_letters_keep_one_meaning_across_screens() {
     h.key(KeyCode::Char('x'));
     assert!(h.text().contains("Cancel the launch?"), "{}", h.text());
 
-    // Manager: the shell is !, x never opens something
+
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 220, 40);
     let live = h
         .app
@@ -129,11 +129,11 @@ fn jackin_letters_keep_one_meaning_across_screens() {
     assert!(f.contains("c Accounts"), "{f}");
 }
 
-/// Ctrl+Q is Quit in every hint and menu, so every confirmation it opens
-/// says Quit too: title, body and buttons.
+
+
 #[test]
 fn every_quit_confirmation_says_quit() {
-    // the manager quits without a question when nothing would be lost
+
     let mut clean = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
     clean.ctrl('q');
     assert!(clean.app.shell.quit);

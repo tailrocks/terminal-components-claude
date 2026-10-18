@@ -1,7 +1,7 @@
-//! Snapshot pages: read-only views built from the fixture world (git
-//! status, system resources, the PostgreSQL blocking tree, Docker
-//! accounting, mise configuration, SSH resolution…) with follow-up actions.
-//! They are read, not run, so they are pages, never tabs (D-15).
+
+
+
+
 
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
@@ -35,10 +35,10 @@ use junie_tui::ui::layer::LayerTag;
 use junie_tui::ui::text::plural;
 
 pub const BODY: WidgetId = WidgetId::of("snapshot.body");
-/// The body's context menu.
+
 pub const MENU: WidgetId = WidgetId::of("snapshot.menu");
 
-/// A follow-up action: label, item id, arguments.
+
 type FollowUp = (String, String, Vec<(String, String)>);
 const FOLLOW: WidgetId = WidgetId::of("snapshot.follow");
 
@@ -48,16 +48,16 @@ pub struct SnapshotPage {
     meta: String,
     facts: Vec<Prop>,
     lines: Vec<(String, Tone)>,
-    /// Status glyphs drawn over a line: (line, cell column, status). The
-    /// line text leaves two blank cells at the column for the glyph.
+
+
     marks: Vec<(usize, usize, StatusKind)>,
-    /// (label, item id, args)
+
     follow_ups: Vec<FollowUp>,
     buttons: Vec<Button>,
     scroll: ScrollState,
     meters: Vec<(String, u8)>,
     detail_title: String,
-    /// The report shown here was still being written on the last tick.
+
     report_running: bool,
     body_area: Rect,
 }
@@ -117,8 +117,8 @@ impl SnapshotPage {
         page
     }
 
-    /// Re-read the world: a report that is still being written changes
-    /// every tick.
+
+
     fn rebuild(&mut self, w: &World) {
         self.facts.clear();
         self.lines.clear();
@@ -538,7 +538,7 @@ impl SnapshotPage {
                         self.facts
                             .push(Prop::new("Replication", l.clone()).tone(Tone::Warning));
                     }
-                    // blocking tree: blockers first, their victims indented
+
                     self.lines.push(m(&format!(
                         "{:<8}{:<20}{:<10}{:<14}{:>8}   {}",
                         "pid", "state", "user", "wait", "txn", "query"
@@ -766,8 +766,8 @@ impl SnapshotPage {
                     }
                     self.lines.push(m(""));
                 }
-                // one table over both sources: command cleanups the world
-                // recorded and every parsed operation log record
+
+
                 let mut rows: Vec<(i64, String, String, String, String, Tone)> = w
                     .disk
                     .history
@@ -810,8 +810,8 @@ impl SnapshotPage {
                         crate::domain::cleanup::Outcome::WouldRemove => {
                             ("would be removed".to_owned(), Tone::Muted)
                         }
-                        // a trashed file is a done outcome: the status glyph
-                        // goes in the two cells before the word
+
+
                         crate::domain::cleanup::Outcome::Trashed => {
                             (format!("  {}", r.outcome.label()), Tone::Success)
                         }
@@ -1067,8 +1067,8 @@ impl SnapshotPage {
                             .as_ref()
                             .filter(|j| j.report_index == idx)
                             .map(|j| (j.exec.completed(), j.exec.total()));
-                        // a page built while the job runs must rebuild once
-                        // more after it settles
+
+
                         self.report_running = running.is_some();
                         self.title = match (running, r.dry_run) {
                             (Some(_), true) => "Dry run running".into(),
@@ -1260,9 +1260,9 @@ impl SnapshotPage {
 }
 
 impl SnapshotPage {
-    /// The body's context menu: the page's own keys, then its follow-up
-    /// actions. An item past the keys in the tag (`0:keys`) runs the
-    /// follow-up at that offset, like its button.
+
+
+
     fn body_menu(&self, anchor: ContextAnchor, cx: &mut Cx) -> Outcome {
         let mut items = vec![MenuItem::new("Copy").shortcut("y")];
         let mut keys = String::from("y");
@@ -1385,7 +1385,7 @@ impl ShellPage<Holla> for SnapshotPage {
     fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-            // a sideways notch never scrolls the vertical body
+
             if id == BODY && axis == Axis::Vertical {
                 self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
@@ -1442,7 +1442,7 @@ impl ShellPage<Holla> for SnapshotPage {
             );
         }
         let mut y = area.y + 2;
-        // meters (system, postgres)
+
         for (label, pct) in &self.meters {
             buf.set_string(area.x + 1, y, label, t.muted());
             let mx = area.x + 14;
@@ -1584,8 +1584,8 @@ impl Screen for SnapshotPage {
         if !cx.focus.is(BODY) {
             return Outcome::Ignored;
         }
-        // a read-only text body has no cursor row: the menu opens at its
-        // top line
+
+
         let at = Position::new(self.body_area.x, self.body_area.y);
         self.body_menu(ContextAnchor::Pointer(at), cx)
     }

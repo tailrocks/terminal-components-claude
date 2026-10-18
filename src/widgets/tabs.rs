@@ -1,13 +1,13 @@
-//! Horizontal tab strip. One focus stop; ← → move the cursor and switch.
-//! Active tab: one plane up with an underline (the accent while its page
-//! is the active layer, neutral under a modal or popup: see [`TabRule`]).
-//! Keyboard focus on the strip: the cursor tab is bold and carries the
-//! one `▎` focus indicator in its leading cell (the same gutter rows and
-//! fields draw), so focus stays visible when the cursor is on the active
-//! tab. Hover: two planes up.
-//! Tabs carry state glyphs (dirty, busy, error, a trailing state suffix) and
-//! a close affordance; the strip scrolls with `‹ ›` indicators instead of
-//! shrinking labels.
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -32,13 +32,13 @@ pub struct TabItem {
     pub dirty: bool,
     pub busy: bool,
     pub error: bool,
-    /// The tab's work finished: a `✓` in the success hue. Busy, error and
-    /// dirty take precedence.
+
+
     pub done: bool,
     pub closable: bool,
-    /// Muted prefix such as a type glyph or a schema.
+
     pub prefix: Option<String>,
-    /// Trailing state glyph (`▶ ● ○ ◆`), muted unless the tab is active.
+
     pub suffix: Option<String>,
 }
 
@@ -61,22 +61,22 @@ impl TabItem {
         self.suffix = Some(s.to_owned());
         self
     }
-    /// Mark the tab finished (the `done` field).
+
     pub fn done(mut self, done: bool) -> Self {
         self.done = done;
         self
     }
-    /// Mark the tab's content unsaved (the `dirty` field).
+
     pub fn dirty(mut self, dirty: bool) -> Self {
         self.dirty = dirty;
         self
     }
-    /// Mark the tab working (the `busy` field): a spinner.
+
     pub fn busy(mut self, busy: bool) -> Self {
         self.busy = busy;
         self
     }
-    /// Mark the tab failed (the `error` field): a `!` in the error hue.
+
     pub fn error(mut self, error: bool) -> Self {
         self.error = error;
         self
@@ -89,118 +89,118 @@ pub struct Tabs {
     pub items: Vec<TabItem>,
     pub active: usize,
     pub cursor: usize,
-    /// First visible tab (strip scroll).
+
     pub first: usize,
     pub areas: Vec<Rect>,
-    /// Show a trailing `+` that emits `TabAction::New`.
+
     pub allow_new: bool,
-    /// How the active tab's underline is coloured. Default
-    /// [`TabRule::Auto`]: the accent unless a layer covers the strip.
+
+
     pub rule: TabRule,
-    /// A middle click on a closable tab closes it (browsers, editors).
-    /// Default `true`.
+
+
     pub middle_click_closes: bool,
-    /// ←/→ past the last tab lands on the first and back. Default off.
+
     pub wrap: bool,
-    /// Which keys move between tabs (default [`NavKeys::default`]: ←/→,
-    /// `h`/`l`, Home/End, `g`/`G`).
+
+
     pub nav: NavKeys,
-    /// The strip's action keys (default [`TabCmd::default_keymap`]:
-    /// `x`/Delete close, `n` new, digits 1-9 jump).
+
+
     pub keymap: KeyMap<TabCmd>,
-    /// The template of every tab's `×` (its id is replaced per tab): a
-    /// plate centred on the glyph and kept inside the tab, drawn and hit
-    /// as one target (a one-cell target is too small to hit reliably).
-    /// Default [`IconButton::close`]: three cells, neutral hover, tooltip
-    /// `Close tab` with the first [`TabCmd::Close`] key.
+
+
+
+
+
     pub close_button: IconButton,
-    /// When a closable tab shows its `×`. Default [`CloseReveal::Always`].
+
     pub close_reveal: CloseReveal,
-    /// An overflowing strip shows a `+N` button (N tabs hidden) that opens
-    /// a menu of the hidden tabs; choosing one activates it (the
-    /// overflow list of browser and editor tab bars). Default `true`.
+
+
+
     pub overflow_menu: bool,
-    /// The `+N` overflow button: a padded plate like `+` and `×`, its glyph
-    /// set to `+N` each frame (docs/design/close-button.md). Default
-    /// [`IconButton::new`] on the title ladder, tooltip `Show hidden`
-    /// ([`crate::theme::Strings::tip_overflow`]).
+
+
+
+
     pub more_button: IconButton,
-    /// The open overflow menu and the tab each of its rows stands for.
+
     menu: Option<(ContextMenu, Vec<usize>)>,
-    /// Where the `+N` button was drawn (the menu's anchor).
+
     more_area: Rect,
-    /// Number of tabs that fit in the last render.
+
     fit: usize,
-    /// Largest useful [`Self::first`] in the last render: the window that
-    /// shows the last tab.
+
+
     max_first: usize,
-    /// The active tab the window last scrolled into view. The window is
-    /// independent of the active tab: `‹`/`›` and the wheel move it freely,
-    /// and a render only brings the active tab back when it changed.
+
+
+
     revealed: Option<usize>,
 }
 
-/// When a closable tab shows its `×`.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CloseReveal {
-    /// On every closable tab: the affordance is always discoverable,
-    /// pointer or not.
+
+
     #[default]
     Always,
-    /// Only on the active tab, the keyboard cursor tab (while the strip
-    /// has focus) and the tab under the pointer (the browser idiom for
-    /// crowded strips). The `×`'s cells stay reserved, so nothing reflows
-    /// under the pointer.
+
+
+
+
     Hover,
 }
 
-/// Colour of the active tab's underline.
-///
-/// The selected tab of a strip (like a macOS tab view or segmented
-/// control, whose selection takes the accent while its window is active)
-/// shows the accent while its page is the active layer. Keyboard focus is
-/// a separate cue: the cursor tab is bold with the single `▎` gutter; the
-/// rule is never a second focus indicator.
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TabRule {
-    /// The accent, neutral (`border_strong`) only while a modal or a
-    /// keyboard-owned popup covers the strip
-    /// ([`RenderCtx::page_under_layer`](crate::ui::ctx::RenderCtx::page_under_layer)): the layer below shows no
-    /// "active" colour, like an inactive macOS window.
+
+
+
+
     #[default]
     Auto,
-    /// Always the accent, even under a layer.
+
     Accent,
-    /// Always neutral: an app's opt-out.
+
     Neutral,
-    /// The accent only while the strip itself holds keyboard focus,
-    /// neutral otherwise (the behaviour before [`Self::Auto`] followed the
-    /// layer).
+
+
+
     FocusOnly,
 }
 
-/// The keys that close the cursor tab by default.
+
 pub const DEFAULT_CLOSE_KEYS: &[KeyCode] = &[KeyCode::Char('x'), KeyCode::Delete];
 
-/// A [`Tabs`] action a key can be bound to.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TabCmd {
-    /// Close the cursor tab (when it is closable). Default `x` and Delete.
+
     Close,
-    /// Ask for a new tab (with [`Tabs::allow_new`]). Default `n`.
+
     New,
-    /// Activate tab `i` (0-based). Default digits `1`-`9`.
+
     Jump(usize),
-    /// Open the menu of the tabs the strip hides (what the `+N` button
-    /// opens), with its first row highlighted. Default ↓: the menu-button
-    /// key (WAI-ARIA menu button, macOS pop-up button), which a horizontal
-    /// strip has no other use for. Only while tabs are hidden; otherwise
-    /// the key does what it did.
+
+
+
+
+
     ShowHidden,
 }
 
 impl TabCmd {
-    /// The digit bindings `1`-`9` (see [`Tabs::digit_jump`]).
+
     pub fn digit_keys() -> KeyMap<Self> {
         ('1'..='9')
             .enumerate()
@@ -296,26 +296,26 @@ impl Tabs {
         self
     }
 
-    /// See [`Self::wrap`].
+
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::keymap`].
+
     pub fn keymap(mut self, keymap: KeyMap<TabCmd>) -> Self {
         self.keymap = keymap;
         self
     }
 
-    /// Digits 1-9 jump to that tab (default on): adds or removes the
-    /// [`TabCmd::Jump`] bindings in [`Self::keymap`].
+
+
     pub fn digit_jump(mut self, on: bool) -> Self {
         self.keymap.retain(|(_, a)| !matches!(a, TabCmd::Jump(_)));
         if on {
@@ -324,8 +324,8 @@ impl Tabs {
         self
     }
 
-    /// The keys that close the cursor tab (default `x` and Delete):
-    /// replaces the [`TabCmd::Close`] bindings in [`Self::keymap`].
+
+
     pub fn close_keys(mut self, keys: &[KeyCode]) -> Self {
         self.keymap.retain(|(_, a)| *a != TabCmd::Close);
         self.keymap.extend(
@@ -335,8 +335,8 @@ impl Tabs {
         self
     }
 
-    /// The letter that asks for a new tab (default `Some('n')`): replaces
-    /// the [`TabCmd::New`] bindings in [`Self::keymap`].
+
+
     pub fn new_key(mut self, key: Option<char>) -> Self {
         self.keymap.retain(|(_, a)| *a != TabCmd::New);
         if let Some(c) = key {
@@ -350,14 +350,14 @@ impl Tabs {
         self
     }
 
-    /// See [`Self::overflow_menu`].
+
     pub fn overflow_menu(mut self, on: bool) -> Self {
         self.overflow_menu = on;
         self
     }
 
-    /// The `+N` button's tooltip: `Show hidden` and the first
-    /// [`TabCmd::ShowHidden`] key.
+
+
     fn overflow_tip(&self, t: &crate::theme::Theme) -> Tip {
         let tip = Tip::new(t.strings.tip_overflow);
         match crate::core::keymap::label_for(&self.keymap, TabCmd::ShowHidden) {
@@ -366,28 +366,28 @@ impl Tabs {
         }
     }
 
-    /// See [`Self::more_button`].
+
     pub fn more_button(mut self, button: IconButton) -> Self {
         self.more_button = button;
         self
     }
 
-    /// The overflow menu is open: it owns the keyboard and the wheel.
+
     pub fn menu_open(&self) -> bool {
         self.menu.is_some()
     }
 
-    /// The `+N` overflow button.
+
     pub fn more_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::OVERFLOW))
     }
 
-    /// The overflow menu.
+
     pub fn menu_id(&self) -> WidgetId {
         self.id.sub("more-menu")
     }
 
-    /// Tabs outside the window, in strip order.
+
     fn hidden_tabs(&self) -> Vec<usize> {
         let end = (self.first + self.fit).min(self.items.len());
         (0..self.first.min(self.items.len()))
@@ -430,28 +430,28 @@ impl Tabs {
         }
     }
 
-    /// The `×` plate `cells` wide, drawn and hit (default 3): sets the
-    /// padding of [`Self::close_button`].
+
+
     pub fn close_target_w(mut self, cells: u16) -> Self {
         self.close_button = self.close_button.plate(cells);
         self
     }
 
-    /// See [`Self::close_button`].
+
     pub fn close_button(mut self, button: IconButton) -> Self {
         self.close_button = button;
         self
     }
 
-    /// See [`Self::close_reveal`].
+
     pub fn close_reveal(mut self, reveal: CloseReveal) -> Self {
         self.close_reveal = reveal;
         self
     }
 
-    /// Replace the tabs, keeping the strip's scroll window and active
-    /// index (clamped): an app that rebuilds its items every update keeps
-    /// the window the user scrolled to.
+
+
+
     pub fn set_items(&mut self, items: Vec<TabItem>) {
         self.items = items;
         let last = self.items.len().saturating_sub(1);
@@ -460,10 +460,10 @@ impl Tabs {
         self.first = self.first.min(last);
     }
 
-    /// Scroll the strip's window by `dx` (or `dy` when there is no
-    /// horizontal component: a plain wheel over a horizontal strip scrolls
-    /// it sideways, as macOS does for horizontal-only scroll views). The
-    /// active tab does not change.
+
+
+
+
     pub fn on_wheel(&mut self, dx: i32, dy: i32) -> Outcome {
         if let Some((menu, _)) = self.menu.as_mut() {
             return if dy != 0 {
@@ -489,8 +489,8 @@ impl Tabs {
         self
     }
 
-    /// A middle click on `id`: closes the closable tab under it (or whose
-    /// × it is) when [`Self::middle_click_closes`] is on.
+
+
     pub fn on_middle_click(&self, id: WidgetId) -> Option<TabAction> {
         if !self.middle_click_closes {
             return None;
@@ -515,19 +515,19 @@ impl Tabs {
         self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
-    /// The tab whose × `id` is (the inverse the id-taking methods need
-    /// until S15 hands them the routed part).
+
+
     fn close_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::CLOSE, 0..self.items.len())
     }
 
-    /// Which tab `id` is, shown or scrolled out of the window (the
-    /// inverse the id-taking methods need until S15).
+
+
     fn tab_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::TAB, 0..self.items.len())
     }
 
-    /// Tabs hidden before the window and after it.
+
     pub fn hidden(&self) -> (usize, usize) {
         let after = self.items.len().saturating_sub(self.first + self.fit);
         (self.first, after)
@@ -542,8 +542,8 @@ impl Tabs {
         let to = i.min(self.items.len() - 1);
         self.cursor = to;
         if to != self.active {
-            // a re-assertion of the same tab (an app syncing its state)
-            // leaves a window the user scrolled alone
+
+
             self.active = to;
             self.ensure_visible(to);
         }
@@ -577,7 +577,7 @@ impl Tabs {
         }
         let action = lookup(&self.keymap, key);
         if unassigned_chord(key, &self.keymap) {
-            // an unassigned modified chord never performs a plain action
+
             return (Outcome::Ignored, None);
         }
         if self.items.is_empty() {
@@ -639,7 +639,7 @@ impl Tabs {
             }
             return (Outcome::Changed, None);
         }
-        // any other click on the strip closes an open overflow menu
+
         self.menu = None;
         if id == self.new_id() {
             return (Outcome::Changed, Some(TabAction::New));
@@ -679,7 +679,7 @@ impl Tabs {
         w
     }
 
-    /// Two rows: labels, then the underline row.
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -687,9 +687,9 @@ impl Tabs {
         }
         let t = ctx.theme;
         let focused = ctx.interaction.focused_under(self.id, self.menu.is_some());
-        // the strip is a focus stop with the geometry it draws in; tab and
-        // button regions registered after it take precedence under the mouse.
-        // It is a scroll region too: the wheel moves its window
+
+
+
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
         self.areas = vec![Rect::ZERO; self.items.len()];
@@ -704,25 +704,25 @@ impl Tabs {
                 );
             }
         }
-        // reserve space for the overflow indicators and the new-tab button
+
         let new_w: u16 = if self.allow_new { 4 } else { 0 };
         let mut x = area.x;
-        // figure out how many fit from `first`
+
         let widths: Vec<u16> = self.items.iter().map(|it| self.tab_width(it)).collect();
         let total: u16 = widths.iter().map(|w| w + 1).sum();
         let overflow = total + new_w > area.width;
-        // `‹N` / `N›` hidden counts (the grid idiom); N is at most two digits
+
         let left_w: u16 = if overflow { 4 } else { 0 };
         let right_w: u16 = if overflow { 4 } else { 0 };
-        // ` +N ` sized for the most tabs that could hide
+
         let more_w: u16 = if overflow && self.overflow_menu {
             3 + self.items.len().to_string().len() as u16
         } else {
             0
         };
         let avail = area.width.saturating_sub(left_w + right_w + more_w + new_w);
-        // the furthest the window scrolls: the first tab of the run that
-        // ends with the last tab and fits
+
+
         self.max_first = {
             let mut used = 0u16;
             let mut f = self.items.len();
@@ -736,8 +736,8 @@ impl Tabs {
                 0
             }
         };
-        // the window only follows the active tab when it changed (a click,
-        // a key, the app); a strip the user scrolled stays where it is
+
+
         let reveal = self.revealed != Some(self.active);
         self.revealed = Some(self.active);
         self.first = self.first.min(self.max_first);
@@ -783,7 +783,7 @@ impl Tabs {
             }
             x += 4;
         }
-        // index is needed for ids and the parallel `widths` vector
+
         #[allow(clippy::needless_range_loop)]
         for i in self.first..(self.first + fit).min(self.items.len()) {
             let it = &self.items[i];
@@ -794,17 +794,17 @@ impl Tabs {
             let r = Rect::new(x, y, w, 1);
             self.areas[i] = r;
             let tid = self.tab_id(i);
-            // the × is its own control: hovering it does not hover the tab
+
             let mut s = ctx.child_state(self.id, tid, i == self.cursor);
             s.focused = focused && i == self.cursor;
             let active = i == self.active;
             s.selected = active;
-            // the active tab sits one plane up; hover and press walk that
-            // plane's ladder (or the strip's for the other tabs); the
-            // keyboard cursor is weight on the strip's own plane, so it never
-            // reads as hover. The focused cursor tab draws the `▎` gutter
-            // in its leading cell; the active rule (`TabRule`) marks the
-            // selection, not focus
+
+
+
+
+
+
             let look = t.interactive(Kind::Tab, s, t.plane_of(bg));
             let st = look.style;
             crate::ui::ctx::fill(buf, r, st);
@@ -812,9 +812,9 @@ impl Tabs {
                 buf.set_string(x, y, look.gutter, look.gutter_style);
             }
             let mut cx = x + 1;
-            // the tab's own plane: its prefix, suffix and state marks are
-            // measured against it, so they read on the active tab's lifted
-            // fill at every colour level, not only on the strip
+
+
+
             let plane = st.bg.unwrap_or(bg);
             if let Some(p) = &it.prefix {
                 let label = st.fg.unwrap_or(t.text_primary);
@@ -876,8 +876,8 @@ impl Tabs {
                 );
                 cx += 2;
             }
-            // the × plate: centred on the glyph, kept inside the tab; drawn
-            // and hit as one target, after the tab so it sits on top
+
+
             let cid = self.close_id(i);
             let show_close = it.closable
                 && match self.close_reveal {
@@ -903,7 +903,7 @@ impl Tabs {
                     TabRule::FocusOnly => focused,
                 };
                 let rule = if accent { t.accent } else { t.border_strong };
-                // the rule spans exactly the tab's plane, edge to edge
+
                 for xx in x..x + w {
                     buf.set_string(
                         xx,
@@ -914,7 +914,7 @@ impl Tabs {
                 }
             }
             ctx.register_part(self.id, PartRef::item(Part::TAB, ItemKey::index(i)), r);
-            // close button on top
+
             if show_close {
                 let tip = Tip::new(t.strings.tip_close_tab);
                 let tip = match crate::core::keymap::label_for(&self.keymap, TabCmd::Close) {
@@ -951,8 +951,8 @@ impl Tabs {
             let mx = area.right().saturating_sub(more_w + new_w);
             let r = Rect::new(mx, y, more_w, 1);
             self.more_area = r;
-            // a padded plate like `+` and `×`: the hit area is the plate,
-            // which lights whole on hover (docs/design/close-button.md)
+
+
             let host = ratatui::style::Style::new().bg(bg);
             crate::ui::ctx::fill(buf, r, host);
             self.more_button
@@ -961,7 +961,7 @@ impl Tabs {
                 .render_in(r, mx + 1, buf, ctx, host, Some(self.overflow_tip(t)));
         } else {
             self.more_area = Rect::ZERO;
-            // nothing hides any more: the menu has nothing to list
+
             self.menu = None;
         }
         if self.allow_new {
@@ -1006,12 +1006,12 @@ impl Navigable for Tabs {
     }
 }
 
-/// The strip's pointer gestures: a completed click on a tab, its `×`, the
-/// `+`, an overflow arrow, the `+N` button or a row of its open menu is
-/// [`Tabs::on_click`]; a middle click closes the tab under it
-/// ([`Tabs::on_middle_click`]); a wheel notch on either axis moves the
-/// window one tab ([`Tabs::on_wheel`]). The overflow menu is the strip's
-/// too ([`Self::route`]).
+
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for Tabs {
     type Action = TabAction;
 
@@ -1175,7 +1175,7 @@ mod tests {
             focus: Some(tabs.id),
             ..Default::default()
         };
-        // a layer above the page (a modal, an open menu) hides its focus
+
         let hidden = Interaction {
             focus: Some(tabs.id),
             focus_hidden: true,
@@ -1192,18 +1192,18 @@ mod tests {
             assert_eq!(c.symbol(), "━", "the active tab keeps its rule");
             c.fg
         };
-        // Auto (default): the selection shows the accent on the active
-        // layer, focused or not, and goes neutral under a layer
+
+
         assert_eq!(tabs.rule, TabRule::Auto);
         assert_eq!(rule(TabRule::Auto, unfocused), t.accent);
         assert_eq!(rule(TabRule::Auto, focused), t.accent);
         assert_eq!(rule(TabRule::Auto, hidden), t.border_strong);
         assert_eq!(rule(TabRule::Auto, under), t.border_strong);
-        // FocusOnly: the accent only while the strip shows focus
+
         assert_eq!(rule(TabRule::FocusOnly, unfocused), t.border_strong);
         assert_eq!(rule(TabRule::FocusOnly, focused), t.accent);
         assert_eq!(rule(TabRule::FocusOnly, hidden), t.border_strong);
-        // explicit policies ignore focus and layers
+
         for i in [unfocused, focused, hidden] {
             assert_eq!(rule(TabRule::Accent, i), t.accent);
             assert_eq!(rule(TabRule::Neutral, i), t.border_strong);
@@ -1219,8 +1219,8 @@ mod tests {
             focus: Some(tabs.id),
             ..Default::default()
         };
-        // the cursor on the active tab: focus still reads apart from the
-        // (always accent) selection rule
+
+
         let buf = render_with(&mut tabs, focused);
         let a = tabs.areas[1];
         assert_eq!(row(&buf, 0).matches('▎').count(), 1, "one focus indicator");
@@ -1232,7 +1232,7 @@ mod tests {
             "the gutter sits in the padding"
         );
         assert_eq!(buf[(a.x + 1, 1)].fg, t.accent);
-        // unfocused, or under a layer: no gutter, the rule unchanged
+
         let buf = render_with(&mut tabs, Interaction::default());
         assert!(!row(&buf, 0).contains('▎'));
         assert_eq!(buf[(a.x + 1, 1)].fg, t.accent);
@@ -1243,17 +1243,17 @@ mod tests {
         };
         let buf = render_with(&mut tabs, hidden);
         assert!(!row(&buf, 0).contains('▎'));
-        // the cursor moved off the active tab: the gutter follows it
+
         tabs.cursor = 2;
         let buf = render_with(&mut tabs, focused);
         assert_eq!(buf[(tabs.areas[2].x, 0)].symbol(), "▎");
         assert_eq!(row(&buf, 0).matches('▎').count(), 1);
     }
 
-    /// The `+N` overflow button is a padded `IconButton` plate like `+` and
-    /// `×` (docs/design/close-button.md): at rest it reads ` +N`, hovered
-    /// every cell of the plate lights, the hit area is the plate and the
-    /// tooltip names what it does.
+
+
+
+
     #[test]
     fn the_overflow_button_is_a_padded_plate_with_a_tooltip() {
         let t = Theme::junie();
@@ -1306,7 +1306,7 @@ mod tests {
         let t = Theme::junie();
         let mut tabs = Tabs::new(WidgetId::of("t"), &["General", "Mounts", "Roles"]);
         tabs.set_active(1);
-        // hover on an inactive tab: the strip's hover step, not bold, no underline
+
         let hover = Interaction {
             hover: Some(tabs.tab_id(0)),
             ..Default::default()
@@ -1322,8 +1322,8 @@ mod tests {
         );
         assert!(!buf[(b.x + 1, 0)].modifier.contains(Modifier::BOLD));
         assert_eq!(buf[(b.x + 1, 1)].symbol(), "─");
-        // keyboard cursor on an inactive tab: bold on the strip plane (never
-        // the hover plane), still no underline
+
+
         tabs.cursor = 2;
         let focus = Interaction {
             focus: Some(tabs.id),
@@ -1370,16 +1370,16 @@ mod tests {
         let x = a.x + 1 + 5 + 1;
         assert_eq!(buf[(x, 0)].symbol(), "✓");
         assert_eq!(buf[(x, 0)].fg, t.success);
-        // dirty wins over done: unsaved work is the state that matters
+
         let b = tabs.areas[1];
         assert_eq!(buf[(b.x + 1 + 4 + 1, 0)].symbol(), t.glyphs.dirty);
         assert!(!row(&buf, 0).contains("Docs ✓"));
     }
 
-    /// A1: on the active tab's lifted fill the prefix reads as text
-    /// (4.5:1) and the state marks as graphics (3:1) at every colour level;
-    /// at 16 colours the fill is xterm's DarkGray, where the muted number
-    /// was 3.2:1, the busy spinner 2.9:1 and the unsaved dot 2.4:1.
+
+
+
+
     #[test]
     fn the_active_tabs_prefix_and_marks_read_on_its_fill_at_every_level() {
         use crate::theme::{ColorLevel, contrast_ratio};
@@ -1475,7 +1475,7 @@ mod tests {
                 assert_ne!(hover, pressed, "{ctx}: hover = pressed");
                 assert_ne!(rest, pressed, "{ctx}: rest = pressed");
             }
-            // the × of the active tab: its hover is not the tab's, and it presses
+
             let cid = tabs.close_id(1);
             let rest = draw(&mut tabs, Interaction::default());
             let r = tabs.areas[1];
@@ -1530,7 +1530,7 @@ mod tests {
         draw_hits(&mut tabs, 40);
         assert_eq!(tabs.first, 0);
         assert!(tabs.hidden().1 > 0, "the strip overflows");
-        // the active tab is the first one shown: › still scrolls
+
         let right = tabs.right_id();
         tabs.on_click(right);
         draw_hits(&mut tabs, 40);
@@ -1539,11 +1539,11 @@ mod tests {
         tabs.on_click(right);
         draw_hits(&mut tabs, 40);
         assert_eq!(tabs.first, 2);
-        // ‹ scrolls back
+
         tabs.on_click(tabs.left_id());
         draw_hits(&mut tabs, 40);
         assert_eq!(tabs.first, 1);
-        // activating a tab off-screen brings it back into the window
+
         tabs.set_active(11);
         draw_hits(&mut tabs, 40);
         assert!(tabs.areas[11].width > 0, "the new active tab is shown");
@@ -1573,7 +1573,7 @@ mod tests {
         assert_eq!(tabs.hidden().1, 0, "the last tab is in view");
         assert_eq!(tabs.on_wheel(0, 1), Outcome::Consumed, "at the end");
         assert_eq!(tabs.active, 0, "the wheel never activates");
-        // a strip that fits ignores the wheel
+
         let mut few = many(2);
         draw_hits(&mut few, 40);
         assert_eq!(few.on_wheel(0, 1), Outcome::Ignored);
@@ -1617,7 +1617,7 @@ mod tests {
         let more = hits
             .area_of(tabs.more_id())
             .expect("the +N button is a target");
-        // a click opens the menu of hidden tabs
+
         tabs.on_click(tabs.more_id());
         assert!(tabs.menu_open());
         let (buf, hits) = draw_full(&mut tabs, 40);
@@ -1631,7 +1631,7 @@ mod tests {
             !menu_rows.iter().any(|r| r.contains("Tab00")),
             "a shown tab is not listed"
         );
-        // its rows are targets the strip owns; the last one is Tab11
+
         let last_row = tabs.menu.as_ref().unwrap().0.row_id(hidden - 1);
         assert!(hits.area_of(last_row).is_some());
         assert_eq!(
@@ -1649,7 +1649,7 @@ mod tests {
             tabs.areas[11].width > 0,
             "the chosen tab is scrolled into view"
         );
-        // Esc and a click outside close it without a choice
+
         tabs.on_click(tabs.more_id());
         let esc = Key {
             code: KeyCode::Esc,
@@ -1665,7 +1665,7 @@ mod tests {
         assert_eq!(hits.part_of(outside).map(|h| h.owner), Some(tabs.menu_id()));
         tabs.on_click(outside);
         assert!(!tabs.menu_open());
-        // off: no button
+
         let mut plain = many(12).overflow_menu(false);
         let (_, hits) = draw_full(&mut plain, 40);
         assert!(hits.area_of(plain.more_id()).is_none());
@@ -1690,7 +1690,7 @@ mod tests {
         assert_eq!(at(cx - 1), Some(tabs.close_id(0)));
         assert_eq!(at(cx + 1), Some(tabs.close_id(0)));
         assert_eq!(at(cx - 2), Some(tabs.tab_id(0)));
-        // configurable back to one cell
+
         let mut one = tabs.clone().close_target_w(1);
         let (_, hits) = draw_hits(&mut one, 60);
         assert_eq!(
@@ -1699,8 +1699,8 @@ mod tests {
         );
     }
 
-    // docs/design/close-button.md: hovering or pressing a tab's × lights
-    // its whole three-cell plate (the target it hits), not the glyph alone
+
+
     #[test]
     fn the_close_plate_lights_as_wide_as_it_hits_at_every_level() {
         use crate::theme::ColorLevel;
@@ -1757,7 +1757,7 @@ mod tests {
                         assert_ne!(look(&lit, x), look(&rest, x), "{x}: {ctx}");
                         assert_eq!(look(&lit, x), look(&lit, plate.x), "{x}: {ctx}");
                     }
-                    // the tab's label does not take the hover
+
                     let label = tabs.areas[i].x + 3;
                     assert_eq!(look(&lit, label), look(&rest, label), "{ctx}");
                 }
@@ -1783,7 +1783,7 @@ mod tests {
         assert!(!has_x(&buf, tabs.areas[1]));
         assert!(hits.area_of(tabs.close_id(1)).is_none(), "no hidden target");
         let widths: Vec<u16> = tabs.areas.iter().map(|r| r.width).collect();
-        // hovering a tab shows its × where it always was: nothing reflows
+
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
         let mut ring = FocusRing::default();

@@ -1,5 +1,5 @@
-//! "Cell editors": a table whose editable columns only accept values from
-//! a fixed set, one column per constrained editor (docs/showcase/tables.md).
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
@@ -27,7 +27,7 @@ use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction, Tone};
 
 const ID: WidgetId = WidgetId::of("celleditors");
 
-/// Column indices (the app tests address cells by them).
+
 #[allow(dead_code)]
 pub const ENV: usize = 2;
 #[allow(dead_code)]
@@ -142,7 +142,7 @@ fn priorities() -> Options {
     ])
 }
 
-/// Status is a read-only pill: toned text, never an editor affordance.
+
 fn status(s: &str) -> Cell {
     let tone = match s {
         "Down" => Tone::Error,
@@ -152,8 +152,8 @@ fn status(s: &str) -> Cell {
     Cell::new(s).tone(tone)
 }
 
-/// `celleditors.*` option keys: every `EditorConfig` field, in
-/// `CellEditorsPage::knobs` order.
+
+
 const KEYS: [&str; 10] = [
     "celleditors.dismiss",
     "celleditors.blur",
@@ -167,7 +167,7 @@ const KEYS: [&str; 10] = [
     "celleditors.placement",
 ];
 
-/// The editor configuration the options say.
+
 fn config(k: &[usize; 10]) -> EditorConfig {
     let [
         dismiss,
@@ -196,8 +196,8 @@ fn config(k: &[usize; 10]) -> EditorConfig {
     }
 }
 
-/// The States grid: the deployment table with the `▾` on focus and on
-/// every editable cell.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -231,7 +231,7 @@ fn states_grid() -> StateGrid {
         .column("▾ never", sample(2, Affordance::Never))
 }
 
-/// The regions a standalone chooser offers (no table).
+
 fn region_editor() -> ColumnEditor {
     ColumnEditor::Combo(regions())
 }
@@ -311,7 +311,7 @@ pub fn table() -> DataTable {
             "P2",
             "Healthy",
         ],
-        // imported from an old inventory: values outside today's options
+
         [
             "D-106",
             "reports",
@@ -365,15 +365,15 @@ pub fn table() -> DataTable {
 
 pub struct CellEditorsPage {
     template: Template,
-    /// The `celleditors.*` option values, in [`KEYS`] order.
+
     knobs: [usize; 10],
     pub table: DataTable,
     edits: u32,
-    /// A `ChoiceEditor` on its own, anchored to a button.
+
     pub pick: Button,
     pub region: String,
     pub chooser: Option<ChoiceEditor>,
-    /// What the last choice resolved to.
+
     last: &'static str,
     sections: crate::pages::layout::Sections,
 }
@@ -396,7 +396,7 @@ impl CellEditorsPage {
         }
     }
 
-    /// Open the standalone chooser on the current region.
+
     fn open_chooser(&mut self) {
         self.chooser = ChoiceEditor::open(
             ID.sub("pick-list"),
@@ -406,7 +406,7 @@ impl CellEditorsPage {
         );
     }
 
-    /// What the standalone chooser resolved to.
+
     fn on_choice(&mut self, r: Option<ChoiceResult>, cx: &mut Cx) {
         let Some(r) = r else {
             return;
@@ -478,8 +478,8 @@ impl CellEditorsPage {
         }
     }
 
-    /// Each constrained column's options: labels, descriptions and the
-    /// reason a disabled one gives.
+
+
     fn option_sets(&self) -> Vec<Prop> {
         self.table
             .columns
@@ -576,7 +576,7 @@ impl CellEditorsPage {
     }
 }
 
-/// The legend: one line per editor, what it is for and the column using it.
+
 const LEGEND: &[(&str, &str, &str)] = &[
     ("▾", "Select", "Env: 6–15 values in a dropdown"),
     (
@@ -597,12 +597,12 @@ const LEGEND: &[(&str, &str, &str)] = &[
 ];
 
 impl CellEditorsPage {
-    /// The standalone chooser's events: its button and its open list.
+
     fn handle_chooser(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<Outcome> {
         let cfg = self.table.editor_config.clone();
         match ev {
             PageEvent::Blur(ch) if ch.from == self.pick.id && self.chooser.is_some() => {
-                // focus leaving the open list: the configured blur action
+
                 let value = self.chooser.as_ref().and_then(|c| c.blur_value(&cfg));
                 self.chooser = None;
                 if let Some(v) = value {
@@ -627,7 +627,7 @@ impl CellEditorsPage {
             PageEvent::Pointer(p) if self.chooser.as_ref().is_some_and(|c| p.on(c.id)) => {
                 let c = self.chooser.as_mut()?;
                 if let Some((axis, delta)) = p.wheel() {
-                    // ChoiceEditor has no MouseTarget: its only wheel API
+
                     return (axis == Axis::Vertical).then(|| c.on_wheel(delta));
                 }
                 if !p.is(Phase::Click) {
@@ -726,8 +726,8 @@ impl Page for CellEditorsPage {
             }
             PageEvent::Paste(text) => self.table.on_paste(text),
             PageEvent::Pointer(p) => {
-                // the editor's popup, a header, a cell, a seam, the bar or
-                // the wheel; a click focuses the table
+
+
                 let Some((out, tev)) = route_table(&mut self.table, p, cx) else {
                     return Outcome::Ignored;
                 };

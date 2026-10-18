@@ -1,6 +1,6 @@
-//! The Scrolling and Panels pages (plan §7.5 SC22, SC29), driven through
-//! the real app: every option changes what the widgets do, the hints name
-//! only keys that work under the active profile, and the States grids.
+
+
+
 
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
@@ -28,7 +28,7 @@ fn panels(h: &Harness) -> &PanelsPage {
         .expect("the Panels page")
 }
 
-/// The footer hint the page gives for `focus`, by its label.
+
 fn hint(h: &Harness, page: PageId, focus: WidgetId, label: &str) -> Option<&'static str> {
     h.app.pages[page.index()]
         .hints(Some(focus))
@@ -37,7 +37,7 @@ fn hint(h: &Harness, page: PageId, focus: WidgetId, label: &str) -> Option<&'sta
         .map(|(k, _)| k)
 }
 
-/// The key a hint token names.
+
 fn key_of(token: &str) -> KeyCode {
     match token {
         "Home" => KeyCode::Home,
@@ -48,7 +48,7 @@ fn key_of(token: &str) -> KeyCode {
     }
 }
 
-/// Scrolling at a size where the long list has rows to spare.
+
 fn big() -> Harness {
     Harness::on(160, 60, PageId::Scrolling)
 }
@@ -62,7 +62,7 @@ fn hinted_end_keys_reach_both_ends_of_the_list_under_either_profile() {
         h.focus(list);
         let ends = hint(&h, PageId::Scrolling, list, "Ends").expect("an Ends hint");
         assert_eq!(ends.contains("g G"), profile == "vim", "{profile}: {ends}");
-        // every advertised pair works: the last enabled row, then the first
+
         let tokens: Vec<&str> = ends.split(' ').collect();
         for pair in tokens.chunks(2) {
             h.key(key_of(pair[1]));
@@ -71,8 +71,8 @@ fn hinted_end_keys_reach_both_ends_of_the_list_under_either_profile() {
             assert_eq!(scrolling(&h).list.cursor, 0, "{profile}: {}", pair[0]);
         }
         if profile == "desktop" {
-            // the letters the desktop hint leaves out do not navigate:
-            // `G` types (no row starts with it) and the cursor stays
+
+
             h.key(KeyCode::Char('G'));
             assert_eq!(scrolling(&h).list.cursor, 0, "G is not End on desktop");
         }
@@ -96,7 +96,7 @@ fn hinted_end_keys_reach_both_ends_of_a_panel_under_either_key_set() {
             assert_eq!(panels(&h).prose.scroll.offset, 0, "{nav}: {}", pair[0]);
         }
     }
-    // paging off: no paging hint, and PgDn does nothing
+
     let mut h = Harness::on(120, 40, PageId::Panels);
     h.opt("panels.nav=no-paging");
     let prose = panels(&h).prose.id;
@@ -111,12 +111,12 @@ fn context_rows_keep_rows_beyond_the_cursor_in_view() {
     for (context, offset) in [("0", 0), ("1", 1), ("2", 2)] {
         let mut h = big();
         h.opt(&format!("scrolling.context={context}"));
-        // every row reachable, so a key is a row
+
         h.opt("scrolling.skip_disabled=off");
         let list = scrolling(&h).list.id;
         h.focus(list);
         let rows = scrolling(&h).list.scroll.viewport_len;
-        // down to the last visible row
+
         for _ in 0..rows - 1 {
             h.key(KeyCode::Down);
         }
@@ -140,7 +140,7 @@ fn skip_disabled_and_wrap_drive_the_list_cursor() {
     h.opt("scrolling.skip_disabled=off");
     h.key(KeyCode::Up);
     assert_eq!(scrolling(&h).list.cursor, 9, "now it is reachable");
-    // wrap: Up from the first row lands on the last
+
     h.key(KeyCode::Home);
     h.key(KeyCode::Up);
     assert_eq!(scrolling(&h).list.cursor, 0);
@@ -173,7 +173,7 @@ fn the_flag_shortcut_wins_or_yields_by_precedence() {
         scrolling(&h).flagged.contains(&1),
         "type-ahead first: f is typed, the flag stays"
     );
-    // with type-ahead off the letter reaches the page again
+
     h.opt("scrolling.type_ahead=off");
     assert_eq!(hint(&h, PageId::Scrolling, list, "Flag"), Some("f"));
     h.key(KeyCode::Char('f'));
@@ -201,8 +201,8 @@ fn the_cursor_readout_names_the_last_step_and_move() {
 
 #[test]
 fn type_ahead_pause_and_precedence_reach_every_collection() {
-    // the pause: `a`, a 0.7 s gap, then `u` is "au" (auth) under a 2 s
-    // pause and a fresh "u" (no service) under a 0.5 s one
+
+
     for (timeout, cursor) in [("2s", 1), ("0.5s", 0)] {
         let mut h = big();
         h.opt(&format!("scrolling.timeout={timeout}"));
@@ -222,7 +222,7 @@ fn type_ahead_pause_and_precedence_reach_every_collection() {
     assert_eq!(p.region.type_ahead_precedence, Some(TypeAhead));
     assert_eq!(p.table.type_ahead_precedence, Some(TypeAhead));
     assert_eq!(p.grid.type_ahead_precedence, Some(TypeAhead));
-    // a letter jumps in the closed select and the tree
+
     let (region, tree) = (p.region.id, p.tree.id);
     h.focus(region);
     h.key(KeyCode::Char('u'));
@@ -238,7 +238,7 @@ fn the_hand_drawn_table_follows_the_list_and_scrolls_by_column() {
     let list = scrolling(&h).list.id;
     h.focus(list);
     h.key(KeyCode::End);
-    // row 119 is retired: End lands on 118, host logs-12's neighbour
+
     assert!(h.text().contains("jobs-12"), "the table followed the list");
     let hand = WidgetId::of("scrolling").sub("hand");
     let area = h
@@ -256,13 +256,13 @@ fn the_hand_drawn_table_follows_the_list_and_scrolls_by_column() {
     h.opt("scrolling.follow=always");
     h.mouse(MouseKind::WheelUp, area.x + 2, area.y + 1);
     assert!(h.text().contains("jobs-12"), "always: pinned to the cursor");
-    // sideways: one column a notch, or four cells with columns off
+
     h.mouse(MouseKind::WheelRight, area.x + 2, area.y + 1);
     assert_eq!(scrolling(&h).hand.h.offset, 1);
     h.opt("scrolling.columns=off");
     h.mouse(MouseKind::WheelRight, area.x + 2, area.y + 1);
     assert_eq!(scrolling(&h).hand.h.offset, 4);
-    // the sideways bar: never drawn, always drawn
+
     let hbar = scrollbar::h_id_for(hand);
     assert!(h.app.shell.hits.area_of(hbar).is_some());
     h.opt("scrolling.hbar=never");
@@ -301,7 +301,7 @@ fn a_divider_is_solid_while_its_content_fits_and_a_scrollbar_once_it_overflows()
         "dotted track"
     );
     assert!(col(bar.x).iter().any(|s| s == g.scroll_thumb));
-    // the fitting pane's column is a solid divider, on the same rows
+
     let (fx, fy) = h.find("fits").unwrap();
     let row: Vec<char> = h.row(fy).chars().collect();
     let ox = (fx as usize..row.len())
@@ -346,7 +346,7 @@ fn the_card_focus_mark_puts_the_one_bar_on_the_title() {
 fn panel_options_rebuild_the_scrolling_panels() {
     let mut h = Harness::on(120, 40, PageId::Panels);
     let log = panels(&h).log.id;
-    // tail and the follow key, advertised only when they work
+
     assert_eq!(hint(&h, PageId::Panels, log, "Follow tail"), None);
     h.opt("panels.tail=on");
     assert!(panels(&h).log.follow);
@@ -356,7 +356,7 @@ fn panel_options_rebuild_the_scrolling_panels() {
     h.focus(log);
     h.key(KeyCode::Char('t'));
     assert!(!panels(&h).log.follow, "t pauses following");
-    // sideways policy: off draws no bar and ignores the notch
+
     let hbar = scrollbar::h_id_for(log);
     assert!(h.app.shell.hits.area_of(hbar).is_some());
     h.opt("panels.hscroll=off");
@@ -367,10 +367,10 @@ fn panel_options_rebuild_the_scrolling_panels() {
     h.opt("panels.hscroll=step-1");
     h.mouse(MouseKind::WheelRight, area.x + 2, area.y + 1);
     assert_eq!(panels(&h).log.scroll.h.offset, 1, "one cell a notch");
-    // wrap off: the prose scrolls sideways too
+
     h.opt("panels.wrap=off");
     assert!(!panels(&h).prose.wrap);
-    // card padding moves the card text
+
     let (x2, _) = h.find("A card is").unwrap();
     h.opt("panels.pad_x=0");
     let (x0, _) = h.find("A card is").unwrap();
@@ -390,7 +390,7 @@ fn the_panels_states_grid_draws_every_panel_state() {
     for s in [Rest, Focused, Overflow, Narrow] {
         assert!(rows.contains(&s), "{s:?}");
     }
-    // the bar-mark card's focused sample is depicted, not a live bar
+
     assert!(h.text().contains("▏Log"), "{}", h.text());
     assert!(h.bars() <= 1);
     let _ = KeyModifiers::NONE;

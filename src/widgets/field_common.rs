@@ -1,4 +1,4 @@
-//! Key bindings shared by every text-editing control.
+
 
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
@@ -9,22 +9,22 @@ use crate::core::id::WidgetId;
 use crate::core::keymap::{KeyBinding, lookup};
 use crate::core::text::TextBuffer;
 
-/// Pointer text selection in a text field: what a drag, a double click
-/// and a triple click select. Shared by `TextInput` and `TextArea`.
-/// [`PointerSelect::DEFAULT`] follows macOS (all on); the click counts come
-/// from [`crate::core::pointer::PointerState::count_click`].
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PointerSelect {
-    /// A drag from the press selects the text it crosses.
+
     pub drag: bool,
-    /// A double click selects the word under the pointer.
+
     pub word: bool,
-    /// A triple click selects the line (the whole value of a single-line
-    /// field).
+
+
     pub line: bool,
-    /// A drag that starts on the second press of a double click extends
-    /// the selection by whole words (macOS); off, it extends by
-    /// characters from the press.
+
+
+
     pub drag_by_word: bool,
 }
 
@@ -35,7 +35,7 @@ impl PointerSelect {
         line: true,
         drag_by_word: true,
     };
-    /// Clicks only place the caret; nothing selects by pointer.
+
     pub const OFF: Self = Self {
         drag: false,
         word: false,
@@ -67,27 +67,27 @@ impl Default for PointerSelect {
     }
 }
 
-/// A text control the pointer selects in: a press, a drag from it and a
-/// completed click with its count. Implemented once, for every
-/// [`Editable`](crate::widgets::edit::Editable) control (`TextInput`,
-/// `TextArea`, `CodeEditor`), on its
-/// [`EditField`](crate::widgets::edit::EditField); owners route through
-/// [`route_press`], [`route_drag`] and [`route_click`] instead of matching
-/// each field by hand.
+
+
+
+
+
+
+
 pub trait PointerField {
-    /// The hit id the field registers.
+
     fn pointer_id(&self) -> WidgetId;
-    /// Button down with the click count it starts
-    /// ([`crate::core::pointer::PointerState::press_count`]).
+
+
     fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome;
-    /// Drag with the button held since a press on the field.
+
     fn on_drag(&mut self, pos: Position) -> Outcome;
-    /// A completed click with its multi-click count
-    /// ([`crate::core::pointer::PointerState::count_click`]).
+
+
     fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome;
 }
 
-/// A press on hit `id`: the field it belongs to takes it.
+
 pub fn route_press(
     fields: &mut [&mut dyn PointerField],
     id: WidgetId,
@@ -100,8 +100,8 @@ pub fn route_press(
         .map(|f| f.on_press_count(pos, count))
 }
 
-/// A drag held since a press on `pressed`: the field it belongs to
-/// extends its selection.
+
+
 pub fn route_drag(
     fields: &mut [&mut dyn PointerField],
     pressed: WidgetId,
@@ -113,7 +113,7 @@ pub fn route_drag(
         .map(|f| f.on_drag(pos))
 }
 
-/// A completed click on hit `id` with its count.
+
 pub fn route_click(
     fields: &mut [&mut dyn PointerField],
     id: WidgetId,
@@ -135,32 +135,32 @@ pub enum EditAction {
     },
     Apply(fn(&mut TextBuffer)),
     Insert(char),
-    /// Step back one edit (Ctrl+Z).
+
     Undo,
-    /// Re-apply an undone edit (Ctrl+Shift+Z; Ctrl+Y under
-    /// [`FieldKeys::Desktop`]).
+
+
     Redo,
-    /// Copy the selection to the field clipboard.
+
     Copy,
-    /// Copy the selection, then delete it.
+
     Cut,
-    /// Insert the field clipboard's text.
+
     Paste,
-    /// Select the whole value ([`TextCmd::SelectAll`]): Cmd+A, plus Ctrl+A
-    /// ([`FieldKeys::Desktop`]) or Ctrl+L ([`FieldKeys::Emacs`]).
+
+
     SelectAll,
     None,
 }
 
-/// What an editing text control answers to a key it has no use for
-/// ([`EditAction::None`]). A modified chord (Ctrl, Alt or Cmd) the field
-/// does not bind passes on (`Ignored`), so the container's and the app's
-/// shortcuts (Ctrl+Q quit, Ctrl+N new, Ctrl+S save) work while a field is
-/// editing, as in a desktop text field, which handles only the keys it
-/// uses. Bound chords never get here: the preset's readline keys and the
-/// text keymap ([`FieldKeys::text_keymap`], the Cmd chords included)
-/// resolve first. Any other unused key (an F-key, ↑↓ in a single-line
-/// field) stays with the edit (`Consumed`).
+
+
+
+
+
+
+
+
+
 pub fn unbound_key(key: &Key) -> Outcome {
     if key.chord() {
         Outcome::Ignored
@@ -169,23 +169,23 @@ pub fn unbound_key(key: &Key) -> Outcome {
     }
 }
 
-/// Translate a key into an edit action under the client platform's
-/// preset ([`FieldKeys::default`]). `multiline` changes Enter to insert a
-/// newline.
+
+
+
 pub fn edit_key(key: &Key, multiline: bool) -> EditAction {
     edit_key_with(key, multiline, FieldKeys::default())
 }
 
-/// Translate a key into an edit action under the `keys` preset and its
-/// text commands ([`FieldKeys::text_keymap`]). `multiline` changes Enter
-/// to insert a newline.
+
+
+
 pub fn edit_key_with(key: &Key, multiline: bool, keys: FieldKeys) -> EditAction {
     edit_key_in(key, multiline, keys, &keys.text_keymap())
 }
 
-/// [`edit_key_with`] with the text commands bound by `text_keymap`
-/// instead of the preset's (a widget's `text_keymap(..)` override). The
-/// one place every text control resolves Select All.
+
+
+
 pub fn edit_key_in(
     key: &Key,
     multiline: bool,
@@ -196,13 +196,13 @@ pub fn edit_key_in(
         return text_cmd_action(cmd, multiline);
     }
     let shift = key.shift();
-    // Ctrl+Backspace often arrives as Ctrl+H (readline: delete left)
+
     if key.code == KeyCode::Char('h') && key.ctrl() {
         return EditAction::Apply(|b| b.backspace());
     }
     if keys == FieldKeys::Desktop && key.ctrl() && !key.alt() {
-        // Select All comes from the text keymap; unbound there, Ctrl+A
-        // does nothing rather than turn into the Cocoa line start
+
+
         if key.code == KeyCode::Char('a') {
             return EditAction::None;
         }
@@ -296,9 +296,9 @@ pub fn edit_key_in(
     }
 }
 
-/// The edit action a [`TextCmd`] stands for. `multiline` decides whether
-/// the text-start and text-end commands apply: a single-line control
-/// leaves Cmd+↑/↓ to its container.
+
+
+
 pub fn text_cmd_action(cmd: TextCmd, multiline: bool) -> EditAction {
     match cmd {
         TextCmd::SelectAll => EditAction::SelectAll,
@@ -326,11 +326,11 @@ pub fn text_cmd_action(cmd: TextCmd, multiline: bool) -> EditAction {
     }
 }
 
-/// A Paste key on a control that is not editing yet: the field
-/// clipboard's text goes through the control's bracketed-paste handler
-/// (`on_paste`), which picks the edit up exactly as a terminal paste does.
-/// `Ignored` when the clipboard is empty, so the key still reaches the
-/// page.
+
+
+
+
+
 pub fn paste_clipboard(on_paste: impl FnOnce(&str) -> Outcome) -> Outcome {
     match clipboard::text() {
         Some(t) => on_paste(&t),
@@ -338,20 +338,20 @@ pub fn paste_clipboard(on_paste: impl FnOnce(&str) -> Outcome) -> Outcome {
     }
 }
 
-/// What [`apply_edit`] did to the buffer.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Applied {
-    /// The text changed (and the change is on the undo history).
+
     Edited,
-    /// Only the caret or the selection moved (or the selection was
-    /// copied).
+
+
     Moved,
 }
 
-/// Apply the buffer-level actions (typing, edits, undo, redo, copy, cut,
-/// paste) to `buf`, recording every text change on `undo`. Returns `None`
-/// for the actions the control decides itself (Commit, Cancel, Tab and
-/// None). A `read_only` buffer only moves, selects and copies.
+
+
+
+
 pub fn apply_edit(
     buf: &mut TextBuffer,
     undo: &mut UndoStack,
@@ -403,7 +403,7 @@ pub fn apply_edit(
                     buf.backspace();
                 }
             }
-            // Ctrl+W without a selection deletes the word left
+
             None if key_code == KeyCode::Char('w') && !read_only => buf.delete_word_left(),
             None => {}
         },
@@ -436,8 +436,8 @@ pub fn apply_edit(
     }
 }
 
-/// Select All in every text control, through the one shared mechanism
-/// ([`edit_key_in`] to [`EditAction::SelectAll`] to [`apply_edit`]).
+
+
 #[cfg(test)]
 mod select_all_tests {
     use super::*;
@@ -483,7 +483,7 @@ mod select_all_tests {
             false,
             FieldKeys::Emacs
         )));
-        // the per-widget key map replaces the preset's bindings
+
         let map: KeyMap<TextCmd> = vec![(KeyBinding::alt('a'), TextCmd::SelectAll)];
         assert!(is_all(edit_key_in(
             &k('a', M::ALT),
@@ -524,7 +524,7 @@ mod select_all_tests {
             i.on_key(&k('z', M::NONE));
             assert_eq!(i.text(), "z", "typing replaces the selection");
         }
-        // a field waiting for Enter/F2 starts the edit with all selected
+
         let mut wait = TextInput::new(WidgetId::of("w"), "Name")
             .value("abc")
             .edit_entry(EditEntry::Explicit)
@@ -532,7 +532,7 @@ mod select_all_tests {
         assert_eq!(wait.on_key(&k('a', M::CONTROL)).0, Outcome::Changed);
         assert!(wait.editing);
         assert_eq!(wait.field.buffer.selected_text(), Some("abc"));
-        // the widget key map
+
         let mut remapped = TextInput::new(WidgetId::of("r"), "Name")
             .value("abc")
             .text_keymap(vec![(KeyBinding::ctrl('g'), TextCmd::SelectAll)]);
@@ -614,10 +614,10 @@ mod select_all_tests {
     }
 }
 
-/// The macOS standard editing chords (Cmd, delivered through the kitty
-/// keyboard protocol) in every text control, under both presets, through
-/// the one shared mechanism ([`FieldKeys::text_keymap`] to
-/// [`edit_key_in`] to [`apply_edit`]).
+
+
+
+
 #[cfg(test)]
 mod cmd_edit_tests {
     use super::*;
@@ -640,7 +640,7 @@ mod cmd_edit_tests {
         k(code, M::SUPER | M::SHIFT)
     }
 
-    /// The system clipboard (the hook) sees every copy and cut.
+
     fn watch_clipboard() -> std::rc::Rc<std::cell::RefCell<Vec<String>>> {
         let seen = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
         let s = seen.clone();
@@ -659,7 +659,7 @@ mod cmd_edit_tests {
             assert!(matches!(act(&cmd('x'), false), EditAction::Cut));
             assert!(matches!(act(&cmd('v'), false), EditAction::Paste));
             assert!(matches!(act(&cmd('z'), false), EditAction::Undo));
-            // Cmd+Shift+Z arrives as `z` or `Z` with Shift
+
             for c in ['z', 'Z'] {
                 let redo = k(KeyCode::Char(c), M::SUPER | M::SHIFT);
                 assert!(matches!(act(&redo, false), EditAction::Redo), "{c}");
@@ -688,7 +688,7 @@ mod cmd_edit_tests {
                 EditAction::Apply(_)
             ));
         }
-        // the presets' own keys are unchanged
+
         let d = |key: &Key| edit_key_with(key, false, FieldKeys::Desktop);
         let e = |key: &Key| edit_key_with(key, false, FieldKeys::Emacs);
         let ctrl = |c| k(KeyCode::Char(c), M::CONTROL);
@@ -866,7 +866,7 @@ mod cmd_edit_tests {
         assert_eq!(e.text(), "SELECT 1;\n");
         e.on_key(&cmd('z'));
         assert_eq!(e.text(), "SELECT 1;\nSELECT 2;");
-        // browsing (after Esc): Cmd+V picks the edit up and pastes
+
         e.on_key(&k(KeyCode::Esc, M::NONE));
         assert!(!e.editing);
         e.on_key(&cmd_key(KeyCode::Up));
@@ -874,7 +874,7 @@ mod cmd_edit_tests {
         e.on_key(&cmd('v'));
         assert!(e.editing);
         assert_eq!(e.text(), "SELECT 2;SELECT 1;\nSELECT 2;");
-        // a read-only document selects and copies, never changes
+
         let mut ro = CodeEditor::new(WidgetId::of("r"), "fn main() {}\nfn x() {}").read_only(true);
         ro.on_key(&cmd_key(KeyCode::Down));
         ro.on_key(&cmd_shift(KeyCode::Left));

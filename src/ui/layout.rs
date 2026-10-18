@@ -1,12 +1,12 @@
-//! Split panes and other layout helpers that the workbench composes.
+
 
 use ratatui::layout::{Position, Rect};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SplitDir {
-    /// First pane on the left.
+
     Horizontal,
-    /// First pane on top.
+
     Vertical,
 }
 
@@ -17,24 +17,24 @@ pub enum Maximized {
     Second,
 }
 
-/// A two-pane split with a ratio (in percent of the first pane) and a
-/// maximize state. Direction is chosen by the caller.
-///
-/// A pointer drag ([`Split::drag_to`]) places the seam on the exact cell
-/// under the pointer: the ratio it stores is finer than `percent` (basis
-/// points), so a drag never snaps to whole-percent steps. Writing
-/// `percent` directly (a keyboard resize) drops that refinement.
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Split {
     pub percent: u16,
     pub min_first: u16,
     pub min_second: u16,
     pub maximized: Maximized,
-    /// The ratio [`Split::new`] started with, restored by [`Split::reset`]
-    /// (double-click on the seam).
+
+
     pub default_percent: u16,
-    /// `(percent, basis points)`: the cell-precise ratio a drag set, valid
-    /// while `percent` still equals the value it refines.
+
+
     precise: Option<(u16, u16)>,
 }
 
@@ -50,14 +50,14 @@ impl Split {
         }
     }
 
-    /// Back to the starting ratio, nothing maximised.
+
     pub fn reset(&mut self) {
         self.percent = self.default_percent;
         self.precise = None;
         self.maximized = Maximized::None;
     }
 
-    /// The first pane's share of `usable` cells.
+
     fn first_of(&self, usable: u16) -> u16 {
         match self.precise {
             Some((p, bps)) if p == self.percent => (usable as u32 * bps as u32 / 10_000) as u16,
@@ -77,7 +77,7 @@ impl Split {
         self.percent = (self.percent as i16 + delta).clamp(5, 95) as u16;
     }
 
-    /// Layout in either direction.
+
     pub fn layout(&self, dir: SplitDir, area: Rect, gap: u16) -> (Rect, Rect) {
         match dir {
             SplitDir::Horizontal => self.horizontal(area, gap),
@@ -85,8 +85,8 @@ impl Split {
         }
     }
 
-    /// The gap strip between the two panes; empty when one is maximised
-    /// or the split collapsed.
+
+
     pub fn handle(&self, dir: SplitDir, area: Rect, gap: u16) -> Rect {
         let (a, b) = self.layout(dir, area, gap);
         if a.is_empty() || b.is_empty() || gap == 0 {
@@ -98,8 +98,8 @@ impl Split {
         }
     }
 
-    /// Put the seam under `pos` (clamped by the minima). Returns whether
-    /// the ratio changed.
+
+
     pub fn drag_to(&mut self, dir: SplitDir, area: Rect, gap: u16, pos: Position) -> bool {
         let (usable, offset) = match dir {
             SplitDir::Horizontal => (area.width.saturating_sub(gap), pos.x.saturating_sub(area.x)),
@@ -112,7 +112,7 @@ impl Split {
             return false;
         }
         let first = offset.clamp(self.min_first, usable - self.min_second);
-        // the smallest ratio whose floor lands exactly on `first`
+
         let bps = (first as u32 * 10_000)
             .div_ceil(usable as u32)
             .clamp(500, 9_500) as u16;
@@ -123,7 +123,7 @@ impl Split {
         self.first_of(usable) != before
     }
 
-    /// Resize by whole cells in the given direction.
+
     pub fn nudge(&mut self, dir: SplitDir, area: Rect, gap: u16, delta: i16) {
         let (first, _) = self.layout(dir, area, gap);
         let cur = match dir {
@@ -138,7 +138,7 @@ impl Split {
         self.drag_to(dir, area, gap, pos);
     }
 
-    /// Vertical split: first pane on top. `gap` rows between them.
+
     pub fn vertical(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         match self.maximized {
             Maximized::First => (area, Rect::ZERO),
@@ -146,7 +146,7 @@ impl Split {
             Maximized::None => {
                 let usable = area.height.saturating_sub(gap);
                 if usable < self.min_first + self.min_second {
-                    // not enough room for both: give everything to the first
+
                     return (area, Rect::ZERO);
                 }
                 let mut first = self.first_of(usable);
@@ -159,7 +159,7 @@ impl Split {
         }
     }
 
-    /// Horizontal split: first pane on the left.
+
     pub fn horizontal(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         match self.maximized {
             Maximized::First => (area, Rect::ZERO),
@@ -180,66 +180,66 @@ impl Split {
     }
 }
 
-/// What a [`Stack`] does with children that do not fit its rect.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Overflow {
-    /// The stack scrolls by whole children and shows a scrollbar; the
-    /// focused child is kept in view. The default: nothing is lost.
+
+
     #[default]
     Scroll,
-    /// Children that do not fit are not laid out at all (never drawn half
-    /// over a neighbour); no scrollbar.
+
+
     Clip,
 }
 
-/// One child of a [`Stack`]: the rows it wants and the fewest it accepts.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackChild {
-    /// Rows the child takes when there is room. `0` hides it (no gap).
+
     pub height: u16,
-    /// Rows the child can shrink to before the stack overflows. Equal to
-    /// `height` for a rigid child (a text field, a button row).
+
+
     pub min: u16,
 }
 
 impl StackChild {
-    /// A child that always takes exactly `height` rows.
+
     pub const fn fixed(height: u16) -> Self {
         Self {
             height,
             min: height,
         }
     }
-    /// A child that prefers `height` rows and can give up rows down to
-    /// `min` (a list, a prose block) before the stack overflows.
+
+
     pub const fn flex(min: u16, height: u16) -> Self {
         Self { height, min }
     }
 }
 
-/// A vertical stack of children that measures before it places: children
-/// never run past the stack's rect into the footer, a frame or the next
-/// section. When the children's rows exceed the rect, flexible children
-/// shrink first (never below [`Stack::min_child_rows`]); what still does
-/// not fit overflows by the [`Overflow`] policy.
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Stack {
-    /// Blank rows between neighbouring children. Default 0.
+
     pub gap: u16,
-    /// What happens to children that still do not fit. Default
-    /// [`Overflow::Scroll`].
+
+
     pub overflow: Overflow,
-    /// The fewest rows a flexible child shrinks to before the stack
-    /// overflows, whatever its own `min`. Default 1.
+
+
     pub min_child_rows: u16,
-    /// Columns between the content and the scrollbar when the stack
-    /// scrolls. Default 1.
+
+
     pub scrollbar_gap: u16,
-    /// What a press on the bare scrollbar track does. Default
-    /// [`TrackClick::Page`](crate::core::scroll::TrackClick::Page), like the other bars;
-    /// the stack lays out without a [`RenderCtx`](crate::ui::ctx::RenderCtx),
-    /// so an owner that follows the app-wide policy passes
-    /// `ctx.track_click` here.
+
+
+
+
+
     pub track_click: crate::core::scroll::TrackClick,
 }
 
@@ -255,40 +255,40 @@ impl Default for Stack {
     }
 }
 
-/// Scroll state of a [`Stack`], kept by its owner between frames. The
-/// stack scrolls by whole children: `scroll.offset` is the index of the
-/// first child in view, so no child is ever shown cut in half at the top.
+
+
+
 #[derive(Debug, Clone, Default)]
 pub struct StackScroll {
     pub scroll: crate::core::scroll::ScrollState,
-    /// The child last brought into view for focus: the view only follows
-    /// focus when it moves, so the wheel can still scroll away from it.
+
+
     kept: Option<usize>,
-    /// The scrollbar track as last laid out (empty when it fits).
+
     track: Rect,
-    /// The stack's track-click policy as last laid out.
+
     click: crate::core::scroll::TrackClick,
 }
 
 impl StackScroll {
-    /// Wheel over the stack: one whole child per notch, whatever the
-    /// app's rows-per-notch `delta` is (a child is already several rows).
+
+
     pub fn on_wheel(&mut self, delta: i32) -> bool {
         self.scroll.scroll_by(delta.signum() as isize)
     }
-    /// A press or click on the stack's scrollbar.
+
     pub fn on_scrollbar(&mut self, pos: Position) -> bool {
         !self.track.is_empty()
             && crate::widgets::scrollbar::press_with(self.track, pos, &mut self.scroll, self.click)
     }
-    /// A drag along the stack's scrollbar after a press.
+
     pub fn on_scrollbar_drag(&mut self, pos: Position) -> bool {
         !self.track.is_empty() && crate::widgets::scrollbar::drag(self.track, pos, &mut self.scroll)
     }
-    /// A pointer event the router resolved to the stack drawn under `id`
-    /// ([`Stack::chrome`]): a vertical wheel scrolls a child per notch; a
-    /// press or a drag on its bar moves it, and the click that ends the
-    /// press is consumed. `None`: the event is not the stack's.
+
+
+
+
     pub fn pointer(
         &mut self,
         id: crate::core::id::WidgetId,
@@ -320,29 +320,29 @@ impl StackScroll {
             _ => Outcome::Ignored,
         })
     }
-    /// Show the start again (a form that reopens, a page change).
+
     pub fn reset(&mut self) {
         self.scroll.offset = 0;
         self.kept = None;
     }
 }
 
-/// Where a [`Stack`] placed its children this frame.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StackLayout {
-    /// One entry per child: its rect when it is in view (always inside the
-    /// stack's rect), `None` when it is scrolled out, clipped away or
-    /// hidden. A child taller than the whole rect gets the rect.
+
+
+
     pub slots: Vec<Option<Rect>>,
-    /// The scrollbar track, when the stack scrolls.
+
     pub track: Option<Rect>,
-    /// Children above the view and below it (for a "more" marker).
+
     pub hidden_above: usize,
     pub hidden_below: usize,
 }
 
 impl StackLayout {
-    /// The rect of child `i`, if it is in view.
+
     pub fn slot(&self, i: usize) -> Option<Rect> {
         self.slots.get(i).copied().flatten()
     }
@@ -370,23 +370,23 @@ impl Stack {
         self
     }
 
-    /// Rows `heights` take stacked, gaps included (hidden children skip
-    /// their gap).
+
+
     fn total(&self, heights: &[u16]) -> u32 {
         let shown = heights.iter().filter(|&&h| h > 0).count() as u32;
         heights.iter().map(|&h| h as u32).sum::<u32>() + self.gap as u32 * shown.saturating_sub(1)
     }
 
-    /// The rows every child would take with no limit: the height the stack
-    /// asks for.
+
+
     pub fn measure(&self, children: &[StackChild]) -> u16 {
         let h: Vec<u16> = children.iter().map(|c| c.height).collect();
         self.total(&h).min(u16::MAX as u32) as u16
     }
 
-    /// Lay `children` out in `area`. `focus` is the child holding keyboard
-    /// focus, if any: when it changes, the view scrolls the least that
-    /// brings it fully into view.
+
+
+
     pub fn layout(
         &self,
         area: Rect,
@@ -397,7 +397,7 @@ impl Stack {
         let n = children.len();
         let mut h: Vec<u16> = children.iter().map(|c| c.height).collect();
         let room = area.height as u32;
-        // flexible children give up rows first, last child first
+
         let mut deficit = self.total(&h).saturating_sub(room);
         for (i, c) in children.iter().enumerate().rev() {
             if deficit == 0 {
@@ -411,9 +411,9 @@ impl Stack {
         let fits = self.total(&h) <= room;
         let scrolls = !fits && self.overflow == Overflow::Scroll && n > 0;
         if scrolls {
-            // shrinking did not make everything fit, so it buys nothing:
-            // a scrolling stack shows each child at its own height, never
-            // taller than the view
+
+
+
             for (hi, c) in h.iter_mut().zip(children) {
                 *hi = c.height.min(area.height);
             }
@@ -427,7 +427,7 @@ impl Stack {
         } else {
             (area, None)
         };
-        // the furthest first child that still fills the view to the end
+
         let max_first = if scrolls {
             (0..n)
                 .find(|&i| self.total(&h[i..]) <= room)
@@ -478,7 +478,7 @@ impl Stack {
                 y = top + h[i] as u32;
                 placed = true;
             } else if !placed && top < area.bottom() as u32 {
-                // a single child taller than the stack gets the whole rect
+
                 slots[i] = Some(Rect::new(
                     content.x,
                     top as u16,
@@ -502,11 +502,11 @@ impl Stack {
         }
     }
 
-    /// Draw the scrollbar of a laid-out stack and register `area` as its
-    /// wheel region under `id`. Call it right after [`Self::layout`] and
-    /// before drawing the children, so a scrollable child (a list, a text
-    /// area) registered later keeps its own wheel (wheel and track events come back to the
-    /// owner as `id` and [`scrollbar::id_for`](crate::widgets::scrollbar::id_for)`(id)`).
+
+
+
+
+
     pub fn chrome(
         layout: &StackLayout,
         area: Rect,
@@ -571,7 +571,7 @@ mod tests {
         );
         assert_eq!(l.slot(1), Some(Rect::new(0, 3, 30, 5)));
         assert_eq!(l.track, None);
-        // below min_child_rows the stack scrolls instead
+
         let l = s.layout(
             Rect::new(0, 0, 30, 4),
             &[StackChild::fixed(3), StackChild::flex(0, 10)],
@@ -595,13 +595,13 @@ mod tests {
         assert_eq!(l.slot(3), Some(Rect::new(0, 3, 28, 3)));
         assert_eq!(l.slot(1), None);
         assert_eq!(l.hidden_above, 2);
-        // the wheel scrolls back up; focus did not move, so it stays there
+
         st.on_wheel(-3);
         st.on_wheel(-3);
         let l = s.layout(area, &ch, &mut st, Some(3));
         assert_eq!(st.scroll.offset, 0);
         assert_eq!(l.slot(3), None);
-        // moving focus up from below brings the child to the top
+
         let l = s.layout(area, &ch, &mut st, Some(4));
         assert!(l.slot(4).is_some());
         let l = s.layout(area, &ch, &mut st, Some(0));
@@ -643,9 +643,9 @@ mod tests {
         assert_eq!(a.width, 15);
     }
 
-    /// Every cell is reachable by a drag, whatever the width (whole
-    /// percents skipped cells: 61 usable cells have only 61 ratios but
-    /// percent rounding landed some drags a cell off).
+
+
+
     #[test]
     fn drag_places_the_seam_on_the_exact_cell() {
         for width in [37u16, 62, 133, 241] {
@@ -658,7 +658,7 @@ mod tests {
                 assert_eq!(a.width, x, "width {width} x {x}");
             }
         }
-        // a keyboard resize (writing `percent`) drops the refinement
+
         let area = Rect::new(0, 0, 62, 4);
         let mut s = Split::new(50, 2, 2);
         s.drag_to(SplitDir::Horizontal, area, 1, Position::new(33, 0));
@@ -686,7 +686,7 @@ mod track_click_tests {
         st.scroll.offset
     }
 
-    /// The stack's bar follows its track-click policy (it always jumped).
+
     #[test]
     fn a_stack_track_click_can_page() {
         let page = pressed_at_the_bottom(TrackClick::Page);
