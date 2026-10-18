@@ -32,7 +32,7 @@ fn all_connection_action_labels_keep_distinct_foreground_and_background() {
                         );
                     }
                 }
-                assert!(harness.diagnostics().is_empty());
+                assert_eq!(harness.diagnostics(), []);
             }
         }
     }

@@ -22,10 +22,12 @@ fn main() {
         digest.update(bytes);
         println!("cargo:rerun-if-changed={}", path.display());
     }
-    println!(
-        "cargo:rustc-env=TERMROCK_E2E_COMPILED_SUITE_SHA256={:x}",
-        digest.finalize()
-    );
+    let digest = digest.finalize();
+    let digest_hex: String = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    println!("cargo:rustc-env=TERMROCK_E2E_COMPILED_SUITE_SHA256={digest_hex}");
 }
 
 fn collect_files(root: &Path, current: &Path, paths: &mut Vec<PathBuf>) {
