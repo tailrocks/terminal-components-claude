@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
@@ -58,10 +43,7 @@ pub struct Diagnostic {
 
 #[derive(Debug, Clone)]
 pub struct FindState {
-
-
     pub needle: EditField,
-
 
     pub matches: Vec<Range<usize>>,
     pub current: usize,
@@ -75,20 +57,16 @@ pub enum EditorAction {
 
     Committed,
 
-    Leave {
-        backward: bool,
-    },
+    Leave { backward: bool },
 }
 
 #[derive(Debug, Clone)]
 pub struct CodeEditor {
     pub id: WidgetId,
 
-
     pub field: EditField,
     pub editing: bool,
     pub read_only: bool,
-
 
     pub scroll: ScrollPane,
     pub hscroll: usize,
@@ -101,7 +79,6 @@ pub struct CodeEditor {
     pub find: Option<FindState>,
     pub placeholder: String,
 
-
     pub tab_leaves: bool,
     pub area: Rect,
     text_area: Rect,
@@ -112,43 +89,29 @@ pub struct CodeEditor {
 
     rendered_state: Option<(usize, u64, bool)>,
 
-
     pub scrollbar_gap: u16,
 
     pub horizontal: Option<HScroll>,
 
-
-
     pub nav: NavKeys,
 
-
     pub keymap: KeyMap<CodeCmd>,
-
-
 
     pub edit_entry: Option<EditEntry>,
     entry: EditEntry,
 
-
-
     pub esc_reverts: bool,
-
 
     pub field_keys: Option<FieldKeys>,
 
     snapshot: Option<String>,
     focus_seen: bool,
 
-
-
-
     pub edit_menu: EditMenu,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CodeCmd {
-
     Edit,
 
     Append,
@@ -239,13 +202,10 @@ impl CodeEditor {
         }
     }
 
-
-
     pub fn context_menu(mut self, on: bool) -> Self {
         self.edit_menu.enabled = on;
         self
     }
-
 
     pub fn edit_entry(mut self, entry: EditEntry) -> Self {
         self.edit_entry = Some(entry);
@@ -285,12 +245,7 @@ impl CodeEditor {
         self.edit_entry.unwrap_or(self.entry)
     }
 
-
-
-
-
     pub fn hints(&self) -> Vec<crate::widgets::keyhint::Hint> {
-
         if let Some(m) = self.edit_menu.menu() {
             return crate::core::hints::HasHints::hints(m, &crate::core::hints::HintCx::new(None));
         }
@@ -311,42 +266,33 @@ impl CodeEditor {
         }
     }
 
-
-
     pub fn wants_text_input(&self) -> bool {
         self.find.as_ref().is_some_and(|f| f.editing) || (self.editing && !self.read_only)
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-
     pub fn keymap(mut self, keymap: KeyMap<CodeCmd>) -> Self {
         self.keymap = keymap;
         self
     }
-
 
     pub fn scrollbar_gap(mut self, gap: u16) -> Self {
         self.scrollbar_gap = gap;
         self
     }
 
-
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.horizontal = Some(policy);
         self
     }
 
-
     pub fn hbar(&self) -> &ScrollState {
         &self.scroll.h
     }
-
-
 
     fn scroll_h(&mut self, cells: isize) -> bool {
         let before = self.hscroll;
@@ -394,7 +340,6 @@ impl CodeEditor {
         self.field.buffer.is_empty()
     }
 
-
     pub fn current_block(&self) -> Option<Range<usize>> {
         let seg = self.segmenter?;
         let cur = self.field.buffer.cursor_offset();
@@ -406,7 +351,6 @@ impl CodeEditor {
             .cloned()
     }
 
-
     pub fn selection_or_block(&self) -> Option<(String, Range<usize>)> {
         if let Some(r) = self.field.buffer.selection() {
             return Some((self.field.buffer.text()[r.clone()].to_owned(), r));
@@ -414,7 +358,6 @@ impl CodeEditor {
         let b = self.current_block()?;
         Some((self.field.buffer.text()[b.clone()].to_owned(), b))
     }
-
 
     pub fn blocks(&self) -> Vec<Range<usize>> {
         self.segmenter
@@ -432,7 +375,6 @@ impl CodeEditor {
     pub fn cursor_offset(&self) -> usize {
         self.field.buffer.cursor_offset()
     }
-
 
     pub fn cursor_cell(&self) -> Option<Rect> {
         let pos = self.field.buffer.cursor_pos();
@@ -457,7 +399,6 @@ impl CodeEditor {
         }
     }
 
-
     pub fn set_running(&mut self, block: Option<Range<usize>>) {
         self.running = block;
     }
@@ -466,11 +407,6 @@ impl CodeEditor {
         self.editing = false;
         self.field.buffer.clear_selection();
     }
-
-
-
-
-
 
     pub fn open_find(&mut self) {
         let mut needle = self
@@ -517,16 +453,10 @@ impl CodeEditor {
         self.jump_to(m.start);
     }
 
-
-
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<EditorAction>) {
-
-
-
         if key.ctrl_char('c') && self.field.buffer.selected_text().is_none() {
             return (Outcome::Ignored, None);
         }
-
 
         if (self.edit_menu.is_open() || !self.find.as_ref().is_some_and(|f| f.editing))
             && let Some(o) = edit_menu_key(self, key)
@@ -559,7 +489,6 @@ impl CodeEditor {
                         return (Outcome::Changed, Some(EditorAction::CursorMoved));
                     }
 
-
                     _ => {
                         let r = f.needle.on_key(key);
                         if r.edited {
@@ -580,11 +509,9 @@ impl CodeEditor {
             }
         }
 
-
         if self.read_only && self.editing {
             self.commit();
         }
-
 
         if key.code == KeyCode::F(6) && !key.ctrl() && !key.alt() {
             let backward = key.shift();
@@ -594,13 +521,11 @@ impl CodeEditor {
         }
         if !self.editing {
             if self.entry() == EditEntry::Immediate && !self.focus_seen && !self.read_only {
-
                 self.begin_edit();
             } else {
                 return self.nav_key(key);
             }
         }
-
 
         if matches!(key.code, KeyCode::Tab | KeyCode::BackTab) && key.ctrl() {
             let backward = key.code == KeyCode::BackTab || key.shift();
@@ -678,18 +603,12 @@ impl CodeEditor {
         }
     }
 
-
-
     fn text_cmd(&self, key: &Key) -> Option<crate::core::edit::TextCmd> {
         self.field.text_cmd(key)
     }
 
     fn nav_key(&mut self, key: &Key) -> (Outcome, Option<EditorAction>) {
         use crate::core::edit::TextCmd;
-
-
-
-
 
         if let Some(cmd) = self.text_cmd(key) {
             match cmd {
@@ -850,11 +769,6 @@ impl CodeEditor {
         }
     }
 
-
-
-
-
-
     fn offset_at_pos(&self, pos: Position) -> usize {
         let line = (self.scroll.offset as isize + (pos.y as isize - self.text_area.y as isize))
             .max(0) as usize;
@@ -864,20 +778,13 @@ impl CodeEditor {
         self.field.buffer.offset_at(line, col)
     }
 
-
-
-
     pub fn on_click(&mut self, pos: Position) -> Outcome {
         PointerField::on_click_count(self, pos, 1)
     }
 
-
     pub fn on_drag(&mut self, pos: Position) -> Outcome {
         PointerField::on_drag(self, pos)
     }
-
-
-
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if let Some(find) = self.find.as_mut()
@@ -897,8 +804,6 @@ impl CodeEditor {
         Outcome::Changed
     }
 
-
-
     fn spans(&mut self) -> &[(Range<usize>, SyntaxTone)] {
         let h = hash_text(self.field.buffer.text());
         if h != self.cached_for {
@@ -910,8 +815,6 @@ impl CodeEditor {
         }
         &self.cached_spans
     }
-
-
 
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.scroll.track_click = Some(click);
@@ -928,7 +831,6 @@ impl CodeEditor {
         self.scroll.begin(ctx.track_click);
         self.entry = self.edit_entry.unwrap_or(ctx.theme.edit_entry);
         self.field.keys = self.field_keys.or(ctx.theme.field_keys).unwrap_or_default();
-
 
         let shown = ctx.interaction.focused(self.id) && !ctx.inert;
         if shown && !self.focus_seen && self.entry == EditEntry::Immediate && !self.read_only {
@@ -948,7 +850,6 @@ impl CodeEditor {
         };
         let t = ctx.theme;
         let mut s = ctx.state(self.id);
-
 
         let held = s.focused;
         s.focused = ctx
@@ -985,8 +886,6 @@ impl CodeEditor {
         let gutter_w = (1 + 1 + num_w + 1 + 1).min(area.width);
         self.gutter_w = gutter_w;
 
-
-
         self.scroll.h_cfg = self.horizontal.unwrap_or(ctx.hscroll);
         let widest = lines.iter().map(|l| width(l)).max().unwrap_or(0);
         let gap = self.scrollbar_gap;
@@ -1016,7 +915,6 @@ impl CodeEditor {
             self.text_area.width != text_area.width || self.text_area.height != text_area.height;
         self.text_area = text_area;
         if self.field.sel.drag {
-
             ctx.autoscroll(text_area);
         }
         let cur = self.field.buffer.cursor_pos();
@@ -1036,7 +934,6 @@ impl CodeEditor {
         let find = self.find.clone();
         let diags = self.diagnostics.clone();
         let bracket = self.bracket_pair();
-
 
         let mut line_starts = Vec::with_capacity(line_count);
         let mut acc = 0;
@@ -1077,7 +974,6 @@ impl CodeEditor {
                 let first_content = b.start;
                 if first_content >= ls && first_content <= le {
                     marker = t.glyphs.current;
-
 
                     marker_style = fs.fg(if focused {
                         t.text_primary
@@ -1138,7 +1034,6 @@ impl CodeEditor {
                     continue;
                 }
                 if col >= self.hscroll && col == self.hscroll && self.hscroll > 0 {
-
                     col += gw;
                     x += gw as u16;
                     continue;
@@ -1208,7 +1103,6 @@ impl CodeEditor {
             }
         }
 
-
         if self.field.buffer.is_empty() && !self.placeholder.is_empty() {
             put(
                 buf,
@@ -1218,8 +1112,6 @@ impl CodeEditor {
                 fs.fg(t.text_muted),
             );
         }
-
-
 
         if (s.editing || (focused && self.read_only))
             && let Some(cursor) = self.cursor_cell()
@@ -1232,7 +1124,6 @@ impl CodeEditor {
                 .draw_with_fade(body, buf, ctx, self.id, focused, &[]);
         }
         if has_hb {
-
             let y = area.y + rows_h;
             fill(buf, Rect::new(area.x, y, area.width, 1), fs);
             let hb = Rect::new(text_area.x, y, text_area.width, 1);
@@ -1268,7 +1159,6 @@ impl CodeEditor {
                 0
             };
             let query_room = available.saturating_sub(label.len() + count_room);
-
 
             let line =
                 Rect::new(nx, fy, query_room.min(u16::MAX as usize) as u16, 1).intersection(area);
@@ -1389,9 +1279,6 @@ impl CodeEditor {
     }
 }
 
-
-
-
 impl crate::ui::measure::Measure for CodeEditor {
     fn measure(&self, _avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
         let text = self.field.buffer.text();
@@ -1403,8 +1290,6 @@ impl crate::ui::measure::Measure for CodeEditor {
 }
 
 impl Scrollable for CodeEditor {
-
-
     fn pane(&mut self) -> &mut ScrollPane {
         self.scroll.h.offset = self.hscroll;
         &mut self.scroll
@@ -1417,12 +1302,6 @@ impl Scrollable for CodeEditor {
         false
     }
 }
-
-
-
-
-
-
 
 impl Editable for CodeEditor {
     fn field(&mut self) -> &mut EditField {
@@ -1441,9 +1320,6 @@ impl Editable for CodeEditor {
         self.after_change();
     }
 }
-
-
-
 
 impl crate::core::pointer::MouseTarget for CodeEditor {
     type Action = ();
@@ -1479,9 +1355,6 @@ impl crate::core::pointer::MouseTarget for CodeEditor {
     }
 }
 
-
-
-
 impl EditMenuHost for CodeEditor {
     fn edit_menu(&mut self) -> &mut EditMenu {
         &mut self.edit_menu
@@ -1498,7 +1371,6 @@ impl EditMenuHost for CodeEditor {
         self.field.shortcut(cmd)
     }
     fn edit_target(&self, ev: &crate::core::pointer::PointerEvent) -> bool {
-
         ev.id == self.id && self.text_area.contains(ev.pos())
     }
     fn edit_point(&mut self, pos: Position) {
@@ -1521,8 +1393,6 @@ mod tests {
     use crate::theme::{ColorLevel, Theme};
     use crate::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
-
-
 
     #[test]
     fn an_editor_at_its_measure_scrolls_on_neither_axis() {
@@ -1567,8 +1437,6 @@ mod tests {
             Outcome::Consumed
         );
     }
-
-
 
     #[test]
     fn long_lines_keep_the_gap_before_the_scrollbar() {
@@ -1616,8 +1484,6 @@ mod tests {
         }
     }
 
-
-
     #[test]
     fn f6_leaves_the_editor_from_editing_and_browsing() {
         let mut e = CodeEditor::new(WidgetId::of("c"), "SELECT 1;");
@@ -1639,13 +1505,6 @@ mod tests {
             "from browsing too"
         );
     }
-
-
-
-
-
-
-
 
     #[test]
     fn a_drag_selects_from_the_press_and_multi_clicks_select_words_and_lines() {
@@ -1702,14 +1561,6 @@ mod tests {
         let caret = render(&mut ro, 50, 6).expect("the caret shows");
         assert_eq!(caret, Position::new(ro.text_area.x + 3, ro.text_area.y + 1));
     }
-
-
-
-
-
-
-
-
 
     #[test]
     fn ctrl_c_without_a_selection_passes_on_while_editing() {
@@ -1915,13 +1766,11 @@ mod tests {
         let (buf, _) = draw_buf(&mut editor, 40, 8);
         assert!(thumb(&buf).unwrap() > start, "the thumb follows");
 
-
         for _ in 0..40 {
             editor.on_key(&key(KeyCode::Right));
         }
         draw_buf(&mut editor, 40, 8);
         assert_eq!(editor.hscroll, editor.hbar().max_offset());
-
 
         let (buf, _) = draw_buf(&mut editor, 40, 8);
         let grab = thumb(&buf).unwrap();

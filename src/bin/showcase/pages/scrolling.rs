@@ -1,24 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeSet;
 use std::time::Duration;
 
@@ -63,15 +42,11 @@ const HAND: WidgetId = ID.sub("hand");
 const FITS: WidgetId = ID.sub("fits");
 const OVER: WidgetId = ID.sub("over");
 
-
-
 const TOP_MIN: u16 = 10;
 const MECHANICS_H: u16 = 10;
 const COLLECTIONS_H: u16 = 8;
 
-
 const MIN_W: u16 = 68;
-
 
 fn retired(i: usize) -> bool {
     i % 10 == 9
@@ -98,7 +73,6 @@ const REGIONS: &[&str] = &[
 const HAND_COLS: &[&str] = &["Host", "Region", "Latency", "CPU", "Memory", "Uptime"];
 const HAND_W: usize = 14;
 
-
 fn hand_row(i: usize) -> [String; 6] {
     [
         format!(
@@ -121,7 +95,6 @@ pub struct ScrollingPage {
     pub prose: ScrollPanel,
     pub list: ListBox,
     pub log: ScrollPanel,
-
 
     pub hand: ScrollPane,
 
@@ -208,8 +181,6 @@ impl ScrollingPage {
             _ => None,
         }
     }
-
-
 
     fn rebuild(&mut self) {
         let o = &self.opts;
@@ -317,8 +288,6 @@ impl ScrollingPage {
         self.grid = grid;
     }
 
-
-
     fn toggle_flag(&mut self) -> Outcome {
         let i = self.list.cursor;
         if retired(i) {
@@ -379,7 +348,6 @@ impl ScrollingPage {
         }
     }
 
-
     fn thirds(area: Rect) -> [Rect; 3] {
         let third = area.width / 3;
         [
@@ -403,12 +371,7 @@ impl ScrollingPage {
         let t = ctx.theme;
         let cols = Self::thirds(area);
 
-
         let pad = if cols[0].width < 22 { 1 } else { 2 };
-
-
-
-
 
         let panel = Panel::card(Some("Wrapped text"))
             .pad_x(pad)
@@ -453,9 +416,7 @@ impl ScrollingPage {
         panel.draw_meta(cols[2], buf, t, &meta);
     }
 
-
     fn render_mechanics(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-
         let (hand, div) = (area.width * 3 / 8, area.width / 4);
         let x1 = area.x + hand + 1;
         let x2 = x1 + div + 1;
@@ -464,9 +425,6 @@ impl ScrollingPage {
         self.render_dividers(col(x1, div.saturating_sub(1)), buf, ctx);
         self.render_cursor(col(x2, area.right().saturating_sub(x2)), buf, ctx);
     }
-
-
-
 
     fn render_hand(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
@@ -480,7 +438,6 @@ impl ScrollingPage {
 
         let header = Rect::new(inner.x, inner.y, inner.width, 1);
         let shows_h = self.hand.h_cfg.bar != ScrollbarVisibility::Never;
-
 
         let region = Rect::new(inner.x, inner.y + 1, inner.width, inner.height - 1);
         let bars = scrollbar::Bars::split(region, true, shows_h);
@@ -524,8 +481,6 @@ impl ScrollingPage {
             self.hand.draw_h(hb, buf, ctx, HAND, false);
         }
     }
-
-
 
     fn render_dividers(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
@@ -583,7 +538,6 @@ impl ScrollingPage {
         }
     }
 
-
     fn render_cursor(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Cursor")).title_min(4);
@@ -595,7 +549,6 @@ impl ScrollingPage {
             Axis::Horizontal => "horizontal",
         };
         let on = |b: bool| if b { "on" } else { "off" };
-
 
         let items = &self.list.items;
         let enabled = |i: usize| !items[i].disabled;
@@ -655,8 +608,6 @@ impl ScrollingPage {
         }
     }
 
-
-
     fn render_collections(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = Panel::card(Some("Type to jump · select, tree, table, grid")).title_min(4);
@@ -688,7 +639,6 @@ impl ScrollingPage {
         let before = self.list.cursor;
         let step = KeyStep::of(key, &self.list.nav, self.list.type_ahead);
         let o = self.list.on_key(key);
-
 
         if o == Outcome::Ignored && key.plain() && key.code == KeyCode::Char('f') {
             return self.toggle_flag();
@@ -727,8 +677,6 @@ fn moved_text(moved: Moved) -> String {
         Moved::Ignored => "Ignored".to_owned(),
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -818,7 +766,6 @@ impl ScrollingPage {
                 continue;
             }
             return match ev.phase() {
-
                 Some(Phase::Press) => pane.press(ev.pos()).outcome().or(Outcome::Consumed),
                 Some(Phase::Drag) => pane.drag(ev.pos()).outcome(),
 
@@ -840,12 +787,6 @@ impl Page for ScrollingPage {
     fn blurb(&self) -> &'static str {
         "Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows"
     }
-
-
-
-
-
-
 
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let height = TOP_MIN + MECHANICS_H + COLLECTIONS_H + 3;
@@ -873,7 +814,6 @@ impl Page for ScrollingPage {
         }
         match ev {
             PageEvent::Tick => {
-
                 if self.log.lines.len() < 2000 && self.log.follow {
                     let n = self.log.lines.len();
                     if let Some(line) = crate::data::log_lines(n + 1).pop() {
@@ -927,7 +867,6 @@ impl Page for ScrollingPage {
         if let Some(h) = self.template.hints(focus) {
             return h;
         }
-
 
         let nav_hints = |nav: &NavKeys, type_ahead: bool, step: &'static str| -> Vec<Hint> {
             let mut v = Vec::new();

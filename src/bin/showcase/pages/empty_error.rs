@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -35,7 +29,6 @@ const ID: WidgetId = WidgetId::of("emptyerror");
 const NEW: WidgetId = WidgetId::of("emptyerror").sub("new");
 const IMPORT: WidgetId = WidgetId::of("emptyerror").sub("import");
 
-
 const CHILDREN: [StackChild; 3] = [
     StackChild::fixed(8),
     StackChild::fixed(10),
@@ -45,11 +38,9 @@ const CHILDREN: [StackChild; 3] = [
 const GRID_W: u16 = 60;
 const GRID_NOTE: &str = "Enter or a typed key on a cell says why it cannot change";
 
-
 fn saved_empty() -> EmptyState {
     EmptyState::new("No saved queries").hint("Queries you save appear here")
 }
-
 
 fn search_empty() -> EmptyState {
     EmptyState::new("Nothing matches “ordrs”")
@@ -106,8 +97,6 @@ impl EmptyErrorPage {
         page
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let error = o.value("emptyerror.kind") == "error";
@@ -144,7 +133,6 @@ impl EmptyErrorPage {
             _ => "orders_view is a view: views cannot be edited",
         }
     }
-
 
     fn short_reason(&self) -> &'static str {
         match self.opts.value("emptyerror.reason") {
@@ -223,8 +211,6 @@ impl EmptyErrorPage {
         self.menu.render(area, buf, ctx);
     }
 
-
-
     fn open_menu(&mut self) {
         let reason = self.short_reason();
         let anchor = self.actions_area();
@@ -259,8 +245,6 @@ impl EmptyErrorPage {
     }
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -287,9 +271,6 @@ impl Page for EmptyErrorPage {
     fn blurb(&self) -> &'static str {
         "Empty and failed states with a way out, and read-only surfaces that say why"
     }
-
-
-
 
     fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
         let at = |e: &EmptyState| e.measure(Size::ZERO, ctx);

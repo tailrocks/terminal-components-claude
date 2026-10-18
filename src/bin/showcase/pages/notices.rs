@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -24,7 +17,6 @@ use junie_tui::widgets::notice::{Notice, NoticeKind};
 use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("notices");
-
 
 const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
     (
@@ -47,7 +39,6 @@ const OUTCOMES: [(NoticeKind, &str, &str); 3] = [
 pub fn page() -> Box<dyn Page> {
     Box::new(NoticesPage::new())
 }
-
 
 const CARDS: [(&str, &str); 3] = [
     ("prod-replica", "postgres · connection test"),
@@ -79,7 +70,6 @@ impl NoticesPage {
             sections: crate::pages::layout::Sections::new(ID.sub("page")),
         }
     }
-
 
     fn styled(&self, n: Notice) -> Notice {
         let mut n = n
@@ -128,7 +118,6 @@ impl NoticesPage {
         )
     }
 
-
     fn inline(&self) -> [Notice; 4] {
         [
             self.styled(Notice::error("Port must be a number between 1 and 65535")),
@@ -141,17 +130,12 @@ impl NoticesPage {
         ]
     }
 
-
     fn width(&self, w: u16) -> u16 {
         match self.opts.value("notices.width") {
             "narrow" => w.min(44),
             _ => w.min(96),
         }
     }
-
-
-
-
 
     fn children(&self, w: u16) -> [StackChild; 3] {
         let inline: u16 = self.inline().iter().map(|n| n.height(w)).sum::<u16>() + 3;
@@ -229,8 +213,6 @@ impl NoticesPage {
     }
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))
@@ -256,8 +238,6 @@ impl Page for NoticesPage {
         "Notice: inline error, warning, information and success blocks with a wrapped detail"
     }
 
-
-
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         let w = self.width(u16::MAX);
         let content = w.max(junie_tui::ui::text::width(ADDRESS) as u16);
@@ -271,7 +251,6 @@ impl Page for NoticesPage {
             })
             .max()
             .unwrap_or(0);
-
 
         Size::new(
             width.max(w + 4),

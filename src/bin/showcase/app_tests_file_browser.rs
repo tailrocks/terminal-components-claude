@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::app::PageId;
@@ -17,7 +11,6 @@ fn open(h: &mut Harness) {
     h.focus(BROWSE);
     h.key(KeyCode::Enter);
 }
-
 
 fn log(h: &Harness) -> Vec<String> {
     h.app.pages[PageId::FileBrowser.index()]

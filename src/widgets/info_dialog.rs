@@ -1,7 +1,3 @@
-
-
-
-
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
 use crate::core::hints::{HasHints, HintCx, nav_hints};
@@ -31,17 +27,7 @@ pub enum InfoResult {
     Action(usize),
 }
 
-
 pub struct InfoDialog {
-
-
-
-
-
-
-
-
-
     pub close_button: crate::widgets::icon_button::IconButton,
 
     pub dismiss: crate::ui::popup::Dismiss,
@@ -65,12 +51,8 @@ pub struct InfoDialog {
 
     pub keymap: KeyMap<InfoCmd>,
 
-
     strings: crate::theme::Strings,
 }
-
-
-
 
 impl HasHints for InfoDialog {
     fn hints(&self, _: &HintCx) -> Vec<Hint> {
@@ -90,11 +72,8 @@ impl HasHints for InfoDialog {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InfoCmd {
-
     Close,
 
     Copy,
@@ -117,7 +96,6 @@ impl Actions for InfoCmd {
 }
 
 impl InfoDialog {
-
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
@@ -151,12 +129,10 @@ impl InfoDialog {
         }
     }
 
-
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
-
 
     pub fn keymap(mut self, keymap: KeyMap<InfoCmd>) -> Self {
         self.keymap = keymap;
@@ -264,7 +240,6 @@ impl InfoDialog {
                 return Outcome::Changed;
             }
             Some(InfoCmd::Copy) => {
-
                 if let Some(Some(v)) = self.copy_values.iter().find(|v| v.is_some()) {
                     self.result = Some(InfoResult::Copy(v.clone()));
                 }
@@ -308,7 +283,6 @@ impl InfoDialog {
         if let Some(i) = self.props.row_of(id) {
             focus.focus(self.props.id);
 
-
             let (o, act) = self.props.on_click(i);
             if act.is_some()
                 && let Some(Some(v)) = self.copy_values.get(i)
@@ -341,8 +315,6 @@ impl InfoDialog {
         }
         Outcome::Consumed
     }
-
-
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if scrollbar::is_bar_of(pressed, self.props.id) {
@@ -428,7 +400,6 @@ impl InfoDialog {
                 buf.set_string(inner.x, y + k as u16, &wrapped[i], t.secondary().bg(bg));
             }
             if self.detail_scroll.overflows() {
-
                 let body = Rect::new(area.x, y, (area.right() - 1).saturating_sub(area.x), dh);
                 self.detail_scroll
                     .draw_with_fade(body, buf, ctx, self.id, true, &[]);
@@ -457,7 +428,6 @@ impl Scrollable for InfoDialog {
         &mut self.detail_scroll
     }
 
-
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         self.detail
             .is_empty()
@@ -466,13 +436,6 @@ impl Scrollable for InfoDialog {
 }
 
 impl InfoDialog {
-
-
-
-
-
-
-
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -485,7 +448,6 @@ impl InfoDialog {
             if ev.is(Phase::Click) && ev.index_of(Part::ROW).is_some() {
                 focus.focus(self.props.id);
             }
-
 
             if let Some(crate::widgets::props::PropsAction::Activate(i)) = r.take_action()
                 && let Some(Some(v)) = self.copy_values.get(i)
@@ -550,8 +512,6 @@ mod tests {
         d.on_key(&key(KeyCode::Esc), &mut focus, &ring);
         assert_eq!(d.result, Some(InfoResult::Closed));
     }
-
-
 
     #[test]
     fn a_click_selects_a_fact_and_a_double_click_copies_it() {

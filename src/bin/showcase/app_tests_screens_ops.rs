@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -16,8 +10,6 @@ fn typed(h: &mut Harness, s: &str) {
         h.key(KeyCode::Char(c));
     }
 }
-
-
 
 const DISK: WidgetId = WidgetId::of("diskcleanup");
 
@@ -54,7 +46,6 @@ fn disk_cleanup_checklist_counts_and_skips_the_category_in_use() {
 
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("3 of 10 · 8.1 GiB"), "{}", h.text());
-
 
     for _ in 0..12 {
         h.key(KeyCode::Down);
@@ -196,7 +187,6 @@ fn disk_cleanup_states_rows_render() {
 fn disk_cleanup_tab_order_runs_tree_details_then_checklist() {
     let mut h = Harness::new(120, 40, PageId::DiskCleanup);
 
-
     for _ in 0..4 {
         h.key(KeyCode::Tab);
     }
@@ -205,14 +195,11 @@ fn disk_cleanup_tab_order_runs_tree_details_then_checklist() {
     assert!(h.text().contains("gate 1 of 2"), "{}", h.text());
 }
 
-
-
 const ACT: WidgetId = WidgetId::of("activity");
 
 #[test]
 fn activity_shows_a_live_job_not_the_stub() {
     for (w, h) in [(120, 40), (80, 24)] {
-
         let text = Harness::new(w, h, PageId::Activity).page_text();
         assert!(!text.contains("arrives with"), "{text}");
         for needle in [
@@ -309,13 +296,10 @@ fn activity_states_rows_render() {
     }
 }
 
-
-
 const WS: WidgetId = WidgetId::of("workspaces");
 
 #[test]
 fn workspaces_shows_tree_detail_and_roster_not_the_stub() {
-
     let text = Harness::new(120, 40, PageId::Workspaces).page_text();
     assert!(!text.contains("arrives with"), "{text}");
     for needle in [
@@ -331,7 +315,6 @@ fn workspaces_shows_tree_detail_and_roster_not_the_stub() {
     ] {
         assert!(text.contains(needle), "{needle}: {text}");
     }
-
 
     let mut h = Harness::new(80, 24, PageId::Workspaces);
     h.opt("workspaces.collapse_below=108");

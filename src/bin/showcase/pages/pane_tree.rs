@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -28,7 +19,6 @@ use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("panetree");
 const TREE: WidgetId = WidgetId::of("panetree").sub("tree");
-
 
 const PANES: &[(&str, &[&str])] = &[
     (
@@ -108,8 +98,6 @@ impl PaneTreePage {
         page
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let frames = match o.value("panetree.frames") {
@@ -158,7 +146,6 @@ impl PaneTreePage {
         self.tree = tree;
     }
 
-
     fn legend(&self) -> String {
         let mut parts = Vec::new();
         if let Some(k) = hint_key(&self.tree.keys, PaneCmd::Next) {
@@ -193,7 +180,6 @@ impl PaneTreePage {
         }
     }
 
-
     fn meta(&self) -> String {
         let n = self.tree.leaves().len();
         format!(
@@ -207,8 +193,6 @@ impl PaneTreePage {
             }
         )
     }
-
-
 
     fn card_size(&self) -> Size {
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;
@@ -227,7 +211,6 @@ impl PaneTreePage {
             .meta(&meta)
             .outer(content)
     }
-
 
     fn child(&self) -> StackChild {
         StackChild::flex(12, self.card_size().height.max(26))
@@ -285,7 +268,6 @@ impl PaneTreePage {
         }
     }
 
-
     fn report(r: PaneResult, cx: &mut Cx) -> Outcome {
         match r {
             Ok(o) => o,
@@ -317,7 +299,6 @@ impl PaneTreePage {
     }
 }
 
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -335,7 +316,6 @@ impl Page for PaneTreePage {
     fn blurb(&self) -> &'static str {
         "PaneTree: nested splits, frames, focus moves, resize chords and zoom"
     }
-
 
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         Size::new(

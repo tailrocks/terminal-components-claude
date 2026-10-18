@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use crate::pages::Pages;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
@@ -24,8 +18,6 @@ use crate::sim::launch::LaunchPlan;
 fn status(h: &H) -> &str {
     h.app.shell.status.text().unwrap_or("")
 }
-
-
 
 fn outside(h: &H) -> Position {
     use junie_tui::core::id::Part;
@@ -218,10 +210,6 @@ fn manager_scrollbar_click_and_drag_change_the_rendered_tree() {
         "scrollbar drag did not repaint the tree"
     );
 }
-
-
-
-
 
 #[test]
 fn a_click_on_the_picker_backdrop_cancels_it_and_restores_focus() {
@@ -493,9 +481,6 @@ fn cockpit_credentials_retry_plain_and_cancel_are_recoverable() {
     assert_eq!(h.app.route(), Route::Manager);
     assert!(status(&h).contains("Launch failed"), "{}", status(&h));
 }
-
-
-
 
 #[test]
 fn a_stray_click_does_not_cancel_a_launch_held_on_credentials() {
@@ -879,12 +864,8 @@ fn editor_validation_and_save_failure_preserve_pending_changes() {
     assert!(h.app.router.editor().unwrap().change_count() > 0);
 }
 
-
-
-
 #[test]
 fn a_failed_job_leaves_no_progress_status_under_its_error() {
-
     let mut h = hard_manager();
     editor(&mut h, 1);
     h.key(KeyCode::Char(']'));
@@ -897,7 +878,6 @@ fn a_failed_job_leaves_no_progress_status_under_its_error() {
     h.ticks(15);
     assert!(h.text().contains("Save failed"), "{}", h.text());
     assert!(!status(&h).contains("Saving"), "{}", status(&h));
-
 
     let mut h = hard_manager();
     editor(&mut h, 1);
@@ -919,7 +899,6 @@ fn a_failed_job_leaves_no_progress_status_under_its_error() {
         h.text()
     );
     assert!(!status(&h).contains("Loading role"), "{}", status(&h));
-
 
     let mut h = hard_manager();
     h.key(KeyCode::Char('s'));
@@ -1157,7 +1136,6 @@ fn prelude_invalid_destination_and_backtracking_do_not_create_workspace() {
     assert!(h.text().contains("absolute path"), "{}", h.text());
     assert_eq!(h.app.route(), Route::Prelude);
 
-
     h.key(KeyCode::Esc);
     assert!(h.text().contains("step 2 of 5"), "{}", h.text());
     h.key(KeyCode::Esc);
@@ -1194,7 +1172,6 @@ fn launch_failure_screen_exposes_stage_detail_and_ack_route() {
 
 #[test]
 fn cancel_launch_dialog_names_both_choices_unambiguously() {
-
     let wide = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 220, 40);
     let footer = wide.text().lines().last().unwrap_or_default().to_owned();
     assert!(footer.contains("x Cancel launch…"), "{footer}");
@@ -1211,9 +1188,6 @@ fn cancel_launch_dialog_names_both_choices_unambiguously() {
 
     assert!(!footer.contains("y Cancel launch"), "{footer}");
 }
-
-
-
 
 #[test]
 fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
@@ -1263,7 +1237,6 @@ fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
     h.mouse(MouseKind::WheelLeft, x, y);
     assert_eq!(offset(&h), 0, "and back");
 
-
     h.mouse(MouseKind::WheelUp, x, y);
     assert!(
         !h.app.world.daemons[&instance]
@@ -1278,7 +1251,6 @@ fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
     h.key(KeyCode::Left);
     assert_eq!(offset(&h), 0, "← pans back");
     h.key(KeyCode::End);
-
 
     let bar = h.app.world.daemons[&instance]
         .pane(pid)
@@ -1296,8 +1268,6 @@ fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
     h.click(bar.right() - 1, bar.y);
     assert!(offset(&h) > panned, "the track press panned\n{}", h.text());
 }
-
-
 
 #[test]
 fn unsaved_settings_survive_q_and_ctrl_c_asks_save_discard_cancel() {
@@ -1333,8 +1303,6 @@ fn unsaved_settings_survive_q_and_ctrl_c_asks_save_discard_cancel() {
     assert!(h.app.shell.quit, "{}", h.text());
 }
 
-
-
 #[test]
 fn esc_never_quits_the_manager_and_a_clean_ctrl_q_never_asks() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
@@ -1346,11 +1314,6 @@ fn esc_never_quits_the_manager_and_a_clean_ctrl_q_never_asks() {
     h.ctrl('q');
     assert!(h.app.shell.quit, "a clean quit never asks: {}", h.text());
 }
-
-
-
-
-
 
 #[test]
 fn a_trusted_role_that_fails_to_load_reports_the_error_and_retries() {
@@ -1385,7 +1348,6 @@ fn a_trusted_role_that_fails_to_load_reports_the_error_and_retries() {
     h.key(KeyCode::Esc);
     assert!(!h.text().contains("failed to load"), "{}", h.text());
     assert!(h.text().contains("! load error"), "{}", h.text());
-
 
     h.key(KeyCode::Home);
     for _ in 0..5 {

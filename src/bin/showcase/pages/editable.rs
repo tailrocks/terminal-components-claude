@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
@@ -47,8 +37,6 @@ fn columns() -> Vec<Column> {
     vec![
         Column::new("ID", Constraint::Length(5)),
         Column::new("Task", Constraint::Min(24)).editable(),
-
-
         Column::new("Owner", Constraint::Length(8)).editor(ColumnEditor::for_options(
             Options::values(&[
                 "ana", "jonas", "kai", "lena", "mira", "omar", "priya", "sofia",
@@ -79,8 +67,6 @@ fn rows(n: usize) -> Vec<Vec<Cell>> {
         .collect()
 }
 
-
-
 const KEYS: [&str; 12] = [
     "editable.rows",
     "editable.type_ahead",
@@ -96,15 +82,12 @@ const KEYS: [&str; 12] = [
     "editable.header_labels",
 ];
 
-
-
 fn custom_keymap() -> KeyMap<TableCmd> {
     vec![
         (KeyBinding::char('o'), TableCmd::SortByColumn),
         (KeyBinding::ctrl('a'), TableCmd::SelectAll),
     ]
 }
-
 
 fn build(k: &[usize; 12]) -> DataTable {
     let [
@@ -161,14 +144,12 @@ fn build(k: &[usize; 12]) -> DataTable {
         };
     }
     if !table.rows.is_empty() {
-
         table.rows[2][4].error = Some("Branch names cannot contain spaces".into());
         table.rows[2][4].text = "fix/checkout flake".into();
     }
     table.cursor_col = 1;
     table
 }
-
 
 const EVENTS: &[(&str, &str)] = &[
     ("Enter / F2 / click twice", "Edit · Enter again Committed"),
@@ -184,7 +165,6 @@ const EVENTS: &[(&str, &str)] = &[
         "Sort ▴ ascending, again ▾ descending",
     ),
 ];
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -254,7 +234,6 @@ impl EditablePage {
         }
     }
 
-
     fn column_props(&self) -> Vec<Prop> {
         self.table
             .columns
@@ -286,8 +265,6 @@ impl EditablePage {
             _ => {}
         }
     }
-
-
 
     fn heights(&self, width: u16) -> [u16; 4] {
         let cols: Vec<Prop> = self.column_props().into_iter().map(Prop::wrap).collect();
@@ -342,7 +319,6 @@ impl EditablePage {
     }
 }
 
-
 fn legend() -> Vec<Prop> {
     vec![
         Prop::new("reversed", "cell cursor (navigation)").wrap(),
@@ -351,7 +327,6 @@ fn legend() -> Vec<Prop> {
         Prop::new("▾", "Owner: pick from a list (Enter, Space, Alt+↓)").wrap(),
     ]
 }
-
 
 fn events() -> Vec<Prop> {
     EVENTS
@@ -368,12 +343,10 @@ impl Page for EditablePage {
         "Navigation is reversed cell; editing is a cursor. They never look alike."
     }
 
-
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         use junie_tui::ui::measure::Measure;
         let cols: Vec<Prop> = self.column_props().into_iter().map(Prop::wrap).collect();
         let w = [
-
             self.table.min_width(ratatui::layout::Size::new(0, 0), ctx) + 4,
             props::width(&legend()),
             sheet_width(&Panel::card(Some("Columns")), &cols),
@@ -438,8 +411,6 @@ impl Page for EditablePage {
             }
             PageEvent::Paste(text) => self.table.on_paste(text),
             PageEvent::Pointer(p) => {
-
-
                 let Some((out, tev)) = route_table(&mut self.table, p, cx) else {
                     return Outcome::Ignored;
                 };

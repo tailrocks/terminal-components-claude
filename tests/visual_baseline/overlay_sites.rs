@@ -1,25 +1,11 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use crate::determinism::{code_only, non_test};
 
-
 const OPENERS: [&str; 16] = [
     "req.menu(",
     "ModalTag::new(",
-
     "LayerTag::new(",
     "Dialog::new(",
     "Dialog::confirm(",
@@ -30,20 +16,14 @@ const OPENERS: [&str; 16] = [
     ".push(Modal::",
     "begin_modal(",
     ".menu.open(",
-
     ".request_quit(&",
     ".request(Leave::",
-
     "HelpOverlay::new(",
     "HelpOverlay::from_keymaps(",
 ];
 
-
-
-
 const NOT_OPENING: [&str; 2] = [
     "unwrap_or(ModalTag::new(",
-
     "let p = self.style(Picker::new(ID.sub(",
 ];
 
@@ -56,8 +36,6 @@ pub struct Site {
 const fn rows(key: &'static str, rows: &'static [&'static str]) -> Site {
     Site { key, rows, gap: "" }
 }
-
-
 
 #[allow(dead_code)]
 const fn gap(key: &'static str, gap: &'static str) -> Site {
@@ -246,7 +224,6 @@ fn rs_files(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
-
 pub fn scan(bin_dir: &Path) -> BTreeMap<String, usize> {
     let mut files = Vec::new();
     rs_files(bin_dir, &mut files);
@@ -275,7 +252,6 @@ pub fn scan(bin_dir: &Path) -> BTreeMap<String, usize> {
     }
     sites
 }
-
 
 pub fn overlay_sites() {
     let scanned = scan(&Path::new(env!("CARGO_MANIFEST_DIR")).join("src/bin"));

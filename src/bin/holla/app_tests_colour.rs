@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Cell;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::style::{Color, Modifier};
@@ -20,7 +16,6 @@ fn theme() -> Theme {
 fn cell(h: &H, x: u16, y: u16) -> Cell {
     h.term.backend().buffer()[(x, y)].clone()
 }
-
 
 fn at_row(h: &H, y: u16, needle: &str) -> (u16, Cell) {
     let row = h.row(y);
@@ -193,8 +188,6 @@ fn section_headings_are_muted_not_faint() {
 
 #[test]
 fn a_filesystem_meter_warns_at_its_own_thresholds() {
-
-
     let t = theme();
     let mut h = H::new(Scenario::DiskCleanup, Motion::Reduced, 0, 120, 40);
     h.ticks(80);
@@ -223,8 +216,6 @@ fn a_succeeded_activity_tab_is_done() {
 
 #[test]
 fn details_on_the_cursor_row_stay_readable_on_its_fill() {
-
-
     for level in [
         junie_tui::theme::ColorLevel::TrueColor,
         junie_tui::theme::ColorLevel::Ansi256,

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use junie_tui::widgets::dialog::Dialog;
 use ratatui::buffer::Cell;
 use ratatui::crossterm::event::KeyCode;
@@ -22,14 +16,12 @@ fn cell(h: &H, (x, y): (u16, u16)) -> Cell {
     h.term.backend().buffer()[(x, y)].clone()
 }
 
-
 fn at(h: &H, needle: &str, dx: u16) -> Cell {
     let (x, y) = h
         .find(needle)
         .unwrap_or_else(|| panic!("{needle:?} not on screen\n{}", h.text()));
     cell(h, (x + dx, y))
 }
-
 
 fn ink(t: &Theme, tone: Tone, c: &Cell) -> Color {
     t.tone_on(tone, c.bg)
@@ -336,7 +328,6 @@ fn sql_booleans_and_null_take_the_literal_hue() {
     assert_eq!(Some(kw.fg), t.syntax(SyntaxTone::Keyword).fg, "SELECT");
 }
 
-
 fn assert_reads(h: &H, needle: &str, why: &str) {
     let (x, y) = h
         .find(needle)
@@ -359,8 +350,6 @@ fn assert_reads(h: &H, needle: &str, why: &str) {
 
 #[test]
 fn page_text_under_a_modal_dims_but_never_disappears_at_16_colours() {
-
-
     let mut h = H::connected(120, 40);
     h.app.theme = Theme::for_level(junie_tui::theme::ColorLevel::Ansi16);
     h.draw();
@@ -375,8 +364,6 @@ fn page_text_under_a_modal_dims_but_never_disappears_at_16_colours() {
 
 #[test]
 fn the_pane_under_a_picker_shows_no_focus() {
-
-
     for level in [
         junie_tui::theme::ColorLevel::TrueColor,
         junie_tui::theme::ColorLevel::Ansi256,
@@ -402,8 +389,6 @@ fn the_pane_under_a_picker_shows_no_focus() {
 
 #[test]
 fn page_text_under_a_modal_dims_but_never_disappears() {
-
-
     let mut h = H::new(160, 50);
     for _ in 0..7 {
         h.key(KeyCode::Down);

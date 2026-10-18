@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -64,7 +49,6 @@ fn env_kind(i: usize) -> EnvKind {
         _ => EnvKind::Local,
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Reach {
@@ -242,12 +226,9 @@ impl ConnectionsPage {
         page
     }
 
-
     fn list_share(&self) -> u16 {
         self.opts.number("connections.list_width").unwrap_or(40)
     }
-
-
 
     fn rebuild_tree(&mut self) {
         let by_env = self.opts.value("connections.group_by") == "environment";
@@ -300,7 +281,6 @@ impl ConnectionsPage {
         }
     }
 
-
     fn select_name(&mut self, name: &str) {
         let row = self.tree.rows().iter().position(|r| {
             r.path.len() == 2 && self.tree.node(&r.path).is_some_and(|n| n.label == name)
@@ -310,7 +290,6 @@ impl ConnectionsPage {
         }
         self.sync_selected();
     }
-
 
     fn sync_selected(&mut self) {
         let Some(row) = self.tree.rows().get(self.tree.cursor) else {
@@ -336,7 +315,6 @@ impl ConnectionsPage {
             left: CONNECT_TICKS,
         };
     }
-
 
     fn finish_connect(&mut self, name: String, cx: &mut Cx) {
         let Some(c) = self.conns.iter_mut().find(|c| c.name == name) else {
@@ -370,8 +348,6 @@ impl ConnectionsPage {
             cx.error("Connection failed");
         }
     }
-
-
 
     fn form(&self, index: Option<usize>) -> FormDialog {
         let c = index.map(|i| self.conns[i].clone());
@@ -502,7 +478,6 @@ impl ConnectionsPage {
         ));
     }
 
-
     fn activate(&mut self, id: WidgetId, cx: &mut Cx) -> Outcome {
         if id == self.connect.id {
             self.start_connect(cx);
@@ -526,7 +501,6 @@ impl ConnectionsPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-
 
         let l = self.md.layout(area, buf, ctx, t.canvas);
         if !l.master.is_empty() {
@@ -601,7 +575,6 @@ impl ConnectionsPage {
         let selected = if self.empty() { None } else { self.selected };
         let focused = ctx.interaction.focused(self.md.detail);
         let Some(i) = selected else {
-
             let panel = Panel::card(Some("Details")).focused(focused);
             let bg = panel.bg(t);
             if let Some(inner) = panel.try_render(r, buf, t) {
@@ -627,7 +600,6 @@ impl ConnectionsPage {
         };
         let connecting =
             matches!(&self.state, ConnState::Connecting { name, .. } if *name == c.name);
-
 
         let state_h = self.state_h(i, r.width.saturating_sub(4));
         let card = DetailCard::new(&c.name)
@@ -662,7 +634,6 @@ impl ConnectionsPage {
         }
     }
 
-
     fn facts(&self, i: usize) -> Vec<Prop> {
         let c = &self.conns[i];
         let env = env_kind(c.env);
@@ -674,7 +645,6 @@ impl ConnectionsPage {
             Prop::new("Environment", ENVS[c.env]).tone(env.tone()),
         ];
         if env == EnvKind::Production {
-
             facts.push(
                 Prop::new(
                     "Safe Mode",
@@ -702,7 +672,6 @@ impl ConnectionsPage {
         facts
     }
 
-
     fn failure(&self, i: usize) -> Option<Notice> {
         match &self.state {
             ConnState::Failed {
@@ -715,8 +684,6 @@ impl ConnectionsPage {
             _ => None,
         }
     }
-
-
 
     fn state_h(&self, i: usize, w: u16) -> u16 {
         let connecting = matches!(&self.state, ConnState::Connecting { name, .. } if *name == self.conns[i].name);
@@ -840,7 +807,6 @@ impl ConnectionsPage {
         Outcome::Changed
     }
 
-
     fn apply_state_option(&mut self) {
         let Some(i) = self.selected else {
             return;
@@ -861,7 +827,6 @@ impl ConnectionsPage {
         };
     }
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -902,16 +867,10 @@ impl Page for ConnectionsPage {
         "Grouped connections with env glyphs, details, connect and the form"
     }
 
-
-
-
-
-
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let width = avail.width.max(self.md.natural_width(LIST_MIN, DETAIL_MIN));
         let card = self.selected.filter(|_| !self.empty()).map_or(0, |i| {
             let inner = DETAIL_MIN - 4;
-
 
             3 + props::measure(&self.facts(i), inner) + self.state_h(i, inner) + 2
         });
@@ -1056,18 +1015,13 @@ impl Page for ConnectionsPage {
     }
 }
 
-
 const LIST_MIN: u16 = 24;
 const DETAIL_MIN: u16 = 44;
-
-
-
 
 fn master_detail(share: u16) -> MasterDetail {
     MasterDetail::new(ID.sub("tree"), ID.sub("connect"))
         .detail_owns(&[ID.sub("edit"), ID.sub("duplicate"), ID.sub("delete-btn")])
         .resizable(Split::new(share, LIST_MIN, DETAIL_MIN))
-
         .collapse_below(80)
         .summary_rows(1)
 }

@@ -1,20 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
 use std::time::{Duration, Instant};
@@ -54,7 +37,6 @@ fn wait_for(session: &Session, what: &str, cond: impl Fn(&Observation) -> bool) 
         .unwrap_or_else(|e| panic!("timed out waiting for {what}: {e}"))
 }
 
-
 fn wait_exit(session: &Session) -> u32 {
     let exit = session
         .wait_exit(Instant::now() + BOUND, &CancelToken::new())
@@ -66,11 +48,6 @@ fn wait_exit(session: &Session) -> u32 {
     );
     exit.status.code()
 }
-
-
-
-
-
 
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Sgr {
@@ -115,9 +92,6 @@ impl Sgr {
         }
     }
 }
-
-
-
 
 fn frame(args: &[&str], env: &[(&str, Option<&str>)]) -> (Sgr, String) {
     let mut base = vec![
@@ -190,8 +164,6 @@ fn explicit_palettes_emit_exactly_their_colour_class_and_keep_attributes() {
         "no extended colour at 16: {c16:?}"
     );
 
-
-
     let (mono, _) = frame(&["--color", "none"], &[]);
     assert_eq!(
         mono.truecolor + mono.indexed,
@@ -212,9 +184,6 @@ fn explicit_palettes_emit_exactly_their_colour_class_and_keep_attributes() {
 
 #[test]
 fn no_color_policy_is_the_backend_rule_in_a_fresh_process() {
-
-
-
     let (off, _) = frame(&["--color", "truecolor"], &[("NO_COLOR", Some("1"))]);
     assert_eq!(
         off.truecolor + off.indexed + off.basic,
@@ -231,7 +200,6 @@ fn no_color_policy_is_the_backend_rule_in_a_fresh_process() {
         empty.truecolor > 0,
         "an empty NO_COLOR does not disable colour: {empty:?}"
     );
-
 
     let (forced, _) = frame(
         &["--color", "truecolor"],
@@ -261,15 +229,6 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
     });
     let before = first.revision;
 
-
-
-
-
-
-
-
-
-
     let flood: Vec<u8> = vec![0x02; 8000];
     let start = Instant::now();
     session.send_bytes(&flood).unwrap_or_else(|e| {
@@ -282,9 +241,6 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
     wait_for(&session, "a redraw during the flood", |o| {
         o.revision > before
     });
-
-
-
 
     let quit = Instant::now();
     session

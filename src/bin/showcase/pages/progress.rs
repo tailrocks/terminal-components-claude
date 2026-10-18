@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -24,8 +19,6 @@ use junie_tui::widgets::progress::{
 };
 
 const ID: WidgetId = WidgetId::of("progress");
-
-
 
 const JOBS: [(&str, Option<f64>, ProgressStatus); 7] = [
     ("Build image", Some(1.0), ProgressStatus::Done),
@@ -77,7 +70,6 @@ impl ProgressPage {
         }
     }
 
-
     fn layout(&self) -> BarLayout {
         let l = BarLayout::default().reserve_value(self.opts.on("progress.reserve_value"));
         match self.opts.value("progress.label_width") {
@@ -92,7 +84,6 @@ impl ProgressPage {
             _ => StaleStyle::Dashed,
         }
     }
-
 
     fn children() -> [StackChild; 3] {
         [
@@ -199,9 +190,6 @@ impl ProgressPage {
         }
         let top = inner.y + METERS_NOTE.len() as u16 + 1;
 
-
-
-
         let visual = match self.opts.value("progress.meter_visual") {
             "block" => MeterVisual::Block,
             _ => MeterVisual::Line,
@@ -281,8 +269,6 @@ impl ProgressPage {
     }
 }
 
-
-
 fn states_grid(opts: &PageValues) -> StateGrid {
     use SpecimenState::*;
     let stale = match opts.value("progress.stale_style") {
@@ -317,8 +303,6 @@ impl Page for ProgressPage {
     fn blurb(&self) -> &'static str {
         "Determinate, indeterminate, an aggregate tally, capacity meters"
     }
-
-
 
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         let note = METERS_NOTE

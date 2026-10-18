@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
@@ -35,13 +24,11 @@ use junie_tui::widgets::props::{self, Prop, PropsAction, PropsCmd, PropsList, Sh
 
 const ID: WidgetId = WidgetId::of("textutilities");
 
-
 const LIST_H: u16 = 13;
 const BUFFER_H: u16 = 8;
 
 const MIN_W: u16 = 56;
 const LIST: WidgetId = WidgetId::of("textutilities.props");
-
 
 const SAMPLE: &str = "payments-platform/settlement-backoff";
 
@@ -57,8 +44,6 @@ pub struct TextUtilitiesPage {
 
     last: String,
 }
-
-
 
 fn list_props() -> Vec<Prop> {
     vec![
@@ -96,12 +81,10 @@ impl TextUtilitiesPage {
         page
     }
 
-
     #[allow(dead_code)]
     pub fn list(&self) -> &PropsList {
         &self.list
     }
-
 
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::TextUtilities);
@@ -112,7 +95,6 @@ impl TextUtilitiesPage {
         table[i].values[self.opts[i]]
     }
 
-
     fn sheet(&self) -> Sheet {
         match self.opt("textutilities.sheet") {
             "narrow-labels" => Sheet {
@@ -122,7 +104,6 @@ impl TextUtilitiesPage {
             _ => Sheet::default(),
         }
     }
-
 
     fn build_list(&self) -> PropsList {
         let reveal = match self.opt("textutilities.reveal") {
@@ -149,7 +130,6 @@ impl TextUtilitiesPage {
         list
     }
 
-
     fn list_readout(&self) -> String {
         let l = &self.list;
         let key = junie_tui::core::keymap::label_for(&l.keymap, PropsCmd::Copy)
@@ -171,7 +151,6 @@ impl TextUtilitiesPage {
             l.sheet.label_max_share,
         )
     }
-
 
     fn helpers(&self, w: usize) -> Vec<Prop> {
         let style = match self.opt("textutilities.duration") {
@@ -271,12 +250,9 @@ impl TextUtilitiesPage {
         self.opt("textutilities.width").parse().unwrap_or(20)
     }
 
-
     fn columns(area: Rect) -> (Rect, Rect) {
         crate::pages::layout::columns(area, 64.min(area.width * 11 / 20), 2)
     }
-
-
 
     fn left_heights(&self, width: u16) -> (u16, u16) {
         let w = self.width();
@@ -286,7 +262,6 @@ impl TextUtilitiesPage {
         let lines = text::wrap_with(PROSE, ww, self.wrap_opts()).len() as u16;
         (helpers, lines + 3)
     }
-
 
     fn readout(&self, width: u16) -> Vec<String> {
         let last = format!(
@@ -304,7 +279,6 @@ impl TextUtilitiesPage {
         let (left, right) = Self::columns(area);
         let w = self.width();
 
-
         let helpers = self.helpers(w);
         let title = format!("ui::text at width {w}");
         let panel = Panel::card(Some(&title)).meta("props::render_with");
@@ -315,7 +289,6 @@ impl TextUtilitiesPage {
         let card = Rect::new(left.x, left.y, left.width, h.min(left.height));
         let inner = panel.render(card, buf, t);
         props::render_with(inner, buf, t, &helpers, bg, sheet);
-
 
         let below = card.bottom() + 1;
         if below + 4 < left.bottom() {
@@ -344,7 +317,6 @@ impl TextUtilitiesPage {
             }
         }
 
-
         let mut y = right.y;
         let panel = Panel::card(Some("PropsList"))
             .meta("Enter activates · y copies")
@@ -362,7 +334,6 @@ impl TextUtilitiesPage {
             y += 1;
         }
         y += 1;
-
 
         if y + 5 < right.bottom() {
             let mut b = TextBuffer::multi("SELECT id, name\nFROM users\nWHERE active");
@@ -389,7 +360,6 @@ impl TextUtilitiesPage {
     }
 }
 
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -415,10 +385,6 @@ impl Page for TextUtilitiesPage {
     fn blurb(&self) -> &'static str {
         "Text helpers (truncation, wrapping, widths), property sheets and PropsList"
     }
-
-
-
-
 
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let width = avail.width.max(MIN_W);

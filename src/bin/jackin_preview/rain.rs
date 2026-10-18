@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -17,10 +8,7 @@ use crate::scenario::Motion;
 
 pub const TICK_MS: u64 = 33;
 
-
-
 pub const MOTION_SEED: u64 = 0x4A41_434B_494E_5E5E;
-
 
 #[inline]
 pub const fn mix(a: u64, b: u64, c: u64) -> u64 {
@@ -47,11 +35,8 @@ pub fn glyph(x: u64, y: u64, epoch: u64) -> char {
     POOL[(mix(x, y, epoch) % 78) as usize] as char
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tone {
-
     Ladder(u8),
     Accent,
 }
@@ -65,7 +50,6 @@ fn ladder_color(t: &Theme, i: u8) -> Color {
         _ => t.text_primary,
     }
 }
-
 
 pub fn style(t: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     match tone {
@@ -96,8 +80,6 @@ fn put(buf: &mut Buffer, x: u16, y: u16, ch: char, st: Style) {
 pub fn fill_canvas(buf: &mut Buffer, area: Rect, t: &Theme) {
     junie_tui::ui::ctx::fill(buf, area, Style::new().bg(t.canvas).fg(t.text_primary));
 }
-
-
 
 pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, t: &Theme) {
     if steps == 0 {
@@ -171,8 +153,6 @@ pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, t: &Theme) {
     }
 }
 
-
-
 fn center(area: Rect) -> (u16, u16) {
     (
         area.x + area.width / 2,
@@ -221,9 +201,6 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, t: &Theme) {
     }
 }
 
-
-
-
 fn draw_pill_bottom(buf: &mut Buffer, area: Rect, t: &Theme) {
     let lockup = junie_tui::widgets::brand::Lockup::new(crate::app::BRAND_MARK);
     let w = lockup.width();
@@ -235,7 +212,6 @@ fn draw_pill_bottom(buf: &mut Buffer, area: Rect, t: &Theme) {
     lockup.render(x, y, buf, t);
 }
 
-
 fn draw_typed(buf: &mut Buffer, area: Rect, text: &str, y: u16, shown: usize, t: &Theme) {
     let n = text.chars().count() as u16;
     let x0 = area.x + area.width.saturating_sub(n) / 2;
@@ -245,8 +221,6 @@ fn draw_typed(buf: &mut Buffer, area: Rect, text: &str, y: u16, shown: usize, t:
         }
     }
 }
-
-
 
 fn draw_glitched(buf: &mut Buffer, area: Rect, text: &str, y: u16, j: u64, tone: Tone, t: &Theme) {
     let n = text.chars().count() as u16;
@@ -264,14 +238,10 @@ fn draw_glitched(buf: &mut Buffer, area: Rect, text: &str, y: u16, j: u64, tone:
     }
 }
 
-
-
-
 pub const GLITCH_PASS_TICKS: u64 = 2;
 pub const GLITCH_PASSES: u64 = 5;
 
 pub const WARP_TICKS: u64 = 95;
-
 
 const fn xorshift(seed: &mut u64) -> u64 {
     if *seed == 0 {
@@ -290,18 +260,12 @@ struct Star {
     speed: f32,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WarpCell {
     pub ch: char,
     pub level: u8,
     pub accent: bool,
 }
-
-
-
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Starfield {
@@ -349,8 +313,6 @@ impl Starfield {
             frame: 0,
         }
     }
-
-
 
     pub fn advance(&mut self, accelerating: bool, f: u64) {
         use std::f32::consts::PI;
@@ -404,7 +366,6 @@ impl Starfield {
                 let bright = (frac * 0.7 + warp_factor / 5.2 * 0.3).clamp(0.0, 1.0) * entry_fade;
                 let level = (bright * 4.999) as u8;
 
-
                 self.cells[yu * cols + xu] = Some(WarpCell {
                     ch,
                     level,
@@ -419,8 +380,6 @@ impl Starfield {
     pub fn size(&self) -> (u16, u16) {
         (self.cols, self.rows)
     }
-
-
 
     pub fn paint(&self, buf: &mut Buffer, area: Rect, dim: u8, t: &Theme) {
         for y in 0..self.rows.min(area.height) {
@@ -444,8 +403,6 @@ impl Starfield {
     }
 }
 
-
-
 fn sync_field(
     field: &mut Option<Starfield>,
     area: Rect,
@@ -468,10 +425,6 @@ fn sync_field(
     }
 }
 
-
-
-
-
 pub const PHRASES: [(&str, u64, u64); 3] = [
     ("Stand up, operator…", 60, 950),
     ("Host stays outside…", 55, 950),
@@ -479,8 +432,6 @@ pub const PHRASES: [(&str, u64, u64); 3] = [
 ];
 pub const CAPTION: &str = "Knock, knock, operator.";
 pub const CAPTION_HOLD_MS: u64 = 850;
-
-
 
 pub const fn phrase_ticks(chars: u64, char_ms: u64, hold_ms: u64) -> u64 {
     (chars * char_ms + hold_ms).div_ceil(TICK_MS)
@@ -546,7 +497,6 @@ impl IntroState {
         self.phase() == IntroPhase::Done
     }
 
-
     pub fn on_tick(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
             return false;
@@ -554,8 +504,6 @@ impl IntroState {
         self.tick += 1;
         true
     }
-
-
 
     pub fn skip(&mut self) {
         match self.mode {
@@ -569,7 +517,6 @@ impl IntroState {
         }
     }
 }
-
 
 fn phrase_at(tick: u64) -> Option<(usize, usize)> {
     let mut start = 0;
@@ -585,7 +532,6 @@ fn phrase_at(tick: u64) -> Option<(usize, usize)> {
     }
     None
 }
-
 
 pub fn render_intro(buf: &mut Buffer, area: Rect, state: &mut IntroState, t: &Theme) {
     if area.is_empty() {
@@ -638,8 +584,6 @@ pub fn render_intro(buf: &mut Buffer, area: Rect, state: &mut IntroState, t: &Th
     }
 }
 
-
-
 pub const OUT_WARP: u64 = WARP_TICKS;
 
 pub const OUT_CAPTION: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + 2_400u64.div_ceil(TICK_MS);
@@ -659,8 +603,6 @@ pub struct OutroState {
     pub mode: Motion,
     field: Option<Starfield>,
 }
-
-
 
 pub fn format_universe_duration(secs: u64) -> String {
     fn unit(n: u64, name: &str) -> String {
@@ -737,7 +679,6 @@ impl OutroState {
         true
     }
 
-
     pub fn skip(&mut self) {
         self.tick = match self.phase() {
             OutroPhase::Warp => OUT_WARP,
@@ -767,7 +708,6 @@ pub fn render_outro(buf: &mut Buffer, area: Rect, state: &mut OutroState, t: &Th
             let f = state.tick;
             sync_field(&mut state.field, area, OUTRO_SALT, false, f);
             if let Some(field) = &state.field {
-
                 let dim = if f >= OUT_WARP - 12 {
                     ((f - (OUT_WARP - 12)) / 4) as u8
                 } else {
@@ -796,10 +736,6 @@ pub fn render_outro(buf: &mut Buffer, area: Rect, state: &mut OutroState, t: &Th
         OutroPhase::Done => fill_canvas(buf, area, t),
     }
 }
-
-
-
-
 
 pub fn paint_atmosphere(
     buf: &mut Buffer,
@@ -850,8 +786,6 @@ pub fn paint_atmosphere(
 
 pub const HANDOFF_LEN: u64 = 12;
 
-
-
 pub fn handoff_stage(h: u64) -> HandoffStage {
     match h {
         0..=3 => HandoffStage::CockpitDim((h + 1) as u8),
@@ -875,7 +809,6 @@ mod tests {
 
     #[test]
     fn intro_timeline_follows_the_original_pacing() {
-
         assert_eq!(P1_LEN, 64);
         assert_eq!(phrase_at(0), Some((0, 0)));
         assert_eq!(phrase_at(P1_LEN - 1).map(|p| p.0), Some(0));

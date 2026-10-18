@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Margin, Position, Rect};
@@ -36,7 +23,6 @@ pub enum DialogBody {
     Text(String),
     Input(TextInput),
 
-
     Facts {
         facts: Vec<crate::widgets::props::Prop>,
         code: Vec<String>,
@@ -52,7 +38,6 @@ pub struct AckInput {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogResult {
-
     Action(usize),
     Cancelled,
 }
@@ -62,8 +47,6 @@ pub struct Dialog {
     pub id: WidgetId,
     pub title: String,
 
-
-
     pub title_status: Option<StatusKind>,
     pub body: DialogBody,
     pub actions: Vec<Button>,
@@ -71,10 +54,7 @@ pub struct Dialog {
     pub cancel_index: Option<usize>,
     pub width: u16,
 
-
-
     pub keymap: KeyMap<DialogCmd>,
-
 
     pub nav: NavKeys,
     pub area: Rect,
@@ -83,106 +63,57 @@ pub struct Dialog {
 
     pub dismiss: Dismiss,
 
-
-
     pub close_button: crate::widgets::icon_button::IconButton,
-
 
     pub confirm_index: Option<usize>,
 
-
-
     pub body_scroll: bool,
-
 
     pub max_height: Option<u16>,
 
-
-
     pub outer_margin: Margin,
-
-
-
 
     pub placement: Placement,
 
-
     pub anchor: Rect,
-
-
 
     pub backdrop: Backdrop,
 
-
-
-
-
     pub chrome: (u16, u16),
-
-
 
     pub button_row: ButtonRow,
 
-
     gap: u16,
-
 
     pad: crate::theme::Insets,
 
-
     pub scroll: ScrollPane,
-
-
-
 
     pub horizontal: Option<HScroll>,
 
-
     strings: Strings,
-
-
 
     pub ack_enter: AckEnter,
 
-
-
-
     pub mnemonics: bool,
-
 
     pristine: String,
 
-
-
     pub guard_dirty_prompt: bool,
-
-
-
-
-
-
-
 
     pub guard_destructive_dismiss: bool,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AckEnter {
-
-
     #[default]
     Submit,
-
 
     NextField,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DialogCmd {
-
     Confirm,
 
     Cancel,
@@ -196,13 +127,10 @@ impl Actions for DialogCmd {
         }
     }
 
-
-
     fn default_keymap() -> KeyMap<Self> {
         vec![]
     }
 }
-
 
 pub const OUTER_MARGIN: Margin = Margin {
     horizontal: 3,
@@ -216,13 +144,10 @@ impl HasHints for Dialog {
 }
 
 impl Dialog {
-
     pub fn width(mut self, width: u16) -> Self {
         self.width = width;
         self
     }
-
-
 
     pub fn accelerators(mut self, keys: Option<(char, char)>) -> Self {
         self.keymap = match keys {
@@ -235,54 +160,41 @@ impl Dialog {
         self
     }
 
-
     pub fn keymap(mut self, keymap: KeyMap<DialogCmd>) -> Self {
         self.keymap = keymap;
         self
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-
     pub fn ack_enter(mut self, ack_enter: AckEnter) -> Self {
         self.ack_enter = ack_enter;
         self
     }
-
 
     pub fn mnemonics(mut self, on: bool) -> Self {
         self.mnemonics = on;
         self
     }
 
-
     pub fn guard_dirty_prompt(mut self, on: bool) -> Self {
         self.guard_dirty_prompt = on;
         self
     }
-
 
     pub fn guard_destructive_dismiss(mut self, on: bool) -> Self {
         self.guard_destructive_dismiss = on;
         self
     }
 
-
-
     fn dismissal_is_destructive(&self) -> bool {
         self.cancel_index
             .and_then(|i| self.actions.get(i))
             .is_some_and(|b| b.kind == ButtonKind::Danger)
     }
-
-
-
-
-
 
     pub(crate) fn dismiss_in_force(&self) -> Dismiss {
         let mut d = self.dismiss;
@@ -296,17 +208,12 @@ impl Dialog {
         d
     }
 
-
-
     fn has_text_field(&self) -> bool {
         matches!(
             self.body,
             DialogBody::Input(_) | DialogBody::Facts { ack: Some(_), .. }
         )
     }
-
-
-
 
     pub fn mnemonic_keys(&self) -> Vec<Option<(char, usize)>> {
         let mut taken: Vec<char> = vec![];
@@ -328,11 +235,9 @@ impl Dialog {
             .collect()
     }
 
-
     fn mnemonics_live(&self) -> bool {
         self.mnemonics && !self.has_text_field()
     }
-
 
     fn mnemonic_action(&self, key: &Key) -> Option<usize> {
         let KeyCode::Char(c) = key.code else {
@@ -347,12 +252,9 @@ impl Dialog {
             .position(|m| m.is_some_and(|(k, _)| k == c))
     }
 
-
     pub fn prompt_dirty(&self) -> bool {
         matches!(&self.body, DialogBody::Input(i) if i.text() != self.pristine)
     }
-
-
 
     fn gated_action(&self) -> Option<usize> {
         self.confirm_index.or_else(|| {
@@ -492,8 +394,6 @@ impl Dialog {
         }
     }
 
-
-
     fn follow_strings(&mut self, s: Strings) {
         let old = std::mem::replace(&mut self.strings, s);
         if old == s {
@@ -512,7 +412,6 @@ impl Dialog {
         }
     }
 
-
     pub fn facts(
         id: WidgetId,
         title: &str,
@@ -524,7 +423,6 @@ impl Dialog {
         let cancel = Button::secondary(id.sub("cancel"), Strings::DEFAULT.cancel);
         let cancel_id = cancel.id;
         let ack = token.map(|tok| AckInput {
-
             input: TextInput::new(
                 id.sub("ack"),
                 &Strings::fill(Strings::DEFAULT.type_to_confirm, &[&tok]),
@@ -577,18 +475,12 @@ impl Dialog {
         }
     }
 
-
     pub fn armed(&self) -> bool {
         match &self.body {
             DialogBody::Facts { ack: Some(a), .. } => a.input.text().trim() == a.token,
             _ => true,
         }
     }
-
-
-
-
-
 
     pub fn hints(&self, focused: Option<WidgetId>) -> Vec<Hint> {
         let s = &self.strings;
@@ -614,8 +506,6 @@ impl Dialog {
             && focused == Some(inp.id)
         {
             if let DialogBody::Facts { ack: Some(a), .. } = &self.body {
-
-
                 let gated = self
                     .gated_action()
                     .and_then(|i| self.actions.get(i))
@@ -649,7 +539,6 @@ impl Dialog {
                 v.push(hint("Tab", s.hint_next));
             }
             if inp.editing {
-
                 v.push(hint("Esc", s.hint_cancel));
             } else {
                 v.extend(dismiss_hint());
@@ -684,7 +573,6 @@ impl Dialog {
         }
         v.extend(dismiss_hint());
 
-
         if matches!(self.body, DialogBody::Text(_)) {
             if let Some(k) = crate::core::keymap::hint_key(&self.keymap, DialogCmd::Confirm)
                 && let Some(p) = self.actions.iter().find(|b| {
@@ -702,10 +590,6 @@ impl Dialog {
         v
     }
 
-
-
-
-
     pub fn cancel_label(mut self, label: &str) -> Self {
         if let Some(b) = self.cancel_index.and_then(|i| self.actions.get_mut(i)) {
             b.label = label.to_owned();
@@ -713,27 +597,20 @@ impl Dialog {
         self
     }
 
-
     pub fn title_status(mut self, kind: StatusKind) -> Self {
         self.title_status = Some(kind);
         self
     }
-
 
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = dismiss;
         self
     }
 
-
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
     }
-
-
-
-
 
     pub fn edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
         if let Some(inp) = self.input_mut() {
@@ -742,19 +619,12 @@ impl Dialog {
         self
     }
 
-
-
-
-
-
     pub(crate) fn dismissed(&mut self) -> Outcome {
         match self.cancel_index {
             Some(ci) => self.finish(DialogResult::Action(ci)),
             None => self.finish(DialogResult::Cancelled),
         }
     }
-
-
 
     pub fn actions(mut self, actions: Vec<Button>, cancel_index: Option<usize>) -> Self {
         self.actions = actions;
@@ -785,9 +655,6 @@ impl Dialog {
         }
     }
 
-
-
-
     fn code_rows(code: &[String]) -> u16 {
         if code.is_empty() {
             0
@@ -796,13 +663,9 @@ impl Dialog {
         }
     }
 
-
-
     fn code_bar_rows(code: &[String], inner_w: u16, h_cfg: &HScroll) -> u16 {
         u16::from(!code.is_empty() && h_cfg.shows_bar(&Self::code_extent(code, inner_w)))
     }
-
-
 
     fn code_extent(code: &[String], inner_w: u16) -> ScrollState {
         let widest = code
@@ -815,14 +678,11 @@ impl Dialog {
         s
     }
 
-
     fn scroll_code(&mut self, delta: isize) -> Outcome {
         self.scroll.wheel(Axis::Horizontal, delta as i32).outcome()
     }
 
-
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
-
         if let Some(inp) = self.input_mut()
             && inp.id == pressed
         {
@@ -837,25 +697,17 @@ impl Dialog {
         Outcome::Consumed
     }
 
-
-
     fn ack_rows(&self, ack: Option<&AckInput>, width: u16) -> u16 {
         ack.map_or(0, |a| a.input.height_for(self.field_width(width)) + 1)
     }
-
-
 
     fn field_width(&self, width: u16) -> u16 {
         self.inner_width(width) + TextInput::GUTTER
     }
 
-
-
     fn inner_width(&self, width: u16) -> u16 {
         width.saturating_sub(2 * (1 + self.pad.x))
     }
-
-
 
     fn scroll_rows(&self, width: u16) -> u16 {
         let inner_w = self.inner_width(width);
@@ -868,8 +720,6 @@ impl Dialog {
         }
     }
 
-
-
     fn fixed_rows(&self, width: u16) -> u16 {
         match &self.body {
             DialogBody::Text(_) => 0,
@@ -881,21 +731,15 @@ impl Dialog {
         }
     }
 
-
-
-
     fn chrome_rows(&self) -> u16 {
         5 + 2 * self.pad.y
     }
-
-
 
     fn action_rows(&self, width: u16) -> u16 {
         self.button_row
             .rows_at_gap(self.inner_width(width), &self.actions, self.gap)
             .max(1)
     }
-
 
     pub fn height(&self, width: u16) -> u16 {
         self.chrome_rows()
@@ -904,48 +748,40 @@ impl Dialog {
             + self.fixed_rows(width)
     }
 
-
     pub fn button_row(mut self, row: ButtonRow) -> Self {
         self.button_row = row;
         self
     }
-
 
     pub fn body_scroll(mut self, on: bool) -> Self {
         self.body_scroll = on;
         self
     }
 
-
     pub fn max_height(mut self, rows: Option<u16>) -> Self {
         self.max_height = rows;
         self
     }
-
 
     pub fn outer_margin(mut self, margin: Margin) -> Self {
         self.outer_margin = margin;
         self
     }
 
-
     pub fn backdrop(mut self, backdrop: Backdrop) -> Self {
         self.backdrop = backdrop;
         self
     }
-
 
     pub fn chrome(mut self, top: u16, bottom: u16) -> Self {
         self.chrome = (top, bottom);
         self
     }
 
-
     pub fn placement(mut self, placement: Placement) -> Self {
         self.placement = placement;
         self
     }
-
 
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = anchor;
@@ -953,15 +789,12 @@ impl Dialog {
         self
     }
 
-
     pub fn confirm_index(mut self, index: Option<usize>) -> Self {
         self.confirm_index = index;
         self
     }
 
     fn finish(&mut self, r: DialogResult) -> Outcome {
-
-
         if let DialogResult::Action(i) = r
             && Some(i) == self.confirm_index
             && !self.armed()
@@ -976,7 +809,6 @@ impl Dialog {
                 inp.commit();
             }
             if !inp.validate() {
-
                 inp.resume();
                 return Outcome::Changed;
             }
@@ -992,8 +824,6 @@ impl Dialog {
         ring: &crate::core::focus::FocusRing,
     ) -> Outcome {
         let cur = focus.current();
-
-
 
         if key.is(KeyCode::Esc)
             && self.dismiss.escape
@@ -1019,10 +849,6 @@ impl Dialog {
                     return Outcome::Changed;
                 }
                 Some(InputAction::Committed) => {
-
-
-
-
                     if is_facts {
                         if self.ack_enter == AckEnter::NextField {
                             focus.next(ring);
@@ -1035,7 +861,6 @@ impl Dialog {
                         }
                         let mismatch = self.strings.ack_mismatch;
                         if let Some(inp) = self.input_mut() {
-
                             inp.begin_edit();
                             inp.field.error = Some(mismatch.into());
                         }
@@ -1088,7 +913,6 @@ impl Dialog {
             }
         }
 
-
         if let Some(i) = self.mnemonic_action(key) {
             let usable =
                 !self.actions[i].disabled && (Some(i) != self.confirm_index || self.armed());
@@ -1130,7 +954,6 @@ impl Dialog {
                 Outcome::Changed
             }
 
-
             (Some(Nav::Left), _) if arrow && key.shift() && self.scroll.h.overflows() => {
                 self.scroll_code(-1)
             }
@@ -1138,7 +961,6 @@ impl Dialog {
                 self.scroll_code(1)
             }
             (Some(nav @ (Nav::Left | Nav::Right)), _) => {
-
                 if let Some(id) = self.button_row.step(&self.actions, cur, nav == Nav::Right) {
                     focus.focus(id);
                 }
@@ -1147,10 +969,6 @@ impl Dialog {
             _ => Outcome::Consumed,
         }
     }
-
-
-
-
 
     pub fn on_blur(&mut self, change: crate::core::focus::FocusChange) -> Outcome {
         match self.input_mut() {
@@ -1169,18 +987,12 @@ impl Dialog {
         }
     }
 
-
-
-
-
     pub fn on_press(&mut self, id: WidgetId, pos: Position, count: u8) -> Outcome {
         match self.input_mut() {
             Some(inp) if inp.id == id => inp.on_press_count(pos, count),
             _ => Outcome::Ignored,
         }
     }
-
-
 
     pub fn on_click(
         &mut self,
@@ -1191,9 +1003,6 @@ impl Dialog {
         self.on_click_count(id, pos, 1, focus)
     }
 
-
-
-
     pub fn on_click_count(
         &mut self,
         id: WidgetId,
@@ -1201,7 +1010,6 @@ impl Dialog {
         count: u8,
         focus: &mut crate::core::focus::Focus,
     ) -> Outcome {
-
         if id == crate::ui::modal::CLOSE && self.dismiss.shows_close() {
             return self.dismissed();
         }
@@ -1214,7 +1022,6 @@ impl Dialog {
         if scrollbar::is_bar_of(id, self.id) {
             let o = self.bar_press(pos).outcome().or(Outcome::Consumed);
             if id == scrollbar::id_for(self.id) {
-
                 self.scroll.v.release_track();
             }
             return o;
@@ -1231,8 +1038,6 @@ impl Dialog {
         Outcome::Consumed
     }
 
-
-
     pub fn on_click_outside(&mut self) -> Outcome {
         if self.dismiss_in_force().outside_click {
             self.dismissed()
@@ -1241,16 +1046,10 @@ impl Dialog {
         }
     }
 
-
-
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let bounds = body_bounds(screen, self.chrome.0, self.chrome.1);
         self.render_in(screen, bounds, buf, ctx);
     }
-
-
-
-
 
     pub fn render_in(&mut self, screen: Rect, bounds: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         self.follow_strings(ctx.theme.strings);
@@ -1277,7 +1076,6 @@ impl Dialog {
             .min(self.max_height.unwrap_or(u16::MAX));
         let height = self.height(width).min(room);
         let area = match self.placement {
-
             Placement::Center => {
                 bounds.centered(Constraint::Length(width), Constraint::Length(height))
             }
@@ -1328,9 +1126,6 @@ impl Dialog {
         let action_rows = self.action_rows(width);
         let actions_y = area.bottom().saturating_sub(1 + self.pad.y + action_rows);
 
-
-
-
         let fixed = self.fixed_rows(width);
         let scroll_bottom = actions_y.saturating_sub(1 + fixed).max(body_y);
         let viewport = scroll_bottom - body_y;
@@ -1362,9 +1157,6 @@ impl Dialog {
                 inp.render(r, buf, ctx, bg);
             }
             DialogBody::Facts { facts, code, ack } => {
-
-
-
                 let sheet_area = Rect::new(0, 0, inner.width, content);
                 let mut sheet = Buffer::empty(sheet_area);
                 fill(&mut sheet, sheet_area, ratatui::style::Style::new().bg(bg));
@@ -1372,8 +1164,6 @@ impl Dialog {
                 let facts_h = crate::widgets::props::measure(facts, inner.width);
                 let mut y = scroll_bottom;
                 if !code.is_empty() {
-
-
                     let extent = Self::code_extent(code, inner.width);
                     let off = self.scroll.h.offset;
                     self.scroll.h.set_content(extent.content_len);
@@ -1422,8 +1212,6 @@ impl Dialog {
             }
         }
         if self.scroll.overflows() && viewport > 0 {
-
-
             let track = Rect::new(area.right() - 2, body_y, 1, viewport);
             self.scroll.set_track(self.id, Axis::Vertical, track);
             let below = self.scroll.max_offset() - self.scroll.offset;
@@ -1469,7 +1257,6 @@ impl Dialog {
             bg,
         );
 
-
         ctx.hits.register_surface(self.id, area);
 
         match &self.body {
@@ -1495,10 +1282,6 @@ impl Dialog {
     }
 }
 
-
-
-
-
 pub fn body_bounds(screen: Rect, top: u16, bottom: u16) -> Rect {
     let h = screen.height.saturating_sub(top + bottom);
     if h == 0 {
@@ -1506,8 +1289,6 @@ pub fn body_bounds(screen: Rect, top: u16, bottom: u16) -> Rect {
     }
     Rect::new(screen.x, screen.y + top, screen.width, h)
 }
-
-
 
 fn blit_rows(src: &Buffer, from: u16, dst: &mut Buffer, at: Rect) {
     let at = at.intersection(*dst.area());
@@ -1532,8 +1313,6 @@ impl Scrollable for Dialog {
         &mut self.scroll
     }
 
-
-
     fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         let r = self.scroll.wheel(axis, delta);
         if r.is_consumed() {
@@ -1545,13 +1324,6 @@ impl Scrollable for Dialog {
 }
 
 impl Dialog {
-
-
-
-
-
-
-
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -1651,9 +1423,6 @@ mod tests {
         assert_eq!(c.fg, theme.legible(st.fg.unwrap(), c.bg));
     }
 
-
-
-
     #[test]
     fn every_line_of_a_long_code_preview_is_reached_by_scrolling_the_body() {
         let code: Vec<String> = (1..=14).map(|i| format!("step {i:02} apt-get")).collect();
@@ -1723,7 +1492,6 @@ mod tests {
         };
         assert!(line(&buf).contains("DELETE FROM"));
 
-
         let mut focus = crate::core::focus::Focus::default();
         let ring = FocusRing::default();
         let shift = Key {
@@ -1738,7 +1506,6 @@ mod tests {
             buf[(bar.x, bar.y)].symbol() != scrollbar::H_THUMB,
             "the thumb moved"
         );
-
 
         assert_eq!(d.wheel(Axis::Horizontal, 1).outcome(), Outcome::Changed);
         let (buf, _) = draw(&mut d);
@@ -1822,11 +1589,9 @@ mod tests {
         plain.on_click_outside();
         assert_eq!(plain.result, Some(DialogResult::Action(0)));
 
-
         let mut gated = gate(78);
         assert_eq!(gated.on_click_outside(), Outcome::Consumed);
         assert_eq!(gated.result, None);
-
 
         let mut del =
             Dialog::destructive(id, "Delete?", "Gone for good.", "Delete").dismiss(Dismiss::ESCAPE);
@@ -1844,9 +1609,6 @@ mod tests {
         locked.on_click_outside();
         assert_eq!(locked.result, None);
     }
-
-
-
 
     #[test]
     fn a_destructive_cancel_refuses_light_dismissal_but_not_esc() {
@@ -1881,11 +1643,9 @@ mod tests {
         d.on_key(&esc, &mut focus, &ring);
         assert_eq!(d.result, Some(DialogResult::Action(1)), "Esc still cancels");
 
-
         let mut light = destructive_cancel().guard_destructive_dismiss(false);
         light.on_click_outside();
         assert_eq!(light.result, Some(DialogResult::Action(1)));
-
 
         let mut del = Dialog::destructive(id, "Delete?", "Gone for good.", "Delete");
         del.on_click_outside();
@@ -1933,7 +1693,6 @@ mod tests {
     #[test]
     fn a_destructive_dialog_names_the_focused_cancel_button_not_confirm() {
         let d = Dialog::destructive(WidgetId::of("del"), "Delete?", "Gone for good.", "Delete");
-
 
         let text = hint_text(&d.hints(Some(d.initial_focus)));
         assert_eq!(text, "←→ Choose · Enter Cancel · Esc Cancel");
@@ -1998,7 +1757,6 @@ mod tests {
         );
     }
 
-
     fn draw(d: &mut Dialog, screen: Rect, bounds: Rect) -> Buffer {
         let theme = Theme::junie();
         let mut hits = HitRegistry::default();
@@ -2008,8 +1766,6 @@ mod tests {
         d.render_in(screen, bounds, &mut buf, &mut ctx);
         buf
     }
-
-
 
     #[test]
     fn chrome_rows_place_render_like_render_in_body_bounds() {
@@ -2055,8 +1811,6 @@ mod tests {
             .collect::<Vec<_>>()
             .join("\n")
     }
-
-
 
     fn ack_dialog(enter: AckEnter) -> (Dialog, crate::core::focus::Focus, FocusRing) {
         let mut d = Dialog::facts(
@@ -2461,8 +2215,6 @@ mod track_click_tests {
         );
         d.scroll.offset
     }
-
-
 
     #[test]
     fn a_dialog_body_track_click_can_page() {

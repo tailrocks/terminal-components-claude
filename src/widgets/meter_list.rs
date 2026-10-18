@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
@@ -22,7 +7,6 @@ use crate::theme::Tone;
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{fit, truncate, width};
 use crate::widgets::progress::{Meter, MeterTone};
-
 
 #[derive(Debug, Clone)]
 pub struct MeterRow {
@@ -47,7 +31,6 @@ impl MeterRow {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct MeterList {
     pub rows: Vec<MeterRow>,
@@ -58,17 +41,11 @@ pub struct MeterList {
 
     pub label_gap: u16,
 
-
-
-
     pub pad_label: bool,
-
 
     pub meter_width: Option<u16>,
 
-
     pub reserve: u16,
-
 
     pub min_meter: u16,
 
@@ -138,12 +115,9 @@ impl MeterList {
         self
     }
 
-
     pub fn height(&self) -> u16 {
         self.rows.len() as u16
     }
-
-
 
     pub fn label_column(&self, area: Rect) -> u16 {
         self.label_width
@@ -157,8 +131,6 @@ impl MeterList {
             .min(area.width)
     }
 
-
-
     pub fn meter_column(&self, area: Rect) -> (u16, u16) {
         let mx = area.x + self.label_column(area) + self.label_gap;
         let room = area.right().saturating_sub(mx).saturating_sub(self.reserve);
@@ -169,7 +141,6 @@ impl MeterList {
             (mx, mw)
         }
     }
-
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) -> u16 {
         let area = area.intersection(*buf.area());
@@ -214,11 +185,6 @@ impl MeterList {
     }
 }
 
-
-
-
-
-
 impl crate::ui::measure::Measure for MeterList {
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         let label = self.label_column(Rect::new(0, 0, u16::MAX, 1));
@@ -229,7 +195,6 @@ impl crate::ui::measure::Measure for MeterList {
                 .max()
                 .unwrap_or(0)
         });
-
 
         let detail = match self.meter_width {
             None => 0,
@@ -248,11 +213,7 @@ impl crate::ui::measure::Measure for MeterList {
     }
 }
 
-
 const SAMPLE_ID: WidgetId = WidgetId::of("meter-list-sample");
-
-
-
 
 impl crate::ui::specimen::Specimen for MeterList {
     fn specimen_id(&self) -> WidgetId {
@@ -308,8 +269,6 @@ mod tests {
             .trim_end()
             .to_owned()
     }
-
-
 
     #[test]
     fn a_list_at_its_measure_shows_everything() {

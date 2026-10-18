@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -42,7 +33,6 @@ fn email(s: &str) -> Option<String> {
     }
 }
 
-
 fn name(s: &str, required: bool) -> Option<String> {
     if s.trim().is_empty() {
         required.then(|| "Required".into())
@@ -59,7 +49,6 @@ enum Submit {
     Busy(u8),
     Done,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Part {
@@ -131,8 +120,6 @@ impl FormsPage {
         page
     }
 
-
-
     fn apply(&mut self) {
         let o = &self.opts;
         let when = match o.value("forms.validate_when") {
@@ -171,7 +158,6 @@ impl FormsPage {
         self.notify = Toggle::new(ID.sub("notify"), "Notify on completion", self.notify.on)
             .disabled(o.on("forms.managed"));
     }
-
 
     fn desc_rows(&self) -> u16 {
         self.opts.number("forms.desc_rows").unwrap_or(4)
@@ -213,7 +199,6 @@ impl FormsPage {
         cx.focus.focus(self.name.id);
         cx.status("Form reset");
     }
-
 
     fn message(
         &self,
@@ -262,7 +247,6 @@ impl FormsPage {
             t,
         );
 
-
         if inner.height < 11 || inner.width < 40 {
             self.render_column(inner, buf, ctx, bg);
             return;
@@ -271,7 +255,6 @@ impl FormsPage {
         self.description.rows = if compact { 1 } else { self.desc_rows() };
         let body = Rect::new(inner.x, inner.y, inner.width, inner.height - 2);
         let (l, r) = crate::pages::layout::columns(body, body.width / 2 - 2, 4);
-
 
         let mut y = l.y;
         if !compact {
@@ -300,7 +283,6 @@ impl FormsPage {
         self.reviewer
             .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
 
-
         let mut y = r.y;
         if !compact {
             buf.set_string(r.x, y, "Options", t.faint().bg(bg));
@@ -317,11 +299,9 @@ impl FormsPage {
         y += 1 + u16::from(!compact);
         self.render_toggles(Rect::new(r.x, y, r.width, 3), buf, ctx, bg);
 
-
         let ay = inner.bottom().saturating_sub(1);
         self.render_actions(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
     }
-
 
     fn render_toggles(
         &mut self,
@@ -371,8 +351,6 @@ impl FormsPage {
         }
     }
 
-
-
     fn render_column(
         &mut self,
         area: Rect,
@@ -393,7 +371,6 @@ impl FormsPage {
         let l = self.sections.layout(area, &children, focus, buf, ctx);
         for (i, part) in Part::ALL.into_iter().enumerate() {
             let Some(r) = l.slot(i) else {
-
                 for id in self.part_ids(part) {
                     if !(id == self.notify.id && self.notify.disabled) {
                         ctx.focus_stop(id);
@@ -420,8 +397,6 @@ impl FormsPage {
 }
 
 impl FormsPage {
-
-
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         for inp in [&mut self.name, &mut self.reviewer] {
@@ -479,8 +454,6 @@ impl FormsPage {
             .unwrap_or(Outcome::Ignored)
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -556,7 +529,6 @@ impl Page for FormsPage {
             }
             return Outcome::Ignored;
         }
-
 
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('s')
@@ -712,9 +684,6 @@ mod tests {
     use junie_tui::core::{focus::FocusRing, hit::HitRegistry};
     use junie_tui::theme::{ColorLevel, Theme};
     use junie_tui::ui::ctx::Interaction;
-
-
-
 
     #[test]
     fn form_keeps_all_controls_inside_small_normal_and_wide_page() {

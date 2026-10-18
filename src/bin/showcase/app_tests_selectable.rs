@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -19,12 +15,9 @@ struct Harness {
 }
 
 impl Harness {
-
-
     fn new(w: u16, h: u16) -> Self {
         Self::on(w, h, ClientPlatform::Other)
     }
-
 
     fn on(w: u16, h: u16, platform: ClientPlatform) -> Self {
         let mut app = App::new(Theme::junie());
@@ -33,7 +26,6 @@ impl Harness {
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
-
 
         h.key(KeyCode::Tab);
         h.key(KeyCode::Tab);
@@ -58,15 +50,10 @@ impl Harness {
         self.key_mod(code, KeyModifiers::NONE);
     }
 
-
-
-
-
     fn click_mod(&mut self, x: u16, y: u16, mods: KeyModifiers) {
         self.app.shell.pointer.reset_clicks();
         self.press_release(x, y, mods);
     }
-
 
     #[allow(dead_code)]
     fn double_click(&mut self, x: u16, y: u16) {
@@ -83,15 +70,12 @@ impl Harness {
         }
     }
 
-
-
     fn raw_click(&mut self, needle: &str, mods: KeyModifiers, config: InputConfig) {
         let (column, row) = self
             .find(needle)
             .unwrap_or_else(|| panic!("{needle:?} not on screen:\n{}", self.text()));
         self.raw_click_at(column, row, mods, config);
     }
-
 
     fn raw_click_at(&mut self, column: u16, row: u16, mods: KeyModifiers, config: InputConfig) {
         use ratatui::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
@@ -112,7 +96,6 @@ impl Harness {
             }
         }
     }
-
 
     fn footer(&self) -> String {
         self.row(self.term.backend().buffer().area.height - 1)
@@ -135,7 +118,6 @@ impl Harness {
             .join("\n")
     }
 
-
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         let want: Vec<&str> =
@@ -151,14 +133,12 @@ impl Harness {
         None
     }
 
-
     fn click_text(&mut self, needle: &str, mods: KeyModifiers) {
         let (x, y) = self
             .find(needle)
             .unwrap_or_else(|| panic!("{needle:?} not on screen:\n{}", self.text()));
         self.click_mod(x, y, mods);
     }
-
 
     fn table_row(&self, name: &str) -> String {
         let (_, y) = self.find(name).expect(name);
@@ -275,7 +255,6 @@ fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
     h.raw_click("Bo Lindqvist", KeyModifiers::ALT, mac);
     assert!(h.has("2 selected"));
 
-
     h.raw_click("Bo Lindqvist", KeyModifiers::CONTROL, mac);
     assert!(h.has("Delete…") && h.has("Edit"), "{}", h.text());
     assert!(h.footer().contains("Esc Close"), "{}", h.footer());
@@ -283,7 +262,6 @@ fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
     h.key(KeyCode::Esc);
     assert!(h.has("2 selected"));
     assert!(!h.table_row("Hana Sato").contains("[✓]"));
-
 
     let (x, y) = h.find("Hana Sato").unwrap();
     h.raw_click_at(x - 4, y, KeyModifiers::NONE, mac);
@@ -294,9 +272,6 @@ fn macos_option_click_toggles_rows_and_ctrl_click_opens_the_row_menu() {
     assert!(h.has("2 selected"), "{}", h.text());
     assert!(!h.table_row("Hana Sato").contains("[✓]"));
 }
-
-
-
 
 #[test]
 fn a_double_click_opens_a_row_and_a_slow_second_click_only_selects() {
@@ -354,7 +329,6 @@ fn row_menu_edits_or_deletes_the_row_it_opened_on() {
         Position::new(x, y),
     )));
     h.draw();
-
 
     assert!(h.has("1 selected"), "{}", h.text());
     assert!(h.table_row("June Park").contains("[✓]"), "{}", h.text());
@@ -451,7 +425,6 @@ fn single_edit_and_revert() {
     assert!(!h.has("June Park Lee"));
     assert!(!h.has("Unsaved changes"));
 
-
     let (lx, ly) = h.find("Name *").unwrap();
     h.click(lx + 2, ly + 1);
     h.key(KeyCode::End);
@@ -499,7 +472,6 @@ fn narrow_terminal_stacks_the_editor_under_the_table() {
     }
 }
 
-
 #[test]
 fn selection_marks_stay_apart_from_the_single_focus_bar() {
     let mut h = Harness::new(160, 50);
@@ -541,7 +513,6 @@ fn changing_the_selection_commits_valid_edits() {
     h.key(KeyCode::Enter);
     assert!(h.has("Unsaved changes"), "{}", h.text());
 
-
     h.click_text("Cleo Barnes", KeyModifiers::NONE);
     assert!(!h.has("Save changes?"), "{}", h.text());
     assert!(
@@ -560,7 +531,6 @@ impl Harness {
             .handle(Input::Mouse(Mouse::new(kind, Position::new(x, y))));
         self.draw();
     }
-
 
     fn find_below(&self, needle: &str, below: u16, right: u16) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
@@ -648,8 +618,6 @@ fn changing_the_selection_with_invalid_edits_asks_save_dont_save_cancel() {
 
 #[test]
 fn a_clicked_row_anchors_a_shift_arrow_range() {
-
-
     let mut h = Harness::new(120, 43);
     h.click_text("Ari Moreno", KeyModifiers::NONE);
     h.key_mod(KeyCode::Down, KeyModifiers::SHIFT);

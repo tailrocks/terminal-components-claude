@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -46,7 +36,6 @@ pub const SINGLE: WidgetId = ID.sub("single");
 pub const MULTI: WidgetId = ID.sub("multi");
 pub const EMPTY: WidgetId = ID.sub("empty");
 
-
 const FILES: [(&str, &str, bool); 12] = [
     ("src/api/auth.rs", "modified", false),
     ("src/api/billing.rs", "modified", false),
@@ -73,7 +62,6 @@ fn files() -> Vec<ListItem> {
     FILES
         .iter()
         .map(|(n, m, d)| {
-
             let tone = match *m {
                 "new" => Tone::Success,
                 "modified" => Tone::Warning,
@@ -115,12 +103,10 @@ impl ListsPage {
         page
     }
 
-
     #[allow(dead_code)]
     pub fn single(&self) -> &ListBox {
         &self.single
     }
-
 
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::Lists);
@@ -130,7 +116,6 @@ impl ListsPage {
             .unwrap_or_else(|| panic!("no option {key}"));
         table[i].values[self.opts[i]]
     }
-
 
     fn build(&self, l: ListBox) -> ListBox {
         let mut l = l
@@ -175,8 +160,6 @@ impl ListsPage {
         l
     }
 
-
-
     fn rebuild(&mut self) {
         let keep = |old: &ListBox, mut new: ListBox| {
             new.cursor = old.cursor;
@@ -215,7 +198,6 @@ impl ListsPage {
     fn list_mut(&mut self, id: WidgetId) -> Option<&mut ListBox> {
         self.lists().into_iter().find(|l| l.id == id)
     }
-
 
     fn readout(&self) -> Vec<String> {
         let l = &self.multi;
@@ -258,7 +240,6 @@ impl ListsPage {
         ]
     }
 
-
     fn row_items(l: &ListBox, row: usize) -> Vec<MenuItem> {
         let item = &l.items[row];
         match l.mode {
@@ -300,7 +281,6 @@ impl ListsPage {
         }
     }
 
-
     fn open_menu(&mut self, id: WidgetId, req: ContextRequest<usize>) {
         let Some(l) = self.list_mut(id) else {
             return;
@@ -310,8 +290,6 @@ impl ListsPage {
         self.menu
             .open(req.menu(MENU, items).title(title), (id, req.target));
     }
-
-
 
     fn choose(&mut self, (id, row): (WidgetId, usize), i: usize) -> Outcome {
         let Some(l) = self.list_mut(id) else {
@@ -332,8 +310,6 @@ impl ListsPage {
         }
     }
 
-
-
     fn rows_width(list: &ListBox) -> u16 {
         list.items
             .iter()
@@ -351,8 +327,6 @@ impl ListsPage {
             .unwrap_or("—");
         format!("Space toggle · {all} all · Shift+↓ range")
     }
-
-
 
     fn tiled(&self, width: u16) -> Tiled {
         let card =
@@ -385,7 +359,6 @@ impl ListsPage {
             (2, 1),
         )
     }
-
 
     fn readout_lines(&self, width: u16) -> Vec<String> {
         self.readout()
@@ -460,7 +433,6 @@ impl ListsPage {
         let inner = panel.render(cols[2], buf, t);
         self.empty.render(inner, buf, ctx, bg);
 
-
         for (y, l) in (area.y + h + 1..).zip(self.readout_lines(area.width)) {
             buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
         }
@@ -468,13 +440,11 @@ impl ListsPage {
     }
 }
 
-
 const LIST_H: u16 = 18;
 
 const ROW_CHROME: u16 = 8;
 
 const EMPTY_W: u16 = 30;
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

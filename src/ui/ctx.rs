@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 
@@ -19,7 +5,6 @@ use crate::core::focus::FocusRing;
 use crate::core::hit::HitRegistry;
 use crate::core::id::WidgetId;
 use crate::theme::Theme;
-
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Interaction {
@@ -29,72 +14,42 @@ pub struct Interaction {
 
     pub flash: Option<WidgetId>,
 
-
-
-
-
     pub focus_hidden: bool,
 
-
     pub hover_suppressed: bool,
-
-
 
     pub pointer_focus: bool,
     pub tick: u64,
 
-
-
-
     pub motion_unreported: bool,
-
-
-
-
 
     pub hover_ms: Option<u64>,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusVisible {
-
     #[default]
     Always,
-
-
 
     KeyboardOnly,
 }
 
 impl Interaction {
-
-
     pub fn focused(&self, id: WidgetId) -> bool {
         !self.focus_hidden && self.has_focus(id)
     }
-
-
-
 
     pub fn focused_under(&self, id: WidgetId, layer_open: bool) -> bool {
         !layer_open && self.focused(id)
     }
 
-
-
-
     pub fn shown_focus(&self) -> Option<WidgetId> {
         self.focus.filter(|_| !self.focus_hidden)
     }
 
-
-
     pub fn has_focus(&self, id: WidgetId) -> bool {
         self.focus == Some(id)
     }
-
-
 
     pub fn live_hover(&self) -> Option<WidgetId> {
         self.hover.filter(|_| !self.hover_suppressed)
@@ -110,7 +65,6 @@ impl Interaction {
         (self.pressed == Some(id) && self.hover == Some(id)) || self.flash == Some(id)
     }
 
-
     pub fn pressed_any(&self, ids: impl IntoIterator<Item = WidgetId>) -> bool {
         ids.into_iter().any(|id| self.pressed(id))
     }
@@ -119,14 +73,10 @@ impl Interaction {
         ids.into_iter().any(|id| self.hovered(id))
     }
 
-
-
-
     pub fn flash_within(&self, container: WidgetId) -> bool {
         self.flash == Some(container)
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct VisualState {
@@ -139,16 +89,10 @@ pub struct VisualState {
     pub editing: bool,
     pub busy: bool,
 
-
-
-
     pub backdrop: bool,
-
 
     pub inactive_selection: Option<crate::theme::InactiveSelection>,
 }
-
-
 
 type OverlayFn = Box<dyn for<'r> FnOnce(&mut Buffer, &mut RenderCtx<'r>)>;
 
@@ -160,50 +104,28 @@ pub struct RenderCtx<'a> {
 
     pub cursor: Option<Position>,
 
-
     pub inert: bool,
-
 
     overlays: Vec<(bool, OverlayFn)>,
 
-
     pub reveal: crate::ui::reveal::Reveal,
-
 
     pub tooltips: crate::ui::tooltip::Tooltips,
 
-
     pub hscroll: crate::core::scroll::HScroll,
-
-
-
 
     pub track_click: crate::core::scroll::TrackClick,
 
     pub(crate) reveal_slot: crate::ui::reveal::Slot,
 
-
-
-
     pub reveal_hint: Option<(&'static str, &'static str)>,
 
-
-
-
-
     pub peek: Option<String>,
-
-
-
-
 
     pub(crate) shifts: Vec<Shift>,
 }
 
-
-
 pub(crate) type Shift = std::rc::Rc<std::cell::Cell<(u16, u16)>>;
-
 
 pub(crate) fn total_shift(shifts: &[Shift]) -> (u16, u16) {
     shifts.iter().fold((0, 0), |(x, y), s| {
@@ -211,10 +133,6 @@ pub(crate) fn total_shift(shifts: &[Shift]) -> (u16, u16) {
         (x.saturating_add(a), y.saturating_add(b))
     })
 }
-
-
-
-
 
 fn shifted(shifts: Vec<Shift>, draw: OverlayFn) -> OverlayFn {
     Box::new(move |buf: &mut Buffer, ctx: &mut RenderCtx| {
@@ -251,8 +169,6 @@ fn shifted(shifts: Vec<Shift>, draw: OverlayFn) -> OverlayFn {
         }
     })
 }
-
-
 
 pub(crate) fn copy_cells(from: &Buffer, area: Rect, to: &mut Buffer, at: Position) {
     let area = area.intersection(from.area);
@@ -301,11 +217,6 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
-
-
-
-
     pub(crate) fn detached(
         theme: &'a Theme,
         interaction: Interaction,
@@ -331,7 +242,6 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
     pub fn control(&mut self, id: WidgetId, area: Rect, disabled: bool) {
         if self.inert {
             return;
@@ -342,18 +252,11 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
-
-
     pub fn focus_stop(&mut self, id: WidgetId) {
         if !self.inert {
             self.ring.register(id);
         }
     }
-
-
-
-
 
     pub fn selection(&mut self, id: WidgetId) {
         if !self.inert {
@@ -361,16 +264,11 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
     pub fn clickable(&mut self, id: WidgetId, area: Rect) {
         if !self.inert {
             self.hits.register(id, area);
         }
     }
-
-
-
-
 
     pub fn register_part(
         &mut self,
@@ -382,9 +280,6 @@ impl<'a> RenderCtx<'a> {
         self.register_part_as(id, owner, part, area);
         id
     }
-
-
-
 
     pub fn register_part_as(
         &mut self,
@@ -398,21 +293,17 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
     pub fn pointer_shape(&mut self, id: WidgetId, shape: crate::core::shape::PointerShape) {
         if !self.inert {
             self.hits.set_shape(id, shape);
         }
     }
 
-
-
     pub fn clickable_under(&mut self, id: WidgetId, area: Rect) {
         if !self.inert {
             self.hits.register_under(id, area);
         }
     }
-
 
     pub fn scrollbar(
         &mut self,
@@ -431,14 +322,11 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
-
     pub fn scrollbar_thumb(&mut self, id: WidgetId, thumb: Rect, owner: WidgetId) {
         if !self.inert {
             self.hits.register_thumb(id, owner, thumb);
         }
     }
-
 
     pub fn scrollable(&mut self, id: WidgetId, area: Rect) {
         if !self.inert {
@@ -446,16 +334,11 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
-
-
     pub fn scrollable_under(&mut self, id: WidgetId, area: Rect) {
         if !self.inert {
             self.hits.register_scroll_under(id, area);
         }
     }
-
-
 
     pub fn autoscroll(&mut self, area: Rect) {
         if !self.inert {
@@ -473,8 +356,6 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
-
     pub fn chosen(&self, focused: bool) -> ratatui::style::Color {
         self.theme.chosen_in(VisualState {
             focused,
@@ -483,18 +364,11 @@ impl<'a> RenderCtx<'a> {
         })
     }
 
-
-
-
     pub fn child_state(&self, container: WidgetId, child: WidgetId, cursor: bool) -> VisualState {
         let mut s = self.state(child);
         s.pressed |= cursor && self.interaction.flash_within(container);
         s
     }
-
-
-
-
 
     pub fn title_style(&self, id: WidgetId, bg: ratatui::style::Color) -> ratatui::style::Style {
         let t = self.theme;
@@ -510,13 +384,6 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
-
-
-
-
-
-
     pub fn overlay(
         &mut self,
         draw: impl for<'r> FnOnce(&mut Buffer, &mut RenderCtx<'r>) + 'static,
@@ -530,21 +397,12 @@ impl<'a> RenderCtx<'a> {
         self.overlays.push((self.inert, draw));
     }
 
-
-
     pub(crate) fn overlay_unshifted(
         &mut self,
         draw: impl for<'r> FnOnce(&mut Buffer, &mut RenderCtx<'r>) + 'static,
     ) {
         self.overlays.push((self.inert, Box::new(draw)));
     }
-
-
-
-
-
-
-
 
     pub fn clip<R>(
         &mut self,
@@ -576,11 +434,7 @@ impl<'a> RenderCtx<'a> {
         out
     }
 
-
-
-
     pub fn flush_overlays(&mut self, buf: &mut Buffer) {
-
         crate::ui::reveal::flush_cuts(self);
         while !self.overlays.is_empty() {
             let queued = std::mem::take(&mut self.overlays);
@@ -592,18 +446,9 @@ impl<'a> RenderCtx<'a> {
         }
     }
 
-
-
-
-
-
-
     pub fn page_under_layer(&mut self, open: bool) {
         self.interaction.focus_hidden = open;
     }
-
-
-
 
     pub fn begin_modal(&mut self, buf: &mut Buffer) {
         self.flush_overlays(buf);
@@ -612,12 +457,6 @@ impl<'a> RenderCtx<'a> {
         self.inert = false;
         self.interaction.focus_hidden = false;
     }
-
-
-
-
-
-
 
     pub fn visual_order<T>(&mut self, draw: impl FnOnce(&mut Self) -> T) -> T {
         let start = self.ring.len();
@@ -633,30 +472,17 @@ impl<'a> RenderCtx<'a> {
         out
     }
 
-
-
-
-
-
-
     pub fn cover(&mut self, buf: &mut Buffer) {
         self.flush_overlays(buf);
         self.hits.push_barrier();
         self.ring.push_barrier();
     }
 
-
-
-
     pub fn modal_backdrop(&mut self, buf: &mut Buffer, screen: Rect) {
         self.modal_backdrop_with(buf, screen, Backdrop::DEFAULT);
     }
 
-
-
-
     pub fn modal_backdrop_with(&mut self, buf: &mut Buffer, screen: Rect, backdrop: Backdrop) {
-
         self.flush_overlays(buf);
         let t = self.theme;
         let top = backdrop.keep_top.min(screen.height);
@@ -671,9 +497,6 @@ impl<'a> RenderCtx<'a> {
         );
         for pos in dim.positions() {
             if let Some(c) = buf.cell_mut(pos) {
-
-
-
                 let bar = t.glyphs.focus_bar;
                 let is_bar = c.symbol() == bar
                     && (!bar.is_ascii() || c.fg == t.focus || c.fg == t.text_on_accent);
@@ -690,15 +513,6 @@ impl<'a> RenderCtx<'a> {
     }
 }
 
-
-
-
-
-
-
-
-
-
 pub fn legible_on_fill(buf: &mut Buffer, area: Rect, t: &Theme, plane: ratatui::style::Color) {
     for pos in area.positions() {
         if let Some(c) = buf.cell_mut(pos)
@@ -711,7 +525,6 @@ pub fn legible_on_fill(buf: &mut Buffer, area: Rect, t: &Theme, plane: ratatui::
     }
 }
 
-
 pub fn fill(buf: &mut Buffer, area: Rect, style: ratatui::style::Style) {
     for y in area.top()..area.bottom() {
         for x in area.left()..area.right() {
@@ -723,19 +536,14 @@ pub fn fill(buf: &mut Buffer, area: Rect, style: ratatui::style::Style) {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Backdrop {
-
-
     pub keep_bottom: u16,
 
     pub keep_top: u16,
 }
 
 impl Backdrop {
-
     pub const DEFAULT: Self = Self {
         keep_bottom: 1,
         keep_top: 0,
@@ -769,8 +577,6 @@ mod tests {
 
     #[test]
     fn a_row_fill_steps_its_text_up_and_keeps_the_focus_gutter() {
-
-
         let t = Theme::for_level(crate::theme::ColorLevel::Ansi256);
         let s = VisualState {
             focused: true,

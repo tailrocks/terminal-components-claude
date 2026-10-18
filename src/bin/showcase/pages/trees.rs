@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -41,9 +30,7 @@ const MENU: WidgetId = WidgetId::of("trees.menu");
 pub const PROJECT: WidgetId = ID.sub("tree");
 pub const CONNECTIONS: WidgetId = ID.sub("connections");
 
-
 const LOAD_TICKS: u8 = 4;
-
 
 fn connections() -> Vec<TreeNode> {
     vec![
@@ -67,7 +54,6 @@ fn connections() -> Vec<TreeNode> {
     ]
 }
 
-
 fn tables() -> Vec<TreeNode> {
     vec![
         TreeNode::leaf_meta("customers", "48k rows"),
@@ -89,7 +75,6 @@ pub struct TreesPage {
 
     opts: Vec<usize>,
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RowAction {
@@ -119,12 +104,10 @@ impl TreesPage {
         page
     }
 
-
     #[allow(dead_code)]
     pub fn conns(&self) -> &TreeView {
         &self.conns
     }
-
 
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::Trees);
@@ -134,7 +117,6 @@ impl TreesPage {
             .unwrap_or_else(|| panic!("no option {key}"));
         table[i].values[self.opts[i]]
     }
-
 
     fn build(&self, t: TreeView) -> TreeView {
         let mut t = t
@@ -175,8 +157,6 @@ impl TreesPage {
         t
     }
 
-
-
     fn rebuild(&mut self) {
         let keep = |old: &TreeView, new: TreeView| {
             let mut new = new;
@@ -198,7 +178,6 @@ impl TreesPage {
             .into_iter()
             .find(|t| t.id == id)
     }
-
 
     fn on_action(&mut self, id: WidgetId, a: Option<TreeAction>, cx: &mut Cx) {
         let Some(a) = a else { return };
@@ -222,7 +201,6 @@ impl TreesPage {
             }
         }
     }
-
 
     fn readout(&self) -> Vec<String> {
         let t = &self.tree;
@@ -260,7 +238,6 @@ impl TreesPage {
             ),
         ]
     }
-
 
     fn row_items(&self, i: usize) -> Vec<(RowAction, MenuItem)> {
         let row = &self.tree.rows()[i];
@@ -311,8 +288,6 @@ impl TreesPage {
         self.menu.open(req.menu(MENU, items).title(title), row);
     }
 
-
-
     fn choose(&mut self, row: usize, i: usize) -> Outcome {
         let Some(&(action, _)) = self.row_items(row).get(i) else {
             return Outcome::Consumed;
@@ -332,17 +307,13 @@ impl TreesPage {
         }
     }
 
-
     fn conns_h(&self) -> u16 {
         self.conns.rows().len() as u16 + 3
     }
 
-
-
     fn top_h(&self) -> u16 {
         TREE_H.max(SELECTION_H + 1 + self.conns_h())
     }
-
 
     fn readout_lines(&self, width: u16) -> Vec<String> {
         self.readout()
@@ -418,7 +389,6 @@ impl TreesPage {
             y += 1;
         }
 
-
         let top = r.y + r.height.min(SELECTION_H) + 1;
         if top + 4 < r.bottom() {
             let meta = if self.loading.is_some() {
@@ -440,15 +410,12 @@ impl TreesPage {
             self.conns.render(inner, buf, ctx, bg);
         }
 
-
         for (y, l) in (area.y + self.top_h() + 1..).zip(self.readout_lines(area.width)) {
             buf.set_string(area.x, y, l, t.faint().bg(t.canvas));
         }
         self.menu.render(area, buf, ctx);
     }
 }
-
-
 
 const TREE_H: u16 = 18;
 
@@ -457,7 +424,6 @@ const SELECTION_H: u16 = 10;
 const MIN_W: u16 = 76;
 
 const ROW_CHROME: u16 = 12;
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -507,11 +473,7 @@ impl Page for TreesPage {
         "Indent carries hierarchy; the focus bar never moves"
     }
 
-
-
     fn measure(&self, avail: ratatui::layout::Size, _ctx: &RenderCtx) -> ratatui::layout::Size {
-
-
         let row = self
             .conns
             .rows()

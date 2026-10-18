@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -25,7 +18,6 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::rail::{RailAction, SidebarRail};
 
 const ID: WidgetId = WidgetId::of("sidebars");
-
 
 const ITEMS: [(&str, &str, &str, Option<&str>, bool); 8] = [
     ("Tasks", "T", "Workspace", Some("3"), false),
@@ -83,8 +75,6 @@ impl SidebarsPage {
         page
     }
 
-
-
     fn apply(&mut self) {
         let o = &self.opts;
         let (current, cursor) = (self.nav.current, self.nav.cursor);
@@ -112,14 +102,11 @@ impl SidebarsPage {
         }
     }
 
-
     fn toggle_collapsed(&mut self) {
         let on = !self.nav.collapsed;
         self.opts.set("sidebars.collapsed", usize::from(on));
         self.nav.collapsed = on;
     }
-
-
 
     fn set_hidden(&mut self, on: bool, cx: &mut Cx) {
         self.hidden = on;
@@ -134,8 +121,6 @@ impl SidebarsPage {
             cx.focus.focus(self.nav.id);
         }
     }
-
-
 
     fn lines(&self) -> [String; 11] {
         let keys = if self.opts.value("sidebars.keys") == "desktop" {
@@ -159,8 +144,6 @@ impl SidebarsPage {
         .map(str::to_owned)
     }
 
-
-
     fn card_height(&self, width: u16) -> u16 {
         let current = &self.nav.items[self.nav.current].label;
         let panel = Panel::card(Some(current));
@@ -173,8 +156,6 @@ impl SidebarsPage {
         panel.outer(Size::new(0, rows as u16)).height
     }
 
-
-
     fn side_width(&self) -> u16 {
         if self.hidden {
             self.rail.width() + 1
@@ -186,7 +167,6 @@ impl SidebarsPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let content_x = if self.hidden {
-
             let col = Rect::new(area.x, area.y, SidebarRail::WIDTH, area.height.min(20));
             self.rail.render_rail(col, buf, ctx, t.canvas);
             area.x + self.side_width()
@@ -272,8 +252,6 @@ impl SidebarsPage {
     }
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let sample = || NavList::new(ID.sub("states-nav"), items(true)).widths(22, 6);
@@ -297,7 +275,6 @@ fn states_grid() -> StateGrid {
         .column("Rail", SidebarRail::new(ID.sub("states-rail"), "Nav"))
 }
 
-
 const CARD_MIN: u16 = 24;
 
 impl Page for SidebarsPage {
@@ -307,10 +284,6 @@ impl Page for SidebarsPage {
     fn blurb(&self) -> &'static str {
         "Sections, current item, focus cursor, hover, collapsed mode; text first, no icons"
     }
-
-
-
-
 
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let card = avail.width.saturating_sub(self.side_width()).max(CARD_MIN);
@@ -327,7 +300,6 @@ impl Page for SidebarsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('b')
             && self.template.section() == Section::Playground

@@ -1,23 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::ops::Range;
 
 use ratatui::crossterm::event::KeyModifiers;
@@ -27,18 +7,13 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::core::event::Outcome;
 use crate::widgets::field_common::PointerSelect;
 
-
-
 #[derive(Debug, Clone)]
 pub(crate) struct TextSelect<P> {
-
     pub sel: Option<(P, P)>,
 
     pub press: Option<P>,
 
-
     pub word: Option<(P, P)>,
-
 
     pub dragged: Option<Position>,
 
@@ -58,20 +33,14 @@ impl<P> Default for TextSelect<P> {
 }
 
 impl<P: Copy + Ord> TextSelect<P> {
-
-
     pub fn range(&self) -> Option<(P, P)> {
         let (a, b) = self.sel?;
         (a != b).then(|| (a.min(b), a.max(b)))
     }
 
-
-
     pub fn by_word(&self) -> bool {
         self.word.is_some()
     }
-
-
 
     pub fn set(&mut self, a: P, b: P) {
         self.sel = Some((a, b));
@@ -79,7 +48,6 @@ impl<P: Copy + Ord> TextSelect<P> {
         self.word = None;
         self.extended = false;
     }
-
 
     pub fn clear(&mut self) -> Outcome {
         self.word = None;
@@ -89,9 +57,6 @@ impl<P: Copy + Ord> TextSelect<P> {
             Outcome::Ignored
         }
     }
-
-
-
 
     pub fn press(
         &mut self,
@@ -148,9 +113,6 @@ impl<P: Copy + Ord> TextSelect<P> {
         }
     }
 
-
-
-
     pub fn drag(
         &mut self,
         policy: PointerSelect,
@@ -178,9 +140,6 @@ impl<P: Copy + Ord> TextSelect<P> {
         self.dragged = Some(pos);
         Outcome::Changed
     }
-
-
-
 
     pub fn click(
         &mut self,
@@ -214,14 +173,10 @@ impl<P: Copy + Ord> TextSelect<P> {
     }
 }
 
-
-
 pub(crate) fn is_word(g: &str) -> bool {
     g.chars()
         .all(|ch| ch.is_alphanumeric() || matches!(ch, '_' | '-' | '/' | '.'))
 }
-
-
 
 pub(crate) fn word_bounds<T>(
     items: &[T],
@@ -246,7 +201,6 @@ pub(crate) fn word_bounds<T>(
     Some((s, e))
 }
 
-
 #[derive(Debug, Clone)]
 pub(crate) struct PlainCell<'a> {
     pub g: &'a str,
@@ -254,7 +208,6 @@ pub(crate) struct PlainCell<'a> {
 
     pub col: usize,
 }
-
 
 pub(crate) fn plain_cells(s: &str) -> Vec<PlainCell<'_>> {
     let mut col = 0;
@@ -271,8 +224,6 @@ pub(crate) fn plain_cells(s: &str) -> Vec<PlainCell<'_>> {
         .collect()
 }
 
-
-
 pub(crate) fn plain_cell_at(cells: &[PlainCell<'_>], col: usize) -> usize {
     cells
         .iter()
@@ -280,14 +231,12 @@ pub(crate) fn plain_cell_at(cells: &[PlainCell<'_>], col: usize) -> usize {
         .unwrap_or(cells.len())
 }
 
-
 pub(crate) fn plain_col_of(s: &str, cells: &[PlainCell<'_>], i: usize) -> usize {
     cells
         .get(i)
         .map(|c| c.col)
         .unwrap_or_else(|| crate::ui::text::width(s))
 }
-
 
 pub(crate) fn plain_slice(s: &str, from: usize, to: usize) -> &str {
     let cells = plain_cells(s);

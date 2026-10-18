@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -43,8 +37,6 @@ const STAGES: [&str; 7] = [
 ];
 
 const DURATIONS: [u32; 7] = [10, 26, 40, 8, 18, 14, 1];
-
-
 
 const RAIL_INNER_H: u16 = STAGES.len() as u16 + 6;
 
@@ -139,8 +131,6 @@ impl TerminalPage {
         p
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = |key| match o.value(key) {
@@ -153,7 +143,6 @@ impl TerminalPage {
             _ => TrackClick::Page,
         };
         let keymap = match o.value("terminal.keymap") {
-
             "custom" => vec![
                 (KeyBinding::char('F'), ViewportCmd::ToggleFollow),
                 (KeyBinding::char('c'), ViewportCmd::Copy),
@@ -175,7 +164,6 @@ impl TerminalPage {
             _ => {}
         }
         if o.on("terminal.mark") {
-
             let at = term.line_text(0).and_then(|l| l.find("jackin"));
             term.set_marks(
                 at.map(|a| Mark {
@@ -272,7 +260,6 @@ impl TerminalPage {
                     .push(vec![Span::plain("payments-platform ❯ ").bold()]);
             } else {
                 if self.stage == 3 {
-
                     self.rail.set_state(self.stage, StepState::Skipped);
                     self.rail.set_meta(self.stage, Some("cached".into()));
                     self.stage += 1;
@@ -283,8 +270,6 @@ impl TerminalPage {
         Outcome::Changed
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -340,9 +325,6 @@ fn states_grid() -> StateGrid {
 }
 
 impl TerminalPage {
-
-
-
     fn viewport_meta(&self) -> String {
         let depth = self.term.scrollback_depth();
         let meta = if self.term.has_selection() {
@@ -358,8 +340,6 @@ impl TerminalPage {
             _ => meta,
         }
     }
-
-
 
     fn rail_meta(&self) -> String {
         let (done, skipped, failed) = self.rail.counts();
@@ -425,7 +405,6 @@ impl TerminalPage {
         let work = self.term.work_counters();
         let y = inner.bottom().saturating_sub(5);
         if y > rail_area.y + STAGES.len() as u16 {
-
             let full = format!(
                 "viewport work: {} lines segmented · {} reflowed",
                 work.segmented_lines, work.reflowed_lines
@@ -489,14 +468,6 @@ impl Page for TerminalPage {
     fn blurb(&self) -> &'static str {
         "Viewport with scrollback, selection and copy · drag the seam · step rail reports a job"
     }
-
-
-
-
-
-
-
-
 
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let rail = self.rail.min_width(avail, ctx);

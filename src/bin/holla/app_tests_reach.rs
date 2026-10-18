@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use junie_tui::shell::reach::{Case, Harness, Reveal};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -86,13 +75,10 @@ fn activities(h: &mut H) {
     h.alt(KeyCode::Char('1'));
 }
 
-
 fn review_gate(h: &mut H) {
     docker_plan(h);
     h.key(KeyCode::Char('c'));
 }
-
-
 
 const ROW: Reveal<H> = Reveal {
     step: |h| {
@@ -101,16 +87,12 @@ const ROW: Reveal<H> = Reveal {
     times: 20,
 };
 
-
-
 const TAB: Reveal<H> = Reveal {
     step: |h| {
         h.key(KeyCode::Tab);
     },
     times: 1,
 };
-
-
 
 const P: Reveal<H> = Reveal {
     step: |h| {
@@ -119,21 +101,13 @@ const P: Reveal<H> = Reveal {
     times: 1,
 };
 
-
 const PREVIEW: &[Reveal<H>] = &[TAB];
-
 
 const DETAILS: &[Reveal<H>] = &[P];
 
-
-
 const ROWS_PREVIEW: &[Reveal<H>] = &[ROW, TAB];
 
-
-
 const ROWS_DETAILS: &[Reveal<H>] = &[ROW, P];
-
-
 
 const LOG_START: &[Reveal<H>] = &[Reveal {
     step: |h| {
@@ -144,7 +118,6 @@ const LOG_START: &[Reveal<H>] = &[Reveal {
 
 fn cases() -> Vec<Case<H>> {
     vec![
-
         page("finder", |_| {}).reveals(ROWS_PREVIEW),
         page("finder-children", |h| {
             at(h, Scenario::MonorepoRoot);
@@ -223,7 +196,6 @@ fn cases() -> Vec<Case<H>> {
             paused(h, Scenario::ParityCustomActions);
             open(h, "Custom action configuration");
         }),
-
         page("activity", activities).reveals(LOG_START),
         page("activity-merged", |h| {
             at(h, Scenario::ActivitiesMulti);
@@ -240,7 +212,6 @@ fn cases() -> Vec<Case<H>> {
             h.key(KeyCode::Right);
             h.key(KeyCode::Enter);
         }),
-
         layer(
             "menu-file",
             |_| {},
@@ -393,8 +364,6 @@ junie_tui::reach_tests! {
     activity_menu = "activity-menu",
 }
 
-
-
 #[test]
 fn a_short_screen_keeps_the_disk_filesystems() {
     let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 72, 20);
@@ -404,8 +373,6 @@ fn a_short_screen_keeps_the_disk_filesystems() {
     assert!(text.contains("Filesystems"), "{text}");
     assert!(text.contains("926"), "{text}");
 }
-
-
 
 #[test]
 fn the_plan_summary_stays_off_the_details_drawer() {
@@ -417,9 +384,6 @@ fn the_plan_summary_stays_off_the_details_drawer() {
     let text = h.text();
     assert!(!text.contains("7 required"), "{text}");
 }
-
-
-
 
 #[test]
 fn a_short_screen_scrolls_the_review_facts() {
@@ -444,7 +408,6 @@ fn a_short_screen_scrolls_the_review_facts() {
     h.resize(72, 20);
     let text = h.text();
     assert!(text.contains("[tasks.dev]"), "{text}");
-
 
     let (x, y) = h.find("Defines").expect("a fact");
     let mut seen = h.text();

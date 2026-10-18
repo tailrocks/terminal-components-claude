@@ -1,6 +1,3 @@
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 
@@ -27,7 +24,6 @@ use junie_tui::widgets::props::{self, Prop};
 use junie_tui::widgets::table::{Cell, Column, DataTable, TableAction, Tone};
 
 const ID: WidgetId = WidgetId::of("celleditors");
-
 
 #[allow(dead_code)]
 pub const ENV: usize = 2;
@@ -143,7 +139,6 @@ fn priorities() -> Options {
     ])
 }
 
-
 fn status(s: &str) -> Cell {
     let tone = match s {
         "Down" => Tone::Error,
@@ -152,8 +147,6 @@ fn status(s: &str) -> Cell {
     };
     Cell::new(s).tone(tone)
 }
-
-
 
 const KEYS: [&str; 10] = [
     "celleditors.dismiss",
@@ -167,7 +160,6 @@ const KEYS: [&str; 10] = [
     "celleditors.tag_separator",
     "celleditors.placement",
 ];
-
 
 fn config(k: &[usize; 10]) -> EditorConfig {
     let [
@@ -196,8 +188,6 @@ fn config(k: &[usize; 10]) -> EditorConfig {
         ..EditorConfig::default()
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -231,7 +221,6 @@ fn states_grid() -> StateGrid {
         .column("▾ always", sample(1, Affordance::Always))
         .column("▾ never", sample(2, Affordance::Never))
 }
-
 
 fn region_editor() -> ColumnEditor {
     ColumnEditor::Combo(regions())
@@ -312,7 +301,6 @@ pub fn table() -> DataTable {
             "P2",
             "Healthy",
         ],
-
         [
             "D-106",
             "reports",
@@ -397,7 +385,6 @@ impl CellEditorsPage {
         }
     }
 
-
     fn open_chooser(&mut self) {
         self.chooser = ChoiceEditor::open(
             ID.sub("pick-list"),
@@ -406,7 +393,6 @@ impl CellEditorsPage {
             &self.table.editor_config,
         );
     }
-
 
     fn on_choice(&mut self, r: Option<ChoiceResult>, cx: &mut Cx) {
         let Some(r) = r else {
@@ -479,8 +465,6 @@ impl CellEditorsPage {
         }
     }
 
-
-
     fn option_sets(&self) -> Vec<Prop> {
         self.table
             .columns
@@ -501,15 +485,12 @@ impl CellEditorsPage {
             .collect()
     }
 
-
     fn choice_line(&self) -> String {
         format!(
             "Enter or a click: Commit · Tab: CommitAndTab · Esc or outside: Cancel · last: {}",
             self.last
         )
     }
-
-
 
     fn heights(&self, width: u16) -> [u16; 4] {
         let sets: Vec<Prop> = self.option_sets().into_iter().map(Prop::wrap).collect();
@@ -594,7 +575,6 @@ impl CellEditorsPage {
     }
 }
 
-
 const LEGEND: &[(&str, &str, &str)] = &[
     ("▾", "Select", "Env: 6–15 values in a dropdown"),
     (
@@ -615,12 +595,10 @@ const LEGEND: &[(&str, &str, &str)] = &[
 ];
 
 impl CellEditorsPage {
-
     fn handle_chooser(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<Outcome> {
         let cfg = self.table.editor_config.clone();
         match ev {
             PageEvent::Blur(ch) if ch.from == self.pick.id && self.chooser.is_some() => {
-
                 let value = self.chooser.as_ref().and_then(|c| c.blur_value(&cfg));
                 self.chooser = None;
                 if let Some(v) = value {
@@ -670,8 +648,6 @@ impl Page for CellEditorsPage {
         "Columns that only take values from a fixed set"
     }
 
-
-
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         use junie_tui::ui::measure::Measure;
         let sets: Vec<Prop> = self.option_sets().into_iter().map(Prop::wrap).collect();
@@ -681,7 +657,6 @@ impl Page for CellEditorsPage {
             .max()
             .unwrap_or(0);
         let w = [
-
             self.table.min_width(ratatui::layout::Size::new(0, 0), ctx) + 4,
             legend,
             sheet_width(&Panel::card(Some("Option sets")), &sets),
@@ -759,8 +734,6 @@ impl Page for CellEditorsPage {
             }
             PageEvent::Paste(text) => self.table.on_paste(text),
             PageEvent::Pointer(p) => {
-
-
                 let Some((out, tev)) = route_table(&mut self.table, p, cx) else {
                     return Outcome::Ignored;
                 };

@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -137,7 +127,6 @@ fn columns() -> Vec<ColumnSpec> {
         ColumnSpec::new("customer", CellKind::Text)
             .nullable(false)
             .type_label("text"),
-
         ColumnSpec::new("plan", CellKind::Enum)
             .enum_values(PLANS)
             .editor(ColumnEditor::for_options(Options::values(PLANS)))
@@ -160,7 +149,6 @@ fn columns() -> Vec<ColumnSpec> {
     ]
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct Knobs {
     access: usize,
@@ -181,7 +169,6 @@ struct Knobs {
     validator: usize,
     blur_action: usize,
 }
-
 
 const KEYS: [&str; 17] = [
     "datagrid.access",
@@ -244,15 +231,12 @@ impl Knobs {
     }
 }
 
-
 const READ_ONLY: [Option<&str>; 4] = [
     None,
     Some("customer_summary is a view: it cannot be edited"),
     Some("customers has no primary key: rows cannot be told apart"),
     Some("Query results are read-only: open the table to edit"),
 ];
-
-
 
 fn custom_keymap() -> KeyMap<GridCmd> {
     let mut map: KeyMap<GridCmd> = GridCmd::default_keymap()
@@ -273,7 +257,6 @@ fn custom_keymap() -> KeyMap<GridCmd> {
     map
 }
 
-
 fn strict(spec: &ColumnSpec, text: &str) -> Result<CellValue, String> {
     let parsed = junie_tui::widgets::grid::default_validator(spec, text)?;
     match (&*spec.name, &parsed) {
@@ -284,7 +267,6 @@ fn strict(spec: &ColumnSpec, text: &str) -> Result<CellValue, String> {
         _ => Ok(parsed),
     }
 }
-
 
 fn build(k: &Knobs) -> DataGrid {
     let mut grid = DataGrid::new(ID.sub("grid"), columns())
@@ -353,7 +335,6 @@ fn build(k: &Knobs) -> DataGrid {
     grid
 }
 
-
 const COMMANDS: &[(GridCmd, &str)] = &[
     (GridCmd::ClearCell, "Set NULL · CellChanged"),
     (GridCmd::ToggleDelete, "Delete row · RowDeleted"),
@@ -378,7 +359,6 @@ const COMMANDS: &[(GridCmd, &str)] = &[
     (GridCmd::SelectAll, "Mark every row"),
 ];
 
-
 const FIXED: &[(&str, &str)] = &[
     (
         "Enter / F2",
@@ -392,8 +372,6 @@ const FIXED: &[(&str, &str)] = &[
     ),
     ("past the last row", "FetchMore"),
 ];
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -470,16 +448,12 @@ pub struct GridPage {
 }
 
 impl GridPage {
-
-
-
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let Some(r) = self.grid.route(ev) else {
             return Outcome::Ignored;
         };
         let (o, gev) = r.into_parts();
         if ev.is(Phase::Click) {
-
             if self.grid.bar_ids().contains(&ev.id) {
                 cx.focus.focus(ev.id);
             } else if ev.bar.is_none() {
@@ -556,8 +530,6 @@ impl GridPage {
         }
         out
     }
-
-
 
     fn changes_dialog(&self, review: bool) -> Dialog {
         let code = self.statements();
@@ -689,7 +661,6 @@ impl GridPage {
         }
     }
 
-
     fn schema(&self) -> Vec<Prop> {
         self.grid
             .columns
@@ -719,7 +690,6 @@ impl GridPage {
             .collect()
     }
 
-
     fn commands(&self) -> Vec<Prop> {
         let mut out: Vec<Prop> = COMMANDS
             .iter()
@@ -731,9 +701,6 @@ impl GridPage {
         out.extend(FIXED.iter().map(|(k, w)| Prop::new(k, *w)));
         out
     }
-
-
-
 
     fn heights(&self, width: u16) -> [u16; 4] {
         let wrap = |v: Vec<Prop>| -> Vec<Prop> { v.into_iter().map(Prop::wrap).collect() };
@@ -806,7 +773,6 @@ impl GridPage {
             None => ctx.focus_stop(self.grid.id),
         }
         if let Some(r) = l.slot(1) {
-
             let marks = [
                 (RowState::Modified, "modified"),
                 (RowState::Inserted, "inserted"),
@@ -846,8 +812,6 @@ impl GridPage {
     }
 }
 
-
-
 const GRID_H: u16 = 26;
 
 impl Page for GridPage {
@@ -872,13 +836,9 @@ impl Page for GridPage {
         self.commit_ticks > 0
     }
 
-
-
-
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         use junie_tui::ui::measure::Measure;
         let wrap = |v: Vec<Prop>| -> Vec<Prop> { v.into_iter().map(Prop::wrap).collect() };
-
 
         let meta = format!("read-only · {}", self.grid.position_label());
         let card = Panel::card(Some(TABLE))

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -29,9 +21,7 @@ use junie_tui::widgets::progress::{Meter, MeterLevel, MeterTone, MeterVisual, St
 
 const ID: WidgetId = WidgetId::of("meters");
 
-
 const REFRESH_TICKS: u16 = 24;
-
 
 const QUOTAS: [(&str, Option<u8>, MeterTone, &str); 5] = [
     (
@@ -61,14 +51,12 @@ const QUOTAS: [(&str, Option<u8>, MeterTone, &str); 5] = [
     ),
 ];
 
-
 const DISKS: [(&str, u8, &str); 4] = [
     ("/", 62, "310 of 500 GB"),
     ("/System/Volumes/Data", 84, "840 of 1000 GB"),
     ("/Volumes/Backup", 97, "1.94 of 2 TB"),
     ("/Volumes/Scratch", 12, "61 of 512 GB"),
 ];
-
 
 const HOST: [(&str, u8, &str); 4] = [
     ("CPU", 23, "8 cores · load 1.84"),
@@ -107,7 +95,6 @@ impl MetersPage {
         }
     }
 
-
     fn columns(&self, list: MeterList) -> MeterList {
         let mut list = list;
         if let Ok(w) = self.opts.value("meters.label_width").parse::<u16>() {
@@ -122,8 +109,6 @@ impl MetersPage {
             _ => Tone::Muted,
         })
     }
-
-
 
     fn row(&self, label: &str, meter: Meter, detail: &str) -> MeterRow {
         let mut meter = meter.stale_style(match self.opts.value("meters.stale_style") {
@@ -151,7 +136,6 @@ impl MetersPage {
         let rows = QUOTAS
             .iter()
             .map(|(label, pct, tone, detail)| {
-
                 let pct = pct.map(|p| {
                     if p < 80 {
                         (p + self.epoch * 3).min(79)
@@ -204,8 +188,6 @@ impl MetersPage {
             .detail_gap(3)
     }
 
-
-
     fn header(&self) -> PageHeader {
         let offline = self.opts.on("meters.offline");
         let (status, tone) = if offline {
@@ -225,7 +207,6 @@ impl MetersPage {
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-
         let header = self.header();
         let rows = header.render(area, buf, ctx.theme);
         debug_assert_eq!(rows, header.height());
@@ -264,9 +245,6 @@ impl MetersPage {
         }
     }
 
-
-
-
     fn children(quotas: &MeterList, disks: &MeterList, host: &MeterList) -> [StackChild; 3] {
         [
             StackChild::fixed(quotas.height() + 5),
@@ -274,7 +252,6 @@ impl MetersPage {
             StackChild::fixed(host.height() + 3),
         ]
     }
-
 
     fn quotas_meta(&self) -> &'static str {
         if self.refreshing > 0 {
@@ -324,15 +301,12 @@ impl MetersPage {
     }
 }
 
-
 const DISKS_CARD: (&str, &str) = ("Filesystems", "disk 80 / 95 · reserve 4 · min 8");
 const HOST_CARD: (&str, &str) = ("Host", "shared thresholds · detail gap 3");
-
 
 fn sections_heading() -> Heading {
     Heading::new("Sections").meta("3 cards").tone(Tone::Muted)
 }
-
 
 fn card(
     area: Rect,
@@ -348,8 +322,6 @@ fn card(
     let inner = panel.render(area, buf, t);
     list.render(inner, buf, ctx, bg);
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -411,9 +383,6 @@ impl Page for MetersPage {
     fn blurb(&self) -> &'static str {
         "MeterList: labelled capacity meters in aligned columns, with tones and levels"
     }
-
-
-
 
     fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
         let at = |m: &dyn Measure| m.measure(Size::ZERO, ctx);

@@ -37,7 +37,6 @@ pub fn task_columns() -> Vec<Column> {
 }
 
 pub fn status_cell(s: TaskStatus) -> Cell {
-
     let (tone, text) = match s {
         TaskStatus::Running => (Tone::Normal, "▸ Running"),
         TaskStatus::Failed => (Tone::Error, "Failed"),
@@ -76,14 +75,11 @@ pub fn task_rows() -> Vec<Vec<Cell>> {
         .collect()
 }
 
-
 const SELECTION_MODES: [SelectionMode; 3] = [
     SelectionMode::None,
     SelectionMode::Single,
     SelectionMode::Multi,
 ];
-
-
 
 fn tasks_table(mode: SelectionMode) -> DataTable {
     DataTable::new(ID.sub("tasks"), task_columns(), task_rows())
@@ -91,8 +87,6 @@ fn tasks_table(mode: SelectionMode) -> DataTable {
         .selection_mode(mode)
         .selection_column(mode == SelectionMode::Multi)
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -143,13 +137,10 @@ pub struct TablesPage {
     empty: DataTable,
     sections: crate::pages::layout::Sections,
 
-
     menu: RowMenu<(usize, usize)>,
-
 
     header_menu: RowMenu<usize>,
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum CellAction {
@@ -159,8 +150,6 @@ enum CellAction {
 }
 
 impl TablesPage {
-
-
     fn cell_items(&self, (row, col): (usize, usize)) -> Vec<(CellAction, MenuItem)> {
         let t = &self.table;
         let src = t.source_row(row);
@@ -213,8 +202,6 @@ impl TablesPage {
             .open(req.menu(MENU, items).title(title), req.target);
     }
 
-
-
     fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut Cx) -> Outcome {
         let Some(&(action, _)) = self.cell_items(cell).get(i) else {
             return Outcome::Consumed;
@@ -235,7 +222,6 @@ impl TablesPage {
     pub fn new() -> Self {
         let selection = 1;
         let table = tasks_table(SELECTION_MODES[selection]);
-
 
         let mut reviewers = DataTable::new(
             ID.sub("reviewers"),
@@ -280,11 +266,6 @@ impl TablesPage {
         }
     }
 }
-
-
-
-
-
 
 pub fn route_table(
     t: &mut DataTable,
@@ -341,7 +322,6 @@ impl TablesPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-
 
         let focus = if ctx.interaction.has_focus(self.table.id) {
             Some(0)
@@ -424,8 +404,6 @@ impl TablesPage {
     }
 }
 
-
-
 const TASKS_H: u16 = 3 + 1 + 20 + 1;
 const REVIEWERS_H: u16 = 8;
 const CHECKS_H: u16 = 6;
@@ -438,15 +416,11 @@ impl Page for TablesPage {
         "Sort by header, hover rows, select with Enter, overflow scrolls"
     }
 
-
-
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         use junie_tui::ui::measure::Measure;
         let any = ratatui::layout::Size::new(0, 0);
         let w = [&self.table, &self.reviewers, &self.empty]
             .iter()
-
-
             .map(|t| t.min_width(any, ctx) + 4)
             .fold(avail.width, u16::max);
         ratatui::layout::Size::new(w, TASKS_H + REVIEWERS_H + CHECKS_H + 2)

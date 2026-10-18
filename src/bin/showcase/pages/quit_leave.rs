@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Rect, Size};
@@ -92,7 +76,6 @@ impl QuitLeavePage {
         page
     }
 
-
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::QuitLeave);
         let i = table
@@ -102,11 +85,9 @@ impl QuitLeavePage {
         table[i].values[self.opts[i]]
     }
 
-
     fn rebuild(&mut self) {
         self.guard = LeaveGuard::new(GUARD).save(self.opt("quitleave.save") == "on");
     }
-
 
     fn quit_keys(&self) -> QuitKeys {
         let mut k = QuitKeys::DEFAULT
@@ -121,7 +102,6 @@ impl QuitLeavePage {
         k
     }
 
-
     fn unsaved(&self) -> Stakes {
         if self.title.text() == self.saved {
             Stakes::Clean
@@ -129,7 +109,6 @@ impl QuitLeavePage {
             Stakes::Unsaved { changes: 1 }
         }
     }
-
 
     fn work(&self) -> Stakes {
         if self.running {
@@ -141,11 +120,9 @@ impl QuitLeavePage {
         }
     }
 
-
     fn stakes(&self) -> Stakes {
         self.unsaved().max(self.work())
     }
-
 
     fn request(&mut self, to: Leave<&'static str>, cx: &mut Cx) {
         let stakes = self.stakes();
@@ -161,7 +138,6 @@ impl QuitLeavePage {
             }
         }
     }
-
 
     fn resolve(&mut self, r: Resolved<&'static str>, cx: &mut Cx) {
         self.last_resolved = match &r {
@@ -182,7 +158,6 @@ impl QuitLeavePage {
             }
         }
     }
-
 
     fn facts(&self) -> Vec<Prop> {
         vec![
@@ -208,7 +183,6 @@ impl QuitLeavePage {
         ]
     }
 
-
     fn notes(&self) -> String {
         let c = contexts();
         format!(
@@ -223,8 +197,6 @@ impl QuitLeavePage {
             letters_allowed(c[2].1)
         )
     }
-
-
 
     fn tiled(&self, width: u16) -> Tiled {
         let doc = Panel::card(Some("Document")).meta("exporting");
@@ -256,7 +228,6 @@ impl QuitLeavePage {
         let t = ctx.theme;
         let tiled = self.tiled(area.width);
         let (left, right) = (tiled.at(0, area), tiled.at(1, area));
-
 
         let meta = match self.stakes() {
             Stakes::Clean => "saved",
@@ -294,7 +265,6 @@ impl QuitLeavePage {
                 bg,
             );
         }
-
 
         let keys = self.quit_keys();
         let letter = keys.letter.map_or("letter".to_owned(), |c| c.to_string());
@@ -350,12 +320,10 @@ impl QuitLeavePage {
     }
 }
 
-
 const FIELD_W: u16 = 40;
 
 const LABEL_W: u16 = 12;
 const COL_W: u16 = 8;
-
 
 fn contexts() -> [(&'static str, KeyContext); 4] {
     [
@@ -419,7 +387,6 @@ fn stakes_label(s: &Stakes) -> String {
         Stakes::Running { what } => format!("Running · {what}"),
     }
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -28,7 +22,6 @@ fn ticks(h: &mut Harness, n: usize) {
     }
     h.draw();
 }
-
 
 fn pick(h: &mut Harness, name: &str) {
     let (x, y) = h

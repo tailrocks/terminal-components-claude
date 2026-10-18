@@ -1,6 +1,3 @@
-
-
-
 use junie_tui::runtime::Application;
 use std::time::Duration;
 
@@ -17,8 +14,6 @@ fn parse(args: &[&str]) -> Result<(Motion, u64), clap::Error> {
     let cli = Cli::try_parse_from(std::iter::once("tablepro").chain(args.iter().copied()))?;
     Ok((cli.common.motion.unwrap_or_default(), cli.common.frame))
 }
-
-
 
 fn loading() -> H {
     let mut h = H::connected(120, 40);
@@ -45,8 +40,6 @@ fn motion_and_frame_flags_parse_like_the_other_binaries() {
     assert!(parse(&["--frame", "-1"]).is_err());
 }
 
-
-
 #[test]
 fn paused_freezes_the_frame() {
     let mut live = loading();
@@ -69,8 +62,6 @@ fn paused_freezes_the_frame() {
     );
 }
 
-
-
 #[test]
 fn paused_frame_matches_live_ticks() {
     let mut live = loading();
@@ -82,8 +73,6 @@ fn paused_frame_matches_live_ticks() {
     assert!(!paused.app.workbench.as_ref().unwrap().animating());
     assert_eq!(paused.text(), live.text());
 }
-
-
 
 #[test]
 fn paused_holds_the_press_flash() {
@@ -97,8 +86,6 @@ fn paused_holds_the_press_flash() {
     assert_eq!(full.app.interaction().flash, None);
     assert_eq!(paused.app.interaction().flash, Some(id));
 }
-
-
 
 #[test]
 fn reduced_advances_the_world_without_animating_glyphs() {
