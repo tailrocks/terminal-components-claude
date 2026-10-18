@@ -54,7 +54,7 @@ struct Cli {
     #[command(flatten)]
     common: CommonArgs,
 
-    #[doc = " The fixture scenario to open"]
+    #[arg(help = "The fixture scenario to open")]
     #[arg(short = 's', long, value_parser = parse_scenario, default_value = "first-use")]
     scenario: Scenario,
 }

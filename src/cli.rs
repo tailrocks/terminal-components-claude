@@ -43,24 +43,26 @@ impl From<GlyphsArg> for Charset {
     }
 }
 
-#[doc = " The options every application accepts."]
 #[derive(Clone, Debug, Default, PartialEq, Eq, clap::Args)]
+#[command(about = "The options every application accepts")]
 pub struct CommonArgs {
-    #[doc = " Colour level (default: detected from the terminal; NO_COLOR selects none)"]
+    #[arg(help = "Colour level (default: detected from the terminal; NO_COLOR selects none)")]
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
     pub color: Option<ColorArg>,
 
-    #[doc = " Glyphs and copy (default: detected from the terminal; ASCII on the"]
-    #[doc = " Linux console, VT terminals and the legacy Windows console;"]
-    #[doc = " JUNIE_TUI_GLYPHS=unicode|ascii overrides detection)"]
+    #[arg(
+        help = "Glyphs and copy (default: detected from the terminal; ASCII on the Linux console, VT terminals and the legacy Windows console; JUNIE_TUI_GLYPHS=unicode|ascii overrides detection)"
+    )]
     #[arg(long, value_enum, value_name = "SET")]
     pub glyphs: Option<GlyphsArg>,
 
-    #[doc = " How much moves (default: full, or reduced when the app's NO_MOTION variable is set)"]
+    #[arg(
+        help = "How much moves (default: full, or reduced when the app's NO_MOTION variable is set)"
+    )]
     #[arg(short = 'm', long, value_enum, value_name = "MOTION")]
     pub motion: Option<Motion>,
 
-    #[doc = " With --motion paused, the tick to render"]
+    #[arg(help = "With --motion paused, the tick to render")]
     #[arg(short = 'f', long, default_value_t = 0, value_name = "N")]
     pub frame: u64,
 }
