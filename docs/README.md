@@ -7,6 +7,7 @@ This checkout is the visual and interaction reference branch. The product target
 | [architecture.md](architecture.md) | Current monolithic package and the intended workspace boundary. |
 | [design.md](design.md) | Product authority and visual/interaction contracts. |
 | [development.md](development.md) | Setup, run, verification, and documentation maintenance. |
+| [../SAFETY.md](../SAFETY.md) | Historical unsafe-operation rationales and their current proof limitations. |
 | [plan.md](plan.md) | Active refactor plan, acceptance gates, and task navigation. |
 | [remaining-work.md](remaining-work.md) | Unfinished product, component, parity, and verification requirements. |
 | [design/DESIGN.md](design/DESIGN.md) | Detailed design-system source. |
