@@ -14,7 +14,7 @@ fn row(buf: &Buffer) -> String {
         .collect::<String>()
 }
 
-/// Draw `footer` on a `width`-cell row; the row's text.
+
 fn draw(footer: Footer, width: u16) -> String {
     let theme = Theme::junie();
     let mut hits = HitRegistry::default();
@@ -106,7 +106,7 @@ fn an_error_wins_over_every_hint_and_info_leaves_the_way_out_room() {
 
 #[test]
 fn the_commit_key_stays_pinned_while_dirty_only_when_asked() {
-    // D2: off by default, so a narrow row drops Ctrl+S from the right
+
     let hints = || {
         vec![
             hint("Enter", "Edit"),
@@ -138,9 +138,9 @@ fn the_edit_badge_leads_the_row() {
     assert!(r.trim_start().starts_with("EDIT"), "{r:?}");
 }
 
-/// SI8: the focused widget's cut value shows in full on the peek line (the
-/// footer's status slot) while nothing else is said there; a status wins,
-/// and `peek(false)` turns it off.
+
+
+
 #[test]
 fn the_peek_line_shows_the_focused_cut_value_in_full() {
     let theme = Theme::junie();

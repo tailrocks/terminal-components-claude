@@ -1,17 +1,11 @@
-//! Deterministic change sets for the Inspect Changes views. A simulated
-//! instance never has a real repository, so the files an agent touched are
-//! turned into realistic hunks from a fixed snippet library; the same
-//! instance id and touched paths always produce the same diff.
-
 pub use junie_tui::widgets::diff::{
     DiffFile as ChangedFile, DiffHunk as Hunk, DiffLine, DiffStatus,
 };
 
-/// Everything the inspector shows for one instance.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangeSet {
     pub files: Vec<ChangedFile>,
-    /// Commits ahead of the remote (shown as a row, not as files).
+
     pub unpushed: usize,
 }
 
@@ -25,7 +19,7 @@ impl ChangeSet {
     pub fn is_empty(&self) -> bool {
         self.files.is_empty() && self.unpushed == 0
     }
-    /// `3 files · +41 −12`
+
     pub fn summary(&self) -> String {
         let n = self.files.len();
         format!(
@@ -57,8 +51,6 @@ fn r(s: &str) -> DiffLine {
     DiffLine::remove(s)
 }
 
-/// A modified file's hunks, chosen by extension; `k` varies the line
-/// numbers so two files of the same kind do not look cloned.
 fn hunks_for(path: &str, k: u64) -> Vec<Hunk> {
     let base = 8 + (k % 7) as usize * 5;
     match ext(path) {
@@ -266,9 +258,6 @@ fn renamed_file() -> ChangedFile {
     }
 }
 
-/// The change set of an instance. Touched paths become modified files;
-/// when the instance's uncommitted count exceeds them, an added file, a
-/// deleted file and a rename fill the gap in that order.
 pub fn changes_for(
     instance_id: &str,
     touched: &[String],
@@ -322,7 +311,7 @@ mod tests {
         assert!(matches!(a1.files[4].status, DiffStatus::Renamed { .. }));
         assert_eq!(a1.unpushed, 1);
         assert!(a1.summary().starts_with("5 files · +"));
-        // a different instance shifts line numbers but keeps the shape
+
         let b = changes_for("jk-9b02", &touched, 5, 0);
         assert_eq!(b.files.len(), 5);
         assert_eq!(b.files[0].hunks.len(), 3);

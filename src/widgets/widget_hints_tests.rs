@@ -1,7 +1,7 @@
-//! Hint snapshot per widget under the Desktop and Vim profiles (S8b
-//! acceptance, CO3): a hint names only keys the widget takes under its
-//! configuration, `j k`/`g G` only under vim keys, `Type to jump` only
-//! where type-ahead is on.
+
+
+
+
 
 use crate::core::hints::{HasHints, HintCx};
 use crate::core::id::WidgetId;
@@ -28,7 +28,7 @@ fn line(h: &dyn HasHints) -> String {
         .join(" · ")
 }
 
-/// The hint line of the widget `build` makes under `profile`.
+
 fn under<W: HasHints>(profile: NavProfile, build: impl FnOnce() -> W) -> String {
     profile.install();
     let w = build();
@@ -58,7 +58,7 @@ fn list_hints_under_desktop_and_vim() {
         both(single),
         (
             "↑↓ Move · Type to jump".into(),
-            "↑↓ Move".into() // vim keys move too, arrows are named first
+            "↑↓ Move".into()
         )
     );
     let multi = || {
@@ -173,9 +173,9 @@ fn a_text_field_waiting_for_enter_hints_edit() {
     assert!(h == "Enter Edit" || h.starts_with("Enter "), "{h}");
 }
 
-/// CO3: an open completion list names only its own keys (↑↓ and paging,
-/// never `Home End` or letters, which keep editing the query) under both
-/// profiles; closed, nothing.
+
+
+
 #[test]
 fn completion_hints_read_its_own_keys() {
     use crate::widgets::completion::Completion;

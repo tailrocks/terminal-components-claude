@@ -1,14 +1,7 @@
-//! Application models that carry TablePro's semantics independent of the
-//! UI: pending changes, history, completion ranking, open-quickly ranking.
-
 use crate::db::{Catalog, ColType, Table, Value};
 use crate::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};
 use junie_tui::ui::text::fuzzy;
 
-// ------------------------------------------------------------ pending edits
-
-/// Statements TablePro would run on save (parameters inlined), built from
-/// a grid's pending changes: updates by row, then inserts, then deletes.
 pub fn preview_sql(
     table: &Table,
     columns: &[(String, ColType)],
@@ -22,7 +15,6 @@ pub fn preview_sql(
         .collect();
     let pk_where = |src: usize| -> String {
         if pk.is_empty() {
-            // no primary key: match on every original column (TablePro)
             return columns
                 .iter()
                 .enumerate()
@@ -127,8 +119,6 @@ pub fn sql_literal(v: &Value) -> String {
     }
 }
 
-// ------------------------------------------------------------ history
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HistorySource {
     Editor,
@@ -157,7 +147,7 @@ pub struct HistoryEntry {
     pub connection: String,
     pub database: String,
     pub schema: String,
-    /// Minutes ago (deterministic demo clock).
+
     pub minutes_ago: u32,
     pub duration_ms: Option<u32>,
     pub rows: Option<usize>,
@@ -392,7 +382,6 @@ impl History {
         self.entries.truncate(10_000);
     }
 
-    /// Multi-term AND, partial-word, case-insensitive; optional filters.
     pub fn search<'a>(
         &'a self,
         query: &str,
@@ -411,8 +400,6 @@ impl History {
             .collect()
     }
 }
-
-// ------------------------------------------------------------ completion
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompletionKind {
@@ -437,7 +424,7 @@ impl CompletionKind {
             CompletionKind::Alias => "A",
         }
     }
-    /// TablePro base priorities (lower wins).
+
     fn priority(self) -> u32 {
         match self {
             CompletionKind::Column => 100,
@@ -456,10 +443,10 @@ pub struct Completion {
     pub kind: CompletionKind,
     pub label: String,
     pub detail: String,
-    /// Text to insert (may differ from label, e.g. quoting).
+
     pub insert: String,
     pub score: u32,
-    /// Byte positions in `label` that matched, for highlighting.
+
     pub matched: Vec<usize>,
 }
 
@@ -470,15 +457,14 @@ pub enum Clause {
     From,
     Where,
     OrderBy,
-    /// After `alias.` or `table.`
+
     Member,
 }
 
-/// The word being typed at `cursor` and the clause context before it.
 pub fn context(src: &str, cursor: usize) -> (String, Clause, Option<String>) {
     let cursor = cursor.min(src.len());
     let before = &src[..cursor];
-    // current word
+
     let word_start = before
         .char_indices()
         .rev()
@@ -486,7 +472,7 @@ pub fn context(src: &str, cursor: usize) -> (String, Clause, Option<String>) {
         .map(|(i, c)| i + c.len_utf8())
         .unwrap_or(0);
     let word = before[word_start..].to_owned();
-    // member access?
+
     let mut qualifier = None;
     if before[..word_start].ends_with('.') {
         let q_end = word_start - 1;
@@ -501,7 +487,7 @@ pub fn context(src: &str, cursor: usize) -> (String, Clause, Option<String>) {
     if qualifier.is_some() {
         return (word, Clause::Member, qualifier);
     }
-    // last keyword before the word decides the clause (within this statement)
+
     let stmt_start = crate::sql::statement_at(src, cursor)
         .map(|(a, _)| a)
         .unwrap_or(0);
@@ -521,7 +507,6 @@ pub fn context(src: &str, cursor: usize) -> (String, Clause, Option<String>) {
     (word, clause, None)
 }
 
-/// Tables referenced in the statement (with aliases), FROM-anywhere.
 pub fn tables_in_statement<'a>(cat: &'a Catalog, stmt: &str) -> Vec<(&'a Table, Option<String>)> {
     let toks: Vec<(TokKind, String)> = tokenize(stmt)
         .into_iter()
@@ -563,7 +548,6 @@ pub fn tables_in_statement<'a>(cat: &'a Catalog, stmt: &str) -> Vec<(&'a Table, 
     out
 }
 
-/// Suggestions for the cursor position, ranked.
 pub fn complete(cat: &Catalog, src: &str, cursor: usize) -> (Vec<Completion>, usize) {
     let (word, clause, qualifier) = context(src, cursor);
     let stmt = crate::sql::statement_at(src, cursor)
@@ -588,7 +572,7 @@ pub fn complete(cat: &Catalog, src: &str, cursor: usize) -> (Vec<Completion>, us
     match clause {
         Clause::Member => {
             let q = qualifier.unwrap_or_default();
-            // alias or table name → its columns; schema → its tables
+
             let table = in_stmt
                 .iter()
                 .find(|(t, a)| {
@@ -787,7 +771,6 @@ fn col_detail(c: &crate::db::Column) -> String {
     d
 }
 
-/// Should the popup open automatically at this position?
 pub fn auto_trigger(src: &str, cursor: usize) -> bool {
     let (word, clause, _) = context(src, cursor);
     match clause {
@@ -797,8 +780,6 @@ pub fn auto_trigger(src: &str, cursor: usize) -> bool {
         _ => word.len() >= 3,
     }
 }
-
-// ------------------------------------------------------------ open quickly
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SwitchTarget {
@@ -909,8 +890,6 @@ impl SwitcherIndex {
         Self { items }
     }
 
-    /// Rank: name match beats path match; tables above other kinds; open
-    /// tabs boosted; empty query lists everything grouped.
     pub fn query(&self, q: &str) -> Vec<SwitchItem> {
         let q = q.trim();
         let mut out: Vec<SwitchItem> = self
@@ -987,7 +966,7 @@ mod tests {
             sql[0]
         );
         assert!(sql[1].starts_with("DELETE FROM public.orders WHERE id = '"));
-        // reverting removes the update
+
         let original = g.rows()[1][status].clone();
         g.record_cell(1, status, original);
         assert_eq!(preview_sql(t, &cols, &g).len(), 1);

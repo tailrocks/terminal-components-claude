@@ -1,8 +1,3 @@
-//! jackin's layer stack (plan S5) through the real app: every kind of
-//! layer it opens dismisses under its own policy (Esc, a click outside,
-//! the `×` in its frame; a refused outside click flashes the frame), and
-//! closing a layer gives the owner back the focus it had (K9).
-
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
 
@@ -14,8 +9,6 @@ use crate::app::Route;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
 
-/// Whether `hit` is a layer's light-dismiss backdrop (an open picker's
-/// covers the page around it).
 fn backdrop(h: &H, hit: WidgetId) -> bool {
     use junie_tui::core::id::Part;
     h.app
@@ -25,8 +18,6 @@ fn backdrop(h: &H, hit: WidgetId) -> bool {
         .is_some_and(|x| x.part.part == Part::BACKDROP)
 }
 
-/// A screen cell no control claims (the dimmed page around a modal), else
-/// one on a light-dismiss backdrop (an open picker's covers the page).
 fn outside(h: &H) -> Position {
     let area = h.term.backend().buffer().area;
     let cells = || {
@@ -39,9 +30,6 @@ fn outside(h: &H) -> Position {
         .unwrap_or_else(|| panic!("no free cell outside the layer:\n{}", h.text()))
 }
 
-/// One kind of layer: how to open it from a fresh app, and the focus its
-/// owner had just before (`None`: the owner itself leaves on close, so
-/// there is no focus to give back).
 struct Kind {
     name: &'static str,
     open: fn() -> (H, Option<Option<WidgetId>>),
@@ -87,7 +75,7 @@ fn browser() -> (H, Option<Option<WidgetId>>) {
         "{}",
         h.text()
     );
-    // the prelude leaves for the manager when its first step is cancelled
+
     (h, None)
 }
 
@@ -120,8 +108,6 @@ fn form() -> (H, Option<Option<WidgetId>>) {
     (h, Some(owner))
 }
 
-/// The 1Password chain over the new-account form: closing it gives the
-/// form's chooser button its focus back.
 fn op() -> (H, Option<Option<WidgetId>>) {
     let (mut h, _) = form();
     h.key(KeyCode::Enter);
@@ -261,7 +247,6 @@ const KINDS: [Kind; 10] = [
     },
 ];
 
-/// The layer closed and the owner has its focus back (K9).
 fn assert_closed(name: &str, how: &str, h: &H, below: usize, owner: Option<Option<WidgetId>>) {
     assert_eq!(
         h.app.layer_count(),
@@ -283,7 +268,6 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
     for kind in &KINDS {
         let name = kind.name;
 
-        // Esc: every layer jackin opens closes on it
         let (mut h, owner) = (kind.open)();
         let below = h.app.layer_count() - 1;
         assert_ne!(
@@ -291,7 +275,7 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
             owner,
             "{name}: focus moved into the layer"
         );
-        // (a field that edits as the layer opens ends its edit first)
+
         for _ in 0..2 {
             if h.app.layer_count() > below {
                 h.key(KeyCode::Esc);
@@ -299,8 +283,6 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
         }
         assert_closed(name, "Esc", &h, below, owner);
 
-        // a click outside: closes under a light policy; refused, the
-        // layer stays and its frame flashes
         let (mut h, owner) = (kind.open)();
         let policy = h.app.top_dismiss().expect("a layer is open");
         let p = outside(&h);
@@ -320,8 +302,6 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
             );
         }
 
-        // the × in a frame means what Esc means (a picker has no frame
-        // button: it light-dismisses)
         let (mut h, owner) = (kind.open)();
         let close = h.app.shell.hits.area_of(CLOSE);
         if let Some(x) = close {
@@ -335,9 +315,6 @@ fn every_layer_kind_dismisses_under_its_policy_and_gives_focus_back() {
     }
 }
 
-/// The launch failure's detail, too long for a short terminal: its
-/// scrollbar drags like any other (the old shell special-cased it; the
-/// stack hands every drag to the top layer).
 #[test]
 fn the_failure_details_scrollbar_drags_through_the_layer() {
     let mut h = H::new(Scenario::LaunchFailure, Motion::Reduced, 0, 100, 24);
@@ -371,8 +348,6 @@ fn the_failure_details_scrollbar_drags_through_the_layer() {
     h.mouse(MouseKind::Up, track.x, track.bottom() - 1);
 }
 
-/// Text pasted into an open picker filters it, as typing does (it was
-/// swallowed).
 #[test]
 fn a_paste_into_the_palette_filters_it() {
     let (mut h, _) = picker();
@@ -391,9 +366,6 @@ fn a_paste_into_the_palette_filters_it() {
     );
 }
 
-/// Blur reaches every open layer, not only the top one: the new-account
-/// form's name edit ends when a click on its 1Password chooser opens the
-/// chain over it, and the chain's close gives the chooser its focus back.
 #[test]
 fn a_focus_change_reaches_the_form_under_the_layer_it_opened() {
     let (mut h, _) = form();
@@ -431,11 +403,6 @@ fn a_focus_change_reaches_the_form_under_the_layer_it_opened() {
     assert_eq!(f.text("name"), "Team", "and kept what was typed");
 }
 
-/// The new-workspace flow's progress line belongs to the browser that
-/// flow opens: once the flow has handed its workspace to the editor, the
-/// editor's own folder browser shows no stale `✓ Source · ✓ ...` line
-/// (the shell drew the prelude's line on every browser while the prelude
-/// screen was kept).
 #[test]
 fn only_the_new_workspace_browser_shows_the_flow_progress() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
@@ -449,7 +416,7 @@ fn only_the_new_workspace_browser_shows_the_flow_progress() {
         "the flow's browser carries its progress"
     );
     assert!(h.text().contains("Source · Destination"), "{}", h.text());
-    // ~/src/data-pipeline, then the defaults of every later step
+
     h.key(KeyCode::Backspace);
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
@@ -477,9 +444,6 @@ fn only_the_new_workspace_browser_shows_the_flow_progress() {
     assert!(!h.text().contains("✓ Source"), "{}", h.text());
 }
 
-/// CO4: a form's footer comes from the form's state, not a fixed line:
-/// on its Save button Enter names that button (it said `Enter Edit /
-/// Save` on every control before).
 #[test]
 fn the_form_footer_names_the_focused_button() {
     let (mut h, _) = form();

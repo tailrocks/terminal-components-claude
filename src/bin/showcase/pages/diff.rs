@@ -1,9 +1,3 @@
-//! Diff (plan §7 SC25): a changes list of files in every `DiffStatus`
-//! beside a `DiffView` that follows the list's cursor (the two stack when
-//! narrow), unified or old / new review, the no-file state, and the
-//! view's States grid. Copy requests are retained in this demo; no system
-//! clipboard or repository access occurs. Options: `crate::options::DIFF`.
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -24,7 +18,7 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::viewport::ViewportAction;
 
 const ID: WidgetId = WidgetId::of("diff");
-/// Width of the changes list beside the diff.
+
 const LIST_W: u16 = 38;
 
 pub struct DiffPage {
@@ -60,7 +54,6 @@ fn sample() -> DiffFile {
     }
 }
 
-/// The change set: one file per status.
 fn changes() -> Vec<DiffFile> {
     vec![
         sample(),
@@ -129,8 +122,6 @@ impl DiffPage {
         page
     }
 
-    /// The view from the controls and the options: the file under the
-    /// list's cursor (or none), in the mode the Review toggle picks.
     fn update_controls(&mut self) {
         let review = self.review.on == Some(true);
         if review != (self.view.mode == DiffMode::Review) {
@@ -157,7 +148,7 @@ impl DiffPage {
             area.width,
             area.height.saturating_sub(2),
         );
-        // a narrow page stacks the list over the diff
+
         let body = match self.opts.value("diff.width") {
             "narrow" => Rect::new(body.x, body.y, body.width.min(48), body.height),
             _ => body,
@@ -176,8 +167,6 @@ impl DiffPage {
     }
 }
 
-/// The States grid: the view unified and in review, at rest, focused, with
-/// no file and in a narrow slot (where review falls back to unified).
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -323,7 +312,6 @@ impl Page for DiffPage {
     }
 
     fn option_value(&self, key: &str) -> Option<usize> {
-        // the Review toggle and the mode option are one setting
         if key == "diff.mode" {
             return Some(usize::from(self.review.on == Some(true)));
         }

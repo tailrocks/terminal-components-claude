@@ -1,23 +1,3 @@
-//! The one application-owned filesystem removal boundary (HP20–HP22).
-//!
-//! - `Category` and `policy` describe every insight category's roots, age
-//!   rule, platform and process guard; eligibility is computed once and the
-//!   same way from the tree, an insight or a custom entry.
-//! - `validate` applies the lexical, protected-root, user deny and symlink
-//!   ancestor rules; `authorize` freezes an immutable `DeletePlan` with a
-//!   revision that any material change invalidates.
-//! - `execute` revalidates each item at commit, sizes it, deduplicates
-//!   ancestors and duplicates, honours the process guard, moves to Trash
-//!   by default or removes permanently only when the plan says so, never
-//!   falls back from Trash to permanent, writes one JSONL v1 record per
-//!   requested item, and reports removed/trashed/would-remove/failed/skipped
-//!   separately with log health.
-//!
-//! Threat model: an unprivileged single user. Parent revalidation mitigates
-//! a replaced ancestor between review and commit; pathname APIs cannot pin
-//! the final syscall against a concurrent rename, and this preview does not
-//! claim otherwise. No sudo boundary is supported.
-
 use std::collections::BTreeSet;
 
 use crate::domain::context::Os;
@@ -29,15 +9,12 @@ pub const CACHE_DEPTH: usize = 2;
 pub const REPORT_DETAIL: usize = 6;
 pub const ARTIFACT_DEPTH: usize = 6;
 
-// ------------------------------------------------------------ taxonomy
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Safety {
-    /// Regenerated on demand: preselected at any age.
     Rebuildable,
-    /// Safe once old enough: preselected when older than the minimum.
+
     OldOnly,
-    /// Needs a human look: never preselected.
+
     ReviewFirst,
 }
 
@@ -53,11 +30,10 @@ impl Safety {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Detect {
-    /// A directory root exists.
     Dir,
-    /// The named executable is on PATH.
+
     Tool(&'static str),
-    /// Tool on PATH or the directory exists.
+
     ToolOrDir(&'static str),
     Always,
 }
@@ -67,15 +43,15 @@ pub struct Category {
     pub id: &'static str,
     pub label: &'static str,
     pub safety: Safety,
-    /// Minimum age in days for age-gated rules; 0 means any age.
+
     pub min_age_days: i64,
     pub detect: Detect,
-    /// Home-relative roots; `~/Library/...`.
+
     pub roots: &'static [&'static str],
     pub macos_only: bool,
-    /// Candidates are the children of the root; the root itself is protected.
+
     pub children_of_root: bool,
-    /// A running process by this name blocks cleanup.
+
     pub guard_process: Option<&'static str>,
     pub note: &'static str,
 }
@@ -333,7 +309,6 @@ pub const INDICATORS: [&str; 8] = [
     ".git",
 ];
 
-/// Folder names the disk tree folds into one selectable aggregate row.
 pub const NOISE_NAMES: [&str; 14] = [
     "node_modules",
     ".git",
@@ -351,8 +326,6 @@ pub const NOISE_NAMES: [&str; 14] = [
     ".cache",
 ];
 
-/// Observed process state for guards: a failed probe is unknown, never
-/// "not running".
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProcessObservation {
     Running,
@@ -362,11 +335,10 @@ pub enum ProcessObservation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Eligibility {
-    /// Selected by default.
     Preselected,
-    /// Selectable, unselected by default (review-first).
+
     Selectable,
-    /// Visible, cannot be selected.
+
     Ineligible(String),
 }
 
@@ -376,7 +348,6 @@ impl Eligibility {
     }
 }
 
-/// Age in days from an mtime; `None` when unknown or in the future.
 pub fn age_days(mtime: i64, now_secs: i64) -> Option<i64> {
     if mtime > now_secs {
         return None;
@@ -384,7 +355,6 @@ pub fn age_days(mtime: i64, now_secs: i64) -> Option<i64> {
     Some((now_secs - mtime) / 86_400)
 }
 
-/// The shared eligibility rule for a category candidate.
 pub fn eligibility(cat: &Category, age: Option<i64>, process: &ProcessObservation) -> Eligibility {
     if let Some(name) = cat.guard_process {
         match process {
@@ -415,7 +385,6 @@ pub fn eligibility(cat: &Category, age: Option<i64>, process: &ProcessObservatio
     }
 }
 
-/// Is a category detected on this host: platform, tool and root rules.
 pub fn detected(cat: &Category, os: Os, home: &str, fs: &Fs, tools: &BTreeSet<String>) -> bool {
     if cat.macos_only && os != Os::MacOs {
         return false;
@@ -429,8 +398,6 @@ pub fn detected(cat: &Category, os: Os, home: &str, fs: &Fs, tools: &BTreeSet<St
     }
 }
 
-/// Resolve the pnpm store: accept only an absolute canonical path below a
-/// known home root; anything else falls back to `Library/pnpm/store`.
 pub fn pnpm_store_root(home: &str, resolved: Result<&str, &str>) -> (String, Option<String>) {
     let fallback = format!("{home}/Library/pnpm/store");
     let allowed = [
@@ -459,8 +426,6 @@ pub fn pnpm_store_root(home: &str, resolved: Result<&str, &str>) -> (String, Opt
     }
 }
 
-/// Classify a directory as a project artifact: an exact artifact name with
-/// a project indicator beside it (LD041).
 pub fn is_artifact(fs: &Fs, path: &str) -> bool {
     let name = path.rsplit('/').next().unwrap_or("");
     if !ARTIFACT_NAMES.contains(&name) {
@@ -474,15 +439,11 @@ pub fn is_artifact(fs: &Fs, path: &str) -> bool {
         .any(|i| fs.exists(&format!("{parent}/{i}")))
 }
 
-/// Recursively find artifacts under roots (max depth six), never descending
-/// into a found artifact or a directory symlink; roots are deduplicated.
 #[cfg(test)]
 pub fn find_artifacts(fs: &Fs, roots: &[String]) -> Vec<String> {
     find_artifacts_report(fs, roots).0
 }
 
-/// The artifact walk plus every directory it could not read: a skipped
-/// folder is reported so the candidate list is known to be a lower bound.
 pub fn find_artifacts_report(fs: &Fs, roots: &[String]) -> (Vec<String>, Vec<String>) {
     let mut uniq: Vec<String> = vec![];
     for r in roots {
@@ -531,15 +492,10 @@ fn walk_artifacts(
     }
 }
 
-/// The shared Gradle/IDEA candidate walker (OP50): skips every symlink,
-/// never enters node_modules, depth five, does not descend a selected
-/// directory, unreadable entries skipped, sorted unique paths.
 pub fn walk_candidates(fs: &Fs, root: &str, select: &dyn Fn(&str, bool) -> bool) -> Vec<String> {
     walk_candidates_report(fs, root, select).0
 }
 
-/// The walk plus every directory it could not read: a folder it had to
-/// skip is reported, so a partial answer is never presented as complete.
 pub fn walk_candidates_report(
     fs: &Fs,
     root: &str,
@@ -594,8 +550,6 @@ fn walk_sel(
     }
 }
 
-// ------------------------------------------------------------ validation
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Deny(pub String);
 
@@ -637,7 +591,6 @@ fn under(path: &str, root: &str) -> bool {
     path == root || path.starts_with(&format!("{root}/"))
 }
 
-/// Protected system roots and subtrees (LD053).
 pub fn system_rule(path: &str) -> Option<Deny> {
     for s in PROTECTED_SUBTREES {
         if under(path, s) {
@@ -653,7 +606,6 @@ pub fn system_rule(path: &str) -> Option<Deny> {
     None
 }
 
-/// User-path deny rules under the home directory (LD054).
 pub fn user_rule(path: &str, home: &str) -> Option<Deny> {
     if path == home {
         return Some(Deny("your home directory is protected".into()));
@@ -695,7 +647,6 @@ pub fn user_rule(path: &str, home: &str) -> Option<Deny> {
     None
 }
 
-/// Every rule, in order: lexical, system, user, symlink ancestors.
 pub fn validate(path: &str, home: &str, os: Os, fs: &Fs) -> Result<String, Deny> {
     lexical(path)?;
     if let Some(d) = system_rule(path) {
@@ -704,8 +655,7 @@ pub fn validate(path: &str, home: &str, os: Os, fs: &Fs) -> Result<String, Deny>
     if let Some(d) = user_rule(path, home) {
         return Err(d);
     }
-    // a missing ancestor cannot be a link: the deny rules above already ran
-    // lexically and the commit reports the leaf as not found
+
     let (parent, links) = match fs.canonical_parent(path) {
         Ok(v) => v,
         Err(crate::sim::fs::FsError::NotFound(_)) => {
@@ -729,15 +679,12 @@ pub fn validate(path: &str, home: &str, os: Os, fs: &Fs) -> Result<String, Deny>
     Ok(canonical)
 }
 
-/// A selected ancestor must not contain a protected descendant.
 pub fn protected_descendant(path: &str, home: &str, fs: &Fs) -> Option<String> {
     fs.subtree(path)
         .iter()
         .find(|n| user_rule(&n.path, home).is_some() || system_rule(&n.path).is_some())
         .map(|n| n.path.clone())
 }
-
-// ------------------------------------------------------------ plan
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
@@ -758,13 +705,11 @@ impl Mode {
 pub struct DeleteItem {
     pub path: String,
     pub category: String,
-    /// Estimated allocated bytes at review time.
+
     pub estimate: u64,
     pub guard: Option<&'static str>,
 }
 
-/// An immutable, authorized deletion. Any material change (paths, mode,
-/// dry run, policy) yields a new revision; the executor refuses a stale one.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeletePlan {
     pub host: String,
@@ -789,7 +734,6 @@ impl DeletePlan {
         p
     }
 
-    /// A stable fingerprint of everything material.
     pub fn fingerprint(&self) -> u64 {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
         let mut feed = |s: &str| {
@@ -815,7 +759,6 @@ impl DeletePlan {
         self.items.iter().map(|i| i.estimate).sum()
     }
 
-    /// The typed phrase for a broad operation, bound to host and root.
     pub fn phrase(&self) -> String {
         format!(
             "{} {} UNDER {} ON {}",
@@ -830,8 +773,6 @@ impl DeletePlan {
         )
     }
 }
-
-// ------------------------------------------------------------ execution
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Outcome {
@@ -862,7 +803,6 @@ pub struct ItemResult {
     pub error: Option<String>,
 }
 
-/// One JSONL v1 record per requested item (LD060).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LogRecord {
     pub timestamp_ms: i64,
@@ -898,8 +838,6 @@ impl LogRecord {
 }
 
 impl LogRecord {
-    /// Read a v1 record back from its JSONL line. A malformed or foreign line
-    /// yields `None`; the raw line still appears in the audit view.
     pub fn parse(line: &str) -> Option<Self> {
         fn raw<'a>(line: &'a str, key: &str) -> Option<&'a str> {
             let k = format!("\"{key}\":");
@@ -963,13 +901,11 @@ impl LogRecord {
     }
 }
 
-/// The in-memory operation log at `$XDG_CACHE_HOME/holla/ops.log`.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct OpsLog {
     pub path: String,
     pub lines: Vec<String>,
-    /// Appends fail (read-only cache): failures are counted, never hidden,
-    /// and never block or roll back a deletion.
+
     pub write_failure: Option<String>,
     pub failures: u32,
 }
@@ -992,9 +928,9 @@ pub struct Report {
     pub items: Vec<ItemResult>,
     pub log_failures: u32,
     pub log_path: String,
-    /// Allocated bytes that left the tree (Trash or permanent).
+
     pub bytes: u64,
-    /// Bytes physically freed on the volume now (permanent only).
+
     pub freed_now: u64,
 }
 
@@ -1002,7 +938,7 @@ impl Report {
     pub fn count(&self, o: Outcome) -> usize {
         self.items.iter().filter(|i| i.outcome == o).count()
     }
-    /// First six failed/skipped details and the overflow count.
+
     pub fn details(&self) -> (Vec<&ItemResult>, usize) {
         let all: Vec<&ItemResult> = self
             .items
@@ -1052,9 +988,6 @@ pub struct ExecContext<'a> {
     pub processes: &'a dyn Fn(&str) -> ProcessObservation,
 }
 
-/// A committed plan executing one item at a time. The world steps it per
-/// tick, so the report grows in place and a quit can wait for it explicitly
-/// instead of a modal owning the deletion (HP22).
 #[derive(Debug, Clone)]
 pub struct Execution {
     plan: DeletePlan,
@@ -1065,8 +998,6 @@ pub struct Execution {
 }
 
 impl Execution {
-    /// Start an authorized plan. `expected_revision` must match the plan's
-    /// fingerprint; a drifted plan is refused before any effect.
     pub fn start(
         plan: &DeletePlan,
         expected_revision: u64,
@@ -1105,7 +1036,6 @@ impl Execution {
         self.next >= self.plan.items.len()
     }
 
-    /// The report so far: partial until `finished`.
     pub fn report(&self) -> &Report {
         &self.report
     }
@@ -1136,7 +1066,6 @@ impl Execution {
         });
     }
 
-    /// Process the next item. Returns `false` once every item is done.
     pub fn step(&mut self, fs: &mut Fs, log: &mut OpsLog, cx: &ExecContext) -> bool {
         let Some(item) = self.plan.items.get(self.next).cloned() else {
             return false;
@@ -1144,7 +1073,7 @@ impl Execution {
         self.next += 1;
         let path = item.path.as_str();
         let now = cx.now_secs;
-        // duplicates and descendants of another selected ancestor
+
         if !self.done.insert(path.to_owned()) {
             self.record(
                 path,
@@ -1174,7 +1103,7 @@ impl Execution {
             );
             return true;
         }
-        // process guard, observed once per batch
+
         if let Some(g) = item.guard {
             let obs = self
                 .processes
@@ -1207,7 +1136,7 @@ impl Execution {
                 ProcessObservation::NotRunning => {}
             }
         }
-        // validation is re-run at commit, after sizing, immediately before mutation
+
         if let Err(Deny(why)) = validate(path, cx.home, cx.os, fs) {
             self.record(path, Outcome::Skipped, 0, Some(why), log, now);
             return true;
@@ -1288,7 +1217,6 @@ impl Execution {
         true
     }
 
-    /// Close the execution: the log's failure count moves into the report.
     pub fn finish(mut self, log: &mut OpsLog) -> Report {
         self.report.log_failures = log.failures;
         log.failures = 0;
@@ -1296,8 +1224,6 @@ impl Execution {
     }
 }
 
-/// Execute an authorized plan against the filesystem in one go: the
-/// stepped `Execution` without a world driving it.
 #[cfg(test)]
 pub fn execute(
     plan: &DeletePlan,
@@ -1311,8 +1237,6 @@ pub fn execute(
     Ok(e.finish(log))
 }
 
-// ------------------------------------------------------------ size cache
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CacheEntry {
     pub path: String,
@@ -1321,8 +1245,6 @@ pub struct CacheEntry {
     pub recorded_secs: i64,
 }
 
-/// `sizes.json` v3: root plus depth two, seven-day TTL and exact mtime
-/// validity (LD017/LD018).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SizeCache {
     pub entries: Vec<CacheEntry>,
@@ -1331,15 +1253,12 @@ pub struct SizeCache {
 }
 
 impl SizeCache {
-    /// A valid hint for `path`: fresh and matching the current mtime.
     pub fn hint(&self, path: &str, mtime: i64, now_secs: i64) -> Option<&CacheEntry> {
         self.entries.iter().find(|e| {
             e.path == path && e.mtime == mtime && now_secs - e.recorded_secs <= CACHE_TTL_SECS
         })
     }
 
-    /// Record a scan: the root and nodes within two levels, omitting paths
-    /// whose mtime changed since the pre-scan snapshot.
     pub fn record(
         &mut self,
         root: &str,
@@ -1399,7 +1318,6 @@ impl SizeCache {
         format!("{{\"v\":{CACHE_SCHEMA},\"entries\":[{}]}}", items.join(","))
     }
 
-    /// Load; corrupt or unknown schema is ignored (empty with a reason).
     pub fn load(text: Option<&str>, now_secs: i64) -> Self {
         let Some(text) = text else {
             return Self::default();
@@ -1454,7 +1372,6 @@ impl SizeCache {
         c
     }
 
-    /// Merge another writer's entries: newer wins, expired dropped.
     pub fn merge(&mut self, other: &SizeCache, now_secs: i64) {
         for o in &other.entries {
             if now_secs - o.recorded_secs > CACHE_TTL_SECS {
@@ -1663,7 +1580,7 @@ mod tests {
             "decoys without an indicator and nested artifacts are excluded"
         );
         assert!(!is_artifact(&fs, &format!("{HOME}/Projects/plain/build")));
-        // the shared walker for Gradle/IDEA skips links and node_modules
+
         let sel = |p: &str, is_dir: bool| is_dir && p.ends_with("/target");
         let c = walk_candidates(&fs, &format!("{HOME}/Projects"), &sel);
         assert_eq!(c, vec![format!("{HOME}/Projects/rs/target")]);
@@ -1702,15 +1619,15 @@ mod tests {
         );
         assert!(v(&format!("{HOME}/Library/Caches")).is_err());
         assert!(v(&format!("{HOME}/Library/Logs")).is_err());
-        // allowed: children of Caches/Logs, /usr/local children, /Library children, Unicode and newline names
+
         assert!(v(&format!("{HOME}/Library/Caches/com.app")).is_ok());
         assert!(v(&format!("{HOME}/Library/Logs/old.log")).is_ok());
         assert!(v("/usr/local/lib/x").is_ok());
         assert!(v("/Library/Caches/x").is_ok());
         assert!(v(&format!("{HOME}/Projects/ünï\ncode")).is_ok());
-        // a valid-looking missing path passes lexical validation
+
         assert!(v(&format!("{HOME}/Projects/nothing-here")).is_ok());
-        // symlink ancestors are refused, except the macOS /tmp and /var aliases
+
         assert!(v(&format!("{HOME}/Projects/link/node_modules")).is_err());
         assert!(
             v(&format!("{HOME}/Projects/link")).is_ok(),
@@ -1721,7 +1638,7 @@ mod tests {
             validate("/tmp/junk", HOME, Os::Debian, &fs).is_err(),
             "no alias on Linux"
         );
-        // an ancestor containing a protected child is refused
+
         assert!(protected_descendant(&format!("{HOME}/Library"), HOME, &fs).is_some());
         assert!(protected_descendant(&format!("{HOME}/Projects"), HOME, &fs).is_none());
     }
@@ -1771,10 +1688,10 @@ mod tests {
             now_secs: EPOCH_SECS,
             processes: &probe,
         };
-        // a stale revision is refused before any effect
+
         assert!(execute(&plan, plan.revision + 1, &mut fs, &mut log, &cx).is_err());
         assert!(log.lines.is_empty());
-        // dry run: exact would-results, no mutation, no process stop
+
         let r = execute(&plan, plan.revision, &mut fs, &mut log, &cx).unwrap();
         assert_eq!(r.count(Outcome::WouldRemove), 2);
         assert_eq!(r.count(Outcome::Skipped), 5);
@@ -1803,7 +1720,7 @@ mod tests {
         let (details, over) = r.details();
         assert_eq!(details.len(), 6);
         assert_eq!(over, 0);
-        // live Trash: bytes leave the tree, the volume keeps them until emptied
+
         let live = DeletePlan::new(
             "mbp",
             &format!("{HOME}/Projects"),
@@ -1821,7 +1738,7 @@ mod tests {
             used,
             "same-volume Trash frees nothing yet"
         );
-        // permanent frees now; a Trash failure never falls back to permanent
+
         fs.trash_broken = Some("Trash full".into());
         let t = DeletePlan::new(
             "mbp",
@@ -1844,7 +1761,7 @@ mod tests {
         assert_eq!(r.count(Outcome::Removed), 1);
         assert_eq!(r.freed_now, 2 * BLOCK);
         assert_eq!(fs.volume_for("/").unwrap().used, used - 2 * BLOCK);
-        // log failure is visible and never rolls back
+
         log.write_failure = Some("EROFS".into());
         let p2 = DeletePlan::new(
             "mbp",
@@ -1858,7 +1775,7 @@ mod tests {
         assert_eq!(r.log_failures, 1);
         assert!(r.summary().contains("1 log write failures"));
         assert!(!fs.exists(&format!("{HOME}/Library/Logs/old.log")));
-        // the phrase is bound to mode, count, root and host
+
         assert_eq!(
             p.phrase(),
             format!("PERMANENTLY DELETE 1 UNDER {HOME} ON mbp")
@@ -1874,7 +1791,7 @@ mod tests {
             )
             .revision
         );
-        // JSON escaping
+
         let rec = LogRecord {
             timestamp_ms: 1,
             mode: Mode::Trash,
@@ -1950,7 +1867,7 @@ mod tests {
                 .contains("schema 2")
         );
         assert!(SizeCache::load(Some("nope"), now).load_error.is_some());
-        // a changed path is omitted after the scan
+
         let mut fs2 = fs.clone();
         fs2.touch(&format!("{HOME}/Projects/rs/target"), 0);
         let mut c2 = SizeCache::default();
@@ -1960,7 +1877,7 @@ mod tests {
                 .iter()
                 .any(|e| e.path == format!("{HOME}/Projects/rs/target"))
         );
-        // two writers merge by recency
+
         let mut a = SizeCache::default();
         a.entries.push(CacheEntry {
             path: "/x".into(),

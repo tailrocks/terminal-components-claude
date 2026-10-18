@@ -1,8 +1,3 @@
-//! The Finder screen (plan §7.5, SC48), driven through the real
-//! showcase: typing ranks live, the scope widens the catalogue, Enter
-//! runs, Alternatives… and Why? open over the page, and every option
-//! changes the frame.
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::app::PageId;
@@ -47,7 +42,7 @@ fn typing_ranks_live_and_the_scope_widens_the_catalogue() {
         h.key(KeyCode::Char(c));
     }
     assert!(!h.text().contains("Compose up"), "out of scope here");
-    // the scope readout sits inside the query field; a click widens it
+
     let r = page(&h).query.readout_area;
     assert_eq!(r.y, page(&h).query.area.y, "on the field row");
     assert!(h.text().contains("scope ‹ here ›"));
@@ -55,7 +50,7 @@ fn typing_ranks_live_and_the_scope_widens_the_catalogue() {
     assert_eq!(page(&h).scope, 1);
     assert!(h.text().contains("scope ‹ project ›"));
     assert!(h.text().contains("Compose up"), "{}", h.text());
-    // Alt+↑ widens from the keyboard, Alt+↓ narrows again
+
     h.focus(page(&h).query.id);
     h.key_mod(KeyCode::Up, KeyModifiers::ALT);
     assert_eq!(page(&h).scope, 2);
@@ -64,7 +59,7 @@ fn typing_ranks_live_and_the_scope_widens_the_catalogue() {
     assert_eq!(page(&h).scope, 0);
     assert!(!h.text().contains("Compose up"));
     assert_eq!(page(&h).query.text(), "co", "the keys never typed");
-    // a query nothing matches says so
+
     h.opt("finder.query=nomatch");
     assert!(h.text().contains("No matches"), "{}", h.text());
 }
@@ -86,7 +81,7 @@ fn alternatives_open_a_menu_and_why_explains_the_rank() {
     assert!(h.text().contains("Fetch only"), "{}", h.text());
     h.key(KeyCode::Enter);
     assert!(h.text().contains("✓ Ran Fetch only"), "{}", h.text());
-    // the context key on the results opens the same menu
+
     h.focus(page(&h).results.id);
     h.key_mod(KeyCode::F(10), KeyModifiers::SHIFT);
     assert!(h.text().contains("Pull with rebase"), "{}", h.text());

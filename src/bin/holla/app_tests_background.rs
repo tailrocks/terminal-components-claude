@@ -1,6 +1,3 @@
-//! Tabs on the library shell: background requests (CO9) and the
-//! router's page keys (S8a).
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -17,8 +14,6 @@ use crate::scenario::{Motion, Scenario};
 use crate::screens::{Cx, Go, Holla, Screen};
 use crate::sim::world::World;
 
-/// A tab page that reports on its first tick: a status, and a request
-/// that would act on the screen (closing the tab).
 struct TickProbe {
     ticked: bool,
 }
@@ -49,10 +44,6 @@ impl Page<Holla> for TickProbe {
 
 impl Screen for TickProbe {}
 
-/// CO9: a background tab's tick follows the shell's background-request
-/// policy, as its blur already did: the status it reports waits for the
-/// tab and shows once the tab is shown; what would act on the screen
-/// (closing the tab) is dropped. Before, the whole tick report was lost.
 #[test]
 fn a_background_tabs_tick_status_shows_when_the_tab_is_shown() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
@@ -73,8 +64,6 @@ fn a_background_tabs_tick_status_shows_when_the_tab_is_shown() {
     );
 }
 
-/// The library router's page keys reach holla's tabs (S8a, SI23):
-/// Ctrl+PgDn/PgUp step the tabs, wrapping, as Alt+digit picks one.
 #[test]
 fn ctrl_page_keys_step_the_tabs() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);

@@ -1,13 +1,3 @@
-//! Data grid: typed cells, a pending-change queue with preview / discard /
-//! a typed-token save review, fetch-more paging, local sort, filters on a
-//! cell's value, and row-level errors from a commit.
-//!
-//! Playground: the `customers` grid, its filter chips, its schema (what
-//! each `ColumnSpec` says) and its commands (the grid's key map and the
-//! `GridAction` each one asks the page for). Options: every grid knob,
-//! rebuilt through `DataGrid`'s builders. States: an editable grid, one with
-//! pending changes and a read-only one, drawn by `DataGrid` itself.
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Rect;
@@ -41,7 +31,7 @@ const PREVIEW: WidgetId = ID.sub("preview");
 const REVIEW: WidgetId = ID.sub("review");
 const PAGE: usize = 40;
 const ALL: usize = 96;
-/// The table the grid edits: the save review asks for it.
+
 const TABLE: &str = "customers";
 
 const NAMES: &[&str] = &[
@@ -137,7 +127,6 @@ fn columns() -> Vec<ColumnSpec> {
         ColumnSpec::new("customer", CellKind::Text)
             .nullable(false)
             .type_label("text"),
-        // four plans: a segmented strip (the option-count ladder)
         ColumnSpec::new("plan", CellKind::Enum)
             .enum_values(PLANS)
             .editor(ColumnEditor::for_options(Options::values(PLANS)))
@@ -160,7 +149,6 @@ fn columns() -> Vec<ColumnSpec> {
     ]
 }
 
-/// Every option of the page, as value indices (`datagrid.*`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct Knobs {
     access: usize,
@@ -182,7 +170,6 @@ struct Knobs {
     blur_action: usize,
 }
 
-/// `datagrid.<name>` keys, in [`Knobs`] order.
 const KEYS: [&str; 17] = [
     "datagrid.access",
     "datagrid.rows",
@@ -244,7 +231,6 @@ impl Knobs {
     }
 }
 
-/// Why a read-only grid is read-only (`datagrid.access`).
 const READ_ONLY: [Option<&str>; 4] = [
     None,
     Some("customer_summary is a view: it cannot be edited"),
@@ -252,8 +238,6 @@ const READ_ONLY: [Option<&str>; 4] = [
     Some("Query results are read-only: open the table to edit"),
 ];
 
-/// A key map an app might choose instead of the defaults: `x` clears, `o`
-/// inserts, `d` toggles delete, Ctrl+R reloads (`datagrid.keymap`).
 fn custom_keymap() -> KeyMap<GridCmd> {
     let mut map: KeyMap<GridCmd> = GridCmd::default_keymap()
         .into_iter()
@@ -273,7 +257,6 @@ fn custom_keymap() -> KeyMap<GridCmd> {
     map
 }
 
-/// Seats must stay within the plan limit (`datagrid.validator=strict`).
 fn strict(spec: &ColumnSpec, text: &str) -> Result<CellValue, String> {
     let parsed = junie_tui::widgets::grid::default_validator(spec, text)?;
     match (&*spec.name, &parsed) {
@@ -285,7 +268,6 @@ fn strict(spec: &ColumnSpec, text: &str) -> Result<CellValue, String> {
     }
 }
 
-/// The grid as the options say, through `DataGrid`'s builders.
 fn build(k: &Knobs) -> DataGrid {
     let mut grid = DataGrid::new(ID.sub("grid"), columns())
         .editable(k.access == 0)
@@ -353,7 +335,6 @@ fn build(k: &Knobs) -> DataGrid {
     grid
 }
 
-/// What each command does, and the action it asks the page for.
 const COMMANDS: &[(GridCmd, &str)] = &[
     (GridCmd::ClearCell, "Set NULL · CellChanged"),
     (GridCmd::ToggleDelete, "Delete row · RowDeleted"),
@@ -378,7 +359,6 @@ const COMMANDS: &[(GridCmd, &str)] = &[
     (GridCmd::SelectAll, "Mark every row"),
 ];
 
-/// The fixed keys and what they ask for.
 const FIXED: &[(&str, &str)] = &[
     (
         "Enter / F2",
@@ -393,8 +373,6 @@ const FIXED: &[(&str, &str)] = &[
     ("past the last row", "FetchMore"),
 ];
 
-/// The States grid: an editable grid, one with a pending change of every
-/// kind and a read-only one.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -460,9 +438,9 @@ pub struct GridPage {
     template: Template,
     knobs: Knobs,
     pub grid: DataGrid,
-    /// One chip per filter set from a cell's value.
+
     filters: ChipBar,
-    /// `(column, value)` of each filter chip.
+
     filter_values: Vec<(usize, CellValue)>,
     sections: crate::pages::layout::Sections,
     commit_ticks: u8,
@@ -470,16 +448,12 @@ pub struct GridPage {
 }
 
 impl GridPage {
-    /// The grid's pointer events: cells, headers, seams (a drag resizes
-    /// the column, a double press fits it), row numbers, its bars, its
-    /// pending-bar buttons and an open editor's popup.
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let Some(r) = self.grid.route(ev) else {
             return Outcome::Ignored;
         };
         let (o, gev) = r.into_parts();
         if ev.is(Phase::Click) {
-            // the scrollbar scrolls without taking focus
             if self.grid.bar_ids().contains(&ev.id) {
                 cx.focus.focus(ev.id);
             } else if ev.bar.is_none() {
@@ -557,8 +531,6 @@ impl GridPage {
         out
     }
 
-    /// The pending changes as a dialog: the preview (Copy SQL), or the
-    /// save review that asks for the table's name before it saves.
     fn changes_dialog(&self, review: bool) -> Dialog {
         let code = self.statements();
         let (changed, inserted, deleted) = self.grid.pending.counts();
@@ -666,7 +638,7 @@ impl GridPage {
 
     fn finish_commit(&mut self, cx: &mut Cx) {
         self.grid.set_loading(false);
-        // the "server" rejects seat counts above the plan limit
+
         let bad = self
             .grid
             .pending
@@ -689,7 +661,6 @@ impl GridPage {
         }
     }
 
-    /// What the schema card says about each column, from its `ColumnSpec`.
     fn schema(&self) -> Vec<Prop> {
         self.grid
             .columns
@@ -719,7 +690,6 @@ impl GridPage {
             .collect()
     }
 
-    /// The commands as the grid's key map binds them now.
     fn commands(&self) -> Vec<Prop> {
         let mut out: Vec<Prop> = COMMANDS
             .iter()
@@ -732,9 +702,6 @@ impl GridPage {
         out
     }
 
-    /// The sections at `width`: the grid card at its set height (the grid
-    /// scrolls the rest both ways), the legend, the schema and commands
-    /// facts wrapped.
     fn heights(&self, width: u16) -> [u16; 4] {
         let wrap = |v: Vec<Prop>| -> Vec<Prop> { v.into_iter().map(Prop::wrap).collect() };
         [
@@ -806,7 +773,6 @@ impl GridPage {
             None => ctx.focus_stop(self.grid.id),
         }
         if let Some(r) = l.slot(1) {
-            // the change marks, as the grid draws them
             let marks = [
                 (RowState::Modified, "modified"),
                 (RowState::Inserted, "inserted"),
@@ -846,8 +812,6 @@ impl GridPage {
     }
 }
 
-/// The grid card's height at every screen size: the grid scrolls the
-/// rest of its rows.
 const GRID_H: u16 = 26;
 
 impl Page for GridPage {
@@ -872,14 +836,10 @@ impl Page for GridPage {
         self.commit_ticks > 0
     }
 
-    /// The grid takes the page's width (it scrolls both ways itself,
-    /// down to its min width); the facts wrap; the grid card keeps its
-    /// set height at every screen size.
     fn measure(&self, avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         use junie_tui::ui::measure::Measure;
         let wrap = |v: Vec<Prop>| -> Vec<Prop> { v.into_iter().map(Prop::wrap).collect() };
-        // the card's position readout stays whole (it says what is
-        // loaded, beyond the grid's window)
+
         let meta = format!("read-only · {}", self.grid.position_label());
         let card = Panel::card(Some(TABLE))
             .meta(&meta)
@@ -994,11 +954,11 @@ impl Page for GridPage {
             return vec![("Enter", "Activate"), ("Tab", "Next")];
         }
         let mut h = vec![("↑↓←→", "Cell")];
-        // Edit only where Enter edits (keyboard audit #25)
+
         if self.grid.cell_editable() {
             h.push(junie_tui::widgets::widget_hints::EDIT_PAIR);
         }
-        // the keys the grid's key map binds now (`datagrid.keymap`)
+
         let key = |cmd| hint_key(&self.grid.keymap, cmd);
         if let Some(k) = key(GridCmd::Sort) {
             h.push((k, "Sort"));

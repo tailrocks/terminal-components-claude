@@ -1,18 +1,3 @@
-//! The Inspector (`i`, plan §7 SC1): a "State | Options" pane.
-//!
-//! - **State**: the shell's diagnostics (mode, focus, hover, press, pointer,
-//!   last key, focus ring, hit regions, tick, colour level, size, input
-//!   counters) and a log of the last [`LOG_LEN`] inputs with the outcome
-//!   each had.
-//! - **Options**: the current page's option table, then the shell-wide
-//!   options ([`crate::options::SHELL`]).
-//!
-//! At 100 columns and wider the pane docks on the right of the page; below
-//! that it opens as an overlay drawn by the app (light dismiss, Esc
-//! closes). Everything here is library widgets: `Tabs`, `props`, and the
-//! option controls of [`OptionsView`]. The tab's body scrolls in a library
-//! `ScrollView` when it is taller than the pane.
-
 use std::collections::VecDeque;
 
 use ratatui::buffer::Buffer;
@@ -32,10 +17,8 @@ use junie_tui::widgets::tabs::Tabs;
 
 pub const ID: WidgetId = WidgetId::of("app.inspector");
 
-/// Inputs the State tab's log keeps.
 pub const LOG_LEN: usize = 50;
 
-/// One tab of the Inspector.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tab {
     State,
@@ -55,14 +38,13 @@ impl Tab {
 pub struct Inspector {
     pub tabs: Tabs,
     pub options: OptionsView,
-    /// The tab's body, scrolled when it is taller than the pane (values
-    /// cut to the pane's width reveal in full on hover).
+
     pub view: ScrollView,
-    /// The page [`Self::options`] was built for.
+
     page: PageId,
-    /// The last inputs, newest first: `(input, outcome)`.
+
     pub log: VecDeque<(String, String)>,
-    /// Inputs handled, ticks not counted.
+
     pub inputs: u64,
     pub ticks: u64,
 }
@@ -104,7 +86,7 @@ impl Inspector {
         Tab::ALL[self.tabs.active.min(Tab::ALL.len() - 1)]
     }
 
-    #[allow(dead_code)] // tests and the coverage gate open a tab directly
+    #[allow(dead_code)]
     pub fn set_tab(&mut self, tab: Tab) {
         let i = Tab::ALL.iter().position(|t| *t == tab).unwrap_or(0);
         self.tabs.set_active(i);
@@ -112,7 +94,6 @@ impl Inspector {
         self.view.reset();
     }
 
-    /// Show `page`'s option table (rebuilt when the page changed).
     pub fn for_page(&mut self, page: PageId) {
         if self.page != page {
             self.page = page;
@@ -120,7 +101,6 @@ impl Inspector {
         }
     }
 
-    /// Log an input and what it did.
     pub fn record(&mut self, input: &Input, out: Outcome) {
         let what = match input {
             Input::Tick => {
@@ -143,14 +123,10 @@ impl Inspector {
         self.log.truncate(LOG_LEN);
     }
 
-    /// Whether focus is on one of the pane's controls.
     pub fn has_focus(&self, focus: Option<WidgetId>) -> bool {
         focus.is_some_and(|f| f == self.tabs.id || self.options.has_control(f))
     }
 
-    /// Draw the pane into `area` (inside its card): the tab strip, then the
-    /// tab, at its natural height in the pane's scroll view. `state` is the
-    /// State tab's diagnostics.
     pub fn render(
         &mut self,
         area: Rect,
@@ -171,7 +147,6 @@ impl Inspector {
             .collect();
         let size = match self.tab() {
             Tab::State => {
-                // the bar's column and gap come off the width when it shows
                 let w = avail.width.saturating_sub(2).max(1);
                 let rows = props::measure(state, w) + 2 + props::measure(&log, w).max(1);
                 ratatui::layout::Size::new(avail.width, rows)
@@ -191,9 +166,7 @@ impl Inspector {
         self.options.on_blur(from)
     }
 
-    /// Route `ev` to the pane; `None` when it is not the pane's.
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Option<OptSet>)> {
-        // the body's own wheel and bar
         if let PageEvent::Pointer(p) = ev
             && let Some(r) = self.view.pointer(p)
         {
@@ -228,7 +201,6 @@ impl Inspector {
         None
     }
 
-    /// Footer hints while focus is in the pane.
     pub fn hints(&self, focus: Option<WidgetId>) -> Option<Vec<Hint>> {
         if focus == Some(self.tabs.id) {
             return Some(vec![("←→", "Switch tab")]);
@@ -237,7 +209,6 @@ impl Inspector {
     }
 }
 
-/// The State tab: the diagnostics, then the input log.
 fn render_state(
     area: Rect,
     buf: &mut Buffer,

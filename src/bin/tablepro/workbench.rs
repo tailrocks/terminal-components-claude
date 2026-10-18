@@ -1,5 +1,3 @@
-//! Workbench: explorer pane + tab strip + tab bodies for one connection.
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
@@ -28,11 +26,11 @@ use crate::tabs::{HistoryTab, QueryTab, TableTab};
 
 const ID: WidgetId = WidgetId::of("workbench");
 pub const EXPLORER: WidgetId = ID.sub("explorer");
-/// The collapsed explorer's rail (mouse #8).
+
 pub const EXPLORER_RAIL: WidgetId = ID.sub("explorer.rail");
 pub const TABSTRIP: WidgetId = ID.sub("tabstrip");
 
-#[allow(clippy::large_enum_variant)] // a handful of tabs; boxing buys nothing
+#[allow(clippy::large_enum_variant)]
 pub type PendingRun = (
     usize,
     Vec<(String, std::ops::Range<usize>)>,
@@ -40,7 +38,7 @@ pub type PendingRun = (
     Option<bool>,
 );
 
-#[allow(clippy::large_enum_variant)] // a handful of tabs; boxing buys nothing
+#[allow(clippy::large_enum_variant)]
 pub enum WorkTab {
     Table(TableTab),
     Query(QueryTab),
@@ -78,11 +76,9 @@ pub struct Workbench {
     pub explorer: TreeView,
     pub explorer_filter: TextInput,
     pub explorer_visible: bool,
-    /// The rail a hidden (or, below 100 columns, unfocused) explorer
-    /// leaves, and its collapse button.
+
     pub rail: junie_tui::widgets::rail::SidebarRail,
-    /// Explorer / main split: follows the default width until the seam is
-    /// dragged; a double-click on the seam returns to it.
+
     pub explorer_split: Split,
     pub explorer_sized: bool,
     pub explorer_seam: Splitter,
@@ -93,11 +89,11 @@ pub struct Workbench {
     pub active: usize,
     pub query_counter: usize,
     pending_loads: Vec<(Vec<usize>, u32)>,
-    /// Focus to restore when a maximized pane is restored.
+
     pub open_objects: Vec<(String, String)>,
-    /// Explorer `current` object: the one behind the active tab.
+
     pub current_object: Option<(String, String)>,
-    /// Statements waiting for a safety decision: (tab index, statements, all, explain)
+
     pub pending_run: Option<PendingRun>,
     pub closed: Vec<(String, String)>,
 }
@@ -143,9 +139,6 @@ impl Workbench {
         wb
     }
 
-    // ---- explorer ----------------------------------------------------
-
-    /// Rebuild the explorer around the current schema (keeps tabs).
     pub fn rebuild_for_schema(&mut self) {
         self.build_explorer();
         self.sync_strip();
@@ -158,7 +151,6 @@ impl Workbench {
                 .schemas
                 .iter()
                 .map(|s| {
-                    // schemas load lazily except the current one
                     if *s == self.schema {
                         TreeNode::dir(s, self.schema_children(s)).glyph("S")
                     } else {
@@ -172,7 +164,7 @@ impl Workbench {
         self.explorer.expanded.insert(vec![0]);
         if let Some(i) = self.catalog.schemas.iter().position(|s| *s == self.schema) {
             self.explorer.expanded.insert(vec![0, i]);
-            // Tables section open by default
+
             self.explorer.expanded.insert(vec![0, i, 0]);
         }
         self.explorer.flatten();
@@ -322,7 +314,6 @@ impl Workbench {
         out
     }
 
-    /// Resolve an explorer path to (schema, object) when it points at an object.
     pub(crate) fn object_at(&self, path: &[usize]) -> Option<(String, String)> {
         if path.len() < 4 || path[0] != 0 {
             return None;
@@ -385,11 +376,9 @@ impl Workbench {
                 .any(|t| matches!(t, WorkTab::Query(q) if q.is_running()))
     }
 
-    // ---- tabs --------------------------------------------------------
-
     fn sync_strip(&mut self) {
         let mut labels: Vec<String> = self.tabs.iter().map(|t| t.label()).collect();
-        // disambiguate duplicates with the schema
+
         for i in 0..labels.len() {
             if labels.iter().filter(|l| **l == labels[i]).count() > 1
                 && let WorkTab::Table(t) = &self.tabs[i]
@@ -424,7 +413,7 @@ impl Workbench {
             })
             .collect();
         let active = self.active.min(items.len().saturating_sub(1));
-        // keeps the window the user scrolled the strip to
+
         self.strip.set_items(items);
         self.strip.allow_new = true;
         self.strip.set_active(active);
@@ -446,7 +435,6 @@ impl Workbench {
     }
 
     pub fn open_table(&mut self, schema: &str, name: &str, preview: bool) -> Option<usize> {
-        // reuse an existing tab for the object
         if let Some(i) = self
             .tabs
             .iter()
@@ -469,7 +457,7 @@ impl Workbench {
             &table,
             preview,
         );
-        // a preview tab is reused by the next single-click
+
         if preview
             && let Some(i) = self
                 .tabs
@@ -550,7 +538,6 @@ impl Workbench {
         self.tabs.get_mut(self.active)
     }
 
-    /// First focusable control of the active tab.
     pub fn primary_focus(&self) -> Option<WidgetId> {
         match self.tabs.get(self.active)? {
             WorkTab::Table(t) => Some(t.grid.id),
@@ -576,7 +563,6 @@ impl Workbench {
             .sum()
     }
 
-    /// Query tabs whose text is not saved.
     pub fn unsaved_queries(&self) -> usize {
         self.tabs
             .iter()
@@ -584,8 +570,6 @@ impl Workbench {
             .count()
     }
 
-    /// What closing the workbench would lose, in words ("2 pending row
-    /// changes and 1 unsaved query"); `None` when nothing.
     pub fn losses(&self) -> Option<String> {
         let (pending, queries) = (self.pending_total(), self.unsaved_queries());
         let mut parts = vec![];
@@ -611,8 +595,6 @@ impl Workbench {
         })
     }
 
-    // ---- hints -------------------------------------------------------
-
     pub fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
         if focus == Some(self.explorer.id) {
             return vec![
@@ -633,7 +615,7 @@ impl Workbench {
         }
         if focus == Some(self.strip.id) {
             let mut v = vec![hint("←→", "Switch"), hint("Ctrl+T", "New query")];
-            // the close key comes from the strip's keymap
+
             v.extend(
                 junie_tui::core::keymap::hint_key(
                     &self.strip.keymap,
@@ -655,8 +637,6 @@ impl Workbench {
             None => vec![hint("Ctrl+T", "New query"), hint("0", "Explorer")],
         }
     }
-
-    // ---- input -------------------------------------------------------
 
     pub fn on_key(&mut self, key: &Key, cx: &mut Cx, history: &mut History) -> Outcome {
         let Some(f) = cx.focus.current() else {
@@ -693,7 +673,7 @@ impl Workbench {
                 self.explorer_filter.begin_edit();
                 return Outcome::Changed;
             }
-            // Enter on a table/view opens it; the tree would only fold it
+
             if key.is(KeyCode::Enter) {
                 let path = self
                     .explorer
@@ -1016,8 +996,6 @@ impl Workbench {
         Outcome::Changed
     }
 
-    /// The text fields the pointer selects in: the explorer filter and
-    /// the active History tab's search.
     fn pointer_fields(&mut self) -> Vec<&mut dyn PointerField> {
         let mut v: Vec<&mut dyn PointerField> = vec![&mut self.explorer_filter];
         if let Some(WorkTab::History(h)) = self.tabs.get_mut(self.active) {
@@ -1026,10 +1004,7 @@ impl Workbench {
         v
     }
 
-    /// A pointer event the router resolved on the workbench: the seams,
-    /// the text fields, the explorer, the tab strip and the active tab.
     pub fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx, history: &mut History) -> Outcome {
-        // the fact sheets that scroll on their own (R-apps-6)
         let facts = match self.tabs.get_mut(self.active) {
             Some(WorkTab::History(h)) => Some(&mut h.detail_view),
             Some(WorkTab::Query(q)) => Some(&mut q.result_facts),
@@ -1050,7 +1025,6 @@ impl Workbench {
         }
     }
 
-    /// A press with the click count it starts.
     fn press(&mut self, ev: &PointerEvent) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if id == self.explorer_seam.id {
@@ -1095,7 +1069,6 @@ impl Workbench {
         }
     }
 
-    /// A middle click: a closable tab under it closes (browsers, editors).
     fn middle(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if let Some(r) = self.strip.route(ev) {
             let (o, act) = r.into_parts();
@@ -1109,8 +1082,7 @@ impl Workbench {
             _ => Outcome::Ignored,
         }
     }
-    /// The grid of the active tab: the table's rows or the query's
-    /// current result.
+
     pub fn active_grid_any_mut(&mut self) -> Option<&mut junie_tui::widgets::grid::DataGrid> {
         match self.tabs.get_mut(self.active)? {
             WorkTab::Table(t) => Some(&mut t.grid),
@@ -1119,7 +1091,6 @@ impl Workbench {
         }
     }
 
-    /// A header menu command on column `col` of the active tab's grid.
     pub fn on_header_action(
         &mut self,
         col: usize,
@@ -1163,7 +1134,6 @@ impl Workbench {
             {
                 let kind = self.catalog.find(Some(&schema), &name).map(|t| t.kind);
                 if matches!(kind, Some(ObjectKind::Table | ObjectKind::View)) {
-                    // single click: preview tab; click on the already-current object promotes it
                     let promote =
                         self.current_object.as_ref() == Some(&(schema.clone(), name.clone()));
                     self.explorer.cursor = row;
@@ -1349,12 +1319,11 @@ impl Workbench {
 
     fn wheel(&mut self, ev: &PointerEvent) -> Outcome {
         let horizontal = matches!(ev.wheel(), Some((Axis::Horizontal, _)));
-        // the tab strip scrolls one tab per notch, on either axis
+
         if let Some(r) = self.strip.route(ev) {
             return r.outcome();
         }
-        // a sideways wheel reaches only horizontal scrolling: a vertical
-        // list never turns it into an up/down scroll
+
         if ev.on(self.explorer.id) {
             return if horizontal {
                 Outcome::Consumed
@@ -1388,8 +1357,6 @@ impl Workbench {
         }
     }
 
-    /// A control lost focus: its field, grid or table ends the edit (see
-    /// [`junie_tui::core::focus::Focus::take_changes`]).
     pub fn on_blur(&mut self, ch: junie_tui::core::focus::FocusChange) -> Outcome {
         use junie_tui::core::focus::forward_blur;
         let mut out = forward_blur(ch, &mut [&mut self.explorer_filter]);
@@ -1415,21 +1382,18 @@ impl Workbench {
         }
     }
 
-    // ---- render ------------------------------------------------------
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, history: &History) {
         let t = ctx.theme;
-        // tab strip
+
         let (strip, body) = Tabs::layout_gap(area, 0);
         self.strip.render(strip, buf, ctx, t.canvas);
-        // Below 100 columns the explorer becomes a drawer: it takes the whole
-        // body while it has focus and steps aside as soon as focus leaves.
+
         let narrow = area.width < 100;
         let explorer_focused = ctx.interaction.focused(self.explorer.id)
             || ctx.interaction.focused(self.explorer_filter.id);
         let show_explorer =
             self.explorer_visible && !self.maximized && (!narrow || explorer_focused);
-        // a collapsed explorer leaves its rail: the way back by pointer
+
         let body = if !show_explorer && !self.maximized && self.rail.width() > 0 {
             self.rail.render_rail(body, buf, ctx, t.canvas);
             let w = self.rail.width().min(body.width);
@@ -1439,8 +1403,6 @@ impl Workbench {
         };
         let explorer_w = (body.width / 4).clamp(28, 40);
         if !self.explorer_sized {
-            // the default width until the seam is dragged (a double-click
-            // on the seam returns to it)
             self.explorer_split.drag_to(
                 SplitDir::Horizontal,
                 body,
@@ -1463,7 +1425,7 @@ impl Workbench {
         if !ex.is_empty() {
             let ef = ctx.interaction.focused(self.explorer.id)
                 || ctx.interaction.focused(self.explorer_filter.id);
-            // the meta keeps room for the collapse button after it
+
             let meta = format!("{}    ", self.schema);
             let panel = Panel::framed(Some("Explorer")).focused(ef).meta(&meta);
             let bg = panel.bg(t);
@@ -1481,16 +1443,13 @@ impl Workbench {
                 inner.width + 1,
                 inner.height.saturating_sub(2),
             );
-            // mark current / open objects via meta glyphs
+
             self.explorer.render(tree_area, buf, ctx, bg);
         } else if self.explorer_visible && !self.maximized {
-            // still a focus stop: Tab reaches it, and focusing it opens the drawer
             ctx.control(self.explorer.id, Rect::ZERO, false);
         }
-        // tab body pane
+
         if main.is_empty() {
-            // the drawer covers the tab; keep its primary control in the ring so
-            // Tab leaves the drawer and lands where work continues
             if let Some(pf) = self.primary_focus() {
                 ctx.control(pf, Rect::ZERO, false);
             }

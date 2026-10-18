@@ -1,5 +1,3 @@
-//! End-to-end interaction tests through the real App on a TestBackend.
-
 use crate::filter_editor::FilterEditor;
 use junie_tui::runtime::Application;
 use junie_tui::widgets::dialog::Dialog;
@@ -61,9 +59,7 @@ impl H {
         self.draw();
         o
     }
-    /// Cmd (super) + `c`, as the kitty keyboard protocol delivers it.
-    /// Cmd+A selects all in a field under every `FieldKeys` preset, so a
-    /// test that means "select the field" holds on every client platform.
+
     pub fn cmd(&mut self, c: char) -> Outcome {
         let o = self.app.handle(Input::Key(Key {
             code: KeyCode::Char(c),
@@ -112,8 +108,7 @@ impl H {
             if self.focus() == Some(id) {
                 return;
             }
-            // the SQL editor indents on Tab while editing (focus starts the
-            // edit): Esc ends the edit, then Tab leaves
+
             let in_editor = matches!(
                 self.app.workbench.as_ref().and_then(|w| w.active_tab()),
                 Some(WorkTab::Query(q)) if Some(q.editor.id) == self.focus() && q.editor.editing
@@ -164,7 +159,7 @@ fn connections_screen_lists_and_connects_with_keyboard() {
     assert_eq!(h.app.route(), Route::Connections);
     assert!(h.text().contains("Local PostgreSQL"));
     assert!(h.text().contains("Production"));
-    // navigate to Production and connect
+
     for _ in 0..8 {
         h.key(KeyCode::Down);
     }
@@ -181,16 +176,13 @@ fn connections_screen_lists_and_connects_with_keyboard() {
     );
 }
 
-/// M15 (the connection list's empty double-click branch): one click
-/// selects a connection, however often; a double click connects, as Enter
-/// does (the tree's `ClickPolicy`).
 #[test]
 fn a_double_click_on_a_connection_connects_and_one_click_selects() {
     use crate::connections::ConnState;
     let mut h = H::new(120, 40);
     let (x, y) = h.find("Production").expect("the connection row");
     h.click(x, y);
-    // the click chain runs out (the wall clock barely moves in a test):
+
     h.app.shell.pointer.reset_clicks();
     h.click(x, y);
     assert!(
@@ -231,7 +223,7 @@ fn failed_connection_shows_error_and_retry() {
 fn explorer_opens_table_and_grid_navigates() {
     let mut h = H::connected(120, 40);
     assert!(h.text().contains("organizations"));
-    // cursor starts on the schema row; move to `orders` (4th table) and open
+
     for _ in 0..5 {
         h.key(KeyCode::Down);
     }
@@ -240,7 +232,7 @@ fn explorer_opens_table_and_grid_navigates() {
     assert!(matches!(wb.active_tab(), Some(WorkTab::Table(t)) if t.name == "orders"));
     assert!(h.text().contains("public › orders"));
     assert!(h.text().contains("order_number"));
-    // grid navigation
+
     h.key(KeyCode::Down);
     h.key(KeyCode::Right);
     h.key(KeyCode::Right);
@@ -294,7 +286,7 @@ fn sort_and_filter_on_table_tab() {
         h.key(KeyCode::Down);
     }
     h.key(KeyCode::Enter);
-    // move to created_at column: it is the 13th column (index 12)
+
     for _ in 0..12 {
         h.key(KeyCode::Right);
     }
@@ -310,21 +302,20 @@ fn sort_and_filter_on_table_tab() {
     assert!(h.text().contains("sort created_at ▴"));
     h.key(KeyCode::Char('s'));
     assert!(h.text().contains("sort created_at ▾"));
-    // filter status = pending via the filter editor
+
     h.key(KeyCode::Home);
     for _ in 0..4 {
         h.key(KeyCode::Right);
     }
-    h.key(KeyCode::Char('f')); // filter on the current cell value
+    h.key(KeyCode::Char('f'));
     assert!(h.app.top_as::<FilterEditor>().is_some());
-    // the value field is prefilled with the cell's value and Apply has focus;
-    // go back to the value field and replace it with pending
+
     h.key(KeyCode::BackTab);
     h.key(KeyCode::BackTab);
-    // focus starts the edit with the value selected: typing replaces it
+
     assert!(h.term.backend().cursor_visible());
     h.type_str("pending");
-    h.key(KeyCode::Enter); // commit field → applies
+    h.key(KeyCode::Enter);
     let t = match h.wb().active_tab() {
         Some(WorkTab::Table(t)) => t,
         _ => unreachable!(),
@@ -333,7 +324,7 @@ fn sort_and_filter_on_table_tab() {
     assert_eq!(t.filters[0].value, "pending");
     assert!(h.text().contains("filtered (1)"), "{}", h.text());
     assert!(h.text().contains("status = 'pending'"));
-    // every visible status cell is pending
+
     let g = &t.grid;
     let status = t.columns.iter().position(|c| c.0 == "status").unwrap();
     assert!(g.rows().iter().all(|r| r[status].text() == "pending"));
@@ -350,7 +341,7 @@ fn structure_view_toggle() {
     assert!(h.text().contains("Columns"));
     assert!(h.text().contains("Indexes"));
     assert!(h.text().contains("timestamptz"));
-    // jump to Foreign keys section
+
     let t = match h.wb().active_tab() {
         Some(WorkTab::Table(t)) => t,
         _ => unreachable!(),
@@ -404,7 +395,7 @@ fn duplicate_row_chord_preserves_structure_editing_and_modal_routes() {
 #[test]
 fn editor_completion_and_execution() {
     let mut h = H::connected(120, 40);
-    h.key(KeyCode::Tab); // editor
+    h.key(KeyCode::Tab);
     let q = match h.wb().active_tab() {
         Some(WorkTab::Query(q)) => q,
         _ => unreachable!(),
@@ -415,12 +406,12 @@ fn editor_completion_and_execution() {
         h.wb_query().completion.is_open(),
         "autocomplete opened after FROM + prefix"
     );
-    // the explorer lists order_items too; the popup adds a second copy
+
     assert!(
         h.text().matches("order_items").count() >= 2,
         "completion popup is drawn"
     );
-    h.key(KeyCode::Enter); // accept `orders`
+    h.key(KeyCode::Enter);
     assert!(h.wb_query().editor.text().ends_with("orders"));
     h.type_str(" WHERE st");
     assert!(h.wb_query().completion.is_open());
@@ -430,7 +421,7 @@ fn editor_completion_and_execution() {
     );
     h.key(KeyCode::Tab);
     h.type_str(" = 'pending' ORDER BY created_at DESC LIMIT 25");
-    h.key(KeyCode::Esc); // nav mode
+    h.key(KeyCode::Esc);
     assert!(!h.wb_query().editor.editing);
     h.ctrl('r');
     assert!(h.wb_query().is_running());
@@ -440,7 +431,7 @@ fn editor_completion_and_execution() {
     assert_eq!(h.wb_query().results.len(), 1);
     assert!(h.text().contains("SELECT orders (25)"));
     assert!(h.text().contains("25 rows"));
-    // history recorded it
+
     assert!(h.app.history.entries[0].sql.contains("LIMIT 25"));
 }
 
@@ -487,13 +478,13 @@ fn explain_opens_plan_tree() {
     assert!(h.text().contains("Limit"));
     assert!(h.text().contains("Sort"));
     assert!(h.text().contains("Seq Scan"));
-    // plan tree is focusable: Tab to the result tabs, then to the tree; collapse a node
+
     h.key(KeyCode::Tab);
     h.key(KeyCode::Tab);
     let before = h.text();
     h.key(KeyCode::Left);
     assert_ne!(before, h.text());
-    // raw mode
+
     h.key(KeyCode::Char('r'));
     assert!(h.text().contains("cost="));
 }
@@ -518,7 +509,7 @@ fn explain_labels_end_before_the_metric_columns_and_shares_sit_under_their_heade
             })
             .expect("plan header");
         let pct = header.iter().position(|c| *c == '%').expect("% header");
-        // "cost" is right-aligned in 13 cells: the strip starts 9 cells before it
+
         let cost_x = (0..header.len())
             .find(|&x| header[x..].starts_with(&['c', 'o', 's', 't']))
             .unwrap();
@@ -573,14 +564,13 @@ fn safety_gate_intercepts_dangerous_statement_on_production() {
     assert!(t.contains("every row in orders"));
     assert!(t.contains("Production"));
     assert!(t.contains("Type orders to confirm"));
-    // the confirming button is disabled until the token matches: a wrong token
-    // keeps it out of the focus ring and Right cannot reach it
+
     h.key(KeyCode::Enter);
     h.type_str("wrong");
     h.key(KeyCode::Enter);
     assert!(h.app.modal().is_some(), "a wrong token never submits");
     assert!(h.text().contains("Does not match"), "{}", h.text());
-    // Esc reverts the edit, a second Esc cancels the dialog
+
     h.key(KeyCode::Esc);
     h.key(KeyCode::Esc);
     assert!(h.app.modal().is_none(), "{}", h.text());
@@ -599,13 +589,13 @@ fn safety_gate_typed_token_executes() {
     h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
     h.key(KeyCode::Esc);
     h.ctrl('r');
-    // Safe Mode level on Production requires the deliberate acknowledgement
+
     assert!(h.text().contains("Type orders to confirm"));
-    // the ack field opens editing, caret shown: type the token at once
+
     assert!(h.term.backend().cursor_visible());
     h.type_str("orders");
-    h.key(KeyCode::Enter); // moves focus to the buttons
-    h.key(KeyCode::Right); // Execute
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     assert!(
         h.app.modal().is_none(),
@@ -634,8 +624,8 @@ fn safety_gate_acknowledgement_supports_mouse_focus_edit_and_confirmation() {
         },
         _ => unreachable!(),
     };
-    h.key(KeyCode::Tab); // Leave the acknowledgement before clicking it.
-    // one click focuses the field and starts editing; a second click keeps it
+    h.key(KeyCode::Tab);
+
     h.click(ack_area.x + 2, ack_area.y);
     assert_eq!(h.focus(), Some(ack_id));
     assert!(h.app.top_as::<Dialog>().is_some_and(|d| d.is_editing()));
@@ -702,8 +692,7 @@ fn quick_switcher_details_are_not_cut_beside_unused_label_cells() {
         .lines()
         .find(|l| l.contains("login_attempts"))
         .unwrap_or_else(|| panic!("a table row\n{t}"));
-    // the schema detail fits once the label column gives back the cells
-    // its short labels do not use
+
     assert!(
         row.contains("audit") && !row.contains("audit ·…"),
         "the detail is not cut while the label column has room: {row:?}\n{t}"
@@ -720,7 +709,7 @@ fn quick_switcher_opens_table() {
     h.key(KeyCode::Enter);
     assert!(h.app.modal().is_none());
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.name == "customers"));
-    // Esc clears then closes
+
     h.ctrl('o');
     h.type_str("x");
     h.key(KeyCode::Esc);
@@ -788,8 +777,8 @@ fn pending_edits_preview_and_save() {
     for _ in 0..5 {
         h.key(KeyCode::Down);
     }
-    h.key(KeyCode::Enter); // orders
-    // edit the currency column (index 6)
+    h.key(KeyCode::Enter);
+
     for _ in 0..6 {
         h.key(KeyCode::Right);
     }
@@ -806,8 +795,7 @@ fn pending_edits_preview_and_save() {
     h.key(KeyCode::Esc);
     h.ctrl('s');
     assert!(h.text().contains("Save changes?"));
-    // Production is Safe Mode: token required, typed straight into the
-    // field the dialog opens editing
+
     h.type_str("orders");
     h.key(KeyCode::Enter);
     h.key(KeyCode::Right);
@@ -826,7 +814,7 @@ fn safe_mode_picker_changes_level_and_strip() {
     let mut h = H::connected(120, 40);
     h.ctrl('l');
     assert!(h.text().contains("Safe Mode · this connection"));
-    h.key(KeyCode::Down); // Safe Mode (Full)
+    h.key(KeyCode::Down);
     h.key(KeyCode::Enter);
     assert_eq!(h.wb().connection.safe_mode, crate::db::SafeMode::SafeFull);
     assert!(h.text().contains("safe+"));
@@ -840,16 +828,16 @@ fn mouse_opens_table_and_switches_tabs() {
     assert!(
         matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.name == "customers" && t.preview)
     );
-    // second click promotes the preview tab
+
     h.click(x, y);
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if !t.preview));
-    // click the Query 1 tab in the strip
+
     let (qx, qy) = h.find("Query 1").unwrap();
     h.click(qx, qy);
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Query(_))));
-    // hover on a tab lifts it
+
     let (cx, cy) = h.find("customers").unwrap();
-    h.mouse(MouseKind::Move, cx + 30, cy); // somewhere harmless
+    h.mouse(MouseKind::Move, cx + 30, cy);
     h.mouse(MouseKind::Move, cx, cy);
     assert!(h.app.shell.pointer.hover.is_some());
 }
@@ -907,17 +895,17 @@ impl H {
 #[test]
 fn narrow_terminals_turn_the_explorer_into_a_drawer() {
     let mut h = H::connected(80, 24);
-    // the explorer has focus after connecting, so the drawer is open
+
     assert!(h.text().contains("Filter objects"));
     assert!(!h.text().contains("Type SQL"));
-    // Tab leaves the drawer and lands in the query editor
+
     h.key(KeyCode::Tab);
     assert!(!h.text().contains("Filter objects"));
     assert_eq!(h.focus(), Some(h.wb_query().editor.id));
     h.type_str("SELECT 1");
     assert!(h.wb_query().editor.text().contains("SELECT 1"));
     h.key(KeyCode::Esc);
-    // `0` reopens the drawer; opening a table closes it again
+
     h.key(KeyCode::Char('0'));
     assert!(h.text().contains("Filter objects"));
     for _ in 0..5 {
@@ -929,10 +917,6 @@ fn narrow_terminals_turn_the_explorer_into_a_drawer() {
     assert!(h.text().contains("public › orders"));
 }
 
-/// K8: narrowing the window no longer drops the focused Delete button
-/// (R-apps-2): the card becomes the master-detail's drawer and keeps it
-/// focused, and Esc hands focus back to the tree, not to the first
-/// control (the filter).
 #[test]
 fn a_narrowed_card_keeps_its_focused_button_in_the_drawer() {
     let mut h = H::new(120, 30);
@@ -952,9 +936,6 @@ fn a_narrowed_card_keeps_its_focused_button_in_the_drawer() {
     );
 }
 
-/// K27: on a narrow terminal the connection form covers the list, so the
-/// list's filter and tree are inert: Tab never reaches them while the form
-/// is open.
 #[test]
 fn a_form_covering_the_narrow_connection_list_keeps_tab_inside_it() {
     let mut h = H::new(76, 24);
@@ -975,11 +956,10 @@ fn a_form_covering_the_narrow_connection_list_keeps_tab_inside_it() {
     );
 }
 
-/// The end-to-end flow from GOAL2, keyboard only.
 #[test]
 fn acceptance_flow_keyboard_only() {
     let mut h = H::new(120, 40);
-    // connect to Production
+
     for _ in 0..8 {
         h.key(KeyCode::Down);
     }
@@ -987,14 +967,14 @@ fn acceptance_flow_keyboard_only() {
     h.ticks(14);
     assert_eq!(h.app.route(), Route::Workbench);
     assert_eq!(h.wb().connection.name, "Production");
-    // explorer → orders
+
     for _ in 0..5 {
         h.key(KeyCode::Down);
     }
     h.key(KeyCode::Enter);
     h.ticks(3);
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.name == "orders"));
-    // grid: sort by created_at, then filter status = pending
+
     for _ in 0..12 {
         h.key(KeyCode::Right);
     }
@@ -1008,18 +988,18 @@ fn acceptance_flow_keyboard_only() {
     assert!(h.app.top_as::<FilterEditor>().is_some());
     h.key(KeyCode::BackTab);
     h.key(KeyCode::BackTab);
-    // focus starts the edit with the value selected: typing replaces it
+
     assert!(h.term.backend().cursor_visible());
     h.type_str("pending");
     h.key(KeyCode::Enter);
     assert!(h.app.modal().is_none());
     assert!(h.text().contains("status = 'pending'"));
     assert!(h.text().contains("filtered (1)"));
-    // structure and back
+
     h.ctrl('d');
     assert!(h.text().contains("Foreign keys"));
     h.ctrl('d');
-    // a new query with completion, run, result tab
+
     h.ctrl('t');
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Query(_))));
     assert_eq!(
@@ -1036,8 +1016,8 @@ fn acceptance_flow_keyboard_only() {
     h.ctrl('r');
     h.ticks(10);
     assert!(h.text().contains("SELECT orders (25)"));
-    // EXPLAIN as a second result tab (pin the first so it survives)
-    h.key(KeyCode::Tab); // result tabs
+
+    h.key(KeyCode::Tab);
     h.key(KeyCode::Char('p'));
     h.key(KeyCode::BackTab);
     h.alt('x');
@@ -1049,7 +1029,7 @@ fn acceptance_flow_keyboard_only() {
         2,
         "pinned result kept beside the plan"
     );
-    // history reopens a query
+
     h.ctrl('y');
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::History(_))));
     h.key(KeyCode::Enter);
@@ -1057,12 +1037,12 @@ fn acceptance_flow_keyboard_only() {
         matches!(h.wb().active_tab(), Some(WorkTab::Query(q)) if q.editor.text().contains("status = 'pending' LIMIT 25")),
         "the newest entry is the query just run"
     );
-    // quick switcher
+
     h.ctrl('o');
     h.type_str("cust");
     h.key(KeyCode::Enter);
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.name == "customers"));
-    // a dangerous query is intercepted and cancelled
+
     h.ctrl('t');
     h.type_str("DELETE FROM orders");
     h.key(KeyCode::Esc);
@@ -1075,7 +1055,6 @@ fn acceptance_flow_keyboard_only() {
     assert!(h.text().contains("Cancelled · nothing was executed"));
 }
 
-/// The same journey driven by the mouse where the mouse has a role.
 #[test]
 fn acceptance_flow_mouse() {
     let mut h = H::new(120, 40);
@@ -1085,27 +1064,27 @@ fn acceptance_flow_mouse() {
     h.click(x + 1, y);
     h.ticks(14);
     assert_eq!(h.app.route(), Route::Workbench);
-    // explorer row → table tab
+
     let (x, y) = h.find("T orders").expect("orders row");
     h.click(x + 2, y);
     h.ticks(3);
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.name == "orders"));
-    // header click sorts
+
     let (x, y) = h.find("order_number").expect("header");
     h.click(x, y);
     assert!(h.text().contains("sort order_number ▴"));
-    // mode tab
+
     let (x, y) = h.find("Structure").expect("mode tab");
     h.click(x, y);
     assert!(h.text().contains("Foreign keys"));
-    // `+` opens a new query, clicking the editor focuses it
+
     let (x, y) = h.find("+").expect("new tab button");
     h.click(x, y);
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Query(_))));
     let (x, y) = h.find("Type SQL").expect("editor placeholder");
     h.click(x, y);
     assert_eq!(h.focus(), Some(h.wb_query().editor.id));
-    // wheel over the explorer scrolls it, not the editor
+
     let (ex, ey) = h.find("Filter objects").expect("explorer");
     let before = h.wb().explorer.scroll.offset;
     h.mouse(MouseKind::WheelDown, ex, ey + 3);
@@ -1181,13 +1160,13 @@ fn cli_parser_accepts_color_connection_and_help_contracts() {
 #[test]
 fn clicking_the_editor_closes_completion_and_places_the_caret() {
     let mut h = H::connected(120, 40);
-    h.key(KeyCode::Tab); // editor
+    h.key(KeyCode::Tab);
     h.type_str("SELECT * FROM ord");
     assert!(h.wb_query().completion.is_open());
     let before = h.wb_query().editor.cursor_offset();
     let popup = h.wb_query().completion.area;
     let caret = h.wb_query().editor.cursor_cell().expect("caret on screen");
-    // a click on the same line, left of the caret and outside the popup
+
     let x = caret.x.saturating_sub(5);
     assert!(!popup.contains(ratatui::layout::Position::new(x, caret.y)));
     h.click(x, caret.y);
@@ -1207,7 +1186,6 @@ fn footer(h: &H) -> String {
 
 #[test]
 fn dialog_footers_name_the_focused_button_and_the_typed_token() {
-    // the delete dialog opens on Cancel: Enter cancels, so the footer says so
     let mut h = H::new(120, 40);
     h.key(KeyCode::Char('d'));
     assert!(h.app.top_as::<Dialog>().is_some(), "{}", h.text());
@@ -1216,7 +1194,6 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     assert!(!f.contains("y Delete"), "no one-key Delete: {f}");
     assert!(!f.contains("Confirm"), "{f}");
 
-    // a typed acknowledgement says what to type, not "Enter Confirm"
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
     h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
@@ -1224,10 +1201,9 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     h.ctrl('r');
     let f = footer(&h);
     assert!(f.contains("Type \"orders\" to confirm"), "{f}");
-    // Enter presses the gated action once armed; until then it only
-    // says the text does not match, so the footer offers no Enter
+
     assert!(!f.contains("Enter Next"), "{f}");
-    // the Safe Mode fact says what to do, without jargon
+
     let t = h.text();
     assert!(t.contains("type to confirm"), "{t}");
     assert!(!t.contains("deliberate"), "{t}");
@@ -1249,11 +1225,10 @@ fn the_switcher_is_the_only_layer_showing_focus() {
     h.key(KeyCode::Esc);
     h.ctrl('l');
     assert!(h.text().contains("Safe Mode · this connection"));
-    // a fixed-choice picker marks its cursor with a fill, like a menu
+
     assert_eq!(cues(&h), (0, 0), "{}", h.text());
 }
 
-/// The colour of the rule under `strip`'s active tab.
 fn active_rule(h: &H, strip: &junie_tui::widgets::tabs::Tabs) -> ratatui::style::Color {
     let a = strip.areas[strip.active];
     let cell = &h.term.backend().buffer()[(a.x + 1, a.y + 1)];
@@ -1266,17 +1241,16 @@ fn the_active_query_tab_shows_the_accent_and_goes_neutral_under_a_modal() {
     let mut h = H::connected(120, 40);
     let t = h.app.theme;
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Query(_))));
-    // focus is in the explorer, not on the strip: the selection still shows
-    // the accent while the workbench is the active layer
+
     assert_ne!(h.focus(), Some(h.wb().strip.id));
     assert_eq!(active_rule(&h, &h.wb().strip), t.accent);
-    // a modal covers the page: the rule goes neutral (then dims)
+
     h.ctrl('o');
     assert!(h.app.top_as::<Picker>().is_some());
     let under = active_rule(&h, &h.wb().strip);
     assert_ne!(under, t.accent, "{}", h.text());
     assert_ne!(under, t.focus);
-    // closed again: back to the accent
+
     h.key(KeyCode::Esc);
     h.key(KeyCode::Esc);
     assert!(h.app.modal().is_none());
@@ -1292,19 +1266,17 @@ fn a_table_tab_shows_its_chosen_mode_in_the_accent() {
     let Some(WorkTab::Table(tab)) = h.wb().active_tab() else {
         panic!("a table tab: {}", h.text());
     };
-    // Data / Structure is a segmented choice of the front page, not a
-    // secondary strip: the chosen mode shows the accent like the tab above
+
     assert_eq!(active_rule(&h, &tab.mode_tabs), t.accent);
 }
 
 #[test]
 fn cell_edit_footer_says_apply_not_commit() {
-    // "Commit" collides with the database commit behind Ctrl+S
     let mut h = H::connected(120, 40);
     for _ in 0..5 {
         h.key(KeyCode::Down);
     }
-    h.key(KeyCode::Enter); // orders
+    h.key(KeyCode::Enter);
     for _ in 0..6 {
         h.key(KeyCode::Right);
     }
@@ -1315,10 +1287,6 @@ fn cell_edit_footer_says_apply_not_commit() {
     assert!(!f.contains("Commit"), "{f}");
 }
 
-/// K23: the keyboard reference is the library `HelpOverlay` built from
-/// the live key maps: every workbench chord `ShellKeys` binds is listed
-/// with its `TpCmd` label (Ctrl+D was hand-listed before, beside other
-/// keys), and the shell's own keys (F1, Ctrl+PgDn) are there too.
 #[test]
 fn the_keyboard_reference_lists_the_live_shell_keys() {
     let mut h = H::connected(120, 40);
@@ -1346,8 +1314,6 @@ fn the_keyboard_reference_lists_the_live_shell_keys() {
 
 #[test]
 fn hover_follows_the_rows_that_scroll_under_a_still_pointer() {
-    // interaction #22: after a wheel scroll the hovered row is the one now
-    // under the pointer, not the one that scrolled away
     let mut h = H::connected(120, 20);
     let (x, y) = h
         .find("customers")
@@ -1363,15 +1329,10 @@ fn hover_follows_the_rows_that_scroll_under_a_still_pointer() {
     assert_eq!(h.app.shell.pointer.hover, now);
 }
 
-/// Layout audit #1: on a short terminal the connection form stacked its
-/// fields with `y += h`, so labels overwrote the hint bar and the button
-/// row landed on "Database". Every field now stays above the buttons, the
-/// focused one is scrolled into view, and the footer is untouched.
 #[test]
 fn a_short_connection_form_keeps_fields_above_the_buttons_and_scrolls_to_focus() {
     let form = WidgetId::of("connections").sub("form");
-    // only the fields: the tab strip, the buttons and the header show
-    // focus their own way
+
     let fields: Vec<WidgetId> = [
         "name", "engine", "host", "port", "db", "user", "pw", "promptpw", "env", "group", "safe",
         "ssl", "ssh", "sshhost", "sshuser", "local", "startup",
@@ -1408,8 +1369,7 @@ fn a_short_connection_form_keeps_fields_above_the_buttons_and_scrolls_to_focus()
                             h.text()
                         );
                     }
-                    // the single focus gutter is on screen above the
-                    // buttons: the focused field was scrolled into view
+
                     let text = h.text();
                     let gutter = text.lines().position(|l| l.contains('▎'));
                     assert!(
@@ -1419,7 +1379,7 @@ fn a_short_connection_form_keeps_fields_above_the_buttons_and_scrolls_to_focus()
                 }
                 h.key(KeyCode::Tab);
             }
-            // nothing from the form is drawn on the hint row
+
             let last = h.text().lines().nth(footer as usize).unwrap().to_owned();
             for label in [
                 "Database",
@@ -1440,8 +1400,7 @@ fn the_wheel_scrolls_a_short_connection_form_by_whole_fields() {
     let mut h = H::new(72, 20);
     h.ctrl('n');
     let (x, y) = h.find("Name *").expect("the form opens at its first field");
-    // the label belongs to its field (label_hit); the form scrolls
-    // beneath both
+
     assert!(
         h.app
             .shell
@@ -1459,7 +1418,6 @@ fn the_wheel_scrolls_a_short_connection_form_by_whole_fields() {
 
 #[test]
 fn a_click_marks_focus_as_pointer_focus_until_the_next_key() {
-    // interaction #24: KeyboardOnly controls hide their ring after a click
     let mut h = H::connected(120, 40);
     let (x, y) = h.find("customers").unwrap();
     h.click(x, y);
@@ -1474,9 +1432,6 @@ fn a_click_marks_focus_as_pointer_focus_until_the_next_key() {
     );
 }
 
-/// Mouse audit #11: the wheel over an overflowing tab strip scrolls it (it
-/// did nothing), the active tab stays put, and a later sync keeps the
-/// scrolled window.
 #[test]
 fn the_wheel_over_the_tab_strip_scrolls_it() {
     let mut h = H::connected(80, 24);
@@ -1507,8 +1462,6 @@ fn the_wheel_over_the_tab_strip_scrolls_it() {
     assert_eq!(h.wb().active, 0, "the wheel does not switch tabs");
 }
 
-/// Mouse audit #11: the `+N` button of an overflowing strip opens a menu
-/// of the hidden tabs; clicking one activates it, Esc closes the menu.
 #[test]
 fn the_overflow_button_lists_hidden_tabs_and_a_click_activates_one() {
     let mut h = H::connected(80, 24);
@@ -1549,7 +1502,7 @@ fn the_overflow_button_lists_hidden_tabs_and_a_click_activates_one() {
         "the chosen tab is active\n{}",
         h.text()
     );
-    // Esc closes a reopened menu without switching
+
     let more = h.app.shell.hits.area_of(h.wb().strip.more_id()).unwrap();
     h.click(more.x + 1, more.y);
     assert!(h.wb().strip.menu_open());
@@ -1558,11 +1511,6 @@ fn the_overflow_button_lists_hidden_tabs_and_a_click_activates_one() {
     assert_eq!(h.wb().active, last);
 }
 
-/// Keyboard audit #5, #17 and #20: Tab into the query editor shows the
-/// caret at once and typed letters go into the SQL (not `z` zoom, `[`/`]`
-/// tabs or `q` quit); Tab indents while editing, Esc ends the edit and then
-/// Tab leaves; the find bar counts as editing, so its typed letters never
-/// fire the workbench shortcuts either.
 #[test]
 fn the_query_editor_takes_letters_at_once_and_its_find_bar_counts_as_editing() {
     let mut h = H::connected(120, 40);
@@ -1589,7 +1537,7 @@ fn the_query_editor_takes_letters_at_once_and_its_find_bar_counts_as_editing() {
     h.key(KeyCode::Esc);
     assert!(!h.wb_query().editor.editing, "Esc is Done");
     assert!(h.text().contains("Enter Edit"), "{}", h.text());
-    // find: `/` opens it; its query takes every letter
+
     h.key(KeyCode::Char('/'));
     h.type_str("z]");
     assert!(!h.wb().maximized, "z went to the find query");
@@ -1603,8 +1551,6 @@ fn the_query_editor_takes_letters_at_once_and_its_find_bar_counts_as_editing() {
     assert_ne!(h.focus(), Some(editor), "after Esc, Tab leaves the editor");
 }
 
-/// Keyboard audit #1: every text stop of the connection form shows its
-/// caret the moment Tab lands there.
 #[test]
 fn tab_walk_shows_a_caret_at_every_connection_form_field() {
     let mut h = H::new(120, 40);
@@ -1629,7 +1575,6 @@ fn tab_walk_shows_a_caret_at_every_connection_form_field() {
     );
 }
 
-/// Cmd+A in the SQL editor selects the whole query, so typing replaces it.
 #[test]
 fn the_query_editor_selects_all_with_cmd_a() {
     let mut h = H::connected(80, 24);
@@ -1647,9 +1592,6 @@ fn the_query_editor_selects_all_with_cmd_a() {
     assert_eq!(h.wb_query().editor.text(), "SELECT 2");
 }
 
-/// AGENTS.md "Visual states": exactly one `▎` focus indicator, in the
-/// topmost layer. With the `+N` overflow menu open over the focused strip,
-/// the menu is the topmost layer: the strip under it shows no `▎`.
 #[test]
 fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
     let mut h = H::connected(80, 24);
@@ -1670,8 +1612,7 @@ fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
         !strip_line.contains('▎'),
         "the strip under the open menu shows no focus\n{text}"
     );
-    // the menu's keyboard belongs to the strip: it marks its cursor row
-    // with a fill, never a second bar, so no `▎` is left on screen
+
     assert_eq!(text.matches('▎').count(), 0, "{text}");
     h.key(KeyCode::Esc);
     assert!(!h.wb().strip.menu_open());
@@ -1682,10 +1623,6 @@ fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
     );
 }
 
-/// SC14 finding (showcase-pages-navigation.md): the `+N` overflow menu
-/// opened by pointer only. ↓ on the focused strip (the menu-button key)
-/// opens it with its first row highlighted; Enter activates that tab. With
-/// nothing hidden ↓ does what it did.
 #[test]
 fn down_on_the_strip_opens_the_overflow_menu() {
     let mut h = H::connected(80, 24);
@@ -1712,10 +1649,6 @@ fn down_on_the_strip_opens_the_overflow_menu() {
     assert_eq!(h.wb().active, first_hidden, "{}", h.text());
 }
 
-/// Type-ahead and single-letter shortcuts (keyboard.md decision log): the
-/// connection tree type-selects (S4), but `q` (Quit) is a shortcut in that
-/// context, so it quits instead of being typed; an unbound letter still
-/// types. On the S4 tip the tree swallowed `q` as a type-ahead miss.
 #[test]
 fn q_quits_from_the_focused_connection_tree_and_other_letters_type() {
     let tree = WidgetId::of("connections").sub("tree");
@@ -1732,7 +1665,7 @@ fn q_quits_from_the_focused_connection_tree_and_other_letters_type() {
         after != before && after.starts_with('S'),
         "an unbound letter type-selects: {before} → {after}"
     );
-    // `?` is punctuation: never type-ahead, always Help
+
     h.key(KeyCode::Char('?'));
     assert!(h.app.modal().is_some(), "? opens help: {}", h.text());
     h.key(KeyCode::Esc);
@@ -1741,7 +1674,6 @@ fn q_quits_from_the_focused_connection_tree_and_other_letters_type() {
     assert!(h.app.shell.quit, "q quits from the tree");
 }
 
-/// The same rule in the workbench: the explorer tree types, `q` quits.
 #[test]
 fn q_quits_from_the_focused_explorer_tree() {
     let mut h = H::connected(120, 36);
@@ -1755,9 +1687,6 @@ fn q_quits_from_the_focused_explorer_tree() {
 
 #[test]
 fn the_frame_that_hides_the_focused_explorer_shows_where_focus_went() {
-    // zooming the tab hides the focused explorer: the same frame shows the
-    // fallback's focus indicator, never a frame with none (the shell's
-    // second pass)
     let mut h = H::connected(100, 30);
     let explorer = h.wb().explorer.id;
     assert_eq!(h.app.shell.focus.current(), Some(explorer));
@@ -1768,9 +1697,6 @@ fn the_frame_that_hides_the_focused_explorer_shows_where_focus_went() {
     assert!(h.text().contains('▎'), "one focus indicator\n{}", h.text());
 }
 
-/// The library router's page keys reach the workbench (S8a, SI23):
-/// Ctrl+PgDn/PgUp step the open tabs even while the query editor edits,
-/// where `]`/`[` type.
 #[test]
 fn ctrl_page_keys_step_workbench_tabs_over_an_editing_field() {
     let mut h = H::connected(120, 40);
@@ -1793,10 +1719,6 @@ fn ctrl_page_keys_step_workbench_tabs_over_an_editing_field() {
     assert_eq!(h.wb().active, 1);
 }
 
-/// The connections list moves onto `MasterDetail` (R-apps-2): below 80
-/// columns the selected connection's card was dropped with no way to
-/// reach it; now Tab from the list focuses its Connect button and opens
-/// the card as a drawer over the body, and Esc returns to the list.
 #[test]
 fn a_narrow_connections_screen_opens_the_card_as_a_drawer() {
     let tree = WidgetId::of("connections").sub("tree");

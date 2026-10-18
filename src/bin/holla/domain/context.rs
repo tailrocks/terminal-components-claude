@@ -1,14 +1,10 @@
-//! Context: the host, the working directory, the surrounding project and
-//! workspace, and the scope vocabulary every result carries.
-
-/// Where the terminal is and what kind of machine that is.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Host {
     pub name: String,
     pub role: HostRole,
     pub os: Os,
     pub user: String,
-    /// True when the session arrived over SSH.
+
     pub remote: bool,
 }
 
@@ -27,7 +23,7 @@ impl HostRole {
             HostRole::Production => "production",
         }
     }
-    /// Production and staging hosts take the stronger confirmation path.
+
     pub fn sensitive(self) -> bool {
         matches!(self, HostRole::Production)
     }
@@ -48,8 +44,6 @@ impl Os {
     }
 }
 
-/// The four navigable scope directions (CONCEPT §5.3). `Here` is the
-/// default bias; the others narrow the root to one direction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum Scope {
     #[default]
@@ -60,7 +54,6 @@ pub enum Scope {
 }
 
 impl Scope {
-    /// One step outward on the axis (`Children → Here → Parent → System`).
     pub fn outward(self) -> Scope {
         match self {
             Scope::Children => Scope::Here,
@@ -69,7 +62,6 @@ impl Scope {
         }
     }
 
-    /// One step inward on the axis.
     pub fn inward(self) -> Scope {
         match self {
             Scope::System => Scope::Parent,
@@ -79,18 +71,14 @@ impl Scope {
     }
 }
 
-/// Where a result was discovered and where it will execute. Every result
-/// carries one so scope is never implicit (CONCEPT §5.4, §5.5).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScopeTag {
-    /// The direction this result belongs to relative to the working directory.
     pub direction: Scope,
-    /// The path that defines the action (a manifest, a config, the host).
+
     pub defined_at: String,
-    /// The effective working directory the action runs in.
+
     pub runs_in: String,
-    /// Short human word for the row: `here`, `project`, `parent`, `child`,
-    /// `host`.
+
     pub word: String,
 }
 
@@ -135,8 +123,7 @@ impl ScopeTag {
             word: "host".into(),
         }
     }
-    /// A remote host's scope word carries the host name so a production
-    /// target is never a bare `host`.
+
     pub fn remote(host: &str) -> Self {
         Self {
             direction: Scope::System,
@@ -147,7 +134,6 @@ impl ScopeTag {
     }
 }
 
-/// A recognised project or workspace member.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Project {
     pub name: String,
@@ -157,23 +143,23 @@ pub struct Project {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProjectKind {
-    /// A Cargo package or workspace; `member` is the package the working
-    /// directory sits in when the root is a workspace.
     Rust {
         workspace: bool,
         member: Option<String>,
     },
-    /// A Node project with its detected package manager.
-    Node { manager: &'static str },
-    /// A mise monorepo root with configured child roots.
+
+    Node {
+        manager: &'static str,
+    },
+
     MiseMonorepo,
-    /// A Gradle multi-project build.
+
     Gradle,
-    /// A Python project.
+
     Python,
-    /// A folder of independent Git projects (a project collection).
+
     Collection,
-    /// A remote service checkout with no build system of its own.
+
     Service,
 }
 
@@ -195,23 +181,19 @@ impl ProjectKind {
     }
 }
 
-/// The location Holla was launched from, resolved outward through its
-/// rings: the exact folder, the nearest project, the workspace above it, and
-/// the bounded children below.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Location {
     pub cwd: String,
     pub home: String,
-    /// Nearest project root containing `cwd` (may equal `cwd`).
+
     pub project: Option<Project>,
-    /// A workspace or monorepo above the project, when one is recognised.
+
     pub workspace: Option<Project>,
-    /// Bounded child projects below the active scope.
+
     pub children: Vec<Project>,
 }
 
 impl Location {
-    /// `~/work/acme/apps/frontend` for display.
     pub fn short(&self, path: &str) -> String {
         match path.strip_prefix(&self.home) {
             Some(rest) => format!("~{rest}"),

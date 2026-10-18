@@ -1,6 +1,3 @@
-//! Application shell: layout, event routing, focus/hover bookkeeping,
-//! navigation, modal stack, footer hints.
-
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
@@ -38,29 +35,25 @@ use junie_tui::widgets::help::HelpOverlay;
 use junie_tui::widgets::too_small::TooSmall;
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
-/// The brand line of the too-small screen.
 const BRAND: &str = "Junie Design system";
 
 const NAV: WidgetId = WidgetId::of("app.nav");
 const HEADER_HELP: WidgetId = WidgetId::of("app.header.help");
-/// The header's trail: the page's group and label.
+
 const HEADER_CRUMB: WidgetId = WidgetId::of("app.header.crumb");
 const HEADER_INSPECT: WidgetId = WidgetId::of("app.header.inspect");
 const HELP_DIALOG: WidgetId = WidgetId::of("app.help");
-/// The brand lockup in the header: the app menu's Quit (mouse #40).
+
 pub const HEADER_BRAND: WidgetId = WidgetId::of("app.header.brand");
-/// The quit confirmation the brand opens.
+
 pub const QUIT_DIALOG: WidgetId = WidgetId::of("app.shell.quit");
 
-/// From this width the Inspector docks beside the page; below it, it
-/// opens as an overlay.
 pub const INSPECTOR_DOCK_MIN: u16 = 100;
-/// Width of the docked Inspector.
+
 const INSPECTOR_W: u16 = 30;
-/// Width of the Inspector overlay (its frame and padding included).
+
 const INSPECTOR_OVERLAY_W: u16 = 34;
 
-/// `shell.color`'s values, in order.
 const LEVELS: [junie_tui::theme::ColorLevel; 4] = [
     junie_tui::theme::ColorLevel::TrueColor,
     junie_tui::theme::ColorLevel::Ansi256,
@@ -72,18 +65,15 @@ fn level_index(level: junie_tui::theme::ColorLevel) -> usize {
     LEVELS.iter().position(|l| *l == level).unwrap_or(0)
 }
 
-/// `shell.glyphs`' and `shell.strings`' values, in order.
 const CHARSETS: [junie_tui::theme::Charset; 2] = [
     junie_tui::theme::Charset::Unicode,
     junie_tui::theme::Charset::Ascii,
 ];
 
-/// The first [`CHARSETS`] entry `matches` accepts, else Unicode.
 fn charset_index(matches: impl Fn(junie_tui::theme::Charset) -> bool) -> usize {
     CHARSETS.iter().position(|c| matches(*c)).unwrap_or(0)
 }
 
-/// Tick delivery (`--motion`): the library's [`Motion`].
 pub use junie_tui::motion::Motion;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,7 +103,7 @@ pub enum PageId {
     TaskRunner,
     Selectable,
     CellEditors,
-    // planned pages (plan §7.2), stubs until their SC step
+
     StatusHints,
     BreadcrumbsRails,
     HelpKeys,
@@ -148,13 +138,10 @@ pub enum PageId {
 pub struct NavEntry {
     pub id: PageId,
     pub label: &'static str,
-    /// The sidebar group the page sits under ([`NAV_GROUPS`]); empty for a
-    /// top-level page.
+
     pub group: &'static str,
 }
 
-/// Sidebar groups in tree order. A group never holds a page with its own
-/// name, and the tree is at most two levels deep.
 pub const NAV_GROUPS: &[&str] = &[
     "App shell",
     "Inputs & forms",
@@ -167,8 +154,6 @@ pub const NAV_GROUPS: &[&str] = &[
     "Screens",
 ];
 
-/// Every page in tree order (group by group): the sidebar, `[`/`]` and
-/// the page vector all follow it.
 pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Overview,
@@ -442,11 +427,7 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     },
 ];
 
-/// Extra `--page` names for pages whose label is long or reads several
-/// ways (compared like labels: letters and digits only).
 pub const PAGE_ALIASES: &[(&str, PageId)] = &[
-    // labels before the sidebar became a tree (a group never repeats a
-    // page's name): their `--page` names keep working
     ("tables", PageId::Tables),
     ("editabletables", PageId::Editable),
     ("selectabletable", PageId::Selectable),
@@ -457,7 +438,6 @@ pub const PAGE_ALIASES: &[(&str, PageId)] = &[
     ("selection", PageId::Selectable),
     ("bulkedit", PageId::Selectable),
     ("selectable", PageId::Selectable),
-    // short names of the planned pages (plan §7.2)
     ("hints", PageId::StatusHints),
     ("breadcrumbs", PageId::BreadcrumbsRails),
     ("rails", PageId::BreadcrumbsRails),
@@ -474,18 +454,13 @@ pub const PAGE_ALIASES: &[(&str, PageId)] = &[
     ("text", PageId::TextUtilities),
 ];
 
-/// Which sidebar groups are open: the navigation tree's expansion policy.
-/// Whatever the policy, navigating to a page opens its group.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum NavExpand {
-    /// Only the current page's group is open at start. A group opened only
-    /// because navigation passed through it closes again when navigation
-    /// moves on; groups the user opens or closes stay as they are left.
     #[default]
     CurrentGroup,
-    /// Only the current page's group is open after every navigation.
+
     Accordion,
-    /// Every group starts open.
+
     All,
 }
 
@@ -494,8 +469,6 @@ impl PageId {
         NAV_ENTRIES.iter().position(|e| e.id == self).unwrap_or(0)
     }
 
-    /// The page's path in the sidebar tree: `[root]` for a top-level page,
-    /// `[group, position in group]` otherwise.
     pub fn nav_path(self) -> Vec<usize> {
         let e = &NAV_ENTRIES[self.index()];
         let roots = nav_roots();
@@ -519,7 +492,6 @@ impl PageId {
         vec![g, k]
     }
 
-    /// The page at a sidebar tree path; `None` for a group row.
     pub fn from_nav_path(path: &[usize]) -> Option<Self> {
         let roots = nav_roots();
         match (path, path.first().and_then(|&r| roots.get(r))) {
@@ -534,8 +506,6 @@ impl PageId {
     }
 
     pub fn from_name(name: &str) -> Option<Self> {
-        // compare on letters and digits only, so "chips & selects",
-        // "chips-selects" and "chipsselects" all resolve
         let norm = |s: &str| -> String {
             s.chars()
                 .filter(|c| c.is_ascii_alphanumeric())
@@ -556,17 +526,13 @@ impl PageId {
     }
 }
 
-/// A root row of the sidebar tree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavRoot {
-    /// A top-level page (Overview).
     Page(PageId),
-    /// A group of pages.
+
     Group(&'static str),
 }
 
-/// The sidebar's root rows in order: top-level pages and groups as they
-/// first appear in [`NAV_ENTRIES`].
 pub fn nav_roots() -> Vec<NavRoot> {
     let mut out = Vec::new();
     for e in NAV_ENTRIES {
@@ -582,9 +548,6 @@ pub fn nav_roots() -> Vec<NavRoot> {
     out
 }
 
-/// The sidebar tree: top-level pages, then [`NAV_GROUPS`] as branches with
-/// their pages as leaves. Type-ahead on, `›` on the current page; the
-/// card it sits in is its edge, so it keeps no divider column.
 fn nav_tree() -> TreeView {
     let nodes = nav_roots()
         .into_iter()
@@ -604,16 +567,13 @@ fn nav_tree() -> TreeView {
         nodes.iter().filter(|n| !n.children.is_empty()).count(),
         NAV_GROUPS.len()
     );
-    // a sidebar navigates on one click (SI14)
+
     TreeView::new(NAV, nodes)
         .click(junie_tui::core::selection::ClickPolicy::NAVIGATION)
         .type_ahead(true)
         .selected_marker(Some("›"))
 }
 
-/// One entry of the page stack: the page and, while another page is
-/// pushed over it, the control that had focus (it gets focus back when
-/// the page shows again).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Shown {
     pub page: PageId,
@@ -629,84 +589,60 @@ impl Shown {
 pub struct App {
     pub theme: Theme,
     pub pages: Vec<Box<dyn Page>>,
-    /// The page stack ([`shell::Router`]): a sidebar entry starts it over,
-    /// a page's link pushes onto it, Esc and the header trail go back.
-    /// Each entry keeps the control to focus when it shows again.
+
     pub router: shell::Router<Shown>,
-    /// The header trail as last drawn (its links' hit ids).
+
     crumb: Breadcrumb,
-    /// The navigation sidebar: every page as a leaf under its group.
+
     pub nav: TreeView,
-    /// Which sidebar groups are open ([`NavExpand::CurrentGroup`]).
+
     pub nav_expand: NavExpand,
-    /// A group navigation opened on its own (not the user): it closes
-    /// again when navigation moves to another group
-    /// ([`NavExpand::CurrentGroup`]).
+
     nav_auto: Option<usize>,
-    /// Focus, ring, hit regions, the pointer router ([`PointerHost`]
-    /// below routes what it resolves), the footer status (5 s on the
-    /// pointer clock), the focus fallback (`shell.focus_fallback`), size,
-    /// motion and quit: the library shell's state.
+
     pub shell: Shell,
-    /// The pointer clock (press flash, hover delay, status expiry).
+
     pub(crate) clock: WallClock,
-    /// The shell's layer stack: the dialogs (the shell's own and the
-    /// pages') and the keyboard reference (`?`, the header link, a page's
-    /// request). Each entry's owner is the page that opened it (`None`:
-    /// the shell); focus moves into a layer and comes back when it closes.
+
     pub layers: Layers,
     pub inspector: bool,
-    /// The Inspector's State | Options pane (`i`).
+
     pub insp: Inspector,
-    /// The shell-wide live options (the Inspector's Options tab, `--opt`).
+
     pub options: ShellOptions,
-    /// App-wide scrollbar track press (`shell.track_click`).
+
     pub track_click: junie_tui::core::scroll::TrackClick,
-    /// App-wide tooltip policy (`shell.tooltips`).
+
     pub tooltips: junie_tui::ui::tooltip::Tooltips,
-    /// App-wide truncated-text reveal (`shell.reveal`).
+
     pub reveal: junie_tui::ui::reveal::Reveal,
-    /// How the runtime turns raw terminal events into input
-    /// (`Application::input_config`), from the shell options.
+
     pub input: junie_tui::core::event::InputConfig,
-    /// The keyboard-protocol policy the session starts with
-    /// (`Application::keyboard_protocol`); read once, at launch.
+
     pub keyboard_protocol: junie_tui::core::keyboard::KeyboardProtocol,
-    /// The `shell.alt_keys` choice last applied: 0 keeps the detection
-    /// ([`junie_tui::core::keyboard::AltKeys::current`]).
+
     alt_keys: usize,
-    /// Focus to restore when the Inspector overlay closes.
+
     inspector_focus: Option<WidgetId>,
     pub tick: u64,
     pub last_key: Option<String>,
-    /// The shell's keys ([`shell::KeyRouter`]): the quit keys
-    /// ([`junie_tui::ui::leave::QuitKeys::DEFAULT`]: Ctrl+C after the page's first refusal,
-    /// Ctrl+Q, and `q` never over a field or unsaved edits; Esc never
-    /// quits), help, page order (`[`/`]`, Ctrl+PgUp/PgDn), `i` the
-    /// Inspector and `0` the sidebar.
+
     pub keys: shell::ShellKeys<ShowCmd>,
-    /// The quit guard: unsaved page edits ask Cancel / Discard (pages
-    /// save on their own, so the shell offers no Save).
+
     leave: LeaveGuard<()>,
     nav_reveal: bool,
-    /// Type-to-filter in the sidebar (`/`): the query while filtering.
+
     pub nav_filter: Option<String>,
     layout: ShellLayout,
 }
 
-/// The showcase's layer stack: owned by a page (its index) or the shell.
 pub type Layers = ShellLayers<LayerRes, (), Option<usize>>;
 type LayerSlot = LayerEntry<LayerRes, (), Option<usize>>;
 
-/// A layer that covers the whole window (drawn after the chrome): the
-/// shell's own and the modal dialogs and references pages ask for
-/// ([`crate::pages::CxExt`]). Any other layer a page opens (a picker, a
-/// form) belongs to the page and is drawn with it, under the chrome.
 fn is_window_layer(e: &LayerSlot) -> bool {
     e.owner.is_none() || matches!(e.tag.kind, DIALOG_TAG | HELP_TAG)
 }
 
-/// What a page's layer that closed reports: `result` and the layer itself.
 fn closed_report(entry: LayerSlot, result: Option<LayerResult>) -> Report {
     Report {
         result,
@@ -725,15 +661,11 @@ struct ShellLayout {
 }
 
 impl App {
-    /// Where the navigation sidebar was drawn in the last frame (the visual
-    /// baseline test hashes everything but it).
     #[allow(dead_code)]
     pub fn sidebar_area(&self) -> Rect {
         self.layout.sidebar
     }
 
-    /// Default live-tick construction (`with_motion` with `Full`, frame 0);
-    /// the binary goes through `with_motion`, the in-process tests use this.
     #[allow(dead_code)]
     pub fn new(theme: Theme) -> Self {
         Self::with_motion(theme, Motion::Full, 0)
@@ -808,7 +740,7 @@ impl App {
         shell.motion = motion;
         let mut options = ShellOptions::default();
         options.set("shell.color", level_index(theme.level));
-        // a terminal without Unicode (or `--glyphs`) shows as the options
+
         options.set(
             "shell.glyphs",
             charset_index(|c| c.glyphs() == theme.glyphs),
@@ -855,15 +787,7 @@ impl App {
             layout: ShellLayout::default(),
         };
         app.sync_nav(None);
-        // Paused fast-forward: page Tick handlers are pure functions of the
-        // tick count, so N synchronous dispatches reproduce the exact
-        // post-N-ticks state. Every page is advanced (not only the current
-        // one) because `goto` runs after construction; unvisited pages stay
-        // idle anyway, and `on_tick` never fires again while paused.
-        // Requests are dropped: a Status raised by a construction-time tick
-        // (the progress bar crossing 100 %) is a wall-clock artifact that
-        // paused motion can never age out, so it would leak a stale footer
-        // message into unrelated pages' pinned frames.
+
         if motion == Motion::Paused {
             for _ in 0..frame {
                 for i in 0..app.pages.len() {
@@ -875,12 +799,9 @@ impl App {
         app
     }
 
-    /// Apply [`Self::nav_expand`] after the current page changed from
-    /// `from` (`None` at start) and put the tree cursor and the current
-    /// marker on it.
     fn sync_nav(&mut self, from: Option<PageId>) {
         let path = self.page().nav_path();
-        // a top-level page has no group to open
+
         let group = (path.len() > 1).then_some(path[0]);
         let prev_auto = self.nav_auto.take();
         match (self.nav_expand, from) {
@@ -897,8 +818,7 @@ impl App {
                 }
             }
         }
-        // the group is navigation's own when navigation opened it now, or
-        // it already was and navigation stays inside it
+
         if let Some(group) = group {
             let opened_now = !self.nav.expanded.contains(&vec![group]);
             if self.nav_expand == NavExpand::CurrentGroup
@@ -908,39 +828,29 @@ impl App {
             }
             self.nav.expanded.insert(vec![group]);
         }
-        // the tree is rebuilt from the expansion set
+
         self.nav.flatten();
         self.nav.selected = Some(path.clone());
         self.nav.reveal(&path);
         self.nav_reveal = true;
     }
 
-    /// Change the sidebar's expansion policy and apply it from scratch.
     pub fn set_nav_expand(&mut self, policy: NavExpand) {
         self.nav_expand = policy;
         self.nav_auto = None;
         self.sync_nav(None);
     }
 
-    /// The shown page.
     pub fn page(&self) -> PageId {
         self.router.current().page
     }
 
-    /// Show `page` from the sidebar (or `--page`, Ctrl+PgDn): the stack
-    /// starts over at it. The shown page alone on its stack stays as it
-    /// is.
     pub fn open_page(&mut self, page: PageId) {
         if self.page() != page || self.router.depth() > 1 {
             self.navigate(shell::Nav::Reset(page));
         }
     }
 
-    /// Apply a navigation ([`shell::Nav`]). Showcase pages keep their
-    /// state when they are not shown, so no move loses anything and none
-    /// asks first. Focus stays on the sidebar if it was there; otherwise
-    /// a page shown again gets back the control it had, and a new one
-    /// starts on its first.
     pub fn navigate(&mut self, nav: shell::Nav<PageId>) -> Outcome {
         let from = self.page();
         let focus = self.shell.focus.current();
@@ -972,11 +882,10 @@ impl App {
     }
 
     pub fn tick_interval(&self) -> Duration {
-        // a held drag past a selecting body's edge autoscrolls on the tick
         if self.shell.pointer.autoscrolling() {
             return Duration::from_millis(self.shell.pointer.config.autoscroll_ms);
         }
-        // a press held on a scrollbar track pages on the tick
+
         if self.shell.pointer.track_repeating() {
             return Duration::from_millis(self.shell.pointer.config.track_repeat_ms);
         }
@@ -993,10 +902,6 @@ impl App {
             .set_at(s, Tone::Secondary, self.clock.now());
     }
 
-    // ------------------------------------------------------------------ input
-
-    /// Hand every focus change the input caused to the dialog and the
-    /// pages, so fields end their edits on the event path.
     fn blur_all(&mut self, ch: FocusChange) -> Outcome {
         let mut out = Outcome::Ignored;
         out = out.or(self.layers.on_blur(ch));
@@ -1022,16 +927,12 @@ impl App {
     }
 
     fn on_tick(&mut self) -> Outcome {
-        // edge autoscroll and a held track press are the user's drag,
-        // not motion: they run paused too
         let auto = PointerRouter::tick(self);
         if self.shell.motion == Motion::Paused {
             return auto;
         }
         let mut out = auto;
         if self.animating() {
-            // reduced motion: the pages' work advances, the decorative
-            // phase (spinner frames) stays still
             if self.shell.motion.animates() {
                 self.tick = self.tick.wrapping_add(1);
             }
@@ -1044,9 +945,7 @@ impl App {
         if self.shell.status.expire(self.clock.now()) {
             out = Outcome::Changed;
         }
-        // the page ticks unless a layer it does not own covers it (the
-        // owner of the top layer keeps its live work going: a fetch, a
-        // running tab), then the top layer ticks
+
         let shown = self.page().index();
         if self.layers.top().is_none_or(|e| e.owner == Some(shown)) {
             let page_out = self.with_shown(|p, cx| p.on_tick(&mut (), cx));
@@ -1059,7 +958,6 @@ impl App {
         out
     }
 
-    /// Drive the shown page ([`Self::with_page`]).
     fn with_shown(
         &mut self,
         f: impl FnOnce(&mut (dyn Page + 'static), &mut Cx) -> Outcome,
@@ -1067,10 +965,6 @@ impl App {
         self.with_page(self.page().index(), f)
     }
 
-    /// Drive page `i` through the shell's page contract (`f` calls a
-    /// `shell::Page` method; `pages::adapter` turns it into the page's
-    /// `PageEvent`), then apply what it asked for. A page that is not
-    /// shown may only report a status (`shell::background`).
     fn with_page(
         &mut self,
         i: usize,
@@ -1086,7 +980,6 @@ impl App {
         out
     }
 
-    /// What the pages asked of the shell, in order.
     fn apply_requests(&mut self, requests: Vec<Request>, owner: usize) {
         for r in requests {
             match r {
@@ -1118,8 +1011,7 @@ impl App {
                         now,
                     );
                 }
-                // the owner closes its own top layer without a result, or
-                // acts on it (a form's note, a picker's rows)
+
                 Request::Close => {
                     if self.layers.top().is_some_and(|e| e.owner == Some(owner)) {
                         self.layers.pop(&mut self.shell.focus);
@@ -1136,15 +1028,12 @@ impl App {
         }
     }
 
-    /// What quitting would lose across every page.
     pub fn quit_stakes(&mut self) -> Stakes {
         self.pages
             .iter_mut()
             .fold(Stakes::Clean, |acc, p| acc.max(p.stakes(&())))
     }
 
-    /// Every quit goes through here: a clean showcase quits at once,
-    /// unsaved page edits ask Cancel / Discard first.
     fn request_quit(&mut self) -> Outcome {
         let stakes = self.quit_stakes();
         match self.leave.request_quit(&stakes, &self.theme.strings) {
@@ -1159,18 +1048,15 @@ impl App {
         }
     }
 
-    /// Open `d` as the shell's own dialog.
     pub(crate) fn open_dialog(&mut self, d: Dialog) {
         self.open_layer(Box::new(d), LayerTag::new(DIALOG_TAG), None);
     }
 
-    /// The open dialog, if one is on the layer stack.
     pub fn dialog(&self) -> Option<&Dialog> {
         self.layers.iter().rev().find_map(|e| e.get::<Dialog>())
     }
 
-    /// The open keyboard reference, if one is on the layer stack.
-    #[allow(dead_code)] // tests read it
+    #[allow(dead_code)]
     pub fn help(&self) -> Option<&HelpOverlay> {
         self.layers
             .iter()
@@ -1178,10 +1064,6 @@ impl App {
             .find_map(|e| e.get::<HelpOverlay>())
     }
 
-    /// Open `layer` on top for `owner` (a page's index; `None`: the
-    /// shell). Focus moves into it and comes back when it closes. A
-    /// keyboard reference refuses to open over another layer: one modal
-    /// at a time, and the open one keeps the keyboard.
     fn open_layer(&mut self, layer: Box<dyn Layer<LayerRes>>, tag: LayerTag, owner: Option<usize>) {
         if tag.kind == HELP_TAG && !self.layers.is_empty() {
             self.set_status("Close the open dialog first".into());
@@ -1194,18 +1076,12 @@ impl App {
             initial,
         );
         if let Some(d) = self.layers.top_as_mut::<Dialog>() {
-            // clear of the header and footer rows at least; a dialog that
-            // asks for more chrome (`Dialog::chrome`) gets it
             d.chrome = (d.chrome.0.max(1), d.chrome.1.max(1));
         }
         self.shell.pointer.hover = None;
         self.shell.pointer.pressed = None;
     }
 
-    /// A key for the top layer; `None` when no layer is open. The page
-    /// that opened it sees the key first (its own key over the layer,
-    /// [`Page::on_layer_key`]); a layer with no use for Esc leaves it to
-    /// its dismiss policy.
     fn layer_key(&mut self, key: &Key) -> Option<Outcome> {
         if let Some(owner) = self.layers.top()?.owner {
             let out = self.with_page(owner, |p, cx| p.on_layer_key(key, cx));
@@ -1227,7 +1103,6 @@ impl App {
                     .layers
                     .dismiss(DismissReason::Esc, &mut self.shell.focus)
                 {
-                    // a refused Esc stays quiet: only a click flashes
                     Dismissed::Refused => Outcome::Consumed,
                     d => self.layer_dismissed(d, dismiss),
                 },
@@ -1236,8 +1111,6 @@ impl App {
         Some(self.settle_layer(out))
     }
 
-    /// After input reached the top layer: everything it reported goes to
-    /// its owner, in order; a result closes it.
     fn settle_layer(&mut self, mut out: Outcome) -> Outcome {
         while let Some(taken) = self.layers.take(&mut self.shell.focus) {
             out = match taken {
@@ -1248,8 +1121,6 @@ impl App {
         out
     }
 
-    /// The top layer reported `r` and stays open: a page's layer tells
-    /// its page (with a form's values); the shell's own report nothing.
     fn layer_event(&mut self, r: LayerRes) -> Outcome {
         let Some(top) = self.layers.top() else {
             return Outcome::Ignored;
@@ -1267,9 +1138,6 @@ impl App {
             .or(Outcome::Changed)
     }
 
-    /// What a dismissal of the top layer did: a refused outside click
-    /// flashes the frame under its `dismiss` policy; a closed layer's
-    /// result goes to its owner.
     fn layer_dismissed(
         &mut self,
         d: Dismissed<LayerRes, (), Option<usize>>,
@@ -1278,8 +1146,6 @@ impl App {
         match d {
             Dismissed::None => Outcome::Changed,
             Dismissed::Closed(entry, None) => match entry.owner {
-                // a page's layer closed without a result: its page still
-                // learns that it closed
                 Some(owner) if !is_window_layer(&entry) => {
                     let tag = entry.tag.clone();
                     let report = closed_report(entry, None);
@@ -1297,9 +1163,6 @@ impl App {
         }
     }
 
-    /// A layer closed with `r`: the shell's own dialogs resolve here (the
-    /// quit guard, the brand's quit confirmation); a page's goes back to
-    /// the page that opened it.
     fn layer_closed(&mut self, entry: LayerSlot, r: LayerRes) -> Outcome {
         let dialog = entry.get::<Dialog>().map(|d| d.id);
         let result = match &r {
@@ -1318,8 +1181,7 @@ impl App {
                 }
                 return Outcome::Changed;
             }
-            // the brand's quit confirmation: Quit goes through the same
-            // guard as the q key
+
             if dialog == Some(QUIT_DIALOG) && result == Some(DialogResult::Action(1)) {
                 return self.request_quit();
             }
@@ -1342,15 +1204,10 @@ impl App {
         self.page_layer_result(owner, &tag, r).or(Outcome::Changed)
     }
 
-    /// A layer page `i` opened reported `r` under `tag`.
     fn page_layer_result(&mut self, i: usize, tag: &LayerTag, r: LayerRes) -> Outcome {
         self.with_page(i, |p, cx| p.on_layer_result(tag, r, &mut (), cx))
     }
 
-    /// A key for the focused sidebar: its filter while one is typed
-    /// (`/` starts it), → on a page opens it and steps into it, and the
-    /// tree's own keys. A typed letter reaches its type-ahead only when no
-    /// shortcut claims it (the router's rule).
     fn nav_key(&mut self, key: &Key) -> Outcome {
         if !self.shell.focus.is(NAV) {
             return Outcome::Ignored;
@@ -1379,8 +1236,6 @@ impl App {
         self.nav_event(|nav| nav.on_key(key))
     }
 
-    /// Show the page `step` places away in sidebar order (NAV_ENTRIES
-    /// lists the pages group by group), wrapping.
     fn step_page(&mut self, step: isize) -> Outcome {
         let n = NAV_ENTRIES.len() as isize;
         let i = (self.page().index() as isize + step).rem_euclid(n) as usize;
@@ -1388,16 +1243,10 @@ impl App {
         Outcome::Changed
     }
 
-    // -------------------------------------------------------------- inspector
-
-    /// Whether the Inspector is open as an overlay (below
-    /// [`INSPECTOR_DOCK_MIN`] columns) rather than docked beside the page.
     pub fn inspector_overlay(&self) -> bool {
         self.inspector && self.shell.size.0 < INSPECTOR_DOCK_MIN
     }
 
-    /// `i` and the header link: open or close the Inspector. The overlay
-    /// takes focus and gives it back when it closes.
     pub fn toggle_inspector(&mut self) {
         if self.inspector {
             self.close_inspector();
@@ -1420,9 +1269,6 @@ impl App {
         }
     }
 
-    /// A key for the Inspector: its focused control first; over the page,
-    /// the overlay is modal (Tab cycles inside it, Esc and `i` close it).
-    /// `None` passes the key on.
     fn inspector_key(&mut self, key: &Key) -> Option<Outcome> {
         if !self.inspector {
             return None;
@@ -1457,8 +1303,6 @@ impl App {
         })
     }
 
-    /// Deliver `ev` to the Inspector; an option it changed is applied.
-    /// `None` when the Inspector does not own the event.
     fn dispatch_inspector(&mut self, ev: PageEvent) -> Option<Outcome> {
         let mut cx = Cx::new(&mut self.shell.focus, &self.shell.ring);
         let (out, set) = self.insp.handle(&ev, &mut cx)?;
@@ -1469,9 +1313,6 @@ impl App {
         Some(out)
     }
 
-    /// Set an option: one path for the Inspector's controls and `--opt`.
-    /// A shell option rebuilds the configuration through the library's
-    /// builders; a page option goes to its page.
     pub fn apply_opt(&mut self, set: OptSet) {
         match crate::options::page_of(set.key) {
             None => {
@@ -1482,7 +1323,6 @@ impl App {
         }
     }
 
-    /// The current value index of `opt`.
     pub fn option_value(&self, opt: &crate::options::Opt) -> usize {
         match crate::options::page_of(opt.key) {
             None => self.options.get(opt.key),
@@ -1492,8 +1332,6 @@ impl App {
         }
     }
 
-    /// Rebuild the theme, pointer, motion and render-context settings from
-    /// [`Self::options`], through the builders an application calls.
     fn apply_shell(&mut self) {
         use junie_tui::core::edit::{EditEntry, FieldKeys};
         use junie_tui::core::event::ClientPlatform;
@@ -1510,9 +1348,7 @@ impl App {
             LevelOverrides::default()
         };
         let mut theme = Theme::for_level_with(LEVELS[o.get("shell.color")], &overrides);
-        // `shell.glyphs` and `shell.strings` start at the detected charset
-        // (`CommonArgs::theme`, set in `with_motion`); unicode keeps the
-        // level's own, which `shell.overrides` may have made ASCII
+
         if o.get("shell.glyphs") == 1 {
             theme = theme.with_glyphs(Charset::Ascii.glyphs());
         }
@@ -1589,8 +1425,7 @@ impl App {
         } else {
             Reveal::OFF
         };
-        // the input normalisation follows the client platform (Ctrl+click
-        // is a right click on macOS only)
+
         let mut input = junie_tui::core::event::InputConfig::for_platform(
             platform.unwrap_or_else(ClientPlatform::current),
         );
@@ -1602,8 +1437,7 @@ impl App {
             self.keyboard_protocol =
                 [P::current(), P::On, P::Off][o.get("shell.keyboard_protocol")];
         }
-        // the Alt detection is the process's: set only when the choice
-        // changes, and `auto` detects from the environment again
+
         let alt = o.get("shell.alt_keys");
         if alt != self.alt_keys {
             use junie_tui::core::keyboard::{AltKeys as A, set_alt_keys};
@@ -1624,19 +1458,14 @@ impl App {
         ][o.get("shell.focus_fallback")];
     }
 
-    /// The input normalisation the runtime applies (the shell's
-    /// `Application::input_config`).
     pub fn input_config(&self) -> junie_tui::core::event::InputConfig {
         self.input
     }
 
-    /// The keyboard-protocol policy the session starts with.
     pub fn keyboard_protocol(&self) -> junie_tui::core::keyboard::KeyboardProtocol {
         self.keyboard_protocol
     }
 
-    /// The live configuration the behaviour options drive, for tests and
-    /// the coverage gate: setting a behaviour option must change it.
     #[allow(dead_code)]
     pub fn live_config(&self) -> String {
         format!(
@@ -1657,7 +1486,6 @@ impl App {
         )
     }
 
-    /// The pointer's way to quit: the brand opens a confirmation.
     fn open_quit(&mut self) {
         let d = Dialog::confirm(
             QUIT_DIALOG,
@@ -1668,10 +1496,6 @@ impl App {
         self.open_dialog(d);
     }
 
-    /// `?`, F1 and the header link: the library `HelpOverlay` built from
-    /// the live key maps (K23): the shell's keys (`ShellKeys`, the
-    /// showcase's commands included), the sidebar tree's own keys, and the
-    /// mouse gestures, which no key map lists.
     fn open_help(&mut self) {
         use junie_tui::core::hints::Bindings;
         use junie_tui::widgets::help::HelpSection;
@@ -1694,21 +1518,14 @@ impl App {
         self.show_help(h);
     }
 
-    /// Open `h` as the shell's modal reference. It refuses to open over
-    /// another modal: one layer at a time, and the dialog keeps the
-    /// keyboard.
     pub(crate) fn show_help(&mut self, h: HelpOverlay) {
         self.open_layer(Box::new(h), LayerTag::new(HELP_TAG), None);
     }
 
-    /// A modal (a dialog, the reference or a page's layer) is open: the
-    /// page beneath takes no pointer input and shows no focus.
     fn modal_open(&self) -> bool {
         !self.layers.is_empty()
     }
 
-    /// The shown page is editing text: a field of its own, or of the
-    /// layer it opened on top (a form).
     fn page_editing(&self) -> bool {
         match self.layers.top() {
             Some(e) if !is_window_layer(e) => e.layer.is_editing(),
@@ -1716,11 +1533,6 @@ impl App {
         }
     }
 
-    /// The layers' share of a pointer event: the top layer takes every
-    /// event the router resolved (the page beneath is unreachable behind
-    /// its barrier), and a click on its backdrop is an outside click
-    /// under its own policy (`ShellLayers::pointer`); `None` when no layer
-    /// is open.
     fn layer_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         let dismiss = self.layers.top()?.layer.spec().dismiss;
         Some(
@@ -1734,14 +1546,10 @@ impl App {
         )
     }
 
-    /// The shell's own targets: the header links, the footer hints and the
-    /// sidebar tree. `None` passes the event on to the Inspector and the
-    /// page.
     fn chrome_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         use junie_tui::core::id::Part;
         use junie_tui::core::intent::Phase;
         if let Some(key) = self.shell.footer_keys.clicked(ev) {
-            // a click on a hint is its key
             return Some(self.handle_input(Input::Key(key)).or(Outcome::Changed));
         }
         if ev.is(Phase::Click) {
@@ -1770,9 +1578,7 @@ impl App {
         if !ev.on(NAV) {
             return None;
         }
-        // a press on a row puts the cursor on it; a click on a row or its
-        // disclosure focuses the tree and acts (the press already focused
-        // the tree's own body under `FocusOn::Press`)
+
         let row = self.nav.row_at(ev);
         if ev.is(Phase::Press)
             && let Some(row) = ev.index_of(Part::ROW)
@@ -1788,8 +1594,6 @@ impl App {
         Some(out)
     }
 
-    /// The Inspector's share: its overlay's light dismiss and close
-    /// button, then its own controls. `None` passes the event on.
     fn inspector_pointer(&mut self, ev: &PointerEvent) -> Option<Outcome> {
         use junie_tui::core::id::Part;
         use junie_tui::core::intent::Phase;
@@ -1808,13 +1612,10 @@ impl App {
         if let Some(out) = self.dispatch_inspector(PageEvent::Pointer(*ev)) {
             return Some(out);
         }
-        // the overlay is a layer: the page beneath it takes nothing
+
         overlay.then_some(Outcome::Ignored)
     }
 
-    /// A key while the sidebar filters (`/`): letters narrow the tree to
-    /// matching pages (their groups stay as context), ↑↓ move, Enter opens
-    /// the page under the cursor (or the first match), Esc ends the filter.
     fn on_filter_key(&mut self, key: &Key) -> Outcome {
         let query = self.nav_filter.get_or_insert_with(String::new);
         match key.code {
@@ -1847,7 +1648,7 @@ impl App {
         }
         let q = query.clone();
         self.nav.set_filter(Some(&q));
-        // the cursor lands on the first matching page, not its group
+
         if let Some(i) = (0..self.nav.rows().len())
             .find(|&i| PageId::from_nav_path(&self.nav.rows()[i].path).is_some())
         {
@@ -1856,7 +1657,6 @@ impl App {
         Outcome::Changed
     }
 
-    /// Leave type-to-filter: the full tree with the current page in view.
     fn end_filter(&mut self) {
         self.nav_filter = None;
         self.nav.set_filter(None);
@@ -1865,10 +1665,6 @@ impl App {
         self.nav_reveal = true;
     }
 
-    /// Run a sidebar tree operation: a page it activates becomes the
-    /// current page, and once the user opens or closes the group navigation
-    /// opened, it is theirs (it no longer closes on its own,
-    /// [`NavExpand::CurrentGroup`]).
     fn nav_event(
         &mut self,
         f: impl FnOnce(&mut TreeView) -> (Outcome, Option<TreeAction>),
@@ -1889,12 +1685,9 @@ impl App {
         out
     }
 
-    /// Milliseconds on the pointer clock.
     fn now_ms(&self) -> u64 {
         self.clock.now_ms()
     }
-
-    // ----------------------------------------------------------------- render
 
     fn compute_layout(&self, area: Rect) -> ShellLayout {
         let header = Rect::new(area.x, area.y, area.width, 1);
@@ -1912,9 +1705,7 @@ impl App {
         } else {
             0
         };
-        // the sidebar card takes one column of the two-column gutter: its
-        // own blank padding keeps the second, so its rows and the page
-        // still sit two columns apart
+
         let sidebar = Rect::new(body.x, body.y, sidebar_w + 1, body.height);
         let main_x = body.x + sidebar_w + 2;
         let main_w = body
@@ -1949,8 +1740,7 @@ impl App {
         if self.inspector_overlay() {
             self.draw_inspector_overlay(area, buf, ctx);
         }
-        // the window's layers, bottom first (a dialog keeps clear of the
-        // header and footer rows: `open_layer`)
+
         for e in self.layers.iter_mut().filter(|e| is_window_layer(e)) {
             e.layer.render(area, buf, ctx, &());
         }
@@ -1959,8 +1749,7 @@ impl App {
     fn draw_header(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         let mut x = area.x + 1;
-        // the brand is the app menu's way to quit: it lifts on hover and
-        // press, and keeps its look at rest
+
         let brand = Rect::new(x, area.y, 7, 1);
         let lifted = ctx.interaction.hovered(HEADER_BRAND) || ctx.interaction.pressed(HEADER_BRAND);
         let ladder = ctx.title_style(HEADER_BRAND, t.canvas);
@@ -1979,7 +1768,7 @@ impl App {
         x += 6;
         buf.set_string(x, area.y, "Design system", t.secondary());
         x += 14;
-        // right side: capability + actions
+
         let cap = format!(
             "{} · {}×{}",
             t.level.label(),
@@ -1996,16 +1785,13 @@ impl App {
         for (label, id) in [(help, HEADER_HELP), (insp, HEADER_INSPECT)] {
             let w = junie_tui::ui::text::width(label) as u16;
             rx = rx.saturating_sub(w);
-            // a header link: rest, hover and press from the shared ladder
+
             let style = ctx.title_style(id, t.canvas);
             buf.set_string(rx, area.y, label, style);
             ctx.clickable(id, Rect::new(rx, area.y, w, 1));
             rx = rx.saturating_sub(1);
         }
-        // where the page sits: the library trail. A root page shows its
-        // group as plain text (the sidebar is how pages are reached); a
-        // page opened from another shows the stack, every earlier page a
-        // link back to it (M5, SC34). It collapses before the links go.
+
         let mut crumbs = self.header_crumb();
         let x = x + 1;
         crumbs.render(
@@ -2025,8 +1811,6 @@ impl App {
         }
     }
 
-    /// The header trail: the group and the page at the root of the
-    /// stack (plain text), else the stack with links back.
     fn header_crumb(&self) -> Breadcrumb {
         if self.router.depth() > 1 {
             return self.router.breadcrumb(HEADER_CRUMB, |s| {
@@ -2044,24 +1828,20 @@ impl App {
 
     fn draw_sidebar(&mut self, card: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
-        // the tree sits in a card like every other pane: its title carries
-        // focus-within (the only `▎` stays on the cursor row), one column
-        // of padding keeps the labels readable at the narrow width and
-        // keeps the scrollbar off the card's edge
+
         let count = NAV_ENTRIES.len().to_string();
         let panel = junie_tui::widgets::panel::Panel::card(Some("Components"))
             .pad_x(1)
             .focused(ctx.interaction.focused(NAV))
             .meta(&count);
         let bg = panel.bg(&t);
-        // the card's padding and title belong to the tree: a click there
-        // focuses it and the wheel scrolls it (registered beneath the rows)
+
         ctx.clickable_under(NAV, card);
         ctx.scrollable(NAV, card);
         let Some(area) = panel.try_render(card, buf, &t) else {
             return;
         };
-        // type-to-filter: the query takes the first row
+
         let area = match &self.nav_filter {
             Some(q) if area.height > 2 => {
                 let row = Rect::new(area.x, area.y, area.width, 1);
@@ -2083,8 +1863,7 @@ impl App {
             }
             _ => area,
         };
-        // the cursor row comes into view after navigation and on resize
-        // (the wheel scrolls freely in between)
+
         let resized = self.nav.scroll.viewport_len != area.height as usize;
         self.nav.scroll.set_viewport(area.height as usize);
         if self.nav_reveal || resized {
@@ -2092,8 +1871,7 @@ impl App {
             self.nav.scroll.ensure_visible(cursor);
             self.nav_reveal = false;
         }
-        // one focus stop; the scrollbar takes the last content column when
-        // the tree overflows (layout audit #19), clear of the card's edge
+
         self.nav.render(area, buf, ctx, bg);
     }
 
@@ -2102,8 +1880,7 @@ impl App {
         let shown = self.page();
         let i = shown.index();
         let page = self.pages[i].as_mut();
-        // the page's Options section shows its option table at the values
-        // the page holds (set there, through the Inspector or `--opt`)
+
         let opts = crate::options::page_options(shown);
         if !opts.is_empty() {
             let values: Vec<usize> = opts
@@ -2118,7 +1895,7 @@ impl App {
                 });
             }
         }
-        // page title row
+
         buf.set_string(area.x, area.y, page.title(), t.title());
         let tw = junie_tui::ui::text::width(page.title()) as u16;
         if area.width > tw + 4 {
@@ -2132,15 +1909,13 @@ impl App {
             area.height.saturating_sub(2),
         );
         shell::Page::<Showcase>::render(page, body, buf, ctx, &());
-        // the page's own layers (a picker, a form) over it, bottom first
+
         let screen = *buf.area();
         for e in self.layers.iter_mut().filter(|e| !is_window_layer(e)) {
             e.layer.render(screen, buf, ctx, &());
         }
     }
 
-    /// The State tab's diagnostics, from the last frame's hit regions and
-    /// focus ring.
     fn state_props(&self) -> Vec<junie_tui::widgets::props::Prop> {
         use junie_tui::widgets::props::Prop;
         let mode = if self.dialog().is_some() {
@@ -2211,7 +1986,6 @@ impl App {
         ]
     }
 
-    /// Load the Options tab's values and draw the pane into `inner`.
     fn render_inspector(
         &mut self,
         inner: Rect,
@@ -2219,7 +1993,6 @@ impl App {
         buf: &mut Buffer,
         ctx: &mut RenderCtx,
     ) {
-        // a colour level set by `--color` or a test shows as the option
         self.options
             .set("shell.color", level_index(self.theme.level));
         self.insp.for_page(self.page());
@@ -2236,7 +2009,6 @@ impl App {
         self.insp.render(inner, buf, ctx, bg, &state);
     }
 
-    /// The docked Inspector, beside the page.
     fn draw_inspector(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         let within = self.insp.has_focus(self.shell.focus.current());
@@ -2246,14 +2018,11 @@ impl App {
         self.render_inspector(inner, bg, buf, ctx);
     }
 
-    /// The Inspector below [`INSPECTOR_DOCK_MIN`] columns: a frame on the
-    /// right over the dimmed page, closed by Esc, `i`, its close button or
-    /// a click outside it.
     fn draw_inspector_overlay(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         use junie_tui::ui::popup::{self, Dismiss, Placement};
         let body_h = area.height.saturating_sub(2);
         let w = INSPECTOR_OVERLAY_W.min(area.width);
-        // docked to the right edge: it opens leftward from the last column
+
         let anchor = Rect::new(area.right().saturating_sub(1), area.y + 1, 1, 1);
         let frame = junie_tui::ui::modal::Frame::new(w, body_h)
             .title("Inspector")
@@ -2270,10 +2039,6 @@ impl App {
         self.shell.hits.len()
     }
 
-    /// The footer ([`shell::Footer`]): a window layer's own hints (library
-    /// modals name their keys, CO4), a page layer's when it has any, the
-    /// Inspector's, the sidebar's, else the page's with `Tab Next`; the
-    /// EDIT badge while the page edits; the status line.
     pub(crate) fn footer(&self) -> shell::Footer {
         let focus = self.shell.focus.current();
         let pairs =
@@ -2291,8 +2056,6 @@ impl App {
             return footer.layer(Some(top.layer.hints(focus)));
         }
         if let Some(own) = top.map(|e| e.layer.hints(focus)).filter(|h| !h.is_empty()) {
-            // a page's own layer (a picker): its keys; one without hints
-            // of its own leaves them to the page
             return footer.layer(Some(own));
         }
         let page = &self.pages[self.page().index()];
@@ -2365,7 +2128,7 @@ impl shell::App for App {
     fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         App::draw(self, area, buf, ctx)
     }
-    /// The app-wide defaults the shell options set.
+
     fn configure(&self, ctx: &mut RenderCtx) {
         ctx.track_click = self.track_click;
         ctx.tooltips = self.tooltips;
@@ -2374,14 +2137,13 @@ impl shell::App for App {
     fn on_input(&mut self, input: Input) -> Outcome {
         self.handle_input(input)
     }
-    /// Every focus change reaches the dialog, the Inspector and every
-    /// page, so fields end their edits on the event path.
+
     fn on_blur(&mut self, ch: FocusChange) -> Outcome {
         self.blur_all(ch)
     }
     fn after_input(&mut self, input: &Input, out: Outcome) -> Outcome {
         self.insp.record(input, out);
-        // the State tab shows the log as it grows
+
         if self.inspector && !matches!(input, Input::Tick) {
             out.or(Outcome::Changed)
         } else {
@@ -2404,9 +2166,6 @@ impl shell::App for App {
     }
 }
 
-/// The showcase on the library's pointer router: every event goes to its
-/// owner, the top layer first (the dialog or the reference), then the
-/// chrome (header, footer, sidebar), then the Inspector, then the page.
 impl PointerHost for App {
     fn pointer_parts(&mut self) -> PointerParts<'_> {
         PointerParts {
@@ -2439,8 +2198,6 @@ impl PointerHost for App {
         out.into()
     }
 
-    /// A click on nothing: outside the open layer, it dismisses it under
-    /// its `Dismiss` policy (a refused click flashes the frame).
     fn outside(&mut self, _pos: ratatui::layout::Position) -> Response<()> {
         let Some(dismiss) = self.layers.top().map(|e| e.layer.spec().dismiss) else {
             return Response::changed();
@@ -2453,7 +2210,6 @@ impl PointerHost for App {
     }
 }
 
-/// The modifiers of a pointer event, as a `Ctrl+`-style prefix.
 pub(crate) fn describe_mods(mods: KeyModifiers) -> String {
     let mut s = String::new();
     for (m, name) in [
@@ -2468,17 +2224,13 @@ pub(crate) fn describe_mods(mods: KeyModifiers) -> String {
     s
 }
 
-/// The showcase's own shell commands ([`shell::ShellAction::App`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShowCmd {
-    /// `i`: open or close the Inspector.
     Inspector,
-    /// `0`: focus the sidebar.
+
     Sidebar,
 }
 
-/// The showcase's shell keys: the standard set, `[`/`]` page order and
-/// `i`/`0` after the page (a page's own letters come first).
 pub fn shell_keys() -> shell::ShellKeys<ShowCmd> {
     use junie_tui::core::keymap::KeyBinding;
     use shell::ShellAction;
@@ -2536,7 +2288,6 @@ impl shell::KeyHost for App {
         self.nav_key(key)
     }
 
-    /// The reference takes no text; a dialog's field does.
     fn layer_paste(&mut self, text: &str) -> Option<Outcome> {
         let top = self.layers.top_mut()?;
         if top.get::<HelpOverlay>().is_some() {
@@ -2553,8 +2304,6 @@ impl shell::KeyHost for App {
         self.with_shown(|p, cx| p.on_key(key, &mut (), cx))
     }
 
-    /// Esc at the top of a page goes back to the page it was opened
-    /// from; at the root of the stack it returns focus to the sidebar.
     fn esc_top(&mut self) -> Outcome {
         if !self.shell.focus.is(NAV) && self.navigate(shell::Nav::Back).consumed() {
             return Outcome::Changed;
@@ -2587,7 +2336,7 @@ mod click_regressions {
     #[test]
     fn minimum_sidebar_reveals_last_page_and_wheel_does_not_move_focus() {
         let mut app = App::new(Theme::junie());
-        // every group open: the tree overflows the minimum sidebar
+
         app.set_nav_expand(NavExpand::All);
         app.open_page(NAV_ENTRIES.last().unwrap().id);
         let mut term = Terminal::new(TestBackend::new(72, 20)).unwrap();
@@ -2645,7 +2394,7 @@ mod click_regressions {
             let mut term = Terminal::new(TestBackend::new(120, 40)).unwrap();
             term.draw(|frame| app.render(frame)).unwrap();
             let mut id = app.shell.ring.next(Some(NAV)).unwrap();
-            // a templated page's first stop is its section strip
+
             if let Some(t) = app.pages[page.index()].template()
                 && id == t.tabs.id
             {
@@ -2653,9 +2402,7 @@ mod click_regressions {
             }
             let area = app.shell.hits.area_of(id).unwrap();
             let pos = Position::new(area.x + 2, area.y + area.height / 2);
-            // the press focuses the field (`FocusOn::Press`, plan §3 row
-            // 1); the completed click edits, and a second click only keeps
-            // editing
+
             app.handle(Input::Mouse(Mouse::new(MouseKind::Down, pos)));
             assert_eq!(
                 app.shell.focus.current(),

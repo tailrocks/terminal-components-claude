@@ -1,8 +1,3 @@
-//! Progress (plan §7 SC21): determinate and indeterminate bars on one
-//! `BarLayout`, a job list under its aggregate `Tally`, a live build, and
-//! capacity meters in every tone (owner thresholds, a fixed level,
-//! staleness and its two styles). Options: `crate::options::PROGRESS`.
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -25,8 +20,6 @@ use junie_tui::widgets::progress::{
 
 const ID: WidgetId = WidgetId::of("progress");
 
-/// A deploy's steps: every status, a queued step at 0 % and a step of
-/// unknown size, under one tally.
 const JOBS: [(&str, Option<f64>, ProgressStatus); 7] = [
     ("Build image", Some(1.0), ProgressStatus::Done),
     ("Unit tests", Some(1.0), ProgressStatus::Done),
@@ -41,14 +34,14 @@ const LIVE_META: &str = "ticks at 80 ms";
 const JOBS_TITLE: &str = "Deploy checkout-service";
 const JOBS_META: &str = "one BarLayout";
 const METERS_META: &str = "capacity, not completion";
-/// The Meters card's note, one sentence a line.
+
 const METERS_NOTE: [&str; 2] = [
     "Capacity meters are never green: low ≤ 59 % blue, medium ≤ 84 % warning ▲, high error !.",
     "Stale keeps its level, dashed.",
 ];
-/// The widest a progress bar is drawn.
+
 const BAR_W: u16 = 70;
-/// The widest a meter column is drawn.
+
 const METER_W: u16 = 34;
 
 pub struct ProgressPage {
@@ -77,7 +70,6 @@ impl ProgressPage {
         }
     }
 
-    /// The bar layout the options pick, shared by every bar on the page.
     fn layout(&self) -> BarLayout {
         let l = BarLayout::default().reserve_value(self.opts.on("progress.reserve_value"));
         match self.opts.value("progress.label_width") {
@@ -93,7 +85,6 @@ impl ProgressPage {
         }
     }
 
-    /// The Playground's cards at their natural heights.
     fn children() -> [StackChild; 3] {
         [
             StackChild::fixed(11),
@@ -198,10 +189,7 @@ impl ProgressPage {
             );
         }
         let top = inner.y + METERS_NOTE.len() as u16 + 1;
-        // left: one meter per tone in the visual the options pick; right:
-        // the builder options (block visual, owner thresholds, a fixed
-        // level, staleness on a domain tone, the faint stale style). Red
-        // appears only as a run or a glyph, never as a filled block.
+
         let visual = match self.opts.value("progress.meter_visual") {
             "block" => MeterVisual::Block,
             _ => MeterVisual::Line,
@@ -281,8 +269,6 @@ impl ProgressPage {
     }
 }
 
-/// The States grid: bars (active, done) and meters (by level, stale in
-/// the style the options pick, block) in their content states.
 fn states_grid(opts: &PageValues) -> StateGrid {
     use SpecimenState::*;
     let stale = match opts.value("progress.stale_style") {
@@ -318,8 +304,6 @@ impl Page for ProgressPage {
         "Determinate, indeterminate, an aggregate tally, capacity meters"
     }
 
-    /// The cards whole: the bars at their 70 cells, two meter columns
-    /// of 34 beside their labels, the note's widest line.
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         let note = METERS_NOTE
             .iter()

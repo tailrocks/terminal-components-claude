@@ -1,7 +1,3 @@
-//! Simulated launch pipeline: the exact ordered 11-stage model advancing
-//! on a deterministic tick timeline, a bounded build log, typed failure,
-//! and the credential stage's account resolution.
-
 use junie_tui::widgets::steps::StepState;
 
 use crate::domain::agent::Agent;
@@ -56,7 +52,6 @@ impl Stage {
         Stage::ALL.iter().position(|s| *s == self).unwrap_or(0)
     }
 
-    /// Activity text while running (first word upper-cased, trailing `…`).
     pub fn activity(self, agent: Agent) -> String {
         match self {
             Stage::Identity => "Resolving launch identity…".into(),
@@ -74,16 +69,14 @@ impl Stage {
     }
 }
 
-/// How the fixture wants the pipeline to behave.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LaunchPlan {
-    /// Every stage succeeds; Agent Binaries is skipped (cached).
     Clean,
-    /// Fails at Network after the build produced output.
+
     FailNetwork,
-    /// Credentials stage hits a locked 1Password reference (recoverable).
+
     CredentialsLocked,
-    /// Sidecar is Blocked: a modeled-only fixture with no runtime producer.
+
     BlockedSidecar,
 }
 
@@ -101,14 +94,9 @@ pub enum LaunchEvent {
     Activity(String),
     BuildLine(String),
     ContainerReady(String),
-    CredentialsResolved {
-        origin: String,
-        validation: String,
-    },
-    /// Recoverable: the operator may retry or cancel.
-    CredentialError {
-        message: String,
-    },
+    CredentialsResolved { origin: String, validation: String },
+
+    CredentialError { message: String },
     Failed(LaunchFailure),
     Ready,
 }
@@ -127,14 +115,13 @@ pub struct LaunchRun {
     pub done: bool,
     pub failure: Option<LaunchFailure>,
     pub blocked_at: Option<Stage>,
-    /// Credentials stage paused on an error awaiting a decision.
+
     pub credential_hold: bool,
     pub credential_retried: bool,
     pub build_lines_emitted: usize,
     pub cancelled: bool,
 }
 
-/// Fixture Docker build output (ANSI-like markup handled by the viewer).
 pub const BUILD_LOG: [&str; 44] = [
     "#1 [internal] load build definition from Dockerfile.derived",
     "#1 transferring dockerfile: 2.31kB done",
@@ -184,7 +171,6 @@ pub const BUILD_LOG: [&str; 44] = [
 
 impl LaunchRun {
     pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: &str) -> Self {
-        // durations in ticks (33 ms)
         let durations = [14, 18, 26, 30, 8, 92, 22, 20, 18, 34, 16];
         Self {
             plan,
@@ -223,7 +209,6 @@ impl LaunchRun {
         self.done || self.failure.is_some() || self.blocked_at.is_some() || self.cancelled
     }
 
-    /// The operator retries the credential stage after fixing the source.
     pub fn retry_credentials(&mut self) {
         self.credential_hold = false;
         self.credential_retried = true;
@@ -237,7 +222,6 @@ impl LaunchRun {
         }
     }
 
-    /// Advance one tick; returns the events produced.
     pub fn advance(&mut self) -> Vec<LaunchEvent> {
         let mut ev = vec![];
         if self.is_terminal() || self.credential_hold {
@@ -257,7 +241,7 @@ impl LaunchRun {
         };
         let stage = Stage::ALL[i];
         let elapsed = self.tick - self.stage_start;
-        // stage-specific mid-stage events
+
         match stage {
             Stage::DerivedImage => {
                 let want = ((elapsed as usize) * BUILD_LOG.len() / self.durations[i] as usize)
@@ -288,7 +272,7 @@ impl LaunchRun {
         if elapsed < self.durations[i] {
             return ev;
         }
-        // finish this stage
+
         let final_state = match (self.plan, stage) {
             (_, Stage::AgentBinaries) => StepState::Skipped,
             (LaunchPlan::FailNetwork, Stage::Network) => StepState::Failed,

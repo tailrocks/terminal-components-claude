@@ -1,7 +1,3 @@
-//! Deciding pages: Gate 1 (the resolved facts and the full command
-//! sequence before a destructive action), the trust review for an untrusted
-//! definition, and structured arguments.
-
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
@@ -42,12 +38,10 @@ use junie_tui::widgets::menu::MenuItem;
 pub const SEQUENCE: WidgetId = WidgetId::of("gate.sequence");
 pub const GATE_CANCEL: WidgetId = WidgetId::of("gate.cancel");
 pub const GATE_CONTINUE: WidgetId = WidgetId::of("gate.continue");
-/// The resolved facts' scroll view.
-pub const GATE_FACTS: WidgetId = WidgetId::of("gate.facts");
-/// The command sequence's context menu.
-pub const SEQUENCE_MENU: WidgetId = WidgetId::of("gate.sequence.menu");
 
-// ------------------------------------------------------------------ gate 1
+pub const GATE_FACTS: WidgetId = WidgetId::of("gate.facts");
+
+pub const SEQUENCE_MENU: WidgetId = WidgetId::of("gate.sequence.menu");
 
 pub struct GatePage {
     pub target: GateTarget,
@@ -56,15 +50,12 @@ pub struct GatePage {
     sequence: Vec<String>,
     scroll: ScrollState,
     sequence_area: Rect,
-    /// The resolved facts: their natural height, scrolled when the page
-    /// is too short for them beside the sequence (R-apps-6).
+
     facts_view: ScrollView,
     cancel: Button,
     cont: Button,
 }
 
-/// Rows the gate's sequence panel keeps under the facts (its frame and
-/// three commands): the facts scroll before the sequence shrinks below it.
 const SEQUENCE_MIN: u16 = 5;
 
 impl GatePage {
@@ -84,8 +75,6 @@ impl GatePage {
         page
     }
 
-    /// Re-resolve every fact from the live world (CONCEPT §10: the review
-    /// shows the plan as it is now).
     fn resolve(&mut self, w: &World) {
         let host_tone = if w.host.role.sensitive() {
             Tone::Warning
@@ -205,7 +194,7 @@ impl GatePage {
                             .map(move |c| format!("{}  # {:02} {}", c, 0, s.label))
                     })
                     .collect();
-                // number the sequence by step
+
                 let mut seq = vec![];
                 for (i, s) in p.steps.iter().enumerate() {
                     if !s.included {
@@ -352,9 +341,6 @@ impl GatePage {
 }
 
 impl GatePage {
-    /// The sequence's context menu: copy it, or cancel the gate. Continue
-    /// stays a deliberate press of its button (gate 1 never runs from a
-    /// menu).
     fn sequence_menu(&self, anchor: ContextAnchor, cx: &mut Cx) -> Outcome {
         let items = vec![
             MenuItem::new("Copy sequence").shortcut("y").separator(),
@@ -430,7 +416,6 @@ impl ShellPage<Holla> for GatePage {
         }
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-            // a sideways notch never scrolls the vertical sequence
             if id == SEQUENCE && axis == Axis::Vertical {
                 self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
@@ -487,7 +472,7 @@ impl ShellPage<Holla> for GatePage {
 
     fn enter(&mut self, w: &mut World, cx: &mut Cx) {
         self.resolve(w);
-        // cancel is the default outcome: the selecting interaction never counts
+
         cx.focus.focus(GATE_CANCEL);
     }
 
@@ -500,8 +485,7 @@ impl ShellPage<Holla> for GatePage {
             )
             .render(area, buf, t);
         let buttons_y = area.bottom().saturating_sub(1);
-        // the facts at their natural height, scrolled when the sequence
-        // would keep fewer than its minimum rows under them
+
         let room = buttons_y.saturating_sub(area.y + 3);
         let facts_area = Rect::new(
             area.x + 1,
@@ -622,7 +606,7 @@ impl Screen for GatePage {
         if !cx.focus.is(SEQUENCE) {
             return Outcome::Ignored;
         }
-        // the sequence has no cursor row: the menu opens at its top line
+
         let at = Position::new(self.sequence_area.x, self.sequence_area.y);
         self.sequence_menu(ContextAnchor::Pointer(at), cx)
     }
@@ -635,12 +619,10 @@ impl Screen for GatePage {
     }
 }
 
-// ------------------------------------------------------------------ trust
-
 pub const TRUST_CANCEL: WidgetId = WidgetId::of("trust.cancel");
 pub const TRUST_OK: WidgetId = WidgetId::of("trust.ok");
 pub const TRUST_BODY: WidgetId = WidgetId::of("trust.body");
-/// The file facts' scroll view.
+
 pub const TRUST_FACTS: WidgetId = WidgetId::of("trust.facts");
 
 pub struct TrustPage {
@@ -650,8 +632,7 @@ pub struct TrustPage {
     ok: Button,
     scroll: ScrollState,
     body_area: Rect,
-    /// The file's facts: their natural height, scrolled when the page is
-    /// too short for them above the definition (R-apps-6).
+
     facts_view: ScrollView,
 }
 
@@ -871,7 +852,6 @@ impl ShellPage<Holla> for TrustPage {
         }
         let (id, pos) = (ev.id, ev.pos());
         if let Some((axis, delta)) = ev.wheel() {
-            // a sideways notch never scrolls the vertical body
             if id == TRUST_BODY && axis == Axis::Vertical {
                 self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
@@ -922,8 +902,7 @@ impl ShellPage<Holla> for TrustPage {
         buf.set_string(area.x + 1, area.y + 1, junie_tui::ui::reveal::cut(Rect::new(area.x + 1, area.y + 1, area.width.saturating_sub(2), 1), "not trusted yet · review the exact definition, commands and environment before it runs"), t.muted());
         let (facts, body) = self.lines(w);
         let buttons_y = area.bottom().saturating_sub(1);
-        // the facts at their natural height, scrolled when the definition
-        // would keep fewer than its minimum rows under them
+
         let room = buttons_y.saturating_sub(area.y + 4);
         let facts_area = Rect::new(
             area.x + 1,
@@ -1018,8 +997,6 @@ impl Screen for TrustPage {
         }
     }
 }
-
-// ------------------------------------------------------------------ args
 
 pub const ARGS_CANCEL: WidgetId = WidgetId::of("args.cancel");
 pub const ARGS_RUN: WidgetId = WidgetId::of("args.run");
@@ -1211,8 +1188,6 @@ impl ShellPage<Holla> for ArgsPage {
     }
 
     fn pointer(&mut self, ev: &PointerEvent, _w: &mut World, cx: &mut Cx) -> Outcome {
-        // a field takes its own events: a text field selects on press and
-        // drag, a choice opens on press (press-drag-release chooses)
         for i in 0..self.fields.len() {
             let fid = ARG.child(i);
             let out = match &mut self.fields[i] {
@@ -1258,8 +1233,6 @@ impl ShellPage<Holla> for ArgsPage {
     }
 
     fn on_paste(&mut self, text: &str, _w: &mut World, cx: &mut Cx) -> Outcome {
-        // the paste is typing for the focused field: it starts editing the
-        // way a key would; a button or choice takes no paste
         for (i, f) in self.fields.iter_mut().enumerate() {
             if let Field::Text(t) = f
                 && cx.focus.is(ARG.child(i))
@@ -1278,7 +1251,7 @@ impl ShellPage<Holla> for ArgsPage {
         let t = ctx.theme;
         let title = format!("{} · arguments", self.label);
         buf.set_string(area.x + 1, area.y, &title, t.title());
-        // cut with `…` and revealed on hover, never clipped (R-apps-4)
+
         buf.set_string(
             area.x + 1,
             area.y + 1,
@@ -1298,8 +1271,7 @@ impl ShellPage<Holla> for ArgsPage {
             }
             y += 4;
         }
-        // command preview card, then the buttons one blank row under it:
-        // anchors stay with the content, not the page edge
+
         let card_y = y;
         let buttons_y = (card_y + 4).min(area.bottom().saturating_sub(1));
         if card_y + 3 < buttons_y {

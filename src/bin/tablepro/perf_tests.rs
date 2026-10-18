@@ -1,13 +1,3 @@
-//! Scroll performance of the TablePro table surfaces, driven through the
-//! real `App` on a `TestBackend` (see docs/audits/design-review-2026-10/
-//! performance.md).
-//!
-//! `measure_table_surfaces` is an ignored measurement: it prints per-event
-//! handling and per-frame render cost for each scenario. Run it in the
-//! release profile for representative numbers:
-//!
-//! `cargo nextest run --cargo-profile release --bin tablepro --run-ignored only -E 'test(measure_table_surfaces)' --no-capture`
-
 use junie_tui::runtime::Application;
 use std::time::{Duration, Instant};
 
@@ -19,8 +9,6 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind};
 use crate::app_tests::H;
 use crate::workbench::WorkTab;
 
-/// Open the customers table (48,912 rows, 500 loaded, 11 columns) and
-/// focus its grid.
 pub fn customers(w: u16, h: u16) -> H {
     let mut h = H::connected(w, h);
     h.ctrl('o');
@@ -32,7 +20,6 @@ pub fn customers(w: u16, h: u16) -> H {
     h
 }
 
-/// A query tab whose result grid holds `SELECT * FROM customers`.
 pub fn query_results(w: u16, h: u16) -> H {
     let mut h = H::connected(w, h);
     h.key(KeyCode::Tab);
@@ -46,7 +33,6 @@ pub fn query_results(w: u16, h: u16) -> H {
     h
 }
 
-/// The active surface's grid id and area as last drawn.
 pub fn grid_of(h: &H) -> (junie_tui::core::id::WidgetId, Rect) {
     match h.wb().active_tab() {
         Some(WorkTab::Table(t)) => (t.grid.id, t.grid.area),
@@ -69,7 +55,6 @@ fn key(code: KeyCode) -> Input {
     })
 }
 
-/// Handle and draw cost of a scenario, per event.
 struct Cost {
     events: usize,
     frames: usize,
@@ -89,9 +74,6 @@ impl Cost {
     }
 }
 
-/// Feed `inputs` the way the runtime does: every input is handled, and a
-/// frame is drawn after each one (what the event loop did before input
-/// coalescing) or once per `batch` inputs.
 fn run(h: &mut H, inputs: &[Input], batch: usize) -> Cost {
     let mut cost = Cost {
         events: 0,
@@ -169,7 +151,7 @@ fn report(label: &str, h: &mut H) {
     };
     for (name, inputs) in scenarios(h) {
         let per_event = run(h, &inputs, 1);
-        // the runtime's own pump with its default policy
+
         let t = Instant::now();
         let frames = pump(h, junie_tui::runtime::Coalesce::default(), &inputs);
         let runtime = t.elapsed();
@@ -182,7 +164,7 @@ fn report(label: &str, h: &mut H) {
             runtime.as_secs_f64() * 1e3,
         );
     }
-    // resize between the two measured sizes and back
+
     let t = Instant::now();
     let n = 10;
     for i in 0..n {
@@ -210,8 +192,6 @@ fn measure_table_surfaces() {
     }
 }
 
-/// Pump `inputs` through the runtime's own `InputPump`, drawing whenever
-/// the event loop would. Returns the number of frames drawn.
 fn pump(h: &mut H, policy: junie_tui::runtime::Coalesce, inputs: &[Input]) -> usize {
     let mut queue: std::collections::VecDeque<Input> = inputs.iter().cloned().collect();
     let mut pump = junie_tui::runtime::InputPump::new(policy);
@@ -229,9 +209,6 @@ fn pump(h: &mut H, policy: junie_tui::runtime::Coalesce, inputs: &[Input]) -> us
     frames
 }
 
-/// Guard (P1): a burst of wheel notches, key repeats and pointer moves over
-/// the customers table draws one frame per burst, and the screen it ends on
-/// is cell-for-cell the one per-event drawing ends on.
 #[test]
 fn input_bursts_over_the_customers_table_draw_once_and_land_identically() {
     use junie_tui::runtime::Coalesce;
@@ -253,7 +230,7 @@ fn input_bursts_over_the_customers_table_draw_once_and_land_identically() {
         };
         let frames = pump(&mut coalesced, policy, &inputs);
         let baseline = pump(&mut per_event, Coalesce::OFF, &inputs);
-        // wheel (one batch of 60 ≤ 64), Down ×30, wheel-right ×4, sweep
+
         assert_eq!(frames, 4, "{w}x{ht}: one frame per burst");
         assert!(baseline > 90, "{w}x{ht}: per-event drawing drew {baseline}");
         if coalesced.text() != per_event.text() {

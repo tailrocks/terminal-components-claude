@@ -1,10 +1,10 @@
-//! Environment isolation (plan §B3, task T3): a capture must not see the
-//! environment of whoever runs the suite. The parent here is a re-executed
-//! copy of this test binary in tool mode, started with variables that
-//! would change the apps' output if they leaked (`NO_COLOR`, `FORCE_COLOR`,
-//! `CLICOLOR_FORCE`, `*_NO_MOTION`, `COLORTERM`, `TERM`, `LANG`, `HOME`,
-//! `JUNIE_TUI_GLYPHS`) and a canary. No variable is set in this process, so tests running beside it
-//! are unaffected.
+
+
+
+
+
+
+
 
 use std::collections::BTreeMap;
 use std::process::Command;
@@ -12,7 +12,7 @@ use std::process::Command;
 use crate::support;
 use crate::tool::ENV_PROBE_END;
 
-/// What a careless developer or CI shell might export.
+
 const LEAKS: [(&str, &str); 13] = [
     ("SHELL", "/leaked/shell"),
     ("NO_COLOR", "1"),
@@ -29,7 +29,7 @@ const LEAKS: [(&str, &str); 13] = [
     ("JUNIE_LEAK_CANARY", "leaked"),
 ];
 
-/// Variables a POSIX shell sets for itself; not part of the spawn env.
+
 const SHELL_OWN: [&str; 4] = ["PWD", "OLDPWD", "SHLVL", "_"];
 
 fn tool(tool: &str, envs: &[(&str, &str)], extra: &[(&str, &str)]) -> String {
@@ -48,9 +48,9 @@ fn tool(tool: &str, envs: &[(&str, &str)], extra: &[(&str, &str)]) -> String {
     String::from_utf8(out.stdout).expect("tool output is UTF-8")
 }
 
-/// The spawned child's environment is exactly the pinned set plus the
-/// per-scenario `HOME` (also its cwd) and `NO_COLOR` for the `nocolor`
-/// level, whatever the parent exports.
+
+
+
 fn child_env_is_pinned() {
     let text = tool("env-probe", &LEAKS, &[]);
     let (vars, _) = text
@@ -81,9 +81,9 @@ fn child_env_is_pinned() {
     );
 }
 
-/// A real app capture is byte-identical with and without the leaks.
+
 fn app_capture_ignores_parent_env() {
-    // Truecolor: a leaked NO_COLOR, TERM or COLORTERM would drop colours.
+
     let name = "showcase/pages/overview/72x20/truecolor";
     let clean = tool(
         "capture",

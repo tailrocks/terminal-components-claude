@@ -1,5 +1,5 @@
-//! Junie-inspired design system for Ratatui: tokens, interaction primitives
-//! and components. Applications (the showcase, TablePro) live in `src/bin`.
+
+
 
 pub mod catalog;
 pub mod cli;
