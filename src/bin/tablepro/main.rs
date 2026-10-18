@@ -53,7 +53,7 @@ struct Cli {
     #[command(flatten)]
     common: CommonArgs,
 
-    #[doc = " Connect to the named connection at start"]
+    #[arg(help = "Connect to the named connection at start")]
     #[arg(long, value_name = "NAME")]
     connect: Option<String>,
 }
