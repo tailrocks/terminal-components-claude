@@ -1,6 +1,3 @@
-
-
-
 use std::collections::BTreeMap;
 
 use crate::arbiter::{Arbiter, DiscoveryError};
@@ -28,8 +25,6 @@ use crate::sim::world::{DaemonHealth, FsEntry, GithubRepo, GlobalConfig, TrustRo
 use junie_tui::ui::layout::SplitDir;
 
 pub const HOME: &str = "/Users/alexey";
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrecedenceLevel {
@@ -74,11 +69,6 @@ impl ResolvedAccount {
         }
     }
 }
-
-
-
-
-
 
 pub fn resolve_account(
     provider: Provider,
@@ -206,8 +196,6 @@ pub fn resolve_account(
     }
 }
 
-
-
 fn op_ref(account: &str, vault: (&str, &str), item: (&str, &str), field: &str) -> OpReference {
     OpReference {
         account: account.into(),
@@ -280,9 +268,6 @@ fn roles() -> Vec<RoleEntry> {
     ]
 }
 
-
-
-
 fn generated_roles(n: usize) -> Vec<RoleEntry> {
     const AREAS: [&str; 6] = ["billing", "ledger", "search", "notify", "ingest", "auth"];
     (1..=n)
@@ -350,7 +335,6 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
         )],
     );
 
-
     w.accounts.enabled.insert("acct-claude-work".into());
     w.accounts.role_preferred.insert(
         ("reviewer".into(), Provider::Anthropic),
@@ -384,7 +368,6 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
         ),
         EnvVar::plain("TF_LOG", "WARN"),
     ];
-
 
     w.accounts
         .disabled_defaults
@@ -689,8 +672,6 @@ fn github() -> Vec<GithubRepo> {
         r("acme-labs/roles-experimental", "next", &[], "2 mo ago"),
     ]
 }
-
-
 
 fn accounts_mixed(now: i64) -> AccountRegistry {
     let h = 3600;
@@ -1002,7 +983,6 @@ fn accounts_mixed(now: i64) -> AccountRegistry {
     };
     r.insert(a);
 
-
     let mut a = Account::discovered(
         "disc-amp",
         "discovered",
@@ -1262,8 +1242,6 @@ fn accounts_hard(now: i64) -> AccountRegistry {
     r
 }
 
-
-
 fn base_world(scenario: Scenario) -> World {
     let clock = crate::scenario::CLOCK;
     let now = clock.now_secs();
@@ -1296,7 +1274,6 @@ fn base_world(scenario: Scenario) -> World {
     w.sync_arbiter();
     w
 }
-
 
 fn populated(scenario: Scenario, rich: bool) -> World {
     let mut w = base_world(scenario);
@@ -1448,7 +1425,6 @@ fn populated(scenario: Scenario, rich: bool) -> World {
     i9.sessions = Ok(vec![]);
     w.instances = vec![i1, i2, i3, i4, i5, i6, i7, i8, i9];
     if rich {
-
         let mut i10 = instance(
             "jk-e0e0",
             Some(10),
@@ -1604,7 +1580,6 @@ fn populated(scenario: Scenario, rich: bool) -> World {
     w
 }
 
-
 pub fn refresh_snapshots(w: &mut World) {
     let snaps: Vec<(String, DaemonSnapshot)> = w
         .daemons
@@ -1655,7 +1630,6 @@ pub fn world_for(scenario: Scenario) -> World {
             w.daemon_health = DaemonHealth::Stale;
             w.refresh_fails = true;
             w.save_fails_once = true;
-
 
             if let Some(r) = w.roles.iter_mut().find(|r| r.name == "writer") {
                 r.fetch_error = Some(

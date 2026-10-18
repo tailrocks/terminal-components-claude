@@ -1,7 +1,3 @@
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Agent {
     ClaudeCode,
@@ -33,7 +29,6 @@ impl Agent {
         }
     }
 
-
     pub fn short(self) -> &'static str {
         match self {
             Agent::ClaudeCode => "claude",
@@ -56,7 +51,6 @@ impl Agent {
         }
     }
 
-
     pub fn auth_modes(self) -> &'static [AuthMode] {
         match self {
             Agent::ClaudeCode => &[
@@ -69,8 +63,6 @@ impl Agent {
         }
     }
 
-
-
     pub fn registerable(self) -> bool {
         matches!(
             self,
@@ -78,7 +70,6 @@ impl Agent {
         )
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Provider {
@@ -132,7 +123,6 @@ impl Provider {
         }
     }
 
-
     pub fn agent(self) -> Option<Agent> {
         match self {
             Provider::Anthropic => Some(Agent::ClaudeCode),
@@ -144,7 +134,6 @@ impl Provider {
             Provider::Zai | Provider::MiniMax => None,
         }
     }
-
 
     pub fn supports_endpoint(self) -> bool {
         matches!(self, Provider::XAi)
@@ -177,7 +166,6 @@ impl Provider {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum UsageSurface {
     Claude,
@@ -204,7 +192,6 @@ impl UsageSurface {
         UsageSurface::Unsupported,
     ];
 
-
     pub fn label(self) -> &'static str {
         match self {
             UsageSurface::Claude => "Anthropic",
@@ -218,7 +205,6 @@ impl UsageSurface {
             UsageSurface::Unsupported => "Usage",
         }
     }
-
 
     pub fn surface_name(self) -> &'static str {
         match self {
@@ -249,10 +235,8 @@ impl UsageSurface {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AuthMode {
-
     Sync,
     ApiKey,
     OAuthToken,

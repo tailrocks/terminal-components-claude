@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -119,13 +113,10 @@ impl SplitsStacksPage {
         }
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let percent = o.number("splitsstacks.percent").unwrap_or(30);
         let min = o.number("splitsstacks.min").unwrap_or(16);
-
 
         self.outer = match self.dir() {
             SplitDir::Horizontal => Split::new(percent, min, 24),
@@ -185,7 +176,6 @@ impl SplitsStacksPage {
         }
     }
 
-
     fn panes_meta(&self) -> String {
         format!(
             "{}% · min {} · {}",
@@ -198,10 +188,6 @@ impl SplitsStacksPage {
             }
         )
     }
-
-
-
-
 
     fn panes_size(&self) -> Size {
         let pane = |title: &str, lines: &[&str]| {
@@ -237,8 +223,6 @@ impl SplitsStacksPage {
             .outer(Size::new(body.width.max(buttons), 2 + body.height))
     }
 
-
-
     fn stack_width(&self) -> u16 {
         let meta = self.stack_meta();
         let note = junie_tui::ui::text::width(&format!("{} not in view", CARDS.len())) as u16;
@@ -252,7 +236,6 @@ impl SplitsStacksPage {
         let want: u16 = CARDS.iter().map(|c| c.1).sum();
         format!("{want} rows wanted, {STACK_ROWS} given")
     }
-
 
     fn children(&self) -> [StackChild; 2] {
         [
@@ -353,7 +336,6 @@ impl SplitsStacksPage {
         Outcome::Changed
     }
 
-
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if let Some(o) = self.scroll.pointer(STACK, ev) {
             return o;
@@ -401,7 +383,6 @@ impl SplitsStacksPage {
     }
 }
 
-
 fn pane(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, title: &str, lines: &[&str]) {
     if area.width < 4 || area.height < 3 {
         return;
@@ -423,8 +404,6 @@ fn pane(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, title: &str, lines: &
         );
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -450,8 +429,6 @@ impl Page for SplitsStacksPage {
     fn blurb(&self) -> &'static str {
         "Split panes with draggable seams and zoom, stacks that shrink, scroll or clip"
     }
-
-
 
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         Size::new(

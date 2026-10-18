@@ -1,6 +1,3 @@
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -55,17 +52,9 @@ impl Prop {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Sheet {
-
-
-
-
     pub label_max_share: u16,
-
-
-
 
     pub value_min: u16,
 }
@@ -79,11 +68,7 @@ impl Default for Sheet {
     }
 }
 
-
 const STACK_INDENT: u16 = 2;
-
-
-
 
 struct Row<'a> {
     prop: &'a Prop,
@@ -91,10 +76,6 @@ struct Row<'a> {
     value: String,
     value_x: u16,
 }
-
-
-
-
 
 fn column(widths: impl Iterator<Item = u16> + Clone, width: u16, sheet: Sheet) -> Option<u16> {
     let full = widths.clone().max().unwrap_or(2);
@@ -138,19 +119,15 @@ fn value_rows<'a>(p: &'a Prop, label: Option<&'a str>, x: u16, vw: usize, out: &
     }
 }
 
-
-
 fn rows(props: &[Prop], width: u16, sheet: Sheet) -> Vec<Row<'_>> {
     let column = label_column(props, width, sheet);
     let mut out = vec![];
     for p in props {
         match column {
-
             Some(label_w) if crate::ui::text::width(&p.label) as u16 + 2 <= label_w => {
                 let vw = width.saturating_sub(label_w) as usize;
                 value_rows(p, Some(&p.label), label_w, vw, &mut out);
             }
-
 
             _ => {
                 out.push(Row {
@@ -168,24 +145,17 @@ fn rows(props: &[Prop], width: u16, sheet: Sheet) -> Vec<Row<'_>> {
     out
 }
 
-
 pub fn measure(props: &[Prop], width: u16) -> u16 {
     measure_with(props, width, Sheet::default())
 }
-
 
 pub fn measure_with(props: &[Prop], width: u16, sheet: Sheet) -> u16 {
     rows(props, width, sheet).len() as u16
 }
 
-
-
-
-
 pub fn width(props: &[Prop]) -> u16 {
     width_with(props, Sheet::default())
 }
-
 
 pub fn width_with(props: &[Prop], sheet: Sheet) -> u16 {
     if props.is_empty() {
@@ -207,11 +177,9 @@ pub fn width_with(props: &[Prop], sheet: Sheet) -> u16 {
     label + value.max(sheet.value_min)
 }
 
-
 pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, props: &[Prop], bg: Color) -> u16 {
     render_with(area, buf, t, props, bg, Sheet::default())
 }
-
 
 pub fn render_with(
     area: Rect,
@@ -242,7 +210,6 @@ pub fn render_with(
         if !row.value.is_empty() {
             buf.set_string(area.x + row.value_x, y, &row.value, style);
             if !row.prop.wrap {
-
                 let cut = Rect::new(
                     area.x + row.value_x,
                     y,
@@ -257,20 +224,9 @@ pub fn render_with(
     y - area.y
 }
 
-
-
-
 fn natural(props: &[Prop], avail: ratatui::layout::Size) -> ratatui::layout::Size {
     ratatui::layout::Size::new(avail.width, measure(props, avail.width))
 }
-
-
-
-
-
-
-
-
 
 pub fn render_in(
     view: &mut crate::ui::scroll_view::ScrollView,
@@ -299,7 +255,6 @@ pub enum PropsAction {
     Activate(usize),
 }
 
-
 #[derive(Debug, Clone, Copy)]
 struct Geometry {
     row_w: u16,
@@ -307,32 +262,15 @@ struct Geometry {
     value_right: u16,
 }
 
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone)]
 pub struct PropsList {
     pub id: WidgetId,
     pub props: Vec<Prop>,
 
-
-
-
-
     pub core: ListCore,
     pub area: Rect,
 
-
     pub scrollbar_gap: u16,
-
-
-
 
     pub sheet: Sheet,
 
@@ -352,10 +290,8 @@ impl std::ops::DerefMut for PropsList {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PropsCmd {
-
     Copy,
 }
 
@@ -372,32 +308,25 @@ impl Actions for PropsCmd {
 }
 
 impl PropsList {
-
     pub fn keymap(mut self, keymap: KeyMap<PropsCmd>) -> Self {
         self.keymap = keymap;
         self
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.core.nav = nav;
         self
     }
 
-
-
     pub fn content(mut self, content: crate::ui::content::ContentState) -> Self {
         self.core.content = content;
         self
     }
 
-
-
     pub fn empty(mut self, state: crate::widgets::empty::EmptyState) -> Self {
         self.core.empty = Some(state);
         self
     }
-
 
     pub fn skip_when_empty(mut self, on: bool) -> Self {
         self.core.skip_when_empty = on;
@@ -420,25 +349,20 @@ impl PropsList {
         }
     }
 
-
-
     pub fn track_click(mut self, click: crate::core::scroll::TrackClick) -> Self {
         self.core.scroll.track_click = Some(click);
         self
     }
-
 
     pub fn scrollbar_gap(mut self, gap: u16) -> Self {
         self.scrollbar_gap = gap;
         self
     }
 
-
     pub fn sheet(mut self, sheet: Sheet) -> Self {
         self.sheet = sheet;
         self
     }
-
 
     pub fn reveal(mut self, config: Reveal) -> Self {
         self.core.reveal.config = Some(config);
@@ -458,8 +382,6 @@ impl PropsList {
     fn row_part(i: usize) -> PartRef {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
-
-
 
     pub(crate) fn row_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.props.len())
@@ -508,13 +430,9 @@ impl PropsList {
         }
     }
 
-
     pub fn on_click(&mut self, row: usize) -> (Outcome, Option<PropsAction>) {
         self.on_click_count(row, 1)
     }
-
-
-
 
     pub fn on_click_count(&mut self, row: usize, count: u8) -> (Outcome, Option<PropsAction>) {
         if row >= self.props.len() {
@@ -527,24 +445,19 @@ impl PropsList {
         (Outcome::Changed, act.then_some(PropsAction::Activate(row)))
     }
 
-
     pub fn click(mut self, policy: ClickPolicy) -> Self {
         self.core.click = policy;
         self
     }
 
-
     fn hint_width(p: &Prop, focused: bool) -> u16 {
         if p.copyable && focused { 8 } else { 0 }
     }
-
-
 
     fn geometry(&self, body: Rect, content: Rect) -> Geometry {
         let row_w = body.width;
 
         let value_right = content.right().min(body.right().saturating_sub(1));
-
 
         let label_area = row_w.saturating_sub(2);
         let widths = self
@@ -560,8 +473,6 @@ impl PropsList {
             value_right,
         }
     }
-
-
 
     fn inline_rows(
         &mut self,
@@ -605,7 +516,6 @@ impl PropsList {
         let mut has_sb = self.core.scroll.overflows();
         let mut sp = scrollbar::split(area, has_sb, self.scrollbar_gap);
         let mut geo = self.geometry(sp.body, sp.content);
-
 
         let mut expanded = None;
         if focused {
@@ -660,8 +570,6 @@ impl PropsList {
             let vw = value_right.saturating_sub(vx + hint_w) as usize;
             let vs = st.fg(t.tone(p.tone));
             if let Some(lines) = block {
-
-
                 for (k, line) in lines.iter().take(h as usize).enumerate() {
                     let ls = if line.more { st.fg(t.text_muted) } else { vs };
                     let text = crate::ui::text::truncate(&line.text, vw);
@@ -700,8 +608,6 @@ impl Scrollable for PropsList {
         &mut self.core.scroll
     }
 
-
-
     fn wheel_first(&mut self, axis: Axis, delta: i32) -> Option<Response<()>> {
         if axis != Axis::Vertical {
             return None;
@@ -724,10 +630,6 @@ impl Navigable for PropsList {
         self.core.cursor_model()
     }
 }
-
-
-
-
 
 impl crate::ui::specimen::Specimen for PropsList {
     fn specimen_id(&self) -> WidgetId {
@@ -766,8 +668,6 @@ impl crate::ui::specimen::Specimen for PropsList {
     }
 }
 
-
-
 impl crate::core::pointer::MouseTarget for PropsList {
     type Action = PropsAction;
 
@@ -793,8 +693,6 @@ impl crate::core::pointer::MouseTarget for PropsList {
 #[cfg(test)]
 mod reveal_scroll_tests {
     use super::*;
-
-
 
     #[test]
     fn content_states_replace_the_facts_and_an_empty_sheet_is_skipped() {
@@ -890,9 +788,6 @@ mod reveal_scroll_tests {
             .collect()
     }
 
-
-
-
     #[test]
     fn inline_wrap_grows_the_cursor_row_and_pushes_the_rest_down() {
         let long = "alpha bravo charlie delta echo foxtrot golf hotel";
@@ -941,8 +836,6 @@ mod reveal_scroll_tests {
         let rows = rows_of(&mut l, 24, 8, focus);
         assert!(rows[1].contains("second"));
     }
-
-
 
     #[test]
     fn a_long_inline_value_scrolls_before_the_sheet() {
@@ -1001,8 +894,6 @@ mod tests {
             })
             .collect()
     }
-
-
 
     #[test]
     fn a_sheet_taller_than_its_area_scrolls_to_its_last_row() {
@@ -1072,8 +963,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn a_label_wider_than_its_share_sits_above_its_value() {
         let props = vec![
@@ -1089,8 +978,6 @@ mod tests {
         let lines = sheet_text(&props, 60);
         assert_eq!(lines[0], "Name                              orders");
     }
-
-
 
     #[test]
     fn width_shows_every_label_and_value_whole() {
@@ -1233,7 +1120,6 @@ mod track_click_tests {
         );
         l.scroll.offset
     }
-
 
     #[test]
     fn a_props_track_click_can_page() {

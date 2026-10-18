@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use crate::domain::activity::{Branch, LineTone, Script, ScriptLine, line, prompt, toned};
 use crate::domain::exec::{Command, ExecKind};
 use crate::sim::world::World;
@@ -24,7 +18,6 @@ fn arg(c: &Command, i: usize) -> &str {
     c.args.get(i).map(String::as_str).unwrap_or("")
 }
 
-
 fn git_parts(c: &Command) -> (String, String, Vec<String>) {
     let mut args = c.args.iter();
     let mut path = c.cwd.clone();
@@ -42,8 +35,6 @@ fn git_parts(c: &Command) -> (String, String, Vec<String>) {
     (path, verb, rest)
 }
 
-
-
 pub fn for_commands(w: &World, argv: &[Command]) -> Option<Script> {
     let mut merged: Option<Script> = None;
     for c in argv {
@@ -55,7 +46,6 @@ pub fn for_commands(w: &World, argv: &[Command]) -> Option<Script> {
     }
     merged
 }
-
 
 fn chain(prev: Script, next: Script) -> Script {
     if prev.exit != 0 || prev.ends_at.is_none() {
@@ -458,7 +448,6 @@ fn git(w: &World, c: &Command) -> Script {
             )
         }
         "branch" => {
-
             let names: Vec<&String> = rest.iter().skip_while(|a| *a != "--").skip(1).collect();
             let mut lines = vec![echo(c)];
             let mut exit = 0;

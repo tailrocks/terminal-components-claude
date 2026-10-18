@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -131,8 +125,6 @@ impl TerminalPage {
         p
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = |key| match o.value(key) {
@@ -145,7 +137,6 @@ impl TerminalPage {
             _ => TrackClick::Page,
         };
         let keymap = match o.value("terminal.keymap") {
-
             "custom" => vec![
                 (KeyBinding::char('F'), ViewportCmd::ToggleFollow),
                 (KeyBinding::char('c'), ViewportCmd::Copy),
@@ -167,7 +158,6 @@ impl TerminalPage {
             _ => {}
         }
         if o.on("terminal.mark") {
-
             let at = term.line_text(0).and_then(|l| l.find("jackin"));
             term.set_marks(
                 at.map(|a| Mark {
@@ -264,7 +254,6 @@ impl TerminalPage {
                     .push(vec![Span::plain("payments-platform ❯ ").bold()]);
             } else {
                 if self.stage == 3 {
-
                     self.rail.set_state(self.stage, StepState::Skipped);
                     self.rail.set_meta(self.stage, Some("cached".into()));
                     self.stage += 1;
@@ -275,8 +264,6 @@ impl TerminalPage {
         Outcome::Changed
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

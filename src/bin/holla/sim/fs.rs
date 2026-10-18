@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::scenario::EPOCH_SECS;
@@ -123,13 +116,10 @@ pub struct Fs {
     pub trash: Vec<Trashed>,
     pub volumes: Vec<Volume>,
 
-
     pub trash_broken: Option<String>,
-
 
     pub trash_collisions: u32,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScanNode {
@@ -166,7 +156,6 @@ pub struct ScanOptions {
     pub max_depth: Option<usize>,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Preview {
     Text {
@@ -194,7 +183,6 @@ pub struct DirCount {
 
     pub capped: bool,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FindHit {
@@ -283,7 +271,6 @@ impl Fs {
         self
     }
 
-
     pub fn file(&mut self, path: &str, bytes: u64, age_days: i64) -> &mut Self {
         self.put(Node {
             path: path.into(),
@@ -298,7 +285,6 @@ impl Fs {
         });
         self
     }
-
 
     pub fn sparse(
         &mut self,
@@ -378,7 +364,6 @@ impl Fs {
         self
     }
 
-
     pub fn hardlink(&mut self, path: &str, of: &str) -> &mut Self {
         if let Some(src) = self.nodes.get(of).cloned() {
             let mut n = src;
@@ -419,8 +404,6 @@ impl Fs {
         }
     }
 
-
-
     pub fn get(&self, path: &str) -> Option<&Node> {
         self.nodes.get(path)
     }
@@ -456,7 +439,6 @@ impl Fs {
         }
     }
 
-
     pub fn list(&self, dir: &str) -> Result<Vec<&Node>, FsError> {
         let d = self
             .nodes
@@ -489,7 +471,6 @@ impl Fs {
         Ok(v)
     }
 
-
     pub fn subtree(&self, root: &str) -> Vec<&Node> {
         let prefix = if root == "/" {
             "/".to_owned()
@@ -502,7 +483,6 @@ impl Fs {
             .map(|(_, n)| n)
             .collect()
     }
-
 
     pub fn count(&self, dir: &str) -> Result<DirCount, FsError> {
         let all = self.list(dir)?;
@@ -524,10 +504,6 @@ impl Fs {
         }
         Ok(c)
     }
-
-
-
-
 
     pub fn canonical_parent(&self, path: &str) -> Result<(String, Vec<String>), FsError> {
         let Some(parent) = Self::parent(path) else {
@@ -561,7 +537,6 @@ impl Fs {
         Ok((resolved, links))
     }
 
-
     pub fn resolve(&self, path: &str) -> Result<&Node, FsError> {
         let mut cur = path.to_owned();
         for _ in 0..16 {
@@ -576,11 +551,6 @@ impl Fs {
         }
         Err(FsError::BrokenLink(path.into()))
     }
-
-
-
-
-
 
     pub fn preview(&self, path: &str) -> Preview {
         let mut link = None;
@@ -598,7 +568,6 @@ impl Fs {
             }
             Some(n) => n,
         };
-
 
         match node.kind {
             NodeKind::Fifo | NodeKind::Device => {
@@ -677,10 +646,6 @@ impl Fs {
             link,
         }
     }
-
-
-
-
 
     pub fn scan(&self, root: &str, opts: &ScanOptions) -> ScanNode {
         let mut seen = BTreeSet::new();
@@ -761,8 +726,6 @@ impl Fs {
             return out;
         }
         if opts.max_depth.is_some_and(|d| depth >= d) {
-
-
             for n in self.subtree(path) {
                 if matches!(n.kind, NodeKind::Symlink { .. }) {
                     out.entries += 1;
@@ -815,7 +778,6 @@ impl Fs {
         out
     }
 
-
     pub fn size_of(&self, path: &str) -> u64 {
         self.scan(
             path,
@@ -837,12 +799,6 @@ impl Fs {
             })
             .max_by_key(|v| v.mount.len())
     }
-
-
-
-
-
-
 
     pub fn trash(&mut self, path: &str, now_secs: i64) -> Result<u64, String> {
         if let Some(reason) = &self.trash_broken {
@@ -868,8 +824,6 @@ impl Fs {
         Ok(bytes)
     }
 
-
-
     pub fn remove_permanent(&mut self, path: &str) -> Result<u64, String> {
         let bytes = self.detach(path)?;
         if let Some(v) = self.volume_mut_for(path) {
@@ -882,9 +836,6 @@ impl Fs {
         let mount = self.volume_for(path).map(|v| v.mount.clone())?;
         self.volumes.iter_mut().find(|v| v.mount == mount)
     }
-
-
-
 
     fn detach(&mut self, path: &str) -> Result<u64, String> {
         let node = self
@@ -922,8 +873,6 @@ impl Fs {
         }
     }
 
-
-
     #[cfg(test)]
     pub fn empty_trash(&mut self) -> u64 {
         let total: u64 = self.trash.iter().map(|t| t.bytes).sum();
@@ -939,11 +888,6 @@ impl Fs {
         }
         total
     }
-
-
-
-
-
 
     pub fn home_index(&self, home: &str) -> Vec<String> {
         let mut out = vec![];
@@ -985,7 +929,6 @@ impl Fs {
                 continue;
             }
             if dir == home && c.name() == "Library" {
-
                 if let Ok(lib) = self.list(&c.path) {
                     for l in lib {
                         if l.name().starts_with("Mobile Documents") || l.hidden() {
@@ -1013,9 +956,6 @@ impl Fs {
             }
         }
     }
-
-
-
 
     pub fn find(&self, index: &[String], query: &str) -> Vec<FindHit> {
         let q = query.trim();
@@ -1059,8 +999,6 @@ impl Fs {
         hits
     }
 }
-
-
 
 pub fn sanitize(s: &str) -> String {
     let mut out = String::with_capacity(s.len());

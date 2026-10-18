@@ -1,34 +1,17 @@
-
-
-
-
-
-
-
-
-
-
-
 use std::ops::{BitAnd, BitOr, BitOrAssign, Not, Sub};
 
 use super::event::Outcome;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord, Hash)]
 pub enum Flow {
-
     #[default]
     Ignored,
 
     Consumed,
 }
 
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default, PartialOrd, Ord, Hash)]
 pub enum Invalidate {
-
     #[default]
     None,
 
@@ -36,10 +19,6 @@ pub enum Invalidate {
 
     Layout,
 }
-
-
-
-
 
 #[must_use = "a Response carries the consumed/repaint answer; fold it with `|` or read it"]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -56,7 +35,6 @@ impl<A> Default for Response<A> {
 }
 
 impl<A> Response<A> {
-
     pub const fn ignored() -> Self {
         Self {
             flow: Flow::Ignored,
@@ -64,7 +42,6 @@ impl<A> Response<A> {
             action: None,
         }
     }
-
 
     pub const fn consumed() -> Self {
         Self {
@@ -74,7 +51,6 @@ impl<A> Response<A> {
         }
     }
 
-
     pub const fn changed() -> Self {
         Self {
             flow: Flow::Consumed,
@@ -82,7 +58,6 @@ impl<A> Response<A> {
             action: None,
         }
     }
-
 
     pub const fn emit(action: A) -> Self {
         Self {
@@ -92,46 +67,36 @@ impl<A> Response<A> {
         }
     }
 
-
     pub fn repaint(mut self) -> Self {
         self.invalidate = self.invalidate.max(Invalidate::Paint);
         self
     }
-
 
     pub const fn relayout(mut self) -> Self {
         self.invalidate = Invalidate::Layout;
         self
     }
 
-
     pub const fn no_repaint(mut self) -> Self {
         self.invalidate = Invalidate::None;
         self
     }
 
-
     pub const fn flow(&self) -> Flow {
         self.flow
     }
-
 
     pub fn is_consumed(&self) -> bool {
         self.flow == Flow::Consumed
     }
 
-
     pub const fn invalidate(&self) -> Invalidate {
         self.invalidate
     }
 
-
     pub fn is_changed(&self) -> bool {
         self.invalidate >= Invalidate::Paint
     }
-
-
-
 
     pub fn outcome(&self) -> Outcome {
         match (self.flow, self.is_changed()) {
@@ -141,28 +106,21 @@ impl<A> Response<A> {
         }
     }
 
-
     pub const fn action(&self) -> Option<&A> {
         self.action.as_ref()
     }
-
 
     pub fn take_action(&mut self) -> Option<A> {
         self.action.take()
     }
 
-
     pub fn into_action(self) -> Option<A> {
         self.action
     }
 
-
-
     pub fn into_parts(self) -> (Outcome, Option<A>) {
         (self.outcome(), self.action)
     }
-
-
 
     pub fn with_action<B>(self, action: B) -> Response<B> {
         Response {
@@ -172,8 +130,6 @@ impl<A> Response<A> {
         }
     }
 
-
-
     pub fn map_action<B>(self, f: impl FnOnce(A) -> B) -> Response<B> {
         Response {
             flow: self.flow,
@@ -181,7 +137,6 @@ impl<A> Response<A> {
             action: self.action.map(f),
         }
     }
-
 
     pub fn on_action(self, f: impl FnOnce(A)) -> Response<()> {
         if let Some(a) = self.action {
@@ -194,7 +149,6 @@ impl<A> Response<A> {
         }
     }
 
-
     pub fn erase(self) -> Response<()> {
         Response {
             flow: self.flow,
@@ -205,8 +159,6 @@ impl<A> Response<A> {
 }
 
 impl Response<()> {
-
-
     pub fn lift<B>(self) -> Response<B> {
         Response {
             flow: self.flow,
@@ -215,8 +167,6 @@ impl Response<()> {
         }
     }
 }
-
-
 
 impl<A> From<Outcome> for Response<A> {
     fn from(o: Outcome) -> Self {
@@ -228,9 +178,6 @@ impl<A> From<Outcome> for Response<A> {
     }
 }
 
-
-
-
 impl<A> From<(Outcome, Option<A>)> for Response<A> {
     fn from((o, a): (Outcome, Option<A>)) -> Self {
         let r = Self::from(o);
@@ -240,8 +187,6 @@ impl<A> From<(Outcome, Option<A>)> for Response<A> {
         }
     }
 }
-
-
 
 impl BitOr for Response<()> {
     type Output = Response<()>;
@@ -259,14 +204,10 @@ impl BitOrAssign for Response<()> {
     }
 }
 
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct StateFlags(u16);
 
 impl StateFlags {
-
     pub const FOCUSED: Self = Self(1 << 0);
 
     pub const FOCUS_VISIBLE: Self = Self(1 << 1);
@@ -318,51 +259,41 @@ impl StateFlags {
         (Self::LOADING, "LOADING"),
     ];
 
-
     pub const fn empty() -> Self {
         Self(0)
     }
-
 
     pub const fn bits(self) -> u16 {
         self.0
     }
 
-
     pub const fn from_bits(bits: u16) -> Self {
         Self(bits)
     }
-
 
     pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
 
-
     pub const fn contains(self, other: Self) -> bool {
         self.0 & other.0 == other.0
     }
-
 
     pub const fn intersects(self, other: Self) -> bool {
         self.0 & other.0 != 0
     }
 
-
     pub const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
-
 
     pub fn insert(&mut self, other: Self) {
         self.0 |= other.0;
     }
 
-
     pub fn remove(&mut self, other: Self) {
         self.0 &= !other.0;
     }
-
 
     pub fn set(&mut self, other: Self, on: bool) {
         if on {
@@ -371,8 +302,6 @@ impl StateFlags {
             self.remove(other);
         }
     }
-
-
 
     pub const fn with(self, other: Self, on: bool) -> Self {
         if on {

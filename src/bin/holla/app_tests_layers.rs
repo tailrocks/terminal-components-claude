@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -26,8 +20,6 @@ use crate::app_tests::H;
 use crate::app_tests_parity::open;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::ModalResult;
-
-
 
 fn outside(h: &H) -> Position {
     let menu = h
@@ -63,9 +55,6 @@ fn click_outside(h: &mut H) {
 fn now(h: &H) -> u64 {
     h.app.world.now_ms().max(0) as u64
 }
-
-
-
 
 fn open_text(h: &mut H) -> Option<WidgetId> {
     let owner = h.app.shell.focus.current();
@@ -107,8 +96,6 @@ fn open_dialog(h: &mut H) -> Option<WidgetId> {
     owner
 }
 
-
-
 type Case = (
     &'static str,
     fn() -> H,
@@ -144,10 +131,6 @@ fn cases() -> [Case; 4] {
         ),
     ]
 }
-
-
-
-
 
 #[test]
 fn every_layer_kind_closes_on_esc_and_an_outside_click_and_restores_focus() {
@@ -194,8 +177,6 @@ fn every_layer_kind_closes_on_esc_and_an_outside_click_and_restores_focus() {
     }
 }
 
-
-
 #[test]
 fn the_dialog_close_button_cancels_and_restores_focus() {
     let mut h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 120, 40);
@@ -220,10 +201,6 @@ fn the_dialog_close_button_cancels_and_restores_focus() {
     let focus = h.app.shell.focus.current().expect("focus restored");
     assert!(h.app.shell.ring.contains(focus), "focus is on the page");
 }
-
-
-
-
 
 #[test]
 fn a_refused_outside_click_on_a_dirty_prompt_flashes_the_frame() {
@@ -261,9 +238,6 @@ fn a_refused_outside_click_on_a_dirty_prompt_flashes_the_frame() {
     assert_eq!(h.app.shell.focus.current(), owner);
 }
 
-
-
-
 #[test]
 fn picker_events_keep_the_jump_picker_open() {
     let mut h = H::new(Scenario::ParityBrowser, Motion::Reduced, 40, 120, 40);
@@ -296,12 +270,8 @@ fn picker_events_keep_the_jump_picker_open() {
     assert_eq!(h.app.shell.focus.current(), owner, "K9");
 }
 
-
-
 const PROBE_A: WidgetId = WidgetId::of("probe.a");
 const PROBE_B: WidgetId = WidgetId::of("probe.b");
-
-
 
 struct Probe {
     id: WidgetId,
@@ -333,8 +303,6 @@ impl Layer<ModalResult> for Probe {
         None
     }
 }
-
-
 
 #[test]
 fn every_open_layer_hears_focus_changes_not_only_dialogs() {
@@ -375,10 +343,6 @@ fn every_open_layer_hears_focus_changes_not_only_dialogs() {
         "so does the covered one"
     );
 }
-
-
-
-
 
 #[test]
 fn a_short_screen_keeps_a_dialogs_facts_beside_its_code_preview() {

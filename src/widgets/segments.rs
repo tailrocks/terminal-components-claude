@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
@@ -47,8 +42,6 @@ impl Segment {
         self
     }
 
-
-
     pub fn lead(mut self, glyph: impl Into<String>, tone: Tone) -> Self {
         self.lead = Some((glyph.into(), tone));
         self
@@ -62,10 +55,6 @@ impl Segment {
     }
 }
 
-
-
-
-
 pub fn width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u16 {
     let sep = 2u16;
     let w: u16 = left
@@ -75,10 +64,6 @@ pub fn width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u1
         .sum();
     w.saturating_sub(sep) + 2 * t.spacing.chrome_edge
 }
-
-
-
-
 
 pub fn min_width(left: &[Segment], right: &[Segment], t: &crate::theme::Theme) -> u16 {
     let strongest = left
@@ -129,7 +114,6 @@ pub fn render(
         (l + r + more).saturating_sub(sep) + 2 * edge
     };
     while total(&keep_l, &keep_r) > area.width {
-
         let mut best: Option<(u8, bool, usize)> = None;
         for (i, s) in left.iter().enumerate() {
             if keep_l[i] && best.is_none_or(|b| s.priority < b.0) {
@@ -148,7 +132,6 @@ pub fn render(
         }
     }
     let draw = |buf: &mut Buffer, ctx: &mut RenderCtx, x: u16, s: &Segment| {
-
         let mut st = match s.id {
             Some(id) => {
                 let mut vs = ctx.state(id);
@@ -215,8 +198,6 @@ pub fn render(
         rx = rx.saturating_sub(sep);
     }
 
-
-
     let hidden: Vec<String> = left
         .iter()
         .zip(&keep_l)
@@ -239,9 +220,6 @@ pub fn render(
         );
     }
 }
-
-
-
 
 impl crate::ui::specimen::Specimen for Segment {
     fn specimen_id(&self) -> WidgetId {
@@ -277,8 +255,6 @@ mod tests {
     use crate::core::hit::HitRegistry;
     use crate::theme::Theme;
     use crate::ui::ctx::Interaction;
-
-
 
     #[test]
     fn width_shows_every_segment() {
@@ -324,8 +300,6 @@ mod tests {
         assert_eq!(buf[(x, 0)].fg, t.accent);
         assert_eq!(buf[(x + 2, 0)].fg, t.text_secondary);
     }
-
-
 
     #[test]
     fn dropped_segments_collapse_into_an_overflow_item_that_reveals_them() {

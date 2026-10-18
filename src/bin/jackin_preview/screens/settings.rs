@@ -1,7 +1,3 @@
-
-
-
-
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
@@ -81,7 +77,6 @@ pub struct SettingsScreen {
     dco: Checkbox,
     trust_cursor: usize,
     agents_cursor: usize,
-
 
     agents_view: ScrollView,
     cancel: Button,
@@ -576,11 +571,7 @@ impl SettingsScreen {
         }
     }
 
-
-
-
     fn render_agents(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
-
         let natural = |a: ratatui::layout::Size| {
             let notes: usize = AGENT_NOTES
                 .iter()
@@ -997,9 +988,6 @@ impl Page<Jackin> for SettingsScreen {
         }
     }
 
-
-
-
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         if let Some(r) = self.agents_view.pointer(ev) {
             return r.outcome();
@@ -1286,7 +1274,6 @@ impl Screen for SettingsScreen {
 }
 
 impl SettingsScreen {
-
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let id = ev.id;
         if id == CANCEL {
@@ -1365,7 +1352,6 @@ impl SettingsScreen {
         }
     }
 }
-
 
 const AGENT_NOTES: [&str; 2] = [
     "sync mirrors the host login · api key and oauth token take material from the registry account",

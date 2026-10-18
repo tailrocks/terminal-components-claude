@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GitState {
     pub path: String,
@@ -30,7 +23,6 @@ pub struct GitState {
     pub diverged: bool,
 
     pub git_file: bool,
-
 
     pub default_from: Option<&'static str>,
 
@@ -96,11 +88,6 @@ impl GitState {
         self.remote_urls.iter().any(|(n, _)| n == name)
     }
 
-
-
-
-
-
     pub fn merged_candidates(&self) -> (Vec<String>, usize) {
         let mut v: Vec<String> = self
             .merged
@@ -124,7 +111,6 @@ impl GitState {
     pub fn changed(&self) -> u32 {
         self.staged + self.unstaged
     }
-
 
     pub fn block_reason(&self) -> Option<String> {
         if self.conflicts > 0 {
@@ -151,7 +137,6 @@ impl GitState {
         None
     }
 
-
     pub fn summary(&self) -> String {
         let head = self.head_label();
         let state = self.state_summary();
@@ -162,17 +147,12 @@ impl GitState {
         }
     }
 
-
     pub fn head_label(&self) -> String {
         match &self.branch {
             Some(b) => b.clone(),
             None => format!("detached @ {}", self.head_short),
         }
     }
-
-
-
-
 
     pub fn state_parts(&self) -> Vec<(String, junie_tui::theme::Tone)> {
         use junie_tui::theme::Tone;
@@ -207,8 +187,6 @@ impl GitState {
         v
     }
 
-
-
     pub fn state_summary(&self) -> String {
         let mut s = String::new();
         if self.behind > 0 {
@@ -226,7 +204,6 @@ impl GitState {
         s.trim_start().to_owned()
     }
 
-
     pub fn status_cmd(&self) -> String {
         format!(
             "git -C {} status --porcelain=v2 --branch --show-stash",
@@ -234,8 +211,6 @@ impl GitState {
         )
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GithubRepo {
@@ -256,8 +231,6 @@ pub struct GithubState {
     pub repos: Vec<GithubRepo>,
     pub protocol: String,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Container {
@@ -290,7 +263,6 @@ pub struct Compose {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DockerState {
-
     pub daemon: Result<(), String>,
     pub containers: Vec<Container>,
     pub images: u32,
@@ -344,12 +316,9 @@ impl DockerState {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MiseTask {
     pub name: String,
-
 
     pub namespaced: String,
     pub dir: String,
@@ -405,8 +374,6 @@ impl MiseState {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Proc {
     pub pid: u32,
@@ -435,8 +402,6 @@ pub struct SystemSnapshot {
     pub btm_installed: bool,
     pub temp_c: Option<u32>,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Family {
@@ -516,7 +481,6 @@ pub struct Candidate {
     pub method: Method,
     pub confidence: Confidence,
 
-
     pub shares_with: Option<String>,
 
     pub found_at: u64,
@@ -524,8 +488,6 @@ pub struct Candidate {
 }
 
 impl Candidate {
-
-
     pub fn default_selected(&self) -> bool {
         !self.protected
             && self.active_process.is_none()
@@ -612,8 +574,6 @@ impl DiskState {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PgSession {
     pub pid: u32,
@@ -668,8 +628,6 @@ impl PgState {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SshAlias {
     pub alias: String,
@@ -693,8 +651,6 @@ pub struct SshState {
     pub wildcard_rules: u32,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AptPackage {
     pub name: String,
@@ -712,13 +668,10 @@ pub struct AptState {
     pub sudo_cached: bool,
 }
 
-
-
 pub use crate::domain::usage::UsageStore;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RankingMemory {
-
     pub pins: Vec<(String, String)>,
 
     pub aliases: Vec<(String, String)>,
@@ -769,14 +722,11 @@ impl RankingMemory {
         before != self.hidden.len()
     }
 
-
     pub fn reset(&mut self, item: &str) {
         self.usage.forget(item);
         self.hidden.retain(|(_, it)| it != item);
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrewService {
@@ -784,7 +734,6 @@ pub struct BrewService {
 
     pub status: String,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrewCache {
@@ -795,7 +744,6 @@ pub struct BrewCache {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrewState {
-
     pub list_json: Result<String, String>,
 
     pub services: Vec<BrewService>,
@@ -809,15 +757,11 @@ pub struct BrewState {
     pub failing: Vec<(String, String, String)>,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CargoState {
-
     pub build_error: Option<String>,
     pub test_failures: u32,
     pub clippy_warnings: u32,
-
 
     pub target: Option<String>,
     pub target_files: u64,
@@ -825,8 +769,6 @@ pub struct CargoState {
 
     pub target_shared_with: Option<String>,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GradleState {
@@ -837,22 +779,16 @@ pub struct GradleState {
     pub wrapper: bool,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct UpgradeState {
-
     pub zsh_env: Option<String>,
     pub amp: bool,
-
 
     pub failing: Vec<String>,
 
     pub brew_outdated: Vec<(String, String, String)>,
     pub casks_outdated: Vec<(String, String, String)>,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TrashBackend {
@@ -863,7 +799,6 @@ pub enum TrashBackend {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Spotlight {
-
     Available(Vec<(String, u64)>),
     Empty,
     Timeout,
@@ -890,9 +825,6 @@ pub struct Platform {
 
     pub dataless_failure: Option<String>,
 }
-
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolOutputs {

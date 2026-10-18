@@ -1,25 +1,16 @@
-
-
-
 use junie_tui::clock::SimClock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scenario {
-
-
     FirstUse,
-
 
     RustDirty,
 
     MonorepoRoot,
 
-
     MonorepoChild,
 
-
     DockerCleanup,
-
 
     DiskCleanup,
 
@@ -30,7 +21,6 @@ pub enum Scenario {
     RemoteHost,
 
     LaunchFailure,
-
 
     HardCases,
 
@@ -60,7 +50,6 @@ pub enum Scenario {
 }
 
 impl Scenario {
-
     pub const CONCEPT: [Scenario; 11] = [
         Scenario::FirstUse,
         Scenario::RustDirty,
@@ -74,7 +63,6 @@ impl Scenario {
         Scenario::LaunchFailure,
         Scenario::HardCases,
     ];
-
 
     pub const PARITY: [Scenario; 23] = [
         Scenario::ParityDiscovery,
@@ -183,16 +171,11 @@ impl Scenario {
     }
 }
 
-
 pub const EPOCH_SECS: i64 = 1_789_004_460;
 
 pub const UTC_OFFSET_SECS: i64 = 7 * 3600;
 
-
-
-
 pub const CLOCK: SimClock = SimClock::new(EPOCH_SECS, UTC_OFFSET_SECS);
-
 
 pub use junie_tui::motion::Motion;
 

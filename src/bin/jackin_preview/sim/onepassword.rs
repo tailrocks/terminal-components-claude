@@ -1,20 +1,11 @@
-
-
-
-
-
 use crate::domain::agent::Provider;
 use crate::domain::onepassword::OpReference;
-
 
 pub struct Secret {
     bytes: Vec<u8>,
 }
 
 impl Secret {
-
-
-
     pub fn classify(&self) -> SecretClass {
         let s = String::from_utf8_lossy(&self.bytes);
         if s.is_empty() {
@@ -67,7 +58,6 @@ pub enum SecretClass {
         outcome: KeyOutcome,
     },
 }
-
 
 pub trait SecretFree {}
 impl SecretFree for SecretClass {}
@@ -160,7 +150,6 @@ pub enum OpError {
 }
 
 impl OpError {
-
     pub fn message(&self) -> String {
         match self {
             OpError::Locked => "1Password locked: unlock the app and retry".into(),
@@ -231,7 +220,6 @@ fn item(
 }
 
 impl SimOnePassword {
-
     pub fn fixture(epoch: i64) -> Self {
         let d = 86_400;
         let engineering = OpVault {
@@ -508,7 +496,6 @@ impl SimOnePassword {
         Ok(self.item(account, vault, item)?.1.fields.iter().collect())
     }
 
-
     pub fn reference(
         &self,
         account: &str,
@@ -537,7 +524,6 @@ impl SimOnePassword {
         })
     }
 
-
     pub fn describe(&self, r: &OpReference) -> Result<FieldDescriptor, OpError> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id)?;
         let f = it
@@ -563,8 +549,6 @@ impl SimOnePassword {
         })
     }
 
-
-
     pub fn resolve_into<R: SecretFree>(
         &self,
         r: &OpReference,
@@ -584,7 +568,6 @@ impl SimOnePassword {
         Ok(op(&secret))
     }
 
-
     pub fn endpoint_of(&self, r: &OpReference) -> Option<String> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id).ok()?;
         it.fields
@@ -593,9 +576,6 @@ impl SimOnePassword {
             .map(|_| "https://api.x.ai/v1".to_owned())
     }
 }
-
-
-
 
 pub fn classify_plain(provider: Provider, value: &str) -> SecretClass {
     if value.trim().is_empty() {

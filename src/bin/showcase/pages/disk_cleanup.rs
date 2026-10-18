@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -57,12 +41,9 @@ pub const GATE2: WidgetId = ID.sub("gate2");
 const GIB: u64 = 1 << 30;
 const MIB: u64 = 1 << 20;
 
-
 const SCAN_TICKS: u16 = 30;
 
-
 const DISK_TONE: MeterTone = MeterTone::Level { warn: 80, crit: 95 };
-
 
 struct Category {
     label: &'static str,
@@ -112,7 +93,6 @@ const CATEGORIES_DATA: [Category; 10] = [
         blocked: Some("Docker is running"),
     },
 ];
-
 
 fn usage() -> Vec<TreeNode> {
     let node = |label: &str, size: u64, total: u64, children: Vec<TreeNode>| {
@@ -169,7 +149,6 @@ fn usage() -> Vec<TreeNode> {
         ],
     )]
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Mode {
@@ -278,8 +257,6 @@ impl DiskCleanupPage {
         p
     }
 
-
-
     fn rebuild(&mut self) {
         let tree = std::mem::replace(&mut self.tree, TreeView::new(TREE, vec![]));
         self.tree = tree.show_meta(self.opts.on("diskcleanup.sizes"));
@@ -314,11 +291,9 @@ impl DiskCleanupPage {
         }
     }
 
-
     fn is_scanning(&self) -> bool {
         self.scanning > 0 || self.opts.value("diskcleanup.scan") == "scanning"
     }
-
 
     fn sync_scan(&mut self) {
         let n = self.tree.node(&[0]).map_or(0, |n| n.children.len());
@@ -334,7 +309,6 @@ impl DiskCleanupPage {
             self.tree.set_busy(&[0, i], i >= done);
         }
     }
-
 
     fn checked(&self) -> Vec<(usize, &'static Category)> {
         self.cats
@@ -377,7 +351,6 @@ impl DiskCleanupPage {
         .reserve(4)
         .min_meter(8)
     }
-
 
     fn details(&self) -> (String, Vec<Prop>) {
         let rows = self.tree.rows();
@@ -422,14 +395,12 @@ impl DiskCleanupPage {
         )
     }
 
-
     fn reclaim_panel(&self) -> Panel<'static> {
         Panel::card(Some("Reclaim")).meta(match self.mode() {
             Mode::DryRun => "dry run",
             _ => "two gates",
         })
     }
-
 
     fn reclaim_facts(&self) -> Vec<Prop> {
         let mode = self.mode();
@@ -457,7 +428,6 @@ impl DiskCleanupPage {
         ]
     }
 
-
     fn skipped(&self) -> Option<Notice> {
         self.cats
             .iter()
@@ -470,7 +440,6 @@ impl DiskCleanupPage {
             .map(|(label, why)| Notice::warning(format!("{label} is skipped")).detail(why))
     }
 
-
     fn fs_meta(&self) -> String {
         if self.is_scanning() {
             "scanning ~/work…".to_owned()
@@ -481,11 +450,6 @@ impl DiskCleanupPage {
             )
         }
     }
-
-
-
-
-
 
     fn heights(&self, width: u16, fs: &MeterList) -> [u16; 3] {
         let (kind, facts) = self.details();
@@ -663,8 +627,6 @@ impl DiskCleanupPage {
             );
         }
         if r.is_empty() {
-
-
             self.clean_md.finish(ctx);
             ctx.focus_stop(self.rescan.id);
             return;
@@ -704,7 +666,6 @@ impl DiskCleanupPage {
         self.sync_scan();
     }
 
-
     fn facts(&self) -> Vec<Prop> {
         let checked = self.checked();
         let mode = self.mode();
@@ -739,7 +700,6 @@ impl DiskCleanupPage {
             ),
         ]
     }
-
 
     fn gate1(&self) -> Dialog {
         let mode = self.mode();
@@ -784,8 +744,6 @@ impl DiskCleanupPage {
         }
     }
 
-
-
     fn gate2(&self) -> Dialog {
         let mode = self.mode();
         let n = self.checked().len();
@@ -818,7 +776,6 @@ impl DiskCleanupPage {
         }
         cx.open_dialog(self.gate1());
     }
-
 
     fn commit(&mut self, cx: &mut Cx) {
         let checked = self.checked();
@@ -858,8 +815,6 @@ impl DiskCleanupPage {
         }
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -914,12 +869,6 @@ impl Page for DiskCleanupPage {
     fn blurb(&self) -> &'static str {
         "Usage tree, filesystem meters, a cleanup checklist and a two-gate review"
     }
-
-
-
-
-
-
 
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let fs = self.filesystems();

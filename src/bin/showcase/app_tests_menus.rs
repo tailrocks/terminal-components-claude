@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -175,7 +171,6 @@ fn the_states_grid_draws_every_menu_state() {
     for s in [Rest, Hover, Pressed, Disabled] {
         assert!(rows.contains(&s), "{s:?} row drawn");
     }
-
 
     assert!(h.text().contains("Share…"), "a disabled row drawn");
     assert!(!h.text().contains("Share…    Off"), "no reason column");

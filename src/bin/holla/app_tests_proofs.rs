@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use junie_tui::runtime::Application;
 use std::collections::VecDeque;
 use std::time::Instant;
@@ -46,10 +39,6 @@ fn with_theme(scenario: Scenario, frame: u64, w: u16, h: u16, theme: Theme) -> H
     hh.draw();
     hh
 }
-
-
-
-
 
 struct State {
     name: &'static str,
@@ -391,10 +380,6 @@ fn inventory_reaches_every_state_with_its_focus_owner_at_every_size_and_palette(
     }
 }
 
-
-
-
-
 fn pump(h: &mut H, inputs: Vec<Input>) {
     let mut q = VecDeque::from(inputs);
     loop {
@@ -432,8 +417,6 @@ fn snapshot_state(h: &mut H) -> (String, Option<WidgetId>, usize, Option<Positio
 
 #[test]
 fn batched_and_separated_event_sequences_agree_on_focus_hits_drafts_and_cursor() {
-
-
     let sequence = |w: u16, h: u16| {
         let mut v = typed("port");
         v.push(key(KeyCode::Enter));
@@ -515,7 +498,6 @@ fn resize_below_minimum_then_normal_then_wide_then_minimum_keeps_every_state_con
                 );
             }
 
-
             h.key(KeyCode::Down);
             h.key(KeyCode::Up);
 
@@ -537,8 +519,6 @@ fn resize_below_minimum_then_normal_then_wide_then_minimum_keeps_every_state_con
         );
     }
 }
-
-
 
 #[test]
 fn a_finite_flood_of_ignored_input_never_starves_the_tick_check() {
@@ -584,8 +564,6 @@ fn a_finite_flood_of_ignored_input_never_starves_the_tick_check() {
         assert!(passes <= 4, "quit waited {passes} passes");
     }
 }
-
-
 
 fn activity_view(h: &mut H) -> &junie_tui::widgets::viewport::TextViewport {
     let i = h.app.active();
@@ -652,7 +630,6 @@ fn a_burst_of_output_is_appended_not_rebuilt_and_equals_a_fresh_layout() {
     eprintln!(
         "F23e burst: {n} lines · {total:?} for 24 ticks+draws · median {median:?} · tail {tail:?}"
     );
-
 
     let incremental = h.text();
     let lines: Vec<_> = activity_view(&mut h).lines().cloned().collect();
@@ -734,8 +711,6 @@ fn idle_ticks_rebuild_nothing_on_the_finder_and_the_disk_tree() {
     eprintln!("F23e idle: {idle:?} per idle tick+draw at 160x50");
 }
 
-
-
 #[test]
 fn facts_page_takes_an_actual_paste_into_the_editing_field_only() {
     let mut h = H::new(Scenario::RustDirty, Motion::Reduced, 0, 120, 40);
@@ -764,8 +739,6 @@ fn facts_page_takes_an_actual_paste_into_the_editing_field_only() {
 
 #[test]
 fn enter_with_modifiers_maps_to_exact_picker_and_finder_semantics() {
-
-
     let mut h = H::new(Scenario::ActivitiesMulti, Motion::Reduced, 0, 120, 40);
     h.ctrl(KeyCode::Char('g'));
     assert!(!h.app.modals.is_empty());

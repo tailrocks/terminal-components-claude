@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use junie_tui::core::event::{Input, Key};
 use junie_tui::runtime::Application;
 use junie_tui::shell::reach::{Case, Harness, Reveal};
@@ -92,18 +81,12 @@ fn accounts(h: &mut H) {
     at(h, Scenario::AccountsMixed);
 }
 
-
-
-
-
 fn drawer<const N: usize>(h: &mut H) {
     for _ in 0..N {
         h.key(KeyCode::Down);
     }
     h.key(KeyCode::Tab);
 }
-
-
 
 fn details<const N: usize>(h: &mut H) {
     for _ in 0..N {
@@ -112,28 +95,19 @@ fn details<const N: usize>(h: &mut H) {
     h.key(KeyCode::Enter);
 }
 
-
-
 macro_rules! per_row {
     ($f:ident; $($n:literal)*) => {
         &[$(Reveal { step: $f::<$n>, times: 1 },)*]
     };
 }
 
-
-
 const DRAWERS: &[Reveal<H>] =
     per_row!(drawer; 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23);
-
 
 const DETAILS: &[Reveal<H>] =
     per_row!(details; 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23);
 
-
-
 const DRAWER: &[Reveal<H>] = per_row!(drawer; 0);
-
-
 
 const BACK: &[Reveal<H>] = &[Reveal {
     step: |h| {
@@ -144,7 +118,6 @@ const BACK: &[Reveal<H>] = &[Reveal {
 
 fn cases() -> Vec<Case<H>> {
     vec![
-
         page("intro", |h| {
             *h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
         }),
@@ -212,16 +185,11 @@ fn cases() -> Vec<Case<H>> {
         })
         .reveals(BACK),
         page("cockpit", cockpit),
-
         layer("cockpit-log", cockpit, |h| {
             h.key(KeyCode::Char('b'));
         }),
-
-
         layer(
             "cockpit-failure",
-
-
             |h| {
                 at(h, Scenario::LaunchFailure);
                 for _ in 0..120 {
@@ -248,7 +216,6 @@ fn cases() -> Vec<Case<H>> {
             h.ctrl('b');
             h.key(KeyCode::Char('z'));
         }),
-
         layer(
             "help",
             |_| {},
@@ -300,8 +267,6 @@ fn cases() -> Vec<Case<H>> {
                 h.key(KeyCode::Char('d'));
             },
         ),
-
-
         page("prelude-source", |h| {
             h.key(KeyCode::Char('n'));
             h.key(KeyCode::Char('g'));

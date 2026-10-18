@@ -1,8 +1,3 @@
-
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -54,7 +49,6 @@ impl Harness {
         self.mouse(MouseKind::Up, x, y);
     }
 
-
     fn sidebar(&self) -> Vec<String> {
         let side = self.app.sidebar_area();
         let buf = self.term.backend().buffer();
@@ -69,13 +63,11 @@ impl Harness {
             .collect()
     }
 
-
     fn nav_row(&self, label: &str) -> Option<(u16, u16)> {
         let side = self.app.sidebar_area();
         self.sidebar()
             .iter()
             .position(|r| {
-
                 let shown = r.trim_start_matches(['▎', ' ', '›', '▸', '▾']).trim();
                 shown == label
                     || shown
@@ -96,7 +88,6 @@ impl Harness {
             .collect()
     }
 }
-
 
 fn root_of(group: &'static str) -> usize {
     nav_roots()
@@ -123,7 +114,6 @@ fn every_page_but_overview_sits_under_a_group_two_levels_at_most() {
 
         assert_ne!(e.label, e.group, "{} repeats its group", e.label);
     }
-
 
     let mut order: Vec<&str> = NAV_ENTRIES
         .iter()
@@ -275,11 +265,6 @@ fn typing_a_name_jumps_in_the_sidebar_unless_the_page_claims_the_letter() {
     assert_eq!(h.app.nav.cursor_path(), Some(&[text][..]));
 }
 
-
-
-
-
-
 #[test]
 fn shell_letters_win_over_a_focused_page_list() {
     let mut h = Harness::new(120, 40, PageId::Lists);
@@ -428,9 +413,6 @@ fn the_current_page_marker_is_neutral_unless_the_sidebar_has_focus() {
     );
 }
 
-
-
-
 #[test]
 fn the_sidebar_card_title_shows_focus_and_its_padding_focuses_the_tree() {
     use ratatui::style::Modifier;
@@ -469,10 +451,6 @@ fn the_sidebar_card_title_shows_focus_and_its_padding_focuses_the_tree() {
     assert!(cell.modifier.contains(Modifier::BOLD));
     assert_eq!(h.sidebar()[0].matches('▎').count(), 0);
 }
-
-
-
-
 
 #[test]
 fn the_current_sidebar_row_keeps_its_fill_when_focus_leaves() {

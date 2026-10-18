@@ -1,8 +1,3 @@
-
-
-
-
-
 use crate::pages::Pages;
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -31,8 +26,6 @@ fn row(h: &H, y: u16) -> String {
     h.text().lines().nth(y as usize).unwrap_or("").to_owned()
 }
 
-
-
 fn find_left(h: &H, needle: &str, max_x: u16) -> Option<(u16, u16)> {
     let text = h.text();
     text.lines().enumerate().find_map(|(y, line)| {
@@ -43,7 +36,6 @@ fn find_left(h: &H, needle: &str, max_x: u16) -> Option<(u16, u16)> {
             .map(|x| (x as u16, y as u16))
     })
 }
-
 
 fn choose(h: &mut H, id: WidgetId, i: usize) {
     let r = h
@@ -63,7 +55,6 @@ fn capsule_tab_menu_reopens_on_another_tab_and_opens_with_shift_f10() {
     h.mouse(MouseKind::Secondary, sx, sy);
     let first = h.find("Change title…").expect("the Shell tab's menu");
 
-
     let (dx, dy) = h.find("docs").expect("the docs tab");
     h.mouse(MouseKind::Secondary, dx, dy);
     let second = h.find("Change title…").expect("the menu reopens");
@@ -75,7 +66,6 @@ fn capsule_tab_menu_reopens_on_another_tab_and_opens_with_shift_f10() {
     assert_eq!(h.text().matches("Change title…").count(), 1, "one menu");
     h.key(KeyCode::Esc);
     assert!(!h.text().contains("Change title…"));
-
 
     shift_f10(&mut h);
     let t = h.text();
@@ -106,7 +96,6 @@ fn capsule_pane_right_click_opens_the_pane_menu_at_the_pointer() {
     h.mouse(MouseKind::Secondary, x, y);
     let (mx, my) = h.find("Copy selection").expect("the pane menu");
 
-
     assert_eq!(my, y + 2, "below the pointer\n{}", h.text());
     assert!(
         mx >= x.saturating_sub(2) && mx <= x + 3,
@@ -114,8 +103,6 @@ fn capsule_pane_right_click_opens_the_pane_menu_at_the_pointer() {
     );
     assert!(h.text().contains("Close pane"));
 }
-
-
 
 fn manager() -> H {
     let h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
@@ -126,7 +113,6 @@ fn manager() -> H {
 fn tree_row(h: &H, needle: &str) -> (u16, u16) {
     find_left(h, needle, 38).unwrap_or_else(|| panic!("{needle} in the tree: {}", h.text()))
 }
-
 
 fn manager_menu(h: &H) -> Rect {
     h.app
@@ -287,8 +273,6 @@ fn manager_right_click_outside_a_menu_reopens_on_the_new_row() {
     assert_eq!(h.text().matches("Open on GitHub").count(), 1, "one menu");
     assert!(row(&h, area.y + 1).contains("payments-platform"));
 
-
-
     h.key(KeyCode::Esc);
     let (cx, cy) = tree_row(&h, "customer-portal");
     h.key(KeyCode::F(10));
@@ -298,8 +282,6 @@ fn manager_right_click_outside_a_menu_reopens_on_the_new_row() {
     assert!(!h.app.host_menu.is_open(), "the menu bar closed");
     assert_eq!(manager_menu(&h).y, cy + 1, "the row menu opened");
 }
-
-
 
 fn accounts() -> H {
     let h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
@@ -360,7 +342,6 @@ fn accounts_row_menu_sets_the_default_and_explains_what_cannot_run() {
         h.text()
     );
 
-
     let (px, py) = find_left(&h, "Personal", 40).unwrap();
     h.mouse(MouseKind::Secondary, px, py);
     let set_default = &accounts_menu(&h).items[4];
@@ -405,8 +386,6 @@ fn accounts_right_click_outside_a_menu_reopens_on_the_new_row() {
     assert!(row(&h, area.y + 1).contains("Personal"));
     assert_eq!(h.text().matches("Show usage").count(), 1, "one menu");
 }
-
-
 
 fn editor_mounts() -> H {
     let mut h = manager();
@@ -481,7 +460,6 @@ fn editor_shift_f10_opens_under_the_cursor_row_and_removes() {
     shift_f10(&mut h);
     assert_eq!(editor_menu(&h).area.y, y + 1, "under the cursor row");
 
-
     h.key(KeyCode::Char(']'));
     assert!(!h.text().contains("Make read-only"), "{}", h.text());
     assert!(
@@ -532,9 +510,6 @@ fn settings_env_menu_reopens_on_another_row_and_shows_a_value() {
     assert_eq!(settings_menu(&h).unwrap().items[1].item.label, "Mask value");
 }
 
-
-
-
 #[test]
 fn the_capsule_prefix_waits_until_esc() {
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
@@ -552,7 +527,6 @@ fn the_capsule_prefix_waits_until_esc() {
     h.key(KeyCode::Esc);
     assert!(!waiting(&h), "Esc cancels the prefix");
 
-
     if let Some(c) = h.app.router.capsule_mut() {
         c.prefix_timeout_ms = Some(2_000);
     }
@@ -561,10 +535,6 @@ fn the_capsule_prefix_waits_until_esc() {
     h.ticks(200);
     assert!(!waiting(&h), "a configured timeout still expires");
 }
-
-
-
-
 
 #[test]
 fn capsule_pane_menu_routes_the_pointer_by_part() {
@@ -581,8 +551,6 @@ fn capsule_pane_menu_routes_the_pointer_by_part() {
     h.click(2, 30);
     assert!(!h.text().contains("Copy selection"), "{}", h.text());
 }
-
-
 
 #[test]
 fn capsule_pane_menu_passes_an_unused_key_to_the_page() {

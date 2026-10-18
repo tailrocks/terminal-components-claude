@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -16,7 +12,6 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind};
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Theme;
 use junie_tui::ui::specimen::SpecimenState;
-
 
 pub(super) struct Harness {
     pub app: App,
@@ -114,8 +109,6 @@ impl Harness {
         self.text().matches('▎').count()
     }
 }
-
-
 
 #[test]
 fn tabs_dump() {
@@ -279,9 +272,6 @@ fn options_rebuild_the_editor_strip_through_its_builders() {
     h.opt("tabs.rule=neutral");
     assert_eq!(rule(&h), Theme::junie().border_strong);
 }
-
-
-
 
 #[test]
 fn the_keys_readout_names_the_hidden_tabs_key_while_the_strip_has_a_menu() {

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
@@ -61,7 +55,6 @@ pub struct DiffHunk {
 }
 
 impl DiffHunk {
-
     pub fn old_len(&self) -> usize {
         self.lines
             .iter()
@@ -95,7 +88,6 @@ pub enum DiffStatus {
 }
 
 impl DiffStatus {
-
     pub fn marker(&self) -> &'static str {
         match self {
             DiffStatus::Added => "A",
@@ -112,7 +104,6 @@ impl DiffStatus {
             DiffStatus::Renamed { .. } => "renamed",
         }
     }
-
 
     pub fn tone(&self) -> Tone {
         match self {
@@ -180,7 +171,6 @@ impl DiffFile {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DiffMode {
-
     #[default]
     Unified,
 
@@ -202,7 +192,6 @@ impl DiffMode {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct DiffView {
     pub term: TextViewport,
@@ -212,7 +201,6 @@ pub struct DiffView {
     laid_mode: DiffMode,
     dirty: bool,
     rendered_size: Option<(u16, u16, DiffMode, bool)>,
-
 
     glyphs: Glyphs,
     strings: Strings,
@@ -263,11 +251,6 @@ impl DiffView {
         self.mode
     }
 
-
-
-
-
-
     pub fn layout_mode(&self, width: u16) -> DiffMode {
         match &self.file {
             Some(file) if self.mode == DiffMode::Review && review_fits(file, width) => {
@@ -276,7 +259,6 @@ impl DiffView {
             _ => DiffMode::Unified,
         }
     }
-
 
     pub fn layout(&mut self, width: u16) {
         let mode = self.layout_mode(width);
@@ -335,7 +317,6 @@ impl DiffView {
                 );
             }
 
-
             self.rendered_size = Some(size);
         }
         self.term.render(area, buf, ctx, bg);
@@ -360,12 +341,9 @@ fn num_width(f: &DiffFile) -> usize {
     max.to_string().len().max(3)
 }
 
-
-
 pub fn unified_lines(f: &DiffFile) -> Vec<Line> {
     unified_lines_with(f, &Glyphs::UNICODE, &Strings::DEFAULT)
 }
-
 
 pub fn unified_lines_with(f: &DiffFile, g: &Glyphs, s: &Strings) -> Vec<Line> {
     let nw = num_width(f);
@@ -415,8 +393,6 @@ pub fn unified_lines_with(f: &DiffFile, g: &Glyphs, s: &Strings) -> Vec<Line> {
     out
 }
 
-
-
 fn changed_range(a: &str, b: &str) -> (usize, usize) {
     let ac: Vec<&str> = a.graphemes(true).collect();
     let bc: Vec<&str> = b.graphemes(true).collect();
@@ -430,7 +406,6 @@ fn changed_range(a: &str, b: &str) -> (usize, usize) {
     }
     (p, s)
 }
-
 
 fn emphasised(text: &str, p: usize, s: usize, tone: Tone, col_w: usize) -> Vec<Span> {
     let graphemes: Vec<&str> = text.graphemes(true).collect();
@@ -458,15 +433,9 @@ fn emphasised(text: &str, p: usize, s: usize, tone: Tone, col_w: usize) -> Vec<S
     spans
 }
 
-
-
-
-
-
 pub fn review_lines(f: &DiffFile, width: u16) -> Vec<Line> {
     review_lines_with(f, width, &Glyphs::UNICODE, &Strings::DEFAULT)
 }
-
 
 pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs, s: &Strings) -> Vec<Line> {
     if !review_fits(f, width) {
@@ -529,7 +498,6 @@ pub fn review_lines_with(f: &DiffFile, width: u16, g: &Glyphs, s: &Strings) -> V
                     i += 1;
                 }
                 _ => {
-
                     let mut removes = vec![];
                     while i < h.lines.len() && h.lines[i].kind == DiffLineKind::Remove {
                         removes.push(expand_tabs(&h.lines[i].text));
@@ -582,8 +550,6 @@ fn review_fits(file: &DiffFile, width: u16) -> bool {
     usize::from(width) >= 2 * (num_width(file) + 1 + 16) + 3
 }
 
-
-
 impl Scrollable for DiffView {
     fn pane(&mut self) -> &mut ScrollPane {
         &mut self.term.scroll
@@ -598,10 +564,6 @@ impl Scrollable for DiffView {
     }
 }
 
-
-
-
-
 impl crate::core::pointer::MouseTarget for DiffView {
     type Action = ();
 
@@ -615,7 +577,6 @@ impl crate::core::pointer::MouseTarget for DiffView {
     ) -> crate::core::response::Response<()> {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
-
 
         if ev.is(Phase::Secondary) || self.term.edit_menu.owns(ev) {
             return self.term.pointer(ev);

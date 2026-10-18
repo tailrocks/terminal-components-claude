@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use crate::screens::Holla;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
@@ -196,8 +190,6 @@ impl FilesPage {
         }
     }
 
-
-
     fn navigate(&mut self, dir: &str, w: &World, cx: &mut Cx) {
         self.generation += 1;
         self.dir = dir.to_owned();
@@ -224,7 +216,6 @@ impl FilesPage {
 
     fn apply_listing(&mut self, dir: &str, generation: u64, w: &World) {
         if generation != self.generation || dir != self.dir {
-
             return;
         }
         match w.fs.list(dir) {
@@ -338,8 +329,6 @@ impl FilesPage {
                     long_lines,
                     link,
                 } => {
-
-
                     let mut m = vec![];
                     if let Some(l) = &link {
                         m.push(format!("link → {}", w.location.short(l)));
@@ -429,8 +418,6 @@ impl FilesPage {
         }
     }
 
-
-
     fn indexed(&self, w: &World) -> (usize, bool) {
         match w.source_state("index") {
             SourceState::Loading => {
@@ -464,7 +451,6 @@ impl FilesPage {
         self.path_at(self.cursor)
     }
 
-
     fn path_at(&self, i: usize) -> Option<String> {
         match self.mode {
             Mode::Browse => self.visible().get(i).map(|e| e.path.clone()),
@@ -485,7 +471,6 @@ impl FilesPage {
         );
         self.open_actions_at(path, anchor, cx)
     }
-
 
     fn open_actions_at(&mut self, path: String, anchor: Rect, cx: &mut Cx) -> Outcome {
         let items = vec![
@@ -528,7 +513,6 @@ impl FilesPage {
                 let argv = if opener == "open" {
                     Command::argv("open", &["-R", path], &cwd, &host)
                 } else {
-
                     let parent = Fs::parent(path).unwrap_or("/".into());
                     Command::argv(&opener, &[&parent], &cwd, &host)
                 };
@@ -539,7 +523,6 @@ impl FilesPage {
             }
             2 => cx.go(Go::Osc52(path.to_owned())),
             3 => {
-
                 let root = if is_dir {
                     path.to_owned()
                 } else {
@@ -558,10 +541,6 @@ impl FilesPage {
             }
         }
     }
-
-
-
-
 
     fn jump_suggestions(&self, query: &str, w: &World) -> Vec<Item> {
         let q = query.trim();
@@ -664,8 +643,6 @@ impl FilesPage {
         }
         Ok(())
     }
-
-
 
     fn render_browse_list(
         &mut self,
@@ -1027,8 +1004,6 @@ impl FilesPage {
             self.preview_meta.clone()
         };
 
-
-
         let room = area.width.saturating_sub(6) as usize;
         let meta = if width(&meta) + 3 > room {
             truncate(&meta, room.saturating_sub(3).max(4))
@@ -1067,7 +1042,6 @@ impl FilesPage {
 }
 
 fn unicode_normalize(name: &str) -> String {
-
     name.chars()
         .filter(|c| !unicode_is_combining(*c))
         .collect::<String>()
@@ -1077,7 +1051,6 @@ fn unicode_normalize(name: &str) -> String {
 fn unicode_is_combining(c: char) -> bool {
     matches!(c as u32, 0x0300..=0x036f | 0x1ab0..=0x1aff | 0x1dc0..=0x1dff | 0x20d0..=0x20ff | 0xfe20..=0xfe2f)
 }
-
 
 pub fn expand(q: &str, dir: &str, home: &str) -> String {
     let q = q.trim();
@@ -1095,8 +1068,6 @@ pub fn expand(q: &str, dir: &str, home: &str) -> String {
     }
     Fs::join(dir, q.trim_end_matches('/'))
 }
-
-
 
 pub fn recommendations(path: &str, markers: &[&str], w: &World) -> Vec<String> {
     let mut v = vec![];
@@ -1168,7 +1139,6 @@ impl ShellPage<Holla> for FilesPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         if cx.focus.is(PREVIEW) {
             if let Some(q) = self.find_query.clone() {
-
                 match key.code {
                     KeyCode::Esc => {
                         self.find_query = None;
@@ -1230,7 +1200,6 @@ impl ShellPage<Holla> for FilesPage {
                 Some(ViewportAction::FollowChanged(_)) => {}
                 _ => {}
             }
-
 
             return o;
         }
@@ -1454,7 +1423,6 @@ impl ShellPage<Holla> for FilesPage {
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
 
-
         if ev.on(PREVIEW) && !ev.is(Phase::Secondary) {
             if ev.is(Phase::Click) {
                 cx.focus.focus(PREVIEW);
@@ -1463,7 +1431,6 @@ impl ShellPage<Holla> for FilesPage {
         }
         let row = self.scroll.visible_range().find(|&i| LIST.child(i) == id);
         if let Some((axis, delta)) = ev.wheel() {
-
             if id == LIST && axis == Axis::Vertical {
                 self.scroll.scroll_by(delta as isize);
                 return Outcome::Changed;
@@ -1485,7 +1452,6 @@ impl ShellPage<Holla> for FilesPage {
                 if let Some(i) = row {
                     let again = self.cursor == i;
                     self.cursor = i;
-
 
                     if ClickPolicy::DATA.activates(ev.count(), again) {
                         return match self.mode {
@@ -1740,8 +1706,6 @@ impl ShellPage<Holla> for FilesPage {
             Mode::Find => vec![
                 hint("Type", "Find"),
                 hint("↑↓", "Move"),
-
-
                 hint("Enter", "Alternatives…"),
                 hint("Tab", "Preview"),
                 hint(
@@ -1828,8 +1792,6 @@ impl Screen for FilesPage {
 }
 
 impl FilesPage {
-
-
     pub fn jump_rows(&self, query: &str, w: &World) -> (Vec<Item>, PickerStatus) {
         let items = self.jump_suggestions(query, w);
         let status = match &self.jump_error {
@@ -1845,8 +1807,6 @@ impl FilesPage {
     pub fn set_jump_error(&mut self, e: Option<String>) {
         self.jump_error = e;
     }
-
-
 
     pub fn jump_target(&self, query: &str, selected: Option<&str>, w: &World) -> Option<String> {
         let expanded = expand(query, &self.dir, &w.location.home);

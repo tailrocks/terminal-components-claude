@@ -1,42 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::{Buffer, Cell};
 use ratatui::layout::{Position, Rect, Size};
 use ratatui::widgets::Padding;
@@ -50,8 +11,6 @@ use crate::core::response::Response;
 use crate::core::scroll::{ScrollPane, Scrollable, ScrollbarVisibility, TrackClick};
 use crate::ui::ctx::{RenderCtx, Shift, copy_cells};
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Axes {
     pub vertical: bool,
@@ -59,7 +18,6 @@ pub struct Axes {
 }
 
 impl Axes {
-
     pub const BOTH: Self = Self {
         vertical: true,
         horizontal: true,
@@ -82,11 +40,8 @@ impl Default for Axes {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScrollCmd {
-
     PageUp,
 
     PageDown,
@@ -101,10 +56,6 @@ pub enum ScrollCmd {
 }
 
 impl Actions for ScrollCmd {
-
-
-
-
     fn default_keymap() -> KeyMap<Self> {
         use crate::core::keymap::KeyBinding;
         use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -138,12 +89,9 @@ impl Actions for ScrollCmd {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ViewLayout {
-
     pub viewport: Rect,
-
 
     pub content: Rect,
 
@@ -157,20 +105,16 @@ pub struct ViewLayout {
 }
 
 impl ViewLayout {
-
     pub fn overflows(&self) -> bool {
         self.content.width > self.viewport.width || self.content.height > self.viewport.height
     }
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Followed {
     focus: Option<WidgetId>,
     target: Rect,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct ScrollView {
@@ -180,23 +124,15 @@ pub struct ScrollView {
 
     pub axes: Axes,
 
-
-
-
     pub bars: ScrollbarVisibility,
-
 
     pub padding: Padding,
 
-
     pub scrollbar_gap: u16,
-
 
     pub keys: KeyMap<ScrollCmd>,
 
-
     pub follow_focus: bool,
-
 
     pub context: u16,
     followed: Option<Followed>,
@@ -220,49 +156,40 @@ impl ScrollView {
         }
     }
 
-
     pub fn axes(mut self, axes: Axes) -> Self {
         self.axes = axes;
         self
     }
-
 
     pub fn bars(mut self, bars: ScrollbarVisibility) -> Self {
         self.bars = bars;
         self
     }
 
-
     pub fn padding(mut self, padding: Padding) -> Self {
         self.padding = padding;
         self
     }
-
 
     pub fn scrollbar_gap(mut self, cols: u16) -> Self {
         self.scrollbar_gap = cols;
         self
     }
 
-
     pub fn keys(mut self, keys: KeyMap<ScrollCmd>) -> Self {
         self.keys = keys;
         self
     }
-
 
     pub fn follow_focus(mut self, on: bool) -> Self {
         self.follow_focus = on;
         self
     }
 
-
     pub fn context(mut self, cells: u16) -> Self {
         self.context = cells;
         self
     }
-
-
 
     pub fn track_click(mut self, click: TrackClick) -> Self {
         self.pane = self.pane.track_click(click);
@@ -270,16 +197,13 @@ impl ScrollView {
         self
     }
 
-
     pub fn last_layout(&self) -> ViewLayout {
         self.layout
     }
 
-
     pub fn offset(&self) -> (usize, usize) {
         (self.pane.h.offset, self.pane.v.offset)
     }
-
 
     pub fn scroll_to(&mut self, x: usize, y: usize) -> bool {
         let h = self.pane.h.scroll_to(x);
@@ -287,17 +211,11 @@ impl ScrollView {
         h || v
     }
 
-
     pub fn reset(&mut self) {
         self.pane.v.offset = 0;
         self.pane.h.offset = 0;
         self.followed = None;
     }
-
-
-
-
-
 
     pub fn fit(&self, area: Size, measure: impl Fn(Size) -> Size) -> Size {
         let size = measure(area);
@@ -317,11 +235,6 @@ impl ScrollView {
         }
         size
     }
-
-
-
-
-
 
     pub fn layout(&self, area: Rect, content: Size) -> ViewLayout {
         let pad = self.padding;
@@ -383,9 +296,6 @@ impl ScrollView {
         }
     }
 
-
-
-
     pub fn render(
         &mut self,
         area: Rect,
@@ -399,11 +309,6 @@ impl ScrollView {
         draw(inner, frame.buffer(buf), ctx);
         self.end(frame, buf, ctx);
     }
-
-
-
-
-
 
     pub fn begin(
         &mut self,
@@ -437,11 +342,9 @@ impl ScrollView {
             };
         }
 
-
         ctx.scrollable(self.id, l.viewport);
         let shift = Shift::default();
         ctx.shifts.push(shift.clone());
-
 
         let whole = buf.area.union(l.content);
         let mut off = Buffer::empty(whole);
@@ -464,9 +367,6 @@ impl ScrollView {
             shift: Some(shift),
         }
     }
-
-
-
 
     pub fn end(&mut self, frame: ScrollFrame, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let l = frame.layout;
@@ -521,10 +421,6 @@ impl ScrollView {
         }
     }
 
-
-
-
-
     fn follow(
         &mut self,
         off: &Buffer,
@@ -550,7 +446,6 @@ impl ScrollView {
             (Some(c), _) => Some(c),
             (None, Some(r)) if fits(r) => Some(r),
 
-
             (None, Some(r)) => Some(gutter(off, r, ctx).unwrap_or(Rect::new(r.x, r.y, 1, 1))),
             (None, None) => None,
         };
@@ -570,9 +465,6 @@ impl ScrollView {
             .h
             .reveal_span((target.x - l.content.x) as usize, target.width as usize);
     }
-
-
-
 
     pub fn on_key(&mut self, key: &Key) -> Option<Outcome> {
         let cmd = crate::core::keymap::lookup(&self.keys, key)?;
@@ -598,9 +490,6 @@ impl ScrollView {
         })
     }
 
-
-
-
     pub fn pointer(&mut self, ev: &PointerEvent) -> Option<Response<()>> {
         if !ev.on(self.id) {
             return None;
@@ -609,16 +498,9 @@ impl ScrollView {
     }
 }
 
-
 fn mark_regions(ctx: &RenderCtx, mark: HitMark) -> usize {
     mark.regions_len().min(ctx.hits.regions().len())
 }
-
-
-
-
-
-
 
 fn gutter(off: &Buffer, content: Rect, ctx: &RenderCtx) -> Option<Rect> {
     let glyph = ctx.theme.glyphs.focus_bar;
@@ -643,12 +525,9 @@ impl Scrollable for ScrollView {
     }
 }
 
-
-
 #[derive(Debug)]
 pub struct ScrollFrame {
     layout: ViewLayout,
-
 
     off: Option<Buffer>,
     mark: HitMark,
@@ -658,18 +537,13 @@ pub struct ScrollFrame {
 }
 
 impl ScrollFrame {
-
-
     pub fn area(&self) -> Rect {
         self.layout.inner
     }
 
-
     pub fn layout(&self) -> ViewLayout {
         self.layout
     }
-
-
 
     pub fn buffer<'a>(&'a mut self, buf: &'a mut Buffer) -> &'a mut Buffer {
         match self.off.as_mut() {

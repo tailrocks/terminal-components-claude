@@ -1,13 +1,6 @@
-
-
-
 use crate::db::{Catalog, ColType, Table, Value};
 use crate::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};
 use junie_tui::ui::text::fuzzy;
-
-
-
-
 
 pub fn preview_sql(
     table: &Table,
@@ -22,7 +15,6 @@ pub fn preview_sql(
         .collect();
     let pk_where = |src: usize| -> String {
         if pk.is_empty() {
-
             return columns
                 .iter()
                 .enumerate()
@@ -126,8 +118,6 @@ pub fn sql_literal(v: &Value) -> String {
         Value::Json(j) => format!("'{}'::jsonb", j.replace('\'', "''")),
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HistorySource {
@@ -392,7 +382,6 @@ impl History {
         self.entries.truncate(10_000);
     }
 
-
     pub fn search<'a>(
         &'a self,
         query: &str,
@@ -411,8 +400,6 @@ impl History {
             .collect()
     }
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompletionKind {
@@ -474,7 +461,6 @@ pub enum Clause {
     Member,
 }
 
-
 pub fn context(src: &str, cursor: usize) -> (String, Clause, Option<String>) {
     let cursor = cursor.min(src.len());
     let before = &src[..cursor];
@@ -521,7 +507,6 @@ pub fn context(src: &str, cursor: usize) -> (String, Clause, Option<String>) {
     (word, clause, None)
 }
 
-
 pub fn tables_in_statement<'a>(cat: &'a Catalog, stmt: &str) -> Vec<(&'a Table, Option<String>)> {
     let toks: Vec<(TokKind, String)> = tokenize(stmt)
         .into_iter()
@@ -562,7 +547,6 @@ pub fn tables_in_statement<'a>(cat: &'a Catalog, stmt: &str) -> Vec<(&'a Table, 
     }
     out
 }
-
 
 pub fn complete(cat: &Catalog, src: &str, cursor: usize) -> (Vec<Completion>, usize) {
     let (word, clause, qualifier) = context(src, cursor);
@@ -787,7 +771,6 @@ fn col_detail(c: &crate::db::Column) -> String {
     d
 }
 
-
 pub fn auto_trigger(src: &str, cursor: usize) -> bool {
     let (word, clause, _) = context(src, cursor);
     match clause {
@@ -797,8 +780,6 @@ pub fn auto_trigger(src: &str, cursor: usize) -> bool {
         _ => word.len() >= 3,
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SwitchTarget {
@@ -908,8 +889,6 @@ impl SwitcherIndex {
         }
         Self { items }
     }
-
-
 
     pub fn query(&self, q: &str) -> Vec<SwitchItem> {
         let q = q.trim();

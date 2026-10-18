@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -21,7 +17,6 @@ fn page(h: &Harness) -> &DialogsPage {
 fn harness() -> Harness {
     Harness::on(120, 40, PageId::Dialogs)
 }
-
 
 fn open(h: &mut Harness, label: &str) {
     let (x, y) = h.find(label).unwrap_or_else(|| panic!("{label} button"));
@@ -122,7 +117,6 @@ fn chrome_rows_keep_a_tall_dialog_clear_of_the_header_and_footer() {
     open(&mut h, "Release notes");
     let d = h.app.dialog().unwrap().area;
 
-
     assert_eq!(d.y, 3 + 1, "{d:?}");
     assert!(d.bottom() < 30 - 2, "{d:?}");
     assert!(d.height < base.height, "{d:?} vs {base:?}");
@@ -182,11 +176,6 @@ fn the_states_grid_draws_every_row_with_no_second_focus_bar() {
     assert!(h.text().contains("Run task now?"));
     assert!(h.text().contains("Drop table?"));
 }
-
-
-
-
-
 
 #[test]
 fn a_refused_outside_click_on_a_dirty_prompt_flashes_its_frame() {

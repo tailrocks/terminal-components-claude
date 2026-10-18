@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -43,8 +39,6 @@ impl TextAreasPage {
         page.rebuild();
         page
     }
-
-
 
     fn rebuild(&mut self) {
         let long = (1..=28)
@@ -116,7 +110,6 @@ impl TextAreasPage {
             })
             .collect();
     }
-
 
     #[allow(dead_code)]
     pub fn area(&self, i: usize) -> &TextArea {
@@ -206,14 +199,8 @@ impl Page for TextAreasPage {
 }
 
 impl TextAreasPage {
-
-
-
-
     fn tiled(&self, width: u16, ctx: &RenderCtx) -> (Tiled, [Tiled; 2]) {
         let any = Size::new(0, 0);
-
-
 
         let sizes: Vec<Size> = self
             .areas
@@ -331,8 +318,6 @@ impl TextAreasPage {
         }
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

@@ -1,21 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -61,7 +43,6 @@ const SSL: &[&str] = &["Disable", "Require", "Verify full"];
 const CHANNELS: &[&str] = &["Stable", "Beta", "Nightly (may break)"];
 const KEY_FILES: &[&str] = &["~/.ssh/id_ed25519", "~/.ssh/prod_rsa", "~/keys/staging.pem"];
 
-
 const OPENERS: &[(&str, &str)] = &[
     ("Add connection…", "every field kind"),
     ("Server info", "copy rows with y"),
@@ -73,7 +54,6 @@ pub struct DialogKindsPage {
     template: Template,
     opts: PageValues,
     pub buttons: Vec<Button>,
-
 
     open: Vec<&'static str>,
 
@@ -131,7 +111,6 @@ impl DialogKindsPage {
     fn button_row(&self) -> ButtonRow {
         ButtonRow::new().wrap(self.opts.on("dialogkinds.button_wrap"))
     }
-
 
     pub fn form(&self) -> FormDialog {
         let mut f = FormDialog::new(
@@ -290,7 +269,6 @@ impl DialogKindsPage {
         self.open.push(kind);
     }
 
-
     fn open_key_picker(&mut self, cx: &mut Cx) {
         let mut p = Picker::new(KEYS, "SSH key");
         p.set_searchable(false);
@@ -299,8 +277,6 @@ impl DialogKindsPage {
         cx.open(p, LayerTag::new("keys"));
         self.open.push("keys");
     }
-
-
 
     fn on_report(&mut self, kind: &str, r: Report, cx: &mut Cx) {
         if r.closed.is_some() {
@@ -381,7 +357,6 @@ impl DialogKindsPage {
             other => self.log.push(format!("{other:?}")),
         }
     }
-
 
     fn readout(&self) -> Vec<Prop> {
         let f = self.form();
@@ -493,8 +468,6 @@ impl DialogKindsPage {
         ]
     }
 
-
-
     fn layout_at(&self, width: u16) -> (usize, [u16; 3]) {
         let per = (width.saturating_sub(2) / 22).clamp(1, 4) as usize;
         let lines = self.buttons.len().div_ceil(per) as u16 * 3 - 1;
@@ -577,12 +550,10 @@ impl DialogKindsPage {
 const APPLIED_META: &str = "read back from the built dialogs";
 const NOTHING_YET: &str = "Nothing yet · Form(Save | Cancel | Changed | Choose | Action) · Info(Closed | Copy | Action) · Choice(Some(i) | None)";
 
-
 fn preview_lines(name: &str, host: &str, driver: usize) -> Vec<(String, Tone)> {
     let scheme = ["postgres", "mysql", "sqlite"][driver.min(2)];
     vec![(format!("Preview  {scheme}://{host}/{name}"), Tone::Muted)]
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -636,8 +607,6 @@ impl Page for DialogKindsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-
-
         if !self.open.is_empty() {
             return Outcome::Ignored;
         }
@@ -681,8 +650,6 @@ impl Page for DialogKindsPage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
-
-
         if let Some(kind) = self.open.last() {
             return match *kind {
                 "form" => vec![("Tab", "Next field"), ("Enter", "Save"), ("Esc", "Cancel")],

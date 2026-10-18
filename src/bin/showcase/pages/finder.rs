@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Rect};
@@ -53,7 +38,6 @@ const SCOPES: &[&str] = &["Here", "Project", "Everywhere"];
 const SCOPE_LINK: WidgetId = ID.sub("scope");
 
 const CARD_MIN: u16 = 90;
-
 
 struct Action {
     name: &'static str,
@@ -200,8 +184,6 @@ fn risk_tone(risk: &str) -> Tone {
     }
 }
 
-
-
 fn rank(query: &str, scope: usize) -> Vec<usize> {
     let mut hits: Vec<(u32, u32, usize)> = ACTIONS
         .iter()
@@ -264,7 +246,6 @@ impl FinderPage {
         page
     }
 
-
     fn rebuild(&mut self) {
         let q = match self.opts.value("finder.query") {
             "empty" => "",
@@ -284,7 +265,6 @@ impl FinderPage {
         self.set_scope(scope);
     }
 
-
     pub fn set_scope(&mut self, scope: usize) {
         self.scope = scope.min(SCOPES.len() - 1);
         self.query
@@ -303,7 +283,6 @@ impl FinderPage {
         }
         cols
     }
-
 
     fn rerank(&mut self) {
         self.shown = rank(self.query.text(), self.scope);
@@ -333,7 +312,6 @@ impl FinderPage {
         self.results.cursor_row = 0;
     }
 
-
     fn current(&self) -> Option<&'static Action> {
         if self.shown.is_empty() {
             return None;
@@ -345,8 +323,6 @@ impl FinderPage {
     fn run(&mut self, what: &str, cx: &mut Cx) {
         cx.status(format!("✓ Ran {what}"));
     }
-
-
 
     fn open_alternatives(&mut self, anchor: ContextAnchor) {
         let Some(a) = self.current() else {
@@ -495,7 +471,6 @@ impl FinderPage {
             );
     }
 
-
     fn render_line(&mut self, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let Some(a) = self.current() else {
             return;
@@ -516,7 +491,6 @@ impl FinderPage {
             }
             return r.outcome();
         }
-
 
         if ev.id == SCOPE_LINK {
             if click {
@@ -570,7 +544,6 @@ impl FinderPage {
             return Outcome::Ignored;
         };
         if f == self.query.id {
-
             if key.alt() {
                 match key.code {
                     KeyCode::Up => {
@@ -627,8 +600,6 @@ impl FinderPage {
         Outcome::Ignored
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

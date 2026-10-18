@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -10,8 +5,6 @@ use crate::app_tests_feedback::Harness;
 use crate::pages::template::Section;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Theme;
-
-
 
 #[test]
 fn meters_page_shows_its_lists_not_the_stub() {
@@ -125,8 +118,6 @@ fn meters_states_grid_shows_every_content_state() {
         assert!(text.contains(label), "{label}: {text}");
     }
 }
-
-
 
 #[test]
 fn notices_page_shows_every_kind_not_the_stub() {

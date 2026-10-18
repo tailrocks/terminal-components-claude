@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Rect, Size};
@@ -111,8 +105,6 @@ impl ChipsPage {
         page
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = match o.value("chipsselects.chip_nav") {
@@ -121,8 +113,6 @@ impl ChipsPage {
             _ => NavKeys::default(),
         };
         let keymap = match o.value("chipsselects.chip_keymap") {
-
-
             "custom" => vec![
                 (KeyBinding::key(KeyCode::Delete), ChipCmd::Remove),
                 (KeyBinding::char('n'), ChipCmd::Add),
@@ -229,14 +219,12 @@ impl ChipsPage {
         }
         self.sort = sort;
 
-
         self.page_size = select(&self.page_size).dismiss(Dismiss::LIGHT.pass_through(true));
         self.engine = select(&self.engine)
             .disabled(true)
             .help("Fixed by the connection");
         self.sync_lead();
     }
-
 
     #[allow(dead_code)]
     pub fn sort(&self) -> &Select {
@@ -293,7 +281,6 @@ impl ChipsPage {
         }
     }
 
-
     fn on_stream(&mut self, ev: Option<ChipAction>) {
         if let Some(ChipAction::Toggle(i) | ChipAction::Activate(i)) = ev {
             let c = &mut self.streams.chips[i];
@@ -331,10 +318,6 @@ impl ChipsPage {
             "not removable · Space switches a stream"
         }
     }
-
-
-
-
 
     fn tiled(&self, width: u16, ctx: &RenderCtx) -> Tiled {
         let t = ctx.theme;
@@ -482,8 +465,6 @@ impl ChipsPage {
     }
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -590,9 +571,6 @@ impl Page for ChipsPage {
                     return o;
                 }
 
-
-
-
                 for sel in self.selects() {
                     let sid = sel.id;
                     if let Some(r) = sel.route(ev) {
@@ -660,7 +638,6 @@ impl Page for ChipsPage {
     }
 }
 
-
 fn render_strip(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     let t = ctx.theme;
     let panel = Panel::card(Some("Segment strip"));
@@ -685,18 +662,14 @@ fn render_strip(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     }
 }
 
-
 const STRIP_NOTE: &str =
     "the same strip at 44 columns: low-priority segments leave first, from the right";
-
 
 fn note_rows(w: u16) -> u16 {
     text::wrap(STRIP_NOTE, w.max(1) as usize).len() as u16
 }
 
-
 const SELECT_W: u16 = 18;
-
 
 fn strip() -> ([Segment; 5], [Segment; 3]) {
     let left = [
@@ -716,7 +689,6 @@ fn strip() -> ([Segment; 5], [Segment; 3]) {
     (left, right)
 }
 
-
 fn properties() -> Vec<Prop> {
     vec![
         Prop::new("Engine", "PostgreSQL 16.3"),
@@ -734,7 +706,6 @@ fn properties() -> Vec<Prop> {
 fn empty_state() -> EmptyState {
     EmptyState::new("No results yet").hint("A title and one hint, centred in whatever is left")
 }
-
 
 fn render_below(l: Rect, r: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     let t = ctx.theme;

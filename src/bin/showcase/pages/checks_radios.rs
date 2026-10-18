@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -50,8 +46,6 @@ impl ChecksRadiosPage {
         page.rebuild();
         page
     }
-
-
 
     fn rebuild(&mut self) {
         let o = &self.opts;
@@ -216,8 +210,6 @@ impl ChecksRadiosPage {
         );
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

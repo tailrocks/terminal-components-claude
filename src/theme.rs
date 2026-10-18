@@ -1,36 +1,14 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::style::{Color, Modifier, Style};
 
 use crate::ui::ctx::VisualState;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CursorStyle {
-
-
     #[default]
     Fill,
 
-
     Bar,
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Interactive {
@@ -38,18 +16,13 @@ pub struct Interactive {
     pub gutter: &'static str,
     pub gutter_style: Style,
 
-
     pub on_fill: bool,
 }
 
-
 pub type CursorRow = Interactive;
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Plane {
-
     Canvas,
 
     Surface,
@@ -57,7 +30,6 @@ pub enum Plane {
     Card,
 
     Field,
-
 
     Raised,
 
@@ -86,16 +58,12 @@ impl Plane {
         Plane::Danger,
     ];
 
-
-
     pub fn is_fill(self) -> bool {
         matches!(
             self,
             Plane::Highlight | Plane::HighlightDanger | Plane::Accent | Plane::Danger
         )
     }
-
-
 
     pub fn up(self) -> Plane {
         match self {
@@ -106,18 +74,14 @@ impl Plane {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
-
     Row,
 
     CursorRow(CursorStyle),
     Button(ButtonKind),
 
     Tab,
-
 
     Title,
 
@@ -133,13 +97,10 @@ pub enum Kind {
 }
 
 impl Kind {
-
-
     pub fn is_glyph(self) -> bool {
         matches!(self, Kind::Handle | Kind::Seam)
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ladder {
@@ -157,7 +118,6 @@ impl Ladder {
         }
     }
 
-
     pub fn step(&self, hovered: bool, pressed: bool) -> Color {
         if pressed {
             self.pressed
@@ -173,9 +133,6 @@ impl Ladder {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ladders {
     pub canvas: Ladder,
@@ -189,22 +146,13 @@ pub struct Ladders {
     pub accent: Ladder,
     pub danger: Ladder,
 
-
-
-
-
     pub handle: Ladder,
-
-
 
     pub seam: Ladder,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StateModifiers {
-
     pub hover: Modifier,
 
     pub hover_flat: Modifier,
@@ -217,25 +165,16 @@ pub struct StateModifiers {
 
     pub focused: Modifier,
 
-
-
-
-
     pub selected: Modifier,
 
     pub disabled: Modifier,
 
-
-
     pub thumb_hover: Modifier,
-
 
     pub thumb_pressed: Modifier,
 }
 
 impl StateModifiers {
-
-
     pub const COLOR: Self = Self {
         hover: Modifier::empty(),
         hover_flat: Modifier::UNDERLINED,
@@ -249,7 +188,6 @@ impl StateModifiers {
         thumb_pressed: Modifier::empty(),
     };
 
-
     pub const ANSI16: Self = Self {
         hover: Modifier::empty(),
         hover_flat: Modifier::UNDERLINED,
@@ -262,7 +200,6 @@ impl StateModifiers {
         thumb_hover: Modifier::empty(),
         thumb_pressed: Modifier::empty(),
     };
-
 
     pub const MONO: Self = Self {
         hover: Modifier::UNDERLINED,
@@ -278,9 +215,6 @@ impl StateModifiers {
     };
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LevelOverrides {
     pub truecolor: Option<fn(&mut Theme)>,
@@ -290,9 +224,6 @@ pub struct LevelOverrides {
 }
 
 impl LevelOverrides {
-
-
-
     pub const ASCII_MONO: Self = Self {
         truecolor: None,
         ansi256: None,
@@ -310,12 +241,9 @@ impl LevelOverrides {
     }
 }
 
-
 pub fn ascii_glyphs(t: &mut Theme) {
     t.glyphs = Glyphs::ASCII;
 }
-
-
 
 pub fn ascii(t: &mut Theme) {
     t.glyphs = Glyphs::ASCII;
@@ -363,27 +291,8 @@ impl ColorLevel {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Charset {
-
-
     #[default]
     Unicode,
 
@@ -391,15 +300,9 @@ pub enum Charset {
 }
 
 impl Charset {
-
-
     pub const OVERRIDE_ENV: &'static str = "JUNIE_TUI_GLYPHS";
 
-
-
-
     pub const ASCII_TERMS: [&'static str; 5] = ["linux", "vt", "cons25", "dumb", "pcansi"];
-
 
     pub const fn glyphs(self) -> Glyphs {
         match self {
@@ -408,7 +311,6 @@ impl Charset {
         }
     }
 
-
     pub const fn strings(self) -> Strings {
         match self {
             Self::Unicode => Strings::DEFAULT,
@@ -416,14 +318,11 @@ impl Charset {
         }
     }
 
-
     pub fn apply(self, theme: Theme) -> Theme {
         theme
             .with_glyphs(self.glyphs())
             .with_strings(self.strings())
     }
-
-
 
     fn parse(value: &str) -> Option<Self> {
         match value.trim().to_ascii_lowercase().as_str() {
@@ -432,12 +331,6 @@ impl Charset {
             _ => None,
         }
     }
-
-
-
-
-
-
 
     pub fn from_env(get: impl Fn(&str) -> Option<String>, windows: bool) -> Self {
         if let Some(charset) = get(Self::OVERRIDE_ENV).as_deref().and_then(Self::parse) {
@@ -466,13 +359,10 @@ impl Charset {
         Self::Unicode
     }
 
-
-
     pub fn detect() -> Self {
         Self::from_env(|k| std::env::var(k).ok(), cfg!(windows))
     }
 }
-
 
 mod palette {
     use ratatui::style::Color;
@@ -502,11 +392,9 @@ mod palette {
     pub const WHITE_30: Color = rgb(0x4d4d4d);
     pub const WHITE_15: Color = rgb(0x262626);
 
-
     pub const WHITE_43: Color = rgb(0x737373);
 
     pub const WHITE_23: Color = rgb(0x3a3a3a);
-
 
     pub const WHITE_28: Color = rgb(0x474747);
 
@@ -517,13 +405,11 @@ mod palette {
     pub const GREEN_10: Color = rgb(0x0a1c0c);
     pub const ON_GREEN: Color = rgb(0x19191c);
 
-
     pub const RED: Color = rgb(0xf05d5d);
 
     pub const RED_STRONG: Color = rgb(0xff8a8a);
 
     pub const SUCCESS_STRONG: Color = rgb(0x56d364);
-
 
     pub const MUTED: Color = rgb(0x8a8a8a);
     pub const RED_20: Color = rgb(0x2e0f0f);
@@ -533,14 +419,11 @@ mod palette {
     pub const RED_45: Color = rgb(0x7a2a2a);
     pub const AMBER: Color = rgb(0xf59e09);
 
-
     pub const BLUE_INFO: Color = rgb(0x79b8ff);
 
     pub const SYNTAX_STRING: Color = rgb(0x8bd5ca);
 
     pub const SYNTAX_LITERAL: Color = rgb(0xc6a0f6);
-
-
 
     pub const CANVAS_HOVER: Color = rgb(0x1c1c1f);
     pub const CANVAS_PRESSED: Color = rgb(0x303036);
@@ -569,26 +452,13 @@ mod palette {
 
     pub const BLUE_20: Color = rgb(0x1f3460);
 
-
     pub const GREY_INACTIVE: Color = rgb(0x33363e);
 }
 
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum InactiveSelection {
-
-
     #[default]
     Accent,
-
 
     Neutral,
 
@@ -596,14 +466,12 @@ pub enum InactiveSelection {
 }
 
 impl InactiveSelection {
-
     pub const ALL: [InactiveSelection; 3] = [
         InactiveSelection::Accent,
         InactiveSelection::Neutral,
         InactiveSelection::None,
     ];
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Theme {
@@ -617,19 +485,14 @@ pub struct Theme {
     pub field_hover: Color,
     pub popover: Color,
 
-
     pub highlight: Color,
 
     pub highlight_danger: Color,
-
 
     pub error_soft: Color,
 
     pub border_subtle: Color,
     pub border_strong: Color,
-
-
-
 
     pub scroll_track: Color,
 
@@ -654,11 +517,9 @@ pub struct Theme {
     pub warning: Color,
     pub success: Color,
 
-
     pub info: Color,
 
     pub link: Color,
-
 
     pub error_strong: Color,
 
@@ -670,23 +531,15 @@ pub struct Theme {
 
     pub syntax_literal: Color,
 
-
     pub selection_bg: Color,
-
-
-
 
     pub highlight_on_selection: Color,
 
-
     pub accent_bg_hover: Color,
-
 
     pub selection_inactive: Color,
 
-
     pub inactive_selection: InactiveSelection,
-
 
     pub danger_label: Color,
 
@@ -694,40 +547,24 @@ pub struct Theme {
 
     pub mods: StateModifiers,
 
-
-
     pub tint_selection: bool,
-
 
     pub hintbar: HintBarStyle,
 
     pub spacing: Spacing,
 
-
     pub glyphs: Glyphs,
-
 
     pub strings: Strings,
 
-
-
     pub edit_entry: crate::core::edit::EditEntry,
 
-
-
-
-
     pub field_keys: Option<crate::core::edit::FieldKeys>,
-
-
-
 
     pub card_heading: crate::widgets::panel::CardHeading,
 }
 
 impl Theme {
-
-
     pub const DEFAULT_EDIT_ENTRY: crate::core::edit::EditEntry =
         crate::core::edit::EditEntry::Immediate;
 
@@ -804,19 +641,14 @@ impl Theme {
         }
     }
 
-
     pub fn for_level(level: ColorLevel) -> Self {
         Self::for_level_with(level, &LevelOverrides::default())
     }
-
-
-
 
     pub fn centred_hints(mut self) -> Self {
         self.hintbar.align = HintAlign::Center;
         self
     }
-
 
     pub fn for_level_with(level: ColorLevel, overrides: &LevelOverrides) -> Self {
         let mut t = Self::junie();
@@ -830,7 +662,6 @@ impl Theme {
         }
         t
     }
-
 
     fn downgrade_all(&mut self, level: ColorLevel) {
         macro_rules! map {
@@ -905,9 +736,6 @@ impl Theme {
         };
         self.tint_selection = matches!(level, ColorLevel::TrueColor | ColorLevel::Ansi256);
     }
-
-
-
 
     fn apply_level_table(&mut self, level: ColorLevel) {
         match level {
@@ -994,17 +822,14 @@ impl Theme {
         self.highlight = Blue;
         self.highlight_danger = Red;
 
-
         self.highlight_on_selection = Blue;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
-
 
         self.scroll_track = DarkGray;
         self.text_primary = White;
         self.text_secondary = Gray;
         self.text_muted = Gray;
-
 
         self.text_faint = Gray;
         self.text_ghost = DarkGray;
@@ -1014,8 +839,6 @@ impl Theme {
         self.accent_pressed = Green;
         self.accent_bg = Black;
         self.accent_bg_hover = DarkGray;
-
-
 
         self.selection_bg = Black;
         self.accent_bg_subtle = Black;
@@ -1053,8 +876,6 @@ impl Theme {
     fn apply_mono(&mut self) {
         use Color::*;
 
-
-
         let flat = |c| Ladder::new(c, c, c);
         self.canvas = Black;
         self.surface = Black;
@@ -1068,7 +889,6 @@ impl Theme {
         self.highlight_on_selection = DarkGray;
         self.border_subtle = DarkGray;
         self.border_strong = Gray;
-
 
         self.scroll_track = DarkGray;
         self.text_primary = White;
@@ -1091,8 +911,6 @@ impl Theme {
         self.error = White;
         self.error_strong = White;
 
-
-
         self.error_soft = White;
         self.danger_label = White;
         self.error_bg = Black;
@@ -1112,65 +930,45 @@ impl Theme {
         };
     }
 
-
     pub fn with_ladder(mut self, plane: Plane, ladder: Ladder) -> Self {
         *self.ladder_mut(plane) = ladder;
         self
     }
-
-
 
     pub const fn with_glyphs(mut self, glyphs: Glyphs) -> Self {
         self.glyphs = glyphs;
         self
     }
 
-
-
     pub const fn with_strings(mut self, strings: Strings) -> Self {
         self.strings = strings;
         self
     }
-
-
 
     pub const fn with_edit_entry(mut self, entry: crate::core::edit::EditEntry) -> Self {
         self.edit_entry = entry;
         self
     }
 
-
-
-
     pub const fn with_inactive_selection(mut self, look: InactiveSelection) -> Self {
         self.inactive_selection = look;
         self
     }
-
-
-
 
     pub const fn with_card_heading(mut self, style: crate::widgets::panel::CardHeading) -> Self {
         self.card_heading = style;
         self
     }
 
-
-
     pub const fn with_field_keys(mut self, keys: crate::core::edit::FieldKeys) -> Self {
         self.field_keys = Some(keys);
         self
     }
 
-
-
-
     pub fn with_state_modifiers(mut self, mods: StateModifiers) -> Self {
         self.mods = mods;
         self
     }
-
-
 
     pub fn base(&self) -> Style {
         Style::new().fg(self.text_primary).bg(self.canvas)
@@ -1236,10 +1034,6 @@ impl Theme {
         })
     }
 
-
-
-
-
     pub fn backdrop(&self, style: Style) -> Style {
         let bg = match style.bg {
             Some(c) if c == self.canvas || c == self.surface || c == self.surface_elevated => c,
@@ -1247,8 +1041,6 @@ impl Theme {
             Some(_) => self.surface_overlay,
             None => self.canvas,
         };
-
-
 
         let dark_plane = style.bg.is_none_or(|c| {
             [
@@ -1261,10 +1053,6 @@ impl Theme {
             .contains(&c)
         });
 
-
-
-
-
         let reads = |fg: Color, bg: Color| contrast_ratio(fg, bg).is_some_and(|r| r >= 3.0);
         let plane = style.bg.unwrap_or(self.canvas);
         let blank = match style.fg {
@@ -1276,8 +1064,6 @@ impl Theme {
             _ if blank => bg,
             Some(c) if c == self.canvas || c == self.surface => self.text_muted,
 
-
-
             Some(c) if c == self.accent || c == self.focus => self.text_faint,
             Some(c) if c == self.text_primary || c == self.error || c == self.warning => {
                 self.text_muted
@@ -1285,9 +1071,6 @@ impl Theme {
             Some(c) if c == self.text_secondary || c == self.text_on_accent => self.text_faint,
             _ => self.text_ghost,
         };
-
-
-
 
         let fg = match style.fg {
             Some(c) if !blank && reads(c, plane) && !reads(fg, bg) => {
@@ -1298,8 +1081,6 @@ impl Theme {
             }
             _ => fg,
         };
-
-
 
         if !blank && (fg == bg || matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono)) {
             let ink = if self.text_muted != bg {
@@ -1312,13 +1093,6 @@ impl Theme {
         Style::new().fg(fg).bg(bg)
     }
 
-
-
-
-
-
-
-
     pub fn disabled_style(&self) -> Style {
         let style = Style::new().fg(self.disabled);
         if self.level == ColorLevel::Mono {
@@ -1327,14 +1101,6 @@ impl Theme {
             style
         }
     }
-
-
-
-
-
-
-
-
 
     pub fn ladder(&self, plane: Plane) -> Ladder {
         let l = &self.ladders;
@@ -1368,9 +1134,6 @@ impl Theme {
         }
     }
 
-
-
-
     pub fn plane_of(&self, bg: Color) -> Plane {
         let tokens = [
             (self.canvas, Plane::Canvas),
@@ -1384,7 +1147,6 @@ impl Theme {
             (self.highlight_danger, Plane::HighlightDanger),
             (self.accent, Plane::Accent),
             (self.error, Plane::Danger),
-
             (self.accent_bg, Plane::Card),
             (self.accent_bg_hover, Plane::Card),
             (self.accent_bg_subtle, Plane::Card),
@@ -1402,9 +1164,6 @@ impl Theme {
         );
         Plane::Canvas
     }
-
-
-
 
     pub fn interactive(&self, kind: Kind, s: VisualState, plane: Plane) -> Interactive {
         let m = self.mods;
@@ -1427,8 +1186,6 @@ impl Theme {
         let glyph = kind.is_glyph();
 
         if s.disabled {
-
-
             let rest = if body.is_fill() {
                 match kind {
                     Kind::Button(_) => self.ladder(Plane::Raised).rest,
@@ -1441,15 +1198,11 @@ impl Theme {
             let mut fg = self.disabled;
             let mut dim = m.disabled;
             if fg == bg {
-
-
                 fg = self.text_muted;
                 dim |= Modifier::DIM;
             }
             let mut style = Style::new().fg(fg).add_modifier(dim);
             if glyph {
-
-
                 style = style.add_modifier(Modifier::DIM);
             } else {
                 style = style.bg(bg);
@@ -1463,11 +1216,6 @@ impl Theme {
         }
 
         if glyph {
-
-
-
-
-
             let lad = if kind == Kind::Handle {
                 self.ladders.handle
             } else {
@@ -1494,8 +1242,6 @@ impl Theme {
             mods |= m.fill;
         }
         let row_like = matches!(kind, Kind::Row | Kind::CursorRow(CursorStyle::Bar));
-
-
 
         let inactive = self.inactive_look(s);
         let sel = row_like && s.selected && self.tint_selection;
@@ -1528,7 +1274,6 @@ impl Theme {
                 mods |= m.hover_flat;
             }
         }
-
 
         let lifted = s.hovered || s.pressed || s.focused;
         let mut fg = match kind {
@@ -1570,7 +1315,6 @@ impl Theme {
         }
         fg = self.legible(fg, bg);
 
-
         let weighted = match kind {
             Kind::Button(ButtonKind::Primary) => true,
             Kind::CursorRow(CursorStyle::Fill) => fill,
@@ -1581,7 +1325,6 @@ impl Theme {
         if weighted && !s.busy {
             mods |= m.focused;
         }
-
 
         if s.selected && row_like {
             mods |= m.selected;
@@ -1596,12 +1339,8 @@ impl Theme {
         let gutter_fg = if !bar {
             bg
         } else if fill || danger_press {
-
-
             fg
         } else {
-
-
             self.legible_mark(self.focus, bg)
         };
         Interactive {
@@ -1611,15 +1350,6 @@ impl Theme {
             on_fill: fill,
         }
     }
-
-
-
-
-
-
-
-
-
 
     pub fn legible(&self, fg: Color, bg: Color) -> Color {
         let Some(c) = contrast_ratio(fg, bg) else {
@@ -1655,14 +1385,6 @@ impl Theme {
             .0
     }
 
-
-
-
-
-
-
-
-
     pub fn legible_mark(&self, fg: Color, bg: Color) -> Color {
         const MARK: f64 = 3.0;
         let reads = |ink: Color| contrast_ratio(ink, bg).is_none_or(|r| r >= MARK);
@@ -1694,13 +1416,6 @@ impl Theme {
             .0
     }
 
-
-
-
-
-
-
-
     pub fn beside_label(&self, ink: Color, bg: Color, label: Color) -> Color {
         let reads = |c: Color| contrast_ratio(c, bg).is_none_or(|r| r >= 4.5);
         if reads(ink) {
@@ -1713,13 +1428,6 @@ impl Theme {
             .and_then(|pos| ladder[pos + 1..].iter().copied().find(|&c| reads(c)))
             .unwrap_or(label)
     }
-
-
-
-
-
-
-
 
     pub fn frame_on(&self, bg: Color) -> Color {
         let subtle = self.border_subtle;
@@ -1738,31 +1446,17 @@ impl Theme {
         .unwrap_or(self.text_primary)
     }
 
-
     pub fn row(&self, s: VisualState, bg: Color) -> Style {
         self.interactive(Kind::Row, s, self.plane_of(bg)).style
     }
-
-
-
-
-
 
     pub fn cursor_row(&self, s: VisualState, bg: Color, cursor: CursorStyle) -> CursorRow {
         self.interactive(Kind::CursorRow(cursor), s, self.plane_of(bg))
     }
 
-
-
-
-
     pub fn row_ink(&self, row: &CursorRow, ink: Color) -> Color {
         if row.on_fill { self.text_primary } else { ink }
     }
-
-
-
-
 
     pub fn chosen(&self, focused: bool) -> Color {
         if focused {
@@ -1772,12 +1466,6 @@ impl Theme {
         }
     }
 
-
-
-
-
-
-
     pub fn chosen_in(&self, s: VisualState) -> Color {
         if s.focused || self.inactive_look(s) == InactiveSelection::Accent {
             self.accent
@@ -1786,8 +1474,6 @@ impl Theme {
         }
     }
 
-
-
     pub fn inactive_look(&self, s: VisualState) -> InactiveSelection {
         match s.inactive_selection.unwrap_or(self.inactive_selection) {
             InactiveSelection::Accent if s.backdrop => InactiveSelection::Neutral,
@@ -1795,18 +1481,10 @@ impl Theme {
         }
     }
 
-
-
     pub fn lift(&self, bg: Color) -> Color {
         let l = self.ladder(self.plane_of(bg));
         if bg == l.hover { l.pressed } else { l.hover }
     }
-
-
-
-
-
-
 
     pub fn gutter_symbol(&self, s: VisualState) -> &'static str {
         if s.focused && !s.disabled {
@@ -1815,9 +1493,6 @@ impl Theme {
             " "
         }
     }
-
-
-
 
     pub fn gutter(&self, s: VisualState, bg: Color, on_accent: bool) -> Style {
         let fg = if !s.focused || s.disabled {
@@ -1834,8 +1509,6 @@ impl Theme {
         self.interactive(Kind::Button(kind), s, self.plane_of(bg))
             .style
     }
-
-
 
     pub fn field_style(&self, s: VisualState) -> Style {
         let s = VisualState {
@@ -1854,9 +1527,6 @@ impl Theme {
         })
     }
 
-
-
-
     pub fn close_glyph(&self, s: VisualState, host: Style) -> Style {
         let bg = host.bg.unwrap_or(self.canvas);
         let s = VisualState {
@@ -1871,16 +1541,9 @@ impl Theme {
         }
     }
 
-
-
-
-
     pub fn close_plate(&self, s: VisualState, host: Style, danger: bool) -> Style {
         self.danger_plate(s, self.close_glyph(s, host), danger)
     }
-
-
-
 
     pub fn danger_plate(&self, s: VisualState, style: Style, danger: bool) -> Style {
         if !danger || s.disabled {
@@ -1897,9 +1560,6 @@ impl Theme {
         }
     }
 
-
-
-
     pub fn cell_cursor(&self, error: bool, pressed: bool) -> Style {
         let s = VisualState {
             focused: true,
@@ -1910,11 +1570,6 @@ impl Theme {
         self.interactive(Kind::CursorRow(CursorStyle::Fill), s, Plane::Canvas)
             .style
     }
-
-
-
-
-
 
     pub fn cursor_in_selection(&self, error: bool, pressed: bool) -> Style {
         let st = self.cell_cursor(error, pressed);
@@ -1931,9 +1586,6 @@ impl Theme {
             .fg(self.legible(st.fg.unwrap_or(self.text_primary), bg))
     }
 
-
-
-
     pub fn rule_on(&self, bg: Color) -> Color {
         let rule = match self.plane_of(bg) {
             Plane::Raised | Plane::Popover | Plane::Field => self.border_strong,
@@ -1941,9 +1593,6 @@ impl Theme {
         };
         if rule == bg { self.text_muted } else { rule }
     }
-
-
-
 
     pub fn match_current(&self) -> Style {
         let style = Style::new()
@@ -1957,11 +1606,6 @@ impl Theme {
         }
     }
 
-
-
-
-
-
     pub fn selection(&self) -> Style {
         let style = Style::new().fg(self.text_primary).bg(self.selection_bg);
         if matches!(self.level, ColorLevel::Ansi16 | ColorLevel::Mono) {
@@ -1971,14 +1615,9 @@ impl Theme {
         }
     }
 
-
-
     pub fn scrollbar_track(&self) -> Style {
         Style::new().fg(self.scroll_track)
     }
-
-
-
 
     pub fn scrollbar_thumb(&self, hovered: bool, pressed: bool) -> Style {
         let s = VisualState {
@@ -2004,14 +1643,9 @@ impl Theme {
         }
     }
 
-
-
-
     pub fn tone_on(&self, tone: Tone, bg: Color) -> Color {
         self.legible(self.tone(tone), bg)
     }
-
-
 
     pub fn link_style(&self, hovered_or_focused: bool) -> Style {
         let style = Style::new().fg(self.link);
@@ -2022,14 +1656,9 @@ impl Theme {
         }
     }
 
-
-
-
-
     pub fn status(&self, kind: StatusKind) -> (&'static str, Style) {
         self.status_at(kind, 0)
     }
-
 
     pub fn status_at(&self, kind: StatusKind, tick: u64) -> (&'static str, Style) {
         let g = &self.glyphs;
@@ -2050,8 +1679,6 @@ impl Theme {
         (glyph, style)
     }
 
-
-
     pub fn status_label(&self, kind: StatusKind) -> Style {
         Style::new().fg(match kind {
             StatusKind::Running => self.info,
@@ -2063,9 +1690,6 @@ impl Theme {
         self.tone(kind.tone())
     }
 
-
-
-
     pub fn env(&self, env: EnvKind) -> (&'static str, Style) {
         let style = Style::new().fg(self.tone(env.tone()));
         let style = if env == EnvKind::Production {
@@ -2075,11 +1699,6 @@ impl Theme {
         };
         (self.glyphs.env(env), style)
     }
-
-
-
-
-
 
     pub fn syntax(&self, tone: SyntaxTone) -> Style {
         match tone {
@@ -2108,9 +1727,6 @@ impl Theme {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tone {
     #[default]
@@ -2129,11 +1745,8 @@ pub enum Tone {
     Danger,
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusKind {
-
     Ok,
 
     Fail,
@@ -2163,10 +1776,6 @@ impl StatusKind {
         StatusKind::Skipped,
     ];
 
-
-
-
-
     pub const fn tone(self) -> Tone {
         match self {
             StatusKind::Ok => Tone::Success,
@@ -2180,7 +1789,6 @@ impl StatusKind {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnvKind {
     Production,
@@ -2190,9 +1798,6 @@ pub enum EnvKind {
 }
 
 impl EnvKind {
-
-
-
     pub const fn tone(self) -> Tone {
         match self {
             EnvKind::Production => Tone::Danger,
@@ -2202,7 +1807,6 @@ impl EnvKind {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyntaxTone {
@@ -2232,28 +1836,16 @@ pub enum BadgeKind {
     Edit,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum HintAlign {
-
-
     #[default]
     Start,
 
     Center,
 }
 
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Glyphs {
-
     pub focus_bar: &'static str,
 
     pub current: &'static str,
@@ -2284,7 +1876,6 @@ pub struct Glyphs {
 
     pub check_mixed: &'static str,
 
-
     pub tick: &'static str,
 
     pub check_off_narrow: &'static str,
@@ -2309,23 +1900,15 @@ pub struct Glyphs {
 
     pub overflow_right: &'static str,
 
-
     pub more_titles: &'static str,
-
-
 
     pub scroll_track: &'static str,
 
-
     pub scroll_thumb: &'static str,
-
-
 
     pub scroll_h_track: &'static str,
 
-
     pub scroll_h_thumb: &'static str,
-
 
     pub divider: &'static str,
 
@@ -2350,7 +1933,6 @@ pub struct Glyphs {
     pub bar_fill: &'static str,
 
     pub bar_empty: &'static str,
-
 
     pub bar_stale: &'static str,
 
@@ -2386,7 +1968,6 @@ pub struct Glyphs {
 }
 
 impl Glyphs {
-
     pub fn env(&self, env: EnvKind) -> &'static str {
         match env {
             EnvKind::Production => self.env_production,
@@ -2395,7 +1976,6 @@ impl Glyphs {
             EnvKind::Local => "",
         }
     }
-
 
     pub const UNICODE: Self = Self {
         focus_bar: "▎",
@@ -2460,8 +2040,6 @@ impl Glyphs {
         border: ratatui::symbols::border::ROUNDED,
     };
 
-
-
     pub const ASCII: Self = Self {
         focus_bar: "|",
         current: ">",
@@ -2491,7 +2069,6 @@ impl Glyphs {
         overflow_left: "<",
         overflow_right: ">",
         more_titles: ">",
-
 
         scroll_track: ":",
         scroll_thumb: "#",
@@ -2536,16 +2113,12 @@ impl Glyphs {
         },
     };
 
-
     pub fn spinner_frame(&self, tick: u64) -> &'static str {
         match self.spinner.len() {
             0 => " ",
             n => self.spinner[(tick % n as u64) as usize],
         }
     }
-
-
-
 
     pub fn key_label<'a>(&self, s: &'a str) -> std::borrow::Cow<'a, str> {
         if self.arrows == Self::UNICODE.arrows
@@ -2576,46 +2149,27 @@ impl Default for Glyphs {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Strings {
-
     pub cancel: &'static str,
 
     pub save: &'static str,
 
     pub close: &'static str,
 
-
     pub type_to_confirm: &'static str,
-
 
     pub type_to_confirm_hint: &'static str,
 
-
     pub ack_mismatch: &'static str,
 
-
     pub grid_read_only: &'static str,
-
 
     pub grid_row_deleted: &'static str,
 
     pub leave_unsaved_title: &'static str,
 
-
     pub leave_unsaved_body: &'static str,
-
 
     pub leave_discard_body: &'static str,
 
@@ -2632,7 +2186,6 @@ pub struct Strings {
     pub leave_stop: &'static str,
 
     pub leave_stay: &'static str,
-
 
     pub more_cut: &'static str,
 
@@ -2654,9 +2207,7 @@ pub struct Strings {
 
     pub loading_rows: &'static str,
 
-
     pub fetching: &'static str,
-
 
     pub fetch_more: &'static str,
 
@@ -2700,9 +2251,7 @@ pub struct Strings {
 
     pub help_footer: &'static str,
 
-
     pub not_in_preview: &'static str,
-
 
     pub done: &'static str,
 
@@ -2714,12 +2263,10 @@ pub struct Strings {
 
     pub tip_new_tab: &'static str,
 
-
     pub tip_overflow: &'static str,
 }
 
 impl Strings {
-
     pub const DEFAULT: Self = Self {
         cancel: "Cancel",
         save: "Save",
@@ -2780,8 +2327,6 @@ impl Strings {
         tip_overflow: "Show hidden",
     };
 
-
-
     pub const ASCII: Self = Self {
         more_cut: "... {} more",
         search_placeholder: "Type to search...",
@@ -2791,8 +2336,6 @@ impl Strings {
         help_footer: "^v Scroll | Esc Close",
         ..Self::DEFAULT
     };
-
-
 
     pub fn fill(template: &str, args: &[&dyn std::fmt::Display]) -> String {
         let mut out = String::with_capacity(template.len() + 8);
@@ -2810,9 +2353,6 @@ impl Strings {
         out
     }
 
-
-
-
     pub fn follow(text: &mut String, old: &str, new: &str) {
         if old != new && text == old {
             new.clone_into(text);
@@ -2826,8 +2366,6 @@ impl Default for Strings {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Insets {
     pub x: u16,
@@ -2840,11 +2378,8 @@ impl Insets {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Spacing {
-
     pub button_gap: u16,
 
     pub dialog: Insets,
@@ -2852,7 +2387,6 @@ pub struct Spacing {
     pub panel: Insets,
 
     pub popup: Insets,
-
 
     pub chrome_edge: u16,
 }
@@ -2873,25 +2407,13 @@ impl Default for Spacing {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HintBarStyle {
-
     pub align: HintAlign,
-
-
-
 
     pub status_min_share: u8,
 
-
-
-
     pub compact: bool,
-
-
 
     pub pinned_keys: &'static [&'static str],
 }
@@ -2910,8 +2432,6 @@ impl Default for HintBarStyle {
         Self::DEFAULT
     }
 }
-
-
 
 fn approx_rgb(c: Color) -> Option<(u8, u8, u8)> {
     const BASIC: [(u8, u8, u8); 16] = [
@@ -2964,8 +2484,6 @@ fn approx_rgb(c: Color) -> Option<(u8, u8, u8)> {
     })
 }
 
-
-
 fn bright(c: Color) -> Option<Color> {
     Some(match c {
         Color::Red => Color::LightRed,
@@ -2979,7 +2497,6 @@ fn bright(c: Color) -> Option<Color> {
     })
 }
 
-
 fn rel_luminance((r, g, b): (u8, u8, u8)) -> f64 {
     let ch = |v: u8| {
         let v = v as f64 / 255.0;
@@ -2991,8 +2508,6 @@ fn rel_luminance((r, g, b): (u8, u8, u8)) -> f64 {
     };
     0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
 }
-
-
 
 pub fn contrast_ratio(a: Color, b: Color) -> Option<f64> {
     let (x, y) = (rel_luminance(approx_rgb(a)?), rel_luminance(approx_rgb(b)?));
@@ -3024,7 +2539,6 @@ fn nearest_256(r: u8, g: u8, b: u8) -> u8 {
     let gi = ((avg - 8).max(0) / 10).min(23);
     let gv = 8 + gi * 10;
     let gray_err = (gv - r as i32).pow(2) + (gv - g as i32).pow(2) + (gv - b as i32).pow(2);
-
 
     let chroma = r.max(g).max(b) as i32 - r.min(g).min(b) as i32;
     if gray_err < cube_err && chroma <= 30 {
@@ -3095,11 +2609,6 @@ mod tests {
         let (x, y) = (luminance(a), luminance(b));
         (x.max(y) + 0.05) / (x.min(y) + 0.05)
     }
-
-
-
-
-
 
     #[test]
     fn an_unfocused_selected_row_keeps_its_inactive_selection() {
@@ -3181,7 +2690,6 @@ mod tests {
                     );
                     assert_eq!(own.bg, Some(lad.rest));
 
-
                     let ink = t.chosen_in(sel);
                     if look == InactiveSelection::Accent {
                         assert_eq!(ink, t.accent);
@@ -3229,9 +2737,6 @@ mod tests {
                 t.popover,
             ];
             for bg in planes {
-
-
-
                 for fg in [
                     t.canvas,
                     t.text_ghost,
@@ -3283,9 +2788,6 @@ mod tests {
     }
 
     use super::*;
-
-
-
 
     #[test]
     fn charset_follows_the_terminal() {
@@ -3427,8 +2929,6 @@ mod tests {
         Kind::Seam,
     ];
 
-
-
     fn looks_distinct(t: &Theme, kind: Kind, a: &Interactive, b: &Interactive) -> bool {
         let mods = a.style.add_modifier != b.style.add_modifier || a.gutter != b.gutter;
         if t.level == ColorLevel::Mono {
@@ -3457,7 +2957,6 @@ mod tests {
                     if kind.is_glyph() && !glyph_plane(plane) {
                         continue;
                     }
-
 
                     for base in [
                         VisualState::default(),
@@ -3498,7 +2997,6 @@ mod tests {
                             "rest = flash: {ctx}"
                         );
 
-
                         let dis = |f: fn(&mut VisualState)| {
                             let mut s = base;
                             s.disabled = true;
@@ -3526,8 +3024,6 @@ mod tests {
                             let bg = it.style.bg.unwrap_or_else(|| t.ladder(plane).rest);
                             assert_ne!(fg, bg, "{name} ink = fill: {ctx}");
                             if level == ColorLevel::TrueColor && name != "disabled" {
-
-
                                 let min = if kind.is_glyph() { 3.0 } else { 4.5 };
                                 if !(kind.is_glyph() && name == "rest") {
                                     let c = contrast(fg, bg);
@@ -3540,7 +3036,6 @@ mod tests {
             }
         }
     }
-
 
     fn glyph_plane(p: Plane) -> bool {
         matches!(
@@ -3568,7 +3063,6 @@ mod tests {
                             looks_distinct(&t, kind, &other, &disabled),
                             "{name} = disabled: {ctx}"
                         );
-
 
                         if !matches!(kind, Kind::CursorRow(_) | Kind::Close | Kind::Field) {
                             assert!(
@@ -3744,7 +3238,6 @@ mod tests {
             let (rest, hover, pressed) =
                 (thumb(false, false), thumb(true, false), thumb(true, true));
             if level == ColorLevel::Mono {
-
                 assert_eq!(rest.add_modifier, Modifier::empty());
                 assert_eq!(hover.add_modifier, Modifier::BOLD);
                 assert_eq!(pressed.add_modifier, Modifier::REVERSED);
@@ -3787,7 +3280,6 @@ mod tests {
         assert!(luminance(t.ladders.handle.hover) > luminance(t.ladders.handle.rest));
     }
 
-
     fn text_planes(t: &Theme) -> [(&'static str, Color); 5] {
         [
             ("canvas", t.canvas),
@@ -3820,7 +3312,6 @@ mod tests {
             }
         }
 
-
         for (plane, bg) in &text_planes(&t)[..4] {
             let c = contrast(t.text_muted, *bg);
             assert!(c >= 4.5, "text_muted on {plane} = {c:.2}");
@@ -3846,9 +3337,6 @@ mod tests {
         assert_eq!(t.tone_on(Tone::Success, t.popover), t.success_strong);
         assert_eq!(t.tone_on(Tone::Error, t.surface_elevated), t.error);
     }
-
-
-
 
     #[test]
     fn frames_focus_bars_and_tab_marks_read_on_their_plane_at_every_level() {
@@ -3877,7 +3365,6 @@ mod tests {
             assert_ne!(frame, t.popover, "{level:?}: frame vanishes");
             let rule = t.rule_on(t.popover);
             assert_ne!(rule, t.popover, "{level:?}: separator vanishes");
-
 
             if matches!(level, ColorLevel::Ansi16 | ColorLevel::Mono) {
                 for (name, ink) in [("frame", frame), ("separator", rule)] {
@@ -4101,7 +3588,6 @@ mod tests {
                     assert_eq!(t.env(env).1.fg, Some(t.tone(env.tone())), "{env:?}");
                 }
 
-
                 let (g, st) = t.env(EnvKind::Production);
                 assert!(st.add_modifier.contains(Modifier::BOLD));
                 assert_eq!(crate::ui::text::width(g), 1);
@@ -4152,9 +3638,6 @@ mod tests {
         assert_eq!(t.syntax(SyntaxTone::Ident).fg, Some(t.text_primary));
     }
 
-
-
-
     #[test]
     fn the_cursor_inside_a_selection_reads_and_stands_apart() {
         for level in ColorLevel::ALL {
@@ -4173,7 +3656,6 @@ mod tests {
             let r = contrast_ratio(c.fg.unwrap(), bg).unwrap();
             assert!(r >= 4.5, "{level:?}: cursor text {r:.2}");
             if level != ColorLevel::Ansi16 {
-
                 assert_ne!(bg, t.selection_bg, "{level:?}");
                 assert_ne!(bg, t.highlight, "{level:?}");
             }

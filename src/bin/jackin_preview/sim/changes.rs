@@ -1,12 +1,6 @@
-
-
-
-
-
 pub use junie_tui::widgets::diff::{
     DiffFile as ChangedFile, DiffHunk as Hunk, DiffLine, DiffStatus,
 };
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangeSet {
@@ -56,8 +50,6 @@ fn a(s: &str) -> DiffLine {
 fn r(s: &str) -> DiffLine {
     DiffLine::remove(s)
 }
-
-
 
 fn hunks_for(path: &str, k: u64) -> Vec<Hunk> {
     let base = 8 + (k % 7) as usize * 5;
@@ -265,9 +257,6 @@ fn renamed_file() -> ChangedFile {
         }],
     }
 }
-
-
-
 
 pub fn changes_for(
     instance_id: &str,

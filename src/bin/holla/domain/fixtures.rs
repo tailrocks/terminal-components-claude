@@ -1,7 +1,3 @@
-
-
-
-
 use std::collections::BTreeMap;
 
 use crate::domain::activity::ActivityKind;
@@ -1363,7 +1359,6 @@ pub fn world_for(scenario: Scenario, motion: Motion) -> World {
     w
 }
 
-
 fn seed_custom(
     w: &mut World,
     root: &str,
@@ -1396,12 +1391,9 @@ fn seed_custom(
     w.custom_project = Some(cfg);
 }
 
-
-
 pub fn seed_world(w: &mut World) {
     seed_tools(w);
     seed_fs(w);
-
 
     if w.persisted.frecency.is_none() {
         w.persisted.frecency = Some(w.memory.usage.serialize());
@@ -1472,7 +1464,6 @@ fn seed_tools(w: &mut World) {
     }
 }
 
-
 fn sized(fs: &mut Fs, path: &str, bytes: u64, age_days: i64) {
     fs.file(path, bytes.max(1), age_days);
 }
@@ -1480,8 +1471,6 @@ fn sized(fs: &mut Fs, path: &str, bytes: u64, age_days: i64) {
 fn gb(gb: f32) -> u64 {
     (gb as f64 * 1024.0 * 1024.0 * 1024.0) as u64 / BLOCK * BLOCK
 }
-
-
 
 struct SeedFs(Fs);
 
@@ -2463,7 +2452,6 @@ fn activities_multi(motion: Motion) -> World {
         a.state = crate::domain::activity::ActivityState::Detached;
     }
 
-
     for _ in 0..48 {
         w.tick();
     }
@@ -2731,8 +2719,6 @@ fn hard_cases(motion: Motion) -> World {
     w
 }
 
-
-
 pub fn plan_docker_cleanup(w: &World) -> Plan {
     let d = &w.docker;
     let host = w.host.name.clone();
@@ -2938,9 +2924,6 @@ pub fn plan_upgrade(w: &World) -> Plan {
     .fact("Reboot", "required after the kernel upgrade")
     .follow_up("Outdated tools", "mise.outdated")
 }
-
-
-
 
 pub fn plan_upgrade_all(w: &World) -> Plan {
     let host = w.host.name.clone();

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Effect {
     DockerRestart(String),

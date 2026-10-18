@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::VecDeque;
 
 use ratatui::buffer::Buffer;
@@ -32,9 +17,7 @@ use junie_tui::widgets::tabs::Tabs;
 
 pub const ID: WidgetId = WidgetId::of("app.inspector");
 
-
 pub const LOG_LEN: usize = 50;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tab {
@@ -55,7 +38,6 @@ impl Tab {
 pub struct Inspector {
     pub tabs: Tabs,
     pub options: OptionsView,
-
 
     pub view: ScrollView,
 
@@ -112,14 +94,12 @@ impl Inspector {
         self.view.reset();
     }
 
-
     pub fn for_page(&mut self, page: PageId) {
         if self.page != page {
             self.page = page;
             self.options = view(page);
         }
     }
-
 
     pub fn record(&mut self, input: &Input, out: Outcome) {
         let what = match input {
@@ -143,13 +123,9 @@ impl Inspector {
         self.log.truncate(LOG_LEN);
     }
 
-
     pub fn has_focus(&self, focus: Option<WidgetId>) -> bool {
         focus.is_some_and(|f| f == self.tabs.id || self.options.has_control(f))
     }
-
-
-
 
     pub fn render(
         &mut self,
@@ -171,7 +147,6 @@ impl Inspector {
             .collect();
         let size = match self.tab() {
             Tab::State => {
-
                 let w = avail.width.saturating_sub(2).max(1);
                 let rows = props::measure(state, w) + 2 + props::measure(&log, w).max(1);
                 ratatui::layout::Size::new(avail.width, rows)
@@ -191,9 +166,7 @@ impl Inspector {
         self.options.on_blur(from)
     }
 
-
     pub fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Option<(Outcome, Option<OptSet>)> {
-
         if let PageEvent::Pointer(p) = ev
             && let Some(r) = self.view.pointer(p)
         {
@@ -228,7 +201,6 @@ impl Inspector {
         None
     }
 
-
     pub fn hints(&self, focus: Option<WidgetId>) -> Option<Vec<Hint>> {
         if focus == Some(self.tabs.id) {
             return Some(vec![("←→", "Switch tab")]);
@@ -236,7 +208,6 @@ impl Inspector {
         self.options.hints(focus)
     }
 }
-
 
 fn render_state(
     area: Rect,

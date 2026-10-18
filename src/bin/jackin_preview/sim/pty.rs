@@ -1,7 +1,3 @@
-
-
-
-
 use std::collections::VecDeque;
 
 use junie_tui::core::id::WidgetId;
@@ -20,8 +16,6 @@ pub const MIN_PANE_COLS: u16 = 20;
 pub const MIN_PANE_ROWS: u16 = 4;
 pub const MAX_LABEL: usize = 16;
 
-
-
 pub use junie_tui::ui::pane_tree::{Direction, PaneNode, Seam, nearest};
 
 #[derive(Debug, Clone)]
@@ -38,11 +32,8 @@ impl Tab {
     }
 }
 
-
-
 #[derive(Debug, Clone)]
 pub enum Step {
-
     Emit(i64, Line),
     State(AgentState),
 
@@ -96,7 +87,6 @@ fn mixed(parts: &[(&str, Tone)]) -> Line {
 fn e(delay: i64, l: Line) -> Step {
     Step::Emit(delay, l)
 }
-
 
 pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
     let ws = format!("~/{workspace}");
@@ -740,7 +730,6 @@ pub fn script(agent: Option<Agent>, workspace: &str) -> Vec<Step> {
     }
 }
 
-
 fn replies(agent: Option<Agent>) -> Vec<Vec<Line>> {
     match agent {
         Some(Agent::ClaudeCode) => vec![
@@ -866,7 +855,6 @@ impl AgentProcess {
         }
     }
 
-
     pub fn boot_all(&mut self, out: &mut Vec<Line>) {
         while self.pc < self.script.len() {
             match &self.script[self.pc] {
@@ -889,7 +877,6 @@ impl AgentProcess {
             && self.reply_queue.is_empty()
     }
 
-
     pub fn tick(&mut self, now_ms: i64) -> Vec<Line> {
         let mut out = vec![];
         while let Some((due, _)) = self.reply_queue.front() {
@@ -905,7 +892,6 @@ impl AgentProcess {
             && self.awaiting()
             && !self.awaiting_permission
         {
-
             self.state = AgentState::Done;
         }
         while self.pc < self.script.len() {
@@ -939,7 +925,6 @@ impl AgentProcess {
         }
         out
     }
-
 
     pub fn on_input(&mut self, input: &str, now_ms: i64, workspace: &str) -> Vec<Line> {
         let mut out = vec![];
@@ -1066,8 +1051,6 @@ impl AgentProcess {
     }
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct Pane {
     pub id: PaneId,
@@ -1111,8 +1094,6 @@ impl Pane {
         ]
     }
 
-
-
     fn refresh_prompt(&mut self) {
         let waiting = self.proc.awaiting() || !self.input.is_empty();
         if waiting {
@@ -1154,7 +1135,6 @@ impl Pane {
                 continue;
             }
             if l.first().is_some_and(|s| s.text == "⠋ ") {
-
                 self.term.push(l);
                 continue;
             }
@@ -1188,13 +1168,10 @@ impl Pane {
     }
 
     pub fn type_char(&mut self, c: char, now_ms: i64, workspace: &str) {
-
         self.term.set_follow(true);
         let _ = now_ms;
         let _ = workspace;
-        if !self.proc.awaiting() && self.proc.agent.is_some() {
-
-        }
+        if !self.proc.awaiting() && self.proc.agent.is_some() {}
         self.input.push(c);
         self.refresh_prompt();
     }
@@ -1230,8 +1207,6 @@ impl Pane {
         self.proc.state
     }
 }
-
-
 
 #[derive(Debug, Clone)]
 pub struct Daemon {
@@ -1316,8 +1291,6 @@ impl Daemon {
         self.active
     }
 
-
-
     pub fn split(
         &mut self,
         dir: SplitDir,
@@ -1339,7 +1312,6 @@ impl Daemon {
             None
         }
     }
-
 
     pub fn close_pane(&mut self, id: PaneId) -> bool {
         let Some(ti) = self.tabs.iter().position(|t| t.leaves().contains(&id)) else {
@@ -1375,7 +1347,6 @@ impl Daemon {
             self.active = self.tabs.len().saturating_sub(1);
         }
     }
-
 
     pub fn tab_label(&self, tab: &Tab, account_suffix: &dyn Fn(&Pane) -> Option<String>) -> String {
         if let Some(c) = &tab.custom_label {
@@ -1428,7 +1399,6 @@ impl Daemon {
         }
         changed
     }
-
 
     pub fn touched_files(&self) -> Vec<String> {
         let mut v: Vec<String> = self

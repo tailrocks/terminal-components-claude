@@ -1,12 +1,7 @@
-
-
-
 use junie_tui::clock::SimClock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scenario {
-
-
     FirstUse,
 
     Returning,
@@ -54,16 +49,11 @@ impl Scenario {
     }
 }
 
-
 pub const EPOCH_SECS: i64 = 1_788_401_640;
 
 pub const UTC_OFFSET_SECS: i64 = 7 * 3600;
 
-
-
-
 pub const CLOCK: SimClock = SimClock::new(EPOCH_SECS, UTC_OFFSET_SECS);
-
 
 pub use junie_tui::motion::Motion;
 
