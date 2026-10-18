@@ -5,6 +5,7 @@
 - [Architecture](architecture.md): current package shape and the split-crate migration target.
 - [Design](design.md): product authority and the detailed visual/interaction contracts.
 - [Development](development.md): install, run, checks, visual testing, and generated-doc workflows.
+- [Dependencies](dependencies.md): current crate/tool pins, upstream compatibility holds, and upgrade workflow.
 - [Roadmap](plan.md): active workstreams and closure expectations.
 - [Remaining work](remaining-work.md): branch-specific task IDs, open requirements, dependencies, and scoped closures.
 - [Documentation maintenance](documentation-scope.md): update active specifications and preserve generated or pinned inputs.

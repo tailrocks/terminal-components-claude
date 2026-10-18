@@ -2,13 +2,16 @@
 
 ## Prerequisites
 
-Use the repository pins in `rust-toolchain.toml` and `mise.toml` (Rust 1.99.1 with `clippy` and `rustfmt`; `cargo-nextest` 0.9.148). Install the pinned tools and fetch the locked crate dependencies before working offline:
+Use the repository pins in `rust-toolchain.toml` and `mise.toml` (Rust 1.99.1 with `clippy` and `rustfmt`; Cargo MSRV declaration 1.99; `cargo-nextest` 0.9.148). The [dependency guide](dependencies.md) records the current pins and compatibility holds. Install the pinned tools and fetch the locked crate dependencies before working offline:
 
 ```sh
 mise install
 cargo fetch --locked
 cargo nextest --version
+mise exec -- mbx --help
 ```
+
+`mbx` is installed as an explicit CLI; mise does not automatically wrap other commands with it.
 
 ## Run the applications
 
