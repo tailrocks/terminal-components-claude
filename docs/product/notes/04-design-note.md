@@ -1,5 +1,26 @@
 # Holla design note
 
+## Status
+
+Current project documentation; individual evidence and task state may be revision-scoped.
+
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+
+## Current evidence
+
+Use the cited sources and current repository state; historical records retain their original scope.
+
+## Remaining work
+
+Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
+
+## Verification
+
+Run current task-specific checks before treating implementation as complete.
+
+
 What `holla` is on this design system, why this interaction model won,
 what was rejected, and how each CONCEPT.md product principle (§13) is met.
 Companion notes: `00-decisions.md` (numbered decisions), `01-concept-constraints.md`,

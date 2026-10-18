@@ -7,6 +7,26 @@ kind: test
 
 # TASK-003 — Capture all immutable Holla oracle scenarios
 
+## Status
+
+Historical task contract. This document records required work; it does not prove the task is complete or the current implementation is ready.
+
+## Authority
+
+Use `main` for the target split-crate architecture and reusable APIs. The refactor on `main` remains incomplete, broken, and not ready. Use `design/interaction-polish` for intended UI/UX, colors, layout, interactions, and behavior. Its planned work remains active; its monolithic structure is not the target architecture.
+
+## Current evidence
+
+Commit pins, source names, test identities, and oracle outputs below are historical task inputs. They identify this task's frozen evidence scope; they do not establish current product status. Check current source and host-protected receipts before making completion claims. Nested `trusted/*fixture/README.md` and `AGENTS.md` files are synthetic qualification inputs, not current project documentation or status.
+
+## Remaining work
+
+Keep every concrete requirement, acceptance criterion, checklist item, and trusted obligation in this package. Each remains open until its required current evidence passes the task's authoritative gate. Plans and historical completion labels do not close work.
+
+## Verification
+
+The task's `verify.toml`, protected host receipts, and specified checks define its gate and scope. Preserve exact commands, pins, IDs, and machine inputs. A prior check or an unverified report does not prove current completion.
+
 ## Goal
 
 All 34 Holla oracle worlds and every HO scenario expand into sealed-source, repeatable action/frame/semantic evidence.
@@ -15,7 +35,7 @@ All 34 Holla oracle worlds and every HO scenario expand into sealed-source, repe
 
 Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
-This is a later execution task. The current planning goal only creates this immutable package. UI authority is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts from `7b27732a8c3c131760ec3438f641cb3c11343a42`. The accepted producer product is `oracle-holla`. Task dependencies are `TASK-001`, `TASK-070`, `TASK-071`, `TASK-072`. Dependency status alone never proves integrated source ancestry or trusted product acceptance. Follow the standalone host workflow in proof-contract.md; do not execute taskfmt's main-only dispatcher or promotion.
+This package defines a later execution task; it does not prove current implementation or completion. Historical task inputs: UI snapshot revision `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture source revision `7b27732a8c3c131760ec3438f641cb3c11343a42`. These pins identify frozen task inputs only. Current architecture authority is the split-crate direction of `main`; current UI/UX and behavior authority is `design/interaction-polish`. The accepted producer product is `oracle-holla`. Task dependencies are `TASK-001`, `TASK-070`, `TASK-071`, `TASK-072`. Dependency status alone never proves integrated source ancestry or trusted product acceptance. Follow the standalone host workflow in proof-contract.md; do not execute taskfmt's main-only dispatcher or promotion.
 
 Read before editing:
 
@@ -158,9 +178,6 @@ Then every owned product artifact binds the correct source and complete actual e
 
 All `account-tests` checks in this task use TASK-071's independently qualified preparation mode, fixed by the host-owned per-check context. They do not require this task's own future accepted product or TASK-008's future disposition receipt. The host independently discovers the exact pinned-source inventory using protected source/module/profile inputs and actual compiler listings/execution; a candidate inventory or disposition is a proposal to validate, never the membership or allowed-failure authority. The host freezes the preparation expectation register before dispatch, recording exact source/test/outcome/classification and any source-evidenced pre-existing product failure. Require complete execution and unchanged compatible assertions; failures remain failed diagnostics. Missing/unknown/new failures and self-approved omissions fail. TASK-008 may use accepted TASK-007/TASK-006 products but cannot use its own proposal as a receipt. Only later production consumers require accepted inventory and disposition receipts together.
 
-## Campaign execution binding
-
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with immutable per-check contexts, pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
 
 ## Checklist
 

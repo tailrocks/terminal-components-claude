@@ -1,42 +1,35 @@
 # Visual regression testing and refactor completion plan
 
-Status: in progress, 2026-10-17. Owner: main session (coordinates); all work
-is done by subagents (AGENTS.md, Way of working).
+## Status
 
-**Progress** (task numbers from §H; details in
-[`tuiscotti-migration.md`](tuiscotti-migration.md) and [`README.md`](README.md)):
+Historical visual-testing proposal from the design branch. Its dated task-progress snapshot and execution staffing are removed; open work is in docs/remaining-work.md.
 
-| Task | State |
-|---|---|
-| T0, T1 | done: tuiscotti `a47c9aa` (since bumped to `3382e57`, T30), `.ansi` + cursor trailer gate, review PNG/HTML on mismatch |
-| T2 | done: `harness = false` (libtest-mimic), one test per scenario, 12,131 named tests; gated run 277 s → 135 s |
-| T3 | done: `VISUAL_BIN_DIR` binary resolution, `env_clear` pinning (`support::PINNED_ENV`; `SHELL` too, which the PTY layer filled in from the account), per-scenario `HOME` = cwd, and the `isolation::env_isolation` check in the default run |
-| T4 | done: `cargo xtask visual {list, import [--oracle], seal, determinism, ratchet [--check], sync-oracle, check-touched}`; every command that writes the store or the progress list refuses under `CI` (`ratchet --check` is the CI form). `accept` and `render` moved to tuiscotti's own CLI with T30 (`tuiscotti accept`, `tuiscotti render`; the xtask forms exit with a pointer to them) |
-| T5 | done (skeleton): `baselines/oracle/ORACLE.toml` with `pending = true` and no captures; the default-run `oracle_integrity` checks it (in full once `pending = false`: one parseable `.ansi` per required scenario, no orphans or other files, counts, tuiscotti pin, `harness_sha256` of `tests/visual_baseline/` minus `progress/`). The gate switches from `snapshots/` to the oracle when v0 is imported (`support::approved_root`) |
-| T6 | done: tablepro `--motion`/`--frame`; audit below (§B3 "Determinism audit"): no rendered wall-clock value or random id anywhere, so no `JUNIE_NOW` seam; the default-run check `determinism::sources_are_deterministic` keeps it so; the smoke tier captured twice was byte-identical (869 of 869 captured; of the 21 that never reached their state, 6 were a harness `ctrl-f` bug, now fixed, and 15 are stale steps listed in `tuiscotti-migration.md`) |
-| T7, T8 | T7 done by velnor (`Required`); T8 done with velnor v0.1.9 (2026-10-17): `suites.yml` runs smoke (2 shards), full (12), narrow (2) and capture (12) from one archive build, with `target/tuiscotti` artifacts; all `workflow_dispatch` only until T18 (`docs/ci.md` "Visual suites") |
-| T11 | done: all 302 hand-written roots are table rows, names unchanged, every combo's case identical |
-| T12–T16 | rows added as pending (no approval, not gating): hover, held press, disabled, selected+hover in all four apps; open overlays moved to `OVERLAYS` with both dismissals; 4 resizes per app; narrow tier. Element inventories are first passes, not complete. T15 check done: the default-run `overlay_sites` scans `src/bin` for overlay openers (`ModalTag::new`, `Dialog::*`, `Picker::new`, `.push(Modal::`, `begin_modal`, context `req.menu`, `.menu.open`, and the leave guard's `.request_quit(&` / `.request(Leave::`), keyed `<file>::<fn>`, and requires each site in `overlay_sites::SITES` with its rows or a listed gap; 41 of 108 sites had rows; V4 (2026-10-17) added the rest: 121 of 125 sites have rows, the 4 gaps are recorded findings (`docs/audits/design-review-2026-10/visual-reapproval.md` "Overlay coverage (V4)") |
-| T17 | done: boot modes are the default-run `modes` checks (1049, 1003/1006, 2004 per app); `tests/holla_pty.rs` and `tests/terminal_suspend.rs` run on tuiscotti sessions, no hand-rolled PTY left (`rg openpty tests` empty). Byte-level escape counts became mode-state checks (upstream asks P9, P10 in `docs/upstream/tuiscotti-feedback.md`) |
-| T18 | open: oracle v0 (blocks enabling the smoke tier in CI). Tooling ready: capture everything with `VISUAL_FULL=1` on ubuntu-24.04 through the `visual-capture` suite (T8 done; `docs/ci.md` "Visual suites"), `cargo xtask visual import <actual dir> --oracle --source <commit>` (writes `baselines/oracle/`, seals `ORACLE.toml`, switches the gate), review the change list per group, commit per app, then `git rm -r snapshots/`. The 15 stale-step roots are fixed (`tuiscotti-migration.md`); before the import, wait for the current UI work to land |
-| T19 | ongoing: every audit file in `docs/audits/design-review-2026-10/` records each finding as fixed (commit), open (owner) or a decision (status sync 2026-10-17); the open ones are rows in `docs/remaining-work.md` |
-| T30 | done: upstream U1–U8 merged as tuiscotti PR [#11](https://github.com/tailrocks/tuiscotti/pull/11) (`be860d1`) and adopted 2026-10-17: the gate is `GroupedStore::check_with` in `ArtifactSet::AnsiCursor`, our wrapper and `cargo xtask visual accept`/`render` are deleted, pin `3382e57` (`docs/upstream/tuiscotti-feedback.md`) |
-| T31 | done: §P, `performance.md` P1–P6 fixed (`39a19b4a9`, `3dcff98fa`, `655ed223f`, `50fdf0238`), guards in `tests/table_perf.rs` |
+## Authority
 
-Evidence for every claim below is in [`research/`](research/):
-`research-tuiscotti.md` (tool), `research-infra.md` (this branch's suite),
-`research-main.md` (the `main` branch), `research-formats.md` (snapshot
-formats). Design backlog: `docs/audits/design-review-2026-10/`.
+`design/interaction-polish` is the current UI/UX, color, and behavior authority. `main` is the intended split-crate and reusable API direction. The frozen `visual-baseline` tag is historical evidence only.
 
-## Binding decisions
+## Current evidence
+
+This document preserves a proposed test strategy, acceptance criteria, and task ideas. Its old source paths, branch-specific gate designs, task states, and command examples describe earlier revisions and do not establish current implementation or readiness.
+
+## Remaining work
+
+Preserve relevant visual-test requirements in docs/remaining-work.md and reconcile the proposed gates with the current design branch and split crates. Do not treat the historic task rows or file owners below as active assignments.
+
+## Verification
+
+All results and commands in this proposal are revision-scoped. Use the current design branch's visual procedure and task-specific nextest gates to verify implementation.
+
+
+The detailed suite and capture criteria below are retained as historical requirements. Research links record their source scope; reconcile them before assigning current work.
+## Historical design proposals
 
 | # | Decision | Consequence |
 |---|---|---|
 | D1 | tuiscotti latest `main`, exact `rev =`, bumped as `main` moves | Harness migration from `tuisnap` is **T0, done** (`Cargo.toml`, `tests/visual_baseline/`, `.config/nextest.toml`); the pin is bumped as `main` moves (T30: `3382e57`). This plan builds on it and does not redo it. |
 | D2 | Workflow 2: the real binaries in a PTY, scripted keys/mouse/resize, compared with a committed store, in CI | Spawn `CARGO_BIN_EXE_<bin>` (the binary `cargo run --bin X` builds), never in-process rendering. |
 | D3 | Minimal committed format: **one `.ansi` + cursor trailer per scenario** | Lossless for all 7,550 current frames; 71 MB instead of 13.2 GB. PNG/HTML are generated only as review artifacts. Terminal modes are covered by one boot test per app. |
-| D4 | `design/interaction-polish` is the visual and behavioural reference; `main` is the target structure | `main` must render every scenario 1:1 identically, keeping AGENTS.md's configurable API. The `visual-baseline` tag is never touched; the PO decides separately when this branch's oracle replaces it. |
-| D5 | Small commits, pushed often, subagents do the work | Every task in §H is one PR-sized slice with the visual gate. |
+| D4 | `design/interaction-polish` defines current visual and behavioral acceptance; main supplies the target split-crate structure | Implement reusable behavior in the split crates and verify it against the design branch. The frozen `visual-baseline` tag remains historical evidence. |
 
 ## A. Goals, non-goals, acceptance
 
@@ -208,8 +201,7 @@ The tables are `MATRIX` and `SMOKE` in `tests/visual_baseline/scenarios/mod.rs`.
 | Resize | 2 roots per app, jackin 0 | at least 4 per app, grow and shrink across a breakpoint | T16 |
 | Colour levels | 5 | unchanged; every state checked at every level | — |
 
-Status: every row above has pending table rows (not gating until
-re-approved): 29 `ELEMENTS` roots across the four apps (hover, held press,
+Historical proposal state: the rows below were pending and not gating at the recorded revision: 29 `ELEMENTS` roots across the four apps (hover, held press,
 disabled hover/press, selected+hover), 46 `OVERLAYS` roots with
 `-dismissed-esc` / `-dismissed-outside` (the open-overlay journeys moved
 there, names unchanged), 10 new `RESIZES` roots (4 per app, jackin
@@ -410,8 +402,7 @@ from research-formats):
 
 ## P. Performance (table scrolling)
 
-PO request (2026-10-16): table components lag when scrolling. Status: P1–P4
-fixed with guards; remaining risks recorded. Findings,
+Historical performance investigation: an earlier request concerned table scrolling. The recorded proposal covered P1–P4 and listed remaining risks. Findings,
 measurements and status live in
 `docs/audits/design-review-2026-10/performance.md`.
 
@@ -424,14 +415,11 @@ measurements and status live in
 
 ## H. Task list
 
-Owner types: **harness** (tests/visual_baseline, xtask), **app** (one binary),
-**lib** (shared layer), **ci** (workflows), **main-lib** / **main-app**
-(on `main`, termrock crates). Every task: one worktree subagent, small
-commits, `cargo nextest run --all-targets` + clippy + fmt green before push.
+The table records an earlier task breakdown. Owner and file columns describe the then-current tree and are not current assignments or architecture boundaries. Preserve acceptance criteria when creating current tasks from this proposal.
 
-| # | Task | Owner | Files | Acceptance |
+| # | Historical task proposal | Recorded owner role | Historical file locations | Acceptance criteria to preserve |
 |---|---|---|---|---|
-| T0 | *(done)* Migrate the harness from tuisnap to tuiscotti latest `main` | harness | `Cargo.toml`, `tests/visual_baseline/*`, `.config/nextest.toml` | builds; `store_integrity` green; one root passes |
+| T0 | Migrate the harness from tuisnap to tuiscotti latest `main` | harness | `Cargo.toml`, `tests/visual_baseline/*`, `.config/nextest.toml` | builds; `store_integrity` green; one root passes |
 | T1 | Cursor-trailer `.ansi` gate wrapper + review artifacts on mismatch | harness | `tests/visual_baseline/support.rs`, `tests/visual_baseline/ansi_cursor.rs` | the caret-move demo fails the gate; round-trip unit tests; review files written |
 | T2 | One test per scenario via `libtest-mimic`, `harness = false` | harness | `Cargo.toml` `[[test]]`, `tests/visual_baseline/main.rs` | `cargo nextest list` shows 7,550 named trials |
 | T3 | Environment pinning (B3) + `VISUAL_BIN_DIR` resolution | harness | `support.rs` | an env-leak test (`FORCE_COLOR=1` set in the parent) has no effect |
@@ -464,6 +452,4 @@ commits, `cargo nextest run --all-targets` + clippy + fmt green before push.
 | T31 | Table scrolling performance (§P): coalesce input bursts in the runtime, bound per-cell text work, configurable width sampling, regression guards | lib | `src/runtime.rs`, `src/ui/text.rs`, `src/ui/reveal.rs`, `src/widgets/grid.rs`, `tests/table_perf.rs` | a wheel burst draws one frame; frame cost independent of row count and cell length; before/after in `performance.md` |
 | T30 | Upstream U1–U8 to tuiscotti; switch our wrapper to `ArtifactSet::AnsiCursor`; bump the pin | harness | tuiscotti fork PRs, `support.rs` | wrapper deleted; gate unchanged (full run green) |
 
-**Order and parallelism:** T0 → T1–T5 (parallel; disjoint files) → T6–T10
-(parallel) → T11 → T12–T17 (one agent per app) → T18 → T19 (ongoing) →
-T20 → T21 → T22–T23 → T24 → T25 → T26 → T27; T28 and T30 run alongside.
+**Historical dependency order:** The sequence below records the earlier proposed ordering only. Rebuild task dependencies and ownership against current crate boundaries before execution.

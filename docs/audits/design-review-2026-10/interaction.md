@@ -1,3 +1,20 @@
+
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
 Audited HEAD `c69bb13`. The working tree has uncommitted changes from someone else: `Dismiss.pass_through`, a hit-barrier stack in `core/hit.rs`, and about 700 lines of edits across the four `app.rs` files. I did not audit those and did not touch the repo. Severity scale: H = broken or clearly wrong, M = gap against desktop behaviour, L = polish.
 
 1. **H** | src/bin/{showcase/app.rs:650, tablepro/app.rs:1867, holla/app.rs:1433, jackin_preview/app.rs:1534}: four hand-copied pointer state machines (hover, pressed, flash, double-click, modal routing, wheel). | All apps. | Down focuses on release in showcase but on press elsewhere. Double-click exists only in holla and jackin. Only showcase refreshes hover after a wheel scroll (`hover_refresh`). Right-click is `Ignored` in tablepro. Every popup-dismiss bug below comes from this duplication. | Add a library `ui::pointer::PointerRouter` that owns hover/pressed/last_click/flash/suppression and emits `Click{id,pos,count,mods}`, `Secondary`, `Drag`, `Wheel{id,dx,dy}` and `Outside{owner}`. Knobs: `PointerConfig { focus_on: Press|Release (Press), double_click_ms: 500, double_click_slop: 1 cell, wheel_lines: 3, hover_refresh_after_scroll: true }`.

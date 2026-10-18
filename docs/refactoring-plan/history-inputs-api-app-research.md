@@ -1,5 +1,26 @@
 # Historical API, application, and architecture-research inputs
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Planning evidence only. No production changes or implementation verification. Reader: `history_inputs/audit_remaining`. Pinned source: `7b27732a`. Historical findings describe the old `src/` tree; they are not current defect claims. Audit recommendations and research sketches have no independent authority to change the target architecture.
 
 ## Direct-source coverage

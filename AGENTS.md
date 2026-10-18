@@ -20,10 +20,10 @@ components work; they are not where behaviour lives.
 - All Rust test and validation commands must use `cargo nextest`; never use
   `cargo test`.
 - Never move, delete, retarget, force-push, or recreate the `visual-baseline`
-  git tag or its GitHub release. It is the frozen pre-refactor visual oracle.
-- The `visual-baseline` tag is the reference for look and feel. Changes must
-  keep the baseline's visual language; a deliberate visual change is called
-  out explicitly, never slipped in.
+  git tag or its GitHub release. The tag is immutable historical evidence.
+- `design/interaction-polish` is the accepted visual, interaction, UI/UX and color
+  reference. Use `visual-baseline` only for historical comparison; document and
+  verify each intentional difference against the accepted design reference.
 - Visual and PTY testing uses only tuiscotti
   (<https://github.com/tailrocks/tuiscotti>), pinned in `Cargo.toml` to an
   exact `rev =` of its latest `main`. When `main` moves, bump the pin to the

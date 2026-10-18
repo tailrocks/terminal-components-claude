@@ -1,5 +1,26 @@
 # Documentation traceability
 
+## Status
+
+Current project documentation; individual evidence and task state may be revision-scoped.
+
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+
+## Current evidence
+
+Use the cited sources and current repository state; historical records retain their original scope.
+
+## Remaining work
+
+Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
+
+## Verification
+
+Run current task-specific checks before treating implementation as complete.
+
+
 Date: 2026-09-12 (docs consolidation on branch `holla`, now `visual-baseline`).
 
 This table records where every retired or moved documentation source landed
@@ -35,7 +56,7 @@ moved with `git mv` (history preserved) unless noted otherwise.
 | `docs/improvements-plan-reference.md` | `docs/improvements/plan-reference-audit.md` | Verbatim move + rename; historical annex of `docs/improvements/PLAN.md`. |
 | `holla-project/CONCEPT.md` | `docs/product/CONCEPT.md` | Verbatim move; `holla-project/` directory removed. |
 | `holla-project/GOAL.md` | `docs/product/GOAL.md` | Verbatim move. |
-| `holla-project/PROMPT.md` | `docs/product/PROMPT.md` | Verbatim move. |
+| `holla-project/PROMPT.md` | Retired | Historical implementation prompt; the prototype exists. Product concept and open work remain in `docs/product/CONCEPT.md` and `docs/improvements/PLAN.md`. |
 | `holla-project/notes/` (6 files: 00-decisions, 01-concept-constraints, 02-interaction-models, 03-recipe-audit, 04-design-note, 05-visual-critique) | `docs/product/notes/` | Verbatim move. |
 | `holla-project/references/` (6 files incl. its README.md) | `docs/product/references/` | Verbatim move. |
 | `main:COMPONENT_ARCHITECTURE.md` | `docs/sources/main/COMPONENT_ARCHITECTURE.md` | Verbatim main-branch snapshot (new file, via `git show main:...`). |

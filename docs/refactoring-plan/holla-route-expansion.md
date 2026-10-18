@@ -1,5 +1,26 @@
 # Holla native tests and resized oracle transcripts
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This contract resolves PARITY-FINAL-04. It applies to every Holla `ROUTE` seed, including routes nested inside HP, ACTIVITY, SCAN or SWEEP rows. Oracle authority remains `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Native test execution and resized capture are separate required products; neither substitutes for the other.
 
 ## Product A: unchanged source-native execution

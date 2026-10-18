@@ -1,5 +1,22 @@
 # Actual compiler identity — independent rereview
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Bounded planning-evidence review, not whole-plan acceptance. The previous JSON transport report's completed runs used the old compiler-selection boundary; this report binds the subsequent repair. Read the new resolver, cached record, revalidation, environment, actual build path, source command wrapper and all 109 lines of compiler-identity-selftest.py before executing checks.
 
 The enabling defect was recording a PATH launcher while separately invoking a selected compiler, compounded by cached identity without revalidation. The repaired helper resolves actual Cargo and rustc through one explicit rustup toolchain before entering source copies; stores resolved path, bytes, verbose version and toolchain; revalidates all four before and after compilation; pins RUSTC and clears both wrapper variables. Source-library/parser builds, metadata and external rustc commands use that same boundary. Candidate execution remains protected and cannot rewrite compiler records or privately observed outputs.

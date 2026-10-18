@@ -1,5 +1,25 @@
 # Task-status audit — 73-package completion catalog vs plans and main
 
+## Status
+
+Historical premise audit, dated 2026-09-12. Its verdicts are not current task completion. The main refactor remains incomplete, broken, and not ready.
+
+## Authority
+
+`main` remains the architecture direction for split crates and reusable APIs; `design/interaction-polish` remains the intended UI/UX and behavior authority. This audit preserves task findings and candidate references, not authorization to treat main work as a correct finished port.
+
+## Current evidence
+
+The commit IDs and file references in this audit identify historical evidence. The audit specifically records source and plan conditions at that time; current code and task verification must be checked independently.
+
+## Remaining work
+
+Preserve every finding and package requirement below. Re-evaluate each against current source and explicit task acceptance criteria; close only with evidence for the integrated result.
+
+## Verification
+
+Task completion requires current task-format verification, accepted evidence, and integrated ancestry as specified by the task contracts. Verify visual and behavior parity against this branch's design authority. Historical status labels do not establish current completion.
+
 Provenance: `refactoring-tasks/terminal-components/completion/` (001–073, sampled `task.toml`/`README.md`), `refactoring-tasks/terminal-components/README.md` + `completion/README.md`, `docs/refactoring/plan.md` (waves, DAG, contradictions), `docs/refactoring/goal-evolution.md` (goal history), `docs/refactoring/main-port-analysis.md` + `docs/refactoring/state.md` (main-branch evidence, commit/path citations), holla (now `visual-baseline`) `docs/sources/REFACTORING_COMPLETION_PLAN.md` §7 and `docs/refactoring-plan/branch-diff-foundation.md` (BF01–BF14). Audit date 2026-09-12. Read-only; no package, plan or ledger was modified.
 
 ## 1. Method

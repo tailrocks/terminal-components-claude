@@ -1,5 +1,26 @@
 # Historical audit inputs and early state reconstruction
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This evidence supplement covers the initial linked audits, review adjudications, and `REFACTORING_STATE.md` chronology through `70dacec1dd527218bdba394675938a9e9c4de285`. It is planning evidence, not a claim that current production code satisfies a historical check.
 
 The pinned architecture source is `7b27732a8c3c131760ec3438f641cb3c11343a42`. The user-visible acceptance oracle supplied by the coordinator is `02f5294bfdbf38004cc49130d0aff1d01f31434c`. This reader did not independently resolve the tag. Historical permissions to change or bless visuals do not override the current planning goal's strict oracle parity.

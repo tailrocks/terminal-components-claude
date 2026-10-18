@@ -1,6 +1,21 @@
 # Jackin application audit and parity contract
 
-## Authority and inspected state
+## Status
+Historical application audit; findings remain concrete specifications, not proof of current parity. The current refactor remains incomplete.
+
+## Authority
+The split-crate architecture is the current structural direction. The design/interaction-polish branch is authoritative for UI/UX, colors, and behavior; historical visual-baseline pins are comparison evidence only.
+
+## Current evidence
+This document records source findings against the exact revisions named below; those pins do not establish present implementation state.
+
+## Remaining work
+Carry all concrete parity requirements and unresolved findings into the current work ledger at [remaining work](../remaining-work.md).
+
+## Verification
+Verification described below is scoped to its recorded revisions and methods. Re-run against current sources before closure.
+
+## Historical comparison pins and inspected state
 
 The visual and interaction oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). Main inspected here is `7b27732a8c3c131760ec3438f641cb3c11343a42`. The planning worktree HEAD was `2e2401393c47360741ebd321679de08982dca50a`; its Jackin sources have no diff from the oracle. All short source references below are relative to `src/bin/jackin_preview/` at the oracle unless prefixed `main:`, which means `apps/jackin-preview/` at the inspected main SHA.
 

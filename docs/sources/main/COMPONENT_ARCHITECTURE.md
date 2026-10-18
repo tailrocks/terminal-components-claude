@@ -1,5 +1,26 @@
 # COMPONENT_ARCHITECTURE.md
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 **Status:** Accepted through §74, including the §73 disabled-pointer, shared-Props, and inert-registration adjudication. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `read-only analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
 
 Sections §40–§49 record subsequent gate, API, migration and baseline findings; §§50–§55 are
@@ -8735,7 +8756,7 @@ citation for application baselines is rejected rather than silently accepted.
 ## 75. Reviewed recovery of absent historical renderings
 
 The user-authorized main-based integration task and independent review recorded
-in [the historical regeneration approval](docs/historical-regeneration-approval.md)
+in [the historical regeneration approval](https://github.com/tailrocks/terminal-components-claude/blob/d1122f69e6b9c2364aa6ede8174e7d35b8cfff39/docs/historical-regeneration-approval.md)
 authorize one narrow exception to the blanket frozen-addition refusal in §16.3,
 §36 and §49. Exactly 499 HTML and 499 PNG renderings may be added only where the
 comparison base has no blob and the installed bytes match the immutable reviewed

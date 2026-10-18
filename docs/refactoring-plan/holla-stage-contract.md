@@ -1,5 +1,26 @@
 # Holla staged route ownership
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This contract resolves PARITY-FINAL-01 across every Holla primary scenario, not only the examples in the review. [holla-stage-audit.tsv](holla-stage-audit.tsv) lists all135 rows, their prior and corrected complete primary owners, source evidence and complete-route rationale. [holla-stage-contributions.tsv](holla-stage-contributions.tsv) fixes nonempty passing work for early slices whose complete journeys cross later producers.
 
 The audit follows the actual pinned test/helper bodies, `App::start` fixture routes and input handlers, including action activation by SWEEP. A title such as Finder, Gates, Files or Output is not a scope boundary. In particular, Finder double-click invokes its action; a file-menu Analyze command opens Disk; HP01 ends on Config; HP14 constructs a second Git-batch world; and the purported Finder fade seed actually opens Cleanup categories.

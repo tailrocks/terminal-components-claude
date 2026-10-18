@@ -1,5 +1,26 @@
 # Independent final decomposition and dependency review
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Verdict: changes required. The declared dependency graph is acyclic, but its preparation contracts still contain a receipt dependency cycle and an impossible assertion-replacement scope. Candidate observation ownership also needs a canonical contract. Schema lint cannot establish those properties.
 
 This review covers planning only. No terminal-components implementation, reference capture, execution branch, or merge was performed. The reviewer did not author the catalog. The review read the complete planning goal and top-level plan, inspected the requirements and decisions across all 73 packages, their machine checks/dependencies/scopes, the producer and closure contracts, and relevant pinned production and task-format source. It is a decomposition review, not a fresh reconstruction of all 620 historical clauses.

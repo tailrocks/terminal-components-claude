@@ -1,5 +1,22 @@
 # DAG and executor-contract repair record
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Planning-only repair, 2026-09-11. This records contract changes, not approval of unimplemented production tools.
 
 - DAG-FINAL-01: TASK-071 now separates host-selected preparation accounting (TASK-002–008, independent pinned-source discovery/expectation register, proposed products untrusted) from production accounting (accepted inventory plus disposition receipts). Every preparation README binds the mode. Producer-before-receipt and self-approved/omitted/forged-mode cases are assigned to the independently frozen runner qualifier. No dependency edge can conceal a future-receipt requirement.
