@@ -1,26 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::Cell;
 
 use crate::core::event::{Key, Outcome};
@@ -29,26 +6,19 @@ use crate::core::id::ItemKey;
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::typeahead::TypeAhead;
 
-
 pub trait RowSource {
-
     fn len(&self) -> usize;
-
 
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-
 
     fn enabled(&self, i: usize) -> bool {
         let _ = i;
         true
     }
 
-
     fn label(&self, i: usize) -> &str;
-
 
     fn key(&self, i: usize) -> ItemKey {
         ItemKey::index(i)
@@ -73,10 +43,7 @@ impl RowSource for [String] {
     }
 }
 
-
-
 pub struct RowFn<'a> {
-
     pub len: usize,
 
     pub enabled: &'a dyn Fn(usize) -> bool,
@@ -96,13 +63,9 @@ impl RowSource for RowFn<'_> {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Moved {
-
-
     Ignored,
-
 
     Stayed(usize),
 
@@ -110,7 +73,6 @@ pub enum Moved {
 }
 
 impl Moved {
-
     pub fn index(self) -> Option<usize> {
         match self {
             Moved::Ignored => None,
@@ -118,11 +80,9 @@ impl Moved {
         }
     }
 
-
     pub fn moved(self) -> bool {
         matches!(self, Moved::To(_))
     }
-
 
     pub fn outcome(self) -> Outcome {
         match self {
@@ -133,23 +93,13 @@ impl Moved {
     }
 }
 
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Cursor {
-
     pub index: usize,
-
 
     pub wrap: bool,
 
-
-
     pub axis: Axis,
-
 
     pub skip_disabled: bool,
 }
@@ -161,8 +111,6 @@ impl Default for Cursor {
 }
 
 impl Cursor {
-
-
     pub const fn new(index: usize) -> Self {
         Self {
             index,
@@ -172,18 +120,15 @@ impl Cursor {
         }
     }
 
-
     pub const fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
 
-
     pub const fn axis(mut self, axis: Axis) -> Self {
         self.axis = axis;
         self
     }
-
 
     pub const fn skip_disabled(mut self, on: bool) -> Self {
         self.skip_disabled = on;
@@ -202,17 +147,6 @@ impl Cursor {
             Moved::To(to)
         }
     }
-
-
-
-
-
-
-
-
-
-
-
 
     pub fn apply<S: RowSource + ?Sized>(&mut self, nav: Nav, src: &S, page: usize) -> Moved {
         let n = src.len();
@@ -242,8 +176,6 @@ impl Cursor {
         }
     }
 
-
-
     pub fn step<S: RowSource + ?Sized>(&mut self, delta: isize, src: &S) -> Moved {
         let n = src.len();
         if n == 0 {
@@ -254,7 +186,6 @@ impl Cursor {
         for _ in 0..n {
             let next = crate::core::nav::step_index(i, n, delta, self.wrap);
             if next == i {
-
                 break;
             }
             i = next;
@@ -264,7 +195,6 @@ impl Cursor {
         }
         self.settle(from, from)
     }
-
 
     pub fn first<S: RowSource + ?Sized>(&mut self, src: &S) -> Moved {
         let n = src.len();
@@ -276,7 +206,6 @@ impl Cursor {
         self.settle(from, to)
     }
 
-
     pub fn last<S: RowSource + ?Sized>(&mut self, src: &S) -> Moved {
         let n = src.len();
         if n == 0 {
@@ -286,8 +215,6 @@ impl Cursor {
         let to = (0..n).rev().find(|&i| self.usable(src, i)).unwrap_or(from);
         self.settle(from, to)
     }
-
-
 
     fn nearest<S: RowSource + ?Sized>(&self, src: &S, to: usize, from: usize) -> usize {
         let n = src.len();
@@ -310,9 +237,6 @@ impl Cursor {
             .unwrap_or(from)
     }
 
-
-
-
     pub fn select<S: RowSource + ?Sized>(&mut self, i: usize, src: &S) -> Moved {
         if i >= src.len() {
             return Moved::Ignored;
@@ -320,11 +244,6 @@ impl Cursor {
         let from = self.index;
         self.settle(from, i)
     }
-
-
-
-
-
 
     pub fn type_ahead<S: RowSource + ?Sized>(
         &mut self,
@@ -348,32 +267,17 @@ impl Cursor {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyStep {
-
     Nav(Nav),
 
     Type(char),
 }
 
 impl KeyStep {
-
-
-
-
-
-
-
     pub fn of(key: &Key, nav: &NavKeys, type_ahead: bool) -> Option<Self> {
         Self::ordered(key, nav, type_ahead, TypeAheadPrecedence::TypeAhead)
     }
-
-
-
-
-
-
 
     pub fn ordered(
         key: &Key,
@@ -394,36 +298,10 @@ impl KeyStep {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum TypeAheadPrecedence {
-
-
-
     #[default]
     Shortcuts,
-
-
 
     TypeAhead,
 }
@@ -435,11 +313,8 @@ thread_local! {
     static YIELDED: Cell<bool> = const { Cell::new(false) };
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Pass {
-
-
     Direct,
 
     Shortcuts,
@@ -448,19 +323,14 @@ enum Pass {
 }
 
 impl TypeAheadPrecedence {
-
-
     pub fn install(self) {
         PRECEDENCE.with(|p| p.set(self));
     }
-
-
 
     pub fn current() -> Self {
         PRECEDENCE.with(Cell::get)
     }
 }
-
 
 struct PassGuard(Pass);
 
@@ -475,18 +345,6 @@ impl Drop for PassGuard {
         ROUTE.with(|r| r.set(self.0));
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn route_key(key: &Key, mut handle: impl FnMut() -> Outcome) -> Outcome {
     if ROUTE.with(Cell::get) != Pass::Direct || TypeAhead::char_of(key).is_none() {
@@ -504,19 +362,10 @@ pub fn route_key(key: &Key, mut handle: impl FnMut() -> Outcome) -> Outcome {
     handle().or(first)
 }
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum NavProfile {
-
-
-
-
     #[default]
     Desktop,
-
 
     Vim,
 }
@@ -526,7 +375,6 @@ thread_local! {
 }
 
 impl NavProfile {
-
     pub const fn nav(self) -> NavKeys {
         match self {
             NavProfile::Desktop => NavKeys::DESKTOP,
@@ -534,29 +382,20 @@ impl NavProfile {
         }
     }
 
-
     pub const fn type_ahead(self) -> bool {
         matches!(self, NavProfile::Desktop)
     }
 
-
-
     pub fn install(self) {
         PROFILE.with(|p| p.set(self));
     }
-
-
 
     pub fn current() -> Self {
         PROFILE.with(Cell::get)
     }
 }
 
-
-
-
 pub trait Navigable: RowSource {
-
     fn cursor(&self) -> Cursor;
 }
 
@@ -738,8 +577,6 @@ mod tests {
         assert_eq!(TypeAhead::default().timeout, Duration::from_millis(1000));
     }
 
-
-
     struct Page {
         cursor: Cursor,
         ta: TypeAhead,
@@ -760,7 +597,6 @@ mod tests {
                 precedence: TypeAheadPrecedence::current(),
             }
         }
-
 
         fn on_key(&mut self, k: &Key) -> Outcome {
             if let Some(KeyStep::Type(c)) =
@@ -808,7 +644,6 @@ mod tests {
 
     #[test]
     fn type_ahead_first_is_an_app_wide_and_a_per_widget_choice() {
-
         let mut p = Page::new();
         p.precedence = TypeAheadPrecedence::TypeAhead;
         p.press('q');
@@ -836,7 +671,6 @@ mod tests {
         let mut p = Page::new();
         p.on_key(&q);
         assert_eq!((p.shortcut_runs, p.cursor.index), (0, 2));
-
 
         let step = route_key(&q, || {
             assert_eq!(

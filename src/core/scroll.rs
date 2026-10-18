@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use ratatui::layout::{Position, Rect};
 
 use crate::core::hit::{Axis, Bar};
@@ -18,26 +10,15 @@ pub struct ScrollState {
     pub content_len: usize,
     pub viewport_len: usize,
 
-
-
     pub(crate) grab: Option<usize>,
-
 
     pub(crate) paging: bool,
 
     pub follow_cursor: FollowCursor,
 
-
     pub(crate) followed: Option<(usize, usize)>,
 
-
-
-
-
-
-
     pub context: usize,
-
 
     pub(crate) exact: bool,
 }
@@ -63,12 +44,10 @@ impl ScrollState {
         }
     }
 
-
     pub fn with_context(mut self, rows: usize) -> Self {
         self.context = rows;
         self
     }
-
 
     pub fn with_follow_cursor(mut self, follow: FollowCursor) -> Self {
         self.follow_cursor = follow;
@@ -82,7 +61,6 @@ impl ScrollState {
     pub fn overflows(&self) -> bool {
         self.content_len > self.viewport_len && self.viewport_len > 0
     }
-
 
     pub fn at_end(&self) -> bool {
         self.offset >= self.max_offset()
@@ -101,9 +79,6 @@ impl ScrollState {
     pub fn clamp(&mut self) {
         self.offset = self.offset.min(self.max_offset());
     }
-
-
-
 
     pub fn scroll_by(&mut self, delta: isize) -> bool {
         let before = self.offset;
@@ -136,19 +111,9 @@ impl ScrollState {
         self.scroll_to(self.max_offset())
     }
 
-
-
-
-
-
-
-
     pub fn pointer_move(&mut self) {
         self.exact = true;
     }
-
-
-
 
     pub fn ensure_visible(&mut self, index: usize) -> bool {
         let exact = std::mem::take(&mut self.exact);
@@ -156,7 +121,6 @@ impl ScrollState {
             return false;
         }
         let before = self.offset;
-
 
         let ctx = if !exact && self.viewport_len > 2 * self.context {
             self.context
@@ -171,12 +135,6 @@ impl ScrollState {
         self.clamp();
         self.offset != before
     }
-
-
-
-
-
-
 
     pub fn reveal_span(&mut self, start: usize, len: usize) -> bool {
         if self.viewport_len == 0 {
@@ -202,13 +160,6 @@ impl ScrollState {
         self.offset != before
     }
 
-
-
-
-
-
-
-
     pub fn follow(&mut self, cursor: usize) -> bool {
         let key = (cursor, self.viewport_len);
         if self.follow_cursor == FollowCursor::OnMove && self.followed == Some(key) {
@@ -218,12 +169,10 @@ impl ScrollState {
         self.ensure_visible(cursor)
     }
 
-
     pub fn visible_range(&self) -> std::ops::Range<usize> {
         let end = (self.offset + self.viewport_len).min(self.content_len);
         self.offset..end
     }
-
 
     pub fn thumb(&self, track_len: usize) -> (usize, usize) {
         if !self.overflows() || track_len == 0 {
@@ -238,8 +187,6 @@ impl ScrollState {
         (start.min(track_len - len), len)
     }
 
-
-
     pub fn offset_for_thumb_start(&self, start: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
             return 0;
@@ -250,8 +197,6 @@ impl ScrollState {
         (start * self.max_offset() + usable / 2) / usable
     }
 
-
-
     pub fn offset_for_track_pos(&self, pos: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
             return 0;
@@ -259,9 +204,6 @@ impl ScrollState {
         let (_, len) = self.thumb(track_len);
         self.offset_for_thumb_start(pos.saturating_sub(len / 2), track_len)
     }
-
-
-
 
     pub fn press_track(&mut self, pos: usize, track_len: usize) -> bool {
         self.paging = false;
@@ -278,16 +220,11 @@ impl ScrollState {
         self.scroll_to(self.offset_for_track_pos(pos, track_len))
     }
 
-
-
-
     pub fn drag_track(&mut self, pos: usize, track_len: usize) -> bool {
         if !self.overflows() || track_len == 0 {
             return false;
         }
         let Some(grab) = self.grab else {
-
-
             if self.paging {
                 return false;
             }
@@ -297,15 +234,10 @@ impl ScrollState {
         self.scroll_to(target)
     }
 
-
     pub fn release_track(&mut self) {
         self.grab = None;
         self.paging = false;
     }
-
-
-
-
 
     pub fn press_track_with(&mut self, pos: usize, track_len: usize, click: TrackClick) -> bool {
         if click == TrackClick::Jump || !self.overflows() || track_len == 0 {
@@ -317,7 +249,6 @@ impl ScrollState {
             return false;
         }
 
-
         self.grab = None;
         self.paging = true;
         if pos < start {
@@ -328,29 +259,18 @@ impl ScrollState {
     }
 }
 
-
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum FollowCursor {
-
-
-
-
-
     #[default]
     OnMove,
-
 
     Always,
 }
 
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ScrollbarVisibility {
-
     #[default]
     Auto,
-
 
     Always,
 
@@ -358,7 +278,6 @@ pub enum ScrollbarVisibility {
 }
 
 impl ScrollbarVisibility {
-
     pub fn shows(self, scroll: &ScrollState) -> bool {
         match self {
             ScrollbarVisibility::Auto => scroll.overflows(),
@@ -368,32 +287,19 @@ impl ScrollbarVisibility {
     }
 }
 
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum TrackClick {
-
-
     Jump,
-
-
-
-
 
     #[default]
     Page,
 }
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HScroll {
-
-
     pub enabled: bool,
 
     pub bar: ScrollbarVisibility,
-
 
     pub step: usize,
 
@@ -412,7 +318,6 @@ impl Default for HScroll {
 }
 
 impl HScroll {
-
     pub fn off() -> Self {
         Self {
             enabled: false,
@@ -436,38 +341,20 @@ impl HScroll {
         self
     }
 
-
     pub fn shows_bar(&self, scroll: &ScrollState) -> bool {
         self.enabled && self.bar.shows(scroll)
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ScrollPane {
-
     pub v: ScrollState,
-
 
     pub h: ScrollState,
 
     pub h_cfg: HScroll,
 
-
     pub track_click: Option<TrackClick>,
-
 
     pub columns: bool,
 
@@ -481,12 +368,9 @@ pub struct ScrollPane {
 
     held: Option<Axis>,
 
-
     col_widths: Vec<u16>,
     col_gap: u16,
     col_avail: u16,
-
-
 
     col_reveal: Option<(usize, usize)>,
 }
@@ -514,64 +398,48 @@ impl From<ScrollState> for ScrollPane {
 }
 
 impl ScrollPane {
-
     pub fn new(content_len: usize) -> Self {
         ScrollState::new(content_len).into()
     }
-
-
-
-
 
     pub fn set_content(&mut self, len: usize) {
         self.v.set_content(len);
     }
 
-
     pub fn set_viewport(&mut self, len: usize) {
         self.v.set_viewport(len);
     }
-
 
     pub fn scroll_by(&mut self, delta: isize) -> bool {
         self.v.scroll_by(delta)
     }
 
-
     pub fn scroll_to(&mut self, offset: usize) -> bool {
         self.v.scroll_to(offset)
     }
-
 
     pub fn ensure_visible(&mut self, index: usize) -> bool {
         self.v.ensure_visible(index)
     }
 
-
     pub fn follow(&mut self, cursor: usize) -> bool {
         self.v.follow(cursor)
     }
-
 
     pub fn horizontal(mut self, policy: HScroll) -> Self {
         self.h_cfg = policy;
         self
     }
 
-
     pub fn track_click(mut self, click: TrackClick) -> Self {
         self.track_click = Some(click);
         self
     }
 
-
     pub fn columns(mut self, columns: bool) -> Self {
         self.columns = columns;
         self
     }
-
-
-
 
     pub fn begin(&mut self, app_click: TrackClick) {
         self.v_click = self.track_click.unwrap_or(app_click);
@@ -579,22 +447,17 @@ impl ScrollPane {
         self.h_track = Rect::ZERO;
     }
 
-
     pub fn v_click(&self) -> TrackClick {
         self.v_click
     }
-
 
     pub fn v_track(&self) -> Rect {
         self.v_track
     }
 
-
     pub fn h_track(&self) -> Rect {
         self.h_track
     }
-
-
 
     pub fn set_track(&mut self, owner: WidgetId, axis: Axis, track: Rect) {
         self.owner = Some(owner);
@@ -604,7 +467,6 @@ impl ScrollPane {
         }
     }
 
-
     pub fn clear_track(&mut self, axis: Axis) {
         match axis {
             Axis::Vertical => self.v_track = Rect::ZERO,
@@ -612,11 +474,9 @@ impl ScrollPane {
         }
     }
 
-
     pub fn held(&self) -> Option<Axis> {
         self.held
     }
-
 
     pub fn axis(&mut self, axis: Axis) -> &mut ScrollState {
         match axis {
@@ -624,13 +484,6 @@ impl ScrollPane {
             Axis::Horizontal => &mut self.h,
         }
     }
-
-
-
-
-
-
-
 
     pub fn layout_columns(&mut self, widths: Vec<u16>, gap: u16, avail: u16) -> usize {
         self.col_widths = widths;
@@ -647,20 +500,11 @@ impl ScrollPane {
         self.columns_fit(self.h.offset)
     }
 
-
-
-
-
-
-
-
-
     pub fn reveal_column(&mut self, index: usize) -> bool {
         let moved = self.place_column(index);
         self.col_reveal = Some((index, self.h.offset));
         moved
     }
-
 
     fn columns_fit(&self, from: usize) -> usize {
         let mut used = 0u16;
@@ -680,7 +524,6 @@ impl ScrollPane {
         fit
     }
 
-
     fn place_column(&mut self, index: usize) -> bool {
         let n = self.col_widths.len();
         if n == 0 || self.col_avail == 0 {
@@ -693,7 +536,6 @@ impl ScrollPane {
             offset = index;
         }
 
-
         while offset < index && offset + self.columns_fit(offset) <= index {
             offset += 1;
         }
@@ -705,7 +547,6 @@ impl ScrollPane {
         offset != before
     }
 
-
     pub fn h_step(&self) -> usize {
         if self.columns {
             1
@@ -714,20 +555,9 @@ impl ScrollPane {
         }
     }
 
-
-
     pub fn h_scrolls(&self) -> bool {
         self.h_cfg.enabled && self.h.overflows()
     }
-
-
-
-
-
-
-
-
-
 
     pub fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         let moved = match axis {
@@ -735,7 +565,6 @@ impl ScrollPane {
                 if !self.v.overflows() {
                     return Response::ignored();
                 }
-
 
                 let page = self.v.viewport_len.max(1) as isize;
                 self.v.scroll_by((delta as isize).clamp(-page, page))
@@ -752,10 +581,6 @@ impl ScrollPane {
         changed(moved)
     }
 
-
-
-
-
     pub fn press(&mut self, pos: Position) -> Response<()> {
         let axis = if self.h_track.contains(pos) {
             Axis::Horizontal
@@ -767,7 +592,6 @@ impl ScrollPane {
         };
         self.press_on(axis, pos)
     }
-
 
     pub fn press_on(&mut self, axis: Axis, pos: Position) -> Response<()> {
         let (track, click) = match axis {
@@ -786,14 +610,10 @@ impl ScrollPane {
         changed(self.axis(axis).press_track_with(cell, len, click))
     }
 
-
-
-
     pub fn drag(&mut self, pos: Position) -> Response<()> {
         let axis = self.held.unwrap_or(Axis::Vertical);
         self.drag_on(axis, pos)
     }
-
 
     pub fn drag_on(&mut self, axis: Axis, pos: Position) -> Response<()> {
         let track = match axis {
@@ -811,14 +631,11 @@ impl ScrollPane {
         changed(self.axis(axis).drag_track(cell, len))
     }
 
-
     pub fn release(&mut self) {
         self.v.release_track();
         self.h.release_track();
         self.held = None;
     }
-
-
 
     pub fn axis_of(&self, bar_id: WidgetId) -> Option<Axis> {
         let owner = self.owner?;
@@ -830,9 +647,6 @@ impl ScrollPane {
             None
         }
     }
-
-
-
 
     pub fn bar_of(&self, bar_id: WidgetId) -> Option<Bar> {
         let axis = self.axis_of(bar_id)?;
@@ -848,8 +662,6 @@ impl ScrollPane {
         })
     }
 
-
-
     pub fn bar(&mut self, bar: &Bar, pos: Position, pressed: bool) -> Response<()> {
         if pressed {
             self.press_on(bar.axis, pos)
@@ -858,8 +670,6 @@ impl ScrollPane {
         }
     }
 }
-
-
 
 fn track_cell(track: Rect, axis: Axis, pos: Position) -> (usize, usize) {
     match axis {
@@ -878,7 +688,6 @@ fn track_cell(track: Rect, axis: Axis, pos: Position) -> (usize, usize) {
     }
 }
 
-
 fn changed(moved: bool) -> Response<()> {
     if moved {
         Response::changed()
@@ -887,29 +696,16 @@ fn changed(moved: bool) -> Response<()> {
     }
 }
 
-
-
-
-
-
 pub trait Scrollable {
-
     fn pane(&mut self) -> &mut ScrollPane;
-
-
-
 
     fn after_scroll(&mut self, _axis: Axis, _moved: bool) -> bool {
         false
     }
 
-
-
-
     fn wheel_first(&mut self, _axis: Axis, _delta: i32) -> Option<Response<()>> {
         None
     }
-
 
     fn wheel(&mut self, axis: Axis, delta: i32) -> Response<()> {
         if let Some(r) = self.wheel_first(axis, delta) {
@@ -919,7 +715,6 @@ pub trait Scrollable {
         settle(self, axis, r)
     }
 
-
     fn bar_press(&mut self, pos: Position) -> Response<()> {
         let r = self.pane().press(pos);
         match self.pane().held() {
@@ -928,22 +723,17 @@ pub trait Scrollable {
         }
     }
 
-
     fn bar_drag(&mut self, pos: Position) -> Response<()> {
         let axis = self.pane().held().unwrap_or(Axis::Vertical);
         let r = self.pane().drag_on(axis, pos);
         settle(self, axis, r)
     }
 
-
-
     fn bar_input(&mut self, bar: &Bar, pos: Position, pressed: bool) -> Response<()> {
         let r = self.pane().bar(bar, pos, pressed);
         settle(self, bar.axis, r)
     }
 }
-
-
 
 fn settle<S: Scrollable + ?Sized>(w: &mut S, axis: Axis, r: Response<()>) -> Response<()> {
     if w.after_scroll(axis, r.is_changed()) {
@@ -957,9 +747,6 @@ fn settle<S: Scrollable + ?Sized>(w: &mut S, axis: Axis, r: Response<()>) -> Res
 mod tests {
     use super::*;
     use crate::core::event::Outcome;
-
-
-
 
     fn pane() -> ScrollPane {
         let mut p = ScrollPane::new(100);
@@ -981,8 +768,6 @@ mod tests {
         assert_eq!(p.offset, 40);
         assert_eq!(p.v.offset, 40);
     }
-
-
 
     #[test]
     fn a_notch_never_moves_further_than_the_view() {
@@ -1026,7 +811,6 @@ mod tests {
         assert_eq!((p.offset, p.held()), (10, Some(Axis::Vertical)));
         p.release();
         assert_eq!(p.held(), None);
-
 
         assert!(!p.press(Position::new(0, 10)).is_changed());
         assert_eq!(p.held(), Some(Axis::Horizontal));
@@ -1078,7 +862,6 @@ mod tests {
         assert_eq!(p.offset, 0);
     }
 
-
     struct Log {
         pane: ScrollPane,
         follow: bool,
@@ -1109,7 +892,6 @@ mod tests {
             first: false,
         };
         log.pane.jump_end();
-
 
         assert_eq!(log.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
         assert!(log.follow);
@@ -1291,8 +1073,6 @@ mod tests {
 
     #[test]
     fn the_default_keeps_one_row_of_context_around_a_row_brought_into_view() {
-
-
         let mut s = ScrollState::new(50);
         assert_eq!(s.context, 1);
         s.set_viewport(10);
@@ -1318,7 +1098,6 @@ mod tests {
 
     #[test]
     fn ensure_visible_moves_minimally() {
-
         let mut s = ScrollState::new(50).with_context(0);
         s.set_viewport(10);
         s.ensure_visible(25);
@@ -1339,7 +1118,6 @@ mod tests {
         s.scroll_by(20);
         s.follow(3);
         assert_eq!(s.offset, 20, "a repaint must not snap back");
-
 
         s.follow(4);
         assert_eq!(s.offset, 3);

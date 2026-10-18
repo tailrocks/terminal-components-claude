@@ -1,50 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::core::event::{Input, Key, Outcome};
@@ -54,16 +7,11 @@ use crate::ui::leave::{KeyContext, LeaveKey, QuitKeys};
 
 use super::App;
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ShellAction<C = ()> {
-
-
     Quit,
 
     Help,
-
 
     MenuBar,
 
@@ -80,32 +28,19 @@ pub enum ShellAction<C = ()> {
     App(C),
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct ShellKeys<C = ()> {
-
     pub quit: QuitKeys,
-
-
-
 
     pub priority: KeyMap<ShellAction<C>>,
 
-
-
     pub keys: KeyMap<ShellAction<C>>,
-
-
 
     pub fallback: KeyMap<ShellAction<C>>,
 
-
     pub idle_only: Vec<ShellAction<C>>,
 
-
     pub esc_note: Option<String>,
-
 
     pub dirty_letter_note: Option<String>,
 }
@@ -117,9 +52,6 @@ impl<C> Default for ShellKeys<C> {
 }
 
 impl<C> ShellKeys<C> {
-
-
-
     pub fn new() -> Self {
         Self {
             quit: QuitKeys::DEFAULT,
@@ -156,32 +88,25 @@ impl<C> ShellKeys<C> {
         }
     }
 
-
     pub fn quit(mut self, quit: QuitKeys) -> Self {
         self.quit = quit;
         self
     }
-
-
 
     pub fn bind(mut self, key: impl Into<KeyBinding>, action: ShellAction<C>) -> Self {
         self.keys.insert(0, (key.into(), action));
         self
     }
 
-
-
     pub fn bind_priority(mut self, key: impl Into<KeyBinding>, action: ShellAction<C>) -> Self {
         self.priority.insert(0, (key.into(), action));
         self
     }
 
-
     pub fn bind_fallback(mut self, key: impl Into<KeyBinding>, action: ShellAction<C>) -> Self {
         self.fallback.insert(0, (key.into(), action));
         self
     }
-
 
     pub fn unbind(mut self, key: impl Into<KeyBinding>) -> Self {
         let key = key.into();
@@ -191,23 +116,15 @@ impl<C> ShellKeys<C> {
         self
     }
 
-
-
     pub fn idle_only(mut self, action: ShellAction<C>) -> Self {
         self.idle_only.push(action);
         self
     }
 
-
     pub fn esc_note(mut self, note: Option<&str>) -> Self {
         self.esc_note = note.map(Into::into);
         self
     }
-
-
-
-
-
 
     pub fn help_section(
         &self,
@@ -256,115 +173,76 @@ impl<C> ShellKeys<C> {
         crate::widgets::help::HelpSection::new(title).bindings(&rows)
     }
 
-
     pub fn dirty_letter_note(mut self, note: Option<&str>) -> Self {
         self.dirty_letter_note = note.map(Into::into);
         self
     }
 }
 
-
-
-
-
 pub trait KeyHost: App {
-
     type Cmd: Copy + PartialEq + 'static;
 
     fn shell_keys(&self) -> &ShellKeys<Self::Cmd>;
-
 
     fn layer_key(&mut self, _key: &Key) -> Option<Outcome> {
         None
     }
 
-
     fn menu_key(&mut self, _key: &Key) -> Option<Outcome> {
         None
     }
-
-
-
 
     fn capturing(&self) -> bool {
         false
     }
 
-
-
-
-
-
     fn text_focus(&self) -> bool {
         self.capturing()
     }
-
 
     fn interrupt(&mut self) -> Outcome {
         Outcome::Ignored
     }
 
-
     fn dirty(&mut self) -> bool {
         false
     }
-
-
-
-
-
 
     fn selection(&self) -> bool {
         let s = self.shell();
         s.focus.current().is_some_and(|f| s.ring.has_selection(f))
     }
 
-
-
-
     fn shell_action(&mut self, _action: ShellAction<Self::Cmd>, _key: &Key) -> Outcome {
         Outcome::Ignored
     }
-
-
 
     fn chrome_key(&mut self, _key: &Key) -> Outcome {
         Outcome::Ignored
     }
 
-
     fn page_key(&mut self, key: &Key) -> Outcome;
-
-
-
 
     fn esc_top(&mut self) -> Outcome {
         Outcome::Ignored
     }
 
-
     fn layer_paste(&mut self, _text: &str) -> Option<Outcome> {
         None
     }
-
 
     fn page_paste(&mut self, _text: &str) -> Outcome {
         Outcome::Ignored
     }
 
-
     fn request_quit(&mut self) -> Outcome;
-
 
     fn note(&mut self, _text: &str) {}
 }
 
-
 pub struct KeyRouter;
 
 impl KeyRouter {
-
-
     pub fn input<H: KeyHost + ?Sized>(host: &mut H, input: Input) -> Outcome {
         match input {
             Input::Key(key) => Self::route(host, &key),
@@ -372,7 +250,6 @@ impl KeyRouter {
             _ => Outcome::Ignored,
         }
     }
-
 
     pub fn paste<H: KeyHost + ?Sized>(host: &mut H, text: &str) -> Outcome {
         if host.shell().too_small {
@@ -384,14 +261,10 @@ impl KeyRouter {
         host.page_paste(text)
     }
 
-
-
     pub fn route<H: KeyHost + ?Sized>(host: &mut H, key: &Key) -> Outcome {
         host.shell_mut().pointer.suppress_hover();
         Self::replay(host, key)
     }
-
-
 
     pub fn replay<H: KeyHost + ?Sized>(host: &mut H, key: &Key) -> Outcome {
         route_key(key, || Self::once(host, key))
@@ -433,7 +306,6 @@ impl KeyRouter {
                 return out;
             }
         }
-
 
         let copy = quit.ctrl_c && key.ctrl_char('c') && host.selection();
         if quit.ctrl_c && key.ctrl_char('c') && !copy {
@@ -501,9 +373,6 @@ impl KeyRouter {
         }
         Outcome::Ignored
     }
-
-
-
 
     fn bound<C: Copy + PartialEq>(
         keys: &ShellKeys<C>,

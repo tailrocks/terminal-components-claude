@@ -1,7 +1,3 @@
-
-
-
-
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::hit::Axis;
@@ -85,7 +81,6 @@ impl EdTab {
         }
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum AcctRow {
@@ -302,8 +297,6 @@ impl EditorScreen {
             t => self.cfg.list_id(t.cfg().unwrap()),
         }
     }
-
-
 
     fn validate(&mut self, cx: &mut Cx) -> bool {
         if !self.name.validate() {
@@ -536,13 +529,10 @@ impl EditorScreen {
         }
     }
 
-
-
     fn render_general(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
         let bg = t.canvas;
         let fw = area.width.saturating_sub(4).min(72);
-
 
         let kids = [
             StackChild::fixed(3),
@@ -847,10 +837,6 @@ impl EditorScreen {
             );
         }
     }
-
-
-
-
 
     fn build_accounts(&mut self, w: &World) {
         let q = self.acct.filter.as_ref().map(|f| f.to_lowercase());
@@ -1325,8 +1311,6 @@ impl EditorScreen {
                         .cloned();
                     if let Some(e) = failed {
                         if e.trusted {
-
-
                             self.start_role_load(name, w, cx);
                         } else {
                             self.pending_load = Some(name.clone());
@@ -1420,7 +1404,6 @@ impl EditorScreen {
 
     fn start_role_load(&mut self, name: &str, w: &mut World, cx: &mut Cx) {
         self.pending_load = Some(name.to_owned());
-
 
         let error = w
             .roles
@@ -1613,7 +1596,6 @@ impl EditorScreen {
 }
 
 impl EditorScreen {
-
     fn refresh_taken(&mut self, w: &World) {
         self.taken = w
             .workspaces
@@ -1812,11 +1794,6 @@ impl Page<Jackin> for EditorScreen {
             _ => Outcome::Ignored,
         }
     }
-
-
-
-
-
 
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
@@ -2285,7 +2262,6 @@ impl Screen for EditorScreen {
 }
 
 impl EditorScreen {
-
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
         if id == CANCEL {

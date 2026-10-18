@@ -1,5 +1,3 @@
-
-
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
 
@@ -9,21 +7,13 @@ use crate::core::id::WidgetId;
 use crate::core::keymap::{KeyBinding, lookup};
 use crate::core::text::TextBuffer;
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PointerSelect {
-
     pub drag: bool,
 
     pub word: bool,
 
-
     pub line: bool,
-
-
 
     pub drag_by_word: bool,
 }
@@ -67,26 +57,15 @@ impl Default for PointerSelect {
     }
 }
 
-
-
-
-
-
-
-
 pub trait PointerField {
-
     fn pointer_id(&self) -> WidgetId;
-
 
     fn on_press_count(&mut self, pos: Position, count: u8) -> Outcome;
 
     fn on_drag(&mut self, pos: Position) -> Outcome;
 
-
     fn on_click_count(&mut self, pos: Position, count: u8) -> Outcome;
 }
-
 
 pub fn route_press(
     fields: &mut [&mut dyn PointerField],
@@ -100,8 +79,6 @@ pub fn route_press(
         .map(|f| f.on_press_count(pos, count))
 }
 
-
-
 pub fn route_drag(
     fields: &mut [&mut dyn PointerField],
     pressed: WidgetId,
@@ -112,7 +89,6 @@ pub fn route_drag(
         .find(|f| f.pointer_id() == pressed)
         .map(|f| f.on_drag(pos))
 }
-
 
 pub fn route_click(
     fields: &mut [&mut dyn PointerField],
@@ -130,14 +106,11 @@ pub fn route_click(
 pub enum EditAction {
     Commit,
     Cancel,
-    Tab {
-        backward: bool,
-    },
+    Tab { backward: bool },
     Apply(fn(&mut TextBuffer)),
     Insert(char),
 
     Undo,
-
 
     Redo,
 
@@ -147,19 +120,9 @@ pub enum EditAction {
 
     Paste,
 
-
     SelectAll,
     None,
 }
-
-
-
-
-
-
-
-
-
 
 pub fn unbound_key(key: &Key) -> Outcome {
     if key.chord() {
@@ -169,22 +132,13 @@ pub fn unbound_key(key: &Key) -> Outcome {
     }
 }
 
-
-
-
 pub fn edit_key(key: &Key, multiline: bool) -> EditAction {
     edit_key_with(key, multiline, FieldKeys::default())
 }
 
-
-
-
 pub fn edit_key_with(key: &Key, multiline: bool, keys: FieldKeys) -> EditAction {
     edit_key_in(key, multiline, keys, &keys.text_keymap())
 }
-
-
-
 
 pub fn edit_key_in(
     key: &Key,
@@ -201,8 +155,6 @@ pub fn edit_key_in(
         return EditAction::Apply(|b| b.backspace());
     }
     if keys == FieldKeys::Desktop && key.ctrl() && !key.alt() {
-
-
         if key.code == KeyCode::Char('a') {
             return EditAction::None;
         }
@@ -296,9 +248,6 @@ pub fn edit_key_in(
     }
 }
 
-
-
-
 pub fn text_cmd_action(cmd: TextCmd, multiline: bool) -> EditAction {
     match cmd {
         TextCmd::SelectAll => EditAction::SelectAll,
@@ -326,11 +275,6 @@ pub fn text_cmd_action(cmd: TextCmd, multiline: bool) -> EditAction {
     }
 }
 
-
-
-
-
-
 pub fn paste_clipboard(on_paste: impl FnOnce(&str) -> Outcome) -> Outcome {
     match clipboard::text() {
         Some(t) => on_paste(&t),
@@ -338,19 +282,12 @@ pub fn paste_clipboard(on_paste: impl FnOnce(&str) -> Outcome) -> Outcome {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Applied {
-
     Edited,
-
 
     Moved,
 }
-
-
-
-
 
 pub fn apply_edit(
     buf: &mut TextBuffer,
@@ -435,8 +372,6 @@ pub fn apply_edit(
         Some(Applied::Moved)
     }
 }
-
-
 
 #[cfg(test)]
 mod select_all_tests {
@@ -614,10 +549,6 @@ mod select_all_tests {
     }
 }
 
-
-
-
-
 #[cfg(test)]
 mod cmd_edit_tests {
     use super::*;
@@ -639,7 +570,6 @@ mod cmd_edit_tests {
     fn cmd_shift(code: KeyCode) -> Key {
         k(code, M::SUPER | M::SHIFT)
     }
-
 
     fn watch_clipboard() -> std::rc::Rc<std::cell::RefCell<Vec<String>>> {
         let seen = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
@@ -736,8 +666,6 @@ mod cmd_edit_tests {
 
     #[test]
     fn hints_name_cmd_only_once_delivered_else_the_preset_key() {
-
-
         crate::core::keyboard::set_alt_keys(crate::core::keyboard::AltKeys::Delivered);
         let desktop = FieldKeys::Desktop.text_keymap();
         let emacs = FieldKeys::Emacs.text_keymap();

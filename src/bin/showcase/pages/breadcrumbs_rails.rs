@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Rect, Size};
@@ -43,7 +29,6 @@ pub const CRUMBS: WidgetId = WidgetId::of("breadcrumbsrails.crumbs");
 
 pub const RAIL: WidgetId = WidgetId::of("breadcrumbsrails.rail");
 
-
 const DEEP: [&str; 6] = [
     "Disk",
     "Users",
@@ -53,9 +38,7 @@ const DEEP: [&str; 6] = [
     "settlement-backoff-retry-policy-v2.md",
 ];
 
-
 type Entry = (&'static str, &'static str, bool);
-
 
 fn entries(path: &[String]) -> Vec<Entry> {
     match path.join("/").as_str() {
@@ -126,7 +109,6 @@ impl BreadcrumbsRailsPage {
         page
     }
 
-
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::BreadcrumbsRails);
         let i = table
@@ -136,15 +118,12 @@ impl BreadcrumbsRailsPage {
         table[i].values[self.opts[i]]
     }
 
-
-
     fn rebuild(&mut self) {
         self.crumbs = Breadcrumb::new(CRUMBS, self.path.clone())
             .clickable(self.opt("breadcrumbsrails.clickable") == "on");
         self.rail = SidebarRail::new(RAIL, "Explorer")
             .collapsed_rail(self.opt("breadcrumbsrails.collapsed_rail") == "on");
     }
-
 
     fn load_folder(&mut self, cursor: usize) {
         let items = entries(&self.path)
@@ -166,7 +145,6 @@ impl BreadcrumbsRailsPage {
         self.crumbs.segments = self.path.clone();
     }
 
-
     fn go_to_level(&mut self, level: usize, cx: &mut Cx) {
         let left = self.path.get(level + 1).cloned();
         self.path.truncate(level + 1);
@@ -176,7 +154,6 @@ impl BreadcrumbsRailsPage {
         self.load_folder(cursor);
         cx.status(format!("Went back to {}", self.path.join(" › ")));
     }
-
 
     fn open_row(&mut self, i: usize, cx: &mut Cx) {
         let Some((name, _, opens)) = entries(&self.path).get(i).copied() else {
@@ -190,7 +167,6 @@ impl BreadcrumbsRailsPage {
         }
     }
 
-
     fn set_collapsed(&mut self, on: bool, cx: &mut Cx) {
         self.collapsed = on;
         self.last_rail = if on { "Collapse" } else { "Expand" }.into();
@@ -203,7 +179,6 @@ impl BreadcrumbsRailsPage {
         }
     }
 
-
     fn location_facts(&self) -> Vec<Prop> {
         vec![
             Prop::new("Depth", self.path.len().to_string()),
@@ -212,7 +187,6 @@ impl BreadcrumbsRailsPage {
             Prop::new("Keys", "Enter opens · Backspace goes up · Ctrl+B explorer").wrap(),
         ]
     }
-
 
     fn rail_facts(&self) -> Vec<Prop> {
         vec![
@@ -239,7 +213,6 @@ impl BreadcrumbsRailsPage {
         Panel::card(Some("Location")).meta(meta)
     }
 
-
     fn trail_pair(&self) -> (Breadcrumb, Breadcrumb) {
         (
             Breadcrumb::new(ID.sub("plain"), self.path.clone()).clickable(false),
@@ -249,11 +222,6 @@ impl BreadcrumbsRailsPage {
             ),
         )
     }
-
-
-
-
-
 
     fn geometry(&self, avail: Size, ctx: &RenderCtx) -> Geometry {
         let side_w = if self.collapsed {
@@ -266,7 +234,6 @@ impl BreadcrumbsRailsPage {
         let loc_panel = self.location_panel();
         let rail_panel = Panel::card(Some("SidebarRail"));
         let wide = |w: u16| Size::new(w, 0);
-
 
         let crumbs = self.crumbs.measure(avail, ctx).width;
         let right_nat = loc_panel
@@ -324,7 +291,6 @@ impl BreadcrumbsRailsPage {
         }
         let right = Rect::new(area.x + g.side_w, area.y, g.right_w, g.top);
 
-
         let panel = self.location_panel();
         let bg = panel.bg(t);
         let card = Rect::new(right.x, right.y, right.width, g.loc_h);
@@ -345,13 +311,11 @@ impl BreadcrumbsRailsPage {
             bg,
         );
 
-
         let panel = Panel::card(Some("SidebarRail"));
         let bg = panel.bg(t);
         let card = Rect::new(right.x, card.bottom() + 1, right.width, g.rail_h);
         let inner = panel.render(card, buf, t);
         props::render(inner, buf, t, &self.rail_facts(), bg);
-
 
         let panel = Panel::card(Some("Trails"));
         let bg = panel.bg(t);
@@ -390,15 +354,12 @@ impl BreadcrumbsRailsPage {
     }
 }
 
-
 const SIDE_W: u16 = 34;
 const SIDE_H: u16 = 18;
 
 const TRAILS_ROWS: u16 = 5;
 
-
 struct Geometry {
-
     side_w: u16,
 
     right_w: u16,
@@ -409,7 +370,6 @@ struct Geometry {
     trails_h: u16,
     size: Size,
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -454,7 +414,6 @@ impl Page for BreadcrumbsRailsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('b')
             && self.template.section() == Section::Playground

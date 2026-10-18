@@ -1,23 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeSet;
 
 use crate::domain::context::Os;
@@ -29,11 +9,8 @@ pub const CACHE_DEPTH: usize = 2;
 pub const REPORT_DETAIL: usize = 6;
 pub const ARTIFACT_DEPTH: usize = 6;
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Safety {
-
     Rebuildable,
 
     OldOnly,
@@ -53,7 +30,6 @@ impl Safety {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Detect {
-
     Dir,
 
     Tool(&'static str),
@@ -333,7 +309,6 @@ pub const INDICATORS: [&str; 8] = [
     ".git",
 ];
 
-
 pub const NOISE_NAMES: [&str; 14] = [
     "node_modules",
     ".git",
@@ -351,8 +326,6 @@ pub const NOISE_NAMES: [&str; 14] = [
     ".cache",
 ];
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProcessObservation {
     Running,
@@ -362,7 +335,6 @@ pub enum ProcessObservation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Eligibility {
-
     Preselected,
 
     Selectable,
@@ -376,14 +348,12 @@ impl Eligibility {
     }
 }
 
-
 pub fn age_days(mtime: i64, now_secs: i64) -> Option<i64> {
     if mtime > now_secs {
         return None;
     }
     Some((now_secs - mtime) / 86_400)
 }
-
 
 pub fn eligibility(cat: &Category, age: Option<i64>, process: &ProcessObservation) -> Eligibility {
     if let Some(name) = cat.guard_process {
@@ -415,7 +385,6 @@ pub fn eligibility(cat: &Category, age: Option<i64>, process: &ProcessObservatio
     }
 }
 
-
 pub fn detected(cat: &Category, os: Os, home: &str, fs: &Fs, tools: &BTreeSet<String>) -> bool {
     if cat.macos_only && os != Os::MacOs {
         return false;
@@ -428,8 +397,6 @@ pub fn detected(cat: &Category, os: Os, home: &str, fs: &Fs, tools: &BTreeSet<St
         Detect::ToolOrDir(t) => tools.contains(t) || root_exists,
     }
 }
-
-
 
 pub fn pnpm_store_root(home: &str, resolved: Result<&str, &str>) -> (String, Option<String>) {
     let fallback = format!("{home}/Library/pnpm/store");
@@ -459,8 +426,6 @@ pub fn pnpm_store_root(home: &str, resolved: Result<&str, &str>) -> (String, Opt
     }
 }
 
-
-
 pub fn is_artifact(fs: &Fs, path: &str) -> bool {
     let name = path.rsplit('/').next().unwrap_or("");
     if !ARTIFACT_NAMES.contains(&name) {
@@ -474,14 +439,10 @@ pub fn is_artifact(fs: &Fs, path: &str) -> bool {
         .any(|i| fs.exists(&format!("{parent}/{i}")))
 }
 
-
-
 #[cfg(test)]
 pub fn find_artifacts(fs: &Fs, roots: &[String]) -> Vec<String> {
     find_artifacts_report(fs, roots).0
 }
-
-
 
 pub fn find_artifacts_report(fs: &Fs, roots: &[String]) -> (Vec<String>, Vec<String>) {
     let mut uniq: Vec<String> = vec![];
@@ -531,14 +492,9 @@ fn walk_artifacts(
     }
 }
 
-
-
-
 pub fn walk_candidates(fs: &Fs, root: &str, select: &dyn Fn(&str, bool) -> bool) -> Vec<String> {
     walk_candidates_report(fs, root, select).0
 }
-
-
 
 pub fn walk_candidates_report(
     fs: &Fs,
@@ -594,8 +550,6 @@ fn walk_sel(
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Deny(pub String);
 
@@ -637,7 +591,6 @@ fn under(path: &str, root: &str) -> bool {
     path == root || path.starts_with(&format!("{root}/"))
 }
 
-
 pub fn system_rule(path: &str) -> Option<Deny> {
     for s in PROTECTED_SUBTREES {
         if under(path, s) {
@@ -652,7 +605,6 @@ pub fn system_rule(path: &str) -> Option<Deny> {
     }
     None
 }
-
 
 pub fn user_rule(path: &str, home: &str) -> Option<Deny> {
     if path == home {
@@ -695,7 +647,6 @@ pub fn user_rule(path: &str, home: &str) -> Option<Deny> {
     None
 }
 
-
 pub fn validate(path: &str, home: &str, os: Os, fs: &Fs) -> Result<String, Deny> {
     lexical(path)?;
     if let Some(d) = system_rule(path) {
@@ -704,7 +655,6 @@ pub fn validate(path: &str, home: &str, os: Os, fs: &Fs) -> Result<String, Deny>
     if let Some(d) = user_rule(path, home) {
         return Err(d);
     }
-
 
     let (parent, links) = match fs.canonical_parent(path) {
         Ok(v) => v,
@@ -729,15 +679,12 @@ pub fn validate(path: &str, home: &str, os: Os, fs: &Fs) -> Result<String, Deny>
     Ok(canonical)
 }
 
-
 pub fn protected_descendant(path: &str, home: &str, fs: &Fs) -> Option<String> {
     fs.subtree(path)
         .iter()
         .find(|n| user_rule(&n.path, home).is_some() || system_rule(&n.path).is_some())
         .map(|n| n.path.clone())
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
@@ -763,8 +710,6 @@ pub struct DeleteItem {
     pub guard: Option<&'static str>,
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeletePlan {
     pub host: String,
@@ -788,7 +733,6 @@ impl DeletePlan {
         p.revision = p.fingerprint();
         p
     }
-
 
     pub fn fingerprint(&self) -> u64 {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
@@ -815,7 +759,6 @@ impl DeletePlan {
         self.items.iter().map(|i| i.estimate).sum()
     }
 
-
     pub fn phrase(&self) -> String {
         format!(
             "{} {} UNDER {} ON {}",
@@ -830,8 +773,6 @@ impl DeletePlan {
         )
     }
 }
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Outcome {
@@ -861,7 +802,6 @@ pub struct ItemResult {
     pub bytes: u64,
     pub error: Option<String>,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LogRecord {
@@ -898,8 +838,6 @@ impl LogRecord {
 }
 
 impl LogRecord {
-
-
     pub fn parse(line: &str) -> Option<Self> {
         fn raw<'a>(line: &'a str, key: &str) -> Option<&'a str> {
             let k = format!("\"{key}\":");
@@ -963,12 +901,10 @@ impl LogRecord {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct OpsLog {
     pub path: String,
     pub lines: Vec<String>,
-
 
     pub write_failure: Option<String>,
     pub failures: u32,
@@ -1052,9 +988,6 @@ pub struct ExecContext<'a> {
     pub processes: &'a dyn Fn(&str) -> ProcessObservation,
 }
 
-
-
-
 #[derive(Debug, Clone)]
 pub struct Execution {
     plan: DeletePlan,
@@ -1065,8 +998,6 @@ pub struct Execution {
 }
 
 impl Execution {
-
-
     pub fn start(
         plan: &DeletePlan,
         expected_revision: u64,
@@ -1105,7 +1036,6 @@ impl Execution {
         self.next >= self.plan.items.len()
     }
 
-
     pub fn report(&self) -> &Report {
         &self.report
     }
@@ -1135,7 +1065,6 @@ impl Execution {
             error,
         });
     }
-
 
     pub fn step(&mut self, fs: &mut Fs, log: &mut OpsLog, cx: &ExecContext) -> bool {
         let Some(item) = self.plan.items.get(self.next).cloned() else {
@@ -1288,15 +1217,12 @@ impl Execution {
         true
     }
 
-
     pub fn finish(mut self, log: &mut OpsLog) -> Report {
         self.report.log_failures = log.failures;
         log.failures = 0;
         self.report
     }
 }
-
-
 
 #[cfg(test)]
 pub fn execute(
@@ -1311,8 +1237,6 @@ pub fn execute(
     Ok(e.finish(log))
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CacheEntry {
     pub path: String,
@@ -1320,8 +1244,6 @@ pub struct CacheEntry {
     pub mtime: i64,
     pub recorded_secs: i64,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SizeCache {
@@ -1331,14 +1253,11 @@ pub struct SizeCache {
 }
 
 impl SizeCache {
-
     pub fn hint(&self, path: &str, mtime: i64, now_secs: i64) -> Option<&CacheEntry> {
         self.entries.iter().find(|e| {
             e.path == path && e.mtime == mtime && now_secs - e.recorded_secs <= CACHE_TTL_SECS
         })
     }
-
-
 
     pub fn record(
         &mut self,
@@ -1399,7 +1318,6 @@ impl SizeCache {
         format!("{{\"v\":{CACHE_SCHEMA},\"entries\":[{}]}}", items.join(","))
     }
 
-
     pub fn load(text: Option<&str>, now_secs: i64) -> Self {
         let Some(text) = text else {
             return Self::default();
@@ -1453,7 +1371,6 @@ impl SizeCache {
         }
         c
     }
-
 
     pub fn merge(&mut self, other: &SizeCache, now_secs: i64) {
         for o in &other.entries {

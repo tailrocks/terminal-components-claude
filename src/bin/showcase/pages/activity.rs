@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -46,14 +31,12 @@ pub const LOG: WidgetId = ID.sub("log");
 
 pub const STREAMS: WidgetId = ID.sub("streams");
 
-
 const SERVICES: [(&str, Tone); 4] = [
     ("api", Tone::Info),
     ("worker", Tone::Secondary),
     ("scheduler", Tone::Warning),
     ("db", Tone::Muted),
 ];
-
 
 const CHATTER: [(usize, &str); 12] = [
     (0, "GET /health 200 2 ms"),
@@ -70,7 +53,6 @@ const CHATTER: [(usize, &str); 12] = [
     (1, "job 4823 send-digest done in 233 ms"),
 ];
 
-
 const STAGES: [&str; 5] = [
     "Resolve tools",
     "Install dependencies",
@@ -78,7 +60,6 @@ const STAGES: [&str; 5] = [
     "Start services",
     "Healthy",
 ];
-
 
 const LINE_TICKS: u32 = 3;
 
@@ -105,7 +86,6 @@ pub struct ActivityPage {
     stop: Button,
     restart: Button,
 
-
     log: Vec<(Option<usize>, Line)>,
     run: Run,
 
@@ -117,8 +97,6 @@ pub struct ActivityPage {
     exit: Option<i32>,
 }
 
-
-
 fn service_line(svc: usize, text: &str) -> Line {
     let (name, tone) = SERVICES[svc];
     let body = if text.contains("error") || text.contains(" 404 ") {
@@ -128,7 +106,6 @@ fn service_line(svc: usize, text: &str) -> Line {
     };
     vec![Span::new(format!("{name:<9} │ "), tone), body]
 }
-
 
 fn holla_line(text: &str, tone: Tone) -> Line {
     vec![Span::new(text, tone)]
@@ -170,8 +147,6 @@ impl ActivityPage {
         p
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let view = std::mem::replace(&mut self.view, TextViewport::new(LOG));
@@ -182,7 +157,6 @@ impl ActivityPage {
             .digit_toggles(o.on("activity.digit_toggles"));
         self.sync_view();
     }
-
 
     fn start(&mut self) {
         self.log.clear();
@@ -271,7 +245,6 @@ impl ActivityPage {
         self.sync_rail();
     }
 
-
     fn sync_view(&mut self) {
         let lines = self
             .log
@@ -284,7 +257,6 @@ impl ActivityPage {
         self.view.set_follow(follow);
         self.mark();
     }
-
 
     fn mark(&mut self) {
         let q = match self.opts.value("activity.find") {
@@ -424,16 +396,12 @@ impl ActivityPage {
         let body = rows[5];
         let side = self.side_size(ctx);
         if self.wide(body.width, side, ctx) {
-
-
             let side_w = side.width.max(36.min(body.width / 3));
             let out = Rect::new(body.x, body.y, body.width - side_w - 2, body.height);
             self.render_log(out, buf, ctx);
             let r = Rect::new(body.right() - side_w, body.y, side_w, body.height);
             self.render_side(r, false, buf, ctx);
         } else {
-
-
             let (w, h, beside) = self.under(body.width, side);
             let log_h = body.height.saturating_sub(h + 1).max(LOG_ROWS);
             let out = Rect::new(body.x, body.y, body.width, log_h);
@@ -449,8 +417,6 @@ impl ActivityPage {
         }
     }
 
-
-
     fn log_width(&self, ctx: &RenderCtx) -> u16 {
         Panel::framed(Some("output"))
             .meta("scrollback ↑9999 · last 2000 kept")
@@ -458,11 +424,9 @@ impl ActivityPage {
             .width
     }
 
-
     fn wide(&self, width: u16, side: Size, ctx: &RenderCtx) -> bool {
         width >= self.log_width(ctx) + 2 + side.width
     }
-
 
     fn run_facts(&self) -> Vec<Prop> {
         vec![
@@ -479,7 +443,6 @@ impl ActivityPage {
         ]
     }
 
-
     fn failure(&self) -> Option<Notice> {
         (self.run == Run::Failed).then(|| {
             Notice::error("api exited with code 1")
@@ -487,9 +450,6 @@ impl ActivityPage {
                 .hint("Free the port, then Restart")
         })
     }
-
-
-
 
     fn side_size(&self, ctx: &RenderCtx) -> Size {
         let steps = Panel::card(Some("Steps"))
@@ -510,9 +470,6 @@ impl ActivityPage {
         let run_h = run.outer(Size::new(inner, h + 1)).height;
         Size::new(width, steps.height + 1 + run_h)
     }
-
-
-
 
     fn under(&self, width: u16, side: Size) -> (u16, u16, bool) {
         let steps_h = STAGES.len() as u16 + 3;
@@ -548,7 +505,6 @@ impl ActivityPage {
         let inner = panel.render(area, buf, t);
         self.view.render(inner, buf, ctx, bg);
     }
-
 
     fn render_side(&mut self, area: Rect, beside: bool, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
@@ -665,7 +621,6 @@ impl ActivityPage {
     }
 }
 
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -718,11 +673,6 @@ impl Page for ActivityPage {
     fn blurb(&self) -> &'static str {
         "A live job: state clauses, stream chips, a following log and its steps"
     }
-
-
-
-
-
 
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let side = self.side_size(ctx);

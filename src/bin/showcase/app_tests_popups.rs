@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -27,7 +23,6 @@ fn open_popover(h: &mut Harness) {
     h.click(x + 1, y);
     assert!(page(h).popover.is_open());
 }
-
 
 fn popover_top(h: &Harness) -> u16 {
     h.find("report.pdf").expect("the popover").1
@@ -144,7 +139,6 @@ fn the_frame_states_follow_the_frame_options() {
     assert!(h.text().contains("Frame"));
     let with_close = h.text().matches('×').count();
     assert!(with_close >= 3, "the close button in every row");
-
 
     h.opt("popupstooltips.frame_dismiss=never");
     h.section(Section::States);

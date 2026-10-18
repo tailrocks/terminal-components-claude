@@ -1,6 +1,3 @@
-
-
-
 mod app;
 #[cfg(test)]
 mod app_tests;
@@ -44,7 +41,6 @@ use junie_tui::cli::CommonArgs;
 use crate::app::App;
 use crate::db::Connection;
 
-
 const NO_MOTION_ENV: &str = "TABLEPRO_NO_MOTION";
 
 #[derive(Debug, Parser)]
@@ -57,6 +53,7 @@ struct Cli {
     #[command(flatten)]
     common: CommonArgs,
 
+    #[doc = " Connect to the named connection at start"]
     #[arg(long, value_name = "NAME")]
     connect: Option<String>,
 }

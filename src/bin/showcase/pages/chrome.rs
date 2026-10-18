@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
@@ -50,14 +39,10 @@ const PR: WidgetId = WidgetId::of("chrome.status.pr");
 const ENV: WidgetId = WidgetId::of("chrome.strip.env");
 const PENDING: WidgetId = WidgetId::of("chrome.strip.pending");
 
-
-
 const NARROW_BAR: u16 = 30;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Target {
-
     Session(usize),
 
     Env,
@@ -107,7 +92,6 @@ impl ChromePage {
         page
     }
 
-
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::Chrome);
         let i = table
@@ -120,7 +104,6 @@ impl ChromePage {
     fn on(&self, key: &str) -> bool {
         self.opt(key) == "on"
     }
-
 
     fn build_bar(&self) -> MenuBar {
         let bar = MenuBar::new(
@@ -189,7 +172,6 @@ impl ChromePage {
         }
     }
 
-
     fn readout(&self) -> [String; 2] {
         let b = &self.bar;
         let on = |v: bool| if v { "on" } else { "off" };
@@ -224,8 +206,6 @@ impl ChromePage {
             ),
         ]
     }
-
-
 
     fn strip(&self, tick: u64, t: &junie_tui::theme::Theme) -> (Vec<Segment>, Vec<Segment>) {
         let g = &t.glyphs;
@@ -299,7 +279,6 @@ impl ChromePage {
         b
     }
 
-
     fn open_context(&mut self, req: ContextRequest<usize>) {
         let row = req.target;
         let label = self.sessions.items[row].label.clone();
@@ -309,7 +288,6 @@ impl ChromePage {
             Target::Session(row),
         );
     }
-
 
     fn context_items(&self, target: Target) -> Vec<MenuItem> {
         match target {
@@ -357,7 +335,6 @@ impl ChromePage {
                 hint("right-click", "Context menu"),
                 hint("Tab", "Next"),
             ])
-
             .status_parts(
                 vec![
                     ("last: ".to_owned(), Tone::Muted),
@@ -382,7 +359,6 @@ impl ChromePage {
         cx.status(label);
     }
 
-
     fn bar_action(&mut self, ev: Option<MenuBarAction>, cx: &mut Cx) {
         let Some(ev) = ev else { return };
         self.action = Some(ev);
@@ -403,7 +379,6 @@ impl ChromePage {
             .focused(focused)
     }
 
-
     fn checks_line() -> [Span; 6] {
         [
             Span::muted("checks "),
@@ -415,7 +390,6 @@ impl ChromePage {
         ]
     }
 
-
     fn action_line(&self) -> String {
         let last = match self.action {
             Some(a) => format!("{a:?}"),
@@ -423,8 +397,6 @@ impl ChromePage {
         };
         format!("last MenuBarAction: {last}   (Opened(menu) · Chosen(menu, item) · Closed · Brand)")
     }
-
-
 
     fn readout_lines(&self, w: u16) -> Vec<String> {
         self.readout()
@@ -434,7 +406,6 @@ impl ChromePage {
             .flat_map(|l| junie_tui::ui::text::wrap(l, w.max(1) as usize))
             .collect()
     }
-
 
     fn placed_text(&self, w: u16) -> String {
         let placed = self.status_bar().layout(Rect::new(0, 0, w, 1));
@@ -448,9 +419,6 @@ impl ChromePage {
         format!("places {} of 8 · {}", placed.len(), groups.join(", "))
     }
 
-
-
-
     fn natural_width(&self, ctx: &RenderCtx) -> u16 {
         let t = ctx.theme;
         let any = ratatui::layout::Size::new(0, 1);
@@ -463,7 +431,6 @@ impl ChromePage {
             .outer(ratatui::layout::Size::new(LIST_W.max(notes), 0))
             .width;
         let (left, right) = self.strip(0, t);
-
 
         let status = self.status_bar().min_width(any, ctx);
         let captions = [
@@ -491,8 +458,6 @@ impl ChromePage {
         .unwrap_or(0)
     }
 
-
-
     fn notes_lines(w: u16) -> Vec<String> {
         let w = w.max(1) as usize;
         let mut lines = junie_tui::ui::text::wrap(NOTES_TEXT, w);
@@ -500,8 +465,6 @@ impl ChromePage {
         lines.extend(junie_tui::ui::text::wrap(BRAND_NOTE, w));
         lines
     }
-
-
 
     fn card_tiles(w: u16) -> Tiled {
         let list_h = |_: u16| LIST_ROWS;
@@ -516,7 +479,6 @@ impl ChromePage {
         )
     }
 
-
     fn card_h(&self, w: u16) -> u16 {
         let panel = self.sessions_panel(false);
         let inner = panel.inner(ratatui::layout::Size::new(w, 0)).width;
@@ -527,8 +489,6 @@ impl ChromePage {
             ))
             .height
     }
-
-
 
     fn height(&self, w: u16) -> u16 {
         2 + self.card_h(w) + 1 + self.readout_lines(w).len() as u16 + 1 + 2 + 1 + 2 + 1 + 2 + 1 + 2
@@ -561,7 +521,6 @@ impl ChromePage {
             buf.set_string(nx, notes.y + i as u16, n, t.muted().bg(bg));
         }
 
-
         let sy = notes.y + lines.len() as u16 + 1;
         let max = notes.width;
         render_spans(buf, nx, sy, max, t, &Self::checks_line(), bg);
@@ -573,7 +532,6 @@ impl ChromePage {
             None,
             Some(("Saved", Some(StatusKind::Ok))),
         );
-
 
         let mut y = body.bottom() + 1;
         for line in self.readout_lines(area.width) {
@@ -587,7 +545,6 @@ impl ChromePage {
         junie_tui::ui::ctx::fill(buf, row, ratatui::style::Style::new().bg(t.surface));
         segments::render(row, buf, ctx, &left, &right, t.surface);
         y += 3;
-
 
         let status = self.status_bar();
         for (caption, w) in [
@@ -611,8 +568,6 @@ impl ChromePage {
             y += 3;
         }
 
-
-
         let layer = self.layer(ctx.interaction.focus);
         let hint_w = layer.measure(ratatui::layout::Size::new(0, 1), ctx).width;
         let hint_row = Rect::new(area.x, y + 1, hint_w.min(area.width), 1);
@@ -623,7 +578,6 @@ impl ChromePage {
         self.context.render(area, buf, ctx);
     }
 }
-
 
 const LIST_W: u16 = 48;
 
@@ -640,8 +594,6 @@ const LIST_ROWS: u16 = 6;
 
 const STRIP_CAPTION: &str = "identity strip · segments drop by priority · ◆ opens the app menu";
 const HINT_CAPTION: &str = "hint bar · topmost layer wins:";
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -687,7 +639,6 @@ impl Page for ChromePage {
     }
 
     fn animating(&self) -> bool {
-
         true
     }
 
@@ -771,7 +722,6 @@ impl Page for ChromePage {
                 }
                 let id = ev.id;
                 if id == ENV {
-
                     let menu = ContextMenu::new(CONTEXT, self.context_items(Target::Env))
                         .at(ev.pos())
                         .title("production");
@@ -809,7 +759,6 @@ impl Page for ChromePage {
         self.layer(focus)
             .hints
             .iter()
-
             .filter_map(|h| match h.action {
                 std::borrow::Cow::Borrowed(a) => Some((h.key, a)),
                 std::borrow::Cow::Owned(_) => None,

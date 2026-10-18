@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect, Size};
 
@@ -80,7 +74,6 @@ pub struct SettingsPage {
     remove_vars: Button,
 }
 
-
 fn member_rows() -> Vec<Vec<Cell>> {
     [
         ("Mira Okafor", "mira@acme.dev", "Owner", "today"),
@@ -102,7 +95,6 @@ fn member_rows() -> Vec<Vec<Cell>> {
     .collect()
 }
 
-
 fn members_table(id: WidgetId, rows: Vec<Vec<Cell>>) -> DataTable {
     DataTable::new(
         id,
@@ -117,7 +109,6 @@ fn members_table(id: WidgetId, rows: Vec<Vec<Cell>>) -> DataTable {
     .validator(role_validator)
 }
 
-
 fn env_items() -> Vec<ListItem> {
     [
         ("DATABASE_URL", "postgres://…"),
@@ -130,8 +121,6 @@ fn env_items() -> Vec<ListItem> {
     .map(|(k, v)| ListItem::new(k).meta(v))
     .collect()
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -199,8 +188,6 @@ impl SettingsPage {
         page
     }
 
-
-
     fn apply(&mut self) {
         let o = &self.opts;
         self.members = self.members.clone().cell_nav(o.on("settings.cell_nav"));
@@ -217,7 +204,6 @@ impl SettingsPage {
         )
         .value(self.description.field.text());
     }
-
 
     fn save(&mut self, cx: &mut Cx) {
         if !self.dirty {
@@ -245,12 +231,8 @@ impl SettingsPage {
 }
 
 impl SettingsPage {
-
-
-
     fn general_needs(&self, ctx: &RenderCtx) -> (u16, u16) {
         let w = |s: &str| junie_tui::ui::text::width(s) as u16;
-
 
         let left = self.description.min_width(Size::ZERO, ctx);
         let right = self
@@ -269,9 +251,6 @@ impl SettingsPage {
         (left, right)
     }
 
-
-
-
     fn general_columns(&self, inner: u16, ctx: &RenderCtx) -> Option<u16> {
         let (left, right) = self.general_needs(ctx);
         let half = (inner / 2).saturating_sub(2);
@@ -284,13 +263,10 @@ impl SettingsPage {
         }
     }
 
-
-
     fn general_height(&self, inner: u16, ctx: &RenderCtx) -> u16 {
         if self.general_columns(inner, ctx).is_some() {
             return 16;
         }
-
 
         let rows = TextInput::HEIGHT + self.description.height() + 1 + 7 + 1 + 1;
         (rows + 3).max(16)
@@ -319,7 +295,6 @@ impl SettingsPage {
                 let (l, r) = match self.general_columns(inner.width, ctx) {
                     Some(lw) => crate::pages::layout::columns(inner, lw, 4),
                     None => {
-
                         let top = TextInput::HEIGHT + self.description.height() + 1;
                         (
                             inner,
@@ -434,11 +409,6 @@ impl Page for SettingsPage {
         "Composed: tabs, form, editable table, list, dialogs"
     }
 
-
-
-
-
-
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let top = Tabs::STRIP_H + 1;
         let (left, right) = self.general_needs(ctx);
@@ -467,7 +437,6 @@ impl Page for SettingsPage {
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         let out = match self.template.handle(ev, cx) {
             Some(o) => o,
-
 
             None if self.template.section() == Section::Playground
                 || matches!(ev, PageEvent::DialogClosed { .. } | PageEvent::Blur(_)) =>
@@ -630,15 +599,12 @@ impl SettingsPage {
     }
 }
 
-
-
 fn clicked(b: &mut Button, ev: &PointerEvent) -> Option<bool> {
     let r = b.route(ev)?;
     (r.outcome() != Outcome::Ignored).then(|| r.into_action().is_some())
 }
 
 impl SettingsPage {
-
     fn handle_event(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
         if let PageEvent::Blur(ch) = ev {
             return forward_blur(

@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -37,7 +26,6 @@ const ID: WidgetId = WidgetId::of("helpkeys");
 pub const OPEN: WidgetId = WidgetId::of("helpkeys.open");
 
 pub const HELP: WidgetId = WidgetId::of("helpkeys.help");
-
 
 fn sections() -> Vec<(&'static str, Vec<(&'static str, &'static str)>)> {
     vec![
@@ -92,7 +80,6 @@ fn sections() -> Vec<(&'static str, Vec<(&'static str, &'static str)>)> {
     ]
 }
 
-
 fn reference() -> KeyReference {
     KeyReference::new()
         .section("Results")
@@ -127,7 +114,6 @@ impl HelpKeysPage {
         }
     }
 
-
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::HelpKeys);
         let i = table
@@ -136,7 +122,6 @@ impl HelpKeysPage {
             .unwrap_or_else(|| panic!("no option {key}"));
         table[i].values[self.opts[i]]
     }
-
 
     pub fn build_help(&self) -> HelpOverlay {
         let mut h = HelpOverlay::new(HELP, "Editor", sections())
@@ -161,13 +146,11 @@ impl HelpKeysPage {
         h
     }
 
-
     fn build_reference(&self) -> KeyReference {
         reference()
             .key_max_share(self.opt("helpkeys.key_max_share").parse().unwrap_or(40))
             .gap(self.opt("helpkeys.gap").parse().unwrap_or(3))
     }
-
 
     fn ref_width(&self) -> usize {
         match self.opt("helpkeys.width") {
@@ -175,7 +158,6 @@ impl HelpKeysPage {
             n => n.parse().unwrap_or(40),
         }
     }
-
 
     fn help_facts(&self) -> Vec<Prop> {
         let help = self.build_help();
@@ -218,9 +200,6 @@ impl HelpKeysPage {
         ]
     }
 
-
-
-
     fn tiled(&self, width: u16) -> Tiled {
         let lines = self.build_reference().lines(self.ref_width()).len() as u16;
         let ref_h = |_: u16| lines + 3;
@@ -243,7 +222,6 @@ impl HelpKeysPage {
         let t = ctx.theme;
         let tiled = self.tiled(area.width);
         let (left, right) = (tiled.at(0, area), tiled.at(1, area));
-
 
         let r = self.build_reference();
         let w = self.ref_width();
@@ -274,7 +252,6 @@ impl HelpKeysPage {
             }
         }
 
-
         let facts = self.help_facts();
         let panel = Panel::card(Some("HelpOverlay"));
         let bg = panel.bg(t);
@@ -302,12 +279,10 @@ impl HelpKeysPage {
     }
 }
 
-
 const REF_W: u16 = 58;
 
 const NOTE: &str = "It opens as the shell's modal and never over another one. \
                     The showcase's own ? opens one too, listing the shell's keys.";
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -368,8 +343,6 @@ impl Page for HelpKeysPage {
             _ => return Outcome::Ignored,
         };
         if open {
-
-
             cx.focus.focus(OPEN);
             cx.open_help(self.build_help());
         }

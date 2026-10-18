@@ -1,18 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -36,12 +21,9 @@ use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("panels");
 
-
-
 const COL_MIN: u16 = 36;
 
 const PANE_H: u16 = 9;
-
 
 const NOTE_X: u16 = 32;
 const TITLED: &str = "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.";
@@ -95,8 +77,6 @@ impl PanelsPage {
         page
     }
 
-
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let nav = match o.value("panels.nav") {
@@ -105,7 +85,6 @@ impl PanelsPage {
             _ => NavKeys::default(),
         };
         let keymap = match o.value("panels.keymap") {
-
             "t" => PanelCmd::default_keymap()
                 .into_iter()
                 .map(|(k, c)| match c {
@@ -156,8 +135,6 @@ impl PanelsPage {
         self.template.grid = states_grid(self.heading());
     }
 
-
-
     fn heading(&self) -> Option<CardHeading> {
         CardHeading::ALL
             .into_iter()
@@ -167,7 +144,6 @@ impl PanelsPage {
     fn panels(&mut self) -> [&mut ScrollPanel; 2] {
         [&mut self.prose, &mut self.log]
     }
-
 
     fn card<'a>(&self, title: Option<&'a str>) -> Panel<'a> {
         let mut p = Panel::card(title)
@@ -182,9 +158,6 @@ impl PanelsPage {
         p
     }
 
-
-
-
     fn split(width: u16) -> (u16, bool) {
         let half = (width / 2).saturating_sub(1);
         if half >= COL_MIN {
@@ -194,16 +167,12 @@ impl PanelsPage {
         }
     }
 
-
-
-
     fn children(&self, lw: u16) -> [StackChild; 3] {
         let iw = |p: &Panel| p.inner(Size::new(lw, 0)).width as usize;
         let titled = self.card(Some("Titled card"));
         let untitled = self.card(None);
         let nested = self.card(Some("Nested"));
         let lines = |text: &str, w: usize| junie_tui::ui::text::wrap(text, w.max(1)).len() as u16;
-
 
         let nw = iw(&nested) as u16;
         let body = if Self::note_beside(nw) {
@@ -218,8 +187,6 @@ impl PanelsPage {
         ]
     }
 
-
-
     fn note_beside(inner: u16) -> bool {
         inner > NOTE_X + 20
     }
@@ -231,7 +198,6 @@ impl PanelsPage {
         let (l, r) = if side {
             crate::pages::layout::columns(area, lw, 2)
         } else {
-
             let lh = self.sections.stack.measure(&children).min(area.height);
             let below = (lh + 1).min(area.height);
             (
@@ -240,10 +206,8 @@ impl PanelsPage {
             )
         };
 
-
         let focus = ctx.interaction.has_focus(self.nested.id).then_some(2);
         let lrows = self.sections.layout(l, &children, focus, buf, ctx);
-
 
         let panel = self.card(Some("Titled card")).meta("surface");
         let bg = panel.bg(t);
@@ -258,7 +222,6 @@ impl PanelsPage {
             }
         }
 
-
         let panel = self.card(None);
         let bg = panel.bg(t);
         if let Some(inner) = lrows.slot(1).and_then(|r| panel.try_render(r, buf, t)) {
@@ -271,7 +234,6 @@ impl PanelsPage {
                 }
             }
         }
-
 
         let panel = self.card(Some("Nested"));
         let bg = panel.bg(t);
@@ -363,10 +325,6 @@ impl PanelsPage {
     }
 }
 
-
-
-
-
 fn states_grid(heading: Option<CardHeading>) -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -398,10 +356,6 @@ impl Page for PanelsPage {
     fn blurb(&self) -> &'static str {
         "Cards group; a frame only where a pane needs an edge; nothing boxed twice"
     }
-
-
-
-
 
     fn measure(&self, avail: Size, _ctx: &RenderCtx) -> Size {
         let width = avail.width.max(COL_MIN);
@@ -484,7 +438,6 @@ impl Page for PanelsPage {
         } else {
             &self.prose
         };
-
 
         let mut v = Vec::new();
         if let Some(k) = panel.nav.move_hint(false) {

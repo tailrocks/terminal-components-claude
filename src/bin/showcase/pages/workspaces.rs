@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -44,7 +33,6 @@ pub const DETAIL: WidgetId = ID.sub("detail");
 pub const ROSTER: WidgetId = ID.sub("roster");
 
 pub const PURGE: WidgetId = ID.sub("purge");
-
 
 const LAUNCH_TICKS: u16 = 16;
 
@@ -214,14 +202,9 @@ fn ws_meta(ws: &Workspace) -> String {
     }
 }
 
-
-
 const BESIDE: u16 = 84;
 
-
 const ROSTER_MIN: u16 = 40;
-
-
 
 fn facts_width(inner: u16) -> u16 {
     inner * 11 / 20
@@ -275,7 +258,6 @@ impl WorkspacesPage {
         p
     }
 
-
     fn rebuild(&mut self) {
         let o = &self.opts;
         let md = MasterDetail::new(TREE, DETAIL)
@@ -295,8 +277,6 @@ impl WorkspacesPage {
             _ => md.resizable(Split::new(46, 30, 40)),
         };
     }
-
-
 
     fn sync_data(&mut self) {
         let nodes = self
@@ -365,7 +345,6 @@ impl WorkspacesPage {
         self.facts_for = None;
     }
 
-
     fn current(&self) -> Option<usize> {
         self.tree.cursor_path().and_then(|p| p.first().copied())
     }
@@ -394,11 +373,9 @@ impl WorkspacesPage {
         ]
     }
 
-
     fn roster_on(&self) -> bool {
         self.opts.value("workspaces.roster") != "off"
     }
-
 
     fn detail_panel(&self, wi: usize) -> (Panel<'static>, String) {
         let ws = &self.data[wi];
@@ -407,9 +384,6 @@ impl WorkspacesPage {
             format!("saved workspace · {}", ws_meta(ws)),
         )
     }
-
-
-
 
     fn detail_height(&self, wi: usize, width: u16) -> u16 {
         let (panel, _) = self.detail_panel(wi);
@@ -485,8 +459,6 @@ impl WorkspacesPage {
         }
         self.md.finish(ctx);
         if l.detail.is_empty() {
-
-
             for id in [
                 ROSTER,
                 self.launch.id,
@@ -541,7 +513,6 @@ impl WorkspacesPage {
                 Rect::new(body.x + fw + 2, body.y, body.width - fw - 2, body.height),
             )
         } else {
-
             let fh = props::measure(&self.facts(wi), body.width)
                 .min(body.height.saturating_sub(4).max(body.height / 2));
             (
@@ -619,7 +590,6 @@ impl WorkspacesPage {
             cx.status("Prewarming the image…");
         }
     }
-
 
     fn purge_dialog(&self, wi: usize) -> Dialog {
         let ws = &self.data[wi];
@@ -703,8 +673,6 @@ impl WorkspacesPage {
     }
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -756,11 +724,6 @@ impl Page for WorkspacesPage {
         "A workspace tree beside its detail card and instance roster; narrow, a drawer"
     }
 
-
-
-
-
-
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let total: usize = self.data.iter().map(running).sum();
         let meta = format!("{total} running");
@@ -786,8 +749,6 @@ impl Page for WorkspacesPage {
             .width;
         let panes = self.md.panes_width(tree.width, detail);
         let width = if avail.width < self.md.collapse_below && panes < self.md.collapse_below {
-
-
             avail.width.max(tree.width).max(detail)
         } else {
             avail.width.max(panes)

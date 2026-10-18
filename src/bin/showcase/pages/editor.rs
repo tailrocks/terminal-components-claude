@@ -1,8 +1,3 @@
-
-
-
-
-
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
@@ -72,9 +67,7 @@ const KEYWORDS: &[&str] = &[
     "Self", "static", "struct", "trait", "type", "use", "where", "while",
 ];
 
-
 const LITERALS: &[&str] = &["true", "false"];
-
 
 const CANDIDATES: &[(&str, &str, &str)] = &[
     ("fetch(", "async fn (url: &str) -> Result<Body, Error>", "ƒ"),
@@ -176,7 +169,6 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
     out
 }
 
-
 fn blocks(src: &str) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     let mut start: Option<usize> = None;
@@ -213,8 +205,6 @@ pub struct EditorPage {
     last_ms: Option<u32>,
 }
 
-
-
 fn custom_keymap() -> KeyMap<CodeCmd> {
     vec![
         (KeyBinding::key(KeyCode::Enter), CodeCmd::Edit),
@@ -243,8 +233,6 @@ impl EditorPage {
         page.rebuild();
         page
     }
-
-
 
     fn rebuild(&mut self) {
         let o = &self.opts;
@@ -330,12 +318,10 @@ impl EditorPage {
             });
     }
 
-
     #[cfg(test)]
     pub fn text(&self) -> &str {
         self.editor.text()
     }
-
 
     fn word_before_cursor(&self) -> (usize, String) {
         let cur = self.editor.cursor_offset();
@@ -427,8 +413,6 @@ impl EditorPage {
         cx.status(format!("Block ran in {ms} ms"));
     }
 
-
-
     fn state_props(&self) -> Vec<Prop> {
         let pos = self.editor.field.buffer.cursor_pos();
         let all = self.editor.blocks();
@@ -494,13 +478,9 @@ impl EditorPage {
         props
     }
 
-
     fn no_diagnostics() -> EmptyState {
         EmptyState::new("Nothing flagged").hint("Run the second block: its unwrap() gets a warning")
     }
-
-
-
 
     fn right_need(&self, ctx: &RenderCtx) -> u16 {
         Panel::card(Some("State"))
@@ -520,7 +500,6 @@ impl EditorPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
 
-
         let right = self.right_need(ctx);
         let (l, r) = if area.width >= EDITOR_MIN + 2 + right {
             let left = (area.width * 62 / 100)
@@ -528,7 +507,6 @@ impl EditorPage {
                 .min(area.width - 2 - right);
             crate::pages::layout::columns(area, left, 2)
         } else {
-
             let below = (EDITOR_H + 1).min(area.height);
             (
                 Rect::new(area.x, area.y, area.width, EDITOR_H.min(area.height)),
@@ -547,8 +525,6 @@ impl EditorPage {
         let bg = panel.bg(t);
         let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(EDITOR_H)), buf, t);
         self.editor.render(inner, buf, ctx, bg);
-
-
 
         let widths = [self.find.width(), self.run_button.width()];
         let rects =
@@ -599,16 +575,12 @@ impl EditorPage {
             }
         }
 
-
         if self.completion.is_open() {
             let screen = *buf.area();
             self.completion.render(screen, buf, ctx);
         }
     }
 }
-
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -639,12 +611,9 @@ fn states_grid() -> StateGrid {
         .column("Warning", warned.placeholder("Type code"))
 }
 
-
-
 const EDITOR_MIN: u16 = 40;
 
 const EDITOR_H: u16 = 26;
-
 
 const RIGHT_H: u16 = 2 + 12 + 1 + 9;
 
@@ -661,12 +630,6 @@ impl Page for EditorPage {
     fn animating(&self) -> bool {
         self.run_ticks > 0
     }
-
-
-
-
-
-
 
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let right = self.right_need(ctx);

@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use std::borrow::Cow;
 
 use ratatui::buffer::Buffer;
@@ -45,7 +35,6 @@ const REFRESH: WidgetId = ID.sub("refresh");
 const DEFAULT: WidgetId = ID.sub("default");
 const USAGE: WidgetId = ID.sub("usage");
 
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Health {
     Ok,
@@ -55,7 +44,6 @@ enum Health {
     Broken,
     Disabled,
 }
-
 
 struct Account {
     name: &'static str,
@@ -162,7 +150,6 @@ const ACCOUNTS: [Account; 5] = [
     },
 ];
 
-
 fn account_at(path: &[usize]) -> Option<&'static Account> {
     let [p, a] = path else { return None };
     ACCOUNTS
@@ -195,8 +182,6 @@ fn tree_nodes() -> Vec<TreeNode> {
         })
         .collect()
 }
-
-
 
 const INSPECTOR_MIN: u16 = 40;
 
@@ -241,7 +226,6 @@ impl AccountsUsagePage {
         page
     }
 
-
     fn rebuild(&mut self) {
         self.md = MasterDetail::new(TREE, INSPECTOR)
             .collapse_below(80)
@@ -250,8 +234,6 @@ impl AccountsUsagePage {
             .summary_rows(1)
             .resizable(Split::new(40, 26, 44));
     }
-
-
 
     fn frame_width(&self, avail: u16) -> u16 {
         self.opts
@@ -269,7 +251,6 @@ impl AccountsUsagePage {
             .map(<[usize]>::to_vec)
             .unwrap_or_default()
     }
-
 
     fn sync_inspector(&mut self) {
         let path = self.cursor_path();
@@ -343,9 +324,6 @@ impl AccountsUsagePage {
         }
     }
 
-
-
-
     fn inspector_height(&self, account: Option<&'static Account>, width: u16) -> u16 {
         let w = width.saturating_sub(2);
         let mut h = 0;
@@ -359,8 +337,6 @@ impl AccountsUsagePage {
         h + 1
     }
 
-
-
     fn panes(&self, ctx: &RenderCtx) -> (Size, Panel<'static>, u16) {
         let tree = Panel::framed(Some("Accounts"))
             .meta("3 providers")
@@ -368,14 +344,10 @@ impl AccountsUsagePage {
         let buttons = self.refresh.width() + 2 + self.set_default.width();
         let frame = Panel::framed(Some("Accounts")).meta("inspector");
 
-
         let inner = (buttons + 2).max(INSPECTOR_MIN);
         let detail = frame.outer(Size::new(inner, 0)).width;
         (tree, frame, detail)
     }
-
-
-
 
     fn accounts_height(&self, width: u16, ctx: &RenderCtx) -> u16 {
         let (tree, frame, _) = self.panes(ctx);
@@ -643,8 +615,6 @@ fn usage_table() -> DataTable {
     .numeric(&[2, 3, 4])
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))
@@ -680,7 +650,6 @@ fn states_grid() -> StateGrid {
         )
 }
 
-
 fn page_hint(h: junie_tui::widgets::keyhint::Hint) -> Hint {
     let action = match h.action {
         Cow::Borrowed(s) => s,
@@ -696,11 +665,6 @@ impl Page for AccountsUsagePage {
     fn blurb(&self) -> &'static str {
         "Accounts by provider with an inspector: warnings, facts, quota meters, usage table"
     }
-
-
-
-
-
 
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let (tree, _, detail) = self.panes(ctx);

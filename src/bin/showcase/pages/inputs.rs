@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -39,7 +33,6 @@ fn email(s: &str) -> Option<String> {
     }
 }
 
-
 pub const TEXT_COMMANDS: [(TextCmd, &str); 14] = [
     (TextCmd::SelectAll, "Select all"),
     (TextCmd::Copy, "Copy"),
@@ -57,15 +50,11 @@ pub const TEXT_COMMANDS: [(TextCmd, &str); 14] = [
     (TextCmd::SelectToDocEnd, "Select to text end"),
 ];
 
-
-
 pub fn custom_text_keymap(keys: FieldKeys) -> KeyMap<TextCmd> {
     let mut map = vec![(KeyBinding::alt('a'), TextCmd::SelectAll)];
     map.extend(keys.text_keymap());
     map
 }
-
-
 
 fn keys_of(map: &KeyMap<TextCmd>, cmd: TextCmd) -> String {
     let keys: Vec<String> = map
@@ -89,7 +78,6 @@ fn keys_of(map: &KeyMap<TextCmd>, cmd: TextCmd) -> String {
         keys.join(" · ")
     }
 }
-
 
 fn edit_entry(opts: &PageValues, key: &str) -> Option<EditEntry> {
     match opts.value(key) {
@@ -155,8 +143,6 @@ impl InputsPage {
         page.rebuild();
         page
     }
-
-
 
     fn rebuild(&mut self) {
         let o = &self.opts;
@@ -231,7 +217,6 @@ impl InputsPage {
         self.fields = fields;
     }
 
-
     #[allow(dead_code)]
     pub fn field(&self, i: usize) -> &TextInput {
         &self.fields[i]
@@ -241,8 +226,6 @@ impl InputsPage {
         let f = cx.focus.current()?;
         self.fields.iter().position(|i| i.id == f)
     }
-
-
 
     fn field_tiles(&self, width: u16, ctx: &RenderCtx) -> Tiled {
         let mins: Vec<u16> = self
@@ -264,8 +247,6 @@ impl InputsPage {
         tiles(width, &rows, (4, 0))
     }
 
-
-
     fn command_sheets(&self) -> [(&'static str, bool, Vec<Prop>); 2] {
         let custom = self.opts.value("inputs.text_keymap") == "custom";
         [
@@ -286,8 +267,6 @@ impl InputsPage {
             (name, chosen, list)
         })
     }
-
-
 
     fn command_tiles(&self, width: u16) -> Tiled {
         let sheets = self.command_sheets();
@@ -313,7 +292,6 @@ impl InputsPage {
         Panel::card(Some("Text commands")).meta(meta)
     }
 
-
     fn heights(&self, width: u16, ctx: &RenderCtx) -> [u16; 3] {
         let fp = Panel::card(Some("Playground")).meta(FIELDS_META);
         let inner = fp.inner(Size::new(width, 0)).width;
@@ -331,10 +309,7 @@ impl InputsPage {
         [fields, commands, undo.outer(Size::new(inner, rows)).height]
     }
 
-
-
     fn natural_width(&self, ctx: &RenderCtx) -> u16 {
-
         let field = self
             .fields
             .iter()
@@ -374,7 +349,6 @@ impl InputsPage {
         }
     }
 
-
     fn render_commands(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let panel = self.commands_panel();
@@ -395,7 +369,6 @@ impl InputsPage {
     }
 }
 
-
 const FIELDS_W: u16 = 48;
 const FIELDS_META: &str = "Type to edit · Enter Apply · Esc Cancel · Tab Next";
 
@@ -404,7 +377,6 @@ const UNDO_META: &str = "Ctrl+Z · Ctrl+Shift+Z";
 const UNDO_NOTE: &str = "A run of typed characters undoes as one step (Typing), and so does \
      a run of deletions (Deleting); a space, a paste or a cut (Other) starts a new step. \
      Type two words in Project name, then Ctrl+Z.";
-
 
 fn render_undo(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
     let t = ctx.theme;
@@ -421,8 +393,6 @@ fn render_undo(area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         }
     }
 }
-
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

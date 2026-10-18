@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::app::PageId;
@@ -12,7 +8,6 @@ fn an_unsaved_settings_section_marks_its_tab_until_saved() {
     let mut h = Harness::on(120, 40, PageId::Settings);
     let dirty = junie_tui::theme::Theme::junie().glyphs.dirty;
     assert!(!h.text().contains(&format!("General {dirty}")));
-
 
     for _ in 0..6 {
         h.key(KeyCode::Tab);
@@ -47,10 +42,6 @@ fn quitting_while_the_pipeline_runs_asks_first() {
     h.click(x + 1, y);
     assert!(h.app.shell.quit, "Stop and leave quits");
 }
-
-
-
-
 
 #[test]
 fn the_settings_options_and_states() {
@@ -95,10 +86,6 @@ fn the_settings_options_and_states() {
         assert!(text.contains(col), "{col}\n{text}");
     }
 }
-
-
-
-
 
 #[test]
 fn the_task_runner_options_states_and_run_from_the_strip() {

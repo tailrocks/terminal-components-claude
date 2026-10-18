@@ -1,30 +1,11 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::io::Write;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use super::hit::HitRegistry;
 use super::pointer::PointerState;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum PointerShape {
-
     #[default]
     Default,
 
@@ -38,7 +19,6 @@ pub enum PointerShape {
 }
 
 impl PointerShape {
-
     pub const fn css_name(self) -> &'static str {
         match self {
             Self::Default => "default",
@@ -49,17 +29,13 @@ impl PointerShape {
         }
     }
 
-
     pub fn osc22(self) -> String {
         format!("\x1b]22;{}\x1b\\", self.css_name())
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum CaretShape {
-
     #[default]
     Bar,
 
@@ -71,8 +47,6 @@ pub enum CaretShape {
 }
 
 impl CaretShape {
-
-
     pub const fn decscusr(self) -> Option<&'static str> {
         match self {
             Self::Block => Some("\x1b[2 q"),
@@ -83,29 +57,20 @@ impl CaretShape {
     }
 }
 
-
 pub const CARET_RESET: &str = "\x1b[0 q";
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ShapeSupport {
-
     pub pointer: bool,
 
     pub caret: bool,
 }
 
 impl ShapeSupport {
-
     pub const NONE: Self = Self {
         pointer: false,
         caret: false,
     };
-
-
-
-
-
 
     pub fn from_env(get: impl Fn(&str) -> Option<String>) -> Self {
         let term = get("TERM").unwrap_or_default().to_ascii_lowercase();
@@ -132,15 +97,11 @@ impl ShapeSupport {
         Self { pointer, caret }
     }
 
-
     pub fn current() -> Self {
         static CURRENT: std::sync::OnceLock<ShapeSupport> = std::sync::OnceLock::new();
         *CURRENT.get_or_init(|| Self::from_env(|k| std::env::var(k).ok()))
     }
 }
-
-
-
 
 pub fn under(pointer: &PointerState, hits: &HitRegistry) -> PointerShape {
     pointer
@@ -150,10 +111,6 @@ pub fn under(pointer: &PointerState, hits: &HitRegistry) -> PointerShape {
         .unwrap_or_default()
 }
 
-
-
-
-
 pub fn shapes_for(pointer: &PointerState, hits: &HitRegistry) -> Shapes {
     Shapes {
         pointer: pointer.config.pointer_shapes.then(|| under(pointer, hits)),
@@ -161,16 +118,12 @@ pub fn shapes_for(pointer: &PointerState, hits: &HitRegistry) -> Shapes {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Shapes {
-
-
     pub pointer: Option<PointerShape>,
 
     pub caret: Option<CaretShape>,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ShapeSync {
@@ -178,8 +131,6 @@ pub struct ShapeSync {
     pointer: Option<PointerShape>,
     caret: Option<CaretShape>,
 }
-
-
 
 static SENT: AtomicU8 = AtomicU8::new(0);
 const SENT_POINTER: u8 = 1;
@@ -193,8 +144,6 @@ impl ShapeSync {
             caret: None,
         }
     }
-
-
 
     pub fn apply(&mut self, want: Shapes, out: &mut impl Write) -> std::io::Result<bool> {
         let mut wrote = false;
@@ -220,15 +169,11 @@ impl ShapeSync {
         Ok(wrote)
     }
 
-
-
     pub fn forget(&mut self) {
         self.pointer = None;
         self.caret = None;
     }
 }
-
-
 
 pub fn reset_sequence() -> String {
     let sent = SENT.swap(0, Ordering::Relaxed);
@@ -315,8 +260,6 @@ mod tests {
         );
         assert_eq!(ShapeSupport::from_env(env(&[])), ShapeSupport::NONE);
     }
-
-
 
     #[test]
     fn shapes_are_written_on_change_only() {

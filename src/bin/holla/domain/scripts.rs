@@ -1,6 +1,3 @@
-
-
-
 use std::collections::BTreeMap;
 
 use crate::domain::activity::{LineTone, Script, line, service, toned};
@@ -404,7 +401,6 @@ pub fn scripts() -> BTreeMap<String, Script> {
     );
     m
 }
-
 
 pub fn step_outputs() -> BTreeMap<String, Vec<String>> {
     let mut m: BTreeMap<String, Vec<String>> = BTreeMap::new();

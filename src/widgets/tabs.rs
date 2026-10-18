@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
@@ -32,7 +21,6 @@ pub struct TabItem {
     pub dirty: bool,
     pub busy: bool,
     pub error: bool,
-
 
     pub done: bool,
     pub closable: bool,
@@ -83,8 +71,6 @@ impl TabItem {
     }
 }
 
-
-
 impl crate::ui::measure::Measure for Tabs {
     fn measure(
         &self,
@@ -95,9 +81,6 @@ impl crate::ui::measure::Measure for Tabs {
         let new = if self.allow_new { 4 } else { 0 };
         ratatui::layout::Size::new(tabs + new, 2)
     }
-
-
-
 
     fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &crate::ui::ctx::RenderCtx) -> u16 {
         let widest = self
@@ -123,43 +106,25 @@ pub struct Tabs {
 
     pub allow_new: bool,
 
-
     pub rule: TabRule,
-
 
     pub middle_click_closes: bool,
 
     pub wrap: bool,
 
-
     pub nav: NavKeys,
 
-
     pub keymap: KeyMap<TabCmd>,
-
-
-
-
 
     pub close_button: IconButton,
 
     pub close_reveal: CloseReveal,
 
-
-
     pub overflow_menu: bool,
-
-
-
 
     pub more_button: IconButton,
 
-
-
-
-
     pub passive: bool,
-
 
     pub passive_focused: bool,
 
@@ -169,41 +134,21 @@ pub struct Tabs {
 
     fit: usize,
 
-
     max_first: usize,
-
-
 
     revealed: Option<usize>,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CloseReveal {
-
-
     #[default]
     Always,
-
-
-
 
     Hover,
 }
 
-
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum TabRule {
-
-
-
-
     #[default]
     Auto,
 
@@ -211,33 +156,23 @@ pub enum TabRule {
 
     Neutral,
 
-
-
     FocusOnly,
 }
 
-
 pub const DEFAULT_CLOSE_KEYS: &[KeyCode] = &[KeyCode::Char('x'), KeyCode::Delete];
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TabCmd {
-
     Close,
 
     New,
 
     Jump(usize),
 
-
-
-
-
     ShowHidden,
 }
 
 impl TabCmd {
-
     pub fn digit_keys() -> KeyMap<Self> {
         ('1'..='9')
             .enumerate()
@@ -332,17 +267,11 @@ impl Tabs {
         }
     }
 
-
     pub const STRIP_H: u16 = 2;
-
-
-
 
     pub fn layout(area: Rect) -> (Rect, Rect) {
         Self::layout_gap(area, 1)
     }
-
-
 
     pub fn layout_gap(area: Rect, gap: u16) -> (Rect, Rect) {
         let strip_h = Self::STRIP_H.min(area.height);
@@ -352,12 +281,10 @@ impl Tabs {
         (strip, body)
     }
 
-
     pub fn passive(mut self, on: bool) -> Self {
         self.passive = on;
         self
     }
-
 
     pub fn passive_focused(mut self, on: bool) -> Self {
         self.passive_focused = on;
@@ -369,25 +296,20 @@ impl Tabs {
         self
     }
 
-
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
-
 
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-
     pub fn keymap(mut self, keymap: KeyMap<TabCmd>) -> Self {
         self.keymap = keymap;
         self
     }
-
-
 
     pub fn digit_jump(mut self, on: bool) -> Self {
         self.keymap.retain(|(_, a)| !matches!(a, TabCmd::Jump(_)));
@@ -397,8 +319,6 @@ impl Tabs {
         self
     }
 
-
-
     pub fn close_keys(mut self, keys: &[KeyCode]) -> Self {
         self.keymap.retain(|(_, a)| *a != TabCmd::Close);
         self.keymap.extend(
@@ -407,8 +327,6 @@ impl Tabs {
         );
         self
     }
-
-
 
     pub fn new_key(mut self, key: Option<char>) -> Self {
         self.keymap.retain(|(_, a)| *a != TabCmd::New);
@@ -423,13 +341,10 @@ impl Tabs {
         self
     }
 
-
     pub fn overflow_menu(mut self, on: bool) -> Self {
         self.overflow_menu = on;
         self
     }
-
-
 
     fn overflow_tip(&self, t: &crate::theme::Theme) -> Tip {
         let tip = Tip::new(t.strings.tip_overflow);
@@ -439,27 +354,22 @@ impl Tabs {
         }
     }
 
-
     pub fn more_button(mut self, button: IconButton) -> Self {
         self.more_button = button;
         self
     }
 
-
     pub fn menu_open(&self) -> bool {
         self.menu.is_some()
     }
-
 
     pub fn more_id(&self) -> WidgetId {
         self.id.part(PartRef::of(Part::OVERFLOW))
     }
 
-
     pub fn menu_id(&self) -> WidgetId {
         self.id.sub("more-menu")
     }
-
 
     fn hidden_tabs(&self) -> Vec<usize> {
         let end = (self.first + self.fit).min(self.items.len());
@@ -503,27 +413,20 @@ impl Tabs {
         }
     }
 
-
-
     pub fn close_target_w(mut self, cells: u16) -> Self {
         self.close_button = self.close_button.plate(cells);
         self
     }
-
 
     pub fn close_button(mut self, button: IconButton) -> Self {
         self.close_button = button;
         self
     }
 
-
     pub fn close_reveal(mut self, reveal: CloseReveal) -> Self {
         self.close_reveal = reveal;
         self
     }
-
-
-
 
     pub fn set_items(&mut self, items: Vec<TabItem>) {
         self.items = items;
@@ -533,13 +436,8 @@ impl Tabs {
         self.first = self.first.min(last);
     }
 
-
-
-
-
     pub fn on_wheel(&mut self, dx: i32, dy: i32) -> Outcome {
         if let Some((menu, _)) = self.menu.as_mut() {
-
             return if dy != 0 {
                 crate::core::scroll::Scrollable::wheel(&mut menu.list, Axis::Vertical, dy).outcome()
             } else {
@@ -562,8 +460,6 @@ impl Tabs {
         self.middle_click_closes = on;
         self
     }
-
-
 
     pub fn on_middle_click(&self, id: WidgetId) -> Option<TabAction> {
         if !self.middle_click_closes {
@@ -589,18 +485,13 @@ impl Tabs {
         self.id.part(PartRef::OVERFLOW_AFTER)
     }
 
-
-
     fn close_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::CLOSE, 0..self.items.len())
     }
 
-
-
     fn tab_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::TAB, 0..self.items.len())
     }
-
 
     pub fn hidden(&self) -> (usize, usize) {
         let after = self.items.len().saturating_sub(self.first + self.fit);
@@ -616,8 +507,6 @@ impl Tabs {
         let to = i.min(self.items.len() - 1);
         self.cursor = to;
         if to != self.active {
-
-
             self.active = to;
             self.ensure_visible(to);
         }
@@ -651,7 +540,6 @@ impl Tabs {
         }
         let action = lookup(&self.keymap, key);
         if unassigned_chord(key, &self.keymap) {
-
             return (Outcome::Ignored, None);
         }
         if self.items.is_empty() {
@@ -753,7 +641,6 @@ impl Tabs {
         w
     }
 
-
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -765,10 +652,6 @@ impl Tabs {
         } else {
             ctx.interaction.focused_under(self.id, self.menu.is_some())
         };
-
-
-
-
 
         if !self.passive {
             ctx.control(self.id, area, false);
@@ -804,7 +687,6 @@ impl Tabs {
         };
         let avail = area.width.saturating_sub(left_w + right_w + more_w + new_w);
 
-
         self.max_first = {
             let mut used = 0u16;
             let mut f = self.items.len();
@@ -818,7 +700,6 @@ impl Tabs {
                 0
             }
         };
-
 
         let reveal = self.revealed != Some(self.active);
         self.revealed = Some(self.active);
@@ -882,11 +763,6 @@ impl Tabs {
             let active = i == self.active;
             s.selected = active;
 
-
-
-
-
-
             let look = t.interactive(Kind::Tab, s, t.plane_of(bg));
             let st = look.style;
             crate::ui::ctx::fill(buf, r, st);
@@ -894,8 +770,6 @@ impl Tabs {
                 buf.set_string(x, y, look.gutter, look.gutter_style);
             }
             let mut cx = x + 1;
-
-
 
             let plane = st.bg.unwrap_or(bg);
             if let Some(p) = &it.prefix {
@@ -958,7 +832,6 @@ impl Tabs {
                 );
                 cx += 2;
             }
-
 
             let cid = self.close_id(i);
             let show_close = it.closable
@@ -1034,7 +907,6 @@ impl Tabs {
             let r = Rect::new(mx, y, more_w, 1);
             self.more_area = r;
 
-
             let host = ratatui::style::Style::new().bg(bg);
             crate::ui::ctx::fill(buf, r, host);
             self.more_button
@@ -1088,12 +960,6 @@ impl Navigable for Tabs {
     }
 }
 
-
-
-
-
-
-
 impl crate::core::pointer::MouseTarget for Tabs {
     type Action = TabAction;
 
@@ -1136,8 +1002,6 @@ impl crate::core::pointer::MouseTarget for Tabs {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-
 
     #[test]
     fn measure_shows_every_tab() {
@@ -1318,7 +1182,6 @@ mod tests {
             c.fg
         };
 
-
         assert_eq!(tabs.rule, TabRule::Auto);
         assert_eq!(rule(TabRule::Auto, unfocused), t.accent);
         assert_eq!(rule(TabRule::Auto, focused), t.accent);
@@ -1394,7 +1257,6 @@ mod tests {
             ..Default::default()
         };
 
-
         let buf = render_with(&mut tabs, focused);
         let a = tabs.areas[1];
         assert_eq!(row(&buf, 0).matches('▎').count(), 1, "one focus indicator");
@@ -1423,10 +1285,6 @@ mod tests {
         assert_eq!(buf[(tabs.areas[2].x, 0)].symbol(), "▎");
         assert_eq!(row(&buf, 0).matches('▎').count(), 1);
     }
-
-
-
-
 
     #[test]
     fn the_overflow_button_is_a_padded_plate_with_a_tooltip() {
@@ -1497,7 +1355,6 @@ mod tests {
         assert!(!buf[(b.x + 1, 0)].modifier.contains(Modifier::BOLD));
         assert_eq!(buf[(b.x + 1, 1)].symbol(), "─");
 
-
         tabs.cursor = 2;
         let focus = Interaction {
             focus: Some(tabs.id),
@@ -1549,10 +1406,6 @@ mod tests {
         assert_eq!(buf[(b.x + 1 + 4 + 1, 0)].symbol(), t.glyphs.dirty);
         assert!(!row(&buf, 0).contains("Docs ✓"));
     }
-
-
-
-
 
     #[test]
     fn the_active_tabs_prefix_and_marks_read_on_its_fill_at_every_level() {
@@ -1872,8 +1725,6 @@ mod tests {
             Some(one.tab_id(0))
         );
     }
-
-
 
     #[test]
     fn the_close_plate_lights_as_wide_as_it_hits_at_every_level() {

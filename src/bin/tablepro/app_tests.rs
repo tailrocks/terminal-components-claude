@@ -1,5 +1,3 @@
-
-
 use crate::filter_editor::FilterEditor;
 use junie_tui::runtime::Application;
 use junie_tui::widgets::dialog::Dialog;
@@ -62,8 +60,6 @@ impl H {
         o
     }
 
-
-
     pub fn cmd(&mut self, c: char) -> Outcome {
         let o = self.app.handle(Input::Key(Key {
             code: KeyCode::Char(c),
@@ -112,7 +108,6 @@ impl H {
             if self.focus() == Some(id) {
                 return;
             }
-
 
             let in_editor = matches!(
                 self.app.workbench.as_ref().and_then(|w| w.active_tab()),
@@ -180,9 +175,6 @@ fn connections_screen_lists_and_connects_with_keyboard() {
         "safe mode token visible in the strip"
     );
 }
-
-
-
 
 #[test]
 fn a_double_click_on_a_connection_connects_and_one_click_selects() {
@@ -317,7 +309,6 @@ fn sort_and_filter_on_table_tab() {
     }
     h.key(KeyCode::Char('f'));
     assert!(h.app.top_as::<FilterEditor>().is_some());
-
 
     h.key(KeyCode::BackTab);
     h.key(KeyCode::BackTab);
@@ -574,7 +565,6 @@ fn safety_gate_intercepts_dangerous_statement_on_production() {
     assert!(t.contains("Production"));
     assert!(t.contains("Type orders to confirm"));
 
-
     h.key(KeyCode::Enter);
     h.type_str("wrong");
     h.key(KeyCode::Enter);
@@ -703,7 +693,6 @@ fn quick_switcher_details_are_not_cut_beside_unused_label_cells() {
         .find(|l| l.contains("login_attempts"))
         .unwrap_or_else(|| panic!("a table row\n{t}"));
 
-
     assert!(
         row.contains("audit") && !row.contains("audit ·…"),
         "the detail is not cut while the label column has room: {row:?}\n{t}"
@@ -806,7 +795,6 @@ fn pending_edits_preview_and_save() {
     h.key(KeyCode::Esc);
     h.ctrl('s');
     assert!(h.text().contains("Save changes?"));
-
 
     h.type_str("orders");
     h.key(KeyCode::Enter);
@@ -929,10 +917,6 @@ fn narrow_terminals_turn_the_explorer_into_a_drawer() {
     assert!(h.text().contains("public › orders"));
 }
 
-
-
-
-
 #[test]
 fn a_narrowed_card_keeps_its_focused_button_in_the_drawer() {
     let mut h = H::new(120, 30);
@@ -951,9 +935,6 @@ fn a_narrowed_card_keeps_its_focused_button_in_the_drawer() {
         "the First fallback lands on the ring's first control"
     );
 }
-
-
-
 
 #[test]
 fn a_form_covering_the_narrow_connection_list_keeps_tab_inside_it() {
@@ -974,7 +955,6 @@ fn a_form_covering_the_narrow_connection_list_keeps_tab_inside_it() {
         "Tab reached the covered list: {seen:?}"
     );
 }
-
 
 #[test]
 fn acceptance_flow_keyboard_only() {
@@ -1074,7 +1054,6 @@ fn acceptance_flow_keyboard_only() {
     assert!(!h.wb_query().is_running());
     assert!(h.text().contains("Cancelled · nothing was executed"));
 }
-
 
 #[test]
 fn acceptance_flow_mouse() {
@@ -1207,7 +1186,6 @@ fn footer(h: &H) -> String {
 
 #[test]
 fn dialog_footers_name_the_focused_button_and_the_typed_token() {
-
     let mut h = H::new(120, 40);
     h.key(KeyCode::Char('d'));
     assert!(h.app.top_as::<Dialog>().is_some(), "{}", h.text());
@@ -1216,7 +1194,6 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     assert!(!f.contains("y Delete"), "no one-key Delete: {f}");
     assert!(!f.contains("Confirm"), "{f}");
 
-
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab);
     h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
@@ -1224,7 +1201,6 @@ fn dialog_footers_name_the_focused_button_and_the_typed_token() {
     h.ctrl('r');
     let f = footer(&h);
     assert!(f.contains("Type \"orders\" to confirm"), "{f}");
-
 
     assert!(!f.contains("Enter Next"), "{f}");
 
@@ -1253,7 +1229,6 @@ fn the_switcher_is_the_only_layer_showing_focus() {
     assert_eq!(cues(&h), (0, 0), "{}", h.text());
 }
 
-
 fn active_rule(h: &H, strip: &junie_tui::widgets::tabs::Tabs) -> ratatui::style::Color {
     let a = strip.areas[strip.active];
     let cell = &h.term.backend().buffer()[(a.x + 1, a.y + 1)];
@@ -1266,7 +1241,6 @@ fn the_active_query_tab_shows_the_accent_and_goes_neutral_under_a_modal() {
     let mut h = H::connected(120, 40);
     let t = h.app.theme;
     assert!(matches!(h.wb().active_tab(), Some(WorkTab::Query(_))));
-
 
     assert_ne!(h.focus(), Some(h.wb().strip.id));
     assert_eq!(active_rule(&h, &h.wb().strip), t.accent);
@@ -1293,13 +1267,11 @@ fn a_table_tab_shows_its_chosen_mode_in_the_accent() {
         panic!("a table tab: {}", h.text());
     };
 
-
     assert_eq!(active_rule(&h, &tab.mode_tabs), t.accent);
 }
 
 #[test]
 fn cell_edit_footer_says_apply_not_commit() {
-
     let mut h = H::connected(120, 40);
     for _ in 0..5 {
         h.key(KeyCode::Down);
@@ -1314,10 +1286,6 @@ fn cell_edit_footer_says_apply_not_commit() {
     assert!(f.contains("Esc Cancel"), "{f}");
     assert!(!f.contains("Commit"), "{f}");
 }
-
-
-
-
 
 #[test]
 fn the_keyboard_reference_lists_the_live_shell_keys() {
@@ -1346,8 +1314,6 @@ fn the_keyboard_reference_lists_the_live_shell_keys() {
 
 #[test]
 fn hover_follows_the_rows_that_scroll_under_a_still_pointer() {
-
-
     let mut h = H::connected(120, 20);
     let (x, y) = h
         .find("customers")
@@ -1363,14 +1329,9 @@ fn hover_follows_the_rows_that_scroll_under_a_still_pointer() {
     assert_eq!(h.app.shell.pointer.hover, now);
 }
 
-
-
-
-
 #[test]
 fn a_short_connection_form_keeps_fields_above_the_buttons_and_scrolls_to_focus() {
     let form = WidgetId::of("connections").sub("form");
-
 
     let fields: Vec<WidgetId> = [
         "name", "engine", "host", "port", "db", "user", "pw", "promptpw", "env", "group", "safe",
@@ -1409,7 +1370,6 @@ fn a_short_connection_form_keeps_fields_above_the_buttons_and_scrolls_to_focus()
                         );
                     }
 
-
                     let text = h.text();
                     let gutter = text.lines().position(|l| l.contains('▎'));
                     assert!(
@@ -1441,7 +1401,6 @@ fn the_wheel_scrolls_a_short_connection_form_by_whole_fields() {
     h.ctrl('n');
     let (x, y) = h.find("Name *").expect("the form opens at its first field");
 
-
     assert!(
         h.app
             .shell
@@ -1459,7 +1418,6 @@ fn the_wheel_scrolls_a_short_connection_form_by_whole_fields() {
 
 #[test]
 fn a_click_marks_focus_as_pointer_focus_until_the_next_key() {
-
     let mut h = H::connected(120, 40);
     let (x, y) = h.find("customers").unwrap();
     h.click(x, y);
@@ -1473,9 +1431,6 @@ fn a_click_marks_focus_as_pointer_focus_until_the_next_key() {
         "a key shows focus again"
     );
 }
-
-
-
 
 #[test]
 fn the_wheel_over_the_tab_strip_scrolls_it() {
@@ -1506,8 +1461,6 @@ fn the_wheel_over_the_tab_strip_scrolls_it() {
     assert_eq!(h.wb().strip.first, 2, "a horizontal notch too");
     assert_eq!(h.wb().active, 0, "the wheel does not switch tabs");
 }
-
-
 
 #[test]
 fn the_overflow_button_lists_hidden_tabs_and_a_click_activates_one() {
@@ -1558,11 +1511,6 @@ fn the_overflow_button_lists_hidden_tabs_and_a_click_activates_one() {
     assert_eq!(h.wb().active, last);
 }
 
-
-
-
-
-
 #[test]
 fn the_query_editor_takes_letters_at_once_and_its_find_bar_counts_as_editing() {
     let mut h = H::connected(120, 40);
@@ -1603,8 +1551,6 @@ fn the_query_editor_takes_letters_at_once_and_its_find_bar_counts_as_editing() {
     assert_ne!(h.focus(), Some(editor), "after Esc, Tab leaves the editor");
 }
 
-
-
 #[test]
 fn tab_walk_shows_a_caret_at_every_connection_form_field() {
     let mut h = H::new(120, 40);
@@ -1629,7 +1575,6 @@ fn tab_walk_shows_a_caret_at_every_connection_form_field() {
     );
 }
 
-
 #[test]
 fn the_query_editor_selects_all_with_cmd_a() {
     let mut h = H::connected(80, 24);
@@ -1646,9 +1591,6 @@ fn the_query_editor_selects_all_with_cmd_a() {
     h.type_str("SELECT 2");
     assert_eq!(h.wb_query().editor.text(), "SELECT 2");
 }
-
-
-
 
 #[test]
 fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
@@ -1671,7 +1613,6 @@ fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
         "the strip under the open menu shows no focus\n{text}"
     );
 
-
     assert_eq!(text.matches('▎').count(), 0, "{text}");
     h.key(KeyCode::Esc);
     assert!(!h.wb().strip.menu_open());
@@ -1681,10 +1622,6 @@ fn the_open_overflow_menu_is_the_only_layer_showing_focus() {
         "focus is back on the strip"
     );
 }
-
-
-
-
 
 #[test]
 fn down_on_the_strip_opens_the_overflow_menu() {
@@ -1712,10 +1649,6 @@ fn down_on_the_strip_opens_the_overflow_menu() {
     assert_eq!(h.wb().active, first_hidden, "{}", h.text());
 }
 
-
-
-
-
 #[test]
 fn q_quits_from_the_focused_connection_tree_and_other_letters_type() {
     let tree = WidgetId::of("connections").sub("tree");
@@ -1741,7 +1674,6 @@ fn q_quits_from_the_focused_connection_tree_and_other_letters_type() {
     assert!(h.app.shell.quit, "q quits from the tree");
 }
 
-
 #[test]
 fn q_quits_from_the_focused_explorer_tree() {
     let mut h = H::connected(120, 36);
@@ -1755,9 +1687,6 @@ fn q_quits_from_the_focused_explorer_tree() {
 
 #[test]
 fn the_frame_that_hides_the_focused_explorer_shows_where_focus_went() {
-
-
-
     let mut h = H::connected(100, 30);
     let explorer = h.wb().explorer.id;
     assert_eq!(h.app.shell.focus.current(), Some(explorer));
@@ -1767,9 +1696,6 @@ fn the_frame_that_hides_the_focused_explorer_shows_where_focus_went() {
     assert!(focus.is_some() && focus != Some(explorer));
     assert!(h.text().contains('▎'), "one focus indicator\n{}", h.text());
 }
-
-
-
 
 #[test]
 fn ctrl_page_keys_step_workbench_tabs_over_an_editing_field() {
@@ -1792,10 +1718,6 @@ fn ctrl_page_keys_step_workbench_tabs_over_an_editing_field() {
     step(&mut h, KeyCode::PageDown);
     assert_eq!(h.wb().active, 1);
 }
-
-
-
-
 
 #[test]
 fn a_narrow_connections_screen_opens_the_card_as_a_drawer() {

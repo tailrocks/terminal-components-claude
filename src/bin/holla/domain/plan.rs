@@ -1,10 +1,5 @@
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StepState {
-
     Ready,
 
     Waiting,
@@ -48,10 +43,8 @@ impl StepState {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Step {
-
     pub id: String,
     pub label: String,
     pub commands: Vec<String>,
@@ -64,10 +57,8 @@ pub struct Step {
 
     pub deps: Vec<usize>,
 
-
     pub exclusive: Option<String>,
     pub effects: Vec<String>,
-
 
     pub target: Option<String>,
 
@@ -160,7 +151,6 @@ pub enum PlanPhase {
     Done,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Plan {
     pub id: String,
@@ -182,7 +172,6 @@ pub struct Plan {
     pub ended_tick: Option<u64>,
 
     pub facts: Vec<(String, String)>,
-
 
     pub drift: Option<String>,
     pub drift_consumed: bool,
@@ -231,7 +220,6 @@ impl Plan {
         self
     }
 
-
     pub fn gate_phrase(&self) -> Option<String> {
         self.phrase.as_ref().map(|p| {
             if self.broad {
@@ -241,8 +229,6 @@ impl Plan {
             }
         })
     }
-
-
 
     pub fn toggle(&mut self, i: usize) -> bool {
         if self.phase != PlanPhase::Review {
@@ -259,14 +245,11 @@ impl Plan {
         true
     }
 
-
     pub fn dependents(&self, i: usize) -> Vec<usize> {
         (0..self.steps.len())
             .filter(|&j| self.steps[j].deps.contains(&i))
             .collect()
     }
-
-
 
     pub fn parallel_with(&self, i: usize) -> Vec<usize> {
         (0..self.steps.len())
@@ -278,7 +261,6 @@ impl Plan {
             })
             .collect()
     }
-
 
     pub fn ancestor(&self, a: usize, b: usize) -> bool {
         let mut stack = vec![b];
@@ -297,9 +279,6 @@ impl Plan {
         }
         false
     }
-
-
-
 
     pub fn recompute(&mut self) {
         let n = self.steps.len();
@@ -334,8 +313,6 @@ impl Plan {
                         blocked_by = Some(format!("blocked · {:02} failed", d + 1));
                     }
                     StepState::Skipped => {
-
-
                         blocked_by = Some(format!("blocked · {:02} skipped", d + 1));
                     }
                     StepState::Succeeded => {}
@@ -355,7 +332,6 @@ impl Plan {
         }
     }
 
-
     pub fn ready(&self) -> Vec<usize> {
         (0..self.steps.len())
             .filter(|&i| self.steps[i].included && self.steps[i].state == StepState::Ready)
@@ -368,7 +344,6 @@ impl Plan {
             .collect()
     }
 
-
     pub fn is_done(&self) -> bool {
         self.steps
             .iter()
@@ -376,8 +351,6 @@ impl Plan {
             && self.running().is_empty()
             && self.ready().is_empty()
     }
-
-
 
     pub fn outcome(&self) -> (usize, usize, usize, usize, usize) {
         let c = |st: StepState| self.steps.iter().filter(|s| s.state == st).count();
@@ -400,8 +373,6 @@ impl Plan {
     pub fn optional_count(&self) -> usize {
         self.steps.iter().filter(|s| s.optional).count()
     }
-
-
 
     pub fn estimate_ticks(&self) -> u64 {
         fn finish(p: &Plan, i: usize, memo: &mut Vec<Option<u64>>) -> u64 {
@@ -429,14 +400,11 @@ impl Plan {
             .unwrap_or(0)
     }
 
-
     pub fn roots(&self) -> Vec<usize> {
         (0..self.steps.len())
             .filter(|&i| self.steps[i].deps.is_empty() && self.steps[i].included)
             .collect()
     }
-
-
 
     pub fn parallel_branches(&self) -> usize {
         let mut best = self.roots().len();
@@ -450,8 +418,6 @@ impl Plan {
         }
         best
     }
-
-
 
     pub fn retry(&mut self, i: usize) -> bool {
         let Some(s) = self.steps.get_mut(i) else {
@@ -478,7 +444,6 @@ impl Plan {
         true
     }
 
-
     pub fn skip(&mut self, i: usize) -> bool {
         let Some(s) = self.steps.get_mut(i) else {
             return false;
@@ -491,7 +456,6 @@ impl Plan {
         true
     }
 
-
     pub fn cancel_remaining(&mut self) {
         for s in &mut self.steps {
             if matches!(s.state, StepState::Ready | StepState::Waiting) {
@@ -501,7 +465,6 @@ impl Plan {
         }
         self.recompute();
     }
-
 
     pub fn arm(&mut self, tick: u64) {
         for s in &mut self.steps {

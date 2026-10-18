@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -43,7 +34,6 @@ fn email(s: &str) -> Option<String> {
     }
 }
 
-
 fn name(s: &str, required: bool) -> Option<String> {
     if s.trim().is_empty() {
         required.then(|| "Required".into())
@@ -61,11 +51,9 @@ enum Submit {
     Done,
 }
 
-
 const CARD_H: u16 = 24;
 
 const MANAGED: &str = "Managed by your organization";
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Part {
@@ -79,7 +67,6 @@ enum Part {
 }
 
 impl Part {
-
     fn heading(self) -> Option<&'static str> {
         match self {
             Self::Name => Some("Task"),
@@ -147,8 +134,6 @@ impl FormsPage {
         page
     }
 
-
-
     fn apply(&mut self) {
         let o = &self.opts;
         let when = match o.value("forms.validate_when") {
@@ -187,7 +172,6 @@ impl FormsPage {
         self.notify = Toggle::new(ID.sub("notify"), "Notify on completion", self.notify.on)
             .disabled(o.on("forms.managed"));
     }
-
 
     fn desc_rows(&self) -> u16 {
         self.opts.number("forms.desc_rows").unwrap_or(4)
@@ -229,7 +213,6 @@ impl FormsPage {
         cx.focus.focus(self.name.id);
         cx.status("Form reset");
     }
-
 
     fn message(
         &self,
@@ -273,7 +256,6 @@ impl FormsPage {
         let panel = Panel::card(Some("New task")).meta("Ctrl+S Submit");
         let bg = panel.bg(t);
 
-
         let two = panel.inner(area.as_size()).width >= self.two_column_width(ctx);
         let rows = if two {
             CARD_H.max(self.two_column_height() + 2)
@@ -294,7 +276,6 @@ impl FormsPage {
         self.description.rows = if compact { 1 } else { self.desc_rows() };
         let body = Rect::new(inner.x, inner.y, inner.width, inner.height - 2);
         let (l, r) = crate::pages::layout::columns(body, body.width / 2 - 2, 4);
-
 
         let mut y = l.y;
         if !compact {
@@ -323,7 +304,6 @@ impl FormsPage {
         self.reviewer
             .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
 
-
         let mut y = r.y;
         if !compact {
             buf.set_string(r.x, y, "Options", t.faint().bg(bg));
@@ -340,11 +320,9 @@ impl FormsPage {
         y += 1 + u16::from(!compact);
         self.render_toggles(Rect::new(r.x, y, r.width, 3), buf, ctx, bg);
 
-
         let ay = inner.bottom().saturating_sub(1);
         self.render_actions(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
     }
-
 
     fn render_toggles(
         &mut self,
@@ -380,15 +358,9 @@ impl FormsPage {
             }
     }
 
-
     fn desc_height(&self) -> u16 {
         self.desc_rows() + self.description.height() - self.description.rows
     }
-
-
-
-
-
 
     fn column_widths(&self, ctx: &RenderCtx) -> (u16, u16, u16) {
         let field = |f: &TextInput| f.measure(Size::ZERO, ctx).width;
@@ -407,14 +379,10 @@ impl FormsPage {
         (left, right, actions)
     }
 
-
-
-
     fn two_column_width(&self, ctx: &RenderCtx) -> u16 {
         let (l, r, a) = self.column_widths(ctx);
         (2 * l.max(r) + 5).max(a).max(44)
     }
-
 
     fn column_height(&self) -> u16 {
         let parts: Vec<StackChild> = Part::ALL
@@ -423,7 +391,6 @@ impl FormsPage {
             .collect();
         self.sections.stack.measure(&parts)
     }
-
 
     fn two_column_height(&self) -> u16 {
         let left = 1 + TextInput::HEIGHT + self.desc_height() + 2 + TextInput::HEIGHT;
@@ -442,8 +409,6 @@ impl FormsPage {
             Part::Actions => vec![self.submit.id, self.reset.id],
         }
     }
-
-
 
     fn render_column(
         &mut self,
@@ -465,7 +430,6 @@ impl FormsPage {
         let l = self.sections.layout(area, &children, focus, buf, ctx);
         for (i, part) in Part::ALL.into_iter().enumerate() {
             let Some(mut r) = l.slot(i) else {
-
                 for id in self.part_ids(part) {
                     if !(id == self.notify.id && self.notify.disabled) {
                         ctx.focus_stop(id);
@@ -496,8 +460,6 @@ impl FormsPage {
 }
 
 impl FormsPage {
-
-
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         let click = ev.is(Phase::Click);
         for inp in [&mut self.name, &mut self.reviewer] {
@@ -556,8 +518,6 @@ impl FormsPage {
     }
 }
 
-
-
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))
@@ -598,10 +558,6 @@ impl Page for FormsPage {
     fn blurb(&self) -> &'static str {
         "Sections, required fields, validation, submission"
     }
-
-
-
-
 
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let panel = Panel::card(Some("New task")).meta("Ctrl+S Submit");
@@ -651,7 +607,6 @@ impl Page for FormsPage {
             }
             return Outcome::Ignored;
         }
-
 
         if let PageEvent::Key(key) = ev
             && key.ctrl_char('s')
@@ -807,9 +762,6 @@ mod tests {
     use junie_tui::core::{focus::FocusRing, hit::HitRegistry};
     use junie_tui::theme::{ColorLevel, Theme};
     use junie_tui::ui::ctx::Interaction;
-
-
-
 
     #[test]
     fn form_keeps_all_controls_inside_small_normal_and_wide_page() {

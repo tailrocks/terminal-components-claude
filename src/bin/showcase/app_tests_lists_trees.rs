@@ -1,7 +1,3 @@
-
-
-
-
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
@@ -33,8 +29,6 @@ fn single_cursor(h: &Harness) -> usize {
     lists(h).single().cursor
 }
 
-
-
 #[test]
 fn tab_passes_the_empty_list() {
     let mut h = Harness::new(120, 40, PageId::Lists);
@@ -51,8 +45,6 @@ fn tab_passes_the_empty_list() {
     );
     assert!(!seen.contains(&Some(EMPTY)), "the empty list is skipped");
 }
-
-
 
 #[test]
 fn list_hints_name_ends_keys_that_work_under_both_profiles() {
@@ -86,7 +78,6 @@ fn list_hints_name_ends_keys_that_work_under_both_profiles() {
 #[test]
 fn list_options_rebuild_the_lists_through_their_builders() {
     let mut h = Harness::new(160, 50, PageId::Lists);
-
 
     assert!(
         h.text().contains("click Double, check BoxOnly"),
@@ -144,8 +135,6 @@ fn trees(h: &Harness) -> &TreesPage {
         .and_then(|p| p.downcast_ref::<TreesPage>())
         .expect("trees page")
 }
-
-
 
 #[test]
 fn a_lazy_node_loads_its_children() {

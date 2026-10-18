@@ -1,8 +1,3 @@
-
-
-
-
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::app::PageId;
@@ -32,8 +27,6 @@ fn type_text(h: &mut Harness, s: &str) {
         h.key(KeyCode::Char(c));
     }
 }
-
-
 
 #[test]
 fn screen_dump() {
@@ -158,7 +151,6 @@ fn every_option_value_changes_the_playground() {
         for v in opt.values.iter().filter(|v| **v != opt.values[opt.default]) {
             let other = frame(v);
             if opt.key == "queryworkbench.close_reveal" {
-
                 assert_ne!(
                     base.matches('×').count(),
                     other.matches('×').count(),

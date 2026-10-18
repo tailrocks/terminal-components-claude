@@ -1,23 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::{Rect, Size};
@@ -48,7 +28,6 @@ const ID: WidgetId = WidgetId::of("menus");
 const ROW_MENU: WidgetId = ID.sub("row-menu");
 const ACTIONS_MENU: WidgetId = ID.sub("actions-menu");
 
-
 const FILES: &[(&str, &str, bool)] = &[
     ("report.pdf", "document", false),
     ("notes.md", "text", false),
@@ -58,8 +37,6 @@ const FILES: &[(&str, &str, bool)] = &[
     ("README.md", "read-only", true),
     ("LICENSE", "read-only", true),
 ];
-
-
 
 fn action_items() -> Vec<MenuItem> {
     vec![
@@ -75,7 +52,6 @@ fn action_items() -> Vec<MenuItem> {
         MenuItem::new("Empty Trash").danger(),
     ]
 }
-
 
 fn row_items(read_only: bool) -> Vec<MenuItem> {
     let rename = MenuItem::new("Rename").shortcut("F2");
@@ -102,7 +78,6 @@ fn row_items(read_only: bool) -> Vec<MenuItem> {
     ]
 }
 
-
 struct Opts {
     values: Vec<(&'static str, usize)>,
 }
@@ -125,7 +100,6 @@ impl Opts {
     fn on(&self, key: &str) -> bool {
         self.get(key) == 1
     }
-
 
     fn style(&self, m: ContextMenu) -> ContextMenu {
         let fit = match self.get("menus.fit") {
@@ -160,7 +134,6 @@ impl Opts {
         }
         m
     }
-
 
     fn context(&self) -> ContextConfig {
         let extra = (self.get("menus.extra_key") == 1).then_some(Key {
@@ -223,8 +196,6 @@ impl MenusPage {
         }
     }
 
-
-
     fn open_row_menu(&mut self, req: ContextRequest<usize>) {
         let req = req.map(|row| row.min(FILES.len() - 1));
         let (name, _, read_only) = FILES[req.target];
@@ -263,9 +234,6 @@ impl MenusPage {
             Prop::new("Keys", keys_readout(&self.row_menu.config)).wrap(),
         ]
     }
-
-
-
 
     fn tiled(&self, width: u16) -> Tiled {
         let w = |s: &str| text::width(s) as u16;
@@ -338,7 +306,6 @@ const NOTES: [&str; 4] = [
     "closes it and opens the one beneath.",
 ];
 
-
 fn keys_readout(c: &ContextConfig) -> String {
     let mut parts = vec!["right-click".to_owned()];
     if c.keys.shift_f10 {
@@ -360,7 +327,6 @@ fn keys_readout(c: &ContextConfig) -> String {
     });
     s
 }
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;

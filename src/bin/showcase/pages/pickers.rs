@@ -1,22 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -125,7 +106,6 @@ const LEVELS: [(&str, &str); 6] = [
     ),
 ];
 
-
 const COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     ("Run query", "▶", "run.query", None),
     ("Explain query", "?", "run.explain", None),
@@ -153,15 +133,12 @@ const BRANCHES: &[&str] = &[
     "release/4.2",
 ];
 
-
 const FETCH_TICKS: u32 = 3;
 
 pub struct PickersPage {
     template: Template,
     opts: PageValues,
     pub buttons: Vec<Button>,
-
-
 
     open: Option<Kind>,
     scope: Scope,
@@ -175,8 +152,6 @@ pub struct PickersPage {
 
     fetching: Option<u32>,
 }
-
-
 
 struct Rows {
     entries: Vec<Entry>,
@@ -344,12 +319,10 @@ impl PickersPage {
         self.open
     }
 
-
     fn refill(&self, kind: Kind, cx: &mut Cx) {
         let rows = self.rows();
         cx.with_top::<Picker>(move |p| rows.fill(kind, p));
     }
-
 
     fn rows(&self) -> Rows {
         Rows {
@@ -361,7 +334,6 @@ impl PickersPage {
             remote_fails: self.opts.value("pickers.remote") == "fails",
         }
     }
-
 
     fn style(&self, p: Picker, anchor: Rect) -> Picker {
         let o = &self.opts;
@@ -459,8 +431,6 @@ impl PickersPage {
         self.open = Some(kind);
     }
 
-
-
     fn on_report(&mut self, kind: Kind, r: Report, cx: &mut Cx) {
         if r.closed.is_some() {
             self.open = None;
@@ -497,7 +467,6 @@ impl PickersPage {
                 }
             }
 
-
             PickerAction::Submit => {}
             PickerAction::NextScope | PickerAction::PrevScope => {
                 if kind == Kind::Quick {
@@ -517,7 +486,6 @@ impl PickersPage {
             }
         }
     }
-
 
     fn tick(&mut self, cx: &mut Cx) -> bool {
         let Some(kind) = self.kind() else {
@@ -548,7 +516,6 @@ impl PickersPage {
             _ => false,
         }
     }
-
 
     fn readout(&self) -> Vec<Prop> {
         let p = self.style(Picker::new(ID.sub("picker.sample"), "Sample"), Rect::ZERO);
@@ -634,7 +601,6 @@ impl PickersPage {
         ]
     }
 
-
     fn button_lines(&self, room: u16) -> Vec<Vec<usize>> {
         let widths: Vec<u16> = self.buttons.iter().map(|b| b.width()).collect();
         let mut lines: Vec<Vec<usize>> = vec![vec![]];
@@ -678,8 +644,6 @@ impl PickersPage {
     fn applied_facts(&self) -> Vec<Prop> {
         self.readout().into_iter().map(Prop::wrap).collect()
     }
-
-
 
     fn heights(&self, width: u16) -> [u16; 3] {
         let room = width.saturating_sub(4);
@@ -734,7 +698,6 @@ impl PickersPage {
 
 const QUICK_NOTE: &str = "Quick: fuzzy as you type, Tab scope, Alt+Enter alternate · Tabs: live, Delete closes · Level: no search box · Commands: disabled rows say why · Remote: loads, r retries";
 const APPLIED_META: &str = "read back from a built picker";
-
 
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
@@ -792,7 +755,6 @@ impl Page for PickersPage {
             };
         }
 
-
         if self.open.is_some() {
             return Outcome::Ignored;
         }
@@ -848,8 +810,6 @@ impl Page for PickersPage {
     fn animating(&self) -> bool {
         matches!(self.kind(), Some(Kind::Tabs)) || self.fetching.is_some()
     }
-
-
 
     fn on_layer_key(&mut self, key: &Key, cx: &mut Cx) -> Outcome {
         let failed = self.fetching.is_none() && self.opts.value("pickers.remote") == "fails";

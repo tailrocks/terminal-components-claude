@@ -1,7 +1,3 @@
-
-
-
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::app::PageId;
@@ -28,7 +24,6 @@ fn panels(h: &Harness) -> &PanelsPage {
         .expect("the Panels page")
 }
 
-
 fn hint(h: &Harness, page: PageId, focus: WidgetId, label: &str) -> Option<&'static str> {
     h.app.pages[page.index()]
         .hints(Some(focus))
@@ -36,7 +31,6 @@ fn hint(h: &Harness, page: PageId, focus: WidgetId, label: &str) -> Option<&'sta
         .find(|(_, l)| *l == label)
         .map(|(k, _)| k)
 }
-
 
 fn key_of(token: &str) -> KeyCode {
     match token {
@@ -48,13 +42,9 @@ fn key_of(token: &str) -> KeyCode {
     }
 }
 
-
 fn big() -> Harness {
     Harness::on(160, 60, PageId::Scrolling)
 }
-
-
-
 
 #[test]
 fn ctrl_c_over_a_panel_selection_copies_instead_of_quitting() {
@@ -95,8 +85,6 @@ fn hinted_end_keys_reach_both_ends_of_the_list_under_either_profile() {
             assert_eq!(scrolling(&h).list.cursor, 0, "{profile}: {}", pair[0]);
         }
         if profile == "desktop" {
-
-
             h.key(KeyCode::Char('G'));
             assert_eq!(scrolling(&h).list.cursor, 0, "G is not End on desktop");
         }
@@ -225,8 +213,6 @@ fn the_cursor_readout_names_the_last_step_and_move() {
 
 #[test]
 fn type_ahead_pause_and_precedence_reach_every_collection() {
-
-
     for (timeout, cursor) in [("2s", 1), ("0.5s", 0)] {
         let mut h = big();
         h.opt(&format!("scrolling.timeout={timeout}"));
@@ -420,10 +406,6 @@ fn the_panels_states_grid_draws_every_panel_state() {
     let _ = KeyModifiers::NONE;
 }
 
-
-
-
-
 #[test]
 fn card_heading_options_set_the_heading_apart() {
     let under = |h: &Harness, title: &str| {
@@ -464,7 +446,6 @@ fn card_heading_options_set_the_heading_apart() {
     h.opt("shell.card_heading=rule");
     assert_eq!(under(&h, "Titled card"), "─".repeat(10));
 }
-
 
 #[test]
 fn the_states_grid_draws_the_chosen_heading() {

@@ -1,7 +1,3 @@
-
-
-
-
 use super::*;
 use crate::core::{focus::FocusRing, hit::HitRegistry};
 use crate::theme::Theme;
@@ -16,7 +12,6 @@ fn key(code: KeyCode) -> Key {
         mods: KeyModifiers::NONE,
     }
 }
-
 
 fn grid() -> DataGrid {
     let plans = Options::values(&["free", "team", "pro", "enterprise", "edu", "nonprofit"]);
@@ -189,9 +184,6 @@ fn an_out_of_set_value_is_flagged_and_the_validator_still_decides() {
     assert_eq!(g.on_blur(), (Outcome::Changed, None));
     assert!(!g.is_editing());
 }
-
-
-
 
 #[test]
 fn an_editor_opened_off_screen_scrolls_its_cell_into_view() {

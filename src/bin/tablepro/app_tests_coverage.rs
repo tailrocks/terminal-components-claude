@@ -39,7 +39,6 @@ fn accept_dialog(h: &mut H) {
 }
 
 fn confirm_destructive(h: &mut H, token: &str) {
-
     h.type_str(token);
     h.key(KeyCode::Enter);
     h.key(KeyCode::Right);
@@ -259,8 +258,6 @@ fn query_execution_and_result_routes() {
         }));
     }
 
-
-
     h.key(KeyCode::Esc);
     h.key(KeyCode::Tab);
     h.key(KeyCode::Char('p'));
@@ -340,7 +337,6 @@ fn table_preview_discard_and_query_close_quit_routes_are_confirmed() {
     assert!(h.app.modal().is_some());
     h.key(KeyCode::Esc);
     assert_eq!(h.wb().tabs.len(), tabs);
-
 
     h.key(KeyCode::Esc);
     h.ctrl('w');
@@ -452,8 +448,6 @@ fn a_click_on_dead_space_ends_a_form_field_edit_in_place() {
 
 #[test]
 fn tabbing_past_the_untouched_name_flags_nothing_until_save() {
-
-
     let mut h = H::new(120, 40);
     h.ctrl('n');
     h.key(KeyCode::BackTab);
@@ -528,8 +522,6 @@ fn overlays_trap_focus_and_restore_after_outside_dismissal() {
     h.click(0, 0);
     assert!(h.app.modal().is_none());
     assert_eq!(h.focus(), origin);
-
-
 
     h.ctrl('f');
     assert!(h.app.top_as::<FilterEditor>().is_some());
@@ -706,7 +698,6 @@ fn result_tabs_route_back_to_statement_anchor() {
     assert!(h.text().contains("SELECT orders (1)"));
 }
 
-
 fn h_thumb_x(h: &H, y: u16) -> Option<u16> {
     let buf = h.term.backend().buffer();
     (0..buf.area.width).find(|&x| buf[(x, y)].symbol() == scrollbar::H_THUMB)
@@ -732,12 +723,10 @@ fn a_wide_table_shows_its_horizontal_position_and_scrolls_by_wheel_and_drag() {
     let start = h_thumb_x(&h, bar.y).expect("the thumb is drawn");
     assert_eq!(start, bar.x, "first columns: the thumb sits left");
 
-
     let grid_area = h.app.shell.hits.area_of(grid_id).expect("grid hit");
     h.mouse(MouseKind::WheelRight, grid_area.x + 8, grid_area.y + 3);
     assert_eq!(h.wb_table().grid.scroll.h.offset, 1);
     assert!(h_thumb_x(&h, bar.y).unwrap() > start);
-
 
     let grab = h_thumb_x(&h, bar.y).unwrap();
     h.mouse(MouseKind::Down, grab, bar.y);
@@ -751,8 +740,6 @@ fn a_wide_table_shows_its_horizontal_position_and_scrolls_by_wheel_and_drag() {
 
 #[test]
 fn open_quickly_query_edits_at_the_caret() {
-
-
     let mut h = H::connected(120, 40);
     open_orders(&mut h);
     h.ctrl('o');
@@ -765,9 +752,6 @@ fn open_quickly_query_edits_at_the_caret() {
         _ => panic!("Open Quickly closed\n{}", h.text()),
     }
 }
-
-
-
 
 #[test]
 fn query_results_are_read_only_and_enter_says_why() {
@@ -805,8 +789,6 @@ fn query_results_are_read_only_and_enter_says_why() {
     );
 }
 
-
-
 fn edited_form() -> H {
     let mut h = H::new(120, 40);
     let (x, y) = h.find("Local PostgreSQL").unwrap();
@@ -817,7 +799,6 @@ fn edited_form() -> H {
         h.key(KeyCode::Enter);
     }
 
-
     h.key(KeyCode::End);
     h.type_str(" v2");
     h.key(KeyCode::Enter);
@@ -826,9 +807,6 @@ fn edited_form() -> H {
     assert!(h.text().contains("Local PostgreSQL v2"), "{}", h.text());
     h
 }
-
-
-
 
 #[test]
 fn global_chords_reach_past_an_editing_field() {
@@ -864,9 +842,6 @@ fn global_chords_reach_past_an_editing_field() {
     assert!(h.app.shell.quit, "Discard quits");
 }
 
-
-
-
 #[test]
 fn ctrl_q_quits_through_the_leave_guard() {
     let mut h = H::new(120, 40);
@@ -884,8 +859,6 @@ fn ctrl_q_quits_through_the_leave_guard() {
     h.key(KeyCode::Char('d'));
     assert!(h.app.shell.quit, "Discard quits");
 }
-
-
 
 #[test]
 fn an_edited_connection_form_is_never_wiped_without_asking() {
@@ -912,14 +885,12 @@ fn an_edited_connection_form_is_never_wiped_without_asking() {
     assert!(!h.text().contains("Test connection"), "{}", h.text());
     assert!(!h.app.shell.quit);
 
-
     let mut h = edited_form();
     h.ctrl('c');
     assert!(!h.app.shell.quit, "Ctrl+C never drops the edit");
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
     h.key(KeyCode::Char('d'));
     assert!(h.app.shell.quit);
-
 
     let mut h = H::new(120, 40);
     let (x, y) = h.find("Local PostgreSQL").unwrap();

@@ -1,8 +1,3 @@
-
-
-
-
-
 use crate::screens::Jackin;
 use junie_tui::shell::Page;
 use std::collections::HashSet;
@@ -89,7 +84,6 @@ struct Row {
     expanded: bool,
 }
 
-
 struct FormCtx {
     editing: Option<AccountId>,
     op_ref: Option<OpReference>,
@@ -107,12 +101,10 @@ pub struct AccountsScreen {
     tree_area: Rect,
     inspector_area: Rect,
 
-
     md: MasterDetail,
     actions: Vec<Button>,
     form: Option<FormCtx>,
     pending_remove: Option<AccountId>,
-
 
     pub menu: RowMenu<Sel, &'static str>,
 }
@@ -370,8 +362,6 @@ impl AccountsScreen {
             _ => None,
         }
     }
-
-
 
     fn refresh_scope(&mut self, w: &mut World, cx: &mut Cx) {
         let ids: Vec<AccountId> = match &self.selected {
@@ -639,7 +629,6 @@ impl AccountsScreen {
         Self::reveal(&mut form, w);
         cx.open(form, LayerTag::new("form"));
     }
-
 
     fn reveal(form: &mut FormDialog, w: &World) {
         let provider = REGISTERABLE[form.choice("provider").min(3)];
@@ -1084,8 +1073,6 @@ impl AccountsScreen {
             return;
         };
         if let CredentialSource::PlainApiKey { fingerprint, .. } = &a.source {
-
-
             let level = if a.usage.windows.iter().any(|w| w.has_meter()) {
                 crate::domain::account::ValidationLevel::QuotaReadable
             } else if a.identity.subject.is_some() {
@@ -1183,10 +1170,6 @@ impl AccountsScreen {
         Outcome::Changed
     }
 
-
-
-
-
     fn menu_items(&self, sel: &Sel, w: &World) -> (String, Vec<(MenuItem, &'static str)>) {
         let item = |label: &str, key: &'static str| MenuItem::new(label).shortcut(key);
         match sel {
@@ -1278,8 +1261,6 @@ impl AccountsScreen {
         }
     }
 
-
-
     fn run_menu(&mut self, target: Sel, cmd: &'static str, w: &mut World, cx: &mut Cx) -> Outcome {
         let prev = std::mem::replace(&mut self.selected, target.clone());
         let out = match (cmd, &target) {
@@ -1304,8 +1285,6 @@ impl AccountsScreen {
         }
         out.or(Outcome::Changed)
     }
-
-
 
     fn draw_tree(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
@@ -1707,8 +1686,6 @@ impl AccountsScreen {
                 .meta(&scope)
                 .render(area, buf, t)
         } else {
-
-
             Panel::card(Some(&title))
                 .focused(focused)
                 .focus_mark(if ctx.interaction.focused(INSPECTOR) {
@@ -1721,7 +1698,6 @@ impl AccountsScreen {
         };
         self.inspector_area = inner;
         let bg = if as_drawer { t.canvas } else { t.surface };
-
 
         let action_row = ButtonRow::new().overflow(RowOverflow::Wrap);
         let action_rows = action_row.rows(inner.width + 1, &self.actions, t);
@@ -1760,7 +1736,6 @@ impl AccountsScreen {
                         }
                     }
                     Line::PropSpans(k, spans) => {
-
                         let vw = body.width.saturating_sub(label_w) as usize;
                         for (i, p) in wrap_spans(&spans, vw.max(8)).into_iter().enumerate() {
                             rendered.push(Line::PropSpans(
@@ -1955,14 +1930,11 @@ enum Line {
     PropSpans(String, Vec<Span>),
     Text(String, Tone),
 
-
     Status(StatusKind, Vec<Span>),
     Heading(String, String),
     Meter(String, u8, String, QuotaTone),
     Blank,
 }
-
-
 
 #[allow(clippy::too_many_arguments)]
 fn draw_status_line(
@@ -1983,7 +1955,6 @@ fn draw_status_line(
     buf.set_string(x, y, glyph, gs.bg(bg));
     render_spans(buf, x + gw, y, w - gw, t, spans, bg);
 }
-
 
 pub fn meter_detail(win: &QuotaWindow, w: &World) -> String {
     let mut parts: Vec<String> = vec![];
@@ -2009,11 +1980,6 @@ pub fn meter_detail(win: &QuotaWindow, w: &World) -> String {
     parts.join(" · ")
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct QuotaTone {
     pub tone: MeterTone,
@@ -2021,14 +1987,10 @@ pub struct QuotaTone {
 }
 
 impl QuotaTone {
-
     pub fn on(self, m: Meter) -> Meter {
         m.tone(self.tone).stale(self.stale)
     }
 }
-
-
-
 
 pub(super) fn quota_row(label: &str, pct: u8, detail: &str, tone: QuotaTone) -> MeterList {
     MeterList::new(vec![
@@ -2041,12 +2003,6 @@ pub(super) fn quota_row(label: &str, pct: u8, detail: &str, tone: QuotaTone) -> 
         .detail(detail),
     ])
 }
-
-
-
-
-
-
 
 pub fn quota_tone(win: &QuotaWindow, phase: Freshness) -> QuotaTone {
     let tone = match (phase, win.status) {
@@ -2088,7 +2044,6 @@ fn validation_marks(a: &Account) -> (&'static str, &'static str, &'static str) {
         ValidationState::NeverValidated => ("—", "—", "—"),
     }
 }
-
 
 fn account_meta(a: &Account, w: &World) -> (String, Tone) {
     if !a.enabled {
@@ -2197,7 +2152,6 @@ impl Page<Jackin> for AccountsScreen {
             let (o, chosen) = self.menu.on_key(key);
             match chosen {
                 Some((target, cmd)) => return self.run_menu(target, cmd, w, cx),
-
 
                 None if o == Outcome::Ignored => {}
                 None => return o,
@@ -2424,7 +2378,6 @@ impl Page<Jackin> for AccountsScreen {
                     return Outcome::Changed;
                 }
                 KeyCode::Tab | KeyCode::Enter => {
-
                     if let Some(b) = self.actions.first() {
                         cx.focus.focus(b.id);
                     }
@@ -2473,12 +2426,7 @@ impl Page<Jackin> for AccountsScreen {
         Outcome::Ignored
     }
 
-
-
-
-
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
-
         if let Some(o) = self.md.on_pointer(ev) {
             return o;
         }
@@ -2534,7 +2482,6 @@ impl Page<Jackin> for AccountsScreen {
                             let _ = &w2;
                         });
                         cx.with_top::<FormDialog>(|f| {
-
                             f.set_visible("op", false);
                             f.set_visible("op_note", false);
                             f.set_visible("key", true);
@@ -2674,9 +2621,7 @@ impl Page<Jackin> for AccountsScreen {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         self.build_rows(w);
         let t = ctx.theme;
-        if w.accounts.accounts.is_empty() && self.filter.is_none() {
-
-        }
+        if w.accounts.accounts.is_empty() && self.filter.is_none() {}
         self.md.detail_owns = self.actions.iter().map(|b| b.id).collect();
         let l = self.md.layout(area, buf, ctx, t.canvas);
         if !l.master.is_empty() {
@@ -2815,10 +2760,6 @@ impl Screen for AccountsScreen {
         }
     }
 }
-
-
-
-
 
 impl AccountsScreen {
     fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
