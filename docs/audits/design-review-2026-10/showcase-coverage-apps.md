@@ -1,5 +1,25 @@
 # Showcase coverage: app patterns
 
+## Status
+
+WIP-specific findings and accepted decisions recorded in the document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Existing finding IDs and any explicitly recorded closures are retained.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
+
+## Remaining work
+
+Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
+
+## Verification
+
+Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+
 Status: inventory, 2026-10-16, a read-only pass over `design/interaction-polish` at `8f12ad218`. It lists the UI patterns tablepro, holla and jackin-preview use, whether the library owns them, and whether the showcase demonstrates them. Every ⚠️ and ❌ row is mapped to a step of the showcase coverage track (SC) in [`shared-components-plan.md` §7](../../architecture/shared-components-plan.md#7-showcase-coverage-track-sc). Line numbers drift as fixes land. Paths under `/private/tmp` refer to the auditor's scratch files, which are not kept.
 
 Scope: a read-only pass over `origin/design/interaction-polish` (exported copy at `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/inv-apps/src-copy`). Nothing was edited, committed or pushed, and the `visual-baseline` tag was not touched. The inventory comes from reading code only: I rendered no screens and ran no tests.
@@ -263,7 +283,7 @@ In priority order:
 
 Several of these are already proposed in `docs/audits/design-review-2026-10/duplication-screens.md` (sections "Ranked findings" and "New library components to add").
 
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 Every one of the 92 rows maps to an SC step in `shared-components-plan.md`
 §7.7 ("Apps inventory"), and each capability it needs is declared in the

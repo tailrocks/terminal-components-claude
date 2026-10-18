@@ -1,3 +1,24 @@
+
+## Status
+
+WIP-specific findings and accepted decisions recorded in the document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Existing finding IDs and any explicitly recorded closures are retained.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
+
+## Remaining work
+
+Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
+
+## Verification
+
+Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+
 I reviewed the theme tokens, AGENTS.md "Visual states" and the audit docs, and computed contrast ratios from the token values. I did not render fresh screens. Paths: `/Users/donbeave/Projects/terminal-components-claude/src/theme.rs` (palette around lines 350–420; `StateModifiers` around lines 200–250), `/Users/donbeave/Projects/terminal-components-claude/AGENTS.md`, and `/Users/donbeave/Projects/terminal-components-claude/docs/audits/design-review-2026-10/`.
 
 Three findings matter most:
@@ -116,7 +137,7 @@ stays configurable, so users who prefer different behaviour can override
 the defaults (app-wide profile, per-widget setting, or key map; see
 `AGENTS.md`, "Component architecture").
 
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 Each row was checked against the code at `942b869d7`, the plan's §4 table, its "Step status" and outcome sections, and `docs/remaining-work.md`; the inline notes under #13 and gap 9 above keep their text, and their rows here add the commits.
 

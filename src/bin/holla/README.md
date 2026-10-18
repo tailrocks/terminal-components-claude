@@ -1,5 +1,26 @@
 # holla — context-adaptive action launcher
 
+## Status
+
+Current project index or reference; linked material may be historical.
+
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture.
+
+## Current evidence
+
+The linked documents retain their own source and verification scope.
+
+## Remaining work
+
+Follow the current task ledger at docs/remaining-work.md.
+
+## Verification
+
+Verify linked evidence at the current revision before relying on it.
+
+
 "This folder, this host, right now": one finder that already knows what
 matters here and never runs anything without showing you first.
 

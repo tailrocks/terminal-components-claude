@@ -1,5 +1,22 @@
 # /goal — Produce the complete execution plan for finishing `terminal-components-claude` refactoring without changing UI/UX
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+
 Repository:
 
 https://github.com/donbeave/terminal-components-claude

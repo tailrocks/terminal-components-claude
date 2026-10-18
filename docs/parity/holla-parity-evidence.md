@@ -1,5 +1,26 @@
 # Existing Holla source evidence
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 External baseline: [tailrocks/holla at fca7d0cc41e139014900e1876a4ab30f126cddda](https://github.com/tailrocks/holla/tree/fca7d0cc41e139014900e1876a4ab30f126cddda). These independent reports retain source/test detail and qualifications. Their overlapping counts are not additive; only [the synthesized matrix](holla-parity-matrix.md) counts dispositions. Sources prefixed `src/` or `tests/` below refer to this external repository, not the prototype. Tests marked inspected were not necessarily rerun; the verification report lists actual commands.
 
 ---

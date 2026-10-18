@@ -1,3 +1,24 @@
+
+## Status
+
+WIP-specific findings and accepted decisions recorded in the document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Existing finding IDs and any explicitly recorded closures are retained.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
+
+## Remaining work
+
+Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
+
+## Verification
+
+Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+
 Audited HEAD `c69bb13`. The working tree has uncommitted changes from someone else: `Dismiss.pass_through`, a hit-barrier stack in `core/hit.rs`, and about 700 lines of edits across the four `app.rs` files. I did not audit those and did not touch the repo. Severity scale: H = broken or clearly wrong, M = gap against desktop behaviour, L = polish.
 
 1. **H** | src/bin/{showcase/app.rs:650, tablepro/app.rs:1867, holla/app.rs:1433, jackin_preview/app.rs:1534}: four hand-copied pointer state machines (hover, pressed, flash, double-click, modal routing, wheel). | All apps. | Down focuses on release in showcase but on press elsewhere. Double-click exists only in holla and jackin. Only showcase refreshes hover after a wheel scroll (`hover_refresh`). Right-click is `Ignored` in tablepro. Every popup-dismiss bug below comes from this duplication. | Add a library `ui::pointer::PointerRouter` that owns hover/pressed/last_click/flash/suppression and emits `Click{id,pos,count,mods}`, `Secondary`, `Drag`, `Wheel{id,dx,dy}` and `Outside{owner}`. Knobs: `PointerConfig { focus_on: Press|Release (Press), double_click_ms: 500, double_click_slop: 1 cell, wheel_lines: 3, hover_refresh_after_scroll: true }`.
@@ -78,7 +99,7 @@ Follow-ups to the truncated-text reveal (`src/ui/reveal.rs`).
   cursor row's value in place like `ListBox` (`580d279f1`); tables and
   grids keep the tooltip.
 
-## Status (interaction and API pass)
+## Scoped finding status (interaction and API pass)
 
 Every finding above is either fixed (with its commit) or deferred with a
 reason. "Partial" means the shared mechanism landed and the rest is listed
@@ -198,7 +219,7 @@ space and ending the edit. Regression test:
 `app_tests_inputs_forms::an_escape_only_select_stays_open_on_a_click_outside`
 (escape-only with the default blur option; fails before).
 
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 Final status for every finding the sections above leave as Partial or Deferred, or Fixed with something still open. Each row was checked against the code and tests at `942b869d7`, and the commit found with `git log -S` on the fixing symbol or in the plan's step outcomes. #2, #3, #4, #5, #7, #9, #16, #18, #21, #22 and #23 are Fixed as recorded in "Status (interaction and API pass)", "Status update (fields and focus pass)", "Status update (keymap pass)" and "round 2". The SC10 finding is fixed (S5, its own section).
 

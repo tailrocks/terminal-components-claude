@@ -1,5 +1,26 @@
 # Independent host qualification ABI, version 1
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This is a planner-owned acceptance protocol for the future `tc-proof-host`. It defines test inputs and independently inspected effects. The companion [driver](host-bootstrap-driver.py), [protected observer](host-bootstrap-observer.py), [vectors](host-bootstrap-vectors.json), and [canonical task fixture](host-bootstrap-fixture/README.md) must be frozen outside the B-HARNESS writable checkout before dispatch. The observer is a test-only process supervisor over the existing Darwin sandbox facility; it is not a production host implementation or scheduler. The host implementation must satisfy these tests in addition to the [proof contract](../proof-contract.md) and comparator qualification.
 
 The synthetic fixture is deliberately tiny: `src/payload.txt` changes from the exact bytes `pending\n` to `qualified\n`; `protected.txt` and `.proof/check.py` remain immutable. The checker contains planner-authored expected bytes. No application baseline is captured, approved, or fabricated. Synthetic acceptance receipts are independent test inputs and have no authority in a production campaign.

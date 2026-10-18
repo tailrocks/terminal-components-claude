@@ -1,5 +1,26 @@
 # Whole branch-delta audit — TUI tests and examples
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Status: IN PROGRESS. Only ledger rows with explicit full read coverage receive semantic credit. No build/test execution during the concurrent timing measurement.
 
 Scope agreed with closure: all112 changed tooling-tests paths under crates/tui/tests/ and crates/tui/examples/. Closure owns the complement, including crates/tui-testing and root tests/examples. All112 are main additions, absent at Holla. Exact ls-tree bindings verified for main7b27732a8c3c131760ec3438f641cb3c11343a42 and Holla2e2401393c47360741ebd321679de08982dca50a. Metadata totals33949 main lines, not a semantic-read claim. Immutable UI oracle remains02f5294bfdbf38004cc49130d0aff1d01f31434c; added main tests are architectural evidence, not oracle output.

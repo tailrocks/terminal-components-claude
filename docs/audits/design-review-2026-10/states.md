@@ -1,3 +1,24 @@
+
+## Status
+
+WIP-specific findings and accepted decisions recorded in the document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Existing finding IDs and any explicitly recorded closures are retained.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
+
+## Remaining work
+
+Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
+
+## Verification
+
+Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+
 **1. Proposed global state model**
 
 **Rules (one resolver, every widget)**
@@ -99,7 +120,7 @@ Severity | file:line | widget | states that collide (resolved colours) | fix
 **Notes**
 - `git diff` was empty during the audit; `cursor_row` already exists in `src/theme.rs` but has no callers.
 - The contrast and downgrade scripts are in `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/audit-states/` (`dg.py`, `m.py`, `p.py`, `q.py`, `r.py`).
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 Each finding was checked against the code and tests at `origin/design/interaction-polish` and matched to the commit that fixed it (most commit messages cite the finding numbers).
 

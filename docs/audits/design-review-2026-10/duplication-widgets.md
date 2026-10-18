@@ -1,5 +1,25 @@
 # Duplication review: widgets
 
+## Status
+
+WIP-specific findings and accepted decisions recorded in the document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Existing finding IDs and any explicitly recorded closures are retained.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
+
+## Remaining work
+
+Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
+
+## Verification
+
+Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+
 Read-only review of `src/widgets`, `src/core` and `src/ui` for interaction, routing and state logic implemented more than once. Recorded 2026-10-16. The consolidated decisions and the execution order are in [`docs/architecture/shared-components-plan.md`](../../architecture/shared-components-plan.md).
 
 | severity | duplicated concern | widgets (file:line) | divergence | proposed shared abstraction | migration order |
@@ -105,7 +125,7 @@ Notes:
 - Line numbers are from `origin/design/interaction-polish` at `6dc41693b`, paths under `src/`.
 - I read the code from a `git archive` copy (the worktree checkout was slow to finish). The worktree has since been removed. Nothing in the repo was edited, and the `visual-baseline` tag was not touched. No tests were run.
 - The leftover snapshot and grep files are under `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/dup-widgets/`.
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 Every row is consolidated into the plan ([`shared-components-plan.md`](../../architecture/shared-components-plan.md)); rows are numbered in table order, and each names its owning step, with the commits from the plan's "Step status" checked against the code at `942b869d7` (`git log -S`, `rg`). Open ids are those of [`docs/remaining-work.md`](../../remaining-work.md).
 

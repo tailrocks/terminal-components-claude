@@ -1,26 +1,28 @@
-# Remaining work on `design/interaction-polish`
+# Remaining work
 
-Status: 2026-10-17, derived from the repository at `42f0b372e`
-(`origin/design/interaction-polish`). This is the one list of everything
-started on this branch and not finished. Every item names the document and
-section it comes from; when that document and this list disagree, fix the
-document or this list in the same commit, never only one of them.
+## Status
 
-Sources read: [`architecture/shared-components-plan.md`](architecture/shared-components-plan.md)
-(§4 step table and "Step status", every "S*n* outcome", deviations and
-"Notes for later steps"; §7 SC track, §7.3, §7.5, §7.8),
-[`audits/design-review-2026-10/`](audits/design-review-2026-10/README.md)
-(every file), [`visual-testing/plan.md`](visual-testing/plan.md),
-[`visual-testing/tuiscotti-migration.md`](visual-testing/tuiscotti-migration.md),
-[`upstream/`](upstream/README.md), [`dependencies.md`](dependencies.md),
-[`ci.md`](ci.md), `.velnor/config.toml`, `tests/showcase_coverage_allow.txt`,
-`snapshots/` (file counts) and `src/runtime.rs`.
+Active WIP-specific requirements and scoped evidence ledger for `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Historical owner/budget triage and staffing instructions have been retired; detailed work IDs, open requirements, recorded closures, dependencies, and acceptance evidence are retained below.
+
+## Authority
+
+`main` supplies the structural target and is incomplete/not ready. `design/interaction-polish` supplies the exact visual, UI/UX, color, and interaction target. Adapt this plan to the split crates; do not infer that the design branch's source layout is the architecture target.
+
+## Current evidence
+
+This document copy is from WIP checkout `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Status entries use the source revisions cited by individual items, where provided; the WIP commit identifies this document copy and is not a fresh source audit. “Done” entries retain their original scope and cited evidence; open gaps and task IDs remain work items. These records do not establish that the same behavior exists in `main` or that visual parity has been approved.
+
+## Remaining work
+
+The sections below retain the branch-specific page requirements, P0 reachability items, S/SC steps, carry-overs, audit findings, visual work, upstream dependencies, and CI gates. Preserve IDs and scoped closure notes when updating them.
+
+## Verification
+
+A closure requires its listed acceptance evidence on the cited source scope. Visual changes require comparison against `design/interaction-polish`; `visual-baseline` is immutable historical evidence only. Re-run the applicable branch gate against exact final HEAD before asserting completion.
 
 ## 1. Goal and "done when"
 
-Goal: finish the shared-components refactor and the design-review backlog
-on this branch, approve the branch's own visual oracle, and leave the
-branch ready to port to `main` (termrock) 1:1 (visual-testing plan §F).
+Goal: complete the open shared-component and design-review requirements while preserving the product behavior and visual intent recorded on this branch. Prepare the resulting product work to be adapted to `main`'s split-crate architecture; do not require a monolithic source transplant.
 
 The branch is done when all of these hold:
 
@@ -45,7 +47,7 @@ The branch is done when all of these hold:
    --all-targets`, `cargo clippy --all-targets`, `cargo fmt --check`, the
    tuiscotti pilot and smoke tiers (plan §4 "The gate (G)").
 
-## 2. Owner decisions pending
+## 2. Open owner decisions and recorded policy
 
 Only the product owner answers these. Until an answer is recorded in the
 source document, the current behaviour stays; work items that depend on an
@@ -56,11 +58,11 @@ answer say so.
 | D1 | jackin `usage/overview`: the worst-window meter label keeps a fixed 10 cells, so `Weekly · Opus` reads `Weekly · …` while the status column has room at 120x40. | (a) keep the fixed 10 cells; (b) let the label measure its width through `ui::columns`, as the usage limits do since `d09f244c9`. | Fixed 10 today. Recommend (b): one width rule for both usage tables; it is a jackin re-approval of `usage/overview` at every size. | `audits/design-review-2026-10/visual-reapproval.md`, "Owner confirmation needed (jackin)", item 1 |
 | D2 | A footer that runs out of room drops normal hints from the right while `Esc` and `?` stay pinned (`f0cb83a02`); `editor/mounts_dirty` at 160x50 drops `Ctrl+S Save` beside `• 1 change`. Should `Ctrl+S` be pinned while a screen has unsaved changes? | (a) keep: only `Esc`/`?` pinned; (b) pin the save binding while the page reports dirty state (a footer rule in the library, S8b `Footer`). | Not pinned today. Recommend (b), as a library `Footer` rule ("pin the commit action while dirty"), not a jackin special case. | same, item 2 |
 | D3 | Forms validate on Save: `accounts/add_form_required` now shows the Save outcome (the field marked, focus on it) instead of a validated Enter on the field (`2a71f8dcf`). | (a) Save-time validation is the standard for every `FormDialog`; (b) validate on Enter per field (the baseline). | Save-time today. Recommend (a) (macOS sheets validate on the default button; SI24 "commit on selection change, ask only on invalid"); per-field `ValidateWhen` stays an override (S11). | same, item 3 |
-| D4 | Fixed-choice pickers (`manager/launch_picker`, `hard_launch_picker`, tablepro Safe Mode picker, holla Activities) mark their cursor with a row fill and no `▎`, so no focus bar shows while one is open. The baseline drew the bar. | (a) confirm the menu exception covers fixed-choice pickers and add that wording to AGENTS.md "Visual states" (the list-owned-by-an-owner rule); (b) give them `CursorStyle::Bar`. | Fill only today, locked by tablepro `the_switcher_is_the_only_layer_showing_focus` and showcase `the_chooser_stacks_a_picker_over_the_form_and_returns_to_it`. Recommend (a): it is the focus audit's recorded design (`focus.md` #1, "matching the menu"); then AGENTS.md says "a menu or a non-searchable picker marks its cursor with a fill". | same, item 4; `focus.md` #1 |
+| D4 | Fixed-choice pickers (`manager/launch_picker`, `hard_launch_picker`, tablepro Safe Mode picker, holla Activities) mark their cursor with a row fill and no `▎`, so no focus bar shows while one is open. Historical captures drew the bar; verify the selected behavior against `design/interaction-polish`. | (a) confirm the menu exception covers fixed-choice pickers and add that wording to AGENTS.md "Visual states" (the list-owned-by-an-owner rule); (b) give them `CursorStyle::Bar`. | Fill only today, locked by tablepro `the_switcher_is_the_only_layer_showing_focus` and showcase `the_chooser_stacks_a_picker_over_the_form_and_returns_to_it`. Recommend (a): it is the focus audit's recorded design (`focus.md` #1, "matching the menu"); then AGENTS.md says "a menu or a non-searchable picker marks its cursor with a fill". | same, item 4; `focus.md` #1 |
 | D5 | jackin `quota_tone`: available windows are always healthy (`57562ede2`), so the domain's `QuotaStatus` (`from_pct` thresholds, overridable per window) alone decides a quota meter's level. | (a) the provider/domain status is the authority; (b) the library's `MeterTone::Level` 60/85 defaults decide. | (a) today. Recommend (a), and move `QuotaTone` into the library (work item S23-Q) so the rule lives once. | same, item 5; `colour-follow-ups.md` |
-| D6 | Showcase header crumb: SC5 replaced the baseline's `/ Group / Page` with the library `Breadcrumb` (`Group › Page`, current page bold), re-approved as a deliberate visual change. | (a) keep `Group › Page` (one crumb style across apps); (b) restore `/ Group / Page` as a `Breadcrumb` separator option for the showcase. | (a) today. Recommend (a); confirm so the change against `visual-baseline` is accepted. | `shared-components-plan.md` "SC5 outcome" (Shell line) |
+| D6 | Showcase header crumb: SC5 replaced the historical capture's `/ Group / Page` with the library `Breadcrumb` (`Group › Page`, current page bold); the change was previously recorded as a deliberate visual delta on this branch. | (a) keep `Group › Page` (one crumb style across apps); (b) restore `/ Group / Page` as a `Breadcrumb` separator option for the showcase. | (a) today. Recommend (a); confirm the recorded change against `design/interaction-polish`; `visual-baseline` is historical comparison only. | `shared-components-plan.md` "SC5 outcome" (Shell line) |
 | D7 | crossterm 0.29 input starvation: the runtime re-arms the reader (`tcsetattr TCSANOW`) in `src/runtime.rs` `poll_input`/`tty_input::rearm`. File the bug upstream? | (a) file a crossterm issue (reader should read until `WouldBlock`) and track it in `docs/upstream/`; (b) keep the workaround untracked. | Not filed. Recommend (a): `dependencies.md` already says "Drop the re-arm once crossterm reads until `WouldBlock`", which needs an upstream fix to ever happen. | `dependencies.md` (crossterm paragraph); `src/runtime.rs` `poll_input` doc, `rearm` |
-| D8 | `visual-baseline` tag replacement: when (and whether) the branch's oracle replaces the frozen tag. | (a) keep the tag frozen and let `baselines/oracle/` (v0 then v1) be the reference; (b) the owner creates a new tag or release after oracle v1. | Agents never touch the tag. Recommend (a) until oracle v1 and M7 sign-off; the owner alone acts on the tag. | `visual-testing/plan.md` D4, E1, §F4 M7 |
+| D8 | Historical tag policy: preserve the existing `visual-baseline` tag and release unchanged as historical evidence. | No replacement or retargeting; any future oracle is a separate artifact. | Resolved: `design/interaction-polish` is the product reference; `visual-baseline` remains historical comparison only. | AGENTS.md; visual-testing plan |
 
 Already decided by the owner (not open): holla captures keep
 `HOLLA_NO_HISTORY=1` (`visual-reapproval.md`, 2026-10-17); jackin's intro,
@@ -276,47 +278,3 @@ wheel notches, reveal wrap cost, a full render per frame,
 | C1 | Enable `visual-smoke` on `["pull_request", "push", "workflow_dispatch"]` with `required = true`; regenerate with `velnor-actions generate` (never hand-edit `.github/`). | V8 | `visual-smoke` is part of `Required` and green | `ci.md` "Visual suites"; `.velnor/config.toml` lines 35–38, 57 |
 | C2 | Give `visual-full` and `visual-narrow` `"schedule"` with `schedule = ["0 2 * * *"]`. | V8; V3 for narrow | nightly runs green | `ci.md` "Visual suites"; config lines 70, 83 |
 | C3 | `Publish baseline` green on push (red on every push today, not part of `Required`; still so with v0.1.12). | U1 | job green on a push | `ci.md` jobs table, `Publish baseline` row |
-
-## 4. Working rules (summary; AGENTS.md is authoritative)
-
-- Subagents do the work; the main session coordinates, reviews and
-  integrates. Never more than 5 subagents in parallel, a hard ceiling that
-  counts helpers subagents start; extra work waits in a queue.
-  Implementation agents work in isolated worktrees on disjoint files
-  (AGENTS.md "Way of working").
-- Small portions: commit and push after every coherent step as soon as the
-  gate passes. Before each push: `git fetch`, rebase onto the remote
-  branch, re-run the gate, push. Never force-push.
-- Push lock: one pusher at a time. Take it with
-  `mkdir "$(git rev-parse --git-common-dir)/push.lock"` and write an owner
-  file inside it; if `mkdir` fails, the lock is held: keep working and
-  retry at the next checkpoint. Inside the lock: fetch, rebase, check the
-  diff stat, push, then `rm -rf` the lock, also on failure (AGENTS.md "Way
-  of working").
-- No command runs longer than 4 minutes: set a timeout and split long jobs
-  (nextest partitions, visual groups). Long commands run in the
-  background while the agent keeps working; an agent with only waiting
-  left ends its run and reports where to resume, rather than polling.
-- Never `pkill -f`, `killall` or kill processes by name: other sessions
-  and agents share the machine; stop only PIDs and tasks you started
-  (AGENTS.md "Way of working").
-- The gate on every step: `cargo nextest run --all-targets` (never `cargo
-  test`), `cargo clippy --all-targets`, `cargo fmt --check`, the tuiscotti
-  pilot (`--run-ignored only -E 'binary(visual_baseline) &
-  test(/^showcase::pages/)'`) and smoke tier, and the step's regression
-  tests, which fail on the parent (plan §4 "The gate (G)"; S1 deviation 6
-  for the filter).
-- Visual changes: named in the commit message, re-approved with
-  `tuiscotti accept` in a separate commit, and every changed cell
-  attributed to a cause (as in `visual-reapproval.md`); `cargo xtask visual
-  check-touched` before the push. Never touch the `visual-baseline` tag or
-  its release.
-- Behaviour lives once in `src/core`, `src/ui` or `src/widgets`; apps and
-  the showcase are thin consumers; every new public capability is shown in
-  the showcase or allowlisted with a step (AGENTS.md "Component
-  architecture", "Showcase").
-- Upstream PRs (velnor-new, tuiscotti): follow the Upstream PR loop in
-  `docs/upstream/README.md` and answer with one relay line per PR.
-- Every finding is fixed or recorded with a reason; when an item here is
-  finished, mark it in its source document and delete or strike it here in
-  the same commit.

@@ -1,5 +1,22 @@
 # ADJ-13 broker checker qualification
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 TASK-072 R-002 / AC-011 / CHK-013 must execute `broker-bootstrap-driver.py --runner /work/tools/refactor-proof/bin/tc-proof` from the host-frozen `broker-bootstrap` group. `--self-test` is only an observer/source-premise diagnostic; its output explicitly says `submitted_checker_qualified: false`. No premise run, existing 193-case corpus, or caller-owned lifecycle prototype substitutes for CHK-013.
 
 The driver imports the unchanged protected source/actual/common transport. It builds `broker-bootstrap-observer.rs` using the pinned main source archive's xtask dependencies, extracts the exact executable artifact, and freezes complete `crates/tui/src/**/*.rs` source snapshots before submitted code runs. Each snapshot changes only its named fixture bytes. The candidate sees source bytes, their complete inventory, and the ADJ-13 policy; it never receives the private expected verdict or mutation name. The observer parses every inventoried Rust file with syn, including inactive and unreferenced source. Its raw records include file/module/item attributes, statics, storage types and nested generic arguments, type aliases, imports/reexports, bounded struct fields, function/method-local depth and macro token trees. Parse errors are data, not skipped files. The observer emits no checker verdict.

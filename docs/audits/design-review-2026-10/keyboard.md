@@ -1,3 +1,24 @@
+
+## Status
+
+WIP-specific findings and accepted decisions recorded in the document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Existing finding IDs and any explicitly recorded closures are retained.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
+
+## Remaining work
+
+Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
+
+## Verification
+
+Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+
 Audited `origin/design/interaction-polish` at 9776abef7. I walked Tab across every showcase page and every holla and jackin scenario, plus the tablepro welcome and connected workbench, using throwaway TestBackend harnesses that record the focus stop, its area, whether the caret is visible and the footer. Four read-only subagents then went through the code screen by screen. The worktree has been removed and nothing was committed.
 
 **The main result:** across all 24 showcase pages, every holla scenario and the jackin host screens, Tab never produced a visible caret. In TablePro, a newly focused text field also shows no caret; the caret only appears in an editor or grid cell after Enter. The only stops that showed a caret on arrival were holla's finder search and the jackin terminal pane. Text fields, prompts, typed confirmations, the SQL editor and filters all need Enter or F2 before typing does anything. Until then, stray letters fall through to page shortcuts, including `q` quit, `e` reload the form and `z` zoom. Second, hints are hand-written per page, so they often don't match the focused control.
@@ -145,7 +166,7 @@ The walk transcripts were saved under `/private/tmp/claude-501/-Users-donbeave-P
 
 The snapshot text captures are stale (dated 14 Sep, code 16 Oct), so their footers weren't used as evidence for hint mismatches.
 
-## Status (caret rules and edit entry)
+## Scoped finding status (caret rules and edit entry)
 
 Section 1 "Caret rules", corrected by the standards review (keyboard focus
 selects a field's value; grid cells stay in navigation; multi-line Esc keeps
@@ -184,7 +205,7 @@ with the caret: holla `flows::args`, `flows::finder::query*`,
 `textareas`, `codeeditor`, `dialogs`; tablepro scenarios on the query
 editor, filter editor and connection form. They were not re-approved here.
 
-## Status (data-loss and quit-safety pass)
+## Scoped finding status (data-loss and quit-safety pass)
 
 This pass took the data-loss and quit-safety findings, plus the standards
 review's corrections to them (Apple alerts HIG, Windows UX):
@@ -237,7 +258,7 @@ Deferred, with reasons:
   removed `jackin/manager/quit_confirm` scenario is gone from the tables
   and the snapshot store.
 
-## Status (Select All, product request)
+## Scoped finding status (Select All, product request)
 
 Request: wherever a desktop interface offers Select All, the library
 offers it too, for example Cmd+A or Ctrl+A in text inputs and text areas.
@@ -303,7 +324,7 @@ Deferred, with reasons:
   the runtime turns `InputConfig::legacy_ctrl_punctuation` off while the
   flags are pushed.
 
-## Status (macOS editing chords)
+## Scoped finding status (macOS editing chords)
 
 Request: now that the kitty keyboard protocol delivers Cmd, every text
 widget answers the macOS standard editing chords.
@@ -338,14 +359,14 @@ Deferred, with reasons:
 - Picker, combo and find-bar queries still have no `TextBuffer` (S11).
   They gain these chords when they move onto `EditField`.
 
-## Status (cursor, type-ahead and vim profile, plan S4)
+## Scoped finding status (cursor, type-ahead and vim profile, plan S4)
 
 | # | Status | Commit(s) | Notes |
 |---|---|---|---|
 | 33 | Fixed | S4 "desktop keys and type-ahead by default" | `NavKeys::default()` follows `NavProfile::current()`: `Desktop` (default) has no `h j k l g G`; `NavProfile::Vim` turns them on for every widget. Per widget `nav(..)` still overrides. |
 | 34 | Fixed | same | List, Tree, Select, ContextMenu and MenuBar type-select by default under `Desktop` (off under `Vim`), through the one `Cursor::type_ahead`. Type-ahead takes letters and digits only, so `?`, `/`, `*` and Space keep their meaning while a list has focus (a terminal trade-off; see plan "S4 deviations" 3). |
 
-## Status (type-ahead and single-letter shortcuts, decision log)
+## Scoped finding status (type-ahead and single-letter shortcuts, decision log)
 
 Problem. S4 turned type-ahead on by default in lists, trees, selects and
 menus, and a type-ahead miss is consumed. A focused list therefore
@@ -483,7 +504,7 @@ outside_route_key_and_in_popups_a_letter_types_at_once}`.
 - S8a's `KeyRouter` should call `route_key` once, in place of the
   per-app call in each `handle_input`.
 
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 Method: each finding without a row above was checked against the code at
 HEAD, `git log --grep`/`-S`, and the plan's "Step status" and S5/S7

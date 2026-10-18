@@ -1,5 +1,26 @@
 # Improvements plan: audit reference
 
+## Status
+
+Active specification or plan; completion is not implied by this document.
+
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+
+## Current evidence
+
+Claims below are scoped to their cited sources and recorded test results.
+
+## Remaining work
+
+Keep all listed requirements and open tasks in scope; track implementation state in docs/remaining-work.md.
+
+## Verification
+
+Verify against current sources and task acceptance criteria; historical passes are not current proof.
+
+
 This document preserves research, evidence inventories and verification narratives
 moved from [PLAN.md](PLAN.md) (`docs/improvements/PLAN.md`). These records describe
 the 2026-09-10 audit snapshots; their test results and completion claims are

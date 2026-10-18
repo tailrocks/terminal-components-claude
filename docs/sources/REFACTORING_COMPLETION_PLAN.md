@@ -1,5 +1,26 @@
 # Refactoring completion execution plan
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 **Status: completion reopened for a source-first, line-by-line re-audit.** The previous 73-task catalog passed its recorded checks, but the renewed independent audit has identified scope and contract gaps. Execution readiness is not currently accepted. Findings, repairs and independent rechecks are tracked in [the re-audit register](../refactoring-plan/reaudit-plan.md). The production refactor and production verification harness have not been implemented or executed. The [previous completion audit](../refactoring-plan/planning-acceptance.md) and [previous verification record](../refactoring-plan/planning-verification.md) remain historical evidence, not acceptance of the revised plan.
 
 The additional whole-branch review is summarized in [the main continuation proposal](../refactoring-plan/branch-continuation-proposal.md). Its exact inventory covers 7,885 changed paths. Preserve completed main architecture, continue unfinished owners, restore source-qualified behavior, and explicitly disposition superseded tests and historical captures. Full source reading, compatibility decisions and independent repair review remain in progress; partition reports are not a final execution certificate.
@@ -179,7 +200,7 @@ No UI redesign, UX polish, new product features, approximate parity, operational
 
 ## 23. Evidence and commit references
 
-All evidence is linked through [planning progress](../refactoring-plan/PROGRESS.md), the historical revision index, matrices, app inventories and tool evidence. Read commit-qualified sources rather than assuming a same-named working-tree path is authoritative. Current measurements record their environment and proof limits. [Planning acceptance audit](../refactoring-plan/planning-acceptance.md) tracks every success requirement.
+All evidence is linked through [historical revision index](../refactoring-plan/history.md), the historical revision index, matrices, app inventories and tool evidence. Read commit-qualified sources rather than assuming a same-named working-tree path is authoritative. Current measurements record their environment and proof limits. [Planning acceptance audit](../refactoring-plan/planning-acceptance.md) tracks every success requirement.
 
 ## 24. Independent review and corrections
 

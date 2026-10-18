@@ -7,6 +7,26 @@ kind: bugfix
 
 # TASK-053 — Restore Jackin accounts usage and secret picker flows
 
+## Status
+
+Historical task contract. This document records required work; it does not prove the task is complete or the current implementation is ready.
+
+## Authority
+
+Use `main` for the target split-crate architecture and reusable APIs. The refactor on `main` remains incomplete, broken, and not ready. Use `design/interaction-polish` for intended UI/UX, colors, layout, interactions, and behavior. Its planned work remains active; its monolithic structure is not the target architecture.
+
+## Current evidence
+
+Commit pins, source names, test identities, and oracle outputs below are historical task inputs. They identify this task's frozen evidence scope; they do not establish current product status. Check current source and host-protected receipts before making completion claims. Nested `trusted/*fixture/README.md` and `AGENTS.md` files are synthetic qualification inputs, not current project documentation or status.
+
+## Remaining work
+
+Keep every concrete requirement, acceptance criterion, checklist item, and trusted obligation in this package. Each remains open until its required current evidence passes the task's authoritative gate. Plans and historical completion labels do not close work.
+
+## Verification
+
+The task's `verify.toml`, protected host receipts, and specified checks define its gate and scope. Preserve exact commands, pins, IDs, and machine inputs. A prior check or an unverified report does not prove current completion.
+
 ## Goal
 
 Restore Accounts tree/filter/detail/actions, local-folder/reference/plain-key forms, validation and refresh jobs, Usage meters/details/scroll and account handoff, plus the full nested 1Password account/vault/item/field picker.
@@ -15,7 +35,7 @@ Restore Accounts tree/filter/detail/actions, local-folder/reference/plain-key fo
 
 Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
-The immutable UX oracle is commit 02f5294bfdbf38004cc49130d0aff1d01f31434c (formerly tagged holla-fable-2026-09-10); accepted architecture starts at main 7b27732a8c3c131760ec3438f641cb3c11343a42. This package owns J-ACCOUNTS, not an application rewrite. The architectural enabling condition is that copied painting, surface labels and real input/model ownership can diverge. Restore the production owner instead of adding another visual facade.
+Historical task inputs are UX snapshot commit `02f5294bfdbf38004cc49130d0aff1d01f31434c` (formerly tagged holla-fable-2026-09-10) and architecture source commit `7b27732a8c3c131760ec3438f641cb3c11343a42`. These pins identify frozen task inputs only. Current architecture authority is the split-crate direction of `main`; current UI/UX and behavior authority is `design/interaction-polish`. This package owns J-ACCOUNTS, not an application rewrite. The architectural enabling condition is that copied painting, surface labels and real input/model ownership can diverge. Restore the production owner instead of adding another visual facade.
 
 Read before editing: /task/trusted/app-flow-contribution-contract.md, /task/trusted/app-flow-contributions.tsv, /task/trusted/app-flow-frame-contributions.tsv, /task/trusted/app-flow-stage-audit.tsv, /task/trusted/obligations.md, /task/trusted/source-obligations.tsv, /task/verify.toml, docs/refactoring-plan/jackin.md, docs/refactoring-plan/jackin-scenarios.tsv, docs/refactoring-plan/architecture.md, docs/refactoring-plan/architecture-adjudication.md, docs/refactoring-plan/proof-contract.md, and the source-qualified files/tests listed in the trusted obligations. The host-provided immutable catalog and sealed inputs govern acceptance; mutable repository copies are reference material only.
 
@@ -157,9 +177,6 @@ Then every declared PTY checkpoint has valid tree-bound evidence and modeled-onl
 
 R-001 and R-002 explicitly permit extraction-only observation seams in this task's already writable production source or completion-test files. They are untrusted candidate code, built with the frozen candidate and real production handlers/renderers; they are not accepted oracle adapters, judges, schema authors or receipt producers. TASK-002–006 own the protected observation schema and logical identity mapping; TASK-070 owns independently qualified source/binary/action binding and wrong-state, constant-state, omitted-field, wrong-source and test-only-substitution rejection. Candidate seams may serialize actual focus/edit/selection/target/overlay/domain state, but may not replace input dispatch/rendering, synthesize expected state, branch on a test-only product path or alter protected mappings. The existing prohibition on changing observation adapters means protected reference adapters and runner policy; it does not forbid these explicitly scoped untrusted extraction seams. A seam needing another task's source path remains outside scope and must be assigned before dispatch.
 
-## Campaign execution binding
-
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with immutable per-check contexts, pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
 
 ## Checklist
 

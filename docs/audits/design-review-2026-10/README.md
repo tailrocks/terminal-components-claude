@@ -1,5 +1,25 @@
 # Design review, October 2026
 
+## Status
+
+WIP design-review index and scoped decision ledger from `c1a49af0f6ade36838c6330ce8a034e8d589ea79`; unresolved findings remain open unless individually closed with evidence.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The linked reports contain the branch-specific findings, design decisions, and source/capture observations. They are inputs to implementation, not proof that `main` matches them.
+
+## Remaining work
+
+Resolve each open finding in its owning plan step or record an accepted decision with rationale; preserve its finding ID and source link.
+
+## Verification
+
+Verify a finding against current source and its named regression/capture evidence. Compare product behavior to `design/interaction-polish`, not to the historical tag.
+
 Findings from parallel audits of every interface on the
 `design/interaction-polish` branch, one file per category. They are the
 backlog for that branch: each fix lands in the shared component or theme

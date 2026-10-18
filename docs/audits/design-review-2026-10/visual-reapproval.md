@@ -1,6 +1,26 @@
-# Visual re-approval against `visual-baseline` (tablepro, holla, jackin)
+# Historical visual comparison: `visual-baseline` (tablepro, holla, jackin)
 
-Status: 2026-10-17. tablepro, holla and jackin re-approved (gate).
+## Status
+
+Historical report retained as branch-scoped evidence from `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. It does not grant current visual approval or establish parity with the accepted product reference.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The report describes comparisons made against the immutable `visual-baseline` tag at its recorded source revision. Those comparisons are historical evidence; the accepted target for visual and interaction work is `design/interaction-polish`.
+
+## Remaining work
+
+Re-run or complete any open approval rows against the accepted design reference at matching states, sizes, and color capabilities. Keep old comparison results attributed to their historical scope.
+
+## Verification
+
+Use the visual-testing plan and its pinned capture tooling; compare current captures with the accepted design branch. Never retarget or rewrite `visual-baseline`.
+
+Historical status at the report revision: tablepro, holla and jackin were recorded as re-approved against the historical baseline. This is not current product approval.
 
 Until this pass every tablepro, holla and jackin capture was a legacy
 tuisnap approval: skipped unless `VISUAL_FULL=1`, so nothing gated those
@@ -397,7 +417,7 @@ still (no switch to `--motion reduced`, whose frame never settles).
   are the same (`running == (motion != Paused)`), and no approved row
   sends a step.
 
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 The "Regressions found and fixed" and "Stale scenario steps fixed"
 tables already carry a fix and a test for every row; the rows below add

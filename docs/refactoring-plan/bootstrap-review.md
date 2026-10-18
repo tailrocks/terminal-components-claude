@@ -1,5 +1,26 @@
 # Independent bootstrap review
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Status: the comparator and Darwin host preparation are accepted for their explicitly bounded qualification profiles. BR-01 through BR-05, including the late-freeze and surviving-child evidence problems, are resolved in the exact revisions recorded below. VF-02 aggregation and the host portions of INT-03/VF-03 are independently re-tested. BR-06's finite synthetic runner checks pass; its actual Rust preparation remains a separate independent review and is not approved by this document. This review qualifies planning fixtures, not a production harness. No terminal-components production source was changed, no oracle was blessed, and no real integration ref was updated. All adversarial executions used temporary synthetic repositories.
 
 ## Scope and acceptance

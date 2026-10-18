@@ -1,5 +1,25 @@
 # Evolution of the Refactoring Goal
 
+## Status
+
+Historical record of prior goal revisions, not current operating instructions. The main refactor remains incomplete, broken, and not ready.
+
+## Authority
+
+Current architecture direction: `main` split crates and reusable APIs. Current UI/UX, color, interaction, and behavior authority: `design/interaction-polish`. This chronology explains prior decisions but does not supersede those roles.
+
+## Current evidence
+
+Dates, commits, and excerpts below are retained as historical evidence. Confirm current status from manifests, source, active plans, and current verification.
+
+## Remaining work
+
+Preserve the chronology and its decision context. Remove or correct any historical passage only when its record is factually wrong; do not treat superseded instructions as current requirements.
+
+## Verification
+
+Historical statements are scoped to the recorded commits. Current acceptance requires current code and task-specific evidence.
+
 Compiled 2026-09-12 from repository history (read-only; nothing here reflects working-tree edits).
 
 Sources:

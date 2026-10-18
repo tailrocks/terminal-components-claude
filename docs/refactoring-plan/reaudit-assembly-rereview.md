@@ -1,5 +1,26 @@
 # Independent assembly and Choice caller rereview
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 ## Result and boundary
 
 PASS for the two-line dependency projection repair and the corrected ADJ-10 Jackin caller census. No production or global plan file was edited by this reviewer. Checks ran in `/tmp/assembly-rereview.ySTjup`; this report is the only repository write for this subtask. Verify-and-stop bounded the work. This is not global plan approval or a claim that the whole assembler is an independent acceptance judge.

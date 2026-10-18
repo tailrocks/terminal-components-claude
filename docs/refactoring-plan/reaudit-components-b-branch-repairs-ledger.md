@@ -1,5 +1,22 @@
 # Components B independent repair review — byte ledger
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Snapshot follows the author's stable eight-file follow-up. These are independently computed current bytes for the original 27 paths plus two newly changed files. `Lines` is whole-file length, not a claim of full-file semantic rereading. Coverage is all changed clauses/witnesses/scopes plus the relevant unchanged guard context; unchanged historical appendices are not silently counted as reread. The companion report records immutable source branches and findings.
 
 | Path | Lines | SHA-256 | Semantic coverage |

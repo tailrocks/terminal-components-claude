@@ -1,5 +1,25 @@
 # Showcase page steps: decisions recorded instead of fixed
 
+## Status
+
+WIP-specific findings and accepted decisions recorded in the document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Existing finding IDs and any explicitly recorded closures are retained.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
+
+## Remaining work
+
+Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
+
+## Verification
+
+Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+
 Scope: the page steps SC14 (Tabs), SC16 (Menus), SC28 (Focus & navigation,
 Toolbars) and SC27 (Settings, Task runner) of
 [`shared-components-plan.md` §7](../../architecture/shared-components-plan.md).
@@ -180,7 +200,7 @@ fix, with the reason.
    allowlisted to SC29, which shows the Cursor/RowSource defaults together
    on the Scrolling page.
 
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 Each entry above was checked against `git log`, the code at HEAD,
 `docs/remaining-work.md` and the plan's SC outcomes; entries that only

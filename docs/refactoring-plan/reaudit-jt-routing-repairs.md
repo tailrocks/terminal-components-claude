@@ -1,5 +1,26 @@
 # Source-qualified Filter, chips and Inspect routing repairs
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 ## Authority and boundary
 
 The coordinator authorized repairs to TP-040/042 and JA-060, then explicitly extended the same-mechanism repair to TP-039/041. This is author work awaiting a separate root review, not self-approval. Surgical-patch required reproducing the wrong traces and changing only their owning planning contracts; verify-and-stop bounded diagnostics and lints. No Terminal Components production source, canonical AGENTS file, branch, commit or golden capture was changed.

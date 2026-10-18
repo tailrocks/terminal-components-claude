@@ -1,5 +1,26 @@
 # Independent safe session-broker feasibility review
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 The coordinator independently read the complete persisted README, Rust program, PTY supervisor and Cargo manifest for `evidence/session-broker-bootstrap-20260911`. This is bounded planning feasibility evidence, not a production implementation, replacement oracle or TASK-009 acceptance. Verify-and-stop confined this review to the stated signal protocol and proof claims.
 
 ## Finding and repair

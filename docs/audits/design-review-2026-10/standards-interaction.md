@@ -1,3 +1,24 @@
+
+## Status
+
+WIP-specific findings and accepted decisions recorded in the document copy at `c1a49af0f6ade36838c6330ce8a034e8d589ea79`. Existing finding IDs and any explicitly recorded closures are retained.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
+
+## Remaining work
+
+Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
+
+## Verification
+
+Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+
 ## Verdict table
 
 | # | Item | Verdict | One-line correction |
@@ -137,12 +158,12 @@ stays configurable, so users who prefer different behaviour can override
 the defaults (app-wide profile, per-widget setting, or key map; see
 `AGENTS.md`, "Component architecture").
 
-## Status (plan S4)
+## Scoped finding status (plan S4)
 
 - Verdict 12 (vim keys on, type-ahead off): fixed. `NavProfile::Desktop` is the default (desktop keys, type-ahead on in lists, trees, selects and menus); `NavProfile::Vim` is the opt-in profile. Disabled rows stay skipped by the arrows (`Cursor::skip_disabled`, per widget), as before.
 - Gap 10 (type-ahead timing): the reset is `TypeAhead::DEFAULT_TIMEOUT` (1 s), configurable per widget (`type_ahead_timeout`); the search wraps. Wide-character truncation is not part of S4.
 
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 Each row was checked against the code at `942b869d7`, the plan's §4 table, its "Step status" and outcome sections, and `docs/remaining-work.md`; verdict 12 and the type-ahead half of gap 10 are covered by "Status (plan S4)" above.
 
