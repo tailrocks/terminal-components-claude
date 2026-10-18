@@ -1,9 +1,3 @@
-//! Empty & error (plan §7 SC21): `EmptyState` empty and failed, with a
-//! hint and action buttons (`render_ctx`), an empty list, and what a
-//! read-only surface says: the grid's reason, menu items disabled with a
-//! reason, "· read-only" panel meta and the status on an attempted edit.
-//! Options: `crate::options::EMPTY_ERROR`.
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -35,22 +29,19 @@ const ID: WidgetId = WidgetId::of("emptyerror");
 const NEW: WidgetId = WidgetId::of("emptyerror").sub("new");
 const IMPORT: WidgetId = WidgetId::of("emptyerror").sub("import");
 
-/// The Playground's rows: the two empty cards, connections, the grid.
 const CHILDREN: [StackChild; 3] = [
     StackChild::fixed(8),
     StackChild::fixed(10),
     StackChild::fixed(9),
 ];
-/// The widest the read-only grid is drawn.
+
 const GRID_W: u16 = 60;
 const GRID_NOTE: &str = "Enter or a typed key on a cell says why it cannot change";
 
-/// The saved-queries list's empty state.
 fn saved_empty() -> EmptyState {
     EmptyState::new("No saved queries").hint("Queries you save appear here")
 }
 
-/// The search results' empty state: no hint, no action.
 fn search_empty() -> EmptyState {
     EmptyState::new("Nothing matches “ordrs”")
 }
@@ -106,8 +97,6 @@ impl EmptyErrorPage {
         page
     }
 
-    /// The empty state and the grid's reason from the option values,
-    /// through their builders.
     fn rebuild(&mut self) {
         let o = &self.opts;
         let error = o.value("emptyerror.kind") == "error";
@@ -145,7 +134,6 @@ impl EmptyErrorPage {
         }
     }
 
-    /// The reason as a menu item says it, beside the item.
     fn short_reason(&self) -> &'static str {
         match self.opts.value("emptyerror.reason") {
             "no-key" => "no primary key",
@@ -223,8 +211,6 @@ impl EmptyErrorPage {
         self.menu.render(area, buf, ctx);
     }
 
-    /// The row actions of a read-only view: the edits stay listed,
-    /// disabled with the reason (HIG: show what is unavailable and why).
     fn open_menu(&mut self) {
         let reason = self.short_reason();
         let anchor = self.actions_area();
@@ -259,8 +245,6 @@ impl EmptyErrorPage {
     }
 }
 
-/// The States grid: an empty state with a title only, with a hint, and
-/// with actions (whose button carries the interactive states).
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -288,9 +272,6 @@ impl Page for EmptyErrorPage {
         "Empty and failed states with a way out, and read-only surfaces that say why"
     }
 
-    /// Every card whole: the two empty cards side by side at the wider
-    /// one's size, the connections state, the grid with its button and
-    /// note; the cards' stacked heights.
     fn measure(&self, _avail: Size, ctx: &RenderCtx) -> Size {
         let at = |e: &EmptyState| e.measure(Size::ZERO, ctx);
         let half = Panel::card(Some("Saved queries"))

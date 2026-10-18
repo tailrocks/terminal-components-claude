@@ -1,7 +1,3 @@
-//! The Tabs page (plan §7.5, SC14), driven through the real app: the
-//! editor strip's actions, its options through the Options section and
-//! `--opt`, the nested strips and the States grid.
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -17,13 +13,12 @@ use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Theme;
 use junie_tui::ui::specimen::SpecimenState;
 
-/// The harness the SC14, SC16, SC27 and SC28 page tests share.
 pub(super) struct Harness {
     pub app: App,
     pub term: Terminal<TestBackend>,
 }
 
-#[allow(dead_code)] // each page's tests use their part
+#[allow(dead_code)]
 impl Harness {
     fn new(w: u16, h: u16) -> Self {
         Self::on(w, h, PageId::Tabs)
@@ -115,8 +110,6 @@ impl Harness {
     }
 }
 
-/// `DUMP_PAGE=<slug> cargo nextest run --bin showcase tabs_dump --no-capture`
-/// prints the page at 120×40 (a development aid; asserts nothing).
 #[test]
 fn tabs_dump() {
     if std::env::var("DUMP_PAGE").is_err() {
@@ -146,10 +139,10 @@ fn the_editor_strip_closes_opens_and_asks_before_closing_a_dirty_tab() {
     let strip = h.page().editor.id;
     h.focus(strip);
     let n = labels(&h).len();
-    // the pinned first tab has no close
+
     h.key(KeyCode::Char('x'));
     assert_eq!(labels(&h).len(), n, "a pinned tab does not close");
-    // the dirty tab asks first; Esc keeps it
+
     h.key(KeyCode::Right);
     h.key(KeyCode::Char('x'));
     assert!(h.app.dialog().is_some(), "closing a dirty tab asks first");
@@ -157,12 +150,12 @@ fn the_editor_strip_closes_opens_and_asks_before_closing_a_dirty_tab() {
     assert!(h.app.dialog().is_none());
     assert_eq!(labels(&h).len(), n, "Esc keeps the tab");
     assert!(h.page().last.contains("Kept orders.sql open"));
-    // asked again, Discard closes it
+
     h.key(KeyCode::Char('x'));
     let (x, y) = h.find("Discard").expect("the dialog's Discard button");
     h.click(x + 1, y);
     assert!(!labels(&h).contains(&"orders.sql".to_owned()));
-    // a clean tab closes at once, from its ×
+
     let (x, y) = h.find("Migrate").expect("the Migrate tab");
     let close = h
         .row(y)
@@ -174,7 +167,7 @@ fn the_editor_strip_closes_opens_and_asks_before_closing_a_dirty_tab() {
     h.click(close, y);
     assert!(!labels(&h).contains(&"Migrate".to_owned()), "× closes");
     assert!(h.page().last.starts_with("Close("), "{}", h.page().last);
-    // n opens a tab and activates it; so does the + button
+
     h.focus(strip);
     h.key(KeyCode::Char('n'));
     assert_eq!(
@@ -227,14 +220,14 @@ fn the_overflowing_strip_scrolls_and_lists_its_hidden_tabs_in_a_menu() {
     assert_eq!(e.items[e.active].label, "events", "choosing activates it");
     assert!(!e.menu_open());
     assert!(e.hidden().0 > 0, "and scrolls it into view");
-    // the wheel moves the window without changing the active tab
+
     let active = e.active;
     let first = e.first;
     let (x, y) = h.find("events").unwrap();
     h.mouse(MouseKind::WheelUp, x, y);
     assert_eq!(h.page().editor.active, active);
     assert!(h.page().editor.first < first, "the window moved");
-    // few tabs: no overflow, no +N
+
     h.opt("tabs.count=few");
     assert_eq!(h.page().editor.hidden(), (0, 0));
     assert!(h.find(&more).is_none());
@@ -265,11 +258,11 @@ fn options_rebuild_the_editor_strip_through_its_builders() {
     assert!(!h.text().contains("new tab"));
     h.opt("tabs.digit_jump=off");
     assert!(!h.text().contains("–9 jump"));
-    // close reveal: only the active, cursor and hovered tabs show ×
+
     let before = h.text().matches('×').count();
     h.opt("tabs.close_reveal=hover");
     assert!(h.text().matches('×').count() < before);
-    // the neutral rule under the active tab
+
     let rule = |h: &Harness| {
         let e = &h.page().editor;
         let r = e.areas[e.active];
@@ -280,9 +273,6 @@ fn options_rebuild_the_editor_strip_through_its_builders() {
     assert_eq!(rule(&h), Theme::junie().border_strong);
 }
 
-/// SC-G2: the readout names the `+N` menu's keyboard opener
-/// (`TabCmd::ShowHidden`, ↓ by default), the key really opens the menu,
-/// and the readout drops it when the strip has no overflow menu.
 #[test]
 fn the_keys_readout_names_the_hidden_tabs_key_while_the_strip_has_a_menu() {
     let mut h = Harness::new(160, 40);

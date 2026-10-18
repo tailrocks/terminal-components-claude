@@ -1,7 +1,7 @@
-//! The fixture world and its tick: discovery sources completing, activities
-//! emitting scripted output, plans scheduling ready steps within their
-//! parallelism and exclusive-resource rules, and the disk scan streaming
-//! candidates. Every change is a pure function of the tick count.
+
+
+
+
 
 use std::collections::BTreeMap;
 
@@ -23,11 +23,11 @@ use crate::sim::fs::Fs;
 use junie_tui::clock::SimClock;
 use std::collections::BTreeSet;
 
-/// Virtual milliseconds per tick.
+
 pub const TICK_MS: i64 = 80;
 
-/// A discovery source: mise, git, docker, … each completes at a fixture
-/// tick or fails with a reason.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Source {
     pub name: String,
@@ -35,16 +35,16 @@ pub struct Source {
     pub failure: Option<String>,
 }
 
-/// How the members of a batch are scheduled and judged.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BatchMode {
-    /// One after another; a failure does not short-circuit later members.
+
     Sequential,
-    /// All at once; aggregate success needs every member to succeed.
+
     Parallel,
 }
 
-/// Several activities started by one action (a batch pull, a mirror push).
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Batch {
     pub id: String,
@@ -55,7 +55,7 @@ pub struct Batch {
 }
 
 impl Batch {
-    /// `(succeeded, failed, cancelled, pending)`.
+
     pub fn tally(&self, w: &World) -> (usize, usize, usize, usize) {
         let mut t = (0, 0, 0, 0);
         for m in &self.members {
@@ -83,7 +83,7 @@ pub enum Msg {
         id: String,
         ok: bool,
     },
-    /// Every member of a batch has settled.
+
     BatchDone {
         id: String,
         ok: bool,
@@ -122,22 +122,22 @@ pub struct World {
     pub batches: Vec<Batch>,
     pub plans: Vec<Plan>,
     pub sources: Vec<Source>,
-    /// Activity scripts by key (`task:frontend-dev`).
+
     pub scripts: BTreeMap<String, Script>,
-    /// Retained per-step output by `plan/step` id.
+
     pub step_output: BTreeMap<String, Vec<String>>,
     pub clipboard: Option<String>,
-    /// Tick the disk scan started, if it did.
+
     pub scan_started: Option<u64>,
     pub next_activity: u32,
-    /// Config paths trusted during this session.
+
     pub trusted_now: Vec<String>,
-    /// systemd units restarted by holla this session: their degraded state
-    /// is healed in the catalogue and the snapshot.
+
+
     pub healed_units: Vec<String>,
-    /// The virtual filesystem every file, disk and cleanup flow reads.
+
     pub fs: Fs,
-    /// Executables on PATH.
+
     pub tools: BTreeSet<String>,
     pub cargo: CargoState,
     pub brew: Option<BrewState>,
@@ -145,45 +145,45 @@ pub struct World {
     pub upgrade: UpgradeState,
     pub platform: Platform,
     pub outputs: ToolOutputs,
-    /// Global and project custom-action configurations and the trust store.
+
     pub custom_global: Option<CustomConfig>,
     pub custom_project: Option<CustomConfig>,
     pub trust: TrustStore,
-    /// `sudo -n true` succeeds: no password prompt.
+
     pub sudo_cached: bool,
-    /// systemd units whose restart fails.
+
     pub service_failures: Vec<String>,
-    /// Native task names that exit nonzero.
+
     pub task_failures: Vec<String>,
     pub ops_log: OpsLog,
     pub size_cache: SizeCache,
-    /// What a restart would find on disk: the persisted texts.
+
     pub persisted: Persisted,
-    /// Cleanup reports produced this session, newest last.
+
     pub reports: Vec<crate::domain::cleanup::Report>,
-    /// The live disk scan, when one is running or finished.
+
     pub scan: Option<ScanState>,
-    /// Directory listings that answer late: (path, ticks).
+
     pub fs_latency: Vec<(String, u64)>,
-    /// A committed cleanup executing item by item (HP22): the report at its
-    /// index grows as it runs and a quit waits for it to settle.
+
+
     pub cleanup_job: Option<CleanupJob>,
 }
 
-/// A cleanup in flight: owned by the world, not by the gate that started it.
+
 #[derive(Debug, Clone)]
 pub struct CleanupJob {
     pub exec: crate::domain::cleanup::Execution,
     pub report_index: usize,
-    /// Process guards observed once at commit, shared by every item.
+
     pub processes: Vec<(String, crate::domain::cleanup::ProcessObservation)>,
 }
 
-/// A progressive directory scan over the virtual filesystem (HP18): the
-/// tree is computed once and revealed in path order over `scan_ticks`, so
-/// partial frames are reproducible; a rescan bumps the generation so stale
-/// results can never replace a newer one.
-/// One batch member: name, argv, script, effect, scope.
+
+
+
+
+
 pub type BatchMember = (String, Vec<Command>, Script, Option<Effect>, ScopeTag);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -193,19 +193,19 @@ pub struct ScanState {
     pub generation: u64,
     pub ticks: u64,
     pub tree: crate::sim::fs::ScanNode,
-    /// Every path in reveal order.
+
     pub order: Vec<String>,
-    /// Pre-scan mtimes for the cache freshness snapshot.
+
     pub snapshot: Vec<(String, i64)>,
     pub cancelled: bool,
     pub include_hidden: bool,
-    /// Bounded producer queue: events delivered per tick.
+
     pub batch: usize,
     pub revealed_at_cancel: usize,
 }
 
 impl ScanState {
-    /// Paths revealed by `tick`.
+
     pub fn revealed(&self, tick: u64) -> usize {
         if self.cancelled {
             return self.revealed_at_cancel.min(self.order.len());
@@ -234,7 +234,7 @@ impl ScanState {
     }
 }
 
-/// Persisted stores as the next launch would read them.
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Persisted {
     pub trust: Option<String>,
@@ -283,7 +283,7 @@ impl World {
         self.sources_done() < self.sources.len()
     }
 
-    /// Names of the sources still loading, in order.
+
     pub fn pending_sources(&self) -> Vec<&str> {
         self.sources
             .iter()
@@ -334,8 +334,8 @@ impl World {
         self.activities.iter().filter(|a| a.state.live()).count()
     }
 
-    /// The simulated script for a named key, else for the exact argv, else
-    /// the truthful unmodeled failure. Nothing generically succeeds.
+
+
     pub fn script_for(&self, key: Option<&str>, argv: &[Command]) -> Script {
         if let Some(k) = key
             && let Some(s) = self.scripts.get(k)
@@ -347,8 +347,8 @@ impl World {
             .map(|c| c.display())
             .collect::<Vec<_>>()
             .join(" && ");
-        // a fixture may model one exact command line (a project script the
-        // outcomes table knows nothing about) by its display form
+
+
         if let Some(s) = self.scripts.get(&display) {
             return s.clone();
         }
@@ -358,8 +358,8 @@ impl World {
         Script::unmodeled(&display)
     }
 
-    /// Start an activity from an explicit specification: the exact argv,
-    /// its simulated script and its effect. Returns its id.
+
+
     pub fn start_activity(
         &mut self,
         argv: Vec<Command>,
@@ -383,7 +383,7 @@ impl World {
         id
     }
 
-    /// Start an activity by script key (fixtures and handoffs).
+
     pub fn start_scripted(
         &mut self,
         script_key: &str,
@@ -396,8 +396,8 @@ impl World {
         self.start_activity(vec![], script, name, origin, kind, scope)
     }
 
-    /// Start several activities as one batch. Sequential members queue
-    /// behind their predecessor; parallel members all start now.
+
+
     #[allow(clippy::too_many_arguments)]
     pub fn start_batch(
         &mut self,
@@ -447,8 +447,8 @@ impl World {
         ids
     }
 
-    /// Stop every live activity (the quit path). Returns how many were
-    /// asked to stop.
+
+
     pub fn stop_all(&mut self) -> usize {
         let tick = self.tick;
         let mut n = 0;
@@ -461,7 +461,7 @@ impl World {
         n
     }
 
-    /// Activities still being torn down.
+
     pub fn cancelling(&self) -> usize {
         self.activities
             .iter()
@@ -469,7 +469,7 @@ impl World {
             .count()
     }
 
-    /// Record a use in memory (path-scoped and host-scoped).
+
     pub fn record_use(&mut self, item: &str) {
         let cwd = self.location.cwd.clone();
         let host = self.host.name.clone();
@@ -478,7 +478,7 @@ impl World {
         self.memory.used(item, None, &host, now);
     }
 
-    /// Advance one tick. Returns the messages produced.
+
     pub fn tick(&mut self) -> Vec<Msg> {
         self.clock.advance(TICK_MS);
         if !self.clock.running {
@@ -501,8 +501,8 @@ impl World {
         }
         let tick = self.tick;
         let mut effects = vec![];
-        // queued members start once their predecessor has settled, whatever
-        // the result: a failure never short-circuits later batch members
+
+
         let ready: Vec<String> = self
             .activities
             .iter()
@@ -559,7 +559,7 @@ impl World {
         if self.plans[pi].phase != PlanPhase::Running {
             return msgs;
         }
-        // finish running steps whose duration elapsed; stream their output
+
         for si in 0..self.plans[pi].steps.len() {
             let (running, started, duration, fails) = {
                 let s = &self.plans[pi].steps[si];
@@ -604,7 +604,7 @@ impl World {
             }
         }
         self.plans[pi].recompute();
-        // start ready steps within the parallel budget and exclusive locks
+
         loop {
             let plan = &self.plans[pi];
             let running = plan.running();
@@ -639,14 +639,14 @@ impl World {
         msgs
     }
 
-    /// The PID blocking other sessions, when one is.
+
     pub fn pg_blocker(&self) -> Option<u32> {
         self.pg
             .as_ref()
             .and_then(|pg| pg.sessions.iter().find_map(|s| s.blocked_by))
     }
 
-    /// Land a finished activity's effect in the world.
+
     pub fn apply_effect(&mut self, e: &Effect) {
         match e {
             Effect::DockerRestart(name) => {
@@ -697,7 +697,7 @@ impl World {
                 }
             }
             Effect::CargoClean(target) => {
-                // the effect names the resolved target directory itself
+
                 let target = target.clone();
                 let _ = self.fs.remove_permanent(&target);
                 if self.cargo.target.as_deref() == Some(target.as_str()) {
@@ -729,7 +729,7 @@ impl World {
                 self.docker.networks = 0;
             }
             Effect::DockerVolumePrune => {
-                // only volumes no container references are removed
+
                 self.docker.volumes.retain(|v| v.used_by.is_some());
                 self.docker.reclaimable_gb =
                     self.docker.images_gb + self.docker.volumes_gb() + self.docker.builder_cache_gb;
@@ -779,7 +779,7 @@ impl World {
             Effect::GitPullMerge(path) => {
                 if let Some(g) = self.git.iter_mut().find(|g| &g.path == path) {
                     if g.behind > 0 && g.ahead > 0 && g.pull_config != "rebase" {
-                        // a merge commit lands on top of the local commits
+
                         g.ahead += 1;
                     }
                     g.behind = 0;
@@ -810,7 +810,7 @@ impl World {
                 }
             }
             Effect::GitFetch(_) => {
-                // remote-tracking refs are already what the fixture reports
+
             }
             Effect::GitSwitch(path, branch) => {
                 if let Some(g) = self.git.iter_mut().find(|g| &g.path == path) {
@@ -863,8 +863,8 @@ impl World {
                 }
             }
             Effect::AmpUpdate | Effect::OmzUpgrade => {
-                // the tools report themselves current; nothing else in the
-                // world depends on their version
+
+
             }
             Effect::GradleStop => {
                 self.gradle.daemon_running = false;
@@ -912,7 +912,7 @@ impl World {
         }
     }
 
-    /// Remove a cleanup candidate that was reclaimed and record it.
+
     fn remove_candidate(&mut self, path: &str, method: &str) {
         let Some(i) = self.disk.candidates.iter().position(|c| c.path == path) else {
             return;
@@ -930,8 +930,8 @@ impl World {
         });
     }
 
-    /// Land a finished plan's effects: only the steps that succeeded change
-    /// anything, so a partial run leaves a truthful partial world.
+
+
     fn apply_plan_effects(&mut self, pi: usize) {
         let plan = self.plans[pi].clone();
         let ok = |id: &str| {
@@ -1047,8 +1047,8 @@ impl World {
         }
     }
 
-    /// Start (or restart) a scan of `path`: the previous generation is
-    /// dropped, cache-valid nodes remain hints until live sizes arrive.
+
+
     pub fn start_scan(&mut self, path: &str) {
         let generation = self.scan.as_ref().map(|s| s.generation + 1).unwrap_or(1);
         let include_hidden = true;
@@ -1097,7 +1097,7 @@ impl World {
         self.scan_started = Some(self.tick);
     }
 
-    /// Cancel the running scan: the partial tree is retained and labelled.
+
     pub fn cancel_scan(&mut self) -> bool {
         let tick = self.tick;
         match self.scan.as_mut() {
@@ -1110,8 +1110,8 @@ impl World {
         }
     }
 
-    /// A finished scan records the size cache (root plus depth two) and
-    /// persists it; changed paths since the pre-scan snapshot are omitted.
+
+
     pub fn finish_scan_cache(&mut self) {
         let Some(s) = self.scan.clone() else {
             return;
@@ -1129,7 +1129,7 @@ impl World {
         }
     }
 
-    /// The catalogue for this world.
+
     pub fn items(&self) -> Vec<Item> {
         crate::domain::catalog::build(self)
     }

@@ -1,10 +1,10 @@
-//! A breadcrumb trail (`Disk › Usage › Top files`): where a page sits in
-//! a stack of pages, with every earlier level clickable to go back to it
-//! (the macOS Finder path bar and Xcode jump bar; WAI-ARIA breadcrumb
-//! pattern: links to the ancestors, the current page last and not a link).
-//!
-//! The trail is pointer navigation for a stack the keyboard already walks
-//! with Esc; it takes no Tab stop of its own.
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -18,13 +18,13 @@ use crate::ui::text::{truncate, truncate_middle, width};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Breadcrumb {
     pub id: WidgetId,
-    /// One label per level, outermost first; the last is the current page.
+
     pub segments: Vec<String>,
-    /// The earlier levels are clickable and go back to that level. Default
-    /// on; off draws the same trail as plain text.
+
+
     pub clickable: bool,
-    /// Where each segment was drawn by the last render (`Rect::ZERO` for a
-    /// level collapsed into the leading `…`).
+
+
     pub areas: Vec<Rect>,
 }
 
@@ -38,13 +38,13 @@ impl Breadcrumb {
         }
     }
 
-    /// See [`Self::clickable`].
+
     pub fn clickable(mut self, on: bool) -> Self {
         self.clickable = on;
         self
     }
 
-    /// The hit id of level `i`.
+
     pub fn segment_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::segment_part(i))
     }
@@ -53,8 +53,8 @@ impl Breadcrumb {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// A completed click: the level it goes back to (0 is the outermost),
-    /// or `None` when `id` is not one of the trail's links.
+
+
     pub fn on_click(&self, id: WidgetId) -> Option<usize> {
         if !self.clickable {
             return None;
@@ -63,12 +63,12 @@ impl Breadcrumb {
         self.id.item_of(id, Part::ROW, 0..last)
     }
 
-    /// Draw the trail on one row of `area`, left-aligned on `bg`. When it
-    /// is too wide, the outermost levels collapse into a leading `…` and
-    /// the current page keeps the room it needs; a current page wider than
-    /// the row is cut in the middle, so its start and its end (a file's
-    /// extension, a version) both stay readable, as the macOS path bar cuts
-    /// a long name.
+
+
+
+
+
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         self.areas = vec![Rect::ZERO; self.segments.len()];
@@ -81,7 +81,7 @@ impl Breadcrumb {
         let ell = t.glyphs.ellipsis;
         let n = self.segments.len();
         let seg_w = |s: &String| width(s) as u16;
-        // the first level shown: drop outer levels until the trail fits
+
         let total = |from: usize| -> u16 {
             let lead = if from > 0 {
                 width(ell) as u16 + sep_w
@@ -128,7 +128,7 @@ impl Breadcrumb {
             let current = i + 1 == n;
             let label = self.segments[i].clone();
             if current {
-                // the current page: neutral, never the focus accent
+
                 let st = t.title().bg(bg);
                 self.areas[i] = put(buf, &mut x, &label, st, true);
             } else if self.clickable {
@@ -149,9 +149,9 @@ impl Breadcrumb {
     }
 }
 
-/// The whole trail on one row: every level and separator, nothing
-/// collapsed into `…` and no label cut. A container that lays the trail
-/// out at this width shows all of it (a narrower row still collapses).
+
+
+
 impl crate::ui::measure::Measure for Breadcrumb {
     fn measure(&self, _avail: ratatui::layout::Size, ctx: &RenderCtx) -> ratatui::layout::Size {
         if self.segments.is_empty() {
@@ -164,11 +164,11 @@ impl crate::ui::measure::Measure for Breadcrumb {
     }
 }
 
-/// A trail drawn alone, in a forced state, for a States grid
-/// ([`crate::ui::specimen`]): hover and press land on the first link (where
-/// the pointer would be), overflow is a deeper trail than its cell holds
-/// (the outer levels collapse into `…`), narrow the trail in the narrow
-/// slot.
+
+
+
+
+
 impl crate::ui::specimen::Specimen for Breadcrumb {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -199,7 +199,7 @@ impl crate::ui::specimen::Specimen for Breadcrumb {
                 b.segments.insert(at + k, (*s).to_owned());
             }
         }
-        // the pointer rests on the first link, not on the trail
+
         let first = b.segment_id(0);
         match state {
             Hover => ctx.interaction.hover = Some(first),
@@ -214,8 +214,8 @@ impl crate::ui::specimen::Specimen for Breadcrumb {
     }
 }
 
-/// The trail's pointer gesture: a completed click on a link goes back to
-/// its level (the action, 0 the outermost; [`Breadcrumb::on_click`]).
+
+
 impl crate::core::pointer::MouseTarget for Breadcrumb {
     type Action = usize;
 
@@ -283,7 +283,7 @@ mod tests {
             "{shown}"
         );
         assert!(!shown.contains('…'), "{shown}");
-        // one cell less collapses or cuts
+
         let (buf, _) = draw(&mut trail(), size.width - 1, None);
         assert!(text(&buf).contains('…'));
     }

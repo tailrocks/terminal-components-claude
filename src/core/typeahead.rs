@@ -1,24 +1,24 @@
-//! Type-ahead: typing a prefix jumps to the matching row, as in macOS
-//! lists, outline views, popup buttons and menus.
-//!
-//! Keys arrive without a timestamp, so the buffer keeps its own clock
-//! (`std::time::Instant`); a pause longer than [`TypeAhead::timeout`]
-//! starts a new prefix. The default, 1 s, sits in the 500–1000 ms range
-//! APG recommends; widgets take another through their
-//! `type_ahead_timeout(..)` builders. The cursor side (what a match moves
-//! to, what a miss does) is [`crate::core::list::Cursor::type_ahead`].
+
+
+
+
+
+
+
+
+
 
 use std::time::{Duration, Instant};
 
 use crate::core::event::Key;
 use ratatui::crossterm::event::KeyCode;
 
-/// A typed prefix that resets after a pause.
+
 #[derive(Debug, Clone)]
 pub struct TypeAhead {
     buf: String,
     last: Option<Instant>,
-    /// Pause after which the next letter starts a new prefix. Default 1 s.
+
     pub timeout: Duration,
 }
 
@@ -33,10 +33,10 @@ impl Default for TypeAhead {
 }
 
 impl TypeAhead {
-    /// The pause that starts a new prefix unless a widget sets another.
+
     pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(1000);
 
-    /// A buffer that starts a new prefix after `timeout`.
+
     pub fn with_timeout(timeout: Duration) -> Self {
         Self {
             timeout,
@@ -44,11 +44,11 @@ impl TypeAhead {
         }
     }
 
-    /// The character `key` types into a prefix: a letter or digit (any
-    /// script) with no Ctrl, Alt or Cmd (Shift is part of the letter).
-    /// Punctuation and space are not type-ahead, so `?`, `/`, `*` or Space
-    /// keep their meaning (help, find, expand, activate) while a list has
-    /// focus.
+
+
+
+
+
     pub fn char_of(key: &Key) -> Option<char> {
         match key.code {
             KeyCode::Char(c) if !key.chord() && c.is_alphanumeric() => Some(c),
@@ -56,12 +56,12 @@ impl TypeAhead {
         }
     }
 
-    /// Add `c` to the prefix (starting over after a pause) and return it.
+
     pub fn feed(&mut self, c: char) -> &str {
         self.feed_at(c, Instant::now())
     }
 
-    /// [`Self::feed`] at `now` (tests drive the clock).
+
     pub fn feed_at(&mut self, c: char, now: Instant) -> &str {
         if self
             .last
@@ -74,15 +74,15 @@ impl TypeAhead {
         &self.buf
     }
 
-    /// Forget the prefix.
+
     pub fn reset(&mut self) {
         self.buf.clear();
         self.last = None;
     }
 
-    /// The first row at or after `from` (wrapping) whose label starts with
-    /// `prefix`, case-insensitively, skipping rows `eligible` rejects. A
-    /// single repeated letter cycles through the rows starting with it.
+
+
+
     pub fn find<'a>(
         prefix: &str,
         labels: impl ExactSizeIterator<Item = &'a str> + Clone,
@@ -97,7 +97,7 @@ impl TypeAhead {
         let first = chars.next()?;
         let repeated = chars.all(|c| c == first);
         let (needle, start) = if repeated && prefix.chars().count() > 1 {
-            // "ooo": cycle among rows starting with "o", after the current
+
             (first.to_string(), from + 1)
         } else {
             (prefix.to_owned(), from)

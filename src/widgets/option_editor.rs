@@ -1,25 +1,25 @@
-//! Constrained cell editors: table and grid columns whose value comes from
-//! a fixed set of options.
-//!
-//! A column carries a [`ColumnEditor`]; the table opens a [`ChoiceEditor`]
-//! on the cell (Enter, F2, Space, a click on the current cell or on its
-//! `▾`). The editor is an overlay anchored to the cell through
-//! [`place_with`] (it flips above at the bottom of the screen and follows
-//! horizontal scrolling because the anchor is the cell as drawn this
-//! frame), its cursor row is a fill ([`CursorStyle::Fill`]) so the table
-//! keeps the only focus bar, and the value it commits goes through the
-//! table's own edit pipeline (validator, sort, events). Behaviour is
-//! configured once per table in [`EditorConfig`]; the defaults follow
-//! macOS popup buttons and menus.
-//!
-//! | Editor | Opens | Commits |
-//! | --- | --- | --- |
-//! | [`ColumnEditor::Select`] | a list | Enter, Space, click |
-//! | [`ColumnEditor::Combo`] | a search line over a filtered list | Enter, click |
-//! | [`ColumnEditor::Radio`] | a list of radio rows with descriptions | Enter, Space, click |
-//! | [`ColumnEditor::Checkbox`] | nothing: two values flip in place | at once |
-//! | [`ColumnEditor::Segmented`] | a one-row strip of segments | Enter, Space, click |
-//! | [`ColumnEditor::Tags`] | a checklist (several values) | Space toggles, Enter commits |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -40,19 +40,19 @@ use crate::ui::text::{truncate, width};
 use crate::widgets::edit::EditField;
 use crate::widgets::option_list::{OptionList, WheelMode};
 
-/// One allowed value of a constrained column.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OptionItem {
-    /// What the cell stores (and what a validator sees).
+
     pub value: String,
-    /// What the cell and the popup show. Defaults to the value.
+
     pub label: String,
-    /// Colour of the value in the cell (a status pill per value).
+
     pub tone: Option<Tone>,
-    /// A muted line beside the label in the popup.
+
     pub description: Option<String>,
-    /// `Some(reason)`: shown but never chosen; the reason replaces the
-    /// description.
+
+
     pub disabled: Option<String>,
 }
 
@@ -87,7 +87,7 @@ impl OptionItem {
     }
 }
 
-/// The allowed values of a constrained column, in display order.
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Options(pub Vec<OptionItem>);
 
@@ -95,7 +95,7 @@ impl Options {
     pub fn new(items: impl IntoIterator<Item = OptionItem>) -> Self {
         Self(items.into_iter().collect())
     }
-    /// Plain values that are their own labels.
+
     pub fn values(values: &[&str]) -> Self {
         Self(values.iter().map(|v| OptionItem::new(v)).collect())
     }
@@ -108,38 +108,38 @@ impl Options {
     pub fn get(&self, i: usize) -> Option<&OptionItem> {
         self.0.get(i)
     }
-    /// Index of the option storing `value`.
+
     pub fn find(&self, value: &str) -> Option<usize> {
         self.0.iter().position(|o| o.value == value)
     }
 }
 
-/// How a column's cells are edited.
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ColumnEditor {
-    /// Free text in place (the long-standing editor).
+
     #[default]
     Text,
-    /// Pick one from a list anchored to the cell (macOS popup button).
+
     Select(Options),
-    /// Pick one from a list filtered by typing (a searchable combo box).
-    /// Only listed values are accepted.
+
+
     Combo(Options),
-    /// Pick one from radio rows that can carry descriptions.
+
     Radio(Options),
-    /// Two values (`[off, on]`, a boolean) shown as a checkbox that flips
-    /// in place: a checkbox, not a switch (switches apply settings at once;
-    /// a cell is data).
+
+
+
     Checkbox(Options),
-    /// Pick one of a few short values on a one-row segmented strip.
+
     Segmented(Options),
-    /// Pick any number of values; the cell stores them joined by
-    /// [`EditorConfig::tag_separator`].
+
+
     Tags(Options),
 }
 
 impl ColumnEditor {
-    /// The options of a constrained editor; `None` for [`Self::Text`].
+
     pub fn options(&self) -> Option<&Options> {
         match self {
             Self::Text => None,
@@ -152,20 +152,20 @@ impl ColumnEditor {
         }
     }
 
-    /// The editor takes values from a fixed set.
+
     pub fn is_constrained(&self) -> bool {
         self.options().is_some()
     }
 
-    /// The editor opens a popup (every constrained editor but Checkbox).
+
     pub fn has_popup(&self) -> bool {
         self.is_constrained() && !matches!(self, Self::Checkbox(_))
     }
 
-    /// The editor the option-count ladder picks: 2 values a checkbox, 3–5
-    /// a segmented strip, 6–15 a dropdown, more a searchable combo box.
-    /// Radio (values with descriptions) and Tags (several values) are
-    /// chosen explicitly.
+
+
+
+
     pub fn for_options(options: Options) -> Self {
         match options.len() {
             0..=2 => Self::Checkbox(options),
@@ -175,8 +175,8 @@ impl ColumnEditor {
         }
     }
 
-    /// A Checkbox cell's state: `Some(true)` for its second (on) value,
-    /// `Some(false)` for the first, `None` for anything else.
+
+
     pub fn checked(&self, raw: &str) -> Option<bool> {
         let Self::Checkbox(opts) = self else {
             return None;
@@ -199,8 +199,8 @@ impl ColumnEditor {
         }
     }
 
-    /// What a cell storing `raw` shows: option labels (joined for Tags);
-    /// an unknown value as stored.
+
+
     pub fn display(&self, raw: &str, cfg: &EditorConfig) -> String {
         let Some(opts) = self.options() else {
             return raw.to_owned();
@@ -213,8 +213,8 @@ impl ColumnEditor {
         labels.join(cfg.tag_separator)
     }
 
-    /// `raw` holds a value outside the options (imported data). An empty
-    /// cell is never out of set.
+
+
     pub fn out_of_set(&self, raw: &str, cfg: &EditorConfig) -> bool {
         let Some(opts) = self.options() else {
             return false;
@@ -225,7 +225,7 @@ impl ColumnEditor {
         self.parts(raw, cfg).iter().any(|p| opts.find(p).is_none())
     }
 
-    /// The tone of the option `raw` stores (single-value editors).
+
     pub fn tone(&self, raw: &str) -> Option<Tone> {
         let opts = self.options()?;
         if matches!(self, Self::Tags(_)) {
@@ -234,8 +234,8 @@ impl ColumnEditor {
         opts.find(raw).and_then(|i| opts.0[i].tone)
     }
 
-    /// The value a Checkbox flips `raw` to: the other of its two values (an
-    /// unknown value becomes the first enabled one).
+
+
     pub fn toggled(&self, raw: &str) -> Option<String> {
         let Self::Checkbox(opts) = self else {
             return None;
@@ -251,47 +251,47 @@ impl ColumnEditor {
     }
 }
 
-/// Behaviour shared by every constrained editor of a table or grid.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EditorConfig {
-    /// How an open popup closes without a choice. Default
-    /// [`Dismiss::LIGHT`]: Esc or a click outside cancels.
+
+
     pub dismiss: Dismiss,
-    /// What focus leaving the table does to an open popup. Default
-    /// [`BlurAction::Cancel`]: a macOS popup closes without a choice.
-    /// `Commit` applies the highlighted option (Tags: the checked set).
+
+
+
     pub blur: BlurAction,
-    /// Most option rows a popup shows before it scrolls. Default 8.
+
     pub max_rows: u16,
-    /// Width range of a popup, frame included. Default (14, 48).
+
     pub popup_width: (u16, u16),
-    /// How the popup marks its cursor row. Default [`CursorStyle::Fill`].
+
     pub cursor_style: CursorStyle,
-    /// Typing jumps to the option whose label starts with the typed
-    /// prefix (Select, Radio, Tags, Segmented). Default on.
+
+
     pub type_ahead: bool,
-    /// The pause after which the next letter starts a new type-ahead
-    /// prefix. Default [`crate::core::typeahead::TypeAhead::DEFAULT_TIMEOUT`].
+
+
     pub type_ahead_timeout: std::time::Duration,
-    /// Which keys move the popup's cursor (default [`NavKeys::default`],
-    /// the installed [`crate::core::list::NavProfile`]'s). A Combo types
-    /// its letters, so only named keys navigate it.
+
+
+
     pub nav: NavKeys,
-    /// Where editable popup cells show their trailing `▾`. Default
-    /// [`Affordance::Focused`].
+
+
     pub affordance: Affordance,
-    /// A value outside the options is drawn in the error tone with `!`.
-    /// Default on.
+
+
     pub flag_out_of_set: bool,
-    /// Between Tags values in the stored text and the cell. Default `", "`.
+
     pub tag_separator: &'static str,
-    /// Where the popup goes relative to the cell. Default
-    /// [`Placement::Below`] (flips above when there is no room).
+
+
     pub placement: Placement,
-    /// What the wheel does over an open popup list. Default
-    /// [`WheelMode::Viewport`]: it scrolls the list and the cursor stays
-    /// (plan §3 "Wheel in popup lists", as every popup list);
-    /// [`WheelMode::Cursor`] moves the cursor.
+
+
+
+
     pub wheel: WheelMode,
 }
 
@@ -315,27 +315,27 @@ impl Default for EditorConfig {
     }
 }
 
-/// Which editable option cells show the `▾` that opens their editor.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Affordance {
-    /// The focused cursor cell and the hovered cell only: the table stays
-    /// quiet until a cell is the one being worked on.
+
+
     #[default]
     Focused,
-    /// Every editable option cell.
+
     Always,
-    /// None (the keyboard and a second click still open the editor).
+
     Never,
 }
 
-/// What a key or a click did to an open [`ChoiceEditor`].
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChoiceResult {
-    /// Store this value.
+
     Commit(String),
-    /// Close without a change.
+
     Cancel,
-    /// Store this value and move to the next (or previous) editable cell.
+
     CommitAndTab { value: String, backward: bool },
 }
 
@@ -348,40 +348,40 @@ enum Kind {
     Tags,
 }
 
-/// An open constrained editor: the popup over one cell.
+
 #[derive(Debug, Clone)]
 pub struct ChoiceEditor {
-    /// The popup's id: options are its children, a click outside is
-    /// [`backdrop_id`] of it.
+
+
     pub id: WidgetId,
     kind: Kind,
     pub options: Options,
-    /// Option index under the cursor.
+
     pub cursor: usize,
-    /// The option the cell held when the editor opened (`None`: empty or
-    /// out of set).
+
+
     pub current: Option<usize>,
-    /// Tags: the checked options.
-    /// Tags: the checked options (a checklist: a click or Space toggles
-    /// one, [`RowSelection::apply`] with [`SelectGesture::Toggle`]).
+
+
+
     pub selection: RowSelection,
-    /// Combo: the search field (the shared [`EditField`]: caret, Select
-    /// All, the clipboard keys and undo, as in every text field).
+
+
     pub query: EditField,
-    /// A validator rejected the last commit; the popup stays open.
+
     pub error: Option<String>,
-    /// The popup list's body: its scroll pane (the view over the shown
-    /// options), [`WheelMode`] and popup policy (dismiss, placement,
-    /// width, rows), taken from the table's [`EditorConfig`] when it
-    /// opens. The cursor stays [`Self::cursor`], an option index: a Combo
-    /// filters the rows it shows.
+
+
+
+
+
     pub list: OptionList,
     typeahead: crate::core::typeahead::TypeAhead,
 }
 
 impl ChoiceEditor {
-    /// Open `editor` on a cell holding `raw`; `None` for editors without a
-    /// popup (Text, Checkbox).
+
+
     pub fn open(
         id: WidgetId,
         editor: &ColumnEditor,
@@ -430,7 +430,7 @@ impl ChoiceEditor {
         })
     }
 
-    /// The popup list body for `cfg`.
+
     fn list(id: WidgetId, cfg: &EditorConfig) -> OptionList {
         let mut list = OptionList::new(id)
             .dismiss(cfg.dismiss)
@@ -441,7 +441,7 @@ impl ChoiceEditor {
             .nav(cfg.nav)
             .type_ahead(cfg.type_ahead)
             .wheel_mode(cfg.wheel);
-        // a moved cursor comes in exactly, as the popup always did
+
         list.scroll.v.context = 0;
         list.scroll.v.viewport_len = cfg.max_rows as usize;
         list
@@ -455,21 +455,21 @@ impl ChoiceEditor {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// The option index a widget id names (the inverse [`Self::on_click`]
-    /// needs until S15 hands it the routed part).
+
+
     fn option_of(&self, id: WidgetId) -> Option<usize> {
         self.id.item_of(id, Part::ROW, 0..self.options.len())
     }
 
-    /// Whether `id` is the popup, its backdrop or an option: how the
-    /// table's and grid's id-taking methods (S15) send a click to their
-    /// open editor.
+
+
+
     pub(crate) fn contains_id(&self, id: WidgetId) -> bool {
         id == self.id || id == backdrop_id(self.id) || self.option_of(id).is_some()
     }
 
-    /// The options the popup lists, in order (Combo: those matching the
-    /// query).
+
+
     pub fn shown(&self) -> Vec<usize> {
         let q = self.query.text().trim().to_lowercase();
         (0..self.options.len())
@@ -485,7 +485,7 @@ impl ChoiceEditor {
         self.options.get(i).is_some_and(|o| !o.is_disabled())
     }
 
-    /// The options the popup shows now, as rows for the [`Cursor`].
+
     fn shown_rows(&self) -> Shown<'_> {
         Shown {
             ed: self,
@@ -493,9 +493,9 @@ impl ChoiceEditor {
         }
     }
 
-    /// The value Enter commits now: the cursor option (Tags: the checked
-    /// set in option order). `None` when nothing enabled is under the
-    /// cursor.
+
+
+
     fn value(&self, cfg: &EditorConfig) -> Option<String> {
         if self.kind == Kind::Tags {
             return Some(
@@ -512,7 +512,7 @@ impl ChoiceEditor {
         Some(self.options.0[self.cursor].value.clone())
     }
 
-    /// The commit a blur makes under [`EditorConfig::blur`].
+
     pub fn blur_value(&self, cfg: &EditorConfig) -> Option<String> {
         self.value(cfg)
     }
@@ -526,9 +526,9 @@ impl ChoiceEditor {
     }
 
     pub fn on_key(&mut self, key: &Key, cfg: &EditorConfig) -> (Outcome, Option<ChoiceResult>) {
-        // a Combo's search line edits like every text field: typing, the
-        // caret keys, Select All, the clipboard keys and undo; Enter, Esc,
-        // Tab and the list keys (↑↓, paging) stay with the popup
+
+
+
         if self.kind == Kind::Combo {
             use crate::widgets::field_common::EditAction;
             let action = self.query.action(key);
@@ -543,7 +543,7 @@ impl ChoiceEditor {
             }
         }
         if unassigned_chord::<()>(key, &[]) {
-            // the popup is modal: a chord reaches nothing under it
+
             return (Outcome::Consumed, None);
         }
         let combo = self.kind == Kind::Combo;
@@ -584,7 +584,7 @@ impl ChoiceEditor {
         let mut ta = std::mem::take(&mut self.typeahead);
         let shown = self.shown_rows();
         let at = shown.rows.iter().position(|&i| i == self.cursor);
-        // a Segmented control is a row: ↑/← go back, ↓/→ go on
+
         let axis = if self.kind == Kind::Segmented {
             Axis::Horizontal
         } else {
@@ -600,7 +600,7 @@ impl ChoiceEditor {
                     n => n,
                 };
                 match (at, nav) {
-                    // the cursor is filtered out: any step starts at the top
+
                     (None, Nav::Up | Nav::Down | Nav::Left | Nav::Right) => cursor.first(&shown),
                     _ => cursor.apply(nav, &shown, self.list.scroll.viewport_len),
                 }
@@ -619,7 +619,7 @@ impl ChoiceEditor {
         }
     }
 
-    /// The query changed: the cursor goes to the first enabled match.
+
     fn after_query(&mut self) {
         self.error = None;
         if let Some(&i) = self.shown().iter().find(|&&i| self.enabled(i)) {
@@ -628,7 +628,7 @@ impl ChoiceEditor {
         self.list.scroll.offset = 0;
     }
 
-    /// Text pasted while open: the Combo search takes it.
+
     pub fn on_paste(&mut self, text: &str) -> Outcome {
         if self.kind != Kind::Combo {
             return Outcome::Consumed;
@@ -639,7 +639,7 @@ impl ChoiceEditor {
         Outcome::Changed
     }
 
-    /// A click on the popup, an option, or outside it (the backdrop).
+
     pub fn on_click(&mut self, id: WidgetId) -> (Outcome, Option<ChoiceResult>) {
         if id == backdrop_id(self.id) {
             return if self.list.dismiss.outside_click {
@@ -665,7 +665,7 @@ impl ChoiceEditor {
         )
     }
 
-    /// Step the cursor `delta` enabled options through the shown ones.
+
     fn step(&mut self, delta: isize) {
         let shown = self.shown_rows();
         let at = shown.rows.iter().position(|&i| i == self.cursor);
@@ -684,11 +684,11 @@ impl ChoiceEditor {
         }
     }
 
-    /// The wheel over the open popup: under [`WheelMode::Cursor`] a
-    /// vertical notch steps the cursor through the shown options; under
-    /// [`WheelMode::Viewport`] it scrolls the list ([`OptionList`] as
-    /// [`Scrollable`](crate::core::scroll::Scrollable)). A sideways notch
-    /// is consumed: the table under the popup does not move.
+
+
+
+
+
     pub fn wheel(&mut self, axis: Axis, delta: i32) -> crate::core::response::Response<()> {
         use crate::core::response::Response;
         use crate::core::scroll::Scrollable;
@@ -707,8 +707,8 @@ impl ChoiceEditor {
         }
     }
 
-    /// Queue the popup as an overlay anchored to `cell` (the cell as drawn
-    /// this frame).
+
+
     pub fn render(&mut self, cell: Rect, buf: &Buffer, ctx: &mut RenderCtx, cfg: &EditorConfig) {
         if self.kind == Kind::Segmented {
             self.render_strip(cell, buf, ctx, cfg);
@@ -717,7 +717,7 @@ impl ChoiceEditor {
         }
     }
 
-    /// Prefix cells before a label: the current mark, a radio or a box.
+
     fn prefix(&self) -> u16 {
         match self.kind {
             Kind::Radio | Kind::Tags => 6,
@@ -744,7 +744,7 @@ impl ChoiceEditor {
             })
             .max()
             .unwrap_or(0) as u16
-            // frame, gutter and a free cell on each side of a note
+
             + self.prefix()
             + 7;
         let (min_w, max_w) = cfg.popup_width;
@@ -759,14 +759,14 @@ impl ChoiceEditor {
         );
         let visible = pa.height.saturating_sub(2 + search).max(1) as usize;
         let at = shown.iter().position(|&i| i == self.cursor).unwrap_or(0);
-        // a cursor that moved comes into view; a list the wheel scrolled
-        // stays where it was left
+
+
         self.list.scroll.set_content(shown.len());
         self.list.scroll.set_viewport(visible);
         self.list.scroll.follow(at);
         if search > 0 {
-            // the query line as the overlay will draw it, so a press can
-            // place the caret (the MouseTarget)
+
+
             let inner = pa
                 .intersection(screen)
                 .inner(ratatui::layout::Margin::new(1, 1));
@@ -801,7 +801,7 @@ impl ChoiceEditor {
             });
             fill(buf, q, fs);
             buf.set_string(q.x + 1, q.y, "⌕", fs.fg(t.text_muted));
-            // the text and the cell after it, where the caret can sit
+
             let line = Rect::new(q.x + 3, q.y, q.width.saturating_sub(3), 1);
             let caret = if self.query.text().is_empty() {
                 buf.set_string(
@@ -812,14 +812,14 @@ impl ChoiceEditor {
                 );
                 line.as_position()
             } else {
-                // the popup draws from an overlay snapshot: the line scrolls by
-                // the caret each frame
+
+
                 self.query
                     .clone()
                     .draw_line(buf, line, &Self::query_look(t))
             };
             ctx.set_cursor(caret);
-            // the line takes the text gestures (the MouseTarget)
+
             ctx.register_part(self.id, PartRef::of(Part::QUERY), line);
         }
         let list = Rect::new(
@@ -886,7 +886,7 @@ impl ChoiceEditor {
                 }
                 _ => {
                     if self.current == Some(i) {
-                        // the value the cell holds is a fact: neutral
+
                         buf.set_string(x, y, t.glyphs.current, st.fg(ink));
                     }
                     x += 2;
@@ -935,7 +935,7 @@ impl ChoiceEditor {
         }
     }
 
-    /// How the Combo's query line draws.
+
     fn query_look(t: &crate::theme::Theme) -> crate::widgets::edit::LineLook {
         let fs = t.field_style(crate::ui::ctx::VisualState {
             editing: true,
@@ -1023,13 +1023,13 @@ impl ChoiceEditor {
     }
 }
 
-/// The popup's pointer gestures (CO7): the wheel per [`WheelMode`]
-/// ([`ChoiceEditor::wheel`]); the Combo's query line takes the text
-/// gestures (press, drag, double and triple click, S11); a completed
-/// click on an option chooses it (Tags: toggles it), on the backdrop
-/// cancels under the popup's dismiss policy ([`ChoiceEditor::on_click`]);
-/// any other press, drag or secondary press on the popup is consumed (it
-/// is modal over its table).
+
+
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for ChoiceEditor {
     type Action = ChoiceResult;
 
@@ -1044,7 +1044,7 @@ impl crate::core::pointer::MouseTarget for ChoiceEditor {
         use crate::core::intent::Phase;
         use crate::core::response::Response;
         if let Some((axis, delta)) = ev.wheel() {
-            // the wheel outside the popup (its backdrop) moves nothing
+
             if ev.part().part == Part::BACKDROP {
                 return Response::ignored();
             }
@@ -1066,7 +1066,7 @@ impl crate::core::pointer::MouseTarget for ChoiceEditor {
     }
 }
 
-/// The options a [`ChoiceEditor`] shows (a Combo filters them).
+
 struct Shown<'a> {
     ed: &'a ChoiceEditor,
     rows: Vec<usize>,
@@ -1150,8 +1150,8 @@ mod tests {
 
     #[test]
     fn the_popup_moves_with_nav_keys_not_raw_key_codes() {
-        // duplication-widgets P0: the popup matched raw KeyCodes, so vim
-        // keys and NavKeys remaps did nothing there
+
+
         let vim = EditorConfig {
             nav: crate::core::keymap::NavKeys::VIM,
             type_ahead: false,
@@ -1254,10 +1254,10 @@ mod tests {
         assert_eq!(c.on_paste(" "), Outcome::Changed);
     }
 
-    /// S11: the Combo search line is the shared text field: ← moves the
-    /// caret and typing lands there (it always appended), Cmd+A selects
-    /// the query so typing replaces it (Cmd+A was swallowed), Ctrl+Z
-    /// undoes (nothing undid).
+
+
+
+
     #[test]
     fn the_combo_search_edits_at_the_caret_selects_all_and_undoes() {
         use ratatui::crossterm::event::KeyModifiers as M;
@@ -1328,11 +1328,11 @@ mod tests {
         );
     }
 
-    /// The wheel over the open popup goes through its `MouseTarget` and
-    /// the shared popup-list body: [`WheelMode::Cursor`] (the default)
-    /// steps the cursor over enabled options, [`WheelMode::Viewport`]
-    /// scrolls the view and leaves the cursor; a sideways notch is
-    /// consumed.
+
+
+
+
+
     #[test]
     fn the_wheel_over_the_popup_follows_its_wheel_mode() {
         use crate::core::pointer::{MouseTarget, PointerEvent};

@@ -1,4 +1,4 @@
-//! Read-only syntax observations of protected real source copies, not a checker.
+
 use serde_json::{Value, json};
 use std::path::Path;
 use syn::visit::{self, Visit};
@@ -7,8 +7,8 @@ use syn::visit::{self, Visit};
 struct Facts(Vec<Value>);
 impl<'ast> Visit<'ast> for Facts {
     fn visit_item(&mut self, item: &'ast syn::Item) {
-        // Preserve parsed structure rather than a spelling-based verdict.
-        // Function bodies are visited separately to keep the record bounded.
+
+
         match item {
             syn::Item::Fn(value) => self.0.push(json!({"kind":"function", "signature":format!("{:?}",value.sig), "visibility":format!("{:?}",value.vis), "attributes":format!("{:?}",value.attrs)})),
             syn::Item::Const(value) if value.ident == "CHECKS" => self.0.push(json!({"kind":"CHECKS", "expression":format!("{:?}",value.expr)})),

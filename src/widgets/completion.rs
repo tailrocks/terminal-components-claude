@@ -1,7 +1,7 @@
-//! Completion popup: an anchored, non-modal suggestion list. The owner keeps
-//! keyboard focus and forwards keys; the popup only consumes navigation and
-//! accept/dismiss keys. Its body (cursor, scroll, rows, wheel, hover, the
-//! popup policy) is an [`OptionList`]; its rows are [`Item`]s.
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -18,20 +18,20 @@ use crate::ui::popup::{Dismiss, Placement, backdrop_id, place_with, surface_for}
 use crate::ui::text::{truncate, width};
 use crate::widgets::option_list::{Item, OptionList};
 
-/// Columns from the popup's left edge to an item label: the frame, the
-/// cursor gutter, the kind glyph and a space.
+
+
 pub const TEXT_INSET: u16 = 4;
 
 #[derive(Debug, Clone)]
 pub struct Completion {
     pub id: WidgetId,
-    /// The suggestions; accepting one inserts its [`Item::insertion`].
+
     pub items: Vec<Item>,
-    /// The list body: cursor, scroll and bar, wheel, hover and the popup
-    /// policy (rows, width, fit, placement, dismiss, cursor look, keys).
+
+
     pub list: OptionList,
     pub anchor: Rect,
-    /// Bytes before the cursor to replace on accept.
+
     pub replace_len: usize,
     pub area: Rect,
 }
@@ -43,24 +43,24 @@ pub enum CompletionAction {
 }
 
 impl Completion {
-    /// Default [`OptionList::nav`] of a completion: ↑/↓ and paging only,
-    /// since letters, ←/→ and Home/End belong to the editor the list
-    /// completes for. Ctrl+N/Ctrl+P always step.
+
+
+
     pub const NAV: NavKeys = NavKeys::NO_VIM.home_end(false);
 
-    /// Which keys move the list cursor. Default [`Completion::NAV`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.list.nav = nav;
         self
     }
 
-    /// Most rows shown before the list scrolls. Default 8.
+
     pub fn max_rows(mut self, rows: u16) -> Self {
         self.list.max_rows = rows;
         self
     }
 
-    /// Popup width bounds in cells. Default `(24, 48)`.
+
     pub fn popup_width(mut self, min: u16, max: u16) -> Self {
         self.list = self.list.width(min, max);
         self
@@ -69,17 +69,17 @@ impl Completion {
     pub fn new(id: WidgetId) -> Self {
         let list = OptionList::new(id)
             .width(24, 48)
-            // the labels start in the anchor's column, one free cell from
-            // every edge
+
+
             .fit(crate::ui::popup::Place::DEFAULT.text_inset(TEXT_INSET))
-            // Esc, or a click outside that also lands where it was aimed
-            // (placing the caret in the editor underneath)
+
+
             .dismiss(Dismiss::LIGHT.pass_through(true))
             .nav(Self::NAV)
-            // letters are the editor's
+
             .type_ahead(false)
-            // the pointer tints a row and the cursor stays the keyboard's,
-            // as in an editor's suggestion list
+
+
             .hover_moves_cursor(false);
         Self {
             id,
@@ -91,30 +91,30 @@ impl Completion {
         }
     }
 
-    /// Which side of the anchor the list opens on. Default
-    /// [`Placement::Below`] (flipping above when there is no room).
+
+
     pub fn placement(mut self, placement: Placement) -> Self {
         self.list.placement = placement;
         self
     }
 
-    /// How the list keeps off the screen edges and lines up with the typed
-    /// text. Default: one free cell from every edge, and the item labels
-    /// start in the anchor's column ([`TEXT_INSET`]).
+
+
+
     pub fn fit(mut self, fit: crate::ui::popup::Place) -> Self {
         self.list.fit = fit;
         self
     }
 
-    /// How the cursor row is marked. Default [`CursorStyle::Fill`]: the
-    /// editor that owns the list keeps the only focus bar.
+
+
     pub fn cursor_style(mut self, cursor_style: CursorStyle) -> Self {
         self.list.look = cursor_style;
         self
     }
 
-    /// How the list closes without a choice. Default: Esc, or a click
-    /// outside that also lands where it was aimed.
+
+
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.list.dismiss = dismiss;
         self
@@ -139,11 +139,11 @@ impl Completion {
         self.items.get(self.list.cursor.index)
     }
 
-    /// Accept item `i` into `buffer`: the [`Self::replace_len`] bytes typed
-    /// before the cursor (the prefix the popup matched) give way to
-    /// [`Item::insertion`]. An insertion that opens a call (`fetch(`) gets
-    /// its closing `)` with the cursor between the two, as editors pair
-    /// brackets on a function completion. Out of range does nothing.
+
+
+
+
+
     pub fn apply(&self, i: usize, buffer: &mut crate::core::text::TextBuffer) {
         let Some(item) = self.items.get(i) else {
             return;
@@ -170,7 +170,7 @@ impl Completion {
         let moved = match (self.list.nav.action(key), key.code) {
             (Some(Nav::Down | Nav::Up), _) if !up_down => Moved::Ignored,
             (Some(_), _) => self.list.key(key, &self.items[..]),
-            // the editor's emacs keys
+
             (_, KeyCode::Char('n')) if key.ctrl() => self.list.step(1, &self.items[..]),
             (_, KeyCode::Char('p')) if key.ctrl() => self.list.step(-1, &self.items[..]),
             _ => Moved::Ignored,
@@ -237,10 +237,10 @@ impl Completion {
         let inner = area
             .intersection(*buf.area())
             .inner(ratatui::layout::Margin::new(1, 1));
-        // the overlay paints from a copy, so the rows are laid out (and
-        // the bar's track recorded) here
+
+
         self.list.layout(inner, &self.items[..], ctx);
-        // drawn as an overlay: above whatever is rendered after the editor
+
         let me = self.clone();
         ctx.overlay(move |buf, ctx| me.paint(area, buf, ctx));
     }
@@ -267,7 +267,7 @@ impl Completion {
                     })
                     .remove_modifier(Modifier::BOLD),
                 );
-                // label with matched chars bold
+
                 let mut x = row.x + 3;
                 let avail = row.width.saturating_sub(3) as usize;
                 let show_detail =
@@ -305,8 +305,8 @@ impl Completion {
     }
 }
 
-/// The popup's rows as the shared nav table sees them
-/// (`tests/navigable.rs`), forwarded to its items.
+
+
 impl RowSource for Completion {
     fn len(&self) -> usize {
         self.items.len()
@@ -322,19 +322,19 @@ impl RowSource for Completion {
     }
 }
 
-/// The list's cursor.
+
 impl Navigable for Completion {
     fn cursor(&self) -> Cursor {
         self.list.cursor
     }
 }
 
-/// The popup's pointer gestures: the wheel and a bar press scroll its list
-/// (the [`OptionList`]'s
-/// [`Scrollable`](crate::core::scroll::Scrollable); a sideways notch is
-/// consumed so the editor beneath does not move); a completed click on a
-/// row accepts it, on the backdrop dismisses per its dismiss policy
-/// ([`Completion::on_click`]); any other click on it is consumed.
+
+
+
+
+
+
 impl crate::core::pointer::MouseTarget for Completion {
     type Action = CompletionAction;
 
@@ -388,7 +388,7 @@ mod tests {
         assert_eq!(b.cursor_offset(), "let x = fetch(".len());
         let mut b = crate::core::text::TextBuffer::multi("Cli");
         b.move_end(false);
-        // no insert text: the label goes in
+
         let mut c = popup("Client", "", 3);
         c.items[0].insert = None;
         c.apply(0, &mut b);
@@ -463,15 +463,15 @@ mod tests {
             Some(t.accent_bg),
             "green stays reserved for focus"
         );
-        // the in-page look stays available
+
         let mut barred = popup(8).cursor_style(CursorStyle::Bar);
         let buf = draw(&mut barred, 24);
         assert_eq!(bars(&buf), 1);
     }
 
-    /// A wheel notch on a row, routed the way the app routes it: through
-    /// the popup's [`MouseTarget`](crate::core::pointer::MouseTarget) and
-    /// its list's shared wheel.
+
+
+
     fn wheel(c: &mut Completion, delta: i32) -> Outcome {
         use crate::core::pointer::{MouseTarget, PointerEvent};
         let theme = Theme::junie();
@@ -500,13 +500,13 @@ mod tests {
         );
         assert_eq!(wheel(&mut c, -3), Outcome::Changed);
         assert_eq!(wheel(&mut c, -3), Outcome::Consumed);
-        // the other mode moves the cursor, and the view follows it
+
         let mut by_cursor = popup(8);
         by_cursor.list.wheel = crate::widgets::option_list::WheelMode::Cursor;
         assert_eq!(wheel(&mut by_cursor, 9), Outcome::Changed);
         assert_eq!(by_cursor.list.cursor.index, 9);
         assert!(by_cursor.list.scroll.visible_range().contains(&9));
-        // clipped by a short screen: the page is the viewport, not the config
+
         let mut short = popup(8);
         draw(&mut short, 6);
         let view = short.list.scroll.viewport_len;

@@ -1,7 +1,3 @@
-//! Lists & trees (plan §7, SC15), driven through the real app: options
-//! rebuild the widgets through their builders, hints name only keys that
-//! work, lazy nodes load, and the States rows draw.
-
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
@@ -33,8 +29,6 @@ fn single_cursor(h: &Harness) -> usize {
     lists(h).single().cursor
 }
 
-/// K37: the empty "Search results" list is no Tab stop (nothing to move
-/// or select); with `skip_when_empty(false)` it would be.
 #[test]
 fn tab_passes_the_empty_list() {
     let mut h = Harness::new(120, 40, PageId::Lists);
@@ -52,8 +46,6 @@ fn tab_passes_the_empty_list() {
     assert!(!seen.contains(&Some(EMPTY)), "the empty list is skipped");
 }
 
-/// The hinted "Ends" keys really jump, under the desktop keys and under
-/// vim keys (coordinator finding: `g G` was hinted where it did nothing).
 #[test]
 fn list_hints_name_ends_keys_that_work_under_both_profiles() {
     let mut h = Harness::new(120, 40, PageId::Lists);
@@ -66,7 +58,7 @@ fn list_hints_name_ends_keys_that_work_under_both_profiles() {
     assert!(single_cursor(&h) > 10, "End jumps to the last row");
     h.key(KeyCode::Home);
     assert_eq!(single_cursor(&h), 0, "Home jumps to the first row");
-    // vim keys without type-ahead: g and G jump, and the hint says so
+
     h.opt("lists.nav=vim");
     h.opt("lists.type_ahead=off");
     h.app.shell.focus.focus(SINGLE);
@@ -77,7 +69,7 @@ fn list_hints_name_ends_keys_that_work_under_both_profiles() {
     assert!(single_cursor(&h) > 10, "G jumps to the last row");
     h.key(KeyCode::Char('g'));
     assert_eq!(single_cursor(&h), 0, "g jumps to the first row");
-    // vim keys with type-ahead: letters type, so the hint is Home End
+
     h.opt("lists.type_ahead=on");
     let keys = hint_keys(&h);
     assert!(keys.contains("Home End") && !keys.contains("g G"), "{keys}");
@@ -86,8 +78,7 @@ fn list_hints_name_ends_keys_that_work_under_both_profiles() {
 #[test]
 fn list_options_rebuild_the_lists_through_their_builders() {
     let mut h = Harness::new(160, 50, PageId::Lists);
-    // a data list by default (SI14): one click moves the cursor, a double
-    // click chooses
+
     assert!(
         h.text().contains("click Double, check BoxOnly"),
         "{}",
@@ -98,7 +89,7 @@ fn list_options_rebuild_the_lists_through_their_builders() {
     assert!(h.text().contains("Chosen: Rust"), "a click does not choose");
     h.click(x, y);
     assert!(h.text().contains("Chosen: Python"), "a double click does");
-    // a navigation list chooses on one click
+
     h.opt("lists.click=single");
     assert!(h.text().contains("click Single"));
     let (x, y) = h.find("Go").unwrap();
@@ -109,13 +100,13 @@ fn list_options_rebuild_the_lists_through_their_builders() {
     assert!(h.text().contains("toggle platform+click"));
     h.opt("lists.toggle_mods=any");
     assert!(h.text().contains("toggle Ctrl/Alt/Cmd+click"));
-    // a custom key map: t toggles every file
+
     h.opt("lists.keymap=custom");
     assert!(h.text().contains("t ListCmd::ToggleAll"));
     h.app.shell.focus.focus(MULTI);
     h.key(KeyCode::Char('t'));
     assert!(h.text().contains("10 selected"), "{}", h.text());
-    // the empty list: text, or a full empty state with a hint
+
     assert!(!h.text().contains("Try a shorter word"));
     h.opt("lists.empty=state");
     assert!(h.text().contains("Try a shorter word"));
@@ -145,13 +136,11 @@ fn trees(h: &Harness) -> &TreesPage {
         .expect("trees page")
 }
 
-/// A lazy node reports `TreeAction::Expand`, shows busy, and gets its
-/// children from the page a few ticks later.
 #[test]
 fn a_lazy_node_loads_its_children() {
     let mut h = Harness::new(160, 50, PageId::Trees);
     let (x, y) = h.find("orders-db").unwrap();
-    // one click selects the row; a double click opens it (M15, SI14)
+
     h.click(x, y);
     assert!(!h.text().contains("Expand(orders-db)"), "{}", h.text());
     h.click(x, y);

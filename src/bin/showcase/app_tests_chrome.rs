@@ -1,8 +1,3 @@
-//! Chrome and Status & hints (plan §7, SC4), driven through the real app:
-//! the menu bar's options rebuild it through its builders, the identity
-//! strip and status bar show their parts, the hint bar resolves layers and
-//! drops hints by priority.
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -69,7 +64,6 @@ impl Harness {
         s
     }
 
-    /// Where `needle` starts on screen.
     fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         for y in 0..buf.area.height {
@@ -111,7 +105,6 @@ impl Harness {
             .to_vec()
     }
 
-    /// The row holding `needle`, as text.
     fn row_of(&self, needle: &str) -> String {
         let (_, y) = self.find(needle).unwrap_or_else(|| panic!("{needle:?}"));
         let buf = self.term.backend().buffer();
@@ -140,7 +133,7 @@ fn menu_bar_options_rebuild_the_bar_through_its_builders() {
 fn open_on_release_waits_for_the_click() {
     let mut h = Harness::new(160, 50, PageId::Chrome);
     let (x, y) = h.find("File").unwrap();
-    // OpenOn::Press (default): the menu is open while the button is held
+
     h.mouse(MouseKind::Down, x, y);
     assert!(h.text().contains("New tab"), "{}", h.text());
     h.mouse(MouseKind::Up, x, y);
@@ -194,10 +187,10 @@ fn the_status_bar_places_items_by_priority() {
         text.contains("places 8 of 8 · Left 2, Center 1, Right 5"),
         "{text}"
     );
-    // busy spinner, meter and stale meter all draw
+
     assert!(text.contains("quota ╍"));
     assert!(text.contains("disk ━"));
-    // the narrow row: the center leaves first
+
     let row = h.row_of("at 64 columns");
     assert!(!row.contains("places 8 of 8"), "{row}");
     assert!(row.contains("Center 0"), "the center leaves first: {row}");
@@ -288,7 +281,6 @@ fn hint_bar_states_are_drawn_by_the_layer() {
     assert!(text.contains("Pinned F5"));
 }
 
-/// Not a check: prints the pages for review (`--no-capture`).
 #[test]
 fn print_chrome_and_status_hints() {
     if std::env::var("PRINT_PAGES").is_err() {
@@ -305,10 +297,7 @@ fn print_chrome_and_status_hints() {
     }
 }
 
-// ------------------------------------------------ the shell pieces (SC30)
-
 impl Harness {
-    /// Age the app's clock by `ms` (the footer's TTL reads it), then tick.
     fn age(&mut self, ms: u64) {
         let origin = self.app.clock.origin() - std::time::Duration::from_millis(ms);
         self.app.clock = junie_tui::clock::WallClock::with_origin(origin);
@@ -327,7 +316,6 @@ impl Harness {
         self.app.shell.status.text().map(str::to_owned)
     }
 
-    /// The spinner glyph left of the motion demo's label.
     fn spinner(&self) -> String {
         let (x, y) = self.find("Indexing").expect("the motion demo");
         self.term.backend().buffer()[(x - 2, y)].symbol().to_owned()
@@ -341,9 +329,6 @@ impl Harness {
     }
 }
 
-/// SC30: the page posts to the real footer `StatusLine`. Information goes
-/// after the 5 s TTL, an error stays until the next action, and paused
-/// motion freezes the footer.
 #[test]
 fn status_buttons_post_to_the_footer_and_only_information_expires() {
     let mut h = Harness::new(220, 80, PageId::StatusHints);
@@ -379,9 +364,6 @@ fn status_buttons_post_to_the_footer_and_only_information_expires() {
     );
 }
 
-/// SC30: `--opt shell.motion` drives the motion demo. Full turns the
-/// spinner and fills the bar; reduced fills the bar with the spinner still
-/// on its first frame; paused moves nothing.
 #[test]
 fn reduced_motion_keeps_the_spinner_still_while_the_job_advances() {
     for (motion, turns, advances) in [
@@ -412,7 +394,6 @@ fn reduced_motion_keeps_the_spinner_still_while_the_job_advances() {
     }
 }
 
-/// SC30: the too-small screen's builders and the centred-hints preset.
 #[test]
 fn too_small_and_centred_hints_follow_their_builders() {
     let mut h = Harness::new(220, 80, PageId::StatusHints);
@@ -434,7 +415,6 @@ fn too_small_and_centred_hints_follow_their_builders() {
     assert!(centred > start, "the preset centres the hints");
 }
 
-/// SC30: the command line every app shares, read from `CommonArgs`.
 #[test]
 fn the_common_command_line_is_read_from_clap() {
     let h = Harness::new(220, 80, PageId::StatusHints);

@@ -1,20 +1,3 @@
-//! Status & hints (plan §7, SC4): the footer hint bar an app shell owns.
-//!
-//! Playground: layer precedence (`HintBar::resolve`, the topmost layer
-//! that exists wins), alignment (`HintAlign`), the theme's `HintBarStyle`
-//! (status share, compact keys, pinned keys), hint priorities
-//! (`HintPriority`, `Hint::pinned`), statuses (`HintLayer::status`,
-//! `status_parts`, the EDIT badge, `keyhint::render_status`), a toggle
-//! hint and the reveal-key advert. Options flip each of them on the
-//! resolved bar. States: the bar in every state it has, drawn by
-//! `HintLayer` itself.
-//!
-//! A second section shows the shell pieces every app shares (SC30): the
-//! footer's `StatusLine` (buttons post information, a warning and an error
-//! to the real footer), the `Motion` levels (a job whose bar advances while
-//! its spinner turns only under full motion), `Theme::centred_hints`, the
-//! `TooSmall` screen and the `CommonArgs` command line, read from clap.
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -41,19 +24,14 @@ use junie_tui::widgets::too_small::TooSmall;
 
 const ID: WidgetId = WidgetId::of("statushints");
 
-/// Width of the resolved bar under `statushints.width=narrow`: too narrow
-/// for every hint, so priorities decide what stays.
 const NARROW: u16 = 44;
 
-/// Column where a row's bar starts, after its label.
 const LABEL_W: u16 = 22;
 
-/// The width the alignment, status and toggle rows draw their bar at.
 const BAR_W: u16 = 64;
-/// The too-small screen's box.
+
 const TOO_SMALL_W: u16 = 44;
 
-/// The Playground's section captions: the page is never narrower.
 const CAPTIONS: [&str; 9] = [
     "Layers · HintBar::resolve: the topmost layer that exists wins",
     "Alignment · HintAlign",
@@ -70,7 +48,6 @@ const AUTO_NOTE: &str = "Auto: pinned when the key is in theme.hintbar.pinned_ke
 
 const MOTION_NOTE: &str = "full: the spinner turns and the bar fills · reduced: the bar fills, the spinner keeps its first frame · paused: nothing moves; --frame N picks the tick";
 
-/// How long the footer keeps a message.
 fn ttl_note() -> String {
     format!(
         "information and warnings go after {} s (StatusLine::DEFAULT_TTL_MS) · an error stays until the next key, paste or click · --motion paused freezes the footer",
@@ -78,12 +55,10 @@ fn ttl_note() -> String {
     )
 }
 
-/// Rows a faint note takes at `w` columns, indented by 2.
 fn note_rows(text: &str, w: u16) -> u16 {
     junie_tui::ui::text::wrap(text, w.saturating_sub(2).max(1) as usize).len() as u16
 }
 
-/// Draw a faint note at row `y`, wrapped to `area`; the rows it took.
 fn note(area: Rect, buf: &mut Buffer, t: &Theme, y: u16, text: &str) -> u16 {
     let lines = junie_tui::ui::text::wrap(text, area.width.saturating_sub(2).max(1) as usize);
     for (i, l) in lines.iter().enumerate() {
@@ -95,8 +70,6 @@ fn note(area: Rect, buf: &mut Buffer, t: &Theme, y: u16, text: &str) -> u16 {
     lines.len() as u16
 }
 
-/// A command-line option's line wrapped to `w`: its help under the help
-/// column on the following rows.
 fn hanging(line: &str, w: u16) -> Vec<String> {
     let w = w as usize;
     if junie_tui::ui::text::width(line) <= w {
@@ -117,39 +90,34 @@ fn hanging(line: &str, w: u16) -> Vec<String> {
         .collect()
 }
 
-/// Where an option's help starts in its line.
 const ARG_COL: usize = 24;
 
-/// Rows of the shell section at `w` columns (its notes and the options'
-/// help wrap).
 fn shell_height(w: u16) -> u16 {
     let args: u16 = common_args()
         .iter()
         .map(|l| hanging(l, w.saturating_sub(2)).len() as u16)
         .sum();
-    // captions, the buttons, the bar, blank rows and the boxed screen
+
     16 + note_rows(&ttl_note(), w) + note_rows(MOTION_NOTE, w) + args
 }
 
-/// What the status buttons post to the footer: label, message, tone.
 const POSTS: [(&str, &str, Tone); 3] = [
     ("Post info", "Saved 3 rows", Tone::Secondary),
     ("Post warning", "2 rows skipped", Tone::Warning),
     ("Post error", "Connection lost", Tone::Error),
 ];
 
-/// How far the motion demo's job advances per tick (about 4 s at 80 ms).
 const JOB_STEP: f64 = 0.02;
 
 pub struct StatusHintsPage {
     template: Template,
-    /// Value indices of the page options, in `page_options` order.
+
     opts: Vec<usize>,
-    /// The buttons that post to the shell's footer status line.
+
     posts: Vec<Button>,
-    /// Starts the motion demo's job.
+
     run: Button,
-    /// The job's progress while it runs.
+
     job: Option<f64>,
     sections: crate::pages::layout::Sections,
 }
@@ -173,13 +141,11 @@ impl StatusHintsPage {
         }
     }
 
-    /// The motion demo's job progress (tests read it).
     #[allow(dead_code)]
     pub fn job(&self) -> Option<f64> {
         self.job
     }
 
-    /// The too-small screen the options build.
     fn too_small(&self, t: &Theme) -> TooSmall<'static> {
         let (w, h) = match self.opt("statushints.too_small_min") {
             "100x30" => (100, 30),
@@ -195,7 +161,6 @@ impl StatusHintsPage {
         screen
     }
 
-    /// The value of option `key` as the table spells it.
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::StatusHints);
         let i = table
@@ -205,7 +170,6 @@ impl StatusHintsPage {
         table[i].values[self.opts[i]]
     }
 
-    /// The screen layer's hints, the last one at the chosen priority.
     fn screen_hints(&self) -> Vec<KeyHint> {
         let priority = match self.opt("statushints.priority") {
             "normal" => HintPriority::Normal,
@@ -227,8 +191,6 @@ impl StatusHintsPage {
         ]
     }
 
-    /// The layers that exist, topmost first: a modal, an open menu, the
-    /// screen.
     fn layers(&self) -> [Option<HintLayer>; 3] {
         let top = self.opt("statushints.layer");
         let modal = (top == "modal")
@@ -265,7 +227,6 @@ impl StatusHintsPage {
         [modal, menu, Some(screen)]
     }
 
-    /// The theme's hint-bar style with the page's options.
     fn style(&self, t: &Theme) -> HintBarStyle {
         HintBarStyle {
             compact: self.opt("statushints.compact") == "on",
@@ -294,7 +255,6 @@ impl StatusHintsPage {
         match l.slot(1) {
             Some(r) => self.render_shell(r, buf, ctx),
             None => {
-                // scrolled out of view: the buttons stay focus stops
                 for b in &self.posts {
                     ctx.focus_stop(b.id);
                 }
@@ -303,7 +263,6 @@ impl StatusHintsPage {
         }
     }
 
-    /// The hint bar: layers, alignment, priorities, statuses and toggles.
     fn render_hints(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let style = self.style(t);
@@ -325,7 +284,6 @@ impl StatusHintsPage {
         };
         let full = area.width.saturating_sub(LABEL_W);
 
-        // layer precedence
         caption(
             buf,
             y,
@@ -392,7 +350,6 @@ impl StatusHintsPage {
         y += 1;
         y += note(area, buf, t, y, &self.style_text(t)) + 1;
 
-        // alignment
         caption(buf, y, "Alignment · HintAlign");
         y += 1;
         let hints = [
@@ -411,7 +368,7 @@ impl StatusHintsPage {
             keyhint::render_aligned(row(y, full.min(BAR_W)), buf, t, &hints, None, None, align);
             y += 1;
         }
-        // the app-wide preset: every footer centred, set once on the theme
+
         if y < area.bottom() {
             label(buf, y, "Theme::centred_hints");
             let centred = t.centred_hints();
@@ -428,7 +385,6 @@ impl StatusHintsPage {
         }
         y += 2;
 
-        // priorities in a narrow row
         caption(
             buf,
             y,
@@ -453,7 +409,6 @@ impl StatusHintsPage {
         }
         y += note(area, buf, t, y, AUTO_NOTE) + 1;
 
-        // statuses
         caption(buf, y, "Statuses · the right edge");
         y += 1;
         let short = [hint("Ctrl+S", "Save"), hint("Esc", "Back")];
@@ -494,7 +449,6 @@ impl StatusHintsPage {
         }
         y += 2;
 
-        // toggle hint and reveal key
         caption(buf, y, "Toggle hints and the reveal key");
         y += 1;
         if y < area.bottom() {
@@ -529,8 +483,6 @@ impl StatusHintsPage {
         }
     }
 
-    /// The shell pieces every app shares: the footer `StatusLine`, the
-    /// motion levels, the too-small screen and the common command line.
     fn render_shell(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let bg = t.canvas;
@@ -542,7 +494,6 @@ impl StatusHintsPage {
             }
         };
 
-        // the footer status line
         caption(
             buf,
             y,
@@ -560,7 +511,6 @@ impl StatusHintsPage {
         y += 1;
         y += note(area, buf, t, y, &ttl_note()) + 1;
 
-        // motion
         caption(
             buf,
             y,
@@ -588,7 +538,6 @@ impl StatusHintsPage {
         y += 1;
         y += note(area, buf, t, y, MOTION_NOTE) + 1;
 
-        // the too-small screen
         caption(
             buf,
             y,
@@ -613,7 +562,6 @@ impl StatusHintsPage {
         }
         y += 8;
 
-        // the shared command line
         caption(
             buf,
             y,
@@ -630,7 +578,6 @@ impl StatusHintsPage {
         }
     }
 
-    /// The style readout under the resolved bar.
     fn style_text(&self, t: &Theme) -> String {
         let s = self.style(t);
         let resolved = HintBar::resolve(&self.layers());
@@ -643,13 +590,10 @@ impl StatusHintsPage {
         )
     }
 
-    /// Rows of the hint-bar section at `w` columns (its notes wrap).
     fn hints_height(&self, w: u16, t: &Theme) -> u16 {
         24 + note_rows(&self.style_text(t), w) + note_rows(AUTO_NOTE, w)
     }
 
-    /// The narrowest width that shows every bar, caption and box whole:
-    /// a row's label column and its bar at its natural width.
     fn natural_width(&self) -> u16 {
         let bar = |l: &HintLayer| {
             let status = l
@@ -679,16 +623,12 @@ impl StatusHintsPage {
         (LABEL_W + bars).max(captions).max(2 + TOO_SMALL_W)
     }
 
-    /// Post a status to the shell's footer.
     fn post(i: usize, cx: &mut Cx) {
         let (_, text, tone) = POSTS[i];
         cx.status_in(text, tone);
     }
 }
 
-/// The shared command-line options, read from the library's `CommonArgs`
-/// through clap (flags, value name, help and accepted values), so the
-/// page never lists them by hand.
 fn common_args() -> Vec<String> {
     use clap::{Args, Command};
     let cmd = CommonArgs::augment_args(Command::new("app"));
@@ -721,8 +661,6 @@ fn common_args() -> Vec<String> {
         .collect()
 }
 
-/// The States grid: the hint bar at rest, with a long status, an error
-/// status, the EDIT badge and in the narrow slot, drawn by `HintLayer`.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let hints = vec![
@@ -776,8 +714,6 @@ impl Page for StatusHintsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-        // the job is work, not decoration: it advances under reduced
-        // motion too (the shell stops ticks only when paused)
         if let PageEvent::Tick = ev {
             return match self.job {
                 Some(p) if p < 1.0 => {

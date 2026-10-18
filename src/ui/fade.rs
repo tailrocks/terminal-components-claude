@@ -1,19 +1,19 @@
-//! Scroll-edge fade: the rows nearest an edge that hides more content are
-//! blended toward the container background, so the viewport reads as a
-//! window onto a longer document rather than as its whole. The fade is a
-//! hint beside the scrollbar, never a curtain: it appears only in the
-//! direction that has more content, disappears at the boundary, keeps the
-//! faded rows legible, and leaves every emphasised cell alone (a selected or
-//! hovered row, a mark, a reversed cell, the row holding the hardware
-//! cursor), so focus, selection and editing are never dimmed.
-//!
-//! Terminals have no alpha, so the "transparency" is a foreground ramp: on
-//! the outermost row the text keeps [`OUTER_KEEP`] of its distance from the
-//! background, on the row inside it [`INNER_KEEP`]; short viewports fade one
-//! row, taller ones two. Palettes without RGB (256 colours, 16 colours, no
-//! colour) cannot blend, so they dim the outermost row with the `DIM`
-//! attribute instead, which is the same cue those palettes already use for
-//! de-emphasis.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -22,25 +22,25 @@ use ratatui::style::{Color, Modifier};
 use crate::core::scroll::ScrollState;
 use crate::ui::ctx::RenderCtx;
 
-/// Fraction of the foreground contrast kept on the outermost faded row.
+
 pub const OUTER_KEEP: f32 = 0.55;
-/// Fraction kept on the row inside the outermost one (tall viewports only).
+
 pub const INNER_KEEP: f32 = 0.8;
-/// Viewports with at least this many rows fade two rows per edge.
+
 pub const DEEP_FROM: u16 = 12;
-/// Viewports shorter than this are not faded: every row is content.
+
 pub const MIN_ROWS: u16 = 4;
 
-/// Fade the edge rows of `area` that hide more content according to
-/// `scroll`. Call it after the rows are painted and before the scrollbar;
-/// `area` is the content rectangle without the scrollbar column.
+
+
+
 pub fn scroll_edges(buf: &mut Buffer, ctx: &RenderCtx, area: Rect, scroll: &ScrollState) {
     scroll_edges_except(buf, ctx, area, scroll, &[]);
 }
 
-/// [`scroll_edges`] with rows that must stay whole whatever plane they are
-/// on: a widget passes its cursor row so a focus bar on the container plane
-/// (a navigation list, a monochrome palette) is never dimmed.
+
+
+
 pub fn scroll_edges_except(
     buf: &mut Buffer,
     ctx: &RenderCtx,
@@ -81,9 +81,9 @@ pub fn scroll_edges_except(
     }
 }
 
-/// The background most cells of the area share: the container plane.
-/// Cells on another plane (a selected row, a badge) are emphasised content
-/// and are left alone by the fade.
+
+
+
 fn majority_bg(buf: &Buffer, area: Rect) -> Color {
     let mut counts: Vec<(Color, usize)> = vec![];
     for pos in area.positions() {
@@ -113,7 +113,7 @@ fn fade_row(buf: &mut Buffer, area: Rect, y: u16, keep: f32, container: Color) {
             (Color::Rgb(fr, fg, fb), Color::Rgb(br, bgg, bb)) => {
                 cell.fg = Color::Rgb(mix(fr, br, keep), mix(fg, bgg, keep), mix(fb, bb, keep));
             }
-            // no RGB to blend: the outermost row dims, the inner row stays
+
             _ if outer => {
                 cell.modifier |= Modifier::DIM;
             }
@@ -176,23 +176,23 @@ mod tests {
             viewport_len: 6,
             ..Default::default()
         };
-        // at the top: only the bottom row fades
+
         let mut b = painted(6);
         fade(&mut b, ColorLevel::TrueColor, s(0), None);
         assert_eq!(grey(&b, 0), 200);
         assert_eq!(grey(&b, 5), 110, "outer row keeps 55%");
         assert_eq!(grey(&b, 4), 200, "one row only below twelve rows");
-        // in the middle: both edges
+
         let mut b = painted(6);
         fade(&mut b, ColorLevel::TrueColor, s(10), None);
         assert_eq!(grey(&b, 0), 110);
         assert_eq!(grey(&b, 5), 110);
-        // at the bottom: only the top row
+
         let mut b = painted(6);
         fade(&mut b, ColorLevel::TrueColor, s(24), None);
         assert_eq!(grey(&b, 0), 110);
         assert_eq!(grey(&b, 5), 200);
-        // everything fits: nothing fades
+
         let mut b = painted(6);
         fade(
             &mut b,
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn emphasised_cells_and_the_cursor_row_are_never_faded() {
         let mut b = painted(6);
-        // a selected row on its own plane, a reversed cell, a marked cell
+
         b.set_string(
             0,
             0,
@@ -281,7 +281,7 @@ mod tests {
             matches!(b[(3, 5)].fg, Color::Rgb(110, ..)),
             "the plain neighbour fades"
         );
-        // the hardware cursor row (an editing caret) stays whole
+
         let mut b = painted(6);
         fade(
             &mut b,

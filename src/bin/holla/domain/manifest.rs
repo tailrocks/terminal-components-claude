@@ -1,11 +1,5 @@
-//! Native project-task adapters (HP07): bounded parsers over manifest text
-//! and tool output. Discovery never runs a recipe; each adapter states its
-//! defining file, runner, effective cwd and exact argv, and reports its own
-//! failure instead of inventing tasks.
-
 use std::collections::BTreeSet;
 
-/// Visible cap on dynamically discovered tasks per source (legacy 30).
 pub const TASK_CAP: usize = 30;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,20 +7,20 @@ pub struct DiscoveredTask {
     pub id: String,
     pub name: String,
     pub description: String,
-    /// Exact argument vector, program first.
+
     pub argv: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Discovery {
     pub source: &'static str,
-    /// Defining file (or the tool's own listing).
+
     pub defined_by: String,
     pub runner: String,
     pub tasks: Vec<DiscoveredTask>,
-    /// Total before the visible cap.
+
     pub total: usize,
-    /// Why nothing (or less) was found; never a task.
+
     pub diagnostic: Option<String>,
 }
 
@@ -43,10 +37,6 @@ impl Discovery {
     }
 }
 
-// ------------------------------------------------------------ mini JSON
-
-/// A minimal JSON value: enough for `package.json` scripts and Taskfile's
-/// `--list --json`. Strings, objects, arrays, numbers, booleans, null.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Json {
     Null,
@@ -215,7 +205,6 @@ impl JsonParser<'_> {
                     }
                 }
                 _ => {
-                    // collect a UTF-8 sequence
                     let start = self.i - 1;
                     let mut end = self.i;
                     while end < self.s.len() && (self.s[end] & 0b1100_0000) == 0b1000_0000 {
@@ -242,9 +231,6 @@ pub fn parse_json(text: &str) -> Result<Json, String> {
     Ok(v)
 }
 
-// ------------------------------------------------------------ node
-
-/// Lockfile precedence: pnpm, yarn, bun, then npm (OP21).
 pub fn node_runner(present: &[&str]) -> &'static str {
     if present.contains(&"pnpm-lock.yaml") {
         "pnpm"
@@ -257,9 +243,6 @@ pub fn node_runner(present: &[&str]) -> &'static str {
     }
 }
 
-/// Discover package.json scripts (OP20/OP22): string-valued keys of the
-/// `scripts` object, sorted, first 30 visible. Runner availability is not
-/// checked. Invalid or missing input yields no group with a diagnostic.
 pub fn node_scripts(cwd: &str, package_json: Option<&str>, lockfiles: &[&str]) -> Discovery {
     let runner = node_runner(lockfiles);
     let file = format!("{cwd}/package.json");
@@ -309,10 +292,6 @@ pub fn node_scripts(cwd: &str, package_json: Option<&str>, lockfiles: &[&str]) -
     d
 }
 
-// ------------------------------------------------------------ just
-
-/// `just --summary` output: whitespace-separated names, sorted, deduped
-/// (OP23/OP24). A failed command hides the group.
 pub fn just_recipes(cwd: &str, file: &str, summary: Result<&str, &str>) -> Discovery {
     let mut d = Discovery {
         source: "just",
@@ -347,8 +326,6 @@ pub fn just_recipes(cwd: &str, file: &str, summary: Result<&str, &str>) -> Disco
     d
 }
 
-// ------------------------------------------------------------ make
-
 fn make_target_ok(name: &str) -> bool {
     !name.is_empty()
         && !name.starts_with('.')
@@ -357,10 +334,6 @@ fn make_target_ok(name: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
-/// Conservative Makefile parser (OP25): column-zero declarations only,
-/// multi-target lines accepted, comments/whitespace/`:=` assignments
-/// skipped, names limited to ASCII alphanumerics, `_` and `-`, first
-/// declaration order kept. Make is never invoked during discovery.
 pub fn make_targets(text: &str) -> (Vec<String>, Vec<String>) {
     let mut out: Vec<String> = vec![];
     let mut rejected = vec![];
@@ -435,11 +408,6 @@ pub fn make_discovery(cwd: &str, makefile: Option<&str>) -> Discovery {
     d
 }
 
-// ------------------------------------------------------------ taskfile
-
-/// `task --list --json` (OP27/OP28): object with a `tasks` array of objects
-/// with string `name`; empty names skipped, sorted, deduped; descriptions
-/// not retained. Bad schema hides the group.
 pub fn taskfile_tasks(cwd: &str, file: &str, listing: Result<&str, &str>) -> Discovery {
     let mut d = Discovery {
         source: "taskfile",
@@ -492,11 +460,6 @@ pub fn taskfile_tasks(cwd: &str, file: &str, listing: Result<&str, &str>) -> Dis
     d
 }
 
-// ------------------------------------------------------------ mise
-
-/// `mise tasks ls --no-header` (OP29): nonblank lines, first field is the
-/// name, the rest a description with a leading `#` stripped; output order
-/// kept, no cap, no dedup. A nonzero exit is a failure, never a listing.
 pub fn mise_tasks(cwd: &str, output: Result<&str, &str>) -> Discovery {
     let mut d = Discovery {
         source: "mise",
@@ -575,7 +538,7 @@ mod tests {
         assert_eq!(d.tasks.len(), 30);
         assert_eq!(d.total, 31);
         assert_eq!(d.title("Node scripts"), "Node scripts (30 of 31)");
-        // metacharacters stay one argument, never shell text
+
         let d = node_scripts("/p", Some(r#"{"scripts":{"it's; rm":"x","ünï":"y"}}"#), &[]);
         assert_eq!(d.tasks[0].argv[2], "it's; rm");
         assert_eq!(d.tasks[1].name, "ünï");

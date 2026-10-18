@@ -1,8 +1,3 @@
-//! The Feedback pages Meters and Notices through the real app (plan §7
-//! SC36): each page shows its library component, not the planned-page
-//! stub; options set through `--opt` change the playground, the States
-//! rows render, and the key interactions work.
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -10,8 +5,6 @@ use crate::app_tests_feedback::Harness;
 use crate::pages::template::Section;
 use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Theme;
-
-// ------------------------------------------------------------------ Meters
 
 #[test]
 fn meters_page_shows_its_lists_not_the_stub() {
@@ -32,7 +25,7 @@ fn meters_page_shows_its_lists_not_the_stub() {
 #[test]
 fn meters_line_up_in_columns_and_keep_their_level_glyphs() {
     let h = Harness::new(120, 40, PageId::Meters);
-    // every quota row's meter starts in the same column
+
     let rows = ["Session (5 h)", "Weekly", "Opus weekly", "Extra credits"];
     let (lx, _) = h.at("Session (5 h)");
     let starts: Vec<u16> = rows
@@ -40,7 +33,7 @@ fn meters_line_up_in_columns_and_keep_their_level_glyphs() {
         .map(|r| {
             let (x, y) = h.at(r);
             assert_eq!(x, lx, "labels align");
-            // the block meter: the first cell with a different background
+
             (x..x + 40)
                 .find(|&cx| h.cell(cx, y).bg != h.cell(x, y).bg)
                 .expect("a filled meter")
@@ -94,7 +87,7 @@ fn offline_keeps_last_good_values_and_refresh_shows_refreshing() {
     }
     assert!(!h.text().contains("refreshing…"));
     assert_eq!(h.status(), "Usage refreshed ✓");
-    // the keyboard toggles Offline: the values stay, drawn stale (dashed)
+
     h.focus(WidgetId::of("meters").sub("offline"));
     h.key(KeyCode::Enter);
     assert!(h.text().contains("offline · last-good values"));
@@ -102,7 +95,7 @@ fn offline_keeps_last_good_values_and_refresh_shows_refreshing() {
     assert!(h.row(y).contains('%'));
     let (_, y) = h.at("/System/Volumes/Data");
     assert!(h.row(y).contains('╍'), "{}", h.row(y));
-    // a refresh while offline says why nothing happens
+
     h.click_id(WidgetId::of("meters").sub("refresh"));
     assert!(h.status().starts_with("Offline"), "{}", h.status());
 }
@@ -126,8 +119,6 @@ fn meters_states_grid_shows_every_content_state() {
     }
 }
 
-// ----------------------------------------------------------------- Notices
-
 #[test]
 fn notices_page_shows_every_kind_not_the_stub() {
     for (w, h) in [(120, 40), (80, 24)] {
@@ -149,7 +140,7 @@ fn notices_page_shows_every_kind_not_the_stub() {
     ] {
         assert!(text.contains(needle), "{needle}: {text}");
     }
-    // the error mark is bold in the error tone; the detail is indented
+
     let (x, y) = h.at("! Authentication failed");
     let t = Theme::junie();
     assert_eq!(h.cell(x, y).fg, t.error);
@@ -172,7 +163,7 @@ fn notices_options_drive_the_notice_builders() {
     h.opt("notices.detail=off");
     assert!(!h.text().contains("LINE 1"));
     h.opt("notices.detail=on");
-    // narrow: the detail wraps and its cut is marked …
+
     h.opt("notices.width=narrow");
     let (_, y) = h.at("LINE 1");
     assert!(h.row(y + 1).trim_end().ends_with('…'), "{}", h.row(y + 1));

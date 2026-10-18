@@ -1,14 +1,3 @@
-//! Reachability gate (owner rule 2026-10-17): every screen and overlay of
-//! holla keeps all of its content reachable at every size of the matrix:
-//! shown, scrolled to, or cut with its `…` reveal
-//! ([`junie_tui::shell::reach`]). Known gaps are the `holla` lines of
-//! `tests/reach_allow.txt`, each with its finding id
-//! (docs/audits/design-review-2026-10/responsive.md); the gate fails on a
-//! new gap and on a fixed one whose line is still there.
-//!
-//! `REACH_DUMP=<case>:<w>:<h>` prints one case's frame at a size
-//! (`cargo nextest run --bin holla reach_dump --no-capture`).
-
 use junie_tui::shell::reach::{Case, Harness, Reveal};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -86,14 +75,11 @@ fn activities(h: &mut H) {
     h.alt(KeyCode::Char('1'));
 }
 
-/// The gate-1 Review page of the Docker cleanup plan (`c` on the plan).
 fn review_gate(h: &mut H) {
     docker_plan(h);
     h.key(KeyCode::Char('c'));
 }
 
-/// A list row cut with `…` (or a column dropped) shows in full in the
-/// details beside the list as the cursor steps onto it (`↑↓ Move`).
 const ROW: Reveal<H> = Reveal {
     step: |h| {
         h.key(KeyCode::Down);
@@ -101,8 +87,6 @@ const ROW: Reveal<H> = Reveal {
     times: 20,
 };
 
-/// `Tab Preview` (footer): narrow, the preview beside the results is a
-/// drawer that Tab opens over the list.
 const TAB: Reveal<H> = Reveal {
     step: |h| {
         h.key(KeyCode::Tab);
@@ -110,8 +94,6 @@ const TAB: Reveal<H> = Reveal {
     times: 1,
 };
 
-/// `p Details` (footer; the plan's step menu calls it "Show details"):
-/// narrow, the details beside the list are a drawer that `p` opens.
 const P: Reveal<H> = Reveal {
     step: |h| {
         h.key(KeyCode::Char('p'));
@@ -119,22 +101,14 @@ const P: Reveal<H> = Reveal {
     times: 1,
 };
 
-/// The preview drawer, opened with Tab.
 const PREVIEW: &[Reveal<H>] = &[TAB];
 
-/// The details drawer, opened with `p`.
 const DETAILS: &[Reveal<H>] = &[P];
 
-/// The cursor stepped down the list beside its preview, and the preview
-/// drawer opened with Tab.
 const ROWS_PREVIEW: &[Reveal<H>] = &[ROW, TAB];
 
-/// The cursor stepped down the list beside its details, and the details
-/// drawer opened with `p`.
 const ROWS_DETAILS: &[Reveal<H>] = &[ROW, P];
 
-/// A followed log starts at its end; Home (`ââ Scroll`) goes to its first
-/// line, and the wheel reaches the rest from there.
 const LOG_START: &[Reveal<H>] = &[Reveal {
     step: |h| {
         h.key(KeyCode::Home);
@@ -144,7 +118,6 @@ const LOG_START: &[Reveal<H>] = &[Reveal {
 
 fn cases() -> Vec<Case<H>> {
     vec![
-        // the Here tab and the pages it pushes
         page("finder", |_| {}).reveals(ROWS_PREVIEW),
         page("finder-children", |h| {
             at(h, Scenario::MonorepoRoot);
@@ -223,7 +196,6 @@ fn cases() -> Vec<Case<H>> {
             paused(h, Scenario::ParityCustomActions);
             open(h, "Custom action configuration");
         }),
-        // activity and plan tabs
         page("activity", activities).reveals(LOG_START),
         page("activity-merged", |h| {
             at(h, Scenario::ActivitiesMulti);
@@ -240,7 +212,6 @@ fn cases() -> Vec<Case<H>> {
             h.key(KeyCode::Right);
             h.key(KeyCode::Enter);
         }),
-        // menus and dialogs
         layer(
             "menu-file",
             |_| {},
@@ -393,8 +364,6 @@ junie_tui::reach_tests! {
     activity_menu = "activity-menu",
 }
 
-/// R-apps-6: a short screen keeps the disk page's filesystems (the tree
-/// under them scrolls) instead of dropping them below 22 rows.
 #[test]
 fn a_short_screen_keeps_the_disk_filesystems() {
     let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 72, 20);
@@ -405,8 +374,6 @@ fn a_short_screen_keeps_the_disk_filesystems() {
     assert!(text.contains("926"), "{text}");
 }
 
-/// R-apps-2: narrow, the plan's details drawer covers the outline; the
-/// outline's consequence line is not drawn over the drawer.
 #[test]
 fn the_plan_summary_stays_off_the_details_drawer() {
     let mut h = H::fresh();
@@ -418,9 +385,6 @@ fn the_plan_summary_stays_off_the_details_drawer() {
     assert!(!text.contains("7 required"), "{text}");
 }
 
-/// R-apps-6: on a short screen the gate's and the trust review's facts
-/// keep their natural height in a scroll view: the panel under them
-/// keeps its rows, and the wheel over the facts reaches the last one.
 #[test]
 fn a_short_screen_scrolls_the_review_facts() {
     use junie_tui::core::event::MouseKind;
@@ -428,7 +392,7 @@ fn a_short_screen_scrolls_the_review_facts() {
     review_gate(&mut h);
     h.resize(72, 20);
     let text = h.text();
-    // the sequence keeps its first commands under the facts
+
     assert!(text.contains("01  docker stop"), "{text}");
     assert!(!text.contains("Provenance"), "{text}");
     let (x, y) = h.find("Action").expect("the first fact");
@@ -444,8 +408,7 @@ fn a_short_screen_scrolls_the_review_facts() {
     h.resize(72, 20);
     let text = h.text();
     assert!(text.contains("[tasks.dev]"), "{text}");
-    // notch by notch the two rows in view pass every fact: a notch never
-    // skips a row the short view has not shown
+
     let (x, y) = h.find("Defines").expect("a fact");
     let mut seen = h.text();
     for _ in 0..6 {

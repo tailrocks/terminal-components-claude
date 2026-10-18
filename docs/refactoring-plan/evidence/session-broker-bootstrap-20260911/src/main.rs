@@ -1,4 +1,4 @@
-//! Disposable planning feasibility probe, not a Terminal Components implementation.
+
 #![forbid(unsafe_code)]
 
 use std::io::{self, Write};
@@ -17,8 +17,8 @@ use signal_hook::{SigId, flag, low_level};
 
 const QUANTUM_MS: u64 = 100;
 
-// Handlers outlive individual sessions. The supported process starts with the
-// default SIGTSTP disposition and installs no competing SIGTSTP handler.
+
+
 struct Broker {
     inactive: Arc<AtomicBool>,
     pending: Arc<AtomicBool>,
@@ -31,8 +31,8 @@ impl Broker {
         let inactive = Arc::new(AtomicBool::new(true));
         let pending = Arc::new(AtomicBool::new(false));
         let default = flag::register_conditional_default(SIGTSTP, Arc::clone(&inactive))?;
-        // If the second registration fails, the inactive default emulation
-        // remains valid. No terminal mode has been acquired yet.
+
+
         let record = flag::register(SIGTSTP, Arc::clone(&pending))?;
         Ok(Self {
             inactive,
@@ -47,7 +47,7 @@ impl Broker {
             .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
             .map_err(|_| io::Error::other("overlapping terminal session"))?;
         self.pending.store(false, Ordering::SeqCst);
-        // Switch to deferred handling before any terminal mode can be changed.
+
         self.inactive.store(false, Ordering::SeqCst);
         Ok(Session {
             broker: self,
@@ -64,7 +64,7 @@ struct Session<'a> {
 impl Session<'_> {
     fn enter(&mut self, fail_after: Option<u8>) -> io::Result<()> {
         for step in 1..=5 {
-            // Mark before the operation so partial writes are also cleaned up.
+
             self.acquired = step;
             match step {
                 1 => enable_raw_mode()?,
@@ -83,7 +83,7 @@ impl Session<'_> {
 
     fn restore(&mut self) -> io::Result<()> {
         let mut first_error = None;
-        // Attempt every reverse step even if an earlier output operation fails.
+
         while self.acquired > 0 {
             let step = self.acquired;
             let result = match step {
@@ -110,7 +110,7 @@ impl Session<'_> {
             self.restore()?;
         }
         low_level::emulate_default_handler(SIGTSTP)?;
-        // Requests while already stopping/stopped coalesce into this stop.
+
         self.broker.pending.store(false, Ordering::SeqCst);
         if dirty_stop {
             self.restore()?;
@@ -125,7 +125,7 @@ impl Session<'_> {
 impl Drop for Session<'_> {
     fn drop(&mut self) {
         let _ = self.restore();
-        // Never enable default stopping until terminal cleanup was attempted.
+
         self.broker.inactive.store(true, Ordering::SeqCst);
         self.broker.leased.store(false, Ordering::SeqCst);
     }
@@ -157,8 +157,8 @@ fn continue_line() -> io::Result<()> {
 
 fn main() -> io::Result<()> {
     let mode = std::env::args().nth(1).unwrap_or_default();
-    // Test supervisor first establishes the foreground group. Do not race
-    // terminal setup against that harness-only handoff.
+
+
     marker("AWAIT_START")?;
     continue_line()?;
     let broker = Broker::install()?;

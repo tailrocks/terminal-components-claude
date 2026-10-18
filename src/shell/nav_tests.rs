@@ -79,7 +79,7 @@ fn only_a_move_that_drops_a_page_asks_for_its_stakes() {
     let mut r = Router::new(0);
     let mut guard = LeaveGuard::new(WidgetId::of("leave"));
     let dirty = || Stakes::Unsaved { changes: 2 };
-    // Push keeps the page: no question, the stakes are not even asked
+
     let nav = r.request(&mut guard, Nav::Push(1), || unreachable!(), strings());
     assert_eq!(nav.unwrap(), Nav::Push(1));
     r.push(1);
@@ -87,7 +87,7 @@ fn only_a_move_that_drops_a_page_asks_for_its_stakes() {
         r.request(&mut guard, Nav::Tab(0), || unreachable!(), strings())
             .is_ok()
     );
-    // Back over unsaved edits asks, and the answer carries the move
+
     let d = r
         .request(&mut guard, Nav::Back, dirty, strings())
         .unwrap_err();
@@ -96,7 +96,7 @@ fn only_a_move_that_drops_a_page_asks_for_its_stakes() {
         guard.resolve(DialogResult::Action(1)),
         Resolved::Discard(Leave::To(Nav::Back))
     );
-    // a clean page goes at once
+
     assert!(
         r.request(&mut guard, Nav::Replace(3), || Stakes::Clean, strings())
             .is_ok()
@@ -127,7 +127,7 @@ fn a_breadcrumb_click_pops_to_its_level() {
     assert_eq!(crumb.segments, ["Disk", "Usage", "Top files"]);
     let first = crumb.segment_id(0);
     assert_eq!(r.crumb_click::<()>(&crumb, 0, first), Some(Nav::PopTo(0)));
-    // with a leading group level the stack starts one level in
+
     crumb.segments.insert(0, "Screens".into());
     assert_eq!(r.crumb_click::<()>(&crumb, 1, crumb.segment_id(0)), None);
     assert_eq!(

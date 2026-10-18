@@ -1,19 +1,19 @@
-//! Tool mode of the test binary for `cargo xtask visual`: when
-//! `VISUAL_TOOL` is set, `main` runs one of these instead of the tests.
-//! They reuse the scenario tables and tuiscotti, so xtask needs neither.
-//!
-//! - `list`: one TSV row per scenario:
-//!   `name  test_name  table  tier  pending  approval` where `approval` is
-//!   `reapproved` (tuiscotti `.ansi`), `legacy` (tuisnap's four files) or
-//!   `missing`.
-//! - `capture`: `VISUAL_NAME=<store name>` captures that scenario once,
-//!   without a gate, and prints its `.ansi` (cursor trailer included). It
-//!   runs as `probe/<VISUAL_AS>/<name>` so it never shares a `HOME` with
-//!   the real scenario. Used by the `env_isolation` check.
-//! - `env-probe`: spawns `/bin/sh` through the capture spawn path and prints
-//!   the environment the child sees (`env | sort`).
-//! - `harness-hash`: prints the oracle `harness_sha256` of `VISUAL_DIR`
-//!   (default `tests/visual_baseline/`), for `seal` and `sync-oracle`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::scenarios;
 use crate::support;
@@ -75,7 +75,7 @@ fn list() {
     }
 }
 
-/// Marker the probe shell prints after the environment.
+
 pub const ENV_PROBE_END: &str = "END-OF-ENV";
 
 fn env_probe() {

@@ -1,8 +1,3 @@
-//! The Tables pages on the Playground | Options | States template (plan
-//! §7, SC11–SC13), driven through the real app: options set through the
-//! page's Options section and `--opt` rebuild the widget through its
-//! builder, and the States grids draw their rows.
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -85,7 +80,6 @@ impl Harness {
         self.draw();
     }
 
-    /// Set an option through `--opt`'s path.
     fn opt(&mut self, arg: &str) {
         let set = options::parse_opt(arg).unwrap_or_else(|e| panic!("{arg}: {e}"));
         self.app.apply_opt(set);
@@ -107,7 +101,6 @@ fn tables_page(h: &Harness) -> &crate::pages::tables::TablesPage {
         .expect("the Basic table page")
 }
 
-/// The first rendered row that holds `needle`.
 fn line_with(text: &str, needle: &str) -> String {
     text.lines()
         .find(|l| l.contains(needle))
@@ -123,8 +116,7 @@ fn columns_width_option_drops_the_least_important_columns_first() {
     assert!(text.contains("seats renew"), "{text}");
     h.opt("columns.width=40");
     let text = h.text();
-    // drop 0 (Notes) goes first, then drop 1 (Renews); Plan (drop 2) and
-    // the never-dropped columns stay
+
     assert!(line_with(&text, "Notes  ").contains("dropped"), "{text}");
     assert!(line_with(&text, "Renews  ").contains("dropped"), "{text}");
     assert!(!line_with(&text, "Plan  ").contains("dropped"), "{text}");
@@ -148,7 +140,7 @@ fn columns_sizing_options_rebuild_the_table_through_its_builders() {
     h.opt("columns.min_width=10");
     let s = &columns_page(&h).sized.sizing;
     assert_eq!((s.seam_w, s.min_width), (3, 10));
-    // the header menu card sits under the table: the body scrolls to it
+
     let bottom = |h: &mut Harness| {
         let i = PageId::Columns.index();
         h.app.pages[i]
@@ -159,7 +151,7 @@ fn columns_sizing_options_rebuild_the_table_through_its_builders() {
         h.draw();
     };
     bottom(&mut h);
-    // the header menu offers the sizing commands only while resizable
+
     assert!(h.text().contains("Size Column to Fit"));
     h.opt("columns.resizable=off");
     assert!(!columns_page(&h).sized.sizing.resizable);
@@ -167,7 +159,7 @@ fn columns_sizing_options_rebuild_the_table_through_its_builders() {
     let text = h.text();
     assert!(!text.contains("Size Column to Fit"), "{text}");
     assert!(text.contains("fixed widths"), "{text}");
-    // custom labels reach the menu
+
     h.opt("columns.resizable=on");
     h.opt("columns.header_labels=custom");
     bottom(&mut h);
@@ -221,7 +213,7 @@ fn basic_table_selection_option_sets_the_selection_model() {
     assert_eq!(tables_page(&h).table.selection_mode, SelectionMode::Multi);
     assert!(tables_page(&h).table.selection_column);
     assert!(line_with(&h.text(), "#1040").contains("[ ] #1040"));
-    // Space marks the cursor row in a multi-select table
+
     let id = tables_page(&h).table.id;
     h.app.shell.focus.focus(id);
     h.key(KeyCode::Char(' '));
@@ -296,7 +288,6 @@ fn grid_page(h: &Harness) -> &crate::pages::grid::GridPage {
         .expect("the Data grid page")
 }
 
-/// Focus the grid and put its cursor on column `col` of the first row.
 fn grid_cell(h: &mut Harness, col: usize) {
     let id = grid_page(h).grid.id;
     h.app.shell.focus.focus(id);
@@ -361,14 +352,14 @@ fn grid_filter_on_cell_adds_a_chip_and_clear_filters_removes_it() {
 #[test]
 fn grid_save_review_asks_for_the_table_name_before_it_saves() {
     let mut h = Harness::new(160, 50, PageId::Grid);
-    // renewed_at is nullable: Delete sets it to NULL, a pending change
+
     grid_cell(&mut h, 6);
     h.key(KeyCode::Delete);
     assert_eq!(grid_page(&h).grid.pending.total(), 1);
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
     assert!(h.app.dialog().is_some(), "Ctrl+S opens the save review");
     assert!(h.text().contains("Save changes"), "{}", h.text());
-    // Enter before the token is typed does not save
+
     h.key(KeyCode::Enter);
     assert_eq!(grid_page(&h).grid.pending.total(), 1);
     for c in "customers".chars() {
@@ -396,7 +387,7 @@ fn grid_keymap_option_rebinds_commands_and_the_reference_follows() {
     grid_cell(&mut h, 6);
     h.key(KeyCode::Char('x'));
     assert_eq!(grid_page(&h).grid.pending.total(), 1, "x clears the cell");
-    // the Commands card reads the grid's key map
+
     let mut h = Harness::new(220, 80, PageId::Grid);
     h.opt("datagrid.keymap=custom");
     let text = h.text();
@@ -417,7 +408,7 @@ fn grid_follows_a_reference_and_draws_literals_in_their_hues() {
         "{}",
         status(&h)
     );
-    // NULL, booleans and JSON take the syntax hues
+
     let t = Theme::junie();
     let buf = h.term.backend().buffer().clone();
     let cell = |needle: &str| {
@@ -434,7 +425,7 @@ fn grid_states_draw_every_row() {
     use junie_tui::ui::specimen::SpecimenState::*;
     let mut h = Harness::new(220, 80, PageId::Grid);
     h.section(Section::States);
-    // the section scrolls row by row: walk it down
+
     let mut seen = Vec::new();
     for _ in 0..12 {
         for s in h.app.pages[PageId::Grid.index()]
@@ -446,7 +437,7 @@ fn grid_states_draw_every_row() {
                 seen.push(*s);
             }
         }
-        // over the States body, right of the sidebar
+
         h.mouse(MouseKind::WheelDown, 120, 40);
     }
     for s in [
@@ -481,7 +472,6 @@ fn cell_editors_page(h: &Harness) -> &crate::pages::celleditors::CellEditorsPage
         .expect("the Cell editors page")
 }
 
-/// Focus `id` and draw.
 fn focus(h: &mut Harness, id: junie_tui::core::id::WidgetId) {
     h.app.shell.focus.focus(id);
     h.draw();
@@ -535,7 +525,7 @@ fn selection_options_reach_the_members_table() {
     let t = page(&h);
     assert!(!t.esc_clears && !t.is_disabled(0));
     assert_eq!(t.toggle_mods, KeyModifiers::ALT);
-    // Esc keeps the selection now
+
     focus(&mut h, t.id);
     h.key(KeyCode::Char(' '));
     assert_eq!(page(&h).selected_rows(), vec![0], "the owner row selects");
@@ -567,7 +557,7 @@ fn a_standalone_choice_editor_commits_cancels_and_tabs_on() {
     h.key(KeyCode::Tab);
     assert_eq!(cell_editors_page(&h).region, "eu-west-3");
     assert_ne!(h.app.shell.focus.current(), Some(pick), "Tab moves on");
-    // a click on an option commits it
+
     focus(&mut h, pick);
     h.key(KeyCode::Enter);
     let option = cell_editors_page(&h)
@@ -599,7 +589,7 @@ fn cell_editor_options_set_the_editor_config() {
     );
     assert_eq!(cfg.max_rows, 4);
     assert_eq!(cfg.placement, junie_tui::ui::popup::Placement::Above);
-    // tags read with the new separator, and every option cell shows its ▾
+
     let text = h.text();
     assert!(text.contains("api · web"), "{text}");
     assert!(

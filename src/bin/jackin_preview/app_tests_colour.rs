@@ -1,7 +1,3 @@
-//! Colour as meaning (design review 2026-10, colour follow-ups for
-//! jackin): each status, count and health part takes the library role
-//! that says what it is, checked on the rendered cells of the real App.
-
 use crate::pages::Pages;
 use ratatui::buffer::Cell;
 use ratatui::crossterm::event::KeyCode;
@@ -25,7 +21,6 @@ fn row(h: &H, y: u16) -> String {
     h.text().lines().nth(y as usize).unwrap_or("").to_owned()
 }
 
-/// The first row holding `needle`, and the cell column where it starts.
 fn find(h: &H, needle: &str) -> (u16, u16) {
     let text = h.text();
     for (y, line) in text.lines().enumerate() {
@@ -36,7 +31,6 @@ fn find(h: &H, needle: &str) -> (u16, u16) {
     panic!("{needle:?} not on screen\n{text}")
 }
 
-/// The column of `needle` on row `y`, searching from column `from`.
 fn col(h: &H, y: u16, from: u16, needle: &str) -> u16 {
     let r = row(h, y);
     let skip: String = r.chars().take(from as usize).collect();
@@ -57,14 +51,14 @@ fn usage() -> H {
 fn usage_provider_rows_tone_only_the_status_cell() {
     let t = theme();
     let h = usage();
-    // a healthy provider: name primary, `✓ current` from Theme::status(Ok)
+
     let (x, y) = find(&h, "OpenAI       2");
     assert_eq!(cell(&h, x, y).fg, t.text_primary, "{}", row(&h, y));
     let (ok, ok_style) = t.status(StatusKind::Ok);
     let sx = col(&h, y, x + 40, ok);
     assert_eq!(Some(cell(&h, sx, y).fg), ok_style.fg, "{}", row(&h, y));
     assert_eq!(cell(&h, sx + 2, y).fg, t.success);
-    // an exhausted provider: the name stays primary, only the status is red
+
     let (x, y) = find(&h, "Anthropic    2");
     assert_eq!(cell(&h, x, y).fg, t.text_primary, "{}", row(&h, y));
     let (fail, fail_style) = t.status(StatusKind::Fail);
@@ -72,7 +66,7 @@ fn usage_provider_rows_tone_only_the_status_cell() {
     assert_eq!(Some(cell(&h, sx, y).fg), fail_style.fg, "{}", row(&h, y));
     assert!(cell(&h, sx, y).modifier.contains(Modifier::BOLD));
     assert_eq!(cell(&h, sx + 2, y).fg, t.error);
-    // the worst window is a meter, not text in the row's tone
+
     let filled = (x + 23..x + 50).any(|cx| cell(&h, cx, y).bg != t.canvas);
     assert!(filled, "the window is a filled block: {}", row(&h, y));
 }
@@ -103,8 +97,7 @@ fn the_accounts_health_line_and_warnings_tone_each_part() {
     assert!(cell(&h, d, y).modifier.contains(Modifier::BOLD));
     assert_eq!(cell(&h, col(&h, y, x, "4 warnings"), y).fg, t.warning);
     assert_eq!(cell(&h, col(&h, y, x, "1 refreshing"), y).fg, t.info);
-    // a warning row: the glyph and the phrase in warning, the account
-    // primary, the reset time muted
+
     let (x, y) = find(&h, "Claude · Work   Session");
     let (warn, warn_style) = t.status(StatusKind::Warn);
     assert_eq!(cell(&h, x - 2, y).symbol(), warn, "{}", row(&h, y));
@@ -112,7 +105,7 @@ fn the_accounts_health_line_and_warnings_tone_each_part() {
     assert_eq!(cell(&h, x, y).fg, t.text_primary, "{}", row(&h, y));
     assert_eq!(cell(&h, col(&h, y, x, "Session"), y).fg, t.warning);
     assert_eq!(cell(&h, col(&h, y, x, "resets"), y).fg, t.text_muted);
-    // an error row: `✗`, the account primary, the message in error
+
     let (x, y) = find(&h, "Kimi · discovered   No credential");
     let (fail, fail_style) = t.status(StatusKind::Fail);
     assert_eq!(cell(&h, x - 2, y).symbol(), fail, "{}", row(&h, y));
@@ -125,10 +118,10 @@ fn the_accounts_health_line_and_warnings_tone_each_part() {
 fn provider_group_labels_are_muted_not_faint() {
     let t = theme();
     let h = usage();
-    // the usage tree's provider heading
+
     let (x, y) = find(&h, "Anthropic ");
     assert_eq!(cell(&h, x, y).fg, t.text_muted, "{}", row(&h, y));
-    // the accounts tree's sentinel provider
+
     let h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 140, 40);
     let (x, y) = find(&h, "Unsupported");
     assert_eq!(cell(&h, x, y).fg, t.text_muted, "{}", row(&h, y));
@@ -144,14 +137,14 @@ fn a_running_instance_shows_live_state_in_the_accent() {
     assert_eq!(cell(&h, x + 2, y).fg, t.text_primary);
     let r = col(&h, y, x, "running");
     assert_eq!(cell(&h, r, y).fg, t.accent, "{}", row(&h, y));
-    // the tree row of the same instance, once its workspace is open
+
     let mut h = h;
     h.key(KeyCode::Down);
     h.key(KeyCode::Right);
     let (x, y) = find(&h, "7f3a");
     assert_eq!(cell(&h, x - 2, y).symbol(), "◉", "{}", row(&h, y));
     assert_eq!(cell(&h, x - 2, y).fg, t.accent, "{}", row(&h, y));
-    // a stopped one stays quiet
+
     let (x, y) = find(&h, "c41e");
     assert_eq!(cell(&h, x - 2, y).symbol(), "◌", "{}", row(&h, y));
     assert_eq!(cell(&h, x - 2, y).fg, t.text_muted);
@@ -197,8 +190,6 @@ fn a_finished_capsule_tab_is_done() {
     assert_eq!(Some(cell(&h, x, 2).fg), style.fg, "{r}");
 }
 
-/// Put the stale Work account's session window at 90 %: the domain says
-/// warning (75 to 99 %), the shared thresholds would say danger (85 % up).
 fn stale_work_at_90(h: &mut H) {
     let a = h.app.world.accounts.get_mut("acct-claude-work").unwrap();
     assert_eq!(
@@ -216,7 +207,6 @@ fn stale_work_at_90(h: &mut H) {
     h.draw();
 }
 
-/// The first dashed run cell on row `y`, and the row.
 fn stale_run(h: &H, y: u16, t: &Theme) -> (Cell, String) {
     let r = row(h, y);
     let x = col(h, y, 0, t.glyphs.bar_stale);
@@ -226,8 +216,7 @@ fn stale_run(h: &H, y: u16, t: &Theme) -> (Cell, String) {
 #[test]
 fn a_stale_quota_warning_keeps_its_warning_level() {
     let t = theme();
-    // the account detail's block meter: a block cannot be dashed, so the
-    // fill keeps the warning hue, the value goes italic, the marker is `▲`
+
     let mut h = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 140, 40);
     h.app.router.accounts_mut().selected =
         crate::screens::accounts::Sel::Account("acct-claude-work".into());
@@ -241,19 +230,15 @@ fn a_stale_quota_warning_keeps_its_warning_level() {
     let m = col(&h, y, v, t.glyphs.warning);
     assert_eq!(cell(&h, m, y).fg, t.warning, "{r}");
 
-    // the capsule status bar's session meter
     let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
     stale_work_at_90(&mut h);
     let y = 38;
-    // the status bar's line meter: the run dashed (`╍`) in warning
+
     let (c, r) = stale_run(&h, y, &t);
     assert_eq!(c.fg, t.warning, "{r}");
     assert!(r.contains(&format!("90% {}", t.glyphs.warning)), "{r}");
 }
 
-/// Every text cell of row `y` that sits on the cursor row's fill (its
-/// background differs from the `plane`) reads at 4.5:1, and the focus
-/// gutter on it keeps the focus ink.
 fn assert_cursor_row_reads(h: &H, t: &Theme, y: u16, plane: ratatui::style::Color, what: &str) {
     let r = row(h, y);
     let w = h.term.backend().buffer().area.width;
@@ -282,10 +267,6 @@ fn assert_cursor_row_reads(h: &H, t: &Theme, y: u16, plane: ratatui::style::Colo
 
 #[test]
 fn details_on_a_cursor_row_stay_readable_on_its_fill() {
-    // the manager tree's cursor row is an accent-tinted fill; its meta
-    // (`saved as payments-platform`) drew muted on it (256: 245 on 22,
-    // 2.3:1), the editor's mount row drew `rw worktree host` secondary
-    // (256: 249 on 22, 3.8:1)
     for level in [
         junie_tui::theme::ColorLevel::TrueColor,
         junie_tui::theme::ColorLevel::Ansi256,
@@ -313,9 +294,6 @@ fn details_on_a_cursor_row_stay_readable_on_its_fill() {
 
 #[test]
 fn a_meter_follows_its_window_status_not_the_percentage() {
-    // xAI's on-demand window is 100% of this month's spend and the
-    // provider reports it available: the status cell said `✓ current`
-    // while the meter beside it re-derived danger from 100% and drew `!`
     let t = theme();
     let h = usage();
     let (x, y) = find(&h, "xAI ");
@@ -327,7 +305,7 @@ fn a_meter_follows_its_window_status_not_the_percentage() {
     let next = tail.trim_start().chars().next();
     assert_ne!(next, Some('!'), "no danger mark: {r}");
     assert_ne!(next, Some('▲'), "no warning mark: {r}");
-    // its run is the healthy (info) hue, not error
+
     let filled = (x..x + 60)
         .map(|cx| cell(&h, cx, y).bg)
         .find(|bg| *bg != t.canvas && *bg != t.surface);

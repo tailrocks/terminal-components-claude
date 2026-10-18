@@ -1,4 +1,4 @@
-//! Protected ADJ-13 syntax observations. This instrument supplies no verdict.
+
 use serde_json::{Value, json};
 use std::path::Path;
 use syn::visit::{self, Visit};

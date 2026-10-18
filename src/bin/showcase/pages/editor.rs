@@ -1,8 +1,3 @@
-//! Code editor (plan §7 SC24): block-aware editing, syntax tones,
-//! diagnostics, a running block, find, and the completion popup, with
-//! every `CodeEditor` and `Completion` knob as an option and the editor's
-//! States grid. Options: `crate::options::CODE_EDITOR`.
-
 use std::ops::Range;
 
 use ratatui::buffer::Buffer;
@@ -72,10 +67,8 @@ const KEYWORDS: &[&str] = &[
     "Self", "static", "struct", "trait", "type", "use", "where", "while",
 ];
 
-/// Booleans take the literal tone (as numbers do), not the keyword tone.
 const LITERALS: &[&str] = &["true", "false"];
 
-/// (label, detail, glyph) — a static symbol table stands in for a language server.
 const CANDIDATES: &[(&str, &str, &str)] = &[
     ("fetch(", "async fn (url: &str) -> Result<Body, Error>", "ƒ"),
     ("client(", "fn () -> Client", "ƒ"),
@@ -176,7 +169,6 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
     out
 }
 
-/// Blocks are paragraphs: runs of non-blank lines.
 fn blocks(src: &str) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     let mut start: Option<usize> = None;
@@ -213,8 +205,6 @@ pub struct EditorPage {
     last_ms: Option<u32>,
 }
 
-/// An app's own reading-mode keys: Ctrl+F finds, F3 steps through the
-/// matches, `[` and `]` jump between blocks; Enter still edits.
 fn custom_keymap() -> KeyMap<CodeCmd> {
     vec![
         (KeyBinding::key(KeyCode::Enter), CodeCmd::Edit),
@@ -244,8 +234,6 @@ impl EditorPage {
         page
     }
 
-    /// The editor and the completion popup from the option values, through
-    /// their builders; the text and the cursor survive.
     fn rebuild(&mut self) {
         let o = &self.opts;
         let text = if o.value("codeeditor.document") == "empty" {
@@ -330,13 +318,11 @@ impl EditorPage {
             });
     }
 
-    /// The document, for tests.
     #[cfg(test)]
     pub fn text(&self) -> &str {
         self.editor.text()
     }
 
-    /// The identifier being typed, as (start offset, word).
     fn word_before_cursor(&self) -> (usize, String) {
         let cur = self.editor.cursor_offset();
         let head = &self.editor.text()[..cur];
@@ -427,8 +413,6 @@ impl EditorPage {
         cx.status(format!("Block ran in {ms} ms"));
     }
 
-    /// The State card's facts: mode, cursor, block, runs, diagnostics,
-    /// completion and find.
     fn state_props(&self) -> Vec<Prop> {
         let pos = self.editor.field.buffer.cursor_pos();
         let all = self.editor.blocks();
@@ -494,14 +478,10 @@ impl EditorPage {
         props
     }
 
-    /// The Diagnostics card's empty state.
     fn no_diagnostics() -> EmptyState {
         EmptyState::new("Nothing flagged").hint("Run the second block: its unwrap() gets a warning")
     }
 
-    /// The right column's width: the State card's facts, the empty
-    /// diagnostics' notice at its `Measure::min_width` (it wraps), the
-    /// toolbar's buttons.
     fn right_need(&self, ctx: &RenderCtx) -> u16 {
         Panel::card(Some("State"))
             .outer(Size::new(props::width(&self.state_props()), 0))
@@ -519,8 +499,7 @@ impl EditorPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // the editor takes 62 % (at least EDITOR_MIN), giving way to the
-        // right column's need before the page scrolls sideways
+
         let right = self.right_need(ctx);
         let (l, r) = if area.width >= EDITOR_MIN + 2 + right {
             let left = (area.width * 62 / 100)
@@ -528,7 +507,6 @@ impl EditorPage {
                 .min(area.width - 2 - right);
             crate::pages::layout::columns(area, left, 2)
         } else {
-            // too narrow for both: the toolbar and cards under the editor
             let below = (EDITOR_H + 1).min(area.height);
             (
                 Rect::new(area.x, area.y, area.width, EDITOR_H.min(area.height)),
@@ -548,8 +526,6 @@ impl EditorPage {
         let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(EDITOR_H)), buf, t);
         self.editor.render(inner, buf, ctx, bg);
 
-        // the toolbar over the State card: find and run, each with its
-        // key, after the editor in Tab order (left column first)
         let widths = [self.find.width(), self.run_button.width()];
         let rects =
             junie_tui::widgets::button::row_layout(Rect::new(r.x, r.y, r.width, 1), &widths, 2);
@@ -599,7 +575,6 @@ impl EditorPage {
             }
         }
 
-        // the popup sits above everything else on the page
         if self.completion.is_open() {
             let screen = *buf.area();
             self.completion.render(screen, buf, ctx);
@@ -607,9 +582,6 @@ impl EditorPage {
     }
 }
 
-/// The States grid: the editor with tones and plain, and one carrying a
-/// warning, in rest, focus, editing, read-only, a running block, an
-/// error, no text and a long line.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -639,13 +611,10 @@ fn states_grid() -> StateGrid {
         .column("Warning", warned.placeholder("Type code"))
 }
 
-/// The narrowest the editor column is laid out: the code scrolls
-/// sideways inside it.
 const EDITOR_MIN: u16 = 40;
-/// The editor card's rows.
+
 const EDITOR_H: u16 = 26;
-/// The right column's rows: the toolbar and a blank row, the State card,
-/// a blank row, the Diagnostics card.
+
 const RIGHT_H: u16 = 2 + 12 + 1 + 9;
 
 impl Page for EditorPage {
@@ -662,12 +631,6 @@ impl Page for EditorPage {
         self.run_ticks > 0
     }
 
-    /// The editor beside the toolbar, State and Diagnostics cards: the
-    /// editor at least [`EDITOR_MIN`] columns (it scrolls sideways
-    /// itself), the right column as wide as it needs
-    /// ([`EditorPage::right_need`]), as tall as the editor card. Narrower
-    /// than both side by side, the right column goes under the editor at
-    /// the room's width.
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let right = self.right_need(ctx);
         if avail.width >= EDITOR_MIN + 2 + right {

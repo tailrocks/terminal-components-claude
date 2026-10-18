@@ -1,18 +1,3 @@
-//! Activity (Screens, plan §7 SC51): holla's activity tab composed from
-//! library components only. A header of state clauses (`segments`), the
-//! command line, stream chips that show or hide each service of a merged
-//! log (`ChipBar`, digits toggle), the live log (`TextViewport`: follow
-//! tail, scrollback, retention, find marks over a query), the job's step
-//! rail (`StepRail`), its facts (`props`), a failure `Notice`, and
-//! Stop / Restart with their busy states (`Button::busy`). Options:
-//! `crate::options::ACTIVITY`.
-//!
-//! Gaps (recorded in docs/remaining-work.md, Priority 0): typing a find
-//! query and stepping through its matches waits for S22's `FindState`
-//! (the page shows a query's marks through `TextViewport::set_marks`);
-//! attach/detach and stdin input mode stay app-level behaviour (plan
-//! §7.7 row 68).
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -39,14 +24,13 @@ use junie_tui::widgets::steps::{Step, StepRail, StepState};
 use junie_tui::widgets::viewport::{Line, Mark, Span, TextViewport, ViewportAction};
 
 const ID: WidgetId = WidgetId::of("activity");
-/// The log's rows when the side column sits under it.
+
 const LOG_ROWS: u16 = 10;
-/// The live log.
+
 pub const LOG: WidgetId = ID.sub("log");
-/// The stream chips.
+
 pub const STREAMS: WidgetId = ID.sub("streams");
 
-/// The services of the merged log and their tones.
 const SERVICES: [(&str, Tone); 4] = [
     ("api", Tone::Info),
     ("worker", Tone::Secondary),
@@ -54,7 +38,6 @@ const SERVICES: [(&str, Tone); 4] = [
     ("db", Tone::Muted),
 ];
 
-/// What each service says while it runs, in turn.
 const CHATTER: [(usize, &str); 12] = [
     (0, "GET /health 200 2 ms"),
     (1, "job 4821 send-digest done in 184 ms"),
@@ -70,7 +53,6 @@ const CHATTER: [(usize, &str); 12] = [
     (1, "job 4823 send-digest done in 233 ms"),
 ];
 
-/// The job's stages.
 const STAGES: [&str; 5] = [
     "Resolve tools",
     "Install dependencies",
@@ -79,9 +61,8 @@ const STAGES: [&str; 5] = [
     "Healthy",
 ];
 
-/// Ticks between two log lines while the services run.
 const LINE_TICKS: u32 = 3;
-/// Ticks a stop takes before the process group is gone.
+
 const STOP_TICKS: u32 = 6;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -104,21 +85,18 @@ pub struct ActivityPage {
     rail: StepRail,
     stop: Button,
     restart: Button,
-    /// Every line the services wrote: (service, text). The viewport shows
-    /// the ones whose stream chip is on.
+
     log: Vec<(Option<usize>, Line)>,
     run: Run,
-    /// Ticks since the run started (the elapsed clause, the spinner).
+
     tick: u32,
-    /// Ticks left of a stop.
+
     stopping: u32,
-    /// The next chatter line.
+
     next: usize,
     exit: Option<i32>,
 }
 
-/// A service's line: its name in its tone, then the text (an error in
-/// the error tone).
 fn service_line(svc: usize, text: &str) -> Line {
     let (name, tone) = SERVICES[svc];
     let body = if text.contains("error") || text.contains(" 404 ") {
@@ -129,7 +107,6 @@ fn service_line(svc: usize, text: &str) -> Line {
     vec![Span::new(format!("{name:<9} │ "), tone), body]
 }
 
-/// A line holla itself writes (no stream).
 fn holla_line(text: &str, tone: Tone) -> Line {
     vec![Span::new(text, tone)]
 }
@@ -170,8 +147,6 @@ impl ActivityPage {
         p
     }
 
-    /// The viewport and the chips through their builders, from the
-    /// options; the log survives.
     fn rebuild(&mut self) {
         let o = &self.opts;
         let view = std::mem::replace(&mut self.view, TextViewport::new(LOG));
@@ -183,7 +158,6 @@ impl ActivityPage {
         self.sync_view();
     }
 
-    /// Start a run in the state the option names.
     fn start(&mut self) {
         self.log.clear();
         self.tick = 0;
@@ -198,7 +172,7 @@ impl ActivityPage {
                 Tone::Muted,
             ),
         );
-        // the services have been up for a while: their recent output
+
         for _ in 0..CHATTER.len() * 2 {
             self.chatter();
         }
@@ -237,7 +211,7 @@ impl ActivityPage {
 
     fn push(&mut self, svc: Option<usize>, line: Line) {
         self.log.push((svc, line.clone()));
-        // the retained log keeps what the viewport keeps
+
         let keep = self.view.retention().unwrap_or(usize::MAX).max(1) * 2;
         if self.log.len() > keep {
             self.log.drain(..self.log.len() - keep);
@@ -271,7 +245,6 @@ impl ActivityPage {
         self.sync_rail();
     }
 
-    /// The viewport shows the lines whose stream is on.
     fn sync_view(&mut self) {
         let lines = self
             .log
@@ -285,7 +258,6 @@ impl ActivityPage {
         self.mark();
     }
 
-    /// The find query's matches as the viewport's marks.
     fn mark(&mut self) {
         let q = match self.opts.value("activity.find") {
             "off" => {
@@ -424,16 +396,12 @@ impl ActivityPage {
         let body = rows[5];
         let side = self.side_size(ctx);
         if self.wide(body.width, side, ctx) {
-            // the side as wide as it needs, or a third of the body (at
-            // most 36 columns) when that is wider; the log takes the rest
             let side_w = side.width.max(36.min(body.width / 3));
             let out = Rect::new(body.x, body.y, body.width - side_w - 2, body.height);
             self.render_log(out, buf, ctx);
             let r = Rect::new(body.right() - side_w, body.y, side_w, body.height);
             self.render_side(r, false, buf, ctx);
         } else {
-            // narrow: the log over the steps and the run card, side by
-            // side when both fit
             let (w, h, beside) = self.under(body.width, side);
             let log_h = body.height.saturating_sub(h + 1).max(LOG_ROWS);
             let out = Rect::new(body.x, body.y, body.width, log_h);
@@ -449,8 +417,6 @@ impl ActivityPage {
         }
     }
 
-    /// The log card at its natural width: every line on one row (it
-    /// wraps a longer line that arrives later, or scrolls it sideways).
     fn log_width(&self, ctx: &RenderCtx) -> u16 {
         Panel::framed(Some("output"))
             .meta("scrollback ↑9999 · last 2000 kept")
@@ -458,12 +424,10 @@ impl ActivityPage {
             .width
     }
 
-    /// The log beside the side column when both fit `width` whole.
     fn wide(&self, width: u16, side: Size, ctx: &RenderCtx) -> bool {
         width >= self.log_width(ctx) + 2 + side.width
     }
 
-    /// The Run card's facts.
     fn run_facts(&self) -> Vec<Prop> {
         vec![
             Prop::new("Command", "mise run dev"),
@@ -479,7 +443,6 @@ impl ActivityPage {
         ]
     }
 
-    /// The failure notice the Run card shows after a failed run.
     fn failure(&self) -> Option<Notice> {
         (self.run == Run::Failed).then(|| {
             Notice::error("api exited with code 1")
@@ -488,9 +451,6 @@ impl ActivityPage {
         })
     }
 
-    /// The side column whole: the Steps card at its rail's measure over
-    /// the Run card (its facts, the failure notice wrapped to the column,
-    /// Stop and Restart side by side).
     fn side_size(&self, ctx: &RenderCtx) -> Size {
         let steps = Panel::card(Some("Steps"))
             .meta("4 of 5")
@@ -511,9 +471,6 @@ impl ActivityPage {
         Size::new(width, steps.height + 1 + run_h)
     }
 
-    /// The side cards under the log in `width`: the Steps and Run cards
-    /// side by side at the column's width when both fit, else stacked.
-    /// Their width, height, and whether they sit side by side.
     fn under(&self, width: u16, side: Size) -> (u16, u16, bool) {
         let steps_h = STAGES.len() as u16 + 3;
         let run_h = side.height.saturating_sub(steps_h + 1);
@@ -549,7 +506,6 @@ impl ActivityPage {
         self.view.render(inner, buf, ctx, bg);
     }
 
-    /// The Steps card over the Run card, or `beside` it.
     fn render_side(&mut self, area: Rect, beside: bool, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (done, skipped, failed) = self.rail.counts();
@@ -563,7 +519,7 @@ impl ActivityPage {
             .focused(ctx.interaction.focused(self.rail.id));
         let bg = panel.bg(t);
         let steps_h = (STAGES.len() as u16 + 3).min(area.height);
-        // beside: the Run card to the right of the Steps card, as wide
+
         let (card, rest) = if beside {
             let w = area.width.saturating_sub(2) / 2;
             (
@@ -641,7 +597,7 @@ impl ActivityPage {
         if self.run == Run::Stopping {
             return;
         }
-        // a restart always runs, whatever state the page opened in
+
         self.opts.set("activity.state", 0);
         self.start();
         cx.status("Restarted api dev");
@@ -665,7 +621,6 @@ impl ActivityPage {
     }
 }
 
-/// The States grid: the log, the stream chips and the step rail.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -719,11 +674,6 @@ impl Page for ActivityPage {
         "A live job: state clauses, stream chips, a following log and its steps"
     }
 
-    /// The header rows over the log and the side column: side by side
-    /// when the log at its natural width (every line on one row) and the
-    /// side fit, the page's height; else the log (at least `LOG_ROWS`
-    /// rows, it scrolls the rest) over the Steps and Run cards (side by
-    /// side when both fit), as wide as the log needs.
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let side = self.side_size(ctx);
         let head = 5;

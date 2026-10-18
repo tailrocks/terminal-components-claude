@@ -19,7 +19,7 @@ enum Cmd {
     Run,
 }
 
-/// Which stage took a key.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Took {
     Layer,
@@ -35,8 +35,8 @@ enum Took {
     Nothing,
 }
 
-/// An app whose every stage logs what it took. Flags say which stages are
-/// present and willing.
+
+
 struct Host {
     shell: Shell,
     keys: ShellKeys<Cmd>,
@@ -46,9 +46,9 @@ struct Host {
     interrupts: bool,
     dirty: bool,
     chrome: bool,
-    /// The page takes these keys.
+
     page_takes: Vec<Key>,
-    /// The page's focused list (type-ahead), when set.
+
     list: Option<ListBox>,
     esc_top: bool,
     took: Vec<Took>,
@@ -214,13 +214,13 @@ fn with_mods(code: KeyCode, mods: KeyModifiers) -> Key {
     Key { code, mods }
 }
 
-/// The cross-app key-order table (plan §4, S8a acceptance): every row is
-/// a state, a key and the stage that must take it.
+
+
 #[test]
 fn the_key_order_table() {
     type Setup = fn(&mut Host);
     let rows: Vec<(&str, Setup, Key, Took)> = vec![
-        // too small: only the quit keys
+
         (
             "too small: q quits",
             |h| h.shell.too_small = true,
@@ -239,7 +239,7 @@ fn the_key_order_table() {
             ch('d'),
             Took::Nothing,
         ),
-        // a layer holds the keyboard
+
         (
             "layer before shell keys",
             |h| h.layer = Some(true),
@@ -270,14 +270,14 @@ fn the_key_order_table() {
             ch('x'),
             Took::Nothing,
         ),
-        // an open menu bar
+
         (
             "open menu before shell keys",
             |h| h.menu = true,
             k(KeyCode::Tab),
             Took::Menu,
         ),
-        // capture: an editing field first
+
         (
             "editing field takes a letter shortcut",
             |h| {
@@ -353,7 +353,7 @@ fn the_key_order_table() {
             ch('q'),
             Took::Nothing,
         ),
-        // interrupt
+
         (
             "Ctrl+C: the page refuses first",
             |h| h.interrupts = true,
@@ -392,7 +392,7 @@ fn the_key_order_table() {
             ctrl('c'),
             Took::Quit,
         ),
-        // shell keys before the page
+
         (
             "app chord before the page",
             |h| h.page_takes = vec![ctrl('r')],
@@ -429,7 +429,7 @@ fn the_key_order_table() {
             with_mods(KeyCode::PageUp, KeyModifiers::CONTROL),
             Took::Action(ShellAction::PrevPage),
         ),
-        // focused chrome, then the page
+
         (
             "focused chrome before the page",
             |h| {
@@ -451,7 +451,7 @@ fn the_key_order_table() {
             ch('?'),
             Took::Page,
         ),
-        // fallback
+
         (
             "? help when the page passes",
             |_| {},
@@ -502,10 +502,10 @@ fn list_host() -> Host {
     h
 }
 
-/// CO2: a page letter shortcut wins over a focused list's type-ahead
-/// (`TypeAheadPrecedence::Shortcuts`), and a letter no shortcut takes
-/// types into the list. The router owns the rule: no app wraps its own
-/// key path in `route_key`.
+
+
+
+
 #[test]
 fn a_letter_shortcut_wins_over_a_focused_lists_type_ahead() {
     let mut h = list_host();
@@ -551,9 +551,9 @@ fn an_activation_that_changed_something_flashes_the_focused_control() {
     assert_eq!(h.shell.pointer.flashing(0), Some(WidgetId::of("ok")));
 }
 
-/// A16: a paste goes through the router: the top layer takes it (and it
-/// never reaches the page under it), else the shown page; the too-small
-/// screen is inert.
+
+
+
 #[test]
 fn a_paste_goes_to_the_top_layer_else_the_page() {
     let paste = |h: &mut Host| {
@@ -577,9 +577,9 @@ fn a_paste_goes_to_the_top_layer_else_the_page() {
     assert_eq!(paste(&mut h), (Outcome::Consumed, vec![]));
 }
 
-/// K23: the shell's keys as a help section come from the live
-/// `ShellKeys`: one row per action, its keys together, the quit keys of
-/// `QuitKeys`, an app command by its label.
+
+
+
 #[test]
 fn the_help_section_lists_the_live_shell_keys() {
     let keys = ShellKeys::<u8>::new().bind(KeyBinding::ctrl('r'), ShellAction::App(1));
@@ -594,7 +594,7 @@ fn the_help_section_lists_the_live_shell_keys() {
     assert_eq!(row("Run").as_deref(), Some("Ctrl+R"));
     assert_eq!(row("Quit").as_deref(), Some("Ctrl+Q q"));
     assert_eq!(row("Next page").as_deref(), Some("Ctrl+PgDn"));
-    // BackTab with or without the Shift flag is one key: Shift+Tab
+
     assert_eq!(row("Previous control").as_deref(), Some("Shift+Tab"));
     let unbound = ShellKeys::<u8>::new().unbind(KeyBinding::char('?'));
     let s = unbound.help_section("Shell", |_| None);

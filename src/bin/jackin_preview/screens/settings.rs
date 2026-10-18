@@ -1,7 +1,3 @@
-//! Global Settings: General · Mounts · Environments · Agents · Trust with the
-//! Editor's stage grammar, a `global` scope column on every scoped row and
-//! the same preview → async save flow.
-
 use crate::screens::Jackin;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
@@ -81,8 +77,7 @@ pub struct SettingsScreen {
     dco: Checkbox,
     trust_cursor: usize,
     agents_cursor: usize,
-    /// The Agents tab body at its natural height, scrolled when the
-    /// screen is too short for the table and its notes (R-apps-6).
+
     agents_view: ScrollView,
     cancel: Button,
     save: Button,
@@ -549,7 +544,7 @@ impl SettingsScreen {
             if x + 22 + (width(&roles) as u16) < rect.right() {
                 buf.set_string(x + 21, y, &roles, st.fg(t.text_faint));
             }
-            // the cursor row is a fill: its details step up to stay readable
+
             legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
@@ -576,11 +571,7 @@ impl SettingsScreen {
         }
     }
 
-    /// Agent runtime modes: how each agent is handed credentials inside the
-    /// container. Which account backs it is read-only here — the registry
-    /// (Account & Usage Center) owns that.
     fn render_agents(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
-        // the heading, the table and a blank row, then the notes wrapped
         let natural = |a: ratatui::layout::Size| {
             let notes: usize = AGENT_NOTES
                 .iter()
@@ -711,7 +702,7 @@ impl SettingsScreen {
             legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
         }
-        // the notes wrap under the table; the view scrolls to them
+
         let mut ny = body.y + Agent::ALL.len() as u16 + 1;
         for note in AGENT_NOTES {
             for line in wrap(note, area.width.saturating_sub(4).max(1) as usize) {
@@ -851,7 +842,7 @@ impl Page<Jackin> for SettingsScreen {
         if self.cfg.menu_open() {
             let o = self.cfg.menu_key(key, w, cx);
             self.sync_pending();
-            // K14: a key the menu had no use for closed it; the page gets it
+
             if o != Outcome::Ignored {
                 return o;
             }
@@ -997,9 +988,6 @@ impl Page<Jackin> for SettingsScreen {
         }
     }
 
-    /// A click on the tab strip switches the tab (the wheel moves its
-    /// window); a click on a control or a row acts on it; the
-    /// configuration tabs take their own events (rows, menus, wheel).
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         if let Some(r) = self.agents_view.pointer(ev) {
             return r.outcome();
@@ -1286,7 +1274,6 @@ impl Screen for SettingsScreen {
 }
 
 impl SettingsScreen {
-    /// A completed click on a control or a row of the current tab.
     fn click(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let id = ev.id;
         if id == CANCEL {
@@ -1366,7 +1353,6 @@ impl SettingsScreen {
     }
 }
 
-/// The notes under the Agents table: what each runtime mode hands over.
 const AGENT_NOTES: [&str; 2] = [
     "sync mirrors the host login · api key and oauth token take material from the registry account",
     "ignore starts the agent without credentials and removes it from session pickers",

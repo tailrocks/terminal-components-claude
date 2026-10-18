@@ -1,7 +1,3 @@
-//! The Popups & tooltips page (plan §7.5, SC19), driven through the real
-//! app: the popover's placement and dismissal, the page's tooltip policy,
-//! the list's reveal and the frame States grid.
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -28,7 +24,6 @@ fn open_popover(h: &mut Harness) {
     assert!(page(h).popover.is_open());
 }
 
-/// The popover's frame: the row of its title.
 fn popover_top(h: &Harness) -> u16 {
     h.find("report.pdf").expect("the popover").1
 }
@@ -49,7 +44,7 @@ fn the_popover_opens_where_its_placement_says_and_closes_by_its_policy() {
     open_popover(&mut h);
     assert!(popover_top(&h) < button, "above the button");
     h.key(KeyCode::Esc);
-    // Esc off: the policy refuses it, the popover stays
+
     h.opt("popupstooltips.escape=off");
     open_popover(&mut h);
     h.key(KeyCode::Esc);
@@ -88,7 +83,7 @@ fn a_resting_pointer_shows_a_tooltip_under_the_page_policy() {
         "the tooltip shows\n{}",
         h.text()
     );
-    // tooltips off on this page: nothing shows
+
     h.opt("popupstooltips.tooltips=off");
     h.mouse(MouseKind::Move, x + 2, y);
     h.draw();
@@ -116,7 +111,7 @@ fn the_reveal_key_shows_a_cut_row_whole() {
     h.opt("popupstooltips.reveal_key=none");
     h.focus(list);
     h.key(KeyCode::Right);
-    // the body stays cut (the footer's peek line may show the value)
+
     let text = h.text();
     let lines: Vec<&str> = text.lines().collect();
     let body = lines[..lines.len() - 1].join("\n");
@@ -144,8 +139,7 @@ fn the_frame_states_follow_the_frame_options() {
     assert!(h.text().contains("Frame"));
     let with_close = h.text().matches('×').count();
     assert!(with_close >= 3, "the close button in every row");
-    // a frame that does not say how it closes draws no ×, and has no
-    // hover or press to show
+
     h.opt("popupstooltips.frame_dismiss=never");
     h.section(Section::States);
     assert_eq!(h.text().matches('×').count(), with_close - 3);

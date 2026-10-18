@@ -1,16 +1,8 @@
-//! The result model: one type for every row the root can show (a direct
-//! action, a resource with a primary action, a recommendation, a domain flow
-//! or a specialist handoff), with scope, risk, confirmation, reasons and the
-//! exact command it stands for. Capability, action and recommendation stay
-//! distinct: a capability is a domain being present, an action is an `Item`,
-//! a recommendation is an `Item` with a live-state reason.
-
 use crate::domain::context::ScopeTag;
 use crate::domain::effect::Effect;
 use crate::domain::exec::Command;
 use crate::sim::world::BatchMode;
 
-/// The type word shown in the row's `type` column (D-6).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Kind {
     Mise,
@@ -66,7 +58,6 @@ impl Kind {
     }
 }
 
-/// What a row represents (CONCEPT §6.4).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResultType {
     Action,
@@ -76,7 +67,6 @@ pub enum ResultType {
     Handoff,
 }
 
-/// Risk class (CONCEPT §10). Risk changes treatment, never availability.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Risk {
     ReadOnly,
@@ -96,18 +86,14 @@ impl Risk {
     }
 }
 
-/// Confirmation level (CONCEPT §10).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Confirmation {
-    /// Runs on Enter.
     None,
-    /// One facts review before running.
+
     One,
-    /// Review, then a typed target-bound phrase. `broad` adds the
-    /// `I UNDERSTAND:` prefix.
+
     TwoGate { phrase: String, broad: bool },
-    /// The defining configuration is not trusted yet: review and trust it
-    /// first, then re-resolve.
+
     Trust { config: String },
 }
 
@@ -127,7 +113,6 @@ impl Confirmation {
         }
     }
 
-    /// The exact phrase the second gate requires.
     pub fn phrase(&self) -> Option<String> {
         match self {
             Confirmation::TwoGate { phrase, broad } => Some(if *broad {
@@ -140,8 +125,6 @@ impl Confirmation {
     }
 }
 
-/// Is the information behind a row live, cached, partial or missing
-/// (CONCEPT §5.5 #6).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Freshness {
     Live { age_ms: i64 },
@@ -175,20 +158,18 @@ impl Freshness {
     }
 }
 
-/// The strongest signal behind a recommendation (CONCEPT §9 ranking order).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Signal {
-    /// Stable default order only.
     Default,
-    /// Frequency or recency anywhere.
+
     GlobalUse,
-    /// Frequency or recency in this path or project.
+
     LocalUse,
-    /// Context matched (a manifest here, a service here).
+
     Context,
-    /// Live state demands it (behind, dirty, unhealthy, full).
+
     Urgency,
-    /// The user pinned it here.
+
     Pin,
 }
 
@@ -207,7 +188,6 @@ impl Reason {
     }
 }
 
-/// A structured argument (CONCEPT §6.7).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArgSpec {
     pub name: String,
@@ -255,48 +235,43 @@ impl ArgSpec {
     }
 }
 
-/// What Enter does once every gate has passed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Launch {
-    /// Start an activity: the item's `exec` runs; `script` names a fixture
-    /// script when one exists, else the outcome table decides.
     Activity { script: Option<String> },
-    /// Start several activities as one batch.
+
     Batch,
-    /// Open the Disk flow for a path.
+
     Disk { path: String },
-    /// Open the Files page (browser) at a path.
+
     Files { path: String },
-    /// Open the home file search.
+
     Find,
-    /// Open the Cleanup review, optionally filtered to one category.
+
     Cleanup { category: Option<String> },
-    /// Open the macOS Top files scope.
+
     TopFiles,
-    /// Copy a value to the clipboard (a path).
+
     Copy { value: String },
-    /// Open a configuration diagnostics page.
+
     Config { path: String },
-    /// Open a domain page: the finder filtered to one Explore group.
+
     Group(&'static str),
-    /// Open a plan for review.
+
     Plan { plan: String },
-    /// Hand off to a specialist tool as a persistent activity.
+
     Handoff { tool: String },
-    /// Switch the root scope.
+
     Scope(crate::domain::context::Scope),
-    /// Show a snapshot dialog (system resources, git status).
+
     Snapshot { snapshot: String },
-    /// Open an existing activity tab.
+
     OpenActivity { id: String },
-    /// Insert into the shell and leave (simulated as a status line).
+
     Insert,
 }
 
-/// One row the root can show.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Item {
-    /// Stable identity for direct invocation and memory (`git.pull`).
     pub id: String,
     pub label: String,
     pub kind: Kind,
@@ -304,59 +279,57 @@ pub struct Item {
     pub scope: ScopeTag,
     pub risk: Risk,
     pub confirmation: Confirmation,
-    /// Plain-language sentence: what will happen.
+
     pub summary: String,
-    /// The exact command sequence, one per line.
+
     pub commands: Vec<String>,
-    /// What will change.
+
     pub effects: Vec<String>,
-    /// Reasons this row is relevant, strongest first.
+
     pub reasons: Vec<Reason>,
-    /// Extra words the search matches (intent phrases, resource names).
+
     pub keywords: Vec<String>,
-    /// Exact aliases that beat ranking.
+
     pub aliases: Vec<String>,
-    /// Aliases that apply only on the item's own domain page (`u` for Usage
-    /// inside Disk).
+
     pub page_aliases: Vec<String>,
     pub freshness: Freshness,
     pub args: Vec<ArgSpec>,
-    /// Alternative operations reachable from the alternatives menu.
+
     pub alternatives: Vec<Alternative>,
     pub launch: Launch,
-    /// Which Explore group the row belongs to (`Git`, `Disk`, …).
+
     pub group: &'static str,
-    /// Counts from usage memory, filled by the catalogue.
+
     pub used_here: u32,
     pub used_anywhere: u32,
-    /// Fixture instant of the last use here, if any.
+
     pub last_used_secs: Option<i64>,
     pub pinned: bool,
     pub hidden: bool,
-    /// The preferred specialist tool, when the user chose one.
+
     pub preferred_tool: Option<String>,
-    /// The exact executed specification; `commands` is its display form.
+
     pub exec: Vec<Command>,
-    /// What a successful run changes in the world.
+
     pub effect: Option<Effect>,
-    /// Members of a batch action: name, spec, effect, scope.
+
     pub batch: Vec<(String, Vec<Command>, Option<Effect>, ScopeTag)>,
     pub batch_mode: BatchMode,
-    /// Where the definition came from: provider, file and entry.
+
     pub provenance: String,
-    /// Trust binding for a contributed definition: (path, digest).
+
     pub trust_key: Option<(String, String)>,
-    /// Bounded listing note (`30 of 42 scripts`).
+
     pub cap_note: Option<String>,
-    /// Ranking score contributions filled by the catalogue.
+
     pub frecency: f64,
 }
 
-/// An alternative operation on the same resource (CONCEPT §6.5).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Alternative {
     pub label: String,
-    /// Item id the alternative maps to.
+
     pub item: String,
 }
 
@@ -399,7 +372,7 @@ impl Item {
             frecency: 0.0,
         }
     }
-    /// The typed specification; the display commands derive from it.
+
     pub fn exec(mut self, cmds: Vec<Command>) -> Self {
         self.commands = crate::domain::exec::displays(&cmds);
         self.exec = cmds;
@@ -427,7 +400,7 @@ impl Item {
         self.launch = Launch::Batch;
         self
     }
-    /// Every command this row would execute, batch members included.
+
     pub fn all_exec(&self) -> Vec<Command> {
         if self.batch.is_empty() {
             self.exec.clone()
@@ -494,20 +467,16 @@ impl Item {
         self
     }
 
-    /// The strongest reason, for the row.
     pub fn top_reason(&self) -> Option<&Reason> {
         self.reasons.iter().max_by_key(|r| r.signal)
     }
 
-    /// The strongest signal, or `Default`.
     pub fn signal(&self) -> Signal {
         self.top_reason()
             .map(|r| r.signal)
             .unwrap_or(Signal::Default)
     }
 
-    /// True when live state makes this a recommendation rather than a
-    /// merely available action.
     pub fn is_recommended(&self) -> bool {
         self.signal() >= Signal::LocalUse
     }

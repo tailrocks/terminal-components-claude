@@ -1,29 +1,29 @@
-//! Per-widget documentation (plan §5): `docs/components/<widget>.md` and
-//! its index are generated from the widgets themselves, so a page cannot
-//! drift from the code. Each documented widget gives a [`WidgetDoc`]
-//! (purpose, role, standards, knobs and its mouse table) and is built
-//! under the Desktop and Vim profiles to read its live [`Bindings`] (the
-//! keyboard table) and [`HasHints`] (hints by state).
-//!
-//! `cargo xtask docs components` rewrites the pages; the default test
-//! `docs_components_fresh` fails when a page differs from what the
-//! generator writes. S8b documents the widgets that have `Bindings`; later
-//! steps add theirs (S15 makes a `WidgetDoc` a `Component` requirement).
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::core::hints::{Binding, Bindings, HasHints, HintCx};
 use crate::core::id::WidgetId;
 use crate::core::list::NavProfile;
 use crate::widgets::keyhint::Hint;
 
-/// Which override layer a knob sits in (AGENTS.md "Every behaviour
-/// remains overridable").
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KnobLayer {
-    /// App-wide policy or profile ([`NavProfile`], the theme).
+
     Profile,
-    /// A per-widget field and its builder.
+
     Widget,
-    /// The widget's key map (user remapping).
+
     Keymap,
 }
 
@@ -37,17 +37,17 @@ impl KnobLayer {
     }
 }
 
-/// One setting of a widget.
+
 #[derive(Debug, Clone, Copy)]
 pub struct Knob {
     pub name: &'static str,
     pub default: &'static str,
     pub layer: KnobLayer,
-    /// The standard the default follows (empty: none named).
+
     pub standard: &'static str,
 }
 
-/// One row of a widget's mouse table: what each gesture does on `target`.
+
 #[derive(Debug, Clone, Copy)]
 pub struct MouseRow {
     pub target: &'static str,
@@ -58,37 +58,37 @@ pub struct MouseRow {
     pub wheel: &'static str,
 }
 
-/// What a widget's page says beyond its live keys and hints.
+
 #[derive(Debug, Clone, Copy)]
 pub struct WidgetDoc {
-    /// The type name (`ListBox`) and the page's file stem (`list_box`).
+
     pub name: &'static str,
     pub file: &'static str,
-    /// The WAI-ARIA role or pattern it follows (`listbox`).
+
     pub role: &'static str,
     pub purpose: &'static str,
-    /// `(name, url)` of each standard it follows.
+
     pub standards: &'static [(&'static str, &'static str)],
     pub knobs: &'static [Knob],
     pub mouse: &'static [MouseRow],
 }
 
-/// One state of a widget and the hints it shows then.
+
 pub type StateHints = (&'static str, Vec<Hint>);
 
-/// A documented widget: its doc and, per profile, its live key rows and
-/// its hints in each state.
+
+
 pub struct Documented {
     pub doc: &'static WidgetDoc,
-    /// The widget's key rows when built under `profile`.
+
     pub bindings: fn(NavProfile) -> Vec<Binding>,
-    /// `(state, hints)` of the widget built under `profile`.
+
     pub states: fn(NavProfile) -> Vec<StateHints>,
 }
 
 const ID: WidgetId = WidgetId::of("docs");
 
-/// Build under `profile`, restoring Desktop after.
+
 fn under<T>(profile: NavProfile, build: impl FnOnce() -> T) -> T {
     let before = NavProfile::current();
     profile.install();
@@ -101,7 +101,7 @@ fn hints_of(w: &dyn HasHints) -> Vec<Hint> {
     w.hints(&HintCx::default())
 }
 
-/// Every documented widget, in index order.
+
 pub fn documented() -> Vec<Documented> {
     use crate::widgets::grid::{CellKind, ColumnSpec, DataGrid};
     use crate::widgets::list::{ListBox, ListItem, SelectMode};
@@ -195,7 +195,7 @@ fn cell(s: &str) -> String {
     s.replace('|', "\\|")
 }
 
-/// The markdown page of `d`.
+
 pub fn page(d: &Documented) -> String {
     let doc = d.doc;
     let mut out = String::new();
@@ -207,7 +207,7 @@ pub fn page(d: &Documented) -> String {
         "## Purpose and role\n\n{}\n\nRole: `{}`.\n\n",
         doc.purpose, doc.role
     ));
-    // keyboard
+
     out.push_str("## Keyboard\n\n| Key (Desktop) | Key (Vim) | Action |\n|---|---|---|\n");
     let desk = (d.bindings)(NavProfile::Desktop);
     let vim = (d.bindings)(NavProfile::Vim);
@@ -238,7 +238,7 @@ pub fn page(d: &Documented) -> String {
             cell(a)
         ));
     }
-    // mouse
+
     out.push_str("\n## Mouse\n\n| Target | Click | Double click | Secondary click | Drag | Wheel |\n|---|---|---|---|---|---|\n");
     for m in doc.mouse {
         out.push_str(&format!(
@@ -251,7 +251,7 @@ pub fn page(d: &Documented) -> String {
             cell(m.wheel)
         ));
     }
-    // hints
+
     out.push_str("\n## Hints by state\n\n| State | Desktop | Vim |\n|---|---|---|\n");
     let line = |h: &[Hint]| {
         let s: Vec<String> = h
@@ -269,7 +269,7 @@ pub fn page(d: &Documented) -> String {
     for ((state, dh), (_, vh)) in ds.iter().zip(&vs) {
         out.push_str(&format!("| {} | {} | {} |\n", state, line(dh), line(vh)));
     }
-    // knobs
+
     out.push_str("\n## Knobs\n\n| Knob | Default | Layer | Standard |\n|---|---|---|---|\n");
     for k in doc.knobs {
         out.push_str(&format!(
@@ -284,7 +284,7 @@ pub fn page(d: &Documented) -> String {
             }
         ));
     }
-    // paths
+
     out.push_str("\n## Keyboard-only path\n\n");
     for a in &actions {
         out.push_str(&format!("- {}: {}\n", a, keys_for(&desk, a)));
@@ -303,7 +303,7 @@ pub fn page(d: &Documented) -> String {
     out
 }
 
-/// `docs/components/README.md`: the index of roles and standards.
+
 pub fn index(all: &[Documented]) -> String {
     let mut out = String::from(
         "<!-- Generated by `cargo xtask docs components` from `src/docs.rs`; do not edit. -->\n\n# Components\n\nOne page per widget, generated from its live key maps, hints and defaults (plan §5).\n\n| Widget | Role | Standards |\n|---|---|---|\n",
@@ -321,10 +321,10 @@ pub fn index(all: &[Documented]) -> String {
     out
 }
 
-/// Every generated file as `(path under docs/components, contents)`.
-/// The pages document every chord a component binds where the terminal
-/// delivers it: Alt chords are listed whatever terminal generates them
-/// (A29), so the pages are the same on every host.
+
+
+
+
 pub fn files() -> Vec<(String, String)> {
     crate::core::keyboard::set_alt_delivered(true);
     let all = documented();
@@ -336,7 +336,7 @@ pub fn files() -> Vec<(String, String)> {
     v
 }
 
-/// The widgets' [`WidgetDoc`]s.
+
 pub mod widget {
     use super::{Knob, KnobLayer, MouseRow, WidgetDoc};
 
@@ -569,8 +569,8 @@ mod tests {
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/components")
     }
 
-    /// The component pages match the generator; `UPDATE_DOCS=1` (what
-    /// `cargo xtask docs components` sets) rewrites them.
+
+
     #[test]
     fn docs_components_fresh() {
         let dir = dir();
@@ -593,10 +593,10 @@ mod tests {
         );
     }
 
-    /// The "no keyboard-only state" rule (plan §5, mouse model): every
-    /// documented widget gives both audiences a complete path, so each
-    /// page has key rows and mouse rows, and every widget that hints keys
-    /// in some state also has a mouse row.
+
+
+
+
     #[test]
     fn every_documented_widget_has_a_keyboard_and_a_mouse_path() {
         for d in documented() {

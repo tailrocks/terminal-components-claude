@@ -1,4 +1,4 @@
-//! Reads actual PTY bytes; all exports borrow one decoded immutable Frame.
+
 use std::io::{self, Read};
 
 fn main() -> anyhow::Result<()> {
@@ -11,8 +11,8 @@ fn main() -> anyhow::Result<()> {
     )?;
     frame.validate()?;
     let text = frame.text();
-    // This minimal fixture HTML is a serialization-origin witness only. It
-    // does not claim production HTML/PNG renderer or font-fidelity coverage.
+
+
     let escaped = text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
     println!("{}", serde_json::json!({
         "schema": "tc-atomic-decoded/v1",

@@ -1,10 +1,10 @@
-//! [`DataTable`] as a [`Specimen`]: a States grid draws a short copy of a
-//! table (its header and first rows) in a forced state.
-//!
-//! The sample keeps the table's own columns, cells and settings and sets
-//! only what the state is about: the hovered or pressed row (row 2), the
-//! chosen rows, a disabled row, an open cell edit, a cell error, no rows,
-//! or a cell too long for its column.
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -16,17 +16,17 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::specimen::{Specimen, SpecimenState};
 use crate::widgets::table::DataTable;
 
-/// Rows a sample keeps.
+
 const SAMPLE_ROWS: usize = 3;
 
 impl DataTable {
-    /// The first editable column, for the editing and error samples.
+
     fn sample_edit_col(&self) -> Option<usize> {
         self.columns.iter().position(|c| c.editable)
     }
 
-    /// The first column that holds text (not a numeric column), for the
-    /// overflow sample.
+
+
     fn sample_text_col(&self) -> usize {
         (0..self.columns.len())
             .find(|&c| !self.numeric.get(c).copied().unwrap_or(false))
@@ -50,7 +50,7 @@ impl Specimen for DataTable {
         }
     }
 
-    /// The header and the sample rows (the empty text in one).
+
     fn specimen_height(&self, state: SpecimenState) -> u16 {
         if state == SpecimenState::Empty {
             2
@@ -77,7 +77,7 @@ impl Specimen for DataTable {
         t.selection.clear();
         t.disabled.clear();
         t.cursor_row = 0;
-        // the pointer rests on the second row
+
         let row = 1.min(t.rows.len().saturating_sub(1));
         let v = state.visual();
         if v.hovered {
@@ -116,7 +116,7 @@ impl Specimen for DataTable {
             _ => {}
         }
         t.render(area, buf, ctx, bg);
-        // samples never move the terminal cursor
+
         ctx.cursor = None;
     }
 }

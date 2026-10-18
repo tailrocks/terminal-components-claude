@@ -1,4 +1,4 @@
-//! Testing-only observer, inserted only into a disposable pinned-main copy.
+
 use std::cell::{Cell, RefCell};
 use std::time::Instant;
 
@@ -38,7 +38,7 @@ impl Probe {
     }
     pub fn mode(&self) -> Mode { self.mode.get() }
     pub fn visit(&self, id: u8) {
-        // Independent membership witness is outside the timed entry interval.
+
         self.witness.borrow_mut().push(id);
     }
     pub fn enter(&self, id: u8) -> Guard<'_> {

@@ -181,7 +181,7 @@ fn disabled_choices_reject_keyboard_and_mouse_changes() {
 
 #[test]
 fn checked_marks_take_the_accent_only_while_the_control_has_focus() {
-    let theme = Theme::junie().with_inactive_selection(junie_tui::theme::InactiveSelection::None); // the focus-only look (owner default is Accent)
+    let theme = Theme::junie().with_inactive_selection(junie_tui::theme::InactiveSelection::None);
     let id = WidgetId::of("test.checked");
     let area = Rect::new(0, 0, 20, 3);
     let draw = |focus: Option<WidgetId>, which: u8| {

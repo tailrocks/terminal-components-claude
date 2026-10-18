@@ -1,16 +1,16 @@
-//! Split handle: the gap strip between two panes of a [`Split`]. Mouse-only
-//! affordance (keyboard resize stays a chord on the owning pane). Rest,
-//! hover and pressed walk the theme's seam ladder ([`Kind::Seam`]): a thin
-//! rule in the divider grey at rest, a heavy rule in a brighter grey under
-//! the pointer, the heavy rule in the phosphor accent while dragged. The
-//! glyph swap plus the monochrome state modifiers keep the three states
-//! apart without colour.
-//!
-//! Pointer behaviour follows desktop split views: the press target is the
-//! seam padded by [`Splitter::hit_pad`] cells on each side (a 1-cell rule
-//! is a hard target), a drag moves the seam cell by cell and keeps the
-//! offset the pointer grabbed it at, and a double-click restores the
-//! starting ratio ([`SeamDoubleClick`]).
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
@@ -22,14 +22,14 @@ use crate::theme::Kind;
 use crate::ui::ctx::{RenderCtx, VisualState};
 use crate::ui::layout::{Split, SplitDir};
 
-/// What a double-click on the seam does.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SeamDoubleClick {
-    /// Restore the split's starting ratio ([`Split::reset`]), as a
-    /// double-click on a macOS or Windows split divider restores it.
+
+
     #[default]
     Reset,
-    /// Nothing.
+
     Ignore,
 }
 
@@ -37,15 +37,15 @@ pub enum SeamDoubleClick {
 pub struct Splitter {
     pub id: WidgetId,
     pub dir: SplitDir,
-    /// The drawn seam strip.
+
     pub area: Rect,
-    /// Extra cells on each side of the seam, across the drag axis, that
-    /// also take the press where no pane control claims them. Default 1.
+
+
     pub hit_pad: u16,
-    /// Double-click policy. Default [`SeamDoubleClick::Reset`].
+
     pub double_click: SeamDoubleClick,
-    /// Pointer offset from the split's gap start when the drag started,
-    /// so the seam keeps its place under the pointer instead of jumping.
+
+
     grab: Option<i32>,
 }
 
@@ -71,8 +71,8 @@ impl Splitter {
         self
     }
 
-    /// The region that takes presses: the drawn seam widened by
-    /// [`Self::hit_pad`] across the drag axis, clipped to `clip`.
+
+
     pub fn hit_area(&self, clip: Rect) -> Rect {
         if self.area.is_empty() {
             return Rect::ZERO;
@@ -91,14 +91,14 @@ impl Splitter {
         r.intersection(clip)
     }
 
-    /// Draw the handle in `area` (the split's gap strip) and register it.
-    /// Draws nothing when the strip is empty (gap 0 or maximised).
+
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         self.render_held(area, buf, ctx, bg, false);
     }
 
-    /// [`Self::render`] for an owner that tracks the drag itself: `held`
-    /// shows the pressed seam even when the pointer left the strip.
+
+
     pub fn render_held(
         &mut self,
         area: Rect,
@@ -109,10 +109,10 @@ impl Splitter {
     ) {
         let area = area.intersection(*buf.area());
         self.area = area;
-        // a drag keeps the seam pressed while the pointer runs ahead of it
+
         let pressed = held || ctx.interaction.pressed == Some(self.id);
         if !pressed {
-            // the drag is over: the next one measures its own grab
+
             self.grab = None;
         }
         if area.is_empty() {
@@ -135,8 +135,8 @@ impl Splitter {
         for pos in area.positions() {
             buf.set_string(pos.x, pos.y, glyph, style);
         }
-        // the padding only takes cells no control of the panes claims, so
-        // it never steals a scrollbar or a text row next to the seam
+
+
         let hit = self.hit_area(*buf.area());
         ctx.clickable_under(self.id, hit);
         ctx.clickable(self.id, area);
@@ -159,15 +159,15 @@ impl Splitter {
         at.clamp(-pad, (span as i32 - 1).max(0) + pad)
     }
 
-    /// A press on the handle: remember where on the seam it landed, so
-    /// the drag that follows keeps that offset.
+
+
     pub fn on_press(&mut self, split: &Split, container: Rect, gap: u16, pos: Position) {
         self.grab = Some(self.grab_at(split, container, gap, pos));
     }
 
-    /// A drag with this handle pressed: move the seam with the pointer,
-    /// cell by cell, keeping the offset the press grabbed it at (measured
-    /// on the first drag when the owner did not report the press).
+
+
+
     pub fn on_drag(
         &mut self,
         split: &mut Split,
@@ -195,8 +195,8 @@ impl Splitter {
         }
     }
 
-    /// A completed click on the handle with its multi-click `count`: a
-    /// double-click applies [`Self::double_click`].
+
+
     pub fn on_click(&mut self, split: &mut Split, count: u8) -> Outcome {
         self.grab = None;
         if count != 2 {
@@ -217,8 +217,8 @@ impl Splitter {
     }
 }
 
-/// In a States grid a seam is drawn three rows tall (a vertical seam) or
-/// a dozen cells wide (a horizontal one), in rest, hover and pressed.
+
+
 impl crate::ui::specimen::Specimen for Splitter {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -301,10 +301,10 @@ mod tests {
         }
     }
 
-    /// Rest is the thin divider in the divider grey, hover the heavy rule
-    /// in a brighter grey, a drag the heavy rule in the phosphor accent
-    /// (the scrollbar thumb's pressed ink), in both directions and at
-    /// every colour level; monochrome keeps a modifier per state.
+
+
+
+
     #[test]
     fn seam_states_are_thin_grey_heavy_grey_and_heavy_accent() {
         let id = WidgetId::of("seam");
@@ -371,8 +371,8 @@ mod tests {
         hits
     }
 
-    /// The press target is wider than the 1-cell rule (it was the rule
-    /// alone).
+
+
     #[test]
     fn the_seam_takes_presses_one_cell_either_side() {
         let id = WidgetId::of("seam");
@@ -385,8 +385,8 @@ mod tests {
             assert_eq!(hits.hit(Position::new(dx, 2)), Some(id), "x={dx}");
         }
         assert_eq!(hits.hit(Position::new(x + 2, 2)), None);
-        // a pane control next to the seam keeps its cells, whenever it
-        // registers
+
+
         let mut hits = render_seam(&mut seam, &split, container);
         let bar = WidgetId::of("bar");
         hits.register(bar, Rect::new(x - 1, 0, 1, 5));
@@ -397,26 +397,26 @@ mod tests {
         assert_eq!(hits.hit(Position::new(x - 1, 2)), None, "hit_pad(0)");
     }
 
-    /// A drag moves the seam by exactly the cells the pointer moved, from
-    /// wherever on the padded seam it was grabbed (it snapped the seam to
-    /// the pointer and to whole-percent steps).
+
+
+
     #[test]
     fn a_drag_keeps_the_grab_offset_and_moves_cell_by_cell() {
         let id = WidgetId::of("seam");
         let mut split = Split::new(50, 4, 4);
-        // 61 usable cells: whole percents cannot place every cell
+
         let container = Rect::new(0, 0, 62, 5);
         let mut seam = Splitter::new(id, SplitDir::Horizontal);
         render_seam(&mut seam, &split, container);
         let x0 = split.handle(SplitDir::Horizontal, container, 1).x;
-        // grab one cell right of the rule
+
         seam.on_press(&split, container, 1, Position::new(x0 + 1, 2));
         for step in 1..=7u16 {
             seam.on_drag(&mut split, container, 1, Position::new(x0 + 1 + step, 2));
             let x = split.handle(SplitDir::Horizontal, container, 1).x;
             assert_eq!(x, x0 + step, "step {step}");
         }
-        // without a reported press the first drag measures the grab
+
         let mut split = Split::new(50, 4, 4);
         let mut seam = Splitter::new(id, SplitDir::Horizontal);
         render_seam(&mut seam, &split, container);
@@ -426,7 +426,7 @@ mod tests {
         assert_eq!(split.handle(SplitDir::Horizontal, container, 1).x, x0 - 3);
     }
 
-    /// A double-click restores the starting ratio; a policy turns it off.
+
     #[test]
     fn a_double_click_resets_the_split() {
         let id = WidgetId::of("seam");

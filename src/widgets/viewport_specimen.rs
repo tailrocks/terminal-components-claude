@@ -1,9 +1,9 @@
-//! [`TextViewport`], [`DiffView`] and [`StepRail`] as [`Specimen`]s: a
-//! States grid draws a short copy of each in a forced state.
-//!
-//! The samples keep their lines, files and steps and set only what the
-//! state is about: a selection, no content, a line wider than the column,
-//! or a narrow slot (where a review diff falls back to unified).
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -16,7 +16,7 @@ use crate::widgets::diff::DiffView;
 use crate::widgets::steps::StepRail;
 use crate::widgets::viewport::{Span, TextViewport};
 
-/// Rows a viewport or diff sample takes.
+
 const SAMPLE_ROWS: u16 = 4;
 
 impl Specimen for TextViewport {
@@ -96,7 +96,7 @@ impl Specimen for StepRail {
         use SpecimenState::*;
         match state {
             Rest | Focused | Narrow => true,
-            // a selectable rail shows its cursor row
+
             Selected => self.selectable,
             _ => false,
         }

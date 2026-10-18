@@ -1,26 +1,26 @@
-//! Live interactions for `Drive::Live` and `Drive::Resize` rows: the steps
-//! the key DSL cannot express (hover, wheel, drag, right click, press
-//! without release, resize). Coordinates are always resolved from on-screen
-//! text at capture time, never hardcoded, so a layout change shows up as a
-//! frame diff rather than a mis-click.
-//!
-//! The functions ported from the retired `pointer.rs`, `holla.rs` and
-//! `audit.rs` keep their exact behaviour (needles, notches, waits).
+
+
+
+
+
+
+
+
 
 use std::time::Duration;
 
 use super::{Dismiss, Pointer};
 use crate::support::{self, Case, MouseButton, Scroll, Session};
 
-/// First occurrence of `needle` as `(row, col)`, waiting until it appears.
-/// The pointer calls take `(col, row)`.
+
+
 pub fn find(s: &mut Session, needle: &str) -> (u16, u16) {
     s.find(needle).unwrap_or_else(|e| panic!("{e}"))
 }
 
-/// Bare-pointer move: a button-less motion report. Every app enables SGR
-/// any-motion tracking (`?1003h` + `?1006h`); tuiscotti refuses the move
-/// otherwise.
+
+
+
 pub fn mouse_move(s: &mut Session, col: u16, row: u16) {
     s.mouse_move(col, row).expect("mouse move report");
 }
@@ -30,7 +30,7 @@ pub fn hover_over(s: &mut Session, needle: &str) {
     mouse_move(s, col + 2, row);
 }
 
-/// Apply a row's [`Pointer`] step, two cells into the target text.
+
 pub fn pointer(s: &mut Session, pointer: Pointer) {
     let (needle, button) = match pointer {
         Pointer::Hover(needle) => {
@@ -39,7 +39,7 @@ pub fn pointer(s: &mut Session, pointer: Pointer) {
         }
         Pointer::Press(needle) => {
             let (row, col) = find(s, needle);
-            // Held: no release follows, so the pressed state stays.
+
             s.mouse_down(MouseButton::Left, col + 2, row)
                 .expect("mouse down report");
             std::thread::sleep(Duration::from_millis(120));
@@ -53,8 +53,8 @@ pub fn pointer(s: &mut Session, pointer: Pointer) {
     std::thread::sleep(Duration::from_millis(120));
 }
 
-/// Dismiss an open overlay: `Esc`, or a primary click on the bottom-right
-/// cell (outside any centred or anchored popup).
+
+
 pub fn dismiss(s: &mut Session, dismiss: Dismiss, cols: u16, rows: u16) {
     match dismiss {
         Dismiss::Esc => s.send_key("escape").expect("escape"),
@@ -65,9 +65,9 @@ pub fn dismiss(s: &mut Session, dismiss: Dismiss, cols: u16, rows: u16) {
     std::thread::sleep(Duration::from_millis(120));
 }
 
-/// One wheel notch, paced like a send step. Each notch must land before
-/// the next is sent: a capture waits only for an answer to the last
-/// input, and under load that answer can be the first notch's.
+
+
+
 fn notch(s: &mut Session, col: u16, row: u16, dir: Scroll) {
     s.scroll(col, row, dir).expect("wheel scroll");
     std::thread::sleep(Duration::from_millis(120));
@@ -75,7 +75,7 @@ fn notch(s: &mut Session, col: u16, row: u16, dir: Scroll) {
         .unwrap_or_else(|e| panic!("wheel notch at ({col}, {row}): {e}"));
 }
 
-/// `notches` wheel-down steps over `needle`'s cell, paced like a send step.
+
 pub fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     let (row, col) = find(s, needle);
     for _ in 0..notches {
@@ -83,8 +83,8 @@ pub fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     }
 }
 
-/// Wheel-down on the row below `needle` (a blank line with no child
-/// region, so the list's own scroll region receives it).
+
+
 pub fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
     let (row, col) = find(s, needle);
     for _ in 0..notches {
@@ -92,8 +92,8 @@ pub fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
     }
 }
 
-/// `notches` wheel-up steps over `needle`'s cell: tail-following surfaces
-/// move off the tail and reveal the bottom fade.
+
+
 pub fn wheel_up(s: &mut Session, needle: &str, notches: u32) {
     let (row, col) = find(s, needle);
     for _ in 0..notches {
@@ -107,16 +107,16 @@ pub fn resize_geometry(s: &mut Session, cols: u16, rows: u16) {
         .unwrap_or_else(|e| panic!("never reached {cols}x{rows}: {e:#}"));
 }
 
-/// Resize, then wait out the post-resize redraw: the emulator blanks or
-/// scrolls the alt-screen and reports the new geometry before the app
-/// redraws (~300 ms), so settle could otherwise gate the blank frame.
+
+
+
 pub fn resize_to(s: &mut Session, cols: u16, rows: u16) {
     resize_geometry(s, cols, rows);
     std::thread::sleep(Duration::from_millis(700));
 }
 
-/// Generic resize capture: boot at the start geometry, resize to the
-/// target, wait for the boot needle again, settle, gate.
+
+
 pub fn resize_case(case: &Case, cols: u16, rows: u16) {
     let mut s = support::spawn_boot(case);
     resize_to(&mut s, cols, rows);
@@ -124,9 +124,9 @@ pub fn resize_case(case: &Case, cols: u16, rows: u16) {
     support::settle_and_gate(&mut s, &case.name);
 }
 
-/// Showcase overview resize: shrinking keeps the bottom of the old grid and
-/// growing reports the new size before the app paints the extra cells, so a
-/// no-op key forces an event-loop tick that repaints the header.
+
+
+
 pub fn showcase_overview_resize(case: &Case, cols: u16, rows: u16) {
     let mut s = support::spawn_boot(case);
     resize_geometry(&mut s, cols, rows);
@@ -136,7 +136,7 @@ pub fn showcase_overview_resize(case: &Case, cols: u16, rows: u16) {
     support::settle_and_gate(&mut s, &case.name);
 }
 
-// ------------------------------------------------------------- showcase --
+
 
 pub fn hover_buttons(s: &mut Session, _: &Case) {
     hover_over(s, "Preview");
@@ -159,16 +159,16 @@ pub fn diff_drag_select(s: &mut Session, _: &Case) {
     s.drag(col, row, col + 11, row).expect("drag select");
 }
 
-/// Right (secondary) click on a session row opens its context menu, titled
-/// with the row label (chrome.rs `PageEvent::Secondary`).
+
+
 pub fn chrome_context(s: &mut Session, _: &Case) {
     let (row, col) = find(s, "Codex (Primary)");
     s.click_with(MouseButton::Right, col, row)
         .expect("right click");
 }
 
-/// Two wheel notches over the lists page's `Python` row (inspector
-/// scrolled, lists wheel-fade).
+
+
 pub fn wheel_python(s: &mut Session, _: &Case) {
     wheel_down(s, "Python", 2);
 }
@@ -217,20 +217,20 @@ pub fn terminal_scrollback(s: &mut Session, _: &Case) {
     wheel_up(s, "#4 RUN cargo build", 2);
 }
 
-/// Nothing after boot + steps (a live row with the steps as the whole
-/// interaction).
+
+
 pub fn none(_: &mut Session, _: &Case) {}
 
-// ------------------------------------------------------------- tablepro --
+
 
 pub fn table_wheel(s: &mut Session, _: &Case) {
     wheel_down(s, "9157cff3", 3);
 }
 
-/// 120x40 → target exercises the <100-col explorer drawer reflow live.
-/// `wait:S audit` (row steps) pins the asynchronous schema load before the
-/// resize; the status wait runs after the reflow repaint, so the gated frame
-/// is the steady state after the transient 5 s `Connected to …` status.
+
+
+
+
 pub fn tablepro_workbench_shrunk(case: &Case, cols: u16, rows: u16) {
     let mut s = support::spawn_boot(case);
     resize_to(&mut s, cols, rows);
@@ -240,9 +240,9 @@ pub fn tablepro_workbench_shrunk(case: &Case, cols: u16, rows: u16) {
     support::settle_and_gate(&mut s, &case.name);
 }
 
-/// 80x24 → target: the schema-load marker is below the fold at 80x24, so
-/// the waits run after the grow (`No results yet` only in the docked wide
-/// layout, `S audit` once the tree is loaded), then the status-free state.
+
+
+
 pub fn tablepro_workbench_grown(case: &Case, cols: u16, rows: u16) {
     let mut s = support::spawn_boot(case);
     resize_to(&mut s, cols, rows);
@@ -259,12 +259,12 @@ pub fn tablepro_workbench_grown(case: &Case, cols: u16, rows: u16) {
     support::settle_and_gate(&mut s, &case.name);
 }
 
-// --------------------------------------------------------------- jackin --
 
-/// accounts-mixed never finishes its boot refresh under paused motion, so a
-/// repaint lands every 500 ms. The Accounts scroll badge (`· 1–11 of 23`)
-/// first appears in the t≈500 ms repaint, while settle can fire at t≈400.
-/// Where the list overflows (rows <= 30) wait for the badge itself.
+
+
+
+
+
 pub fn accounts_badge(s: &mut Session, case: &Case) {
     if case.rows <= 30 {
         s.wait_for_text("of 23")
@@ -272,9 +272,9 @@ pub fn accounts_badge(s: &mut Session, case: &Case) {
     }
 }
 
-/// The capsule's brand lockup opens the application menu, whose first
-/// item opens About: the capsule's Help menu has no About entry and the
-/// brand is reached only by pointer.
+
+
+
 pub fn capsule_brand_about(s: &mut Session, _: &Case) {
     pointer(s, Pointer::Click("jackin❯"));
     s.wait_for_text("About jackin-preview")
@@ -282,29 +282,29 @@ pub fn capsule_brand_about(s: &mut Session, _: &Case) {
     s.send_key("enter").expect("enter");
 }
 
-// ---------------------------------------------------------------- holla --
+
 
 pub fn browser_wheel(s: &mut Session, _: &Case) {
     wheel_down(s, "line 5", 2);
 }
 
-/// The trust definition is the scrollable body (review.rs TRUST_BODY); two
-/// notches put the fade at its top edge. At 24 rows and fewer the facts
-/// fill the page and nothing there scrolls: a wheel over `Trust scope`
-/// drew nothing (the per-notch answer wait timed out), so those captures
-/// are the unscrolled page and send no notch (`mouse.md`, flake audit
-/// row).
+
+
+
+
+
+
 pub fn trust_body_wheel(s: &mut Session, case: &Case) {
     if case.rows > 24 {
         wheel_down(s, "id = \"deploy.preview\"", 2);
     }
 }
 
-/// Rows are clickable children and shadow the list's scroll region, so
-/// the wheel lands on the blank line below the needle. One notch: after
-/// it scrolls, that cell is a row, so a second notch sent on its own did
-/// nothing while two coalesced into one burst scrolled twice (the
-/// approved frame is the one-notch state; `mouse.md`, flake audit row).
+
+
+
+
+
 pub fn cleanup_list_wheel(s: &mut Session, case: &Case) {
     if case.rows <= 24 {
         wheel_below(s, "Xcode DerivedData", 1);

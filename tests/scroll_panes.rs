@@ -1,13 +1,13 @@
-//! Every scrolling widget reaches its bars through one path: the pane it
-//! embeds (`ScrollPane`) behind `Scrollable`. For each widget, drawn with
-//! more rows (or columns) than fit, a press on the bare end of each bar
-//! pages toward the pointer, and a press on the thumb grabs it so a drag
-//! to the far end of the track reaches the end of the content. The bar is
-//! found the way the pointer layer finds it: from the hits of the frame.
-//!
-//! Before S3, Picker, Completion, TextArea, HelpOverlay, InfoDialog and
-//! FormDialog drew bars that lit up on hover but had no handler (mouse
-//! audit M17).
+
+
+
+
+
+
+
+
+
+
 
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
@@ -41,7 +41,7 @@ use ratatui::layout::{Constraint, Position, Rect};
 
 const SCREEN: Rect = Rect::new(0, 0, 60, 16);
 
-/// Draw one frame through `draw` (overlays flushed) and return its hits.
+
 fn frame(draw: impl FnOnce(Rect, &mut Buffer, &mut RenderCtx)) -> HitRegistry {
     let theme = Theme::junie();
     let mut hits = HitRegistry::default();
@@ -55,7 +55,7 @@ fn frame(draw: impl FnOnce(Rect, &mut Buffer, &mut RenderCtx)) -> HitRegistry {
     hits
 }
 
-/// The bar the pointer layer would grab for `owner` on `axis`.
+
 fn bar(hits: &HitRegistry, owner: WidgetId, axis: Axis) -> Bar {
     let id = match axis {
         Axis::Vertical => scrollbar::id_for(owner),
@@ -72,8 +72,8 @@ fn state(w: &mut dyn Scrollable, axis: Axis) -> ScrollState {
     *w.pane().axis(axis)
 }
 
-/// Press the far end of the track: one page toward the pointer. Then
-/// grab the thumb and drag it past the far end: the end of the content.
+
+
 fn press_and_drag(name: &str, w: &mut dyn Scrollable, bar: Bar) {
     let axis = bar.axis;
     let t = bar.track;
@@ -93,7 +93,7 @@ fn press_and_drag(name: &str, w: &mut dyn Scrollable, bar: Bar) {
         "{name}: one page toward the pointer (TrackClick::Page)"
     );
     w.pane().release();
-    // back to the top, then grab the thumb and drag it to the far end
+
     w.pane().axis(axis).scroll_to(0);
     let (start, _) = state(w, axis).thumb(len);
     let thumb = match axis {
@@ -194,8 +194,8 @@ fn tables_and_grids_page_and_drag_both_bars() {
     }
 }
 
-/// A notch of any size moves one column; a table or grid whose columns
-/// all fit leaves the notch to its owner.
+
+
 #[test]
 fn tables_and_grids_step_one_column_per_sideways_notch() {
     let mut t = wide_table();
@@ -215,7 +215,7 @@ fn tables_and_grids_step_one_column_per_sideways_notch() {
     assert_eq!(g.wheel(Axis::Horizontal, 3).outcome(), Outcome::Changed);
     assert_eq!(g.scroll.h.offset, 1);
 
-    // every column fits: the notch is not the table's
+
     let cols = vec![Column::new("a", Constraint::Length(4))];
     let mut narrow = DataTable::new(WidgetId::of("n"), cols, vec![vec![Cell::new("x")]]);
     frame(|a, b, c| narrow.render(a, b, c, Theme::junie().surface));
@@ -225,7 +225,7 @@ fn tables_and_grids_step_one_column_per_sideways_notch() {
     );
 }
 
-/// Draw one frame into a buffer and return its text, one line per row.
+
 fn screen(draw: impl FnOnce(Rect, &mut Buffer, &mut RenderCtx)) -> Vec<String> {
     let theme = Theme::junie();
     let mut hits = HitRegistry::default();
@@ -245,7 +245,7 @@ fn screen(draw: impl FnOnce(Rect, &mut Buffer, &mut RenderCtx)) -> Vec<String> {
         .collect()
 }
 
-/// Narrow columns first, then wider ones, then one wider than the view.
+
 const STEP_WIDTHS: [u16; 10] = [6, 6, 6, 6, 6, 6, 30, 30, 40, 70];
 
 fn right() -> Key {
@@ -255,11 +255,11 @@ fn right() -> Key {
     }
 }
 
-/// After each Right the cursor column is drawn whole: it lies in the
-/// columns that fit, or (wider than the view) starts the view, and its
-/// header is on screen. Before T3 the offset was worked out from the
-/// previous offset's column count, so the move onto the 30-cell column
-/// left it off screen.
+
+
+
+
+
 fn assert_cursor_column_whole(name: &str, offset: usize, fit: usize, cursor: usize, top: &str) {
     assert!(
         offset <= cursor && (cursor < offset + fit || cursor == offset),
@@ -327,8 +327,8 @@ fn moving_right_keeps_the_grid_cursor_column_whole() {
     }
 }
 
-/// A sideways wheel after a keyboard move is the user's: the next frame
-/// does not pull the cursor column back into view.
+
+
 #[test]
 fn a_sideways_notch_after_a_move_is_not_undone() {
     let mut t = wide_table().cell_nav(true);
@@ -461,9 +461,9 @@ fn modal_bodies_page_and_drag_their_bars() {
     press_and_drag("Dialog", &mut w, b);
 }
 
-/// A click routed to a modal's own bar id pages its body: the info dialog
-/// mapped it through a track that was not the one drawn, and the form
-/// dialog ignored it.
+
+
+
 #[test]
 fn a_click_on_a_modal_bar_pages_the_body_it_was_drawn_for() {
     let mut focus = Focus::default();
@@ -491,9 +491,9 @@ fn a_click_on_a_modal_bar_pages_the_body_it_was_drawn_for() {
     assert_eq!(w.scroll.offset, view.min(w.scroll.max_offset()));
 }
 
-/// A notch that cannot move the view is consumed without a repaint, in
-/// the help overlay, the info dialog and the form dialog alike (they
-/// reported a change for every notch).
+
+
+
 #[test]
 fn a_boundary_notch_in_a_modal_body_is_consumed_without_a_repaint() {
     let mut w = help();
@@ -524,18 +524,18 @@ fn a_boundary_notch_in_a_modal_body_is_consumed_without_a_repaint() {
     assert_eq!(w.wheel(Axis::Vertical, 1).outcome(), Outcome::Changed);
 }
 
-/// The last row a pane shows, after drawing.
+
 fn last_visible(w: &mut dyn Scrollable) -> usize {
     let v = state(w, Axis::Vertical);
     assert!(v.overflows());
     v.offset + v.viewport_len - 1
 }
 
-/// A click on the last visible row puts the cursor there and leaves the
-/// view alone: the default row of context (`ScrollState::context`, SVg9)
-/// is for keyboard moves. Pointer moves reveal exactly
-/// (`ScrollState::pointer_move`), so the content never shifts under the
-/// pointer between the two clicks of a double click.
+
+
+
+
+
 #[test]
 fn a_click_on_the_last_visible_row_never_scrolls_it_away() {
     let bg = Theme::junie().surface;
@@ -583,7 +583,7 @@ fn a_click_on_the_last_visible_row_never_scrolls_it_away() {
     let id = g.cell_id(row, 0);
     g.on_click(id, Position::new(0, 0));
     assert_eq!((g.cursor.0, g.scroll.offset), (row, 0), "DataGrid");
-    // a keyboard move to the next row keeps one row of context below it
+
     g.on_key(&junie_tui::core::event::Key {
         code: ratatui::crossterm::event::KeyCode::Down,
         mods: ratatui::crossterm::event::KeyModifiers::NONE,

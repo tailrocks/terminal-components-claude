@@ -1,14 +1,7 @@
-//! Fixture state for the priority stack: mise, Git and GitHub, Docker, the
-//! system snapshot, disk and cleanup candidates, PostgreSQL, SSH, Debian
-//! packages, and the user's ranking memory. Plain data; the catalogue turns
-//! it into rows and the simulation advances it.
-
-// ------------------------------------------------------------------ git
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GitState {
     pub path: String,
-    /// `None` while detached.
+
     pub branch: Option<String>,
     pub head_short: String,
     pub primary: String,
@@ -22,30 +15,29 @@ pub struct GitState {
     pub stash: u32,
     pub remotes: Vec<String>,
     pub submodule: bool,
-    /// Worktree of another checkout: deduplicated in bulk plans.
+
     pub worktree_of: Option<String>,
-    /// `rebase`, `merge`, `cherry-pick` in progress.
+
     pub in_progress: Option<String>,
     pub modified: Vec<String>,
     pub diverged: bool,
-    /// `.git` is a file (a worktree or submodule) rather than a directory.
+
     pub git_file: bool,
-    /// Where the primary branch came from: `origin/HEAD`, a local `main`
-    /// or `master` fallback, or nothing.
+
     pub default_from: Option<&'static str>,
-    /// Branches merged into the primary branch (other than current/primary).
+
     pub merged: Vec<String>,
-    /// Branches checked out in another worktree: Git refuses `-d` for them.
+
     pub occupied: Vec<String>,
-    /// Remote name → URL; a `gitlab` remote enables the mirror push.
+
     pub remote_urls: Vec<(String, String)>,
-    /// Push is rejected by the remote with this reason.
+
     pub push_rejected: Option<String>,
-    /// The configured pull strategy: `ff-only`, `merge` or `rebase`.
+
     pub pull_config: &'static str,
-    /// Git itself fails on this repository (corrupt, missing binary here).
+
     pub command_failure: Option<String>,
-    /// The repository has merge conflicts in flight after a non-ff pull.
+
     pub gc_needed: bool,
 }
 
@@ -96,11 +88,6 @@ impl GitState {
         self.remote_urls.iter().any(|(n, _)| n == name)
     }
 
-    /// Merged-branch candidates: sorted unique, current and primary
-    /// excluded, capped at 30 with the total (OP13).
-    /// Merged branches that may be deleted: never the current or primary
-    /// branch, never one checked out in a worktree (`+ name` in git's
-    /// listing, or named in `occupied`).
     pub fn merged_candidates(&self) -> (Vec<String>, usize) {
         let mut v: Vec<String> = self
             .merged
@@ -125,7 +112,6 @@ impl GitState {
         self.staged + self.unstaged
     }
 
-    /// Why an automatic pull or switch is blocked, if it is.
     pub fn block_reason(&self) -> Option<String> {
         if self.conflicts > 0 {
             return Some(format!("{} conflicting files", self.conflicts));
@@ -151,7 +137,6 @@ impl GitState {
         None
     }
 
-    /// `main ↓3 • 4` for the status bar.
     pub fn summary(&self) -> String {
         let head = self.head_label();
         let state = self.state_summary();
@@ -162,7 +147,6 @@ impl GitState {
         }
     }
 
-    /// The branch name or the detached head.
     pub fn head_label(&self) -> String {
         match &self.branch {
             Some(b) => b.clone(),
@@ -170,10 +154,6 @@ impl GitState {
         }
     }
 
-    /// The state after the branch name as status-bar parts, each in the
-    /// tone of what it says: the sync counts `↓3 ↑1` are information, the
-    /// dirty count `• 5` and an operation in progress need attention, and
-    /// conflicts are an error. Empty when clean and in sync.
     pub fn state_parts(&self) -> Vec<(String, junie_tui::theme::Tone)> {
         use junie_tui::theme::Tone;
         let mut v = vec![];
@@ -207,8 +187,6 @@ impl GitState {
         v
     }
 
-    /// The state after the branch name: `↓3 ↑1 • 5 · rebase`, empty when
-    /// clean and in sync. This is the part that earns the warning tone.
     pub fn state_summary(&self) -> String {
         let mut s = String::new();
         if self.behind > 0 {
@@ -226,7 +204,6 @@ impl GitState {
         s.trim_start().to_owned()
     }
 
-    /// The porcelain status line Holla would run.
     pub fn status_cmd(&self) -> String {
         format!(
             "git -C {} status --porcelain=v2 --branch --show-stash",
@@ -234,8 +211,6 @@ impl GitState {
         )
     }
 }
-
-// ------------------------------------------------------------------ github
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GithubRepo {
@@ -256,8 +231,6 @@ pub struct GithubState {
     pub repos: Vec<GithubRepo>,
     pub protocol: String,
 }
-
-// ------------------------------------------------------------------ docker
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Container {
@@ -290,7 +263,6 @@ pub struct Compose {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DockerState {
-    /// `Err(reason)` when the daemon cannot be reached.
     pub daemon: Result<(), String>,
     pub containers: Vec<Container>,
     pub images: u32,
@@ -301,11 +273,11 @@ pub struct DockerState {
     pub builder_cache_gb: f32,
     pub reclaimable_gb: f32,
     pub compose: Option<Compose>,
-    /// Times the host-wide cleanup ran on this host.
+
     pub cleanup_uses: u32,
-    /// The Compose plugin is installed.
+
     pub compose_plugin: bool,
-    /// A stage of a multi-step operation fails: `stop`, `rm`, `images`…
+
     pub fail_stage: Option<String>,
 }
 
@@ -344,13 +316,10 @@ impl DockerState {
     }
 }
 
-// ------------------------------------------------------------------ mise
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MiseTask {
     pub name: String,
-    /// `//apps/frontend:dev` from the monorepo root; the plain name inside
-    /// the child.
+
     pub namespaced: String,
     pub dir: String,
     pub run: String,
@@ -381,7 +350,7 @@ pub struct MiseConfig {
 pub struct MiseState {
     pub installed: bool,
     pub version: String,
-    /// Effective configuration chain, nearest first.
+
     pub configs: Vec<MiseConfig>,
     pub monorepo_root: Option<String>,
     pub global_tools: Vec<MiseTool>,
@@ -405,8 +374,6 @@ impl MiseState {
     }
 }
 
-// ------------------------------------------------------------------ system
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Proc {
     pub pid: u32,
@@ -425,9 +392,9 @@ pub struct SystemSnapshot {
     pub mem_used_gb: f32,
     pub mem_total_gb: f32,
     pub swap_used_gb: f32,
-    /// Linux pressure stall (some/full) percentages, when available.
+
     pub pressure: Option<(u32, u32)>,
-    /// Minutes of sustained pressure, drives the recommendation.
+
     pub pressure_minutes: u32,
     pub disk_io: Vec<(String, String)>,
     pub net: Vec<(String, String)>,
@@ -435,8 +402,6 @@ pub struct SystemSnapshot {
     pub btm_installed: bool,
     pub temp_c: Option<u32>,
 }
-
-// ------------------------------------------------------------------ disk
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Family {
@@ -469,7 +434,7 @@ impl Family {
 pub enum Method {
     Trash,
     Permanent,
-    /// Cleaned through the owning tool (`cargo clean`, `pnpm store prune`).
+
     Tool(String),
 }
 
@@ -507,7 +472,7 @@ pub struct Candidate {
     pub project: Option<String>,
     pub gb: f32,
     pub items: u32,
-    /// `None` when activity cannot be verified.
+
     pub inactive_days: Option<u32>,
     pub why: String,
     pub regenerate: String,
@@ -515,17 +480,14 @@ pub struct Candidate {
     pub privilege: Option<String>,
     pub method: Method,
     pub confidence: Confidence,
-    /// Shares an output directory or cache with this other candidate: the
-    /// two are serialised.
+
     pub shares_with: Option<String>,
-    /// Tick at which the scan reveals it.
+
     pub found_at: u64,
     pub protected: bool,
 }
 
 impl Candidate {
-    /// Freshness-aware default: only old, confident, unprotected candidates
-    /// start selected.
     pub fn default_selected(&self) -> bool {
         !self.protected
             && self.active_process.is_none()
@@ -593,9 +555,9 @@ pub struct DiskState {
     pub candidates: Vec<Candidate>,
     pub protected: Vec<String>,
     pub history: Vec<CleanupRecord>,
-    /// Total ticks for a full scan of the working directory.
+
     pub scan_ticks: u64,
-    /// Discovery is partial because some paths were unreadable.
+
     pub partial_reason: Option<String>,
 }
 
@@ -611,8 +573,6 @@ impl DiskState {
             .sum()
     }
 }
-
-// ------------------------------------------------------------------ postgres
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PgSession {
@@ -668,8 +628,6 @@ impl PgState {
     }
 }
 
-// ------------------------------------------------------------------ ssh
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SshAlias {
     pub alias: String,
@@ -693,8 +651,6 @@ pub struct SshState {
     pub wildcard_rules: u32,
 }
 
-// ------------------------------------------------------------------ debian
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AptPackage {
     pub name: String,
@@ -712,21 +668,18 @@ pub struct AptState {
     pub sudo_cached: bool,
 }
 
-// ------------------------------------------------------------------ memory
-
 pub use crate::domain::usage::UsageStore;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RankingMemory {
-    /// (path, item id)
     pub pins: Vec<(String, String)>,
-    /// (alias, item id)
+
     pub aliases: Vec<(String, String)>,
-    /// (path, item id)
+
     pub hidden: Vec<(String, String)>,
     pub usage: UsageStore,
     pub personalization: bool,
-    /// (item id, tool)
+
     pub preferred_tools: Vec<(String, String)>,
 }
 
@@ -769,23 +722,19 @@ impl RankingMemory {
         before != self.hidden.len()
     }
 
-    /// Forget every learned signal for `item`, keeping pins and aliases.
     pub fn reset(&mut self, item: &str) {
         self.usage.forget(item);
         self.hidden.retain(|(_, it)| it != item);
     }
 }
 
-// ------------------------------------------------------------------ brew
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrewService {
     pub name: String,
-    /// `started`, `stopped`, `error`, `none`.
+
     pub status: String,
 }
 
-/// `brew-services-v1.json` (OP40).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrewCache {
     pub version: u32,
@@ -795,38 +744,31 @@ pub struct BrewCache {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BrewState {
-    /// `brew services list --json` as the tool returned it.
     pub list_json: Result<String, String>,
-    /// Live status per service for outcomes.
+
     pub services: Vec<BrewService>,
     pub cache: Option<BrewCache>,
-    /// The persisted cache text as found on disk (may be corrupt).
+
     pub cache_text: Option<String>,
     pub cache_write_fails: bool,
-    /// Whether `brew` is Linuxbrew.
+
     pub linux: bool,
-    /// Verbs that fail for a service: (service, verb, reason).
+
     pub failing: Vec<(String, String, String)>,
 }
 
-// ------------------------------------------------------------------ cargo
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CargoState {
-    /// The build fails with this compiler error.
     pub build_error: Option<String>,
     pub test_failures: u32,
     pub clippy_warnings: u32,
-    /// The resolved target directory (`cargo metadata` target_directory),
-    /// which may be shared or custom; `None` when there is none.
+
     pub target: Option<String>,
     pub target_files: u64,
     pub target_bytes: u64,
-    /// Another workspace shares this target directory.
+
     pub target_shared_with: Option<String>,
 }
-
-// ------------------------------------------------------------------ gradle
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GradleState {
@@ -837,22 +779,16 @@ pub struct GradleState {
     pub wrapper: bool,
 }
 
-// ------------------------------------------------------------------ upgrade managers
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct UpgradeState {
-    /// `$ZSH` when set; the resolved directory wins over `~/.oh-my-zsh`.
     pub zsh_env: Option<String>,
     pub amp: bool,
-    /// Stages that fail on this host: `brew update`, `brew doctor`,
-    /// `amp update`, `mise upgrade`, `omz`, `brew upgrade --cask`.
+
     pub failing: Vec<String>,
-    /// Outdated brew packages `(name, from, to)`.
+
     pub brew_outdated: Vec<(String, String, String)>,
     pub casks_outdated: Vec<(String, String, String)>,
 }
-
-// ------------------------------------------------------------------ platform
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TrashBackend {
@@ -863,7 +799,6 @@ pub enum TrashBackend {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Spotlight {
-    /// `(path, allocated bytes)` for regular files ≥ 100 MiB.
     Available(Vec<(String, u64)>),
     Empty,
     Timeout,
@@ -873,27 +808,24 @@ pub enum Spotlight {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Platform {
     pub trash: TrashBackend,
-    /// `open`, `xdg-open`, or none.
+
     pub opener: Option<String>,
-    /// The opener fails with this message.
+
     pub opener_fails: Option<String>,
     pub spotlight: Spotlight,
-    /// The terminal accepts OSC 52.
+
     pub osc52: bool,
-    /// Largest OSC 52 payload the terminal accepts (bytes, base64).
+
     pub osc52_limit: usize,
     pub xdg_config_home: String,
     pub xdg_cache_home: String,
     pub subreaper: bool,
-    /// `pgrep` works; otherwise process guards report unknown.
+
     pub process_probe: Result<(), String>,
-    /// Dataless-file policy could not be set (macOS only).
+
     pub dataless_failure: Option<String>,
 }
 
-// ------------------------------------------------------------------ tool outputs
-
-/// Discovery command output fixtures (what the tools said).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolOutputs {
     pub just_summary: Option<Result<String, String>>,
