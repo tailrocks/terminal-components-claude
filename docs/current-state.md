@@ -13,6 +13,10 @@ The design reference and all six WIP workspaces use the monolithic `junie-tui` p
 
 These are scoped source differences, not parity or readiness claims. Each branch's remaining criteria and branch-local verification still apply; a fix in one does not close the equivalent behavior on another.
 
+## Demonstration coverage gap
+
+Showcase declares 22 page identities on `main`, compared with 54 on `design/interaction-polish`. Main lacks the design reference's distinct routes for `Diff`, `Selectable`, `CellEditors`, `StatusHints`, `BreadcrumbsRails`, `HelpKeys`, `QuitLeave`, `FocusNavigation`, `ChecksRadios`, `Toolbars`, `Columns`, `Tabs`, `Menus`, `DialogKinds`, `PopupsTooltips`, `FileBrowser`, `EmptyError`, `Meters`, `Notices`, `SplitsStacks`, `MasterDetail`, `PaneTree`, `TextUtilities`, `QueryWorkbench`, `Connections`, `Finder`, `DiskCleanup`, `Activity`, `Workspaces`, `AccountsUsage`, `LaunchCockpit`, and `ReadOnlyReport`. These identities and page factories are declared in `crates/showcase-ui/src/app.rs` on main and `src/bin/showcase/app.rs` on the design reference. This establishes missing route-level demonstration coverage; it does not establish that the underlying controls or other applications lack equivalent capabilities. Restoring this coverage while preserving the design experience is part of the future migration, not this documentation replacement.
+
 ## Documentation and proof tooling
 
 The legacy Markdown tree has been replaced by this shared documentation set. `AGENTS.md` and `CLAUDE.md` are preserved byte-for-byte as required; some may still point to retired paths such as `docs/GOAL.md` or `docs/ci.md`. The shared `README.md` is the navigation entrypoint for this documentation. Existing automation has not been migrated and may still consume retired paths or exact historical text:
