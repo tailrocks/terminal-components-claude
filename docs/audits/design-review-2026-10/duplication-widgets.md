@@ -1,5 +1,22 @@
 # Duplication review: widgets
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Read-only review of `src/widgets`, `src/core` and `src/ui` for interaction, routing and state logic implemented more than once. Recorded 2026-10-16. The consolidated decisions and the execution order are in [`docs/architecture/shared-components-plan.md`](../../architecture/shared-components-plan.md).
 
 | severity | duplicated concern | widgets (file:line) | divergence | proposed shared abstraction | migration order |

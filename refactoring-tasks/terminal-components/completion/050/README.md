@@ -7,6 +7,26 @@ kind: test
 
 # TASK-050 — Prove complete Holla 34-world oracle closure
 
+## Status
+
+Historical task contract. This document records required work; it does not prove the task is complete or the current implementation is ready.
+
+## Authority
+
+Use `main` for the target split-crate architecture and reusable APIs. The refactor on `main` remains incomplete, broken, and not ready. Use `design/interaction-polish` for intended UI/UX, colors, layout, interactions, and behavior. Its planned work remains active; its monolithic structure is not the target architecture.
+
+## Current evidence
+
+Commit pins, source names, test identities, and oracle outputs below are historical task inputs. They identify this task's frozen evidence scope; they do not establish current product status. Check current source and host-protected receipts before making completion claims. Nested `trusted/*fixture/README.md` and `AGENTS.md` files are synthetic qualification inputs, not current project documentation or status.
+
+## Remaining work
+
+Keep every concrete requirement, acceptance criterion, checklist item, and trusted obligation in this package. Each remains open until its required current evidence passes the task's authoritative gate. Plans and historical completion labels do not close work.
+
+## Verification
+
+The task's `verify.toml`, protected host receipts, and specified checks define its gate and scope. Preserve exact commands, pins, IDs, and machine inputs. A prior check or an unverified report does not prove current completion.
+
 ## Goal
 
 Prove all135 HO rows and every sealed route/SCAN/SWEEP expansion across all34 worlds, palettes, motion/CLI and lifecycle profiles on one frozen Holla tree. Execute complete pointer/focus/resize/input-flood/batched-event tests, immediate geometry and semantic checkpoints. The Holla unresolved set is empty; its full unfiltered tests, including useful main ownership/safety tests, pass.
@@ -166,9 +186,6 @@ Then complete terminal frames process outcomes and required restoration evidence
 - **D-005:** The host freezes, independently verifies and integrates the exact tested tree through a compare-and-swap local ref update. Never use taskfmt run/promote or merge main. Full terminal-cell equality supplements semantic effect/cursor/geometry proof; no candidate coordinate lookup or masking.
 - **D-006:** This is a validation-only closure; it cannot repair a failed case or write production source.
 
-## Campaign execution binding
-
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with immutable per-check contexts, pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
 
 ## Checklist
 

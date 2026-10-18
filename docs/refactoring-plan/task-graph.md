@@ -1,5 +1,26 @@
 # Derived execution graph
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This graph is generated from canonical task.toml dependencies and verify.toml scopes. Task numbers do not define execution order. Dependency depth is an unweighted critical-path measure; no invented duration estimate is used.
 
 The graph contains 73 tasks, maximum depth 35, and 24 equally deepest dependency paths. The complete predecessor representation is in [task-graph.json](task-graph.json).

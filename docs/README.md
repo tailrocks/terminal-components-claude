@@ -1,44 +1,28 @@
 # Documentation index
 
-All project documentation lives under `docs/`. The repository root keeps only `README.md`.
-For where every retired file landed, see [traceability.md](traceability.md).
+## Status
 
-## Start here: the refactoring
+These documents describe a project with two distinct references: `main` for the intended split-crate architecture and `design/interaction-polish` for intended UI/UX and behavior. The refactor is unfinished, broken, and not ready.
 
-The current mission is to finish the refactoring on top of the `visual-baseline` branch, porting
-what `main` actually completed, without breaking UI/UX or visual output. Reading order:
+## Authority
 
-1. [refactoring/goal.md](refactoring/goal.md) — the consolidated current goal, with per-section provenance.
-2. [refactoring/plan.md](refactoring/plan.md) — the consolidated plan: waves, pins, task-catalog mechanics.
-3. [refactoring/task-status-audit.md](refactoring/task-status-audit.md) — all 73 execution tasks re-checked against plans and main, with per-task verdicts.
-4. [refactoring/main-port-analysis.md](refactoring/main-port-analysis.md) — what main completed, what is partial, port candidates and strategy.
-5. [refactoring/state.md](refactoring/state.md) — honest current status across both branches.
-6. [refactoring/goal-evolution.md](refactoring/goal-evolution.md) — how the goal changed across history (6 REFACTORING_GOAL versions + REFACTORING_STATE timeline).
+- [Architecture](architecture.md): crate structure and reusable API direction.
+- [Design](design.md): visual, interaction, color, and behavior authority.
+- [Status](status.md): evidence-based current project status.
+- [Plan](plan.md): remaining work and verification expectations.
+- [Remaining work](remaining-work.md): detailed active design and implementation tasks.
+- [Goal](GOAL.md): continuation and handoff procedure, subject to the authority above.
 
-## Visual baseline (regression guard)
+[Safety rationales](../SAFETY.md) preserve the justifications for unchanged unsafe operations outside Rust comments.
 
-- [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md) — the full capturable-surface inventory, the baseline matrix, legacy supersession map, and regeneration procedure.
-- `tests/visual_baseline/` — the Rust suite that regenerates the whole baseline into `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}` (scratch actuals/diffs/report under `target/tuisnap/`). Run: `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`.
-- Re-verify after changes: `cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'` (or `ln -sfn target/tuisnap/actual snapshots.actual` then `tuisnap report --grouped --store snapshots --report-path target/tuisnap/report.html`; bless with `tuisnap accept --grouped --store snapshots --all`).
+## Current evidence
 
-## Directories
+The index catalogs active references and supporting records. `docs/sources/` contains historical source documents. `docs/refactoring/`, `docs/refactoring-plan/`, and `refactoring-tasks/` contain analyses, plans, contracts, and verification records whose claims are scoped to their recorded revisions and dates. `docs/audits/`, `docs/improvements/`, `docs/parity/`, and `docs/visual-testing/` contain design findings, planned improvements, parity evidence, and visual validation procedures. Consult each record for its scope; historical evidence does not establish current completion.
 
-| Path | Contents |
-| --- | --- |
-| [architecture/](architecture/) | Component architecture: current holla layout, target model, structural delta. |
-| [design/](design/) | The living behavioral/visual contract ([DESIGN.md](design/DESIGN.md)). |
-| [refactoring/](refactoring/) | Goal, plan, state, audits and analyses for the current refactoring (see above). |
-| [refactoring-plan/](refactoring-plan/) | Planning machinery: proof contract, task index, traceability TSVs, wave breakdowns. |
-| [baseline/](baseline/) | Snapshot baseline coverage and procedures. |
-| [product/](product/) | Product vision behind the Holla app: concept, goals, notes, reference patterns. |
-| [improvements/](improvements/) | Active improvements tracker (PLAN.md) + per-task improvement files + historical audit annex. |
-| [parity/](parity/) | Holla parity evidence, matrix, verification, preview inventory. |
-| [audits/](audits/) | TUI audits: inventory, interactions, editor, research, verification. |
-| [plan-verification/](plan-verification/) | Verification records for earlier planning rounds. |
-| [sources/](sources/) | Verbatim retired planning files, incl. `sources/main/` snapshots of main-branch docs. |
+## Remaining work
 
-## Related locations outside docs/
+Keep concrete planned work, open findings, acceptance criteria, and contracts available. Correct contradictions in active guidance and link dated material as historical. Captured terminal `.txt`, `.html`, `.ansi`, image, and other fixture artifacts are data, not prose documentation, and must not be rewritten as prose.
 
-- `refactoring-tasks/` — the sealed execution catalog (73 task-format packages 001–073 + catalog READMEs). Read-only task contracts; execution order comes from each `task.toml`.
-- `snapshots/` — approved grouped baseline (`<group>/<sub_group>/<name>.{ansi,txt,png,html}`); scratch under `target/tuisnap/`. Taxonomy and bless workflow: [baseline/snapshots-v2.md](baseline/snapshots-v2.md).
-- `tests/visual_baseline/` — the baseline suite (it replaced `tools/tuisnap_baseline.sh`, removed 2026-09-12; the legacy tmux capture harness was removed the same day — see [baseline/snapshots-v2.md](baseline/snapshots-v2.md) and [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md)).
+## Verification
+
+For claims about current code, inspect the current source and manifests. For completion, inspect the current task evidence and run its applicable checks. The canonical project checks are `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo nextest run --all-targets`; visual verification procedures live in [visual testing](visual-testing/README.md).

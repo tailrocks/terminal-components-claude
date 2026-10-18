@@ -1,5 +1,26 @@
 # Independent actual-source qualification rereview
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Status: **in progress; no whole-FND-01 acceptance**. This review is independent of the source-driver author. Planning instruments only; no production edits, commits, baseline blessing or dispatcher acceptance. `verify-and-stop` and `investigate-first` govern evidence scope and stopping. Holla's separately requested idle MenuBar paste correction is recorded in `holla-trace-corrections.md`, not treated as source-qualifier evidence.
 
 ## Read scope and authority

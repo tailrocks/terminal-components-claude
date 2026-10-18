@@ -1,5 +1,26 @@
 # Card heading styles
 
+## Status
+
+Active specification or plan; completion is not implied by this document.
+
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+
+## Current evidence
+
+Claims below are scoped to their cited sources and recorded test results.
+
+## Remaining work
+
+Keep all listed requirements and open tasks in scope; track implementation state in docs/remaining-work.md.
+
+## Verification
+
+Verify against current sources and task acceptance criteria; historical passes are not current proof.
+
+
 Owner request (2026-10-17): on a standard (unframed) card the heading row
 (`Titled card … surface`, `Card · scrollable … 1–7 of 60`) is drawn in the
 same plane and nearly the same ink as the body, so it is unclear where the

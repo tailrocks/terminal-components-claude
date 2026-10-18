@@ -1,3 +1,20 @@
+
+## Status
+
+Current project documentation; individual evidence and task state may be revision-scoped.
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+## Current evidence
+
+Use the cited sources and current repository state; historical records retain their original scope.
+## Remaining work
+
+Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
+## Verification
+
+Run current task-specific checks before treating implementation as complete.
+
 I set up detached worktrees for `main` (032e9faa3) and for `design/interaction-polish` (fb70b7ddb) under the scratchpad, ran everything there, and removed both with `git worktree remove`. No ref changed: `visual-baseline` is still 4a79c0a2d and `main` is still 032e9faa3. I read AGENTS.md on both refs.
 
 **Bottom line:** the two branches share no commits after Sep 3. Main has the full termrock crate structure, and its harness is already pointed at the visual-baseline frames. But main fails every sampled capture, and some of its apps are different products. The reference matches its frozen snapshots exactly; only its HTML gate fails, because of a path recorded inside the file.

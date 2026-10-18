@@ -1,3 +1,20 @@
+
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
 I reviewed the theme tokens, AGENTS.md "Visual states" and the audit docs, and computed contrast ratios from the token values. I did not render fresh screens. Paths: `/Users/donbeave/Projects/terminal-components-claude/src/theme.rs` (palette around lines 350–420; `StateModifiers` around lines 200–250), `/Users/donbeave/Projects/terminal-components-claude/AGENTS.md`, and `/Users/donbeave/Projects/terminal-components-claude/docs/audits/design-review-2026-10/`.
 
 Three findings matter most:

@@ -1,5 +1,26 @@
 # Showcase coverage: library capabilities
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Status: inventory, 2026-10-16, a read-only pass over `design/interaction-polish` at `8f12ad218`. It lists every library item, variant, state and knob bundle, and whether the showcase demonstrates it (✅ fully, ⚠️ partly, ❌ not at all). Every ⚠️ and ❌ row is mapped to a step of the showcase coverage track (SC) in [`shared-components-plan.md` §7](../../architecture/shared-components-plan.md#7-showcase-coverage-track-sc). Line numbers drift as fixes land. Paths under `/private/tmp` refer to the auditor's scratch files, which are not kept.
 
 ## 1. Coverage summary

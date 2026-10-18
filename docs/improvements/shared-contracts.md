@@ -1,5 +1,25 @@
 # Shared implementation contracts
 
+## Status
+
+These are retained acceptance contracts for scoped Holla improvement slices and shared API changes. The architecture refactor remains incomplete, broken, and not ready on `main`.
+
+## Authority
+
+Use `main` for split-crate and reusable-API direction. Use `design/interaction-polish` for UI/UX and behavior. Contracts below remain in force when their corresponding work is undertaken, subject to current architecture and design authority.
+
+## Current evidence
+
+Each contract's evidence and source references are scoped to the revision named in that contract. Current behavior must be checked against current source and applicable tests.
+
+## Remaining work
+
+Preserve all contracts linked from `docs/improvements/PLAN.md`, including open regression and parity requirements.
+
+## Verification
+
+Verify each contract through the listed scenario, test, and visual evidence at the integrated revision. Historical passes do not establish current completion.
+
 Read [current scope](scope.md) first. This file retains the original cross-task
 requirements and full-roadmap delivery/closure rules. Apply acceptance to the
 selected slice; the broad roadmap does not expand the current goal into deferred
@@ -127,7 +147,7 @@ Repository gates after integration:
 ```sh
 rtk cargo fmt --check
 rtk cargo clippy --all-targets -- -D warnings
-rtk cargo test
+rtk cargo nextest run --all-targets
 rtk cargo doc --no-deps
 rtk git diff --check
 ```
@@ -217,7 +237,7 @@ the existing Holla harness; assert discovery, selection, exact target/cwd/argv,
 gate ownership, state transitions, failure and final world effects. Assert
 absence of side effects after cancel, stale confirmation or invalid input.
 Existing 53 passing Holla tests are a baseline, not new parity proof. Run
-`rtk cargo test --bin holla`, then relevant library/CLI tests and the existing
+`rtk cargo nextest run --all-targets`, then relevant focused library/CLI tests and the existing
 per-change gates when implementation touches their owners. Adapter tests must
 use controlled executables/temp trees and never live user cleanup targets.
 

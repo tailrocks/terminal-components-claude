@@ -1,5 +1,26 @@
 # Independent review of contract repairs
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Reviewed 2026-09-11. This review covers planning contracts only. It changes no terminal-components production source, task package, branch, receipt or verification fixture. The reviewer did not author the repairs.
 
 ## Verdict and finding status

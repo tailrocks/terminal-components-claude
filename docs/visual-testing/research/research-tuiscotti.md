@@ -1,3 +1,20 @@
+
+## Status
+
+Current project documentation; individual evidence and task state may be revision-scoped.
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+## Current evidence
+
+Use the cited sources and current repository state; historical records retain their original scope.
+## Remaining work
+
+Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
+## Verification
+
+Run current task-specific checks before treating implementation as complete.
+
 **tuiscotti research report (scratch clone: `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/42325d29-0331-4e82-a42c-409070ca54fc/scratchpad/tuiscotti`, main at `a47c9aa`)**
 
 The most important finding first: **tuiscotti is the same project as `tuisnap`, renamed**. `gh api repos/donbeave/tui-snap` resolves to `tailrocks/tuiscotti`. Our pinned rev `2d43458ad2bc…` (2026-09-13) is a commit in tuiscotti's history. Main has since gone through a breaking redesign (`d996feb`, "Rust-first testing platform … M0–M7") and a brand rename. `docs/MIGRATION.md` §"G8 brand rename" says: "No shims, no aliases, no deprecation periods". Also, **our repo already runs a Workflow-2-style suite**: `tests/visual_baseline/*.rs` uses `tuisnap::pty::{Session, run_once}` and `tuisnap::grouped::GroupedStore`, and `snapshots/` holds 30,200 committed files (7,550 × `.ansi/.txt/.png/.html`, 12 GB). So the real decision is whether to upgrade to tuiscotti main, not whether to adopt it.

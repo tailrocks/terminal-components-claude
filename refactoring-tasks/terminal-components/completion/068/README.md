@@ -7,6 +7,26 @@ kind: refactor
 
 # TASK-068 — Close public API documentation and obsolete deferrals
 
+## Status
+
+Historical task contract. This document records required work; it does not prove the task is complete or the current implementation is ready.
+
+## Authority
+
+Use `main` for the target split-crate architecture and reusable APIs. The refactor on `main` remains incomplete, broken, and not ready. Use `design/interaction-polish` for intended UI/UX, colors, layout, interactions, and behavior. Its planned work remains active; its monolithic structure is not the target architecture.
+
+## Current evidence
+
+Commit pins, source names, test identities, and oracle outputs below are historical task inputs. They identify this task's frozen evidence scope; they do not establish current product status. Check current source and host-protected receipts before making completion claims. Nested `trusted/*fixture/README.md` and `AGENTS.md` files are synthetic qualification inputs, not current project documentation or status.
+
+## Remaining work
+
+Keep every concrete requirement, acceptance criterion, checklist item, and trusted obligation in this package. Each remains open until its required current evidence passes the task's authoritative gate. Plans and historical completion labels do not close work.
+
+## Verification
+
+The task's `verify.toml`, protected host receipts, and specified checks define its gate and scope. Preserve exact commands, pins, IDs, and machine inputs. A prior check or an unverified report does not prove current completion.
+
 ## Goal
 
 Close the public application/author facade, executable documentation and obsolete deferrals against the completed implementation; every accepted API requirement has a current compiling owner or explicit superseded disposition.
@@ -159,15 +179,12 @@ Then every required checkpoint is exactly equal and no expectation or membership
 ## Fixed decisions
 
 - **D-001:** Documentation describes implemented accepted contracts; it cannot amend the product oracle or invent new public APIs to satisfy obsolete prose. A valid cross-crate API must be resolved by the gate, not removed merely because the old scanner cannot see it.
-- **D-002:** The immutable oracle is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts from `7b27732a8c3c131760ec3438f641cb3c11343a42`. Neither old main snapshots nor current moving branches can redefine UX.
+- **D-002:** Task input pins: historical UX snapshot `02f5294bfdbf38004cc49130d0aff1d01f31434c` and historical architecture source `7b27732a8c3c131760ec3438f641cb3c11343a42`. Current UX/behavior authority is `design/interaction-polish`; current architecture direction is split crates on `main`. Neither old main snapshots nor current moving branches can redefine UX.
 - **D-003:** All 361 source scenario rows and their accepted finite expansions remain mandatory at closure. Direct-only states retain their independently approved lane applicability; executors cannot waive an unavailable PTY scenario.
 - **D-004:** The host owns verdicts, review attestations, immutable context and integration refs. Candidate-written reports are untrusted inputs. Exact comparison plus source/semantic proof is required; no masks, tolerances or screenshots alone.
 - **D-005:** Taskfmt's run/promote lifecycle hardcodes main and is prohibited. Use supported standalone verification and the qualified host's exact-tree expected-parent integration protocol.
 - **D-006:** Shared xtask, CI, facade and test-inventory files have one integration writer. Parallel individually green siblings require a fresh combined-tree verification before downstream use.
 
-## Campaign execution binding
-
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with immutable per-check contexts, pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
 
 ## Checklist
 

@@ -1,5 +1,22 @@
 # Editor and Unicode search audit
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+
 Scope: current `holla-fable` worktree only. Existing `CodeEditor`, `TextBuffer`, and `ui::text::fuzzy` cover the capability; no new widget or public dependency required. Contract: `docs/design/DESIGN.md` shared editing rules and Code editor section; existing showcase Editor page, TablePro queries, Holla completion ranking.
 
 ## Confirmed defects and changes

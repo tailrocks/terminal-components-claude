@@ -1,70 +1,51 @@
 # Remaining work on `design/interaction-polish`
 
-Restart entry point: [docs/GOAL.md](GOAL.md). Unfinished work on `wip/*`
-branches and how to continue it: [docs/handoff/README.md](handoff/README.md)
-(read it first on every restart).
+## Status
 
-## Live status (handoff, 2026-10-18)
+This file preserves planned work and recorded task states. The main-branch crate refactor remains incomplete, broken, and not ready.
 
-The session stopped on 2026-10-18 and handed over. Base:
-`origin/design/interaction-polish` at `6f8a4b3af` plus the handoff docs.
+## Authority
 
-Done this session (landed):
+`design/interaction-polish` is the UI/UX, visual, color, interaction, and behavior reference. `main` is the intended split-crate and reusable-API direction. Keep every planned item below in scope.
 
-- Priority 0b reach: R33-R54 except the rows below (R33, R35-R39,
-  R45-R54 done; R45 DiskCleanup, R46 Activity, R47 Workspaces, R48
-  AccountsUsage and R51 Forms landed 2026-10-18, `4ce6bd5c1`..`6f8a4b3af`).
-  R34 and R40 are on `wip/reach-pages-a-2` (`267a8d085`, rebased, gate
-  not verified); R41-R44 are a WIP commit on `wip/reach-pages-a`
-  (`f5b538137`). Next steps in the handoff.
-- Footer peek: the peek line never drops the primary hint or costs a key
-  hint (`270ea65d3`, `f3cb3bbd5`); the holla finder peeks only while it has
-  focus (`941fd8c23`).
-- Splitter states: seam hover is a brighter heavy rule, drag the accent
-  (`2ea7940a6`, `2d4262375`).
-- R-apps-7: button rows wrap instead of dropping buttons (`6e19572c0`,
-  `5629775d9`).
-- R-apps-14: a dialog's code preview joins the body scroll (`a2f397f1b`,
-  `3144afba9`).
+## Current evidence
 
-Unfinished, each on a `wip/*` branch with exact next steps in the
-[handoff](handoff/README.md):
+Task statuses and commit references describe recorded work. Verify current source, branches, and gates before using them to close tasks.
 
-| Item | Branch | Tip |
-|---|---|---|
-| R34, R40 (rebased; gate not verified; next: gate in the lock, fast-forward) | `wip/reach-pages-a-2` | `267a8d085` |
-| R41-R44 (WIP, ungated; next: cherry-pick onto `wip/reach-pages-a-2`, finish, gate, land) | `wip/reach-pages-a` | `f5b538137` |
-| R-apps-3 | `wip/rapps-3-7-14` | `81be99a79` (not gated) |
-| S16 (S16a library) | `wip/plan-s16` | `b249a81be` (builds only) |
-| S14 follow-ups (task 2 clipboard; tasks 3 K6 and 4 P0-G6 not started) | `wip/s14-followups` | `95f62ca33` |
-| V1 (not started) and the D10 holla flake fix | `wip/v1-showcase` | `c1a49af0f` |
+## Remaining work
 
-## Priority 0 (owner, 2026-10-17): fill every empty showcase page
+Complete each open task below against its acceptance criteria while preserving the design authority and implementing reusable behavior in the split-crate architecture.
 
-The owner's first priority: no showcase page may still render the planned
-stub ("<Page> arrives with SCnn"). Each page gets real, interactive content
-on the Playground | Options | States template; a library component the page
-needs and the library lacks is extracted now (its S-step part only) and the
-apps' hand-rolled copies move onto it. Agents edit their own rows here.
+## Verification
 
-| Page | Slug | Step | Owning agent (branch) | Status |
-|---|---|---|---|---|
-| Feedback › Meters | `meters` | SC36 (`MeterList`, S17 part) | p0-meters-notices | **Done** |
-| Feedback › Notices | `notices` | SC36 (`Notice`, S17 part) | p0-meters-notices | **Done** |
-| Overlays › File browser | `filebrowser` | SC41 (`FileBrowser`, S22 part) | p0-filebrowser | **Done** |
-| Layout › Master-detail | `masterdetail` | SC38 (`MasterDetail`, S19 part) | p0-layout | Open |
-| Layout › Pane tree | `panetree` | SC45 (`PaneTree`, S26 part) | p0-layout | Open |
-| Screens › Query workbench | `queryworkbench` | SC46 | p0-screens-a | Open |
-| Screens › Connections | `connections` | SC47 | p0-screens-a | Open |
-| Screens › Finder | `finder` | SC48 | p0 screens agent | Open |
-| Screens › Disk cleanup | `diskcleanup` | SC49 | p0-screens-b | **Done** (gaps P0-G1, P0-G2 below) |
-| Screens › Activity | `activity` | SC51 | p0-screens-b | **Done** (gap P0-G4 below) |
-| Screens › Workspaces | `workspaces` | SC52 | p0-screens-b | **Done** (gap P0-G5 below) |
-| Screens › Accounts & usage | `accountsusage` | SC53 | p0-screens-c | **Done** (gap P0-G8 below). Composed: a card with the health line as meta over a `MasterDetail` (account `TreeView` with provider folds and default / revoked / disabled metas, inspector with the account's `Notice`, `PropsList` facts, `MeterList` quota windows, Refresh / Set default), and a `DataTable` of the last 7 days' usage; narrow, the library summary line and drawer. Gaps: the add/edit `FormDialog`, the secret-reference picker chain and the per-account usage dialog with tabs are jackin-local (`screens/modals.rs`), not library components yet (S25), so the page does not show them |
-| Screens › Launch cockpit | `launchcockpit` | SC55 | p0-screens-c | **Done** (gap P0-G7 below). Composed: `PropsList` launch facts in a card, `StepRail` (11 jackin stages, one skipped as cached), `TextViewport` build log following its tail with the activity in its panel meta, Launch / Cancel launch… (`Dialog::destructive`), the credential `Dialog` (Retry / Cancel launch) and the build failure `Dialog::facts`. No handoff fade (owner decision). Gap: no library activity chip / `ActivityLine` (the activity is the log panel's meta) and no log overlay layer; jackin opens its log as an overlay on `b` |
-| Screens › Read-only report | `readonlyreport` | SC56 | p0-screens-c | **Done** (gap P0-G6 below). Composed: `Panel` card with the `live · ago` meta, `MeterList`, copyable `PropsList` facts, `Notice`s, `ButtonRow` actions (Refresh / `r`, Copy report, Next). Gaps: no `PageHeader`/`Heading` yet (S17), so the meta header is a card's meta; the Next buttons post a status because the showcase has no cross-page route request |
-| Screens › Plan runner, Editor shell | — | SC50, SC54 | p0-screens-c | **Not stubs**: no page is registered for either (they extend the Task runner and Settings pages, which are real), so Priority 0 has nothing to fill; they stay open as SC50 / SC54 |
-| All pages on the template | every slug | SC2 | p0-template | **Done**. `app_tests_template::every_page_is_on_the_template` fails if a registered page does not build through `Template`, open on its Playground and draw the Playground \| Options \| States strip, so no page can fall back to a single view; `options::page_options` has an arm for every page (no catch-all). Converted: Navigation › Sidebars (options `sidebars.*`, States: `NavList` open and collapsed, `SidebarRail`; `NavList` now implements `Specimen`); Inputs & forms › Forms (options `forms.*`: required, validation timing, blur action, description rows, help, placeholders, managed toggle; States: required field, optional field, description; on a short page the form is one column that scrolls part by part; still composed of existing widgets, `FormPanel` is S18); Screens › Task runner (keeps its tree, pipeline and log; options `taskrunner.*`: the tree's folds, indent, environment glyphs and folder counts, the log's tail and wrap; States: targets tree, log, task bar; `r` runs from the strip and the pipeline keeps running under another section); Screens › Settings (keeps its own General / Members / Environment tabs under the section strip; options `settings.*`: the section it opens on, the members table's cell navigation, the environment list's selection mode, description rows, the dirty mark on the tab, the save confirmation; States: section tabs, members table, environment list). `Sidebars` shows the library `NavList` and `SidebarRail`; `Forms` composes existing widgets until `FormPanel` (S18) |
+Use current revision evidence and the task-specific acceptance criteria. Rust gates: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, and `cargo nextest run --all-targets`. Visual procedures: `docs/visual-testing/README.md`.
+
+## Priority 0: fill every empty showcase page
+
+
+No showcase page should render a planned stub ("<Page> arrives with SCnn").
+Each page gets real, interactive content on the Playground | Options | States
+template. A missing library component is extracted as part of its S-step, and
+the apps' hand-rolled copies move onto it.
+
+| Page | Slug | Step | Status |
+|---|---|---|---|
+| Feedback › Meters | `meters` | SC36 (`MeterList`, S17 part) | **Done** |
+| Feedback › Notices | `notices` | SC36 (`Notice`, S17 part) | **Done** |
+| Overlays › File browser | `filebrowser` | SC41 (`FileBrowser`, S22 part) | **Done** |
+| Layout › Master-detail | `masterdetail` | SC38 (`MasterDetail`, S19 part) | Open |
+| Layout › Pane tree | `panetree` | SC45 (`PaneTree`, S26 part) | Open |
+| Screens › Query workbench | `queryworkbench` | SC46 | Open |
+| Screens › Connections | `connections` | SC47 | Open |
+| Screens › Finder | `finder` | SC48 | Open |
+| Screens › Disk cleanup | `diskcleanup` | SC49 | **Done** (gaps P0-G1, P0-G2 below) |
+| Screens › Activity | `activity` | SC51 | **Done** (gap P0-G4 below) |
+| Screens › Workspaces | `workspaces` | SC52 | **Done** (gap P0-G5 below) |
+| Screens › Accounts & usage | `accountsusage` | SC53 | **Done** (gap P0-G8 below). Composed: a card with the health line as meta over a `MasterDetail` (account `TreeView` with provider folds and default / revoked / disabled metas, inspector with the account's `Notice`, `PropsList` facts, `MeterList` quota windows, Refresh / Set default), and a `DataTable` of the last 7 days' usage; narrow, the library summary line and drawer. Gaps: the add/edit `FormDialog`, the secret-reference picker chain and the per-account usage dialog with tabs are jackin-local (`screens/modals.rs`), not library components yet (S25), so the page does not show them |
+| Screens › Launch cockpit | `launchcockpit` | SC55 | **Done** (gap P0-G7 below). Composed: `PropsList` launch facts in a card, `StepRail` (11 jackin stages, one skipped as cached), `TextViewport` build log following its tail with the activity in its panel meta, Launch / Cancel launch… (`Dialog::destructive`), the credential `Dialog` (Retry / Cancel launch) and the build failure `Dialog::facts`. No handoff fade (owner decision). Gap: no library activity chip / `ActivityLine` (the activity is the log panel's meta) and no log overlay layer; jackin opens its log as an overlay on `b` |
+| Screens › Read-only report | `readonlyreport` | SC56 | **Done** (gap P0-G6 below). Composed: `Panel` card with the `live · ago` meta, `MeterList`, copyable `PropsList` facts, `Notice`s, `ButtonRow` actions (Refresh / `r`, Copy report, Next). Gaps: no `PageHeader`/`Heading` yet (S17), so the meta header is a card's meta; the Next buttons post a status because the showcase has no cross-page route request |
+| Screens › Plan runner, Editor shell | — | SC50, SC54 | **Not stubs**: no page is registered for either (they extend the Task runner and Settings pages, which are real), so Priority 0 has nothing to fill; they stay open as SC50 / SC54 |
+| All pages on the template | every slug | SC2 | **Done**. `app_tests_template::every_page_is_on_the_template` fails if a registered page does not build through `Template`, open on its Playground and draw the Playground \| Options \| States strip, so no page can fall back to a single view; `options::page_options` has an arm for every page (no catch-all). Converted: Navigation › Sidebars (options `sidebars.*`, States: `NavList` open and collapsed, `SidebarRail`; `NavList` now implements `Specimen`); Inputs & forms › Forms (options `forms.*`: required, validation timing, blur action, description rows, help, placeholders, managed toggle; States: required field, optional field, description; on a short page the form is one column that scrolls part by part; still composed of existing widgets, `FormPanel` is S18); Screens › Task runner (keeps its tree, pipeline and log; options `taskrunner.*`: the tree's folds, indent, environment glyphs and folder counts, the log's tail and wrap; States: targets tree, log, task bar; `r` runs from the strip and the pipeline keeps running under another section); Screens › Settings (keeps its own General / Members / Environment tabs under the section strip; options `settings.*`: the section it opens on, the members table's cell navigation, the environment list's selection mode, description rows, the dirty mark on the tab, the save confirmation; States: section tabs, members table, environment list). `Sidebars` shows the library `NavList` and `SidebarRail`; `Forms` composes existing widgets until `FormPanel` (S18) |
 
 Gaps the Priority 0 Screens pages record instead of drawing locally
 (each closes with the step named; the page then adopts the component):
@@ -76,14 +57,13 @@ Gaps the Priority 0 Screens pages record instead of drawing locally
 | P0-G3 | Disk cleanup | Closed: the usage \| details and categories \| reclaim pairs are `MasterDetail`s (S19 landed), each collapsing into a summary and a drawer (`diskcleanup.collapse_below`). | — |
 | P0-G4 | Activity | Typing a find query and stepping through its matches (`/`, `n`/`N`, the `n of m` meta): the page shows a fixed query's marks through `TextViewport::set_marks` (option `activity.find`); holla's find code is still app-local. Attach/detach and stdin input mode stay app-level (plan §7.7 row 68). | S22 (`FindState`) |
 | P0-G5 | Workspaces | jackin's third column at 150+ columns (Running, Preserved and Daemon cards beside the detail) and its tree's selection strip: the page shows the roster inside the detail card (beside the facts when the card is 84+ wide, under them otherwise). A roster column beside a `MasterDetail` is a `PaneTree`/`MasterDetail` composition the library has no builder for yet. | S19 follow-up (a third pane), S26 |
-| P0-G6 | Read-only report | A page header with its `live · ago` meta and section headings: `PageHeader` / `Heading` are not extracted, so the meta rides on the snapshot card (`Panel::meta`). **Next buttons done (S14, `81457c101`)**: "Disk cleanup →" and "Activity →" push those pages through `shell::Router`; Esc and the header trail go back. **Note for p0-screens-c (plan-s17, 2026-10-17):** `widgets::page_header::{PageHeader, Heading}` and `widgets::action_row::ActionRow` have landed; adopt them here (header with `.right("live · ago")`, section `Heading`s, the Next buttons as an `ActionRow`) and close this row. | S17 (`PageHeader`, `Heading`): landed |
+| P0-G6 | Read-only report | A page header with its `live · ago` meta and section headings: `PageHeader` / `Heading` are not extracted, so the meta rides on the snapshot card (`Panel::meta`). **Next buttons done (S14, `81457c101`)**: "Disk cleanup →" and "Activity →" push those pages through `shell::Router`; Esc and the header trail go back. **S17 update (2026-10-17):** `widgets::page_header::{PageHeader, Heading}` and `widgets::action_row::ActionRow` have landed; adopt them here (header with `.right("live · ago")`, section `Heading`s, the Next buttons as an `ActionRow`) and close this row. | S17 (`PageHeader`, `Heading`): landed |
 | P0-G7 | Launch cockpit | jackin's activity chip and the build log as an overlay on `b`: the library has no activity chip / `ActivityLine` and no log overlay layer, so the activity (with the theme spinner) is the build log panel's meta and the log is inline. | S22, S26 |
 | P0-G8 | Accounts & usage | The add/edit `FormDialog`, the secret-reference picker chain and the per-account usage dialog with tabs are jackin-local (`screens/modals.rs`), so the page shows the inspector and an inline usage table only. | S25 |
 
-## Priority 0b (owner, 2026-10-17): the whole content is reachable
+## Priority 0b: the whole content is reachable
 
-The owner's rule: "always make sure there is a way to see the whole
-content". Whenever content does not fit its area, scrollbars appear on the
+Every content item remains reachable. Whenever content does not fit its area, scrollbars appear on the
 axis that overflows (vertical and horizontal) and all of it is reachable by
 keyboard, wheel (Shift+wheel and the horizontal wheel included) and
 scrollbar drag.
@@ -162,17 +142,17 @@ never in view at the smallest failing size.
 | R31 | Meters | Playground | done: Page::measure (PageHeader, Heading, MeterList Measure) | — |
 | R32 | Notices | Playground | done: Page::measure (notices at their option width, cards whole) | — |
 | R33 | Panels | Playground | done: Page::measure (cards wrap to their column, the nested note under its group when narrow, panes under the cards below 74 columns) | — |
-| R34 | Scrolling | Playground | 80x24, 100x25, 106x29, 120x40 (in progress, `wip/reach-pages-a-2` for R34/R40, `wip/reach-pages-a` for R41-R44, see [handoff](handoff/README.md)) | `008 009 010 011 012 013 014 015` |
+| R34 | Scrolling | Playground | 80x24, 100x25, 106x29, 120x40 (open; revalidate branch state and gates) | `008 009 010 011 012 013 014 015` |
 | R35 | SplitsStacks | Playground | done: Page::measure (panes at Split::natural_extent, the starting ratio: a drag never resizes the page; the stack with its note) | — |
 | R36 | MasterDetail | Playground | done: Page::measure (MasterDetail::natural_width at the starting ratio, ListBox Measure); left: the meta's live width readout (194 cols at 220x70) differs by design | — |
 | R37 | PaneTree | Playground | done: Page::measure (PaneTree::natural_size at the starting ratios) | — |
 | R38 | Editor | Playground | done: Page::measure (right column at its need with EmptyState::min_width, the editor gives way down to 40 and scrolls itself; stacked under the editor when narrower) | — |
 | R39 | Diff | Playground | done: its rest is the diff view's own rows and columns (the inner-scroller sweep) | — |
-| R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 (in progress, `wip/reach-pages-a-2` for R34/R40, `wip/reach-pages-a` for R41-R44, see [handoff](handoff/README.md)) | `LIVE Viewport container credentials failure image launch queued` |
-| R41 | TextUtilities | Playground | 80x24, 100x25, 106x29, 120x40 (in progress, `wip/reach-pages-a-2` for R34/R40, `wip/reach-pages-a` for R41-R44, see [handoff](handoff/README.md)) | `234 512 567 Activate Connection Copy Ctrl CursorPos` |
-| R42 | QueryWorkbench | Playground | 80x24, 100x25, 106x29, 120x40 (in progress, `wip/reach-pages-a-2` for R34/R40, `wip/reach-pages-a` for R41-R44, see [handoff](handoff/README.md)) | `10312 10319 10326 10333 10340 10347 10354 10361` |
-| R43 | Connections | Playground | 80x24, 100x25 (in progress, `wip/reach-pages-a-2` for R34/R40, `wip/reach-pages-a` for R41-R44, see [handoff](handoff/README.md)) | `5432 Last SSH SSL ago bastion connections hour` |
-| R44 | Finder | Playground | 80x24, 100x25, 106x29, 120x40 (in progress, `wip/reach-pages-a-2` for R34/R40, `wip/reach-pages-a` for R41-R44, see [handoff](handoff/README.md)) | `Alternatives Data Gate Host Risk Runs State Why` |
+| R40 | Terminal | Playground | 80x24, 100x25, 106x29, 120x40 (open; revalidate branch state and gates) | `LIVE Viewport container credentials failure image launch queued` |
+| R41 | TextUtilities | Playground | 80x24, 100x25, 106x29, 120x40 (open; revalidate branch state and gates) | `234 512 567 Activate Connection Copy Ctrl CursorPos` |
+| R42 | QueryWorkbench | Playground | 80x24, 100x25, 106x29, 120x40 (open; revalidate branch state and gates) | `10312 10319 10326 10333 10340 10347 10354 10361` |
+| R43 | Connections | Playground | 80x24, 100x25 (open; revalidate branch state and gates) | `5432 Last SSH SSL ago bastion connections hour` |
+| R44 | Finder | Playground | 80x24, 100x25, 106x29, 120x40 (open; revalidate branch state and gates) | `Alternatives Data Gate Host Risk Runs State Why` |
 | R45 | DiskCleanup | Playground | done: Page::measure (sections at their natural heights, each master-detail pair at `MasterDetail::panes_width`, so neither collapses and the reclaim card keeps its notice; heights at the pane widths through `MasterDetail::split_rects`; a collapse threshold set above the panes' need still shows the drawer) | — |
 | R46 | Activity | Playground | done: Page::measure (the log at `TextViewport: Measure`, every line on one row so its char wrap never splits a word; beside the side column when both fit, else over the Steps and Run cards, side by side when both fit; `StepRail: Measure` keeps every label and meta whole) | — |
 | R47 | Workspaces | Playground | done: Page::measure (tree beside the detail card at `MasterDetail::panes_width`, the card as wide as its facts' longest word (long facts wrap), its actions or a 40-column roster that cuts and reveals its own rows; heights at the pane widths; below a collapse threshold set above the panes' need, one pane at its own width, `MasterDetail::collapsed_mode` says which). 120x40 scrolls 5 columns sideways: the tree's metas need them | — |
@@ -231,13 +211,13 @@ This is the single triage of the open items in section 3.
 - S-steps: S15 (`Component`/`Draw` traits; big, unblocks CO8, M28, K19), S16, S18, S19 (rest), S20, S21, S22 (rest), S23, S24, S25, S26 (rest), S27.
 - Carry-overs: CO1, CO8, CO10, CO11, CO12, CO13, CO16, CO17.
 - Showcase coverage: SC31-SC58 and the allowlist (729 pending lines), SC50/SC54 (no stub pages).
-- Visual oracle: V1, V2, V3, V5, V7, V8 (oracle v0), V11 (oracle v1 and `main` port).
+- Visual testing: V1, V2, V3, V5, V7, V8, V11; preserve scenario coverage and validate against current design-branch behavior.
 - Audits: A3-A9, A10, A13, A14, A17, A21 (the other A items are done).
 - Upstream: U1-U7 (U1 blocks C3). CI: C1, C2, C3 (all wait on V8).
 
 ### OWNER DECISIONS
 
-D1-D8 are in section 2; D9-D11 are added there too. Current behaviour stays until answered.
+D1-D7 and D9-D11 are recorded owner decisions or open questions. The UI/UX authority is settled by this document and AGENTS.md.
 
 | # | Recommended | Blocks |
 |---|---|---|
@@ -248,10 +228,11 @@ D1-D8 are in section 2; D9-D11 are added there too. Current behaviour stays unti
 | D5 | (a) domain status decides; move `QuotaTone` into the library | S23-Q (NEXT 8) |
 | D6 | (a) keep `Group > Page` crumb | showcase header re-approval, V1 |
 | D7 | (a) file the crossterm issue upstream | U4 |
-| D8 | (a) keep `visual-baseline` frozen until oracle v1 | V11 end state only |
 | D9 | keep soft frames (plane separates; WCAG 1.4.11 not required when the fill identifies the component) | menu frame contrast work |
 | D10 | yes: durations count script time only | holla `input_cancelled` flake (fix on `v1-showcase` c1a49af0f) |
 | D11 | second row action in the picker context menu / Shift+F10 | picker Alt+Enter on legacy terminals |
+
+The `visual-baseline` tag remains frozen historical evidence. `design/interaction-polish` is the current authority for UI/UX, colors, and behavior; no oracle-v1 milestone or tag replacement is pending.
 
 ### Which "done when" criteria (section 1) fit the remaining budget
 
@@ -259,19 +240,15 @@ D1-D8 are in section 2; D9-D11 are added there too. Current behaviour stays unti
 |---|---|---|
 | 1 | All S-steps and T Done | Not realistic: S15-S27 are large. Do T only. |
 | 2 | All SC steps Done, allowlist permanent-only | Not realistic: 729 pending lines. |
-| 3 | Every audit finding fixed or decided | Partly: NEXT items plus owner answers D1-D8; record the rest with a reason. |
+| 3 | Every audit finding fixed or decided | Partly: NEXT items plus open owner answers D1-D7 and D9-D11; record the rest with a reason. |
 | 4 | Oracle v0 imported, `snapshots/` removed | Not realistic: 1,650 legacy scenarios, V1-V3, V8. Defer. |
 | 5 | CI visual jobs required, `Publish baseline` green | Not realistic: needs V8 and U1 first. |
 | 6 | Full gate green on branch head | Realistic and required: do this last, after NOW. |
 
-Realistic scope: NOW, the 8 NEXT items, owner answers D1-D8, green gate.
+Realistic scope: NOW, the 8 NEXT items, owner answers D1-D7 and D9-D11, green gate.
 Owner decision: criteria 1, 2, 4, 5 move to a later budget.
 
-Status: 2026-10-17, derived from the repository at `42f0b372e`
-(`origin/design/interaction-polish`). This is the one list of everything
-started on this branch and not finished. Every item names the document and
-section it comes from; when that document and this list disagree, fix the
-document or this list in the same commit, never only one of them.
+This is the current ledger for open work on `design/interaction-polish`. Each item names its source document and section. When a source document and this ledger disagree, reconcile both in the same change.
 
 Sources read: [`architecture/shared-components-plan.md`](architecture/shared-components-plan.md)
 (§4 step table and "Step status", every "S*n* outcome", deviations and
@@ -285,9 +262,9 @@ Sources read: [`architecture/shared-components-plan.md`](architecture/shared-com
 
 ## 1. Goal and "done when"
 
-Goal: finish the shared-components refactor and the design-review backlog
-on this branch, approve the branch's own visual oracle, and leave the
-branch ready to port to `main` (termrock) 1:1 (visual-testing plan §F).
+Goal: finish the shared-components refactor and design-review backlog on this
+branch. Implement its UI/UX, colors, and behavior in reusable split crates and
+verify the result with the current visual and test gates.
 
 The branch is done when all of these hold:
 
@@ -325,9 +302,8 @@ answer say so.
 | D3 | Forms validate on Save: `accounts/add_form_required` now shows the Save outcome (the field marked, focus on it) instead of a validated Enter on the field (`2a71f8dcf`). | (a) Save-time validation is the standard for every `FormDialog`; (b) validate on Enter per field (the baseline). | Save-time today. Recommend (a) (macOS sheets validate on the default button; SI24 "commit on selection change, ask only on invalid"); per-field `ValidateWhen` stays an override (S11). | same, item 3 |
 | D4 | Fixed-choice pickers (`manager/launch_picker`, `hard_launch_picker`, tablepro Safe Mode picker, holla Activities) mark their cursor with a row fill and no `▎`, so no focus bar shows while one is open. The baseline drew the bar. | (a) confirm the menu exception covers fixed-choice pickers and add that wording to AGENTS.md "Visual states" (the list-owned-by-an-owner rule); (b) give them `CursorStyle::Bar`. | Fill only today, locked by tablepro `the_switcher_is_the_only_layer_showing_focus` and showcase `the_chooser_stacks_a_picker_over_the_form_and_returns_to_it`. Recommend (a): it is the focus audit's recorded design (`focus.md` #1, "matching the menu"); then AGENTS.md says "a menu or a non-searchable picker marks its cursor with a fill". | same, item 4; `focus.md` #1 |
 | D5 | jackin `quota_tone`: available windows are always healthy (`57562ede2`), so the domain's `QuotaStatus` (`from_pct` thresholds, overridable per window) alone decides a quota meter's level. | (a) the provider/domain status is the authority; (b) the library's `MeterTone::Level` 60/85 defaults decide. | (a) today. Recommend (a), and move `QuotaTone` into the library (work item S23-Q) so the rule lives once. | same, item 5; `colour-follow-ups.md` |
-| D6 | Showcase header crumb: SC5 replaced the baseline's `/ Group / Page` with the library `Breadcrumb` (`Group › Page`, current page bold), re-approved as a deliberate visual change. | (a) keep `Group › Page` (one crumb style across apps); (b) restore `/ Group / Page` as a `Breadcrumb` separator option for the showcase. | (a) today. Recommend (a); confirm so the change against `visual-baseline` is accepted. | `shared-components-plan.md` "SC5 outcome" (Shell line) |
+| D6 | Showcase header crumb: SC5 records `Group › Page` with the current page bold. | (a) keep the shared `Group › Page` style; (b) offer `/ Group / Page` as a configurable separator. | (a) is the recorded preference; verify it against the current design branch before closing. | `shared-components-plan.md` "SC5 outcome" (Shell line) |
 | D7 | crossterm 0.29 input starvation: the runtime re-arms the reader (`tcsetattr TCSANOW`) in `src/runtime.rs` `poll_input`/`tty_input::rearm`. File the bug upstream? | (a) file a crossterm issue (reader should read until `WouldBlock`) and track it in `docs/upstream/`; (b) keep the workaround untracked. | Not filed. Recommend (a): `dependencies.md` already says "Drop the re-arm once crossterm reads until `WouldBlock`", which needs an upstream fix to ever happen. | `dependencies.md` (crossterm paragraph); `src/runtime.rs` `poll_input` doc, `rearm` |
-| D8 | `visual-baseline` tag replacement: when (and whether) the branch's oracle replaces the frozen tag. | (a) keep the tag frozen and let `baselines/oracle/` (v0 then v1) be the reference; (b) the owner creates a new tag or release after oracle v1. | Agents never touch the tag. Recommend (a) until oracle v1 and M7 sign-off; the owner alone acts on the tag. | `visual-testing/plan.md` D4, E1, §F4 M7 |
 | D9 | Truecolor/256 menu frames are soft (~1.1:1 against the plane). | (a) keep soft; (b) raise to 3:1. | Recommend (a): the plane separates and WCAG 1.4.11 is not required when the fill identifies the component. | contrast audit |
 | D10 | holla task durations: count script time only, excluding prompt wait? | (a) yes; (b) wall time. | Recommend (a); also fixes the `input_cancelled` flake (fix committed on `v1-showcase` c1a49af0f). | holla |
 | D11 | Picker alternate choice (Alt+Enter) has no deliverable non-Alt key on legacy terminals. | (a) second row action in the picker context menu / Shift+F10; (b) leave Alt only. | Recommend (a); hints never advertise undeliverable keys. | A29 |
@@ -366,9 +342,9 @@ below is the dependency each step must wait for.
 | S11 | **Done** 2026-10-17 (plan "S11 outcome"): `widgets::edit::{EditField, Validate, Validator, ValidateWhen, FieldError, Editable}`; `PointerField` once for every `Editable`; TextInput, TextArea, CodeEditor, table and grid cells, Picker, Combo, find and holla finder queries on `EditField`; `TextValidator`, `table::CellValidator`, `grid::Validator` deleted. Left: the Combo query's pointer gestures (S12), holla Files query (S22), F6 hint (S8b), the new API allowlisted for SC32 | M2, M21, M31, M39, K1 walk, K5, K7, K17, K36, SI6, SIg5, SIg9; Select All in picker/combo/find queries; D3 unchanged (owner) | S4, S6 (done) | the K1 walk, the M2 CodeEditor drag test (both landed) | SC32 |
 | S12 | **Done** 2026-10-17 (plan "S12 outcome"): `OptionList`, `Item`, and the bodies of Completion, Picker, ContextMenu, Select and ChoiceEditor on it; SI13, SI21/SV15, K38 (chip lead), A23, CO15, the tablepro tab list, the cell-popup wheel and the Combo query pointer. Left: the popup peek line (K12, S10 deviation 4) and the deviations in the plan. `widgets::option_list::OptionList`, `Item`; bodies of Select, OptionEditor, Picker, Completion, ContextMenu; tablepro `PickerItem`/`CompletionItem` literals | M19, M38, SI13, SI21/SV15; tablepro tab-list glyph mismatch (`app.rs:1655` vs `1682`); CO6, CO7 | S3, S4, S5 (done) | popup journeys; wheel tests in all five | SC32 |
 | S13 | **Done** 2026-10-17 (plan "S13 outcome" and "S13 (Edit menu part) outcome"): `ListCore`, `ContentState`, List, Tree, Props, Steps on `ListCore`, K37; the standard Edit context menu on every text widget (M3, `ui::edit_menu`; a right click now focuses the control, `PointerConfig::secondary_focuses`); default context menus from key maps (M22: `command_items`, DataGrid, ChipBar, TreeView Expand/Collapse all); M6 and M30 were already fixed. Left: tablepro/holla text panes and tablepro's hand-listed grid menu (S22), PropsList "Copy value" (S15), page options (SC34). | M3, M6, M22, M30, K37 | S9, S10, S11 | a right-click test on every text widget | SC34 (States grids: Lists, Trees, Text utilities done) |
-| S14 | **Done** 2026-10-17 (plan "S14 outcome"; deviations 1–7 there). Follow-ups: SI17 copy-first landed (`95ac0ca05`); the real clipboard everywhere is on `wip/s14-followups` (`95f62ca33`), K6 (tablepro query leave guard) and P0-G6 (`PageHeader` adoption) not started, see the [handoff](handoff/README.md). `shell::{Router, Nav, Chrome, Breadcrumb, Clipboard}`, `App::stakes`, typed menu `Cmd`; delete S `goto`, T `Screen`, H `go`, J `go`/`Screens`/`ROUTES`, label-string re-dispatch (H:1569, J:1667), `copy_osc52`, `request_quit`/`open_quit_confirm` ×3 | M5, M7, M8, M23, M40, K4, K6, SI17, SIg3 | S7, S8a | quit and leave journeys per app | SC34 |
+| S14 | **Done** 2026-10-17 (plan "S14 outcome"; deviations 1–7 there). Follow-ups: SI17 copy-first landed (`95ac0ca05`); the real clipboard everywhere is on `wip/s14-followups` (`95f62ca33`), K6 (tablepro query leave guard) and P0-G6 (`PageHeader` adoption) not started, see the S14 plan and its deviations. `shell::{Router, Nav, Chrome, Breadcrumb, Clipboard}`, `App::stakes`, typed menu `Cmd`; delete S `goto`, T `Screen`, H `go`, J `go`/`Screens`/`ROUTES`, label-string re-dispatch (H:1569, J:1667), `copy_osc52`, `request_quit`/`open_quit_confirm` ×3 | M5, M7, M8, M23, M40, K4, K6, SI17, SIg3 | S7, S8a | quit and leave journeys per app | SC34 |
 | S15 | `Component`, `Draw`, `Measure`, `Container::visit`, `AnyComponent`; builder renames; delete `MouseTarget` adapters, the `Outcome` adapter, free render fns (`empty::render`, `props::render`, `keyhint::render*`), per-widget `on_*` | M28, K19; CO8 | S6–S13 | `rg 'fn on_click\b\|fn on_wheel\b' src/widgets` = 0; `WidgetDoc` required by `Component` (§5) | — |
-| S16 | **In progress**: S16a library on `wip/plan-s16` (`b249a81be`, builds only; next steps in the [handoff](handoff/README.md)). `Column::marker`, `RowMark`, `ListItem::{header, status}`, `TreeNode::{meta_tone, trailing, label_tone}`, `TreeView::columns`; S16a library, S16b holla rows, S16c jackin rows and trees, S16d tablepro EXPLAIN tree-table | 69 screen list-key arms; CO11; CO1 (page key maps, then one router guard); page help sections from `Page::bindings` (plan "S8b deviations" 2) | S10, S13 | per-app captures pixel-equal; the jackin tree hit test | SC35 |
+| S16 | **Open**: S16a library work is recorded; revalidate implementation and gates. `Column::marker`, `RowMark`, `ListItem::{header, status}`, `TreeNode::{meta_tone, trailing, label_tone}`, `TreeView::columns`; S16a library, S16b holla rows, S16c jackin rows and trees, S16d tablepro EXPLAIN tree-table | 69 screen list-key arms; CO11; CO1 (page key maps, then one router guard); page help sections from `Page::bindings` (plan "S8b deviations" 2) | S10, S13 | per-app captures pixel-equal; the jackin tree hit test | SC35 |
 | S17 | **Done 2026-10-17** (P0; plan-s17 branch): `MeterList`, `Notice` (earlier), then `Tabs::{layout, layout_gap, passive, passive_focused}` (tablepro table sections, Structure sub-tabs, connection form, workbench strip, jackin capsule usage dialog, showcase Settings / Query workbench / Tabs), `TextInput::{readout, readout_link, set_readout}` (Inputs page, Finder scope), `NavList` moved into `widgets::nav_list` (Sidebars page, with `SidebarRail`), `PageHeader` / `Heading` (`widgets::page_header`; holla `screens::heading` deleted, activity, cleanup, plan, review gate 1 and snapshot headers), `ActionRow` (holla review ×3 and plan confirm rows, tablepro connection form footer and filter editor), `DetailCard` (tablepro connection card, showcase Connections). `Item` builder: already landed with S12 (`Item::value`); the string-index parsing left (`TreeNode::meta` in the EXPLAIN tree, `LayerTag::key` in holla plan/disk menus) belongs to S16d and S22. Captures of the four apps unchanged. Left by hand, moved to CO17: holla disk header (its subtitle switches per view), plan runner and review gate 2 / run headers, about 17 jackin headings, the showcase app header, tablepro result sub-tabs (`y += 2` inside a running cursor), the connection form's test result (a status glyph and label after the buttons) and the jackin capsule usage dialog's undrawn per-row detail (see the MeterList note). | M34; CO12 | S8b, S10 | captures unchanged | SC36 |
 | S18 | `FormPanel`, `FormField::pair`; tablepro connections form and filter editor, showcase forms | K6 | S11, S17 | form journeys | SC37 |
 | S19 | `MasterDetail` (14 sites, `SPLIT_MIN`). Library part done with SC38 (`ui::master_detail`, `SplitKeys`, K18); holla finder/cleanup/disk/files and jackin accounts/manager migrated; open: `SplitKeys` in the app screens, holla plan (review, runner zoom with S26); the rest are not master-details (plan "S19 outcome (partial)") | M20, K18 | S17 | narrow-tier captures | SC38 |
@@ -471,18 +447,16 @@ doc's status table carries these counts since V9.
 
 | Id | What | Depends on | Acceptance | Source |
 |---|---|---|---|---|
-| V1 | **Not started** (0 of 66 roots; scripts and method in the [handoff](handoff/README.md), D10 fix on `wip/v1-showcase` `c1a49af0f`). Re-approve the 1,650 legacy showcase scenarios group by group (`flows/*` per page: datagrid 100, chrome 100, settings, pickers, editor, diff, dialogs 75 each, …; `fade`, `audit`, `hover`, `resize`) with `VISUAL_FULL=1`, review, attribute every changed cell, `tuiscotti accept`; never rewrite files in bulk. Their `.html` files carry absolute paths (tuiscotti P7) and go with them. | ideally after the S-steps that move showcase pages, to approve once | `find snapshots -name '*.txt'` empty | `tuiscotti-migration.md` "Legacy four-file scenarios"; `tuiscotti-feedback.md` P3, P7 |
+| V1 | **Open**: Re-approval of the 1,650 legacy showcase scenarios remains planned. Re-approve the 1,650 legacy showcase scenarios group by group (`flows/*` per page: datagrid 100, chrome 100, settings, pickers, editor, diff, dialogs 75 each, …; `fade`, `audit`, `hover`, `resize`) with `VISUAL_FULL=1`, review, attribute every changed cell, `tuiscotti accept`; never rewrite files in bulk. Their `.html` files carry absolute paths (tuiscotti P7) and go with them. | ideally after the S-steps that move showcase pages, to approve once | `find snapshots -name '*.txt'` empty | `tuiscotti-migration.md` "Legacy four-file scenarios"; `tuiscotti-feedback.md` P3, P7 |
 | V2 | Approve the `.pending()` coverage rows: 29 element, 7 overlay and 10 resize roots, 92 overlay dismissals (3,450 captures), including the quit-guard `OVERLAYS` rows and the 15 stale-step roots. | V1 for showcase rows | rows gate (no `.pending()` left, or deleted with a reason) | `tuiscotti-migration.md` status table, "stale steps", quit-guard rows |
 | V3 | Narrow tier (`40x12`, `60x18`, 1,056 captures): fix the targets it misses (`jackin/cockpit/debug`, `jackin/accounts/filter` and others), then approve. | S19 (narrow layouts) | narrow tier approved; `visual-narrow` suite green | `tuiscotti-migration.md` narrow tier; plan T12–T16 row |
 | V4 | **Done** (visual-v4-v6, 2026-10-17): 121 of 125 overlay sites have rows (pending `OVERLAYS` rows with both dismissals, each run and read at 120x40; five journeys and surfaces moved to `OVERLAYS`, names and approvals unchanged). The 4 sites left (jackin F2/F3, layers that open only from a job on virtual time) got rows in V12: 0 gaps. Approving the rows is V2. Was: 67 of 108 overlay sites had no `OVERLAYS` row. | — | `overlay_sites` reports 0 gaps (4 left, each a recorded finding) | plan Progress T15; §C2; `visual-reapproval.md` "Overlay coverage (V4)" |
 | V5 | Complete the element inventories T12–T14: a hover scenario for every interactive element, pressed frames that differ from hover and rest at all 5 levels, disabled hover/press equal to rest. T16: approve jackin's resize rows. | V2 | plan §H T12–T14, T16 acceptance | plan §H |
 | V6 | **Done** (visual-v4-v6, 2026-10-17): `holla_pty.rs` and `terminal_suspend.rs` run on `tuiscotti::tui::Tui` sessions; colour classes come from the emulated cells, terminal modes from the observation, termios through the helper's tty device; the resumed frame must equal a fresh launch's frame at the new geometry. The flood test still fails on Linux with the `src/runtime.rs` re-arm disabled (checked in a Linux container). Byte-level counts (`ESC[?1049l` once per suspension) became mode-state checks: `tuiscotti-feedback.md` P9 (output tap), P10 (termios), not posted. Was: T17 port; no hand-rolled `openpty` remains. | — | `rg openpty tests` = 0 | plan §H T17 |
 | V7 | T9: measure per-capture time on a real CI run and update §C3 (still estimates). T10: holla-fable-audit workflows, `grep -r "cargo test" .github` empty. | C-items run | numbers from a real run | plan §H T9, T10, §C3 |
-| V8 | T18 oracle v0: after the UI work lands, capture everything with `VISUAL_FULL=1` on ubuntu-24.04 (now through the `visual-capture` suite, T8 done), `cargo xtask visual import <actual dir> --oracle --source <commit>`, review the change list per group, commit per app, then `git rm -r snapshots/` in the same series. | V1, V2 (or their rows deleted), the S/SC steps that change captures | smoke and full green on HEAD; `snapshots/` gone; `ORACLE.toml` `pending = false` | plan Progress T18; §B4; §H T18 |
-| V9 | **Done** (audit-sync branch, 2026-10-17): plan Progress rows T0/T4/T18/T30/T31, D1, §B5, §D and §H T0 updated; migration status table and legacy paragraph at 1,650; `tuiscotti-feedback.md` P3 row. Was: plan Progress T18 row says "T8 is still blocked" (T8 done); §H T0 still "in flight"; §B5 and §D name `cargo xtask visual accept` (now `tuiscotti accept`); T30 (upstream U1–U8) is done through tuiscotti PR 11 but unmarked; T31 is not in the Progress table; migration status table counts (6,000 / 5,975) predate the holla and jackin approvals. | — | the docs match the repository | plan.md lines 11, 20, 31, 174, 256, 430, 460–461; `tuiscotti-migration.md` status table |
+| V8 | Keep complete visual scenario coverage and verify current results against the design branch. Reconcile the previous capture/import workflow with the current test harness; preserve the scenario set and review any expected-output change. | V1, V2 and component/showcase work that changes output | applicable visual and nextest gates pass on the current revision; design behavior is retained | plan §B4 and §H T18 (historical proposal) |
 | V10 | Framed panel title cut below `title_min`: `Panel::title_row` counts the frame padding once; fix to `title_min + pad + 1` so the meta takes its short form. Moves framed title rows in all four apps, so it needs its own re-approval commit. | after V8 or with a planned re-approval of all four apps | regression test on the Panels States grid (24-column framed `Preview` with `1–9 of 24` keeps `Preview`); four apps re-approved | `layout.md` "SC22 finding (2026-10-17)" |
-| V11 | T19–T21: close the design backlog (§3.5), cut oracle v1 and the `sync-oracle` PR to `main`, then `main`'s `visual.yml` and `visual-ratchet`. T22–T29 are work on `main` (out of this branch). | V8, §3.5 | plan §H T19–T21 | plan §H, order line |
-| V12 | **Done** (v12-timed, 2026-10-17): paused captures run a stopped virtual clock for an explicit step: `clock::ClockStep` (in-band paste request), `clock::run_step`, `shell::App::advance_clock` (asked only with the test opt-in `JUNIE_TUI_TEST_CLOCK=1` and under `Motion::Paused`), harness step `advance:<ms>`. Four pending `OVERLAYS` rows with both dismissals: `jackin/overlays/{editor_save_failed,settings_save_failed,editor_role_load_error,cockpit_credentials}`; `overlay_sites` 125 of 125, 0 gaps. Findings F4 (A27) and F5 (A28), seen in these rows, are fixed. Was: the three jackin layers (and A26's role-load error) opened only from a job on virtual time, which never fires under `--motion paused`. | — | rows for `jackin_preview/screens/{editor,settings}.rs::finish_save`, `editor.rs::finish_role_load` and `cockpit.rs::step`; `overlay_sites` 0 gaps | `visual-reapproval.md` F3 resolution |
+| V11 | Carry the design-branch visual checks into the split-crate architecture once the relevant components and app compositions are implemented. | V8, §3.5 | required visual coverage and current nextest/CI gates pass in the split workspace | plan §H T19–T21 (historical proposal) |
 
 ### 3.5 Audit follow-ups (docs/audits/design-review-2026-10/)
 
@@ -566,7 +540,7 @@ known gap with its row id here, and a fix drops its lines. Branch
 |---|---|---|---|---|
 | R-apps-1 | **Done 2026-10-17** (rapps-6-1): Segments and StatusBar collapse the items they drop into one `…` overflow item (`ui::reveal::overflow`) that reveals them on hover; the reach audit reads them through that reveal; 46 allow lines gone; the 68 lines still tagged R-apps-1 re-triaged to their other classes (rapps-6b-2). Residual: keyboard access to the `…` (strips are outside the focus ring) goes with A11. | — | done | `responsive.md` R-apps-1 |
 | R-apps-2 | Hand-rolled master-detail drops the detail or aside below a width (tablepro connections and EXPLAIN card, jackin manager aside, editor/settings detail, usage swap; holla plan summary over the drawer). Holla plan: the consequence line no longer covers the details drawer (rapps-6b-2). **2026-10-17 (rapps-2b):** `DetailSize::MasterShare` (`master_share`, the master's share clamped; showcase Detail size = master); jackin editor/settings variable card on `MasterDetail` (a focus stop, drawer below 150); tablepro connections on `MasterDetail` (`master_share(33, 26, 40)`, drawer below 80, Tab to Connect). Next: tablepro EXPLAIN node card (needs a card focus stop), jackin manager aside (a third pane: the roster, needs an aside that stacks under the detail), usage swap (list and detail take turns below 100: already reachable by Enter, move onto the drawer for consistency). connections-empty keeps `Select moves` by design (the narrow empty master says Ctrl+N; the empty detail has no focus stop to open). | `MasterDetail` | screens on `MasterDetail`; allow lines gone | `responsive.md` R-apps-2 |
-| R-apps-3 | **In progress** on `wip/rapps-3-7-14` (`81be99a79`, not gated; next steps in the [handoff](handoff/README.md)). Tree/List meta columns and hand-rolled tables drop columns without `…` (explorer counts, history durations, holla files and plan, jackin mounts). | — | meta cut with `…` and revealed; tables on `widgets::table` | `responsive.md` R-apps-3 |
+| R-apps-3 | **Open**: Tree/List meta columns and hand-rolled tables drop columns without `…` (explorer counts, history durations, holla files and plan, jackin mounts). | — | meta cut with `…` and revealed; tables on `widgets::table` | `responsive.md` R-apps-3 |
 | R-apps-4 | Text cut with `…` but no reveal. **Mostly done 2026-10-17** (rapps-458): `reveal::cut` / `reveal::fit` (hover tooltip; peek line when focused); TextInput, PageHeader, Heading and 68 app one-line cuts use them; 43 allow lines gone, 13 shrank. Next: the cuts listed open in `responsive.md` R-apps-4 (multi-step draws: holla activity strip, plan summary, config hash, cleanup toggles; jackin cockpit, editor-accounts, manager aside, usage; tablepro connection-form list, open-quickly). | — | one cut helper that registers the reveal | `responsive.md` R-apps-4 |
 | R-apps-5 | **Done 2026-10-17** (rapps-458): Notice reveals a clamped message/detail on hover; `reveal::clamp` (marked ` …`, hover and peek reveal) for the tablepro safe-mode description; tablepro error card and jackin blockers mark their cut. | — | done | `responsive.md` R-apps-5 |
 | R-apps-6 | Fixed-size bodies drop rows with no scrollbar. Holla disk compact mode **done 2026-10-17** (rapps-6-1). Fact sheets and detail cards **done 2026-10-17** (rapps-6b-2): `props::render_in` (a sheet through a vertical `ScrollView`), holla gate/trust/snapshot facts, tablepro history detail and statement card, jackin settings Agents; a wheel notch moves at most one view. Next: jackin manager detail and cockpit credentials, holla config and cleanup-history bodies, tablepro error card. | responsive-lib (scroll container) | bodies scroll; allow lines gone | `responsive.md` R-apps-6 |
@@ -578,47 +552,3 @@ known gap with its row id here, and a fix drops its lines. Branch
 | R-apps-11 | Tabs behind the `+N` overflow (reachable). | — | recorded (kind b) | `responsive.md` R-apps-11 |
 | R-apps-12 | Audit limits (3-row grid sweep budget, mid-word wrap, page changed under a modal). | — | recorded (kind c) | `responsive.md` R-apps-12 |
 | R-apps-13 | Too-small screen below 72×20 in every app. | R-apps-2, R-apps-6 | each app's true minimum | `responsive.md` R-apps-13 |
-
-## 4. Working rules (summary; AGENTS.md is authoritative)
-
-- Subagents do the work; the main session coordinates, reviews and
-  integrates. Never more than 5 subagents in parallel, a hard ceiling that
-  counts helpers subagents start; extra work waits in a queue.
-  Implementation agents work in isolated worktrees on disjoint files
-  (AGENTS.md "Way of working").
-- Small portions: commit and push after every coherent step as soon as the
-  gate passes. Before each push: `git fetch`, rebase onto the remote
-  branch, re-run the gate, push. Never force-push.
-- Push lock: one pusher at a time. Take it with
-  `mkdir "$(git rev-parse --git-common-dir)/push.lock"` and write an owner
-  file inside it; if `mkdir` fails, the lock is held: keep working and
-  retry at the next checkpoint. Inside the lock: fetch, rebase, check the
-  diff stat, push, then `rm -rf` the lock, also on failure (AGENTS.md "Way
-  of working").
-- No command runs longer than 4 minutes: set a timeout and split long jobs
-  (nextest partitions, visual groups). Long commands run in the
-  background while the agent keeps working; an agent with only waiting
-  left ends its run and reports where to resume, rather than polling.
-- Never `pkill -f`, `killall` or kill processes by name: other sessions
-  and agents share the machine; stop only PIDs and tasks you started
-  (AGENTS.md "Way of working").
-- The gate on every step: `cargo nextest run --all-targets` (never `cargo
-  test`), `cargo clippy --all-targets`, `cargo fmt --check`, the tuiscotti
-  pilot (`--run-ignored only -E 'binary(visual_baseline) &
-  test(/^showcase::pages/)'`) and smoke tier, and the step's regression
-  tests, which fail on the parent (plan §4 "The gate (G)"; S1 deviation 6
-  for the filter).
-- Visual changes: named in the commit message, re-approved with
-  `tuiscotti accept` in a separate commit, and every changed cell
-  attributed to a cause (as in `visual-reapproval.md`); `cargo xtask visual
-  check-touched` before the push. Never touch the `visual-baseline` tag or
-  its release.
-- Behaviour lives once in `src/core`, `src/ui` or `src/widgets`; apps and
-  the showcase are thin consumers; every new public capability is shown in
-  the showcase or allowlisted with a step (AGENTS.md "Component
-  architecture", "Showcase").
-- Upstream PRs (velnor-new, tuiscotti): follow the Upstream PR loop in
-  `docs/upstream/README.md` and answer with one relay line per PR.
-- Every finding is fixed or recorded with a reason; when an item here is
-  finished, mark it in its source document and delete or strike it here in
-  the same commit.

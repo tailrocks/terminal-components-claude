@@ -1,5 +1,22 @@
 # Horizontal scrolling and position
 
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Product request: content wider than its area scrolls sideways, and the
 horizontal position is visible. Example: tablepro `public › customers`
 (11 columns) shows `cols 1–5 of 11` in the status line and a `6›` badge,

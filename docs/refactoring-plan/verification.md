@@ -1,14 +1,35 @@
-# Deterministic parity verification contract
+# Historical deterministic parity verification contract
+
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
 
 ## Authority and measured tool state
 
-The user-visible oracle used here is exactly `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). That SHA was recorded on 2026-09-11. The architectural candidate inspected here is `7b27732a`; the coordinator's topology evidence supplies its complete SHA. The working `visual-baseline` checkout is not the oracle.
+The historical comparison in this report used commit `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). That SHA was recorded on 2026-09-11 and is source evidence only, not current UI/UX authority. The architectural candidate inspected here is `7b27732a`; the coordinator's topology evidence supplies its complete SHA. The working `visual-baseline` checkout is not the oracle.
 
 `git ls-remote https://github.com/donbeave/tui-snap.git refs/heads/main` returned `5036cf87e621e6beb66deffe3224abdbefc955cb`. README, USAGE, CI, MIGRATION, Cargo manifest, frame adapters, PTY wrapper, store implementation and tests were inspected at that revision. The crate name is `tuisnap`, version 0.2.0. Its Ratatui dependency is 0.30, matching the oracle's Ratatui generation. Main uses `ratatui-core` 0.1.2; the external verification harness may depend on Ratatui 0.30 but must not reintroduce that facade into the backend-free production crate.
 
-Current upstream has real reusable capabilities; it also has concrete fidelity defects. The existing main-side `tools/qualified-capture/pins.json` already identifies three repaired tool commits ending at `e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2`, tree `e87f3fe3ae49d8066afe8ab7b319f319c2a1dd0f`. They are stored in a verified Git bundle, not merged upstream. Their authorship, DCO signoffs and Codex trailers are preserved. A current GitHub query initially found no PRs and only upstream `main`; publication status and final rerun evidence are recorded in the companion tool evidence document.
+At the recorded review revision, upstream had reusable capabilities and fidelity defects. The inspected main-side `tools/qualified-capture/pins.json` identified three repaired tool commits ending at `e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2`, tree `e87f3fe3ae49d8066afe8ab7b319f319c2a1dd0f`. The report recorded them in a verified Git bundle, not merged upstream, and preserved authorship, DCO signoffs and trailers. These are historical publication and tool-state observations.
 
-Required tool dependency is now [tui-snap PR #1](https://github.com/donbeave/tui-snap/pull/1), pinned head `883d03f19d890bbbf27468798db78b04e85297ac`, tree `dadbaa70facc317cfabb52f0374c1f3cdceb46a1`. It includes the existing repairs plus independently reviewed corrections for downstream dependency packaging, DECAWM serialization, concealed SVG spacing and reproducible reference migration. All 51 all-feature tests, 41 no-default tests including doctest, explicit doctest, formatting, clippy, consumer and migration checks pass. The independent 384-cell PTY proof passes. PR remains unmerged; pinning its reviewed head is permitted, while using moving upstream main is not equivalent. Detailed measured evidence is in [tuisnap-assessment.md](evidence/tuisnap-assessment.md).
+The historical plan recorded [tui-snap PR #1](https://github.com/donbeave/tui-snap/pull/1), head `883d03f19d890bbbf27468798db78b04e85297ac`, tree `dadbaa70facc317cfabb52f0374c1f3cdceb46a1`, with reviewed corrections for packaging, DECAWM serialization, SVG spacing and reference migration. Its test counts, PTY result and PR status apply only to that review. See [tui-snap assessment](evidence/tuisnap-assessment.md); recheck current dependency status before relying on it.
 
 ## Existing capability assessment
 

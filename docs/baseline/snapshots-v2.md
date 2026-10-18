@@ -1,5 +1,26 @@
 # Snapshots v2 — grouped tuisnap baseline
 
+## Status
+
+Current project documentation; individual evidence and task state may be revision-scoped.
+
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+
+## Current evidence
+
+Use the cited sources and current repository state; historical records retain their original scope.
+
+## Remaining work
+
+Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
+
+## Verification
+
+Run current task-specific checks before treating implementation as complete.
+
+
 The visual-baseline suite (`tests/visual_baseline/`) stores approved frames in
 the **grouped multi-artifact store** (`tuisnap::grouped::GroupedStore`, tui-snap
 rev `2d43458ad2bc37d76653c22d56e61ee74512d893`). It replaces the classic

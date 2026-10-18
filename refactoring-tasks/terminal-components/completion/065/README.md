@@ -7,6 +7,26 @@ kind: refactor
 
 # TASK-065 — Reject duplicate painters and props ownership loopholes
 
+## Status
+
+Historical task contract. This document records required work; it does not prove the task is complete or the current implementation is ready.
+
+## Authority
+
+Use `main` for the target split-crate architecture and reusable APIs. The refactor on `main` remains incomplete, broken, and not ready. Use `design/interaction-polish` for intended UI/UX, colors, layout, interactions, and behavior. Its planned work remains active; its monolithic structure is not the target architecture.
+
+## Current evidence
+
+Commit pins, source names, test identities, and oracle outputs below are historical task inputs. They identify this task's frozen evidence scope; they do not establish current product status. Check current source and host-protected receipts before making completion claims. Nested `trusted/*fixture/README.md` and `AGENTS.md` files are synthetic qualification inputs, not current project documentation or status.
+
+## Remaining work
+
+Keep every concrete requirement, acceptance criterion, checklist item, and trusted obligation in this package. Each remains open until its required current evidence passes the task's authoritative gate. Plans and historical completion labels do not close work.
+
+## Verification
+
+The task's `verify.toml`, protected host receipts, and specified checks define its gate and scope. Preserve exact commands, pins, IDs, and machine inputs. A prior check or an unverified report does not prove current completion.
+
 ## Goal
 
 Close application ownership and configured-props enforcement: every reusable control has one production owner for its painted cells, hit geometry and semantic action; configured constant-ID props shared by update and draw come from a private receiver-free constructor.
@@ -159,16 +179,13 @@ Then every required checkpoint is exactly equal and no expectation or membership
 ## Fixed decisions
 
 - **D-001:** This task strengthens enforcement and closes remaining production adoption; it does not authorize a new renderer or copying oracle widgets into applications. If the final application tree still needs a functional repair outside scope, return the failure to its owning task and reverify the dependency.
-- **D-002:** The immutable oracle is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts from `7b27732a8c3c131760ec3438f641cb3c11343a42`. Neither old main snapshots nor current moving branches can redefine UX.
+- **D-002:** Task input pins: historical UX snapshot `02f5294bfdbf38004cc49130d0aff1d01f31434c` and historical architecture source `7b27732a8c3c131760ec3438f641cb3c11343a42`. Current UX/behavior authority is `design/interaction-polish`; current architecture direction is split crates on `main`. Neither old main snapshots nor current moving branches can redefine UX.
 - **D-003:** All 361 source scenario rows and their accepted finite expansions remain mandatory at closure. Direct-only states retain their independently approved lane applicability; executors cannot waive an unavailable PTY scenario.
 - **D-004:** The host owns verdicts, review attestations, immutable context and integration refs. Candidate-written reports are untrusted inputs. Exact comparison plus source/semantic proof is required; no masks, tolerances or screenshots alone.
 - **D-005:** Taskfmt's run/promote lifecycle hardcodes main and is prohibited. Use supported standalone verification and the qualified host's exact-tree expected-parent integration protocol.
 - **D-006:** Shared xtask, CI, facade and test-inventory files have one integration writer. Parallel individually green siblings require a fresh combined-tree verification before downstream use.
 - **D-007:** The configured-props gate is the accepted intra-module/source scan at pinned architecture lines 2193 and 8577. Prove receiver-free constructor ownership and identical controlled configuration within that boundary; preserve the explicitly approved dynamic-ID, unconfigured and test-fixture exemptions. Cross-file call-graph completeness is not an accepted requirement or a passing claim. An unresolved path inside the declared source scope fails; a documented cross-file limitation cannot silently become whole-program analysis or a blanket exemption.
 
-## Campaign execution binding
-
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with immutable per-check contexts, pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
 
 ## Checklist
 

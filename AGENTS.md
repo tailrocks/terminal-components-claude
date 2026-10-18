@@ -1,5 +1,26 @@
 # Agent instructions
 
+## Status
+
+Current project documentation; individual evidence and task state may be revision-scoped.
+
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+
+## Current evidence
+
+Use the cited sources and current repository state; historical records retain their original scope.
+
+## Remaining work
+
+Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
+
+## Verification
+
+Run current task-specific checks before treating implementation as complete.
+
+
 To continue the open work, start from docs/GOAL.md.
 
 ## Role
@@ -25,9 +46,9 @@ components work; they are not where behaviour lives.
   `cargo test`.
 - Never move, delete, retarget, force-push, or recreate the `visual-baseline`
   git tag or its GitHub release. It is the frozen pre-refactor visual oracle.
-- The `visual-baseline` tag is the reference for look and feel. Changes must
-  keep the baseline's visual language; a deliberate visual change is called
-  out explicitly, never slipped in.
+- `design/interaction-polish` is the authority for UI/UX, visual language,
+  colors and interaction behavior. The `visual-baseline` tag is frozen historical
+  evidence only; it does not override the current design branch.
 - Visual and PTY testing uses only tuiscotti
   (<https://github.com/tailrocks/tuiscotti>), pinned in `Cargo.toml` to an
   exact `rev =` of its latest `main`. When `main` moves, bump the pin to the

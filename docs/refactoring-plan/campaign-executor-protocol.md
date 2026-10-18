@@ -1,5 +1,26 @@
 # Campaign executor adaptation
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 The package AGENTS.md files preserve the byte-canonical task-format template at `52d9f1eb7721f409bc47beb9fced7997b5c13ede`, with task-ID substitution only. This campaign adaptation is an explicit package requirement. It supersedes the template's executor-authoritative ordered-check/full-verification sequence and its `--progress ""` invocation, not task/v5, verify/v2, task-meta/v1 or final progress validation.
 
 The executor owns candidate edits and claimed progress, not trusted contexts, result authority, source freeze, taskfmt configuration or integration. It may run ordinary compiler/tests as advisory feedback using its own temporary outputs. Such local checks must not use production expected bundles, impersonate `/proof/bin`, create accepted receipts, or count as the canonical checks. No progress-disabled invocation authorizes completion or integration.
