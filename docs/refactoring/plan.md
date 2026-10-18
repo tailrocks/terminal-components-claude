@@ -1,18 +1,38 @@
 # Consolidated refactoring plan — as it stands on visual-baseline
 
+## Status
+
+Plan only. The main-branch split-crate refactor has begun but remains incomplete, broken, and not ready. The execution catalog and recorded validations do not establish readiness of the implementation.
+
+## Authority
+
+`main` defines the architectural direction: split crates and reusable APIs. `design/interaction-polish` defines the target UI/UX, visual language, colors, and behavior. Preserve all planned work below and implement it against both authorities.
+
+## Current evidence
+
+The provenance, identities, gates, and task-graph details below are historical records from their cited revisions. Check current task packages, branch state, and source before relying on their measurements or completion labels.
+
+## Remaining work
+
+The complete plan and task catalog below remain in scope, including re-audits, prerequisites, open review findings, implementation, and verification. Do not delete planned work because an older main-branch report describes a slice as complete.
+
+## Verification
+
+The plan is verified only when its task-level criteria pass on current code and the integrated result passes applicable architecture, Rust, interaction, and visual gates. Recorded historical passes prove only their cited revision and scope.
+
 **Provenance:** Consolidated on 2026-09-12 from `docs/sources/REFACTORING_COMPLETION_PLAN.md` and all of `docs/refactoring-plan/` (notably `proof-contract.md`, `task-index.tsv`, `traceability.tsv`, `task-graph.md`, `reaudit-plan.md`, `branch-continuation-proposal.md`, `verification.md`), `refactoring-tasks/README.md`, `refactoring-tasks/terminal-components/README.md`, `refactoring-tasks/terminal-components/completion/README.md` and a sampled task package (`completion/001/`) (holla working tree, now `visual-baseline`); historical phases from `docs/sources/main/GOAL.md`, `docs/sources/main/GOAL2.md`, `docs/sources/main/REFACTORING_GOAL.md` (via `git show`); planning requirements from `docs/sources/PLANNING_GOAL.md`. The governing goal statement is `docs/refactoring/goal.md`.
 
 ## 1. Current status (read first)
 
-**Completion is reopened; execution readiness is NOT currently accepted.** The 73-task catalog passed its recorded checks, but the source-first, line-by-line re-audit reopened on 2026-09-11 identified scope and contract gaps (`docs/sources/REFACTORING_COMPLETION_PLAN.md` header; `docs/refactoring-plan/reaudit-plan.md`). The previous completion audit and verification record are historical evidence, not acceptance. The 151-row frozen asset manifest (`bootstrap-assets.tsv`) is stale and must be resealed only after independent review. The production refactor and the production verification harness have **not** been implemented or executed.
+**Historical snapshot, 2026-09-12.** The cited re-audit reopened readiness at that time. It recorded that the task catalog had passed its then-current checks while production refactoring and its verification harness had not yet run. Those claims do not describe current work authorization or current branch state. Current project status: the main-branch refactor has started but remains incomplete, broken, and not ready.
 
-Active boundary: no terminal-components production refactor, task execution, integration branch, commit, merge or publication is authorized. The only permitted external implementation is the tui-snap dependency, which is done but unmerged: PR #1 head `883d03f19d890bbbf27468798db78b04e85297ac`, a hard prerequisite of reference qualification.
+**Current scope.** Continue the refactor toward split crates and reusable APIs following `main`; preserve the UI/UX and planned work from `design/interaction-polish`. Historical limits that prohibited production work are superseded. The detailed task prerequisites, contracts, and gates below remain useful plans, but verify them against current source and the current task register before treating them as executable instructions.
 
 The re-audit is organized as seven task partitions (001–008/070–072, 009–020, 021–031/073, 032–039, 040–050, 051–064, 065–069) plus cross-cutting history and a coordinator, each with exact coverage and independent recheck rules (`reaudit-plan.md`). Findings and dispositions live in `reaudit-findings.tsv`; material work remains open until repaired bytes, all source/task joins, executable qualifiers and the final manifest are independently checked. A parallel whole-branch review (`branch-continuation-proposal.md`, exact inventory 7,885 changed paths) maps required continuation areas to existing task owners — it routes changes into the existing task graph, not a competing rewrite.
 
-## 2. Resolved identities (pins, measured 2026-09-11)
+## 2. Historical identities (pins measured 2026-09-11)
 
-| Authority | Identity |
+| Historical role in source plan | Identity |
 | --- | --- |
 | Immutable UI oracle | `02f5294bfdbf38004cc49130d0aff1d01f31434c` (tag object `a643909d9a782adaf0aa1e3357710a5ed3f24443`) |
 | Architectural main | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
@@ -81,9 +101,9 @@ Parallelization: independent oracle app capture/inventory after shared contracts
 
 Two lanes, each compared against its own oracle lane: direct production-view frame capture, and real PTY executable interaction with unmodified CLI binaries. Compare complete canonical cells plus cursor, then semantic observations that distinguish identical-looking states (focus, target identity, editing, selection, scroll position, overlays, effects), including required no-op checkpoints. Reference adapters may translate observation and controlled time only (the isolated oracle clock adapter is the concrete qualified case: 76 existing Showcase/TablePro binary tests plus four deadline probes, original duration literals unchanged). PNG/HTML diffs aid human review; exact machine equality is the gate. The whole proof chain is protected: oracle SHA, adapters, scenario membership, numeric actions, expected frames/state, comparator, hashes, tool/profile/font and environment. Repaired tui-snap at `883d03f` passed 51 all-target/all-feature tests, 41 no-default-feature tests, doctest, fmt, Clippy `-D warnings`, downstream consumer, reproducible migration and a 384-cell PTY fixture, plus all 256 modifier combinations across serialization modes.
 
-## 9. Integration strategy (`docs/sources/REFACTORING_COMPLETION_PLAN.md` §13)
+## 9. Historical integration proposal (`docs/sources/REFACTORING_COMPLETION_PLAN.md` §13)
 
-At the start of future execution: create the isolated integration branch from pinned main `7b27732a` before proof/baseline preparation; accepted preparation commits form the same auditable ancestry chain as later work. Production refactoring remains prohibited until complete oracle and test-disposition receipts are sealed. Preserve the workspace, reusable API, runtime and accepted safety/identity protections; adapt oracle app composition, deterministic domain fixtures and behavior through those APIs. Do not merge the two full branches, recreate the legacy API, or cherry-pick stale ports wholesale. Use canonical standalone `taskfmt verify` on isolated worktrees; the pinned dispatcher/promotion workflow that hardcodes main must not target the original repository. Final publication/merge is a separately authorized action; the resulting merge tree must itself be verified.
+This section records the earlier proposal: branch from pinned main `7b27732a`, prepare proof and baseline receipts first, then adapt app behavior through reusable APIs. Its prohibition on production refactoring is superseded by the current project goal. Preserve the plan's concrete task dependencies and verification contracts where current; the current branch roles are stated in `docs/refactoring/goal.md` §6 and `docs/status.md`.
 
 ## 10. Evidence matrices and traceability mechanics
 
@@ -104,6 +124,6 @@ At the start of future execution: create the isolated integration branch from pi
 ## 12. Contradictions flagged
 
 1. Catalog size: "74 packages" (companion text) vs 73 task packages + group README in `completion/` and 73 data rows in `task-index.tsv` — see §6.
-2. Historical phase baselines (`docs/sources/main/GOAL.md` Phase 1: 499 `baseline/before` recipes, three apps) vs the current four-app `visual-baseline` oracle namespaces — the current oracle supersedes; historical captures stay historical evidence (see goal.md §9.1).
+2. Historical phase baselines (`docs/sources/main/GOAL.md` Phase 1: 499 `baseline/before` recipes, three apps) vs the current four-app design scope — the current UI/UX authority is `design/interaction-polish`; historical captures remain historical evidence (see goal.md §9.1).
 3. `docs/sources/main/GOAL.md` Phase 4 allows reviewed baseline updates; the proof contract forbids any candidate-side expected-evidence authority — the proof contract governs (see goal.md §9.2).
-4. Execution base framing ("on top of visual-baseline") vs the chosen strategy (branch from pinned main `7b27732a`) — reconciled in goal.md §6: planning and behavior from visual-baseline, architecture from main, end state replaces main.
+4. Execution base framing ("on top of visual-baseline") vs the earlier pinned-main strategy — reconciled in goal.md §6: `main` defines split-crate architecture, `design/interaction-polish` defines UI/UX and behavior, and planned work remains in scope.

@@ -1,5 +1,26 @@
 # holla-fable preview inventory
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Scope: current `donbeave/terminal-components-claude:holla-fable`, parent-pinned HEAD `215990ef`; current `git status --short --branch` confirms holla-fable, clean. No other branch/history inspected. Read-only source/test/capture audit; no application edits, no test execution by this subagent. Paths below relative to repository; line references point into current branch.
 
 ## Classification standard
@@ -48,7 +69,7 @@ All external systems simulated: `main.rs:1-5`; `README.md:6-11`. This alone is N
 | Selection defaults/manual selection | Implemented preview: default old >=14d/high confidence/unprotected/no active process; Space/manual and a/all toggle eligible; mouse toggles candidate | `domain/stack.rs:423-450`; `screens/disk.rs:101-107` and on_key; tests `stack.rs:720`, `app_tests_flows.rs:388` | Recent “active today” is initially unselected, **manual selection allowed** because skip_reason lacks freshness check. README “active today never selected” and plan “Not touched recent artifacts” overstate code. Unknown age can also be manually selected if confidence not Unverifiable. |
 | Cleanup selected-plan execution, reclaimed/history results | Simulated UX: candidates become optional plan steps; two path-bound gates; successful removals disappear and append history | `domain/fixtures.rs:2448-2557`; `sim/world.rs:417-434,487-503`; tests `app_tests_flows.rs:126-155`; `h_flow_cleanup_plan.txt`, `h_flow_cleanup_gate1.txt` | Full outcome test only checks candidate count, nonempty history, used GB decrease. It does not prove Trash semantics, failures/skips logging, path scope, symlink safety. |
 | Trash vs permanent/tool-managed | Partial; **method preassigned per fixture**, labels/plan commands distinguish methods | `domain/stack.rs:363-378`; `domain/fixtures.rs:2479-2491`; `sim/world.rs:417-433` | No user method choice/permanent opt-in; no Trash item or restore state; removal always decrements filesystem used bytes (wrong for same-volume Trash), all outcomes logged succeeded. Captured “recoverable” is promise only. |
-| Disk dry-run | Docs-only | `docs/product/CONCEPT.md:602`; `docs/product/GOAL.md:46,218`; `docs/product/references/mole-disk-cleanup-patterns.md:34` | No disk dry-run interaction/command; plan review isn't proof of shared execution eligibility or no-write dry-run semantics. |
+| Disk dry-run | Docs-only | `docs/product/CONCEPT.md` and `docs/product/references/mole-disk-cleanup-patterns.md` | No disk dry-run interaction/command; plan review isn't proof of shared execution eligibility or no-write dry-run semantics. |
 | Deletion path safety | Partial warning/facts/protected candidate fixture; not structural validator | `domain/stack.rs:420,439-451`; `screens/review.rs:212`; `domain/catalog.rs:1505-1516`; `sim/world.rs:417-434` | No canonical path/ancestor overlap/symlink/mount identity validation, no shared delete choke point; `protected: bool` is fixture input. delete-all says never-follow/skip-mount but generic action lacks filesystem effect. |
 | Delete everything inside current directory | Partial gated action with permanent command shown, no simulated deletion outcome | `domain/catalog.rs:1505-1516`; `screens/review.rs:200-224`; `domain/effect.rs:25-46` | Distinct new product action; not equivalent to safe selective deletion. |
 | Cleanup logs/history | Partial; in-memory successful records and snapshot table; initial record fixture | `domain/stack.rs:467-475`; `sim/world.rs:417-433`; `screens/snapshot.rs:655-675` | No persisted operation log, no skip/failure/dry-run entries produced, no restore despite wording. |

@@ -1,5 +1,26 @@
 # Runner qualification extensions: context authority, accounting, performance and native geometry
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This is independent planner-owned preparation for VF-03, VF-04, VF-05 and PARITY-FINAL-04. It is not terminal-components implementation, a production harness acceptance, or permission to modify original oracle assertions. The existing runner bootstrap entrypoint automatically runs these files; there is no optional flag that production acceptance may omit.
 
 Freeze these exact files together outside candidate write scope: `runner-bootstrap-driver.py`, `runner-bootstrap-app.py`, `runner-bootstrap-worker.py`, `runner-bootstrap-index.py`, `runner-bootstrap-extensions.py`, `runner-bootstrap-accounting.py`, `runner-bootstrap-native.py`, `runner-bootstrap-performance.rs`, both runner protocols, and the reviewed `host-bootstrap-observer.py`. TASK-070 owns the index/native/extraction groups, TASK-071 owns accounting and stage transitions, and TASK-072 owns performance measurement qualification. The separately prepared architecture bootstrap remains an additional TASK-072 prerequisite.

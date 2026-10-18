@@ -1,5 +1,26 @@
 # Independent Form validation adjudication review
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 2026-09-11. Planning-only, source-backed review of ADJ-12 and TASK-006/019/058/068 bindings. No production or canonical edits. Verify-and-stop limits this result to the stated contract.
 
 ## Authority and root condition

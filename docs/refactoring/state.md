@@ -1,8 +1,28 @@
 # Refactoring state — both branches, honest snapshot
 
+## Status
+
+The `main` refactor is started but incomplete, broken, and not ready. Recorded completed slices, green local suites, and the crate layout do not change that project-level status. This file is a dated comparison and must be revalidated before treating task rows as current.
+
+## Authority
+
+`main` supplies the target crate-split architecture and reusable API direction. `design/interaction-polish` supplies the target UI/UX, colors, interactions, and behavior. The code and results below are evidence for named historical revisions, not approval to discard or alter the design target.
+
+## Current evidence
+
+The provenance and commit identities below date this comparison to 2026-09-12. It documents both successful sub-work and known failures, but does not prove current branch state. The current manifests, sources, open tasks, and current gates supersede any stale status claims.
+
+## Remaining work
+
+Keep the unfinished parity, behavioral defects, architecture, application, verification, and audit work listed below open until current acceptance evidence closes each item. Continue the split-crate direction while restoring this branch's UI/UX and preserving useful API ideas.
+
+## Verification
+
+Re-read the named commit and supporting evidence before relying on a row. Run the relevant current tests and gates; historical green results prove only their recorded revision and test scope.
+
 Provenance: local branches `holla` (now `visual-baseline`; HEAD `b6b0d3c2`, working tree clean) and `main` (HEAD `7b27732a`), merge-base `cc14dd6`; main's ledgers `REFACTORING_STATE.md` (final checkpoints 2026-09-08/09), `docs/audit/consolidation/disposition-ledger.md`, `HANDOFF_SLICE4_WAVE1.md`; visual-baseline's `docs/sources/REFACTORING_COMPLETION_PLAN.md`, `docs/refactoring-plan/*`, `docs/parity/holla-parity-*.md`; companion file `docs/refactoring/main-port-analysis.md`. Date 2026-09-12.
 
-## Done on visual-baseline (this branch)
+## Historical implementation evidence from the design branch lineage
 
 | Item | Evidence |
 |---|---|
@@ -48,5 +68,5 @@ Provenance: local branches `holla` (now `visual-baseline`; HEAD `b6b0d3c2`, work
 ## Reading guide
 
 - "Done on main" means *present and gate-measured on main*, not *correct against the pre-refactor UI* — main's own `docs/sources/main/GOAL.md` disclaims that proof, and its app baselines were re-blessed to current behavior (`0191acbf`).
-- "Done on visual-baseline" product behavior is the acceptance oracle (live tag `visual-baseline` is `5e533943`; historical freeze is `02f5294b`); any ported code must reproduce it exactly.
-- Next step per visual-baseline's plan: accept the re-audit, then execute the task catalog; `docs/refactoring/main-port-analysis.md` names the concrete port candidates and their risk classes.
+- Earlier notes treated the "Done on visual-baseline" product behavior as an acceptance oracle (live tag `visual-baseline` is `5e533943`; historical freeze is `02f5294b`); that earlier rule is superseded by the current design/interaction-polish authority.
+- Earlier planning proposed an audit and task-catalog execution on visual-baseline. That strategy is superseded; use `docs/status.md` and `docs/remaining-work.md` for current project state and next work.

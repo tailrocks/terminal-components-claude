@@ -1,5 +1,26 @@
 # Jackin and TablePro whole-branch comparison
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 ## Scope and current status
 
 Completed source-read and bounded semantic comparison:92 Jackin paths and45 TablePro paths,137 exact branch blobs. The companion `branch-diff-jackin-tablepro-read-ledger.tsv` records every commit/blob/SHA-256/line count, complete read coverage, retained architecture, restoration responsibility and finding/task mapping. Reading means all current bytes plus all changed old bytes and exact equal-line mapping where recorded; hashing alone never counted. This is not an implementation/parity completion claim. Open disposition and proof additions remain explicit below.

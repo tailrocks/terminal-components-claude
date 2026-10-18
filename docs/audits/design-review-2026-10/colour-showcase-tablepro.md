@@ -1,3 +1,20 @@
+
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
 **Colour review: showcase and tablepro (branch `design/interaction-polish` @ a3e367e8f)**
 
 The PO's concern holds, and tablepro is the worst case. I measured the frames the current code renders (`VISUAL_FULL=1` nextest run, 120×40, truecolor and 256), not the committed `snapshots/`. About 110 showcase and tablepro rows differ from what's committed, so those PNGs are out of date.

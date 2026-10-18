@@ -1,3 +1,24 @@
+
+## Status
+
+WIP-specific findings and accepted decisions recorded in the document copy at `b249a81be807879212bd4bf50a9246aff5c18d60`. Existing finding IDs and any explicitly recorded closures are retained.
+
+## Authority
+
+`main` is the structural reference and remains incomplete/not ready. `design/interaction-polish` is the exact visual, UI/UX, color, and interaction reference. The monolithic design-branch implementation is not the architectural target; review and adapt reusable API ideas for the split crates.
+
+## Current evidence
+
+The body records observations, standards comparisons, and proposed corrections at its cited source scope. This task did not rerun the original captures or source audits.
+
+## Remaining work
+
+Keep every open finding attached to its ID, owning plan step, and acceptance evidence. A recorded decision closes only the stated scope.
+
+## Verification
+
+Recheck the current source and the cited test/capture for each closure. The product target is `design/interaction-polish`; `visual-baseline` is immutable historical comparison evidence.
+
 Audited `origin/design/interaction-polish` at 9776abef7, mouse first. Most findings were checked against the code. Throwaway harness tests in showcase, tablepro, holla and jackin confirmed each probed behaviour as broken or missing at that revision; they were not committed. Severity scale: H = dead end or clearly wrong, M = gap against desktop behaviour, L = polish.
 
 ## 1. Mouse interaction model to adopt library-wide
@@ -155,7 +176,7 @@ Audited `origin/design/interaction-polish` at 9776abef7, mouse first. Most findi
 
 **Fix order:** start with the router and #1, which together unlock #14, #17, #18 and much of #22–23. Then #2–3 (text copy and editing), then #9–12 (selection and menu correctness), then the dead ends in #4–8 and #13.
 
-## Status (widget-level mouse pass)
+## Scoped finding status (widget-level mouse pass)
 
 This pass took the widget-level findings, plus the standards review's
 corrections: track click pages (macOS "Jump to the next page", Windows);
@@ -195,7 +216,7 @@ Open from this pass:
   overflowing tab strip shows `+N` (#11). Tuiscotti scenarios covering those
   screens re-approve with these changes; they were not re-approved here.
 
-## Status (navigation and dead ends)
+## Scoped finding status (navigation and dead ends)
 
 This pass took the dead ends and navigation findings (#4, #5, #6, #7, #8, #13, #24 and #40). Commits: 3ca689c22 (#4), 9f06503a2, 11ee79f9d and the jackin modal-frame fix (#13, #24), 77ee176a2 (re-approval), 35cffbafe (#5), 31eaf284a (#6), 1b4e14198 (#7), fc859d764 (#8), 9f9cf5037 (#40). Each fix landed in the shared layer with a regression test through the app harnesses (`app_tests_mouse.rs` in all four apps) that fails on the code before it.
 
@@ -226,7 +247,7 @@ Left for later, with reasons:
 - A page-hosted `InfoDialog` or `HelpOverlay` (both `Dismiss::LIGHT`) does not close on a click outside it: the showcase Dialog kinds page opens them on its layer host, which gives every click to the top layer, but neither modal frame registers a light-dismiss backdrop (only `Picker` does since S6's `79b40b343`), so the click lands on nothing under the modal barrier. `FormDialog` and `ChoiceDialog` default to `Dismiss::ESCAPE`, so they rightly stay. Fix in S6: `modal::Frame` registers `popup::backdrop(owner)` when its overlay's policy allows an outside click, and the frame's owner resolves it as `on_click_outside`, as `Picker` does. Demonstrated, not fixed here (S6 owns pointer routing). **Fixed in S6** ("fix(layer): a light-dismiss frame closes on a click outside it"): `modal::Frame` registers `modal::BACKDROP` under every modal frame with a dismissal policy, and `ShellLayers::pointer` turns a click on it (or on any backdrop the top layer leaves alone, the Picker's) into `dismiss(OutsideClick)`; all four apps and the showcase layer host route layer events through it. Test: `app_tests_dialog_kinds::a_click_outside_a_light_info_or_help_closes_it_and_a_form_stays`.
 - The showcase Dialogs page's dialog is the shell's own (`App::dialog`): its outside click already dismisses through the shell (`modal_traps_focus_and_restores_it`), so the page needs nothing.
 
-## Status (pointer router, plan S6)
+## Scoped finding status (pointer router, plan S6)
 
 All four apps run on `core::pointer::PointerRouter` and reach widgets through `MouseTarget` (plan S6 outcome).
 
@@ -239,7 +260,7 @@ All four apps run on `core::pointer::PointerRouter` and reach widgets through `M
 | 12 | Fixed (routing) | `SecondaryUp` on an accepting row is a click through the router in every app; holla's and jackin's menu bars open on the press. |
 | 37, 38 | Unchanged | Already fixed by the widget pass; S6 keeps them. |
 
-## Status (T19 sync, 2026-10-17)
+## Scoped finding dispositions (T19 sync, 2026-10-17)
 
 The three status sections above (widget-level pass, navigation and dead
 ends, pointer router) and the SC17–SC20 note (fixed in S6, e57fe76e8)

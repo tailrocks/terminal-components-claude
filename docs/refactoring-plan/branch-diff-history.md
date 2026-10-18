@@ -1,5 +1,26 @@
 # Branch-diff history review
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Scope: all188 history-partition paths from `branch-diff-inventory.tsv`, Holla `2e2401393c47360741ebd321679de08982dca50a` against main `7b27732a8c3c131760ec3438f641cb3c11343a42`. Immutable product oracle remains separately `02f5294bfdbf38004cc49130d0aff1d01f31434c`. These revisions are not interchangeable: Holla adds PLANNING_GOAL.md after the oracle. No production/task payload changes or execution probes are authorized by this review.
 
 `branch-diff-history-ledger.json` is the per-file source manifest. A deleted source remains historical evidence; deletion does not cancel an accepted requirement. An added historical PASS report remains a claim to inspect, not candidate execution proof. Current goals and explicit amendments control old execution, blessing, framework and live-OS proposals.

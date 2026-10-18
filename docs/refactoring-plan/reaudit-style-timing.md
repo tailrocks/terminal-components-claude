@@ -1,5 +1,26 @@
 # Actual style timing qualification re-audit
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Author-owned preparation; independent re-review pending. This report does not
 close TASK073, certify TASK067's five-percent product bound, or authorize a
 production edit. Root owns frozen assets, manifest synchronization and acceptance.

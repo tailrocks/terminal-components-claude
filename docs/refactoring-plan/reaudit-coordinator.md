@@ -1,5 +1,22 @@
 # Coordinator re-audit evidence
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 ## Current boundary
 
 This is ongoing planning/preparation verification. It does not certify completion, production refactoring, accepted application baselines or a working production proof harness. The complete re-audit remains open in [reaudit-plan.md](reaudit-plan.md). Repository tracked source remains unchanged; the original three planning artifact roots are still untracked.
