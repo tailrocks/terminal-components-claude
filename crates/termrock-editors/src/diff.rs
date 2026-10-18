@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -17,10 +15,8 @@ use termrock_viewport::viewport::{
     ProjectedText, TextViewport, ViewportAction, ViewportCmd, ViewportState,
 };
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DiffLineKind {
-
     Context,
 
     Add,
@@ -28,28 +24,14 @@ pub enum DiffLineKind {
     Remove,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DiffRow<'a> {
+    Hunk { old_start: usize, new_start: usize },
 
-    Hunk {
-
-        old_start: usize,
-
-        new_start: usize,
-    },
-
-    Line {
-
-        kind: DiffLineKind,
-
-        text: &'a str,
-    },
+    Line { kind: DiffLineKind, text: &'a str },
 }
 
-
 pub trait DiffSource {
-
     fn revision(&self) -> u64;
 
     fn path(&self) -> &str;
@@ -71,10 +53,8 @@ pub trait DiffSource {
     fn row(&self, index: usize) -> Option<DiffRow<'_>>;
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum DiffMode {
-
     #[default]
     Unified,
 
@@ -82,14 +62,12 @@ pub enum DiffMode {
 }
 
 impl DiffMode {
-
     pub const fn label(self) -> &'static str {
         match self {
             DiffMode::Unified => "unified",
             DiffMode::Review => "review",
         }
     }
-
 
     #[must_use]
     pub const fn toggled(self) -> Self {
@@ -132,7 +110,6 @@ impl OwnedRun {
 
 type OwnedLine = Vec<OwnedRun>;
 
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DiffViewState {
     viewport: ViewportState,
@@ -149,11 +126,9 @@ impl Default for DiffViewState {
 }
 
 impl DiffViewState {
-
     pub const fn mode(&self) -> DiffMode {
         self.mode
     }
-
 
     pub fn set_mode(&mut self, mode: DiffMode) {
         if self.mode != mode {
@@ -161,17 +136,14 @@ impl DiffViewState {
         }
     }
 
-
     pub fn toggle_mode(&mut self) -> DiffMode {
         self.set_mode(self.mode.toggled());
         self.mode
     }
 
-
     pub const fn viewport(&self) -> &ViewportState {
         &self.viewport
     }
-
 
     pub const fn viewport_mut(&mut self) -> &mut ViewportState {
         &mut self.viewport
@@ -227,7 +199,6 @@ impl DiffLayout {
     }
 }
 
-
 pub struct DiffView<'a> {
     id: Id,
     source: Option<&'a dyn DiffSource>,
@@ -248,9 +219,7 @@ impl fmt::Debug for DiffView<'_> {
 }
 
 impl<'a> DiffView<'a> {
-
     pub const PARTS: &'static [Part] = TextViewport::PARTS;
-
 
     pub const fn new(id: Id, source: Option<&'a dyn DiffSource>) -> Self {
         DiffView {
@@ -262,11 +231,9 @@ impl<'a> DiffView<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
@@ -274,13 +241,11 @@ impl<'a> DiffView<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.parts = parts;
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
@@ -299,7 +264,6 @@ impl<'a> DiffView<'a> {
         viewport
     }
 
-
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut DiffViewState) -> Response<ViewportAction> {
         let width = cx.area(self.id).map_or(80, |area| area.width);
         let mut layout = core::mem::take(cx.cache::<DiffLayout>(self.id));
@@ -315,7 +279,6 @@ impl<'a> DiffView<'a> {
         response
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &DiffViewState) -> Rect {
         let mut layout = core::mem::take(ui.cache::<DiffLayout>(self.id));
         layout.ensure(self.source, state.mode, area.width);
@@ -325,7 +288,6 @@ impl<'a> DiffView<'a> {
         *ui.cache::<DiffLayout>(self.id) = layout;
         used
     }
-
 
     pub fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
         Size {

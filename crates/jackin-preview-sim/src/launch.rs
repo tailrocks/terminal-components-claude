@@ -1,14 +1,10 @@
-
-
 use termrock::StepState;
 
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::instance::RunId;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Stage {
-
     Identity,
 
     Role,
@@ -33,7 +29,6 @@ pub enum Stage {
 }
 
 impl Stage {
-
     pub const ALL: [Stage; 11] = [
         Stage::Identity,
         Stage::Role,
@@ -47,7 +42,6 @@ impl Stage {
         Stage::Capsule,
         Stage::Hardline,
     ];
-
 
     pub fn label(self) -> &'static str {
         match self {
@@ -65,11 +59,9 @@ impl Stage {
         }
     }
 
-
     pub fn index(self) -> usize {
         Stage::ALL.iter().position(|s| *s == self).unwrap_or(0)
     }
-
 
     pub fn activity(self, agent: Agent) -> String {
         match self {
@@ -88,10 +80,8 @@ impl Stage {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LaunchPlan {
-
     Clean,
 
     FailNetwork,
@@ -101,10 +91,8 @@ pub enum LaunchPlan {
     BlockedSidecar,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LaunchFailure {
-
     pub stage: Stage,
 
     pub summary: String,
@@ -114,10 +102,8 @@ pub struct LaunchFailure {
     pub detail: Vec<String>,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LaunchEvent {
-
     StageChanged(Stage, StepState),
 
     Activity(String),
@@ -126,27 +112,17 @@ pub enum LaunchEvent {
 
     ContainerReady(String),
 
-    CredentialsResolved {
+    CredentialsResolved { origin: String, validation: String },
 
-        origin: String,
-
-        validation: String,
-    },
-
-    CredentialError {
-
-        message: String,
-    },
+    CredentialError { message: String },
 
     Failed(LaunchFailure),
 
     Ready,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct LaunchRun {
-
     pub plan: LaunchPlan,
 
     pub run_id: RunId,
@@ -179,7 +155,6 @@ pub struct LaunchRun {
 
     pub cancelled: bool,
 }
-
 
 pub const BUILD_LOG: [&str; 44] = [
     "#1 [internal] load build definition from Dockerfile.derived",
@@ -229,8 +204,6 @@ pub const BUILD_LOG: [&str; 44] = [
 ];
 
 impl LaunchRun {
-
-
     pub fn container_ready(&self) -> bool {
         let construct = Stage::Construct.index();
         if self
@@ -243,9 +216,7 @@ impl LaunchRun {
         self.current == Some(construct) && self.tick.saturating_sub(self.stage_start) >= 6
     }
 
-
     pub fn new(plan: LaunchPlan, agent: Agent, container: &str, run_id: RunId) -> Self {
-
         let durations = [14, 18, 26, 30, 8, 92, 22, 20, 18, 34, 16];
         Self {
             plan,
@@ -267,7 +238,6 @@ impl LaunchRun {
         }
     }
 
-
     pub fn counts(&self) -> (usize, usize) {
         (
             self.states
@@ -281,18 +251,15 @@ impl LaunchRun {
         )
     }
 
-
     pub fn is_terminal(&self) -> bool {
         self.done || self.failure.is_some() || self.blocked_at.is_some() || self.cancelled
     }
-
 
     pub fn retry_credentials(&mut self) {
         self.credential_hold = false;
         self.credential_retried = true;
         self.stage_start = self.tick;
     }
-
 
     pub fn cancel(&mut self) {
         self.cancelled = true;
@@ -302,7 +269,6 @@ impl LaunchRun {
             *state = StepState::Failed;
         }
     }
-
 
     pub fn advance(&mut self) -> Vec<LaunchEvent> {
         let mut ev = vec![];
@@ -426,7 +392,6 @@ impl LaunchRun {
         }
         ev
     }
-
 
     pub fn seek(&mut self, frame: u64) {
         for _ in 0..frame {

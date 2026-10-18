@@ -1,13 +1,9 @@
-
-
 use std::collections::BTreeSet;
 
 use termrock::{FgStep, Role};
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiffLineKind {
-
     Context,
 
     Add,
@@ -15,24 +11,20 @@ pub enum DiffLineKind {
     Remove,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiffLine {
-
     pub kind: DiffLineKind,
 
     pub text: String,
 }
 
 impl DiffLine {
-
     pub fn context(text: impl Into<String>) -> Self {
         Self {
             kind: DiffLineKind::Context,
             text: text.into(),
         }
     }
-
 
     pub fn add(text: impl Into<String>) -> Self {
         Self {
@@ -41,7 +33,6 @@ impl DiffLine {
         }
     }
 
-
     pub fn remove(text: impl Into<String>) -> Self {
         Self {
             kind: DiffLineKind::Remove,
@@ -49,16 +40,13 @@ impl DiffLine {
         }
     }
 
-
     pub const fn is_addition(&self) -> bool {
         matches!(self.kind, DiffLineKind::Add)
     }
 
-
     pub const fn is_deletion(&self) -> bool {
         matches!(self.kind, DiffLineKind::Remove)
     }
-
 
     pub const fn role(&self) -> Role {
         match self.kind {
@@ -69,10 +57,8 @@ impl DiffLine {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hunk {
-
     pub old_start: usize,
 
     pub new_start: usize,
@@ -81,16 +67,13 @@ pub struct Hunk {
 }
 
 impl Hunk {
-
     pub fn old_len(&self) -> usize {
         self.lines.iter().filter(|line| !line.is_addition()).count()
     }
 
-
     pub fn new_len(&self) -> usize {
         self.lines.iter().filter(|line| !line.is_deletion()).count()
     }
-
 
     pub fn header(&self) -> String {
         format!(
@@ -103,24 +86,18 @@ impl Hunk {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DiffStatus {
-
     Added,
 
     Modified,
 
     Deleted,
 
-    Renamed {
-
-        from: String,
-    },
+    Renamed { from: String },
 }
 
 impl DiffStatus {
-
     pub const fn marker(&self) -> &'static str {
         match self {
             Self::Added => "A",
@@ -130,7 +107,6 @@ impl DiffStatus {
         }
     }
 
-
     pub const fn label(&self) -> &'static str {
         match self {
             Self::Added => "added",
@@ -139,7 +115,6 @@ impl DiffStatus {
             Self::Renamed { .. } => "renamed",
         }
     }
-
 
     pub const fn role(&self) -> Role {
         match self {
@@ -151,10 +126,8 @@ impl DiffStatus {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangedFile {
-
     pub path: String,
 
     pub status: DiffStatus,
@@ -163,7 +136,6 @@ pub struct ChangedFile {
 }
 
 impl ChangedFile {
-
     pub fn additions(&self) -> usize {
         self.hunks
             .iter()
@@ -172,7 +144,6 @@ impl ChangedFile {
             .count()
     }
 
-
     pub fn deletions(&self) -> usize {
         self.hunks
             .iter()
@@ -180,7 +151,6 @@ impl ChangedFile {
             .filter(|line| line.is_deletion())
             .count()
     }
-
 
     pub fn summary(&self) -> String {
         let n = self.hunks.len();
@@ -193,7 +163,6 @@ impl ChangedFile {
         )
     }
 
-
     pub fn header(&self) -> String {
         match &self.status {
             DiffStatus::Renamed { from } => {
@@ -204,31 +173,25 @@ impl ChangedFile {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangeSet {
-
     pub files: Vec<ChangedFile>,
 
     pub unpushed: usize,
 }
 
 impl ChangeSet {
-
     pub fn additions(&self) -> usize {
         self.files.iter().map(ChangedFile::additions).sum()
     }
-
 
     pub fn deletions(&self) -> usize {
         self.files.iter().map(ChangedFile::deletions).sum()
     }
 
-
     pub const fn is_empty(&self) -> bool {
         self.files.is_empty() && self.unpushed == 0
     }
-
 
     pub fn summary(&self) -> String {
         let n = self.files.len();
@@ -264,7 +227,6 @@ fn added(text: &str) -> DiffLine {
 fn removed(text: &str) -> DiffLine {
     DiffLine::remove(text)
 }
-
 
 fn hunks_for(path: &str, key: u64) -> Vec<Hunk> {
     let base = 8 + (key % 7) as usize * 5;
@@ -397,7 +359,6 @@ fn renamed_file() -> ChangedFile {
         }],
     }
 }
-
 
 pub fn changes_for(
     instance_id: &str,

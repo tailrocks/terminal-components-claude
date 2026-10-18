@@ -1,5 +1,3 @@
-
-
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -35,10 +33,8 @@ impl AsItem for SwitchItem {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HistorySource {
-
     Editor,
 
     Explain,
@@ -51,7 +47,6 @@ pub enum HistorySource {
 }
 
 impl HistorySource {
-
     pub const fn label(self) -> &'static str {
         match self {
             Self::Editor => "Editor",
@@ -63,10 +58,8 @@ impl HistorySource {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryEntry {
-
     pub id: usize,
 
     pub sql: String,
@@ -89,7 +82,6 @@ pub struct HistoryEntry {
 }
 
 impl HistoryEntry {
-
     pub fn ok(&self) -> bool {
         self.error.is_none()
     }
@@ -124,16 +116,13 @@ impl HistoryEntry {
     }
 }
 
-
 #[derive(Debug, Clone, Default)]
 pub struct History {
-
     pub entries: Vec<HistoryEntry>,
     next_id: usize,
 }
 
 impl History {
-
     pub fn seeded() -> Self {
         let mut out = Self::default();
         let rows = [
@@ -225,7 +214,6 @@ impl History {
         out
     }
 
-
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
@@ -262,10 +250,8 @@ impl History {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompletionKind {
-
     Keyword,
 
     Table,
@@ -296,7 +282,6 @@ impl CompletionKind {
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Completion {
-
     pub text: String,
 
     pub label: String,
@@ -324,7 +309,6 @@ impl core::fmt::Debug for Completion {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompletionBatch {
-
     pub items: Vec<Completion>,
 
     pub replace: core::ops::Range<usize>,
@@ -517,7 +501,6 @@ fn member_candidates(
     q: &str,
     pool: &mut CompletionPool<'_>,
 ) {
-
     let table = in_stmt
         .iter()
         .find(|(t, a)| {
@@ -718,7 +701,6 @@ fn col_detail(c: &tablepro_demo::db::Column) -> String {
     d
 }
 
-
 pub fn auto_trigger(src: &str, cursor: usize) -> bool {
     let (word, clause, _) = context(src, normalized_cursor(src, cursor));
     match clause {
@@ -728,28 +710,15 @@ pub fn auto_trigger(src: &str, cursor: usize) -> bool {
     }
 }
 
-
 pub fn complete(source: &str, cursor: usize, catalog: &Catalog) -> Vec<Completion> {
     completion_batch(source, cursor, catalog).items
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SwitchTarget {
+    Table { schema: String, name: String },
 
-    Table {
-
-        schema: String,
-
-        name: String,
-    },
-
-    View {
-
-        schema: String,
-
-        name: String,
-    },
+    View { schema: String, name: String },
 
     Schema(String),
 
@@ -762,7 +731,6 @@ pub enum SwitchTarget {
     Connection(String),
 }
 impl SwitchTarget {
-
     pub const fn group(&self) -> &'static str {
         match self {
             Self::Table { .. } => "Tables",
@@ -789,7 +757,6 @@ impl SwitchTarget {
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct SwitchItem {
-
     pub key: String,
 
     pub label: String,
@@ -820,11 +787,9 @@ impl core::fmt::Debug for SwitchItem {
 
 #[derive(Debug, Clone, Default)]
 pub struct SwitcherIndex {
-
     pub items: Vec<SwitchItem>,
 }
 impl SwitcherIndex {
-
     pub fn from_catalog(
         catalog: &Catalog,
         history: &History,
@@ -968,7 +933,6 @@ impl SwitcherIndex {
     }
 }
 
-
 pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
@@ -976,7 +940,6 @@ pub fn table_columns(table: &Table) -> Vec<(String, ColType)> {
         .map(|column| (column.name.clone(), column.ty))
         .collect()
 }
-
 
 pub fn statement_tokens(source: &str) -> Vec<String> {
     tokenize(source)

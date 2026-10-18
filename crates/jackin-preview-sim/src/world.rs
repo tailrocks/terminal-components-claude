@@ -1,5 +1,3 @@
-
-
 use std::collections::BTreeMap;
 
 use crate::arbiter::Arbiter;
@@ -14,26 +12,20 @@ use jackin_preview_domain::scenario::Scenario;
 use jackin_preview_domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
 use jackin_preview_domain::workspace_save::{PendingWrite, SaveError, SaveResult, SaveTicket};
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrustRow {
-
     pub source: String,
 
     pub trusted: bool,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GlobalConfig {
-
     pub trust: Vec<TrustRow>,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GithubRepo {
-
     pub full_name: String,
 
     pub default_branch: String,
@@ -45,60 +37,35 @@ pub struct GithubRepo {
     pub url: String,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DaemonHealth {
-
     Healthy,
 
     Stale,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
+    EditorSaveCompleted { operation: u64 },
 
-    EditorSaveCompleted {
+    ManagerOperation { operation: u64 },
 
-        operation: u64,
-    },
+    WorkspaceSaved { id: WorkspaceId, ok: bool },
 
-    ManagerOperation {
+    Refreshed { ok: bool },
 
-        operation: u64,
-    },
-
-    WorkspaceSaved {
-
-        id: WorkspaceId,
-
-        ok: bool,
-    },
-
-    Refreshed {
-
-        ok: bool,
-    },
-
-    AccountRefreshed {
-
-        account: AccountId,
-    },
+    AccountRefreshed { account: AccountId },
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Job {
-
     pub due_ms: i64,
 
     pub msg: Msg,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct World {
-
     pub scenario: Scenario,
 
     pub clock: Clock,
@@ -147,23 +114,19 @@ pub struct World {
 }
 
 impl World {
-
     pub fn now_secs(&self) -> i64 {
         self.clock.now_secs()
     }
 
-
     pub fn now_ms(&self) -> i64 {
         self.clock.now_ms
     }
-
 
     pub fn next_manager_operation(&mut self) -> Option<u64> {
         let next = self.manager_operation_sequence.checked_add(1)?;
         self.manager_operation_sequence = next;
         Some(next)
     }
-
 
     pub fn consume_manager_review(&mut self, review: u64) -> bool {
         if review <= self.manager_review_watermark || review > self.manager_operation_sequence {
@@ -172,7 +135,6 @@ impl World {
         self.manager_review_watermark = review;
         true
     }
-
 
     pub fn begin_editor_write(
         &mut self,
@@ -231,7 +193,6 @@ impl World {
         Ok(ticket)
     }
 
-
     pub fn complete_editor_save(&mut self, operation: u64) -> SaveResult {
         let Some(index) = self
             .editor_writes
@@ -276,13 +237,11 @@ impl World {
         }
     }
 
-
     pub fn schedule(&mut self, delay_ms: i64, msg: Msg) {
         let due_ms = self.clock.now_ms.saturating_add(delay_ms.max(0));
         self.jobs.push(Job { due_ms, msg });
         self.jobs.sort_by_key(|job| job.due_ms);
     }
-
 
     pub fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
         self.clock.advance(interval_ms.max(0));
@@ -310,18 +269,15 @@ impl World {
         ready
     }
 
-
     pub fn workspace(&self, id: WorkspaceId) -> Option<&Workspace> {
         self.workspaces.iter().find(|workspace| workspace.id == id)
     }
-
 
     pub fn workspace_mut(&mut self, id: WorkspaceId) -> Option<&mut Workspace> {
         self.workspaces
             .iter_mut()
             .find(|workspace| workspace.id == id)
     }
-
 
     pub fn cwd_workspace(&self) -> Option<&Workspace> {
         self.workspaces.iter().find(|workspace| {
@@ -335,16 +291,13 @@ impl World {
         })
     }
 
-
     pub fn instance(&self, id: &str) -> Option<&Instance> {
         self.instances.iter().find(|instance| instance.id == id)
     }
 
-
     pub fn instance_mut(&mut self, id: &str) -> Option<&mut Instance> {
         self.instances.iter_mut().find(|instance| instance.id == id)
     }
-
 
     pub fn running_count(&self) -> usize {
         self.instances
@@ -353,14 +306,12 @@ impl World {
             .count()
     }
 
-
     pub fn running(&self) -> Vec<&Instance> {
         self.instances
             .iter()
             .filter(|instance| instance.status == InstanceStatus::Running)
             .collect()
     }
-
 
     pub fn instances_of(&self, workspace: Option<WorkspaceId>) -> Vec<&Instance> {
         self.instances
@@ -369,17 +320,14 @@ impl World {
             .collect()
     }
 
-
     pub fn sync_arbiter(&mut self) {
         self.arbiter.set_running(self.running_count());
     }
-
 
     pub fn new_instance_id(&self) -> String {
         let next = self.instances.len().saturating_add(1);
         format!("jk-{next:04x}")
     }
-
 
     pub fn account_for(
         &self,
@@ -391,11 +339,9 @@ impl World {
         fixtures::resolve_account(provider, workspace, role, session, &self.accounts)
     }
 
-
     pub fn agent_mode(&self, _agent: Agent) -> AuthMode {
         AuthMode::Sync
     }
-
 
     pub fn eligible_accounts(
         &self,
@@ -405,7 +351,6 @@ impl World {
     ) -> Vec<AccountId> {
         self.offer_for(agent, workspace, role).accounts
     }
-
 
     pub fn offer_for(
         &self,
@@ -469,7 +414,6 @@ impl World {
         }
     }
 
-
     pub fn offered_agents(
         &self,
         workspace: Option<&Workspace>,
@@ -481,7 +425,6 @@ impl World {
             .filter(|(_, offer)| offer.configured)
             .collect()
     }
-
 
     pub fn has_offer_for(&self, agent: Agent, workspace: Option<&Workspace>) -> bool {
         let provider = agent.provider();
@@ -501,14 +444,12 @@ impl World {
         }
     }
 
-
     pub fn has_offered_agents(&self, workspace: Option<&Workspace>) -> bool {
         Agent::ALL
             .into_iter()
             .any(|agent| self.has_offer_for(agent, workspace))
     }
 }
-
 
 pub fn world_for(scenario: Scenario) -> World {
     let clock = Clock::new();
@@ -580,10 +521,8 @@ pub fn world_for(scenario: Scenario) -> World {
     world
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentOffer {
-
     pub configured: bool,
 
     pub accounts: Vec<AccountId>,
@@ -632,7 +571,6 @@ mod tests {
         assert_eq!(first.running_count(), 0);
 
         let returning = world_for(Scenario::Returning);
-
 
         assert_eq!(returning.workspaces.len(), 4);
         assert_eq!(

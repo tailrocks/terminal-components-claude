@@ -1,5 +1,3 @@
-
-
 use ratatui_core::layout::{Constraint, Position, Rect};
 
 pub use termrock_core::layer_types::{DismissReason, LayerEvent, LayerId};
@@ -9,10 +7,8 @@ use crate::action::ActionKey;
 use crate::focus::ScopeId;
 use crate::id::Id;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerKind {
-
     Modal,
 
     Popover,
@@ -20,14 +16,11 @@ pub enum LayerKind {
     Tooltip,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Anchor {
-
     Screen(ScreenAlign),
 
     Rect {
-
         rect: Rect,
 
         side: Side,
@@ -38,10 +31,8 @@ pub enum Anchor {
     Point(Position),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ScreenAlign {
-
     Center,
 
     UpperThird,
@@ -49,10 +40,8 @@ pub enum ScreenAlign {
     Bottom,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Side {
-
     Below,
 
     Above,
@@ -62,10 +51,8 @@ pub enum Side {
     Right,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CrossAlign {
-
     Start,
 
     Center,
@@ -73,10 +60,8 @@ pub enum CrossAlign {
     End,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Dismiss {
-
     pub esc: bool,
 
     pub outside_click: bool,
@@ -85,7 +70,6 @@ pub struct Dismiss {
 }
 
 impl Dismiss {
-
     pub const NONE: Dismiss = Dismiss {
         esc: false,
         outside_click: false,
@@ -111,34 +95,24 @@ impl Dismiss {
     };
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Backdrop {
-
     None,
 
-    Dim {
-
-        exclude_footer: bool,
-    },
+    Dim { exclude_footer: bool },
 }
-
 
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LayerSize {
-
-
     Fill,
 
     Fixed(u16, u16),
 }
 
-
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LayerSpec {
-
     pub kind: LayerKind,
 
     pub owner: Id,
@@ -159,7 +133,6 @@ pub struct LayerSpec {
 }
 
 impl LayerSpec {
-
     pub const fn modal(owner: Id) -> LayerSpec {
         LayerSpec {
             kind: LayerKind::Modal,
@@ -176,7 +149,6 @@ impl LayerSpec {
         }
     }
 
-
     pub const fn popover(owner: Id, anchor: Anchor) -> LayerSpec {
         LayerSpec {
             kind: LayerKind::Popover,
@@ -190,7 +162,6 @@ impl LayerSpec {
             inert_below: false,
         }
     }
-
 
     pub const fn tooltip(owner: Id, at: Position) -> LayerSpec {
         LayerSpec {
@@ -206,13 +177,11 @@ impl LayerSpec {
         }
     }
 
-
     #[must_use]
     pub const fn anchor(mut self, a: Anchor) -> Self {
         self.anchor = a;
         self
     }
-
 
     #[must_use]
     pub const fn dismiss(mut self, d: Dismiss) -> Self {
@@ -220,13 +189,11 @@ impl LayerSpec {
         self
     }
 
-
     #[must_use]
     pub const fn backdrop(mut self, b: Backdrop) -> Self {
         self.backdrop = b;
         self
     }
-
 
     #[must_use]
     pub const fn initial_focus(mut self, id: Id) -> Self {
@@ -234,13 +201,11 @@ impl LayerSpec {
         self
     }
 
-
     #[must_use]
     pub const fn size(mut self, s: LayerSize) -> Self {
         self.size = s;
         self
     }
-
 
     #[must_use]
     pub const fn inert_below(mut self, yes: bool) -> Self {
@@ -248,19 +213,16 @@ impl LayerSpec {
         self
     }
 
-
     #[must_use]
     pub const fn restore_focus(mut self, yes: bool) -> Self {
         self.restore_focus = yes;
         self
     }
 
-
     pub const fn dismisses_on_focus_out(&self) -> bool {
         self.dismiss.focus_out && !matches!(self.kind, LayerKind::Modal)
     }
 }
-
 
 #[expect(
     clippy::many_single_char_names,
@@ -325,7 +287,6 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
             }
         }
 
-
         Anchor::Point(p) => {
             let below = p.y.saturating_add(1);
             let fits_below = below.saturating_add(h) <= screen.bottom();
@@ -361,7 +322,6 @@ const fn cross(start: u16, len: u16, size: u16, align: CrossAlign) -> u16 {
     }
 }
 
-
 pub const fn backdrop_area(screen: Rect, backdrop: Backdrop) -> Rect {
     match backdrop {
         Backdrop::None => Rect::ZERO,
@@ -378,7 +338,6 @@ pub const fn backdrop_area(screen: Rect, backdrop: Backdrop) -> Rect {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct OpenLayer {
     pub(crate) id: Id,
@@ -393,7 +352,6 @@ impl OpenLayer {
         ScopeId::new(self.id)
     }
 }
-
 
 #[derive(Clone, Debug)]
 pub(crate) struct LayerStack {
@@ -431,7 +389,6 @@ impl LayerStack {
         self.get(id).is_some()
     }
 
-
     pub(crate) fn spec_mut(&mut self, id: Id) -> Option<&mut LayerSpec> {
         self.open
             .iter_mut()
@@ -443,7 +400,6 @@ impl LayerStack {
         self.open.last()
     }
 
-
     pub(crate) fn inert_floor(&self) -> LayerId {
         self.open
             .iter()
@@ -451,7 +407,6 @@ impl LayerStack {
             .find(|l| l.spec.inert_below)
             .map_or(LayerId::PAGE, |l| l.layer)
     }
-
 
     pub(crate) fn open(
         &mut self,
@@ -473,7 +428,6 @@ impl LayerStack {
         self.pending.push((id, LayerEvent::Opened));
         Some(layer)
     }
-
 
     pub(crate) fn close(&mut self, id: Id, event: LayerEvent) -> Vec<OpenLayer> {
         let Some(pos) = self.open.iter().position(|l| l.id == id) else {
@@ -677,7 +631,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn fixed_size_is_clamped_never_grown() {
         let screen = Rect::new(0, 0, 40, 10);
@@ -712,7 +665,6 @@ mod tests {
         assert_eq!((small.width, small.height), (10, 4));
     }
 
-
     #[test]
     fn popover_flips_above_when_the_content_does_not_fit_below() {
         let screen = Rect::new(0, 0, 40, 20);
@@ -734,7 +686,6 @@ mod tests {
             Rect::new(4, 3, 12, 6)
         );
     }
-
 
     #[test]
     fn point_anchor_flips_instead_of_covering_the_pointer() {
@@ -842,7 +793,6 @@ mod runtime_tests {
         }
     }
 
-
     fn popover_stub() -> Stub {
         Stub {
             page: vec![
@@ -854,7 +804,6 @@ mod runtime_tests {
             ..Stub::default()
         }
     }
-
 
     #[test]
     fn resize_layer_re_resolves_the_anchor_on_the_next_draw() {
@@ -883,7 +832,6 @@ mod runtime_tests {
         assert_eq!(rt.layer_area(DLG), Some(grown));
     }
 
-
     #[test]
     fn spec_geometry_is_the_only_mutable_field() {
         let (mut rt, mut buf) = runtime(dialog_stub());
@@ -895,7 +843,6 @@ mod runtime_tests {
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         rt.app_mut().resize_request = Some((DLG, LayerSize::Fixed(24, 6)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
-
 
         let open = rt.open_spec(DLG).expect("the layer is open");
         assert_eq!(open.size, LayerSize::Fixed(24, 6));
@@ -987,7 +934,6 @@ mod runtime_tests {
         assert!(!rt.app().saw(PAGE_A, "Press"));
     }
 
-
     #[test]
     fn focus_out_dismisses_a_popover_but_never_a_modal() {
         let (mut rt, mut buf) = runtime(popover_stub());
@@ -1025,7 +971,6 @@ mod runtime_tests {
             "the dismissal is one more pass, not an unsettled loop: {:?}",
             rt.diagnostics()
         );
-
 
         let (mut rt, mut buf) = runtime(dialog_stub());
         rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).dismiss(Dismiss::ALL)));
