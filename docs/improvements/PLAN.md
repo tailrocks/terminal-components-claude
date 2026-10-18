@@ -1,13 +1,10 @@
 # Improvements plan
 
-Status: **Current phase implemented and verified (simulated Holla prototype); Later work open.** This document is
-the checkbox tracker. Detailed contracts live in [small task files]().
-The current phase implements Holla's simulated design, interactions, coverage
-and the shared components needed by those flows. Other work remains tracked.
+This document tracks the scoped simulated Holla prototype work. Checked rows record the implementation/evidence claim at their cited source revision; they do not close the full retained task contract or establish current branch-wide readiness. Later work remains open.
 
-Read [current scope and delivery order](scope.md),
-[shared acceptance contracts](shared-contracts.md) and the
-[ready-to-use goal prompt](goal-prompt.md).
+Read [current scope and delivery order](scope.md) and
+[shared acceptance contracts](shared-contracts.md). Individual task files retain
+the detailed acceptance criteria.
 Historical research and evidence remain in the [audit reference](plan-reference-audit.md).
 
 ## Tracking rules

@@ -1,6 +1,6 @@
 # Documentation guide
 
-This checkout is the visual and interaction reference branch. The product target is the exact behavior and presentation recorded by [`design/interaction-polish`](design/DESIGN.md) and its accepted snapshots. This branch's implementation and remaining-work ledger describe this checkout only; they do not claim that the separate main workspace has completed the target.
+This checkout is the visual and interaction reference branch. The product target is the exact behavior and presentation recorded by the [design contract](design/DESIGN.md) and its approved captures. This branch's implementation and remaining-work ledger describe this checkout only; they do not claim that the separate main workspace has completed the target.
 
 | Document | Purpose |
 |---|---|
@@ -11,6 +11,8 @@ This checkout is the visual and interaction reference branch. The product target
 | [remaining-work.md](remaining-work.md) | Unfinished product, component, parity, and verification requirements. |
 | [design/DESIGN.md](design/DESIGN.md) | Detailed design-system source. |
 | [architecture/shared-components-plan.md](architecture/shared-components-plan.md) | Detailed component API and state contracts for the intended architecture. |
+| [refactoring-plan/](refactoring-plan/README.md) | Task graph, proof contracts, traceability, and dated planning evidence. |
+| [sources/](sources/README.md) | Historical source records and their non-authoritative status. |
 | [refactoring-tasks/](../refactoring-tasks/) | Sealed task packages and their exact acceptance contracts. |
 | [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md) | Captured surface inventory and baseline verification procedure. |
 
