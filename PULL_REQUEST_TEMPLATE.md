@@ -39,7 +39,7 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 Include when the diff changes Rust behavior or tests. The filtered command covers the touched package. The workspace command is the full gate. Both exit 0 with a nonzero pass count.
 
 ```sh
-cargo test -p junie-tui --lib
+cargo test -p termrock --lib
 cargo test --workspace --all-targets --all-features
 ```
 
