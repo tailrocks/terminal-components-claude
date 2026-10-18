@@ -1,12 +1,3 @@
-//! Read-only report (Screens, plan §7.5 SC56): a host snapshot as holla's
-//! snapshot pages show one, composed from library widgets only. A card
-//! whose meta reads `live · ago` holds the host's `MeterList`; a
-//! `PropsList` of facts copies any value (`y`, or Enter, on a row); `Notice`s
-//! carry what needs attention; the action row refreshes (`r` anywhere on
-//! the page), copies the whole report and offers the Next pages. Offline,
-//! the report keeps its last-good values, drawn stale.
-//! Options: `crate::options::READONLY_REPORT`.
-
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Rect, Size};
@@ -37,10 +28,8 @@ const COPY: WidgetId = ID.sub("copy");
 const NEXT_DISK: WidgetId = ID.sub("next-disk");
 const NEXT_ACTIVITY: WidgetId = ID.sub("next-activity");
 
-/// Ticks a refresh runs (the meters show their refreshing tone).
 const REFRESH_TICKS: u16 = 16;
 
-/// The host's load: label, used %, detail.
 const LOAD: [(&str, u8, &str); 5] = [
     ("CPU", 23, "8 cores · load 1.84 1.62 1.40"),
     ("Memory", 68, "21.8 of 32 GB · 3.1 GB cached"),
@@ -49,7 +38,6 @@ const LOAD: [(&str, u8, &str); 5] = [
     ("Disk /Volumes/Backup", 97, "1.94 of 2 TB"),
 ];
 
-/// The host's facts.
 fn facts(copyable: bool) -> Vec<Prop> {
     let rows = [
         ("Host", "build-07.acme.internal"),
@@ -82,9 +70,9 @@ pub struct ReadOnlyReportPage {
     opts: PageValues,
     facts: PropsList,
     actions: Vec<Button>,
-    /// Ticks left of a running refresh.
+
     refreshing: u16,
-    /// Completed refreshes: each moves the load on and resets the age.
+
     epoch: u8,
     sections: crate::pages::layout::Sections,
 }
@@ -112,8 +100,6 @@ impl ReadOnlyReportPage {
         self.opts.on("readonlyreport.offline")
     }
 
-    /// The header's meta: live with the snapshot's age, refreshing, or
-    /// the last-good age while offline.
     fn meta(&self) -> &'static str {
         if self.refreshing > 0 {
             "refreshing…"
@@ -181,7 +167,6 @@ impl ReadOnlyReportPage {
         v
     }
 
-    /// The whole report as text, for Copy report.
     fn report_text(&self) -> String {
         let mut s = format!("Host snapshot ({})\n", self.meta());
         for (l, p, d) in LOAD {
@@ -267,8 +252,6 @@ impl ReadOnlyReportPage {
         }
     }
 
-    /// The sections at `width`: the meters card, the facts, the notices
-    /// wrapped to the width less their margins, the action row.
     fn children(&self, width: u16, t: &junie_tui::theme::Theme) -> Vec<StackChild> {
         let notices = self.notices();
         let inner_w = width.saturating_sub(4);
@@ -325,8 +308,6 @@ impl ReadOnlyReportPage {
     }
 }
 
-/// The States grid: the report's meters and facts in their content
-/// states (the notices' own states are on the Notices page).
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -361,7 +342,6 @@ fn states_grid() -> StateGrid {
         )
 }
 
-/// The narrowest a wrapping notice asks the report to be.
 const NOTICE_MIN: u16 = 40;
 
 impl Page for ReadOnlyReportPage {
@@ -372,12 +352,6 @@ impl Page for ReadOnlyReportPage {
         "A host snapshot: live meta, MeterList, copyable facts, notices and Next actions"
     }
 
-    /// Everything whole: the meters (MeterList's Measure) in their card,
-    /// the facts in their frame, the actions on one row; as wide as the
-    /// room when wider, the sections' heights at that width. The notices
-    /// wrap, so they ask only for [`NOTICE_MIN`] columns (or their one
-    /// line when shorter): a long notice grows taller, never the page
-    /// sideways.
     fn measure(&self, avail: Size, ctx: &RenderCtx) -> Size {
         let at = |m: &dyn Measure| m.measure(Size::ZERO, ctx);
         let notices = self
@@ -460,7 +434,7 @@ impl Page for ReadOnlyReportPage {
                         return o;
                     }
                 }
-                // `r` refreshes from anywhere on the page
+
                 if key.code == KeyCode::Char('r') && key.mods.is_empty() {
                     self.start_refresh(cx);
                     return Outcome::Changed;

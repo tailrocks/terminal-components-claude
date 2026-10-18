@@ -1,7 +1,3 @@
-//! The fixture world: every piece of durable and live state the preview
-//! simulates, plus a deterministic job queue that delivers typed messages
-//! on virtual time.
-
 use std::collections::BTreeMap;
 
 use crate::arbiter::Arbiter;
@@ -17,9 +13,6 @@ use crate::sim::pty::Daemon;
 use junie_tui::clock::SimClock;
 use junie_tui::shell::JobKey;
 
-/// The background jobs a progress status reports on
-/// ([`junie_tui::shell::Cx::progress`]); [`Msg::job`] names the job a
-/// result ends.
 pub mod job {
     use junie_tui::shell::JobKey;
     pub const WORKSPACE_SAVE: JobKey = JobKey::new("workspace.save");
@@ -31,7 +24,6 @@ pub mod job {
     pub const ACCOUNT_VALIDATE: JobKey = JobKey::new("account.validate");
 }
 
-/// Global (host) configuration edited in Settings.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GlobalConfig {
     pub coauthor_trailer: bool,
@@ -39,8 +31,7 @@ pub struct GlobalConfig {
     pub mounts: Vec<Mount>,
     pub env: Vec<EnvVar>,
     pub role_env: BTreeMap<RoleName, Vec<EnvVar>>,
-    /// How each agent runtime is given credentials inside the container.
-    /// Which account backs it is the registry's business, not this table's.
+
     pub agent_modes: BTreeMap<Agent, AuthMode>,
     pub trust: Vec<TrustRow>,
 }
@@ -63,8 +54,6 @@ impl GlobalConfig {
     }
 }
 
-/// Added + modified + removed rows, matching rows by identity so an edited
-/// row counts once rather than as a removal plus an addition.
 pub fn keyed_diff<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
     let mut n = 0;
     for x in a {
@@ -89,7 +78,6 @@ pub struct TrustRow {
     pub roles: usize,
 }
 
-/// A fixture filesystem entry for the file browser.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FsEntry {
     pub path: String,
@@ -107,10 +95,8 @@ pub struct GithubRepo {
     pub url: String,
 }
 
-/// Typed results of simulated asynchronous work.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
-    /// Config write finished.
     WorkspaceSaved {
         id: WorkspaceId,
         ok: bool,
@@ -118,7 +104,7 @@ pub enum Msg {
     GlobalSaved {
         ok: bool,
     },
-    /// Instance refresh cycle finished.
+
     Refreshed {
         ok: bool,
     },
@@ -142,7 +128,7 @@ pub enum Msg {
         ok: bool,
         error: Option<String>,
     },
-    /// Another client attached to this instance and displaced us.
+
     Takeover {
         instance: InstanceId,
         by: String,
@@ -150,7 +136,6 @@ pub enum Msg {
 }
 
 impl Msg {
-    /// The job whose result this is, if a progress status reports on it.
     pub fn job(&self) -> Option<JobKey> {
         match self {
             Msg::WorkspaceSaved { .. } => Some(job::WORKSPACE_SAVE),
@@ -197,15 +182,15 @@ pub struct World {
     pub jobs: Vec<Job>,
     pub daemon_health: DaemonHealth,
     pub last_refresh_secs: i64,
-    /// The next refresh cycle fails (hard cases).
+
     pub refresh_fails: bool,
-    /// Saving fails once (hard cases).
+
     pub save_fails_once: bool,
-    /// A foreign client takes over the attached instance after this many ms.
+
     pub takeover_at_ms: Option<i64>,
-    /// Session-scope account choices made in the Capsule.
+
     pub session_accounts: BTreeMap<(InstanceId, u64), AccountId>,
-    /// Discovered accounts appear only after a refresh in first use.
+
     pub discovery_pending: bool,
 }
 
@@ -224,8 +209,6 @@ impl World {
         self.jobs.sort_by_key(|j| j.due_ms);
     }
 
-    /// Advance virtual time and pop due jobs. Daemons of running instances
-    /// keep emitting output whether or not a client is attached.
     pub fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
         self.clock.advance(interval_ms);
         if !self.clock.running {
@@ -276,7 +259,6 @@ impl World {
         self.workspaces.iter_mut().find(|w| w.id == id)
     }
 
-    /// The saved Workspace whose workdir is the current directory.
     pub fn cwd_workspace(&self) -> Option<&Workspace> {
         self.workspaces.iter().find(|w| {
             w.mounts.iter().any(|m| {
@@ -307,7 +289,6 @@ impl World {
             .collect()
     }
 
-    /// Visible (non purged / superseded) instances of a Workspace.
     pub fn instances_of(&self, ws: Option<WorkspaceId>) -> Vec<&Instance> {
         self.instances
             .iter()
@@ -315,7 +296,6 @@ impl World {
             .collect()
     }
 
-    /// Sync the arbiter's discovery with the live instance count.
     pub fn sync_arbiter(&mut self) {
         if self.arbiter.discovery.is_ok() {
             let n = self.running_count();
@@ -323,12 +303,10 @@ impl World {
         }
     }
 
-    /// Mask a private path: home → `~`, keep the last segment.
     pub fn mask_path(&self, path: &str) -> String {
         mask_path(&self.home, path)
     }
 
-    /// Shorten with `~`.
     pub fn tilde(&self, path: &str) -> String {
         if let Some(rest) = path.strip_prefix(&self.home) {
             format!("~{rest}")
@@ -352,7 +330,6 @@ impl World {
         crate::domain::fixtures::resolve_account(provider, ws, role, session, &self.accounts)
     }
 
-    /// The agent runtime mode configured in Settings (`sync` when unset).
     pub fn agent_mode(&self, agent: Agent) -> AuthMode {
         self.global
             .agent_modes
@@ -361,10 +338,6 @@ impl World {
             .unwrap_or(AuthMode::Sync)
     }
 
-    /// Accounts a session for `agent` may use: the Workspace's effective set
-    /// (or, without a Workspace, the registry defaults and discovered
-    /// logins) restricted to the agent's provider and to accounts that are
-    /// ready right now. Preferred first.
     pub fn eligible_accounts(
         &self,
         agent: Agent,
@@ -375,9 +348,6 @@ impl World {
         offer.accounts
     }
 
-    /// Everything the session picker needs for one agent. `None` when the
-    /// agent has no configured account at all (it must not be offered);
-    /// `blocked` when every configured account is temporarily unusable.
     pub fn offer_for(
         &self,
         agent: Agent,
@@ -400,7 +370,6 @@ impl World {
                 }
             }
             None => {
-                // no Workspace: the registry default, else the discovered login
                 if let Some(a) = self.accounts.default_for(provider) {
                     match crate::domain::workspace::usability_of(a) {
                         Usability::Ready => ready.push(a.id.clone()),
@@ -423,7 +392,7 @@ impl World {
                 configured: !ready.is_empty() || !blocked.is_empty(),
             };
         }
-        // preselection follows the precedence resolver, restricted to the ready set
+
         let preselected = self
             .account_for(provider, ws, role, None)
             .account
@@ -456,10 +425,6 @@ impl World {
         }
     }
 
-    /// Agents a new session may run, in `Agent::ALL` order. Unconfigured
-    /// agents are absent; agents whose only accounts are temporarily unusable
-    /// come back with `blocked` set so the picker can show a disabled row.
-    /// Shell is never in this list.
     pub fn offered_agents(
         &self,
         ws: Option<&Workspace>,
@@ -473,15 +438,13 @@ impl World {
     }
 }
 
-/// What a session picker knows about one agent.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentOffer {
-    /// Ready accounts, preselected one first.
     pub accounts: Vec<AccountId>,
     pub preselected: Option<AccountId>,
-    /// Set when the agent is configured but cannot start right now.
+
     pub blocked: Option<String>,
-    /// False when nothing at all is configured for the agent.
+
     pub configured: bool,
 }
 
@@ -493,8 +456,6 @@ pub fn expand(home: &str, path: &str) -> String {
     }
 }
 
-/// `/Users/alexey/src/acme/api-gateway` → `~/…/api-gateway`; paths outside
-/// home keep only the last segment prefixed by `…/`.
 pub fn mask_path(home: &str, path: &str) -> String {
     let last = path.rsplit('/').next().unwrap_or(path);
     if let Some(rest) = path.strip_prefix(home) {

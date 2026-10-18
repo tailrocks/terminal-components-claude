@@ -1,9 +1,9 @@
-//! Terminal modes are not part of any snapshot format (`Frame` has no mode
-//! state), so each app gets one boot check on the live emulator state: the
-//! shared runtime (`src/runtime.rs`) must enter the alternate screen (1049),
-//! enable any-motion SGR mouse reporting (1003 + 1006) and bracketed paste
-//! (2004). A regression here would otherwise surface only indirectly, as
-//! changed hover/click captures or refused pointer input.
+
+
+
+
+
+
 
 use crate::scenarios::Bin;
 use crate::support::{self, Case, Color};

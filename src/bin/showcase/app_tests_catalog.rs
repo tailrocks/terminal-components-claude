@@ -1,19 +1,3 @@
-//! Showcase coverage gate (plan §7, SC0).
-//!
-//! 1. The capability registry (`junie_tui::catalog::CAPABILITIES`) matches
-//!    the library source: every public type, variant, builder and theme
-//!    token is listed, and nothing listed is gone.
-//! 2. Every capability is shown by the showcase (`coverage::SHOWN`, or
-//!    `coverage::VIA` for a function whose owning type is itself shown)
-//!    or allowlisted in `tests/showcase_coverage_allow.txt`; allowlist
-//!    lines that are stale (now shown, or an unknown id) fail, and so does
-//!    a `Via` whose owner is not declared directly.
-//! 3. Every declaration holds in the running showcase.
-//!
-//! On failure the messages print paste-ready lines. The remaining gaps per
-//! SC step are printed by `remaining_gaps_per_step` (run it with
-//! `--no-capture`).
-
 use junie_tui::runtime::Application;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
@@ -47,13 +31,10 @@ fn ctor(kind: CapKind) -> &'static str {
     }
 }
 
-/// Kinds the source scan owns; `State` entries are hand-listed.
 fn scanned_kind(kind: CapKind) -> bool {
     kind != CapKind::State
 }
 
-/// Registry vs source: missing entries, entries no longer in the source,
-/// kind mismatches and duplicates.
 fn registry_problems(caps: &[Capability], scanned: &[Item]) -> Vec<String> {
     let mut problems = Vec::new();
     let mut seen = HashSet::new();
@@ -94,7 +75,6 @@ fn registry_problems(caps: &[Capability], scanned: &[Item]) -> Vec<String> {
     problems
 }
 
-/// One allowlist line: `id | reason | SCn` or `id | reason | permanent`.
 #[derive(Debug)]
 struct Allow<'a> {
     id: &'a str,
@@ -136,8 +116,6 @@ fn parse_allowlist(text: &str) -> (Vec<Allow<'_>>, Vec<String>) {
     (out, problems)
 }
 
-/// Coverage: every capability declared or allowlisted, no stale lines,
-/// no declaration for an unknown id.
 fn coverage_problems(caps: &[Capability], shown: &[(&str, Shown)], allow: &str) -> Vec<String> {
     let (allow, mut problems) = parse_allowlist(allow);
     let known: HashSet<&str> = caps.iter().map(|c| c.id).collect();
@@ -148,7 +126,6 @@ fn coverage_problems(caps: &[Capability], shown: &[(&str, Shown)], allow: &str) 
             problems.push(format!("allowlist lists {} twice", line.id));
         }
         if let Some(rest) = line.id.strip_prefix("app::") {
-            // An app-local pattern deliberately kept out of the library.
             let bin = rest.split("::").next().unwrap_or_default();
             if line.step != "permanent" {
                 problems.push(format!(
@@ -198,10 +175,6 @@ fn coverage_problems(caps: &[Capability], shown: &[(&str, Shown)], allow: &str) 
     problems
 }
 
-/// `Via(owner)` holds only for a function whose owner is a type declared
-/// directly (`Demo`, `Option` or `StateRow`: another `Via` never counts),
-/// a method only through its own type, and never beside a direct
-/// declaration of the same function.
 fn via_problems(caps: &[Capability], shown: &[(&str, Shown)]) -> Vec<String> {
     let kinds: HashMap<&str, CapKind> = caps.iter().map(|c| (c.id, c.kind)).collect();
     let direct: HashSet<&str> = shown
@@ -279,13 +252,10 @@ fn every_capability_is_shown_or_allowlisted() {
     );
 }
 
-/// Collapses whitespace runs to one space, so labels match across the
-/// column padding of the rendered page.
 fn squash(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// The rows of a 220x80 frame of `app`, whitespace runs collapsed.
 fn frame_text(app: &mut App) -> String {
     let mut term = Terminal::new(TestBackend::new(220, 80)).unwrap();
     term.draw(|frame| app.render(frame)).unwrap();
@@ -302,9 +272,6 @@ fn frame_text(app: &mut App) -> String {
     text
 }
 
-/// Text of every rendered row of `page` at a generous size, one row per
-/// line, whitespace runs collapsed. A page on the Playground | Options |
-/// States template renders each of its sections.
 fn page_text(page: PageId) -> String {
     let mut app = App::new(Theme::junie());
     app.open_page(page);
@@ -322,8 +289,6 @@ fn page_text(page: PageId) -> String {
     text
 }
 
-/// The States rows `page` draws whole in its States section at 220x80,
-/// and the frame's text; `None` when the page has no States section.
 fn page_states(page: PageId) -> Option<(Vec<SpecimenState>, String)> {
     let mut app = App::new(Theme::junie());
     app.open_page(page);
@@ -335,17 +300,12 @@ fn page_states(page: PageId) -> Option<(Vec<SpecimenState>, String)> {
     Some((rows, text))
 }
 
-/// Every cell of a 220x80 frame of `app`, symbol and style.
 fn frame_cells(app: &mut App) -> Vec<ratatui::buffer::Cell> {
     let mut term = Terminal::new(TestBackend::new(220, 80)).unwrap();
     term.draw(|frame| app.render(frame)).unwrap();
     term.backend().buffer().content().to_vec()
 }
 
-/// What option value `value` shows on `page`: the page's frame, every
-/// section of a templated page, with the Inspector closed; for a
-/// behaviour option, the live configuration and the Inspector's Options
-/// tab instead. `needs` are set first, each through `--opt`.
 fn option_render(page: PageId, opt: &Opt, value: usize) -> (Vec<ratatui::buffer::Cell>, String) {
     let mut app = App::new(Theme::junie());
     app.open_page(page);
@@ -369,7 +329,6 @@ fn option_render(page: PageId, opt: &Opt, value: usize) -> (Vec<ratatui::buffer:
         }
         Effect::Frame => cells = frame_cells(&mut app),
         Effect::Behaviour => {
-            // a first frame sizes the app: at 220 columns the pane docks
             frame_cells(&mut app);
             app.toggle_inspector();
             app.insp.set_tab(Tab::Options);
@@ -377,15 +336,11 @@ fn option_render(page: PageId, opt: &Opt, value: usize) -> (Vec<ratatui::buffer:
         }
     }
     let config = app.live_config();
-    // `shell.alt_keys` sets the process's Alt detection: put back the
-    // pinned one, so the next declaration renders as before (A29)
+
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     (cells, config)
 }
 
-/// `Option(slug, key)` holds when every value it names, set through the
-/// `--opt` path, shows differently from another value of the option.
-/// `key` is `shell.color` (every value) or `shell.color=mono` (one).
 fn option_holds(slug: &str, key: &str) -> Result<(), String> {
     let page = PageId::from_name(slug).ok_or_else(|| format!("unknown page {slug:?}"))?;
     let (name, only) = match key.split_once('=') {
@@ -408,8 +363,6 @@ fn option_holds(slug: &str, key: &str) -> Result<(), String> {
     option_values_hold(page, opt, &values)
 }
 
-/// Each of `values` renders unlike another value of `opt` (the default, or
-/// for the default itself the next value).
 fn option_values_hold(page: PageId, opt: &Opt, values: &[usize]) -> Result<(), String> {
     for &v in values {
         let other = if v == opt.default {
@@ -433,8 +386,6 @@ fn option_values_hold(page: PageId, opt: &Opt, values: &[usize]) -> Result<(), S
     Ok(())
 }
 
-/// Problems with the declarations themselves: each must hold in the
-/// running showcase.
 fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
     let mut problems = Vec::new();
     let mut pages: HashMap<&str, String> = HashMap::new();
@@ -453,15 +404,13 @@ fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
                     ));
                 }
             }
-            // set through the `--opt` path, the value must change what
-            // the page shows (or, for a behaviour option, the live
-            // configuration and the Options tab)
+
             Shown::Option(slug, key) => {
                 if let Err(e) = option_holds(slug, key) {
                     problems.push(format!("{id}: Option({slug:?}, {key:?}): {e}"));
                 }
             }
-            // the page's States section draws the row whole, under its label
+
             Shown::StateRow(slug, row) => {
                 let Some(page) = PageId::from_name(slug) else {
                     problems.push(format!("{id}: StateRow on unknown page {slug:?}"));
@@ -486,8 +435,7 @@ fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
                     }
                 }
             }
-            // nothing of its own to render: the owner's direct
-            // declaration is checked here, and `via_problems` requires one
+
             Shown::Via(_) => {}
         }
     }
@@ -496,7 +444,6 @@ fn declaration_problems(shown: &[(&str, Shown)]) -> Vec<String> {
 
 #[test]
 fn showcase_declarations_hold() {
-    // the demos name Alt chords: the host terminal must not decide (A29)
     junie_tui::core::keyboard::set_alt_keys(junie_tui::core::keyboard::AltKeys::Delivered);
     fail_on(
         "src/bin/showcase/coverage.rs declares what the showcase does not show",
@@ -536,10 +483,6 @@ fn remaining_gaps_per_step() {
     }
 }
 
-// ------------------------------------------------- the gate proves itself
-
-/// Fixture: a new public widget with a new builder, scanned as if it were
-/// `src/widgets/fixture.rs`. Nothing in the real source changes.
 const NEW_BUILDER: &str = r#"
     pub struct Gizmo { glow: bool }
     impl Gizmo {
@@ -556,7 +499,6 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
         NEW_BUILDER,
     ));
 
-    // Not in the registry: the drift check names both new items.
     let drift = registry_problems(CAPABILITIES, &scanned);
     assert!(
         drift
@@ -571,8 +513,6 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
         "{drift:#?}"
     );
 
-    // Registered but neither shown nor allowlisted: the coverage check
-    // fails on it.
     let mut caps = CAPABILITIES.to_vec();
     caps.push(Capability::ty("widgets::fixture::Gizmo"));
     caps.push(Capability::builder("widgets::fixture::Gizmo::glow"));
@@ -584,7 +524,6 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
         "{gaps:#?}"
     );
 
-    // An allowlist line against its SC step satisfies the gate.
     let allow = format!(
         "{ALLOWLIST}\nwidgets::fixture::Gizmo | fixture | SC7\n\
          widgets::fixture::Gizmo::glow | fixture | SC7\n"
@@ -595,9 +534,6 @@ fn gate_fails_when_a_new_builder_has_no_coverage() {
     );
 }
 
-/// Fixture (SC-G1): a new free function and a new query method, scanned
-/// as if they were `src/widgets/fixture.rs`. Constructors are not
-/// capabilities of their own.
 const NEW_FUNCTIONS: &str = r#"
     pub struct Gizmo { glow: u8 }
     impl Gizmo {
@@ -615,8 +551,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
         NEW_FUNCTIONS,
     ));
 
-    // Not in the registry: the drift check names the free function and
-    // the method, never the constructor.
     let drift = registry_problems(CAPABILITIES, &scanned);
     for line in [
         "Capability::function(\"widgets::fixture::render_gizmo\")",
@@ -629,8 +563,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
         "{drift:#?}"
     );
 
-    // Registered but neither shown nor allowlisted: the coverage check
-    // fails on each function.
     let mut caps = CAPABILITIES.to_vec();
     caps.push(Capability::ty("widgets::fixture::Gizmo"));
     caps.push(Capability::function("widgets::fixture::Gizmo::level"));
@@ -648,7 +580,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
         );
     }
 
-    // A removed function whose entry stays fails as drift.
     let gone: Vec<Item> = scanned
         .iter()
         .filter(|i| i.id != "widgets::fixture::render_gizmo")
@@ -660,7 +591,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
             .any(|p| p.contains("lists widgets::fixture::render_gizmo (function)")),
     );
 
-    // Allowlist lines against an SC step satisfy the gate.
     let allow = format!(
         "{ALLOWLIST}\nwidgets::fixture::Gizmo | fixture | SC58\n\
          widgets::fixture::Gizmo::level | fixture | SC58\n\
@@ -676,7 +606,6 @@ fn gate_fails_when_a_new_public_function_has_no_coverage() {
 fn gate_fails_on_a_stale_allowlist_line() {
     let (shown_id, _) = SHOWN.first().expect("at least one declaration");
 
-    // Allowlisted although the showcase now shows it.
     let allow = format!("{ALLOWLIST}\n{shown_id} | was pending | SC2\n");
     let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
     assert!(
@@ -686,7 +615,6 @@ fn gate_fails_on_a_stale_allowlist_line() {
         "{problems:#?}"
     );
 
-    // An id the registry does not know.
     let allow = format!("{ALLOWLIST}\nwidgets::gone::Gone | removed | SC7\n");
     let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
     assert!(
@@ -696,7 +624,6 @@ fn gate_fails_on_a_stale_allowlist_line() {
         "{problems:#?}"
     );
 
-    // A pending line without its SC step.
     let allow = format!("{ALLOWLIST}\nwidgets::gone::Gone | todo | later\n");
     let problems = coverage_problems(CAPABILITIES, coverage::declarations(), &allow);
     assert!(
@@ -706,8 +633,6 @@ fn gate_fails_on_a_stale_allowlist_line() {
         "{problems:#?}"
     );
 
-    // An app-local exclusion for an app that no longer exists, and one
-    // that is pending instead of permanent.
     let allow = format!(
         "{ALLOWLIST}\napp::gone_app::intro | brand | permanent\n\
          app::jackin_preview::banner | brand | SC4\n"
@@ -746,12 +671,9 @@ fn gate_fails_when_a_declaration_is_removed() {
 
 #[test]
 fn gate_sets_an_option_through_opt_and_needs_a_visible_change() {
-    // a real declaration: mono redraws the page; Release (the showcase's
-    // default focus policy) differs from Press in the live configuration
     assert_eq!(option_holds("overview", "shell.color=mono"), Ok(()));
     assert_eq!(option_holds("overview", "shell.focus_on=release"), Ok(()));
-    // fixture: the level overrides without the level they override change
-    // nothing, so a declaration of them would not hold
+
     let real = options::find("shell.overrides").unwrap();
     let inert = Opt {
         needs: &[],
@@ -759,9 +681,9 @@ fn gate_sets_an_option_through_opt_and_needs_a_visible_change() {
     };
     let err = option_values_hold(PageId::Overview, &inert, &[1]).unwrap_err();
     assert!(err.contains("shows the same"), "{err}");
-    // with what it needs, the same value holds
+
     assert_eq!(option_values_hold(PageId::Overview, real, &[1]), Ok(()));
-    // unknown keys, values and pages
+
     for (slug, key) in [
         ("overview", "shell.glow"),
         ("overview", "shell.color=purple"),
@@ -778,9 +700,6 @@ fn gate_fails_on_a_declaration_the_showcase_does_not_hold() {
         (*id, Shown::Demo("buttons", "no such text anywhere")),
         (*id, Shown::Demo("nosuchpage", "x")),
         (*id, Shown::Option("buttons", "glow")),
-        // a row the page's grid does not have, a row name that is no
-        // state, an unknown page (every page has a States section now:
-        // `every_page_is_on_the_template`)
         (*id, Shown::StateRow("buttons", "error")),
         (*id, Shown::StateRow("inputs", "sideways")),
         (*id, Shown::StateRow("nosuchpage", "rest")),
@@ -788,8 +707,6 @@ fn gate_fails_on_a_declaration_the_showcase_does_not_hold() {
     assert_eq!(declaration_problems(&wrong).len(), wrong.len());
 }
 
-/// Fixture: a widget `Gizmo` with a render method and a free render
-/// helper, filed in `VIA` under `Gizmo`.
 const GIZMO: &str = "widgets::fixture::Gizmo";
 const GIZMO_VIA: &[(&str, ViaRole, &[&str])] = &[(
     GIZMO,
@@ -805,7 +722,6 @@ fn gizmo_caps() -> Vec<Capability> {
     caps
 }
 
-/// The real declarations plus `extra` and the fixture's `Via` entries.
 fn with_gizmo(extra: &[(&'static str, Shown)]) -> Vec<(&'static str, Shown)> {
     let mut shown = coverage::declarations().to_vec();
     shown.extend(coverage::expand(extra, GIZMO_VIA));
@@ -826,7 +742,7 @@ fn via_holds_when_the_owner_is_demonstrated() {
 #[test]
 fn via_fails_when_the_owner_is_not_demonstrated() {
     let caps = gizmo_caps();
-    // the owner pending (or excluded) instead of shown: both functions fail
+
     for step in ["SC58", "permanent"] {
         let allow = format!("{ALLOWLIST}\n{GIZMO} | fixture | {step}\n");
         let problems = coverage_problems(&caps, &with_gizmo(&[]), &allow);
@@ -842,7 +758,7 @@ fn via_fails_when_the_owner_is_not_demonstrated() {
             );
         }
     }
-    // a real owner losing its own declaration takes its Via entries with it
+
     let (owner, _, names) = coverage::VIA.first().expect("at least one Via group");
     let fewer: Vec<(&str, Shown)> = coverage::declarations()
         .iter()
@@ -865,7 +781,6 @@ fn via_fails_when_the_owner_is_not_demonstrated() {
 fn a_stale_via_fails() {
     let shown = with_gizmo(&[GIZMO_DEMO]);
 
-    // the function is gone from the catalog
     let gone: Vec<Capability> = gizmo_caps()
         .into_iter()
         .filter(|c| c.id != "widgets::fixture::render_gizmo")
@@ -879,7 +794,7 @@ fn a_stale_via_fails() {
     );
 
     let caps = gizmo_caps();
-    // also declared directly
+
     let mut both = shown.clone();
     both.push((
         "widgets::fixture::Gizmo::render",
@@ -893,7 +808,6 @@ fn a_stale_via_fails() {
         "{problems:#?}"
     );
 
-    // also allowlisted
     let allow = format!("{ALLOWLIST}\nwidgets::fixture::render_gizmo | fixture | SC58\n");
     let problems = coverage_problems(&caps, &shown, &allow);
     assert!(
@@ -903,8 +817,6 @@ fn a_stale_via_fails() {
         "{problems:#?}"
     );
 
-    // a method filed under a type that is not its own, and a type
-    // filed as if it were a function
     let theme = "theme::Theme";
     let mut wrong = shown.clone();
     wrong.retain(|(id, _)| *id != "widgets::fixture::Gizmo::render");

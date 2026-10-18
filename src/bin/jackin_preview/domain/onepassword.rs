@@ -1,10 +1,5 @@
-//! 1Password reference metadata. A reference names an account, vault, item
-//! and field; it never carries the resolved value. Resolution happens only
-//! inside the simulated credential service (`sim::onepassword`).
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct OpReference {
-    /// 1Password account short id, e.g. `chainargos.1password.com`.
     pub account: String,
     pub vault_id: String,
     pub vault_name: String,
@@ -16,7 +11,6 @@ pub struct OpReference {
 }
 
 impl OpReference {
-    /// `op://<vault>/<item>/[<section>/]<field>` with ids.
     pub fn canonical(&self) -> String {
         match &self.section {
             Some(s) => format!(
@@ -27,7 +21,6 @@ impl OpReference {
         }
     }
 
-    /// `Engineering › OpenAI · Codex Primary › credential` with names.
     pub fn display_path(&self) -> String {
         format!(
             "{} › {} › {}",

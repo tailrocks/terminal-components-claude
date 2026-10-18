@@ -1,6 +1,3 @@
-//! Deterministic output scripts for activities and plan steps. Lines are
-//! emitted at fixture ticks (80 ms each) so every frame is reproducible.
-
 use std::collections::BTreeMap;
 
 use crate::domain::activity::{LineTone, Script, line, service, toned};
@@ -405,13 +402,12 @@ pub fn scripts() -> BTreeMap<String, Script> {
     m
 }
 
-/// Plan step output keyed `plan/step`.
 pub fn step_outputs() -> BTreeMap<String, Vec<String>> {
     let mut m: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut put = |k: &str, v: &[&str]| {
         m.insert(k.into(), v.iter().map(|s| (*s).to_owned()).collect());
     };
-    // ---- docker cleanup on devbox
+
     put(
         "docker-cleanup/stop",
         &[
@@ -502,7 +498,7 @@ pub fn step_outputs() -> BTreeMap<String, Vec<String>> {
             "reclaimed 18.4 GB on devbox",
         ],
     );
-    // ---- upgrade everything on devbox
+
     put(
         "upgrade/preflight",
         &[
@@ -602,7 +598,7 @@ pub fn step_outputs() -> BTreeMap<String, Vec<String>> {
             "reboot required: no",
         ],
     );
-    // ---- clean developer artifacts under ~/work
+
     put(
         "cleanup-work/frontend-node_modules",
         &[
@@ -644,7 +640,7 @@ pub fn step_outputs() -> BTreeMap<String, Vec<String>> {
             "/ now 88% used (was 91%)",
         ],
     );
-    // ---- git across children
+
     put(
         "git-pull-all/frontend",
         &[

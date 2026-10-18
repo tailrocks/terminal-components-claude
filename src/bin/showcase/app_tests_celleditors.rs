@@ -1,7 +1,3 @@
-//! The "Cell editors" page driven through the real `App`: constrained
-//! columns edited by keyboard and mouse, the Tags checklist, the Combo
-//! search, flagged imported values, and the page's place in the sidebar.
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -26,7 +22,7 @@ impl Harness {
         let term = Terminal::new(TestBackend::new(w, h)).unwrap();
         let mut h = Self { app, term };
         h.draw();
-        // focus the table: the first Tab stop is the section strip
+
         h.key(KeyCode::Tab);
         h.key(KeyCode::Tab);
         h
@@ -128,13 +124,13 @@ fn a_select_cell_is_edited_by_keyboard() {
         h.text().contains("Frozen until Friday"),
         "with the disabled reason"
     );
-    // type-ahead to Staging, apply
+
     h.type_str("st");
     h.key(KeyCode::Enter);
     assert_eq!(h.cell(0, ENV), "stage");
     assert_eq!(h.status().as_deref(), Some("Env saved"));
     assert!(!h.app.pages[PageId::CellEditors.index()].editing());
-    // Esc cancels
+
     h.key(KeyCode::Char(' '));
     h.key(KeyCode::Down);
     h.key(KeyCode::Esc);
@@ -142,10 +138,6 @@ fn a_select_cell_is_edited_by_keyboard() {
     assert_eq!(h.status().as_deref(), Some("Edit cancelled"));
 }
 
-/// S6, S12 (plan §3 "Wheel in popup lists"): the wheel over an open
-/// choice popup scrolls its list and leaves the cursor (the popup is the
-/// table's: `DataTable`'s MouseTarget hands it the notch first);
-/// `EditorConfig::wheel` = `WheelMode::Cursor` moves the cursor instead.
 #[test]
 fn the_wheel_over_an_open_choice_popup_scrolls_its_list() {
     let mut h = Harness::new(140, 40);
@@ -179,7 +171,7 @@ fn the_wheel_over_an_open_choice_popup_scrolls_its_list() {
 fn a_select_cell_is_edited_by_mouse() {
     let mut h = Harness::new(140, 40);
     let cell = h.app.shell.hits.area_of(h.table().cell_id(1, ENV)).unwrap();
-    // first click moves the cursor, second click opens (select, then edit)
+
     h.click(cell.x, cell.y);
     assert!(h.table().choice.is_none());
     h.click(cell.x, cell.y);
@@ -193,7 +185,7 @@ fn a_select_cell_is_edited_by_mouse() {
         .expect("Performance is clickable");
     h.click(at.x + 2, at.y);
     assert_eq!(h.cell(1, ENV), "perf");
-    // the ▾ on the focused cell opens in one click; a click outside cancels
+
     let mark = h
         .app
         .shell
@@ -216,8 +208,7 @@ fn the_tags_checklist_commits_several_values() {
     assert_eq!(h.cell(0, LABELS), "api, web");
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Retired label"));
-    // uncheck api, check db; End stops at the last enabled tag (edge),
-    // never on the retired one
+
     h.key(KeyCode::Char(' '));
     h.key(KeyCode::Down);
     h.key(KeyCode::Down);
@@ -255,7 +246,7 @@ fn imported_values_outside_the_set_are_flagged_until_fixed() {
     let mut h = Harness::new(140, 40);
     assert!(h.text().contains("values outside the set"), "{}", h.text());
     assert!(h.text().contains("qa-legacy"));
-    // fix the env of the imported row: the popup has no current value
+
     for _ in 0..5 {
         h.key(KeyCode::Down);
     }
@@ -268,9 +259,6 @@ fn imported_values_outside_the_set_are_flagged_until_fixed() {
 
 #[test]
 fn the_priority_radio_skips_its_disabled_option_and_tab_moves_on() {
-    // at 140 columns moving right lands on wider columns than the ones
-    // it left: Priority still scrolls whole into view and its editor
-    // anchors to it (finding T3)
     let mut h = Harness::new(140, 40);
     for _ in ENV..PRIORITY {
         h.key(KeyCode::Right);

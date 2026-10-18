@@ -1,11 +1,11 @@
-//! Modal layers: a stack that owns focus save/restore and dismissal
-//! routing, and the shared centered frame modals are drawn in.
-//!
-//! Applications used to keep their own `Vec` of modals, their own "which
-//! kinds close on an outside click" table and their own copy of the
-//! backdrop + rounded frame code. Dismissal is a policy of the modal
-//! ([`Modal::dismiss`]), never a check in app code, and the frame is
-//! [`Frame`].
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Margin, Rect};
@@ -19,30 +19,30 @@ use crate::ui::text::{truncate, width};
 use crate::ui::tooltip::Tip;
 use crate::widgets::icon_button::IconButton;
 
-/// The close button (`×`) a modal frame draws in its top border when its
-/// [`Dismiss`] policy lets Esc close it ([`Dismiss::shows_close`]). Only
-/// the topmost modal is clickable, so one id serves every modal: a click
-/// on it means exactly what Esc on the top modal means.
+
+
+
+
 pub const CLOSE: WidgetId = WidgetId::of("modal.close");
 
-/// The surface a modal frame registers (dead space inside the frame). A
-/// refused outside click flashes it ([`refuse_outside_click`]).
+
+
 pub const SURFACE: WidgetId = WidgetId::of("modal.surface");
 
-/// The light-dismiss backdrop a [`Frame`] with a dismissal policy
-/// registers under itself: a click outside the frame resolves to this
-/// [`crate::core::id::Part::BACKDROP`], which the layer stack turns into
-/// an outside-click dismissal under the policy
-/// ([`crate::ui::layer::ShellLayers::pointer`]).
+
+
+
+
+
 pub const BACKDROP: WidgetId = WidgetId::of("modal.backdrop");
 
-/// Cells the default close button takes on the top border: ` × `, the
-/// glyph on a one-cell-padded plate ([`IconButton::DEFAULT_PAD`]).
+
+
 pub const CLOSE_WIDTH: u16 = 3;
 
-/// Feedback for a click outside a modal whose policy refused to close it:
-/// under [`RefuseFeedback::Flash`](crate::ui::popup::RefuseFeedback) the
-/// frame flashes for the pointer's flash time. Returns whether it flashed.
+
+
+
 pub fn refuse_outside_click(
     pointer: &mut crate::core::pointer::PointerState,
     dismiss: Dismiss,
@@ -55,8 +55,8 @@ pub fn refuse_outside_click(
     true
 }
 
-/// The frame's border style: strong, or the warning tone while a refused
-/// outside click flashes it.
+
+
 pub fn border_style(ctx: &RenderCtx, bg: ratatui::style::Color) -> Style {
     let t = ctx.theme;
     if ctx.interaction.flash == Some(SURFACE) {
@@ -69,10 +69,10 @@ pub fn border_style(ctx: &RenderCtx, bg: ratatui::style::Color) -> Style {
     }
 }
 
-/// Draw the default close button into the top border of `area` (a framed
-/// modal on `bg`) and register it as [`CLOSE`]. Returns the button's
-/// plate, or `Rect::ZERO` when the frame is too narrow to hold it beside a
-/// title. See [`close_button_with`].
+
+
+
+
 pub fn close_button(
     area: Rect,
     buf: &mut Buffer,
@@ -82,13 +82,13 @@ pub fn close_button(
     close_button_with(&IconButton::close(CLOSE), area, buf, ctx, bg)
 }
 
-/// Draw `button` (always under the id [`CLOSE`]) into the top border of
-/// `area`: its plate ends two cells in from the right corner, so the `─╮`
-/// lead-in stays and the corner never moves. Hovered or pressed, the whole
-/// plate lights, not only the glyph; the hit region is the plate. Its
-/// tooltip defaults to `Close · Esc` ([`Strings::tip_close`]).
-///
-/// [`Strings::tip_close`]: crate::theme::Strings::tip_close
+
+
+
+
+
+
+
 pub fn close_button_with(
     button: &IconButton,
     area: Rect,
@@ -108,28 +108,28 @@ pub fn close_button_with(
         .render(area.right() - 2 - w, area.y, buf, ctx, host, Some(tip))
 }
 
-/// A layer that sits above the page and decides how it may be dismissed.
+
 pub trait Modal {
-    /// Which dismissals (Esc, a click outside) close it without choosing.
+
     fn dismiss(&self) -> Dismiss;
 }
 
-/// Every [`Overlay`](crate::ui::layer::Overlay) can sit on a
-/// [`ModalStack`] under its own policy.
+
+
 impl<O: crate::ui::layer::Overlay> Modal for O {
     fn dismiss(&self) -> Dismiss {
         crate::ui::layer::Overlay::dismiss(self)
     }
 }
 
-/// What an outside click (or Esc) on the top modal resolves to.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Dismissal {
-    /// No modal is open.
+
     None,
-    /// The policy allows it: close the modal as cancelled.
+
     Close,
-    /// The policy refuses it: the modal stays, the event is swallowed.
+
     Keep,
 }
 
@@ -138,9 +138,9 @@ struct Entry<M> {
     saved_focus: Option<WidgetId>,
 }
 
-/// A stack of modal layers. Opening one remembers the focus it covers;
-/// closing it gives that focus back, so nested modals unwind to exactly
-/// where the user was (a picker over a dialog over a page).
+
+
+
 pub struct ModalStack<M> {
     entries: Vec<Entry<M>>,
 }
@@ -158,8 +158,8 @@ impl<M> ModalStack<M> {
         Self::default()
     }
 
-    /// Open `modal` on top, moving focus to `initial` and remembering the
-    /// focus it covers.
+
+
     pub fn push(&mut self, modal: M, focus: &mut Focus, initial: Option<WidgetId>) {
         self.entries.push(Entry {
             modal,
@@ -168,14 +168,14 @@ impl<M> ModalStack<M> {
         focus.set(initial);
     }
 
-    /// Close the top modal, restoring the focus it covered.
+
     pub fn pop(&mut self, focus: &mut Focus) -> Option<M> {
         let e = self.entries.pop()?;
         focus.set(e.saved_focus);
         Some(e.modal)
     }
 
-    /// Close every modal, restoring the focus the bottom one covered.
+
     pub fn clear(&mut self, focus: &mut Focus) {
         if let Some(e) = self.entries.first() {
             focus.set(e.saved_focus);
@@ -195,23 +195,23 @@ impl<M> ModalStack<M> {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
-    /// Bottom to top.
+
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = &M> {
         self.entries.iter().map(|e| &e.modal)
     }
-    /// Bottom to top.
+
     pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut M> {
         self.entries.iter_mut().map(|e| &mut e.modal)
     }
-    /// Remove every modal matching `pred` without touching focus (used when
-    /// the content a modal belongs to goes away).
+
+
     pub fn retain(&mut self, mut pred: impl FnMut(&M) -> bool) {
         self.entries.retain(|e| pred(&e.modal));
     }
 }
 
 impl<M: Modal> ModalStack<M> {
-    /// How a click outside the top modal resolves under its policy.
+
     pub fn outside_click(&self) -> Dismissal {
         match self.top() {
             None => Dismissal::None,
@@ -220,7 +220,7 @@ impl<M: Modal> ModalStack<M> {
         }
     }
 
-    /// How Esc on the top modal resolves under its policy.
+
     pub fn escape(&self) -> Dismissal {
         match self.top() {
             None => Dismissal::None,
@@ -230,22 +230,22 @@ impl<M: Modal> ModalStack<M> {
     }
 }
 
-/// After a frame rebuilt the focus ring: keep focus valid, falling back per
-/// `fallback` when the focused control disappeared (the row a dialog just
-/// deleted).
+
+
+
 pub fn ensure_focus(focus: &mut Focus, ring: &FocusRing, fallback: FocusFallback) {
     focus.ensure_valid_with(ring, fallback);
 }
 
-/// Where a [`Frame`] sat inside its bounds, before frames took the shared
-/// [`Placement`]. Both variants always resolved to the same centred
-/// rectangle; they convert to [`Placement::Center`].
+
+
+
 #[deprecated(note = "use `popup::Placement` (`Placement::Center`) with `Frame::placement`")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FramePlacement {
-    /// Centered (despite the name, never the upper third).
+
     Upper,
-    /// Centered on both axes.
+
     Middle,
 }
 
@@ -263,10 +263,10 @@ impl From<FramePlacement> for Placement {
     }
 }
 
-/// The centered, rounded, elevated frame every modal is drawn in: dims the
-/// page, starts the modal layer, clamps to the body (clear of `top` header
-/// rows and `bottom` footer rows, with [`crate::widgets::dialog::OUTER_MARGIN`]
-/// around it) and draws the title and meta on the top border.
+
+
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Frame<'a> {
     pub width: u16,
@@ -275,34 +275,34 @@ pub struct Frame<'a> {
     pub min_height: u16,
     pub title: Option<&'a str>,
     pub meta: Option<&'a str>,
-    /// Where the frame goes in the body. Default [`Placement::Center`];
-    /// an anchored placement opens it next to [`Self::anchor`].
+
+
     pub placement: Placement,
-    /// The rectangle an anchored [`Self::placement`] opens next to.
-    /// Default `Rect::ZERO`.
+
+
     pub anchor: Rect,
-    /// How the frame is fitted into the body ([`place_with`]). Default
-    /// [`Place::DEFAULT`].
+
+
     pub fit: Place,
-    /// Inner margin between the border and the content.
+
     pub margin: Margin,
-    /// Header rows kept clear above the frame.
+
     pub top: u16,
-    /// Footer rows kept clear below the frame.
+
     pub bottom: u16,
-    /// Dim the page and start the modal layer (off for a frame drawn on an
-    /// already-dimmed layer).
+
+
     pub backdrop: bool,
-    /// Which screen rows the backdrop leaves live. Default
-    /// [`Backdrop::DEFAULT`] (the footer row).
+
+
     pub dim: Backdrop,
-    /// The owner's dismissal policy: a close button (`×`, [`CLOSE`]) shows
-    /// in the top border when [`Dismiss::shows_close`]. `None` (a frame
-    /// that does not say how it closes) draws none.
+
+
+
     pub dismiss: Option<Dismiss>,
-    /// The close button drawn when [`Self::dismiss`] shows one (its id is
-    /// always [`CLOSE`]). Default [`IconButton::close`]: a three-cell
-    /// plate, neutral hover, `Close · Esc` tooltip.
+
+
+
     pub close_button: IconButton,
 }
 
@@ -328,23 +328,23 @@ impl<'a> Frame<'a> {
         }
     }
 
-    /// See [`Self::close_button`].
+
     pub fn close_button(mut self, button: IconButton) -> Self {
         self.close_button = button;
         self
     }
 
-    /// See [`Self::dismiss`].
+
     pub fn dismiss(mut self, dismiss: Dismiss) -> Self {
         self.dismiss = Some(dismiss);
         self
     }
 
-    /// The frame of `overlay`: its [`Dismiss`] policy and its close button
-    /// ([`Overlay::close_button`]), so every framed modal takes a custom
-    /// `×` the same way.
-    ///
-    /// [`Overlay::close_button`]: crate::ui::layer::Overlay::close_button
+
+
+
+
+
     pub fn overlay<O: crate::ui::layer::Overlay + ?Sized>(mut self, overlay: &O) -> Self {
         self.dismiss = Some(overlay.dismiss());
         if let Some(b) = overlay.close_button() {
@@ -360,13 +360,13 @@ impl<'a> Frame<'a> {
         self.meta = meta;
         self
     }
-    /// See [`Self::placement`]. Takes a [`Placement`] (or, for old
-    /// callers, a deprecated `FramePlacement`).
+
+
     pub fn placement(mut self, placement: impl Into<Placement>) -> Self {
         self.placement = placement.into();
         self
     }
-    /// Open next to `anchor` per `placement`.
+
     pub fn anchor(mut self, anchor: Rect, placement: Placement) -> Self {
         self.anchor = anchor;
         self.placement = placement;
@@ -385,7 +385,7 @@ impl<'a> Frame<'a> {
         self.min_height = height;
         self
     }
-    /// Rows kept clear for the header (`top`) and footer (`bottom`).
+
     pub fn chrome(mut self, top: u16, bottom: u16) -> Self {
         self.top = top;
         self.bottom = bottom;
@@ -395,13 +395,13 @@ impl<'a> Frame<'a> {
         self.backdrop = on;
         self
     }
-    /// See [`Self::dim`].
+
     pub fn dim(mut self, dim: Backdrop) -> Self {
         self.dim = dim;
         self
     }
 
-    /// The frame's outer rectangle on `screen`.
+
     pub fn area(&self, screen: Rect) -> Rect {
         let bounds = crate::widgets::dialog::body_bounds(screen, self.top, self.bottom);
         let m = crate::widgets::dialog::OUTER_MARGIN;
@@ -418,13 +418,13 @@ impl<'a> Frame<'a> {
         place_with(bounds, self.anchor, w, h, self.placement, self.fit)
     }
 
-    /// Draw the frame. Returns `(outer, inner)`.
+
     pub fn render(&self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) -> (Rect, Rect) {
         let t = ctx.theme;
         if self.backdrop {
             ctx.modal_backdrop_with(buf, screen, self.dim);
-            // a click outside the frame is the owner's outside click, under
-            // its policy (a refused one flashes the border)
+
+
             if self.dismiss.is_some() && !ctx.inert {
                 ctx.hits.register_part_as(
                     BACKDROP,
@@ -442,7 +442,7 @@ impl<'a> Frame<'a> {
             .border_set(t.glyphs.border)
             .border_style(border_style(ctx, bg));
         ratatui::widgets::Widget::render(block, area, buf);
-        // the surface first: the close button and the content sit above it
+
         if !ctx.inert {
             ctx.hits.register_surface(SURFACE, area);
         }
@@ -450,7 +450,7 @@ impl<'a> Frame<'a> {
             Some(d) if d.shows_close() => close_button_with(&self.close_button, area, buf, ctx, bg),
             _ => Rect::ZERO,
         };
-        // the title and the meta sit left of the close button
+
         let reserve = if close.is_empty() { 0 } else { close.width + 1 };
         if let Some(title) = self.title
             && area.width > 6 + reserve
@@ -551,7 +551,7 @@ mod tests {
         assert_eq!((r.x, r.y), (10, 5));
     }
 
-    /// Draw a 30-wide frame with `title`; `hover` the close button.
+
     fn framed(
         t: &crate::theme::Theme,
         title: &str,
@@ -577,9 +577,9 @@ mod tests {
         (buf, hits, area)
     }
 
-    // docs/design/close-button.md: the frame's × is a three-cell plate two
-    // cells in from the corner; hovered, all three cells light; the corner
-    // and its lead-in never move; a long title stops before it
+
+
+
     #[test]
     fn the_frame_close_plate_keeps_the_corner_and_lights_whole() {
         for level in crate::theme::ColorLevel::ALL {
@@ -613,7 +613,7 @@ mod tests {
                 assert_eq!(look(&lit, x), look(&rest, x), "{x} {level:?}");
             }
         }
-        // a title too long for the border is cut before the close button
+
         let t = crate::theme::Theme::junie();
         let (buf, hits, area) = framed(&t, &"Long title ".repeat(6), false);
         let plate = hits.area_of(CLOSE).unwrap();

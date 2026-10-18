@@ -1,9 +1,3 @@
-//! Additional deterministic screen coverage for Jackin Preview.
-//!
-//! These tests deliberately stay on the in-process TestBackend.  PTY and
-//! snapshot coverage belongs to `tests/visual_baseline`; this module proves
-//! the state transitions that can be made stable without a terminal process.
-
 use crate::pages::Pages;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Position;
@@ -25,8 +19,6 @@ fn status(h: &H) -> &str {
     h.app.shell.status.text().unwrap_or("")
 }
 
-/// A cell nothing claims, else one on a light-dismiss backdrop (an open
-/// picker's covers the page around it).
 fn outside(h: &H) -> Position {
     use junie_tui::core::id::Part;
     let area = h.term.backend().buffer().area;
@@ -219,10 +211,6 @@ fn manager_scrollbar_click_and_drag_change_the_rendered_tree() {
     );
 }
 
-/// S6: the command palette (a library `Picker`) registers its own
-/// light-dismiss backdrop under its modal barrier. A click on it, outside
-/// the picker, resolves to the picker's `Part::BACKDROP`, cancels the
-/// picker and gives the owner its focus back.
 #[test]
 fn a_click_on_the_picker_backdrop_cancels_it_and_restores_focus() {
     use junie_tui::core::id::Part;
@@ -347,7 +335,7 @@ fn manager_stop_purge_delete_and_refresh_keep_fixture_state_coherent() {
     );
 
     h.key(KeyCode::Char('t'));
-    // Stop's mnemonic (Keep running takes `k`)
+
     h.key(KeyCode::Char('s'));
     for _ in 0..40 {
         if h.app.world.instance("jk-7f3a").unwrap().status == InstanceStatus::PreservedDirty {
@@ -494,9 +482,6 @@ fn cockpit_credentials_retry_plain_and_cancel_are_recoverable() {
     assert!(status(&h).contains("Launch failed"), "{}", status(&h));
 }
 
-/// A28: the credential error's cancel action is the danger "Cancel
-/// launch", so a stray click on the backdrop must not take it. The click
-/// is refused and flashes the frame; Esc still cancels the launch.
 #[test]
 fn a_stray_click_does_not_cancel_a_launch_held_on_credentials() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
@@ -839,7 +824,7 @@ fn capsule_dirty_exit_covers_new_agent_inspect_keep_and_discard() {
         h.text()
     );
     h.type_str("payments-platform");
-    // Enter on the matching acknowledgement presses the gated action
+
     h.key(KeyCode::Enter);
     assert_eq!(h.app.route(), Route::Manager);
     assert_eq!(h.app.world.instance("jk-7f3a").unwrap().uncommitted, 0);
@@ -879,12 +864,8 @@ fn editor_validation_and_save_failure_preserve_pending_changes() {
     assert!(h.app.router.editor().unwrap().change_count() > 0);
 }
 
-/// A27: a failed job opens its error dialog and must not leave its
-/// progress status ("Saving …", "Loading role …") in the footer under it:
-/// the job's result ends its progress status.
 #[test]
 fn a_failed_job_leaves_no_progress_status_under_its_error() {
-    // the workspace save
     let mut h = hard_manager();
     editor(&mut h, 1);
     h.key(KeyCode::Char(']'));
@@ -898,7 +879,6 @@ fn a_failed_job_leaves_no_progress_status_under_its_error() {
     assert!(h.text().contains("Save failed"), "{}", h.text());
     assert!(!status(&h).contains("Saving"), "{}", status(&h));
 
-    // the role load
     let mut h = hard_manager();
     editor(&mut h, 1);
     h.key(KeyCode::Char('3'));
@@ -920,7 +900,6 @@ fn a_failed_job_leaves_no_progress_status_under_its_error() {
     );
     assert!(!status(&h).contains("Loading role"), "{}", status(&h));
 
-    // the settings save
     let mut h = hard_manager();
     h.key(KeyCode::Char('s'));
     assert_eq!(h.app.route(), Route::Settings);
@@ -1156,8 +1135,7 @@ fn prelude_invalid_destination_and_backtracking_do_not_create_workspace() {
     h.key(KeyCode::Enter);
     assert!(h.text().contains("absolute path"), "{}", h.text());
     assert_eq!(h.app.route(), Route::Prelude);
-    // Enter applied the value, so the field has nothing to revert: one Esc
-    // passes straight to the prelude and steps back
+
     h.key(KeyCode::Esc);
     assert!(h.text().contains("step 2 of 5"), "{}", h.text());
     h.key(KeyCode::Esc);
@@ -1194,7 +1172,6 @@ fn launch_failure_screen_exposes_stage_detail_and_ack_route() {
 
 #[test]
 fn cancel_launch_dialog_names_both_choices_unambiguously() {
-    // the footer tells the confirmed cancel apart from the immediate abort
     let wide = H::new(Scenario::LaunchRunning, Motion::Paused, 110, 220, 40);
     let footer = wide.text().lines().last().unwrap_or_default().to_owned();
     assert!(footer.contains("x Cancel launch…"), "{footer}");
@@ -1205,16 +1182,13 @@ fn cancel_launch_dialog_names_both_choices_unambiguously() {
     assert!(t.contains("Cancel the launch?"), "{t}");
     assert!(t.contains("Keep launching"), "{t}");
     assert!(t.contains("Cancel launch"), "{t}");
-    // focus opens on the safe choice, and the footer names it
+
     let footer = t.lines().last().unwrap_or_default().to_owned();
     assert!(footer.contains("Enter Keep launching"), "{footer}");
-    // no `y` one-key answer: the buttons carry their own mnemonics
+
     assert!(!footer.contains("y Cancel launch"), "{footer}");
 }
 
-/// hscroll follow-up: a capsule pane with a line wider than itself pans
-/// sideways under the wheel, with ←/→ while scrolled back (no caret then),
-/// and through its own horizontal bar, routed by position.
 #[test]
 fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
     use junie_tui::widgets::scrollbar;
@@ -1263,7 +1237,6 @@ fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
     h.mouse(MouseKind::WheelLeft, x, y);
     assert_eq!(offset(&h), 0, "and back");
 
-    // scrolled back there is no caret, so the arrows pan
     h.mouse(MouseKind::WheelUp, x, y);
     assert!(
         !h.app.world.daemons[&instance]
@@ -1279,7 +1252,6 @@ fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
     assert_eq!(offset(&h), 0, "← pans back");
     h.key(KeyCode::End);
 
-    // the pane's horizontal bar: a press near its right end pans there
     let bar = h.app.world.daemons[&instance]
         .pane(pid)
         .unwrap()
@@ -1297,8 +1269,6 @@ fn a_capsule_pane_pans_a_wide_line_with_the_wheel_the_arrows_and_its_bar() {
     assert!(offset(&h) > panned, "the track press panned\n{}", h.text());
 }
 
-/// Keyboard audit #4: a stray `q` never leaves unsaved settings, and
-/// Ctrl+C asks Save / Discard / Cancel instead of throwing them away.
 #[test]
 fn unsaved_settings_survive_q_and_ctrl_c_asks_save_discard_cancel() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
@@ -1319,13 +1289,13 @@ fn unsaved_settings_survive_q_and_ctrl_c_asks_save_discard_cancel() {
     h.ctrl('c');
     assert!(!h.app.shell.quit, "Ctrl+C never drops unsaved edits");
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
-    // Cancel stays, and a later route change does not quit
+
     h.key(KeyCode::Esc);
     assert!(!h.app.shell.quit);
     assert_eq!(h.app.route(), Route::Settings);
     h.key(KeyCode::Char(' '));
     assert!(!h.app.shell.quit);
-    // Discard (its mnemonic) quits
+
     h.key(KeyCode::Char(' '));
     h.ctrl('c');
     assert!(h.text().contains("Unsaved changes"), "{}", h.text());
@@ -1333,8 +1303,6 @@ fn unsaved_settings_survive_q_and_ctrl_c_asks_save_discard_cancel() {
     assert!(h.app.shell.quit, "{}", h.text());
 }
 
-/// Keyboard audit #21 and the standards review: Esc never quits, and a
-/// clean quit never asks.
 #[test]
 fn esc_never_quits_the_manager_and_a_clean_ctrl_q_never_asks() {
     let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
@@ -1347,11 +1315,6 @@ fn esc_never_quits_the_manager_and_a_clean_ctrl_q_never_asks() {
     assert!(h.app.shell.quit, "a clean quit never asks: {}", h.text());
 }
 
-/// A26: a load starts only for a trusted Role, and the old fixture failed
-/// only an untrusted one, so the role-load error dialog could never open.
-/// Hard cases now carry a trusted Role whose manifest does not parse: the
-/// load fails, the dialog names the error, the row keeps it, and Enter on
-/// the row retries without asking for trust again.
 #[test]
 fn a_trusted_role_that_fails_to_load_reports_the_error_and_retries() {
     let mut h = hard_manager();
@@ -1385,8 +1348,7 @@ fn a_trusted_role_that_fails_to_load_reports_the_error_and_retries() {
     h.key(KeyCode::Esc);
     assert!(!h.text().contains("failed to load"), "{}", h.text());
     assert!(h.text().contains("! load error"), "{}", h.text());
-    // retry from the Roles tab: `writer` is the sixth row; Enter loads
-    // again, never asking for trust a second time
+
     h.key(KeyCode::Home);
     for _ in 0..5 {
         h.key(KeyCode::Down);

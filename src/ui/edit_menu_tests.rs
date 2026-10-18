@@ -1,6 +1,6 @@
-//! M3: a right click on every text widget opens the standard Edit menu,
-//! driven through the widget's own routing (hit regions, rendered cells),
-//! and its commands run through the widget.
+
+
+
 
 use super::*;
 use crate::core::edit::clipboard;
@@ -14,8 +14,8 @@ use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 const SCREEN: Rect = Rect::new(0, 0, 60, 16);
 
-/// One frame: draw with `focus`, flush the overlays; the cells and the
-/// hit regions.
+
+
 fn frame(
     focus: Option<WidgetId>,
     draw: impl FnOnce(&mut Buffer, &mut RenderCtx),
@@ -51,7 +51,7 @@ fn row(buf: &Buffer, y: u16) -> String {
         .collect()
 }
 
-/// Where `label` is drawn, if anywhere.
+
 fn find(buf: &Buffer, label: &str) -> Option<Position> {
     (0..buf.area.height).find_map(|y| {
         let r = row(buf, y);
@@ -62,7 +62,7 @@ fn find(buf: &Buffer, label: &str) -> Option<Position> {
     })
 }
 
-/// The labels the open menu shows, top to bottom.
+
 fn menu_rows(buf: &Buffer) -> Vec<&'static str> {
     ["Cut", "Copy", "Paste", "Select all"]
         .into_iter()
@@ -74,8 +74,8 @@ fn key(code: KeyCode, mods: KeyModifiers) -> Key {
     Key { code, mods }
 }
 
-/// Right-click `pos` through `route`, redraw, then click the menu row
-/// `label`: the outcome of each step.
+
+
 fn right_click_then_choose<W: MouseTarget>(
     w: &mut W,
     draw: &mut dyn FnMut(&mut W, &mut Buffer, &mut RenderCtx),
@@ -106,7 +106,7 @@ fn a_right_click_on_a_text_input_opens_cut_copy_paste_select_all() {
     let mut draw = |w: &mut TextInput, b: &mut Buffer, c: &mut RenderCtx| {
         w.render(Rect::new(0, 0, 40, 3), b, c, c.theme.canvas)
     };
-    // the field row is y = 1; the text starts at x = 2
+
     let open = right_click_then_choose(&mut i, &mut draw, id, Position::new(4, 1), "Select all");
     assert_eq!(menu_rows(&open), ["Cut", "Copy", "Paste", "Select all"]);
     assert!(
@@ -116,14 +116,14 @@ fn a_right_click_on_a_text_input_opens_cut_copy_paste_select_all() {
     assert_eq!(i.field.buffer.selected_text(), Some("hello world"));
     assert!(!i.edit_menu.is_open(), "choosing closes the menu");
 
-    // Copy the selection, then Paste over it, through the menu
+
     right_click_then_choose(&mut i, &mut draw, id, Position::new(4, 1), "Copy");
     assert_eq!(clipboard::text().as_deref(), Some("hello world"));
     clipboard::copy("bye");
     right_click_then_choose(&mut i, &mut draw, id, Position::new(4, 1), "Paste");
     assert_eq!(i.text(), "bye");
 
-    // the keyboard path: Shift+F10 opens it under the caret, Esc closes
+
     let (_, _) = frame(Some(id), |b, c| draw(&mut i, b, c));
     let (o, _) = i.on_key(&key(KeyCode::F(10), KeyModifiers::SHIFT));
     assert_eq!(o, Outcome::Changed);
@@ -135,7 +135,7 @@ fn a_right_click_on_a_text_input_opens_cut_copy_paste_select_all() {
     assert!(!i.edit_menu.is_open(), "Esc closes the menu");
     assert_eq!(i.text(), "bye", "Esc closed only the menu");
 
-    // knob: off, the right click is the owner's
+
     let mut off = TextInput::new(id, "Name").value("x").context_menu(false);
     let (_, hits) = frame(Some(id), |b, c| draw(&mut off, b, c));
     assert!(
@@ -171,11 +171,11 @@ fn unavailable_commands_stay_with_their_reason() {
         Some("Ctrl+A"),
         "Select all names the first key the terminal delivers"
     );
-    // a read-only text offers only Copy and Select all
+
     let ro = edit_items(EditCaps::read_only(true, true), |_| None);
     let cmds: Vec<_> = ro.iter().map(|(c, _)| *c).collect();
     assert_eq!(cmds, [TextCmd::Copy, TextCmd::SelectAll]);
-    // a masked value never hands its text out
+
     let secret = edit_items(EditCaps::of(&field).secret(true), |_| None);
     assert!(
         secret
@@ -194,7 +194,7 @@ fn a_right_click_on_a_text_area_places_the_caret_and_pastes_there() {
         w.render(Rect::new(0, 0, 40, 6), b, c, c.theme.canvas)
     };
     let (buf, _) = frame(Some(id), |b, c| draw(&mut a, b, c));
-    // point after the "t" of "two"
+
     let two = find(&buf, "two").expect("the second line");
     let pos = Position::new(two.x + 1, two.y);
     clipboard::copy("X");
@@ -207,7 +207,7 @@ fn a_right_click_on_a_text_area_places_the_caret_and_pastes_there() {
     );
     right_click_then_choose(&mut a, &mut draw, id, pos, "Select all");
     assert_eq!(a.field.buffer.selected_text(), Some("one\ntXwo"));
-    // a right click inside the selection keeps it, so Cut cuts it
+
     right_click_then_choose(&mut a, &mut draw, id, pos, "Cut");
     assert_eq!(
         (a.field.text(), clipboard::text().as_deref()),
@@ -228,12 +228,12 @@ fn a_code_editor_offers_the_edit_menu_and_only_copy_and_select_all_read_only() {
     let open = right_click_then_choose(&mut e, &mut draw, id, pos, "Select all");
     assert_eq!(menu_rows(&open), ["Cut", "Copy", "Paste", "Select all"]);
     assert_eq!(e.field.buffer.selected_text(), Some("select 1;\nselect 2;"));
-    // the keyboard path reports an edit as the editor's own change
+
     frame(Some(id), |b, c| draw(&mut e, b, c));
     clipboard::copy("x");
     e.on_key(&key(KeyCode::Menu, KeyModifiers::NONE));
     assert!(e.edit_menu.is_open(), "the Menu key opens it");
-    // ↑ wraps to Select all, ↑ again is Paste
+
     e.on_key(&key(KeyCode::Up, KeyModifiers::NONE));
     e.on_key(&key(KeyCode::Up, KeyModifiers::NONE));
     let (o, ev) = e.on_key(&key(KeyCode::Enter, KeyModifiers::NONE));
@@ -267,7 +267,7 @@ fn a_right_click_on_a_viewport_and_a_diff_offers_copy_and_select_all() {
     assert_eq!(menu_rows(&open), ["Copy", "Select all"]);
     right_click_then_choose(&mut v, &mut draw, id, Position::new(2, 0), "Copy");
     assert_eq!(clipboard::text().as_deref(), Some("first line\nsecond"));
-    // Shift+F10 opens it from the keyboard
+
     v.on_key(&key(KeyCode::F(10), KeyModifiers::SHIFT));
     assert!(v.edit_menu.is_open());
 
@@ -339,7 +339,7 @@ fn a_right_click_on_the_picker_query_edits_it_and_reports_the_change() {
     assert_eq!(r.outcome(), Outcome::Changed);
     let (buf, hits) = frame(Some(id), |b, c| draw(&mut p, b, c));
     assert_eq!(menu_rows(&buf), ["Cut", "Copy", "Paste", "Select all"]);
-    // the backdrop beyond the menu is the menu's, not the picker's
+
     let corner = at(&hits, Phase::Click, Position::new(0, SCREEN.height - 1));
     assert!(p.edit_menu.owns(&corner));
     let paste = find(&buf, "Paste").unwrap();

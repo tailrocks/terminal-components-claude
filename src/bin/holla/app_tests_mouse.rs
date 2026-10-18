@@ -1,7 +1,3 @@
-//! Mouse-only navigation in holla (docs/audits/design-review-2026-10/mouse.md):
-//! every page can be left, and every level of the page stack reached, by
-//! pointer alone.
-
 use crate::app::CRUMBS;
 use crate::app_tests::H;
 use crate::scenario::{Motion, Scenario};
@@ -18,13 +14,12 @@ fn nested() -> H {
     h
 }
 
-// mouse #5: a nested page shows its trail, and each earlier level is a link
 #[test]
 fn the_breadcrumb_goes_back_one_level_or_to_the_root_by_mouse() {
     let mut h = nested();
     let parts = h.app.crumbs.segments.clone();
     assert_eq!(parts.len(), 3, "{parts:?}");
-    // one level back: the middle link
+
     let mid = h.app.crumbs.areas[1];
     assert_eq!(
         h.app.shell.hits.hit(mid.as_position()),
@@ -32,7 +27,7 @@ fn the_breadcrumb_goes_back_one_level_or_to_the_root_by_mouse() {
     );
     h.click(mid.x, mid.y);
     assert_eq!(h.app.router.tab(0).len(), 2, "{}", h.text());
-    // to the root: the first link
+
     let root = h.app.crumbs.areas[0];
     h.click(root.x, root.y);
     assert_eq!(h.app.router.tab(0).len(), 1, "{}", h.text());

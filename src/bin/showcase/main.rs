@@ -1,5 +1,3 @@
-//! Junie-inspired Ratatui design-system laboratory.
-
 mod app;
 #[cfg(test)]
 mod app_tests;
@@ -97,10 +95,8 @@ use crate::app::{App, NavExpand, PageId};
 use clap::{Parser, ValueEnum};
 use junie_tui::cli::CommonArgs;
 
-/// Set to `1` (anything but empty or `0`) for reduced motion.
 const NO_MOTION_ENV: &str = "SHOWCASE_NO_MOTION";
 
-/// Which sidebar groups are open (`NavExpand`).
 #[derive(Clone, Copy, Debug, ValueEnum)]
 enum NavArg {
     /// Only the current page's group (default).

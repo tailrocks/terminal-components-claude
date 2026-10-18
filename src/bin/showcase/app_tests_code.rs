@@ -1,7 +1,3 @@
-//! The Text & code pages through the real app (plan §7 SC24 Code editor,
-//! SC25 Diff and Terminal): options set through `--opt` change the
-//! widget, the States rows render, and the key interactions work.
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use junie_tui::core::id::WidgetId;
@@ -10,8 +6,6 @@ use junie_tui::theme::Theme;
 use crate::app::PageId;
 use crate::app_tests_feedback::Harness;
 use crate::pages::template::Section;
-
-// ------------------------------------------------------------- Code editor
 
 fn code() -> WidgetId {
     WidgetId::of("editor").sub("code")
@@ -22,8 +16,7 @@ fn editor(opts: &[&str]) -> Harness {
     for o in opts {
         h.opt(o);
     }
-    // focus starts an edit (the theme's `EditEntry::Immediate`); Esc ends
-    // it, so each test starts reading
+
     h.focus(code());
     h.key(KeyCode::Esc);
     h
@@ -125,7 +118,7 @@ fn code_completion_pairs_a_call_and_follows_its_options() {
     assert!(h.text().contains("ƒ fetch("), "{}", h.text());
     h.key(KeyCode::Enter);
     assert_eq!(text(&h), "fetch()");
-    // four rows at most, and above the line when asked
+
     let mut h = editor(&[
         "codeeditor.document=empty",
         "codeeditor.completion_rows=4",
@@ -147,7 +140,7 @@ fn code_completion_pairs_a_call_and_follows_its_options() {
 #[test]
 fn code_find_button_opens_find_and_counts_matches() {
     let mut h = editor(&[]);
-    // from elsewhere on the page: the button hands focus to the editor
+
     h.focus(WidgetId::of("editor").sub("run"));
     let (x, y) = h.at("Find ");
     h.click(x + 1, y);
@@ -193,8 +186,6 @@ fn code_states_grid_shows_every_editor_state() {
         assert!(text.contains(label), "{label}: {text}");
     }
 }
-
-// -------------------------------------------------------------------- Diff
 
 #[test]
 fn diff_follows_the_changes_list_cursor() {
@@ -250,8 +241,6 @@ fn diff_states_grid_shows_unified_and_review() {
     }
 }
 
-// ---------------------------------------------------------------- Terminal
-
 fn term_id() -> WidgetId {
     WidgetId::of("terminal").sub("term")
 }
@@ -267,7 +256,7 @@ fn terminal_spans_carry_their_styles() {
     assert!(has("payments-platform ❯", Modifier::BOLD));
     assert!(has("dev ·", Modifier::ITALIC));
     assert!(has("jackin.toml", Modifier::UNDERLINED));
-    // reversed: canvas ink on the primary text colour, a cursor block
+
     let (x, y) = h.at("LIVE");
     let t = Theme::junie();
     assert_eq!(

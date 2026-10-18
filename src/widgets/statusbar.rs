@@ -1,9 +1,9 @@
-//! Status bar: one full-width row on its own plane that reports the state
-//! of a surface in three groups — left (identity/context), center
-//! (activity), right (quotas, runtime facts). Groups are separated by
-//! spacing and tone, not by separator glyphs; when the row is too narrow
-//! items leave by ascending priority (center first, then right, then left)
-//! and the strongest left item always survives, truncated.
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -19,10 +19,10 @@ use crate::widgets::progress::{Meter, MeterTone, MeterVisual};
 pub enum Emphasis {
     #[default]
     Plain,
-    /// Bold: the item that names the surface.
+
     Strong,
-    /// ` text ` on the overlay plane: a fact with its own edge (a quota, a
-    /// runtime id).
+
+
     Chip,
 }
 
@@ -30,24 +30,24 @@ pub enum Emphasis {
 pub struct StatusItem {
     pub text: String,
     pub tone: Tone,
-    /// Higher survives longer when the row is narrow (0–9).
+
     pub priority: u8,
     pub id: Option<WidgetId>,
     pub emphasis: Emphasis,
-    /// A compact line meter after the text: `(used %, tone)`.
+
     pub meter: Option<(Option<u8>, MeterTone)>,
-    /// Draw the meter as last-good data, keeping its tone's level
-    /// ([`Meter::stale`]).
+
+
     pub meter_stale: bool,
-    /// A live spinner before the text, always in the primary tone (the one
-    /// live-activity use of the accent); the text keeps its own tone.
+
+
     pub busy: bool,
-    /// A tooltip for the segment (what it is, the key that opens it),
-    /// shown when the pointer rests on it ([`crate::ui::tooltip`]).
+
+
     pub tip: Option<crate::ui::tooltip::Tip>,
 }
 
-/// Track cells of an inline status meter.
+
 pub const STATUS_METER_TRACK: u16 = 10;
 
 impl StatusItem {
@@ -64,18 +64,18 @@ impl StatusItem {
             tip: None,
         }
     }
-    /// Prefix a primary-tone spinner: `⠋ text`.
+
     pub fn busy(mut self) -> Self {
         self.busy = true;
         self
     }
-    /// Append a compact line meter (label, then `━━━━──── 76%`).
+
     pub fn meter(mut self, used_pct: Option<u8>, tone: MeterTone) -> Self {
         self.meter = Some((used_pct, tone));
         self
     }
-    /// Mark the meter's value as last-good data: a quota at warning that
-    /// could not be refreshed stays a warning, drawn stale ([`Meter::stale`]).
+
+
     pub fn meter_stale(mut self, on: bool) -> Self {
         self.meter_stale = on;
         self
@@ -88,7 +88,7 @@ impl StatusItem {
         self.id = Some(id);
         self
     }
-    /// A tooltip shown when the pointer rests on the segment.
+
     pub fn tooltip(mut self, tip: crate::ui::tooltip::Tip) -> Self {
         self.tip = Some(tip);
         self
@@ -102,7 +102,7 @@ impl StatusItem {
         self
     }
 
-    /// Cells the item occupies (chips carry their own padding).
+
     pub fn width(&self) -> u16 {
         let w = width(&self.text) as u16 + if self.busy { 2 } else { 0 };
         let base = match self.emphasis {
@@ -110,7 +110,7 @@ impl StatusItem {
             _ => w,
         };
         if self.meter.is_some() {
-            // label, a space, the track, the value and its marker column
+
             base + 1 + STATUS_METER_TRACK + 7
         } else {
             base
@@ -125,14 +125,14 @@ pub enum Group {
     Right,
 }
 
-/// One placed item: which group, which index in that group, where.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Placed {
     pub group: Group,
     pub index: usize,
     pub x: u16,
     pub width: u16,
-    /// Text after truncation (chips keep their padding out of this).
+
     pub text: String,
 }
 
@@ -141,14 +141,14 @@ pub struct StatusBar {
     pub left: Vec<StatusItem>,
     pub center: Vec<StatusItem>,
     pub right: Vec<StatusItem>,
-    /// How a segment cut by a narrow row reveals its full text on hover
-    /// (see [`crate::ui::reveal`]); `None` follows [`RenderCtx::reveal`].
+
+
     pub reveal: Option<crate::ui::reveal::Reveal>,
 }
 
-/// The bar with every item kept and none cut: each group's items and
-/// gaps, the gaps between groups and the edges. Laid out this wide, the
-/// bar drops nothing ([`StatusBar::layout`]).
+
+
+
 impl crate::ui::measure::Measure for StatusBar {
     fn measure(
         &self,
@@ -165,25 +165,25 @@ impl crate::ui::measure::Measure for StatusBar {
         ratatui::layout::Size::new(w, 1)
     }
 
-    /// The bar drops what does not fit into its revealing `…` item and
-    /// truncates its strongest left item: it is whole at any width that
-    /// keeps a few cells of that item.
+
+
+
     fn min_width(&self, _avail: ratatui::layout::Size, _ctx: &crate::ui::ctx::RenderCtx) -> u16 {
         FLEX_MIN
     }
 }
 
-/// The narrowest a status bar or a strip is laid out at: it collapses the
-/// rest into its `…`.
+
+
 const FLEX_MIN: u16 = 24;
 
-/// The hover region a cut, non-clickable status segment registers so its
-/// full text can be revealed.
+
+
 pub fn reveal_id(group: Group, index: usize) -> WidgetId {
     WidgetId::of("statusbar.reveal").child(group as usize * 1000 + index)
 }
 
-/// Cells between items within a group and between groups.
+
 const GAP: u16 = 3;
 const EDGE: u16 = 1;
 
@@ -200,14 +200,14 @@ impl StatusBar {
         }
     }
 
-    /// Decide which items survive at `width` and where they go.
+
     pub fn layout(&self, area: Rect) -> Vec<Placed> {
         self.plan(area).0
     }
 
-    /// The placed items, the items that had no room at `area`'s width (in
-    /// order) and the column of the overflow item `…` that stands for
-    /// them (R-apps-1).
+
+
+
     fn plan(&self, area: Rect) -> (Vec<Placed>, Vec<(Group, usize)>, Option<u16>) {
         let total_w = area.width;
         let mut keep: [Vec<bool>; 3] = [
@@ -232,14 +232,14 @@ impl StatusBar {
             let ws = [group_w(0, keep), group_w(1, keep), group_w(2, keep)];
             let present = ws.iter().filter(|w| **w > 0).count() as u16;
             let gaps = present.saturating_sub(1) * GAP;
-            // the overflow item `…` stands for the items that left
+
             let gone = keep.iter().flatten().any(|k| !k);
             let more = if gone { 1 + GAP } else { 0 };
             ws.iter().sum::<u16>() + gaps + more + 2 * EDGE
         };
-        // drop the lowest priority anywhere first; ties leave the center,
-        // then the right, then the left; the strongest left item never
-        // leaves (it truncates instead)
+
+
+
         while needed(&keep) > total_w {
             let mut victim: Option<(u8, usize, usize)> = None;
             for g in [1usize, 2, 0] {
@@ -264,7 +264,7 @@ impl StatusBar {
             }
         }
         let mut placed = vec![];
-        // left
+
         let mut x = area.x + EDGE;
         let left_budget = total_w.saturating_sub(2 * EDGE);
         for (i, it) in self.left.iter().enumerate() {
@@ -290,7 +290,7 @@ impl StatusBar {
             x += w + GAP;
         }
         let left_end = x.saturating_sub(GAP);
-        // right
+
         let mut rx = area.right().saturating_sub(EDGE);
         let mut right_items: Vec<Placed> = vec![];
         for (i, it) in self.right.iter().enumerate().rev() {
@@ -313,8 +313,8 @@ impl StatusBar {
         } else {
             rx + GAP
         };
-        // the dropped items collapse into one `…`, first of the right
-        // group (the center keeps clear of it)
+
+
         let hidden: Vec<(Group, usize)> = groups
             .iter()
             .enumerate()
@@ -336,7 +336,7 @@ impl StatusBar {
             at.max(left_end + u16::from(!placed.is_empty()))
                 .min(area.right().saturating_sub(EDGE + 1))
         });
-        // center: centred in the free span between the groups
+
         let cw = group_w(1, &keep);
         if cw > 0 {
             let lo = left_end + GAP;
@@ -387,8 +387,8 @@ impl StatusBar {
         }
         for p in placed {
             let it = &self.group(p.group)[p.index];
-            // a clickable item walks the ladder (a chip on the raised plane,
-            // text on the bar); its tone survives every state
+
+
             let kind = match it.emphasis {
                 Emphasis::Chip => Some(Kind::Chip),
                 _ => it.id.map(|_| Kind::Title),
@@ -425,8 +425,8 @@ impl StatusBar {
                     buf.set_string(x, area.y, lead, st);
                     x += 1;
                 }
-                // a graphic on the item's plane: at 3:1 there (the accent is 2.9:1
-                // on a 16-colour DarkGray chip)
+
+
                 let ink = t.legible_mark(t.accent, st.bg.unwrap_or(bg));
                 buf.set_string(x, area.y, spin, st.fg(ink));
                 buf.set_string(x + 2, area.y, rest, st);
@@ -457,7 +457,7 @@ impl StatusBar {
                 let seg = Rect::new(p.x, area.y, p.width, 1);
                 let id = it.id.unwrap_or_else(|| reveal_id(p.group, p.index));
                 if it.id.is_none() && !ctx.inert {
-                    // hover-only: the tooltip needs a pointer target
+
                     ctx.hits.register_hover(id, seg);
                 }
                 crate::ui::tooltip::show(ctx, id, seg, tip, None);
@@ -468,7 +468,7 @@ impl StatusBar {
                 let id = it.id.unwrap_or_else(|| reveal_id(p.group, p.index));
                 let cfg = self.reveal.unwrap_or(ctx.reveal);
                 if it.id.is_none() && cfg.hover {
-                    // hover-only: reachable by the pointer, never a click target
+
                     ctx.clickable(id, cut);
                 }
                 crate::ui::reveal::truncated(ctx, Some(cfg), id, cut, &it.text);
@@ -477,9 +477,9 @@ impl StatusBar {
     }
 }
 
-/// A status item drawn alone on the status plane, in a forced state, for
-/// a States grid ([`crate::ui::specimen`]): a clickable item hovers and
-/// presses, a busy one spins, a long one is cut in the narrow slot.
+
+
+
 impl crate::ui::specimen::Specimen for StatusItem {
     fn specimen_id(&self) -> WidgetId {
         self.id.unwrap_or(WidgetId::of("statusbar.specimen"))
@@ -547,8 +547,8 @@ mod tests {
         b
     }
 
-    /// Laid out at its measured width the bar keeps every item whole;
-    /// one cell less drops one.
+
+
     #[test]
     fn measure_keeps_every_item() {
         use crate::ui::measure::Measure;
@@ -561,7 +561,7 @@ mod tests {
         assert_eq!(p.len(), 6);
         assert!(p.iter().all(|x| !x.text.ends_with('…')), "{p:?}");
         assert_eq!(b.layout(Rect::new(0, 0, w - 1, 1)).len(), 5);
-        // its min width: narrower, the rest collapsing into its `…`
+
         let min = b.min_width(ratatui::layout::Size::new(10, 1), &ctx);
         assert!(min < w);
         let p = b.layout(Rect::new(0, 0, min, 1));
@@ -619,7 +619,7 @@ mod tests {
         );
         let mut buf = Buffer::empty(Rect::new(0, 0, 120, 1));
         bar().render(Rect::new(0, 0, 120, 1), &mut buf, &mut ctx);
-        // every cell outside an item keeps the plane; chips sit one plane up
+
         let placed = bar().layout(Rect::new(0, 0, 120, 1));
         for x in 0..120u16 {
             let inside = placed.iter().any(|p| x >= p.x && x < p.x + p.width);
@@ -631,7 +631,7 @@ mod tests {
                 );
             }
         }
-        // the hovered chip is lifted and hit-tested
+
         let chip_x = (0..120u16)
             .find(|x| hits.hit(Position::new(*x, 0)) == Some(id))
             .unwrap();
@@ -639,9 +639,9 @@ mod tests {
         assert!(buf[(1, 0)].modifier.contains(Modifier::BOLD));
     }
 
-    /// A1: a busy chip's spinner reads on the chip (3:1) at every level;
-    /// at 16 colours the chip is xterm's DarkGray, where the LightGreen
-    /// spinner was 2.9:1 (holla's `⠋ 4 running`).
+
+
+
     #[test]
     fn a_busy_chips_spinner_reads_on_the_chip_at_every_level() {
         use crate::theme::{ColorLevel, contrast_ratio};
@@ -730,8 +730,8 @@ mod tests {
         assert_eq!(pressed.bg, t.ladder(crate::theme::Plane::Raised).pressed);
     }
 
-    /// A segment can carry a tooltip (what it is, its key), clickable or
-    /// not; a plain segment registers a hover target for it.
+
+
     #[test]
     fn a_segment_shows_its_tooltip_when_the_pointer_rests() {
         use crate::ui::tooltip::{Tip, tip_id};
@@ -771,8 +771,8 @@ mod tests {
         assert!(draw(Some(usage)).0.contains("Usage this week  u"));
     }
 
-    /// R-apps-1: items with no room collapse into one `…` overflow item;
-    /// resting the pointer on it reveals them.
+
+
     #[test]
     fn dropped_items_collapse_into_an_overflow_item_that_reveals_them() {
         let t = Theme::junie();

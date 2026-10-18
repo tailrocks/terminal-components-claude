@@ -1,5 +1,3 @@
-//! End-to-end interaction tests through the real App on a TestBackend.
-
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
@@ -141,7 +139,7 @@ fn opening_without_typing_suggests_an_action_with_a_reason() {
     assert!(t.contains("Explore"));
     assert!(h.row(0).contains("mbp · local"), "{}", h.row(0));
     assert!(t.contains("~/work/holla"), "path in the status bar");
-    // the preview answers the §7 questions for the cursor row
+
     assert!(t.contains("Does"));
     assert!(t.contains("Runs"));
     assert!(t.contains("Gate"));
@@ -271,9 +269,7 @@ fn the_key_reference_stays_in_the_body_with_a_margin() {
     h.key(KeyCode::F(1));
     let text = h.text();
     let rows: Vec<&str> = text.lines().collect();
-    // the key reference (the library HelpOverlay, S8b) is taller than the
-    // screen: it stays clear of the menu bar (row 0) and the status bar
-    // (row 18), so the dimmed page shows around it
+
     let top = rows.iter().position(|r| r.contains("╭─")).unwrap();
     let bottom = rows.iter().position(|r| r.contains("╰─")).unwrap();
     assert!(top >= 2 && bottom <= 17, "({top}, {bottom}) {text}");
@@ -299,8 +295,7 @@ fn the_header_row_has_the_same_inset_on_both_sides() {
 fn a_hidden_reason_column_gives_its_room_to_the_labels() {
     let h = H::new(Scenario::DockerCleanup, Motion::Reduced, 0, 72, 20);
     let t = h.text();
-    // the reason column does not fit at 72 columns: the labels take its
-    // room instead of being cut beside blank cells
+
     assert!(
         t.contains("Remove all unused images"),
         "the label is not cut while the row has room\n{t}"
@@ -311,9 +306,6 @@ fn a_hidden_reason_column_gives_its_room_to_the_labels() {
     );
 }
 
-/// SV11 (WCAG 2.2.1, 4.1.3): an information status goes 5 s after it is
-/// set on the world clock; an error status stays until the next action.
-/// Before S2 the error expired after 5 s too.
 #[test]
 fn an_error_status_waits_for_the_next_action_and_information_expires() {
     use crate::sim::world::TICK_MS;
@@ -339,7 +331,7 @@ fn an_error_status_waits_for_the_next_action_and_information_expires() {
         "an error never times out"
     );
     assert!(h.text().contains("Disk full"));
-    // the next action: a key with no binding
+
     h.key(KeyCode::F(24));
     assert!(
         h.app.shell.status.is_none(),
@@ -348,11 +340,6 @@ fn an_error_status_waits_for_the_next_action_and_information_expires() {
     assert!(!h.text().contains("Disk full"));
 }
 
-/// Type-ahead and single-letter shortcuts (keyboard.md decision log): the
-/// disk tree type-selects (S4), and the page's hinted letters (`s` Sort,
-/// `f` Fold noise) still run while it has focus. A guard: holla's pages
-/// take their letters before the tree, so this held on the S4 tip too;
-/// the library rule (`core::list::route_key`) keeps it true for any page.
 #[test]
 fn page_letters_win_over_the_focused_disk_tree() {
     let mut h = H::new(Scenario::DiskCleanup, Motion::Paused, 0, 120, 40);

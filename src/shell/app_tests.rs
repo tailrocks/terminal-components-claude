@@ -5,8 +5,8 @@ use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
-/// A one-row app: a button per name on page `page`. Focus changes are
-/// logged by `on_blur`.
+
+
 struct Demo {
     shell: Shell,
     page: u64,
@@ -106,7 +106,7 @@ fn without_a_primary_control_a_new_page_focuses_its_first() {
 
 #[test]
 fn a_control_that_vanishes_hands_focus_to_its_nearest_neighbour() {
-    // K8: on the same page, focus stays in the same neighbourhood
+
     let mut app = Demo::new(&["a", "b", "c", "d"]);
     app.primary = Some("a");
     draw(&mut app);
@@ -169,8 +169,8 @@ fn the_too_small_screen_draws_no_page_and_keeps_focus() {
     assert_eq!(app.focused(), Some(WidgetId::of("b")));
 }
 
-/// An app with a virtual clock and a job due at 1,100 ms (V12): pastes
-/// are logged, so a clock-step request that reaches `on_input` shows.
+
+
 struct Clocked {
     shell: Shell,
     clock: crate::clock::SimClock,
@@ -183,7 +183,7 @@ impl Clocked {
     fn new(motion: Motion, steps: bool) -> Self {
         let mut shell = Shell::new();
         shell.motion = motion;
-        // the harness's opt-in (`JUNIE_TUI_TEST_CLOCK=1`)
+
         shell.clock_steps = true;
         let mut clock = crate::clock::SimClock::new(0, 0);
         clock.running = motion != Motion::Paused;
@@ -248,7 +248,7 @@ impl App for Clocked {
 #[test]
 fn a_clock_step_runs_a_paused_apps_jobs_and_leaves_its_clock_stopped() {
     let mut app = Clocked::new(Motion::Paused, true);
-    // paused: ticks never fire the job
+
     for _ in 0..5 {
         let _ = Application::handle(&mut app, Input::Tick);
     }
@@ -268,12 +268,12 @@ fn a_clock_step_runs_a_paused_apps_jobs_and_leaves_its_clock_stopped() {
 #[test]
 fn a_clock_step_request_is_an_ordinary_paste_unless_paused_and_supported() {
     let request = crate::clock::ClockStep::request(1_100);
-    // not paused: the app's clock runs anyway, the text is a paste
+
     let mut full = Clocked::new(Motion::Full, true);
     let _ = Application::handle(&mut full, Input::Paste(request.clone()));
     assert_eq!(full.pastes, vec![request.clone()]);
     assert_eq!(full.clock.now_ms, 0);
-    // paused, but the app has no clock to step (the default)
+
     let mut plain = Clocked::new(Motion::Paused, false);
     let _ = Application::handle(&mut plain, Input::Paste(request.clone()));
     assert_eq!(plain.pastes, vec![request]);
@@ -289,7 +289,7 @@ fn without_the_test_opt_in_a_clock_step_request_is_delivered_unchanged() {
     assert_eq!(app.pastes, vec![request]);
     assert!(!app.job_fired);
     assert_eq!(app.clock.now_ms, 0);
-    // the process default: no opt-in unless the variable is set
+
     assert_eq!(
         Shell::<()>::new().clock_steps,
         std::env::var_os(crate::clock::ClockStep::ENV).is_some_and(|v| v == "1")

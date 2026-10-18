@@ -1,6 +1,6 @@
-//! The "terminal too small" screen an application shows instead of its
-//! layout when the window is below its minimum size: the brand, the reason,
-//! the size needed against the size there is, and how to quit, centred.
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -9,8 +9,8 @@ use ratatui::style::Style;
 use crate::theme::Theme;
 use crate::ui::text::center_x;
 
-/// The too-small screen. `TooSmall::new(brand).render(area, buf, &theme)`
-/// after [`TooSmall::applies`] says the area is below the minimum.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TooSmall<'a> {
     brand: &'a str,
@@ -20,13 +20,13 @@ pub struct TooSmall<'a> {
 }
 
 impl<'a> TooSmall<'a> {
-    /// The smallest layout every application supports: 72×20.
+
     pub const MIN_WIDTH: u16 = 72;
     pub const MIN_HEIGHT: u16 = 20;
 
-    /// The screen with `brand` on its first line, the default minimum
-    /// ([`MIN_WIDTH`](Self::MIN_WIDTH)×[`MIN_HEIGHT`](Self::MIN_HEIGHT)) and
-    /// the `q Quit` hint.
+
+
+
     pub const fn new(brand: &'a str) -> Self {
         Self {
             brand,
@@ -36,33 +36,33 @@ impl<'a> TooSmall<'a> {
         }
     }
 
-    /// Draw the brand in `style`, as is (a lockup brings its own fill).
-    /// Default: [`Theme::title`] on the canvas.
+
+
     pub const fn brand_style(mut self, style: Style) -> Self {
         self.brand_style = Some(style);
         self
     }
 
-    /// The minimum size, `width`×`height`.
+
     pub const fn min(mut self, width: u16, height: u16) -> Self {
         self.min = (width, height);
         self
     }
 
-    /// The last line (default `q Quit`): the keys the too-small screen
-    /// accepts.
+
+
     pub const fn quit_hint(mut self, hint: &'a str) -> Self {
         self.quit_hint = hint;
         self
     }
 
-    /// Whether `area` is below the minimum, so this screen replaces the
-    /// layout.
+
+
     pub fn applies(&self, area: Rect) -> bool {
         area.width < self.min.0 || area.height < self.min.1
     }
 
-    /// Draw the screen centred in `area`. The caller fills the background.
+
     pub fn render(&self, area: Rect, buf: &mut Buffer, t: &Theme) {
         let canvas = |s: Style| s.bg(t.canvas);
         let need = format!(
@@ -80,7 +80,7 @@ impl<'a> TooSmall<'a> {
         ];
         let y0 = area.y + area.height.saturating_sub(5) / 2;
         for (i, (text, style)) in lines.into_iter().enumerate() {
-            // a blank line before the quit hint
+
             let y = y0 + i as u16 + u16::from(i == 3);
             if y < area.bottom() {
                 buf.set_string(center_x(area, text), y, text, style);

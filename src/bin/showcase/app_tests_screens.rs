@@ -1,7 +1,3 @@
-//! The Settings and Task runner screens (plan §7.5, SC27), driven through
-//! the real app: the dirty mark on the Settings tab, and the quit guard
-//! while the pipeline runs.
-
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::app::PageId;
@@ -12,8 +8,7 @@ fn an_unsaved_settings_section_marks_its_tab_until_saved() {
     let mut h = Harness::on(120, 40, PageId::Settings);
     let dirty = junie_tui::theme::Theme::junie().glyphs.dirty;
     assert!(!h.text().contains(&format!("General {dirty}")));
-    // the section strip, the screen's tabs, name, description, visibility,
-    // then the auto-merge toggle
+
     for _ in 0..6 {
         h.key(KeyCode::Tab);
     }
@@ -36,7 +31,7 @@ fn quitting_while_the_pipeline_runs_asks_first() {
     let mut h = Harness::on(120, 40, PageId::TaskRunner);
     let (x, y) = h.find("Run pipeline").expect("the Run button");
     h.click(x + 1, y);
-    // Ctrl+Q quits from anywhere (QuitKeys)
+
     h.key_mod(KeyCode::Char('q'), KeyModifiers::CONTROL);
     assert!(!h.app.shell.quit, "a running pipeline holds the quit");
     assert!(h.text().contains("Still running"), "{}", h.text());
@@ -48,10 +43,6 @@ fn quitting_while_the_pipeline_runs_asks_first() {
     assert!(h.app.shell.quit, "Stop and leave quits");
 }
 
-/// Settings on the template: its options open a section, rebuild the
-/// members table and the environment list through their builders, drop the
-/// dirty mark and the save confirmation; States draws the section tabs,
-/// the members table and the environment list.
 #[test]
 fn the_settings_options_and_states() {
     use crate::pages::template::Section;
@@ -60,17 +51,17 @@ fn the_settings_options_and_states() {
     assert!(h.text().contains("Mira Okafor"), "{}", h.text());
     h.opt("settings.tab=environment");
     assert!(h.text().contains("DATABASE_URL"));
-    // multi select: Space checks the cursor row
+
     let env = junie_tui::core::id::WidgetId::of("settings").sub("env");
     h.focus(env);
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("1 selected"), "{}", h.text());
-    // single select: the list is rebuilt through its builder, no checks
+
     h.opt("settings.env_select=single");
     h.focus(env);
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("0 selected"), "{}", h.text());
-    // without the confirmation, Ctrl+S on a dirty form saves at once
+
     let mut h = Harness::on(120, 40, PageId::Settings);
     h.opt("settings.save_confirm=off");
     h.opt("settings.tab_dirty=off");
@@ -96,10 +87,6 @@ fn the_settings_options_and_states() {
     }
 }
 
-/// The Task runner on the template: its options rebuild the tree and the
-/// log through their builders, r runs the pipeline from the section strip,
-/// the pipeline keeps running while another section shows, and States
-/// draws the tree, the log and a task's bar.
 #[test]
 fn the_task_runner_options_states_and_run_from_the_strip() {
     use crate::pages::template::Section;
@@ -114,7 +101,7 @@ fn the_task_runner_options_states_and_run_from_the_strip() {
     h.opt("taskrunner.tree_meta=on");
     let (_, y) = h.find("deploy").expect("the deploy folder");
     assert!(h.row(y).contains('2'), "its task count: {}", h.row(y));
-    // r from the section strip runs the pipeline
+
     h.key(KeyCode::Tab);
     h.key(KeyCode::Char('r'));
     assert!(h.text().contains("Pipeline · running"), "{}", h.text());

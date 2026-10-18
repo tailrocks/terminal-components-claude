@@ -1,9 +1,3 @@
-//! Composed screen: a target tree, per-task progress and a following log,
-//! on the Playground | Options | States template. Options:
-//! `crate::options::TASKRUNNER` (the tree's folds, indent, glyphs and
-//! metas, the log's tail and wrap); States: the targets tree, the log and
-//! a task's progress bar.
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 
@@ -60,8 +54,6 @@ pub struct TaskRunnerPage {
     sections: crate::pages::layout::Sections,
 }
 
-/// The deploy targets. `glyphs`: the environments' glyphs and tones;
-/// `meta`: each folder's task count.
 fn targets(glyphs: bool, meta: bool) -> Vec<TreeNode> {
     let env = |name: &str, kind: EnvKind| {
         if glyphs {
@@ -115,9 +107,6 @@ fn targets(glyphs: bool, meta: bool) -> Vec<TreeNode> {
     ]
 }
 
-/// A deploy target: its environment's glyph and tone from the library
-/// ([`Glyphs::env`], [`EnvKind::tone`]); production's label takes the
-/// danger tone, so the riskiest target reads first.
 fn env(name: &str, kind: EnvKind) -> TreeNode {
     let node = TreeNode::leaf(name)
         .glyph(Glyphs::default().env(kind))
@@ -162,8 +151,6 @@ impl TaskRunnerPage {
         page
     }
 
-    /// Rebuild the tree and the log from the options through their
-    /// builders; the log keeps its lines.
     fn apply(&mut self) {
         let o = &self.opts;
         let mut tree = TreeView::new(
@@ -209,7 +196,7 @@ impl TaskRunnerPage {
             return false;
         }
         self.ticks += 1;
-        // run up to two tasks concurrently
+
         let running = self
             .tasks
             .iter()
@@ -276,9 +263,6 @@ impl TaskRunnerPage {
 
 impl TaskRunnerPage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        // sections keep their full height and the page scrolls by section
-        // on a short terminal: squeezed, the pipeline's rows ran into its
-        // own buttons ("Run pipeline qu Cancel")
         let tree_h = self.tree.rows().len() as u16 + 3;
         let pipe_h = self.tasks.len() as u16 + 5;
         let has = |id| ctx.interaction.has_focus(id);
@@ -357,7 +341,6 @@ impl TaskRunnerPage {
     }
 }
 
-/// The States grid: the targets tree, the log and a task's bar.
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let mut tree = TreeView::new(ID.sub("states-tree"), targets(true, false));
@@ -393,10 +376,6 @@ impl Page for TaskRunnerPage {
         "Composed: tree, live progress, following log, busy states"
     }
 
-    /// The targets beside the pipeline and the log: the pipeline card as
-    /// wide as its two buttons side by side (or a task's state word after
-    /// its name), the columns as tall as the tree, or the pipeline over a
-    /// log of five rows.
     fn measure(&self, _avail: Size, _ctx: &RenderCtx) -> Size {
         let buttons = self.run.width() + 2 + self.cancel.width();
         let tasks = 14 + junie_tui::ui::text::width("cancelled") as u16;
@@ -419,7 +398,6 @@ impl Page for TaskRunnerPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-        // the pipeline runs on whatever section shows
         if let PageEvent::Tick = ev {
             return if self.step(cx) {
                 Outcome::Changed
@@ -436,8 +414,7 @@ impl Page for TaskRunnerPage {
             return Outcome::Changed;
         }
         let playground = self.template.section() == Section::Playground;
-        // r runs the pipeline from anywhere on the Playground but the
-        // tree and the log (they take letters), the section strip included
+
         if let PageEvent::Key(key) = ev
             && playground
             && key.is_char('r')
@@ -530,8 +507,6 @@ impl Page for TaskRunnerPage {
         self.running
     }
 
-    /// Quitting while the pipeline runs stops it: the shell's quit guard
-    /// asks Stay / Stop and leave first (`leave::running_dialog`).
     fn leave_stakes(&self) -> junie_tui::ui::leave::Stakes {
         if self.running {
             junie_tui::ui::leave::Stakes::Running {
@@ -611,8 +586,7 @@ impl TaskRunnerPage {
             let label = format!("{:<12}", task.name);
             let name = junie_tui::ui::text::truncate(&label, 10);
             let bar = Rect::new(inner.x + 14, y, inner.width.saturating_sub(14).min(50), 1);
-            // every state leads with its `Theme::status` glyph, so colour
-            // is never the only cue (colour follow-ups, showcase)
+
             let kind = match task.state {
                 TaskState::Queued => StatusKind::Queued,
                 TaskState::Running => StatusKind::Running,
@@ -625,14 +599,12 @@ impl TaskRunnerPage {
             let name_style = match task.state {
                 TaskState::Queued | TaskState::Cancelled => t.muted(),
                 TaskState::Done => t.secondary(),
-                // the running label is information, as `Theme::status_label`
+
                 TaskState::Running => t.status_label(kind),
                 TaskState::Failed => t.primary(),
             };
             buf.set_string(inner.x + 2, y, &name, name_style.bg(bg));
             let word = |buf: &mut Buffer, text: &str| {
-                // the state word in the status hue, stepped up to read on
-                // the card (skipped is faint)
                 let fg = t.tone_on(kind.tone(), bg);
                 buf.set_string(bar.x, y, text, ratatui::style::Style::new().fg(fg).bg(bg));
             };
@@ -668,7 +640,6 @@ impl TaskRunnerPage {
             self.run.render(rects[0], buf, ctx, bg);
             self.cancel.render(rects[1], buf, ctx, bg);
         } else if self.running {
-            // narrow: only the actionable button; never truncate a label
             self.cancel
                 .render(Rect::new(inner.x, ay, inner.width, 1), buf, ctx, bg);
         } else {

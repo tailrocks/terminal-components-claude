@@ -1,9 +1,3 @@
-//! Colour as meaning through the real app: environments, statuses, the
-//! write gate, the primary action and SQL literals take the library's
-//! roles (`Theme::env`, `Theme::status`, `Tone`, `SyntaxTone::Literal`),
-//! never app-local colours (docs/audits/design-review-2026-10/
-//! colour-follow-ups.md, tablepro).
-
 use junie_tui::widgets::dialog::Dialog;
 use ratatui::buffer::Cell;
 use ratatui::crossterm::event::KeyCode;
@@ -22,7 +16,6 @@ fn cell(h: &H, (x, y): (u16, u16)) -> Cell {
     h.term.backend().buffer()[(x, y)].clone()
 }
 
-/// The cell at the first occurrence of `needle`, offset by `dx` cells.
 fn at(h: &H, needle: &str, dx: u16) -> Cell {
     let (x, y) = h
         .find(needle)
@@ -30,7 +23,6 @@ fn at(h: &H, needle: &str, dx: u16) -> Cell {
     cell(h, (x + dx, y))
 }
 
-/// `tone` as drawn on the cell's own background.
 fn ink(t: &Theme, tone: Tone, c: &Cell) -> Color {
     t.tone_on(tone, c.bg)
 }
@@ -45,10 +37,10 @@ fn set_query(h: &mut H, sql: &str) {
 fn strip_brand_is_the_accent_and_the_environment_badge_comes_from_theme_env() {
     let t = theme();
     let h = H::connected(120, 40);
-    // the brand mark is live state: the accent as a foreground
+
     let brand = at(&h, "▪", 0);
     assert_eq!(brand.fg, ink(&t, Tone::Active, &brand), "brand ▪");
-    // production: the danger label, bold, with its glyph
+
     let (glyph, style) = t.env(EnvKind::Production);
     let badge = format!("{glyph} production");
     let g = at(&h, &badge, 0);
@@ -105,12 +97,12 @@ fn strip_safe_badge_is_a_passed_check_and_silent_production_a_warning() {
 fn connection_tree_and_detail_show_environments_in_their_tones() {
     let t = theme();
     let mut h = H::new(120, 40);
-    // the tree's environment glyph: production's ◆ in the danger tone
+
     let (x, y) = h.find("Production").unwrap();
     let g = cell(&h, (x - 2, y));
     assert_eq!(g.symbol(), t.glyphs.env(EnvKind::Production));
     assert_eq!(g.fg, ink(&t, Tone::Danger, &g), "tree glyph");
-    // select it: the detail card's Environment value follows
+
     h.click(x, y);
     let (ex, ey) = h.find("Environment").unwrap();
     let row: String = (ex..120)
@@ -184,11 +176,11 @@ fn write_gate_on_production_warns_names_the_target_and_arms_a_danger_button() {
         ButtonKind::Danger,
         "Execute against production is a danger button"
     );
-    // ▲ in warning before the title
+
     let (warn, ws) = t.status(StatusKind::Warn);
     let title = at(&h, &format!("{warn} Execute write query?"), 0);
     assert_eq!(title.fg, t.legible(ws.fg.unwrap(), title.bg), "title glyph");
-    // the target line in production's tone
+
     let target = at(&h, "Production · production", 0);
     assert_eq!(target.fg, t.tone(EnvKind::Production.tone()), "Target");
 }
@@ -217,20 +209,20 @@ fn write_gate_off_production_keeps_a_plain_title_and_primary_execute() {
 fn footer_status_carries_its_kind() {
     let t = theme();
     let mut h = H::connected(120, 40);
-    // connected: ✓ in success
+
     let (ok, os) = t.status(StatusKind::Ok);
     let c = at(&h, &format!("{ok} Connected to Production"), 0);
     assert_eq!(c.fg, os.fg.unwrap(), "connected");
     let label = at(&h, &format!("{ok} Connected to Production"), 2);
     assert_eq!(label.fg, t.status_label(StatusKind::Ok).fg.unwrap());
-    // a cancelled query is information
+
     set_query(&mut h, "SELECT * FROM orders");
     h.ctrl('r');
     h.key(KeyCode::Esc);
     let (info, is) = t.status(StatusKind::Info);
     let c = at(&h, &format!("{info} Query cancelled"), 0);
     assert_eq!(c.fg, is.fg.unwrap(), "cancelled");
-    // the Safe Mode block needs attention
+
     h.app.workbench.as_mut().unwrap().connection.safe_mode = crate::db::SafeMode::ReadOnly;
     h.key(KeyCode::Char('i'));
     h.cmd('a');
@@ -276,7 +268,7 @@ fn toolbar_run_is_the_primary_action() {
     };
     let t = theme();
     let run = at(&h, "Run ", 0);
-    // the primary button paints the accent plate
+
     let plain_run_all = at(&h, "Run all", 0);
     assert_ne!(run.bg, plain_run_all.bg, "Run stands apart from Run all");
     assert_eq!(run.fg, t.text_on_accent, "Run is the primary button");
@@ -312,7 +304,7 @@ fn history_marks_slow_durations_in_warning() {
     let t = theme();
     let mut h = H::connected(120, 40);
     h.ctrl('y');
-    // every connection's history: the seed's slow run is on another one
+
     h.key(KeyCode::Char('c'));
     let slow = "1.82 s";
     let c = at(&h, slow, 0);
@@ -336,7 +328,6 @@ fn sql_booleans_and_null_take_the_literal_hue() {
     assert_eq!(Some(kw.fg), t.syntax(SyntaxTone::Keyword).fg, "SELECT");
 }
 
-/// Every text cell of `needle` (first occurrence) reads at 3:1 or more.
 fn assert_reads(h: &H, needle: &str, why: &str) {
     let (x, y) = h
         .find(needle)
@@ -359,8 +350,6 @@ fn assert_reads(h: &H, needle: &str, why: &str) {
 
 #[test]
 fn page_text_under_a_modal_dims_but_never_disappears_at_16_colours() {
-    // 16 colours draw the selected tab Black on DarkGray; the backdrop
-    // took that canvas ink for a blank and left it Black on Black
     let mut h = H::connected(120, 40);
     h.app.theme = Theme::for_level(junie_tui::theme::ColorLevel::Ansi16);
     h.draw();
@@ -375,8 +364,6 @@ fn page_text_under_a_modal_dims_but_never_disappears_at_16_colours() {
 
 #[test]
 fn the_pane_under_a_picker_shows_no_focus() {
-    // the picker takes focus; the tab pane read the raw focus ("not the
-    // explorer, not the strip") and drew itself focused under the modal
     for level in [
         junie_tui::theme::ColorLevel::TrueColor,
         junie_tui::theme::ColorLevel::Ansi256,
@@ -402,8 +389,6 @@ fn the_pane_under_a_picker_shows_no_focus() {
 
 #[test]
 fn page_text_under_a_modal_dims_but_never_disappears() {
-    // a button label on the raised plane dimmed to the ghost tier, the
-    // colour of the plane itself (1.0:1)
     let mut h = H::new(160, 50);
     for _ in 0..7 {
         h.key(KeyCode::Down);

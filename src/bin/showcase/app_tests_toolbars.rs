@@ -1,7 +1,3 @@
-//! The Toolbars page (plan §7.5, SC28), driven through the real app: one
-//! focus stop per toolbar, arrows inside it, Enter and clicks running
-//! commands and toggles, the options and the States grid.
-
 use ratatui::crossterm::event::KeyCode;
 
 use crate::app::PageId;
@@ -34,7 +30,7 @@ fn a_toolbar_is_one_tab_stop_and_arrows_move_inside_it() {
         "Tab leaves the toolbar"
     );
     h.focus(query);
-    // Run, Run all, then Stop is disabled: → skips it to Format
+
     h.key(KeyCode::Right);
     h.key(KeyCode::Right);
     assert_eq!(page(&h).query.cursor, 3);
@@ -91,9 +87,6 @@ fn options_rebuild_the_toolbars_through_their_builders() {
     assert_eq!(page(&h).query.cursor, 1, "vim: l moves right");
 }
 
-/// Items that do not fit the narrow toolbar sit behind `»`, the last
-/// arrow stop: Enter opens a menu of them (shortcuts, toggle state, why a
-/// disabled one waits) above the page, and choosing one runs it.
 #[test]
 fn the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu() {
     let mut h = harness();
@@ -113,21 +106,21 @@ fn the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu() {
     h.key(KeyCode::Enter);
     assert!(page(&h).narrow.menu_open());
     assert!(h.text().contains("○ Wrap"), "a toggle's state");
-    // the disabled Stop is reachable and says why in the status row
+
     h.key(KeyCode::Up);
     assert!(h.text().contains("─ No query"), "the reason\n{}", h.text());
     h.key(KeyCode::Down);
     assert_eq!(h.bars(), 0, "the toolbar under its menu shows no focus");
-    // Stop is disabled: the cursor starts on Format
+
     h.key(KeyCode::Enter);
     assert!(!page(&h).narrow.menu_open());
     assert_eq!(page(&h).last, "Activated(3) · Format");
     assert!(page(&h).narrow.on_more(), "focus returns to »");
-    // by mouse: the button opens it, a row runs its item
+
     let more = h.app.shell.hits.area_of(page(&h).narrow.more_id()).unwrap();
     h.click(more.x + 1, more.y);
     assert!(page(&h).narrow.menu_open());
-    // Wrap is the menu's fourth row (Stop, Format, Explain, Wrap, ...)
+
     let row = page(&h)
         .narrow
         .menu_id()
@@ -135,7 +128,7 @@ fn the_narrow_toolbar_keeps_hidden_commands_in_its_overflow_menu() {
     let r = h.app.shell.hits.area_of(row).expect("the Wrap row");
     h.click(r.x + 2, r.y);
     assert_eq!(page(&h).last, "Toggled(5, true) · Wrap");
-    // a click outside closes it without running anything
+
     h.click(more.x + 1, more.y);
     assert!(page(&h).narrow.menu_open());
     let (x, y) = h.find("Formatting toolbar").unwrap();

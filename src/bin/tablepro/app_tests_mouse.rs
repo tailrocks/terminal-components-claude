@@ -1,9 +1,5 @@
-//! Mouse-only navigation in tablepro (docs/audits/design-review-2026-10/mouse.md):
-//! every state reachable, and every view left, by pointer alone.
-
 use crate::app_tests::H;
 
-// mouse #6: the empty connection list offers the way in as a button
 #[test]
 fn the_first_connection_is_created_by_mouse_from_the_empty_list() {
     let mut h = H::new(120, 40);
@@ -20,12 +16,11 @@ fn the_first_connection_is_created_by_mouse_from_the_empty_list() {
     assert!(h.text().contains("Save & connect"), "{}", h.text());
 }
 
-// mouse #7: the query tab runs, runs all, explains and cancels by buttons
 #[test]
 fn the_query_toolbar_runs_explains_and_cancels_by_mouse() {
     use crate::tabs::{TOOLBAR_CANCEL, TOOLBAR_EXPLAIN, TOOLBAR_RUN, TOOLBAR_RUN_ALL};
     let mut h = H::connected(120, 40);
-    h.key(ratatui::crossterm::event::KeyCode::Tab); // editor
+    h.key(ratatui::crossterm::event::KeyCode::Tab);
     h.type_str("SELECT * FROM orders LIMIT 5");
     h.key(ratatui::crossterm::event::KeyCode::Esc);
     let at = |h: &H, id| {
@@ -41,15 +36,15 @@ fn the_query_toolbar_runs_explains_and_cancels_by_mouse() {
         assert!(h.app.shell.hits.area_of(id).is_some(), "{}", h.text());
     }
     assert!(h.app.shell.hits.area_of(TOOLBAR_CANCEL).is_none());
-    // Run
+
     let (x, y) = at(&h, TOOLBAR_RUN);
     h.click(x, y);
     assert!(h.wb_query().is_running(), "Run did not start the query");
-    // Cancel shows while it runs
+
     let (x, y) = at(&h, TOOLBAR_CANCEL);
     h.click(x, y);
     assert!(!h.wb_query().is_running(), "Cancel did not stop it");
-    // Run all, then Explain
+
     let (x, y) = at(&h, TOOLBAR_RUN_ALL);
     h.click(x, y);
     assert!(h.wb_query().is_running());
@@ -61,8 +56,6 @@ fn the_query_toolbar_runs_explains_and_cancels_by_mouse() {
     assert!(h.text().contains("Planning"), "{}", h.text());
 }
 
-// mouse #8: a hidden explorer leaves a rail that brings it back, and the
-// open explorer collapses by its button
 #[test]
 fn the_explorer_collapses_and_comes_back_by_mouse() {
     use crate::workbench::{EXPLORER, EXPLORER_RAIL};
@@ -91,7 +84,7 @@ fn the_explorer_collapses_and_comes_back_by_mouse() {
     h.click(rail.x, rail.y + 3);
     assert!(h.wb().explorer_visible, "{}", h.text());
     assert_eq!(h.focus(), Some(EXPLORER));
-    // Ctrl+B hides it too, and the rail still brings it back
+
     h.ctrl('b');
     assert!(!h.wb().explorer_visible);
     let rail = h
@@ -104,7 +97,6 @@ fn the_explorer_collapses_and_comes_back_by_mouse() {
     assert!(h.wb().explorer_visible);
 }
 
-// mouse #8: below 100 columns the unfocused explorer drawer keeps a rail
 #[test]
 fn a_narrow_workbench_opens_the_explorer_drawer_from_its_rail() {
     use crate::workbench::{EXPLORER, EXPLORER_RAIL};
@@ -122,7 +114,6 @@ fn a_narrow_workbench_opens_the_explorer_drawer_from_its_rail() {
     assert!(h.text().contains("Explorer"));
 }
 
-// mouse #40: the TablePro segment opens the app menu: open tabs, disconnect, quit
 #[test]
 fn the_app_menu_disconnects_and_quits_by_mouse() {
     use crate::app::STRIP_APP;
@@ -146,7 +137,7 @@ fn the_app_menu_disconnects_and_quits_by_mouse() {
     h.click(x, y);
     assert!(h.app.workbench.is_none(), "{}", h.text());
     assert!(h.text().contains("Connections"), "{}", h.text());
-    // on the connection list the menu has Quit only
+
     open_menu(&mut h);
     assert!(!h.text().contains("Open tabs…"), "{}", h.text());
     let (x, y) = h.find("Quit TablePro").unwrap();
@@ -154,10 +145,6 @@ fn the_app_menu_disconnects_and_quits_by_mouse() {
     assert!(h.app.shell.quit, "Quit did not quit");
 }
 
-// mouse #40, K4 (S14): Disconnect drops the workbench page, so unsaved
-// work asks first through the leave guard (Router::request): Cancel keeps
-// the connection open, Disconnect drops the work and goes back to the
-// connection list
 #[test]
 fn disconnect_asks_before_dropping_an_unsaved_query() {
     use crate::app::{Route, STRIP_APP};
@@ -189,9 +176,6 @@ fn disconnect_asks_before_dropping_an_unsaved_query() {
     assert!(h.text().contains("Disconnected from"), "{}", h.text());
 }
 
-// docs/design/close-button.md: a query tab's × is a three-cell plate like
-// the strip's `+`; the pointer on its edge cell lights all three, and a
-// click there closes the tab
 #[test]
 fn a_query_tab_close_plate_lights_whole_and_closes_the_tab() {
     use junie_tui::core::event::MouseKind;
@@ -225,8 +209,6 @@ fn a_query_tab_close_plate_lights_whole_and_closes_the_tab() {
     assert_eq!(h.wb().tabs.len(), n - 1, "{}", h.text());
 }
 
-/// R-apps-9: the wheel scrolls an overlay anywhere over its body, also in
-/// the padding column beside its scrollbar (that column took no wheel).
 #[test]
 fn the_wheel_beside_the_help_scrollbar_scrolls_the_help() {
     use junie_tui::core::event::MouseKind;

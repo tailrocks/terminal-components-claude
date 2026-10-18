@@ -1,39 +1,29 @@
-//! Deterministic scenario contract: which fixture world Holla opens in,
-//! how motion behaves, and which tick a paused capture shows.
-
 use junie_tui::clock::SimClock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scenario {
-    /// An empty scratch folder on a quiet laptop: the root must still be
-    /// useful without a project.
     FirstUse,
-    /// A Rust project with a dirty worktree, a branch behind upstream and a
-    /// large target directory.
+
     RustDirty,
-    /// A mise monorepo root with bounded child projects and a Compose stack.
+
     MonorepoRoot,
-    /// Inside `apps/frontend` of the same monorepo: parent ecosystem actions
-    /// and an untrusted child configuration.
+
     MonorepoChild,
-    /// A Docker host with containers, images and volumes; the query
-    /// `docker clean` is already typed.
+
     DockerCleanup,
-    /// A project collection under `~/work` with the Disk flow open and the
-    /// scan still streaming.
+
     DiskCleanup,
-    /// A Debian host with the "Upgrade everything" plan open for review.
+
     UpgradePlan,
-    /// Several activities running, finished and detached at once.
+
     ActivitiesMulti,
-    /// A production host reached over SSH.
+
     RemoteHost,
-    /// A child task whose launch fails.
+
     LaunchFailure,
-    /// Long labels, an unreachable Docker daemon, partial discovery, many
-    /// rows.
+
     HardCases,
-    // ---- parity fixtures (HP01–HP23): one world per legacy capability family
+
     ParityDiscovery,
     ParityHistory,
     ParityFiles,
@@ -60,7 +50,6 @@ pub enum Scenario {
 }
 
 impl Scenario {
-    /// Concept scenarios exercised in product docs and capture matrices.
     pub const CONCEPT: [Scenario; 11] = [
         Scenario::FirstUse,
         Scenario::RustDirty,
@@ -75,7 +64,6 @@ impl Scenario {
         Scenario::HardCases,
     ];
 
-    /// HP01–HP23 parity fixtures: one world per legacy capability family.
     pub const PARITY: [Scenario; 23] = [
         Scenario::ParityDiscovery,
         Scenario::ParityHistory,
@@ -183,17 +171,12 @@ impl Scenario {
     }
 }
 
-/// Fixed epoch for fixture timestamps: 2026-09-10 08:41:00 local (UTC+7).
 pub const EPOCH_SECS: i64 = 1_789_004_460;
-/// The fixture zone: UTC+7.
+
 pub const UTC_OFFSET_SECS: i64 = 7 * 3600;
-/// The fixture clock at its epoch, running. The preview never reads
-/// wall-clock time: every duration, timestamp and animation frame derives
-/// from virtual milliseconds that advance only with runtime ticks, so a
-/// given `--scenario … --frame N` renders the same picture every time.
+
 pub const CLOCK: SimClock = SimClock::new(EPOCH_SECS, UTC_OFFSET_SECS);
 
-/// Tick delivery (`--motion`): the library's [`Motion`].
 pub use junie_tui::motion::Motion;
 
 #[cfg(test)]

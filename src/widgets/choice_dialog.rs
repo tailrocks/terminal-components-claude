@@ -1,8 +1,8 @@
-//! A question with radio options and buttons (a mount destination, the
-//! branches of a dirty exit, a split direction), drawn in the shared modal
-//! [`Frame`](crate::ui::modal::Frame). Moved from jackin-preview so every
-//! app can use it; it holds no app types (options are strings, the result
-//! is an index).
+
+
+
+
+
 
 use crate::core::event::{Key, Outcome};
 use crate::core::focus::{Focus, FocusRing};
@@ -20,60 +20,60 @@ use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 
-/// A question with radio options and buttons (mount destination choice,
-/// dirty-exit branches, split direction…).
+
+
 #[derive(Clone)]
 pub struct ChoiceDialog {
-    /// The `×` its frame draws when its [`Dismiss`] policy lets Esc close
-    /// it ([`Dismiss::shows_close`]); a click on it means Esc. Default
-    /// [`IconButton::close`] (three-cell plate, `Close · Esc` tooltip);
-    /// every modal takes a custom one the same way
-    /// ([`crate::ui::layer::Overlay::close_button`]).
-    ///
-    /// [`Dismiss`]: crate::ui::popup::Dismiss
-    /// [`Dismiss::shows_close`]: crate::ui::popup::Dismiss::shows_close
-    /// [`IconButton::close`]: crate::widgets::icon_button::IconButton::close
+
+
+
+
+
+
+
+
+
     pub close_button: crate::widgets::icon_button::IconButton,
-    /// Which dismissals close it. Default `Dismiss::ESCAPE`.
+
     pub dismiss: crate::ui::popup::Dismiss,
     pub title: String,
     pub lines: Vec<(String, Tone)>,
     pub radio: RadioGroup,
     pub buttons: Vec<Button>,
-    /// Button index Esc maps to.
+
     pub cancel_index: usize,
-    /// Result: Some(option) when the primary fired, None when cancelled.
+
     pub result: Option<Option<usize>>,
-    /// Which button fired (for owners with several non-cancel buttons).
+
     pub fired: Option<usize>,
     pub width: u16,
     pub stepper: Option<String>,
     pub area: Rect,
     pub option_tones: Vec<Tone>,
-    /// The theme's strings as of the last render; a cancel label still
-    /// reading them follows a change ([`Strings::follow`]).
+
+
     strings: Strings,
-    /// Which keys move between the buttons (←/→, and `h`/`l` with vim on).
-    /// Default [`NavKeys::default`].
+
+
     pub nav: NavKeys,
-    /// How ←/→ move between the buttons ([`ButtonRow::step`](crate::widgets::button::ButtonRow::step)).
-    /// Default [`crate::widgets::button::ButtonRow::new`]: disabled
-    /// buttons are skipped, no wrap.
+
+
+
     pub button_row: crate::widgets::button::ButtonRow,
-    /// A double click on an option chooses it and fires the primary
-    /// button, the one Enter on the options fires (a macOS list sheet's
-    /// double click is its default button). A single click only selects.
-    /// Default `true`; `false` makes every click only select.
+
+
+
+
     pub double_click_confirms: bool,
-    /// The default action was asked for (Enter on the options, a double
-    /// click) while its button is disabled: the frame shows the refusal
-    /// in the warning tone until the next input.
+
+
+
     refused: bool,
 }
 
-/// The footer while the dialog is on top: on the options, how to choose
-/// and what Enter confirms (the primary button's label); on a button, what
-/// Enter presses there; Tab between them; Esc as the cancel button.
+
+
+
 impl HasHints for ChoiceDialog {
     fn hints(&self, cx: &HintCx) -> Vec<Hint> {
         let mut v = vec![];
@@ -103,19 +103,19 @@ impl HasHints for ChoiceDialog {
 }
 
 impl ChoiceDialog {
-    /// See [`Self::button_row`].
+
     pub fn button_row(mut self, row: crate::widgets::button::ButtonRow) -> Self {
         self.button_row = row;
         self
     }
 
-    /// See [`Self::double_click_confirms`].
+
     pub fn double_click_confirms(mut self, on: bool) -> Self {
         self.double_click_confirms = on;
         self
     }
 
-    /// See [`Self::close_button`].
+
     pub fn close_button(mut self, button: crate::widgets::icon_button::IconButton) -> Self {
         self.close_button = button;
         self
@@ -147,7 +147,7 @@ impl ChoiceDialog {
         }
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
@@ -183,16 +183,16 @@ impl ChoiceDialog {
         self.radio.id
     }
 
-    /// The frame's height in rows: the stepper, the lines, the options and
-    /// the button row inside the frame.
+
+
     pub fn height(&self) -> u16 {
         let body = self.lines.len() as u16 + if self.lines.is_empty() { 0 } else { 1 };
         let stepper = if self.stepper.is_some() { 2 } else { 0 };
         2 + 2 + stepper + body + self.radio.height() + 2 + 1
     }
 
-    /// The button Enter on the options fires: the first primary or
-    /// danger button, else the last.
+
+
     fn primary(&self) -> usize {
         self.buttons
             .iter()
@@ -200,9 +200,9 @@ impl ChoiceDialog {
             .unwrap_or(self.buttons.len().saturating_sub(1))
     }
 
-    /// Fire the default button (Enter on the options, a double click):
-    /// refused, with the frame flashing, while that button is disabled or
-    /// busy, as a click on it would be.
+
+
+
     fn fire_default(&mut self) -> Outcome {
         let i = self.primary();
         if self.buttons.get(i).is_some_and(Button::can_activate) {
@@ -252,7 +252,7 @@ impl ChoiceDialog {
             _ => None,
         };
         if let Some(back) = step {
-            // one button-row rule (K32)
+
             if let Some(id) = self.button_row.step(&self.buttons, cur, !back) {
                 focus.focus(id);
             }
@@ -302,8 +302,8 @@ impl ChoiceDialog {
             }
         }
         let h = self.height();
-        // a refused default action flashes the frame, as a refused outside
-        // click does ([`crate::ui::modal::border_style`])
+
+
         let flash = ctx.interaction.flash;
         if self.refused {
             ctx.interaction.flash = Some(crate::ui::modal::SURFACE);
@@ -345,7 +345,7 @@ impl ChoiceDialog {
             ctx,
             bg,
         );
-        // re-tone options (e.g. a destructive last row)
+
         for (i, tone) in self.option_tones.iter().enumerate() {
             if let Some(r) = self.radio.areas.get(i)
                 && *tone != Tone::Normal
@@ -379,12 +379,12 @@ impl ChoiceDialog {
 }
 
 impl ChoiceDialog {
-    /// One pointer event the router resolved to the dialog (its layer's
-    /// [`crate::ui::layer::Layer::pointer`]): the radio group takes its own
-    /// clicks ([`crate::core::pointer::MouseTarget::route`]; a click
-    /// focuses it, and a double click on an option also fires the primary
-    /// button per [`Self::double_click_confirms`]); any other completed click is [`Self::on_click`] (a
-    /// button). The dialog does not scroll: a wheel moves nothing.
+
+
+
+
+
+
     pub fn pointer_in(
         &mut self,
         ev: &crate::core::pointer::PointerEvent,
@@ -402,8 +402,8 @@ impl ChoiceDialog {
         if let Some(r) = self.radio.route(ev) {
             if ev.is(Phase::Click) {
                 focus.focus(self.radio.id);
-                // a double click on an option chooses it
-                // ([`Self::double_click_confirms`])
+
+
                 if self.double_click_confirms
                     && ev.count() >= 2
                     && !self.radio.disabled
@@ -469,9 +469,9 @@ mod tests {
         assert_eq!(d.result, Some(Some(1)));
     }
 
-    /// A4 (#39 follow-up): Enter on the options and a double click fire
-    /// the default button only while it can act; a disabled one refuses,
-    /// and the frame shows the refusal until the next input.
+
+
+
     #[test]
     fn a_disabled_default_button_is_not_fired_by_enter_or_a_double_click() {
         use crate::core::intent::Phase;
@@ -497,7 +497,7 @@ mod tests {
         let (_, buf) = draw(&mut d);
         let corner = &buf[(d.area.x, d.area.y)];
         assert_eq!(corner.fg, t.warning, "the frame shows the refusal");
-        // a double click on the selected option is refused the same way
+
         let id = d.radio.option_id(0);
         let at = d.radio.areas[0];
         let pos = ratatui::layout::Position::new(at.x + 6, at.y);
@@ -506,7 +506,7 @@ mod tests {
             let _ = d.pointer_in(&ev, &mut focus);
         }
         assert_eq!((d.result, d.fired), (None, None), "double click is refused");
-        // the next input clears the refusal; an enabled default fires
+
         d.buttons[1].disabled = false;
         d.on_key(&key(KeyCode::Enter), &mut focus, &ring);
         let (_, buf) = draw(&mut d);
@@ -514,9 +514,9 @@ mod tests {
         assert_eq!(d.result, Some(Some(0)));
     }
 
-    /// M39: a double click on an option chooses it and fires the primary
-    /// button (the one Enter fires); a single click only selects;
-    /// `double_click_confirms(false)` keeps every click a selection.
+
+
+
     #[test]
     fn a_double_click_on_an_option_confirms_it() {
         use crate::core::intent::Phase;
@@ -544,17 +544,17 @@ mod tests {
         let new =
             || ChoiceDialog::new(WidgetId::of("split"), "Split", "Dir", &["Right", "Down"], 0);
 
-        // a single click only selects
+
         let mut d = new();
         let hits = draw(&mut d);
         click(&mut d, &hits, 1, 1);
         assert_eq!((d.radio.selected, d.result), (1, None));
-        // its second click (count 2) chooses the option with the primary
+
         click(&mut d, &hits, 1, 2);
         assert_eq!(d.result, Some(Some(1)), "double click confirms");
         assert_eq!(d.fired, Some(1), "the primary button fired");
 
-        // off: the double click only selects
+
         let mut d = new().double_click_confirms(false);
         let hits = draw(&mut d);
         click(&mut d, &hits, 1, 1);

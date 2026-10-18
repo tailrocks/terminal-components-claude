@@ -1,6 +1,3 @@
-//! Usage projection: quota windows, freshness, status, and the honest
-//! overall aggregation across every account and provider.
-
 use std::collections::BTreeMap;
 
 use junie_tui::ui::text::plural;
@@ -51,7 +48,6 @@ impl QuotaStatus {
         }
     }
 
-    /// Derive from a used percentage (warning at 75 %, exhausted at 100 %).
     pub fn from_pct(used_pct: u8) -> Self {
         if used_pct >= 100 {
             QuotaStatus::Exhausted
@@ -92,7 +88,6 @@ impl WindowUnit {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QuotaWindow {
-    /// Stable per surface: `session`, `weekly`, `credits`…
     pub id: &'static str,
     pub label: String,
     pub category: WindowCategory,
@@ -100,7 +95,7 @@ pub struct QuotaWindow {
     pub used: Option<u64>,
     pub limit: Option<u64>,
     pub used_pct: Option<u8>,
-    /// Fixture instant when the window resets.
+
     pub reset_secs: Option<i64>,
     pub spend_label: Option<String>,
     pub status: QuotaStatus,
@@ -189,7 +184,6 @@ impl QuotaWindow {
         self.used_pct.map(|p| 100 - p)
     }
 
-    /// `62% used`, `1,240 / 5,000 credits`, `not started`.
     pub fn value_label(&self) -> String {
         match (self.used, self.limit, self.used_pct, self.status) {
             (_, _, _, QuotaStatus::NotStarted) => "not started".into(),
@@ -254,7 +248,6 @@ impl FreshnessInfo {
     }
 }
 
-/// Per-account usage: last-good windows retained across stale/failed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUsage {
     pub freshness: FreshnessInfo,
@@ -284,8 +277,6 @@ impl AccountUsage {
             })
     }
 }
-
-// ---------------------------------------------------------- aggregation
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HealthWord {
@@ -332,7 +323,7 @@ pub struct ComparableRollup {
     pub accounts: usize,
     pub min_remaining_pct: u8,
     pub max_remaining_pct: u8,
-    /// Summed (used, limit) for counted units.
+
     pub summed: Option<(u64, u64)>,
     pub last_good_count: usize,
     pub not_visible: usize,
@@ -355,8 +346,6 @@ pub struct OverallSummary {
 }
 
 impl OverallSummary {
-    /// Aggregate honestly: sum only identical (surface, window, unit,
-    /// category) counted windows; percentages roll up as a range.
     pub fn compute(accounts: &[Account]) -> Self {
         let mut counts = OverallCounts {
             accounts: accounts.len(),
@@ -365,7 +354,7 @@ impl OverallSummary {
         let mut providers: BTreeMap<Provider, ()> = BTreeMap::new();
         let mut stale_sources = vec![];
         let mut failed_sources = vec![];
-        // (surface, window id) → contributing windows
+
         let mut groups: BTreeMap<(UsageSurface, &'static str), Vec<(&QuotaWindow, bool)>> =
             BTreeMap::new();
         let mut not_visible: BTreeMap<UsageSurface, usize> = BTreeMap::new();
@@ -511,7 +500,6 @@ impl OverallSummary {
         }
     }
 
-    /// `12 accounts · 11 enabled · 1 disabled · 8 providers`.
     pub fn counts_line(&self) -> String {
         let c = &self.counts;
         let mut parts = vec![plural(c.accounts, "account", "accounts")];
@@ -523,17 +511,11 @@ impl OverallSummary {
         parts.join(" · ")
     }
 
-    /// `4 warnings · 1 exhausted · 2 stale · …` (only non-zero parts).
     pub fn issues_line(&self) -> String {
         let parts: Vec<String> = self.issue_parts().into_iter().map(|(p, _)| p).collect();
         parts.join(" · ")
     }
 
-    /// The parts of [`Self::issues_line`], each with the tone of what it
-    /// says: exhausted and failed are errors, warnings and stale need
-    /// attention, refreshing is information, and the plain counts
-    /// (quota not visible, unresolved identities, no warnings) stay
-    /// primary.
     pub fn issue_parts(&self) -> Vec<(String, junie_tui::theme::Tone)> {
         use junie_tui::theme::Tone;
         let c = &self.counts;

@@ -1,19 +1,19 @@
-//! Fresh-process proofs of the holla preview on a tuiscotti PTY session:
-//! the colour policy matrix (F23f: explicit palette, `NO_COLOR` empty and
-//! non-empty, `NO_COLOR` against an explicit flag) and the bounded input
-//! flood (F23d: dispatch and quit latency under a queue the terminal keeps
-//! feeding). Every wait is bounded and nothing touches the developer's
-//! terminal.
-//!
-//! The PTY, the emulator and the input writer are tuiscotti's
-//! (`tuiscotti::tui`, T17): no hand-rolled pseudo-terminal here. Colour classes
-//! are read from the emulated cells (`Color::Rgb` for 24-bit SGR,
-//! `Color::Indexed` for `38;5;n` and the `3x`/`9x` forms), modifiers from
-//! the cell `Mods`, so colour is still asserted separately from
-//! reverse/bold/dim/underline and an attribute-only frame is never mistaken
-//! for a coloured one.
-//!
-//! Scope: macOS and Linux.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
@@ -54,7 +54,7 @@ fn wait_for(session: &Session, what: &str, cond: impl Fn(&Observation) -> bool) 
         .unwrap_or_else(|e| panic!("timed out waiting for {what}: {e}"))
 }
 
-/// Wait for the child to exit and return its exit code.
+
 fn wait_exit(session: &Session) -> u32 {
     let exit = session
         .wait_exit(Instant::now() + BOUND, &CancelToken::new())
@@ -67,23 +67,23 @@ fn wait_exit(session: &Session) -> u32 {
     exit.status.code()
 }
 
-/// Colour and attribute classes found on a screen, counted per cell and
-/// kept apart: colour never hides behind an attribute and an attribute
-/// never counts as colour. The emulator keeps crossterm's `38;5;n` with n
-/// below 16 and the `3x`/`9x` forms alike as a palette index below 16, so
-/// both count as the basic palette, never as the 256-colour cube.
+
+
+
+
+
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Sgr {
     truecolor: usize,
-    /// Palette index >= 16: the 256-colour cube and greys.
+
     indexed: usize,
-    /// Palette index < 16.
+
     basic: usize,
     reverse: usize,
     bold: usize,
     dim: usize,
     underline: usize,
-    /// Distinct palette indexes below 16 that were used.
+
     palette: Vec<u8>,
 }
 
@@ -116,9 +116,9 @@ impl Sgr {
     }
 }
 
-/// Every frame the run drew is classified: the first frame, the frame after
-/// Tab moved focus to the preview, and the frame after Shift+Tab moved it
-/// back.
+
+
+
 fn frame(args: &[&str], env: &[(&str, Option<&str>)]) -> (Sgr, String) {
     let mut base = vec![
         "--scenario",
@@ -144,13 +144,13 @@ fn frame(args: &[&str], env: &[(&str, Option<&str>)]) -> (Sgr, String) {
         )
         .unwrap_or_else(|e| panic!("the frame never settled: {e}"))
     };
-    // a stable second frame: Tab moves to the preview and back
+
     session.send_bytes(b"\t").expect("Tab");
     sgr.add(&settle(&session));
     session.send_bytes(b"\x1b[Z").expect("Shift+Tab");
     let last = settle(&session);
     sgr.add(&last);
-    // Ctrl+Q on a clean shell quits (Esc never quits, keyboard audit #21)
+
     session.send_bytes(b"\x11").expect("Ctrl+Q");
     let text = screen_text(&last);
     let code = wait_exit(&session);
@@ -190,8 +190,8 @@ fn explicit_palettes_emit_exactly_their_colour_class_and_keep_attributes() {
         "no extended colour at 16: {c16:?}"
     );
 
-    // Mono is a palette of four greys, not the absence of SGR: that is
-    // what separates it from NO_COLOR below
+
+
     let (mono, _) = frame(&["--color", "none"], &[]);
     assert_eq!(
         mono.truecolor + mono.indexed,
@@ -212,9 +212,9 @@ fn explicit_palettes_emit_exactly_their_colour_class_and_keep_attributes() {
 
 #[test]
 fn no_color_policy_is_the_backend_rule_in_a_fresh_process() {
-    // NO_COLOR non-empty: colour is suppressed even against an explicit flag,
-    // attributes survive the suppression (the runtime resets colours, never
-    // modifiers)
+
+
+
     let (off, _) = frame(&["--color", "truecolor"], &[("NO_COLOR", Some("1"))]);
     assert_eq!(
         off.truecolor + off.indexed + off.basic,
@@ -225,14 +225,14 @@ fn no_color_policy_is_the_backend_rule_in_a_fresh_process() {
         off.reverse > 0 || off.bold > 0,
         "attributes survive NO_COLOR: {off:?}"
     );
-    // NO_COLOR empty is not set: colour stays
+
     let (empty, _) = frame(&["--color", "truecolor"], &[("NO_COLOR", Some(""))]);
     assert!(
         empty.truecolor > 0,
         "an empty NO_COLOR does not disable colour: {empty:?}"
     );
-    // a force flag from the environment is not a crossterm policy: it does
-    // not override NO_COLOR, and the preview never pretends it does
+
+
     let (forced, _) = frame(
         &["--color", "truecolor"],
         &[
@@ -260,16 +260,16 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
         screen_text(o).contains("holla")
     });
     let before = first.revision;
-    // 8000 Ctrl+B presses: a single byte each (no escape-sequence boundary
-    // ambiguity across pty reads) bound to nothing on the root, so every one
-    // is an ignored event; the queue keeps feeding while the loop drains.
-    // The flood is far longer than one terminal read (crossterm reads 1 KiB
-    // per readiness), so the runtime must keep reading what the terminal
-    // still holds without new input arriving: crossterm 0.29 alone leaves
-    // it in the kernel on Linux and the quit behind it is never seen.
-    // tuiscotti's writer thread feeds the whole flood through the pty in
-    // one acknowledged write, blocking while the kernel buffer is full, so
-    // the application sees the same back-pressured burst.
+
+
+
+
+
+
+
+
+
+
     let flood: Vec<u8> = vec![0x02; 8000];
     let start = Instant::now();
     session.send_bytes(&flood).unwrap_or_else(|e| {
@@ -278,14 +278,14 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
             session.poll_exit()
         )
     });
-    // discovery ticks keep landing while the flood drains: the frame changes
+
     wait_for(&session, "a redraw during the flood", |o| {
         o.revision > before
     });
-    // a quit queued behind the flood is honoured once the flood is consumed
-    // (Ctrl+Q: Esc never quits, keyboard audit #21). Its latency is timed on
-    // its own: the redraw wait above follows the app's tick cadence, not
-    // the drain.
+
+
+
+
     let quit = Instant::now();
     session
         .send_bytes(b"\x11")
