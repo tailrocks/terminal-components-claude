@@ -59,7 +59,6 @@ fn count(bytes: usize) {
 pub struct Counting;
 
 #[expect(unsafe_code, reason = "counting allocator; see SAFETY")]
-
 unsafe impl GlobalAlloc for Counting {
     unsafe fn alloc(&self, l: Layout) -> *mut u8 {
         count(l.size());
