@@ -38,6 +38,12 @@ cargo nextest run --all-targets
 
 Use `cargo nextest`, not `cargo test`. For UI changes, run `cargo xtask visual check-touched` and the relevant tier from [the visual testing guide](visual-testing/README.md). Inspect actual, expected, and diff artifacts before changing an approval; use the guide's isolated-commit procedure.
 
+## Rust source documentation
+
+Rust source files, including tests, contain no comments or prose documentation. Do not add line/block comments, Rustdoc comments, or prose-valued `#[doc = "..."]` attributes. Put API contracts, rationale, examples, and contributor guidance in Markdown documentation.
+
+Retain compiler structure such as `#[doc(hidden)]` and real runtime metadata such as CLI help annotations (`#[arg(help = "...")]`). These attributes have compiler or runtime meaning; they are not comment replacements. When removing source commentary, delete it rather than converting it to attributes. Keep unsafe-operation rationale in [SAFETY.md](../SAFETY.md), tied to its operation.
+
 ## Generated component reference
 
 `src/docs.rs` generates `docs/components/` and defines its freshness test. Check without rewriting generated output:
