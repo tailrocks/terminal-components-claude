@@ -6,7 +6,7 @@ Candidate migration contract, not a current step-by-step recipe. The codebase ha
 
 ## Authority
 
-Current reusable structure: [architecture](../architecture.md). Current UI, interaction, and colors: `design/interaction-polish`. Current work and readiness: [status](../status.md) and [plan](../plan.md). Never infer readiness or product behavior from the historical migration guide.
+Current reusable structure: [architecture](../architecture.md). Current UI, interaction, and colors: `design/interaction-polish`. Current work and readiness: [plan](../plan.md). Never infer readiness or product behavior from the historical migration guide.
 
 ## Current evidence
 

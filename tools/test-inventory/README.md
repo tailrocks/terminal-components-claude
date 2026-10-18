@@ -1,27 +1,5 @@
 # Exact test inventory
 
-## Status
-
-Legacy documentation retained pending reconciliation with current source and accepted product reference.
-
-## Authority
-
-Current project direction: [architecture](../../docs/architecture.md), [design](../../docs/design.md), [status](../../docs/status.md), and [plan](../../docs/plan.md). Historical claims here do not establish current implementation readiness.
-
-## Current evidence
-
-This document snapshot is Git blob `f61d9efbcd349d5ac1b8cb7169bdcd8a0d28f211` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
-
-## Remaining work
-
-Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
-
-## Verification
-
-Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
-
----
-
 `inventory.py` uses Cargo and stable libtest/rustdoc interfaces. It does not scan
 Rust function names or accept a nonzero test count as coverage.
 

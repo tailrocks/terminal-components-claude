@@ -1,30 +1,18 @@
 # Documentation
 
-## Status
+This documentation describes a Rust terminal UI library whose modular rewrite is incomplete and not ready for product use.
 
-Current project documentation lives in this directory's five canonical files.
+## Architecture
 
-## Authority
+- [Architecture](architecture.md) describes crate boundaries and API direction. `main` is the structural reference.
+- [Design](design.md) identifies `design/interaction-polish` as the product reference for visuals, colors, UI/UX, behavior, and planned work.
+- [Component contracts](components-contracts.md) records current public API locations and requirements still needing consumer or behavior verification.
 
-Use [status](status.md) for implementation state, [architecture](architecture.md) for the intended crate/API structure, [design](design.md) for visual and interaction requirements, and [plan](plan.md) for remaining work. Long-form plans remain actionable while their acceptance criteria are open. Audits, reviews, prompts, ledgers, and checkpoint results provide evidence only for their stated scope and revision; none overrides these files or establishes current readiness by itself.
+## Work and development
 
-[Safety rationales](../SAFETY.md) preserve the justifications for unchanged unsafe operations outside Rust comments.
+- [Plan](plan.md) is the live implementation backlog and links the detailed, immutable design-branch requirement inventory.
+- [Development](development.md) lists workspace checks and the no-new-code-comments rule.
+- [Quick start](guides/quickstart.md) is a current in-workspace facade example; check its APIs against source before depending on them externally.
+- [Safety rationales](../SAFETY.md) retains justifications removed from Rust comments.
 
-## Current evidence
-
-The workspace is split into Rust crates and deterministic application crates. This proves structural progress only. It does not establish correctness, reusable API quality, full behavior, visual fidelity, or release readiness.
-
-## Remaining work
-
-Keep the canonical files aligned with verified source, tests, and the accepted design reference. Preserve detailed plans and evidence; label their scope and historical status clearly.
-
-## Verification
-
-Check claims against the current workspace manifest, source, focused tests, and rendered application captures. A historical report or self-generated baseline alone is insufficient.
-
-## Canonical documents
-
-- [Architecture](architecture.md)
-- [Design](design.md)
-- [Status](status.md)
-- [Plan](plan.md)
+The design work index preserves original acceptance detail and branch provenance. Its recorded checklist counts are historical inventory, not current completion claims. Other branch audits, reviews, prompts, and execution reports are not project authority.

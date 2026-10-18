@@ -1,108 +1,16 @@
-# refactor-proof
+# Refactor proof tools
 
-## Status
-
-Legacy documentation retained pending reconciliation with current source and accepted product reference.
-
-## Authority
-
-Current project direction: [architecture](../../docs/architecture.md), [design](../../docs/design.md), [status](../../docs/status.md), and [plan](../../docs/plan.md). Historical claims here do not establish current implementation readiness.
-
-## Current evidence
-
-This document snapshot is Git blob `c28ca173e4797fc67d075d45ae430f14dccc344e` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
-
-## Remaining work
-
-Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
-
-## Verification
-
-Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
-
----
-
-TASK-001 deliverable: independently qualified `tc-proof` comparator and `tc-proof-host` core for product `qualified-harness`.
-
-This tool supports the repository refactor; it does not define the current component architecture or establish product readiness. See [the active architecture](../../docs/architecture.md) and [the current plan](../../docs/plan.md) for project authority. Its qualification claims below are historical tool-specific requirements and must be revalidated before reuse.
-
-Build, sync, and run:
+The `refactor-proof` workspace package builds the `tc-proof` comparator and `tc-proof-host` host-only protocol executable. Build and test it with:
 
 ```sh
-cargo build -p refactor-proof
-# Required before host-bootstrap-driver --host (CHK-005/006/007):
-tools/refactor-proof/scripts/sync-binaries.sh
+cargo build -p refactor-proof --offline
+cargo test -p refactor-proof --offline
 ```
 
-Committed `bin/tc-proof` and `bin/tc-proof-host` are shell wrappers that exec `target/debug/*` for local development and comparator runs. **Always run `sync-binaries.sh` before the host bootstrap driver** — `verify.toml` and `host-bootstrap-driver.py --host` expect `tools/refactor-proof/bin/tc-proof-host` to be a regular Mach-O executable so `install` reproduces the accepted harness bytes (Darwin sandbox may allow the submitted argv[0] but deny reads under `target/debug/`). `sync-binaries.sh` copies the workspace-built binaries over the wrappers for qualification; restore the committed wrappers with `git restore tools/refactor-proof/bin/` before pushing if sync left Mach-O copies in the working tree.
+The `tc-proof` CLI accepts `compare --context PATH`. The host CLI dispatches six operations: `install`, `prepare`, `freeze`, `verify`, `seal`, and `integrate`. Committed `bin/*` scripts are development wrappers for `target/debug/*`; `scripts/sync-binaries.sh` replaces them with built binaries for harnesses that require native executables. Running that sync changes the working tree; restore the wrappers after use when needed.
 
-## Host operations (Phase 3a)
+`install` validates authority and executable digests before writing the host executable. `prepare` validates campaign, receipt, dependency, and ancestry bindings and writes preparation evidence. `freeze` binds the candidate tree and operation contexts. `verify` delegates build/test/taskfmt work to the external observer and writes a verdict. `seal` rejects non-baseline tasks. `integrate` performs a compare-and-swap check against the prepared parent and configured ref before appending an acceptance record.
 
-`install` and `prepare` are implemented against the host bootstrap protocol:
+During `verify`, the planner-owned observer supplies `TC_PROOF_OBSERVER_REQUEST_FD`, `TC_PROOF_OBSERVER_RESPONSE_FD`, and `TC_PROOF_OBSERVER_NONCE` to the host only. The host sends one bounded newline-terminated JSON request for each ordered step: `build`, `test`, then `taskfmt`. The response binds the step, frozen tree, actual argv, exit code, captured stdout/stderr, and output files. Reordered/replayed requests, wrong nonces, extra keys, oversized messages, observer absence, and protocol violations fail closed. Worker subprocesses do not inherit observer variables.
 
-- `install --receipt PATH --destination PATH` validates `TC_PROOF_AUTHORITY_FILE`, checks receipt digests against the authority allowlist, verifies harness executable bytes, and writes `bin/tc-proof-host` mode `0755`.
-- `prepare --campaign DIR --task ID --parent COMMIT --run DIR` validates campaign/receipt bindings, dependency producer/product tuples, predecessor ancestry, pinned taskfmt identity, runs `taskfmt progress-init`, and writes `run/preparation.json`.
-
-`verify` runs observer IPC (build/test/taskfmt), validates the frozen context index, materializes worker/taskfmt logs, and writes `run/verdict.json` with five `CHK-*` entries. Observer unavailable → `rejected` / `integrity` (no panic).
-
-`seal --run DIR --product NAME` rejects fixture tasks with empty `seal_products` (`rejected` / `authority`).
-
-`integrate --run DIR --ref REF --expected-parent COMMIT` validates the configured integration ref, compares the expected parent against preparation and the current ref (CAS), and on success appends a `tc-proof-host-acceptance/v1` ledger record. Wrong ref → `authority`; wrong or stale parent → `parent`.
-
-Phase 3b freeze vectors (`tools/refactor-proof/scripts/test_freeze_vectors.py` via `HostFixture`):
-
-| Vector | Category | Result |
-| --- | --- | --- |
-| `exact_tested_tree` (freeze) | passed | pass |
-| `out_of_scope` | scope | pass |
-| `forbidden_checker` | scope | pass |
-| `overlay_tamper` | scope | pass |
-| `symlink_escape` | unsafe-path | pass |
-| `hardlink_escape` | unsafe-path | pass |
-| `ignored_source` | unsafe-git | pass |
-| `hidden_index_flag` | unsafe-git | pass |
-| `changed_git_config` | unsafe-git | pass |
-| `submodule_substitution` | unsafe-git | pass |
-
-Phase 3d integrate/seal vectors (`tools/refactor-proof/scripts/test_integrate_seal_vectors.py` via `HostFixture`):
-
-| Vector | Category | Result |
-| --- | --- | --- |
-| `premature_seal` | authority | pass |
-| `unauthorized_seal` | authority | pass |
-| `wrong_expected_parent` | parent | pass |
-| `stale_parent_cas` | parent | pass |
-| `wrong_integration_ref` | authority | pass |
-
-Run the full host matrix with the synced bin path (63 invocations):
-
-```sh
-cargo build -p refactor-proof
-tools/refactor-proof/scripts/sync-binaries.sh
-python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py \
-  --host tools/refactor-proof/bin/tc-proof-host \
-  --taskfmt /path/to/pinned/taskfmt \
-  --taskfmt-source /path/to/pinned/task-format
-```
-
-Requires macOS, pinned taskfmt revision `52d9f1eb…` / fingerprint `52c960db…`, and Mach-O entrypoints at `bin/tc-proof-host` after `sync-binaries.sh`.
-
-## Observer IPC (Phase 3c transport)
-
-During `verify`, the host cannot self-attest worker or taskfmt execution. The planner-owned observer (outside the host sandbox) supplies three host-only environment values:
-
-| Variable | Role |
-| --- | --- |
-| `TC_PROOF_OBSERVER_REQUEST_FD` | Write side of anonymous request pipe |
-| `TC_PROOF_OBSERVER_RESPONSE_FD` | Read side of anonymous response pipe |
-| `TC_PROOF_OBSERVER_NONCE` | Unpredictable per-fixture nonce |
-
-Worker subprocesses inherit none of these. The host writes one newline-terminated JSON request per step and reads one newline-terminated JSON response. Requests are bounded to 4096 bytes, one-shot, and must appear in this exact order:
-
-1. `{"schema":"tc-proof-observer-request/v1","nonce":"<nonce>","step":"build"}`
-2. `{"schema":"tc-proof-observer-request/v1","nonce":"<nonce>","step":"test"}`
-3. `{"schema":"tc-proof-observer-request/v1","nonce":"<nonce>","step":"taskfmt"}`
-
-Success responses use `tc-proof-observation/v1` with `step`, frozen `tree`, actual `argv`, integer `exit`, base64 `stdout`/`stderr`, and `files` (relative output names to base64 bytes). Protocol violations return `tc-proof-observer-error/v1`. Reordering, replay, wrong nonce, or extra keys fail closed.
-
-Rust types live in `refactor_proof::observer` (`ObserverClient`, `ObserverRequest`, `ObserverObservation`). `ObserverClient::from_env()` reads inherited FDs and performs newline-framed JSON request/response exchange for the fixed build → test → taskfmt sequence.
+These tools support repository qualification; they do not establish component API completeness or product parity. Product architecture and remaining work are described in [architecture](../../docs/architecture.md), [component contracts](../../docs/components-contracts.md), and [plan](../../docs/plan.md).

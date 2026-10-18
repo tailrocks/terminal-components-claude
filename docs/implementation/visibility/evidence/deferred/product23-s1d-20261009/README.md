@@ -1,27 +1,5 @@
 # VIS04 S1d product 23 assertion run
 
-## Status
-
-Documentation retained; current source validity requires reconciliation.
-
-## Authority
-
-Current project direction: [architecture](../../../../../architecture.md), [design](../../../../../design.md), [status](../../../../../status.md), and [plan](../../../../../plan.md). This document's historical claims do not establish current readiness.
-
-## Current evidence
-
-Use only source revisions, captures, and command results identified in this document as evidence for the recorded state.
-
-## Remaining work
-
-Keep useful requirements and instructions; update claims after checking current source and branch authority.
-
-## Verification
-
-Verify current claims against current source and the accepted `design/interaction-polish` reference.
-
----
-
 ## Result
 
 The frozen S1d candidate-direct assertion lane **FAILED**: 23 selected, 22 passed, and one failed. The failed row is BD-21 / W13-05, test w13_filter_wide_trail_cells_clear. It was registered ignored and was explicitly run with --run-ignored all; its failure was not inverted or suppressed.

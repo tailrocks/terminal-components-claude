@@ -1,27 +1,5 @@
 # Status source evidence archive
 
-## Status
-
-Documentation retained; current source validity requires reconciliation.
-
-## Authority
-
-Current project direction: [architecture](../../../../../architecture.md), [design](../../../../../design.md), [status](../../../../../status.md), and [plan](../../../../../plan.md). This document's historical claims do not establish current readiness.
-
-## Current evidence
-
-Use only source revisions, captures, and command results identified in this document as evidence for the recorded state.
-
-## Remaining work
-
-Keep useful requirements and instructions; update claims after checking current source and branch authority.
-
-## Verification
-
-Verify current claims against current source and the accepted `design/interaction-polish` reference.
-
----
-
 This archive retains the 59 earlier raw members unchanged and adds 11 source records for the report-publication and provider observations captured on 2026-10-09. The new records are byte-pinned in MANIFEST.json; each archived path matches its recorded archive-relative source path.
 
 The report publication records identify candidate commit 20f2d485 and reference commit 28c6940. Candidate queue revision 59 is the authoritative accepted queue. The reference queue revision 56 file is a historical snapshot copied from the reference commit; it is not a second active queue publication.
