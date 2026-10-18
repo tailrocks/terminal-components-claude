@@ -266,3 +266,16 @@ wheel notches, reveal wrap cost, a full render per frame,
 | C1 | Enable `visual-smoke` on `["pull_request", "push", "workflow_dispatch"]` with `required = true`; regenerate with `velnor-actions generate` (never hand-edit `.github/`). | V8 | `visual-smoke` is part of `Required` and green | `ci.md` "Visual suites"; `.velnor/config.toml` lines 35–38, 57 |
 | C2 | Give `visual-full` and `visual-narrow` `"schedule"` with `schedule = ["0 2 * * *"]`. | V8; V3 for narrow | nightly runs green | `ci.md` "Visual suites"; config lines 70, 83 |
 | C3 | `Publish baseline` green on push (red on every push today, not part of `Required`; still so with v0.1.12). | U1 | job green on a push | `ci.md` jobs table, `Publish baseline` row |
+
+## Cross-cutting interaction and API follow-ups
+
+These unresolved items were retained from the interaction audit; the dated audit tables and completion narratives are retired. They are branch-local future work and do not establish readiness or design parity.
+
+| Item | Remaining work | Acceptance |
+|---|---|---|
+| Visual determinism: `holla/flows/task/input_cancelled` | The row varied across A1 gates at 80×24 `none` and 160×50 `256`; identify and remove the unpinned source of the digit change. | `cargo xtask visual determinism` passes repeatedly for the row at both sizes/levels, with captures stable across reruns. |
+| TextViewport keyboard ranges | Define keyboard creation/extension of text selection ranges alongside pointer selection; keep cell/line mapping and copy behavior coherent. | Focused tests cover anchor, extension, collapse, and retained-line boundaries; the existing selection readout alone does not close this item. |
+| Public collection mutation contracts | Audit currently supported mutable collection APIs and setters. Add transactional/invariant-preserving setters only when a concrete consumer needs them; avoid broad speculative API growth. | Documented invariants have regression tests, and any new API is justified by an actual app consumer. |
+| App-level keyboard lifecycle | Add real-app regression cases for modified chords and modal lifecycle before extracting or broadening shared abstractions. | Each accepted app journey verifies modifier routing, modal entry, dismissal, and return focus at the owning page. |
+| Async work (conditional) | If a real app consumer requires asynchronous work, validate ownership, cancellation, stale-result rejection, and shutdown at that consumer boundary. | Consumer-backed tests prove cancellation and stale results cannot mutate current UI state. No consumer means no generic worker framework. |
+| Trait/glyph API (conditional) | Do not add a generic widget trait or glyph abstraction without a concrete consumer and demonstrated shared contract. | A proposal names the consuming apps, compatibility boundary, and tests before API work begins. |
