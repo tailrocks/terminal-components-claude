@@ -1,5 +1,3 @@
-//! Candidate scope and path safety validation for freeze.
-
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 

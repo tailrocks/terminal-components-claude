@@ -1,6 +1,3 @@
-//! docker: containers plus the `docker system df` accounting classes —
-//! images, containers, volumes, builder cache. Cleanup reads these numbers.
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContainerState {
     Running,
@@ -46,8 +43,6 @@ pub struct Container {
     pub health: Option<Health>,
 }
 
-/// One deterministic Docker resource. Aggregate counts and bytes are derived
-/// from the same inventory that cleanup mutates.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Resource {
     pub id: String,
@@ -64,8 +59,6 @@ pub struct DockerState {
     pub cache_bytes: u64,
 }
 
-/// Accepted aggregate fixture facts, expanded once into explicit resources.
-/// This constructor is fixture data preparation, never live discovery.
 pub struct DockerFixture {
     pub containers: Vec<Container>,
     pub images: u32,
@@ -88,8 +81,7 @@ impl DockerFixture {
             .iter()
             .filter(|c| c.state == ContainerState::Exited)
             .count();
-        // The reference explicitly models 40 MiB per stopped container. Retain
-        // it, distributing the remaining accepted total across other containers.
+
         let stopped_size = if exited == 0 {
             0
         } else {
@@ -211,8 +203,7 @@ impl DockerState {
     pub fn build_cache_bytes(&self) -> u64 {
         self.cache_bytes
     }
-    // Docker system df models network counts, not network storage. Reject
-    // unsupported byte claims before either presentation or reviewed effects.
+
     fn validate_network_bytes(&self) -> Result<(), crate::accounting::InventoryError> {
         if self
             .network_inventory

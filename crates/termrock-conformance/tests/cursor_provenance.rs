@@ -1,12 +1,3 @@
-//! Q07 cursor-provenance record gate (FIX-011 / R1).
-//!
-//! `tests/conformance/cursor_provenance.json` holds the per-root cursor state
-//! reacquired from real `visual-baseline` tag execution (live PTY, store gate
-//! bypassed). These tests bind that record to the vendored registry and the
-//! snapshot migration map so silent edits, dropped roots, or vocabulary drift
-//! fail loudly. They assert record integrity only; they never execute the tag
-//! and never write approvals.
-
 use std::collections::{BTreeMap, BTreeSet};
 
 const PROVENANCE_JSON: &str = include_str!("../../../tests/conformance/cursor_provenance.json");
@@ -257,9 +248,6 @@ fn summary_totals_match_records() {
 
 #[test]
 fn acquisition_headline_findings_anchored() {
-    // Guards the record's headline claims against silent edits: replay
-    // defaults match nothing, and the visibility/size-stability split below
-    // is exactly what the two live sweeps observed.
     let doc = provenance();
     assert_eq!(doc["summary"]["roots"].as_u64(), Some(302));
     assert_eq!(doc["summary"]["replay_default_matches"].as_u64(), Some(0));

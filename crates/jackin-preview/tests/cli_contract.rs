@@ -1,4 +1,3 @@
-//! Actual executable contracts: help/errors must terminate before terminal setup.
 use std::io;
 use std::process::{Command, Output, Stdio};
 use std::time::{Duration, Instant};

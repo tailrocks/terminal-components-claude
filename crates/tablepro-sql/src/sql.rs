@@ -1,7 +1,3 @@
-//! A deliberately small SQL layer: enough to tokenize for highlighting and
-//! autocomplete, split statements, classify danger, evaluate the subset of
-//! SELECT the demo needs, and synthesize believable EXPLAIN plans.
-
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -14,8 +10,6 @@
 )]
 
 use tablepro_demo::db::{Catalog, ColType, Table, Value};
-
-// ------------------------------------------------------------- tokenizer
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokKind {
@@ -233,7 +227,6 @@ pub fn tokenize(src: &str) -> Vec<Token> {
     out
 }
 
-/// Byte ranges of the individual statements (split on `;` outside strings).
 pub fn split_statements(src: &str) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut start = 0;
@@ -263,7 +256,6 @@ fn trim_range(src: &str, mut a: usize, mut b: usize) -> (usize, usize) {
     (a, b)
 }
 
-/// The statement containing byte `cursor` (or the nearest one before it).
 pub fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
     let stmts = split_statements(src);
     stmts
@@ -274,126 +266,107 @@ pub fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
         .or_else(|| stmts.first().copied())
 }
 
-// ------------------------------------------------------------- parsing
-
-/// Comparison predicate used by a parsed `WHERE` clause.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Cmp {
-    /// Equality.
     Eq,
-    /// Inequality.
+
     Ne,
-    /// Greater-than comparison.
+
     Gt,
-    /// Greater-than-or-equal comparison.
+
     Ge,
-    /// Less-than comparison.
+
     Lt,
-    /// Less-than-or-equal comparison.
+
     Le,
-    /// SQL `LIKE` comparison.
+
     Like,
-    /// SQL `IS NULL` comparison.
+
     IsNull,
-    /// SQL `IS NOT NULL` comparison.
+
     IsNotNull,
-    /// SQL `IN` comparison.
+
     In(Vec<String>),
 }
 
-/// One parsed column predicate.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Predicate {
-    /// Column name.
     pub column: String,
-    /// Comparison operator and operands.
+
     pub cmp: Cmp,
-    /// Primary comparison value.
+
     pub value: String,
 }
 
-/// Parsed `SELECT` statement.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Select {
-    /// Projection names, or `*`.
     pub columns: Vec<String>,
-    /// Optional schema qualifier.
+
     pub schema: Option<String>,
-    /// Relation name.
+
     pub table: String,
-    /// Predicates applied to the relation.
+
     pub predicates: Vec<Predicate>,
-    /// Optional `(column, descending)` ordering.
+
     pub order: Option<(String, bool)>,
-    /// Optional row limit.
+
     pub limit: Option<usize>,
-    /// Whether this is a `count(*)` projection.
+
     pub count_only: bool,
 }
 
-/// Parsed statement in the supported deterministic SQL subset.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
-    /// A row-selecting query.
     Select(Select),
-    /// An update statement.
+
     Update {
-        /// Target relation.
         table: String,
-        /// Whether a predicate is present.
+
         has_where: bool,
     },
-    /// A delete statement.
+
     Delete {
-        /// Target relation.
         table: String,
-        /// Whether a predicate is present.
+
         has_where: bool,
     },
-    /// An insert statement.
+
     Insert {
-        /// Target relation.
         table: String,
     },
-    /// A drop statement.
+
     Drop {
-        /// Object kind.
         kind: String,
-        /// Object name.
+
         name: String,
     },
-    /// A truncate statement.
+
     Truncate {
-        /// Target relation.
         table: String,
     },
-    /// An alter statement.
+
     Alter {
-        /// Target relation.
         table: String,
-        /// Whether the alter is destructive.
+
         destructive: bool,
     },
-    /// A create statement.
+
     Create {
-        /// Object kind.
         kind: String,
-        /// Object name.
+
         name: String,
     },
-    /// An explain wrapper.
+
     Explain {
-        /// Whether execution analysis is requested.
         analyze: bool,
-        /// Wrapped statement.
+
         inner: Box<Statement>,
     },
-    /// A statement retained as unsupported text.
+
     Other(String),
 }
 
 impl Statement {
-    /// Return the normalized verb for this statement.
     pub fn verb(&self) -> &'static str {
         match self {
             Statement::Select(_) => "SELECT",
@@ -409,7 +382,6 @@ impl Statement {
         }
     }
 
-    /// Return the primary relation or object target, when present.
     pub fn target(&self) -> Option<&str> {
         match self {
             Statement::Select(s) => Some(&s.table),
@@ -467,7 +439,7 @@ impl<'a> Words<'a> {
             None
         }
     }
-    /// `schema.name` or `name`
+
     fn qualified(&mut self) -> Option<(Option<String>, String)> {
         let first = self.ident()?;
         if self.peek() == Some(".") {
@@ -480,21 +452,13 @@ impl<'a> Words<'a> {
     }
 }
 
-/// Error returned when parsing a statement fails.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError {
-    /// Human-readable parse error.
     pub message: String,
-    /// Byte offset within the statement.
+
     pub at: usize,
 }
 
-/// Parse one SQL statement in the deterministic `TablePro` subset.
-///
-/// # Errors
-///
-/// Returns a [`ParseError`] when the input is empty, malformed, or uses a
-/// statement form outside the supported subset.
 pub fn parse(stmt: &str) -> Result<Statement, ParseError> {
     let mut w = Words::new(stmt);
     let err = |w: &Words<'_>, m: &str| ParseError {
@@ -510,7 +474,6 @@ pub fn parse(stmt: &str) -> Result<Statement, ParseError> {
                 if w.accept("ANALYZE") {
                     analyze = true;
                 } else if w.accept("VERBOSE") || w.accept("(") {
-                    // skip option lists
                     while let Some(t) = w.peek() {
                         if t == ")" {
                             w.next();
@@ -644,7 +607,7 @@ fn parse_select(w: &mut Words<'_>) -> Result<Select, ParseError> {
         }
         if tok.eq_ignore_ascii_case("count") {
             count_only = true;
-            // swallow ( ... )
+
             while let Some(t) = w.next() {
                 if t == ")" {
                     break;
@@ -665,7 +628,7 @@ fn parse_select(w: &mut Words<'_>) -> Result<Select, ParseError> {
     let (schema, table) = w
         .qualified()
         .ok_or_else(|| err(w, "Expected a table name after FROM"))?;
-    // optional alias
+
     if w.peek()
         .is_some_and(|p| !is_keyword(p) && p != ";" && p != ")")
     {
@@ -763,14 +726,6 @@ fn parse_select(w: &mut Words<'_>) -> Result<Select, ParseError> {
     })
 }
 
-// ------------------------------------------------------------- danger
-//
-// Mirrors TablePro's QueryClassifier + DefaultExecutionGate:
-//   tier      = safe | write | destructive
-//   dangerous = destructive || DELETE without WHERE
-//   gate      = read-only refuses writes; confirm when dangerous or when the
-//               level asks for it; Safe Mode levels add a deliberate step.
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Tier {
     Safe,
@@ -791,7 +746,6 @@ pub fn tier(stmt: &Statement) -> Tier {
     }
 }
 
-/// `TablePro`'s `isDangerousQuery`: destructive, or DELETE with no WHERE.
 pub fn is_dangerous(stmt: &Statement) -> bool {
     match stmt {
         Statement::Explain { inner, .. } => is_dangerous(inner),
@@ -808,22 +762,15 @@ pub fn is_dangerous(stmt: &Statement) -> bool {
     }
 }
 
-/// Result of applying the safety policy to a parsed statement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Decision {
-    /// Execute the statement immediately.
     Run,
-    /// Ask first. `deliberate` = Safe Mode levels: the terminal substitute
-    /// for Touch ID is typing the target name.
-    Confirm {
-        /// Whether the caller must provide a deliberate acknowledgement.
-        deliberate: bool,
-    },
-    /// Read-only connection refuses writes.
+
+    Confirm { deliberate: bool },
+
     Deny,
 }
 
-/// Apply the configured safety policy to a parsed statement.
 pub fn gate(level: tablepro_demo::db::SafeMode, stmt: &Statement) -> Decision {
     let t = tier(stmt);
     let write = t != Tier::Safe;
@@ -963,23 +910,18 @@ pub fn assess(stmt: &Statement, table: Option<&Table>) -> Risk {
     }
 }
 
-// ------------------------------------------------------------- execution
-
-/// Deterministic rows returned by the demo executor.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ResultSet {
-    /// Column names and storage types.
     pub columns: Vec<(String, ColType)>,
-    /// Materialized result rows.
+
     pub rows: Vec<Vec<Value>>,
-    /// Total rows the query matches (rows may be truncated by LIMIT / cap).
+
     pub total: usize,
-    /// Source relation, when one exists.
+
     pub source: Option<String>,
-    /// Deterministic simulated execution duration.
+
     pub duration_ms: u32,
-    /// True when the result comes from a single table with a primary key
-    /// (so cells can be edited).
+
     pub editable: bool,
 }
 
@@ -987,11 +929,10 @@ pub struct ResultSet {
 pub struct ExecError {
     pub message: String,
     pub detail: Option<String>,
-    /// Byte offset within the statement, when known.
+
     pub at: Option<usize>,
 }
 
-/// Maximum rows materialised for a single result.
 pub const ROW_CAP: usize = 500;
 
 fn matches(pred: &Predicate, table: &Table, row: &[Value]) -> bool {
@@ -1051,13 +992,6 @@ pub fn cmp_values(a: &Value, b: &Value) -> std::cmp::Ordering {
     }
 }
 
-/// Evaluate a SELECT against the demo catalog. Scans a bounded window of
-/// generated rows (deterministic), filters, sorts and limits.
-///
-/// # Errors
-///
-/// Returns an [`ExecError`] when the relation, projected column, predicate,
-/// or order column is not present in the catalog.
 pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
@@ -1106,7 +1040,7 @@ pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
             at: None,
         });
     }
-    // projection
+
     let proj: Vec<usize> = if sel.columns.iter().any(|c| c == "*") || sel.count_only {
         (0..table.columns.len()).collect()
     } else {
@@ -1157,7 +1091,7 @@ pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
             if *asc { o } else { o.reverse() }
         });
     }
-    // extrapolate the "total" the way a real DB would report it
+
     let total = if sel.predicates.is_empty() {
         table.row_count
     } else {
@@ -1199,8 +1133,6 @@ pub fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecError> {
     })
 }
 
-// ------------------------------------------------------------- EXPLAIN
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlanNode {
     pub op: String,
@@ -1214,11 +1146,6 @@ pub struct PlanNode {
     pub children: Vec<PlanNode>,
 }
 
-/// Build a deterministic PostgreSQL-style plan for a SELECT.
-///
-/// # Errors
-///
-/// Returns an [`ExecError`] when the relation is not present in the catalog.
 pub fn explain(cat: &Catalog, sel: &Select, analyze: bool) -> Result<PlanNode, ExecError> {
     let table = cat
         .find(sel.schema.as_deref(), &sel.table)
@@ -1432,7 +1359,6 @@ pub fn fmt_int(n: usize) -> String {
     out
 }
 
-/// Render a plan as PostgreSQL-style text lines.
 #[cfg(test)]
 pub fn plan_text(node: &PlanNode, depth: usize, out: &mut Vec<String>) {
     let indent = "  ".repeat(depth);
@@ -1592,7 +1518,7 @@ mod tests {
         );
         assert_eq!(tier(&p("EXPLAIN ANALYZE DELETE FROM orders")?), Tier::Write);
         assert!(is_dangerous(&p("EXPLAIN ANALYZE DELETE FROM orders")?));
-        // gate
+
         assert_eq!(
             gate(L::Silent, &p("UPDATE orders SET x = 1")?),
             Decision::Run

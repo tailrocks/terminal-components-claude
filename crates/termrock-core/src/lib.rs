@@ -1,5 +1,3 @@
-//! Core identity, event, intent, keys, response, action, validate, and diagnostic types.
-
 pub mod action;
 pub mod diagnostics;
 pub mod event;

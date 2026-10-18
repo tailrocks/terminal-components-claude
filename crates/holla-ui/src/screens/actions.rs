@@ -1,4 +1,3 @@
-//! Structured alternatives for one retained action identity.
 use super::context::Context;
 use crate::{domain::action::Action, sim::world::World};
 use termrock::{

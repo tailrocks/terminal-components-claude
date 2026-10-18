@@ -1,4 +1,3 @@
-//! Source-bound Manager operation and stale-target consumer proofs.
 #![allow(
     clippy::unwrap_used,
     clippy::panic,

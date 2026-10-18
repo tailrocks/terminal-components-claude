@@ -1,20 +1,9 @@
-//! Action: one ranked, scoped, previewable intent. The catalogue derives
-//! actions from discovered fixture truth; every suggestion carries its
-//! reason, scope and risk — capability ≠ action ≠ recommendation.
-
-/// Context ring an action belongs to (CONCEPT.md §5: Here → Project →
-/// Workspace → Host → Personal, cwd primary).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Scope {
-    /// Under the launch directory.
     Here,
-    /// The enclosing project / repository.
     Project,
-    /// The wider workspace (monorepo root, project collection).
     Workspace,
-    /// This machine or remote host as a whole.
     Host,
-    /// The user's personal config and caches.
     Personal,
 }
 
@@ -37,7 +26,6 @@ impl Scope {
         }
     }
 
-    /// Ring weight: closer scopes rank higher.
     pub fn weight(self) -> i32 {
         match self {
             Scope::Here => 100,
@@ -49,15 +37,10 @@ impl Scope {
     }
 }
 
-/// How much damage a run could do; risk changes treatment, never
-/// availability (CONCEPT.md §10).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Risk {
-    /// Inspects only; runs directly.
     ReadOnly,
-    /// Mutates a bounded, named target; asks once.
     Bounded,
-    /// Broad or irreversible; two gates with a typed target-bound phrase.
     Broad,
 }
 
@@ -71,17 +54,13 @@ impl Risk {
     }
 }
 
-/// Whether the action can run right now.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Availability {
     Ready,
-    /// A mise task file that must be trusted first (exact path).
     NeedsTrust(String),
-    /// Known but not runnable; the reason is shown, the row stays.
     Blocked(String),
 }
 
-/// What family the action belongs to (ordering tiebreak + preview wording).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ActionKind {
     Task,
@@ -93,7 +72,6 @@ pub enum ActionKind {
     System,
 }
 
-/// Effect identity is independent of the row that presents it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionIntent {
     Canonical(String),
@@ -101,8 +79,6 @@ pub enum ActionIntent {
     Unavailable,
 }
 
-/// Explicit simulation-only commands present in accepted ranking fixtures.
-/// These are data labels, never executable process arguments.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FixtureCommand {
     MakeTest,
@@ -127,27 +103,18 @@ impl FixtureCommand {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Action {
     intent: ActionIntent,
-    /// Stable identity for focus, pins and modal tags (`task:test`,
-    /// `git.pull`, `docker.cleanup`).
     pub id: String,
     pub title: String,
     pub kind: ActionKind,
     pub scope: Scope,
-    /// Where the scope shows up as a place (`apps/frontend`, `prod-eu-1`).
     pub scope_label: String,
-    /// Why this is recommended — the fact, not marketing.
     pub reason: String,
     pub risk: Risk,
     pub availability: Availability,
-    /// The path/host/service the run acts on.
     pub target: String,
-    /// The operation, previewable before any run (CONCEPT.md §6.7).
     pub command: String,
-    /// Effective working directory of the run.
     pub workdir: String,
-    /// Long-running work starts a named activity instead of a one-shot.
     pub long_running: bool,
-    /// Extra search haystack, never displayed (a task's real command line).
     pub keywords: String,
 }
 
@@ -195,7 +162,6 @@ impl Action {
         }
     }
 
-    /// Preserve effect policy while presenting a separate stable memory row.
     pub fn remembered(mut self, row_id: String, reason: String, pinned: bool) -> Self {
         self.id = row_id;
         self.title = self.command.clone();
@@ -238,7 +204,6 @@ impl Action {
         action
     }
 
-    /// What changes when this runs — the preview's "What will change" row.
     pub fn changes(&self) -> String {
         match self.risk {
             Risk::ReadOnly => "nothing · inspection only".to_owned(),

@@ -1,17 +1,3 @@
-//! The migrated showcase **Buttons** page and the three retained tests
-//! (`COMPONENT_ARCHITECTURE.md` §18.3 #4; Slice 2 acceptance conditions 8
-//! and 9).
-//!
-//! The legacy originals are `src/bin/showcase/app_tests.rs:189-238`
-//! (`tab_traversal_is_deterministic_and_wraps`,
-//! `disabled_buttons_are_skipped_and_cannot_activate`,
-//! `mouse_click_activates_and_keyboard_enter_activates`). They are retained
-//! *in intent*, expressed through `Harness` instead of reaching into the
-//! app's private `focus` field.
-//!
-//! This file, not `examples/showcase_buttons.rs`, carries the inert reference
-//! **state matrix** through [`Ui::reference`]. `apps/showcase` does not exist
-//! until Slice 5.
 #![cfg_attr(
     test,
     allow(
@@ -43,13 +29,9 @@ use termrock_runtime::{App, Cx, ReferenceState, ReferenceTarget, RowUi, Status, 
 use termrock_test_support::Harness;
 use termrock_theme::{Family, Theme, Variant};
 
-// ───────────────────────────── the page ─────────────────────────────
-
 const BUTTONS: Id = Id::root("showcase.buttons");
 const MATRIX: Id = Id::root("showcase.buttons.matrix");
 
-/// `(label, variant, disabled, checked)` for the nine playground buttons, in
-/// the order `src/bin/showcase/pages/buttons.rs` declares them.
 const SPECS: [(&str, Variant, bool, Option<bool>); 9] = [
     ("Run task", Variant::PRIMARY, false, None),
     ("Preview", Variant::SECONDARY, false, None),
@@ -69,9 +51,6 @@ const GROUPS: [(&str, &[usize]); 4] = [
     ("Busy", &[8]),
 ];
 
-/// The reference states the matrix renders, one row each — the legacy page's
-/// `states` table, which it had to hand-style because a `Button` could not be
-/// asked to wear a state it does not own.
 const MATRIX_STATES: [(&str, StateFlags); 6] = [
     ("default", StateFlags::empty()),
     ("hover", StateFlags::HOVERED),
@@ -115,7 +94,6 @@ fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
 
 const LONG_JOB: usize = 8;
 
-/// The migrated Buttons page.
 #[derive(Default)]
 struct ButtonsPage {
     checked: [Option<bool>; 9],
@@ -137,7 +115,6 @@ impl ButtonsPage {
         p
     }
 
-    /// The single props constructor for button `i`, used by both phases.
     fn button(&self, i: usize) -> Button<'static> {
         let (label, variant, disabled, _) = SPECS[i];
         let mut b = Button::new(button_id(i), label)
@@ -168,7 +145,6 @@ impl ButtonsPage {
     }
 }
 
-/// Paint one muted caption row.
 fn caption(ui: &mut Ui<'_>, area: Rect, text: &str) {
     ui.with_part(
         Family::PANEL,
@@ -231,7 +207,6 @@ impl App for ButtonsPage {
 }
 
 impl ButtonsPage {
-    /// The interactive playground: four captioned groups of real buttons.
     fn draw_playground(&self, ui: &mut Ui<'_>, area: Rect) {
         let gap = ui.design().space.gap;
         let mut y = area.y;
@@ -272,8 +247,6 @@ impl ButtonsPage {
         }
     }
 
-    /// The reference state matrix: real buttons inside inert reference scopes,
-    /// so it cannot drift from the widget the playground uses.
     fn draw_matrix(ui: &mut Ui<'_>, area: Rect) {
         let label_w = 15u16;
         let col_w = 15u16;
@@ -341,12 +314,6 @@ fn page() -> Harness<ButtonsPage> {
     Harness::new(ButtonsPage::new(), Theme::junie(), 120, 40)
 }
 
-// ───────────────────────── the three retained tests ─────────────────────────
-
-/// Legacy `app_tests.rs:189`. The showcase shell contributed a nav stop that
-/// this page does not have, so the ring is the seven enabled buttons; the
-/// deterministic order and the wrap are the property under test, and
-/// `Harness::ring()` replaces the reach into `app.focus`.
 #[test]
 fn tab_traversal_is_deterministic_and_wraps() {
     let mut h = page();
@@ -360,7 +327,6 @@ fn tab_traversal_is_deterministic_and_wraps() {
         "the ring is registration order with the two disabled buttons skipped"
     );
 
-    // the first registered control takes focus on the first frame (§8 rule (a))
     let start = h.focus().expect("the first control takes focus");
     assert_eq!(start, button_id(0));
     let mut seen = vec![start];
@@ -376,7 +342,6 @@ fn tab_traversal_is_deterministic_and_wraps() {
     assert_eq!(seen.len(), 7, "seven enabled buttons, two disabled skipped");
     assert_eq!(seen, reachable);
 
-    // Shift+Tab walks the same ring backwards
     let mut back = Vec::new();
     for _ in 0..seen.len() {
         let _ = h.key_mod(KeyCode::BackTab, KeyModifiers::NONE);
@@ -387,9 +352,6 @@ fn tab_traversal_is_deterministic_and_wraps() {
     assert_eq!(back, expected);
 }
 
-/// Legacy `app_tests.rs:220`. A disabled button is registered (so it paints
-/// and answers `area_of`) but is neither reachable nor activatable, and it
-/// resolves the disabled foreground even under the pointer.
 #[test]
 fn disabled_buttons_are_skipped_and_cannot_activate() {
     let mut h = page();
@@ -405,7 +367,6 @@ fn disabled_buttons_are_skipped_and_cannot_activate() {
     assert!(!h.text().contains("Disabled primary ✓"));
     assert_eq!(h.focus(), before, "clicking it does not move focus to it");
 
-    // hovering gives no feedback: the style stays disabled
     let a = h.area_of(disabled).expect("the disabled button drew");
     let _ = h.mouse(MouseKind::Move, a.x + 2, a.y);
     assert_eq!(
@@ -416,7 +377,6 @@ fn disabled_buttons_are_skipped_and_cannot_activate() {
     assert_eq!(h.app().clicks, 0);
 }
 
-/// Legacy `app_tests.rs:232`. The two activation paths are the same action.
 #[test]
 fn mouse_click_activates_and_keyboard_enter_activates() {
     let mut h = page();
@@ -430,12 +390,9 @@ fn mouse_click_activates_and_keyboard_enter_activates() {
     assert_eq!(h.app().last.as_deref(), Some("Preview ✓"));
     assert_eq!(h.app().clicks, 2);
 
-    // Space is the hidden alias and produces the identical action
     let _ = h.key(KeyCode::Char(' '));
     assert_eq!(h.app().clicks, 3);
 }
-
-// ───────────────────── the scripted no-diagnostics journey ─────────────────────
 
 const NAME: Id = Id::root("roster.name");
 const ADD: Id = Id::root("roster.add");
@@ -444,10 +401,6 @@ const CONFIRM: Id = Id::root("roster.confirm");
 const K_YES: ActionKey = ActionKey::CONFIRM;
 const K_NO: ActionKey = ActionKey::CANCEL;
 
-/// §17 example 11's Roster, as a fixture the journey can drive. It is a copy
-/// rather than a reference because an example is a binary: `xtask boundary`'s
-/// `examples_are_external_consumers` forbids `#[path]` and `include!` there,
-/// which is what keeps the examples honest external consumers.
 #[derive(Default)]
 struct Roster {
     name: String,
@@ -475,8 +428,6 @@ fn people_list()
 const REMOVE_ACTIONS: [Action<'static>; 2] =
     [Action::new(K_NO, "Keep"), Action::danger(K_YES, "Remove")];
 
-/// The single props constructor: the action row belongs to the props, so
-/// `measured_height` (which sizes the layer) and `draw` agree (§13, §26 N1).
 fn remove_dialog() -> Dialog<'static> {
     Dialog::destructive(
         CONFIRM,
@@ -503,26 +454,11 @@ impl App for Roster {
             .on_action(|a| {
                 if let ListAction::Activated(k) = a {
                     self.pending_remove = Some(k);
-                    // the component sizes its own layer (§26 N1)
+
                     cx.open_layer(CONFIRM, remove_dialog().layer(cx));
                 }
             });
-        // §13 (§28 P3): the dialog's `update` runs **unconditionally**, as
-        // §17 examples 9 and 11 write it, not gated on `cx.is_open(CONFIRM)`.
-        // Esc dismisses the layer at §3.3 step 8 and then re-runs `update`;
-        // by then `is_open` is false, so a gated call never drains the
-        // `Cancel` and `Layer(Dismissed)` intents the dismissal addressed to
-        // the dialog, and `DialogAction::Dismissed` is never emitted.
-        //
-        // Measured, on the gated shape of this very fixture: the runtime
-        // reported `UndeliveredIntent { owner: roster.confirm ▸ #0 }` — the
-        // dialog's *first action button*, whose `FocusOut` was also left
-        // undrained — and **not** `owner: CONFIRM`. `Dialog` registers only
-        // `Decorative` regions for its own id and the diagnostic was gated on
-        // `Registry::delivers_to`, which requires a `Control` or `Part`, so
-        // the dismissal itself was lost in silence. §28 P3 widens the guard
-        // to any bucket the runtime addressed, which is what now names
-        // `CONFIRM`.
+
         r |= remove_dialog().update(cx, &mut self.dlg).on_action(|a| {
             if let DialogAction::Action(K_YES) = a
                 && let Some(k) = self.pending_remove.take()
@@ -573,22 +509,14 @@ fn assert_clean(diags: &[Diagnostic], where_: &str) {
     }
 }
 
-/// Slice 2 acceptance condition 9: a scripted Roster + Buttons journey
-/// records zero `DuplicateId`, `CursorRejected`, `UndeliveredIntent`,
-/// `BindingConflict` and `FocusTransitionDidNotSettle`.
-///
-/// `Runtime::diagnostics` is cleared per `handle`, so the journey collects
-/// after every step rather than only at the end.
 #[test]
 fn no_diagnostics_are_emitted_during_the_journey() {
-    // ── the Roster (example 11) ──
     let mut h = Harness::new(Roster::default(), Theme::junie(), 100, 30);
     assert_clean(h.diagnostics(), "roster: first frame");
     let step = |h: &mut Harness<Roster>, label: &'static str| {
         assert_clean(h.diagnostics(), label);
     };
 
-    // the name field takes focus on the first frame
     assert_eq!(h.focus(), Some(NAME));
     let _ = h.type_str("Ada");
     step(&mut h, "roster: type a name");
@@ -627,7 +555,6 @@ fn no_diagnostics_are_emitted_during_the_journey() {
     step(&mut h, "roster: confirm the removal");
     assert_eq!(h.app().people.len(), 1, "{}", h.text());
 
-    // ── the Buttons page ──
     let mut b = page();
     assert_clean(b.diagnostics(), "buttons: first frame");
     for _ in 0..9 {
@@ -649,7 +576,6 @@ fn no_diagnostics_are_emitted_during_the_journey() {
     b.ticks(30);
     assert_clean(b.diagnostics(), "buttons: the long job finishes");
     assert_eq!(b.app().last.as_deref(), Some("Long job finished ✓"));
-    // the matrix is a reference rendering: it registered no ids at all, so
-    // nine duplicate `Label` buttons cannot collide with the playground
+
     assert!(b.area_of(MATRIX.index(0).index(0)).is_none());
 }

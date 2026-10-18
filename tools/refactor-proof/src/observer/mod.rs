@@ -1,5 +1,3 @@
-//! Observer IPC client for independently supervised worker execution.
-
 mod client;
 mod ipc;
 

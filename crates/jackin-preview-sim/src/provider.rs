@@ -1,6 +1,3 @@
-//! Deterministic provider operations: validate a credential source and
-//! refresh an account's usage. Secret material never leaves the call.
-
 use crate::onepassword::{KeyOutcome, OpError, SecretClass, SimOnePassword, classify_plain};
 use jackin_preview_domain::account::{
     Account, AccountIdentity, Confidence, CredentialSource, DetectedKind, IdentitySubject,
@@ -11,56 +8,35 @@ use jackin_preview_domain::usage::{
     AccountUsage, FreshnessInfo, QuotaStatus, QuotaWindow, WindowCategory, WindowUnit,
 };
 
-/// Three-level validation result.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationOutcome {
-    /// Highest validation level reached.
     pub level: Option<ValidationLevel>,
-    /// Public identity discovered for the account.
     pub identity: AccountIdentity,
-    /// Confidence assigned to the identity.
     pub confidence: Confidence,
-    /// Account lifecycle implied by the result.
     pub lifecycle: Lifecycle,
-    /// Recoverable issue, when validation did not fully succeed.
     pub issue: Option<RecoverableIssue>,
-    /// Usage windows returned by the provider.
     pub usage: Option<AccountUsage>,
-    /// Three rows for the validation card.
     pub material: CheckRow,
-    /// Identity-check row for the validation card.
     pub identity_row: CheckRow,
-    /// Quota-check row for the validation card.
     pub quota_row: CheckRow,
 }
 
-/// One row in the validation summary card.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckRow {
-    /// The check succeeded.
     Ok(String),
-    /// The check failed.
     Failed(String),
-    /// The check was not attempted.
     Skipped(String),
 }
 
-/// Simulated local folder inventory for folder-backed sources.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FolderProbe {
-    /// No fixture folder matched the requested path.
     Missing,
-    /// The fixture folder exists but cannot be read.
     Unreadable,
-    /// Folder exists, holds no credential file.
     NoCredential,
-    /// Credential file exists but does not parse.
     Malformed,
-    /// A recognized credential was found.
     Found(DetectedKind),
 }
 
-/// Probe a fixture path for a simulated credential profile.
 pub fn probe_folder(path: &str) -> FolderProbe {
     let p = path.trim_end_matches('/');
     match p {
@@ -108,7 +84,6 @@ fn identity_for(provider: Provider, tag: &str) -> (AccountIdentity, Confidence) 
     )
 }
 
-/// Windows a freshly validated key-backed account reports.
 pub fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec<QuotaWindow> {
     let h = 3600;
     match provider {
@@ -190,8 +165,6 @@ pub fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec<QuotaW
     }
 }
 
-/// Validate a credential source for `provider`. Runs the provider op
-/// inside the 1Password closure when the source is a reference.
 pub fn validate(
     provider: Provider,
     source: &CredentialSource,
@@ -469,8 +442,7 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
                     level: Some(ValidationLevel::MaterialDiscovered),
                     identity: AccountIdentity::default(),
                     confidence: Confidence::PresenceOnly,
-                    // key material is present: the agent can run, only the
-                    // public identity stays unresolved
+
                     lifecycle: Lifecycle::Available,
                     issue: Some(issue(
                         IssueCode::IdentityUnresolved,
@@ -514,7 +486,6 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
     }
 }
 
-/// Apply a validation outcome to an account (never touches the source).
 pub fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64) {
     a.validation = match (&v.level, &v.issue) {
         (Some(l), None) => jackin_preview_domain::account::ValidationState::Valid(*l),
@@ -542,7 +513,6 @@ pub fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64) {
     }
 }
 
-/// Refresh duration in virtual ms for an account (deterministic table).
 pub fn refresh_duration_ms(a: &Account) -> i64 {
     let base = match a.provider {
         Provider::Anthropic => 800,

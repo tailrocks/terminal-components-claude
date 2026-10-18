@@ -1,5 +1,3 @@
-//! `verify` runs observer-driven workers, taskfmt gate, and writes `run/verdict.json`.
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;

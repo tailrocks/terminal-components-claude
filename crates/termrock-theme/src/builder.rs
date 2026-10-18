@@ -1,12 +1,3 @@
-//! Partial override with safe derivation (`COMPONENT_ARCHITECTURE.md` §11.2, §17.0 A5, §21 item 29).
-//!
-//! A token equal to `Color::Reset` is *unset*; `build` derives every unset
-//! token from the seeds by the algorithm in §11.2. Setting a seed through
-//! the builder resets the tokens that depend on it (unless they were set
-//! explicitly in the same builder), so `Theme::junie().builder().accent(x)`
-//! re-derives `accent_hover`, `accent_pressed`, `accent_tint`, `focus`,
-//! `focus_ring` and `on_accent` and leaves every other Junie token intact.
-
 use ratatui_core::style::Color;
 
 use super::Theme;
@@ -17,7 +8,6 @@ use super::recipe::Family;
 use super::role::{FG_STEPS, SURFACE_LEVELS};
 use super::tokens::{ColorTokens, Density, MotionTokens, SizeTokens, SpaceTokens};
 
-/// Which tokens a builder set explicitly.
 #[derive(Clone, Copy, Default, Debug)]
 #[expect(
     clippy::struct_excessive_bools,
@@ -41,7 +31,6 @@ struct Explicit {
     borders: bool,
 }
 
-/// Builds a theme from a base plus partial overrides.
 #[derive(Clone, Debug)]
 pub struct ThemeBuilder {
     theme: Theme,
@@ -56,8 +45,6 @@ impl ThemeBuilder {
         }
     }
 
-    /// Install authored semantic capability palettes. Source guards preserve
-    /// generic conversion for independently changed tokens and dependants.
     #[must_use]
     pub fn capability_palettes(mut self, mut palettes: super::CapabilityPalettes) -> Self {
         palettes.eligible.fill(true);
@@ -66,14 +53,12 @@ impl ThemeBuilder {
         self
     }
 
-    /// Use generic conversion for every semantic token at limited capability.
     #[must_use]
     pub fn clear_capability_palettes(mut self) -> Self {
         self.theme.capability_palettes = None;
         self
     }
 
-    /// Set the accent; re-derives its dependants unless set explicitly.
     #[must_use]
     pub fn accent(mut self, c: Color) -> Self {
         let t = &mut self.theme.color;
@@ -100,7 +85,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the danger hue; re-derives `danger_soft`, `danger_tint`, `on_danger`.
     #[must_use]
     pub fn danger(mut self, c: Color) -> Self {
         let t = &mut self.theme.color;
@@ -117,7 +101,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the warning hue; re-derives `warning_tint`.
     #[must_use]
     pub fn warning(mut self, c: Color) -> Self {
         self.theme.color.warning = c;
@@ -127,21 +110,18 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the success hue.
     #[must_use]
     pub fn success(mut self, c: Color) -> Self {
         self.theme.color.success = c;
         self
     }
 
-    /// Set the info hue.
     #[must_use]
     pub fn info(mut self, c: Color) -> Self {
         self.theme.color.info = c;
         self
     }
 
-    /// Set the focus colour (and the focus ring, unless set explicitly).
     #[must_use]
     pub fn focus(mut self, c: Color) -> Self {
         self.theme.color.focus = c;
@@ -152,7 +132,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the text selection colours.
     #[must_use]
     pub fn selection(mut self, background: Color, foreground: Color) -> Self {
         self.theme.color.selection_bg = background;
@@ -161,7 +140,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the menu highlight colours.
     #[must_use]
     pub fn highlight(mut self, background: Color, foreground: Color) -> Self {
         self.theme.color.highlight_bg = background;
@@ -170,7 +148,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the field planes.
     #[must_use]
     pub fn field(mut self, base: Color, hover: Color) -> Self {
         self.theme.color.field = base;
@@ -179,7 +156,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the disabled colours.
     #[must_use]
     pub fn disabled(mut self, foreground: Color, background: Color) -> Self {
         self.theme.color.disabled_fg = foreground;
@@ -188,7 +164,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the whole surface ladder.
     #[must_use]
     pub fn surfaces(mut self, s: [Color; SURFACE_LEVELS]) -> Self {
         self.theme.color.surfaces = s;
@@ -198,7 +173,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the whole foreground ladder.
     #[must_use]
     pub fn fg(mut self, f: [Color; FG_STEPS]) -> Self {
         self.theme.color.fg = f;
@@ -208,7 +182,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the border colours.
     #[must_use]
     pub fn borders(mut self, subtle: Color, strong: Color) -> Self {
         self.theme.color.border_subtle = subtle;
@@ -217,22 +190,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Rebind every glyph whose Junie default falls in the box-drawing block
-    /// (`U+2500..=U+257F`) to its ASCII equivalent: the quiet rule (`-`), the
-    /// active rule (`=`) and the scrollbar track (`|`), thumb (`#`) and caps
-    /// (`|`).
-    ///
-    /// The whole typed `line` and `scrollbar` sets are replaced, not the four
-    /// glyphs a [`GlyphRole`] names, so the seam junctions of `line::Set` and
-    /// `scrollbar::Set`'s `begin`/`end` — which no role reaches — are covered
-    /// too (Adjudication O2).
-    ///
-    /// This is the box-drawing block **only**: the remaining ~31 roles (`›`,
-    /// `✓`, `…`, `×`, the spinner frames) stay unicode, and a full `GlyphSet`
-    /// ASCII table is a separate visual-design decision (§24 M2 risk 3).
-    ///
-    /// Idempotent, and "last write wins": call [`ThemeBuilder::glyph`]
-    /// **after** this to override any of them.
     #[must_use]
     pub fn ascii_glyphs(mut self) -> Self {
         let g = &mut self.theme.design.glyphs;
@@ -242,18 +199,6 @@ impl ThemeBuilder {
         self
     }
 
-    /// Set the border glyph set.
-    ///
-    /// Choosing [`border::ASCII`](crate::theme::border::ASCII) also applies
-    /// [`ThemeBuilder::ascii_glyphs`]: the rules and the scrollbar come from
-    /// typed `line`/`scrollbar` sets rather than from the border set, and an
-    /// "ASCII theme" that still paints `─` in a divider is ASCII at the edges
-    /// and unicode everywhere else — the outcome §24 M2 called worse than
-    /// either consistent choice (`theme::ascii_theme_renders_without_box_drawing_glyphs`).
-    ///
-    /// The swap is sticky: `borders_set(ASCII).borders_set(PLAIN)` keeps the
-    /// ASCII rules, because restoring the theme's own glyphs would clobber a
-    /// deliberate [`ThemeBuilder::glyph`]. Override afterwards instead.
     #[must_use]
     pub fn borders_set(mut self, b: BorderSet) -> Self {
         self.theme.design.borders = b;
@@ -263,113 +208,47 @@ impl ThemeBuilder {
         self
     }
 
-    /// Replace one glyph.
     #[must_use]
     pub fn glyph(mut self, r: GlyphRole, s: &'static str) -> Self {
         self.theme.design.glyphs.set(r, s);
         self
     }
 
-    /// Set the spacing tokens.
     #[must_use]
     pub fn space(mut self, s: SpaceTokens) -> Self {
         self.theme.design.space = s;
         self
     }
 
-    /// Set the size tokens.
     #[must_use]
     pub fn size(mut self, s: SizeTokens) -> Self {
         self.theme.design.size = s;
         self
     }
 
-    /// Set the density.
     #[must_use]
     pub fn density(mut self, d: Density) -> Self {
         self.theme.design.density = d;
         self
     }
 
-    /// Set the motion tokens.
     #[must_use]
     pub fn motion(mut self, m: MotionTokens) -> Self {
         self.theme.design.motion = m;
         self
     }
 
-    /// Give `f` its own §11.4 mono fallback manifest: the non-colour signals
-    /// the resolver adds for that family at [`ColorLevel::Mono`](super::ColorLevel::Mono), on top of
-    /// the family-independent generic manifest.
-    ///
-    /// This is the seam a downstream family needs. `Family::custom("seg")`
-    /// resolves through the neutral recipe and therefore receives the generic
-    /// rules, but nothing else could express "at mono, a chosen segment gets
-    /// the `Chosen` marker on `Part::MARKER`" — the six built-in targeted
-    /// tables (`VIEWPORT`, `GRID`, `MENU`, `HELP`, `PICKER`, `SELECT`) are
-    /// private and closed.
-    ///
-    /// **Whole-set, like [`ThemeBuilder::ascii_glyphs`].** `rules` becomes the
-    /// family's entire targeted set, replacing the built-in one where there is
-    /// one, so:
-    ///
-    /// * calling it twice for the same family keeps only the last call — the
-    ///   set cannot silently accumulate duplicates;
-    /// * `mono_rules(f, &[])` **removes** `f`'s built-in targeted rules;
-    /// * the generic manifest ([`MONO_RULES_PER_FAMILY`](super::MONO_RULES_PER_FAMILY)
-    ///   rules) is unaffected:
-    ///   it is family-independent, and a theme that could drop it would be
-    ///   able to make `DISABLED` invisible at mono (§29, §20.10 item 18).
-    ///
-    /// Precedence is unchanged (§11.4): these rules land after the family and
-    /// variant state rules and **before** every author override, so
-    /// `override_family` still wins over them, and they apply only when the
-    /// theme is actually at [`ColorLevel::Mono`](super::ColorLevel::Mono).
-    ///
-    /// ```
-    /// use termrock_theme::{
-    ///     ColorLevel, Family, GlyphRole, Part, Slot, StateFlags, StylePatch, Surface, Theme,
-    ///     Variant,
-    /// };
-    ///
-    /// let seg = Family::custom("seg");
-    /// let theme = Theme::junie()
-    ///     .builder()
-    ///     .mono_rules(
-    ///         seg,
-    ///         &[(
-    ///             Part::MARKER,
-    ///             StateFlags::ACTIVE,
-    ///             StylePatch::new().set_glyph(GlyphRole::Chosen),
-    ///         )],
-    ///     )
-    ///     .build()
-    ///     .downgrade(ColorLevel::Mono);
-    ///
-    /// let r = theme.resolve(
-    ///     seg,
-    ///     Variant::DEFAULT,
-    ///     Part::MARKER,
-    ///     StateFlags::ACTIVE,
-    ///     Surface::Canvas,
-    /// );
-    /// assert_eq!(r.glyph, Slot::Set(GlyphRole::Chosen));
-    /// ```
     #[must_use]
     pub fn mono_rules(mut self, f: Family, rules: &[MonoRule]) -> Self {
         self.theme.recipes.set_mono_rules(f, rules.to_vec());
         self
     }
 
-    /// Fill every token the caller did not set by the derivation written
-    /// in §11.2. Deterministic.
     pub fn build(mut self) -> Theme {
         derive_unset(&mut self.theme.color);
         self.theme
     }
 }
-
-// ───────────────────────────── colour math ────────────────────────────
 
 fn from_lin(v: f64) -> u8 {
     let v = v.clamp(0.0, 1.0);
@@ -402,12 +281,10 @@ fn lab_to_rgb(lab: (f64, f64, f64)) -> (u8, u8, u8) {
     (from_lin(red), from_lin(green), from_lin(blue))
 }
 
-/// L* of a colour (0 for `Reset`).
 pub(crate) fn lightness(c: Color) -> f64 {
     rgb_of(c).map_or(0.0, |rgb| lab_of(rgb).0)
 }
 
-/// Shift L* by `dl`, keeping a* and b*.
 fn shift_l(color: Color, dl: f64) -> Color {
     let Some(rgb) = rgb_of(color) else {
         return color;
@@ -417,7 +294,6 @@ fn shift_l(color: Color, dl: f64) -> Color {
     Color::Rgb(red, green, blue)
 }
 
-/// `top` at `alpha` over `bottom`, in sRGB.
 fn blend(top: Color, bottom: Color, alpha: f64) -> Color {
     let (Some(t), Some(b)) = (rgb_of(top), rgb_of(bottom)) else {
         return bottom;
@@ -430,7 +306,6 @@ fn blend(top: Color, bottom: Color, alpha: f64) -> Color {
     Color::Rgb(mix(t.0, b.0), mix(t.1, b.1), mix(t.2, b.2))
 }
 
-/// Result of fading one foreground toward its row background.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FadeOutcome {
     Blended(Color),
@@ -438,8 +313,6 @@ pub enum FadeOutcome {
     Unchanged,
 }
 
-/// Mix RGB foreground toward RGB background. Terminal palette colors cannot be
-/// mixed portably, so callers may apply `DIM` for the outer edge only.
 #[expect(clippy::float_cmp, reason = "edge rows use exact configured strengths")]
 pub fn fade_mix(fg: Color, bg: Color, amount: f32) -> FadeOutcome {
     let (Color::Rgb(fr, fg, fb), Color::Rgb(br, bg, bb)) = (fg, bg) else {
@@ -512,7 +385,6 @@ mod fade_tests {
     }
 }
 
-/// WCAG contrast ratio.
 pub(crate) fn contrast(a: Color, b: Color) -> f64 {
     let (Some(a), Some(b)) = (rgb_of(a), rgb_of(b)) else {
         return 1.0;
@@ -521,8 +393,6 @@ pub(crate) fn contrast(a: Color, b: Color) -> f64 {
     if la > lb { la / lb } else { lb / la }
 }
 
-/// The L* at which a neutral grey reaches `ratio` against `base`, searched
-/// away from the base (up for a dark base, down for a light one).
 fn anchor_l(base: Color, ratio: f64, light_base: bool) -> f64 {
     let mut lo = 0.0f64;
     let mut hi = 100.0f64;
@@ -532,7 +402,6 @@ fn anchor_l(base: Color, ratio: f64, light_base: bool) -> f64 {
         let c = contrast(Color::Rgb(r, g, b), base);
         let far_enough = c >= ratio;
         if light_base {
-            // a light base needs darker text: move `hi` down while contrast holds
             if far_enough {
                 lo = mid;
             } else {
@@ -545,7 +414,7 @@ fn anchor_l(base: Color, ratio: f64, light_base: bool) -> f64 {
         }
     }
     let mut l = if light_base { lo } else { hi };
-    // rounding to 8-bit channels can land a hair under the ratio: nudge away from the base
+
     for _ in 0..16 {
         let (r, g, b) = lab_to_rgb((l, 0.0, 0.0));
         if contrast(Color::Rgb(r, g, b), base) >= ratio {
@@ -575,10 +444,9 @@ fn fill(slot: &mut Color, value: impl FnOnce() -> Color) {
     }
 }
 
-/// Derive every `Reset` token from the seeds (§11.2, exact).
 pub(crate) fn derive_unset(c: &mut ColorTokens) {
     let junie = super::builtin::junie::tokens();
-    // seeds that must exist
+
     fill(&mut c.surfaces[0], || junie.surfaces[0]);
     fill(&mut c.accent, || junie.accent);
     fill(&mut c.danger, || junie.danger);
@@ -588,7 +456,7 @@ pub(crate) fn derive_unset(c: &mut ColorTokens) {
     let base = c.surfaces[0];
     let light = lightness(base) > 50.0;
     let step = if light { -4.0 } else { 4.0 };
-    // surfaces 1..4 step L* from the canvas
+
     for i in 1..SURFACE_LEVELS {
         if let Some(s) = c.surfaces.get(i).copied()
             && is_unset(s)
@@ -599,7 +467,7 @@ pub(crate) fn derive_unset(c: &mut ColorTokens) {
             }
         }
     }
-    // fg ladder: contrast-7:1 anchor, then −18 L* per step towards the base
+
     let anchor = anchor_l(base, 7.0, light);
     let fg_step = if light { 18.0 } else { -18.0 };
     for i in 0..FG_STEPS {
@@ -641,7 +509,7 @@ pub(crate) fn derive_unset(c: &mut ColorTokens) {
     fill(&mut c.disabled_fg, || c.fg[3]);
     fill(&mut c.disabled_bg, || s[2]);
     fill(&mut c.read_only_fg, || c.fg[1]);
-    // syntax and meter slots left `Reset` by `derive`
+
     let sy = &mut c.syntax;
     fill(&mut sy.keyword, || fg0);
     fill(&mut sy.ident, || fg0);
@@ -698,9 +566,6 @@ mod tests {
         c
     }
 
-    /// Adjudication O2: `ascii_glyphs` is a whole-set replacement, so applying
-    /// it twice changes nothing, and it is "last write wins" against an
-    /// explicit `.glyph(..)` that follows it.
     #[test]
     fn ascii_glyphs_is_idempotent_and_glyph_overrides_it() {
         let once = Theme::junie().builder().ascii_glyphs().build();
@@ -710,7 +575,7 @@ mod tests {
             .ascii_glyphs()
             .build();
         assert_eq!(once.design.glyphs, twice.design.glyphs);
-        // and it is exactly what `borders_set(ASCII)` applies
+
         let via_borders = Theme::junie()
             .builder()
             .borders_set(crate::theme::border::ASCII)
@@ -723,7 +588,7 @@ mod tests {
             .glyph(GlyphRole::RuleQuiet, "~")
             .build();
         assert_eq!(overridden.design.glyphs.get(GlyphRole::RuleQuiet), "~");
-        // the rest of the ASCII swap survives the override
+
         assert_eq!(overridden.design.glyphs.get(GlyphRole::RuleActive), "=");
         assert_eq!(overridden.design.glyphs.scrollbar().begin, "|");
     }
@@ -736,7 +601,7 @@ mod tests {
         for c in a.color.colors() {
             assert_ne!(c, Color::Reset, "an unset token survived derivation");
         }
-        // the ladder steps in the direction of the base
+
         let l: Vec<f64> = a.color.surfaces.iter().map(|c| lightness(*c)).collect();
         assert!(l.windows(2).all(|w| w[1] > w[0]), "{l:?}");
         let f: Vec<f64> = a.color.fg.iter().map(|c| lightness(*c)).collect();
@@ -745,11 +610,11 @@ mod tests {
         assert_eq!(a.color.focus_ring, a.color.accent_pressed);
         assert_eq!(a.color.border_subtle, a.color.surfaces[3]);
         assert_eq!(a.color.border_strong, a.color.fg[3]);
-        // pinned sample of the table
+
         assert_eq!(a.color.surfaces[1], Color::Rgb(21, 22, 25));
         assert_eq!(a.color.accent_hover, Color::Rgb(145, 183, 255));
         assert_eq!(a.color.accent_pressed, Color::Rgb(99, 141, 224));
-        // a partial override on Junie leaves untouched tokens intact
+
         let t = Theme::junie()
             .builder()
             .accent(Color::Rgb(0xC6, 0x7A, 0x2E))
@@ -772,9 +637,6 @@ mod tests {
 
     #[test]
     fn derived_tokens_meet_design_contrast_ratios() {
-        // derived themes meet the ratios the derivation promises; Junie's
-        // hand-picked tokens are pinned, not derived, and only its text
-        // ladder is checked here
         for t in [Theme::from_tokens(seeds()), Theme::paper()] {
             let c = &t.color;
             assert!(contrast(c.fg[0], c.surfaces[0]) >= 7.0, "{:?}", c.fg[0]);

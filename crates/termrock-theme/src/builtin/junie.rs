@@ -1,13 +1,3 @@
-//! The Junie theme (`COMPONENT_ARCHITECTURE.md` §1.1, §11.2): the approved
-//! default, token values unchanged from the reviewed baseline.
-//!
-//! Evidence (computed styles / CSS custom properties on junie.jetbrains.com):
-//! canvas `#000000`, chrome/panels `#111111`, cards `#18181b`, input surface
-//! `#1e1e22`, overlay `#27272a`, popover `#3f3f46`; accent `#48e054`, hover
-//! = accent at 80 % over black (`#3ab343`); text is an alpha ladder on
-//! white 100/70/50/30/15 %; borders white at 15 % (subtle) and 30 %
-//! (strong); destructive `#e44545`, warning `#f59e09`, info `#8787ff`.
-
 use ratatui_core::style::Color;
 use ratatui_core::symbols::{line, scrollbar};
 
@@ -25,7 +15,6 @@ const INPUT: Color = Color::from_u32(0x1e_1e_22);
 const INPUT_HOVER: Color = Color::from_u32(0x23_23_28);
 const OVERLAY: Color = Color::from_u32(0x27_27_2a);
 const POPOVER: Color = Color::from_u32(0x3f_3f_46);
-/// Menu selection: a cool blue that does not compete with the accent.
 const HIGHLIGHT: Color = Color::from_u32(0x2f_5a_a8);
 const WHITE: Color = Color::from_u32(0xff_ff_ff);
 const WHITE_70: Color = Color::from_u32(0xb3_b3_b3);
@@ -39,16 +28,12 @@ const GREEN_20: Color = Color::from_u32(0x0f_2e_13);
 const ON_GREEN: Color = Color::from_u32(0x19_19_1c);
 const RED: Color = Color::from_u32(0xe4_45_45);
 const RED_20: Color = Color::from_u32(0x2e_0f_0f);
-/// Soft rose: a destructive label at rest on a neutral plane.
 const RED_SOFT: Color = Color::from_u32(0xd9_8a_8a);
-/// Deep red: the highlight of a destructive menu row under the cursor.
 const RED_45: Color = Color::from_u32(0x7a_2a_2a);
 const AMBER: Color = Color::from_u32(0xf5_9e_09);
-/// Amber at 12 % over chrome.
 const AMBER_TINT: Color = Color::from_u32(0x2c_22_10);
 const PURPLE: Color = Color::from_u32(0x87_87_ff);
 
-/// The Junie colour tokens.
 pub(crate) const fn tokens() -> ColorTokens {
     ColorTokens {
         surfaces: [BLACK, CHROME, CARD, OVERLAY, POPOVER],
@@ -84,8 +69,7 @@ pub(crate) const fn tokens() -> ColorTokens {
         disabled_fg: WHITE_30,
         disabled_bg: OVERLAY,
         read_only_fg: WHITE_70,
-        // restrained syntax palette: structure through weight and the text
-        // ladder, not hue
+
         syntax: SyntaxTokens {
             keyword: WHITE,
             ident: WHITE,
@@ -120,22 +104,13 @@ pub(crate) const fn tokens() -> ColorTokens {
     }
 }
 
-/// The ten-frame spinner (`DESIGN.md` markers table).
 pub(crate) const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-/// The Junie glyph set, one entry per `GlyphRole` in declaration order.
 pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
     [
         "▎", "›", "✓", "[✓]", "[ ]", "(●)", "(○)", "●", "•", "+", "−", "!", "▲", "▸", "▾", "▴",
-        "▾", "∇", "▪", "▪", "→", "↓", "‹", "›", "…", "×", "›", "◆", "◇",
-        // Indices 29–32 (`RuleQuiet`, `RuleActive`, `ScrollTrack`,
-        // `ScrollThumb`) are **dead**: `GlyphSet::get`/`set` route those four
-        // roles to the typed `line`/`scrollbar` sets below and never index the
-        // array (Adjudication O2). They are kept empty so the array keeps one
-        // entry per `GlyphRole` and nobody edits them expecting an effect.
-        "", "", "", "", //
-        // Canonical pause mark; Paper/from_tokens inherit this design too.
-        "✓", "‖", "+", "[", "]", "•", "▾", "▴",
+        "▾", "∇", "▪", "▪", "→", "↓", "‹", "›", "…", "×", "›", "◆", "◇", "", "", "", "", "✓", "‖",
+        "+", "[", "]", "•", "▾", "▴",
     ],
     scrollbar::Set {
         track: "│",
@@ -147,7 +122,6 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
     line::THICK,
 );
 
-/// The Junie design tokens (`DESIGN.md` spacing and dimension rules).
 pub(crate) const fn design() -> DesignTokens {
     DesignTokens {
         space: SpaceTokens {
@@ -194,9 +168,6 @@ pub(crate) const fn design() -> DesignTokens {
     }
 }
 
-/// The Junie list's interaction plane differs from the generic depth ladder.
-/// Keep this in the recipe so Paper and token-only themes retain their policy,
-/// while Junie-derived themes still bind all colours from their live tokens.
 pub(crate) fn recipes() -> crate::theme::Recipes {
     use crate::theme::{Family, FgStep, Modifier, Role, Slot, StylePatch};
     use crate::{Part, StateFlags};
@@ -215,8 +186,7 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
         .set_fg(Role::DisabledFg)
         .set_bg(Role::CurrentSurface)
         .remove(Modifier::BOLD);
-    // Source order: selection, hover, error, busy, focus, pressed. Compound
-    // rules preserve that precedence under specificity-based accumulation.
+
     container
         .when(StateFlags::HOVERED, hover)
         .when(StateFlags::ERROR, p().set_fg(Role::Danger))
@@ -235,7 +205,7 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
             StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::PRESSED,
             pressed,
         );
-    // Disabled wins over every combination, including a stale press/focus.
+
     let states = container.states.clone();
     container.when(StateFlags::DISABLED, disabled);
     for rule in states.into_iter().filter(|rule| rule.specificity() > 1) {
@@ -248,8 +218,7 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
             ..p()
         },
     );
-    // Generic mono press fallback runs after ordinary recipes; keep its
-    // explicit inversion but restore the disabled container if both are live.
+
     recipes.set_mono_rules(
         Family::LIST,
         vec![(Part::CONTAINER, StateFlags::DISABLED, disabled)],

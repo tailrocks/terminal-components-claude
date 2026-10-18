@@ -1,4 +1,3 @@
-//! Actual canonical role picker, form, preview and captured save journey.
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,

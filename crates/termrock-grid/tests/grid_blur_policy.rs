@@ -1,4 +1,3 @@
-//! Grid's editor owns blur policy; applications inspect drafts without staging them.
 use ratatui_core::layout::Rect;
 use termrock_controls::Button;
 use termrock_core::validate::FieldError;

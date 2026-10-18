@@ -1,4 +1,3 @@
-//! Destructive authorization belongs to reviewed content, not only its tab key.
 use tablepro_ui::{QueryTab, Screen, Tab, TableProApp, Value};
 use termrock::{App, GridEditor, Id, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -83,7 +82,7 @@ fn all_public_mutable_payload_accessors_invalidate_existing_authorization() {
         confirm(&mut h);
         assert_eq!(h.app().result().pending_total(), 1);
         assert!(h.find("Work changed").is_some());
-        // A new review authorizes the unchanged current payload.
+
         let _ = h.ctrl('r');
         for _ in 0..4 {
             h.draw();
