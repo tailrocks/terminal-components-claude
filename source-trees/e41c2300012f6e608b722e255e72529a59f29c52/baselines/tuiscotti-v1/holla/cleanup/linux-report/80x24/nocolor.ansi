@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help                         no project  [0m[1mdevbox · local[0m [0m
+                                                                                [0m
+ [0m[1m Here › Cleanup report  [0m                                                       [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────── [0m
+  [0m[1mCleanup report[0m                                       devbox · live · 1 s ago  [0m
+                                                                                [0m
+  Outcome   1 failed                                                            [0m
+  Mode      trash                                                               [0m
+  Bytes     0 B left the tree · 0 B freed now · the rest returns when the       [0m
+            Trash is emptied                                                    [0m
+  Log       ~/.cache/holla/ops.log · every record written                       [0m
+  Revision  c4d729e20ca0805b                                                    [0m
+                                                                                [0m
+ ╭─[0m[1m Detail [0m────────────────────────────────────────────── 2 lines · y copies ─╮ [0m
+ │  outcome            bytes   path · reason                                  │ [0m
+ │  failed               0 B   ~/Projects/app/node_modules · Trash unavailab… │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+  Next   Cleanup history                                                        [0m
+                                                                                [0m
+ [0m[1m~/work/box[0m                snapshot · read-only                no color · 80×24 [0m
+                [0m[1m↑↓[0m Scroll  [0m[1my[0m Copy  [0m[1mTab[0m Next actions  [0m[1mEsc[0m Back        [0m[1m![0m 1 failed [0m

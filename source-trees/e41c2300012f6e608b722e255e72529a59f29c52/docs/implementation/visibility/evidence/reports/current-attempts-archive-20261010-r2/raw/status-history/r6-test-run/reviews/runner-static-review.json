@@ -1,0 +1,74 @@
+{
+  "schema": "termrock-independent-runner-review-v1",
+  "work_id": "VIS-01",
+  "verdict": "READY_STATIC_RUNNER_REVIEW_ONLY",
+  "reviewer": "/root/subjects_runner_review_luna",
+  "reviewed_at": "2026-10-10",
+  "scope": "Focused R5-to-R6 runner/source binding review; no Cargo, Nextest, build, tests, or network execution by reviewer.",
+  "pins": {
+    "packet": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010",
+    "runner": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/runner.cjs",
+      "sha256": "ed3eac871208455a5eb8deb087969d41c7d915ddf530ea2497f8741b53711a25"
+    },
+    "runplan": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/runplan.json",
+      "sha256": "44c8e26510686f956db0033ae9c64c218b0044e71617490441b9871dc19bb051"
+    },
+    "source_manifest": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/source-manifest.json",
+      "sha256": "868091a9cc2556406f2f4d99f954dbbaa5c6d49bb432e510a9a0914c51524d43"
+    },
+    "test_names": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/test-names.json",
+      "sha256": "ebcd2adeede88c96e667840c5971ab103090c6bf0fc4faab9c857e231f1f56cb"
+    },
+    "source_freeze": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/source-freeze.json",
+      "sha256": "6356d5a3e37ca5705d70ba6d1c0d8203e65121777c383c391a1fb92039003317"
+    },
+    "source_patch": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/source-delta.patch",
+      "sha256": "a1c16313df97770a1bb4220302ec5daece5ee80f1633a2d495deb1c72ce65732"
+    },
+    "source_review": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-source-review-ci-parity.json",
+      "sha256": "f649d16f270ebe533285f195665e2d614fc920c1090de2671900497063adc591"
+    },
+    "compile_diagnosis": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/compile-diagnosis.json",
+      "sha256": "9a7237981e698e991896f79f5a9b0412ba89948ef0d63910383698fc23681a85"
+    },
+    "cache_closure": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/cache-closure.json",
+      "sha256": "ebaa2272db4f51932240fa178697d5a5186c3661887aca802ee632de561f255b"
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/preflight/runner-preflight.json",
+      "sha256": "3f595a520eac402a0220c514cbe0228a1745afee1bca89456d01cca884feaf23"
+    },
+    "packet_checksums": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/SHA256SUMS",
+      "sha256": "b76bd38d0753cd79eb363a7a1358be63e7d991d65dbd58cd162f76f4e235b399"
+    },
+    "review_request": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/review-request.json",
+      "sha256": "aff8896d01f00bf1dade60dc44d5105cd83bf6a1daa10bfa1842f1992b8ee1a8"
+    }
+  },
+  "findings": {
+    "source_delta": "The frozen patch changes only crates/termrock-visibility-tests/tests/status.rs and adds _u64 to the three large GitHub run/check-suite ID literals. The numeric JSON values and assertions are preserved. The R6 independent source review binds the exact file, patch, R5 failure, and three diagnosed i32 literal-overflow errors.",
+    "exact_selection": "Runner argv selects only package termrock-visibility-tests and integration target status, with no filter and no --bin fixture. The pinned inventory has 53 unique status #[test] names, including the five required cases.",
+    "fixture_role": "The fixture binary is an explicit build dependency only: one source-declared unit test is recorded as unselected (selected count 0), while target/debug/fixture mode 0755 and debug/fixture.d source provenance are required. The event parser rejects a fixture suite or test event.",
+    "preflight": "The exact no-Cargo preflight binds runner/runplan/source/test/cache/checksum/request hashes, reports 53 expected selected cases, target selectors status only, fixture as build-only, an empty fresh target with no target artifacts, an absent output root, and cargo_spawned/nextest_spawned/tests_run/network_used all false.",
+    "bounds": "Runplan and runner agree on locked offline Nextest, 2 build jobs, 1 test thread, zero retries, 600-second timeout, 16 MiB combined output cap, 5-second TERM grace and 1-second post-KILL grace. The runner checks source/tool/cache inputs before and after, checks the target against the immediate preflight snapshot, and handles parent SIGINT/SIGTERM by terminating the detached process group and recording interruption.",
+    "failure_history": "The prior R5 result remains preserved: Cargo exit 101 before tests started (0/53 started), caused by the three large JSON integer literals. Earlier R1-R4 preflight/receipt limitations remain recorded in the R6 review request and were not erased.",
+    "limits": "This is static runner review plus inspection of the already-produced no-Cargo preflight only. No R6 Cargo/Nextest execution or test pass is established. Test success would validate source status rendering only; it does not qualify product readiness, execution, evidence admission, or publication."
+  },
+  "execution_by_reviewer": {
+    "cargo": false,
+    "nextest": false,
+    "tests": false,
+    "network": false
+  }
+}

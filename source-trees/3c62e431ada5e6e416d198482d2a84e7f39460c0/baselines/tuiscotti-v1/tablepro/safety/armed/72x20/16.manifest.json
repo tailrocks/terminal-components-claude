@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "87e56e9649181f03e45d5b9d2d2968552fea1eac8684f7433931498c52a2d9cf",
+  "artifacts": {
+    "ansi": {
+      "bytes": 4580,
+      "file": "tablepro/safety/armed/72x20/16.ansi",
+      "sha256": "87e56e9649181f03e45d5b9d2d2968552fea1eac8684f7433931498c52a2d9cf"
+    },
+    "ascii": {
+      "bytes": 1429,
+      "file": "tablepro/safety/armed/72x20/16.ascii",
+      "sha256": "9573324650c2a9b2c4931fdbc18a801776466132366fdaa85e68511e9ae0c06d"
+    },
+    "ascii_loss_json": {
+      "bytes": 19168,
+      "file": "tablepro/safety/armed/72x20/16.ascii.loss.json",
+      "sha256": "944b2dc141f8ee7d430a25e5ef68086ddaa395cefd8c513d959355fbab30fb2d"
+    },
+    "frame_json": {
+      "bytes": 333948,
+      "file": "tablepro/safety/armed/72x20/16.frame.json",
+      "sha256": "1226e29a92a0bc26f0ffbdf8a8d36495f28af323066947c1b336b1004bcb50d1"
+    },
+    "html": {
+      "bytes": 227395,
+      "file": "tablepro/safety/armed/72x20/16.html",
+      "sha256": "e140ef9153b3aaa33da95f134f95d5c00359460453fece608b08787b142d062a"
+    },
+    "observations_json": {
+      "bytes": 439,
+      "file": "tablepro/safety/armed/72x20/16.observations.json",
+      "sha256": "ccb36dd395035eb6f12a9e77098c1db5cf5bedd3970307248441eddbb154a4d7"
+    },
+    "png": {
+      "bytes": 160434,
+      "file": "tablepro/safety/armed/72x20/16.png",
+      "sha256": "bce8ca4b50834f64a3be2132603c786e1b05209852c35964e320059aba3e8b59"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "tablepro/safety/armed/72x20/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1840,
+      "file": "tablepro/safety/armed/72x20/16.txt",
+      "sha256": "4cbe88c8597d9516bdf42e77e33fd8c515724969b9cb3958d396cedefdb3fb16"
+    }
+  },
+  "ascii_substitutions_count": 207,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 10148305079635642975,
+  "frame_sha256": "1226e29a92a0bc26f0ffbdf8a8d36495f28af323066947c1b336b1004bcb50d1",
+  "generation": "c65e9050ea28f484bf32dd658a3241d8f5de9866a1e5963e6d1e00e7345161d1",
+  "html_sha256": "e140ef9153b3aaa33da95f134f95d5c00359460453fece608b08787b142d062a",
+  "legacy_name": "tablepro/ack/armed/72x20/16",
+  "name": "tablepro/safety/armed/72x20/16",
+  "png_sha256": "bce8ca4b50834f64a3be2132603c786e1b05209852c35964e320059aba3e8b59",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:18Z",
+  "txt_sha256": "4cbe88c8597d9516bdf42e77e33fd8c515724969b9cb3958d396cedefdb3fb16"
+}

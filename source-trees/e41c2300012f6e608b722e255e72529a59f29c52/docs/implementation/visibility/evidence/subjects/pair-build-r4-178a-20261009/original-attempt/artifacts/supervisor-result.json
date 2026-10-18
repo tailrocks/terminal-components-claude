@@ -1,0 +1,42 @@
+{
+  "argv_file_sha256": "389d0be93dfcc187f320f843fe841dcc67d02a525f6c79bb9bb25b9934193fa0",
+  "argv_sha256": "ce61565d009df84149258a43994a0e08eee3974780e7ed5fa33178af2e455e28",
+  "child": {
+    "exit_code": 0,
+    "signal": null,
+    "stderr": {
+      "path": "stderr.bin",
+      "retained_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "stdout": {
+      "path": "stdout.bin",
+      "retained_bytes": 126,
+      "sha256": "b89e043e445e7f751874458995b3c27b13343cb0fe7a703d8f6d45238384a2ae",
+      "truncated": false
+    },
+    "timed_out": false
+  },
+  "completed_unix_ms": 1791545148452,
+  "elapsed_ms": 130186,
+  "nested_cargo_log_limitation": "If the supervisor kills the CLI during an in-flight Cargo child, Python may not flush that command's partial stdout/stderr. Preserve this outer capture and all completed command evidence; mark the build incomplete.",
+  "outcome": "success",
+  "outer_capture_limit_bytes_per_stream": 8388608,
+  "qualification": "blocked",
+  "run_id": "pair-178a-20261009-1052Z-r3",
+  "run_json": {
+    "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/run.json",
+    "present": true,
+    "raw_sha256": "e19ff24b314f2284de93d64dd535a104850102bd39ac27a809a1d5bc0da0127d",
+    "state": "complete"
+  },
+  "schema": "termrock-visibility-real-cli-result-v1",
+  "started_unix_ms": 1791545018256,
+  "subject_manifest": {
+    "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/subject-manifest.json",
+    "raw_sha256": "2faf06339fcbe01ad30d92cb7dd490e07d69c1bee41e755d07877f8f27a31767",
+    "run_json_digest_matches": true,
+    "run_json_sha256": "e19ff24b314f2284de93d64dd535a104850102bd39ac27a809a1d5bc0da0127d"
+  }
+}

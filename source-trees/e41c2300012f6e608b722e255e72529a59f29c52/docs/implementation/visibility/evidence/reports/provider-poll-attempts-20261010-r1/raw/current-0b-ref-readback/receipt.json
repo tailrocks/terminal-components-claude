@@ -1,0 +1,29 @@
+{
+  "schema": "termrock-root-native-ref-readback/v1",
+  "started": "2026-10-10T05:24:47.661Z",
+  "finished": "2026-10-10T05:24:48.482Z",
+  "tool": "/usr/bin/git",
+  "tool_sha256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+  "argv": [
+    "--git-dir=/private/tmp/termrock-root-integration-20261010.git",
+    "ls-remote",
+    "https://github.com/tailrocks/terminal-components-claude.git",
+    "refs/heads/termrock-implementation",
+    "refs/heads/visual-baseline",
+    "refs/tags/visual-baseline",
+    "refs/tags/visual-baseline^{}"
+  ],
+  "exit_code": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "path": "/private/tmp/termrock-root-current-ref-readback-0b7545-r1-20261010/stdout.raw",
+    "sha256": "d09262ffc77cb61dd9a1f4b6bf0c614731407f01cfd2df9713aa908f8e2109e7",
+    "bytes": 281
+  },
+  "stderr": {
+    "path": "/private/tmp/termrock-root-current-ref-readback-0b7545-r1-20261010/stderr.raw",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  }
+}

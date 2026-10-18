@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "rust_toolchain": "1.98.1",
+  "rust_commit": "48a229ceaefd4985c50990b14116b6d856af0985",
+  "zig_version": "0.16.0",
+  "sources": {
+    "tui-snap": {
+      "url": "https://github.com/donbeave/tui-snap.git",
+      "upstream_commit": "5036cf87e621e6beb66deffe3224abdbefc955cb",
+      "upstream_tree": "d6f535408131152a740f5ce2f8342dccf15a3915",
+      "qualified_commit": "e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2",
+      "qualified_tree": "e87f3fe3ae49d8066afe8ab7b319f319c2a1dd0f",
+      "cargo_lock_sha256": "4a7ae4b04f03389d2c63d0ff1753c2a61acc8123ebf958dd3eb2f6537d7c2add",
+      "bundle": "repairs/tuisnap.bundle",
+      "bundle_ref": "refs/heads/codex/qualification-repairs",
+      "build_args": [
+        "--all-targets",
+        "--all-features"
+      ],
+      "binary": "tuisnap"
+    },
+    "tui-test": {
+      "url": "https://github.com/microsoft/tui-test.git",
+      "upstream_commit": "2d5f8020ba6eb77b9c4da38892c2f6f200311b90",
+      "upstream_tree": "2c81fc3601fa20cd482817a6ef507e593528566a",
+      "qualified_commit": "2d5f8020ba6eb77b9c4da38892c2f6f200311b90",
+      "qualified_tree": "2c81fc3601fa20cd482817a6ef507e593528566a",
+      "cargo_lock_sha256": "864934bb72f986317d9576ce6b64eaf53b71eaf1e7d8faa80e9764398b1f94d6",
+      "build_args": [
+        "-p",
+        "tui-test-cli",
+        "--bin",
+        "tui-test"
+      ],
+      "binary": "tui-test"
+    }
+  },
+  "recorded_binary": {
+    "path": "target/debug/tuisnap",
+    "sha256": "07e1efcac7d6c38288949f48c94b2ebea1dff8780bd6f401a94f1d44445f484f",
+    "host": "aarch64-apple-darwin",
+    "meaning": "Historical observation only; new path/platform builds have their own recorded hashes."
+  },
+  "payload_sha256": {
+    "README.md": "b6103126b99e0b7b88f6502dadf80556c842ea8078899e76c3da005b8bae17ce",
+    "acquire.py": "267c4e7fa912e7564d01a21636286b76f0fc826afcfecc0450cb9774033736b8",
+    "expected-cells.json": "c3a07e85392d78f4d661292d8fbf860a33371ecfe1b7af6408afec907fec9ea8",
+    "fixture.py": "7d8c4da061f79c78b77ef380045c476cc89ecb1c0539a44a5fed4d8cb62b2935",
+    "harness/Cargo.lock": "a33dda53c5ea575b550f8998fa40f9646c35c33c456719b9ad900e333ddf0c58",
+    "harness/main.rs": "a68c2340069549f5439998d6cb6e75606135d2b92a749dd2ca9a3f1f8040613a",
+    "licenses/tui-snap-LICENSE": "b62eb1da60929bc24f7f8f1fe18c8f228fd39e4d096bf04d9102a038d1cb27ac",
+    "licenses/tui-test-LICENSE": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+    "licenses/vt100-LICENSE": "53a04b0a11073f3d0183c31a4b7bdf9a3f68d453adeec136e59e5a9d9a554370",
+    "oracle.py": "ab41d25c5ac603ab656f92fcffba430c36ed815a72dd3e234cb167df31afb300",
+    "proof/REPORT.md": "8aab52a0cc8abfd75879177d20291b66ec31e35387cb2c4cd3022e3b4591759b",
+    "proof/applied-review-verification.json": "129668763dd11c059e12fb0afbfcd9a1f71fffe0497534f41fdc21eeaeceb509",
+    "proof/clean-acquisition.json": "135d63e8cd4d9b50b65f1b866d9b6aac787d1f6b017b86f3617e5fdd85cf5fd5",
+    "proof/clean-metadata.json": "3b05e3de7995c36695c2b395e3ba3c487e5498ffbb9209c436e02d8faead5d7c",
+    "proof/cursor-independent-review/REVIEW.md": "4192f7fbbcaf014f785615c3171c3edae8a35f768e2ee90bcc062ddf855e7b95",
+    "proof/cursor-independent-review/SHA256SUMS": "51e3022a83886cd8deac0e55f8a86c09d553504a7fd820ad73e9e2cdd6d773d2",
+    "proof/cursor-review.md": "4192f7fbbcaf014f785615c3171c3edae8a35f768e2ee90bcc062ddf855e7b95",
+    "proof/cursor-review.sha256": "51e3022a83886cd8deac0e55f8a86c09d553504a7fd820ad73e9e2cdd6d773d2",
+    "proof/exact-provenance.json": "0e8d9e2b73f916120b4dc1410e932acac30f266d5fa4a755e0ce5bccd7cd73e8",
+    "proof/final-test-identities.json": "d94e6c350fc5c4211bc090dc2d866594644b5241121b8804c2d057267d4baf13",
+    "proof/final-tool-gates.json": "0ea1628659794a561fa14234dd489bb11fcf72bc36c78aac1531d40297dfee6c",
+    "proof/full-0.log": "5c27a0cf9b68e5180aa9936c7d700a8e647c8d199649b265dbad0dddd06cc8ab",
+    "proof/full-1.log": "ea682a11de6d7146d6a141c40dd62446bc43ca8fac99e3d05bf37f6265de5ddd",
+    "proof/full-2.log": "fa5b6e6312af1af4796301ac5847fd3ed76cfc7385f4dd0d51d86bed82a6168c",
+    "proof/full-3.log": "cc357669b0e6ab6d5e44af2553b0e97a595971cac14736bbc0b025ff2e00303a",
+    "proof/full-4.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "proof/full-5.log": "20d02763237c0c63749011d0b82afb2c1d42c5e48b884b0074e733e2f183cae5",
+    "proof/independent-review/REVIEW.md": "c3612b4e11a49227e1180637d8a80f9f2a5842beb997f2fb5bbbc62575702d4e",
+    "proof/independent-review/verified.json": "01efdd9159aef7e2289a695f96c4447db067fa199783072a7b8b37830d2035d6",
+    "proof/matrix-status.json": "702380245b12a3e9e670614fa23a0f06f8c56f67df290d7f28afb29a98e93b85",
+    "proof/migration-review.md": "c3612b4e11a49227e1180637d8a80f9f2a5842beb997f2fb5bbbc62575702d4e",
+    "proof/migration-reviewed-hashes.json": "01efdd9159aef7e2289a695f96c4447db067fa199783072a7b8b37830d2035d6",
+    "proof/recorded-environment.json": "cb8ff299bf57c805b927d576f6fd3dd7634968230481fd9820a1badb587704b3",
+    "proof/resolved-tools.json": "cb8ff299bf57c805b927d576f6fd3dd7634968230481fd9820a1badb587704b3",
+    "proof/run_final_gates.py": "816b5b6037a659333f1b798a04c870a6479b2baf0a09fef54d4fe876f8b7a68f",
+    "proof/run_repaired.py": "9138faac95b5157794bf092cb3ae11ddaa89a2065752963a76fd8b08b01b6d4e",
+    "proof/source-artifacts.json": "bfb8bb649215e715ccb48b0ecc8fc855850ff895ab8492b4bc7d4bcb5440e57f",
+    "proof/test-identities.json": "d94e6c350fc5c4211bc090dc2d866594644b5241121b8804c2d057267d4baf13",
+    "repairs/tuisnap-code.patch": "50844650914c58bf4b7d056a58adfed9d9078e02c69f9b84c310fa15eedf7da5",
+    "repairs/tuisnap.bundle": "58bc361167557f7835f329bbc9e8b73e44fc1c45e351869b04148e51c7fbb750",
+    "repairs/vt100-upstream.json": "71f26a2ed3eda44859e0f311ff9de8897dcded18318b12f9d2cf167c036043f0",
+    "tests/test_integrity.py": "c360bb4471d11cc70923adac571b5ee9ed4f38d5e629b872412982224cbc0465",
+    "tuitest_smoke.py": "151815c99e7373e8a8cffb771a8cbc6e44a76dc17f1ac8a9b7ed3ff7ae163e5d"
+  }
+}

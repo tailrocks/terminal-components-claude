@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Foundations / Overview                                                                 truecolor · 160×50   i Inspector · on   ? Help
+
+   Foundations            Overview  Tokens and principles behind every component                                                    State
+▎› Overview
+                            Tokens                                          Principles                                              mode        NAV
+   Components                                                                                                                       focus       0·2 24×46
+   Buttons                      ▏ canvas                      #000000       One hue                                                 hover       suppressed
+   Inputs                       ▏ surface                     #111111       Green means focus, primary action or selection.         pressed     —
+   Text areas                   ▏ surface.elevated            #18181b       Everything else is achromatic.                          mouse       —
+   Forms                        ▏ surface.overlay             #27272a                                                               last key    i
+   Lists                        ▏ field                       #1e1e22       Alpha ladder                                            focus ring  1 stops
+   Trees                        ▏ popover                     #3f3f46       Text and borders step down in white opacity, never      hit regions 26
+   Tables                       ▏ border.subtle             white 15%       in arbitrary grays.                                     tick        0
+   Editable tables              ▏ border.strong             white 30%                                                               colors      truecolor
+   Panels                       ▏ text.primary                #ffffff       State is geometry
+   Sidebars                     ▏ text.secondary            white 70%       Hover lifts the surface, focus adds a bar,
+   Dialogs                      ▏ text.muted                white 50%       selection adds a marker, editing shows the cursor.
+   Progress                     ▏ text.faint                white 30%
+   Scrolling                    ▏ accent                      #48e054       Three planes
+   Terminal                     ▏ accent.hover                #3ab343       Canvas, surface, elevated. Depth comes from
+   Code editor                  ▏ accent.pressed              #2b8632       lightness, not borders.
+   Diff                         ▏ accent.bg                 green 20%
+   Data grid                    ▏ error                       #e44545       Quiet chrome
+   Chips & selects              ▏ warning                     #f59e09       Bold is reserved for the focused control. No box
+   Pickers                      ▏ info                        #8787ff       around a thing unless the box carries meaning.
+   Chrome
+
+   Screens                                                                  State language
+   Settings
+   Task runner                                                              ▎  focus
+                                                                            ░  hover lifts the surface
+                                                                            ›  current / chosen
+                                                                            ✓  checked
+                                                                            !  error
+                                                                            ▁  editing: cursor + underline
+                                                                            ○  disabled: faint, no hover
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

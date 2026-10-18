@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                   no project  devbox · development
+
+  Here    Clean Docker completely ✓ ×
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────
+  Clean Docker completely · 7 of 7 done               finished · 14 s · devbox
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓
+
+   ✓ 01 Stop running containers          –            ·     3 s
+   ✓ 02 Remove containers                01           ·     2 s
+   ✓ 03 Remove unused images             02           a     5 s
+   ✓ 04 Prune networks                   02           b     1 s
+   ✓ 05 Prune volumes                    02           c     2 s
+   ✓ 06 Prune builder and Buildx caches  02           d     3 s
+ ▎ ✓ 07 Rescan and report                03 04 05 06  join  1 s
+
+
+
+
+
+  7 succeeded
+  Next   Docker disk usage
+
+ /work/scratch                finished · 7 ok                 truecolor · 80×24
+  ↑↓ Step  Enter Maximise output  x Close  …   Clean Docker completely finished

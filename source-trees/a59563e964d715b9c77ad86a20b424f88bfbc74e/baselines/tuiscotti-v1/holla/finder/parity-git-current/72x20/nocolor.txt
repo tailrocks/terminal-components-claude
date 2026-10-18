@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help            svc · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+  › Review 1 modified files  git      parent  1 modified…             ┃
+                                                                      ┃
+    Recent here                                                       ┃
+    nothing used here yet                                             ┃
+                                                                      ┃
+    Explore                                                           ┃
+     Tasks   Git   Files   Disk   Services   System                   ┃
+    Parent · svc (Rust pro…  explore  parent  project root above thi… │
+
+    → git -C /Users/alex/work/svc status --short · parent · read-only
+
+ ~/work/svc/src/api   feature/x   ↓2 ↑1 • 1            no color · 72×20
+   Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …

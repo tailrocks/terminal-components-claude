@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "5400c719b5e0973aadd4325c9f6532eac6c448d81e7d4fc4210337ab43852555",
+  "artifacts": {
+    "ansi": {
+      "bytes": 5807,
+      "file": "tablepro/connections/delete-dialog/72x20/16.ansi",
+      "sha256": "5400c719b5e0973aadd4325c9f6532eac6c448d81e7d4fc4210337ab43852555"
+    },
+    "ascii": {
+      "bytes": 1284,
+      "file": "tablepro/connections/delete-dialog/72x20/16.ascii",
+      "sha256": "dc4f56cdddfb1db8bbbb1f3f32efd41429ead6fc629472cb7c1fba3f9eb43740"
+    },
+    "ascii_loss_json": {
+      "bytes": 27040,
+      "file": "tablepro/connections/delete-dialog/72x20/16.ascii.loss.json",
+      "sha256": "249f3337ac2e49eb256c7ded0e50f04dd157974acafaab4666c9f3f2ac115346"
+    },
+    "frame_json": {
+      "bytes": 334002,
+      "file": "tablepro/connections/delete-dialog/72x20/16.frame.json",
+      "sha256": "ca25110ee5ca50f15fcd44c96d80ef78124858ddf3b214a9676782dc8636c41d"
+    },
+    "html": {
+      "bytes": 222718,
+      "file": "tablepro/connections/delete-dialog/72x20/16.html",
+      "sha256": "4086954fc1bca478f528bbdd808889608d8d25ca415f525484f8f4ed4b49b004"
+    },
+    "observations_json": {
+      "bytes": 467,
+      "file": "tablepro/connections/delete-dialog/72x20/16.observations.json",
+      "sha256": "a22edc0d41501bc0930ec5e0dc10f688ece14c1b95cea7a85786d69c9848ff02"
+    },
+    "png": {
+      "bytes": 154138,
+      "file": "tablepro/connections/delete-dialog/72x20/16.png",
+      "sha256": "b9b7efdf8131fbdde4cfc36792970c8796d2845029682118b8e56b6b04f137b7"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "tablepro/connections/delete-dialog/72x20/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1863,
+      "file": "tablepro/connections/delete-dialog/72x20/16.txt",
+      "sha256": "782a1195e9e6de85c43e2a745afd3e69bc9b4482d147da494dd68102acfa846f"
+    }
+  },
+  "ascii_substitutions_count": 292,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 2628170490578187711,
+  "frame_sha256": "ca25110ee5ca50f15fcd44c96d80ef78124858ddf3b214a9676782dc8636c41d",
+  "generation": "c07a72ea30391f9f166d8ac33f087eff2149134efc74a8b3028586dc6b2a9e87",
+  "html_sha256": "4086954fc1bca478f528bbdd808889608d8d25ca415f525484f8f4ed4b49b004",
+  "legacy_name": "tablepro/connections/delete_dialog/72x20/16",
+  "name": "tablepro/connections/delete-dialog/72x20/16",
+  "png_sha256": "b9b7efdf8131fbdde4cfc36792970c8796d2845029682118b8e56b6b04f137b7",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:25Z",
+  "txt_sha256": "782a1195e9e6de85c43e2a745afd3e69bc9b4482d147da494dd68102acfa846f"
+}

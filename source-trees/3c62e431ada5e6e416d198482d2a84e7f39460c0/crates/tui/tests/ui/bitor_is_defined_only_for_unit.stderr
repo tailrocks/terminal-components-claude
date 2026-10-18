@@ -1,0 +1,13 @@
+error[E0369]: no implementation for `Response<u8> | Response<u8>`
+  --> tests/ui/bitor_is_defined_only_for_unit.rs:10:15
+   |
+10 |     let _ = a | b;
+   |             - ^ - Response<u8>
+   |             |
+   |             Response<u8>
+   |
+note: `Response<u8>` does not implement `BitOr`
+  --> src/response.rs
+   |
+   | pub struct Response<A = ()> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Response<u8>` is defined in another crate

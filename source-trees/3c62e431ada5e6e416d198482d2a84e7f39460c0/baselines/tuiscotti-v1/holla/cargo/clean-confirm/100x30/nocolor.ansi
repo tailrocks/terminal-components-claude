@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                     engine · Rust project  mbp · local [0m
+                                                                                                    [0m
+  Here                                                                                              [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── [0m
+   cargo clea╭────────────────────────────────────────────────────────────────────────╮pe ‹ here ›  [0m
+             │                                                                        │             [0m
+    Results ·│  [0m[1mcargo clean · 900.0 MiB[0m                                               │             [0m
+  › cargo cle│                                                                        │destructive  [0m
+    cargo cle│  Action        remove the resolved target directory                    │             [0m
+    Clean Car│                ~/work/engine/target · 2 files · tool-native permanent  │             [0m
+             │                removal, not Trash · rebuilt by the next build          │             [0m
+             │  Host          mbp · local                                             │             [0m
+             │  In            ~/work/engine                                           │             [0m
+             │  Scope         here                                                    │             [0m
+             │  Changes       900.0 MiB freed by cargo itself · permanent · next      │             [0m
+             │                build recompiles everything · shared target:            │             [0m
+             │                /Users/alex/work/engine-wt loses its artifacts too      │             [0m
+             │  Risk          destructive                                             │             [0m
+             │  Data          live · 2 s ago                                          │             [0m
+             │  Confirmation  one explicit confirmation · not remembered              │             [0m
+             │                                                                        │             [0m
+             │  cargo clean                                                           │             [0m
+             │                                                                        │             [0m
+             │                                                        ▎[0m[1mCancel [0m  Run   │             [0m
+             │                                                                        │             [0m
+             ╰────────────────────────────────────────────────────────────────────────╯             [0m
+    → cargo clean · here · destructive                                                              [0m
+                                                                                                    [0m
+ ~/work/engine   main                                                             no color · 100×30 [0m
+   [0m[1m    [0m         [0m[1m  [0m       [0m[1m     ← →[0m Choose [0m[1m Enter Co[0mnfirm  [0m[1mEsc[0m Cancel   [0m[1m       [0m        [0m[1m   [0m            [0m

@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      web · Node proje… · pnpm  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here
+  › Review cleanup candida…  cleanup  host  18.8 GiB across 18 catego…
+
+    Recent here
+    nothing used here yet
+
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · mbp             explore  host  available on this host
+
+    → 'holla cleanup review' · host · read-only
+
+ ~/Projects/web                                      256 colors · 72×20
+    Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  …

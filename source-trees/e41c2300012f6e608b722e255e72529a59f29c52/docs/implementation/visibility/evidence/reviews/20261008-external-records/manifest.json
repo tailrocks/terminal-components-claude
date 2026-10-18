@@ -1,0 +1,379 @@
+{
+  "manifest_schema": "termrock-visibility-review-archive/v1",
+  "created_at": "2026-10-08T04:21:19.000288+00:00",
+  "repository": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+  "work_item": {
+    "id": "VIS-07",
+    "branch": "termrock-implementation",
+    "base_sha": "e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2",
+    "accepted_queue_revision": 10,
+    "allowed_paths": [
+      "docs/implementation/visibility/evidence/reviews/**"
+    ]
+  },
+  "archive_purpose": "Byte-preserving archive of existing external review records. This manifest records source locations, raw hashes, sizes, and subject references; it creates no review decision.",
+  "records": [
+    {
+      "id": "language-v1",
+      "source_path": "/tmp/termrock-visibility-bootstrap-review/language-review-first.json",
+      "archive_path": "language-v1/language-review-first.json",
+      "size_bytes": 12664,
+      "sha256": "a49c84af0ea35a1cbc437d17424ca7151e52bf9f08dfae78aa40cb6351405754",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "parent_commit": "cc3ce8f6ac149aaee406047c5180d1a658d6bb9c",
+        "tree": "238cd2581ab5afa5e07c9cca7525122aa0729990",
+        "diff_sha256": "5415a9bb8b5dcfaa6e2e1bfd5e1cad74997afc4ead22637a55f288da5ff66f40",
+        "paths": [
+          "AGENTS.md",
+          "GOAL.md",
+          "README.md",
+          "STATUS.md",
+          "WORK_QUEUE.md",
+          "docs/implementation/visibility/tasks.json",
+          "tools/visibility/README.md",
+          "tools/visibility/source-facts.json",
+          "tools/visibility/status.py",
+          "tools/visibility/tests/test_status.py"
+        ],
+        "commit_binding": "not included"
+      }
+    },
+    {
+      "id": "language-v3-subject",
+      "source_path": "/tmp/termrock-visibility-bootstrap-review-v3/subject.json",
+      "archive_path": "language-v3/subject.json",
+      "size_bytes": 506,
+      "sha256": "6debdfaf1157308c812c9b9ac9d7619dafb241b72dac562fb49d77fdc751fcc9",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "parent": "5572f09f57053adb74c886cdab748650452531b6",
+        "tree": "e43045c03728182a875e899560144babe0a407f8",
+        "diff_sha256": "616352bc2cce294f61ce9d67fdff82149ad55a7a3700b52f40a15c0a8b29966e",
+        "paths": [
+          "AGENTS.md",
+          "GOAL.md",
+          "README.md",
+          "STATUS.md",
+          "WORK_QUEUE.md",
+          "docs/implementation/visibility/tasks.json",
+          "tools/visibility/README.md",
+          "tools/visibility/source-facts.json",
+          "tools/visibility/status.py",
+          "tools/visibility/tests/test_status.py"
+        ]
+      }
+    },
+    {
+      "id": "language-v3-technical",
+      "source_path": "/tmp/termrock-visibility-bootstrap-review-v3/technical-review.json",
+      "archive_path": "language-v3/technical-review.json",
+      "size_bytes": 1929,
+      "sha256": "88fc30efb05be38c10f3ab62dd4942c494d50a252c741652e8ef4475950ba37b",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "parent": "5572f09f57053adb74c886cdab748650452531b6",
+        "tree": "e43045c03728182a875e899560144babe0a407f8",
+        "diff_sha256": "616352bc2cce294f61ce9d67fdff82149ad55a7a3700b52f40a15c0a8b29966e",
+        "paths": [
+          "AGENTS.md",
+          "GOAL.md",
+          "README.md",
+          "STATUS.md",
+          "WORK_QUEUE.md",
+          "docs/implementation/visibility/tasks.json",
+          "tools/visibility/README.md",
+          "tools/visibility/source-facts.json",
+          "tools/visibility/status.py",
+          "tools/visibility/tests/test_status.py"
+        ]
+      }
+    },
+    {
+      "id": "language-v3-second",
+      "source_path": "/tmp/termrock-visibility-bootstrap-review-v3/language-review-second.json",
+      "archive_path": "language-v3/language-review-second.json",
+      "size_bytes": 3328,
+      "sha256": "41dcc2246f88fa6e6181fc78dce5422ffd30ea6a230ca3a8df5d21fff2584c8a",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "parent": "5572f09f57053adb74c886cdab748650452531b6",
+        "tree": "e43045c03728182a875e899560144babe0a407f8",
+        "diff_sha256": "616352bc2cce294f61ce9d67fdff82149ad55a7a3700b52f40a15c0a8b29966e"
+      }
+    },
+    {
+      "id": "language-v3-commit-binding",
+      "source_path": "/tmp/termrock-visibility-bootstrap-review-v3/commit-binding.json",
+      "archive_path": "language-v3/commit-binding.json",
+      "size_bytes": 353,
+      "sha256": "d560b6cde766bd128feac473544d51cd73adeb3816a646601f05799366f97734",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "commit": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+        "parent": "5572f09f57053adb74c886cdab748650452531b6",
+        "tree": "e43045c03728182a875e899560144babe0a407f8",
+        "diff_sha256": "616352bc2cce294f61ce9d67fdff82149ad55a7a3700b52f40a15c0a8b29966e"
+      }
+    },
+    {
+      "id": "queue-v2",
+      "source_path": "/tmp/termrock-queue-review-v2.json",
+      "archive_path": "queue-v2/queue-review-v2.json",
+      "size_bytes": 3575,
+      "sha256": "4e3f0ee8598dd9c5a431b3eb1226e920645dd1543f3dac4fe39498a42d37e4fe",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "work_id": "VIS-05",
+        "observed_head": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+        "reviewed_source_subject_commit": null,
+        "staged_subject": null,
+        "scope_status": null,
+        "files": [
+          {
+            "path": "tools/visibility/queue.py",
+            "sha256": "c10b3389ee252c78f17df516602d32a3ce43cbc36d3b671df18e343921ce5514"
+          },
+          {
+            "path": "tools/visibility/tests/test_queue.py",
+            "sha256": "a8f61ae362b3ad129114dd51a2823f635a2b10fca917404f9f6da95214af14d4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "queue-commit-subject",
+      "source_path": "/tmp/termrock-queue-commit-review/subject.json",
+      "archive_path": "queue-commit/subject.json",
+      "size_bytes": 292,
+      "sha256": "b4e58d8f9249445dee13dbb5e296c30bc5c59c966169215d2bfd193a9dabe05d",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+        "tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+        "diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+        "paths": [
+          "tools/visibility/queue.py",
+          "tools/visibility/tests/test_queue.py"
+        ]
+      }
+    },
+    {
+      "id": "queue-commit-technical",
+      "source_path": "/tmp/termrock-queue-commit-review/technical-review.json",
+      "archive_path": "queue-commit/technical-review.json",
+      "size_bytes": 1685,
+      "sha256": "f9e29df2844bb1df3716d320c3774809805b41b0894815344a658f6ac8da8ebc",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+        "tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+        "diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+        "paths": [
+          "tools/visibility/queue.py",
+          "tools/visibility/tests/test_queue.py"
+        ]
+      }
+    },
+    {
+      "id": "queue-commit-binding",
+      "source_path": "/tmp/termrock-queue-commit-review/commit-binding.json",
+      "archive_path": "queue-commit/commit-binding.json",
+      "size_bytes": 514,
+      "sha256": "64a6d4515aa7891dcd6fc40971724c4c11e108eb5bd3cdc1fa9ea88b2b5da12a",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "commit": "e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2",
+        "parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+        "tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+        "diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+        "paths": [
+          "tools/visibility/queue.py",
+          "tools/visibility/tests/test_queue.py"
+        ]
+      }
+    },
+    {
+      "id": "queue-commit-language",
+      "source_path": "/tmp/termrock-queue-commit-review/language-review.json",
+      "archive_path": "queue-commit/language-review.json",
+      "size_bytes": 6212,
+      "sha256": "5b1542e53c428d15e43347dc2c82ac5084928c8fb71997c0f7c75e1f61ea6f81",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "snapshot_parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+        "snapshot_tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+        "subject_diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+        "paths": [
+          "tools/visibility/queue.py",
+          "tools/visibility/tests/test_queue.py"
+        ],
+        "commit": {
+          "sha": "e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2",
+          "parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+          "tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+          "subject": "feat(visibility): enforce accepted work claims and priority"
+        }
+      }
+    },
+    {
+      "id": "queue-claim",
+      "source_path": "/tmp/termrock-queue-claim-review.json",
+      "archive_path": "queue-claim/queue-claim-review.json",
+      "size_bytes": 870,
+      "sha256": "ff8357ebf38cf43229da79e0d9cc0209f63bc843decd46534625a5481ce9d617",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "subject_sha256": "76bcffac8c31c52abce94d9ddb5e228b9feb4be79ce12fc1771a9c5614387994",
+        "meaning": "recorded allowed-path scope digest; not a staged-diff digest"
+      }
+    },
+    {
+      "id": "deferred-v1",
+      "source_path": "/tmp/termrock-deferred-review.json",
+      "archive_path": "deferred-v1/deferred-review.json",
+      "size_bytes": 18464,
+      "sha256": "668482c0ee157eda61495d289d4fb350395a7e0313175c673483ceb61e6123dd",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "work_id": null,
+        "observed_head": null,
+        "reviewed_source_subject_commit": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+        "staged_subject": null,
+        "scope_status": "worktree review only; not approval of a staged or committed subject",
+        "files": [
+          {
+            "path": "tools/visibility/deferred.py",
+            "sha256": "3f3d9794aa9afc9ee94b287e20ecc9179d69572cf4fbc25ff3e777daf54284f4",
+            "size_bytes": 40976
+          },
+          {
+            "path": "tools/visibility/tests/test_deferred.py",
+            "sha256": "6d50e87065837c91230cb747e73c55eefc859f32d745bd07770efcd17614e870",
+            "size_bytes": 13099
+          }
+        ]
+      }
+    },
+    {
+      "id": "deferred-v2",
+      "source_path": "/tmp/termrock-deferred-review-v2.json",
+      "archive_path": "deferred-v2/deferred-review-v2.json",
+      "size_bytes": 12691,
+      "sha256": "a0e36e328140ed95672d5e6425be6f79fb00f41f80d5de004ec53a66a308d5fb",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "work_id": null,
+        "observed_head": null,
+        "reviewed_source_subject_commit": null,
+        "staged_subject": null,
+        "scope_status": null,
+        "files": [
+          {
+            "path": "tools/visibility/deferred.py",
+            "sha256": "6e76c5491eec25630a53645c990b6e2a30adf7311ef057dbc11c5c5c06a872bf",
+            "size_bytes": 41771
+          },
+          {
+            "path": "tools/visibility/tests/test_deferred.py",
+            "sha256": "d2cf2bf9d98971292d38787f742a0c04a7f7f3d543e294c26640b1aa757a4b02",
+            "size_bytes": 14113
+          }
+        ]
+      }
+    },
+    {
+      "id": "archive-index-language-first",
+      "source_path": "/private/tmp/termrock-review-archive-language-first.json",
+      "archive_path": "archive-index-review/language-review-first.json",
+      "size_bytes": 4962,
+      "sha256": "aee2ed6f9c4769a36e927acd137aae06a36f06ebf9228ab22e3f86176595ddf2",
+      "json_parse_check": "passed",
+      "byte_copy_check": "passed",
+      "review_subject_reference": {
+        "path": "docs/implementation/visibility/evidence/reviews/20261008-external-records/index.md",
+        "sha256": "433c94cf1c70b287665f9134c98d0bcce90a4f91c3f3532b23e2527a62498d7f"
+      }
+    }
+  ],
+  "committed_diff_reconstructions": [
+    {
+      "review_bundle": "language-v3",
+      "commit": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+      "parent": "5572f09f57053adb74c886cdab748650452531b6",
+      "tree": "e43045c03728182a875e899560144babe0a407f8",
+      "actual_git_parent": "5572f09f57053adb74c886cdab748650452531b6",
+      "actual_git_tree": "e43045c03728182a875e899560144babe0a407f8",
+      "binding_matches_git": true,
+      "reconstruction_command": "git diff --binary --full-index --no-ext-diff <parent> <commit>",
+      "reconstructed_diff_size_bytes": 61787,
+      "reconstructed_diff_sha256": "616352bc2cce294f61ce9d67fdff82149ad55a7a3700b52f40a15c0a8b29966e",
+      "declared_subject_diff_sha256": "616352bc2cce294f61ce9d67fdff82149ad55a7a3700b52f40a15c0a8b29966e",
+      "external_subject_diff_size_bytes": 61787,
+      "external_subject_diff_sha256": "616352bc2cce294f61ce9d67fdff82149ad55a7a3700b52f40a15c0a8b29966e",
+      "digests_match": true,
+      "subject_diff_archived": false
+    },
+    {
+      "review_bundle": "queue-commit",
+      "commit": "e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2",
+      "parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+      "tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+      "actual_git_parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+      "actual_git_tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+      "binding_matches_git": true,
+      "reconstruction_command": "git diff --binary --full-index --no-ext-diff <parent> <commit>",
+      "reconstructed_diff_size_bytes": 102026,
+      "reconstructed_diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+      "declared_subject_diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+      "external_subject_diff_size_bytes": 102026,
+      "external_subject_diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+      "digests_match": true,
+      "subject_diff_archived": false
+    }
+  ],
+  "availability_checks": {
+    "language_review_v1": "ARCHIVED",
+    "language_review_v3_second_pass": "ARCHIVED",
+    "queue_commit_language_review": "ARCHIVED",
+    "raw_subject_diff_files": "PRESENT_EXTERNALLY_BUT_NOT_ARCHIVED",
+    "archive_index_language_review_first": "ARCHIVED"
+  },
+  "non_archived_references": [
+    {
+      "source_path": "/tmp/termrock-visibility-bootstrap-review/subject.json",
+      "referenced_by": "language-v1/language-review-first.json",
+      "reason": "The review record carries the frozen parent, tree, diff digest, and path list. The subject manifest was not in the approved archive list.",
+      "available": true,
+      "size_bytes": 506,
+      "sha256": "a5d73813664483eca27a02a4ab9fcc81ec91fc7599718c95ceed48c64d880c24"
+    },
+    {
+      "source_path": "/tmp/termrock-visibility-bootstrap-review-v2/language-review-second.json",
+      "referenced_by": "language-v3/language-review-second.json",
+      "expected_sha256": "7ebb5a6899f3676cdb0e642fd61a7db3e9aef5aaac8c84b227b510d9ded38481",
+      "reason": "The v3 record cites this earlier pass for inherited scope. It was not in the approved archive list.",
+      "available": true,
+      "size_bytes": 3426,
+      "sha256": "7ebb5a6899f3676cdb0e642fd61a7db3e9aef5aaac8c84b227b510d9ded38481"
+    }
+  ],
+  "scope_limits": [
+    "No reviewer identity is cryptographically authenticated by this archive.",
+    "No new review, admission, qualification, or milestone decision is created.",
+    "The language records report selected ASD-STE100 checks; they do not establish full dictionary or full-rule conformity."
+  ]
+}

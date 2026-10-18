@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "4427e30074b6ea428b89f1a09836637e5515f918fcac5f423bf38cdf728f1dec",
+  "artifacts": {
+    "ansi": {
+      "bytes": 6108,
+      "file": "showcase/chrome/menu_view/72x20/16.ansi",
+      "sha256": "4427e30074b6ea428b89f1a09836637e5515f918fcac5f423bf38cdf728f1dec"
+    },
+    "ascii": {
+      "bytes": 981,
+      "file": "showcase/chrome/menu_view/72x20/16.ascii",
+      "sha256": "8aea3e8b548158269af1864b382275d9da0d2b34a691f804770c7cd87ee3c835"
+    },
+    "ascii_loss_json": {
+      "bytes": 9587,
+      "file": "showcase/chrome/menu_view/72x20/16.ascii.loss.json",
+      "sha256": "d3e91e7976c6acc2a73e9ed963e758d96594938bbdb636b135001d926f82b346"
+    },
+    "frame_json": {
+      "bytes": 334326,
+      "file": "showcase/chrome/menu_view/72x20/16.frame.json",
+      "sha256": "7171e6c5c3ec7feea4bfbf677fa0fd520f88f43026411d62c39109fcfb5865af"
+    },
+    "html": {
+      "bytes": 315411,
+      "file": "showcase/chrome/menu_view/72x20/16.html",
+      "sha256": "92c2c4dfb085d9159e9cdadb9f68030e4c2ad6674ee391e30561149f4396033a"
+    },
+    "observations_json": {
+      "bytes": 455,
+      "file": "showcase/chrome/menu_view/72x20/16.observations.json",
+      "sha256": "aaa92dba86a90fef110e83b46c271c7464ace56a1eaec0737253669056517bb2"
+    },
+    "png": {
+      "bytes": 222006,
+      "file": "showcase/chrome/menu_view/72x20/16.png",
+      "sha256": "dd0db52bb64219dbaff4fd7fbdd7f86ec940a0ac54fec93e1385d5f10f4b1d0d"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "showcase/chrome/menu_view/72x20/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1184,
+      "file": "showcase/chrome/menu_view/72x20/16.txt",
+      "sha256": "ce9ad77769562d01ec0fbb532d3a5ee8162c9c0a56a0d5e36637ba4c2721c249"
+    }
+  },
+  "ascii_substitutions_count": 103,
+  "complete": true,
+  "dimensions": {
+    "cols": 72,
+    "rows": 20
+  },
+  "frame_digest": 4655785749924507743,
+  "frame_sha256": "7171e6c5c3ec7feea4bfbf677fa0fd520f88f43026411d62c39109fcfb5865af",
+  "generation": "2097ef0bc2eb4da5c65500a77b1d83dc1dfd80c401ba0b03b98eb1624a57ccdf",
+  "html_sha256": "92c2c4dfb085d9159e9cdadb9f68030e4c2ad6674ee391e30561149f4396033a",
+  "legacy_name": "showcase/flows/chrome/menu_view/72x20/16",
+  "name": "showcase/chrome/menu_view/72x20/16",
+  "png_sha256": "dd0db52bb64219dbaff4fd7fbdd7f86ec940a0ac54fec93e1385d5f10f4b1d0d",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:58Z",
+  "txt_sha256": "ce9ad77769562d01ec0fbb532d3a5ee8162c9c0a56a0d5e36637ba4c2721c249"
+}

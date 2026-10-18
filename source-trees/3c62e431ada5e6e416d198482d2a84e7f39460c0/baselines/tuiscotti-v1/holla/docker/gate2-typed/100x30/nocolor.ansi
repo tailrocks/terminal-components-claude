@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                       no project  devbox · development [0m
+                                                                                                    [0m
+  Here › Cl╭────────────────────────────────────────────────────────────────────────────╮           [0m
+ ━━━━━━━━━━│                                                                            │────────── [0m
+  Review · │  [0m[1mClean Docker completely · gate 2 of 2[0m                                     │ue delib…  [0m
+           │                                                                            │           [0m
+  Action   │  Action             remove all user-removable Docker state on devbox       │           [0m
+  Host     │  Host               devbox                                                 │           [0m
+  In       │  Steps              7 included                                             │           [0m
+  Steps    │  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7       │           [0m
+  Docker ac│                     volumes 4.1 GB · build cache 6.1 GB                    │ild cache  [0m
+           │  Reclaimable        ~18.4 GB                                               │           [0m
+  Reclaimab│  Recoverable        no · images, containers and volumes are permanent      │           [0m
+  Recoverab│                                                                            │           [0m
+  Not touch│  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-re…  │           [0m
+  Privilege│  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redi…  │           [0m
+  Uncertain│  docker image prune -a --force                                             │hem        [0m
+           │  docker network prune --force                                              │           [0m
+ ╭─ Sequenc│  docker volume prune -a --force                                            │ copies ─╮ [0m
+ │  01  doc│  docker builder prune -a --force … 2 more                                  │       ┃ │ [0m
+ │  02  doc│                                                                            │cache-…┃ │ [0m
+ │  03  doc│   [0m[1mType I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm         [0m  │       ┃ │ [0m
+ │  04  doc│ ▎ [0m[4mI UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox[0m                           │       │ │ [0m
+ │  05  doc│                                                                            │       │ │ [0m
+ ╰─────────│                                                                            │─────────╯ [0m
+           │                                                         Cancel   Execute   │           [0m
+           │                                                                            │ontinue…   [0m
+           ╰────────────────────────────────────────────────────────────────────────────╯           [0m
+ /work/scratch                        review · gate 1 of 2                        no color · 100×30 [0m
+ [0m[1m EDIT [0m         [0m[1m   [0m         [0m[1m   Type[0m Phrase  [0m[1mEnter[0m Next[0m[1m [0m [0m[1mEsc[0m Cancel     [0m[1m   [0m                          [0m

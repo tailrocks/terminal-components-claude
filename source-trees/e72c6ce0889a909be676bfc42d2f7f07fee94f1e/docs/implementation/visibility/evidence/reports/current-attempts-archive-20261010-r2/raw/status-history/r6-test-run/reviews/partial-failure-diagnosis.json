@@ -1,0 +1,86 @@
+{
+  "schema": "termrock-r6-four-failure-diagnosis/v1",
+  "verdict": "TWO_REQUESTED_LEGACY_FAILURES_ARE_STALE_ASSERTIONS",
+  "scope": "Read-only diagnosis of the two legacy-test failures identified by Root in the pinned VIS-01 R6 Nextest run; no source edits, Cargo, CLI, or test reruns.",
+  "run": {
+    "source_freeze": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/source-freeze.json",
+      "sha256": "6356d5a3e37ca5705d70ba6d1c0d8203e65121777c383c391a1fb92039003317",
+      "base_commit": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+      "base_tree": "bef0248d3df09bb832e1c219aca310725f0ba6d6"
+    },
+    "receipt": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/output/final-receipt.json",
+      "sha256": "4522aabb897d6ff5dc5d1b0f74ea065b797896f54dcff22c405ba9431357d573",
+      "result": "FAILED_EXIT",
+      "started": 53,
+      "passed": 49,
+      "failed": 4
+    },
+    "raw_stderr": {
+      "path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/output/nextest.stderr.log",
+      "sha256": "a360bde5cb88834b1b70ea872edd486def96e06b38782965a4b744e19ab66601"
+    }
+  },
+  "pinned_inputs": {
+    "tasks_json": {
+      "path": "docs/implementation/visibility/tasks.json",
+      "sha256": "20e6cec8a783e76046c42e59c3d1598410a7084f18e45f056f5efc092cbc73da",
+      "git_blob_at_882d516": "850a822562b0c5f6833435e5dbc6eba9a2ff8089",
+      "queue_revision": 65,
+      "branch_scope_rows": [
+        {
+          "index": 0,
+          "work_id": "VIS-01"
+        },
+        {
+          "index": 1,
+          "work_id": "VIS-02"
+        }
+      ]
+    },
+    "queue_py": {
+      "path": "tools/visibility/queue.py",
+      "sha256": "7498b8a905c0b67ad8ebef4df145b59ba88e70915bf363b84d914a8242d3c6a2",
+      "git_blob_at_882d516": "67af140d03e8135c4811b308251e113dea20c0df"
+    },
+    "status_md": {
+      "path": "STATUS.md",
+      "sha256": "9d8ae0bfa3418f802b19cb608970a23a89f4b7b1428fbf9dc73d93223e138d48"
+    },
+    "status_py": {
+      "path": "tools/visibility/status.py",
+      "sha256": "857b9958ec588fcb18aa1f5263a156cd1c6e24192a4cf56d8a99d0af7520732e"
+    },
+    "rust_test": {
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "sha256": "7b6944410974d2e6608ae205d0707ddfa6c8718c613675220e0a682e883cf584"
+    }
+  },
+  "findings": [
+    {
+      "test": "source_history_accepts_four_predecessors_and_rejects_malformed_bindings",
+      "location": "crates/termrock-visibility-tests/tests/status.rs:2164",
+      "expected_by_test": "verified candidate API/deferred result is FAILED: 22 of 23 passed, 1 failed",
+      "current_rendered_prose": "The candidate API/deferred test run FAILED: 22 of 23 tests passed; 1 failed.",
+      "evidence": [
+        "STATUS.md:6",
+        "tools/visibility/status.py:4503"
+      ],
+      "classification": "Stale prose assertion. The current checked-in report and the renderer agree on different wording, and the obsolete expected phrase appears only in the legacy assertion."
+    },
+    {
+      "test": "status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2",
+      "location": "crates/termrock-visibility-tests/tests/status.rs:1940",
+      "expected_by_test": "tasks[1].branch_scopes is a schema-v1 claim extension",
+      "source_input": "The exact tasks.json blob at published 882d516 has branch_scopes on tasks[0] VIS-01 and tasks[1] VIS-02.",
+      "source_validation": "migration_preview converts a copied schema-v1 record to v2; validate_records_v2 rejects branch_scopes while validating task rows in order (tools/visibility/queue.py:353-378, 2528-2561). The first diagnostic path is therefore tasks[0].branch_scopes.",
+      "additional_stale_assumption": "After the expected diagnostic, the test also asserts removed_scope_count == 1 at status.rs:1967; the pinned input contains two scoped rows.",
+      "classification": "Stale fixture-specific index/count expectations, not validation drift. The production v2 rejection remains fail-closed; the test's first mismatch is the row index, and its subsequent one-scope assumption is stale too."
+    }
+  ],
+  "limits": [
+    "The failed Rust test output reports only failed substring assertions; it does not print the full generated report or migration-preview stderr. The current error row is derived from the pinned input and validator iteration order, not directly captured as a raw CLI result.",
+    "This receipt addresses only the two requested legacy tests. It does not reassess the other two R6 failures or claim the R6 gate passes."
+  ]
+}

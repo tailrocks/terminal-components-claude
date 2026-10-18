@@ -1,0 +1,14 @@
+{
+  "commit": "e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2",
+  "subject": {
+    "parent": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+    "tree": "b74a0a1956c627377aeb0620637953dff52b7384",
+    "diff_sha256": "9054d1b803fbb11f2b55f33d3389b2501126c6789acadd494163ee7bd086cbc9",
+    "paths": [
+      "tools/visibility/queue.py",
+      "tools/visibility/tests/test_queue.py"
+    ]
+  },
+  "technical_review_sha256": "f9e29df2844bb1df3716d320c3774809805b41b0894815344a658f6ac8da8ebc",
+  "verified_parent_and_tree": true
+}

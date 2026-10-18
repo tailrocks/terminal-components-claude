@@ -1,0 +1,43 @@
+{
+  "base": {
+    "commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "object_store": "/private/tmp/termrock-root-integration-20261010.git",
+    "tree": "48e074b5503c227422d51faaa8d8a143a295d9da"
+  },
+  "changed_paths": [
+    {
+      "bytes": 319119,
+      "matches_r4b": true,
+      "path": "tools/visibility/status.py",
+      "sha256": "a165416f298b4e5cbdfba221a1b57db67b860cdc4a604dff6d90151b970b4cd4"
+    },
+    {
+      "bytes": 218427,
+      "changes": "Restore original manifest bytes between missing-member and unlisted-member probes; keep duplicate attempt row observed_at equal to its summary.",
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "r4b_sha256": "c7798eeaaf24d30488bd7dc1c89253202b4f23e4449c818d001c0f8b0678f93d",
+      "sha256": "771479e81e862c9de5e8ca63eb96539833fa2852c806ca56c61732f27ba29b47"
+    }
+  ],
+  "execution": {
+    "cargo": "NOT_RUN",
+    "runtime_claim": false,
+    "tests": "NOT_RUN"
+  },
+  "findings": [
+    "The duplicate-attempt probe now preserves summary timestamp consistency; sequence advances to 2 while run ID and attempt remain duplicated, allowing the validator to reach the duplicate-run-attempt guard.",
+    "The missing-member probe restores the original manifest bytes before the unlisted-path probe; facts are reset to the original bundle, so the latter reaches the archive-member binding guard.",
+    "The R5 test file differs from R4b only in those two fixture corrections. The production validator is byte-identical to R4b."
+  ],
+  "schema": "termrock-vis01-provider-poll-source-review/v1",
+  "scope": "R5 test-fixture corrections only; production validator unchanged",
+  "source_manifest": {
+    "path": "/private/tmp/termrock-vis01-provider-poll-variant-0b7545-r5-fixture-fixes-20261010/source-manifest.json",
+    "sha256": "8cd86631d0681abb6e207eee2ea52efd09c59682c00faa2be7f2acdca3e50b63"
+  },
+  "source_patch": {
+    "path": "/private/tmp/termrock-vis01-provider-poll-variant-0b7545-r5-fixture-fixes-20261010/source.patch",
+    "sha256": "2193eee5e0bfd92428cb2391fa49c5762cf42e13635203347cf693ee95678025"
+  },
+  "verdict": "READY_SOURCE_ONLY_NO_EXECUTION"
+}

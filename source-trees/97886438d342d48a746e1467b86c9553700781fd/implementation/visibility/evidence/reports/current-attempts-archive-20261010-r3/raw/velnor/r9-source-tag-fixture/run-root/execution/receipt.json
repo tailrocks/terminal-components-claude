@@ -1,0 +1,79 @@
+{
+  "schema": "termrock.vis11.fixture-focused-nextest-receipt/v1",
+  "status": "focused_tests_passed",
+  "qualification": "NOT_QUALIFIED",
+  "packet_sha256": "12330af41a8908ed3481e0748d1b9d6d5335d0264fde935b45439f3e3d9eaf77",
+  "runner_sha256": "8708f48faa4374d732d1e5c975467e89e96f4919af6f881346c7533775f8c463",
+  "source_root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+  "source_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+  "selected": 1,
+  "executed": 1,
+  "passed_ids": [
+    "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+  ],
+  "failed_ids": [],
+  "outcomes": [
+    {
+      "id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+      "status": "PASS",
+      "rows": [
+        "        PASS [   0.844s] (1/1) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::schema2_workflows_match_expected_bytes"
+      ],
+      "unique_status_rows": 1
+    }
+  ],
+  "command_receipt": {
+    "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution/command-1-receipt.json",
+    "bytes": 5835,
+    "sha256": "b32c8b9a7abc564e8f65c3d8655160d5ef7dfb9f22362a956bddaedb588f4e45"
+  },
+  "source_after": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+    "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+    "entries": 3457,
+    "files": 2608,
+    "directories": 842,
+    "symlinks": 7,
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "selected_test_functions": 1,
+    "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+  },
+  "cache_after": {
+    "archive_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+    "archives": 406,
+    "archive_bytes": 59163074,
+    "source_index_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+    "source_index_files": 20133,
+    "source_index_directories": 3666,
+    "source_index_actual_file_bytes": 441286079,
+    "source_index_declared_file_bytes": 200791635,
+    "extracted_package_directories": 406,
+    "cargo_ok_markers": 406,
+    "qualification": "NOT_QUALIFIED"
+  },
+  "mutable_global_cache_before": {
+    "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home/.global-cache",
+    "type": "file",
+    "bytes": 118784,
+    "sha256": "8040cd60bf257399d8296e4dc236331cef794c6bcd166b279fc722190ab1868c",
+    "mode": 420,
+    "status": "observed_separately_mutable_not_offline_input"
+  },
+  "mutable_global_cache_after": {
+    "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home/.global-cache",
+    "type": "file",
+    "bytes": 118784,
+    "sha256": "d914b4df873c4dd8b4434b4ffa36b9d8346b0ada2bf26b94f533980df052caa1",
+    "mode": 420,
+    "status": "observed_separately_mutable_not_offline_input"
+  },
+  "elapsed_ms": 51726,
+  "deadline_ms": 1200000,
+  "nonclaims": [
+    "No Cargo, Nextest, build, CLI, or test was run during preparation of this packet.",
+    "The R15 captured output is only provenance for one authorized expected tool fixture; this packet does not claim tool, workspace, release, tag, signature, or product qualification.",
+    "The source is a Git-less external snapshot with no source commit or remote identity asserted.",
+    "The R8 actual one-test failure is preserved as historical evidence; this successor does not overwrite or relabel it.",
+    "The Root admission is limited to the one expected Velnor tool fixture and excludes Termrock corpus admission."
+  ]
+}

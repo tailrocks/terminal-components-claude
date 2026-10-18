@@ -1,0 +1,28 @@
+{
+  "schema": "termrock-vis06-pair-build-runner-independent-review/v1",
+  "verdict": "READY_FOR_ROOT_EXECUTION_REVIEW",
+  "reviewed_at_utc": "2026-10-09",
+  "runner_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-runner-r4.cjs",
+  "runner_sha256": "4e75182162124f6b8398c305feba33021cdfc11463eca83ee6d1c4f23b1c322c",
+  "preflight_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-178a-20261009-1052Z-r3-attempt-04/preflight.json",
+  "preflight_sha256": "c0e88ff9594195c1e509940f0a761dab689c2786b002183bb69f9a94af349212",
+  "selected_test": "supervises_real_holla_pair_build",
+  "scope": "Read-only runner/preflight review. This receipt is not execution authorization.",
+  "checks": {
+    "command": "Exact Cargo Nextest command selects target subjects with --run-ignored only and -E test(supervises_real_holla_pair_build), --locked, --offline, jobs=2, threads=1, no retries, no fail-fast, and a 25-minute outer timeout.",
+    "selection": "Preflight pins one selected ignored pair-build supervisor, 15 ordinary tests filtered, and the other ignored product builder not selected; the selected supervisor builds both Holla executables without launching, PTY capture, or admission.",
+    "provenance": "Runner/preflight bind project HEAD 178a6637bf32972147fdc5d979f491d42773721d, source review f2496b5a191386bf0c55af561dab5b4bd28037c9c2398d335f00a6174aa84402, current three-constant source facts/helper/package hashes, E2E suite identity and Git blob inventory, copied lock blobs, cache closure and independent cache review, and pinned tool/SDK/wrapper hashes.",
+    "prelaunch": "R4 compares the full preflight input snapshot and exact command/environment before spawn, requires fresh attempt/target/product-output roots, and compares the preflight's empty registry/src and git/checkouts inventories again immediately before invocation.",
+    "output_scope": "Postflight records run evidence, subject manifest, builder receipts, built executable bytes/hashes, compiler traces, and resolved Cargo source trees. Target intermediates are excluded by design.",
+    "parser": "Parser requires one unique Nextest run ID, one matching aggregate summary, and one selected 1/1 terminal row; it rejects unexpected terminal rows/status/counts.",
+    "process_handling": "Detached process group, 8 MiB cap per stream, timeout, TERM/KILL/close deadlines, survivor check, fsynced bounded raw logs, and cleanup state are recorded.",
+    "incomplete_exit": "R4 maps an incomplete wrapper gate to exit 125 even when Cargo exits zero; a complete test failure maps to Cargo's nonzero exit or 1 if Cargo returned zero."
+  },
+  "limitations": [
+    "Preflight reports cargo_nextest_run_spawned:false; it does not demonstrate a build or test run.",
+    "clang -### records the selected linker command but does not prove a separate ld process execution.",
+    "This review grants no Cargo/Nextest execution; Root must separately authorize the exact runner and preflight hashes."
+  ],
+  "cargo_or_nextest_run_by_reviewer": false,
+  "source_or_project_edits": false
+}

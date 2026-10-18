@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help        Workspaces › payments-platform › edit  • 1 change  inside the Construct  2 running
+
+
+   General    Mounts •    Roles    Environments    Accounts
+  ───────────────────────━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────
+
+    Allowed roles  3 of 46                                                                   default ★ the-architect
+  ▎›   [✓] the-architect ★  registry · trusted · Full-stack design and refactoring; Claude Code default              ┃
+  ▎    [✓] backend          registry · trusted · Rust and Postgres services                                          ┃
+  ▎    [✓] reviewer         registry · trusted · Read-mostly code review with limited write scope                    ┃
+  ▎    [ ] sre              registry · trusted · Infrastructure, Terraform, Kubernetes                               ┃
+  ▎    [ ] data-eng         ! load error · trust required                                                            ┃
+  ▎    [ ] writer           ~/roles/writer · not in registry                                                         ┃
+  ▎    [ ] svc-001         ╭────────────────────────────────────────────────────────────────╮                        ┃
+  ▎    [ ] svc-002         │                                                                │                        ┃
+  ▎    [ ] svc-003         │  Save workspace                                                │                        ┃
+  ▎    [ ] svc-004         │                                                                │                        ┃
+  ▎    [ ] svc-005         │  Workspace  payments-platform                                  │                        ┃
+  ▎    [ ] svc-006         │  Scope      workspace config · ~/.jackin/workspaces/payments…  │                        ┃
+  ▎    [ ] svc-007         │  Changes    1 change                                           │                        ┃
+  ▎    [ ] svc-008         │  Mounts     0 added · 1 modified · 0 removed                   │                        ┃
+  ▎    [ ] svc-009         │                                                                │                        ┃
+  ▎    [ ] svc-010         │  ~ mount /workspace/payments-platform  rw · worktree → ro · …  │                        ┃
+  ▎    [ ] svc-011         │                                                                │                        ┃
+  ▎    [ ] svc-012         │                                               ▎Cancel  ▎Save   │                        │
+  ▎    [ ] svc-013         │                                                                │                        │
+  ▎    [ ] svc-014         ╰────────────────────────────────────────────────────────────────╯                        │
+  ▎    [ ] svc-015          registry · trusted · notify service agent #15                                            │
+  ▎    [ ] svc-016          registry · trusted · ingest service agent #16                                            │
+  ▎    [ ] svc-017          registry · trusted · auth service agent #17                                              │
+  ▎    [ ] svc-018          registry · trusted · billing service agent #18                                           │
+  ▎    [ ] svc-019          registry · trusted · ledger service agent #19                                            │
+  ▎    [ ] svc-020          registry · trusted · search service agent #20                                            │
+  ▎    [ ] svc-021          registry · trusted · notify service agent #21                                            │
+  ▎    [ ] svc-022          registry · trusted · ingest service agent #22                                            │
+  ▎    [ ] svc-023          registry · trusted · auth service agent #23                                              │
+
+                                                                                                 ▎Cancel    ▎Save…
+
+                                ← → Choose  Enter Confirm  Esc Cancel    /workspace/payments-platform · isolation clone

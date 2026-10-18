@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "e124016f81667e38cf5a9311a008bc02dd61f303a6f74ea1f69d3183e52b09e9",
+  "artifacts": {
+    "ansi": {
+      "bytes": 9733,
+      "file": "showcase/taskrunner/default/120x40/16.ansi",
+      "sha256": "e124016f81667e38cf5a9311a008bc02dd61f303a6f74ea1f69d3183e52b09e9"
+    },
+    "ascii": {
+      "bytes": 1556,
+      "file": "showcase/taskrunner/default/120x40/16.ascii",
+      "sha256": "d22dec3c36cda23228dc0831f7ce4c0fd918026fc192943dd187de3b960f1048"
+    },
+    "ascii_loss_json": {
+      "bytes": 1270,
+      "file": "showcase/taskrunner/default/120x40/16.ascii.loss.json",
+      "sha256": "12e5737828542bd4e1a30d07b8490d92b189df02c24a002a27068c3f79cc8d55"
+    },
+    "frame_json": {
+      "bytes": 1116921,
+      "file": "showcase/taskrunner/default/120x40/16.frame.json",
+      "sha256": "ba26fc13178745242d7fcdb84048cef260d3178557636416b1730d94e23d20f0"
+    },
+    "html": {
+      "bytes": 472210,
+      "file": "showcase/taskrunner/default/120x40/16.html",
+      "sha256": "2d670ef718a75362829ecbcb6286bf1b7ff5c71de37f39d703f54e6f651f765a"
+    },
+    "observations_json": {
+      "bytes": 455,
+      "file": "showcase/taskrunner/default/120x40/16.observations.json",
+      "sha256": "f1a2480d7f8a1064fa1cf765b6df4c7b24e1673f5b1487f941c0c04bd29e7006"
+    },
+    "png": {
+      "bytes": 337202,
+      "file": "showcase/taskrunner/default/120x40/16.png",
+      "sha256": "0285b390320b8846fdeac841800f5f9475d0e33a2180bfc4ab9157a941664593"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "showcase/taskrunner/default/120x40/16.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 1579,
+      "file": "showcase/taskrunner/default/120x40/16.txt",
+      "sha256": "a0c647e9dd3d5c4e69287fa2f2bc207b1050de29d8a2669b3c2af88f2618d568"
+    }
+  },
+  "ascii_substitutions_count": 13,
+  "complete": true,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 12103998160788633684,
+  "frame_sha256": "ba26fc13178745242d7fcdb84048cef260d3178557636416b1730d94e23d20f0",
+  "generation": "3b0296c540727da0aea039f2e00dc71114d0f6ba2b4586229a65f32cb5319e5c",
+  "html_sha256": "2d670ef718a75362829ecbcb6286bf1b7ff5c71de37f39d703f54e6f651f765a",
+  "legacy_name": "showcase/pages/taskrunner/120x40/16",
+  "name": "showcase/taskrunner/default/120x40/16",
+  "png_sha256": "0285b390320b8846fdeac841800f5f9475d0e33a2180bfc4ab9157a941664593",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:11:11Z",
+  "txt_sha256": "a0c647e9dd3d5c4e69287fa2f2bc207b1050de29d8a2669b3c2af88f2618d568"
+}

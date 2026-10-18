@@ -1,0 +1,157 @@
+{
+  "schema": "termrock-vis01-nextest-actual-result-independent-review/v1",
+  "reviewer": "current_branch_comparison_luna",
+  "created_at_utc": "2026-10-10T02:10:25Z",
+  "verdict": "ACTUAL_STATUS_TARGET_59_OF_59_PASS_CONFIRMED",
+  "scope": "Read-only semantic review of the actual VIS-01 status target result. No rerun, Cargo, source edits, or target mutation was performed by this reviewer.",
+  "bindings": {
+    "packet_root": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet",
+    "reader_report": {
+      "path": "run-output/reader-report-root.json",
+      "sha256": "0f0f7089554cf5457ab83e5f28373cb41791bb9e3f3cf5db61fe220f32603f76"
+    },
+    "reader_request": {
+      "path": "run-output/reader-request.json",
+      "sha256": "2e6485cb514540c09f05673481f267b9e68a30ed562cbba308140ad561c5ce2b"
+    },
+    "reader_selection": {
+      "path": "selection-v2.json",
+      "sha256": "30a9f314bafaf1f61049a4abb85650da8b344315764b757962cf779892fca924"
+    },
+    "test_name_inventory": {
+      "path": "test-names.json",
+      "sha256": "9166a8a4b4a30130c3ddb6f37945a565972f7f3ee9a615d23b08680aba4503c7"
+    },
+    "list_capture": {
+      "path": "list-capture/raw/list.stdout.json",
+      "sha256": "00ad8ecbc2719e5fb3eed59eef5098221e64f2514c9a4f1878ce68fb11502289",
+      "process_path": "list-capture/raw/list-process.json",
+      "process_sha256": "9817c32e7fc25bdfc5ad7c623bf2307e7534f4aa3fcbf6533a26f810b99a2504",
+      "stderr_sha256": "4f6271657128f04ea20669f6432f503ff272b3a68ef6a925fca4d4a80facb981"
+    },
+    "raw_run_process": {
+      "path": "run-output/run-process.json",
+      "sha256": "ab9fa8dae49d6b0dfd631c2cb210924ac679eb42f2609f14cc8fd5ee030c1463"
+    },
+    "raw_test_stream": {
+      "path": "run-output/nextest.stdout.jsonl",
+      "sha256": "14be4021ed8ce4b1c23457d52c47717c3375223dd0af6e28b018e6491fcaa3fc"
+    },
+    "run_stderr": {
+      "path": "run-output/nextest.stderr.log",
+      "sha256": "97f9253c9973f71a670069af4321a159a31a269841b3bf8b42455a5c3b72de97"
+    },
+    "source_freeze": {
+      "path": "source-freeze.json",
+      "sha256": "d249bba0ce3ddce9e5b7c4debb50564bcf832cefcfd915ceb8abb52dd30100f5",
+      "base_commit": "57d505f343bf35e5041471f4cbab476cb92d67da",
+      "base_tree": "965aef70b90ca0a8a4be2f869da839a3711245d8",
+      "allowed_paths": [
+        "tools/visibility/status.py",
+        "crates/termrock-visibility-tests/tests/status.rs"
+      ]
+    },
+    "source_manifest": {
+      "path": "source-manifest.json",
+      "sha256": "d1ff1d7f9a93c4da1cd3afe4eab547c02b163e691a9fdb454547ab5b9f96fcf4",
+      "execution_source_root": "/private/tmp/termrock-vis01-product-phases-r3-nextest-20261010/source-root",
+      "source_test_file_sha256": "7efa372f27b1537cbdf5add2568e62c43d43c42d7a30f29c1fc2e1b661440e0f"
+    },
+    "inventory_binding": {
+      "path": "inventory-binding.json",
+      "sha256": "b6bd6ece4ef0cbc7b521796e4cf46a1a00de77608ff83f8a08772ca6deffea9f"
+    },
+    "runplan": {
+      "path": "runplan.json",
+      "sha256": "abe5e8f407189bb5751ec49a21a33542ed55a8309fc29044fa454562e12b145a"
+    },
+    "packet_sums": {
+      "path": "SHA256SUMS",
+      "sha256": "c770704e73dc7c7cd57fa96a6f122adf308c2743a1acd2961531db7ace80470a",
+      "entries_verified": 15
+    },
+    "independent_raw_controls_review": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/actual-run-independent-review-controls-wrapper-luna.json",
+      "sha256": "8284a9f1eee62c16e79a6eba57dee31310ce69e289ecf8d78ac48444fe004bb4",
+      "verdict": "RAW_EXECUTION_PROVENANCE_READY_FOR_RUST_READER_V2",
+      "scope_note": "This separate receipt covers execution provenance, not Nextest semantics."
+    },
+    "independent_source_review": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-independent-review-controls-luna-20261010.json",
+      "sha256": "5cb011afc154a812a95368998ddb6cb1fd14a2ee677a1380d6b5288b3cf917c7",
+      "verdict": "READY_SOURCE_DELTA_ONLY"
+    }
+  },
+  "verified": {
+    "run_id": "termrock-vis01-status-59-r2-20261010",
+    "target": {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "nextest": "0.9.146",
+      "message_format": "libtest-json-plus",
+      "version": "0.1"
+    },
+    "selection": {
+      "expected_count": 59,
+      "list_count": 59,
+      "reader_report_count": 59,
+      "selection_count": "59",
+      "selection_sha256": "30a9f314bafaf1f61049a4abb85650da8b344315764b757962cf779892fca924",
+      "matches_list": true,
+      "matches_inventory": true,
+      "required_cases_count": 59
+    },
+    "identity_crosscheck": {
+      "report_vs_list": "exact 59-identity set match",
+      "report_vs_selection": "exact 59-identity set match",
+      "report_vs_test_name_inventory": "exact 59-identity set match",
+      "raw_jsonl_started": "59 unique identities, no duplicates",
+      "raw_jsonl_terminal": "59 unique ok outcomes, no duplicates",
+      "raw_jsonl_started_and_terminal_vs_report": "exact identity set match",
+      "sorted_identity_set_sha256": "a29f998c8bcf3fd67dafa741b50d4f94e39a724db255070cb8a930b3e5ce40fb"
+    },
+    "outcomes": {
+      "all_selected_passed": true,
+      "all_59_reported_outcome": "ok",
+      "suite": {
+        "passed": "59",
+        "failed": "0",
+        "ignored": "0",
+        "measured": "0",
+        "filtered_out": "0",
+        "test_count": "59"
+      },
+      "summary": "59 tests run: 59 passed, 0 skipped",
+      "anomalies": [],
+      "errors": [],
+      "contradictions": []
+    },
+    "process": {
+      "list_exit_code": 0,
+      "run_exit_code": 0,
+      "wrapper_exit_code": 0,
+      "timed_out": false,
+      "output_capped": false,
+      "stream_truncated": false,
+      "combined_run_bytes": 32294,
+      "combined_cap_bytes": 16777216
+    },
+    "input_stability": {
+      "source_stable": true,
+      "tools_stable": true,
+      "cache_stable": true,
+      "post_errors": [],
+      "source_digest_before_after": "9e234c90be89e1a5468e3469c4d4012580008e5236ec7c3cf873b4facb7166a4",
+      "tool_digest_before_after": "cfc6729c345cb98a251734debef9bc947884ff6e5bb54c8369aec3026e35f0a2",
+      "cache_digest_before_after": "3f2646393a993bc7d932c346d761bd12916100fd08883a98e40fa488c75c7a73"
+    },
+    "target_observation": {
+      "target_before_matches_spawn": true,
+      "target_before_digest": "a6be1891c15335dd9a0117735aff6db3322fd06675349cb25b725ceefeb99983",
+      "target_after_digest": "67131f920a7e0843f3c7c2d75afc630dee74b352daca794b8f8db3b75f07e0db",
+      "interpretation": "The target directory changed during the test command; this review does not claim target immutability."
+    }
+  },
+  "limits": "Confirms only the recorded 59-test status integration target for this frozen source and invocation. It does not establish full-workspace, CI, product, release, or current-tip qualification."
+}

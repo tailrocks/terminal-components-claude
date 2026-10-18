@@ -1,0 +1,61 @@
+{
+  "schema": "termrock.vis11.fixture-focused-nextest-terminal/v1",
+  "index": 1,
+  "exit_code": 100,
+  "signal": null,
+  "close_seen": true,
+  "close_grace_expired": false,
+  "timed_out": false,
+  "overflow": false,
+  "launch_error": null,
+  "output": {
+    "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r8-source-tag-guard-luna-20261010/run-root/execution/command-1.log",
+    "bytes": 59985,
+    "sha256": "8440a9a8f9f08cf8f27a838e6f51fc9f1d3a1c0fc7db09849c8d522670bebdd4",
+    "complete": true
+  },
+  "summary": {
+    "lines": [
+      "Summary [   0.781s] 1 test run: 0 passed, 1 failed, 86 skipped"
+    ],
+    "count": 1,
+    "valid": true,
+    "executed": 1,
+    "passed": 0,
+    "failed": 1
+  },
+  "outcomes": {
+    "rows": [
+      {
+        "id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+        "status": "FAIL",
+        "raw_line": "        FAIL [   0.779s] (1/1) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::schema2_workflows_match_expected_bytes"
+      }
+    ],
+    "outcomes": [
+      {
+        "id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+        "status": "FAIL",
+        "rows": [
+          "        FAIL [   0.779s] (1/1) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::schema2_workflows_match_expected_bytes"
+        ],
+        "unique_status_rows": 1
+      }
+    ],
+    "passed": [],
+    "failed": [
+      "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+    ],
+    "unmatched": [],
+    "exact_one_row_per_selected_test": true
+  },
+  "process_group_signals": [
+    {
+      "signal": "SIGKILL",
+      "sent": false,
+      "error": "kill ESRCH",
+      "reason": "final_process_group_cleanup"
+    }
+  ],
+  "passed": false
+}

@@ -1,0 +1,77 @@
+{
+  "schema": "termrock.vis01.actual-result-review.v1",
+  "verdict": "ACTUAL_FAILURE_CONFIRMED; NO_RERUN",
+  "reviewer": "/root/subjects_runner_review_luna",
+  "review_scope": "Read-only review of the executed R7 full status-target result, raw Nextest streams/events, and the exact failing test/source path. No rerun or edits.",
+  "packet": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet",
+  "pins": {
+    "runner_result_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet/output/final-receipt.json",
+    "runner_result_sha256": "8e6d08143d04ebe85450dcb0906a49157a43e04637085d48e15035881fb06e0d",
+    "runner_sha256": "d4cd18301396f4f3dff93330b98ac3ef3cb71b3c7f58db189ee6bc147aac6471",
+    "runplan_sha256": "f0a4f859b71ed2a2742809ce664af1e6baddc5caba294b317741ad96c34d3ae2",
+    "preflight_sha256": "36ca6671c10e066e000817b20da9df868cb2abf55dcfc099e158c478d82c69ad",
+    "source_manifest_sha256": "55d4643858acf670182d36931e231799a25ab83de0406654aba9dacde08d8642",
+    "source_freeze_sha256": "ed1c8e5245d440fb937a5b623946f8e836052b2c47ddcc4afcaea42d0cf33d24",
+    "status_test_source_sha256": "620688b19abfd82ab5521410268bf4d1eabfc647fd23ce71444017845f3ab7e0",
+    "queue_py_sha256": "7498b8a905c0b67ad8ebef4df145b59ba88e70915bf363b84d914a8242d3c6a2",
+    "checked_in_tasks_sha256": "f4df5c37603dbbf09804ae004df25c7a4d2da265e8a1cd0aec98ecb0c6436cab",
+    "stdout_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet/output/nextest.stdout.jsonl",
+    "stdout_sha256": "f703822aa0b3eef61619228af5fba2afbab920f4a78a55c20c6ca3ae54e7aa6c",
+    "stderr_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet/output/nextest.stderr.log",
+    "stderr_sha256": "0e06fb78ff907d59a33540b1b4957bd3249140f8346569e859a1d7724c0bbbe6",
+    "process_events_sha256": "d117bca999abe6414f829fe5e09338017aaf1143b01d6d9dcaca575ce0f0be59"
+  },
+  "observed_result": {
+    "runner_status": "FAILED_EXIT",
+    "cargo_nextest_child_exit": 100,
+    "nextest_run_id": "7ec9bea5-1d64-4076-a563-78eac80aa509",
+    "selected_target": "termrock-visibility-tests::status",
+    "selected_tests_started": 53,
+    "passed": 52,
+    "failed": 1,
+    "incomplete": 0,
+    "failed_test": "status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2",
+    "failure_location": "crates/termrock-visibility-tests/tests/status.rs:2030",
+    "assertion_error": "visibility queue error: VIS-01.claim_history[3] claim snapshot has missing or unknown fields",
+    "left_exit_code": 2,
+    "expected_exit_code": 0,
+    "timed_out": false,
+    "signaled": false,
+    "output_cap_exceeded": false,
+    "direct_child_reaped": true,
+    "artifact_contract_ok": true,
+    "source_stable_before_after": true,
+    "tool_stable_before_after": true,
+    "cache_stable_before_after": true,
+    "packet_input_changes": []
+  },
+  "failure_diagnosis": {
+    "classification": "The test's synthetic representable-v1 fixture removes the optional branch_scopes field from current task objects but leaves it in a historical claim snapshot.",
+    "evidence": [
+      "status.rs:1990-2009 removes branch_scopes from current task objects and asserts two removals; it does not traverse claim_history snapshots.",
+      "The checked-in VIS-01 claim_history[3].claim contains branch_scopes.",
+      "queue.py:2550-2558 copies the v1 records, sets schema_version=2, adds repository_id/worktree_id to current tasks and every historical claim snapshot, and retains other snapshot fields.",
+      "queue.py:474-481 requires a v2 historical claim snapshot to have exactly CLAIM_SNAPSHOT_V2_FIELDS, which is CLAIM_SNAPSHOT_FIELDS plus repository_id/worktree_id; branch_scopes is not allowed in that v2 key set.",
+      "Raw stderr reports the same VIS-01.claim_history[3] missing-or-unknown-fields validation error at the test's successful-preview assertion."
+    ],
+    "narrow_test_fixture_followup": "For the test's representable synthetic v1 input, normalize historical snapshots as well as current tasks: remove or otherwise explicitly convert the v1-only branch_scopes extension in claim_history before migration-preview, and assert the fixture conversion count/absence. Keep the production v2 exact-key validator unchanged. If migration is required to preserve historical scoped-branch semantics, define and test an explicit mapping separately rather than silently accepting/dropping unknown v2 fields.",
+    "not_established": "This review does not decide or qualify general migration behavior for real v1 records containing historical branch_scopes; it identifies the concrete malformed synthetic input used by this test."
+  },
+  "artifact_and_snapshot_notes": {
+    "source_before_sha256": "0c95cbe384063875e5216d6d391253eeaaa3750c2473a43b193b01828ee33b7d",
+    "source_after_sha256": "0c95cbe384063875e5216d6d391253eeaaa3750c2473a43b193b01828ee33b7d",
+    "tool_before_sha256": "0e3d47598acc7adc7050d8054234c75a6261532a807bfc09c9d6cb37550c0158",
+    "tool_after_sha256": "0e3d47598acc7adc7050d8054234c75a6261532a807bfc09c9d6cb37550c0158",
+    "cache_before_sha256": "833396369762e6bc85e0533be1eba3747533f0919615da8b4a4936bfd8a510db",
+    "cache_after_sha256": "833396369762e6bc85e0533be1eba3747533f0919615da8b4a4936bfd8a510db",
+    "target_before_sha256": "b0ac4c421839ae45aff2ad36b88d80f384cfaf0eb4fa31eb9b7f7cc15a8537e7",
+    "target_after_sha256": "16da954a144f225008872bf50d9bbe4c905b0e7ef3cc672b7931cf10451cb205",
+    "target_observation": "The fresh target changed during the authorized build/test command; the exact status executable and fixture executable/.d source provenance checks passed. This is expected build output and does not turn the failed test into a pass."
+  },
+  "claims_and_limits": {
+    "history": "Preserve this R7 run as 52/53 pass with one required failure and child exit 100. It is not a 53/53 pass.",
+    "wrapper": "The runner correctly records FAILED_EXIT from the real child failure; this is not a parser-only or wrapper-only failure.",
+    "scope": "The failure occurred in the selected status rendering/migration-preview test before the later v2 negative assertions in that test; all other 52 selected cases passed in this run.",
+    "qualification": "No product readiness, qualification, admission, live publisher, or other target claim is made. No execution was performed by this reviewer."
+  }
+}

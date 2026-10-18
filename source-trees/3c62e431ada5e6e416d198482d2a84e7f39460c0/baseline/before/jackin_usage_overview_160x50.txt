@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                                                 Usage › Overview  inside the Construct  2 running
+
+ ╭─ Usage · read-only ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── ⠋ refreshing 1 ─╮
+ │  ▎› Overview                               Overview                                                                              12 accounts · 8 providers │
+ │    Anthropic                                                                                                                                               │
+ │  ▎    Personal  ★                          Health       degraded · 4 warnings · 1 exhausted · 2 stale · 1 refreshing · 3 failed · 1 quota not visible · 2… │
+ │  ▎    Archived contractor lapt… disabled   Freshness    5 of 11 current · broker projection 3 s ago                                                        │
+ │  ▎    Work                             !   Registry     12 accounts · 11 enabled · 1 disabled · 8 providers                                                │
+ │    OpenAI                                                                                                                                                  │
+ │  ▎    Primary  ★                           Provider     Accounts  Worst window               Status                                                        │
+ │  ▎    Experiments                      ⠋   Anthropic    2         Weekly · Opus 100%         ! exhausted                                                   │
+ │    Amp                                     OpenAI       2         Weekly · 7-day 59%         current                                                       │
+ │  ▎    discovered                       ▲   Amp          1         Amp Free · daily 91%       ▲ warning                                                     │
+ │    xAI                                     xAI          1         On-demand usage 100%       current                                                       │
+ │  ▎    Team  ★                              Z.AI         1         Weekly 76%                 ▲ warning                                                     │
+ │    Z.AI                                    Kimi         1         —                          needs secret                                                  │
+ │  ▎    discovered                       ▲   MiniMax      1         MiniMax-M2 · Weekly 47%    ! provider unavailable                                        │
+ │    Kimi                                    OpenCode     2         Rolling 57%                ! rate limited                                                │
+ │  ▎    discovered          ! needs secret   —            —         —                          unsupported sentinel                                          │
+ │    MiniMax                                                                                                                                                 │
+ │  ▎    discovered           ! unavailable   Unresolved   Amp · ~/.config/amp/secrets.json (presence only) — not an authenticated account                    │
+ │    OpenCode                                Unresolved   Kimi · ~/.kimi (presence only) — not an authenticated account                                      │
+ │  ▎    Go subscription  ★               !                                                                                                                   │
+ │  ▎    ci-bot                 unsupported   Rollups sum identical windows and units only; a provider with mixed windows shows its worst window.             │
+ │    Usage                                                                                                                                                   │
+ │                                            Comparable   Anthropic · Session · 5-hour · 2 accounts · 24–62% remaining                                       │
+ │                                            Comparable   Anthropic · Weekly · all models · 2 accounts · 12–67% remaining                                    │
+ │                                            Comparable   Anthropic · Weekly · Opus · 2 accounts · 0–46% remaining                                           │
+ │                                            Comparable   OpenAI · Credits · 2 accounts · 76–82% remaining                                                   │
+ │                                            Comparable   OpenAI · Session · 5-hour · 2 accounts · 88–96% remaining                                          │
+ │                                            Comparable   OpenAI · Weekly · 7-day · 2 accounts · 41–88% remaining                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                              ↑↓ Move  Enter Detail  r Refresh  m Manage in Accounts  Esc Close

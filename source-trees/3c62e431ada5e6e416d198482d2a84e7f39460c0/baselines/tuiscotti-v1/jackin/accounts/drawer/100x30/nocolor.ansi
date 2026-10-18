@@ -1,0 +1,30 @@
+ [0m[1m jackin❯ [0m   File   Go   Help        Accounts › Claude › Work  ⠋ refreshing 1  inside the Construct [0m
+                                                                                                    [0m
+ ╭─[0m[1m Claude · Work [0m────────────────────────────────────────────────────────── account · exhausted ─╮ [0m
+ │  Provider            Anthropic / Claude                                                      ┃ │ [0m
+ │  Agent runtime       Claude Code                                                             ┃ │ [0m
+ │  Usage surface       Claude                                                                  ┃ │ [0m
+ │  Identity            alexey@chainargos.com                                                   ┃ │ [0m
+ │  Plan                Team                                                                    ┃ │ [0m
+ │  Credential          1Password · Engineering › Anthropic · Work › credential                 ┃ │ [0m
+ │                      chainargos.1password.com · op://v_eng01/it_ant01/credential ·           ┃ │ [0m
+ │                      ••••••••…3c9e                                                           ┃ │ [0m
+ │  Provenance          configured source · confidence authoritative · registered               ┃ │ [0m
+ │  Lifecycle           available                                                               ┃ │ [0m
+ │  Default             no                                                                      ┃ │ [0m
+ │  Enabled             yes                                                                     ┃ │ [0m
+ │  Purpose             work                                                                    ┃ │ [0m
+ │  Used by             Workspace choice in payments-platform                                   ┃ │ [0m
+ │                                                                                              ┃ │ [0m
+ │  [0m[1mQuota[0m                                                            stale · last good 47 min ag┃ │ [0m
+ │  [0m[2mSession · 5-hour    [0m[1;2m  76%                     [0m[2m            resets in 1 h 5 min               [0m┃ │ [0m
+ │  Weekly · all models [0m[1m  88%                         [0m        resets Sun 19:14                  ┃ │ [0m
+ │  Weekly · Opus       [0m[1m 100%                             [0m    resets Sun 19:14 · exhausted      ┃ │ [0m
+ │  Extra usage credits [0m[1m  28%     [0m                            1,420 / 5,000 USD · $14.20 of $50.┃ │ [0m
+ │                                                                                              ┃ │ [0m
+ │  [0m[2mValidation          ✓ material   ✓ identity   ✓ quota access · quota readable               [0m│ │ [0m
+ │                                                                                                │ [0m
+ │  Refresh    Validate    Edit…    Set default    Disable    Remove…                             │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                    [0m
+                                 [0m[1m↑↓[0m Scroll  [0m[1mTab[0m Actions  [0m[1mEsc[0m Back                                   [0m

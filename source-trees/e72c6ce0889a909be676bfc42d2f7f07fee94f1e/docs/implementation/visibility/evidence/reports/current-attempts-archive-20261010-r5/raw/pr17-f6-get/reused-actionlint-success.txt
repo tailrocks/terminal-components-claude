@@ -1,0 +1,15 @@
+Read-only static validation record
+
+Input path: /Users/donbeave/Projects/tailrocks/terminal-components-claude/.github/workflows/ci.yml
+Input Git blob: 672078dc6c964a768c05b53f73de8bb99b90bffa
+Input bytes: 537470
+Input SHA-256: 607ed7980b6c18f95cfc08e1f8dee1aac12477b5d1e678f26c84a75b8f238c24
+
+Command: /Users/donbeave/.local/share/mise/installs/actionlint/1.7.12/actionlint -shellcheck /Users/donbeave/.local/share/mise/installs/shellcheck/0.11.0/shellcheck-v0.11.0/shellcheck .github/workflows/ci.yml
+Working directory: /Users/donbeave/Projects/tailrocks/terminal-components-claude
+actionlint: 1.7.12 (darwin/arm64)
+ShellCheck: 0.11.0
+Exit status: 0
+stdout bytes: 0
+stderr bytes: 0
+Result: no actionlint/ShellCheck findings for this workflow. This does not check GitHub provider startup or workflow-size admission.

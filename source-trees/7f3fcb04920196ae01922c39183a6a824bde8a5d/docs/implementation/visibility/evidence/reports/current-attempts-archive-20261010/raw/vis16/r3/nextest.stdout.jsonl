@@ -1,0 +1,16 @@
+{"type":"suite","event":"started","test_count":7,"nextest":{"crate":"termrock-visibility-publisher","test_binary":"observer_ingest_cli","kind":"test"}}
+{"type":"test","event":"started","name":"termrock-visibility-publisher::observer_ingest_cli$caller_api_identity_mismatches_stop_before_workflow_or_target_lookup"}
+{"type":"test","event":"ok","name":"termrock-visibility-publisher::observer_ingest_cli$caller_api_identity_mismatches_stop_before_workflow_or_target_lookup","exec_time":0.014036792}
+{"type":"test","event":"started","name":"termrock-visibility-publisher::observer_ingest_cli$github_sha_pull_request_and_target_sha_mismatches_fail_before_observer_lookup"}
+{"type":"test","event":"ok","name":"termrock-visibility-publisher::observer_ingest_cli$github_sha_pull_request_and_target_sha_mismatches_fail_before_observer_lookup","exec_time":0.012352916}
+{"type":"test","event":"started","name":"termrock-visibility-publisher::observer_ingest_cli$handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name"}
+{"type":"test","event":"failed","name":"termrock-visibility-publisher::observer_ingest_cli$handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name","exec_time":0.013804416,"stdout":"\nthread 'handler_returns_sanitized_receipt_with_distinct_run_attempts_and_observer_artifact_name' (111468308) panicked at crates/termrock-visibility-publisher/tests/observer_ingest_cli.rs:208:84:\ncalled `Result::unwrap()` on an `Err` value: CliError(\"strict observer ingestion failed\")\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n"}
+{"type":"test","event":"started","name":"termrock-visibility-publisher::observer_ingest_cli$incomplete_observer_run_stops_before_observer_record_or_artifact_lookup"}
+{"type":"test","event":"ok","name":"termrock-visibility-publisher::observer_ingest_cli$incomplete_observer_run_stops_before_observer_record_or_artifact_lookup","exec_time":0.01157325}
+{"type":"test","event":"started","name":"termrock-visibility-publisher::observer_ingest_cli$observer_api_attempt_mismatch_stops_before_jobs_artifacts_and_receipt"}
+{"type":"test","event":"ok","name":"termrock-visibility-publisher::observer_ingest_cli$observer_api_attempt_mismatch_stops_before_jobs_artifacts_and_receipt","exec_time":0.011143208}
+{"type":"test","event":"started","name":"termrock-visibility-publisher::observer_ingest_cli$process_help_and_fail_closed_policy_are_observable_without_network_access"}
+{"type":"test","event":"ok","name":"termrock-visibility-publisher::observer_ingest_cli$process_help_and_fail_closed_policy_are_observable_without_network_access","exec_time":0.416766541}
+{"type":"test","event":"started","name":"termrock-visibility-publisher::observer_ingest_cli$workflow_ref_or_workflow_source_mismatch_stops_before_target_and_observer_lookup"}
+{"type":"test","event":"ok","name":"termrock-visibility-publisher::observer_ingest_cli$workflow_ref_or_workflow_source_mismatch_stops_before_target_and_observer_lookup","exec_time":0.010974625}
+{"type":"suite","event":"failed","passed":6,"failed":1,"ignored":0,"measured":0,"filtered_out":0,"exec_time":0.490651748,"nextest":{"crate":"termrock-visibility-publisher","test_binary":"observer_ingest_cli","kind":"test"}}

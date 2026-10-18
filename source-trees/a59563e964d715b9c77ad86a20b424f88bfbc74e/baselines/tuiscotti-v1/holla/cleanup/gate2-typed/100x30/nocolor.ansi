@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                       safe · Rust project  mbp · local [0m
+                                                                                                    [0m
+  Here › Di╭────────────────────────────────────────────────────────────────────────────╮           [0m
+ ━━━━━━━━━━│                                                                            │────────── [0m
+  Review · │  [0m[1mTrash 1 items · gate 2 of 2[0m                                               │tely       [0m
+           │                                                                            │           [0m
+  Action   │  Action        move to Trash 1 item under ~/Projects/safe                  │           [0m
+  Host     │  Host          mbp · local                                                 │           [0m
+  Mode     │  Mode          Trash · native macOS Trash · space returns after the Trash  │           [0m
+  Estimate │                is emptied                                                  │ed · not   [0m
+           │  Estimate      1000.0 MiB allocated · APFS clones may overcount ·          │           [0m
+  Denied   │                purgeable space excluded · not a free-space guarantee       │nk rules   [0m
+  Revision │  Denied        none · every path passed the lexical, protected-root,       │           [0m
+  Threat mo│                user-data and symlink rules                                 │ rename    [0m
+           │  Revision      68c21e8eb8ed0a71 · any change to paths, mode or dry run     │           [0m
+  Paths    │                voids this review                                           │           [0m
+  Recoverab│  Threat model  an unprivileged user · ancestors are re-resolved at commit  │           [0m
+           │                · a concurrent rename of the final path cannot be excluded  │           [0m
+ ╭─ Sequenc│  Paths         ~/Projects/safe/target                                      │ copies ─╮ [0m
+ │  01  tra│                                                                            │         │ [0m
+ │         │  /Users/alex/Projects/safe/target                                          │         │ [0m
+ │         │                                                                            │         │ [0m
+ │         │   [0m[1mType TRASH 1 UNDER /Users/alex/Projects/safe ON mbp to confirm         [0m  │         │ [0m
+ │         │ ▎ [0m[4mTRASH 1 UNDER /Users/alex/Projects/safe ON mbp[0m                           │         │ [0m
+ ╰─────────│                                                                            │─────────╯ [0m
+           │                                                                            │           [0m
+           │                                                         Cancel   Execute   │ontinue…   [0m
+           │                                                                            │           [0m
+ ~/Projects╰────────────────────────────────────────────────────────────────────────────╯r · 100×30 [0m
+ [0m[1m EDIT [0m            [0m[1m   Type[0m Phra[0m[1mse  Enter[0m Next  [0m[1mEsc[0m Cancel    1 item selected · 1000.0 MiB estimated [0m

@@ -1,0 +1,879 @@
+diff --git a/crates/termrock-visibility-tests/tests/status.rs b/crates/termrock-visibility-tests/tests/status.rs
+index 33046ef1d..c993209c8 100644
+--- a/crates/termrock-visibility-tests/tests/status.rs
++++ b/crates/termrock-visibility-tests/tests/status.rs
+@@ -81,6 +81,7 @@ impl StatusFixture {
+             .copy_tool_exact(Tool::Queue)
+             .expect("copy exact adjacent queue CLI");
+         for relative_path in [
++            "STATUS.md",
+             "tools/visibility/source-facts.json",
+             "docs/implementation/visibility/tasks.json",
+             "WORK_QUEUE.md",
+@@ -105,6 +106,45 @@ impl StatusFixture {
+         }
+     }
+ 
++    fn from_checked_in_report_snapshot() -> Self {
++        let fixture = Self::from_checked_in_records();
++        let task_snapshot_path = fixture.repo.root().join(
++            "docs/implementation/visibility/evidence/reports/status-source-archive-20261009/raw/termrock-vis01-current-publication-20261009/candidate-q59-task-record.json",
++        );
++        let task_snapshot = fs::read(&task_snapshot_path)
++            .expect("read archived q59 task snapshot for checked-in report");
++        assert_eq!(
++            sha256_hex(&task_snapshot),
++            "b38f71cf073e1a0249e1b084137de04d71301b763f6300af7a5416da998d1109",
++            "historical task snapshot must match its archived source pin"
++        );
++        let task_value: serde_json::Value =
++            serde_json::from_slice(&task_snapshot).expect("parse archived q59 task snapshot");
++        assert_eq!(task_value["queue_revision"], 59);
++        fixture.write_tasks(
++            std::str::from_utf8(&task_snapshot).expect("q59 task snapshot is UTF-8"),
++        );
++
++        let rendered_queue = fixture.run_queue(&["render"]);
++        assert_eq!(
++            rendered_queue.exit_code,
++            Some(0),
++            "{}",
++            error_text(&rendered_queue)
++        );
++        assert_eq!(
++            sha256_hex(&rendered_queue.stdout),
++            "9adb4cb2788b01a03be421d0666f7334a96910a0d823edce526fc67c913922db",
++            "q59 task snapshot must render the published q59 WORK_QUEUE bytes"
++        );
++        fs::write(
++            fixture.repo.root().join("WORK_QUEUE.md"),
++            &rendered_queue.stdout,
++        )
++        .expect("write matched q59 WORK_QUEUE fixture");
++        fixture
++    }
++
+     fn copy_manifest_members(repo: &TempRepo, manifest_path: &Path, member_root: Option<&Path>) {
+         let manifest_copy = repo
+             .copy_project_file_exact(manifest_path)
+@@ -579,6 +619,84 @@ fn write_json_facts(fixture: &StatusFixture, facts: &serde_json::Value) {
+     );
+ }
+ 
++fn write_attempt_artifact(
++    fixture: &StatusFixture,
++    name: &str,
++    bytes: &[u8],
++    format: &str,
++) -> serde_json::Value {
++    let relative = format!("tools/visibility/evidence/attempt-history/{name}");
++    let path = fixture.repo.root().join(&relative);
++    fs::create_dir_all(path.parent().expect("attempt artifact parent"))
++        .expect("create attempt artifact directory");
++    fs::write(path, bytes).expect("write attempt artifact");
++    serde_json::json!({
++        "path": relative,
++        "sha256": sha256_hex(bytes),
++        "format": format,
++    })
++}
++
++fn write_attempt_json(
++    fixture: &StatusFixture,
++    name: &str,
++    value: &serde_json::Value,
++) -> serde_json::Value {
++    let bytes = serde_json::to_vec(value).expect("serialize attempt JSON artifact");
++    write_attempt_artifact(fixture, name, &bytes, "json")
++}
++
++fn paired_attempt_fixture(fixture: &StatusFixture) -> serde_json::Value {
++    let source_binding = serde_json::json!({
++        "kind": "candidate_reference_pair",
++        "candidate_commit": "3333333333333333333333333333333333333333",
++        "reference_commit": "4444444444444444444444444444444444444444",
++    });
++    let counts = serde_json::json!({
++        "inventory": 4,
++        "selected": 1,
++        "started": 1,
++        "passed": 0,
++        "failed": 1,
++        "filtered": 3,
++        "incomplete": 0,
++    });
++    let states = serde_json::json!({
++        "test": "FAIL",
++        "child": "FAIL",
++        "wrapper": "FAIL",
++        "collector": "INCOMPLETE",
++        "postflight": "UNVERIFIED",
++        "cleanup": "UNVERIFIED",
++        "product_qualification": "BLOCKED",
++        "capture": "INCOMPLETE",
++        "admission": "NOT_RUN",
++    });
++    let result_record = write_attempt_json(
++        fixture,
++        "paired-result.json",
++        &serde_json::json!({
++            "schema": "termrock-status-attempt-result/v1",
++            "attempt_id": "run03-r7",
++            "lane": "paired_nextest",
++            "source_binding": source_binding.clone(),
++            "counts": counts.clone(),
++            "states": states.clone(),
++        }),
++    );
++    serde_json::json!({
++        "sequence": 1,
++        "attempt_id": "run03-r7",
++        "recorded_at": "2026-10-08T15:23:00Z",
++        "lane": "paired_nextest",
++        "scope": "CURRENT",
++        "source_binding": source_binding,
++        "counts": counts,
++        "states": states,
++        "evidence": {"result_record": result_record},
++    })
++}
++
+ fn write_pinned_json(
+     fixture: &StatusFixture,
+     name: &str,
+@@ -1541,7 +1659,9 @@ fn execution_receipt_json_rejects_duplicate_keys() {
+ 
+ #[test]
+ fn checked_in_records_render_from_exact_copies() {
+-    let fixture = StatusFixture::from_checked_in_records();
++    let fixture = StatusFixture::from_checked_in_report_snapshot();
++    let checked_in_report = fs::read(fixture.repo.root().join("STATUS.md"))
++        .expect("read exact checked-in STATUS report");
+     let facts_path = fixture
+         .repo
+         .root()
+@@ -1564,11 +1684,20 @@ fn checked_in_records_render_from_exact_copies() {
+     let history = facts["source_observation_history"]
+         .as_array()
+         .expect("superseded source observation history");
++    assert!(
++        facts.get("execution_attempt_history").is_none(),
++        "checked-in source facts must exercise absent optional attempt history"
++    );
+ 
+     let output = fixture.run(&[]);
+     let repeated = fixture.run(&[]);
+     let report = output_text(&output);
+     assert_eq!(output.exit_code, Some(0));
++    assert_eq!(
++        output.stdout.as_slice(),
++        checked_in_report.as_slice(),
++        "absent optional history must preserve checked-in STATUS bytes"
++    );
+     assert_eq!(repeated.exit_code, Some(0));
+     assert_eq!(output.stdout, repeated.stdout);
+     assert!(report.contains(candidate_sha));
+@@ -1848,7 +1977,7 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
+     ]);
+     assert_eq!(scoped_preview.exit_code, Some(2));
+     assert!(error_text(&scoped_preview)
+-        .contains("tasks[1].branch_scopes is a schema-v1 claim extension"));
++        .contains("tasks[0].branch_scopes is a schema-v1 claim extension"));
+     assert_eq!(
+         fs::read(&tasks_path).expect("tasks after rejecting scoped preview"),
+         current_v1_tasks
+@@ -1874,7 +2003,10 @@ fn status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2() {
+             removed_scope_count += 1;
+         }
+     }
+-    assert_eq!(removed_scope_count, 1, "the q47 fixture has one v1 scope extension");
++    assert_eq!(
++        removed_scope_count, 2,
++        "both scoped claim rows must be removed for the schema-v1 migration preview"
++    );
+     fixture.write_tasks(
+         &serde_json::to_string(&representable_v1).expect("serialize representable schema-v1 tasks"),
+     );
+@@ -2071,7 +2203,7 @@ fn source_history_accepts_four_predecessors_and_rejects_malformed_bindings() {
+     assert!(report.contains("Refactor / Ready | NOT_READY"));
+     assert!(report.contains("FAILED: 22/23 passed, 1 failed, 87 filtered"));
+     assert!(report.contains(
+-        "verified candidate API/deferred result is FAILED: 22 of 23 passed, 1 failed"
++        "The candidate API/deferred test run FAILED: 22 of 23 tests passed; 1 failed."
+     ));
+ 
+     let mut malformed_source = original.clone();
+@@ -3372,3 +3504,215 @@ fn rejects_unrecorded_candidate_acceptance_promotion() {
+         "candidate deferred/API run must remain a source-bound partial failure"
+     ));
+ }
++
++#[test]
++fn execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate() {
++    let fixture = StatusFixture::new();
++    let mut facts: serde_json::Value =
++        serde_json::from_str(&base_facts()).expect("parse base source facts");
++    facts["execution_attempt_history"] = serde_json::json!({
++        "schema": "termrock-status-execution-attempt-history/v1",
++        "attempts": [paired_attempt_fixture(&fixture)],
++    });
++    write_json_facts(&fixture, &facts);
++
++    let output = fixture.run(&[]);
++    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
++    let report = output_text(&output);
++    assert!(report.contains("## Execution attempt history"));
++    assert!(report.contains("run03-r7"));
++    assert!(report.contains("1/4 selected; 1 started; 0 passed; 1 failed; 3 filtered; 0 incomplete"));
++    assert!(report.contains("| FAIL | FAIL | FAIL | INCOMPLETE | UNVERIFIED | UNVERIFIED | BLOCKED |"));
++    assert!(report.contains("Visibility / Complete | NOT_RUN"));
++    assert!(report.contains("Refactor / Ready | NOT_RUN"));
++    assert!(report.contains("Reference / Qualified | NOT_RUN"));
++    assert!(report.contains("they do not promote product readiness"));
++}
++
++#[test]
++fn stale_attempt_must_be_historical_and_does_not_promote_readiness() {
++    let fixture = StatusFixture::new();
++    let mut stale = paired_attempt_fixture(&fixture);
++    stale["source_binding"]["candidate_commit"] = serde_json::json!("5555555555555555555555555555555555555555");
++    stale["source_binding"]["reference_commit"] = serde_json::json!("6666666666666666666666666666666666666666");
++    let stale_result_record = write_attempt_json(
++        &fixture,
++        "stale-paired-result.json",
++        &serde_json::json!({
++            "schema": "termrock-status-attempt-result/v1",
++            "attempt_id": stale["attempt_id"].clone(),
++            "lane": stale["lane"].clone(),
++            "source_binding": stale["source_binding"].clone(),
++            "counts": stale["counts"].clone(),
++            "states": stale["states"].clone(),
++        }),
++    );
++    stale["evidence"]["result_record"] = stale_result_record;
++    let mut facts: serde_json::Value =
++        serde_json::from_str(&base_facts()).expect("parse base source facts");
++    facts["execution_attempt_history"] = serde_json::json!({
++        "schema": "termrock-status-execution-attempt-history/v1",
++        "attempts": [stale.clone()],
++    });
++    write_json_facts(&fixture, &facts);
++
++    let mislabeled = fixture.run(&[]);
++    assert_eq!(mislabeled.exit_code, Some(2));
++    assert!(error_text(&mislabeled).contains("cannot label a stale or unrelated source as CURRENT"));
++
++    stale["scope"] = serde_json::json!("HISTORICAL");
++    facts["execution_attempt_history"]["attempts"] = serde_json::json!([stale]);
++    write_json_facts(&fixture, &facts);
++    let historical = fixture.run(&[]);
++    assert_eq!(historical.exit_code, Some(0), "{}", error_text(&historical));
++    let report = output_text(&historical);
++    assert!(report.contains("| HISTORICAL | `5555555555555555555555555555555555555555` / `6666666666666666666666666666666666666666` |"));
++    assert!(report.contains("Visibility / Complete | NOT_RUN"));
++    assert!(report.contains("Refactor / Ready | NOT_RUN"));
++}
++
++#[test]
++fn attempt_history_rejects_count_sequence_and_artifact_pin_drift() {
++    let fixture = StatusFixture::new();
++    let mut facts: serde_json::Value =
++        serde_json::from_str(&base_facts()).expect("parse base source facts");
++    let valid = paired_attempt_fixture(&fixture);
++    facts["execution_attempt_history"] = serde_json::json!({
++        "schema": "termrock-status-execution-attempt-history/v1",
++        "attempts": [valid.clone()],
++    });
++
++    let mut bad_counts = facts.clone();
++    bad_counts["execution_attempt_history"]["attempts"][0]["counts"]["passed"] = serde_json::json!(1);
++    write_json_facts(&fixture, &bad_counts);
++    let output = fixture.run(&[]);
++    assert_eq!(output.exit_code, Some(2));
++    assert!(error_text(&output).contains("counts do not reconcile"));
++
++    let mut inconsistent_record = facts.clone();
++    inconsistent_record["execution_attempt_history"]["attempts"][0]["states"]["wrapper"] =
++        serde_json::json!("INVALID");
++    write_json_facts(&fixture, &inconsistent_record);
++    let output = fixture.run(&[]);
++    assert_eq!(output.exit_code, Some(2));
++    assert!(error_text(&output).contains("result_record does not match its typed attempt row"));
++
++    let mut bad_sequence = facts.clone();
++    bad_sequence["execution_attempt_history"]["attempts"][0]["sequence"] = serde_json::json!(2);
++    write_json_facts(&fixture, &bad_sequence);
++    let output = fixture.run(&[]);
++    assert_eq!(output.exit_code, Some(2));
++    assert!(error_text(&output).contains("sequence must be contiguous"));
++
++    let mut bad_pin = facts;
++    bad_pin["execution_attempt_history"]["attempts"][0]["evidence"]["result_record"]["sha256"] =
++        serde_json::json!("0".repeat(64));
++    write_json_facts(&fixture, &bad_pin);
++    let output = fixture.run(&[]);
++    assert_eq!(output.exit_code, Some(2));
++    assert!(error_text(&output).contains("bytes do not match the recorded SHA-256"));
++}
++
++#[test]
++fn ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs() {
++    let fixture = StatusFixture::new();
++    let run = serde_json::json!({
++        "id": 37985833303_u64,
++        "name": ".github/workflows/ci.yml",
++        "head_branch": "termrock-implementation",
++        "head_sha": "ed7d30de8ffabe9ebe6f1119f8f364142b777d0f",
++        "status": "completed",
++        "conclusion": "failure",
++        "check_suite_id": 102925783239_u64
++    });
++    let failed_suite = serde_json::json!({
++        "id": 102925783239_u64,
++        "head_branch": "termrock-implementation",
++        "head_sha": "ed7d30de8ffabe9ebe6f1119f8f364142b777d0f",
++        "status": "completed",
++        "conclusion": "failure",
++        "latest_check_runs_count": 0,
++        "check_runs_url": "https://api.github.com/repos/tailrocks/terminal-components-claude/check-suites/102925783239/check-runs"
++    });
++    let evidence = serde_json::json!({
++        "run_detail": write_attempt_json(&fixture, "ci-run.json", &run),
++        "failed_suite": write_attempt_json(&fixture, "ci-suite.json", &failed_suite),
++        "failed_suite_runs": write_attempt_json(
++            &fixture, "ci-suite-runs.json", &serde_json::json!({"total_count": 0, "check_runs": []}),
++        ),
++        "jobs": write_attempt_json(
++            &fixture, "ci-jobs.json", &serde_json::json!({"total_count": 0, "jobs": []}),
++        ),
++        "artifacts": write_attempt_json(
++            &fixture, "ci-artifacts.json", &serde_json::json!({"total_count": 0, "artifacts": []}),
++        ),
++        "log_cli_output": write_attempt_artifact(
++            &fixture, "ci-log-cli.txt", b"failed to get run log: log not found\n", "utf8",
++        ),
++    });
++    let attempt = serde_json::json!({
++        "sequence": 1,
++        "attempt_id": "github-ci-37985833303",
++        "recorded_at": "2026-10-09T20:44:35Z",
++        "lane": "ci_provider",
++        "scope": "HISTORICAL",
++        "source_binding": {
++            "kind": "candidate_commit",
++            "commit_sha": "ed7d30de8ffabe9ebe6f1119f8f364142b777d0f"
++        },
++        "counts": {
++            "inventory": 0, "selected": 0, "started": 0, "passed": 0,
++            "failed": 0, "filtered": 0, "incomplete": 0
++        },
++        "states": {
++            "test": "NOT_RUN", "child": "NOT_RUN", "wrapper": "NOT_APPLICABLE",
++            "collector": "INCOMPLETE", "postflight": "NOT_APPLICABLE",
++            "cleanup": "NOT_APPLICABLE", "product_qualification": "BLOCKED",
++            "capture": "INCOMPLETE", "admission": "NOT_RUN"
++        },
++        "evidence": evidence,
++        "diagnostic": {
++            "status": "NOT_EXPOSED",
++            "log_fetch_outcome": "CLI_REPORTED_LOG_NOT_FOUND",
++            "http_status": "NOT_CAPTURED",
++            "log_cli_exit_code": 1
++        }
++    });
++    let mut facts: serde_json::Value =
++        serde_json::from_str(&base_facts()).expect("parse base source facts");
++    facts["execution_attempt_history"] = serde_json::json!({
++        "schema": "termrock-status-execution-attempt-history/v1",
++        "attempts": [attempt],
++    });
++    write_json_facts(&fixture, &facts);
++
++    let output = fixture.run(&[]);
++    assert_eq!(output.exit_code, Some(0), "{}", error_text(&output));
++    let report = output_text(&output);
++    let row = report.lines().find(|line| line.contains("37985833303"))
++        .expect("CI attempt row is rendered");
++    assert!(row.contains("diagnostic NOT_EXPOSED"));
++    assert!(row.contains("CLI_REPORTED_LOG_NOT_FOUND"));
++    assert!(row.contains("HTTP status NOT_CAPTURED"));
++    assert!(!row.contains("537470 bytes"));
++    assert!(report.contains("Refactor / Ready | NOT_RUN"));
++
++    facts["execution_attempt_history"]["attempts"][0]["diagnostic"]["http_status"] =
++        serde_json::json!(404);
++    write_json_facts(&fixture, &facts);
++    let inferred_http = fixture.run(&[]);
++    assert_eq!(inferred_http.exit_code, Some(2));
++    assert!(error_text(&inferred_http).contains("preserve the unavailable cause and HTTP status"));
++
++    facts["execution_attempt_history"]["attempts"][0]["diagnostic"]["http_status"] =
++        serde_json::json!("NOT_CAPTURED");
++    facts["execution_attempt_history"]["attempts"][0]["evidence"]["failed_suite_runs"] =
++        write_attempt_json(
++            &fixture, "ci-suite-runs-nonzero.json",
++            &serde_json::json!({"total_count": 1, "check_runs": [{"id": 1}]}),
++        );
++    write_json_facts(&fixture, &facts);
++    let nonzero_suite = fixture.run(&[]);
++    assert_eq!(nonzero_suite.exit_code, Some(2));
++    assert!(error_text(&nonzero_suite).contains("prove zero suite check-runs"));
++}
+diff --git a/tools/visibility/README.md b/tools/visibility/README.md
+index 77f3e5fe6..668ed6229 100644
+--- a/tools/visibility/README.md
++++ b/tools/visibility/README.md
+@@ -227,6 +227,33 @@ The reporter does not fetch GitHub. It verifies the pinned execution JSON
+ records when rendering local partial observations; it does not rehash the
+ artifact files named inside the paired Holla receipt.
+ 
++## Typed execution attempt history
++
++An optional top-level `execution_attempt_history` object uses
++`termrock-status-execution-attempt-history/v1`. The `attempts` array is ordered
++by contiguous sequence number and unique attempt ID. Each row binds to a
++candidate commit, candidate/reference pair, immutable visual tag, or tool
++source, and declares `CURRENT` or `HISTORICAL`. `CURRENT` is accepted only when
++the binding matches the latest recorded source observation; an older or
++unrelated source must remain `HISTORICAL`.
++
++Every row pins its evidence files by repository-relative path, format, and
++SHA-256. Non-provider lanes include a pinned
++`termrock-status-attempt-result/v1` JSON record whose attempt ID, lane, source
++binding, reconciled counts, and outcome states must equal the row. The
++`ci_provider` lane instead validates the captured run, failed check suite,
++suite-specific check-runs response, jobs, artifacts, and failed-log CLI output.
++When that CLI reports “log not found” without a captured HTTP response, the
++record must say `diagnostic.status=NOT_EXPOSED` and `http_status=NOT_CAPTURED`;
++the reporter does not infer a provider cause or HTTP code.
++
++Counts reconcile inventory, selection, filtered cases, started tests, terminal
++results, and incomplete tests. Test, child process, wrapper, collector,
++postflight, cleanup, capture, qualification, and admission outcomes render in
++separate columns. Attempt history is informational: it cannot qualify a
++product result, admit data, or change readiness. It also does not replace the
++existing paired product observations.
++
+ ## Published report and provider evidence
+ 
+ The current-publication record keeps report commits separate from the fixed
+@@ -284,8 +311,7 @@ writes only `STATUS.md` when called with `--write`.
+ 
+ ## Current limits
+ 
+-This increment reads only the two pinned, reviewed execution record shapes
+-listed above. It does not validate an accepted complete case registry or active
+-required set, enforce monotonic receipt freshness, calculate trends, produce
+-component checkpoint pages, or publish reports. Those results remain
+-incomplete until their records and evidence are accepted.
++The reporter does not validate an accepted complete case registry or active
++required set, enforce monotonic receipt freshness across product runs, calculate
++trends, produce component checkpoint pages, or publish reports. Those results
++remain incomplete until their records and evidence are accepted.
+diff --git a/tools/visibility/status.py b/tools/visibility/status.py
+index 0d17f4fa2..7399a413e 100644
+--- a/tools/visibility/status.py
++++ b/tools/visibility/status.py
+@@ -66,6 +66,28 @@ HOLLA_ARTIFACT_FORMATS = (
+     "observations_json", "png", "png_fidelity_json", "txt",
+ )
+ STATUS_ORDER = ("PASS", "FAIL", "BLOCKED", "NOT_RUN", "NOT_APPLICABLE")
++EXECUTION_ATTEMPT_HISTORY_SCHEMA = "termrock-status-execution-attempt-history/v1"
++EXECUTION_ATTEMPT_LANES = {
++    "ci_provider": "candidate_commit",
++    "paired_nextest": "candidate_reference_pair",
++    "tag_capture": "immutable_visual_tag",
++    "tool_control": "tool_source",
++    "observer_ingest": "tool_source",
++}
++EXECUTION_ATTEMPT_COUNT_FIELDS = (
++    "inventory", "selected", "started", "passed", "failed", "filtered", "incomplete",
++)
++EXECUTION_ATTEMPT_STATE_FIELDS = {
++    "test": {"PASS", "FAIL", "INCOMPLETE", "NOT_RUN"},
++    "child": {"PASS", "FAIL", "NOT_RUN", "NOT_APPLICABLE"},
++    "wrapper": {"PASS", "FAIL", "INVALID", "INCOMPLETE", "NOT_RUN", "NOT_APPLICABLE"},
++    "collector": {"PASS", "FAIL", "INCOMPLETE", "NOT_RUN", "NOT_APPLICABLE"},
++    "postflight": {"PASS", "FAIL", "UNVERIFIED", "NOT_RUN", "NOT_APPLICABLE"},
++    "cleanup": {"PASS", "FAIL", "UNVERIFIED", "NOT_RUN", "NOT_APPLICABLE"},
++    "product_qualification": {"BLOCKED", "NOT_QUALIFIED", "NOT_RUN", "NOT_APPLICABLE"},
++    "capture": {"COMPLETE", "INCOMPLETE", "NOT_RUN", "NOT_APPLICABLE"},
++    "admission": {"ADMITTED", "NOT_RUN", "NOT_APPLICABLE"},
++}
+ 
+ 
+ def require(condition: bool, message: str) -> None:
+@@ -3628,6 +3650,338 @@ The source record's readiness fields remain NOT_RUN because no readiness accepta
+     )
+ 
+ 
++def validate_execution_attempt_history(
++    value: Any, latest: Mapping[str, Any], authority: Mapping[str, Any],
++    queue_module: Any,
++) -> Sequence[Mapping[str, Any]]:
++    """Validate ordered, source-bound attempt rows without changing readiness."""
++    if value is None:
++        return []
++    require(isinstance(value, dict)
++            and set(value) == {"schema", "attempts"}
++            and value.get("schema") == EXECUTION_ATTEMPT_HISTORY_SCHEMA,
++            "unsupported execution attempt-history schema or fields")
++    attempts = value.get("attempts")
++    require(isinstance(attempts, list) and 0 < len(attempts) <= 100,
++            "execution attempt history must contain 1 to 100 records")
++
++    validated: list[Mapping[str, Any]] = []
++    seen_ids: set[str] = set()
++    previous_time: Optional[str] = None
++    for index, attempt in enumerate(attempts):
++        label = "execution_attempt_history.attempts[{}]".format(index)
++        require(isinstance(attempt, dict), "{} must be an object".format(label))
++        lane = attempt.get("lane")
++        require(lane in EXECUTION_ATTEMPT_LANES,
++                "{}.lane is unsupported".format(label))
++        fields = {
++            "sequence", "attempt_id", "recorded_at", "lane", "scope",
++            "source_binding", "counts", "states", "evidence",
++        }
++        if lane == "ci_provider":
++            fields.add("diagnostic")
++        require(set(attempt) == fields,
++                "{} has missing or unknown fields".format(label))
++
++        sequence = attempt.get("sequence")
++        require(type(sequence) is int and sequence == index + 1,
++                "{}.sequence must be contiguous and start at 1".format(label))
++        attempt_id = attempt.get("attempt_id")
++        require(isinstance(attempt_id, str)
++                and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", attempt_id)
++                is not None,
++                "{}.attempt_id is malformed".format(label))
++        require(attempt_id not in seen_ids,
++                "execution attempt history repeats an attempt ID")
++        seen_ids.add(attempt_id)
++        recorded_at = timestamp(attempt.get("recorded_at"), "{}.recorded_at".format(label))
++        require(previous_time is None or recorded_at >= previous_time,
++                "execution attempt history timestamps are out of order")
++        previous_time = recorded_at
++
++        scope = attempt.get("scope")
++        require(scope in {"CURRENT", "HISTORICAL"},
++                "{}.scope must be CURRENT or HISTORICAL".format(label))
++        binding = attempt.get("source_binding")
++        require(isinstance(binding, dict)
++                and binding.get("kind") == EXECUTION_ATTEMPT_LANES[lane],
++                "{}.source_binding does not match its typed lane".format(label))
++        kind = binding["kind"]
++        if kind == "candidate_commit":
++            require(set(binding) == {"kind", "commit_sha"},
++                    "{}.source_binding has invalid candidate-commit fields".format(label))
++            commit = sha(binding.get("commit_sha"), "{}.source_binding.commit_sha".format(label))
++            is_current_source = commit == latest["candidate_remote"]["head_sha"]
++        elif kind == "candidate_reference_pair":
++            require(set(binding) == {"kind", "candidate_commit", "reference_commit"},
++                    "{}.source_binding has invalid source-pair fields".format(label))
++            candidate_commit = sha(
++                binding.get("candidate_commit"), "{}.source_binding.candidate_commit".format(label),
++            )
++            reference_commit = sha(
++                binding.get("reference_commit"), "{}.source_binding.reference_commit".format(label),
++            )
++            is_current_source = (
++                candidate_commit == latest["candidate_remote"]["head_sha"]
++                and reference_commit == latest["reference_remote"]["head_sha"]
++            )
++        elif kind == "immutable_visual_tag":
++            require(set(binding) == {"kind", "tag_object_sha", "peeled_commit_sha"},
++                    "{}.source_binding has invalid visual-tag fields".format(label))
++            require(sha(binding.get("tag_object_sha"),
++                        "{}.source_binding.tag_object_sha".format(label))
++                    == authority["tag_object_sha"]
++                    and sha(binding.get("peeled_commit_sha"),
++                            "{}.source_binding.peeled_commit_sha".format(label))
++                    == authority["commit_sha"],
++                    "{}.source_binding differs from the immutable visual tag".format(label))
++            is_current_source = True
++        else:
++            require(set(binding) == {
++                "kind", "commit_sha", "tree_sha", "source_sha256",
++            }, "{}.source_binding has invalid tool-source fields".format(label))
++            commit = sha(binding.get("commit_sha"), "{}.source_binding.commit_sha".format(label))
++            sha(binding.get("tree_sha"), "{}.source_binding.tree_sha".format(label))
++            sha256(binding.get("source_sha256"), "{}.source_binding.source_sha256".format(label))
++            is_current_source = commit == latest["candidate_remote"]["head_sha"]
++        require(scope != "CURRENT" or is_current_source,
++                "{}.scope cannot label a stale or unrelated source as CURRENT".format(label))
++
++        counts = attempt.get("counts")
++        require(isinstance(counts, dict) and set(counts) == set(EXECUTION_ATTEMPT_COUNT_FIELDS),
++                "{}.counts has missing or unknown fields".format(label))
++        for name in EXECUTION_ATTEMPT_COUNT_FIELDS:
++            require(type(counts.get(name)) is int and counts[name] >= 0,
++                    "{}.counts.{} must be a nonnegative integer".format(label, name))
++        require(counts["inventory"] == counts["selected"] + counts["filtered"]
++                and counts["selected"] == counts["started"] + counts["incomplete"]
++                and counts["started"] == counts["passed"] + counts["failed"],
++                "{}.counts do not reconcile inventory, selection, and terminal results"
++                .format(label))
++
++        states = attempt.get("states")
++        require(isinstance(states, dict) and set(states) == set(EXECUTION_ATTEMPT_STATE_FIELDS),
++                "{}.states has missing or unknown fields".format(label))
++        for name, allowed in EXECUTION_ATTEMPT_STATE_FIELDS.items():
++            require(states.get(name) in allowed,
++                    "{}.states.{} is unsupported".format(label, name))
++        if counts["selected"] == 0:
++            expected_test_state = "NOT_RUN"
++        elif counts["failed"]:
++            expected_test_state = "FAIL"
++        elif counts["incomplete"]:
++            expected_test_state = "INCOMPLETE"
++        else:
++            expected_test_state = "PASS"
++        require(states["test"] == expected_test_state,
++                "{}.states.test does not match the reconciled counts".format(label))
++        require(states["child"] != "PASS"
++                or (counts["failed"] == 0 and counts["incomplete"] == 0),
++                "{}.states.child cannot pass with failed or incomplete selected tests"
++                .format(label))
++        require(states["product_qualification"] != "PASS",
++                "execution-attempt history cannot qualify a product result")
++
++        evidence = attempt.get("evidence")
++        require(isinstance(evidence, dict) and 0 < len(evidence) <= 16,
++                "{}.evidence must contain 1 to 16 pinned files".format(label))
++        decoded: dict[str, Any] = {}
++        for role, pin in evidence.items():
++            require(isinstance(role, str)
++                    and re.fullmatch(r"[a-z][a-z0-9_]{0,63}", role) is not None,
++                    "{}.evidence has a malformed role".format(label))
++            require(isinstance(pin, dict)
++                    and set(pin) == {"path", "sha256", "format"},
++                    "{}.evidence.{} pin has missing or unknown fields".format(label, role))
++            format_name = pin.get("format")
++            require(format_name in {"json", "utf8", "bytes"},
++                    "{}.evidence.{} format is unsupported".format(label, role))
++            raw = read_pinned_bytes(pin, "{}.evidence.{}".format(label, role))
++            if format_name == "json":
++                try:
++                    decoded[role] = queue_module.strict_json_loads(raw)
++                except Exception as error:
++                    raise ValueError(
++                        "{}.evidence.{} is not strict JSON: {}".format(label, role, error)
++                    ) from error
++                require(isinstance(decoded[role], (dict, list)),
++                        "{}.evidence.{} JSON must be an object or array".format(label, role))
++            elif format_name == "utf8":
++                try:
++                    decoded[role] = raw.decode("utf-8")
++                except UnicodeDecodeError as error:
++                    raise ValueError(
++                        "{}.evidence.{} is not UTF-8".format(label, role)
++                    ) from error
++            else:
++                decoded[role] = raw
++
++        if lane == "ci_provider":
++            required_roles = {
++                "run_detail", "failed_suite", "failed_suite_runs", "jobs",
++                "artifacts", "log_cli_output",
++            }
++            require(set(evidence) == required_roles
++                    and all(evidence[name]["format"] == "json"
++                            for name in required_roles - {"log_cli_output"})
++                    and evidence["log_cli_output"]["format"] == "utf8",
++                    "{}.evidence does not contain the exact CI diagnostic inputs".format(label))
++            run = decoded["run_detail"]
++            suite = decoded["failed_suite"]
++            suite_runs = decoded["failed_suite_runs"]
++            jobs = decoded["jobs"]
++            artifacts = decoded["artifacts"]
++            require(isinstance(run, dict)
++                    and str(run.get("id", "")).isdigit()
++                    and run.get("name") == CURRENT_CI_WORKFLOW
++                    and run.get("head_branch") == "termrock-implementation"
++                    and run.get("head_sha") == binding["commit_sha"]
++                    and run.get("status") == "completed"
++                    and run.get("conclusion") == "failure"
++                    and str(run.get("check_suite_id", "")).isdigit()
++                    and attempt_id == "github-ci-{}".format(run["id"]),
++                    "{}.evidence.run_detail does not bind a failed CI run to its source"
++                    .format(label))
++            require(isinstance(suite, dict)
++                    and str(suite.get("id", "")) == str(run["check_suite_id"])
++                    and suite.get("head_sha") == binding["commit_sha"]
++                    and suite.get("head_branch") == "termrock-implementation"
++                    and suite.get("status") == "completed"
++                    and suite.get("conclusion") == "failure"
++                    and type(suite.get("latest_check_runs_count")) is int
++                    and suite["latest_check_runs_count"] == 0
++                    and suite.get("check_runs_url") ==
++                    "https://api.github.com/repos/{}/check-suites/{}/check-runs".format(
++                        REPOSITORY, suite["id"],
++                    ),
++                    "{}.evidence.failed_suite does not match the failed run".format(label))
++            require(isinstance(suite_runs, dict)
++                    and type(suite_runs.get("total_count")) is int
++                    and suite_runs.get("total_count") == 0
++                    and suite_runs.get("check_runs") == [],
++                    "{}.evidence.failed_suite_runs must prove zero suite check-runs"
++                    .format(label))
++            require(isinstance(jobs, dict)
++                    and type(jobs.get("total_count")) is int
++                    and jobs.get("total_count") == 0 and jobs.get("jobs") == []
++                    and isinstance(artifacts, dict)
++                    and type(artifacts.get("total_count")) is int
++                    and artifacts.get("total_count") == 0
++                    and artifacts.get("artifacts") == [],
++                    "{}.evidence must prove zero CI jobs and artifacts".format(label))
++            require(counts == {
++                "inventory": 0, "selected": 0, "started": 0, "passed": 0,
++                "failed": 0, "filtered": 0, "incomplete": 0,
++            } and states == {
++                "test": "NOT_RUN", "child": "NOT_RUN", "wrapper": "NOT_APPLICABLE",
++                "collector": "INCOMPLETE", "postflight": "NOT_APPLICABLE",
++                "cleanup": "NOT_APPLICABLE", "product_qualification": "BLOCKED",
++                "capture": "INCOMPLETE", "admission": "NOT_RUN",
++            }, "{}.CI provider run must remain a non-product incomplete observation".format(label))
++            diagnostic = attempt.get("diagnostic")
++            require(isinstance(diagnostic, dict)
++                    and set(diagnostic) == {
++                        "status", "log_fetch_outcome", "http_status", "log_cli_exit_code",
++                    }
++                    and diagnostic.get("status") == "NOT_EXPOSED"
++                    and diagnostic.get("log_fetch_outcome") == "CLI_REPORTED_LOG_NOT_FOUND"
++                    and diagnostic.get("http_status") == "NOT_CAPTURED"
++                    and type(diagnostic.get("log_cli_exit_code")) is int
++                    and diagnostic["log_cli_exit_code"] == 1,
++                    "{}.diagnostic must preserve the unavailable cause and HTTP status"
++                    .format(label))
++            require("failed to get run log: log not found" in decoded["log_cli_output"],
++                    "{}.evidence.log_cli_output does not match the recorded CLI result"
++                    .format(label))
++        else:
++            require("result_record" in evidence and evidence["result_record"]["format"] == "json",
++                    "{}.evidence.result_record JSON is required for this typed lane".format(label))
++            result_record = decoded["result_record"]
++            require(isinstance(result_record, dict)
++                    and set(result_record) == {
++                        "schema", "attempt_id", "lane", "source_binding", "counts", "states",
++                    }
++                    and result_record.get("schema") == "termrock-status-attempt-result/v1"
++                    and result_record.get("attempt_id") == attempt_id
++                    and result_record.get("lane") == lane
++                    and result_record.get("source_binding") == binding
++                    and result_record.get("counts") == counts
++                    and result_record.get("states") == states,
++                    "{}.evidence.result_record does not match its typed attempt row".format(label))
++
++        validated.append({
++            "sequence": sequence,
++            "attempt_id": attempt_id,
++            "recorded_at": recorded_at,
++            "lane": lane,
++            "scope": scope,
++            "source_binding": binding,
++            "counts": counts,
++            "states": states,
++            "evidence": evidence,
++            "diagnostic": attempt.get("diagnostic"),
++        })
++    return validated
++
++
++def render_execution_attempt_history(
++    attempts: Sequence[Mapping[str, Any]],
++) -> str:
++    if not attempts:
++        return ""
++    rows = []
++    for attempt in attempts:
++        counts = attempt["counts"]
++        states = attempt["states"]
++        if counts["selected"] == 0:
++            count_summary = "NOT_RUN"
++        else:
++            count_summary = (
++                "{}/{} selected; {} started; {} passed; {} failed; {} filtered; {} incomplete"
++            ).format(
++                counts["selected"], counts["inventory"], counts["started"],
++                counts["passed"], counts["failed"], counts["filtered"], counts["incomplete"],
++            )
++        binding = attempt["source_binding"]
++        source = " / ".join(
++            "`{}`".format(cell(value))
++            for key, value in binding.items() if key != "kind"
++        )
++        evidence = "; ".join(
++            "{} `{}`".format(cell(role), pin["sha256"][:12])
++            for role, pin in sorted(attempt["evidence"].items())
++        )
++        diagnostic = attempt.get("diagnostic")
++        diagnostic_summary = (
++            "diagnostic NOT_EXPOSED; log CLI {} (exit {}); HTTP status {}".format(
++                diagnostic["log_fetch_outcome"], diagnostic["log_cli_exit_code"],
++                diagnostic["http_status"],
++            ) if diagnostic is not None else "not applicable"
++        )
++        rows.append(
++            "| {} | `{}` | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |"
++            .format(
++                attempt["sequence"], cell(attempt["attempt_id"]), cell(attempt["lane"]),
++                attempt["scope"], source, count_summary, states["test"], states["child"],
++                states["wrapper"], states["collector"], states["postflight"],
++                states["cleanup"], states["product_qualification"], states["capture"],
++                states["admission"], "{}; {}; recorded {}".format(
++                    diagnostic_summary, evidence, attempt["recorded_at"],
++                ),
++            )
++        )
++    return "\n".join([
++        "## Execution attempt history",
++        "",
++        "These source-bound attempts preserve test, wrapper, collection, postflight, and cleanup outcomes separately. They are evidence history only; they do not promote product readiness, qualify a product result, or admit test data.",
++        "",
++        "| # | Attempt | Lane | Source scope | Source binding | Counts | Test | Child | Wrapper | Collector | Postflight | Cleanup | Product qualification | Capture | Admission | Evidence and diagnostics |",
++        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
++        *rows,
++        "",
++    ])
++
++
+ def validate_facts(facts: Any) -> Mapping[str, Any]:
+     require(isinstance(facts, dict) and facts.get("schema_version") == 2,
+             "unsupported source-facts schema; expected version 2")
+@@ -3911,6 +4265,17 @@ def render_status(
+     current_status_observations = validate_current_status_observations(
+         facts.get("current_status_observations"), latest, authority, queue_module
+     )
++    execution_attempt_history = validate_execution_attempt_history(
++        facts.get("execution_attempt_history"), latest, authority, queue_module,
++    )
++    execution_attempt_history_section = render_execution_attempt_history(
++        execution_attempt_history
++    )
++    execution_attempt_history_layout = (
++        execution_attempt_history_section + "\n\n"
++        if execution_attempt_history_section
++        else ""
++    )
+     current_publication_observation = validate_current_publication_observation(
+         facts.get("current_publication_observation"), latest, archive_manifest, queue_module,
+     )
+@@ -4278,7 +4643,7 @@ The DCO observations above describe the captured local commit message. They do n
+ 
+ {current_status_observations_section}
+ 
+-{current_publication_section}
++{execution_attempt_history_layout}{current_publication_section}
+ 
+ {publication_section}
+ 
+@@ -4384,6 +4749,7 @@ The required shared-case and per-component checkpoint sets are unknown until the
+         task_section=task_section,
+         current_ci_section=current_ci_section,
+         current_status_observations_section=current_status_observations_section,
++        execution_attempt_history_layout=execution_attempt_history_layout,
+         current_publication_section=current_publication_section,
+         checklist_markdown_link=checklist_markdown_link,
+         checklist_json_link=checklist_json_link,

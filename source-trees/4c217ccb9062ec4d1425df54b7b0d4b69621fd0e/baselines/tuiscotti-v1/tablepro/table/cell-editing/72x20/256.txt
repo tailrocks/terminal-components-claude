@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe
+
+  ≡ Query 1 ×    T orders ×                                         +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────
+ ╭─ public › orders ──────────────────────────────────────── 14 cols ─╮
+ │   Data    Structure                                                │
+ │  ━━━━━━━────────────────────────────────────────────────────────── │
+ │                                                                    │
+ │   ‹4    status       total_amount  currency    shipping_addr… 7›   │
+ │  ▎    1 …ivered             25.90  USD         {"line1": "10…    ┃ │
+ │       2 pending           1617.64  USD         {"line1": "87…    │ │
+ │       3 pending           2236.65  EUR         {"line1": "78…    │ │
+ │       4 pending           2376.57  EUR         {"line1": "15…    │ │
+ │       5 refunded          2067.52  USD         {"line1": "17…    │ │
+ │       6 shipped            675.78  GBP         {"line1": "15…    │ │
+ │       7 delivered         2397.83  GBP         {"line1": "3 …    │ │
+ │   rows 1–7 of 500 loaded · 1,203,338 total · cols 5–7 of 14        │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+  EDIT   Enter Commit  Esc Cancel  …            Connected to Production

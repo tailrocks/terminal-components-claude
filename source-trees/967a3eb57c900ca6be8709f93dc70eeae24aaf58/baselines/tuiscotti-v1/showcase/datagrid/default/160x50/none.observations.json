@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 454474392016257925,
+  "legacy_name": "showcase/pages/datagrid/160x50/none",
+  "name": "showcase/datagrid/default/160x50/none",
+  "non_empty_cells": 1960,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}

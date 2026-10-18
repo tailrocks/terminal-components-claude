@@ -1,0 +1,67 @@
+{
+  "nonclaims": [
+    "This validates only the selected test on the bound Git-less source snapshot.",
+    "No source commit or remote identity is asserted.",
+    "No full Velnor tool, release, tag, signature, or Termrock product qualification is established.",
+    "R8 failure remains historical and is not relabeled."
+  ],
+  "observations": {
+    "child_exit_code": 0,
+    "close_seen": true,
+    "current_source_counts": {
+      "directories": 842,
+      "files": 2608,
+      "symlinks": 7
+    },
+    "current_source_entries": 3457,
+    "deadline_ms": 1200000,
+    "elapsed_ms": 51726,
+    "executed": 1,
+    "failed_ids": [],
+    "immutable_cargo_cache_before_after_equal": true,
+    "independent_current_source_rehash_matches_inventory": true,
+    "mutable_global_cache": {
+      "after_sha256": "d914b4df873c4dd8b4434b4ffa36b9d8346b0ada2bf26b94f533980df052caa1",
+      "before_sha256": "8040cd60bf257399d8296e4dc236331cef794c6bcd166b279fc722190ab1868c",
+      "interpretation": "Recorded separately by the runner as mutable global cache, not an immutable offline source input.",
+      "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home/.global-cache"
+    },
+    "overflow": false,
+    "passed_ids": [
+      "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+    ],
+    "selected": 1,
+    "signal": null,
+    "source_before_after_equal": true,
+    "summary": {
+      "count": 1,
+      "executed": 1,
+      "failed": 0,
+      "passed": 1,
+      "skipped": 86,
+      "valid": true
+    },
+    "timed_out": false,
+    "unique_status_rows": 1
+  },
+  "pins": {
+    "aggregate_receipt_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution/receipt.json",
+    "aggregate_receipt_sha256": "cda48c8d0bb14a4d12656b7ca9600d9cf0cd39d7c76d49cf1a52964283975892",
+    "command_receipt_sha256": "b32c8b9a7abc564e8f65c3d8655160d5ef7dfb9f22362a956bddaedb588f4e45",
+    "packet_sha256": "12330af41a8908ed3481e0748d1b9d6d5335d0264fde935b45439f3e3d9eaf77",
+    "raw_log_bytes": 31333,
+    "raw_log_path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution/command-1.log",
+    "raw_log_sha256": "88a42a3aa2acf3783a7a8c7903f20fc26c28faf2dba47391f26a52a533ea0cee",
+    "runner_sha256": "8708f48faa4374d732d1e5c975467e89e96f4919af6f881346c7533775f8c463",
+    "selected_test": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+    "source_full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+    "source_inventory_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+    "source_lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "terminal_receipt_sha256": "488a3d41712d7f4dce0eb2301634be7749aa8ddfed80a0b1a3adafc5506e7a29"
+  },
+  "reviewed_at_utc": "2026-10-09T23:10:32.936106+00:00",
+  "reviewer": "/root/current_branch_comparison_luna",
+  "schema": "termrock.focused-independent-actual-result-review/v1",
+  "scope": "Read-only review of actual R9 focused Nextest result; no rerun or mutation.",
+  "verdict": "VERIFIED_ONE_SELECTED_TEST_PASS; TOOL_AND_PRODUCT_QUALIFICATION_NOT_ESTABLISHED"
+}

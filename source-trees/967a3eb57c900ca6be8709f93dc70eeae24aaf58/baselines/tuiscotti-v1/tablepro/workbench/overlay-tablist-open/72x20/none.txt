@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe
+
+  ≡ Query 1 ×                                                       +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────
+ ╭─ ╭──────────────────────────────────────────────────────────────╮ ─╮
+ │  │ Open tabs                                                    │  │
+ │  │ ▎ Filter tabs…                                               │  │
+ │  │                                                              │┃ │
+ │ ▎│ ▎≡ Query 1  query                                   active   │┃ │
+ │  │                                                              │┃ │
+ │  │ ↑↓ Move · Enter Switch · Delete Close tab · Esc Close        │┃ │
+ │  ╰──────────────────────────────────────────────────────────────╯┃ │
+ │        ▸ T products                                          312 ┃ │
+ │        ▸ T orders                                          1.2 M │ │
+ │        ▸ T order_items                                     3.8 M │ │
+ │        ▸ T payments                                        1.2 M │ │
+ │        ▸ T subscriptions                                   1.1 k │ │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+                                                Connected to Production

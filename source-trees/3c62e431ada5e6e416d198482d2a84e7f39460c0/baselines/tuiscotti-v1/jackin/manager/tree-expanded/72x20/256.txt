@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help            Workspaces › payments-platform
+
+ ╭─ Workspaces ─────────────────────────────────────────── 2 running ─╮
+ │     Current directory                  saved as payments-platform  │
+ │ ▎ ▾ payments-platform                                   1 running  │
+ │     ◉ 7f3a  the-architect · Claude Code        running 2 h 14 min  │
+ │     ◌ c41e  reviewer · Codex                  preserved · dirty •  │
+ │   ▸ infra-control-plane                                 1 running  │
+ │   ▸ release-automation                                   ! failed  │
+ │   ▸ customer-portal                                      ! failed  │
+ │     + New workspace                                                │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+   payments-platform                                      Tab details
+
+   /workspace/payments-platform · 2 mounts · 5 vars
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal
+
+
+    Enter Launch  → Expand  e Edit  n New  d Delete…  w Prewarm  …

@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 16817496304978038073,
+  "legacy_name": "holla/flows/idea/cleanup/120x40/nocolor",
+  "name": "holla/idea/cleanup/120x40/nocolor",
+  "non_empty_cells": 916,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

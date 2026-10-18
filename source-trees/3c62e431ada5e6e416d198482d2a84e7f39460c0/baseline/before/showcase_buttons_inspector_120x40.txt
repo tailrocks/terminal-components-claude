@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Buttons                           truecolor · 120×40   i Inspector · on   ? Help
+
+   Foundations            Buttons  Primary, secondary, subtle, danger, toggle, disable…     State
+▎  Overview
+                            Playground             hover · click · Tab · Enter / Space      mode        NAV
+   Components                                                                               focus       28·7 10×1
+▎› Buttons                  Actions                                                         hover       suppressed
+▎  Inputs                   ▎Run task   ▎Preview   ▎Cancel   ▎Delete branch                 pressed     —
+▎  Text areas                                                                               mouse       31·13
+▎  Forms                    Toggles                                                         last key    i
+▎  Lists                    ▎○ Auto-approve   ▎● Verbose                                    focus ring  8 stops
+▎  Trees                                                                                    hit regions 34
+▎  Tables                   Disabled                                                        tick        6
+▎  Editable tables          ▎Disabled primary   ▎Disabled                                   colors      truecolor
+▎  Panels
+▎  Sidebars                 Busy
+▎  Dialogs                  ▎Start long job
+▎  Progress
+▎  Scrolling
+▎  Terminal
+▎  Code editor              State matrix                           reference rendering
+▎  Data grid
+▎  Chips & selects                         Primary        Secondary
+▎  Pickers                  default        ▎ Label        ▎ Label
+▎  Chrome                   hover          ▎ Label        ▎ Label
+                            focus          ▎ Label        ▎ Label
+   Screens                  focus + hover  ▎ Label        ▎ Label
+▎  Settings                 pressed        ▎ Label        ▎ Label
+▎  Task runner              disabled       ▎ Label        ▎ Label
+
+
+
+
+
+
+
+
+
+
+ Enter / Space Activate  Tab Next                                                                            Run task ✓

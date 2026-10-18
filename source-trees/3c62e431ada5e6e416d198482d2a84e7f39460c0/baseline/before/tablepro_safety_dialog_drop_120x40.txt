@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+  ≡ Query 1 ×                                                                                                       +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ─────────────────────────────────────────────────────────────────────────  ─╮
+ │                           │ │  ▎›  1 DROP TABLE orders                                                             │
+ │ ▎ Filter objects          │ │                                                                                      │
+ │ ▎▾ D acme_prod            │ │                                                                                      │
+ │ ▎  ▾ S public             │ │                                                                                      │
+ │ ▎    ▾ Tables             │ │                                                                                      │
+ │ ▎      ▸ T organizat╭────────────────────────────────────────────────────────────────────────╮                     │
+ │ ▎      ▸ T customers│                                                                        │                     │
+ │ ▎      ▸ T products │  This query may permanently modify or delete data                      │                     │
+ │ ▎      ▸ T orders   │                                                                        │                     │
+ │ ▎      ▸ T order_ite│  Action      DROP TABLE                                                │                     │
+ │ ▎      ▸ T payments │  Target      Production · production · acme_prod · orders              │                     │
+ │ ▎      ▸ T subscript│  Scope       orders, its 1.2 M rows, indexes and constraints           │                     │
+ │ ▎    ▸ Views        │  Risk        The object and everything stored in it disappears         │                     │
+ │ ▎    ▸ Functions    │              immediately.                                              │                     │
+ │ ▎    ▸ Sequences    │  Reversible  Not reversible                                            │                     │
+ │ ▎  ▸ S analytics    │  Safe Mode   Safe Mode · deliberate confirmation required              │                     │
+ │ ▎  ▸ S audit        │                                                                        │                     │
+ │                     │  DROP TABLE orders                                                     │                     │
+ │                     │                                                                        │                     │
+ │                     │   Type orders to confirm                                               │                     │
+ │                     │ ▎                                                                      │                     │
+ │                     │                                                                        │                     │
+ │                     │                                                    ▎Cancel  ▎Execute   │runs all             │
+ │                     │                                                                        │                     │
+ │                     ╰────────────────────────────────────────────────────────────────────────╯                     │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ │                           │ │                                                                                      │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel                                                 Cancelled · nothing was executed

@@ -1,0 +1,122 @@
+{
+  "actual_capture": {
+    "capture_plan_sha256": "00696fa074cf250406df8a636aae21a9e738614c54e46adf003a40d418d59ab3",
+    "capture_stages": {
+      "list": {
+        "capture_result_sha256": "95dc7696d8ca0bfe2adc92be18f87f085cf1be20aa6934399484dc5ee86e42a0",
+        "child_exit_code": 0,
+        "outcome": "complete",
+        "request_sha256": "63f56e2661b0c8243fda6607c7c9473eae16a5631a7c195a3686caee96789f9c",
+        "signal": null,
+        "stderr": {
+          "bytes": 2346,
+          "sha256": "edb3239570b61dcd7884ede53b640d294f7d8244461a21f266b8090e17f4284b",
+          "truncated": false
+        },
+        "stdout": {
+          "bytes": 11492,
+          "sha256": "04c1683826443a77c4b9686c02c49581930e92b5b17ec5b93ae31f44331b71ff",
+          "truncated": false
+        },
+        "timed_out": false,
+        "wrapper_exit_code": 0,
+        "wrapper_receipt_sha256": "fb808181ead4ea7d8384f115ca94bc56405af57eceebd96810caf7e82a1664dd"
+      },
+      "run": {
+        "capture_result_sha256": "7c13684ac7aed142a418ab35377a0754a3b352b8cca122add25eedfc9b1f9e00",
+        "child_exit_code": 0,
+        "outcome": "complete",
+        "request_sha256": "64c0d526bf7a54458525b76e54c070034062923f63034f106b0a631f8df32d6b",
+        "signal": null,
+        "stderr": {
+          "bytes": 16809,
+          "sha256": "b0ea0e05dc2f0e2357b888d028a288fd887f10fb59f51dc4f8fd9c09d03e6027",
+          "truncated": false
+        },
+        "stdout": {
+          "bytes": 1318,
+          "sha256": "9dcd1f107c80301a2d7406d2e6d830c9bf92f6266aaaab3d021977104d1baedc",
+          "truncated": false
+        },
+        "timed_out": false,
+        "wrapper_exit_code": 0,
+        "wrapper_receipt_sha256": "1f608380eca705d10013301b587833499698c446ffe70eb2f1e2faa76d2fbde7"
+      }
+    },
+    "root": "/private/tmp/termrock-vis01-provider-poll-r5-3case-current-0b7545-20261010",
+    "selected_test_names": [
+      "provider_poll_variant_preserves_error_and_historical_boundaries",
+      "provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes",
+      "provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind"
+    ],
+    "source_closure_sha256": "8478e151777e4849ae09890e90e93af85a41a44b364adc1b5ae9bf76f148d0c9"
+  },
+  "limits": [
+    "This validates the frozen R5 provider-poll fixture/test increment and its captured 3-case run only.",
+    "It does not establish current live provider endpoint behavior or authorize release/admission.",
+    "No Cargo, Nextest, or source mutation was performed during this review."
+  ],
+  "proposal": {
+    "actual_diff_paths": [
+      {
+        "blob": "4e288f980ee573e7d2c90b66b29d098588e8389b",
+        "bytes": 319119,
+        "path": "tools/visibility/status.py",
+        "sha256": "a165416f298b4e5cbdfba221a1b57db67b860cdc4a604dff6d90151b970b4cd4",
+        "status": "M"
+      },
+      {
+        "blob": "ed0d89791be2d5b99209628e76f3d5d879f12366",
+        "bytes": 218427,
+        "path": "crates/termrock-visibility-tests/tests/status.rs",
+        "sha256": "771479e81e862c9de5e8ca63eb96539833fa2852c806ca56c61732f27ba29b47",
+        "status": "M"
+      }
+    ],
+    "diff_path": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/source.patch",
+    "diff_sha256": "765415ea37a6f9c6d50ad472af909b14552697d5f87c1abe471e519c74260ec0",
+    "frozen_reader_validation_field": "PENDING",
+    "message": "feat: preserve captured CI poll failures",
+    "parent": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+    "parent_tree": "48e074b5503c227422d51faaa8d8a143a295d9da",
+    "path": "/private/tmp/termrock-provider-poll-root-proposed-commit-r5-20261010/proposal.json",
+    "reader_validation_note": "The frozen proposal retains its historical PENDING marker; the later pinned Reader v2 run below is the actual accepted validation. Proposal bytes were not changed.",
+    "sha256": "d3addfda679c39564812d188bf5e45a61ce6118c5aac48074f3074f42caf5c12",
+    "signoff": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
+    "source_review": {
+      "path": "/private/tmp/termrock-vis01-provider-poll-r5-source-review-rust-test-execution-20261010.json",
+      "sha256": "c422437606a9430735a599c16735edc3b8eaa4e4aad2398ddbe704ae85c9f162",
+      "verdict": "READY_SOURCE_ONLY_NO_EXECUTION"
+    },
+    "tree": "f8a2508d003ed00d614b95f204418f0b7910bdfd"
+  },
+  "reader_validation": {
+    "acceptance": "accepted",
+    "all_reader_processes_exit_zero": true,
+    "count_anomalies": [],
+    "errors": [],
+    "filtered_out": "61",
+    "ignored": "0",
+    "listed_test_count": "64",
+    "passed_test_names": [
+      "provider_poll_variant_preserves_error_and_historical_boundaries",
+      "provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind",
+      "provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes"
+    ],
+    "reader_binary_sha256": "6e04b44ab03aae70fec328eabda332293bedf1f71f66673d903af6566696366f",
+    "reader_receipt_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/root-reader.receipt.json",
+    "reader_receipt_sha256": "6ccf620a464d360b049495c7ed23277ff94b27ff2f4b3b1f62651009704f6a51",
+    "reader_report_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/root-reader.stdout.raw",
+    "reader_report_sha256": "6d917c285a6bfb1efcad9b956ea84dfbe9752bba5173ee2f52918c6f163131f5",
+    "reader_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "request_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/request.json",
+    "request_sha256": "117e080f1d88841c65cf1ee7f100a583bc5c50e24b34b5165f35a40ae1defe6a",
+    "run_id": "7c996c69-8cdf-44b8-99ca-c1a13e010618",
+    "selected_all_passed": true,
+    "selected_test_count": 3,
+    "selection_path": "/private/tmp/termrock-vis01-provider-poll-r5-reader-v2-20261010/selection.json",
+    "selection_sha256": "65897f7d8e28f948e3fb7cdb3bd989000cc55b0bea0fb0f38924b99fba9c015e"
+  },
+  "schema": "termrock-provider-poll-r5-proposal-independent-review/v1",
+  "verdict": "READY_FOR_ROOT_COMMIT"
+}

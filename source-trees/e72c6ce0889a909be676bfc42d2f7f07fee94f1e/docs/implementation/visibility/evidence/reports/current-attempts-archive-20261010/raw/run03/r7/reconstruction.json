@@ -1,0 +1,148 @@
+{
+  "schema": "termrock-e2e/run03-post-run-raw-result-reconstruction/v1",
+  "status": "RECONSTRUCTED_FROM_FROZEN_R7_RAW_OUTPUTS; NOT_THE_ORIGINAL_RUNNER_RECEIPT",
+  "method": "Read-only parse and cross-check of the already completed R7 stdout/stderr/process-events and pre/post snapshots. No Cargo, Nextest test, or PTY was launched by this collector.",
+  "original_attempt": {
+    "runner_path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/runner.cjs",
+    "runner_sha256": "59e72b0fc46f19e56a95329bfbe3d5aa3aa49bf496295a59850b24565563172f",
+    "gate_root": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate",
+    "preflight_sha256": "7db0b00d8baa174c31c0ed0dab6dabdac74ca89feb88b8b662d34fe14fcb7119",
+    "postflight_sha256": "e9b8f98391548730912a0b36ce139117cc8fe73621ce935ee4aaf24e7c242cde",
+    "original_final_receipt_present": false,
+    "runner_exit_code_observed_by_root": 1,
+    "runner_failure": "TypeError during receipt construction: runJson.tests is undefined; parser return key is test_events (Root-observed stack at runner finish/test_cases_executed)."
+  },
+  "rust_test_result": {
+    "nextest_run_id": "9b39b03b-ff0e-43d7-b8f9-166459c6d507",
+    "suite": {
+      "started": 1,
+      "failed": 1,
+      "metadata": {
+        "crate": "termrock-e2e",
+        "test_binary": "command_lane",
+        "kind": "test"
+      },
+      "test_count": 1,
+      "final_counts": {
+        "passed": 0,
+        "failed": 1,
+        "ignored": 1,
+        "measured": 0
+      }
+    },
+    "selected_test": {
+      "name": "termrock-e2e::command_lane$command::tests::run03_frozen_holla_pair_uses_the_shared_native_pty_program",
+      "event": "failed",
+      "exec_time_seconds": 52.176968625,
+      "assertion": "reference ExactRootCommand Interaction: left Fail, right Pass",
+      "source_location": "tests/command_lane.rs:3376"
+    },
+    "raw_event_counts": {
+      "suite_started": 1,
+      "suite_ok": 0,
+      "suite_failed": 1,
+      "test_started": 23,
+      "test_ok": 0,
+      "test_failed": 1,
+      "test_ignored": 22,
+      "other": 0
+    },
+    "observed_test_inventory": {
+      "started_names": [
+        "termrock-e2e::command_lane$command::executor::tests::cargo_config_audit_rejects_rustflags_in_all_supported_toml_spellings",
+        "termrock-e2e::command_lane$command::executor::tests::cargo_marker_requires_the_exact_executable_and_complete_line",
+        "termrock-e2e::command_lane$command::executor::tests::cleanup_error_is_not_hidden_by_successful_exit",
+        "termrock-e2e::command_lane$command::executor::tests::every_frozen_command_program_uses_supported_declared_key_encodings",
+        "termrock-e2e::command_lane$command::executor::tests::failed_help_assertion_remains_visible_and_does_not_skip_cleanup",
+        "termrock-e2e::command_lane$command::executor::tests::input_bytes_match_pinned_tuiscotti_key_encoder",
+        "termrock-e2e::command_lane$command::executor::tests::invocation_plans_keep_exact_cargo_argv_and_direct_executable_separate",
+        "termrock-e2e::command_lane$command::executor::tests::missing_execution_envelope_blocks_the_selected_program_without_spawning",
+        "termrock-e2e::command_lane$command::executor::tests::missing_exit_is_blocked_and_still_runs_owned_cleanup",
+        "termrock-e2e::command_lane$command::executor::tests::planned_key_encoder_requires_a_declared_press_and_rejects_unknown_keys",
+        "termrock-e2e::command_lane$command::executor::tests::shared_root_command_driver_runs_all_programs_against_the_selected_target",
+        "termrock-e2e::command_lane$command::executor::tests::success_keeps_each_live_layer_separate_and_restoration_blocked",
+        "termrock-e2e::command_lane$command::tests::all_run03_invocations_share_one_input_program_and_geometry",
+        "termrock-e2e::command_lane$command::tests::all_seven_programs_are_valid_source_backed_and_role_independent",
+        "termrock-e2e::command_lane$command::tests::command_programs_keep_expected_checkpoint_and_input_sequences",
+        "termrock-e2e::command_lane$command::tests::command_registry_reserves_exactly_run01_through_run07",
+        "termrock-e2e::command_lane$command::tests::initial_receipt_keeps_every_command_not_run",
+        "termrock-e2e::command_lane$command::tests::lane_declares_resource_limits_and_native_platform_boundary",
+        "termrock-e2e::command_lane$command::tests::native_command_selector_rejects_unknown_ids_and_wrong_binary_identity",
+        "termrock-e2e::command_lane$command::tests::native_command_selectors_preserve_all_exact_targets_and_app_arguments",
+        "termrock-e2e::command_lane$command::tests::program_contract_rejects_vacuous_or_unpaired_negative_checkpoints",
+        "termrock-e2e::command_lane$command::tests::run03_frozen_holla_pair_uses_the_shared_native_pty_program",
+        "termrock-e2e::command_lane$command::tests::run03_root_argv_is_exact_and_has_no_scenario_or_pause_override"
+      ],
+      "ignored_terminal_names": [
+        "termrock-e2e::command_lane$command::executor::tests::cargo_config_audit_rejects_rustflags_in_all_supported_toml_spellings",
+        "termrock-e2e::command_lane$command::executor::tests::cargo_marker_requires_the_exact_executable_and_complete_line",
+        "termrock-e2e::command_lane$command::executor::tests::cleanup_error_is_not_hidden_by_successful_exit",
+        "termrock-e2e::command_lane$command::executor::tests::every_frozen_command_program_uses_supported_declared_key_encodings",
+        "termrock-e2e::command_lane$command::executor::tests::failed_help_assertion_remains_visible_and_does_not_skip_cleanup",
+        "termrock-e2e::command_lane$command::executor::tests::input_bytes_match_pinned_tuiscotti_key_encoder",
+        "termrock-e2e::command_lane$command::executor::tests::invocation_plans_keep_exact_cargo_argv_and_direct_executable_separate",
+        "termrock-e2e::command_lane$command::executor::tests::missing_execution_envelope_blocks_the_selected_program_without_spawning",
+        "termrock-e2e::command_lane$command::executor::tests::missing_exit_is_blocked_and_still_runs_owned_cleanup",
+        "termrock-e2e::command_lane$command::executor::tests::planned_key_encoder_requires_a_declared_press_and_rejects_unknown_keys",
+        "termrock-e2e::command_lane$command::executor::tests::shared_root_command_driver_runs_all_programs_against_the_selected_target",
+        "termrock-e2e::command_lane$command::executor::tests::success_keeps_each_live_layer_separate_and_restoration_blocked",
+        "termrock-e2e::command_lane$command::tests::all_run03_invocations_share_one_input_program_and_geometry",
+        "termrock-e2e::command_lane$command::tests::all_seven_programs_are_valid_source_backed_and_role_independent",
+        "termrock-e2e::command_lane$command::tests::command_programs_keep_expected_checkpoint_and_input_sequences",
+        "termrock-e2e::command_lane$command::tests::command_registry_reserves_exactly_run01_through_run07",
+        "termrock-e2e::command_lane$command::tests::initial_receipt_keeps_every_command_not_run",
+        "termrock-e2e::command_lane$command::tests::lane_declares_resource_limits_and_native_platform_boundary",
+        "termrock-e2e::command_lane$command::tests::native_command_selector_rejects_unknown_ids_and_wrong_binary_identity",
+        "termrock-e2e::command_lane$command::tests::native_command_selectors_preserve_all_exact_targets_and_app_arguments",
+        "termrock-e2e::command_lane$command::tests::program_contract_rejects_vacuous_or_unpaired_negative_checkpoints",
+        "termrock-e2e::command_lane$command::tests::run03_root_argv_is_exact_and_has_no_scenario_or_pause_override"
+      ]
+    },
+    "nextest_stderr_summary": {
+      "elapsed_seconds": 52.18,
+      "selected_run_count": 1,
+      "passed": 0,
+      "failed": 1,
+      "skipped": 22
+    }
+  },
+  "process": {
+    "child_close": {
+      "exit_code": 100,
+      "signal": null
+    },
+    "process_audit_clean_after_close": true,
+    "input_stable_recomputed_from_pre_post_snapshots": true,
+    "artifact_inventory_sha256": "af63a77bed77711adb6f750520286c7465b4e4be37593998914d60acc985b889",
+    "artifact_entry_count": 82,
+    "artifact_root": "/private/tmp/termrock-vis02-run03-capture-r3h-20261010/artifacts"
+  },
+  "raw_inputs": {
+    "stdout.log": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/stdout.log",
+      "sha256": "68217fa41a5b466418c8ab14b77fbfdfc93af1fbaf23179beea39060990c8dc4",
+      "bytes": 7879
+    },
+    "stderr.log": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/stderr.log",
+      "sha256": "0df7b0798e87c80ca88a1df5cef30498a11b6a8d38068583a9600164b64c97b6",
+      "bytes": 3131
+    },
+    "process-events.jsonl": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/process-events.jsonl",
+      "sha256": "da442e9019f63438a8ab0785cbfe05e92ad6eb6728c7063c65870b5a8c3e3227",
+      "bytes": 1270
+    },
+    "preflight.json": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/preflight.json",
+      "sha256": "7db0b00d8baa174c31c0ed0dab6dabdac74ca89feb88b8b662d34fe14fcb7119",
+      "bytes": 165788
+    },
+    "postflight.json": {
+      "path": "/private/tmp/termrock-rust-tool-test-execution/step-input-r2-run03-caller-pty-r7-20261010/gate/postflight.json",
+      "sha256": "e9b8f98391548730912a0b36ce139117cc8fe73621ce935ee4aaf24e7c242cde",
+      "bytes": 179531
+    }
+  },
+  "interpretation": "The Rust caller did execute and failed its reference interaction assertion. Nextest recorded one run, zero passes, one failure, and 22 skipped cases. The runner separately crashed while constructing its receipt, so the wrapper result is incomplete; this reconstruction does not convert either failure into a pass."
+}

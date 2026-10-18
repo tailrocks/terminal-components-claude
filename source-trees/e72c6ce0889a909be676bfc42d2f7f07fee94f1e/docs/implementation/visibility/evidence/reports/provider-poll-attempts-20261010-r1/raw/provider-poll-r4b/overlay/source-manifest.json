@@ -1,0 +1,110 @@
+{
+  "R1_mutation_erratum": {
+    "path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r1-mutation-erratum.json",
+    "sha256": "8c4fed7794231e160c6c90ef087a86af5cb119cb393a57ccfa5ff682010994d7"
+  },
+  "R2_frozen_predecessor": {
+    "disposition": "CHANGES_REQUIRED; no execution; preserved unchanged",
+    "path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r2/source-manifest.json",
+    "sha256": "b4a368da14f236bd835c13b776321e4691dac94e6c4dc8af81f22fafe54be68c",
+    "tree": "e64fcc6f3f1dac3f5294854e75bb0b3939200839"
+  },
+  "R2_review_disposition": {
+    "durable_receipt": "No durable receipt path was supplied in the reviewer response; verdict preserved from the review message.",
+    "findings": [
+      "R1 accepted claim did not itself bind R2 base 4a97037 and exact preimages; corrected Root base addendum now binds them",
+      "unknown schema/field negative regression required by scope was absent; R3 adds both checks"
+    ],
+    "reviewer": "/root/rust_test_execution",
+    "verdict": "CHANGES_REQUIRED"
+  },
+  "R3_review_delta": [
+    "unknown provider-poll schema value is rejected",
+    "extra unknown field on a provider-poll observation row is rejected"
+  ],
+  "accepted_base_addendum": {
+    "accepted_base": "4a97037c04bb97b01ccbf9c9163b7bb3e406f6b7",
+    "path": "/private/tmp/termrock-vis01-provider-poll-root-accepted-base-addendum-r2-20261010.json",
+    "scope": "two listed source paths and unknown schema/field regressions",
+    "sha256": "72ab9ed665217821697aa1b21b5250fb1ca9b1db96ee059c4051a83163c65be3"
+  },
+  "accepted_claim": {
+    "owner": "/root/reference_claim_luna",
+    "path": "/private/tmp/termrock-vis01-provider-observation-root-accepted-claim-20261010.json",
+    "reviewer": "/root/rust_test_execution",
+    "sha256": "374b8ffdf56b7144bbddc28af29783c59392f3d93c49a44c35e04f3ece4c2cdc",
+    "work_id": "VIS-01"
+  },
+  "accepted_scope_record": {
+    "path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/accepted-scope.json",
+    "sha256": "09843805b02aec0c32b10c94d6715faef96fed8f78bfb15263b54a43d04f92bc"
+  },
+  "changed_paths": [
+    {
+      "base_blob": "47a9455cac1732731b6fad4fd13bdde332d520f9",
+      "blob": "4e288f980ee573e7d2c90b66b29d098588e8389b",
+      "bytes": 319119,
+      "mode": "100644",
+      "path": "tools/visibility/status.py",
+      "preimage_sha256": "53d7ca682e33ffe37f5ab22274d3a0d819562801939b17783690f4e4bd739419",
+      "sha256": "a165416f298b4e5cbdfba221a1b57db67b860cdc4a604dff6d90151b970b4cd4"
+    },
+    {
+      "base_blob": "7aef9bb3a2518eb500c7e5dc2162d0660aec1e23",
+      "blob": "4bf2adb24439ae2adfd48f124d62693e0b4b53e7",
+      "bytes": 218311,
+      "mode": "100644",
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "preimage_sha256": "1fba764643b9fe5ce05fd9027732901a15e652e2a1e6baab2227eff957a2ea59",
+      "sha256": "c7798eeaaf24d30488bd7dc1c89253202b4f23e4449c818d001c0f8b0678f93d"
+    }
+  ],
+  "execution": {
+    "build": "NOT_RUN",
+    "cargo": "NOT_RUN",
+    "nextest": "NOT_RUN",
+    "python_tests": "NOT_RUN"
+  },
+  "freeze_id": "VIS01-provider-poll-variant-R4b-20261010",
+  "proposed_tree": "389dbd9e594dc05fa7b0311a0c5142f8931f31cd",
+  "review_request": {
+    "reviewer": "/root/rust_test_execution",
+    "scope": "Focused metadata-only review of exact source byte count/path correction; confirm R4b source/test/tree/patch bytes are identical to reviewed R4 and changed_paths bytes match file sizes."
+  },
+  "rust_regressions": [
+    "provider_poll_variant_preserves_error_and_historical_boundaries",
+    "provider_poll_variant_rejects_source_drift_unlisted_members_and_tampered_raw_bytes",
+    "provider_poll_variant_rejects_duplicate_attempts_nonmonotone_rows_and_unknown_kind"
+  ],
+  "schema": "termrock-vis01-provider-poll-source-freeze/v2",
+  "source_base": {
+    "commit": "4a97037c04bb97b01ccbf9c9163b7bb3e406f6b7",
+    "git_directory": "/private/tmp/termrock-root-integration-20261010.git",
+    "tree": "963e51b485cf435baaebada0e851e9fd3cf08791"
+  },
+  "source_patch": {
+    "bytes": 44175,
+    "path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r4b/source.patch",
+    "sha256": "5279863f68cb71138d7b13c36018987f5059238e69e45bef67bb351cf623cfe6"
+  },
+  "status": "FROZEN_FOR_FOCUSED_STATIC_REVIEW_ONLY",
+  "supersedes": "R4 source manifest metadata only; R4 source/test files, tree, and patch remain byte-identical and preserved.",
+  "R3_predecessor": {
+    "path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r3/source-manifest.json",
+    "sha256": "9b47573f17bcd425e6c4682c9123040dfb597b74277944da914cdfcd9dff3fe0",
+    "tree": "38d1ad53bf47e6f60f51b903545cb012951e1821",
+    "disposition": "CHANGES_REQUIRED; preserved unchanged; no execution"
+  },
+  "R3_review_finding": {
+    "reviewer": "/root/rust_test_execution",
+    "verdict": "CHANGES_REQUIRED",
+    "finding": "The unknown-schema assertion expected an error phrase not emitted by the existing legacy schema guard; actual rejection text is unsupported provider observations schema or fields.",
+    "correction": "One test expectation string changed; production Python and all other source bytes unchanged."
+  },
+  "R4_predecessor": {
+    "path": "/private/tmp/termrock-vis01-provider-poll-variant-4a97037-20261010/r4/source-manifest.json",
+    "sha256": "ba7c0260ace1ad554e5641d1f5dfaa552e95e21537991c30f596f83471b65636",
+    "tree": "389dbd9e594dc05fa7b0311a0c5142f8931f31cd",
+    "disposition": "Preserved; source/patch/tree unchanged. Superseded only to correct test-file byte count metadata from 218316 to 218311."
+  }
+}

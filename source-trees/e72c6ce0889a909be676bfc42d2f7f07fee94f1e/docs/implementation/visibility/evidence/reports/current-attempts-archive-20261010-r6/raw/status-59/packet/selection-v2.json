@@ -1,0 +1,487 @@
+{
+  "schema": "termrock-nextest-selection/v2",
+  "filter_args": [],
+  "run_ignored": "default",
+  "expected_test_count": 59,
+  "targets": [
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test"
+    }
+  ],
+  "tests": [
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "initial_status_keeps_products_not_run_and_pairs_exact",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "bounded_execution_receipts_render_partial_results_without_ready_claims",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "holla_valid_failure_and_not_run_rows_are_rendered_without_becoming_passes",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "execution_receipts_reject_source_pair_mismatch_and_changed_bytes",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "holla_executable_and_builder_receipt_hashes_are_cross_bound",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "holla_receipt_rejects_unexpected_or_missing_check_and_artifact_rows",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "execution_evidence_rejects_tmp_traversal_and_symlinked_parent",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "execution_evidence_fifo_is_rejected_without_blocking_or_report",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "execution_receipt_json_rejects_duplicate_keys",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "checked_in_records_render_from_exact_copies",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "historical_product_phases_render_run03_without_promoting_current_readiness",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "historical_product_phase_pair_remains_valid_when_current_pair_differs",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "historical_product_phase_not_applicable_readiness_is_explicit",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "historical_product_phase_archive_rejects_missing_tampered_and_unlisted_members",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "historical_product_phase_rejects_command_and_source_pair_drift",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "historical_product_phase_rejects_duplicate_run03_and_invalid_layers",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_misbound_latest_ci_publication_and_historical_execution",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "local_package_and_report_control_metadata_rejects_unbound_inputs",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "status_renders_previewed_v1_and_v2_identically_and_rejects_invalid_v2",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "status_fails_closed_when_adjacent_queue_is_missing_or_symlinked",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "status_fails_closed_when_adjacent_queue_lacks_v1_validator",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_ambiguous_or_nonfinite_source_facts_without_status_output",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "source_history_accepts_four_predecessors_and_rejects_malformed_bindings",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "explicit_source_ci_capture_distinguishes_null_from_missing",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "reports_latest_remote_refs_and_local_checkout_separately",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "renders_all_seven_exact_commands_and_layers",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "role_changes_local_label_and_uses_reference_links",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "reference_role_cli_renders_reference_presentation",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "keeps_visual_interaction_api_ownership_distinct",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "keeps_ci_dco_observations_separate",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "absent_optional_current_ci_capture_keeps_only_historical_rows",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "current_ci_snapshot_binds_each_gate_and_keeps_products_not_run",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "current_ci_source_pair_run_head_workflow_and_url_mismatches_are_rejected",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "missing_or_failed_reference_query_is_unknown_not_zero",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "mismatched_or_absent_provider_capture_does_not_supply_failure_cause",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "current_dco_heads_must_match_their_candidate_and_reference_tips",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_changed_frozen_tag",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_previous_source_facts_schema_version",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "does_not_accept_wrong_or_partial_dco_trailers",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_candidate_remote_identity_mismatch",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "accepts_new_typed_observations_and_unknown_conclusions",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_unknown_state_negative_count_and_non_https_reason_source",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_duplicate_task_ids_and_unknown_states",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "status_accepts_q47_reference_branch_scope",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "status_rejects_malformed_or_incomplete_q47_v1_records",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "generation_is_byte_deterministic",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "current_observations_render_source_bound_branch_and_candidate_failure",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_changed_current_observation_evidence_pin",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_a_temporary_root_locator_in_checked_in_source_facts",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_a_stale_source_evidence_archive_manifest_pin",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_missing_archived_current_observation_input",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_tampered_candidate_measurement_packet_member",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "keeps_historical_raw_capture_gap_separate_from_readiness",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_relabeling_a_verified_candidate_failure_as_not_run",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "rejects_unrecorded_candidate_acceptance_promotion",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "execution_attempt_history_keeps_test_wrapper_and_readiness_states_separate",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "stale_attempt_must_be_historical_and_does_not_promote_readiness",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "attempt_history_rejects_count_sequence_and_artifact_pin_drift",
+      "ignored": false,
+      "filter_match_status": "matches"
+    },
+    {
+      "package": "termrock-visibility-tests",
+      "binary_id": "termrock-visibility-tests::status",
+      "kind": "test",
+      "test_name": "ci_attempt_records_no_exposed_cause_and_requires_raw_failed_run_inputs",
+      "ignored": false,
+      "filter_match_status": "matches"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+ ▪  TablePro  Connections  6 saved             no color · 72×20  ? help
+
+ ╭─ Connections ────────────────────────────────────────────────── 6 ─╮
+ │                                                                    │
+ │ ▎ stag                                                             │
+ │  ▾ Acme                                                            │
+ │      ◇ Staging                                                 pg  │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ │                                                                    │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+  EDIT   Type Filter  ↓ Into list  Esc Clear

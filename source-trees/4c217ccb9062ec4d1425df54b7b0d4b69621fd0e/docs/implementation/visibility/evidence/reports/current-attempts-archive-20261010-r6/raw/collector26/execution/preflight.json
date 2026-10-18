@@ -1,0 +1,74 @@
+{
+  "state": "PREFLIGHT_PASS_BEFORE_CHILDREN",
+  "authorized": false,
+  "packet_sha256": "1d7142ef6578a47c6265fa5ec5ea458fbcf67157ff6e65088f075fa6d40f182c",
+  "runner_sha256": "e7e75597f50861582aca5d1be96bf18978fea4b667c42dd0b11909ec64016876",
+  "source_snapshot_sha256": "dd52e6b74d21a6e5406818ba57ea3203a5f41f4ae89801308b4dca4d53d225fe",
+  "cache_copy": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/cache-copy-receipt.json",
+    "sha256": "0038138e12e7b47abd4af86214955ac8aab80aaa5abc9d8f192b19f95859fbba",
+    "file_count": 85,
+    "archive_count": 40,
+    "sparse_index_record_count": 44
+  },
+  "tool_versions": [
+    {
+      "name": "cargo",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "args": [
+        "--version"
+      ],
+      "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+      "version_first_line": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+      "stdout": "cargo 1.98.1 (797e8a9bc 2026-08-05)\n",
+      "stderr": "",
+      "stdout_sha256": "9950bbb2d5c3417b1a068f0e81f6d3cac991a363193bdf2a22d447f5acf8b503",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "rustc",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "args": [
+        "--version"
+      ],
+      "version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "version_first_line": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "stdout": "rustc 1.98.1 (48a229cea 2026-09-01)\n",
+      "stderr": "",
+      "stdout_sha256": "2073de5abf149185c2f4d7473dc833bc921b99135560d24ae7b2293f33a9c376",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "rustdoc",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "args": [
+        "--version"
+      ],
+      "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+      "version_first_line": "rustdoc 1.98.1 (48a229cea 2026-09-01)",
+      "stdout": "rustdoc 1.98.1 (48a229cea 2026-09-01)\n",
+      "stderr": "",
+      "stdout_sha256": "7b3536f4f4cceee8577f977a53540f0893b77b77b0fd2616db9e81d6d29b4dca",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "name": "nextest",
+      "program": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+      "args": [
+        "--version"
+      ],
+      "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+      "version_first_line": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)",
+      "stdout": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)\nrelease: 0.9.146\ncommit-hash: 8af696ddcce8fff2962d6a5168b6d138b8616a35\ncommit-date: 2026-09-21\nhost: aarch64-apple-darwin\n",
+      "stderr": "",
+      "stdout_sha256": "a147daa445fa0b62fd907b6e865d026c57ca9d2e385551428f9070c9252de3c7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    }
+  ],
+  "exact_test_count": 26,
+  "output_root": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010"
+}

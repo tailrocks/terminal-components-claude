@@ -1,0 +1,50 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m                                                                     no color · 160×50  ? help [0m
+                                                                                                                                                                [0m
+ [0m[1m [0m≡[0m[1m Query 1 ×  [0m                                                                                                                                             +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ───────────────── public ─╮ ╭─[0m[1m Query 1 [0m─────────────────────────────────────────────────────────────────────────────────────────────────── 2 ms ─╮ [0m
+ │                                     │ │  ▎› [0m[1m 1[0m [0m[1;4mSELECT[0m[4m * [0m[1;4mFROM[0m[4m orders                                                                                       [0m │ [0m
+ │   Filter objects                    │ │                                                                                                                    │ [0m
+ │  ▾ D acme_prod                      │ │                                                                                                                    │ [0m
+ │    ▾ S public                       │ │                                                                                                                    │ [0m
+ │      ▾ Tables                    7  │ │                                                                                                                    │ [0m
+ │        ▸ T organizations     1.2 k  │ │                                                                                                                    │ [0m
+ │        ▸ T customers        48.9 k  │ │                                                                                                                    │ [0m
+ │        ▸ T products            312  │ │                                                                                                                    │ [0m
+ │        ▸ T orders            1.2 M  │ │                                                                                                                    │ [0m
+ │        ▸ T order_items       3.8 M  │ │                                                                                                                    │ [0m
+ │        ▸ T payments          1.2 M  │ │                                                                                                                    │ [0m
+ │        ▸ T subscriptions     1.1 k  │ │                                                                                                                    │ [0m
+ │      ▸ Views                     2  │ │                                                                                                                    │ [0m
+ │      ▸ Functions                 1  │ │                                                                                                                    │ [0m
+ │      ▸ Sequences                 1  │ │                                                                                                   ln 1/1 · col 21  │ [0m
+ │    ▸ S analytics                    │ │                                                                                                                    │ [0m
+ │    ▸ S audit                        │ │  [0m[1m EXPLAIN ×  [0m                                                                                                      │ [0m
+ │                                     │ │  ━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────── │ [0m
+ │                                     │ │   Planning 0.210 ms · r Raw                                                                                        │ [0m
+ │                                     │ │     Operation                              cost     rows     actual    %    Gather                                 │ [0m
+ │                                     │ │   ▾ Gather                          1000..16254    1.2 M          —   7                                            │ [0m
+ │                                     │ │       Parallel Seq Scan on public.     0..15054    1.2 M          — [0m[1m 93 ▲[0m   Cost             1000.00..16253.73     │ [0m
+ │                                     │ │                                                                             Est. rows        1,203,338             │ [0m
+ │                                     │ │                                                                             Workers Planned  2                     │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ │                                     │ │                                                                                                                    │ [0m
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1mCtrl+R[0m Run  [0m[1mAlt+R[0m Run all  [0m[1mCtrl+Space[0m Complete  [0m[1mEsc[0m Done                                                                       Connected to Production [0m

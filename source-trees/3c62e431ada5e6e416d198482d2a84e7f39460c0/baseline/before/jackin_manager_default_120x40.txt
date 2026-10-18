@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                                               Workspaces  inside the Construct  2 running
+
+ ╭─ Workspaces ────────── 2 running ─╮ │  Current directory · payments-platform                       saved workspace
+ │ ▎   Current directory             │ │
+ │ ▎ ▸ payments-platform             │ │  Working dir   /workspace/payments-platform
+ │ ▎ ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree
+ │ ▎ ▸ release-automation            │ │                ~/src/shared-libs · ro shared
+ │ ▎ ▸ customer-portal               │ │  Roles         the-architect ★ · allowed 3 of 46
+ │ ▎   + New workspace               │ │  Environments  5 vars · 2 [op]
+ │                                   │ │  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·
+ │                                   │ │                Grok · Team ★ · OpenCode · Go subscription ★
+ │                                   │ │  Policies      git pull enabled · keep awake on · dirty exit ask
+ │                                   │ │
+ │                                   │ │  Instances                                                  daemon · 3 s ago
+ │                                   │ │  ◉ 7f3a  the-architect · Claude Code · running
+ │                                   │ │  ◌ c41e  reviewer · Codex · preserved · dirty
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Launch   ▎Edit
+ ╰───────────────────────────────────╯ │
+
+              Enter Launch  n New  e Edit  Tab Details  c Accounts  u Usage  s Settings  ? Help  q Quit

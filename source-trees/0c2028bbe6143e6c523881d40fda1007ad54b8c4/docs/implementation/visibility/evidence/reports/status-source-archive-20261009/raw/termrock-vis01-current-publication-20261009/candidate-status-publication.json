@@ -1,0 +1,16 @@
+{
+  "schema": "termrock-candidate-status-publication/v1",
+  "commit": "20f2d485695991632f1ff5210d696576eb602583",
+  "parent": "f0a05fa55d4fd09b19be63d51f512d4c32076f67",
+  "tree": "e6eb50897b20b30c873cd00e612009b251535d01",
+  "paths": 3,
+  "commit_tool": "feca2a",
+  "review_sha256": "2e2bb3ca9d869963bcfaee36929fc0d5cd3bedeb1a0d75c3cc389fb783979c2a",
+  "push": "214f1a/session1011/5a5d11",
+  "remote_readback": "1a2655",
+  "tag_unchanged": true,
+  "facts_sha256": "bc765653690ee7f3e26132ce8b404e57cf5706c45d36548b496c12e923f6e6a6",
+  "evidence_limit": "R5 6PASS2FAIL plus separate R7 corrected2PASS; not one fresh8PASS",
+  "visibility": "INCOMPLETE",
+  "refactor": "NOT_READY"
+}

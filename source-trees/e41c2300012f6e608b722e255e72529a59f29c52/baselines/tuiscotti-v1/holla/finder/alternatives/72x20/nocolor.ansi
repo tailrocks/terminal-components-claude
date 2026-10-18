@@ -1,0 +1,20 @@
+ [0m[1m holla╭─[0m───────────────────────────────────────╮t project  [0m[1mmbp · local[0m [0m
+       │  Inspect 12 GB of generated artifacts  │                       [0m
+ [0m[1m Here │  Open                            [0mEnter[0m[1m [0m│                       [0m
+ ━━━━━━│  Copy command                        y │────────────────────── [0m
+   Sear│  Insert into shell                     │       scope ‹ here ›  [0m
+       │ ────────────────────────────────────── │                       [0m
+    Sug│  Pin here                              │                     ┃ [0m
+  › Ins│  Set alias…                            │B generated artifac… ┃ [0m
+    Pul│  Hide here                             │ch is 3 commits beh… ┃ [0m
+    Rev│  Reset ranking                         │dified · 1 untracked ┃ [0m
+    Run│ ────────────────────────────────────── │les changed since t… ┃ [0m
+    Who│  Why is this here?                     │ssions blocked for … ┃ [0m
+       ╰────────────────────────────────────────╯                     │ [0m
+    Recent here                                                       │ [0m
+ [0m[2m   nothing used here yet                                             [0m│ [0m
+                                                                        [0m
+    → 'holla disk analyze --artifacts' · here · read-only               [0m
+                                                                        [0m
+ [0m[1m~/work/holla[0m   main   ↓3 • 5                          no color · 72×20 [0m
+   [0m[1m    [0m         [0m[1m  [0m [0m[1m↑↓[0m Mov[0m[1me  Enter[0m Cho[0m[1mose  Esc [0mClose  [0m[1m   [0m                [0m

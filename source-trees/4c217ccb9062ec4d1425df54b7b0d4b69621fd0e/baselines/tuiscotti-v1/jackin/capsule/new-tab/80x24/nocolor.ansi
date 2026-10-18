@@ -1,0 +1,24 @@
+  jackin❯    File   Edit   View   Session   Help                                [0m
+                                                                                [0m
+  1 Mix (3) ●    2 Shell    3 docs ●                                            [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── [0m
+╭─ C╭──────────────────────────────────────────────────────────────────────╮───╮[0m
+│  +│ [0m[1mNew tab[0m                                                              │49││[0m
+│  +│ ▎ Type to search…                                                    │n ││[0m
+│  -│                                                                      │  ││[0m
+│  +│ [0m[1m▎[0m▪[0m[1m Claude Code  [0m2 accounts · choose at start[0m[1m                 [0magents[0m[1m [0m │  ││[0m
+│   │  ▪ Codex        Primary                                              │  ┃│[0m
+│● B│  ▪ OpenCode     Go subscription                                      │  ┃│[0m
+│  r│  ▪ Grok Build   Team                                                 │───╯[0m
+│   │  $ Shell        zsh                                          shells  │────[0m
+│● E│                                                                      │───╮[0m
+│  +│                                                                      │te││[0m
+│   ╰──────────────────────────────────────────────────────────────────────╯et││[0m
+│● Retries now back off 250 ms → 4 s,┃│││payments-platform ❯ ls docs/adr      ││[0m
+│  One more edit: expose the policy i┃│││0001-record-architecture.md  0004-led││[0m
+│                                    ┃│││0002-settlement-batches.md   0005-fx-││[0m
+│▶ Allow edit to src/settlement/confi┃│││0003-retry-policy.md         0007-ret││[0m
+│❯                                   ┃│││payments-platform ❯                  ┃│[0m
+╰─────────────────────────────────────╯│╰──────────────────────────────────────╯[0m
+ PR #482 · Settlement retry backoff                   Session ━━━━━━━━─── 76%   [0m
+     [0m[1m  Type[0m Filter  …   Attached to payments-platform · tabs and panes restored [0m

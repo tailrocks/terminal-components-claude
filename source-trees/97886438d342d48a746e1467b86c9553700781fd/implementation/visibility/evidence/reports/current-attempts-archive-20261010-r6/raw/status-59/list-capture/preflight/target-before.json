@@ -1,0 +1,7 @@
+{
+  "schema": "termrock.nextest.target-snapshot.v1",
+  "target_root": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-20261010/packet/target-list",
+  "root_mode": 448,
+  "entries": [],
+  "digest": "94aeadf168559e5dd710c39f7db23eebc5e38044bcf613ed74fcb6332368600a"
+}

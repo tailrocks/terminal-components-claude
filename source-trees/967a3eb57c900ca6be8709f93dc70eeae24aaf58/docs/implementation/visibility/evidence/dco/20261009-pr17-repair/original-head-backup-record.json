@@ -1,0 +1,45 @@
+{
+  "schema": "termrock-pr17-incremental-backup/v1",
+  "recorded_at": "2026-10-09T02:12:50Z",
+  "purpose": "Supplement the verified complete e44 bundle with the exact signed q31 descendant; no source checkout, source ref, source index, or remote ref was changed.",
+  "remote_observation": {
+    "method": "read-only git ls-remote",
+    "observed_at": "2026-10-09T02:12:05Z",
+    "base_ref": "refs/heads/main",
+    "base_oid": "81a8bf15cd3042f80649e2b48fed479829518dbd",
+    "head_ref": "refs/heads/termrock-implementation",
+    "head_oid": "28058beecf63acee3b65bab847e507fe8e1c539d"
+  },
+  "base_bundle": {
+    "path": "/private/tmp/termrock-pr17-dco-backup-e44-20261009-r1/termrock-implementation-e44.bundle",
+    "head_oid": "e44d5504e91d90f8404a5488d8539ed71001e31f",
+    "size_bytes": 5757777217,
+    "sha256": "da8d1b85c40625b86f6c49f843ab221ff34211d7bfa3fa8b23f08496a284b80e",
+    "verification_exit_code": 0,
+    "verification_result": "complete history, SHA-1, advertised e44 branch ref; verified again in the external mirror before creating this increment"
+  },
+  "incremental_bundle": {
+    "path": "/private/tmp/termrock-pr17-dco-backup-q31-increment-20261009-r1/termrock-implementation-q31-from-e44.bundle",
+    "advertised_ref": "refs/archive/pr17-original-q31-20261009",
+    "head_oid": "28058beecf63acee3b65bab847e507fe8e1c539d",
+    "required_prerequisite_oid": "e44d5504e91d90f8404a5488d8539ed71001e31f",
+    "size_bytes": 3550,
+    "sha256": "e4b94164b999eba5e28f9c7e03cfe7fd82f7a240e946c8202c6399791c9b7700",
+    "verification_exit_code": 0,
+    "verification_result": "bundle verifies against the external mirror containing e44 and advertises only the private q31 backup ref"
+  },
+  "external_mirror": {
+    "path": "/private/tmp/termrock-pr17-dco-backup-e44-20261009-r1/source-mirror.git",
+    "is_bare_sha1_repository": true,
+    "configured_remotes": [],
+    "refs_after_increment": {
+      "refs/heads/termrock-implementation": "e44d5504e91d90f8404a5488d8539ed71001e31f",
+      "refs/archive/pr17-original-q31-20261009": "28058beecf63acee3b65bab847e507fe8e1c539d"
+    }
+  },
+  "limits": [
+    "The old e44 bundle was not rewritten or rehashed in this increment; its pinned prior verification and SHA remain the preservation record.",
+    "The combined e44 full bundle and q31 incremental bundle are sufficient to reconstruct the original q31 history; a full restore rehearsal was not run to avoid a second multi-gigabyte copy.",
+    "This is an original-history recovery bundle, not a DCO-repaired projection and not a remote push authorization."
+  ]
+}

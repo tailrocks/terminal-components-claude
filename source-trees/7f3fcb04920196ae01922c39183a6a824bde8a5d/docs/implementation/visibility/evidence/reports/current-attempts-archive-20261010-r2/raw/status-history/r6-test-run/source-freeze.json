@@ -1,0 +1,33 @@
+{
+  "schema": "termrock-vis01-attempt-history-source-freeze/v2",
+  "allowed_paths": [
+    "tools/visibility/status.py",
+    "tools/visibility/README.md",
+    "crates/termrock-visibility-tests/tests/status.rs"
+  ],
+  "base_commit": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+  "base_tree": "bef0248d3df09bb832e1c219aca310725f0ba6d6",
+  "parent_source_freeze_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/source-freeze.json",
+  "parent_source_freeze_sha256": "b60026ab91d39961027c435a274108d3f837671b7394724c2f3f9cbac8d29fc1",
+  "parent_review_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r2-review-ci-parity.json",
+  "parent_review_sha256": "8a0ade1ff4326972d1600b972c4bd59db72631eaeac060714f3fdd84186fe361",
+  "change_summary": "Give the three large GitHub run/check-suite ID literals in the new CI attempt fixture explicit u64 suffixes; preserve their JSON numeric values and validation behavior.",
+  "files": [
+    {
+      "path": "crates/termrock-visibility-tests/tests/status.rs",
+      "parent_sha256": "4ad3430141a9102de5cc59c5c533eb2b5b2580ce2278a8a7d34eef916569a226",
+      "parent_bytes": 160031,
+      "source_sha256": "7b6944410974d2e6608ae205d0707ddfa6c8718c613675220e0a682e883cf584",
+      "source_bytes": 160043
+    }
+  ],
+  "unchanged_allowed_path": {
+    "path": "tools/visibility/README.md",
+    "sha256": "13dd245e8bbb7031bf231eaed4ce953cc80c2220945aac6b7b0f7bdec570fdac",
+    "bytes": 18499
+  },
+  "source_delta_patch_sha256": "a1c16313df97770a1bb4220302ec5daece5ee80f1633a2d495deb1c72ce65732",
+  "source_delta_patch_bytes": 923,
+  "cargo_or_nextest_executed": false,
+  "tests_executed": false
+}

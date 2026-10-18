@@ -1,0 +1,11 @@
+[package]
+name = "jackin-preview-presentation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+jackin-preview-domain.workspace = true
+termrock.workspace = true
+ratatui.workspace = true

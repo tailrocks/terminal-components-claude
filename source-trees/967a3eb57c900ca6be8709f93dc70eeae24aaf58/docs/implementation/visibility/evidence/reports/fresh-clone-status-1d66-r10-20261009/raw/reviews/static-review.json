@@ -1,0 +1,42 @@
+{
+  "schema": "termrock-vis01-fresh-clone-run-r10-independent-review/v1",
+  "reviewer": "/root/ci_parity_review_luna",
+  "reviewed_at": "2026-10-09T09:06:54Z",
+  "verdict": "READY_FOR_ROOT_EXECUTION_REVIEW",
+  "execution_authorized": false,
+  "scope": "Static, read-only review of the exact R10 single-case fresh-clone runner and pinned artifacts; no Cargo, Nextest, tests, or preflight run by this reviewer.",
+  "pins": {
+    "runner": {
+      "path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/runner.cjs",
+      "sha256": "21b1c22023c24cf364af0edebb76d1e966377d418f2208b898bb8296f9bb3c2e"
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/preflight.json",
+      "sha256": "25466196c8b8a62c2a15d16da7e3034994b3cac1c25f84c19b9232d67584fb9b"
+    },
+    "readme": {
+      "path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/README.md",
+      "sha256": "7576a0b2615589c61031495e43ef6eaf140a7615e7befbb0704d005497c7fcfa"
+    },
+    "review_request": {
+      "path": "/private/tmp/termrock-vis01-status-fresh-clone-1d66f444-20261009/run-r10/review-request.json",
+      "sha256": "9b92ae937154acbe7de3c03bb3a38f30d15c3e00a259fe166175319144167acb"
+    }
+  },
+  "verified": [
+    "The request, runner, preflight, and README hashes agree. The clone is bound to commit 1d66f444f5962414b7c33734fa37376471e5f853 and tree 0ae9e285e8f771b8e250c63bf80f902d112dcd95; the preflight records clean, shallow state.",
+    "The published source facts and portable reports archive pins match the 59-member archive manifest and recorded source file hashes. The standalone crate lock SHA-256 is d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2.",
+    "Cargo.toml declares rust-version 1.98.1. Actual Cargo and rustc binaries hash to the request-pinned 6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d and 766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941.",
+    "Actual Nextest, Node, and Python binary hashes match their pins: 7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0; 9d050fd455b56426e25d4d603c7c501cbb2630348e836cf221dcce748e90588a; 34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2. Cache manifest hash matches 64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71; the pinned preflight records all 32 archives and 32 index entries matching.",
+    "The checked-in Nextest config hash is pinned; private HOME and --ignore-default-filter isolate the default filter, then one exact test(=checked_in_records_render_from_exact_copies) filter is applied to package termrock-visibility-tests and test binary status. The runner confirms exactly one source definition and uses --no-tests fail, so an empty selection fails.",
+    "The child argv uses --offline, --locked, --retries 0, --test-threads 1; its explicit environment sets CARGO_BUILD_JOBS=2 and CARGO_NET_OFFLINE=true. It starts one detached cargo-nextest child and captures raw stdout and stderr to separate exclusive-create external files.",
+    "The 600-second process-group timeout sends SIGTERM, then SIGKILL after 5 seconds, then has a further 5-second close deadline. The deadline path closes read streams, marks close_deadline_exceeded, writes an infrastructure-failure receipt, and sets nonzero exit status.",
+    "All run-r10 HOME/TMPDIR, target-r10, and result paths are external to the clone and checked for prior existence. The README invokes the supervisor without shell redirection. Preflight Git reads set GIT_OPTIONAL_LOCKS=0; preflight mode performs no Cargo/Nextest/test call.",
+    "The current pinned clone contains no .cargo configuration directory; the checked root/crate/CARGO_HOME Cargo config paths are absent. No unreviewed configuration file was present in the observed clone."
+  ],
+  "limitations": [
+    "R10 preflight reports PASS_NO_CARGO and execution NOT_RUN; this receipt is not a Rust test result, product qualification, or permission to execute. Root controls the Cargo slot.",
+    "The static runner checks Cargo config at the repo root, crate root, and CARGO_HOME, but not the intermediate repo/crates/.cargo path. No such config exists in the observed clone; include that path in the guard if a fully fail-closed config search is required."
+  ],
+  "findings": []
+}

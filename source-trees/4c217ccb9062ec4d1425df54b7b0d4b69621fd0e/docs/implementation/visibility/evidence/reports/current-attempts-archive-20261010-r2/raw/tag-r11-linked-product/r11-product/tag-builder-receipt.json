@@ -1,0 +1,166 @@
+{
+  "admission_status": "NOT_RUN",
+  "build": {
+    "default_features": true,
+    "features": [],
+    "package_id": "path+file:///private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/source/oracle#junie-tui@0.1.0",
+    "profile": "release",
+    "target_name": "holla",
+    "target_triple": "aarch64-apple-darwin",
+    "toolchain": "1.98.1"
+  },
+  "build_artifact_root": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle",
+  "build_environment": {
+    "cargo_config_sha256": {
+      "oracle": {}
+    },
+    "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "environment": {
+      "oracle": {
+        "cache_home": "/private/tmp/termrock-vis06-cargo-home-tag-r4-20261009-ba912a28e055",
+        "cache_links": {
+          "git": "/private/tmp/termrock-vis06-cargo-home-tag-r4-20261009-ba912a28e055/git",
+          "registry": "/private/tmp/termrock-vis06-cargo-home-tag-r4-20261009-ba912a28e055/registry"
+        },
+        "cargo_home": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/environment/oracle/cargo-home",
+        "cargo_home_config": "absent",
+        "home": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/environment/oracle/home",
+        "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/Users/donbeave/.cargo/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Developer/CommandLineTools/usr/bin",
+        "platform_inputs": {
+          "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+          "SDKROOT": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk"
+        },
+        "rustup_home": "/Users/donbeave/.rustup",
+        "target_linker": {
+          "environment_variable": "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER",
+          "path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/tool-bin/clang",
+          "scope": "nested-product-cargo-build-only",
+          "sha256": "57ac8fec3d3ea0f0fa4afdff41acae6beffc9b1d5e53125e43a384bc9074861d"
+        },
+        "tmpdir": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/environment/oracle/tmp"
+      }
+    },
+    "external_cargo_config_policy": "reject-ancestor-config-and-hash-source-local-config",
+    "host_triple": "aarch64-apple-darwin",
+    "rustc_version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "rustup": {
+      "home": "/Users/donbeave/.rustup",
+      "path": "/Users/donbeave/.cargo/bin/rustup",
+      "sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a"
+    },
+    "target_triple": "aarch64-apple-darwin",
+    "toolchain_binaries": {
+      "cargo": {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+      },
+      "rustc": {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+        "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+      }
+    }
+  },
+  "build_result": "PASS",
+  "builder_receipt": {
+    "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "default_features": true,
+    "executable_path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle/aarch64-apple-darwin/release/holla",
+    "executable_sha256": "1144faa1760536fec08a2ac3c82242e41d85617ebf497e85b600353e3ed2c90f",
+    "executed_argv": [
+      "/Users/donbeave/.cargo/bin/rustup",
+      "run",
+      "1.98.1",
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "--offline",
+      "--jobs",
+      "2",
+      "--color",
+      "never",
+      "--message-format=json-render-diagnostics",
+      "--manifest-path",
+      "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/source/oracle/Cargo.toml",
+      "--package",
+      "junie-tui@0.1.0",
+      "--bin",
+      "holla",
+      "--target",
+      "aarch64-apple-darwin",
+      "--target-dir",
+      "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle"
+    ],
+    "host_triple": "aarch64-apple-darwin",
+    "lock_sha256": "3edfd7975cfe1449aad4b30d65dbbcb9d695f01dfd3e1eb9025ed346f0a94460",
+    "manifest_sha256": "5134384cf22bd9ca5ab73b6e0fcd6f33c8fb2b6c859424cad105544912b7bac7",
+    "mise_config": {
+      "path": null,
+      "present": false,
+      "sha256": null
+    },
+    "package_id": "path+file:///private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/source/oracle#junie-tui@0.1.0",
+    "profile": "release",
+    "requested_features": [],
+    "rustc_version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "schema": "termrock-spec/parity-subject-build-receipt-v1",
+    "sha256": "eafc9bafab211d50321e9cdc8f17868bae8f3336ea6fc2ec4d1e461e83d8cf9a",
+    "source_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "target_name": "holla",
+    "target_triple": "aarch64-apple-darwin",
+    "toolchain": "1.98.1"
+  },
+  "builder_receipt_sha256": "eafc9bafab211d50321e9cdc8f17868bae8f3336ea6fc2ec4d1e461e83d8cf9a",
+  "capture_status": "NOT_RUN",
+  "executable": {
+    "path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle/aarch64-apple-darwin/release/holla",
+    "sha256": "1144faa1760536fec08a2ac3c82242e41d85617ebf497e85b600353e3ed2c90f"
+  },
+  "oracle_lineage": {
+    "git_lazy_fetch_policy": "disabled-by-environment",
+    "git_object_replacement_policy": "disabled-by-option-and-environment",
+    "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "tag_ref": "refs/tags/visual-baseline"
+  },
+  "purpose": "frozen-visual-tag-holla-build-only",
+  "qualification": {
+    "reason": "Blocked: this immutable-tag Holla build does not prove production-input closure, cache/PATH/linker provenance, paired branch equivalence, suite capture, or admission.",
+    "status": "blocked"
+  },
+  "run_id": "tag-r11-fresh-target",
+  "schema": "termrock-spec/visual-tag-holla-build-evidence-v1",
+  "source_snapshot": {
+    "archive_argv": [
+      "git",
+      "--no-replace-objects",
+      "archive",
+      "--format=tar",
+      "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+      "--",
+      ".",
+      ":(top,exclude)snapshots/**",
+      ":(top,exclude)baselines/**"
+    ],
+    "archive_member_count": 1619,
+    "archive_sha256": "00e3c1631af8c6cadef1652bdb3fdb1f1f409ea91ba025998927ad12a9dd9226",
+    "excluded_file_count": 30200,
+    "excluded_path_blob_map_sha256": "b3728aba7e91d007765b3093acc3614afa240fbaa121f031961efe65218ce580",
+    "excluded_roots": [
+      "snapshots/**",
+      "baselines/**"
+    ],
+    "git_ls_tree_stdout_sha256": "0eb0b2632b8ae3b6b05c84631f699b9ffce430ade6d5442e7ed35bb7a54eec53",
+    "git_object_replacement_policy": "disabled-by-option-and-environment",
+    "included_file_count": 1415,
+    "included_path_blob_map_sha256": "4e2cf9d17700833023c1c70b33f4b11e710ccb60fbc8c9c9d727c81745436bb4",
+    "materialized_root": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/source/oracle",
+    "path_blob_digest_algorithm": "sha256(sorted-raw-path-nul-git-blob-oid-lf-v1)",
+    "read_only": true,
+    "recipe": "git-archive-excluding-parity-oracle-roots-v1",
+    "source_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "tracked_file_count": 31615,
+    "tracked_path_blob_map_sha256": "465ee097ef4cf9144340c961122ab0bec2a007e015de5c58a71f50bcbedd5e95",
+    "tree_oid": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+  }
+}

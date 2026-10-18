@@ -1,0 +1,40 @@
+  jackin❯  entering the Construct  2 running  Launch › payments-platform › the-architect            0/11 stages  ? help
+
+                                                                      }                                     %
+                                                        jackin❯                                             {
+                                 Loading the-architect into workspace payments-platform                     P
+                       Claude Code · Anthropic / Claude · account Claude · Work (session choice)            \
+                                     stage 1 of 11 · Identity · 0 done · 0 skipped    r
+                                                                                      /
+                                      ▎  01 Identity                       queued     d
+                                      ▎  02 Role                           queued
+                                      ▎  03 Credentials                    queued
+                                      ▎  04 Construct                      queued
+                                      ▎  05 Agent Binaries                 queued
+                                      ▎  06 Derived Image                  queued
+                                      ▎  07 Workspace                      queued
+                                      ▎  08 Network                        queued
+                                      ▎  09 Sidecar                        queued
+                                      ▎  10 Capsule                        queued
+                                      ▎  11 Hardline                       queued
+
+           ~
+           R                    h
+           N                    ]
+           t                    }
+                                R
+
+
+
+                                                                6
+                                                      F         w
+                                                      k         7
+                                                      g         %                   D
+                                                      g       P                     z                      <      >
+                                                              %                     E                      6      *
+                                                              l                     E                      f      c
+
+ ⠋ Preparing launch…
+
+
+                                i Container info  c Cancel  Ctrl+Q Quit  Ctrl+C Abort

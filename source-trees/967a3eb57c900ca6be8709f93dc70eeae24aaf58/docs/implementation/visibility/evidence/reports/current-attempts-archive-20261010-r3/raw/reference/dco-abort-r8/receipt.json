@@ -1,0 +1,61 @@
+{
+  "schema": "dco-r8-clone-stage-result/v1",
+  "status": "FAILED_STOP_PRESERVE_SCRATCH",
+  "phase": "rustc_compile",
+  "plan_sha256": "e1c5cfea16b1962cf22ca64beb1db53d077b321cba593a6addd3b22692572af3",
+  "supervisor_sha256": "c41ef7c9aaa62fdaa4d9a48ab59627cbbf7d55a642a3ec5cc9dd8898bb7c512a",
+  "authorization_sha256": "754713664bc3daa7a73ed6249994e71323aaeb39e662eee3ba9b077385eaaf03",
+  "source_before": {
+    "directory": {
+      "dev": "16777234",
+      "ino": "89040009",
+      "ctimeNs": "1791573990039887095"
+    },
+    "files": 5052,
+    "ordered_name_hash_digest": "fbd02532035e16a33df11a46365be00dbe58b4ca358171c2b418db21167ca3b7"
+  },
+  "compile": {
+    "name": "rustc",
+    "argv": [
+      "/bin/sh",
+      "-c",
+      "umask 077; lim=\"$1\"; shift; ulimit -f \"$lim\" || exit 120; got=$(ulimit -f) || exit 121; [ \"$got\" = \"$lim\" ] || exit 122; exec \"$@\"",
+      "dco-clone-supervisor",
+      "131072",
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "--edition=2021",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "linker=/Library/Developer/CommandLineTools/usr/bin/clang",
+      "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r8-20261010/clone-source-packs.rs",
+      "-o",
+      "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r8-20261010/scratch/bin/clone-source-packs"
+    ],
+    "direct_tool_argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "--edition=2021",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "linker=/Library/Developer/CommandLineTools/usr/bin/clang",
+      "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r8-20261010/clone-source-packs.rs",
+      "-o",
+      "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r8-20261010/scratch/bin/clone-source-packs"
+    ],
+    "started_at_utc": "2026-10-09T23:00:50.697Z",
+    "failure": "unexpected scratch file: scratch/bin/clone-source-packs.clone_source_packs.70c16b8f4422abd0-cgu.0.rcgu.o",
+    "exit_code": null,
+    "signal": "SIGTERM",
+    "duration_ms": 720,
+    "rss_peak_sampled_bytes": "129433600",
+    "rss_samples": 3,
+    "output_bytes_this_stage": "0",
+    "output_bytes_total": "0",
+    "minimum_available_free_bytes_sampled": "262140035072",
+    "peak_scratch_logical_bytes_sampled": "0",
+    "peak_compiler_temp_bytes_sampled": "0",
+    "cleanup": "confirmed_after_sigterm"
+  },
+  "no_git_init_or_midx_or_probe": true
+}

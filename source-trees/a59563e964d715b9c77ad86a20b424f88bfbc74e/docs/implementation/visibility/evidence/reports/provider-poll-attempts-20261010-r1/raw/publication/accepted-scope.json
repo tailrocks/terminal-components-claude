@@ -1,0 +1,20 @@
+{
+  "schema": "termrock-root-accepted-scope/v1",
+  "task": "VIS-13",
+  "priority": "P0",
+  "owner": "reference_claim_luna",
+  "reviewer": "rust_test_execution",
+  "integrator": "root",
+  "base_commit": "0b7545ff7e3fff40254fd7a84a80c2c8a7872f3f",
+  "allowed_paths": [
+    "docs/implementation/visibility/evidence/reports/provider-poll-attempts-20261010-r1/**"
+  ],
+  "change": "Archive immutable captured provider R4b and R5 attempts, actual R5 reader and independent review, four-query 0b current capture and native ref readback; deterministic manifest, Markdown summary and checksums",
+  "constraints": [
+    "New absent sibling only; preserve all existing archives and raw captures",
+    "No STATUS/source-facts or normalized current provider claims",
+    "No log403 or unobserved cause; preserve historical PREPARED/NOT_RUN plans with separate measured receipts",
+    "Tag nonoverlap handoff before copying"
+  ],
+  "accepted_at": "2026-10-10T05:44:53.818Z"
+}

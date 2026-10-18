@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local
+
+  Here › Files › site
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────
+  Files · ~/work/site
+  16 entries · 2 hidden hidden · Ctrl+H shows · directories first
+
+  ▸ assets                                 –  2026-09-06 08:41      ╭─────── first 2000 lines · 19.4 KiB of 19.4 KiB ─╮
+  ▸ private                                –  2026-09-03 08:41      │      7 line 6                                 ┃ │
+    bad.txt                              3 B  2026-09-07 08:41      │      8 line 7                                 │ │
+ ▎  big.log                         19.4 KiB  2026-09-08 08:41      │      9 line 8                                 │ │
+  → broken                               0 B  2026-09-09 08:41      │     10 line 9                                 │ │
+    café.txt                            11 B  2026-09-09 08:41      │     11 line 10                                │ │
+    café.txt                            12 B  2026-09-09 08:41      │     12 line 11                                │ │
+    control.txt                         13 B  2026-09-07 08:41      │     13 line 12                                │ │
+  → current                              0 B  2026-09-09 08:41      │     14 line 13                                │ │
+    empty.txt                            0 B  2026-09-09 08:41      │     15 line 14                                │ │
+    index.html                          34 B  2026-09-09 08:41      │     16 line 15                                │ │
+    logo.png                             6 B  2026-09-07 08:41      │     17 line 16                                │ │
+    long.txt                         4.9 KiB  2026-09-08 08:41      │     18 line 17                                │ │
+    package.json                        85 B  2026-09-08 08:41      │     19 line 18                                │ │
+  ◇ pipe                                 0 B  2026-09-10 08:41      │     20 line 19                                │ │
+    pnpm-lock.yaml                      19 B  2026-09-08 08:41      │     21 line 20                                │ │
+                                                                    │     22 line 21                                │ │
+                                                                    │     23 line 22                                │ │
+                                                                    │     24 line 23                                │ │
+                                                                    │     25 line 24                                │ │
+                                                                    │     26 line 25                                │ │
+                                                                    │     27 line 26                                │ │
+                                                                    │     28 line 27                                │ │
+                                                                    │     29 line 28                                │ │
+                                                                    │     30 line 29                                │ │
+                                                                    │     31 line 30                                │ │
+                                                                    │     32 line 31                                │ │
+                                                                    │     33 line 32                                │ │
+                                                                    │     34 line 33                                │ │
+                                                                    ╰─────────────────────────────────────────────────╯
+
+ ~/work/site                                ~/work/site · hidden off                                256 colors · 120×40
+      ↑↓ Move  Enter Open / preview  ← Parent  g Go to path  Ctrl+H Hidden  Alt+Enter Actions  / Find  Esc Back

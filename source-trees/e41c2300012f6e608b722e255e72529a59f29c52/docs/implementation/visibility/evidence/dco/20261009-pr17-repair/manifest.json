@@ -1,0 +1,98 @@
+{
+  "schema": "termrock-pr17-dco-evidence-packet/v1",
+  "repository": "tailrocks/terminal-components-claude",
+  "pull_request": 17,
+  "recorded_at": "2026-10-09T02:25:20.253Z",
+  "items": [
+    {
+      "path": "dco-check-runs.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-publication-20261009/checks.json",
+      "size_bytes": 57577,
+      "sha256": "30c7f5732b02e5d72f5539f342b58d5c9accf734488e077fad403072b72e4d9a"
+    },
+    {
+      "path": "materializer-independent-review.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-materializer-q31-r2-review-technical.json",
+      "size_bytes": 3464,
+      "sha256": "e2b315a11524d88396d5eeb8d88ee14f67e94b58739a04d14c75736fc9fa43c7"
+    },
+    {
+      "path": "materializer-preflight-receipt.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/preflight-receipt.json",
+      "size_bytes": 977,
+      "sha256": "8324adc87db2133d2c9322fb809754a5b1c0a9dcc6311e794404f920c6f86202"
+    },
+    {
+      "path": "materializer-preflight.stdout.raw",
+      "source_path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/preflight.stdout.raw",
+      "size_bytes": 955,
+      "sha256": "660a79d6ff408668914dc55bce835a87bb33fb4a0dd8d36b2618cb2fa7c106c3"
+    },
+    {
+      "path": "old-to-new-map.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-rewrite-plan-20261009-r2/old-to-new-map.json",
+      "size_bytes": 93704,
+      "sha256": "0c231c4c85234ac60d6ab78fa68ab5bd49d2b3f433b84ace196c47a092b8cf87"
+    },
+    {
+      "path": "original-head-backup-record.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-backup-q31-increment-20261009-r1/bundle-record.json",
+      "size_bytes": 2577,
+      "sha256": "97b44a00296e2f97d41556c67de5671f4018e997850b2865a7312afb1ad5e1c9"
+    },
+    {
+      "path": "post-push-actual-review.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-postpush-actual-review-technical.json",
+      "size_bytes": 5187,
+      "sha256": "e931261240829fa67a814c102ce35b6499bf8c3f0ff90dd631d4319d064a9369"
+    },
+    {
+      "path": "prior-materializer-failure-observation.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/failure-observation.json",
+      "size_bytes": 735,
+      "sha256": "1d28161cdc946e488f8f5d0d49f7f913dbbba5a9605de85a64083d753be210b7"
+    },
+    {
+      "path": "publication.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-publication-20261009/publication.json",
+      "size_bytes": 1336,
+      "sha256": "eacd39352d55473ae47c9517e7f16be307e501595068ad1d86ab03b76fe4ba91"
+    },
+    {
+      "path": "README.md",
+      "source_path": "/private/tmp/termrock-vis12-dco-readme-r4-20261009/candidate/README.md",
+      "size_bytes": 4093,
+      "sha256": "f9941ee745e303671c73e0d42ad7014ad30dad83e1b417d2d35a2d4f0a4f87a2"
+    },
+    {
+      "path": "remote-head-and-tag.raw",
+      "source_path": "/private/tmp/termrock-pr17-dco-publication-20261009/remote-head-and-tag.raw",
+      "size_bytes": 213,
+      "sha256": "72b6506d849ed6c82f22a0cb69fc281051b0e0721ddcb4d10533074942362280"
+    },
+    {
+      "path": "rewrite-audit.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-rewrite-plan-20261009-r2/audit.json",
+      "size_bytes": 251380,
+      "sha256": "aa5fbc8b7303ea9bb4e344c1b77da7ff6a4f11c7b1260356c539c0cf8fd66b31"
+    },
+    {
+      "path": "rewrite-independent-review.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-rewrite-r2-review-technical.json",
+      "size_bytes": 4164,
+      "sha256": "d4c2bf62c0ca5d7e2322fe87d27a09e83124fd9b56b4cb4df254251ad64a109e"
+    },
+    {
+      "path": "rewrite-plan.md",
+      "source_path": "/private/tmp/termrock-pr17-dco-rewrite-plan-20261009-r2/plan.md",
+      "size_bytes": 3243,
+      "sha256": "077dc66c4494835a8be74d9764400079cecc41aa09d82ce1582e241c36f0befb"
+    },
+    {
+      "path": "rewrite-source-manifest.json",
+      "source_path": "/private/tmp/termrock-pr17-dco-rewrite-plan-20261009-r2/source-manifest.json",
+      "size_bytes": 102417,
+      "sha256": "1379c02550e90e43fac9f315a8eeda46211b8b4ae956ad1047220ce0fee1a672"
+    }
+  ]
+}

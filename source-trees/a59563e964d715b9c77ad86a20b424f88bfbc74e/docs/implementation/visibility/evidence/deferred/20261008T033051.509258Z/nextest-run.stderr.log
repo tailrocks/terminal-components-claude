@@ -1,0 +1,1048 @@
+────────────
+ Nextest run ID 5e2d67db-60bc-4a29-893d-6d1fe95d68de with nextest profile: default
+    Starting 23 tests across 1 binary (86 tests skipped)
+        FAIL [   0.010s] termrock-conformance::control_states w01_brand_press_paints_distinct_from_hover
+── output ──
+
+running 1 test
+
+thread 'w01_brand_press_paints_distinct_from_hover' (74647118) panicked at crates/termrock-conformance/tests/control_states.rs:540:5:
+assertion `left != right` failed: W01-02: press must paint below the hover lift (accent_pressed)
+  left: Buffer {
+    area: Rect { x: 0, y: 0, width: 12, height: 1 },
+    content: [
+        " Jackin     ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Rgb(25, 25, 28), bg: Rgb(58, 179, 67), underline: Reset, modifier: BOLD,
+        x: 8, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}
+ right: Buffer {
+    area: Rect { x: 0, y: 0, width: 12, height: 1 },
+    content: [
+        " Jackin     ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Rgb(25, 25, 28), bg: Rgb(58, 179, 67), underline: Reset, modifier: BOLD,
+        x: 8, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w01_brand_press_paints_distinct_from_hover ... FAILED
+
+failures:
+
+failures:
+    w01_brand_press_paints_distinct_from_hover
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w02_button_disabled_suppresses_focus_gutter
+── output ──
+
+running 1 test
+
+thread 'w02_button_disabled_suppresses_focus_gutter' (74647173) panicked at crates/termrock-conformance/tests/control_states.rs:775:13:
+assertion `left == right` failed: W02-01 TrueColor Variant::PRIMARY: disabled must suppress the focus gutter
+  left: "▎"
+ right: " "
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w02_button_disabled_suppresses_focus_gutter ... FAILED
+
+failures:
+
+failures:
+    w02_button_disabled_suppresses_focus_gutter
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w03_checkbox_checked_focus_hover_independent
+── output ──
+
+running 1 test
+
+thread 'w03_checkbox_checked_focus_hover_independent' (74647212) panicked at crates/termrock-conformance/tests/control_states.rs:1166:5:
+assertion `left != right` failed: W03-01: hover must add to a checked+focused checkbox
+  left: Buffer {
+    area: Rect { x: 0, y: 0, width: 11, height: 1 },
+    content: [
+        "▎[✓] Choice",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Rgb(72, 224, 84), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,
+        x: 4, y: 0, fg: Rgb(255, 255, 255), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,
+    ]
+}
+ right: Buffer {
+    area: Rect { x: 0, y: 0, width: 11, height: 1 },
+    content: [
+        "▎[✓] Choice",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Rgb(72, 224, 84), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,
+        x: 4, y: 0, fg: Rgb(255, 255, 255), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,
+    ]
+}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w03_checkbox_checked_focus_hover_independent ... FAILED
+
+failures:
+
+failures:
+    w03_checkbox_checked_focus_hover_independent
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w03_checkbox_compact_markers
+── output ──
+
+running 1 test
+
+thread 'w03_checkbox_compact_markers' (74647266) panicked at crates/termrock-conformance/tests/control_states.rs:1139:13:
+assertion `left == right` failed: W03-01: width=2 checked=false marker
+  left: "["
+ right: "□"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w03_checkbox_compact_markers ... FAILED
+
+failures:
+
+failures:
+    w03_checkbox_compact_markers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w04_toggle_compact_markers
+── output ──
+
+running 1 test
+
+thread 'w04_toggle_compact_markers' (74647299) panicked at crates/termrock-conformance/tests/control_states.rs:1396:13:
+assertion `left == right` failed: W04-01: width=2 on=false marker
+  left: "●"
+ right: "○"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w04_toggle_compact_markers ... FAILED
+
+failures:
+
+failures:
+    w04_toggle_compact_markers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w05_radio_no_horizontal
+── output ──
+
+running 1 test
+
+thread 'w05_radio_no_horizontal' (74647351) panicked at crates/termrock-conformance/tests/control_states.rs:1898:5:
+PARITY W05-04: cannot lay a radio group out horizontally; no orientation API
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w05_radio_no_horizontal ... FAILED
+
+failures:
+
+failures:
+    w05_radio_no_horizontal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w05_radio_per_option_disabled
+── output ──
+
+running 1 test
+
+thread 'w05_radio_per_option_disabled' (74647397) panicked at crates/termrock-conformance/tests/control_states.rs:1743:5:
+PARITY W05-02: cannot disable option 1 of 3; RadioGroup has no per-option disabled
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w05_radio_per_option_disabled ... FAILED
+
+failures:
+
+failures:
+    w05_radio_per_option_disabled
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w06_chipbar_closable_keyboard_dead
+── output ──
+
+running 1 test
+
+thread 'w06_chipbar_closable_keyboard_dead' (74647414) panicked at crates/termrock-conformance/tests/control_states.rs:2110:5:
+assertion `left == right` failed: W06-02: Space must toggle the cursor chip
+  left: []
+ right: [Toggled(Text(15554359229119007736))]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w06_chipbar_closable_keyboard_dead ... FAILED
+
+failures:
+
+failures:
+    w06_chipbar_closable_keyboard_dead
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w06_chipbar_close_press_then_reorder_or_delete
+── output ──
+
+running 1 test
+
+thread 'w06_chipbar_close_press_then_reorder_or_delete' (74647440) panicked at crates/termrock-conformance/tests/control_states.rs:2145:5:
+assertion `left == right` failed: W06-02: a reorder under a held close must keep the stable key
+  left: [Toggled(Text(533632403138894934))]
+ right: [Closed(Text(533632403138894934))]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w06_chipbar_close_press_then_reorder_or_delete ... FAILED
+
+failures:
+
+failures:
+    w06_chipbar_close_press_then_reorder_or_delete
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w08_input_down_only_does_not_edit
+── output ──
+
+running 1 test
+
+thread 'w08_input_down_only_does_not_edit' (74647466) panicked at crates/termrock-conformance/tests/control_states.rs:2725:5:
+W08-02: Down alone must not begin editing
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w08_input_down_only_does_not_edit ... FAILED
+
+failures:
+
+failures:
+    w08_input_down_only_does_not_edit
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w08_input_external_change_is_not_silently_overwritten
+── output ──
+
+running 1 test
+
+thread 'w08_input_external_change_is_not_silently_overwritten' (74647538) panicked at crates/termrock-conformance/tests/control_states.rs:2964:5:
+W08-07: commit must not silently discard the external change, got "origxy"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w08_input_external_change_is_not_silently_overwritten ... FAILED
+
+failures:
+
+failures:
+    w08_input_external_change_is_not_silently_overwritten
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w08_input_masked_clicks_follow_display
+── output ──
+
+running 1 test
+
+thread 'w08_input_masked_clicks_follow_display' (74647582) panicked at crates/termrock-conformance/tests/control_states.rs:2702:5:
+assertion `left == right` failed: W08-02: clicking the second mask cell must land there
+  left: Some(Position { x: 2, y: 0 })
+ right: Some(Position { x: 3, y: 0 })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w08_input_masked_clicks_follow_display ... FAILED
+
+failures:
+
+failures:
+    w08_input_masked_clicks_follow_display
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w08_input_navigation_paste_begins_editing
+── output ──
+
+running 1 test
+
+thread 'w08_input_navigation_paste_begins_editing' (74647631) panicked at crates/termrock-conformance/tests/control_states.rs:2783:5:
+W08-03: navigation paste must begin editing
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w08_input_navigation_paste_begins_editing ... FAILED
+
+failures:
+
+failures:
+    w08_input_navigation_paste_begins_editing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w09_area_nav_enter_begins_without_newline
+── output ──
+
+running 1 test
+
+thread 'w09_area_nav_enter_begins_without_newline' (74647680) panicked at crates/termrock-conformance/tests/control_states.rs:3107:5:
+assertion `left == right` failed: W09-01: the begin-Enter must not insert a newline, got "ab\n"
+  left: "ab\n"
+ right: "ab"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w09_area_nav_enter_begins_without_newline ... FAILED
+
+failures:
+
+failures:
+    w09_area_nav_enter_begins_without_newline
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w09_area_nav_page_home_end_scroll_without_editing
+── output ──
+
+running 1 test
+
+thread 'w09_area_nav_page_home_end_scroll_without_editing' (74647739) panicked at crates/termrock-conformance/tests/control_states.rs:3210:5:
+W09-03: nav PageDown must not begin editing
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w09_area_nav_page_home_end_scroll_without_editing ... FAILED
+
+failures:
+
+failures:
+    w09_area_nav_page_home_end_scroll_without_editing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w09_area_wheel_holds_past_caret_until_it_moves
+── output ──
+
+running 1 test
+
+thread 'w09_area_wheel_holds_past_caret_until_it_moves' (74647777) panicked at crates/termrock-conformance/tests/control_states.rs:3353:5:
+W09-05: the wheel offset must hold past the caret, got "▎ L0                                   ┃"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w09_area_wheel_holds_past_caret_until_it_moves ... FAILED
+
+failures:
+
+failures:
+    w09_area_wheel_holds_past_caret_until_it_moves
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.011s] termrock-conformance::control_states w10_select_popup_edge_fade
+── output ──
+
+running 1 test
+
+thread 'w10_select_popup_edge_fade' (74647826) panicked at crates/termrock-conformance/tests/control_states.rs:3967:5:
+assertion `left != right` failed: W10-05: the bottom option row must fade toward hidden content
+  left: ("Rgb(179, 179, 179)", "Rgb(63, 63, 70)", "NONE")
+ right: ("Rgb(179, 179, 179)", "Rgb(63, 63, 70)", "NONE")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w10_select_popup_edge_fade ... FAILED
+
+failures:
+
+failures:
+    w10_select_popup_edge_fade
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.012s] termrock-conformance::control_states w11_form_busy_enter_submit_blocked
+── output ──
+
+running 1 test
+
+thread 'w11_form_busy_enter_submit_blocked' (74647864) panicked at crates/termrock-conformance/tests/control_states.rs:4519:5:
+assertion `left == right` failed: W11-04: Enter while busy must not submit
+  left: 1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w11_form_busy_enter_submit_blocked ... FAILED
+
+failures:
+
+failures:
+    w11_form_busy_enter_submit_blocked
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w13_filter_backspace_removes_grapheme
+── output ──
+
+running 1 test
+
+thread 'w13_filter_backspace_removes_grapheme' (74647888) panicked at crates/termrock-conformance/tests/control_states.rs:5375:5:
+assertion `left == right` failed: W13-02: backspace must remove the whole cluster, got "a👩\u{200d}"
+  left: "a👩\u{200d}"
+ right: "a"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w13_filter_backspace_removes_grapheme ... FAILED
+
+failures:
+
+failures:
+    w13_filter_backspace_removes_grapheme
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w13_filter_reseed_selects_first_eligible
+── output ──
+
+running 1 test
+
+thread 'w13_filter_reseed_selects_first_eligible' (74647936) panicked at crates/termrock-conformance/tests/control_states.rs:5637:5:
+assertion `left == right` failed: W13-04: reseed must select the first eligible row, got Some(Text(6437849919634314103))
+  left: Some(Text(6437849919634314103))
+ right: Some(Text(6437851019145942314))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w13_filter_reseed_selects_first_eligible ... FAILED
+
+failures:
+
+failures:
+    w13_filter_reseed_selects_first_eligible
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.011s] termrock-conformance::control_states w13_filter_wide_trail_cells_clear
+── output ──
+
+running 1 test
+
+thread 'w13_filter_wide_trail_cells_clear' (74647981) panicked at crates/termrock-conformance/tests/control_states.rs:5601:5:
+W13-05: no earlier-paint glyph may leak into 旧日本, got [" ", " ", " ", "旧", "界", "日", "y", "本", " ", " "]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w13_filter_wide_trail_cells_clear ... FAILED
+
+failures:
+
+failures:
+    w13_filter_wide_trail_cells_clear
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.011s] termrock-conformance::control_states w16_steps_running_spinner_cycles_phases
+── output ──
+
+running 1 test
+
+thread 'w16_steps_running_spinner_cycles_phases' (74648033) panicked at crates/termrock-conformance/tests/control_states.rs:7157:5:
+assertion `left == right` failed: W16-02: the running step must cycle 10 spinner phases, got {"▪"}
+  left: 1
+ right: 10
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w16_steps_running_spinner_cycles_phases ... FAILED
+
+failures:
+
+failures:
+    w16_steps_running_spinner_cycles_phases
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w17_tabs_focused_pressed_bold
+── output ──
+
+running 1 test
+
+thread 'w17_tabs_focused_pressed_bold' (74648084) panicked at crates/termrock-conformance/tests/control_states.rs:7534:5:
+W17-01: the focused cursor tab must read bold
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w17_tabs_focused_pressed_bold ... FAILED
+
+failures:
+
+failures:
+    w17_tabs_focused_pressed_bold
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+────────────
+     Summary [   0.236s] 23 tests run: 0 passed, 23 failed, 86 skipped
+        SKIP [         ] termrock-conformance::control_states ownership_gate_rejects_unknown_component_ids
+        SKIP [         ] termrock-conformance::control_states w01_brand_clickable_hover_press_release_and_typed_activation
+        SKIP [         ] termrock-conformance::control_states w01_brand_exact_width_and_one_column_narrow
+        SKIP [         ] termrock-conformance::control_states w01_brand_static_lockup_absent_from_tab_traversal
+        SKIP [         ] termrock-conformance::control_states w01_brand_two_lockups_keep_independent_targets
+        SKIP [         ] termrock-conformance::control_states w01_w45_resolve_through_owner_crate_modules
+        SKIP [         ] termrock-conformance::control_states w02_button_checked_focus_combos_and_busy_rejection
+        SKIP [         ] termrock-conformance::control_states w02_button_combining_cjk_and_empty_labels
+        SKIP [         ] termrock-conformance::control_states w02_button_reactivation_at_feedback_boundaries
+        SKIP [         ] termrock-conformance::control_states w02_button_release_outside_removed_or_disabled_never_fires
+        SKIP [         ] termrock-conformance::control_states w02_button_variants_all_states_and_focus_gutter
+        SKIP [         ] termrock-conformance::control_states w03_checkbox_checked_focus_hover_matrix
+        SKIP [         ] termrock-conformance::control_states w03_checkbox_disabled_ignores_all_activation
+        SKIP [         ] termrock-conformance::control_states w03_checkbox_marker_label_edge_and_outside_clicks
+        SKIP [         ] termrock-conformance::control_states w03_checkbox_rejected_change_does_not_drift
+        SKIP [         ] termrock-conformance::control_states w04_toggle_adjacent_hit_regions_stay_separate
+        SKIP [         ] termrock-conformance::control_states w04_toggle_minimum_width_and_clipping
+        SKIP [         ] termrock-conformance::control_states w04_toggle_on_off_state_matrix
+        SKIP [         ] termrock-conformance::control_states w04_toggle_origins_agree_on_next_value
+        SKIP [         ] termrock-conformance::control_states w05_radio_chosen_cursor_and_hovered_differ
+        SKIP [         ] termrock-conformance::control_states w05_radio_disabled_group_ignores_keyboard_and_pointer
+        SKIP [         ] termrock-conformance::control_states w05_radio_empty_and_narrow_vertical
+        SKIP [         ] termrock-conformance::control_states w05_radio_reorder_or_delete_between_press_and_release
+        SKIP [         ] termrock-conformance::control_states w06_chipbar_checked_focus_matrix
+        SKIP [         ] termrock-conformance::control_states w06_chipbar_disabled_body_and_close_inert
+        SKIP [         ] termrock-conformance::control_states w06_chipbar_empty_with_and_without_add
+        SKIP [         ] termrock-conformance::control_states w06_chipbar_overflow_exact_fit_and_unicode
+        SKIP [         ] termrock-conformance::control_states w07_field_editing_with_error_keeps_gutter_and_cursor
+        SKIP [         ] termrock-conformance::control_states w07_field_has_one_tab_stop
+        SKIP [         ] termrock-conformance::control_states w07_field_help_and_error_share_height
+        SKIP [         ] termrock-conformance::control_states w07_field_suffix_width_boundaries
+        SKIP [         ] termrock-conformance::control_states w08_input_click_positions_caret_by_grapheme
+        SKIP [         ] termrock-conformance::control_states w08_input_enter_begins_escape_restores
+        SKIP [         ] termrock-conformance::control_states w08_input_paste_inserts_and_disabled_ignores
+        SKIP [         ] termrock-conformance::control_states w08_input_required_and_custom_errors_clear_on_correction
+        SKIP [         ] termrock-conformance::control_states w08_input_secret_redacts_debug_paint_cancel_and_zeroize
+        SKIP [         ] termrock-conformance::control_states w08_input_tab_shift_tab_and_blur_commit_once
+        SKIP [         ] termrock-conformance::control_states w09_area_editing_page_home_end_move_caret
+        SKIP [         ] termrock-conformance::control_states w09_area_enter_newline_escape_commits
+        SKIP [         ] termrock-conformance::control_states w09_area_field_layout_rows_plus_two_and_tiny_heights
+        SKIP [         ] termrock-conformance::control_states w09_area_paste_ignored_navigating_kept_editing
+        SKIP [         ] termrock-conformance::control_states w09_area_selection_spans_newline_tab_grapheme
+        SKIP [         ] termrock-conformance::control_states w09_area_wheel_holds_and_caret_motion_follows
+        SKIP [         ] termrock-conformance::control_states w10_select_closed_value_placeholder_focus_disabled
+        SKIP [         ] termrock-conformance::control_states w10_select_edge_flip_and_resize
+        SKIP [         ] termrock-conformance::control_states w10_select_empty_disabled_and_scrollbar
+        SKIP [         ] termrock-conformance::control_states w10_select_highlight_is_not_value_escape_preserves
+        SKIP [         ] termrock-conformance::control_states w10_select_reorder_delete_click_by_stable_key
+        SKIP [         ] termrock-conformance::control_states w11_form_aux_validate_does_not_submit_or_save
+        SKIP [         ] termrock-conformance::control_states w11_form_busy_submit_blocked_cancel_eligible
+        SKIP [         ] termrock-conformance::control_states w11_form_hide_disable_reconcile_deterministically
+        SKIP [         ] termrock-conformance::control_states w11_form_invalid_submit_focuses_first_visible
+        SKIP [         ] termrock-conformance::control_states w11_form_nested_picker_preserves_sibling_draft
+        SKIP [         ] termrock-conformance::control_states w12_list_boundary_wheels_hold_focus_and_cursor
+        SKIP [         ] termrock-conformance::control_states w12_list_cursor_chosen_hovered_differ
+        SKIP [         ] termrock-conformance::control_states w12_list_duplicate_labels_resolve_by_key
+        SKIP [         ] termrock-conformance::control_states w12_list_hundred_k_rows_paint_visible_only
+        SKIP [         ] termrock-conformance::control_states w12_list_label_patch_reaches_labels
+        SKIP [         ] termrock-conformance::control_states w12_list_marker_patch_scopes_to_markers
+        SKIP [         ] termrock-conformance::control_states w12_list_mutation_between_down_and_up_keeps_key
+        SKIP [         ] termrock-conformance::control_states w12_list_readiness_renders_distinctly
+        SKIP [         ] termrock-conformance::control_states w13_filter_empty_source_and_zero_matches
+        SKIP [         ] termrock-conformance::control_states w13_filter_ineligible_cursor_cannot_activate_stale
+        SKIP [         ] termrock-conformance::control_states w13_filter_matched_spans_cover_graphemes
+        SKIP [         ] termrock-conformance::control_states w13_filter_revision_keeps_selected_key
+        SKIP [         ] termrock-conformance::control_states w13_filter_unicode_paste_and_plain_backspace
+        SKIP [         ] termrock-conformance::control_states w14_nav_active_differs_from_cursor
+        SKIP [         ] termrock-conformance::control_states w14_nav_breakpoint_roundtrip_preserves_key_and_scroll
+        SKIP [         ] termrock-conformance::control_states w14_nav_empty_overflow_and_clipped_badges
+        SKIP [         ] termrock-conformance::control_states w14_nav_sections_and_disabled_skip
+        SKIP [         ] termrock-conformance::control_states w14_nav_shares_scroll_and_focus
+        SKIP [         ] termrock-conformance::control_states w15_tree_disclosure_body_and_policies
+        SKIP [         ] termrock-conformance::control_states w15_tree_filter_preserves_ancestors_and_selection
+        SKIP [         ] termrock-conformance::control_states w15_tree_fold_all_draws_bounded_window
+        SKIP [         ] termrock-conformance::control_states w15_tree_lazy_fetch_appends_children
+        SKIP [         ] termrock-conformance::control_states w15_tree_removal_during_press_and_pending_load
+        SKIP [         ] termrock-conformance::control_states w15_tree_states_and_status_rows
+        SKIP [         ] termrock-conformance::control_states w16_steps_all_lifecycle_states
+        SKIP [         ] termrock-conformance::control_states w16_steps_navigate_failed_without_lifecycle_change
+        SKIP [         ] termrock-conformance::control_states w16_steps_overflow_and_narrow_clip
+        SKIP [         ] termrock-conformance::control_states w16_steps_source_replacement_preserves_key
+        SKIP [         ] termrock-conformance::control_states w17_tabs_close_targets_logical_tab_across_reorder
+        SKIP [         ] termrock-conformance::control_states w17_tabs_delete_active_restores_successor
+        SKIP [         ] termrock-conformance::control_states w17_tabs_overflow_scroll_and_rename
+        SKIP [         ] termrock-conformance::control_states w17_tabs_restore_child_focus_per_tab
+        SKIP [         ] termrock-conformance::control_states w17_tabs_state_variants
+        FAIL [   0.010s] termrock-conformance::control_states w01_brand_press_paints_distinct_from_hover
+── output ──
+
+running 1 test
+
+thread 'w01_brand_press_paints_distinct_from_hover' (74647118) panicked at crates/termrock-conformance/tests/control_states.rs:540:5:
+assertion `left != right` failed: W01-02: press must paint below the hover lift (accent_pressed)
+  left: Buffer {
+    area: Rect { x: 0, y: 0, width: 12, height: 1 },
+    content: [
+        " Jackin     ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Rgb(25, 25, 28), bg: Rgb(58, 179, 67), underline: Reset, modifier: BOLD,
+        x: 8, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}
+ right: Buffer {
+    area: Rect { x: 0, y: 0, width: 12, height: 1 },
+    content: [
+        " Jackin     ",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Rgb(25, 25, 28), bg: Rgb(58, 179, 67), underline: Reset, modifier: BOLD,
+        x: 8, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+    ]
+}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w01_brand_press_paints_distinct_from_hover ... FAILED
+
+failures:
+
+failures:
+    w01_brand_press_paints_distinct_from_hover
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w02_button_disabled_suppresses_focus_gutter
+── output ──
+
+running 1 test
+
+thread 'w02_button_disabled_suppresses_focus_gutter' (74647173) panicked at crates/termrock-conformance/tests/control_states.rs:775:13:
+assertion `left == right` failed: W02-01 TrueColor Variant::PRIMARY: disabled must suppress the focus gutter
+  left: "▎"
+ right: " "
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w02_button_disabled_suppresses_focus_gutter ... FAILED
+
+failures:
+
+failures:
+    w02_button_disabled_suppresses_focus_gutter
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w03_checkbox_checked_focus_hover_independent
+── output ──
+
+running 1 test
+
+thread 'w03_checkbox_checked_focus_hover_independent' (74647212) panicked at crates/termrock-conformance/tests/control_states.rs:1166:5:
+assertion `left != right` failed: W03-01: hover must add to a checked+focused checkbox
+  left: Buffer {
+    area: Rect { x: 0, y: 0, width: 11, height: 1 },
+    content: [
+        "▎[✓] Choice",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Rgb(72, 224, 84), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,
+        x: 4, y: 0, fg: Rgb(255, 255, 255), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,
+    ]
+}
+ right: Buffer {
+    area: Rect { x: 0, y: 0, width: 11, height: 1 },
+    content: [
+        "▎[✓] Choice",
+    ],
+    styles: [
+        x: 0, y: 0, fg: Rgb(72, 224, 84), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,
+        x: 4, y: 0, fg: Rgb(255, 255, 255), bg: Rgb(15, 46, 19), underline: Reset, modifier: BOLD,
+    ]
+}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w03_checkbox_checked_focus_hover_independent ... FAILED
+
+failures:
+
+failures:
+    w03_checkbox_checked_focus_hover_independent
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w03_checkbox_compact_markers
+── output ──
+
+running 1 test
+
+thread 'w03_checkbox_compact_markers' (74647266) panicked at crates/termrock-conformance/tests/control_states.rs:1139:13:
+assertion `left == right` failed: W03-01: width=2 checked=false marker
+  left: "["
+ right: "□"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w03_checkbox_compact_markers ... FAILED
+
+failures:
+
+failures:
+    w03_checkbox_compact_markers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w04_toggle_compact_markers
+── output ──
+
+running 1 test
+
+thread 'w04_toggle_compact_markers' (74647299) panicked at crates/termrock-conformance/tests/control_states.rs:1396:13:
+assertion `left == right` failed: W04-01: width=2 on=false marker
+  left: "●"
+ right: "○"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w04_toggle_compact_markers ... FAILED
+
+failures:
+
+failures:
+    w04_toggle_compact_markers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w05_radio_no_horizontal
+── output ──
+
+running 1 test
+
+thread 'w05_radio_no_horizontal' (74647351) panicked at crates/termrock-conformance/tests/control_states.rs:1898:5:
+PARITY W05-04: cannot lay a radio group out horizontally; no orientation API
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w05_radio_no_horizontal ... FAILED
+
+failures:
+
+failures:
+    w05_radio_no_horizontal
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w05_radio_per_option_disabled
+── output ──
+
+running 1 test
+
+thread 'w05_radio_per_option_disabled' (74647397) panicked at crates/termrock-conformance/tests/control_states.rs:1743:5:
+PARITY W05-02: cannot disable option 1 of 3; RadioGroup has no per-option disabled
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w05_radio_per_option_disabled ... FAILED
+
+failures:
+
+failures:
+    w05_radio_per_option_disabled
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w06_chipbar_closable_keyboard_dead
+── output ──
+
+running 1 test
+
+thread 'w06_chipbar_closable_keyboard_dead' (74647414) panicked at crates/termrock-conformance/tests/control_states.rs:2110:5:
+assertion `left == right` failed: W06-02: Space must toggle the cursor chip
+  left: []
+ right: [Toggled(Text(15554359229119007736))]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w06_chipbar_closable_keyboard_dead ... FAILED
+
+failures:
+
+failures:
+    w06_chipbar_closable_keyboard_dead
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w06_chipbar_close_press_then_reorder_or_delete
+── output ──
+
+running 1 test
+
+thread 'w06_chipbar_close_press_then_reorder_or_delete' (74647440) panicked at crates/termrock-conformance/tests/control_states.rs:2145:5:
+assertion `left == right` failed: W06-02: a reorder under a held close must keep the stable key
+  left: [Toggled(Text(533632403138894934))]
+ right: [Closed(Text(533632403138894934))]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w06_chipbar_close_press_then_reorder_or_delete ... FAILED
+
+failures:
+
+failures:
+    w06_chipbar_close_press_then_reorder_or_delete
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w08_input_down_only_does_not_edit
+── output ──
+
+running 1 test
+
+thread 'w08_input_down_only_does_not_edit' (74647466) panicked at crates/termrock-conformance/tests/control_states.rs:2725:5:
+W08-02: Down alone must not begin editing
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w08_input_down_only_does_not_edit ... FAILED
+
+failures:
+
+failures:
+    w08_input_down_only_does_not_edit
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w08_input_external_change_is_not_silently_overwritten
+── output ──
+
+running 1 test
+
+thread 'w08_input_external_change_is_not_silently_overwritten' (74647538) panicked at crates/termrock-conformance/tests/control_states.rs:2964:5:
+W08-07: commit must not silently discard the external change, got "origxy"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w08_input_external_change_is_not_silently_overwritten ... FAILED
+
+failures:
+
+failures:
+    w08_input_external_change_is_not_silently_overwritten
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w08_input_masked_clicks_follow_display
+── output ──
+
+running 1 test
+
+thread 'w08_input_masked_clicks_follow_display' (74647582) panicked at crates/termrock-conformance/tests/control_states.rs:2702:5:
+assertion `left == right` failed: W08-02: clicking the second mask cell must land there
+  left: Some(Position { x: 2, y: 0 })
+ right: Some(Position { x: 3, y: 0 })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w08_input_masked_clicks_follow_display ... FAILED
+
+failures:
+
+failures:
+    w08_input_masked_clicks_follow_display
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.009s] termrock-conformance::control_states w08_input_navigation_paste_begins_editing
+── output ──
+
+running 1 test
+
+thread 'w08_input_navigation_paste_begins_editing' (74647631) panicked at crates/termrock-conformance/tests/control_states.rs:2783:5:
+W08-03: navigation paste must begin editing
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w08_input_navigation_paste_begins_editing ... FAILED
+
+failures:
+
+failures:
+    w08_input_navigation_paste_begins_editing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w09_area_nav_enter_begins_without_newline
+── output ──
+
+running 1 test
+
+thread 'w09_area_nav_enter_begins_without_newline' (74647680) panicked at crates/termrock-conformance/tests/control_states.rs:3107:5:
+assertion `left == right` failed: W09-01: the begin-Enter must not insert a newline, got "ab\n"
+  left: "ab\n"
+ right: "ab"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w09_area_nav_enter_begins_without_newline ... FAILED
+
+failures:
+
+failures:
+    w09_area_nav_enter_begins_without_newline
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w09_area_nav_page_home_end_scroll_without_editing
+── output ──
+
+running 1 test
+
+thread 'w09_area_nav_page_home_end_scroll_without_editing' (74647739) panicked at crates/termrock-conformance/tests/control_states.rs:3210:5:
+W09-03: nav PageDown must not begin editing
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w09_area_nav_page_home_end_scroll_without_editing ... FAILED
+
+failures:
+
+failures:
+    w09_area_nav_page_home_end_scroll_without_editing
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w09_area_wheel_holds_past_caret_until_it_moves
+── output ──
+
+running 1 test
+
+thread 'w09_area_wheel_holds_past_caret_until_it_moves' (74647777) panicked at crates/termrock-conformance/tests/control_states.rs:3353:5:
+W09-05: the wheel offset must hold past the caret, got "▎ L0                                   ┃"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w09_area_wheel_holds_past_caret_until_it_moves ... FAILED
+
+failures:
+
+failures:
+    w09_area_wheel_holds_past_caret_until_it_moves
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.011s] termrock-conformance::control_states w10_select_popup_edge_fade
+── output ──
+
+running 1 test
+
+thread 'w10_select_popup_edge_fade' (74647826) panicked at crates/termrock-conformance/tests/control_states.rs:3967:5:
+assertion `left != right` failed: W10-05: the bottom option row must fade toward hidden content
+  left: ("Rgb(179, 179, 179)", "Rgb(63, 63, 70)", "NONE")
+ right: ("Rgb(179, 179, 179)", "Rgb(63, 63, 70)", "NONE")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w10_select_popup_edge_fade ... FAILED
+
+failures:
+
+failures:
+    w10_select_popup_edge_fade
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.012s] termrock-conformance::control_states w11_form_busy_enter_submit_blocked
+── output ──
+
+running 1 test
+
+thread 'w11_form_busy_enter_submit_blocked' (74647864) panicked at crates/termrock-conformance/tests/control_states.rs:4519:5:
+assertion `left == right` failed: W11-04: Enter while busy must not submit
+  left: 1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w11_form_busy_enter_submit_blocked ... FAILED
+
+failures:
+
+failures:
+    w11_form_busy_enter_submit_blocked
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w13_filter_backspace_removes_grapheme
+── output ──
+
+running 1 test
+
+thread 'w13_filter_backspace_removes_grapheme' (74647888) panicked at crates/termrock-conformance/tests/control_states.rs:5375:5:
+assertion `left == right` failed: W13-02: backspace must remove the whole cluster, got "a👩\u{200d}"
+  left: "a👩\u{200d}"
+ right: "a"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w13_filter_backspace_removes_grapheme ... FAILED
+
+failures:
+
+failures:
+    w13_filter_backspace_removes_grapheme
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w13_filter_reseed_selects_first_eligible
+── output ──
+
+running 1 test
+
+thread 'w13_filter_reseed_selects_first_eligible' (74647936) panicked at crates/termrock-conformance/tests/control_states.rs:5637:5:
+assertion `left == right` failed: W13-04: reseed must select the first eligible row, got Some(Text(6437849919634314103))
+  left: Some(Text(6437849919634314103))
+ right: Some(Text(6437851019145942314))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w13_filter_reseed_selects_first_eligible ... FAILED
+
+failures:
+
+failures:
+    w13_filter_reseed_selects_first_eligible
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.011s] termrock-conformance::control_states w13_filter_wide_trail_cells_clear
+── output ──
+
+running 1 test
+
+thread 'w13_filter_wide_trail_cells_clear' (74647981) panicked at crates/termrock-conformance/tests/control_states.rs:5601:5:
+W13-05: no earlier-paint glyph may leak into 旧日本, got [" ", " ", " ", "旧", "界", "日", "y", "本", " ", " "]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w13_filter_wide_trail_cells_clear ... FAILED
+
+failures:
+
+failures:
+    w13_filter_wide_trail_cells_clear
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.011s] termrock-conformance::control_states w16_steps_running_spinner_cycles_phases
+── output ──
+
+running 1 test
+
+thread 'w16_steps_running_spinner_cycles_phases' (74648033) panicked at crates/termrock-conformance/tests/control_states.rs:7157:5:
+assertion `left == right` failed: W16-02: the running step must cycle 10 spinner phases, got {"▪"}
+  left: 1
+ right: 10
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w16_steps_running_spinner_cycles_phases ... FAILED
+
+failures:
+
+failures:
+    w16_steps_running_spinner_cycles_phases
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+        FAIL [   0.010s] termrock-conformance::control_states w17_tabs_focused_pressed_bold
+── output ──
+
+running 1 test
+
+thread 'w17_tabs_focused_pressed_bold' (74648084) panicked at crates/termrock-conformance/tests/control_states.rs:7534:5:
+W17-01: the focused cursor tab must read bold
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test w17_tabs_focused_pressed_bold ... FAILED
+
+failures:
+
+failures:
+    w17_tabs_focused_pressed_bold
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.00s
+
+
+error: test run failed

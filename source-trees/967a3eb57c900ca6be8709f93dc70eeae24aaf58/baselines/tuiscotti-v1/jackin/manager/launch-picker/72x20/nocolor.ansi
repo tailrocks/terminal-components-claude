@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help          Workspaces  inside the Construct [0m
+                                                                        [0m
+ ╭─ Workspaces ─────────────────────────────────────────── 2 running ─╮ [0m
+ │╭──────────────────────────────────────────────────────────────────╮│ [0m
+ ││ [0m[1mLaunch · choose Agent[0m          payments-platform › the-architect ││ [0m
+ ││ [0m[1m▎[0m▪[0m[1m Claude Code  [0maccount Claude · Perso…[0m[1m [0mchoose at start[0m[1m  [0magents[0m[1m [0m ││ [0m
+ ││  ▪ Codex        account Codex · Primar… ready                    ││ [0m
+ ││  ▪ OpenCode     account OpenCode · Go … ready                    ││ [0m
+ ││  ▪ Grok Build   account Grok · Team · … ready                    ││ [0m
+ ││                                                                  ││ [0m
+ ││                                                                  ││ [0m
+ ╰╰──────────────────────────────────────────────────────────────────╯╯ [0m
+                                                                        [0m
+   Current directory                                      Tab details   [0m
+                                                                        [0m
+   /workspace/payments-platform · 2 mounts · 5 vars                     [0m
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal           [0m
+                                                                        [0m
+                                                                        [0m
+   [0m[1m     [0m         [0m[1m ↑↓[0m Mov[0m[1me[0m  [0m[1mEnter Ch[0moose  [0m[1mEsc[0m [0m[1mC[0mancel      [0m[1m [0m              [0m

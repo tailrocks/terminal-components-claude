@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "apps": [
+    {
+      "id": "showcase",
+      "package": "showcase",
+      "bin": "showcase",
+      "dir": "apps/showcase",
+      "lib": "showcase_app",
+      "slice": "Slice 5",
+      "perf_targets": [
+        "perf"
+      ],
+      "startup": {
+        "themes": [
+          "junie",
+          "paper"
+        ],
+        "theme_argument": true,
+        "args": []
+      }
+    },
+    {
+      "id": "tablepro",
+      "package": "tablepro",
+      "bin": "tablepro",
+      "dir": "apps/tablepro",
+      "lib": "tablepro_app",
+      "slice": "Slice 6",
+      "perf_targets": [
+        "perf"
+      ],
+      "startup": {
+        "themes": [
+          "junie",
+          "paper"
+        ],
+        "theme_argument": true,
+        "args": []
+      }
+    },
+    {
+      "id": "jackin-preview",
+      "package": "jackin-preview",
+      "bin": "jackin-preview",
+      "dir": "apps/jackin-preview",
+      "lib": "jackin_app",
+      "slice": "Slice 7",
+      "perf_targets": [
+        "perf"
+      ],
+      "startup": {
+        "themes": [
+          "junie",
+          "paper"
+        ],
+        "theme_argument": true,
+        "args": [
+          "--motion",
+          "paused",
+          "--frame",
+          "0"
+        ]
+      }
+    },
+    {
+      "id": "holla",
+      "package": "holla",
+      "bin": "holla",
+      "dir": "apps/holla",
+      "lib": "holla_app",
+      "slice": "Holla forward migration",
+      "perf_targets": [
+        "perf"
+      ],
+      "startup": {
+        "themes": [
+          "reference-default"
+        ],
+        "theme_argument": false,
+        "args": [
+          "--scenario",
+          "first-use",
+          "--motion",
+          "paused",
+          "--frame",
+          "4000"
+        ]
+      }
+    }
+  ],
+  "holla": {
+    "reference_revision": "794b095c196562d38f1b6f7ce379c128af2a023d",
+    "scenarios": [
+      "first-use",
+      "rust-dirty",
+      "monorepo-root",
+      "monorepo-child",
+      "docker-cleanup",
+      "disk-cleanup",
+      "upgrade-plan",
+      "activities-multi",
+      "remote-host",
+      "launch-failure",
+      "hard-cases"
+    ],
+    "sizes": [
+      [
+        80,
+        24
+      ],
+      [
+        100,
+        30
+      ],
+      [
+        120,
+        40
+      ],
+      [
+        160,
+        50
+      ]
+    ],
+    "reference_colors": [
+      "truecolor",
+      "256",
+      "mono"
+    ],
+    "additional_colors": [
+      "16"
+    ],
+    "motion": "paused",
+    "frame": 4000,
+    "theme": "reference-default",
+    "paper_view": {
+      "suite": "holla-paper-view-v1",
+      "driver": "production-view",
+      "theme": "paper",
+      "required": true
+    }
+  }
+}

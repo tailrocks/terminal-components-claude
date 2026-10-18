@@ -1,0 +1,12 @@
+{
+  "id": 349610291,
+  "node_id": "W_kwDOULaOVs4U1qEz",
+  "name": "CI",
+  "path": ".github/workflows/ci.yml",
+  "state": "active",
+  "created_at": "2026-09-03T19:11:20.000Z",
+  "updated_at": "2026-10-08T02:25:03.000Z",
+  "url": "https://api.github.com/repos/tailrocks/terminal-components-claude/actions/workflows/349610291",
+  "html_url": "https://github.com/tailrocks/terminal-components-claude/blob/main/.github/workflows/ci.yml",
+  "badge_url": "https://github.com/tailrocks/terminal-components-claude/workflows/CI/badge.svg"
+}

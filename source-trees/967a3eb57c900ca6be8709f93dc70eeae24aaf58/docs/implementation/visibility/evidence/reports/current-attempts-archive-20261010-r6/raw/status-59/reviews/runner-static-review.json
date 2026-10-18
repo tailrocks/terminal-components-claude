@@ -1,0 +1,65 @@
+{
+  "schema": "termrock.vis01.raw-runner-independent-review/v1",
+  "reviewer": "controls_wrapper_review_luna",
+  "created_at_utc": "2026-10-10T01:43:54.314054+00:00",
+  "verdict": "READY_STATIC_REVIEW_ONLY",
+  "status": "NO_CARGO_OR_TEST_EXECUTION_BY_REVIEWER",
+  "packet_root": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet",
+  "predecessor_review": {
+    "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r1-20261010/independent-review-controls-wrapper-luna.json",
+    "sha256": "59a762785018fb47f78b70900b2de27eac95cbfa68cc947977fdbe1e16a4fcd7",
+    "prior_finding": "TARGET_SEED_FULL_SNAPSHOT_NOT_ENFORCED",
+    "resolution": "R2 recursively hashes and compares the complete target seed during verification/preflight and again immediately before spawn."
+  },
+  "pins": {
+    "runner_sha256": "0323547a5f283f19e8e2cd6ce0c80bec7b3bfe694c77a3c28f6d3efec4f45e84",
+    "runplan_sha256": "abe5e8f407189bb5751ec49a21a33542ed55a8309fc29044fa454562e12b145a",
+    "review_request_sha256": "1eb246ddc6f771a8f6446e3a62a30b47e7df9946d060eb4d398bad1db7af840e",
+    "sha256sums_sha256": "c770704e73dc7c7cd57fa96a6f122adf308c2743a1acd2961531db7ace80470a",
+    "target_seed_sha256": "96412ab624386276c718bd2de9b317f539a7c24a0bff77abeca50e4c230d08d4",
+    "preflight_sha256": "da18e2ae2832902cde9b4d9c9a5cdb9a1fa39958e9281ea5659b8804a7f442ee",
+    "target_before_snapshot_sha256": "0a9822beef79424f6fb4389bb4fd319fdba8cf30e7b95140a29df453db4fcb7a"
+  },
+  "target_seed_delta_review": {
+    "recursive_inventory": true,
+    "entry_comparison_fields": [
+      "relative_path",
+      "kind",
+      "mode",
+      "file_bytes",
+      "file_sha256",
+      "symlink_target"
+    ],
+    "recomputed_counts": {
+      "entries": 1143,
+      "regular_files": 1057,
+      "bytes_total": 119655066
+    },
+    "entries_sha256": "329079ab773745cf2ef8263766bfb7f46423188b1347fac8a7a784aa2bc8a50e",
+    "tree_digest": "a6be1891c15335dd9a0117735aff6db3322fd06675349cb25b725ceefeb99983",
+    "checks": [
+      "verify() compares the complete recursive targetSnapshot() to target-seed.snapshot.",
+      "preflight writes a full target-before.json and binds digest, entry/file counts, byte total, and entries digest.",
+      "runNextest rechecks full digest/counts after preflight and once more immediately before spawn.",
+      "the four explicit status/fixture executable and .d artifact hash/mode/size assertions remain."
+    ],
+    "owner_preflight_receipt_flags": {
+      "cargo_spawned": false,
+      "nextest_spawned": false,
+      "tests_run": false,
+      "network_used": false
+    },
+    "seed_matches_preflight_snapshot": true
+  },
+  "other_checks": {
+    "packet_sha256sums": "all listed entries verified OK",
+    "source_selection_and_raw_capture": "unchanged from reviewed R1; exact 59 source-derived tests, no filter, default ignored policy, semantic validation delegated to pinned Rust Reader v2",
+    "run_bounds_and_environment": "unchanged from reviewed R1: locked/offline, no inherited parent environment, jobs=2, threads=1, 600s timeout, TERM/KILL cleanup bounds, 8 MiB per stream/16 MiB combined cap, fail-closed output/event writes",
+    "r1_to_r2_static_inputs": "source manifest, test inventory, cache closure, source freeze/delta, inventory binding, selection-v2, list stdout/stderr/process, and Reader request preparer are byte-identical; list-capture binding changes to bind the R2 target seed",
+    "execution_state": "R2 preflight says PREFLIGHT_READY_NO_CARGO; output root absent; this review ran no preflight/Cargo/Nextest/tests."
+  },
+  "limitations": [
+    "This is a static runner review, not evidence that the 59 tests passed.",
+    "No product readiness, qualification, admission, or publishing claim."
+  ]
+}

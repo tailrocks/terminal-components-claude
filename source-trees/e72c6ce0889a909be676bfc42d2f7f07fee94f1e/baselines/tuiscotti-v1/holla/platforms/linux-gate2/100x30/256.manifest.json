@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "2e4a110a36cb3171da9ddd2e25371f5ea66c11a2464d26310a5ebcb0727d5abb",
+  "artifacts": {
+    "ansi": {
+      "bytes": 9731,
+      "file": "holla/platforms/linux-gate2/100x30/256.ansi",
+      "sha256": "2e4a110a36cb3171da9ddd2e25371f5ea66c11a2464d26310a5ebcb0727d5abb"
+    },
+    "ascii": {
+      "bytes": 2763,
+      "file": "holla/platforms/linux-gate2/100x30/256.ascii",
+      "sha256": "c1abe424568646f85964d6d15f6a7a37325b6ca247a1b4c265c1d3c0fb33ac13"
+    },
+    "ascii_loss_json": {
+      "bytes": 26319,
+      "file": "holla/platforms/linux-gate2/100x30/256.ascii.loss.json",
+      "sha256": "77ac6810c7a858d136bb857c1376e6cdae62d21f0b23506016f20438baabea3f"
+    },
+    "frame_json": {
+      "bytes": 706522,
+      "file": "holla/platforms/linux-gate2/100x30/256.frame.json",
+      "sha256": "ee6acffbcff015499bdd526fbbd34763858f852e45bdf03589d89a49fff5eb90"
+    },
+    "html": {
+      "bytes": 548778,
+      "file": "holla/platforms/linux-gate2/100x30/256.html",
+      "sha256": "ae2f2747b1fe97d9948cfffcdc2123574987085267b1b6b788e6ec53028211e4"
+    },
+    "observations_json": {
+      "bytes": 465,
+      "file": "holla/platforms/linux-gate2/100x30/256.observations.json",
+      "sha256": "3f82a20521e6111dd6165f59409eb45e47e82eb1b66345f84c907fc514629039"
+    },
+    "png": {
+      "bytes": 386924,
+      "file": "holla/platforms/linux-gate2/100x30/256.png",
+      "sha256": "0cf459147bb7b11e0aefec24d852dceaec8f988da9f851c0b27570934791cefe"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/platforms/linux-gate2/100x30/256.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3313,
+      "file": "holla/platforms/linux-gate2/100x30/256.txt",
+      "sha256": "a7f23f6c15ec8a145ec9cb81da26d077cfa3ba81dd4d6f7efabafdc50305ed48"
+    }
+  },
+  "ascii_substitutions_count": 284,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 3915489836595481675,
+  "frame_sha256": "ee6acffbcff015499bdd526fbbd34763858f852e45bdf03589d89a49fff5eb90",
+  "generation": "fc04668c24ce2daa70be65cce3a0b926e6637e2f410b9047766cad9ab0b32556",
+  "html_sha256": "ae2f2747b1fe97d9948cfffcdc2123574987085267b1b6b788e6ec53028211e4",
+  "legacy_name": "holla/flows/platforms/linux_gate2/100x30/256",
+  "name": "holla/platforms/linux-gate2/100x30/256",
+  "png_sha256": "0cf459147bb7b11e0aefec24d852dceaec8f988da9f851c0b27570934791cefe",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:21Z",
+  "txt_sha256": "a7f23f6c15ec8a145ec9cb81da26d077cfa3ba81dd4d6f7efabafdc50305ed48"
+}

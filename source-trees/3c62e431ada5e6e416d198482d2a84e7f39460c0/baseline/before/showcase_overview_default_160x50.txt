@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Foundations / Overview                                                                      truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Overview  Tokens and principles behind every component
+▎› Overview
+                            Tokens                                          Principles
+   Components
+▎  Buttons                      ▏ canvas                      #000000       One hue
+▎  Inputs                       ▏ surface                     #111111       Green means focus, primary action or selection. Everything else is achromatic.
+▎  Text areas                   ▏ surface.elevated            #18181b
+▎  Forms                        ▏ surface.overlay             #27272a       Alpha ladder
+▎  Lists                        ▏ field                       #1e1e22       Text and borders step down in white opacity, never in arbitrary grays.
+▎  Trees                        ▏ popover                     #3f3f46
+▎  Tables                       ▏ border.subtle             white 15%       State is geometry
+▎  Editable tables              ▏ border.strong             white 30%       Hover lifts the surface, focus adds a bar, selection adds a marker, editing shows
+▎  Panels                       ▏ text.primary                #ffffff       the cursor.
+▎  Sidebars                     ▏ text.secondary            white 70%
+▎  Dialogs                      ▏ text.muted                white 50%       Three planes
+▎  Progress                     ▏ text.faint                white 30%       Canvas, surface, elevated. Depth comes from lightness, not borders.
+▎  Scrolling                    ▏ accent                      #48e054
+▎  Terminal                     ▏ accent.hover                #3ab343       Quiet chrome
+▎  Code editor                  ▏ accent.pressed              #2b8632       Bold is reserved for the focused control. No box around a thing unless the box
+▎  Data grid                    ▏ accent.bg                 green 20%       carries meaning.
+▎  Chips & selects              ▏ error                       #e44545
+▎  Pickers                      ▏ warning                     #f59e09
+▎  Chrome                       ▏ info                        #8787ff       State language
+
+   Screens                                                                  ▎  focus
+▎  Settings                                                                 ░  hover lifts the surface
+▎  Task runner                                                              ›  current / chosen
+                                                                            ✓  checked
+                                                                            !  error
+                                                                            ▁  editing: cursor + underline
+                                                                            ○  disabled: faint, no hover
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

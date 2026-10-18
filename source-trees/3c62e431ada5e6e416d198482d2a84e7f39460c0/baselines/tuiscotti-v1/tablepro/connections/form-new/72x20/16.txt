@@ -1,0 +1,20 @@
+ ▪  TablePro  Connections  6 saved            16 colors · 72×20  ? help
+
+   New connection                                         Ctrl+S Save
+
+    Basic    Advanced
+   ━━━━━━━━──────────────────────────────────────────────────────────
+
+     Name *                                 Environment
+   ▎                                       (●) local
+                                           ( ) development
+     Engine                                ( ) staging
+     PostgreSQL                     ▾      ( ) production
+
+     Host  optional           Port          Group
+     localhost                5432          Personal               ▾
+     Blank: driver default
+    Test connection na Cancel    Save    Save & connect
+                                           (●) Silent
+     Required for PostgreSQL               ( ) Alert
+ EntersEditme← →pBasic / Advanced  Ctrl+S Save ATabtNextll)

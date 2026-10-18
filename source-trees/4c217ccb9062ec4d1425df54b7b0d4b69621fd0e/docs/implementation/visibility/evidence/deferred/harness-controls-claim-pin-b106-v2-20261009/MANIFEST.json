@@ -1,0 +1,363 @@
+{
+  "schema": "termrock-vis04-claim-pin-controls-evidence-archive/v1",
+  "state": "frozen_actual_run_evidence",
+  "created_at_utc": "2026-10-09T06:07:39.957Z",
+  "repository_source_commit": "ed626a6b919fc91c303d1dcdafb11b5a2f200754",
+  "allowed_repository_destination": "docs/implementation/visibility/evidence/deferred/harness-controls-claim-pin-b106-v2-20261009",
+  "scope": "VIS-04 Rust harness controls only; product23 is separate and not rerun",
+  "runs": {
+    "v1": {
+      "run_id": "2026-10-09T05-06-26-032Z-7d60e16b",
+      "result": "FAILED",
+      "selected": 29,
+      "passed": 27,
+      "failed": 2,
+      "skipped": 0,
+      "nextest_exit": 100,
+      "receipt_sha256": "cc1d73677d1fa73937ae8c3c6128f5edb09178f4fb8ac5675f0425dbf574cc96"
+    },
+    "v2": {
+      "run_id": "2026-10-09T05-13-58-526Z-adb32ee0",
+      "result": "PASSED_29",
+      "selected": 29,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "nextest_run_id": "a0bc2b22-bb0d-409f-95a8-5596e42ed06b",
+      "nextest_exit": 0,
+      "receipt_sha256": "976e530df3dbbc39498e0bd261950e74a9d98dcceed183027359aa1ba69ee9e7"
+    }
+  },
+  "reviews": {
+    "v2_static_sha256": "ac3a11153eb5192a74584b4dd21da16453a810d61b50db2933b67fc5466b9ad4",
+    "v2_actual_sha256": "3fa6f4fe14f6bd39d8e06b31395d6ff4f92b90de25ac6213f3864228d6efd2d2"
+  },
+  "artifact_count_excluding_manifest": 53,
+  "artifacts": [
+    {
+      "path": "COPY-PLAN.md",
+      "origin": "generated external archive text",
+      "bytes": 980,
+      "sha256": "ce8b442e57c6361cf253c78d867701937692af333918c7bba5b4ef35e388e935"
+    },
+    {
+      "path": "provenance/v1/base-deferred.py",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/provenance/base-deferred.py",
+      "bytes": 52726,
+      "sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0"
+    },
+    {
+      "path": "provenance/v1/base-deferred.rs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/provenance/base-deferred.rs",
+      "bytes": 62489,
+      "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d"
+    },
+    {
+      "path": "provenance/v1/design-review.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/provenance/design-review.json",
+      "bytes": 6001,
+      "sha256": "ff07e9a2e8d2d1be5e3dd2f1ebcbdf03952039d3f7b36e54e25fced9e3f6bf99"
+    },
+    {
+      "path": "provenance/v1/implementation-manifest.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/provenance/implementation-manifest.json",
+      "bytes": 1986,
+      "sha256": "9dfb7bebafb6a6968f7a24bd1c5a86bde9ac9986d57775e19a1a82046fba66bd"
+    },
+    {
+      "path": "provenance/v1/implementation-review.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/provenance/implementation-review.json",
+      "bytes": 5617,
+      "sha256": "ac3a11153eb5192a74584b4dd21da16453a810d61b50db2933b67fc5466b9ad4"
+    },
+    {
+      "path": "provenance/v1/run-controls.cjs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/run-controls.cjs",
+      "bytes": 26501,
+      "sha256": "a08efe7573316cdcf226559c577799e660bde46b69111f84d491d945c0bb750c"
+    },
+    {
+      "path": "provenance/v1/runplan.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/runplan.json",
+      "bytes": 9709,
+      "sha256": "0303c19558f6591543283709ce60639a074bc2c6408f521f3e738226669b9979"
+    },
+    {
+      "path": "provenance/v1/source-manifest.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/source-manifest.json",
+      "bytes": 9901,
+      "sha256": "c9dea28c6e8541361b190acea0acaaefb7d91aba4767dfb3e70bb1589462cb63"
+    },
+    {
+      "path": "provenance/v1/sourcefix.diff",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/provenance/sourcefix.diff",
+      "bytes": 16736,
+      "sha256": "5c49a436ec77e5fc67534dbe6cbccbfd7a1501b480bf39f950f55a090fe638f3"
+    },
+    {
+      "path": "provenance/v1/test-names.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/test-names.json",
+      "bytes": 1948,
+      "sha256": "01096444a7b74bff248048f49ece6f4ffe14d4409bcfa28b8134e9c07f193369"
+    },
+    {
+      "path": "provenance/v2/base-deferred.py",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/provenance/base-deferred.py",
+      "bytes": 52726,
+      "sha256": "35eacb9bce792bf85ebae60a890c2ac4368dd50271fe00d9f9ca33b74ae63dc0"
+    },
+    {
+      "path": "provenance/v2/base-deferred.rs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/provenance/base-deferred.rs",
+      "bytes": 62489,
+      "sha256": "eb1cd35035b1e2e017505efd242c5f17d4adee5b8a68dfd65c3d3ffc8c72976d"
+    },
+    {
+      "path": "provenance/v2/cargo-cache-manifest.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/cargo-cache-manifest.json",
+      "bytes": 24114,
+      "sha256": "64ca31c14e9d9cbbc8c6f6ce8ad69dc1014e6955669c3eae079a9a9a64190b71"
+    },
+    {
+      "path": "provenance/v2/design-review.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/provenance/design-review.json",
+      "bytes": 6001,
+      "sha256": "ff07e9a2e8d2d1be5e3dd2f1ebcbdf03952039d3f7b36e54e25fced9e3f6bf99"
+    },
+    {
+      "path": "provenance/v2/implementation-manifest.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/provenance/implementation-manifest.json",
+      "bytes": 1986,
+      "sha256": "9dfb7bebafb6a6968f7a24bd1c5a86bde9ac9986d57775e19a1a82046fba66bd"
+    },
+    {
+      "path": "provenance/v2/implementation-review.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/provenance/implementation-review.json",
+      "bytes": 5617,
+      "sha256": "ac3a11153eb5192a74584b4dd21da16453a810d61b50db2933b67fc5466b9ad4"
+    },
+    {
+      "path": "provenance/v2/independent-review-luna.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/independent-review-luna.json",
+      "bytes": 5652,
+      "sha256": "1116be98dceea49e0aba188a012a20379312b53b6bfb512f95579bb0b67e81a5"
+    },
+    {
+      "path": "provenance/v2/launch.sh",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/launch.sh",
+      "bytes": 197,
+      "sha256": "15f734ab5678701f7a3dbe4fb466b9be18d4846e4f9e77b03e0539a4950df4df"
+    },
+    {
+      "path": "provenance/v2/original-packet-README.md",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/README.md",
+      "bytes": 4843,
+      "sha256": "3bdfbd011ab9061eb785fc855569125fb4233b70855dd707e62f000a1df52c6c"
+    },
+    {
+      "path": "provenance/v2/PACKET-MANIFEST.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/PACKET-MANIFEST.json",
+      "bytes": 7435,
+      "sha256": "65b836ca0c4abf45528c2ef9e7ed446098d2addac297b68f700541701e0ca2ef"
+    },
+    {
+      "path": "provenance/v2/preflight.cjs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/preflight.cjs",
+      "bytes": 10248,
+      "sha256": "39e4a43fb3821eaf0edc090257f0b27deecace750f64a4008194f3c4cc83ff11"
+    },
+    {
+      "path": "provenance/v2/preflight.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/preflight.json",
+      "bytes": 2205,
+      "sha256": "70630f87f06f7d49d55f55437af43502800c91f2aa567be6e14704c166da8857"
+    },
+    {
+      "path": "provenance/v2/run-controls.cjs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/run-controls.cjs",
+      "bytes": 26501,
+      "sha256": "319c97ef266f01a8695e69667a801eb9e391c1847944477ef8cddca745286cfd"
+    },
+    {
+      "path": "provenance/v2/runplan.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runplan.json",
+      "bytes": 9835,
+      "sha256": "62457ef7ad3fd85a46edf57a2f98151b2aed4932f237fc6e6dd713a83d38bed8"
+    },
+    {
+      "path": "provenance/v2/source-manifest.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/source-manifest.json",
+      "bytes": 11045,
+      "sha256": "884a7d1f5cbd0f397087b8f5a0fa4ada95279e77fbf481eace30ab2bc2d16a60"
+    },
+    {
+      "path": "provenance/v2/sourcefix-README.md",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/provenance/sourcefix-README.md",
+      "bytes": 2451,
+      "sha256": "9581380844e53dc9f5b4893973adf8f461b3ebd13ee11c2b342c6268a5f8d6f7"
+    },
+    {
+      "path": "provenance/v2/sourcefix.diff",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/provenance/sourcefix.diff",
+      "bytes": 16736,
+      "sha256": "5c49a436ec77e5fc67534dbe6cbccbfd7a1501b480bf39f950f55a090fe638f3"
+    },
+    {
+      "path": "provenance/v2/test-names.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/test-names.json",
+      "bytes": 1948,
+      "sha256": "01096444a7b74bff248048f49ece6f4ffe14d4409bcfa28b8134e9c07f193369"
+    },
+    {
+      "path": "provenance/v2/trace-not-found.diff",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/provenance/trace-not-found.diff",
+      "bytes": 638,
+      "sha256": "d79cf34fdf6de4c568523bacbf93d416b382481a93aa4610ca9237f15efa5b45"
+    },
+    {
+      "path": "README.md",
+      "origin": "generated external archive text",
+      "bytes": 2835,
+      "sha256": "7eaf026ffce4edfe5ad3bdf4ee018030e93c95fcdd0fd9fdcb873f2e28667756"
+    },
+    {
+      "path": "reviews/v2-actual-independent-review.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-actual-independent-review-luna-20261009.json",
+      "bytes": 6226,
+      "sha256": "3fa6f4fe14f6bd39d8e06b31395d6ff4f92b90de25ac6213f3864228d6efd2d2"
+    },
+    {
+      "path": "reviews/v2-actual-result-review-request.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-actual-result-review-request-20261009.json",
+      "bytes": 4994,
+      "sha256": "68f0c1fce167bb153e7790d625872dea1e75f665c2756c55cfebeda7d9a9dc37"
+    },
+    {
+      "path": "runs/v1-failed/nextest.stderr.log",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/runs/2026-10-09T05-06-26-032Z-7d60e16b/nextest.stderr.log",
+      "bytes": 10338,
+      "sha256": "a0b4ac201af7801ececaa6fcc8bf1f79eadbbbc1d9c398ac952bdb501a5d4895"
+    },
+    {
+      "path": "runs/v1-failed/nextest.stdout.jsonl",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/runs/2026-10-09T05-06-26-032Z-7d60e16b/nextest.stdout.jsonl",
+      "bytes": 9330,
+      "sha256": "e26228854578dfa12afd8202cfcbc796f985f29149544e089806bc2c81c9a123"
+    },
+    {
+      "path": "runs/v1-failed/receipt.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v1/runner/runs/2026-10-09T05-06-26-032Z-7d60e16b/receipt.json",
+      "bytes": 12507,
+      "sha256": "cc1d73677d1fa73937ae8c3c6128f5edb09178f4fb8ac5675f0425dbf574cc96"
+    },
+    {
+      "path": "runs/v2-passed/nextest.stderr.log",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runs/2026-10-09T05-13-58-526Z-adb32ee0/nextest.stderr.log",
+      "bytes": 7880,
+      "sha256": "5b0d4b4d449e8fae19405a47e39a3764d3b1ba98d3d663512d86239f709cc367"
+    },
+    {
+      "path": "runs/v2-passed/nextest.stdout.jsonl",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runs/2026-10-09T05-13-58-526Z-adb32ee0/nextest.stdout.jsonl",
+      "bytes": 8676,
+      "sha256": "e0f391786923482679e3e3e8971a7effc727672db0ac555d3a356d1d212c254f"
+    },
+    {
+      "path": "runs/v2-passed/receipt.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/runner/runs/2026-10-09T05-13-58-526Z-adb32ee0/receipt.json",
+      "bytes": 12407,
+      "sha256": "976e530df3dbbc39498e0bd261950e74a9d98dcceed183027359aa1ba69ee9e7"
+    },
+    {
+      "path": "source_snapshot/component-ownership.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/component-ownership.json",
+      "bytes": 4243,
+      "sha256": "4265116e1ee48092fec6f2a108893ac747bc1c636ca4b279dd9f64e8492822a4"
+    },
+    {
+      "path": "source_snapshot/crates/termrock-conformance/Cargo.toml",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-conformance/Cargo.toml",
+      "bytes": 726,
+      "sha256": "4d2b924566c74131adc9e4d57c3dad7ffd03fc487120683f1f8296c8d4f3c8d6"
+    },
+    {
+      "path": "source_snapshot/crates/termrock-conformance/tests/control_states.rs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-conformance/tests/control_states.rs",
+      "bytes": 278760,
+      "sha256": "dad018454b706e35518f2a405e4f4603f6a625c23de5d697932ec995fd55cabc"
+    },
+    {
+      "path": "source_snapshot/crates/termrock-conformance/tests/parity_burndown.rs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-conformance/tests/parity_burndown.rs",
+      "bytes": 4195,
+      "sha256": "30d402b5f71fc078efa205c76139e43fa7effd3f9b9282ec889ce2d5c5e3a738"
+    },
+    {
+      "path": "source_snapshot/crates/termrock-e2e/cases/deferred-obligations.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-e2e/cases/deferred-obligations.json",
+      "bytes": 3675,
+      "sha256": "53b193a123d70cb64f162738584fee9720030b89f36fdb7b473d20334c339464"
+    },
+    {
+      "path": "source_snapshot/crates/termrock-visibility-tests/Cargo.lock",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-visibility-tests/Cargo.lock",
+      "bytes": 7322,
+      "sha256": "d6372475262b723ebdfe3bec9134ba6c675ff1d3becb3fa4625eb9e38c40b2c2"
+    },
+    {
+      "path": "source_snapshot/crates/termrock-visibility-tests/Cargo.toml",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-visibility-tests/Cargo.toml",
+      "bytes": 324,
+      "sha256": "f56265e959da084a19586110cf155b7a0232b0c42b96ca6ab07daa41c69997ae"
+    },
+    {
+      "path": "source_snapshot/crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-visibility-tests/src/bin/fixture.rs",
+      "bytes": 21577,
+      "sha256": "a7ee4a89646439a67d2d4e016b759a2d68eecec7339310778e81acf60235adc4"
+    },
+    {
+      "path": "source_snapshot/crates/termrock-visibility-tests/src/lib.rs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-visibility-tests/src/lib.rs",
+      "bytes": 51086,
+      "sha256": "96a6d3e8aea50b464444b598e2ee53b639548712fbfdbb8a0b5a39405c44a247"
+    },
+    {
+      "path": "source_snapshot/crates/termrock-visibility-tests/tests/deferred.rs",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/crates/termrock-visibility-tests/tests/deferred.rs",
+      "bytes": 68958,
+      "sha256": "d5d336c7527dcdb56704df6be68e937bc8be10ee0545b592a79e63402561ec94"
+    },
+    {
+      "path": "source_snapshot/docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/docs/implementation/visibility/evidence/deferred/DEFERRED-MAPPING.md",
+      "bytes": 27023,
+      "sha256": "e77ebc09f91cdb37b26b9096252a3212da784085238d1e5f32bf8198e96a5e9d"
+    },
+    {
+      "path": "source_snapshot/docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/docs/implementation/visibility/evidence/deferred/deferred-reasons-9deb66b.json",
+      "bytes": 3138,
+      "sha256": "90a08a85047f0b30fa159ec6a2779375db37472d734199d74b097f5edcdd9d9d"
+    },
+    {
+      "path": "source_snapshot/tests/conformance/required_cases.json",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/tests/conformance/required_cases.json",
+      "bytes": 621343,
+      "sha256": "04ebb893bdf4f9003e3f0957ff753eda95d1a0c68c4583b336d29af842acb99a"
+    },
+    {
+      "path": "source_snapshot/tools/visibility/deferred.py",
+      "origin": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-trace-empty-20261009/source/tools/visibility/deferred.py",
+      "bytes": 55622,
+      "sha256": "903812b22d757e685be0b0469abe30b5141c877ec5e1bcd41ff4f56f1c58baee"
+    }
+  ],
+  "archive_review_status": "recorded_separately",
+  "publication_status": "recorded_separately",
+  "supersedes": {
+    "archive": "/private/tmp/termrock-vis04-claim-pin-controls-b106-v2-evidence-archive-20261009-r2",
+    "manifest_sha256": "b6b0d702ce1c7a2f0c93ce1fad577ea657622842901ac83468d138d736a0a234",
+    "reason": "successor adds the original independent static packet review; prior raw and provenance payloads are preserved"
+  }
+}

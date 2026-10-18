@@ -1,0 +1,46 @@
+{
+  "schema": "dco-native-bitmap-probe-r10-plan-review-request/v1",
+  "status": "FROZEN_REQUESTED_REVIEW_NOT_AUTHORIZED_OR_EXECUTED",
+  "packet_path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010",
+  "plan": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/plan.json",
+    "sha256": "3ebcdb0ec2408f7ffb91e67d597482eade2ab0e75cd24a132bc636273fb4731f"
+  },
+  "helper": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/clone-source-packs.rs",
+    "sha256": "14148ea17dd55e6f8ab7ab4901b43965c6ceeaeda0ad4e18939c025f1ecba07f"
+  },
+  "inventory": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r10-20261010/source-pack-inventory.json",
+    "sha256": "33a8aaa5cc1db77f30aa88ad2b4ba5364c901364bb42dad9a1f6611e4f6aa9b7"
+  },
+  "allowlist_sha256": "d78122bb25c886648d3ce47a7a9abd3651b3a02540c4ec214b0b67bf8fefb240",
+  "r9_review": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-plan-observer-r9-review-current-branch-comparison-luna-20261010.json",
+    "sha256": "5d88e6943445c941ee16316ff7f8a989e76cd34575e5312da0b6505e0ee338e0",
+    "verdict": "CHANGES_REQUIRED",
+    "finding": "compile output under scratch/tmp conflicted with procedure action 6 allowing compiler output in scratch/bin"
+  },
+  "r8_failure": {
+    "path": "/private/tmp/termrock-reference-dco-bitmap-probe-observer-r8-20261010/evidence/receipt.json",
+    "sha256": "af1cd8d3affa4592472b2ec321bfcbcd2a26500dcf2f854def38b97ff3297b13"
+  },
+  "requested_review": [
+    "Verify the R9-only monitor allowlist finding is closed: scratch/bin remains empty throughout rustc while compiler temporary objects and the final temporary output are restricted to scratch/tmp.",
+    "Confirm the post-compile action occurs only after successful child exit and process-group cleanup, validates a regular non-symlink single-link executable <=16 MiB, atomically renames only that file within the same filesystem to scratch/bin, then verifies device/inode/mode/size before helper launch.",
+    "Check fresh R10 packet/helper/scratch path rebinding and exact R9 review/failure provenance; preserve R8 and R9 artifacts unchanged.",
+    "Confirm existing temp, file-size, scratch, disk, captured-output, process-group/RSS, cleanup, source-hash and 5.577 GB stat-only exclusion bounds remain unchanged."
+  ],
+  "execution_constraints": {
+    "review_only": true,
+    "no_supervisor_invocation": true,
+    "no_node_syntax_or_runtime_probe": true,
+    "no_rustc_or_helper_compilation": true,
+    "no_cargo_or_tests": true,
+    "no_scratch_creation_or_git_store_write": true,
+    "no_git_init_midx_bitmap_or_pack_probe": true,
+    "no_network_or_remote_operation": true,
+    "no_canonical_or_source_object_store_write": true
+  },
+  "expected_output": "Focused exact-pin READY/CHANGES_REQUIRED receipt. Root separately decides whether to authorize local execution."
+}

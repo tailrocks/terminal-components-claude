@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "4971e1dbd8d527ebd80c63acaec6d0b8e105b7553da05e7005f8569ec0ff6c8a",
+  "artifacts": {
+    "ansi": {
+      "bytes": 7502,
+      "file": "holla/docker/remove-failed/100x30/none.ansi",
+      "sha256": "4971e1dbd8d527ebd80c63acaec6d0b8e105b7553da05e7005f8569ec0ff6c8a"
+    },
+    "ascii": {
+      "bytes": 2634,
+      "file": "holla/docker/remove-failed/100x30/none.ascii",
+      "sha256": "5698888e85fe90f12bce68db6873e03b6445c69b740bacdee514ab4a4d8e18c6"
+    },
+    "ascii_loss_json": {
+      "bytes": 30152,
+      "file": "holla/docker/remove-failed/100x30/none.ascii.loss.json",
+      "sha256": "05dc8320582fb754cf6350608b1caf0f3378c8d7e308f630c6b3280d3233909e"
+    },
+    "frame_json": {
+      "bytes": 697645,
+      "file": "holla/docker/remove-failed/100x30/none.frame.json",
+      "sha256": "20d1763f0ca257ebfa7738b0bf6ae5c267969dd7f1c7b284f5c0a52ae3585620"
+    },
+    "html": {
+      "bytes": 347114,
+      "file": "holla/docker/remove-failed/100x30/none.html",
+      "sha256": "da9408b36b2071874c68547a149ecb2eba64466a6a0307a25b9e641e848d6be3"
+    },
+    "observations_json": {
+      "bytes": 464,
+      "file": "holla/docker/remove-failed/100x30/none.observations.json",
+      "sha256": "2233dddd184a07f28a511c32cbee812a8afec12030f80d0fd69a7134dd800ea8"
+    },
+    "png": {
+      "bytes": 245357,
+      "file": "holla/docker/remove-failed/100x30/none.png",
+      "sha256": "ccf69b4f17ef3fbb99130be3be737484ed1300f840a4064739c2a75a325eb70a"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/docker/remove-failed/100x30/none.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3276,
+      "file": "holla/docker/remove-failed/100x30/none.txt",
+      "sha256": "ba87d53fbe9f7cbe0902dc89bd1532e2936b47783733ba36207fb8ff82d709e8"
+    }
+  },
+  "ascii_substitutions_count": 326,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 6216414679173916677,
+  "frame_sha256": "20d1763f0ca257ebfa7738b0bf6ae5c267969dd7f1c7b284f5c0a52ae3585620",
+  "generation": "2a63cd4f2d4653226ac6cf2df5f0d505fa4d4d0efc775ec5851d0785872c15a4",
+  "html_sha256": "da9408b36b2071874c68547a149ecb2eba64466a6a0307a25b9e641e848d6be3",
+  "legacy_name": "holla/flows/docker/remove_failed/100x30/none",
+  "name": "holla/docker/remove-failed/100x30/none",
+  "png_sha256": "ccf69b4f17ef3fbb99130be3be737484ed1300f840a4064739c2a75a325eb70a",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:01Z",
+  "txt_sha256": "ba87d53fbe9f7cbe0902dc89bd1532e2936b47783733ba36207fb8ff82d709e8"
+}

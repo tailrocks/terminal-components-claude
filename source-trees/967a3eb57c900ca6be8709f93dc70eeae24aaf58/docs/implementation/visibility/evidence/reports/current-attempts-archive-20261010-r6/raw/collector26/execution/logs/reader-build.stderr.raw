@@ -1,0 +1,11 @@
+   Compiling termrock-visibility-tests v0.1.0 (/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests)
+warning: unused import: `self`
+ --> src/nextest_result.rs:9:15
+  |
+9 | use std::fs::{self, OpenOptions};
+  |               ^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `termrock-visibility-tests` (lib) generated 1 warning (run `cargo fix --lib -p termrock-visibility-tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.22s

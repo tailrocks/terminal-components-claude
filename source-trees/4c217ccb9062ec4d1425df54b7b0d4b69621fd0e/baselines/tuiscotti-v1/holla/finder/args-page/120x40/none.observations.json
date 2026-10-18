@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 6008302272249173685,
+  "legacy_name": "holla/flows/args/page/120x40/none",
+  "name": "holla/finder/args-page/120x40/none",
+  "non_empty_cells": 393,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

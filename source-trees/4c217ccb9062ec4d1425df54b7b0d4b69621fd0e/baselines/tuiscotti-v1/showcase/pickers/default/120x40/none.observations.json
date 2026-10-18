@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 9500955657424434030,
+  "legacy_name": "showcase/pages/pickers/120x40/none",
+  "name": "showcase/pickers/default/120x40/none",
+  "non_empty_cells": 594,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

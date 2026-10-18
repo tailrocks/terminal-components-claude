@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+
+  ╭──────────────────────────────────────────────────────────────────────────╮
+ ─│                                                                          │─
+ ╭│  Keyboard                                                                │╮
+ ││                                                                          ││
+ ││  Tab / Shift+Tab   move focus · 0 explorer · Esc back                    ││
+ ││  Ctrl+O            Open Quickly (tables, schemas, tabs, queries)         ││
+ ││  Ctrl+T / Ctrl+W   new / close tab · [ ] switch · Ctrl+G tab list        ││
+ ││  Ctrl+R / F5       run statement at cursor · Alt+R run all               ││
+ ││  Ctrl+X / Alt+X    EXPLAIN / EXPLAIN ANALYZE                             ││
+ ││  Esc / Ctrl+C      cancel a running query                                ││
+ ││  Ctrl+D            Data / Structure · Ctrl+F filter (grid) or find       ││
+ ││  (editor)                                                                ││
+ ││  Ctrl+S            save pending row changes · p preview SQL              ││
+ ││  Ctrl+Y            query history · Ctrl+L Safe Mode · Ctrl+B explorer ·  ││
+ ││  z zoom                                                                  ││
+ ││  q                 quit                                                  ││
+ ││                                                                          ││
+ ││                                                                 ▎Close   ││
+ ││                                                                          ││
+ ╰╰──────────────────────────────────────────────────────────────────────────╯╯
+
+ ← → Choose  Enter Confirm  Esc Cancel  …      Cancelled · nothing was executed

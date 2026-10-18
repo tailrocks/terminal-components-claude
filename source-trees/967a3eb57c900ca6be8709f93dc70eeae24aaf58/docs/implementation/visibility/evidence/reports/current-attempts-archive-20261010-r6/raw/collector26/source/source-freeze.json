@@ -1,0 +1,46 @@
+{
+  "schema": "termrock-vis08-r17-aliasfix-source-freeze/v3",
+  "status": "FROZEN_FOR_FOCUSED_SOURCE_REVIEW_NO_CARGO",
+  "base": {
+    "r2_freeze": "/private/tmp/termrock-vis08-r17-aliasfix-r2-20261010/source-freeze.json",
+    "r2_source_sha256": "f059d89089f0b79e63084f462454f659a33f4a6fe4a4096913b66a37cb133436"
+  },
+  "candidate": {
+    "package_root": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests",
+    "changed_path": "crates/termrock-visibility-tests/src/nextest_result.rs",
+    "changed_path_sha256": "b3191ad38cf707255381f4c6851eb4be0f23dad45db42cd68dcbc6dbef9ead03",
+    "package_digest": "bf8a25eb90e81eb65ab3ba384ace1ad23109f1ef29bc3f818f6f1884878038c3",
+    "file_count": 12,
+    "files": [
+      "Cargo.lock",
+      "Cargo.toml",
+      "README.md",
+      "src/bin/fixture.rs",
+      "src/bin/nextest-result-reader.rs",
+      "src/lib.rs",
+      "src/nextest_result.rs",
+      "tests/cache_source_audit.rs",
+      "tests/deferred.rs",
+      "tests/queue_v2.rs",
+      "tests/status.rs",
+      "tests/subjects.rs"
+    ]
+  },
+  "patch": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/source.patch",
+    "sha256": "122831e7392a0fd1fd43cd164ed2d63e5670a166c9b1c891d76f54f60561eb80"
+  },
+  "inventory": {
+    "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate-files.sha256",
+    "sha256": "cd7b2214b14766f71b6ecc9c593abc404caad385e3be1a602a4a69a3d5663acf"
+  },
+  "scope": {
+    "changed_paths": [
+      "crates/termrock-visibility-tests/src/nextest_result.rs"
+    ],
+    "all_other_package_files_equal_r2": true,
+    "cargo_or_tests_run_by_owner": false,
+    "canonical_repository_modified": false
+  },
+  "rationale": "Make the synthetic failed-run lib suite terminal label agree with its failed count; preserve strict event/count consistency validation and all assertions."
+}

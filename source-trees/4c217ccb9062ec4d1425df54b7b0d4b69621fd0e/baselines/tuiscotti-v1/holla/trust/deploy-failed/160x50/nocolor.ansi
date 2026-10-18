@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                   team · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+  Here   [0m[1m deploy preview ! ×  [0m                                                                                                                                  [0m
+ ────────━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mdeploy preview[0m · failed · 0 s · exit 127                                                                                            here · ~/work/team · mbp  [0m
+  $ tools/deploy-preview.sh --env 'preview stack' '$(whoami)' · started by Deploy preview                                                                       [0m
+                                                                                                                                                                [0m
+ ╭─[0m[1m output [0m─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ [0m
+ │  $ tools/deploy-preview.sh --env 'preview stack' '$(whoami)'                                                                                               │ [0m
+ │  [0m[1mholla: no simulated outcome for `tools/deploy-preview.sh --env 'preview stack' '$(whoami)'` in this preview[0m                                               │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/team[0m   main                                                     ! exit 127 · 0 s                                                      no color · 160×50 [0m
+                                              [0m[1m↑↓[0m Scroll  [0m[1mf[0m Follow  [0m[1m/[0m Find  [0m[1my[0m Copy  [0m[1mr[0m Restart  [0m[1mx[0m Close  [0m[1mEsc[0m Here              [0m[1m![0m deploy preview failed · exit 127 [0m

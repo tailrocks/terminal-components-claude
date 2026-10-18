@@ -1,0 +1,17 @@
+{
+  "parent": "5572f09f57053adb74c886cdab748650452531b6",
+  "tree": "e43045c03728182a875e899560144babe0a407f8",
+  "diff_sha256": "616352bc2cce294f61ce9d67fdff82149ad55a7a3700b52f40a15c0a8b29966e",
+  "paths": [
+    "AGENTS.md",
+    "GOAL.md",
+    "README.md",
+    "STATUS.md",
+    "WORK_QUEUE.md",
+    "docs/implementation/visibility/tasks.json",
+    "tools/visibility/README.md",
+    "tools/visibility/source-facts.json",
+    "tools/visibility/status.py",
+    "tools/visibility/tests/test_status.py"
+  ]
+}

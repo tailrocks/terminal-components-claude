@@ -1,0 +1,51 @@
+#!/bin/sh
+set -eu
+command_name=''
+action=''
+skip_value=0
+for arg in "$@"; do
+  if [ "$skip_value" -eq 1 ]; then
+    skip_value=0
+    continue
+  fi
+  case "$arg" in
+    -C|-c|--git-dir|--work-tree|--namespace|--super-prefix|--config-env)
+      skip_value=1
+      continue
+      ;;
+    --git-dir=*|--work-tree=*|--namespace=*|--super-prefix=*|--config-env=*|--no-pager|--paginate|--no-replace-objects|--no-optional-locks|--literal-pathspecs|--glob-pathspecs|--icase-pathspecs|--version|--exec-path|--html-path|--man-path|--info-path)
+      continue
+      ;;
+    -* ) continue ;;
+    * )
+      if [ -z "$command_name" ]; then
+        command_name="$arg"
+      elif [ "$command_name" = "remote" ] || [ "$command_name" = "submodule" ]; then
+        action="$arg"
+        break
+      else
+        break
+      fi
+      ;;
+  esac
+done
+blocked=0
+case "$command_name" in
+  clone|fetch|fetch-pack|ls-remote|pull|push|send-pack|upload-archive|upload-pack|receive-pack|daemon|serve|lfs|imap-send|send-email)
+    blocked=1
+    ;;
+  remote)
+    case "$action" in update|prune|set-head) blocked=1 ;; esac
+    ;;
+  submodule)
+    case "$action" in update|init) blocked=1 ;; esac
+    ;;
+esac
+if [ "$blocked" -eq 1 ]; then
+  if [ -n "${GIT_NETWORK_BLOCK_LOG:-}" ]; then
+    printf '%s\t%s\n' "$command_name" "$action" >> "$GIT_NETWORK_BLOCK_LOG" || true
+  fi
+  printf 'git network operation blocked by metadata probe: %s %s\n' "$command_name" "$action" >&2
+  exit 86
+fi
+exec /usr/bin/git "$@"

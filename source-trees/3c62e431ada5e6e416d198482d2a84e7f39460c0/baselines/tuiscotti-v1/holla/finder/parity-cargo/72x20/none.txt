@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help         engine · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+    Show git status          git      here  on main                   ┃
+  › cargo build              cargo    here  Cargo.toml …              ┃
+    cargo check              cargo    here  Cargo.toml …              ┃
+    cargo clean · 900.0 MiB  cleanup  here  900.0 MiB o…  destructive ┃
+    cargo clippy             cargo    here  Cargo.toml …              ┃
+                                                                      │
+    Recent here                                                       │
+    nothing used here yet                                             │
+
+    → cargo build · here · mutating
+
+ ~/work/engine   main                                  no color · 72×20
+    Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  …

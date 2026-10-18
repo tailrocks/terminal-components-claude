@@ -1,0 +1,50 @@
+ [0m[1m jackin❯ [0m   File   Go   Help                                                            Workspaces › payments-platform › edit  inside the Construct  2 running [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+   General    Mounts    Roles    Environments   [0m[1m Accounts  [0m                                                                                                     [0m
+  ──────────────────────────────────────────────━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+                                                                                                                                                                [0m
+    [0m[1mActive accounts  5 effective · 4 inherited · 1 enabled here[0m                                                                     registry in Accounts (c)    [0m
+    [0m[1mAnthropic / Claude[0m                                                                                                     2 active · picker at session start   [0m
+  [0m[1m▎›   [✓] Personal                     ★  inherited default       ready                                                                                      [0m  [0m
+       [ ] Archived contractor laptop …    available               disabled globally                                                                            [0m
+       [✓] Work                            enabled here            ready                                                                                        [0m
+    [0m[1mOpenAI[0m                                                                                                                                           1 active   [0m
+       [✓] Primary                      ★  inherited default       ready                                                                                        [0m
+       [ ] Experiments                     available               ready                                                                                        [0m
+    [0m[1mAmp[0m                                                                                                                                           none active   [0m
+       [ ] host login                      discovered on host      ready                                                                                        [0m
+    [0m[1mxAI / Grok[0m                                                                                                                                       1 active   [0m
+       [✓] Team                         ★  inherited default       ready                                                                                        [0m
+    [0m[1mOpenCode[0m                                                                                                                                         1 active   [0m
+       [✓] Go subscription              ★  inherited default       ready                                                                                        [0m
+       [ ] ci-bot                          discovered on host      unsupported                                                                                  [0m
+    [0m[1mMoonshot / Kimi[0m                                                                                                                               none active   [0m
+       [ ] host login                      discovered on host      needs secret                                                                                 [0m
+    [0m[1mZ.AI[0m                                                                                                                                          none active   [0m
+       [ ] host login                      discovered on host      ready                                                                                        [0m
+    [0m[1mMiniMax[0m                                                                                                                                       none active   [0m
+       [ ] host login                      discovered on host      unavailable                                                                                  [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                          Cancel     [0m[2mSave… [0m     [0m
+                                                                                                                                                                [0m
+                             [0m[1mSpace[0m Enable / disable  [0m[1mp[0m Prefer  [0m[1m/[0m Filter  [0m[1mc[0m Manage accounts  [0m[1m[ ][0m Switch tab  [0m[1mCtrl+S[0m Save  [0m[1mEsc[0m Back                               [0m

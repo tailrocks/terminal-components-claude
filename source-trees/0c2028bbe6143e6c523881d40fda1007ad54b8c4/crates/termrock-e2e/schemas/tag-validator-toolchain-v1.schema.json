@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "termrock-spec/visual-tag-validator-toolchain-v1",
+  "title": "Pinned immutable-tag validator runtime toolchain v1",
+  "type": "object",
+  "required": ["schema", "python", "git"],
+  "properties": {
+    "schema": { "const": "termrock-spec/visual-tag-validator-toolchain-v1" },
+    "python": { "$ref": "#/$defs/tool" },
+    "git": { "$ref": "#/$defs/tool" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "absolute_path": { "type": "string", "pattern": "^/", "minLength": 1 },
+    "tool": {
+      "type": "object",
+      "required": ["path", "sha256", "version"],
+      "properties": {
+        "path": { "$ref": "#/$defs/absolute_path" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

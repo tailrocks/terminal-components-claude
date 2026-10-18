@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help       Workspaces › payments-platform › edit  • 2 changes  inside the Construct  2 running
+
+
+   General    Mounts    Roles    Environments    Accounts •
+  ──────────────────────────────────────────────━━━━━━━━━━━━━─────────────────────────────────────────────────────────
+
+    Active accounts  4 effective · 3 inherited · 1 enabled here                             registry in Accounts (c)
+    Anthropic / Claude                                                                                       1 active
+  ▎  • [ ] Personal                        disabled here           ready
+  ▎    [ ] Archived contractor laptop …    available               disabled globally
+  ▎    [✓] Work                         ★  enabled here            ready
+    OpenAI                                                                                                   1 active
+  ▎› • [✓] Primary                      ★  inherited default       ready
+  ▎  • [ ] Experiments                     available               ready
+    Amp                                                                                                   none active
+  ▎    [ ] host login                      discovered on host      ready
+    xAI / Grok                                                                                               1 active
+  ▎    [✓] Team                         ★  inherited default       ready
+    OpenCode                                                                                                 1 active
+  ▎    [✓] Go subscription              ★  inherited default       ready
+  ▎    [ ] ci-bot                          discovered on host      unsupported
+    Moonshot / Kimi                                                                                       none active
+  ▎    [ ] host login                      discovered on host      needs secret
+    Z.AI                                                                                                  none active
+  ▎    [ ] host login                      discovered on host      ready
+    MiniMax                                                                                               none active
+  ▎    [ ] host login                      discovered on host      unavailable
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+              Space Enable / disable  p Prefer  / Filter  c Manage accounts  …   Preferred for OpenAI ★ Codex · Primary

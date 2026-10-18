@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help      Workspaces › new workspace › edit  • 1 change · new  inside the Construct  2 running
+
+
+   General •    Mounts    Roles    Environments    Accounts
+  ━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      Name *
+    ▎ data-pipeline
+      Directory basename by default
+
+    Working directory *
+    /Users/alexey/src/data-pipeline                              ▎Choose…
+    Inside the Construct
+
+    ▎[ ] Keep awake        ╭────────────────────────────────────────────────────────────────╮
+    ▎[✓] Git pull before la│                                                                │
+                           │  Create workspace                                              │
+      On dirty exit        │                                                                │
+    ▎ ask · show the exit d│  Workspace  data-pipeline · new                                │
+                           │  Scope      workspace config · ~/.jackin/workspaces/data-pip…  │
+                           │  Changes    1 change                                           │
+                           │                                                                │
+                           │  + workspace data-pipeline  /Users/alexey/src/data-pipeline    │
+                           │                                                                │
+                           │                                               ▎Cancel  ▎Save   │
+                           │                                                                │
+                           ╰────────────────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+                       ← → Choose  Enter Confirm  Esc Cancel    Workspace data-pipeline · review and save in the editor

@@ -1,0 +1,253 @@
+{
+  "evidence_manifest": {
+    "aggregate_algorithm": "SHA256 of sorted UTF-8 records: relative POSIX path, NUL, lowercase file SHA256 hex, LF",
+    "aggregate_sha256": "bbba8dce9f5da557a77a334d0c14fd0333a25689288f66e5b4de2e804d0a7463",
+    "file_count": 30,
+    "files": [
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-list.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-list.stdout.json",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-run.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/nextest-run.stdout.jsonl",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032215.604871Z/receipt.json",
+        "sha256": "49b2c7e47a97c32da377ac9fc8e32fc453c0ba839f9bb806fc7cda2bd5f7ce34",
+        "size_bytes": 2775
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/nextest-list.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/nextest-list.stdout.json",
+        "sha256": "167659417ee5e974c2b37cd860fa303098dd2686d2a1a46387385c966c17e75d",
+        "size_bytes": 15219
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/nextest-run.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/nextest-run.stdout.jsonl",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T032312.502069Z/receipt.json",
+        "sha256": "804416da7b7d0bb91e2d1c9756f300fa41cc23ea6c8506d5fffbc039b20e81ab",
+        "size_bytes": 23231
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-list.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-list.stdout.json",
+        "sha256": "167659417ee5e974c2b37cd860fa303098dd2686d2a1a46387385c966c17e75d",
+        "size_bytes": 15219
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-run.stderr.log",
+        "sha256": "38c9b1988e1406bd91e61c286385163d9f6c5e86473e50e28d41e0b19e642365",
+        "size_bytes": 582
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/nextest-run.stdout.jsonl",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033018.476230Z/receipt.json",
+        "sha256": "2fb26bd734e917bb06a31b033e916c1bf99034648dce90cb0415dabc12c4eb8a",
+        "size_bytes": 38979
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033051.509258Z/nextest-list.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033051.509258Z/nextest-list.stdout.json",
+        "sha256": "167659417ee5e974c2b37cd860fa303098dd2686d2a1a46387385c966c17e75d",
+        "size_bytes": 15219
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033051.509258Z/nextest-run.stderr.log",
+        "sha256": "2b1955f60f6ee42e20c2ebf496b5c553cbf7e3c48532856d7c3b22633c737c18",
+        "size_bytes": 43087
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033051.509258Z/nextest-run.stdout.jsonl",
+        "sha256": "25008a807b151425e382b1c7600b1173d98d1e0a5e03fe7adb70e16f01abbf9b",
+        "size_bytes": 36648
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033051.509258Z/receipt.json",
+        "sha256": "11522fd9f03a709ba8cb5deb32a616e662c1803625aa5c3cbb4bf81538d930bb",
+        "size_bytes": 61468
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033223.189894Z/nextest-list.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033223.189894Z/nextest-list.stdout.json",
+        "sha256": "167659417ee5e974c2b37cd860fa303098dd2686d2a1a46387385c966c17e75d",
+        "size_bytes": 15219
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033223.189894Z/nextest-run.stderr.log",
+        "sha256": "c0e7a9933cb302eb84f8f27ff734beb09e197e6e9a2d52a48df3706ce915758c",
+        "size_bytes": 43087
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033223.189894Z/nextest-run.stdout.jsonl",
+        "sha256": "96aed176359ded1d9f930baa42a45cea4cd864c7dfb4c91c80a86b57b3351a07",
+        "size_bytes": 36652
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033223.189894Z/receipt.json",
+        "sha256": "ffc85ad70070823c1b62b43b9e4a863a7c6ae810377d618f74217cd3ddc08db1",
+        "size_bytes": 39637
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033324.855742Z/nextest-list.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033324.855742Z/nextest-list.stdout.json",
+        "sha256": "167659417ee5e974c2b37cd860fa303098dd2686d2a1a46387385c966c17e75d",
+        "size_bytes": 15219
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033324.855742Z/nextest-run.stderr.log",
+        "sha256": "72f878d81c0a5889c8ec84f14479dc25ca414b9583c04a9651a751faba41119c",
+        "size_bytes": 43087
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033324.855742Z/nextest-run.stdout.jsonl",
+        "sha256": "e76d5238aba6255372f53596bb6a081cc4e0d3b43a5f2cedc9a0cfe7a07668ba",
+        "size_bytes": 36648
+      },
+      {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033324.855742Z/receipt.json",
+        "sha256": "da5ed2dbb8163644ba4b1217e63c721b4c97ce583cd9ae4266a276e479d31b2f",
+        "size_bytes": 40218
+      }
+    ],
+    "root": "docs/implementation/visibility/evidence/deferred"
+  },
+  "latest_run": {
+    "artifact_refs": {
+      "list_json": {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033324.855742Z/nextest-list.stdout.json",
+        "sha256": "167659417ee5e974c2b37cd860fa303098dd2686d2a1a46387385c966c17e75d",
+        "size_bytes": 15219
+      },
+      "list_stderr": {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033324.855742Z/nextest-list.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "size_bytes": 0
+      },
+      "stderr": {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033324.855742Z/nextest-run.stderr.log",
+        "sha256": "72f878d81c0a5889c8ec84f14479dc25ca414b9583c04a9651a751faba41119c",
+        "size_bytes": 43087
+      },
+      "stdout": {
+        "path": "docs/implementation/visibility/evidence/deferred/20261008T033324.855742Z/nextest-run.stdout.jsonl",
+        "sha256": "e76d5238aba6255372f53596bb6a081cc4e0d3b43a5f2cedc9a0cfe7a07668ba",
+        "size_bytes": 36648
+      }
+    },
+    "counts": {
+      "executed": 23,
+      "expected": 23,
+      "failed": 23,
+      "listed": 23,
+      "not_run": 0,
+      "passed": 0,
+      "skipped": 0
+    },
+    "expected_failure_treatment": "none",
+    "freshness_note": "This historical receipt was produced by the prior runner hash. Its captured raw Nextest exit is 100; the reviewed change only corrects CLI classification/exit mapping and does not change test selection, test execution, or product inputs. It is out of pair with the current report candidate commit e696c4e6 and must remain historical/stale to that pair.",
+    "inventory_sha256": "ff296990aaf6f067ea8e36d07ef856c0908d4a0b2ac3f198f3362007697f8c6a",
+    "raw_nextest_exit_code": 100,
+    "receipt_runner_source_sha256": "3f3d9794aa9afc9ee94b287e20ecc9179d69572cf4fbc25ff3e777daf54284f4",
+    "receipt_runner_test_source_sha256": "6d50e87065837c91230cb747e73c55eefc859f32d745bd07770efcd17614e870",
+    "receipt_sha256": "da5ed2dbb8163644ba4b1217e63c721b4c97ce583cd9ae4266a276e479d31b2f",
+    "result": "failed",
+    "run_id": "20261008T033324.855742Z",
+    "subject_commit": "994706c6fb4a8d15fa0d5e937839fb07d0e02585",
+    "subject_source_inputs_sha256": "6ea7494886e79f514f6d83610e7c049ef48f46ff623f8ffae8650a2a9f0c745c"
+  },
+  "resolved_finding": {
+    "id": "VIS04-EXIT-CODE-001",
+    "prior_location": "tools/visibility/deferred.py:777",
+    "regression_coverage": [
+      "run_exit=100 with test failure returns 100",
+      "run_exit=101 build/no-test failure returns 101",
+      "run_exit=0 with parse errors returns blocked/2",
+      "run_exit=-9 maps to blocked/137",
+      "failure remains failed despite another unreadable event"
+    ],
+    "resolution": "For parsed test failures, positive Nextest exits are now returned unchanged; zero exit with failure records falls back to nonzero 1. Negative subprocess return codes are retained in the receipt and mapped to shell 128+signal; exit-zero invalid result records return 2."
+  },
+  "review": {
+    "outstanding_findings": [],
+    "positive_findings": [
+      "Inventory is reconciled against the 23 accepted BD IDs and 25 required case references, source burndown, ignore reasons, ownership, and case registry.",
+      "The exact 23-test selection was checked against Nextest list output; all 23 were ignored before execution, while 86 other listed tests remained unselected.",
+      "The run record preserves a real red result: 23 executed, 23 failed, zero passed, zero not-run, and raw Nextest exit 100; expected failures are not inverted.",
+      "Preflight/list failures and incomplete output classify as blocked; missing expected outcomes remain not-run, and failed earlier receipts are retained with their own subject identities and artifact hashes."
+    ],
+    "verdict": "APPROVED_FOR_SCOPE",
+    "verification": {
+      "focused_python_tests_reported_by_implementer": 21,
+      "independently_ran_tests": false,
+      "ran_cargo_or_build": false,
+      "rechecked_raw_receipt_and_all_evidence_hashes": true,
+      "reviewed_fix_and_regression_coverage": true
+    }
+  },
+  "review_schema": "termrock-visibility-technical-review/v1",
+  "scope": {
+    "evidence_scope": "All files under docs/implementation/visibility/evidence/deferred; exact manifest below.",
+    "files": [
+      {
+        "path": "tools/visibility/deferred.py",
+        "sha256": "6e76c5491eec25630a53645c990b6e2a30adf7311ef057dbc11c5c5c06a872bf",
+        "size_bytes": 41771
+      },
+      {
+        "path": "tools/visibility/tests/test_deferred.py",
+        "sha256": "d2cf2bf9d98971292d38787f742a0c04a7f7f3d543e294c26640b1aa757a4b02",
+        "size_bytes": 14113
+      }
+    ],
+    "observed_workspace_head_at_review": "e696c4e6ce6ce28cecb9ed10bbbc827b5c777fc2",
+    "repository": "/Users/donbeave/Projects/tailrocks/terminal-components-claude",
+    "subject_scope": "Code/evidence approval only; no staged or committed subject approval and no milestone acceptance."
+  },
+  "work_item": "VIS-04"
+}

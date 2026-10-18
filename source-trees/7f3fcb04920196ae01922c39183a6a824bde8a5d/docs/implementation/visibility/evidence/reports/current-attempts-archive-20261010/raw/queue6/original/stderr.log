@@ -1,0 +1,15 @@
+   Compiling termrock-visibility-tests v0.1.0 (/private/tmp/termrock-vis08-reviewer-handoff-rust-gate-r1-20261010/source/crates/termrock-visibility-tests)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.33s
+────────────
+ Nextest run ID 4ba5ac4d-7e63-4195-beee-dca048e1291e with nextest profile: default
+    Starting 6 tests across 1 binary (77 tests skipped)
+        PASS [  35.546s] (1/6) termrock-visibility-tests::queue_v2 reviewer_handoff_preserves_claim_and_expired_expiry_while_changing_reviewer
+        PASS [  18.264s] (2/6) termrock-visibility-tests::queue_v2 reviewer_handoff_rejects_a_stale_review_subject_without_writes
+        PASS [  20.224s] (3/6) termrock-visibility-tests::queue_v2 reviewer_handoff_rejects_lower_priority_work_without_writes
+        PASS [  44.989s] (4/6) termrock-visibility-tests::queue_v2 reviewer_handoff_rejects_reused_reason_without_writes
+        PASS [  42.884s] (5/6) termrock-visibility-tests::queue_v2 reviewer_handoff_rejects_review_state_without_writes
+        SLOW [> 60.000s] (───) termrock-visibility-tests::queue_v2 reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes
+        SLOW [>120.000s] (───) termrock-visibility-tests::queue_v2 reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes
+        PASS [ 124.445s] (6/6) termrock-visibility-tests::queue_v2 reviewer_handoff_rejects_stale_or_invalid_assignments_without_writes
+────────────
+     Summary [ 286.354s] 6 tests run: 6 passed (1 slow), 77 skipped

@@ -1,0 +1,26 @@
+{
+  "schema": "termrock.vis06.pair-build-postflight-reconstruction-review/v1",
+  "reviewer": "/root/subjects_runner_review_luna",
+  "verdict": "READY_FOR_READ_ONLY_RECONSTRUCTION_ONLY",
+  "reviewed_artifact": {
+    "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-postflight-reconstruction-r4.cjs",
+    "sha256": "52ece44761b73f27dafeb9fcd37a8760cd833ae302811cee88964de41d3d93c0"
+  },
+  "preserved_predecessor": {
+    "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-postflight-reconstruction-r3.cjs",
+    "sha256": "b10a7d9d25ac85caf5601e9683e8d1ad98f2ce905dd34fddadad7e6fda971b8c",
+    "execution_attempt_path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/execution/pair-build-postflight-reconstruction-r3-execution-attempt-01.json",
+    "execution_attempt_sha256": "fb7205b9c7c999f741267452b19c4560a6e444ce5f920dee3459895eb80a82ec",
+    "report_written": false,
+    "children_spawned": false
+  },
+  "scope": "Static review only. R4 has not been executed; this verdict authorizes only the separately described read-only reconstruction, not Cargo/Nextest or a build.",
+  "checks": [
+    "The only code change from R3 adds the global flag required by String.matchAll; the output moves to a fresh R4 path.",
+    "Raw stdout/stderr path, checked-read hash and length, parsed-buffer hash and length, runner-result pins, and actual-review stderr binding remain required before parsing.",
+    "The run-ID parser remains constrained to the Nextest run ID form and the reconstruction requires exactly one ID.",
+    "Raw one-case PASS remains distinct from original wrapper-incomplete status and Root-observed wrapper exit 125; no gate-green conclusion is assigned.",
+    "R4 contains no child-process launch."
+  ],
+  "execution": "NOT_RUN"
+}

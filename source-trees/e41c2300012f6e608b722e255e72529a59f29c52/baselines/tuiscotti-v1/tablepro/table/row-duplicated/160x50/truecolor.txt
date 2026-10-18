@@ -1,0 +1,50 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                                                        • 1 pending  truecolor · 160×50  ? help
+
+  ≡ Query 1 ×    T orders ×                                                                                                                                 +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ───────────────── public ─╮ ╭─ public › orders ──────────────────────────────────────────────────────────────────────────────────────── 14 cols ─╮
+ │                                     │ │   Data    Structure                                                                                                │
+ │   Filter objects                    │ │  ━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────── │
+ │  ▾ D acme_prod                      │ │                                                                                                                    │
+ │    ▾ S public                       │ │         ⚷ id                                    order_number  customer_id                           organiza… 11›  │
+ │      ▾ Tables                    7  │ │     465 9ad418e6-6e37-4ca8-8638-4df76457cff0           10464  d3ee4877-86ef-4742-b18f-bf3824013d8→  3fda06…1→    │ │
+ │        ▸ T organizations     1.2 k  │ │     466 88f1e245-edd6-4f37-9832-97f175be48ab           10465  b5e7795f-5642-4867-b0a3-4c0cb687859→  72909c…9→    │ │
+ │        ▸ T customers        48.9 k  │ │     467 8d5b6bec-746a-4889-9db4-3d7f4c0aaefb           10466  b370d9d7-977a-41c6-950d-8352d893473→  7759b2…e→    │ │
+ │        ▸ T products            312  │ │     468 17574ae0-d033-412f-a8f7-fc104fe63bf2           10467  446a3fad-d26a-4037-97bc-a884beb026c→  74eebf…e→    │ │
+ │        ▸ T orders            1.2 M  │ │     469 3fda0672-8b62-4b12-8e31-d730fe48da18           10468  a456edb6-3b61-47a4-9e22-8ceb9d923bd→  6b1308…7→    │ │
+ │        ▸ T order_items       3.8 M  │ │     470 72909ca3-5d7f-4ea0-9ba4-fdeecd64a996           10469  27e52708-1b14-400f-81cf-9ed11ecb165→  24e393…6→    │ │
+ │        ▸ T payments          1.2 M  │ │     471 7759b227-9420-4077-9ad3-93697524f3e3           10470  24156650-85ad-4b67-b7d5-864961a06f5→  37605b…d→    │ │
+ │        ▸ T subscriptions     1.1 k  │ │     472 74eebfd1-75e7-4a92-a1c3-be6a636752e0           10471  0c30575c-0d2d-4fe0-85ab-33aa7273dd8→  8d3bd9…9→    │ │
+ │      ▸ Views                     2  │ │     473 636752e0-be6a-41c3-bfe0-0d2d0c30575c           10472  7273dd81-33aa-45ab-8faf-66b68d3bd98→  3c6678…6→    │ │
+ │      ▸ Functions                 1  │ │     474 e4393371-fa21-487e-814d-352c873492d5           10473  de3ce2fd-5d9d-4f4c-bd95-423d513b757→  29839d…9→    │ │
+ │      ▸ Sequences                 1  │ │     475 1bdd3a65-1d25-429b-8aa3-0e342f385dcc           10474  5d1cd2f7-4aa3-4410-ace1-bbebef5eccf→  4ed311…d→    │ │
+ │    ▸ S analytics                    │ │     476 1bc919d4-b32d-44fe-a25f-1d2b0a29aedc           10475  e8b8e347-2b74-4620-8638-390e65edb3e→  1fdece…5→    │ │
+ │    ▸ S audit                        │ │     477 3c66789d-917f-4402-a1c6-175de6daac67           10476  2968db69-02e3-4dcb-8408-b1a006d6e50→  f5317b…e→    │ │
+ │                                     │ │     478 29839ddb-3da3-41e0-9581-b69c40ed4990           10477  f1ecd42b-fd41-403f-b1a3-fa0e599b8b1→  f5995c…f→    │ │
+ │                                     │ │     479 4ed3119f-b5a4-4697-ac8f-a35c5c3d99dc           10478  71162bfb-7fbb-4c56-967e-e63767d1017→  d6619d…2→    │ │
+ │                                     │ │     480 5c3d99dc-a35c-4c8f-9c56-7fbb71162bfb           10479  67d1017b-e637-467e-b990-35c9d6619df→  b6062a…a→    │ │
+ │                                     │ │     481 910fb65a-b88a-4f11-adbf-a4c3852d0f2e           10480  0578e0c7-0009-4ecf-8f7d-dc10c629169→  d5c0b1…0→    │ │
+ │                                     │ │     482 9773dce2-1422-4d46-848f-df53a0922de2           10481  708ed4da-e052-4365-8cf3-745dc883a0f→  ad8045…2→    │ │
+ │                                     │ │     483 b47520f6-7e87-42b7-bb4a-5fd129ba9378           10482  6bfe6a8c-f2e6-4b6d-a1c1-78249f00298→  4d1474…9→    │ │
+ │                                     │ │     484 b6062a21-a66c-41cd-80d3-35a241666cad           10483  021b8808-f5d2-4fca-9e06-580809496cf→  083af2…e→    │ │
+ │                                     │ │     485 d5c0b11b-3833-40de-a64d-a7b65c91c707           10484  2313b76a-a087-4da3-bb9e-00452b7e1c4→  cba599…6→    │ │
+ │                                     │ │     486 ad8045e9-fecb-49ab-bdc5-77c375e7e122           10485  fc493fac-90e7-4167-af08-04a3031c7dc→  5d1a5a…5→    │ │
+ │                                     │ │     487 75e7e122-77c3-4dc5-8167-90e7fc493fac           10486  031c7dcf-04a3-4f08-8071-76345d1a5a3→  63803b…9→    │ │
+ │                                     │ │     488 ed273d96-a94e-4c54-ad3c-368302de0fa6           10487  14f1927e-2c27-4914-99fe-09c1b5a913c→  5d9a96…4→    │ │
+ │                                     │ │     489 58a291e1-49d7-4f60-b246-cd7df9dc71b5           10488  4b3a182e-8c36-4b3b-b701-f34a93d0680→  dcb6db…8→    │ │
+ │                                     │ │     490 19e3a260-57b7-406a-a0e3-07c13c95bcf1           10489  53ace96a-67e9-481d-beef-477612dd25b→  f6352e…0→    │ │
+ │                                     │ │     491 63803b5f-29a5-4c74-a8ff-e559c0edb695           10490  8f308a1a-c7e0-4bdc-bdcb-c3a8edc5b30→  701f97…8→    │ │
+ │                                     │ │     492 5d9a96aa-bac3-4075-9060-e3d81c23cc44           10491  53446c08-f408-4b27-9854-befa7a84915→  eca9de…f→    │ │
+ │                                     │ │     493 dcb6db82-d77a-4181-b9c0-3dbbb55eca8c           10492  363b8257-a389-406f-b5c7-34ca6bef3b4→  de9ebf…b→    │ │
+ │                                     │ │     494 b55eca8c-3dbb-49c0-b06f-a389363b8257           10493  6bef3b46-34ca-45c7-a9f7-7fe5de9ebf4→  c3ad24…7→    │ │
+ │                                     │ │     495 fa70b703-caef-4854-9997-6a5ffc4309f9           10494  3c01cd97-1b0b-43b3-8130-3a99568bc69→  ea3426…9→    │ │
+ │                                     │ │     496 12afd08f-4342-47c5-a0b6-ad06a18e0c1c           10495  18f879fd-4662-4146-b708-07e856eaf3d→  92e3ff…e→    │ │
+ │                                     │ │     497 dce6f3f6-ff9d-4d2e-8c35-bfb812cc2d50           10496  3ec43e01-54b0-4780-8899-43facea4707→  13eb5a…3→    │ │
+ │                                     │ │     498 c3ad24b1-ad5f-419d-8a25-cf181b6f0a7a           10497  ac4db596-66ae-4cc8-b719-8965599520d→  a83d27…9→    ┃ │
+ │                                     │ │     499 ea3426ef-d76a-47d4-9acf-2f938e2a6096           10498  8cd34c0f-f2d9-445e-85e9-2fb2c59442d→  9da8fd…8→    ┃ │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │   • 1 pending · 1 insert                                                            Preview SQL   Discard   Save   │
+ │                                     │ │   rows 465–499 of 501 loaded · 1,203,338 total · cols 1–3 of 14                                                    │
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓←→ Cell  Enter Edit  Alt+D Duplicate row  s Sort  f Filter  Ctrl+S Save  Tab Next                                                    Connected to Production

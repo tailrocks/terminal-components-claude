@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help               ! instance index unreadable [0m
+                                                                        [0m
+ ╭─ Workspaces ─────────────────────────────── 3 running · 1–8 of 16 ─╮ [0m
+ │╭──────────────────────────────────────────────────────────────────╮│ [0m
+ ││ [0m[1mLaunch · choose Agent[0m          payments-platform › the-architect ││ [0m
+ ││ [0m[1m▎[0m▪[0m[1m Claude Code  [0maccount Claude · Perso…[0m[1m [0mchoose at start[0m[1m  [0magents[0m[1m [0m ││ [0m
+ ││  ▪ Codex        account Codex · Primar… ready                    ││ [0m
+ ││  ▪ OpenCode     account OpenCode · Go … ready                    ││ [0m
+ ││  ▪ Grok Build   account Grok · Team · … ready                    ││ [0m
+ ││                                                                  ││ [0m
+ ││                                                                  ││ [0m
+ ╰╰──────────────────────────────────────────────────────────────────╯╯ [0m
+                                                                        [0m
+   Current directory                                      Tab details   [0m
+                                                                        [0m
+   /workspace/payments-platform · 2 mounts · 5 vars                     [0m
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal           [0m
+                                                                        [0m
+                                                                        [0m
+ [0m[1m▲[0m Could not confirm running instances: instance index unreadable · en… [0m

@@ -1,0 +1,22 @@
+{
+  "cell_count": 4800,
+  "cols": 120,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 16372464237476454347,
+  "legacy_name": "showcase/pages/progress/120x40/16",
+  "name": "showcase/progress/default/120x40/16",
+  "non_empty_cells": 1355,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 40
+}

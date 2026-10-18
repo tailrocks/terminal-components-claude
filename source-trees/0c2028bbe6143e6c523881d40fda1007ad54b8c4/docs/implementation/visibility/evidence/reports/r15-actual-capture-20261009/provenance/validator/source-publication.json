@@ -1,0 +1,28 @@
+{
+  "schema": "termrock-root-publication/v1",
+  "recorded_at": "2026-10-09T09:10:54.025Z",
+  "commit": "23b0eeadc1fa2ba83f13e243b7e54af95e9c59de",
+  "parent": "64af07303e6a110b2f075898d6122d6edbe36db3",
+  "tree": "ff0cc9d2a51e5a54cdc54043c8177e54592a7d4d",
+  "source_review_sha256": "4c6d5c6d99f58cd55e796fb4241c0a2a47eef19bf059c5fc790496c2a9c7e2d9",
+  "postcommit_review_sha256": "748cc7b180defba309c20d0022628086d14f8ff4659137e59de5e2429f4359d5",
+  "message_sha256": "5034d0e28c91e638f6fde48bb61235fdcdf8a184307aef7656b63c178d05c7e4",
+  "push": {
+    "force": false,
+    "tool_chunk": "d2437e",
+    "exit_code": 0,
+    "from": "64af07303e6a110b2f075898d6122d6edbe36db3",
+    "to": "23b0eeadc1fa2ba83f13e243b7e54af95e9c59de"
+  },
+  "readback": {
+    "tool_chunk": "bbda9c",
+    "commit": "23b0eeadc1fa2ba83f13e243b7e54af95e9c59de",
+    "exit_code": 0
+  },
+  "provenance": "Root records actual tool outputs; tool chunk references are session evidence rather than persisted raw logs",
+  "limitations": [
+    "No new product parity or real build qualification claimed",
+    "Local HEAD/index/unrelated worktree remain unchanged",
+    "Unsigned private proposal7266 was not published or used"
+  ]
+}

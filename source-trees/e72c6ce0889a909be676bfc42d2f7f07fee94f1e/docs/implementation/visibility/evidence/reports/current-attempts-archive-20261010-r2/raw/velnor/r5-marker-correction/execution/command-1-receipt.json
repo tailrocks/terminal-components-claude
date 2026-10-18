@@ -1,0 +1,175 @@
+{
+  "schema": "termrock.vis11.fixture-focused-command-receipt/v1",
+  "qualification": "NOT_QUALIFIED",
+  "source_before": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source",
+    "full_tree_sha256": "30174295d3026dc8f979493c20191cf2a9a817ab87eb9468aefa28a83cc5e46f",
+    "entries": 3457,
+    "files": 2608,
+    "directories": 842,
+    "symlinks": 7,
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "selected_test_functions": 2,
+    "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+  },
+  "source_after": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source",
+    "full_tree_sha256": "30174295d3026dc8f979493c20191cf2a9a817ab87eb9468aefa28a83cc5e46f",
+    "entries": 3457,
+    "files": 2608,
+    "directories": 842,
+    "symlinks": 7,
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "selected_test_functions": 2,
+    "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+  },
+  "immutable_cache_before": {
+    "archive_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+    "archives": 406,
+    "archive_bytes": 59163074,
+    "source_index_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+    "source_index_files": 20133,
+    "source_index_directories": 3666,
+    "source_index_actual_file_bytes": 441286079,
+    "source_index_declared_file_bytes": 200791635,
+    "extracted_package_directories": 406,
+    "cargo_ok_markers": 406,
+    "qualification": "NOT_QUALIFIED"
+  },
+  "immutable_cache_after": {
+    "archive_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+    "archives": 406,
+    "archive_bytes": 59163074,
+    "source_index_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+    "source_index_files": 20133,
+    "source_index_directories": 3666,
+    "source_index_actual_file_bytes": 441286079,
+    "source_index_declared_file_bytes": 200791635,
+    "extracted_package_directories": 406,
+    "cargo_ok_markers": 406,
+    "qualification": "NOT_QUALIFIED"
+  },
+  "mutable_global_cache_before": {
+    "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home/.global-cache",
+    "type": "file",
+    "bytes": 118784,
+    "sha256": "29308dc98b2171b97406bc9e45bd83f78604f904cbab297fe18932145df03b82",
+    "mode": 420,
+    "status": "observed_separately_mutable_not_offline_input"
+  },
+  "mutable_global_cache_after": {
+    "path": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home/.global-cache",
+    "type": "file",
+    "bytes": 118784,
+    "sha256": "d4d447f6fec397fbcffcdb2fc835824f1e0e7fbbcbf3094b794feddb4d454a09",
+    "mode": 420,
+    "status": "observed_separately_mutable_not_offline_input"
+  },
+  "command": {
+    "index": 1,
+    "package": "velnor-actions-orchestrator-generation",
+    "binary": "impl_schema2_routing",
+    "expected_test_ids": [
+      "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+      "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+    ],
+    "argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "nextest",
+      "run",
+      "--locked",
+      "--offline",
+      "-p",
+      "velnor-actions-orchestrator-generation",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--no-tests",
+      "fail",
+      "--user-config-file",
+      "none",
+      "--ignore-default-filter",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--color",
+      "never",
+      "-E",
+      "test(=impl_schema2_routing::committed_release_files_match_schema2_bytes) + test(=impl_schema2_routing::schema2_workflows_match_expected_bytes)"
+    ],
+    "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r4-stable-marker-fix-luna-20261010/source",
+    "exit_code": 100,
+    "signal": null,
+    "timed_out": false,
+    "overflow": false,
+    "launch_error": null,
+    "close_seen": true,
+    "elapsed_ms": 45889,
+    "output": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution/command-1.log",
+      "bytes": 35011,
+      "sha256": "341522870d9c759a6072b6385d4d38c504fea0dc2aca14ba1f46aaeb72797119",
+      "complete": true
+    },
+    "summary": {
+      "lines": [
+        "Summary [   0.213s] 2 tests run: 1 passed, 1 failed, 85 skipped"
+      ],
+      "count": 1,
+      "valid": true,
+      "executed": 2,
+      "passed": 1,
+      "failed": 1
+    },
+    "outcomes": {
+      "rows": [
+        {
+          "id": "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+          "status": "PASS",
+          "raw_line": "        PASS [   0.028s] (1/2) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::committed_release_files_match_schema2_bytes"
+        },
+        {
+          "id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+          "status": "FAIL",
+          "raw_line": "        FAIL [   0.183s] (2/2) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::schema2_workflows_match_expected_bytes"
+        }
+      ],
+      "outcomes": [
+        {
+          "id": "impl_schema2_routing::committed_release_files_match_schema2_bytes",
+          "status": "PASS",
+          "rows": [
+            "        PASS [   0.028s] (1/2) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::committed_release_files_match_schema2_bytes"
+          ],
+          "unique_status_rows": 1
+        },
+        {
+          "id": "impl_schema2_routing::schema2_workflows_match_expected_bytes",
+          "status": "FAIL",
+          "rows": [
+            "        FAIL [   0.183s] (2/2) velnor-actions-orchestrator-generation::velnor_orchestrator_generation impl_schema2_routing::schema2_workflows_match_expected_bytes"
+          ],
+          "unique_status_rows": 1
+        }
+      ],
+      "passed": [
+        "impl_schema2_routing::committed_release_files_match_schema2_bytes"
+      ],
+      "failed": [
+        "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+      ],
+      "unmatched": [],
+      "exact_one_row_per_selected_test": true
+    },
+    "terminal_receipt": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r5-marker-correction-luna-20261010/run-root/execution/command-1-terminal.json",
+      "bytes": 2567,
+      "sha256": "4621bd723143df9b4a6326b8b623d318a6e71512c07860e52a136a451a3e495d"
+    },
+    "command_pass": false,
+    "status": "failed_or_incomplete"
+  },
+  "source_unchanged": true,
+  "immutable_cache_unchanged": true
+}

@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Text areas          i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mText areas[0m  Multi-line editing, Unicode cursor motion, ho… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Playground             Enter Edit · Esc Done · Tab Next  [0m
+[0m[1m▎› Text areas     [0m┃                                                             [0m
+   Forms          ┃      Task description             Notes                     [0m
+   Lists          ┃       1. Read src/api/bil… ┃      Anything the agent sh…    [0m
+   Trees          ┃       2. Keep the public … ┃                                [0m
+   Tables         ┃       3. Open a PR agains… │                                [0m
+   Editable tabl… ┃       4. Run the integrat… │                                [0m
+   Panels         ┃       5. Read src/api/bil… │                                [0m
+   Sidebars       ┃       6. Keep the public … │                                [0m
+   Dialogs        ┃       7. Open a PR agains… │                                [0m
+   Progress       ┃    [0m[2m   8. Run the integrat… [0m│                                [0m
+   Scrolling      ┃      Home/End f…  1–8 of 28       Optional                  [0m
+   Terminal       ┃                                                             [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃    Disabled and error                                       [0m
+   Data grid      │                                                             [0m
+   Chips & selec… │      Read-only transcript         Commit message            [0m
+[0m[2m   Pickers        [0m│                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

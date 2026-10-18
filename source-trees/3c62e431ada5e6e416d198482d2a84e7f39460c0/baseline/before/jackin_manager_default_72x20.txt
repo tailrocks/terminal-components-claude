@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help          Workspaces  inside the Construct
+
+ ╭─ Workspaces ─────────────────────────────────────────── 2 running ─╮
+ │ ▎   Current directory                  saved as payments-platform  │
+ │ ▎ ▸ payments-platform                                   1 running  │
+ │ ▎ ▸ infra-control-plane                                 1 running  │
+ │ ▎ ▸ release-automation                                   ! failed  │
+ │ ▎ ▸ customer-portal                                      ! failed  │
+ │ ▎   + New workspace                                                │
+ │                                                                    │
+ │                                                                    │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+   Current directory                                      Tab details
+
+   /workspace/payments-platform · 2 mounts · 5 vars
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal
+
+
+   Enter Launch  n New  e Edit  Tab Details  c Accounts  u Usage  …

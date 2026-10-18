@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "e65cebce88f9466c0758690b2eeca587cfc8d28d1d4e6bc591f0ab2227929f52",
+  "artifacts": {
+    "ansi": {
+      "bytes": 8306,
+      "file": "jackin/manager/scenario-hard-cases/100x30/16.ansi",
+      "sha256": "e65cebce88f9466c0758690b2eeca587cfc8d28d1d4e6bc591f0ab2227929f52"
+    },
+    "ascii": {
+      "bytes": 2365,
+      "file": "jackin/manager/scenario-hard-cases/100x30/16.ascii",
+      "sha256": "8c092b4415bed2c963967e36863cea2eee2c5ad45340e8b69c85ffbe9451e101"
+    },
+    "ascii_loss_json": {
+      "bytes": 21133,
+      "file": "jackin/manager/scenario-hard-cases/100x30/16.ascii.loss.json",
+      "sha256": "a92599d750e520afa700b44a63015202e5ae76247f3672ace563c80ca24926ce"
+    },
+    "frame_json": {
+      "bytes": 697511,
+      "file": "jackin/manager/scenario-hard-cases/100x30/16.frame.json",
+      "sha256": "ae51fd993b6f77175f3fdd85ccb102bfdb5ffeefbf9bbb65f0e9968cfd3117da"
+    },
+    "html": {
+      "bytes": 447148,
+      "file": "jackin/manager/scenario-hard-cases/100x30/16.html",
+      "sha256": "0ae521c5368e3025a43f64b3b410c22537a2866b4a7fb2434c3f2c3606c65141"
+    },
+    "observations_json": {
+      "bytes": 463,
+      "file": "jackin/manager/scenario-hard-cases/100x30/16.observations.json",
+      "sha256": "32de28508857714ff605f2041e28a7d0dc9defa37794031ca5d4635350bd314a"
+    },
+    "png": {
+      "bytes": 318324,
+      "file": "jackin/manager/scenario-hard-cases/100x30/16.png",
+      "sha256": "81936a0decae67753c4a458936e6613f9217328bf40ae45e3c5edc7e190068c8"
+    },
+    "png_fidelity_json": {
+      "bytes": 499,
+      "file": "jackin/manager/scenario-hard-cases/100x30/16.png.fidelity.json",
+      "sha256": "fcf9b8f42ffb42194cc8f8e5018e571d08d9c7ba061af988a6b252444fec70a3"
+    },
+    "txt": {
+      "bytes": 2813,
+      "file": "jackin/manager/scenario-hard-cases/100x30/16.txt",
+      "sha256": "9a74adcb6da2004f16e077e14e018bfc6b2a24e50daf1bed3f0479338ee2bb80"
+    }
+  },
+  "ascii_substitutions_count": 228,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 6204152182760298722,
+  "frame_sha256": "ae51fd993b6f77175f3fdd85ccb102bfdb5ffeefbf9bbb65f0e9968cfd3117da",
+  "generation": "5ead20f5d9bd4a939574f8cd31f4add84af155948da4f1eb8fafcd5c7419163a",
+  "html_sha256": "0ae521c5368e3025a43f64b3b410c22537a2866b4a7fb2434c3f2c3606c65141",
+  "legacy_name": "jackin/scenarios/hard-cases/100x30/16",
+  "name": "jackin/manager/scenario-hard-cases/100x30/16",
+  "png_sha256": "81936a0decae67753c4a458936e6613f9217328bf40ae45e3c5edc7e190068c8",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:25Z",
+  "txt_sha256": "9a74adcb6da2004f16e077e14e018bfc6b2a24e50daf1bed3f0479338ee2bb80"
+}

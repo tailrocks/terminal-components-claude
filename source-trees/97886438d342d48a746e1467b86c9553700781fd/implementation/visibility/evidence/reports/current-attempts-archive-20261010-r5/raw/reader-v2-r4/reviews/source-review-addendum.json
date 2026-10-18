@@ -1,0 +1,35 @@
+{
+  "schema": "termrock-vis08-reader-v2-source-review-addendum/v1",
+  "verdict": "READY_STATIC_SOURCE_ONLY",
+  "candidate": {
+    "path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r1-20261010/crates/termrock-visibility-tests/src/nextest_result.rs",
+    "sha256": "8f4a8d77aa1f32250bd0df79138daf0e77ee6c47afb9b71a9ebe7347a4729c8d"
+  },
+  "base": {
+    "path": "/private/tmp/termrock-vis08-nextest-reader-impl-r3-v1/crates/termrock-visibility-tests/src/nextest_result.rs",
+    "sha256": "74c6511da26473c70ed3a9e2592668862bb2dcba47913029cc60b652d69ec7fd"
+  },
+  "supersedes_review": {
+    "path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r1-source-review-luna-20261010.json",
+    "sha256": "8e9e0b89d3b45d4d35c1ffbab2d3a799aafcf34842d956510bb1438cf0827d30",
+    "correction": "The earlier CHANGES_REQUIRED filter-error wording finding was incorrect for the currently pinned source. Direct comparison shows both V1 parse_request and parse_selection retain the R3 wording and behavior for empty arrays and empty-string members."
+  },
+  "scope": "Read-only one-file source review; no Cargo/compiler/tests executed.",
+  "findings": [],
+  "review_summary": {
+    "package_diff": "Only src/nextest_result.rs differs from the reviewed R3 package.",
+    "v1_compatibility": "V1 schemas, exact 9-test selection, trusted-selection binding, nonempty filter policy, and existing error strings are preserved.",
+    "v2_contract": "Separate v2 schemas; expected selected count bounded to 1..=1024; 1..=64 unique target identities; every selected identity is assigned to one declared target and each target has selected identities; request count/target set must equal trusted selection; empty filter is accepted only for v2; list/run suite coverage is checked against all declared targets.",
+    "new_tests": [
+      "59-case single-target positive through read_files with real temporary capture files",
+      "empty selection negative",
+      "oversize selection negative",
+      "142 identities across four targets positive",
+      "count/target mismatch negative"
+    ],
+    "nonblocking_note": "The v2 allowed-field list repeats machine_stream; this does not change validation semantics."
+  },
+  "limitations": [
+    "Static review only; no runtime/test qualification."
+  ]
+}

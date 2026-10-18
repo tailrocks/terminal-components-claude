@@ -1,0 +1,159 @@
+{
+  "schema": "termrock.vis01.raw-run-actual-independent-review/v1",
+  "reviewer": "controls_wrapper_review_luna",
+  "created_at_utc": "2026-10-10T01:52:46.342323+00:00",
+  "verdict": "RAW_EXECUTION_PROVENANCE_READY_FOR_RUST_READER_V2",
+  "semantic_test_result": "NOT_REVIEWED_BY_THIS_RECEIPT",
+  "execution_scope": "Pinned termrock-visibility-tests --test status raw capture only; this receipt does not interpret Nextest test outcomes.",
+  "bindings": {
+    "static_runner_review": {
+      "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/independent-review-controls-wrapper-luna.json",
+      "sha256": "033172d181754308592ce892cf1fd7995e069b8f879c23313bf6a9fb83e56eac"
+    },
+    "runner_sha256": "0323547a5f283f19e8e2cd6ce0c80bec7b3bfe694c77a3c28f6d3efec4f45e84",
+    "runplan_sha256": "abe5e8f407189bb5751ec49a21a33542ed55a8309fc29044fa454562e12b145a",
+    "review_request_sha256": "1eb246ddc6f771a8f6446e3a62a30b47e7df9946d060eb4d398bad1db7af840e",
+    "sha256sums_sha256": "c770704e73dc7c7cd57fa96a6f122adf308c2743a1acd2961531db7ace80470a",
+    "preflight_sha256": "da18e2ae2832902cde9b4d9c9a5cdb9a1fa39958e9281ea5659b8804a7f442ee",
+    "reader_request_helper_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/prepare-reader-request-r2.cjs",
+    "reader_request_helper_sha256": "d2489263910cdd7bf9115cf64f05e4fb541d6ce9aa5b35b7d8c4502184881199",
+    "expected_reader_request_run_id": "termrock-vis01-status-59-r2-20261010",
+    "selection_v2_sha256": "30a9f314bafaf1f61049a4abb85650da8b344315764b757962cf779892fca924",
+    "reviewed_list_capture_receipt_sha256": "8b9c6ec84840da137cdbae5f1a571e39059f781b891268038148d19c1dddf1d0",
+    "source_manifest_sha256": "d1ff1d7f9a93c4da1cd3afe4eab547c02b163e691a9fdb454547ab5b9f96fcf4",
+    "cache_closure_sha256": "51c37d5230908527b74419104f1d76dfeade0b9bc1e58d1755e498e86e9ecb92"
+  },
+  "process_receipt": {
+    "path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/run-process.json",
+    "sha256": "ab9fa8dae49d6b0dfd631c2cb210924ac679eb42f2609f14cc8fd5ee030c1463",
+    "stage": "test_run_capture",
+    "semantic_parse": "NOT_PERFORMED",
+    "program_and_argv_match_runplan": true,
+    "cwd_matches_runplan": true,
+    "pid": 12075,
+    "process_group": 12075,
+    "elapsed_ms": 131863,
+    "child_termination": {
+      "kind": "exited",
+      "exit_code": 0
+    },
+    "wrapper_exit_code": 0,
+    "external_wrapper_termination": {
+      "kind": "exited",
+      "exit_code": 0,
+      "sha256": "8cc0e85c38733ee8fdec73072ef0a21087a36875588dfcf8c0b9a9c9bbea0fb3"
+    },
+    "direct_child_reaped": true,
+    "timed_out": false,
+    "cap_exceeded": false,
+    "forced_close": false,
+    "post_errors": [],
+    "packet_inputs_stable": true
+  },
+  "raw_artifacts": {
+    "stdout": {
+      "path": "packet/run-output/nextest.stdout.jsonl",
+      "bytes": 17430,
+      "sha256": "14be4021ed8ce4b1c23457d52c47717c3375223dd0af6e28b018e6491fcaa3fc",
+      "mode": "0600",
+      "truncated": false
+    },
+    "stderr": {
+      "path": "packet/run-output/nextest.stderr.log",
+      "bytes": 14864,
+      "sha256": "97f9253c9973f71a670069af4321a159a31a269841b3bf8b42455a5c3b72de97",
+      "mode": "0600",
+      "truncated": false
+    },
+    "process_events": {
+      "path": "packet/run-output/process-events.jsonl",
+      "bytes": 1112,
+      "sha256": "4f3463f3641072a32e56b17f6b4bbe5c9778c8801ce441e28ee6785e59dff033",
+      "mode": "0600",
+      "event_sequence": [
+        "spawn-request",
+        "spawned",
+        "child-close",
+        "finalize"
+      ]
+    },
+    "supervisor_stdout": {
+      "path": "packet/wrapper-capture/supervisor.stdout.log",
+      "bytes": 573,
+      "sha256": "2bd886eea3619a9c9468cf0fd9f7c03e2a7163cd01cbf4d6e6de4f8554ecd3a2",
+      "mode": "0600"
+    },
+    "supervisor_stderr": {
+      "path": "packet/wrapper-capture/supervisor.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "0600"
+    }
+  },
+  "stream_accounting": {
+    "stdout_received": 17430,
+    "stdout_stored": 17430,
+    "stderr_received": 14864,
+    "stderr_stored": 14864,
+    "combined_bytes": 32294,
+    "cap_bytes": 16777216,
+    "accounting_matches_artifacts": true,
+    "output_write_errors": [],
+    "event_write_errors": []
+  },
+  "input_stability": {
+    "source_before_after_digest": "9e234c90be89e1a5468e3469c4d4012580008e5236ec7c3cf873b4facb7166a4",
+    "source_stable": true,
+    "tools_before_after_digest": "cfc6729c345cb98a251734debef9bc947884ff6e5bb54c8369aec3026e35f0a2",
+    "tools_stable": true,
+    "cache_before_after_digest": "3f2646393a993bc7d932c346d761bd12916100fd08883a98e40fa488c75c7a73",
+    "cache_stable": true
+  },
+  "target_observation": {
+    "before_and_at_spawn_match_seed": true,
+    "seed_digest": "a6be1891c15335dd9a0117735aff6db3322fd06675349cb25b725ceefeb99983",
+    "before_entries": 1143,
+    "before_files": 1057,
+    "before_bytes": 119655066,
+    "after_digest": "67131f920a7e0843f3c7c2d75afc630dee74b352daca794b8f8db3b75f07e0db",
+    "after_entries": 1823,
+    "after_files": 1734,
+    "after_bytes": 160004444,
+    "after_observation": "Cargo run changed the target tree: 680 entries added and no entries removed; this is recorded as output, not treated as an input-stability failure.",
+    "four_seed_artifacts_before_match": true,
+    "four_seed_artifacts_after": {
+      "status_executable": {
+        "bytes": 3408248,
+        "sha256": "ca017743bd59faaab607b603e381fb179161ca0cddeb3248f9b33b94df0dfc8f"
+      },
+      "status_dep_info": {
+        "bytes": 305,
+        "sha256": "50a70539596059d5b4e6a5231f8353e10f2e07c32fd98c4f92b4e557ba4cb24a"
+      },
+      "fixture_executable": {
+        "bytes": 1268744,
+        "sha256": "686a0edf89e03278a5b04ae65ca6bacb4a7f3caf51798f94714d671064c31f0e"
+      },
+      "fixture_dep_info": {
+        "bytes": 316,
+        "sha256": "36fa5d5f51404669c730c53042d7c3775471e2a8709b3dac93bc6dd42426ccb6"
+      }
+    }
+  },
+  "selection_and_helper": {
+    "target": "termrock-visibility-tests::status",
+    "target_kind": "test",
+    "test_count": 59,
+    "ignored_test_count": 0,
+    "filter_args": [],
+    "run_ignored": "default",
+    "reader_v2_selection_metadata": "all 59 rows match pinned package/binary/kind, ignored=false, filter_match_status=matches",
+    "helper_behavior": "Hashes size-capped private regular raw captures and assembles the Rust Reader v2 request; no Node test-event parser; sets run_id to the R2 value above; passes child and external-wrapper termination separately.",
+    "reader_request_file_exists": false
+  },
+  "limitations": [
+    "No Nextest test-event semantics were parsed or independently reviewed here. Raw output is handed to the pinned Rust Reader v2.",
+    "The reader-request helper was statically reviewed but not executed; no reader request was created.",
+    "No product readiness, qualification, admission, or publishing claim."
+  ]
+}

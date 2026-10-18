@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+  ≡ Query 1 ×                                                                                                       +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ──────────────────────────────────────────────────────────────────── 15 ms ─╮
+ │                           │ │  ▎›  1 … FROM orders WHERE status = 'pending' ORDER BY created_at DESC LIMIT 25      │
+ │ ▎ Filter objects          │ │                                                                                      │
+ │ ▎▾ D acme_prod            │ │                                                                                      │
+ │ ▎  ▾ S public             │ │                                                                                      │
+ │ ▎    ▾ Tables             │ │                                                                                      │
+ │ ▎      ▸ T organizations  │ │                                                                                      │
+ │ ▎      ▸ T customers      │ │                                                                                      │
+ │ ▎      ▸ T products       │ │                                                                                      │
+ │ ▎      ▸ T orders         │ │                                                                                      │
+ │ ▎      ▸ T order_items    │ │                                                                                      │
+ │ ▎      ▸ T payments       │ │                                                                                      │
+ │ ▎      ▸ T subscriptions  │ │                                                                                      │
+ │ ▎    ▸ Views              │ │   SELECT orders (25) ×                                                               │
+ │ ▎    ▸ Functions          │ │  ━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────── │
+ │ ▎    ▸ Sequences          │ │   25 rows · 15 ms                                                                    │
+ │ ▎  ▸ S analytics          │ │        ⚷ id                                    order_number  customer_id        12›  │
+ │ ▎  ▸ S audit              │ │  ▎   1 bba32f83-d1e6-4565-a7ae-d0b12a21cafa           11929  876489a7-043…c64e→    ┃ │
+ │                           │ │  ▎   2 60378d74-6f01-46f7-ae88-8f2eea08cd3f           10031  29133d87-516…d6f8→    ┃ │
+ │                           │ │  ▎   3 8921a282-bdb7-4103-b693-48555b0c030f           10707  b333d0bf-534…d4e3→    ┃ │
+ │                           │ │  ▎   4 74e50de9-9222-43fe-bad5-a39a7fba640e           11074  875fd6f3-157…20f6→    ┃ │
+ │                           │ │  ▎   5 8adf0d72-6440-4fd4-b9e6-80dae5616d78           10451  b157c6a4-86f…9cd8→    ┃ │
+ │                           │ │  ▎   6 61290a28-641d-484d-ab23-8bf4b5fefe8b           11819  d984cc3b-330…3887→    ┃ │
+ │                           │ │  ▎   7 4b396492-0ab3-49a3-96a8-2fcb4600f92a           10620  0062dba8-e4b…a5df→    ┃ │
+ │                           │ │  ▎   8 66812cb0-0dcf-4f3f-9e1c-7f587734f4f6           11900  93ec788f-bbe…069c→    ┃ │
+ │                           │ │  ▎   9 04f5fa38-4ecc-4efc-bd5b-216c73d9452a           11831  fb4414ca-d4e…f9ca→    ┃ │
+ │                           │ │  ▎  10 4a16daa0-8a2c-47eb-808a-397d27763e50           11835  80e45fec-2cf…ed56→    ┃ │
+ │                           │ │  ▎  11 62e0e0fc-e586-4536-8cca-8ad2aed86729           10701  9eaed240-ff2…555f→    │ │
+ │                           │ │  ▎  12 5189fbb7-3ae6-454a-ba44-509a479e02d4           10309  fdeaa129-c75…c5a2→    │ │
+ │                           │ │  ▎  13 800774e5-a76d-4e7d-a2ea-e4a19d0e0b1b           10794  669c95ac-119…4f30→    │ │
+ │                           │ │  ▎  14 88b114bd-04ad-479d-be5c-be980f185067           10041  c2244d61-d50…1cee→    │ │
+ │                           │ │  ▎  15 c7cdae85-914e-4e38-bdbd-ed56543107e4           11257  c4653346-f73…6a42→    │ │
+ │                           │ │  ▎  16 e15b910c-bef0-471b-9e16-75dc09b5a823           11389  7f66f481-109…d9a7→    │ │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Result  p Pin  x Close  Enter Go to statement  Tab Next

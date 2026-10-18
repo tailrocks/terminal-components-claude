@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help      Workspaces › new workspace › edit  • 1 change · new  inside the Construct  2 running
+
+
+   General •    Mounts    Roles    Environments    Accounts
+  ━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+      Name *
+    ▎ data-pipeline
+      Directory basename by default
+
+    Working directory *
+    /Users/alexey/src/data-pipeline                              ▎Choose…
+    Inside the Construct
+
+    ▎[ ] Keep awake               macOS only
+    ▎[✓] Git pull before launch
+
+      On dirty exit
+    ▎ ask · show the exit dialog                  ▾
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel    ▎Save…
+
+ Enter Edit  Tab Next  [ ] Switch tab  Ctrl+S Save  Esc Back    Workspace data-pipeline · review and save in the editor

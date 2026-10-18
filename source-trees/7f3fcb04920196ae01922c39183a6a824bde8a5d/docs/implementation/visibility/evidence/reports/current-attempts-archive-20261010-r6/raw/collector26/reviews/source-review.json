@@ -1,0 +1,52 @@
+{
+  "schema": "termrock.review.vis08-r17-aliasfix-source-r3/v1",
+  "scope": "Focused static review of the one-line R2-to-R3 source delta. No Cargo, compiler, tests, or CLI were run.",
+  "verdict": "READY_SOURCE_REVIEW_ONLY",
+  "bindings": {
+    "freeze": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/source-freeze.json",
+      "sha256": "4db22b8ca79239f10fe112c192e788f8a8257407c82734ce25dc80ccf2a59c52"
+    },
+    "base_r2_source_sha256": "f059d89089f0b79e63084f462454f659a33f4a6fe4a4096913b66a37cb133436",
+    "candidate_source": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/src/nextest_result.rs",
+      "sha256": "b3191ad38cf707255381f4c6851eb4be0f23dad45db42cd68dcbc6dbef9ead03"
+    },
+    "patch": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/source.patch",
+      "sha256": "122831e7392a0fd1fd43cd164ed2d63e5670a166c9b1c891d76f54f60561eb80"
+    },
+    "candidate_inventory_sha256": "cd7b2214b14766f71b6ecc9c593abc404caad385e3be1a602a4a69a3d5663acf",
+    "candidate_package_digest": "bf8a25eb90e81eb65ab3ba384ace1ad23109f1ef29bc3f818f6f1884878038c3",
+    "prior_r2_source_review": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r2-source-review-luna-20261010.json",
+      "sha256": "6d9215174266b76190419458da7b62e0b48c600acd7922b90e261c2a5109b720"
+    },
+    "prior_r2_failed_execution": {
+      "path": "/private/tmp/termrock-vis08-r17-aliasfix-r2-execution-20261010/runner-result.json",
+      "sha256": "4519f6c78c3eac96dc928e708ae5d125ccc60c07af476560322befed1102bb99",
+      "outcome": "26 selected; 25 passed and 1 failed; Cargo/Nextest child exit 100; no semantic report accepted"
+    }
+  },
+  "findings": [
+    {
+      "check": "delta scope and inventory",
+      "result": "pass",
+      "detail": "The R2-to-R3 diff is exactly one inserted test-fixture assignment at nextest_result.rs:2897: `library_terminal[\"event\"] = json!(\"failed\");`. The 12-file package inventory verifies successfully; diff -qr shows no other package file changed."
+    },
+    {
+      "check": "failed-run fixture consistency",
+      "result": "pass",
+      "detail": "The existing test mutates one selected test event to failed and sets the library suite terminal summary to passed=34, failed=1. R2 left that suite terminal event labeled ok, contradicting its failed count and the strict v2 parser. R3 labels that same terminal summary failed, aligning the event label with its count while retaining all existing assertions for 142 outcomes, exactly one failed outcome, all_selected_passed=false, process_success=false, and acceptance=blocked."
+    },
+    {
+      "check": "behavior scope",
+      "result": "pass",
+      "detail": "This changes only synthetic fixture data. Production parser logic, selectors, and assertions are unchanged; the prior R2 failure is preserved and not reclassified as a product or parser defect."
+    }
+  ],
+  "limitations": [
+    "This is a static source review only; the R3 candidate has not been compiled or tested by this reviewer.",
+    "READY applies to this source delta only and is not a runtime qualification or execution authorization."
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "execution_owner": "Root only",
+  "limitations": [
+    "Exactly one source case is selected by the exact Nextest name filter; all 53 source declarations remain inventoried and the other 52 are excluded.",
+    "The fixture helper has one source unit test inventoried as unselected; its ordinary executable and exact .d provenance remain required.",
+    "R7 52/53 result and failure remain preserved. R8 is one-case retry only, not a full 53-case result.",
+    "No product readiness, qualification, evidence admission, or live publishing claim follows from test success."
+  ],
+  "not_run": true,
+  "packet": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet",
+  "pins": {
+    "runner_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/runner.cjs",
+    "runplan_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/runplan.json",
+    "source_manifest_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/source-manifest.json",
+    "source_freeze_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/source-freeze.json",
+    "source_delta_patch_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/source-delta.patch",
+    "test_names_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/test-names.json",
+    "cache_closure_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/cache-closure.json",
+    "packet_checksums_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r8-20261010/packet/SHA256SUMS",
+    "runplan_sha256": "19f25abc53d9147c4092f85c13a50c4efece17461d31dd844dafd32d9dbe45cb",
+    "source_manifest_sha256": "ceb9d6e3659b4690c0b5de1e0afb330dd8b09f4600028ff90060af390d043fa1",
+    "source_freeze_sha256": "4e02ce1f0bf0c6ffc365ea958da0cfb26d90818475a347af4a1690e9bd934f09",
+    "source_delta_patch_sha256": "090bbdb522b8e94a88ac8db85d711faa5192a34720156300013def028ab21b80",
+    "test_names_sha256": "dd586d8a143f59a5a003b6ef795fb31c7656b6fc7561923b8f7827b923e4ff72",
+    "cache_closure_sha256": "51c37d5230908527b74419104f1d76dfeade0b9bc1e58d1755e498e86e9ecb92",
+    "runner_sha256": "9bf1ef25fea220e3498bd4fb1d8c451f06c87d02340cba2e58d8f3a29aaad1d6",
+    "packet_checksums_sha256": "640838b3edacd6d85315aa8bd1abf66f5958edc6d92b7b417f13c3528ac6f9f4",
+    "readme_sha256": "",
+    "unused": ""
+  },
+  "schema": "termrock.nextest.runner-review-request.r2",
+  "scope": "VIS-01 R8: one-case Nextest retry of the sole failed R7 status reporter fixture; retain the full 53 source-name inventory, select one exact test, keep fixture unit test unselected.",
+  "source_root": "/private/tmp/termrock-vis01-attempt-history-source-r8-20261010",
+  "status": "REQUEST_STATIC_RUNNER_REVIEW; NO_EXECUTION",
+  "supersedes": {
+    "r1_packet": "/private/tmp/termrock-vis01-attempt-history-nextest-r1-20261010",
+    "r1_result": "Root-reported preflight exit 125 before Cargo/Nextest; source #[test] declarations differed from inventory because --bin fixture selected one source unit test while inventory said zero.",
+    "r1_erratum_path": "/private/tmp/termrock-vis01-attempt-history-runner-review-luna-r1-erratum-20261010.json",
+    "r1_erratum_sha256": "63e2c24c589457ccfa2d30c31c7e72385ecb8d0a1c4f5f1fe28e5f3ee2a259cc",
+    "r2_packet": "/private/tmp/termrock-vis01-attempt-history-nextest-r2-20261010",
+    "r2_static_review_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r2-runner-review-luna-20261010.json",
+    "r2_static_review_sha256": "3d3f543eb9b2dc5f9456ed745d51522bb380c798748f8e0f1348bde05bdd617d",
+    "r2_result": "Static CHANGES_REQUIRED only: runplan source manifest and test inventory bindings were stale. No preflight or execution occurred.",
+    "r3_packet": "/private/tmp/termrock-vis01-attempt-history-nextest-r3-20261010",
+    "r3_result": "Root-authorized Node preflight exited 125 before Cargo because the source inventory had not yet declared artifact_required=true and dep_info_path=debug/fixture.d; verifyInputs wrote no receipt.",
+    "r4_packet": "/private/tmp/termrock-vis01-attempt-history-nextest-r4-20261010",
+    "r4_preflight_receipt_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r4-20261010/preflight/runner-preflight.json",
+    "r4_preflight_receipt_sha256": "fb5385a5b23805cae1922dddb5bf7defb0042401b61c1112d8cd79341ca860fc",
+    "r4_result": "PREFLIGHT_READY_NO_CARGO, but receipt target_selectors still listed fixture although argv omitted --bin; successor corrects receipt semantics.",
+    "r6_actual_receipt_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r6-20261010/output/final-receipt.json",
+    "r6_actual_receipt_sha256": "4522aabb897d6ff5dc5d1b0f74ea065b797896f54dcff22c405ba9431357d573",
+    "r6_actual_result": "Root-reported Nextest 53 started, 49 passed, 4 failed; child exit 100; source stable; target/cache artifacts unverified.",
+    "prior_r7_packet": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-20261010",
+    "prior_r7_result": "No execution; runner/runplan/request remained bound to R6 paths and base 882; superseded by this current-base packet."
+  },
+  "source_correction_review": {
+    "path": "/private/tmp/termrock-vis01-attempt-history-r8-source-delta-review-ci-parity-luna.json",
+    "sha256": "ead9a145aa10a3d484eb08d1dafae26dc168e398ade052b16b490368f62c0e4a",
+    "verdict": "READY"
+  },
+  "prior_r5_attempt": {
+    "receipt_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/output/final-receipt.json",
+    "receipt_sha256": "08575a8a092c18c7656332c07ff8db212d8a0f45e48887b6999498598708b01e",
+    "stderr_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r5-20261010/output/nextest.stderr.log",
+    "stderr_sha256": "07409034892fcf3587974cb439bb49e4009a6950b9c22d933b6c2fe0fc2fe092",
+    "result": "FAILED_EXIT",
+    "cargo_exit_code": 101,
+    "selected_tests_expected": 53,
+    "selected_tests_started": 0,
+    "selected_tests_incomplete": 53,
+    "source_stable": true,
+    "packet_input_changes": []
+  },
+  "preserved_r7_attempt": {
+    "receipt_path": "/private/tmp/termrock-vis01-attempt-history-nextest-r7-6b-20261010/packet/output/final-receipt.json",
+    "receipt_sha256": "8e6d08143d04ebe85450dcb0906a49157a43e04637085d48e15035881fb06e0d",
+    "actual_result_review_path": "/private/tmp/termrock-vis01-r7-actual-result-review-luna-20261010.json",
+    "actual_result_review_sha256": "b2f94886c5d555bbf431bdd1d56e3641ae50af2b1abcef927a3c003f82d87127",
+    "result": "52/53 passed; sole failed case is the exact R8 retry target; child exit 100; source stable and artifacts verified."
+  }
+}

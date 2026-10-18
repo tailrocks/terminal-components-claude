@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "27174e68aadb8a4a99c28d0f2fcd6c707bd4090f57530cd63de9f3c169c85aa4",
+  "artifacts": {
+    "ansi": {
+      "bytes": 3741,
+      "file": "jackin/usage/detail/100x30/nocolor.ansi",
+      "sha256": "27174e68aadb8a4a99c28d0f2fcd6c707bd4090f57530cd63de9f3c169c85aa4"
+    },
+    "ascii": {
+      "bytes": 2781,
+      "file": "jackin/usage/detail/100x30/nocolor.ascii",
+      "sha256": "293abeac32033db4682cf40e3a5c14e90a4e1ed0108fc90d67eb5d4e84c6bf8e"
+    },
+    "ascii_loss_json": {
+      "bytes": 21236,
+      "file": "jackin/usage/detail/100x30/nocolor.ascii.loss.json",
+      "sha256": "14d3a110ddc11c976cb2e2e716820b364bcdaaef6140a4eaecdbc37708deb056"
+    },
+    "frame_json": {
+      "bytes": 671286,
+      "file": "jackin/usage/detail/100x30/nocolor.frame.json",
+      "sha256": "7fd9eef8e199fccbaa1447222cc6dbe7fbe007113046cb6aec9d968069469906"
+    },
+    "html": {
+      "bytes": 319811,
+      "file": "jackin/usage/detail/100x30/nocolor.html",
+      "sha256": "7886a00a39477ec950b3a2f5e7378ed9c42043d11bf98fe09ac603ba6f799fa5"
+    },
+    "observations_json": {
+      "bytes": 451,
+      "file": "jackin/usage/detail/100x30/nocolor.observations.json",
+      "sha256": "ba9d047414af1dd24e9268e5dd24107d57c286622b6e2f23f0ff951d2eff4edd"
+    },
+    "png": {
+      "bytes": 231320,
+      "file": "jackin/usage/detail/100x30/nocolor.png",
+      "sha256": "1377eee76967a54665b9b9da66f10698ce9c3ea21f6a75edb70dad593e78ccb2"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "jackin/usage/detail/100x30/nocolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 3228,
+      "file": "jackin/usage/detail/100x30/nocolor.txt",
+      "sha256": "0028f414b7b3df946d2ad84b40d9f1b2fa9110e17f623ae95fe06ce53addd384"
+    }
+  },
+  "ascii_substitutions_count": 229,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 15798379024054385063,
+  "frame_sha256": "7fd9eef8e199fccbaa1447222cc6dbe7fbe007113046cb6aec9d968069469906",
+  "generation": "6ef547dbebb4eb8fe4e0a4b3d678db098ad1ef9812d7bb612bd7f185209a25c9",
+  "html_sha256": "7886a00a39477ec950b3a2f5e7378ed9c42043d11bf98fe09ac603ba6f799fa5",
+  "legacy_name": "jackin/usage/detail/100x30/nocolor",
+  "name": "jackin/usage/detail/100x30/nocolor",
+  "png_sha256": "1377eee76967a54665b9b9da66f10698ce9c3ea21f6a75edb70dad593e78ccb2",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:33Z",
+  "txt_sha256": "0028f414b7b3df946d2ad84b40d9f1b2fa9110e17f623ae95fe06ce53addd384"
+}

@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                              no color · 120×40  ? help [0m
+                                                                                                                        [0m
+  ≡ Query 1 ×    ≡ Query 2 ×                                                                                        +   [0m
+ ───────────────━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 2 ─────────────────────────────────────────────────────────────────────────  ─╮ [0m
+ │                           │ │   ›  1 x                                                                             │ [0m
+ │   Filter objects          │ │                                                                                      │ [0m
+ │  ▾ D acme_prod            │ │                                                                                      │ [0m
+ │    ▾ S public             │ │                                                                                      │ [0m
+ │      ▾ Tables             │ │                                                                                      │ [0m
+ │        ▸ T organizations  │ │                                                                                      │ [0m
+ │        ▸ T customers      │ │                                                                                      │ [0m
+ │        ▸ T products       │ │                                                                                      │ [0m
+ │        ▸ T orders         │ │                                                                                      │ [0m
+ │        ▸ T order_items    │ │                                                                                      │ [0m
+ │        ▸ T payments       │ │ ╭────────────────────────────────────────────────────╮                               │ [0m
+ │        ▸ T subscriptions  │ │ │                                                    │                               │ [0m
+ │      ▸ Views              │ │ │  [0m[1mClose tab with unsaved work?[0m                      │                               │ [0m
+ │      ▸ Functions          │ │ │                                                    │                               │ [0m
+ │      ▸ Sequences          │ │ │  Pending row edits and unsaved query text in this  │                               │ [0m
+ │    ▸ S analytics          │ │ │  tab will be lost.                                 │                               │ [0m
+ │    ▸ S audit              │ │ │                                                    │                               │ [0m
+ │                           │ │ │                           ▎[0m[1mCancel [0m  Close anyway   │                               │ [0m
+ │                           │ │ │                                                    │                               │ [0m
+ │                           │ │ ╰────────────────────────────────────────────────────╯                               │ [0m
+ │                           │ │                                    No results yet                                    │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │              Ctrl+R runs the statement under the cursor · Alt+R runs all             │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel  [0m[1my / n[0m Quick answer                                      Connected to Production [0m

@@ -1,0 +1,62 @@
+{
+  "schema": "termrock.vis11.v1-callee-plan-review/v1",
+  "reviewer": "velnor_current_refs_luna",
+  "reviewed_at": "2026-10-09",
+  "verdict": "READY_FOR_ROOT_QUEUE_ADMISSION_AS_PLAN_ONLY",
+  "scope": "Final read-only review of the frozen R7 V1 callee plan, focused on required/no-default workflow_call inputs and matching render/negative regressions, with verification that the R6 source and trust scope is unchanged. No source edits, queue admission, Cargo, or tests.",
+  "bound_plan": {
+    "json": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r7-20261009/plan.json",
+    "json_sha256": "70f8bc1ab302d47f1ca747283874b1626c4c67bc27eb1c40c0e56b80bb26b3c9",
+    "markdown": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r7-20261009/plan.md",
+    "markdown_sha256": "750b555ba9538abaa6dd86332643956e5b3c77c772dd12d6be76a104d2223113"
+  },
+  "predecessor": {
+    "json": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r6-20261009/plan.json",
+    "json_sha256": "20d20d6d61d54a93a55d08cd31cd90fab4e35313a8cb68031206a82620a9f78e",
+    "independent_review": "/private/tmp/termrock-vis11-v1-callee-contract-plan-r6-review-luna-20261009/review.json",
+    "independent_review_sha256": "4deccfdeb52591dac5294576bb35077a68ef46d71283bca885936c2cd7ba5b19"
+  },
+  "required_input_contract": {
+    "all_six_exact": true,
+    "inputs": [
+      ["repository", "string", true, "no default", "github.repository"],
+      ["event_name", "string", true, "no default", "github.event_name"],
+      ["ref", "string", true, "no default", "github.ref"],
+      ["sha", "string", true, "no default", "github.sha"],
+      ["run_id", "string", true, "no default", "github.run_id"],
+      ["run_attempt", "string", true, "no default", "github.run_attempt"]
+    ],
+    "evidence": "R7 JSON records required=true and default_presence=absent for each input; the Markdown requires the rendered schema to emit required: true and omit default for every input.",
+    "positive_regressions": "Contract and rendered-schema positives assert all six names, string types, required=true, absent defaults, direct context mappings, and permissions.",
+    "negative_regressions": "Reject each omitted input, any non-string type, required=false or missing required, any emitted default, malformed/unknown fields; render snapshot checks exact true/absent properties for every input.",
+    "assessment": "The R6 optional-input gap is closed explicitly in the schema requirements and test plan. The documented GitHub workflow syntax permits workflow_call inputs to be required and states the string empty default when no default is supplied; R7 requires every input and has omission/default-negative coverage."
+  },
+  "unchanged_r6_controls": {
+    "exact_eight_allowed_paths_and_path_types": true,
+    "selected_gitless_snapshot_and_inventory": true,
+    "source_fix_review_binding_and_pending_status": true,
+    "parent_split_plan_binding": true,
+    "size_caps_and_baseline_lines": true,
+    "input_string_types_and_direct_mappings": true,
+    "future_rust_checked_u64_boundary": true,
+    "permission_maps": true,
+    "push_only_dynamic_workflow_sha_equals_github_sha_policy": true,
+    "explicit_caller_repository_workflow_path_ref_event_policy": true,
+    "caller_inputs_are_not_identity_attestation_or_override": true,
+    "callee_repository_check_without_self_referential_sha": true,
+    "branch_ruleset_and_caller_byte_verification_deferred_to_v2_t3": true,
+    "exclusions_and_execution_gates": true,
+    "no_new_queue_schema_work_id_claim_framework_or_v2_scope": true
+  },
+  "verified_bindings": {
+    "source_inventory_expected_and_actual": "612bbbcf127a64ee4e44d709aea92dbf3d688140a944bdb69e54a72153065319",
+    "source_agents_expected_and_actual": "c289f52a56e1566a06b3db0507fc5fe53da6fc79726d748c894d0eb28619fbfd",
+    "parent_split_plan_expected_and_actual": "d038e674baa6d69c22b05ad22a836183c262bb3605a0353ac44b0ac5c34e7b3f",
+    "r6_review_expected_and_actual": "4deccfdeb52591dac5294576bb35077a68ef46d71283bca885936c2cd7ba5b19"
+  },
+  "non_claims": [
+    "This verdict covers plan readiness only; it is not Root queue admission or permission to edit source.",
+    "No source implementation, Cargo/Nextest, tests, workflow generation, execution, qualification, or remote action was performed or claimed."
+  ],
+  "official_reference": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax"
+}

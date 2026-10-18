@@ -1,0 +1,238 @@
+{
+  "app": "holla",
+  "build_environment": {
+    "candidate": {
+      "cache_home": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3",
+      "cache_links": {
+        "git": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3/git",
+        "registry": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3/registry"
+      },
+      "cargo_home": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/environment/candidate/cargo-home",
+      "cargo_home_config": "absent",
+      "home": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/environment/candidate/home",
+      "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tools/bin:/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/Users/donbeave/.cargo/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Developer/CommandLineTools/usr/bin",
+      "platform_inputs": {
+        "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+        "SDKROOT": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+      },
+      "rustup_home": "/Users/donbeave/.rustup",
+      "tmpdir": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/environment/candidate/tmp"
+    },
+    "reference": {
+      "cache_home": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3",
+      "cache_links": {
+        "git": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3/git",
+        "registry": "/private/tmp/termrock-vis06-cargo-home-pair-178a-20261009-1052Z-r3/registry"
+      },
+      "cargo_home": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/environment/reference/cargo-home",
+      "cargo_home_config": "absent",
+      "home": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/environment/reference/home",
+      "path": "/private/tmp/termrock-vis06-pair-build-r2-20261009/tools/bin:/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/Users/donbeave/.cargo/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Developer/CommandLineTools/usr/bin",
+      "platform_inputs": {
+        "DEVELOPER_DIR": "/Library/Developer/CommandLineTools",
+        "SDKROOT": "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+      },
+      "rustup_home": "/Users/donbeave/.rustup",
+      "tmpdir": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/environment/reference/tmp"
+    }
+  },
+  "build_environment_evidence": {
+    "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/build-environment.json",
+    "sha256": "a43f1d3c2d0c7694728ca25e9d6f91f60180f24ac9f7bafb433c40f765d8fc3a"
+  },
+  "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+  "cargo_config_sha256": {
+    "candidate": {},
+    "reference": {}
+  },
+  "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+  "git_identity": {
+    "candidate_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+    "reference_branch_oid": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+    "reference_branch_ref": "refs/remotes/origin/visual-baseline",
+    "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+    "reference_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "reference_tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5"
+  },
+  "git_object_replacement_policy": "disabled-by-option-and-environment",
+  "host_triple": "aarch64-apple-darwin",
+  "metadata_targets": {
+    "candidate": {
+      "holla": {
+        "manifest_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/holla/Cargo.toml",
+        "package_id": "path+file:///private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/holla#0.1.0",
+        "package_name": "holla",
+        "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/holla/src/main.rs",
+        "target_name": "holla"
+      },
+      "jackin-preview": {
+        "manifest_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/jackin-preview/Cargo.toml",
+        "package_id": "path+file:///private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/jackin-preview#0.1.0",
+        "package_name": "jackin-preview",
+        "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/jackin-preview/src/main.rs",
+        "target_name": "jackin-preview"
+      },
+      "showcase": {
+        "manifest_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/showcase/Cargo.toml",
+        "package_id": "path+file:///private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/showcase#0.1.0",
+        "package_name": "showcase",
+        "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/showcase/src/main.rs",
+        "target_name": "showcase"
+      },
+      "tablepro": {
+        "manifest_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/tablepro/Cargo.toml",
+        "package_id": "path+file:///private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/tablepro#0.1.0",
+        "package_name": "tablepro",
+        "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate/crates/tablepro/src/main.rs",
+        "target_name": "tablepro"
+      }
+    },
+    "reference": {
+      "holla": {
+        "manifest_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+        "package_id": "path+file:///private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference#junie-tui@0.1.0",
+        "package_name": "junie-tui",
+        "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/src/bin/holla/main.rs",
+        "target_name": "holla"
+      },
+      "jackin-preview": {
+        "manifest_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+        "package_id": "path+file:///private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference#junie-tui@0.1.0",
+        "package_name": "junie-tui",
+        "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/src/bin/jackin_preview/main.rs",
+        "target_name": "jackin-preview"
+      },
+      "showcase": {
+        "manifest_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+        "package_id": "path+file:///private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference#junie-tui@0.1.0",
+        "package_name": "junie-tui",
+        "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/src/bin/showcase/main.rs",
+        "target_name": "showcase"
+      },
+      "tablepro": {
+        "manifest_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/Cargo.toml",
+        "package_id": "path+file:///private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference#junie-tui@0.1.0",
+        "package_name": "junie-tui",
+        "source_path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference/src/bin/tablepro/main.rs",
+        "target_name": "tablepro"
+      }
+    }
+  },
+  "qualification": {
+    "reason": "Blocked: source-facts-sha256=bc765653690ee7f3e26132ce8b404e57cf5706c45d36548b496c12e923f6e6a6; reference-ref=refs/remotes/origin/visual-baseline/b274dd57f4dd078ade6e424d546d83efbd2e8526; candidate-ref=refs/remotes/origin/termrock-implementation/1d797d41c8141fcbdc3f69d7f11eb8875ab54712; this per-app build does not establish the complete four-app branch pair, cache/PATH/linker input hashes, or external trust/admission.",
+    "status": "blocked"
+  },
+  "reference_branch_oid": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+  "reference_branch_ref": "refs/remotes/origin/visual-baseline",
+  "reference_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+  "reference_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "reference_tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+  "run_id": "pair-178a-20261009-1052Z-r3",
+  "rustc_version": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "rustup_home": "/Users/donbeave/.rustup",
+  "rustup_path": "/Users/donbeave/.cargo/bin/rustup",
+  "rustup_sha256": "ec1b9233e7f72990ecd8e62063fa7f6c3dfc2bec8e97f88bff165f9100ac696a",
+  "schema": "termrock-spec/parity-subject-build-evidence-v1",
+  "snapshot_materialization": {
+    "candidate": {
+      "archive_argv": [
+        "git",
+        "--no-replace-objects",
+        "archive",
+        "--format=tar",
+        "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+        "--",
+        ".",
+        ":(top,exclude)snapshots/**",
+        ":(top,exclude)baselines/**"
+      ],
+      "archive_member_count": 986,
+      "archive_sha256": "9d163609fa9c361e197130268be5ac3f507d7281d51ff24b6ccfc89f8fb72d3e",
+      "excluded_file_count": 75502,
+      "excluded_path_blob_map_sha256": "a819b6a5bcd97ae734cfdb27f0261a269824d8540a763eb5b120b1e1c6d4cc8b",
+      "excluded_roots": [
+        "snapshots/**",
+        "baselines/**"
+      ],
+      "git_ls_tree_stdout_sha256": "6ff85b8d90492febece7e50c4297e178e1daf9ca7e007e7f390a73a115a7ea7a",
+      "git_object_replacement_policy": "disabled-by-option-and-environment",
+      "included_file_count": 790,
+      "included_path_blob_map_sha256": "8c477a810d6d1394394f8d712b34df322a5db584b846873ef9e8e24eaa92aedf",
+      "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+      "path_blob_digest_algorithm": "sha256(sorted-raw-path-nul-git-blob-oid-lf-v1)",
+      "read_only": true,
+      "recipe": "git-archive-excluding-parity-oracle-roots-v1",
+      "role": "candidate",
+      "source_commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "tracked_file_count": 76292,
+      "tracked_path_blob_map_sha256": "cb8205410b25645d021d3b2cd3e219e395aff6c4e4c879467e907080ec87ff10",
+      "tree_oid": "d184b8935e99748756180e19fdb84286d054991d"
+    },
+    "reference": {
+      "archive_argv": [
+        "git",
+        "--no-replace-objects",
+        "archive",
+        "--format=tar",
+        "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+        "--",
+        ".",
+        ":(top,exclude)snapshots/**",
+        ":(top,exclude)baselines/**"
+      ],
+      "archive_member_count": 1694,
+      "archive_sha256": "5bc4bcb8ae84c64b1062b1c14ea1ee08f3d1d5d350ca9aa690f47cf3f794183b",
+      "excluded_file_count": 30200,
+      "excluded_path_blob_map_sha256": "0666870bc8fcccb6e88cd6658b428be7cc470ba8df2101c1fc3ea80fec9b5283",
+      "excluded_roots": [
+        "snapshots/**",
+        "baselines/**"
+      ],
+      "git_ls_tree_stdout_sha256": "cad7082e5e3e52802f30e467e054fcbd2e8e4a2b6ebc93e93f9248f2c9516f9e",
+      "git_object_replacement_policy": "disabled-by-option-and-environment",
+      "included_file_count": 1481,
+      "included_path_blob_map_sha256": "f725226d49c2a9ea98553948a59dc11af0faa3ce2a8bd8c5b3822c8dbf2513fd",
+      "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+      "path_blob_digest_algorithm": "sha256(sorted-raw-path-nul-git-blob-oid-lf-v1)",
+      "read_only": true,
+      "recipe": "git-archive-excluding-parity-oracle-roots-v1",
+      "role": "reference",
+      "source_commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+      "tracked_file_count": 31681,
+      "tracked_path_blob_map_sha256": "5b0174737006da7a32fc3529ca5c6fcd90ad596a382f7a8543c6d94a2ea279bd",
+      "tree_oid": "ff774280a5f1f30b649dc6f762d8c686b1b64c67"
+    }
+  },
+  "snapshots": {
+    "candidate": {
+      "commit": "1d797d41c8141fcbdc3f69d7f11eb8875ab54712",
+      "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/candidate",
+      "read_only": true
+    },
+    "reference": {
+      "commit": "b274dd57f4dd078ade6e424d546d83efbd2e8526",
+      "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source/reference",
+      "read_only": true
+    }
+  },
+  "source_input_evidence": {
+    "path": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/source-inputs.json",
+    "sha256": "09f8907cc8d54cadd5f1f761d67ffcd342be084ab51eb5f2b632c7f1763692d0"
+  },
+  "state": "complete",
+  "subject_manifest": "/private/tmp/termrock-vis06-real-holla-pair-178a-20261009-1052Z-r3/evidence/pair-178a-20261009-1052Z-r3/subject-manifest.json",
+  "subject_manifest_sha256": "2faf06339fcbe01ad30d92cb7dd490e07d69c1bee41e755d07877f8f27a31767",
+  "subject_schema_sha256": "e2d294145e6e2a9b5b682e0dfcb7793fe0e20e4cf5492b30d458d85ad8bde8f0",
+  "target_triple": "aarch64-apple-darwin",
+  "toolchain": "1.98.1",
+  "toolchain_binaries": {
+    "cargo": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d"
+    },
+    "rustc": {
+      "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941"
+    }
+  }
+}

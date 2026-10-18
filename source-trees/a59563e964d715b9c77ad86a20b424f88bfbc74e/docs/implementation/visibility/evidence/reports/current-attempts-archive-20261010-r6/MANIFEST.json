@@ -1,0 +1,907 @@
+{
+  "schema": "termrock-vis13-raw-attempt-archive/v1",
+  "increment": "current-attempts-archive-20261010-r6",
+  "status": "EXTERNAL_PREPARATION_NOT_COMMITTED",
+  "source_baseline": {
+    "proposal_parent_commit": "331b6fd95835ca505a9417581aaa37df52504797",
+    "proposal_parent_tree": "c2a205953e94357e92b0e007318873f9fe0f32b4",
+    "previous_archive_commit": "edbe7c86e0025929bc3c481a136f90dd9027271a",
+    "previous_archive_tree": "0544461692f96d0a240f59b29ddbea47655b6a01",
+    "previous_archive_path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r5",
+    "previous_archive_manifest_sha256": "4623cad5ed444ec5757892cbbd6fc9373e936470024343cf2699e29adcc9dfb3",
+    "previous_archive_file_count": 126,
+    "previous_archive_file_bytes": 3124986,
+    "previous_archive_observed_in_current_tree": true,
+    "note": "This is a separate append-only archive directory after candidate publication 331b. Previously published raw archives remain unchanged."
+  },
+  "files": [
+    {
+      "path": "raw/collector26/execution/cache-copy-receipt.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/cache-copy-receipt.json",
+      "bytes": 37459,
+      "sha256": "0038138e12e7b47abd4af86214955ac8aab80aaa5abc9d8f192b19f95859fbba",
+      "source_mode": "600",
+      "description": "offline cache copy receipt"
+    },
+    {
+      "path": "raw/collector26/execution/logs/nextest.stderr.raw",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/nextest.stderr.raw",
+      "bytes": 4717,
+      "sha256": "5fbc97965a9971fe761ec82cb2191cfa59313d02023856212a20eb2d23eb8df0",
+      "source_mode": "600",
+      "description": "raw 26-test Nextest stderr"
+    },
+    {
+      "path": "raw/collector26/execution/logs/nextest.stdout.raw",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/nextest.stdout.raw",
+      "bytes": 9926,
+      "sha256": "1ee518960389024a6db12d7258fb9646ddcb51887e34379b2594d3bd1049fa85",
+      "source_mode": "600",
+      "description": "raw 26-test Nextest stdout"
+    },
+    {
+      "path": "raw/collector26/execution/logs/process-events.jsonl",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/process-events.jsonl",
+      "bytes": 5084,
+      "sha256": "5ffb22a4476b32d2ca1aba9abe3d90ed0903124ff12c4eac08bc0d25d5265881",
+      "source_mode": "600",
+      "description": "raw stage process events"
+    },
+    {
+      "path": "raw/collector26/execution/logs/reader-build.stderr.raw",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/reader-build.stderr.raw",
+      "bytes": 565,
+      "sha256": "4dfecad0928dfa0de2b4b11b225aa5a925113522a4bba00ece9c67752edbf2f9",
+      "source_mode": "600",
+      "description": "raw Reader build stderr"
+    },
+    {
+      "path": "raw/collector26/execution/logs/reader-build.stdout.raw",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/logs/reader-build.stdout.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "600",
+      "description": "raw Reader build stdout"
+    },
+    {
+      "path": "raw/collector26/execution/preflight.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/preflight.json",
+      "bytes": 3268,
+      "sha256": "98414f0f8bba63d628a4a628737a3ec5b9a6a820289867d7d192f0589a50f7eb",
+      "source_mode": "600",
+      "description": "execution preflight receipt"
+    },
+    {
+      "path": "raw/collector26/execution/reader-output/r17-reader.stderr.raw",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/reader-output/r17-reader.stderr.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "600",
+      "description": "raw Rust Reader stderr"
+    },
+    {
+      "path": "raw/collector26/execution/reader-output/r17-reader.stdout.raw",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/reader-output/r17-reader.stdout.raw",
+      "bytes": 18181,
+      "sha256": "fa65686c727950353885a3ee513238db0501c06b66c0e477c3e22d7a2827f3da",
+      "source_mode": "600",
+      "description": "raw Rust Reader output for historical R17 capture"
+    },
+    {
+      "path": "raw/collector26/execution/runner-result.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-20261010/runner-result.json",
+      "bytes": 13167,
+      "sha256": "7d329389dbb22a5d9f1237428e832469930fa4a546ab27e9fd3f859ca4784ca7",
+      "source_mode": "600",
+      "description": "raw-stage and R17 reprocessing result receipt"
+    },
+    {
+      "path": "raw/collector26/packet/README.md",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/README.md",
+      "bytes": 1204,
+      "sha256": "fe9b4a3196261ebc46d8010af27ae2564bdeb6968b752eb8f5aa2d58024db999",
+      "source_mode": "600",
+      "description": "execution packet README"
+    },
+    {
+      "path": "raw/collector26/packet/execution-packet.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/execution-packet.json",
+      "bytes": 22988,
+      "sha256": "1d7142ef6578a47c6265fa5ec5ea458fbcf67157ff6e65088f075fa6d40f182c",
+      "source_mode": "600",
+      "description": "frozen R3 execution packet"
+    },
+    {
+      "path": "raw/collector26/packet/preflight-r3.stderr.raw",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/preflight-r3.stderr.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "644",
+      "description": "R3 preflight stderr"
+    },
+    {
+      "path": "raw/collector26/packet/preflight-r3.stdout.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/preflight-r3.stdout.json",
+      "bytes": 5304,
+      "sha256": "2c08f868ba3967456954ea2332b63a97f91f76f776742235b930c801adbe3339",
+      "source_mode": "644",
+      "description": "R3 preflight raw output"
+    },
+    {
+      "path": "raw/collector26/packet/run-plan.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-packet-20261010/run-plan.json",
+      "bytes": 12303,
+      "sha256": "6dff1aeadf24de06a4a322553716bd2edfd4beca87e6b2f999f53567b6985c53",
+      "source_mode": "600",
+      "description": "bounded R3 run plan"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/list-process-events.jsonl",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-list-r3-20261010/attempt-01/process-events.jsonl",
+      "bytes": 1129,
+      "sha256": "20afe4b692f35747a1941e4f9f786bb5596af0b1d63d158b008a017a3339ede7",
+      "source_mode": "600",
+      "description": "raw 142-test list process events"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/list-receipt.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-list-r3-20261010/attempt-01/receipt.json",
+      "bytes": 552417,
+      "sha256": "3ff7eb63c3cff4baff5a437bf008ea60cf98bb80cfd4d3e899bba863c596ff8d",
+      "source_mode": "600",
+      "description": "original 142-test list receipt"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/list.stderr.raw",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-list-r3-20261010/attempt-01/nextest-list.stderr.raw",
+      "bytes": 7549,
+      "sha256": "57f6336f45d38fbc923b602bef841f5cb44b364d59f6aa1ec164c99b03f3dbd8",
+      "source_mode": "600",
+      "description": "raw 142-test list stderr"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/list.stdout.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-list-r3-20261010/attempt-01/nextest-list.stdout.json",
+      "bytes": 20527,
+      "sha256": "8d4725a0e550d231b499f2cb651ef46446824af59f90112437a5319c41af1c73",
+      "source_mode": "600",
+      "description": "raw 142-test Nextest list input"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/nextest.stderr.raw",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/nextest.stderr.raw",
+      "bytes": 20201,
+      "sha256": "c5fb84331219798b0f56996a63d980c04d04adf8ccf72606d2f09f5ef6798363",
+      "source_mode": "600",
+      "description": "raw human output for earlier 142-test run"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/nextest.stdout.jsonl",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/nextest.stdout.jsonl",
+      "bytes": 40649,
+      "sha256": "07ed2f98bd7f0b50773ac1bc0fb9d4f3a0fb95ebb582ef378522da06727d5c08",
+      "source_mode": "600",
+      "description": "raw machine output for earlier 142-test run"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/process-events.jsonl",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/process-events.jsonl",
+      "bytes": 1254,
+      "sha256": "ff5ab7cc73927cea142712277a5c0fdb4f11c29003a38725c8b52572530a659d",
+      "source_mode": "600",
+      "description": "earlier 142-test run process events"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/reader-request.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/reader-request.json",
+      "bytes": 2999,
+      "sha256": "05a25bb87c115e1417e1fb257c3cadf63c1a317aeb86fd52615901c551f4adee",
+      "source_mode": "600",
+      "description": "Rust Reader v2 request for earlier 142-test run"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/reader.stderr.raw",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/reader.stderr.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "600",
+      "description": "original Reader v2 stderr"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/reader.stdout.raw",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/reader.stdout.raw",
+      "bytes": 47041,
+      "sha256": "a583281b5bb4c9f7ca8dfbecffe289eb70adf6cbf0eed48226c12074c201fa32",
+      "source_mode": "600",
+      "description": "original Reader v2 report for earlier run"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/runner-result.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/runner-result.json",
+      "bytes": 673010,
+      "sha256": "219adf2a4696b1cc84db738d82ffc2c1cae29f1f612dbe355819fe30771546a0",
+      "source_mode": "600",
+      "description": "original 142-test attempt result"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/supervisor-result.json",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/supervisor-result.json",
+      "bytes": 593188,
+      "sha256": "ab2f81496898d897c0c08e361b44bae57e0260c0b9bc65fc34f7b765d6bf6f20",
+      "source_mode": "600",
+      "description": "original 142-test supervisor receipt"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/wrapper.stderr.raw",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/wrapper.stderr.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "600",
+      "description": "original wrapper stderr"
+    },
+    {
+      "path": "raw/collector26/reprocessed-r17-input/wrapper.stdout.raw",
+      "source_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-runtime-full142-run-r17-20261010/attempt-01/wrapper.stdout.raw",
+      "bytes": 330,
+      "sha256": "59e1b546b7310bc8e2ad4de8934956458ee0be54269a17cb1c4115dce2a959c7",
+      "source_mode": "600",
+      "description": "original wrapper stdout"
+    },
+    {
+      "path": "raw/collector26/reviews/actual-result-review.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-actual-review-luna-20261010.json",
+      "bytes": 10714,
+      "sha256": "ec60d6784390acf7c75120866710cece99c8a7173e13438bce8790188eac3239",
+      "source_mode": "644",
+      "description": "independent actual R17 and Reader review"
+    },
+    {
+      "path": "raw/collector26/reviews/runner-review.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-execution-runner-review-luna-20261010.json",
+      "bytes": 4410,
+      "sha256": "05e70aa24bc1f5d334cad6c78dd2f841029bf000ffa1bc2f60c59fb20ea5091c",
+      "source_mode": "644",
+      "description": "static execution runner review"
+    },
+    {
+      "path": "raw/collector26/reviews/source-review.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-source-review-luna-20261010.json",
+      "bytes": 3203,
+      "sha256": "fbdb7da4747207cc2ebce4e29f2b17af75170dbfc155479f67ccde17f713575e",
+      "source_mode": "644",
+      "description": "independent source review"
+    },
+    {
+      "path": "raw/collector26/source/candidate-files.sha256",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate-files.sha256",
+      "bytes": 1007,
+      "sha256": "cd7b2214b14766f71b6ecc9c593abc404caad385e3be1a602a4a69a3d5663acf",
+      "source_mode": "600",
+      "description": "source file checksum inventory"
+    },
+    {
+      "path": "raw/collector26/source/format-audit.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r2-20261010/format-audit.json",
+      "bytes": 1495,
+      "sha256": "fd1733c013e3cf7affd5055d4644c5aed42f8a43912847279f8fd6f9a6185f8c",
+      "source_mode": "644",
+      "description": "format audit referenced by R3 source review"
+    },
+    {
+      "path": "raw/collector26/source/r1-erratum.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r2-20261010/r1-erratum.json",
+      "bytes": 1308,
+      "sha256": "7a8e730e6d10b6a64e8fd1f70000fd3f7affdb073bfcfa7a73f032828a73637d",
+      "source_mode": "644",
+      "description": "prior source erratum retained by source review"
+    },
+    {
+      "path": "raw/collector26/source/source-freeze.json",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/source-freeze.json",
+      "bytes": 1878,
+      "sha256": "4db22b8ca79239f10fe112c192e788f8a8257407c82734ce25dc80ccf2a59c52",
+      "source_mode": "600",
+      "description": "source freeze"
+    },
+    {
+      "path": "raw/collector26/source/source.patch",
+      "source_path": "/private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/source.patch",
+      "bytes": 557,
+      "sha256": "122831e7392a0fd1fd43cd164ed2d63e5670a166c9b1c891d76f54f60561eb80",
+      "source_mode": "644",
+      "description": "source patch"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/artifacts.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/artifacts.json",
+      "bytes": 33,
+      "sha256": "d3ad979d01443a9d7342e7fbe39064b41ebdb340029293f1b099bcfb6c493c42",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/check_runs.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/check_runs.json",
+      "bytes": 57450,
+      "sha256": "86116fea3190e27df2e97367bf82cff2567dff71bedaa353cbe2a4c2521bf3b6",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/check_suites.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/check_suites.json",
+      "bytes": 17470,
+      "sha256": "0f05f78e0175885ef1e1f7f1656514df299037691cc7f75db2d4cb6319a21c48",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/dco-annotations.body",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/dco-annotations.body",
+      "bytes": 5,
+      "sha256": "2ba33ca0557f1bb5b7ba88d67f9d0093c7185a36ec51fe2b7bd9372d3e001d6d",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/dco-annotations.headers",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/dco-annotations.headers",
+      "bytes": 1279,
+      "sha256": "6b3fe3b87eaf801aa43048d47a1c830e004ca6a9d20029fecd8b75d79178a990",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/jobs.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/jobs.json",
+      "bytes": 28,
+      "sha256": "b40060f48acada8716b753e44014a69d16ebe84cc41a15639459920bd15c086f",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/pr.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/pr.json",
+      "bytes": 17290,
+      "sha256": "a5336fefe7bcd1b13daaf82b329b5f0bcf73b3e28098ffd2ced3c2946aa231f6",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/run-attempt-jobs.headers",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/run-attempt-jobs.headers",
+      "bytes": 1282,
+      "sha256": "f646da64be2ee158b7ed4fa579c8a0479b93db506d648f79e54694110db4137f",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/run-attempt-jobs.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/run-attempt-jobs.json",
+      "bytes": 41,
+      "sha256": "d232081185de70f0bf26e44b5c2a069ca080bf9da48bbc3a067d8670f67d052a",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/run-logs.body",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/run-logs.body",
+      "bytes": 180,
+      "sha256": "d16412e4e3437ac2a9ac7d8ad55deb39f4002a058e6deca762707ea555e06452",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/run-logs.headers",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/run-logs.headers",
+      "bytes": 1129,
+      "sha256": "b13c74b53a8b940cc9bc2097871d30000ac7dc62b458950d70751e7d0f81e279",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/run.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/run.json",
+      "bytes": 14486,
+      "sha256": "122b3d8441ccfec34e6fbc4dc6f5c192500bd0a7258f467041e07d0dd048b884",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/runs.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/runs.json",
+      "bytes": 14522,
+      "sha256": "3a4bd4c3a44a4c4447c2c13c32b57bc25f0a6edb0ba0310ec841555abb485fb2",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/statuses.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/statuses.json",
+      "bytes": 5260,
+      "sha256": "3345fdb0a31287494b8be9c9f398bc1a60fbcff2a39ed4e1774b22ff6519431a",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/suite-check-runs.headers",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/suite-check-runs.headers",
+      "bytes": 1281,
+      "sha256": "3c603d2f6802ee529653badb77b039334a874337e41b26af13eab32e45e8c7f3",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/suite-check-runs.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/suite-check-runs.json",
+      "bytes": 47,
+      "sha256": "c7b61227444bbb547c0bf732c29f8c6b96105350ff14f4512d97def04b2ccd1b",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/workflow.headers",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/workflow.headers",
+      "bytes": 1283,
+      "sha256": "9d317c69989878d80b134aa8d26930bed81d80c85261a938dfdc09d85fd803c5",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/pr17-ci/raw-api/workflow.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/raw-api/workflow.json",
+      "bytes": 531,
+      "sha256": "985e631889846bd273ec2b112b0ab8ccdb3512afff3da8ff4858545382d48672",
+      "source_mode": "644",
+      "description": "pinned raw provider response or HTTP headers/body"
+    },
+    {
+      "path": "raw/current-publication/publication/pr17-ci-refresh-review.json",
+      "source_path": "/private/tmp/termrock-pr17-ci-refresh-331b6fd-20261010/ci-refresh-review.json",
+      "bytes": 4031,
+      "sha256": "50872f5faba279e128e96be2f66f68d87c8228def0203cf2b498e310e4c3fa41",
+      "source_mode": "644",
+      "description": "independent current-head CI evidence review"
+    },
+    {
+      "path": "raw/current-publication/publication/termrock-implementation-post-push-readback.json",
+      "source_path": "/private/tmp/termrock-vis08-root-postpush-331b-20261010.json",
+      "bytes": 1134,
+      "sha256": "c6d00681a78bb76ad46e2a687cf96e51fa7ccc47c0e8ede8d9993f2151f598c5",
+      "source_mode": "600",
+      "description": "Root-reported post-push branch and immutable tag readback"
+    },
+    {
+      "path": "raw/status-59/list-capture/preflight/cache-before.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/preflight/cache-before.json",
+      "bytes": 26108,
+      "sha256": "4d609f1e2a1a37eccb3c8c15d366734041b3fb204f18bb96068e08fa26f322d7",
+      "source_mode": "600",
+      "description": "list-stage preflight snapshot"
+    },
+    {
+      "path": "raw/status-59/list-capture/preflight/preflight.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/preflight/preflight.json",
+      "bytes": 2771,
+      "sha256": "7c9344802785675965b870f9f1d8d28eec9a02089a51e797280ac65a294abe42",
+      "source_mode": "600",
+      "description": "list-stage preflight snapshot"
+    },
+    {
+      "path": "raw/status-59/list-capture/preflight/source-before.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/preflight/source-before.json",
+      "bytes": 35801,
+      "sha256": "ea18e46cfce4ca4556671528acc40df36cf8bd89e94a15669024aa806dfc1237",
+      "source_mode": "600",
+      "description": "list-stage preflight snapshot"
+    },
+    {
+      "path": "raw/status-59/list-capture/preflight/target-before.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/preflight/target-before.json",
+      "bytes": 277,
+      "sha256": "867ff8e286103eb39c9462ce2e51cad372a455b3798ef849eb65c29ce3df6fbf",
+      "source_mode": "600",
+      "description": "list-stage preflight snapshot"
+    },
+    {
+      "path": "raw/status-59/list-capture/preflight/tool-before.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/preflight/tool-before.json",
+      "bytes": 1087,
+      "sha256": "9c41208eb24f5b43627a7008034f3a7dadce13ac850451232048c48f973a6673",
+      "source_mode": "600",
+      "description": "list-stage preflight snapshot"
+    },
+    {
+      "path": "raw/status-59/list-capture/raw/cache-after.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/cache-after.json",
+      "bytes": 26108,
+      "sha256": "4d609f1e2a1a37eccb3c8c15d366734041b3fb204f18bb96068e08fa26f322d7",
+      "source_mode": "600",
+      "description": "raw list-stage process evidence"
+    },
+    {
+      "path": "raw/status-59/list-capture/raw/list-process.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/list-process.json",
+      "bytes": 11060,
+      "sha256": "9817c32e7fc25bdfc5ad7c623bf2307e7534f4aa3fcbf6533a26f810b99a2504",
+      "source_mode": "600",
+      "description": "raw list-stage process evidence"
+    },
+    {
+      "path": "raw/status-59/list-capture/raw/list.stderr.log",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/list.stderr.log",
+      "bytes": 1092,
+      "sha256": "4f6271657128f04ea20669f6432f503ff272b3a68ef6a925fca4d4a80facb981",
+      "source_mode": "600",
+      "description": "raw list-stage process evidence"
+    },
+    {
+      "path": "raw/status-59/list-capture/raw/list.stdout.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/list.stdout.json",
+      "bytes": 9152,
+      "sha256": "00ad8ecbc2719e5fb3eed59eef5098221e64f2514c9a4f1878ce68fb11502289",
+      "source_mode": "600",
+      "description": "raw list-stage process evidence"
+    },
+    {
+      "path": "raw/status-59/list-capture/raw/process-events.jsonl",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/process-events.jsonl",
+      "bytes": 851,
+      "sha256": "2351e6271cf15e87ded0a6ccb8e4cc9e3df839a31ba6e617dfba46d49832e486",
+      "source_mode": "600",
+      "description": "raw list-stage process evidence"
+    },
+    {
+      "path": "raw/status-59/list-capture/raw/source-after.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/source-after.json",
+      "bytes": 35801,
+      "sha256": "ea18e46cfce4ca4556671528acc40df36cf8bd89e94a15669024aa806dfc1237",
+      "source_mode": "600",
+      "description": "raw list-stage process evidence"
+    },
+    {
+      "path": "raw/status-59/list-capture/raw/target-after.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/target-after.json",
+      "bytes": 327,
+      "sha256": "9757fe639f19f98ca6a3995db48a1cd7f21d0e46d3cbd6eddde9b00c49369728",
+      "source_mode": "600",
+      "description": "raw list-stage process evidence"
+    },
+    {
+      "path": "raw/status-59/list-capture/raw/tool-after.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture/raw/tool-after.json",
+      "bytes": 1087,
+      "sha256": "9c41208eb24f5b43627a7008034f3a7dadce13ac850451232048c48f973a6673",
+      "source_mode": "600",
+      "description": "raw list-stage process evidence"
+    },
+    {
+      "path": "raw/status-59/packet/SHA256SUMS",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/SHA256SUMS",
+      "bytes": 1327,
+      "sha256": "c770704e73dc7c7cd57fa96a6f122adf308c2743a1acd2961531db7ace80470a",
+      "source_mode": "600",
+      "description": "frozen packet checksums"
+    },
+    {
+      "path": "raw/status-59/packet/cache-closure.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/cache-closure.json",
+      "bytes": 38252,
+      "sha256": "51c37d5230908527b74419104f1d76dfeade0b9bc1e58d1755e498e86e9ecb92",
+      "source_mode": "600",
+      "description": "pinned offline cache closure inventory"
+    },
+    {
+      "path": "raw/status-59/packet/capture-run.cjs",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/capture-run.cjs",
+      "bytes": 39171,
+      "sha256": "0323547a5f283f19e8e2cd6ce0c80bec7b3bfe694c77a3c28f6d3efec4f45e84",
+      "source_mode": "600",
+      "description": "bounded raw Nextest capture supervisor"
+    },
+    {
+      "path": "raw/status-59/packet/inventory-binding.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/inventory-binding.json",
+      "bytes": 1146,
+      "sha256": "b6bd6ece4ef0cbc7b521796e4cf46a1a00de77608ff83f8a08772ca6deffea9f",
+      "source_mode": "600",
+      "description": "source/test inventory binding"
+    },
+    {
+      "path": "raw/status-59/packet/list-capture-binding.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/list-capture-binding.json",
+      "bytes": 2075,
+      "sha256": "5a65efdcbd88a6b9dfbfbf2a196690d9832099e780f54b23c1f477ca602eda62",
+      "source_mode": "600",
+      "description": "reviewed list-capture input binding"
+    },
+    {
+      "path": "raw/status-59/packet/prepare-reader-request.cjs",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/prepare-reader-request.cjs",
+      "bytes": 3113,
+      "sha256": "739ba542ffbfa7df7d9fb5806eaa1eb547b444dea5d8dd0d8a1f1d97f5286df6",
+      "source_mode": "600",
+      "description": "administrative Rust Reader v2 request preparer"
+    },
+    {
+      "path": "raw/status-59/packet/review-request.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/review-request.json",
+      "bytes": 5349,
+      "sha256": "1eb246ddc6f771a8f6446e3a62a30b47e7df9946d060eb4d398bad1db7af840e",
+      "source_mode": "600",
+      "description": "static review request (pre-execution state retained)"
+    },
+    {
+      "path": "raw/status-59/packet/runplan.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/runplan.json",
+      "bytes": 6022,
+      "sha256": "abe5e8f407189bb5751ec49a21a33542ed55a8309fc29044fa454562e12b145a",
+      "source_mode": "600",
+      "description": "59-test source/command/runner plan"
+    },
+    {
+      "path": "raw/status-59/packet/selection-v2.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/selection-v2.json",
+      "bytes": 16837,
+      "sha256": "30a9f314bafaf1f61049a4abb85650da8b344315764b757962cf779892fca924",
+      "source_mode": "600",
+      "description": "trusted exact Nextest selection"
+    },
+    {
+      "path": "raw/status-59/packet/source-delta.patch",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/source-delta.patch",
+      "bytes": 44030,
+      "sha256": "3c8b1c17098dbd7b95e69d7c22104cddb16f353c255fb0d1ab0e9fefb9b950df",
+      "source_mode": "600",
+      "description": "reviewed source overlay from frozen base"
+    },
+    {
+      "path": "raw/status-59/packet/source-freeze.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/source-freeze.json",
+      "bytes": 3422,
+      "sha256": "d249bba0ce3ddce9e5b7c4debb50564bcf832cefcfd915ceb8abb52dd30100f5",
+      "source_mode": "600",
+      "description": "source base and fixed historical product pair binding"
+    },
+    {
+      "path": "raw/status-59/packet/source-manifest.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/source-manifest.json",
+      "bytes": 40895,
+      "sha256": "d1ff1d7f9a93c4da1cd3afe4eab547c02b163e691a9fdb454547ab5b9f96fcf4",
+      "source_mode": "600",
+      "description": "source and dependency manifest"
+    },
+    {
+      "path": "raw/status-59/packet/target-seed.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/target-seed.json",
+      "bytes": 306167,
+      "sha256": "96412ab624386276c718bd2de9b317f539a7c24a0bff77abeca50e4c230d08d4",
+      "source_mode": "600",
+      "description": "recursive pre-build target seed"
+    },
+    {
+      "path": "raw/status-59/packet/test-names.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/test-names.json",
+      "bytes": 13764,
+      "sha256": "9166a8a4b4a30130c3ddb6f37945a565972f7f3ee9a615d23b08680aba4503c7",
+      "source_mode": "600",
+      "description": "exact 59-test source inventory"
+    },
+    {
+      "path": "raw/status-59/preflight/cache-before.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/preflight/cache-before.json",
+      "bytes": 26108,
+      "sha256": "4d609f1e2a1a37eccb3c8c15d366734041b3fb204f18bb96068e08fa26f322d7",
+      "source_mode": "600",
+      "description": "bounded preflight and pre-run snapshot"
+    },
+    {
+      "path": "raw/status-59/preflight/preflight.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/preflight/preflight.json",
+      "bytes": 3461,
+      "sha256": "da18e2ae2832902cde9b4d9c9a5cdb9a1fa39958e9281ea5659b8804a7f442ee",
+      "source_mode": "600",
+      "description": "bounded preflight and pre-run snapshot"
+    },
+    {
+      "path": "raw/status-59/preflight/source-before.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/preflight/source-before.json",
+      "bytes": 35801,
+      "sha256": "ea18e46cfce4ca4556671528acc40df36cf8bd89e94a15669024aa806dfc1237",
+      "source_mode": "600",
+      "description": "bounded preflight and pre-run snapshot"
+    },
+    {
+      "path": "raw/status-59/preflight/target-before.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/preflight/target-before.json",
+      "bytes": 287963,
+      "sha256": "0a9822beef79424f6fb4389bb4fd319fdba8cf30e7b95140a29df453db4fcb7a",
+      "source_mode": "600",
+      "description": "bounded preflight and pre-run snapshot"
+    },
+    {
+      "path": "raw/status-59/preflight/tool-before.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/preflight/tool-before.json",
+      "bytes": 1087,
+      "sha256": "9c41208eb24f5b43627a7008034f3a7dadce13ac850451232048c48f973a6673",
+      "source_mode": "600",
+      "description": "bounded preflight and pre-run snapshot"
+    },
+    {
+      "path": "raw/status-59/reviews/actual-result-review.json",
+      "source_path": "/private/tmp/termrock-vis01-status-59-actual-result-review-current-branch-comparison-luna-20261010.json",
+      "bytes": 6899,
+      "sha256": "58fd4a0da3e1157e537ccbfd3bab19252a9c6cf4bb46cae6e3f13f0f878d6521",
+      "source_mode": "644",
+      "description": "independent exact 59-test result review"
+    },
+    {
+      "path": "raw/status-59/reviews/list-capture-binding-review.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-independent-review-controls-luna-20261010.json",
+      "bytes": 4796,
+      "sha256": "4eedc80051a2e3488429c207ab3e675db19592deaa6adb4985198686318f53dc",
+      "source_mode": "644",
+      "description": "independent static list-stage packet review"
+    },
+    {
+      "path": "raw/status-59/reviews/list-capture-result-review.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-r5b-actual-list-review-controls-luna-20261010.json",
+      "bytes": 5712,
+      "sha256": "8b9c6ec84840da137cdbae5f1a571e39059f781b891268038148d19c1dddf1d0",
+      "source_mode": "644",
+      "description": "independent actual list-stage review; no test bodies"
+    },
+    {
+      "path": "raw/status-59/reviews/raw-run-review.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/actual-run-independent-review-controls-wrapper-luna.json",
+      "bytes": 6997,
+      "sha256": "8284a9f1eee62c16e79a6eba57dee31310ce69e289ecf8d78ac48444fe004bb4",
+      "source_mode": "644",
+      "description": "independent raw execution provenance review"
+    },
+    {
+      "path": "raw/status-59/reviews/reader-semantic-review.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-reader-semantic-review-controls-wrapper-luna-20261010.json",
+      "bytes": 5199,
+      "sha256": "9176929b1e4ab7d9576f317af93ddbcf5f3c60b46b0a7f1edb8a7222ff80815a",
+      "source_mode": "600",
+      "description": "independent Reader v2 semantic review"
+    },
+    {
+      "path": "raw/status-59/reviews/runner-static-review.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/independent-review-controls-wrapper-luna.json",
+      "bytes": 3762,
+      "sha256": "033172d181754308592ce892cf1fd7995e069b8f879c23313bf6a9fb83e56eac",
+      "source_mode": "644",
+      "description": "independent static raw-run runner review"
+    },
+    {
+      "path": "raw/status-59/reviews/source-design-review.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-design-review-ci-parity-luna.json",
+      "bytes": 4496,
+      "sha256": "a0ccdbcff7ce2e1ac974885fc51b1d2239ee39bfc6b88a06ddbc84edce8b6175",
+      "source_mode": "644",
+      "description": "design review for historical phase reporting"
+    },
+    {
+      "path": "raw/status-59/reviews/source-review-ci-parity.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-source-review-ci-parity-luna.json",
+      "bytes": 2909,
+      "sha256": "cd53a01d9180f922eaaebf208ba1298fb3ea53f7b5a538d1d013a4ce667e1730",
+      "source_mode": "644",
+      "description": "independent static source review"
+    },
+    {
+      "path": "raw/status-59/reviews/source-review-controls.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-independent-review-controls-luna-20261010.json",
+      "bytes": 3132,
+      "sha256": "5cb011afc154a812a95368998ddb6cb1fd14a2ee677a1380d6b5288b3cf917c7",
+      "source_mode": "644",
+      "description": "independent static source review"
+    },
+    {
+      "path": "raw/status-59/run-output/cache-after.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/cache-after.json",
+      "bytes": 26108,
+      "sha256": "4d609f1e2a1a37eccb3c8c15d366734041b3fb204f18bb96068e08fa26f322d7",
+      "source_mode": "600",
+      "description": "post-run source/tool/cache/target snapshot"
+    },
+    {
+      "path": "raw/status-59/run-output/nextest.stderr.log",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/nextest.stderr.log",
+      "bytes": 14864,
+      "sha256": "97f9253c9973f71a670069af4321a159a31a269841b3bf8b42455a5c3b72de97",
+      "source_mode": "600",
+      "description": "raw Nextest stderr"
+    },
+    {
+      "path": "raw/status-59/run-output/nextest.stdout.jsonl",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/nextest.stdout.jsonl",
+      "bytes": 17430,
+      "sha256": "14be4021ed8ce4b1c23457d52c47717c3375223dd0af6e28b018e6491fcaa3fc",
+      "source_mode": "600",
+      "description": "raw Nextest machine stdout"
+    },
+    {
+      "path": "raw/status-59/run-output/process-events.jsonl",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/process-events.jsonl",
+      "bytes": 1112,
+      "sha256": "4f3463f3641072a32e56b17f6b4bbe5c9778c8801ce441e28ee6785e59dff033",
+      "source_mode": "600",
+      "description": "raw process event log"
+    },
+    {
+      "path": "raw/status-59/run-output/reader-report-root.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/reader-report-root.json",
+      "bytes": 9481,
+      "sha256": "0f0f7089554cf5457ab83e5f28373cb41791bb9e3f3cf5db61fe220f32603f76",
+      "source_mode": "644",
+      "description": "persisted Rust Reader v2 semantic report"
+    },
+    {
+      "path": "raw/status-59/run-output/reader-request.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/reader-request.json",
+      "bytes": 2653,
+      "sha256": "2e6485cb514540c09f05673481f267b9e68a30ed562cbba308140ad561c5ce2b",
+      "source_mode": "600",
+      "description": "Rust Reader v2 request"
+    },
+    {
+      "path": "raw/status-59/run-output/run-process.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/run-process.json",
+      "bytes": 15312,
+      "sha256": "ab9fa8dae49d6b0dfd631c2cb210924ac679eb42f2609f14cc8fd5ee030c1463",
+      "source_mode": "600",
+      "description": "raw Nextest process receipt"
+    },
+    {
+      "path": "raw/status-59/run-output/source-after.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/source-after.json",
+      "bytes": 35801,
+      "sha256": "ea18e46cfce4ca4556671528acc40df36cf8bd89e94a15669024aa806dfc1237",
+      "source_mode": "600",
+      "description": "post-run source/tool/cache/target snapshot"
+    },
+    {
+      "path": "raw/status-59/run-output/target-after.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/target-after.json",
+      "bytes": 476524,
+      "sha256": "a9b0e8a5d49907370f0866a414fe734e724c2c8e2d97869c907b51cce18b8d34",
+      "source_mode": "600",
+      "description": "post-run source/tool/cache/target snapshot"
+    },
+    {
+      "path": "raw/status-59/run-output/tool-after.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/run-output/tool-after.json",
+      "bytes": 1087,
+      "sha256": "9c41208eb24f5b43627a7008034f3a7dadce13ac850451232048c48f973a6673",
+      "source_mode": "600",
+      "description": "post-run source/tool/cache/target snapshot"
+    },
+    {
+      "path": "raw/status-59/wrapper-capture/supervisor.stderr.log",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/wrapper-capture/supervisor.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_mode": "600",
+      "description": "raw wrapper capture"
+    },
+    {
+      "path": "raw/status-59/wrapper-capture/supervisor.stdout.log",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/wrapper-capture/supervisor.stdout.log",
+      "bytes": 573,
+      "sha256": "2bd886eea3619a9c9468cf0fd9f7c03e2a7163cd01cbf4d6e6de4f8554ecd3a2",
+      "source_mode": "600",
+      "description": "raw wrapper capture"
+    },
+    {
+      "path": "raw/status-59/wrapper-capture/termination.json",
+      "source_path": "/private/tmp/termrock-vis01-product-phases-r3-nextest-run59-r2-20261010/packet/wrapper-capture/termination.json",
+      "bytes": 81,
+      "sha256": "8cc0e85c38733ee8fdec73072ef0a21087a36875588dfcf8c0b9a9c9bbea0fb3",
+      "source_mode": "600",
+      "description": "raw wrapper capture"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+ [0m[1m jackin❯ [0m   File   Go   Help                                           [0m
+                                                                        [0m
+                                                                        [0m
+  [0m[1m General  [0m  Mounts    Roles    Environments    Accounts               [0m
+  ━━━━━━━━━━──────────────────────────────────────────────────────────  [0m
+                                                                        [0m
+      Name *                                                            [0m
+      payments-platform                                                 [0m
+      Directory basename by default                                     [0m
+                                                                        [0m
+    [0m[1mWorking directory *[0m                                                 [0m
+    /workspace/payments-platform                          Choose…       [0m
+    Inside the Construct                                                [0m
+                                                                        [0m
+     [✓] Keep awake               macOS only                            [0m
+     [✓] Git pull before launch                                         [0m
+                                                                        [0m
+      On dirty exit                               Cancel     [0m[2mSave… [0m     [0m
+      ask · show the exit dialog                  ▾                     [0m
+ [0m[1m← →[0m Tab  [0m[1m1–5[0m Jump  [0m[1mEnter[0m Body  [0m[1m[ ][0m Switch tab  [0m[1mCtrl+S[0m Save  [0m[1mEsc[0m Back   [0m

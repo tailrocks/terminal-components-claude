@@ -1,0 +1,32 @@
+{
+  "schema": "termrock-vis19-cursor-r4-test-source-review/v1",
+  "verdict": "READY_FOR_ROOT_TEST_EXECUTION_REVIEW",
+  "packet": {
+    "path": "/private/tmp/termrock-vis19-cursor-increment1-r4-r3",
+    "manifest_sha256": "9964744c14822af5e8570823e53fd8bdafdf438a05ce61d001cb0b17947b57ae",
+    "readme_sha256": "0bcda7e4aec0d013760f66211510a392322574acdb979a461c5d77bf8c962c23",
+    "full_source_patch_sha256": "d9e87c6eb07c9bdd3522d0b2ee4b3f20496e3b672105edca746a1e6e22fee610",
+    "r3_to_r4_test_patch_sha256": "ba01a313284ed3e4ca53291d85d2ccca985f589c3309499018f855a4e36b008a",
+    "proposed_replay_rs_sha256": "207e3dee725cb1308fad3b428ee231d87980ad70ea29ed98e875202e0f585484",
+    "sha256sums_file_sha256": "a53801d1237a3194117998a4ab83f53dcc2e93a19966660ee607b9eace2110cc"
+  },
+  "source_identity": {
+    "root": "/private/tmp/termrock-vis19-tuiscotti-cursor-r4-r3",
+    "base_commit": "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
+    "base_tree": "618b561d867f1bda0c1678d18a8f531a06c6469d",
+    "changed_path_from_r3": "crates/tuiscotti-runtime/tests/tui_shell/replay.rs"
+  },
+  "review_findings": [
+    "The R3-to-R4 patch changes exactly five Screen.cursor field accesses in replay.rs and no other source file.",
+    "The live helper now explicitly clones the Cursor returned by the public accessor; replay assertions compare through the same public accessor. The expected cursor coordinates, hidden state, style, blinking, and live/replay equality checks remain intact.",
+    "The nine selected test IDs in the manifest are unchanged: four cursor projection unit tests and five replay integration tests.",
+    "The full packet patch retains the previously reviewed four-file source overlay; the one-file delta is limited to the authorized test source path."
+  ],
+  "preserved_prior_result": {
+    "r3_actual_result_path": "/private/tmp/termrock-rust-tool-test-execution/vis19-cursor-r3-nine-tests-20261010/attempt-03/receipt.json",
+    "r3_actual_result_sha256": "e25c1158fbf27fe77d613cdc3b99661289a94a6fca968f02d69f982ebbf5fce2",
+    "r3_outcome": "FAILED_BEFORE_TESTS: five E0616 private Screen.cursor accesses; postflight also detected unmanifested CARGO_HOME .package-cache-mutate"
+  },
+  "execution_status": "NOT_RUN",
+  "limitations": "Static source/packet review only. No Cargo, Nextest, tests, build, formatter, or Git mutation was performed; no test qualification is claimed."
+}

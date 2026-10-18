@@ -1,0 +1,450 @@
+{
+  "schema": "termrock-vis08-nextest-reader-root-execution-packet/v2",
+  "state": "PREPARED_FOR_ROOT_LAUNCH_NOT_AUTHORIZED_BY_AUTHOR",
+  "candidate": {
+    "directory": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r1-20261010",
+    "package": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r1-20261010/crates/termrock-visibility-tests",
+    "freeze": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-impl-r3-v1/source-freeze.json",
+      "sha256": "1431a38f87b7eaaa0c20a2323547f902538f850e6ff6ee425e7d24a3a34fb8e2"
+    },
+    "patch": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-impl-r3-v1/source.patch",
+      "sha256": "64724702c3be2ca4e884ae0224bbba1658a327ad7f51b5de1a3b840c01fe64b0"
+    },
+    "review": {
+      "path": "/private/tmp/termrock-vis08-nextest-reader-impl-r3-v1/review-r3.json",
+      "sha256": "5601a240c13a15b76cb802af07f41afac4d697e795c128bbbfceba1bd94c29be",
+      "verdict": "APPROVE"
+    },
+    "manifest_sha256": "62457d004c79177c557970d452081007affb4a72ac1374f4c4fc3f0b45739be3",
+    "lock_sha256": "a80325ffed5b5cf5b652f9d9e8a859573c91b93def1e59d42b4259b65a586c1f",
+    "source_files": [
+      {
+        "path": "src/lib.rs",
+        "sha256": "5ec6fe8e4a4bbb15e888c403fc91e35a6431c6541481c162d4da3aca996f2f2c"
+      },
+      {
+        "path": "src/nextest_result.rs",
+        "sha256": "8f4a8d77aa1f32250bd0df79138daf0e77ee6c47afb9b71a9ebe7347a4729c8d"
+      },
+      {
+        "path": "src/bin/nextest-result-reader.rs",
+        "sha256": "518d527af27dd880057db6c4ef029244d59fe8cdcfdf6d3822b8aad2e7b83500"
+      }
+    ],
+    "package_file_count": 12,
+    "package_length_prefixed_sha256": "4bb9caa4df4014301044bb1f59ff1f7ffa61236a007a73da3c97e57104b7e240",
+    "package_files": [
+      {
+        "path": "Cargo.lock",
+        "bytes": 9097,
+        "mode": 420,
+        "sha256": "a80325ffed5b5cf5b652f9d9e8a859573c91b93def1e59d42b4259b65a586c1f"
+      },
+      {
+        "path": "Cargo.toml",
+        "bytes": 399,
+        "mode": 420,
+        "sha256": "62457d004c79177c557970d452081007affb4a72ac1374f4c4fc3f0b45739be3"
+      },
+      {
+        "path": "README.md",
+        "bytes": 5338,
+        "mode": 420,
+        "sha256": "67762a6f6df40b6e5514677e1dfbed4e429d7e1b91a99ddb53110b211df0126a"
+      },
+      {
+        "path": "src/bin/fixture.rs",
+        "bytes": 21577,
+        "mode": 420,
+        "sha256": "a7ee4a89646439a67d2d4e016b759a2d68eecec7339310778e81acf60235adc4"
+      },
+      {
+        "path": "src/bin/nextest-result-reader.rs",
+        "bytes": 1528,
+        "mode": 420,
+        "sha256": "518d527af27dd880057db6c4ef029244d59fe8cdcfdf6d3822b8aad2e7b83500"
+      },
+      {
+        "path": "src/lib.rs",
+        "bytes": 51111,
+        "mode": 420,
+        "sha256": "5ec6fe8e4a4bbb15e888c403fc91e35a6431c6541481c162d4da3aca996f2f2c"
+      },
+      {
+        "path": "src/nextest_result.rs",
+        "bytes": 115612,
+        "mode": 420,
+        "sha256": "8f4a8d77aa1f32250bd0df79138daf0e77ee6c47afb9b71a9ebe7347a4729c8d"
+      },
+      {
+        "path": "tests/cache_source_audit.rs",
+        "bytes": 75580,
+        "mode": 420,
+        "sha256": "9f82e8ae736575ff68bdf4adf96ef695c658ba99136f683b95f03cd147f4ed8f"
+      },
+      {
+        "path": "tests/deferred.rs",
+        "bytes": 68958,
+        "mode": 420,
+        "sha256": "d5d336c7527dcdb56704df6be68e937bc8be10ee0545b592a79e63402561ec94"
+      },
+      {
+        "path": "tests/queue_v2.rs",
+        "bytes": 194318,
+        "mode": 420,
+        "sha256": "07d9ccc5c96bb3cfef46218c78090acc0dd98a2af450e254e1dd23c60de1f361"
+      },
+      {
+        "path": "tests/status.rs",
+        "bytes": 147342,
+        "mode": 420,
+        "sha256": "e09256ea95055a3b9c33ea12b05f572661bc84bf3ff41c105e016bd279932d3b"
+      },
+      {
+        "path": "tests/subjects.rs",
+        "bytes": 207089,
+        "mode": 420,
+        "sha256": "bd676ba4c8f5bbbac996797d6d7cf0fc1534a7b6bda9bf2dbc7e9d4aa73f72e4"
+      }
+    ],
+    "source_delta_review": {
+      "path": "/private/tmp/termrock-vis08-reader-v2-status-r1-source-review-luna-addendum-20261010.json",
+      "sha256": "a92bb50e0db6fd13fcc1b3274692a6c525a29b38ea4adc70515554ab02a5858c",
+      "candidate_source_sha256": "8f4a8d77aa1f32250bd0df79138daf0e77ee6c47afb9b71a9ebe7347a4729c8d",
+      "base_source_sha256": "74c6511da26473c70ed3a9e2592668862bb2dcba47913029cc60b652d69ec7fd"
+    },
+    "parent_package": "/private/tmp/termrock-vis08-nextest-reader-impl-r3-v1/crates/termrock-visibility-tests"
+  },
+  "selection": {
+    "package": "termrock-visibility-tests",
+    "target": "lib",
+    "module": "nextest_result::tests",
+    "expected_test_count": 23,
+    "expected_all_nonignored": true,
+    "test_names": [
+      "validates_exact_nine_selection_and_list_identities",
+      "reads_machine_records_from_the_configured_stderr_stream",
+      "verifies_nine_observed_tests_across_two_binaries_and_plural_summary",
+      "rejects_structured_records_split_across_stdout_and_stderr",
+      "list_ignored_and_filter_status_must_match_static_selection",
+      "selected_filter_and_ignored_status_must_match_run_policy",
+      "rejects_missing_extra_duplicate_and_suffix_terminal_identities",
+      "terminal_identity_before_start_is_invalid",
+      "identical_repeated_suite_snapshots_are_observations_not_extra_tests",
+      "rejects_suite_start_after_terminal_snapshot",
+      "filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked",
+      "list_ignored_does_not_become_run_filtered_out",
+      "human_nextest_contradiction_blocks_without_rewriting_machine_results",
+      "child_summary_is_checked_only_when_bound_to_one_suite",
+      "human_only_capture_is_unavailable_not_a_pass",
+      "preserves_child_pass_and_wrapper_125_as_distinct_process_facts",
+      "rejects_other_format_and_retry_stress_or_partition_invocations",
+      "request_file_capture_metadata_and_trusted_selection_hash_are_checked",
+      "v2_accepts_empty_filter_and_exact_59_case_status_selection",
+      "v2_rejects_empty_selection",
+      "v2_rejects_oversized_selection",
+      "v2_accepts_142_selected_identities_across_four_targets",
+      "v2_rejects_count_and_target_mismatches"
+    ],
+    "filterset": "test(=nextest_result::tests::validates_exact_nine_selection_and_list_identities) | test(=nextest_result::tests::reads_machine_records_from_the_configured_stderr_stream) | test(=nextest_result::tests::verifies_nine_observed_tests_across_two_binaries_and_plural_summary) | test(=nextest_result::tests::rejects_structured_records_split_across_stdout_and_stderr) | test(=nextest_result::tests::list_ignored_and_filter_status_must_match_static_selection) | test(=nextest_result::tests::selected_filter_and_ignored_status_must_match_run_policy) | test(=nextest_result::tests::rejects_missing_extra_duplicate_and_suffix_terminal_identities) | test(=nextest_result::tests::terminal_identity_before_start_is_invalid) | test(=nextest_result::tests::identical_repeated_suite_snapshots_are_observations_not_extra_tests) | test(=nextest_result::tests::rejects_suite_start_after_terminal_snapshot) | test(=nextest_result::tests::filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked) | test(=nextest_result::tests::list_ignored_does_not_become_run_filtered_out) | test(=nextest_result::tests::human_nextest_contradiction_blocks_without_rewriting_machine_results) | test(=nextest_result::tests::child_summary_is_checked_only_when_bound_to_one_suite) | test(=nextest_result::tests::human_only_capture_is_unavailable_not_a_pass) | test(=nextest_result::tests::preserves_child_pass_and_wrapper_125_as_distinct_process_facts) | test(=nextest_result::tests::rejects_other_format_and_retry_stress_or_partition_invocations) | test(=nextest_result::tests::request_file_capture_metadata_and_trusted_selection_hash_are_checked) | test(=nextest_result::tests::v2_accepts_empty_filter_and_exact_59_case_status_selection) | test(=nextest_result::tests::v2_rejects_empty_selection) | test(=nextest_result::tests::v2_rejects_oversized_selection) | test(=nextest_result::tests::v2_accepts_142_selected_identities_across_four_targets) | test(=nextest_result::tests::v2_rejects_count_and_target_mismatches)",
+    "run_ignored": "default",
+    "success_assertions": [
+      "raw Nextest JSON contains exactly the 23 listed test identities, each started once and terminal-ok once",
+      "no extra, missing, failed, ignored, or duplicated selected identity",
+      "Nextest exits 0; wrapper exits 0; no timeout, signal, spawn error, truncation, or output cap"
+    ]
+  },
+  "cache": {
+    "source_cargo_home": "/private/tmp/termrock-vis18-cache-source-audit-r6-20261010/cargo-home",
+    "source_receipt": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r6-20261010/runtime-cache-copy-receipt.json",
+      "sha256": "a68e51c1c21065ce2242a51905d3c678f0f4bc15be820fbb4d5b194b617b6d13",
+      "state": "PREPARED_NOT_USED",
+      "file_count": 85,
+      "registry_archives": 40,
+      "sparse_index_records": 44,
+      "config_files": 1,
+      "extracted_sources": 0,
+      "git_sources": 0
+    },
+    "known_required_zlib_archive": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r6-20261010/cargo-home/registry/cache/index.crates.io-1949cf8c6b5b557f/zlib-rs-0.6.8.crate",
+      "sha256": "b268e58e7c693d7c271f93ffc4ba3b380412554231c85bf61ca7af91042a4112"
+    },
+    "prior_runtime_copy_receipt": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime-cache-copy-receipt.json",
+      "sha256": "59af63de5241679f2934ac5b8cb829729b7854dfa47f85bebbc60eb9872b7767",
+      "note": "Prior isolated copy for the exact same manifest/lock and a real offline Cargo attempt. Copy bytes into the new private CARGO_HOME from the unused R6 source, verify against its receipt, and preserve both source receipts."
+    },
+    "prior_offline_cargo_attempt": {
+      "path": "/private/tmp/termrock-vis18-cache-source-audit-r12-r4-executor-20261010/runtime/runner-result.json",
+      "sha256": "872158953ac14931819daf795b1cb3ba7bd4c8e80961c565faa3f8255dd17c15",
+      "child_exit": 0,
+      "wrapper_exit": 125,
+      "note": "Shows the same lock closure executed offline and the selected audit test passed; wrapper parsing was incomplete, so this is cache evidence only, not a reader gate result."
+    },
+    "copy_requirement": "Root creates a fresh private CARGO_HOME by independent byte-copy from source_cargo_home. Verify every copied file against source_receipt, no symlinks or hardlinks, 40 archives/44 sparse records/one config, and preserve source home unchanged. No network fallback."
+  },
+  "runtime": {
+    "attempt_root": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010",
+    "attempt_root_preflight": "must be absent before setup; all output, temp, HOME, CARGO_HOME, and target paths are owned descendants",
+    "cargo_home": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cargo-home",
+    "home": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/home",
+    "target_dir": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/target",
+    "tmp_dir": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/tmp",
+    "logs_dir": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/logs",
+    "cli_output_dir": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cli-output",
+    "tools": {
+      "cargo": {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+        "sha256": "6e17e865f3a20dd55a1d212f849f58b77124179f0de7c52973096d84ba34118d",
+        "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+      },
+      "rustc": {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+        "sha256": "766eda9d8f53afd6fc7f27b3cd2e444dd22afacb5afa710a5625fc8e45b8c941",
+        "version": "rustc 1.98.1 (48a229cea 2026-09-01)"
+      },
+      "rustdoc": {
+        "path": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+        "sha256": "8ce1ae78157758d4d75eee1355ed333f27e903ab6b0904e09d326009b333c2ee",
+        "version": "rustdoc 1.98.1 (48a229cea 2026-09-01)"
+      },
+      "nextest": {
+        "path": "/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146/cargo-nextest",
+        "sha256": "7a558b157d164ab4fb6cb1a48cbac5a57b7b8ad99f5d3492eb6eda64faf91df0",
+        "version": "cargo-nextest 0.9.146 (8af696ddc 2026-09-21)"
+      }
+    },
+    "environment": {
+      "CARGO_HOME": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cargo-home",
+      "CARGO_TARGET_DIR": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/target",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_NET_OFFLINE": "true",
+      "CARGO_REGISTRIES_CRATES_IO_PROTOCOL": "sparse",
+      "CARGO_TERM_COLOR": "never",
+      "HOME": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/home",
+      "LANG": "C",
+      "LC_ALL": "C.UTF-8",
+      "NEXTEST_EXPERIMENTAL_LIBTEST_JSON": "1",
+      "PATH": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:/Users/donbeave/.local/share/mise/installs/aqua-nextest-rs-nextest-cargo-nextest/0.9.146:/usr/bin:/bin",
+      "RUSTC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustc",
+      "RUSTDOC": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/rustdoc",
+      "RUSTUP_HOME": "/Users/donbeave/.rustup",
+      "RUSTUP_TOOLCHAIN": "1.98.1",
+      "TEMP": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/tmp",
+      "TERM": "dumb",
+      "TMP": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/tmp",
+      "TMPDIR": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/tmp"
+    },
+    "supervisor": {
+      "mode": "root-owned process group supervisor",
+      "overall_timeout_ms": 900000,
+      "term_grace_ms": 5000,
+      "post_kill_close_timeout_ms": 5000,
+      "combined_stdout_stderr_limit_bytes": 4194304,
+      "jobs": 2,
+      "test_threads": 1,
+      "retries": 0,
+      "cleanup": "On timeout, cap, cancellation, or failure, signal and reap the owned process group, drain/close pipes within the bound, retain raw logs, and do not retry. Snapshot protected source/cache/tool inputs before and after; mutable target/temp/output remain inside attempt_root."
+    }
+  },
+  "commands": {
+    "nextest_run": {
+      "cwd": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r1-20261010/crates/termrock-visibility-tests",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "nextest",
+        "run",
+        "--manifest-path",
+        "/private/tmp/termrock-vis08-nextest-reader-v2-status-r1-20261010/crates/termrock-visibility-tests/Cargo.toml",
+        "--package",
+        "termrock-visibility-tests",
+        "--lib",
+        "--locked",
+        "--offline",
+        "--user-config-file",
+        "none",
+        "--no-tests",
+        "fail",
+        "--profile",
+        "default",
+        "--ignore-default-filter",
+        "--filterset",
+        "test(=nextest_result::tests::validates_exact_nine_selection_and_list_identities) | test(=nextest_result::tests::reads_machine_records_from_the_configured_stderr_stream) | test(=nextest_result::tests::verifies_nine_observed_tests_across_two_binaries_and_plural_summary) | test(=nextest_result::tests::rejects_structured_records_split_across_stdout_and_stderr) | test(=nextest_result::tests::list_ignored_and_filter_status_must_match_static_selection) | test(=nextest_result::tests::selected_filter_and_ignored_status_must_match_run_policy) | test(=nextest_result::tests::rejects_missing_extra_duplicate_and_suffix_terminal_identities) | test(=nextest_result::tests::terminal_identity_before_start_is_invalid) | test(=nextest_result::tests::identical_repeated_suite_snapshots_are_observations_not_extra_tests) | test(=nextest_result::tests::rejects_suite_start_after_terminal_snapshot) | test(=nextest_result::tests::filtered_out_u64_values_are_preserved_and_inventory_anomalies_marked) | test(=nextest_result::tests::list_ignored_does_not_become_run_filtered_out) | test(=nextest_result::tests::human_nextest_contradiction_blocks_without_rewriting_machine_results) | test(=nextest_result::tests::child_summary_is_checked_only_when_bound_to_one_suite) | test(=nextest_result::tests::human_only_capture_is_unavailable_not_a_pass) | test(=nextest_result::tests::preserves_child_pass_and_wrapper_125_as_distinct_process_facts) | test(=nextest_result::tests::rejects_other_format_and_retry_stress_or_partition_invocations) | test(=nextest_result::tests::request_file_capture_metadata_and_trusted_selection_hash_are_checked) | test(=nextest_result::tests::v2_accepts_empty_filter_and_exact_59_case_status_selection) | test(=nextest_result::tests::v2_rejects_empty_selection) | test(=nextest_result::tests::v2_rejects_oversized_selection) | test(=nextest_result::tests::v2_accepts_142_selected_identities_across_four_targets) | test(=nextest_result::tests::v2_rejects_count_and_target_mismatches)",
+        "--no-fail-fast",
+        "--retries",
+        "0",
+        "--build-jobs",
+        "2",
+        "--test-threads",
+        "1",
+        "--color",
+        "never",
+        "--show-progress",
+        "none",
+        "--message-format",
+        "libtest-json-plus",
+        "--message-format-version",
+        "0.1"
+      ],
+      "timeout_ms": 900000,
+      "expected_child_exit": 0,
+      "expected_wrapper_exit": 0,
+      "expected_started": 23,
+      "expected_terminal_ok": 23,
+      "expected_other_terminals": 0
+    },
+    "cli_build": {
+      "cwd": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r1-20261010/crates/termrock-visibility-tests",
+      "program": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "argv": [
+        "build",
+        "--manifest-path",
+        "/private/tmp/termrock-vis08-nextest-reader-v2-status-r1-20261010/crates/termrock-visibility-tests/Cargo.toml",
+        "--package",
+        "termrock-visibility-tests",
+        "--bin",
+        "nextest-result-reader",
+        "--locked",
+        "--offline",
+        "--jobs",
+        "2"
+      ],
+      "timeout_ms": 900000,
+      "expected_child_exit": 0,
+      "expected_wrapper_exit": 0
+    },
+    "cli_exercise": {
+      "kind": "separate synthetic-input CLI contract exercise after cli_build; not a Nextest test result or product evidence",
+      "program": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/target/debug/nextest-result-reader",
+      "argv": [
+        "--request",
+        "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/request.json",
+        "--selection",
+        "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/selection.json",
+        "--trusted-selection-sha256",
+        "48121140f3410e61b22dea5eec36f9f0d8bc04958c591fcf951a7d163c62548a"
+      ],
+      "cwd": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture",
+      "stdout_path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cli-output/v1-report.json",
+      "stderr_path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cli-output/v1-stderr.raw",
+      "timeout_ms": 30000,
+      "output_cap_bytes": 1048576,
+      "expected_exit": 0,
+      "expected_report_fields": {
+        "schema": "termrock-nextest-reader-report/v1",
+        "acceptance": "accepted",
+        "selection_count": "9",
+        "selected_tests_length": 9
+      },
+      "fixture_files": [
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/selection.json",
+          "bytes": 1638,
+          "sha256": "48121140f3410e61b22dea5eec36f9f0d8bc04958c591fcf951a7d163c62548a"
+        },
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/list.json",
+          "bytes": 1094,
+          "sha256": "22b1cdb6bc6bfdc21459299bad875710a77e402e3b1acf5415218f6b44db355d"
+        },
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/run.jsonl",
+          "bytes": 1980,
+          "sha256": "7be6e2184c7de138cf1bba4733c63d672309845c492e662b95a009aa604fb047"
+        },
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/empty.raw",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-r3-execution-packet-20261010/cli-fixture/request.json",
+          "bytes": 2269,
+          "sha256": "082f5d68274c8f346ff842bb02fb2a6ca621e91d40e9b2ce6b0152f5e152098d"
+        }
+      ]
+    },
+    "cli_exercise_v2": {
+      "kind": "separate synthetic v2 CLI contract exercise after the v1 exercise; not a Nextest test result or product evidence",
+      "program": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/target/debug/nextest-result-reader",
+      "argv": [
+        "--request",
+        "/private/tmp/termrock-vis08-nextest-reader-v2-status-r2-execution-packet-20261010/cli-fixture-v2/request.json",
+        "--selection",
+        "/private/tmp/termrock-vis08-nextest-reader-v2-status-r2-execution-packet-20261010/cli-fixture-v2/selection.json",
+        "--trusted-selection-sha256",
+        "a321206160e3c535ba3ebc0070159417d321dba64dc776a33c9c748c88890faa"
+      ],
+      "cwd": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r2-execution-packet-20261010/cli-fixture-v2",
+      "stdout_path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cli-output/v2-report.json",
+      "stderr_path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cli-output/v2-stderr.raw",
+      "timeout_ms": 30000,
+      "output_cap_bytes": 1048576,
+      "expected_exit": 0,
+      "expected_report_fields": {
+        "schema": "termrock-nextest-reader-report/v2",
+        "acceptance": "accepted",
+        "selection_count": "59",
+        "expected_test_count": 59,
+        "run_machine_state": "verified",
+        "selected_tests_length": 59,
+        "target_count": 1
+      },
+      "fixture_files": [
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r2-execution-packet-20261010/cli-fixture-v2/selection.json",
+          "bytes": 8143,
+          "sha256": "a321206160e3c535ba3ebc0070159417d321dba64dc776a33c9c748c88890faa",
+          "mode": 292
+        },
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r2-execution-packet-20261010/cli-fixture-v2/list.stdout",
+          "bytes": 5170,
+          "sha256": "63718dbe2afeb1b9f1ba6f6cd9a642b05fbbbf7db1836d7afe9f650af8796698",
+          "mode": 292
+        },
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r2-execution-packet-20261010/cli-fixture-v2/run.stdout",
+          "bytes": 9295,
+          "sha256": "54acd1f8a0c9fff32671adab6a34dcd986983cdeb772a9116ccf86d70aa2c9a3",
+          "mode": 292
+        },
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r2-execution-packet-20261010/cli-fixture-v2/empty.raw",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "mode": 292
+        },
+        {
+          "path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r2-execution-packet-20261010/cli-fixture-v2/request.json",
+          "bytes": 2051,
+          "sha256": "fef68b0c1ea5c62a87e0aae2d8caf16877a2c32f5b1ed4f30b7c334404395604",
+          "mode": 292
+        }
+      ]
+    }
+  },
+  "outputs": {
+    "attempt_root": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010",
+    "runner_result": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/runner-result.json",
+    "logs": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/logs",
+    "cli_output": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r4-execution-20261010/cli-output",
+    "freshness": "New private output tree; earlier packets/runs preserved."
+  },
+  "packet_successor": {
+    "source_packet_path": "/private/tmp/termrock-vis08-nextest-reader-v2-status-r3-execution-packet-20261010/packet.json",
+    "source_packet_sha256": "8a4a57991c53b2b8168b9a8fb26e567dd2fbeab928aab5aceb1d29202a3aec20",
+    "derivation": "R4 only rebinds fresh runtime/output paths and adds one absolute monotonic deadline covering setup, cache copy, version probes, Nextest, build, both CLI exercises and final snapshots; per-child timeouts are capped by remaining time."
+  },
+  "evidence_limits": {
+    "rust_tests": "Exact 23 reader module unit tests only.",
+    "cli_fixture": "Synthetic Rust reader CLI contract exercises: v1 nine and v2 fifty-nine.",
+    "product_behavior": "NOT_TESTED",
+    "product_acceptance": "NOT_ESTABLISHED"
+  }
+}

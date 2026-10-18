@@ -1,0 +1,25 @@
+{
+  "tool": "/Users/donbeave/.local/share/mise/installs/gh/2.102.0/gh_2.102.0_macOS_arm64/bin/gh",
+  "tool_sha256": "8a4258433c81106343144857750316241759d06dcf16265cf3c4864a8f2f2ad6",
+  "argv": [
+    "/Users/donbeave/.local/share/mise/installs/gh/2.102.0/gh_2.102.0_macOS_arm64/bin/gh",
+    "api",
+    "--include",
+    "repos/tailrocks/terminal-components-claude/actions/runs/38026551672/jobs"
+  ],
+  "started": "2026-10-10T05:19:34.037Z",
+  "finished": "2026-10-10T05:19:34.700Z",
+  "exit_code": 0,
+  "signal": null,
+  "error": null,
+  "stdout": {
+    "path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/jobs-api.stdout.raw",
+    "sha256": "76887283b16c18fb993ccfc434dd896354b44405841840ab3f4fa7562349be06",
+    "bytes": 1443
+  },
+  "stderr": {
+    "path": "/private/tmp/termrock-pr17-root-current-observation-0b7545-r1-20261010/jobs-api.stderr.raw",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "schema": "termrock.vis11.fixture-focused-ready/v1",
+  "status": "STARTED_AFTER_ROOT_GRANT",
+  "qualification": "NOT_QUALIFIED",
+  "started_utc": "2026-10-09T23:08:55.329Z",
+  "deadline_utc": "2026-10-09T23:28:55.329Z",
+  "packet_sha256": "12330af41a8908ed3481e0748d1b9d6d5335d0264fde935b45439f3e3d9eaf77",
+  "runner_sha256": "8708f48faa4374d732d1e5c975467e89e96f4919af6f881346c7533775f8c463",
+  "source": {
+    "root": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+    "full_tree_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+    "entries": 3457,
+    "files": 2608,
+    "directories": 842,
+    "symlinks": 7,
+    "lock_sha256": "0723dbb98c3b410975e897d91078646c1dd93881813614fb3be8f06fb3e344b4",
+    "selected_test_functions": 1,
+    "git_identity": "NOT_ASSERTED_GITLESS_EXTERNAL_SNAPSHOT"
+  },
+  "cache": {
+    "archive_manifest_sha256": "3d7d1f4fe426c13c96343d2611b10bd528a98d5849dc068a4f7f982d47a04897",
+    "archives": 406,
+    "archive_bytes": 59163074,
+    "source_index_closure_sha256": "807316fa1509dd28c618d5e31f76740957accb02d04609bec4b3f1c61cd10c99",
+    "source_index_files": 20133,
+    "source_index_directories": 3666,
+    "source_index_actual_file_bytes": 441286079,
+    "source_index_declared_file_bytes": 200791635,
+    "extracted_package_directories": 406,
+    "cargo_ok_markers": 406,
+    "qualification": "NOT_QUALIFIED"
+  },
+  "output": {
+    "execution": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution",
+    "runtime": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution/runtime",
+    "copied_seed_files": [
+      {
+        "path": "mise-cache/actionlint/remote_versions-de691.msgpack.z",
+        "bytes": 1368,
+        "sha256": "3da46c8a3e6ac6c5e5a1053efc9bff162124605625274996e3f806c866b67d13",
+        "mode": "644"
+      },
+      {
+        "path": "mise-cache/github/koalaman-shellcheck-1c2b670d0db853eb-all-releases-a2849.msgpack.z",
+        "bytes": 5808,
+        "sha256": "cbff76959e54a2da50ea4dff3d0ce6ac0b8e3d8da7986efee8a0a78a2e506053",
+        "mode": "644"
+      },
+      {
+        "path": "mise-cache/github/rhysd-actionlint-228bd911006f7087-all-releases-a2849.msgpack.z",
+        "bytes": 23111,
+        "sha256": "88b7239e352d6c6658647f7cfc2a2d46fadd5ba1fa18ae3a152ca1916b1d16c5",
+        "mode": "644"
+      },
+      {
+        "path": "mise-cache/github/rust-lang-rust-fde818873e897373-all-releases-a2849.msgpack.z",
+        "bytes": 2608,
+        "sha256": "7e8cf965d7ef92e2aad12782897cd53ab98972ab3eb3fe9b49c6583773c579a6",
+        "mode": "644"
+      },
+      {
+        "path": "mise-cache/github/zizmorcore-zizmor-8f0169e9cbcbd61d-all-releases-a2849.msgpack.z",
+        "bytes": 22476,
+        "sha256": "1fffb3f28c8121490815e59a2908ca3ed8f6aec1a035e9b1b8adcfa303e352c0",
+        "mode": "644"
+      },
+      {
+        "path": "mise-cache/rust/remote_versions-b00d5.msgpack.z",
+        "bytes": 2033,
+        "sha256": "bf30c8a59f6401ab9256da403a752ae67eb9653ec510a8122fa66ff1914e40fe",
+        "mode": "644"
+      },
+      {
+        "path": "mise-cache/shellcheck/remote_versions-dafdb.msgpack.z",
+        "bytes": 357,
+        "sha256": "670b5d2fdcdf9ce489f700e8f23b4a1010a72eba27ab03e42216c70f3c0ef533",
+        "mode": "644"
+      },
+      {
+        "path": "mise-cache/zizmor/remote_versions-7066a.msgpack.z",
+        "bytes": 2165,
+        "sha256": "25cc43d95e15df21aade97761a65bd04ded7b8719caac8f6a45046c38f7f6df5",
+        "mode": "644"
+      },
+      {
+        "path": "mise-data/migrations/runtime-symlink-dirs-v2",
+        "bytes": 3,
+        "sha256": "dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22",
+        "mode": "644"
+      },
+      {
+        "path": "config/global.toml",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": "600"
+      },
+      {
+        "path": "tool-bin/actionlint",
+        "bytes": 5829842,
+        "sha256": "8db11704dc296f096216db4db65d86cd7f0ebfdf4c38453a1da276b137b88388",
+        "mode": "700"
+      },
+      {
+        "path": "tool-bin/shellcheck",
+        "bytes": 61551911,
+        "sha256": "61c17246d69f012cd458ae82f244c46023dac75d1b69733ca1cc7d28fb270fd7",
+        "mode": "700"
+      },
+      {
+        "path": "tool-bin/zizmor",
+        "bytes": 22909456,
+        "sha256": "0cd1e69b329cdbc2ded5cd3b5161f21ffd89652eab6563153e4af5a69344c64d",
+        "mode": "700"
+      }
+    ],
+    "mise_alias": {
+      "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/execution/runtime/bin/mise",
+      "target": "/Users/donbeave/Projects/tailrocks/.termrock-visibility-runtime-20261009/mise-2026.9.18-macos-arm64/mise-v2026.9.18-macos-arm64",
+      "sha256": "484c135bd4329975d608d3f77e26c2ece5d2f5590f18ca71f44440294f8cfa6f"
+    }
+  },
+  "target": {
+    "path": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target",
+    "absent_before_child": true,
+    "fresh": true
+  },
+  "command": {
+    "index": 1,
+    "package": "velnor-actions-orchestrator-generation",
+    "binary": "impl_schema2_routing",
+    "expected_count": 1,
+    "test_ids": [
+      "impl_schema2_routing::schema2_workflows_match_expected_bytes"
+    ],
+    "argv": [
+      "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+      "nextest",
+      "run",
+      "--locked",
+      "--offline",
+      "-p",
+      "velnor-actions-orchestrator-generation",
+      "--build-jobs",
+      "2",
+      "--test-threads",
+      "1",
+      "--no-tests",
+      "fail",
+      "--user-config-file",
+      "none",
+      "--ignore-default-filter",
+      "--retries",
+      "0",
+      "--no-fail-fast",
+      "--color",
+      "never",
+      "-E",
+      "test(=impl_schema2_routing::schema2_workflows_match_expected_bytes)"
+    ],
+    "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source"
+  },
+  "sanitized_environment": {
+    "inherited": false,
+    "keys": [
+      "CARGO",
+      "CARGO_BUILD_JOBS",
+      "CARGO_HOME",
+      "CARGO_NET_OFFLINE",
+      "CARGO_TARGET_DIR",
+      "CARGO_TERM_COLOR",
+      "GIT_CONFIG_GLOBAL",
+      "GIT_CONFIG_NOSYSTEM",
+      "GIT_NO_LAZY_FETCH",
+      "GIT_NO_REPLACE_OBJECTS",
+      "GIT_OPTIONAL_LOCKS",
+      "GIT_TERMINAL_PROMPT",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "MISE_AUTO_INSTALL",
+      "MISE_CACHE_DIR",
+      "MISE_CARGO_HOME",
+      "MISE_DATA_DIR",
+      "MISE_EXEC_AUTO_INSTALL",
+      "MISE_GLOBAL_CONFIG_FILE",
+      "MISE_LOCKFILE",
+      "MISE_NO_CONFIG",
+      "MISE_NO_ENV",
+      "MISE_NO_HOOKS",
+      "MISE_RUSTUP_HOME",
+      "MISE_STATE_DIR",
+      "NEXTEST_EXPERIMENTAL_LIBTEST_JSON",
+      "NO_COLOR",
+      "PATH",
+      "RUSTC",
+      "RUSTDOC",
+      "RUSTUP_HOME",
+      "RUSTUP_TOOLCHAIN",
+      "TEMP",
+      "TERM",
+      "TMP",
+      "TMPDIR",
+      "TZ"
+    ],
+    "cargo_home": "/private/tmp/termrock-vis11-metadata-cache-delta-r6-20261009/cargo-home",
+    "cargo_target_dir": "/private/tmp/termrock-vis11-tool-fixture-gate-r9-source-tag-fixture-luna-20261010/run-root/target",
+    "offline": true,
+    "jobs": 2,
+    "test_threads": 1,
+    "mise_dirs_private_under_execution": true
+  },
+  "limits": {
+    "deadline_ms": 1200000,
+    "term_grace_ms": 15000,
+    "close_grace_ms": 10000,
+    "output_bytes": 4194304
+  }
+}

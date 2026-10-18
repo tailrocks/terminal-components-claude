@@ -1,0 +1,17 @@
+[package]
+name = "termrock-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = ["crossterm"]
+crossterm = ["dep:ratatui-crossterm"]
+testing = []
+
+[dependencies]
+ratatui-core.workspace = true
+ratatui-crossterm = { workspace = true, optional = true }
+bitflags.workspace = true
+unicode-width.workspace = true

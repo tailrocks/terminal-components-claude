@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "8d0fb883ea5d329ccb25698768b4a139dbb920efced6b2f7555bb9328d9e771e",
+  "artifacts": {
+    "ansi": {
+      "bytes": 9589,
+      "file": "showcase/diff/audit/160x50/nocolor.ansi",
+      "sha256": "8d0fb883ea5d329ccb25698768b4a139dbb920efced6b2f7555bb9328d9e771e"
+    },
+    "ascii": {
+      "bytes": 7157,
+      "file": "showcase/diff/audit/160x50/nocolor.ascii",
+      "sha256": "1868f349839b9de36c959050ac8e141596ec379d2968c988c7bb1ca2d5045d38"
+    },
+    "ascii_loss_json": {
+      "bytes": 38355,
+      "file": "showcase/diff/audit/160x50/nocolor.ascii.loss.json",
+      "sha256": "039944977cf1f542947a03516f2c0704fdbe46f54a9893adc14990b8b57e1b2e"
+    },
+    "frame_json": {
+      "bytes": 1793729,
+      "file": "showcase/diff/audit/160x50/nocolor.frame.json",
+      "sha256": "a72e381e69703247eb4385165312c3fbacc6517cfc9f56299f7b23dc98e05d8e"
+    },
+    "html": {
+      "bytes": 889317,
+      "file": "showcase/diff/audit/160x50/nocolor.html",
+      "sha256": "082212cb873ae74be2cf69a770765c21a94bd2082972d15c5fce0111aa605379"
+    },
+    "observations_json": {
+      "bytes": 452,
+      "file": "showcase/diff/audit/160x50/nocolor.observations.json",
+      "sha256": "244359480cfb7538d873fd8ee2f09c4d59a2e0f7c290b6c306e51757fd3a5a4e"
+    },
+    "png": {
+      "bytes": 646327,
+      "file": "showcase/diff/audit/160x50/nocolor.png",
+      "sha256": "b759ae675b0a72621c610a852f7968a23ab94cc22c166794e74a6bbef46ee502"
+    },
+    "png_fidelity_json": {
+      "bytes": 3023,
+      "file": "showcase/diff/audit/160x50/nocolor.png.fidelity.json",
+      "sha256": "bd0626e9e5a2b27dc43f70112502a26b9db9fa4407bed48ee98bc551e61ae181"
+    },
+    "txt": {
+      "bytes": 7962,
+      "file": "showcase/diff/audit/160x50/nocolor.txt",
+      "sha256": "433569fa13edf7d91c5ced426409cd8f78934d364372b946c7d6495b500f8bc4"
+    }
+  },
+  "ascii_substitutions_count": 411,
+  "complete": true,
+  "dimensions": {
+    "cols": 160,
+    "rows": 50
+  },
+  "frame_digest": 15235813807694030146,
+  "frame_sha256": "a72e381e69703247eb4385165312c3fbacc6517cfc9f56299f7b23dc98e05d8e",
+  "generation": "b85d7af06ddbd0a3429561463cf28c122bd28adeb085ea90e5d63c39d43fdb7a",
+  "html_sha256": "082212cb873ae74be2cf69a770765c21a94bd2082972d15c5fce0111aa605379",
+  "legacy_name": "showcase/audit/diff/160x50/nocolor",
+  "name": "showcase/diff/audit/160x50/nocolor",
+  "png_sha256": "b759ae675b0a72621c610a852f7968a23ab94cc22c166794e74a6bbef46ee502",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:10:52Z",
+  "txt_sha256": "433569fa13edf7d91c5ced426409cd8f78934d364372b946c7d6495b500f8bc4"
+}

@@ -1,0 +1,20 @@
+ # Junie Design system / Components / Terminal    i Inspector   ? Help
+
+   Overview       ?  Terminal  Viewport with scrollback, selection and.
+   Buttons        ?
+   Inputs         ?  +- V. - 37 lines . followi. -+ |  Step ra. 7 of 7
+   Text areas     ?  |    #13 RUN apt-get instal| | |
+   Forms          ?  |    #14 COPY rust-toolchai| | |   v 01 Resolve.
+   Lists          ?  |  v Build container       | | |   v 02 Pull ba.
+   Trees          ?  |  ? Resolve credentials   | | |   v 03 Build c.
+   Tables         ?  |    1Password  Engineering| | |     04 Mount s.
+   Editable tabl. ?  |  v Resolve credentials   | | |   v 05 Resolve.
+   Panels         ?  |  ? Start agent           | | |   v 06 Start a.
+   Sidebars       ?  |    claude --resume  pid 4| | |   v 07 Ready
+   Dialogs        |  |  v Start agent           | | |
+   Progress       |  |  ? Ready                 ? | |
+   Scrolling      |  |  v Ready                 ? | |
+?? Terminal       |  |  payments-platform ?     ? | |   Run    Run w.
+   Code editor    |  +----------------------------+ |
+
+ ^ v Move  Enter Open  Tab Into page  q Quit

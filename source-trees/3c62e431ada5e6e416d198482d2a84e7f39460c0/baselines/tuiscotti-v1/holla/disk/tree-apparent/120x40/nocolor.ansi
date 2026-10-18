@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                            big · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Disk › Usage  [0m                                                                                                 [0m
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mDisk usage · ~/work/big[0m                                                                                               [0m
+  scan complete · 2.3 MiB allocated · 21 entries · 0 selected (0 B)                                                     [0m
+                                                                                                                        [0m
+    Filesystems                                                                                                         [0m
+    /                       ━━━━━━━━━━━━────── 66%    611 of 926 GB                                                     [0m
+                                                                                                                        [0m
+    largest first · apparent · noise folded                                  big                            directory   [0m
+ [0m[1m▎▾ [0m [0m[1m big                                                 5.6 MiB · 100% [0m                                               [0m
+        vm.img                                            3.5 MiB ·   7%     Path       ~/work/big                      [0m
+        target                                   2.0 MiB ·  85% · folded     Allocated  2.3 MiB                         [0m
+    ▸   noise                                           112.0 KiB ·   7%     Apparent   5.6 MiB · sparse                [0m
+    ▸   docs                                              4.0 KiB ·   0%     Entries    21 · hardlinks counted once     [0m
+    ▸   src                                               4.0 KiB ·   0%     Modified   2026-08-11 08:41                [0m
+        Cargo.toml                                           10 B ·   0%     Freshness  live · complete                 [0m
+                                                                             Selection  not selected · Space selects    [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/big[0m                                     0 selected · 0 B                                      no color · 120×40 [0m
+          [0m[1m↑↓[0m Move  [0m[1m← →[0m Fold / open  [0m[1mSpace[0m Select  [0m[1ms[0m Sort  …   Sorted by apparent size · rows still show allocated bytes [0m

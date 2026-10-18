@@ -1,0 +1,28 @@
+warning: missing documentation for a function
+   --> crates/core/velnor-actions-contract-workflow/src/workflow/artifact_build/reconcile.rs:198:1
+    |
+198 | / pub fn validate_downloaded_outputs(
+199 | |     result: &[super::ArtifactBuildFile],
+200 | |     expected: &[velnor_actions_contract_config::ArtifactBuildOutput],
+201 | |     downloaded: &[super::DownloadedArtifactOutput],
+202 | | ) -> Result<(), ContractError> {
+    | |______________________________^
+    |
+    = note: requested on the command line with `-W missing-docs`
+
+warning: `velnor-actions-contract-workflow` (lib) generated 1 warning
+   Compiling velnor-actions-workflow-cache v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/services/velnor-actions-workflow-cache)
+   Compiling velnor-actions-workflow-jobs v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/services/velnor-actions-workflow-jobs)
+   Compiling velnor-actions-workflow-document v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/services/velnor-actions-workflow-document)
+   Compiling velnor-actions-workflow-render-strict v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/services/velnor-actions-workflow-render-strict)
+   Compiling velnor-actions-workflow-renderer v0.1.1 (/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source/crates/services/velnor-actions-workflow-renderer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.50s
+────────────
+ Nextest run ID a4bebb15-f737-4ec8-b707-6b2d274e1fa5 with nextest profile: default
+    Starting 4 tests across 2 binaries (121 tests skipped)
+        PASS [   0.025s] (1/4) velnor-actions-workflow-renderer::velnor_workflow_renderer impl_renderer_reusable_call::renderer_emits_valid_job_level_call
+        PASS [   0.017s] (2/4) velnor-actions-workflow-renderer::velnor_workflow_renderer impl_renderer_reusable_call::renderer_empty_calls_preserve_existing_output
+        PASS [   0.024s] (3/4) velnor-actions-workflow-renderer::velnor_workflow_renderer impl_renderer_reusable_call::renderer_publisher_call_is_push_gated_and_least_privilege
+        PASS [   0.016s] (4/4) velnor-actions-workflow-renderer::velnor_workflow_renderer impl_renderer_reusable_call::renderer_rejects_job_id_and_needs_conflicts
+────────────
+     Summary [   0.084s] 4 tests run: 4 passed, 121 skipped

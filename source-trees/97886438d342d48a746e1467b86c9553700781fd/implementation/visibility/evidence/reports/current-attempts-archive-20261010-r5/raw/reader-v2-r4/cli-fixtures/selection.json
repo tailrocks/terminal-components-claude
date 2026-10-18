@@ -1,0 +1,16 @@
+{
+  "schema": "termrock-nextest-selection/v1",
+  "filter_args": ["exact-cli-smoke"],
+  "run_ignored": "all",
+  "tests": [
+    {"package":"reader-cli-smoke","binary_id":"reader-cli-smoke::reader_cli_smoke","kind":"test","test_name":"case_0","ignored":true,"filter_match_status":"matches"},
+    {"package":"reader-cli-smoke","binary_id":"reader-cli-smoke::reader_cli_smoke","kind":"test","test_name":"case_1","ignored":false,"filter_match_status":"matches"},
+    {"package":"reader-cli-smoke","binary_id":"reader-cli-smoke::reader_cli_smoke","kind":"test","test_name":"case_2","ignored":false,"filter_match_status":"matches"},
+    {"package":"reader-cli-smoke","binary_id":"reader-cli-smoke::reader_cli_smoke","kind":"test","test_name":"case_3","ignored":false,"filter_match_status":"matches"},
+    {"package":"reader-cli-smoke","binary_id":"reader-cli-smoke::reader_cli_smoke","kind":"test","test_name":"case_4","ignored":false,"filter_match_status":"matches"},
+    {"package":"reader-cli-smoke","binary_id":"reader-cli-smoke::reader_cli_smoke","kind":"test","test_name":"case_5","ignored":false,"filter_match_status":"matches"},
+    {"package":"reader-cli-smoke","binary_id":"reader-cli-smoke::reader_cli_smoke","kind":"test","test_name":"case_6","ignored":false,"filter_match_status":"matches"},
+    {"package":"reader-cli-smoke","binary_id":"reader-cli-smoke::reader_cli_smoke","kind":"test","test_name":"case_7","ignored":false,"filter_match_status":"matches"},
+    {"package":"reader-cli-smoke","binary_id":"reader-cli-smoke::reader_cli_smoke","kind":"test","test_name":"case_8","ignored":false,"filter_match_status":"matches"}
+  ]
+}

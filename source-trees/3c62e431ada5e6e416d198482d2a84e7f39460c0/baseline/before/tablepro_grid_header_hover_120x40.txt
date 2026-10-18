@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help
+
+  ≡ Query 1 ×    T orders ×                                                                                         +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ─────── public ─╮ ╭─ public › orders ────────────────────────────────────────────────────────── 14 cols ─╮
+ │                           │ │   Data    Structure                                                                  │
+ │ ▎ Filter objects          │ │  ━━━━━━━──────────────────────────────────────────────────────────────────────────── │
+ │ ▎▾ D acme_prod            │ │                                                                                      │
+ │ ▎  ▾ S public             │ │   ‹1      order_number  customer_id                           organization_id   11›  │
+ │ ▎    ▾ Tables             │ │  ▎    1          10000  f92c5e53-3ebb-4a35-a2f7-d55b014ba7e→  2bd03496-f7…fbb5→    ┃ │
+ │ ▎      ▸ T organizations  │ │  ▎    2          10001  1b3a6759-b804-4ed8-b95a-9b742856481→  a1cc5725-42…36aa→    │ │
+ │ ▎      ▸ T customers      │ │  ▎    3          10002  64e6f4de-3e02-4ca0-9a5a-c2456513255→  45e4f51f-21…a892→    │ │
+ │ ▎      ▸ T products       │ │  ▎    4          10003  32143a01-1da3-4ac1-b997-7c607525437→  216371dc-bc…4df3→    │ │
+ │ ▎      ▸ T orders         │ │  ▎    5          10004  1c78fd05-5f61-47a4-97b4-333a34f15f6→  855a73fc-8e…1e6b→    │ │
+ │ ▎      ▸ T order_items    │ │  ▎    6          10005  59fec2d8-1726-43b9-b976-21a2ad2f9ee→  3082dad1-58…94d7→    │ │
+ │ ▎      ▸ T payments       │ │  ▎    7          10006  ede350f8-5b4f-43c6-affd-58400f9c14b→  b51d60b6-66…ceb3→    │ │
+ │ ▎      ▸ T subscriptions  │ │  ▎    8          10007  0f9c14bd-5840-4ffd-b63e-6603b51d60b→  272ceb33-e7…de92→    │ │
+ │ ▎    ▸ Views              │ │  ▎    9          10008  fb78dd25-a96f-4296-b51a-61c3440148c→  e420b1cb-f1…ca6b→    │ │
+ │ ▎    ▸ Functions          │ │  ▎   10          10009  dd2c444c-7d3a-4a51-94f3-9e11c0218d6→  cbc419eb-58…a287→    │ │
+ │ ▎    ▸ Sequences          │ │  ▎   11          10010  d8755486-2a99-4a4c-8da3-be8cf504ad9→  2beeba6e-17…e7f9→    │ │
+ │ ▎  ▸ S analytics          │ │  ▎   12          10011  7557d493-6762-4302-a066-ca3ecf86937→  26e6126e-36…05aa→    │ │
+ │ ▎  ▸ S audit              │ │  ▎   13          10012  03ec066a-66ba-4257-bf24-c7f3450f7c2→  c04a0d90-92…74df→    │ │
+ │                           │ │  ▎   14          10013  1fd69c1a-6c1d-4004-a21b-529d250e5b5→  5e08138a-c5…0daa→    │ │
+ │                           │ │  ▎   15          10014  250e5b5e-529d-421b-9d88-c5725e08138→  9ab0daa2-e8…a5c2→    │ │
+ │                           │ │  ▎   16          10015  44842f3f-c910-4cc2-86b5-7bdcbfbaee9→  c7c8457e-da…56e8→    │ │
+ │                           │ │  ▎   17          10016  e0ada9f0-d147-4112-8007-32d482f763e→  856eb1ff-ef…ce08→    │ │
+ │                           │ │  ▎   18          10017  b6d7e92a-e7c9-49f9-9025-5c684f35e13→  c180d977-70…c73e→    │ │
+ │                           │ │  ▎   19          10018  6dd6c286-1380-4f45-9c47-a150e6054ee→  71ff0ea9-6c…5ece→    │ │
+ │                           │ │  ▎   20          10019  33ba912f-50d1-46c2-8879-fed0e88c032→  e20af405-1e…d0c1→    │ │
+ │                           │ │  ▎   21          10020  454b51cc-dd84-4ffc-b6ea-eae7c3a06f9→  3126689d-fa…2ed1→    │ │
+ │                           │ │  ▎   22          10021  c3a06f9f-eae7-46ea-b13d-fa5f3126689→  e612ed16-fc…d1a5→    │ │
+ │                           │ │  ▎   23          10022  1fefdf3e-34b8-452d-8079-013c9d71d63→  10fd6c6e-75…21a4→    │ │
+ │                           │ │  ▎   24          10023  9d628e15-01b2-4964-bbe7-9dc4e3c55c7→  91a5a928-35…7877→    │ │
+ │                           │ │  ▎   25          10024  24272296-50a8-4f23-9e72-7c9b49c3cc2→  dee472bd-2c…a9ab→    │ │
+ │                           │ │  ▎   26          10025  2a817425-9c74-4067-ab9e-90fbe5c51c0→  d996d5c1-c0…fd5f→    │ │
+ │                           │ │  ▎   27          10026  c893cab9-945c-41dc-8d92-b3307b22ab9→  7258ca86-d5…78d7→    │ │
+ │                           │ │   rows 1–27 of 500 loaded · 1,203,338 total · cols 2–3 of 14                         │
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓←→ Cell  Enter Edit  s Sort  f Filter  Space Select row  Tab Next                            Connected to Production

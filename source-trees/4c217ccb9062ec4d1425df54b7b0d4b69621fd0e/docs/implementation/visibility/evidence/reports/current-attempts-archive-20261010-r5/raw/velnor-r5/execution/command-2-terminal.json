@@ -1,0 +1,86 @@
+{
+  "index": 2,
+  "label": "contract_release_rc_manifest_policy",
+  "package": "velnor-actions-contract-release",
+  "expected_tests": 2,
+  "test_ids": [
+    "impl_contract::manifest::manifest_schemas_validate_and_lookup_targets",
+    "impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only"
+  ],
+  "executable": "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+  "argv": [
+    "/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin/cargo",
+    "nextest",
+    "run",
+    "--locked",
+    "--offline",
+    "-p",
+    "velnor-actions-contract-release",
+    "--build-jobs",
+    "2",
+    "--test-threads",
+    "1",
+    "--no-tests",
+    "fail",
+    "--user-config-file",
+    "none",
+    "--ignore-default-filter",
+    "--retries",
+    "0",
+    "--no-fail-fast",
+    "--color",
+    "never",
+    "-E",
+    "test(=impl_contract::manifest::manifest_schemas_validate_and_lookup_targets) | test(=impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only)"
+  ],
+  "cwd": "/private/tmp/termrock-vis11-tool-fixture-admission-r8-source-tag-snapshot-luna-20261010/source",
+  "started_utc": "2026-10-10T01:00:23.656Z",
+  "pid": 75303,
+  "exit_code": 0,
+  "signal": null,
+  "timed_out": false,
+  "interrupted": false,
+  "terminal_reason": null,
+  "launch_error": null,
+  "exit_event_received": true,
+  "close_event_received": true,
+  "kill_signals": [
+    {
+      "signal": "SIGKILL",
+      "sent": false,
+      "error": "kill ESRCH",
+      "reason": "final_group_cleanup"
+    }
+  ],
+  "output_capture": {
+    "gate_cap_bytes": 4194304,
+    "stored_gate_bytes": 3466,
+    "observed_gate_bytes": 3466,
+    "stored_command_bytes": 881,
+    "observed_command_bytes": 881,
+    "limit_exceeded": false,
+    "write_error": null
+  },
+  "finished_utc": "2026-10-10T01:00:26.029Z",
+  "post_kill_close_grace_expired": false,
+  "summary_lines": [
+    "Summary [   0.026s] 2 tests run: 2 passed, 34 skipped"
+  ],
+  "measured_counts": {
+    "executed": 2,
+    "passed": 2,
+    "failed": 0
+  },
+  "passed_test_ids": [
+    "impl_contract::manifest::manifest_schemas_validate_and_lookup_targets",
+    "impl_contract_targets::prerelease::release_manifest_accepts_canonical_prerelease_identity_only"
+  ],
+  "counts_exact": true,
+  "output": {
+    "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-2.log",
+    "bytes": 881,
+    "sha256": "6ed314a9c064502e2e22339565cb50d6a893b96aa571837f442f4ed3ede9cea5",
+    "complete": true
+  },
+  "status": "completed"
+}

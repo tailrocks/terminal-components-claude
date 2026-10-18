@@ -1,0 +1,67 @@
+{
+  "ansi_sha256": "98e6258257daede23db8218f1dc6c288c20deb8272ad7acc8d6a6b1dd22e30a5",
+  "artifacts": {
+    "ansi": {
+      "bytes": 3600,
+      "file": "jackin/editor/roles/100x30/nocolor.ansi",
+      "sha256": "98e6258257daede23db8218f1dc6c288c20deb8272ad7acc8d6a6b1dd22e30a5"
+    },
+    "ascii": {
+      "bytes": 2430,
+      "file": "jackin/editor/roles/100x30/nocolor.ascii",
+      "sha256": "bd533a8cb35a7a9e31bb3f013566bf1457681ec9f1de556b833affc702069e1e"
+    },
+    "ascii_loss_json": {
+      "bytes": 15252,
+      "file": "jackin/editor/roles/100x30/nocolor.ascii.loss.json",
+      "sha256": "a53a789d9f6e1a6bb2b5eb62211c3ba2f94295912e43da56818e223ae15e62b3"
+    },
+    "frame_json": {
+      "bytes": 670973,
+      "file": "jackin/editor/roles/100x30/nocolor.frame.json",
+      "sha256": "7446598e3109e8176144fe97c5ab284e98ca857f28adfe87f6b2399787102a8a"
+    },
+    "html": {
+      "bytes": 726311,
+      "file": "jackin/editor/roles/100x30/nocolor.html",
+      "sha256": "9716852ffe4218049066185454106deeed977a554d6a274c3436fc54ec605a87"
+    },
+    "observations_json": {
+      "bytes": 451,
+      "file": "jackin/editor/roles/100x30/nocolor.observations.json",
+      "sha256": "69ddb93928eeabab1ce895d2909b0697e6cf9a4dbd64e365d22f2ea7bd36d222"
+    },
+    "png": {
+      "bytes": 536602,
+      "file": "jackin/editor/roles/100x30/nocolor.png",
+      "sha256": "8e1cb54289fa2a3c81bfd0408fbaad4eb3a9960187d12307bc25bc2701b0a2ed"
+    },
+    "png_fidelity_json": {
+      "bytes": 693,
+      "file": "jackin/editor/roles/100x30/nocolor.png.fidelity.json",
+      "sha256": "5d2546e96b7e273f18f1025f748236bfb20f4b912e4c390f03f6415d2dc64b46"
+    },
+    "txt": {
+      "bytes": 2724,
+      "file": "jackin/editor/roles/100x30/nocolor.txt",
+      "sha256": "6e1741e8166b07d3b8279a242fd8d973255eeba986564cf6d5bb5a68b6ceee84"
+    }
+  },
+  "ascii_substitutions_count": 165,
+  "complete": true,
+  "dimensions": {
+    "cols": 100,
+    "rows": 30
+  },
+  "frame_digest": 4535266284701934708,
+  "frame_sha256": "7446598e3109e8176144fe97c5ab284e98ca857f28adfe87f6b2399787102a8a",
+  "generation": "7b6184a5f3a5b6b2a6226b52f7cb4a43af01d89a21fa8e0d76451b264c92975e",
+  "html_sha256": "9716852ffe4218049066185454106deeed977a554d6a274c3436fc54ec605a87",
+  "legacy_name": "jackin/editor/roles/100x30/nocolor",
+  "name": "jackin/editor/roles/100x30/nocolor",
+  "png_sha256": "8e1cb54289fa2a3c81bfd0408fbaad4eb3a9960187d12307bc25bc2701b0a2ed",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-03T22:09:38Z",
+  "txt_sha256": "6e1741e8166b07d3b8279a242fd8d973255eeba986564cf6d5bb5a68b6ceee84"
+}

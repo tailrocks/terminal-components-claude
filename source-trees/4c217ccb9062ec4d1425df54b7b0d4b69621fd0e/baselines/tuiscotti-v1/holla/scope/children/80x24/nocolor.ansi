@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help                  acme · mise monorepo  [0m[1mmbp · local[0m [0m
+                                                                                [0m
+ [0m[1m Here  [0m                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                            scope ‹ children ›  [0m
+                                                                                [0m
+    Children · 3 projects · 11 entries                                          [0m
+ [0m[1m › Clean developer artifacts…  [0mplan[0m[1m  [0mchild[0m[1m  [0m2 candidates in 3 p…[0m[1m  [0mdestructive[0m[1m [0m [0m
+    Run //apps/frontend:build   task  child  defined by ~/work/a…               [0m
+    Run //apps/frontend:dev     task  child  defined by ~/work/a…               [0m
+    Run //apps/frontend:lint    task  child  defined by ~/work/a…               [0m
+    Run //apps/frontend:test    task  child  defined by ~/work/a…               [0m
+    Run //services/api:dev      task  child  defined by ~/work/a…               [0m
+    Run //services/api:migrate  task  child  defined by ~/work/a…               [0m
+    Run //services/api:test     task  child  defined by ~/work/a…               [0m
+    Run //tools/worker:dev      task  child  defined by ~/work/a…               [0m
+    Run //tools/worker:test     task  child  defined by ~/work/a…               [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+    → cargo clean · child · destructive                                         [0m
+                                                                                [0m
+ [0m[1m~/work/acme[0m   main   ↑1      scope children · 3 projects      no color · 80×24 [0m
+           [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Review…  …   Scope children · 3 projects [0m

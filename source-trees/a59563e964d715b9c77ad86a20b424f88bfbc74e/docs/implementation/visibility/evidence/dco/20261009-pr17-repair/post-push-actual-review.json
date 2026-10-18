@@ -1,0 +1,84 @@
+{
+  "schema": "termrock-pr17-dco-postpush-actual-review/v1",
+  "reviewer": "/root/technical_review",
+  "verdict": "ACTUAL_PROJECTION_AND_PUBLICATION_EVIDENCE_MATCH_WITH_LIMITATIONS",
+  "scope": "Read-only post-push review of supplied publication/API captures plus all projected commits and their trees in the external bare mirror. I did not run the materializer, push, or modify any repository/ref/index.",
+  "inputs": {
+    "projection_review": {
+      "path": "/private/tmp/termrock-pr17-dco-rewrite-r2-review-technical.json",
+      "sha256": "d4c2bf62c0ca5d7e2322fe87d27a09e83124fd9b56b4cb4df254251ad64a109e"
+    },
+    "materializer_review": {
+      "path": "/private/tmp/termrock-pr17-dco-materializer-q31-r2-review-technical.json",
+      "sha256": "e2b315a11524d88396d5eeb8d88ee14f67e94b58739a04d14c75736fc9fa43c7"
+    },
+    "projection_map": {
+      "path": "/private/tmp/termrock-pr17-dco-rewrite-plan-20261009-r2/old-to-new-map.json",
+      "sha256": "0c231c4c85234ac60d6ab78fa68ab5bd49d2b3f433b84ace196c47a092b8cf87"
+    },
+    "materializer_preflight": {
+      "path": "/private/tmp/termrock-pr17-dco-materializer-q31-20261009-r2/preflight-receipt.json",
+      "sha256": "8324adc87db2133d2c9322fb809754a5b1c0a9dcc6311e794404f920c6f86202"
+    },
+    "publication_record": {
+      "path": "/private/tmp/termrock-pr17-dco-publication-20261009/publication.json",
+      "sha256": "eacd39352d55473ae47c9517e7f16be307e501595068ad1d86ab03b76fe4ba91"
+    },
+    "dco_check_capture": {
+      "path": "/private/tmp/termrock-pr17-dco-publication-20261009/checks.json",
+      "sha256": "30c7f5732b02e5d72f5539f342b58d5c9accf734488e077fad403072b72e4d9a"
+    },
+    "remote_head_tag_capture": {
+      "path": "/private/tmp/termrock-pr17-dco-publication-20261009/remote-head-and-tag.raw",
+      "sha256": "72b6506d849ed6c82f22a0cb69fc281051b0e0721ddcb4d10533074942362280"
+    }
+  },
+  "actual_external_mirror_checks": {
+    "mirror": "/private/tmp/termrock-pr17-dco-backup-e44-20261009-r1/source-mirror.git",
+    "method": "Read-only /usr/bin/git --git-dir=<external mirror> cat-file/show-ref/rev-parse checks with clean Git config environment",
+    "projected_commit_records": 83,
+    "actual_projected_commit_objects_read": 83,
+    "object_oid_raw_sha_message_sha_tree_parent_author_committer_and_signoff_match_map": 83,
+    "unique_projected_trees": 82,
+    "projected_tree_objects_present": 82,
+    "projected_head": "6819529c2d24d871ba1c251988d8544cfaa82c51",
+    "projected_head_tree": "3a58036c595688898fc989ef6453e6d9d512f230",
+    "original_q31_head": "28058beecf63acee3b65bab847e507fe8e1c539d",
+    "original_q31_tree": "3a58036c595688898fc989ef6453e6d9d512f230",
+    "all_checks_passed": true,
+    "mirror_refs_after_write": [
+      "28058beecf63acee3b65bab847e507fe8e1c539d refs/archive/pr17-original-q31-20261009",
+      "e44d5504e91d90f8404a5488d8539ed71001e31f refs/heads/termrock-implementation"
+    ],
+    "projected_ref_created": false
+  },
+  "published_observation": {
+    "captured_branch_ref": "refs/heads/termrock-implementation",
+    "captured_branch_head": "6819529c2d24d871ba1c251988d8544cfaa82c51",
+    "captured_tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "captured_tag_peeled_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "tag_matches_publication_record": true,
+    "publication_record_old_head": "28058beecf63acee3b65bab847e507fe8e1c539d",
+    "publication_record_new_head": "6819529c2d24d871ba1c251988d8544cfaa82c51",
+    "publication_record_old_and_new_tree": "3a58036c595688898fc989ef6453e6d9d512f230",
+    "publication_record_push_exit": 0,
+    "publication_record_force_with_lease_old_head": "28058beecf63acee3b65bab847e507fe8e1c539d",
+    "dco_check_id": 113639531062,
+    "dco_check_head_sha": "6819529c2d24d871ba1c251988d8544cfaa82c51",
+    "dco_check_status": "completed",
+    "dco_check_conclusion": "success",
+    "dco_check_completed_at": "2026-10-09T02:24:09Z"
+  },
+  "limitations": [
+    "Root's materializer exit 0 and recreated_commits=83 are recorded in publication.json. The helper's original stdout was not saved as a filesystem receipt; my independent cat-file inspection establishes that all 83 planned commits and 82 unique trees are now present and byte-identical to the R2 map, but does not establish whether any of those identical objects pre-existed the write.",
+    "The remote head, tag, and DCO API data are the supplied pinned captures; I did not make a new network/API request. The captured head is 6819529c2d24d871ba1c251988d8544cfaa82c51.",
+    "The DCO app check reports success for the new head. The R2 audit still records 16 older unsigned commits outside the repair set; this is not a claim that all 473 historical commits have sign-off or that full AGENTS compliance is achieved.",
+    "Visibility remains NOT_ACCEPTED and refactor readiness remains NOT_READY in the publication record. No user-facing product qualification is inferred."
+  ],
+  "review_execution": {
+    "git_commands_run": "read-only cat-file/show-ref/rev-parse against external bare mirror only",
+    "materializer_run_by_reviewer": false,
+    "push_run_by_reviewer": false,
+    "source_checkout_or_index_changed": false
+  }
+}

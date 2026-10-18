@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                   no project  devbox · development [0m
+                                                                                                                                                                [0m
+  Here › Clean Docker completely › Review                                                                                                                       [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  Review · Clean Docker completely · gate 1 of 2 · review the resolved facts, then continue deliberately                                                        [0m
+                                                                                                                                                                [0m
+  Action             remove all user-removable Docker state on devbox                                                                                           [0m
+  Host               devbox · development · over SSH                                                                                                            [0m
+  In                 /work/scratch                                                                                                                              [0m
+  Steps              7 included · 0 excluded · 4 branches parallel · ~11 s                                                                                      [0m
+  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7 volumes 4.1 GB · build cache 6.1 GB                                                       [0m
+  Reclaimable        ~18.4 GB                                                                                                                                   [0m
+  Recoverable        no · images, contain╭────────────────────────────────────────────────────────────────────────────╮                                         [0m
+  Not touched        the Docker daemon it│                                                                            │                                         [0m
+  Privilege          none                │  [0m[1mClean Docker completely · gate 2 of 2[0m                                     │                                         [0m
+  Uncertainty        named volumes hold d│                                                                            │                                         [0m
+  Provenance         resolved by holla fr│  Action             remove all user-removable Docker state on devbox       │                                         [0m
+  Gate               second gate types th│  Host               devbox                                                 │                                         [0m
+                                         │  Steps              7 included                                             │                                         [0m
+ ╭─ Sequence · 8 commands ───────────────│  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7       │──────────────────────────── y copies ─╮ [0m
+ │  01  docker stop acme-api-1 acme-worke│                     volumes 4.1 GB · build cache 6.1 GB                    │                                       │ [0m
+ │  02  docker rm acme-api-1 acme-worker-│  Reclaimable        ~18.4 GB                                               │shell tmp-shell-2 pgadmin grafana loki │ [0m
+ │  03  docker image prune -a --force    │  Recoverable        no · images, containers and volumes are permanent      │                                       │ [0m
+ │  04  docker network prune --force     │                                                                            │                                       │ [0m
+ │  05  docker volume prune -a --force   │  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-re…  │                                       │ [0m
+ │  06  docker builder prune -a --force  │  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redi…  │                                       │ [0m
+ │      docker buildx prune -a --force   │  docker image prune -a --force                                             │                                       │ [0m
+ │  07  docker system df                 │  docker network prune --force                                              │                                       │ [0m
+ │                                       │  docker volume prune -a --force                                            │                                       │ [0m
+ │                                       │  docker builder prune -a --force … 2 more                                  │                                       │ [0m
+ │                                       │                                                                            │                                       │ [0m
+ │                                       │   [0m[1mType I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm         [0m  │                                       │ [0m
+ │                                       │ ▎ [0m[4mI UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox[0m                           │                                       │ [0m
+ │                                       │                                                                            │                                       │ [0m
+ │                                       │                                                                            │                                       │ [0m
+ │                                       │                                                         Cancel   Execute   │                                       │ [0m
+ │                                       │                                                                            │                                       │ [0m
+ │                                       ╰────────────────────────────────────────────────────────────────────────────╯                                       │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ │                                                                                                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+                                                                                                                                          Cancel    Continue…   [0m
+                                                                                                                                                                [0m
+ /work/scratch                                                      review · gate 1 of 2                                                      no color · 160×50 [0m
+ [0m[1m EDIT [0m                                       [0m[1m   [0m         [0m[1m   Type[0m Phrase  [0m[1mEnter[0m Next[0m[1m [0m [0m[1mEsc[0m Cancel     [0m[1m   [0m                                                        [0m

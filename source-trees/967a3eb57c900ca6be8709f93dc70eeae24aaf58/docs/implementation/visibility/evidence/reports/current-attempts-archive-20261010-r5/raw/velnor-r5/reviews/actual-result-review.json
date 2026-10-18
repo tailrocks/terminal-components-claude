@@ -1,0 +1,180 @@
+{
+  "aggregate": {
+    "count_semantics": "The 14 passed figure is the conservative gate-counted total from wholly exact successful groups. It is not the number of raw PASS rows. Raw per-command summaries show 46 passes and one failure among 47 started tests; one expected selected test did not start.",
+    "executed": 47,
+    "expected_selected": 48,
+    "failed_or_unverified": 34,
+    "gate_counted_passed": 14,
+    "raw_nextest_summary_totals": {
+      "executed": 47,
+      "failed": 1,
+      "passed": 46
+    },
+    "root_receipt_status": "failed_or_incomplete_preserved",
+    "wrapper_exit": 1
+  },
+  "bindings": {
+    "actual_receipt": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/receipt.json",
+      "sha256": "c10f126f5f5a6a39bd3bceb1bddd2c75046e1f12701c84dbd1b1132634b2f2bf"
+    },
+    "packet": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/gate-packet.json",
+      "sha256": "5ab40a5ced48ea768f56c974ab177a64bca8639367a9a67444b1ad045625ccc1"
+    },
+    "plan": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/plan.json",
+      "sha256": "f544ae6af58928bce9dfdde97195796debcdc386d5aa4715ab8376469af37828"
+    },
+    "preflight_stderr": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/preflight.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "preflight_stdout": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/evidence/preflight.stdout",
+      "sha256": "76ee106f332f43afe9ab74f27b2700116fbdffb8e5bdf3c57ff10f3a62e763fb"
+    },
+    "prior_static_review": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-r5-runner-review-subjects-luna.json",
+      "sha256": "5615c73494b91e3b6d2bcf2c9efcf5c518a6d2de91ed6f880b2fee0602708942"
+    },
+    "runner": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/runner.cjs",
+      "sha256": "0096bffe42a95984693c035cd00e562d2bfe346eac0b28841742caeddd92a083"
+    },
+    "start_receipt": {
+      "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/ready.json",
+      "sha256": "916bde8540fd1f06df1d8bf84b584507f68e541895a39220cd1149ad5b80e1df"
+    }
+  },
+  "commands": [
+    {
+      "command_pass": true,
+      "command_receipt_sha256": "d125acdcbcdbcd4d8ff545fb89ba80fe9382c162a139046ba01197f1d9799df8",
+      "counts_exact": true,
+      "executed": 2,
+      "exit": 0,
+      "expected": 2,
+      "failed": 0,
+      "index": 1,
+      "label": "contract_config_rc_and_branch_guards",
+      "log": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-1.log",
+        "sha256": "afef78388b616519f740a5aa92de013ab7f9e86a8780aa83309135bfa882cc3e"
+      },
+      "passed": 2,
+      "terminal_sha256": "0b95daae5b16fd09ac2fea89ea3f1ce53ee0d77f6f2b07246fb2fbd1d6f4efe6"
+    },
+    {
+      "command_pass": true,
+      "command_receipt_sha256": "99148804a3175ff17d414c7bf65c5b3d07899ec6f233d108b09b989e6d8906e5",
+      "counts_exact": true,
+      "executed": 2,
+      "exit": 0,
+      "expected": 2,
+      "failed": 0,
+      "index": 2,
+      "label": "contract_release_rc_manifest_policy",
+      "log": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-2.log",
+        "sha256": "6ed314a9c064502e2e22339565cb50d6a893b96aa571837f442f4ed3ede9cea5"
+      },
+      "passed": 2,
+      "terminal_sha256": "e384d909821c8744ac1a5670d6c13660cf902f0cebab6bfa9a8e912568857bf4"
+    },
+    {
+      "bounded_inference": "The 80 ms test deadline plus repeated empty-run queries make deadline exhaustion the likely explanation. The logs contain no per-request timings and do not prove exactly why the second query crossed the deadline. Do not call this flaky or infer a production defect from this run alone.",
+      "command_pass": false,
+      "command_receipt_sha256": "b83e30acd7ae9b5bee280861b51b4d772cae93cbd37d952bca9005bb0331cb8c",
+      "counts_exact": false,
+      "executed": 23,
+      "exit": 100,
+      "expected": 23,
+      "failed": 1,
+      "failure_test_id": "impl_ci_observer::runtime_distinguishes_missing_pending_ambiguous_and_http_errors",
+      "index": 3,
+      "label": "orchestrator_generation_affected_and_source_cases",
+      "log": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-3.log",
+        "sha256": "52b1f809f7baed6ca5210f40d277b275c9775c4673a82eeec91beffb1191935c"
+      },
+      "passed": 22,
+      "raw_failure": "Nextest summary: 23 run, 22 passed, 1 failed, 64 skipped. The test panics at tests/impl_ci_observer.rs:365:33; report observer_state is api_error and error is request_timeout, while expected state is confirmed_missing_within_window. Captured FakeApi requests include the workflow-runs URL twice after fetching the workflow source.",
+      "source_context": "The test invokes execute(..., \"0.08\") at tests/impl_ci_observer.rs:364. The runtime caps each curl request by remaining global deadline and maps an exceeded deadline to request_timeout; the missing-run poll loop repeats the workflow-runs query until that deadline.",
+      "terminal_sha256": "3a942fbb3d3022a9f986823b604bef00138f968e68c4904869ceb5004f1a348c"
+    },
+    {
+      "bounded_inference": "The expected exact filter appears to omit the branch_rejections:: module segment. This is source-derived and consistent with the missing selected test, but no list-only output from this run confirms its full Nextest ID.",
+      "command_pass": false,
+      "command_receipt_sha256": "5601f7ca22aaf900a9b768ceb149bd6130c8d44b9e42c1c1a69bee4cdafa389c",
+      "counts_exact": false,
+      "executed": 10,
+      "exit": 0,
+      "expected": 11,
+      "failed": 0,
+      "index": 4,
+      "label": "workflow_generator_source_tag_and_stable_branch_cases",
+      "log": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-4.log",
+        "sha256": "b637a5c0f6d555d69c8be4dcbe7f62b76680252b68561c8fe9f9fc8483c52690"
+      },
+      "missing_expected_selector": "generator_release::source_gate::tests::stable_dispatch_rejects_wrong_event_ref_sha_and_ci_receipt",
+      "passed": 10,
+      "raw_result": "The runner expected 11 selected tests; captured Nextest start/summary show 10 tests, all 10 passing, exit 0. The expected selector set did not execute completely.",
+      "source_context": "In generator_release/source_gate/tests.rs the function is nested under #[path = \"tests/branch_rejections.rs\"] mod branch_rejections; the function is declared in that child file.",
+      "terminal_sha256": "30902e7e41e483b8c3f841cc8dec50a9ab98517078597756f3797d444e1962a8"
+    },
+    {
+      "command_pass": true,
+      "command_receipt_sha256": "1f0f51467bd460a717a19fcfd616af7685ce99713751b463bd92c420111bd1ba",
+      "counts_exact": true,
+      "executed": 6,
+      "exit": 0,
+      "expected": 6,
+      "failed": 0,
+      "index": 5,
+      "label": "reusable_call_contract_revalidation",
+      "log": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-5.log",
+        "sha256": "ea945be3c76cba66f9f5da217a7d2d3f7d987c439272d9b386ad9f7b7850ad89"
+      },
+      "passed": 6,
+      "terminal_sha256": "974252b76fc3c10dd1c770bc5eaf085f8e4af913cee35a93f8cb1bff2b42e6c9"
+    },
+    {
+      "command_pass": true,
+      "command_receipt_sha256": "c8c19891227a9e2d91c9becd6bfca78d02d7e5f71f26586f2b4734b1b8600bbb",
+      "counts_exact": true,
+      "executed": 4,
+      "exit": 0,
+      "expected": 4,
+      "failed": 0,
+      "index": 6,
+      "label": "reusable_call_renderer_revalidation",
+      "log": {
+        "path": "/private/tmp/termrock-vis11-prerelease-v2-48case-gate-luna-r5-r8-20261010/run-root/execution/command-6.log",
+        "sha256": "11059c1f58631491e5c96f0567af8dd0503fa09c4924530491e4a2ed6a3bae7f"
+      },
+      "passed": 4,
+      "terminal_sha256": "268aecd41a98b607521140a6c066946bd7b7e668b8de4c8df86763020171518d"
+    }
+  ],
+  "integrity_and_limits": {
+    "cache_qualification": "NOT_QUALIFIED",
+    "immutable_archive_index_inputs_equal_before_after": true,
+    "mutable_global_cache_after_sha256": "4037f888fc03bd68ee689c160c7e27a8b6cadbe31b119040f2b33d724ed8191f",
+    "mutable_global_cache_before_sha256": "d914b4df873c4dd8b4434b4ffa36b9d8346b0ada2bf26b94f533980df052caa1",
+    "mutable_global_cache_note": "The .global-cache metadata changed and is recorded separately; immutable archive/index comparisons remain equal.",
+    "nonclaims": "No full-workspace, tool, release, tag, or product qualification. The source is a Git-less external snapshot. Prior 35-case evidence is not carried into this 48-case result.",
+    "process_bounds": "All six child commands have exit and close events, no timeout or signal termination, completed terminal receipts, and output capture below the 4 MiB cap. Total stored gate output is 36,589 bytes; elapsed time is 82,236 ms of a 1,200,000 ms deadline.",
+    "source_stable": true,
+    "source_tree_after_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2",
+    "source_tree_before_sha256": "646f52a778ec53f1edd6c23b3906443cee7aa052e066b2f01cf17905c3a1f3e2"
+  },
+  "qualification": "NOT_QUALIFIED",
+  "reviewer": "/root/subjects_runner_review_luna",
+  "schema": "termrock.vis11.r5-independent-actual-result-review/v1",
+  "scope": "Read-only independent review of the frozen R5 six-command result, command logs/receipts/terminals, and the pinned source lines relevant to the two incomplete groups. No Cargo, Nextest, tests, or edits were run by reviewer.",
+  "status": "REVIEWED_ACTUAL_FAILED_OR_INCOMPLETE",
+  "verdict": "Preserve R5 as an actual incomplete/failed gate. Commands 1, 2, 5, and 6 completed exact selections (14 gate-counted passes). Command 3 has one real test failure; command 4 exited 0 but ran only 10 of 11 expected selectors, so its group is incomplete. No source or test correction is made in this review."
+}

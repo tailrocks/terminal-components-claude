@@ -1,0 +1,22 @@
+{
+  "cell_count": 8000,
+  "cols": 160,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 18234253804466923995,
+  "legacy_name": "holla/flows/cleanup/report/160x50/truecolor",
+  "name": "holla/cleanup/report/160x50/truecolor",
+  "non_empty_cells": 939,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 50
+}

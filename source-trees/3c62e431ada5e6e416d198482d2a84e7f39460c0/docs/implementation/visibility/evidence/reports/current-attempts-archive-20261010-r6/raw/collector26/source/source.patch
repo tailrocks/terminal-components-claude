@@ -1,0 +1,10 @@
+--- /private/tmp/termrock-vis08-r17-aliasfix-r2-20261010/candidate/crates/termrock-visibility-tests/src/nextest_result.rs	2026-10-10 08:41:17
++++ /private/tmp/termrock-vis08-r17-aliasfix-r3-20261010/candidate/crates/termrock-visibility-tests/src/nextest_result.rs	2026-10-10 09:07:49
+@@ -2894,6 +2894,7 @@
+                     && event["nextest"]["kind"] == "lib"
+             })
+             .unwrap();
++        library_terminal["event"] = json!("failed");
+         library_terminal["passed"] = json!(34);
+         library_terminal["failed"] = json!(1);
+ 

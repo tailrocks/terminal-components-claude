@@ -1,0 +1,31 @@
+{
+  "schema": "termrock-status-attempt-result/v1",
+  "attempt_id": "vis01-status-r6",
+  "lane": "tool_control",
+  "source_binding": {
+    "kind": "tool_source",
+    "commit_sha": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+    "tree_sha": "bef0248d3df09bb832e1c219aca310725f0ba6d6",
+    "source_sha256": "868091a9cc2556406f2f4d99f954dbbaa5c6d49bb432e510a9a0914c51524d43"
+  },
+  "counts": {
+    "inventory": 53,
+    "selected": 53,
+    "started": 53,
+    "passed": 49,
+    "failed": 4,
+    "filtered": 0,
+    "incomplete": 0
+  },
+  "states": {
+    "test": "FAIL",
+    "child": "FAIL",
+    "wrapper": "INCOMPLETE",
+    "collector": "PASS",
+    "postflight": "UNVERIFIED",
+    "cleanup": "UNVERIFIED",
+    "product_qualification": "NOT_APPLICABLE",
+    "capture": "NOT_RUN",
+    "admission": "NOT_RUN"
+  }
+}

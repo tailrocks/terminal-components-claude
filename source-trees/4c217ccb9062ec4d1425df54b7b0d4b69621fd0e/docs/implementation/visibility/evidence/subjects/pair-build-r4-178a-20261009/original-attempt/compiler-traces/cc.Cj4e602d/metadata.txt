@@ -1,0 +1,11 @@
+tool_name=cc
+real_tool_path=/Library/Developer/CommandLineTools/usr/bin/cc
+real_tool_sha256=1590ac950a3d627817d09ade5cb60b2115f17a72182a3141e010b4bcc482a0c9
+real_tool_symlink_target=clang
+started_utc=2026-10-09T11:23:35Z
+pid=63377
+ppid=63370
+cwd=/private/tmp/termrock-vis06-pair-build-r2-20261009/project/crates/termrock-visibility-tests
+DEVELOPER_DIR=/Library/Developer/CommandLineTools
+SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+MACOSX_DEPLOYMENT_TARGET=

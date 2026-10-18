@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                         Workspaces › infra-control-plane  inside the Construct  2 running
+
+ ╭─ Workspaces ────────── 2 running ─╮ │  infra-control-plane                             saved workspace · 1 running
+ │ ▎   Current directory             │ │
+ │ ▎ ▾ payments-platform             │ │  Working dir   /workspace/infra-control-plane
+ │ ▎   ◉ 7f3a  the-archite…ude Code  │ │  Mounts        ~/src/infra-control-plane · rw shared
+ │ ▎   ◌ c41e  reviewer · Codex   •  │ │  Roles         sre ★ · allowed all (46 in registry)
+ │ ▎ ▸ infra-control-plane           │ │  Environments  2 vars · 1 [op]
+ │ ▎ ▸ release-automation            │ │  Accounts      Claude · Personal ★ · Codex · Experiments ★ · Grok · Team ★ ·
+ │ ▎ ▸ customer-portal               │ │                OpenCode · Go subscription ★
+ │ ▎   + New workspace               │ │  Policies      git pull enabled · keep awake off · dirty exit ask
+ │                                   │ │
+ │                                   │ │  Instances                                                  daemon · 3 s ago
+ │                                   │ │  ◉ 9b02  sre · Codex · running
+ │                                   │ │  ◌ 04d7  sre · Grok Build · preserved · unpushed
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │ ▎Launch   ▎Edit   ▎Prewarm   ▎Delete…
+ ╰───────────────────────────────────╯ │
+
+ Enter Launch  → Expand  e Edit  n New  d Delete…  w Prewarm  o GitHub  Tab Details  c Accounts  u Usage  s Settings  …

@@ -1,0 +1,225 @@
+{
+  "schema": "termrock-status-execution-attempt-history/v1",
+  "attempts": [
+    {
+      "sequence": 1,
+      "attempt_id": "vis01-status-r5",
+      "recorded_at": "2026-10-09T22:08:34.198Z",
+      "lane": "tool_control",
+      "scope": "HISTORICAL",
+      "source_binding": {
+        "kind": "tool_source",
+        "commit_sha": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+        "tree_sha": "bef0248d3df09bb832e1c219aca310725f0ba6d6",
+        "source_sha256": "d1e0f7323350dfa27807d79d337ab0f39c0f8641bf03d86977abc5a6a622b212"
+      },
+      "counts": {
+        "inventory": 53,
+        "selected": 53,
+        "started": 0,
+        "passed": 0,
+        "failed": 0,
+        "filtered": 0,
+        "incomplete": 53
+      },
+      "states": {
+        "test": "INCOMPLETE",
+        "child": "FAIL",
+        "wrapper": "INCOMPLETE",
+        "collector": "INCOMPLETE",
+        "postflight": "UNVERIFIED",
+        "cleanup": "UNVERIFIED",
+        "product_qualification": "NOT_APPLICABLE",
+        "capture": "NOT_RUN",
+        "admission": "NOT_RUN"
+      },
+      "evidence": {
+        "result_record": {
+          "path": "docs/implementation/visibility/evidence/reports/status-attempt-results-20261010-r2/vis01-status-r5.json",
+          "sha256": "478fba68983637b9da2bff7e6a86b444848b10d2e239c41fde9d63557df984e3",
+          "format": "json"
+        },
+        "run_receipt": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/final-receipt.json",
+          "sha256": "08575a8a092c18c7656332c07ff8db212d8a0f45e48887b6999498598708b01e",
+          "format": "json"
+        },
+        "source_freeze": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/source-freeze.json",
+          "sha256": "b60026ab91d39961027c435a274108d3f837671b7394724c2f3f9cbac8d29fc1",
+          "format": "json"
+        },
+        "source_manifest": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/source-manifest.json",
+          "sha256": "d1e0f7323350dfa27807d79d337ab0f39c0f8641bf03d86977abc5a6a622b212",
+          "format": "json"
+        },
+        "source_delta_patch": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/source-delta.patch",
+          "sha256": "d3651b036a9201ebb4a1bc76577a771dd14c7926b44222eb7d5dbce889bc966c",
+          "format": "bytes"
+        },
+        "preflight": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/preflight/runner-preflight.json",
+          "sha256": "b4c0db84c5272ba3886eb8e8cc2437fe8ef4a3b09ff21f0ee704f0104fce2ff3",
+          "format": "json"
+        },
+        "runner": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/runner.cjs",
+          "sha256": "ed3eac871208455a5eb8deb087969d41c7d915ddf530ea2497f8741b53711a25",
+          "format": "utf8"
+        },
+        "test_inventory": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/test-names.json",
+          "sha256": "ebcd2adeede88c96e667840c5971ab103090c6bf0fc4faab9c857e231f1f56cb",
+          "format": "json"
+        },
+        "nextest_stdout": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/nextest.stdout.jsonl",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "format": "utf8"
+        },
+        "nextest_stderr": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/nextest.stderr.log",
+          "sha256": "07409034892fcf3587974cb439bb49e4009a6950b9c22d933b6c2fe0fc2fe092",
+          "format": "utf8"
+        },
+        "process_events": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/process-events.jsonl",
+          "sha256": "b207af6879c2d9f5913e21f88455961f59e8b77fd02889fdc7688b572894bb52",
+          "format": "utf8"
+        },
+        "source_before": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/source-before.json",
+          "sha256": "dbf8cdb3d4fd1679d6fe5285858113ddd128812f2d6bc6b7f1240561734dab51",
+          "format": "json"
+        },
+        "source_after": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/output/source-after.json",
+          "sha256": "dbf8cdb3d4fd1679d6fe5285858113ddd128812f2d6bc6b7f1240561734dab51",
+          "format": "json"
+        },
+        "runner_static_review": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r5-compile-failure/reviews/runner-static-review.json",
+          "sha256": "f903c8d467e0cc098d2aa5753df598847980ea9aa6f350c4db9d409cd96b091f",
+          "format": "json"
+        }
+      }
+    },
+    {
+      "sequence": 2,
+      "attempt_id": "vis01-status-r6",
+      "recorded_at": "2026-10-09T22:26:41.792Z",
+      "lane": "tool_control",
+      "scope": "HISTORICAL",
+      "source_binding": {
+        "kind": "tool_source",
+        "commit_sha": "882d5162ab6c838cc03ef35ee65df6b53ffe50f0",
+        "tree_sha": "bef0248d3df09bb832e1c219aca310725f0ba6d6",
+        "source_sha256": "868091a9cc2556406f2f4d99f954dbbaa5c6d49bb432e510a9a0914c51524d43"
+      },
+      "counts": {
+        "inventory": 53,
+        "selected": 53,
+        "started": 53,
+        "passed": 49,
+        "failed": 4,
+        "filtered": 0,
+        "incomplete": 0
+      },
+      "states": {
+        "test": "FAIL",
+        "child": "FAIL",
+        "wrapper": "INCOMPLETE",
+        "collector": "PASS",
+        "postflight": "UNVERIFIED",
+        "cleanup": "UNVERIFIED",
+        "product_qualification": "NOT_APPLICABLE",
+        "capture": "NOT_RUN",
+        "admission": "NOT_RUN"
+      },
+      "evidence": {
+        "result_record": {
+          "path": "docs/implementation/visibility/evidence/reports/status-attempt-results-20261010-r2/vis01-status-r6.json",
+          "sha256": "d2ef4f00f2fee636b34c01a6123a589962be9893ccc5529a68b9c67e44e7f530",
+          "format": "json"
+        },
+        "run_receipt": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/final-receipt.json",
+          "sha256": "4522aabb897d6ff5dc5d1b0f74ea065b797896f54dcff22c405ba9431357d573",
+          "format": "json"
+        },
+        "source_freeze": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/source-freeze.json",
+          "sha256": "6356d5a3e37ca5705d70ba6d1c0d8203e65121777c383c391a1fb92039003317",
+          "format": "json"
+        },
+        "source_manifest": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/source-manifest.json",
+          "sha256": "868091a9cc2556406f2f4d99f954dbbaa5c6d49bb432e510a9a0914c51524d43",
+          "format": "json"
+        },
+        "source_delta_patch": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/source-delta.patch",
+          "sha256": "a1c16313df97770a1bb4220302ec5daece5ee80f1633a2d495deb1c72ce65732",
+          "format": "bytes"
+        },
+        "preflight": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/preflight/runner-preflight.json",
+          "sha256": "3f595a520eac402a0220c514cbe0228a1745afee1bca89456d01cca884feaf23",
+          "format": "json"
+        },
+        "runner": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/runner.cjs",
+          "sha256": "ed3eac871208455a5eb8deb087969d41c7d915ddf530ea2497f8741b53711a25",
+          "format": "utf8"
+        },
+        "test_inventory": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/test-names.json",
+          "sha256": "ebcd2adeede88c96e667840c5971ab103090c6bf0fc4faab9c857e231f1f56cb",
+          "format": "json"
+        },
+        "nextest_stdout": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/nextest.stdout.jsonl",
+          "sha256": "692a96c2fa230236055811329f83bc104b5be879f464081b8830f3a18eddb3fb",
+          "format": "utf8"
+        },
+        "nextest_stderr": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/nextest.stderr.log",
+          "sha256": "a360bde5cb88834b1b70ea872edd486def96e06b38782965a4b744e19ab66601",
+          "format": "utf8"
+        },
+        "process_events": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/process-events.jsonl",
+          "sha256": "e284ec013b8b1d983930d1559873b4a9c2321e71ade46bd59659eb3d350a0e45",
+          "format": "utf8"
+        },
+        "source_before": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/source-before.json",
+          "sha256": "a568c235d4afb379474fd5c16760dc2d66dc343131ffaf91d97c0b7ed958691d",
+          "format": "json"
+        },
+        "source_after": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/output/source-after.json",
+          "sha256": "a568c235d4afb379474fd5c16760dc2d66dc343131ffaf91d97c0b7ed958691d",
+          "format": "json"
+        },
+        "runner_static_review": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/reviews/runner-static-review.json",
+          "sha256": "0c79c631ce51be012a4e2a28157764b9737d21fac536bdc6d3fa509bb63a2abf",
+          "format": "json"
+        },
+        "source_review": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/reviews/source-review.json",
+          "sha256": "f649d16f270ebe533285f195665e2d614fc920c1090de2671900497063adc591",
+          "format": "json"
+        },
+        "partial_failure_diagnosis": {
+          "path": "docs/implementation/visibility/evidence/reports/current-attempts-archive-20261010-r2/raw/status-history/r6-test-run/reviews/partial-failure-diagnosis.json",
+          "sha256": "08a183c01578e173bd21f7a0b6da750b0e13941f4ff816ce3548a721aac6f026",
+          "format": "json"
+        }
+      }
+    }
+  ]
+}

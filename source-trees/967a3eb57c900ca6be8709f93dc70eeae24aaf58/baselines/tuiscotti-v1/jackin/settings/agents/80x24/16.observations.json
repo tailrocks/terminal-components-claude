@@ -1,0 +1,22 @@
+{
+  "cell_count": 1920,
+  "cols": 80,
+  "cursor": {
+    "visible": false,
+    "x": 0,
+    "y": 0
+  },
+  "frame_digest": 16206814968637353720,
+  "legacy_name": "jackin/settings/agents/80x24/16",
+  "name": "jackin/settings/agents/80x24/16",
+  "non_empty_cells": 619,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 24
+}

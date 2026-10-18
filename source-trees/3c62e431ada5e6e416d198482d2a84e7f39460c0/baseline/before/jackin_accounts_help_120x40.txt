@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help
+  ╭─ Keyboard shortcuts ─────────────────────────────────────────────────────────────────────────────────────────────╮
+ ╭│  Accounts                            Credential sources                  Everywhere                              │
+ ││  ↑↓ j k       move                   1Password    item / field referen…  Esc          back one level             │
+ ││  ←→ h l       fold provider / back   Local folder the agent's own logi…  s            Settings                   │
+ ││  Enter        details                Plain-text   typed once · masked …  ?            this help                  │
+ ││  Tab          inspector → actions                                        Ctrl+Q       quit with confirmati…      │
+ ││  a            add account…                                                                                       │
+ ││  e            edit…                                                                                              │
+ ││  Space        set provider default                                                                               │
+ ││  d            enable / disable                                                                                   │
+ ││  v            validate                                                                                           │
+ ││  x            remove…                                                                                            │
+ ││  r            refresh selection                                                                                  │
+ ││  F5           refresh all                                                                                        │
+ ││  /            filter                                                                                             │
+ ││  m            Usage overlay                                                                                      │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││                                                                                                                  │
+ ││  ↑↓ Scroll · Esc Close                                                                                           │
+ ╰╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                 ↑↓ Scroll  Esc Close                         Cancelled · nothing saved

@@ -1,0 +1,18 @@
+{
+  "schema": "termrock-root-reader-v2-postpush/v1",
+  "observed_at": "2026-10-10T00:57:26.974Z",
+  "remote_refs": {
+    "refs/heads/termrock-implementation": "00ba7397bd935797ca3954cd270e3d649a0b6185",
+    "refs/heads/visual-baseline": "4b473a98a8641a9dae8dbf9c31c0c94b15465496",
+    "refs/tags/visual-baseline": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+    "refs/tags/visual-baseline^{}": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+  },
+  "raw_ls_remote": "00ba7397bd935797ca3954cd270e3d649a0b6185\trefs/heads/termrock-implementation\n4b473a98a8641a9dae8dbf9c31c0c94b15465496\trefs/heads/visual-baseline\n1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5\trefs/tags/visual-baseline\n4a79c0a2d40fca46fc406b77157ce3b3f12ec16b\trefs/tags/visual-baseline^{}\n",
+  "commit_identity": "commit 00ba7397bd935797ca3954cd270e3d649a0b6185\nAuthor:     Alexey Zhokhov <alexey@zhokhov.com>\nAuthorDate: Sat Oct 10 00:56:17 2026 +0000\nCommit:     Alexey Zhokhov <alexey@zhokhov.com>\nCommitDate: Sat Oct 10 00:56:17 2026 +0000\n\n    feat(visibility): validate multi-target Nextest selections\n    \n    Generalize the trusted Nextest result reader to validate bounded selections\n    across multiple targets and the full status target while preserving v1\n    selection compatibility.\n    \n    Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>\n",
+  "source_module_sha256": "8f4a8d77aa1f32250bd0df79138daf0e77ee6c47afb9b71a9ebe7347a4729c8d",
+  "actual_result_sha256": "0ed52b295696ff953e0e5cd252542925a9894d1d7ca7a29ff3e829de29142b4a",
+  "actual_review_sha256": "9cea9a61395621ea852050858b1071f50ae3b573952bd65913d62e2dee7f99fa",
+  "projection_review_sha256": "27ea5920945f274e63d1a7a83e6ebccef0ec268b63cfc54ca73a391e271108ea",
+  "qualification": "READER_UNIT_AND_SYNTHETIC_CLI_ONLY_NOT_PRODUCT_PARITY",
+  "canonical_mutated": false
+}

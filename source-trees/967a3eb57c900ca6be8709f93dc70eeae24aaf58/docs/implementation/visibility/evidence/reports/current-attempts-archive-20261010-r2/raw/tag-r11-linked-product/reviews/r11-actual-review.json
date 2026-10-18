@@ -1,0 +1,176 @@
+{
+  "schema": "termrock-vis06-tag-r11-independent-actual-review/v1",
+  "verdict": "ACTUAL_RESULT_REVIEWED_FAIL_OR_INCOMPLETE",
+  "review_scope": "Read-only review of the R11 one-case actual result, current-source dep-info, product build receipt, linker/clang trace mapping, and cache postflight. No Cargo, compiler, linker, Nextest, source edit, or rerun by reviewer.",
+  "bindings": {
+    "runner_result": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/runner-result.json",
+      "sha256": "dbdf8853ed8b616c09209c096560194372a2713518f4a6676fa6f3585beccd73"
+    },
+    "runner": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/runner-r11.cjs",
+      "sha256": "35470969cb654fbf324fe7a39d8b8f61fc1bd265d43708f3305231beb9e343d7"
+    },
+    "preflight": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/preflight.json",
+      "sha256": "c8e9401c6294241b6a0d50482fda646252e0f59cac42422730e68da95fc251c1"
+    },
+    "launch_plan": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/launch-plan-r11.json",
+      "sha256": "8dc11019eaa5645810d242577927f06ed14d9682a1dcdee8e74e7cb185586bc9"
+    },
+    "r10_source_freeze": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/freeze-r10/freeze.json",
+      "sha256": "6991fb1dc860334739e3ef44218cf5b3ba832a674ceb3bcb34d4fd0256d259ec",
+      "source_root": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/source/candidate-6f98-r7-source-path",
+      "source_tree_sha256": "355dc7246b33e43f2345dc3284dfce0cb1a98a7286a6eebd2b6f32c24a803fdc"
+    },
+    "source_review": {
+      "path": "/private/tmp/termrock-vis06-tag-r10-source-review-luna-20261010.json",
+      "sha256": "52f1110d8bf0961c7c5ee33edabc89ff9adfb40bef75648fd01eb3cc6e171add"
+    },
+    "invocation": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/invocation.json",
+      "sha256": "a6bea8003c79dbacde092cf81142345ef1d50212317c3e53c334eec32c89ba44"
+    },
+    "root_launch_grant": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/root-launch-grant.json",
+      "sha256": "f26c7a83f0ddd1189ecb9c3ea26c6aa8946adeb5190642ad46a38577bcf43370"
+    }
+  },
+  "actual_nextest": {
+    "test_id": "termrock-visibility-tests::subjects supervises_real_frozen_tag_holla_build",
+    "nextest_run_id": "7b521862-ddb6-4833-b5d7-cbb67f8eef11",
+    "selected": 1,
+    "passed": 0,
+    "failed": 1,
+    "skipped": 16,
+    "cargo_nextest_exit_code": 100,
+    "child_pid": 40204,
+    "elapsed_ms": 316811,
+    "timed_out": false,
+    "signal": null,
+    "raw_stderr": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/logs/nextest.stderr.raw",
+      "sha256": "175295f839698b9be4323d4490acc086928b7ec70eaf36d483c1667acf107b42",
+      "bytes": 3774
+    },
+    "raw_stdout": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/logs/nextest.stdout.raw",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "process_events": {
+      "path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/execution/tag-r11-fresh-target/attempt-01/logs/process-events.jsonl",
+      "sha256": "0c38bc6a790c107e5f32f3862db85e54279b93f75415cad59b0580519fddb9db"
+    },
+    "raw_summary": "1 test run: 0 passed, 1 failed, 16 skipped",
+    "selected_rows_note": "Runner retains two identical progress/summary FAIL rows, while unique run ID and aggregate summary both report exactly one selected failing test."
+  },
+  "fresh_test_source_binding": {
+    "outer_target": "/private/tmp/termrock-vis06-nextest-target-tag-r11-fresh-target",
+    "binary": {
+      "path": "/private/tmp/termrock-vis06-nextest-target-tag-r11-fresh-target/debug/deps/subjects-3cf48d02d7f82b25",
+      "sha256": "84f1c50cdfa72f412d97520c7ece9a9ab3297d6ab34878e47258bd2cfae584ad",
+      "bytes": 4568040
+    },
+    "dep_info": {
+      "path": "/private/tmp/termrock-vis06-nextest-target-tag-r11-fresh-target/debug/deps/subjects-3cf48d02d7f82b25.d",
+      "sha256": "878a2071c0840e8288aaa4e6b65bd8e5cc669539a8d81573691c3976d7f11f39",
+      "bytes": 1806,
+      "manifest_dir": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/source/candidate-6f98-r7-source-path/crates/termrock-visibility-tests",
+      "helper_dependency": "tests/../../../docs/implementation/visibility/evidence/subjects/tag-holla-linker-trace-r1/tag_linker_test_support.rs"
+    },
+    "source_files": {
+      "tests/subjects.rs": "ff5013f3e43ba96e2ee730a53f8a152496024077c5041f464db24d7205c34566",
+      "docs/implementation/visibility/evidence/subjects/tag-holla-linker-trace-r1/tag_linker_test_support.rs": "996f89d5501a63835d6ca95e64d9086c86bbb404a1fb3dd0dbff603073a56351"
+    },
+    "finding": "The fresh test binary and .d file bind the R10 source root and current helper; the stale R10 target artifact problem is fixed for this run."
+  },
+  "product_build_and_link_trace": {
+    "tag_builder_receipt": {
+      "path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/tag-builder-receipt.json",
+      "sha256": "54b2be2d6211dc069ce52c1920e3c49dc178df0521fe77d8b5f6c74fe8fc7a3d",
+      "build_result": "PASS",
+      "target": "junie-tui@0.1.0 bin holla",
+      "target_triple": "aarch64-apple-darwin",
+      "tag_object": "1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5",
+      "tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+      "capture_status": "NOT_RUN",
+      "admission_status": "NOT_RUN",
+      "executable_path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle/aarch64-apple-darwin/release/holla",
+      "executable_sha256": "1144faa1760536fec08a2ac3c82242e41d85617ebf497e85b600353e3ed2c90f"
+    },
+    "cargo_build_stdout": {
+      "path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/build/oracle/holla/build.stdout",
+      "sha256": "71bf03e1d59e7f43f413968b66434bbe3639b3755191de1c444226c10815f73c"
+    },
+    "clang_trace": {
+      "path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/tool-traces/clang/clang-93456-1791569958591204000-0.jsonl",
+      "sha256": "615ebfd3d34373c1bb941588f22f02ccd700893e12413e6565422c32ba616852",
+      "wrapper_pid": 93456,
+      "real_clang_child_pid": 95124,
+      "exit_code": 0,
+      "linker_flag": "--ld-path=/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/tool-bin/ld",
+      "link_output": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle/aarch64-apple-darwin/release/deps/holla-39f36ec75299fd19"
+    },
+    "ld_trace": {
+      "path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/tool-traces/ld/ld-95127-1791569958811568000-0.jsonl",
+      "sha256": "6ee071a945afb4d99e72a8700e17c9b15cd4a5b876c097fcb6999b02716fc74a",
+      "ld_pid": 95127,
+      "parent_pid": 95124,
+      "real_ld_child_pid": 95134,
+      "real_ld_exit_code": 0,
+      "real_ld_path": "/Library/Developer/CommandLineTools/usr/bin/ld",
+      "real_ld_sha256": "374d9f0713bce2c8a9e1e82bde51615d5433516a10d99b63107eb6ee70542e4c",
+      "response_file_inputs": [],
+      "link_output": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle/aarch64-apple-darwin/release/deps/holla-39f36ec75299fd19"
+    },
+    "staging_and_final_output": {
+      "staging_path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle/aarch64-apple-darwin/release/deps/holla-39f36ec75299fd19",
+      "staging_sha256": "1144faa1760536fec08a2ac3c82242e41d85617ebf497e85b600353e3ed2c90f",
+      "final_path": "/private/tmp/termrock-vis06-tag-holla-tag-r11-fresh-target/evidence/tag-r11-fresh-target/targets/oracle/aarch64-apple-darwin/release/holla",
+      "final_sha256": "1144faa1760536fec08a2ac3c82242e41d85617ebf497e85b600353e3ed2c90f",
+      "finding": "One recorded clang child launched one recorded ld shim and its pinned real ld child exited 0. The ld -o is Rust/Cargo's hashed release/deps staging artifact; Cargo's compiler-artifact record and builder receipt name release/holla as the final executable. Both extant files hash identically. This supports the narrow diagnosis that the assertion looks for final executable path bytes at the linker invocation, while the linker emitted to Cargo's staging path. It does not show a missing linker invocation or failed product build."
+    },
+    "test_assertion": {
+      "source_path": "/private/tmp/termrock-vis06-tag-linker-r2-20261010/source/candidate-6f98-r7-source-path/docs/implementation/visibility/evidence/subjects/tag-holla-linker-trace-r1/tag_linker_test_support.rs",
+      "line": 1107,
+      "actual": 0,
+      "expected": 1,
+      "assertion": "one ld invocation must produce the Holla executable",
+      "matching_rule": "The helper searches ld argv and response-file contents for the bytes of the final release/holla executable path; the trace records -o release/deps/holla-39f36ec75299fd19."
+    }
+  },
+  "cache_postflight": {
+    "protected_inputs_unchanged": false,
+    "source_tag_probe_tools_unchanged": true,
+    "before": {
+      "manifested_files": 841,
+      "expected_directories": 401,
+      "unmanifested_errors": 0
+    },
+    "after": {
+      "manifested_files": 841,
+      "expected_directories": 401,
+      "unmanifested_errors": 7231,
+      "unmanifested_files": 6054,
+      "unmanifested_directories": 1177
+    },
+    "sample_unmanifested_path": "registry/src/index.crates.io-1949cf8c6b5b557f/aho-corasick-1.1.5/.cargo-ok",
+    "mutable_root_metadata_delta": {
+      "path": "/private/tmp/termrock-vis06-cargo-home-tag-r4-20261009-ba912a28e055/.global-cache",
+      "before_sha256": "8d8b0181d6d7225e9218daed14f24d1d0e938e1249f2426aa129ba5fc66d7ec6",
+      "after_sha256": "87ce0f96386206a6dd5be4de6c0b6d678cf61fba3d86d084e383778fc37c796e",
+      "bytes_before_after": 57344,
+      "separate_from_unmanifested_cache_tree_entries": true
+    },
+    "finding": "The run is also incomplete because the postflight cache inventory reports unmanifested registry/src files and directories. The .global-cache mutation is separately recorded metadata and does not account for those tree additions. This review does not waive them or claim all source/cache inputs stayed unchanged."
+  },
+  "overall_interpretation": "Product Holla build and observed linker invocation passed, but the selected Rust supervisor test failed in post-build linker-output classification, and protected cache inputs did not remain unchanged. Do not record this as a passing test or a qualified product build.",
+  "evidence_limits": [
+    "Read-only evidence interpretation; no rerun or source changes.",
+    "The staging/final digest equality is a point-in-time observation after Cargo promotion; it does not independently establish Cargo's internal copy operation.",
+    "The one ld invocation is linked to the Holla target by its clang parent, hashed holla staging output, Cargo artifact record, final executable receipt, and matching bytes; no claim is made that output ownership requirements should be weakened."
+  ]
+}

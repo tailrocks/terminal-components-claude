@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Trees               no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mTrees[0m  Indent carries hierarchy; the focus bar never moves                     [0m
+   Buttons                                                                                          [0m
+   Inputs             ▎[0m[1mProject[0m                          1–15 of 16      Selection                   [0m
+   Text areas                                                                                       [0m
+   Forms                ▾ src                                    ┃      Nothing selected            [0m
+   Lists               [0m[1m▎  ▸ api                                  [0m┃      Enter on a file selects it  [0m
+ › Trees                  ▸ db                                   ┃                                  [0m
+   Tables                 ▸ workers                              ┃      cursor  api                 [0m
+   Editable tables          config.rs                     1.9 KB ┃      visible 16 rows             [0m
+   Panels                   lib.rs                         640 B ┃      open    5 folders           [0m
+   Sidebars                 main.rs                       1.2 KB ┃                                  [0m
+   Dialogs              ▾ tests                                  ┃                                  [0m
+   Progress                 checkout.rs                   5.3 KB ┃                                  [0m
+   Scrolling                auth_flow.rs                  3.0 KB ┃                                  [0m
+   Terminal               ▸ fixtures                             ┃                                  [0m
+   Code editor          ▾ docs                                   ┃                                  [0m
+   Diff                     architecture.md               7.7 KB ┃                                  [0m
+   Data grid                webhooks.md                   2.2 KB ┃                                  [0m
+   Chips & selects     [0m[2m   Cargo.toml                      1.4 KB [0m│                                  [0m
+   Pickers                                                                                          [0m
+   Chrome                                                                                           [0m
+   Settings                                                                                         [0m
+   Task runner                                                                                      [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1m← →[0m Fold / unfold  [0m[1mEnter[0m Open  [0m[1m*[0m Expand all  [0m[1mTab[0m Next                                    [0m

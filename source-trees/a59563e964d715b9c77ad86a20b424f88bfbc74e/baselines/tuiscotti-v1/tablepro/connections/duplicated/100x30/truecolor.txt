@@ -1,0 +1,30 @@
+ ▪  TablePro  Connections  7 saved                                       truecolor · 100×30  ? help
+
+ ╭─ Connections ──────────── 7 ─╮    Production
+ │                              │
+ │   Filter connections         │    Engine       PostgreSQL
+ │  ▾ Personal                  │    Host         prod-db-1.acme.io:5432
+ │      · Local PostgreSQL      │    Database     acme_prod
+ │      · Scratch               │    User         acme_ops
+ │  ▾ Acme                      │    Environment  production
+ │      · Development           │    Safe Mode    Safe Mode · Writes ask for confirmation and a
+ │      ◇ Staging               │                 deliberate acknowledgement.
+ │      ◆ Analytics             │    SSL / SSH    on / bastion.acme.io
+ │ ▎    ◆ Production            │    Last used    1 hour ago
+ │      ◆ Production (Copy)     │
+ │                              │
+ │                              │
+ │                              │
+ │                              │     Connect    Edit    Duplicate    Delete…
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ │                              │
+ ╰──────────────────────────────╯
+
+ ↑ ↓ Move  Enter Connect  E Edit  D Delete  Ctrl+D Duplicate  / Filter  Ctrl+N New  …    Duplicated
