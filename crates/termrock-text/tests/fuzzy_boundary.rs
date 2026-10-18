@@ -1,4 +1,3 @@
-
 use termrock_text::{FuzzyBoundary, fuzzy, fuzzy_with_boundary};
 #[test]
 fn default_word_boundary_results_are_unchanged() {

@@ -1,4 +1,3 @@
-
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
@@ -89,7 +88,6 @@ fn wrapped_rows_share_measurement_and_following_row_positions() {
 
 #[test]
 fn pinned_manager_mounts_keep_newlines_and_accounts_wrap() {
-
     let rows = [
         PropsRow::new(
             ItemKey::num(1),

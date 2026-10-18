@@ -1,4 +1,3 @@
-
 use termrock::{
     BlurPolicy, Chord, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
     KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
@@ -155,7 +154,6 @@ impl HomeState {
     ) -> (Response<()>, Option<Action>) {
         let mut text = query_input().update(cx, &mut self.editor, &mut self.value);
         let submit = matches!(text.take_action(), Some(TextAction::Committed));
-
 
         if !self.editor.is_editing() {
             self.editor.begin(&self.value);

@@ -1,4 +1,3 @@
-
 use showcase_ui::{App, PageId};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;
@@ -15,8 +14,6 @@ const COLORS: [ColorLevel; 4] = [
     ColorLevel::Ansi16,
     ColorLevel::Mono,
 ];
-
-
 
 #[test]
 fn showcase_visual_baseline() {

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -37,107 +29,6 @@ impl<'a> MetadataOverride<'a> {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct HintBar<'a> {
     id: Id,
     layer: &'a HintLayer,
@@ -146,7 +37,6 @@ pub struct HintBar<'a> {
     centered_override: Option<bool>,
     variant: Variant,
     status: Status,
-
 
     #[cfg(test)]
     flags: StateFlags,
@@ -175,7 +65,6 @@ impl fmt::Debug for HintBar<'_> {
 }
 
 impl<'a> HintBar<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BADGE,
@@ -187,9 +76,7 @@ impl<'a> HintBar<'a> {
         Part::OVERFLOW,
     ];
 
-
     const HINT_GAP: u16 = 2;
-
 
     pub const fn new(id: Id, layer: &'a HintLayer) -> Self {
         HintBar {
@@ -209,7 +96,6 @@ impl<'a> HintBar<'a> {
         }
     }
 
-
     pub const fn derived(id: Id) -> DerivedHintBar<'a> {
         DerivedHintBar {
             id,
@@ -223,29 +109,18 @@ impl<'a> HintBar<'a> {
         }
     }
 
-
-
-
-
-
-
-
-
     #[must_use]
     pub fn resolve<'l>(layers: &[Option<&'l HintLayer>]) -> Option<&'l HintLayer> {
         layers.iter().flatten().copied().next()
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
 
-
     pub const fn layer(&self) -> &'a HintLayer {
         self.layer
     }
-
 
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
@@ -253,20 +128,17 @@ impl<'a> HintBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
 
-
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
         self.frame = f;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -275,14 +147,12 @@ impl<'a> HintBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -294,7 +164,6 @@ impl<'a> HintBar<'a> {
         matches!(self.status, Status::Busy | Status::Loading)
     }
 
-
     fn derived_flags(&self) -> StateFlags {
         #[cfg(test)]
         {
@@ -305,13 +174,6 @@ impl<'a> HintBar<'a> {
             self.status.flags()
         }
     }
-
-
-
-
-
-
-
 
     fn hint(&self, i: usize) -> Option<KeyHint<'a>> {
         let h = self.layer.hints.get(i)?;
@@ -329,13 +191,11 @@ impl<'a> HintBar<'a> {
         Some(k)
     }
 
-
     fn badge_width(&self) -> u16 {
         self.badge_text()
             .filter(|b| !b.is_empty())
             .map_or(0, |b| width(b).saturating_add(2))
     }
-
 
     fn status_width(&self, ui: &Ui<'_>, live: StateFlags) -> u16 {
         let Some(s) = self.message().filter(|s| !s.is_empty()) else {
@@ -354,14 +214,6 @@ impl<'a> HintBar<'a> {
             .resolve(self.layer.status.as_deref())
     }
 
-
-
-
-
-
-
-
-
     fn marker_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Slot<GlyphRole> {
         let base = ui
             .resolve(Family::HINTBAR, self.variant, Part::MARKER, live)
@@ -370,8 +222,6 @@ impl<'a> HintBar<'a> {
             .part_patch(Part::MARKER)
             .map_or(base, |p| p.glyph.over(base))
     }
-
-
 
     fn status_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Option<&'static str> {
         if self.busy() {
@@ -393,12 +243,6 @@ impl<'a> HintBar<'a> {
         None
     }
 
-
-
-
-
-
-
     fn warning_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Option<&'static str> {
         if let Some(patch) = self.ov.part_patch(Part::MARKER) {
             match patch.glyph {
@@ -416,7 +260,6 @@ impl<'a> HintBar<'a> {
             };
         }
 
-
         match self.marker_glyph(ui, live) {
             Slot::Set(GlyphRole::Dirty) if ui.theme_ref().capability.color == ColorLevel::Mono => {
                 Some(ui.glyph_str(GlyphRole::WarningMark))
@@ -426,10 +269,6 @@ impl<'a> HintBar<'a> {
             Slot::Clear => None,
         }
     }
-
-
-
-
 
     fn theme_marker_slot(&self, theme: &Theme, live: StateFlags) -> Slot<GlyphRole> {
         let recipes = &theme.recipes;
@@ -471,9 +310,6 @@ impl<'a> HintBar<'a> {
         acc.glyph
     }
 
-
-
-
     fn fitting(&self, budget: u16) -> (usize, u16) {
         let n = self.layer.hints.len();
         let mut used = 0u16;
@@ -497,7 +333,6 @@ impl<'a> HintBar<'a> {
         (drawn, used.saturating_sub(Self::HINT_GAP))
     }
 
-
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the status, the badge, the hints and the cut marker"
@@ -508,13 +343,11 @@ impl<'a> HintBar<'a> {
             return area;
         }
 
-
         let live = PartStyle::flags(StateFlags::empty(), self.derived_flags());
         let ov = self.ov;
         let id = self.id;
         let container = ov.style(ui, id, Family::HINTBAR, self.variant, Part::CONTAINER, live);
         ui.fill(area, container.style);
-
 
         let status_w = self.status_width(ui, live);
         let mut right_limit = area.right();
@@ -523,10 +356,6 @@ impl<'a> HintBar<'a> {
             let mut x = area.right().saturating_sub(status_w).saturating_sub(1);
             right_limit = x.saturating_sub(Self::HINT_GAP);
             if let Some(g) = glyph {
-
-
-
-
                 let part = if self.busy() {
                     Part::ICON
                 } else {
@@ -561,12 +390,8 @@ impl<'a> HintBar<'a> {
                 }
             }
         } else if status_w > 0 {
-
-
-
             right_limit = self.paint_truncated_status(ui, area, live);
         }
-
 
         let mut x = area.x.saturating_add(1);
         let badge_w = self.badge_width();
@@ -591,8 +416,6 @@ impl<'a> HintBar<'a> {
         let budget = right_limit.saturating_sub(x);
         let (drawn, used) = self.fitting(budget);
         if self.centered_override.unwrap_or(self.layer.centered) {
-
-
             let free = area.width.saturating_sub(used);
             let mid = area.x.saturating_add(free / 2);
             x = mid.max(x).min(right_limit.saturating_sub(used).max(x));
@@ -636,11 +459,6 @@ impl<'a> HintBar<'a> {
         }
         area
     }
-
-
-
-
-
 
     fn paint_truncated_status(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) -> u16 {
         let glyph = self.status_glyph(ui, live);
@@ -696,7 +514,6 @@ impl<'a> HintBar<'a> {
         right_limit
     }
 
-
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let live = PartStyle::flags(StateFlags::empty(), self.derived_flags());
         let hints: u16 = (0..self.layer.hints.len())
@@ -717,7 +534,6 @@ impl<'a> HintBar<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, Debug)]
 pub struct DerivedHintBar<'a> {
     id: Id,
@@ -731,13 +547,11 @@ pub struct DerivedHintBar<'a> {
 }
 
 impl<'a> DerivedHintBar<'a> {
-
     #[must_use]
     pub const fn top(mut self, layer: &'a HintLayer) -> Self {
         self.top = Some(layer);
         self
     }
-
 
     #[must_use]
     pub const fn mode(mut self, layer: &'a HintLayer) -> Self {
@@ -745,13 +559,11 @@ impl<'a> DerivedHintBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn screen(mut self, layer: &'a HintLayer) -> Self {
         self.screen = Some(layer);
         self
     }
-
 
     #[must_use]
     pub const fn global(mut self, layer: &'a HintLayer) -> Self {
@@ -759,24 +571,17 @@ impl<'a> DerivedHintBar<'a> {
         self
     }
 
-
-
-
     #[must_use]
     pub const fn status_text(mut self, text: Option<&'a str>) -> Self {
         self.status_text = MetadataOverride::Set(text);
         self
     }
 
-
-
     #[must_use]
     pub const fn badge(mut self, text: Option<&'a str>) -> Self {
         self.badge = MetadataOverride::Set(text);
         self
     }
-
-
 
     #[must_use]
     pub const fn centered(mut self, centered: bool) -> Self {
@@ -791,9 +596,6 @@ impl<'a> DerivedHintBar<'a> {
         bar.centered_override = self.centered;
         bar.draw(ui, area)
     }
-
-
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         if let Some(layer) = self.top.filter(|layer| !layer.is_empty()) {
@@ -887,11 +689,6 @@ mod tests {
             Some(1)
         );
 
-
-
-
-
-
         assert!(core::ptr::eq(
             HintBar::resolve(&[Some(&modal), None, Some(&screen)]).unwrap_or(&screen),
             &raw const modal
@@ -929,7 +726,6 @@ mod tests {
             None,
             "ready status does not imply a glyph"
         );
-
 
         let mut frame = FrameState::default();
         frame.reset(1, AREA);

@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 pub mod pinned;
 
 use std::collections::BTreeSet;
@@ -28,7 +21,6 @@ use jackin_preview_domain::workspace::{
     WorkspaceId,
 };
 
-
 pub const HOME: &str = "/Users/alexey";
 
 pub const PAYMENTS_WORKSPACE: WorkspaceId = 1;
@@ -37,10 +29,8 @@ pub const PAYMENTS_WORKSPACE_NAME: &str = "payments-platform";
 
 pub const PAYMENTS_WORKDIR: &str = "/Users/alexey/src/payments-platform";
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrecedenceLevel {
-
     Session,
 
     Role,
@@ -52,10 +42,8 @@ pub enum PrecedenceLevel {
     Discovered,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedAccount {
-
     pub account: Option<AccountId>,
 
     pub level: Option<PrecedenceLevel>,
@@ -64,7 +52,6 @@ pub struct ResolvedAccount {
 }
 
 impl PrecedenceLevel {
-
     pub const fn label(self) -> &'static str {
         match self {
             Self::Session => "session choice",
@@ -77,7 +64,6 @@ impl PrecedenceLevel {
 }
 
 impl ResolvedAccount {
-
     pub fn label(&self, registry: &AccountRegistry) -> String {
         match &self.account {
             Some(id) => registry
@@ -91,8 +77,6 @@ impl ResolvedAccount {
         self.level.map_or("no account", PrecedenceLevel::label)
     }
 }
-
-
 
 pub fn op_reference(
     vault_id: &str,
@@ -111,9 +95,6 @@ pub fn op_reference(
         field_label: "credential".into(),
     }
 }
-
-
-
 
 pub fn resolve_account(
     provider: Provider,
@@ -199,8 +180,6 @@ fn validated(
     provider::apply_validation(&mut account, &outcome, now);
     account
 }
-
-
 
 pub fn fixture_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     let mut registry = AccountRegistry::default();
@@ -290,11 +269,6 @@ pub fn fixture_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     };
     registry.insert(discovered);
 
-
-
-
-
-
     for account in legacy_fixture_accounts(op, now) {
         registry.insert(account);
     }
@@ -359,8 +333,6 @@ fn legacy_fixture_accounts(_op: &SimOnePassword, now: i64) -> Vec<Account> {
     );
     primary.identity = handle("ChatGPT account org_7Hq2");
     primary.identity.plan = Some("Pro 20x".into());
-
-
 
     out.push(primary);
 
@@ -558,24 +530,19 @@ fn handle(subject: &str) -> AccountIdentity {
     }
 }
 
-
 pub fn fixture_roles() -> Vec<RoleEntry> {
     pinned::roles()
 }
 
-
 pub fn fixture_roles_for(scenario: jackin_preview_domain::scenario::Scenario) -> Vec<RoleEntry> {
     pinned::roles_for(scenario)
 }
-
 
 pub fn fixture_workspaces_for(
     scenario: jackin_preview_domain::scenario::Scenario,
 ) -> Vec<Workspace> {
     pinned::workspaces_for(scenario)
 }
-
-
 
 pub fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     let mut registry = fixture_accounts(op, now);
@@ -603,8 +570,6 @@ pub fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     registry.insert(revoked);
     registry
 }
-
-
 
 pub fn fixture_workspace() -> Workspace {
     let mut workspace = Workspace::new(
@@ -660,7 +625,6 @@ pub fn fixture_workspace() -> Workspace {
     workspace
 }
 
-
 pub fn fixture_instance(
     status: InstanceStatus,
     run_id: RunId,
@@ -709,7 +673,6 @@ fn instance_id_for(status: InstanceStatus) -> InstanceId {
     }
 }
 
-
 pub fn live_capsule() -> DaemonSnapshot {
     DaemonSnapshot::Tabs(vec![
         TabSnapshot {
@@ -748,8 +711,6 @@ pub fn live_capsule() -> DaemonSnapshot {
         },
     ])
 }
-
-
 
 pub fn fixture_metadata(op: &SimOnePassword) -> (usize, usize) {
     let accounts = op.accounts.len();

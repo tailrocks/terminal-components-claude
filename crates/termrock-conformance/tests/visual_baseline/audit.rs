@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use crate::support::{
     self, CANONICAL_COLORS, CANONICAL_SIZES, Case, HOLLA, JACKIN, SHOWCASE, TABLEPRO,
 };
@@ -12,7 +5,6 @@ use crate::support::{
 const SHOWCASE_BOOT: &str = "Junie Design system";
 const HOLLA_BOOT: &str = "holla❯";
 const JACKIN_BOOT: &str = "jackin❯";
-
 
 fn audit_matrix(
     prefix: &str,
@@ -72,15 +64,6 @@ fn holla_audit_upgrade_matrix() {
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn jackin_audit_accounts_matrix() {
-
-
-
-
-
-
-
-
-
     let mut failures = Vec::new();
     for (cols, rows) in CANONICAL_SIZES {
         for color in CANONICAL_COLORS {

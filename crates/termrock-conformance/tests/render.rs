@@ -1,7 +1,3 @@
-
-
-
-
 #![cfg_attr(
     test,
     allow(
@@ -33,7 +29,6 @@ const DLG_OK: Id = Id::root("render.dlg.ok");
 const PICK: Id = Id::root("render.pick");
 const PICK_ROW: Id = Id::root("render.pick.row");
 
-
 struct Layered {
     open_dlg: bool,
     open_pick: bool,
@@ -42,7 +37,6 @@ struct Layered {
 
 impl App for Layered {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-
         if self.open_dlg && !cx.is_open(DLG) {
             self.open_dlg = false;
             cx.open_layer(DLG, LayerSpec::modal(DLG).size(LayerSize::Fixed(20, 5)));
@@ -220,17 +214,6 @@ mod text {
     use super::*;
     use unicode_segmentation::UnicodeSegmentation;
 
-
-
-
-
-
-
-
-
-
-
-
     fn legacy_width(s: &str) -> usize {
         usize::from(termrock::width(s))
     }
@@ -262,16 +245,9 @@ mod text {
         format!("{t}{}", " ".repeat(pad))
     }
 
-
-
-
-
     fn cellular(s: &str) -> String {
         s.graphemes(true).filter(|g| legacy_width(g) > 0).collect()
     }
-
-
-
 
     fn painted_columns(buf: &termrock::Buffer, y: u16, w: u16) -> String {
         let mut out = String::new();
@@ -289,8 +265,6 @@ mod text {
     fn row_ui_matches_fit_for_every_fixture() {
         let corpus = fixtures_text::corpus();
         let mut scene = Scene::new("rowui", Theme::junie(), ColorLevel::TrueColor, 60, 1);
-
-
 
         let cellable = |s: &&String| !s.chars().any(char::is_control);
         for s in corpus.iter().filter(cellable) {
@@ -323,10 +297,6 @@ mod layer {
     const SENTINEL: &str = "·";
     const LAYER: Id = Id::root("render.layer");
     const ROW_OWNER: Id = Id::root("render.layer.row");
-
-
-
-
 
     struct SentinelLayer;
 
@@ -363,7 +333,6 @@ mod layer {
                 }
             }
             ui.layer(LAYER, |ui, a| {
-
                 let row = Rect::new(a.x, a.y, 6, 1);
                 let mut r = RowUi::new(
                     ui,
@@ -417,8 +386,6 @@ mod ui {
 
     const SPANNED: Id = Id::root("render.spans");
 
-
-
     #[test]
     fn paint_spans_matches_row_ui_label_spans() {
         use termrock::{Role, Span};
@@ -432,8 +399,6 @@ mod ui {
 
         let mut direct = Scene::new("spans_direct", Theme::junie(), ColorLevel::TrueColor, 30, 1);
         direct.draw(|ui, _| {
-
-
             let container = ui
                 .style(
                     Family::LIST,
@@ -520,11 +485,6 @@ mod theme {
     use super::*;
 
     const PANEL: Id = Id::root("render.ascii.panel");
-
-
-
-
-
 
     struct Framed;
 

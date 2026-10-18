@@ -1,5 +1,3 @@
-
-
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io;
@@ -118,7 +116,6 @@ enum CompareOutcome {
     Global(FailureCode),
     Scenario(Vec<(String, FailureCode)>),
 }
-
 
 pub fn run_compare(context_path: &Path) -> io::Result<i32> {
     let raw_bytes = fs::read(context_path)?;

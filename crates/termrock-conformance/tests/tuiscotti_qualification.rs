@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use tuiscotti::Profile;
 use tuiscotti::VENDORED_FACES;
 use tuiscotti::formats::{
@@ -26,7 +14,6 @@ fn qualify_pure_ratatui_capture_and_six_formats() {
     let cols = 80;
     let rows = 24;
 
-
     let capture = render_screen(
         cols,
         rows,
@@ -40,12 +27,10 @@ fn qualify_pure_ratatui_capture_and_six_formats() {
     assert_eq!(capture.screen.cols(), cols);
     assert_eq!(capture.screen.rows(), rows);
 
-
     let profile = Profile::default_profile();
     let frame = frame_from_screen(&capture.screen, &profile.name);
     assert_eq!(frame.cols, cols);
     assert_eq!(frame.rows, rows);
-
 
     let mut renderer = profile
         .renderer(&VENDORED_FACES)
@@ -53,32 +38,25 @@ fn qualify_pure_ratatui_capture_and_six_formats() {
     let bundle =
         capture_all(&mut renderer, &frame, "pure-ratatui-qual").expect("capture_all succeeds");
 
-
     assert_seven_bit(&bundle.ascii.text).expect("ascii projection is 7-bit");
     assert!(!bundle.ascii.text.is_empty());
-
 
     assert_no_escapes(&bundle.txt).expect("txt projection has no escapes");
     assert!(bundle.txt.contains("Pure Ratatui Render Invariant Check"));
 
-
     assert_normalized_sgr(&bundle.ansi).expect("ansi projection is normalized SGR");
     assert!(bundle.ansi.contains("\x1b["));
-
 
     assert_opaque_rgb(&bundle.png).expect("png is opaque RGB");
     assert!(!bundle.png.is_empty());
 
-
     assert_static_offline(&bundle.html).expect("html is static and offline");
     assert!(bundle.html.contains("data:image/png;base64,"));
-
 
     let parsed_frame = parse_canonical(&bundle.json).expect("frame.json is valid canonical JSON");
     assert_eq!(parsed_frame.cols, cols);
     assert_eq!(parsed_frame.rows, rows);
     assert_eq!(parsed_frame.digest(), frame.digest());
-
 
     assert_eq!(bundle.generation.frame_digest, frame.digest());
     assert_eq!(bundle.generation.profile, profile.name);
@@ -104,7 +82,6 @@ fn qualify_grouped_store_and_negative_detection() {
         .renderer(&VENDORED_FACES)
         .expect("vendored faces parse");
 
-
     let capture_a = render_screen(
         40,
         10,
@@ -118,7 +95,6 @@ fn qualify_grouped_store_and_negative_detection() {
 
     let case_name = "test/qual/hello";
 
-
     let outcome1 = store
         .check_with(&mut renderer, case_name, &frame_a, 1.0)
         .expect("check_with");
@@ -126,19 +102,16 @@ fn qualify_grouped_store_and_negative_detection() {
     assert!(actual_root.join(format!("{case_name}.ansi")).exists());
     assert!(actual_root.join(format!("{case_name}.png")).exists());
 
-
     store.accept(case_name).expect("accept succeeds");
     assert!(approved_root.join(format!("{case_name}.ansi")).exists());
     assert!(approved_root.join(format!("{case_name}.txt")).exists());
     assert!(approved_root.join(format!("{case_name}.html")).exists());
     assert!(approved_root.join(format!("{case_name}.png")).exists());
 
-
     let outcome2 = store
         .check_with(&mut renderer, case_name, &frame_a, 1.0)
         .expect("check_with");
     assert_eq!(outcome2.status(), Status::Matched);
-
 
     let capture_b = render_screen(
         40,
@@ -156,7 +129,6 @@ fn qualify_grouped_store_and_negative_detection() {
         .expect("check_with");
     assert_eq!(outcome_mut_text.status(), Status::CellsDiffer);
 
-
     let capture_c = render_screen(
         40,
         10,
@@ -172,7 +144,6 @@ fn qualify_grouped_store_and_negative_detection() {
         .check_with(&mut renderer, case_name, &frame_c, 1.0)
         .expect("check_with");
     assert_eq!(outcome_mut_color.status(), Status::CellsDiffer);
-
 
     let capture_d = render_screen(
         50,
@@ -224,19 +195,16 @@ fn qualify_corrupt_and_tampered_artifact_rejection() {
 
     let case_name = "test/qual/tamper";
 
-
     let outcome = store
         .check_with(&mut renderer, case_name, &frame, 1.0)
         .unwrap();
     assert_eq!(outcome.status(), Status::MissingApproval);
-
 
     store.accept(case_name).expect("accept");
     let matched = store
         .check_with(&mut renderer, case_name, &frame, 1.0)
         .unwrap();
     assert_eq!(matched.status(), Status::Matched);
-
 
     let approved_png = approved_root.join(format!("{case_name}.png"));
     std::fs::write(&approved_png, b"NOT_A_VALID_PNG_CORRUPT_BYTES").unwrap();
@@ -246,7 +214,6 @@ fn qualify_corrupt_and_tampered_artifact_rejection() {
     if let Ok(res) = corrupt_outcome {
         assert_ne!(res.status(), Status::Matched);
     }
-
 
     std::fs::remove_file(&approved_png).unwrap();
     let missing_artifact_outcome = store

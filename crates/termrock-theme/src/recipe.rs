@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use core::fmt;
 
 use super::downgrade::MonoRule;
@@ -136,20 +129,17 @@ newtype_u16! {
 
 pub use termrock_core::variant::Variant;
 
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PartMap<T> {
     entries: Vec<(Part, T)>,
 }
 
 impl<T> PartMap<T> {
-
     pub const fn new() -> Self {
         PartMap {
             entries: Vec::new(),
         }
     }
-
 
     pub fn get(&self, p: Part) -> Option<&T> {
         self.entries
@@ -159,14 +149,12 @@ impl<T> PartMap<T> {
             .map(|(_, v)| v)
     }
 
-
     pub fn get_mut(&mut self, p: Part) -> Option<&mut T> {
         match self.entries.binary_search_by_key(&p, |(k, _)| *k) {
             Ok(i) => self.entries.get_mut(i).map(|(_, v)| v),
             Err(_) => None,
         }
     }
-
 
     pub fn insert(&mut self, p: Part, v: T) {
         match self.entries.binary_search_by_key(&p, |(k, _)| *k) {
@@ -178,7 +166,6 @@ impl<T> PartMap<T> {
             Err(i) => self.entries.insert(i, (p, v)),
         }
     }
-
 
     #[expect(
         clippy::indexing_slicing,
@@ -199,31 +186,25 @@ impl<T> PartMap<T> {
         &mut self.entries[i].1
     }
 
-
     pub fn iter(&self) -> impl Iterator<Item = (Part, &T)> + '_ {
         self.entries.iter().map(|(k, v)| (*k, v))
     }
-
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (Part, &mut T)> + '_ {
         self.entries.iter_mut().map(|(k, v)| (*k, v))
     }
 
-
     pub fn len(&self) -> usize {
         self.entries.len()
     }
-
 
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PartRecipe {
-
     pub base: StylePatch,
 
     pub states: Vec<StateRule>,
@@ -234,8 +215,6 @@ pub struct PartRecipe {
 }
 
 impl PartRecipe {
-
-
     pub fn when(&mut self, when: StateFlags, patch: StylePatch) -> &mut Self {
         let rule = StateRule { when, patch };
         let spec = rule.specificity();
@@ -248,18 +227,12 @@ impl PartRecipe {
         self
     }
 
-
-
-
-
     pub fn apply_base(&self, acc: StylePatch) -> StylePatch {
         let mut acc = acc.merge(self.base);
         acc.glyph = self.glyph.over(acc.glyph);
         acc.size = self.size.over(acc.size);
         acc
     }
-
-
 
     pub fn apply_states(&self, acc: StylePatch, live: StateFlags) -> StylePatch {
         let mut acc = acc;
@@ -271,15 +244,9 @@ impl PartRecipe {
         acc
     }
 
-
-
-
-
-
     pub fn apply(&self, acc: StylePatch, live: StateFlags) -> StylePatch {
         self.apply_states(self.apply_base(acc), live)
     }
-
 
     pub fn merge_from(&mut self, other: &PartRecipe) {
         self.base = self.base.merge(other.base);
@@ -290,12 +257,6 @@ impl PartRecipe {
         }
     }
 }
-
-
-
-
-
-
 
 pub fn merge_states(
     acc: StylePatch,
@@ -323,10 +284,8 @@ pub fn merge_states(
     acc
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Recipe {
-
     pub default_variant: Variant,
 
     pub parts: PartMap<PartRecipe>,
@@ -345,11 +304,9 @@ impl Default for Recipe {
 }
 
 impl Recipe {
-
     pub fn variant(&self, v: Variant) -> Option<&PartMap<PartRecipe>> {
         self.variants.iter().find(|(k, _)| *k == v).map(|(_, m)| m)
     }
-
 
     #[expect(
         clippy::indexing_slicing,
@@ -367,38 +324,12 @@ impl Recipe {
     }
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GlobalOverride {
     pub family: Family,
     pub variant: Option<Variant>,
     pub parts: PartMap<PartRecipe>,
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Recipes {
@@ -420,7 +351,6 @@ impl Default for Recipes {
 }
 
 impl Recipes {
-
     pub fn get(&self, f: Family) -> Option<&Recipe> {
         self.by_family
             .binary_search_by_key(&f, |(k, _)| *k)
@@ -429,19 +359,13 @@ impl Recipes {
             .map(|(_, r)| r)
     }
 
-
-
-
-
     pub fn neutral(&self) -> &Recipe {
         &self.neutral
     }
 
-
     pub fn get_or_neutral(&self, f: Family) -> &Recipe {
         self.get(f).unwrap_or(&self.neutral)
     }
-
 
     #[expect(
         clippy::indexing_slicing,
@@ -459,31 +383,21 @@ impl Recipes {
         &mut self.by_family[i].1
     }
 
-
     pub fn iter(&self) -> impl Iterator<Item = (Family, &Recipe)> + '_ {
         self.by_family.iter().map(|(k, r)| (*k, r))
     }
-
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (Family, &mut Recipe)> + '_ {
         self.by_family.iter_mut().map(|(k, r)| (*k, r))
     }
 
-
     pub fn len(&self) -> usize {
         self.by_family.len()
     }
 
-
     pub fn is_empty(&self) -> bool {
         self.by_family.is_empty()
     }
-
-
-
-
-
-
 
     pub fn mono_rules(&self, f: Family) -> Option<&[MonoRule]> {
         if self.mono.is_empty() {
@@ -495,10 +409,6 @@ impl Recipes {
             .and_then(|i| self.mono.get(i))
             .map(|(_, r)| r.as_slice())
     }
-
-
-
-
 
     #[expect(
         clippy::indexing_slicing,
@@ -525,43 +435,36 @@ impl Recipes {
     }
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PartEdit {
     recipe: PartRecipe,
 }
 
 impl PartEdit {
-
     pub fn base(&mut self, p: StylePatch) -> &mut Self {
         self.recipe.base = self.recipe.base.merge(p);
         self
     }
-
 
     pub fn when(&mut self, s: StateFlags, p: StylePatch) -> &mut Self {
         self.recipe.when(s, p);
         self
     }
 
-
     pub fn glyph(&mut self, g: GlyphRole) -> &mut Self {
         self.recipe.glyph = Slot::Set(g);
         self
     }
-
 
     pub fn size(&mut self, n: u16) -> &mut Self {
         self.recipe.size = Slot::Set(n);
         self
     }
 
-
     pub fn recipe(&self) -> &PartRecipe {
         &self.recipe
     }
 }
-
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RecipeEdit {
@@ -570,22 +473,18 @@ pub struct RecipeEdit {
 }
 
 impl RecipeEdit {
-
     pub fn default_variant(&mut self, v: Variant) -> &mut Self {
         self.default_variant = Some(v);
         self
     }
 
-
     pub fn part(&mut self, p: Part) -> &mut PartEdit {
         self.parts.entry(p)
     }
 
-
     pub const fn default_variant_set(&self) -> Option<Variant> {
         self.default_variant
     }
-
 
     pub fn into_parts(self) -> PartMap<PartRecipe> {
         let mut out = PartMap::new();
@@ -596,9 +495,7 @@ impl RecipeEdit {
     }
 }
 
-
 pub type OverlayRule = (Family, Variant, Part, StateFlags, StylePatch);
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Overlay {
@@ -606,19 +503,15 @@ pub struct Overlay {
 }
 
 impl Overlay {
-
     pub const EMPTY: Overlay = Overlay { rules: &[] };
-
 
     pub const fn new(rules: &'static [OverlayRule]) -> Overlay {
         Overlay { rules }
     }
 
-
     pub const fn rules(&self) -> &'static [OverlayRule] {
         self.rules
     }
-
 
     pub fn apply(
         &self,
@@ -636,7 +529,6 @@ impl Overlay {
         }
         acc
     }
-
 
     pub fn hash(&self) -> u64 {
         let ptr = self.rules.as_ptr() as usize as u64;

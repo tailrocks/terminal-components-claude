@@ -1,4 +1,3 @@
-
 use std::cell::RefCell;
 
 use ratatui_core::layout::Rect;

@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use core::fmt;
 
 use crate::theme::PaintStyle;
@@ -24,15 +16,9 @@ use crate::theme::{
 use crate::ui::{FrameRead, Ui};
 use termrock_runtime::Status;
 
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
 pub enum MeterTone {
-
     #[default]
     Low,
 
@@ -48,12 +34,6 @@ pub enum MeterTone {
 }
 
 impl MeterTone {
-
-
-
-
-
-
     #[must_use]
     pub fn from_ratio(ratio: f64, t: MeterThresholds) -> MeterTone {
         let pct = (ratio.clamp(0.0, 1.0) * 100.0).round() as u16;
@@ -65,7 +45,6 @@ impl MeterTone {
             MeterTone::High
         }
     }
-
 
     #[must_use]
     pub const fn role(self) -> MeterRole {
@@ -80,107 +59,14 @@ impl MeterTone {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
 pub enum MeterVisual {
-
     #[default]
     Line,
 
-
     Block,
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Meter<'a> {
     id: Id,
@@ -220,12 +106,9 @@ impl fmt::Debug for Meter<'_> {
 }
 
 impl<'a> Meter<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::TRACK, Part::THUMB, Part::LABEL, Part::ICON];
 
-
     const MIN_TRACK: u16 = 6;
-
 
     pub const fn new(id: Id) -> Self {
         Meter {
@@ -244,11 +127,9 @@ impl<'a> Meter<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
@@ -256,14 +137,11 @@ impl<'a> Meter<'a> {
         self
     }
 
-
     #[must_use]
     pub fn ratio(mut self, r: f64) -> Self {
         self.ratio = Some(r.clamp(0.0, 1.0));
         self
     }
-
-
 
     #[must_use]
     pub const fn value(mut self, s: &'a str) -> Self {
@@ -271,13 +149,11 @@ impl<'a> Meter<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn tone(mut self, t: MeterTone) -> Self {
         self.tone = Some(t);
         self
     }
-
 
     #[must_use]
     pub const fn visual(mut self, v: MeterVisual) -> Self {
@@ -285,15 +161,11 @@ impl<'a> Meter<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
-
-
 
     #[must_use]
     pub const fn suffix_width(mut self, cells: u16) -> Self {
@@ -301,14 +173,11 @@ impl<'a> Meter<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn leading_activity(mut self, yes: bool) -> Self {
         self.leading_activity = yes;
         self
     }
-
 
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
@@ -316,14 +185,11 @@ impl<'a> Meter<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn part_defaults(mut self, defaults: &'a [(Part, StylePatch)]) -> Self {
         self.part_defaults = defaults;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -331,21 +197,17 @@ impl<'a> Meter<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
-
 
     pub fn resolved_tone(&self, ui: &Ui<'_>) -> MeterTone {
         match (self.tone, self.ratio) {
@@ -358,13 +220,6 @@ impl<'a> Meter<'a> {
     const fn busy(&self) -> bool {
         matches!(self.status, Status::Busy | Status::Loading)
     }
-
-
-
-
-
-
-
 
     fn icon(
         &self,
@@ -386,8 +241,6 @@ impl<'a> Meter<'a> {
         g.map(|g| ui.glyph_str(g))
     }
 
-
-
     fn paint_value(&self, ui: &mut Ui<'_>, cell: Rect, value: &str, style: PaintStyle) -> u16 {
         if let Some(f) = self.ov.slot_for(Part::LABEL) {
             f(ui, cell);
@@ -396,12 +249,6 @@ impl<'a> Meter<'a> {
         ui.paint_str(cell, value, style)
     }
 
-
-
-
-
-
-
     fn paint_icon(&self, ui: &mut Ui<'_>, cell: Rect, glyph: &str, style: PaintStyle) {
         if let Some(f) = self.ov.slot_for(Part::ICON) {
             f(ui, cell);
@@ -409,7 +256,6 @@ impl<'a> Meter<'a> {
         }
         ui.paint_str(cell, glyph, style);
     }
-
 
     fn value_text<'p>(&self, pct: &'p Pct) -> &'p str
     where
@@ -497,7 +343,6 @@ impl<'a> Meter<'a> {
         lead.saturating_add(self.paint_value(ui, cell, value, style))
     }
 
-
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the two visual modes, the value and the trailing glyph"
@@ -507,7 +352,6 @@ impl<'a> Meter<'a> {
         if area.is_empty() {
             return area;
         }
-
 
         let live = PartStyle::flags(StateFlags::empty(), self.status.flags());
         let ov = self.ov;
@@ -535,7 +379,6 @@ impl<'a> Meter<'a> {
         let icon_w = readout.suffix;
 
         let Some(ratio) = self.ratio else {
-
             let mut x = area.x;
             if vw > 0 {
                 let text = Rect {
@@ -636,7 +479,6 @@ impl<'a> Meter<'a> {
                         .style;
                     ui.fill(bar, rest_bg);
 
-
                     let text = Rect {
                         x: bar.x.saturating_add(1),
                         width: bar.width.saturating_sub(1),
@@ -674,9 +516,6 @@ impl<'a> Meter<'a> {
         }
         area
     }
-
-
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let pct = Pct::of((self.ratio.unwrap_or(0.0) * 100.0).round() as u16);

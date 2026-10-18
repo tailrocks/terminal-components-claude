@@ -1,15 +1,11 @@
-
-
 use ratatui_core::style::Modifier;
 
 use super::glyph::GlyphRole;
 use super::role::{Align, Role};
 use crate::response::StateFlags;
 
-
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug)]
 pub enum Slot<T> {
-
     #[default]
     Inherit,
 
@@ -19,7 +15,6 @@ pub enum Slot<T> {
 }
 
 impl<T: Copy> Slot<T> {
-
     #[must_use]
     pub const fn over(self, base: Slot<T>) -> Slot<T> {
         match self {
@@ -28,7 +23,6 @@ impl<T: Copy> Slot<T> {
         }
     }
 
-
     pub const fn get(self) -> Option<T> {
         match self {
             Slot::Set(v) => Some(v),
@@ -36,16 +30,13 @@ impl<T: Copy> Slot<T> {
         }
     }
 
-
     pub const fn speaks(self) -> bool {
         !matches!(self, Slot::Inherit)
     }
 }
 
-
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash, Debug)]
 pub struct StylePatch {
-
     pub fg: Slot<Role>,
 
     pub bg: Slot<Role>,
@@ -64,7 +55,6 @@ pub struct StylePatch {
 }
 
 impl StylePatch {
-
     pub const fn new() -> Self {
         StylePatch {
             fg: Slot::Inherit,
@@ -78,13 +68,11 @@ impl StylePatch {
         }
     }
 
-
     #[must_use]
     pub const fn set_fg(mut self, r: Role) -> Self {
         self.fg = Slot::Set(r);
         self
     }
-
 
     #[must_use]
     pub const fn clear_fg(mut self) -> Self {
@@ -92,13 +80,11 @@ impl StylePatch {
         self
     }
 
-
     #[must_use]
     pub const fn set_bg(mut self, r: Role) -> Self {
         self.bg = Slot::Set(r);
         self
     }
-
 
     #[must_use]
     pub const fn clear_bg(mut self) -> Self {
@@ -106,13 +92,11 @@ impl StylePatch {
         self
     }
 
-
     #[must_use]
     pub const fn set_underline(mut self, r: Role) -> Self {
         self.underline = Slot::Set(r);
         self
     }
-
 
     #[must_use]
     pub const fn add(mut self, m: Modifier) -> Self {
@@ -121,7 +105,6 @@ impl StylePatch {
         self
     }
 
-
     #[must_use]
     pub const fn remove(mut self, m: Modifier) -> Self {
         self.remove = self.remove.union(m);
@@ -129,13 +112,11 @@ impl StylePatch {
         self
     }
 
-
     #[must_use]
     pub const fn set_glyph(mut self, g: GlyphRole) -> Self {
         self.glyph = Slot::Set(g);
         self
     }
-
 
     #[must_use]
     pub const fn set_size(mut self, n: u16) -> Self {
@@ -143,14 +124,11 @@ impl StylePatch {
         self
     }
 
-
     #[must_use]
     pub const fn set_align(mut self, a: Align) -> Self {
         self.align = Slot::Set(a);
         self
     }
-
-
 
     #[must_use]
     pub const fn merge(self, over: StylePatch) -> StylePatch {
@@ -166,7 +144,6 @@ impl StylePatch {
         }
     }
 
-
     pub const fn is_empty(&self) -> bool {
         !self.fg.speaks()
             && !self.bg.speaks()
@@ -179,21 +156,17 @@ impl StylePatch {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct StateRule {
-
     pub when: StateFlags,
 
     pub patch: StylePatch,
 }
 
 impl StateRule {
-
     pub const fn matches(&self, live: StateFlags) -> bool {
         live.contains(self.when)
     }
-
 
     pub const fn specificity(&self) -> u32 {
         self.when.bits().count_ones()

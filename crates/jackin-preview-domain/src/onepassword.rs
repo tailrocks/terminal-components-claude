@@ -1,11 +1,6 @@
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 
 pub struct OpReference {
-
     pub account: String,
 
     pub vault_id: String,
@@ -24,7 +19,6 @@ pub struct OpReference {
 }
 
 impl OpReference {
-
     pub fn canonical(&self) -> String {
         match &self.section {
             Some(s) => format!(
@@ -34,7 +28,6 @@ impl OpReference {
             None => format!("op://{}/{}/{}", self.vault_id, self.item_id, self.field_id),
         }
     }
-
 
     pub fn display_path(&self) -> String {
         format!(

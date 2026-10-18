@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use ratatui_core::style::Color;
 
 use crate::theme::Theme;
@@ -20,7 +10,6 @@ const DANGER: Color = Color::from_u32(0xb0_25_25);
 const WARNING: Color = Color::from_u32(0xa8_64_00);
 const SUCCESS: Color = Color::from_u32(0x1f_7a_3d);
 const INFO: Color = Color::from_u32(0x2b_6c_b0);
-
 
 pub(crate) const fn seeds() -> ColorTokens {
     let r = Color::Reset;
@@ -74,7 +63,6 @@ pub(crate) const fn seeds() -> ColorTokens {
         meter: MeterTokens::derive(SUCCESS, WARNING, DANGER),
     }
 }
-
 
 pub(crate) fn theme() -> Theme {
     let mut t = Theme::from_tokens(seeds())

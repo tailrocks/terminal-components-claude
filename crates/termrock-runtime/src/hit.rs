@@ -1,9 +1,3 @@
-
-
-
-
-
-
 pub use termrock_core::geometry::{Axes, Headroom};
 
 use ratatui_core::layout::{Position, Rect};
@@ -13,11 +7,9 @@ use crate::event::Axis;
 use crate::id::{Id, Part, PartRef};
 use crate::layer::LayerId;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[non_exhaustive]
 pub enum RegionKind {
-
     Control,
 
     Part,
@@ -27,10 +19,8 @@ pub enum RegionKind {
     Decorative,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Hit {
-
     pub owner: Id,
 
     pub part: PartRef,
@@ -42,10 +32,8 @@ pub struct Hit {
     pub local: Position,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Region {
-
     pub owner: Id,
 
     pub part: PartRef,
@@ -62,17 +50,14 @@ pub struct Region {
 }
 
 impl Region {
-
     pub const fn pointer_enabled(&self) -> bool {
         self.pointer_enabled
     }
-
 
     pub const fn scroll(&self) -> Option<(Axes, Headroom)> {
         self.scroll
     }
 }
-
 
 #[derive(Clone, Debug)]
 pub struct Registry {
@@ -88,7 +73,6 @@ impl Default for Registry {
 }
 
 impl Registry {
-
     pub fn new(generation: u32) -> Self {
         Registry {
             regions: Vec::new(),
@@ -97,34 +81,27 @@ impl Registry {
         }
     }
 
-
     pub(crate) fn reset(&mut self, generation: u32) {
         self.regions.clear();
         self.generation = generation;
         self.has_pointer_exclusions = false;
     }
 
-
     pub const fn generation(&self) -> u32 {
         self.generation
     }
-
 
     pub fn regions(&self) -> &[Region] {
         &self.regions
     }
 
-
     pub fn len(&self) -> usize {
         self.regions.len()
     }
 
-
     pub fn is_empty(&self) -> bool {
         self.regions.is_empty()
     }
-
-
 
     pub fn register_control(
         &mut self,
@@ -166,7 +143,6 @@ impl Registry {
         }
         let diagnostic = self.register_control(owner, area, layer);
 
-
         for region in self
             .regions
             .iter_mut()
@@ -178,16 +154,13 @@ impl Registry {
         diagnostic
     }
 
-
     pub fn register_part(&mut self, owner: Id, part: PartRef, area: Rect, layer: LayerId) {
         self.push(owner, part, area, layer, RegionKind::Part, None);
     }
 
-
     pub fn register_decor(&mut self, owner: Id, part: PartRef, area: Rect, layer: LayerId) {
         self.push(owner, part, area, layer, RegionKind::Decorative, None);
     }
-
 
     pub fn register_scroll(
         &mut self,
@@ -249,13 +222,6 @@ impl Registry {
         }
     }
 
-
-
-
-
-
-
-
     pub fn hit(&self, pos: Position) -> Option<Hit> {
         self.regions
             .iter()
@@ -266,11 +232,6 @@ impl Registry {
             .max_by_key(|(i, r)| (r.layer, *i))
             .map(|(_, r)| Self::hit_of(r, pos))
     }
-
-
-
-
-
 
     pub(crate) fn hit_live(&self, pos: Position, layer: LayerId) -> Option<Hit> {
         self.regions
@@ -286,9 +247,6 @@ impl Registry {
             .map(|(_, r)| Self::hit_of(r, pos))
     }
 
-
-
-
     pub fn hit_scroll(&self, pos: Position, axis: Axis) -> Option<Hit> {
         self.regions
             .iter()
@@ -302,7 +260,6 @@ impl Registry {
             .max_by_key(|(i, r)| (r.layer, *i))
             .map(|(_, r)| Self::hit_of(r, pos))
     }
-
 
     pub fn area_of(&self, id: Id) -> Option<Rect> {
         self.regions
@@ -318,7 +275,6 @@ impl Registry {
             .map(|r| r.area)
     }
 
-
     pub fn area_of_part(&self, id: Id, part: PartRef) -> Option<Rect> {
         self.regions
             .iter()
@@ -326,7 +282,6 @@ impl Registry {
             .find(|r| r.owner == id && r.part == part)
             .map(|r| r.area)
     }
-
 
     pub fn layer_of(&self, id: Id) -> Option<LayerId> {
         self.regions
@@ -336,13 +291,11 @@ impl Registry {
             .map(|r| r.layer)
     }
 
-
     pub fn delivers_to(&self, id: Id) -> bool {
         self.regions
             .iter()
             .any(|r| r.owner == id && matches!(r.kind, RegionKind::Control | RegionKind::Part))
     }
-
 
     pub fn has_owner(&self, id: Id) -> bool {
         self.regions.iter().any(|r| r.owner == id)
@@ -385,11 +338,6 @@ mod tests {
         assert_eq!(h.hit(Position::new(3, 3)).map(|h| h.owner), Some(C));
     }
 
-
-
-
-
-
     #[test]
     fn a_lower_layer_region_registered_later_does_not_shadow_a_higher_one() {
         let mut h = Registry::new(1);
@@ -424,7 +372,6 @@ mod tests {
         let mut h = Registry::new(1);
         h.register_control(A, Rect::new(0, 0, 10, 10), LayerId::PAGE);
         h.register_control(B, Rect::new(2, 2, 3, 3), LayerId(1));
-
 
         let hit = h.hit(Position::new(8, 8));
         assert_eq!(hit.map(|h| (h.owner, h.layer)), Some((A, LayerId::PAGE)));
@@ -550,9 +497,6 @@ mod tests {
         assert_eq!(h.hit(Position::new(0, 0)), None);
     }
 }
-
-
-
 
 #[cfg(test)]
 mod runtime_tests {

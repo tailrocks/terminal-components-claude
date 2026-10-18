@@ -1,4 +1,3 @@
-
 use jackin_preview_app::cli;
 
 use std::io::Write as _;

@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use ratatui_core::style::Color;
 use ratatui_core::symbols::{line, scrollbar};
 
@@ -48,7 +38,6 @@ const AMBER: Color = Color::from_u32(0xf5_9e_09);
 const AMBER_TINT: Color = Color::from_u32(0x2c_22_10);
 const PURPLE: Color = Color::from_u32(0x87_87_ff);
 
-
 pub(crate) const fn tokens() -> ColorTokens {
     ColorTokens {
         surfaces: [BLACK, CHROME, CARD, OVERLAY, POPOVER],
@@ -85,7 +74,6 @@ pub(crate) const fn tokens() -> ColorTokens {
         disabled_bg: OVERLAY,
         read_only_fg: WHITE_70,
 
-
         syntax: SyntaxTokens {
             keyword: WHITE,
             ident: WHITE,
@@ -120,22 +108,13 @@ pub(crate) const fn tokens() -> ColorTokens {
     }
 }
 
-
 pub(crate) const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
 
 pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
     [
         "▎", "›", "✓", "[✓]", "[ ]", "(●)", "(○)", "●", "•", "+", "−", "!", "▲", "▸", "▾", "▴",
-        "▾", "∇", "▪", "▪", "→", "↓", "‹", "›", "…", "×", "›", "◆", "◇",
-
-
-
-
-
-        "", "", "", "",
-
-        "✓", "‖", "+", "[", "]", "•", "▾", "▴",
+        "▾", "∇", "▪", "▪", "→", "↓", "‹", "›", "…", "×", "›", "◆", "◇", "", "", "", "", "✓", "‖",
+        "+", "[", "]", "•", "▾", "▴",
     ],
     scrollbar::Set {
         track: "│",
@@ -146,7 +125,6 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
     line::NORMAL,
     line::THICK,
 );
-
 
 pub(crate) const fn design() -> DesignTokens {
     DesignTokens {
@@ -194,9 +172,6 @@ pub(crate) const fn design() -> DesignTokens {
     }
 }
 
-
-
-
 pub(crate) fn recipes() -> crate::theme::Recipes {
     use crate::theme::{Family, FgStep, Modifier, Role, Slot, StylePatch};
     use crate::{Part, StateFlags};
@@ -215,7 +190,6 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
         .set_fg(Role::DisabledFg)
         .set_bg(Role::CurrentSurface)
         .remove(Modifier::BOLD);
-
 
     container
         .when(StateFlags::HOVERED, hover)
@@ -248,7 +222,6 @@ pub(crate) fn recipes() -> crate::theme::Recipes {
             ..p()
         },
     );
-
 
     recipes.set_mono_rules(
         Family::LIST,

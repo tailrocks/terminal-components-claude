@@ -1,4 +1,3 @@
-
 use std::time::Duration;
 use termrock_controls::Button;
 use termrock_core::{Id, Intent, ItemKey, KeyCode, MouseKind, Phase, Response};

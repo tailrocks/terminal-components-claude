@@ -1,5 +1,3 @@
-
-
 use ratatui_core::layout::Rect;
 use std::collections::BTreeMap;
 
@@ -14,10 +12,8 @@ use crate::response::{Response, StateFlags};
 use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct WizardStep<'a> {
-
     pub key: ItemKey,
 
     pub label: &'a str,
@@ -26,7 +22,6 @@ pub struct WizardStep<'a> {
 }
 
 impl<'a> WizardStep<'a> {
-
     pub const fn new(key: ItemKey, label: &'a str) -> Self {
         Self {
             key,
@@ -35,7 +30,6 @@ impl<'a> WizardStep<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn enabled(mut self, enabled: bool) -> Self {
         self.enabled = enabled;
@@ -43,19 +37,15 @@ impl<'a> WizardStep<'a> {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum WizardAction {
-
     Moved(ItemKey),
 
     Finish(ItemKey),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum WizardCmd {
-
     Back,
 
     Next,
@@ -90,10 +80,6 @@ const BINDINGS: &[Binding<WizardCmd>] = &[
     },
 ];
 
-
-
-
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct WizardState<S = ()> {
     current: Option<ItemKey>,
@@ -112,11 +98,9 @@ impl<S> Default for WizardState<S> {
 }
 
 impl<S> WizardState<S> {
-
     pub const fn current(&self) -> Option<ItemKey> {
         self.current
     }
-
 
     pub fn state_mut(&mut self, key: ItemKey, init: impl FnOnce() -> S) -> &mut S {
         self.slots.entry(key).or_insert_with(init)
@@ -138,55 +122,6 @@ impl<S> WizardState<S> {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug)]
 pub struct Wizard<'a> {
     id: Id,
@@ -195,9 +130,7 @@ pub struct Wizard<'a> {
 }
 
 impl<'a> Wizard<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::MARKER, Part::LABEL];
-
 
     pub const fn new(id: Id, steps: &'a [WizardStep<'a>]) -> Self {
         Self {
@@ -206,7 +139,6 @@ impl<'a> Wizard<'a> {
             ov: PartStyle::new(),
         }
     }
-
 
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
@@ -225,7 +157,6 @@ impl<'a> Wizard<'a> {
         self.ov = self.ov.slot(part, f);
         self
     }
-
 
     pub fn update<S>(&self, cx: &mut Cx<'_>, st: &mut WizardState<S>) -> Response<WizardAction> {
         if st.current.is_none() {
@@ -299,7 +230,6 @@ impl<'a> Wizard<'a> {
         }
         .for_id(self.id)
     }
-
 
     #[expect(
         clippy::too_many_lines,
@@ -379,9 +309,6 @@ impl<'a> Wizard<'a> {
                     flags,
                 );
                 if flags.contains(StateFlags::FOCUSED) {
-
-
-
                     ui.glyph(
                         Rect {
                             width: marker.width.min(1),
@@ -434,7 +361,6 @@ impl<'a> Wizard<'a> {
         }
         row
     }
-
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let w = self.steps.iter().fold(0u16, |n, s| {

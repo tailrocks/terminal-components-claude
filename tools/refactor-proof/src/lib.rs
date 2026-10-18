@@ -1,7 +1,4 @@
-
-
 #![allow(missing_docs)]
-
 #![allow(
     unreachable_pub,
     missing_debug_implementations,

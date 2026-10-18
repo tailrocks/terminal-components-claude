@@ -18,11 +18,8 @@ Collect one trusted GitHub Actions observer report using read-only API requests.
 const RECEIPT_SCHEMA_VERSION: u16 = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-
 #[allow(dead_code)]
 pub(crate) enum GithubShaBinding {
-
-
     RunHead,
 }
 
@@ -51,8 +48,6 @@ pub(crate) struct TrustedPolicy {
     pub(crate) triggers: Vec<TriggerPolicy>,
     pub(crate) artifact_name_prefix: String,
 }
-
-
 
 pub(crate) struct InvocationContext {
     pub(crate) repository: String,
@@ -187,8 +182,6 @@ fn run_process() -> Result<(), CliError> {
     write_receipt(&run_with_transport(context, &policy, transport)?)
 }
 
-
-
 fn production_policy() -> Option<TrustedPolicy> {
     None
 }
@@ -216,8 +209,6 @@ pub(crate) fn run_with_transport<T: ReadOnlyTransport>(
             "caller workflow source does not match its trusted pin",
         ));
     }
-
-
 
     let target_selector = RunSelector {
         repository: repository.clone(),

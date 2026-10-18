@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use ratatui_core::layout::{Position, Rect};
 
 use crate::focus::FocusRing;
@@ -44,10 +34,8 @@ pub(crate) fn target_area(
     })
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Capture {
-
     pub owner: Id,
 
     pub part: PartRef,
@@ -60,7 +48,6 @@ pub struct Capture {
 }
 
 impl Capture {
-
     pub const fn local(&self, pos: Position) -> Position {
         Position {
             x: pos.x.saturating_sub(self.area.x),
@@ -68,12 +55,10 @@ impl Capture {
         }
     }
 
-
     pub const fn contains(&self, pos: Position) -> bool {
         self.area.contains(pos)
     }
 }
-
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct CaptureSlot {
@@ -81,7 +66,6 @@ pub(crate) struct CaptureSlot {
 }
 
 impl CaptureSlot {
-
     pub(crate) fn claim(&mut self, c: Capture) -> bool {
         if self.live.is_some() {
             return false;
@@ -97,9 +81,6 @@ impl CaptureSlot {
     pub(crate) fn release(&mut self) -> Option<Capture> {
         self.live.take()
     }
-
-
-
 
     pub(crate) fn release_if_stale(&mut self, reg: &Registry) {
         if let Some(c) = self.live
@@ -242,13 +223,9 @@ mod runtime_tests {
         assert!(rt.app().saw(THUMB, "Click"));
     }
 
-
-
-
     #[test]
     fn origin_is_the_press_position() {
         let (mut rt, mut buf) = runtime(stub());
-
 
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 5, 4));
         assert!(

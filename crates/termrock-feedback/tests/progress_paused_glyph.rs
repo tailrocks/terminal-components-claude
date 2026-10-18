@@ -1,4 +1,3 @@
-
 use termrock::{ColorLevel, GlyphRole, Id, ProgressBar, Theme};
 use termrock_test_support::Scene;
 #[test]

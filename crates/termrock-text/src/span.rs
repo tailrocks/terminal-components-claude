@@ -1,18 +1,9 @@
-
-
-
-
-
-
-
 use ratatui_core::style::Modifier;
 
 use crate::theme::Role;
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Span<'a> {
-
     pub text: &'a str,
 
     pub role: Option<Role>,
@@ -21,7 +12,6 @@ pub struct Span<'a> {
 }
 
 impl<'a> Span<'a> {
-
     pub const fn new(text: &'a str) -> Self {
         Span {
             text,
@@ -30,13 +20,11 @@ impl<'a> Span<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn role(mut self, r: Role) -> Self {
         self.role = Some(r);
         self
     }
-
 
     #[must_use]
     pub const fn modifier(mut self, m: Modifier) -> Self {
@@ -44,24 +32,20 @@ impl<'a> Span<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn bold(self) -> Self {
         self.modifier(Modifier::BOLD)
     }
-
 
     #[must_use]
     pub const fn italic(self) -> Self {
         self.modifier(Modifier::ITALIC)
     }
 
-
     #[must_use]
     pub const fn underlined(self) -> Self {
         self.modifier(Modifier::UNDERLINED)
     }
-
 
     #[must_use]
     pub const fn dim(self) -> Self {

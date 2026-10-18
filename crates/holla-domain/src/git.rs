@@ -1,6 +1,3 @@
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Worktree {
     pub path: String,
@@ -25,7 +22,6 @@ pub struct GitRepo {
 
     pub submodules: Vec<String>,
 
-
     pub children: Vec<GitRepo>,
 }
 
@@ -41,7 +37,6 @@ impl GitRepo {
     pub fn diverged(&self) -> bool {
         self.ahead > 0 && self.behind > 0
     }
-
 
     pub fn summary(&self) -> Vec<String> {
         let mut out = vec![];

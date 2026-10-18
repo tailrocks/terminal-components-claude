@@ -1,5 +1,3 @@
-
-
 pub mod capsule;
 pub mod file_browser;
 pub mod inspect;

@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 use termrock::author::PaintStyle;
 
@@ -169,8 +167,6 @@ fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
     paint_narrow_adornments(ui, inner, [running, queued, time, primary]);
 }
 
-
-
 #[derive(Debug)]
 pub struct TerminalPage {
     output: String,
@@ -249,7 +245,6 @@ impl Page for TerminalPage {
         }
         response |= fail.erase();
 
-
         let _ = output_panel();
         let _ = rail_panel(self.running);
         let _ = step_spinner();
@@ -279,7 +274,6 @@ impl Page for TerminalPage {
                         ..inner
                     };
                     step_rail().draw(ui, rail_area, &self.steps_state, &self.steps);
-
 
                     let _ = step_spinner().draw(
                         ui,

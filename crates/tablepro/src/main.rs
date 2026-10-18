@@ -1,5 +1,3 @@
-
-
 fn main() -> std::process::ExitCode {
     use std::io::Write as _;
     match tablepro_ui::run() {

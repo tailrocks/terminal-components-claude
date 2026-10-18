@@ -1,4 +1,3 @@
-
 use termrock_core::action::ActionKey;
 use termrock_core::event::KeyCode;
 use termrock_core::id::Id;

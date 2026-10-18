@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -21,10 +19,8 @@ use termrock_collections::collection::{
 use termrock_runtime::empty::Status;
 use termrock_runtime::rowui::{RowFn, RowUi};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabsAction {
-
     Activated(ItemKey),
 
     Close(ItemKey),
@@ -32,10 +28,8 @@ pub enum TabsAction {
     New,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TabsCmd {
-
     Prev,
 
     Next,
@@ -208,8 +202,6 @@ table!(CLOSABLE, 17, [CLOSE_X, CLOSE_DEL]);
 table!(NEWABLE, 16, [NEW_N]);
 table!(FULL, 18, [CLOSE_X, CLOSE_DEL, NEW_N]);
 
-
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct TabsState {
     core: CollectionCore,
@@ -219,21 +211,17 @@ pub struct TabsState {
 }
 
 impl TabsState {
-
     pub const fn active(&self) -> Option<ItemKey> {
         self.active
     }
-
 
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-
     pub const fn first(&self) -> Option<ItemKey> {
         self.first
     }
-
 
     pub fn set_active(&mut self, index: usize, key: ItemKey) {
         self.active = Some(key);
@@ -269,75 +257,6 @@ impl Reconcile for TabsState {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct Tabs<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -361,7 +280,6 @@ impl<T, K, R> fmt::Debug for Tabs<'_, T, K, R> {
 }
 
 impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
-
     pub const fn new(id: Id) -> Self {
         Tabs {
             id,
@@ -377,7 +295,6 @@ impl<T> Tabs<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> Tabs<'a, T, K, R> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::TAB,
@@ -391,11 +308,9 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         Part::ICON,
     ];
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Tabs<'a, T, K2, R> {
         Tabs {
@@ -410,7 +325,6 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         }
     }
 
-
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tabs<'a, T, K, R2> {
         Tabs {
             id: self.id,
@@ -424,13 +338,11 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         }
     }
 
-
     #[must_use]
     pub fn allow_new(mut self, yes: bool) -> Self {
         self.allow_new = yes;
         self
     }
-
 
     #[must_use]
     pub fn closable(mut self, yes: bool) -> Self {
@@ -438,13 +350,11 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
-
 
     #[must_use]
     pub fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -452,13 +362,11 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
@@ -471,7 +379,6 @@ impl<'a, T, K, R> Tabs<'a, T, K, R> {
     }
 }
 
-
 pub(crate) const fn table_for(closable: bool, allow_new: bool) -> &'static [Binding<TabsCmd>] {
     match (closable, allow_new) {
         (false, false) => &PLAIN,
@@ -480,7 +387,6 @@ pub(crate) const fn table_for(closable: bool, allow_new: bool) -> &'static [Bind
         (true, true) => &FULL,
     }
 }
-
 
 fn digits(n: usize, buf: &mut [u8; 2]) -> &str {
     let n = n.min(99);
@@ -522,7 +428,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         acc.action(TabsAction::Activated(key));
     }
 
-
     fn follow(&self, st: &mut TabsState, items: &[T], fit: usize) {
         let Some(active) = st.active else { return };
         let Some(ai) = self.index_of(items, active, Some(st.core.cursor_index())) else {
@@ -537,7 +442,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             st.first = Some(self.key_at(items, i));
         }
     }
-
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TabsState, items: &[T]) -> Response<TabsAction> {
         let len = items.len();
@@ -623,7 +527,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         }
         acc.finish(self.id)
     }
-
 
     #[expect(
         clippy::too_many_lines,
@@ -726,7 +629,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
                 break;
             }
 
-
             let is_cursor = cursor == Some(key);
             let is_active = st.active == Some(key);
             let mut flags = StateFlags::empty();
@@ -778,12 +680,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
             ui.fill(tail, strip.style);
             let ts = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::TAB, flags);
             ui.paint_style(tab, ts.style);
-
-
-
-
-
-
 
             if flags.contains(StateFlags::PRESSED) {
                 let ls = ov.style(ui, id, Family::TABS, Variant::DEFAULT, Part::LABEL, flags);
@@ -1002,7 +898,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         used
     }
 
-
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let h = ui.design().size.tabs_height;
         Size {
@@ -1012,7 +907,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tabs<'_, T, K, R> {
         .fit(c)
     }
 }
-
 
 fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
     ui.with_area(row, |ui| {

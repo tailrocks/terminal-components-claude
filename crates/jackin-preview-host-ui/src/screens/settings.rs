@@ -1,7 +1,4 @@
-
-
 use termrock::Id;
-
 
 pub const ROOT: Id = Id::root("jackin.settings");
 
@@ -11,13 +8,10 @@ pub const SAVE: Id = FORM.sub("save");
 
 pub const TRUST: Id = FORM.sub("trust");
 
-
 pub const TAB_NAMES: [&str; 5] = ["General", "Mounts", "Environments", "Agents", "Trust"];
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SettingsState {
-
     pub dirty: bool,
 
     pub save_attempts: u8,
@@ -28,12 +22,10 @@ pub struct SettingsState {
 }
 
 impl SettingsState {
-
     pub fn mark_dirty(&mut self) {
         self.dirty = true;
         self.save_error = None;
     }
-
 
     pub fn begin_draft(&mut self) {
         self.dirty = true;
@@ -41,16 +33,13 @@ impl SettingsState {
         self.save_error = None;
     }
 
-
     pub const fn is_clean(&self) -> bool {
         !self.dirty
     }
 
-
     pub fn clear_error(&mut self) {
         self.save_error = None;
     }
-
 
     pub const fn cycle_tab(&mut self, next: bool) {
         self.tab = if next {
@@ -61,7 +50,6 @@ impl SettingsState {
             self.tab.saturating_sub(1)
         };
     }
-
 
     pub fn tab_line(&self) -> String {
         let active = usize::from(self.tab.min(4));
@@ -78,7 +66,6 @@ impl SettingsState {
             .collect::<Vec<_>>()
             .join("  ")
     }
-
 
     pub fn attempt_save(&mut self, fails: bool) -> bool {
         self.save_attempts = self.save_attempts.saturating_add(1);

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use ratatui_core::backend::TestBackend;
 use ratatui_core::buffer::{Buffer, Cell};
 use ratatui_core::layout::{Position, Rect};
@@ -15,7 +9,6 @@ use termrock::{
 };
 
 use crate::digest::Scene;
-
 
 pub struct Harness<A: App> {
     rt: Runtime<A>,
@@ -45,11 +38,9 @@ fn theme_label(theme: &Theme) -> &'static str {
 }
 
 impl<A: App> Harness<A> {
-
     pub fn new(app: A, theme: Theme, w: u16, h: u16) -> Self {
         Self::new_with_feedback_clock(app, theme, w, h, termrock::FeedbackClock::Elapsed)
     }
-
 
     pub fn new_with_feedback_clock(
         app: A,
@@ -71,11 +62,9 @@ impl<A: App> Harness<A> {
         h
     }
 
-
     pub fn activation_feedback(&self) -> Option<termrock::ActivationFeedback> {
         self.rt.activation_feedback()
     }
-
 
     #[must_use]
     pub fn with_color(mut self, level: ColorLevel) -> Self {
@@ -86,17 +75,13 @@ impl<A: App> Harness<A> {
         self
     }
 
-
-
     #[must_use]
     pub const fn with_auto_draw(mut self, yes: bool) -> Self {
         self.auto_draw = yes;
         self
     }
 
-
     pub fn handle(&mut self, input: Input) -> Response<()> {
-
         if self.rt.needs_present() || self.rt.needs_settle() {
             self.draw();
         }
@@ -110,26 +95,21 @@ impl<A: App> Harness<A> {
         r
     }
 
-
     pub fn key(&mut self, code: KeyCode) -> Response<()> {
         self.key_mod(code, KeyModifiers::NONE)
     }
-
 
     pub fn key_mod(&mut self, code: KeyCode, mods: KeyModifiers) -> Response<()> {
         self.handle(Input::Key(Key { code, mods }))
     }
 
-
     pub fn ctrl(&mut self, c: char) -> Response<()> {
         self.key_mod(KeyCode::Char(c), KeyModifiers::CONTROL)
     }
 
-
     pub fn alt(&mut self, c: char) -> Response<()> {
         self.key_mod(KeyCode::Char(c), KeyModifiers::ALT)
     }
-
 
     pub fn type_str(&mut self, s: &str) -> Response<()> {
         let mut r = Response::ignored();
@@ -139,11 +119,9 @@ impl<A: App> Harness<A> {
         r
     }
 
-
     pub fn paste(&mut self, s: &str) -> Response<()> {
         self.handle(Input::Paste(s.to_owned()))
     }
-
 
     pub fn mouse(&mut self, kind: MouseKind, x: u16, y: u16) -> Response<()> {
         self.handle(Input::Mouse(Mouse {
@@ -153,14 +131,11 @@ impl<A: App> Harness<A> {
         }))
     }
 
-
     pub fn click(&mut self, x: u16, y: u16) -> Response<()> {
         let mut r = self.mouse(MouseKind::Down, x, y);
         r |= self.mouse(MouseKind::Up, x, y);
         r
     }
-
-
 
     pub fn click_id(&mut self, id: Id) -> Response<()> {
         if let Some(a) = self.area_of(id) {
@@ -171,7 +146,6 @@ impl<A: App> Harness<A> {
             Response::ignored()
         }
     }
-
 
     pub fn click_part(&mut self, id: Id, p: PartRef) -> Response<()> {
         if let Some(a) = self.area_of_part(id, p) {
@@ -188,20 +162,17 @@ impl<A: App> Harness<A> {
         self.click(x, y)
     }
 
-
     pub fn double_click(&mut self, x: u16, y: u16) -> Response<()> {
         let mut r = self.click(x, y);
         r |= self.click(x, y);
         r
     }
 
-
     pub fn secondary(&mut self, x: u16, y: u16) -> Response<()> {
         let mut r = self.mouse(MouseKind::Secondary, x, y);
         r |= self.mouse(MouseKind::SecondaryUp, x, y);
         r
     }
-
 
     pub fn drag(&mut self, from: (u16, u16), to: (u16, u16)) -> Response<()> {
         let mut r = self.mouse(MouseKind::Down, from.0, from.1);
@@ -210,18 +181,15 @@ impl<A: App> Harness<A> {
         r
     }
 
-
     pub fn wheel(&mut self, axis: Axis, delta: i16, x: u16, y: u16) -> Response<()> {
         self.mouse(MouseKind::Wheel(axis, delta), x, y)
     }
-
 
     pub fn resize(&mut self, w: u16, h: u16) -> Response<()> {
         self.term.backend_mut().resize(w, h);
         let _ = self.term.clear();
         self.handle(Input::Resize(w, h))
     }
-
 
     pub fn draw(&mut self) {
         for _ in 0..16 {
@@ -246,38 +214,28 @@ impl<A: App> Harness<A> {
         panic!("harness focus did not settle: {:?}", self.rt.diagnostics());
     }
 
-
     pub fn ticks(&mut self, n: usize) {
         for _ in 0..n {
             let _ = self.tick();
         }
     }
 
-
     pub fn tick(&mut self) -> Response<()> {
         self.handle(Input::Tick)
     }
-
 
     pub fn now(&self) -> termrock::Moment {
         self.rt.now()
     }
 
-
     pub fn next_deadline(&self) -> Option<termrock::Moment> {
         self.rt.next_deadline()
     }
-
 
     pub fn advance(&mut self, elapsed: core::time::Duration) -> Response<()> {
         self.advance_to(self.rt.now().saturating_add(elapsed))
             .expect("saturating forward clock movement")
     }
-
-
-
-
-
 
     pub fn advance_to(
         &mut self,
@@ -297,56 +255,45 @@ impl<A: App> Harness<A> {
         Ok(response)
     }
 
-
     pub fn area_of(&self, id: Id) -> Option<Rect> {
         self.rt.area_of(id)
     }
-
 
     pub fn area_of_part(&self, id: Id, p: PartRef) -> Option<Rect> {
         self.rt.area_of_part(id, p)
     }
 
-
     pub const fn ring(&self) -> &FocusRing {
         self.rt.ring()
     }
-
 
     pub const fn focus(&self) -> Option<Id> {
         self.rt.focus()
     }
 
-
     pub const fn focus_visible(&self) -> bool {
         self.rt.focus_visible()
     }
-
 
     pub fn hover(&self) -> Option<Id> {
         self.rt.hover()
     }
 
-
     pub fn state_of(&self, id: Id) -> StateFlags {
         self.rt.state_of(id)
     }
-
 
     pub fn top_layer(&self) -> LayerId {
         self.rt.top_layer()
     }
 
-
     pub fn layer_area(&self, id: Id) -> Option<Rect> {
         self.rt.layer_area(id)
     }
 
-
     pub fn is_open(&self, id: Id) -> bool {
         self.rt.is_open(id)
     }
-
 
     pub fn tab_to(&mut self, id: Id) -> bool {
         let budget = self.ring().entries().len().saturating_add(1);
@@ -362,7 +309,6 @@ impl<A: App> Harness<A> {
         self.focus() == Some(id)
     }
 
-
     pub fn blur(&mut self) {
         self.rt.set_focus(None);
         if self.auto_draw {
@@ -370,16 +316,13 @@ impl<A: App> Harness<A> {
         }
     }
 
-
     pub fn diagnostics(&self) -> &[Diagnostic] {
         self.rt.diagnostics()
     }
 
-
     pub fn buffer(&self) -> &Buffer {
         self.term.backend().buffer()
     }
-
 
     pub fn text(&self) -> String {
         let area = *self.buffer().area();
@@ -393,11 +336,9 @@ impl<A: App> Harness<A> {
         out
     }
 
-
     pub fn row(&self, y: u16) -> String {
         row_text(self.buffer(), y).0
     }
-
 
     pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let area = *self.buffer().area();
@@ -408,11 +349,9 @@ impl<A: App> Harness<A> {
         })
     }
 
-
     pub fn find_row(&self, needle: &str) -> Option<u16> {
         self.find(needle).map(|(_, y)| y)
     }
-
 
     pub fn count(&self, needle: &str) -> usize {
         let area = *self.buffer().area();
@@ -421,16 +360,13 @@ impl<A: App> Harness<A> {
             .sum()
     }
 
-
     pub fn cell(&self, x: u16, y: u16) -> &Cell {
         self.buffer().cell((x, y)).expect("cell inside the frame")
     }
 
-
     pub fn cursor(&self) -> Option<Position> {
         self.rt.cursor()
     }
-
 
     pub fn snapshot(&self) -> Scene {
         Scene::from_buffer(
@@ -441,50 +377,38 @@ impl<A: App> Harness<A> {
         )
     }
 
-
     pub const fn app(&self) -> &A {
         self.rt.app()
     }
-
 
     pub const fn app_mut(&mut self) -> &mut A {
         self.rt.app_mut()
     }
 
-
     pub const fn runtime(&self) -> &Runtime<A> {
         &self.rt
     }
-
 
     pub const fn runtime_mut(&mut self) -> &mut Runtime<A> {
         &mut self.rt
     }
 
-
-
-
     pub fn resolved(&self, id: Id, p: Part) -> Resolved {
         self.rt.resolved(id, p)
     }
-
-
 
     pub fn resolved_in(&self, f: Family, v: Variant, id: Id, p: Part) -> Resolved {
         self.rt.resolved_in(f, v, id, p)
     }
 
-
     pub const fn last_invalidate(&self) -> Invalidate {
         self.rt.last_invalidate()
     }
-
 
     pub fn records(&self) -> &[&'static str] {
         self.rt.records()
     }
 }
-
 
 pub fn centre(a: Rect) -> (u16, u16) {
     (
@@ -494,7 +418,6 @@ pub fn centre(a: Rect) -> (u16, u16) {
             .min(a.bottom().saturating_sub(1)),
     )
 }
-
 
 pub fn row_text(buf: &Buffer, y: u16) -> (String, Vec<u16>) {
     let area = *buf.area();
@@ -524,10 +447,6 @@ mod tests {
 
     const LIST: Id = Id::root("harness.list");
     const BUTTON: Id = Id::root("harness.button");
-
-
-
-
 
     struct TwoFamilies;
 
@@ -582,7 +501,6 @@ mod tests {
                 termrock::Surface::Canvas
             )
         );
-
 
         let btn = h.resolved(BUTTON, Part::CONTAINER);
         assert_eq!(

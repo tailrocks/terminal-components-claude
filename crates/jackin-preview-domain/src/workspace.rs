@@ -1,22 +1,15 @@
-
-
-
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::{fmt, mem};
 
 use super::account::{AccountId, AccountRegistry, Lifecycle};
 use super::agent::Provider;
 
-
 pub type WorkspaceId = u32;
 
 pub type RoleName = String;
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Workspace {
-
     pub id: WorkspaceId,
 
     pub name: String,
@@ -40,13 +33,8 @@ pub struct Workspace {
     pub dirty_policy: DirtyExitPolicy,
 }
 
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AccountPolicy {
-
     pub disabled_defaults: BTreeSet<AccountId>,
 
     pub enabled: BTreeSet<AccountId>,
@@ -57,7 +45,6 @@ pub struct AccountPolicy {
 }
 
 impl AccountPolicy {
-
     pub fn change_count(&self, other: &AccountPolicy) -> usize {
         self.disabled_defaults
             .symmetric_difference(&other.disabled_defaults)
@@ -68,17 +55,14 @@ impl AccountPolicy {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Effective {
-
     InheritedDefault,
 
     Enabled,
 }
 
 impl Effective {
-
     pub fn label(self) -> &'static str {
         match self {
             Effective::InheritedDefault => "inherited default",
@@ -87,10 +71,8 @@ impl Effective {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Usability {
-
     Ready,
 
     Disabled(String),
@@ -101,7 +83,6 @@ pub enum Usability {
 }
 
 impl Usability {
-
     pub fn label(&self) -> String {
         match self {
             Usability::Ready => "ready".into(),
@@ -111,16 +92,13 @@ impl Usability {
         }
     }
 
-
     pub fn is_ready(&self) -> bool {
         matches!(self, Usability::Ready)
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveAccount {
-
     pub id: AccountId,
 
     pub provider: Provider,
@@ -131,7 +109,6 @@ pub struct EffectiveAccount {
 
     pub usable: Usability,
 }
-
 
 pub fn usability_of(a: &super::account::Account) -> Usability {
     if !a.enabled {
@@ -154,7 +131,6 @@ pub fn usability_of(a: &super::account::Account) -> Usability {
 }
 
 impl Workspace {
-
     pub fn new(id: WorkspaceId, name: &str, workdir: &str) -> Self {
         Self {
             id,
@@ -170,11 +146,6 @@ impl Workspace {
             dirty_policy: DirtyExitPolicy::Ask,
         }
     }
-
-
-
-
-
 
     pub fn effective_accounts(&self, registry: &AccountRegistry) -> Vec<EffectiveAccount> {
         let mut out: Vec<EffectiveAccount> = vec![];
@@ -197,7 +168,6 @@ impl Workspace {
                 usable: usability_of(a),
             });
         }
-
 
         let providers: Vec<Provider> = {
             let mut v: Vec<Provider> = out.iter().map(|e| e.provider).collect();
@@ -235,7 +205,6 @@ impl Workspace {
         out
     }
 
-
     pub fn role_preference(
         &self,
         role: &str,
@@ -252,7 +221,6 @@ impl Workspace {
             .map(|e| e.id.clone())
     }
 
-
     pub fn change_count(&self, other: &Workspace) -> usize {
         let mut n = 0;
         n += usize::from(self.name != other.name);
@@ -268,12 +236,10 @@ impl Workspace {
         n
     }
 
-
     pub fn env_count(&self) -> usize {
         self.env.len() + self.role_env.values().map(Vec::len).sum::<usize>()
     }
 }
-
 
 fn keyed<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
     let mut n = 0;
@@ -291,10 +257,8 @@ fn keyed<T: PartialEq>(a: &[T], b: &[T], key: impl Fn(&T) -> String) -> usize {
     n
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DirtyExitPolicy {
-
     Ask,
 
     Keep,
@@ -303,7 +267,6 @@ pub enum DirtyExitPolicy {
 }
 
 impl DirtyExitPolicy {
-
     pub fn label(self) -> &'static str {
         match self {
             DirtyExitPolicy::Ask => "ask",
@@ -313,12 +276,8 @@ impl DirtyExitPolicy {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mount {
-
     pub source: MountSource,
 
     pub destination: String,
@@ -333,12 +292,10 @@ pub struct Mount {
 
     pub drift: Option<String>,
 
-
     pub running_isolated: bool,
 }
 
 impl Mount {
-
     pub fn host(source: &str, destination: &str) -> Self {
         Self {
             source: MountSource::Host(source.to_owned()),
@@ -351,7 +308,6 @@ impl Mount {
             running_isolated: false,
         }
     }
-
 
     pub fn git(url: &str, destination: &str) -> Self {
         Self {
@@ -366,30 +322,25 @@ impl Mount {
         }
     }
 
-
     pub fn readonly(mut self, ro: bool) -> Self {
         self.readonly = ro;
         self
     }
-
 
     pub fn isolation(mut self, iso: Isolation) -> Self {
         self.isolation = iso;
         self
     }
 
-
     pub fn repository(mut self) -> Self {
         self.kind = MountKind::Repository;
         self
     }
 
-
     pub fn scope(mut self, scope: MountScope) -> Self {
         self.scope = scope;
         self
     }
-
 
     pub fn source_label(&self) -> &str {
         match &self.source {
@@ -397,25 +348,20 @@ impl Mount {
         }
     }
 
-
     pub fn mode_label(&self) -> &'static str {
         if self.readonly { "ro" } else { "rw" }
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MountSource {
-
     Host(String),
 
     Git(String),
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Isolation {
-
     Shared,
 
     Worktree,
@@ -424,7 +370,6 @@ pub enum Isolation {
 }
 
 impl Isolation {
-
     pub fn label(self) -> &'static str {
         match self {
             Isolation::Shared => "Shared",
@@ -432,7 +377,6 @@ impl Isolation {
             Isolation::Clone => "Clone",
         }
     }
-
 
     pub fn next(self) -> Self {
         match self {
@@ -443,19 +387,15 @@ impl Isolation {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MountKind {
-
     Directory,
 
     Repository,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MountScope {
-
     Global,
 
     Workspace,
@@ -464,7 +404,6 @@ pub enum MountScope {
 }
 
 impl MountScope {
-
     pub fn label(&self) -> String {
         match self {
             MountScope::Global => "global".into(),
@@ -474,12 +413,8 @@ impl MountScope {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RolePolicy {
-
     pub allowed: AllowedRoles,
 
     pub default: Option<RoleName>,
@@ -487,10 +422,8 @@ pub struct RolePolicy {
     pub last: Option<RoleName>,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum AllowedRoles {
-
     #[default]
     All,
 
@@ -498,14 +431,12 @@ pub enum AllowedRoles {
 }
 
 impl RolePolicy {
-
     pub fn allows(&self, role: &str) -> bool {
         match &self.allowed {
             AllowedRoles::All => true,
             AllowedRoles::Custom(list) => list.iter().any(|r| r == role),
         }
     }
-
 
     pub fn summary(&self) -> String {
         match &self.allowed {
@@ -515,11 +446,8 @@ impl RolePolicy {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RoleEntry {
-
     pub namespace: String,
 
     pub name: String,
@@ -536,31 +464,19 @@ pub struct RoleEntry {
 }
 
 impl RoleEntry {
-
     pub fn full_name(&self) -> String {
         format!("{}/{}", self.namespace, self.name)
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RoleSource {
+    Git { url: String, branch: String },
 
-    Git {
-
-        url: String,
-
-        branch: String,
-    },
-
-    Local {
-
-        path: String,
-    },
+    Local { path: String },
 }
 
 impl RoleSource {
-
     pub fn label(&self) -> String {
         match self {
             RoleSource::Git { url, branch } => format!("{url} @ {branch}"),
@@ -569,19 +485,14 @@ impl RoleSource {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnvVar {
-
     pub key: String,
 
     pub value: EnvValue,
 }
 
 impl EnvVar {
-
     pub fn plain(key: &str, value: &str) -> Self {
         Self {
             key: key.to_owned(),
@@ -589,14 +500,12 @@ impl EnvVar {
         }
     }
 
-
     pub fn op(key: &str, reference: super::onepassword::OpReference) -> Self {
         Self {
             key: key.to_owned(),
             value: EnvValue::OnePassword(reference),
         }
     }
-
 
     pub fn host(key: &str, host_var: &str) -> Self {
         Self {
@@ -606,10 +515,8 @@ impl EnvVar {
     }
 }
 
-
 #[derive(Clone, PartialEq, Eq)]
 pub enum EnvValue {
-
     Plain(String),
 
     OnePassword(super::onepassword::OpReference),
@@ -637,7 +544,6 @@ impl Drop for EnvValue {
 }
 
 impl EnvValue {
-
     pub fn source_label(&self) -> &'static str {
         match self {
             EnvValue::Plain(_) => "plain text",
@@ -646,11 +552,6 @@ impl EnvValue {
         }
     }
 }
-
-
-
-
-
 
 pub fn mask(v: &str) -> String {
     if v.is_empty() {
@@ -672,8 +573,6 @@ pub fn mask(v: &str) -> String {
         "*".repeat(n.min(16))
     }
 }
-
-
 
 pub fn env_key_error(key: &str) -> Option<String> {
     let k = key.trim();

@@ -1,16 +1,12 @@
-
-
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-
 
 pub(super) const OBSERVER_STEP_ORDER: [ObserverStep; 3] = [
     ObserverStep::Build,
     ObserverStep::Test,
     ObserverStep::Taskfmt,
 ];
-
 
 pub struct ObserverEnv;
 
@@ -19,7 +15,6 @@ impl ObserverEnv {
     pub const RESPONSE_FD: &'static str = "TC_PROOF_OBSERVER_RESPONSE_FD";
     pub const NONCE: &'static str = "TC_PROOF_OBSERVER_NONCE";
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -45,7 +40,6 @@ pub enum ObserverRequestSchema {
     V1,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObserverRequest {
     pub schema: ObserverRequestSchema,
@@ -62,7 +56,6 @@ pub enum ObserverResponse {
     Error(ObserverError),
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObserverObservation {
     pub step: ObserverStep,
@@ -73,7 +66,6 @@ pub struct ObserverObservation {
     pub stderr: String,
     pub files: BTreeMap<String, String>,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObserverError {

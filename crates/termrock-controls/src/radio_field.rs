@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -11,11 +9,6 @@ use crate::measure::{Constraints, Size};
 use crate::ui::Ui;
 use termrock_collections::collection::KeyFn;
 use termrock_runtime::rowui::RowFn;
-
-
-
-
-
 
 pub struct RadioField<'a, T, K, R> {
     group: RadioGroup<'a, T, K, R>,
@@ -32,7 +25,6 @@ impl<T, K, R> fmt::Debug for RadioField<'_, T, K, R> {
 }
 
 impl<'a, T, K, R> RadioField<'a, T, K, R> {
-
     pub const fn new(group: RadioGroup<'a, T, K, R>, items: &'a [T]) -> Self {
         RadioField { group, items }
     }

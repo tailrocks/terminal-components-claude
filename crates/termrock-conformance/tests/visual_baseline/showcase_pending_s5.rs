@@ -1,84 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -107,12 +26,9 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, SHOWCASE};
 
-
 const BOOT: &str = "Junie Design system";
 
-
 const PORT_OF: &str = "68d98ac99238c8580464f238a65b0f862ecc3dbd";
-
 
 fn s5_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> Case {
     Case::dynamic(
@@ -126,7 +42,6 @@ fn s5_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> C
     )
 }
 
-
 fn s5_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -135,13 +50,9 @@ fn s5_dir(test: &str) -> PathBuf {
     dir
 }
 
-
-
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
-
-
 
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
@@ -161,7 +72,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
         .unwrap_or_else(|e| panic!("write {}: {e}", dir.join(file).display()));
     eprintln!("s5 provenance ({file}): {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -183,7 +93,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -192,8 +101,6 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
 fn live_frame(s: &mut Session) -> Frame {
     let screen = s
         .inner
@@ -201,7 +108,6 @@ fn live_frame(s: &mut Session) -> Frame {
         .unwrap_or_else(|e| panic!("live frame sample failed: {e:#}"));
     frame_from_screen(&screen, "default")
 }
-
 
 fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     let deadline = std::time::Instant::now() + timeout;
@@ -220,7 +126,6 @@ fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     }
 }
 
-
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
         s,
@@ -231,7 +136,6 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-
 fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     Input::down(MouseButton::Left, col, row).send(s);
@@ -239,7 +143,6 @@ fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     std::thread::sleep(Duration::from_millis(120));
     (row, col)
 }
-
 
 fn wheel_over(
     s: &mut Session,
@@ -253,8 +156,6 @@ fn wheel_over(
     (row, col)
 }
 
-
-
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
@@ -262,21 +163,15 @@ fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     }
 }
 
-
 fn type_text(s: &mut Session, text: &str) {
     s.type_text(text).expect("type_text");
     std::thread::sleep(Duration::from_millis(120));
 }
 
-
-
-
 fn press(s: &mut Session, key: &str) {
     support::press_step(s, key);
     std::thread::sleep(Duration::from_millis(120));
 }
-
-
 
 fn tab_until(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
     let deadline = std::time::Instant::now() + timeout;
@@ -297,12 +192,6 @@ fn tab_until(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
     );
 }
 
-
-
-
-
-
-
 fn wait_absent(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
     support::wait_screen(
         s,
@@ -312,7 +201,6 @@ fn wait_absent(s: &mut Session, needle: &str, timeout: Duration, what: &str) {
     );
 }
 
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
@@ -320,16 +208,12 @@ fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         !text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: a line holds both {needle:?} and {also:?}\n{text}"
     );
 }
-
-
-
 
 fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     s.resize(cols, rows).expect("resize");
@@ -341,10 +225,6 @@ fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     );
     std::thread::sleep(Duration::from_millis(700));
 }
-
-
-
-
 
 fn sentinel_buf(cols: u16, rows: u16) -> Buffer {
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
@@ -384,10 +264,6 @@ fn buf_is_bold(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::BOLD)
 }
 
-
-
-
-
 fn render_isolated(
     cols: u16,
     rows: u16,
@@ -414,8 +290,6 @@ fn render_isolated(
     buf
 }
 
-
-
 fn convert_color(c: RColor) -> TColor {
     match c {
         RColor::Reset => TColor::Default,
@@ -440,7 +314,6 @@ fn convert_color(c: RColor) -> TColor {
     }
 }
 
-
 fn convert_mods(m: Modifier) -> Mods {
     Mods {
         hidden: m.contains(Modifier::HIDDEN),
@@ -458,10 +331,6 @@ fn convert_mods(m: Modifier) -> Mods {
         reverse: m.contains(Modifier::REVERSED),
     }
 }
-
-
-
-
 
 fn capture_buffer(buf: &Buffer) -> Frame {
     let cols = buf.area.width;
@@ -533,7 +402,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-
 fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     let frame = capture_buffer(buf);
     std::fs::write(
@@ -545,16 +413,12 @@ fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     frame
 }
 
-
-
 fn char_col(line: &str, needle: &str) -> u16 {
     let byte = line
         .find(needle)
         .unwrap_or_else(|| panic!("{needle:?} not in {line:?}"));
     line[..byte].chars().count() as u16
 }
-
-
 
 fn s5_hint(key: &'static str, label: &'static str) -> Hint {
     Hint {
@@ -563,15 +427,6 @@ fn s5_hint(key: &'static str, label: &'static str) -> Hint {
         priority: 10,
     }
 }
-
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
@@ -610,7 +465,6 @@ fn s5_hint_layers() {
         centered: false,
     };
 
-
     assert_eq!(
         HintBar::resolve(&[Some(&menu), Some(&context), Some(&screen)]),
         Some(&menu),
@@ -642,7 +496,6 @@ fn s5_hint_layers() {
     };
     assert_eq!(zoomed.hints, screen.hints, "S2: badge keeps the hints");
     assert_eq!(zoomed.status, screen.status, "S2: badge keeps the status");
-
 
     let buf = render_isolated(80, 3, 0, None, |ui, _| {
         HintBar::new(Id::root("s5.hint"), &menu).draw(ui, Rect::new(0, 1, 80, 1));
@@ -678,13 +531,11 @@ fn s5_hint_layers() {
     );
     assert_surround_intact(&buf, area, "N1: one row only");
 
-
     let case = s5_case("hint_layers", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "base");
     let (base_row, _) = find_pos(&mut s, "last: nothing yet", case_timeout(&case));
-
 
     assert_eq!(base_row, 21, "N2: the footer sits above the app hints");
     let base = live_text(&mut s);
@@ -710,9 +561,7 @@ fn s5_hint_layers() {
     let open = live_text(&mut s);
     assert_line_has(&open, "Switch menu", "Close", "V1 live: menu layer");
 
-
     press(&mut s, "enter");
-
 
     press(&mut s, "tab");
     waits::wait_state(&mut s, "last: View › Zoom pane", "A1 live: choice records");
@@ -723,7 +572,6 @@ fn s5_hint_layers() {
         "N2: the footer never moves between layers"
     );
     let zoomed_text = live_text(&mut s);
-
 
     assert_line_has(
         &zoomed_text,
@@ -739,15 +587,6 @@ fn s5_hint_layers() {
     eprintln!("s5 hint_layers: resolve order + live base/bar/menu/zoom footer");
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_keyhint_status() {
@@ -760,9 +599,6 @@ fn s5_keyhint_status() {
         status: Some(status.into()),
         centered: false,
     };
-
-
-
 
     let layer = toned("disk low");
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
@@ -795,9 +631,6 @@ fn s5_keyhint_status() {
     assert_surround_intact(&buf, area, "V1: containment");
     capture_isolated(&dir, "keyhint-error", &buf);
 
-
-
-
     let layer = toned("last: View › Zoom pane");
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         HintBar::new(Id::root("s5.hint"), &layer).draw(ui, Rect::new(0, 1, 60, 1));
@@ -821,8 +654,6 @@ fn s5_keyhint_status() {
         (status_x..60).all(|x| !buf_is_bold(&buf, x, 1)),
         "N2: no bold anywhere in a plain status"
     );
-
-
 
     let spinner: &str = t.design.motion.spinner_frames[0];
     for (status, mark) in [(Status::Error, Some("!")), (Status::Ready, None)] {
@@ -860,7 +691,6 @@ fn s5_keyhint_status() {
             "S1: {status:?} spins before the message\n{row:?}"
         );
     }
-
 
     let many = HintLayer {
         hints: vec![
@@ -904,8 +734,6 @@ fn s5_keyhint_status() {
         "S2: the status pins the right edge minus one"
     );
 
-
-
     let limit = 80 - (w + 3);
     let head: String = row.chars().take(status_x as usize).collect();
     let hint_end = head
@@ -920,8 +748,6 @@ fn s5_keyhint_status() {
         limit < status_x,
         "S2: the complete-hint limit ({limit}) stays shy of the status"
     );
-
-
 
     let case = s5_case("keyhint_status", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
@@ -941,8 +767,6 @@ fn s5_keyhint_status() {
     checkpoint(&mut s, &dir, "menu-open");
     press(&mut s, "enter");
     checkpoint(&mut s, &dir, "after-choose");
-
-
 
     press(&mut s, "tab");
     waits::wait_state(
@@ -990,16 +814,6 @@ fn s5_keyhint_status() {
     eprintln!("s5 keyhint_status: toned marks + live replace + no-input click");
 }
 
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_keyhint_drop() {
@@ -1019,13 +833,11 @@ fn s5_keyhint_drop() {
         centered: false,
     };
 
-
     let buf = render_isolated(30, 3, 0, None, |ui, _| {
         HintBar::new(Id::root("s5.hint"), &layer).draw(ui, Rect::new(0, 1, 30, 1));
     });
     let area = Rect::new(0, 1, 30, 1);
     let row = buf_row_text(&buf, 1);
-
 
     assert!(
         row.contains("Enter")
@@ -1069,7 +881,6 @@ fn s5_keyhint_drop() {
         unmarked.starts_with(" ZOOM "),
         "V2: the badge leads\n{row:?}"
     );
-
 
     let drawn = row.trim_end().trim_end_matches('·');
     assert!(
@@ -1162,7 +973,6 @@ fn s5_keyhint_drop() {
         }
     }
 
-
     let case = s5_case("keyhint_drop", &["--page", "chrome"], 72, 20);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1176,7 +986,6 @@ fn s5_keyhint_drop() {
     press(&mut s, "right");
     waits::wait_state(&mut s, "Zoom pane", "View menu never opened");
     press(&mut s, "enter");
-
 
     press(&mut s, "tab");
     waits::wait_state(&mut s, "ZOOM", "V2 live: zoom badge never led");
@@ -1207,8 +1016,6 @@ fn s5_keyhint_drop() {
     eprintln!("s5 keyhint_drop: narrow drop + badge + widen redraw");
 }
 
-
-
 const S5_GRID: Id = Id::root("s5.grid");
 
 const S5_COL_CUSTOMER: usize = 1;
@@ -1217,9 +1024,6 @@ const S5_COL_SEATS: usize = 3;
 const S5_COL_ACTIVE: usize = 5;
 const S5_COL_RENEWED: usize = 6;
 const S5_COL_NOTES: usize = 7;
-
-
-
 
 const S5_COLUMNS: [Column<'static>; 8] = [
     Column {
@@ -1328,7 +1132,6 @@ const S5_COLUMNS: [Column<'static>; 8] = [
     },
 ];
 
-
 fn s5_grid() -> Grid<'static> {
     Grid::new(S5_GRID, &S5_COLUMNS)
         .nav(NavUnit::Cell)
@@ -1343,7 +1146,6 @@ fn s5_grid() -> Grid<'static> {
         .overflow_indicator(GridOverflowIndicator::Count)
         .fetch_label("Enter fetches more")
 }
-
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct S5Cell {
@@ -1366,7 +1168,6 @@ impl S5Cell {
         }
     }
 }
-
 
 #[derive(Clone, Debug)]
 struct S5Record {
@@ -1399,9 +1200,6 @@ struct S5Snapshot {
     deleted: BTreeSet<u64>,
     next_key: u64,
 }
-
-
-
 
 #[derive(Clone, Debug)]
 struct S5GridModel {
@@ -1474,7 +1272,6 @@ impl S5GridModel {
         self.records.get(&id)?.cells.get(col)
     }
 
-
     fn record_cell(&mut self, row: usize, col: usize, value: S5Cell) {
         let Some(id) = self.id_at(row) else {
             return;
@@ -1527,7 +1324,6 @@ impl S5GridModel {
             self.cells.retain(|(kept, _), _| *kept != id);
             self.row_errors.remove(&id);
         } else if self.deleted.remove(&id) {
-
         } else {
             self.deleted.insert(id);
             self.cells.retain(|(kept, _), _| *kept != id);
@@ -1579,7 +1375,6 @@ impl S5GridModel {
         true
     }
 
-
     fn commit_ok(&mut self) {
         for ((id, col), value) in std::mem::take(&mut self.cells) {
             if let Some(record) = self.records.get_mut(&id)
@@ -1602,7 +1397,6 @@ impl S5GridModel {
             self.row_errors.insert(id, message);
         }
     }
-
 
     fn counts(&self) -> (usize, usize, usize) {
         let updates = self
@@ -1710,10 +1504,6 @@ impl GridModel for S5GridModel {
     fn has_more(&self) -> bool {
         self.more
     }
-
-
-
-
 }
 
 fn s5_validate_cell(col: usize, text: &str) -> Result<S5Cell, FieldError> {
@@ -1863,7 +1653,6 @@ impl GridEditor for S5GridModel {
     }
 }
 
-
 struct S5GridApp {
     state: GridState,
     model: S5GridModel,
@@ -1882,7 +1671,6 @@ impl S5GridApp {
             activity: None,
         }
     }
-
 
     fn cursor(&self) -> Option<(usize, usize)> {
         let (key, col) = self.state.cursor()?;
@@ -1916,26 +1704,13 @@ impl App for S5GridApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_grid_edit() {
     let dir = s5_dir("s5_grid_edit");
 
-
-
     let model = S5GridModel::with_rows(40, RowTotal::Estimated(4_812), true);
     let state = GridState::default();
-
 
     let _buf = render_isolated(80, 12, 0, None, |ui, _| {
         assert_eq!(
@@ -1971,7 +1746,6 @@ fn s5_grid_edit() {
     );
     assert!(!other_marked, "V1: only the cursor row is marked\n{text}");
 
-
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
         Theme::junie(),
@@ -2005,7 +1779,6 @@ fn s5_grid_edit() {
         Some("Customer 0"),
         "S1: the cell draft text"
     );
-
 
     let _ = app.type_str(" Jr");
     assert_eq!(
@@ -2042,7 +1815,6 @@ fn s5_grid_edit() {
         "A1: the toggle queues false"
     );
 
-
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
         Theme::junie(),
@@ -2068,7 +1840,6 @@ fn s5_grid_edit() {
         "A2: Tab opens the next editor"
     );
 
-
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
         Theme::junie(),
@@ -2091,7 +1862,6 @@ fn s5_grid_edit() {
         Some("false"),
         "A2: the skipped-into Bool toggles inline"
     );
-
 
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
@@ -2129,7 +1899,6 @@ fn s5_grid_edit() {
         "N1: Enter on a queued-for-deletion row opens nothing"
     );
 
-
     let mut app = Harness::new(
         S5GridApp::new(S5GridModel::with_rows(3, RowTotal::Exact(3), false), 80, 22),
         Theme::junie(),
@@ -2151,7 +1920,6 @@ fn s5_grid_edit() {
         "N2: the error explains"
     );
     assert_eq!(app.app().model.pending_total(), 0, "N2: nothing queues");
-
 
     let case = s5_case("grid_edit", &["--page", "datagrid"], 80, 24);
     write_provenance(&dir, &case);
@@ -2192,8 +1960,6 @@ fn s5_grid_edit() {
         committed.contains("Blue Yonder Airlines Jr"),
         "V2 live: commit repaints the typed value"
     );
-
-
 
     press(&mut s, "down");
     for _ in 0..4 {
@@ -2236,24 +2002,10 @@ fn s5_grid_edit() {
     eprintln!("s5 grid_edit: cursor + inline editor + toggle + refusals");
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_grid_pending() {
     let dir = s5_dir("s5_grid_pending");
-
 
     let mut model = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
     model.record_cell(0, 3, S5Cell::plain("600"));
@@ -2279,17 +2031,12 @@ fn s5_grid_pending() {
     assert_eq!(model.len(), len, "S2: the inserted row is gone entirely");
     assert_eq!(model.pending_total(), 0, "S2: no delete queues");
 
-
-
-
-
     model.record_cell(0, 3, S5Cell::plain("600"));
     assert_eq!(
         model.counts(),
         (1, 0, 0),
         "V1: the queue the bar would count"
     );
-
 
     let mut queued = S5GridModel::with_rows(3, RowTotal::Exact(3), false);
     queued.record_cell(0, 3, S5Cell::plain("600"));
@@ -2311,7 +2058,6 @@ fn s5_grid_pending() {
         &S5Cell::plain("10"),
         "N2: stored values are untouched"
     );
-
 
     let case = s5_case("grid_pending", &["--page", "datagrid"], 80, 24);
     write_provenance(&dir, &case);
@@ -2338,8 +2084,6 @@ fn s5_grid_pending() {
     );
     checkpoint(&mut s, &dir, "pending");
 
-
-
     type_text(&mut s, "+");
     waits::wait_state(&mut s, "Row inserted", "insert never reported");
     press(&mut s, "up");
@@ -2358,7 +2102,6 @@ fn s5_grid_pending() {
         "V1 live: the bar shows its buttons",
     );
     assert!(queued.contains("Discard"), "V1 live: Discard renders");
-
 
     press(&mut s, "p");
     waits::wait_state(&mut s, "Pending changes", "preview never opened");
@@ -2403,7 +2146,6 @@ fn s5_grid_pending() {
     waits::wait_state(&mut s, "Changes discarded", "A1 live: U never discarded");
     let clean = live_text(&mut s);
 
-
     assert!(
         !clean.contains("pending ·"),
         "A1 live: the pending bar is gone"
@@ -2416,27 +2158,10 @@ fn s5_grid_pending() {
     eprintln!("s5 grid_pending: queue + preview dialog + undo + discard");
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_grid_commit() {
     let dir = s5_dir("s5_grid_commit");
-
-
-
-
-
 
     let model = S5GridModel::with_rows(0, RowTotal::Exact(0), false);
     let state = GridState::default();
@@ -2497,8 +2222,6 @@ fn s5_grid_commit() {
         "clean commit: stored"
     );
 
-
-
     let mut rig = S5GridApp::new(
         S5GridModel::with_rows(40, RowTotal::Estimated(4_812), true),
         80,
@@ -2516,7 +2239,6 @@ fn s5_grid_commit() {
         saving.contains("fetching…"),
         "V1: the loaded grid spins fetching… while saving\n{saving}"
     );
-
 
     let case = s5_case("grid_commit", &["--page", "datagrid"], 80, 24);
     write_provenance(&dir, &case);
@@ -2542,10 +2264,8 @@ fn s5_grid_commit() {
         case.timeout_ms,
     );
 
-
     press(&mut s, "G");
     waits::wait_state(&mut s, "Enter fetches more", "fetch row never showed");
-
 
     press(&mut s, "ctrl-s");
     let mut saw_saving = false;
@@ -2571,10 +2291,6 @@ fn s5_grid_commit() {
     );
     checkpoint(&mut s, &dir, "failed");
 
-
-
-
-
     press(&mut s, "g");
     support::wait_screen(
         &mut s,
@@ -2598,7 +2314,6 @@ fn s5_grid_commit() {
         marked.contains("2 pending"),
         "N2 live: the queue survives failure"
     );
-
 
     let casew = s5_case("grid_commit_wide", &["--page", "datagrid"], 120, 40);
     write_provenance_named(&dir, &casew, "provenance-wide.txt");
@@ -2643,10 +2358,7 @@ fn s5_grid_commit() {
     eprintln!("s5 grid_commit: saving window + row error + clean queue");
 }
 
-
-
 const S5_CODE: Id = Id::root("s5.code");
-
 
 fn s5_blocks(src: &str) -> Vec<std::ops::Range<usize>> {
     let mut out = Vec::new();
@@ -2671,7 +2383,6 @@ fn s5_blocks(src: &str) -> Vec<std::ops::Range<usize>> {
     }
     out
 }
-
 
 fn s5_highlight(src: &str) -> Vec<(std::ops::Range<usize>, SyntaxRole)> {
     let mut out = Vec::new();
@@ -2698,14 +2409,12 @@ fn s5_highlight(src: &str) -> Vec<(std::ops::Range<usize>, SyntaxRole)> {
 
 const S5_SAMPLE: &str = "fn fetch(url: &str) -> Body {\n    let body = get(url);\n    log(\"done\");\n    body\n}\n\nfn client() -> Client {\n    Client::new().unwrap()\n}\n";
 
-
 fn s5_code() -> CodeEditor<'static> {
     CodeEditor::new(S5_CODE, 12)
         .highlighter(&s5_highlight)
         .segmenter(&s5_blocks)
         .tab_behavior(TabBehavior::Leave)
 }
-
 
 struct S5CodeApp {
     state: CodeEditorState,
@@ -2737,23 +2446,11 @@ impl App for S5CodeApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_code_edit() {
     let dir = s5_dir("s5_code_edit");
     let t = Theme::junie();
-
-
 
     let mut app = Harness::new(
         S5CodeApp::new(S5_SAMPLE, Rect::new(0, 1, 60, 12)),
@@ -2778,7 +2475,6 @@ fn s5_code_edit() {
         "V1: plain gutter off the cursor\n{second:?}"
     );
 
-
     assert!(buf_is_bold(&buf, 6, 1), "V2: the `fn` keyword reads bold");
     assert_eq!(
         buf[(6, 1)].fg,
@@ -2792,7 +2488,6 @@ fn s5_code_edit() {
         t.color.fg[FgStep::Secondary.index()],
         "V2: strings take secondary"
     );
-
 
     let mut app = Harness::new(
         S5CodeApp::new(S5_SAMPLE, Rect::new(0, 1, 60, 12)),
@@ -2919,12 +2614,10 @@ fn s5_code_edit() {
         "N2: a bare Esc reports nothing"
     );
 
-
     let case = s5_case("code_edit", &["--page", "codeeditor"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     press(&mut s, "tab");
-
 
     waits::wait_state(&mut s, "ln 1/26 · col 1", "editor never focused");
     checkpoint(&mut s, &dir, "navigating");
@@ -2943,7 +2636,6 @@ fn s5_code_edit() {
     waits::wait_state(&mut s, "editing", "S1 live: i never entered editing");
     checkpoint(&mut s, &dir, "editing");
 
-
     type_text(&mut s, "x");
     press(&mut s, "esc");
     waits::wait_state(&mut s, "navigating", "S1 live: Esc never committed");
@@ -2960,7 +2652,6 @@ fn s5_code_edit() {
         after, before,
         "N1 live: typing in navigation changes nothing"
     );
-
 
     press(&mut s, "esc");
     let bare = settle_text(&mut s, case_timeout(&case), "N2 steady");
@@ -2979,24 +2670,11 @@ fn s5_code_edit() {
     eprintln!("s5 code_edit: gutter + modes + jumps + refusals");
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_code_run() {
     let dir = s5_dir("s5_code_run");
     let t = Theme::junie();
-
 
     let mut state = CodeEditorState::new(S5_SAMPLE);
     let block = s5_code().blocks(&state)[1].clone();
@@ -3024,8 +2702,6 @@ fn s5_code_run() {
     );
     assert_surround_intact(&buf, area, "V1: containment");
     capture_isolated(&dir, "code-running", &buf);
-
-
 
     let first = s5_code().blocks(&state)[0].clone();
     state.jump_to(S5_SAMPLE.find("\n\n").unwrap() + 1);
@@ -3087,7 +2763,6 @@ fn s5_code_run() {
     state.set_running(Some(block));
     assert_eq!(state.text(), S5_SAMPLE, "N1: the run mutates no text");
 
-
     let case = s5_case(
         "code_run_paused",
         &["--page", "codeeditor", "--motion", "paused"],
@@ -3108,11 +2783,6 @@ fn s5_code_run() {
         "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏".chars().any(|c| running.contains(c)),
         "V1 live: the marker column spins while running"
     );
-
-
-
-
-
 
     let case_between = s5_case("code_run_between", &["--page", "codeeditor"], 120, 40);
     write_provenance_named(&dir, &case_between, "provenance-between.txt");
@@ -3136,7 +2806,6 @@ fn s5_code_run() {
         "A1 live: block 1 flags nothing (presence: the empty panel)"
     );
 
-
     let case2 = s5_case("code_run", &["--page", "codeeditor"], 120, 40);
     write_provenance_named(&dir, &case2, "provenance-playing.txt");
     let mut p = support::spawn_boot(&case2);
@@ -3153,13 +2822,11 @@ fn s5_code_run() {
     checkpoint(&mut p, &dir, "diag");
     let diag = live_text(&mut p);
 
-
     assert!(
         diag.contains("ln 19 · unwrap() panics"),
         "V2 live: the Diagnostics panel lists ln · message"
     );
     assert_line_has(&diag, "unwrap()", "!", "V2 live: the unwrap line owns !");
-
 
     assert!(
         diag.contains("Client::builder().timeout(10)"),
@@ -3184,18 +2851,14 @@ fn s5_code_run() {
     eprintln!("s5 code_run: running spinner + unwrap warning + edit clears");
 }
 
-
-
 const S5_DIFF: Id = Id::root("s5.diff");
 const S5_DIFF_EMPTY: Id = Id::root("s5.diff.empty");
-
 
 #[derive(Clone, Debug)]
 enum S5DiffRow {
     Hunk { old_start: usize, new_start: usize },
     Line { kind: DiffLineKind, text: String },
 }
-
 
 fn s5_diff_sample() -> Vec<S5DiffRow> {
     let mut rows = Vec::new();
@@ -3231,7 +2894,6 @@ fn s5_diff_sample() -> Vec<S5DiffRow> {
     }
     rows
 }
-
 
 #[derive(Clone, Debug)]
 struct S5DiffSource {
@@ -3285,8 +2947,6 @@ impl DiffSource for S5DiffSource {
     }
 }
 
-
-
 struct S5DiffApp {
     state: DiffViewState,
     source: Option<S5DiffSource>,
@@ -3334,22 +2994,11 @@ impl App for S5DiffApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_diff_unified() {
     let dir = s5_dir("s5_diff_unified");
     let t = Theme::junie();
-
 
     let mut app = Harness::new(
         S5DiffApp::new(Some(S5DiffSource::sample()), Rect::new(0, 1, 78, 22)),
@@ -3465,8 +3114,6 @@ fn s5_diff_unified() {
         "A2: Down scrolls one row"
     );
 
-
-
     let all = app.text();
     assert!(
         all.contains("@@") && all.contains("attempts = 3"),
@@ -3476,7 +3123,6 @@ fn s5_diff_unified() {
         !all.contains("Old") && !all.contains("New"),
         "N1: no review headers in unified"
     );
-
 
     let case = s5_case("diff_unified", &["--page", "diff"], 80, 24);
     write_provenance(&dir, &case);
@@ -3510,31 +3156,16 @@ fn s5_diff_unified() {
         "A2 live: the first hunk scrolled out"
     );
 
-
-
     click_at(&mut s, "Empty", case_timeout(&case));
     waits::wait_state(&mut s, "No file selected", "S1 live: empty never rendered");
     checkpoint(&mut s, &dir, "empty");
     eprintln!("s5 diff_unified: listing + scroll + empty");
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_diff_review() {
     let dir = s5_dir("s5_diff_review");
-
 
     let mut rig = S5DiffApp::new(Some(S5DiffSource::sample()), Rect::new(0, 1, 78, 22));
     rig.state.set_mode(DiffMode::Review);
@@ -3711,7 +3342,6 @@ fn s5_diff_review() {
         "V1: the column headers\n{wide}"
     );
 
-
     let case = s5_case("diff_review", &["--page", "diff"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3725,8 +3355,6 @@ fn s5_diff_review() {
         review.contains("Old") && review.contains("New") && review.contains("│"),
         "V1 live: Old │ New columns"
     );
-
-
 
     let (row, col) = find_pos(&mut s, "attempts = 3", case_timeout(&case));
     support::drag_path(&mut s, (col, row), (col + 20, row));
@@ -3759,7 +3387,6 @@ fn s5_diff_review() {
         "V2 live: copy keeps the demo text selected"
     );
 
-
     press(&mut s, "esc");
     std::thread::sleep(Duration::from_millis(400));
     let cleared = live_frame(&mut s);
@@ -3775,7 +3402,6 @@ fn s5_diff_review() {
         !wheeled.contains("M config/service.toml"),
         "A2 live: the wheel scrolled the header out"
     );
-
 
     press(&mut s, "home");
     waits::wait_state(&mut s, "Old", "never scrolled home");
@@ -3799,22 +3425,9 @@ fn s5_diff_review() {
     eprintln!("s5 diff_review: columns + drag copy + toggles");
 }
 
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_term_run() {
-
-
-
     let dir = s5_dir("s5_term_run");
     let case = s5_case("term_run", &["--page", "terminal"], 120, 40).timeout(60_000);
     write_provenance(&dir, &case);
@@ -3873,9 +3486,6 @@ fn s5_term_run() {
     let settled = settle_text(&mut s, case_timeout(&case), "N2 steady");
     assert_eq!(settled, done, "N2: the transcript freezes at the end");
 
-
-
-
     assert!(
         !done.contains("f Follow"),
         "S1 live: boot focus is the nav (presence)"
@@ -3915,10 +3525,7 @@ fn s5_term_run() {
     eprintln!("s5 term_run: launch transcript + rail + clean/fail restarts");
 }
 
-
-
 const S5_TERM: Id = Id::root("s5.term");
-
 
 struct S5TermApp {
     state: ViewportState,
@@ -3958,23 +3565,10 @@ impl App for S5TermApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_term_follow() {
     let dir = s5_dir("s5_term_follow");
-
 
     let mut app = Harness::new(
         S5TermApp::transcript(60, Rect::new(0, 1, 60, 20)),
@@ -3994,7 +3588,6 @@ fn s5_term_follow() {
         app.app().actions[before..].is_empty(),
         "N1: y with no selection emits no Copy"
     );
-
 
     let mut app = Harness::new(
         S5TermApp::transcript(60, Rect::new(0, 1, 60, 20)),
@@ -4056,7 +3649,6 @@ fn s5_term_follow() {
         "A1: f reports FollowChanged"
     );
 
-
     let _ = app.wheel(Axis::V, -10, 30, 10);
     let before_off = app.app().state.scroll().offset();
     assert!(before_off > 0, "A2: room to scroll up");
@@ -4075,7 +3667,6 @@ fn s5_term_follow() {
         app.app().state.selection().is_some(),
         "A2: the drag extends from the anchor"
     );
-
 
     let mut app = Harness::new(
         S5TermApp::transcript(60, Rect::new(0, 1, 60, 20)),
@@ -4126,7 +3717,6 @@ fn s5_term_follow() {
         app.app().state.selection().is_none(),
         "A2: the selection is gone"
     );
-
 
     let case = s5_case(
         "term_follow",
@@ -4182,11 +3772,7 @@ fn s5_term_follow() {
     eprintln!("s5 term_follow: tail + scrollback + selection copy");
 }
 
-
-
 const S5_SCROLL: Id = Id::root("s5.scroll");
-
-
 
 fn s5_position_label(scroll: &ScrollState) -> String {
     if !scroll.overflows() {
@@ -4200,9 +3786,6 @@ fn s5_position_label(scroll: &ScrollState) -> String {
         scroll.content_len()
     )
 }
-
-
-
 
 struct S5ScrollApp {
     state: ScrollState,
@@ -4233,23 +3816,10 @@ impl App for S5ScrollApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_scroll_region() {
     let dir = s5_dir("s5_scroll_region");
-
 
     let mut app = Harness::new(
         S5TermApp::transcript(400, Rect::new(0, 1, 40, 15)),
@@ -4346,8 +3916,6 @@ fn s5_scroll_region() {
         );
     }
 
-
-
     let case = s5_case(
         "scroll_region_wide",
         &[
@@ -4364,7 +3932,6 @@ fn s5_scroll_region() {
     write_provenance_named(&dir, &case, "provenance-wide.txt");
     let mut w = support::spawn_boot(&case);
     waits::wait_state(&mut w, "739.63s", "paused log endpoint never showed");
-
 
     waits::wait_state(&mut w, "of 120", "V1 live: list label never showed");
     waits::wait_state(
@@ -4407,7 +3974,6 @@ fn s5_scroll_region() {
     press(&mut w, "f");
     waits::wait_state(&mut w, "following", "A2 live: f never resumed follow");
 
-
     let case2 = s5_case(
         "scroll_region",
         &[
@@ -4430,12 +3996,10 @@ fn s5_scroll_region() {
     let boot = live_text(&mut s);
     assert!(boot.contains("1–15 of"), "V1 live: prose boots at 1–15");
 
-
     assert!(
         boot.contains("1986–2000"),
         "V1/S1 live: the log caps at 2000"
     );
-
 
     wheel_over(&mut s, "739.63s", Wheel::Up, 1, case_timeout(&case2));
     waits::wait_state(&mut s, "1983–1997", "S2 live: the log never wheeled");
@@ -4464,8 +4028,6 @@ fn s5_scroll_region() {
     press(&mut s, "G");
     waits::wait_state(&mut s, "1986–2000", "A2 live: G never jumped to the end");
     checkpoint(&mut s, &dir, "ends");
-
-
 
     let case3 = s5_case("scroll_region_live", &["--page", "scrolling"], 120, 40);
     write_provenance_named(&dir, &case3, "provenance-live.txt");
@@ -4496,8 +4058,6 @@ fn s5_scroll_region() {
     );
     checkpoint(&mut p, &dir, "growing");
 
-
-
     let mut prose = Harness::new(
         S5TermApp::transcript(2, Rect::new(0, 1, 40, 15)),
         Theme::junie(),
@@ -4512,21 +4072,10 @@ fn s5_scroll_region() {
     eprintln!("s5 scroll_region: columns + routing + growth + cap");
 }
 
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s5 check; run with --ignored"]
 fn s5_scroll_track() {
     let dir = s5_dir("s5_scroll_track");
-
 
     let mut log = ScrollState::new(2000);
     log.set_viewport(15);
@@ -4595,7 +4144,6 @@ fn s5_scroll_track() {
     let r = region.mouse(MouseKind::Down, 1, 1);
     assert_eq!(r.flow(), Flow::Consumed, "A1: the thumb press grabs");
 
-
     assert_eq!(r.invalidate(), Invalidate::Paint, "A1: the grab repaints");
     assert_eq!(region.app().state.offset(), 0, "A1: the offset holds");
     let r = region.mouse(MouseKind::Drag, 1, 1);
@@ -4640,7 +4188,6 @@ fn s5_scroll_track() {
         "V2: the track follows, got {next:?}"
     );
     capture_isolated(&dir, "scroll-thumb", rendered.buffer());
-
 
     let case = s5_case(
         "scroll_track",
@@ -4734,8 +4281,6 @@ fn s5_scroll_track() {
         .expect("thumb release");
     std::thread::sleep(Duration::from_millis(300));
 
-
-
     let slot = track_top + 2;
     s.inner
         .mouse_down(MouseButton::Left, track_col, slot, MouseMods::NONE)
@@ -4757,7 +4302,6 @@ fn s5_scroll_track() {
         &[slot],
         "V2/A2 live: the press puts the thumb under the pointer"
     );
-
 
     let jumped = live_text(&mut s);
     assert!(

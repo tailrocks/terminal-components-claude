@@ -1,38 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
 mod audit;
@@ -100,24 +65,13 @@ const MANIFEST_ARTIFACT_KEYS: [&str; 9] = [
     "txt",
 ];
 
-
-
-
 mod expected {
-
-
-
 
     pub const HISTORICAL_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
 
-
     pub const HISTORICAL_ORACLE_TAG: &str = "visual-baseline";
 
-
     pub const REFERENCE_APP_SHA: &str = "7bd6a331721737514a2477c894d922cb262ef07b";
-
-
-
 
     pub const TUISCOTTI_PIN: &str = "a47c9aaefb34e4c00026f99d8a8dd7ee5916b274";
 
@@ -126,7 +80,6 @@ mod expected {
     pub const ADMISSION_SCHEMA: &str = "termrock-spec/tuiscotti-admission-record-v1";
 
     pub const CORPUS_INDEX_SCHEMA: &str = "termrock-spec/tuiscotti-corpus-index-v1";
-
 
     pub const RENDER_PROFILE: &str = "tuiscotti-default";
 
@@ -137,10 +90,7 @@ mod expected {
 
     pub const RENDER_SCALE: u32 = 2;
 
-
     pub const PROVENANCE_TOOL: &str = "tuiscotti";
-
-
 
     pub const PROVENANCE_TOOL_VERSION: &str = "0.2.0";
 }
@@ -403,8 +353,6 @@ fn verify_scenario_manifest(
         return Err(format!("manifest complete is false in {scenario_name}"));
     }
 
-
-
     if manifest.profile != expected::RENDER_PROFILE {
         return Err(format!(
             "profile mismatch in {scenario_name}: expected '{}', got '{}'",
@@ -412,9 +360,6 @@ fn verify_scenario_manifest(
             manifest.profile
         ));
     }
-
-
-
 
     if manifest.generation.len() != 64
         || !manifest
@@ -513,10 +458,6 @@ fn verify_scenario_manifest(
     Ok(())
 }
 
-
-
-
-
 fn verify_generation_binding(
     scenario_name: &str,
     manifest: &ScenarioManifest,
@@ -537,10 +478,6 @@ fn verify_generation_binding(
     }
     Ok(())
 }
-
-
-
-
 
 fn verify_render_identity(
     scenario_name: &str,
@@ -620,9 +557,6 @@ fn verify_render_identity(
     }
     Ok(())
 }
-
-
-
 
 #[test]
 fn store_integrity() {
@@ -860,9 +794,6 @@ fn mismatched_corpus_index_digest_fails_verification() {
     );
 }
 
-
-
-
 fn verify_admission_with_patched_field(field: &str, value: &str) -> Result<(), String> {
     let approved = support::baseline_store_root();
     let tmp = tempfile::tempdir().expect("tempdir");
@@ -924,8 +855,6 @@ fn non_admitted_status_fails_verification() {
 
 #[test]
 fn admission_index_tuiscotti_disagreement_fails_verification() {
-
-
     let approved = support::baseline_store_root();
     let tmp = tempfile::tempdir().expect("tempdir");
     std::fs::copy(
@@ -952,9 +881,6 @@ fn admission_index_tuiscotti_disagreement_fails_verification() {
         "expected tuiscotti disagreement error, got: {err}"
     );
 }
-
-
-
 
 fn copy_scenario_with_patched_manifest(
     scenario_name: &str,
@@ -1001,8 +927,6 @@ fn mixed_profile_fails_verification() {
 
 #[test]
 fn mixed_generation_fails_verification() {
-
-
     let scenario = "jackin/settings/mounts/72x20/16";
     let donor = "holla/upgrade/excluded/72x20/truecolor";
     let foreign_generation = read_manifest_field(donor, "generation");
@@ -1034,8 +958,6 @@ fn malformed_generation_fails_verification() {
 
 #[test]
 fn tampered_font_identity_fails_verification() {
-
-
     let scenario = "jackin/settings/mounts/72x20/16";
     let approved = support::baseline_store_root();
     let tmp = copy_scenario_to_tempdir(&approved, scenario);
@@ -1128,9 +1050,6 @@ fn posix_rel(root: &Path, path: &Path) -> String {
         .collect::<Vec<_>>()
         .join("/")
 }
-
-
-
 
 #[test]
 #[ignore = "rebuilds target/tuisnap/report.html; run after accept; skip with --skip rebuild_review_html"]

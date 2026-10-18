@@ -1,8 +1,3 @@
-
-
-
-
-
 use crate::domain::disk::Freshness;
 use crate::domain::docker::{ContainerState, Health};
 use crate::domain::effect::Mutation;
@@ -11,8 +6,6 @@ use crate::domain::mise::ToolState;
 use crate::domain::plan::{Plan, PlanEffect, PlanSpec, PlanStep, StepState};
 use crate::world::World;
 use std::sync::Arc;
-
-
 
 pub struct ReviewedPlan {
     plan: Plan,
@@ -29,7 +22,6 @@ impl ReviewedPlan {
         &self.plan
     }
 
-
     pub fn binding(&self) -> ReviewBinding {
         ReviewBinding {
             target: Arc::clone(&self.target),
@@ -44,11 +36,6 @@ impl ReviewedPlan {
     pub fn toggle(&mut self, index: usize) -> Result<String, crate::domain::plan::PlanError> {
         self.plan.toggle(index)
     }
-
-
-
-
-
 
     pub fn approve<'a>(
         &'a mut self,
@@ -73,34 +60,22 @@ impl ReviewedPlan {
     }
 }
 
-
-
-
-
 pub struct ReviewBinding {
     target: Arc<TargetSnapshot>,
     plan: Plan,
 }
-
-
 
 pub struct Approval<'a> {
     review: &'a mut ReviewedPlan,
 }
 
 impl Approval<'_> {
-
-
-
-
-
     pub fn execute(self, world: &mut World) -> Result<EffectReport, ApprovalError> {
         self.review.validate(world)?;
         let next_revision = world
             .effect_revision
             .checked_add(1)
             .ok_or(ApprovalError::RevisionExhausted)?;
-
 
         let mut completed = self.review.plan.clone();
         completed
@@ -159,7 +134,6 @@ impl Approval<'_> {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppliedStep {
     pub id: String,
@@ -175,7 +149,6 @@ pub struct EffectReport {
     pub failed: usize,
     pub skipped: usize,
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ApprovalError {
@@ -198,9 +171,6 @@ impl std::fmt::Display for ApprovalError {
     }
 }
 impl std::error::Error for ApprovalError {}
-
-
-
 
 #[derive(PartialEq, Eq)]
 struct TargetSnapshot {
@@ -248,7 +218,6 @@ impl TargetSnapshot {
     }
 }
 
-
 pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
     let plan = match action_id {
         "docker.cleanup" => docker_cleanup(w),
@@ -260,7 +229,6 @@ pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
     }?;
     Some(ReviewedPlan::new(plan, w))
 }
-
 
 fn apply_effect(plan: &Plan, world: &mut World) {
     for step in plan.steps() {
@@ -364,8 +332,6 @@ fn apply_effect(plan: &Plan, world: &mut World) {
     }
 }
 
-
-
 #[expect(
     clippy::too_many_lines,
     reason = "The complete declarative Docker DAG remains contiguous for dependency and output review"
@@ -387,7 +353,6 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
         "containers",
         &[0],
     );
-
 
     if exited.contains(&"payments-old") {
         let removed = d
@@ -522,8 +487,6 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
     .ok()
 }
 
-
-
 fn disk_reclaim(w: &World) -> Option<Plan> {
     let disk = w.disk.as_ref()?;
     disk.validate(&w.cwd).ok()?;
@@ -586,8 +549,6 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
     })
     .ok()
 }
-
-
 
 #[expect(
     clippy::too_many_lines,
@@ -793,10 +754,6 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
     .ok()
 }
 
-
-
-
-
 #[expect(
     clippy::too_many_lines,
     reason = "The per-child declarative Git DAG remains contiguous for dependency and policy review"
@@ -875,7 +832,6 @@ fn git_sync(w: &World) -> Option<Plan> {
             &[checkout_i],
         );
 
-
         let pull = if c.diverged() {
             pull.fails_with(
                 &format!(
@@ -925,8 +881,6 @@ fn git_sync(w: &World) -> Option<Plan> {
         effect: Some(PlanEffect::GitSync),
     }).ok()
 }
-
-
 
 fn restart_service(w: &World, name: &str) -> Option<Plan> {
     let d = w.docker.as_ref()?;

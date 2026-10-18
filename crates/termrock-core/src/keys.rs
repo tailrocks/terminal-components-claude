@@ -1,9 +1,5 @@
-
-
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum MediaKeyCode {
-
     Play,
 
     Pause,
@@ -31,10 +27,8 @@ pub enum MediaKeyCode {
     MuteVolume,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ModifierKeyCode {
-
     LeftShift,
 
     LeftControl,
@@ -64,10 +58,8 @@ pub enum ModifierKeyCode {
     IsoLevel5Shift,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum KeyCode {
-
     Backspace,
 
     Enter,
@@ -144,11 +136,8 @@ bitflags::bitflags! {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub enum KeyPhase {
-
-
     Capture,
 
     Bubble,

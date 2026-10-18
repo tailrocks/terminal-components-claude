@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use core::fmt::{self, Write as _};
 
 use crate::theme::PaintStyle;
@@ -18,9 +12,7 @@ use crate::text::{Span, width};
 use crate::theme::{Align, Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
-
 pub trait RowFn<T> {
-
     fn row(&self, item: &T, row: &mut RowUi<'_>);
 }
 
@@ -36,13 +28,7 @@ impl<T: core::fmt::Display> RowFn<T> for termrock_collections::DefaultRow {
     }
 }
 
-
-
-
-
-
 pub const MAX_COLUMNS: usize = 16;
-
 
 pub struct RowUi<'u> {
     ui: Ui<'u>,
@@ -72,8 +58,6 @@ impl fmt::Debug for RowUi<'_> {
 }
 
 impl<'u> RowUi<'u> {
-
-
     pub fn new<'a: 'u>(
         ui: &'u mut Ui<'a>,
         owner: Id,
@@ -85,8 +69,6 @@ impl<'u> RowUi<'u> {
     ) -> RowUi<'u> {
         Self::new_with_patches(ui, owner, family, variant, flags, key, row, None, None)
     }
-
-
 
     #[expect(
         clippy::too_many_arguments,
@@ -126,21 +108,17 @@ impl<'u> RowUi<'u> {
         }
     }
 
-
     pub const fn flags(&self) -> StateFlags {
         self.flags
     }
-
 
     pub const fn key(&self) -> ItemKey {
         self.key
     }
 
-
     pub const fn owner(&self) -> Id {
         self.owner
     }
-
 
     pub const fn area(&self) -> Rect {
         self.row
@@ -170,8 +148,6 @@ impl<'u> RowUi<'u> {
         r.style
     }
 
-
-
     pub fn marker(&mut self, g: GlyphRole) {
         let r = self
             .ui
@@ -200,8 +176,6 @@ impl<'u> RowUi<'u> {
         }
     }
 
-
-
     pub fn gutter(&mut self) {
         let r = self
             .ui
@@ -220,19 +194,15 @@ impl<'u> RowUi<'u> {
         self.left = self.left.saturating_add(1);
     }
 
-
     pub fn indent(&mut self, depth: u16) {
         let step = self.ui.design().space.tree_indent;
         self.left = self.left.saturating_add(depth.saturating_mul(step));
     }
 
-
-
     pub fn label(&mut self, s: &str) {
         let st = self.style_of(Part::LABEL);
         self.label_in(s, st);
     }
-
 
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
         let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
@@ -263,14 +233,12 @@ impl<'u> RowUi<'u> {
         self.left = self.left.saturating_add(used);
     }
 
-
     pub fn label_spans(&mut self, spans: &[Span<'_>]) {
         let st = self.style_of(Part::LABEL);
         let area = self.remaining();
         let used = self.ui.paint_spans(area, spans, st);
         self.left = self.left.saturating_add(used);
     }
-
 
     pub fn label_fmt(&mut self, args: fmt::Arguments<'_>) {
         let st = self.style_of(Part::LABEL);
@@ -285,8 +253,6 @@ impl<'u> RowUi<'u> {
         let used = w.x.saturating_sub(area.x);
         self.left = self.left.saturating_add(used);
     }
-
-
 
     pub fn meta(&mut self, s: &str) {
         let need = width(s);
@@ -304,8 +270,6 @@ impl<'u> RowUi<'u> {
         self.ui.paint_str(cell, s, st);
         self.right = self.right.saturating_add(need).saturating_add(1);
     }
-
-
 
     pub fn trailing(&mut self, s: &str, p: &StylePatch) {
         let need = width(s);
@@ -327,8 +291,6 @@ impl<'u> RowUi<'u> {
         self.right = self.right.saturating_add(need).saturating_add(1);
     }
 
-
-
     pub fn part(&mut self, p: Part, width: u16) -> CellUi<'_> {
         let area = self.remaining();
         let w = width.min(area.width);
@@ -346,16 +308,9 @@ impl<'u> RowUi<'u> {
         CellUi::with_resolved_glyph(self.ui.reborrow(), cell, r.style, r.glyph)
     }
 
-
-
-
-
-
-
     pub fn columns(&mut self, widths: &[Track]) -> ColumnsUi<'_> {
         self.columns_with_gap(widths, self.ui.design().space.column_gap)
     }
-
 
     pub fn columns_with_gap(&mut self, widths: &[Track], gap: u16) -> ColumnsUi<'_> {
         let area = self.remaining();
@@ -380,16 +335,12 @@ impl<'u> RowUi<'u> {
         }
     }
 
-
-
-
     pub fn raw(&mut self) -> (&mut Buffer, Rect) {
         let row = self.row;
         let (buf, _) = self.ui.buffer_in(row);
         (buf, row)
     }
 }
-
 
 struct CellWriter<'a, 'u> {
     ui: &'a mut Ui<'u>,
@@ -415,7 +366,6 @@ impl fmt::Write for CellWriter<'_, '_> {
         Ok(())
     }
 }
-
 
 pub struct CellUi<'u> {
     ui: Ui<'u>,
@@ -464,14 +414,6 @@ impl<'u> CellUi<'u> {
         }
     }
 
-
-
-
-
-
-
-
-
     fn resolved_glyph_width(&self) -> u16 {
         match self.resolved_glyph {
             Slot::Set(g) => width(self.ui.design().glyphs.get(g)),
@@ -509,7 +451,6 @@ impl<'u> CellUi<'u> {
         let used = match self.resolved_glyph {
             Slot::Set(g) => self.ui.glyph(cell, g, self.style),
 
-
             Slot::Clear => {
                 self.ui.fill(cell, self.style);
                 cell.width
@@ -519,7 +460,6 @@ impl<'u> CellUi<'u> {
         self.used = self.used.saturating_add(used);
     }
 
-
     pub fn text(&mut self, s: &str) -> &mut Self {
         let area = self.free();
         let used = self.ui.paint_str(area, s, self.style);
@@ -527,22 +467,14 @@ impl<'u> CellUi<'u> {
         self
     }
 
-
-
     pub fn remove_modifier(&mut self, modifiers: Modifier) -> &mut Self {
         self.style = self.style.remove_modifier(modifiers);
         self
     }
 
-
-
-
-
     pub fn authored_modifiers(&self) -> Modifier {
         self.style.add_modifier
     }
-
-
 
     pub fn text_matched(&mut self, s: &str, matched: &[usize]) -> &mut Self {
         let area = self.free();
@@ -565,7 +497,6 @@ impl<'u> CellUi<'u> {
         self
     }
 
-
     pub fn glyphs(&mut self, g: GlyphRole, n: usize) -> &mut Self {
         let sym = self.ui.design().glyphs.get(g);
         for _ in 0..n {
@@ -582,13 +513,11 @@ impl<'u> CellUi<'u> {
         self
     }
 
-
     pub fn num(&mut self, n: i64) -> &mut Self {
         let mut buf = [0u8; 24];
         let s = format_i64(n, &mut buf);
         self.text(s)
     }
-
 
     pub fn money(&mut self, cents: i64) -> &mut Self {
         let mut buf = [0u8; 32];
@@ -596,18 +525,15 @@ impl<'u> CellUi<'u> {
         self.text(s)
     }
 
-
     pub const fn align(&mut self, a: Align) -> &mut Self {
         self.align = a;
         self
     }
 
-
     pub const fn tone(&mut self, r: Role) -> &mut Self {
         self.tone = Some(r);
         self
     }
-
 
     pub fn italic(&mut self, yes: bool) -> &mut Self {
         self.add = if yes {
@@ -618,14 +544,12 @@ impl<'u> CellUi<'u> {
         self
     }
 
-
     pub fn suffix(&mut self, g: GlyphRole) -> &mut Self {
         let area = self.free();
         let used = self.ui.glyph(area, g, self.style);
         self.used = self.used.saturating_add(used);
         self
     }
-
 
     pub fn patch(&mut self, p: &StylePatch) -> &mut Self {
         self.patch = Some(match self.patch {
@@ -680,7 +604,6 @@ impl Drop for CellUi<'_> {
     }
 }
 
-
 pub struct ColumnsUi<'u> {
     #[cfg(feature = "testing")]
     owner: Id,
@@ -706,16 +629,13 @@ impl fmt::Debug for ColumnsUi<'_> {
 }
 
 impl ColumnsUi<'_> {
-
     pub const fn len(&self) -> usize {
         self.n
     }
 
-
     pub const fn is_empty(&self) -> bool {
         self.n == 0
     }
-
 
     pub fn rect(&self, i: usize) -> Rect {
         if i >= self.n {
@@ -736,7 +656,6 @@ impl ColumnsUi<'_> {
         .intersection(self.area)
     }
 
-
     pub fn cell_part(&mut self, i: usize, part: Part) -> CellUi<'_> {
         let rect = self.rect(i);
         let resolved = match (part, self.label_patch) {
@@ -752,14 +671,12 @@ impl ColumnsUi<'_> {
         CellUi::with_resolved_glyph(self.ui.reborrow(), rect, resolved.style, resolved.glyph)
     }
 
-
     pub fn cell(&mut self, i: usize) -> CellUi<'_> {
         let rect = self.rect(i);
         let style = self.style;
         CellUi::new(self.ui.reborrow(), rect, style)
     }
 }
-
 
 fn format_i64(n: i64, buf: &mut [u8; 24]) -> &str {
     let mut i = buf.len();
@@ -786,7 +703,6 @@ fn format_i64(n: i64, buf: &mut [u8; 24]) -> &str {
     }
     core::str::from_utf8(buf.get(i..).unwrap_or(&[])).unwrap_or("")
 }
-
 
 fn format_money(cents: i64, buf: &mut [u8; 32]) -> &str {
     let mut i = buf.len();
@@ -847,7 +763,6 @@ mod tests {
         width: 30,
         height: 2,
     };
-
 
     fn paint(row: Rect, f: impl FnOnce(&mut RowUi<'_>)) -> Buffer {
         let theme = Theme::junie();
@@ -928,9 +843,6 @@ mod tests {
         out
     }
 
-
-
-
     #[test]
     fn row_ui_label_writes_cells_without_an_intermediate_string() {
         let page = paint(Rect::new(0, 0, 10, 1), |r| r.label("hello"));
@@ -992,11 +904,8 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn row_ui_meta_is_dropped_all_or_none() {
-
         let page = paint(Rect::new(0, 0, 12, 1), |r| {
             r.meta("42");
             r.label("name");
@@ -1057,10 +966,6 @@ mod tests {
         assert_eq!(row_text(&page, 0, 4, 8), "x✓  ");
     }
 
-
-
-
-
     #[test]
     fn row_ui_part_clear_reserves_a_blank_cell_and_differs_from_inherit() {
         let cell_text = |glyph| {
@@ -1087,8 +992,6 @@ mod tests {
         assert_eq!(inherit, "xyzw");
         assert_ne!(clear, inherit);
     }
-
-
 
     #[test]
     fn row_ui_columns_clip_to_the_row() {

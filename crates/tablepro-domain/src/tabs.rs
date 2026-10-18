@@ -1,6 +1,3 @@
-
-
-
 #![allow(
     missing_docs,
     reason = "items promoted from pub(crate) during the crate split keep their original undocumented fixtures"
@@ -13,28 +10,19 @@ use tablepro_demo::db::{Catalog, ColType, Table, Value};
 use tablepro_sql::sql::{self, PlanNode};
 use termrock::{GridModel, GridState, Id, ItemKey, TextInputState};
 
-
-
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TabKey(u64);
 
 impl TabKey {
-
     #[must_use]
     pub const fn new(value: u64) -> Self {
         Self(value)
     }
 
-
     #[must_use]
     pub const fn get(self) -> u64 {
         self.0
     }
-
 
     pub fn control(self, name: &'static str) -> Id {
         Id::root("tablepro.tab")
@@ -43,10 +31,8 @@ impl TabKey {
     }
 }
 
-
 #[derive(Clone)]
 pub struct GridView {
-
     pub columns: Vec<(String, ColType)>,
 
     pub model: ResultGrid,
@@ -55,7 +41,6 @@ pub struct GridView {
 }
 
 impl GridView {
-
     pub fn from_result(result: &sql::ResultSet) -> Self {
         Self {
             columns: result.columns.clone(),
@@ -63,8 +48,6 @@ impl GridView {
             state: GridState::default(),
         }
     }
-
-
 
     pub fn pending_total(&self) -> usize {
         let pending = self.model.pending_total();
@@ -116,19 +99,15 @@ impl core::ops::Deref for GridView {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TableMode {
-
     Data,
 
     Structure,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct TableTab {
-
     pub table: Table,
 
     pub mode: TableMode,
@@ -141,7 +120,6 @@ pub struct TableTab {
 }
 
 impl TableTab {
-
     pub fn new(table: Table, catalog: &Catalog) -> Self {
         let query = format!("SELECT * FROM {}.{}", table.schema, table.name);
         let result = sql::parse(&query)
@@ -242,10 +220,8 @@ impl TableTab {
     }
 }
 
-
 #[derive(Clone)]
 pub struct QueryTab {
-
     pub id: usize,
 
     pub name: String,
@@ -282,7 +258,6 @@ impl core::fmt::Debug for QueryTab {
 }
 
 impl QueryTab {
-
     pub fn new(id: usize, query: impl Into<String>) -> Self {
         let query = query.into();
         Self {
@@ -298,11 +273,6 @@ impl QueryTab {
         }
     }
 
-
-
-
-
-
     pub fn execute(&mut self, catalog: &Catalog) -> Result<usize, String> {
         if self.has_pending_result() {
             return Err("Pending result edits require confirmation".to_owned());
@@ -317,11 +287,6 @@ impl QueryTab {
         self.error = None;
         Ok(rows)
     }
-
-
-
-
-
 
     pub fn explain(&mut self, catalog: &Catalog) -> Result<(), String> {
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
@@ -343,10 +308,8 @@ impl QueryTab {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct HistoryTab {
-
     pub search: String,
 
     pub selected: usize,
@@ -355,7 +318,6 @@ pub struct HistoryTab {
 }
 
 impl HistoryTab {
-
     pub fn new(history: &History) -> Self {
         Self {
             search: String::new(),
@@ -380,10 +342,8 @@ impl HistoryTab {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub enum Tab {
-
     Table(TableTab),
 
     Query(QueryTab),
@@ -392,7 +352,6 @@ pub enum Tab {
 }
 
 impl Tab {
-
     pub fn grid(&self, key: TabKey) -> Option<(Id, &GridView)> {
         match self {
             Self::Table(tab) if tab.is_structure() => {
@@ -424,7 +383,6 @@ impl Tab {
         }
     }
 
-
     pub fn label(&self) -> String {
         match self {
             Self::Table(tab) => tab.table.name.clone(),
@@ -438,20 +396,6 @@ impl Tab {
             || matches!(self, Self::Query(tab) if tab.dirty() || tab.result.as_ref().is_some_and(|grid| grid.pending_total() > 0))
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct TabRecord {
     key: TabKey,
@@ -477,11 +421,9 @@ impl TabRecord {
         self.generation
     }
 
-
     pub fn lifecycle_payload_mut(&mut self) -> &mut Tab {
         &mut self.payload
     }
-
 
     pub const fn key(&self) -> TabKey {
         self.key
@@ -516,10 +458,8 @@ impl core::fmt::Debug for TabRecord {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExplorerItem {
-
     pub schema: String,
 
     pub name: String,
@@ -528,7 +468,6 @@ pub struct ExplorerItem {
 
     pub rows: usize,
 }
-
 
 pub fn explorer_items(catalog: &Catalog) -> Vec<ExplorerItem> {
     catalog

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 pub(crate) const SEEDS: &[&str] = &[
     "",
     "a",
@@ -48,8 +42,6 @@ pub(crate) const SEEDS: &[&str] = &[
     "zero\u{200B}width",
     "\u{FEFF}bom",
 ];
-
-
 
 pub(crate) fn corpus() -> Vec<String> {
     let mut out: Vec<String> = SEEDS.iter().map(|s| (*s).to_owned()).collect();

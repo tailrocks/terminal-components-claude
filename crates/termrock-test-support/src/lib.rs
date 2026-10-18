@@ -1,9 +1,3 @@
-
-
-
-
-
-
 #![deny(unsafe_code)]
 #![allow(
     clippy::unwrap_used,
@@ -34,11 +28,6 @@ pub use conformance::{Caps, Conformance, Fixture, FixtureRow};
 pub use digest::{Baseline, NoApp, Scene, SceneProjection};
 pub use harness::Harness;
 
-
-
-
-
-
 pub fn deliver<A: termrock::App>(
     runtime: &mut termrock::Runtime<A>,
     area: termrock::Rect,
@@ -47,8 +36,6 @@ pub fn deliver<A: termrock::App>(
     let mut buffer = ratatui_core::buffer::Buffer::empty(area);
     deliver_buffer(runtime, &mut buffer, input)
 }
-
-
 
 pub fn deliver_buffer<A: termrock::App>(
     runtime: &mut termrock::Runtime<A>,

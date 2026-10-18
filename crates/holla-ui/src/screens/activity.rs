@@ -1,4 +1,3 @@
-
 use crate::domain::activity::{Activity, ActivityState};
 use crate::sim::world::World;
 use std::collections::BTreeMap;
@@ -171,7 +170,6 @@ fn elapsed_label(activity: &Activity, now_ms: i64) -> String {
     }
 }
 fn service_role(name: &str) -> Role {
-
     match name
         .bytes()
         .fold(0_u8, |sum, byte| sum.wrapping_add(byte) % 4)

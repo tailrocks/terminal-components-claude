@@ -1,10 +1,5 @@
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Scenario {
-
     FirstUse,
 
     RustDirty,
@@ -29,7 +24,6 @@ pub enum Scenario {
 }
 
 impl Scenario {
-
     pub const ALL: [Scenario; 11] = [
         Scenario::FirstUse,
         Scenario::RustDirty,
@@ -43,7 +37,6 @@ impl Scenario {
         Scenario::LaunchFailure,
         Scenario::HardCases,
     ];
-
 
     pub fn name(self) -> &'static str {
         match self {
@@ -66,10 +59,8 @@ impl Scenario {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Motion {
-
     #[default]
     Full,
 
@@ -87,8 +78,6 @@ impl Motion {
             _ => None,
         }
     }
-
-
 
     pub fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
         match cli {

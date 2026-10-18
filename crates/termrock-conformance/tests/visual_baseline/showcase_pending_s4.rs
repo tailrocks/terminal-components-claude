@@ -1,91 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -115,12 +27,9 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, SHOWCASE};
 
-
 const BOOT: &str = "Junie Design system";
 
-
 const PORT_OF: &str = "5f6e52f31861f9f4281f1db264ab012457b9bc2e";
-
 
 fn s4_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> Case {
     Case::dynamic(
@@ -134,7 +43,6 @@ fn s4_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> C
     )
 }
 
-
 fn s4_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -142,8 +50,6 @@ fn s4_dir(test: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     dir
 }
-
-
 
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
@@ -163,7 +69,6 @@ fn write_provenance(dir: &Path, case: &Case) {
         .unwrap_or_else(|e| panic!("write provenance.txt: {e}"));
     eprintln!("s4 provenance: {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -185,7 +90,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -194,8 +98,6 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
 fn live_frame(s: &mut Session) -> Frame {
     let screen = s
         .inner
@@ -203,7 +105,6 @@ fn live_frame(s: &mut Session) -> Frame {
         .unwrap_or_else(|e| panic!("live frame sample failed: {e:#}"));
     frame_from_screen(&screen, "default")
 }
-
 
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
@@ -215,14 +116,12 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-
 fn hover_over(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     Input::move_to(col, row).send(s);
     std::thread::sleep(Duration::from_millis(120));
     (row, col)
 }
-
 
 fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
@@ -232,7 +131,6 @@ fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     (row, col)
 }
 
-
 fn right_click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     s.click_with(MouseButton::Right, col, row)
@@ -241,12 +139,10 @@ fn right_click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16
     (row, col)
 }
 
-
 fn type_text(s: &mut Session, text: &str) {
     s.type_text(text).expect("type_text");
     std::thread::sleep(Duration::from_millis(120));
 }
-
 
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
@@ -255,17 +151,12 @@ fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         !text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: a line holds both {needle:?} and {also:?}\n{text}"
     );
 }
-
-
-
-
 
 fn sentinel_buf(cols: u16, rows: u16) -> Buffer {
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
@@ -305,10 +196,6 @@ fn buf_is_bold(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::BOLD)
 }
 
-
-
-
-
 fn render_isolated(
     cols: u16,
     rows: u16,
@@ -335,8 +222,6 @@ fn render_isolated(
     buf
 }
 
-
-
 fn convert_color(c: RColor) -> TColor {
     match c {
         RColor::Reset => TColor::Default,
@@ -361,7 +246,6 @@ fn convert_color(c: RColor) -> TColor {
     }
 }
 
-
 fn convert_mods(m: Modifier) -> Mods {
     Mods {
         hidden: m.contains(Modifier::HIDDEN),
@@ -379,10 +263,6 @@ fn convert_mods(m: Modifier) -> Mods {
         reverse: m.contains(Modifier::REVERSED),
     }
 }
-
-
-
-
 
 fn capture_buffer(buf: &Buffer) -> Frame {
     let cols = buf.area.width;
@@ -454,7 +334,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-
 fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     let frame = capture_buffer(buf);
     std::fs::write(
@@ -466,15 +345,12 @@ fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     frame
 }
 
-
-
 fn char_col(line: &str, needle: &str) -> u16 {
     let byte = line
         .find(needle)
         .unwrap_or_else(|| panic!("{needle:?} not in {line:?}"));
     line[..byte].chars().count() as u16
 }
-
 
 fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     let deadline = std::time::Instant::now() + timeout;
@@ -493,7 +369,6 @@ fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     }
 }
 
-
 fn row_below(text: &str, label: &str, what: &str) -> String {
     let mut lines = text.lines();
     while let Some(l) = lines.next() {
@@ -507,7 +382,6 @@ fn row_below(text: &str, label: &str, what: &str) -> String {
     panic!("{what}: label {label:?} not on screen\n{text}");
 }
 
-
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 const S4_SORT: Id = Id::root("s4.sort");
@@ -519,8 +393,6 @@ const S4_SORT_AREA: Rect = Rect {
     height: 1,
 };
 const SORT_ITEMS: [&str; 4] = ["created_at", "total", "status", "customer"];
-
-
 
 struct SelectApp {
     st: Rc<RefCell<SelectState>>,
@@ -554,16 +426,6 @@ impl App for SelectApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_select_open() {
@@ -571,7 +433,6 @@ fn s4_select_open() {
     let t = Theme::junie();
     let faint = t.color.fg[FgStep::Faint.index()];
     let disabled_tone = t.color.disabled_fg;
-
 
     let st = Rc::new(RefCell::new(SelectState::default()));
     st.borrow_mut().set_value(Some(ItemKey::index(0)));
@@ -624,7 +485,6 @@ fn s4_select_open() {
         Some(ItemKey::index(3)),
         "S1: Down clamps at the last option"
     );
-
 
     let buf = app.buffer();
     assert_eq!(
@@ -749,8 +609,6 @@ fn s4_select_open() {
         "A2: dismiss changes nothing"
     );
 
-
-
     let est = Rc::new(RefCell::new(SelectState::default()));
     est.borrow_mut().set_value(Some(ItemKey::index(0)));
     let elog = Rc::new(RefCell::new(Vec::new()));
@@ -798,8 +656,6 @@ fn s4_select_open() {
     assert!(app.tab_to(S4_SORT_OTHER), "tab away");
     assert!(!st.borrow().is_open(), "N2: losing focus closes the popup");
 
-
-
     let case = s4_case("select_open", &["--page", "chipsselects"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -834,7 +690,6 @@ fn s4_select_open() {
         "S2 live: stepping paints no popup"
     );
 
-
     support::press_step(&s, "enter");
     support::wait_screen(
         &mut s,
@@ -863,7 +718,6 @@ fn s4_select_open() {
 
 const S4_QUICK: Id = Id::root("s4.quick");
 
-
 struct S4PItem {
     key: ItemKey,
     label: String,
@@ -887,7 +741,6 @@ impl AsItem for S4PItem {
         item
     }
 }
-
 
 struct QuickApp {
     items: Vec<S4PItem>,
@@ -955,7 +808,6 @@ impl QuickApp {
         let p = Picker::new(S4_QUICK)
             .title("Open quickly")
             .placeholder("Files and tasks…")
-
             .width(80)
             .scopes(&self.scopes);
         if self.loading {
@@ -970,8 +822,6 @@ impl App for QuickApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let log = Rc::clone(&self.log);
         let loading = self.loading;
-
-
 
         if !self.booted {
             self.booted = true;
@@ -1008,20 +858,10 @@ impl App for QuickApp {
     }
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_picker_query() {
     let dir = s4_dir("s4_picker_query");
-
-
 
     let (rig, log) = QuickApp::rig(QuickApp::file_items(), PickerState::default());
     let st = Rc::clone(&rig.st);
@@ -1045,7 +885,6 @@ fn s4_picker_query() {
         Some(ItemKey::text("planner_flow.rs")),
         "S1: set_items resets past disabled rows"
     );
-
 
     let (rig, _log) = QuickApp::rig(QuickApp::file_items(), PickerState::default());
     let app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -1110,8 +949,6 @@ fn s4_picker_query() {
         "A1: Alt+Enter emits ChosenAlt"
     );
 
-
-
     st.borrow_mut().set_query("plan");
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Esc);
@@ -1131,8 +968,6 @@ fn s4_picker_query() {
             .any(|a| matches!(a, PickerAction::Chosen(_))),
         "A2: cancel chooses nothing"
     );
-
-
 
     let mut stale = QuickApp::file_items();
     for it in stale.iter_mut() {
@@ -1162,8 +997,6 @@ fn s4_picker_query() {
         log.borrow().is_empty(),
         "N1: blank query + no eligible row consumes"
     );
-
-
 
     let (rig, _log) = QuickApp::rig(QuickApp::file_items(), PickerState::default());
     let rst = Rc::clone(&rig.st);
@@ -1199,13 +1032,10 @@ fn s4_picker_query() {
         "N2: rows are owned (presence proof)"
     );
 
-
-
     let case = s4_case("picker_query", &["--page", "pickers"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-
 
     support::press_step(&s, "tab");
     support::wait_screen(
@@ -1262,7 +1092,6 @@ fn s4_picker_query() {
         "S1 live: Result records the choice"
     );
 
-
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -1275,7 +1104,6 @@ fn s4_picker_query() {
         },
     );
     support::press_step(&s, "enter");
-
 
     waits::wait_state(&mut s, "Files · Tab scope", "Quick picker reopened");
     type_text(&mut s, "zzz-no-match");
@@ -1305,7 +1133,6 @@ fn s4_picker_query() {
 
 const S4_TABS: Id = Id::root("s4.tabs");
 const S4_LEVEL: Id = Id::root("s4.level");
-
 
 struct TabsApp {
     id: Id,
@@ -1464,21 +1291,10 @@ impl App for TabsApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_picker_tabs() {
     let dir = s4_dir("s4_picker_tabs");
-
-
 
     let (rig, log) = TabsApp::rig(
         S4_TABS,
@@ -1543,7 +1359,6 @@ fn s4_picker_tabs() {
     assert!(glyph_line.contains('T'), "V1: tab rows carry glyphs");
     capture_isolated(&dir, "picker-tabs", app.buffer());
 
-
     let (rig, log) = TabsApp::rig(
         S4_TABS,
         "Open tabs",
@@ -1563,7 +1378,6 @@ fn s4_picker_tabs() {
         log.borrow().contains(&PickerAction::Back),
         "N1: Backspace on empty query emits Back"
     );
-
 
     let (rig, log) = TabsApp::rig(
         S4_LEVEL,
@@ -1622,7 +1436,6 @@ fn s4_picker_tabs() {
     }
     assert_eq!(lst.borrow().query(), "", "A2: no query can accumulate");
 
-
     let case = s4_case("picker_tabs", &["--page", "pickers"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1670,7 +1483,6 @@ fn s4_picker_tabs() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Filter tabs…", "Tabs picker closes");
 
-
     support::press_step(&s, "tab");
     support::press_step(&s, "tab");
     support::press_step(&s, "tab");
@@ -1706,7 +1518,6 @@ fn s4_picker_tabs() {
         set.contains("Safe Mode (Full)"),
         "S2 live: Result keeps the level"
     );
-
 
     support::press_step(&s, "tab");
     support::press_step(&s, "tab");
@@ -1747,7 +1558,6 @@ fn s4_picker_tabs() {
 const S4_COMPLETE: Id = Id::root("s4.complete");
 const S4_COMPLETE_EDITOR: Id = Id::root("s4.complete.editor");
 
-
 struct S4CItem {
     key: ItemKey,
     label: String,
@@ -1767,7 +1577,6 @@ impl AsItem for S4CItem {
         item
     }
 }
-
 
 struct CompleteApp {
     value: String,
@@ -1871,19 +1680,10 @@ impl App for CompleteApp {
     }
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_complete_editor() {
     let dir = s4_dir("s4_complete_editor");
-
 
     let (rig, _log) = CompleteApp::rig(Vec::new());
     let cst = Rc::clone(&rig.cst);
@@ -1924,9 +1724,6 @@ fn s4_complete_editor() {
     );
     capture_isolated(&dir, "complete-open", app.buffer());
 
-
-
-
     let y0 = (0..24)
         .find(|y| buf_row_text(app.buffer(), *y).contains("client("))
         .expect("row 0");
@@ -1963,7 +1760,6 @@ fn s4_complete_editor() {
         "V2: unmatched rows stay plain"
     );
 
-
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Down);
     assert_eq!(r.flow(), Flow::Consumed, "Down applies");
@@ -1972,7 +1768,6 @@ fn s4_complete_editor() {
         Some(ItemKey::text("Client")),
         "Down moves"
     );
-
 
     let r = app.key(KeyCode::Char('n'));
     assert_eq!(r.flow(), Flow::Consumed, "n reaches the editor");
@@ -2052,8 +1847,6 @@ fn s4_complete_editor() {
         "foreign clicks miss"
     );
 
-
-
     let (rig, log) = CompleteApp::rig(CompleteApp::items());
     let cst = Rc::clone(&rig.cst);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -2072,8 +1865,6 @@ fn s4_complete_editor() {
         "N2: stale index resolves to nothing"
     );
 
-
-
     let case = s4_case("complete_editor", &["--page", "codeeditor"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2087,8 +1878,6 @@ fn s4_complete_editor() {
     );
     support::press_step(&s, "i");
     type_text(&mut s, "cl");
-
-
 
     support::wait_screen(
         &mut s,
@@ -2153,7 +1942,6 @@ enum DialogKind {
     Prompt,
     Destructive,
 }
-
 
 struct DialogRig {
     id: Id,
@@ -2220,10 +2008,7 @@ impl DialogRig {
                     Action::quiet(ActionKey::CANCEL, "Cancel"),
                     Action::new(ActionKey::CONFIRM, "Rename"),
                 ];
-                let d = Dialog::prompt(self.id, "Rename task", "Task name")
-
-
-                    .actions(&actions);
+                let d = Dialog::prompt(self.id, "Rename task", "Task name").actions(&actions);
                 if !self.booted {
                     self.booted = true;
                     self.open = true;
@@ -2283,10 +2068,7 @@ impl DialogRig {
                     Action::quiet(ActionKey::CANCEL, "Cancel"),
                     Action::new(ActionKey::CONFIRM, "Rename"),
                 ];
-                let d = Dialog::prompt(self.id, "Rename task", "Task name")
-
-
-                    .actions(&actions);
+                let d = Dialog::prompt(self.id, "Rename task", "Task name").actions(&actions);
                 let _ = ui.layer(self.id, |ui, area| {
                     d.draw(ui, area, &self.st.borrow(), |_, _| ())
                 });
@@ -2318,7 +2100,6 @@ impl App for DialogRig {
     }
 }
 
-
 fn dialog_focused<A>(app: &Harness<A>, id: Id, n: usize) -> Option<usize>
 where
     A: App,
@@ -2330,24 +2111,13 @@ where
     })
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_dialog_confirm() {
     let dir = s4_dir("s4_dialog_confirm");
 
-
-
     let (rig, _log) = DialogRig::rig(S4_CONFIRM, DialogKind::Confirm);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
-
 
     assert_eq!(
         dialog_focused(&app, S4_CONFIRM, 2),
@@ -2405,8 +2175,6 @@ fn s4_dialog_confirm() {
             .contains(&DialogAction::Action(ActionKey::CANCEL)),
         "A1: n finishes the cancel action"
     );
-
-
 
     let (rig, log) = DialogRig::rig(S4_CONFIRM, DialogKind::Confirm);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
@@ -2504,7 +2272,6 @@ fn s4_dialog_confirm() {
         "V1: title renders"
     );
 
-
     let top_y = (0..24)
         .find(|y| buf_row_text(app.buffer(), *y).contains('╭'))
         .expect("V1: dialog frame renders");
@@ -2524,15 +2291,12 @@ fn s4_dialog_confirm() {
 
     let three_actions = [
         Action::quiet(ActionKey::CANCEL, "Cancel"),
-
         Action::quiet(ActionKey::custom("discard"), "Discard"),
         Action::new(ActionKey::CONFIRM, "Save"),
     ];
     let three = Dialog::confirm(S4_THREE, "Unsaved changes", "Save first?").actions(&three_actions);
 
-
     let _ = three;
-
 
     let case = s4_case("dialog_confirm", &["--page", "dialogs"], 80, 24);
     write_provenance(&dir, &case);
@@ -2581,28 +2345,14 @@ fn s4_dialog_confirm() {
     eprintln!("s4 dialog_confirm: isolated answers + live y/walk/cancel");
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_dialog_prompt() {
     let dir = s4_dir("s4_dialog_prompt");
 
-
-
-
-
     let (rig, log) = DialogRig::rig(S4_PROMPT, DialogKind::Prompt);
     let pst = Rc::clone(&rig.st);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
-
 
     let _ = app.paste("Migrate sessions table");
     let probe = Dialog::prompt(S4_PROMPT, "Rename task", "Task name");
@@ -2629,7 +2379,6 @@ fn s4_dialog_prompt() {
     );
     assert!(app.is_open(S4_PROMPT), "N1: prompt stays open");
 
-
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "Enter begins editing");
     let r = app.ctrl('l');
@@ -2644,8 +2393,6 @@ fn s4_dialog_prompt() {
         "S1: failing validation keeps the dialog open"
     );
     assert!(app.is_open(S4_PROMPT), "S1: still open");
-
-
 
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "Enter begins editing again");
@@ -2668,7 +2415,6 @@ fn s4_dialog_prompt() {
     let (rig, log) = DialogRig::rig(S4_PROMPT, DialogKind::Prompt);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
 
-
     let _ = app.paste("Migrate sessions table");
     let _ = app.key(KeyCode::Enter);
     let _ = app.ctrl('l');
@@ -2678,12 +2424,9 @@ fn s4_dialog_prompt() {
     assert!(log.borrow().is_empty(), "N1: over-long names never close");
     assert!(app.is_open(S4_PROMPT), "N1: still open");
 
-
-
     let (rig, log) = DialogRig::rig(S4_DELETE, DialogKind::Destructive);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     let xprobe = Dialog::destructive(S4_DELETE, "Delete branch?", "This cannot be undone.");
-
 
     let _ = xprobe;
     assert_eq!(
@@ -2731,7 +2474,6 @@ fn s4_dialog_prompt() {
     let (rig, log) = DialogRig::rig(S4_PROMPT, DialogKind::Prompt);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
 
-
     let _ = app.paste("Migrate sessions table");
     let probe = Dialog::prompt(S4_PROMPT, "Rename task", "Task name");
     assert!(app.tab_to(probe.action_id(1)), "tab to Rename");
@@ -2749,14 +2491,10 @@ fn s4_dialog_prompt() {
     );
     assert!(app.is_open(S4_PROMPT), "N2: still open");
 
-
-
     let case = s4_case("dialog_prompt", &["--page", "dialogs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-
-
 
     let mut rename_focused = false;
     for _ in 0..8 {
@@ -2811,7 +2549,6 @@ fn s4_dialog_prompt() {
     checkpoint(&mut s, &dir, "prompt-blocked");
     let blocked = live_text(&mut s);
 
-
     assert!(
         blocked.contains("Name cannot be empty"),
         "S1 live: failing validation keeps the dialog open"
@@ -2820,7 +2557,6 @@ fn s4_dialog_prompt() {
         !blocked.contains("Renamed to"),
         "N1 live: no rename is stored"
     );
-
 
     support::press_step(&s, "enter");
     type_text(&mut s, "Seed the demo database");
@@ -2860,7 +2596,6 @@ fn s4_dialog_prompt() {
     support::press_step(&s, "escape");
     waits::wait_state(&mut s, "Cancelled", "prompt cancels out");
 
-
     support::press_step(&s, "d");
     support::wait_screen(
         &mut s,
@@ -2891,7 +2626,6 @@ fn s4_dialog_prompt() {
 }
 
 const S4_FILEMENU: Id = Id::root("s4.filemenu");
-
 
 struct MenuRig {
     id: Id,
@@ -2997,15 +2731,6 @@ impl App for MenuRig {
     }
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_menu_open() {
@@ -3016,8 +2741,6 @@ fn s4_menu_open() {
     let muted = t.color.fg[FgStep::Muted.index()];
     let error_soft = t.color.danger_soft;
     let subtle = t.color.border_subtle;
-
-
 
     let (rig, _log) = MenuRig::rig(MenuRig::view_items(), Rect::new(2, 1, 8, 1));
     let mst = Rc::clone(&rig.st);
@@ -3113,7 +2836,6 @@ fn s4_menu_open() {
     let (rig, _log) = MenuRig::rig(MenuRig::view_items(), Rect::new(2, 1, 8, 1));
     let mut app = Harness::new(rig, Theme::junie(), 60, 16);
 
-
     let _ = app.key(KeyCode::End);
     let _ = app.key(KeyCode::Down);
     let _ = app.key(KeyCode::Up);
@@ -3145,8 +2867,6 @@ fn s4_menu_open() {
         low.y + low.height <= 13,
         "S2: the popover flips above the anchor"
     );
-
-
 
     let (rig, log) = MenuRig::rig(MenuRig::file_items(), Rect::new(2, 1, 8, 1));
     let _mst = Rc::clone(&rig.st);
@@ -3209,9 +2929,6 @@ fn s4_menu_open() {
     let _ = app.mouse(MouseKind::Move, hx, hy);
     assert_eq!(mst.borrow().cursor(), 2, "A2: hover moves the cursor");
 
-
-
-
     let (rig, log) = MenuRig::rig(MenuRig::view_items(), Rect::new(2, 1, 8, 1));
     let mut app = Harness::new(rig, Theme::junie(), 60, 16);
     let _ = app.key(KeyCode::End);
@@ -3236,8 +2953,6 @@ fn s4_menu_open() {
     assert_eq!(r.flow(), Flow::Ignored, "N1: a modified chord is Ignored");
     assert!(log.borrow().is_empty(), "N1: no event");
     assert_ne!(error_soft, primary, "danger tone differs (presence)");
-
-
 
     let case = s4_case("menu_open", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
@@ -3285,9 +3000,6 @@ fn s4_menu_open() {
     support::press_step(&s, "end");
     support::press_step(&s, "enter");
 
-
-
-
     waits::wait_gone(
         &mut s,
         "Zoom pane",
@@ -3299,14 +3011,6 @@ fn s4_menu_open() {
 }
 
 const S4_CONTEXT: Id = Id::root("s4.context");
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
@@ -3343,8 +3047,6 @@ fn s4_ctxmenu_anchor() {
         (rig, log, st)
     }
 
-
-
     let (rig, _log, _st) = session_rig(0, 4);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     let area = app.layer_area(S4_CONTEXT).expect("popover layer placed");
@@ -3375,9 +3077,6 @@ fn s4_ctxmenu_anchor() {
     );
     capture_isolated(&dir, "ctxmenu-anchor", buf);
 
-
-
-
     let (rig, log, _mst) = session_rig(0, 4);
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     log.borrow_mut().clear();
@@ -3398,7 +3097,6 @@ fn s4_ctxmenu_anchor() {
     log.borrow_mut().clear();
     let _ = app.click(ex, ey);
     assert!(log.borrow().is_empty(), "N1: disabled clicks miss");
-
 
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Enter);
@@ -3427,8 +3125,6 @@ fn s4_ctxmenu_anchor() {
             .any(|a| matches!(a, MenuAction::Closed(_))),
         "outside dismisses"
     );
-
-
 
     let case = s4_case("ctxmenu_anchor", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
@@ -3511,7 +3207,6 @@ fn s4_ctxmenu_anchor() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Change title…", "context clears");
 
-
     let cleared = live_text(&mut s);
     assert!(
         cleared.contains("tab › Move right") && !cleared.contains("tab › Move left"),
@@ -3581,8 +3276,6 @@ static S4_BAR_MENUS: [Menu<'static>; 3] = [
     Menu::new("Help", &S4_BAR_HELP),
 ];
 
-
-
 struct BarApp {
     st: Rc<RefCell<MenuState>>,
     log: Rc<RefCell<Vec<MenuAction>>>,
@@ -3623,15 +3316,6 @@ impl App for BarApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_menubar_shell() {
@@ -3639,8 +3323,6 @@ fn s4_menubar_shell() {
     let t = Theme::junie();
     let popover = t.color.surfaces[Surface::Popover.level().expect("popover level")];
     let primary = t.color.fg[FgStep::Primary.index()];
-
-
 
     let st = Rc::new(RefCell::new(MenuState::default()));
     let mut app = Harness::new(
@@ -3671,8 +3353,6 @@ fn s4_menubar_shell() {
     );
     assert!(buf_is_bold(buf, fx, 1), "V2: the cursor label is bold");
     capture_isolated(&dir, "menubar-closed", buf);
-
-
 
     let st = Rc::new(RefCell::new(MenuState::default()));
     let log = Rc::new(RefCell::new(Vec::new()));
@@ -3757,7 +3437,6 @@ fn s4_menubar_shell() {
         "S2: clicking its label again closes it"
     );
 
-
     let bx = char_col(&buf_row_text(app.buffer(), 1), "app❯") + 1;
     let r = app.click(bx, 1);
     assert_eq!(r.flow(), Flow::Consumed, "A2: brand click applies");
@@ -3791,8 +3470,6 @@ fn s4_menubar_shell() {
     assert_eq!(r.flow(), Flow::Ignored, "N1: a modified chord is Ignored");
     assert!(log.borrow().is_empty(), "N1: no event");
 
-
-
     let nst = Rc::new(RefCell::new(MenuState::default()));
     let nlog = Rc::new(RefCell::new(Vec::new()));
     let mut narrow = Harness::new(
@@ -3810,7 +3487,6 @@ fn s4_menubar_shell() {
     let nrow = buf_row_text(narrow.buffer(), 1);
     assert!(!nrow.contains("Help"), "N2: unfitting labels do not paint");
 
-
     let _ = narrow.key(KeyCode::Right);
     let _ = narrow.key(KeyCode::Right);
     nlog.borrow_mut().clear();
@@ -3822,8 +3498,6 @@ fn s4_menubar_shell() {
             .any(|a| matches!(a, MenuAction::Opened(2))),
         "N2: unfitting labels cannot open"
     );
-
-
 
     let case = s4_case("menubar_shell", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
@@ -3867,7 +3541,6 @@ fn s4_menubar_shell() {
     );
     support::press_step(&s, "enter");
 
-
     waits::wait_gone(&mut s, "Split right", "A1 live: choosing closes");
     waits::wait_state(&mut s, "New tab", "A1 live: choice records");
     checkpoint(&mut s, &dir, "bar-chosen");
@@ -3881,10 +3554,6 @@ fn s4_menubar_shell() {
         !noopen.contains("Zoom pane"),
         "N1 live: hover opens nothing"
     );
-
-
-
-
 
     click_at(&mut s, "File", case_timeout(&case));
     support::wait_screen(
@@ -3903,14 +3572,6 @@ fn s4_menubar_shell() {
     eprintln!("s4 menubar_shell: isolated bar map + live open/switch/brand/hover");
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_help_showcase() {
@@ -3926,7 +3587,6 @@ fn s4_help_showcase() {
     checkpoint(&mut s, &dir, "help-open");
     let opened = live_text(&mut s);
 
-
     assert!(opened.contains("Close"), "V1 live: the Close action");
     assert!(
         opened.contains("Tab / Shift+Tab") && opened.contains("quit"),
@@ -3936,7 +3596,6 @@ fn s4_help_showcase() {
         opened.contains("Mouse: hover to preview"),
         "V2 live: the mouse row"
     );
-
 
     let cancel_lines: Vec<&str> = opened.lines().filter(|l| l.contains("Cancel")).collect();
     assert_eq!(cancel_lines.len(), 1, "S1 live: no second action exists");
@@ -4006,13 +3665,6 @@ fn s4_help_showcase() {
     eprintln!("s4 help_showcase: live help open/close/focus roundtrips");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_form_submit() {
@@ -4068,12 +3720,6 @@ fn s4_form_submit() {
     eprintln!("s4 form_submit: live Busy(23) countdown to Done");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_form_invalid() {
@@ -4110,7 +3756,6 @@ fn s4_form_invalid() {
         "V1 live: reviewer error row"
     );
 
-
     let frame = live_frame(&mut s);
     let snap = s
         .inner
@@ -4141,8 +3786,6 @@ fn s4_form_invalid() {
         !invalid.contains("Creating task…"),
         "N1 live: invalid never goes Busy"
     );
-
-
 
     let mut reset_focused = false;
     let mut probe = String::new();
@@ -4202,13 +3845,11 @@ fn s4_form_invalid() {
     eprintln!("s4 form_invalid: live errors/focus/reset/lone-reviewer");
 }
 
-
 fn track_start(row: &str) -> u16 {
     row.chars()
         .position(|c| c == '━' || c == '─')
         .expect("track renders") as u16
 }
-
 
 struct PbFocusApp;
 
@@ -4248,17 +3889,6 @@ impl App for PbFocusApp {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_pb_states() {
@@ -4268,10 +3898,6 @@ fn s4_pb_states() {
     let error = t.color.danger;
     let muted = t.color.fg[FgStep::Muted.index()];
     let running = t.color.fg[FgStep::Secondary.index()];
-
-
-
-
 
     let samples = [
         ("Queued    ", 0.0, false, "  ", running, "running"),
@@ -4433,7 +4059,6 @@ fn s4_pb_states() {
     });
     capture_isolated(&dir, "pb-states", &buf);
 
-
     let case = s4_case(
         "pb_states",
         &["--page", "progress", "--motion", "paused"],
@@ -4459,18 +4084,10 @@ fn s4_pb_states() {
     eprintln!("s4 pb_states: isolated bar map + live glyphs/focus");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_pb_live() {
     let dir = s4_dir("s4_pb_live");
-
 
     let fill_count = |ratio: f64| -> usize {
         let buf = render_isolated(70, 3, 0, None, |ui, _| {
@@ -4499,7 +4116,6 @@ fn s4_pb_live() {
     assert!(capped.contains("100%"), "N1: ratios past 1.0 cap at Done");
     capture_isolated(&dir, "pb-live", &buf);
 
-
     let case = s4_case("pb_live", &["--page", "progress"], 80, 24).timeout(30_000);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4521,7 +4137,6 @@ fn s4_pb_live() {
     assert_line_has(&paused, "Building", "‖", "V2 live: pause suffix");
     let q1 = building_pct(&paused);
 
-
     let spin_of = |text: &str| -> char {
         text.lines()
             .find(|l| l.contains("Waiting for"))
@@ -4537,7 +4152,6 @@ fn s4_pb_live() {
     let spin2 = spin_of(&live_text(&mut s));
     assert_eq!(q1, q2, "N2 live: pausing stops the advance");
     assert_ne!(spin1, spin2, "N2 live: the page keeps animating");
-
 
     click_at(&mut s, "Resume", case_timeout(&case));
     support::wait_screen(
@@ -4567,7 +4181,6 @@ fn s4_pb_live() {
     eprintln!("s4 pb_live: isolated growth + live climb/pause/restart/done");
 }
 
-
 struct SpinFocusApp;
 
 impl App for SpinFocusApp {
@@ -4583,19 +4196,11 @@ impl App for SpinFocusApp {
     }
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_spin_frame() {
     let dir = s4_dir("s4_spin_frame");
     let t = Theme::junie();
-
-
 
     let frames = t.design.motion.spinner_frames;
     assert_eq!(frames.len(), 10, "S1: ten braille frames");
@@ -4608,7 +4213,6 @@ fn s4_spin_frame() {
             "S1: frame({tick}) cycles"
         );
     }
-
 
     let accent = t.color.accent;
     let secondary = t.color.fg[FgStep::Secondary.index()];
@@ -4659,7 +4263,6 @@ fn s4_spin_frame() {
     });
     assert_surround_intact(&buf, Rect::ZERO, "S2: an empty area draws nothing");
 
-
     let case = s4_case("spin_frame", &["--page", "progress"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4687,12 +4290,6 @@ fn s4_spin_frame() {
     eprintln!("s4 spin_frame: isolated cycle + live frames {seen:?}");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_spin_sweep() {
@@ -4701,8 +4298,6 @@ fn s4_spin_sweep() {
     let accent = t.color.accent;
     let subtle = t.color.border_subtle;
     let primary = t.color.fg[FgStep::Primary.index()];
-
-
 
     let sweep_row = |tick: usize, width: u16| -> Buffer {
         render_isolated(80, 3, 0, None, |ui, _| {
@@ -4718,7 +4313,6 @@ fn s4_spin_sweep() {
         row8.contains("Resolving"),
         "V2: the label paints when it fits"
     );
-
 
     assert_eq!(buf8[(0, 1)].fg, primary, "V2: the label is primary");
     assert_eq!(
@@ -4783,7 +4377,6 @@ fn s4_spin_sweep() {
         "A1: the sweep holds no focus"
     );
 
-
     let case = s4_case("spin_sweep", &["--page", "progress"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4805,7 +4398,6 @@ fn s4_spin_sweep() {
     eprintln!("s4 spin_sweep: isolated wrap + live motion");
 }
 
-
 struct MeterFocusApp;
 
 impl App for MeterFocusApp {
@@ -4821,21 +4413,11 @@ impl App for MeterFocusApp {
     }
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_meter_tones() {
     let dir = s4_dir("s4_meter_tones");
     let t = Theme::junie();
-
-
-
 
     let thresholds = t.design.meter;
     assert_eq!(thresholds.low_max, 59, "low boundary");
@@ -4854,7 +4436,6 @@ fn s4_meter_tones() {
             "S1: of({pct})"
         );
     }
-
 
     let white = t.color.fg[FgStep::Secondary.index()];
     let warning = t.color.warning;
@@ -4936,7 +4517,6 @@ fn s4_meter_tones() {
     });
     capture_isolated(&dir, "meter-tones", &buf);
 
-
     let case = s4_case(
         "meter_tones",
         &["--page", "progress", "--motion", "paused"],
@@ -4953,24 +4533,11 @@ fn s4_meter_tones() {
     eprintln!("s4 meter_tones: isolated thresholds + live rows");
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_meter_domain() {
     let dir = s4_dir("s4_meter_domain");
     let t = Theme::junie();
-
-
-
-
-
 
     let thresholds = t.design.meter;
     assert_eq!(
@@ -4993,11 +4560,6 @@ fn s4_meter_domain() {
     let err = t.color.danger;
     let faint = t.color.fg[FgStep::Faint.index()];
     let secondary = t.color.fg[FgStep::Secondary.index()];
-
-
-
-
-
 
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         Meter::new(Id::root("s4.meter"))
@@ -5070,7 +4632,6 @@ fn s4_meter_domain() {
         "S2: Refreshing value at tick 0"
     );
 
-
     let buf = render_isolated(60, 3, 0, None, |ui, _| {
         Meter::new(Id::root("s4.meter"))
             .ratio(0.82)
@@ -5102,9 +4663,6 @@ fn s4_meter_domain() {
         "A1: domain meters hold no focus"
     );
     capture_isolated(&dir, "meter-domain", &buf);
-
-
-
 
     let case = s4_case(
         "meter_domain",
@@ -5142,9 +4700,6 @@ fn s4_meter_domain() {
     assert_line_has(&tall, "Unknown", "—", "V1 live: Unknown row");
     eprintln!("s4 meter_domain: isolated tones + live rows");
 }
-
-
-
 
 struct ChromeBarApp {
     left: [StatusItem<'static>; 2],
@@ -5207,19 +4762,10 @@ impl App for ChromeBarApp {
     }
 }
 
-
 fn row_col(row: &str, needle: &str) -> u16 {
     let byte = row.find(needle).expect("needle renders") as u16;
     row[..byte as usize].chars().count() as u16
 }
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
@@ -5228,8 +4774,6 @@ fn s4_sb_groups() {
     let t = Theme::junie();
     let elevated = t.color.surfaces[Surface::Elevated.level().expect("elevated level")];
     let overlay = t.color.surfaces[Surface::Overlay.level().expect("overlay level")];
-
-
 
     let app = ChromeBarApp::chrome(160);
     let buf = render_isolated(160, 3, 0, None, |ui, _| {
@@ -5288,7 +4832,6 @@ fn s4_sb_groups() {
         "A2: the region covers the chip (presence proof)"
     );
 
-
     let case = s4_case("sb_groups", &["--page", "chrome"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -5340,9 +4883,6 @@ fn s4_sb_groups() {
     );
     checkpoint(&mut s, &dir, "hover");
 
-
-
-
     let lift = t.color.surfaces[t.raise(Surface::Overlay).level().expect("lift level")];
     let primary = t.color.fg[FgStep::Primary.index()];
     let _ = app.mouse(MouseKind::Move, chip_x, 1);
@@ -5359,21 +4899,10 @@ fn s4_sb_groups() {
     eprintln!("s4 sb_groups: isolated planes + live evict/resize/hover");
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "showcase s4 check; run with --ignored"]
 fn s4_sb_collapse() {
     let dir = s4_dir("s4_sb_collapse");
-
-
-
 
     for (w, what) in [(61u16, "80x24 page"), (53u16, "72x20 page")] {
         let app = ChromeBarApp::chrome(w);
@@ -5408,7 +4937,6 @@ fn s4_sb_collapse() {
         !row.contains('C'),
         "S1: ties evict the center first (row: {row:?})"
     );
-
 
     let app = ChromeBarApp::chrome(40);
     let buf = render_isolated(40, 3, 0, None, |ui, _| {
@@ -5457,7 +4985,6 @@ fn s4_sb_collapse() {
         }
     }
 
-
     let narrow_app = ChromeBarApp::chrome(53);
     let narrow_buf = render_isolated(53, 3, 0, None, |ui, _| {
         narrow_app.bar().draw(ui, Rect::new(0, 1, 53, 1));
@@ -5488,8 +5015,6 @@ fn s4_sb_collapse() {
         "A2: the bar holds no focus stops"
     );
     capture_isolated(&dir, "sb-collapse", &wide_buf);
-
-
 
     let case = s4_case("sb_collapse", &["--page", "chrome"], 72, 20);
     write_provenance(&dir, &case);
@@ -5525,7 +5050,6 @@ fn s4_sb_collapse() {
     );
     eprintln!("s4 sb_collapse: isolated eviction + live narrow/resize");
 }
-
 
 fn building_pct(text: &str) -> u32 {
     let line = text

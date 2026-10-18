@@ -1,26 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -84,7 +61,6 @@ fn set_text(frame: &mut Frame, x0: u16, y: u16, text: &str) {
     }
 }
 
-
 fn base_frame() -> Frame {
     let mut f = Frame::blank(20, 6, prov("negative-phase6a"));
     set_text(&mut f, 0, 0, "hello phase6a");
@@ -96,8 +72,6 @@ fn base_frame() -> Frame {
     f.validate().expect("base frame valid");
     f
 }
-
-
 
 fn approve_grouped(dir: &Path, name: &str, frame: &Frame) -> GroupedStore {
     let store = grouped_store(dir);
@@ -130,11 +104,6 @@ fn cat_binary() -> &'static str {
     }
 }
 
-
-
-
-
-
 fn cursor_base() -> Frame {
     let mut f = base_frame();
     f.cursor.visible = true;
@@ -147,7 +116,6 @@ fn cursor_base() -> Frame {
 
 #[test]
 fn negative_phase6a_single_cursor_value_mutation_detected() {
-
     let base = cursor_base();
     let dir = scratch_dir("cursor-style");
     let name = "neg6a/cursor-style/80x24/truecolor";
@@ -178,7 +146,6 @@ fn negative_phase6a_single_cursor_value_mutation_detected() {
     );
     outcome.ensure_matched().unwrap_err();
 
-
     let dir2 = scratch_dir("cursor-x");
     let name2 = "neg6a/cursor-x/80x24/truecolor";
     let store2 = approve_grouped(&dir2, name2, &base);
@@ -196,12 +163,9 @@ fn negative_phase6a_single_cursor_value_mutation_detected() {
     outcome2.ensure_matched().unwrap_err();
 }
 
-
-
 #[test]
 fn negative_phase6a_integrity_faults_detected_distinctly() {
     let base = base_frame();
-
 
     let dir_a = scratch_dir("integrity-missing");
     let name_a = "neg6a/integrity/80x24/truecolor";
@@ -219,8 +183,6 @@ fn negative_phase6a_integrity_faults_detected_distinctly() {
         out_a.outcome.note
     );
     let sig_missing = format!("status={:?}", out_a.status());
-
-
 
     let dir_b = scratch_dir("integrity-corrupt");
     let name_b = "neg6a/integrity/80x24/truecolor";
@@ -242,7 +204,6 @@ fn negative_phase6a_integrity_faults_detected_distinctly() {
     );
     let sig_corrupt = "error:cannot-decode".to_string();
 
-
     let mut gen_b = base.clone();
     let mut c = gen_b.get(0, 0).unwrap().clone();
     c.symbol = "Z".to_string();
@@ -262,7 +223,6 @@ fn negative_phase6a_integrity_faults_detected_distinctly() {
     assert_eq!(out_c.ansi_match, Some(false));
     let sig_mixed = format!("status={:?}", out_c.status());
 
-
     let suite: BTreeSet<String> = ["neg6a/integrity/80x24/truecolor".to_string()]
         .into_iter()
         .collect();
@@ -276,17 +236,12 @@ fn negative_phase6a_integrity_faults_detected_distinctly() {
     assert_eq!(orphans, vec!["neg6a/stale/80x24/truecolor".to_string()]);
     let sig_stale = format!("orphan:{}", orphans.join(","));
 
-
     let sigs = BTreeSet::from([sig_missing, sig_corrupt, sig_mixed, sig_stale]);
     assert_eq!(sigs.len(), 4, "integrity faults must differ: {sigs:?}");
 }
 
-
-
 #[test]
 fn negative_phase6a_shard_inventory_omitted_and_duplicated_fail() {
-
-
     let suite: BTreeSet<String> = [
         "neg6a/s/a/80x24/truecolor".to_string(),
         "neg6a/s/b/80x24/truecolor".to_string(),
@@ -313,8 +268,6 @@ fn negative_phase6a_shard_inventory_omitted_and_duplicated_fail() {
         "omitted shard case must fail acceptance: {err}"
     );
 
-
-
     let decls = [
         "neg6a/d/x/80x24/truecolor",
         "neg6a/d/y/80x24/truecolor",
@@ -333,13 +286,8 @@ fn negative_phase6a_shard_inventory_omitted_and_duplicated_fail() {
     assert!(derr.contains("neg6a/d/x/80x24/truecolor"), "{derr}");
 }
 
-
-
 #[test]
 fn negative_phase6a_mode_gated_inputs_fail_without_reporting() {
-
-
-
     let s = Tui::new([cat_binary()])
         .size(80, 24)
         .spawn()
@@ -367,16 +315,10 @@ fn negative_phase6a_mode_gated_inputs_fail_without_reporting() {
     );
 }
 
-
-
 #[test]
 fn negative_phase6a_dropped_sequence_input_fails_postcondition() {
-
-
-
     let full = "seq6a-postcondition-789";
     let prefix = "seq6a-postcondition-78";
-
 
     let s = Tui::new([cat_binary()])
         .size(80, 24)
@@ -388,7 +330,6 @@ fn negative_phase6a_dropped_sequence_input_fails_postcondition() {
         Duration::from_secs(5),
     )
     .expect("full sequence must satisfy postcondition");
-
 
     let t = Tui::new([cat_binary()])
         .size(80, 24)
@@ -408,12 +349,8 @@ fn negative_phase6a_dropped_sequence_input_fails_postcondition() {
     );
 }
 
-
-
 #[test]
 fn negative_phase6a_timestamp_only_frame_matches_same_approval() {
-
-
     let mut a = base_frame();
     a.provenance.created_unix = 1_000;
     let mut b = base_frame();

@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -22,10 +19,8 @@ use termrock_collections::collection::{
 };
 use termrock_runtime::rowui::{RowFn, RowUi};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChipBarAction {
-
     Toggled(ItemKey),
 
     Closed(ItemKey),
@@ -35,10 +30,8 @@ pub enum ChipBarAction {
     AddRequested,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ChipBarCmd {
-
     Prev,
 
     Next,
@@ -155,18 +148,11 @@ const TOGGLING_CLOSABLE: [Binding<ChipBarCmd>; 11] = [
     TOGGLING[7],
 ];
 
-
-
 pub type LabelChips<'a> = ChipBar<'a, &'a str, ByIndex, DefaultRow>;
-
-
-
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ChipBarState {
     core: CollectionCore,
-
-
 
     on_add: bool,
     first: Option<ItemKey>,
@@ -174,7 +160,6 @@ pub struct ChipBarState {
 }
 
 impl ChipBarState {
-
     pub const fn cursor(&self) -> Option<ItemKey> {
         if self.on_add {
             None
@@ -183,27 +168,22 @@ impl ChipBarState {
         }
     }
 
-
     pub const fn on_add(&self) -> bool {
         self.on_add
     }
-
 
     pub const fn checked(&self) -> &KeySet {
         self.core.checked()
     }
 
-
     pub const fn checked_mut(&mut self) -> &mut KeySet {
         self.core.checked_mut()
     }
-
 
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.on_add = false;
         self.core.set_cursor(index, key);
     }
-
 
     pub const fn first(&self) -> Option<ItemKey> {
         self.first
@@ -211,12 +191,6 @@ impl ChipBarState {
 }
 
 impl Reconcile for ChipBarState {
-
-
-
-
-
-
     fn reconcile(&mut self, len: usize, key: impl Fn(usize) -> ItemKey) -> Reconciliation {
         let r = self.core.reconcile(len, &key);
         match self.first {
@@ -238,88 +212,6 @@ impl Reconcile for ChipBarState {
         self.core.invalidate();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct ChipBar<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
@@ -348,7 +240,6 @@ impl<T, K, R> fmt::Debug for ChipBar<'_, T, K, R> {
 }
 
 impl<T> ChipBar<'_, T, ByIndex, DefaultRow> {
-
     pub const fn new(id: Id) -> Self {
         ChipBar {
             id,
@@ -411,7 +302,6 @@ impl<'a> ChipBar<'a, &'a str, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> ChipBar<'a, T, K, R> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::MARKER,
@@ -421,11 +311,9 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         Part::NEW,
     ];
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> ChipBar<'a, T, K2, R> {
         ChipBar {
@@ -442,7 +330,6 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         }
     }
 
-
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> ChipBar<'a, T, K, R2> {
         ChipBar {
             id: self.id,
@@ -458,13 +345,11 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         }
     }
 
-
     #[must_use]
     pub const fn select_mode(mut self, m: SelectMode) -> Self {
         self.select_mode = m;
         self
     }
-
 
     #[must_use]
     pub const fn closable(mut self, yes: bool) -> Self {
@@ -472,13 +357,11 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn add(mut self, label: &'a str) -> Self {
         self.add = Some(label);
         self
     }
-
 
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
@@ -486,13 +369,11 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -500,20 +381,17 @@ impl<'a, T, K, R> ChipBar<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
 
     const fn editable(&self) -> bool {
         !self.disabled && !self.read_only
@@ -550,8 +428,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
 
-
-
     fn move_cursor(
         &self,
         st: &mut ChipBarState,
@@ -574,12 +450,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         acc.changed();
     }
 
-
-
-
-
-
-
     fn follow(&self, st: &mut ChipBarState, items: &[T], fit: usize) {
         if st.on_add {
             return;
@@ -599,7 +469,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             st.first = Some(self.key_at(items, i));
         }
     }
-
 
     fn cursor_stop(st: &ChipBarState, items: &[T]) -> usize {
         if st.on_add {
@@ -642,8 +511,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         st.set_cursor(i, key);
         acc.action(ChipBarAction::Closed(key));
     }
-
-
 
     pub fn update(
         &self,
@@ -729,8 +596,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-
-
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over the strip: chips, close affordances, overflow and the add stop"
@@ -750,7 +615,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
             };
             ui.register_control(self.id, row0, f);
         }
-
 
         let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         if !ui.is_inert() {
@@ -836,8 +700,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 .saturating_add(1)
                 .saturating_add(close_w);
             if chip_w > avail {
-
-
                 ui.fill(content, strip.style);
                 truncated = true;
                 break;
@@ -848,10 +710,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 width: chip_w,
                 height: 1,
             };
-
-
-
-
 
             let cs = ov.style(
                 ui,
@@ -876,9 +734,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
                 }
             }
             if flags.contains(StateFlags::PRESSED) {
-
-
-
                 let ls = ov.style(ui, id, Family::CHIP, Variant::DEFAULT, Part::LABEL, flags);
                 if matches!(ls.glyph, Slot::Set(GlyphRole::PressLeft)) {
                     let right = chip
@@ -1011,8 +866,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         row0
     }
 
-
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (8, 1),
@@ -1021,11 +874,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'_, T, K, R> {
         .fit(c)
     }
 }
-
-
-
-
-
 
 fn painted_width(ui: &mut Ui<'_>, row: Rect) -> u16 {
     ui.with_area(row, |ui| {
@@ -1472,10 +1320,6 @@ mod tests {
         let r = acc.finish(BAR);
         assert!(r.is_consumed() && r.action_ref().is_none());
     }
-
-
-
-
 
     #[test]
     fn the_strip_window_is_keyed_so_a_reordered_chip_stays_addressable() {

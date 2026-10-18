@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -20,18 +11,7 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 use termrock_runtime::Status;
 
-
 pub(crate) const PCT_COLUMNS: u16 = 4;
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Pct {
@@ -40,12 +20,8 @@ pub(crate) struct Pct {
 }
 
 impl Pct {
-
     pub(crate) const fn of(v: u16) -> Self {
         let v = if v > 100 { 100 } else { v };
-
-
-
 
         let (buf, len) = if v >= 100 {
             (*b"100%", 4)
@@ -65,11 +41,6 @@ impl Pct {
         Pct { buf, len }
     }
 
-
-
-
-
-
     pub(crate) fn as_str(&self) -> &str {
         self.buf
             .get(..self.len)
@@ -77,8 +48,6 @@ impl Pct {
             .unwrap_or("")
     }
 }
-
-
 
 pub(crate) fn run_of(
     ui: &mut Ui<'_>,
@@ -91,105 +60,6 @@ pub(crate) fn run_of(
         ui.paint_cell(Position::new(col.x, run.y), sym, style);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct ProgressBar<'a> {
     id: Id,
@@ -217,7 +87,6 @@ impl fmt::Debug for ProgressBar<'_> {
 }
 
 impl<'a> ProgressBar<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::LABEL,
         Part::TRACK,
@@ -226,10 +95,7 @@ impl<'a> ProgressBar<'a> {
         Part::ICON,
     ];
 
-
-
     const MIN_TRACK: u16 = 6;
-
 
     pub const fn new(id: Id) -> Self {
         ProgressBar {
@@ -245,11 +111,9 @@ impl<'a> ProgressBar<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
@@ -257,13 +121,11 @@ impl<'a> ProgressBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn label(mut self, s: &'a str) -> Self {
         self.label = s;
         self
     }
-
 
     #[must_use]
     pub fn ratio(mut self, r: f64) -> Self {
@@ -271,14 +133,11 @@ impl<'a> ProgressBar<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
-
 
     #[must_use]
     pub const fn done(mut self, yes: bool) -> Self {
@@ -286,15 +145,11 @@ impl<'a> ProgressBar<'a> {
         self
     }
 
-
-
-
     #[must_use]
     pub const fn icon(mut self, g: GlyphRole) -> Self {
         self.icon = Some(g);
         self
     }
-
 
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
@@ -302,20 +157,17 @@ impl<'a> ProgressBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -335,8 +187,6 @@ impl<'a> ProgressBar<'a> {
         f
     }
 
-
-
     fn label_columns(&self, ui: &Ui<'_>, w: u16) -> u16 {
         let lw = width(self.label);
         let gap = ui.design().space.gap.max(1);
@@ -347,23 +197,17 @@ impl<'a> ProgressBar<'a> {
         }
     }
 
-
     fn tail_columns(&self) -> u16 {
-
         match self.ratio {
             Some(_) => PCT_COLUMNS.saturating_add(3),
             None => 2,
         }
     }
 
-
     fn pct_width(&self) -> u16 {
         self.ratio
             .map_or(0, |r| width(Pct::of(percent(r)).as_str()))
     }
-
-
-
 
     fn paint_meta(&self, ui: &mut Ui<'_>, cell: Rect, live: StateFlags) {
         let Some(r) = self.ratio else { return };
@@ -382,13 +226,11 @@ impl<'a> ProgressBar<'a> {
         ui.paint_str(cell, Pct::of(percent(r)).as_str(), s.style);
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = first_row(area);
         if area.is_empty() {
             return area;
         }
-
 
         let live = PartStyle::flags(StateFlags::empty(), self.flags());
         let ov = self.ov;
@@ -414,7 +256,6 @@ impl<'a> ProgressBar<'a> {
         let tail = self.tail_columns();
         let track_w = body.width.saturating_sub(tail);
         if track_w < Self::MIN_TRACK {
-
             self.paint_meta(ui, body, live);
             return area;
         }
@@ -480,15 +321,10 @@ impl<'a> ProgressBar<'a> {
         area
     }
 
-
     fn filled_span(&self, w: u16) -> (u16, u16) {
         if let Some(r) = self.ratio {
             return (0, (f64::from(w) * r).round() as u16);
         }
-
-
-
-
 
         let seg = (w / 5).clamp(2, 8);
         let period = usize::from(w.saturating_add(seg)).max(1);
@@ -496,7 +332,6 @@ impl<'a> ProgressBar<'a> {
         let edge = u16::try_from(edge).unwrap_or(u16::MAX);
         (edge.saturating_sub(seg).min(w), edge.min(w))
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let gap = ui.design().space.gap.max(1);
@@ -516,70 +351,9 @@ impl<'a> ProgressBar<'a> {
     }
 }
 
-
 fn percent(r: f64) -> u16 {
     (r.clamp(0.0, 1.0) * 100.0).round() as u16
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Spinner<'a> {
     id: Id,
@@ -589,7 +363,6 @@ pub struct Spinner<'a> {
     frame: usize,
     ov: PartStyle<'a>,
 }
-
 
 pub(super) fn spinner_glyph(frames: &'static [&'static str], frame: usize) -> Option<&'static str> {
     frames
@@ -608,9 +381,7 @@ impl fmt::Debug for Spinner<'_> {
 }
 
 impl<'a> Spinner<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::ICON, Part::LABEL];
-
 
     pub const fn new(id: Id) -> Self {
         Spinner {
@@ -623,11 +394,9 @@ impl<'a> Spinner<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
@@ -635,14 +404,11 @@ impl<'a> Spinner<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn label(mut self, s: &'a str) -> Self {
         self.label = s;
         self
     }
-
-
 
     #[must_use]
     pub const fn gap(mut self, cells: u16) -> Self {
@@ -654,13 +420,11 @@ impl<'a> Spinner<'a> {
         self.gap.unwrap_or_else(|| ui.design().space.gap.max(1))
     }
 
-
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
         self.frame = f;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -668,20 +432,17 @@ impl<'a> Spinner<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
 
     fn glyph(ui: &Ui<'_>, frame: usize) -> &'static str {
         spinner_glyph(ui.design().motion.spinner_frames, frame).unwrap_or("")
@@ -695,7 +456,6 @@ impl<'a> Spinner<'a> {
         g.saturating_add(self.label_gap(ui))
             .saturating_add(width(self.label))
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = Rect {
@@ -747,7 +507,6 @@ impl<'a> Spinner<'a> {
         }
         area
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(ui), 1).fit(c)

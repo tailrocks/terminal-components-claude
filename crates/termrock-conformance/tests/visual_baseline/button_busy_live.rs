@@ -1,63 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -73,7 +13,6 @@ use tuiscotti::{Cell as TCell, Color as TColor, Frame, Mods, Provenance, Rgb, Un
 
 use crate::support;
 
-
 const LABEL: &str = "Start long job";
 
 const LABEL_W: u16 = 14;
@@ -83,7 +22,6 @@ const FULL_W: u16 = LABEL_W + 2 + 2 + 2;
 const BUSY_ONLY_W: u16 = LABEL_W + 2 + 2;
 
 const IDLE_FULL_W: u16 = LABEL_W + 2 + 2;
-
 
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
@@ -99,8 +37,6 @@ const PTY_ROWS: u16 = 40;
 const BUSY_TICKS: u64 = 28;
 
 const POLL: Duration = Duration::from_millis(25);
-
-
 
 fn evidence_dir() -> &'static Path {
     static DIR: OnceLock<PathBuf> = OnceLock::new();
@@ -129,8 +65,6 @@ fn spinner_index(glyph: &str) -> Option<usize> {
     SPINNER.into_iter().position(|s| s == glyph)
 }
 
-
-
 fn find(s: &mut support::Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
         s,
@@ -140,8 +74,6 @@ fn find(s: &mut support::Session, needle: &str, timeout: Duration) -> (u16, u16)
     );
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
-
-
 
 #[test]
 #[ignore = "pty probe; run with --ignored"]
@@ -162,10 +94,6 @@ fn busy_spinner_cycle_advances_live() {
         support::screen_text(screen).contains(BOOT)
     });
 
-
-
-
-
     let (row, label_col) = find(&mut s, LABEL, timeout);
     assert!(label_col >= 1, "label at col 0 has no gutter");
     let marker_col = label_col;
@@ -177,8 +105,6 @@ fn busy_spinner_cycle_advances_live() {
         "`Working…` never appeared — click did not start the job",
         |screen| support::screen_text(screen).contains("Working…"),
     );
-
-
 
     let start = Instant::now();
     let bound = Duration::from_secs(10);
@@ -218,9 +144,6 @@ fn busy_spinner_cycle_advances_live() {
         changes.len(),
         changes.last().map(|(_, _, f)| f.text()).unwrap_or_default()
     );
-
-
-
 
     let run_start = changes
         .iter()
@@ -269,8 +192,6 @@ fn busy_spinner_cycle_advances_live() {
         seen.len()
     );
 
-
-
     let (_, _, last_frame) = changes.last().expect("non-empty samples");
     let tail_text: String = (0..last_frame.cols)
         .filter_map(|x| last_frame.get(x, row).map(|c| c.symbol.clone()))
@@ -311,9 +232,6 @@ fn busy_spinner_cycle_advances_live() {
     eprintln!("{record}");
 }
 
-
-
-
 const FOLLOWER: &str = "Preview";
 const FOLLOWER_W: u16 = 9;
 
@@ -326,15 +244,11 @@ const ROW_W: u16 = FULL_W + GAP + FOLLOWER_W + GAP + THIRD_W;
 const VIEW_COLS: u16 = ROW_W + 8;
 const VIEW_ROWS: u16 = 1;
 
-
 const SENTINEL: &str = "·";
 
 fn row_id() -> Id {
     Id::root("test.busy_live_row")
 }
-
-
-
 
 fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     let mut x = area.x;
@@ -346,8 +260,6 @@ fn row_layout(area: Rect, widths: &[u16], gap: u16) -> Vec<Rect> {
     }
     out
 }
-
-
 
 fn convert_color(c: RColor) -> TColor {
     match c {
@@ -373,7 +285,6 @@ fn convert_color(c: RColor) -> TColor {
     }
 }
 
-
 fn convert_mods(m: Modifier) -> Mods {
     Mods {
         hidden: m.contains(Modifier::HIDDEN),
@@ -391,10 +302,6 @@ fn convert_mods(m: Modifier) -> Mods {
         reverse: m.contains(Modifier::REVERSED),
     }
 }
-
-
-
-
 
 fn capture_buffer(buf: &Buffer) -> Frame {
     let mut frame = Frame::blank(
@@ -464,13 +371,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-
-
-
-
-
-
-
 fn render_row(
     tick: u64,
     on: Option<bool>,
@@ -529,13 +429,11 @@ fn render_row(
     (buf, frame, widths, used, rects)
 }
 
-
 fn row_text(buf: &Buffer) -> String {
     (0..buf.area.width)
         .map(|x| buf[(x, 0)].symbol().to_owned())
         .collect()
 }
-
 
 fn assert_sentinel_intact(buf: &Buffer, painted_end: u16, what: &str) {
     for x in painted_end..VIEW_COLS {
@@ -547,8 +445,6 @@ fn assert_sentinel_intact(buf: &Buffer, painted_end: u16, what: &str) {
     }
 }
 
-
-
 #[test]
 fn busy_checked_row_geometry_shared_marker() {
     assert_eq!(ROW_W, 44, "fixture row width");
@@ -558,8 +454,6 @@ fn busy_checked_row_geometry_shared_marker() {
         let tick = 3;
         let what = format!("busy+on={on}");
         let (buf, frame, widths, _, rects) = render_row(tick, Some(on), true, ROW_W);
-
-
 
         assert_eq!(widths[0], FULL_W, "{what}: leader width");
         assert_eq!(widths[1], FOLLOWER_W, "{what}: follower width");
@@ -576,14 +470,11 @@ fn busy_checked_row_geometry_shared_marker() {
             "{what}: third control position"
         );
 
-
-
         assert_eq!(
             buf[(1, 0)].symbol(),
             SPINNER[0],
             "{what}: icon lane holds the static spinner frame"
         );
-
 
         assert_eq!(
             frame.get(1, 0).expect("icon cell").symbol.as_str(),
@@ -605,7 +496,6 @@ fn busy_checked_row_geometry_shared_marker() {
             "{what}: trailing pad x=w-1"
         );
 
-
         let fx = FULL_W + GAP;
         assert_eq!(buf[(fx + 1, 0)].symbol(), "P", "{what}: follower label");
         assert_eq!(
@@ -617,16 +507,12 @@ fn busy_checked_row_geometry_shared_marker() {
         assert_eq!(buf[(tx + 1, 0)].symbol(), "●", "{what}: third marker");
         assert_eq!(buf[(tx + 3, 0)].symbol(), "V", "{what}: third label");
 
-
         assert_eq!(
             buf[(ROW_W - 1, 0)].symbol(),
             " ",
             "{what}: row trailing pad"
         );
         assert_sentinel_intact(&buf, ROW_W, &what);
-
-
-
 
         let (idle_buf, _, _, _, idle_rects) = render_row(tick, Some(on), false, ROW_W);
         assert_eq!(
@@ -672,9 +558,6 @@ fn busy_checked_row_geometry_shared_marker() {
         );
     }
 
-
-
-
     for area_w in [ROW_W, 30, 24, 20, 18, 12, 8, 6, 4, 3, 2] {
         let what = format!("clip area_w={area_w}");
         let (buf, frame, widths, used, rects) = render_row(5, Some(true), true, area_w);
@@ -708,8 +591,6 @@ fn busy_checked_row_geometry_shared_marker() {
             assert!(row.contains(LABEL), "{what}: full leader shows it");
             assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "{what}: marker");
 
-
-
             let follower_w = rects[1].width;
             if follower_w > 0 && follower_w < FOLLOWER_W {
                 assert_eq!(
@@ -719,8 +600,6 @@ fn busy_checked_row_geometry_shared_marker() {
                 );
             }
         } else if leader_w > 3 {
-
-
             assert_eq!(buf[(1, 0)].symbol(), SPINNER[0], "{what}: marker");
         } else if leader_w == 3 {
             assert!(
@@ -750,8 +629,6 @@ fn busy_checked_row_geometry_shared_marker() {
             frame.to_json_pretty().as_bytes(),
         );
     }
-
-
 
     let (buf, _, widths, _, _) = render_row(7, None, true, ROW_W);
     assert_eq!(widths[0], BUSY_ONLY_W, "busy-only leader width");

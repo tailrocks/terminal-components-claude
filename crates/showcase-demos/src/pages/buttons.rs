@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use std::time::Duration;
 
 use termrock::{
@@ -32,7 +26,6 @@ fn matrix_panel() -> Panel<'static> {
         .meta("reference rendering ")
 }
 
-
 const SPECS: [(&str, Variant, bool, Option<bool>); 9] = [
     ("Run task", Variant::PRIMARY, false, None),
     ("Preview", Variant::SECONDARY, false, None),
@@ -53,7 +46,6 @@ const GROUPS: [(&str, &[usize]); 4] = [
 ];
 
 const LONG_JOB: usize = 8;
-
 
 const MATRIX_STATES: [(&str, StateFlags); 6] = [
     ("default", StateFlags::empty()),
@@ -86,8 +78,6 @@ fn legacy_gutter(ui: &mut Ui<'_>, area: Rect, variant: Variant, flags: StateFlag
     let container = ui.style(Family::BUTTON, variant, Part::CONTAINER, flags);
     let mut gutter = ui.style(Family::BUTTON, variant, Part::GUTTER, flags).style;
 
-
-
     gutter = gutter.with_bg_from(container.style);
     if !flags.contains(StateFlags::FOCUSED) {
         gutter = gutter.with_fg_from_bg(container.style);
@@ -111,7 +101,6 @@ fn matrix_reference(flags: StateFlags) -> Option<ReferenceState> {
     }
     present.then_some(state)
 }
-
 
 #[derive(Debug)]
 pub struct ButtonsPage {

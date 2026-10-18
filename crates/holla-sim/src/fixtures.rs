@@ -1,7 +1,3 @@
-
-
-
-
 use crate::domain::activity::{Activity, ActivityState};
 use crate::domain::debian::{DebianState, OrphanPackage};
 use crate::domain::disk::{Candidate, DiskState, Family, Freshness};
@@ -16,15 +12,11 @@ use crate::domain::ssh::{HostKeyPolicy, SshHost};
 use crate::scenario::Scenario;
 use crate::world::{Discovery, Domain, World};
 
-
-
-
 pub const HOME: &str = "/home/dev";
 
 pub fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
 }
-
 
 pub fn cwd_for(scenario: Scenario) -> &'static str {
     match scenario {
@@ -51,7 +43,6 @@ pub fn host_for(scenario: Scenario) -> Host {
 pub fn world_for(scenario: Scenario) -> World {
     let mut w = World::new(scenario, host_for(scenario), cwd_for(scenario));
     w.discovery = match scenario {
-
         Scenario::HardCases => World::default_schedule()
             .into_iter()
             .map(|d| {
@@ -69,7 +60,6 @@ pub fn world_for(scenario: Scenario) -> World {
         Scenario::RustDirty => seed_rust_dirty(&mut w),
         Scenario::LaunchFailure => {
             seed_rust_dirty(&mut w);
-
 
             let mut seed = Activity::new(
                 1,
@@ -95,8 +85,6 @@ pub fn world_for(scenario: Scenario) -> World {
     }
     w
 }
-
-
 
 fn tool(name: &str, version: &str, state: ToolState) -> MiseTool {
     MiseTool {
@@ -133,8 +121,6 @@ fn candidate(path: &str, family: Family, size_bytes: u64, freshness: Freshness) 
         freshness,
     }
 }
-
-
 
 fn child_repo(
     root: &str,
@@ -198,9 +184,6 @@ fn ssh_hosts_devbox() -> Vec<SshHost> {
         },
     ]
 }
-
-
-
 
 fn seed_rust_dirty(w: &mut World) {
     w.mise = Some(MiseState {
@@ -296,8 +279,6 @@ fn seed_rust_dirty(w: &mut World) {
         vec![],
     );
 }
-
-
 
 #[expect(
     clippy::too_many_lines,
@@ -450,7 +431,6 @@ fn seed_monorepo(w: &mut World, child: bool) {
     );
 }
 
-
 fn seed_docker_cleanup(w: &mut World) {
     w.docker = Some(
         DockerFixture {
@@ -518,7 +498,6 @@ fn seed_docker_cleanup(w: &mut World) {
     );
 }
 
-
 fn seed_disk_cleanup(w: &mut World) {
     w.disk = Some(DiskState {
         total_bytes: 500 * GB,
@@ -558,7 +537,6 @@ fn seed_disk_cleanup(w: &mut World) {
         ],
     });
 }
-
 
 #[expect(
     clippy::arithmetic_side_effects,
@@ -638,7 +616,6 @@ fn seed_upgrade_plan(w: &mut World) {
     }];
 }
 
-
 fn seed_activities_multi(w: &mut World) {
     seed_monorepo(w, false);
     let hour = 3_600_000;
@@ -682,8 +659,6 @@ fn seed_activities_multi(w: &mut World) {
     ];
     w.activities = vec![dev, watch, deploy, seed];
 }
-
-
 
 fn seed_remote_host(w: &mut World) {
     w.git = Some(GitRepo {
@@ -781,7 +756,6 @@ fn seed_remote_host(w: &mut World) {
     }];
 }
 
-
 fn seed_hard_cases(w: &mut World) {
     w.mise = Some(MiseState {
         tools: vec![],
@@ -834,8 +808,6 @@ fn seed_hard_cases(w: &mut World) {
         multiplexed: false,
     }];
 }
-
-
 
 pub fn memory_command(
     scenario: Scenario,

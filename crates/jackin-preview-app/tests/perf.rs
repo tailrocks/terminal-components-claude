@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 #![allow(
     unsafe_code,
     dead_code,
@@ -49,7 +37,6 @@ fn report(name: &str, stats: &Stats) {
 }
 
 impl H {
-
     fn manager(w: u16, h: u16) -> Self {
         let mut hh = H::new(Scenario::HardCases, Motion::Reduced, 0, w, h);
         assert_eq!(hh.app().route(), Route::Manager);
@@ -61,7 +48,6 @@ impl H {
         hh.draw();
         hh
     }
-
 
     fn capsule(w: u16, h: u16) -> Self {
         let mut hh = H::new(Scenario::CapsuleMulti, Motion::Full, 0, w, h);
@@ -107,9 +93,6 @@ impl H {
     }
 }
 
-
-
-
 #[test]
 fn jackin_perf_baseline_has_required_rows_and_no_deleted_clone() {
     const ROWS: [&str; 3] = [
@@ -125,10 +108,6 @@ fn jackin_perf_baseline_has_required_rows_and_no_deleted_clone() {
     assert_eq!(names, ROWS);
     assert!(!names.contains(&"capsule_pane_clone_4x2000"));
 }
-
-
-
-
 
 #[test]
 fn frame_jackin_manager_100rows_120x40() {
@@ -146,8 +125,6 @@ fn frame_jackin_manager_100rows_120x40() {
     }
 }
 
-
-
 #[test]
 fn frame_jackin_capsule_4panes_120x40() {
     let _g = lock();
@@ -158,10 +135,6 @@ fn frame_jackin_capsule_4panes_120x40() {
         assert!(s.allocs < 200, "capsule frame allocates {} times", s.allocs);
     }
 }
-
-
-
-
 
 #[test]
 fn key_jackin_manager_move() {

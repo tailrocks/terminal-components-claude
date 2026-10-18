@@ -1,89 +1,9 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 
 use crate::support::Session;
 
 use crate::support::state_waits as waits;
 use crate::support::{self, Case, Color, HOLLA};
-
 
 const BOOT: &str = "holla❯";
 
@@ -141,7 +61,6 @@ const TASKSRC: &[&str] = &[
     "40",
 ];
 
-
 fn h2_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
         format!("journeys/holla/h2/{slug}"),
@@ -154,7 +73,6 @@ fn h2_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Cas
     )
 }
 
-
 fn h2_case_t(
     slug: &str,
     args: &'static [&'static str],
@@ -164,7 +82,6 @@ fn h2_case_t(
     h2_case(slug, args, boot).timeout(timeout_ms)
 }
 
-
 fn h2_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -172,8 +89,6 @@ fn h2_dir(test: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     dir
 }
-
-
 
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
@@ -194,7 +109,6 @@ fn write_provenance(dir: &Path, case: &Case) {
     eprintln!("h2 provenance: {body}");
 }
 
-
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -211,7 +125,6 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -220,19 +133,12 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: no line contains both `{needle}` and `{also}`"
     );
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
@@ -253,11 +159,9 @@ fn h2_browser_hidden() {
 
     assert!(listing.contains("hidden off"), "pre: no hidden-off status");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-h", "wait:2 hidden shown"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-hidden");
     let hidden = live_text(&mut s);
-
 
     assert_line_has(&hidden, "18 entries", "2 hidden shown", "V1 header");
 
@@ -278,7 +182,6 @@ fn h2_browser_hidden() {
         "N1: hidden-off status stuck"
     );
 
-
     support::drive_with_timeout(&mut s, &["ctrl-h", "wait:2 hidden hidden"], case.timeout_ms);
     let off = live_text(&mut s);
 
@@ -289,10 +192,6 @@ fn h2_browser_hidden() {
     assert_line_has(&back, "18 entries", "2 hidden shown", "header intact");
     eprintln!("h2 browser_hidden: hidden toggle roundtrip x2");
 }
-
-
-
-
 
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
@@ -305,11 +204,9 @@ fn h2_child_query() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(&mut s, &["type:test", "wait:Results · 17"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
-
 
     assert_line_has(&res, "› Run tests", "task", "V1 row");
 
@@ -320,7 +217,6 @@ fn h2_child_query() {
     assert!(res.contains("scope ‹ here ›"), "S2: no here scope");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Results · 17", "results cleared");
@@ -336,11 +232,6 @@ fn h2_child_query() {
     eprintln!("h2 child_query: results, clear roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_config_page() {
@@ -353,7 +244,6 @@ fn h2_config_page() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:Custom action configuration", "enter", "wait:sha256:"],
@@ -361,7 +251,6 @@ fn h2_config_page() {
     );
     checkpoint(&mut s, &dir, "01-page");
     let page = live_text(&mut s);
-
 
     assert!(page.contains(DIGEST), "V1: no config digest");
 
@@ -372,7 +261,6 @@ fn h2_config_page() {
     assert!(page.contains("1 · 2 diagnostics"), "S2: no action count");
 
     assert!(!page.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "sha256:", "page closed");
@@ -392,11 +280,6 @@ fn h2_config_page() {
     assert!(back.contains(DIGEST), "digest intact");
     eprintln!("h2 config_page: page, back roundtrip");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
@@ -423,11 +306,9 @@ fn h2_files_actions() {
     let found = live_text(&mut s);
     assert!(found.contains("Enter Actions"), "pre: no actions footer");
 
-
     support::drive_with_timeout(&mut s, &["enter", "wait:Open in the OS"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-menu");
     let menu = live_text(&mut s);
-
 
     assert_line_has(&menu, "Open in the OS", "Enter", "V1 choice");
 
@@ -445,7 +326,6 @@ fn h2_files_actions() {
 
     assert!(!menu.contains("Enter Actions"), "N1: find footer stuck");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Open in the OS", "menu closed");
     waits::wait_state(&mut s, "Enter Actions", "find footer back");
@@ -462,13 +342,6 @@ fn h2_files_actions() {
     assert_line_has(&back, "Open in the OS", "Enter", "menu intact");
     eprintln!("h2 files_actions: menu, close roundtrip");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
@@ -488,11 +361,9 @@ fn h2_files_jump() {
     let listing = live_text(&mut s);
     assert!(listing.contains("Open / preview"), "pre: no browser footer");
 
-
     support::drive_with_timeout(&mut s, &["g", "wait:Enter Switch"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-picker");
     let picker = live_text(&mut s);
-
 
     assert_line_has(&picker, "Go to path", "~/work/site", "V1 title");
 
@@ -513,7 +384,6 @@ fn h2_files_jump() {
         "N1: browser footer stuck"
     );
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Enter Switch", "picker cancelled");
     waits::wait_state(&mut s, "Open / preview", "browser footer back");
@@ -527,14 +397,6 @@ fn h2_files_jump() {
     assert_line_has(&back, "Go to path", "~/work/site", "picker intact");
     eprintln!("h2 files_jump: picker, cancel roundtrip");
 }
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
@@ -562,7 +424,6 @@ fn h2_files_jump_error() {
     checkpoint(&mut s, &dir, "01-error");
     let error = live_text(&mut s);
 
-
     assert!(
         error.contains("nope: no such file or directory"),
         "V1: no picker error"
@@ -578,8 +439,6 @@ fn h2_files_jump_error() {
     assert!(error.contains("▎ nope"), "S2: bad input lost");
 
     assert!(!error.contains("Jumped to"), "N1: jumped on bad path");
-
-
 
     support::press_step(&s, "escape");
     support::wait_screen(&mut s, support::DEFAULT_WAIT, "query cleared", |screen| {
@@ -612,11 +471,6 @@ fn h2_files_jump_error() {
     eprintln!("h2 files_jump_error: error, recovery, good jump");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_files_jumped() {
@@ -641,7 +495,6 @@ fn h2_files_jumped() {
     let picker = live_text(&mut s);
     assert!(picker.contains("Enter Switch"), "pre: picker never opened");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:~/work", "enter", "wait:Jumped to ~/work"],
@@ -649,7 +502,6 @@ fn h2_files_jumped() {
     );
     checkpoint(&mut s, &dir, "02-jumped");
     let jumped = live_text(&mut s);
-
 
     assert!(jumped.contains("Files · ~/work"), "V1: no jumped header");
     assert!(jumped.contains("1 entry"), "V1: no single entry");
@@ -661,7 +513,6 @@ fn h2_files_jumped() {
     assert!(jumped.contains("hidden off"), "S2: no hidden status");
 
     assert!(!jumped.contains("Enter Switch"), "N1: picker stuck");
-
 
     support::drive_with_timeout(&mut s, &["g", "wait:Enter Switch"], case.timeout_ms);
     support::press_step(&s, "escape");
@@ -676,11 +527,6 @@ fn h2_files_jumped() {
     eprintln!("h2 files_jumped: jump, picker roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_files_preview_control() {
@@ -690,7 +536,6 @@ fn h2_files_preview_control() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -712,7 +557,6 @@ fn h2_files_preview_control() {
     checkpoint(&mut s, &dir, "01-control");
     let control = live_text(&mut s);
 
-
     assert_line_has(&control, TITLE, "13 B of 13 B", "V1 preview");
 
     assert!(control.contains("red"), "V2: no preview body");
@@ -720,7 +564,6 @@ fn h2_files_preview_control() {
     assert_line_has(&control, "control.txt", "13 B", "S1 cursor");
 
     assert!(control.contains("Esc Back"), "S2: no back footer");
-
 
     support::drive_with_timeout(&mut s, &["down", "sleep:300"], case.timeout_ms);
     let moved = live_text(&mut s);
@@ -738,11 +581,6 @@ fn h2_files_preview_control() {
     eprintln!("h2 files_preview_control: preview, cursor roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_files_results() {
@@ -753,7 +591,6 @@ fn h2_files_results() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -769,7 +606,6 @@ fn h2_files_results() {
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
 
-
     assert!(res.contains("3 results · home scope"), "V1: no 3 results");
 
     assert_line_has(&res, "README.md", "~/Documents", "V2 row");
@@ -777,7 +613,6 @@ fn h2_files_results() {
     assert_line_has(&res, FIRST, "7 B of 7 B", "S1 preview");
 
     assert!(res.contains("Enter Actions"), "S2: no actions footer");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -796,10 +631,6 @@ fn h2_files_results() {
     eprintln!("h2 files_results: results, cursor roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_files_unicode() {
@@ -810,7 +641,6 @@ fn h2_files_unicode() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -827,7 +657,6 @@ fn h2_files_unicode() {
     checkpoint(&mut s, &dir, "01-result");
     let res = live_text(&mut s);
 
-
     assert!(res.contains("1 result · home scope"), "V1: no 1 result");
 
     assert_line_has(&res, "café menu.txt", "~/Documents", "V2 row");
@@ -837,9 +666,6 @@ fn h2_files_unicode() {
     assert!(res.contains("☕"), "S2: no preview body");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
-
-
 
     support::press_step(&s, "ctrl-u");
     waits::wait_gone(&mut s, "1 result", "query cleared");
@@ -854,10 +680,6 @@ fn h2_files_unicode() {
     eprintln!("h2 files_unicode: unicode result, clear roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_finder_query() {
@@ -869,11 +691,9 @@ fn h2_finder_query() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(&mut s, &["type:pull", "wait:Results · 3"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
-
 
     assert_line_has(&res, "› Pull", "up to date", "V1 row");
 
@@ -884,7 +704,6 @@ fn h2_finder_query() {
     assert!(res.contains("scope ‹ here ›"), "S2: no here scope");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Results · 3", "results cleared");
@@ -900,14 +719,6 @@ fn h2_finder_query() {
     eprintln!("h2 finder_query: results, clear roundtrip");
 }
 
-
-
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_finder_query_selected() {
@@ -922,11 +733,9 @@ fn h2_finder_query_selected() {
     let res = live_text(&mut s);
     assert!(res.contains("Esc Clear"), "pre: no clear footer");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-a", "wait:Query selected"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-selected");
     let sel = live_text(&mut s);
-
 
     assert!(
         sel.contains("Query selected · typing replaces it"),
@@ -940,8 +749,6 @@ fn h2_finder_query_selected() {
     assert!(sel.contains("scope ‹ here ›"), "S2: no here scope");
 
     assert!(!sel.contains("Esc Clear"), "N1: clear footer stuck");
-
-
 
     support::press_step(&s, "escape");
     support::drive_with_timeout(&mut s, &["type:!", "wait:▎ pull!"], case.timeout_ms);
@@ -963,12 +770,6 @@ fn h2_finder_query_selected() {
     eprintln!("h2 finder_query_selected: selection, clear roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_query_empty_preview() {
@@ -977,7 +778,6 @@ fn h2_query_empty_preview() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1007,7 +807,6 @@ fn h2_query_empty_preview() {
     checkpoint(&mut s, &dir, "02-empty");
     let empty = live_text(&mut s);
 
-
     assert!(
         empty.contains("No matches for “blockingresources”"),
         "V1: no no-matches row"
@@ -1027,7 +826,6 @@ fn h2_query_empty_preview() {
 
     assert!(!empty.contains("Who is blocking"), "N1: dialog stuck");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "No matches for", "query cleared");
     waits::wait_state(&mut s, PLACEHOLDER, "placeholder back");
@@ -1035,7 +833,6 @@ fn h2_query_empty_preview() {
     let cleared = live_text(&mut s);
 
     assert!(!cleared.contains("blockingresources"), "N2: query stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1051,11 +848,6 @@ fn h2_query_empty_preview() {
     assert!(back.contains("Nothing to preview"), "Empty intact");
     eprintln!("h2 query_empty_preview: Empty, clear roundtrip");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
@@ -1082,7 +874,6 @@ fn h2_query_redone() {
     let undone = live_text(&mut s);
     assert!(undone.contains("Undone"), "mid: no Undone status");
 
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-y", "ctrl-y", "ctrl-y", "ctrl-y", "wait:Redone"],
@@ -1090,7 +881,6 @@ fn h2_query_redone() {
     );
     checkpoint(&mut s, &dir, "02-redone");
     let redone = live_text(&mut s);
-
 
     assert!(redone.contains("Results · 3"), "V1: no Results · 3");
 
@@ -1102,7 +892,6 @@ fn h2_query_redone() {
 
     assert!(!redone.contains("Undone"), "N1: Undone stuck");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-z", "wait:Undone"], case.timeout_ms);
     let undone2 = live_text(&mut s);
 
@@ -1113,11 +902,6 @@ fn h2_query_redone() {
     assert!(back.contains("Results · 3"), "results intact");
     eprintln!("h2 query_redone: redo, undo roundtrip");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
@@ -1133,7 +917,6 @@ fn h2_query_undone() {
     let typed = live_text(&mut s);
     assert!(typed.contains("Results · 3"), "mid: no typed results");
 
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-z", "ctrl-z", "ctrl-z", "ctrl-z", "wait:Undone"],
@@ -1141,7 +924,6 @@ fn h2_query_undone() {
     );
     checkpoint(&mut s, &dir, "02-undone");
     let undone = live_text(&mut s);
-
 
     assert!(undone.contains(PLACEHOLDER), "V1: no placeholder");
 
@@ -1152,8 +934,6 @@ fn h2_query_undone() {
     assert_line_has(&undone, "Run check", "task", "S2 suggestion");
 
     assert!(!undone.contains("Results · 3"), "N1: results stuck");
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1181,11 +961,6 @@ fn h2_query_undone() {
     eprintln!("h2 query_undone: undo, redo roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_scope_children() {
@@ -1197,7 +972,6 @@ fn h2_scope_children() {
     let boot = live_text(&mut s);
     assert!(boot.contains("scope ‹ here ›"), "pre: boot not at here");
 
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-down", "wait:Children · 3 projects"],
@@ -1205,7 +979,6 @@ fn h2_scope_children() {
     );
     checkpoint(&mut s, &dir, "01-children");
     let children = live_text(&mut s);
-
 
     assert!(
         children.contains("Children · 3 projects · 11 entries"),
@@ -1226,12 +999,9 @@ fn h2_scope_children() {
 
     assert!(!children.contains("scope ‹ here ›"), "N1: here scope stuck");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-up", "wait:scope ‹ here ›"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-here");
     let here = live_text(&mut s);
-
-
 
     assert!(
         !here.contains("scope ‹ children ›"),
@@ -1248,10 +1018,6 @@ fn h2_scope_children() {
     eprintln!("h2 scope_children: widen, narrow roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_scope_parent() {
@@ -1263,7 +1029,6 @@ fn h2_scope_parent() {
     let boot = live_text(&mut s);
     assert!(boot.contains("scope ‹ here ›"), "pre: boot not at here");
 
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-up", "wait:No project root above"],
@@ -1271,7 +1036,6 @@ fn h2_scope_parent() {
     );
     checkpoint(&mut s, &dir, "01-parent");
     let parent = live_text(&mut s);
-
 
     assert!(
         parent.contains("No project root above ~/work/acme"),
@@ -1292,7 +1056,6 @@ fn h2_scope_parent() {
 
     assert!(!parent.contains("scope ‹ here ›"), "N1: here scope stuck");
 
-
     support::drive_with_timeout(&mut s, &["escape", "wait:scope ‹ here ›"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-here");
     let here = live_text(&mut s);
@@ -1312,10 +1075,6 @@ fn h2_scope_parent() {
     eprintln!("h2 scope_parent: widen, narrow roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_scope_system() {
@@ -1327,7 +1086,6 @@ fn h2_scope_system() {
     let boot = live_text(&mut s);
     assert!(boot.contains("scope ‹ here ›"), "pre: boot not at here");
 
-
     support::drive_with_timeout(
         &mut s,
         &["ctrl-up", "ctrl-up", "wait:scope ‹ system ›"],
@@ -1335,7 +1093,6 @@ fn h2_scope_system() {
     );
     checkpoint(&mut s, &dir, "01-system");
     let system = live_text(&mut s);
-
 
     assert!(
         system.contains("System · mbp · 45 entries"),
@@ -1353,7 +1110,6 @@ fn h2_scope_system() {
 
     assert!(!system.contains("scope ‹ here ›"), "N1: here scope stuck");
 
-
     support::drive_with_timeout(&mut s, &["escape", "wait:scope ‹ here ›"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-here");
     let here = live_text(&mut s);
@@ -1370,13 +1126,6 @@ fn h2_scope_system() {
     eprintln!("h2 scope_system: widen, narrow roundtrip");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_task_input_cancelled() {
@@ -1386,7 +1135,6 @@ fn h2_task_input_cancelled() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1409,7 +1157,6 @@ fn h2_task_input_cancelled() {
     checkpoint(&mut s, &dir, "01-cancelled");
     let cancelled = live_text(&mut s);
 
-
     assert!(cancelled.contains(CANCELLED), "V1: no cancelled line");
 
     assert_line_has(&cancelled, "deploy the release", "exit 2", "V2 title");
@@ -1420,9 +1167,6 @@ fn h2_task_input_cancelled() {
         cancelled.contains("failed · exit 2"),
         "S2: no failed footer"
     );
-
-
-
 
     support::press_step(&s, "r");
     waits::wait_gone(&mut s, CANCELLED, "output restarted");
@@ -1455,13 +1199,6 @@ fn h2_task_input_cancelled() {
     assert!(!here.contains(CANCELLED), "N2: cancelled line stuck");
     eprintln!("h2 task_input_cancelled: cancel, restart roundtrip");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
@@ -1496,7 +1233,6 @@ fn h2_task_input_killed() {
     let cancelled = live_text(&mut s);
     assert!(cancelled.contains(CANCELLED), "mid: no cancelled line");
 
-
     support::drive_with_timeout(
         &mut s,
         &[
@@ -1512,7 +1248,6 @@ fn h2_task_input_killed() {
     support::drive_with_timeout(&mut s, &["s", &format!("wait:{KILLED}")], case.timeout_ms);
     checkpoint(&mut s, &dir, "03-killed");
     let killed = live_text(&mut s);
-
 
     assert!(
         killed.contains("killed (SIGKILL) · descendants reaped"),
@@ -1533,9 +1268,6 @@ fn h2_task_input_killed() {
 
     assert!(!killed.contains(CANCELLED), "N1: deploy output leaked");
 
-
-
-
     support::press_step(&s, "r");
     waits::wait_gone(&mut s, KILLED, "worker restarted");
     waits::wait_state(&mut s, "ignoring SIGTERM", "worker running again");
@@ -1553,10 +1285,6 @@ fn h2_task_input_killed() {
     eprintln!("h2 task_input_killed: kill, restart roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_task_sources() {
@@ -1568,11 +1296,9 @@ fn h2_task_sources() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(&mut s, &["type:yarn", "wait:yarn s00"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
-
 
     assert!(res.contains("Results · 31"), "V1: no Results · 31");
 
@@ -1583,7 +1309,6 @@ fn h2_task_sources() {
     assert!(res.contains("scope ‹ here ›"), "S2: no here scope");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "yarn s00", "results cleared");
@@ -1599,10 +1324,6 @@ fn h2_task_sources() {
     eprintln!("h2 task_sources: results, clear roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h2 check; run with --ignored"]
 fn h2_task_sources_diagnostic() {
@@ -1614,7 +1335,6 @@ fn h2_task_sources_diagnostic() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:Taskfile", "wait:discovery diagnostic"],
@@ -1622,7 +1342,6 @@ fn h2_task_sources_diagnostic() {
     );
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
-
 
     assert!(res.contains("Results · 1"), "V1: no Results · 1");
 
@@ -1633,7 +1352,6 @@ fn h2_task_sources_diagnostic() {
         "V2 row",
     );
 
-
     assert!(
         res.contains("mapping values are not"),
         "S1: no yaml failure"
@@ -1642,7 +1360,6 @@ fn h2_task_sources_diagnostic() {
     assert_line_has(&res, "Risk", "read-only", "S2 risk");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Taskfile · Taskfile.yaml", "result cleared");

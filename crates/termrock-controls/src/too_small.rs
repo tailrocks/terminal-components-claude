@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use core::fmt::{self, Write as _};
 
 use ratatui_core::layout::Rect;
@@ -20,12 +9,6 @@ use crate::response::StateFlags;
 use crate::text::width;
 use crate::theme::{DesignTokens, Family, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
-
-
-
-
-
-
 
 #[derive(Clone, Copy, Debug)]
 struct LineBuf {
@@ -40,8 +23,6 @@ impl LineBuf {
             len: 0,
         }
     }
-
-
 
     fn as_str(&self) -> &str {
         self.buf
@@ -62,89 +43,6 @@ impl fmt::Write for LineBuf {
         Ok(())
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct TooSmall<'a> {
     id: Id,
@@ -167,7 +65,6 @@ impl fmt::Debug for TooSmall<'_> {
 }
 
 impl<'a> TooSmall<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::TITLE,
@@ -176,16 +73,11 @@ impl<'a> TooSmall<'a> {
         Part::ACTIONS,
     ];
 
-
     pub const TOO_SMALL: &'static str = "Terminal too small";
-
 
     pub const QUIT: &'static str = "q Quit";
 
-
-
     pub const ROWS: u16 = 5;
-
 
     pub const fn new(id: Id, product: &'a str) -> Self {
         TooSmall {
@@ -197,15 +89,9 @@ impl<'a> TooSmall<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
-
-
-
-
 
     #[must_use]
     pub const fn minimum(mut self, w: u16, h: u16) -> Self {
@@ -213,13 +99,11 @@ impl<'a> TooSmall<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
         self.variant = v;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -227,20 +111,17 @@ impl<'a> TooSmall<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
 
     pub const fn minimum_size(&self, d: &DesignTokens) -> (u16, u16) {
         match self.minimum {
@@ -249,27 +130,18 @@ impl<'a> TooSmall<'a> {
         }
     }
 
-
-
-
-
-
-
     pub const fn fits(&self, d: &DesignTokens, area: Rect) -> bool {
         let (w, h) = self.minimum_size(d);
         area.width >= w && area.height >= h
     }
 
-
     fn size_line(&self, d: &DesignTokens, area: Rect) -> LineBuf {
         let (w, h) = self.minimum_size(d);
         let mut line = LineBuf::new();
 
-
         let _ = write!(line, "Need {w}×{h}, have {}×{}", area.width, area.height);
         line
     }
-
 
     fn line(&self, ui: &mut Ui<'_>, area: Rect, y: u16, part: Part, text: &str) {
         if y >= area.bottom() {
@@ -289,14 +161,12 @@ impl<'a> TooSmall<'a> {
             return;
         }
 
-
         let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
         let s = self
             .ov
             .style(ui, self.id, Family::TOO_SMALL, self.variant, part, live);
         ui.paint_str(row, text, s.style);
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         if area.is_empty() {
@@ -342,15 +212,12 @@ impl<'a> TooSmall<'a> {
             size_text.as_str(),
         );
 
-
         self.line(ui, area, top.saturating_add(4), Part::ACTIONS, Self::QUIT);
         used
     }
 
-
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let d = ui.design();
-
 
         let size_line = self.size_line(
             d,
@@ -384,13 +251,11 @@ mod tests {
     const ID: Id = Id::root("too_small.tests");
     const PRODUCT: &str = "Junie Design system";
 
-
     fn paint(w: u16, h: u16, f: impl FnOnce(&mut Ui<'_>, Rect)) -> Buffer {
         let area = Rect::new(0, 0, w, h);
         let theme = Theme::junie();
         paint_with_theme(&theme, area, f)
     }
-
 
     fn paint_with_theme(theme: &Theme, area: Rect, f: impl FnOnce(&mut Ui<'_>, Rect)) -> Buffer {
         let mut fs = FrameState::default();
@@ -405,7 +270,6 @@ mod tests {
         page
     }
 
-
     fn row(buf: &Buffer, y: u16) -> String {
         let w = buf.area.width;
         let mut s = String::new();
@@ -416,10 +280,6 @@ mod tests {
         }
         s.trim_end().to_owned()
     }
-
-
-
-
 
     #[test]
     fn the_notice_is_the_four_pinned_lines_with_both_sizes() {
@@ -434,7 +294,6 @@ mod tests {
         assert_eq!(row(&buf, 9).trim(), "q Quit");
         assert_eq!(row(&buf, 4), "", "nothing above the block");
         assert_eq!(row(&buf, 10), "", "nothing below it");
-
 
         for (y, text) in [
             (5u16, PRODUCT),
@@ -451,10 +310,8 @@ mod tests {
             );
         }
 
-
         assert_eq!(TooSmall::TOO_SMALL, "Terminal too small");
         assert_eq!(TooSmall::QUIT, "q Quit");
-
 
         let buf = paint(40, 15, |ui, area| {
             TooSmall::new(ID, PRODUCT).minimum(100, 30).draw(ui, area);
@@ -480,15 +337,8 @@ mod tests {
         }
     }
 
-
-
-
-
-
     #[test]
     fn draw_stays_inside_its_area() {
-
-
         let full = Rect::new(0, 0, 40, 15);
         for h in 0..=6u16 {
             let area = Rect::new(2, 3, 24, h);
@@ -523,7 +373,6 @@ mod tests {
             }
         }
 
-
         let buf = paint(40, 15, |ui, _| {
             let used = TooSmall::new(ID, PRODUCT).draw(ui, Rect::new(4, 4, 0, 0));
             assert_eq!(used, Rect::new(4, 4, 0, 0));
@@ -532,9 +381,6 @@ mod tests {
             assert_eq!(row(&buf, y), "", "a zero rect painted row {y}");
         }
     }
-
-
-
 
     #[test]
     fn survives_tiny_rects_0x0_to_3x3() {
@@ -553,7 +399,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn draw_twice_is_byte_identical() {
         let first = paint(40, 15, |ui, area| {
@@ -564,9 +409,6 @@ mod tests {
         });
         assert_eq!(first, second);
     }
-
-
-
 
     #[test]
     fn a_slot_changes_painted_cells_for_exactly_container_title_detail_help_and_actions() {
@@ -607,9 +449,6 @@ mod tests {
             ]
         );
     }
-
-
-
 
     #[test]
     fn slots_keep_the_default_painters_geometry() {
@@ -664,9 +503,6 @@ mod tests {
         );
     }
 
-
-
-
     #[test]
     fn fits_measure_and_copy_share_the_same_sizes() {
         let theme = Theme::junie();
@@ -690,8 +526,6 @@ mod tests {
         assert!(!notice.fits(&theme.design, Rect::new(0, 0, 0, 1)));
         assert_eq!(size_line.as_str(), "Need 1×1, have 65535×65535");
     }
-
-
 
     #[test]
     fn local_override_does_not_mutate_the_theme() {
@@ -728,12 +562,6 @@ mod tests {
         assert_eq!(theme, before);
     }
 
-
-
-
-
-
-
     #[test]
     fn every_declared_part_is_resolved_and_the_container_is_painted_every_frame() {
         let theme = Theme::junie();
@@ -758,8 +586,6 @@ mod tests {
             );
         }
 
-
-
         let patch = [(Part::CONTAINER, StylePatch::new().set_bg(Role::Danger))];
         let tiny = paint(6, 1, |ui, area| {
             TooSmall::new(ID, PRODUCT).patch_part(&patch).draw(ui, area);
@@ -770,7 +596,6 @@ mod tests {
             "CONTAINER was not filled on a one-row frame"
         );
     }
-
 
     fn fgs(buf: &Buffer) -> Vec<Option<Color>> {
         let mut out = Vec::new();

@@ -1,88 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -91,7 +6,6 @@ use tuiscotti::tui::CancelToken;
 use crate::support::Session;
 use crate::support::state_waits as waits;
 use crate::support::{self, Case, Color, JACKIN};
-
 
 const BOOT: &str = "jackin❯";
 
@@ -172,7 +86,6 @@ const OUTRO40: &[&str] = &[
     "40",
 ];
 
-
 const CRUMB_EDIT: &str = "Workspaces › payments-platform › edit";
 
 const TREE_FOOTER: &str = "Tab Details";
@@ -182,7 +95,6 @@ const DRAWER_FOOTER: &str = "Tab Actions";
 const PICKER_TITLE: &str = "Launch · choose Agent";
 
 const PRELUDE_S1: &str = "step 1 of 5 · Source";
-
 
 fn j1_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
@@ -196,7 +108,6 @@ fn j1_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Cas
     )
 }
 
-
 fn j1_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -205,13 +116,9 @@ fn j1_dir(test: &str) -> PathBuf {
     dir
 }
 
-
-
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
-
-
 
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
@@ -231,7 +138,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
         .unwrap_or_else(|e| panic!("write {}: {e}", dir.join(file).display()));
     eprintln!("j1 provenance ({file}): {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -253,7 +159,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -261,8 +166,6 @@ fn live_text(s: &mut Session) -> String {
         .unwrap_or_else(|e| panic!("live sample failed: {e:#}"));
     support::screen_text(&obs.screen)
 }
-
-
 
 fn expect_exit_text(s: &Session, timeout: Duration, what: &str) -> String {
     let cancel = CancelToken::new();
@@ -276,15 +179,12 @@ fn expect_exit_text(s: &Session, timeout: Duration, what: &str) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: no line contains both `{needle}` and `{also}`"
     );
 }
-
 
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     for line in text.lines().filter(|l| l.contains(needle)) {
@@ -294,11 +194,6 @@ fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
         );
     }
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -318,7 +213,6 @@ fn j1_accounts_detail() {
     checkpoint(&mut s, &dir, "01-detail");
     let detail = live_text(&mut s);
 
-
     assert!(detail.contains(CRUMB), "V1: crumb lacks `{CRUMB}`");
     assert_line_has(&detail, "Claude · Work", "exhausted", "V1 header");
 
@@ -329,7 +223,6 @@ fn j1_accounts_detail() {
 
     assert!(detail.contains("Enter Details"), "S2: no Enter Details");
     assert!(detail.contains("m Usage"), "S2: no Usage hint");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -348,12 +241,9 @@ fn j1_accounts_detail() {
     );
     checkpoint(&mut s, &dir, "02-drawer");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, DRAWER_FOOTER, "drawer closed");
     waits::wait_state(&mut s, "Enter Details", "tree footer back");
-
-
 
     support::drive_with_timeout(&mut s, &["a", "wait:New account"], case.timeout_ms);
     checkpoint(&mut s, &dir, "03-add-presence");
@@ -368,10 +258,6 @@ fn j1_accounts_detail() {
     checkpoint(&mut s, &dir, "04-tree");
     eprintln!("j1 accounts_detail: detail, drawer roundtrip, add-form roundtrip");
 }
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -398,7 +284,6 @@ fn j1_accounts_drawer() {
     checkpoint(&mut s, &dir, "01-drawer");
     let drawer = live_text(&mut s);
 
-
     assert_line_has(&drawer, "▎Claude · Work", "exhausted", "V1 title");
 
     assert!(
@@ -412,7 +297,6 @@ fn j1_accounts_drawer() {
 
     assert_line_has(&drawer, "Refresh", "Remove…", "S2 actions");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, DRAWER_FOOTER, "drawer closed");
     waits::wait_state(&mut s, "Enter Details", "tree footer back");
@@ -421,7 +305,6 @@ fn j1_accounts_drawer() {
 
     assert!(!tree.contains(DRAWER_FOOTER), "N1: Tab Actions stuck");
     assert!(!tree.contains("▎Claude · Work"), "N2: drawer title stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -433,11 +316,6 @@ fn j1_accounts_drawer() {
     checkpoint(&mut s, &dir, "03-drawer-again");
     eprintln!("j1 accounts_drawer: drawer, tree roundtrip, drawer again");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -460,7 +338,6 @@ fn j1_accounts_filter() {
     checkpoint(&mut s, &dir, "01-filtered");
     let filtered = live_text(&mut s);
 
-
     assert!(filtered.contains(TITLE), "V1: no filtered title");
     assert!(filtered.contains("12 · 4 ▲ · 4 !"), "V1: no tree counts");
 
@@ -474,14 +351,12 @@ fn j1_accounts_filter() {
     assert!(filtered.contains("Enter Details"), "S1: no Enter Details");
     assert!(filtered.contains("/ Filter"), "S1: no Filter hint");
 
-
     support::press_step(&s, "escape");
     waits::wait_state(&mut s, "★ Personal", "full tree restored");
     checkpoint(&mut s, &dir, "02-cleared");
     let cleared = live_text(&mut s);
 
     assert!(!cleared.contains(TITLE), "N1: filtered title stuck");
-
 
     support::drive_with_timeout(&mut s, &["a", "wait:New account"], case.timeout_ms);
     checkpoint(&mut s, &dir, "03-add-presence");
@@ -495,11 +370,6 @@ fn j1_accounts_filter() {
     eprintln!("j1 accounts_filter: filtered, cleared, add-form roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_audit_accounts_boot() {
@@ -509,7 +379,6 @@ fn j1_audit_accounts_boot() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
-
 
     assert!(
         boot.contains("Accounts › Overview"),
@@ -528,7 +397,6 @@ fn j1_audit_accounts_boot() {
     assert!(boot.contains("Enter Details"), "S2: no Enter Details");
     assert!(boot.contains("r Refresh all"), "S2: no Refresh all");
 
-
     support::drive_with_timeout(
         &mut s,
         &["enter", &format!("wait:{DRAWER_FOOTER}")],
@@ -543,7 +411,6 @@ fn j1_audit_accounts_boot() {
         "N1: Tab Actions stuck"
     );
 
-
     support::drive_with_timeout(&mut s, &["a", "wait:New account"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-add-presence");
     support::press_step(&s, "escape");
@@ -554,11 +421,6 @@ fn j1_audit_accounts_boot() {
     checkpoint(&mut s, &dir, "03-boot");
     eprintln!("j1 audit_accounts_boot: boot regions, drawer+form roundtrips");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -576,7 +438,6 @@ fn j1_editor_general() {
     );
     checkpoint(&mut s, &dir, "01-general");
     let general = live_text(&mut s);
-
 
     assert!(general.contains(CRUMB_EDIT), "V1: no editor crumb");
     assert!(general.contains("Name *"), "V1: no Name row");
@@ -596,14 +457,12 @@ fn j1_editor_general() {
 
     assert_line_has(&general, "Cancel", "Save…", "S2 buttons");
 
-
     support::drive_with_timeout(&mut s, &["2", "enter", "wait:+ Add mount"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-mounts");
     let mounts = live_text(&mut s);
     assert!(mounts.contains("r Read-only"), "A1: no mounts footer");
 
     assert!(!mounts.contains("Keep awake"), "N1: General body stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_state(&mut s, "1–5 Jump", "TABS refocused");
@@ -621,10 +480,6 @@ fn j1_editor_general() {
     assert!(manager.contains("Enter Launch"), "manager footer back");
     eprintln!("j1 editor_general: general, mounts jump, clean leave");
 }
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -649,7 +504,6 @@ fn j1_editor_mounts() {
     checkpoint(&mut s, &dir, "01-mounts");
     let mounts = live_text(&mut s);
 
-
     assert_line_has(&mounts, "Destination", "Isolation", "V1 header");
     assert_line_has(
         &mounts,
@@ -666,7 +520,6 @@ fn j1_editor_mounts() {
     assert!(mounts.contains("r Read-only"), "S2: no Read-only hint");
     assert!(mounts.contains("i Isolation"), "S2: no Isolation hint");
 
-
     support::drive_with_timeout(&mut s, &["[", "wait:Keep awake"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-general");
     let general = live_text(&mut s);
@@ -674,7 +527,6 @@ fn j1_editor_mounts() {
 
     assert!(!general.contains("+ Add mount"), "N1: mounts body stuck");
     assert!(!general.contains("r Read-only"), "N2: mounts footer stuck");
-
 
     support::drive_with_timeout(&mut s, &["]", "wait:+ Add mount"], case.timeout_ms);
     waits::wait_state(&mut s, "1–5 Jump", "TABS footer persists");
@@ -685,11 +537,6 @@ fn j1_editor_mounts() {
     checkpoint(&mut s, &dir, "03-mounts");
     eprintln!("j1 editor_mounts: mounts, general jump, mounts back");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -717,7 +564,6 @@ fn j1_editor_mounts_dirty() {
     checkpoint(&mut s, &dir, "01-dirty");
     let dirty = live_text(&mut s);
 
-
     assert!(dirty.contains("• 1 change"), "V1: no change badge");
     assert!(dirty.contains("Mounts •"), "V1: no dotted tab");
 
@@ -727,7 +573,6 @@ fn j1_editor_mounts_dirty() {
     assert!(dirty.contains("isolation clone"), "S1: no isolation hint");
 
     assert_line_has(&dirty, "/workspace/libs", "shared", "S2 libs intact");
-
 
     support::press_step(&s, "escape");
     waits::wait_state(&mut s, "1–5 Jump", "TABS refocused");
@@ -743,8 +588,6 @@ fn j1_editor_mounts_dirty() {
         assert!(dialog.contains(button), "A1: no {button} button");
     }
 
-
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Unsaved changes", "exit dialog cancelled");
     checkpoint(&mut s, &dir, "03-dirty");
@@ -755,10 +598,6 @@ fn j1_editor_mounts_dirty() {
     assert_line_has(&back, "/workspace/payments-platform", "clone", "row lost");
     eprintln!("j1 editor_mounts_dirty: dirty, exit dialog, cancelled intact");
 }
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -783,7 +622,6 @@ fn j1_editor_env() {
     checkpoint(&mut s, &dir, "01-env");
     let env = live_text(&mut s);
 
-
     assert!(env.contains("4 vars"), "V1: no var count");
     assert_line_has(&env, "DATABASE_URL", "plain", "V1 first var");
 
@@ -799,7 +637,6 @@ fn j1_editor_env() {
     assert!(env.contains("p 1Password"), "S2: no 1Password hint");
     assert!(env.contains("s Scope"), "S2: no Scope hint");
 
-
     support::drive_with_timeout(&mut s, &["[", "wait:Allowed roles"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-roles");
     let roles = live_text(&mut s);
@@ -807,7 +644,6 @@ fn j1_editor_env() {
 
     assert!(!roles.contains("DATABASE_URL"), "N1: env body stuck");
     assert!(!roles.contains("p 1Password"), "N2: env footer stuck");
-
 
     support::drive_with_timeout(&mut s, &["]", "wait:DATABASE_URL"], case.timeout_ms);
     assert!(
@@ -817,10 +653,6 @@ fn j1_editor_env() {
     checkpoint(&mut s, &dir, "03-env");
     eprintln!("j1 editor_env: env, roles jump, env back");
 }
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -845,7 +677,6 @@ fn j1_editor_auth() {
     checkpoint(&mut s, &dir, "01-auth");
     let auth = live_text(&mut s);
 
-
     assert!(auth.contains("Active accounts"), "V1: no Active accounts");
     assert!(
         auth.contains("5 effective · 4 inherited · 1 enabled here"),
@@ -868,7 +699,6 @@ fn j1_editor_auth() {
     assert!(auth.contains("p Prefer"), "S2: no Prefer hint");
     assert!(auth.contains("/ Filter"), "S2: no Filter hint");
 
-
     support::drive_with_timeout(&mut s, &["[", "wait:DATABASE_URL"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-env");
     let env = live_text(&mut s);
@@ -876,7 +706,6 @@ fn j1_editor_auth() {
 
     assert!(!env.contains("Active accounts"), "N1: auth body stuck");
     assert!(!env.contains("p Prefer"), "N2: auth footer stuck");
-
 
     support::drive_with_timeout(&mut s, &["]", "wait:Active accounts"], case.timeout_ms);
     assert!(
@@ -886,10 +715,6 @@ fn j1_editor_auth() {
     checkpoint(&mut s, &dir, "03-auth");
     eprintln!("j1 editor_auth: auth, env jump, auth back");
 }
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -913,7 +738,6 @@ fn j1_editor_roles() {
     );
     checkpoint(&mut s, &dir, "01-roles");
     let roles = live_text(&mut s);
-
 
     assert!(roles.contains("Allowed roles"), "V1: no Allowed roles");
     assert!(roles.contains("3 of 46"), "V1: no allow counts");
@@ -940,7 +764,6 @@ fn j1_editor_roles() {
         "S2: no Set default hint"
     );
 
-
     support::drive_with_timeout(&mut s, &["[", "wait:+ Add mount"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-mounts");
     let mounts = live_text(&mut s);
@@ -952,18 +775,11 @@ fn j1_editor_roles() {
         "N2: roles footer stuck"
     );
 
-
     support::drive_with_timeout(&mut s, &["]", "wait:Allowed roles"], case.timeout_ms);
     assert!(live_text(&mut s).contains("3 of 46"), "A2: roles body lost");
     checkpoint(&mut s, &dir, "03-roles");
     eprintln!("j1 editor_roles: roles, mounts jump, roles back");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -995,7 +811,6 @@ fn j1_editor_save_preview() {
     checkpoint(&mut s, &dir, "01-preview");
     let preview = live_text(&mut s);
 
-
     assert!(preview.contains(DIALOG), "V1: no dialog title");
     assert!(
         preview.contains("payments-platform"),
@@ -1010,13 +825,11 @@ fn j1_editor_save_preview() {
 
     assert_line_has(&preview, "▎Cancel", "Save", "S2 actions");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, DIALOG, "preview cancelled");
     waits::wait_state(&mut s, "Not saved · keep editing", "cancel status");
     waits::wait_state(&mut s, "• 1 change", "edits intact");
     checkpoint(&mut s, &dir, "02-cancelled");
-
 
     support::press_step(&s, "ctrl-s");
     waits::wait_state(&mut s, DIALOG, "preview reopened");
@@ -1034,13 +847,6 @@ fn j1_editor_save_preview() {
     eprintln!("j1 editor_save_preview: preview, cancel, reopen, cancel");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_intro_f300() {
@@ -1050,7 +856,6 @@ fn j1_intro_f300() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-rain");
     let rain = live_text(&mut s);
-
 
     assert!(rain.contains("Enter Skip"), "V1: no skip footer");
 
@@ -1063,8 +868,6 @@ fn j1_intro_f300() {
     assert!(!rain.contains("File"), "S1: menubar on intro");
 
     assert!(!rain.contains("Current directory"), "S2: tree on intro");
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1087,7 +890,6 @@ fn j1_intro_f300() {
 
     assert!(!manager.contains("Enter Skip"), "N2: skip footer stuck");
 
-
     support::drive_with_timeout(
         &mut s,
         &["n", &format!("wait:{PRELUDE_S1}")],
@@ -1100,14 +902,9 @@ fn j1_intro_f300() {
         "A2: manager tree visible in prelude"
     );
 
-
     assert!(!prelude.contains("+ New workspace"), "N1: tree rows stuck");
     eprintln!("j1 intro_f300: rain, skip to manager, prelude");
 }
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -1118,7 +915,6 @@ fn j1_intro_f400() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-manager");
     let manager = live_text(&mut s);
-
 
     assert!(manager.contains("Workspaces"), "V1: no Workspaces chrome");
     assert!(manager.contains("no instances"), "V1: no empty status");
@@ -1139,7 +935,6 @@ fn j1_intro_f400() {
     assert!(manager.contains("Enter Launch"), "S2: no Launch hint");
     assert!(manager.contains("n New"), "S2: no New hint");
 
-
     support::drive_with_timeout(
         &mut s,
         &["n", &format!("wait:{PRELUDE_S1}")],
@@ -1149,7 +944,6 @@ fn j1_intro_f400() {
     let prelude = live_text(&mut s);
 
     assert!(!prelude.contains("Current directory"), "N1: tree stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_state(&mut s, "Cancelled · nothing created", "prelude cancelled");
@@ -1161,11 +955,6 @@ fn j1_intro_f400() {
     );
     eprintln!("j1 intro_f400: settled manager, prelude roundtrip");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -1187,7 +976,6 @@ fn j1_intro_skipped() {
     checkpoint(&mut s, &dir, "01-manager");
     let manager = live_text(&mut s);
 
-
     assert!(manager.contains("Workspaces"), "V1: no Workspaces chrome");
     assert!(manager.contains("no instances"), "V1: no empty status");
     assert!(
@@ -1208,7 +996,6 @@ fn j1_intro_skipped() {
 
     assert!(!manager.contains("Enter Skip"), "N1: intro footer stuck");
 
-
     support::drive_with_timeout(
         &mut s,
         &["n", &format!("wait:{PRELUDE_S1}")],
@@ -1227,10 +1014,6 @@ fn j1_intro_skipped() {
     eprintln!("j1 intro_skipped: skip to manager, prelude roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_manager_detail_drawer() {
@@ -1247,7 +1030,6 @@ fn j1_manager_detail_drawer() {
     );
     checkpoint(&mut s, &dir, "01-drawer");
     let drawer = live_text(&mut s);
-
 
     assert_line_has(
         &drawer,
@@ -1269,7 +1051,6 @@ fn j1_manager_detail_drawer() {
 
     assert_line_has(&drawer, "Launch", "Edit", "S2 actions");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, DRAWER_FOOTER, "drawer closed");
     waits::wait_state(&mut s, TREE_FOOTER, "tree footer back");
@@ -1278,7 +1059,6 @@ fn j1_manager_detail_drawer() {
 
     assert!(!tree.contains(DRAWER_FOOTER), "N1: Tab Actions stuck");
     assert!(tree.contains("Enter Launch"), "tree footer back");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1296,11 +1076,6 @@ fn j1_manager_detail_drawer() {
     eprintln!("j1 manager_detail_drawer: drawer, tree, editor roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_manager_hard_launch_locked() {
@@ -1309,7 +1084,6 @@ fn j1_manager_hard_launch_locked() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1320,8 +1094,6 @@ fn j1_manager_hard_launch_locked() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, PICKER_TITLE, "picker cancelled");
     waits::wait_state(&mut s, "Enter Launch", "tree footer back");
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1340,7 +1112,6 @@ fn j1_manager_hard_launch_locked() {
     );
     checkpoint(&mut s, &dir, "01-attached");
     let attached = live_text(&mut s);
-
 
     assert!(attached.contains("▎ File"), "V1: no focused menubar");
     assert!(
@@ -1369,7 +1140,6 @@ fn j1_manager_hard_launch_locked() {
         "N2: picker opened on attach"
     );
 
-
     support::drive_with_timeout(&mut s, &["ctrl-b", "d", "wait:Detached ·"], case.timeout_ms);
     waits::wait_state(&mut s, "Current directory", "manager back");
     checkpoint(&mut s, &dir, "02-detached");
@@ -1378,11 +1148,6 @@ fn j1_manager_hard_launch_locked() {
     assert!(!manager.contains("Attached to"), "N1: capsule chrome stuck");
     eprintln!("j1 manager_hard_launch_locked: attach, detach to manager");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -1401,7 +1166,6 @@ fn j1_manager_hard_launch_picker() {
     checkpoint(&mut s, &dir, "01-picker");
     let picker = live_text(&mut s);
 
-
     assert_line_has(
         &picker,
         PICKER_TITLE,
@@ -1418,13 +1182,11 @@ fn j1_manager_hard_launch_picker() {
     );
     assert!(picker.contains("▲ daemon stale"), "S1: daemon badge lost");
 
-
     assert!(picker.contains("↑↓ Move"), "S2: no Move hint");
     assert!(
         picker.contains("Could not confirm running instances"),
         "S2: no footer warning"
     );
-
 
     support::drive_with_timeout(&mut s, &["down"], case.timeout_ms);
     std::thread::sleep(std::time::Duration::from_millis(300));
@@ -1432,7 +1194,6 @@ fn j1_manager_hard_launch_picker() {
     let moved = live_text(&mut s);
     assert_line_has(&moved, "▎", "Codex", "A1: choice did not move");
     assert_line_lacks(&moved, "Claude Code", "▎", "A1: old choice focused");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, PICKER_TITLE, "picker cancelled");
@@ -1445,8 +1206,6 @@ fn j1_manager_hard_launch_picker() {
         tree.contains("! instance index unreadable"),
         "badges lost on cancel"
     );
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1467,11 +1226,6 @@ fn j1_manager_hard_launch_picker() {
     eprintln!("j1 manager_hard_launch_picker: picker, move, cancel, toggle");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_manager_launch_picker() {
@@ -1489,7 +1243,6 @@ fn j1_manager_launch_picker() {
     checkpoint(&mut s, &dir, "01-picker");
     let picker = live_text(&mut s);
 
-
     assert_line_has(
         &picker,
         PICKER_TITLE,
@@ -1506,14 +1259,12 @@ fn j1_manager_launch_picker() {
     assert!(picker.contains("Enter Choose"), "S2: no Choose hint");
     assert!(picker.contains("Esc Cancel"), "S2: no Cancel hint");
 
-
     support::drive_with_timeout(&mut s, &["down"], case.timeout_ms);
     std::thread::sleep(std::time::Duration::from_millis(300));
     checkpoint(&mut s, &dir, "02-moved");
     let moved = live_text(&mut s);
     assert_line_has(&moved, "▎", "Codex", "A1: choice did not move");
     assert_line_lacks(&moved, "Claude Code", "▎", "A1: old choice focused");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, PICKER_TITLE, "picker cancelled");
@@ -1523,8 +1274,6 @@ fn j1_manager_launch_picker() {
 
     assert!(!tree.contains(PICKER_TITLE), "N1: picker stuck open");
     assert!(tree.contains("▸ payments-platform"), "tree lost on cancel");
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1545,11 +1294,6 @@ fn j1_manager_launch_picker() {
     eprintln!("j1 manager_launch_picker: picker, move, cancel, toggle");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_manager_tree_expanded() {
@@ -1568,7 +1312,6 @@ fn j1_manager_tree_expanded() {
     checkpoint(&mut s, &dir, "01-expanded");
     let expanded = live_text(&mut s);
 
-
     assert!(expanded.contains("▾ payments-platform"), "V1: not expanded");
     assert!(
         expanded.contains("Workspaces › payments-platform"),
@@ -1582,7 +1325,6 @@ fn j1_manager_tree_expanded() {
 
     assert!(expanded.contains("→ Expand"), "S2: no Expand hint");
     assert!(expanded.contains(TREE_FOOTER), "S2: no Details hint");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1601,7 +1343,6 @@ fn j1_manager_tree_expanded() {
         "A1: detail rows lost on collapse"
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["space", "wait:▾ payments-platform"],
@@ -1612,8 +1353,6 @@ fn j1_manager_tree_expanded() {
         "A2: instance rows lost on re-expand"
     );
     checkpoint(&mut s, &dir, "03-expanded");
-
-
 
     support::drive_with_timeout(&mut s, &["ctrl-q", "wait:Exit jackin❯?"], case.timeout_ms);
     checkpoint(&mut s, &dir, "04-quit-presence");
@@ -1627,10 +1366,6 @@ fn j1_manager_tree_expanded() {
     eprintln!("j1 manager_tree_expanded: expand, collapse, expand, quit roundtrip");
 }
 
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_scenarios_first_use() {
@@ -1642,7 +1377,6 @@ fn j1_scenarios_first_use() {
     checkpoint(&mut s, &dir, "00-phrases");
     let phrases = live_text(&mut s);
 
-
     assert!(phrases.contains(PHRASE), "V1: no intro phrase");
     assert!(phrases.contains(BOOT), "V1: no brand");
 
@@ -1651,7 +1385,6 @@ fn j1_scenarios_first_use() {
     assert!(!phrases.contains("File"), "S1: menubar on intro");
 
     assert!(!phrases.contains("Current directory"), "S2: tree on intro");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1669,7 +1402,6 @@ fn j1_scenarios_first_use() {
     assert!(!manager.contains(PHRASE), "N1: phrase stuck");
     assert!(!manager.contains("Enter Skip"), "N2: skip footer stuck");
 
-
     support::drive_with_timeout(
         &mut s,
         &["n", &format!("wait:{PRELUDE_S1}")],
@@ -1683,11 +1415,6 @@ fn j1_scenarios_first_use() {
     eprintln!("j1 scenarios_first_use: phrases, skip to manager, prelude");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_scenarios_hard_cases() {
@@ -1697,7 +1424,6 @@ fn j1_scenarios_hard_cases() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
-
 
     assert!(
         boot.contains("! instance index unreadable"),
@@ -1715,7 +1441,6 @@ fn j1_scenarios_hard_cases() {
 
     assert_line_has(&boot, "Instances", "▲ daemon stale · 3 s ago", "S2 stamp");
 
-
     support::drive_with_timeout(
         &mut s,
         &["enter", &format!("wait:{PICKER_TITLE}")],
@@ -1729,7 +1454,6 @@ fn j1_scenarios_hard_cases() {
         !live_text(&mut s).contains(PICKER_TITLE),
         "N1: picker stuck open"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1755,12 +1479,6 @@ fn j1_scenarios_hard_cases() {
     eprintln!("j1 scenarios_hard_cases: degraded boot, picker+toggle roundtrips");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_scenarios_launch_failure() {
@@ -1772,7 +1490,6 @@ fn j1_scenarios_launch_failure() {
     waits::wait_state(&mut s, SUMMARY, "failure summary");
     checkpoint(&mut s, &dir, "00-failure");
     let failure = live_text(&mut s);
-
 
     assert!(failure.contains("! Launch failed"), "V1: no dialog title");
     assert!(failure.contains(SUMMARY), "V1: no summary");
@@ -1795,9 +1512,6 @@ fn j1_scenarios_launch_failure() {
     assert!(failure.contains("y Copy"), "S2: no Copy hint");
     assert!(failure.contains("Esc Close"), "S2: no Close hint");
 
-
-
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, SUMMARY, "failure dialog closed");
     waits::wait_state(&mut s, "still running in the Construct", "ack status");
@@ -1807,7 +1521,6 @@ fn j1_scenarios_launch_failure() {
 
     assert!(!acked.contains(SUMMARY), "N1: summary stuck");
     assert!(!acked.contains("Run id"), "N2: dialog rows stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1821,11 +1534,6 @@ fn j1_scenarios_launch_failure() {
     eprintln!("j1 scenarios_launch_failure: failure, ack, drawer roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_scenarios_launch_running() {
@@ -1836,7 +1544,6 @@ fn j1_scenarios_launch_running() {
     waits::wait_state(&mut s, "stage 3 of 11 · Credentials", "cockpit stage");
     checkpoint(&mut s, &dir, "00-cockpit");
     let cockpit = live_text(&mut s);
-
 
     assert!(
         cockpit.contains("Launch › payments-platform › the-architect"),
@@ -1859,7 +1566,6 @@ fn j1_scenarios_launch_running() {
     assert!(cockpit.contains("i Container info"), "S2: no info hint");
     assert!(cockpit.contains("c Cancel"), "S2: no Cancel hint");
 
-
     support::drive_with_timeout(&mut s, &["d", "wait:run-2026"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-chip");
     support::press_step(&s, "d");
@@ -1870,7 +1576,6 @@ fn j1_scenarios_launch_running() {
         !live_text(&mut s).contains("run-2026"),
         "N1: debug chip stuck"
     );
-
 
     support::drive_with_timeout(&mut s, &["i", "wait:Debug info"], case.timeout_ms);
     checkpoint(&mut s, &dir, "03-info-presence");
@@ -1886,12 +1591,6 @@ fn j1_scenarios_launch_running() {
     eprintln!("j1 scenarios_launch_running: cockpit, chip toggle, info roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_scenarios_outro_last() {
@@ -1903,21 +1602,17 @@ fn j1_scenarios_outro_last() {
     checkpoint(&mut s, &dir, "00-warp");
     let warp = live_text(&mut s);
 
-
     assert!(warp.contains("Enter Skip"), "V1: no skip footer");
 
     for glyph in ["*", "+", "·"] {
         assert!(warp.contains(glyph), "V2: no outro glyph `{glyph}`");
     }
 
-
-
     let before = live_text(&mut s);
     support::press_step(&s, "x");
     std::thread::sleep(std::time::Duration::from_millis(300));
     let after = live_text(&mut s);
     assert_eq!(before, after, "A1/S1: x changed the warp frame");
-
 
     support::drive_with_timeout(&mut s, &["enter", "wait:Enter Close"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-caption");
@@ -1933,8 +1628,6 @@ fn j1_scenarios_outro_last() {
         "outro exit frame mentions panic: {exit:?}"
     );
     eprintln!("outro exit frame ({} bytes)", exit.len());
-
-
 
     let case2 = j1_case("outro_presence", FIRSTUSE40, BOOT);
     write_provenance_named(&dir, &case2, "provenance-s2.txt");
@@ -1953,11 +1646,6 @@ fn j1_scenarios_outro_last() {
     eprintln!("j1 scenarios_outro_last: warp, ignored x, caption, clean exit");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
 fn j1_scenarios_returning() {
@@ -1967,7 +1655,6 @@ fn j1_scenarios_returning() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
-
 
     assert!(boot.contains("Workspaces"), "V1: no Workspaces chrome");
     assert!(boot.contains("2 running"), "V1: no running count");
@@ -1985,7 +1672,6 @@ fn j1_scenarios_returning() {
     assert!(boot.contains(TREE_FOOTER), "S2: no Details hint");
     assert!(boot.contains("q Quit"), "S2: no Quit hint");
 
-
     support::drive_with_timeout(
         &mut s,
         &["enter", &format!("wait:{PICKER_TITLE}")],
@@ -1999,7 +1685,6 @@ fn j1_scenarios_returning() {
         !live_text(&mut s).contains(PICKER_TITLE),
         "N1: picker stuck open"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2016,11 +1701,6 @@ fn j1_scenarios_returning() {
     checkpoint(&mut s, &dir, "03-boot");
     eprintln!("j1 scenarios_returning: boot, picker+drawer roundtrips");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -2045,7 +1725,6 @@ fn j1_settings_agents() {
     checkpoint(&mut s, &dir, "01-agents");
     let agents = live_text(&mut s);
 
-
     assert!(agents.contains("Agent runtime mode"), "V1: no mode header");
     assert_line_has(&agents, "Claude Code", "sync", "V1 Claude row");
 
@@ -2063,7 +1742,6 @@ fn j1_settings_agents() {
     assert!(agents.contains("Space Cycle mode"), "S2: no Cycle hint");
     assert!(agents.contains("d Reset to sync"), "S2: no Reset hint");
 
-
     support::drive_with_timeout(&mut s, &["[", "wait:GH_TOKEN"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-env");
     let env = live_text(&mut s);
@@ -2071,7 +1749,6 @@ fn j1_settings_agents() {
 
     assert!(!env.contains("Agent runtime mode"), "N1: agents body stuck");
     assert!(!env.contains("Space Cycle mode"), "N2: agents footer stuck");
-
 
     support::drive_with_timeout(&mut s, &["]", "wait:Agent runtime mode"], case.timeout_ms);
     assert!(
@@ -2081,11 +1758,6 @@ fn j1_settings_agents() {
     checkpoint(&mut s, &dir, "03-agents");
     eprintln!("j1 settings_agents: agents, env jump, agents back");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -2111,7 +1783,6 @@ fn j1_settings_mounts() {
     checkpoint(&mut s, &dir, "01-mounts");
     let mounts = live_text(&mut s);
 
-
     assert_line_has(&mounts, "Destination", "Scope", "V1 header");
     assert_line_has(&mounts, ROW, "global", "V1 gitconfig row");
 
@@ -2121,7 +1792,6 @@ fn j1_settings_mounts() {
 
     assert!(mounts.contains("s Scope"), "S2: no Scope hint");
     assert!(mounts.contains("a Add mount"), "S2: no Add hint");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2135,7 +1805,6 @@ fn j1_settings_mounts() {
     assert!(!general.contains(ROW), "N1: mounts body stuck");
     assert!(!general.contains("s Scope"), "N2: mounts footer stuck");
 
-
     support::drive_with_timeout(&mut s, &["]", &format!("wait:{ROW}")], case.timeout_ms);
     assert!(
         live_text(&mut s).contains("/home/agent/.kube"),
@@ -2144,10 +1813,6 @@ fn j1_settings_mounts() {
     checkpoint(&mut s, &dir, "03-mounts");
     eprintln!("j1 settings_mounts: mounts, general jump, mounts back");
 }
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -2162,7 +1827,6 @@ fn j1_settings_route() {
     support::drive_with_timeout(&mut s, &["s", "wait:Settings › global"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-general");
     let general = live_text(&mut s);
-
 
     assert!(
         general.contains("Settings › global › General"),
@@ -2188,7 +1852,6 @@ fn j1_settings_route() {
         "S2: no signoff line"
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["]", "wait:/home/agent/.gitconfig"],
@@ -2201,7 +1864,6 @@ fn j1_settings_route() {
     assert!(!mounts.contains(DCO), "N1: General body stuck");
     assert!(!mounts.contains("Co-authored-by:"), "N2: trailers stuck");
 
-
     support::drive_with_timeout(&mut s, &["[", &format!("wait:{DCO}")], case.timeout_ms);
     assert!(
         live_text(&mut s).contains("Co-authored-by:"),
@@ -2210,12 +1872,6 @@ fn j1_settings_route() {
     checkpoint(&mut s, &dir, "03-general");
     eprintln!("j1 settings_route: general, mounts jump, general back");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -2251,7 +1907,6 @@ fn j1_settings_save_preview() {
     checkpoint(&mut s, &dir, "01-preview");
     let preview = live_text(&mut s);
 
-
     assert!(preview.contains(DIALOG), "V1: no dialog title");
     assert!(preview.contains("global config"), "V1: no scope");
     assert!(preview.contains("config.toml"), "V1: no config path");
@@ -2265,13 +1920,11 @@ fn j1_settings_save_preview() {
 
     assert_line_has(&preview, "▎Cancel", "Save", "S2 actions");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, DIALOG, "preview cancelled");
     waits::wait_state(&mut s, "Save aborted · settings unchanged", "cancel status");
     waits::wait_state(&mut s, "• 2 changes", "edits intact");
     checkpoint(&mut s, &dir, "02-cancelled");
-
 
     support::press_step(&s, "ctrl-s");
     waits::wait_state(&mut s, DIALOG, "preview reopened");
@@ -2288,11 +1941,6 @@ fn j1_settings_save_preview() {
     assert!(back.contains("Role sources"), "trust body lost on cancel");
     eprintln!("j1 settings_save_preview: preview, cancel, reopen, cancel");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "jackin j1 check; run with --ignored"]
@@ -2316,7 +1964,6 @@ fn j1_settings_trust() {
     );
     checkpoint(&mut s, &dir, "01-trust");
     let trust = live_text(&mut s);
-
 
     assert!(trust.contains("Role sources"), "V1: no Role sources");
     assert!(
@@ -2345,7 +1992,6 @@ fn j1_settings_trust() {
     assert!(trust.contains("Space Toggle trust"), "S2: no Toggle hint");
     assert!(trust.contains("o Open source"), "S2: no Open hint");
 
-
     support::drive_with_timeout(&mut s, &["[", "wait:Agent runtime mode"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-agents");
     let agents = live_text(&mut s);
@@ -2356,7 +2002,6 @@ fn j1_settings_trust() {
         !agents.contains("Space Toggle trust"),
         "N2: trust footer stuck"
     );
-
 
     support::drive_with_timeout(&mut s, &["]", "wait:Role sources"], case.timeout_ms);
     assert!(

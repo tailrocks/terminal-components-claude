@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use core::time::Duration;
 
 use ratatui_core::layout::{Position, Rect};
@@ -25,11 +19,9 @@ use crate::theme::{DesignTokens, Theme};
 use super::UiCore;
 use super::derived::DerivedCache;
 
-
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct LayoutFacts {
-
     pub viewport_len: usize,
 
     pub content_len: usize,
@@ -38,12 +30,10 @@ pub struct LayoutFacts {
 
     pub cols: u16,
 
-
     pub logical_area: Option<Rect>,
 }
 
 impl LayoutFacts {
-
     pub const fn new(viewport_len: usize, content_len: usize, rows: u16, cols: u16) -> Self {
         LayoutFacts {
             viewport_len,
@@ -54,15 +44,12 @@ impl LayoutFacts {
         }
     }
 
-
-
     #[must_use]
     pub const fn with_logical_area(mut self, area: Rect) -> Self {
         self.logical_area = Some(area);
         self
     }
 }
-
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct Snapshot {
@@ -73,7 +60,6 @@ pub(crate) struct Snapshot {
     pub(crate) pressed: Option<(Id, PartRef)>,
     pub(crate) capture: Option<Id>,
 }
-
 
 #[derive(Debug, Default, Clone)]
 pub struct LastFrame {
@@ -88,7 +74,6 @@ pub struct LastFrame {
 }
 
 impl LastFrame {
-
     pub(crate) fn state(&self, id: Id) -> StateFlags {
         let s = self.snapshot;
         let mut f = StateFlags::empty();
@@ -121,8 +106,6 @@ impl LastFrame {
             .map(|(_, l)| *l)
     }
 
-
-
     pub(crate) fn hovered_part(&self, owner: Id) -> Option<PartRef> {
         if self.snapshot.hover_suppressed {
             return None;
@@ -141,12 +124,8 @@ impl LastFrame {
     }
 }
 
-
 pub trait FrameRead {
-
-
     fn state(&self, id: Id) -> StateFlags;
-
 
     fn hovered_part(&self, _owner: Id) -> Option<PartRef> {
         None
@@ -162,7 +141,6 @@ pub trait FrameRead {
 
     fn area(&self, id: Id) -> Option<Rect>;
 
-
     fn area_of_part(&self, _owner: Id, _part: PartRef) -> Option<Rect> {
         None
     }
@@ -170,13 +148,11 @@ pub trait FrameRead {
     fn layout(&self, id: Id) -> Option<LayoutFacts>;
 }
 
-
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct DeferredFocus {
     pub(crate) anchor: Option<Id>,
     pub(crate) backwards: bool,
 }
-
 
 #[derive(Debug, Default)]
 pub struct FrameServices {
@@ -185,7 +161,6 @@ pub struct FrameServices {
     pub(crate) capture: CaptureSlot,
     pub(crate) events: Vec<(Id, LayerEvent)>,
     pub(crate) focus_request: Option<Id>,
-
 
     pub(crate) initial_focus_layer: Option<LayerId>,
     pub(crate) deferred_focus: Option<DeferredFocus>,
@@ -203,11 +178,8 @@ pub struct FrameServices {
     pub(crate) closed_layers: Vec<crate::layer::OpenLayer>,
     pub(crate) registry_gen: u32,
 
-
-
     pub(crate) press_pos: Option<Position>,
 }
-
 
 pub struct Cx<'f> {
     intents: &'f IntentQueue,
@@ -287,8 +259,6 @@ impl<'f> Cx<'f> {
         self
     }
 
-
-
     pub fn intents(&self, id: Id) -> IntentIter<'f> {
         self.intents.iter(id)
     }
@@ -313,57 +283,31 @@ impl<'f> Cx<'f> {
         self.keymap.component_chord(owner, action, default)
     }
 
-
-
-
-
-
     pub fn intents_with_cache<T: Default + 'static>(&mut self, id: Id) -> (IntentIter<'f>, &mut T) {
         (self.intents.iter(id), self.cache.get_mut::<T>(id))
     }
-
 
     pub fn cache<T: Default + 'static>(&mut self, id: Id) -> &mut T {
         self.cache.get_mut::<T>(id)
     }
 
-
     pub const fn command(&self) -> Option<ActionKey> {
         self.command
     }
-
 
     pub const fn update_cause(&self) -> UpdateCause {
         self.update_cause
     }
 
-
-
-
-
-
-
     pub const fn activation_key(&self) -> Option<crate::runtime::ActivationKey> {
         self.activation_key
     }
-
 
     pub fn focus(&mut self, id: Id) {
         self.services.initial_focus_layer = None;
         self.services.deferred_focus = None;
         self.services.focus_request = Some(id);
     }
-
-
-
-
-
-
-
-
-
-
-
 
     pub fn focus_next(&mut self) {
         self.services.initial_focus_layer = None;
@@ -375,16 +319,9 @@ impl<'f> Cx<'f> {
         self.services.repaint = true;
     }
 
-
     pub fn activation_feedback(&self) -> Option<crate::runtime::ActivationFeedback> {
         self.services.feedback.active(self.services.now)
     }
-
-
-
-
-
-
 
     pub fn sync_feedback_time(
         &mut self,
@@ -396,13 +333,9 @@ impl<'f> Cx<'f> {
         Ok(())
     }
 
-
-
     pub fn flash_activation(&mut self, owner: Id) {
         self.flash_activation_part(owner, PartRef::of(crate::id::Part::CONTAINER));
     }
-
-
 
     pub fn flash_activation_part(&mut self, owner: Id, part: PartRef) {
         self.services.feedback.activate(
@@ -414,8 +347,6 @@ impl<'f> Cx<'f> {
         self.services.repaint = true;
     }
 
-
-
     pub fn focus_prev(&mut self) {
         self.services.initial_focus_layer = None;
         self.services.focus_request = None;
@@ -426,25 +357,17 @@ impl<'f> Cx<'f> {
         self.services.repaint = true;
     }
 
-
     pub fn request_repaint(&mut self) {
         self.services.repaint = true;
     }
-
-
-
-
-
 
     pub const fn viewport(&self) -> Rect {
         self.services.viewport
     }
 
-
     pub const fn now(&self) -> crate::runtime::Moment {
         self.services.now
     }
-
 
     pub fn request_repaint_at(&mut self, deadline: crate::runtime::Moment) {
         self.services.repaint_at = Some(
@@ -454,13 +377,9 @@ impl<'f> Cx<'f> {
         );
     }
 
-
     pub fn request_repaint_after(&mut self, d: Duration) {
         self.request_repaint_at(self.now().saturating_add(d));
     }
-
-
-
 
     pub fn capture(&mut self, owner: Id, part: PartRef) -> bool {
         let Some(area) = crate::capture::target_area(
@@ -472,8 +391,6 @@ impl<'f> Cx<'f> {
         ) else {
             return false;
         };
-
-
 
         let Some(origin) = self.services.press_pos else {
             return false;
@@ -487,27 +404,21 @@ impl<'f> Cx<'f> {
         })
     }
 
-
     pub fn capture_owner(&self) -> Option<Id> {
         self.services.capture.get().map(|c| c.owner)
     }
-
 
     pub fn release_capture(&mut self) {
         self.services.capture.release();
     }
 
-
     pub fn capture_origin(&self) -> Option<Position> {
         self.services.capture.get().map(|c| c.origin)
     }
 
-
     pub fn capture_area(&self) -> Option<Rect> {
         self.services.capture.get().map(|c| c.area)
     }
-
-
 
     pub fn open_layer(&mut self, id: Id, spec: LayerSpec) {
         let restore = if spec.restore_focus {
@@ -524,14 +435,6 @@ impl<'f> Cx<'f> {
         }
     }
 
-
-
-
-
-
-
-
-
     pub fn resize_layer(&mut self, id: Id, size: LayerSize) {
         if let Some(spec) = self.services.layers.spec_mut(id)
             && spec.size != size
@@ -541,8 +444,6 @@ impl<'f> Cx<'f> {
         }
     }
 
-
-
     pub fn reanchor_layer(&mut self, id: Id, anchor: Anchor) {
         if let Some(spec) = self.services.layers.spec_mut(id)
             && spec.anchor != anchor
@@ -551,8 +452,6 @@ impl<'f> Cx<'f> {
             self.services.repaint = true;
         }
     }
-
-
 
     pub fn close_layer(&mut self, id: Id, with: Option<ActionKey>) {
         let ev = match with {
@@ -570,27 +469,22 @@ impl<'f> Cx<'f> {
         self.services.closed_layers.extend(closed);
     }
 
-
     pub fn layer_event(&mut self, id: Id) -> Option<LayerEvent> {
         let pos = self.services.events.iter().position(|(i, _)| *i == id)?;
         Some(self.services.events.remove(pos).1)
     }
 
-
     pub fn top_layer(&self) -> LayerId {
         self.services.layers.top()
     }
-
 
     pub fn is_open(&self, id: Id) -> bool {
         self.services.layers.is_open(id)
     }
 
-
     pub fn quit(&mut self) {
         self.services.quit = true;
     }
-
 
     #[cfg(feature = "testing")]
     pub fn record(&mut self, tag: &'static str) {
@@ -633,12 +527,9 @@ impl FrameRead for Cx<'_> {
 }
 
 impl super::Ui<'_> {
-
-
     pub fn hovered_part(&self, owner: Id) -> Option<PartRef> {
         FrameRead::hovered_part(self, owner)
     }
-
 
     pub fn pressed_part(&self, owner: Id) -> Option<PartRef> {
         FrameRead::pressed_part(self, owner)

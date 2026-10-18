@@ -1,7 +1,3 @@
-
-
-
-
 use crate::clock::Clock;
 use crate::domain::activity::Activity;
 use crate::domain::debian::DebianState;
@@ -15,7 +11,6 @@ use crate::domain::pg::PgSession;
 use crate::domain::ranking::Memory;
 use crate::domain::ssh::SshHost;
 use crate::scenario::Scenario;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Domain {
@@ -52,7 +47,6 @@ impl Domain {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Discovery {
     pub domain: Domain,
@@ -83,14 +77,12 @@ impl Discovery {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Msg {
-
     Discovered(Domain),
 
     DiscoveryFailed(Domain),
 }
 
 pub struct World {
-
     pub effect_revision: u64,
     pub scenario: Scenario,
     pub clock: Clock,
@@ -137,7 +129,6 @@ impl World {
         self.clock.now_ms
     }
 
-
     pub fn default_schedule() -> Vec<Discovery> {
         vec![
             Discovery::at(Domain::Mise, 600),
@@ -149,7 +140,6 @@ impl World {
             Discovery::at(Domain::Disk, 3_200),
         ]
     }
-
 
     pub fn discovering(&self) -> bool {
         self.discovery.iter().any(|d| !d.done && !d.failed)
@@ -165,7 +155,6 @@ impl World {
             .any(|d| d.domain == domain && d.failed)
     }
 
-
     pub fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
         if !self.clock.running {
             return vec![];
@@ -173,12 +162,6 @@ impl World {
         self.clock.advance(interval_ms);
         self.step()
     }
-
-
-
-
-
-
 
     pub fn seek(&mut self, frame_ms: u64) {
         let target = i64::try_from(frame_ms).unwrap_or(i64::MAX);
@@ -190,7 +173,6 @@ impl World {
         self.clock.now_ms = self.clock.now_ms.saturating_add(ticks.saturating_mul(80));
         self.step();
     }
-
 
     pub fn trust_mise_file(&mut self, path: &str) -> bool {
         let Some(mise) = &mut self.mise else {
@@ -205,7 +187,6 @@ impl World {
         }
         hit
     }
-
 
     fn step(&mut self) -> Vec<Msg> {
         let now = self.clock.now_ms;

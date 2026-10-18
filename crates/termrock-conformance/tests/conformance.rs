@@ -1,7 +1,3 @@
-
-
-
-
 #![cfg_attr(
     test,
     allow(
@@ -76,8 +72,6 @@ const BINDINGS: &[Binding<ProbeCmd>] = &[
 struct ProbeState {
     fired: u32,
 }
-
-
 
 struct ProbeCase;
 
@@ -207,15 +201,11 @@ impl Conformance for ProbeCase {
     }
 }
 
-
-
 fn patch_of(f: &Fixture) -> &[(Part, StylePatch)] {
     f.patch.as_slice()
 }
 
 const BTN: Id = Id::root("conformance.button");
-
-
 
 struct ButtonCase;
 
@@ -261,10 +251,6 @@ impl Conformance for ButtonCase {
         Button::new(BTN, "").bindings(s)
     }
 
-
-
-
-
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 7] = [
             StateFlags::empty(),
@@ -289,7 +275,6 @@ impl Conformance for ButtonCase {
 }
 
 const INPUT: Id = Id::root("conformance.text_input");
-
 
 #[derive(Clone, Default, PartialEq)]
 struct InputState {
@@ -319,8 +304,6 @@ fn text_input(id: Id, f: &Fixture) -> TextInput<'_> {
     t
 }
 
-
-
 fn shown_value<'a>(st: &'a InputState, f: &'a Fixture) -> &'a str {
     if st.value.is_empty() && st.st.error().is_none() {
         f.rows.first().map_or("", |r| r.label.as_str())
@@ -328,7 +311,6 @@ fn shown_value<'a>(st: &'a InputState, f: &'a Fixture) -> &'a str {
         &st.value
     }
 }
-
 
 struct TextInputCase;
 
@@ -381,10 +363,6 @@ impl Conformance for TextInputCase {
         "hunter2"
     }
 
-
-
-
-
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 6] = [
             StateFlags::empty(),
@@ -402,7 +380,6 @@ impl Conformance for TextInputCase {
 }
 
 const FIELD_INPUT: Id = Id::root("conformance.field");
-
 
 struct FieldCase;
 
@@ -451,10 +428,6 @@ impl Conformance for FieldCase {
             &[]
         }
     }
-
-
-
-
 
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 5] = [
@@ -515,7 +488,6 @@ fn list(f: &Fixture) -> FixtureList<'_> {
         .status(f.status())
         .patch_part(patch_of(f))
 }
-
 
 struct ListCase;
 
@@ -579,9 +551,6 @@ impl Conformance for ListCase {
         }
     }
 
-
-
-
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 8] = [
             StateFlags::empty(),
@@ -611,7 +580,6 @@ impl Conformance for ListCase {
 const TABS: Id = Id::root("conformance.tabs");
 
 fn tab_paint(r: &FixtureRow, u: &mut RowUi<'_>) {
-
     u.label(r.label.get(4..).unwrap_or(""));
 }
 
@@ -629,7 +597,6 @@ fn tabs(f: &Fixture) -> FixtureTabs<'_> {
         .status(f.status())
         .patch_part(patch_of(f))
 }
-
 
 struct TabsCase;
 
@@ -690,10 +657,6 @@ impl Conformance for TabsCase {
         PartRef::item(Part::TAB, k)
     }
 
-
-
-
-
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 6] = [
             StateFlags::empty(),
@@ -706,9 +669,6 @@ impl Conformance for TabsCase {
         &STATES
     }
     fn mono_setup_chords(state: StateFlags) -> &'static [Chord] {
-
-
-
         const ACTIVATE: &[Chord] = &[Chord::key(KeyCode::Right)];
         if state.contains(StateFlags::SELECTED) {
             ACTIVATE
@@ -734,8 +694,6 @@ fn dialog(f: &Fixture) -> Dialog<'_> {
         .actions(DIALOG_ACTIONS)
         .patch_part(patch_of(f))
 }
-
-
 
 struct DialogCase;
 
@@ -828,9 +786,6 @@ impl Conformance for DialogCase {
     }
 
     fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
-
-
-
         vec![
             (ActionKey::CANCEL, Chord::key(KeyCode::F(6))),
             (
@@ -901,7 +856,6 @@ fn dialog_prompt_renders_caller_owned_error_in_the_field() {
 const SCROLL: Id = Id::root("conformance.scroll_region");
 const SCROLL_ROWS: usize = 40;
 
-
 struct ScrollRegionCase;
 
 impl Conformance for ScrollRegionCase {
@@ -929,8 +883,6 @@ impl Conformance for ScrollRegionCase {
         let content = sr.draw(ui, area, st, SCROLL_ROWS);
         let view = ScrollRegion::view(st, content, SCROLL_ROWS);
 
-
-
         let style = ui
             .style(
                 Family::LIST,
@@ -948,11 +900,6 @@ impl Conformance for ScrollRegionCase {
         PartRef::of(Part::THUMB)
     }
 
-
-
-
-
-
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 2] = [StateFlags::empty(), StateFlags::PRESSED];
         &STATES
@@ -966,7 +913,6 @@ impl Conformance for ScrollRegionCase {
 }
 
 const PROPS: Id = Id::root("conformance.props");
-
 
 struct PropsCase;
 
@@ -1020,7 +966,6 @@ fn props_list_rows(f: &Fixture) -> Vec<PropsRow<'_>> {
 fn props_list(f: &Fixture) -> PropsList<'_> {
     PropsList::new(PROPS_LIST).patch_part(patch_of(f))
 }
-
 
 struct PropsListCase;
 
@@ -1131,7 +1076,6 @@ fn text_area(f: &Fixture) -> TextArea<'_> {
         .patch_part(patch_of(f))
 }
 
-
 struct TextAreaCase;
 
 impl Conformance for TextAreaCase {
@@ -1162,8 +1106,6 @@ impl Conformance for TextAreaCase {
 
     fn draw(ui: &mut Ui<'_>, area: Rect, st: &TextAreaCaseState, f: &Fixture) {
         if !area.is_empty() {
-
-
             let settle = Rect {
                 width: 1.min(area.width),
                 height: 1.min(area.height),
@@ -1221,14 +1163,6 @@ fn select(f: &Fixture) -> FixtureSelect<'_> {
         .read_only(f.read_only)
         .patch_part(patch_of(f))
 }
-
-
-
-
-
-
-
-
 
 struct SelectCase;
 
@@ -1366,7 +1300,6 @@ fn radio(f: &Fixture, value: Option<ItemKey>) -> FixtureRadio<'_> {
     r
 }
 
-
 struct RadioGroupCase;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -1470,7 +1403,6 @@ fn checkbox(f: &Fixture, checked: bool) -> Checkbox<'_> {
         .patch_part(patch_of(f))
 }
 
-
 struct CheckboxCase;
 
 impl Conformance for CheckboxCase {
@@ -1539,7 +1471,6 @@ fn toggle(f: &Fixture, on: bool) -> Toggle<'_> {
         .disabled(f.disabled)
         .patch_part(patch_of(f))
 }
-
 
 struct ToggleCase;
 
@@ -1617,7 +1548,6 @@ fn chip_bar(f: &Fixture) -> FixtureChips<'_> {
         .read_only(f.read_only)
         .patch_part(patch_of(f))
 }
-
 
 struct ChipBarCase;
 
@@ -1737,7 +1667,6 @@ fn status_bar(f: &Fixture) -> StatusBar<'_> {
         .patch_part(patch_of(f))
 }
 
-
 struct StatusBarCase;
 
 impl Conformance for StatusBarCase {
@@ -1764,10 +1693,6 @@ impl Conformance for StatusBarCase {
         status_bar(f).draw(ui, area);
     }
 
-
-
-
-
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 5] = [
             StateFlags::empty(),
@@ -1791,7 +1716,6 @@ impl Conformance for StatusBarCase {
 }
 
 const HINT_BAR: Id = Id::root("conformance.hint_bar");
-
 
 struct HintBarCase;
 
@@ -1905,7 +1829,6 @@ impl Conformance for DerivedHintBarCase {
 
 const KEY_HINT: Id = Id::root("conformance.key_hint");
 
-
 struct KeyHintCase;
 
 impl Conformance for KeyHintCase {
@@ -1943,7 +1866,6 @@ impl Conformance for KeyHintCase {
 }
 
 const PROGRESS_BAR: Id = Id::root("conformance.progress_bar");
-
 
 struct ProgressBarCase;
 
@@ -1990,7 +1912,6 @@ impl Conformance for ProgressBarCase {
 
 const SPINNER: Id = Id::root("conformance.spinner");
 
-
 struct SpinnerCase;
 
 impl Conformance for SpinnerCase {
@@ -2021,9 +1942,6 @@ impl Conformance for SpinnerCase {
         s.draw(ui, area);
     }
 
-
-
-
     fn mono_states() -> &'static [StateFlags] {
         const STATES: [StateFlags; 1] = [StateFlags::empty()];
         &STATES
@@ -2040,7 +1958,6 @@ impl Conformance for SpinnerCase {
 }
 
 const METER: Id = Id::root("conformance.meter");
-
 
 struct MeterCase;
 
@@ -2107,7 +2024,6 @@ fn empty_state(f: &Fixture) -> EmptyState<'static> {
     }
 }
 
-
 struct EmptyCase;
 
 impl Conformance for EmptyCase {
@@ -2153,7 +2069,6 @@ impl Conformance for EmptyCase {
 
 const BRAND: Id = Id::root("conformance.brand");
 
-
 struct BrandCase;
 
 impl Conformance for BrandCase {
@@ -2193,7 +2108,6 @@ impl Conformance for BrandCase {
 }
 
 const PANEL: Id = Id::root("conformance.panel");
-
 
 struct PanelCase;
 
@@ -2253,7 +2167,6 @@ fn split_pane(f: &Fixture) -> SplitPane<'_> {
         .resizable(true)
         .patch_part(patch_of(f))
 }
-
 
 struct SplitPaneCase;
 
@@ -2326,7 +2239,6 @@ fn text_viewport(f: &Fixture) -> TextViewport<'_> {
         .patch_part(patch_of(f))
 }
 
-
 struct TextViewportCase;
 
 impl Conformance for TextViewportCase {
@@ -2346,9 +2258,6 @@ impl Conformance for TextViewportCase {
     }
 
     fn update(cx: &mut Cx<'_>, st: &mut ViewportState, f: &Fixture) -> Response<ViewportAction> {
-
-
-
         let _ = cx.layer_event(DRIVER_POPOVER);
         text_viewport(f).update(cx, st, &viewport_lines(f))
     }
@@ -2361,8 +2270,6 @@ impl Conformance for TextViewportCase {
             .scroll()
             .offset()
             .min(lines.len().saturating_sub(1));
-
-
 
         reference.set_caret(Some(CellPos::new(caret_line, 0)));
         text_viewport(f).draw(ui, area, &reference, &lines);
@@ -2598,7 +2505,6 @@ fn tree(f: &Fixture) -> FixtureTree<'_> {
         .disabled(f.disabled)
         .patch_part(patch_of(f))
 }
-
 
 struct TreeCase;
 
@@ -3899,9 +3805,6 @@ impl core::fmt::Debug for FormCaseData {
 
 impl Clone for FormCaseData {
     fn clone(&self) -> Self {
-
-
-
         FormCaseData {
             secret: Secret::default(),
             snapshot: Some(self.secret_snapshot()),
@@ -4076,10 +3979,6 @@ conformance_suite!(
     form => FormCase,
 );
 
-
-
-
-
 #[test]
 fn mono_states_required_by_is_a_union() {
     let both = mono_states_required_by(Caps::EDITS | Caps::DISABLEABLE);
@@ -4119,7 +4018,6 @@ fn activation_gesture_defaults_to_click_and_grid_declares_double_click() {
     assert_eq!(GridCase::activation_gesture(), PointerGesture::DoubleClick);
 }
 
-
 fn clean<C: Conformance>(states: &[StateFlags]) {
     for f in states {
         let st = BindingState { flags: *f };
@@ -4127,10 +4025,6 @@ fn clean<C: Conformance>(states: &[StateFlags]) {
         assert!(d.is_empty(), "{}: {d:?}", C::NAME);
     }
 }
-
-
-
-
 
 fn every_registered_table_is_clean() {
     let states = [
@@ -4174,11 +4068,6 @@ fn every_registered_table_is_clean() {
     clean::<TooSmallCase>(&states);
     clean::<GridCase>(&states);
 }
-
-
-
-
-
 
 #[test]
 fn conflicting_visible_bindings_are_reported() {
@@ -4234,13 +4123,9 @@ fn conflicting_visible_bindings_are_reported() {
         "{found:?}"
     );
 
-
-
     assert_eq!(binding_conflicts(OWNER, KeyPhase::Bubble, &ALIAS).len(), 1);
 
-
     every_registered_table_is_clean();
-
 
     for m in [
         SelectMode::Single,
@@ -4264,10 +4149,6 @@ fn conflicting_visible_bindings_are_reported() {
         );
     }
 }
-
-
-
-
 
 #[test]
 fn draw_registers_nothing_when_it_cannot_draw() {
@@ -4343,8 +4224,6 @@ fn draw_registers_nothing_when_it_cannot_draw() {
     }
     assert_eq!(cases.len(), 44, "update the degenerate dispatcher");
 
-
-
     let screen = Rect::new(0, 0, 40, 12);
     assert_eq!(
         resolve_anchor(
@@ -4371,7 +4250,6 @@ fn draw_registers_nothing_when_it_cannot_draw() {
 
 const ZERO: Id = Id::root("conformance.zero_layer");
 
-
 struct ZeroLayer;
 
 impl termrock::App for ZeroLayer {
@@ -4392,7 +4270,6 @@ impl termrock::App for ZeroLayer {
 
 mod registry {
     use super::*;
-
 
     fn styled<C: Conformance>() -> Vec<Part> {
         let f = Fixture::default();

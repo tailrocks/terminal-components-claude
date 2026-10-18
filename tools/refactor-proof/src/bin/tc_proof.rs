@@ -1,5 +1,3 @@
-
-
 #![allow(
     missing_docs,
     unreachable_pub,

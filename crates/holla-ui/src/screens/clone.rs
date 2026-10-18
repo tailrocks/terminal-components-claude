@@ -1,9 +1,6 @@
-
 use crate::domain::github::{GhRepo, GhState};
 use termrock::{Cx, Id, Item, ItemKey, Picker, PickerAction, PickerState, Response, Ui};
 const PICKER: Id = Id::root("clone.picker");
-
-
 
 fn picker<'s>(filtering: bool) -> Picker<'s, Item<'s>> {
     let picker = Picker::new(PICKER).title("Clone which repository?");

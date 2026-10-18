@@ -1,22 +1,11 @@
-
-
-
-
-
-
-
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
-
 pub const SCHEMA_VERSION: &str = "termrock-ownership-exceptions/v1";
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Exception {
-
     pub path: String,
 
     pub rule: String,
@@ -28,15 +17,12 @@ pub struct Exception {
     pub review: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExceptionsFile {
     pub schema: String,
     #[serde(default)]
     pub exceptions: Vec<Exception>,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Failure {
@@ -46,7 +32,6 @@ pub struct Failure {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FailureKind {
-
     Unexcepted,
 
     Growth,
@@ -61,7 +46,6 @@ impl Failure {
         Failure { kind, message }
     }
 }
-
 
 pub fn load_exceptions(text: &str) -> Result<ExceptionsFile, Failure> {
     let parsed: ExceptionsFile = serde_json::from_str(text).map_err(|err| {
@@ -105,11 +89,6 @@ pub fn load_exceptions(text: &str) -> Result<ExceptionsFile, Failure> {
     }
     Ok(parsed)
 }
-
-
-
-
-
 
 pub fn reconcile(
     counts: &BTreeMap<(String, String), usize>,

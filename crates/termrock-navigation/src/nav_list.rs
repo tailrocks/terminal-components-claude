@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 use core::marker::PhantomData;
 
@@ -34,27 +21,20 @@ use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_text::width;
 use termrock_theme::{Family, Slot, StylePatch, Variant};
 
-
-
 pub type BadgeFn<'a, T> = &'a dyn Fn(&T) -> Option<&str>;
-
 
 type NavRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum NavMode {
-
     #[default]
     Full,
 
     Collapsed,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum NavListAction {
-
     Moved(ItemKey),
 
     Chose(ItemKey),
@@ -66,10 +46,8 @@ pub enum NavListAction {
     LeaveForward,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum NavListCmd {
-
     Up,
 
     Down,
@@ -187,12 +165,6 @@ const TABLE: [Binding<NavListCmd>; 12] = [
     ),
 ];
 
-
-
-
-
-
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct NavListState {
     core: CollectionCore,
@@ -201,7 +173,6 @@ pub struct NavListState {
 }
 
 impl NavListState {
-
     #[must_use]
     pub const fn new() -> Self {
         NavListState {
@@ -211,31 +182,25 @@ impl NavListState {
         }
     }
 
-
     #[must_use]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
-
 
     #[must_use]
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-
     #[must_use]
     pub const fn current(&self) -> Option<ItemKey> {
         self.current
     }
 
-
-
     pub const fn set_current(&mut self, key: Option<ItemKey>) {
         self.current = key;
         self.current_index = 0;
     }
-
 
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
@@ -269,106 +234,6 @@ impl Reconcile for NavListState {
         self.core.invalidate();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[expect(
     clippy::struct_excessive_bools,
@@ -406,7 +271,6 @@ impl<T, K, R> fmt::Debug for NavList<'_, T, K, R> {
 }
 
 impl<T> NavList<'_, T, ByIndex, DefaultRow> {
-
     #[must_use]
     pub const fn new(id: Id) -> Self {
         NavList {
@@ -432,10 +296,6 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> NavList<'a, T, K, R> {
-
-
-
-
     #[must_use]
     pub const fn leave_at_boundary(mut self, leave: bool) -> Self {
         self.leave_at_boundary = leave;
@@ -454,18 +314,14 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         Part::THUMB,
     ];
 
-
     pub const PREFERRED_WIDTH: u16 = 24;
 
-
     pub const COLLAPSED_WIDTH: u16 = 6;
-
 
     #[must_use]
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn width(&self) -> u16 {
@@ -475,16 +331,11 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         }
     }
 
-
     #[must_use]
     pub const fn scrollable(mut self, yes: bool) -> Self {
         self.scrollable = yes;
         self
     }
-
-
-
-
 
     #[must_use]
     pub const fn scrollbar_visible(mut self, visible: bool) -> Self {
@@ -492,14 +343,11 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn mode(mut self, m: NavMode) -> Self {
         self.mode = m;
         self
     }
-
-
 
     #[must_use]
     pub const fn compact(mut self) -> Self {
@@ -507,14 +355,11 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
-
-
     #[must_use]
     pub const fn compact_when_clipped(mut self) -> Self {
         self.compact = None;
         self
     }
-
 
     #[must_use]
     pub const fn header_indent(mut self, cells: u16) -> Self {
@@ -522,20 +367,11 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
-
-
-
-
-
-
     #[must_use]
     pub fn render_row(mut self, renderer: NavRowRenderer<'a, T>) -> Self {
         self.render_row = Some(renderer);
         self
     }
-
-
-
 
     #[must_use]
     pub const fn section(mut self, f: &'a dyn Fn(&T) -> &str) -> Self {
@@ -543,13 +379,11 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn icon(mut self, f: &'a dyn Fn(&T) -> &str) -> Self {
         self.icon = Some(f);
         self
     }
-
 
     #[must_use]
     pub const fn badge(mut self, f: BadgeFn<'a, T>) -> Self {
@@ -557,21 +391,17 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn disabled_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.disabled_item = Some(f);
         self
     }
 
-
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> NavList<'a, T, K2, R> {
         NavList {
@@ -595,7 +425,6 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         }
     }
 
-
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> NavList<'a, T, K, R2> {
         NavList {
             id: self.id,
@@ -618,13 +447,11 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         }
     }
 
-
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
-
 
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
@@ -632,14 +459,11 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
-
 
     const fn derived(&self) -> StateFlags {
         if self.disabled {
@@ -682,9 +506,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         }
         (0..items.len()).find(|&i| self.key_at(items, i) == key)
     }
-
-
-
 
     fn seek(&self, items: &[T], from: usize, forward: bool) -> Option<usize> {
         if forward {
@@ -831,7 +652,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         extent
     }
 
-
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -901,7 +721,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         }
         acc.finish(self.id)
     }
-
 
     fn rows<'b>(
         &'b self,
@@ -988,7 +807,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         }
         live
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &NavListState, items: &[T]) -> Rect {
         if area.is_empty() {
@@ -1184,9 +1002,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         }
     }
 
-
-
-
     fn paint_cell_part(
         &self,
         ui: &mut Ui<'_>,
@@ -1217,8 +1032,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         }
     }
 
-
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (
@@ -1233,7 +1046,6 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         .fit(c)
     }
 }
-
 
 const fn row_at(area: Rect, y: u16) -> Rect {
     Rect {
@@ -1368,9 +1180,6 @@ mod tests {
             .key(keyed as fn(&E) -> ItemKey)
     }
 
-
-
-
     struct NavApp {
         nav: NavList<'static, E, fn(&E) -> ItemKey>,
         state: NavListState,
@@ -1453,8 +1262,6 @@ mod tests {
         (app.last, app.state.clone())
     }
 
-
-
     #[test]
     fn steady_current_reconciliation_is_constant_time_and_invalidation_repairs_reorder() {
         use std::rc::Rc;
@@ -1467,7 +1274,6 @@ mod tests {
             items: Vec<u64>,
             last: Option<NavListAction>,
         }
-
 
         impl<K: Fn(&u64) -> ItemKey> crate::runtime::App for SteadyApp<K> {
             fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -1513,7 +1319,6 @@ mod tests {
 
         accesses.set(0);
 
-
         let _ = rt.handle(Input::Tick);
         assert_eq!(rt.app().last, None);
         assert!(
@@ -1535,15 +1340,11 @@ mod tests {
         );
     }
 
-
-
-
     #[test]
     fn the_cursor_skips_disabled_entries_in_both_directions() {
         let nav = list();
         let mut st = NavListState::new();
         st.set_cursor(0, ItemKey::text("Tasks"));
-
 
         let mut acc = Acc::<NavListAction>::new();
         nav.move_cursor(&mut st, &ITEMS, 1, true, &mut acc);
@@ -1553,7 +1354,6 @@ mod tests {
             Some(&NavListAction::Moved(ItemKey::text("Branches")))
         );
 
-
         let mut acc = Acc::<NavListAction>::new();
         nav.move_cursor(&mut st, &ITEMS, 3, true, &mut acc);
         assert_eq!(st.cursor(), Some(ItemKey::text("Members")));
@@ -1561,8 +1361,6 @@ mod tests {
             acc.finish(NAV).action_ref(),
             Some(&NavListAction::Moved(ItemKey::text("Members")))
         );
-
-
 
         let mut acc = Acc::<NavListAction>::new();
         nav.move_cursor(&mut st, &ITEMS, 4, true, &mut acc);
@@ -1572,7 +1370,6 @@ mod tests {
             None,
             "a cursor that cannot move must not report Moved"
         );
-
 
         let mut acc = Acc::<NavListAction>::new();
         nav.move_cursor(&mut st, &ITEMS, 2, false, &mut acc);
@@ -1614,7 +1411,6 @@ mod tests {
             );
             assert_eq!(st.current(), Some(ItemKey::text("Branches")));
 
-
             assert_eq!(focus, Some(NAV));
         }
 
@@ -1645,8 +1441,6 @@ mod tests {
         assert_eq!(st.current(), Some(ItemKey::text("Members")));
     }
 
-
-
     #[test]
     fn moving_the_cursor_never_navigates() {
         let nav = list();
@@ -1664,14 +1458,11 @@ mod tests {
         );
         assert_eq!(st.current(), Some(ItemKey::text("Branches")));
 
-
         let mut acc = Acc::<NavListAction>::new();
         nav.choose(&mut st, &ITEMS, 4, &mut acc);
         assert_eq!(acc.finish(NAV).action_ref(), None);
         assert_eq!(st.current(), Some(ItemKey::text("Branches")));
     }
-
-
 
     #[test]
     fn a_section_heading_is_painted_once_per_change() {
@@ -1704,10 +1495,6 @@ mod tests {
             );
         }
     }
-
-
-
-
 
     #[test]
     fn the_collapsed_mode_paints_the_icon_and_not_the_label() {
@@ -1835,7 +1622,6 @@ mod tests {
                 );
             })
             .commit_presented();
-
 
         assert_eq!(runtime.ring().reachable().count(), 0);
     }

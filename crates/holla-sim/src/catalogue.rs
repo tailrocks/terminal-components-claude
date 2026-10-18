@@ -1,7 +1,3 @@
-
-
-
-
 use crate::domain::action::{Action, ActionKind, Availability, Risk, Scope};
 use crate::domain::docker::Health;
 use crate::domain::human_bytes;
@@ -9,14 +5,10 @@ use crate::domain::mise::Trust;
 use crate::domain::ranking::Memory;
 use crate::world::{Domain, World};
 
-
 pub struct Section {
     pub name: &'static str,
     pub actions: Vec<Action>,
 }
-
-
-
 
 pub fn catalogue(w: &World) -> Vec<Action> {
     let mut out = vec![];
@@ -32,9 +24,6 @@ pub fn catalogue(w: &World) -> Vec<Action> {
     recent_actions(w, &mut out);
     out
 }
-
-
-
 
 pub fn sections(w: &World) -> Vec<Section> {
     let mut all = catalogue(w);
@@ -79,8 +68,6 @@ pub fn sections(w: &World) -> Vec<Section> {
     out
 }
 
-
-
 #[expect(
     clippy::arithmetic_side_effects,
     reason = "Closed scope weights and capped usage bound the total score to 390"
@@ -88,7 +75,6 @@ pub fn sections(w: &World) -> Vec<Section> {
 pub fn rank(w: &World, actions: &mut [Action]) {
     let score = |a: &Action| -> i32 {
         let mut s = a.scope.weight();
-
 
         if w.memory.pin_at(&w.cwd, &a.command) {
             s += 150;
@@ -110,7 +96,6 @@ pub fn rank(w: &World, actions: &mut [Action]) {
     });
 }
 
-
 fn urgent(a: &Action) -> bool {
     a.reason.contains("unhealthy")
         || a.reason.contains("modified")
@@ -119,8 +104,6 @@ fn urgent(a: &Action) -> bool {
         || a.reason.contains("% full")
         || a.reason.contains("detached")
 }
-
-
 
 fn mise_actions(w: &World, out: &mut Vec<Action>) {
     if !w.discovered(Domain::Mise) {
@@ -132,7 +115,6 @@ fn mise_actions(w: &World, out: &mut Vec<Action>) {
             .defined_in
             .rsplit_once('/')
             .map_or_else(|| w.cwd.clone(), |(d, _)| d.to_owned());
-
 
         let scope = if std::path::Path::new(&t.defined_in).starts_with(&w.cwd) && !t.namespaced() {
             Scope::Here
@@ -338,7 +320,6 @@ fn docker_actions(w: &World, out: &mut Vec<Action>) {
     }
 
     for c in d.unhealthy() {
-
         let risk = match w.host.env {
             crate::domain::Environment::Production => Risk::Broad,
             _ => Risk::Bounded,
@@ -603,8 +584,6 @@ fn inventory_note(
     action
 }
 
-
-
 fn flow_actions(w: &World, out: &mut Vec<Action>) {
     let mut btm = Action::new(
         "flow.monitor",
@@ -632,7 +611,6 @@ fn flow_actions(w: &World, out: &mut Vec<Action>) {
     }
 }
 
-
 fn recent_actions(w: &World, out: &mut Vec<Action>) {
     let mut usage: Vec<_> = w.memory.usage.iter().filter(|u| u.path == w.cwd).collect();
     usage.sort_by_key(|u| std::cmp::Reverse(u.count));
@@ -656,7 +634,6 @@ fn recent_actions(w: &World, out: &mut Vec<Action>) {
 fn memory_action(w: &World, canonical: &[Action], command: &str) -> Action {
     let mut matches = canonical.iter().filter(|action| action.command == command);
     if let Some(action) = matches.next() {
-
         if matches.next().is_none() {
             return action.clone();
         }
@@ -667,12 +644,6 @@ fn memory_action(w: &World, canonical: &[Action], command: &str) -> Action {
         None => Action::unavailable_memory(command, &w.cwd),
     }
 }
-
-
-
-
-
-
 
 pub fn resolve_intent(w: &World, row: &Action) -> Result<Action, IntentError> {
     use crate::domain::action::ActionIntent;
@@ -722,8 +693,6 @@ impl std::fmt::Display for IntentError {
 }
 impl std::error::Error for IntentError {}
 
-
-
 const GB: u64 = 1_073_741_824;
 
 fn times(n: u32) -> String {
@@ -738,7 +707,6 @@ fn basename(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
 }
 
-
 pub fn path_scope(cwd: &str, path: &str) -> Scope {
     if path == cwd || path.starts_with(&format!("{cwd}/")) {
         Scope::Here
@@ -749,7 +717,6 @@ pub fn path_scope(cwd: &str, path: &str) -> Scope {
     }
 }
 
-
 fn scope_place(cwd: &str, workdir: &str) -> String {
     if workdir == cwd {
         return String::new();
@@ -757,17 +724,9 @@ fn scope_place(cwd: &str, workdir: &str) -> String {
     workdir
         .strip_prefix(&format!("{cwd}/"))
         .map(str::to_owned)
-        .or_else(|| {
-
-            workdir.rsplit('/').next().map(str::to_owned)
-        })
+        .or_else(|| workdir.rsplit('/').next().map(str::to_owned))
         .unwrap_or_default()
 }
-
-
-
-
-
 
 pub fn visible(
     actions: &[Action],

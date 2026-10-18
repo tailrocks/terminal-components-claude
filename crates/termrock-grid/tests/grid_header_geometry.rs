@@ -1,4 +1,3 @@
-
 use ratatui_core::layout::Rect;
 use termrock_grid::{
     CellRef, Column, ColumnKey, Grid, GridHeaderSizing, GridModel, GridSortIndicator, GridState,

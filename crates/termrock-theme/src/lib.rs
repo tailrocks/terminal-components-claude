@@ -1,7 +1,3 @@
-
-
-
-
 pub(crate) use crate as theme;
 pub(crate) use termrock_core::id;
 pub use termrock_core::id::Part;
@@ -42,11 +38,8 @@ pub use tokens::{
 
 use self::recipe::GlobalOverride;
 
-
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Theme {
-
     pub color: ColorTokens,
 
     pub design: DesignTokens,
@@ -55,12 +48,10 @@ pub struct Theme {
 
     pub capability: Capability,
 
-
     pub capability_palettes: Option<std::sync::Arc<CapabilityPalettes>>,
 }
 
 impl Theme {
-
     pub fn junie() -> Theme {
         Theme {
             color: builtin::junie::tokens(),
@@ -73,12 +64,9 @@ impl Theme {
         }
     }
 
-
     pub fn paper() -> Theme {
         builtin::paper::theme()
     }
-
-
 
     pub fn from_tokens(c: ColorTokens) -> Theme {
         let mut color = c;
@@ -94,11 +82,9 @@ impl Theme {
         }
     }
 
-
     pub fn builder(self) -> ThemeBuilder {
         ThemeBuilder::from_theme(self)
     }
-
 
     #[must_use]
     pub fn override_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
@@ -114,7 +100,6 @@ impl Theme {
         });
         self
     }
-
 
     #[must_use]
     pub fn override_variant(
@@ -136,7 +121,6 @@ impl Theme {
         self
     }
 
-
     #[must_use]
     pub fn define_variant(
         mut self,
@@ -157,7 +141,6 @@ impl Theme {
         self
     }
 
-
     #[must_use]
     pub fn define_family(mut self, f: Family, edit: impl FnOnce(&mut RecipeEdit)) -> Theme {
         let mut e = RecipeEdit::default();
@@ -172,7 +155,6 @@ impl Theme {
         self
     }
 
-
     pub fn bg(&self, s: Surface) -> Color {
         match s {
             Surface::Field => self.color.field,
@@ -186,15 +168,12 @@ impl Theme {
         }
     }
 
-
-
     pub fn raise(&self, s: Surface) -> Surface {
         match s {
             Surface::Field | Surface::FieldHover => Surface::FieldHover,
             ladder => Surface::from_level(ladder.level().unwrap_or(0).saturating_add(1)),
         }
     }
-
 
     pub fn resolve(
         &self,
@@ -207,13 +186,6 @@ impl Theme {
         resolve::resolve_uncached(self, f, v, p, s, surface, &[], None)
     }
 
-
-
-
-
-
-
-
     pub fn metrics(
         &self,
         f: Family,
@@ -223,14 +195,6 @@ impl Theme {
     ) -> PartMetrics {
         resolve::metrics_of(&resolve::accumulate(self, f, v, p, s, &[]))
     }
-
-
-
-
-
-
-
-
 
     #[cfg(any(test, feature = "testing"))]
     pub fn fingerprint(&self) -> u64 {
@@ -247,13 +211,9 @@ mod tests {
     use crate::id::Part;
     use crate::response::StateFlags;
 
-
-
-
     #[test]
     fn metrics_is_the_sizing_path_for_update() {
         let mut t = Theme::junie();
-
 
         {
             let r = t.recipes.get_mut(Family::FIELD);

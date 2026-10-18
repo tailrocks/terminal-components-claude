@@ -1,23 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::cell::Cell;
 
 use termrock::runtime::stub::{Stub, deliver};
@@ -30,7 +10,6 @@ const AREA: Rect = Rect {
     width: 24,
     height: 1,
 };
-
 
 const ICON_GLYPH: &str = "⠋";
 
@@ -50,10 +29,6 @@ fn cell_symbol(buf: &Buffer, x: u16) -> String {
         .unwrap_or_default()
 }
 
-
-
-
-
 #[test]
 fn busy_spinner_advances_across_ticks() {
     let frames = Theme::junie().design.motion.spinner_frames;
@@ -64,7 +39,6 @@ fn busy_spinner_advances_across_ticks() {
 
     let mut runtime = Runtime::new(Stub::default(), Theme::junie());
     let _ = runtime.initialize();
-
 
     let mut first = Buffer::empty(AREA);
     runtime
@@ -79,7 +53,6 @@ fn busy_spinner_advances_across_ticks() {
         ICON_GLYPH,
         "FRAMES-001 adapted: icon cell must show the static spinner frame at tick 0"
     );
-
 
     let _ = deliver(&mut runtime, Input::Tick);
     let mut second = Buffer::empty(AREA);
@@ -101,9 +74,6 @@ fn busy_spinner_advances_across_ticks() {
         "FRAMES-001 adapted: the busy frame is static, so both captures match"
     );
 }
-
-
-
 
 #[test]
 fn busy_checked_geometry_uses_one_shared_marker_slot() {

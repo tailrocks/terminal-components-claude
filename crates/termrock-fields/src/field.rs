@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -13,66 +10,6 @@ use crate::response::StateFlags;
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Field<'a, C: FieldControl> {
     label: &'a str,
@@ -99,7 +36,6 @@ impl<C: FieldControl> fmt::Debug for Field<'_, C> {
 }
 
 impl<'a, C: FieldControl> Field<'a, C> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -108,7 +44,6 @@ impl<'a, C: FieldControl> Field<'a, C> {
         Part::FIELD,
         Part::HELP,
     ];
-
 
     pub const fn new(label: &'a str, control: C) -> Self {
         Field {
@@ -123,13 +58,11 @@ impl<'a, C: FieldControl> Field<'a, C> {
         }
     }
 
-
     #[must_use]
     pub const fn required(mut self, yes: bool) -> Self {
         self.required = yes;
         self
     }
-
 
     #[must_use]
     pub const fn optional_suffix(mut self, yes: bool) -> Self {
@@ -137,13 +70,11 @@ impl<'a, C: FieldControl> Field<'a, C> {
         self
     }
 
-
     #[must_use]
     pub const fn help(mut self, s: &'a str) -> Self {
         self.help = Some(s);
         self
     }
-
 
     #[must_use]
     pub const fn error(mut self, s: Option<&'a str>) -> Self {
@@ -151,13 +82,11 @@ impl<'a, C: FieldControl> Field<'a, C> {
         self
     }
 
-
     #[must_use]
     pub const fn plain(mut self, yes: bool) -> Self {
         self.plain = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
@@ -165,11 +94,9 @@ impl<'a, C: FieldControl> Field<'a, C> {
         self
     }
 
-
     pub const fn control(&self) -> &C {
         &self.control
     }
-
 
     #[expect(clippy::too_many_lines, reason = "one pass over the three chrome rows")]
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &C::State) -> Rect {
@@ -177,7 +104,6 @@ impl<'a, C: FieldControl> Field<'a, C> {
             return area;
         }
         let id = self.control.id();
-
 
         let derived = if self.error.is_some() {
             StateFlags::ERROR
@@ -192,7 +118,6 @@ impl<'a, C: FieldControl> Field<'a, C> {
         let container = style(ui, Part::CONTAINER);
         ui.fill(area, container.style);
         ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
-
 
         let label_row = first_row(area);
         let text = Rect {
@@ -234,7 +159,6 @@ impl<'a, C: FieldControl> Field<'a, C> {
             return label_row;
         }
 
-
         let control_h = self
             .control
             .measure(
@@ -260,7 +184,6 @@ impl<'a, C: FieldControl> Field<'a, C> {
                 ..area
             };
         }
-
 
         let msg_row = Rect {
             x: area.x.saturating_add(2),
@@ -290,7 +213,6 @@ impl<'a, C: FieldControl> Field<'a, C> {
         }
     }
 
-
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let inner = self.control.measure(ui, c);
         let h = ui.design().size.field_height;
@@ -314,10 +236,6 @@ mod tests {
     use crate::theme::Theme;
 
     const INPUT: Id = Id::root("field.tests.input");
-
-
-
-
 
     #[test]
     fn a_reference_field_registers_no_control() {

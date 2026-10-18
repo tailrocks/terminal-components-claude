@@ -1,5 +1,3 @@
-
-
 pub(crate) use termrock_theme as theme;
 
 pub mod buffer;

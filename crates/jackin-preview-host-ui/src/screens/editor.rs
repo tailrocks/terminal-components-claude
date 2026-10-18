@@ -1,5 +1,3 @@
-
-
 use core::{fmt, mem};
 use std::collections::BTreeMap;
 
@@ -10,7 +8,6 @@ use jackin_preview_domain::workspace::{
     AccountPolicy, EffectiveAccount, EnvValue, EnvVar, Mount, RoleName, RolePolicy, Workspace,
     env_key_error,
 };
-
 
 pub const ROOT: Id = Id::root("jackin.editor");
 
@@ -40,10 +37,8 @@ pub const ENV_SOURCE: Id = FORM.sub("env-source");
 
 pub const ENV_VALUE: Id = FORM.sub("env-value");
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tab {
-
     #[default]
     General,
 
@@ -57,8 +52,6 @@ pub enum Tab {
 }
 
 impl Tab {
-
-
     pub const ALL: [Self; 5] = [
         Self::General,
         Self::Mounts,
@@ -66,7 +59,6 @@ impl Tab {
         Self::Environments,
         Self::Accounts,
     ];
-
 
     pub const fn from_alias(index: u8) -> Option<Self> {
         match index {
@@ -79,7 +71,6 @@ impl Tab {
         }
     }
 
-
     pub const fn alias(self) -> u8 {
         match self {
             Self::General => 1,
@@ -89,7 +80,6 @@ impl Tab {
             Self::Accounts => 5,
         }
     }
-
 
     pub const fn next(self) -> Self {
         match self {
@@ -101,7 +91,6 @@ impl Tab {
         }
     }
 
-
     pub const fn previous(self) -> Self {
         match self {
             Self::General => Self::Accounts,
@@ -111,7 +100,6 @@ impl Tab {
             Self::Accounts => Self::Environments,
         }
     }
-
 
     pub const fn id(self) -> Id {
         match self {
@@ -130,10 +118,8 @@ struct SaveReview {
     pending: PendingWorkspace,
 }
 
-
 #[derive(PartialEq, Eq, Default)]
 pub struct EditorState {
-
     pub tab: Tab,
 
     pub dirty: bool,
@@ -164,7 +150,6 @@ impl Clone for EditorState {
             preview_open: self.preview_open,
             env_form_open: self.env_form_open,
             env_key: self.env_key.clone(),
-
 
             env_value: String::new(),
             env_key_input: self.env_key_input.clone(),
@@ -202,15 +187,8 @@ impl Drop for EditorState {
 }
 
 impl EditorState {
-
-
-
-
-
     pub const fn select_index(&mut self, index: u8) {
         self.tab = match (self.tab, index) {
-
-
             (Tab::Accounts, 1) => Tab::General,
             (_, 1) => Tab::Mounts,
             (_, 2) => Tab::Roles,
@@ -220,23 +198,19 @@ impl EditorState {
         };
     }
 
-
     pub const fn select_alias(&mut self, index: u8) {
         if let Some(tab) = Tab::from_alias(index) {
             self.tab = tab;
         }
     }
 
-
     pub const fn next_tab(&mut self) {
         self.tab = self.tab.next();
     }
 
-
     pub const fn previous_tab(&mut self) {
         self.tab = self.tab.previous();
     }
-
 
     pub fn load_workspace(&mut self, workspace: &Workspace) {
         self.tab = Tab::General;
@@ -249,20 +223,17 @@ impl EditorState {
         self.clear_env_form();
     }
 
-
     pub fn mark_dirty(&mut self) {
         self.reviewed = None;
         self.dirty = true;
         self.preview_open = false;
     }
 
-
     pub fn mark_saved(&mut self) {
         self.reviewed = None;
         self.dirty = false;
         self.preview_open = false;
     }
-
 
     pub fn open_preview(&mut self) -> bool {
         if self.dirty && self.saving.is_none() {
@@ -275,12 +246,10 @@ impl EditorState {
         self.preview_open
     }
 
-
     pub fn close_preview(&mut self) {
         self.preview_open = false;
         self.reviewed = None;
     }
-
 
     pub fn discard_draft(&mut self) {
         if let Some(original) = &self.original {
@@ -291,7 +260,6 @@ impl EditorState {
         self.reviewed = None;
         self.clear_env_form();
     }
-
 
     pub fn load_new(&mut self, pending: PendingWorkspace) {
         self.tab = Tab::General;
@@ -304,21 +272,17 @@ impl EditorState {
         self.clear_env_form();
     }
 
-
     pub const fn is_create(&self) -> bool {
         self.original.is_none()
     }
-
 
     pub const fn is_saving(&self) -> bool {
         self.saving.is_some()
     }
 
-
     pub fn workspace_id(&self) -> Option<jackin_preview_domain::workspace::WorkspaceId> {
         self.original.as_ref().map(|workspace| workspace.id)
     }
-
 
     pub fn begin_save(
         &mut self,
@@ -350,8 +314,6 @@ impl EditorState {
         Ok(ticket)
     }
 
-
-
     pub fn settle_save(
         &mut self,
         result: &jackin_preview_domain::workspace_save::SaveResult,
@@ -381,13 +343,11 @@ impl EditorState {
         }
     }
 
-
     pub fn open_env_form(&mut self) {
         self.clear_env_form();
         self.env_form_open = true;
         self.env_value_input = termrock::TextInputState::sensitive();
     }
-
 
     pub fn clear_env_form(&mut self) {
         self.env_form_open = false;
@@ -397,7 +357,6 @@ impl EditorState {
         self.env_value_input = termrock::TextInputState::default();
         wipe_string(&mut self.env_value);
     }
-
 
     pub fn take_env_value(&mut self) -> String {
         self.env_value_input.zeroize();
@@ -411,10 +370,8 @@ fn wipe_string(value: &mut String) {
     secret.zeroize();
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PendingWorkspace {
-
     pub name: String,
 
     pub workdir: String,
@@ -448,7 +405,6 @@ impl Default for PendingWorkspace {
 }
 
 impl PendingWorkspace {
-
     pub fn from_workspace(workspace: &Workspace) -> Self {
         Self {
             name: workspace.name.clone(),
@@ -461,7 +417,6 @@ impl PendingWorkspace {
         }
     }
 
-
     pub fn apply_to(&self, workspace: &mut Workspace) {
         workspace.name = self.name.clone();
         workspace.workdir = self.workdir.clone();
@@ -471,7 +426,6 @@ impl PendingWorkspace {
         workspace.role_env = self.role_env.clone();
         workspace.accounts = self.accounts.clone();
     }
-
 
     pub fn into_workspace(self, id: u32) -> Workspace {
         let mut workspace = Workspace::new(id, &self.name, &self.workdir);
@@ -483,7 +437,6 @@ impl PendingWorkspace {
         workspace
     }
 
-
     pub fn effective_accounts(&self, registry: &AccountRegistry) -> Vec<EffectiveAccount> {
         let mut workspace = Workspace::new(0, &self.name, &self.workdir);
         workspace.mounts = self.mounts.clone();
@@ -494,13 +447,11 @@ impl PendingWorkspace {
         workspace.effective_accounts(registry)
     }
 
-
     pub fn enable_account(&mut self, id: impl Into<AccountId>) {
         let id = id.into();
         self.accounts.disabled_defaults.remove(&id);
         self.accounts.enabled.insert(id);
     }
-
 
     pub fn disable_account(
         &mut self,
@@ -524,7 +475,6 @@ impl PendingWorkspace {
         Ok(())
     }
 
-
     pub fn toggle_account(
         &mut self,
         id: impl Into<AccountId>,
@@ -541,8 +491,6 @@ impl PendingWorkspace {
             };
             self.accounts.disabled_defaults.remove(&id);
             if account.default_for_provider {
-
-
                 self.accounts.enabled.remove(&id);
             } else {
                 self.enable_account(id);
@@ -550,7 +498,6 @@ impl PendingWorkspace {
             Ok(true)
         }
     }
-
 
     pub fn prefer_account(
         &mut self,
@@ -567,7 +514,6 @@ impl PendingWorkspace {
         self.accounts.preferred.insert(account.provider, id);
         Ok(())
     }
-
 
     pub fn prefer_role_account(
         &mut self,
@@ -589,11 +535,9 @@ impl PendingWorkspace {
         Ok(())
     }
 
-
     pub fn add_environment(&mut self, key: &str, value: String) -> Result<(), String> {
         add_env(&mut self.env, key, value)
     }
-
 
     pub fn add_role_environment(
         &mut self,
@@ -605,11 +549,9 @@ impl PendingWorkspace {
         add_env(self.role_env.entry(role).or_default(), key, value)
     }
 
-
     pub fn configured_role_count(&self) -> usize {
         self.role_env.values().filter(|env| !env.is_empty()).count()
     }
-
 
     pub fn environment_count(&self) -> usize {
         self.env.len() + self.role_env.values().map(Vec::len).sum::<usize>()

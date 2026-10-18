@@ -1,17 +1,9 @@
-
-
-
-
-
-
 #![allow(dead_code)]
-
 
 pub const EPOCH_SECS: i64 = 1_788_660_840;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Clock {
-
     pub now_ms: i64,
 
     pub running: bool,
@@ -25,13 +17,11 @@ impl Clock {
         }
     }
 
-
     pub fn advance(&mut self, interval_ms: i64) {
         if self.running {
             self.now_ms = self.now_ms.saturating_add(interval_ms.max(0));
         }
     }
-
 
     #[expect(
         clippy::arithmetic_side_effects,
@@ -40,7 +30,6 @@ impl Clock {
     pub fn now_secs(&self) -> i64 {
         EPOCH_SECS + self.now_ms.div_euclid(1000)
     }
-
 
     #[expect(
         clippy::arithmetic_side_effects,
@@ -52,7 +41,6 @@ impl Clock {
         format!("{:02}:{:02}", day / 3600, (day % 3600) / 60)
     }
 
-
     #[expect(
         clippy::arithmetic_side_effects,
         reason = "Widened i64 seconds and the fixed timezone offset fit i128"
@@ -63,7 +51,6 @@ impl Clock {
         let (y, m, d) = civil_from_days(days);
         format!("{y:04}-{m:02}-{d:02} {}", Self::hhmm(secs))
     }
-
 
     #[expect(
         clippy::arithmetic_side_effects,
@@ -87,7 +74,6 @@ impl Default for Clock {
     }
 }
 
-
 #[expect(
     clippy::arithmetic_side_effects,
     reason = "Private calendar algorithm receives only timezone-adjusted i64 seconds divided by 86400; all intermediates fit i128"
@@ -109,8 +95,6 @@ fn civil_from_days(days: i128) -> (i128, u32, u32) {
     } as u32;
     (if month <= 2 { year + 1 } else { year }, month, day)
 }
-
-
 
 pub fn format_duration(secs: u64) -> String {
     let d = secs / 86_400;

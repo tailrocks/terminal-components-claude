@@ -1,11 +1,7 @@
-
-
 use termrock::{ItemKey, TreeNode};
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TaskRow {
-
     pub id: u32,
 
     pub name: &'static str,
@@ -21,10 +17,8 @@ pub struct TaskRow {
     pub duration_s: u32,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TaskStatus {
-
     Queued,
 
     Running,
@@ -35,7 +29,6 @@ pub enum TaskStatus {
 
     Paused,
 }
-
 
 pub const TASKS: &[TaskRow] = &[
     TaskRow {
@@ -256,7 +249,6 @@ pub const TASKS: &[TaskRow] = &[
     },
 ];
 
-
 pub const LANGUAGES: &[&str] = &[
     "Rust",
     "TypeScript",
@@ -279,9 +271,6 @@ pub const LANGUAGES: &[&str] = &[
     "Clojure",
     "Erlang",
 ];
-
-
-
 
 pub const TREE: &[TreeNode] = &[
     TreeNode::parent(0).keyed(ItemKey::Num(1)),
@@ -316,7 +305,6 @@ pub const TREE: &[TreeNode] = &[
     TreeNode::leaf(0).keyed(ItemKey::Num(30)),
 ];
 
-
 pub const TREE_LABELS: &[(&str, &str)] = &[
     ("src", "directory"),
     ("api", "directory"),
@@ -350,7 +338,6 @@ pub const TREE_LABELS: &[(&str, &str)] = &[
     ("README.md", "3.5 KB"),
 ];
 
-
 pub fn log_lines(n: usize) -> Vec<String> {
     let steps = [
         ("info", "Resolving workspace members"),
@@ -382,9 +369,7 @@ pub fn log_lines(n: usize) -> Vec<String> {
         .collect()
 }
 
-
 pub const PROSE: &str = "Junie works through a task the way a careful engineer would: it reads the relevant code, forms a plan, makes focused changes, runs the tests, and reports back with a summary you can review before anything is merged.\n\nEach step is visible. You can pause, redirect, or take over at any point, and every change lands as an ordinary diff in your working tree.\n\nThe design system in this prototype exists so that the terminal version of that experience feels as deliberate as the web version: quiet surfaces, one accent, clear focus, and no decoration that does not carry information.\n\nScroll with the mouse wheel, PageUp/PageDown, or the arrow keys while this panel has focus. The scrollbar on the right shows where you are and how much remains.";
-
 
 pub const SCROLL_ROWS: &[&str] = &[
     "Row 001", "Row 002", "Row 003", "Row 004", "Row 005", "Row 006", "Row 007", "Row 008",

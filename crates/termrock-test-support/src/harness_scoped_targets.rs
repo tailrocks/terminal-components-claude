@@ -1,36 +1,17 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use core::ops::Range;
 
 use termrock::App;
 
 use crate::harness::{Harness, row_text};
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Target {
-
     pub col: u16,
 
     pub row: u16,
 
     pub label: &'static str,
 }
-
-
-
-
 
 pub fn find_unique<A: App>(
     h: &Harness<A>,
@@ -69,11 +50,6 @@ pub fn find_unique<A: App>(
     Target { col, row, label }
 }
 
-
-
-
-
-
 pub fn below<A: App>(h: &Harness<A>, target: &Target) -> Target {
     let height = h.buffer().area().height;
     let row = target.row.saturating_add(1);
@@ -91,15 +67,9 @@ pub fn below<A: App>(h: &Harness<A>, target: &Target) -> Target {
     }
 }
 
-
 pub fn text_width(s: &str) -> u16 {
     termrock::width(s)
 }
-
-
-
-
-
 
 pub fn shift_col<A: App>(
     h: &Harness<A>,
@@ -121,21 +91,14 @@ pub fn shift_col<A: App>(
     }
 }
 
-
-
 #[derive(Clone, Copy, Debug)]
 pub struct NeedleEntry {
-
     pub pred: fn(u16, u16) -> bool,
 
     pub needle: &'static str,
 
     pub rows: (u16, u16),
 }
-
-
-
-
 
 pub fn resolve_needle(entries: &[NeedleEntry], cols: u16, rows: u16) -> &NeedleEntry {
     entries

@@ -1,5 +1,3 @@
-
-
 use std::time::Duration;
 
 use termrock::{
@@ -76,8 +74,6 @@ fn halfway_bar() -> ProgressBar<'static> {
     ProgressBar::new(HALFWAY).label("Halfway").ratio(0.5)
 }
 
-
-
 fn quota_meter() -> Meter<'static> {
     Meter::new(QUOTA_METER)
         .ratio(0.72)
@@ -101,8 +97,6 @@ fn sync_meter() -> Meter<'static> {
         .tone(MeterTone::Stale)
         .suffix_width(4)
 }
-
-
 
 #[derive(Debug)]
 pub struct ProgressPage {
@@ -160,8 +154,6 @@ impl Page for ProgressPage {
             .next_tick
             .get_or_insert_with(|| now.saturating_add(interval));
         if cx.update_cause() == termrock::UpdateCause::Tick && now >= deadline {
-
-
             if !self.paused && self.build < 1.0 {
                 self.build = (self.build + 0.006).min(1.0);
                 if self.build >= 1.0 {
@@ -177,7 +169,6 @@ impl Page for ProgressPage {
         {
             cx.request_repaint_at(deadline);
         }
-
 
         let _ = build_bar(self.build, self.frame, self.paused);
         let _ = resolving_bar(self.frame);

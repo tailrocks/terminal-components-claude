@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 
 use crate::theme::PaintStyle;
@@ -26,18 +16,10 @@ use crate::theme::{Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_runtime::Status;
 
-
-
-
-
-
-
 pub const MAX_ITEMS: usize = 16;
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Group {
-
     Left,
 
     Center,
@@ -46,7 +28,6 @@ pub enum Group {
 }
 
 impl Group {
-
     pub const ALL: [Group; 3] = [Group::Left, Group::Center, Group::Right];
 
     const fn index(self) -> usize {
@@ -58,24 +39,16 @@ impl Group {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[non_exhaustive]
 pub enum Emphasis {
-
     #[default]
     Plain,
 
     Strong,
 
-
     Chip,
 }
-
-
-
-
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct StatusItem<'a> {
@@ -90,9 +63,7 @@ pub struct StatusItem<'a> {
 }
 
 impl<'a> StatusItem<'a> {
-
     pub const DEFAULT_PRIORITY: u8 = 5;
-
 
     pub const fn new(text: &'a str) -> Self {
         StatusItem {
@@ -107,18 +78,11 @@ impl<'a> StatusItem<'a> {
         }
     }
 
-
-
-
-
-
     #[must_use]
     pub const fn spinner(mut self, frame: usize) -> Self {
         self.spinner = Some(frame);
         self
     }
-
-
 
     #[must_use]
     pub const fn tone(mut self, r: Role) -> Self {
@@ -126,14 +90,11 @@ impl<'a> StatusItem<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn priority(mut self, p: u8) -> Self {
         self.priority = p;
         self
     }
-
-
 
     #[must_use]
     pub const fn key(mut self, k: ItemKey) -> Self {
@@ -141,13 +102,11 @@ impl<'a> StatusItem<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn strong(mut self) -> Self {
         self.emphasis = Emphasis::Strong;
         self
     }
-
 
     #[must_use]
     pub const fn chip(mut self) -> Self {
@@ -155,15 +114,11 @@ impl<'a> StatusItem<'a> {
         self
     }
 
-
-
-
     #[must_use]
     pub fn meter(mut self, ratio: f64) -> Self {
         self.ratio = Some(ratio.clamp(0.0, 1.0));
         self
     }
-
 
     #[must_use]
     pub const fn meter_tone(mut self, t: MeterTone) -> Self {
@@ -171,21 +126,17 @@ impl<'a> StatusItem<'a> {
         self
     }
 
-
     pub const fn text(&self) -> &'a str {
         self.text
     }
-
 
     pub const fn priority_of(&self) -> u8 {
         self.priority
     }
 
-
     pub const fn key_of(&self) -> Option<ItemKey> {
         self.key
     }
-
 
     pub const fn emphasis(&self) -> Emphasis {
         self.emphasis
@@ -206,7 +157,6 @@ impl<'a> StatusItem<'a> {
         }
     }
 
-
     fn label_columns(&self, metrics: ItemMetrics) -> u16 {
         let w = width(self.text).saturating_add(self.spinner_columns(metrics));
         match self.emphasis {
@@ -214,7 +164,6 @@ impl<'a> StatusItem<'a> {
             Emphasis::Plain | Emphasis::Strong => w,
         }
     }
-
 
     fn columns(&self, metrics: ItemMetrics) -> u16 {
         match self.ratio {
@@ -233,128 +182,11 @@ struct ItemMetrics {
     spinner_frames: &'static [&'static str],
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[non_exhaustive]
 pub enum StatusAction {
-
     Chose(ItemKey),
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct StatusBar<'a> {
     id: Id,
@@ -364,10 +196,6 @@ pub struct StatusBar<'a> {
     variant: Variant,
     status: Status,
     frame: usize,
-
-
-
-
 
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
@@ -386,16 +214,10 @@ impl fmt::Debug for StatusBar<'_> {
     }
 }
 
-
 type Keep = [u32; 3];
-
-
-
-
 
 fn all_alive(n: usize) -> u32 {
     let n = u32::try_from(n).unwrap_or(u32::BITS);
-
 
     u32::MAX
         .checked_shr(u32::BITS.saturating_sub(n))
@@ -403,7 +225,6 @@ fn all_alive(n: usize) -> u32 {
 }
 
 impl<'a> StatusBar<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::LABEL,
@@ -413,7 +234,6 @@ impl<'a> StatusBar<'a> {
         Part::THUMB,
         Part::OVERFLOW,
     ];
-
 
     pub const fn new(id: Id) -> Self {
         StatusBar {
@@ -430,11 +250,9 @@ impl<'a> StatusBar<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn left(mut self, items: &'a [StatusItem<'a>]) -> Self {
@@ -442,13 +260,11 @@ impl<'a> StatusBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn center(mut self, items: &'a [StatusItem<'a>]) -> Self {
         self.center = items;
         self
     }
-
 
     #[must_use]
     pub const fn right(mut self, items: &'a [StatusItem<'a>]) -> Self {
@@ -456,13 +272,11 @@ impl<'a> StatusBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
         self.variant = v;
         self
     }
-
 
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
@@ -470,13 +284,11 @@ impl<'a> StatusBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
         self.frame = f;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -485,7 +297,6 @@ impl<'a> StatusBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.parts = ps;
@@ -493,13 +304,11 @@ impl<'a> StatusBar<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
         self
     }
-
 
     fn group(&self, g: Group) -> &'a [StatusItem<'a>] {
         let items = match g {
@@ -514,7 +323,6 @@ impl<'a> StatusBar<'a> {
         matches!(self.status, Status::Busy | Status::Loading)
     }
 
-
     fn meter_columns(ui: &Ui<'_>) -> u16 {
         ui.design()
             .size
@@ -522,14 +330,6 @@ impl<'a> StatusBar<'a> {
             .saturating_add(PCT_COLUMNS)
             .saturating_add(2)
     }
-
-
-
-
-
-
-
-
 
     fn marker_glyph(&self, ui: &Ui<'_>, live: StateFlags) -> Slot<GlyphRole> {
         let base = ui
@@ -539,8 +339,6 @@ impl<'a> StatusBar<'a> {
             .part_patch(Part::MARKER)
             .map_or(base, |p| p.glyph.over(base))
     }
-
-
 
     fn readiness(&self, ui: &Ui<'_>, live: StateFlags) -> Option<&'static str> {
         if self.busy() {
@@ -565,7 +363,6 @@ impl<'a> StatusBar<'a> {
         None
     }
 
-
     fn group_columns(&self, g: Group, keep: Keep, metrics: ItemMetrics, gap: u16) -> u16 {
         let items = self.group(g);
         let mask = keep.get(g.index()).copied().unwrap_or(0);
@@ -584,11 +381,9 @@ impl<'a> StatusBar<'a> {
         }
     }
 
-
     fn all_alive_keep(&self) -> Keep {
         Group::ALL.map(|g| all_alive(self.group(g).len()))
     }
-
 
     fn needed(&self, keep: Keep, metrics: ItemMetrics, gap: u16, edge: u16, lead: u16) -> u16 {
         let ws = Group::ALL.map(|g| self.group_columns(g, keep, metrics, gap));
@@ -599,14 +394,6 @@ impl<'a> StatusBar<'a> {
             .saturating_add(edge.saturating_mul(2))
             .saturating_add(lead)
     }
-
-
-
-
-
-
-
-
 
     fn survivors(&self, total: u16, metrics: ItemMetrics, gap: u16, edge: u16, lead: u16) -> Keep {
         let mut keep: Keep = self.all_alive_keep();
@@ -648,7 +435,6 @@ impl<'a> StatusBar<'a> {
         keep
     }
 
-
     pub fn update(&self, cx: &mut Cx<'_>) -> Response<StatusAction> {
         let mut r: Response<StatusAction> = Response::ignored();
         for it in cx.intents(self.id) {
@@ -663,11 +449,6 @@ impl<'a> StatusBar<'a> {
                     }
                 }
 
-
-
-
-
-
                 Intent::Pointer {
                     phase: Phase::Move, ..
                 } => {}
@@ -677,9 +458,6 @@ impl<'a> StatusBar<'a> {
         }
         r.for_id(self.id)
     }
-
-
-
 
     fn item_style(&self, ui: &mut Ui<'_>, it: &StatusItem<'_>, live: StateFlags) -> PaintStyle {
         let hovered = it.key.is_some_and(|key| {
@@ -700,9 +478,6 @@ impl<'a> StatusBar<'a> {
         );
         let mut delta = StylePatch::new();
         match it.emphasis {
-
-
-
             Emphasis::Strong => delta = delta.add(Modifier::BOLD),
             Emphasis::Chip => delta = delta.set_bg(Role::RaisedSurface),
             Emphasis::Plain => {}
@@ -716,8 +491,6 @@ impl<'a> StatusBar<'a> {
         let top = crate::theme::resolve::bind(ui.theme_ref(), delta, None, ui.surface()).style;
         base.style.patch(top)
     }
-
-
 
     fn paint_item(
         &self,
@@ -736,8 +509,6 @@ impl<'a> StatusBar<'a> {
             ..cell
         };
         if let Some(f) = self.ov.slot_for(Part::LABEL) {
-
-
             f(ui, label);
         } else {
             let style = self.item_style(ui, it, live);
@@ -752,7 +523,6 @@ impl<'a> StatusBar<'a> {
             ui.paint_str(shift(text, it.spinner_columns(metrics)), it.text, style);
         }
         if it.label_columns(metrics) > cell.width && cell.width > 0 {
-
             let last = Rect {
                 x: cell.right().saturating_sub(1),
                 width: 1,
@@ -799,10 +569,6 @@ impl<'a> StatusBar<'a> {
                 ..cell
             };
             if !m.is_empty() {
-
-
-
-
                 let mut meter = Meter::new(self.id).value("").patch_part(self.parts);
                 if let Some(p) = self.patch {
                     meter = meter.patch(p);
@@ -822,7 +588,6 @@ impl<'a> StatusBar<'a> {
         }
         used
     }
-
 
     #[expect(
         clippy::too_many_lines,
@@ -853,14 +618,9 @@ impl<'a> StatusBar<'a> {
         );
         ui.fill(area, container.style);
 
-
         let ready = self.readiness(ui, live);
         let lead = ready.map_or(0, |g| width(g).saturating_add(1));
         if let Some(g) = ready {
-
-
-
-
             let part = if self.busy() {
                 Part::ICON
             } else {
@@ -883,7 +643,6 @@ impl<'a> StatusBar<'a> {
         let inner_left = area.x.saturating_add(edge).saturating_add(lead);
         let inner_right = area.right().saturating_sub(edge);
 
-
         let mut x = inner_left;
         let left_mask = keep.first().copied().unwrap_or(0);
         for (i, it) in self.group(Group::Left).iter().enumerate() {
@@ -903,7 +662,6 @@ impl<'a> StatusBar<'a> {
             x = x.saturating_add(used).saturating_add(gap);
         }
         let left_end = x.saturating_sub(gap);
-
 
         let right_mask = keep.get(2).copied().unwrap_or(0);
         let mut rx = inner_right;
@@ -931,7 +689,6 @@ impl<'a> StatusBar<'a> {
             rx.saturating_add(gap)
         };
 
-
         let cw = self.group_columns(Group::Center, keep, metrics, gap);
         if cw > 0 {
             let lo = left_end.saturating_add(gap);
@@ -955,7 +712,6 @@ impl<'a> StatusBar<'a> {
         }
         area
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let metrics = ItemMetrics {
@@ -1023,7 +779,6 @@ mod tests {
 
     #[test]
     fn narrow_rows_drop_centre_then_right_then_left_and_keep_the_name() {
-
         let keep = bar().survivors(60, TEST_METRICS, 2, 1, 0);
         assert_eq!(keep.get(1).copied(), Some(0), "the centre leaves first");
         assert_ne!(keep.first().copied(), Some(0), "identity stays");
@@ -1165,10 +920,6 @@ mod tests {
         }
     }
 
-
-
-
-
     #[test]
     fn a_pointer_move_without_a_hover_transition_does_not_repaint() {
         let mut runtime = Runtime::new(HoverApp, Theme::junie());
@@ -1213,10 +964,6 @@ mod tests {
         assert_eq!(crossed.invalidate(), Invalidate::Paint);
     }
 
-
-
-
-
     fn painted_row(buf: &Buffer, w: u16) -> String {
         let mut row = String::new();
         for x in 0..w {
@@ -1226,17 +973,6 @@ mod tests {
         }
         row
     }
-
-
-
-
-
-
-
-
-
-
-
 
     #[test]
     fn the_left_group_starts_at_the_gutter_the_right_is_flush_and_the_centre_sits_between() {
@@ -1279,11 +1015,6 @@ mod tests {
         };
         let end = |needle: &str| -> u16 { at(needle).saturating_add(width(needle)) };
 
-
-
-
-
-
         assert_eq!(
             at("alpha"),
             ROW.x.saturating_add(edge),
@@ -1294,7 +1025,6 @@ mod tests {
             "left items run left-to-right in declaration order, in {row:?}"
         );
 
-
         assert_eq!(
             end("echo"),
             ROW.right().saturating_sub(edge),
@@ -1304,7 +1034,6 @@ mod tests {
             end("delta") < at("echo"),
             "right items run left-to-right in declaration order, in {row:?}"
         );
-
 
         assert!(
             end("bravo") < at("charlie") && end("charlie") < at("delta"),

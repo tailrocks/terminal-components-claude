@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 #![cfg_attr(
     test,
     allow(
@@ -59,11 +50,7 @@ use termrock_viewport::{TextViewport, ViewportLine, ViewportState};
 #[global_allocator]
 static GLOBAL: Counting = Counting;
 
-
-
 const BASELINE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt");
-
-
 
 #[test]
 fn frame_testbackend_empty_120x40() {
@@ -76,8 +63,6 @@ fn frame_testbackend_empty_120x40() {
     });
     report_to(BASELINE, "frame_testbackend_empty_120x40", &s);
 }
-
-
 
 #[test]
 fn mouse_move_over_1000_regions() {
@@ -136,8 +121,6 @@ fn focus_tab_traversal_ring_200() {
     report_to(BASELINE, "focus_tab_traversal_ring_200", &s);
     assert_eq!(s.allocs, 0, "focus traversal must not allocate");
 }
-
-
 
 const STATES: [StateFlags; 8] = [
     StateFlags::empty(),
@@ -205,7 +188,6 @@ fn style_resolve_10k_parts() {
     report_to(BASELINE, "style_resolve_10k_parts", &s);
     assert_eq!(s.allocs, 0, "style resolution must not allocate (R2)");
 
-
     let (hits, misses) = scene
         .runtime()
         .map(|rt: &Runtime<NoApp>| rt.style_cache_stats())
@@ -219,13 +201,6 @@ fn style_resolve_10k_parts() {
         "style memo hit rate {rate:.3} < 0.90 (hits={hits}, misses={misses})"
     );
     if env_flag("PERF_STRICT") {
-
-
-
-
-
-
-
         const QUERIES: u128 = 10_000;
         const FRAME_QUERIES: u128 = 2_000;
         const BUDGET_NS: u128 = 32_000;
@@ -238,23 +213,6 @@ fn style_resolve_10k_parts() {
         );
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[test]
 fn style_resolve_per_frame() {
@@ -286,7 +244,6 @@ fn style_resolve_per_frame() {
         let meta = Rect::new(row.right() - 2, row.y, 2, 1);
         ui.paint_str(meta, "42", st[4]);
     };
-
 
     let resolved_per_row = |ui: &mut Ui<'_>, area: Rect| {
         for (i, row) in area.rows().enumerate() {
@@ -324,15 +281,6 @@ fn style_resolve_per_frame() {
     );
     assert_eq!(a.allocs, 0);
     if env_flag("PERF_STRICT") {
-
-
-
-
-
-
-
-
-
         const QUERIES_A: u128 = 200;
         const QUERIES_B: u128 = 40;
         const DELTA: u128 = QUERIES_A - QUERIES_B;
@@ -342,10 +290,6 @@ fn style_resolve_per_frame() {
             "style resolution extrapolates to {per_frame_2k} ns for a 2 000-query frame, \
              over the 32 µs (0.2 % of 16 ms) budget"
         );
-
-
-
-
 
         println!(
             "PERF-NOTE style_resolve_per_frame: the <= 5 % share binds frame_showcase_lists_120x40 (Slice 5); this stand-in reports {share:.3}"
@@ -447,8 +391,6 @@ fn style_downgrade_theme_all_levels() {
     report_to(BASELINE, "style_downgrade_theme_all_levels", &s);
 }
 
-
-
 #[test]
 fn width_10k_grapheme_line() {
     let _g = lock();
@@ -469,10 +411,6 @@ fn truncate_10k_grapheme_line_to_80() {
     });
     report_to(BASELINE, "truncate_10k_grapheme_line_to_80", &s);
 }
-
-
-
-
 
 #[test]
 fn fit_10k_grapheme_line_to_80() {
@@ -501,10 +439,6 @@ fn fit_10k_grapheme_line_to_80() {
         s.allocs
     );
 }
-
-
-
-
 
 #[test]
 fn fit_10k_grapheme_line_to_80_wide() {
@@ -545,14 +479,6 @@ fn fit_10k_grapheme_line_to_80_wide() {
     );
 }
 
-
-
-
-
-
-
-
-
 #[test]
 fn paint_spans_500_rows_is_allocation_free() {
     let _g = lock();
@@ -585,8 +511,6 @@ fn paint_spans_500_rows_is_allocation_free() {
         "the span painter must not allocate (R5, §20.9-6)"
     );
 }
-
-
 
 #[test]
 fn measure_is_allocation_free() {
@@ -688,9 +612,6 @@ fn textbuffer_offset_at_10k_line() {
     assert_eq!(s.allocs, 0);
 }
 
-
-
-
 struct Probes(usize);
 
 impl App for Probes {
@@ -725,8 +646,6 @@ fn probe_runtime(n: usize) -> (Runtime<Probes>, ratatui_core::buffer::Buffer) {
     (rt, buf)
 }
 
-
-
 fn publish_for_input<A: App>(rt: &mut Runtime<A>, buf: &mut ratatui_core::buffer::Buffer) {
     for _ in 0..16 {
         if rt.needs_settle() {
@@ -755,17 +674,11 @@ fn report_drain_lifecycle(
     assert_eq!(stats.allocs, 0);
 }
 
-
-
-
-
 #[test]
 fn intents_drain_is_o_1_when_the_queue_is_empty() {
     let _g = lock();
     let (mut small, mut small_buf) = probe_runtime(20);
     let (mut large, mut large_buf) = probe_runtime(500);
-
-
 
     for _ in 0..2 {
         let _ = termrock_test_support::deliver_buffer(&mut small, &mut small_buf, Input::Tick);
@@ -786,8 +699,6 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
         large.intent_probes() - before,
         "probe cost is independent of the component count when the queue is empty"
     );
-
-
 
     let s20 = bench_sampled(2, iters(200), &mut |sample| {
         publish_for_input(&mut small, &mut small_buf);
@@ -821,18 +732,6 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
         s20.ns, s20.allocs
     );
     assert_eq!(s500.allocs, 0);
-
-
-
-
-
-
-
-
-
-
-
-
 
     let key = || {
         Input::Key(Key {
@@ -873,9 +772,6 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
         s2.ns, s2.allocs
     );
     assert_eq!(s2.allocs, 0, "probing must not allocate");
-
-
-
 
     check_ratio("intents_drain_500_vs_20", s500.ns, s20.ns, 1.25, false);
     check_ratio(
@@ -946,19 +842,9 @@ fn hit_registry_size_is_bounded() {
     assert_eq!(hits, 80);
 }
 
-
-
-
-
-
-
-
-
 use termrock_test_support::perf::{Stats, big};
 
 const LIST_ID: Id = Id::root("perf.list");
-
-
 
 fn perf_rows(n: usize) -> Vec<u32> {
     (0..n).map(|i| i as u32).collect()
@@ -1001,11 +887,6 @@ fn perf_list<'a>() -> List<'a, u32, PerfKeyFn, PerfRowFn> {
     let p: PerfRowFn = row;
     List::new(LIST_ID).key(k).row(p)
 }
-
-
-
-
-
 
 fn bench_list_render(rows: &[u32], checked: usize) -> (Stats, usize) {
     let mut scene = Scene::new("list", Theme::junie(), ColorLevel::TrueColor, 120, 40);
@@ -1051,15 +932,11 @@ fn list_100k_rows_render() {
         s.allocs
     );
 
-
-
-
     assert!(control_regions > 0);
     assert_eq!(
         regions, control_regions,
         "a 100 k list must register exactly what the 1 k list does"
     );
-
 
     check_ratio(
         "list_100k_vs_1k_render",
@@ -1116,7 +993,6 @@ fn no_full_collection_clone_per_frame() {
     );
 }
 
-
 struct ListApp {
     rows: Vec<u32>,
     st: ListState,
@@ -1158,8 +1034,6 @@ fn list_runtime(n: usize, mode: SelectMode) -> (Runtime<ListApp>, ratatui_core::
     (rt, buf)
 }
 
-
-
 #[test]
 fn list_100k_select_all() {
     let _g = lock();
@@ -1192,13 +1066,10 @@ fn list_100k_select_all() {
         s.allocs
     );
 
-
     let _ = termrock_test_support::deliver_buffer(&mut rt, &mut buf, toggle());
     assert!(rt.app().st.checked().contains(ItemKey::num(99)));
     assert!(rt.app().st.checked().contains(ItemKey::num(99_999)));
 }
-
-
 
 #[test]
 fn event_dispatch_is_not_o_n() {
@@ -1229,8 +1100,6 @@ fn event_dispatch_is_not_o_n() {
         }
         rt.draw_buffer(area, buf).commit_presented();
     };
-
-
 
     let full_small = bench(2, iters(50), &mut || run(&mut small, &mut small_buf));
     let full_large = bench(2, iters(50), &mut || run(&mut large, &mut large_buf));
@@ -1283,11 +1152,7 @@ fn event_dispatch_is_not_o_n() {
     );
 }
 
-
-
 const SHOW: Id = Id::root("perf.showcase.buttons");
-
-
 
 const SHOWCASE_BUTTONS: [(&str, Variant, bool, Option<bool>); 9] = [
     ("Run task", Variant::PRIMARY, false, None),
@@ -1300,8 +1165,6 @@ const SHOWCASE_BUTTONS: [(&str, Variant, bool, Option<bool>); 9] = [
     ("Disabled", Variant::SECONDARY, true, None),
     ("Start long job", Variant::SECONDARY, false, None),
 ];
-
-
 
 struct ShowcaseButtons;
 

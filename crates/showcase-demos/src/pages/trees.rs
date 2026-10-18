@@ -1,5 +1,3 @@
-
-
 use termrock::{
     Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Role, RowUi,
     StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, layout,
@@ -77,7 +75,6 @@ fn project_tree()
         .row(node_row)
         .patch_part(TREE_GUTTER)
 }
-
 
 fn project_panel(meta: &str) -> Panel<'_> {
     Panel::new(PROJECT)
@@ -168,8 +165,6 @@ fn label_for(key: Option<ItemKey>) -> &'static str {
     .unwrap_or("src")
 }
 
-
-
 #[derive(Debug)]
 pub struct TreesPage {
     state: TreeState,
@@ -180,11 +175,6 @@ pub struct TreesPage {
 impl TreesPage {
     pub fn new() -> Self {
         let mut state = TreeState::new();
-
-
-
-
-
 
         for key in [1_u64, 20, 26, 29, 30] {
             state.expand(ItemKey::Num(key));

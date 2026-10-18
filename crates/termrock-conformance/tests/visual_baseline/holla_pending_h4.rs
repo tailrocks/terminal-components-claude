@@ -1,97 +1,9 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 
 use crate::support::Session;
 
 use crate::support::state_waits as waits;
 use crate::support::{self, Case, Color, HOLLA};
-
 
 const BOOT: &str = "holla❯";
 
@@ -232,7 +144,6 @@ const PLATFORMS_LINUX: &[&str] = &[
 ];
 const TASKINPUT: &[&str] = &["--scenario", "parity-task-input", "--motion", "reduced"];
 
-
 fn h4_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
         format!("journeys/holla/h4/{slug}"),
@@ -245,7 +156,6 @@ fn h4_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Cas
     )
 }
 
-
 fn h4_case_t(
     slug: &str,
     args: &'static [&'static str],
@@ -255,7 +165,6 @@ fn h4_case_t(
     h4_case(slug, args, boot).timeout(timeout_ms)
 }
 
-
 fn h4_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -263,8 +172,6 @@ fn h4_dir(test: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     dir
 }
-
-
 
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
@@ -285,7 +192,6 @@ fn write_provenance(dir: &Path, case: &Case) {
     eprintln!("h4 provenance: {body}");
 }
 
-
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -302,7 +208,6 @@ fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     eprintln!("checkpoint {name} ({} bytes visible text)", text.len());
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -310,14 +215,6 @@ fn live_text(s: &mut Session) -> String {
         .unwrap_or_else(|e| panic!("live sample failed: {e:#}"));
     support::screen_text(&obs.screen)
 }
-
-
-
-
-
-
-
-
 
 fn wait_absent(s: &mut Session, needle: &str, what: &str) {
     support::wait_screen(
@@ -328,21 +225,12 @@ fn wait_absent(s: &mut Session, needle: &str, what: &str) {
     );
 }
 
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: no line contains both `{needle}` and `{also}`"
     );
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
@@ -368,11 +256,9 @@ fn h4_upgrade_confirm() {
     );
     waits::wait_state(&mut s, "7 included · 1 excluded", "step excluded");
 
-
     support::drive_with_timeout(&mut s, &["c", &format!("wait:{DIALOG}")], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-dialog");
     let dialog = live_text(&mut s);
-
 
     assert!(dialog.contains(DIALOG), "V1: no dialog title");
 
@@ -383,7 +269,6 @@ fn h4_upgrade_confirm() {
     assert!(dialog.contains(FOOTER), "S2: no dialog footer");
 
     assert!(!dialog.contains(CANCELLED), "N1: cancelled before Esc");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, DIALOG, "dialog cancelled");
@@ -402,11 +287,6 @@ fn h4_upgrade_confirm() {
     eprintln!("h4 upgrade_confirm: dialog, cancel roundtrip x2");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_upgrade_excluded() {
@@ -420,7 +300,6 @@ fn h4_upgrade_excluded() {
         boot.contains("8 steps · 8 included · 0 excluded"),
         "pre: boot has no full plan"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -437,7 +316,6 @@ fn h4_upgrade_excluded() {
     );
     checkpoint(&mut s, &dir, "01-excluded");
     let excluded = live_text(&mut s);
-
 
     assert_line_has(
         &excluded,
@@ -457,7 +335,6 @@ fn h4_upgrade_excluded() {
 
     assert!(!excluded.contains("8 included"), "N1: full count stuck");
 
-
     support::press_step(&s, "space");
     waits::wait_state(&mut s, "8 included · 0 excluded", "step included");
     checkpoint(&mut s, &dir, "02-included");
@@ -476,11 +353,6 @@ fn h4_upgrade_excluded() {
     eprintln!("h4 upgrade_excluded: exclusion toggle roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_upgrade_facts() {
@@ -495,11 +367,9 @@ fn h4_upgrade_facts() {
         "pre: boot has no steps cursor"
     );
 
-
     support::drive_with_timeout(&mut s, &["p", "wait:▎01 Preflight"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-drawer");
     let drawer = live_text(&mut s);
-
 
     assert_line_has(&drawer, "▎01 Preflight", "required", "V1 header");
 
@@ -510,7 +380,6 @@ fn h4_upgrade_facts() {
     assert_line_has(&drawer, "State", "ready", "S2 state");
 
     assert!(!drawer.contains("▎[✓]"), "N1: steps cursor stuck");
-
 
     support::press_step(&s, "p");
     waits::wait_state(&mut s, "▎[✓] 01 Preflight", "steps back");
@@ -525,11 +394,6 @@ fn h4_upgrade_facts() {
     eprintln!("h4 upgrade_facts: drawer focus roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_brew_services() {
@@ -542,7 +406,6 @@ fn h4_parity_brew_services() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "›Tasks", "Services", "V1 explore");
 
     assert!(
@@ -551,7 +414,6 @@ fn h4_parity_brew_services() {
     );
 
     assert_line_has(&boot, "In", "~/work", "S1 world");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -566,7 +428,6 @@ fn h4_parity_brew_services() {
     assert_line_has(&list, "svc02", "error", "flow row");
 
     assert!(!list.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, DETAIL, "listing closed");
@@ -587,11 +448,6 @@ fn h4_parity_brew_services() {
     eprintln!("h4 parity_brew_services: boot, listing roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_browser() {
@@ -602,7 +458,6 @@ fn h4_parity_browser() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(&boot, "› pnpm a", "package.json here", "V1 row");
 
@@ -622,11 +477,9 @@ fn h4_parity_browser() {
         "pre: no hidden-hidden status"
     );
 
-
     support::drive_with_timeout(&mut s, &["ctrl-h", "wait:2 hidden shown"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-hidden");
     let hidden = live_text(&mut s);
-
 
     assert_line_has(&hidden, "18 entries", "2 hidden shown", "S2 header");
 
@@ -642,7 +495,6 @@ fn h4_parity_browser() {
         "N1: hidden status stuck"
     );
 
-
     support::drive_with_timeout(&mut s, &["ctrl-h", "wait:2 hidden hidden"], case.timeout_ms);
     let off = live_text(&mut s);
 
@@ -653,12 +505,6 @@ fn h4_parity_browser() {
     assert_line_has(&back, "18 entries", "2 hidden shown", "header intact");
     eprintln!("h4 parity_browser: boot, hidden toggle roundtrip x2");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
@@ -672,7 +518,6 @@ fn h4_parity_cargo() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "› cargo build", "Cargo.toml here", "V1 row");
 
     assert!(
@@ -681,7 +526,6 @@ fn h4_parity_cargo() {
     );
 
     assert_line_has(&boot, "In", "~/work/engine", "S1 world");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -703,7 +547,6 @@ fn h4_parity_cargo() {
         !clean.contains(DIALOG_FOOTER),
         "N1: dialog open before Enter"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -734,11 +577,6 @@ fn h4_parity_cargo() {
     eprintln!("h4 parity_cargo: boot, dialog roundtrip x2");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_cleanup_results() {
@@ -751,7 +589,6 @@ fn h4_parity_cleanup_results() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "cargo clean · 1000.0 MiB", "destructive", "V1 row");
 
     assert!(boot.contains("cargo fmt --check"), "V2: no cargo shelf");
@@ -759,7 +596,6 @@ fn h4_parity_cleanup_results() {
     assert_line_has(&boot, "In", "~/Projects/safe", "S1 world");
 
     assert!(!boot.contains(HIST), "N1: history visible at boot");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -773,11 +609,9 @@ fn h4_parity_cleanup_results() {
     checkpoint(&mut s, &dir, "01-history");
     let hist = live_text(&mut s);
 
-
     assert_line_has(&hist, "Entries", "1 operation log records", "S2 header");
 
     assert_line_has(&hist, "2026-08-29 08:41", "trashed", "flow record");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, HIST, "history left");
@@ -792,12 +626,6 @@ fn h4_parity_cleanup_results() {
     eprintln!("h4 parity_cleanup_results: boot, history roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_custom_actions() {
@@ -810,13 +638,11 @@ fn h4_parity_custom_actions() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "› Deploy preview", "unreviewed", "V1 row");
 
     assert!(boot.contains("Global shared id"), "V2: no trusted shelf");
 
     assert_line_has(&boot, "Gate", "trust required", "S1 gate");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -826,14 +652,12 @@ fn h4_parity_custom_actions() {
     checkpoint(&mut s, &dir, "01-prompt");
     let prompt = live_text(&mut s);
 
-
     assert!(
         prompt.contains("label = \"Deploy preview\""),
         "S2: no definition label"
     );
 
     assert!(!prompt.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, PROMPT, "review closed");
@@ -854,11 +678,6 @@ fn h4_parity_custom_actions() {
     eprintln!("h4 parity_custom_actions: boot, prompt roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_delete_safety() {
@@ -870,18 +689,15 @@ fn h4_parity_delete_safety() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
 
-
     waits::wait_state(&mut s, "cargo fmt --check", "suggestions settled");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(&boot, "cargo clean · 1000.0 MiB", "destructive", "V1 row");
 
     assert!(boot.contains("cargo fmt --check"), "V2: no cargo shelf");
 
     assert_line_has(&boot, "Data", "live ·", "S1 freshness");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -891,13 +707,11 @@ fn h4_parity_delete_safety() {
     checkpoint(&mut s, &dir, "01-scan");
     let scan = live_text(&mut s);
 
-
     assert!(scan.contains(ALLOCATED), "S2: no allocated sort");
 
     assert!(scan.contains("scan complete"), "flow: no completion");
 
     assert!(!scan.contains(APPARENT), "N1: apparent sort active");
-
 
     support::press_step(&s, "s");
     waits::wait_state(&mut s, APPARENT, "apparent on");
@@ -912,11 +726,6 @@ fn h4_parity_delete_safety() {
     eprintln!("h4 parity_delete_safety: boot, scan + sort roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_disk_navigation() {
@@ -928,18 +737,15 @@ fn h4_parity_disk_navigation() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
 
-
     waits::wait_state(&mut s, "cargo fmt --check", "suggestions settled");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(&boot, "cargo clean · 2.0 MiB", "destructive", "V1 row");
 
     assert!(boot.contains("cargo fmt --check"), "V2: no cargo shelf");
 
     assert_line_has(&boot, "In", "~/work/big", "S1 world");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -949,11 +755,9 @@ fn h4_parity_disk_navigation() {
     checkpoint(&mut s, &dir, "01-scan");
     let scan = live_text(&mut s);
 
-
     assert!(scan.contains(ALLOCATED), "S2: no allocated sort");
 
     assert!(!scan.contains(APPARENT), "N1: apparent sort active");
-
 
     support::press_step(&s, "s");
     waits::wait_state(&mut s, APPARENT, "apparent on");
@@ -968,12 +772,6 @@ fn h4_parity_disk_navigation() {
     eprintln!("h4 parity_disk_navigation: boot, scan + sort roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_docker() {
@@ -985,7 +783,6 @@ fn h4_parity_docker() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "› Follow acme-api-1 logs", "unhealthy", "V1 row");
 
     assert!(
@@ -994,7 +791,6 @@ fn h4_parity_docker() {
     );
 
     assert_line_has(&boot, "In", "~/work/stack", "S1 world");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1018,7 +814,6 @@ fn h4_parity_docker() {
     assert_line_has(&gate, "Changes", "6 containers removed", "S2 changes");
 
     assert!(!gate.contains(GATE2), "N1: gate 2 open before Right+Enter");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1050,12 +845,6 @@ fn h4_parity_docker() {
     eprintln!("h4 parity_docker: boot, gate roundtrip x2");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_executor() {
@@ -1066,11 +855,9 @@ fn h4_parity_executor() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
 
-
     waits::wait_state(&mut s, "Emit a mixed stream", "suggestions settled");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(
         &boot,
@@ -1082,7 +869,6 @@ fn h4_parity_executor() {
     assert!(boot.contains("Emit a mixed stream"), "V2: no burst shelf");
 
     assert_line_has(&boot, "In", "~/work/batch", "S1 world");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1097,7 +883,6 @@ fn h4_parity_executor() {
     checkpoint(&mut s, &dir, "01-output");
     let output = live_text(&mut s);
 
-
     assert_line_has(&output, "emit a burst · succeeded", "exit 0", "S2 title");
 
     assert!(
@@ -1106,9 +891,6 @@ fn h4_parity_executor() {
     );
 
     assert!(!output.contains(PLACEHOLDER), "N1: placeholder stuck");
-
-
-
 
     support::press_step(&s, "r");
     wait_absent(&mut s, DONE, "output restarted");
@@ -1126,11 +908,6 @@ fn h4_parity_executor() {
     eprintln!("h4 parity_executor: boot, burst + restart roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_files() {
@@ -1144,7 +921,6 @@ fn h4_parity_files() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "›Tasks", "Files", "V1 explore");
 
     assert!(
@@ -1153,7 +929,6 @@ fn h4_parity_files() {
     );
 
     assert_line_has(&boot, "In", "~/work/notes", "S1 world");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1169,11 +944,9 @@ fn h4_parity_files() {
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
 
-
     assert_line_has(&res, FIRST, "7 B of 7 B", "S2 preview");
 
     assert!(res.contains("3 results · home scope"), "flow: no 3 results");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1192,12 +965,6 @@ fn h4_parity_files() {
     eprintln!("h4 parity_files: boot, results cursor roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_git_batch() {
@@ -1208,11 +975,9 @@ fn h4_parity_git_batch() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
 
-
     waits::wait_state(&mut s, "Children · 4 projects", "explore settled");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(
         &boot,
@@ -1224,10 +989,6 @@ fn h4_parity_git_batch() {
     assert!(boot.contains("Children · 4 projects"), "V2: no child count");
 
     assert_line_has(&boot, "Scope", "child", "S1 scope");
-
-
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1245,7 +1006,6 @@ fn h4_parity_git_batch() {
     checkpoint(&mut s, &dir, "01-batch");
     let batch = live_text(&mut s);
 
-
     assert_line_has(&batch, "pull alpha · succeeded", "exit 0", "S2 title");
 
     assert!(
@@ -1254,9 +1014,6 @@ fn h4_parity_git_batch() {
     );
 
     assert!(!batch.contains(PLACEHOLDER), "N1: placeholder stuck");
-
-
-
 
     support::press_step(&s, "r");
     wait_absent(&mut s, FF, "output restarted");
@@ -1278,11 +1035,6 @@ fn h4_parity_git_batch() {
     eprintln!("h4 parity_git_batch: boot, batch + restart roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_git_current() {
@@ -1293,7 +1045,6 @@ fn h4_parity_git_current() {
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(
         &boot,
@@ -1306,7 +1057,6 @@ fn h4_parity_git_current() {
 
     assert_line_has(&boot, "Scope", "parent", "S1 scope");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:Pull", "wait:blocked · 1 modified"],
@@ -1315,13 +1065,11 @@ fn h4_parity_git_current() {
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
 
-
     assert!(res.contains("Results · 3"), "S2: no Results · 3");
 
     assert_line_has(&res, "› Pull", "blocked · 1 modified", "flow row");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, "Results · 3", "results cleared");
@@ -1341,12 +1089,6 @@ fn h4_parity_git_current() {
     eprintln!("h4 parity_git_current: boot, results clear roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_gradle() {
@@ -1358,13 +1100,11 @@ fn h4_parity_gradle() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "› Clean Gradle outputs", "destructive", "V1 row");
 
     assert!(boot.contains("gradle test"), "V2: no gradle shelf");
 
     assert_line_has(&boot, "Gate", "opens a review", "S1 gate");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1380,7 +1120,6 @@ fn h4_parity_gradle() {
     checkpoint(&mut s, &dir, "01-cleanup");
     let gradle = live_text(&mut s);
 
-
     assert_line_has(
         &gradle,
         "Selection",
@@ -1391,7 +1130,6 @@ fn h4_parity_gradle() {
     assert_line_has(&gradle, "▾ Gradle outputs", "49.0 MiB", "flow fold");
 
     assert!(!gradle.contains(GATE1), "N1: gate 1 open before d");
-
 
     support::press_step(&s, "left");
     waits::wait_gone(&mut s, "▾ Gradle outputs", "fold closed");
@@ -1412,10 +1150,6 @@ fn h4_parity_gradle() {
     eprintln!("h4 parity_gradle: boot, fold + gate roundtrips");
 }
 
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_history() {
@@ -1427,25 +1161,21 @@ fn h4_parity_history() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "› Run check", "mise.toml", "V1 row");
 
     assert!(boot.contains("Run tests"), "V2: no task shelf");
 
     assert_line_has(&boot, "In", "~/work/holla", "S1 world");
 
-
     support::drive_with_timeout(&mut s, &["type:pull", "wait:Results · 3"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-results");
     let res = live_text(&mut s);
-
 
     assert!(res.contains("Enter Run"), "S2: no run footer");
 
     assert_line_has(&res, "› Pull", "up to date", "flow row");
 
     assert!(!res.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Results · 3", "results cleared");
@@ -1461,11 +1191,6 @@ fn h4_parity_history() {
     eprintln!("h4 parity_history: boot, results clear roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_idea() {
@@ -1478,13 +1203,11 @@ fn h4_parity_idea() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "› Clean IntelliJ metadata", "destructive", "V1 row");
 
     assert!(boot.contains("4 candidates"), "V2: no candidate count");
 
     assert_line_has(&boot, "In", "~/work/ide", "S1 world");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1494,7 +1217,6 @@ fn h4_parity_idea() {
     checkpoint(&mut s, &dir, "01-page");
     let page = live_text(&mut s);
 
-
     assert_line_has(
         &page,
         "Selection",
@@ -1503,7 +1225,6 @@ fn h4_parity_idea() {
     );
 
     assert!(!page.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, TITLE, "page closed");
@@ -1529,11 +1250,6 @@ fn h4_parity_idea() {
     eprintln!("h4 parity_idea: boot, page roundtrip");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_insights() {
@@ -1545,13 +1261,11 @@ fn h4_parity_insights() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "› Review cleanup candidates", "18.8 GiB", "V1 row");
 
     assert!(boot.contains("18 categories"), "V2: no category count");
 
     assert_line_has(&boot, "Scope", "host", "S1 scope");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1565,7 +1279,6 @@ fn h4_parity_insights() {
     checkpoint(&mut s, &dir, "01-categories");
     let cats = live_text(&mut s);
 
-
     assert_line_has(&cats, "Safety", "rebuilt on demand", "S2 detail");
 
     assert_line_has(&cats, "18 categories", "18.8 GiB", "flow header");
@@ -1574,7 +1287,6 @@ fn h4_parity_insights() {
         !cats.contains("▾ Xcode DerivedData"),
         "N1: fold open before Right"
     );
-
 
     support::press_step(&s, "down");
     waits::wait_state(&mut s, "▎[✓] ▸ Xcode device support", "cursor down");
@@ -1594,11 +1306,6 @@ fn h4_parity_insights() {
     eprintln!("h4 parity_insights: boot, cursor + fold roundtrips");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_platforms() {
@@ -1611,7 +1318,6 @@ fn h4_parity_platforms() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "›Tasks", "System", "V1 explore");
 
     assert!(
@@ -1620,8 +1326,6 @@ fn h4_parity_platforms() {
     );
 
     assert_line_has(&boot, "In", "~/work/mac", "S1 world");
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1636,7 +1340,6 @@ fn h4_parity_platforms() {
     checkpoint(&mut s, &dir, "01-files");
     let files = live_text(&mut s);
 
-
     assert!(files.contains("Esc Back"), "S2: no back footer");
 
     assert!(
@@ -1645,7 +1348,6 @@ fn h4_parity_platforms() {
     );
 
     assert!(!files.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, "Esc Back", "page closed");
@@ -1671,12 +1373,6 @@ fn h4_parity_platforms() {
     eprintln!("h4 parity_platforms: boot, page roundtrip");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_platforms_linux() {
@@ -1688,13 +1384,11 @@ fn h4_parity_platforms_linux() {
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
 
-
     assert_line_has(&boot, "›Tasks", "System", "V1 explore");
 
     assert!(boot.contains("System · devbox"), "V2: no devbox shelf");
 
     assert_line_has(&boot, "Host", "devbox · local", "S1 host");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1720,7 +1414,6 @@ fn h4_parity_platforms_linux() {
     );
 
     assert!(!gate.contains(GATE2), "N1: gate 2 open before Right+Enter");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1749,12 +1442,6 @@ fn h4_parity_platforms_linux() {
     eprintln!("h4 parity_platforms_linux: boot, gate roundtrip x2");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h4 check; run with --ignored"]
 fn h4_parity_task_input() {
@@ -1765,11 +1452,9 @@ fn h4_parity_task_input() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
 
-
     waits::wait_state(&mut s, "Run the stubborn worker", "suggestions settled");
     let boot = live_text(&mut s);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
-
 
     assert_line_has(&boot, "› Follow payments-worker", "restarting", "V1 row");
 
@@ -1780,7 +1465,6 @@ fn h4_parity_task_input() {
 
     assert_line_has(&boot, "Scope", "on devbox", "S1 scope");
 
-
     support::drive_with_timeout(
         &mut s,
         &["type:Deploy the release", "enter", "wait:Password:"],
@@ -1789,14 +1473,12 @@ fn h4_parity_task_input() {
     checkpoint(&mut s, &dir, "01-password");
     let password = live_text(&mut s);
 
-
     assert!(
         password.contains("waiting for input"),
         "S2: no waiting title"
     );
 
     assert!(!password.contains(PLACEHOLDER), "N1: placeholder stuck");
-
 
     support::press_step(&s, "escape");
     wait_absent(&mut s, PASSWORD, "output left");

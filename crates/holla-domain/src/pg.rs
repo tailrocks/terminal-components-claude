@@ -1,6 +1,3 @@
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PgSession {
     pub pid: u32,
@@ -18,7 +15,6 @@ impl PgSession {
     }
 }
 
-
 pub fn blockers(sessions: &[PgSession]) -> Vec<&PgSession> {
     let waited_on: std::collections::BTreeSet<u32> =
         sessions.iter().filter_map(|s| s.blocked_by).collect();
@@ -27,7 +23,6 @@ pub fn blockers(sessions: &[PgSession]) -> Vec<&PgSession> {
         .filter(|s| waited_on.contains(&s.pid))
         .collect()
 }
-
 
 pub fn blocked_by(sessions: &[PgSession], pid: u32) -> Vec<&PgSession> {
     sessions

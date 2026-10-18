@@ -1,5 +1,3 @@
-
-
 mod authority;
 mod context;
 mod context_check;

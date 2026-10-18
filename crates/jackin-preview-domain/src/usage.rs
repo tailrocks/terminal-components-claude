@@ -1,6 +1,3 @@
-
-
-
 use std::collections::BTreeMap;
 
 use super::account::{Account, AccountId, Lifecycle};
@@ -9,7 +6,6 @@ use super::agent::{Provider, UsageSurface};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 
 pub enum Freshness {
-
     Current,
 
     Stale,
@@ -20,7 +16,6 @@ pub enum Freshness {
 }
 
 impl Freshness {
-
     pub fn label(self) -> &'static str {
         match self {
             Freshness::Current => "current",
@@ -34,7 +29,6 @@ impl Freshness {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 
 pub enum QuotaStatus {
-
     Available,
 
     NotStarted,
@@ -51,7 +45,6 @@ pub enum QuotaStatus {
 }
 
 impl QuotaStatus {
-
     pub fn label(self) -> &'static str {
         match self {
             QuotaStatus::Available => "available",
@@ -63,7 +56,6 @@ impl QuotaStatus {
             QuotaStatus::Error => "error",
         }
     }
-
 
     pub fn from_pct(used_pct: u8) -> Self {
         if used_pct >= 100 {
@@ -79,7 +71,6 @@ impl QuotaStatus {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 
 pub enum WindowCategory {
-
     Session,
 
     LongRange,
@@ -92,7 +83,6 @@ pub enum WindowCategory {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 
 pub enum WindowUnit {
-
     Percent,
 
     Tokens,
@@ -103,7 +93,6 @@ pub enum WindowUnit {
 }
 
 impl WindowUnit {
-
     pub fn label(self) -> &'static str {
         match self {
             WindowUnit::Percent => "%",
@@ -117,7 +106,6 @@ impl WindowUnit {
 #[derive(Debug, Clone, PartialEq, Eq)]
 
 pub struct QuotaWindow {
-
     pub id: &'static str,
 
     pub label: String,
@@ -142,7 +130,6 @@ pub struct QuotaWindow {
 }
 
 impl QuotaWindow {
-
     pub fn pct(id: &'static str, label: &str, category: WindowCategory, used_pct: u8) -> Self {
         Self {
             id,
@@ -158,7 +145,6 @@ impl QuotaWindow {
             note: None,
         }
     }
-
 
     pub fn counted(
         id: &'static str,
@@ -184,7 +170,6 @@ impl QuotaWindow {
         }
     }
 
-
     pub fn sentinel(id: &'static str, label: &str, status: QuotaStatus, note: &str) -> Self {
         Self {
             id,
@@ -201,36 +186,30 @@ impl QuotaWindow {
         }
     }
 
-
     pub fn not_started(id: &'static str, label: &str, category: WindowCategory) -> Self {
         let mut w = Self::pct(id, label, category, 0);
         w.status = QuotaStatus::NotStarted;
         w
     }
 
-
     pub fn reset(mut self, secs: i64) -> Self {
         self.reset_secs = Some(secs);
         self
     }
-
 
     pub fn spend(mut self, label: &str) -> Self {
         self.spend_label = Some(label.to_owned());
         self
     }
 
-
     pub fn status(mut self, s: QuotaStatus) -> Self {
         self.status = s;
         self
     }
 
-
     pub fn remaining_pct(&self) -> Option<u8> {
         self.used_pct.map(|p| 100 - p)
     }
-
 
     pub fn value_label(&self) -> String {
         match (self.used, self.limit, self.used_pct, self.status) {
@@ -248,7 +227,6 @@ impl QuotaWindow {
                 .unwrap_or_else(|| self.status.label().to_owned()),
         }
     }
-
 
     pub fn has_meter(&self) -> bool {
         self.used_pct.is_some()
@@ -274,7 +252,6 @@ fn thousands(value: usize) -> String {
 #[derive(Debug, Clone, PartialEq, Eq)]
 
 pub struct FreshnessInfo {
-
     pub phase: Freshness,
 
     pub last_good_secs: Option<i64>,
@@ -283,7 +260,6 @@ pub struct FreshnessInfo {
 }
 
 impl FreshnessInfo {
-
     pub fn current(at: i64) -> Self {
         Self {
             phase: Freshness::Current,
@@ -317,24 +293,20 @@ impl FreshnessInfo {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUsage {
-
     pub freshness: FreshnessInfo,
 
     pub windows: Vec<QuotaWindow>,
 }
 
 impl AccountUsage {
-
     pub fn none() -> Self {
         Self {
             freshness: FreshnessInfo::failed(None, None),
             windows: vec![],
         }
     }
-
 
     pub fn worst_status(&self) -> Option<QuotaStatus> {
         self.windows
@@ -352,12 +324,9 @@ impl AccountUsage {
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 
 pub enum HealthWord {
-
     Empty,
 
     Blocked,
@@ -370,7 +339,6 @@ pub enum HealthWord {
 }
 
 impl HealthWord {
-
     pub fn label(self) -> &'static str {
         match self {
             HealthWord::Empty => "empty",
@@ -385,7 +353,6 @@ impl HealthWord {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 
 pub struct OverallCounts {
-
     pub accounts: usize,
 
     pub enabled: usize,
@@ -412,7 +379,6 @@ pub struct OverallCounts {
 #[derive(Debug, Clone, PartialEq, Eq)]
 
 pub struct ComparableRollup {
-
     pub surface: UsageSurface,
 
     pub window_id: &'static str,
@@ -437,7 +403,6 @@ pub struct ComparableRollup {
 #[derive(Debug, Clone, PartialEq, Eq)]
 
 pub struct NotComparableNote {
-
     pub surface: UsageSurface,
 
     pub reason: &'static str,
@@ -446,7 +411,6 @@ pub struct NotComparableNote {
 #[derive(Debug, Clone, PartialEq, Eq)]
 
 pub struct OverallSummary {
-
     pub health: HealthWord,
 
     pub counts: OverallCounts,
@@ -461,8 +425,6 @@ pub struct OverallSummary {
 }
 
 impl OverallSummary {
-
-
     pub fn compute(accounts: &[Account]) -> Self {
         let mut counts = OverallCounts {
             accounts: accounts.len(),
@@ -620,7 +582,6 @@ impl OverallSummary {
         }
     }
 
-
     pub fn counts_line(&self) -> String {
         let c = &self.counts;
         let mut parts = vec![format!("{} account{}", c.accounts, plural(c.accounts))];
@@ -631,7 +592,6 @@ impl OverallSummary {
         parts.push(format!("{} provider{}", c.providers, plural(c.providers)));
         parts.join(" · ")
     }
-
 
     pub fn issues_line(&self) -> String {
         let c = &self.counts;
@@ -672,7 +632,6 @@ impl OverallSummary {
         }
     }
 }
-
 
 pub fn plural(n: usize) -> &'static str {
     if n == 1 { "" } else { "s" }

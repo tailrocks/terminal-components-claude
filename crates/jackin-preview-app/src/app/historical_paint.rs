@@ -1,5 +1,3 @@
-
-
 use termrock::author::PaintStyle;
 use termrock::theme::{MonoRule, StyleDefaults};
 use termrock::{

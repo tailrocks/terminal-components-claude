@@ -1,13 +1,7 @@
-
-
 use ratatui_core::symbols::{line, scrollbar};
-
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum GlyphRole {
-
     FocusBar,
 
     Chosen,
@@ -84,12 +78,6 @@ pub enum GlyphRole {
 
     PressRight,
 
-
-
-
-
-
-
     SecretMask,
 
     SelectClosed,
@@ -100,7 +88,6 @@ pub enum GlyphRole {
 }
 
 impl GlyphRole {
-
     pub const ALL: [GlyphRole; 42] = [
         GlyphRole::FocusBar,
         GlyphRole::Chosen,
@@ -151,9 +138,6 @@ impl GlyphRole {
     }
 }
 
-
-
-
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct GlyphSet {
     glyphs: [&'static str; 41],
@@ -164,8 +148,6 @@ pub struct GlyphSet {
 }
 
 impl GlyphSet {
-
-
     pub const fn new(
         glyphs: [&'static str; 41],
         scroll: scrollbar::Set<'static>,
@@ -180,7 +162,6 @@ impl GlyphSet {
             rule_active,
         }
     }
-
 
     #[expect(
         clippy::indexing_slicing,
@@ -197,7 +178,6 @@ impl GlyphSet {
         }
     }
 
-
     #[expect(
         clippy::indexing_slicing,
         reason = "the index is a variant discriminant below the array length"
@@ -213,63 +193,30 @@ impl GlyphSet {
         }
     }
 
-
-
-
-
-
-
-
     pub const fn set_scrollbar(&mut self, s: scrollbar::Set<'static>) {
         self.scroll = s;
     }
-
-
-
-
-
 
     pub const fn set_rule_quiet(&mut self, s: line::Set<'static>) {
         self.rule_quiet = s;
     }
 
-
-
-
-
     pub const fn set_rule_active(&mut self, s: line::Set<'static>) {
         self.rule_active = s;
     }
-
 
     pub fn scrollbar(&self) -> scrollbar::Set<'static> {
         self.scroll.clone()
     }
 
-
     pub const fn rule_quiet(&self) -> line::Set<'static> {
         self.rule_quiet
     }
-
 
     pub const fn rule_active(&self) -> line::Set<'static> {
         self.rule_active
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub(crate) const ASCII_SCROLLBAR: scrollbar::Set<'static> = scrollbar::Set {
     track: "|",
@@ -277,11 +224,6 @@ pub(crate) const ASCII_SCROLLBAR: scrollbar::Set<'static> = scrollbar::Set {
     begin: "|",
     end: "|",
 };
-
-
-
-
-
 
 pub(crate) const ASCII_RULE_QUIET: line::Set<'static> = line::Set {
     vertical: "|",
@@ -296,12 +238,6 @@ pub(crate) const ASCII_RULE_QUIET: line::Set<'static> = line::Set {
     horizontal_up: "+",
     cross: "+",
 };
-
-
-
-
-
-
 
 pub(crate) const ASCII_RULE_ACTIVE: line::Set<'static> = line::Set {
     vertical: "|",
@@ -339,11 +275,6 @@ mod tests {
         assert_eq!(GlyphRole::SelectClosed as usize, 39);
         assert_eq!(GlyphRole::SelectOpen as usize, 40);
     }
-
-
-
-
-
 
     #[test]
     fn ascii_glyph_set_has_no_box_drawing() {

@@ -1,88 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -90,7 +5,6 @@ use crate::support::Session;
 
 use crate::support::state_waits as waits;
 use crate::support::{self, Case, Color, HOLLA};
-
 
 const BOOT: &str = "holla❯";
 
@@ -181,11 +95,9 @@ const IDEA: &[&str] = &[
     "40",
 ];
 
-
 const GATE2: &str = "gate 2 of 2";
 
 const GATE1: &str = "gate 1 of 2";
-
 
 fn h1_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     Case::dynamic(
@@ -199,7 +111,6 @@ fn h1_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Cas
     )
 }
 
-
 fn h1_case_t(
     slug: &str,
     args: &'static [&'static str],
@@ -209,7 +120,6 @@ fn h1_case_t(
     h1_case(slug, args, boot).timeout(timeout_ms)
 }
 
-
 fn h1_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -217,8 +127,6 @@ fn h1_dir(test: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap_or_else(|e| panic!("mkdir {}: {e}", dir.display()));
     dir
 }
-
-
 
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
@@ -238,7 +146,6 @@ fn write_provenance(dir: &Path, case: &Case) {
         .unwrap_or_else(|e| panic!("write {}: {e}", dir.join("provenance.txt").display()));
     eprintln!("h1 provenance: {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -260,7 +167,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -269,19 +175,12 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: no line contains both `{needle}` and `{also}`"
     );
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -301,7 +200,6 @@ fn h1_cargo_clean() {
     checkpoint(&mut s, &dir, "01-clean");
     let clean = live_text(&mut s);
 
-
     assert_line_has(&clean, "› cargo clean · 900.0 MiB", "destructive", "V1 row");
     assert!(clean.contains("Results · 3"), "V1: no Results · 3");
 
@@ -319,7 +217,6 @@ fn h1_cargo_clean() {
         !clean.contains(DIALOG_FOOTER),
         "N1: dialog open before Enter"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -352,12 +249,6 @@ fn h1_cargo_clean() {
     eprintln!("h1 cargo_clean: row, dialog roundtrip x2");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
 fn h1_cargo_clean_confirm() {
@@ -380,7 +271,6 @@ fn h1_cargo_clean_confirm() {
     checkpoint(&mut s, &dir, "01-dialog");
     let dialog = live_text(&mut s);
 
-
     assert_line_has(
         &dialog,
         "Action",
@@ -399,7 +289,6 @@ fn h1_cargo_clean_confirm() {
         "S2 confirmation",
     );
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, DIALOG_FOOTER, "dialog cancelled");
     waits::wait_state(&mut s, "900.0 MiB", "clean row back");
@@ -414,7 +303,6 @@ fn h1_cargo_clean_confirm() {
         !cancelled.contains("one explicit confirmation"),
         "N1: confirmation fact stuck"
     );
-
 
     support::drive_with_timeout(
         &mut s,
@@ -435,11 +323,6 @@ fn h1_cargo_clean_confirm() {
     checkpoint(&mut s, &dir, "03-cancelled-again");
     eprintln!("h1 cargo_clean_confirm: dialog, cancel roundtrip x2");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -464,7 +347,6 @@ fn h1_cleanup_artifacts() {
     checkpoint(&mut s, &dir, "01-artifacts");
     let arts = live_text(&mut s);
 
-
     assert_line_has(&arts, "▎[ ] ▸ Project artifacts", "2.5 GiB", "V1 cursor");
 
     assert!(
@@ -486,7 +368,6 @@ fn h1_cleanup_artifacts() {
         "N1: fold open before Right"
     );
 
-
     support::press_step(&s, "up");
     waits::wait_state(&mut s, "▎[✓] ▸ JetBrains logs", "cursor up");
     support::press_step(&s, "down");
@@ -504,11 +385,6 @@ fn h1_cleanup_artifacts() {
     checkpoint(&mut s, &dir, "03-fold-closed");
     eprintln!("h1 cleanup_artifacts: last row, cursor + fold roundtrips");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -531,7 +407,6 @@ fn h1_cleanup_categories() {
     checkpoint(&mut s, &dir, "01-categories");
     let cats = live_text(&mut s);
 
-
     assert_line_has(&cats, "18 categories", "18.8 GiB", "V1 header");
 
     assert_line_has(
@@ -550,7 +425,6 @@ fn h1_cleanup_categories() {
         "N1: fold open before Right"
     );
 
-
     support::press_step(&s, "down");
     waits::wait_state(&mut s, "▎[✓] ▸ Xcode device support", "cursor down");
     support::press_step(&s, "up");
@@ -568,11 +442,6 @@ fn h1_cleanup_categories() {
     checkpoint(&mut s, &dir, "03-fold-closed");
     eprintln!("h1 cleanup_categories: landing, cursor + fold roundtrips");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -597,7 +466,6 @@ fn h1_cleanup_derived_data() {
     checkpoint(&mut s, &dir, "01-derived");
     let open = live_text(&mut s);
 
-
     assert_line_has(&open, "▾ Xcode DerivedData", "810.0 MiB", "V1 fold");
 
     assert_line_has(
@@ -610,7 +478,6 @@ fn h1_cleanup_derived_data() {
     assert_line_has(&open, "Guard", "Xcode is running", "S1 guard");
 
     assert!(open.contains("d Review deletion"), "S2: no d hint");
-
 
     support::press_step(&s, "left");
     waits::wait_gone(&mut s, "▾ Xcode DerivedData", "fold closed");
@@ -627,7 +494,6 @@ fn h1_cleanup_derived_data() {
         "N1: candidate row stuck"
     );
 
-
     support::press_step(&s, "right");
     waits::wait_state(&mut s, "▾ Xcode DerivedData", "fold reopened");
     let again = live_text(&mut s);
@@ -640,13 +506,6 @@ fn h1_cleanup_derived_data() {
     checkpoint(&mut s, &dir, "03-reopened");
     eprintln!("h1 cleanup_derived_data: fold, close roundtrip, reopen");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -662,7 +521,6 @@ fn h1_cleanup_gate_seq() {
     support::drive_with_timeout(&mut s, &["c", &format!("wait:{GATE1}")], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-gate1");
     let gate = live_text(&mut s);
-
 
     assert_line_has(
         &gate,
@@ -688,7 +546,6 @@ fn h1_cleanup_gate_seq() {
 
     assert!(!gate.contains(GATE2), "N1: gate 2 open before Right+Enter");
 
-
     support::drive_with_timeout(
         &mut s,
         &["right", "enter", &format!("wait:{GATE2}")],
@@ -698,7 +555,6 @@ fn h1_cleanup_gate_seq() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "gate 2 cancelled");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE1, "gate 1 left");
@@ -716,12 +572,6 @@ fn h1_cleanup_gate_seq() {
     );
     eprintln!("h1 cleanup_gate_seq: gate 1, gate-2 probe, plan back");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -748,7 +598,6 @@ fn h1_cleanup_gate1() {
     checkpoint(&mut s, &dir, "01-gate1");
     let gate = live_text(&mut s);
 
-
     assert_line_has(&gate, "Review · trash 1 item", GATE1, "V1 title");
 
     assert_line_has(&gate, "Revision", "68c21e8eb8ed0a71", "V2 revision");
@@ -767,7 +616,6 @@ fn h1_cleanup_gate1() {
 
     assert!(!gate.contains(GATE2), "N1: gate 2 open before Right+Enter");
 
-
     support::drive_with_timeout(
         &mut s,
         &["right", "enter", &format!("wait:{GATE2}")],
@@ -777,7 +625,6 @@ fn h1_cleanup_gate1() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "gate 2 cancelled");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -794,12 +641,6 @@ fn h1_cleanup_gate1() {
     checkpoint(&mut s, &dir, "03-gate1-again");
     eprintln!("h1 cleanup_gate1: gate 1, gate-2 roundtrip x2");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -830,7 +671,6 @@ fn h1_cleanup_gate2() {
     checkpoint(&mut s, &dir, "01-gate2");
     let gate = live_text(&mut s);
 
-
     assert!(
         gate.contains("Trash 1 items · gate 2 of 2"),
         "V1: no gate-2 title"
@@ -842,7 +682,6 @@ fn h1_cleanup_gate2() {
 
     assert_line_has(&gate, "Cancel", "Execute", "S2 choice");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "gate 2 cancelled");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
@@ -851,7 +690,6 @@ fn h1_cleanup_gate2() {
 
     assert!(!cancelled.contains(GATE2), "N1: gate 2 stuck");
     assert!(!cancelled.contains("to confirm"), "N1: phrase prompt stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -867,13 +705,6 @@ fn h1_cleanup_gate2() {
     checkpoint(&mut s, &dir, "03-cancelled-again");
     eprintln!("h1 cleanup_gate2: gate 2, cancel roundtrip x2");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -907,7 +738,6 @@ fn h1_cleanup_gate2_typed() {
     checkpoint(&mut s, &dir, "01-typed");
     let typed = live_text(&mut s);
 
-
     assert!(
         typed.contains(&format!("▎ {PHRASE}")),
         "V1: no typed phrase"
@@ -922,20 +752,17 @@ fn h1_cleanup_gate2_typed() {
 
     assert!(typed.contains(GATE1), "S2: no gate-1 status");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, &format!("▎ {PHRASE}"), "phrase cleared");
     waits::wait_state(&mut s, GATE2, "dialog still open");
     checkpoint(&mut s, &dir, "02-cleared");
     let cleared = live_text(&mut s);
 
-
     assert!(
         !cleared.contains(&format!("▎ {PHRASE}")),
         "N1: typed phrase stuck"
     );
     assert!(cleared.contains("to confirm"), "N1: prompt lost");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "dialog cancelled");
@@ -947,11 +774,6 @@ fn h1_cleanup_gate2_typed() {
     assert!(!back.contains("to confirm"), "N2: phrase prompt stuck");
     eprintln!("h1 cleanup_gate2_typed: typed, cleared, cancelled");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -975,7 +797,6 @@ fn h1_cleanup_history() {
     checkpoint(&mut s, &dir, "01-history");
     let hist = live_text(&mut s);
 
-
     assert_line_has(&hist, "Entries", "1 operation log records", "V1 header");
 
     assert_line_has(&hist, "2026-08-29 08:41", "trashed", "V2 record");
@@ -989,7 +810,6 @@ fn h1_cleanup_history() {
         "N1: history visible at boot"
     );
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "operation log records", "history left");
     checkpoint(&mut s, &dir, "02-finder");
@@ -997,7 +817,6 @@ fn h1_cleanup_history() {
 
     assert!(!left.contains("operation log records"), "N2: history stuck");
     assert!(!left.contains("Cleanup history"), "N2: title stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1008,14 +827,6 @@ fn h1_cleanup_history() {
     checkpoint(&mut s, &dir, "03-history-again");
     eprintln!("h1 cleanup_history: history, leave, reopen");
 }
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1053,7 +864,6 @@ fn h1_cleanup_linux_report() {
     checkpoint(&mut s, &dir, "01-report");
     let rep = live_text(&mut s);
 
-
     assert_line_has(&rep, "Outcome", "1 failed", "V1 outcome");
 
     assert!(
@@ -1070,13 +880,10 @@ fn h1_cleanup_linux_report() {
         "N1: report visible at boot"
     );
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Cleanup report", "report left");
     checkpoint(&mut s, &dir, "02-left");
     let left = live_text(&mut s);
-
-
 
     assert!(!left.contains("Cleanup report"), "N2: report stuck");
     assert!(
@@ -1086,11 +893,6 @@ fn h1_cleanup_linux_report() {
     checkpoint(&mut s, &dir, "03-left");
     eprintln!("h1 cleanup_linux_report: failed report, left");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1104,7 +906,6 @@ fn h1_cleanup_plan() {
     support::drive_with_timeout(&mut s, &["c", "wait:4 steps · 4 included"], case.timeout_ms);
     checkpoint(&mut s, &dir, "01-plan");
     let plan = live_text(&mut s);
-
 
     assert!(
         plan.contains("4 steps · 4 included · 0 excluded · ~9 s"),
@@ -1123,7 +924,6 @@ fn h1_cleanup_plan() {
     assert_line_has(&plan, "State", "ready", "S2 state");
 
     assert!(!plan.contains(GATE1), "N1: gate 1 open before c");
-
 
     support::press_step(&s, "down");
     waits::wait_state(&mut s, "▎[✓] 02 cargo clean · backend", "cursor down");
@@ -1152,13 +952,6 @@ fn h1_cleanup_plan() {
     checkpoint(&mut s, &dir, "03-plan-again");
     eprintln!("h1 cleanup_plan: plan, cursor + gate roundtrips");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1196,7 +989,6 @@ fn h1_cleanup_report() {
     checkpoint(&mut s, &dir, "01-report");
     let rep = live_text(&mut s);
 
-
     assert_line_has(&rep, "Outcome", "1 trashed", "V1 outcome");
 
     assert_line_has(&rep, "trashed", "~/Projects/safe/big", "V2 detail");
@@ -1211,7 +1003,6 @@ fn h1_cleanup_report() {
         "N1: report visible at boot"
     );
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Cleanup report", "report left");
     checkpoint(&mut s, &dir, "02-left");
@@ -1225,11 +1016,6 @@ fn h1_cleanup_report() {
     checkpoint(&mut s, &dir, "03-left");
     eprintln!("h1 cleanup_report: trashed report, left");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1248,7 +1034,6 @@ fn h1_disk_scan_complete() {
     checkpoint(&mut s, &dir, "01-scan");
     let scan = live_text(&mut s);
 
-
     assert!(
         scan.contains("scan complete · 852.0 KiB allocated"),
         "V1: no completion summary"
@@ -1264,9 +1049,6 @@ fn h1_disk_scan_complete() {
         !scan.contains("largest first · apparent"),
         "N1: apparent sort active"
     );
-
-
-
 
     support::press_step(&s, "down");
     support::wait_screen(&mut s, case_timeout(&case), "cursor on many", |screen| {
@@ -1295,11 +1077,6 @@ fn h1_disk_scan_complete() {
     eprintln!("h1 disk_scan_complete: scan, cursor + sort roundtrips");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
 fn h1_disk_top_files() {
@@ -1323,7 +1100,6 @@ fn h1_disk_top_files() {
     checkpoint(&mut s, &dir, "01-top");
     let top = live_text(&mut s);
 
-
     assert!(top.contains("Top files · Spotlight"), "V1: no title");
 
     assert_line_has(&top, "iso.iso", "700.0 MiB", "V2 first row");
@@ -1333,9 +1109,7 @@ fn h1_disk_top_files() {
 
     assert_line_has(&top, "y Copy path", "Esc Back", "S2 footer");
 
-
     assert!(!top.contains("largest first"), "N2: tree sort label stuck");
-
 
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Top files · Spotlight", "top page left");
@@ -1348,17 +1122,12 @@ fn h1_disk_top_files() {
         "N1: top page stuck"
     );
 
-
     support::press_step(&s, "t");
     waits::wait_state(&mut s, "Top files · Spotlight", "top reopened");
     waits::wait_state(&mut s, "3 files · 0 selected", "counts back");
     checkpoint(&mut s, &dir, "03-top-again");
     eprintln!("h1 disk_top_files: top page, tree roundtrip, reopen");
 }
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1376,7 +1145,6 @@ fn h1_disk_tree() {
     );
     checkpoint(&mut s, &dir, "01-tree");
     let tree = live_text(&mut s);
-
 
     assert!(
         tree.contains("scan complete · 2.3 MiB allocated · 21 entries"),
@@ -1401,9 +1169,6 @@ fn h1_disk_tree() {
         !tree.contains("largest first · apparent"),
         "N1: apparent sort active"
     );
-
-
-
 
     support::press_step(&s, "down");
     support::wait_screen(&mut s, case_timeout(&case), "cursor on target", |screen| {
@@ -1432,11 +1197,6 @@ fn h1_disk_tree() {
     eprintln!("h1 disk_tree: tree, cursor + sort roundtrips");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
 fn h1_disk_tree_apparent() {
@@ -1460,7 +1220,6 @@ fn h1_disk_tree_apparent() {
     checkpoint(&mut s, &dir, "01-apparent");
     let app = live_text(&mut s);
 
-
     assert!(
         app.contains("largest first · apparent · noise folded"),
         "V1: no apparent label"
@@ -1475,7 +1234,6 @@ fn h1_disk_tree_apparent() {
 
     assert_line_has(&app, "Apparent", "5.6 MiB · sparse", "S2 apparent total");
 
-
     support::press_step(&s, "s");
     waits::wait_state(&mut s, "largest first · allocated", "allocated on");
     checkpoint(&mut s, &dir, "02-allocated");
@@ -1485,7 +1243,6 @@ fn h1_disk_tree_apparent() {
         !alloc.contains("largest first · apparent"),
         "N1: apparent stuck"
     );
-
 
     support::press_step(&s, "s");
     waits::wait_state(&mut s, "largest first · apparent", "apparent back");
@@ -1499,12 +1256,6 @@ fn h1_disk_tree_apparent() {
     checkpoint(&mut s, &dir, "03-apparent-again");
     eprintln!("h1 disk_tree_apparent: apparent, toggle roundtrip");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1535,7 +1286,6 @@ fn h1_disk_tree_selected() {
     checkpoint(&mut s, &dir, "01-selected");
     let sel = live_text(&mut s);
 
-
     assert!(
         sel.contains("1 selected (176.0 KiB)"),
         "V1: no selection summary"
@@ -1547,7 +1297,6 @@ fn h1_disk_tree_selected() {
 
     assert_line_has(&sel, "Selection", "selected · Space unselects", "S2 detail");
 
-
     support::press_step(&s, "space");
     waits::wait_gone(&mut s, "✓ noise", "row unchecked");
     waits::wait_state(&mut s, "0 selected", "selection empty");
@@ -1556,7 +1305,6 @@ fn h1_disk_tree_selected() {
 
     assert!(!unsel.contains("✓ noise"), "N1: check stuck");
     assert!(!unsel.contains("◐ big"), "N1: partial marker stuck");
-
 
     support::press_step(&s, "space");
     waits::wait_state(&mut s, "1 selected (176.0 KiB)", "selected again");
@@ -1567,11 +1315,6 @@ fn h1_disk_tree_selected() {
     checkpoint(&mut s, &dir, "03-selected-again");
     eprintln!("h1 disk_tree_selected: selected, unselect roundtrip, reselect");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1600,7 +1343,6 @@ fn h1_disk_tree_unfolded() {
     checkpoint(&mut s, &dir, "01-unfolded");
     let unf = live_text(&mut s);
 
-
     assert!(
         unf.contains("largest first · allocated · unfolded"),
         "V1: no unfolded label"
@@ -1616,7 +1358,6 @@ fn h1_disk_tree_unfolded() {
 
     assert_line_has(&unf, "Entries", "15 · hardlinks counted once", "S2 entries");
 
-
     support::press_step(&s, "f");
     waits::wait_state(&mut s, "noise folded", "folded again");
     checkpoint(&mut s, &dir, "02-folded");
@@ -1628,7 +1369,6 @@ fn h1_disk_tree_unfolded() {
         "N1: unfold footer stuck"
     );
 
-
     support::press_step(&s, "f");
     waits::wait_state(&mut s, "allocated · unfolded", "unfolded again");
     let again = live_text(&mut s);
@@ -1639,13 +1379,6 @@ fn h1_disk_tree_unfolded() {
     eprintln!("h1 disk_tree_unfolded: unfolded, fold roundtrip, unfold");
 }
 
-
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
 fn h1_docker_done() {
@@ -1655,7 +1388,6 @@ fn h1_docker_done() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1694,7 +1426,6 @@ fn h1_docker_done() {
     checkpoint(&mut s, &dir, "02-done");
     let done = live_text(&mut s);
 
-
     assert!(
         done.contains("Clean Docker completely · 7 of 7 done"),
         "V1: no done header"
@@ -1712,7 +1443,6 @@ fn h1_docker_done() {
 
     assert!(!done.contains("Plan changed"), "N1: drift bounce stuck");
 
-
     support::press_step(&s, "up");
     waits::wait_state(&mut s, "▎ ✓ 06 Prune builder", "cursor up");
     support::press_step(&s, "down");
@@ -1724,12 +1454,6 @@ fn h1_docker_done() {
     checkpoint(&mut s, &dir, "03-cursor-back");
     eprintln!("h1 docker_done: drift bounce, 7/7 done, cursor roundtrip");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1762,7 +1486,6 @@ fn h1_docker_drift() {
     checkpoint(&mut s, &dir, "01-drift");
     let drift = live_text(&mut s);
 
-
     assert_line_has(&drift, "Changed", "tmp-shell-3", "V1 changed row");
 
     assert!(
@@ -1781,7 +1504,6 @@ fn h1_docker_drift() {
 
     assert!(!drift.contains(GATE2), "N1: gate 2 open after bounce");
 
-
     support::drive_with_timeout(
         &mut s,
         &["right", "enter", &format!("wait:{GATE2}")],
@@ -1791,7 +1513,6 @@ fn h1_docker_drift() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "gate 2 cancelled");
     waits::wait_state(&mut s, "a new container", "drift intact");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1807,12 +1528,6 @@ fn h1_docker_drift() {
     checkpoint(&mut s, &dir, "03-drift-again");
     eprintln!("h1 docker_drift: drift bounce, gate-2 roundtrip x2");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1842,7 +1557,6 @@ fn h1_docker_gate2_typed() {
     checkpoint(&mut s, &dir, "01-typed");
     let typed = live_text(&mut s);
 
-
     assert!(
         typed.contains(&format!("▎ {PHRASE}")),
         "V1: no typed phrase"
@@ -1857,7 +1571,6 @@ fn h1_docker_gate2_typed() {
 
     assert_line_has(&typed, "Reclaimable", "~18.4 GB", "S2 reclaimable");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, &format!("▎ {PHRASE}"), "phrase cleared");
     waits::wait_state(&mut s, GATE2, "dialog still open");
@@ -1870,7 +1583,6 @@ fn h1_docker_gate2_typed() {
     );
     assert!(cleared.contains("to confirm"), "N1: prompt lost");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "dialog cancelled");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
@@ -1881,13 +1593,6 @@ fn h1_docker_gate2_typed() {
     assert!(!back.contains("to confirm"), "N2: phrase prompt stuck");
     eprintln!("h1 docker_gate2_typed: typed, cleared, cancelled");
 }
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1914,7 +1619,6 @@ fn h1_docker_remove_failed() {
     checkpoint(&mut s, &dir, "01-failed");
     let failed = live_text(&mut s);
 
-
     assert!(failed.contains(HEADER), "V1: no failed header");
 
     assert!(
@@ -1932,7 +1636,6 @@ fn h1_docker_remove_failed() {
 
     assert!(!boot.contains("exit 1"), "N1: failure visible at boot");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, HEADER, "failed tab left");
     checkpoint(&mut s, &dir, "02-here");
@@ -1944,7 +1647,6 @@ fn h1_docker_remove_failed() {
         "N2: daemon output stuck"
     );
 
-
     support::drive_with_timeout(
         &mut s,
         &["enter", "right", "enter", &format!("wait:{HEADER}")],
@@ -1954,12 +1656,6 @@ fn h1_docker_remove_failed() {
     checkpoint(&mut s, &dir, "03-failed-again");
     eprintln!("h1 docker_remove_failed: failed, left, failed again");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -1982,7 +1678,6 @@ fn h1_docker_remove_gate1() {
     checkpoint(&mut s, &dir, "01-gate1");
     let gate = live_text(&mut s);
 
-
     assert_line_has(
         &gate,
         "Review · Stop and remove all containers",
@@ -1998,7 +1693,6 @@ fn h1_docker_remove_gate1() {
 
     assert!(!gate.contains(GATE2), "N1: gate 2 open before Right+Enter");
 
-
     support::drive_with_timeout(
         &mut s,
         &["right", "enter", &format!("wait:{GATE2}")],
@@ -2008,7 +1702,6 @@ fn h1_docker_remove_gate1() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "gate 2 cancelled");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2030,12 +1723,6 @@ fn h1_docker_remove_gate1() {
     checkpoint(&mut s, &dir, "03-gate1-again");
     eprintln!("h1 docker_remove_gate1: gate 1, gate-2 roundtrip x2");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -2062,7 +1749,6 @@ fn h1_docker_remove_gate2() {
     checkpoint(&mut s, &dir, "01-gate2");
     let gate = live_text(&mut s);
 
-
     assert!(
         gate.contains("Stop and remove all containers · gate 2 of 2"),
         "V1: no gate-2 title"
@@ -2077,7 +1763,6 @@ fn h1_docker_remove_gate2() {
 
     assert_line_has(&gate, "Risk", "destructive", "S2 risk");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "gate 2 cancelled");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
@@ -2086,7 +1771,6 @@ fn h1_docker_remove_gate2() {
 
     assert!(!cancelled.contains(GATE2), "N1: gate 2 stuck");
     assert!(!cancelled.contains("to confirm"), "N1: phrase prompt stuck");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2107,12 +1791,6 @@ fn h1_docker_remove_gate2() {
     checkpoint(&mut s, &dir, "03-cancelled-again");
     eprintln!("h1 docker_remove_gate2: gate 2, cancel roundtrip x2");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -2137,7 +1815,6 @@ fn h1_gradle_cleanup() {
     checkpoint(&mut s, &dir, "01-cleanup");
     let gradle = live_text(&mut s);
 
-
     assert!(
         gradle.contains("Cleanup · Gradle outputs"),
         "V1: no cleanup title"
@@ -2155,7 +1832,6 @@ fn h1_gradle_cleanup() {
     );
 
     assert!(!gradle.contains(GATE1), "N1: gate 1 open before d");
-
 
     support::press_step(&s, "left");
     waits::wait_gone(&mut s, "▾ Gradle outputs", "fold closed");
@@ -2175,12 +1851,6 @@ fn h1_gradle_cleanup() {
     checkpoint(&mut s, &dir, "03-review-again");
     eprintln!("h1 gradle_cleanup: review, fold + gate roundtrips");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -2207,7 +1877,6 @@ fn h1_gradle_gate1() {
     checkpoint(&mut s, &dir, "01-gate1");
     let gate = live_text(&mut s);
 
-
     assert_line_has(&gate, "Review · trash 4 items", GATE1, "V1 title");
 
     assert_line_has(
@@ -2223,7 +1892,6 @@ fn h1_gradle_gate1() {
 
     assert!(!gate.contains(GATE2), "N1: gate 2 open before Right+Enter");
 
-
     support::drive_with_timeout(
         &mut s,
         &["right", "enter", &format!("wait:{GATE2}")],
@@ -2233,7 +1901,6 @@ fn h1_gradle_gate1() {
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "gate 2 cancelled");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -2251,12 +1918,6 @@ fn h1_gradle_gate1() {
     eprintln!("h1 gradle_gate1: gate 1, gate-2 roundtrip x2");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
 fn h1_idea_cleanup() {
@@ -2273,7 +1934,6 @@ fn h1_idea_cleanup() {
     );
     checkpoint(&mut s, &dir, "01-cleanup");
     let idea = live_text(&mut s);
-
 
     assert!(
         idea.contains("Cleanup · IntelliJ metadata"),
@@ -2294,7 +1954,6 @@ fn h1_idea_cleanup() {
 
     assert!(!idea.contains(GATE1), "N1: gate 1 open before d");
 
-
     support::press_step(&s, "left");
     waits::wait_gone(&mut s, "▾ IntelliJ metadata", "fold closed");
     support::press_step(&s, "right");
@@ -2313,12 +1972,6 @@ fn h1_idea_cleanup() {
     checkpoint(&mut s, &dir, "03-review-again");
     eprintln!("h1 idea_cleanup: review, fold + gate roundtrips");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h1 check; run with --ignored"]
@@ -2348,7 +2001,6 @@ fn h1_idea_gate2() {
     checkpoint(&mut s, &dir, "01-gate2");
     let gate = live_text(&mut s);
 
-
     assert!(
         gate.contains("Trash 4 items · gate 2 of 2"),
         "V1: no gate-2 title"
@@ -2364,7 +2016,6 @@ fn h1_idea_gate2() {
 
     assert_line_has(&gate, "Enter Confirm", "Esc Cancel", "S2 footer");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, GATE2, "gate 2 cancelled");
     waits::wait_state(&mut s, GATE1, "gate 1 back");
@@ -2373,7 +2024,6 @@ fn h1_idea_gate2() {
 
     assert!(!cancelled.contains(GATE2), "N1: gate 2 stuck");
     assert!(!cancelled.contains("to confirm"), "N1: phrase prompt stuck");
-
 
     support::drive_with_timeout(
         &mut s,

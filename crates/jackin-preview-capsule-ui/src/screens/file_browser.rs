@@ -1,15 +1,7 @@
-
-
-
-
-
-
 use termrock::ItemKey;
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileBrowserEntry {
-
     pub path: String,
 
     pub kind: &'static str,
@@ -18,7 +10,6 @@ pub struct FileBrowserEntry {
 }
 
 impl FileBrowserEntry {
-
     pub fn new(path: impl Into<String>, kind: &'static str) -> Self {
         Self {
             path: path.into(),
@@ -27,23 +18,19 @@ impl FileBrowserEntry {
         }
     }
 
-
     #[must_use]
     pub const fn disabled(mut self) -> Self {
         self.selectable = false;
         self
     }
 
-
     pub fn key(&self) -> ItemKey {
         ItemKey::text(&self.path)
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileBrowserAction {
-
     Choose(String),
 
     ToggleUrlMode,
@@ -52,7 +39,6 @@ pub enum FileBrowserAction {
 
     Cancel,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct FileBrowserState {
@@ -66,7 +52,6 @@ pub struct FileBrowserState {
 }
 
 impl FileBrowserState {
-
     pub fn new(path: impl Into<String>) -> Self {
         Self {
             path: path.into(),
@@ -74,31 +59,25 @@ impl FileBrowserState {
         }
     }
 
-
     pub fn path(&self) -> &str {
         &self.path
     }
-
 
     pub fn set_path(&mut self, path: impl Into<String>) {
         self.path = path.into();
     }
 
-
     pub const fn read_only(&self) -> bool {
         self.read_only
     }
-
 
     pub const fn set_read_only(&mut self, read_only: bool) {
         self.read_only = read_only;
     }
 
-
     pub const fn url_mode(&self) -> bool {
         self.url_mode
     }
-
 
     pub fn toggle_url_mode(&mut self) -> FileBrowserAction {
         self.url_mode = !self.url_mode;
@@ -106,11 +85,6 @@ impl FileBrowserState {
         self.error = None;
         FileBrowserAction::ToggleUrlMode
     }
-
-
-
-
-
 
     pub fn replace_entries(&mut self, entries: Vec<FileBrowserEntry>) {
         let old = self.selected;
@@ -125,16 +99,13 @@ impl FileBrowserState {
             });
     }
 
-
     pub fn entries(&self) -> &[FileBrowserEntry] {
         &self.entries
     }
 
-
     pub const fn selected(&self) -> Option<ItemKey> {
         self.selected
     }
-
 
     pub fn select(&mut self, key: ItemKey) -> bool {
         if self.entry(key).is_some_and(|entry| entry.selectable) {
@@ -145,7 +116,6 @@ impl FileBrowserState {
         }
     }
 
-
     pub fn selected_path(&self) -> Option<&str> {
         self.selected
             .and_then(|key| self.entry(key))
@@ -153,28 +123,23 @@ impl FileBrowserState {
             .map(|entry| entry.path.as_str())
     }
 
-
     pub fn begin_refresh(&mut self) {
         self.resolving = true;
         self.error = None;
     }
-
 
     pub fn finish_refresh(&mut self, error: Option<String>) {
         self.resolving = false;
         self.error = error;
     }
 
-
     pub const fn resolving(&self) -> bool {
         self.resolving
     }
 
-
     pub fn error(&self) -> Option<&str> {
         self.error.as_deref()
     }
-
 
     pub fn choose(&self) -> Option<FileBrowserAction> {
         (!self.read_only)

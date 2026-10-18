@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
@@ -21,7 +11,6 @@ use crate::theme::builder::{FadeOutcome, fade_mix};
 use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
 
 impl Ui<'_> {
-
     pub fn paint_cell(&mut self, pos: Position, symbol: &str, s: impl Into<PaintStyle>) {
         if self.clip.contains(pos) {
             self.paint_str(
@@ -32,9 +21,6 @@ impl Ui<'_> {
         }
     }
 
-
-
-
     pub fn paint_str(&mut self, area: Rect, text: &str, s: impl Into<PaintStyle>) -> u16 {
         let area = area.intersection(self.clip);
         if area.is_empty() {
@@ -43,11 +29,6 @@ impl Ui<'_> {
         let s = s.into();
         self.paint_graphemes(area, graphemes(text).map(|(_, symbol)| (symbol, s)))
     }
-
-
-
-
-
 
     pub fn paint_matched(
         &mut self,
@@ -73,7 +54,6 @@ impl Ui<'_> {
             }),
         )
     }
-
 
     fn paint_graphemes<'s>(
         &mut self,
@@ -127,16 +107,9 @@ impl Ui<'_> {
         *remaining != 0
     }
 
-
-
-
-
-
-
     pub fn scroll_edges(&mut self, area: Rect, state: &ScrollState) {
         self.scroll_edges_except(area, state, &[]);
     }
-
 
     pub fn scroll_edges_except(&mut self, area: Rect, state: &ScrollState, keep: &[u16]) {
         let area = area.intersection(self.clip);
@@ -203,8 +176,6 @@ impl Ui<'_> {
     }
 
     fn majority_bg(&mut self, area: Rect) -> Color {
-
-
         let mut counts = core::mem::take(&mut self.core.scroll_bg_counts);
         let mut order = core::mem::take(&mut self.core.scroll_bg_order);
         counts.clear();
@@ -226,7 +197,6 @@ impl Ui<'_> {
             }
         }
 
-
         let color = order
             .iter()
             .filter_map(|bg| counts.get(bg).map(|count| (*bg, *count)))
@@ -239,8 +209,6 @@ impl Ui<'_> {
 
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
         let outer = keep <= FADE_OUTER_KEEP;
-
-
 
         for x in area.x..area.right() {
             let pos = Position::new(x, y);
@@ -259,11 +227,6 @@ impl Ui<'_> {
             }
         }
     }
-
-
-
-
-
 
     pub fn paint_middle(&mut self, area: Rect, text: &str, s: impl Into<PaintStyle>) -> u16 {
         let area = area.intersection(self.clip);
@@ -287,9 +250,6 @@ impl Ui<'_> {
         used
     }
 
-
-
-
     pub fn paint_spans(
         &mut self,
         area: Rect,
@@ -301,9 +261,6 @@ impl Ui<'_> {
             return 0;
         }
         let base = base.into();
-
-
-
 
         if spans.iter().all(|span| span.text.is_ascii()) {
             let mut x = area.x;
@@ -356,7 +313,6 @@ impl Ui<'_> {
         x.saturating_sub(area.x)
     }
 
-
     pub fn paint_style(&mut self, area: Rect, s: impl Into<PaintStyle>) {
         let s = s.into();
         let area = area.intersection(self.clip);
@@ -366,7 +322,6 @@ impl Ui<'_> {
         self.buffer().set_style(area, s.into_style());
         self.mark_area(area, Some(s));
     }
-
 
     pub fn fill(&mut self, area: Rect, s: impl Into<PaintStyle>) {
         let s = s.into();
@@ -385,7 +340,6 @@ impl Ui<'_> {
         self.mark_area(area, Some(s));
     }
 
-
     pub fn rule(&mut self, area: Rect) {
         let g = self.theme_ref().design.glyphs.get(GlyphRole::RuleQuiet);
         let s = self.paint_patch(&crate::theme::StylePatch::new().set_fg(Role::BorderSubtle));
@@ -400,7 +354,6 @@ impl Ui<'_> {
             self.paint_cell(Position::new(x.x, row.y), g, s);
         }
     }
-
 
     pub fn frame(&mut self, area: Rect, s: impl Into<PaintStyle>) -> Rect {
         let s = s.into();
@@ -433,32 +386,17 @@ impl Ui<'_> {
         }
     }
 
-
     pub fn glyph(&mut self, area: Rect, g: GlyphRole, s: impl Into<PaintStyle>) -> u16 {
         let s = s.into();
         let sym = self.theme_ref().design.glyphs.get(g);
         self.paint_str(area, sym, s)
     }
 
-
-
     pub fn raw(&mut self) -> (&mut Buffer, Rect) {
         let clip = self.clip;
         self.mark_area(clip, None);
         (self.buffer(), clip)
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     pub fn dim_layer(&mut self, area: Rect, steps: u8) {
         if steps == 0 {
@@ -472,7 +410,6 @@ impl Ui<'_> {
         for pos in area.positions() {
             let roles = self.roles_at(pos);
             let fg = match roles.fg {
-
                 Some(Role::Fg(step)) => ladder(theme, surface, step.index(), steps),
 
                 Some(Role::Accent) => accent(theme, surface, 0, steps),
@@ -501,7 +438,6 @@ impl Ui<'_> {
                 st.fg = match fg {
                     FadeResult::Fg(f) => f,
 
-
                     FadeResult::Erase => {
                         c.set_symbol(" ");
                         backdrop_fill
@@ -520,14 +456,11 @@ const FADE_INNER_KEEP: f32 = 0.8;
 const FADE_DEEP_FROM: u16 = 12;
 const FADE_MIN_ROWS: u16 = 4;
 
-
 enum FadeResult {
-
     Fg(Option<Color>),
 
     Erase,
 }
-
 
 fn ladder(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult {
     match base.saturating_add(usize::from(steps)) {
@@ -539,8 +472,6 @@ fn ladder(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult
         _ => FadeResult::Erase,
     }
 }
-
-
 
 fn accent(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult {
     let role = match base.saturating_add(usize::from(steps)) {
@@ -626,8 +557,6 @@ mod tests {
         assert_ne!(edge.fg, middle.fg, "the edge foreground was faded");
     }
 
-
-
     fn dimmed_cell(
         theme: &Theme,
         fg: Role,
@@ -651,10 +580,6 @@ mod tests {
     fn fg_of(theme: &Theme, step: FgStep) -> Color {
         crate::theme::resolve::bind_role(theme, Role::Fg(step), Surface::Canvas).expect("fg")
     }
-
-
-
-
 
     #[test]
     fn dim_layer_zero_steps_is_byte_identical() {
@@ -681,11 +606,6 @@ mod tests {
         }
     }
 
-
-
-
-
-
     #[test]
     fn dim_layer_semantic_roles_step_monotonically_and_erase() {
         for theme in [Theme::junie(), Theme::paper()] {
@@ -706,8 +626,6 @@ mod tests {
                 }
             }
 
-
-
             for role in [Role::BorderSubtle, Role::DisabledFg, Role::Focus] {
                 assert_eq!(
                     dimmed_cell(&theme, role, "x", Modifier::empty(), 1).fg,
@@ -720,7 +638,6 @@ mod tests {
                     "{role:?}"
                 );
             }
-
 
             for (start, steps, want) in [
                 (FgStep::Primary, 1u8, FgStep::Secondary),
@@ -781,7 +698,6 @@ mod tests {
                 1,
             );
             assert_eq!(c.modifier, Modifier::empty());
-
 
             let c = dimmed_cell(&theme, Role::Fg(FgStep::Primary), "x", Modifier::empty(), 1);
             assert_eq!(c.bg, theme.bg(Surface::Canvas));

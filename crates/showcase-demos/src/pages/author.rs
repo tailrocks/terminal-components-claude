@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use termrock::author::{
     Cx, Family, Focusability, FrameRead, Id, Intent, Part, PartRef, PartStyle, Phase, Rect,
     Response, Role, StateFlags, StylePatch, Ui, Variant,

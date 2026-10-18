@@ -1,4 +1,3 @@
-
 use super::context::Context;
 use crate::dispatch::{self, Destination};
 use crate::domain::{
@@ -466,8 +465,6 @@ impl ProductDialog {
                 ..
             }
         ) {
-
-
             props.action_id(1)
         } else {
             props.action_id(0)
@@ -503,7 +500,6 @@ impl ProductDialog {
             self.dialog.zeroize();
             cx.close_layer(DIALOG, Some(ActionKey::CLOSE));
         }
-
 
         let _ = confirm_action("Confirm");
         (response, event)
@@ -642,7 +638,6 @@ fn facts(rows: &[(&str, String)]) -> Vec<(String, String)> {
         .map(|(label, value)| ((*label).into(), value.clone()))
         .collect()
 }
-
 
 fn confirm_action(label: &'static str) -> UiAction<'static> {
     UiAction::new(ActionKey::CONFIRM, label)

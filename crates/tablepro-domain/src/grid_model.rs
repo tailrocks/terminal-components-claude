@@ -1,15 +1,10 @@
-
-
 use crate::domain::{ResultGrid, preview_sql};
 
 use tablepro_demo::db::{ColType, Table};
 
-
 pub type TableGridModel = ResultGrid;
 
-
 pub type ResultGridModel = ResultGrid;
-
 
 #[derive(Debug, Clone)]
 pub struct StructureModel {
@@ -17,7 +12,6 @@ pub struct StructureModel {
 }
 
 impl StructureModel {
-
     #[must_use]
     pub fn from_table(table: &Table) -> Self {
         let rows: Vec<Vec<tablepro_demo::db::Value>> = table
@@ -60,7 +54,6 @@ impl StructureModel {
         }
     }
 
-
     #[must_use]
     pub fn read_only_reason(&self) -> Option<&str> {
         Some("Structure metadata is read-only")
@@ -85,7 +78,6 @@ impl termrock::GridModel for StructureModel {
     }
 }
 
-
 pub fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
     table
         .columns
@@ -94,14 +86,12 @@ pub fn grid_columns(table: &Table) -> Vec<(String, ColType)> {
         .collect()
 }
 
-
 pub fn pending_label(grid: &ResultGrid) -> String {
     match grid.pending_total() {
         0 => String::new(),
         n => format!("• {n} pending"),
     }
 }
-
 
 pub fn preview_for(table: &Table, grid: &ResultGrid) -> Vec<String> {
     preview_sql(table, &grid_columns(table), grid.pending())

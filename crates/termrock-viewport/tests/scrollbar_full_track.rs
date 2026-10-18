@@ -1,4 +1,3 @@
-
 use termrock_collections::ScrollState;
 use termrock_core::Id;
 use termrock_runtime::{Rect, ScrollRegion};

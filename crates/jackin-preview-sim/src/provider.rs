@@ -1,6 +1,3 @@
-
-
-
 use crate::onepassword::{KeyOutcome, OpError, SecretClass, SimOnePassword, classify_plain};
 use jackin_preview_domain::account::{
     Account, AccountIdentity, Confidence, CredentialSource, DetectedKind, IdentitySubject,
@@ -11,10 +8,8 @@ use jackin_preview_domain::usage::{
     AccountUsage, FreshnessInfo, QuotaStatus, QuotaWindow, WindowCategory, WindowUnit,
 };
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationOutcome {
-
     pub level: Option<ValidationLevel>,
 
     pub identity: AccountIdentity,
@@ -34,10 +29,8 @@ pub struct ValidationOutcome {
     pub quota_row: CheckRow,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckRow {
-
     Ok(String),
 
     Failed(String),
@@ -45,10 +38,8 @@ pub enum CheckRow {
     Skipped(String),
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FolderProbe {
-
     Missing,
 
     Unreadable,
@@ -59,7 +50,6 @@ pub enum FolderProbe {
 
     Found(DetectedKind),
 }
-
 
 pub fn probe_folder(path: &str) -> FolderProbe {
     let p = path.trim_end_matches('/');
@@ -107,7 +97,6 @@ fn identity_for(provider: Provider, tag: &str) -> (AccountIdentity, Confidence) 
         Confidence::Authoritative,
     )
 }
-
 
 pub fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec<QuotaWindow> {
     let h = 3600;
@@ -189,8 +178,6 @@ pub fn windows_for(provider: Provider, now: i64, key_backed: bool) -> Vec<QuotaW
         _ => vec![],
     }
 }
-
-
 
 pub fn validate(
     provider: Provider,
@@ -470,7 +457,6 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
                     identity: AccountIdentity::default(),
                     confidence: Confidence::PresenceOnly,
 
-
                     lifecycle: Lifecycle::Available,
                     issue: Some(issue(
                         IssueCode::IdentityUnresolved,
@@ -514,7 +500,6 @@ fn validate_folder(provider: Provider, path: &str, now: i64) -> ValidationOutcom
     }
 }
 
-
 pub fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64) {
     a.validation = match (&v.level, &v.issue) {
         (Some(l), None) => jackin_preview_domain::account::ValidationState::Valid(*l),
@@ -541,7 +526,6 @@ pub fn apply_validation(a: &mut Account, v: &ValidationOutcome, now: i64) {
         }
     }
 }
-
 
 pub fn refresh_duration_ms(a: &Account) -> i64 {
     let base = match a.provider {

@@ -1,17 +1,9 @@
-
-
-
-
-
-
 use termrock::{
     Buffer, Color, Family, FgStep, Part, Rect, Role, StateFlags, Style, StylePatch, Surface, Theme,
     Variant,
 };
 
 use jackin_preview_domain::scenario::Motion;
-
-
 
 pub const TICK_MS: u64 = 33;
 
@@ -25,7 +17,6 @@ pub const WARP_TICKS: u64 = 95;
 
 const POOL: &[u8] = b" .,:;+=*#%@";
 
-
 pub const fn mix(mut a: u64, b: u64, c: u64) -> u64 {
     a ^= b.wrapping_mul(0x9E37_79B9_7F4A_7C15);
     a = a.rotate_left(17).wrapping_mul(0xBF58_476D_1CE4_E5B9);
@@ -33,11 +24,9 @@ pub const fn mix(mut a: u64, b: u64, c: u64) -> u64 {
     a ^ (a >> 31)
 }
 
-
 pub const fn pct(value: u64) -> u64 {
     value % 100
 }
-
 
 pub fn glyph(x: u64, y: u64, epoch: u64) -> char {
     POOL.get((mix(x, y, epoch) as usize) % POOL.len())
@@ -45,10 +34,8 @@ pub fn glyph(x: u64, y: u64, epoch: u64) -> char {
         .unwrap_or(b' ') as char
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tone {
-
     Ladder(u8),
 
     Accent,
@@ -74,9 +61,6 @@ fn role_style(theme: &Theme, patch: StylePatch) -> Style {
         .into_style()
 }
 
-
-
-
 pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     let role = match tone {
         Tone::Ladder(level) => {
@@ -97,7 +81,6 @@ pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     Some(role_style(theme, StylePatch::new().set_fg(role)))
 }
 
-
 pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
     buf.set_style(
         area,
@@ -107,8 +90,6 @@ pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
         ),
     );
 }
-
-
 
 pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, theme: &Theme) {
     for row in area.rows() {
@@ -130,18 +111,14 @@ pub fn dim_buffer(buf: &mut Buffer, area: Rect, steps: u8, theme: &Theme) {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WarpCell {
-
     pub ch: char,
 
     pub level: u8,
 
     pub accent: bool,
 }
-
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Starfield {
@@ -154,7 +131,6 @@ pub struct Starfield {
 }
 
 impl Starfield {
-
     pub fn new(cols: u16, rows: u16, salt: u64) -> Self {
         Self {
             seed: mix(MOTION_SEED ^ salt, u64::from(cols), u64::from(rows)),
@@ -164,7 +140,6 @@ impl Starfield {
             frame: 0,
         }
     }
-
 
     pub fn advance(&mut self, accelerating: bool, frame: u64) {
         self.cells.fill(None);
@@ -199,11 +174,9 @@ impl Starfield {
         self.seed = mix(self.seed, frame, u64::from(accelerating));
     }
 
-
     pub const fn size(&self) -> (u16, u16) {
         (self.cols, self.rows)
     }
-
 
     pub fn paint(&self, buf: &mut Buffer, area: Rect, dim: u8, theme: &Theme) {
         let cols = self.cols.min(area.width);
@@ -241,7 +214,6 @@ const fn phrase_ticks(chars: u64, char_ms: u64, hold_ms: u64) -> u64 {
     (chars * char_ms + hold_ms).div_ceil(TICK_MS)
 }
 
-
 pub const PHRASES: [(&str, u64, u64); 3] = [
     ("Stand up, operator…", 60, 950),
     ("Host stays outside…", 55, 950),
@@ -268,10 +240,8 @@ pub const INTRO_END: u64 = WARP_START + WARP_TICKS;
 
 pub const REDUCED_HOLD: u64 = 45;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntroPhase {
-
     Phrases,
 
     Warp,
@@ -280,7 +250,6 @@ pub enum IntroPhase {
 }
 
 impl IntroPhase {
-
     pub const fn of(tick: u64) -> Self {
         if tick < WARP_START {
             Self::Phrases
@@ -292,21 +261,17 @@ impl IntroPhase {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntroState {
-
     pub tick: u64,
 
     pub mode: Motion,
 }
 
 impl IntroState {
-
     pub const fn new(mode: Motion, frame: u64) -> Self {
         Self { tick: frame, mode }
     }
-
 
     pub const fn phase(&self) -> IntroPhase {
         match self.mode {
@@ -316,11 +281,9 @@ impl IntroState {
         }
     }
 
-
     pub const fn is_done(&self) -> bool {
         matches!(self.phase(), IntroPhase::Done)
     }
-
 
     pub fn advance_tick(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
@@ -329,7 +292,6 @@ impl IntroState {
         self.tick = self.tick.saturating_add(1);
         true
     }
-
 
     pub fn skip(&mut self) {
         self.tick = match self.mode {
@@ -344,10 +306,8 @@ impl IntroState {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutroPhase {
-
     Warp,
 
     Caption,
@@ -355,10 +315,8 @@ pub enum OutroPhase {
     Done,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OutroState {
-
     pub tick: u64,
 
     pub elapsed_secs: Option<u64>,
@@ -366,13 +324,11 @@ pub struct OutroState {
     pub mode: Motion,
 }
 
-
 pub const OUT_WARP: u64 = WARP_TICKS;
 
 pub const OUT_CAPTION: u64 = GLITCH_PASSES * GLITCH_PASS_TICKS + 2_400u64.div_ceil(TICK_MS);
 
 impl OutroState {
-
     pub const fn new(mode: Motion, elapsed_secs: Option<u64>, frame: u64) -> Self {
         Self {
             tick: frame,
@@ -381,7 +337,6 @@ impl OutroState {
         }
     }
 
-
     pub const fn end(&self) -> u64 {
         match self.mode {
             Motion::Reduced => REDUCED_HOLD,
@@ -389,7 +344,6 @@ impl OutroState {
             _ => OUT_WARP,
         }
     }
-
 
     pub const fn phase(&self) -> OutroPhase {
         match self.mode {
@@ -406,11 +360,9 @@ impl OutroState {
         }
     }
 
-
     pub const fn is_done(&self) -> bool {
         matches!(self.phase(), OutroPhase::Done)
     }
-
 
     pub fn advance_tick(&mut self) -> bool {
         if self.mode == Motion::Paused || self.is_done() {
@@ -420,14 +372,12 @@ impl OutroState {
         true
     }
 
-
     pub fn skip(&mut self) {
         self.tick = match self.phase() {
             OutroPhase::Warp => OUT_WARP,
             OutroPhase::Caption | OutroPhase::Done => self.end(),
         };
     }
-
 
     pub fn caption(&self) -> Option<String> {
         self.elapsed_secs.map(|secs| {
@@ -438,7 +388,6 @@ impl OutroState {
         })
     }
 }
-
 
 pub fn format_universe_duration(secs: u64) -> String {
     fn unit(n: u64, name: &str) -> String {
@@ -459,10 +408,8 @@ pub fn format_universe_duration(secs: u64) -> String {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HandoffStage {
-
     CockpitDim(u8),
 
     Canvas,
@@ -471,7 +418,6 @@ pub enum HandoffStage {
 
     Capsule,
 }
-
 
 pub const fn handoff_stage(frame: u64) -> HandoffStage {
     match frame {
@@ -482,9 +428,7 @@ pub const fn handoff_stage(frame: u64) -> HandoffStage {
     }
 }
 
-
 pub const HANDOFF_LEN: u64 = 12;
-
 
 pub fn paint_atmosphere(
     buf: &mut Buffer,

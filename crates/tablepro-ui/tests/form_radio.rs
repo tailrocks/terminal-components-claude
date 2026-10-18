@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use tablepro_ui::{TableProApp, form_fields};
 use termrock::{GlyphRole, Id, KeyCode, Modifier, Theme};
 use termrock_test_support::Harness;
@@ -41,8 +34,6 @@ fn production_index(app: &TableProApp) -> Option<usize> {
         .position(|connection| format!("{connection:?}").contains("name: \"Production\""))
 }
 
-
-
 #[test]
 fn form_radio_commit_changes_draft() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -62,7 +53,6 @@ fn form_radio_commit_changes_draft() -> Result<(), &'static str> {
     Ok(())
 }
 
-
 #[test]
 fn form_radio_no_legacy_painter() {
     let src = include_str!("../src/app.rs");
@@ -75,11 +65,6 @@ fn form_radio_no_legacy_painter() {
         "legacy draw_form_radio call survived"
     );
 }
-
-
-
-
-
 
 #[test]
 fn form_radio_enter_submits() -> Result<(), &'static str> {
@@ -166,7 +151,6 @@ fn form_radio_enter_submits() -> Result<(), &'static str> {
     Ok(())
 }
 
-
 #[test]
 fn fresh_form_reaches_database_field() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -234,8 +218,6 @@ fn blob_beneath(symbol: &str, fg: &str, bg: &str) -> bool {
     symbol == " " && fg.contains("128, 128, 128") && bg.contains("17, 17, 17")
 }
 
-
-
 #[test]
 fn form_radio_right_card_pins_miss_the_stock_form() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -285,8 +267,6 @@ fn form_radio_right_card_pins_miss_the_stock_form() -> Result<(), &'static str> 
     Ok(())
 }
 
-
-
 #[test]
 fn form_radio_narrow_frames_clip_the_environment_field() {
     for (w, h) in [(100u16, 30u16), (80, 24), (72, 20)] {
@@ -331,8 +311,6 @@ fn form_radio_narrow_frames_clip_the_environment_field() {
     );
 }
 
-
-
 #[test]
 fn form_radio_off_marker_uses_the_hollow_circle() -> Result<(), &'static str> {
     let theme = Theme::junie();
@@ -376,8 +354,6 @@ fn form_radio_off_marker_uses_the_hollow_circle() -> Result<(), &'static str> {
     Ok(())
 }
 
-
-
 #[test]
 fn form_radio_focus_bolds_the_painted_row() -> Result<(), &'static str> {
     let mut t = open_new_form(120, 40);
@@ -414,7 +390,6 @@ fn form_radio_focus_bolds_the_painted_row() -> Result<(), &'static str> {
     Ok(())
 }
 
-
 #[test]
 fn form_radio_e_does_not_open_the_form() {
     let mut t = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
@@ -424,7 +399,6 @@ fn form_radio_e_does_not_open_the_form() {
         "e must not open the connection form"
     );
 }
-
 
 #[test]
 fn form_radio_blob_click_does_not_choose_staging() -> Result<(), &'static str> {
@@ -439,7 +413,6 @@ fn form_radio_blob_click_does_not_choose_staging() -> Result<(), &'static str> {
     );
     Ok(())
 }
-
 
 #[test]
 fn form_radio_has_no_is_editing_gate() {

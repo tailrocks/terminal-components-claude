@@ -1,4 +1,3 @@
-
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Color;
 use termrock_controls::Empty;
@@ -286,10 +285,6 @@ fn standalone_empty_cells_match_pre_inheritance_reference() {
             }
         }
     }
-
-
-
-
 
     assert_eq!(fingerprint, 385_672_878_558_749_177);
 }

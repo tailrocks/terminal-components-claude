@@ -1,5 +1,3 @@
-
-
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
     Action, ActionKey, App, Chord, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
@@ -19,7 +17,6 @@ use tablepro_demo::db::{
 use tablepro_domain::connections::{self, ConnectionDraft, ConnectionsScreen};
 use tablepro_domain::domain::ResultGrid;
 use tablepro_domain::model::SwitchTarget;
-
 
 pub const MIN_WIDTH: u16 = 72;
 
@@ -176,19 +173,15 @@ const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
 const FRAMED_PANEL_PATCH: [(Part, StylePatch); 1] =
     [(Part::DETAIL, StylePatch::new().set_fg(Role::BorderStrong))];
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
-
     Connections,
 
     Workbench,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Surface {
-
     Connections,
 
     ConnectionsFailed,
@@ -263,7 +256,6 @@ enum ExplorerNode {
 }
 
 impl Surface {
-
     pub const ALL: [Self; 21] = [
         Self::Connections,
         Self::ConnectionsFailed,
@@ -449,7 +441,6 @@ fn fallback_connection(catalog: &Catalog) -> Connection {
     }
 }
 
-
 pub struct TableProApp {
     catalog: Catalog,
     connections: Vec<Connection>,
@@ -534,7 +525,6 @@ impl Default for TableProApp {
 }
 
 impl TableProApp {
-
     pub fn new() -> Self {
         let catalog = Catalog::acme_prod();
         let connections = db::connections();
@@ -623,10 +613,6 @@ impl TableProApp {
     pub const fn surface(&self) -> Surface {
         self.surface
     }
-
-
-
-
 
     pub fn set_surface(&mut self, surface: Surface) {
         self.form_open = false;
@@ -920,7 +906,6 @@ impl TableProApp {
             self.tabs_state = TabsState::default();
         }
     }
-
 
     pub fn select_schema(&mut self, schema: &str) -> bool {
         if !self.workbench.select_schema(schema) {
@@ -1454,7 +1439,6 @@ impl TableProApp {
     }
 
     fn update_destructive_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-
         let fallback = DestructiveIntent::Quit {
             question: String::new(),
             scope: Vec::new(),
@@ -1866,33 +1850,15 @@ impl TableProApp {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QueryOutcome {
+    Executed { rows: usize, editable: bool },
 
-    Executed {
+    ConfirmationRequired { deliberate: bool, summary: String },
 
-        rows: usize,
+    Denied { summary: String },
 
-        editable: bool,
-    },
-
-    ConfirmationRequired {
-
-        deliberate: bool,
-
-        summary: String,
-    },
-
-    Denied {
-
-        summary: String,
-    },
-
-    Rejected {
-
-        message: String,
-    },
+    Rejected { message: String },
 }
 
 fn outcome_message(outcome: &QueryOutcome) -> String {
@@ -2613,7 +2579,6 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     } else if app.screen == Screen::Workbench {
         let prefix = "Connected to ";
 
-
         let mut right_text =
             String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
         right_text.push_str(prefix);
@@ -2898,7 +2863,6 @@ impl App for TableProApp {
             return response;
         }
 
-
         let _ = Self::connections_panel("", None);
         let _ = Self::connection_details_panel("");
         let _ = Self::explorer_panel(self.workbench.schema_caption());
@@ -3172,13 +3136,6 @@ impl App for TableProApp {
         }
     }
 }
-
-
-
-
-
-
-
 
 pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
     let mut app = TableProApp::default();

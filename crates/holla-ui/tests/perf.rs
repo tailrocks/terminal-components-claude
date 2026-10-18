@@ -1,7 +1,3 @@
-
-
-
-
 use holla_ui::{App, Motion, Scenario};
 use termrock::{Id, KeyCode, Theme};
 use termrock_test_support::{

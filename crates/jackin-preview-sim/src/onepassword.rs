@@ -1,13 +1,7 @@
-
-
-
-
-
 use std::fmt;
 
 use jackin_preview_domain::agent::Provider;
 use jackin_preview_domain::onepassword::OpReference;
-
 
 pub struct Secret {
     bytes: Vec<u8>,
@@ -22,9 +16,6 @@ impl fmt::Debug for Secret {
 }
 
 impl Secret {
-
-
-
     pub fn classify(&self) -> SecretClass {
         let s = String::from_utf8_lossy(&self.bytes);
         if s.is_empty() {
@@ -60,10 +51,8 @@ impl Drop for Secret {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyOutcome {
-
     Valid,
 
     Rejected,
@@ -73,41 +62,33 @@ pub enum KeyOutcome {
     Unavailable,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SecretClass {
-
     Empty,
 
     Unrecognised,
 
     Key {
-
         provider: Provider,
 
         outcome: KeyOutcome,
     },
 }
 
-
 pub trait SecretFree {}
 impl SecretFree for SecretClass {}
 impl SecretFree for () {}
 impl SecretFree for bool {}
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpSession {
-
     SignedIn,
 
     Locked,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpAccountState {
-
     Available,
 
     Locked,
@@ -115,10 +96,8 @@ pub enum OpAccountState {
     AuthorizationRequired,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VaultAccess {
-
     ReadWrite,
 
     ReadOnly,
@@ -126,10 +105,8 @@ pub enum VaultAccess {
     Denied,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldKind {
-
     Concealed,
 
     Text,
@@ -138,7 +115,6 @@ pub enum FieldKind {
 }
 
 impl FieldKind {
-
     pub fn label(self) -> &'static str {
         match self {
             FieldKind::Concealed => "concealed",
@@ -148,10 +124,8 @@ impl FieldKind {
     }
 }
 
-
 #[derive(Clone)]
 pub struct OpField {
-
     pub id: String,
 
     pub label: String,
@@ -175,10 +149,8 @@ impl fmt::Debug for OpField {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct OpItem {
-
     pub id: String,
 
     pub title: String,
@@ -188,10 +160,8 @@ pub struct OpItem {
     pub fields: Vec<OpField>,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct OpVault {
-
     pub id: String,
 
     pub name: String,
@@ -201,10 +171,8 @@ pub struct OpVault {
     pub items: Vec<OpItem>,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct OpAccount {
-
     pub id: String,
 
     pub email: String,
@@ -214,59 +182,28 @@ pub struct OpAccount {
     pub vaults: Vec<OpVault>,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OpError {
-
     Locked,
 
-    AuthorizationRequired {
+    AuthorizationRequired { account: String },
 
-        account: String,
-    },
+    PermissionDenied { vault: String },
 
-    PermissionDenied {
+    MissingAccount { account: String },
 
-        vault: String,
-    },
+    MissingVault { vault: String },
 
-    MissingAccount {
+    MissingItem { item: String, vault: String },
 
-        account: String,
-    },
+    MissingField { field: String, item: String },
 
-    MissingVault {
+    EmptyMaterial { field: String },
 
-        vault: String,
-    },
-
-    MissingItem {
-
-        item: String,
-
-        vault: String,
-    },
-
-    MissingField {
-
-        field: String,
-
-        item: String,
-    },
-
-    EmptyMaterial {
-
-        field: String,
-    },
-
-    WrongFieldShape {
-
-        field: String,
-    },
+    WrongFieldShape { field: String },
 }
 
 impl OpError {
-
     pub fn message(&self) -> String {
         match self {
             OpError::Locked => "1Password locked: unlock the app and retry".into(),
@@ -293,23 +230,18 @@ impl OpError {
         }
     }
 
-
     pub fn retryable(&self) -> bool {
         matches!(self, OpError::Locked)
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct FieldDescriptor {
-
     pub masked: String,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct SimOnePassword {
-
     pub session: OpSession,
 
     pub accounts: Vec<OpAccount>,
@@ -343,7 +275,6 @@ fn item(
 }
 
 impl SimOnePassword {
-
     pub fn fixture(epoch: i64) -> Self {
         let d = 86_400;
         let engineering = OpVault {
@@ -568,20 +499,10 @@ impl SimOnePassword {
         }
     }
 
-
-
-
-
-
     pub fn list_accounts(&self) -> Result<Vec<&OpAccount>, OpError> {
         self.gate()?;
         Ok(self.accounts.iter().collect())
     }
-
-
-
-
-
 
     pub fn list_vaults(&self, account: &str) -> Result<Vec<&OpVault>, OpError> {
         Ok(self.account(account)?.vaults.iter().collect())
@@ -604,12 +525,6 @@ impl SimOnePassword {
         Ok(v)
     }
 
-
-
-
-
-
-
     pub fn list_items(&self, account: &str, vault: &str) -> Result<Vec<&OpItem>, OpError> {
         Ok(self.vault(account, vault)?.items.iter().collect())
     }
@@ -627,12 +542,6 @@ impl SimOnePassword {
         Ok((v, it))
     }
 
-
-
-
-
-
-
     pub fn list_fields(
         &self,
         account: &str,
@@ -641,12 +550,6 @@ impl SimOnePassword {
     ) -> Result<Vec<&OpField>, OpError> {
         Ok(self.item(account, vault, item)?.1.fields.iter().collect())
     }
-
-
-
-
-
-
 
     pub fn reference(
         &self,
@@ -676,12 +579,6 @@ impl SimOnePassword {
         })
     }
 
-
-
-
-
-
-
     pub fn describe(&self, r: &OpReference) -> Result<FieldDescriptor, OpError> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id)?;
         let f = it
@@ -707,13 +604,6 @@ impl SimOnePassword {
         })
     }
 
-
-
-
-
-
-
-
     pub fn resolve_into<R: SecretFree>(
         &self,
         r: &OpReference,
@@ -734,7 +624,6 @@ impl SimOnePassword {
         Ok(op(&secret))
     }
 
-
     pub fn endpoint_of(&self, r: &OpReference) -> Option<String> {
         let (_, it) = self.item(&r.account, &r.vault_id, &r.item_id).ok()?;
         it.fields
@@ -743,9 +632,6 @@ impl SimOnePassword {
             .map(|_| "https://api.x.ai/v1".to_owned())
     }
 }
-
-
-
 
 pub fn classify_plain(provider: Provider, value: &str) -> SecretClass {
     if value.trim().is_empty() {

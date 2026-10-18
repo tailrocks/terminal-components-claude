@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use showcase_ui::{App, PageId};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::Harness;

@@ -1,10 +1,5 @@
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Agent {
-
     ClaudeCode,
 
     Codex,
@@ -19,7 +14,6 @@ pub enum Agent {
 }
 
 impl Agent {
-
     pub const ALL: [Agent; 6] = [
         Agent::ClaudeCode,
         Agent::Codex,
@@ -28,7 +22,6 @@ impl Agent {
         Agent::OpenCode,
         Agent::GrokBuild,
     ];
-
 
     pub fn label(self) -> &'static str {
         match self {
@@ -41,8 +34,6 @@ impl Agent {
         }
     }
 
-
-
     pub fn short(self) -> &'static str {
         match self {
             Agent::ClaudeCode => "claude",
@@ -54,7 +45,6 @@ impl Agent {
         }
     }
 
-
     pub fn provider(self) -> Provider {
         match self {
             Agent::ClaudeCode => Provider::Anthropic,
@@ -65,7 +55,6 @@ impl Agent {
             Agent::GrokBuild => Provider::XAi,
         }
     }
-
 
     pub fn auth_modes(self) -> &'static [AuthMode] {
         match self {
@@ -79,8 +68,6 @@ impl Agent {
         }
     }
 
-
-
     pub fn registerable(self) -> bool {
         matches!(
             self,
@@ -89,10 +76,8 @@ impl Agent {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Provider {
-
     Anthropic,
 
     OpenAi,
@@ -111,7 +96,6 @@ pub enum Provider {
 }
 
 impl Provider {
-
     pub fn label(self) -> &'static str {
         match self {
             Provider::Anthropic => "Anthropic / Claude",
@@ -124,7 +108,6 @@ impl Provider {
             Provider::MiniMax => "MiniMax",
         }
     }
-
 
     pub fn short(self) -> &'static str {
         match self {
@@ -139,7 +122,6 @@ impl Provider {
         }
     }
 
-
     pub fn usage_surface(self) -> UsageSurface {
         match self {
             Provider::Anthropic => UsageSurface::Claude,
@@ -153,7 +135,6 @@ impl Provider {
         }
     }
 
-
     pub fn agent(self) -> Option<Agent> {
         match self {
             Provider::Anthropic => Some(Agent::ClaudeCode),
@@ -166,11 +147,9 @@ impl Provider {
         }
     }
 
-
     pub fn supports_endpoint(self) -> bool {
         matches!(self, Provider::XAi)
     }
-
 
     pub fn plain_key_label(self) -> &'static str {
         match self {
@@ -184,7 +163,6 @@ impl Provider {
             Provider::MiniMax => "MiniMax API key",
         }
     }
-
 
     pub fn folder_label(self) -> &'static str {
         match self {
@@ -200,10 +178,8 @@ impl Provider {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum UsageSurface {
-
     Claude,
 
     Codex,
@@ -224,7 +200,6 @@ pub enum UsageSurface {
 }
 
 impl UsageSurface {
-
     pub const ALL: [UsageSurface; 9] = [
         UsageSurface::Claude,
         UsageSurface::Codex,
@@ -236,8 +211,6 @@ impl UsageSurface {
         UsageSurface::OpenCode,
         UsageSurface::Unsupported,
     ];
-
-
 
     pub fn label(self) -> &'static str {
         match self {
@@ -253,8 +226,6 @@ impl UsageSurface {
         }
     }
 
-
-
     pub fn surface_name(self) -> &'static str {
         match self {
             UsageSurface::Claude => "Claude",
@@ -268,7 +239,6 @@ impl UsageSurface {
             UsageSurface::Unsupported => "Unsupported",
         }
     }
-
 
     pub fn provider(self) -> Option<Provider> {
         match self {
@@ -285,10 +255,8 @@ impl UsageSurface {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AuthMode {
-
     Sync,
 
     ApiKey,

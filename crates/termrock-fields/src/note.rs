@@ -1,8 +1,3 @@
-
-
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -14,59 +9,6 @@ use crate::response::StateFlags;
 use crate::text::{width, wrap, wrapped_rows};
 use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Note<'a> {
     id: Id,
@@ -85,9 +27,7 @@ impl fmt::Debug for Note<'_> {
 }
 
 impl<'a> Note<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::HELP];
-
 
     pub const fn new(id: Id, text: &'a str) -> Self {
         Note {
@@ -97,11 +37,9 @@ impl<'a> Note<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -109,13 +47,11 @@ impl<'a> Note<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -123,12 +59,10 @@ impl<'a> Note<'a> {
         self
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         if area.is_empty() {
             return area;
         }
-
 
         let live = PartStyle::flags(ui.state(self.id), StateFlags::empty());
         let ov = self.ov;
@@ -183,7 +117,6 @@ impl<'a> Note<'a> {
         }
     }
 
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let w = width(self.text);
         Size {
@@ -229,7 +162,6 @@ mod tests {
 
     #[test]
     fn note_wrap_and_clip() {
-
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             let used = Note::new(
@@ -257,7 +189,6 @@ mod tests {
             assert_eq!(cell.fg, MUTED, "muted tone at ({x},{y})");
         }
 
-
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             let used = Note::new(
@@ -275,14 +206,12 @@ mod tests {
         );
         assert_eq!(row_text(&buf, 6, 4, 26).trim(), "", "no spill below");
 
-
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             let used = Note::new(NOTE, "Writes run without asking.").draw(ui, Rect::ZERO);
             assert_eq!(used, Rect::ZERO);
         })
         .commit_presented();
-
 
         let (mut rt, mut buf) = scene();
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {

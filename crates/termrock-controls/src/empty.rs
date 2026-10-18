@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -13,84 +10,6 @@ use crate::text::{width, wrapped_rows};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 use termrock_runtime::EmptyState;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Empty<'a> {
     id: Id,
@@ -112,9 +31,7 @@ impl fmt::Debug for Empty<'_> {
 }
 
 impl<'a> Empty<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::EMPTY, Part::TITLE, Part::HELP, Part::ICON];
-
 
     pub const fn new(id: Id, state: EmptyState<'a>) -> Self {
         Empty {
@@ -126,16 +43,13 @@ impl<'a> Empty<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
 
-
     pub const fn state(&self) -> EmptyState<'a> {
         self.state
     }
-
 
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
@@ -143,14 +57,11 @@ impl<'a> Empty<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn frame(mut self, f: usize) -> Self {
         self.frame = f;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -158,13 +69,11 @@ impl<'a> Empty<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -172,12 +81,10 @@ impl<'a> Empty<'a> {
         self
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         if area.is_empty() {
             return area;
         }
-
 
         let live = PartStyle::flags(StateFlags::empty(), self.state.status().flags());
         let ov = self.ov;
@@ -200,9 +107,6 @@ impl<'a> Empty<'a> {
             ..block
         }
     }
-
-
-
 
     fn paint_state(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) -> u16 {
         if area.is_empty() {
@@ -272,14 +176,12 @@ impl<'a> Empty<'a> {
         rows
     }
 
-
     fn rows(&self, w: u16) -> u16 {
         match self.state.detail() {
             Some(d) => wrapped_rows(d, w.max(1)).saturating_add(2),
             None => 1,
         }
     }
-
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         let title = width(self.state.title());

@@ -1,7 +1,4 @@
-
-
 use termrock::Id;
-
 
 pub const ROOT: Id = Id::root("jackin.capsule");
 
@@ -21,17 +18,10 @@ pub const EXIT_DIALOG: Id = ROOT.sub("exit-dialog");
 
 pub const EXIT_CHOICE: Id = EXIT_DIALOG.sub("choice");
 
-
 pub const PREFIX_TIMEOUT_MS: u64 = 2_000;
-
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CapsuleLayer {
-
     #[default]
     Normal,
 
@@ -42,10 +32,8 @@ pub enum CapsuleLayer {
     ExitConfirmation,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CapsuleFocus {
-
     #[default]
     Pane,
 
@@ -56,13 +44,8 @@ pub enum CapsuleFocus {
     ExitChoice,
 }
 
-
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrefixCommand {
-
     NewTab,
 
     NextTab,
@@ -107,7 +90,6 @@ pub enum PrefixCommand {
 }
 
 impl PrefixCommand {
-
     pub const fn from_char(key: char) -> Option<Self> {
         match key {
             'c' => Some(Self::NewTab),
@@ -143,7 +125,6 @@ impl PrefixCommand {
         }
     }
 
-
     pub const fn from_control_char(key: char) -> Option<Self> {
         match key {
             'l' => Some(Self::ClearPane),
@@ -152,10 +133,8 @@ impl PrefixCommand {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitDecision {
-
     StayInside,
 
     KeepChanges,
@@ -166,9 +145,7 @@ pub enum ExitDecision {
 }
 
 impl ExitDecision {
-
     pub const COUNT: u8 = 4;
-
 
     pub const fn from_index(index: u8) -> Self {
         match index {
@@ -179,7 +156,6 @@ impl ExitDecision {
         }
     }
 
-
     pub const fn index(self) -> u8 {
         match self {
             Self::StayInside => 0,
@@ -189,11 +165,6 @@ impl ExitDecision {
         }
     }
 }
-
-
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CapsuleInteraction {
@@ -213,21 +184,17 @@ impl Default for CapsuleInteraction {
 }
 
 impl CapsuleInteraction {
-
     pub const fn layer(self) -> CapsuleLayer {
         self.layer
     }
-
 
     pub const fn focus(self) -> CapsuleFocus {
         self.focus
     }
 
-
     pub const fn exit_choice(self) -> u8 {
         self.exit_choice
     }
-
 
     pub fn begin_prefix(&mut self) -> bool {
         if self.layer != CapsuleLayer::Normal {
@@ -238,10 +205,6 @@ impl CapsuleInteraction {
         true
     }
 
-
-
-
-
     pub fn resolve_prefix(&mut self, key: char) -> Option<PrefixCommand> {
         if self.layer != CapsuleLayer::Prefix {
             return None;
@@ -250,7 +213,6 @@ impl CapsuleInteraction {
         self.focus = CapsuleFocus::Pane;
         PrefixCommand::from_char(key)
     }
-
 
     pub fn open_app_menu(&mut self) -> bool {
         if self.layer == CapsuleLayer::ExitConfirmation {
@@ -261,14 +223,12 @@ impl CapsuleInteraction {
         true
     }
 
-
     pub fn open_exit_confirmation(&mut self) -> bool {
         self.layer = CapsuleLayer::ExitConfirmation;
         self.focus = CapsuleFocus::ExitChoice;
         self.exit_choice = ExitDecision::StayInside.index();
         true
     }
-
 
     pub fn move_exit_choice(&mut self, delta: i8) -> Option<ExitDecision> {
         if self.layer != CapsuleLayer::ExitConfirmation {
@@ -284,7 +244,6 @@ impl CapsuleInteraction {
         Some(ExitDecision::from_index(self.exit_choice))
     }
 
-
     pub fn take_exit_decision(&mut self) -> Option<ExitDecision> {
         if self.layer != CapsuleLayer::ExitConfirmation {
             return None;
@@ -293,7 +252,6 @@ impl CapsuleInteraction {
         self.dismiss();
         Some(decision)
     }
-
 
     pub fn dismiss(&mut self) -> bool {
         if self.layer == CapsuleLayer::Normal {
@@ -305,13 +263,11 @@ impl CapsuleInteraction {
         true
     }
 
-
     pub fn focus_tabs(&mut self) {
         if self.layer == CapsuleLayer::Normal {
             self.focus = CapsuleFocus::Tabs;
         }
     }
-
 
     pub fn focus_pane(&mut self) {
         if self.layer == CapsuleLayer::Normal {
@@ -320,10 +276,8 @@ impl CapsuleInteraction {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CapsuleState {
-
     pub tab: u8,
 
     pub zoomed: bool,

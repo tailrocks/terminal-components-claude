@@ -23,9 +23,35 @@ Verification date: 2026-10-18. The temporary verifier uses `rustc_lexer 0.1.0`, 
 | `wip/s14-followups` | `95f62ca33eaf7b02fc5a2551572fa3258b81a880` | `29a0ffd5d6513853966c88849cc4bfbd2dcbe65f` | 414 | 23849 |
 | `wip/v1-showcase` | `c1a49af0f6ade36838c6330ce8a034e8d589ea79` | `92cd52ab010299a18ff5a2f04e942a4764a75527` | 383 | 20630 |
 
-All changed Rust files preserve their non-comment token stream. Independent review scanned all 508 main files and 2,879 design/WIP files: zero comments, unchanged non-comment tokens and file sets. Whitespace checks pass for Rust diffs. Fixtures cover nested block comments, doc comments, raw strings, byte/raw-byte strings, ordinary C strings, lifetimes, raw identifiers, Unicode, CRLF, and shebangs. `rustc_lexer 0.1.0` does not safely handle every raw-C literal; independent review found none in the inspected source corpus. This verifier must not be generalized to source containing raw-C literals without upgrading its lexer. Existing code line positions remain preserved; trailing comment-only EOF lines are removed. No `line!()` or `column!()` consumers were found in tracked crate code.
+Initial removal preserved non-comment token streams. Required Rust formatting subsequently changed only whitespace in 453 main files and redundant punctuation in 19 main files, as reviewed independently below. Independent review scanned all 508 main files and 2,879 design/WIP files: zero comments, unchanged non-comment tokens and file sets. Whitespace checks pass for Rust diffs. Fixtures cover nested block comments, doc comments, raw strings, byte/raw-byte strings, ordinary C strings, lifetimes, raw identifiers, Unicode, CRLF, and shebangs. `rustc_lexer 0.1.0` does not safely handle every raw-C literal; independent review found none in the inspected source corpus. This verifier must not be generalized to source containing raw-C literals without upgrading its lexer. Existing code line positions remain preserved; trailing comment-only EOF lines are removed. No `line!()` or `column!()` consumers were found in tracked crate code. Formatting changes source line positions; source-identity receipts necessarily change.
 
 Removing doc comments intentionally removes generated Rust API prose and doctest examples. Existing lint settings remain unchanged; `missing_docs` warnings are expected. The visibility audit embeds and hashes its own Rust source, so its source-identity receipt changes. This is not evidence of a visual or interaction change. Historical receipts retain their original scope.
+
+### Formatting review
+
+`cargo fmt --all` removes comment-derived blank lines. Independent review compared all 472 affected main files with `dc9b1e42c`: 453 retained identical non-whitespace tokens. Eighteen files only changed optional trailing enum-field commas (40 removed, seven added). One expression closure lost redundant block braces around its unchanged return expression. These are formatter changes with no new executable logic; the following list bounds every punctuation exception.
+
+| File | Reviewed formatting exception |
+| --- | --- |
+| `crates/holla-sim/src/catalogue.rs` | Removed redundant closure braces; expression remains `workdir.rsplit('/').next().map(str::to_owned)`. |
+| `crates/jackin-preview-capsule-ui/src/screens/op_flow.rs` | Optional enum-field trailing commas only. |
+| `crates/jackin-preview-domain/src/account.rs` | Optional enum-field trailing commas only. |
+| `crates/jackin-preview-domain/src/workspace.rs` | Optional enum-field trailing commas only. |
+| `crates/jackin-preview-sim/src/arbiter.rs` | Optional enum-field trailing commas only. |
+| `crates/jackin-preview-sim/src/changes.rs` | Optional enum-field trailing commas only. |
+| `crates/jackin-preview-sim/src/launch.rs` | Optional enum-field trailing commas only. |
+| `crates/jackin-preview-sim/src/onepassword.rs` | Optional enum-field trailing commas only. |
+| `crates/jackin-preview-sim/src/world.rs` | Optional enum-field trailing commas only. |
+| `crates/tablepro-domain/src/model.rs` | Optional enum-field trailing commas only. |
+| `crates/tablepro-sql/src/sql.rs` | Optional enum-field trailing commas only. |
+| `crates/tablepro-ui/src/app.rs` | Optional enum-field trailing commas only. |
+| `crates/termrock-conformance/tests/visual_baseline/support/typed_input.rs` | Optional enum-field trailing commas only. |
+| `crates/termrock-editors/src/code.rs` | Optional enum-field trailing commas only. |
+| `crates/termrock-editors/src/diff.rs` | Optional enum-field trailing commas only. |
+| `crates/termrock-grid/src/grid.rs` | Optional enum-field trailing commas only. |
+| `crates/termrock-runtime/src/keymap.rs` | Optional enum-field trailing commas only. |
+| `crates/termrock-runtime/src/layer.rs` | Optional enum-field trailing commas only. |
+| `crates/termrock-terminal/src/terminal_view.rs` | Optional enum-field trailing commas only. |
 
 ## Remaining work
 

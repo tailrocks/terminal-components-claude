@@ -1,20 +1,11 @@
-
-
-
-
-
-
-
 use ratatui_core::style::Color;
 
 use super::border::BorderSet;
 use super::glyph::GlyphSet;
 use super::role::{FG_STEPS, SURFACE_LEVELS};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SyntaxTokens {
-
     pub keyword: Color,
 
     pub ident: Color,
@@ -55,9 +46,6 @@ pub struct SyntaxTokens {
 }
 
 impl SyntaxTokens {
-
-
-
     pub const fn derive(keyword: Color, string: Color, number: Color) -> SyntaxTokens {
         SyntaxTokens {
             keyword,
@@ -81,7 +69,6 @@ impl SyntaxTokens {
             diagnostic_info: Color::Reset,
         }
     }
-
 
     #[must_use]
     pub fn map_colors(&self, f: &mut impl FnMut(Color) -> Color) -> SyntaxTokens {
@@ -130,12 +117,9 @@ impl SyntaxTokens {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MeterFillRest {
-
     Color(Color),
-
 
     ReferenceLift,
 }
@@ -157,10 +141,8 @@ impl<F: FnMut(Color) -> Color> TokenMapper for ColorMapper<'_, F> {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MeterTokens {
-
     pub low: Color,
 
     pub medium: Color,
@@ -179,8 +161,6 @@ pub struct MeterTokens {
 }
 
 impl MeterTokens {
-
-
     pub const fn derive(low: Color, medium: Color, high: Color) -> MeterTokens {
         MeterTokens {
             low,
@@ -193,7 +173,6 @@ impl MeterTokens {
             series: [low, medium, high, low, medium, high],
         }
     }
-
 
     #[must_use]
     pub fn map_colors(&self, f: &mut impl FnMut(Color) -> Color) -> MeterTokens {
@@ -224,10 +203,8 @@ impl MeterTokens {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ColorTokens {
-
     pub surfaces: [Color; SURFACE_LEVELS],
 
     pub field: Color,
@@ -300,7 +277,6 @@ pub struct ColorTokens {
 }
 
 impl ColorTokens {
-
     #[must_use]
     pub fn map_colors(&self, f: &mut impl FnMut(Color) -> Color) -> ColorTokens {
         self.map_with(&mut ColorMapper(f))
@@ -383,7 +359,6 @@ impl ColorTokens {
         }
     }
 
-
     pub fn semantic_colors(&self) -> Vec<MeterFillRest> {
         struct Collect(Vec<MeterFillRest>);
         impl TokenMapper for Collect {
@@ -401,8 +376,6 @@ impl ColorTokens {
         collect.0
     }
 
-
-
     pub fn colors(&self) -> Vec<Color> {
         let mut out = Vec::with_capacity(72);
         let _ = self.map_colors(&mut |c| {
@@ -413,10 +386,8 @@ impl ColorTokens {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SpaceTokens {
-
     pub gutter: u16,
 
     pub inline: u16,
@@ -436,10 +407,8 @@ pub struct SpaceTokens {
     pub tree_indent: u16,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SizeTokens {
-
     pub field_height: u16,
 
     pub tabs_height: u16,
@@ -465,10 +434,8 @@ pub struct SizeTokens {
     pub code_preview_lines: u16,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MotionTokens {
-
     pub spinner_frames: &'static [&'static str],
 
     pub tick_ms: u64,
@@ -484,29 +451,23 @@ pub struct MotionTokens {
     pub double_click_ms: u64,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MeterThresholds {
-
     pub low_max: u8,
 
     pub medium_max: u8,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Density {
-
     #[default]
     Comfortable,
 
     Compact,
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DesignTokens {
-
     pub space: SpaceTokens,
 
     pub size: SizeTokens,
@@ -522,11 +483,9 @@ pub struct DesignTokens {
     pub density: Density,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 #[non_exhaustive]
 pub enum ColorLevel {
-
     TrueColor,
 
     Ansi256,
@@ -537,11 +496,6 @@ pub enum ColorLevel {
 }
 
 impl ColorLevel {
-
-
-
-
-
     #[must_use]
     pub fn detect() -> Self {
         use std::io::IsTerminal as _;
@@ -554,34 +508,6 @@ impl ColorLevel {
             std::io::stdout().is_terminal(),
         )
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     #[must_use]
     pub fn from_env(
@@ -616,14 +542,6 @@ impl ColorLevel {
         ColorLevel::Ansi16
     }
 
-
-
-
-
-
-
-
-
     const fn depth(self) -> u8 {
         match self {
             ColorLevel::Mono => 0,
@@ -633,13 +551,6 @@ impl ColorLevel {
         }
     }
 
-
-
-
-
-
-
-
     #[must_use]
     pub const fn narrow_to(self, other: ColorLevel) -> ColorLevel {
         if self.depth() <= other.depth() {
@@ -648,7 +559,6 @@ impl ColorLevel {
             other
         }
     }
-
 
     pub const fn label(self) -> &'static str {
         match self {
@@ -660,10 +570,8 @@ impl ColorLevel {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Capability {
-
     pub color: ColorLevel,
 }
 
@@ -673,7 +581,6 @@ mod tests {
 
     use super::ColorLevel;
 
-
     #[test]
     fn term_dumb_is_mono() {
         assert_eq!(
@@ -681,9 +588,6 @@ mod tests {
             ColorLevel::Mono
         );
     }
-
-
-
 
     #[test]
     fn no_color_triggers_on_any_non_empty_value() {
@@ -709,7 +613,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn a_non_tty_stdout_is_mono() {
         assert_eq!(
@@ -717,7 +620,6 @@ mod tests {
             ColorLevel::Mono
         );
     }
-
 
     #[test]
     fn clicolor_force_overrides_no_color_and_the_tty_check() {
@@ -746,7 +648,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn clicolor_force_does_not_override_term_dumb() {
         assert_eq!(
@@ -760,10 +661,6 @@ mod tests {
             ColorLevel::Mono
         );
     }
-
-
-
-
 
     #[test]
     fn narrow_to_returns_the_poorer_level() {
@@ -780,8 +677,6 @@ mod tests {
             assert_eq!(a.narrow_to(Mono), Mono, "Mono absorbs");
         }
     }
-
-
 
     #[test]
     fn term_unset_or_empty_is_ansi16() {

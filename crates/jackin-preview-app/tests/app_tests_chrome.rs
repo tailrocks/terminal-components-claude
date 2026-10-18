@@ -1,6 +1,3 @@
-
-
-
 #![allow(
     dead_code,
     missing_debug_implementations,
@@ -172,9 +169,6 @@ fn hint_bar_stays_on_the_last_row_across_layers() {
     let help = last_row(&h);
     assert!(help.contains("Esc") && help.contains("Close"), "{help}");
     h.key(KeyCode::Esc);
-
-
-
 
     h.key(KeyCode::Home);
     h.key(KeyCode::End);

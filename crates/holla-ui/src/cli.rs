@@ -1,4 +1,3 @@
-
 use std::ffi::OsStr;
 
 use crate::scenario::{Motion, Scenario};
@@ -35,8 +34,6 @@ pub enum CliError {
 
 impl std::fmt::Display for CliError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-
-
         match self {
             Self::Color => f.write_str("unknown --color value; use truecolor|256|16|none"),
             Self::Scenario => write!(

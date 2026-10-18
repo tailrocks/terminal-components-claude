@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -18,10 +16,8 @@ use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 use termrock_runtime::Status;
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ButtonCmd {
-
     Activate,
 }
 
@@ -44,94 +40,10 @@ const BINDINGS: &[Binding<ButtonCmd>] = &[
     },
 ];
 
-
-
-
-
-
 #[derive(Default)]
 struct Autofocus {
     spent: bool,
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Button<'a> {
     id: Id,
@@ -160,7 +72,6 @@ impl fmt::Debug for Button<'_> {
 }
 
 impl<'a> Button<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -168,7 +79,6 @@ impl<'a> Button<'a> {
         Part::ICON,
         Part::MARKER,
     ];
-
 
     pub const fn new(id: Id, label: &'a str) -> Self {
         Button {
@@ -184,11 +94,9 @@ impl<'a> Button<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
@@ -196,13 +104,11 @@ impl<'a> Button<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     #[must_use]
     pub const fn icon(mut self, g: GlyphRole) -> Self {
@@ -210,15 +116,11 @@ impl<'a> Button<'a> {
         self
     }
 
-
-
-
     #[must_use]
     pub const fn autofocus(mut self) -> Self {
         self.autofocus = true;
         self
     }
-
 
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
@@ -226,13 +128,11 @@ impl<'a> Button<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn checked(mut self, on: bool) -> Self {
         self.checked = Some(on);
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -240,13 +140,11 @@ impl<'a> Button<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -276,7 +174,6 @@ impl<'a> Button<'a> {
         }
     }
 
-
     pub fn update(&self, cx: &mut Cx<'_>) -> Response<Activated> {
         self.autofocus_once(cx);
         let mut r: Response<Activated> = Response::ignored();
@@ -293,9 +190,6 @@ impl<'a> Button<'a> {
                     ..
                 } if can => r = Response::action(Activated),
 
-
-
-
                 Intent::Pointer {
                     phase: Phase::Move, ..
                 } => {}
@@ -305,14 +199,6 @@ impl<'a> Button<'a> {
         }
         r.for_id(self.id)
     }
-
-
-
-
-
-
-
-
 
     fn autofocus_once(&self, cx: &mut Cx<'_>) {
         if !self.autofocus {
@@ -332,7 +218,6 @@ impl<'a> Button<'a> {
         self.with_inherited_disabled(inherited_disabled).update(cx)
     }
 
-
     const fn readiness_width(&self) -> u16 {
         if self.icon.is_some() || !matches!(self.status, Status::Ready) {
             2
@@ -341,11 +226,9 @@ impl<'a> Button<'a> {
         }
     }
 
-
     fn marker_width(&self) -> u16 {
         if self.checked.is_some() { 2 } else { 0 }
     }
-
 
     fn natural_width(&self, _ui: &Ui<'_>) -> u16 {
         1u16.saturating_add(self.readiness_width())
@@ -353,7 +236,6 @@ impl<'a> Button<'a> {
             .saturating_add(width(self.label))
             .saturating_add(1)
     }
-
 
     #[expect(
         clippy::too_many_lines,
@@ -376,8 +258,6 @@ impl<'a> Button<'a> {
             };
             ui.register_control(self.id, area, f);
         }
-
-
 
         let mut derived = self.status.flags();
         if self.disabled {
@@ -406,7 +286,6 @@ impl<'a> Button<'a> {
         let container = style(ui, Part::CONTAINER);
         ui.fill(area, container.style);
 
-
         let gutter_cell = cell_at(area, area.x);
         if let Some(f) = ov.slot_for(Part::GUTTER) {
             f(ui, gutter_cell);
@@ -419,7 +298,6 @@ impl<'a> Button<'a> {
                 Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
             }
         }
-
 
         let mut text = Rect {
             x: area.x.saturating_add(1),
@@ -456,7 +334,6 @@ impl<'a> Button<'a> {
                             ui.glyph(icon_cell, glyph, is.style);
                         }
                     }
-
 
                     _ => {}
                 }
@@ -511,7 +388,6 @@ impl<'a> Button<'a> {
         self.with_inherited_disabled(inherited_disabled)
             .draw(ui, area)
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(ui), 1).fit(c)
@@ -705,16 +581,12 @@ mod tests {
         height: 4,
     };
 
-
-
-
     #[derive(Default)]
     struct AutofocusApp {
         disabled: bool,
     }
 
     impl AutofocusApp {
-
         fn button(&self) -> Button<'static> {
             Button::new(BUTTON, "Go")
                 .disabled(self.disabled)
@@ -735,10 +607,6 @@ mod tests {
             self.button().draw(ui, AREA);
         }
     }
-
-
-
-
 
     #[test]
     fn autofocus_fires_once_and_never_takes_focus_back() {
@@ -766,9 +634,6 @@ mod tests {
             "a spent autofocus must never request focus again"
         );
     }
-
-
-
 
     #[test]
     fn a_disabled_autofocus_button_never_takes_focus() {
@@ -803,9 +668,6 @@ mod tests {
             Button::new(BUTTON, "Go").draw(ui, AREA);
         }
     }
-
-
-
 
     #[test]
     fn a_pointer_move_without_a_hover_transition_does_not_repaint() {

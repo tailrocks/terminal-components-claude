@@ -1,16 +1,6 @@
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 
 use termrock_xtask::ownership::{check_workspace, exceptions, rules};
-
 
 fn workspace_root() -> PathBuf {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -20,8 +10,6 @@ fn workspace_root() -> PathBuf {
         .expect("xtask crate lives two levels below the workspace root")
         .to_path_buf()
 }
-
-
 
 #[test]
 fn ownership_check_passes_on_workspace() {
@@ -44,7 +32,6 @@ fn ownership_check_passes_on_workspace() {
     );
 }
 
-
 fn scratch_workspace(member_src: &str, exceptions_json: &str) -> tempfile::TempDir {
     let dir = tempfile::tempdir().expect("scratch dir");
     let root = dir.path();
@@ -66,8 +53,6 @@ fn empty_exceptions() -> String {
         exceptions::SCHEMA_VERSION
     )
 }
-
-
 
 #[test]
 fn negative_probe_forbidden_pattern_fails() {
@@ -109,7 +94,6 @@ fn negative_probe_forbidden_pattern_fails() {
     );
 }
 
-
 #[test]
 fn negative_probe_growth_beyond_max_fails() {
     let capped = format!(
@@ -136,7 +120,6 @@ fn negative_probe_growth_beyond_max_fails() {
     );
 }
 
-
 #[test]
 fn negative_probe_stale_exception_fails() {
     let stale = format!(
@@ -156,14 +139,12 @@ fn negative_probe_stale_exception_fails() {
     );
 }
 
-
 #[test]
 fn negative_probe_unknown_schema_fails() {
     let dir = scratch_workspace("fn clean() {}\n", r#"{"schema":"nope/v9","exceptions":[]}"#);
     let report = check_workspace(dir.path(), &dir.path().join("exceptions.json"));
     assert!(!report.passed(), "an unknown schema must fail");
 }
-
 
 #[test]
 fn rule_catalog_is_stable() {
@@ -176,7 +157,6 @@ fn rule_catalog_is_stable() {
         ]
     );
 }
-
 
 #[test]
 fn shipped_exceptions_parse() {

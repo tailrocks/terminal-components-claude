@@ -1,4 +1,3 @@
-
 use ratatui_core::style::{Color, Modifier};
 use termrock_runtime::{Rect, Ui};
 use termrock_test_support::Scene;

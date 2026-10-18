@@ -1,33 +1,14 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use tuiscotti::tui::{MouseButton, MouseMods, Wheel};
 
 use super::Session;
 
-
 pub type MouseModes = Vec<u16>;
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MouseMode {
-
     None,
 
     Press,
-
 
     PressRelease,
 
@@ -48,11 +29,12 @@ impl MouseMode {
     }
 }
 
-
 #[derive(Debug, Clone, Copy)]
 pub enum Input {
-
-    Move { col: u16, row: u16 },
+    Move {
+        col: u16,
+        row: u16,
+    },
 
     Down {
         button: MouseButton,
@@ -66,7 +48,10 @@ pub enum Input {
         row: u16,
     },
 
-    Drag { from: (u16, u16), to: (u16, u16) },
+    Drag {
+        from: (u16, u16),
+        to: (u16, u16),
+    },
 
     Wheel {
         dir: Wheel,
@@ -75,36 +60,35 @@ pub enum Input {
         notches: u32,
     },
 
-    Focus { gained: bool },
+    Focus {
+        gained: bool,
+    },
 
-    Key { name: &'static str },
+    Key {
+        name: &'static str,
+    },
 }
 
 impl Input {
-
     #[must_use]
     pub fn move_to(col: u16, row: u16) -> Self {
         Self::Move { col, row }
     }
-
 
     #[must_use]
     pub fn down(button: MouseButton, col: u16, row: u16) -> Self {
         Self::Down { button, col, row }
     }
 
-
     #[must_use]
     pub fn up(button: MouseButton, col: u16, row: u16) -> Self {
         Self::Up { button, col, row }
     }
 
-
     #[must_use]
     pub fn drag(from: (u16, u16), to: (u16, u16)) -> Self {
         Self::Drag { from, to }
     }
-
 
     #[must_use]
     pub fn wheel(dir: Wheel, col: u16, row: u16) -> Self {
@@ -116,24 +100,20 @@ impl Input {
         }
     }
 
-
     #[must_use]
     pub fn focus_in() -> Self {
         Self::Focus { gained: true }
     }
-
 
     #[must_use]
     pub fn focus_out() -> Self {
         Self::Focus { gained: false }
     }
 
-
     #[must_use]
     pub fn key(name: &'static str) -> Self {
         Self::Key { name }
     }
-
 
     #[must_use]
     pub fn notches(self, n: u32) -> Self {
@@ -148,8 +128,6 @@ impl Input {
             notches: n,
         }
     }
-
-
 
     pub fn send(&self, s: &mut Session) {
         match *self {
@@ -216,18 +194,14 @@ impl Input {
     }
 }
 
-
 #[derive(Debug, Clone, Copy)]
 enum ModeNeed {
-
     AnyTracking,
 
     Motion,
 
-
     Release,
 }
-
 
 struct Sampled {
     modes: MouseModes,
@@ -235,7 +209,6 @@ struct Sampled {
     focus: bool,
     size: (u16, u16),
 }
-
 
 fn sample(s: &mut Session) -> Sampled {
     let obs = s
@@ -252,25 +225,20 @@ fn sample(s: &mut Session) -> Sampled {
     }
 }
 
-
 #[must_use]
 pub fn tracking(s: &mut Session) -> MouseModes {
     sample(s).modes
 }
-
 
 #[must_use]
 pub fn tracking_mode(s: &mut Session) -> MouseMode {
     sample(s).mode
 }
 
-
 #[must_use]
 pub fn focus_reporting(s: &mut Session) -> bool {
     sample(s).focus
 }
-
-
 
 fn require_mode(s: &mut Session, what: &str, need: ModeNeed) -> Sampled {
     let sampled = sample(s);
@@ -287,7 +255,6 @@ fn require_mode(s: &mut Session, what: &str, need: ModeNeed) -> Sampled {
     sampled
 }
 
-
 fn require_focus(s: &mut Session, gained: bool) {
     let what = if gained { "focus-in" } else { "focus-out" };
     assert!(
@@ -295,7 +262,6 @@ fn require_focus(s: &mut Session, gained: bool) {
         "{what} refused: app never enabled focus reporting (no CSI ?1004 h seen)"
     );
 }
-
 
 fn require_in_grid(what: &str, (cols, rows): (u16, u16), pts: &[(u16, u16)]) {
     for &(col, row) in pts {
@@ -305,9 +271,6 @@ fn require_in_grid(what: &str, (cols, rows): (u16, u16), pts: &[(u16, u16)]) {
         );
     }
 }
-
-
-
 
 #[test]
 #[ignore = "typed-helpers smoke; run with --ignored"]
@@ -329,7 +292,6 @@ fn smoke_typed_helpers() {
     );
     let mut s = spawn_boot(&case);
     waits::wait_state(&mut s, case.needle, "smoke boot");
-
 
     assert_eq!(
         tracking_mode(&mut s),
@@ -355,7 +317,6 @@ fn smoke_typed_helpers() {
         );
     }
 
-
     let mut target = Target::resolve(&mut s, "Preview");
     eprintln!("smoke: Preview at {:?}", target.point());
     assert_eq!(target.point(), (target.col(), target.row()));
@@ -363,15 +324,11 @@ fn smoke_typed_helpers() {
     let (col, row) = target.point();
     Input::move_to(col, row).send(&mut s);
 
-
     Input::wheel(Wheel::Down, col, row).notches(2).send(&mut s);
     target.refresh(&mut s);
 
-
     Input::key("down").send(&mut s);
     target.refresh_same(&mut s);
-
-
 
     s.resize(100, 30).expect("resize down");
     waits::wait_size(&mut s, 100, 30, "smoke shrink");
@@ -380,16 +337,13 @@ fn smoke_typed_helpers() {
     waits::wait_size(&mut s, 120, 40, "smoke grow");
     target.refresh(&mut s);
 
-
     let vacuous = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         waits::wait_gone(&mut s, "needle-that-never-exists-zzz", "smoke vacuous");
     }));
     assert!(vacuous.is_err(), "wait_gone must fail vacuous absence");
 
-
     let frame = waits::wait_frame_where(&mut s, Duration::from_secs(2), "smoke frame", |_| true);
     assert_eq!((frame.cols, frame.rows), (120, 40));
-
 
     let phase = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         waits::wait_phase(
@@ -402,9 +356,6 @@ fn smoke_typed_helpers() {
         );
     }));
     assert!(phase.is_err(), "impossible phase must time out");
-
-
-
 
     let settled =
         waits::wait_frame_where(&mut s, Duration::from_secs(2), "smoke phase-cell", |_| true);
@@ -427,13 +378,11 @@ fn smoke_typed_helpers() {
         "phase change on a quiet cell must time out"
     );
 
-
     Input::down(MouseButton::Left, col, row).send(&mut s);
     Input::up(MouseButton::Left, col, row).send(&mut s);
     waits::wait_state(&mut s, case.needle, "smoke after click");
     let target = Target::resolve(&mut s, "Preview");
     Input::drag(target.point(), target.span_end()).send(&mut s);
-
 
     let frame = waits::wait_quiet(&mut s, Duration::from_millis(400), "smoke settle");
     assert_eq!((frame.cols, frame.rows), (120, 40));

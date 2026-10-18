@@ -1,4 +1,3 @@
-
 use tablepro_ui::{CONNECTION_NAME, TableProApp};
 use termrock::{Id, KeyCode, Part, Theme};
 use termrock_test_support::Harness;

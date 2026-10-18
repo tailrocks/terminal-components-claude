@@ -1,58 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::any::TypeId;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -108,7 +53,6 @@ fn cell_dim(buf: &Buffer, x: u16, y: u16) -> bool {
         .unwrap_or(false)
 }
 
-
 fn paint(area: Rect, theme: Theme, draw: impl FnOnce(&mut Ui<'_>, Rect)) -> Buffer {
     let mut runtime = Runtime::new(Stub::default(), theme);
     let mut buffer = Buffer::empty(area);
@@ -117,7 +61,6 @@ fn paint(area: Rect, theme: Theme, draw: impl FnOnce(&mut Ui<'_>, Rect)) -> Buff
         .commit_presented();
     buffer
 }
-
 
 fn paint_state(
     area: Rect,
@@ -134,7 +77,6 @@ fn paint_plain(area: Rect, draw: impl FnOnce(&mut Ui<'_>, Rect)) -> Buffer {
     paint(area, Theme::junie(), draw)
 }
 
-
 fn measure_size(draw: impl Fn(&Ui<'_>, Constraints) -> Size) -> Size {
     let mut runtime = Runtime::new(Stub::default(), Theme::junie());
     let mut buffer = Buffer::empty(SCREEN);
@@ -150,22 +92,13 @@ fn measure_size(draw: impl Fn(&Ui<'_>, Constraints) -> Size) -> Size {
     size.get()
 }
 
-
-
-
-
 const OWNERSHIP_JSON: &str = include_str!("../../../component-ownership.json");
-
-
-
 
 #[test]
 fn w01_w45_resolve_through_owner_crate_modules() {
     let doc: serde_json::Value =
         serde_json::from_str(OWNERSHIP_JSON).expect("ownership map must parse");
     verify_ownership_map(&doc).expect("ownership map must match W01-W45 exactly");
-
-
 
     fn same<A: 'static, B: 'static>() {
         assert_eq!(
@@ -260,9 +193,6 @@ fn w01_w45_resolve_through_owner_crate_modules() {
     same::<ScrollRegion<'static>, termrock::viewport::ScrollRegion<'static>>();
 }
 
-
-
-
 fn verify_ownership_map(doc: &serde_json::Value) -> Result<(), String> {
     const EXPECTED: &[(&str, &str)] = &[
         ("W01", "termrock-controls"),
@@ -348,7 +278,6 @@ fn verify_ownership_map(doc: &serde_json::Value) -> Result<(), String> {
     Ok(())
 }
 
-
 #[test]
 fn ownership_gate_rejects_unknown_component_ids() {
     let lone = serde_json::json!({
@@ -367,10 +296,6 @@ fn ownership_gate_rejects_unknown_component_ids() {
     assert!(err.contains("W00"), "unexpected error: {err}");
 }
 
-
-
-
-
 const BRAND: Id = Id::root("control.states.brand");
 const BRAND_AREA: Rect = Rect {
     x: 0,
@@ -378,7 +303,6 @@ const BRAND_AREA: Rect = Rect {
     width: 24,
     height: 1,
 };
-
 
 #[test]
 fn w01_brand_exact_width_and_one_column_narrow() {
@@ -416,9 +340,6 @@ fn w01_brand_exact_width_and_one_column_narrow() {
     );
 }
 
-
-
-
 #[test]
 fn w01_brand_clickable_hover_press_release_and_typed_activation() {
     #[derive(Default)]
@@ -443,7 +364,6 @@ fn w01_brand_clickable_hover_press_release_and_typed_activation() {
         }
     }
 
-
     let fired = Rc::new(Cell::new(0));
     let mut app = Harness::new(
         BrandApp {
@@ -463,8 +383,6 @@ fn w01_brand_clickable_hover_press_release_and_typed_activation() {
     );
     let _ = app.click(2, 0);
     assert_eq!(fired.get(), 0, "W01-02: a static lockup never fires");
-
-
 
     let fired = Rc::new(Cell::new(0));
     let mut app = Harness::new(
@@ -486,7 +404,6 @@ fn w01_brand_clickable_hover_press_release_and_typed_activation() {
     let _ = app.mouse(MouseKind::Down, 2, 0);
     let pressed = app.buffer().clone();
 
-
     let _ = app.mouse(MouseKind::Up, 2, 0);
     assert_eq!(fired.get(), 1, "W01-02: release inside must fire once");
 
@@ -499,8 +416,6 @@ fn w01_brand_clickable_hover_press_release_and_typed_activation() {
         "W01-02: a release outside the lockup must cancel, not fire"
     );
 
-
-
     assert!(
         !app.tab_to(BRAND),
         "W01-02: a click-only lockup must take no Tab stop"
@@ -512,14 +427,6 @@ fn w01_brand_clickable_hover_press_release_and_typed_activation() {
         "W01-02: exactly one typed activation comes from the click alone"
     );
 }
-
-
-
-
-
-
-
-
 
 #[test]
 fn w01_brand_press_paints_distinct_from_hover() {
@@ -536,13 +443,11 @@ fn w01_brand_press_paints_distinct_from_hover() {
         },
     );
 
-
     assert_eq!(
         hovered, pressed,
         "W01-02: target has no BRAND PRESSED rule; press repaints the hover frame"
     );
 }
-
 
 #[test]
 fn w01_brand_two_lockups_keep_independent_targets() {
@@ -603,7 +508,6 @@ fn w01_brand_two_lockups_keep_independent_targets() {
     );
 }
 
-
 #[test]
 fn w01_brand_static_lockup_absent_from_tab_traversal() {
     struct StaticBrand;
@@ -627,10 +531,6 @@ fn w01_brand_static_lockup_absent_from_tab_traversal() {
     );
 }
 
-
-
-
-
 const BUTTON: Id = Id::root("control.states.button");
 const BUTTON_AREA: Rect = Rect {
     x: 0,
@@ -653,12 +553,6 @@ const LEVELS: [ColorLevel; 4] = [
     ColorLevel::Ansi16,
     ColorLevel::Mono,
 ];
-
-
-
-
-
-
 
 #[test]
 fn w02_button_variants_all_states_and_focus_gutter() {
@@ -690,7 +584,6 @@ fn w02_button_variants_all_states_and_focus_gutter() {
                     "W02-01 {level:?} {variant:?}: mono DIM marks disabled only"
                 );
             }
-
 
             let normal = paint_plain(BUTTON_AREA, |ui, area| {
                 Button::new(BUTTON, "Action")
@@ -750,13 +643,6 @@ fn w02_button_variants_all_states_and_focus_gutter() {
     }
 }
 
-
-
-
-
-
-
-
 #[test]
 fn w02_button_disabled_suppresses_focus_gutter() {
     for level in LEVELS {
@@ -773,9 +659,6 @@ fn w02_button_disabled_suppresses_focus_gutter() {
                     },
                 );
             });
-
-
-
 
             let expected = if matches!(level, ColorLevel::Mono) {
                 " ".to_string()
@@ -800,7 +683,6 @@ fn w02_button_disabled_suppresses_focus_gutter() {
         }
     }
 }
-
 
 struct ButtonApp {
     fired: Rc<Cell<u32>>,
@@ -856,11 +738,8 @@ impl ButtonApp {
     }
 }
 
-
-
 #[test]
 fn w02_button_release_outside_removed_or_disabled_never_fires() {
-
     let fired = Rc::new(Cell::new(0));
     let visible = Rc::new(Cell::new(true));
     let mut app = ButtonApp::harness(&fired, &visible, false, Status::Ready);
@@ -871,7 +750,6 @@ fn w02_button_release_outside_removed_or_disabled_never_fires() {
         1,
         "W02-02: the rig must fire on release inside"
     );
-
 
     let fired = Rc::new(Cell::new(0));
     let visible = Rc::new(Cell::new(true));
@@ -884,7 +762,6 @@ fn w02_button_release_outside_removed_or_disabled_never_fires() {
         "W02-02: down inside + release outside must not fire"
     );
 
-
     let fired = Rc::new(Cell::new(0));
     let visible = Rc::new(Cell::new(true));
     let mut app = ButtonApp::harness(&fired, &visible, false, Status::Ready);
@@ -896,7 +773,6 @@ fn w02_button_release_outside_removed_or_disabled_never_fires() {
         0,
         "W02-02: a target removed before release must not fire"
     );
-
 
     let fired = Rc::new(Cell::new(0));
     let visible = Rc::new(Cell::new(true));
@@ -916,12 +792,6 @@ fn w02_button_release_outside_removed_or_disabled_never_fires() {
     );
 }
 
-
-
-
-
-
-
 #[test]
 fn w02_button_reactivation_at_feedback_boundaries() {
     use core::time::Duration;
@@ -937,7 +807,6 @@ fn w02_button_reactivation_at_feedback_boundaries() {
         Some(BUTTON),
         "W02-03: the opening activation must start feedback"
     );
-
 
     for (step_ms, offset) in [(0, 0), (139, 139), (1, 140), (1, 141)] {
         let _ = app.advance(Duration::from_millis(step_ms));
@@ -957,12 +826,8 @@ fn w02_button_reactivation_at_feedback_boundaries() {
     }
 }
 
-
-
 #[test]
 fn w02_button_checked_focus_combos_and_busy_rejection() {
-
-
     let checked_plain = paint_plain(BUTTON_AREA, |ui, area| {
         Button::new(BUTTON, "Sync")
             .variant(Variant::TOGGLE)
@@ -995,7 +860,6 @@ fn w02_button_checked_focus_combos_and_busy_rejection() {
         "W02-04: checked must add to a focused button"
     );
 
-
     for status in [Status::Busy, Status::Loading] {
         let fired = Rc::new(Cell::new(0));
         let visible = Rc::new(Cell::new(true));
@@ -1014,10 +878,8 @@ fn w02_button_checked_focus_combos_and_busy_rejection() {
     }
 }
 
-
 #[test]
 fn w02_button_combining_cjk_and_empty_labels() {
-
     for (label, cells) in [("e\u{301}", 1), ("界", 2), ("", 0), ("Action", 6)] {
         assert_eq!(width(label), cells, "W02-05: width({label:?})");
         let used = Cell::new(Rect::default());
@@ -1043,10 +905,6 @@ fn w02_button_combining_cjk_and_empty_labels() {
     }
 }
 
-
-
-
-
 const CHECKBOX: Id = Id::root("control.states.checkbox");
 const CHECKBOX_LABEL: &str = "Choice";
 
@@ -1065,11 +923,6 @@ fn paint_checkbox(checked: bool, state: ReferenceState, disabled: bool) -> Buffe
             .draw(ui, area);
     })
 }
-
-
-
-
-
 
 #[test]
 fn w03_checkbox_checked_focus_hover_matrix() {
@@ -1091,7 +944,6 @@ fn w03_checkbox_checked_focus_hover_matrix() {
                 "W03-01 checked={checked}: hover must add to focus"
             );
         }
-
 
         assert_ne!(
             hovered, both,
@@ -1117,18 +969,7 @@ fn w03_checkbox_checked_focus_hover_matrix() {
             "W03-01: checked must differ from unchecked under focus+hover"
         );
     }
-
-
-
 }
-
-
-
-
-
-
-
-
 
 #[test]
 fn w03_checkbox_compact_markers() {
@@ -1145,8 +986,6 @@ fn w03_checkbox_compact_markers() {
                 },
             );
 
-
-
             let expected = "[";
             assert_eq!(
                 cell_symbol(&buf, 1, 0),
@@ -1156,14 +995,6 @@ fn w03_checkbox_compact_markers() {
         }
     }
 }
-
-
-
-
-
-
-
-
 
 #[test]
 fn w03_checkbox_checked_focus_hover_independent() {
@@ -1179,7 +1010,6 @@ fn w03_checkbox_checked_focus_hover_independent() {
         "W03-01: target keeps the checked+focused frame under hover"
     );
 }
-
 
 struct CheckboxApp {
     value: Rc<Cell<bool>>,
@@ -1240,9 +1070,6 @@ impl CheckboxApp {
     }
 }
 
-
-
-
 #[test]
 fn w03_checkbox_disabled_ignores_all_activation() {
     for checked in [false, true] {
@@ -1265,7 +1092,6 @@ fn w03_checkbox_disabled_ignores_all_activation() {
         );
     }
 }
-
 
 #[test]
 fn w03_checkbox_marker_label_edge_and_outside_clicks() {
@@ -1302,8 +1128,6 @@ fn w03_checkbox_marker_label_edge_and_outside_clicks() {
     );
 }
 
-
-
 #[test]
 fn w03_checkbox_rejected_change_does_not_drift() {
     let value = Rc::new(Cell::new(false));
@@ -1327,7 +1151,6 @@ fn w03_checkbox_rejected_change_does_not_drift() {
         "W03-04: a rejected pointer change must not drift either"
     );
 
-
     let expected = paint_checkbox(false, ReferenceState::FOCUSED, false);
     assert_eq!(
         row_text(app.buffer(), 0, CHECKBOX_AREA.width),
@@ -1335,10 +1158,6 @@ fn w03_checkbox_rejected_change_does_not_drift() {
         "W03-04: paint must follow the controlled value, not the proposal"
     );
 }
-
-
-
-
 
 const TOGGLE: Id = Id::root("control.states.toggle");
 const TOGGLE_LABEL: &str = "Choice";
@@ -1358,7 +1177,6 @@ fn paint_toggle(on: bool, state: ReferenceState, disabled: bool) -> Buffer {
             .draw(ui, area);
     })
 }
-
 
 #[test]
 fn w04_toggle_on_off_state_matrix() {
@@ -1387,18 +1205,7 @@ fn w04_toggle_on_off_state_matrix() {
             "W04-01: on must differ from off while disabled"
         );
     }
-
-
-
 }
-
-
-
-
-
-
-
-
 
 #[test]
 fn w04_toggle_compact_markers() {
@@ -1413,8 +1220,6 @@ fn w04_toggle_compact_markers() {
                 },
             );
 
-
-
             assert_eq!(
                 cell_symbol(&buf, 1, 0),
                 if on && width == 3 { "─" } else { "●" },
@@ -1423,7 +1228,6 @@ fn w04_toggle_compact_markers() {
         }
     }
 }
-
 
 struct ToggleApp {
     value: Rc<Cell<bool>>,
@@ -1448,7 +1252,6 @@ impl App for ToggleApp {
             .draw(ui, TOGGLE_AREA);
     }
 }
-
 
 #[test]
 fn w04_toggle_origins_agree_on_next_value() {
@@ -1484,7 +1287,6 @@ fn w04_toggle_origins_agree_on_next_value() {
         );
     }
 }
-
 
 #[test]
 fn w04_toggle_adjacent_hit_regions_stay_separate() {
@@ -1540,7 +1342,6 @@ fn w04_toggle_adjacent_hit_regions_stay_separate() {
     );
 }
 
-
 fn paint_contained(at: Rect, draw: impl FnOnce(&mut Ui<'_>, Rect)) -> Buffer {
     let screen = Rect::new(0, 0, 20, 3);
     let mut runtime = Runtime::new(Stub::default(), Theme::junie());
@@ -1557,7 +1358,6 @@ fn paint_contained(at: Rect, draw: impl FnOnce(&mut Ui<'_>, Rect)) -> Buffer {
         .commit_presented();
     buffer
 }
-
 
 #[test]
 fn w04_toggle_minimum_width_and_clipping() {
@@ -1601,10 +1401,6 @@ fn w04_toggle_minimum_width_and_clipping() {
     );
 }
 
-
-
-
-
 const RADIO: Id = Id::root("control.states.radio");
 const RADIO_ITEMS: [&str; 3] = ["First", "Second", "Third"];
 const RADIO_AREA: Rect = Rect {
@@ -1613,7 +1409,6 @@ const RADIO_AREA: Rect = Rect {
     width: 16,
     height: 3,
 };
-
 
 #[test]
 fn w05_radio_chosen_cursor_and_hovered_differ() {
@@ -1676,7 +1471,6 @@ fn w05_radio_chosen_cursor_and_hovered_differ() {
     }
 }
 
-
 struct RadioApp {
     value: Rc<Cell<Option<ItemKey>>>,
     st: RadioGroupState,
@@ -1716,9 +1510,6 @@ impl App for RadioApp {
     }
 }
 
-
-
-
 #[test]
 fn w05_radio_disabled_group_ignores_keyboard_and_pointer() {
     let value = Rc::new(Cell::new(Some(ItemKey::index(0))));
@@ -1754,13 +1545,6 @@ fn w05_radio_disabled_group_ignores_keyboard_and_pointer() {
         "W05-02: the value must not move"
     );
 }
-
-
-
-
-
-
-
 
 #[test]
 fn w05_radio_reorder_or_delete_between_press_and_release() {
@@ -1814,8 +1598,6 @@ fn w05_radio_reorder_or_delete_between_press_and_release() {
         (app, items, chose)
     }
 
-
-
     let (mut app, items, chose) = rig();
     let _ = app.mouse(MouseKind::Down, 4, 1);
     items.borrow_mut().remove(1);
@@ -1825,8 +1607,6 @@ fn w05_radio_reorder_or_delete_between_press_and_release() {
         "W05-03: deleting the pressed item must choose nothing, got {:?}",
         chose.borrow()
     );
-
-
 
     let (mut app, items, chose) = rig();
     let _ = app.mouse(MouseKind::Down, 4, 1);
@@ -1839,12 +1619,8 @@ fn w05_radio_reorder_or_delete_between_press_and_release() {
     );
 }
 
-
-
-
 #[test]
 fn w05_radio_empty_and_narrow_vertical() {
-
     let empty = paint_plain(RADIO_AREA, |ui, area| {
         RadioGroup::<&str>::new(RADIO).draw(ui, area, &RadioGroupState::default(), &[]);
     });
@@ -1885,7 +1661,6 @@ fn w05_radio_empty_and_narrow_vertical() {
     let _ = app.click(4, 1);
     assert_eq!(chose.get(), 0, "W05-04: an empty group never chooses");
 
-
     for width in 0..=4 {
         let at = Rect::new(2, 1, width, 3);
         let buf = paint_contained(at, |ui, area| {
@@ -1909,14 +1684,6 @@ fn w05_radio_empty_and_narrow_vertical() {
         }
     }
 }
-
-
-
-
-
-
-
-
 
 const CHIP: Id = Id::root("control.states.chip");
 const CHIP_ITEMS: [&str; 3] = ["alpha", "beta", "gamma"];
@@ -1947,7 +1714,6 @@ fn paint_chips(st: &ChipBarState, state: ReferenceState, closable: bool) -> Buff
     })
 }
 
-
 #[test]
 fn w06_chipbar_checked_focus_matrix() {
     let plain = ReferenceState::default();
@@ -1975,7 +1741,6 @@ fn w06_chipbar_checked_focus_matrix() {
         "W06-01: checked/focused must differ from unselected/focused"
     );
 
-
     for buf in [&checked_plain, &checked_focus] {
         let row = row_text(buf, 0, CHIP_AREA.width);
         assert_eq!(
@@ -1985,7 +1750,6 @@ fn w06_chipbar_checked_focus_matrix() {
         );
     }
 }
-
 
 struct ChipApp {
     items: Rc<RefCell<Vec<String>>>,
@@ -2056,7 +1820,6 @@ impl ChipApp {
     }
 }
 
-
 struct KeyedChips {
     inner: ChipApp,
 }
@@ -2114,13 +1877,6 @@ fn keyed_chip_rig() -> KeyedChipRig {
     (app, items, actions)
 }
 
-
-
-
-
-
-
-
 #[test]
 fn w06_chipbar_closable_keyboard_dead() {
     let (mut app, items, actions) = keyed_chip_rig();
@@ -2137,16 +1893,8 @@ fn w06_chipbar_closable_keyboard_dead() {
     );
 }
 
-
-
-
-
-
-
 #[test]
 fn w06_chipbar_close_press_then_reorder_or_delete() {
-
-
     let (mut app, items, actions) = keyed_chip_rig();
     let close = app
         .area_of_part(CHIP, PartRef::item(Part::CLOSE, ItemKey::text("beta")))
@@ -2155,13 +1903,11 @@ fn w06_chipbar_close_press_then_reorder_or_delete() {
     items.borrow_mut().swap(0, 1);
     let _ = app.mouse(MouseKind::Up, close.x, close.y);
 
-
     assert_eq!(
         actions.borrow().as_slice(),
         &[ChipBarAction::Toggled(ItemKey::text("beta"))],
         "W06-02: the covered close toggles the chip body by stable key"
     );
-
 
     let (mut app, items, actions) = keyed_chip_rig();
     let close = app
@@ -2176,7 +1922,6 @@ fn w06_chipbar_close_press_then_reorder_or_delete() {
         actions.borrow()
     );
 }
-
 
 #[test]
 fn w06_chipbar_overflow_exact_fit_and_unicode() {
@@ -2222,10 +1967,8 @@ fn w06_chipbar_overflow_exact_fit_and_unicode() {
     }
 }
 
-
 #[test]
 fn w06_chipbar_empty_with_and_without_add() {
-
     let (mut app, _items, actions) = ChipApp::rig(vec![], false, false, None);
     assert_eq!(
         app.row(0).trim(),
@@ -2240,7 +1983,6 @@ fn w06_chipbar_empty_with_and_without_add() {
         "W06-04: an empty strip without Add stays inert"
     );
 
-
     let (mut app, _items, actions) = ChipApp::rig(vec![], false, false, Some("Add"));
     assert!(
         app.row(0).contains("Add"),
@@ -2254,7 +1996,6 @@ fn w06_chipbar_empty_with_and_without_add() {
         "W06-04: Enter on the empty Add stop must request Add"
     );
 }
-
 
 #[test]
 fn w06_chipbar_disabled_body_and_close_inert() {
@@ -2286,12 +2027,6 @@ fn w06_chipbar_disabled_body_and_close_inert() {
     );
 }
 
-
-
-
-
-
-
 #[test]
 fn w06_chipbar_close_press_flash_settles_to_pre_click_bytes() {
     let (mut app, _items, actions) = keyed_chip_rig();
@@ -2309,7 +2044,6 @@ fn w06_chipbar_close_press_flash_settles_to_pre_click_bytes() {
         "W06-02: the close-click must start CHIP feedback"
     );
 
-
     assert_eq!(
         actions.borrow().as_slice(),
         &[ChipBarAction::Toggled(ItemKey::text("alpha"))],
@@ -2320,8 +2054,6 @@ fn w06_chipbar_close_press_flash_settles_to_pre_click_bytes() {
         app.activation_feedback().is_none(),
         "W06-02: the press flash must expire after the advance"
     );
-
-
 
     let after = app.buffer();
     let mut diffs = Vec::new();
@@ -2341,10 +2073,6 @@ fn w06_chipbar_close_press_flash_settles_to_pre_click_bytes() {
         "W06-02: flash residue must stay inside the toggled chip, got {diffs:?}"
     );
 }
-
-
-
-
 
 const FIELD_INPUT: Id = Id::root("control.states.field.input");
 const FIELD_AREA: Rect = Rect {
@@ -2373,7 +2101,6 @@ fn paint_field(
         field.draw(ui, area, &TextInputState::default());
     })
 }
-
 
 #[test]
 fn w07_field_help_and_error_share_height() {
@@ -2424,10 +2151,8 @@ fn w07_field_help_and_error_share_height() {
     );
 }
 
-
 #[test]
 fn w07_field_suffix_width_boundaries() {
-
     let shown = paint_field(Rect::new(0, 0, 16, 3), None, None, false, true);
     assert!(
         row_text(&shown, 0, 16).contains("optional"),
@@ -2450,7 +2175,6 @@ fn w07_field_suffix_width_boundaries() {
         "W07-02: width 8 must show the required marker"
     );
 }
-
 
 struct FieldApp {
     value: String,
@@ -2478,7 +2202,6 @@ impl App for FieldApp {
     }
 }
 
-
 #[test]
 fn w07_field_editing_with_error_keeps_gutter_and_cursor() {
     let mut app = Harness::new(
@@ -2492,7 +2215,6 @@ fn w07_field_editing_with_error_keeps_gutter_and_cursor() {
         SCREEN.height,
     );
     assert!(app.tab_to(FIELD_INPUT));
-
 
     let _ = app.type_str("ab");
     assert!(
@@ -2521,7 +2243,6 @@ fn w07_field_editing_with_error_keeps_gutter_and_cursor() {
         "W07-03: the draft still shows while editing"
     );
 }
-
 
 #[test]
 fn w07_field_has_one_tab_stop() {
@@ -2554,10 +2275,6 @@ fn w07_field_has_one_tab_stop() {
     );
 }
 
-
-
-
-
 const INPUT: Id = Id::root("control.states.input");
 const INPUT_SENTINEL: Id = Id::root("control.states.input.sentinel");
 const INPUT_AREA: Rect = Rect {
@@ -2585,7 +2302,6 @@ fn min_len_3(s: &str) -> Result<(), FieldError> {
 
 static REQUIRED: fn(&str) -> Result<(), FieldError> = required;
 static MIN_LEN_3: fn(&str) -> Result<(), FieldError> = min_len_3;
-
 
 struct InputApp {
     value: Rc<RefCell<String>>,
@@ -2696,10 +2412,6 @@ fn actions_count(actions: &Rc<RefCell<Vec<TextAction>>>, what: TextAction) -> us
     actions.borrow().iter().filter(|a| **a == what).count()
 }
 
-
-
-
-
 #[test]
 fn w08_input_enter_begins_escape_restores() {
     let mut rig = InputRig::new("original");
@@ -2732,12 +2444,8 @@ fn w08_input_enter_begins_escape_restores() {
     );
 }
 
-
-
-
 #[test]
 fn w08_input_click_positions_caret_by_grapheme() {
-
     let mut rig = InputRig::new("a界e\u{301}b");
     let _ = rig.app.click(3, 0);
     assert_eq!(
@@ -2752,9 +2460,6 @@ fn w08_input_click_positions_caret_by_grapheme() {
         "W08-02: clicking the combining grapheme must land on its cell"
     );
 
-
-
-
     let rig = InputRig::with("日ab", false, true, None);
     assert!(
         !rig.app.row(0).contains("日"),
@@ -2762,19 +2467,10 @@ fn w08_input_click_positions_caret_by_grapheme() {
     );
 }
 
-
-
-
-
-
-
-
-
 #[test]
 fn w08_input_masked_clicks_follow_display() {
     let mut rig = InputRig::with("日ab", false, true, None);
     let _ = rig.app.click(3, 0);
-
 
     assert_eq!(
         rig.app.cursor(),
@@ -2788,10 +2484,6 @@ fn w08_input_masked_clicks_follow_display() {
         "W08-02: the third mask cell must land there"
     );
 }
-
-
-
-
 
 #[test]
 fn w08_input_down_only_does_not_edit() {
@@ -2813,13 +2505,8 @@ fn w08_input_down_only_does_not_edit() {
     );
 }
 
-
-
-
 #[test]
 fn w08_input_paste_inserts_and_disabled_ignores() {
-
-
     let mut rig = InputRig::new("ab");
     assert!(rig.app.tab_to(INPUT));
     let _ = rig.app.paste("XY");
@@ -2830,7 +2517,6 @@ fn w08_input_paste_inserts_and_disabled_ignores() {
     );
     let _ = rig.app.key(KeyCode::Enter);
     assert_eq!(rig.value.borrow().as_str(), "abXY");
-
 
     let mut rig = InputRig::with("locked", true, false, None);
     let _ = rig.app.paste("replacement");
@@ -2844,11 +2530,6 @@ fn w08_input_paste_inserts_and_disabled_ignores() {
         "W08-03: disabled paste must not begin editing"
     );
 }
-
-
-
-
-
 
 #[test]
 fn w08_input_navigation_paste_begins_editing() {
@@ -2867,10 +2548,8 @@ fn w08_input_navigation_paste_begins_editing() {
     );
 }
 
-
 #[test]
 fn w08_input_tab_shift_tab_and_blur_commit_once() {
-
     let mut rig = InputRig::new("");
     assert!(rig.app.tab_to(INPUT));
     let _ = rig.app.type_str("ab");
@@ -2883,7 +2562,6 @@ fn w08_input_tab_shift_tab_and_blur_commit_once() {
             .contains(StateFlags::FOCUSED),
         "W08-04: Tab must traverse forward after committing"
     );
-
 
     let mut rig = InputRig::new("");
     assert!(rig.app.tab_to(INPUT));
@@ -2902,16 +2580,12 @@ fn w08_input_tab_shift_tab_and_blur_commit_once() {
         "W08-04: Shift+Tab must traverse (two-stop ring wraps)"
     );
 
-
     let mut rig = InputRig::new("");
     assert!(rig.app.tab_to(INPUT));
     let _ = rig.app.type_str("ef");
     rig.app.blur();
     assert_eq!(rig.committed(), 1, "W08-04: blur must commit exactly once");
     assert_eq!(rig.value.borrow().as_str(), "ef");
-
-
-
 
     assert_eq!(
         rig.committed(),
@@ -2920,11 +2594,8 @@ fn w08_input_tab_shift_tab_and_blur_commit_once() {
     );
 }
 
-
 #[test]
 fn w08_input_required_and_custom_errors_clear_on_correction() {
-
-
     let mut rig = InputRig::with("", false, false, Some(&REQUIRED));
     assert!(rig.app.tab_to(INPUT));
     let _ = rig.app.key(KeyCode::Enter);
@@ -2933,8 +2604,6 @@ fn w08_input_required_and_custom_errors_clear_on_correction() {
         "W08-05: committing empty required input must error"
     );
     assert_eq!(rig.value.borrow().as_str(), "");
-
-
 
     let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.type_str("ok");
@@ -2948,7 +2617,6 @@ fn w08_input_required_and_custom_errors_clear_on_correction() {
         !rig.error_seen.get(),
         "W08-05: the clean commit must leave no error"
     );
-
 
     let mut rig = InputRig::with("", false, false, Some(&MIN_LEN_3));
     assert!(rig.app.tab_to(INPUT));
@@ -2967,12 +2635,6 @@ fn w08_input_required_and_custom_errors_clear_on_correction() {
     let _ = rig.app.key(KeyCode::Enter);
     assert_eq!(rig.value.borrow().as_str(), "abc");
 }
-
-
-
-
-
-
 
 #[test]
 fn w08_input_secret_redacts_debug_paint_cancel_and_zeroize() {
@@ -3005,7 +2667,6 @@ fn w08_input_secret_redacts_debug_paint_cancel_and_zeroize() {
         "W08-06: paint after rollback shows no plaintext"
     );
 
-
     let mut rig = InputRig::with("", false, true, None);
     assert!(rig.app.tab_to(INPUT));
     let _ = rig.app.type_str(SECRET);
@@ -3023,11 +2684,6 @@ fn w08_input_secret_redacts_debug_paint_cancel_and_zeroize() {
     );
 }
 
-
-
-
-
-
 #[test]
 fn w08_input_external_change_is_not_silently_overwritten() {
     let mut rig = InputRig::new("orig");
@@ -3044,10 +2700,6 @@ fn w08_input_external_change_is_not_silently_overwritten() {
     );
 }
 
-
-
-
-
 const AREA: Id = Id::root("control.states.area");
 const AREA_SENTINEL: Id = Id::root("control.states.area.sentinel");
 const AREA_FIELD: Id = Id::root("control.states.area.field");
@@ -3061,7 +2713,6 @@ const AREA_RECT: Rect = Rect {
 };
 
 const AREA_DOC: &str = "L0\nL1\nL2\nL3\nL4\nL5\nL6\nL7";
-
 
 struct AreaApp {
     value: Rc<RefCell<String>>,
@@ -3138,12 +2789,10 @@ fn cell_style(app: &Harness<AreaApp>, x: u16, y: u16) -> (String, String, String
     )
 }
 
-
 #[test]
 fn w09_area_enter_newline_escape_commits() {
     let mut rig = AreaRig::new("ab");
     assert!(rig.app.tab_to(AREA));
-
 
     assert!(
         rig.app.state_of(AREA).contains(StateFlags::EDITING),
@@ -3168,10 +2817,6 @@ fn w09_area_enter_newline_escape_commits() {
     );
 }
 
-
-
-
-
 #[test]
 fn w09_area_nav_enter_begins_without_newline() {
     let mut rig = AreaRig::new("ab");
@@ -3189,9 +2834,6 @@ fn w09_area_nav_enter_begins_without_newline() {
         rig.value.borrow()
     );
 }
-
-
-
 
 #[test]
 fn w09_area_paste_ignored_navigating_kept_editing() {
@@ -3222,10 +2864,6 @@ fn w09_area_paste_ignored_navigating_kept_editing() {
     );
 }
 
-
-
-
-
 #[test]
 fn w09_area_editing_page_home_end_move_caret() {
     let mut rig = AreaRig::new(AREA_DOC);
@@ -3234,7 +2872,6 @@ fn w09_area_editing_page_home_end_move_caret() {
     assert_eq!(rig.app.cursor(), Some(Position::new(2, 0)));
 
     let _ = rig.app.key(KeyCode::PageDown);
-
 
     assert_eq!(
         rig.app.cursor(),
@@ -3270,16 +2907,10 @@ fn w09_area_editing_page_home_end_move_caret() {
     );
 }
 
-
-
-
-
-
 #[test]
 fn w09_area_nav_page_home_end_scroll_without_editing() {
     let mut rig = AreaRig::new(AREA_DOC);
     assert!(rig.app.tab_to(AREA));
-
 
     assert!(
         rig.app.state_of(AREA).contains(StateFlags::EDITING),
@@ -3287,13 +2918,8 @@ fn w09_area_nav_page_home_end_scroll_without_editing() {
     );
 }
 
-
-
 #[test]
 fn w09_area_selection_spans_newline_tab_grapheme() {
-
-
-
     let mut rig = AreaRig::new("aaXX\nbbYYYY");
     assert!(rig.app.tab_to(AREA));
     let _ = rig.app.click(2, 0);
@@ -3317,7 +2943,6 @@ fn w09_area_selection_spans_newline_tab_grapheme() {
         "W09-04: selected cells must differ from unselected text"
     );
 
-
     let mut rig = AreaRig::new("a\tb");
     assert!(rig.app.tab_to(AREA));
     let _ = rig.app.click(2, 0);
@@ -3327,10 +2952,6 @@ fn w09_area_selection_spans_newline_tab_grapheme() {
         cell_style(&rig.app, 3, 0),
         "W09-04: the tab cell must share the selection style"
     );
-
-
-
-
 
     let mut rig = AreaRig::new("a界b");
     assert!(rig.app.tab_to(AREA));
@@ -3347,10 +2968,6 @@ fn w09_area_selection_spans_newline_tab_grapheme() {
         "W09-04: the selected grapheme's lead cell must differ from unselected text"
     );
 }
-
-
-
-
 
 #[test]
 fn w09_area_wheel_holds_and_caret_motion_follows() {
@@ -3383,10 +3000,6 @@ fn w09_area_wheel_holds_and_caret_motion_follows() {
     );
 }
 
-
-
-
-
 #[test]
 fn w09_area_wheel_holds_past_caret_until_it_moves() {
     let mut rig = AreaRig::new(AREA_DOC);
@@ -3409,8 +3022,6 @@ fn w09_area_wheel_holds_past_caret_until_it_moves() {
         rig.app.row(0)
     );
 }
-
-
 
 #[test]
 fn w09_area_field_layout_rows_plus_two_and_tiny_heights() {
@@ -3463,7 +3074,6 @@ fn w09_area_field_layout_rows_plus_two_and_tiny_heights() {
         used.get()
     }
 
-
     assert_eq!(
         used_height(8).height,
         5,
@@ -3472,7 +3082,6 @@ fn w09_area_field_layout_rows_plus_two_and_tiny_heights() {
 
     assert_eq!(used_height(1).height, 1, "W09-06: height 1 keeps the label");
     assert_eq!(used_height(0).height, 0, "W09-06: height 0 uses nothing");
-
 
     struct TinyApp {
         value: Rc<RefCell<String>>,
@@ -3518,22 +3127,15 @@ fn w09_area_field_layout_rows_plus_two_and_tiny_heights() {
     );
 }
 
-
-
-
-
 const SELECT: Id = Id::root("control.states.select");
 const SELECT_SENTINEL: Id = Id::root("control.states.select.sentinel");
 const SELECT_PLACEHOLDER: &str = "Pick one";
 const SELECT_W: u16 = 20;
 
-
 #[allow(clippy::ptr_arg)]
 fn str_key(s: &String) -> ItemKey {
     ItemKey::text(s)
 }
-
-
 
 struct SelectApp {
     items: Rc<RefCell<Vec<String>>>,
@@ -3694,11 +3296,8 @@ fn sel_cell(app: &Harness<SelectApp>, x: u16, y: u16) -> (String, String, String
     )
 }
 
-
-
 #[test]
 fn w10_select_closed_value_placeholder_focus_disabled() {
-
     let mut rig = SelectRig::with(&["alpha", "bravo"], Some("bravo"), 2, None, false);
     assert!(rig.app.tab_to(SELECT));
     assert!(
@@ -3716,7 +3315,6 @@ fn w10_select_closed_value_placeholder_focus_disabled() {
         rig.app.row(2)
     );
 
-
     let mut rig = SelectRig::with(&["alpha", "bravo"], None, 2, None, false);
     assert!(rig.app.tab_to(SELECT));
     assert!(
@@ -3731,7 +3329,6 @@ fn w10_select_closed_value_placeholder_focus_disabled() {
         sel_cell(&rig.app, 2, 2),
         "W10-01: valued and placeholder labels must paint differently"
     );
-
 
     let mut rig = SelectRig::with(&["alpha", "bravo"], Some("alpha"), 2, None, true);
     assert!(
@@ -3748,11 +3345,8 @@ fn w10_select_closed_value_placeholder_focus_disabled() {
     assert!(!rig.app.is_open(SELECT), "W10-01: no disabled layer");
 }
 
-
-
 #[test]
 fn w10_select_edge_flip_and_resize() {
-
     let mut rig = SelectRig::with(&["a", "b", "c"], None, 7, None, false);
     assert!(rig.app.tab_to(SELECT));
     let _ = rig.app.key(KeyCode::Enter);
@@ -3768,7 +3362,6 @@ fn w10_select_edge_flip_and_resize() {
         rig.app.row(layer.y + 1)
     );
 
-
     let mut rig = SelectRig::with(&["a", "b", "c"], None, 0, None, false);
     assert!(rig.app.tab_to(SELECT));
     let _ = rig.app.key(KeyCode::Enter);
@@ -3780,7 +3373,6 @@ fn w10_select_edge_flip_and_resize() {
         rig.app.row(2),
         rig.app.row(3)
     );
-
 
     let mut rig = SelectRig::with(&["only"], None, 4, None, false);
     assert!(rig.app.tab_to(SELECT));
@@ -3802,8 +3394,6 @@ fn w10_select_edge_flip_and_resize() {
         "W10-02: resized popup must still show its option"
     );
 }
-
-
 
 #[test]
 fn w10_select_highlight_is_not_value_escape_preserves() {
@@ -3865,7 +3455,6 @@ fn w10_select_highlight_is_not_value_escape_preserves() {
     );
 }
 
-
 #[test]
 fn w10_select_reorder_delete_click_by_stable_key() {
     let mut rig = SelectRig::with(
@@ -3899,7 +3488,6 @@ fn w10_select_reorder_delete_click_by_stable_key() {
         rig.app.row(0)
     );
 
-
     let mut rig = SelectRig::with(
         &["alpha", "bravo", "charlie"],
         Some("bravo"),
@@ -3931,7 +3519,6 @@ fn w10_select_reorder_delete_click_by_stable_key() {
         "W10-04: choosing must keep working after the delete"
     );
 
-
     let mut rig = SelectRig::with(
         &["alpha", "bravo", "charlie"],
         Some("bravo"),
@@ -3953,12 +3540,8 @@ fn w10_select_reorder_delete_click_by_stable_key() {
     assert!(rig.open.get(), "W10-04: the popup must survive the delete");
 }
 
-
-
-
 #[test]
 fn w10_select_empty_disabled_and_scrollbar() {
-
     let mut rig = SelectRig::with(&[], None, 0, None, false);
     assert!(rig.app.tab_to(SELECT));
     let _ = rig.app.key(KeyCode::Enter);
@@ -3976,7 +3559,6 @@ fn w10_select_empty_disabled_and_scrollbar() {
     let _ = rig.app.key(KeyCode::Esc);
     assert_eq!(rig.closed(), 1, "W10-05: Escape must close the empty popup");
 
-
     let mut rig = SelectRig::with(&["a", "b"], None, 0, None, true);
     let _ = rig.app.key(KeyCode::Enter);
     let _ = rig.app.click(5, 0);
@@ -3985,7 +3567,6 @@ fn w10_select_empty_disabled_and_scrollbar() {
         "W10-05: a disabled select must stay shut"
     );
     assert!(!rig.app.is_open(SELECT));
-
 
     let options: Vec<String> = (0..20).map(|i| format!("opt{i:02}")).collect();
     let labels: Vec<&str> = options.iter().map(String::as_str).collect();
@@ -4028,12 +3609,6 @@ fn w10_select_empty_disabled_and_scrollbar() {
     );
 }
 
-
-
-
-
-
-
 #[test]
 fn w10_select_popup_edge_fade() {
     let options: Vec<String> = (0..20).map(|i| format!("opt{i:02}")).collect();
@@ -4043,8 +3618,6 @@ fn w10_select_popup_edge_fade() {
     let _ = rig.app.key(KeyCode::Enter);
     let layer = rig.layer();
 
-
-
     let bottom = sel_cell(&rig.app, layer.x + 4, layer.y + 4);
     let middle = sel_cell(&rig.app, layer.x + 4, layer.y + 2);
     assert_eq!(
@@ -4052,10 +3625,6 @@ fn w10_select_popup_edge_fade() {
         "W10-05: target paints no edge fade on the bottom option row"
     );
 }
-
-
-
-
 
 const FORM: Id = Id::root("control.states.form");
 const F1: Id = Id::root("control.states.form.f1");
@@ -4153,7 +3722,6 @@ impl PickerRig {
         }
     }
 }
-
 
 struct FormApp {
     data: Rc<RefCell<FormModel>>,
@@ -4322,7 +3890,6 @@ fn text_field(id: Id, label: &'static str) -> FieldSpec<'static> {
     FieldSpec::new(id, label, FieldKind::Text(TextInput::new(id)))
 }
 
-
 #[test]
 fn w11_form_invalid_submit_focuses_first_visible() {
     let mut rig = FormRig::new(
@@ -4359,9 +3926,6 @@ fn w11_form_invalid_submit_focuses_first_visible() {
     );
 }
 
-
-
-
 #[test]
 fn w11_form_hide_disable_reconcile_deterministically() {
     let mut rig = FormRig::new(
@@ -4380,7 +3944,6 @@ fn w11_form_hide_disable_reconcile_deterministically() {
         "W11-02: the focused field must hold its draft"
     );
 
-
     rig.data.borrow_mut().hidden.insert(F2);
     rig.app.ticks(1);
     rig.app.draw();
@@ -4398,7 +3961,6 @@ fn w11_form_hide_disable_reconcile_deterministically() {
         "W11-02: the hidden draft must not commit behind our back"
     );
 
-
     rig.data.borrow_mut().hidden.remove(&F2);
     rig.app.ticks(1);
     rig.app.draw();
@@ -4411,9 +3973,6 @@ fn w11_form_hide_disable_reconcile_deterministically() {
         "W11-02: the restored field must repaint its draft, got {:?}",
         rig.app.row(4)
     );
-
-
-
 
     rig.data.borrow_mut().disabled.insert(F3);
     rig.app.ticks(1);
@@ -4434,7 +3993,6 @@ fn w11_form_hide_disable_reconcile_deterministically() {
         "W11-02: clicking disabled must not move focus"
     );
 
-
     rig.data.borrow_mut().hidden.insert(F3);
     rig.app.ticks(1);
     rig.app.draw();
@@ -4443,8 +4001,6 @@ fn w11_form_hide_disable_reconcile_deterministically() {
         "W11-02: hiding a bystander must not move focus"
     );
 }
-
-
 
 #[test]
 fn w11_form_nested_picker_preserves_sibling_draft() {
@@ -4476,7 +4032,6 @@ fn w11_form_nested_picker_preserves_sibling_draft() {
         Some(""),
         "W11-03: the kept draft must stay uncommitted"
     );
-
 
     let _ = rig.app.key(KeyCode::Char(' '));
     assert!(
@@ -4511,7 +4066,6 @@ fn w11_form_nested_picker_preserves_sibling_draft() {
         rig.app.row(1)
     );
 
-
     let _ = rig.app.key(KeyCode::Char(' '));
     assert!(rig.app.is_open(PICKER));
     let _ = rig.app.key(KeyCode::Esc);
@@ -4538,9 +4092,6 @@ fn w11_form_nested_picker_preserves_sibling_draft() {
         rig.app.row(1)
     );
 }
-
-
-
 
 #[test]
 fn w11_form_busy_submit_blocked_cancel_eligible() {
@@ -4584,12 +4135,6 @@ fn w11_form_busy_submit_blocked_cancel_eligible() {
     );
 }
 
-
-
-
-
-
-
 #[test]
 fn w11_form_busy_enter_submit_blocked() {
     let mut rig = FormRig::new(
@@ -4620,8 +4165,6 @@ fn w11_form_busy_enter_submit_blocked() {
         "W11-04: the submit reports through the action channel"
     );
 }
-
-
 
 #[test]
 fn w11_form_aux_validate_does_not_submit_or_save() {
@@ -4659,10 +4202,6 @@ fn w11_form_aux_validate_does_not_submit_or_save() {
     );
 }
 
-
-
-
-
 const LIST: Id = Id::root("control.states.list");
 const LIST_AREA: Rect = Rect {
     x: 0,
@@ -4670,7 +4209,6 @@ const LIST_AREA: Rect = Rect {
     width: 40,
     height: 8,
 };
-
 
 struct ListApp {
     items: Rc<RefCell<Vec<String>>>,
@@ -4808,8 +4346,6 @@ fn list_symbol(app: &Harness<ListApp>, x: u16, y: u16) -> String {
     app.buffer()[Position::new(x, y)].symbol().to_string()
 }
 
-
-
 #[test]
 fn w12_list_cursor_chosen_hovered_differ() {
     let mut rig = ListRig::plain(&["aaa", "bbb", "ccc", "ddd"]);
@@ -4822,7 +4358,6 @@ fn w12_list_cursor_chosen_hovered_differ() {
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("ccc")));
     let _ = rig.app.mouse(MouseKind::Move, 5, 1);
     assert_eq!(rig.app.hover(), Some(LIST), "W12-01: hover must land");
-
 
     assert_eq!(
         list_symbol(&rig.app, 0, 2),
@@ -4853,17 +4388,13 @@ fn w12_list_cursor_chosen_hovered_differ() {
     );
 }
 
-
-
 #[test]
 fn w12_list_readiness_renders_distinctly() {
-
     let rig = ListRig::plain(&[]);
     assert!(
         (0..8).any(|y| rig.app.row(y).contains("Nothing here yet")),
         "W12-02: the empty list must name its state"
     );
-
 
     let mut rig = ListRig::with(
         &["alpha", "beta"],
@@ -4885,7 +4416,6 @@ fn w12_list_readiness_renders_distinctly() {
         "W12-02: loading rows must still paint"
     );
 
-
     let rig = ListRig::with(
         &[],
         Status::Ready,
@@ -4906,7 +4436,6 @@ fn w12_list_readiness_renders_distinctly() {
         (0..8).any(|y| rig.app.row(y).contains("⠋")),
         "W12-02: partial must spin while more loads"
     );
-
 
     let mut rig = ListRig::with(
         &["alpha"],
@@ -4930,12 +4459,8 @@ fn w12_list_readiness_renders_distinctly() {
     );
 }
 
-
-
 #[test]
 fn w12_list_mutation_between_down_and_up_keeps_key() {
-
-
     let mut rig = ListRig::plain(&["alpha", "bravo", "charlie"]);
     assert!(rig.app.tab_to(LIST));
     let _ = rig.app.key(KeyCode::Down);
@@ -4948,7 +4473,6 @@ fn w12_list_mutation_between_down_and_up_keeps_key() {
         "W12-03: remove-between-presses must keep the pressed key"
     );
 
-
     let mut rig = ListRig::plain(&["alpha", "bravo", "charlie"]);
     assert!(rig.app.tab_to(LIST));
     let _ = rig.app.key(KeyCode::Down);
@@ -4960,7 +4484,6 @@ fn w12_list_mutation_between_down_and_up_keeps_key() {
         vec![ItemKey::text("bravo")],
         "W12-03: insert-between-presses must keep the pressed key"
     );
-
 
     let mut rig = ListRig::plain(&["charlie", "alpha", "bravo"]);
     assert!(rig.app.tab_to(LIST));
@@ -4975,8 +4498,6 @@ fn w12_list_mutation_between_down_and_up_keeps_key() {
         "W12-03: sort-between-presses must keep the pressed key"
     );
 }
-
-
 
 #[test]
 fn w12_list_duplicate_labels_resolve_by_key() {
@@ -5051,8 +4572,6 @@ fn w12_list_duplicate_labels_resolve_by_key() {
     );
 }
 
-
-
 #[test]
 fn w12_list_boundary_wheels_hold_focus_and_cursor() {
     let items: Vec<String> = (0..10).map(|i| format!("item{i}")).collect();
@@ -5068,7 +4587,6 @@ fn w12_list_boundary_wheels_hold_focus_and_cursor() {
     );
     assert!(rig.app.tab_to(LIST));
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("item0")));
-
 
     let r = rig.app.mouse(MouseKind::Wheel(Axis::V, -1), 5, 1);
     assert!(r.is_consumed(), "W12-04: top wheel must consume");
@@ -5089,7 +4607,6 @@ fn w12_list_boundary_wheels_hold_focus_and_cursor() {
         rig.actions.borrow().is_empty(),
         "W12-04: top wheel must report nothing"
     );
-
 
     let _ = rig.app.key(KeyCode::End);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("item9")));
@@ -5114,9 +4631,6 @@ fn w12_list_boundary_wheels_hold_focus_and_cursor() {
         "W12-04: bottom wheel must not move the cursor"
     );
 }
-
-
-
 
 #[test]
 fn w12_list_hundred_k_rows_paint_visible_only() {
@@ -5171,9 +4685,6 @@ fn w12_list_hundred_k_rows_paint_visible_only() {
     );
 }
 
-
-
-
 #[test]
 fn w12_list_marker_patch_scopes_to_markers() {
     let bold = StylePatch::new().add(Modifier::BOLD);
@@ -5187,7 +4698,6 @@ fn w12_list_marker_patch_scopes_to_markers() {
     );
     assert!(patched.app.tab_to(LIST));
     let plain = ListRig::plain(&["aaa", "bbb", "ccc"]);
-
 
     let (_, _, patched_mod) = list_cell(&patched.app, 1, 2);
     assert!(
@@ -5211,13 +4721,6 @@ fn w12_list_marker_patch_scopes_to_markers() {
     );
 }
 
-
-
-
-
-
-
-
 #[test]
 fn w12_list_label_patch_reaches_labels() {
     let bold = StylePatch::new().add(Modifier::BOLD);
@@ -5232,16 +4735,11 @@ fn w12_list_label_patch_reaches_labels() {
     assert!(patched.app.tab_to(LIST));
     let (_, _, patched_mod) = list_cell(&patched.app, 3, 2);
 
-
     assert!(
         !patched_mod.contains("BOLD"),
         "W12-06: target drops the LABEL patch, got {patched_mod:?}"
     );
 }
-
-
-
-
 
 const FLIST: Id = Id::root("control.states.flist");
 const FLIST_AREA: Rect = Rect {
@@ -5250,7 +4748,6 @@ const FLIST_AREA: Rect = Rect {
     width: 40,
     height: 8,
 };
-
 
 struct FilterApp {
     items: Rc<RefCell<Vec<Item<'static>>>>,
@@ -5355,8 +4852,6 @@ impl FilterRig {
             .count()
     }
 
-
-
     fn settle(&mut self) {
         self.app.ticks(1);
         self.app.draw();
@@ -5367,11 +4862,8 @@ fn flabel(key: &str, label: &'static str) -> Item<'static> {
     Item::new(ItemKey::text(key), label)
 }
 
-
-
 #[test]
 fn w13_filter_empty_source_and_zero_matches() {
-
     let mut rig = FilterRig::plain(vec![]);
     assert!(rig.app.tab_to(FLIST));
     assert!(
@@ -5384,7 +4876,6 @@ fn w13_filter_empty_source_and_zero_matches() {
         rig.chose().is_empty(),
         "W13-01: Enter on empty must choose nothing"
     );
-
 
     let mut rig = FilterRig::plain(vec![
         flabel("alpha", "alpha"),
@@ -5423,9 +4914,6 @@ fn w13_filter_empty_source_and_zero_matches() {
     );
 }
 
-
-
-
 #[test]
 fn w13_filter_unicode_paste_and_plain_backspace() {
     let mut rig = FilterRig::plain(vec![
@@ -5461,12 +4949,6 @@ fn w13_filter_unicode_paste_and_plain_backspace() {
     assert_eq!(rig.matched.get(), 3);
 }
 
-
-
-
-
-
-
 #[test]
 fn w13_filter_backspace_removes_grapheme() {
     let mut rig = FilterRig::plain(vec![flabel("x", "x")]);
@@ -5475,7 +4957,6 @@ fn w13_filter_backspace_removes_grapheme() {
     assert_eq!(rig.query.borrow().as_str(), "a👩‍💻");
     let _ = rig.app.key(KeyCode::Backspace);
 
-
     assert_eq!(
         rig.query.borrow().as_str(),
         "a👩\u{200d}",
@@ -5483,8 +4964,6 @@ fn w13_filter_backspace_removes_grapheme() {
         rig.query.borrow()
     );
 }
-
-
 
 #[test]
 fn w13_filter_revision_keeps_selected_key() {
@@ -5525,7 +5004,6 @@ fn w13_filter_revision_keeps_selected_key() {
         "W13-03: activation must follow the surviving key"
     );
 
-
     rig.items
         .replace(vec![flabel("apex", "apex"), flabel("beta", "beta")]);
     rig.app.ticks(1);
@@ -5543,8 +5021,6 @@ fn w13_filter_revision_keeps_selected_key() {
         "W13-03: no activation may target the removed key"
     );
 }
-
-
 
 #[test]
 fn w13_filter_ineligible_cursor_cannot_activate_stale() {
@@ -5566,7 +5042,6 @@ fn w13_filter_ineligible_cursor_cannot_activate_stale() {
         "W13-04: Enter must activate the eligible row, never stale beta"
     );
 
-
     let _ = rig.app.type_str("zzz");
     rig.settle();
     assert_eq!(rig.matched.get(), 0);
@@ -5578,17 +5053,9 @@ fn w13_filter_ineligible_cursor_cannot_activate_stale() {
     );
 }
 
-
-
-
-
-
 #[test]
 fn w13_filter_matched_spans_cover_graphemes() {
     fn bold_cells(app: &Harness<FilterApp>, y: u16) -> Vec<String> {
-
-
-
         (0..40)
             .filter(|&x| {
                 format!("{:?}", app.buffer()[Position::new(x, y)].modifier).contains("BOLD")
@@ -5597,7 +5064,6 @@ fn w13_filter_matched_spans_cover_graphemes() {
             .filter(|s| !s.trim().is_empty())
             .collect()
     }
-
 
     let mut rig = span_duo(0);
     assert!(rig.app.tab_to(FLIST));
@@ -5616,7 +5082,6 @@ fn w13_filter_matched_spans_cover_graphemes() {
         "W13-05: exactly the matched CJK lead must read bold, got {bolds:?}"
     );
 
-
     let mut rig = span_duo(1);
     assert!(rig.app.tab_to(FLIST));
     let _ = rig.app.type_str("e\u{301}");
@@ -5628,7 +5093,6 @@ fn w13_filter_matched_spans_cover_graphemes() {
         vec!["e\u{301}".to_string()],
         "W13-05: exactly the matched combining cell must read bold, got {bolds:?}"
     );
-
 
     let mut rig = span_duo(2);
     assert!(rig.app.tab_to(FLIST));
@@ -5660,10 +5124,6 @@ fn span_rig() -> FilterRig {
     )
 }
 
-
-
-
-
 fn span_duo(which: usize) -> FilterRig {
     static M1: &[usize] = &[1];
     static M01: &[usize] = &[0, 1];
@@ -5684,11 +5144,6 @@ fn span_duo(which: usize) -> FilterRig {
     };
     FilterRig::with(items, true)
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "PARITY W13-05: wide-char trail cells are never cleared, stale glyphs leak across repaints"]
@@ -5716,13 +5171,6 @@ fn w13_filter_wide_trail_cells_clear() {
     );
 }
 
-
-
-
-
-
-
-
 #[test]
 fn w13_filter_reseed_selects_first_eligible() {
     let mut rig = FilterRig::plain(vec![
@@ -5746,10 +5194,6 @@ fn w13_filter_reseed_selects_first_eligible() {
         rig.cursor.get()
     );
 }
-
-
-
-
 
 const NAV: Id = Id::root("control.states.nav");
 const NAV_SENTINEL: Id = Id::root("control.states.nav.sentinel");
@@ -5798,7 +5242,6 @@ fn nav_badge(t: &NavEntry) -> Option<&str> {
 fn nav_disabled(t: &NavEntry) -> bool {
     t.disabled
 }
-
 
 struct NavApp {
     items: Rc<RefCell<Vec<NavEntry>>>,
@@ -5963,13 +5406,10 @@ impl NavRig {
             .collect()
     }
 
-
-
     fn settle(&mut self) {
         self.app.ticks(1);
         self.app.draw();
     }
-
 
     fn set_area(&mut self, area: Rect) {
         self.area.set(area);
@@ -5978,8 +5418,6 @@ impl NavRig {
         self.app.draw();
     }
 }
-
-
 
 #[test]
 fn w14_nav_active_differs_from_cursor() {
@@ -5992,18 +5430,15 @@ fn w14_nav_active_differs_from_cursor() {
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("home")));
     assert_eq!(rig.current.get(), None, "W14-01: nothing is active yet");
 
-
     let _ = rig.app.key(KeyCode::Down);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("search")));
     assert_eq!(rig.current.get(), None, "W14-01: moving must not navigate");
     assert_eq!(rig.moved(), vec![ItemKey::text("search")]);
     assert!(rig.chose().is_empty(), "W14-01: no choice without Enter");
 
-
     let _ = rig.app.key(KeyCode::Enter);
     assert_eq!(rig.chose(), vec![ItemKey::text("search")]);
     assert_eq!(rig.current.get(), Some(ItemKey::text("search")));
-
 
     let _ = rig.app.key(KeyCode::Down);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("settings")));
@@ -6014,7 +5449,6 @@ fn w14_nav_active_differs_from_cursor() {
     );
     assert_eq!(rig.chose().len(), 1, "W14-01: no second choice");
 
-
     let cursor_marker = cell_symbol(rig.app.buffer(), 1, 2);
     let active_marker = cell_symbol(rig.app.buffer(), 1, 1);
     assert_ne!(
@@ -6022,8 +5456,6 @@ fn w14_nav_active_differs_from_cursor() {
         "W14-01: cursor and active rows must read differently"
     );
 }
-
-
 
 #[test]
 fn w14_nav_sections_and_disabled_skip() {
@@ -6038,7 +5470,6 @@ fn w14_nav_sections_and_disabled_skip() {
     settings.section = "Tools";
     let mut rig = NavRig::plain(vec![home, search, files, settings]);
     assert!(rig.app.tab_to(NAV));
-
 
     assert!(
         rig.app.row(0).contains("Main"),
@@ -6055,7 +5486,6 @@ fn w14_nav_sections_and_disabled_skip() {
         "W14-02: sections must be separated, got {:?}",
         rig.app.row(4)
     );
-
 
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("home")));
     let _ = rig.app.key(KeyCode::Down);
@@ -6075,12 +5505,10 @@ fn w14_nav_sections_and_disabled_skip() {
     let _ = rig.app.key(KeyCode::Up);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("home")));
 
-
     let _ = rig.app.key(KeyCode::End);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("settings")));
     let _ = rig.app.key(KeyCode::Home);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("home")));
-
 
     let _ = rig.app.click(6, 2);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("home")));
@@ -6094,7 +5522,6 @@ fn w14_nav_sections_and_disabled_skip() {
         "W14-02: heading clicks choose nothing"
     );
 
-
     let enabled_fg = rig.app.buffer()[Position::new(6, 1)].fg;
     let disabled_fg = rig.app.buffer()[Position::new(6, 2)].fg;
     assert_ne!(
@@ -6102,9 +5529,6 @@ fn w14_nav_sections_and_disabled_skip() {
         "W14-02: the disabled row must read differently"
     );
 }
-
-
-
 
 #[test]
 fn w14_nav_breakpoint_roundtrip_preserves_key_and_scroll() {
@@ -6141,7 +5565,6 @@ fn w14_nav_breakpoint_roundtrip_preserves_key_and_scroll() {
         "W14-03: headings must paint at full height"
     );
 
-
     rig.set_area(Rect {
         x: 0,
         y: 0,
@@ -6159,7 +5582,6 @@ fn w14_nav_breakpoint_roundtrip_preserves_key_and_scroll() {
     assert_eq!(rig.current.get(), Some(ItemKey::text("b2")));
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("b2")));
 
-
     let _ = rig.app.key(KeyCode::Down);
     rig.settle();
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("b3")));
@@ -6173,7 +5595,6 @@ fn w14_nav_breakpoint_roundtrip_preserves_key_and_scroll() {
         Some(ItemKey::text("b2")),
         "W14-03: scrolling must not navigate"
     );
-
 
     rig.set_area(Rect {
         x: 0,
@@ -6193,7 +5614,6 @@ fn w14_nav_breakpoint_roundtrip_preserves_key_and_scroll() {
         rig.app.row(7)
     );
 
-
     rig.set_area(Rect {
         x: 0,
         y: 0,
@@ -6207,11 +5627,8 @@ fn w14_nav_breakpoint_roundtrip_preserves_key_and_scroll() {
     );
 }
 
-
-
 #[test]
 fn w14_nav_empty_overflow_and_clipped_badges() {
-
     let mut rig = NavRig::plain(vec![]);
     assert!(rig.app.tab_to(NAV));
     assert_eq!(rig.cursor.get(), None, "W14-04: no cursor without rows");
@@ -6223,7 +5640,6 @@ fn w14_nav_empty_overflow_and_clipped_badges() {
     let _ = rig.app.key(KeyCode::Enter);
     assert!(rig.chose().is_empty(), "W14-04: empty keys choose nothing");
     assert!(rig.moved().is_empty(), "W14-04: empty keys move nothing");
-
 
     let items: Vec<NavEntry> = (1..=12)
         .map(|n| {
@@ -6253,7 +5669,6 @@ fn w14_nav_empty_overflow_and_clipped_badges() {
         "W14-04: rows must shift under scroll, got {:?}",
         rig.app.row(0)
     );
-
 
     let mut badged = nav_entry("settings", "SettingsX");
     badged.badge = Some("99+");
@@ -6293,7 +5708,6 @@ fn w14_nav_empty_overflow_and_clipped_badges() {
         rig.app.row(0)
     );
 
-
     let mut rig = NavRig::with(
         vec![nav_entry("home", "Home")],
         Rect {
@@ -6319,13 +5733,8 @@ fn w14_nav_empty_overflow_and_clipped_badges() {
     );
 }
 
-
-
-
 #[test]
 fn w14_nav_shares_scroll_and_focus() {
-
-
     fn assert_shared_scroll(a: &ScrollState, b: &ScrollState) {
         assert_eq!(a.offset(), b.offset());
         assert_eq!(a.viewport_len(), b.viewport_len());
@@ -6334,7 +5743,6 @@ fn w14_nav_shares_scroll_and_focus() {
     let nav = NavListState::new();
     let list = ListState::default();
     assert_shared_scroll(nav.scroll(), list.scroll());
-
 
     let mut rig = NavRig::plain(vec![nav_entry("home", "Home")]);
     assert!(rig.app.tab_to(NAV));
@@ -6352,7 +5760,6 @@ fn w14_nav_shares_scroll_and_focus() {
         rig.app.state_of(NAV).contains(StateFlags::FOCUSED),
         "W14-05: Tab must cycle back to the list"
     );
-
 
     let items: Vec<NavEntry> = (1..=12)
         .map(|n| {
@@ -6382,10 +5789,6 @@ fn w14_nav_shares_scroll_and_focus() {
         "W14-05: the wheel must drive shared scroll"
     );
 }
-
-
-
-
 
 const TREE: Id = Id::root("control.states.tree");
 const TREE_AREA: Rect = Rect {
@@ -6633,9 +6036,6 @@ impl TreeRig {
     }
 }
 
-
-
-
 #[test]
 fn w15_tree_states_and_status_rows() {
     let mut loading = tree_entry("loading…", 2, NodeKind::Leaf);
@@ -6652,7 +6052,6 @@ fn w15_tree_states_and_status_rows() {
     ]);
     assert!(rig.app.tab_to(TREE));
 
-
     assert_eq!(
         cell_symbol(rig.app.buffer(), 1, 0),
         "▸",
@@ -6663,7 +6062,6 @@ fn w15_tree_states_and_status_rows() {
         "W15-01: collapsed children must hide, got {:?}",
         rig.app.row(1)
     );
-
 
     let _ = rig.app.key(KeyCode::Right);
     assert_eq!(rig.expanded_keys(), vec![ItemKey::text("root")]);
@@ -6682,13 +6080,11 @@ fn w15_tree_states_and_status_rows() {
     assert!(rig.app.row(3).contains("loading…"));
     assert!(rig.app.row(4).contains("failed.txt"));
 
-
     assert_eq!(
         cell_symbol(rig.app.buffer(), 5, 2),
         " ",
         "W15-01: leaves must keep a blank disclosure cell"
     );
-
 
     let loading_dim = rig.app.buffer()[Position::new(7, 3)]
         .modifier
@@ -6700,7 +6096,6 @@ fn w15_tree_states_and_status_rows() {
         plain_fg, error_fg,
         "W15-01: the error row must read danger-voiced"
     );
-
 
     let _ = rig.app.key(KeyCode::Left);
     assert_eq!(rig.collapsed_keys(), vec![ItemKey::text("src")]);
@@ -6716,8 +6111,6 @@ fn w15_tree_states_and_status_rows() {
     );
 }
 
-
-
 #[test]
 fn w15_tree_lazy_fetch_appends_children() {
     let mut rig = TreeRig::plain(vec![
@@ -6728,7 +6121,6 @@ fn w15_tree_lazy_fetch_appends_children() {
     let _ = rig.app.key(KeyCode::Right);
     let _ = rig.app.key(KeyCode::Down);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("remote")));
-
 
     let _ = rig.app.key(KeyCode::Right);
     assert_eq!(
@@ -6741,7 +6133,6 @@ fn w15_tree_lazy_fetch_appends_children() {
         rig.app.row(2)
     );
 
-
     rig.items
         .borrow_mut()
         .push(tree_entry("r1", 2, NodeKind::Leaf));
@@ -6751,7 +6142,6 @@ fn w15_tree_lazy_fetch_appends_children() {
     rig.settle();
     assert!(rig.app.row(2).contains("r1"));
     assert!(rig.app.row(3).contains("r2"));
-
 
     let _ = rig.app.key(KeyCode::Left);
     assert_eq!(rig.collapsed_keys(), vec![ItemKey::text("remote")]);
@@ -6770,8 +6160,6 @@ fn w15_tree_lazy_fetch_appends_children() {
     );
 }
 
-
-
 #[test]
 fn w15_tree_disclosure_body_and_policies() {
     let items = || {
@@ -6780,7 +6168,6 @@ fn w15_tree_disclosure_body_and_policies() {
             tree_entry("leaf", 1, NodeKind::Leaf),
         ]
     };
-
 
     let mut rig = TreeRig::plain(items());
     assert!(rig.app.tab_to(TREE));
@@ -6795,7 +6182,6 @@ fn w15_tree_disclosure_body_and_policies() {
         vec![ItemKey::text("root")],
         "W15-02: a body click must toggle under TreeBranchClick::Toggle"
     );
-
 
     let mut rig = TreeRig::with(
         items(),
@@ -6814,7 +6200,6 @@ fn w15_tree_disclosure_body_and_policies() {
         .click_part(TREE, PartRef::item(Part::ICON, ItemKey::text("root")));
     assert_eq!(rig.expanded_keys(), vec![ItemKey::text("root")]);
 
-
     let mut rig = TreeRig::with(
         items(),
         TreeBranchActivation::Activate,
@@ -6829,13 +6214,11 @@ fn w15_tree_disclosure_body_and_policies() {
     );
     assert_eq!(rig.chosen.get(), Some(ItemKey::text("root")));
 
-
     let mut rig = TreeRig::plain(items());
     assert!(rig.app.tab_to(TREE));
     let _ = rig.app.key(KeyCode::Enter);
     assert_eq!(rig.expanded_keys(), vec![ItemKey::text("root")]);
     assert!(rig.activated().is_empty());
-
 
     let mut rig = TreeRig::plain(items());
     assert!(rig.app.tab_to(TREE));
@@ -6856,11 +6239,8 @@ fn w15_tree_disclosure_body_and_policies() {
     );
 }
 
-
-
 #[test]
 fn w15_tree_removal_during_press_and_pending_load() {
-
     let mut rig = TreeRig::plain(vec![
         tree_entry("root", 0, NodeKind::Parent),
         tree_entry("gone", 1, NodeKind::Leaf),
@@ -6885,7 +6265,6 @@ fn w15_tree_removal_during_press_and_pending_load() {
         "W15-03: the cursor must leave the removed row"
     );
 
-
     let mut rig = TreeRig::plain(vec![
         tree_entry("root", 0, NodeKind::Parent),
         tree_entry("kid", 1, NodeKind::Leaf),
@@ -6903,7 +6282,6 @@ fn w15_tree_removal_during_press_and_pending_load() {
         "W15-03: the cursor must reseed onto a live row, got {:?}",
         rig.cursor.get()
     );
-
 
     let mut rig = TreeRig::plain(vec![
         tree_entry("root", 0, NodeKind::Parent),
@@ -6930,8 +6308,6 @@ fn w15_tree_removal_during_press_and_pending_load() {
     );
 }
 
-
-
 #[test]
 fn w15_tree_fold_all_draws_bounded_window() {
     let mut items = Vec::new();
@@ -6945,7 +6321,6 @@ fn w15_tree_fold_all_draws_bounded_window() {
     let mut rig = TreeRig::plain(items);
     assert!(rig.app.tab_to(TREE));
     assert_eq!(rig.visible_len.get(), 20, "W15-04: roots only at boot");
-
 
     let _ = rig.app.key(KeyCode::Char('*'));
     assert_eq!(
@@ -6964,7 +6339,6 @@ fn w15_tree_fold_all_draws_bounded_window() {
         .count();
     assert_eq!(painted, 8, "W15-04: exactly the viewport window paints");
 
-
     let _ = rig.app.key(KeyCode::End);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("p19k8")));
     assert!(
@@ -6972,7 +6346,6 @@ fn w15_tree_fold_all_draws_bounded_window() {
         "W15-04: End must reveal the last row, got {:?}",
         rig.app.row(7)
     );
-
 
     let _ = rig.app.key(KeyCode::Char('-'));
     assert_eq!(
@@ -6995,8 +6368,6 @@ fn w15_tree_fold_all_draws_bounded_window() {
     );
 }
 
-
-
 #[test]
 fn w15_tree_filter_preserves_ancestors_and_selection() {
     let mut rig = TreeRig::plain(vec![
@@ -7015,7 +6386,6 @@ fn w15_tree_filter_preserves_ancestors_and_selection() {
     let _ = rig.app.key(KeyCode::Char(' '));
     assert_eq!(rig.chosen.get(), Some(ItemKey::text("main.rs")));
 
-
     rig.filter.set(TreeFilter::Rs);
     rig.settle();
     assert_eq!(rig.visible_len.get(), 4, "W15-05: root+src+2 matches");
@@ -7033,7 +6403,6 @@ fn w15_tree_filter_preserves_ancestors_and_selection() {
         Some(ItemKey::text("main.rs")),
         "W15-05: the visible cursor must not move"
     );
-
 
     rig.filter.set(TreeFilter::Md);
     rig.settle();
@@ -7054,16 +6423,11 @@ fn w15_tree_filter_preserves_ancestors_and_selection() {
         "W15-05: the cursor must leave the hidden row"
     );
 
-
     rig.filter.set(TreeFilter::Off);
     rig.settle();
     assert_eq!(rig.visible_len.get(), 6);
     assert_eq!(rig.chosen.get(), Some(ItemKey::text("main.rs")));
 }
-
-
-
-
 
 const STEPS: Id = Id::root("control.states.steps");
 
@@ -7213,8 +6577,6 @@ impl StepsRig {
     }
 }
 
-
-
 #[test]
 fn w16_steps_all_lifecycle_states() {
     let mut rig = StepsRig::plain(vec![
@@ -7227,9 +6589,6 @@ fn w16_steps_all_lifecycle_states() {
     ]);
     assert!(rig.app.tab_to(STEPS));
 
-
-
-
     let icons: Vec<String> = (0..6)
         .map(|y| cell_symbol(rig.app.buffer(), 1, y))
         .collect();
@@ -7238,7 +6597,6 @@ fn w16_steps_all_lifecycle_states() {
         vec!["✓", " ", "▪", " ", "!", "▲"],
         "W16-01: every state must paint its icon, got {icons:?}"
     );
-
 
     for (y, (label, word)) in [
         ("done", "done"),
@@ -7258,7 +6616,6 @@ fn w16_steps_all_lifecycle_states() {
         );
     }
 
-
     let borrowed = rig.items.borrow();
     let rail = Steps::navigable(STEPS)
         .key(steps_key as fn(&StepEntry) -> ItemKey)
@@ -7269,12 +6626,6 @@ fn w16_steps_all_lifecycle_states() {
         "W16-01: the frontier must be the first unfinished step"
     );
 }
-
-
-
-
-
-
 
 #[test]
 fn w16_steps_running_spinner_cycles_phases() {
@@ -7296,8 +6647,6 @@ fn w16_steps_running_spinner_cycles_phases() {
     );
 }
 
-
-
 #[test]
 fn w16_steps_navigate_failed_without_lifecycle_change() {
     let mut rig = StepsRig::plain(vec![
@@ -7318,7 +6667,6 @@ fn w16_steps_navigate_failed_without_lifecycle_change() {
         "W16-03: navigation and activation must not mutate the lifecycle"
     );
 
-
     let _ = rig.app.click(10, 2);
     assert_eq!(
         rig.activated(),
@@ -7331,11 +6679,8 @@ fn w16_steps_navigate_failed_without_lifecycle_change() {
     );
 }
 
-
-
 #[test]
 fn w16_steps_overflow_and_narrow_clip() {
-
     let mut long = step_entry("run", StepState::Running);
     long.label = "RunTheEntireTestSuiteTwiceForLuck".to_string();
     let mut rig = StepsRig::plain(vec![long]);
@@ -7350,7 +6695,6 @@ fn w16_steps_overflow_and_narrow_clip() {
         "W16-04: the state word must survive, got {:?}",
         rig.app.row(0)
     );
-
 
     rig.area.set(Rect {
         x: 0,
@@ -7369,7 +6713,6 @@ fn w16_steps_overflow_and_narrow_clip() {
         "W16-04: the label must survive narrowing, got {:?}",
         rig.app.row(0)
     );
-
 
     let items: Vec<StepEntry> = (0..12)
         .map(|n| step_entry(&format!("s{n:02}"), StepState::Queued))
@@ -7390,8 +6733,6 @@ fn w16_steps_overflow_and_narrow_clip() {
     );
 }
 
-
-
 #[test]
 fn w16_steps_source_replacement_preserves_key() {
     let mut rig = StepsRig::plain(vec![
@@ -7402,7 +6743,6 @@ fn w16_steps_source_replacement_preserves_key() {
     assert!(rig.app.tab_to(STEPS));
     let _ = rig.app.key(KeyCode::Down);
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("k2")));
-
 
     rig.items.replace(vec![
         StepEntry {
@@ -7431,10 +6771,6 @@ fn w16_steps_source_replacement_preserves_key() {
         "W16-05: the new state must paint"
     );
 }
-
-
-
-
 
 const TABS: Id = Id::root("control.states.tabs");
 const TABS_AREA: Rect = Rect {
@@ -7578,8 +6914,6 @@ impl TabsRig {
     }
 }
 
-
-
 #[test]
 fn w17_tabs_state_variants() {
     let mut rig = TabsRig::with(
@@ -7595,20 +6929,16 @@ fn w17_tabs_state_variants() {
         (cell.fg, cell.bg)
     }
 
-
     assert_ne!(
         tab_style(&rig.app, 1, 0),
         tab_style(&rig.app, 8, 0),
         "W17-01: the active tab must read apart from inactive tabs"
     );
 
-
-
     assert!(
         rig.app.state_of(TABS).contains(StateFlags::FOCUSED),
         "W17-01: the strip must hold focus"
     );
-
 
     let before = tab_style(&rig.app, 8, 0);
     let _ = rig.app.mouse(MouseKind::Move, 8, 0);
@@ -7619,7 +6949,6 @@ fn w17_tabs_state_variants() {
         "W17-01: hovering a tab must restyle it"
     );
 
-
     let _ = rig.app.mouse(MouseKind::Down, 8, 0);
     assert_eq!(
         rig.cursor.get(),
@@ -7627,8 +6956,6 @@ fn w17_tabs_state_variants() {
         "W17-01: pressing a tab must move the cursor"
     );
     let _ = rig.app.mouse(MouseKind::Up, 8, 0);
-
-
 
     let close_before = tab_style(&rig.app, 10, 0);
     let _ = rig.app.mouse(MouseKind::Move, 10, 0);
@@ -7639,11 +6966,6 @@ fn w17_tabs_state_variants() {
         "W17-01: target leaves the close cell unchanged under hover"
     );
 }
-
-
-
-
-
 
 #[test]
 fn w17_tabs_focused_pressed_bold() {
@@ -7660,9 +6982,6 @@ fn w17_tabs_focused_pressed_bold() {
             .contains(Modifier::BOLD)
     }
 
-
-
-
     let _ = rig.app.mouse(MouseKind::Down, 8, 0);
     rig.app.draw();
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("B")));
@@ -7674,8 +6993,6 @@ fn w17_tabs_focused_pressed_bold() {
     let _ = rig.app.mouse(MouseKind::Up, 8, 0);
 }
 
-
-
 #[test]
 fn w17_tabs_overflow_scroll_and_rename() {
     let items: Vec<TabEntry> = (0..10).map(|n| tab_entry(&format!("t{n}"))).collect();
@@ -7683,13 +7000,11 @@ fn w17_tabs_overflow_scroll_and_rename() {
     assert!(rig.app.tab_to(TABS));
     assert_eq!(rig.first.get(), Some(ItemKey::text("t0")));
 
-
     assert!(
         rig.app.row(0).contains('›'),
         "W17-02: the right overflow counter must paint, got {:?}",
         rig.app.row(0)
     );
-
 
     for _ in 0..8 {
         let _ = rig.app.key(KeyCode::Right);
@@ -7711,8 +7026,6 @@ fn w17_tabs_overflow_scroll_and_rename() {
         rig.app.row(0)
     );
 
-
-
     rig.items.borrow_mut()[8].label = "t8-with-a-much-longer-label".to_string();
     rig.settle();
     assert_eq!(
@@ -7732,8 +7045,6 @@ fn w17_tabs_overflow_scroll_and_rename() {
     );
 }
 
-
-
 #[test]
 fn w17_tabs_delete_active_restores_successor() {
     let mut rig = TabsRig::with(
@@ -7744,7 +7055,6 @@ fn w17_tabs_delete_active_restores_successor() {
     assert!(rig.app.tab_to(TABS));
     let _ = rig.app.key(KeyCode::Right);
     assert_eq!(rig.active.get(), Some(ItemKey::text("b")));
-
 
     let _ = rig
         .app
@@ -7758,7 +7068,6 @@ fn w17_tabs_delete_active_restores_successor() {
         "W17-03: the successor must activate, got {:?}",
         rig.active.get()
     );
-
 
     let _ = rig
         .app
@@ -7774,8 +7083,6 @@ fn w17_tabs_delete_active_restores_successor() {
     );
 }
 
-
-
 #[test]
 fn w17_tabs_close_targets_logical_tab_across_reorder() {
     let mut rig = TabsRig::with(
@@ -7784,7 +7091,6 @@ fn w17_tabs_close_targets_logical_tab_across_reorder() {
         false,
     );
     assert!(rig.app.tab_to(TABS));
-
 
     rig.items.borrow_mut().swap(1, 2);
     rig.settle();
@@ -7798,7 +7104,6 @@ fn w17_tabs_close_targets_logical_tab_across_reorder() {
         rig.closed()
     );
 
-
     assert_eq!(rig.cursor.get(), Some(ItemKey::text("a")));
     let _ = rig.app.key(KeyCode::Char('x'));
     assert_eq!(
@@ -7807,7 +7112,6 @@ fn w17_tabs_close_targets_logical_tab_across_reorder() {
         "W17-04: x must close the cursor key, got {:?}",
         rig.closed()
     );
-
 
     let before = rig.actions.borrow().len();
     let _ = rig.app.mouse(MouseKind::Secondary, 8, 0);
@@ -7823,8 +7127,6 @@ const TAB_CHILD_A1: Id = Id::root("control.states.tabs.a1");
 const TAB_CHILD_A2: Id = Id::root("control.states.tabs.a2");
 const TAB_CHILD_B1: Id = Id::root("control.states.tabs.b1");
 const TAB_CHILD_B2: Id = Id::root("control.states.tabs.b2");
-
-
 
 struct TabsChildrenApp {
     items: Rc<RefCell<Vec<TabEntry>>>,
@@ -7844,8 +7146,6 @@ fn tab_children(tab: ItemKey) -> [Id; 2] {
 
 impl App for TabsChildrenApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-
-
         if let Some(tab) = self.pending.take() {
             let child = self
                 .memory
@@ -7889,7 +7189,6 @@ impl App for TabsChildrenApp {
     }
 }
 
-
 #[test]
 fn w17_tabs_restore_child_focus_per_tab() {
     let memory = Rc::new(RefCell::new(HashMap::new()));
@@ -7910,7 +7209,6 @@ fn w17_tabs_restore_child_focus_per_tab() {
     assert!(app.tab_to(TABS));
     assert_eq!(active.get(), Some(ItemKey::text("A")));
 
-
     let _ = app.key(KeyCode::Tab);
     let _ = app.key(KeyCode::Tab);
     assert!(
@@ -7927,7 +7225,6 @@ fn w17_tabs_restore_child_focus_per_tab() {
         "W17-05: B must start on its first child"
     );
 
-
     let _ = app.key(KeyCode::Tab);
     assert!(
         app.state_of(TAB_CHILD_B2).contains(StateFlags::FOCUSED),
@@ -7942,7 +7239,6 @@ fn w17_tabs_restore_child_focus_per_tab() {
         app.state_of(TAB_CHILD_A2).contains(StateFlags::FOCUSED),
         "W17-05: switching back must restore A2"
     );
-
 
     assert!(app.tab_to(TABS));
     let _ = app.key(KeyCode::Right);

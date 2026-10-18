@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 pub mod catalogue;
 pub mod clock;
 pub mod fixtures;
@@ -17,8 +9,6 @@ pub mod world;
 pub use fixtures::world_for;
 pub use scenario::{Motion, Scenario};
 pub use world::World;
-
-
 
 pub mod domain {
     pub use crate::fixtures;

@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 use core::ops::Range;
 
@@ -25,12 +23,7 @@ const CTRL: KeyModifiers = KeyModifiers::CONTROL;
 const ALT: KeyModifiers = KeyModifiers::ALT;
 const SHIFT: KeyModifiers = KeyModifiers::SHIFT;
 
-
-
-
-
 pub trait Highlighter {
-
     fn highlight(&self, text: &str) -> Vec<(Range<usize>, SyntaxRole)>;
 }
 
@@ -43,9 +36,7 @@ where
     }
 }
 
-
 pub trait Segmenter {
-
     fn segments(&self, text: &str) -> Vec<Range<usize>>;
 }
 
@@ -58,10 +49,8 @@ where
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CodeSeverity {
-
     Error,
 
     Warning,
@@ -69,10 +58,8 @@ pub enum CodeSeverity {
     Info,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum TabBehavior {
-
     #[default]
     Indent,
 
@@ -89,10 +76,8 @@ impl CodeSeverity {
     }
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CodeDiagnostic {
-
     pub range: Range<usize>,
 
     pub severity: CodeSeverity,
@@ -101,7 +86,6 @@ pub struct CodeDiagnostic {
 }
 
 impl CodeDiagnostic {
-
     pub fn new(range: Range<usize>, severity: CodeSeverity, message: impl Into<String>) -> Self {
         CodeDiagnostic {
             range,
@@ -120,26 +104,19 @@ fn nearest_diagnostic(diagnostics: &[CodeDiagnostic], cursor: usize) -> Option<&
         .min_by_key(|diagnostic| diagnostic.range.start.abs_diff(cursor))
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CodeAction {
-
     Changed,
 
     CursorMoved,
 
     Committed,
 
-    Leave {
-
-        backward: bool,
-    },
+    Leave { backward: bool },
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CodeCmd {
-
     InsertMode,
 
     AppendMode,
@@ -501,7 +478,6 @@ struct FindState {
     typing: bool,
 }
 
-
 #[derive(Clone, PartialEq, Eq)]
 pub struct CodeEditorState {
     editor: TextEditorCore,
@@ -537,7 +513,6 @@ impl fmt::Debug for CodeEditorState {
 }
 
 impl CodeEditorState {
-
     pub fn new(text: &str) -> Self {
         let mut editor = TextEditorCore::multi(text);
         editor.set_cursor_line_col(0, 0);
@@ -553,11 +528,9 @@ impl CodeEditorState {
         }
     }
 
-
     pub fn text(&self) -> &str {
         self.editor.text()
     }
-
 
     pub fn set_text(&mut self, text: &str) {
         if self.editor.apply(EditAction::SetText(text)).changed() {
@@ -570,26 +543,21 @@ impl CodeEditorState {
         self.refind();
     }
 
-
     pub const fn is_editing(&self) -> bool {
         self.editing
     }
-
 
     pub const fn scroll(&self) -> &ScrollState {
         &self.scroll
     }
 
-
     pub const fn cursor_offset(&self) -> usize {
         self.editor.cursor_offset()
     }
 
-
     pub fn selected_text(&self) -> Option<&str> {
         self.editor.selected_text()
     }
-
 
     pub fn set_diagnostics(&mut self, mut diagnostics: Vec<CodeDiagnostic>) {
         diagnostics.sort_by_key(|d| d.range.start);
@@ -599,27 +567,22 @@ impl CodeEditorState {
         self.diagnostics = diagnostics;
     }
 
-
     pub fn diagnostics(&self) -> &[CodeDiagnostic] {
         &self.diagnostics
     }
-
 
     pub fn set_running(&mut self, block: Option<Range<usize>>) {
         self.running = block;
     }
 
-
     pub const fn begin_edit(&mut self) {
         self.editing = true;
     }
-
 
     pub fn commit(&mut self) {
         self.editing = false;
         let _ = self.editor.apply(EditAction::ClearSelection);
     }
-
 
     pub fn jump_to(&mut self, offset: usize) {
         let offset = floor_boundary(self.text(), offset.min(self.text().len()));
@@ -627,8 +590,6 @@ impl CodeEditorState {
         self.editor.set_cursor_line_col(line, col);
         self.scroll.ensure_visible(line);
     }
-
-
 
     pub fn invalidate(&mut self) {
         self.bump_generation();
@@ -736,73 +697,6 @@ impl HighlightCache {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct CodeEditor<'a> {
     id: Id,
     rows: u16,
@@ -833,7 +727,6 @@ impl fmt::Debug for CodeEditor<'_> {
 }
 
 impl<'a> CodeEditor<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -848,7 +741,6 @@ impl<'a> CodeEditor<'a> {
         Part::TRACK,
         Part::THUMB,
     ];
-
 
     pub const fn new(id: Id, rows: u16) -> Self {
         CodeEditor {
@@ -865,13 +757,11 @@ impl<'a> CodeEditor<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn highlighter(mut self, highlighter: &'a dyn Highlighter) -> Self {
         self.highlighter = Some(highlighter);
         self
     }
-
 
     #[must_use]
     pub const fn segmenter(mut self, segmenter: &'a dyn Segmenter) -> Self {
@@ -879,13 +769,11 @@ impl<'a> CodeEditor<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn placeholder(mut self, placeholder: &'a str) -> Self {
         self.placeholder = Some(placeholder);
         self
     }
-
 
     #[must_use]
     pub const fn indent(mut self, spaces: u8) -> Self {
@@ -893,13 +781,11 @@ impl<'a> CodeEditor<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn tab_behavior(mut self, behavior: TabBehavior) -> Self {
         self.tab_behavior = behavior;
         self
     }
-
 
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
@@ -907,13 +793,11 @@ impl<'a> CodeEditor<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
@@ -921,13 +805,11 @@ impl<'a> CodeEditor<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(patches);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
@@ -959,7 +841,6 @@ impl<'a> CodeEditor<'a> {
         digits.max(2).saturating_add(4)
     }
 
-
     pub fn selection_or_block(&self, st: &CodeEditorState) -> Option<(String, Range<usize>)> {
         if let Some(range) = st.editor.selection() {
             return Some((st.text().get(range.clone())?.to_owned(), range));
@@ -968,7 +849,6 @@ impl<'a> CodeEditor<'a> {
         Some((st.text().get(range.clone())?.to_owned(), range))
     }
 
-
     pub fn blocks(&self, st: &CodeEditorState) -> Vec<Range<usize>> {
         let mut blocks = self
             .segmenter
@@ -976,7 +856,6 @@ impl<'a> CodeEditor<'a> {
         blocks.sort_by_key(|range| range.start);
         blocks
     }
-
 
     pub fn current_block(&self, st: &CodeEditorState) -> Option<Range<usize>> {
         let cursor = st.cursor_offset();
@@ -987,7 +866,6 @@ impl<'a> CodeEditor<'a> {
             .or_else(|| blocks.iter().rev().find(|range| range.end <= cursor))
             .cloned()
     }
-
 
     pub fn cursor_cell(&self, cx: &Cx<'_>, st: &CodeEditorState) -> Option<Rect> {
         let area = cx.area(self.id)?;
@@ -1016,7 +894,6 @@ impl<'a> CodeEditor<'a> {
             height: 1,
         })
     }
-
 
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut CodeEditorState) -> Response<CodeAction> {
         if self.disabled {
@@ -1255,7 +1132,6 @@ impl<'a> CodeEditor<'a> {
             _ => acc.consumed(),
         }
     }
-
 
     #[expect(
         clippy::too_many_lines,
@@ -1601,7 +1477,6 @@ impl<'a> CodeEditor<'a> {
         }
         used
     }
-
 
     pub fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
         Size {

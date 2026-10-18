@@ -1,5 +1,3 @@
-
-
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
 
@@ -7,7 +5,6 @@ use super::CellRoles;
 use crate::id::Id;
 use crate::layer::{LayerId, LayerSpec};
 use crate::theme::PaintStyle;
-
 
 #[derive(Debug, Clone)]
 pub(crate) struct LayerDraw {
@@ -36,7 +33,6 @@ impl LayerDraw {
             drawn: false,
         }
     }
-
 
     pub(crate) fn reset(
         &mut self,
@@ -74,7 +70,6 @@ impl LayerDraw {
         Some(row.saturating_mul(usize::from(a.width)).saturating_add(col))
     }
 
-
     pub(crate) fn mark(&mut self, pos: Position, style: Option<PaintStyle>) {
         if let Some(i) = self.index(pos)
             && let Some(w) = self.written.get_mut(i)
@@ -85,7 +80,6 @@ impl LayerDraw {
             }
         }
     }
-
 
     pub(crate) fn mark_area(&mut self, area: Rect, style: Option<PaintStyle>) {
         let area = area.intersection(*self.buf.area());
@@ -109,14 +103,12 @@ impl LayerDraw {
         }
     }
 
-
     pub(crate) fn is_written(&self, pos: Position) -> bool {
         self.index(pos)
             .and_then(|i| self.written.get(i))
             .copied()
             .unwrap_or(false)
     }
-
 
     pub(crate) fn composite_onto(&self, page: &mut Buffer, roles: &mut [CellRoles]) {
         let screen = *page.area();
@@ -138,7 +130,6 @@ impl LayerDraw {
     }
 }
 
-
 #[derive(Debug, Default, Clone)]
 pub(crate) struct LayerPool {
     pub(crate) draws: Vec<LayerDraw>,
@@ -146,7 +137,6 @@ pub(crate) struct LayerPool {
 }
 
 impl LayerPool {
-
     pub(crate) fn begin(&mut self) {
         self.len = 0;
     }

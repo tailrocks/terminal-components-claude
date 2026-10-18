@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui_core::style::Color;
 
 use super::Theme;
@@ -16,7 +7,6 @@ use super::glyph::{ASCII_RULE_ACTIVE, ASCII_RULE_QUIET, ASCII_SCROLLBAR, GlyphRo
 use super::recipe::Family;
 use super::role::{FG_STEPS, SURFACE_LEVELS};
 use super::tokens::{ColorTokens, Density, MotionTokens, SizeTokens, SpaceTokens};
-
 
 #[derive(Clone, Copy, Default, Debug)]
 #[expect(
@@ -41,7 +31,6 @@ struct Explicit {
     borders: bool,
 }
 
-
 #[derive(Clone, Debug)]
 pub struct ThemeBuilder {
     theme: Theme,
@@ -56,8 +45,6 @@ impl ThemeBuilder {
         }
     }
 
-
-
     #[must_use]
     pub fn capability_palettes(mut self, mut palettes: super::CapabilityPalettes) -> Self {
         palettes.eligible.fill(true);
@@ -66,13 +53,11 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn clear_capability_palettes(mut self) -> Self {
         self.theme.capability_palettes = None;
         self
     }
-
 
     #[must_use]
     pub fn accent(mut self, c: Color) -> Self {
@@ -100,7 +85,6 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn danger(mut self, c: Color) -> Self {
         let t = &mut self.theme.color;
@@ -117,7 +101,6 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn warning(mut self, c: Color) -> Self {
         self.theme.color.warning = c;
@@ -127,20 +110,17 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn success(mut self, c: Color) -> Self {
         self.theme.color.success = c;
         self
     }
 
-
     #[must_use]
     pub fn info(mut self, c: Color) -> Self {
         self.theme.color.info = c;
         self
     }
-
 
     #[must_use]
     pub fn focus(mut self, c: Color) -> Self {
@@ -152,7 +132,6 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn selection(mut self, background: Color, foreground: Color) -> Self {
         self.theme.color.selection_bg = background;
@@ -160,7 +139,6 @@ impl ThemeBuilder {
         self.explicit.selection = true;
         self
     }
-
 
     #[must_use]
     pub fn highlight(mut self, background: Color, foreground: Color) -> Self {
@@ -170,7 +148,6 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn field(mut self, base: Color, hover: Color) -> Self {
         self.theme.color.field = base;
@@ -179,7 +156,6 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn disabled(mut self, foreground: Color, background: Color) -> Self {
         self.theme.color.disabled_fg = foreground;
@@ -187,7 +163,6 @@ impl ThemeBuilder {
         self.explicit.disabled = true;
         self
     }
-
 
     #[must_use]
     pub fn surfaces(mut self, s: [Color; SURFACE_LEVELS]) -> Self {
@@ -198,7 +173,6 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn fg(mut self, f: [Color; FG_STEPS]) -> Self {
         self.theme.color.fg = f;
@@ -208,7 +182,6 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn borders(mut self, subtle: Color, strong: Color) -> Self {
         self.theme.color.border_subtle = subtle;
@@ -216,22 +189,6 @@ impl ThemeBuilder {
         self.explicit.borders = true;
         self
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     #[must_use]
     pub fn ascii_glyphs(mut self) -> Self {
@@ -242,18 +199,6 @@ impl ThemeBuilder {
         self
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
     #[must_use]
     pub fn borders_set(mut self, b: BorderSet) -> Self {
         self.theme.design.borders = b;
@@ -263,13 +208,11 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn glyph(mut self, r: GlyphRole, s: &'static str) -> Self {
         self.theme.design.glyphs.set(r, s);
         self
     }
-
 
     #[must_use]
     pub fn space(mut self, s: SpaceTokens) -> Self {
@@ -277,13 +220,11 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn size(mut self, s: SizeTokens) -> Self {
         self.theme.design.size = s;
         self
     }
-
 
     #[must_use]
     pub fn density(mut self, d: Density) -> Self {
@@ -291,69 +232,11 @@ impl ThemeBuilder {
         self
     }
 
-
     #[must_use]
     pub fn motion(mut self, m: MotionTokens) -> Self {
         self.theme.design.motion = m;
         self
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     #[must_use]
     pub fn mono_rules(mut self, f: Family, rules: &[MonoRule]) -> Self {
@@ -361,15 +244,11 @@ impl ThemeBuilder {
         self
     }
 
-
-
     pub fn build(mut self) -> Theme {
         derive_unset(&mut self.theme.color);
         self.theme
     }
 }
-
-
 
 fn from_lin(v: f64) -> u8 {
     let v = v.clamp(0.0, 1.0);
@@ -402,11 +281,9 @@ fn lab_to_rgb(lab: (f64, f64, f64)) -> (u8, u8, u8) {
     (from_lin(red), from_lin(green), from_lin(blue))
 }
 
-
 pub(crate) fn lightness(c: Color) -> f64 {
     rgb_of(c).map_or(0.0, |rgb| lab_of(rgb).0)
 }
-
 
 fn shift_l(color: Color, dl: f64) -> Color {
     let Some(rgb) = rgb_of(color) else {
@@ -416,7 +293,6 @@ fn shift_l(color: Color, dl: f64) -> Color {
     let (red, green, blue) = lab_to_rgb(((light + dl).clamp(0.0, 100.0), ca, cb));
     Color::Rgb(red, green, blue)
 }
-
 
 fn blend(top: Color, bottom: Color, alpha: f64) -> Color {
     let (Some(t), Some(b)) = (rgb_of(top), rgb_of(bottom)) else {
@@ -430,15 +306,12 @@ fn blend(top: Color, bottom: Color, alpha: f64) -> Color {
     Color::Rgb(mix(t.0, b.0), mix(t.1, b.1), mix(t.2, b.2))
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FadeOutcome {
     Blended(Color),
     ApplyDim,
     Unchanged,
 }
-
-
 
 #[expect(clippy::float_cmp, reason = "edge rows use exact configured strengths")]
 pub fn fade_mix(fg: Color, bg: Color, amount: f32) -> FadeOutcome {
@@ -512,7 +385,6 @@ mod fade_tests {
     }
 }
 
-
 pub(crate) fn contrast(a: Color, b: Color) -> f64 {
     let (Some(a), Some(b)) = (rgb_of(a), rgb_of(b)) else {
         return 1.0;
@@ -520,8 +392,6 @@ pub(crate) fn contrast(a: Color, b: Color) -> f64 {
     let (la, lb) = (luminance(a) + 0.05, luminance(b) + 0.05);
     if la > lb { la / lb } else { lb / la }
 }
-
-
 
 fn anchor_l(base: Color, ratio: f64, light_base: bool) -> f64 {
     let mut lo = 0.0f64;
@@ -532,7 +402,6 @@ fn anchor_l(base: Color, ratio: f64, light_base: bool) -> f64 {
         let c = contrast(Color::Rgb(r, g, b), base);
         let far_enough = c >= ratio;
         if light_base {
-
             if far_enough {
                 lo = mid;
             } else {
@@ -574,7 +443,6 @@ fn fill(slot: &mut Color, value: impl FnOnce() -> Color) {
         *slot = value();
     }
 }
-
 
 pub(crate) fn derive_unset(c: &mut ColorTokens) {
     let junie = super::builtin::junie::tokens();
@@ -698,9 +566,6 @@ mod tests {
         c
     }
 
-
-
-
     #[test]
     fn ascii_glyphs_is_idempotent_and_glyph_overrides_it() {
         let once = Theme::junie().builder().ascii_glyphs().build();
@@ -772,9 +637,6 @@ mod tests {
 
     #[test]
     fn derived_tokens_meet_design_contrast_ratios() {
-
-
-
         for t in [Theme::from_tokens(seeds()), Theme::paper()] {
             let c = &t.color;
             assert!(contrast(c.fg[0], c.surfaces[0]) >= 7.0, "{:?}", c.fg[0]);

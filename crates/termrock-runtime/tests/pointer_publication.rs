@@ -1,4 +1,3 @@
-
 #![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use ratatui_core::layout::{Position, Rect};
 use termrock_core::{
@@ -99,7 +98,6 @@ fn hover_layout_cycle_is_diagnosed_suppressed_and_released_only_by_admitted_move
     present_hover(&mut rt);
     assert!(rt.state_of(A).contains(StateFlags::HOVERED));
 }
-
 
 #[test]
 #[ignore = "real PTY fixture; external driver queues pointer move then quit"]

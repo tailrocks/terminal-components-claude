@@ -1,4 +1,3 @@
-
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -496,7 +495,6 @@ fn harness_constructor_selects_simulation_epoch_before_bootstrap() {
         Duration::from_millis(140)
     );
 }
-
 
 #[test]
 #[ignore = "real PTY fixture; external readiness-driven driver supplies q"]

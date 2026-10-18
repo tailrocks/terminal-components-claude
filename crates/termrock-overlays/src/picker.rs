@@ -1,5 +1,3 @@
-
-
 use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
@@ -26,12 +24,10 @@ impl<T, R: RowFn<T>> RowFn<T> for BorrowedRow<'_, R> {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ScopeKey(u16);
 
 impl ScopeKey {
-
     pub const fn new(value: u16) -> Self {
         Self(value)
     }
@@ -41,10 +37,8 @@ impl ScopeKey {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PickerAction {
-
     Chosen(ItemKey),
 
     ChosenAlt(ItemKey),
@@ -58,7 +52,6 @@ pub enum PickerAction {
     QueryChanged,
 }
 
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PickerState {
     list: FilterListState,
@@ -66,7 +59,6 @@ pub struct PickerState {
 }
 
 impl PickerState {
-
     pub fn query(&self) -> &str {
         self.list.query()
     }
@@ -91,53 +83,6 @@ impl PickerState {
         &self.list
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
@@ -172,7 +117,6 @@ impl<T, R> core::fmt::Debug for Picker<'_, T, R> {
 }
 
 impl<T> Picker<'_, T, ItemRow> {
-
     pub const fn new(id: Id) -> Self {
         Self {
             id,
@@ -196,7 +140,6 @@ impl<T> Picker<'_, T, ItemRow> {
 }
 
 impl<T> Picker<'_, T, ItemRow> {
-
     #[must_use]
     pub const fn item_layout(mut self, layout: ItemRowLayout) -> Self {
         self.item_layout = layout;
@@ -205,7 +148,6 @@ impl<T> Picker<'_, T, ItemRow> {
 }
 
 impl<'a, T, R> Picker<'a, T, R> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::BORDER,
@@ -231,7 +173,6 @@ impl<'a, T, R> Picker<'a, T, R> {
         self
     }
 
-
     #[must_use]
     pub const fn width(mut self, width: u16) -> Self {
         self.width = Some(width);
@@ -243,8 +184,6 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.filter = policy;
         self
     }
-
-
 
     #[must_use]
     pub const fn searchable(mut self, searchable: bool) -> Self {
@@ -263,7 +202,6 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.scopes = scopes;
         self
     }
-
 
     #[must_use]
     pub const fn size(mut self, size: LayerSize) -> Self {
@@ -351,7 +289,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         list
     }
 
-
     pub fn measured_size(&self, cx: &Cx<'_>, items: &[T]) -> LayerSize {
         if let Some(size) = self.requested_size {
             return clamp_fixed_width(size, cx.viewport().width);
@@ -367,11 +304,8 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
 
-
-
         LayerSize::Fixed(width, rows.saturating_add(5))
     }
-
 
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
         LayerSpec::modal(self.id)
@@ -381,10 +315,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             .initial_focus(self.id)
             .size(self.measured_size(cx, items))
     }
-
-
-
-
 
     pub fn reconcile(&self, st: &mut PickerState, items: &[T]) -> bool {
         let changed = self.clear_hidden_query(st);
@@ -400,10 +330,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             false
         }
     }
-
-
-
-
 
     pub fn update(
         &self,
@@ -424,8 +350,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             acc.repaint();
         }
         if query_changed {
-
-
             acc.repaint();
             acc.action(PickerAction::QueryChanged);
         }
@@ -472,7 +396,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         acc.finish(self.id)
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &PickerState, items: &[T]) -> Rect {
         let mut live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
         live.remove(StateFlags::PRESSED);
@@ -489,7 +412,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 if inner.is_empty() {
                     return area;
                 }
-
 
                 let content = if self.requested_size.is_some() {
                     Rect {
@@ -554,8 +476,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     );
                 }
 
-
-
                 let list = Rect {
                     y: content
                         .y
@@ -571,7 +491,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         )
     }
 }
-
 
 pub type CommandPalette<'a, T, R = ItemRow> = Picker<'a, T, R>;
 
@@ -614,13 +533,10 @@ mod tests {
 
     #[test]
     fn query_change_is_visible_through_state_query() {
-
         let mut state = FilterListState::default();
         state.set_query("a");
         assert_eq!(state.query(), "a");
     }
-
-
 
     fn measured_at(size: LayerSize, viewport_width: u16) -> LayerSize {
         struct MeasureApp {

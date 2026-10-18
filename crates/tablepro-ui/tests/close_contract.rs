@@ -1,4 +1,3 @@
-
 use tablepro_ui::{Surface, Tab, TableProApp};
 use termrock::{App, Id, ItemKey, KeyCode, Part, PartRef, Theme};
 use termrock_test_support::Harness;
@@ -114,7 +113,6 @@ fn vanished_confirmation_target_cannot_close_replacement() {
     let Some(key) = h.app().workbench.active_key() else {
         unreachable!("key")
     };
-
 
     if let Some(payload) = h.app_mut().workbench.tab_mut(key) {
         *payload = Tab::Query(tablepro_ui::QueryTab::new(99, ""));

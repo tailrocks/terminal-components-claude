@@ -1,6 +1,3 @@
-
-
-
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
 
@@ -200,9 +197,6 @@ fn completion_controller_dismisses_on_editor_motion() {
     assert!(!runtime.is_open(POPUP));
 }
 
-
-
-
 fn splice_via_accept(items: &'static [Item<'static>]) -> Runtime<ControllerApp> {
     let mut runtime = controller_runtime();
     runtime.app_mut().items = items;
@@ -284,8 +278,6 @@ fn editor_owned_completion_binding_honours_remap_and_remove() {
 
 #[test]
 fn pointer_click_accepts_only_the_clicked_popup_row() {
-
-
     fn click(runtime: &mut Runtime<RoutingApp>, y: u16) {
         for kind in [MouseKind::Down, MouseKind::Up] {
             let _ = termrock_runtime::stub::deliver(
@@ -298,7 +290,6 @@ fn pointer_click_accepts_only_the_clicked_popup_row() {
             );
         }
     }
-
 
     let (mut runtime, _) = routing_runtime();
     click(&mut runtime, 4);

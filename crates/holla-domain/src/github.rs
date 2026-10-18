@@ -1,5 +1,3 @@
-
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GhRepo {
     pub owner: String,

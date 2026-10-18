@@ -1,4 +1,3 @@
-
 use super::{
     disk::Candidate,
     docker::{Container, Resource},

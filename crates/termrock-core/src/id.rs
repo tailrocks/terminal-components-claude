@@ -1,60 +1,31 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 
 pub(crate) const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0100_0000_01b3;
 
-
 const SEPARATOR: u8 = 0xFF;
-
 
 const KIND_NAME: u8 = 1;
 const KIND_PART: u8 = 2;
 const KIND_ITEM: u8 = 3;
 const KIND_INDEX: u8 = 4;
 
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct Revision(pub u64);
 
 impl Revision {
-
-
     pub const fn zero() -> Self {
         Self(0)
     }
-
 
     pub const fn next(self) -> Self {
         Self(self.0.saturating_add(1))
     }
 
-
     pub const fn raw(self) -> u64 {
         self.0
     }
 }
-
-
 
 pub const fn fnv1a(mut hash: u64, bytes: &[u8]) -> u64 {
     let mut i = 0;
@@ -71,28 +42,15 @@ pub const fn fnv1a(mut hash: u64, bytes: &[u8]) -> u64 {
     hash
 }
 
-
 const fn mix(hash: u64, kind: u8, payload: &[u8]) -> u64 {
     let hash = fnv1a(hash, &[SEPARATOR, kind]);
     fnv1a(hash, payload)
 }
 
-
-
-
-
-
-
-
 pub const fn custom_hash16(name: &str) -> u16 {
     let h = fnv1a(FNV_OFFSET, name.as_bytes());
     0x8000 | ((h as u16) & 0x7FFF)
 }
-
-
-
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Id {
@@ -100,13 +58,6 @@ pub struct Id {
     #[cfg(debug_assertions)]
     label: DebugLabel,
 }
-
-
-
-
-
-
-
 
 #[cfg(debug_assertions)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -126,7 +77,6 @@ enum Tail {
 }
 
 impl Id {
-
     pub const fn root(path: &'static str) -> Id {
         Id {
             hash: mix(FNV_OFFSET, KIND_NAME, path.as_bytes()),
@@ -137,7 +87,6 @@ impl Id {
             },
         }
     }
-
 
     #[must_use]
     pub const fn sub(self, name: &'static str) -> Id {
@@ -151,10 +100,6 @@ impl Id {
         }
     }
 
-
-
-
-
     #[must_use]
     pub const fn part(self, p: Part) -> Id {
         Id {
@@ -166,7 +111,6 @@ impl Id {
             },
         }
     }
-
 
     #[must_use]
     pub const fn index(self, i: usize) -> Id {
@@ -180,8 +124,6 @@ impl Id {
         }
     }
 
-
-
     #[must_use]
     pub fn item(self, k: ItemKey) -> Id {
         Id {
@@ -194,21 +136,10 @@ impl Id {
         }
     }
 
-
     pub const fn hash(self) -> u64 {
         self.hash
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 impl fmt::Debug for Id {
     #[cfg(debug_assertions)]
@@ -229,8 +160,6 @@ impl fmt::Debug for Id {
     }
 }
 
-
-
 #[macro_export]
 macro_rules! id {
     ($p:literal) => {
@@ -238,14 +167,8 @@ macro_rules! id {
     };
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ItemKey {
-
     Index(usize),
 
     Num(u64),
@@ -258,27 +181,22 @@ const ITEM_TAG_NUM: u8 = 1;
 const ITEM_TAG_TEXT: u8 = 2;
 
 impl ItemKey {
-
     pub const fn index(i: usize) -> Self {
         ItemKey::Index(i)
     }
-
 
     pub const fn num(n: u64) -> Self {
         ItemKey::Num(n)
     }
 
-
     pub fn text(s: &str) -> Self {
         ItemKey::Text(mix(FNV_OFFSET, ITEM_TAG_TEXT, s.as_bytes()))
     }
-
 
     pub fn pair(a: u64, b: u64) -> Self {
         let h = mix(FNV_OFFSET, KIND_NAME, &a.to_le_bytes());
         ItemKey::Text(mix(h, KIND_NAME, &b.to_le_bytes()))
     }
-
 
     fn payload(self) -> [u8; 9] {
         let (tag, n) = match self {
@@ -290,18 +208,6 @@ impl ItemKey {
         [tag, b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7]]
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Part(u16);
@@ -401,17 +307,9 @@ parts! {
 }
 
 impl Part {
-
-
-
-
-
-
-
     pub const fn custom(name: &'static str) -> Part {
         Part(custom_hash16(name))
     }
-
 
     pub const fn raw(self) -> u16 {
         self.0
@@ -427,27 +325,20 @@ impl fmt::Debug for Part {
     }
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct PartRef {
-
     pub part: Part,
 
     pub item: Option<ItemKey>,
 }
 
 impl PartRef {
-
     pub const fn of(p: Part) -> Self {
         PartRef {
             part: p,
             item: None,
         }
     }
-
 
     pub const fn item(p: Part, k: ItemKey) -> Self {
         PartRef {
@@ -498,11 +389,6 @@ mod tests {
         assert_ne!(r.item(ItemKey::num(7)), r.item(ItemKey::index(7)));
     }
 
-
-
-
-
-
     #[test]
     fn id_equality_is_exactly_hash_equality() {
         let mut corpus: Vec<Id> = Vec::new();
@@ -541,8 +427,6 @@ mod tests {
 
     #[test]
     fn id_equality_ignores_debug_label() {
-
-
         let a = id!("same");
         let b = Id::root(concat!(module_path!(), "::same"));
         assert_eq!(a, b);
@@ -592,8 +476,6 @@ mod tests {
         assert_ne!(Part::custom("segment"), Part::custom("segments"));
     }
 
-
-
     #[test]
     fn part_custom_uses_the_shared_custom_fold() {
         assert_eq!(Part::custom("segment").raw(), custom_hash16("segment"));
@@ -604,13 +486,6 @@ mod tests {
             assert!(Part(raw).name().is_none(), "{name:?} hit a library part");
         }
     }
-
-
-
-
-
-
-
 
     #[test]
     fn part_custom_names_can_collide_in_fifteen_bits() {
@@ -652,12 +527,6 @@ mod tests {
         );
         assert_eq!(format!("{:?}", r.index(3)), "orders.list ▸ #3");
     }
-
-
-
-
-
-
 
     #[cfg(debug_assertions)]
     #[test]

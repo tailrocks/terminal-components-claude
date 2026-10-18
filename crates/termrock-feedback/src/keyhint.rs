@@ -1,6 +1,3 @@
-
-
-
 use core::fmt::{self, Write as _};
 
 use ratatui_core::layout::Rect;
@@ -15,17 +12,7 @@ use crate::text::width;
 use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::Ui;
 
-
-
-
 const CHORD_CAP: usize = 32;
-
-
-
-
-
-
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct ChordText {
@@ -34,7 +21,6 @@ pub struct ChordText {
 }
 
 impl ChordText {
-
     pub fn of(c: Chord) -> Self {
         Self::with_case(c, ChordCase::Preserve)
     }
@@ -54,7 +40,6 @@ impl ChordText {
         t
     }
 
-
     pub fn as_str(&self) -> &str {
         self.buf
             .get(..self.len)
@@ -67,7 +52,6 @@ impl fmt::Write for ChordText {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         let end = self.len.saturating_add(s.len());
         if end > CHORD_CAP {
-
             return Ok(());
         }
         if let Some(dst) = self.buf.get_mut(self.len..end) {
@@ -77,76 +61,6 @@ impl fmt::Write for ChordText {
         Ok(())
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct KeyHint<'a> {
     id: Id,
@@ -191,10 +105,7 @@ impl fmt::Debug for KeyHint<'_> {
 }
 
 impl<'a> KeyHint<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::KEY, Part::ACTION];
-
-
 
     #[must_use]
     pub const fn chord_case(mut self, case: ChordCase) -> Self {
@@ -207,7 +118,6 @@ impl<'a> KeyHint<'a> {
         self
     }
 
-
     pub const fn new(id: Id, chord: Chord, label: &'a str) -> Self {
         KeyHint {
             id,
@@ -217,7 +127,6 @@ impl<'a> KeyHint<'a> {
             ov: PartStyle::new(),
         }
     }
-
 
     pub const fn descriptive(id: Id, key: &'static str, label: &'a str) -> Self {
         KeyHint {
@@ -229,8 +138,6 @@ impl<'a> KeyHint<'a> {
         }
     }
 
-
-
     pub const fn from_hint(id: Id, h: &Hint) -> KeyHint<'static> {
         KeyHint {
             id,
@@ -241,11 +148,9 @@ impl<'a> KeyHint<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
@@ -253,20 +158,17 @@ impl<'a> KeyHint<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -278,7 +180,6 @@ impl<'a> KeyHint<'a> {
         HintText::of(self.key)
     }
 
-
     pub fn width(&self) -> u16 {
         let key = width(self.key_text().as_str());
         if self.label.is_empty() {
@@ -286,7 +187,6 @@ impl<'a> KeyHint<'a> {
         }
         key.saturating_add(1).saturating_add(width(self.label))
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = Rect {
@@ -330,7 +230,6 @@ impl<'a> KeyHint<'a> {
         area
     }
 
-
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.width(), 1).fit(c)
     }
@@ -351,9 +250,6 @@ mod tests {
     const HINT: Id = Id::root("keyhint.tests");
     const LABEL: &str = "Open";
 
-
-
-
     const SWEPT: &[(Part, bool)] = &[
         (Part::KEY, true),
         (Part::ACTION, true),
@@ -362,7 +258,6 @@ mod tests {
         (Part::ICON, false),
         (Part::MARKER, false),
     ];
-
 
     struct SlotPage(Option<Part>);
 
@@ -384,18 +279,12 @@ mod tests {
         }
     }
 
-
     fn painted(slot: Option<Part>) -> Buffer {
         let mut rt = Runtime::new(SlotPage(slot), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         buf
     }
-
-
-
-
-
 
     #[test]
     fn a_slot_changes_painted_cells_for_exactly_key_and_action() {

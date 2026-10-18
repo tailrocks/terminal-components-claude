@@ -1,11 +1,6 @@
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 
 pub enum Scenario {
-
-
     FirstUse,
 
     Returning,
@@ -24,7 +19,6 @@ pub enum Scenario {
 }
 
 impl Scenario {
-
     pub const ALL: [Scenario; 8] = [
         Scenario::FirstUse,
         Scenario::Returning,
@@ -35,7 +29,6 @@ impl Scenario {
         Scenario::OutroLast,
         Scenario::HardCases,
     ];
-
 
     pub fn name(self) -> &'static str {
         match self {
@@ -50,7 +43,6 @@ impl Scenario {
         }
     }
 
-
     pub fn from_name(s: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|sc| sc.name() == s)
     }
@@ -59,7 +51,6 @@ impl Scenario {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 
 pub enum Motion {
-
     #[default]
     Full,
 
@@ -69,7 +60,6 @@ pub enum Motion {
 }
 
 impl Motion {
-
     pub fn from_name(s: &str) -> Option<Self> {
         match s {
             "full" => Some(Motion::Full),
@@ -78,8 +68,6 @@ impl Motion {
             _ => None,
         }
     }
-
-
 
     pub fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
         match cli {

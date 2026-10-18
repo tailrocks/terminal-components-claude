@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 #![cfg_attr(
     test,
     allow(
@@ -31,7 +23,6 @@ const A: Id = Id::root("ov.a");
 const B: Id = Id::root("ov.b");
 const C: Id = Id::root("ov.c");
 
-
 const LAYOUT: [(Id, Variant, Rect); 3] = [
     (A, Variant::PRIMARY, Rect::new(0, 0, 20, 1)),
     (B, Variant::PRIMARY, Rect::new(0, 2, 20, 1)),
@@ -42,13 +33,9 @@ fn scene(name: &'static str, theme: Theme) -> Scene {
     Scene::new(name, theme, ColorLevel::TrueColor, 30, 6)
 }
 
-
-
 type PaintOne<'a> = &'a dyn Fn(&mut Ui<'_>);
 
-
 type Wrap<'a> = &'a dyn Fn(&mut Ui<'_>, usize, PaintOne<'_>);
-
 
 fn paint(ui: &mut Ui<'_>, wrap: Wrap<'_>) {
     for (i, (id, variant, rect)) in LAYOUT.iter().enumerate() {
@@ -61,8 +48,6 @@ fn paint(ui: &mut Ui<'_>, wrap: Wrap<'_>) {
 fn plain(ui: &mut Ui<'_>, _i: usize, f: PaintOne<'_>) {
     f(ui);
 }
-
-
 
 fn label_fg(s: &Scene, i: usize) -> Option<Color> {
     let r = LAYOUT[i].2;
@@ -79,8 +64,6 @@ fn baseline(name: &'static str) -> Scene {
     s.draw(|ui, _| paint(ui, &plain));
     s
 }
-
-
 
 #[test]
 fn global_family_override_changes_every_button() {
@@ -133,8 +116,6 @@ fn global_family_override_changes_every_button() {
     assert_eq!(list_before.digest(), list_after.digest());
 }
 
-
-
 #[test]
 fn global_variant_override_changes_only_that_variant() {
     let before = baseline("overrides::before");
@@ -154,9 +135,6 @@ fn global_variant_override_changes_only_that_variant() {
     assert_eq!(label_bg(&after, 2), label_bg(&before, 2));
 }
 
-
-
-
 #[test]
 fn scoped_overlay_changes_only_the_subtree() {
     static RULES: [OverlayRule; 1] = [(
@@ -174,7 +152,6 @@ fn scoped_overlay_changes_only_the_subtree() {
     let mut after = scene("overrides::overlay", theme.clone());
     after.draw(|ui, _| {
         paint(ui, &|ui, i, f| {
-
             if i == 1 {
                 ui.with_overlay(&overlay, |ui| f(ui));
             } else {
@@ -194,8 +171,6 @@ fn scoped_overlay_changes_only_the_subtree() {
     );
 }
 
-
-
 #[test]
 fn instance_patch_changes_only_one_instance() {
     const PATCH: [(Part, StylePatch); 1] = [(Part::LABEL, StylePatch::new().set_fg(Role::Accent))];
@@ -214,13 +189,9 @@ fn instance_patch_changes_only_one_instance() {
 
     assert_eq!(label_fg(&after, 1), Some(Theme::junie().color.accent));
 
-
     assert_eq!(label_fg(&after, 0), label_fg(&before, 0));
     assert_eq!(label_fg(&after, 2), label_fg(&before, 2));
 }
-
-
-
 
 #[test]
 fn part_slot_replaces_the_part_and_keeps_hit_regions() {

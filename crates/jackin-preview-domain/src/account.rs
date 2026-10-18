@@ -1,45 +1,33 @@
-
-
-
 use super::agent::{Agent, Provider, UsageSurface};
 use super::onepassword::OpReference;
 use super::usage::{AccountUsage, Freshness};
 
-
 pub type AccountId = String;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccountOrigin {
-
     Registered,
 
     Discovered,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CredentialSource {
-
     OnePassword(OpReference),
 
     LocalFolder {
-
         path: String,
 
         detected: DetectedKind,
     },
 
     PlainApiKey {
-
-
         fingerprint: String,
 
         tail: String,
     },
 
     HostEnv {
-
         var: String,
 
         detected: DetectedKind,
@@ -47,7 +35,6 @@ pub enum CredentialSource {
 }
 
 impl CredentialSource {
-
     pub fn origin_label(&self) -> &'static str {
         match self {
             CredentialSource::OnePassword(_) => "1Password",
@@ -56,7 +43,6 @@ impl CredentialSource {
             CredentialSource::HostEnv { .. } => "Host env",
         }
     }
-
 
     pub fn safe_detail(&self) -> String {
         match self {
@@ -70,12 +56,9 @@ impl CredentialSource {
     }
 }
 
-
 pub fn masked(tail: &str) -> String {
     format!("••••••••…{tail}")
 }
-
-
 
 pub fn fingerprint(value: &str) -> String {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
@@ -86,16 +69,13 @@ pub fn fingerprint(value: &str) -> String {
     format!("{:08x}", (h >> 32) as u32 ^ h as u32)
 }
 
-
 pub fn tail_of(value: &str) -> String {
     let n = value.chars().count();
     value.chars().skip(n.saturating_sub(4)).collect()
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetectedKind {
-
     ClaudeOAuthProfile,
 
     ClaudeApiKeyEnv,
@@ -118,7 +98,6 @@ pub enum DetectedKind {
 }
 
 impl DetectedKind {
-
     pub fn label(self) -> &'static str {
         match self {
             DetectedKind::ClaudeOAuthProfile => "Claude OAuth profile",
@@ -133,7 +112,6 @@ impl DetectedKind {
             DetectedKind::Unknown => "unrecognised",
         }
     }
-
 
     pub fn provider(self) -> Option<Provider> {
         match self {
@@ -152,15 +130,12 @@ impl DetectedKind {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IdentitySubject {
-
     Handle(String),
 }
 
 impl IdentitySubject {
-
     pub fn label(&self) -> &str {
         match self {
             IdentitySubject::Handle(s) => s,
@@ -168,17 +143,14 @@ impl IdentitySubject {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AccountIdentity {
-
     pub subject: Option<IdentitySubject>,
 
     pub plan: Option<String>,
 }
 
 impl AccountIdentity {
-
     pub fn label(&self) -> String {
         match &self.subject {
             Some(s) => s.label().to_owned(),
@@ -187,17 +159,14 @@ impl AccountIdentity {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Provenance {
-
     ConfiguredSource,
 
     LiveHost,
 }
 
 impl Provenance {
-
     pub fn label(self) -> &'static str {
         match self {
             Provenance::ConfiguredSource => "configured source",
@@ -206,10 +175,8 @@ impl Provenance {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Confidence {
-
     Authoritative,
 
     Estimated,
@@ -220,7 +187,6 @@ pub enum Confidence {
 }
 
 impl Confidence {
-
     pub fn label(self) -> &'static str {
         match self {
             Confidence::Authoritative => "authoritative",
@@ -231,10 +197,8 @@ impl Confidence {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Lifecycle {
-
     Available,
 
     AgentUninitialized,
@@ -251,7 +215,6 @@ pub enum Lifecycle {
 }
 
 impl Lifecycle {
-
     pub fn label(self) -> &'static str {
         match self {
             Lifecycle::Available => "available",
@@ -265,10 +228,8 @@ impl Lifecycle {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ValidationLevel {
-
     MaterialDiscovered,
 
     IdentityAuthenticated,
@@ -277,7 +238,6 @@ pub enum ValidationLevel {
 }
 
 impl ValidationLevel {
-
     pub fn label(self) -> &'static str {
         match self {
             ValidationLevel::MaterialDiscovered => "material discovered",
@@ -287,16 +247,11 @@ impl ValidationLevel {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValidationState {
-
     NeverValidated,
 
-    Validating {
-
-        started_tick: u64,
-    },
+    Validating { started_tick: u64 },
 
     Valid(ValidationLevel),
 
@@ -304,7 +259,6 @@ pub enum ValidationState {
 }
 
 impl ValidationState {
-
     pub fn label(&self) -> String {
         match self {
             ValidationState::NeverValidated => "never validated".into(),
@@ -314,7 +268,6 @@ impl ValidationState {
         }
     }
 
-
     pub fn level(&self) -> Option<ValidationLevel> {
         match self {
             ValidationState::Valid(l) => Some(*l),
@@ -323,10 +276,8 @@ impl ValidationState {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IssueCode {
-
     QuotaUnsupported,
 
     FolderMissing,
@@ -366,10 +317,8 @@ pub enum IssueCode {
     IdentityUnresolved,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Recoverability {
-
     Retryable,
 
     ActionRequired,
@@ -378,7 +327,6 @@ pub enum Recoverability {
 }
 
 impl Recoverability {
-
     pub fn label(self) -> &'static str {
         match self {
             Recoverability::Retryable => "retryable",
@@ -388,10 +336,8 @@ impl Recoverability {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoverableIssue {
-
     pub code: IssueCode,
 
     pub message: String,
@@ -404,7 +350,6 @@ pub struct RecoverableIssue {
 }
 
 impl RecoverableIssue {
-
     pub fn new(code: IssueCode, message: impl Into<String>, rec: Recoverability) -> Self {
         Self {
             code,
@@ -425,25 +370,20 @@ impl RecoverableIssue {
         self
     }
 
-
     pub fn is_informational(&self) -> bool {
         matches!(self.code, IssueCode::Stale | IssueCode::IdentityUnresolved)
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Endpoint {
-
     pub label: String,
 
     pub host: String,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Account {
-
     pub id: AccountId,
 
     pub origin: AccountOrigin,
@@ -484,7 +424,6 @@ pub struct Account {
 }
 
 impl Account {
-
     pub fn registered(id: &str, name: &str, provider: Provider, source: CredentialSource) -> Self {
         Self {
             id: id.to_owned(),
@@ -509,14 +448,12 @@ impl Account {
         }
     }
 
-
     pub fn discovered(id: &str, name: &str, provider: Provider, source: CredentialSource) -> Self {
         let mut a = Self::registered(id, name, provider, source);
         a.origin = AccountOrigin::Discovered;
         a.provenance = vec![Provenance::LiveHost];
         a
     }
-
 
     pub fn with_endpoint(mut self, label: &str, host: &str) -> Self {
         if self.provider.supports_endpoint() {
@@ -528,18 +465,13 @@ impl Account {
         self
     }
 
-
     pub fn mutations_allowed(&self) -> bool {
         self.origin == AccountOrigin::Registered
     }
 
-
-
     pub fn title(&self) -> String {
         format!("{} · {}", self.surface.surface_name(), self.display_name)
     }
-
-
 
     pub fn status_word(&self) -> &'static str {
         if !self.enabled {
@@ -570,7 +502,6 @@ impl Account {
         }
     }
 
-
     pub fn is_error_state(&self) -> bool {
         matches!(
             self.lifecycle,
@@ -582,71 +513,58 @@ impl Account {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DuplicateProbe {
-
     Folder {
-
         provider: Provider,
 
         path: String,
     },
 
     OpReference {
-
         canonical: String,
 
         account: String,
     },
 
     KeyFingerprint {
-
         provider: Provider,
 
         fingerprint: String,
     },
 
     Identity {
-
         surface: UsageSurface,
 
         subject: IdentitySubject,
     },
 }
 
-
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AccountRegistry {
-
     pub accounts: Vec<Account>,
 
     pub revision: u64,
 }
 
 impl AccountRegistry {
-
     pub fn get(&self, id: &str) -> Option<&Account> {
         self.accounts.iter().find(|a| a.id == id)
     }
-
 
     pub fn get_mut(&mut self, id: &str) -> Option<&mut Account> {
         self.accounts.iter_mut().find(|a| a.id == id)
     }
 
-
     pub fn by_provider(&self, p: Provider) -> impl Iterator<Item = &Account> {
         self.accounts.iter().filter(move |a| a.provider == p)
     }
-
 
     pub fn default_for(&self, p: Provider) -> Option<&Account> {
         self.accounts
             .iter()
             .find(|a| a.provider == p && a.default_for_provider && a.enabled)
     }
-
 
     pub fn discovered_current(&self, p: Provider) -> Option<&Account> {
         self.accounts.iter().find(|a| {
@@ -656,7 +574,6 @@ impl AccountRegistry {
                 && a.lifecycle == Lifecycle::Available
         })
     }
-
 
     pub fn find_duplicate(&self, probe: &DuplicateProbe) -> Option<&Account> {
         self.accounts.iter().find(|a| match probe {
@@ -680,8 +597,6 @@ impl AccountRegistry {
         })
     }
 
-
-
     pub fn name_taken(&self, provider: Provider, name: &str, except: Option<&str>) -> bool {
         self.accounts.iter().any(|a| {
             a.provider == provider
@@ -689,12 +604,6 @@ impl AccountRegistry {
                 && Some(a.id.as_str()) != except
         })
     }
-
-
-
-
-
-
 
     pub fn set_default(&mut self, id: &str) -> Result<(), String> {
         let Some(target) = self.get(id) else {
@@ -713,20 +622,16 @@ impl AccountRegistry {
         Ok(())
     }
 
-
     pub fn remove(&mut self, id: &str) -> Option<Account> {
         let i = self.accounts.iter().position(|a| a.id == id)?;
         self.revision += 1;
         Some(self.accounts.remove(i))
     }
 
-
     pub fn insert(&mut self, account: Account) {
         self.accounts.push(account);
         self.revision += 1;
     }
-
-
 
     pub fn sorted(&self) -> Vec<&Account> {
         let mut v: Vec<&Account> = self.accounts.iter().collect();

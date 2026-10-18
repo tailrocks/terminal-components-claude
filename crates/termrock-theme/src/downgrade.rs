@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use ratatui_core::style::{Color, Modifier};
 
 use super::Theme;
@@ -17,7 +8,6 @@ use super::role::{FgStep, Role, Surface};
 use super::tokens::{ColorLevel, ColorTokens};
 use crate::id::Part;
 use crate::response::StateFlags;
-
 
 const XTERM16: [(u8, u8, u8); 16] = [
     (0, 0, 0),
@@ -60,7 +50,6 @@ const fn named_index(c: Color) -> Option<usize> {
     }
 }
 
-
 const fn cube_value(step: u8) -> u8 {
     if step == 0 {
         0
@@ -68,7 +57,6 @@ const fn cube_value(step: u8) -> u8 {
         55u8.saturating_add(step.saturating_mul(40))
     }
 }
-
 
 fn rgb_of_index(i: u8) -> (u8, u8, u8) {
     if let Some(&c) = XTERM16.get(usize::from(i)) {
@@ -85,7 +73,6 @@ fn rgb_of_index(i: u8) -> (u8, u8, u8) {
         cube_value(n % 6),
     )
 }
-
 
 pub(crate) fn rgb_of(c: Color) -> Option<(u8, u8, u8)> {
     match c {
@@ -105,8 +92,6 @@ fn sq_dist(a: (u8, u8, u8), b: (u8, u8, u8)) -> u32 {
         .saturating_add(d(a.1, b.1))
         .saturating_add(d(a.2, b.2))
 }
-
-
 
 fn nearest_256(rgb: (u8, u8, u8)) -> u8 {
     let mut best = (16u8, u32::MAX);
@@ -128,7 +113,6 @@ fn to_lin(c: u8) -> f64 {
     }
 }
 
-
 pub(crate) fn lab_of(rgb: (u8, u8, u8)) -> (f64, f64, f64) {
     let (red, green, blue) = (to_lin(rgb.0), to_lin(rgb.1), to_lin(rgb.2));
     let x = (red * 0.412_456_4 + green * 0.357_576_1 + blue * 0.180_437_5) / 0.950_47;
@@ -144,22 +128,6 @@ pub(crate) fn lab_of(rgb: (u8, u8, u8)) -> (f64, f64, f64) {
     let (fx, fy, fz) = (f(x), f(y), f(z));
     (116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz))
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 fn nearest_16(rgb: (u8, u8, u8)) -> Color {
     let (r, g, b) = rgb;
@@ -205,11 +173,9 @@ fn nearest_16(rgb: (u8, u8, u8)) -> Color {
     }
 }
 
-
 pub(crate) fn luminance(rgb: (u8, u8, u8)) -> f64 {
     0.2126 * to_lin(rgb.0) + 0.7152 * to_lin(rgb.1) + 0.0722 * to_lin(rgb.2)
 }
-
 
 fn mono(rgb: (u8, u8, u8)) -> Color {
     let y = luminance(rgb);
@@ -221,7 +187,6 @@ fn mono(rgb: (u8, u8, u8)) -> Color {
         Color::Reset
     }
 }
-
 
 pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
     let Some(rgb) = rgb_of(c) else {
@@ -240,12 +205,6 @@ pub fn downgrade_color(c: Color, level: ColorLevel) -> Color {
         ColorLevel::Mono => mono(rgb),
     }
 }
-
-
-
-
-
-
 
 fn repair_ansi16_light_foreground(source: &ColorTokens, mapped: &mut ColorTokens) {
     let Some(canvas) = rgb_of(source.surfaces[0]) else {
@@ -296,8 +255,6 @@ impl PaletteProjection<'_> {
 }
 impl super::tokens::TokenMapper for PaletteProjection<'_> {
     fn color(&mut self, current: Color) -> Color {
-
-
         match self.project(super::MeterFillRest::Color(current)) {
             super::MeterFillRest::Color(color) => color,
             super::MeterFillRest::ReferenceLift => downgrade_color(current, self.level),
@@ -309,14 +266,6 @@ impl super::tokens::TokenMapper for PaletteProjection<'_> {
 }
 
 impl Theme {
-
-
-
-
-
-
-
-
     #[must_use]
     pub fn downgrade(&self, level: ColorLevel) -> Theme {
         if self.capability.color == level {
@@ -364,21 +313,10 @@ impl Theme {
         out
     }
 
-
-
-
-
-
-
-
-
-
     #[must_use]
     pub fn for_level(&self, detected: ColorLevel) -> Theme {
         self.downgrade(self.capability.color.narrow_to(detected))
     }
-
-
 
     #[must_use]
     pub fn for_terminal(&self) -> Theme {
@@ -386,14 +324,7 @@ impl Theme {
     }
 }
 
-
-
-
-
-
-
 pub type MonoRule = (Part, StateFlags, StylePatch);
-
 
 fn mono_rules() -> [MonoRule; 15] {
     let p = StylePatch::new;
@@ -451,25 +382,9 @@ fn mono_rules() -> [MonoRule; 15] {
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
         ),
-
-
-
-
-
-
-
-
-
-
-
-
         (
             Part::FIELD,
             StateFlags::DISABLED,
-
-
-
-
             p().set_fg(Role::Fg(FgStep::Primary))
                 .remove(Modifier::all())
                 .add(Modifier::DIM),
@@ -504,9 +419,6 @@ fn mono_rules() -> [MonoRule; 15] {
     ]
 }
 
-
-
-
 fn mono_rules_extra() -> [MonoRule; 5] {
     let p = StylePatch::new;
     [
@@ -521,44 +433,14 @@ fn mono_rules_extra() -> [MonoRule; 5] {
             p().set_glyph(GlyphRole::RuleActive),
         ),
         (Part::LABEL, StateFlags::ACTIVE, p().add(Modifier::BOLD)),
-
-
-
         (
             Part::ICON,
             StateFlags::LOADING,
             p().add(Modifier::UNDERLINED),
         ),
-
-
-
-
-
-
-
-
-
         (Part::THUMB, StateFlags::PRESSED, p().add(Modifier::BOLD)),
     ]
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub const MONO_RULES_PER_FAMILY: usize = 20;
 
@@ -676,19 +558,6 @@ fn select_mono_rules() -> [MonoRule; 3] {
     ]
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub(crate) fn apply_mono_fallback(
     acc: StylePatch,
     recipes: &Recipes,
@@ -718,8 +587,6 @@ pub(crate) fn apply_mono_with_defaults(
         Family::SELECT => &select_mono_rules(),
         _ => &[],
     };
-
-
 
     let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
     for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
@@ -783,7 +650,6 @@ mod tests {
             Color::Indexed(77)
         );
 
-
         assert_eq!(
             downgrade_color(Color::Rgb(0x48, 0xe0, 0x54), ColorLevel::Ansi16),
             Color::LightGreen
@@ -839,8 +705,6 @@ mod tests {
         assert_eq!(rgb_of_index(231), (255, 255, 255));
     }
 
-
-
     #[test]
     fn ansi16_preserves_hue_family_and_brightness() {
         let c = Theme::junie().color;
@@ -850,9 +714,6 @@ mod tests {
         assert_eq!(at16(c.danger), Color::LightRed);
 
         assert_eq!(at16(c.danger_soft), Color::LightRed);
-
-
-
 
         assert_eq!(at16(c.border_subtle), Color::DarkGray);
         assert_eq!(at16(c.surfaces[1]), Color::Black);
@@ -885,8 +746,6 @@ mod tests {
         assert_eq!(muted.style.fg, Some(Color::DarkGray));
     }
 
-
-
     #[test]
     fn downgrade_is_idempotent_per_level() {
         let t = Theme::junie();
@@ -901,13 +760,6 @@ mod tests {
 
         assert_eq!(t.downgrade(ColorLevel::Mono).recipes, t.recipes);
     }
-
-
-
-
-
-
-
 
     #[test]
     fn for_level_narrows_but_never_widens() {
@@ -941,7 +793,6 @@ mod tests {
             "for_level changed a theme already at the detected level"
         );
     }
-
 
     #[test]
     fn for_level_reaches_the_neutral_recipe_once() {
@@ -985,14 +836,10 @@ mod tests {
         assert!(pressed.add.contains(Modifier::BOLD));
     }
 
-
-
     #[test]
     fn mono_fallbacks_reach_the_neutral_recipe() {
         let f = Family::custom("segmented");
         for base in [Theme::junie(), Theme::paper()] {
-
-
             assert!(
                 base.recipes.get(f).is_none(),
                 "`segmented` is now a declared family; pick an undeclared fixture"
@@ -1001,7 +848,6 @@ mod tests {
             assert!(m.recipes.get(f).is_none(), "`segmented` became declared");
 
             assert_eq!(m.recipes.neutral(), base.recipes.neutral());
-
 
             let at = |p: Part, s: StateFlags| m.resolve(f, Variant::DEFAULT, p, s, Surface::Canvas);
             assert!(
@@ -1016,9 +862,6 @@ mod tests {
                 Slot::Set(GlyphRole::Error),
                 "mono ERROR marker of an undeclared family has no glyph"
             );
-
-
-
 
             let canvas = crate::theme::resolve::bind_role(
                 &m,
@@ -1037,12 +880,6 @@ mod tests {
             );
         }
     }
-
-
-
-
-
-
 
     #[test]
     fn mono_pressed_reaches_the_scrollbar_thumb() {
@@ -1245,10 +1082,6 @@ mod tests {
         }));
     }
 
-
-
-
-
     #[test]
     fn mono_disabled_is_dim_and_readable() {
         for base in [Theme::junie(), Theme::paper()] {
@@ -1284,9 +1117,6 @@ mod tests {
         }
     }
 
-
-
-
     fn responding_pairs(recipes: &Recipes, f: Family) -> usize {
         let mut pairs: Vec<(Part, StateFlags)> = mono_rules()
             .iter()
@@ -1310,10 +1140,6 @@ mod tests {
             .count()
     }
 
-
-
-
-
     #[test]
     fn mono_rule_counts_match_the_documented_totals() {
         assert_eq!(
@@ -1328,7 +1154,6 @@ mod tests {
             MONO_RULES_PER_FAMILY
         );
 
-
         assert_eq!(
             responding_pairs(&r, Family::SCROLLBAR),
             MONO_RULES_PER_FAMILY - 1
@@ -1338,18 +1163,12 @@ mod tests {
             (Family::GRID, 22),
             (Family::MENU, 22),
             (Family::HELP, 22),
-
-
             (Family::PICKER, 22),
             (Family::SELECT, 23),
         ] {
             assert_eq!(responding_pairs(&r, f), pairs, "{f:?}");
         }
     }
-
-
-
-
 
     #[test]
     fn builder_mono_rules_reach_a_custom_family_at_mono_only() {
@@ -1363,7 +1182,6 @@ mod tests {
 
         assert!(base.recipes.get(seg).is_none());
         assert_eq!(base.recipes.mono_rules(seg), Some(&rule[..]));
-
 
         assert_eq!(
             base.resolve(
@@ -1429,10 +1247,6 @@ mod tests {
         );
     }
 
-
-
-
-
     #[test]
     fn builder_mono_rules_replace_the_whole_targeted_set() {
         let underlined = [(
@@ -1471,7 +1285,6 @@ mod tests {
             MONO_RULES_PER_FAMILY + 1
         );
 
-
         let last = Theme::junie()
             .builder()
             .mono_rules(Family::SELECT, &underlined)
@@ -1489,7 +1302,6 @@ mod tests {
             at(&last, Part::FIELD),
             StylePatch::new().add(Modifier::BOLD)
         );
-
 
         let cleared = Theme::junie()
             .builder()

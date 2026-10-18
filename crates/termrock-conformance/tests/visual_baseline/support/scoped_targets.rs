@@ -1,20 +1,7 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use tuiscotti::Screen;
 use unicode_width::UnicodeWidthStr;
 
 use super::{DEFAULT_WAIT, Session, row_text, screen_find, try_wait_screen};
-
 
 #[derive(Debug, Clone, Copy)]
 pub struct Scope {
@@ -25,7 +12,6 @@ pub struct Scope {
 }
 
 impl Scope {
-
     #[must_use]
     pub fn full() -> Self {
         Self {
@@ -35,7 +21,6 @@ impl Scope {
             row_end: u16::MAX,
         }
     }
-
 
     #[must_use]
     pub fn rows(start: u16, end: u16) -> Self {
@@ -48,7 +33,6 @@ impl Scope {
         }
     }
 
-
     #[must_use]
     pub fn cols(start: u16, end: u16) -> Self {
         assert!(start <= end, "scope cols run backwards: {start}..={end}");
@@ -59,7 +43,6 @@ impl Scope {
             row_end: u16::MAX,
         }
     }
-
 
     #[must_use]
     pub fn rect(col_start: u16, row_start: u16, col_end: u16, row_end: u16) -> Self {
@@ -74,8 +57,6 @@ impl Scope {
             row_end,
         }
     }
-
-
 
     fn intersect(self, cols: u16, rows: u16) -> Option<(u16, u16, u16, u16)> {
         if self.col_start >= cols || self.row_start >= rows {
@@ -95,9 +76,7 @@ impl Scope {
     }
 }
 
-
 type LastAttempt = (Vec<(u16, u16)>, u16, u16);
-
 
 #[derive(Debug, Clone)]
 pub struct Target {
@@ -110,13 +89,9 @@ pub struct Target {
 }
 
 impl Target {
-
-
     pub fn resolve(s: &mut Session, needle: &str) -> Self {
         Self::resolve_in(s, Scope::full(), needle)
     }
-
-
 
     pub fn resolve_in(s: &mut Session, scope: Scope, needle: &str) -> Self {
         assert!(!needle.is_empty(), "target needle must not be empty");
@@ -157,8 +132,6 @@ impl Target {
         }
     }
 
-
-
     pub fn refresh(&mut self, s: &mut Session) {
         let fresh = Self::resolve_in(s, self.scope, &self.needle);
         self.col = fresh.col;
@@ -166,8 +139,6 @@ impl Target {
         self.cols = fresh.cols;
         self.rows = fresh.rows;
     }
-
-
 
     #[allow(dead_code)]
     pub fn refresh_moved(&mut self, s: &mut Session) {
@@ -179,8 +150,6 @@ impl Target {
             self.needle
         );
     }
-
-
 
     pub fn refresh_same(&mut self, s: &mut Session) {
         let (col, row) = (self.col, self.row);
@@ -194,39 +163,31 @@ impl Target {
         );
     }
 
-
     #[must_use]
     pub fn point(&self) -> (u16, u16) {
         (self.col, self.row)
     }
-
 
     #[must_use]
     pub fn col(&self) -> u16 {
         self.col
     }
 
-
     #[must_use]
     pub fn row(&self) -> u16 {
         self.row
     }
-
 
     #[must_use]
     pub fn grid(&self) -> (u16, u16) {
         (self.cols, self.rows)
     }
 
-
-
     #[must_use]
     pub fn span_end(&self) -> (u16, u16) {
         let w = UnicodeWidthStr::width(self.needle.as_str()).max(1) as u16;
         (self.col + w - 1, self.row)
     }
-
-
 
     #[must_use]
     pub fn offset(&self, dcol: i16, drow: i16) -> (u16, u16) {
@@ -243,9 +204,6 @@ impl Target {
         (col as u16, row as u16)
     }
 }
-
-
-
 
 fn find_in_scope(
     screen: &Screen,

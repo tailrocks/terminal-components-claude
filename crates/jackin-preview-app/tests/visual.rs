@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use jackin_preview_app::{App, Motion, Scenario};
 use termrock::{ColorLevel, Theme};
 use termrock_test_support::{Baseline, Harness};

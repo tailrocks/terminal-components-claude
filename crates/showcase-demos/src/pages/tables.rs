@@ -1,5 +1,3 @@
-
-
 use termrock::{
     Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid, GridAction, GridModel,
     GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Role, RowDecor, RowTotal,
@@ -429,15 +427,12 @@ fn table() -> Grid<'static> {
         .patch_part(PART_PATCH)
 }
 
-
 fn checks_panel() -> Panel<'static> {
     Panel::new(CHECKS)
         .kind(PanelKind::Card)
         .title("Checks")
         .patch_part(PANEL_PARTS)
 }
-
-
 
 #[derive(Debug)]
 pub struct TablesPage {
@@ -490,8 +485,6 @@ impl Page for TablesPage {
             .action_ref()
             .is_some_and(|value| matches!(value, GridAction::Moved))
         {
-
-
         }
         let _ = checks_panel();
         action.erase().into()

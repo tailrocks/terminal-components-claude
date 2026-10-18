@@ -1,16 +1,6 @@
-
-
-
-
-
-
-
 use termrock::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
 
-
 pub struct PageStatus(pub String);
-
-
 
 pub struct PageUpdate {
     pub response: Response<()>,
@@ -26,9 +16,7 @@ impl From<Response<()>> for PageUpdate {
     }
 }
 
-
 pub trait Page: Send {
-
     fn title(&self) -> &'static str;
 
     fn update(&mut self, cx: &mut termrock::Cx<'_>) -> PageUpdate;
@@ -54,7 +42,6 @@ pub trait Page: Send {
     fn seek_paused(&mut self, _frame: usize) {}
 }
 
-
 pub fn frame(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -62,10 +49,6 @@ pub fn frame(
     meta: &'static str,
     body: impl FnOnce(&mut Ui<'_>, Rect),
 ) {
-
-
-
-
     if area.is_empty() {
         return;
     }
@@ -130,7 +113,6 @@ fn paint_clipped_meta(
         );
     }
 }
-
 
 pub fn lines(ui: &mut Ui<'_>, area: Rect, text: &[&str]) {
     let style = ui.surface_style();

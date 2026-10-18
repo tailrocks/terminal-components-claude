@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use termrock::{
     Activated, App, Buffer, Button, Cx, Flow, Id, Rect, Response, Runtime, Theme, Ui, Variant,
 };
@@ -39,7 +33,6 @@ struct SaveProbe {
 impl App for SaveProbe {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let response = update_save(self.id, cx, self.can_save);
-
 
         let forwarded = response.clone().erase();
         self.captured = Some(response);
@@ -88,7 +81,6 @@ fn ex01_disabled_save_without_input_paints_label() {
         Theme::junie(),
     );
 
-
     let _bootstrap = runtime.initialize();
 
     let response = runtime
@@ -100,8 +92,6 @@ fn ex01_disabled_save_without_input_paints_label() {
     assert!(!response.activated());
     assert!(response.action_ref().is_none());
     assert_eq!(response.flow(), Flow::Ignored);
-
-
 
     let mut buffer = Buffer::empty(SAVE_AREA);
     assert!(

@@ -1,35 +1,15 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use core::any::{Any, TypeId};
 
 use crate::id::Id;
 
 use super::ReferenceTarget;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum ReferenceCacheKey {
-
     Target(ReferenceTarget),
-
 
     Targetless(u64),
 }
-
 
 #[derive(Default)]
 pub(crate) struct DerivedCache {
@@ -55,7 +35,6 @@ impl core::fmt::Debug for DerivedCache {
 }
 
 impl DerivedCache {
-
     pub(crate) fn begin_frame(&mut self, generation: u32) {
         if self.generation == Some(generation) {
             return;
@@ -66,11 +45,9 @@ impl DerivedCache {
         self.generation = Some(generation);
     }
 
-
     pub(crate) fn get_mut<T: Default + 'static>(&mut self, id: Id) -> &mut T {
         self.get_mut_in(id, None)
     }
-
 
     pub(crate) fn get_mut_reference<T: Default + 'static>(
         &mut self,
@@ -118,11 +95,9 @@ impl DerivedCache {
             .expect("slot keyed by TypeId::of::<T>() holds a Box<T>")
     }
 
-
     pub(crate) fn clear(&mut self) {
         self.entries.clear();
     }
-
 
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {

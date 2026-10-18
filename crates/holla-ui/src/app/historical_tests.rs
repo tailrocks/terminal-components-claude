@@ -1,5 +1,3 @@
-
-
 use super::{App, Motion, Route, Scenario};
 use termrock::{FeedbackClock, KeyCode, SimulationMoment, Theme};
 use termrock_test_support::Harness;
@@ -133,8 +131,6 @@ fn help_opens_from_empty_query_question_mark() {
     assert!(!h.text().contains("Key reference"));
 }
 
-
-
 #[test]
 fn empty_query_q_asks_to_quit_but_typed_q_filters() {
     let mut h = fixture(Scenario::FirstUse, Motion::Paused, 0, 120, 40);
@@ -194,7 +190,6 @@ fn down_moves_into_results_and_back() {
 
 #[test]
 fn enter_on_top_match_reports_simulated_run() {
-
     let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
     let _ = h.key(KeyCode::Enter);
     let t = h.text();
@@ -297,7 +292,6 @@ fn hide_removes_row_exact_query_resurfaces_and_reset_restores() {
 
 #[test]
 fn actions_picker_omits_search_query_as_pinned() {
-
     let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
     let _ = h.type_str("cargo build");
     let _ = h.ctrl('o');
@@ -717,8 +711,6 @@ fn nothing_matches_state() {
     assert!(h.text().contains("Nothing matches"), "{}", h.text());
 }
 
-
-
 #[test]
 fn priority_stack_has_reasons_and_scope_tags() {
     let h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
@@ -933,8 +925,6 @@ fn git_sync_run_per_child_results_and_honest_effect() {
     let t = h.text();
     assert!(t.contains("diverged · 2 ahead, 3 behind"), "{t}");
     assert!(t.contains("✓ Pull legacy — fast-forward only"), "{t}");
-
-
 
     assert!(t.contains("− Pull billing"), "{t}");
     assert!(

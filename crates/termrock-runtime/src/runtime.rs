@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 pub(crate) mod feedback;
 #[cfg(feature = "crossterm")]
 mod time;
@@ -39,24 +31,18 @@ use crate::theme::Theme;
 use crate::ui::cx::{FrameServices, LastFrame};
 use crate::ui::{Cx, FrameState, Ui, UiCore};
 
-
 pub trait App {
-
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()>;
 
-
     fn draw(&self, ui: &mut Ui<'_>);
-
 
     fn should_quit(&self) -> bool {
         false
     }
 
-
     fn keymap(&self) -> &KeyMap {
         KeyMap::EMPTY_REF
     }
-
 
     fn min_size(&self) -> Size {
         Size {
@@ -65,31 +51,21 @@ pub trait App {
         }
     }
 
-
-
     fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
         Response::ignored()
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ActivationKey {
-
     Enter,
 
     Space,
 }
 
-
-
-
-
-
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UpdateCause {
-
     Bootstrap,
 
     Event,
@@ -106,10 +82,8 @@ struct Press {
     area: Rect,
     dragging: bool,
 
-
     pos: Position,
 }
-
 
 #[derive(Clone, Copy, Debug, Default)]
 struct Interaction {
@@ -122,10 +96,7 @@ struct Interaction {
     last_input_key: bool,
 }
 
-
 const MAX_FOCUS_PASSES: usize = 4;
-
-
 
 #[derive(Clone, Default)]
 pub struct RenderSnapshot {
@@ -136,9 +107,6 @@ pub struct RenderSnapshot {
     top: LayerId,
     keymap: KeyMap,
 }
-
-
-
 
 #[cfg(feature = "testing")]
 pub struct RenderModel<'a, M: ?Sized, F> {
@@ -156,9 +124,6 @@ impl<M: ?Sized, F> core::fmt::Debug for RenderModel<'_, M, F> {
 
 #[cfg(feature = "testing")]
 impl RenderSnapshot {
-
-
-
     pub fn bind_model<'a, M: ?Sized, F>(&self, model: &'a M, paint: F) -> RenderModel<'a, M, F>
     where
         F: Fn(&M, &mut Ui<'_>, Rect),
@@ -182,10 +147,8 @@ impl core::fmt::Debug for RenderSnapshot {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderSnapshotError {
-
     Uninitialized,
 
     NeedsSettle,
@@ -211,8 +174,6 @@ struct ProjectionFacts {
     cursor: Option<Position>,
 }
 
-
-
 #[cfg(feature = "testing")]
 #[must_use = "acknowledge the completed projection to inspect its geometry"]
 pub struct ProjectedFrame<'a, A: App> {
@@ -229,7 +190,6 @@ impl<A: App> core::fmt::Debug for ProjectedFrame<'_, A> {
 
 #[cfg(feature = "testing")]
 impl<A: App> ProjectedFrame<'_, A> {
-
     pub fn commit_inspected(self) {
         let output = self
             .runtime
@@ -257,12 +217,9 @@ impl<A: App> Drop for ProjectedFrame<'_, A> {
     }
 }
 
-
-
 pub struct PendingInput(Input);
 
 impl PendingInput {
-
     pub fn into_input(self) -> Input {
         self.0
     }
@@ -273,38 +230,6 @@ impl core::fmt::Debug for PendingInput {
         f.write_str("PendingInput { event: <redacted> }")
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[must_use = "commit only after successful output; dropping aborts publication"]
 pub struct PaintedFrame<'a, A: App> {
@@ -319,7 +244,6 @@ impl<A: App> core::fmt::Debug for PaintedFrame<'_, A> {
 }
 
 impl<A: App> PaintedFrame<'_, A> {
-
     pub fn commit_presented(mut self) {
         self.runtime.commit_frame();
         self.committed = true;
@@ -346,7 +270,6 @@ struct FocusRestore {
     target: Option<Id>,
 }
 
-
 pub struct Runtime<A: App> {
     app: A,
     theme: Theme,
@@ -368,7 +291,6 @@ pub struct Runtime<A: App> {
     keymap_conflicts: Vec<Diagnostic>,
     staged_focus: Option<(Option<Id>, FocusVia)>,
     layer_events_pending: Vec<(Id, LayerEvent)>,
-
 
     focus_out_closed: Vec<Id>,
     unsettled: usize,
@@ -392,19 +314,14 @@ impl<A: App> core::fmt::Debug for Runtime<A> {
 }
 
 impl<A: App> Runtime<A> {
-
-
     #[doc(hidden)]
     pub fn focused_hints_capacity(&self) -> usize {
         self.core.focused_hints.layer.hints.capacity()
     }
 
-
     pub fn new(app: A, theme: Theme) -> Self {
         Self::new_with_feedback_clock(app, theme, FeedbackClock::Elapsed)
     }
-
-
 
     pub fn new_with_feedback_clock(app: A, theme: Theme, clock: FeedbackClock) -> Self {
         let mut core = UiCore::default();
@@ -444,18 +361,14 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
     pub const fn app(&self) -> &A {
         &self.app
     }
-
 
     pub const fn app_mut(&mut self) -> &mut A {
         self.presented = false;
         &mut self.app
     }
-
-
 
     pub fn typing_owner(&self) -> Option<Id> {
         (self.bootstrapped && self.presented && !self.needs_settle())
@@ -463,11 +376,9 @@ impl<A: App> Runtime<A> {
             .flatten()
     }
 
-
     pub const fn theme(&self) -> &Theme {
         &self.theme
     }
-
 
     pub fn set_theme(&mut self, t: Theme) {
         self.presented = false;
@@ -475,47 +386,37 @@ impl<A: App> Runtime<A> {
         self.core.clear_caches();
     }
 
-
     pub fn area_of(&self, id: Id) -> Option<Rect> {
         self.last.registry.area_of(id)
     }
-
 
     pub fn area_of_part(&self, id: Id, p: PartRef) -> Option<Rect> {
         self.last.registry.area_of_part(id, p)
     }
 
-
     pub const fn ring(&self) -> &FocusRing {
         &self.last.ring
     }
-
 
     pub const fn focus(&self) -> Option<Id> {
         self.focus.current()
     }
 
-
     pub fn diagnostics(&self) -> &[Diagnostic] {
         self.services.diagnostics.items()
     }
-
 
     pub fn diagnostics_dropped(&self) -> usize {
         self.services.diagnostics.dropped()
     }
 
-
     pub const fn quit_requested(&self) -> bool {
         self.services.quit
     }
 
-
-
     pub fn wants_tick(&self) -> bool {
         self.needs_present() || self.needs_settle() || self.next_deadline().is_some()
     }
-
 
     pub fn next_deadline(&self) -> Option<Moment> {
         if self.pending_tick {
@@ -530,22 +431,13 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
     pub fn activation_feedback(&self) -> Option<ActivationFeedback> {
         self.services.feedback.active(self.now())
     }
 
-
     pub const fn now(&self) -> Moment {
         self.services.now
     }
-
-
-
-
-
-
-
 
     pub fn advance_to(&mut self, now: Moment) -> Result<(), ClockError> {
         if now < self.now() {
@@ -569,11 +461,9 @@ impl<A: App> Runtime<A> {
         Ok(())
     }
 
-
     pub fn clock_ms(&self) -> u64 {
         u64::try_from(self.now().as_duration().as_millis()).unwrap_or(u64::MAX)
     }
-
 
     pub const fn screen(&self) -> Rect {
         self.services.viewport
@@ -587,7 +477,6 @@ impl<A: App> Runtime<A> {
         let keymap = snapshot.unwrap_or_else(|| self.app.keymap());
         if &self.core.keymap != keymap {
             self.core.keymap.clone_from(keymap);
-
 
             self.core.keymap_revision = self.core.keymap_revision.wrapping_add(1);
             self.core.focused_hints.invalidate();
@@ -615,8 +504,6 @@ impl<A: App> Runtime<A> {
             revision: self.core.keymap_revision,
         };
 
-
-
         if self.keymap_conflict_key == Some(key) && self.keymap_conflict_typing == typing_table {
             return;
         }
@@ -635,8 +522,6 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
-
     fn provisional_focus_layer(&self, to: Id) -> Option<OpenLayer> {
         let layer = self.services.initial_focus_layer?;
         self.services
@@ -645,35 +530,6 @@ impl<A: App> Runtime<A> {
             .copied()
             .filter(|top| top.spec.initial_focus == Some(to) && top.layer == layer)
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     fn focus_target_admissible(&self, to: Id) -> bool {
         if self.provisional_focus_layer(to).is_some() {
@@ -704,7 +560,6 @@ impl<A: App> Runtime<A> {
         self.staged_focus = Some((to, via));
     }
 
-
     fn apply_staged_focus(&mut self) -> bool {
         let Some((to, via)) = self.staged_focus.take() else {
             return false;
@@ -722,25 +577,13 @@ impl<A: App> Runtime<A> {
         self.focus.set(to);
         self.last.snapshot.focus = to;
 
-
-
-
         self.services.repaint = true;
-
-
 
         if via != FocusVia::Restore || self.restore_after_publication.is_none() {
             self.dismiss_on_focus_out(to);
         }
         true
     }
-
-
-
-
-
-
-
 
     fn focus_left_scope(&self, to: Option<Id>, scope: ScopeId) -> bool {
         let Some(id) = to else {
@@ -757,21 +600,6 @@ impl<A: App> Runtime<A> {
             .entry(id)
             .is_some_and(|e| !self.last.ring.within(e.scope, scope))
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     fn dismiss_on_focus_out(&mut self, to: Option<Id>) {
         while let Some(top) = self.services.layers.top_layer().copied() {
@@ -792,7 +620,6 @@ impl<A: App> Runtime<A> {
             .is_some_and(|e| e.swallows_typing)
     }
 
-
     fn resize(&mut self, w: u16, h: u16) {
         self.services.viewport = Rect {
             x: 0,
@@ -810,7 +637,6 @@ impl<A: App> Runtime<A> {
         self.core.clear_caches();
         self.last_invalidate = Invalidate::Layout;
     }
-
 
     fn enqueue_key(&mut self, k: Key) {
         self.inter.last_input_key = true;
@@ -833,7 +659,6 @@ impl<A: App> Runtime<A> {
                 return;
             }
         }
-
 
         if let Some(owner) = current
             && let Some((_, table)) = self.last.bindings.get(owner)
@@ -862,38 +687,9 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
-
-
-
-
-
-
-
-
     fn ring_proves_disabled(&self, id: Id) -> bool {
         self.last.ring.entry(id).is_some_and(|e| e.disabled)
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     fn deliverable(&self, hit: Hit) -> bool {
         crate::capture::target_eligible(&self.last.ring, self.top(), hit.owner, hit.layer, hit.kind)
@@ -917,7 +713,6 @@ impl<A: App> Runtime<A> {
                 .unwrap_or_default()
         }
     }
-
 
     fn enqueue_mouse(&mut self, m: Mouse) {
         self.inter.pointer_position = Some(m.pos);
@@ -1002,8 +797,6 @@ impl<A: App> Runtime<A> {
             }
             MouseKind::SecondaryUp => {}
             MouseKind::Wheel(axis, delta) => {
-
-
                 if let Some(h) = self.last.registry.hit_scroll(m.pos, axis)
                     && h.layer == top
                 {
@@ -1037,7 +830,6 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
     fn pointer_down(&mut self, h: Hit, m: Mouse) {
         if !self.deliverable(h) {
             return;
@@ -1064,8 +856,6 @@ impl<A: App> Runtime<A> {
             m.mods,
         );
     }
-
-
 
     fn pointer_up(&mut self, p: Press, hit: Option<Hit>, m: Mouse) {
         self.last.snapshot.pressed = None;
@@ -1140,7 +930,6 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
     fn outside_click(&mut self) {
         let Some(top) = self.services.layers.top_layer().copied() else {
             return;
@@ -1160,14 +949,11 @@ impl<A: App> Runtime<A> {
             .close(top.id, LayerEvent::Dismissed(reason));
         self.services.closed_layers.extend(closed);
 
-
         if reason == DismissReason::Esc {
             self.intents.cancel(top.spec.owner);
         }
         true
     }
-
-
 
     fn settle_closed_layers(&mut self) {
         let closed: Vec<OpenLayer> = core::mem::take(&mut self.services.closed_layers);
@@ -1184,10 +970,6 @@ impl<A: App> Runtime<A> {
             }
         }
 
-
-
-
-
         if let Some(first) = closed.first()
             && first.spec.restore_focus
             && !focus_out.contains(&first.id)
@@ -1196,7 +978,6 @@ impl<A: App> Runtime<A> {
                 .restore_to
                 .or_else(|| self.focus.take_restore(first.scope()));
             self.restore_after_publication = Some(FocusRestore { target });
-
 
             if self.focus.current().is_some_and(|owner| {
                 self.last
@@ -1210,8 +991,6 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
-
     fn pump_layer_events(&mut self) {
         for (id, ev) in self.services.layers.take_pending() {
             self.layer_events_pending.push((id, ev));
@@ -1222,7 +1001,6 @@ impl<A: App> Runtime<A> {
             }
         }
     }
-
 
     fn run_update(
         &mut self,
@@ -1243,8 +1021,6 @@ impl<A: App> Runtime<A> {
             self.pump_layer_events();
             self.apply_staged_focus();
 
-
-
             self.pump_layer_events();
             self.services.focus_request = None;
             let events = core::mem::take(&mut self.layer_events_pending);
@@ -1263,13 +1039,6 @@ impl<A: App> Runtime<A> {
                 self.app.update(&mut cx)
             };
             folded |= r;
-
-
-
-
-
-
-
 
             for owner in self.intents.undrained() {
                 if self.last.registry.delivers_to(owner)
@@ -1314,9 +1083,6 @@ impl<A: App> Runtime<A> {
                     .push(Diagnostic::FocusTransitionDidNotSettle { target });
                 let from = self.focus.current();
                 if self.apply_staged_focus() {
-
-
-
                     self.pending_focus = Some((from, target, via));
                 }
                 self.intents.clear();
@@ -1326,14 +1092,6 @@ impl<A: App> Runtime<A> {
         self.unsettled = 0;
         folded
     }
-
-
-
-
-
-
-
-
 
     pub fn initialize(&mut self) -> Response<()> {
         if self.bootstrapped {
@@ -1351,16 +1109,13 @@ impl<A: App> Runtime<A> {
         self.finish(r)
     }
 
-
     pub const fn needs_settle(&self) -> bool {
         self.pending_focus.is_some() || (self.bootstrapped && self.pending_tick)
     }
 
-
     pub const fn needs_present(&self) -> bool {
         !self.presented
     }
-
 
     pub fn settle(&mut self) -> Response<()> {
         if !self.bootstrapped {
@@ -1386,11 +1141,6 @@ impl<A: App> Runtime<A> {
         let r = self.run_update(None, UpdateCause::Settle, None);
         self.finish(r)
     }
-
-
-
-
-
 
     pub fn handle(&mut self, input: Input) -> Result<Response<()>, PendingInput> {
         if !self.bootstrapped || !self.presented || self.needs_settle() {
@@ -1420,9 +1170,6 @@ impl<A: App> Runtime<A> {
             Input::Resize(w, h) => {
                 self.resize(*w, *h);
 
-
-
-
                 let r = self.run_update(None, UpdateCause::Event, activation_key)
                     | Response::changed().relayout();
                 drop(input);
@@ -1430,11 +1177,8 @@ impl<A: App> Runtime<A> {
             }
             Input::Tick => {
                 update_cause = UpdateCause::Tick;
-
-
             }
             Input::Key(k) => {
-
                 let swallows = self.swallows_typing() || self.last.typing.fallback.is_some();
                 let scoped = self
                     .last
@@ -1463,11 +1207,6 @@ impl<A: App> Runtime<A> {
         if let Some(k) = key_input
             && !r.is_consumed()
         {
-
-
-
-
-
             self.intents.clear();
             if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
                 r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
@@ -1508,7 +1247,6 @@ impl<A: App> Runtime<A> {
         Ok(self.finish(r))
     }
 
-
     fn finish(&mut self, mut r: Response<()>) -> Response<()> {
         self.reconcile_held_pointer();
         if self.services.repaint {
@@ -1518,9 +1256,6 @@ impl<A: App> Runtime<A> {
         self.last_invalidate = r.invalidate();
         r
     }
-
-
-
 
     pub fn draw(&mut self, frame: &mut Frame<'_>) -> PaintedFrame<'_, A> {
         let area = frame.area();
@@ -1545,8 +1280,6 @@ impl<A: App> Runtime<A> {
         self.presented = false;
         self.sync_keymap(snapshot.map(|value| &value.keymap));
 
-
-
         let same_snapshot = match (&self.cache_snapshot, snapshot) {
             (None, None) => true,
             (Some(previous), Some(next)) => std::sync::Arc::ptr_eq(previous, &next.cache_identity),
@@ -1569,7 +1302,6 @@ impl<A: App> Runtime<A> {
             |value| value.inert_floor,
         );
         self.frame.top = snapshot.map_or_else(|| self.services.layers.top(), |value| value.top);
-
 
         let layers = snapshot.map_or_else(
             || self.services.layers.layers(),
@@ -1635,9 +1367,6 @@ impl<A: App> Runtime<A> {
         self.commit_geometry();
         self.presented = true;
 
-
-
-
         let previous = self.focus.current();
         let restoration = self.restore_after_publication.take();
         let restoring = restoration.is_some() && self.services.deferred_focus.is_none();
@@ -1682,7 +1411,6 @@ impl<A: App> Runtime<A> {
                 return Some(id);
             }
 
-
             let entries = self.last.ring.entries();
             let after = entries
                 .iter()
@@ -1716,11 +1444,9 @@ impl<A: App> Runtime<A> {
                 FocusVia::Programmatic
             };
 
-
             let from = self.pending_focus.map_or(previous, |(from, _, _)| from);
             self.pending_focus = (from != reconciled).then_some((from, reconciled, via));
             self.focus.set(reconciled);
-
 
             self.presented = false;
             self.services.repaint = true;
@@ -1777,8 +1503,6 @@ impl<A: App> Runtime<A> {
     }
 
     fn reconcile_hover(&mut self) {
-
-
         let painted_hover = if self.last.snapshot.hover_suppressed {
             None
         } else {
@@ -1799,9 +1523,6 @@ impl<A: App> Runtime<A> {
         } else {
             self.inter.hover_passes = self.inter.hover_passes.saturating_add(1);
             if self.inter.hover_passes == 4 {
-
-
-
                 self.inter.hover_suppressed = true;
                 self.last.snapshot.hover_suppressed = true;
                 hover = None;
@@ -1819,11 +1540,6 @@ impl<A: App> Runtime<A> {
             self.services.repaint = true;
         }
     }
-
-
-
-
-
 
     pub fn render_snapshot(&self) -> Result<RenderSnapshot, RenderSnapshotError> {
         if !self.bootstrapped {
@@ -1844,7 +1560,6 @@ impl<A: App> Runtime<A> {
             keymap: self.core.keymap.clone(),
         })
     }
-
 
     pub const fn cursor_position(&self) -> Option<Position> {
         self.cursor
@@ -1868,48 +1583,31 @@ fn composite_layer(ui: &mut Ui<'_>, i: usize, screen: Rect) {
     }
 }
 
-
 #[cfg(feature = "testing")]
 impl<A: App> Runtime<A> {
-
     pub fn hover(&self) -> Option<Id> {
         self.inter.hover.map(|(o, _)| o)
     }
-
 
     pub fn state_of(&self, id: Id) -> StateFlags {
         self.last.state(id)
     }
 
-
     pub const fn focus_visible(&self) -> bool {
         self.focus.visible()
     }
-
 
     pub fn top_layer(&self) -> LayerId {
         self.services.layers.top()
     }
 
-
     pub fn is_open(&self, id: Id) -> bool {
         self.services.layers.is_open(id)
     }
 
-
     pub const fn cursor(&self) -> Option<Position> {
         self.cursor
     }
-
-
-
-
-
-
-
-
-
-
 
     pub fn resolved(&self, id: Id, p: Part) -> crate::theme::Resolved {
         let mine = self.frame.styled_queries.iter().rev();
@@ -1923,7 +1621,6 @@ impl<A: App> Runtime<A> {
         self.resolved_in(f, v, id, p)
     }
 
-
     pub fn resolved_in(
         &self,
         f: crate::theme::Family,
@@ -1935,38 +1632,29 @@ impl<A: App> Runtime<A> {
             .resolve(f, v, p, self.last.state(id), crate::theme::Surface::Canvas)
     }
 
-
     pub const fn last_invalidate(&self) -> Invalidate {
         self.last_invalidate
     }
-
 
     pub fn records(&self) -> &[&'static str] {
         &self.services.records
     }
 
-
     pub fn clear_records(&mut self) {
         self.services.records.clear();
     }
-
 
     pub fn projection_registry(&self) -> Option<&crate::hit::Registry> {
         self.projection.as_ref().map(|output| &output.last.registry)
     }
 
-
     pub fn projection_ring(&self) -> Option<&FocusRing> {
         self.projection.as_ref().map(|output| &output.last.ring)
     }
 
-
     pub fn projection_cursor(&self) -> Option<Position> {
         self.projection.as_ref().and_then(|output| output.cursor)
     }
-
-
-
 
     pub fn draw_projection(
         &mut self,
@@ -1982,7 +1670,6 @@ impl<A: App> Runtime<A> {
             snapshot: snapshot.last.snapshot,
         }
     }
-
 
     pub fn draw_bound_projection<M: ?Sized, F>(
         &mut self,
@@ -2002,7 +1689,6 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
     pub fn draw_scene(
         &mut self,
         area: Rect,
@@ -2016,7 +1702,6 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
     pub fn draw_buffer(&mut self, area: Rect, buf: &mut Buffer) -> PaintedFrame<'_, A> {
         self.draw_with_buffer(area, buf, None, A::draw);
         PaintedFrame {
@@ -2025,16 +1710,13 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
     pub fn region_count(&self) -> usize {
         self.last.registry.len()
     }
 
-
     pub const fn registry(&self) -> &crate::hit::Registry {
         &self.last.registry
     }
-
 
     pub fn advance_clock(&mut self, ms: u64) {
         let _ = self.advance_to(
@@ -2043,19 +1725,15 @@ impl<A: App> Runtime<A> {
         );
     }
 
-
     pub fn repaint_after(&self) -> Option<core::time::Duration> {
         self.services
             .repaint_at
             .map(|at| at.saturating_duration_since(self.now()))
     }
 
-
     pub fn capture_owner(&self) -> Option<Id> {
         self.services.capture.get().map(|c| c.owner)
     }
-
-
 
     pub fn set_focus(&mut self, id: Option<Id>) {
         let from = self.focus.current();
@@ -2067,18 +1745,13 @@ impl<A: App> Runtime<A> {
         }
     }
 
-
-
-
     pub fn intent_probes(&self) -> usize {
         self.intents.probes()
     }
 
-
     pub fn style_cache_stats(&self) -> (u64, u64) {
         self.core.style_cache.stats()
     }
-
 
     pub fn open_spec(&self, id: Id) -> Option<crate::layer::LayerSpec> {
         self.services
@@ -2089,7 +1762,6 @@ impl<A: App> Runtime<A> {
             .map(|l| l.spec)
     }
 
-
     pub fn layer_area(&self, id: Id) -> Option<Rect> {
         self.frame
             .layers
@@ -2099,12 +1771,10 @@ impl<A: App> Runtime<A> {
             .map(|l| l.area)
     }
 
-
     pub fn record_diagnostic(&mut self, d: Diagnostic) {
         self.services.diagnostics.push(d);
     }
 }
-
 
 #[cfg(any(test, feature = "testing"))]
 pub mod stub {
@@ -2122,7 +1792,6 @@ pub mod stub {
     use crate::theme::Theme;
     use crate::ui::{Cx, Ui};
 
-
     #[derive(Clone, Debug)]
     #[expect(
         clippy::struct_excessive_bools,
@@ -2138,7 +1807,6 @@ pub mod stub {
         pub captures: bool,
 
         pub scroll: bool,
-
 
         pub decor: bool,
     }
@@ -2200,7 +1868,6 @@ pub mod stub {
     impl App for Stub {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
             self.updates = self.updates.saturating_add(1);
-
 
             if cx.update_cause() == UpdateCause::Bootstrap {
                 return Response::ignored();
@@ -2314,7 +1981,6 @@ pub mod stub {
         height: 12,
     };
 
-
     pub fn runtime(stub: Stub) -> (Runtime<Stub>, Buffer) {
         let mut rt = Runtime::new(stub, Theme::junie());
         let _ = rt.initialize();
@@ -2344,7 +2010,6 @@ pub mod stub {
         })
     }
 
-
     pub fn deliver<A: App>(rt: &mut Runtime<A>, input: Input) -> Response<()> {
         assert!(
             rt.bootstrapped,
@@ -2369,7 +2034,6 @@ pub mod stub {
         }
         panic!("fixture publication did not settle: {:?}", rt.diagnostics());
     }
-
 
     pub fn step(rt: &mut Runtime<Stub>, buf: &mut Buffer, input: Input) -> Response<()> {
         let r = deliver(rt, input);
@@ -2649,8 +2313,6 @@ mod tests {
                 _ => None,
             })
             .collect();
-
-
 
         assert!(!undelivered.is_empty(), "the dismissal was lost in silence");
         assert!(

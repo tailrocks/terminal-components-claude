@@ -1,5 +1,3 @@
-
-
 use std::{cmp::Ordering, time::Duration};
 use termrock::author::PaintStyle;
 
@@ -293,8 +291,6 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
         );
     }
 }
-
-
 
 #[derive(Debug)]
 pub struct TaskRunnerPage {

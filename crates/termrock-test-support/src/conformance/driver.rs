@@ -1,6 +1,3 @@
-
-
-
 use std::collections::BTreeMap;
 
 use ratatui_core::buffer::Buffer;
@@ -21,9 +18,7 @@ const SENTINEL_AFTER: Id = Id::root("conformance.sentinel.after");
 const POPOVER: Id = Id::root("conformance.popover");
 const POPOVER_CONTROL: Id = Id::root("conformance.popover.control");
 
-
 pub struct CaseApp<C: Conformance> {
-
     pub st: C::State,
 
     pub fixture: Fixture,
@@ -59,7 +54,6 @@ impl<C: Conformance> core::fmt::Debug for CaseApp<C> {
 }
 
 impl<C: Conformance> CaseApp<C> {
-
     pub fn new(fixture: Fixture) -> Self {
         CaseApp {
             st: C::State::default(),
@@ -228,7 +222,6 @@ fn open_component_layer<C: Conformance>(h: &mut Harness<CaseApp<C>>) -> Option<C
     chord
 }
 
-
 pub fn disabled_cannot_activate<C: Conformance>() {
     if !has::<C>(Caps::DISABLEABLE) {
         return;
@@ -275,7 +268,6 @@ pub fn disabled_cannot_activate<C: Conformance>() {
         C::NAME
     );
 }
-
 
 pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
     if !has::<C>(Caps::ACTIVATES) {
@@ -327,7 +319,6 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
     }
 }
 
-
 pub fn traversal_order_is_registration_order<C: Conformance>() {
     if !has::<C>(Caps::FOCUSABLE) {
         return;
@@ -349,7 +340,6 @@ pub fn traversal_order_is_registration_order<C: Conformance>() {
         assert_eq!(h.ring().next(h.ring().prev(Some(*id))), Some(*id));
     }
 }
-
 
 pub fn hover_does_not_steal_focus<C: Conformance>() {
     let mut app = CaseApp::<C>::new(Fixture::default());
@@ -390,7 +380,6 @@ pub fn hover_does_not_steal_focus<C: Conformance>() {
     }
 }
 
-
 pub fn draw_twice_is_byte_identical<C: Conformance>() {
     let mut h = harness::<C>(Fixture::default()).with_auto_draw(false);
     h.draw();
@@ -402,7 +391,6 @@ pub fn draw_twice_is_byte_identical<C: Conformance>() {
     assert_eq!(a, b, "{}: two draws differ", C::NAME);
     assert_eq!(ra, rb, "{}: two registries differ", C::NAME);
 }
-
 
 pub fn draw_twice_leaves_state_equal<C: Conformance>() {
     let variants: Vec<Fixture> = {
@@ -434,7 +422,6 @@ pub fn draw_twice_leaves_state_equal<C: Conformance>() {
     }
 }
 
-
 pub fn draw_does_not_commit_or_cancel<C: Conformance>() {
     if !has::<C>(Caps::EDITS) {
         return;
@@ -451,7 +438,6 @@ pub fn draw_does_not_commit_or_cancel<C: Conformance>() {
     assert_eq!(h.app().st, mid, "{}: draw committed or cancelled", C::NAME);
     assert_eq!(h.app().last.is_some(), last);
 }
-
 
 pub fn draw_stays_inside_its_area<C: Conformance>() {
     let f = Fixture::default();
@@ -536,7 +522,6 @@ fn prepared_mono_state<C: Conformance>(
     setup_harness.app().st.clone()
 }
 
-
 pub fn mono_states_are_distinguishable<C: Conformance>() {
     let states = C::mono_states();
     if has::<C>(Caps::REPORTS_STATUS) {
@@ -546,7 +531,6 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
             C::NAME
         );
     }
-
 
     for s in states {
         assert!(
@@ -587,8 +571,6 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
     let mut seen: Vec<(StateFlags, BTreeMap<(String, u16), usize>)> = Vec::new();
     let mut default_symbols = None;
     for s in states {
-
-
         let setup_fixture = C::mono_fixture(*s);
         let mut f = setup_fixture.clone().force(*s);
         f.color = ColorLevel::Mono;
@@ -628,7 +610,6 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
     }
 }
 
-
 pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     let plain = harness::<C>(Fixture::default());
     let before = plain.runtime().theme().fingerprint();
@@ -651,10 +632,6 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     );
     assert_eq!(plain.runtime().theme().fingerprint(), before);
     if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 {
-
-
-
-
         if !C::PARTS.is_empty() {
             if patched.snapshot().digest() == plain_digest {
                 assert_ne!(
@@ -678,7 +655,6 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
         }
     }
 }
-
 
 pub fn id_separator_collision_free<C: Conformance>() {
     let h = harness::<C>(Fixture::default());
@@ -704,7 +680,6 @@ pub fn id_separator_collision_free<C: Conformance>() {
         C::NAME
     );
 }
-
 
 #[expect(
     clippy::too_many_lines,
@@ -794,9 +769,6 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
         );
     }
 
-
-
-
     let k2 = keys[1];
     let mut core = CollectionCore::new();
     let ordered = |ks: &[ItemKey]| {
@@ -828,8 +800,6 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
         C::NAME
     );
 
-
-
     let mut after: Vec<ItemKey> = reversed.clone();
     after.retain(|k| *k != k1);
     after.insert(0, ItemKey::num(9_998));
@@ -860,7 +830,6 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
     );
 }
 
-
 pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
     if !has::<C>(Caps::FOCUSABLE) {
         return;
@@ -880,7 +849,6 @@ pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
     } else {
         SENTINEL_AFTER
     };
-
 
     h.app_mut().show = false;
     h.draw();
@@ -907,7 +875,6 @@ pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
         C::NAME
     );
 }
-
 
 #[expect(
     clippy::too_many_lines,
@@ -947,8 +914,6 @@ pub fn focus_trap_and_restore<C: Conformance>() {
         h.diagnostics()
     );
 
-
-
     let kind = h
         .runtime()
         .open_spec(layer)
@@ -986,9 +951,6 @@ pub fn focus_trap_and_restore<C: Conformance>() {
              {SENTINEL_BEFORE:?} nor {SENTINEL_AFTER:?}",
             C::NAME
         );
-
-
-
 
         assert!(
             !inside.is_empty(),
@@ -1042,7 +1004,6 @@ pub fn focus_trap_and_restore<C: Conformance>() {
         C::NAME
     );
     if traps_focus {
-
         let chord = chord
             .unwrap_or_else(|| panic!("{}: trapped overlay cannot be reopened after Esc", C::NAME));
         let _ = h.key_mod(chord.code, chord.mods);
@@ -1063,7 +1024,6 @@ pub fn focus_trap_and_restore<C: Conformance>() {
         );
     }
 }
-
 
 pub fn pointer_capture_delivers_drag_and_release<C: Conformance>() {
     if !has::<C>(Caps::CAPTURES) {
@@ -1101,7 +1061,6 @@ pub fn pointer_capture_delivers_drag_and_release<C: Conformance>() {
         C::NAME
     );
 }
-
 
 pub fn wheel_at_boundary_is_consumed_without_repaint<C: Conformance>() {
     if !has::<C>(Caps::SCROLLS) {
@@ -1163,7 +1122,6 @@ pub fn wheel_at_boundary_is_consumed_without_repaint<C: Conformance>() {
     assert_eq!(h.focus(), focus, "{}: wheel moved focus", C::NAME);
 }
 
-
 pub fn cursor_write_is_rejected_off_top_layer<C: Conformance>() {
     if !has::<C>(Caps::CURSOR) {
         return;
@@ -1188,7 +1146,6 @@ pub fn cursor_write_is_rejected_off_top_layer<C: Conformance>() {
         h.diagnostics()
     );
 }
-
 
 pub fn secret_never_appears_in_debug<C: Conformance>() {
     if !has::<C>(Caps::SECRET) {
@@ -1222,7 +1179,6 @@ pub fn secret_never_appears_in_debug<C: Conformance>() {
         C::NAME
     );
 }
-
 
 pub fn survives_tiny_rects_0x0_to_3x3<C: Conformance>() {
     for w in 0..=3u16 {
@@ -1386,7 +1342,6 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
         );
     }
 }
-
 
 pub fn bindings_match_handled_keys<C: Conformance>() {
     let states = [

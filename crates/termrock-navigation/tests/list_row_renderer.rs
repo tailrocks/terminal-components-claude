@@ -1,4 +1,3 @@
-
 use ratatui_core::style::Color;
 use std::cell::RefCell;
 use termrock_core::{Id, ItemKey, KeyCode, Response, StateFlags, Variant};

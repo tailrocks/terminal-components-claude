@@ -1,7 +1,3 @@
-
-
-
-
 use tablepro_demo::db::{Engine, SafeMode, connections};
 
 #[test]

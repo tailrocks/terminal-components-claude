@@ -1,38 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -106,7 +71,6 @@ fn set_text(frame: &mut Frame, x0: u16, y: u16, text: &str) {
     }
 }
 
-
 fn base_frame() -> Frame {
     let mut f = Frame::blank(20, 6, prov("negative-phase8ap"));
     set_text(&mut f, 0, 0, "hello phase8ap");
@@ -118,8 +82,6 @@ fn base_frame() -> Frame {
     f.validate().expect("base frame valid");
     f
 }
-
-
 
 fn approve_grouped(dir: &Path, name: &str, frame: &Frame) -> GroupedStore {
     let store = grouped_store(dir);
@@ -161,12 +123,8 @@ fn cat_binary() -> &'static str {
     }
 }
 
-
-
 #[test]
 fn negative_phase8ap_fg_mutation_fails_ansi_keeps_txt() {
-
-
     let dir = scratch_dir("fg");
     let name = "neg8ap/fg/80x24/truecolor";
     let base = base_frame();
@@ -198,9 +156,6 @@ fn negative_phase8ap_fg_mutation_fails_ansi_keeps_txt() {
     assert!(err.contains("cells-differ"), "useful message: {err}");
 }
 
-
-
-
 fn cursor_base() -> Frame {
     let mut f = base_frame();
     f.cursor.visible = true;
@@ -214,7 +169,6 @@ fn cursor_base() -> Frame {
 #[test]
 fn negative_phase8ap_single_cursor_visibility_and_y_detected() {
     let base = cursor_base();
-
 
     let dir = scratch_dir("cursor-visible");
     let name = "neg8ap/cursor-visible/80x24/truecolor";
@@ -244,7 +198,6 @@ fn negative_phase8ap_single_cursor_visibility_and_y_detected() {
     );
     outcome.ensure_matched().unwrap_err();
 
-
     let dir2 = scratch_dir("cursor-y");
     let name2 = "neg8ap/cursor-y/80x24/truecolor";
     let store2 = approve_grouped(&dir2, name2, &base);
@@ -266,8 +219,6 @@ fn negative_phase8ap_single_cursor_visibility_and_y_detected() {
 
 #[test]
 fn negative_phase8ap_shrunk_dimensions_fail_dimension_gate() {
-
-
     let base = base_frame();
     for (cols, rows, tag) in [(19, 6, "narrower"), (20, 5, "shorter")] {
         let dir = scratch_dir(&format!("dims-{tag}"));
@@ -292,13 +243,9 @@ fn negative_phase8ap_shrunk_dimensions_fail_dimension_gate() {
     }
 }
 
-
-
 #[test]
 fn negative_phase8ap_truncated_ansi_and_mixed_txt_fail_integrity() {
     let base = base_frame();
-
-
 
     let dir_a = scratch_dir("integrity-truncate");
     let name_a = "neg8ap/integrity/80x24/truecolor";
@@ -320,8 +267,6 @@ fn negative_phase8ap_truncated_ansi_and_mixed_txt_fail_integrity() {
         out_a.outcome.note
     );
     out_a.ensure_matched().unwrap_err();
-
-
 
     let gen_b = mutate_symbol(&base, 0, 0, "Z");
     assert_ne!(base.digest(), gen_b.digest());
@@ -347,8 +292,6 @@ fn negative_phase8ap_truncated_ansi_and_mixed_txt_fail_integrity() {
     out_b.ensure_matched().unwrap_err();
 }
 
-
-
 fn apply_filter(cases: &BTreeSet<String>, filter: &str) -> Vec<String> {
     cases
         .iter()
@@ -366,8 +309,6 @@ fn require_matches(matches: &[String], filter: &str) -> Result<(), String> {
 
 #[test]
 fn negative_phase8ap_pending_and_empty_suite_fail_acceptance() {
-
-
     let suite: BTreeSet<String> = [
         "neg8ap/pending/a/80x24/truecolor".to_string(),
         "neg8ap/pending/b/80x24/truecolor".to_string(),
@@ -390,8 +331,6 @@ fn negative_phase8ap_pending_and_empty_suite_fail_acceptance() {
     assert!(err.contains("neg8ap/pending/b/80x24/truecolor"), "{err}");
     assert!(!pending.is_empty(), "pending case must fail acceptance");
 
-
-
     let empty: BTreeSet<String> = BTreeSet::new();
     let hits = apply_filter(&empty, "neg8ap/anything");
     assert!(hits.is_empty());
@@ -399,12 +338,8 @@ fn negative_phase8ap_pending_and_empty_suite_fail_acceptance() {
     assert!(ferr.contains("no captures matched"), "{ferr}");
 }
 
-
-
 #[test]
 fn negative_phase8ap_drag_without_reporting_fails_plain_input_succeeds() {
-
-
     let s = Tui::new([cat_binary()])
         .size(80, 24)
         .spawn()
@@ -426,9 +361,6 @@ fn negative_phase8ap_drag_without_reporting_fails_plain_input_succeeds() {
         "useful press-mode error: {err_down}"
     );
 
-
-
-
     let needle = "neg8ap-plain-input-ok";
     s.send_text(needle).expect("plain text needs no mode");
     s.press("enter").expect("parsed key needs no mode");
@@ -438,8 +370,6 @@ fn negative_phase8ap_drag_without_reporting_fails_plain_input_succeeds() {
     )
     .expect("plain input must land");
 }
-
-
 
 const NEG8AP_BTN: Id = Id::root("neg8ap.btn");
 
@@ -485,8 +415,6 @@ fn convert_mods(m: Modifier) -> Mods {
     }
 }
 
-
-
 fn capture_buffer(buf: &Buffer) -> Frame {
     let cols = buf.area.width;
     let rows = buf.area.height;
@@ -508,10 +436,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame.validate().expect("captured button frame valid");
     frame
 }
-
-
-
-
 
 fn render_button(focus: bool, hover: bool, disabled: bool) -> Frame {
     let mut runtime = Runtime::new(Stub::default(), Theme::junie());
@@ -549,7 +473,6 @@ fn render_button(focus: bool, hover: bool, disabled: bool) -> Frame {
 
 #[test]
 fn negative_phase8ap_focus_hover_disabled_states_differ() {
-
     let plain = render_button(false, false, false);
     let focused = render_button(true, false, false);
     assert_eq!(plain.get(0, 0).expect("gutter").symbol, " ");
@@ -560,7 +483,6 @@ fn negative_phase8ap_focus_hover_disabled_states_differ() {
         "focus diff must be non-empty"
     );
 
-
     let hovered = render_button(false, true, false);
     assert_ne!(plain.digest(), hovered.digest(), "hover must differ");
     assert!(
@@ -568,14 +490,12 @@ fn negative_phase8ap_focus_hover_disabled_states_differ() {
         "hover diff must be non-empty"
     );
 
-
     let disabled = render_button(false, false, true);
     assert_ne!(plain.digest(), disabled.digest(), "disabled must differ");
     assert!(
         !plain.diff_cells(&disabled).expect("same dims").is_empty(),
         "disabled diff must be non-empty"
     );
-
 
     let digests = BTreeSet::from([
         plain.digest(),
@@ -586,12 +506,8 @@ fn negative_phase8ap_focus_hover_disabled_states_differ() {
     assert_eq!(digests.len(), 4, "states must be pairwise distinct");
 }
 
-
-
 #[test]
 fn negative_phase8ap_boundary_clocks_match_semantic_diff_still_fails() {
-
-
     let mut epoch = base_frame();
     epoch.provenance.created_unix = 0;
     let mut fixed = base_frame();
@@ -622,8 +538,6 @@ fn negative_phase8ap_boundary_clocks_match_semantic_diff_still_fails() {
             .ensure_matched()
             .expect("no unjustified visual failure");
     }
-
-
 
     let mut lie = mutate_symbol(&fixed, 0, 0, "X");
     lie.provenance.created_unix = 999;

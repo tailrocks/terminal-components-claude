@@ -1,24 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #![cfg_attr(
     test,
     allow(
@@ -95,7 +74,6 @@ const MENU_BAR: Id = Id::root("render.menu_bar");
 const PICKER_CHAIN: Id = Id::root("render.picker_chain");
 const WIZARD: Id = Id::root("render.wizard");
 const SCROLL_FIXTURE_ROWS: usize = 80;
-
 
 const ROWS: [(&str, &str); 6] = [
     ("Ada Lovelace", "analyst"),
@@ -258,7 +236,6 @@ impl FormData for RenderFormData {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum St {
     Default,
@@ -273,7 +250,6 @@ enum St {
 }
 
 impl St {
-
     const fn reference_state(self) -> Option<ReferenceState> {
         match self {
             St::Focused => Some(ReferenceState::FOCUSED.union(ReferenceState::FOCUS_VISIBLE)),
@@ -286,8 +262,6 @@ impl St {
     const fn is_empty(self) -> bool {
         matches!(self, St::Empty)
     }
-
-
 
     const fn name(self) -> &'static str {
         match self {
@@ -302,7 +276,6 @@ impl St {
         }
     }
 }
-
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Comp {
@@ -349,13 +322,6 @@ enum Comp {
 }
 
 impl Comp {
-
-
-
-
-
-
-
     const ALL: [(&'static str, Comp); 40] = [
         ("button", Comp::Button),
         ("text_input", Comp::TextInput),
@@ -505,20 +471,6 @@ impl Comp {
         };
         Some(ReferenceTarget::new(owner, reference).part(part))
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     const fn status_prop(self, st: St) -> Option<Status> {
         match self {
@@ -698,9 +650,6 @@ fn text_area(st: St) -> TextArea<'static> {
     t.disabled(matches!(st, St::Disabled))
 }
 
-
-
-
 const fn status_for(st: St) -> Status {
     match st {
         St::Pressed => Status::Busy,
@@ -735,12 +684,9 @@ const STATUS_LEFT: [StatusItem<'static>; 2] = [
 const STATUS_CENTER: [StatusItem<'static>; 1] = [StatusItem::new("Ready")];
 const STATUS_RIGHT: [StatusItem<'static>; 1] = [StatusItem::new("0 changes").key(ItemKey::num(2))];
 
-
-
 fn rows_for(st: St) -> &'static [(&'static str, &'static str)] {
     if st.is_empty() { &[] } else { &ROWS }
 }
-
 
 fn tabs_for(st: St) -> &'static [&'static str] {
     if st.is_empty() { &[] } else { &TAB_LABELS }
@@ -981,8 +927,6 @@ fn text_area_status_paints_the_readiness_affordance() {
         40,
         10,
     );
-
-
 
     let ready_area = ready
         .area_of(TEXT_AREA)
@@ -1402,14 +1346,7 @@ fn draw_wizard(st: St, ui: &mut Ui<'_>, area: Rect) {
     Wizard::new(WIZARD, steps).draw(ui, area, &WizardState::<()>::default());
 }
 
-
-
-
-
 fn draw(comp: Comp, st: St, ui: &mut Ui<'_>, area: Rect) {
-
-
-
     let status = |c: Comp| {
         c.status_prop(st).unwrap_or_else(|| {
             panic!("{c:?} paints a status prop but Comp::status_prop returns None for {st:?}")
@@ -1458,8 +1395,6 @@ fn draw(comp: Comp, st: St, ui: &mut Ui<'_>, area: Rect) {
         Comp::Wizard => draw_wizard(st, ui, area),
     });
 }
-
-
 
 fn run(name: &'static str, comp: Comp, st: St) {
     for theme in [Theme::junie(), Theme::paper()] {
@@ -1545,29 +1480,12 @@ macro_rules! matrix {
     };
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const READINESS_COLLISIONS: [(&str, Status, Status, &str); 4] = [
     ("status_bar", Status::Busy, Status::Loading, "truecolor"),
     ("hint_bar", Status::Busy, Status::Loading, "truecolor"),
     ("progress_bar", Status::Busy, Status::Loading, "truecolor"),
     ("meter", Status::Busy, Status::Loading, "truecolor"),
 ];
-
 
 const READINESS: [(Status, St); 4] = [
     (Status::Ready, St::Default),
@@ -1579,9 +1497,6 @@ const READINESS: [(Status, St); 4] = [
 const THEME_NAMES: [&str; 2] = ["junie", "paper"];
 const COLOR_NAMES: [&str; 2] = ["truecolor", "mono"];
 const SIZES: [(u16, u16); 2] = [(120, 40), (40, 10)];
-
-
-
 
 fn baseline_entries() -> std::collections::BTreeMap<String, String> {
     let text = std::fs::read_to_string(BASELINE.path())
@@ -1598,9 +1513,6 @@ fn baseline_entries() -> std::collections::BTreeMap<String, String> {
     }
     out
 }
-
-
-
 
 fn live_entries() -> std::collections::BTreeMap<String, String> {
     let mut out = std::collections::BTreeMap::new();
@@ -1631,11 +1543,6 @@ fn live_entries() -> std::collections::BTreeMap<String, String> {
     }
     out
 }
-
-
-
-
-
 
 fn readiness_failures(entries: &std::collections::BTreeMap<String, String>) -> Vec<String> {
     let mut failures: Vec<String> = Vec::new();
@@ -1707,38 +1614,9 @@ fn readiness_failures(entries: &std::collections::BTreeMap<String, String>) -> V
 mod theme {
     use super::*;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     #[test]
     fn readiness_states_are_digest_distinct() {
         let entries = baseline_entries();
-
-
-
 
         let recorded = entries
             .keys()
@@ -1752,8 +1630,6 @@ mod theme {
              `Comp::ALL` and would go unchecked here",
             Comp::ALL.len()
         );
-
-
 
         for (status, st) in READINESS {
             assert_eq!(
@@ -1772,14 +1648,6 @@ mod theme {
         );
     }
 
-
-
-
-
-
-
-
-
     #[test]
     fn readiness_distinctness_holds_on_the_digests_the_code_produces_now() {
         let failures = readiness_failures(&live_entries());
@@ -1790,11 +1658,6 @@ mod theme {
             failures.join("\n")
         );
     }
-
-
-
-
-
 
     #[test]
     fn readiness_distinctness_fails_on_a_collision_and_on_a_stale_exemption() {
@@ -1818,8 +1681,6 @@ mod theme {
             "{failures:?}"
         );
     }
-
-
 
     #[test]
     fn readiness_distinctness_fails_on_a_missing_baseline_line() {
@@ -1858,8 +1719,6 @@ fn scroll_region_fixture_exposes_the_complete_bar_at_both_matrix_sizes() {
                     .expect("matrix position is inside the scene")
                     .symbol()
             };
-
-
 
             let cap = |symbol: &str, expected: &str, label: String| {
                 assert!(

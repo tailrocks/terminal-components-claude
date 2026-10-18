@@ -1,86 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -89,7 +6,6 @@ use tuiscotti::tui::{MouseButton, MouseMods};
 use crate::support::Session;
 use crate::support::state_waits as waits;
 use crate::support::{self, Case, Color, HOLLA};
-
 
 const BOOT: &str = "holla❯";
 
@@ -131,12 +47,9 @@ const HISTORY: &[&str] = &[
 ];
 const BROWSER: &[&str] = &["--scenario", "parity-browser", "--motion", "reduced"];
 
-
 fn h7_case(slug: &str, args: &'static [&'static str], boot: &'static str) -> Case {
     h7_case_geom(slug, args, boot, 120, 40)
 }
-
-
 
 fn h7_case_geom(
     slug: &str,
@@ -156,7 +69,6 @@ fn h7_case_geom(
     )
 }
 
-
 fn h7_case_geom_t(
     slug: &str,
     args: &'static [&'static str],
@@ -168,7 +80,6 @@ fn h7_case_geom_t(
     h7_case_geom(slug, args, boot, cols, rows).timeout(timeout_ms)
 }
 
-
 fn h7_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -177,13 +88,9 @@ fn h7_dir(test: &str) -> PathBuf {
     dir
 }
 
-
-
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
-
-
 
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
@@ -203,7 +110,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
         .unwrap_or_else(|e| panic!("write {}: {e}", dir.join(file).display()));
     eprintln!("h7 provenance ({file}): {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -225,11 +131,9 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn drive_ms(timeout: Duration) -> u64 {
     u64::try_from(timeout.as_millis()).expect("case timeout fits u64 ms")
 }
-
 
 fn live_text(s: &mut Session) -> String {
     let obs = s
@@ -239,12 +143,6 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
-
-
-
-
 fn wait_absent(s: &mut Session, needle: &str, what: &str) {
     support::wait_screen(
         s,
@@ -253,9 +151,6 @@ fn wait_absent(s: &mut Session, needle: &str, what: &str) {
         |screen| !support::screen_text(screen).contains(needle),
     );
 }
-
-
-
 
 fn first_pos(text: &str, needle: &str) -> (u16, u16) {
     text.lines()
@@ -269,17 +164,12 @@ fn first_pos(text: &str, needle: &str) -> (u16, u16) {
         .expect("needle on screen")
 }
 
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: no line contains both `{needle}` and `{also}`"
     );
 }
-
-
-
 
 fn status_line(text: &str) -> &str {
     text.lines()
@@ -288,9 +178,6 @@ fn status_line(text: &str) -> &str {
         .nth(1)
         .unwrap_or("")
 }
-
-
-
 
 fn find_last_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::wait_screen(
@@ -316,8 +203,6 @@ fn find_last_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16)
         .expect("wait passed with the needle on screen")
 }
 
-
-
 fn click_last(s: &mut Session, needle: &str, dcol: i16, timeout: Duration, what: &str) {
     let (row, col) = find_last_pos(s, needle, timeout);
     let target = col.saturating_add_signed(dcol);
@@ -325,17 +210,6 @@ fn click_last(s: &mut Session, needle: &str, dcol: i16, timeout: Duration, what:
         .unwrap_or_else(|e| panic!("{what}: click failed: {e:?}"));
     std::thread::sleep(Duration::from_millis(400));
 }
-
-
-
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h7 check; run with --ignored"]
@@ -349,24 +223,19 @@ fn h7_statusbar_screens() {
     const COPIED: &str = "Copied /Users/alex/work/probe";
     let dir = h7_dir("h7_statusbar_screens");
 
-
     let case_a = h7_case_geom("statusbar_discovery", DISCOVERY, BOOT, 80, 24);
     write_provenance_named(&dir, &case_a, "provenance-a.txt");
     let mut a = support::spawn_boot(&case_a);
     checkpoint(&mut a, &dir, "00-a-boot");
-
 
     waits::wait_state(&mut a, TYPE_SEARCH, "a boot settled");
     let boot = live_text(&mut a);
     assert!(boot.contains(PLACEHOLDER), "pre: boot has no placeholder");
     assert!(boot.contains(TYPE_SEARCH), "pre: boot has no finder footer");
 
-
-
     let bar = status_line(&boot).to_string();
     assert!(bar.contains(CENTER), "S1: no screen center");
     assert!(bar.contains(RIGHT), "S1: no screen right");
-
 
     assert!(bar.contains(PATH), "V1: no path item");
     assert_line_has(&boot, PATH, "main", "V1 shell");
@@ -375,12 +244,8 @@ fn h7_statusbar_screens() {
         "V1: size cell stuck at narrow width"
     );
 
-
-
     assert!(!bar.contains('━'), "N1: meter run stuck");
     assert!(!bar.contains('%'), "N1: meter pct stuck");
-
-
 
     support::drive_with_timeout(
         &mut a,
@@ -405,11 +270,9 @@ fn h7_statusbar_screens() {
         "A2: center not restored"
     );
 
-
     click_last(&mut a, PATH, 1, case_timeout(&case_a), "A1 path click");
     waits::wait_state(&mut a, COPIED, "path copied");
     checkpoint(&mut a, &dir, "03-a-copied");
-
 
     click_last(&mut a, "main", 1, case_timeout(&case_a), "A1 git click");
     waits::wait_state(&mut a, "Git status", "git snapshot");
@@ -419,7 +282,6 @@ fn h7_statusbar_screens() {
     assert!(git.contains("main"), "A1: snapshot lost the branch");
     support::press_step(&a, "escape");
     waits::wait_state(&mut a, PLACEHOLDER, "finder back");
-
 
     a.resize(120, 40).expect("resize to 120x40");
     waits::wait_size(&mut a, 120, 40, "wide geometry");
@@ -431,7 +293,6 @@ fn h7_statusbar_screens() {
     assert!(wbar.contains(PATH), "V1: path gone at wide");
     assert!(wbar.contains(CENTER), "V1: center gone at wide");
 
-
     a.resize(80, 24).expect("resize to 80x24");
     waits::wait_size(&mut a, 80, 24, "narrow geometry");
     wait_absent(&mut a, "120×40", "narrow repaint");
@@ -442,7 +303,6 @@ fn h7_statusbar_screens() {
         status_line(&narrow).contains(PATH),
         "V1: path gone after shrink"
     );
-
 
     let case_b = h7_case_geom_t("statusbar_running", ACTMULTI, BOOT, 80, 24, 20_000);
     write_provenance_named(&dir, &case_b, "provenance-b.txt");
@@ -467,11 +327,8 @@ fn h7_statusbar_screens() {
     assert!(acts.contains("frontend dev"), "A1: no activity row");
     support::press_step(&b, "escape");
 
-
-
     wait_absent(&mut b, "Activities", "picker closed");
     waits::wait_state(&mut b, PLACEHOLDER, "finder back");
-
 
     let case_c = h7_case_geom("statusbar_meter", DISKCLEAN, BOOT, 80, 24);
     write_provenance_named(&dir, &case_c, "provenance-c.txt");
@@ -487,7 +344,6 @@ fn h7_statusbar_screens() {
     assert!(cbar.contains("3 selected · 24.2 GiB"), "S1: no disk center");
     assert!(cbar.contains("~/work"), "S1: no disk path");
 
-
     let case_d = h7_case_geom("statusbar_history", HISTORY, BOOT, 80, 24);
     write_provenance_named(&dir, &case_d, "provenance-d.txt");
     let mut d = support::spawn_boot(&case_d);
@@ -499,23 +355,10 @@ fn h7_statusbar_screens() {
     assert!(dbar.contains("main"), "N2: no git");
     assert!(dbar.contains(NARROW), "N2: no size");
 
-
     assert!(!dbar.contains('!'), "N2: center stuck");
     assert!(!dbar.contains('▲'), "N2: right stuck");
     eprintln!("h7 statusbar_screens: shell, bits, chip, meter, clicks, prio");
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[test]
 #[ignore = "holla h7 check; run with --ignored"]
@@ -530,8 +373,6 @@ fn h7_preview_find() {
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -550,19 +391,15 @@ fn h7_preview_find() {
     checkpoint(&mut s, &dir, "01-preview");
     let preview = live_text(&mut s);
 
-
     assert!(preview.contains(META), "V1: no truncation meta");
     assert!(preview.contains(TOP), "V1: no gutter top");
     assert!(preview.contains('┃'), "V1: no scrollbar thumb");
 
     assert_line_has(&preview, "big.log", "19.4 KiB", "S1 cursor");
 
-
     assert!(preview.contains(TOP), "S1: preview missed the top");
 
-
     assert!(!preview.contains(TAIL), "N1: preview followed the tail");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -574,7 +411,6 @@ fn h7_preview_find() {
     assert!(focused.contains("Shift+↑↓ Select"), "pre: no select footer");
     assert_line_has(&focused, "y", "Copy", "pre copy hint");
     assert_line_has(&focused, "/", "Find", "pre find hint");
-
 
     support::press_step(&s, "/");
     waits::wait_state(&mut s, "find “”", "find opened");
@@ -602,8 +438,6 @@ fn h7_preview_find() {
     );
     checkpoint(&mut s, &dir, "05-navigated");
 
-
-
     support::drive_with_timeout(
         &mut s,
         &[
@@ -621,12 +455,10 @@ fn h7_preview_find() {
     let cleared = live_text(&mut s);
     assert!(cleared.contains("find “” · 0 of 0"), "A1: marks stuck");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "find “", "find closed");
     waits::wait_state(&mut s, META, "meta restored");
     checkpoint(&mut s, &dir, "07-closed");
-
 
     support::drive_with_timeout(
         &mut s,
@@ -646,15 +478,10 @@ fn h7_preview_find() {
     assert!(top.contains(TOP), "N1: top not restored");
     assert!(!top.contains(TAIL), "N1: tail stuck after home");
 
-
     support::press_step(&s, "y");
     std::thread::sleep(Duration::from_millis(300));
     let refused = live_text(&mut s);
     assert!(!refused.contains("Copied"), "A2: copy without selection");
-
-
-
-
 
     let (col, row) = first_pos(&refused, "line 0");
     s.inner
@@ -679,8 +506,6 @@ fn h7_preview_find() {
         "A2: copied text is not the row content: `{rest}`"
     );
     assert!(!rest.contains('·'), "A2: copied text spans lines: `{rest}`");
-
-
 
     assert!(
         !rest.starts_with(' ') && !rest.starts_with("1 line"),

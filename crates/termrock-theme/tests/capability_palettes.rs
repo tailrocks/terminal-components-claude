@@ -1,7 +1,5 @@
-
 use ratatui_core::style::Color;
 use termrock_theme::{CapabilityPalettes, ColorLevel, Theme, downgrade_color};
-
 
 #[expect(
     clippy::arithmetic_side_effects,
@@ -153,7 +151,6 @@ fn mutations_at_each_intermediate_level_never_reattach_or_detach_other_slots() {
 fn direct_token_mutation_and_quantization_collision_never_reattach() {
     let original = Theme::junie();
     let mut custom = original.clone();
-
 
     let changed = Color::Rgb(95, 215, 135);
     custom.color.accent = changed;

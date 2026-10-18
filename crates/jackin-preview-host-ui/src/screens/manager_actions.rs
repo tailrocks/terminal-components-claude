@@ -1,8 +1,3 @@
-
-
-
-
-
 use jackin_preview_domain::{
     account::AccountId,
     agent::Agent,
@@ -14,19 +9,15 @@ use jackin_preview_sim::{
     world::{DaemonHealth, GithubRepo, Msg, World},
 };
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Target {
-
     Instance(String),
 
     Workspace(WorkspaceId),
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
-
     Reconnect,
 
     Inspect,
@@ -44,10 +35,8 @@ pub enum Action {
     Shell,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FactTone {
-
     Normal,
 
     Secondary,
@@ -57,10 +46,8 @@ pub enum FactTone {
     Error,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Fact {
-
     pub label: &'static str,
 
     pub value: String,
@@ -70,24 +57,19 @@ pub struct Fact {
     pub tone: FactTone,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SessionChoice {
-
     Shell,
 
     Agent {
-
         agent: Agent,
 
         account: Option<AccountId>,
     },
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstanceTarget {
-
     pub id: String,
 
     pub run_id: RunId,
@@ -99,8 +81,6 @@ impl CapturedInstance {
     fn valid(&self, world: &World) -> bool {
         self.0.workspace.and_then(|id| world.workspace(id)) == self.1.as_deref()
             && world.instance(&self.0.id).is_some_and(|now| {
-
-
                 let mut expected = self.0.as_ref().clone();
                 expected.daemon = now.daemon.clone();
                 expected.last_seen_secs = now.last_seen_secs;
@@ -115,7 +95,6 @@ impl CapturedInstance {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Review {
     token: u64,
@@ -127,7 +106,6 @@ pub struct Review {
     acknowledgement: Option<String>,
 }
 impl Review {
-
     pub fn acknowledgement(&self) -> Option<&str> {
         self.acknowledgement.as_deref()
     }
@@ -168,14 +146,12 @@ impl Capture {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct SessionReview {
     token: u64,
     captured: CapturedInstance,
 }
 impl SessionReview {
-
     pub fn target(&self) -> InstanceTarget {
         self.captured.target()
     }
@@ -189,10 +165,8 @@ impl SessionReview {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub enum Effect {
-
     None,
 
     Status(String),
@@ -200,14 +174,12 @@ pub enum Effect {
     Error(String),
 
     Attach {
-
         target: InstanceTarget,
 
         status: Option<String>,
     },
 
     Inspect {
-
         title: String,
 
         facts: Vec<Fact>,
@@ -218,21 +190,18 @@ pub enum Effect {
     ChooseSession(SessionReview),
 
     NewSession {
-
         target: InstanceTarget,
 
         choice: SessionChoice,
     },
 
     RepositoryOpened {
-
         url: String,
 
         status: String,
     },
 
     WorkspaceDeleted {
-
         id: WorkspaceId,
 
         status: String,
@@ -247,15 +216,12 @@ struct Pending {
     capture: Capture,
 }
 
-
 #[derive(Debug, Clone, Default)]
 pub struct ManagerActions {
     last_refresh_error: bool,
     pending: Vec<Pending>,
 }
 impl ManagerActions {
-
-
     pub fn refresh(&mut self, world: &mut World) -> bool {
         if world.now_secs().saturating_sub(world.last_refresh_secs) < 5 {
             return false;
@@ -277,7 +243,6 @@ impl ManagerActions {
         true
     }
 
-
     pub fn busy(&self, target: &Target) -> Option<&'static str> {
         self.pending
             .iter()
@@ -292,7 +257,6 @@ impl ManagerActions {
                 _ => "prewarming…",
             })
     }
-
 
     pub fn available(action: Action, target: &Target, world: &World) -> bool {
         match target {
@@ -310,7 +274,6 @@ impl ManagerActions {
             }),
         }
     }
-
 
     pub fn request(&mut self, action: Action, target: Target, world: &mut World) -> Effect {
         if self.busy(&target).is_some() {
@@ -387,7 +350,6 @@ impl ManagerActions {
         }
     }
 
-
     pub fn confirm(&mut self, review: Review, acknowledgement: &str, world: &mut World) -> Effect {
         if !world.consume_manager_review(review.token) || !review.captured.valid(world) {
             return stale();
@@ -444,7 +406,6 @@ impl ManagerActions {
         Effect::Status(status.into())
     }
 
-
     pub fn complete(&mut self, world: &mut World, operation: u64) -> Effect {
         let Some(index) = self.pending.iter().position(|p| p.id == operation) else {
             return Effect::None;
@@ -498,7 +459,6 @@ impl ManagerActions {
             _ => Effect::None,
         }
     }
-
 
     pub fn session(
         &self,
@@ -779,7 +739,6 @@ fn inspect(i: &Instance, world: &World) -> Effect {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct LaunchTarget {
     workspace: Option<Workspace>,
@@ -787,8 +746,6 @@ pub struct LaunchTarget {
     role: String,
 }
 impl LaunchTarget {
-
-
     pub fn capture(world: &World, workspace: Option<WorkspaceId>, role: &str) -> Option<Self> {
         if !world.roles.iter().any(|entry| entry.full_name() == role) {
             return None;
@@ -831,10 +788,8 @@ impl LaunchTarget {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RepositoryError {
-
     NoWorkspace,
 
     NoRepository(String),
@@ -849,8 +804,6 @@ impl std::fmt::Display for RepositoryError {
 }
 impl std::error::Error for RepositoryError {}
 
-
-
 #[derive(Debug, Clone)]
 pub struct RepositoryTarget {
     workspace: Workspace,
@@ -858,8 +811,6 @@ pub struct RepositoryTarget {
     cwd: Option<String>,
 }
 impl RepositoryTarget {
-
-
     pub fn capture(world: &World, workspace: Option<WorkspaceId>) -> Result<Self, RepositoryError> {
         let cwd = workspace.is_none().then(|| world.cwd.clone());
         let workspace = match workspace {
@@ -879,12 +830,9 @@ impl RepositoryTarget {
         })
     }
 
-
     pub fn url(&self) -> &str {
         &self.repository.url
     }
-
-
 
     pub fn execute(self, world: &World) -> Effect {
         let workspace_valid = world.workspace(self.workspace.id) == Some(&self.workspace);

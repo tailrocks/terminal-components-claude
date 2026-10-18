@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
 use std::ffi::{c_int, c_ulong, c_void};
@@ -148,8 +137,6 @@ impl Pty {
     }
 
     fn send(&mut self, bytes: &[u8]) {
-
-
         for (i, chunk) in bytes.chunks(512).enumerate() {
             if let Err(e) = self.master.write_all(chunk) {
                 let status = self.child.try_wait().unwrap();
@@ -184,10 +171,6 @@ impl Drop for Pty {
         let _ = self.child.wait();
     }
 }
-
-
-
-
 
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Sgr {
@@ -316,8 +299,6 @@ fn explicit_palettes_emit_exactly_their_colour_class_and_keep_attributes() {
         "no extended colour at 16: {c16:?}"
     );
 
-
-
     let (mono, _) = frame(&["--color", "none"], &[]);
     assert_eq!(
         mono.truecolor + mono.indexed,
@@ -338,9 +319,6 @@ fn explicit_palettes_emit_exactly_their_colour_class_and_keep_attributes() {
 
 #[test]
 fn no_color_policy_is_the_backend_rule_in_a_fresh_process() {
-
-
-
     let (off, _) = frame(&["--color", "truecolor"], &[("NO_COLOR", Some("1"))]);
     assert_eq!(
         off.truecolor + off.indexed + off.basic,
@@ -357,7 +335,6 @@ fn no_color_policy_is_the_backend_rule_in_a_fresh_process() {
         empty.truecolor > 0,
         "an empty NO_COLOR does not disable colour: {empty:?}"
     );
-
 
     let (forced, _) = frame(
         &["--color", "truecolor"],
@@ -385,15 +362,11 @@ fn a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured() {
     pty.wait_for("the first frame", |t| t.contains("holla"));
     let before = pty.text().len();
 
-
-
     let flood: Vec<u8> = vec![0x02; 2000];
     let start = Instant::now();
     pty.send(&flood);
 
     pty.wait_for("a redraw during the flood", |t| t.len() > before + 64);
-
-
 
     pty.send(b"\x03");
     let code = pty.wait_exit();

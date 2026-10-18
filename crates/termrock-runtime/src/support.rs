@@ -1,7 +1,3 @@
-
-
-
-
 use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
 
@@ -12,18 +8,7 @@ use crate::ui::Ui;
 
 pub use crate::author::PartStyle;
 
-
-
 pub type SlotFn<'a> = &'a dyn Fn(&mut Ui<'_>, Rect);
-
-
-
-
-
-
-
-
-
 
 #[expect(
     clippy::too_many_arguments,
@@ -55,9 +40,6 @@ pub fn overlay_chrome<R>(
         }
         ui.register_decor(id, PartRef::of(Part::BORDER), area);
 
-
-
-
         let body_area = if inner.is_empty() {
             Rect {
                 x: area.x,
@@ -72,7 +54,6 @@ pub fn overlay_chrome<R>(
     })
 }
 
-
 pub const fn first_row(area: Rect) -> Rect {
     Rect {
         x: area.x,
@@ -81,15 +62,6 @@ pub const fn first_row(area: Rect) -> Rect {
         height: if area.height == 0 { 0 } else { 1 },
     }
 }
-
-
-
-
-
-
-
-
-
 
 pub const fn cell_at(area: Rect, x: u16) -> Rect {
     Rect {
@@ -104,12 +76,10 @@ pub const fn cell_at(area: Rect, x: u16) -> Rect {
     }
 }
 
-
 pub fn paint_pressed_bracket(ui: &mut Ui<'_>, left: Rect, right: Rect, style: PaintStyle) {
     ui.glyph(left, GlyphRole::PressLeft, style);
     ui.glyph(right, GlyphRole::PressRight, style);
 }
-
 
 pub const fn shift(area: Rect, by: u16) -> Rect {
     Rect {
@@ -119,8 +89,6 @@ pub const fn shift(area: Rect, by: u16) -> Rect {
         height: area.height,
     }
 }
-
-
 
 pub struct Acc<A> {
     consumed: bool,
@@ -151,9 +119,6 @@ impl<A> Acc<A> {
         self.consumed = true;
         self.invalidate = self.invalidate.max(crate::response::Invalidate::Paint);
     }
-
-
-
 
     pub fn repaint(&mut self) {
         self.invalidate = self.invalidate.max(crate::response::Invalidate::Paint);
@@ -199,16 +164,8 @@ mod tests {
         height: 2,
     };
 
-
-
-
-
-
-
-
     #[test]
     fn cell_at_is_empty_for_every_x_outside_the_area_on_either_side() {
-
         assert_eq!(cell_at(AREA, AREA.x - 1).width, 0);
         assert_eq!(cell_at(AREA, 0).width, 0);
 
@@ -217,7 +174,6 @@ mod tests {
 
         let empty = Rect { width: 0, ..AREA };
         assert_eq!(cell_at(empty, empty.x).width, 0);
-
 
         for x in AREA.x..AREA.right() {
             assert_eq!(
@@ -230,8 +186,6 @@ mod tests {
                 }
             );
         }
-
-
 
         assert_eq!(
             cell_at(AREA, AREA.right()),

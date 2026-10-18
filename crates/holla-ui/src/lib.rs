@@ -1,12 +1,7 @@
-
-
-
 pub mod app;
 pub mod cli;
 pub mod dispatch;
 pub mod screens;
-
-
 
 pub mod clock {
     pub use holla_sim::clock::*;

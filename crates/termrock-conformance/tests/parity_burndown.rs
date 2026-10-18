@@ -1,17 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
 use std::collections::HashSet;
-
-
 
 struct Burndown {
     id: &'static str,
@@ -35,7 +22,6 @@ const OWNERSHIP_JSON: &str = include_str!("../../../component-ownership.json");
 const REGISTRY_JSON: &str = include_str!("../../../tests/conformance/required_cases.json");
 const MIRROR_SRC: &str = include_str!("control_states.rs");
 
-
 #[test]
 fn burndown_owners_match_ownership_map() {
     let doc: serde_json::Value =
@@ -57,7 +43,6 @@ fn burndown_owners_match_ownership_map() {
         );
     }
 }
-
 
 #[test]
 fn burndown_cases_exist_in_registry() {
@@ -83,7 +68,6 @@ fn burndown_cases_exist_in_registry() {
         }
     }
 }
-
 
 #[test]
 fn burndown_matches_ignored_tests() {

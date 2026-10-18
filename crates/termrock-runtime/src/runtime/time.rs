@@ -1,12 +1,9 @@
-
 use core::time::Duration;
-
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Moment(Duration);
 
 impl Moment {
-
     pub const ZERO: Self = Self(Duration::ZERO);
 
     pub const fn from_millis(ms: u64) -> Self {
@@ -31,10 +28,8 @@ impl Moment {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ClockError {
-
     pub current: Moment,
 
     pub requested: Moment,

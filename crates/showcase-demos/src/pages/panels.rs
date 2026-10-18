@@ -1,5 +1,3 @@
-
-
 use termrock::author::PaintStyle;
 use termrock::{
     Cx, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListState, Panel, PanelKind, Part,
@@ -94,8 +92,6 @@ fn log_view_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
         .collect()
 }
 
-
-
 fn titled_card() -> Panel<'static> {
     Panel::new(TITLED_CARD)
         .title("Titled card")
@@ -127,8 +123,6 @@ fn log_card(meta: &str) -> Panel<'_> {
         .meta(meta)
         .patch_part(PANEL_PARTS)
 }
-
-
 
 fn workbench_split() -> SplitPane<'static> {
     SplitPane::new(WORKBENCH, SplitAxis::Horizontal)
@@ -425,8 +419,6 @@ fn paint_card_meta(ui: &mut Ui<'_>, area: Rect, text: &str) {
         style,
     );
 }
-
-
 
 #[derive(Debug)]
 pub struct PanelsPage {

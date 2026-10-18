@@ -1,5 +1,3 @@
-
-
 pub(crate) use termrock_collections as scroll;
 pub(crate) use termrock_core as action;
 pub(crate) use termrock_core as event;
@@ -44,6 +42,5 @@ pub use tree::{
     NodeKind, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeIconFn,
     TreeNode, TreeState, TreeTrailingMarkFn,
 };
-
 
 pub use termrock_controls::{PropsAction, PropsCmd, PropsList, PropsRow, PropsState, PropsValue};

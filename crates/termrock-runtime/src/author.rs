@@ -1,29 +1,6 @@
-
-
-
-
-
-
-
-
-
-
 use core::fmt;
 
-
 pub type PartPainter<'a> = dyn Fn(&mut Ui<'_>, Rect) + 'a;
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Clone, Copy)]
 pub struct PartStyle<'a> {
@@ -43,7 +20,6 @@ impl fmt::Debug for PartStyle<'_> {
 }
 
 impl<'a> PartStyle<'a> {
-
     pub const fn new() -> Self {
         Self {
             patch: None,
@@ -52,13 +28,11 @@ impl<'a> PartStyle<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn global(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
         self
     }
-
 
     #[must_use]
     pub const fn part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
@@ -66,20 +40,16 @@ impl<'a> PartStyle<'a> {
         self
     }
 
-
-
     #[must_use]
     pub const fn slot(mut self, part: Part, painter: &'a PartPainter<'a>) -> Self {
         self.slot = Some((part, painter));
         self
     }
 
-
     #[must_use]
     pub const fn flags(runtime: StateFlags, derived: StateFlags) -> StateFlags {
         runtime.union(derived)
     }
-
 
     pub fn part_patch(&self, part: Part) -> Option<StylePatch> {
         let mut merged = self.patch.copied();
@@ -94,17 +64,12 @@ impl<'a> PartStyle<'a> {
         merged
     }
 
-
     pub fn slot_for(&self, part: Part) -> Option<&'a PartPainter<'a>> {
         match self.slot {
             Some((named, painter)) if named == part => Some(painter),
             _ => None,
         }
     }
-
-
-
-
 
     pub fn style(
         &self,
@@ -122,7 +87,6 @@ impl<'a> PartStyle<'a> {
         self.note(ui, owner, family, variant, part, resolved);
         resolved
     }
-
 
     pub fn note(
         &self,
@@ -145,9 +109,6 @@ impl Default for PartStyle<'_> {
         Self::new()
     }
 }
-
-
-
 
 pub use crate::id::{Id, ItemKey, Part, PartRef};
 
@@ -177,7 +138,6 @@ pub use crate::layout::{self, Insets, RowAlign, SplitModel, Track};
 pub use crate::measure::{Constraints, Size};
 pub use crate::ui::measure::Measure;
 
-
 pub use crate::text::{
     CursorPos, EditAction, EditOutcome, Extend, FuzzyBoundary, Motion, Span, TextBuffer,
     TextEditorCore, fuzzy, fuzzy_with_boundary, truncate, truncate_middle, width, wrap,
@@ -202,9 +162,6 @@ pub use termrock_core::validate::{FieldError, NoValidate, Validate};
 pub use ratatui_core::buffer::{Buffer, Cell};
 pub use ratatui_core::layout::{Position, Rect};
 pub use ratatui_core::style::{Color, Style};
-
-
-
 
 pub mod raw {
     pub use ratatui_core::text::{Line, Span, Text};

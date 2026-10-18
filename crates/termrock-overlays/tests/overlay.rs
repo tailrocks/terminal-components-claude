@@ -9,13 +9,6 @@
     )
 )]
 
-
-
-
-
-
-
-
 use ratatui_core::layout::Rect;
 
 use termrock_controls::Button;
@@ -42,8 +35,6 @@ const PEOPLE: [&str; 4] = ["Ada", "Grace", "Alan", "Edsger"];
 const K_DONE: ActionKey = ActionKey::CONFIRM;
 const ACTIONS: [Action<'static>; 1] = [Action::new(K_DONE, "Done")];
 
-
-
 fn dialog() -> Dialog<'static> {
     Dialog::new(DLG)
         .title("Edit task")
@@ -63,8 +54,6 @@ fn picker() -> List<
         .key(|s: &&'static str| ItemKey::text(s))
         .row(|s: &&'static str, u: &mut RowUi<'_>| u.label(s))
 }
-
-
 
 struct Nested {
     dlg: DialogState,
@@ -121,9 +110,6 @@ impl App for Nested {
                         },
                     )
                     .dismiss(Dismiss::ESC_AND_OUTSIDE)
-
-
-
                     .initial_focus(PICK)
                     .size(picker().measured_size(cx, &PEOPLE)),
                 );
@@ -207,7 +193,6 @@ fn page(reverse: bool) -> Harness<Nested> {
     Harness::new(Nested::new(reverse), Theme::junie(), 60, 20)
 }
 
-
 fn opened(reverse: bool) -> Harness<Nested> {
     let mut h = page(reverse);
     let _ = h.click_id(OPEN);
@@ -216,8 +201,6 @@ fn opened(reverse: bool) -> Harness<Nested> {
     assert!(h.is_open(PICK), "{}", h.text());
     h
 }
-
-
 
 #[test]
 fn modal_over_page() {
@@ -238,13 +221,11 @@ fn modal_over_page() {
     assert_ne!(focus, OPEN);
     assert!(h.ring().reachable().all(|e| e.id != OPEN));
 
-
     let a = h
         .area_of_part(DLG, PartRef::of(Part::BORDER))
         .expect("the dialog registered its surface");
     let mid = h.cell(a.x + 2, a.y + 1).symbol().to_owned();
     assert_ne!(mid, "p", "the page shows through the modal");
-
 
     assert!(a.x > 0 && a.y > 0, "the modal is not at the screen origin");
     assert_eq!(
@@ -258,14 +239,11 @@ fn modal_over_page() {
         "and exactly the height it measured"
     );
 
-
     let _ = h.key(KeyCode::Esc);
     assert!(!h.is_open(DLG));
     assert_eq!(h.focus(), Some(OPEN));
     assert!(h.text().contains("page page"));
 }
-
-
 
 #[test]
 fn nested_picker_over_dialog() {
@@ -273,7 +251,6 @@ fn nested_picker_over_dialog() {
     assert!(h.is_open(DLG) && h.is_open(PICK));
     assert_eq!(h.top_layer().index(), 2, "the popover is the top layer");
     assert!(h.text().contains("Ada"), "{}", h.text());
-
 
     let btn = h.area_of(OWNER_BTN).expect("the owner button drew");
     let pick = h.area_of(PICK).expect("the popover registered");
@@ -285,12 +262,8 @@ fn nested_picker_over_dialog() {
         "the list sized its own layer (§26 N1)"
     );
 
-
-
-
     assert_eq!(h.focus(), Some(PICK));
     assert!(h.ring().reachable().any(|e| e.id == OWNER_BTN));
-
 
     let _ = h.key(KeyCode::Esc);
     assert!(!h.is_open(PICK), "the popover closed");
@@ -298,8 +271,6 @@ fn nested_picker_over_dialog() {
     assert_eq!(h.focus(), Some(OWNER_BTN), "focus returned to the opener");
     assert!(h.text().contains("Edit task"));
 }
-
-
 
 #[test]
 fn layer_composites_bottom_to_top_regardless_of_call_order() {
@@ -320,8 +291,6 @@ fn layer_composites_bottom_to_top_regardless_of_call_order() {
     assert!(a.text().contains("Ada") && b.text().contains("Ada"));
 }
 
-
-
 #[test]
 fn backdrop_excludes_the_footer() {
     let mut h = page(false);
@@ -339,7 +308,6 @@ fn backdrop_excludes_the_footer() {
     );
     assert_eq!(h.cell(0, 19).symbol(), "F", "the footer still reads FOOTER");
 
-
     let screen = Rect::new(0, 0, 60, 20);
     assert_eq!(
         backdrop_area(
@@ -350,7 +318,6 @@ fn backdrop_excludes_the_footer() {
         ),
         Rect::new(0, 0, 60, 19)
     );
-
 
     let mut plain = page(false);
     plain.app_mut().no_backdrop = true;

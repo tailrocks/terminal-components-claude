@@ -1,27 +1,7 @@
-
-
-
-
-
-
-
 use core::ops::Range;
 
 use crate::response::Response;
 use termrock_core::geometry::Headroom;
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct ScrollState {
@@ -30,12 +10,10 @@ pub struct ScrollState {
     viewport_len: usize,
     reveal: Option<usize>,
 
-
     grab: Option<usize>,
 }
 
 impl ScrollState {
-
     pub const fn new(content_len: usize) -> Self {
         ScrollState {
             offset: 0,
@@ -46,58 +24,47 @@ impl ScrollState {
         }
     }
 
-
     pub const fn offset(&self) -> usize {
         self.offset
     }
-
 
     pub const fn content_len(&self) -> usize {
         self.content_len
     }
 
-
     pub const fn viewport_len(&self) -> usize {
         self.viewport_len
     }
-
 
     pub const fn max_offset(&self) -> usize {
         self.content_len.saturating_sub(self.viewport_len)
     }
 
-
     pub const fn overflows(&self) -> bool {
         self.content_len > self.viewport_len && self.viewport_len > 0
     }
-
 
     pub const fn at_start(&self) -> bool {
         self.offset == 0
     }
 
-
     pub const fn at_end(&self) -> bool {
         self.offset >= self.max_offset()
     }
-
 
     pub fn set_viewport(&mut self, len: usize) {
         self.viewport_len = len;
         self.clamp();
     }
 
-
     pub fn set_content(&mut self, len: usize) {
         self.content_len = len;
         self.clamp();
     }
 
-
     pub fn clamp(&mut self) {
         self.offset = self.offset.min(self.max_offset());
     }
-
 
     pub fn scroll_by(&mut self, delta: isize) {
         self.offset = self
@@ -106,32 +73,26 @@ impl ScrollState {
             .min(self.max_offset());
     }
 
-
     pub fn scroll_to(&mut self, offset: usize) {
         self.offset = offset.min(self.max_offset());
     }
-
 
     pub fn page_up(&mut self) {
         let page = self.viewport_len.max(1) as isize;
         self.scroll_by(page.saturating_neg());
     }
 
-
     pub fn page_down(&mut self) {
         self.scroll_by(self.viewport_len.max(1) as isize);
     }
-
 
     pub fn jump_start(&mut self) {
         self.offset = 0;
     }
 
-
     pub fn jump_end(&mut self) {
         self.offset = self.max_offset();
     }
-
 
     pub fn ensure_visible(&mut self, index: usize) {
         if self.viewport_len == 0 {
@@ -145,23 +106,17 @@ impl ScrollState {
         self.clamp();
     }
 
-
-
     pub fn ensure_visible_on_next_layout(&mut self, index: usize) {
         self.reveal = Some(index);
     }
-
 
     pub const fn pending_reveal(&self) -> Option<usize> {
         self.reveal
     }
 
-
     pub fn clear_reveal(&mut self) {
         self.reveal = None;
     }
-
-
 
     pub fn apply_layout(&mut self, viewport_len: usize, content_len: usize) {
         self.viewport_len = viewport_len;
@@ -174,8 +129,6 @@ impl ScrollState {
         self.clamp();
     }
 
-
-
     pub fn wheel(&mut self, delta: i16) -> Response<()> {
         let before = self.offset;
         self.scroll_by(delta as isize);
@@ -186,7 +139,6 @@ impl ScrollState {
         }
     }
 
-
     pub fn visible_range(&self) -> Range<usize> {
         let end = self
             .offset
@@ -194,7 +146,6 @@ impl ScrollState {
             .min(self.content_len);
         self.offset..end
     }
-
 
     pub fn headroom_v(&self) -> Headroom {
         Headroom {
@@ -207,7 +158,6 @@ impl ScrollState {
             right: 0,
         }
     }
-
 
     pub fn thumb(&self, track_len: usize) -> (usize, usize) {
         if !self.overflows() || track_len == 0 {
@@ -231,8 +181,6 @@ impl ScrollState {
         (start.min(usable), len)
     }
 
-
-
     pub fn offset_for_thumb_start(&self, start: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
             return 0;
@@ -246,9 +194,6 @@ impl ScrollState {
             .checked_div(usable)
             .unwrap_or(0)
     }
-
-
-
 
     pub fn press_track(&mut self, pos: usize, track_len: usize) {
         if !self.overflows() || track_len == 0 {
@@ -264,9 +209,6 @@ impl ScrollState {
         self.scroll_to(self.offset_for_track_pos(pos, track_len));
     }
 
-
-
-
     pub fn drag_track(&mut self, pos: usize, track_len: usize) {
         if !self.overflows() || track_len == 0 {
             return;
@@ -279,11 +221,9 @@ impl ScrollState {
         self.scroll_to(target);
     }
 
-
     pub fn release_track(&mut self) {
         self.grab = None;
     }
-
 
     pub fn offset_for_track_pos(&self, pos: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {

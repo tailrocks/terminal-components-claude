@@ -1,4 +1,3 @@
-
 use super::world::World;
 use crate::domain::{
     host::{Environment, HostKind},
@@ -29,8 +28,6 @@ impl std::fmt::Display for ReviewError {
     }
 }
 impl std::error::Error for ReviewError {}
-
-
 
 pub struct Review {
     target: PgSession,

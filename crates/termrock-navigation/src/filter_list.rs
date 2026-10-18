@@ -1,5 +1,3 @@
-
-
 use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
@@ -21,10 +19,8 @@ use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FilterListAction {
-
     QueryChanged,
 
     Moved,
@@ -42,10 +38,8 @@ pub enum FilterListAction {
     NextScope,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FilterListCmd {
-
     Up,
 
     Down,
@@ -189,17 +183,13 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
     ),
 ];
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum FilterPolicy {
-
     #[default]
     Label,
 
-
     Caller,
 }
-
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct FilterListState {
@@ -210,7 +200,6 @@ pub struct FilterListState {
 }
 
 impl FilterListState {
-
     pub fn query(&self) -> &str {
         &self.query
     }
@@ -252,52 +241,6 @@ impl Reconcile for FilterListState {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct FilterList<'a, T, R = crate::item::ItemRow> {
     id: Id,
     row: R,
@@ -324,7 +267,6 @@ impl<T, R> core::fmt::Debug for FilterList<'_, T, R> {
 }
 
 impl<T> FilterList<'_, T, crate::item::ItemRow> {
-
     pub const fn new(id: Id) -> Self {
         Self {
             id,
@@ -344,7 +286,6 @@ impl<T> FilterList<'_, T, crate::item::ItemRow> {
 }
 
 impl<T> FilterList<'_, T, crate::item::ItemRow> {
-
     #[must_use]
     pub const fn item_layout(mut self, layout: crate::item::ItemRowLayout) -> Self {
         self.item_layout = layout;
@@ -357,7 +298,6 @@ impl<'a, T, R> FilterList<'a, T, R> {
         self.item_layout = layout;
         self
     }
-
 
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -454,8 +394,6 @@ impl<'a, T, R> FilterList<'a, T, R> {
         bar
     }
 
-
-
     fn readiness_area(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags) -> Rect {
         if self.status == Status::Ready || area.is_empty() {
             return area;
@@ -539,10 +477,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             .max()
             .unwrap_or(12)
     }
-
-
-
-
 
     pub fn reconcile(&self, st: &mut FilterListState, items: &[T]) {
         st.matches.clear();
@@ -718,7 +652,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         }
     }
 
-
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -877,7 +810,6 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
         }
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState, items: &[T]) -> Rect {
         if area.is_empty() {

@@ -1,72 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -79,11 +10,9 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, TABLEPRO};
 
-
 const BOOT_CONN: &str = "Production";
 
 const BOOT_WB: &str = "Query 1";
-
 
 fn t1_case_conn(slug: &str) -> Case {
     Case::dynamic(
@@ -97,7 +26,6 @@ fn t1_case_conn(slug: &str) -> Case {
     )
 }
 
-
 fn t1_case_wb(slug: &str) -> Case {
     Case::dynamic(
         format!("journeys/tablepro/t1/{slug}"),
@@ -109,7 +37,6 @@ fn t1_case_wb(slug: &str) -> Case {
         BOOT_WB,
     )
 }
-
 
 fn t1_case_size(
     slug: &str,
@@ -129,7 +56,6 @@ fn t1_case_size(
     )
 }
 
-
 fn t1_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -138,13 +64,9 @@ fn t1_dir(test: &str) -> PathBuf {
     dir
 }
 
-
-
 fn write_provenance(dir: &Path, case: &Case) {
     write_provenance_named(dir, case, "provenance.txt");
 }
-
-
 
 fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
     let subject =
@@ -164,7 +86,6 @@ fn write_provenance_named(dir: &Path, case: &Case, file: &str) {
         .unwrap_or_else(|e| panic!("write {}: {e}", dir.join(file).display()));
     eprintln!("t1 provenance ({file}): {body}");
 }
-
 
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
@@ -186,7 +107,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -195,8 +115,6 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
 fn live_frame(s: &mut Session) -> Frame {
     let screen = s
         .inner
@@ -204,7 +122,6 @@ fn live_frame(s: &mut Session) -> Frame {
         .unwrap_or_else(|e| panic!("live frame sample failed: {e:#}"));
     frame_from_screen(&screen, "default")
 }
-
 
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
@@ -215,10 +132,6 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     );
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
-
-
-
-
 
 fn wheel_over(
     s: &mut Session,
@@ -232,17 +145,12 @@ fn wheel_over(
     (row, col)
 }
 
-
-
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
         std::thread::sleep(Duration::from_millis(120));
     }
 }
-
-
-
 
 fn wheel_until_stable(
     s: &mut Session,
@@ -270,9 +178,6 @@ fn wheel_until_stable(
     panic!("{what}: still moving after 10 batches");
 }
 
-
-
-
 fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     s.resize(cols, rows).expect("resize");
     support::wait_screen(
@@ -283,8 +188,6 @@ fn resize_to(s: &mut Session, cols: u16, rows: u16, timeout: Duration) {
     );
     std::thread::sleep(Duration::from_millis(700));
 }
-
-
 
 fn expect_exit_text(s: &Session, timeout: Duration, what: &str) -> String {
     let cancel = CancelToken::new();
@@ -298,9 +201,6 @@ fn expect_exit_text(s: &Session, timeout: Duration, what: &str) -> String {
     support::screen_text(&obs.screen)
 }
 
-
-
-
 fn resolve_rgb(c: TColor, what: &str) -> Rgb {
     match c {
         TColor::Rgb(rgb) => rgb,
@@ -309,14 +209,10 @@ fn resolve_rgb(c: TColor, what: &str) -> Rgb {
     }
 }
 
-
 fn lum(c: TColor, what: &str) -> u32 {
     let rgb = resolve_rgb(c, what);
     u32::from(rgb.r) * 2126 + u32::from(rgb.g) * 7152 + u32::from(rgb.b) * 722
 }
-
-
-
 
 fn row_fg_median(frame: &Frame, row: u16, what: &str) -> u32 {
     let mut lums: Vec<u32> = Vec::new();
@@ -340,15 +236,12 @@ fn row_fg_median(frame: &Frame, row: u16, what: &str) -> u32 {
     lums[lums.len() / 2]
 }
 
-
-
 fn assert_faded(edge: u32, interior: u32, what: &str) {
     assert!(
         edge < interior,
         "{what}: edge row must fade (edge lum {edge} < interior lum {interior})"
     );
 }
-
 
 fn assert_row_same(a: &Frame, b: &Frame, row: u16, what: &str) {
     assert_eq!(
@@ -370,16 +263,12 @@ fn assert_row_same(a: &Frame, b: &Frame, row: u16, what: &str) {
     }
 }
 
-
-
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
         "{what}: no line contains both `{needle}` and `{also}`"
     );
 }
-
-
 
 fn assert_no_grid_sort_marks(text: &str, what: &str) {
     assert!(
@@ -394,7 +283,6 @@ fn assert_no_grid_sort_marks(text: &str, what: &str) {
     }
 }
 
-
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     for line in text.lines().filter(|l| l.contains(needle)) {
         assert!(
@@ -403,10 +291,6 @@ fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
         );
     }
 }
-
-
-
-
 
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
@@ -419,7 +303,6 @@ fn t1_audit_production_boot() {
     support::drive_with_timeout(&mut s, &["wait:S audit"], case.timeout_ms);
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
-
 
     assert_line_has(&boot, "Query 1", "+", "V1 strip");
     assert!(boot.contains("≡ Query 1 ×"), "V1: strip lacks the tab");
@@ -462,7 +345,6 @@ fn t1_audit_production_boot() {
         assert!(!boot.contains(needle), "N1: boot shows `{needle}`");
     }
 
-
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -482,7 +364,6 @@ fn t1_audit_production_boot() {
     );
     checkpoint(&mut s, &dir, "01-tabbed");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-g", "wait:Open tabs"], case.timeout_ms);
     checkpoint(&mut s, &dir, "02-tablist");
     support::press_step(&s, "escape");
@@ -492,7 +373,6 @@ fn t1_audit_production_boot() {
         "N1 tab list never closed",
         |screen| !support::screen_text(screen).contains("Open tabs"),
     );
-
 
     support::press_step(&s, "q");
     let exit_text = expect_exit_text(&s, case_timeout(&case), "A2 clean quit");
@@ -508,12 +388,6 @@ fn t1_audit_production_boot() {
     eprintln!("t1 audit_production_boot: regions proven, clean q exit proven");
 }
 
-
-
-
-
-
-
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
 fn t1_connections_default_boot() {
@@ -523,7 +397,6 @@ fn t1_connections_default_boot() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "00-boot");
     let boot = live_text(&mut s);
-
 
     assert_line_has(&boot, "▎", "Personal", "V1/S1 cursor");
     assert!(boot.contains("▾ Acme"), "V1: Acme group missing");
@@ -564,7 +437,6 @@ fn t1_connections_default_boot() {
     }
     assert_line_lacks(&boot, "Local PostgreSQL", "Name", "N1 no form field");
 
-
     support::press_step(&s, "down");
     support::wait_screen(
         &mut s,
@@ -581,9 +453,6 @@ fn t1_connections_default_boot() {
         moved.contains("localhost:5432"),
         "A1: detail changed under the cursor move"
     );
-
-
-
 
     support::press_step(&s, "/");
     support::drive_with_timeout(&mut s, &["type:stag"], case.timeout_ms);
@@ -612,8 +481,6 @@ fn t1_connections_default_boot() {
         |screen| support::screen_text(screen).contains("Filter connections"),
     );
 
-
-
     support::press_step(&s, "down");
     support::wait_screen(
         &mut s,
@@ -625,8 +492,6 @@ fn t1_connections_default_boot() {
                 .any(|l| l.contains("▎") && l.contains("Personal"))
         },
     );
-
-
 
     support::drive_with_timeout(
         &mut s,
@@ -654,19 +519,12 @@ fn t1_connections_default_boot() {
     let back = live_text(&mut s);
     assert!(back.contains("6 saved"), "N2: cancel dropped a row");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-n", "wait:New connection"], case.timeout_ms);
     checkpoint(&mut s, &dir, "03-form-proof");
     let formed = live_text(&mut s);
     assert!(formed.contains("Name"), "N1: form lacks the Name field");
     eprintln!("t1 connections_default_boot: boot proven, dialog+form proven");
 }
-
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
@@ -685,7 +543,6 @@ fn t1_connections_delete_dialog() {
     waits::wait_state(&mut s, "Delete connection?", "delete dialog");
     checkpoint(&mut s, &dir, "01-open");
     let dlg = live_text(&mut s);
-
 
     for needle in [
         "Delete connection?",
@@ -715,7 +572,6 @@ fn t1_connections_delete_dialog() {
         assert_line_lacks(&dlg, name, "▎", "S2 focus left the tree");
     }
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Delete connection?", "Esc closed the dialog");
     let cancelled = live_text(&mut s);
@@ -725,7 +581,6 @@ fn t1_connections_delete_dialog() {
         "A1/N1: Production row lost"
     );
     checkpoint(&mut s, &dir, "02-cancelled");
-
 
     support::press_step(&s, "d");
     waits::wait_state(&mut s, "Delete connection?", "reopened dialog");
@@ -747,7 +602,6 @@ fn t1_connections_delete_dialog() {
     );
     checkpoint(&mut s, &dir, "03-rearmed-cancelled");
 
-
     support::press_step(&s, "d");
     waits::wait_state(&mut s, "Delete connection?", "third dialog");
     let reopened = live_text(&mut s);
@@ -760,11 +614,6 @@ fn t1_connections_delete_dialog() {
     checkpoint(&mut s, &dir, "04-enter-cancel");
     eprintln!("t1 connections_delete_dialog: three cancels, zero deletions");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
@@ -787,7 +636,6 @@ fn t1_connections_duplicated() {
     checkpoint(&mut s, &dir, "01-duplicated");
     let dup = live_text(&mut s);
 
-
     assert!(dup.contains("Production (Copy)"), "V1: copy row missing");
     assert!(dup.contains("7 saved"), "V1: count never flipped to 7");
     assert!(!dup.contains("6 saved"), "V1: stale 6 saved persists");
@@ -806,7 +654,6 @@ fn t1_connections_duplicated() {
     for needle in ["Query 1", "Explorer", "New connection", "Edit connection"] {
         assert!(!dup.contains(needle), "N1/N2: dup shows `{needle}`");
     }
-
 
     support::press_step(&s, "down");
     support::wait_screen(
@@ -828,7 +675,6 @@ fn t1_connections_duplicated() {
         "A1: detail card never flipped to the copy"
     );
 
-
     support::press_step(&s, "d");
     waits::wait_state(&mut s, "Delete connection?", "copy delete dialog");
     support::press_step(&s, "right");
@@ -848,10 +694,8 @@ fn t1_connections_duplicated() {
     );
     checkpoint(&mut s, &dir, "02-copy-removed");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-n", "wait:New connection"], case.timeout_ms);
     checkpoint(&mut s, &dir, "03-form-proof");
-
 
     let case2 = t1_case_wb("connections_duplicated_clean");
     write_provenance_named(&dir, &case2, "provenance-clean.txt");
@@ -860,11 +704,6 @@ fn t1_connections_duplicated() {
     checkpoint(&mut s2, &dir, "04-clean-boot");
     eprintln!("t1 connections_duplicated: copy added, visited, removed");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
@@ -898,7 +737,6 @@ fn t1_connections_production_detail() {
     checkpoint(&mut s, &dir, "01-production");
     let det = live_text(&mut s);
 
-
     for needle in [
         "PostgreSQL",
         "prod-db-1.acme.io:5432",
@@ -929,7 +767,6 @@ fn t1_connections_production_detail() {
         assert!(!det.contains(needle), "N1/N2: detail shows `{needle}`");
     }
 
-
     support::press_step(&s, "up");
     waits::wait_state(&mut s, "analytics.acme.io", "A1 Analytics detail");
     let ana = live_text(&mut s);
@@ -939,7 +776,6 @@ fn t1_connections_production_detail() {
         "A1: prod host never left"
     );
     checkpoint(&mut s, &dir, "02-analytics");
-
 
     support::press_step(&s, "down");
     waits::wait_state(&mut s, "prod-db-1.acme.io", "A2 back on Production");
@@ -954,10 +790,8 @@ fn t1_connections_production_detail() {
     );
     assert_eq!(before, after, "A2: refused Down repainted the screen");
 
-
     support::drive_with_timeout(&mut s, &["e", "wait:Edit connection"], case.timeout_ms);
     checkpoint(&mut s, &dir, "03-edit-proof");
-
 
     let case2 = t1_case_wb("connections_production_detail_clean");
     write_provenance_named(&dir, &case2, "provenance-clean.txt");
@@ -966,10 +800,6 @@ fn t1_connections_production_detail() {
     checkpoint(&mut s2, &dir, "04-clean-boot");
     eprintln!("t1 connections_production_detail: card follows cursor");
 }
-
-
-
-
 
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
@@ -1000,7 +830,6 @@ fn t1_fade_table_wheel() {
     );
     assert!(boot.contains("10000"), "pre: first order cell missing");
 
-
     let (_row, _col) = wheel_over(&mut s, "10000", Wheel::Down, 3, case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -1011,7 +840,6 @@ fn t1_fade_table_wheel() {
     checkpoint(&mut s, &dir, "01-faded");
     let faded = live_text(&mut s);
     let frame = live_frame(&mut s);
-
 
     assert!(
         faded.contains("rows 10–36 of 500 loaded · 1,203,338 total · cols 1–2 of 14"),
@@ -1030,12 +858,10 @@ fn t1_fade_table_wheel() {
     );
     assert!(faded.contains("cols 1–2 of 14"), "S2: columns drifted");
 
-
     assert!(
         faded.contains("of 500 loaded"),
         "N2: page changed under the wheel"
     );
-
 
     let (header_row, _) = support::screen_find(
         &s.inner.snapshot().expect("header snapshot"),
@@ -1048,7 +874,6 @@ fn t1_fade_table_wheel() {
     let inner = row_fg_median(&frame, interior, "V2 interior");
     assert_faded(edge, inner, "V2 top edge");
     assert_row_same(&boot_frame, &frame, header_row, "N1 header never fades");
-
 
     let (erow, ecol) = support::screen_find(&s.inner.snapshot().expect("stance snapshot"), "10009")
         .expect("A2: stance cell missing");
@@ -1070,11 +895,6 @@ fn t1_fade_table_wheel() {
     eprintln!("t1 fade_table_wheel: offset 0 → 9 → 0, edge faded");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
 fn t1_overlays_history_tab() {
@@ -1090,7 +910,6 @@ fn t1_overlays_history_tab() {
     waits::wait_state(&mut s, "Query history", "history panel");
     checkpoint(&mut s, &dir, "01-history");
     let h = live_text(&mut s);
-
 
     for needle in ["H History ×", "≡ Query 1 ×", "Query history", "15 entries"] {
         assert!(h.contains(needle), "V1: history lacks `{needle}`");
@@ -1125,7 +944,6 @@ fn t1_overlays_history_tab() {
     assert!(!h.contains("Query 2"), "N2: phantom Query 2");
     assert_eq!(h.matches('×').count(), 3, "N2: tab × count moved");
 
-
     support::press_step(&s, "ctrl-y");
     std::thread::sleep(Duration::from_millis(400));
     let reslot = live_text(&mut s);
@@ -1134,7 +952,6 @@ fn t1_overlays_history_tab() {
         1,
         "S1: second ctrl-y duplicated the tab"
     );
-
 
     support::press_step(&s, "down");
     support::wait_screen(
@@ -1150,7 +967,6 @@ fn t1_overlays_history_tab() {
         "A1: detail pane never followed the cursor"
     );
     assert!(moved.contains("15 entries"), "A1: entries count moved");
-
 
     support::press_step(&s, "up");
     support::wait_screen(
@@ -1170,12 +986,10 @@ fn t1_overlays_history_tab() {
     assert!(held.contains("15 entries"), "A2: entries count moved");
     checkpoint(&mut s, &dir, "02-cursor");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-g", "wait:Open tabs"], case.timeout_ms);
     checkpoint(&mut s, &dir, "03-tablist");
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Open tabs", "N1 tab list never closed");
-
 
     support::drive_with_timeout(&mut s, &["ctrl-t", "wait:Query 2"], case.timeout_ms);
     checkpoint(&mut s, &dir, "04-query2");
@@ -1183,11 +997,6 @@ fn t1_overlays_history_tab() {
     assert_eq!(tabbed.matches('×').count(), 4, "N2: Query 2 never tabbed");
     eprintln!("t1 overlays_history_tab: work tab proven, cursor proven");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
@@ -1205,8 +1014,6 @@ fn t1_resize_workbench_grown() {
         "pre: query panel leaks into the drawer"
     );
 
-
-
     resize_to(&mut s, 120, 40, case_timeout(&case));
     waits::wait_state(&mut s, "No results yet", "grown docked layout");
     waits::wait_state(&mut s, "S audit", "grown loaded tree");
@@ -1218,7 +1025,6 @@ fn t1_resize_workbench_grown() {
     );
     checkpoint(&mut s, &dir, "01-grown");
     let g = live_text(&mut s);
-
 
     assert_line_has(&g, "Explorer", "public", "V1 explorer");
     assert!(
@@ -1246,7 +1052,6 @@ fn t1_resize_workbench_grown() {
     assert!(!g.contains("Query 2"), "N2: phantom Query 2");
     assert_eq!(g.matches('×').count(), 2, "N2: tab × count moved");
 
-
     resize_to(&mut s, 80, 24, case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -1259,7 +1064,6 @@ fn t1_resize_workbench_grown() {
     );
     checkpoint(&mut s, &dir, "02-redrawer");
 
-
     resize_to(&mut s, 120, 40, case_timeout(&case));
     waits::wait_state(&mut s, "No results yet", "regrown docked layout");
     waits::wait_state(&mut s, "S audit", "regrown loaded tree");
@@ -1270,7 +1074,6 @@ fn t1_resize_workbench_grown() {
         |screen| !support::screen_text(screen).contains("Connected to"),
     );
     checkpoint(&mut s, &dir, "03-regrown");
-
 
     support::press_step(&s, "tab");
     support::wait_screen(
@@ -1285,10 +1088,8 @@ fn t1_resize_workbench_grown() {
     );
     checkpoint(&mut s, &dir, "04-tabbed");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-t", "wait:Query 2"], case.timeout_ms);
     checkpoint(&mut s, &dir, "05-query2");
-
 
     resize_to(&mut s, 60, 10, case_timeout(&case));
     waits::wait_state(&mut s, "Terminal too small", "N1 notice");
@@ -1298,11 +1099,6 @@ fn t1_resize_workbench_grown() {
     eprintln!("t1 resize_workbench_grown: docked reflow proven");
 }
 
-
-
-
-
-
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
 fn t1_resize_workbench_shrunk() {
@@ -1311,7 +1107,6 @@ fn t1_resize_workbench_shrunk() {
     let case = t1_case_size("resize_workbench_shrunk", ARGS, 120, 40, BOOT_WB).timeout(15_000);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
-
 
     support::drive_with_timeout(&mut s, &["wait:S audit"], case.timeout_ms);
     checkpoint(&mut s, &dir, "00-wide");
@@ -1334,8 +1129,6 @@ fn t1_resize_workbench_shrunk() {
     checkpoint(&mut s, &dir, "01-shrunk");
     let shrunk = live_text(&mut s);
 
-
-
     assert_line_has(&shrunk, "Explorer", "public", "V1 drawer");
     for needle in ["Tables", "T orders", "1.2 M", "S analytics", "▎"] {
         assert!(shrunk.contains(needle), "V1: drawer lacks `{needle}`");
@@ -1357,7 +1150,6 @@ fn t1_resize_workbench_shrunk() {
 
     assert!(!shrunk.contains("Query 2"), "N2: phantom Query 2");
 
-
     support::press_step(&s, "tab");
     waits::wait_state(&mut s, "No results yet", "A1 query tab back");
     let aside = live_text(&mut s);
@@ -1366,7 +1158,6 @@ fn t1_resize_workbench_shrunk() {
         "A1: drawer never stepped aside"
     );
     checkpoint(&mut s, &dir, "02-aside");
-
 
     resize_to(&mut s, 120, 40, case_timeout(&case));
     waits::wait_state(&mut s, "No results yet", "A2 docked layout");
@@ -1382,10 +1173,8 @@ fn t1_resize_workbench_shrunk() {
     assert_line_has(&regrown, "Explorer", "public", "A2 docked");
     checkpoint(&mut s, &dir, "03-regrown");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-t", "wait:Query 2"], case.timeout_ms);
     checkpoint(&mut s, &dir, "04-query2");
-
 
     resize_to(&mut s, 60, 10, case_timeout(&case));
     waits::wait_state(&mut s, "Terminal too small", "N1 notice");
@@ -1394,11 +1183,6 @@ fn t1_resize_workbench_shrunk() {
     checkpoint(&mut s, &dir, "05-notice");
     eprintln!("t1 resize_workbench_shrunk: drawer reflow proven");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
@@ -1428,7 +1212,6 @@ fn t1_table_structure() {
     waits::wait_state(&mut s, "Foreign keys", "structure sub-tabs");
     checkpoint(&mut s, &dir, "01-structure");
     let st = live_text(&mut s);
-
 
     assert_line_has(&st, "Data", "Structure", "V1 mode tabs");
     assert_line_has(&st, "Columns", "Foreign keys", "V1 sub-tabs");
@@ -1463,7 +1246,6 @@ fn t1_table_structure() {
         "N2: orders tab count moved"
     );
 
-
     support::press_step(&s, "down");
     support::wait_screen(
         &mut s,
@@ -1476,7 +1258,6 @@ fn t1_table_structure() {
         },
     );
 
-
     support::press_step(&s, "enter");
     std::thread::sleep(Duration::from_millis(400));
     let noop = live_text(&mut s);
@@ -1484,7 +1265,6 @@ fn t1_table_structure() {
     assert!(!noop.contains("EDIT"), "N1: Enter opened an editor");
     assert!(!noop.contains("• 1 pending"), "N1: Enter dirtied a cell");
     checkpoint(&mut s, &dir, "02-enter-noop");
-
 
     support::press_step(&s, "ctrl-d");
     waits::wait_state(&mut s, "10000", "A1 data grid back");
@@ -1494,23 +1274,16 @@ fn t1_table_structure() {
     assert!(!back.contains("Columns"), "A1: Columns sub-tab never left");
     checkpoint(&mut s, &dir, "03-data");
 
-
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "EDIT", "N1 editor proof");
     checkpoint(&mut s, &dir, "04-edit-proof");
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "EDIT", "N1 edit never cancelled");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-t", "wait:Query 2"], case.timeout_ms);
     checkpoint(&mut s, &dir, "05-query2");
     eprintln!("t1 table_structure: modes flip, Structure is read-only");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
@@ -1519,7 +1292,6 @@ fn t1_workbench_commit_dialog() {
     let case = t1_case_wb("workbench_commit_dialog").timeout(15_000);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
-
 
     support::drive_with_timeout(
         &mut s,
@@ -1556,7 +1328,6 @@ fn t1_workbench_commit_dialog() {
     checkpoint(&mut s, &dir, "01-open");
     let co = live_text(&mut s);
 
-
     for needle in [
         "Save changes?",
         "Action",
@@ -1582,8 +1353,6 @@ fn t1_workbench_commit_dialog() {
         "V2: header lost the pending marker"
     );
 
-
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Save changes?", "N1 review never closed");
     waits::wait_state(&mut s, "Changes kept pending", "S2 cancel status");
@@ -1595,11 +1364,8 @@ fn t1_workbench_commit_dialog() {
     assert!(kept.contains("• 1 pending"), "N1: Esc saved the edit");
     checkpoint(&mut s, &dir, "02-cancelled");
 
-
     support::press_step(&s, "ctrl-s");
     waits::wait_state(&mut s, "Save changes?", "reopened review");
-
-
 
     support::press_step(&s, "enter");
     std::thread::sleep(Duration::from_millis(300));
@@ -1625,13 +1391,11 @@ fn t1_workbench_commit_dialog() {
         "A2: Enter executed the dialog"
     );
 
-
     support::press_step(&s, "y");
     std::thread::sleep(Duration::from_millis(400));
     let inert = live_text(&mut s);
     assert!(inert.contains("Save changes?"), "N2: y closed the review");
     assert!(inert.contains("• 1 pending"), "N2: y saved the edit");
-
 
     support::press_step(&s, "right");
     std::thread::sleep(Duration::from_millis(400));
@@ -1642,8 +1406,6 @@ fn t1_workbench_commit_dialog() {
     );
     assert!(!refused.contains("▎Save"), "S1: disabled Save took focus");
     checkpoint(&mut s, &dir, "03-unarmed");
-
-
 
     support::press_step(&s, "backtab");
     support::wait_screen(
@@ -1685,10 +1447,6 @@ fn t1_workbench_commit_dialog() {
     eprintln!("t1 workbench_commit_dialog: token gate proven end to end");
 }
 
-
-
-
-
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
 fn t1_workbench_explorer_hidden() {
@@ -1710,7 +1468,6 @@ fn t1_workbench_explorer_hidden() {
     );
     checkpoint(&mut s, &dir, "01-hidden");
     let h = live_text(&mut s);
-
 
     for needle in ["Explorer", "Filter objects", "S public", "D acme_prod"] {
         assert!(!h.contains(needle), "V1/N1: explorer leaks `{needle}`");
@@ -1735,7 +1492,6 @@ fn t1_workbench_explorer_hidden() {
     assert_line_has(&h, "Enter Edit", "Ctrl+R Run", "S1 tab hints");
     assert_line_has(&h, "▎", "Type SQL", "S1 editor focus");
 
-
     support::drive_with_timeout(&mut s, &["i", "type:x"], case.timeout_ms);
     waits::wait_state(&mut s, "1 x", "A2 typed draft");
     support::press_step(&s, "escape");
@@ -1747,7 +1503,6 @@ fn t1_workbench_explorer_hidden() {
         "A2: editing restored the explorer"
     );
     checkpoint(&mut s, &dir, "02-edited");
-
 
     support::press_step(&s, "ctrl-b");
     waits::wait_state(&mut s, "Explorer", "A1 explorer back");
@@ -1763,10 +1518,6 @@ fn t1_workbench_explorer_hidden() {
     eprintln!("t1 workbench_explorer_hidden: toggle proven both ways");
 }
 
-
-
-
-
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
 fn t1_workbench_maximized() {
@@ -1780,7 +1531,6 @@ fn t1_workbench_maximized() {
     assert!(boot.contains("No results yet"), "pre: results dock missing");
     assert!(boot.contains("Type SQL"), "pre: editor missing");
 
-
     support::press_step(&s, "z");
     support::wait_screen(&mut s, case_timeout(&case), "zoom never landed", |screen| {
         let text = support::screen_text(screen);
@@ -1788,7 +1538,6 @@ fn t1_workbench_maximized() {
     });
     checkpoint(&mut s, &dir, "01-zoomed");
     let m = live_text(&mut s);
-
 
     for needle in ["Explorer", "S public", "Type SQL"] {
         assert!(!m.contains(needle), "V1: zoom leaks `{needle}`");
@@ -1798,8 +1547,6 @@ fn t1_workbench_maximized() {
         m.contains("Ctrl+R runs the statement under the cursor"),
         "V1: results hints missing"
     );
-
-
 
     for needle in ["Production", "≡ Query 1 ×"] {
         assert!(m.contains(needle), "V2: chrome lost `{needle}`");
@@ -1811,7 +1558,6 @@ fn t1_workbench_maximized() {
 
     assert!(!m.contains("Query 2"), "N2: phantom Query 2");
     assert_eq!(m.matches('×').count(), 2, "N2: tab × count moved");
-
 
     support::press_step(&s, "z");
     support::wait_screen(
@@ -1831,7 +1577,6 @@ fn t1_workbench_maximized() {
         "A1: results dock missing"
     );
     checkpoint(&mut s, &dir, "02-restored");
-
 
     let mut editor = false;
     for _ in 0..4 {
@@ -1857,7 +1602,6 @@ fn t1_workbench_maximized() {
     assert!(!ezoom.contains("Explorer"), "A2: explorer leaks into zoom");
     checkpoint(&mut s, &dir, "03-editor-zoomed");
 
-
     support::press_step(&s, "escape");
     support::wait_screen(
         &mut s,
@@ -1872,16 +1616,10 @@ fn t1_workbench_maximized() {
     );
     checkpoint(&mut s, &dir, "04-esc-restored");
 
-
     support::drive_with_timeout(&mut s, &["ctrl-t", "wait:Query 2"], case.timeout_ms);
     checkpoint(&mut s, &dir, "05-query2");
     eprintln!("t1 workbench_maximized: both zoom targets proven");
 }
-
-
-
-
-
 
 #[test]
 #[ignore = "tablepro t1 check; run with --ignored"]
@@ -1900,7 +1638,6 @@ fn t1_workbench_quit_confirm() {
     checkpoint(&mut s, &dir, "01-open");
     let qd = live_text(&mut s);
 
-
     for needle in ["Quit TablePro?", "1 unsaved query will be lost."] {
         assert!(qd.contains(needle), "V1: dialog lacks `{needle}`");
     }
@@ -1911,14 +1648,12 @@ fn t1_workbench_quit_confirm() {
     assert!(!qd.contains("▎Quit"), "S1: Quit stole focus");
     assert!(qd.contains("1 x"), "S2: draft hidden by the dialog");
 
-
     support::press_step(&s, "escape");
     waits::wait_gone(&mut s, "Quit TablePro?", "A1 dialog never closed");
     let kept = live_text(&mut s);
     assert!(kept.contains("1 x"), "A1/N1: Esc dropped the draft");
     assert!(kept.contains("Query 1"), "A1/N1: Esc quit the app");
     checkpoint(&mut s, &dir, "02-cancelled");
-
 
     support::press_step(&s, "q");
     waits::wait_state(&mut s, "Quit TablePro?", "second dialog");
@@ -1932,7 +1667,6 @@ fn t1_workbench_quit_confirm() {
         "N2: Enter-on-Cancel dropped the draft"
     );
     checkpoint(&mut s, &dir, "03-enter-cancel");
-
 
     support::press_step(&s, "q");
     waits::wait_state(&mut s, "Quit TablePro?", "third dialog");

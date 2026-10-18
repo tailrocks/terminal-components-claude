@@ -1,5 +1,3 @@
-
-
 use termrock::{
     Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi,
     Surface, Ui, Variant,
@@ -11,11 +9,9 @@ const NAV: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.nav")
 const SIDE_PANEL: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.panel");
 const CONTENT_PANEL: Id = termrock::Id::root("showcase_ui::pages::sidebars::sidebars.content");
 
-
 fn side_panel() -> Panel<'static> {
     Panel::new(SIDE_PANEL)
 }
-
 
 fn content_panel(title: &'static str) -> Panel<'static> {
     Panel::new(CONTENT_PANEL).title(title)
@@ -143,7 +139,6 @@ fn sidebar(
         })
         .row(item_row)
 }
-
 
 #[derive(Debug, Default)]
 pub struct SidebarsPage {

@@ -1,5 +1,3 @@
-
-
 use termrock::{
     Cx, FrameRead, Id, Panel, Rect, Response, ScrollRegion, ScrollState, StateFlags, TextViewport,
     Track, Ui, ViewportAction, ViewportLine, ViewportState, layout,
@@ -61,8 +59,6 @@ fn position_label(state: &ViewportState) -> String {
     )
 }
 
-
-
 fn prose_panel(meta: &str) -> Panel<'_> {
     Panel::new(PROSE_PANEL).title("Wrapped text").meta(meta)
 }
@@ -74,8 +70,6 @@ fn list_panel(meta: &str) -> Panel<'_> {
 fn log_panel(meta: &str) -> Panel<'_> {
     Panel::new(LOG_PANEL).title("Log").meta(meta)
 }
-
-
 
 fn region() -> ScrollRegion<'static> {
     ScrollRegion::new(REGION)
@@ -127,8 +121,6 @@ fn columns(area: Rect) -> [Rect; 3] {
         },
     ]
 }
-
-
 
 #[derive(Debug)]
 pub struct ScrollingPage {
@@ -334,8 +326,6 @@ impl Page for ScrollingPage {
 }
 
 impl ScrollingPage {
-
-
     fn draw_region(&self, ui: &mut Ui<'_>, inner: Rect) {
         let content = region().draw(ui, inner, &self.region_state, REGION_LEN);
         let view = ScrollRegion::view(&self.region_state, content, REGION_LEN);

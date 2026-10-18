@@ -1,4 +1,3 @@
-
 use termrock_core::{Id, ItemKey, KeyCode, Response};
 use termrock_navigation::{
     Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeNode, TreeState,

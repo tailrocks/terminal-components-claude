@@ -1,5 +1,3 @@
-
-
 use termrock::{
     Cx, Family, Field, FieldError, Id, Panel, PanelKind, Part, Rect, StateFlags, TextAction,
     TextArea, TextAreaState, Track, Ui, Variant, layout, truncate,
@@ -61,7 +59,6 @@ fn commit_field() -> Field<'static, TextArea<'static>> {
     .optional_suffix(false)
     .error(Some("Use the imperative mood and explain why"))
 }
-
 
 fn playground_panel(meta: &'static str) -> Panel<'static> {
     Panel::new(PLAYGROUND)
@@ -184,8 +181,6 @@ fn legacy_field_error(ui: &mut Ui<'_>, area: Rect, text: &str) {
     let _ = ui.paint_str(row, &fitted, style);
 }
 
-
-
 #[derive(Debug)]
 pub struct TextAreasPage {
     value: String,
@@ -224,8 +219,6 @@ impl Page for TextAreasPage {
                 TextAction::MoveNext | TextAction::MovePrev => "focus moved",
             };
         }
-
-
 
         let _ = playground_panel("Enter Edit · Esc Done · Tab Next ");
         let _ = states_panel();

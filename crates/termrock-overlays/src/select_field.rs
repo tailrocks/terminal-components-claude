@@ -1,5 +1,3 @@
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -11,11 +9,6 @@ use crate::ui::Ui;
 use termrock_collections::collection::KeyFn;
 use termrock_runtime::field_control::FieldControl;
 use termrock_runtime::rowui::RowFn;
-
-
-
-
-
 
 pub struct SelectField<'a, T, K, R> {
     select: Select<'a, T, K, R>,
@@ -32,7 +25,6 @@ impl<T, K, R> fmt::Debug for SelectField<'_, T, K, R> {
 }
 
 impl<'a, T, K, R> SelectField<'a, T, K, R> {
-
     pub const fn new(select: Select<'a, T, K, R>, items: &'a [T]) -> Self {
         SelectField { select, items }
     }

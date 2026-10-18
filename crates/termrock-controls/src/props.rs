@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 
 use super::{Acc, PartStyle, SlotFn, cell_at, paint_pressed_bracket};
@@ -23,14 +20,8 @@ use ratatui_core::layout::Rect;
 use termrock_collections::collection::{Reconcile, Reconciliation};
 use termrock_runtime::rowui::CellUi;
 
-
-
-
-
-
 #[derive(Clone, Copy)]
 pub enum PropsValue<'a> {
-
     Text(&'a str),
 
     Secret(&'a Secret),
@@ -58,11 +49,9 @@ impl PartialEq for PropsValue<'_> {
 impl Eq for PropsValue<'_> {}
 
 impl<'a> PropsValue<'a> {
-
     pub const fn is_secret(self) -> bool {
         matches!(self, PropsValue::Secret(_))
     }
-
 
     pub const fn text(self) -> Option<&'a str> {
         match self {
@@ -72,14 +61,8 @@ impl<'a> PropsValue<'a> {
     }
 }
 
-
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PropsRow<'a> {
-
     pub key: ItemKey,
 
     pub label: &'a str,
@@ -94,16 +77,13 @@ pub struct PropsRow<'a> {
 }
 
 impl<'a> PropsRow<'a> {
-
     pub const fn new(key: ItemKey, label: &'a str, value: &'a str) -> Self {
         Self::value(key, label, PropsValue::Text(value))
     }
 
-
     pub const fn secret(key: ItemKey, label: &'a str, value: &'a Secret) -> Self {
         Self::value(key, label, PropsValue::Secret(value))
     }
-
 
     pub const fn value(key: ItemKey, label: &'a str, value: PropsValue<'a>) -> Self {
         PropsRow {
@@ -116,19 +96,16 @@ impl<'a> PropsRow<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn tone(mut self, tone: Role) -> Self {
         self.tone = Some(tone);
         self
     }
 
-
     #[must_use]
     pub const fn role(self, role: Role) -> Self {
         self.tone(role)
     }
-
 
     #[must_use]
     pub const fn wrap(mut self) -> Self {
@@ -136,13 +113,11 @@ impl<'a> PropsRow<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn wrap_if(mut self, yes: bool) -> Self {
         self.wrap = yes;
         self
     }
-
 
     #[must_use]
     pub const fn copyable(mut self) -> Self {
@@ -150,30 +125,24 @@ impl<'a> PropsRow<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn copyable_if(mut self, yes: bool) -> Self {
         self.copyable = yes && !self.value.is_secret();
         self
     }
 
-
     pub const fn can_copy(&self) -> bool {
         self.copyable && !self.value.is_secret()
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PropsAction {
-
     Copy(ItemKey),
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PropsCmd {
-
     Up,
 
     Down,
@@ -293,33 +262,27 @@ const PROPS_BINDINGS: [Binding<PropsCmd>; 12] = [
     ),
 ];
 
-
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PropsState {
     core: termrock_collections::collection::CollectionCore,
 }
 
 impl PropsState {
-
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
-
 
     pub const fn cursor_index(&self) -> usize {
         self.core.cursor_index()
     }
 
-
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
-
 
     pub fn invalidate(&mut self) {
         self.core.invalidate();
@@ -335,92 +298,6 @@ impl Reconcile for PropsState {
         self.core.invalidate();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct PropsList<'a> {
     id: Id,
@@ -442,7 +319,6 @@ impl fmt::Debug for PropsList<'_> {
 }
 
 impl<'a> PropsList<'a> {
-
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::META,
@@ -451,7 +327,6 @@ impl<'a> PropsList<'a> {
         Part::TRACK,
         Part::THUMB,
     ];
-
 
     pub const fn new(id: Id) -> Self {
         PropsList {
@@ -463,13 +338,11 @@ impl<'a> PropsList<'a> {
         }
     }
 
-
     #[must_use]
     pub const fn variant(mut self, variant: Variant) -> Self {
         self.variant = variant;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
@@ -478,14 +351,12 @@ impl<'a> PropsList<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, patches: &'a [(Part, StylePatch)]) -> Self {
         self.parts = patches;
         self.ov = self.ov.part(patches);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, part: Part, painter: SlotFn<'a>) -> Self {
@@ -595,8 +466,6 @@ impl<'a> PropsList<'a> {
             acc.consumed();
         }
     }
-
-
 
     #[expect(
         clippy::too_many_lines,
@@ -717,7 +586,6 @@ impl<'a> PropsList<'a> {
         }
         acc.finish(self.id)
     }
-
 
     #[expect(
         clippy::too_many_lines,
@@ -842,7 +710,6 @@ impl<'a> PropsList<'a> {
         }
         area
     }
-
 
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
@@ -996,58 +863,6 @@ fn paint_piece(
     *x = (*x).saturating_add(used);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct Props<'a> {
     rows: PropsRows<'a>,
     ov: PartStyle<'a>,
@@ -1077,9 +892,7 @@ impl fmt::Debug for Props<'_> {
 }
 
 impl<'a> Props<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::META, Part::LABEL];
-
 
     pub const fn new(rows: &'a [(&'a str, &'a str)]) -> Self {
         Props {
@@ -1088,18 +901,12 @@ impl<'a> Props<'a> {
         }
     }
 
-
-
-
-
-
     pub const fn rich(rows: &'a [PropsRow<'a>]) -> Self {
         Props {
             rows: PropsRows::Rich(rows),
             ov: PartStyle::new(),
         }
     }
-
 
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
@@ -1113,7 +920,6 @@ impl<'a> Props<'a> {
             PropsRows::Rich(rows) => PropsList::label_width(rows),
         }
     }
-
 
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let rows = match self.rows {
@@ -1231,7 +1037,6 @@ impl<'a> Props<'a> {
                     .style
             };
 
-
             let resolved_row = PropsRow { tone: None, ..*row };
             paint_value(
                 ui,
@@ -1251,7 +1056,6 @@ impl<'a> Props<'a> {
             ..area
         }
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         match self.rows {

@@ -1,6 +1,3 @@
-
-
-
 use core::fmt;
 
 use ratatui_core::layout::Rect;
@@ -14,98 +11,6 @@ use crate::response::{Activated, Response, StateFlags};
 use crate::text::width;
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct Brand<'a> {
     id: Id,
@@ -131,9 +36,7 @@ impl fmt::Debug for Brand<'_> {
 }
 
 impl<'a> Brand<'a> {
-
     pub const PARTS: &'static [Part] = &[Part::LABEL, Part::META];
-
 
     pub const fn new(id: Id, text: &'a str) -> Self {
         Brand {
@@ -147,11 +50,9 @@ impl<'a> Brand<'a> {
         }
     }
 
-
     pub const fn id(&self) -> Id {
         self.id
     }
-
 
     #[must_use]
     pub const fn variant(mut self, v: Variant) -> Self {
@@ -159,13 +60,11 @@ impl<'a> Brand<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn compact(mut self, yes: bool) -> Self {
         self.compact = yes;
         self
     }
-
 
     #[must_use]
     pub const fn tagline(mut self, s: &'a str) -> Self {
@@ -173,13 +72,11 @@ impl<'a> Brand<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn clickable(mut self, yes: bool) -> Self {
         self.clickable = yes;
         self
     }
-
 
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
@@ -187,13 +84,11 @@ impl<'a> Brand<'a> {
         self
     }
 
-
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
-
 
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
@@ -201,18 +96,15 @@ impl<'a> Brand<'a> {
         self
     }
 
-
     const fn pad(&self) -> u16 {
         if self.compact { 0 } else { 1 }
     }
-
 
     fn lockup_width(&self) -> u16 {
         width(self.text)
             .saturating_add(self.pad())
             .saturating_add(self.pad())
     }
-
 
     fn natural_width(&self, ui: &Ui<'_>) -> u16 {
         match self.tagline {
@@ -223,7 +115,6 @@ impl<'a> Brand<'a> {
             _ => self.lockup_width(),
         }
     }
-
 
     pub fn update(&self, cx: &mut Cx<'_>) -> Response<Activated> {
         if !self.clickable {
@@ -243,7 +134,6 @@ impl<'a> Brand<'a> {
         r.for_id(self.id)
     }
 
-
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect) -> Rect {
         let area = Rect {
             width: self.natural_width(ui).min(area.width),
@@ -259,7 +149,6 @@ impl<'a> Brand<'a> {
         if self.clickable && !ui.is_inert() {
             ui.register_control(self.id, lockup, Focusability::ClickOnly);
         }
-
 
         let live = PartStyle::flags(
             if self.clickable {
@@ -279,8 +168,6 @@ impl<'a> Brand<'a> {
             let bracketed = matches!(s.glyph, Slot::Set(GlyphRole::PressLeft))
                 && lockup.width >= width(self.text).saturating_add(2);
             if bracketed {
-
-
                 ui.paint_str(shift(lockup, 1), self.text, s.style);
                 paint_pressed_bracket(
                     ui,
@@ -309,7 +196,6 @@ impl<'a> Brand<'a> {
         }
         area
     }
-
 
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         Size::exact(self.natural_width(ui), 1).fit(c)
@@ -347,9 +233,6 @@ mod tests {
         height: 1,
     };
 
-
-
-
     #[derive(Default)]
     struct BrandPage {
         clickable: bool,
@@ -382,8 +265,6 @@ mod tests {
             ui.register_control(OTHER, STOP, Focusability::Focusable);
         }
     }
-
-
 
     fn page(clickable: bool) -> (Runtime<BrandPage>, Buffer) {
         let app = BrandPage {
@@ -443,13 +324,9 @@ mod tests {
         );
     }
 
-
     const fn pointer() -> (u16, u16) {
         (LOCKUP.x + LOCKUP.width / 2, LOCKUP.y)
     }
-
-
-
 
     #[test]
     fn only_a_clickable_lockup_registers_a_click_only_control_and_a_label_part() {
@@ -486,8 +363,6 @@ mod tests {
         );
         assert!(!rt.ring().is_registered(MARK));
     }
-
-
 
     #[test]
     fn only_a_clickable_lockup_emits_activated_on_a_click() {
@@ -530,11 +405,7 @@ mod tests {
         );
     }
 
-
     const TAGLINE: &str = "build 7";
-
-
-
 
     const SWEPT: &[(Part, bool)] = &[
         (Part::LABEL, true),
@@ -544,7 +415,6 @@ mod tests {
         (Part::MARKER, false),
         (Part::GUTTER, false),
     ];
-
 
     struct SlotPage(Option<Part>);
 
@@ -566,18 +436,12 @@ mod tests {
         }
     }
 
-
     fn painted(slot: Option<Part>) -> Buffer {
         let mut rt = Runtime::new(SlotPage(slot), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         buf
     }
-
-
-
-
-
 
     #[test]
     fn a_slot_changes_painted_cells_for_exactly_label_and_meta() {
@@ -602,9 +466,6 @@ mod tests {
             "the honoured set above is the whole of `PARTS`, so no declared part is excluded"
         );
     }
-
-
-
 
     #[test]
     fn only_a_clickable_lockup_lifts_to_accent_hover_under_the_pointer() {

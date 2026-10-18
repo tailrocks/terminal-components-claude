@@ -1,5 +1,3 @@
-
-
 use termrock::author::PaintStyle;
 use termrock::{
     Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, FieldSpec, Form, HelpOverlay,
@@ -43,9 +41,6 @@ const PROPS_ROWS: [(&str, &str); 3] = [
     ("Ownership", "application state"),
     ("Rendering", "public Ui facade"),
 ];
-
-
-
 
 fn component_roster() {
     let _ = Form::new(COMPONENT_ROSTER, &[] as &[FieldSpec<'static>]);
@@ -161,8 +156,6 @@ fn state_language_panel() -> Panel<'static> {
         .patch_part(OVERVIEW_PANEL_PARTS)
 }
 
-
-
 #[derive(Debug)]
 pub struct OverviewPage {
     author: AuthorBadge,
@@ -231,9 +224,6 @@ impl Page for OverviewPage {
             self.title(),
             "Tokens and principles behind every component",
             |ui, body| {
-
-
-
                 let (left, right) = if body.width < 68 {
                     let rows = layout::rows(
                         body,
@@ -280,9 +270,6 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
     }
     let token_count = u16::try_from(TOKEN_LABELS.len()).unwrap_or(u16::MAX);
     let area = Rect {
-
-
-
         height: if area.width >= 40 && area.height <= 18 {
             area.height.min(9)
         } else {
@@ -382,9 +369,6 @@ fn draw_principles(ui: &mut Ui<'_>, area: Rect, author: &AuthorBadge) {
         return;
     }
     if area.height <= 10 {
-
-
-
         let state_area = Rect {
             y: area.y.saturating_add(1),
             height: area.height.saturating_sub(1),

@@ -1,4 +1,3 @@
-
 use crate::workbench::Workbench;
 use tablepro_domain::model::{SwitchItem, SwitchTarget, SwitcherIndex};
 use termrock::{FilterPolicy, Id, ItemRowLayout, Picker, PickerState, ScopeKey};
@@ -22,7 +21,6 @@ impl QuickSwitcher {
     pub(crate) fn open(&mut self, workbench: &Workbench) {
         self.state = PickerState::default();
         self.index = workbench.switcher();
-
 
         self.index
             .items

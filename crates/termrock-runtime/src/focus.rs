@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use std::collections::HashMap;
 
 use ratatui_core::layout::Rect;
@@ -13,38 +5,30 @@ use ratatui_core::layout::Rect;
 use crate::id::Id;
 use crate::layer::LayerId;
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct ScopeId(Id);
 
 impl ScopeId {
-
     pub const ROOT: ScopeId = ScopeId(Id::root("tui.focus.root"));
-
 
     pub const fn new(id: Id) -> Self {
         ScopeId(id)
     }
-
 
     pub const fn id(self) -> Id {
         self.0
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ScopeMode {
-
     Normal,
 
     Trap,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Focusability {
-
     Focusable,
 
     FocusableReadOnly,
@@ -54,10 +38,8 @@ pub enum Focusability {
     ClickOnly,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum FocusVis {
-
     None,
 
     Focused,
@@ -65,10 +47,8 @@ pub enum FocusVis {
     FocusedVisible,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct FocusEntry {
-
     pub id: Id,
 
     pub scope: ScopeId,
@@ -90,7 +70,6 @@ struct ScopeRecord {
     layer: LayerId,
 }
 
-
 #[derive(Clone, Debug)]
 pub struct FocusRing {
     entries: Vec<FocusEntry>,
@@ -106,7 +85,6 @@ impl Default for FocusRing {
 }
 
 impl FocusRing {
-
     pub fn new() -> Self {
         FocusRing {
             entries: Vec::new(),
@@ -120,7 +98,6 @@ impl FocusRing {
         }
     }
 
-
     pub(crate) fn reset(&mut self) {
         self.entries.clear();
         self.scopes.truncate(1);
@@ -128,16 +105,13 @@ impl FocusRing {
         self.open.push(ScopeId::ROOT);
     }
 
-
     pub fn entries(&self) -> &[FocusEntry] {
         &self.entries
     }
 
-
     pub(crate) fn current_scope(&self) -> ScopeId {
         self.open.last().copied().unwrap_or(ScopeId::ROOT)
     }
-
 
     pub(crate) fn push_scope(&mut self, id: ScopeId, mode: ScopeMode, layer: LayerId) {
         let parent = Some(self.current_scope());
@@ -158,13 +132,11 @@ impl FocusRing {
         self.open.push(id);
     }
 
-
     pub(crate) fn pop_scope(&mut self) {
         if self.open.len() > 1 {
             self.open.pop();
         }
     }
-
 
     pub(crate) fn ensure_scope(
         &mut self,
@@ -189,7 +161,6 @@ impl FocusRing {
         }
     }
 
-
     pub(crate) fn register(&mut self, entry: FocusEntry) {
         self.entries.push(entry);
     }
@@ -197,7 +168,6 @@ impl FocusRing {
     fn scope(&self, id: ScopeId) -> Option<&ScopeRecord> {
         self.scopes.iter().find(|r| r.id == id)
     }
-
 
     pub fn active_trap(&self) -> Option<ScopeId> {
         self.scopes
@@ -207,19 +177,12 @@ impl FocusRing {
             .map(|r| r.id)
     }
 
-
-
-
-
-
-
     pub fn innermost_scope(&self) -> ScopeId {
         self.scopes
             .iter()
             .max_by(|a, b| a.layer.cmp(&b.layer))
             .map_or(ScopeId::ROOT, |r| r.id)
     }
-
 
     pub fn within(&self, scope: ScopeId, ancestor: ScopeId) -> bool {
         let mut cur = Some(scope);
@@ -238,7 +201,6 @@ impl FocusRing {
         !e.disabled && trap.is_none_or(|t| self.within(e.scope, t))
     }
 
-
     pub fn reachable(&self) -> impl Iterator<Item = &FocusEntry> + '_ {
         let trap = self.active_trap();
         self.entries
@@ -246,22 +208,17 @@ impl FocusRing {
             .filter(move |e| self.is_reachable(e, trap))
     }
 
-
     pub fn contains(&self, id: Id) -> bool {
         self.reachable().any(|e| e.id == id)
     }
-
 
     pub fn is_registered(&self, id: Id) -> bool {
         self.entries.iter().any(|e| e.id == id)
     }
 
-
     pub fn entry(&self, id: Id) -> Option<&FocusEntry> {
         self.entries.iter().find(|e| e.id == id)
     }
-
-
 
     pub fn next(&self, from: Option<Id>) -> Option<Id> {
         let first = self.reachable().next()?.id;
@@ -280,8 +237,6 @@ impl FocusRing {
         Some(first)
     }
 
-
-
     pub fn prev(&self, from: Option<Id>) -> Option<Id> {
         let last = self.reachable().last()?.id;
         let Some(from) = from else {
@@ -297,18 +252,11 @@ impl FocusRing {
         Some(last)
     }
 
-
     pub fn first_in(&self, scope: ScopeId) -> Option<Id> {
         self.reachable()
             .find(|e| self.within(e.scope, scope))
             .map(|e| e.id)
     }
-
-
-
-
-
-
 
     pub fn reconcile(&self, prev: &FocusRing, current: Option<Id>) -> Option<Id> {
         if let Some(cur) = current
@@ -351,17 +299,10 @@ impl FocusRing {
             }
         }
 
-
-
-
-
-
-
         self.first_in(self.innermost_scope())
             .or_else(|| self.reachable().next().map(|e| e.id))
     }
 }
-
 
 #[derive(Clone, Debug, Default)]
 pub struct FocusState {
@@ -371,16 +312,13 @@ pub struct FocusState {
 }
 
 impl FocusState {
-
     pub const fn current(&self) -> Option<Id> {
         self.current
     }
 
-
     pub const fn visible(&self) -> bool {
         self.visible
     }
-
 
     pub fn vis(&self, id: Id) -> FocusVis {
         if self.current != Some(id) {
@@ -400,16 +338,13 @@ impl FocusState {
         self.visible = yes;
     }
 
-
     pub(crate) fn save_restore(&mut self, scope: ScopeId, id: Id) {
         self.restore.insert(scope, id);
     }
 
-
     pub(crate) fn take_restore(&mut self, scope: ScopeId) -> Option<Id> {
         self.restore.remove(&scope)
     }
-
 
     pub fn restore_target(&self, scope: ScopeId) -> Option<Id> {
         self.restore.get(&scope).copied()
@@ -614,8 +549,6 @@ mod tests {
 
     #[test]
     fn trap_is_armed_when_the_layer_is_pushed_not_when_it_draws() {
-
-
         let mut r = ring(&["a", "b"]);
         r.ensure_scope(
             ScopeId::new(Id::root("modal")),
@@ -627,9 +560,6 @@ mod tests {
         assert_eq!(r.next(None), None);
     }
 }
-
-
-
 
 #[cfg(test)]
 mod runtime_tests {
@@ -664,8 +594,6 @@ mod runtime_tests {
         }
     }
 
-
-
     #[test]
     fn read_only_entries_stay_in_the_ring() {
         let (mut rt, mut buf) = runtime(page());
@@ -687,8 +615,6 @@ mod runtime_tests {
         );
     }
 
-
-
     #[test]
     fn click_only_entries_are_never_reachable() {
         let (mut rt, mut buf) = runtime(page());
@@ -703,8 +629,6 @@ mod runtime_tests {
         assert!(rt.registry().area_of(CLICKY).is_some());
     }
 
-
-
     #[test]
     fn restore_target_receives_retained_key_after_the_next_publication() {
         let mut s = page();
@@ -716,7 +640,6 @@ mod runtime_tests {
         rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).initial_focus(OK)));
         let _ = step(&mut rt, &mut buf, key(KeyCode::Char('x')));
         assert_eq!(rt.focus(), Some(OK));
-
 
         let _ = rt
             .handle(key(KeyCode::Esc))

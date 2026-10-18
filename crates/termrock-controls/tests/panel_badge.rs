@@ -1,4 +1,3 @@
-
 #![cfg_attr(test, allow(clippy::expect_used, clippy::arithmetic_side_effects))]
 
 use ratatui_core::layout::Rect;
