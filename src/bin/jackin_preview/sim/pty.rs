@@ -1171,7 +1171,7 @@ impl Pane {
         self.term.set_follow(true);
         let _ = now_ms;
         let _ = workspace;
-        if !self.proc.awaiting() && self.proc.agent.is_some() {}
+        let _ = !self.proc.awaiting() && self.proc.agent.is_some();
         self.input.push(c);
         self.refresh_prompt();
     }
