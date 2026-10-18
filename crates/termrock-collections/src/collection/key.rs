@@ -1,36 +1,23 @@
-//! Keys, selection sets and the default accessors (`COMPONENT_ARCHITECTURE.md` §12.2, §17.0 A8, §21 item 5).
-
 use core::cell::Cell;
 
 use crate::id::ItemKey;
 
-/// Selection behaviour of a collection.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum SelectMode {
-    /// One item at a time.
     #[default]
     Single,
-    /// Any number of items.
     Multi,
-    /// A contiguous range from an anchor.
     Range,
-    /// No selection.
     None,
 }
 
-/// Default key accessor: `ItemKey::index(i)` — UNSTABLE under insert,
-/// remove and reorder; call `.key(…)` for stable identity.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct ByIndex;
 
-/// Default row painter: the item's `Display` through `RowUi::label_fmt`,
-/// no allocation.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct DefaultRow;
 
-/// A key accessor.
 pub trait KeyFn<T> {
-    /// The key of `item` at display `index`.
     fn key(&self, item: &T, index: usize) -> ItemKey;
 }
 
@@ -46,20 +33,10 @@ impl<T> KeyFn<T> for ByIndex {
     }
 }
 
-/// The shared key lookup for `KeyFn` collections: the key of `items[i]`,
-/// or `ItemKey::index(i)` when `i` is out of bounds.
-///
-/// Every keyed component resolves out-of-range indexes to the positional
-/// fallback instead of panicking, so cursor math can probe freely.
 pub fn key_at<T, K: KeyFn<T>>(key: &K, items: &[T], i: usize) -> ItemKey {
     items.get(i).map_or(ItemKey::index(i), |it| key.key(it, i))
 }
 
-/// The shared reverse lookup for `KeyFn` collections: the index of `item`,
-/// probing `hint` before scanning from the front.
-///
-/// The hint makes the common case — the key did not move — O(1); the scan
-/// keeps reconcile correct after reorder.
 pub fn index_of<T, K: KeyFn<T>>(
     key: &K,
     items: &[T],
@@ -75,13 +52,10 @@ pub fn index_of<T, K: KeyFn<T>>(
     (0..items.len()).find(|&i| key_at(key, items, i) == item)
 }
 
-/// [`key_at`] with an explicit accessor, for items without a [`KeyFn`]
-/// (e.g. `AsItem` semantic items whose key lives on the borrowed view).
 pub fn key_at_with<T>(items: &[T], i: usize, f: impl Fn(&T) -> ItemKey) -> ItemKey {
     items.get(i).map_or(ItemKey::index(i), f)
 }
 
-/// [`index_of`] with an explicit accessor, for items without a [`KeyFn`].
 pub fn index_of_with<T>(
     items: &[T],
     item: ItemKey,
@@ -97,14 +71,9 @@ pub fn index_of_with<T>(
     items.iter().position(|it| f(it) == item)
 }
 
-/// A selection set with an inverted representation, so "select all" never
-/// materialises every key. The `Vec` is kept sorted; `contains` is a binary
-/// search.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum KeySet {
-    /// Exactly these keys.
     Only(Vec<ItemKey>),
-    /// Every key except these.
     AllExcept(Vec<ItemKey>),
 }
 
@@ -115,7 +84,6 @@ impl Default for KeySet {
 }
 
 impl KeySet {
-    /// The empty set.
     pub const fn new() -> Self {
         KeySet::Only(Vec::new())
     }
@@ -136,13 +104,10 @@ impl KeySet {
         matches!(self, KeySet::AllExcept(_))
     }
 
-    /// Whether `k` is in the set (binary search).
     pub fn contains(&self, k: ItemKey) -> bool {
         self.contains_counting(k).0
     }
 
-    /// `contains` plus the number of key comparisons made (for the
-    /// binary-search test).
     pub fn contains_counting(&self, k: ItemKey) -> (bool, usize) {
         let count = Cell::new(0usize);
         let found = self
@@ -167,7 +132,6 @@ impl KeySet {
         }
     }
 
-    /// Add `k`.
     pub fn insert(&mut self, k: ItemKey) {
         match self {
             KeySet::Only(v) => Self::add(v, k),
@@ -175,7 +139,6 @@ impl KeySet {
         }
     }
 
-    /// Remove `k`.
     pub fn remove(&mut self, k: ItemKey) {
         match self {
             KeySet::Only(v) => Self::drop(v, k),
@@ -183,7 +146,6 @@ impl KeySet {
         }
     }
 
-    /// Toggle `k`.
     pub fn toggle(&mut self, k: ItemKey) {
         if self.contains(k) {
             self.remove(k);
@@ -192,17 +154,14 @@ impl KeySet {
         }
     }
 
-    /// Select everything (0 allocations).
     pub fn all(&mut self) {
         *self = KeySet::AllExcept(Vec::new());
     }
 
-    /// Select nothing.
     pub fn none(&mut self) {
         *self = KeySet::Only(Vec::new());
     }
 
-    /// The number of selected keys given `total` items.
     pub fn len_in(&self, total: usize) -> usize {
         match self {
             KeySet::Only(v) => v.len().min(total),
@@ -210,14 +169,10 @@ impl KeySet {
         }
     }
 
-    /// Whether nothing is selected (for a non-inverted set).
     pub fn is_empty(&self) -> bool {
         matches!(self, KeySet::Only(v) if v.is_empty())
     }
 
-    /// Keep only keys for which `keep` holds; returns the dropped count.
-    /// For an inverted set the exclusions are pruned instead and `0` is
-    /// reported, because vanished keys were never selected.
     pub fn retain(&mut self, mut keep: impl FnMut(ItemKey) -> bool) -> usize {
         let inverted = self.inverted();
         let list = self.list_mut();
@@ -230,7 +185,6 @@ impl KeySet {
         }
     }
 
-    /// The explicit keys (selected for `Only`, excluded for `AllExcept`).
     pub fn keys(&self) -> &[ItemKey] {
         self.list()
     }

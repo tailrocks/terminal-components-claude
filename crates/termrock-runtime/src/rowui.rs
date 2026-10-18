@@ -1,9 +1,3 @@
-//! Per-row and per-cell painting (`COMPONENT_ARCHITECTURE.md` §12.2, §20.9-6, §21 item 21).
-//!
-//! Parts come pre-styled for the row's resolved state. Every write goes
-//! through the clipping writer in one grapheme walk with no intermediate
-//! `String`; `label_fmt`, `num` and `money` format in place.
-
 use core::fmt::{self, Write as _};
 
 use crate::theme::PaintStyle;
@@ -18,9 +12,7 @@ use crate::text::{Span, width};
 use crate::theme::{Align, Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
 
-/// A row painter closure or type.
 pub trait RowFn<T> {
-    /// Paint one item using the row painter.
     fn row(&self, item: &T, row: &mut RowUi<'_>);
 }
 
@@ -36,14 +28,8 @@ impl<T: core::fmt::Display> RowFn<T> for termrock_collections::DefaultRow {
     }
 }
 
-/// Maximum columns `RowUi::columns` lays out without allocating.
-///
-/// Tracks beyond this cap are **silently ignored** — the fixed `[u16; 16]`
-/// track buffer is what makes the row painter allocation-free (§12.2, R5,
-/// MI-8).
 pub const MAX_COLUMNS: usize = 16;
 
-/// A painter for one collection row, its parts pre-styled.
 pub struct RowUi<'u> {
     ui: Ui<'u>,
     owner: Id,
@@ -53,9 +39,7 @@ pub struct RowUi<'u> {
     key: ItemKey,
     row: Rect,
     label_patch: Option<StylePatch>,
-    /// Next free column from the left.
     left: u16,
-    /// Columns reserved from the right (already consumed).
     right: u16,
 }
 
@@ -72,8 +56,6 @@ impl fmt::Debug for RowUi<'_> {
 }
 
 impl<'u> RowUi<'u> {
-    /// Begin painting `row` for item `key` of `owner`, wearing `flags`.
-    /// The row is filled with the family's `CONTAINER` style first.
     pub fn new<'a: 'u>(
         ui: &'u mut Ui<'a>,
         owner: Id,
@@ -86,8 +68,6 @@ impl<'u> RowUi<'u> {
         Self::new_with_patches(ui, owner, family, variant, flags, key, row, None, None)
     }
 
-    /// Begin a row with component-owned patches forwarded only to the
-    /// automatic container fill and label painters.
     #[expect(
         clippy::too_many_arguments,
         reason = "the crate-private constructor extends RowUi's public phase context with two scoped patches"
@@ -126,22 +106,18 @@ impl<'u> RowUi<'u> {
         }
     }
 
-    /// The row's state flags.
     pub const fn flags(&self) -> StateFlags {
         self.flags
     }
 
-    /// The item key.
     pub const fn key(&self) -> ItemKey {
         self.key
     }
 
-    /// The owner id.
     pub const fn owner(&self) -> Id {
         self.owner
     }
 
-    /// The whole row rect.
     pub const fn area(&self) -> Rect {
         self.row
     }
@@ -170,8 +146,6 @@ impl<'u> RowUi<'u> {
         r.style
     }
 
-    /// Paint a marker glyph at the left, then a gap. A resolved `Set`
-    /// overrides `g`; `Clear` suppresses the marker while keeping its cell.
     pub fn marker(&mut self, g: GlyphRole) {
         let r = self
             .ui
@@ -200,8 +174,6 @@ impl<'u> RowUi<'u> {
         }
     }
 
-    /// Paint the focus gutter (`GlyphRole::FocusBar` when the recipe says so,
-    /// else a blank gutter cell).
     pub fn gutter(&mut self) {
         let r = self
             .ui
@@ -220,20 +192,16 @@ impl<'u> RowUi<'u> {
         self.left = self.left.saturating_add(1);
     }
 
-    /// Indent by `depth` tree levels.
     pub fn indent(&mut self, depth: u16) {
         let step = self.ui.design().space.tree_indent;
         self.left = self.left.saturating_add(depth.saturating_mul(step));
     }
 
-    /// Paint the label into what is left, ending with the ellipsis glyph
-    /// when it does not fit (the legacy `fit` contract, now allocation-free).
     pub fn label(&mut self, s: &str) {
         let st = self.style_of(Part::LABEL);
         self.label_in(s, st);
     }
 
-    /// Paint the label with an instance patch.
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
         let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
         let st = self
@@ -263,7 +231,6 @@ impl<'u> RowUi<'u> {
         self.left = self.left.saturating_add(used);
     }
 
-    /// Paint role-carrying spans as the label (`Buffer::set_line`).
     pub fn label_spans(&mut self, spans: &[Span<'_>]) {
         let st = self.style_of(Part::LABEL);
         let area = self.remaining();
@@ -271,7 +238,6 @@ impl<'u> RowUi<'u> {
         self.left = self.left.saturating_add(used);
     }
 
-    /// Format the label in place (0 allocations).
     pub fn label_fmt(&mut self, args: fmt::Arguments<'_>) {
         let st = self.style_of(Part::LABEL);
         let area = self.remaining();
@@ -286,8 +252,6 @@ impl<'u> RowUi<'u> {
         self.left = self.left.saturating_add(used);
     }
 
-    /// Right-aligned meta text, dropped all-or-none when it does not fit
-    /// after a two-cell gap (`DESIGN.md:478`).
     pub fn meta(&mut self, s: &str) {
         let need = width(s);
         let area = self.remaining();
@@ -305,8 +269,6 @@ impl<'u> RowUi<'u> {
         self.right = self.right.saturating_add(need).saturating_add(1);
     }
 
-    /// Right-aligned trailing text with an instance patch (dropped when it
-    /// does not fit).
     pub fn trailing(&mut self, s: &str, p: &StylePatch) {
         let need = width(s);
         let area = self.remaining();
@@ -327,8 +289,6 @@ impl<'u> RowUi<'u> {
         self.right = self.right.saturating_add(need).saturating_add(1);
     }
 
-    /// Reserve `width` columns from the right for `p`; `label` fills what
-    /// is left.
     pub fn part(&mut self, p: Part, width: u16) -> CellUi<'_> {
         let area = self.remaining();
         let w = width.min(area.width);
@@ -346,17 +306,10 @@ impl<'u> RowUi<'u> {
         CellUi::with_resolved_glyph(self.ui.reborrow(), cell, r.style, r.glyph)
     }
 
-    /// Split what is left into columns.
-    ///
-    /// At most [`MAX_COLUMNS`] tracks are laid out; further tracks are
-    /// **silently ignored** so the row can never allocate (§12.2, MI-8). A
-    /// component that needs more columns than the cap is a design error, not
-    /// a runtime one: split the row.
     pub fn columns(&mut self, widths: &[Track]) -> ColumnsUi<'_> {
         self.columns_with_gap(widths, self.ui.design().space.column_gap)
     }
 
-    /// Split remaining space with an explicit gap, retaining the same track cap.
     pub fn columns_with_gap(&mut self, widths: &[Track], gap: u16) -> ColumnsUi<'_> {
         let area = self.remaining();
         let mut sizes = [0u16; MAX_COLUMNS];
@@ -380,9 +333,6 @@ impl<'u> RowUi<'u> {
         }
     }
 
-    /// The buffer and the row rect; marks **the row rect** written, not the
-    /// whole clip (BL-3): a right-aligned cell inside a layer must not make
-    /// the layer's written-cell bitset all-true.
     pub fn raw(&mut self) -> (&mut Buffer, Rect) {
         let row = self.row;
         let (buf, _) = self.ui.buffer_in(row);
@@ -390,7 +340,6 @@ impl<'u> RowUi<'u> {
     }
 }
 
-/// A `fmt::Write` that paints straight into cells.
 struct CellWriter<'a, 'u> {
     ui: &'a mut Ui<'u>,
     area: Rect,
@@ -416,12 +365,10 @@ impl fmt::Write for CellWriter<'_, '_> {
     }
 }
 
-/// A painter for one cell; content is laid out and styled on drop.
 pub struct CellUi<'u> {
     ui: Ui<'u>,
     area: Rect,
     style: PaintStyle,
-    /// Columns painted so far, from `area.x`.
     used: u16,
     align: Align,
     tone: Option<Role>,
@@ -464,14 +411,6 @@ impl<'u> CellUi<'u> {
         }
     }
 
-    /// Columns the resolved glyph slot reserves at the end of the cell.
-    ///
-    /// `Set` reserves the resolved glyph's own width. `Clear` reserves one
-    /// blank cell: an explicitly cleared glyph keeps the geometry it would
-    /// have had, exactly as `RowUi::marker` keeps the marker cell and its gap
-    /// (§12.2; §29.1 requires `Clear` to stay distinguishable from
-    /// `Inherit`). `Inherit` reserves nothing, leaving caller content or a
-    /// `suffix` authoritative.
     fn resolved_glyph_width(&self) -> u16 {
         match self.resolved_glyph {
             Slot::Set(g) => width(self.ui.design().glyphs.get(g)),
@@ -508,8 +447,7 @@ impl<'u> CellUi<'u> {
         };
         let used = match self.resolved_glyph {
             Slot::Set(g) => self.ui.glyph(cell, g, self.style),
-            // The reservation is kept and shown blank, so a cleared glyph is
-            // not the same picture as an inherited one (§29.1).
+
             Slot::Clear => {
                 self.ui.fill(cell, self.style);
                 cell.width
@@ -519,7 +457,6 @@ impl<'u> CellUi<'u> {
         self.used = self.used.saturating_add(used);
     }
 
-    /// Paint text.
     pub fn text(&mut self, s: &str) -> &mut Self {
         let area = self.free();
         let used = self.ui.paint_str(area, s, self.style);
@@ -527,23 +464,15 @@ impl<'u> CellUi<'u> {
         self
     }
 
-    /// Remove modifiers from subsequent writes, before per-grapheme emphasis.
-    /// Unlike `patch`, this does not restyle cells already painted.
     pub fn remove_modifier(&mut self, modifiers: Modifier) -> &mut Self {
         self.style = self.style.remove_modifier(modifiers);
         self
     }
 
-    /// Whether the resolved part style itself adds these modifiers. Built-in
-    /// painters use this to compensate for a container's flag-driven bleed
-    /// (for example a focused list filling every row with bold) without
-    /// stripping modifiers an owner authored for this part.
     pub fn authored_modifiers(&self) -> Modifier {
         self.style.add_modifier
     }
 
-    /// Paint fitted text with matched original grapheme ordinals in bold.
-    /// Truncation reserves the theme ellipsis, using the shared clipping writer.
     pub fn text_matched(&mut self, s: &str, matched: &[usize]) -> &mut Self {
         let area = self.free();
         let used = if width(s) <= area.width {
@@ -565,7 +494,6 @@ impl<'u> CellUi<'u> {
         self
     }
 
-    /// Paint a glyph role `n` times (masks).
     pub fn glyphs(&mut self, g: GlyphRole, n: usize) -> &mut Self {
         let sym = self.ui.design().glyphs.get(g);
         for _ in 0..n {
@@ -582,33 +510,28 @@ impl<'u> CellUi<'u> {
         self
     }
 
-    /// Format a number in place (0 allocations).
     pub fn num(&mut self, n: i64) -> &mut Self {
         let mut buf = [0u8; 24];
         let s = format_i64(n, &mut buf);
         self.text(s)
     }
 
-    /// Format cents as `-1,234.56` in place (0 allocations).
     pub fn money(&mut self, cents: i64) -> &mut Self {
         let mut buf = [0u8; 32];
         let s = format_money(cents, &mut buf);
         self.text(s)
     }
 
-    /// Set the alignment (applied on drop).
     pub const fn align(&mut self, a: Align) -> &mut Self {
         self.align = a;
         self
     }
 
-    /// Set the foreground role (applied on drop).
     pub const fn tone(&mut self, r: Role) -> &mut Self {
         self.tone = Some(r);
         self
     }
 
-    /// Italic (applied on drop).
     pub fn italic(&mut self, yes: bool) -> &mut Self {
         self.add = if yes {
             self.add.union(Modifier::ITALIC)
@@ -618,7 +541,6 @@ impl<'u> CellUi<'u> {
         self
     }
 
-    /// A trailing glyph.
     pub fn suffix(&mut self, g: GlyphRole) -> &mut Self {
         let area = self.free();
         let used = self.ui.glyph(area, g, self.style);
@@ -626,7 +548,6 @@ impl<'u> CellUi<'u> {
         self
     }
 
-    /// An instance patch over the cell's style (applied on drop).
     pub fn patch(&mut self, p: &StylePatch) -> &mut Self {
         self.patch = Some(match self.patch {
             Some(cur) => cur.merge(*p),
@@ -643,7 +564,7 @@ impl Drop for CellUi<'_> {
         if used == 0 {
             return;
         }
-        // shift painted cells for alignment
+
         let free = self.area.width.saturating_sub(used);
         let shift = match self.align {
             Align::Left => 0,
@@ -660,7 +581,7 @@ impl Drop for CellUi<'_> {
                 self.ui.move_cell(src, dst, self.style);
             }
         }
-        // final style over the painted range
+
         let painted = Rect {
             x: self.area.x.saturating_add(shift),
             y,
@@ -680,7 +601,6 @@ impl Drop for CellUi<'_> {
     }
 }
 
-/// Column cells over the remainder of a row.
 pub struct ColumnsUi<'u> {
     #[cfg(feature = "testing")]
     owner: Id,
@@ -706,17 +626,14 @@ impl fmt::Debug for ColumnsUi<'_> {
 }
 
 impl ColumnsUi<'_> {
-    /// The number of columns.
     pub const fn len(&self) -> usize {
         self.n
     }
 
-    /// Whether there are no columns.
     pub const fn is_empty(&self) -> bool {
         self.n == 0
     }
 
-    /// The rect of column `i`, clipped to the row.
     pub fn rect(&self, i: usize) -> Rect {
         if i >= self.n {
             return Rect::ZERO;
@@ -736,7 +653,6 @@ impl ColumnsUi<'_> {
         .intersection(self.area)
     }
 
-    /// Paint a column using a semantic row part, preserving label patches.
     pub fn cell_part(&mut self, i: usize, part: Part) -> CellUi<'_> {
         let rect = self.rect(i);
         let resolved = match (part, self.label_patch) {
@@ -752,7 +668,6 @@ impl ColumnsUi<'_> {
         CellUi::with_resolved_glyph(self.ui.reborrow(), rect, resolved.style, resolved.glyph)
     }
 
-    /// A painter for column `i` (an empty painter beyond the last column).
     pub fn cell(&mut self, i: usize) -> CellUi<'_> {
         let rect = self.rect(i);
         let style = self.style;
@@ -760,7 +675,6 @@ impl ColumnsUi<'_> {
     }
 }
 
-/// Format an `i64` into `buf`; returns the written slice.
 fn format_i64(n: i64, buf: &mut [u8; 24]) -> &str {
     let mut i = buf.len();
     let neg = n < 0;
@@ -787,7 +701,6 @@ fn format_i64(n: i64, buf: &mut [u8; 24]) -> &str {
     core::str::from_utf8(buf.get(i..).unwrap_or(&[])).unwrap_or("")
 }
 
-/// Format cents as `-1,234.56` into `buf`; returns the written slice.
 fn format_money(cents: i64, buf: &mut [u8; 32]) -> &str {
     let mut i = buf.len();
     let neg = cents < 0;
@@ -848,7 +761,6 @@ mod tests {
         height: 2,
     };
 
-    /// Paint one row and return the page buffer.
     fn paint(row: Rect, f: impl FnOnce(&mut RowUi<'_>)) -> Buffer {
         let theme = Theme::junie();
         paint_with(&theme, Family::LIST, StateFlags::empty(), row, f)
@@ -928,19 +840,16 @@ mod tests {
         out
     }
 
-    /// R5: the label path writes straight into cells; the only allocation a
-    /// row may make is none at all. Proved structurally here (the painter
-    /// takes `&str` and routes to `Buffer::set_stringn`) and by cell content.
     #[test]
     fn row_ui_label_writes_cells_without_an_intermediate_string() {
         let page = paint(Rect::new(0, 0, 10, 1), |r| r.label("hello"));
         assert_eq!(row_text(&page, 0, 0, 10), "hello     ");
-        // the ellipsis path truncates in place, ending with the theme glyph
+
         let page = paint(Rect::new(0, 0, 5, 1), |r| r.label("hello world"));
         let painted = row_text(&page, 0, 0, 5);
         assert_eq!(painted.chars().count(), 5);
         assert!(painted.ends_with('…'), "{painted:?}");
-        // `label_fmt` formats into cells too
+
         let page = paint(Rect::new(0, 0, 10, 1), |r| {
             r.label_fmt(format_args!("{}-{}", 12, 7));
         });
@@ -992,23 +901,20 @@ mod tests {
         );
     }
 
-    /// `DESIGN.md:478`: meta is right-aligned and dropped **all or none**
-    /// when it does not fit after a two-cell gap.
     #[test]
     fn row_ui_meta_is_dropped_all_or_none() {
-        // room for the label, the gap and the meta
         let page = paint(Rect::new(0, 0, 12, 1), |r| {
             r.meta("42");
             r.label("name");
         });
         assert_eq!(row_text(&page, 0, 0, 12), "name      42");
-        // one column short: nothing of the meta is painted, not a truncation
+
         let page = paint(Rect::new(0, 0, 3, 1), |r| {
             r.meta("42");
             r.label("name");
         });
         assert_eq!(row_text(&page, 0, 0, 3), "na…");
-        // exactly at the boundary (need + 2 == width) it still fits
+
         let page = paint(Rect::new(0, 0, 4, 1), |r| r.meta("42"));
         assert_eq!(row_text(&page, 0, 0, 4), "  42");
     }
@@ -1057,10 +963,6 @@ mod tests {
         assert_eq!(row_text(&page, 0, 4, 8), "x✓  ");
     }
 
-    /// §29.1: at a `part`, `Slot::Clear` stays distinguishable from
-    /// `Slot::Inherit` — it paints a blank cell and still consumes the width a
-    /// `Slot::Set` glyph would have reserved, so the caller's content is
-    /// truncated identically under `Set` and `Clear`.
     #[test]
     fn row_ui_part_clear_reserves_a_blank_cell_and_differs_from_inherit() {
         let cell_text = |glyph| {
@@ -1079,17 +981,15 @@ mod tests {
         let set = cell_text(Slot::Set(GlyphRole::Checked));
         let clear = cell_text(Slot::Clear);
         let inherit = cell_text(Slot::Inherit);
-        // `Set` reserves the glyph's width and paints it.
+
         assert_eq!(set, "xyz✓");
-        // `Clear` reserves the same cell and paints it blank.
+
         assert_eq!(clear, "xyz ");
-        // `Inherit` reserves nothing: the caller's content owns the cell.
+
         assert_eq!(inherit, "xyzw");
         assert_ne!(clear, inherit);
     }
 
-    /// Columns are clipped to the row: nothing is written past `row.right()`,
-    /// and the fixed `[u16; MAX_COLUMNS]` never overflows the rect.
     #[test]
     fn row_ui_columns_clip_to_the_row() {
         let page = paint(Rect::new(2, 0, 12, 1), |r| {
@@ -1097,7 +997,7 @@ mod tests {
             c.cell(0).text("aaaaaaaa");
             c.cell(1).text("bbbbbbbb");
         });
-        // outside the row on both sides the page is untouched
+
         assert_eq!(
             page.cell((0, 0)).map(|c| c.symbol().to_owned()),
             Some(" ".to_owned())
@@ -1114,7 +1014,7 @@ mod tests {
         }
         let inside = row_text(&page, 0, 2, 14);
         assert_eq!(inside.chars().count(), 12);
-        // more tracks than MAX_COLUMNS are ignored, not painted past the row
+
         let many: Vec<Track> = (0..MAX_COLUMNS + 4).map(|_| Track::Flex(1)).collect();
         let page = paint(Rect::new(0, 0, 20, 1), |r| {
             let mut c = r.columns(&many);

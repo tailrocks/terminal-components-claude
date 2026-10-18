@@ -1,4 +1,3 @@
-//! Hidden scrollbars retain full-width shared row and wheel ownership.
 use termrock_collections::ScrollState;
 use termrock_core::{Axis, Id, ItemKey, KeyCode, Response};
 use termrock_navigation::{NavList, NavListState};

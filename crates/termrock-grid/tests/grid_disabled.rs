@@ -1,4 +1,3 @@
-//! Product-owned row changes address Grid through stable keys, never indices.
 use ratatui_core::layout::Rect;
 use termrock_controls::Button;
 use termrock_core::validate::FieldError;
@@ -102,7 +101,7 @@ fn disabling_published_editor_retains_draft_without_domain_commit() {
     assert!(h.app().state.is_editing());
     let state = h.app().state.clone();
     h.app_mut().disabled = true;
-    // Queued input reaches the old published editor; current props must veto it.
+
     let _ = h.key(KeyCode::Enter);
     assert_eq!(h.app().model.commits, 0);
     assert_eq!(h.app().state, state);

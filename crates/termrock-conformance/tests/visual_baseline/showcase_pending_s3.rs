@@ -1,86 +1,3 @@
-//! Showcase pending slice 8A-S3 executable checks — impl port.
-//!
-//! Ported from VB commit `b712422fcc23a19859b851c9ec583b08a1b40136`
-//! (`tests/harness/tests/visual_baseline/showcase_pending_s3.rs`), adapting
-//! only paths, binary resolution, harness API, and the isolated
-//! component-path translation:
-//!
-//! - `Session` is the impl [`support::Session`] wrapper (live samples via
-//!   `s.inner.observe_now()` / `s.inner.snapshot()`), not
-//!   `tuiscotti::tui::Session` directly.
-//! - The subject is the binary built from this impl worktree's sources,
-//!   resolved via [`support::try_resolve_bin`] (name -> executed path +
-//!   sha256); [`write_provenance`] records path, digest, size, mtime, and
-//!   argv behind each check.
-//! - `support::frame_from_screen` (VB helper over `Provenance`) becomes
-//!   `tuiscotti::render::frame_from_screen` (provenance `"default"`).
-//! - Isolated `junie_tui` in-process renders (`TextInput`, `TextArea`,
-//!   `ChipBar`, `ListBox`, `Picker`, `TreeView`, `StepRail`, `Tabs`,
-//!   `RenderCtx`, `Interaction`, `Outcome`) become the established impl
-//!   component path: `Runtime` + `Stub` + `draw_scene` with
-//!   `ui.reference` state injection for inert paint, and `Harness` apps
-//!   for interaction. `Outcome` assertions become draw/behavior
-//!   correlates (flow, committed values, re-rendered glyphs, cursor,
-//!   selection paint, actions).
-//!
-//! One ignored test per S3 registry row (19 rows: the 9 FIELDS group rows
-//! plus the first 10 NAVIGATION group rows), over the real binaries built
-//! from this worktree's impl sources and over the real production
-//! components rendered headless. Each test executes its row's listed
-//! adapters (`headless-tick`, `pty-capture`, or both) and asserts its
-//! visual (V), state (S), action (A), and negative (N) checks in
-//! executable form:
-//!
-//! - Isolated path: the production component renders into a `·`-sentinel
-//!   buffer (any 1-cell overflow fails the surround check), so glyphs,
-//!   tones, bold, widths, hit regions, focus-ring stops, and actions are
-//!   asserted exactly.
-//! - PTY path: the live app boots the row's page and drives the row's
-//!   inputs; V cells are probed live (needles plus fg/bg/bold cell
-//!   reads), S labels are read live, A outcomes are proven by their
-//!   screen correlates (moved, committed, reverted, byte-identical),
-//!   since PTY cannot see the action, and every N absence is paired with
-//!   a presence proof in the same test so no absence passes vacuously.
-//!
-//! Two rows are PTY-only by construction: NAV-SHELL-001 (the shell
-//! sidebar lives in the showcase binary's app) and NAV-SIDE-002 (the demo
-//! `NavList` lives in the showcase binary). Neither component is
-//! importable as a unit here, so no headless path exists for them; every
-//! one of their checks has a live-PTY executable form instead.
-//!
-//! No new snapshots and no new static captures: every S3 row already has
-//! approved frames gated cell-exact by the ported matrices (`showcase.rs`,
-//! `pointer.rs`, `audit.rs`), so every case here uses owned (dynamic)
-//! names and stays out of the `snapshots/` inventory.
-//!
-//! Per-test scratch lands under this conformance crate's
-//! `target/tuiscotti/journeys/<test>/` (gitignored): the row's named
-//! checkpoint(s) as text frames, `provenance.txt` (binary path, digest,
-//! size, mtime, argv), and `isolated-*.json` (headless captures). Typed
-//! input is synthetic and in-memory only (simulation data).
-//!
-//! Row → test map (registry id → `s3_*` test):
-//!
-//! - TI-KEYS-003 → [`s3_input_keys`]
-//! - TI-NOOP-004 → [`s3_input_noop`]
-//! - TI-SELECT-005 → [`s3_input_select`]
-//! - TI-PASTE-006 → [`s3_input_paste`]
-//! - TI-MASK-007 → [`s3_input_mask`]
-//! - TI-SCROLL-008 → [`s3_input_scroll`]
-//! - TA-LIFECYCLE-001 → [`s3_area_lifecycle`]
-//! - TA-VIEW-002 → [`s3_area_view`]
-//! - TA-FOLLOW-003 → [`s3_area_follow`]
-//! - CHIP-BAR-001 → [`s3_chip_bar`]
-//! - LIST-SINGLE-001 → [`s3_list_single`]
-//! - LIST-MULTI-002 → [`s3_list_multi`]
-//! - FLIST-QUERY-001 → [`s3_picker_query`]
-//! - FLIST-CHOICE-002 → [`s3_picker_choice`]
-//! - NAV-SHELL-001 → [`s3_nav_shell`] (PTY-only)
-//! - NAV-SIDE-002 → [`s3_nav_side`] (PTY-only)
-//! - TREE-FOLD-001 → [`s3_tree_fold`]
-//! - STEPS-LIFE-001 → [`s3_steps_life`]
-//! - TABS-STRIP-001 → [`s3_tabs_strip`]
-
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -107,13 +24,10 @@ use crate::support::state_waits as waits;
 use crate::support::typed_input::Input;
 use crate::support::{self, Case, Color, SHOWCASE};
 
-/// Boot needle: the fully-rendered shell header on every showcase page.
 const BOOT: &str = "Junie Design system";
 
-/// The VB oracle commit this file ports.
 const PORT_OF: &str = "b712422fcc23a19859b851c9ec583b08a1b40136";
 
-/// Owned-name S3 case at the row's viewport (truecolor, like every S3 row).
 fn s3_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> Case {
     Case::dynamic(
         format!("journeys/showcase/s3/{slug}"),
@@ -126,7 +40,6 @@ fn s3_case(slug: &str, args: &'static [&'static str], cols: u16, rows: u16) -> C
     )
 }
 
-/// Unique scratch dir for one S3 test (created, never shared).
 fn s3_dir(test: &str) -> PathBuf {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("target/tuiscotti/journeys")
@@ -135,8 +48,6 @@ fn s3_dir(test: &str) -> PathBuf {
     dir
 }
 
-/// Record the binary identity: resolved absolute path, sha256 digest, byte size, mtime, argv.
-/// Written to `provenance.txt`, echoed too (the build-identity record).
 fn write_provenance(dir: &Path, case: &Case) {
     let subject =
         support::try_resolve_bin(case.bin).unwrap_or_else(|e| panic!("resolve {}: {e}", case.bin));
@@ -156,7 +67,6 @@ fn write_provenance(dir: &Path, case: &Case) {
     eprintln!("s3 provenance: {body}");
 }
 
-/// Save the live screen text as `<name>.txt` in the test dir.
 fn checkpoint(s: &mut Session, dir: &Path, name: &str) {
     let obs = s
         .inner
@@ -177,7 +87,6 @@ fn case_timeout(case: &Case) -> Duration {
     Duration::from_millis(case.timeout_ms)
 }
 
-/// One fresh live text sample (no wait).
 fn live_text(s: &mut Session) -> String {
     let obs = s
         .inner
@@ -186,7 +95,6 @@ fn live_text(s: &mut Session) -> String {
     support::screen_text(&obs.screen)
 }
 
-/// First occurrence of `needle` as `(row, col)`, waiting until it appears.
 fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let obs = support::wait_screen(
         s,
@@ -197,7 +105,6 @@ fn find_pos(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     support::screen_find(&obs.screen, needle).expect("wait passed with the needle on screen")
 }
 
-/// Primary-button click on `needle`'s cell (split press + release).
 fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     let (row, col) = find_pos(s, needle, timeout);
     Input::down(MouseButton::Left, col, row).send(s);
@@ -206,7 +113,6 @@ fn click_at(s: &mut Session, needle: &str, timeout: Duration) -> (u16, u16) {
     (row, col)
 }
 
-/// `notches` wheel steps at fixed `(col, row)`.
 fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     for _ in 0..notches {
         Input::wheel(dir, col, row).send(s);
@@ -214,13 +120,11 @@ fn wheel_at(s: &mut Session, col: u16, row: u16, dir: Wheel, notches: u32) {
     }
 }
 
-/// Type literal `text` into the live session, paced like a send step.
 fn type_text(s: &mut Session, text: &str) {
     s.type_text(text).expect("type_text");
     std::thread::sleep(Duration::from_millis(120));
 }
 
-/// Assert one screen line contains both `needle` and `also`.
 fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         text.lines().any(|l| l.contains(needle) && l.contains(also)),
@@ -228,7 +132,6 @@ fn assert_line_has(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-/// Assert no screen line contains both `needle` and `also`.
 fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     assert!(
         !text.lines().any(|l| l.contains(needle) && l.contains(also)),
@@ -236,10 +139,6 @@ fn assert_line_lacks(text: &str, needle: &str, also: &str, what: &str) {
     );
 }
 
-// ------------------------------------------------------- isolated harness --
-
-/// Buffer pre-filled with `·` sentinels; the component renders into a
-/// sub-area and every cell outside must still be `·` (no 1-cell overflow).
 fn sentinel_buf(cols: u16, rows: u16) -> Buffer {
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
     for y in 0..rows {
@@ -278,15 +177,10 @@ fn buf_is_bold(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::BOLD)
 }
 
-/// Whether the cell carries the editing underline.
 fn buf_is_underlined(buf: &Buffer, x: u16, y: u16) -> bool {
     buf[(x, y)].modifier.contains(Modifier::UNDERLINED)
 }
 
-/// One inert component-path render into a sentinel buffer: `ticks`
-/// animation ticks delivered first, then one `draw_scene` with `target`
-/// injected via `ui.reference` (the `Interaction` equivalent: focus,
-/// hover, press owned by the runtime, semantic state by props).
 fn render_isolated(
     cols: u16,
     rows: u16,
@@ -313,8 +207,6 @@ fn render_isolated(
     buf
 }
 
-/// Colour conversion mirroring `tuiscotti::ratatui` (private there): named
-/// ANSI colours become their palette index, the rest map one-to-one.
 fn convert_color(c: RColor) -> TColor {
     match c {
         RColor::Reset => TColor::Default,
@@ -339,7 +231,6 @@ fn convert_color(c: RColor) -> TColor {
     }
 }
 
-/// Modifier conversion mirroring `tuiscotti::ratatui` (private there).
 fn convert_mods(m: Modifier) -> Mods {
     Mods {
         hidden: m.contains(Modifier::HIDDEN),
@@ -358,10 +249,6 @@ fn convert_mods(m: Modifier) -> Mods {
     }
 }
 
-/// Capture a candidate buffer through the component path. The conversion
-/// mirrors `tuiscotti::ratatui::from_buffer` (wide cells, continuations,
-/// cursor-less): empty symbols become continuation followers, wide symbols
-/// emit a lead plus a follower (downgraded at the exact row end).
 fn capture_buffer(buf: &Buffer) -> Frame {
     let cols = buf.area.width;
     let rows = buf.area.height;
@@ -432,7 +319,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-/// Headless capture plus JSON evidence in the test dir.
 fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     let frame = capture_buffer(buf);
     std::fs::write(
@@ -444,8 +330,6 @@ fn capture_isolated(dir: &Path, name: &str, buf: &Buffer) -> Frame {
     frame
 }
 
-/// Cell column of `needle`'s first occurrence in `line` (char-based: all
-/// page chrome here is single-cell).
 fn char_col(line: &str, needle: &str) -> u16 {
     let byte = line
         .find(needle)
@@ -453,7 +337,6 @@ fn char_col(line: &str, needle: &str) -> u16 {
     line[..byte].chars().count() as u16
 }
 
-/// Poll until two consecutive samples agree (bounded, fail-closed).
 fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     let deadline = std::time::Instant::now() + timeout;
     let mut prev = live_text(s);
@@ -471,7 +354,6 @@ fn settle_text(s: &mut Session, timeout: Duration, what: &str) -> String {
     }
 }
 
-/// The screen line right below the first line containing `label`.
 fn row_below(text: &str, label: &str, what: &str) -> String {
     let mut lines = text.lines();
     while let Some(l) = lines.next() {
@@ -485,21 +367,16 @@ fn row_below(text: &str, label: &str, what: &str) -> String {
     panic!("{what}: label {label:?} not on screen\n{text}");
 }
 
-/// Count `glyph` occurrences in visible text.
 fn count_glyph(text: &str, glyph: char) -> usize {
     text.chars().filter(|c| *c == glyph).count()
 }
 
-/// The reference ten-frame braille cycle (theme `spinner_frames`).
 const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-/// Caret column of a `Harness` app (the hardware cursor the focused editor owns).
 fn caret_x<A: App>(app: &Harness<A>) -> u16 {
     app.cursor().expect("editing owns the caret").x
 }
 
-/// Whether row `y` paints a selection run exactly over `cols` (selection bg
-/// on every cell of the run, field bg immediately outside it).
 fn assert_selection_run(
     buf: &Buffer,
     y: u16,
@@ -512,7 +389,6 @@ fn assert_selection_run(
     }
 }
 
-/// Whether row `y` paints no selection bg anywhere in `cols`.
 fn assert_no_selection(
     buf: &Buffer,
     y: u16,
@@ -537,7 +413,6 @@ const S3_TIKEYS_AREA: Rect = Rect {
     height: 1,
 };
 
-/// Single-line key-map rig: controlled value plus action log.
 struct KeysApp {
     value: String,
     st: TextInputState,
@@ -560,7 +435,6 @@ impl App for KeysApp {
     }
 }
 
-/// TI-KEYS-003 (`showcase/flows/inputs/selected`): single-line key map.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_keys() {
@@ -568,10 +442,9 @@ fn s3_input_keys() {
     let t = Theme::junie();
     let sel_bg = t.color.selection_bg;
     let sel_fg = t.color.selection_fg;
-    // Text run starts at inner.x = area.x + 2.
+
     let at = |off: u16| 6 + off;
 
-    // A1 isolated: line edges, word moves, kills.
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         KeysApp {
@@ -614,7 +487,7 @@ fn s3_input_keys() {
     assert_eq!(caret_x(&app), at(8), "A1: Alt+B starts service");
     let _ = app.alt('f');
     assert_eq!(caret_x(&app), at(15), "A1: Alt+F ends service");
-    // V1: the caret tracks every grapheme op inside the text run.
+
     assert_eq!(
         app.cursor(),
         Some(Position::new(at(15), 1)),
@@ -626,12 +499,11 @@ fn s3_input_keys() {
         Some(Position::new(at(0), 1)),
         "V1: caret at the run start"
     );
-    // Shift extends; Backspace kills the selection; Ctrl+U kills to start.
+
     let _ = app.key_mod(KeyCode::Right, KeyModifiers::CONTROL);
     let _ = app.key_mod(KeyCode::End, KeyModifiers::SHIFT);
     assert_eq!(caret_x(&app), at(15), "A1: Shift+End moves to line end");
-    // V2: the selection paints with the selection style on top of the
-    // editing underline. Selection 7..15 paints at cols 13..20.
+
     assert_selection_run(app.buffer(), 1, at(7)..at(15), sel_bg, "V2");
     assert_eq!(
         app.buffer()[(14, 1)].fg,
@@ -674,7 +546,7 @@ fn s3_input_keys() {
         "A1: Ctrl+U kills to line start"
     );
     assert_eq!(caret_x(&app), at(0), "A1: caret at start");
-    // Ctrl+K / Ctrl+W / Delete kill line-end / word / one grapheme.
+
     let mut app = Harness::new(
         KeysApp {
             value: "billing service".to_string(),
@@ -717,8 +589,7 @@ fn s3_input_keys() {
         buf_row_text(app.buffer(), 1).contains("illing"),
         "A1: Delete kills one grapheme"
     );
-    // S1: an invalid fixture keeps its error across cursor moves; typing a
-    // correction clears it live.
+
     let mut st = TextInputState::default();
     st.begin("has x");
     st.set_error(Some(FieldError::new("no x")));
@@ -758,7 +629,7 @@ fn s3_input_keys() {
         " ",
         "S1: corrected error clears live"
     );
-    // S2: Ctrl+L selects the whole buffer.
+
     let mut app = Harness::new(
         KeysApp {
             value: "billing service".to_string(),
@@ -779,7 +650,7 @@ fn s3_input_keys() {
         sel_bg,
         "S2: Ctrl+L selects all",
     );
-    // A2/N1: vertical keys consume without moving.
+
     for code in [
         KeyCode::Up,
         KeyCode::Down,
@@ -794,7 +665,7 @@ fn s3_input_keys() {
     let mut single = TextBuffer::single("ab");
     assert!(!single.move_up(false), "N1: move_up false single-line");
     assert!(!single.move_down(false), "N1: move_down false single-line");
-    // N2: Shift+Ctrl+Home never extends (doc-start passes select=false).
+
     let mut app = Harness::new(
         KeysApp {
             value: "billing service".to_string(),
@@ -822,7 +693,6 @@ fn s3_input_keys() {
     assert_eq!(caret_x(&app), at(15), "N2: cursor at doc end");
     assert_no_selection(app.buffer(), 1, at(0)..at(15), sel_bg, "N2: Shift+Ctrl+End");
 
-    // PTY: the row's key order runs live and clears the field.
     let case = s3_case("input_keys", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -870,15 +740,13 @@ fn s3_input_keys() {
         "Ctrl+U never cleared the field",
         |screen| {
             let row = row_below(&support::screen_text(screen), "Search files", "A1 live");
-            // Cleared but still editing: blank run, no placeholder (the
-            // placeholder only shows outside editing).
+
             row.contains('▎') && !row.contains("billing")
         },
     );
     eprintln!("s3 input_keys: isolated key map + live clear roundtrip");
 }
 
-/// Reject any value containing `x` (keys fixture rule).
 fn no_x_keys(s: &str) -> Result<(), FieldError> {
     if s.contains('x') {
         Err(FieldError::new("no x"))
@@ -887,7 +755,6 @@ fn no_x_keys(s: &str) -> Result<(), FieldError> {
     }
 }
 
-/// Single-line rig with a live validator (keys S1).
 struct ValidApp {
     value: String,
     st: TextInputState,
@@ -919,7 +786,6 @@ const S3_TINOOP_AREA: Rect = Rect {
     height: 1,
 };
 
-/// No-op key rig: controlled value plus action log.
 struct NoopApp {
     value: String,
     st: TextInputState,
@@ -942,7 +808,6 @@ impl App for NoopApp {
     }
 }
 
-/// TI-NOOP-004 (`showcase/audit/inputs`): keys without editing ops.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_noop() {
@@ -951,7 +816,6 @@ fn s3_input_noop() {
     let sel_bg = t.color.selection_bg;
     let at = |off: u16| 6 + off;
 
-    // S1/V1 isolated: every no-op key swallows without touching state.
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         NoopApp {
@@ -1000,14 +864,13 @@ fn s3_input_noop() {
         );
         assert_eq!(app.buffer()[(39, 1)].symbol(), " ", "V2: no error appears");
     }
-    // V1 render form: the frame is byte-identical across a no-op key.
+
     let before = (buf_row_text(app.buffer(), 1), app.cursor());
     let _ = app.ctrl('z');
     let after = (buf_row_text(app.buffer(), 1), app.cursor());
     assert_eq!(before, after, "V1: frame identical across Ctrl+Z");
     capture_isolated(&dir, "ti-noop-stable", app.buffer());
-    // S2/N1: no undo stack exists, so Ctrl+Z never reverts; only Esc
-    // reverts, to the begin snapshot.
+
     let r = app.ctrl('z');
     assert_eq!(r.flow(), Flow::Consumed, "N1: Ctrl+Z swallows");
     assert!(
@@ -1026,8 +889,7 @@ fn s3_input_noop() {
         row.contains("payments-gateway") && !row.contains("gatewayx"),
         "N1: Esc reverts to snapshot"
     );
-    // A1: only the listed Ctrl/Alt combos act; every other Ctrl/Alt+Char
-    // is swallowed. Listed combos first (each acts).
+
     let mut app = Harness::new(
         NoopApp {
             value: "payments-gateway".to_string(),
@@ -1096,7 +958,7 @@ fn s3_input_noop() {
     assert_eq!(caret_x(&app), at(7), "A1: Alt+F acts");
     let _ = app.alt('b');
     assert_eq!(caret_x(&app), at(4), "A1: Alt+B acts");
-    // Unlisted Ctrl/Alt+Char combos are swallowed.
+
     for (code, mods) in [
         (KeyCode::Char('q'), KeyModifiers::CONTROL),
         (KeyCode::Char('d'), KeyModifiers::CONTROL),
@@ -1114,7 +976,7 @@ fn s3_input_noop() {
             "A1: {code:?}+{mods:?} touches nothing"
         );
     }
-    // A2/N2: paste arrives only through the paste path; no clipboard path.
+
     let r = app.ctrl('v');
     assert_eq!(r.flow(), Flow::Consumed, "A2: no Ctrl+V path");
     let r = app.paste("ab");
@@ -1124,9 +986,6 @@ fn s3_input_noop() {
         "A2: pasted text lands"
     );
 
-    // PTY: the no-op keys leave the staged edit live-stable, then the
-    // commit proves the buffer. Ctrl+C is isolated-only: the app shell
-    // quits on Ctrl+C (app.rs), above the widget row scope.
     let case = s3_case("input_noop", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1177,7 +1036,6 @@ const S3_TISELECT_AREA: Rect = Rect {
     height: 1,
 };
 
-/// Selection-render rig: controlled value plus action log.
 struct SelectApp {
     value: String,
     st: TextInputState,
@@ -1200,7 +1058,6 @@ impl App for SelectApp {
     }
 }
 
-/// TI-SELECT-005 (`showcase/flows/inputs/selected`): selection render.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_select() {
@@ -1209,9 +1066,8 @@ fn s3_input_select() {
     let sel_bg = t.color.selection_bg;
     let at = |off: u16| 6 + off;
 
-    // S1/N1 isolated: select_range floors to grapheme boundaries.
     let mut b = TextBuffer::single("aé日b");
-    // Bytes: a=0..1, é=1..3, 日=3..6, b=6..7.
+
     b.select_range(2, 5);
     assert_eq!(
         b.selection(),
@@ -1227,14 +1083,14 @@ fn s3_input_select() {
         "N1: selection never splits UTF-8"
     );
     let mut b = TextBuffer::single("a👩‍💻b");
-    // The ZWJ emoji spans bytes 1..12; an inner offset floors to 1.
+
     b.select_range(0, 5);
     assert_eq!(
         b.selection(),
         Some(0..1),
         "N1: selection never splits the emoji cluster"
     );
-    // S2/V2 isolated: typing replaces atomically.
+
     let mut app = Harness::new(
         SelectApp {
             value: "payments-gateway".to_string(),
@@ -1248,7 +1104,7 @@ fn s3_input_select() {
     assert!(app.tab_to(S3_TISELECT), "navigating focus");
     let _ = app.key(KeyCode::Enter);
     let _ = app.ctrl('l');
-    // V1: the selected run paints with the selection style.
+
     assert_selection_run(
         app.buffer(),
         1,
@@ -1262,7 +1118,7 @@ fn s3_input_select() {
         "V1: selected run takes the selection bg"
     );
     capture_isolated(&dir, "ti-selected", app.buffer());
-    // V1 Mono form: the selection is REVERSED so NO_COLOR keeps it.
+
     let mut mono = Harness::new(
         SelectApp {
             value: "payments-gateway".to_string(),
@@ -1295,14 +1151,14 @@ fn s3_input_select() {
         sel_bg,
         "replace clears the selection",
     );
-    // V2 render form: `x` with the caret after it.
+
     assert_eq!(app.buffer()[(6, 1)].symbol(), "x", "V2: field shows x");
     assert_eq!(
         app.cursor(),
         Some(Position::new(at(1), 1)),
         "V2: caret after x"
     );
-    // A1: plain Left/Right collapse to the start/end edge.
+
     let mut app = Harness::new(
         SelectApp {
             value: "payments-gateway".to_string(),
@@ -1344,7 +1200,7 @@ fn s3_input_select() {
         sel_bg,
         "A1: collapse clears",
     );
-    // A2: a click collapses to a caret at the pointer.
+
     let _ = app.ctrl('l');
     assert_selection_run(app.buffer(), 1, at(0)..at(16), sel_bg, "A2: armed all");
     let r = app.click(at(4), 1);
@@ -1357,7 +1213,7 @@ fn s3_input_select() {
         sel_bg,
         "A2: click clears the selection",
     );
-    // N2: commit and cancel always clear the selection.
+
     let _ = app.ctrl('l');
     let _ = app.key(KeyCode::Enter);
     assert!(
@@ -1370,7 +1226,6 @@ fn s3_input_select() {
     let _ = app.key(KeyCode::Esc);
     assert_no_selection(app.buffer(), 1, at(0)..at(16), sel_bg, "N2: cancel clears");
 
-    // PTY: select-all + replace roundtrip with the saved status.
     let case = s3_case("input_select", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1424,7 +1279,6 @@ const S3_TIPASTE_AREA: Rect = Rect {
     height: 1,
 };
 
-/// Paste rig: controlled value plus action log.
 struct PasteApp {
     value: String,
     st: TextInputState,
@@ -1447,13 +1301,11 @@ impl App for PasteApp {
     }
 }
 
-/// TI-PASTE-006 (`showcase/flows/inputs/editing`): paste vs literal input.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_paste() {
     let dir = s3_dir("s3_input_paste");
 
-    // S1/V1 isolated: a paste from navigation auto-begins and normalizes.
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         PasteApp {
@@ -1480,7 +1332,7 @@ fn s3_input_paste() {
         buf_row_text(app.buffer(), 1).contains("feat/ab"),
         "V1: newline stripped by normalization"
     );
-    // V2: the field is in editing state after the paste.
+
     assert!(
         buf_is_underlined(app.buffer(), 6, 1),
         "V2: pasted text underlined"
@@ -1492,7 +1344,7 @@ fn s3_input_paste() {
         "V2: paste render stays in its row"
     );
     capture_isolated(&dir, "ti-pasted", app.buffer());
-    // S2: paste runs live_validate, so a corrected error clears at once.
+
     let mut st = TextInputState::default();
     st.begin("");
     st.set_error(Some(FieldError::new("required")));
@@ -1522,7 +1374,7 @@ fn s3_input_paste() {
         " ",
         "S2: paste clears the error live"
     );
-    // A1: a literal Enter commits; insert drops \n and \r single-line.
+
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         PasteApp {
@@ -1554,7 +1406,7 @@ fn s3_input_paste() {
     b.insert_char('\n');
     b.insert_char('\r');
     assert_eq!(b.text(), "ab", "A1: insert drops newlines single-line");
-    // A2: paste on a disabled field ignores without touching the buffer.
+
     let mut app = Harness::new(
         DisabledPasteApp {
             value: "ab".to_string(),
@@ -1575,7 +1427,7 @@ fn s3_input_paste() {
         !buf_is_underlined(app.buffer(), 6, 1),
         "A2: editing never starts"
     );
-    // N1: areas do not auto-begin on paste.
+
     let mut app = Harness::new(
         NotesApp {
             value: String::new(),
@@ -1592,7 +1444,7 @@ fn s3_input_paste() {
         !buf_row_text(app.buffer(), 1).contains("zz"),
         "N1: area buffer untouched"
     );
-    // N2: no \r survives a paste anywhere.
+
     let mut app = Harness::new(
         PasteApp {
             value: String::new(),
@@ -1633,7 +1485,6 @@ fn s3_input_paste() {
     );
     assert!(!text.contains('\r'), "N2: no carriage return survives");
 
-    // PTY: bracketed paste into the idle Branch field starts editing.
     let case = s3_case("input_paste", &["--page", "inputs"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1675,7 +1526,6 @@ const S3_TIMASK_AREA: Rect = Rect {
     height: 1,
 };
 
-/// Masked-secret rig: controlled value plus reveal-tail policy.
 struct MaskApp {
     value: String,
     st: TextInputState,
@@ -1708,20 +1558,14 @@ impl App for MaskApp {
     }
 }
 
-/// TI-MASK-007 (`showcase/audit/inputs`): masked secrets with reveal tail.
-///
-/// The PTY case boots at 120x40 (an approved audit size for this page):
-/// the 28-cell fixture secret needs inner width ≥ 28 to show its tail,
-/// while at 80x24 the approved frame shows the clipped `22•+…` form.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_mask() {
     let dir = s3_dir("s3_input_mask");
-    // Synthetic 28-grapheme secret ending in the registry tail.
+
     let secret = format!("{}c1f2", "s".repeat(24));
     assert_eq!(secret.chars().count(), 28, "fixture is 28 graphemes");
 
-    // V1 isolated: committed render shows 24 bullets plus the tail.
     let mut app = Harness::new(
         MaskApp {
             value: secret.clone(),
@@ -1741,7 +1585,7 @@ fn s3_input_mask() {
         "V1: 24 bullets followed by the tail"
     );
     capture_isolated(&dir, "ti-mask-committed", app.buffer());
-    // V2/N2 isolated: editing masks every grapheme including the tail.
+
     let _ = app.key(KeyCode::Enter);
     let row = buf_row_text(app.buffer(), 1);
     let run: String = row.chars().skip(6).take(28).collect();
@@ -1750,7 +1594,7 @@ fn s3_input_mask() {
         !run.chars().any(|c| c.is_ascii_alphanumeric()),
         "N2: no clear text while editing"
     );
-    // S2: the reveal rule is masked && !editing && tail>0 && i+tail>=n.
+
     let mut app = Harness::new(
         MaskApp {
             value: secret.clone(),
@@ -1786,7 +1630,7 @@ fn s3_input_mask() {
         .take(28)
         .collect();
     assert_eq!(run, "•".repeat(28), "N2: editing wins over any tail");
-    // S1: masked CJK/emoji draw width-1 bullets.
+
     let mut app = Harness::new(
         MaskApp {
             value: "日本👩‍💻é".to_string(),
@@ -1804,7 +1648,7 @@ fn s3_input_mask() {
         .take(4)
         .collect();
     assert_eq!(run, "••••", "S1: four graphemes take four cells");
-    // A1: click-to-cursor uses masked widths and lands on grapheme starts.
+
     let mut app = Harness::new(
         MaskApp {
             value: "日本ab".to_string(),
@@ -1834,7 +1678,7 @@ fn s3_input_mask() {
         "A1: second bullet lands on the `本` start"
     );
     assert_eq!(r.flow(), Flow::Consumed, "A1: masked click applies");
-    // A2: clear wipes buffer, snapshot, and error together.
+
     let mut st = TextInputState::default();
     st.begin("abx");
     st.set_error(Some(FieldError::new("no x")));
@@ -1872,8 +1716,7 @@ fn s3_input_mask() {
         !buf_row_text(app.buffer(), 1).contains("abx"),
         "A2: snapshot wiped, revert keeps empty"
     );
-    // N1: masking is display-only: a cancel roundtrip keeps the raw value
-    // behind the mask byte-identical.
+
     let mut app = Harness::new(
         MaskApp {
             value: secret.clone(),
@@ -1895,7 +1738,6 @@ fn s3_input_mask() {
         "N1: masking is display-only"
     );
 
-    // PTY: the tail shows committed, hides editing, returns on Esc.
     let case = s3_case("input_mask", &["--page", "inputs"], 120, 40);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -1949,7 +1791,6 @@ fn s3_input_mask() {
 
 const S3_TISCROLL: Id = Id::root("s3.tiscroll");
 
-/// Horizontal-scroll rig: controlled value plus draw area.
 struct ScrollApp {
     value: String,
     st: TextInputState,
@@ -1971,7 +1812,6 @@ impl App for ScrollApp {
     }
 }
 
-/// TI-SCROLL-008 (`showcase/audit/inputs`): horizontal scroll + click.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_input_scroll() {
@@ -1979,9 +1819,6 @@ fn s3_input_scroll() {
     let digits: String = "0123456789".repeat(6);
     assert_eq!(digits.len(), 60, "fixture is 60 chars");
 
-    // S1/A2 isolated: scroll follows the cursor with a reserved cell.
-    // (The component path paints the first row of the area; the oracle's
-    // middle-row y=1 becomes y=0 here.)
     let mut app = Harness::new(
         ScrollApp {
             value: digits.clone(),
@@ -2005,7 +1842,7 @@ fn s3_input_scroll() {
         "…",
         "S1: scroll>0 marks column 0"
     );
-    // V1: both markers when the cursor sits mid-run with text beyond.
+
     for _ in 0..30 {
         let _ = app.key(KeyCode::Left);
     }
@@ -2020,7 +1857,7 @@ fn s3_input_scroll() {
         "V1: clipped_right reserves inner.right()-1"
     );
     capture_isolated(&dir, "ti-scrolled", app.buffer());
-    // S1: scroll quantizes to the grapheme boundary at or before the cursor.
+
     let mut app = Harness::new(
         ScrollApp {
             value: format!("{}日{}", "a".repeat(20), "b".repeat(10)),
@@ -2033,7 +1870,7 @@ fn s3_input_scroll() {
     );
     assert!(app.tab_to(S3_TISCROLL), "navigating focus");
     let _ = app.key(KeyCode::Enter);
-    // Cursor right after 日: byte 23, display col 22.
+
     for _ in 0..10 {
         let _ = app.key(KeyCode::Left);
     }
@@ -2042,7 +1879,7 @@ fn s3_input_scroll() {
         Some(Position::new(2, 0)),
         "S1: naive scroll 21 would point at col 3; quantized 22 points at col 2"
     );
-    // S2: scroll resets to 0 outside editing.
+
     let mut app = Harness::new(
         ScrollApp {
             value: digits.clone(),
@@ -2063,7 +1900,7 @@ fn s3_input_scroll() {
         "0",
         "S2: value start shows, scroll 0"
     );
-    // A1: one click enters editing and places the caret at pointer + scroll.
+
     let mut app = Harness::new(
         ScrollApp {
             value: digits.clone(),
@@ -2089,7 +1926,7 @@ fn s3_input_scroll() {
         "A1: one click enters editing"
     );
     assert_eq!(caret_x(&app), 2 + 2, "A1: caret under the pointer");
-    // N1: single-line fields never wrap to a second text row.
+
     let mut app = Harness::new(
         ScrollApp {
             value: digits.clone(),
@@ -2110,7 +1947,7 @@ fn s3_input_scroll() {
         })
         .count();
     assert_eq!(digit_rows, 1, "N1: value chars live on exactly one row");
-    // N2: no marker when the whole value fits.
+
     let mut app = Harness::new(
         ScrollApp {
             value: digits.clone(),
@@ -2126,7 +1963,7 @@ fn s3_input_scroll() {
     let row = buf_row_text(app.buffer(), 0);
     assert!(!row.contains('…'), "N2: no marker when the value fits");
     assert!(row.contains(&digits), "N2: full value visible");
-    // V2: the narrow sweep stays contained (0..12 x 0..4, no panic).
+
     for w in 0..12u16 {
         for h in 0..4u16 {
             let mut st = TextInputState::default();
@@ -2144,13 +1981,11 @@ fn s3_input_scroll() {
         }
     }
 
-    // PTY: narrow boot stays contained; scroll, click, and Home run live.
     let case = s3_case("input_scroll", &["--page", "inputs"], 72, 20);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
-    // Gate on the last field: the boot needle only proves the header
-    // painted, and sampling a partial frame flakes the asserts below.
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
@@ -2172,16 +2007,13 @@ fn s3_input_scroll() {
         );
     }
     checkpoint(&mut s, &dir, "narrow-contained");
-    // N2 live: the Owner email value fits, so its column shows no marker
-    // (every other … on the row belongs to truncation elsewhere: the
-    // placeholders themselves end in a literal …).
+
     let value_row = row_below(&narrow, "Owner email", "N2 live");
     assert!(
         value_row.contains("mira@example"),
         "N2 live: the value fits live"
     );
-    // The page column only: past the shell seam (which carries its own
-    // `tabl…`), before the API token column.
+
     let page_col = value_row.split(['┃', '│']).nth(1).unwrap_or(&value_row);
     let left = page_col.split("jb_live").next().unwrap_or(page_col);
     assert!(
@@ -2196,8 +2028,6 @@ fn s3_input_scroll() {
         case_timeout(&case),
         "Search files never focused",
         |screen| {
-            // The 22-cell placeholder truncates in the 18-cell run at
-            // 72x20, so match its shared prefix.
             support::screen_text(screen)
                 .lines()
                 .any(|l| l.contains('▎') && l.contains("Type a path"))
@@ -2205,8 +2035,7 @@ fn s3_input_scroll() {
     );
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "EDIT", "editing Search files");
-    // 66 chars in the 18-cell run: scroll lands at 49, so the … marker
-    // eats an x and the full MIDMARK stays visible.
+
     let long = format!("{}MIDMARK{}", "x".repeat(50), "y".repeat(9));
     type_text(&mut s, &long);
     support::wait_screen(
@@ -2263,7 +2092,6 @@ const S3_TALIFE_AREA: Rect = Rect {
     height: 6,
 };
 
-/// Area-lifecycle rig: controlled document plus action log.
 struct LifeApp {
     value: String,
     st: TextAreaState,
@@ -2289,7 +2117,6 @@ impl App for LifeApp {
     }
 }
 
-/// TA-LIFECYCLE-001 (`showcase/audit/textareas`): newline on Enter.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_area_lifecycle() {
@@ -2297,7 +2124,6 @@ fn s3_area_lifecycle() {
     let t = Theme::junie();
     let sel_bg = t.color.selection_bg;
 
-    // A1 isolated: plain Enter inserts; modified Enter commits; Esc commits.
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         LifeApp {
@@ -2312,14 +2138,9 @@ fn s3_area_lifecycle() {
     assert!(app.tab_to(S3_TALIFE), "navigating focus");
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "Enter begins editing");
-    // The oracle reads `editing` directly; the component-path observable
-    // is the hardware cursor (written only while editing and focused).
-    // An underline probe misfires here: the draft's first line is empty
-    // and the TEXT underline paints under text, not the field fill.
+
     assert!(app.cursor().is_some(), "editing after Enter");
-    // VB begins the edit on the first Enter without inserting; impl runs
-    // begin + Newline in the one keystroke (observed caret (4, 2): area
-    // row 1, one newline already inserted).
+
     assert_eq!(
         app.cursor(),
         Some(Position::new(4, 1)),
@@ -2350,14 +2171,14 @@ fn s3_area_lifecycle() {
         buf_row_text(app.buffer(), 3).trim().is_empty(),
         "V1: two lines after Enter"
     );
-    // V1: the caret sits on line 2.
+
     assert_eq!(
         app.cursor(),
         Some(Position::new(4, 2)),
         "V1: hardware cursor on the second text row"
     );
     capture_isolated(&dir, "ta-editing-multiline", app.buffer());
-    // S1: commit clears editing and the selection.
+
     let _ = app.ctrl('l');
     assert!(app.buffer()[(4, 1)].bg == sel_bg, "selection staged");
     log.borrow_mut().clear();
@@ -2382,7 +2203,7 @@ fn s3_area_lifecycle() {
         buf_row_text(app.buffer(), 1).contains('a'),
         "V2: both lines stay after Esc"
     );
-    // N1/N2: Cancelled is never emitted; Esc never reverts.
+
     for (code, mods) in [
         (KeyCode::Esc, KeyModifiers::NONE),
         (KeyCode::Enter, KeyModifiers::CONTROL),
@@ -2421,7 +2242,7 @@ fn s3_area_lifecycle() {
             !log.borrow().contains(&TextAction::Cancelled),
             "N1: {code:?}+{mods:?} never emits Cancelled"
         );
-        // Tab/BackTab legitimately commit via blur; the rest revert nothing.
+
         let after = (
             buf_row_text(app.buffer(), 1),
             buf_row_text(app.buffer(), 2),
@@ -2436,7 +2257,7 @@ fn s3_area_lifecycle() {
             assert_eq!(after, before, "N2: {code:?}+{mods:?} reverts nothing");
         }
     }
-    // Shift+Enter inserts like plain Enter.
+
     let mut app = Harness::new(
         LifeApp {
             value: "keep\nboth".to_string(),
@@ -2462,7 +2283,7 @@ fn s3_area_lifecycle() {
             && buf_row_text(app.buffer(), 2).contains("keep"),
         "A1: newline at the caret"
     );
-    // A1 modified-Enter commits; A2 Tab/BackTab commit with direction.
+
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         LifeApp {
@@ -2483,8 +2304,7 @@ fn s3_area_lifecycle() {
         log.borrow().contains(&TextAction::Committed),
         "A1: modified Enter reports Committed"
     );
-    // A2: Tab commits forward (blur commit plus moved focus is the
-    // CommittedTab path: Tab never reaches the control).
+
     let log = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         LifeApp {
@@ -2517,8 +2337,7 @@ fn s3_area_lifecycle() {
         buf_row_text(app.buffer(), 1).contains('x'),
         "A2: value kept across the roundtrip"
     );
-    // S2: follow is armed by begin and every editing key: a scrolled view
-    // snaps back to the cursor on the next render.
+
     let long = (1..=28)
         .map(|i| format!("line {i}"))
         .collect::<Vec<_>>()
@@ -2559,7 +2378,6 @@ fn s3_area_lifecycle() {
         "S2: an editing key re-follows too"
     );
 
-    // PTY: Enter newlines inside, Esc saves the document.
     let case = s3_case("area_lifecycle", &["--page", "textareas"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2605,7 +2423,6 @@ const S3_TAVIEW_AREA: Rect = Rect {
     height: 10,
 };
 
-/// Area view-mode rig: controlled document.
 struct ViewApp {
     value: String,
     st: TextAreaState,
@@ -2626,7 +2443,6 @@ impl App for ViewApp {
     }
 }
 
-/// TA-VIEW-002 (`showcase/audit/textareas`): non-editing scroll mode.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_area_view() {
@@ -2636,7 +2452,6 @@ fn s3_area_view() {
         .collect::<Vec<_>>()
         .join("\n");
 
-    // Prime the viewport, then drive view keys.
     let mut app = Harness::new(
         ViewApp {
             value: long.clone(),
@@ -2652,7 +2467,7 @@ fn s3_area_view() {
             && !buf_row_text(app.buffer(), 8).contains("28. a long"),
         "fixture overflows 8 rows"
     );
-    // A1/S1: view keys move the offset, never the text cursor.
+
     for (code, expect) in [
         (KeyCode::Down, 1),
         (KeyCode::Char('j'), 2),
@@ -2682,7 +2497,7 @@ fn s3_area_view() {
         buf_row_text(app.buffer(), 1).contains(" 1. a long"),
         "A1: PageUp pages back"
     );
-    // A2: Home/End jump the view (g/G aliases included).
+
     let _ = app.key(KeyCode::End);
     assert!(
         buf_row_text(app.buffer(), 1).contains("21. a long"),
@@ -2708,7 +2523,7 @@ fn s3_area_view() {
         !buf_is_underlined(app.buffer(), 4, 1),
         "N1: still navigating"
     );
-    // S2: boundary wheels consume, moving wheels change.
+
     let r = app.wheel(Axis::V, -1, 10, 3);
     assert_eq!(r.flow(), Flow::Consumed, "S2: top boundary consumes");
     let r = app.wheel(Axis::V, 3, 10, 3);
@@ -2721,7 +2536,7 @@ fn s3_area_view() {
     let _ = app.key(KeyCode::End);
     let r = app.wheel(Axis::V, 1, 10, 3);
     assert_eq!(r.flow(), Flow::Consumed, "S2: bottom boundary consumes");
-    // V1: scrolled lines render with …; no cursor, no cursor-line.
+
     let _ = app.key(KeyCode::Home);
     let _ = app.key(KeyCode::Down);
     assert!(app.cursor().is_none(), "V1: no hardware cursor navigating");
@@ -2732,14 +2547,14 @@ fn s3_area_view() {
         "V1: no cursor-line underline while navigating"
     );
     capture_isolated(&dir, "ta-view-scrolled", app.buffer());
-    // V2: the footer shows the overflow position label, never ln x/y.
+
     let footer = buf_row_text(app.buffer(), 10);
     assert!(
         footer.contains("of 28"),
         "V2: overflow position label\n{footer}"
     );
     assert!(!footer.contains("ln "), "V2: no editing line label");
-    // N2: other typed characters ignore while navigating.
+
     for ch in ['x', 'a', 'q', 'Z', ' '] {
         let r = app.key(KeyCode::Char(ch));
         assert_eq!(
@@ -2753,7 +2568,6 @@ fn s3_area_view() {
         "N2: typing never starts editing"
     );
 
-    // PTY: End/Home/wheel scroll the live view without editing.
     let case = s3_case("area_view", &["--page", "textareas"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2803,7 +2617,6 @@ fn s3_area_view() {
 
 const S3_TAFOLLOW: Id = Id::root("s3.tafollow");
 
-/// Area-follow rig: controlled document plus draw area.
 struct FollowApp {
     value: String,
     st: TextAreaState,
@@ -2824,18 +2637,14 @@ impl App for FollowApp {
     }
 }
 
-/// TA-FOLLOW-003 (`showcase/audit/textareas`): cursor follow + unicode.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_area_follow() {
     let dir = s3_dir("s3_area_follow");
-    // Synthetic unicode line: CJK (2 cells each), ZWJ emoji (2 cells),
-    // and a combining acute riding its base (1 cell); long enough (39
-    // cells) to clip on both edges in a 20-cell run.
+
     let uni = "日本語 · 👩\u{200d}💻 · cafe\u{301} tail · padding extra";
     let doc = format!("first\n{uni}\nlast");
 
-    // S2/N2 isolated: columns are display cells; addressing never splits.
     let line1 = "first\n".len();
     let pos_cjk = TextBuffer::pos_of(&doc, line1 + "日".len());
     assert_eq!(
@@ -2853,7 +2662,7 @@ fn s3_area_follow() {
         6 + 3 + 2 + 3 + 4,
         "S2: the combining acute rides its base"
     );
-    // offset_at floors to boundary starts, never into a cluster.
+
     let buf = TextBuffer::multi(&doc);
     assert_eq!(
         buf.offset_at(1, 1),
@@ -2865,9 +2674,7 @@ fn s3_area_follow() {
         line1 + "日".len(),
         "N2: col 3 floors to the 本 start"
     );
-    // V1/V2/S1 isolated: End follows with … markers and a cursor line.
-    // The oracle begins the edit directly (`begin_edit`, no Enter); the
-    // caret lands where begin parks it and End stays on that line.
+
     let mut st = TextAreaState::default();
     st.begin(&doc);
     let mut app = Harness::new(
@@ -2887,8 +2694,7 @@ fn s3_area_follow() {
         2,
         "End stays on begin's line (doc end; VB: cursor starts at end)"
     );
-    // Caret mid-line at col 25: hscroll 6 hides the head (left …) while
-    // the tail overflows the 20-cell run (right …).
+
     let _ = app.key(KeyCode::Up);
     let _ = app.key(KeyCode::End);
     for _ in 0..14 {
@@ -2898,7 +2704,7 @@ fn s3_area_follow() {
     let border_strong = t.color.border_strong;
     let cursor = app.cursor().expect("V1: hardware cursor placed");
     assert_eq!(cursor.y, 1, "V1: cursor on the unicode line row");
-    // The cursor stays inside the text run (inner 2..22 here).
+
     assert!(
         (2..22).contains(&cursor.x),
         "V1: cursor inside the run, got {}",
@@ -2906,7 +2712,7 @@ fn s3_area_follow() {
     );
     let row = buf_row_text(app.buffer(), 1);
     assert!(row.contains('…'), "V1: clipped long line marks …");
-    // V2: the cursor line carries a border_strong underline, inner-wide.
+
     for x in 2..22u16 {
         assert!(
             buf_is_underlined(app.buffer(), x, 1),
@@ -2919,12 +2725,12 @@ fn s3_area_follow() {
         );
     }
     capture_isolated(&dir, "ta-followed", app.buffer());
-    // S1/N1: a manual wheel moves only the offset; typing re-follows.
+
     let cursor_before = app.cursor();
     let r = app.wheel(Axis::V, 1, 10, 1);
     assert_eq!(r.flow(), Flow::Consumed, "wheel over a short doc consumes");
     assert_eq!(app.cursor(), cursor_before, "N1: wheel moves no cursor");
-    // A2: PageUp/PageDown while editing move the cursor by rows lines.
+
     let pages = (1..=10)
         .map(|i| format!("page line {i}"))
         .collect::<Vec<_>>()
@@ -2962,7 +2768,7 @@ fn s3_area_follow() {
         buf_row_text(app.buffer(), 2).contains("page line 9"),
         "A2: PageDown lands on line 8"
     );
-    // A1: click sets line+col clamped and arms follow.
+
     let _ = app.key(KeyCode::PageDown);
     let r = app.click(23, 2);
     assert_eq!(r.flow(), Flow::Consumed, "A1: click applies");
@@ -2971,7 +2777,6 @@ fn s3_area_follow() {
         "A1: line clamps to line_count-1"
     );
 
-    // PTY: End, wheel away, type to re-follow.
     let case = s3_case("area_follow", &["--page", "textareas"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -2993,8 +2798,7 @@ fn s3_area_follow() {
     waits::wait_state(&mut s, "ln 1/28", "End lands on line 1");
     support::press_step(&s, "ctrl+end");
     waits::wait_state(&mut s, "ln 28/28", "S1 live: doc end followed");
-    // Ctrl+End lands at the end of a long line 28, so hscroll hides its
-    // head (correct follow); Home re-exposes `28. Run` for the wheel leg.
+
     support::press_step(&s, "home");
     support::wait_screen(
         &mut s,
@@ -3034,7 +2838,6 @@ const S3_CHIPS_AREA: Rect = Rect {
     height: 1,
 };
 
-/// Chip-bar rig: owned labels plus action log.
 struct ChipApp {
     items: Vec<String>,
     st: ChipBarState,
@@ -3075,20 +2878,17 @@ impl App for ChipApp {
     }
 }
 
-/// Probe the chip cursor: Enter activates the stop (chip index or add).
 fn chip_probe(app: &mut Harness<ChipApp>, log: &Rc<RefCell<Vec<ChipBarAction>>>) -> ChipBarAction {
     log.borrow_mut().clear();
     let _ = app.key(KeyCode::Enter);
     log.borrow().last().copied().expect("probe action")
 }
 
-/// CHIP-BAR-001 (`showcase/pages/chips`): chip row + lead + add button.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_chip_bar() {
     let dir = s3_dir("s3_chip_bar");
 
-    // S1 isolated: cursor stops span chips plus the add stop, clamped.
     let mut bar = ChipApp::bar();
     bar.st.set_cursor(99, ItemKey::index(99));
     let log = Rc::clone(&bar.log);
@@ -3120,7 +2920,7 @@ fn s3_chip_bar() {
         ChipBarAction::Activated(ItemKey::index(1)),
         "S1: Left walks chips"
     );
-    // A1: Enter activates a chip, adds on the add stop.
+
     let _ = app.key(KeyCode::Home);
     let _ = app.key(KeyCode::Right);
     log.borrow_mut().clear();
@@ -3144,7 +2944,7 @@ fn s3_chip_bar() {
         log.borrow().contains(&ChipBarAction::AddRequested),
         "A1: Enter on the add stop emits Add"
     );
-    // S2/A2: Toggle, Remove, Add, ClearAll, Lead events.
+
     let _ = app.key(KeyCode::Home);
     log.borrow_mut().clear();
     let _ = app.key(KeyCode::Char(' '));
@@ -3174,7 +2974,7 @@ fn s3_chip_bar() {
     log.borrow_mut().clear();
     let r = app.key(KeyCode::Char('X'));
     assert_eq!(r.flow(), Flow::Consumed, "S2: X emits ClearAll");
-    // A2: lead click emits Lead (the bar paints a lead affordance).
+
     assert!(
         buf_row_text(app.buffer(), 0).contains("match all"),
         "A2: lead affordance exists for the Lead click"
@@ -3206,7 +3006,7 @@ fn s3_chip_bar() {
             .any(|a| *a == ChipBarAction::Closed(ItemKey::index(1))),
         "A2: × click removes"
     );
-    // N1: Remove never fires for non-removable chips or the add stop.
+
     let _ = app.key(KeyCode::Home);
     for code in [KeyCode::Char('x'), KeyCode::Delete, KeyCode::Backspace] {
         log.borrow_mut().clear();
@@ -3223,7 +3023,7 @@ fn s3_chip_bar() {
     let r = app.key(KeyCode::Char('x'));
     assert_eq!(r.flow(), Flow::Ignored, "N1: x ignores on the add stop");
     assert!(log.borrow().is_empty(), "N1: x on add emits nothing");
-    // N2: modified char chords ignore and move nothing.
+
     let _ = app.key(KeyCode::Home);
     let _ = app.key(KeyCode::Right);
     for (code, mods) in [
@@ -3240,7 +3040,7 @@ fn s3_chip_bar() {
             "N2: modified chords move nothing"
         );
     }
-    // V1/V2/V3 isolated: lead, × closers, overflow …, enabled count.
+
     let row = buf_row_text(app.buffer(), 0);
     assert!(row.contains("match all ▾"), "V1: lead shows");
     assert!(row.contains("+ Add filter"), "V1: add stop shows");
@@ -3253,8 +3053,7 @@ fn s3_chip_bar() {
         !row.contains('…'),
         "V2: no overflow marker when everything fits"
     );
-    // The third chip is disabled in the row fixture; two enabled chips
-    // feed the `2 active` meta.
+
     let enabled = [true, true, false];
     assert_eq!(
         enabled.iter().filter(|e| **e).count(),
@@ -3262,23 +3061,16 @@ fn s3_chip_bar() {
         "V3: two enabled chips feed the meta"
     );
     capture_isolated(&dir, "chip-bar-wide", app.buffer());
-    // Narrow: an unfitting chip becomes ….
+
     let bar = ChipApp::bar();
     let mut narrow = Harness::new(bar, Theme::junie(), 30, 3);
     assert!(narrow.tab_to(S3_CHIPS), "navigating focus");
-    // Narrow the strip by redrawing into 30 cells is fixed by the Harness
-    // width; the bar area spans it.
+
     assert!(
         buf_row_text(narrow.buffer(), 0).contains('…'),
         "V2: an unfitting chip becomes …"
     );
 
-    // PTY, two sessions. At 80x24 the third chip overflows, and the
-    // overflow arm returns before `ring.register` — and a click-focused
-    // bar is yanked straight back by `ensure_valid` — so the bar can
-    // never hold keyboard focus at 80x24 (a VB focus quirk, pinned here
-    // by the overflow facts below). The keyboard lifecycle therefore
-    // runs in a 140x40 session where the whole bar fits and registers.
     let case = s3_case("chip_bar", &["--page", "chips-selects"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3340,7 +3132,7 @@ fn s3_chip_bar() {
         "last action: removed total > 100",
         "A2 live: Remove splices",
     );
-    // A bare `+` is not a chord (it splits the grammar), so type it.
+
     type_text(&mut s, "+");
     waits::wait_state(
         &mut s,
@@ -3372,7 +3164,6 @@ fn s3_chip_bar() {
 
 const S3_LISTSINGLE: Id = Id::root("s3.listsingle");
 
-/// Single-select rig: owned rows plus action log.
 struct SingleApp {
     items: Vec<String>,
     st: ListState,
@@ -3400,7 +3191,6 @@ impl SingleApp {
     }
 }
 
-/// Row 5 (Java) is disabled in the single-select fixture.
 fn single_disabled(item: &&str) -> bool {
     *item == "Java"
 }
@@ -3425,7 +3215,6 @@ impl App for SingleApp {
     }
 }
 
-/// Probe the list cursor: Enter activates without moving.
 fn list_probe(app: &mut Harness<SingleApp>, log: &Rc<RefCell<Vec<ListAction>>>) -> Option<ItemKey> {
     log.borrow_mut().clear();
     let _ = app.key(KeyCode::Enter);
@@ -3435,18 +3224,15 @@ fn list_probe(app: &mut Harness<SingleApp>, log: &Rc<RefCell<Vec<ListAction>>>) 
     })
 }
 
-/// The row carrying the › marker, if any.
 fn chosen_row(app: &Harness<SingleApp>, height: u16) -> Option<u16> {
     (0..height).find(|y| app.buffer()[(1, *y)].symbol() == "›")
 }
 
-/// LIST-SINGLE-001 (`showcase/pages/lists`): single-select + empty state.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_list_single() {
     let dir = s3_dir("s3_list_single");
 
-    // S1 isolated: cursor clamps; activate sets chosen for enabled rows.
     let mut list = SingleApp {
         items: SingleApp::langs(),
         st: ListState::default(),
@@ -3469,7 +3255,7 @@ fn s3_list_single() {
         Some(ItemKey::index(0)),
         "S1: g returns to row 0"
     );
-    // Disabled row 5: activate consumes, chosen unchanged.
+
     let r = app.click(5, 5);
     assert_eq!(r.flow(), Flow::Consumed, "S1: disabled activate consumes");
     assert!(
@@ -3483,7 +3269,7 @@ fn s3_list_single() {
         Some(0),
         "S1: chosen unchanged by disabled"
     );
-    // Enabled row 3: activate applies, chosen follows.
+
     log.borrow_mut().clear();
     let r = app.click(5, 3);
     assert_eq!(r.flow(), Flow::Consumed, "S1: enabled activate applies");
@@ -3494,7 +3280,7 @@ fn s3_list_single() {
         "S1: enabled click chooses"
     );
     assert_eq!(chosen_row(&app, 12), Some(3), "S1: chosen follows");
-    // A2: row, end, and viewport moves.
+
     let _ = app.key(KeyCode::End);
     assert_eq!(
         list_probe(&mut app, &log),
@@ -3507,8 +3293,7 @@ fn s3_list_single() {
         Some(ItemKey::index(0)),
         "A2: Home jumps first"
     );
-    // S2: wheeling moves the viewport and keeps the cursor; the next
-    // keystroke re-reveals it. Narrow viewport: 6 rows over 10 items.
+
     let log3 = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         SingleApp {
@@ -3543,7 +3328,7 @@ fn s3_list_single() {
             || buf_row_text(app.buffer(), 1).contains("TypeScript"),
         "S2: keystroke re-reveals the cursor"
     );
-    // A1: Enter/Space activate; a click moves and activates.
+
     let log3 = Rc::new(RefCell::new(Vec::new()));
     let mut app = Harness::new(
         SingleApp {
@@ -3588,7 +3373,7 @@ fn s3_list_single() {
         "A1: click moves the cursor"
     );
     assert_eq!(chosen_row(&app, 12), Some(6), "A1: click activates");
-    // N1: an empty list ignores every key.
+
     let mut empty = Harness::new(
         SingleApp {
             items: Vec::new(),
@@ -3611,7 +3396,7 @@ fn s3_list_single() {
         let r = empty.key(code);
         assert_eq!(r.flow(), Flow::Ignored, "N1: empty list ignores {code:?}");
     }
-    // N2: a click past the last row consumes without moving.
+
     let r = app.click(5, 11);
     assert_eq!(r.flow(), Flow::Consumed, "N2: past-end click consumes");
     assert_eq!(
@@ -3619,7 +3404,7 @@ fn s3_list_single() {
         Some(ItemKey::index(6)),
         "N2: cursor unmoved"
     );
-    // V1: the chosen row carries ›, other rows stay blank.
+
     assert_eq!(
         app.buffer()[(1, 6)].symbol(),
         "›",
@@ -3633,7 +3418,7 @@ fn s3_list_single() {
         );
     }
     capture_isolated(&dir, "list-single-chosen", app.buffer());
-    // V2: the empty column shows centred empty text, never a marker.
+
     let empty_draw = Harness::new(
         EmptyListApp {
             st: ListState::default(),
@@ -3648,7 +3433,6 @@ fn s3_list_single() {
     let lead = mid.find("No").unwrap_or(0);
     assert!(lead > 2, "V2: empty text centres ({lead} cells in)");
 
-    // PTY: move, jump, choose, click, and wheel the live column.
     let case = s3_case("list_single", &["--page", "lists"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -3678,7 +3462,7 @@ fn s3_list_single() {
     waits::wait_state(&mut s, "Chosen: Erlang", "A1 live: G + Enter chooses last");
     let done = live_text(&mut s);
     assert_line_has(&done, "›", "Erlang", "V1 live: › on the chosen row");
-    // G scrolled Python out of view; Home brings the head back first.
+
     support::press_step(&s, "home");
     support::wait_screen(
         &mut s,
@@ -3690,7 +3474,7 @@ fn s3_list_single() {
     waits::wait_state(&mut s, "Chosen: Python", "A1 live: click chooses");
     let (wrow, wcol) = find_pos(&mut s, "Chosen: Python", case_timeout(&case));
     wheel_at(&mut s, wcol, wrow + 3, Wheel::Down, 5);
-    // The choice header keeps its Python while the row scrolls away.
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
@@ -3713,7 +3497,6 @@ fn s3_list_single() {
 
 const S3_LISTMULTI: Id = Id::root("s3.listmulti");
 
-/// Multi-select rig: owned rows plus action log.
 struct MultiApp {
     items: Vec<String>,
     st: ListState,
@@ -3754,7 +3537,6 @@ impl MultiApp {
     }
 }
 
-/// Generated and locked rows are disabled in the multi fixture.
 fn multi_disabled(item: &&str) -> bool {
     *item == "src/db/schema.rs" || *item == "Cargo.lock"
 }
@@ -3779,17 +3561,14 @@ impl App for MultiApp {
     }
 }
 
-/// Whether row `y` carries ✓.
 fn is_checked(app: &Harness<MultiApp>, y: u16) -> bool {
     app.buffer()[(1, y)].symbol() == "✓"
 }
 
-/// Count ✓ rows in the 8-row fixture.
 fn checked_count(app: &Harness<MultiApp>) -> usize {
     (0..8).filter(|y| is_checked(app, *y)).count()
 }
 
-/// Probe the multi cursor: Enter activates without moving.
 fn multi_probe(app: &mut Harness<MultiApp>, log: &Rc<RefCell<Vec<ListAction>>>) -> Option<ItemKey> {
     log.borrow_mut().clear();
     let _ = app.key(KeyCode::Enter);
@@ -3799,14 +3578,11 @@ fn multi_probe(app: &mut Harness<MultiApp>, log: &Rc<RefCell<Vec<ListAction>>>) 
     })
 }
 
-/// LIST-MULTI-002 (`showcase/pages/lists`): multi-select column.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_list_multi() {
     let dir = s3_dir("s3_list_multi");
 
-    // S1 isolated: Shift+arrows check anchor..cursor, skipping disabled;
-    // plain moves clear the anchor.
     let (rig, log) = MultiApp::rig();
     let mut app = Harness::new(rig, Theme::junie(), 40, 12);
     assert!(app.tab_to(S3_LISTMULTI), "navigating focus");
@@ -3823,11 +3599,7 @@ fn s3_list_multi() {
     assert!(!is_checked(&app, 2), "S1: disabled row 2 skipped");
     assert_eq!(checked_count(&app), 3, "S1: rows 0, 1, 3 checked");
     let _ = app.key(KeyCode::Down);
-    // Row 4 is disabled: Enter reports nothing there, and the list
-    // cursor paints no marker, so the round-trip proves the stop —
-    // Down lands 5 iff the cursor was on 4 — then restores it. Plain
-    // moves clear the anchor on every leg, as the oracle's single
-    // move does, and Enter never flips checks, so the probe is clean.
+
     let _ = app.key(KeyCode::Down);
     assert_eq!(
         multi_probe(&mut app, &log),
@@ -3850,7 +3622,7 @@ fn s3_list_multi() {
         4,
         "S1: anchor was 4, not 0 (rows 0,1,3,5)"
     );
-    // S2: `a` checks all non-disabled rows, or clears them when full.
+
     let _ = app.key(KeyCode::Char('a'));
     assert_eq!(checked_count(&app), 6, "S2: all six enabled rows checked");
     assert!(
@@ -3859,11 +3631,11 @@ fn s3_list_multi() {
     );
     let _ = app.key(KeyCode::Char('a'));
     assert_eq!(checked_count(&app), 0, "S2: second `a` clears");
-    // A1: Space/Enter flip the cursor row unless disabled.
+
     let _ = app.key(KeyCode::Char('g'));
     let _ = app.key(KeyCode::Down);
     let _ = app.key(KeyCode::Down);
-    // Disabled row 2 reports no activation; round-trip through row 3.
+
     let _ = app.key(KeyCode::Down);
     assert_eq!(
         multi_probe(&mut app, &log),
@@ -3880,7 +3652,7 @@ fn s3_list_multi() {
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "A1: enabled Enter applies");
     assert!(is_checked(&app, 3), "A1: Enter flips the cursor row");
-    // A2: clicking a row moves the cursor there and toggles it.
+
     log.borrow_mut().clear();
     let r = app.click(5, 6);
     assert_eq!(r.flow(), Flow::Consumed, "A2: click applies");
@@ -3890,7 +3662,7 @@ fn s3_list_multi() {
         "A2: click moves the cursor"
     );
     assert!(is_checked(&app, 6), "A2: click toggles");
-    // N1: activate on a disabled row consumes and changes nothing.
+
     log.borrow_mut().clear();
     let _ = app.key(KeyCode::Char('g'));
     let _ = app.key(KeyCode::Down);
@@ -3898,13 +3670,13 @@ fn s3_list_multi() {
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "N1: disabled activate consumes");
     assert!(!is_checked(&app, 2), "N1: nothing changes");
-    // V1/V2/N2 isolated: ✓ rows, muted disabled rows, no focus on them.
+
     let _ = app.key(KeyCode::Char('a'));
-    // Park the cursor on the disabled row for the N2 renders.
+
     let _ = app.key(KeyCode::Char('g'));
     let _ = app.key(KeyCode::Down);
     let _ = app.key(KeyCode::Down);
-    // Disabled row 2 reports no activation; round-trip through row 3.
+
     let _ = app.key(KeyCode::Down);
     assert_eq!(
         multi_probe(&mut app, &log),
@@ -3928,8 +3700,7 @@ fn s3_list_multi() {
         "V2: disabled rows never carry ✓"
     );
     assert_eq!(checked_count(&app), 6, "V1: six feed the `N selected` meta");
-    // N2: hover and focus never appear on disabled rows — the disabled
-    // row paints identically hovered or not.
+
     let plain = (
         app.buffer()[(3, 2)].fg,
         app.buffer()[(3, 2)].bg,
@@ -3949,7 +3720,6 @@ fn s3_list_multi() {
     );
     capture_isolated(&dir, "list-multi-all", app.buffer());
 
-    // PTY: toggle, range, all, and a refused disabled activate.
     let case = s3_case("list_multi", &["--page", "lists"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4003,7 +3773,7 @@ fn s3_list_multi() {
         "second `a` never cleared",
         |screen| count_glyph(&support::screen_text(screen), '✓') == 0,
     );
-    // Cursor sits on row 1 after the range; one step lands the disabled row.
+
     support::press_step(&s, "j");
     support::press_step(&s, "enter");
     let done = settle_text(&mut s, case_timeout(&case), "disabled activate steady");
@@ -4029,7 +3799,6 @@ fn s3_list_multi() {
 
 const S3_PICKQUERY: Id = Id::root("s3.pickquery");
 
-/// Owned picker row with semantic identity.
 struct PItem {
     key: ItemKey,
     label: String,
@@ -4054,7 +3823,6 @@ impl AsItem for PItem {
     }
 }
 
-/// Quick-open rig: modal picker owner plus action log.
 struct QueryApp {
     items: Vec<PItem>,
     st: PickerState,
@@ -4119,7 +3887,6 @@ impl QueryApp {
         Picker::new(S3_PICKQUERY)
             .title("Open quickly")
             .placeholder("Files and tasks…")
-            // (No `meta` subtitle builder on the target Picker.)
             .width(76)
             .scopes(&self.scopes)
     }
@@ -4129,9 +3896,7 @@ impl App for QueryApp {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let log = Rc::clone(&self.log);
         let scopes = self.scopes;
-        // Boot-only open: a cancel-close must stay closed. Reopening on
-        // `!open` resurrects the layer in the same keystroke's bubble
-        // re-update, defeating Cancel.
+
         if !self.booted {
             self.booted = true;
             self.open = true;
@@ -4171,19 +3936,15 @@ impl App for QueryApp {
     }
 }
 
-/// Whether the query editor shows its placeholder (i.e. the query is blank).
 fn query_blank(app: &Harness<QueryApp>) -> bool {
     app.text().contains("Files and tasks…")
 }
 
-/// FLIST-QUERY-001 (`showcase/pages/pickers`): query + ranked rows.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_picker_query() {
     let dir = s3_dir("s3_picker_query");
 
-    // S1 isolated: every query edit emits QueryChanged; set_items resets
-    // to the first eligible row.
     let (rig, log) = QueryApp::rig(QueryApp::auth_items(), PickerState::default());
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     assert!(app.is_open(S3_PICKQUERY), "modal opens");
@@ -4196,8 +3957,7 @@ fn s3_picker_query() {
         "S1: typing emits QueryChanged"
     );
     assert!(!query_blank(&app), "query accumulates");
-    // A replaced projection resets the cursor past disabled rows (the
-    // same reconcile path `set_items` drives).
+
     let mut ranked = QueryApp::auth_items();
     ranked[0].disabled = true;
     let (rig, log) = QueryApp::rig(ranked, PickerState::default());
@@ -4211,7 +3971,7 @@ fn s3_picker_query() {
             .any(|a| *a == PickerAction::Chosen(ItemKey::text("auth_flow.rs"))),
         "S1: set_items resets past disabled rows"
     );
-    // S2: Esc with text clears; Esc empty cancels.
+
     let mut st = PickerState::default();
     st.set_query("auth");
     let (rig, log) = QueryApp::rig(QueryApp::auth_items(), st);
@@ -4229,7 +3989,7 @@ fn s3_picker_query() {
     let r = app.key(KeyCode::Esc);
     assert_eq!(r.flow(), Flow::Consumed, "S2: Esc empty applies");
     assert!(!app.is_open(S3_PICKQUERY), "S2: Esc empty cancels");
-    // A1: Enter emits Chosen (ChosenAlt with alt); only eligible resolve.
+
     let mut st = PickerState::default();
     st.set_cursor(1, ItemKey::text("auth_flow.rs"));
     let (rig, log) = QueryApp::rig(QueryApp::auth_items(), st);
@@ -4277,7 +4037,7 @@ fn s3_picker_query() {
         !log.borrow().is_empty(),
         "A1: Enter on no eligible row falls to Submit"
     );
-    // A2: Tab emits NextScope; foreign ids are not owned.
+
     let (rig, log) = QueryApp::rig(QueryApp::auth_items(), PickerState::default());
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     log.borrow_mut().clear();
@@ -4305,7 +4065,7 @@ fn s3_picker_query() {
         .is_some(),
         "A2: rows are owned (presence proof)"
     );
-    // N1: Enter with no eligible row and a blank query consumes silently.
+
     let mut stale = QueryApp::auth_items();
     for item in stale.iter_mut() {
         item.disabled = true;
@@ -4321,12 +4081,12 @@ fn s3_picker_query() {
         "N1: blank query + no eligible consumes"
     );
     assert!(log.borrow().is_empty(), "N1: silently");
-    // N2 contrast: typing works while searchable.
+
     let (rig, _log) = QueryApp::rig(QueryApp::auth_items(), PickerState::default());
     let mut app = Harness::new(rig, Theme::junie(), 80, 24);
     let _ = app.key(KeyCode::Char('j'));
     assert!(!query_blank(&app), "N2: searchable pickers type j");
-    // V1: placeholder when empty, underlined query otherwise.
+
     let (rig, _log) = QueryApp::rig(QueryApp::auth_items(), PickerState::default());
     let app = Harness::new(rig, Theme::junie(), 80, 24);
     assert!(query_blank(&app), "V1: placeholder shows");
@@ -4334,7 +4094,7 @@ fn s3_picker_query() {
     st.set_query("au");
     let (rig, _log) = QueryApp::rig(QueryApp::auth_items(), st);
     let app = Harness::new(rig, Theme::junie(), 80, 24);
-    // The query row underlines the typed text.
+
     let mut underlined = false;
     for y in 0..24u16 {
         for x in 0..80u16 {
@@ -4345,7 +4105,7 @@ fn s3_picker_query() {
     }
     assert!(underlined, "V1: query text underlines");
     capture_isolated(&dir, "picker-query", app.buffer());
-    // V2/V3: matched bytes read bold, scope right-aligns, groups label once.
+
     let mut items = QueryApp::auth_items();
     items[0].matched = vec![0, 1, 2, 3];
     let mut st = PickerState::default();
@@ -4367,7 +4127,7 @@ fn s3_picker_query() {
         .map(|y| buf_row_text(app.buffer(), y))
         .find(|l| l.contains("Open quickly"))
         .expect("title row");
-    // Right-aligned: past the scope sits only padding and the modal border.
+
     let scope_end =
         title_row.find("All · Tab scope").expect("V2: scope shows") + "All · Tab scope".len();
     let rest: String = title_row[scope_end..]
@@ -4381,13 +4141,12 @@ fn s3_picker_query() {
         .count();
     assert_eq!(group_rows, 1, "V3: one Files label on the first group row");
 
-    // PTY: open, filter, choose, clear, cancel, and scope-cycle live.
     let case = s3_case("picker_query", &["--page", "pickers"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
     support::press_step(&s, "tab");
-    // The modal opening proves the Tab landed on the quick button.
+
     support::press_step(&s, "enter");
     checkpoint(&mut s, &dir, "picker-open");
     waits::wait_state(&mut s, "All · Tab scope", "V2 live: scope shows");
@@ -4415,8 +4174,7 @@ fn s3_picker_query() {
             text.contains("Chose ") && !text.contains("All · Tab scope")
         },
     );
-    // Reopen, type, clear with Esc, cancel with Esc. (Choosing closed
-    // the modal, which returned focus to NAV: Tab back on to Quick first.)
+
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -4454,8 +4212,7 @@ fn s3_picker_query() {
         "second Esc never cancelled",
         |screen| !support::screen_text(screen).contains("All · Tab scope"),
     );
-    // Reopen and cycle the scope with Tab. (Cancelling also returned
-    // focus to NAV.)
+
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -4476,7 +4233,6 @@ fn s3_picker_query() {
 
 const S3_PICKCHOICE: Id = Id::root("s3.pickchoice");
 
-/// Fixed-choice rig: modal picker owner plus action log.
 struct ChoiceApp {
     items: Vec<PItem>,
     st: PickerState,
@@ -4554,7 +4310,7 @@ impl App for ChoiceApp {
         let title = self.title;
         let placeholder = self.placeholder;
         let searchable = self.searchable;
-        // Boot-only open: a cancel-close must stay closed (see QueryApp).
+
         if !self.booted {
             self.booted = true;
             self.open = true;
@@ -4602,7 +4358,6 @@ impl App for ChoiceApp {
     }
 }
 
-/// Probe the picker cursor: Enter chooses without moving.
 fn choice_probe(
     app: &mut Harness<ChoiceApp>,
     log: &Rc<RefCell<Vec<PickerAction>>>,
@@ -4615,8 +4370,6 @@ fn choice_probe(
     })
 }
 
-/// Loading/error rig over the embedded filter engine (Picker exposes no
-/// status; the engine owns the resolve/refuse contract).
 struct StatusApp {
     items: Vec<PItem>,
     st: FilterListState,
@@ -4643,15 +4396,11 @@ impl App for StatusApp {
     }
 }
 
-/// FLIST-CHOICE-002 (`showcase/flows/pickers/tabs`): fixed-choice + tabs.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_picker_choice() {
     let dir = s3_dir("s3_picker_choice");
 
-    // S1 isolated: refresh follows the cursor key; a vanished key falls.
-    // (Fresh projections through the same reconcile path `refresh_items`
-    // drives: the cursor key survives when present, else falls to first.)
     let mut st = PickerState::default();
     st.set_cursor(1, ItemKey::text("b"));
     let (rig, log) = ChoiceApp::rig(
@@ -4733,7 +4482,7 @@ fn s3_picker_choice() {
         Some(ItemKey::text("x")),
         "S1: vanished key falls to first eligible"
     );
-    // S2: Delete emits Secondary only for an eligible row of Ready.
+
     let mut st = PickerState::default();
     st.set_cursor(3, ItemKey::text("level-3"));
     let (rig, log) = ChoiceApp::rig(
@@ -4753,8 +4502,7 @@ fn s3_picker_choice() {
             .any(|a| *a == PickerAction::Secondary(ItemKey::text("level-3"))),
         "S2: Delete emits Secondary when eligible"
     );
-    // N1: Loading/Error resolve to nothing (engine level: Picker exposes
-    // no status control; the embedded filter owns the contract).
+
     for status in [Status::Loading, Status::Error] {
         for code in [KeyCode::Delete, KeyCode::Enter] {
             let log = Rc::new(RefCell::new(Vec::new()));
@@ -4781,7 +4529,7 @@ fn s3_picker_choice() {
             assert!(log.borrow().is_empty(), "N1: {code:?} emits nothing");
         }
     }
-    // A1: Enter on a level emits Chosen (the page sets and closes).
+
     let mut st = PickerState::default();
     st.set_cursor(4, ItemKey::text("level-4"));
     let (rig, log) = ChoiceApp::rig(
@@ -4801,7 +4549,7 @@ fn s3_picker_choice() {
             .any(|a| *a == PickerAction::Chosen(ItemKey::text("level-4"))),
         "A1: Enter emits Chosen(4)"
     );
-    // A2: Backspace on an empty query emits Back instead of editing.
+
     let (rig, log) = ChoiceApp::rig(
         "Open quickly",
         "Files and tasks…",
@@ -4835,7 +4583,7 @@ fn s3_picker_choice() {
         "A2: Backspace with text pops + QueryChanged"
     );
     assert!(app.text().contains("Files and tasks…"), "query popped");
-    // N2: j/k type when searchable, move when not.
+
     let (rig, log) = ChoiceApp::rig(
         "Open quickly",
         "Files and tasks…",
@@ -4897,7 +4645,7 @@ fn s3_picker_choice() {
         Some(ItemKey::text("level-3")),
         "N2: fixed-list k moves"
     );
-    // V1: the Level modal has no query field; the cursor row keeps a gutter.
+
     let screen = app.text();
     assert!(
         !screen.contains("Type to search"),
@@ -4911,7 +4659,7 @@ fn s3_picker_choice() {
         safe_row.contains("Safe Mode (Full)"),
         "V1: gutter on the cursor row"
     );
-    // V2: the current level shows `current`; the active tab shows `active`.
+
     assert!(
         screen.contains("current"),
         "V2: current tag shows (presence)"
@@ -4943,7 +4691,6 @@ fn s3_picker_choice() {
         .expect("V2: active tag on the orders row");
     assert!(tagged.contains("orders"), "V2: tag rides the right row");
 
-    // PTY: close a tab, set a level, Back on empty, j-types-live.
     let case = s3_case("picker_choice", &["--page", "pickers"], 80, 24);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
@@ -4964,10 +4711,7 @@ fn s3_picker_choice() {
         "Tabs modal never closed",
         |screen| !support::screen_text(screen).contains("Filter tabs…"),
     );
-    // Modal close returns focus to the sidebar (▎ back on a nav row, in
-    // the first 19 cells where no page widget draws). Tab on to the Level
-    // button: the modal must open with focus off-NAV, else the sidebar
-    // hijacks the Level's j/Enter keys.
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
@@ -5015,9 +4759,7 @@ fn s3_picker_choice() {
         "Safe Mode (Full)",
         "A1 live: Result level follows",
     );
-    // Quick: Backspace on empty is a silent Back; j types, never moves.
-    // The Level choice closed its modal, so focus is back on NAV: one Tab
-    // reaches Quick (proven by the button's ▎ before Enter).
+
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -5037,7 +4779,7 @@ fn s3_picker_choice() {
         back.contains("Files and tasks…"),
         "A2 live: Back keeps the modal open with an empty query"
     );
-    // A query no label can match: `j` must type, never move.
+
     type_text(&mut s, "jjj");
     support::wait_screen(
         &mut s,
@@ -5058,7 +4800,6 @@ fn s3_picker_choice() {
     eprintln!("s3 picker_choice: isolated fixed-choice + live level flow");
 }
 
-/// Empty single-select rig with centred empty text.
 struct EmptyListApp {
     st: ListState,
 }
@@ -5088,7 +4829,6 @@ impl App for EmptyListApp {
     }
 }
 
-/// Masked rig with a live validator (mask A2).
 struct MaskValidApp {
     value: String,
     st: TextInputState,
@@ -5118,7 +4858,6 @@ impl App for MaskValidApp {
     }
 }
 
-/// Reject empty values (paste S2 required rule).
 fn non_empty(s: &str) -> Result<(), FieldError> {
     if s.is_empty() {
         Err(FieldError::new("required"))
@@ -5127,7 +4866,6 @@ fn non_empty(s: &str) -> Result<(), FieldError> {
     }
 }
 
-/// Paste rig with a required validator.
 struct RequiredApp {
     value: String,
     st: TextInputState,
@@ -5151,7 +4889,6 @@ impl App for RequiredApp {
     }
 }
 
-/// Disabled paste rig.
 struct DisabledPasteApp {
     value: String,
     st: TextInputState,
@@ -5175,7 +4912,6 @@ impl App for DisabledPasteApp {
 
 const S3_TIPASTE_AREA_NOTES: Id = Id::root("s3.tipaste.notes");
 
-/// Idle-area paste rig (paste N1/N2).
 struct NotesApp {
     value: String,
     st: TextAreaState,
@@ -5196,13 +4932,6 @@ impl App for NotesApp {
     }
 }
 
-/// NAV-SHELL-001 (`showcase/flows/nav/cycled`): shell sidebar (PTY-only).
-///
-/// The shell sidebar lives in the showcase binary (`app.rs`), outside the
-/// importable library, so every check runs live. Compact-mode note: at
-/// 80x24 the sidebar drops section labels and keeps every entry on one
-/// contiguous row (the `compact` branch in `draw_sidebar` draws no blank
-/// rows); V2 asserts exactly that observed shape.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_nav_shell() {
@@ -5212,14 +4941,13 @@ fn s3_nav_shell() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
 
-    // Sidebar column: the first 19 cells of every line.
     fn sidebar(text: &str) -> Vec<String> {
         text.lines().map(|l| l.chars().take(19).collect()).collect()
     }
 
     let boot = live_text(&mut s);
     assert_line_has(&boot, "▎", "Overview", "boot focuses the sidebar");
-    // V2: compact at 80x24 — no section labels, contiguous one-cell rows.
+
     let side = sidebar(&boot);
     assert!(
         !side.iter().any(|l| l.contains("Foundations")
@@ -5237,7 +4965,7 @@ fn s3_nav_shell() {
         })
         .collect();
     assert_eq!(entries.len(), 4, "V2 live: entries render, got {side:?}");
-    // A1: Down moves the cursor; Enter opens the cursor page.
+
     support::press_step(&s, "down");
     support::wait_screen(
         &mut s,
@@ -5260,8 +4988,7 @@ fn s3_nav_shell() {
     let opened = live_text(&mut s);
     assert_line_has(&opened, "›", "Buttons", "V1 live: › marks the open page");
     assert_line_has(&opened, "▎", "Buttons", "V1 live: ▎ marks the cursor");
-    // N1: the ▎ gutter never shows while focus sits inside a page, while
-    // › persists across the focus move (N2). Then `0` refocuses (A2).
+
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -5286,18 +5013,13 @@ fn s3_nav_shell() {
                 .any(|l| l.contains('▎') && l.contains("Buttons"))
         },
     );
-    // S2: `]` cycles the page with wrap-around. REGISTRY DEVIATION:
-    // NAV-SHELL-001 S2 says "the cursor is untouched", but the global
-    // `]`/`[` arms call `goto`, which sets `nav_cursor = page.index()`
-    // (`app.rs`), so on VB the cursor FOLLOWS the cycled page. This pins
-    // the observed VB behavior; the converse (N2: cursor moves never
-    // change the page alone) holds and is asserted above and below.
+
     support::press_step(&s, "]");
     waits::wait_state(&mut s, "/ Components / Inputs", "S2 live: ] cycles");
     let cycled = live_text(&mut s);
     assert_line_has(&cycled, "›", "Inputs", "S2 live: › follows the page");
     assert_line_has(&cycled, "▎", "Inputs", "S2 live: cursor follows (VB)");
-    // S1: End jumps to the last entry and reveals it; Down clamps there.
+
     support::press_step(&s, "end");
     checkpoint(&mut s, &dir, "nav-end");
     support::wait_screen(
@@ -5317,7 +5039,7 @@ fn s3_nav_shell() {
         clamped.contains("/ Components / Inputs"),
         "N2 live: jumps never change the page alone"
     );
-    // A2: Esc returns focus to navigation from the page.
+
     support::press_step(&s, "home");
     support::press_step(&s, "tab");
     support::wait_screen(
@@ -5341,7 +5063,7 @@ fn s3_nav_shell() {
                 .any(|l| l.contains('▎') && l.contains("Overview"))
         },
     );
-    // S2 wrap-around both ways; A2 clicks move the cursor and open.
+
     support::press_step(&s, "enter");
     waits::wait_state(&mut s, "/ Foundations / Overview", "Overview reopens");
     support::press_step(&s, "[");
@@ -5356,13 +5078,6 @@ fn s3_nav_shell() {
     eprintln!("s3 nav_shell: live sidebar cycle (PTY-only)");
 }
 
-/// NAV-SIDE-002 (`showcase/pages/sidebars`): sidebar page (PTY-only).
-///
-/// The demo `NavList` lives in the showcase binary (`sidebars.rs`), outside
-/// the importable library, so every check runs live. Collapse-label note:
-/// the code sets `Expand` when collapsed and immediately overwrites it with
-/// `›` (`sidebars.rs`), so the observable cycle is Collapse → › → Collapse
-/// and V3 asserts exactly that.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_nav_side() {
@@ -5373,13 +5088,12 @@ fn s3_nav_side() {
     checkpoint(&mut s, &dir, "booted");
     checkpoint(&mut s, &dir, "sidebars-initial");
 
-    // Open-mode nav card (cols 19..47); the content card starts at col 49.
     fn nav_col(text: &str) -> Vec<String> {
         text.lines()
             .map(|l| l.chars().skip(19).take(28).collect())
             .collect()
     }
-    // Content title column (past col 30 in both modes).
+
     fn title_has(text: &str, needle: &str) -> bool {
         text.lines().any(|l| {
             l.chars().skip(30).collect::<String>().contains(needle)
@@ -5388,7 +5102,7 @@ fn s3_nav_side() {
     }
 
     let boot = live_text(&mut s);
-    // V1: section headings precede each group with a blank row between.
+
     let col = nav_col(&boot);
     for section in ["Workspace", "Project", "Preferences"] {
         assert!(
@@ -5409,7 +5123,7 @@ fn s3_nav_side() {
         col[branches + 1].trim().is_empty(),
         "V1 live: the gap row is blank"
     );
-    // Tab into the page nav, walk past enabled items, open one.
+
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -5421,9 +5135,7 @@ fn s3_nav_side() {
                 .any(|l| l.contains('▎') && l.contains("Tasks"))
         },
     );
-    // Cursor starts on Tasks; Runs sits between Tasks and Branches.
-    // Each step is awaited: presses queue asynchronously, so a burst
-    // followed by a middle-state wait would fire on a transient.
+
     support::press_step(&s, "j");
     support::wait_screen(
         &mut s,
@@ -5454,7 +5166,7 @@ fn s3_nav_side() {
         "Branches never opened",
         |screen| title_has(&support::screen_text(screen), "Branches"),
     );
-    // S1: Down skips the disabled Billing row (Environment → Keyboard).
+
     support::press_step(&s, "j");
     support::press_step(&s, "j");
     support::wait_screen(
@@ -5485,7 +5197,7 @@ fn s3_nav_side() {
         "Keyboard never opened",
         |screen| title_has(&support::screen_text(screen), "Keyboard"),
     );
-    // A1: a click on an enabled item moves cursor and current together.
+
     click_at(&mut s, "Members", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -5498,7 +5210,7 @@ fn s3_nav_side() {
                 && title_has(&text, "Members")
         },
     );
-    // S2/N1: a click on disabled Billing changes neither.
+
     click_at(&mut s, "Billing", case_timeout(&case));
     let billing = settle_text(&mut s, case_timeout(&case), "disabled click steady");
     assert!(
@@ -5511,9 +5223,9 @@ fn s3_nav_side() {
             .any(|l| l.contains('▎') && l.contains("Members")),
         "S2/N1 live: cursor stays Members after the Billing click"
     );
-    // A2/V2/V3/N2: collapse toggles without moving; icons + markers stay.
+
     support::press_step(&s, "tab");
-    // Focus proof: the nav cursor marker leaves Members (only other stop: collapse).
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
@@ -5537,7 +5249,7 @@ fn s3_nav_side() {
         title_has(&collapsed, "Members"),
         "A2 live: current stays Members while collapsed"
     );
-    // Collapsed nav card (cols 19..30); the content card moves to col 31.
+
     let ccol: Vec<String> = collapsed
         .lines()
         .map(|l| l.chars().skip(19).take(11).collect())
@@ -5550,7 +5262,7 @@ fn s3_nav_side() {
         ccol.iter().any(|l| l.contains('›') && l.contains('M')),
         "N2 live: current marker + icon stay"
     );
-    // Expand back: the Collapse label returns, then the cursor via backtab.
+
     support::press_step(&s, "enter");
     support::wait_screen(
         &mut s,
@@ -5574,7 +5286,6 @@ fn s3_nav_side() {
 
 const S3_TREE: Id = Id::root("s3.tree");
 
-/// One flat row of the mirror tree: hierarchy plus paint data.
 #[derive(Clone)]
 struct TreeRow {
     node: TreeNode,
@@ -5590,9 +5301,6 @@ fn tree_key_of(row: &TreeRow) -> ItemKey {
     row.node.key().expect("keyed fixture row")
 }
 
-/// The `empty section` note row has no `TreeNode` kind on impl (Leaf /
-/// Parent / Lazy only), so the mirror marks it disabled: cursorable but
-/// never activatable, like the VB note row.
 fn tree_row_disabled(row: &TreeRow) -> bool {
     row.label == "empty section"
 }
@@ -5604,8 +5312,6 @@ fn tree_row_paint(row: &TreeRow, out: &mut RowUi<'_>) {
     }
 }
 
-/// The oracle mirror: src open with folded api + config, a note row, and a
-/// root leaf with meta. Keys are stable text keys (path identity).
 fn tree_mirror() -> Vec<TreeRow> {
     let row =
         |node: TreeNode, label: &'static str, meta: &'static str| TreeRow { node, label, meta };
@@ -5684,7 +5390,6 @@ impl App for TreeApp {
     }
 }
 
-/// The focused cursor row (▎ gutter), if any.
 fn tree_cursor_text(app: &Harness<TreeApp>, height: u16) -> Option<String> {
     (0..height).find_map(|y| {
         let row = buf_row_text(app.buffer(), y);
@@ -5692,16 +5397,6 @@ fn tree_cursor_text(app: &Harness<TreeApp>, height: u16) -> Option<String> {
     })
 }
 
-/// TREE-FOLD-001 (showcase page `trees`, 80x24): folding rows + selection
-/// panel over [`Tree`] on the `project_tree` fixture (roots src, tests,
-/// docs, Cargo.toml, README.md; first level open; cursor 0; nothing
-/// selected).
-///
-/// Live path drives the page: focus the tree, step in, expand `api`,
-/// select `auth.rs`, climb, `*`/`-`, then a toggle click and a leaf click.
-/// Isolated path renders a mirror tree into a `Harness` buffer (glyphs,
-/// indent, meta column, note tone) and asserts every [`TreeAction`] (toggle
-/// identity, cursor relocation, leaf activation, note/modified negatives).
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_tree_fold() {
@@ -5712,9 +5407,6 @@ fn s3_tree_fold() {
     checkpoint(&mut s, &dir, "booted");
     checkpoint(&mut s, &dir, "trees-initial");
 
-    // The tree card occupies screen cols 0..56 (shell + tree); the
-    // Selection panel (with its `a/b` paths, sometimes sharing the row)
-    // starts at col 58. Scope tree predicates to the card zone.
     fn tree_zone(text: &str) -> Vec<String> {
         text.lines().map(|l| l.chars().take(56).collect()).collect()
     }
@@ -5727,7 +5419,6 @@ fn s3_tree_fold() {
             .any(|l| l.contains('▎') && l.contains(label))
     }
 
-    // V1/V3 boot: fold glyphs on folders, panel labels, no selection.
     let boot = live_text(&mut s);
     assert_line_has(&boot, "▾", "src", "V1 live: src open");
     assert_line_has(&boot, "▸", "api", "V1 live: api folded");
@@ -5738,7 +5429,7 @@ fn s3_tree_fold() {
     assert_line_has(&boot, "cursor", "src", "V3 live: cursor label");
     assert!(boot.contains("16 rows"), "V3 live: 16 visible rows at boot");
     assert_line_has(&boot, "open", "5 folders", "V3 live: 5 open");
-    // Tab into the tree (ring NAV, tree): the gutter lands on src.
+
     support::press_step(&s, "tab");
     support::wait_screen(
         &mut s,
@@ -5746,7 +5437,7 @@ fn s3_tree_fold() {
         "tree never focused",
         |screen| tree_cursor_on(&support::screen_text(screen), "src"),
     );
-    // A1: Right on the open src steps into api; Right again expands it.
+
     support::press_step(&s, "right");
     support::wait_screen(
         &mut s,
@@ -5769,7 +5460,7 @@ fn s3_tree_fold() {
         expanded.contains("2.1 KB"),
         "V2 live: size meta shows when wide"
     );
-    // Down onto auth.rs, Enter selects it: path + depth in the panel.
+
     support::press_step(&s, "down");
     support::wait_screen(
         &mut s,
@@ -5785,7 +5476,7 @@ fn s3_tree_fold() {
         |screen| support::screen_text(screen).contains("src/api/auth.rs"),
     );
     checkpoint(&mut s, &dir, "leaf-selected");
-    // S2: cursor moves never clear the selection.
+
     support::press_step(&s, "down");
     support::wait_screen(
         &mut s,
@@ -5798,7 +5489,7 @@ fn s3_tree_fold() {
         moved.contains("src/api/auth.rs"),
         "S2 live: selection survives cursor moves"
     );
-    // A1/S1: Left climbs to api; Left again collapses it in place.
+
     support::press_step(&s, "left");
     support::wait_screen(
         &mut s,
@@ -5816,7 +5507,7 @@ fn s3_tree_fold() {
             !tree_row_has(&text, "auth.rs") && tree_cursor_on(&text, "api")
         },
     );
-    // `*` expands every folder (10 open paths, 30 rows, webhooks out).
+
     support::press_step(&s, "*");
     support::wait_screen(
         &mut s,
@@ -5828,14 +5519,9 @@ fn s3_tree_fold() {
         },
     );
     let all = live_text(&mut s);
-    // 10 expanded paths: the 5 first-level paths (including the Cargo.toml
-    // and README.md leaf roots, kept from construction) plus the 5 deeper
-    // folders api, webhooks, db, workers, fixtures.
+
     assert_line_has(&all, "open", "10 folders", "live: 10 folders open");
-    // `-` collapses every folder: 5 roots, cursor back on ancestor src.
-    // A bare `-` never survives chord parsing (it is the separator), so
-    // press it through the typed call (`Session::type_text` here; the VB
-    // oracle calls `press_key` on its own session type).
+
     s.type_text("-")
         .unwrap_or_else(|e| panic!("key `-` failed: {e:#}"));
     support::wait_screen(
@@ -5847,7 +5533,7 @@ fn s3_tree_fold() {
             text.contains("5 rows") && text.contains("0 folders") && tree_cursor_on(&text, "src")
         },
     );
-    // A2: clicking the src fold glyph re-opens it (11 rows, 1 folders).
+
     let collapsed = live_text(&mut s);
     let zone = tree_zone(&collapsed);
     let src_row = zone
@@ -5867,7 +5553,7 @@ fn s3_tree_fold() {
             tree_row_has(&text, "api") && text.contains("11 rows")
         },
     );
-    // A2: clicking the config.rs leaf row selects it (depth 1).
+
     click_at(&mut s, "config.rs", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -5883,18 +5569,11 @@ fn s3_tree_fold() {
     eprintln!("s3 tree_fold: live page + isolated Tree");
 }
 
-/// Isolated half of TREE-FOLD-001: the mirror tree through [`Tree`].
-///
-/// Action-vocabulary note: VB toggles are silent (`Changed`, no event);
-/// impl reports every toggle as [`TreeAction::Expanded`]/[`Collapsed`] by
-/// design, so toggle checks assert the visibility flip plus the impl
-/// report, and separately that no leaf activation escapes.
 fn tree_fold_isolated(dir: &Path) {
     let src = ItemKey::text("src");
     let api = ItemKey::text("api");
     let auth = ItemKey::text("auth.rs");
 
-    // V1: fold glyphs, blank for leaves, two cells of indent per depth.
     let mut st = TreeState::new();
     st.expand(src);
     let (rig, _) = TreeApp::rig(tree_mirror(), st);
@@ -5912,13 +5591,12 @@ fn tree_fold_isolated(dir: &Path) {
         row_cfg.starts_with("     config.rs"),
         "V1 isolated: leaf blank + 2-cell indent, got {row_cfg:?}"
     );
-    // V2: the meta column shows for all rows when wide ...
+
     assert!(
         row_cfg.contains("1.9 KB"),
         "V2 isolated: meta shows when wide"
     );
-    // ... and for none when one row starves it (all-or-none column:
-    // config.rs at depth 1 needs 23 cells, so width 22 hides every meta).
+
     let mut st = TreeState::new();
     st.expand(src);
     let (mut rig, _) = TreeApp::rig(tree_mirror(), st);
@@ -5935,14 +5613,13 @@ fn tree_fold_isolated(dir: &Path) {
         narrow.contains("config.rs") && narrow.contains("Cargo.toml"),
         "V2 isolated: labels win over meta when narrow"
     );
-    // S1: toggle flips the expanded set by key identity ...
+
     let mut st = TreeState::new();
     assert!(st.toggle(api), "S1 isolated: toggle opens");
     assert!(st.is_expanded(api), "S1 isolated: api open by key");
     assert!(!st.toggle(api), "S1 isolated: re-toggle closes");
     assert!(!st.is_expanded(api), "S1 isolated: api closed by key");
-    // ... and collapse relocates the cursor to the visible ancestor.
-    // Rig A pins the setup: api open, cursor resting on auth.rs.
+
     let mut st = TreeState::new();
     st.expand(src);
     st.expand(api);
@@ -5958,7 +5635,7 @@ fn tree_fold_isolated(dir: &Path) {
         tree_cursor_text(&app, 8).is_some_and(|t| t.contains("auth.rs")),
         "S1 isolated: cursor on auth.rs"
     );
-    // Rig B: same cursor preset, api closed — the first frame relocates.
+
     let mut st = TreeState::new();
     st.expand(src);
     st.set_cursor(2, auth);
@@ -5969,7 +5646,7 @@ fn tree_fold_isolated(dir: &Path) {
         tree_cursor_text(&app, 8).is_some_and(|t| t.contains("api")),
         "S1 isolated: cursor relocates to api"
     );
-    // S2: Enter on a leaf activates it; cursor moves never clear chosen.
+
     let mut st = TreeState::new();
     st.expand(src);
     st.expand(api);
@@ -5989,8 +5666,7 @@ fn tree_fold_isolated(dir: &Path) {
         log.borrow().contains(&TreeAction::Activated(auth)),
         "S2 isolated: Activate(auth.rs)"
     );
-    // Space chooses; the choice paints past moves (cursor parked away so
-    // cursor paint cannot masquerade as chosen paint).
+
     let r = app.key(KeyCode::Char(' '));
     assert_eq!(r.flow(), Flow::Consumed, "S2 isolated: Space applies");
     assert!(
@@ -6017,7 +5693,7 @@ fn tree_fold_isolated(dir: &Path) {
         app.buffer()[(cx, cy)].bg,
         "S2 isolated: selection survives moves"
     );
-    // A1: Right expands or steps in, Left collapses or climbs.
+
     let mut st = TreeState::new();
     st.expand(src);
     let (rig, log) = TreeApp::rig(tree_mirror(), st);
@@ -6072,7 +5748,7 @@ fn tree_fold_isolated(dir: &Path) {
             .any(|a| matches!(a, TreeAction::Activated(_) | TreeAction::Chose(_))),
         "A1 isolated: Enter on a folder activates nothing"
     );
-    // A2: clicking a fold glyph toggles; clicking a leaf row activates it.
+
     let mut st = TreeState::new();
     st.expand(src);
     let (rig, log) = TreeApp::rig(tree_mirror(), st);
@@ -6102,7 +5778,7 @@ fn tree_fold_isolated(dir: &Path) {
         log.borrow().contains(&TreeAction::Activated(auth)),
         "A2 isolated: leaf click activates auth.rs"
     );
-    // N1: Enter on the note row is Consumed and selects nothing ...
+
     let mut st = TreeState::new();
     st.expand(src);
     st.expand(api);
@@ -6121,7 +5797,7 @@ fn tree_fold_isolated(dir: &Path) {
     let r = app.key(KeyCode::Enter);
     assert_eq!(r.flow(), Flow::Consumed, "N1 isolated: Enter consumed");
     assert!(log.borrow().is_empty(), "N1 isolated: no event");
-    // ... clicks too; the row renders with its label, never bold.
+
     let (nx, ny) = app.find("empty section").expect("note label");
     log.borrow_mut().clear();
     let r = app.click(nx, ny);
@@ -6131,7 +5807,7 @@ fn tree_fold_isolated(dir: &Path) {
         !buf_is_bold(app.buffer(), nx, ny),
         "N1 isolated: note label never bold"
     );
-    // N2: modified chords never navigate (presence proof: plain j moves).
+
     let mut st = TreeState::new();
     st.expand(src);
     let (rig, log) = TreeApp::rig(tree_mirror(), st);
@@ -6160,7 +5836,6 @@ fn tree_fold_isolated(dir: &Path) {
 
 const S3_STEPS: Id = Id::root("s3.steps");
 
-/// One rail row: caller-owned label/ordinal plus lifecycle state.
 #[derive(Clone)]
 struct StepRow {
     label: &'static str,
@@ -6179,9 +5854,6 @@ fn step_row_paint(row: &StepRow, out: &mut RowUi<'_>) {
     }
 }
 
-/// The oracle lifecycle: Done / Running+meta / Failed+meta / Blocked /
-/// Skipped+meta / Queued. Ordinals are caller paint on impl (the terminal
-/// page bakes them into its labels), so the fixture carries them.
 fn steps_lifecycle() -> Vec<StepRow> {
     vec![
         StepRow {
@@ -6240,36 +5912,19 @@ impl App for StepsApp {
     }
 }
 
-/// STEPS-LIFE-001 (showcase page `terminal`, 80x24): stage rail rows over
-/// [`Steps`] (7 stages; stage 3 skipped as cached; durations
-/// 10/26/40/8/18/14/1 ticks; the run starts at boot and ticks at 80 ms
-/// while animating).
-///
-/// Live path boots the page, watches the run finish (`7 of 7`), proves a
-/// finished run ignores ticks, clicks `Run with a failure` (stage 1
-/// fails, later stages block), then clicks `Run` (full re-queue). At
-/// 80x24 the rail card is 22 cells wide (18-cell rows), so rail labels
-/// truncate with `…`, every rail meta hides (N1 live), and the card meta
-/// truncates to 13 cells (`0 of 7 · runn`); V2 metas are isolated-only.
-/// Isolated path renders [`Steps`] through every [`StepState`]
-/// (glyphs, ordinals, metas, bold/error/muted tones, narrow-meta hiding)
-/// and asserts the frontier/counts contract.
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_steps_life() {
     let dir = s3_dir("s3_steps_life");
-    // The full run is 109 ticks at 80 ms (≈9 s): override the 8 s default
-    // (the terminal page is the documented override case).
+
     let case = s3_case("steps_life", &["--page", "terminal"], 80, 24).timeout(30_000);
     write_provenance(&dir, &case);
     let mut s = support::spawn_boot(&case);
 
-    // Rail-scoped done rows: `✓ 01` … `✓ 07` (the viewport's own
-    // `✓ <stage>` lines never carry an ordinal).
     fn rail_done_count(text: &str) -> usize {
         text.lines().filter(|l| l.contains("✓ 0")).count()
     }
-    // V1 boot: ordinals, a spinner on the running row, truncated labels.
+
     let boot = live_text(&mut s);
     for n in ["01", "02", "03", "04", "05", "06", "07"] {
         assert!(boot.contains(n), "V1 live: ordinal {n} at boot");
@@ -6282,15 +5937,13 @@ fn s3_steps_life() {
         "V1 live: spinner on the running row at boot"
     );
     assert!(boot.contains("0 of 7"), "S1 live: 0 of 7 running at boot");
-    // N1 live: 18-cell rows hide every rail meta (presence proof: the
-    // ordinals and labels above share this screen).
+
     assert!(
         !boot.contains("queued") && !boot.contains("0.1 s"),
         "N1 live: no rail metas on narrow rows"
     );
     checkpoint(&mut s, &dir, "rail-running");
-    // A1: ticks advance the run (stage 0 finishes), then to completion
-    // (109 ticks at 80 ms).
+
     support::wait_screen(
         &mut s,
         case_timeout(&case),
@@ -6310,8 +5963,7 @@ fn s3_steps_life() {
         6,
         "A1 live: six rail rows Done (the seventh is skipped: 7 of 7)"
     );
-    // The launch line scrolled off; exactly one prompt line stays and it
-    // carries no command (the rail shares the row, so no end-anchoring).
+
     let prompts: Vec<&str> = done
         .lines()
         .filter(|l| l.contains("payments-platform ❯"))
@@ -6321,8 +5973,7 @@ fn s3_steps_life() {
         !prompts[0].contains("jackin"),
         "A1 live: the finished run returns a fresh prompt"
     );
-    // N2: a finished run ignores further ticks (presence proof: the ✓s
-    // and the count stay on the same settled screen).
+
     let settled = settle_text(&mut s, case_timeout(&case), "finished run steady");
     assert!(
         settled.contains("7 of 7"),
@@ -6337,8 +5988,7 @@ fn s3_steps_life() {
         !SPINNER.iter().any(|g| settled.contains(g)),
         "N2 live: no spinner once nothing runs"
     );
-    // A2/S2: `Run with a failure` (button truncated to `Run with…`)
-    // re-queues, then stage 1 fails and the later stages block.
+
     click_at(&mut s, "Run with", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -6378,7 +6028,7 @@ fn s3_steps_life() {
         !SPINNER.iter().any(|g| failed.contains(g)),
         "S2 live: nothing runs after the failure"
     );
-    // A2: `Run` re-queues every stage and restarts at stage 0.
+
     click_at(&mut s, "Run", case_timeout(&case));
     support::wait_screen(&mut s, case_timeout(&case), "run never reset", |screen| {
         let text = support::screen_text(screen);
@@ -6400,14 +6050,7 @@ fn s3_steps_life() {
     eprintln!("s3 steps_life: live page + isolated Steps");
 }
 
-/// Isolated half of STEPS-LIFE-001: one rail through every step state.
-///
-/// Contract note: VB reports `frontier()`/`counts()`/`failed()`; impl
-/// [`Steps`] reports the frontier only, so S1 pins the frontier (plus the
-/// Blocked non-terminal reading) and the per-state V rows carry the rest.
 fn steps_life_isolated(dir: &Path) {
-    // S1: frontier is the first non-terminal step (Blocked counts: it is
-    // still waiting).
     let items = steps_lifecycle();
     let rail = Steps::navigable(S3_STEPS)
         .step(&step_state_of)
@@ -6434,7 +6077,7 @@ fn steps_life_isolated(dir: &Path) {
         Some(ItemKey::index(1)),
         "S1 isolated: Blocked is non-terminal"
     );
-    // V1/V2/V3: glyphs, ordinals, metas, and tones per state.
+
     let rig = StepsApp {
         items: steps_lifecycle(),
         st: StepsState::default(),
@@ -6484,8 +6127,7 @@ fn steps_life_isolated(dir: &Path) {
         !buf_is_bold(app.buffer(), 4, 5),
         "V3 isolated: queued label not bold"
     );
-    // N1: caller meta hides when the row is too narrow (needs mw + 2
-    // cells past the label; width 20 starves "0.8 s" and "exit 1").
+
     let rig = StepsApp {
         items: steps_lifecycle(),
         st: StepsState::default(),
@@ -6549,15 +6191,6 @@ impl App for TabsApp {
     }
 }
 
-/// TABS-STRIP-001 (showcase page `settings`, 80x24): settings tab strip
-/// over [`Tabs`] (General/Members/Environment; non-closable; the active
-/// tab selects the settings body).
-///
-/// Live path boots the page, tabs into the strip, arrows to Members,
-/// re-asserts with `2` and `Enter`, clicks Environment, proves `x` and
-/// `9` change nothing, and arrows back. Isolated path renders the strip
-/// (accent rule span, planes, bold, no gutter) and asserts every
-/// [`TabsAction`] (digit jumps, arrows, clicks, non-closable negatives).
 #[test]
 #[ignore = "showcase s3 check; run with --ignored"]
 fn s3_tabs_strip() {
@@ -6567,7 +6200,6 @@ fn s3_tabs_strip() {
     let mut s = support::spawn_boot(&case);
     checkpoint(&mut s, &dir, "booted");
 
-    // V1 boot: the accent rule spans exactly the General tab (1+7+2).
     let boot = live_text(&mut s);
     assert!(
         boot.contains("Project name") && boot.contains("No changes"),
@@ -6581,8 +6213,7 @@ fn s3_tabs_strip() {
     );
     assert!(rule.contains('─'), "V1 live: inactive tabs sit on ─");
     checkpoint(&mut s, &dir, "tabs-general");
-    // Tab into the strip, Right to Members (proof by action: the body
-    // switches only when the strip owns the key).
+
     support::press_step(&s, "tab");
     support::press_step(&s, "right");
     support::wait_screen(
@@ -6595,7 +6226,7 @@ fn s3_tabs_strip() {
         },
     );
     checkpoint(&mut s, &dir, "tabs-members");
-    // S2/A1: `2` re-asserts Members; Enter re-emits Activated (stays).
+
     support::press_step(&s, "2");
     let reasserted = settle_text(&mut s, case_timeout(&case), "digit steady");
     assert!(
@@ -6608,7 +6239,7 @@ fn s3_tabs_strip() {
         reemitted.contains("6 members"),
         "A1 live: Enter keeps Members"
     );
-    // A2: clicking Environment activates it; the body follows.
+
     click_at(&mut s, "Environment", case_timeout(&case));
     support::wait_screen(
         &mut s,
@@ -6628,7 +6259,7 @@ fn s3_tabs_strip() {
         14,
         "V1 live: ━ spans Environment (1+11+2) edge to edge"
     );
-    // V3 live: the tab label row never carries the ▎ gutter.
+
     let label_row = env
         .lines()
         .find(|l| l.contains("General"))
@@ -6637,8 +6268,7 @@ fn s3_tabs_strip() {
         !label_row.contains('▎'),
         "V3 live: no gutter on the tab strip"
     );
-    // N1/S2 live: `x` and `9` change nothing (presence proof: the
-    // Environment body shares the settled screens).
+
     support::press_step(&s, "x");
     let after_x = settle_text(&mut s, case_timeout(&case), "x steady");
     assert!(
@@ -6651,7 +6281,7 @@ fn s3_tabs_strip() {
         after_9.contains("DATABASE_URL"),
         "S2 live: out-of-range digit changes nothing"
     );
-    // A1: Left switches back to Members.
+
     support::press_step(&s, "left");
     support::wait_screen(
         &mut s,
@@ -6664,17 +6294,10 @@ fn s3_tabs_strip() {
     eprintln!("s3 tabs_strip: live page + isolated Tabs");
 }
 
-/// Isolated half of TABS-STRIP-001: the settings strip (General / Members
-/// / Environment) through [`Tabs`].
-///
-/// Geometry note: impl exposes no `areas[]`/`hidden()` readers, so widths
-/// and the overflow window are pinned through the painted rule span and
-/// label visibility — the same observables the live path asserts.
 fn tabs_strip_isolated(dir: &Path) {
     let t = Theme::junie();
     let strip = || vec!["General", "Members", "Environment"];
 
-    // V1: only the active tab carries the accent ━ edge to edge.
     let (rig, _) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
     assert!(app.tab_to(S3_TABS), "focusing the strip");
@@ -6695,7 +6318,7 @@ fn tabs_strip_isolated(dir: &Path) {
             assert_eq!(glyph, '─', "V1 isolated: ─ outside General at {x}");
         }
     }
-    // V2/V3: the active tab sits one plane up; no gutter glyph anywhere.
+
     assert_ne!(
         app.buffer()[(1, 0)].bg,
         app.buffer()[(11, 0)].bg,
@@ -6705,9 +6328,7 @@ fn tabs_strip_isolated(dir: &Path) {
         !labels.contains('▎') && !rule.contains('▎'),
         "V3 isolated: no gutter on the strip"
     );
-    // N2: a cursor on an inactive tab never draws the underline (it goes
-    // two planes up and bold instead). Press-only positions the cursor
-    // without activating; the release lands on empty strip.
+
     let (rig, _) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
     assert!(app.tab_to(S3_TABS), "focusing the cursor strip");
@@ -6736,8 +6357,7 @@ fn tabs_strip_isolated(dir: &Path) {
         buf_is_bold(app.buffer(), mx, 0),
         "V2 isolated: cursor tab bold"
     );
-    // S1: activating moves active and cursor together (cursor follows:
-    // the next Left steps from the new tab, not the old one) ...
+
     let (rig, log) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
     assert!(app.tab_to(S3_TABS), "focusing the S1 strip");
@@ -6763,7 +6383,7 @@ fn tabs_strip_isolated(dir: &Path) {
             .any(|a| *a == TabsAction::Activated(ItemKey::index(1))),
         "S1 isolated: cursor followed to Environment"
     );
-    // ... and pulls the tab into the window when the strip overflows.
+
     let (rig, _) = TabsApp::rig(vec!["t1", "t2", "t3", "t4", "t5", "t6"], 20);
     let mut app = Harness::new(rig, Theme::junie(), 20, 2);
     assert!(app.tab_to(S3_TABS), "focusing the overflow strip");
@@ -6780,7 +6400,7 @@ fn tabs_strip_isolated(dir: &Path) {
         app.find("t1").is_none(),
         "S1 isolated: the window moved past t1"
     );
-    // S2: digits 1-9 jump directly; out-of-range digits are Ignored.
+
     let (rig, log) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
     assert!(app.tab_to(S3_TABS), "focusing the S2 strip");
@@ -6799,7 +6419,7 @@ fn tabs_strip_isolated(dir: &Path) {
     assert!(log.borrow().is_empty(), "S2 isolated: `9` emits nothing");
     let r = app.key(KeyCode::Char('0'));
     assert_eq!(r.flow(), Flow::Ignored, "S2 isolated: `0` ignored");
-    // A1: arrows/h/l switch tabs and emit Activated; Enter re-emits it.
+
     let (rig, log) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
     assert!(app.tab_to(S3_TABS), "focusing the A1 strip");
@@ -6844,7 +6464,7 @@ fn tabs_strip_isolated(dir: &Path) {
             .any(|a| *a == TabsAction::Activated(ItemKey::index(2))),
         "A1 isolated: Enter"
     );
-    // A2: clicking a tab activates it (the body follows: live path).
+
     let (rig, log) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
     assert!(app.tab_to(S3_TABS), "focusing the A2 strip");
@@ -6863,8 +6483,7 @@ fn tabs_strip_isolated(dir: &Path) {
         14,
         "A2 isolated: ━ follows the click"
     );
-    // N1: x/Delete on a non-closable tab emits nothing (presence proof:
-    // a closable tab emits Close).
+
     let (rig, log) = TabsApp::rig(strip(), 60);
     let mut app = Harness::new(rig, Theme::junie(), 60, 2);
     assert!(app.tab_to(S3_TABS), "focusing the N1 strip");

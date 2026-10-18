@@ -1,41 +1,18 @@
-//! Scrolling as a pure model (`COMPONENT_ARCHITECTURE.md` §8.3, §18.1).
-//!
-//! [`ScrollState`] knows content length, viewport length and offset and
-//! nothing about rendering. Every field is private and every mutator
-//! clamps. `ensure_visible_on_next_layout` is set only by cursor motion and
-//! consumed by the next `draw`, generalising `Picker::cursor_dirty`.
-
 use core::ops::Range;
 
 use crate::response::Response;
 use termrock_core::geometry::Headroom;
 
-/// Offset, content length and viewport length on one axis.
-///
-/// A second instance models the other axis: the grid's column window and
-/// the tab strip's window are each a `ScrollState` over item ordinals while
-/// the vertical state stays untouched. Size `content_len`/`viewport_len` so
-/// `max_offset` is the window's legal range. A full window that always shows
-/// `viewport` items uses `content_len = len`; a window that may rest
-/// partially past the end — first index in `0..len`, as the tab strip's
-/// trailing window does — uses `content_len = len + viewport_len - 1` so
-/// `max_offset` is `len - 1` and `ensure_visible`/`scroll_by` never clamp a
-/// legal window. A target-first reveal with no meaningful viewport (the
-/// grid's `Whole` fit) keeps `viewport_len` zero and reveals with
-/// `scroll_to`, which then cannot clamp a live ordinal either.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct ScrollState {
     offset: usize,
     content_len: usize,
     viewport_len: usize,
     reveal: Option<usize>,
-    /// The thumb row held by an in-progress track press, so a drag keeps
-    /// the grabbed row under the pointer instead of recentring the thumb.
     grab: Option<usize>,
 }
 
 impl ScrollState {
-    /// A state for `content_len` items with no viewport yet.
     pub const fn new(content_len: usize) -> Self {
         ScrollState {
             offset: 0,
@@ -46,59 +23,48 @@ impl ScrollState {
         }
     }
 
-    /// The first visible index.
     pub const fn offset(&self) -> usize {
         self.offset
     }
 
-    /// The content length.
     pub const fn content_len(&self) -> usize {
         self.content_len
     }
 
-    /// The viewport length.
     pub const fn viewport_len(&self) -> usize {
         self.viewport_len
     }
 
-    /// The largest legal offset.
     pub const fn max_offset(&self) -> usize {
         self.content_len.saturating_sub(self.viewport_len)
     }
 
-    /// Whether content exceeds the viewport.
     pub const fn overflows(&self) -> bool {
         self.content_len > self.viewport_len && self.viewport_len > 0
     }
 
-    /// Whether the offset is at the start.
     pub const fn at_start(&self) -> bool {
         self.offset == 0
     }
 
-    /// Whether the offset is at the end.
     pub const fn at_end(&self) -> bool {
         self.offset >= self.max_offset()
     }
 
-    /// Set the viewport length and clamp.
     pub fn set_viewport(&mut self, len: usize) {
         self.viewport_len = len;
         self.clamp();
     }
 
-    /// Set the content length and clamp.
     pub fn set_content(&mut self, len: usize) {
         self.content_len = len;
         self.clamp();
     }
 
-    /// Clamp the offset to the content.
     pub fn clamp(&mut self) {
         self.offset = self.offset.min(self.max_offset());
     }
 
-    /// Scroll by a signed delta, clamped.
     pub fn scroll_by(&mut self, delta: isize) {
         self.offset = self
             .offset
@@ -106,33 +72,27 @@ impl ScrollState {
             .min(self.max_offset());
     }
 
-    /// Scroll to an offset, clamped.
     pub fn scroll_to(&mut self, offset: usize) {
         self.offset = offset.min(self.max_offset());
     }
 
-    /// Scroll up by one viewport.
     pub fn page_up(&mut self) {
         let page = self.viewport_len.max(1) as isize;
         self.scroll_by(page.saturating_neg());
     }
 
-    /// Scroll down by one viewport.
     pub fn page_down(&mut self) {
         self.scroll_by(self.viewport_len.max(1) as isize);
     }
 
-    /// Jump to the start.
     pub fn jump_start(&mut self) {
         self.offset = 0;
     }
 
-    /// Jump to the end.
     pub fn jump_end(&mut self) {
         self.offset = self.max_offset();
     }
 
-    /// Move the viewport the minimum amount so `index` is visible.
     pub fn ensure_visible(&mut self, index: usize) {
         if self.viewport_len == 0 {
             return;
@@ -145,24 +105,18 @@ impl ScrollState {
         self.clamp();
     }
 
-    /// Request that `index` be revealed by the next layout (cursor motion
-    /// only — a wheel never sets this).
     pub fn ensure_visible_on_next_layout(&mut self, index: usize) {
         self.reveal = Some(index);
     }
 
-    /// The pending reveal request, if any.
     pub const fn pending_reveal(&self) -> Option<usize> {
         self.reveal
     }
 
-    /// Clear any pending reveal request.
     pub fn clear_reveal(&mut self) {
         self.reveal = None;
     }
 
-    /// Apply known viewport geometry. A zero-height layout cannot reveal a
-    /// row, so it retains the request until a usable viewport is available.
     pub fn apply_layout(&mut self, viewport_len: usize, content_len: usize) {
         self.viewport_len = viewport_len;
         self.content_len = content_len;
@@ -174,8 +128,6 @@ impl ScrollState {
         self.clamp();
     }
 
-    /// The wheel rule (§8.3): consumed even at the boundary, repaint only
-    /// when the offset moved.
     pub fn wheel(&mut self, delta: i16) -> Response<()> {
         let before = self.offset;
         self.scroll_by(delta as isize);
@@ -186,7 +138,6 @@ impl ScrollState {
         }
     }
 
-    /// Range of content indices currently in view.
     pub fn visible_range(&self) -> Range<usize> {
         let end = self
             .offset
@@ -195,7 +146,6 @@ impl ScrollState {
         self.offset..end
     }
 
-    /// Headroom on the vertical axis, for `register_scroll`.
     pub fn headroom_v(&self) -> Headroom {
         Headroom {
             up: self.offset.min(usize::from(u16::MAX)) as u16,
@@ -208,7 +158,6 @@ impl ScrollState {
         }
     }
 
-    /// Thumb geometry for a track of `track_len` cells: `(start, len)`.
     pub fn thumb(&self, track_len: usize) -> (usize, usize) {
         if !self.overflows() || track_len == 0 {
             return (0, track_len);
@@ -231,8 +180,6 @@ impl ScrollState {
         (start.min(usable), len)
     }
 
-    /// Inverse of [`thumb`](Self::thumb): the offset whose thumb starts at
-    /// `start` on a track of `track_len` cells.
     pub fn offset_for_thumb_start(&self, start: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
             return 0;
@@ -247,9 +194,6 @@ impl ScrollState {
             .unwrap_or(0)
     }
 
-    /// The pointer went down on the track at row `pos`. On the thumb this
-    /// only remembers where the thumb was grabbed; on the bare track it
-    /// jumps the thumb under the pointer.
     pub fn press_track(&mut self, pos: usize, track_len: usize) {
         if !self.overflows() || track_len == 0 {
             self.grab = None;
@@ -264,9 +208,6 @@ impl ScrollState {
         self.scroll_to(self.offset_for_track_pos(pos, track_len));
     }
 
-    /// The pointer moved to row `pos` while held: the thumb follows it,
-    /// keeping the grabbed row under the pointer. A drag without a press
-    /// behaves like a press.
     pub fn drag_track(&mut self, pos: usize, track_len: usize) {
         if !self.overflows() || track_len == 0 {
             return;
@@ -279,12 +220,10 @@ impl ScrollState {
         self.scroll_to(target);
     }
 
-    /// The pointer was released: the next press starts a new grab.
     pub fn release_track(&mut self) {
         self.grab = None;
     }
 
-    /// Inverse of [`thumb`](Self::thumb): a track position to an offset.
     pub fn offset_for_track_pos(&self, pos: usize, track_len: usize) -> usize {
         if !self.overflows() || track_len == 0 {
             return 0;
@@ -422,21 +361,21 @@ mod tests {
         let track = 31;
         let (start, len) = s.thumb(track);
         assert_eq!((start, len), (0, 8));
-        // a press inside the thumb does not move the view
+
         s.press_track(7, track);
         assert_eq!(s.offset(), 0);
-        // one row of pointer motion moves the thumb one row, not fifteen
+
         s.drag_track(8, track);
         assert_eq!(s.thumb(track).0, 1);
         assert!(s.offset() > 0 && s.offset() < 8, "{}", s.offset());
-        // dragging to the bottom of the track reaches the end exactly
+
         s.drag_track(track - 1, track);
         assert!(s.at_end());
         assert_eq!(s.thumb(track).0, track - len);
-        // and back to the top
+
         s.drag_track(0, track);
         assert_eq!(s.offset(), 0);
-        // a press on the bare track jumps the thumb under the pointer
+
         s.release_track();
         s.press_track(20, track);
         let (start, len) = s.thumb(track);
@@ -445,7 +384,7 @@ mod tests {
             "{start}..{}",
             start + len
         );
-        // a drag without a press falls back to a press
+
         let mut fresh = ScrollState::new(120);
         fresh.set_viewport(31);
         fresh.drag_track(track - 1, track);

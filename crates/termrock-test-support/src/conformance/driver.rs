@@ -1,5 +1,5 @@
-//! The 20 conformance cases (`COMPONENT_ARCHITECTURE.md` §16.2), generic
-//! over [`Conformance`].
+
+
 
 use std::collections::BTreeMap;
 
@@ -21,31 +21,31 @@ const SENTINEL_AFTER: Id = Id::root("conformance.sentinel.after");
 const POPOVER: Id = Id::root("conformance.popover");
 const POPOVER_CONTROL: Id = Id::root("conformance.popover.control");
 
-/// The application wrapping one component under test.
+
 pub struct CaseApp<C: Conformance> {
-    /// The component's state.
+
     pub st: C::State,
-    /// The fixture.
+
     pub fixture: Fixture,
-    /// The last action.
+
     pub last: Option<C::Action>,
-    /// The last flow/invalidate of the component's response.
+
     pub last_flow: (Flow, Invalidate),
-    /// Draw sentinel controls before and after the component.
+
     pub sentinels: bool,
-    /// Draw the component at all.
+
     pub show: bool,
-    /// Draw the sentinels at all.
+
     pub show_sentinels: bool,
-    /// Open a popover above the page on the next update.
+
     pub open_popover: bool,
-    /// Ask the case-specific owner/controller to open its component layer.
+
     pub open_component: bool,
-    /// Whether the last explicit component-open request used its hook.
+
     pub opened_by_hook: bool,
-    /// `update` calls.
+
     pub updates: usize,
-    /// Product and owner-scoped binding overrides used by binding cases.
+
     pub keymap: KeyMap,
 }
 
@@ -59,7 +59,7 @@ impl<C: Conformance> core::fmt::Debug for CaseApp<C> {
 }
 
 impl<C: Conformance> CaseApp<C> {
-    /// A case app over `fixture`.
+
     pub fn new(fixture: Fixture) -> Self {
         CaseApp {
             st: C::State::default(),
@@ -228,7 +228,7 @@ fn open_component_layer<C: Conformance>(h: &mut Harness<CaseApp<C>>) -> Option<C
     chord
 }
 
-/// Case 1.
+
 pub fn disabled_cannot_activate<C: Conformance>() {
     if !has::<C>(Caps::DISABLEABLE) {
         return;
@@ -276,7 +276,7 @@ pub fn disabled_cannot_activate<C: Conformance>() {
     );
 }
 
-/// Case 2.
+
 pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
     if !has::<C>(Caps::ACTIVATES) {
         return;
@@ -327,7 +327,7 @@ pub fn keyboard_and_mouse_activation_are_equivalent<C: Conformance>() {
     }
 }
 
-/// Case 3.
+
 pub fn traversal_order_is_registration_order<C: Conformance>() {
     if !has::<C>(Caps::FOCUSABLE) {
         return;
@@ -350,7 +350,7 @@ pub fn traversal_order_is_registration_order<C: Conformance>() {
     }
 }
 
-/// Case 4.
+
 pub fn hover_does_not_steal_focus<C: Conformance>() {
     let mut app = CaseApp::<C>::new(Fixture::default());
     app.sentinels = true;
@@ -390,7 +390,7 @@ pub fn hover_does_not_steal_focus<C: Conformance>() {
     }
 }
 
-/// Case 5.
+
 pub fn draw_twice_is_byte_identical<C: Conformance>() {
     let mut h = harness::<C>(Fixture::default()).with_auto_draw(false);
     h.draw();
@@ -403,7 +403,7 @@ pub fn draw_twice_is_byte_identical<C: Conformance>() {
     assert_eq!(ra, rb, "{}: two registries differ", C::NAME);
 }
 
-/// Case 6.
+
 pub fn draw_twice_leaves_state_equal<C: Conformance>() {
     let variants: Vec<Fixture> = {
         let mut v = vec![Fixture::default()];
@@ -434,7 +434,7 @@ pub fn draw_twice_leaves_state_equal<C: Conformance>() {
     }
 }
 
-/// Case 7.
+
 pub fn draw_does_not_commit_or_cancel<C: Conformance>() {
     if !has::<C>(Caps::EDITS) {
         return;
@@ -452,7 +452,7 @@ pub fn draw_does_not_commit_or_cancel<C: Conformance>() {
     assert_eq!(h.app().last.is_some(), last);
 }
 
-/// Case 8.
+
 pub fn draw_stays_inside_its_area<C: Conformance>() {
     let f = Fixture::default();
     let inner = f.area;
@@ -536,7 +536,7 @@ fn prepared_mono_state<C: Conformance>(
     setup_harness.app().st.clone()
 }
 
-/// Case 9.
+
 pub fn mono_states_are_distinguishable<C: Conformance>() {
     let states = C::mono_states();
     if has::<C>(Caps::REPORTS_STATUS) {
@@ -546,8 +546,8 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
             C::NAME
         );
     }
-    // MA-8: `mono_states()` may only NARROW the default ten, and it may not
-    // drop a state the component's own capabilities imply.
+
+
     for s in states {
         assert!(
             super::DEFAULT_MONO_STATES.contains(s),
@@ -587,14 +587,14 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
     let mut seen: Vec<(StateFlags, BTreeMap<(String, u16), usize>)> = Vec::new();
     let mut default_symbols = None;
     for s in states {
-        // `force` sets the props the forced state implies too, so a state
-        // whose affordance is a painted symbol is actually reachable here.
+
+
         let setup_fixture = C::mono_fixture(*s);
         let mut f = setup_fixture.clone().force(*s);
         f.color = ColorLevel::Mono;
         let setup = C::mono_setup_chords(*s);
         let prepared = prepared_mono_state::<C>(setup_fixture, *s, setup);
-        // a sentinel holds the real focus so the forced state is the only state
+
         let theme = f.theme.clone().downgrade(f.color);
         let mut app = CaseApp::<C>::new(f);
         app.st = prepared;
@@ -628,7 +628,7 @@ pub fn mono_states_are_distinguishable<C: Conformance>() {
     }
 }
 
-/// Case 10.
+
 pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     let plain = harness::<C>(Fixture::default());
     let before = plain.runtime().theme().fingerprint();
@@ -651,10 +651,10 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     );
     assert_eq!(plain.runtime().theme().fingerprint(), before);
     if patched.app().fixture.patch.is_some() && C::caps().bits() != 0 {
-        // Usually the override changes the final buffer.  A composed painter
-        // may cover a resolved part later (TextArea's scroll surface covers
-        // FIELD), so use the recorded query as the focused fallback when the
-        // digest is intentionally unchanged.
+
+
+
+
         if !C::PARTS.is_empty() {
             if patched.snapshot().digest() == plain_digest {
                 assert_ne!(
@@ -679,7 +679,7 @@ pub fn local_override_does_not_mutate_the_theme<C: Conformance>() {
     }
 }
 
-/// Case 11.
+
 pub fn id_separator_collision_free<C: Conformance>() {
     let h = harness::<C>(Fixture::default());
     let dups = h
@@ -705,7 +705,7 @@ pub fn id_separator_collision_free<C: Conformance>() {
     );
 }
 
-/// Case 12.
+
 #[expect(
     clippy::too_many_lines,
     reason = "one case: click identity across a reorder plus the retention half (MA-9)"
@@ -731,7 +731,7 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
         C::NAME,
         C::activation_gesture(),
     );
-    // reverse permutation
+
     let n = keys.len();
     let perm: Vec<usize> = (0..n).rev().collect();
     C::reorder(&mut h.app_mut().fixture, &perm);
@@ -766,7 +766,7 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
         "{}: k1 lost after reverse",
         C::NAME
     );
-    // insert + remove
+
     let mut rows = h.app().fixture.rows.clone();
     rows.remove(0);
     rows.insert(
@@ -793,10 +793,10 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
             C::NAME
         );
     }
-    // MA-9: click identity alone is not the case. Set cursor and checked on
-    // k1 and k2 and assert they *survive* the same reorder — the retention
-    // half §16.2 case 12 specifies, exercised against the `CollectionCore`
-    // every keyed collection embeds.
+
+
+
+
     let k2 = keys[1];
     let mut core = CollectionCore::new();
     let ordered = |ks: &[ItemKey]| {
@@ -828,8 +828,8 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
         C::NAME
     );
 
-    // insert + remove: k1 disappears, k2 survives, and the cursor moves to a
-    // surviving neighbour rather than to a stale index
+
+
     let mut after: Vec<ItemKey> = reversed.clone();
     after.retain(|k| *k != k1);
     after.insert(0, ItemKey::num(9_998));
@@ -860,7 +860,7 @@ pub fn item_identity_survives_reorder<C: Conformance>() {
     );
 }
 
-/// Case 13.
+
 pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
     if !has::<C>(Caps::FOCUSABLE) {
         return;
@@ -880,8 +880,8 @@ pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
     } else {
         SENTINEL_AFTER
     };
-    // (a) nearest surviving entry by previous index; a composite may register
-    // more than one child between the two sentinels.
+
+
     h.app_mut().show = false;
     h.draw();
     assert_eq!(
@@ -890,7 +890,7 @@ pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
         "{}: (a) nearest survivor from {before_ids:?}",
         C::NAME,
     );
-    // (b)/(c) the scope's first enabled entry when the neighbours vanish too
+
     h.app_mut().show = true;
     h.draw();
     assert!(h.tab_to(C::control_id()));
@@ -908,7 +908,7 @@ pub fn focus_reconcile_follows_the_rule<C: Conformance>() {
     );
 }
 
-/// Case 14.
+
 #[expect(
     clippy::too_many_lines,
     reason = "one case: the OVERLAY half, the §29.8 capability/kind correspondence in both \
@@ -946,9 +946,9 @@ pub fn focus_trap_and_restore<C: Conformance>() {
         C::NAME,
         h.diagnostics()
     );
-    // §29.8 modification 1: the OVERLAY/TRAPS_FOCUS split polices itself in
-    // both directions, so the trap half can never again be skipped by omission
-    // and the capability can never be a lie about the runtime.
+
+
+
     let kind = h
         .runtime()
         .open_spec(layer)
@@ -986,10 +986,10 @@ pub fn focus_trap_and_restore<C: Conformance>() {
              {SENTINEL_BEFORE:?} nor {SENTINEL_AFTER:?}",
             C::NAME
         );
-        // §29.8 modification 2: an empty trap would satisfy the leak assertion
-        // vacuously while focus reconciles to `None` and the opener loses
-        // `FOCUSED` under its own layer. Reject it, and check the wrap
-        // unconditionally rather than only when there is more than one stop.
+
+
+
+
         assert!(
             !inside.is_empty(),
             "{}: the armed trap has no reachable focus stop. Nothing drawn inside the open \
@@ -1042,7 +1042,7 @@ pub fn focus_trap_and_restore<C: Conformance>() {
         C::NAME
     );
     if traps_focus {
-        // a layer that cannot draw still traps
+
         let chord = chord
             .unwrap_or_else(|| panic!("{}: trapped overlay cannot be reopened after Esc", C::NAME));
         let _ = h.key_mod(chord.code, chord.mods);
@@ -1064,7 +1064,7 @@ pub fn focus_trap_and_restore<C: Conformance>() {
     }
 }
 
-/// Case 15.
+
 pub fn pointer_capture_delivers_drag_and_release<C: Conformance>() {
     if !has::<C>(Caps::CAPTURES) {
         return;
@@ -1102,7 +1102,7 @@ pub fn pointer_capture_delivers_drag_and_release<C: Conformance>() {
     );
 }
 
-/// Case 16.
+
 pub fn wheel_at_boundary_is_consumed_without_repaint<C: Conformance>() {
     if !has::<C>(Caps::SCROLLS) {
         return;
@@ -1163,7 +1163,7 @@ pub fn wheel_at_boundary_is_consumed_without_repaint<C: Conformance>() {
     assert_eq!(h.focus(), focus, "{}: wheel moved focus", C::NAME);
 }
 
-/// Case 17.
+
 pub fn cursor_write_is_rejected_off_top_layer<C: Conformance>() {
     if !has::<C>(Caps::CURSOR) {
         return;
@@ -1189,7 +1189,7 @@ pub fn cursor_write_is_rejected_off_top_layer<C: Conformance>() {
     );
 }
 
-/// Case 18.
+
 pub fn secret_never_appears_in_debug<C: Conformance>() {
     if !has::<C>(Caps::SECRET) {
         return;
@@ -1223,7 +1223,7 @@ pub fn secret_never_appears_in_debug<C: Conformance>() {
     );
 }
 
-/// Case 19.
+
 pub fn survives_tiny_rects_0x0_to_3x3<C: Conformance>() {
     for w in 0..=3u16 {
         for hgt in 0..=3u16 {
@@ -1387,7 +1387,7 @@ fn dynamic_bindings_follow_keymap<C: Conformance>(
     }
 }
 
-/// Case 20.
+
 pub fn bindings_match_handled_keys<C: Conformance>() {
     let states = [
         BindingState::default(),
@@ -1406,7 +1406,7 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
     dynamic_bindings_follow_keymap::<C>(&fixture, &dynamic);
     for st in states {
         let table = C::bindings(st);
-        // every declared chord is consumed
+
         for b in table {
             let mut h = harness::<C>(Fixture::default());
             assert!(h.tab_to(C::control_id()));
@@ -1430,7 +1430,7 @@ pub fn bindings_match_handled_keys<C: Conformance>() {
                 chord
             );
         }
-        // every consumed chord is declared (bare Char exempt for TYPES)
+
         for chord in chord_universe() {
             if chord.code == KeyCode::Esc {
                 continue;

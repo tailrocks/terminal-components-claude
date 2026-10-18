@@ -1,10 +1,3 @@
-//! Audit matrix (250 captures): the 10 audit fixtures × 5 sizes
-//! {72x20,80x24,100x30,120x40,160x50} × 5 colours {truecolor,256,16,none,nocolor},
-//! generated data-drivenly so every combo exists exactly once
-//! (docs/baseline/snapshots-v2.md). These absorb the 57 static audit captures
-//! the pre-grouped suite kept in the app modules; static defaults of audit
-//! surfaces live ONLY here (the dedupe rule).
-
 use crate::support::{
     self, CANONICAL_COLORS, CANONICAL_SIZES, Case, HOLLA, JACKIN, SHOWCASE, TABLEPRO,
 };
@@ -13,7 +6,6 @@ const SHOWCASE_BOOT: &str = "Junie Design system";
 const HOLLA_BOOT: &str = "holla❯";
 const JACKIN_BOOT: &str = "jackin❯";
 
-/// One fixture's full 5×5 sweep as `<group>/<sub_group>/<leaf>/<cols>x<rows>/<color>`.
 fn audit_matrix(
     prefix: &str,
     bin: &'static str,
@@ -72,15 +64,6 @@ fn holla_audit_upgrade_matrix() {
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
 fn jackin_audit_accounts_matrix() {
-    // Determinism contract: accounts-mixed never finishes its boot refresh
-    // under paused motion (`refreshing 1` → `busy_rows` non-empty), so the
-    // Manager's on_tick returns Changed and a repaint lands every 500 ms.
-    // The Accounts scroll badge (`· 1–11 of 23`) needs the list viewport,
-    // learned on render one, so it first appears in the t≈500 ms repaint —
-    // while wait_stable(400 ms) can fire at t≈400, before it. At sizes where
-    // the list overflows (verified: 72x20/80x24/100x30 badge, 120x40/160x50
-    // none) wait for the badge text itself; the capture then always lands
-    // after the badge repaint, whose damage end is the same every run.
     let mut failures = Vec::new();
     for (cols, rows) in CANONICAL_SIZES {
         for color in CANONICAL_COLORS {

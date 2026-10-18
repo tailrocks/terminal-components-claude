@@ -1,8 +1,3 @@
-//! Shared support for Rust black-box tests of the visibility command-line tools.
-//!
-//! Tests copy the production scripts and their input files into a disposable
-//! repository tree, then launch each script as a command-line program. They do
-//! not import Python modules or run Python test drivers.
 
 pub mod nextest_result;
 
@@ -47,21 +42,15 @@ fn deadline_has_elapsed(now: Instant, deadline: Instant) -> bool {
     now >= deadline
 }
 
-/// A production visibility tool that a Rust test can launch as a CLI.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Tool {
-    /// `tools/visibility/status.py`.
     Status,
-    /// `tools/visibility/queue.py`.
     Queue,
-    /// `tools/visibility/deferred.py`.
     Deferred,
-    /// `tools/visibility/subjects.py`.
     Subjects,
 }
 
 impl Tool {
-    /// Returns the repository-relative source path for this tool.
     pub const fn relative_path(self) -> &'static str {
         match self {
             Self::Status => "tools/visibility/status.py",
@@ -72,18 +61,13 @@ impl Tool {
     }
 }
 
-/// A file copied byte-for-byte from the current repository source tree.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ToolCopy {
-    /// Destination path under the temporary repository root.
     pub path: PathBuf,
-    /// Lowercase SHA-256 of both source and destination bytes.
     pub sha256: String,
-    /// Number of copied bytes.
     pub bytes: usize,
 }
 
-/// One isolated project tree. The directory is removed when this value drops.
 #[derive(Debug)]
 pub struct TempRepo {
     _directory: TempDir,
@@ -91,14 +75,13 @@ pub struct TempRepo {
 }
 
 impl TempRepo {
-    /// Creates a unique temporary repository root with automatic cleanup.
     pub fn new() -> io::Result<Self> {
         let directory = tempfile::Builder::new()
             .prefix("termrock-visibility-")
             .tempdir()?;
-        // macOS commonly exposes the temp directory through `/var`, which is
-        // a symlink to `/private/var`. The production queue deliberately opens
-        // every path component with `O_NOFOLLOW`, so retain the canonical path.
+
+
+
         let root = directory.path().canonicalize()?;
         Ok(Self {
             _directory: directory,
@@ -106,22 +89,14 @@ impl TempRepo {
         })
     }
 
-    /// Returns the temporary repository root.
     pub fn root(&self) -> &Path {
         &self.root
     }
 
-    /// Copies one production visibility script into its normal relative path.
-    ///
-    /// The copied bytes and SHA-256 must both match the source file.
     pub fn copy_tool_exact(&self, tool: Tool) -> io::Result<ToolCopy> {
         self.copy_project_file_exact(Path::new(tool.relative_path()))
     }
 
-    /// Copies one repository file into the same relative path under this root.
-    ///
-    /// This supports fixed tool inputs such as schemas and JSON registries.
-    /// The relative path must contain only normal path components.
     pub fn copy_project_file_exact(&self, relative_path: &Path) -> io::Result<ToolCopy> {
         validate_relative_path(relative_path)?;
         let source = source_repository_root()?.join(relative_path);
@@ -159,9 +134,6 @@ impl TempRepo {
         })
     }
 
-    /// Writes a fixture file below the temporary root.
-    ///
-    /// Parent traversal and symlinked destination parents are rejected.
     pub fn write_file(&self, relative_path: &Path, bytes: &[u8]) -> io::Result<PathBuf> {
         validate_relative_path(relative_path)?;
         let destination = self.prepare_destination(relative_path)?;
@@ -224,53 +196,34 @@ impl TempRepo {
     }
 }
 
-/// Copies one production tool through a temporary repository's exact-copy API.
 pub fn copy_tool_exact(repo: &TempRepo, tool: Tool) -> io::Result<ToolCopy> {
     repo.copy_tool_exact(tool)
 }
 
-/// The result of one child process, with signal termination kept distinct.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CliOutput {
-    /// Process exit code, or `None` when the process died from a signal.
     pub exit_code: Option<i32>,
-    /// Unix signal number, or `None` when the process exited normally.
     pub signal: Option<i32>,
-    /// Retained stdout bytes, up to the capture limit.
     pub stdout: Vec<u8>,
-    /// Retained stderr bytes, up to the capture limit.
     pub stderr: Vec<u8>,
-    /// True when the process or its output pipes exceeded the configured timeout.
     pub timed_out: bool,
-    /// True when stdout exceeded the capture limit. The captured bytes are its prefix.
     pub stdout_truncated: bool,
-    /// True when stderr exceeded the capture limit. The captured bytes are its prefix.
     pub stderr_truncated: bool,
 }
 
 impl CliOutput {
-    /// Returns true only for an ordinary exit status of zero.
     pub fn success(&self) -> bool {
         self.exit_code == Some(0) && self.signal.is_none() && !self.timed_out
     }
 }
 
-/// One captured command result, including a parent signal requested during capture.
 #[cfg(unix)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CapturedCommand {
-    /// Captured child output and ordinary child termination facts.
     pub output: CliOutput,
-    /// Parent signal that requested cancellation, if any.
     pub cancellation_signal: Option<i32>,
 }
 
-/// Runs a production Python CLI through `python3`, without a shell or import.
-///
-/// Environment values override the inherited process environment. An optional
-/// byte slice is sent to stdin while stdout and stderr are drained concurrently.
-/// On Unix, the command runs in a private process group and is killed and reaped
-/// after 120 seconds. No more than 8 MiB of each output stream is retained.
 pub fn run_cli(
     script: &Path,
     args: &[String],
@@ -281,12 +234,6 @@ pub fn run_cli(
     run_cli_with_timeout(script, args, cwd, environment, stdin, DEFAULT_CLI_TIMEOUT)
 }
 
-/// Runs a production Python CLI with an explicit wall-clock timeout.
-///
-/// Output capture remains bounded to 8 MiB for each stream. On Unix, a timeout
-/// kills the command's process group, then reaps its direct child, and returns
-/// `CliOutput` with `timed_out` set. Non-Unix platforms return
-/// `ErrorKind::Unsupported` before spawning a process.
 #[cfg(unix)]
 pub fn run_cli_with_timeout(
     script: &Path,
@@ -305,7 +252,6 @@ pub fn run_cli_with_timeout(
     run_captured_command(command, stdin, timeout, MAX_CAPTURE_BYTES)
 }
 
-/// Non-Unix process-tree containment is not implemented by this test helper.
 #[cfg(not(unix))]
 pub fn run_cli_with_timeout(
     script: &Path,
@@ -340,12 +286,6 @@ fn run_captured_command(
         .map(|captured| captured.output)
 }
 
-/// Runs an explicit command with bounded output and optional parent-signal cancellation.
-///
-/// The command runs in a private process group. When `cancellation_signal` becomes
-/// nonzero, the group is killed and the direct child is reaped through the same
-/// cleanup path as a timeout. The returned signal is separate from the child's
-/// exit/signal status. Each output stream retains at most 8 MiB.
 #[cfg(unix)]
 pub fn run_command_with_cancellation(
     command: Command,
@@ -484,8 +424,8 @@ fn run_captured_command_with_cancel(
         });
         if let Some(signal) = requested_signal {
             cancelled.store(true, Ordering::Release);
-            // The unreaped leader reserves its process-group ID while descendants
-            // are terminated, matching the timeout cleanup ordering below.
+
+
             terminate_process_group(child.id());
             let output = collect_capture(
                 child.wait(),
@@ -518,16 +458,16 @@ fn run_captured_command_with_cancel(
             && stderr_reader.is_finished()
             && stdin_writer.as_ref().is_none_or(JoinHandle::is_finished);
 
-        // Judge completion at a single observation point, after both the
-        // child and its pipes have been checked. If that observation is at or
-        // beyond the deadline, timeout wins even when all work is now done.
+
+
+
         let observed_at = Instant::now();
         if deadline_has_elapsed(observed_at, deadline) {
             timed_out = true;
             cancelled.store(true, Ordering::Release);
-            // `child_exited_without_reaping` deliberately leaves the leader
-            // waitable. Signal its group before reaping so the numeric PGID
-            // cannot be reused for an unrelated process group.
+
+
+
             terminate_process_group(child.id());
             let status = child.wait();
             return collect_capture(
@@ -544,8 +484,8 @@ fn run_captured_command_with_cancel(
         }
 
         if child_exited && pipes_finished {
-            // The child remains an unreaped zombie until wait(), reserving its
-            // process-group ID through this final group cleanup.
+
+
             terminate_process_group(child.id());
             return collect_capture(
                 child.wait(),
@@ -648,12 +588,12 @@ fn spawn_stdin_writer(
 
 #[cfg(unix)]
 fn set_nonblocking(fd: libc::c_int) -> io::Result<()> {
-    // SAFETY: fcntl only inspects and updates flags for this open pipe descriptor.
+
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
     if flags < 0 {
         return Err(io::Error::last_os_error());
     }
-    // SAFETY: `fd` remains open and the command accepts a bitmask of file status flags.
+
     if unsafe { libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) } < 0 {
         return Err(io::Error::last_os_error());
     }
@@ -704,8 +644,8 @@ fn collect_capture(
 fn child_exited_without_reaping(child: &Child) -> io::Result<bool> {
     loop {
         let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
-        // SAFETY: `child` is this process's live, unreaped child and `info` is
-        // writable storage for waitid's result. WNOWAIT preserves its PID.
+
+
         let result = unsafe {
             libc::waitid(
                 libc::P_PID,
@@ -715,7 +655,7 @@ fn child_exited_without_reaping(child: &Child) -> io::Result<bool> {
             )
         };
         if result == 0 {
-            // SAFETY: waitid initialized the siginfo result for this call.
+
             let observed_pid = unsafe { info.si_pid() };
             if observed_pid == 0 {
                 return Ok(false);
@@ -746,14 +686,10 @@ fn terminate_and_reap(child: &mut Child) -> io::Result<ExitStatus> {
 #[cfg(unix)]
 fn terminate_process_group(child_id: u32) {
     let process_group = -(child_id as libc::pid_t);
-    // SAFETY: the child is still unreaped and owns this private process group.
+
     let _ = unsafe { libc::kill(process_group, libc::SIGKILL) };
 }
 
-/// Creates command-name links to the compiled protocol fixture binary.
-///
-/// Integration tests pass `Path::new(env!("CARGO_BIN_EXE_fixture"))` as the
-/// executable. The returned value is a PATH with `bin_dir` prepended.
 pub fn install_fixture_aliases(
     executable: &Path,
     bin_dir: &Path,
@@ -796,7 +732,6 @@ pub fn install_fixture_aliases(
     prepend_path(bin_dir)
 }
 
-/// Prepends one directory to the inherited PATH and returns the joined value.
 pub fn prepend_path(directory: &Path) -> io::Result<OsString> {
     let mut entries = vec![directory.to_path_buf()];
     if let Some(path) = env::var_os("PATH") {
@@ -805,10 +740,6 @@ pub fn prepend_path(directory: &Path) -> io::Result<OsString> {
     env::join_paths(entries).map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))
 }
 
-/// Holds the exact advisory lock used by the visibility queue for a task file.
-///
-/// This lets a Rust CLI test control a real queue-lock interleaving. Dropping
-/// the returned guard closes the file and releases the lock.
 #[derive(Debug)]
 pub struct QueueLockGuard {
     _file: File,
@@ -817,12 +748,11 @@ pub struct QueueLockGuard {
 #[cfg(unix)]
 impl Drop for QueueLockGuard {
     fn drop(&mut self) {
-        // Match the production Python tool's `fcntl.flock(fd, LOCK_UN)`.
+
         let _ = flock_file(&self._file, libc::LOCK_UN);
     }
 }
 
-/// Acquires the queue's process-shared lock for `tasks_path`.
 #[cfg(unix)]
 pub fn hold_queue_lock(tasks_path: &Path) -> io::Result<QueueLockGuard> {
     let temp_root = python_temp_root()?;
@@ -831,7 +761,6 @@ pub fn hold_queue_lock(tasks_path: &Path) -> io::Result<QueueLockGuard> {
     Ok(QueueLockGuard { _file: file })
 }
 
-/// Queue locking is available only on Unix, like the production fcntl lock.
 #[cfg(not(unix))]
 pub fn hold_queue_lock(_tasks_path: &Path) -> io::Result<QueueLockGuard> {
     Err(io::Error::new(
@@ -840,14 +769,12 @@ pub fn hold_queue_lock(_tasks_path: &Path) -> io::Result<QueueLockGuard> {
     ))
 }
 
-/// Returns the repository root that contains this standalone crate.
 pub fn source_repository_root() -> io::Result<PathBuf> {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .canonicalize()
 }
 
-/// SHA-256 hex encoding used for exact copied-file identities and queue locks.
 pub fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut output = String::with_capacity(digest.len() * 2);
@@ -916,8 +843,8 @@ fn python_tempdir_candidates(
     if let Some(profile) = env::var_os("USERPROFILE") {
         candidates.push(PathBuf::from(profile).join("AppData/Local/Temp"));
     }
-    // Python tempfile tries the current working directory after its platform
-    // defaults when none of the earlier candidates can hold a probe file.
+
+
     if let Ok(current_dir) = env::current_dir() {
         candidates.push(current_dir);
     }
@@ -961,55 +888,29 @@ fn is_writable_temp_directory(directory: &Path) -> bool {
     false
 }
 
-/// Environment names consumed by the compiled synthetic protocol fixture.
 pub mod fixture_env {
-    /// File containing exact Nextest list JSON bytes.
     pub const NEXTTEST_LIST: &str = "VISIBILITY_FIXTURE_NEXTTEST_LIST";
-    /// Exit code for a Nextest list command. Defaults to zero.
     pub const NEXTTEST_LIST_EXIT: &str = "VISIBILITY_FIXTURE_NEXTTEST_LIST_EXIT";
-    /// File containing exact Nextest run JSONL bytes.
     pub const NEXTTEST_RUN: &str = "VISIBILITY_FIXTURE_NEXTTEST_RUN";
-    /// Exit code for a Nextest run command. Defaults to zero.
     pub const NEXTTEST_EXIT: &str = "VISIBILITY_FIXTURE_NEXTTEST_EXIT";
-    /// Optional Unix signal that terminates the synthetic Nextest run process.
-    /// Only signal 9 (SIGKILL) is accepted.
     pub const NEXTTEST_SIGNAL: &str = "VISIBILITY_FIXTURE_NEXTTEST_SIGNAL";
-    /// Fake cargo-nextest version text.
     pub const NEXTEST_VERSION: &str = "VISIBILITY_FIXTURE_NEXTEST_VERSION";
-    /// Nonzero exit code for fake cargo-nextest version lookup.
     pub const NEXTEST_VERSION_EXIT: &str = "VISIBILITY_FIXTURE_NEXTEST_VERSION_EXIT";
-    /// File receiving one fixture invocation record per line.
     pub const TRACE: &str = "VISIBILITY_FIXTURE_TRACE";
-    /// File containing Cargo metadata JSON; strings may use documented path tokens.
     pub const CARGO_METADATA: &str = "VISIBILITY_FIXTURE_CARGO_METADATA";
-    /// File containing raw Cargo metadata stdout, bypassing JSON path substitution.
     pub const CARGO_METADATA_RAW: &str = "VISIBILITY_FIXTURE_CARGO_METADATA_RAW";
-    /// Nonzero exit code for fake Cargo metadata.
     pub const CARGO_METADATA_EXIT: &str = "VISIBILITY_FIXTURE_CARGO_METADATA_EXIT";
-    /// File containing fake Cargo metadata stderr bytes.
     pub const CARGO_METADATA_STDERR: &str = "VISIBILITY_FIXTURE_CARGO_METADATA_STDERR";
-    /// Nonzero exit code for fake Cargo build.
     pub const CARGO_BUILD_EXIT: &str = "VISIBILITY_FIXTURE_CARGO_BUILD_EXIT";
-    /// File containing raw Cargo build stdout, bypassing artifact generation.
     pub const CARGO_BUILD_STDOUT: &str = "VISIBILITY_FIXTURE_CARGO_BUILD_STDOUT";
-    /// File containing fake Cargo build stderr bytes.
     pub const CARGO_BUILD_STDERR: &str = "VISIBILITY_FIXTURE_CARGO_BUILD_STDERR";
-    /// Artifact probe mode: valid, missing, malformed, duplicate, wrong-package,
-    /// wrong-target, fresh, test-profile, outside-target, or non-executable.
     pub const ARTIFACT_MODE: &str = "VISIBILITY_FIXTURE_ARTIFACT_MODE";
-    /// Fake Cargo version text.
     pub const CARGO_VERSION: &str = "VISIBILITY_FIXTURE_CARGO_VERSION";
-    /// Nonzero exit code for fake Cargo version lookup.
     pub const CARGO_VERSION_EXIT: &str = "VISIBILITY_FIXTURE_CARGO_VERSION_EXIT";
-    /// Fake rustc version text.
     pub const RUSTC_VERSION: &str = "VISIBILITY_FIXTURE_RUSTC_VERSION";
-    /// Nonzero exit code for fake rustc version lookup.
     pub const RUSTC_VERSION_EXIT: &str = "VISIBILITY_FIXTURE_RUSTC_VERSION_EXIT";
-    /// Fake `rustc -Vv` text.
     pub const RUSTC_VERBOSE: &str = "VISIBILITY_FIXTURE_RUSTC_VERBOSE";
-    /// Nonzero exit code for fake `rustc -Vv` lookup.
     pub const RUSTC_VERBOSE_EXIT: &str = "VISIBILITY_FIXTURE_RUSTC_VERBOSE_EXIT";
-    /// Fake `rustup show home` output.
     pub const RUSTUP_HOME: &str = "VISIBILITY_FIXTURE_RUSTUP_HOME";
 }
 
@@ -1036,7 +937,7 @@ fn exit_signal(status: &std::process::ExitStatus) -> Option<i32> {
 
 #[cfg(unix)]
 fn effective_uid() -> io::Result<u32> {
-    // SAFETY: geteuid has no preconditions and returns the current process UID.
+
     Ok(unsafe { libc::geteuid() })
 }
 
@@ -1044,7 +945,7 @@ fn effective_uid() -> io::Result<u32> {
 fn flock_file(file: &File, operation: c_int) -> io::Result<()> {
     use std::os::fd::AsRawFd;
 
-    // SAFETY: `file` keeps this valid descriptor open for the duration of the call.
+
     let result = unsafe { libc::flock(file.as_raw_fd(), operation) };
     if result == 0 {
         Ok(())
@@ -1083,13 +984,13 @@ fn open_directory_chain_no_follow(path: &Path) -> io::Result<File> {
     }
     let root_name = CString::new("/").expect("root path has no NUL byte");
     let flags = libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC;
-    // SAFETY: `root_name` is a valid NUL-terminated path and flags request a
-    // directory descriptor without following a symlink.
+
+
     let root_fd = unsafe { libc::open(root_name.as_ptr(), flags) };
     if root_fd < 0 {
         return Err(io::Error::last_os_error());
     }
-    // SAFETY: `root_fd` is a newly opened descriptor now owned by this File.
+
     let mut directory = unsafe { File::from_raw_fd(root_fd) };
     for component in path.components() {
         let Component::Normal(name) = component else {
@@ -1104,14 +1005,14 @@ fn open_directory_chain_no_follow(path: &Path) -> io::Result<File> {
         let name = CString::new(name.as_bytes()).map_err(|_| {
             io::Error::new(io::ErrorKind::InvalidInput, "path component contains NUL")
         })?;
-        // SAFETY: the parent descriptor is open and name is a single path
-        // component. O_NOFOLLOW and O_DIRECTORY reject symlink/non-directory
-        // ancestors at every step.
+
+
+
         let child_fd = unsafe { libc::openat(directory.as_raw_fd(), name.as_ptr(), flags) };
         if child_fd < 0 {
             return Err(io::Error::last_os_error());
         }
-        // SAFETY: `child_fd` is a newly opened descriptor now owned by this File.
+
         let child_directory = unsafe { File::from_raw_fd(child_fd) };
         directory = child_directory;
     }
@@ -1125,7 +1026,7 @@ fn open_private_lock_directory_at(parent: &File, name: &str) -> io::Result<File>
 
     let name = CString::new(name)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "lock directory name has NUL"))?;
-    // SAFETY: parent is a live directory descriptor and name is one component.
+
     if unsafe { libc::mkdirat(parent.as_raw_fd(), name.as_ptr(), 0o700) } != 0 {
         let error = io::Error::last_os_error();
         if error.kind() != io::ErrorKind::AlreadyExists {
@@ -1133,12 +1034,12 @@ fn open_private_lock_directory_at(parent: &File, name: &str) -> io::Result<File>
         }
     }
     let flags = libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC;
-    // SAFETY: parent is open; O_NOFOLLOW and O_DIRECTORY reject symlinks.
+
     let directory_fd = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), flags) };
     if directory_fd < 0 {
         return Err(io::Error::last_os_error());
     }
-    // SAFETY: `directory_fd` is now owned by this File.
+
     let directory = unsafe { File::from_raw_fd(directory_fd) };
     let metadata = directory.metadata()?;
     if !metadata.is_dir()
@@ -1161,13 +1062,13 @@ fn open_private_lock_file_at(parent: &File, name: &str) -> io::Result<File> {
     let name = CString::new(name)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "lock file name has NUL"))?;
     let flags = libc::O_RDWR | libc::O_CREAT | libc::O_NOFOLLOW | libc::O_CLOEXEC;
-    // SAFETY: parent is an open checked directory; O_NOFOLLOW protects the
-    // final lock-file component from symlink substitution.
+
+
     let file_fd = unsafe { libc::openat(parent.as_raw_fd(), name.as_ptr(), flags, 0o600) };
     if file_fd < 0 {
         return Err(io::Error::last_os_error());
     }
-    // SAFETY: `file_fd` is now owned by this File.
+
     let file = unsafe { File::from_raw_fd(file_fd) };
     let metadata = file.metadata()?;
     if !metadata.is_file()

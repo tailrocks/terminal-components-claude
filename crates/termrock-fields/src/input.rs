@@ -1,6 +1,3 @@
-//! `TextInput` and its explicit edit lifecycle (`COMPONENT_ARCHITECTURE.md`
-//! §15, §17.0 A7, Appendix A 4B).
-
 use core::fmt;
 
 use ratatui_core::layout::{Position, Rect};
@@ -31,10 +28,6 @@ mod text_target {
     impl Sealed for crate::secret::Secret {}
 }
 
-/// A controlled text value accepted by the crate-internal form bridge.
-///
-/// Sealing keeps the public standalone controls on `String` while allowing
-/// forms to edit `Secret` in place, without cloning it or widening the API.
 pub trait TextTarget: text_target::Sealed {
     fn expose(&self) -> &str;
     fn set(&mut self, value: &str, sensitive: bool);
@@ -74,79 +67,44 @@ impl TextTarget for Secret {
     }
 }
 
-/// What happens to an in-flight edit when focus leaves the control.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum BlurPolicy {
-    /// Write the draft to the value and run the validator.
     #[default]
     CommitAndValidate,
-    /// Write the draft to the value without validating.
     Commit,
-    /// Drop the draft.
     Cancel,
-    /// Keep editing; the draft survives until focus returns.
     Keep,
 }
 
-/// The edit lifecycle phase.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum EditPhase {
-    /// Showing the controlled value.
     #[default]
     Idle,
-    /// A draft is in flight.
     Editing,
 }
 
-/// What a text input reports.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TextAction {
-    /// The draft changed.
     Changed,
-    /// The draft was written to the value.
     Committed,
-    /// The draft was dropped.
     Cancelled,
-    /// Reserved: focus should move forward (Tab is runtime focus policy and
-    /// never reaches the control; a form may emit this itself).
     MoveNext,
-    /// Reserved: focus should move backward.
     MovePrev,
 }
 
-/// The const-constructible commands of the edit keymap (the legacy
-/// `field_common::edit_key` table), shared by every text control.
-///
-/// [`Newline`](TextCmd::Newline), [`PageUp`](TextCmd::PageUp) and
-/// [`PageDown`](TextCmd::PageDown) belong to the multi-line flavour of the
-/// table ([`TextArea`](crate::TextArea)); a single-line
-/// [`TextInput`] never binds them, exactly as the legacy
-/// table selected its arms on a `multiline` flag.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TextCmd {
-    /// Drop the draft (`Esc`).
     Cancel,
-    /// Write the draft (`Enter`); while idle, begin editing.
     Commit,
-    /// A cursor motion.
     Move(Motion, Extend),
-    /// Delete the grapheme before the cursor.
     Backspace,
-    /// Delete the grapheme after the cursor.
     Delete,
-    /// Delete the word before the cursor.
     DeleteWordLeft,
-    /// Delete to the line end.
     DeleteToLineEnd,
-    /// Delete to the line start.
     DeleteToLineStart,
-    /// Select everything.
     SelectAll,
-    /// Insert a newline (multi-line controls only).
     Newline,
-    /// Move the cursor up one viewport (multi-line controls only).
     PageUp,
-    /// Move the cursor down one viewport (multi-line controls only).
     PageDown,
 }
 
@@ -326,11 +284,6 @@ const BINDINGS: &[Binding<TextCmd>] = &[
     ),
 ];
 
-/// The in-flight editor with its sensitivity encoded in the variant.
-///
-/// A secret editor is never represented as an untagged `String` plus a flag:
-/// every operation that can copy, compare or format the draft sees the secret
-/// variant explicitly.
 pub(crate) enum EditorDraft {
     Plain(TextEditorCore),
     Secret(TextEditorCore),
@@ -455,9 +408,6 @@ impl EditorDraft {
         }
     }
 
-    /// Create a redacted snapshot. A secret snapshot is intentionally not a
-    /// semantic continuation: committing it writes mask glyphs, never bytes
-    /// from the original draft.
     pub(crate) fn clone_snapshot(&self) -> Self {
         match self {
             EditorDraft::Plain(editor) => EditorDraft::Plain(editor.clone()),
@@ -475,8 +425,6 @@ impl EditorDraft {
     }
 }
 
-/// A retained validation error tagged with the sensitivity of its source.
-/// Sensitive errors carry no caller message or code.
 pub enum ErrorState {
     Plain(FieldError),
     Pending(FieldError),
@@ -553,9 +501,6 @@ static INVALID_VALUE: FieldError = FieldError {
     code: None,
 };
 
-/// Durable state of a [`TextInput`]: the in-flight draft, the phase and the
-/// last validation error. `Debug` redacts the draft. `Clone` makes a redacted
-/// snapshot for secret state, not a continuation that can commit the secret.
 #[derive(Default)]
 pub struct TextInputState {
     draft: EditorDraft,
@@ -613,12 +558,6 @@ impl fmt::Debug for TextInputState {
 }
 
 impl TextInputState {
-    /// Construct state for direct editing of a secret `String`.
-    ///
-    /// Use this instead of [`TextInputState::default`] when calling the
-    /// public lifecycle methods directly, without [`TextInput::update`]
-    /// establishing sensitivity first. The returned state is sensitive before
-    /// [`TextInputState::begin`] can copy caller data into its draft.
     #[must_use]
     pub fn sensitive() -> Self {
         let mut state = Self::default();
@@ -626,21 +565,14 @@ impl TextInputState {
         state
     }
 
-    /// Whether a draft is in flight.
     pub const fn is_editing(&self) -> bool {
         matches!(self.phase, EditPhase::Editing)
     }
 
-    /// The phase.
     pub const fn phase(&self) -> EditPhase {
         self.phase
     }
 
-    /// Return the current non-secret draft while editing.
-    ///
-    /// Secret drafts intentionally return `None`; callers that need to react
-    /// to a non-secret transient command can inspect this without exposing
-    /// credential material through a public state accessor.
     pub fn draft_text(&self) -> Option<&str> {
         if self.is_sensitive() || !self.is_editing() {
             None
@@ -649,9 +581,6 @@ impl TextInputState {
         }
     }
 
-    /// Replace `replace_len` bytes before the draft cursor with `insertion`.
-    ///
-    /// Idle states refuse so a stale accept cannot rewrite a committed value.
     pub fn splice_completion(&mut self, replace_len: usize, insertion: &str) -> bool {
         if !self.is_editing() {
             return false;
@@ -665,8 +594,6 @@ impl TextInputState {
         editor.apply(EditAction::Paste(insertion)).changed()
     }
 
-    /// Compare the text the editor currently displays without exposing its draft.
-    /// Redacted snapshots cannot authorize an action on the original secret.
     pub fn visible_text_equals(&self, committed: &str, expected: &str) -> bool {
         !self.redacted_snapshot
             && if self.is_editing() {
@@ -680,12 +607,6 @@ impl TextInputState {
         self.draft.is_sensitive()
     }
 
-    /// The last validation error.
-    ///
-    /// Before the first update reconciles the control's sensitivity, an
-    /// externally supplied error is exposed as `Invalid value`. A plain
-    /// control resolves that pending error during reconciliation and restores
-    /// its detail; a secret control discards the detail.
     pub const fn error(&self) -> Option<&FieldError> {
         match &self.error {
             Some(error) => Some(error.as_ref()),
@@ -716,7 +637,6 @@ impl TextInputState {
         }
     }
 
-    /// Set (or clear) the error from an external / async validation.
     pub fn set_error(&mut self, e: Option<FieldError>) {
         self.clear_error();
         self.error = match (self.sensitivity, e) {
@@ -742,7 +662,6 @@ impl TextInputState {
         }
     }
 
-    /// Begin an edit over `current` (a no-op while editing).
     pub fn begin(&mut self, current: &str) {
         if self.is_editing() {
             return;
@@ -752,10 +671,6 @@ impl TextInputState {
         self.phase = EditPhase::Editing;
     }
 
-    /// Write the draft to `value`, end the edit and validate.
-    ///
-    /// # Errors
-    /// The validator's error; it is also recorded in the state.
     pub fn commit(&mut self, value: &mut String, v: &impl Validate) -> Result<(), FieldError> {
         self.commit_target(value, v)
     }
@@ -778,7 +693,6 @@ impl TextInputState {
         self.draft.zeroize();
     }
 
-    /// Drop the draft.
     pub fn cancel(&mut self) {
         self.phase = EditPhase::Idle;
         self.redacted_snapshot = false;
@@ -788,10 +702,6 @@ impl TextInputState {
         }
     }
 
-    /// Apply the blur policy.
-    ///
-    /// # Errors
-    /// The validator's error under `CommitAndValidate`.
     pub fn blur(
         &mut self,
         value: &mut String,
@@ -821,7 +731,6 @@ impl TextInputState {
         }
     }
 
-    /// Overwrite the draft bytes.
     pub fn zeroize(&mut self) {
         self.draft.zeroize();
         self.clear_error();
@@ -871,79 +780,6 @@ pub fn redacted_text(text: &str) -> String {
     redacted
 }
 
-/// A single-line text control with an explicit edit lifecycle.
-///
-/// ## Construction
-/// `TextInput::new(id)`. The controlled value is passed per phase:
-/// `&mut String` to `update`, `.value(&str)` for `draw`.
-///
-/// ## Ownership
-/// The caller owns the value and a [`TextInputState`] (draft, phase,
-/// error). The runtime owns focus, hover, the cursor write and paste
-/// routing. Controlled is the default (S4): the value changes only on
-/// commit.
-///
-/// ## Configuration
-/// `.value(&str)` (draw), `.placeholder(&str)`, `.validate(&dyn Validate)`
-/// (`NoValidate`), `.blur(BlurPolicy)` (`CommitAndValidate`),
-/// `.secret(SecretPolicy)`, `.read_only(bool)`, `.disabled(bool)`,
-/// `.status(Status)`, `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::INPUT`, `DEFAULT` only.
-///
-/// ## States
-/// `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED` from the runtime; `EDITING` is
-/// owned by the state and declared every frame; `ERROR` from the state's
-/// error or `.status(Error)`; `READ_ONLY`, `DISABLED`, `BUSY`, `LOADING`.
-///
-/// ## Actions
-/// `Changed` (the draft changed), `Committed` (written to the value),
-/// `Cancelled` (draft dropped), `MoveNext` / `MovePrev` (reserved).
-///
-/// ## Focus
-/// `Focusable` (`FocusableReadOnly` / `Disabled`); swallows typing.
-/// Focus arriving begins an edit; focus leaving applies the blur policy.
-///
-/// ## Keyboard
-/// The edit table (every state; while idle only `Enter` and typing apply):
-/// `Esc` Cancel, `Enter` Commit, `←`/`→` (`Shift` selects, `Ctrl`/`Alt`
-/// words), `Home`/`End` (`Shift`, `Ctrl` document), `Backspace`
-/// (`Ctrl`/`Alt` word), `Del`, `Ctrl+a/e` start/end, `Ctrl+u/k` delete to
-/// start/end, `Ctrl+w` delete word, `Ctrl+l` select all, `Alt+b/f` words.
-///
-/// ## Mouse
-/// `PartRef::of(Part::CONTAINER)`: a press begins editing and places the
-/// cursor at the clicked column.
-///
-/// ## Layout
-/// One row: gutter, one-cell indent, the text run and one trailing readiness
-/// cell. `measure` is `(8…, 1)`; `draw` paints the first
-/// row of `area` and returns it; `0×0` registers nothing (R5).
-///
-/// ## Parts
-/// `FIELD` (the row fill), `TEXT` (the value / draft), `PLACEHOLDER`,
-/// `MARKER` (the trailing validation glyph), `GUTTER` (the focus bar), `ICON`
-/// (the status error glyph or spinner, in the same trailing cell).
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` on any part; `.slot` on exactly `GUTTER`,
-/// `MARKER`, `PLACEHOLDER` and `ICON`. `FIELD` and `TEXT` are not
-/// slot-addressable: the first is the field's own fill and the second is the
-/// edited text, which the caller owns through `.value` and the draft.
-///
-/// ## Identity
-/// One `Id`; no items.
-///
-/// ## Testing
-/// `TextInputCase` with `FOCUSABLE | EDITS | CURSOR | TYPES | SECRET |
-/// DISABLEABLE | REPORTS_STATUS`; `render::components::text_input::*`.
-///
-/// ## Invariants
-/// `draw` never commits, cancels or validates (it takes `&TextInputState`);
-/// a secret draft is masked while editing and never reaches `Debug`; the
-/// hardware cursor belongs to focus by default; an explicit fallback policy
-/// may publish the active draft as cursor owner without moving focus.
 #[expect(
     clippy::struct_excessive_bools,
     reason = "placeholder visibility, editability, availability and pointer admission are independent borrowed configuration"
@@ -982,7 +818,6 @@ impl fmt::Debug for TextInput<'_> {
 }
 
 impl<'a> TextInput<'a> {
-    /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::FIELD,
         Part::TEXT,
@@ -992,7 +827,6 @@ impl<'a> TextInput<'a> {
         Part::ICON,
     ];
 
-    /// A text input.
     pub const fn new(id: Id) -> Self {
         TextInput {
             id,
@@ -1011,52 +845,42 @@ impl<'a> TextInput<'a> {
         }
     }
 
-    /// The controlled value, for `draw`.
     #[must_use]
     pub const fn value(mut self, v: &'a str) -> Self {
         self.value = Some(v);
         self
     }
 
-    /// Placeholder shown while the value is empty and no edit is in flight.
     #[must_use]
     pub const fn placeholder(mut self, s: &'a str) -> Self {
         self.placeholder = Some(s);
         self
     }
 
-    /// Also show the placeholder for an empty active draft, preserving its cursor.
-    /// Disabled by default; this changes painting only, not editing ownership.
     #[must_use]
     pub const fn placeholder_while_editing(mut self, enabled: bool) -> Self {
         self.placeholder_while_editing = enabled;
         self
     }
 
-    /// The validator run on commit.
     #[must_use]
     pub const fn validate(mut self, v: &'a dyn Validate) -> Self {
         self.validate = Some(v);
         self
     }
 
-    /// What focus loss does to a draft.
     #[must_use]
     pub const fn blur(mut self, p: BlurPolicy) -> Self {
         self.blur = p;
         self
     }
 
-    /// Publish an alternate typing target without moving navigation focus.
-    /// Fallback routing requires an active editable draft and compatible
-    /// presented geometry. Commit and cancel remain primary-focus actions.
     #[must_use]
     pub const fn typing_policy(mut self, policy: crate::TypingPolicy) -> Self {
         self.typing_policy = policy;
         self
     }
 
-    /// Mask the text (§15): every grapheme paints the policy's mask glyph.
     #[must_use]
     pub const fn secret(mut self, policy: SecretPolicy) -> Self {
         self.secret = Some(policy);
@@ -1067,50 +891,42 @@ impl<'a> TextInput<'a> {
         self.secret.is_some()
     }
 
-    /// Read-only: stays in the ring, never edits.
     #[must_use]
     pub const fn read_only(mut self, yes: bool) -> Self {
         self.read_only = yes;
         self
     }
 
-    /// Disabled: registered, never reachable.
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// Allow pointer activation and caret positioning (enabled by default).
-    /// Disabling pointer input preserves keyboard editing, focus and geometry.
     #[must_use]
     pub const fn pointer_enabled(mut self, enabled: bool) -> Self {
         self.pointer_enabled = enabled;
         self
     }
 
-    /// Data readiness.
     #[must_use]
     pub const fn status(mut self, s: Status) -> Self {
         self.status = s;
         self
     }
 
-    /// An instance patch over every part.
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
         self
     }
 
-    /// Per-part instance patches.
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
         self
     }
 
-    /// Replace one part's painting.
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -1143,13 +959,10 @@ impl<'a> TextInput<'a> {
         Dyn(self.validate.unwrap_or(&NoValidate))
     }
 
-    /// Columns between the gutter indent and the always-reserved trailing cell.
     const fn inner_width(area_width: u16) -> u16 {
         area_width.saturating_sub(3)
     }
 
-    /// The update phase: drains this control's intents and drives the edit
-    /// lifecycle. The controlled `value` is written on commit only.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -1159,8 +972,6 @@ impl<'a> TextInput<'a> {
         self.update_target(cx, st, value)
     }
 
-    /// Form bridge with inherited disabled state. The configured component
-    /// remains the source of every other prop.
     pub fn update_in_form<T: TextTarget + ?Sized>(
         &self,
         cx: &mut Cx<'_>,
@@ -1306,7 +1117,7 @@ impl<'a> TextInput<'a> {
                     TextCmd::DeleteToLineEnd => EditAction::DeleteToLineEnd,
                     TextCmd::DeleteToLineStart => EditAction::DeleteToLineStart,
                     TextCmd::SelectAll => EditAction::SelectAll,
-                    // never bound by the single-line table above
+
                     TextCmd::Newline
                     | TextCmd::PageUp
                     | TextCmd::PageDown
@@ -1325,8 +1136,6 @@ impl<'a> TextInput<'a> {
         }
     }
 
-    /// The draw phase: the field row, the placeholder or the text, the
-    /// error marker and the cursor request.
     #[expect(
         clippy::too_many_lines,
         reason = "one pass over gutter, text window, marker and cursor"
@@ -1352,8 +1161,7 @@ impl<'a> TextInput<'a> {
         } else {
             StateFlags::empty()
         };
-        // runtime: the frame's own focus/hover/press; derived: `.status`,
-        // the edit phase, the error, `.read_only` and `.disabled`
+
         let mut derived = self.status.flags();
         if editing {
             derived |= StateFlags::EDITING;
@@ -1374,9 +1182,7 @@ impl<'a> TextInput<'a> {
         if self.disabled {
             live = live.difference(StateFlags::HOVERED);
         }
-        // the readiness affordance is a *symbol*, so it survives `Mono`
-        // without a theme rule (§11.4's `BUSY`/`LOADING` row); it shares the
-        // trailing cell with the error glyph, which wins.
+
         let busy = matches!(self.status, Status::Busy | Status::Loading);
         let inner = Rect {
             x: area.x.saturating_add(2),
@@ -1588,7 +1394,6 @@ impl<'a> TextInput<'a> {
             .draw(ui, area, st)
     }
 
-    /// The natural size: one row, eight columns minimum, thirty preferred.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (8, 1),
@@ -1632,7 +1437,6 @@ fn paint_masked(
     }
 }
 
-/// A borrowed validator behind the blanket-impl bound.
 struct Dyn<'a>(&'a dyn Validate);
 
 impl Validate for Dyn<'_> {
@@ -1641,7 +1445,6 @@ impl Validate for Dyn<'_> {
     }
 }
 
-/// Byte offset of display column `col` in `s` (the whole length past the end).
 pub(super) fn byte_at_col(s: &str, col: usize) -> usize {
     let mut w = 0usize;
     for (i, g) in graphemes(s) {
@@ -1780,8 +1583,6 @@ mod tests {
         }
     }
 
-    /// §16.1: `begin` snapshots the controlled value into the draft, and the
-    /// value itself does not move until a commit.
     #[test]
     fn begin_snapshots_the_value() {
         let mut st = TextInputState::default();
@@ -1793,7 +1594,7 @@ mod tests {
         assert_eq!(st.apply(EditAction::Insert('!')), EditOutcome::Changed);
         assert_eq!(st.draft.text(), "hello!");
         assert_eq!(value, "hello", "the value moves only on commit");
-        // a second begin while editing keeps the draft
+
         st.begin("other");
         assert_eq!(st.draft.text(), "hello!");
     }
@@ -1807,7 +1608,6 @@ mod tests {
         assert_eq!(st.draft_text(), Some("world"));
     }
 
-    /// §16.1: commit is the only writer of the controlled value.
     #[test]
     fn commit_writes_the_controlled_value() {
         let mut st = TextInputState::default();
@@ -1818,13 +1618,11 @@ mod tests {
         assert_eq!(value, "a@");
         assert!(!st.is_editing(), "commit ends the edit");
         assert_eq!(st.draft.text(), "", "the draft is zeroized on commit");
-        // committing while idle leaves the value alone
+
         assert!(st.commit(&mut value, &rule).is_ok());
         assert_eq!(value, "a@");
     }
 
-    /// §16.1: one commit runs the validator exactly once, over the value it
-    /// just wrote.
     #[test]
     fn commit_runs_validation_once() {
         use core::cell::Cell;
@@ -1863,7 +1661,6 @@ mod tests {
         assert!(!format!("{st:?}").contains("hello"));
     }
 
-    /// §16.1: the default policy writes the draft **and** validates it.
     #[test]
     fn blur_commit_and_validate_policy() {
         let mut value = "a".to_owned();
@@ -1887,7 +1684,6 @@ mod tests {
         assert!(st.error().is_some());
     }
 
-    /// §16.1: `Cancel` drops the draft and leaves the value untouched.
     #[test]
     fn blur_cancel_policy() {
         let mut value = "a".to_owned();
@@ -1900,7 +1696,6 @@ mod tests {
         assert_eq!(st.draft.text(), "");
     }
 
-    /// §16.1: `Keep` leaves the edit in flight, so focus can return to it.
     #[test]
     fn blur_keep_policy_leaves_the_draft() {
         let mut value = "a".to_owned();
@@ -1911,7 +1706,7 @@ mod tests {
         assert!(st.is_editing(), "the draft survives the blur");
         assert_eq!(st.draft.text(), "ab");
         assert_eq!(value, "a");
-        // and `Commit` afterwards writes exactly that draft
+
         assert!(st.blur(&mut value, &rule, BlurPolicy::Commit).is_ok());
         assert_eq!(value, "ab");
     }
@@ -1929,8 +1724,6 @@ mod tests {
         assert_eq!(value, "a");
     }
 
-    /// §16.1: an error set from outside (an async / server-side check) is
-    /// state, not a derived value, so redrawing never clears it.
     #[test]
     fn external_error_survives_a_redraw() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
@@ -2039,9 +1832,6 @@ mod tests {
         assert_ne!(render(false, true), idle, "real edit state was not styled");
     }
 
-    /// §16.1 (P5): a masked field paints mask glyphs and a **synthetic**
-    /// tail derived from the fingerprint — never the real characters, and
-    /// never a `String` of them.
     #[test]
     fn write_mask_is_synthetic() {
         const SECRET: &str = "hunter2";
@@ -2073,8 +1863,7 @@ mod tests {
             painted.starts_with(&mask.repeat(masked)),
             "the mask run is wrong: {painted}"
         );
-        // the tail is synthetic: the real one's length, a different string,
-        // and drawn from the fingerprint alphabet
+
         let tail: String = painted.chars().skip(masked).collect();
         assert_eq!(tail.chars().count(), policy.synthetic_tail);
         assert_ne!(tail, "r2", "the real tail was painted");

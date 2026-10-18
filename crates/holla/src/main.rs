@@ -1,8 +1,3 @@
-//! Holla executable: argument handling completes before terminal acquisition.
-//!
-//! Run the launcher, decoding help and argument errors before opening a
-//! terminal. Returns status two for invalid arguments and status one for
-//! terminal failures.
 #[expect(
     clippy::print_stdout,
     clippy::print_stderr,

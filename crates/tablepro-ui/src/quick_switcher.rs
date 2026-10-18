@@ -1,4 +1,3 @@
-//! Application-owned switcher projection over the shared Picker.
 use crate::workbench::Workbench;
 use tablepro_domain::model::{SwitchItem, SwitchTarget, SwitcherIndex};
 use termrock::{FilterPolicy, Id, ItemRowLayout, Picker, PickerState, ScopeKey};
@@ -22,8 +21,7 @@ impl QuickSwitcher {
     pub(crate) fn open(&mut self, workbench: &Workbench) {
         self.state = PickerState::default();
         self.index = workbench.switcher();
-        // The product switcher exposes objects, tabs, and history; connection
-        // management remains on its own screen.
+
         self.index
             .items
             .retain(|item| !matches!(item.target, SwitchTarget::Connection(_)));

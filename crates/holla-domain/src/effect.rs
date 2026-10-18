@@ -1,4 +1,3 @@
-//! Typed in-memory mutations. Commands and output text never select effects.
 use super::{
     disk::Candidate,
     docker::{Container, Resource},

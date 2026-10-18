@@ -1,5 +1,3 @@
-//! Read-only keyed data grid with model-owned sorting.
-
 use termrock::{
     Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid, GridAction, GridModel,
     GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Role, RowDecor, RowTotal,
@@ -429,7 +427,6 @@ fn table() -> Grid<'static> {
         .patch_part(PART_PATCH)
 }
 
-/// The one checks-card constructor (§13), reached from update and from draw.
 fn checks_panel() -> Panel<'static> {
     Panel::new(CHECKS)
         .kind(PanelKind::Card)
@@ -437,8 +434,6 @@ fn checks_panel() -> Panel<'static> {
         .patch_part(PANEL_PARTS)
 }
 
-/// The grid owns only cursor state; the adapter owns row order and domain
-/// comparison, preserving keyed identity through every sort request.
 #[derive(Debug)]
 pub struct TablesPage {
     model: TableModel,
@@ -490,8 +485,6 @@ impl Page for TablesPage {
             .action_ref()
             .is_some_and(|value| matches!(value, GridAction::Moved))
         {
-            // The historical page only changes the sort label for a sort;
-            // cursor motion leaves the current header status intact.
         }
         let _ = checks_panel();
         action.erase().into()

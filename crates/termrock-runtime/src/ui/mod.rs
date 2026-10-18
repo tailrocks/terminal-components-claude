@@ -1,10 +1,3 @@
-//! The draw-phase context (`COMPONENT_ARCHITECTURE.md` §5, §10, §17.0 A2).
-//!
-//! `Ui` carries a clip rect, the current surface, the overlay stack and the
-//! draw target (the page or a pooled layer buffer). All painting goes
-//! through it so a layer's written-cell bitset is always correct, clipping
-//! is automatic, and roles are recorded per painted cell for `dim_layer`.
-
 pub mod cx;
 pub mod derived;
 pub mod layer_buf;
@@ -38,7 +31,6 @@ use crate::response::StateFlags;
 use crate::theme::resolve::StyleCache;
 use crate::theme::{DesignTokens, Family, Overlay, Resolved, Role, Surface, Theme, Variant};
 
-/// Roles recorded for one painted cell (`FrameOut::roles`, §11.6).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub(crate) struct CellRoles {
     pub(crate) fg: Option<Role>,
@@ -46,7 +38,6 @@ pub(crate) struct CellRoles {
 }
 
 impl CellRoles {
-    /// Apply exactly the same channel inheritance as the painted attributes.
     fn patch(self, style: Option<crate::theme::PaintStyle>) -> Self {
         match style {
             Some(style) => Self {
@@ -66,7 +57,6 @@ impl CellRoles {
     }
 }
 
-/// Per-frame output the runtime consumes after `app.draw` (§3.3 steps 12–15).
 #[derive(Debug, Default)]
 pub struct FrameState {
     pub registry: Registry,
@@ -90,32 +80,18 @@ pub struct FrameState {
     pub(crate) styled_queries: Vec<StyledQuery>,
 }
 
-/// One recorded style query: who asked, under which family/variant, for which
-/// part, and what came back (§16.4's theme-coupling migration contract).
-/// `Runtime::resolved` reads this, so a migrated assertion sees the family the
-/// component actually queried rather than a hardcoded guess (BL-7).
 #[cfg(feature = "testing")]
 pub type StyledQuery = (Id, Family, Variant, Part, Resolved);
 
-/// Runtime-owned visual state injected into one inert reference rendering.
-///
-/// This type is intentionally opaque: reference fixtures can reproduce only
-/// focus, hover and press state. Semantic state remains owned by component
-/// props and caller-owned state.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct ReferenceState(u8);
 
 impl ReferenceState {
-    /// The target owns focus.
     pub const FOCUSED: Self = Self(1 << 0);
-    /// Keyboard-visible focus is painted.
     pub const FOCUS_VISIBLE: Self = Self(1 << 1);
-    /// The pointer is over the target.
     pub const HOVERED: Self = Self(1 << 2);
-    /// The primary pointer button is down on the target.
     pub const PRESSED: Self = Self(1 << 3);
 
-    /// Combine two reference-state flags in a constant context.
     #[must_use]
     pub const fn union(self, rhs: Self) -> Self {
         Self(self.0 | rhs.0)
@@ -154,7 +130,6 @@ impl BitOrAssign for ReferenceState {
     }
 }
 
-/// The exact owner, optional sub-region and runtime state of a reference cell.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ReferenceTarget {
     id: Id,
@@ -163,7 +138,6 @@ pub struct ReferenceTarget {
 }
 
 impl ReferenceTarget {
-    /// Target one component owner with `state`.
     pub const fn new(id: Id, state: ReferenceState) -> Self {
         Self {
             id,
@@ -172,7 +146,6 @@ impl ReferenceTarget {
         }
     }
 
-    /// Target one exact sub-region for hover/press queries.
     #[must_use]
     pub const fn part(mut self, part: PartRef) -> Self {
         self.part = Some(part);
@@ -224,8 +197,6 @@ impl FrameState {
     }
 }
 
-/// State that outlives a frame: the derived cache, the style memo and the
-/// overlay stack (§20.9-2 P4: constructed once per runtime, reused).
 #[derive(Default)]
 pub struct UiCore {
     cache: DerivedCache,
@@ -238,7 +209,6 @@ pub struct UiCore {
     pub(crate) keymap_revision: u64,
     dynamic_bindings: DynamicBindingRegistry,
     next_targetless_reference: u64,
-    /// Reused scratch for scroll fade background voting.
     pub(crate) scroll_bg_counts: HashMap<Color, usize>,
     pub(crate) scroll_bg_order: Vec<Color>,
     pub(crate) cluster_scratch: crate::text::clusters::ClusterScratch,
@@ -260,7 +230,6 @@ impl UiCore {
         self.reference_cache.begin_frame(generation);
     }
 
-    /// Drop every derived cache (resize, theme change, generation gap).
     pub(crate) fn clear_caches(&mut self) {
         self.cache.clear();
         self.reference_cache.clear();
@@ -271,8 +240,6 @@ impl UiCore {
         let key = self.next_targetless_reference;
         self.next_targetless_reference = self.next_targetless_reference.wrapping_add(1);
         if self.next_targetless_reference == 0 {
-            // Cache contents are derived-only, so clearing at the practically
-            // unreachable wrap boundary preserves identity without semantics.
             self.reference_cache.clear();
         }
         ReferenceCacheKey::Targetless(key)
@@ -285,13 +252,6 @@ enum Target {
     Layer(usize),
 }
 
-/// Restores the overlay stack a [`Ui::with_overlay`] scope pushed.
-///
-/// A scope whose only effect is on `Ui`'s own fields runs its body on a
-/// shorter reborrow, so unwinding restores the outer view for free. The
-/// overlay stack lives in [`UiCore`] *behind* those shared references, so a
-/// reborrow shares it rather than isolating it and it is undone here on both
-/// normal return and unwinding.
 struct OverlayGuard<'a, 'f> {
     ui: &'a mut Ui<'f>,
     saved_hash: u64,
@@ -304,13 +264,6 @@ impl Drop for OverlayGuard<'_, '_> {
     }
 }
 
-/// Restores the open focus scope a [`Ui::focus_scope`] or [`Ui::layer`] scope
-/// pushed.
-///
-/// The open-scope stack lives in the frame's [`crate::focus::FocusRing`],
-/// which a reborrow shares rather than isolates, so the pop runs here on both
-/// normal return and unwinding. Nested scopes each hold their own guard, so
-/// one pop per guard restores the whole stack.
 struct FocusScopeGuard<'a, 'f> {
     ui: &'a mut Ui<'f>,
 }
@@ -321,7 +274,6 @@ impl Drop for FocusScopeGuard<'_, '_> {
     }
 }
 
-/// The draw-phase context.
 pub struct Ui<'f> {
     frame: &'f mut FrameState,
     page: &'f mut Buffer,
@@ -373,7 +325,6 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// A shorter-lived view sharing every reference (for `RowUi` and nested painters).
     pub fn reborrow(&mut self) -> Ui<'_> {
         Ui {
             frame: &mut *self.frame,
@@ -390,46 +341,26 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// The current clip rect.
     pub const fn full(&self) -> Rect {
         self.clip
     }
 
-    /// The current surface.
     pub const fn surface(&self) -> Surface {
         self.surface
     }
 
-    /// The current surface's background colour.
     pub fn bg(&self) -> Color {
         self.theme.bg(self.surface)
     }
 
-    /// The layer being drawn.
     pub const fn layer_id(&self) -> LayerId {
         self.layer
     }
 
-    /// Whether registrations from this layer are suppressed (`inert_below`).
     pub const fn is_inert(&self) -> bool {
         self.inert || self.reference.is_some()
     }
 
-    /// Draw an inert reference fixture.
-    ///
-    /// `target` injects runtime-owned focus, hover and press state into exactly
-    /// one owner. `None` is an inert default or semantic fixture with no
-    /// synthetic runtime state. Painting and style resolution still run;
-    /// interaction, layout, cursor, binding and layer output is suppressed.
-    /// This is an application-showcase and test-fixture API; component
-    /// implementations must derive live state from [`FrameRead`] instead.
-    ///
-    /// Nested calls replace the target only for the nested closure. The scope
-    /// lives on a shorter reborrow, so normal return and panic unwinding both
-    /// restore the exact outer target without cleanup code. An explicit target
-    /// also supplies a stable derived-cache namespace. A targetless scope has
-    /// no stable caller identity, so its derived cache is isolated to that one
-    /// invocation instead of being shared with sibling fixtures.
     pub fn reference<R>(
         &mut self,
         target: Option<ReferenceTarget>,
@@ -467,7 +398,6 @@ impl<'f> Ui<'f> {
         self.inert || self.reference.is_some()
     }
 
-    /// Resolve a part's style through the whole precedence chain, memoised.
     pub fn style(
         &mut self,
         family: Family,
@@ -487,7 +417,6 @@ impl<'f> Ui<'f> {
         crate::theme::resolve::bind(self.theme, acc, None, self.surface)
     }
 
-    /// Shared child style: defaults, owning logical part, explicit child overrides.
     pub(crate) fn style_inherited(
         &self,
         family: Family,
@@ -506,14 +435,6 @@ impl<'f> Ui<'f> {
         )
     }
 
-    /// Resolve component-author defaults without installing a theme recipe.
-    ///
-    /// Precedence: defaults, declared family/variant/state recipe, generic and
-    /// authored Mono fallback, explicit theme/scope overrides, then `local`.
-    /// A theme's targeted Mono manifest replaces the author's whole manifest.
-    /// Unknown families use these opted-in defaults instead of the neutral
-    /// recipe; ordinary [`Ui::style`] keeps its existing neutral fallback.
-    /// Different defaults never alias in the ordinary style cache.
     pub fn style_defaults(
         &self,
         family: Family,
@@ -534,12 +455,10 @@ impl<'f> Ui<'f> {
         )
     }
 
-    /// Bind a semantic patch directly against the current surface.
     pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
         crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
     }
 
-    /// Resolve with a per-instance patch (precedence 6).
     pub fn style_patched(
         &mut self,
         family: Family,
@@ -560,8 +479,6 @@ impl<'f> Ui<'f> {
         crate::theme::resolve::bind(self.theme, acc, Some(patch), self.surface)
     }
 
-    /// Record that `owner` resolved `part` under `family`/`variant`, and what
-    /// it got (the declared-parts check and `Runtime::resolved`).
     #[cfg(feature = "testing")]
     pub fn note_styled(
         &mut self,
@@ -577,37 +494,21 @@ impl<'f> Ui<'f> {
             .push((owner, family, variant, part, resolved));
     }
 
-    /// The `(owner, part)` pairs styled this frame — the declared-parts check.
     #[cfg(feature = "testing")]
     pub fn styled_parts(&self) -> &[(Id, Part)] {
         &self.frame.styled_parts
     }
 
-    /// The full style queries recorded this frame, with the family, variant
-    /// and the `Resolved` each one produced.
     #[cfg(feature = "testing")]
     pub fn styled_queries(&self) -> &[StyledQuery] {
         &self.frame.styled_queries
     }
 
-    /// `(hits, misses)` of the §11.1 A3 memo since the runtime was built.
     #[cfg(feature = "testing")]
     pub fn style_cache_stats(&self) -> (u64, u64) {
         self.core.style_cache.stats()
     }
 
-    /// Resolve a part through the whole §11.3 chain **without** the memo and
-    /// **without** recording roles — the `&self` path, for `Measure::measure`
-    /// and any read that must not paint (Adjudication N2).
-    ///
-    /// Identical to [`Ui::style`] in result (same family/variant/state chain,
-    /// same live overlay stack, same current surface); it differs only in what
-    /// it does *not* do. Excludes the per-instance patch (precedence 6), which
-    /// the caller merges with `StylePatch::merge` if it has one.
-    ///
-    /// Costs one uncached accumulation and zero allocations. Use [`Ui::style`]
-    /// on the painting path: a measurement must not evict a painting entry
-    /// from the 256-slot memo (§11.1 A3, §20.9-2).
     pub fn resolve(
         &self,
         family: Family,
@@ -627,16 +528,10 @@ impl<'f> Ui<'f> {
         )
     }
 
-    /// The glyph a role currently maps to (`design.glyphs`). `&self`, so it is
-    /// reachable from `measure`; pair with `text::width` for its cell width.
     pub fn glyph_str(&self, g: crate::theme::GlyphRole) -> &'static str {
         self.theme.design.glyphs.get(g)
     }
 
-    /// The style a child inherits from the current surface: `bg` is
-    /// `theme.bg(ui.surface())`, `fg` is `Role::Fg(FgStep::Primary)` bound on
-    /// that surface, no modifiers. The **left** operand of §11.3's final
-    /// layering — write it as `resolved.over(ui.surface_style())`.
     pub fn surface_style(&self) -> crate::theme::PaintStyle {
         let mut st = ratatui_core::style::Style::new();
         st.bg = Some(self.theme.bg(self.surface));
@@ -653,15 +548,6 @@ impl<'f> Ui<'f> {
         )
     }
 
-    /// Resolve `part` once and paint with it: equivalent to binding
-    /// `let r = ui.style(family, variant, part, flags);` and then painting —
-    /// including the memo lookup and the per-cell role recording `dim_layer`
-    /// reads — but expressible as one statement.
-    ///
-    /// Binds a value only: it pushes **no** clip and **no** surface (use
-    /// [`Ui::with_area`] / [`Ui::with_surface`] for those). A component with a
-    /// per-instance patch keeps the two-step [`Ui::style_patched`] shape;
-    /// there is deliberately no `with_` form for precedence 6.
     pub fn with_part<R>(
         &mut self,
         family: Family,
@@ -674,10 +560,6 @@ impl<'f> Ui<'f> {
         f(&mut self.reborrow(), r)
     }
 
-    /// Run `f` with the clip rect intersected with `area`.
-    ///
-    /// The narrowed clip lives on a shorter reborrow, so normal return and
-    /// panic unwinding both restore the outer clip without cleanup code.
     pub fn with_area<R>(&mut self, area: Rect, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
         let clip = self.clip.intersection(area);
         let mut nested = self.reborrow();
@@ -685,22 +567,12 @@ impl<'f> Ui<'f> {
         f(&mut nested)
     }
 
-    /// Run `f` on surface `s`; children inherit it.
-    ///
-    /// The surface lives on a shorter reborrow, so normal return and panic
-    /// unwinding both restore the outer surface without cleanup code.
     pub fn with_surface<R>(&mut self, s: Surface, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
         let mut nested = self.reborrow();
         nested.surface = s;
         f(&mut nested)
     }
 
-    /// Run `f` with `ov` pushed on the overlay stack (precedence 5).
-    ///
-    /// The stack lives in the frame state behind [`Ui`], which a reborrow
-    /// shares rather than isolates, so the pop and the stack hash are restored
-    /// by a guard: an unwinding component cannot leave a stale overlay
-    /// resolving every later style on the frame.
     pub fn with_overlay<R>(&mut self, ov: &Overlay, f: impl FnOnce(&mut Ui<'_>) -> R) -> R {
         let saved_hash = self.core.stack_hash;
         self.core.overlays.push(*ov);
@@ -713,12 +585,6 @@ impl<'f> Ui<'f> {
         f(&mut nested)
     }
 
-    /// Run `f` inside a focus scope.
-    ///
-    /// The open-scope stack lives in the frame's [`crate::focus::FocusRing`],
-    /// which a reborrow shares rather than isolates, so the pop is restored by
-    /// a guard: an unwinding component cannot leave later registrations
-    /// attributed to a scope that already closed.
     pub fn focus_scope<R>(
         &mut self,
         id: Id,
@@ -784,18 +650,10 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// Register a `Control` region and its ring entry.
     pub fn register_control(&mut self, id: Id, area: Rect, f: Focusability) {
         self.register_entry(id, area, f, false, true);
     }
 
-    /// Register a hidden keyboard focus stop without creating a hit region.
-    ///
-    /// `Focusable` and `FocusableReadOnly` are reachable in normal traversal;
-    /// `Disabled` is recorded but unreachable. `ClickOnly` is a no-op because
-    /// focus-only registration has no pointer target. The ring entry uses
-    /// `Rect::ZERO`, so `area_of(id)` remains `None` and a harness `click_id`
-    /// is ignored with [`Diagnostic::UnaddressableId`].
     pub fn register_focus_only(&mut self, id: Id, f: Focusability) {
         if self.registrations_suppressed() {
             return;
@@ -803,18 +661,11 @@ impl<'f> Ui<'f> {
         self.register_focus_entry(id, Rect::ZERO, f, false);
     }
 
-    /// Register a `Control` whose entry swallows typing (a text control)
-    /// and declares `flags` (`EDITING` while an edit is in flight), so
-    /// paste and bare-`Char` capture chords are routed correctly.
     pub fn register_editor(&mut self, id: Id, area: Rect, f: Focusability, flags: StateFlags) {
         self.register_entry(id, area, f, true, true);
         self.declare_state(id, flags);
     }
 
-    /// Register an editor with real geometry and ordinary keyboard ownership,
-    /// excluding its control, parts, decoration and scroll regions from pointer
-    /// hit testing and capture. Exclusion applies regardless of registration
-    /// order for this owner in the frame; it does not disable keyboard editing.
     pub fn register_keyboard_editor(
         &mut self,
         id: Id,
@@ -826,17 +677,6 @@ impl<'f> Ui<'f> {
         self.declare_state(id, flags);
     }
 
-    /// Declare non-runtime flags for `id` (`EDITING`, `DIRTY`, `BUSY`, …) so
-    /// `FrameRead::state` reports them next frame.
-    ///
-    /// **One-frame contract (D-6)**: declared flags live in *last* frame's
-    /// `declared` list, so they are read back on the **next** frame — the same
-    /// rule as `cx.area` (§4 S3). A paste in the same `handle` that began an
-    /// edit is therefore not routed as editing; the edit must have been
-    /// declared by a previous draw.
-    ///
-    /// It is a `draw`-phase write the runtime consumes, alongside
-    /// [`Ui::report_layout`] (§5 R2).
     pub fn declare_state(&mut self, id: Id, flags: StateFlags) {
         if self.reference.is_some() || flags.is_empty() {
             return;
@@ -848,8 +688,6 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// Publish the focused control's declared command table for next input
-    /// routing and same-frame derived hints.
     pub fn publish_bindings<C: Copy + 'static>(
         &mut self,
         owner: Id,
@@ -878,9 +716,6 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// Declare a fallback typing editor and its existing editing bindings.
-    /// `include` runs synchronously; it is never retained as an extension point.
-    /// Eligibility is resolved only after complete frame geometry is available.
     pub fn publish_typing_target<C: Copy + 'static>(
         &mut self,
         owner: Id,
@@ -979,7 +814,6 @@ impl<'f> Ui<'f> {
         Some(result)
     }
 
-    /// Register a `Part` region under `owner`.
     pub fn register_part(&mut self, owner: Id, part: PartRef, area: Rect) {
         if self.registrations_suppressed() {
             return;
@@ -989,7 +823,6 @@ impl<'f> Ui<'f> {
             .register_part(owner, part, area.intersection(self.clip), self.layer);
     }
 
-    /// Register a `Decorative` region under `owner`.
     pub fn register_decor(&mut self, owner: Id, part: PartRef, area: Rect) {
         if self.registrations_suppressed() {
             return;
@@ -999,7 +832,6 @@ impl<'f> Ui<'f> {
             .register_decor(owner, part, area.intersection(self.clip), self.layer);
     }
 
-    /// Register a `Scroll` region.
     pub fn register_scroll(&mut self, id: Id, area: Rect, axes: Axes, head: Headroom) {
         if self.registrations_suppressed() {
             return;
@@ -1013,7 +845,6 @@ impl<'f> Ui<'f> {
         );
     }
 
-    /// Report layout facts upward (§4 S6).
     pub fn report_layout(&mut self, id: Id, l: LayoutFacts) {
         if self.reference.is_some() {
             return;
@@ -1021,17 +852,10 @@ impl<'f> Ui<'f> {
         self.frame.layout.push((id, l));
     }
 
-    /// Request the hardware cursor. Complete frame typing/focus ownership and
-    /// layer admissibility select the winner after all painters finish.
     pub fn set_cursor(&mut self, owner: Id, pos: Position) {
         self.record_cursor(owner, pos, false);
     }
 
-    /// Offer a caret conditional on this frame selecting a declared typing owner.
-    ///
-    /// Pair with `publish_typing_target(..., true)` for the same owner and layer.
-    /// Unselected declared offers are silent; an undeclared offer is diagnosed.
-    /// Raw `set_cursor` retains its ordinary ownership/layer rejection rules.
     pub fn offer_typing_cursor(&mut self, owner: Id, pos: Position) {
         self.record_cursor(owner, pos, true);
     }
@@ -1049,10 +873,6 @@ impl<'f> Ui<'f> {
         });
     }
 
-    /// Draw layer `id`'s content. Resolves `id` to the `LayerId` assigned at
-    /// `open_layer`, paints into its pooled buffer and pushes its focus
-    /// scope; returns `None` without running `f` if `id` is not open, and
-    /// records `DuplicateLayerDraw` on a second call in one frame.
     pub fn layer<R>(&mut self, id: Id, f: impl FnOnce(&mut Ui<'_>, Rect) -> R) -> Option<R> {
         if self.reference.is_some() {
             return None;
@@ -1078,8 +898,7 @@ impl<'f> Ui<'f> {
             LayerKind::Modal => ScopeMode::Trap,
             LayerKind::Popover | LayerKind::Tooltip => ScopeMode::Normal,
         };
-        // Parentage is structural stack order, not numeric adjacency: a
-        // closed LayerId leaves a gap that must not hide the real parent.
+
         let parent = idx
             .checked_sub(1)
             .and_then(|parent| self.frame.layers.active().get(parent))
@@ -1088,10 +907,7 @@ impl<'f> Ui<'f> {
             .ring
             .ensure_scope(ScopeId::new(id), mode, layer, parent);
         self.frame.ring.push_scope(ScopeId::new(id), mode, layer);
-        // The paint target, clip, layer, inert flag and surface ride a shorter
-        // reborrow; only the ring's open-scope stack lives in shared frame
-        // state, so only it needs the guard. `drawn` stays set on unwind: a
-        // partially drawn layer has still consumed its one draw this frame.
+
         let guard = FocusScopeGuard { ui: self };
         let mut nested = guard.ui.reborrow();
         nested.target = Target::Layer(idx);
@@ -1102,14 +918,7 @@ impl<'f> Ui<'f> {
         Some(f(&mut nested, area))
     }
 
-    /// Derived, non-semantic per-component cache (rule R8). Live entries are
-    /// keyed by `(Id, TypeId)`; reference entries also include their scope
-    /// namespace. Cleared on resize, theme change and generation gap.
     pub fn cache<T: Default + 'static>(&mut self, id: Id) -> &mut T {
-        // A structurally separate store prevents any caller-chosen `Id` from
-        // aliasing live derived state. Its target dimension is stable across
-        // frames, unlike draw-order ordinals. The style memo is safe to share:
-        // its key already contains every style input.
         if let Some(scope) = self.reference {
             self.core
                 .reference_cache
@@ -1119,16 +928,6 @@ impl<'f> Ui<'f> {
         }
     }
 
-    // ── internals shared with paint.rs and the runtime ──
-
-    /// The buffer and `area` clipped to the current clip rect, marking
-    /// **`area`** written — not the whole clip, which [`Ui::raw`] marks.
-    ///
-    /// The internal painters that move already-painted cells (`CellUi`'s
-    /// alignment shift, `RowUi::raw`) must use this: marking the component's
-    /// whole clip would make a layer's written-cell bitset all-true and
-    /// composite unpainted cells over the page (§3.3 step 12, R3), and would
-    /// stamp the current role over every cell `dim_layer` later walks.
     pub(crate) fn buffer_in(&mut self, area: Rect) -> (&mut Buffer, Rect) {
         let a = area.intersection(self.clip);
         self.mark_area(a, None);
@@ -1145,8 +944,6 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// Move an internal painted cell together with its origin, then reset the
-    /// source. Unlike `raw`, this operation knows exactly which cells change.
     pub(crate) fn move_cell(
         &mut self,
         src: Position,
@@ -1210,9 +1007,6 @@ impl<'f> Ui<'f> {
         }
     }
 
-    /// Whether a cell contributes to the current paint target. Page cells are
-    /// always part of the opaque page; sparse overlay cells remain transparent
-    /// until a painter writes them.
     pub(crate) fn cell_written(&self, pos: Position) -> bool {
         match self.target {
             Target::Page => true,
@@ -1257,12 +1051,10 @@ impl<'f> Ui<'f> {
         self.page
     }
 
-    /// The number of layers drawn this frame (open layers).
     pub(crate) fn layer_count(&self) -> usize {
         self.frame.layers.active().len()
     }
 
-    /// `(backdrop, drawn)` of layer `i`.
     pub(crate) fn layer_meta(&self, i: usize) -> Option<(crate::layer::Backdrop, bool)> {
         self.frame
             .layers
@@ -1271,7 +1063,6 @@ impl<'f> Ui<'f> {
             .map(|d| (d.spec.backdrop, d.drawn))
     }
 
-    /// Copy layer `i`'s written cells onto the page.
     pub(crate) fn composite(&mut self, i: usize) {
         if let Some(d) = self.frame.layers.active().get(i) {
             d.composite_onto(self.page, &mut self.frame.roles);
@@ -1751,8 +1542,6 @@ mod tests {
         });
     }
 
-    /// `with_part` is a convenience over `style`, not a second resolution
-    /// path: it resolves exactly once and records the role for `dim_layer`.
     #[test]
     fn with_part_resolves_once_and_records_the_role() {
         let theme = Theme::junie();
@@ -1777,7 +1566,7 @@ mod tests {
                 assert_eq!(after.0, before.0, "and no hit: it resolved once");
             }
             let (area, r) = painted;
-            // it binds a value only: no clip and no surface were pushed
+
             assert_eq!(ui.full(), SCREEN);
             assert_eq!(ui.surface(), Surface::Canvas);
             for pos in area.positions() {
@@ -1793,9 +1582,6 @@ mod tests {
         });
     }
 
-    /// §11.3's final layering is `inherited.patch(resolved.style)`;
-    /// `Resolved::over` is that expression and `Ui::surface_style` is its
-    /// left operand.
     #[test]
     fn surface_style_is_the_left_operand_of_the_final_patch() {
         for theme in [Theme::junie(), Theme::paper()] {
@@ -1830,10 +1616,6 @@ mod tests {
         }
     }
 
-    /// BL-3: a right-aligned `CellUi` shifts painted cells through the buffer
-    /// and must mark **its own rect**, not the component's clip. Marking the
-    /// clip stamped the cell's role over every cell of the row, so
-    /// `dim_layer` dimmed unpainted cells with the wrong role.
     #[test]
     fn dim_layer_uses_the_role_of_the_painted_cell() {
         let theme = Theme::junie();
@@ -1854,17 +1636,16 @@ mod tests {
                 cell.align(crate::theme::Align::Right);
                 cell.text("ok");
             }
-            // the cells outside the row keep the default role: the shift did
-            // not mark the whole clip
+
             for x in 12..24u16 {
                 assert_eq!(ui.roles_at(Position::new(x, 0)), CellRoles::default());
             }
             ui.dim_layer(SCREEN, 2);
         });
-        // a never-painted cell dims to the backdrop foreground …
+
         let far = page.cell(Position::new(20, 2)).expect("cell");
         assert_eq!(far.fg, backdrop.unwrap_or(far.fg));
-        // … while a painted row cell keeps a surface-derived background
+
         let painted = page.cell(Position::new(1, 0)).expect("cell");
         assert_eq!(painted.bg, theme.bg(Surface::Canvas));
     }
@@ -2050,7 +1831,6 @@ mod tests {
             assert!(!ui.is_inert());
             assert_eq!(ui.frame.ring.current_scope(), root);
 
-            // the paint target is the page again, not the layer's buffer
             ui.fill(SCREEN, Style::new().bg(theme.bg(Surface::Canvas)));
             ui.register_control(OWNER, Rect::new(0, 0, 4, 1), Focusability::Focusable);
         }
@@ -2124,8 +1904,7 @@ mod tests {
         frame
             .layers
             .push(OUTER, LayerId(1), LayerSpec::modal(OUTER), SCREEN, SCREEN);
-        // LayerId(2) was closed before this layer was opened. Parentage is
-        // structural stack order, not numeric adjacency.
+
         frame
             .layers
             .push(INNER, LayerId(3), LayerSpec::modal(INNER), SCREEN, SCREEN);

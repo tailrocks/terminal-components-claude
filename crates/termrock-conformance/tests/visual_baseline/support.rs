@@ -1,26 +1,3 @@
-//! Shared driver for the visual-baseline suite.
-//!
-//! One PTY per capture: spawn → boot needle (or idle if none) → send
-//! steps (120 ms pacing) → `wait_stable`(SETTLE) → frame → store gate.
-//! [`run_once`] runs the ported matrix; [`boot`]/[`drive`] mirror it for
-//! the pointer group, which needs the live session afterwards. A leading
-//! `wait:` needle is readiness — live clocks skip the 200 ms quiet window.
-//!
-//! Store: the grouped multi-artifact store (`tuiscotti::grouped`). Approved
-//! frames live at `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}`
-//! (committed, exactly four artifacts per scenario); actuals, diffs and the
-//! HTML report are scratch under `target/tuiscotti/` (gitignored). The capture
-//! name is the grouped path, e.g. `holla/parity/discovery/120x40/truecolor`.
-//!
-//! Colour hygiene per capture: ambient `NO_COLOR` is stripped (crossterm
-//! honours it by *presence* and would silently flatten every colour frame —
-//! the lesson that forced the 2026-09-12 baseline re-capture), the motion
-//! kill-switches `HOLLA_NO_MOTION`/`JACKIN_NO_MOTION` and the colour-forcing
-//! `CLICOLOR_FORCE`/`FORCE_COLOR` are stripped for the same reason, and
-//! `HOLLA_NO_HISTORY=1` suppresses history side effects; `nocolor` captures
-//! re-add `NO_COLOR=1` instead of a `--color` flag (backend rule, not app
-//! rule).
-
 pub mod scoped_targets;
 pub mod state_waits;
 pub mod typed_input;
@@ -53,17 +30,10 @@ pub const TABLEPRO: &str = "tablepro";
 pub const JACKIN: &str = "jackin-preview";
 pub const HOLLA: &str = "holla";
 
-/// SETTLE_MS from the bash runner.
 pub const SETTLE: Duration = Duration::from_millis(400);
-/// TIMEOUT_MS default; boot-streaming screens override it per capture
-/// ([`Case::timeout`], the bash `CAP_TIMEOUT=` prefix).
 pub const TIMEOUT_MS: u64 = 8_000;
-/// Wait bound where no case timeout applies (helper-level waits). Matches
-/// the session deadline the old helpers inherited.
 pub const DEFAULT_WAIT: Duration = Duration::from_millis(TIMEOUT_MS);
 
-/// Canonical matrix axes: every canonical capture root and audit fixture is
-/// captured at all 5 sizes × 5 colours.
 pub const CANONICAL_SIZES: [(u16, u16); 5] = [(72, 20), (80, 24), (100, 30), (120, 40), (160, 50)];
 pub const CANONICAL_COLORS: [Color; 5] = [
     Color::Truecolor,
@@ -73,7 +43,6 @@ pub const CANONICAL_COLORS: [Color; 5] = [
     Color::NoColorEnv,
 ];
 
-/// Prefixes for the 9 `audit_matrix` fixtures (`{prefix}/{cols}x{rows}/{color}`).
 pub const AUDIT_PREFIX_HOLLA_RUST: &str = "holla/audit/rust";
 pub const AUDIT_PREFIX_HOLLA_UPGRADE: &str = "holla/audit/upgrade";
 pub const AUDIT_PREFIX_JACKIN_CAPSULE: &str = "jackin/audit/capsule";
@@ -127,12 +96,6 @@ pub fn audit_default_name(prefix: &str, cols: u16, rows: u16, color: Color) -> S
     format!("{prefix}/{cols}x{rows}/{}", color.suffix())
 }
 
-/// Every capture name the suite produces: the dimensions × capabilities
-/// expansion of each `LEGACY:` root in the vendored case registry
-/// (`tests/conformance/required_cases.json`, copied from the
-/// `origin/termrock-refactor` planning history), mapped to screen-first
-/// paths. The suite never parses its own sources or the store, so the
-/// `store_integrity` store==suite check proves registry coverage.
 pub fn suite_capture_names() -> BTreeSet<String> {
     const REGISTRY_JSON: &str = include_str!("../../../../tests/conformance/required_cases.json");
     let manifest: serde_json::Value =
@@ -176,8 +139,6 @@ pub fn suite_capture_names() -> BTreeSet<String> {
     names
 }
 
-/// `name` is `<root>/<cols>x<rows>/<color>`; resize roots use the same
-/// canonical matrix as every other capture root.
 fn canonical_root(name: &str) -> Option<&str> {
     name.rsplit_once('/')
         .and_then(|(without_color, _)| without_color.rsplit_once('/'))
@@ -324,18 +285,8 @@ impl Case {
     }
 }
 
-/// Opt-in marking a run as explicitly partial/diagnostic (non-acceptance).
-/// Set `TERMROCK_PARTIAL_RUN=1` to allow `COMBO_FILTER` subset runs or
-/// mid-test-built subjects without failing the acceptance verdict. Filtered
-/// or mid-test-built runs without this flag FAIL completeness accounting;
-/// results produced with it must never be cited as parity evidence.
 pub const PARTIAL_RUN_ENV: &str = "TERMROCK_PARTIAL_RUN";
 
-/// Local-iteration escape hatch: set `TERMROCK_ALLOW_MIDTEST_BUILD=1` to
-/// permit the legacy mid-test `cargo build --bin` fallback when the subject
-/// binary is missing. Using it poisons the run: the acceptance verdict fails
-/// unless [`PARTIAL_RUN_ENV`] is also set, so hatch-built subjects can never
-/// silently become an acceptance subject.
 pub const MIDTEST_BUILD_ENV: &str = "TERMROCK_ALLOW_MIDTEST_BUILD";
 
 pub fn partial_run_allowed() -> bool {
@@ -356,7 +307,6 @@ fn mark_midtest_build_used() {
     MIDTEST_BUILD_USED.store(true, Ordering::SeqCst);
 }
 
-/// The executed subject binary, bound to its content digest at resolve time.
 #[derive(Clone, Debug)]
 pub struct BinSubject {
     pub path: PathBuf,
@@ -375,8 +325,6 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
-/// Digest `path` into a [`BinSubject`]. Returns `None` when the file cannot
-/// be read (missing binary, permissions); callers fail loudly instead.
 pub fn digest_file(path: &Path) -> Option<BinSubject> {
     let bytes = std::fs::read(path).ok()?;
     let meta = std::fs::metadata(path).ok()?;
@@ -438,13 +386,6 @@ fn candidate_bins(name: &str) -> Vec<PathBuf> {
     candidates
 }
 
-/// Resolve `name` to its executed path and bind it to its sha256 digest.
-///
-/// This never builds: a missing binary is a loud error naming every searched
-/// path plus the build instructions, so a stale or absent binary cannot
-/// silently become the execution subject. The only build path is the
-/// [`MIDTEST_BUILD_ENV`] escape hatch inside [`resolve_bin`], which poisons
-/// the acceptance verdict (see [`acceptance_verdict`]).
 pub fn try_resolve_bin(name: &str) -> Result<BinSubject, String> {
     for candidate in candidate_bins(name) {
         if !candidate.exists() {
@@ -531,8 +472,6 @@ pub fn argv_for(case: &Case) -> Vec<String> {
     argv
 }
 
-/// One row of visible text: continuation cells skipped, symbols
-/// concatenated. Callers trim; matching never depends on trailing blanks.
 pub fn row_text(screen: &tuiscotti::Screen, row: u16) -> String {
     let mut s = String::new();
     for x in 0..screen.cols() {
@@ -545,7 +484,6 @@ pub fn row_text(screen: &tuiscotti::Screen, row: u16) -> String {
     s
 }
 
-/// Full visible text: rows joined with `\n` (the `wait_for_text` surface).
 pub fn screen_text(screen: &tuiscotti::Screen) -> String {
     (0..screen.rows())
         .map(|y| row_text(screen, y))
@@ -553,9 +491,6 @@ pub fn screen_text(screen: &tuiscotti::Screen) -> String {
         .join("\n")
 }
 
-/// First occurrence of `needle` as `(row, col)` — top-to-bottom, leftmost
-/// per row. The byte offset becomes a display column via the prefix width,
-/// so wide-cell rows resolve exactly.
 pub fn screen_find(screen: &tuiscotti::Screen, needle: &str) -> Option<(u16, u16)> {
     if needle.is_empty() {
         return None;
@@ -694,8 +629,6 @@ pub fn spawn_boot(case: &Case) -> Session {
     session
 }
 
-/// Boot: needle first, bounded by the case timeout. Live clocks starve a
-/// quiet-window wait, so an empty needle alone takes the idle path.
 pub fn boot(session: &mut Session, needle: &str, timeout: Duration) {
     if !needle.is_empty() {
         wait_screen(
@@ -714,22 +647,16 @@ pub fn boot(session: &mut Session, needle: &str, timeout: Duration) {
         .unwrap_or_else(|e| panic!("boot idle failed: {e:#}"));
 }
 
-/// Bounded wait until `pred` holds, returning the outcome for callers
-/// that report their own timeout evidence.
 pub fn try_wait_screen(
     s: &mut Session,
     timeout: Duration,
     pred: impl FnMut(&tuiscotti::Screen) -> bool,
 ) -> Result<tuiscotti::Observation, tuiscotti::tui::WaitError> {
-    // The poll loop calls the predicate sequentially (no reentrancy), so a
-    // RefCell bridges the FnMut caller surface to the Fn wait surface.
     let pred = RefCell::new(pred);
     s.inner
         .wait_predicate_timeout(|o| pred.borrow_mut()(&o.screen), timeout)
 }
 
-/// Bounded wait until `pred` holds on a fresh observation. Returns the
-/// matching observation; the predicate sees the live screen, as before.
 pub fn wait_screen(
     s: &mut Session,
     timeout: Duration,
@@ -739,10 +666,6 @@ pub fn wait_screen(
     try_wait_screen(s, timeout, pred).unwrap_or_else(|e| panic!("{what}: {e:#}"))
 }
 
-/// Primary-button drag from `from` to `to`: press, one held-motion
-/// report per cell crossed (straight-line interpolation, as a terminal
-/// sends), release. Applications may act along the path, not just on
-/// its ends, so a single endpoint hop would under-report.
 pub fn drag_path(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
     s.inner
         .mouse_down(MouseButton::Left, from.0, from.1, MouseMods::NONE)
@@ -757,9 +680,6 @@ pub fn drag_path(s: &mut Session, from: (u16, u16), to: (u16, u16)) {
         .unwrap_or_else(|e| panic!("drag release at {to:?} failed: {e:#}"));
 }
 
-/// Cells on the straight line from `from` to `to`, exclusive of `from`,
-/// inclusive of `to`: round-to-nearest on both axes so the short axis
-/// turns over mid-run. A drag to the same cell still reports one motion.
 fn cells_between(from: (u16, u16), to: (u16, u16)) -> Vec<(u16, u16)> {
     let (from_col, from_row) = (i64::from(from.0), i64::from(from.1));
     let (to_col, to_row) = (i64::from(to.0), i64::from(to.1));
@@ -779,8 +699,6 @@ fn cells_between(from: (u16, u16), to: (u16, u16)) -> Vec<(u16, u16)> {
         .collect()
 }
 
-/// Settle the screen and return the settled frame: no new output for
-/// `quiet`, bounded by `timeout`.
 pub fn settle_frame(
     session: &mut Session,
     quiet: Duration,
@@ -842,10 +760,6 @@ fn press_chord(
     inner.press(&chord)
 }
 
-/// Press one send step as a complete key press, failing the case loudly on
-/// refusal. Journey helper mirroring the VB harness `press_step` (VB
-/// commit `e9428745`): same chord grammar via [`press_chord`], same loud
-/// failure — no text fallback.
 pub fn press_step(session: &Session, step: &str) {
     press_chord(&session.inner, step).unwrap_or_else(|e| panic!("key `{step}` failed: {e:#}"));
 }
@@ -1112,7 +1026,6 @@ pub fn write_10_artifact_bundle(
     let observations_json = serde_json::to_string_pretty(&observations_obj)
         .map_err(|e| format!("serialize observations `{name}`: {e}"))?;
 
-    // 1-6: 6 primary data formats
     let frame_json_path = root.join(format!("{name}.frame.json"));
     let ansi_path = root.join(format!("{name}.ansi"));
     let txt_path = root.join(format!("{name}.txt"));
@@ -1120,12 +1033,10 @@ pub fn write_10_artifact_bundle(
     let html_path = root.join(format!("{name}.html"));
     let ascii_path = root.join(format!("{name}.ascii"));
 
-    // 7-9: 3 companion artifacts
     let ascii_loss_path = root.join(format!("{name}.ascii.loss.json"));
     let png_fidelity_path = root.join(format!("{name}.png.fidelity.json"));
     let observations_path = root.join(format!("{name}.observations.json"));
 
-    // 10: manifest artifact
     let manifest_path = root.join(format!("{name}.manifest.json"));
 
     write_artifact_strictly(&frame_json_path, bundle.json.as_bytes())?;
@@ -1203,7 +1114,6 @@ pub fn write_10_artifact_bundle(
 
     write_artifact_strictly(&manifest_path, manifest_json.as_bytes())?;
 
-    // Verify all 10 artifacts exist and are non-empty
     let paths = [
         &frame_json_path,
         &ansi_path,
@@ -1227,22 +1137,6 @@ pub fn write_10_artifact_bundle(
     Ok(())
 }
 
-/// Every manifest-pinned artifact the actual-vs-approved gate compares, as
-/// `(manifest key, file extension)`.
-///
-/// Six primary formats (implementation-goal §7: "ANSI, HTML, PNG, ASCII, TXT
-/// and canonical frame JSON from the same observation") plus three companions
-/// ("loss/fidelity/semantic metadata"). The tenth bundle member — the
-/// manifest itself — is the pin source: it authenticates both sides and is
-/// never compared across sides (`timestamp_utc` legitimately differs per
-/// write, and artifact hashes are comparison inputs, not outputs).
-///
-/// `.ascii` is both a §7 format and a lossy diagnostic. Here it is gated
-/// byte-exact as an exporter-determinism check (same frame + same exporter
-/// must emit the same bytes); it is never the Unicode/style oracle — that
-/// role belongs to `.frame.json` (decoded cell structure) and `.ansi`
-/// (normalized SGR), per §7 "ASCII is lossy diagnostic output, never a
-/// Unicode/style equality oracle".
 const COMPARED_ARTIFACTS: [(&str, &str); 9] = [
     ("frame_json", "frame.json"),
     ("ansi", "ansi"),
@@ -1255,15 +1149,8 @@ const COMPARED_ARTIFACTS: [(&str, &str); 9] = [
     ("observations_json", "observations.json"),
 ];
 
-/// Maximum JSON field-difference lines folded into one failure note.
 const MAX_JSON_DIFF_LINES: usize = 10;
 
-/// Human summary of one cell for failure diagnostics: glyph plus resolved
-/// colors, modifiers, underline color, and continuation state.
-///
-/// Mirrors the native tuiscotti gate's cell summary (same fields, same
-/// tokens) so harness diagnostics read exactly like native ones; the native
-/// helper is private, hence this local mirror.
 fn summarize_cell(cell: &Cell) -> String {
     if cell.continuation {
         return "…".to_string();
@@ -1313,15 +1200,6 @@ fn summarize_cell(cell: &Cell) -> String {
     format!("{symbol:?} fg={fg_hex} bg={bg_hex}{mods}")
 }
 
-/// Decoded cell-structure comparison between the live actual frame and the
-/// approved frame: the full differing-cell count plus the FIRST N [`CellDiff`]s
-/// in row-major order (N = [`MAX_CELL_DIFFS`], the native cap).
-///
-/// Cursor-only drift reports cursor state instead of cell text: every
-/// reported position holds equal cells, so cell summaries would print the
-/// same string twice — the diagnostic must say what actually changed
-/// (mirrors the native gate). Returns `None` on dimension mismatch (a
-/// status, not a diff); the caller reports dimensions + digests instead.
 fn first_cell_diffs(actual: &Frame, approved: &Frame) -> Option<(Vec<CellDiff>, usize)> {
     let positions = actual.diff_cells(approved).ok()?;
     let total = positions.len();
@@ -1355,7 +1233,6 @@ fn first_cell_diffs(actual: &Frame, approved: &Frame) -> Option<(Vec<CellDiff>, 
     Some((diffs, total))
 }
 
-/// Render a JSON value compactly for diagnostics, truncated to stay readable.
 fn json_snippet(value: &serde_json::Value) -> String {
     const LIMIT: usize = 160;
     let text = serde_json::to_string(value).unwrap_or_else(|_| "?".to_string());
@@ -1367,9 +1244,6 @@ fn json_snippet(value: &serde_json::Value) -> String {
     }
 }
 
-/// Collect `path: expected <e> | actual <a>` lines for values that differ,
-/// recursing through objects (union of keys; absent reads as `∅`) and arrays
-/// (by index; length mismatch noted). Stops after [`MAX_JSON_DIFF_LINES`].
 fn json_diffs(
     expected: &serde_json::Value,
     actual: &serde_json::Value,
@@ -1437,13 +1311,6 @@ fn json_diffs(
     }
 }
 
-/// Project `.observations.json` onto the stable semantic subset compared
-/// actual-vs-approved: dimensions, cursor, cell counts, frame digest, and
-/// renderer/tool identity. Deliberately excluded:
-/// - `name` / `legacy_name`: bundle identity (fixed by path), not state;
-/// - `provenance.argv` / `provenance.created_unix`: volatile per-run metadata
-///   (`Provenance` documents `created_unix` as informational only; argv carries
-///   machine-specific binary paths in general).
 fn stable_observations(value: &serde_json::Value) -> serde_json::Value {
     let provenance = value.get("provenance");
     let provenance_field = |field: &str| {
@@ -1468,31 +1335,6 @@ fn stable_observations(value: &serde_json::Value) -> serde_json::Value {
     })
 }
 
-/// Gate one actual bundle against its approved bundle: all six formats plus
-/// all three companions, after manifest-pin authentication of both sides.
-///
-/// Comparison semantics per artifact (see [`COMPARED_ARTIFACTS`]):
-/// - `.ansi` / `.txt` / `.ascii` / `.html`: exact byte equality;
-/// - `.png`: exact decoded-pixel identity via native `compare_png`
-///   (dimensions plus `pixels_equal`; the score is diagnostic only, never a
-///   threshold);
-/// - `.frame.json`: decoded cell-structure comparison (`diff_cells`) of the
-///   approved bytes against the LIVE actual frame — the in-memory execution
-///   subject, not its serialization — yielding real first-N diagnostics; the
-///   actual file must also describe the live frame (skew is
-///   `CaptureIncomplete`, never a pass);
-/// - `.ascii.loss.json` / `.png.fidelity.json`: exact recorded-value equality
-///   (parsed JSON; no tolerance invented);
-/// - `.observations.json`: exact equality over the stable semantic subset
-///   ([`stable_observations`]; volatile provenance excluded).
-///
-/// Fail-closed hierarchy: missing approved artifacts → `MissingApproval`;
-/// approved bytes failing their manifest pin, or unparseable approved JSON →
-/// `CorruptApproval` (never compare against unauthenticated bytes); actual
-/// bundle inconsistent with its own manifest or frame → `CaptureIncomplete`
-/// (our write skewed, never a pass). Content drift → `CellsDiffer`
-/// (cell/semantic level) or `PixelsDiffer` (render level), with first-N cell
-/// diagnostics plus a state summary in the note.
 pub fn compare_bundle_dirs(
     name: &str,
     actual_frame: &Frame,
@@ -1541,7 +1383,6 @@ pub fn compare_bundle_dirs(
         approved: approved_paths.clone(),
     };
 
-    // Authenticate both sides against their manifest pins BEFORE comparing.
     let approved_manifest_path = approved_root.join(format!("{name}.manifest.json"));
     let approved_manifest_bytes = match std::fs::read(&approved_manifest_path) {
         Ok(bytes) => bytes,
@@ -1591,7 +1432,6 @@ pub fn compare_bundle_dirs(
             .map(str::to_string)
     };
 
-    // Read + pin-authenticate all nine artifacts on both sides.
     let mut approved_bytes: HashMap<&str, Vec<u8>> = HashMap::new();
     let mut actual_bytes_map: HashMap<&str, Vec<u8>> = HashMap::new();
     for (key, ext) in COMPARED_ARTIFACTS {
@@ -1682,9 +1522,6 @@ pub fn compare_bundle_dirs(
         ));
     }
 
-    // The actual frame file must describe the gated live frame; a skew is an
-    // interrupted write, never a pass. Parsed without normalization (same as
-    // the approved side) so raw modifiers compare symmetrically.
     let actual_file_frame: Option<Frame> = std::str::from_utf8(&actual_bytes_map["frame_json"])
         .ok()
         .and_then(|text| serde_json::from_str::<Frame>(text).ok());
@@ -1936,9 +1773,6 @@ pub fn check_baseline_bundle(
     compare_bundle_dirs(name, frame, &actual_root, &approved_root, &diff_root)
 }
 
-/// The HTML gate masks one volatile field before it compares: the absolute
-/// bless-worktree path in `provenance.argv[0]`
-/// ([`forgive_html_argv0_drift`]). Every other byte stays exact.
 pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
     let target_name = screen_first_path(name);
     let mut outcome = RENDERER.with(|r| {
@@ -1950,19 +1784,8 @@ pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
     outcome
 }
 
-/// Placeholder that replaces the `provenance.argv[0]` value on both sides
-/// of the HTML comparison. In-memory only; never written to any artifact.
 const NORMALIZED_ARGV0: &str = "argv0-normalized";
 
-/// Byte span of the `provenance.argv[0]` string value (content without the
-/// quotes) inside a standalone `.html` render.
-///
-/// tuiscotti embeds the canonical frame JSON in one
-/// `<script type="application/json">` block with `provenance` as its last
-/// field, so the LAST `"argv"` key is the provenance one: any earlier
-/// occurrence can only be cell text or SVG overlay text. Parsing is strict
-/// (`"argv"` `:` `[` `"` value `"` with optional ASCII whitespace); an
-/// empty argv or any malformed shape returns `None` (fail closed).
 fn html_argv0_value_span(html: &[u8]) -> Option<(usize, usize)> {
     const KEY: &[u8] = b"\"argv\"";
     let key_at = html.windows(KEY.len()).rposition(|window| window == KEY)?;
@@ -2005,8 +1828,6 @@ fn html_argv0_value_span(html: &[u8]) -> Option<(usize, usize)> {
     None
 }
 
-/// Copy of `html` with the `provenance.argv[0]` value replaced by
-/// [`NORMALIZED_ARGV0`]. `None` when the field is absent or malformed.
 fn mask_html_argv0(html: &[u8]) -> Option<Vec<u8>> {
     let (start, end) = html_argv0_value_span(html)?;
     let mut masked = Vec::with_capacity(html.len() - (end - start) + NORMALIZED_ARGV0.len());
@@ -2016,8 +1837,6 @@ fn mask_html_argv0(html: &[u8]) -> Option<Vec<u8>> {
     Some(masked)
 }
 
-/// `true` iff the two renders are byte-identical except for the
-/// `provenance.argv[0]` value. Any masking failure reads as a difference.
 fn html_equal_modulo_argv0(approved: &[u8], actual: &[u8]) -> bool {
     match (mask_html_argv0(approved), mask_html_argv0(actual)) {
         (Some(masked_approved), Some(masked_actual)) => masked_approved == masked_actual,
@@ -2025,28 +1844,6 @@ fn html_equal_modulo_argv0(approved: &[u8], actual: &[u8]) -> bool {
     }
 }
 
-/// Forgive an HTML-only mismatch that is exactly the volatile bless path.
-///
-/// The tuiscotti HTML gate compares whole renders byte-exact. Each render
-/// embeds `provenance.argv[0]`: the absolute path of the capture binary at
-/// bless time. A rerun from another worktree changes only that path, so the
-/// gate fails without any visual change. This wrapper re-compares the two
-/// renders with only that value masked (see [`mask_html_argv0`]), and only
-/// when the ansi, txt, and pixel gates already passed. The sealed verdict
-/// is corrected to the normalized check so reports agree with the gate.
-///
-/// ASD-STE100 NOTE. The HTML file contains provenance.argv[0]. This value
-/// is the absolute path of the binary at bless time. The path changes with
-/// the worktree. It is volatile environment metadata (GOAL section 8). It
-/// is not visual data. It is not semantic data. Mask only this value before
-/// the compare. Compare all other bytes exactly. If other bytes differ, the
-/// gate fails. The sealed verdict records the normalized check.
-///
-/// CANDIDATE ADAPTATION. [`compare_bundle_dirs`] also maps a
-/// `png.fidelity.json` drift to [`Status::PixelsDiffer`], which the shape
-/// above cannot see, so forgiveness additionally requires the bundle note
-/// to record the HTML gate as the sole failing gate
-/// ([`note_has_only_html_finding`]); any other finding keeps the failure.
 fn forgive_html_argv0_drift(name: &str, outcome: &mut GroupedOutcome) {
     if outcome.ansi_match != Some(true)
         || outcome.txt_match != Some(true)
@@ -2074,8 +1871,6 @@ fn forgive_html_argv0_drift(name: &str, outcome: &mut GroupedOutcome) {
     rewrite_sealed_verdict_for_argv0(name, outcome, &note);
 }
 
-/// Verdict note for a normalized HTML match: drop the stale byte-gate
-/// finding, keep any other finding, record the normalization.
 fn normalized_html_note(previous: &str) -> String {
     const NORMALIZATION: &str =
         "html matches with provenance.argv0 normalized (volatile bless path ignored)";
@@ -2089,10 +1884,6 @@ fn normalized_html_note(previous: &str) -> String {
     kept.join("; ")
 }
 
-/// `approved <n> bytes, actual <m> bytes`: the tail of the HTML byte-gate
-/// finding (the first-difference detail joins it with `"; "`, so it
-/// survives a naive split on the finding prefix). ASCII digits only;
-/// anything else is kept as evidence.
 fn is_html_byte_count_fragment(segment: &str) -> bool {
     let Some(rest) = segment.strip_prefix("approved ") else {
         return false;
@@ -2111,13 +1902,6 @@ fn is_html_byte_count_fragment(segment: &str) -> bool {
     }
 }
 
-/// `true` iff the bundle note records the HTML byte gate as the sole
-/// failing gate: every `"; "`-separated segment is the `"html differs"`
-/// finding, an HTML byte-count tail (see [`is_html_byte_count_fragment`]),
-/// or the trailing `state: ...` failure diagnostics
-/// ([`compare_bundle_dirs`] appends that diagnostic block last on any
-/// failure, so everything from the `state: ` segment on is diagnostics,
-/// never a finding).
 fn note_has_only_html_finding(note: &str) -> bool {
     let mut saw_html_finding = false;
     let mut in_diagnostics = false;
@@ -2138,20 +1922,6 @@ fn note_has_only_html_finding(note: &str) -> bool {
     saw_html_finding
 }
 
-/// Correct the sealed `<name>.verdict.json` after argv0 forgiveness.
-///
-/// `check_with` already sealed the byte-exact verdict (`pixels-differ`,
-/// `html_match: false`). Reports reuse a fresh sealed verdict verbatim, so
-/// leaving it would keep the report red after the gate turned green. This
-/// rewrites only the verdict fields (status, html_match, note, the
-/// html-gate check label); artifact hashes stay untouched, so the verdict
-/// stays fresh and reports show the normalized check. Any unexpected shape
-/// panics (fail closed) instead of recording a half-corrected verdict.
-///
-/// CANDIDATE ADAPTATION. [`compare_bundle_dirs`] seals no verdict (the
-/// outcome is returned in-memory), so a missing verdict file is the
-/// expected shape here and there is nothing to correct; a present but
-/// malformed verdict still panics (fail closed).
 fn rewrite_sealed_verdict_for_argv0(name: &str, outcome: &GroupedOutcome, note: &str) {
     assert!(
         note.bytes().all(|b| b >= 0x20 && b != b'"' && b != b'\\'),
@@ -2195,9 +1965,6 @@ fn rewrite_sealed_verdict_for_argv0(name: &str, outcome: &GroupedOutcome, note: 
     );
 }
 
-/// Replace the `"note"` value inside a sealed verdict document. The old
-/// value is scanned as a JSON string (backslash escapes honored), so a
-/// quote inside the old note cannot corrupt the document shape.
 fn replace_verdict_note(text: &str, name: &str, note: &str) -> String {
     const KEY: &str = "\"note\": \"";
     let value_at = text
@@ -2226,12 +1993,6 @@ fn replace_verdict_note(text: &str, name: &str, note: &str) -> String {
     format!("{}{}{}", &text[..value_at], note, &text[i..])
 }
 
-/// Mask-test render: the candidate static HTML writer embeds no provenance
-/// (no committed baseline render carries `provenance.argv`), so the fixture
-/// embeds the documented shape — frame JSON with `provenance` last inside
-/// one `<script type="application/json">` block — synthetically around a
-/// realistic payload. The argv span sits past byte 1000 so the negative
-/// control flips a byte outside it (enforced by assert in the test).
 fn argv0_test_render() -> Vec<u8> {
     let mut html = String::from("<!DOCTYPE html><html><body><pre>");
     html.push_str(&"x".repeat(1100));
@@ -2278,7 +2039,7 @@ fn html_argv0_mask_replaces_only_the_argv0_value() {
 #[test]
 fn html_argv0_mask_ignores_worktree_drift() {
     let approved = argv0_test_render();
-    // Simulate a rerun from another worktree: same render, other argv0.
+
     let (start, end) = html_argv0_value_span(&approved).expect("argv0 span exists");
     let mut rerun = approved.clone();
     rerun.splice(
@@ -2298,7 +2059,7 @@ fn html_argv0_mask_ignores_worktree_drift() {
 fn html_argv0_mask_detects_any_other_byte() {
     let approved = argv0_test_render();
     let (span_start, _) = html_argv0_value_span(&approved).expect("argv0 span exists");
-    // NEGATIVE control 1: one flipped byte in the payload region.
+
     let mut corrupted = approved.clone();
     let flip_at = 1000;
     assert!(flip_at < span_start, "flip sits outside the masked span");
@@ -2307,11 +2068,11 @@ fn html_argv0_mask_detects_any_other_byte() {
         !html_equal_modulo_argv0(&approved, &corrupted),
         "a non-provenance byte still fails the gate"
     );
-    // NEGATIVE control 2: one changed byte in argv[1] (only argv[0] is masked).
+
     let mut flag_change = approved.clone();
     let argv1_start = {
         let (_, argv0_end) = html_argv0_value_span(&approved).expect("argv0 span exists");
-        let mut i = argv0_end + 1; // skip argv0 closing quote
+        let mut i = argv0_end + 1;
         assert_eq!(approved[i], b',', "argv continues past argv0");
         i += 1;
         while approved[i].is_ascii_whitespace() {
@@ -2334,7 +2095,7 @@ fn html_normalized_note_drops_the_stale_finding() {
         normalized_html_note(previous),
         "state: dims expected 120x40 vs actual 120x40; digest expected aaa vs actual aaa; cursor expected none vs actual none; 0 differing cell(s); html matches with provenance.argv0 normalized (volatile bless path ignored)"
     );
-    // Unknown findings are kept as evidence, never dropped.
+
     let other = "png dimensions differ: approved (1, 2), actual (3, 4)";
     assert!(normalized_html_note(other).starts_with(other));
 }
@@ -2346,13 +2107,13 @@ fn html_forgiveness_requires_the_html_gate_to_fail_alone() {
         note_has_only_html_finding(html_only),
         "html-only failure is forgivable"
     );
-    // A genuine fidelity delta beside the html finding blocks forgiveness.
+
     let with_fidelity = "html differs; png.fidelity.json differs: pixels.above_threshold: 3 vs 0; state: dims expected 120x40 vs actual 120x40; digest expected aaa vs actual bbb; cursor expected none vs actual none; 0 differing cell(s)";
     assert!(
         !note_has_only_html_finding(with_fidelity),
         "fidelity drift is never forgiven"
     );
-    // No html finding at all: nothing to forgive.
+
     assert!(!note_has_only_html_finding("txt differs"));
     assert!(!note_has_only_html_finding(""));
 }
@@ -2365,17 +2126,12 @@ fn html_argv0_span_rejects_empty_or_absent_argv() {
     );
     assert_eq!(html_argv0_value_span(b"no json here"), None);
     assert_eq!(html_argv0_value_span(br#"{"argv":["unterminated}"#), None);
-    // An escaped quote inside the value does not end the span early.
+
     let escaped = br#"{"argv":["a\"b"]}"#;
     let (start, end) = html_argv0_value_span(escaped).expect("span");
     assert_eq!(&escaped[start..end], b"a\\\"b");
 }
 
-/// Fail-closed assertion: only `matched` passes. Missing approval remains
-/// pending after capture, but the test fails until the full suite is
-/// generated and explicitly blessed (`tuiscotti accept --grouped` is the only
-/// bless, never the test); drift, dimension mismatch and corrupt approval
-/// also fail.
 pub fn assert_gated(outcome: &GroupedOutcome) {
     match outcome.status() {
         Status::Matched => eprintln!("baseline matched   {}", outcome.outcome.name),
@@ -2387,15 +2143,11 @@ pub fn assert_gated(outcome: &GroupedOutcome) {
     }
 }
 
-/// A ported-matrix capture running through the PTY session.
 pub fn run_and_assert(case: &Case) {
     let mut session = spawn_boot(case);
     settle_and_gate_with_timeout(&mut session, &case.name, case.timeout_ms);
 }
 
-/// Expand one representative static Case::new root through the full canonical
-/// matrix. The representative's sends/timeout apply to every combo; choose a
-/// representative whose determinism contract is size-independent.
 pub fn run_canonical(representative: &Case) {
     let mut failures = Vec::new();
     let mut executed = 0usize;
@@ -2419,14 +2171,6 @@ pub fn run_canonical(representative: &Case) {
     finish_matrix_accounted(&failures, executed, skipped);
 }
 
-/// Expand one representative while preserving exact legacy declarations.
-///
-/// A root may have had distinct settings at specific old size/color combos
-/// (for example, a larger boot frame or an extra readiness wait). Those full
-/// declarations are passed explicitly and win for their exact combo; every
-/// combo without an old declaration inherits the representative. Duplicate
-/// declarations for one combo are a configuration conflict, not a precedence
-/// rule.
 pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
     let root = canonical_root(&representative.name).unwrap_or_else(|| {
         panic!(
@@ -2491,9 +2235,6 @@ pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
     finish_matrix_accounted(&failures, executed, skipped);
 }
 
-/// Expand a live pointer/keyboard/manual-flow root through the same matrix.
-/// `interact` runs after the centrally driven boot + case sends and before the
-/// centrally settled/gated capture.
 pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut Session, &Case)) {
     let mut failures = Vec::new();
     let mut executed = 0usize;
@@ -2521,10 +2262,6 @@ pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut S
     finish_matrix_accounted(&failures, executed, skipped);
 }
 
-/// Expand a representative live root, substituting a compact send chain for
-/// terminal widths at or below `max_cols`. This is for responsive layouts
-/// that need an explicit drawer/detail step which the wide representative's
-/// sends cannot express; coverage remains the full canonical 5×5 matrix.
 pub fn run_canonical_live_with_compact_sends(
     representative: &Case,
     max_cols: u16,
@@ -2551,10 +2288,6 @@ pub fn run_canonical_live_with_compact_sends(
     finish_matrix(&failures);
 }
 
-/// Run `body` for each combo of a data-driven matrix without stopping at the
-/// first failure: every combo's actuals are written before the fn panics, so
-/// an intentional-change run regenerates the whole matrix in one pass. The
-/// fn still fails loudly, with every failed combo named.
 pub fn collect_matrix(combo: &str, body: impl FnOnce()) -> bool {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(body)) {
         Ok(()) => true,
@@ -2570,11 +2303,6 @@ pub fn collect_matrix(combo: &str, body: impl FnOnce()) -> bool {
     }
 }
 
-/// Pure acceptance verdict over one matrix run: failures, required
-/// completeness (executed vs skipped-by-filter), and execution-subject
-/// integrity (mid-test-built binaries poison acceptance). `Err` carries the
-/// failure message; filtered or hatch-built runs pass only when explicitly
-/// flagged via [`PARTIAL_RUN_ENV`] (non-acceptance, never parity evidence).
 pub fn acceptance_verdict(
     failures: &[String],
     executed: usize,
@@ -2608,8 +2336,6 @@ pub fn acceptance_verdict(
     Ok(())
 }
 
-/// Panic if any [`collect_matrix`] call reported a failure, or if a mid-test
-/// build poisoned this run's execution subject without the partial-run flag.
 pub fn finish_matrix(failures: &[String]) {
     if let Err(msg) =
         acceptance_verdict(failures, 0, 0, partial_run_allowed(), midtest_build_used())
@@ -2618,10 +2344,6 @@ pub fn finish_matrix(failures: &[String]) {
     }
 }
 
-/// [`finish_matrix`] plus required-completeness accounting: records
-/// executed/skipped-vs-required counts and fails the acceptance verdict when
-/// a case filter skipped combos without the partial-run opt-in. No silent
-/// subset pass.
 pub fn finish_matrix_accounted(failures: &[String], executed: usize, skipped: usize) {
     let required = executed + skipped;
     eprintln!("matrix completeness: executed {executed}/{required} required (skipped {skipped})");
@@ -2642,10 +2364,6 @@ pub fn finish_matrix_accounted(failures: &[String], executed: usize, skipped: us
     }
 }
 
-/// One `#[test]` per canonical root, generated from the representative static
-/// case tables so cargo name filters work. The test fn name comes from the
-/// representative capture; `run_canonical` expands `Case.name`'s root to all
-/// 5 sizes × 5 colours.
 #[macro_export]
 macro_rules! baseline_case {
     ($fn_name:ident => $case:expr) => {
@@ -2657,7 +2375,6 @@ macro_rules! baseline_case {
     };
 }
 
-/// One test per canonical root, with exact declarations for legacy combos.
 #[macro_export]
 macro_rules! baseline_case_with_variants {
     ($fn_name:ident => $case:expr, [$($variant:expr),* $(,)?] $(,)?) => {
@@ -2674,7 +2391,6 @@ macro_rules! baseline_case_with_variants {
 mod execution_subject_tests {
     use super::*;
 
-    /// sha256("abc"), NIST vector.
     const ABC_SHA256: &str = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
 
     #[test]
@@ -2799,11 +2515,6 @@ mod execution_subject_tests {
     }
 }
 
-/// Q06 (FIX-012 A1/A5): full-bundle gate + first-N diagnostics.
-///
-/// All fixtures are synthetic tempdir bundles built with the real exporter
-/// (`write_10_artifact_bundle`); nothing here reads or writes `baselines/`
-/// or any real expected-output file.
 #[cfg(test)]
 mod bundle_gate_tests {
     use super::*;
@@ -2836,8 +2547,6 @@ mod bundle_gate_tests {
         }
     }
 
-    /// Small deterministic frame with styled + non-ASCII content (exercises
-    /// the glyph, color, modifier, and ascii-substitution paths).
     fn probe_frame_a() -> Frame {
         let mut frame = Frame::blank(16, 8, probe_provenance());
         frame.set(Cell {
@@ -2901,9 +2610,6 @@ mod bundle_gate_tests {
         std::fs::read(root.join(format!("{PROBE_NAME}.{ext}"))).expect("read artifact")
     }
 
-    /// Rewrite one artifact file, then re-pin its manifest entry (bytes +
-    /// sha256) so the bundle stays internally consistent: the gate must fail
-    /// on the cross-side difference, not on the pin.
     fn rewrite_pinned(root: &Path, key: &str, ext: &str, bytes: &[u8]) {
         let path = root.join(format!("{PROBE_NAME}.{ext}"));
         std::fs::write(&path, bytes).expect("rewrite artifact");
@@ -3049,7 +2755,7 @@ mod bundle_gate_tests {
         let mut other = probe_frame_a();
         other.set(plain_cell(9, 6, "Z"));
         let pair = write_pair(&approved, &approved);
-        // Splice in a valid-but-different PNG rendered from another frame.
+
         let scratch = write_pair(&other, &other);
         let other_png = artifact_bytes(&scratch.approved_root, "png");
         rewrite_pinned(&pair.actual_root, "png", "png", &other_png);
@@ -3074,11 +2780,11 @@ mod bundle_gate_tests {
     fn frame_cell_mismatch_reports_first_n_with_coordinates() {
         let approved = probe_frame_a();
         let mut actual = probe_frame_a();
-        // Glyph change at (2,1), keeping the bold red style.
+
         let mut changed = actual.get(2, 1).cloned().expect("cell (2,1)");
         changed.symbol = "B".to_string();
         actual.set(changed);
-        // Color-only change at (7,4): blank cell with a green foreground.
+
         actual.set(Cell {
             x: 7,
             y: 4,
@@ -3115,7 +2821,7 @@ mod bundle_gate_tests {
             glyph_diff.actual.contains("+bold"),
             "modifiers must be reported: {glyph_diff:?}"
         );
-        // The failure itself must carry the diagnostic, not just a verdict.
+
         let message = outcome.ensure_matched().unwrap_err().to_string();
         assert!(
             message.contains("2 differing cell(s), first 2"),
@@ -3176,8 +2882,7 @@ mod bundle_gate_tests {
     fn modifier_and_continuation_in_diagnostics() {
         let approved = probe_frame_a();
         let mut actual = probe_frame_a();
-        // Modifier-only change at (2,1): bold red 'A' becomes dim
-        // double-underlined 'A'.
+
         let mut changed = actual.get(2, 1).cloned().expect("cell (2,1)");
         changed.mods = Mods {
             dim: true,
@@ -3186,7 +2891,7 @@ mod bundle_gate_tests {
             ..Mods::default()
         };
         actual.set(changed);
-        // Wide glyph at (10,3) with its continuation at (11,3).
+
         actual.set(Cell {
             x: 10,
             y: 3,
@@ -3240,7 +2945,7 @@ mod bundle_gate_tests {
         let approved = probe_frame_a();
         let mut live = probe_frame_a();
         live.set(plain_cell(1, 1, "Q"));
-        // Actual files describe A while the gated live frame is different.
+
         let pair = write_pair(&approved, &approved);
         let outcome = compare(&pair, &live);
         assert_eq!(outcome.status(), Status::CaptureIncomplete);
@@ -3329,7 +3034,7 @@ mod bundle_gate_tests {
     fn approved_pin_mismatch_is_corrupt_approval() {
         let frame = probe_frame_a();
         let pair = write_pair(&frame, &frame);
-        // Tamper without re-pinning: the pin must catch it.
+
         let path = pair.approved_root.join(format!("{PROBE_NAME}.txt"));
         let mut bytes = std::fs::read(&path).expect("read approved txt");
         bytes[0] ^= 0xff;

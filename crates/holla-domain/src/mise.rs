@@ -1,7 +1,3 @@
-//! mise: tool versions and the project task runner. Tasks may be namespaced
-//! (`//projects/frontend:build`); trust is per exact config file.
-
-/// Whether a tool is usable here, absent, or behind the pinned latest.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ToolState {
     Active,
@@ -26,8 +22,6 @@ pub struct MiseTool {
     pub state: ToolState,
 }
 
-/// Trust state of the file that defines a task. Untrusted task files must
-/// say so before their tasks run (CONCEPT.md §8.1).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Trust {
     Trusted,
@@ -36,10 +30,8 @@ pub enum Trust {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MiseTask {
-    /// `test` or a namespaced id like `//projects/frontend:build`.
     pub id: String,
     pub command: String,
-    /// Exact file the task is defined by; trust attaches to this path.
     pub defined_in: String,
     pub trust: Trust,
 }
