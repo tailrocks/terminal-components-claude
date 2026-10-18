@@ -41,6 +41,8 @@ The facade's headless example tests require its `testing` feature, as in `cargo 
 
 Root `STATUS.md` and `WORK_QUEUE.md` are generated publisher/test records, not product documentation or readiness claims. Tests consume the checked-in records as fixtures. The visibility publisher provides `python3 tools/visibility/status.py --check` and `python3 tools/visibility/queue.py check`; regeneration is an explicit data-maintenance operation, not part of editing documentation. The JSON task/source records remain the structured inputs.
 
-## Source comments
+## Rust source documentation
 
-Do not add comments to Rust code on `main`. Put implementation rationale and developer guidance in the appropriate documentation. Preserve required compiler attributes and documentation metadata; they are code, not comments. Keep unsafe-operation rationales in [SAFETY.md](../SAFETY.md) and link them to the unchanged operation.
+Rust source files, including tests, contain no comments or prose documentation. Do not add line/block comments, Rustdoc comments, or prose-valued `#[doc = "..."]` attributes. Put API contracts, rationale, examples, and contributor guidance in Markdown documentation.
+
+Retain compiler structure such as `#[doc(hidden)]` and real runtime metadata such as CLI help annotations (`#[arg(help = "...")]`). These attributes have compiler or runtime meaning; they are not comment replacements. When removing source commentary, delete it rather than converting it to attributes. Keep unsafe-operation rationale in [SAFETY.md](../SAFETY.md), tied to its operation.
