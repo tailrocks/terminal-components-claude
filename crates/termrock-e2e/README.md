@@ -4,9 +4,8 @@ This is the shared, product-independent PTY suite package. It depends on the
 pinned Tuiscotti toolkit and does not import a Termrock, Ratatui, or preview
 application crate.
 
-The first executable case is `HELP-HOLLA-004`. The registry also keeps all 23
-known deferred component obligations with `NOT_RUN` status. One pilot case
-does not mean that the full old assertion inventory has migrated.
+This PTY suite checks only its registered black-box journeys. It does not replace
+shared component API, ownership, or design-parity acceptance.
 
 ## Journey input steps
 
@@ -267,18 +266,10 @@ current case and renderer. Those inputs and roots are protected by the resolved
 write policy. A trust-record hash without a readable matching admission file
 does not enable visual comparison.
 
-## Current stop condition
+## Evidence boundary
 
-An earlier v1 package check used Cargo 1.98.1 and cargo-nextest 0.9.146 with
-`--locked --jobs 2`: 21 tests passed and the Holla PTY journey remained ignored.
-That historical check does not verify the v2 schema, evidence chain, process
-environment, or renderer profile. The current v2 increment still needs its
-focused package check and independent review. The pilot is not a complete suite
-or visibility acceptance.
-`cases/deferred-obligations.json` records 23 known deferred obligations; it is
-not a complete inventory of the old assertion set. Additional legacy checks
-still need inventory and mapping to common black-box cases or separate
-mandatory API/ownership assertions. Candidate API and ownership obligations
-remain separate lanes; this PTY receipt does not infer their status from screen
-output. They stay in the migration denominator until their own evidence is
-registered and reviewed.
+Paired output can be compared only when the independently qualified generation
+and trust receipts bind the exact sources and artifacts. Without an admitted
+oracle, visual checkpoints remain blocked. The full deferred obligation data is
+kept in `cases/deferred-obligations.json`; remaining product and API work belongs
+in the [project plan](../../docs/plan.md).

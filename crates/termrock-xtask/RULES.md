@@ -1,7 +1,7 @@
-# Ownership enforcement check (FIX-008)
+# Ownership enforcement check
 
 `cargo run -p termrock-xtask -- check-ownership` enforces the
-consumer/author boundary from `docs/verification/ownership-and-parity.md`
+consumer/author boundary in [component contracts](../../docs/components-contracts.md)
 VER-006: preview applications compose reusable Termrock components and do
 not paint screens themselves.
 
