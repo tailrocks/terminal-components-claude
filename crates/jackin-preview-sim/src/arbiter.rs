@@ -62,7 +62,6 @@ impl Arbiter {
     }
 
     #[cfg(test)]
-
     pub fn pending_entry(&self) -> bool {
         self.pending_entry
     }
@@ -121,7 +120,6 @@ impl Arbiter {
     }
 
     #[cfg(test)]
-
     pub fn exit_consumed(&self) -> bool {
         self.exit_consumed
     }
