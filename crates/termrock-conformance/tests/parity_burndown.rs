@@ -1,18 +1,5 @@
-//! PARITY burndown inventory for `control_states.rs` (Q03 / S6 reconcile).
-//!
-//! Each `#[ignore = "PARITY …"]` in `control_states.rs` maps to exactly one
-//! `BD-xx` row below. A row is executable: the gate tests fail if the ignored
-//! test disappears without its row burning, if a new ignore appears without a
-//! row, if the row's owner drifts from `component-ownership.json`, or if a
-//! deferred case id is not a real vendored registry id.
-//!
-//! Burn protocol: fix the owner crate, un-`ignore` the test, delete its row.
-//! No W coverage may be claimed until this table is empty.
-
 use std::collections::HashSet;
 
-/// One deferred parity record: (`BD-xx`, deferred registry case ids,
-/// ignored test fn, owning component, owner crate, reason).
 struct Burndown {
     id: &'static str,
     cases: &'static [&'static str],
@@ -35,7 +22,6 @@ const OWNERSHIP_JSON: &str = include_str!("../../../component-ownership.json");
 const REGISTRY_JSON: &str = include_str!("../../../tests/conformance/required_cases.json");
 const MIRROR_SRC: &str = include_str!("control_states.rs");
 
-/// Ownership gate: every row's component resolves to its row owner.
 #[test]
 fn burndown_owners_match_ownership_map() {
     let doc: serde_json::Value =
@@ -58,7 +44,6 @@ fn burndown_owners_match_ownership_map() {
     }
 }
 
-/// Vocabulary gate: every deferred case id is a real vendored registry id.
 #[test]
 fn burndown_cases_exist_in_registry() {
     let doc: serde_json::Value = serde_json::from_str(REGISTRY_JSON).expect("registry must parse");
@@ -84,7 +69,6 @@ fn burndown_cases_exist_in_registry() {
     }
 }
 
-/// Drift gate: the inventory matches the actual `#[ignore]`s one-to-one.
 #[test]
 fn burndown_matches_ignored_tests() {
     let ignore_lines: Vec<&str> = MIRROR_SRC

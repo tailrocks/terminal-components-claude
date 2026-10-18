@@ -1,4 +1,3 @@
-//! Product screens compose shared controls; interaction stays in the runtime.
 pub(crate) mod actions;
 pub(crate) mod activity;
 pub(crate) mod clone;

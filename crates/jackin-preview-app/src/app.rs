@@ -1,8 +1,3 @@
-//! Jackin Preview application shell.
-//!
-//! This module owns only interaction state and paints through `tui-next`'s
-//! public facade.  Domain and simulation state stay in sibling modules.
-
 use std::{
     cell::RefCell,
     collections::{BTreeMap, hash_map::DefaultHasher},
@@ -51,7 +46,6 @@ use crate::sim::provider;
 use crate::sim::pty::{Daemon, Maximized, Pane, PaneId, PaneNode, SplitDir, Tab};
 use crate::sim::world::{World, world_for};
 
-/// One cached projection binds domain identity, collection identity, and presentation.
 #[derive(Debug, Clone)]
 struct ManagerRow {
     domain: ManagerRowKey,
@@ -72,55 +66,30 @@ impl std::fmt::Display for ManagerRow {
     }
 }
 
-/// Root id for the Jackin Preview component tree.
 pub const APP: Id = Id::root("jackin.preview");
-/// Intro entry action id.
 pub const ENTER: Id = APP.sub("enter");
-/// Manager route button id.
 pub const MANAGER: Id = APP.sub("manager");
-/// Accounts route button id.
 pub const ACCOUNTS: Id = APP.sub("accounts");
-/// Usage route button id.
 pub const USAGE: Id = APP.sub("usage");
-/// Settings route button id.
 pub const SETTINGS: Id = APP.sub("settings");
-/// Capsule route button id.
 pub const CAPSULE: Id = APP.sub("capsule");
-/// Manager instance list id.
 pub const MANAGER_LIST: Id = crate::screens::manager::TREE;
-/// Accounts list id.
 pub const ACCOUNTS_LIST: Id = crate::screens::accounts::LIST;
-/// Launch action id.
 pub const LAUNCH: Id = crate::screens::manager::LAUNCH;
-/// Add-account action id.
 pub const ACCOUNT_ADD: Id = APP.sub("account-add");
-/// Trust-local-role action id.
 pub const SETTINGS_TRUST: Id = crate::screens::settings::TRUST;
-/// Capsule tab strip id.
 pub const CAPSULE_TABS: Id = crate::screens::capsule::TABS;
-/// Capsule pane list id.
 pub const CAPSULE_PANES: Id = crate::screens::capsule::PANES;
-/// Capsule command input id.
 const CAPSULE_INPUT: Id = APP.sub("capsule-input");
-/// Launch confirmation dialog id.
 pub const LAUNCH_DIALOG: Id = APP.sub("launch-dialog");
-/// Role control inside the launch dialog.
 pub const ROLE_CHOOSE: Id = LAUNCH_DIALOG.sub("role");
-/// Role picker overlay id.
 pub const ROLE_PICKER: Id = APP.sub("role-picker");
-/// Account picker overlay id.
 pub const ACCOUNT_PICKER: Id = APP.sub("account-picker");
-/// Launch cancellation action id.
 pub const LAUNCH_CANCEL: Id = APP.sub("launch-cancel");
-/// Launch retry action id.
 pub const LAUNCH_RETRY: Id = APP.sub("launch-retry");
-/// Capsule menu-bar id.
 const CAPSULE_MENU_BAR: Id = APP.sub("capsule-menu-bar");
-/// Capsule tab context-menu id.
 const CAPSULE_TAB_MENU: Id = APP.sub("capsule-tab-menu");
-/// Capsule command-palette id.
 const CAPSULE_COMMAND_PALETTE: Id = APP.sub("capsule-command-palette");
-/// Capsule container identity dialog.
 const CAPSULE_CONTAINER_INFO: Id = APP.sub("capsule-container-info");
 const ABOUT_DIALOG: Id = APP.sub("about");
 const QUIT_DIALOG: Id = APP.sub("quit-dialog");
@@ -270,32 +239,19 @@ const TICK_MS: u64 = crate::rain::TICK_MS;
 mod historical_paint;
 use historical_paint::HistoricalPalette;
 
-/// The visible product route.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Route {
-    /// First-use entry ritual.
     Intro,
-    /// Workspace and running-instance manager.
     Manager,
-    /// New-workspace prelude.
     Prelude,
-    /// Workspace configuration editor.
     Editor,
-    /// Account and usage center.
     Accounts,
-    /// Usage summary.
     Usage,
-    /// Application settings.
     Settings,
-    /// Compatibility launch route.
     Launch,
-    /// Active launch cockpit.
     Cockpit,
-    /// Cockpit-to-Capsule handoff.
     Handoff,
-    /// Running Capsule view.
     Capsule,
-    /// Exit ritual.
     Outro,
 }
 
@@ -317,10 +273,6 @@ impl Route {
         }
     }
 
-    /// Virtual time advanced by one admitted product tick.
-    ///
-    /// Idle routes may wake every 200 ms, but still advance only 80 virtual ms.
-    /// Delayed wakes coalesce to one step; repaint/input counts never age state.
     pub const fn tick_ms(self) -> u64 {
         match self {
             Self::Intro | Self::Outro | Self::Handoff | Self::Cockpit | Self::Launch => TICK_MS,
@@ -413,29 +365,14 @@ impl AsItem for AgentOption {
     }
 }
 
-/// Cached capsule per-frame projections: scrollback text, tab labels, pane
-/// titles and pane geometry. Rebuilt only when the fingerprinted inputs
-/// change, so steady-state draws borrow instead of allocating.
-///
-/// The cache lives behind [`RefCell`] because draws are `&self`: both update
-/// and draw phases ensure entries on demand. Fingerprints hash every byte the
-/// corresponding builder reads, so a hit always matches a fresh build (up to
-/// a 64-bit hash collision, which self-heals on the next input change).
 #[derive(Debug, Clone, Default)]
 struct CapsuleFrameCaches {
-    /// Scrollback projection per pane, valid while the term revision matches.
     transcripts: BTreeMap<PaneId, (u64, ProjectedText)>,
-    /// Tab strip labels with the fingerprint of everything they read.
     tabs: Option<(u64, Vec<String>)>,
-    /// Framed pane titles with per-pane fingerprints.
     titles: BTreeMap<PaneId, (u64, String)>,
-    /// Pane geometry with the fingerprint of topology plus area.
     layouts: Option<(u64, Vec<(PaneId, Rect)>)>,
 }
 
-/// Static hint-bar content, built once per [`App`] so draws borrow instead of
-/// allocating. Process-global statics are banned (rule 18); ownership here
-/// keeps every hint layer an ordinary App field.
 #[derive(Debug, Clone)]
 struct HintLayerSet {
     help: HintLayer,
@@ -511,30 +448,18 @@ impl Default for HintLayerSet {
     }
 }
 
-/// The Jackin Preview application.
 #[derive(Debug, Clone)]
 pub struct App {
-    /// Deterministic services and durable state exposed for focused tests.
     pub world: World,
-    /// Manager route state and public list ownership.
     pub manager: ManagerState,
-    /// Accounts route state and account-form ownership.
     pub accounts: AccountsState,
-    /// Workspace creation route state.
     pub prelude: PreludeState,
-    /// Workspace editor route state.
     pub editor: EditorState,
-    /// Settings route state.
     pub settings: SettingsState,
-    /// Read-only usage route state.
     pub usage: UsageState,
-    /// Launch cockpit state.
     pub cockpit: CockpitState,
-    /// Capsule interaction state.
     pub capsule: CapsuleState,
-    /// Read-only instance inspection state.
     pub inspect: InspectState,
-    /// Cached manager projection; rebuilt only when expansion or source data changes.
     manager_rows_cache: Vec<ManagerRow>,
     manager_rows_revision: u64,
     shell_meta: String,
@@ -554,16 +479,11 @@ pub struct App {
     quit_body: String,
     cancel_open: bool,
     cancel_state: DialogState,
-    /// Cockpit debug-info dialog. Closed on every scenario frame.
     cockpit_info_open: bool,
     cockpit_info_state: DialogState,
-    /// Telemetry row inside the debug-info dialog. Never painted on frame 0.
     cockpit_debug_open: bool,
-    /// Dirty-editor leave dialog. Closed until Escape on the editor tabs.
     editor_exit_open: bool,
     editor_exit_state: DialogState,
-    /// Escape on a mount, role, account, or env control returns to the tabs
-    /// before a second Escape can open the leave dialog.
     editor_leaf_focused: bool,
     settings_save_preview: bool,
     capsule_tab_menu_state: MenuState,
@@ -621,7 +541,6 @@ pub struct App {
 }
 
 impl App {
-    // Role identity stays qualified; display comes from the matching catalog entry.
     fn role_label<'a>(&'a self, key: &'a str) -> &'a str {
         self.world
             .roles
@@ -634,16 +553,10 @@ impl App {
             .map_or(key, |role| role.name.as_str())
     }
 
-    /// Build one deterministic app scenario.
     pub fn for_scenario(scenario: Scenario, motion: Motion) -> Self {
         Self::for_scenario_at(scenario, motion, 0)
     }
 
-    /// Build one deterministic app scenario at a pinned virtual frame.
-    ///
-    /// Captures use this constructor instead of wall-clock time.  Paused
-    /// mode remains frozen after construction, while full/reduced modes can
-    /// continue from the same reproducible boundary on the next tick.
     pub fn for_scenario_at(scenario: Scenario, motion: Motion, frame: u64) -> Self {
         let mut world = world_for(scenario);
         Self::hydrate_capsule_accounts(&mut world);
@@ -689,7 +602,7 @@ impl App {
             Scenario::Returning | Scenario::HardCases => Route::Manager,
         };
         world.clock.running = motion != Motion::Paused;
-        // Reference frame seeking advances cinematic/launch state, not the world clock.
+
         world.last_refresh_secs = world.now_secs();
         let mut launch = matches!(route, Route::Launch | Route::Cockpit).then(|| {
             LaunchRun::new(
@@ -824,22 +737,18 @@ impl App {
         app
     }
 
-    /// The current route.
     pub const fn route(&self) -> Route {
         self.route
     }
 
-    /// The configured motion mode.
     pub const fn motion(&self) -> Motion {
         self.motion
     }
 
-    /// The app's deterministic route cadence in milliseconds.
     pub const fn route_tick_ms(&self) -> u64 {
         self.route.tick_ms()
     }
 
-    /// Current pinned virtual frame for ritual/cross-fade state.
     pub fn frame(&self) -> u64 {
         match self.route {
             Route::Intro => self.intro.tick,
@@ -850,19 +759,16 @@ impl App {
         }
     }
 
-    /// The current selected role label.
     pub fn selected_role(&self) -> &str {
         self.roles
             .get(self.selected_role)
             .map_or("chainargos/the-architect", |role| role.key.as_str())
     }
 
-    /// The active launch run, if the app is in the cockpit.
     pub const fn launch(&self) -> Option<&LaunchRun> {
         self.launch.as_ref()
     }
 
-    /// Whether the exit ritual has completed.
     pub const fn should_quit(&self) -> bool {
         self.quit
     }
@@ -941,12 +847,6 @@ impl App {
             .collect()
     }
 
-    /// Whether the launch affordance has any candidate, without building them.
-    ///
-    /// Exactly `!self.launch_candidates().is_empty()`: candidate discovery
-    /// maps offers 1:1 and the role never affects offer configuredness (see
-    /// [`World::has_offered_agents`]). Per-frame update/draw must call this;
-    /// only the agent picker needs the full [`Self::launch_candidates`] list.
     fn launch_available(&self) -> bool {
         let id = self
             .manager
@@ -973,9 +873,6 @@ impl App {
         Self::active_running_instance_id_ref(&self.active_instance, &self.world).map(str::to_owned)
     }
 
-    /// Borrow the active running instance id without allocating. Hot
-    /// draw paths must use this instead of the owned
-    /// [`Self::active_running_instance_id`].
     fn active_running_instance_id_ref<'a>(
         active_instance: &'a Option<String>,
         world: &'a World,
@@ -1317,8 +1214,6 @@ impl App {
         self.status = None;
     }
 
-    /// Owned body for every running-count. Counts other than 0, 1, and 2 use
-    /// this `String` so the confirm copy never calls `Box::leak`.
     fn prepare_quit_body(&mut self) {
         let running = self.world.running_count();
         self.quit_body = match running {
@@ -1382,8 +1277,6 @@ impl App {
         lines.push(format!("Run id        {run_id}"));
         lines.push("jackin        0.6.4 · preview".into());
         if self.cockpit_debug_open {
-            // The run id already has its own row. Keeping the endpoint on
-            // this row lets the dialog show it without clipping the host.
             lines.push("Telemetry     otlp://collector.internal:4317".into());
         }
         lines
@@ -1433,18 +1326,12 @@ impl App {
         }
     }
 
-    /// Close the environment form and return to the registered save control.
-    ///
-    /// The editor tab name is painted text. `editor::TABS` is not a widget, so
-    /// focus uses the save footer, which every live editor tab registers.
     fn dismiss_editor_env_form(&mut self, cx: &mut Cx<'_>) {
         self.editor.clear_env_form();
         self.editor_leaf_focused = false;
         cx.focus(crate::screens::editor::SAVE);
     }
 
-    /// Focus the control for the active editor tab. Leaf controls consume the
-    /// next Escape so it does not open the leave dialog.
     fn focus_editor_tab(&mut self, cx: &mut Cx<'_>) {
         self.editor_leaf_focused = match self.editor.tab {
             EditorTab::Mounts => {
@@ -1472,9 +1359,6 @@ impl App {
         );
     }
 
-    /// Leave a failed cockpit on the Manager. An existing failed instance is
-    /// selected; this path does not invent an instance the scenario did not
-    /// already record.
     fn acknowledge_launch_failure(&mut self) {
         let run_id = self.launch.as_ref().map(|run| run.run_id);
         self.launch = None;
@@ -1968,8 +1852,7 @@ impl App {
         }
         let now_ms = self.world.now_ms();
         let now_secs = self.world.now_secs();
-        // A fresh launch starts one session.  The richer two-tab snapshot is
-        // reserved for reconnecting to an already-running Capsule.
+
         let snapshot = match crate::sim::fixtures::live_capsule() {
             DaemonSnapshot::Tabs(mut tabs) => {
                 tabs.truncate(1);
@@ -2309,11 +2192,6 @@ impl App {
         }
     }
 
-    /// Project one terminal transcript into owned viewport text.
-    ///
-    /// One single-run line per transcript line renders exactly like the
-    /// previous per-frame `ViewportLine::Plain` join; the caller keeps the
-    /// projection while the term revision matches.
     fn project_term(term: &crate::sim::pty::TextViewport, out: &mut ProjectedText) {
         out.clear();
         let mut joined = String::new();
@@ -2326,9 +2204,6 @@ impl App {
         }
     }
 
-    /// Ensure the cached projection of `pane`'s scrollback, rebuilding only
-    /// when the term revision changed. Every runtime transcript mutation
-    /// bumps the revision, so a hit always matches a fresh projection.
     fn ensure_capsule_transcript(caches: &mut CapsuleFrameCaches, pane: &Pane) {
         let revision = pane.term.revision();
         let fresh = caches
@@ -2342,8 +2217,6 @@ impl App {
         }
     }
 
-    /// Hash one pane-tree topology: structure, splits and leaf ids in visual
-    /// order. Allocation-free; covers everything [`PaneNode::layout`] reads.
     fn hash_topology(hasher: &mut DefaultHasher, node: &PaneNode) {
         match node {
             PaneNode::Leaf(id) => {
@@ -2375,9 +2248,6 @@ impl App {
         }
     }
 
-    /// Hash one leaf pane's contribution to tab labels: agent, resolved
-    /// account display name and attention state. Mirrors exactly what
-    /// [`Daemon::tab_label`] and [`Daemon::tab_state`] read per pane.
     fn hash_tab_pane(
         hasher: &mut DefaultHasher,
         daemon: &Daemon,
@@ -2407,7 +2277,6 @@ impl App {
         pane.state().hash(hasher);
     }
 
-    /// Hash every tab label input of one tab in visual leaf order.
     fn hash_tab_labels(
         hasher: &mut DefaultHasher,
         daemon: &Daemon,
@@ -2423,8 +2292,6 @@ impl App {
         }
     }
 
-    /// Fingerprint of everything [`Self::build_capsule_tabs`] reads, without
-    /// allocating. A hit guarantees the cached labels match a fresh build.
     fn capsule_tabs_fingerprint(
         world: &World,
         instance_id: Option<&str>,
@@ -2455,8 +2322,6 @@ impl App {
         hasher.finish()
     }
 
-    /// Build the tab strip labels. Pure in its inputs; see
-    /// [`Self::capsule_tabs_fingerprint`] for the cached equivalent.
     fn build_capsule_tabs(
         world: &World,
         instance_id: Option<&str>,
@@ -2511,8 +2376,6 @@ impl App {
             .collect()
     }
 
-    /// Ensure the cached tab strip labels, rebuilding only when the
-    /// fingerprinted inputs changed.
     fn ensure_capsule_tabs(
         caches: &mut CapsuleFrameCaches,
         world: &World,
@@ -2534,8 +2397,6 @@ impl App {
         }
     }
 
-    /// Fingerprint of one framed pane title's inputs: agent label, resolved
-    /// account display name and attention state.
     fn pane_title_fingerprint(accounts: &AccountRegistry, pane: &Pane) -> u64 {
         let mut hasher = DefaultHasher::new();
         hasher.write_u64(pane.id);
@@ -2557,7 +2418,6 @@ impl App {
         hasher.finish()
     }
 
-    /// Build one framed pane title from its label and state glyph.
     fn build_pane_title(accounts: &AccountRegistry, pane: &Pane) -> String {
         let label = pane
             .proc
@@ -2576,7 +2436,6 @@ impl App {
         }
     }
 
-    /// Ensure one cached pane title, rebuilding only when its inputs changed.
     fn ensure_pane_title(caches: &mut CapsuleFrameCaches, accounts: &AccountRegistry, pane: &Pane) {
         let fingerprint = Self::pane_title_fingerprint(accounts, pane);
         let fresh = caches
@@ -2591,7 +2450,6 @@ impl App {
         }
     }
 
-    /// Fingerprint of pane geometry: topology, zoom and container area.
     fn pane_layouts_fingerprint(tab: &Tab, area: Rect) -> u64 {
         let mut hasher = DefaultHasher::new();
         Self::hash_topology(&mut hasher, &tab.root);
@@ -2609,7 +2467,6 @@ impl App {
         hasher.finish()
     }
 
-    /// Build leaf pane geometry for a container area.
     fn build_pane_layouts(tab: &Tab, area: Rect) -> Vec<(PaneId, Rect)> {
         let mut layouts = Vec::new();
         if let Some(zoomed) = tab.zoomed {
@@ -2621,8 +2478,6 @@ impl App {
         layouts
     }
 
-    /// Ensure cached pane geometry, rebuilding only when topology, zoom or
-    /// area changed.
     fn ensure_pane_layouts(caches: &mut CapsuleFrameCaches, tab: &Tab, area: Rect) {
         let fingerprint = Self::pane_layouts_fingerprint(tab, area);
         let fresh = caches
@@ -2634,8 +2489,6 @@ impl App {
         }
     }
 
-    /// Ensure transcript and title projections for every leaf of a pane tree,
-    /// without allocating the leaf list.
     fn ensure_tab_projections(
         caches: &mut CapsuleFrameCaches,
         daemon: &Daemon,
@@ -2782,9 +2635,6 @@ impl App {
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
 
-        // The help overlay is the only `CAPSULE_HELP` opener and clears this
-        // flag on its Closed action, so a closed overlay has no update work:
-        // skipping it avoids rebuilding static hint content on every update.
         if self.capsule_help_open {
             Self::with_capsule_help(|sections| {
                 let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
@@ -2963,11 +2813,6 @@ impl App {
             }
         }
 
-        // Drain the dialog and its body control while a child picker is
-        // open too.  Layer dismissal intents are addressed to the underlying
-        // owners during the same update pass; returning early for the top
-        // picker leaves those intents undelivered and makes nested overlays
-        // noisy in diagnostics.
         let dialog = Self::launch_dialog();
         let response = dialog.update(cx, &mut self.launch_dialog);
         let action = response.action_ref().copied();
@@ -3252,8 +3097,7 @@ impl App {
                 .action_ref()
                 .is_some_and(|action| *action == TextAction::Cancelled);
             let mut result = filter.erase();
-            // Controlled text writes the caller string only on commit. A live
-            // filter has to follow the draft on each key.
+
             if let Some(draft) = self.accounts.filter_input.draft_text()
                 && self.accounts.filter_query != draft
             {
@@ -3289,9 +3133,6 @@ impl App {
             );
             let mut result = name.erase();
 
-            // Keep the agent choice explicit in the tab order.  The current
-            // account flow registers the provider for a selected agent, so a
-            // public button is preferable to an implicit/raw form field.
             let agent = Self::account_agent_button().update(cx);
             result |= agent.erase();
 
@@ -3333,8 +3174,6 @@ impl App {
                 let label = self.accounts.selected_op.as_ref().map_or(
                     "Choose 1Password reference…",
                     |reference| {
-                        // Keep the value in a local owned string below; this
-                        // label is a non-secret reference path only.
                         let _ = reference;
                         "Selected 1Password reference"
                     },
@@ -3925,9 +3764,7 @@ impl App {
 
     fn update_capsule(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
-        // Prefix input may retain focus on a child control after a modal
-        // closes. Consume its next raw key at the route boundary before any
-        // child (menu, tabs, panes, or input) can claim it.
+
         if self.capsule_prefix {
             let prefix_key = [
                 CAPSULE_INPUT,
@@ -3985,9 +3822,7 @@ impl App {
             if let Some(response) = self.update_command(cx, action) {
                 result |= response;
             }
-            // Menu actions are terminal transitions. Keep the next key for
-            // the resulting route/dialog instead of replaying it through the
-            // prior dropdown state.
+
             self.capsule_menu_state = MenuState::default();
             cx.close_layer(CAPSULE_MENU_BAR, None);
             if action == CMD_INSPECT_CHANGES {
@@ -4091,8 +3926,6 @@ impl App {
             result |= palette_response.erase();
         }
 
-        // Prefix commands own the next key. Do not let the focused command
-        // input consume it before the bubble action can dispatch.
         if self.capsule_prefix {
             let prefix_key = cx.intents(CAPSULE_INPUT).find_map(|intent| match intent {
                 Intent::Key(key) => key.bare_char(),
@@ -4105,9 +3938,7 @@ impl App {
             }
             return result;
         }
-        // Capsule exit is an app command, not text.  A focused command input
-        // may otherwise settle or consume the raw control key before the
-        // bubble keymap gets a chance to dispatch it.
+
         let exit_requested = cx.intents(CAPSULE_INPUT).any(|intent| {
             matches!(
                 intent,
@@ -4122,8 +3953,7 @@ impl App {
             }
             return result;
         }
-        // Inspect commands are app actions.  The focused command input must
-        // not turn the `m` shortcut into text while a diff is open.
+
         let inspect_manager_requested = self.inspect.instance.is_some()
             && self.inspect_detail
             && cx.intents(CAPSULE_INPUT).any(|intent| {
@@ -4139,10 +3969,7 @@ impl App {
             }
             return result;
         }
-        // The prefix action waits for confirmation.  `TextInput` publishes
-        // Enter as a component binding while idle, so open the account picker
-        // on that first confirmation instead of requiring a hidden edit-start
-        // keystroke before the action can progress.
+
         let pending_capsule_confirm = self.pending_capsule_action.is_some()
             && !self.capsule_input_state.is_editing()
             && cx
@@ -4450,8 +4277,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_MENU_OPEN if self.route == Route::Capsule => {
-                // F10 is a fresh menu invocation.  A prior mouse/keyboard
-                // traversal must not make it reopen the last top-level menu.
                 self.capsule_menu_state = MenuState::default();
                 let index = 0;
                 let response =
@@ -4532,8 +4357,7 @@ impl App {
                     && self.launch.as_ref().is_none_or(|run| run.failure.is_none()) =>
             {
                 self.cockpit_debug_open = !self.cockpit_debug_open;
-                // The telemetry row lives in the dialog. A status string would
-                // shift the hint row on the cockpit underneath.
+
                 self.status = None;
                 Some(Response::changed())
             }
@@ -4558,9 +4382,7 @@ impl App {
                 self.route = Route::Editor;
                 if let Some(workspace) = self.world.workspaces.first() {
                     self.editor.load_workspace(workspace);
-                    // Hard-case fixtures exercise the scoped override list;
-                    // retain its existing backend override even when the
-                    // persisted fixture has no role-local environment rows.
+
                     if self.world.scenario == Scenario::HardCases
                         && self.editor.pending.role_env.is_empty()
                     {
@@ -4658,9 +4480,7 @@ impl App {
                 self.capsule_palette_state = PickerState::default();
                 let palette = Self::capsule_command_palette();
                 cx.open_layer(CAPSULE_COMMAND_PALETTE, palette.layer(cx, CAPSULE_COMMANDS));
-                // Seed the first cursor in the opening update. Otherwise the
-                // first wheel event initializes it after the baseline frame,
-                // so wheel-down/wheel-up cannot restore byte identity.
+
                 let _ = palette
                     .update(cx, &mut self.capsule_palette_state, CAPSULE_COMMANDS)
                     .erase();
@@ -4845,9 +4665,6 @@ impl App {
                 Some(Response::changed())
             }
             CMD_EDITOR_NEXT if self.route == Route::Editor => {
-                // Focus settling replays the command.  Mutate the durable
-                // tab only on the input pass; settle passes only keep focus
-                // on the selected tab control.
                 if cx.update_cause() == UpdateCause::Event {
                     self.editor.next_tab();
                     self.editor_accounts_transition = self.editor.tab == EditorTab::Accounts;
@@ -4965,12 +4782,11 @@ impl App {
 
         let cadence = i64::try_from(self.route_tick_ms()).unwrap_or(i64::MAX);
         let messages = self.world.tick(cadence);
-        // Time itself changes visible freshness, animation and pane projections.
+
         let mut result = Response::changed();
         for message in messages {
             match message {
                 crate::sim::world::Msg::WorkspaceSaved { id, ok } => {
-                    // Unbound legacy notices cannot authorize an editor write.
                     let workspace_label = self
                         .world
                         .workspace(id)
@@ -5027,11 +4843,7 @@ impl App {
                         self.status = Some(format!("Account {account} refreshed"));
                     }
                 }
-                crate::sim::world::Msg::ManagerOperation { .. } => {
-                    // The captured Manager reducer owns and consumes operation
-                    // identities; no manager session is wired into the app yet,
-                    // so nothing can have scheduled one here.
-                }
+                crate::sim::world::Msg::ManagerOperation { .. } => {}
             }
         }
 
@@ -5209,7 +5021,6 @@ impl App {
         );
     }
 
-    /// Historical capsule composition retained at the frozen 120×40 host size.
     fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
         ui.fill(area, palette.primary_on_canvas);
@@ -6189,9 +6000,6 @@ impl App {
         );
     }
 
-    /// Historical editor composition retained at the frozen 120×40 host
-    /// size. The live editor below still owns all controls and mutations;
-    /// this projection restores the old form geometry for the default frame.
     fn draw_historical_editor(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
         ui.fill(area, palette.primary_on_canvas);
@@ -6359,9 +6167,6 @@ impl App {
         }
     }
 
-    /// Historical manager composition retained at the frozen 120×40 host
-    /// size.  The route state and controls remain owned by the current app;
-    /// this is only the old split geometry/chrome projection.
     fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
         let palette = HistoricalPalette::new(ui);
         ui.fill(area, palette.primary_on_canvas);
@@ -7228,8 +7033,6 @@ impl App {
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
-        // `Ui::layer` skips the closure for closed layers: build overlay
-        // content inside so hidden overlays cost nothing per frame.
         let _ = ui.layer(CAPSULE_HELP, |ui, area| {
             Self::with_capsule_help(|sections| {
                 let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
@@ -7326,10 +7129,6 @@ impl App {
     }
 
     fn animating(&self, cx: &Cx<'_>) -> bool {
-        // Use the migrated state owners. Legacy busy/saving/browser reducers
-        // not yet represented by this app remain separate fidelity work.
-        // Shared activation feedback currently has no Cx observer; its cadence
-        // policy must be supplied by the runtime rather than a second flash clock.
         !self.world.jobs.is_empty()
             || self
                 .world
@@ -7346,15 +7145,9 @@ impl App {
     }
 
     fn update_parts(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
-        // Keep the shell's configured props owned by one constructor.  The
-        // runtime only updates parts here; drawing consumes the same panel
-        // shape below, so the app cannot drift between update and draw.
         let _shell = Self::shell_panel(&self.shell_meta);
         let mut result = self.advance_virtual_state(cx, product_tick);
-        // Shell controls outlive route projections: focus can leave Intro after
-        // it disappears, or traverse the header on Cockpit/Editor. Poll their
-        // normal component updates on every pass, then apply activation only
-        // after command/overlay precedence and the active route's policy.
+
         let entry = Self::enter_button().update(cx);
         let enter_chosen = entry.activated();
         if self.route == Route::Intro {
@@ -7427,8 +7220,7 @@ impl TuiApp for App {
         let interval = Duration::from_millis(self.wake_ms(cx));
         let last = *self.last_tick.get_or_insert(now);
         let due = last.saturating_add(interval);
-        // One admission owns every simulation reducer. Even a raw Tick cannot
-        // age the app before its deadline or twice at the same Moment.
+
         let product_tick = self.motion != Motion::Paused
             && cx.update_cause() == UpdateCause::Tick
             && now > last
@@ -7438,8 +7230,6 @@ impl TuiApp for App {
         }
         let result = self.update_parts(cx, product_tick);
         if self.motion != Motion::Paused {
-            // Recompute after route/job changes, without postponing the anchor
-            // on unrelated inputs, drawing, or settlement passes.
             let next = self
                 .last_tick
                 .unwrap_or(now)

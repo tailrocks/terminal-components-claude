@@ -1,5 +1,3 @@
-//! Application shell for the migrated showcase binary.
-
 use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::{
@@ -50,57 +48,33 @@ const STATUS_RIGHT: [StatusItem<'static>; 2] = [
     StatusItem::new("? help").priority(5),
 ];
 
-/// Stable page identity used by command-line selection and tests.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PageId {
-    /// Introductory page.
     Overview,
-    /// Button variants.
     Buttons,
-    /// Single-line input.
     Inputs,
-    /// Multiline input.
     TextAreas,
-    /// Form composition.
     Forms,
-    /// Scrollable list.
     Lists,
-    /// Hierarchical tree.
     Trees,
-    /// Read-only table.
     Tables,
-    /// Editable table.
     Editable,
-    /// Panel containers.
     Panels,
-    /// Sidebar navigation.
     Sidebars,
-    /// Dialogs and layers.
     Dialogs,
-    /// Progress indicators.
     Progress,
-    /// Scrolling content.
     Scrolling,
-    /// Terminal output.
     Terminal,
-    /// Code editor preview.
     Editor,
-    /// Grid preview.
     Grid,
-    /// Chips and selectors.
     Chips,
-    /// Picker controls.
     Pickers,
-    /// Application chrome.
     Chrome,
-    /// Settings controls.
     Settings,
-    /// Animated task runner.
     TaskRunner,
 }
 
 impl PageId {
-    /// Every page in navigation order.
     pub const ALL: [Self; 22] = [
         Self::Overview,
         Self::Buttons,
@@ -126,7 +100,6 @@ impl PageId {
         Self::TaskRunner,
     ];
 
-    /// Human-readable title.
     pub const fn title(self) -> &'static str {
         match self {
             Self::Overview => "Overview",
@@ -154,7 +127,6 @@ impl PageId {
         }
     }
 
-    /// Stable command-line spelling.
     pub const fn slug(self) -> &'static str {
         match self {
             Self::Overview => "overview",
@@ -182,12 +154,10 @@ impl PageId {
         }
     }
 
-    /// Position in the stable navigation order.
     pub fn index(self) -> usize {
         Self::ALL.iter().position(|page| *page == self).unwrap_or(0)
     }
 
-    /// Parse a page slug or title without panicking.
     pub fn from_name(value: &str) -> Option<Self> {
         let normalized = |input: &str| {
             input
@@ -202,7 +172,6 @@ impl PageId {
             .find(|page| normalized(page.slug()) == value || normalized(page.title()) == value)
     }
 
-    /// Parse the keyed navigation value.
     pub fn from_key(key: ItemKey) -> Option<Self> {
         Self::ALL
             .into_iter()
@@ -210,16 +179,11 @@ impl PageId {
     }
 }
 
-/// A sidebar item. The app owns these values; `NavList` only borrows them per phase.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NavEntry {
-    /// Destination.
     pub id: PageId,
-    /// Display label.
     pub label: &'static str,
-    /// Visual section heading.
     pub section: &'static str,
-    /// Stable navigation glyph.
     pub icon: &'static str,
 }
 
@@ -229,7 +193,6 @@ impl std::fmt::Display for NavEntry {
     }
 }
 
-/// The complete migrated navigation surface.
 pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Overview,
@@ -437,8 +400,6 @@ fn page(kind: PageId) -> Box<dyn Page> {
 fn keymap() -> KeyMap {
     KeyMap::new()
         .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('q')), QUIT)
-        // Capture keeps the global interrupt available while a text control
-        // owns printable-key handling.
         .bind(
             KeyPhase::Capture,
             Chord::with(KeyCode::Char('c'), termrock::KeyModifiers::CONTROL),
@@ -473,7 +434,6 @@ fn keymap() -> KeyMap {
         )
 }
 
-/// The complete showcase app state.
 pub struct App {
     page: PageId,
     nav_state: NavListState,
@@ -504,12 +464,10 @@ impl core::fmt::Debug for App {
 }
 
 impl App {
-    /// Construct the overview page.
     pub fn new() -> Self {
         Self::with_page(PageId::Overview)
     }
 
-    /// Construct with a selected initial page.
     pub fn with_page(initial: PageId) -> Self {
         Self::with_page_motion(initial, false, 0)
     }
@@ -538,12 +496,10 @@ impl App {
         }
     }
 
-    /// Current page.
     pub const fn page(&self) -> PageId {
         self.page
     }
 
-    /// Whether quit was requested.
     pub const fn quit(&self) -> bool {
         self.quit
     }
@@ -676,12 +632,6 @@ fn shell_part_style(
     )
 }
 
-/// Clear component-first modifiers before the compatibility paint pass.
-///
-/// `Buffer::set_style` patches a cell, so a public component's bold state is
-/// otherwise retained by a later shell style that only changes colours. The
-/// historical shell starts from plain cells and adds bold only where its old
-/// renderer did.
 fn shell_compat_style(style: PaintStyle) -> PaintStyle {
     let bold = style.add_modifier.contains(termrock::Modifier::BOLD);
     let style = style.remove_modifier(termrock::Modifier::all());
@@ -856,12 +806,8 @@ fn paint_header_actions(
         Rect::new(inspector_x, area.y, inspector_width, 1),
     );
     right = inspector_x.saturating_sub(1);
-    // The Holla shell paints the capability cluster only when at least two
-    // cells separate it from the breadcrumb; narrower shells omit it rather
-    // than crowd the route title.
+
     if right > left.saturating_add(capability_width).saturating_add(2) {
-        // The old shell leaves one cell between the capability cluster and
-        // the inspector action.
         let cap_x = right.saturating_sub(capability_width.saturating_add(1));
         ui.paint_str(
             Rect::new(cap_x, area.y, width(capability), 1),
@@ -897,8 +843,7 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle
 
 fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, entry: &NavEntry) {
     let current = flags.contains(StateFlags::SELECTED);
-    // Current destination is a marker, not row selection. Keyboard cursor
-    // and hover remain independent, as in the pinned product reference.
+
     let flags = flags.difference(StateFlags::SELECTED);
     let emphasized = current || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
     let container = shell_compat_style(
@@ -1015,7 +960,6 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     });
 }
 
-/// Paint one footer hint at the cursor column if it fits before `reserved`.
 #[expect(
     clippy::too_many_arguments,
     reason = "the footer paints pre-resolved part styles without re-resolving per hint"
@@ -1078,10 +1022,7 @@ fn paint_footer(
     } else {
         &[]
     };
-    // Allocation-free iteration: the navigation hints replace the page hints
-    // while the navigation owns focus, and the "Tab / Next" entry is appended
-    // only when the page body owns focus and is not in an editing mode that
-    // consumes it.
+
     let tab_next = !nav_focused && !page_editing;
     let mut x = area.x.saturating_add(1);
     let reserved = status.map_or(14, |message| width(message).saturating_add(3));
@@ -1156,10 +1097,7 @@ impl TuiApp for App {
         }
         response |= shell_brand().update(cx).erase();
         response |= shell_status().update(cx).erase();
-        // These stateless shell props have no update phase of their own, but
-        // the same constructors must remain the source of truth in both
-        // runtime phases.  Calling them here also keeps the minimum-size and
-        // fallback branches construction-safe under the props guard.
+
         let _ = too_small_notice();
         let _ = missing_page_panel();
         let _ = inspector_panel();
@@ -1227,9 +1165,7 @@ impl TuiApp for App {
                 | NavListAction::LeaveBackward
                 | NavListAction::LeaveForward => {}
             });
-        // The reference global help dialog suspends page ticks, not status
-        // expiry. Hidden pages likewise keep domain deadlines without
-        // publishing completion until a later eligible page tick.
+
         if !(cx.update_cause() == termrock::UpdateCause::Tick
             && (cx.is_open(HELP) || self.motion_paused))
             && let Some(active) = self.pages.get_mut(self.page.index())
@@ -1255,9 +1191,7 @@ impl TuiApp for App {
 
     fn draw(&self, ui: &mut Ui<'_>) {
         let full = ui.full();
-        // The historical renderer establishes a complete canvas before any
-        // component paints. This clears cells that Brand/Nav/Status do not
-        // touch and gives the compatibility pass deterministic write state.
+
         ui.fill(full, shell_compat_style(ui.surface_style()));
         if full.width < 72 || full.height < 20 {
             too_small_notice().draw(ui, full);
@@ -1265,8 +1199,6 @@ impl TuiApp for App {
         }
         let shell = shell_layout(full, self.inspector);
 
-        // Navigation owns both row painting and registration. Header/footer
-        // compatibility painting remains separate shell migration work.
         shell_brand().draw(ui, shell.header);
         nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
         shell_status().draw(ui, shell.footer);
@@ -1323,14 +1255,11 @@ impl TuiApp for App {
     }
 
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        // Historical top-level Esc only returns focus to the shell navigation;
-        // it never changes the selected page or exits the application.
         cx.focus(NAV);
         Response::changed()
     }
 }
 
-/// Parse CLI options and run the migrated binary.
 pub fn run() -> std::io::Result<()> {
     let (page, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
     termrock::run(App::with_page_motion(page, paused, frame), theme)

@@ -1,4 +1,3 @@
-//! Matched emphasis shares plain text clipping, continuations and semantic provenance.
 use std::cell::Cell;
 use std::rc::Rc;
 use termrock_runtime::{App, Cx, Rect, Response, Surface, Ui};

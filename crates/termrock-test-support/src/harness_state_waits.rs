@@ -1,32 +1,13 @@
-//! State waits with explicit deadlines for [`Harness`].
-//!
-//! Mirror of the reference `state_waits` helper, adapted to the candidate
-//! harness API (audit G3/P3). The reference replaces terminal `sleep:N`
-//! sends with `wait:` needles on a wall-clock deadline; the candidate
-//! harness runs on an explicit clock, so waits here advance simulated
-//! time instead of sleeping. Each step delivers one update tick at the
-//! current moment and then jumps the clock to the next armed deadline
-//! (or a 10 ms step), so timer-driven and tick-driven apps both make
-//! progress. A wait that exhausts its deadline panics with the full
-//! screen text, mirroring the conformance `wait:` failure shape.
-
 use core::time::Duration;
 
 use termrock::{App, Id, StateFlags};
 
 use crate::harness::Harness;
 
-/// Default wait deadline: 8 s of simulated time, mirroring the
-/// `timeout_ms.max(8_000)` precedent.
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(8);
 
-/// Clock step when no runtime deadline is armed.
 const STEP: Duration = Duration::from_millis(10);
 
-/// Advance simulated time until `pred` holds or `timeout` elapses.
-///
-/// The predicate sees the settled frame after every tick and every clock
-/// jump. Panics with `label` and the full screen text on timeout.
 pub fn wait_until<A: App>(
     h: &mut Harness<A>,
     mut pred: impl FnMut(&Harness<A>) -> bool,
@@ -58,7 +39,6 @@ pub fn wait_until<A: App>(
     );
 }
 
-/// Advance simulated time until `needle` appears on screen.
 pub fn wait_for_text<A: App>(h: &mut Harness<A>, needle: &str, timeout: Duration) {
     assert!(!needle.is_empty(), "state wait: needle must not be empty");
     wait_until(
@@ -69,7 +49,6 @@ pub fn wait_for_text<A: App>(h: &mut Harness<A>, needle: &str, timeout: Duration
     );
 }
 
-/// Advance simulated time until `id` owns focus.
 pub fn wait_for_focus<A: App>(h: &mut Harness<A>, id: Id, timeout: Duration) {
     wait_until(
         h,
@@ -79,7 +58,6 @@ pub fn wait_for_focus<A: App>(h: &mut Harness<A>, id: Id, timeout: Duration) {
     );
 }
 
-/// Advance simulated time until `id` carries at least `flags`.
 pub fn wait_for_state<A: App>(h: &mut Harness<A>, id: Id, flags: StateFlags, timeout: Duration) {
     wait_until(
         h,

@@ -1,4 +1,3 @@
-//! Prefix geometry and cursor presentation remain opt-in and interaction-owned.
 use std::cell::RefCell;
 use termrock_core::{Id, ItemKey, KeyCode, MouseKind, Response, StateFlags};
 use termrock_navigation::{Tree, TreeBranchClick, TreeNode, TreeState};

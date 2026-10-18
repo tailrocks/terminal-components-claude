@@ -1,51 +1,27 @@
-//! Layout primitives (`COMPONENT_ARCHITECTURE.md` §10).
-//!
-//! A hand-written, deterministic, allocation-light integer distribution —
-//! never a constraint solver. The vocabulary reads against ratatui's
-//! (`RowAlign::{Start, End}` ↔ `Flex`, `spacing` ↔ `Spacing`) while `Rect`
-//! geometry is reused, never re-derived (§22 R‑12, R‑13).
-
 use ratatui_core::layout::{Margin, Position, Rect};
 
-/// One row height or column width.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Track {
-    /// Exactly `n` cells (clipped to what is available).
     Fixed(u16),
-    /// A weighted share of the space left after `Fixed` tracks.
     Flex(u16),
-    /// Content-sized. Without a measurement the primitive gives it one cell
-    /// when explicit `Flex` tracks exist, else an equal share of the
-    /// remainder; use [`rows_measured`] / [`columns_measured`] to supply the
-    /// natural size.
     Auto,
 }
 
-/// Where an action row packs its buttons; reads against `Flex::{Start, End}`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowAlign {
-    /// Pack from the left.
     Start,
-    /// Pack from the right.
     End,
 }
 
-/// Asymmetric insets; the symmetric case is `Rect::inner(Margin)` wherever
-/// that answers a non-empty rect (see [`inset`]).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Insets {
-    /// Left.
     pub l: u16,
-    /// Top.
     pub t: u16,
-    /// Right.
     pub r: u16,
-    /// Bottom.
     pub b: u16,
 }
 
 impl Insets {
-    /// The same inset on every side.
     pub const fn all(n: u16) -> Self {
         Insets {
             l: n,
@@ -55,7 +31,6 @@ impl Insets {
         }
     }
 
-    /// Horizontal `h`, vertical `v`.
     pub const fn symmetric(h: u16, v: u16) -> Self {
         Insets {
             l: h,
@@ -66,15 +41,13 @@ impl Insets {
     }
 }
 
-/// Distribute `total` cells over `tracks` with `spacing` between them.
-/// Deterministic: leftover cells go to the earliest flexible tracks.
 pub fn distribute(total: u16, tracks: &[Track], spacing: u16, natural: Option<&[u16]>) -> Vec<u16> {
     let n = tracks.len() as u16;
     let gaps = spacing.saturating_mul(n.saturating_sub(1));
     let mut avail = total.saturating_sub(gaps);
     let mut out = vec![0u16; tracks.len()];
     let has_flex = tracks.iter().any(|t| matches!(t, Track::Flex(_)));
-    // pass 1: fixed and measured auto
+
     for (i, t) in tracks.iter().enumerate() {
         let want = match t {
             Track::Fixed(w) => *w,
@@ -91,7 +64,7 @@ pub fn distribute(total: u16, tracks: &[Track], spacing: u16, natural: Option<&[
             *slot = give;
         }
     }
-    // pass 2: flex (or unmeasured auto when there is no flex)
+
     let weight_of = |t: &Track| -> u32 {
         match t {
             Track::Flex(w) => u32::from(*w),
@@ -132,8 +105,6 @@ pub fn distribute(total: u16, tracks: &[Track], spacing: u16, natural: Option<&[
     out
 }
 
-/// [`distribute`] into a caller-supplied slice (no allocation); tracks
-/// beyond `out.len()` are ignored.
 pub fn distribute_into(total: u16, tracks: &[Track], spacing: u16, out: &mut [u16]) {
     let n = tracks.len().min(out.len());
     let tracks = tracks.get(..n).unwrap_or(&[]);
@@ -223,12 +194,10 @@ fn stack(area: Rect, sizes: &[u16], spacing: u16, vertical: bool) -> Vec<Rect> {
         .collect()
 }
 
-/// Stack rows top to bottom.
 pub fn rows(area: Rect, heights: &[Track]) -> Vec<Rect> {
     stack(area, &distribute(area.height, heights, 0, None), 0, true)
 }
 
-/// Stack rows with measured `Auto` heights.
 pub fn rows_measured(area: Rect, heights: &[Track], natural: &[u16]) -> Vec<Rect> {
     stack(
         area,
@@ -238,7 +207,6 @@ pub fn rows_measured(area: Rect, heights: &[Track], natural: &[u16]) -> Vec<Rect
     )
 }
 
-/// Lay columns left to right with `spacing` between them.
 pub fn columns(area: Rect, widths: &[Track], spacing: u16) -> Vec<Rect> {
     stack(
         area,
@@ -248,7 +216,6 @@ pub fn columns(area: Rect, widths: &[Track], spacing: u16) -> Vec<Rect> {
     )
 }
 
-/// Lay columns with measured `Auto` widths.
 pub fn columns_measured(area: Rect, widths: &[Track], spacing: u16, natural: &[u16]) -> Vec<Rect> {
     stack(
         area,
@@ -258,7 +225,6 @@ pub fn columns_measured(area: Rect, widths: &[Track], spacing: u16, natural: &[u
     )
 }
 
-/// Columns that stack into rows when `area.width < stack_below`.
 pub fn responsive_columns(area: Rect, spec: &[Track], spacing: u16, stack_below: u16) -> Vec<Rect> {
     if area.width < stack_below {
         let tracks: Vec<Track> = spec.iter().map(|_| Track::Flex(1)).collect();
@@ -268,8 +234,6 @@ pub fn responsive_columns(area: Rect, spec: &[Track], spacing: u16, stack_below:
     }
 }
 
-/// An action row: fixed-width buttons packed from the start or the end —
-/// the analogue of `Layout::horizontal(…).flex(Flex::End).spacing(Spacing::Space(spacing))`.
 pub fn action_row(area: Rect, widths: &[u16], spacing: u16, align: RowAlign) -> Vec<Rect> {
     let total: u16 = widths.iter().fold(0u16, |acc, w| acc.saturating_add(*w));
     let gaps = spacing.saturating_mul((widths.len() as u16).saturating_sub(1));
@@ -287,28 +251,10 @@ pub fn action_row(area: Rect, widths: &[u16], spacing: u16, align: RowAlign) -> 
     stack(base, widths, spacing, false)
 }
 
-/// Shrink by asymmetric insets, saturating.
-///
-/// The result is always a subrect of `area`, **including when the insets do
-/// not fit**: a saturating inset answers an empty rect anchored where the
-/// content would have started (`area.x + l`, `area.y + t`, each clamped into
-/// `area`), never `Rect::ZERO` at the screen corner. A caller that reads
-/// `.x`/`.y` before checking `.is_empty()` therefore stays inside its own
-/// container.
-///
-/// Symmetric insets go through `Rect::inner(Margin)` (§22 R‑12) wherever it
-/// answers a non-empty rect, which is every case in which the two agree.
 pub fn inset(area: Rect, i: Insets) -> Rect {
     if i.l == i.r && i.t == i.b {
         let r = area.inner(Margin::new(i.l, i.t));
-        // `Rect::inner` answers `Rect::ZERO` when the margin does not fit, and
-        // `Rect::ZERO`'s origin is the top-left of the *screen*, not `area`'s —
-        // so its empty answer sits outside the container it was asked to inset.
-        // `.is_empty()` cannot see that, because an empty rect at the wrong
-        // origin is still empty. Fall through to the clamped arithmetic below,
-        // which anchors the empty answer at the container. Where `Rect::inner`
-        // returns a non-empty rect the two are identical by construction, so
-        // the branch is an optimisation and not a second behaviour.
+
         if !r.is_empty() {
             return r;
         }
@@ -321,7 +267,6 @@ pub fn inset(area: Rect, i: Insets) -> Rect {
     }
 }
 
-/// Split into a top pane of height `at` and the rest.
 pub fn split_v(area: Rect, at: u16) -> (Rect, Rect) {
     let at = at.min(area.height);
     (
@@ -340,7 +285,6 @@ pub fn split_v(area: Rect, at: u16) -> (Rect, Rect) {
     )
 }
 
-/// Split into a left pane of width `at` and the rest.
 pub fn split_h(area: Rect, at: u16) -> (Rect, Rect) {
     let at = at.min(area.width);
     (
@@ -359,45 +303,30 @@ pub fn split_h(area: Rect, at: u16) -> (Rect, Rect) {
     )
 }
 
-/// Which pane a split maximises.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Maximized {
-    /// Neither.
     #[default]
     None,
-    /// The first pane fills the area.
     First,
-    /// The second pane fills the area.
     Second,
 }
 
-/// The split axis.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SplitAxis {
-    /// First pane on top.
     Vertical,
-    /// First pane on the left.
     Horizontal,
 }
 
-/// A two-pane split model: percent of the first pane, minima, maximise state
-/// and axis. When both minima cannot fit, **the first pane wins on both axes**.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SplitModel {
-    /// Percent of the usable length given to the first pane, `5..=95`.
     pub percent: u8,
-    /// Minimum length of the first pane.
     pub min_first: u16,
-    /// Minimum length of the second pane.
     pub min_second: u16,
-    /// Maximise state.
     pub maximized: Maximized,
-    /// Axis.
     pub axis: SplitAxis,
 }
 
 impl SplitModel {
-    /// A split with `percent` for the first pane.
     pub const fn new(axis: SplitAxis, percent: u8, min_first: u16, min_second: u16) -> Self {
         SplitModel {
             percent: clamp_percent(percent),
@@ -408,7 +337,6 @@ impl SplitModel {
         }
     }
 
-    /// Toggle maximising `which`.
     pub fn toggle_max(&mut self, which: Maximized) {
         self.maximized = if self.maximized == which {
             Maximized::None
@@ -417,7 +345,6 @@ impl SplitModel {
         };
     }
 
-    /// Grow the first pane by `delta` percent, clamped to `5..=95`.
     pub fn grow(&mut self, delta: i8) {
         let p = i16::from(self.percent).saturating_add(i16::from(delta));
         self.percent = clamp_percent(p.clamp(0, 100) as u8);
@@ -430,9 +357,6 @@ impl SplitModel {
         }
     }
 
-    /// The empty pane of a degenerate split, anchored inside `area`: at the
-    /// container's origin for the first pane, at its far edge along the split
-    /// axis for the second.
     const fn collapsed(self, area: Rect, second: bool) -> Rect {
         match (self.axis, second) {
             (SplitAxis::Vertical, false) => Rect {
@@ -462,17 +386,6 @@ impl SplitModel {
         }
     }
 
-    /// The two pane rects with `gap` cells between them.
-    ///
-    /// Both rects are always subrects of `area`, **including the empty one** a
-    /// maximised or collapsed split produces: the empty pane is anchored where
-    /// that pane would have started — `area`'s origin for the first pane,
-    /// `area.bottom()` / `area.right()` for the second — never `Rect::ZERO`,
-    /// whose origin is the top-left of the *screen* and not the container's.
-    /// `.is_empty()` cannot see that difference, because an empty rect at the
-    /// wrong origin is still empty, so a caller that reads `.x`/`.y` before
-    /// checking `.is_empty()` would otherwise paint outside its container.
-    /// This is the guarantee [`inset`] gives, on the same terms.
     pub fn layout(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         let split = |at: u16| match self.axis {
             SplitAxis::Vertical => {
@@ -492,7 +405,6 @@ impl SplitModel {
             Maximized::None => {
                 let usable = self.length(area).saturating_sub(gap);
                 if usable < self.min_first.saturating_add(self.min_second) {
-                    // not enough room for both: the first pane wins on both axes
                     return (area, self.collapsed(area, true));
                 }
                 let first =
@@ -503,13 +415,6 @@ impl SplitModel {
         }
     }
 
-    /// The seam strip between the panes; empty when maximised, when collapsed
-    /// and when `gap == 0`.
-    ///
-    /// Like [`SplitModel::layout`], the empty answer stays inside `area`: the
-    /// strip keeps the seam position (the far edge of the first pane, which is
-    /// `area`'s own origin when the first pane is the collapsed one) and loses
-    /// only its thickness.
     pub fn handle(&self, area: Rect, gap: u16) -> Rect {
         let (a, b) = self.layout(area, gap);
         let thickness = if a.is_empty() || b.is_empty() { 0 } else { gap };
@@ -529,8 +434,6 @@ impl SplitModel {
         }
     }
 
-    /// Put the seam under `pos`, clamped by the minima. Returns whether the
-    /// percent changed.
     pub fn drag_to(&mut self, area: Rect, gap: u16, pos: Position) -> bool {
         let usable = self.length(area).saturating_sub(gap);
         let offset = match self.axis {
@@ -552,7 +455,6 @@ impl SplitModel {
         changed
     }
 
-    /// Resize the first pane by whole cells.
     pub fn nudge(&mut self, area: Rect, gap: u16, delta: i16) {
         let (first, _) = self.layout(area, gap);
         let cur = i32::from(self.length(first));
@@ -593,7 +495,7 @@ mod tests {
                 Rect::new(0, 9, 10, 11)
             ]
         );
-        // auto yields one row beside flex, and shares equally without flex
+
         let a = rows(
             Rect::new(0, 0, 10, 10),
             &[Track::Auto, Track::Fixed(1), Track::Flex(1)],
@@ -610,7 +512,7 @@ mod tests {
             &[4],
         );
         assert_eq!(m.iter().map(|r| r.height).collect::<Vec<_>>(), vec![4, 6]);
-        // fixed beyond the area is clipped
+
         let c = rows(Rect::new(0, 0, 10, 2), &[Track::Fixed(5), Track::Flex(1)]);
         assert_eq!(c.iter().map(|r| r.height).collect::<Vec<_>>(), vec![2, 0]);
     }
@@ -622,7 +524,7 @@ mod tests {
             &[Track::Flex(1), Track::Flex(1), Track::Flex(1)],
             2,
         );
-        // 20 - 4 gaps = 16 → 5,5,5 + 1 leftover to the first
+
         assert_eq!(
             c.iter().map(|r| (r.x, r.width)).collect::<Vec<_>>(),
             vec![(0, 6), (8, 5), (15, 5)]
@@ -669,72 +571,51 @@ mod tests {
         assert_eq!(end, vec![Rect::new(16, 0, 10, 1), Rect::new(28, 0, 12, 1)]);
         let start = action_row(area, &[10, 12], 2, RowAlign::Start);
         assert_eq!(start, vec![Rect::new(0, 0, 10, 1), Rect::new(12, 0, 12, 1)]);
-        // wider than the area: clipped, never out of bounds
+
         let tight = action_row(Rect::new(0, 0, 15, 1), &[10, 12], 2, RowAlign::End);
         assert!(tight.iter().all(|r| r.right() <= 15));
     }
 
-    /// Adjudication 2.7: `Track::Auto` is content-sized, and without a
-    /// measurement the primitive gives it **one cell** when explicit `Flex`
-    /// tracks exist (so `Auto` never starves a `Flex`) and an **equal share
-    /// of the remainder** when there are none.
     #[test]
     fn auto_takes_one_cell_beside_flex_and_an_equal_share_without_it() {
-        // beside a Flex: exactly one cell
         let d = distribute(20, &[Track::Auto, Track::Flex(1)], 0, None);
         assert_eq!(d, vec![1, 19]);
         let d = distribute(20, &[Track::Auto, Track::Auto, Track::Flex(1)], 0, None);
         assert_eq!(d, vec![1, 1, 18]);
-        // with a Fixed track and a Flex, the Fixed is honoured first
+
         let d = distribute(20, &[Track::Fixed(6), Track::Auto, Track::Flex(1)], 0, None);
         assert_eq!(d, vec![6, 1, 13]);
-        // no Flex at all: an equal share of the remainder, leftovers to the
-        // earliest tracks
+
         let d = distribute(20, &[Track::Auto, Track::Auto], 0, None);
         assert_eq!(d, vec![10, 10]);
         let d = distribute(20, &[Track::Fixed(5), Track::Auto, Track::Auto], 0, None);
         assert_eq!(d, vec![5, 8, 7]);
     }
 
-    /// The `_measured` variants are the home for `Measure`-derived sizes: a
-    /// supplied natural size replaces the one-cell placeholder.
     #[test]
     fn rows_measured_uses_the_natural_size() {
         let area = Rect::new(0, 0, 30, 12);
         let tracks = [Track::Auto, Track::Fixed(1), Track::Flex(1)];
-        // unmeasured: `Auto` gets one cell beside the `Flex`
+
         let plain = rows(area, &tracks);
         assert_eq!(plain[0].height, 1);
-        // measured: `Auto` gets exactly the natural size it reported, and the
-        // `Flex` track absorbs the difference
+
         let rows_m = rows_measured(area, &tracks, &[4, 0, 0]);
         assert_eq!(rows_m[0].height, 4);
         assert_eq!(rows_m[1].height, 1);
         assert_eq!(rows_m[2].height, 7);
         assert_eq!(rows_m.iter().map(|r| r.height).sum::<u16>(), 12);
-        // a natural size larger than the area degrades to the space left
+
         let big = rows_measured(area, &tracks, &[40, 0, 0]);
         assert_eq!(big[0].height, 12);
         assert_eq!(big[2].height, 0);
-        // columns_measured behaves the same on the other axis
+
         let cols = columns_measured(area, &tracks, 1, &[4, 0, 0]);
         assert_eq!(cols[0].width, 4);
     }
 
-    /// The symmetric branch of [`inset`] is `Rect::inner(Margin)` (§22 R‑12),
-    /// which answers `Rect::ZERO` when the margin does not fit — and
-    /// `Rect::ZERO`'s origin is the top-left of the **screen**, not the
-    /// container's. Asserting only `.is_empty()` cannot see that, because an
-    /// empty rect at the wrong origin is still empty; that blind spot is why
-    /// §18.2's `panel` row was attributed to the component's own `x + 2`
-    /// arithmetic when the shared helper had the same hole. So this asserts the
-    /// **origin** of the saturating results, and then sweeps every tiny rect for
-    /// the property the origin exists to protect: an inset is a subrect of its
-    /// own container.
     #[test]
     fn inset_saturates_on_tiny_rects() {
-        // the symmetric case is `Rect::inner`, which yields an empty rect when
-        // the margin does not fit — anchored at the container, not at (0, 0)
         assert_eq!(
             inset(Rect::new(0, 0, 2, 2), Insets::all(3)),
             Rect::new(2, 2, 0, 0)
@@ -779,7 +660,7 @@ mod tests {
             split_h(Rect::new(0, 0, 3, 2), 1),
             (Rect::new(0, 0, 1, 2), Rect::new(1, 0, 2, 2))
         );
-        // no inset, symmetric or asymmetric, escapes the rect it was given
+
         for w in 0u16..=8 {
             for h in 0u16..=8 {
                 for n in 0u16..=4 {
@@ -804,9 +685,6 @@ mod tests {
                             r: 2,
                             b: n,
                         },
-                        // the two shapes real callers pass: `Panel`'s
-                        // card-with-a-title chrome, and `Dialog`'s
-                        // horizontal-only padding
                         Insets {
                             l: n,
                             t: 2,
@@ -844,7 +722,7 @@ mod tests {
         let (a, b) = h.layout(Rect::new(0, 0, 80, 8), 1);
         assert_eq!(a.width, 80);
         assert!(b.is_empty());
-        // normal case and the seam
+
         let (a, b) = v.layout(Rect::new(0, 0, 80, 30), 1);
         assert_eq!((a.height, b.height), (17, 12));
         assert_eq!(
@@ -857,16 +735,12 @@ mod tests {
         assert!(a.is_empty() && b.height == 30);
     }
 
-    /// Acceptance: no pane and no seam a `SplitModel` answers ever escapes the
-    /// area it was given — the empty ones included. `Rect::ZERO` is anchored at
-    /// the screen corner, so an empty pane carrying it reports an origin
-    /// outside its own container and `.is_empty()` cannot reveal that.
     #[test]
     fn split_panes_and_seam_stay_inside_the_area() {
         let area = Rect::new(3, 2, 10, 6);
         let v = SplitModel::new(SplitAxis::Vertical, 60, 2, 2);
         let h = SplitModel::new(SplitAxis::Horizontal, 60, 2, 2);
-        // the exact anchors of a maximised split
+
         let mut vmax = v;
         vmax.toggle_max(Maximized::First);
         assert_eq!(vmax.layout(area, 1).1, Rect::new(3, 8, 10, 0));
@@ -879,7 +753,7 @@ mod tests {
         hmax.toggle_max(Maximized::First);
         hmax.toggle_max(Maximized::Second);
         assert_eq!(hmax.layout(area, 1).0, Rect::new(3, 2, 0, 6));
-        // and the collapsed one, where the minima do not fit
+
         let tight = SplitModel::new(SplitAxis::Vertical, 60, 50, 50);
         assert_eq!(tight.layout(area, 1).1, Rect::new(3, 8, 10, 0));
         assert!(tight.layout(area, 1).1.is_empty());

@@ -1,5 +1,3 @@
-//! Card and framed panel composition, including caller-owned overrides.
-
 use termrock::author::PaintStyle;
 use termrock::{
     Cx, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListState, Panel, PanelKind, Part,
@@ -94,8 +92,6 @@ fn log_view_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
         .collect()
 }
 
-/// The one constructor per card and pane on this page (§13): both phase paths
-/// build the same props, so no per-phase tweak can go unseen.
 fn titled_card() -> Panel<'static> {
     Panel::new(TITLED_CARD)
         .title("Titled card")
@@ -128,8 +124,6 @@ fn log_card(meta: &str) -> Panel<'_> {
         .patch_part(PANEL_PARTS)
 }
 
-/// The one split on this page (§13): the seam is focusable and resizable, so
-/// both phases build the same gap and minima.
 fn workbench_split() -> SplitPane<'static> {
     SplitPane::new(WORKBENCH, SplitAxis::Horizontal)
         .gap(1)
@@ -426,8 +420,6 @@ fn paint_card_meta(ui: &mut Ui<'_>, area: Rect, text: &str) {
     );
 }
 
-/// Static panel surfaces still exercise the live theme, nested collection,
-/// scroll ownership, and per-instance patch precedence.
 #[derive(Debug)]
 pub struct PanelsPage {
     prose: Vec<ViewportLine<'static>>,
@@ -480,7 +472,7 @@ impl Page for PanelsPage {
         response |= log_view().update(cx, &mut self.log_state, &log).erase();
         response |= nested_list().update(cx, &mut self.nested, TARGETS).erase();
         response |= workbench_split().update(cx, &mut self.split).erase();
-        // The update pass builds every card and pane it will later draw (§13).
+
         let _ = titled_card();
         let _ = untitled_card();
         let _ = nested_card();

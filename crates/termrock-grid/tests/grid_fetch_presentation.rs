@@ -1,4 +1,3 @@
-//! Borrowed fetch wording and canonical activity preserve synthetic-row ownership.
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Color;
 use termrock_grid::{

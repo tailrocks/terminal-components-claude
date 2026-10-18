@@ -1,26 +1,17 @@
-//! Usage projection: quota windows, freshness, status, and the honest
-//! overall aggregation across every account and provider.
-
 use std::collections::BTreeMap;
 
 use super::account::{Account, AccountId, Lifecycle};
 use super::agent::{Provider, UsageSurface};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-/// Freshness state of an account's usage data.
 pub enum Freshness {
-    /// Usage data is current.
     Current,
-    /// Usage data is retained from an earlier successful refresh.
     Stale,
-    /// A refresh is currently in progress.
     Refreshing,
-    /// The latest refresh failed.
     Failed,
 }
 
 impl Freshness {
-    /// Return the stable display label for this freshness state.
     pub fn label(self) -> &'static str {
         match self {
             Freshness::Current => "current",
@@ -32,26 +23,17 @@ impl Freshness {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-/// Semantic availability state for a quota window.
 pub enum QuotaStatus {
-    /// Usage is below the warning threshold.
     Available,
-    /// The provider has not started tracking this window.
     NotStarted,
-    /// Usage has reached the warning threshold.
     Warning,
-    /// Usage has reached or exceeded the limit.
     Exhausted,
-    /// The provider does not expose this quota.
     Unsupported,
-    /// The quota cannot currently be retrieved.
     Unavailable,
-    /// Retrieving the quota produced an error.
     Error,
 }
 
 impl QuotaStatus {
-    /// Return the stable display label for this status.
     pub fn label(self) -> &'static str {
         match self {
             QuotaStatus::Available => "available",
@@ -64,7 +46,6 @@ impl QuotaStatus {
         }
     }
 
-    /// Derive from a used percentage (warning at 75 %, exhausted at 100 %).
     pub fn from_pct(used_pct: u8) -> Self {
         if used_pct >= 100 {
             QuotaStatus::Exhausted
@@ -77,33 +58,22 @@ impl QuotaStatus {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-/// Semantic category used to compare quota windows.
 pub enum WindowCategory {
-    /// Short-lived session quota.
     Session,
-    /// Quota covering a longer period, such as a week or month.
     LongRange,
-    /// Quota scoped to a model.
     Model,
-    /// Quota that does not fit another category.
     Other,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-/// Unit used to display a quota window's usage.
 pub enum WindowUnit {
-    /// A percentage of the quota used.
     Percent,
-    /// A token count.
     Tokens,
-    /// A credit count.
     Credits,
-    /// A U.S. dollar amount.
     Usd,
 }
 
 impl WindowUnit {
-    /// Return the stable display label for this unit.
     pub fn label(self) -> &'static str {
         match self {
             WindowUnit::Percent => "%",
@@ -115,34 +85,21 @@ impl WindowUnit {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Usage measurements and display metadata for one quota window.
 pub struct QuotaWindow {
-    /// Stable per surface: `session`, `weekly`, `credits`…
     pub id: &'static str,
-    /// Human-readable window label.
     pub label: String,
-    /// Semantic category used for aggregation.
     pub category: WindowCategory,
-    /// Measurement unit for the usage values.
     pub unit: WindowUnit,
-    /// Observed usage count, when the provider reports one.
     pub used: Option<u64>,
-    /// Usage limit, when the provider reports one.
     pub limit: Option<u64>,
-    /// Usage percentage, capped at 100% when constructed by [`Self::pct`].
     pub used_pct: Option<u8>,
-    /// Fixture timestamp in seconds when the window resets.
     pub reset_secs: Option<i64>,
-    /// Optional human-readable spend summary.
     pub spend_label: Option<String>,
-    /// Current semantic status of the window.
     pub status: QuotaStatus,
-    /// Optional explanatory note shown without numeric usage.
     pub note: Option<String>,
 }
 
 impl QuotaWindow {
-    /// Create a percentage-based window, clamping its usage to 100%.
     pub fn pct(id: &'static str, label: &str, category: WindowCategory, used_pct: u8) -> Self {
         Self {
             id,
@@ -159,7 +116,6 @@ impl QuotaWindow {
         }
     }
 
-    /// Create a count-based window from its used and limit values.
     pub fn counted(
         id: &'static str,
         label: &str,
@@ -184,7 +140,6 @@ impl QuotaWindow {
         }
     }
 
-    /// Create a window with no numeric meter and an explanatory note.
     pub fn sentinel(id: &'static str, label: &str, status: QuotaStatus, note: &str) -> Self {
         Self {
             id,
@@ -201,37 +156,31 @@ impl QuotaWindow {
         }
     }
 
-    /// Create a zero-use window marked as not started.
     pub fn not_started(id: &'static str, label: &str, category: WindowCategory) -> Self {
         let mut w = Self::pct(id, label, category, 0);
         w.status = QuotaStatus::NotStarted;
         w
     }
 
-    /// Set the reset timestamp in fixture seconds.
     pub fn reset(mut self, secs: i64) -> Self {
         self.reset_secs = Some(secs);
         self
     }
 
-    /// Attach a human-readable spend summary.
     pub fn spend(mut self, label: &str) -> Self {
         self.spend_label = Some(label.to_owned());
         self
     }
 
-    /// Override the window's derived status.
     pub fn status(mut self, s: QuotaStatus) -> Self {
         self.status = s;
         self
     }
 
-    /// Return the remaining percentage when usage is known.
     pub fn remaining_pct(&self) -> Option<u8> {
         self.used_pct.map(|p| 100 - p)
     }
 
-    /// `62% used`, `1,240 / 5,000 credits`, `not started`.
     pub fn value_label(&self) -> String {
         match (self.used, self.limit, self.used_pct, self.status) {
             (_, _, _, QuotaStatus::NotStarted) => "not started".into(),
@@ -249,7 +198,6 @@ impl QuotaWindow {
         }
     }
 
-    /// Report whether the window should render a meter.
     pub fn has_meter(&self) -> bool {
         self.used_pct.is_some()
             && !matches!(
@@ -272,18 +220,13 @@ fn thousands(value: usize) -> String {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Freshness phase and timestamps for one account's usage projection.
 pub struct FreshnessInfo {
-    /// Current freshness phase.
     pub phase: Freshness,
-    /// Fixture timestamp of the most recent successful refresh.
     pub last_good_secs: Option<i64>,
-    /// Fixture timestamp of the next retry, when scheduled.
     pub retry_secs: Option<i64>,
 }
 
 impl FreshnessInfo {
-    /// Construct current freshness at the given fixture timestamp.
     pub fn current(at: i64) -> Self {
         Self {
             phase: Freshness::Current,
@@ -291,7 +234,6 @@ impl FreshnessInfo {
             retry_secs: None,
         }
     }
-    /// Construct stale freshness with the last-good and retry timestamps.
     pub fn stale(last_good: i64, retry: i64) -> Self {
         Self {
             phase: Freshness::Stale,
@@ -299,7 +241,6 @@ impl FreshnessInfo {
             retry_secs: Some(retry),
         }
     }
-    /// Construct refreshing freshness, optionally retaining a last-good timestamp.
     pub fn refreshing(last_good: Option<i64>) -> Self {
         Self {
             phase: Freshness::Refreshing,
@@ -307,7 +248,6 @@ impl FreshnessInfo {
             retry_secs: None,
         }
     }
-    /// Construct failed freshness with optional retained and retry timestamps.
     pub fn failed(last_good: Option<i64>, retry: Option<i64>) -> Self {
         Self {
             phase: Freshness::Failed,
@@ -317,17 +257,13 @@ impl FreshnessInfo {
     }
 }
 
-/// Per-account usage: last-good windows retained across stale/failed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountUsage {
-    /// Freshness metadata for the account's usage data.
     pub freshness: FreshnessInfo,
-    /// Quota windows reported for the account.
     pub windows: Vec<QuotaWindow>,
 }
 
 impl AccountUsage {
-    /// Construct an account usage projection with no windows and failed freshness.
     pub fn none() -> Self {
         Self {
             freshness: FreshnessInfo::failed(None, None),
@@ -335,7 +271,6 @@ impl AccountUsage {
         }
     }
 
-    /// Return the highest-severity status among the account's windows.
     pub fn worst_status(&self) -> Option<QuotaStatus> {
         self.windows
             .iter()
@@ -352,25 +287,16 @@ impl AccountUsage {
     }
 }
 
-// ---------------------------------------------------------- aggregation
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Overall health classification derived from account usage data.
 pub enum HealthWord {
-    /// No accounts are present.
     Empty,
-    /// All enabled accounts are blocked or failed.
     Blocked,
-    /// Usage data has a material failure, staleness, or exhaustion.
     Degraded,
-    /// Usage data is usable but needs attention.
     Attention,
-    /// No account-level issue was found.
     Healthy,
 }
 
 impl HealthWord {
-    /// Return the stable display label for this health word.
     pub fn label(self) -> &'static str {
         match self {
             HealthWord::Empty => "empty",
@@ -383,86 +309,51 @@ impl HealthWord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-/// Counts used to summarize account and usage health.
 pub struct OverallCounts {
-    /// Total number of accounts.
     pub accounts: usize,
-    /// Number of enabled accounts.
     pub enabled: usize,
-    /// Number of disabled accounts.
     pub disabled: usize,
-    /// Number of distinct providers.
     pub providers: usize,
-    /// Number of warning windows.
     pub warnings: usize,
-    /// Number of exhausted windows.
     pub exhausted: usize,
-    /// Number of accounts with stale usage.
     pub stale: usize,
-    /// Number of accounts currently refreshing usage.
     pub refreshing: usize,
-    /// Number of accounts whose usage refresh failed.
     pub failed: usize,
-    /// Number of accounts whose quota is not visible.
     pub unsupported: usize,
-    /// Number of enabled accounts without a resolved identity.
     pub unresolved_identity: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Aggregated quota window comparable across multiple accounts.
 pub struct ComparableRollup {
-    /// Provider surface represented by the rollup.
     pub surface: UsageSurface,
-    /// Stable window identifier shared by contributing accounts.
     pub window_id: &'static str,
-    /// Display label shared by contributing windows.
     pub label: String,
-    /// Measurement unit shared by contributing windows.
     pub unit: WindowUnit,
-    /// Number of contributing accounts.
     pub accounts: usize,
-    /// Lowest remaining percentage among contributors.
     pub min_remaining_pct: u8,
-    /// Highest remaining percentage among contributors.
     pub max_remaining_pct: u8,
-    /// Summed (used, limit) for counted units.
     pub summed: Option<(u64, u64)>,
-    /// Number of contributors represented by retained last-good data.
     pub last_good_count: usize,
-    /// Number of unsupported windows on the same provider surface.
     pub not_visible: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Explanation for why a provider surface cannot be aggregated.
 pub struct NotComparableNote {
-    /// Provider surface that could not be compared.
     pub surface: UsageSurface,
-    /// Stable explanation for the lack of comparability.
     pub reason: &'static str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-/// Honest usage summary across all supplied accounts.
 pub struct OverallSummary {
-    /// Derived overall health classification.
     pub health: HealthWord,
-    /// Counts of accounts and usage issues.
     pub counts: OverallCounts,
-    /// Quota windows that can be compared across accounts.
     pub comparable: Vec<ComparableRollup>,
-    /// Quota surfaces that could not be compared.
     pub not_comparable: Vec<NotComparableNote>,
-    /// Account identifiers with stale usage data.
     pub stale_sources: Vec<AccountId>,
-    /// Account identifiers whose usage refresh failed.
     pub failed_sources: Vec<AccountId>,
 }
 
 impl OverallSummary {
-    /// Aggregate honestly: sum only identical (surface, window, unit,
-    /// category) counted windows; percentages roll up as a range.
     pub fn compute(accounts: &[Account]) -> Self {
         let mut counts = OverallCounts {
             accounts: accounts.len(),
@@ -471,7 +362,7 @@ impl OverallSummary {
         let mut providers: BTreeMap<Provider, ()> = BTreeMap::new();
         let mut stale_sources = vec![];
         let mut failed_sources = vec![];
-        // (surface, window id) → contributing windows
+
         let mut groups: BTreeMap<(UsageSurface, &'static str), Vec<(&QuotaWindow, bool)>> =
             BTreeMap::new();
         let mut not_visible: BTreeMap<UsageSurface, usize> = BTreeMap::new();
@@ -620,7 +511,6 @@ impl OverallSummary {
         }
     }
 
-    /// `12 accounts · 11 enabled · 1 disabled · 8 providers`.
     pub fn counts_line(&self) -> String {
         let c = &self.counts;
         let mut parts = vec![format!("{} account{}", c.accounts, plural(c.accounts))];
@@ -632,7 +522,6 @@ impl OverallSummary {
         parts.join(" · ")
     }
 
-    /// `4 warnings · 1 exhausted · 2 stale · …` (only non-zero parts).
     pub fn issues_line(&self) -> String {
         let c = &self.counts;
         let mut parts = vec![];
@@ -673,7 +562,6 @@ impl OverallSummary {
     }
 }
 
-/// Return the plural suffix for a count.
 pub fn plural(n: usize) -> &'static str {
     if n == 1 { "" } else { "s" }
 }

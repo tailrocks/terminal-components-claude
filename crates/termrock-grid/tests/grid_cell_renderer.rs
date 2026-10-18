@@ -1,4 +1,3 @@
-//! External consumer proof for the borrowed Grid display painter.
 use std::cell::RefCell;
 
 use ratatui_core::layout::Rect;

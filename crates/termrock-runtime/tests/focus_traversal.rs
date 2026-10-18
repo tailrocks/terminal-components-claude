@@ -1,5 +1,3 @@
-//! Deferred navigation resolves against the next frame, not the previous route.
-
 use ratatui_core::buffer::Buffer;
 use termrock::{
     App, Cx, Focusability, Id, Input, Intent, Key, KeyCode, KeyModifiers, LayerSpec, Rect,

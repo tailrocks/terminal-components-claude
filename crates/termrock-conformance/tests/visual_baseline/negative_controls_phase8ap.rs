@@ -1,38 +1,3 @@
-//! Phase-8ap negative controls for the visual-baseline harness (§16).
-//!
-//! Port of `tests/harness/tests/visual_baseline/negative_controls_phase8ap.rs`
-//! from the `visual-baseline` branch at `b274dd57f`; companion to
-//! [`crate::negative_controls_phase6a`]: each test here proves the suite
-//! FAILS when it must, closing the angles the earlier modules leave open
-//! and binding every §16 clause to an executable control:
-//!
-//! * §16(1) compare mutations: fg-only restyle, single cursor visibility /
-//!   vertical-position values, and shrunk (not only grown) dimensions.
-//! * §16(2) integrity faults: truncated `.ansi` hash bytes and a mixed
-//!   `.txt` generation, each with its own gate signature.
-//! * §16(3) acceptance inventory: a pending (unapproved) case fails by name,
-//!   and filtering an empty suite fails instead of going silently green.
-//! * §16(4) terminal modes: drag without drag reporting fails with its own
-//!   mode error, while plain text + key input on the same PTY succeeds
-//!   (proving the failure is about the mode, not the session).
-//! * §16(5) selected states: focused / hovered / disabled renders of the
-//!   same termrock button are pairwise distinguished (component path:
-//!   `Runtime` + `Stub`, `ui.reference` for focus/hover, `disabled` prop).
-//! * §16(6) timestamp-only metadata: boundary clocks (epoch and `u64::MAX`)
-//!   match the same approval through the real gate, while a semantic diff
-//!   at another clock still fails.
-//!
-//! Isolation contract (same as the earlier modules): all checks run against
-//! small synthetic [`Frame`]s, pure inventory sets, and `cat` PTY sessions;
-//! artifact stores live in temp copies under
-//! `target/tuiscotti-negative-phase8ap/` (gitignored scratch). Nothing here
-//! reads `snapshots/` as approval state and nothing writes outside its own
-//! temp dir. No production code is mutated.
-//!
-//! Gate reference: grouped store (`.ansi` cell-exact + `.txt` content +
-//! `.html` render-level + `.png` pixel-exact at threshold 1.0). See
-//! `tuiscotti::grouped` docs.
-
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -106,7 +71,6 @@ fn set_text(frame: &mut Frame, x0: u16, y: u16, text: &str) {
     }
 }
 
-/// Small deterministic base frame: 20x6, text rows, one fg-styled cell.
 fn base_frame() -> Frame {
     let mut f = Frame::blank(20, 6, prov("negative-phase8ap"));
     set_text(&mut f, 0, 0, "hello phase8ap");
@@ -119,8 +83,6 @@ fn base_frame() -> Frame {
     f
 }
 
-/// Approve `frame` under `name`, then prove the same frame matches.
-/// Returns the store for the subsequent negative check.
 fn approve_grouped(dir: &Path, name: &str, frame: &Frame) -> GroupedStore {
     let store = grouped_store(dir);
     let mut r = renderer();
@@ -170,12 +132,8 @@ fn cat_binary() -> &'static str {
     }
 }
 
-// --------------------------------------- §16(1): fg / cursor / dimensions --
-
 #[test]
 fn negative_phase8ap_fg_mutation_fails_ansi_keeps_txt() {
-    // fg-only restyle: the earlier modules cover symbol, bg, and bold;
-    // the foreground channel must fail the cell-exact gate the same way.
     let dir = scratch_dir("fg");
     let name = "neg8ap/fg/80x24/truecolor";
     let base = base_frame();
@@ -207,9 +165,6 @@ fn negative_phase8ap_fg_mutation_fails_ansi_keeps_txt() {
     assert!(err.contains("cells-differ"), "useful message: {err}");
 }
 
-/// Base cursor: visible block at (3, 0). Each case changes exactly ONE
-/// cursor value the earlier modules never isolate (visibility alone, y
-/// alone); the pixel gate must catch it while ansi/txt stay green.
 fn cursor_base() -> Frame {
     let mut f = base_frame();
     f.cursor.visible = true;
@@ -224,7 +179,6 @@ fn cursor_base() -> Frame {
 fn negative_phase8ap_single_cursor_visibility_and_y_detected() {
     let base = cursor_base();
 
-    // Case A: visibility is the only changed value (shown -> hidden).
     let dir = scratch_dir("cursor-visible");
     let name = "neg8ap/cursor-visible/80x24/truecolor";
     let store = approve_grouped(&dir, name, &base);
@@ -253,7 +207,6 @@ fn negative_phase8ap_single_cursor_visibility_and_y_detected() {
     );
     outcome.ensure_matched().unwrap_err();
 
-    // Case B: vertical position is the only changed value (0 -> 1).
     let dir2 = scratch_dir("cursor-y");
     let name2 = "neg8ap/cursor-y/80x24/truecolor";
     let store2 = approve_grouped(&dir2, name2, &base);
@@ -275,8 +228,6 @@ fn negative_phase8ap_single_cursor_visibility_and_y_detected() {
 
 #[test]
 fn negative_phase8ap_shrunk_dimensions_fail_dimension_gate() {
-    // The earlier modules prove grown frames fail; shrunk frames
-    // (narrower, shorter) must fail the dimension gate just as loudly.
     let base = base_frame();
     for (cols, rows, tag) in [(19, 6, "narrower"), (20, 5, "shorter")] {
         let dir = scratch_dir(&format!("dims-{tag}"));
@@ -301,14 +252,10 @@ fn negative_phase8ap_shrunk_dimensions_fail_dimension_gate() {
     }
 }
 
-// ----------------- §16(2): truncated hash bytes / mixed txt generation --
-
 #[test]
 fn negative_phase8ap_truncated_ansi_and_mixed_txt_fail_integrity() {
     let base = base_frame();
 
-    // Fault 1: truncated `.ansi` hash bytes (half the approved file
-    // removed) fail the cell-exact gate while txt still matches.
     let dir_a = scratch_dir("integrity-truncate");
     let name_a = "neg8ap/integrity/80x24/truecolor";
     let store_a = approve_grouped(&dir_a, name_a, &base);
@@ -330,8 +277,6 @@ fn negative_phase8ap_truncated_ansi_and_mixed_txt_fail_integrity() {
     );
     out_a.ensure_matched().unwrap_err();
 
-    // Fault 2: mixed generations on `.txt` (generation B's bytes over
-    // generation A's approval) fail the content gate while ansi matches.
     let gen_b = mutate_symbol(&base, 0, 0, "Z");
     assert_ne!(base.digest(), gen_b.digest());
     let dir_b = scratch_dir("integrity-mixed-txt");
@@ -356,8 +301,6 @@ fn negative_phase8ap_truncated_ansi_and_mixed_txt_fail_integrity() {
     out_b.ensure_matched().unwrap_err();
 }
 
-// ------------------- §16(3): pending case fails by name; empty suite --
-
 fn apply_filter(cases: &BTreeSet<String>, filter: &str) -> Vec<String> {
     cases
         .iter()
@@ -375,8 +318,6 @@ fn require_matches(matches: &[String], filter: &str) -> Result<(), String> {
 
 #[test]
 fn negative_phase8ap_pending_and_empty_suite_fail_acceptance() {
-    // Pending: the suite declares a case the store never approved; the
-    // failure must name the pending case, not just count it.
     let suite: BTreeSet<String> = [
         "neg8ap/pending/a/80x24/truecolor".to_string(),
         "neg8ap/pending/b/80x24/truecolor".to_string(),
@@ -399,8 +340,6 @@ fn negative_phase8ap_pending_and_empty_suite_fail_acceptance() {
     assert!(err.contains("neg8ap/pending/b/80x24/truecolor"), "{err}");
     assert!(!pending.is_empty(), "pending case must fail acceptance");
 
-    // Empty suite: filtering zero cases is an unmatched filter, never a
-    // silent green run.
     let empty: BTreeSet<String> = BTreeSet::new();
     let hits = apply_filter(&empty, "neg8ap/anything");
     assert!(hits.is_empty());
@@ -408,12 +347,8 @@ fn negative_phase8ap_pending_and_empty_suite_fail_acceptance() {
     assert!(ferr.contains("no captures matched"), "{ferr}");
 }
 
-// ------ §16(4): drag without reporting fails; plain input still works --
-
 #[test]
 fn negative_phase8ap_drag_without_reporting_fails_plain_input_succeeds() {
-    // `cat` never enables mouse reporting, so a drag step must fail with
-    // its own drag-mode error (not the generic click error, not silence).
     let s = Tui::new([cat_binary()])
         .size(80, 24)
         .spawn()
@@ -435,9 +370,6 @@ fn negative_phase8ap_drag_without_reporting_fails_plain_input_succeeds() {
         "useful press-mode error: {err_down}"
     );
 
-    // Control on the same session: plain text + a parsed key need no
-    // terminal mode, so they must succeed — proving the drag failure is
-    // about the missing mode, not a dead PTY.
     let needle = "neg8ap-plain-input-ok";
     s.send_text(needle).expect("plain text needs no mode");
     s.press("enter").expect("parsed key needs no mode");
@@ -447,8 +379,6 @@ fn negative_phase8ap_drag_without_reporting_fails_plain_input_succeeds() {
     )
     .expect("plain input must land");
 }
-
-// ----------------- §16(5): focus / hover / disabled states differ --
 
 const NEG8AP_BTN: Id = Id::root("neg8ap.btn");
 
@@ -494,8 +424,6 @@ fn convert_mods(m: Modifier) -> Mods {
     }
 }
 
-/// Capture a termrock buffer into a [`Frame`] (ASCII + single-width
-/// symbols only; the button label and gutter marker qualify).
 fn capture_buffer(buf: &Buffer) -> Frame {
     let cols = buf.area.width;
     let rows = buf.area.height;
@@ -518,10 +446,6 @@ fn capture_buffer(buf: &Buffer) -> Frame {
     frame
 }
 
-/// One inert component-path render of the secondary button: 7 animation
-/// ticks delivered first (the VB `Interaction` tick), then one
-/// `draw_scene` with focus/hover injected via `ui.reference` (the
-/// `Interaction` equivalent) and `disabled` carried by the prop.
 fn render_button(focus: bool, hover: bool, disabled: bool) -> Frame {
     let mut runtime = Runtime::new(Stub::default(), Theme::junie());
     let _ = runtime.initialize();
@@ -558,7 +482,6 @@ fn render_button(focus: bool, hover: bool, disabled: bool) -> Frame {
 
 #[test]
 fn negative_phase8ap_focus_hover_disabled_states_differ() {
-    // Focused vs unfocused: the gutter marker and bold emphasis differ.
     let plain = render_button(false, false, false);
     let focused = render_button(true, false, false);
     assert_eq!(plain.get(0, 0).expect("gutter").symbol, " ");
@@ -569,7 +492,6 @@ fn negative_phase8ap_focus_hover_disabled_states_differ() {
         "focus diff must be non-empty"
     );
 
-    // Hovered vs unhovered: the hover fill differs.
     let hovered = render_button(false, true, false);
     assert_ne!(plain.digest(), hovered.digest(), "hover must differ");
     assert!(
@@ -577,7 +499,6 @@ fn negative_phase8ap_focus_hover_disabled_states_differ() {
         "hover diff must be non-empty"
     );
 
-    // Disabled vs enabled: the disabled tone differs.
     let disabled = render_button(false, false, true);
     assert_ne!(plain.digest(), disabled.digest(), "disabled must differ");
     assert!(
@@ -585,7 +506,6 @@ fn negative_phase8ap_focus_hover_disabled_states_differ() {
         "disabled diff must be non-empty"
     );
 
-    // All four states are pairwise distinct.
     let digests = BTreeSet::from([
         plain.digest(),
         focused.digest(),
@@ -595,12 +515,8 @@ fn negative_phase8ap_focus_hover_disabled_states_differ() {
     assert_eq!(digests.len(), 4, "states must be pairwise distinct");
 }
 
-// ----- §16(6): boundary clocks match; semantic diff still fails gate --
-
 #[test]
 fn negative_phase8ap_boundary_clocks_match_semantic_diff_still_fails() {
-    // Boundary clocks, same cells: epoch, a fixed moment, and
-    // `u64::MAX` must all match one approval through the real gate.
     let mut epoch = base_frame();
     epoch.provenance.created_unix = 0;
     let mut fixed = base_frame();
@@ -632,8 +548,6 @@ fn negative_phase8ap_boundary_clocks_match_semantic_diff_still_fails() {
             .expect("no unjustified visual failure");
     }
 
-    // A semantic diff at yet another clock still fails: metadata can
-    // neither create a visual failure nor hide a real one.
     let mut lie = mutate_symbol(&fixed, 0, 0, "X");
     lie.provenance.created_unix = 999;
     assert_ne!(fixed.digest(), lie.digest());

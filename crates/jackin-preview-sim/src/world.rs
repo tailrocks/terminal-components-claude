@@ -1,7 +1,7 @@
-//! Deterministic in-memory services for the preview.
-//!
-//! `World` owns virtual time, durable fixture data, live instance snapshots,
-//! and a typed job queue.  It has no terminal or process access.
+
+
+
+
 
 use std::collections::BTreeMap;
 
@@ -17,157 +17,157 @@ use jackin_preview_domain::scenario::Scenario;
 use jackin_preview_domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
 use jackin_preview_domain::workspace_save::{PendingWrite, SaveError, SaveResult, SaveTicket};
 
-/// Host trust setting projected by the Settings route.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrustRow {
-    /// Stable source label.
+
     pub source: String,
-    /// Whether the source is trusted.
+
     pub trusted: bool,
 }
 
-/// Host-level configuration shared by workspace drafts.
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GlobalConfig {
-    /// Trust rows edited by Settings.
+
     pub trust: Vec<TrustRow>,
 }
 
-/// Public repository metadata from the deterministic host discovery fixture.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GithubRepo {
-    /// Namespace and repository name.
+
     pub full_name: String,
-    /// Default checkout branch.
+
     pub default_branch: String,
-    /// Available branches, default first.
+
     pub branches: Vec<String>,
-    /// Source-authored freshness display.
+
     pub updated: String,
-    /// Public repository URL; simulation never launches a host process.
+
     pub url: String,
 }
 
-/// Last observed discovery health, separate from injected refresh failures.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DaemonHealth {
-    /// Discovery has not observed a failed refresh.
+
     Healthy,
-    /// A refresh failed; last-good records remain visible.
+
     Stale,
 }
 
-/// Typed results of deterministic asynchronous work.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
-    /// A captured editor write reached its virtual deadline.
+
     EditorSaveCompleted {
-        /// Opaque World-owned write identity.
+
         operation: u64,
     },
-    /// One captured Manager operation reached its virtual deadline.
+
     ManagerOperation {
-        /// Opaque identity owned and consumed by the Manager reducer.
+
         operation: u64,
     },
-    /// A workspace save completed.
+
     WorkspaceSaved {
-        /// Workspace identifier that was saved.
+
         id: WorkspaceId,
-        /// Whether the save succeeded.
+
         ok: bool,
     },
-    /// A refresh operation completed.
+
     Refreshed {
-        /// Whether the refresh succeeded.
+
         ok: bool,
     },
-    /// One account refresh completed.
+
     AccountRefreshed {
-        /// Account identifier that was refreshed.
+
         account: AccountId,
     },
 }
 
-/// One delayed message in the virtual job queue.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Job {
-    /// Absolute virtual due time in milliseconds.
+
     pub due_ms: i64,
-    /// Message delivered when the deadline is reached.
+
     pub msg: Msg,
 }
 
-/// Complete deterministic service state for a preview scenario.
+
 #[derive(Debug, Clone)]
 pub struct World {
-    /// Scenario that seeded this world.
+
     pub scenario: Scenario,
-    /// Virtual fixture clock.
+
     pub clock: Clock,
-    /// Running-instance arbiter state.
+
     pub arbiter: Arbiter,
-    /// Fixture home directory.
+
     pub home: String,
-    /// Actual current host directory; it can be unsaved.
+
     pub cwd: String,
-    /// Mutable host configuration.
+
     pub global: GlobalConfig,
-    /// Durable workspace rows.
+
     pub workspaces: Vec<Workspace>,
-    /// Discovered public repository metadata.
+
     pub github: Vec<GithubRepo>,
-    /// Available role entries.
+
     pub roles: Vec<RoleEntry>,
-    /// Persisted instance rows.
+
     pub instances: Vec<Instance>,
-    /// Live daemon models keyed by persisted instance id.
+
     pub daemons: BTreeMap<String, Daemon>,
-    /// Account registry.
+
     pub accounts: AccountRegistry,
-    /// Simulated 1Password service.
+
     pub op: SimOnePassword,
-    /// Delayed asynchronous jobs.
+
     pub jobs: Vec<Job>,
-    /// Whether the next refresh should fail.
+
     pub refresh_fails: bool,
-    /// Last observed refresh health.
+
     pub daemon_health: DaemonHealth,
     manager_operation_sequence: u64,
     manager_review_watermark: u64,
-    /// Whether a workspace was saved during this run.
+
     pub saved: bool,
-    /// Source allocator for newly saved configurations.
+
     pub next_workspace_id: WorkspaceId,
-    /// Inject one simulated write failure, consumed only by an admitted save.
+
     pub save_fails_once: bool,
     editor_save_sequence: u64,
     editor_writes: Vec<PendingWrite>,
-    /// Last successful refresh time in fixture seconds.
+
     pub last_refresh_secs: i64,
-    /// Last copied transcript selection, if any.
+
     pub clipboard: Option<String>,
 }
 
 impl World {
-    /// Current fixture time in seconds.
+
     pub fn now_secs(&self) -> i64 {
         self.clock.now_secs()
     }
 
-    /// Current fixture time in milliseconds.
+
     pub fn now_ms(&self) -> i64 {
         self.clock.now_ms
     }
 
-    /// Allocate a world-lifetime operation token, independent of screen replacement.
+
     pub fn next_manager_operation(&mut self) -> Option<u64> {
         let next = self.manager_operation_sequence.checked_add(1)?;
         self.manager_operation_sequence = next;
         Some(next)
     }
 
-    /// Consume a review once, invalidating older UI contexts without shared clone state.
+
     pub fn consume_manager_review(&mut self, review: u64) -> bool {
         if review <= self.manager_review_watermark || review > self.manager_operation_sequence {
             return false;
@@ -176,7 +176,7 @@ impl World {
         true
     }
 
-    /// Admit a captured write; UI callbacks never supply its completion payload.
+
     pub fn begin_editor_write(
         &mut self,
         expected: Option<&Workspace>,
@@ -210,7 +210,7 @@ impl World {
                 {
                     id = id.checked_add(1).ok_or(SaveError::IdentityExhausted)?;
                 }
-                // Keep a representable next source identifier after success.
+
                 id.checked_add(1).ok_or(SaveError::IdentityExhausted)?;
                 id
             }
@@ -234,7 +234,7 @@ impl World {
         Ok(ticket)
     }
 
-    /// Validate and consume exactly one due write, independently of the active screen.
+
     pub fn complete_editor_save(&mut self, operation: u64) -> SaveResult {
         let Some(index) = self
             .editor_writes
@@ -279,14 +279,14 @@ impl World {
         }
     }
 
-    /// Queue a message after a non-negative virtual delay.
+
     pub fn schedule(&mut self, delay_ms: i64, msg: Msg) {
         let due_ms = self.clock.now_ms.saturating_add(delay_ms.max(0));
         self.jobs.push(Job { due_ms, msg });
         self.jobs.sort_by_key(|job| job.due_ms);
     }
 
-    /// Advance virtual time and return jobs whose deadline has passed.
+
     pub fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
         self.clock.advance(interval_ms.max(0));
         if !self.clock.running {
@@ -313,24 +313,24 @@ impl World {
         ready
     }
 
-    /// Find a workspace by stable identifier.
+
     pub fn workspace(&self, id: WorkspaceId) -> Option<&Workspace> {
         self.workspaces.iter().find(|workspace| workspace.id == id)
     }
 
-    /// Find a mutable workspace by stable identifier.
+
     pub fn workspace_mut(&mut self, id: WorkspaceId) -> Option<&mut Workspace> {
         self.workspaces
             .iter_mut()
             .find(|workspace| workspace.id == id)
     }
 
-    /// Saved workspace whose mount source exactly matches the current directory.
-    ///
-    /// Uses the pinned source's literal or home-expanded mount spelling. No
-    /// prefix/descendant matching or fallback to the first workspace occurs.
-    /// Returns `None` for an unsaved directory. Reads current domain records,
-    /// so rename, removal and mount edits cannot leave a cached association.
+
+
+
+
+
+
     pub fn cwd_workspace(&self) -> Option<&Workspace> {
         self.workspaces.iter().find(|workspace| {
             workspace.mounts.iter().any(|mount| {
@@ -343,17 +343,17 @@ impl World {
         })
     }
 
-    /// Find an instance by stable identifier.
+
     pub fn instance(&self, id: &str) -> Option<&Instance> {
         self.instances.iter().find(|instance| instance.id == id)
     }
 
-    /// Find a mutable instance by stable identifier.
+
     pub fn instance_mut(&mut self, id: &str) -> Option<&mut Instance> {
         self.instances.iter_mut().find(|instance| instance.id == id)
     }
 
-    /// Count instances currently in the running state.
+
     pub fn running_count(&self) -> usize {
         self.instances
             .iter()
@@ -361,7 +361,7 @@ impl World {
             .count()
     }
 
-    /// Return instances currently in the running state.
+
     pub fn running(&self) -> Vec<&Instance> {
         self.instances
             .iter()
@@ -369,7 +369,7 @@ impl World {
             .collect()
     }
 
-    /// Return visible instances belonging to a workspace.
+
     pub fn instances_of(&self, workspace: Option<WorkspaceId>) -> Vec<&Instance> {
         self.instances
             .iter()
@@ -377,18 +377,18 @@ impl World {
             .collect()
     }
 
-    /// Synchronize the arbiter with the current running-instance count.
+
     pub fn sync_arbiter(&mut self) {
         self.arbiter.set_running(self.running_count());
     }
 
-    /// Allocate the next deterministic instance identifier.
+
     pub fn new_instance_id(&self) -> String {
         let next = self.instances.len().saturating_add(1);
         format!("jk-{next:04x}")
     }
 
-    /// Resolve the account selected for a launch context.
+
     pub fn account_for(
         &self,
         provider: Provider,
@@ -399,12 +399,12 @@ impl World {
         fixtures::resolve_account(provider, workspace, role, session, &self.accounts)
     }
 
-    /// The preview has one deterministic default mode for every agent.
+
     pub fn agent_mode(&self, _agent: Agent) -> AuthMode {
         AuthMode::Sync
     }
 
-    /// Return usable account identifiers for an agent and context.
+
     pub fn eligible_accounts(
         &self,
         agent: Agent,
@@ -414,7 +414,7 @@ impl World {
         self.offer_for(agent, workspace, role).accounts
     }
 
-    /// Build the account offer shown for one agent.
+
     pub fn offer_for(
         &self,
         agent: Agent,
@@ -477,7 +477,7 @@ impl World {
         }
     }
 
-    /// Return agents with at least one configured or blocked account.
+
     pub fn offered_agents(
         &self,
         workspace: Option<&Workspace>,
@@ -490,12 +490,12 @@ impl World {
             .collect()
     }
 
-    /// Whether `agent` has any account in scope, without building the offer.
-    ///
-    /// This is exactly [`Self::offer_for`]`.configured`: every effective
-    /// account with a matching provider lands in either the ready or the
-    /// blocked list, so the offer is configured iff such an account exists.
-    /// The role only selects the preselected account, never configuredness.
+
+
+
+
+
+
     pub fn has_offer_for(&self, agent: Agent, workspace: Option<&Workspace>) -> bool {
         let provider = agent.provider();
         if let Some(workspace) = workspace {
@@ -514,13 +514,13 @@ impl World {
         }
     }
 
-    /// Whether any agent has an account in scope, without building offers.
-    ///
-    /// Equivalent to `!self.offered_agents(workspace, role).is_empty()` for
-    /// every `role`; the [`Self::has_offer_for`] contract covers each agent.
-    /// Hot paths (per-frame launch affordances) must call this instead of
-    /// [`Self::offered_agents`]: it allocates nothing and short-circuits on
-    /// the first agent with an account.
+
+
+
+
+
+
+
     pub fn has_offered_agents(&self, workspace: Option<&Workspace>) -> bool {
         Agent::ALL
             .into_iter()
@@ -528,7 +528,7 @@ impl World {
     }
 }
 
-/// Build the complete deterministic world for one preview scenario.
+
 pub fn world_for(scenario: Scenario) -> World {
     let clock = Clock::new();
     let now = EPOCH_SECS;
@@ -599,16 +599,16 @@ pub fn world_for(scenario: Scenario) -> World {
     world
 }
 
-/// What a new session knows about one agent's account choices.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentOffer {
-    /// Whether the agent has a configured or blocked account.
+
     pub configured: bool,
-    /// Usable account identifiers, preselected first when applicable.
+
     pub accounts: Vec<AccountId>,
-    /// Account selected by workspace/role precedence, if usable.
+
     pub preselected: Option<AccountId>,
-    /// Human-readable blocking reason when no account is usable.
+
     pub blocked: Option<String>,
 }
 
@@ -651,9 +651,9 @@ mod tests {
         assert_eq!(first.running_count(), 0);
 
         let returning = world_for(Scenario::Returning);
-        // Returning starts from the populated registry, not the single
-        // launch fixture. Keep every durable row in the assertion so a
-        // scenario change cannot silently drop manager coverage.
+
+
+
         assert_eq!(returning.workspaces.len(), 4);
         assert_eq!(
             returning

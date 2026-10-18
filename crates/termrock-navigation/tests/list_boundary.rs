@@ -1,4 +1,3 @@
-//! Opt-in physical List boundaries preserve normal navigation and selection.
 use termrock_collections::SelectMode;
 use termrock_core::{Id, ItemKey, KeyCode, KeyModifiers, Response, StateFlags};
 use termrock_navigation::{List, ListAction, ListState};
