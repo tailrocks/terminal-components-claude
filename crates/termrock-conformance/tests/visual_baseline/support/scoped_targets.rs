@@ -1,21 +1,21 @@
-//! Unique scoped targets. Replaces `find(row,col)` + magic offsets.
-//!
-//! A [`Target`] resolves a needle to exactly one visible point: zero or
-//! 2+ matches fail the case (no first-hit roulette), the hit is
-//! visibility- and bounds-checked, and [`Target::refresh`] re-resolves
-//! after scroll/resize/overlay instead of reusing a stale cell. Hand the
-//! point to [`typed_input`](super::typed_input) in `(col, row)` order.
-//!
-//! Positions are exact for ASCII needles/rows (the suite's case); a match
-//! past a non-ASCII row prefix falls back to the global first hit plus a
-//! containment check, and fails when that hit is outside the scope.
+
+
+
+
+
+
+
+
+
+
+
 
 use tuiscotti::Screen;
 use unicode_width::UnicodeWidthStr;
 
 use super::{DEFAULT_WAIT, Session, row_text, screen_find, try_wait_screen};
 
-/// A column×row rectangle, 0-based inclusive. See [`Scope`].
+
 #[derive(Debug, Clone, Copy)]
 pub struct Scope {
     col_start: u16,
@@ -25,7 +25,7 @@ pub struct Scope {
 }
 
 impl Scope {
-    /// Whole visible grid.
+
     #[must_use]
     pub fn full() -> Self {
         Self {
@@ -36,7 +36,7 @@ impl Scope {
         }
     }
 
-    /// Rows `start..=end`, all columns (panes stacked vertically).
+
     #[must_use]
     pub fn rows(start: u16, end: u16) -> Self {
         assert!(start <= end, "scope rows run backwards: {start}..={end}");
@@ -48,7 +48,7 @@ impl Scope {
         }
     }
 
-    /// Columns `start..=end`, all rows (panes side by side).
+
     #[must_use]
     pub fn cols(start: u16, end: u16) -> Self {
         assert!(start <= end, "scope cols run backwards: {start}..={end}");
@@ -60,7 +60,7 @@ impl Scope {
         }
     }
 
-    /// Exact rectangle, 0-based inclusive.
+
     #[must_use]
     pub fn rect(col_start: u16, row_start: u16, col_end: u16, row_end: u16) -> Self {
         assert!(
@@ -75,8 +75,8 @@ impl Scope {
         }
     }
 
-    /// Clamp to the grid; `None` when the scope misses the grid entirely
-    /// (a test bug, failed by the caller — never silently clamped).
+
+
     fn intersect(self, cols: u16, rows: u16) -> Option<(u16, u16, u16, u16)> {
         if self.col_start >= cols || self.row_start >= rows {
             return None;
@@ -95,10 +95,10 @@ impl Scope {
     }
 }
 
-/// Last resolve attempt: the hits plus the grid they were sampled on.
+
 type LastAttempt = (Vec<(u16, u16)>, u16, u16);
 
-/// A resolved unique point: the needle, its scope, and the point.
+
 #[derive(Debug, Clone)]
 pub struct Target {
     needle: String,
@@ -110,14 +110,14 @@ pub struct Target {
 }
 
 impl Target {
-    /// Wait (session deadline) for `needle` to resolve to exactly one
-    /// visible point on the full grid. Fails on zero or 2+ matches.
+
+
     pub fn resolve(s: &mut Session, needle: &str) -> Self {
         Self::resolve_in(s, Scope::full(), needle)
     }
 
-    /// [`resolve`](Self::resolve) inside `scope` — the disambiguator when
-    /// the needle legitimately appears twice (two panes, header + body).
+
+
     pub fn resolve_in(s: &mut Session, scope: Scope, needle: &str) -> Self {
         assert!(!needle.is_empty(), "target needle must not be empty");
         assert!(
@@ -157,8 +157,8 @@ impl Target {
         }
     }
 
-    /// Re-resolve after scroll/resize/overlay. Fails when the target is
-    /// gone or ambiguous; updates the point and grid otherwise.
+
+
     pub fn refresh(&mut self, s: &mut Session) {
         let fresh = Self::resolve_in(s, self.scope, &self.needle);
         self.col = fresh.col;
@@ -167,8 +167,8 @@ impl Target {
         self.rows = fresh.rows;
     }
 
-    /// [`refresh`](Self::refresh), failing unless the point moved — the
-    /// proof a scroll had an effect.
+
+
     #[allow(dead_code)]
     pub fn refresh_moved(&mut self, s: &mut Session) {
         let (col, row) = (self.col, self.row);
@@ -180,8 +180,8 @@ impl Target {
         );
     }
 
-    /// [`refresh`](Self::refresh), failing when the point moved — the
-    /// proof an overlay/resize left the content in place.
+
+
     pub fn refresh_same(&mut self, s: &mut Session) {
         let (col, row) = (self.col, self.row);
         self.refresh(s);
@@ -194,40 +194,40 @@ impl Target {
         );
     }
 
-    /// Click point in `(col, row)` input order.
+
     #[must_use]
     pub fn point(&self) -> (u16, u16) {
         (self.col, self.row)
     }
 
-    /// 0-based column.
+
     #[must_use]
     pub fn col(&self) -> u16 {
         self.col
     }
 
-    /// 0-based row.
+
     #[must_use]
     pub fn row(&self) -> u16 {
         self.row
     }
 
-    /// Grid size at resolve time.
+
     #[must_use]
     pub fn grid(&self) -> (u16, u16) {
         (self.cols, self.rows)
     }
 
-    /// Last cell of the needle span — the drag endpoint that replaces
-    /// magic `col + len` arithmetic.
+
+
     #[must_use]
     pub fn span_end(&self) -> (u16, u16) {
         let w = UnicodeWidthStr::width(self.needle.as_str()).max(1) as u16;
         (self.col + w - 1, self.row)
     }
 
-    /// Explicit offset from the point, bounds-checked against the
-    /// resolve-time grid. Fails off-grid (no silent clamp).
+
+
     #[must_use]
     pub fn offset(&self, dcol: i16, drow: i16) -> (u16, u16) {
         let col = i32::from(self.col) + i32::from(dcol);
@@ -244,9 +244,9 @@ impl Target {
     }
 }
 
-/// All `(row, col)` matches of `needle` inside `scope`, top-to-bottom.
-/// Exact for ASCII rows; a match past a non-ASCII row prefix falls back
-/// to the global first hit plus containment (see module docs).
+
+
+
 fn find_in_scope(
     screen: &Screen,
     scope: Scope,
@@ -257,7 +257,7 @@ fn find_in_scope(
     let Some((c0, c1, r0, r1)) = scope.intersect(cols, rows) else {
         return Vec::new();
     };
-    // Fast path: every in-scope row is ASCII, so byte offsets are columns.
+
     let ascii_rows = (r0..=r1).all(|row| row_text(screen, row).is_ascii());
     if ascii_rows {
         let mut hits = Vec::new();
@@ -276,7 +276,7 @@ fn find_in_scope(
         }
         return hits;
     }
-    // Fallback: global first hit (wide-aware) + containment.
+
     match screen_find(screen, needle) {
         Some((row, col)) if scope.contains(col, row) => vec![(row, col)],
         _ => Vec::new(),

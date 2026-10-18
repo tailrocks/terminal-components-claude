@@ -1,4 +1,4 @@
-//! Observer IPC client over inherited anonymous pipe descriptors.
+
 
 #![expect(
     unsafe_code,
@@ -17,7 +17,7 @@ use super::ipc::{
 
 const MAX_LINE_BYTES: usize = 4096;
 
-/// Observer transport is unavailable or the host is not running under the planner observer.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ObserverUnavailable;
 
@@ -35,7 +35,7 @@ impl From<ObserverUnavailable> for io::Error {
     }
 }
 
-/// Host-side observer IPC client bound to inherited pipe descriptors.
+
 pub struct ObserverClient {
     nonce: String,
     request: BufWriter<File>,
@@ -43,7 +43,7 @@ pub struct ObserverClient {
 }
 
 impl ObserverClient {
-    /// Open a client from observer-supplied environment.
+
     pub fn from_env() -> Result<Self, ObserverUnavailable> {
         let request_fd = std::env::var(super::ipc::ObserverEnv::REQUEST_FD)
             .map_err(|_| ObserverUnavailable)?
@@ -65,22 +65,22 @@ impl ObserverClient {
         })
     }
 
-    /// Fail closed when verify requests observer execution before transport exists.
+
     pub fn require_transport() -> Result<(), ObserverUnavailable> {
         Self::from_env().map(|_| ())
     }
 
-    /// Nonce copied from `TC_PROOF_OBSERVER_NONCE`.
+
     pub fn nonce(&self) -> &str {
         &self.nonce
     }
 
-    /// Encode one bounded request line for the observer.
+
     pub fn encode_request(&self, step: ObserverStep) -> io::Result<String> {
         encode_request_line(&self.nonce, step)
     }
 
-    /// Issue one observer request and return the captured observation.
+
     pub fn execute_step(
         &mut self,
         step: ObserverStep,
@@ -95,7 +95,7 @@ impl ObserverClient {
         parse_observation(&response_line)
     }
 
-    /// Issue the fixed verify sequence: build, test, taskfmt.
+
     pub fn execute_verify_sequence(
         &mut self,
     ) -> Result<Vec<ObserverObservation>, ObserverUnavailable> {
@@ -164,7 +164,7 @@ fn parse_observation(line: &str) -> Result<ObserverObservation, ObserverUnavaila
     }
 }
 
-/// Decode one base64 file payload from an observer observation.
+
 pub fn decode_file_payload(encoded: &str) -> Result<Vec<u8>, ObserverUnavailable> {
     base64::engine::general_purpose::STANDARD
         .decode(encoded)
@@ -174,7 +174,7 @@ pub fn decode_file_payload(encoded: &str) -> Result<Vec<u8>, ObserverUnavailable
 #[cfg(unix)]
 fn open_inherited_fd(fd: i32) -> Result<File, ObserverUnavailable> {
     use std::os::fd::{FromRawFd, OwnedFd};
-    // SAFETY: inherited anonymous pipe ends are owned by this host process for the fixture lifetime.
+
     let owned = unsafe { OwnedFd::from_raw_fd(fd) };
     Ok(File::from(owned))
 }

@@ -1,7 +1,7 @@
-//! Small decimal readouts used while painting. No heap-backed formatting.
 
-/// Decimal `usize`, optionally followed by the fixed selection-count suffix.
-/// Thirty-two bytes hold every supported `usize` (at most 20 digits) plus 9 suffix bytes.
+
+
+
 #[derive(Debug)]
 pub struct RenderNumber {
     bytes: [u8; 32],

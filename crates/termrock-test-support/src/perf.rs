@@ -1,29 +1,29 @@
-//! Shared performance-measurement harness (`docs/audit/performance-audit.md`
-//! §7.1, moved here from `tests/perf_common.rs` by Slice 3 with the same
-//! semantics). `#[global_allocator]` is per binary: every perf test binary
-//! declares
-//!
-//! ```ignore
-//! #[global_allocator]
-//! static GLOBAL: termrock_test_support::perf::Counting = termrock_test_support::perf::Counting;
-//! ```
-//!
-//! Allocation counters are per thread, so counts stay exact with any
-//! `--test-threads`; benchmarks inside one process are serialised by
-//! [`lock`]. Only wall time benefits from `--test-threads=1`.
-//!
-//! Environment knobs:
-//! - `PERF_BLESS=1`    rewrite the baseline with this run's numbers.
-//! - `PERF_STRICT=1`   also assert wall time against `baseline × 1.2`, and every
-//!   "within N×" ratio (`PERF_TARGET` is folded into it — §16.6 declares exactly
-//!   two knobs, MI-14).
-//! - `PERF_ITERS=n`    cap every benchmark's iteration count at `n`.
-//! - `PERF_FULL=1`     use full data sizes even in debug builds.
-//! - `PERF_BASELINE`   the baseline file (default: `crates/tui/tests/perf_baseline.txt`).
-//!
-//! Allocation and byte counts are hard-asserted against the baseline in
-//! release builds (any increase fails). Debug builds always report and print
-//! `PERF-DEBUG-MISMATCH` when they differ, but do not fail.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
@@ -36,86 +36,86 @@ thread_local! {
     static T_BYTES: Cell<usize> = const { Cell::new(0) };
 }
 
-/// Allocations made by the current thread since it started.
+
 pub fn allocs() -> usize {
     T_ALLOCS.try_with(Cell::get).unwrap_or(0)
 }
 
-/// Bytes requested by the current thread since it started.
+
 pub fn bytes() -> usize {
     T_BYTES.try_with(Cell::get).unwrap_or(0)
 }
 
 #[inline]
 fn count(bytes: usize) {
-    // `const`-initialised `Cell` thread-locals need no lazy init and no
-    // destructor, so reading them inside the allocator cannot allocate;
-    // `try_with` covers thread teardown.
+
+
+
     let _ = T_ALLOCS.try_with(|c| c.set(c.get().saturating_add(1)));
     let _ = T_BYTES.try_with(|c| c.set(c.get().saturating_add(bytes)));
 }
 
-/// Counting shim: every allocation and reallocation is one tick on the
-/// calling thread's counter; bytes accumulate requested sizes (reallocation
-/// adds the growth only).
+
+
+
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Counting;
 
 #[expect(unsafe_code, reason = "counting allocator; see SAFETY")]
-// SAFETY: every method forwards to `System` unchanged after bumping a
-// thread-local counter; the counter access cannot allocate or panic, so the
-// `GlobalAlloc` contract of `System` is preserved verbatim.
+
+
+
 unsafe impl GlobalAlloc for Counting {
     unsafe fn alloc(&self, l: Layout) -> *mut u8 {
         count(l.size());
-        // SAFETY: same layout, forwarded to the system allocator.
+
         unsafe { System.alloc(l) }
     }
 
     unsafe fn dealloc(&self, p: *mut u8, l: Layout) {
-        // SAFETY: `p` was returned by `System.alloc` with this layout.
+
         unsafe { System.dealloc(p, l) }
     }
 
     unsafe fn alloc_zeroed(&self, l: Layout) -> *mut u8 {
         count(l.size());
-        // SAFETY: same layout, forwarded to the system allocator.
+
         unsafe { System.alloc_zeroed(l) }
     }
 
     unsafe fn realloc(&self, p: *mut u8, l: Layout, new_size: usize) -> *mut u8 {
         count(new_size.saturating_sub(l.size()));
-        // SAFETY: `p` was returned by `System.alloc` with layout `l`.
+
         unsafe { System.realloc(p, l, new_size) }
     }
 }
 
 static LOCK: Mutex<()> = Mutex::new(());
 
-/// Hold this for the whole body of a perf test so benchmarks in one process
-/// never time each other; allocation counts are per thread and need no lock.
+
+
 pub fn lock() -> MutexGuard<'static, ()> {
     LOCK.lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-/// One benchmark's medians.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Stats {
-    /// Median wall time per iteration.
+
     pub ns: u128,
-    /// Allocations per iteration (median across repetitions).
+
     pub allocs: usize,
-    /// Requested bytes per iteration (median across repetitions).
+
     pub bytes: usize,
-    /// Registry length after the last frame, for screen benchmarks.
+
     pub hits: Option<usize>,
-    /// Reachable ring length after the last frame.
+
     pub ring: Option<usize>,
 }
 
 impl Stats {
-    /// Attach the region counts.
+
     #[must_use]
     pub const fn with_regions(mut self, hits: usize, ring: usize) -> Self {
         self.hits = Some(hits);
@@ -124,12 +124,12 @@ impl Stats {
     }
 }
 
-/// Whether an environment flag is set to something other than empty or `0`.
+
 pub fn env_flag(name: &str) -> bool {
     std::env::var_os(name).is_some_and(|v| !v.is_empty() && v != "0")
 }
 
-/// Full data sizes in release (or with `PERF_FULL=1`); one tenth in debug.
+
 pub fn big(n: usize) -> usize {
     if cfg!(debug_assertions) && !env_flag("PERF_FULL") {
         (n / 10).max(1)
@@ -138,7 +138,7 @@ pub fn big(n: usize) -> usize {
     }
 }
 
-/// Iteration count: the release default, reduced in debug, capped by `PERF_ITERS`.
+
 pub fn iters(release_default: usize) -> usize {
     let mut n = if cfg!(debug_assertions) {
         (release_default / 10).max(1)
@@ -156,8 +156,8 @@ pub fn iters(release_default: usize) -> usize {
 
 const REPS: usize = if cfg!(debug_assertions) { 3 } else { 9 };
 
-/// Warm up `warm` iterations, then run `REPS` repetitions of `iters`
-/// iterations each and return the per-iteration medians.
+
+
 pub fn bench(warm: usize, iters: usize, f: &mut dyn FnMut()) -> Stats {
     let iters = iters.max(1);
     for _ in 0..warm {
@@ -192,9 +192,9 @@ pub fn bench(warm: usize, iters: usize, f: &mut dyn FnMut()) -> Stats {
     }
 }
 
-/// Accumulates only explicitly measured sections of one benchmark iteration.
-/// Setup between sections is excluded. Clock-read overhead is retained; no
-/// calibration subtraction can make an operation appear faster than measured.
+
+
+
 #[derive(Debug, Default)]
 pub struct Sample {
     ns: u128,
@@ -203,7 +203,7 @@ pub struct Sample {
 }
 
 impl Sample {
-    /// Measure one section, including its allocations, and return its result.
+
     pub fn measure<T>(&mut self, f: impl FnOnce() -> T) -> T {
         let a0 = allocs();
         let b0 = bytes();
@@ -216,9 +216,9 @@ impl Sample {
     }
 }
 
-/// Like [`bench()`], but each iteration explicitly marks its measured sections.
-/// Use when a public lifecycle requires untimed setup between operations.
-/// Always retain a separate [`bench()`] measurement of the complete lifecycle.
+
+
+
 pub fn bench_sampled(warm: usize, iters: usize, f: &mut dyn FnMut(&mut Sample)) -> Stats {
     let iters = iters.max(1);
     for _ in 0..warm {
@@ -248,7 +248,7 @@ pub fn bench_sampled(warm: usize, iters: usize, f: &mut dyn FnMut(&mut Sample)) 
     }
 }
 
-/// Measure exactly one execution of `f` (no repetitions, no median).
+
 pub fn measure_once(f: &mut dyn FnMut()) -> Stats {
     let a0 = allocs();
     let b0 = bytes();
@@ -264,7 +264,7 @@ pub fn measure_once(f: &mut dyn FnMut()) -> Stats {
     }
 }
 
-// ---------------------------------------------------------------- baseline
+
 
 #[derive(Debug, Clone, Copy)]
 struct Entry {
@@ -275,7 +275,7 @@ struct Entry {
     ring: Option<usize>,
 }
 
-/// The baseline file: `PERF_BASELINE` or the library's checked-in file.
+
 pub fn baseline_path() -> String {
     std::env::var("PERF_BASELINE").unwrap_or_else(|_| {
         concat!(
@@ -319,9 +319,9 @@ fn read_baseline(path: &str) -> BTreeMap<String, Entry> {
     out
 }
 
-/// Rewrite the baseline, **preserving the existing `#` header comments**: a
-/// re-blessed baseline records why a number moved, and blessing must not
-/// silently delete that reason.
+
+
+
 fn write_baseline(path: &str, map: &BTreeMap<String, Entry>) {
     let existing = std::fs::read_to_string(path).unwrap_or_default();
     let mut header = String::new();
@@ -358,7 +358,7 @@ fn region_mismatch(name: &str, message: &str, release: bool) {
 fn check_regions(name: &str, s: &Stats, base: &Entry, release: bool) {
     match (s.hits, base.hits) {
         (Some(h), Some(bh)) => {
-            // `hit_registry_size_is_bounded`: ±10 % of the recorded size.
+
             let lo = bh - bh / 10;
             let hi = bh + bh / 10;
             if h < lo || h > hi {
@@ -393,13 +393,13 @@ fn check_regions(name: &str, s: &Stats, base: &Entry, release: bool) {
     }
 }
 
-/// One machine-readable line per benchmark, then the baseline policy against
-/// the default baseline file.
+
+
 pub fn report(name: &str, s: &Stats) {
     report_to(&baseline_path(), name, s);
 }
 
-/// [`report`] against an explicit baseline file.
+
 pub fn report_to(path: &str, name: &str, s: &Stats) {
     let mut line = format!(
         "PERF {name} ns={} allocs={} bytes={}",
@@ -455,8 +455,8 @@ pub fn report_to(path: &str, name: &str, s: &Stats) {
     }
 }
 
-/// Ratio helper for the "within N×" acceptance thresholds: prints the ratio
-/// and asserts it only when `strict` is set.
+
+
 pub fn check_ratio(name: &str, a: u128, b: u128, max: f64, strict: bool) {
     let ratio = a as f64 / b.max(1) as f64;
     println!("PERF-RATIO {name} ratio={ratio:.2} max={max}");
@@ -465,12 +465,12 @@ pub fn check_ratio(name: &str, a: u128, b: u128, max: f64, strict: bool) {
     }
 }
 
-// ------------------------------------------------------------ fixtures
 
-/// One line of `n` graphemes whose symbols all fit ratatui `Cell`'s inline
-/// `CompactString` storage: ASCII, CJK (width 2) and combining marks, and no
-/// ZWJ sequence. A painter over this corpus must record **0** allocations —
-/// any count above zero is the painter's, not the buffer's (adjudication 4).
+
+
+
+
+
 pub fn unicode_line_inline(n: usize) -> String {
     const PARTS: [&str; 6] = ["a", "b", "漢", "字", "e\u{301}", "\u{00E9}"];
     let mut s = String::with_capacity(n * 4);
@@ -480,10 +480,10 @@ pub fn unicode_line_inline(n: usize) -> String {
     s
 }
 
-/// One line of `n` graphemes mixing ASCII, CJK (width 2), combining marks and
-/// an emoji ZWJ sequence. The ZWJ symbol exceeds `Cell`'s inline storage, so
-/// each such **cell** heap-allocates — a property of the buffer, not of the
-/// painter.
+
+
+
+
 pub fn unicode_line(n: usize) -> String {
     const PARTS: [&str; 8] = [
         "a",

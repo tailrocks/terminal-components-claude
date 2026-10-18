@@ -1,27 +1,27 @@
-//! Raw input at the runtime boundary (`COMPONENT_ARCHITECTURE.md` §6.1).
-//!
-//! `Input` never touches a component directly: the runtime resolves it
-//! against the last frame's registry and focus ring and delivers
-//! [`Intent`](crate::intent::Intent)s instead. Keyboard types are owned by
-//! this crate. Backend normalization exists only with the `crossterm` feature.
+
+
+
+
+
+
 
 use core::fmt;
 
 pub use crate::keys::{KeyCode, KeyModifiers};
 use ratatui_core::layout::Position;
 
-/// One normalised input event.
+
 #[derive(Clone, PartialEq, Eq)]
 pub enum Input {
-    /// A key press or repeat (releases are dropped at normalisation).
+
     Key(Key),
-    /// A pointer event with modifiers.
+
     Mouse(Mouse),
-    /// The terminal was resized to `(columns, rows)`.
+
     Resize(u16, u16),
-    /// Bracketed paste text.
+
     Paste(String),
-    /// Explicit update trigger at unchanged runtime time; elapsed time comes from `Runtime::advance_to`.
+
     Tick,
 }
 
@@ -47,17 +47,17 @@ impl Drop for Input {
     }
 }
 
-/// A key press: code plus modifiers.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Key {
-    /// The key code.
+
     pub code: KeyCode,
-    /// The modifiers held.
+
     pub mods: KeyModifiers,
 }
 
 impl Key {
-    /// The chord this key press is, for matching against binding tables.
+
     pub const fn chord(&self) -> Chord {
         Chord {
             code: self.code,
@@ -65,27 +65,27 @@ impl Key {
         }
     }
 
-    /// `code` matches and no modifier other than `SHIFT` is held.
+
     pub fn is(&self, c: KeyCode) -> bool {
         self.code == c && self.mods.difference(KeyModifiers::SHIFT).is_empty()
     }
 
-    /// Whether `CONTROL` is held.
+
     pub const fn ctrl(&self) -> bool {
         self.mods.contains(KeyModifiers::CONTROL)
     }
 
-    /// Whether `ALT` is held.
+
     pub const fn alt(&self) -> bool {
         self.mods.contains(KeyModifiers::ALT)
     }
 
-    /// Whether `SHIFT` is held.
+
     pub const fn shift(&self) -> bool {
         self.mods.contains(KeyModifiers::SHIFT)
     }
 
-    /// `Char(c)` with no modifier other than `SHIFT`: a typing key.
+
     pub const fn bare_char(&self) -> Option<char> {
         match self.code {
             KeyCode::Char(c) if self.mods.difference(KeyModifiers::SHIFT).is_empty() => Some(c),
@@ -94,20 +94,20 @@ impl Key {
     }
 }
 
-/// A key chord as written in a binding table.
-///
-/// `PartialEq`/`Hash` are the derived structural forms over the backend-neutral
-/// `KeyCode` and `KeyModifiers`.
+
+
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Chord {
-    /// The key code.
+
     pub code: KeyCode,
-    /// The modifiers required.
+
     pub mods: KeyModifiers,
 }
 
 impl Chord {
-    /// A chord with no modifiers.
+
     pub const fn key(c: KeyCode) -> Chord {
         Chord {
             code: c,
@@ -115,23 +115,23 @@ impl Chord {
         }
     }
 
-    /// A chord with modifiers.
+
     pub const fn with(c: KeyCode, m: KeyModifiers) -> Chord {
         Chord { code: c, mods: m }
     }
 
-    /// Whether this chord is a bare `Char` (skipped by the capture phase
-    /// while the focused control swallows typing, §3.3 step 2).
+
+
     pub const fn is_bare_char(&self) -> bool {
         matches!(self.code, KeyCode::Char(_))
             && self.mods.difference(KeyModifiers::SHIFT).is_empty()
     }
 
-    /// Effective chord identity shared by matching, every scoped
-    /// conflict check and focused-hint deduplication: `SHIFT` folds only
-    /// for the same exact `Char` (case-sensitive); every other modifier
-    /// and code stays distinct. Structural `PartialEq`/`Hash` remain the
-    /// derived forms and still see `NONE` versus `SHIFT` apart.
+
+
+
+
+
     pub fn effective_eq(&self, other: &Chord) -> bool {
         if self.code != other.code {
             return false;
@@ -143,8 +143,8 @@ impl Chord {
         }
     }
 
-    /// Whether a key press matches this chord (`SHIFT` on a `Char` is
-    /// already folded into the character).
+
+
     pub fn matches(&self, k: &Key) -> bool {
         self.effective_eq(&k.chord())
     }
@@ -184,50 +184,50 @@ impl fmt::Display for Chord {
     }
 }
 
-/// A pointer event.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Mouse {
-    /// What happened.
+
     pub kind: MouseKind,
-    /// Where, in terminal cells.
+
     pub pos: Position,
-    /// The modifiers held.
+
     pub mods: KeyModifiers,
 }
 
-/// Pointer event kinds. Primary button is `Down`/`Up`/`Drag`; the secondary
-/// button is `Secondary`/`SecondaryUp`; the middle button is dropped.
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MouseKind {
-    /// Pointer moved with no button held.
+
     Move,
-    /// Primary button pressed.
+
     Down,
-    /// Primary button released.
+
     Up,
-    /// Pointer moved with the primary button held.
+
     Drag,
-    /// Secondary button pressed.
+
     Secondary,
-    /// Secondary button released.
+
     SecondaryUp,
-    /// Wheel motion on an axis; positive is down / right.
+
     Wheel(Axis, i16),
 }
 
-/// A scroll axis.
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Axis {
-    /// Vertical.
+
     V,
-    /// Horizontal.
+
     H,
 }
 
 impl Input {
-    /// Normalise a crossterm event (§3.3 step 1): key releases and unmapped
-    /// buttons are dropped; `MouseEventKind` is matched exhaustively so a
-    /// new upstream variant is a compile error (§22 R‑15).
+
+
+
     #[cfg(feature = "crossterm")]
     pub fn from_crossterm(ev: ratatui_crossterm::crossterm::event::Event) -> Option<Self> {
         use ratatui_crossterm::crossterm::event::{Event, MouseButton, MouseEvent, MouseEventKind};
@@ -306,8 +306,8 @@ mod tests {
     #[test]
     #[cfg(feature = "crossterm")]
     fn key_release_is_dropped() {
-        // synthesised: without keyboard-enhancement flags no Unix terminal
-        // ever produces a release (§22.2 item 6)
+
+
         assert_eq!(
             Input::from_crossterm(key_event(KeyCode::Enter, KeyEventKind::Release)),
             None
@@ -571,14 +571,14 @@ mod backend_keys {
 
     impl From<backend::KeyModifiers> for KeyModifiers {
         fn from(value: backend::KeyModifiers) -> Self {
-            // Retain reserved bits as well as the six defined modifiers.
+
             Self::from_bits_retain(value.bits())
         }
     }
 
     impl From<KeyModifiers> for backend::KeyModifiers {
         fn from(value: KeyModifiers) -> Self {
-            // Retain reserved bits as well as the six defined modifiers.
+
             Self::from_bits_retain(value.bits())
         }
     }

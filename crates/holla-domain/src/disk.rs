@@ -1,7 +1,7 @@
-//! disk: pressure plus progressive cleanup candidates. Each candidate has a
-//! family, a size and a freshness fact — the reason a cleanup is safe.
 
-/// Cleanup families (mole §families): generated artifacts, not user data.
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Family {
     CargoTarget,
@@ -29,7 +29,7 @@ impl Family {
     }
 }
 
-/// How recently anything touched the candidate.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Freshness {
     ActiveToday,
@@ -92,12 +92,12 @@ impl DiskState {
         u32::try_from(percent).unwrap_or(u32::MAX)
     }
 
-    /// All inspected generated artifacts, including policy-protected active data.
+
     pub fn inspected_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
         crate::accounting::bytes(self.candidates.iter().map(|c| c.size_bytes))
     }
 
-    /// Bytes eligible for the cleanup policy shown by the plan.
+
     pub fn reclaimable_bytes(&self) -> Result<u64, crate::accounting::InventoryError> {
         crate::accounting::bytes(
             self.candidates
@@ -108,9 +108,9 @@ impl DiskState {
     }
 }
 
-/// Resolve fixture paths lexically without reading or mutating a filesystem.
-/// Relative paths belong to the simulated cwd; `.`/`..` cannot disguise an
-/// overlapping target. Root and traversal above root are not cleanup targets.
+
+
+
 pub fn cleanup_path(cwd: &str, path: &str) -> Option<std::path::PathBuf> {
     use std::path::{Component, Path, PathBuf};
     if path.is_empty() {

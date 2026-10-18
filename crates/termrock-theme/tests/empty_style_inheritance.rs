@@ -1,4 +1,4 @@
-//! Owning EMPTY parts must style the actual shared readiness cells.
+
 use ratatui_core::layout::Rect;
 use ratatui_core::style::Color;
 use termrock_controls::Empty;
@@ -286,11 +286,11 @@ fn standalone_empty_cells_match_pre_inheritance_reference() {
             }
         }
     }
-    // Exact bytes captured from immutable db53dd5 before EMPTY inheritance.
-    // Independently derived from pinned Holla semantic role colors; only 26
-    // foreground cells change across the 32-frame pre-palette fixture.
-    // Evidence: theme-contract/independent-palette-projection/REVIEW.md,
-    // derivation SHA256 f4d919e9f47926b7262941cfdea4d45e12f83dfc6bf0da2bbda9565cfb090fbf.
+
+
+
+
+
     assert_eq!(fingerprint, 385_672_878_558_749_177);
 }
 

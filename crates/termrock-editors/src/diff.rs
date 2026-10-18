@@ -1,4 +1,4 @@
-//! `DiffView` — unified and side-by-side review over `TextViewport`.
+
 
 use core::fmt;
 
@@ -17,76 +17,76 @@ use termrock_viewport::viewport::{
     ProjectedText, TextViewport, ViewportAction, ViewportCmd, ViewportState,
 };
 
-/// Kind of one source line.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DiffLineKind {
-    /// Present on both sides.
+
     Context,
-    /// Present only on the new side.
+
     Add,
-    /// Present only on the old side.
+
     Remove,
 }
 
-/// One row exposed by a [`DiffSource`].
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DiffRow<'a> {
-    /// Start of a hunk.
+
     Hunk {
-        /// First old-side line number.
+
         old_start: usize,
-        /// First new-side line number.
+
         new_start: usize,
     },
-    /// A text line.
+
     Line {
-        /// Its diff kind.
+
         kind: DiffLineKind,
-        /// Text without a diff marker.
+
         text: &'a str,
     },
 }
 
-/// Borrowed source for one changed file.
-///
-/// This indexed projection lets an application expose its own change model
-/// without converting or cloning it. [`DiffSource::revision`] must change
-/// whenever any returned value changes.
+
+
+
+
+
 pub trait DiffSource {
-    /// Stable revision of every value exposed by this source.
+
     fn revision(&self) -> u64;
-    /// Current path.
+
     fn path(&self) -> &str;
-    /// One-letter status marker (`A`, `M`, `D`, or `R`).
+
     fn status_marker(&self) -> &str;
-    /// Human-readable status.
+
     fn status_label(&self) -> &str;
-    /// Semantic marker role.
+
     fn status_role(&self) -> Role {
         Role::Fg(FgStep::Secondary)
     }
-    /// Previous path for a rename.
+
     fn renamed_from(&self) -> Option<&str> {
         None
     }
-    /// Number of [`DiffRow`] values.
+
     fn row_count(&self) -> usize;
-    /// Row at `index`.
+
     fn row(&self, index: usize) -> Option<DiffRow<'_>>;
 }
 
-/// Diff presentation.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum DiffMode {
-    /// Classic unified listing.
+
     #[default]
     Unified,
-    /// Old and new sides in parallel columns.
+
     Review,
 }
 
 impl DiffMode {
-    /// User-facing label.
+
     pub const fn label(self) -> &'static str {
         match self {
             DiffMode::Unified => "unified",
@@ -94,7 +94,7 @@ impl DiffMode {
         }
     }
 
-    /// The other presentation.
+
     #[must_use]
     pub const fn toggled(self) -> Self {
         match self {
@@ -136,7 +136,7 @@ impl OwnedRun {
 
 type OwnedLine = Vec<OwnedRun>;
 
-/// Durable interaction state of a [`DiffView`].
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DiffViewState {
     viewport: ViewportState,
@@ -153,30 +153,30 @@ impl Default for DiffViewState {
 }
 
 impl DiffViewState {
-    /// Current mode.
+
     pub const fn mode(&self) -> DiffMode {
         self.mode
     }
 
-    /// Select a mode. The next update rebuilds the projection.
+
     pub fn set_mode(&mut self, mode: DiffMode) {
         if self.mode != mode {
             self.mode = mode;
         }
     }
 
-    /// Toggle and return the mode.
+
     pub fn toggle_mode(&mut self) -> DiffMode {
         self.set_mode(self.mode.toggled());
         self.mode
     }
 
-    /// Embedded viewport state.
+
     pub const fn viewport(&self) -> &ViewportState {
         &self.viewport
     }
 
-    /// Embedded viewport state, mutably.
+
     pub const fn viewport_mut(&mut self) -> &mut ViewportState {
         &mut self.viewport
     }
@@ -231,58 +231,58 @@ impl DiffLayout {
     }
 }
 
-/// A borrowed diff projection composed over [`TextViewport`].
-///
-/// ## Construction
-/// `DiffView::new(id, source)`; pass `None` for the no-file state.
-///
-/// ## Ownership
-/// The caller owns the [`DiffSource`] and [`DiffViewState`]. The runtime owns
-/// focus, hit routing and the viewport layout cache.
-///
-/// ## Configuration
-/// `.patch`, `.patch_part`, `.slot`; mode belongs to state.
-///
-/// ## Variants
-/// `Family::DIFF`, `Variant::DEFAULT`; presentation uses [`DiffMode`].
-///
-/// ## States
-/// Inherits viewport focus, hover, press and selection states.
-///
-/// ## Actions
-/// [`ViewportAction`] is forwarded unchanged: copy, selection and follow.
-///
-/// ## Focus
-/// Exactly the embedded viewport's one focus stop; no wrapper stop.
-///
-/// ## Keyboard
-/// Viewport bindings (`↑/↓`, pages, home/end, follow and copy). Mode switching
-/// is an application command calling [`DiffViewState::toggle_mode`].
-///
-/// ## Mouse
-/// Selection drag, double-click, wheel and scrollbar are the viewport's.
-///
-/// ## Layout
-/// Review rows measure equal columns around ` │ ` during update using the
-/// last-frame width. `measure` prefers 80×12; zero area remains inert.
-///
-/// ## Parts
-/// Exactly [`TextViewport::PARTS`]: `CONTAINER`, `TEXT`, `GUTTER`, `TRACK`,
-/// `THUMB`.
-///
-/// ## Overrides
-/// Every channel forwards to the viewport; its slot restrictions still apply.
-///
-/// ## Identity
-/// One `Id`; source identity is the caller-owned [`DiffSource::revision`].
-///
-/// ## Testing
-/// `DiffViewCase`; `render::components::diff_view::*`; unit tests retain the
-/// legacy unified/review/count/scroll behavior through a trait adapter.
-///
-/// ## Invariants
-/// No parallel diff data model and no render-time state transition. Rebuilds
-/// occur only for source revision, mode, or measured width changes.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct DiffView<'a> {
     id: Id,
     source: Option<&'a dyn DiffSource>,
@@ -303,10 +303,10 @@ impl fmt::Debug for DiffView<'_> {
 }
 
 impl<'a> DiffView<'a> {
-    /// Styled parts, exactly the embedded viewport's parts.
+
     pub const PARTS: &'static [Part] = TextViewport::PARTS;
 
-    /// A diff view over `source`.
+
     pub const fn new(id: Id, source: Option<&'a dyn DiffSource>) -> Self {
         DiffView {
             id,
@@ -317,26 +317,26 @@ impl<'a> DiffView<'a> {
         }
     }
 
-    /// Id.
+
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// Patch every viewport part.
+
     #[must_use]
     pub const fn patch(mut self, patch: &'a StylePatch) -> Self {
         self.patch = Some(patch);
         self
     }
 
-    /// Patch viewport parts.
+
     #[must_use]
     pub const fn patch_part(mut self, parts: &'a [(Part, StylePatch)]) -> Self {
         self.parts = parts;
         self
     }
 
-    /// Replace one viewport slot.
+
     #[must_use]
     pub const fn slot(mut self, part: Part, slot: SlotFn<'a>) -> Self {
         self.slot = Some((part, slot));
@@ -354,7 +354,7 @@ impl<'a> DiffView<'a> {
         viewport
     }
 
-    /// Rebuild when needed, then delegate interaction to `TextViewport`.
+
     pub fn update(&self, cx: &mut Cx<'_>, state: &mut DiffViewState) -> Response<ViewportAction> {
         let width = cx.area(self.id).map_or(80, |area| area.width);
         let mut layout = core::mem::take(cx.cache::<DiffLayout>(self.id));
@@ -370,7 +370,7 @@ impl<'a> DiffView<'a> {
         response
     }
 
-    /// Draw the measured projection through `TextViewport`.
+
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, state: &DiffViewState) -> Rect {
         let mut layout = core::mem::take(ui.cache::<DiffLayout>(self.id));
         layout.ensure(self.source, state.mode, area.width);
@@ -381,7 +381,7 @@ impl<'a> DiffView<'a> {
         used
     }
 
-    /// Preferred review surface.
+
     pub fn measure(&self, _ui: &Ui<'_>, constraints: Constraints) -> Size {
         Size {
             min: (24, 3),

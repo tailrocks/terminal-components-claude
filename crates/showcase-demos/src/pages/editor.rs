@@ -1,4 +1,4 @@
-//! Code editor page with cursor, insert mode and diagnostics.
+
 
 use std::ops::Range;
 
@@ -181,7 +181,7 @@ fn state_panel() -> Panel<'static> {
     Panel::new(STATE_PANEL).title("State")
 }
 
-/// Both phases label the editor card from the same live block count (§13).
+
 fn editor_meta(state: &CodeEditorState) -> String {
     if state.is_editing() {
         String::from("running ")
@@ -190,8 +190,8 @@ fn editor_meta(state: &CodeEditorState) -> String {
     }
 }
 
-/// The editor's durable document and semantic spans are initialized from the
-/// historical retry sample.
+
+
 #[derive(Debug)]
 pub struct EditorPage {
     state: CodeEditorState,
@@ -237,8 +237,8 @@ impl Page for EditorPage {
             .update_for(EDITOR, cx, &mut self.completion_state, SUGGESTIONS)
             .erase();
         result |= diff().update(cx, &mut self.diff_state).erase();
-        // Both phases build the same two cards (§13); the draw pass reaches
-        // the completion constructor beside them.
+
+
         let _ = editor_panel(&editor_meta(&self.state));
         let _ = state_panel();
         result.erase().into()
@@ -265,8 +265,8 @@ impl Page for EditorPage {
                 } else {
                     layout::split_h(body, left_width)
                 };
-                // The completion list renders through the state panel's readout,
-                // but the draw pass still builds the same props as update (§13).
+
+
                 let _ = completion();
                 let blocks = editor().blocks(&self.state).len();
                 editor_panel(&editor_meta(&self.state))

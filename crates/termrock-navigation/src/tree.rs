@@ -1,13 +1,13 @@
-//! `Tree` (`COMPONENT_ARCHITECTURE.md` §12.4, §18.2, §20.9-8, Appendix A 4C).
-//!
-//! The legacy `TreeView` owned a `Vec<FlatRow>` of cloned labels and rebuilt
-//! it on every expand, collapse, filter change and lazy delivery — ≈300 000
-//! allocations per toggle on a 100 k-node tree (§16.6
-//! `tree_100k_nodes_flatten`). The runtime now owns a keyed `TreeIndex` of
-//! source positions and structural metadata. It holds no borrowed item or
-//! text, is built once per explicit source/query revision, and is shared by
-//! update and draw. A branch toggle splices only its contiguous subtree;
-//! unchanged phases read the visible window directly.
+
+
+
+
+
+
+
+
+
+
 
 use core::fmt;
 use core::marker::PhantomData;
@@ -35,38 +35,38 @@ use termrock_runtime::scroll_region::ScrollRegion;
 use termrock_runtime::ui::{Cx, FrameRead, Ui};
 use termrock_theme::{Family, GlyphRole, Slot, StylePatch, Variant};
 
-/// Whether a node can be opened, and whether its children are already in the
-/// slice.
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum NodeKind {
-    /// No children; the disclosure cell stays blank.
+
     #[default]
     Leaf,
-    /// Children follow in the slice at a greater depth.
+
     Parent,
-    /// Children are fetched on first expand. Expanding emits
-    /// [`TreeAction::Expanded`] and the caller appends the children to the
-    /// slice it passes on the next frame.
+
+
+
     Lazy,
 }
 
-/// What Enter and double-click do on a branch. Disclosure and Space are separate.
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TreeBranchActivation {
-    /// Open or close the branch (the default).
+
     #[default]
     Toggle,
-    /// Emit `TreeAction::Activated` for the branch's stable key.
+
     Activate,
 }
 
-/// What a row click does on a branch. Clicking its disclosure still toggles it.
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum TreeBranchClick {
-    /// Open or close the branch (the default).
+
     #[default]
     Toggle,
-    /// Choose the branch and emit `TreeAction::Chose`.
+
     Choose,
 }
 
@@ -78,12 +78,12 @@ enum Engagement {
     SelectedClick,
 }
 
-/// What the tree needs to know about one item: its depth, whether it opens,
-/// and optionally its stable key.
-///
-/// The node carries **no text**: the label, the metadata and any kind glyph
-/// are the row renderer's job, which is what deletes `FlatRow`'s duplicated
-/// `label`/`meta` (§18.2).
+
+
+
+
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct TreeNode {
     depth: u16,
@@ -92,7 +92,7 @@ pub struct TreeNode {
 }
 
 impl TreeNode {
-    /// A childless node at `depth`.
+
     #[must_use]
     pub const fn leaf(depth: u16) -> Self {
         TreeNode {
@@ -102,7 +102,7 @@ impl TreeNode {
         }
     }
 
-    /// A node whose children follow in the slice at a greater depth.
+
     #[must_use]
     pub const fn parent(depth: u16) -> Self {
         TreeNode {
@@ -112,7 +112,7 @@ impl TreeNode {
         }
     }
 
-    /// A node whose children arrive after [`TreeAction::Expanded`].
+
     #[must_use]
     pub const fn lazy(depth: u16) -> Self {
         TreeNode {
@@ -122,81 +122,81 @@ impl TreeNode {
         }
     }
 
-    /// Give the node a caller key, overriding the tree's `.key(…)` accessor
-    /// for this item (§12.4).
+
+
     #[must_use]
     pub const fn keyed(mut self, k: ItemKey) -> Self {
         self.key = Some(k);
         self
     }
 
-    /// The node's depth; the root level is `0`.
+
     #[must_use]
     pub const fn depth(self) -> u16 {
         self.depth
     }
 
-    /// The node's kind.
+
     #[must_use]
     pub const fn kind(self) -> NodeKind {
         self.kind
     }
 
-    /// The caller key set by [`TreeNode::keyed`], if any.
+
     #[must_use]
     pub const fn key(self) -> Option<ItemKey> {
         self.key
     }
 
-    /// Whether the node has a disclosure affordance.
+
     #[must_use]
     pub const fn has_children(self) -> bool {
         matches!(self.kind, NodeKind::Parent | NodeKind::Lazy)
     }
 }
 
-/// What a tree reports; every action carries the node's key.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TreeAction {
-    /// The cursor moved.
+
     Moved,
-    /// A node was opened. For a [`NodeKind::Lazy`] node this is the request
-    /// to fetch its children.
+
+
     Expanded(ItemKey),
-    /// A node was closed.
+
     Collapsed(ItemKey),
-    /// A leaf was chosen (Space, or a click on a leaf row).
+
     Chose(ItemKey),
-    /// A leaf was activated (Enter, or a double-click).
+
     Activated(ItemKey),
 }
 
-/// The const-constructible commands of the tree keymap.
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TreeCmd {
-    /// Cursor up.
+
     Up,
-    /// Cursor down.
+
     Down,
-    /// Cursor up one viewport.
+
     PageUp,
-    /// Cursor down one viewport.
+
     PageDown,
-    /// Cursor to the first row.
+
     Home,
-    /// Cursor to the last row.
+
     End,
-    /// Open the cursor node, or descend into it.
+
     Expand,
-    /// Close the cursor node, or move to its parent.
+
     Collapse,
-    /// Toggle a branch, activate a leaf.
+
     Activate,
-    /// Choose the cursor leaf.
+
     Choose,
-    /// Open every node.
+
     ExpandAll,
-    /// Close every node.
+
     CollapseAll,
 }
 
@@ -326,8 +326,8 @@ const TABLE: [Binding<TreeCmd>; 16] = [
     ),
 ];
 
-/// The same table plus the two whole-tree chords, used when the tree has at
-/// least one openable node.
+
+
 const TABLE_FOLDABLE: [Binding<TreeCmd>; 18] = [
     TABLE[0],
     TABLE[1],
@@ -361,13 +361,13 @@ const TABLE_FOLDABLE: [Binding<TreeCmd>; 18] = [
     ),
 ];
 
-/// Durable state of a [`Tree`]: the cursor key, the expanded set, the chosen
-/// leaf, the scroll offset, reconcile stamp and monotonic structural
-/// generations consumed by the runtime-owned index.
-///
-/// Everything here is a **key**, never a path and never an index, which is
-/// what deletes the legacy `expanded: HashSet<Vec<usize>>` and the
-/// `object_at`/`schema_at` path reconstruction (§18.2).
+
+
+
+
+
+
+
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct TreeState {
     core: CollectionCore,
@@ -375,7 +375,7 @@ pub struct TreeState {
     expansion_lineage: Option<Arc<()>>,
     expanded: KeySet,
     chosen: Option<ItemKey>,
-    // Selection transaction only; pointer feedback remains runtime-owned.
+
     click_cursor: Option<ItemKey>,
     expand_generation: u64,
     source_generation: u64,
@@ -392,7 +392,7 @@ struct ExpansionChange {
 }
 
 impl TreeState {
-    /// A collapsed tree with no cursor.
+
     #[must_use]
     pub const fn new() -> Self {
         TreeState {
@@ -410,36 +410,36 @@ impl TreeState {
         }
     }
 
-    /// The cursor key.
+
     #[must_use]
     pub const fn cursor(&self) -> Option<ItemKey> {
         self.core.cursor()
     }
 
-    /// The chosen row (branches can be chosen with the opt-in click policy).
+
     #[must_use]
     pub const fn chosen(&self) -> Option<ItemKey> {
         self.chosen
     }
 
-    /// Choose a row, or clear the choice.
+
     pub const fn choose(&mut self, key: Option<ItemKey>) {
         self.chosen = key;
     }
 
-    /// The expanded set.
+
     #[must_use]
     pub const fn expanded(&self) -> &KeySet {
         &self.expanded
     }
 
-    /// Whether `key` is open.
+
     #[must_use]
     pub fn is_expanded(&self, key: ItemKey) -> bool {
         self.expanded.contains(key)
     }
 
-    /// Open `key`.
+
     pub fn expand(&mut self, key: ItemKey) {
         if !self.expanded.contains(key) {
             Self::prepare_lineage(&mut self.expansion_lineage);
@@ -448,7 +448,7 @@ impl TreeState {
         }
     }
 
-    /// Close `key`.
+
     pub fn collapse(&mut self, key: ItemKey) {
         if self.expanded.contains(key) {
             Self::prepare_lineage(&mut self.expansion_lineage);
@@ -457,7 +457,7 @@ impl TreeState {
         }
     }
 
-    /// Toggle `key`; returns whether it is open afterwards.
+
     pub fn toggle(&mut self, key: ItemKey) -> bool {
         Self::prepare_lineage(&mut self.expansion_lineage);
         self.expanded.toggle(key);
@@ -466,9 +466,9 @@ impl TreeState {
         expanded
     }
 
-    /// Open every node without materialising its keys (`KeySet::AllExcept(∅)`).
-    /// The first structural mutation establishes one constant-size lineage;
-    /// subsequent mutations allocate no lineage unless a clone diverges.
+
+
+
     pub fn expand_all(&mut self) {
         Self::prepare_lineage(&mut self.expansion_lineage);
         self.expanded.all();
@@ -476,7 +476,7 @@ impl TreeState {
         self.last_expansion = None;
     }
 
-    /// Close every node.
+
     pub fn collapse_all(&mut self) {
         if !self.expanded.is_empty() {
             Self::prepare_lineage(&mut self.expansion_lineage);
@@ -486,30 +486,30 @@ impl TreeState {
         }
     }
 
-    /// The scroll state.
+
     #[must_use]
     pub const fn scroll(&self) -> &ScrollState {
         self.core.scroll()
     }
 
-    /// Point the cursor at the row showing `key`, which is display row
-    /// `index`, and reveal it on the next layout.
+
+
     pub fn set_cursor(&mut self, index: usize, key: ItemKey) {
         self.core.set_cursor(index, key);
     }
 
-    /// Report that the borrowed source changed without changing its length.
-    ///
-    /// Appending or removing nodes is detected from the length. In-place
-    /// edits, reorderings and replacements of an equal-length slice require
-    /// this explicit invalidation before the next phase.
+
+
+
+
+
     pub fn invalidate(&mut self) {
         Self::prepare_lineage(&mut self.source_lineage);
         if let Some(next) = self.source_generation.checked_add(1) {
             self.source_generation = next;
         } else {
-            // A saturated revision cannot identify later mutations. Enter a
-            // fail-safe mode where the runtime never reuses the source index.
+
+
             self.source_generation_saturated = true;
         }
         self.core.invalidate();
@@ -529,15 +529,15 @@ impl TreeState {
         if let Some(next) = self.expand_generation.checked_add(1) {
             self.expand_generation = next;
         } else {
-            // Preserve correctness after saturation: every later phase must
-            // rebuild instead of treating equal revisions as unchanged.
+
+
             self.expand_generation_saturated = true;
         }
     }
 
-    // Generations identify mutations only within one state lineage. Clones
-    // share unchanged structure, then split before either branch mutates.
-    // The index holds only a Weak, so ordinary toggles never split or allocate.
+
+
+
     fn prepare_lineage(lineage: &mut Option<Arc<()>>) {
         if lineage
             .as_ref()
@@ -547,8 +547,8 @@ impl TreeState {
         }
     }
 
-    /// The cursor and the expanded set, borrowed disjointly so the reconcile
-    /// closures can read the expansion while the core is being written.
+
+
     fn parts_mut(&mut self) -> (&mut CollectionCore, &KeySet) {
         (&mut self.core, &self.expanded)
     }
@@ -570,117 +570,117 @@ impl Reconcile for TreeState {
     }
 }
 
-/// A keyed, scrollable hierarchy over a borrowed pre-order slice.
-///
-/// ## Construction
-/// `Tree::new(id)`; the nodes are passed to each phase, never held. Without
-/// a `.node(…)` accessor every item is a depth-0 leaf, so an unconfigured
-/// tree is a flat list.
-///
-/// ## Ownership
-/// The caller owns the nodes (`&[T]` per phase, **pre-order**: a node's
-/// descendants follow it contiguously at a greater depth) and a
-/// [`TreeState`]. The runtime owns focus, hover, press, wheel routing and
-/// the scrollbar capture.
-///
-/// ## Configuration
-/// `.node(&dyn Fn(&T) -> TreeNode)` (default: every item is
-/// `TreeNode::leaf(0)`), `.key(Fn(&T) -> ItemKey)` (`ByIndex`, unstable
-/// under reorder — [`TreeNode::keyed`] wins over it), `.row(Fn(&T, &mut
-/// RowUi))` (`DefaultRow`: `Display`), `.disabled_item(&dyn Fn(&T) -> bool)`,
-/// `.query(revision, &dyn Fn(&T) -> bool)` (strict matches plus ancestors),
-/// `.disabled(bool)` (default `false`), `.empty(EmptyState)` (a default
-/// "Nothing here yet"), `.patch`, `.patch_part`, `.slot`.
-///
-/// ## Variants
-/// `Family::TREE`, `DEFAULT` only.
-///
-/// ## States
-/// The tree wears `FOCUSED`, `FOCUS_VISIBLE`, `HOVERED` and `PRESSED` from
-/// the runtime and `DISABLED` from `.disabled`. A row derives `FOCUSED` /
-/// `FOCUS_VISIBLE` / `PRESSED` when it is the cursor, `SELECTED` when it is
-/// the chosen leaf, `EXPANDED` when it is an open branch, and `DISABLED`
-/// from `.disabled_item` or from the whole tree being disabled. The tree
-/// takes **no** `.status(Status)` prop: readiness in a tree is per node
-/// (`NodeKind::Lazy`), not per component, and §11.4 forbids accepting a
-/// readiness prop without painting its affordance.
-///
-/// ## Actions
-/// `Moved`, `Expanded(k)`, `Collapsed(k)`, `Chose(k)`, `Activated(k)`.
-/// `Expanded(k)` on a [`NodeKind::Lazy`] node is the fetch request the
-/// legacy `TreeEvent::Expand(path)` was, now carrying a key instead of a
-/// `Vec<usize>`.
-///
-/// ## Focus
-/// One `Focusable` stop for the whole tree (`Disabled` when `.disabled`);
-/// does not swallow typing.
-///
-/// ## Keyboard
-/// `↑`/`k`, `↓`/`j`, `PgUp`, `PgDn`, `Home`/`g`, `End`/`G`; `→`/`l` opens a
-/// closed branch or descends into an open one; `←`/`h` closes an open branch
-/// or moves to its parent; `Enter` toggles a branch and activates a leaf;
-/// `Space` chooses a leaf or toggles a branch. Opt-in `branch_activation`
-/// lets Enter activate branches without changing Space. When at least one node in the slice can open,
-/// `*` and `-` open and close everything.
-///
-/// ## Mouse
-/// `PartRef::item(Part::ROW, k)`: press moves the cursor, click toggles a
-/// branch or chooses a leaf, double-click activates a leaf. `branch_click`
-/// can choose branches instead; `branch_activation` also applies to double-click.
-/// `PartRef::item(Part::ICON, k)` is a branch disclosure: press moves the
-/// cursor and click toggles that branch without choosing it. A leaf's blank
-/// fold cell chooses that leaf, while a caller-painted leaf icon remains row
-/// body. `TRACK`/`THUMB` and the wheel go to the embedded [`ScrollRegion`].
-///
-/// ## Layout
-/// One row per visible node: gutter, `depth × design.space.tree_indent`
-/// columns of indent, the one-cell disclosure, then the renderer's row; a
-/// scrollbar column when the visible rows overflow. `measure` is
-/// `(8…, offered height)`; `draw` returns `area`. `0×0` registers nothing
-/// (R5).
-///
-/// ## Parts
-/// `CONTAINER` (the tree surface and each row's fill), `GUTTER` (the focus
-/// column), `ICON` (a branch disclosure or a leaf's blank fold cell and its
-/// hit zone), `MARKER` (the
-/// reserved cell after disclosure), `LABEL` (resolved through [`RowUi`] by
-/// the row renderer), `TRACK` / `THUMB` (the embedded [`ScrollRegion`]),
-/// `EMPTY` (the no-nodes state). `Part::ROW` is a hit region only and is
-/// deliberately not styled.
-///
-/// ## Overrides
-/// `.patch` and `.patch_part` reach `Part::CONTAINER`, `Part::GUTTER`,
-/// `Part::ICON`, `Part::MARKER`, `Part::LABEL` and `Part::EMPTY`, and are
-/// forwarded to the embedded [`ScrollRegion`] so they also reach
-/// `Part::TRACK` and `Part::THUMB`. Owner `CONTAINER` and `LABEL` patches are
-/// forwarded only to [`RowUi`]'s automatic row fill and label painters;
-/// caller-painted row parts keep their own styles.
-/// `.slot(p, …)` changes painted cells for exactly `Part::GUTTER`,
-/// `Part::ICON`, `Part::MARKER`, `Part::EMPTY`, `Part::TRACK` and
-/// `Part::THUMB`.
-/// `Part::CONTAINER` and `Part::LABEL` are **not** slot-addressable: the
-/// container fill is overpainted by every row, and the label belongs to the
-/// row renderer, which is the caller's own painter already.
-///
-/// ## Identity
-/// [`TreeNode::keyed`] first, then `.key`, then `ByIndex` — which is
-/// unstable under insert, remove and reorder. Expansion, the cursor and the
-/// chosen leaf are all stored as `ItemKey`, so a node keeps its state across
-/// an expand, a collapse and a reorder
-/// (`tree::expand_collapse_is_keyed_not_positional`).
-///
-/// ## Testing
-/// `TreeCase` with `ACTIVATES | DISABLEABLE | FOCUSABLE | COLLECTION |
-/// SCROLLS`; `render::components::tree::*`. `CAPTURES` belongs to the
-/// embedded [`ScrollRegion`], whose thumb claims the capture, and is
-/// declared by `ScrollRegionCase`.
-///
-/// ## Invariants
-/// `reconcile` runs before any action is emitted. The runtime cache owns only
-/// source indexes, keys, depth and kind — never `T` or borrowed text. Initial
-/// source/query changes rebuild once; ordinary expand/collapse splices the
-/// affected contiguous subtree; unchanged update and draw are bounded by the
-/// viewport. Only visible rows invoke the borrowed row renderer.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
@@ -701,20 +701,20 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     disabled: bool,
     empty: Option<EmptyState<'a>>,
     ov: PartStyle<'a>,
-    /// The same three override channels again, kept because `PartStyle` has
-    /// no readers: forwarding a caller's `.patch` / `.patch_part` / `.slot`
-    /// into the embedded [`ScrollRegion`] is the §45.1 defect `List` still
-    /// carries, and it cannot be done from the stored `PartStyle` alone.
+
+
+
+
     fwd_patch: Option<&'a StylePatch>,
     fwd_parts: &'a [(Part, StylePatch)],
     fwd_slot: Option<(Part, SlotFn<'a>)>,
     _t: PhantomData<fn(&T)>,
 }
 
-/// Borrowed tree icon callback.
+
 pub type TreeIconFn<'a, T> = &'a dyn Fn(&T) -> Option<(&'static str, StylePatch)>;
 
-/// Borrowed tree trailing-mark callback.
+
 pub type TreeTrailingMarkFn<'a, T> = &'a dyn Fn(&T) -> Option<(GlyphRole, StylePatch)>;
 
 type TreeRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
@@ -737,7 +737,7 @@ impl<T, K, R> fmt::Debug for Tree<'_, T, K, R> {
 }
 
 impl<T> Tree<'_, T, ByIndex, DefaultRow> {
-    /// A tree keyed by index and painted through `Display`.
+
     #[must_use]
     pub const fn new(id: Id) -> Self {
         Tree {
@@ -769,7 +769,7 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> Tree<'a, T, K, R> {
-    /// The parts this component styles.
+
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
         Part::GUTTER,
@@ -781,104 +781,104 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         Part::EMPTY,
     ];
 
-    /// The width `measure` prefers.
+
     pub const PREFERRED_WIDTH: u16 = 28;
 
-    /// The id.
+
     #[must_use]
     pub const fn id(&self) -> Id {
         self.id
     }
 
-    /// The hierarchy accessor: depth, disclosure and an optional caller key.
+
     #[must_use]
     pub const fn node(mut self, f: &'a dyn Fn(&T) -> TreeNode) -> Self {
         self.node = Some(f);
         self
     }
 
-    /// Replace the fold cell, or keep the stock disclosure.
-    ///
-    /// `None` keeps the branch disclosure or the blank leaf and does not
-    /// paint a second icon. `Some` paints that one-cell string with the
-    /// patch; a custom leaf icon stays on the row-body hit.
+
+
+
+
+
     #[must_use]
     pub const fn icon(mut self, f: TreeIconFn<'a, T>) -> Self {
         self.icon = Some(f);
         self
     }
 
-    /// Reserve a trailing glyph cell without handing the row a painter.
-    ///
-    /// `None` leaves the row width unchanged. `Some` shrinks that row's
-    /// [`RowUi`] by two cells and paints the glyph at the row's right-2.
+
+
+
+
     #[must_use]
     pub const fn trailing_mark(mut self, f: TreeTrailingMarkFn<'a, T>) -> Self {
         self.trailing_mark = Some(f);
         self
     }
 
-    /// Extra patch for the focused cursor row only.
-    ///
-    /// Merged into that row's fill and label. Other rows keep the shared
-    /// container recipe, so a tint here does not recolor the rest of the tree.
+
+
+
+
     #[must_use]
     pub const fn focused_patch(mut self, patch: &'a StylePatch) -> Self {
         self.focused_patch = Some(patch);
         self
     }
 
-    /// Configure branch Enter/double-click without changing Space or disclosure toggles.
+
     #[must_use]
     pub const fn branch_activation(mut self, policy: TreeBranchActivation) -> Self {
         self.branch_activation = policy;
         self
     }
 
-    /// Configure branch row-click without changing disclosure clicks.
+
     #[must_use]
     pub const fn branch_click(mut self, policy: TreeBranchClick) -> Self {
         self.branch_click = policy;
         self
     }
 
-    /// Activate a row clicked while it was already the cursor at pointer press.
-    /// Defaults to false. When enabled, both single and double clicks use this
-    /// semantic selection rule, independent of the double-click deadline.
-    /// A newly selected row follows `branch_click`; disclosure clicks still
-    /// toggle, and dragging or canceling the press never activates a row.
+
+
+
+
+
     #[must_use]
     pub const fn activate_selected_on_click(mut self, enabled: bool) -> Self {
         self.activate_selected_on_click = enabled;
         self
     }
 
-    /// Blank cells between the row gutter and its depth-indented prefix.
-    /// Defaults to zero. Applies to default paint and shared disclosure hits.
+
+
     #[must_use]
     pub const fn gutter_gap(mut self, cells: u16) -> Self {
         self.gutter_gap = cells;
         self
     }
 
-    /// Disclosure hit width, starting at its glyph and clipped to the row.
-    /// Defaults to one; zero disables the disclosure hit without changing paint.
+
+
     #[must_use]
     pub const fn disclosure_hit_width(mut self, cells: u16) -> Self {
         self.disclosure_hit_width = cells;
         self
     }
 
-    /// Present the cursor row as selected, including while unfocused.
-    /// Defaults to false (the chosen row is selected). Does not change chosen
-    /// identity, actions, focus, or expansion.
+
+
+
     #[must_use]
     pub const fn cursor_selected(mut self, enabled: bool) -> Self {
         self.cursor_selected = enabled;
         self
     }
 
-    /// A stable key accessor. [`TreeNode::keyed`] overrides it per node.
+
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Tree<'a, T, K2, R> {
         Tree {
             id: self.id,
@@ -907,16 +907,16 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         }
     }
 
-    /// Replace the complete visible row's paint through a borrowed callback.
-    ///
-    /// Tree retains hierarchy, scrolling, input, row hits and disclosure hits.
-    /// The callback receives the authoritative row, final flags, stable key and
-    /// borrowed item. Writes are clipped to the row and ancestor clip; no default
-    /// row painter runs. Resolve semantic styles in the callback: instance parts
-    /// and slots customize only the default painter.
-    ///
-    /// Items need not implement `Display`. Later `key` and `row` builders retain
-    /// this renderer. Shared disclosure hits remain at Tree's prefix cells.
+
+
+
+
+
+
+
+
+
+
     #[must_use]
     pub fn render_row(self, renderer: TreeRowRenderer<'a, T>) -> Tree<'a, T, K, impl RowFn<T>> {
         let mut tree = self.row(|_: &T, _: &mut RowUi<'_>| {});
@@ -924,7 +924,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         tree
     }
 
-    /// A row painter, called only for the visible rows.
+
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tree<'a, T, K, R2> {
         Tree {
             id: self.id,
@@ -953,40 +953,40 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         }
     }
 
-    /// Which nodes are not selectable (the legacy `note` rows).
+
     #[must_use]
     pub const fn disabled_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.disabled_item = Some(f);
         self
     }
 
-    /// Filter nodes with a borrowed matcher and a stable caller revision.
-    ///
-    /// Matching nodes retain their ancestor path. The caller must change
-    /// `revision` whenever the matcher's meaning changes; the runtime then
-    /// rebuilds the filtered index once and shares it across update/draw.
+
+
+
+
+
     #[must_use]
     pub const fn query(mut self, revision: u64, matcher: &'a dyn Fn(&T) -> bool) -> Self {
         self.query = Some(TreeQuery { revision, matcher });
         self
     }
 
-    /// Disable the whole tree: it stays in the ring, unreachable, and
-    /// ignores every input.
+
+
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
         self
     }
 
-    /// What to paint when there are no nodes.
+
     #[must_use]
     pub const fn empty(mut self, e: EmptyState<'a>) -> Self {
         self.empty = Some(e);
         self
     }
 
-    /// An instance patch over every part.
+
     #[must_use]
     pub const fn patch(mut self, p: &'a StylePatch) -> Self {
         self.ov = self.ov.global(p);
@@ -994,7 +994,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-    /// Per-part instance patches.
+
     #[must_use]
     pub const fn patch_part(mut self, ps: &'a [(Part, StylePatch)]) -> Self {
         self.ov = self.ov.part(ps);
@@ -1002,7 +1002,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-    /// Replace one part's painting.
+
     #[must_use]
     pub const fn slot(mut self, p: Part, f: SlotFn<'a>) -> Self {
         self.ov = self.ov.slot(p, f);
@@ -1010,9 +1010,9 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
-    /// The embedded scroll region, carrying the caller's overrides (§45.1:
-    /// a nested component built bare silently drops `.patch_part` and
-    /// `.slot`).
+
+
+
     fn scrollbar(&self) -> ScrollRegion<'a> {
         let mut s = ScrollRegion::new(self.id).patch_part(self.fwd_parts);
         if let Some(p) = self.fwd_patch {
@@ -1024,7 +1024,7 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         s
     }
 
-    /// The derived half of the state (§39.2, Invariant Q).
+
     const fn derived(&self) -> StateFlags {
         if self.disabled {
             StateFlags::DISABLED
@@ -1042,8 +1042,8 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
     }
 }
 
-/// One source row in the runtime-owned tree index. It contains no borrowed
-/// item or text, so clearing the cache can never invalidate application data.
+
+
 #[derive(Clone, Copy, Debug)]
 struct FlatRef {
     source: usize,
@@ -1053,7 +1053,7 @@ struct FlatRef {
     included: bool,
 }
 
-/// Derived structure shared by update and draw for one tree id.
+
 #[derive(Default)]
 struct TreeIndex {
     initialized: bool,
@@ -1108,8 +1108,8 @@ impl TreeIndex {
             self.expansion_lineage.as_ref(),
             state.expansion_lineage.as_ref(),
         );
-        // A never-mutated cached expansion is the known empty set. Its first
-        // change can still use the existing single-subtree splice.
+
+
         let from_empty = self.expansion_lineage.is_none() && self.expand_generation == 0;
         if !same_expansion {
             self.expansion_lineage = state.expansion_lineage.as_ref().map(Arc::downgrade);
@@ -1182,8 +1182,8 @@ impl TreeIndex {
         self.apply_query(tree, items);
         self.rebuild_visible(&state.expanded);
         self.initialized = true;
-        // Retaining the weak allocation prevents address reuse (ABA) while
-        // this cache still refers to the previous state's lineage.
+
+
         self.source_lineage = state.source_lineage.as_ref().map(Arc::downgrade);
         self.expansion_lineage = state.expansion_lineage.as_ref().map(Arc::downgrade);
         self.source_generation = state.source_generation;
@@ -1342,7 +1342,7 @@ impl TreeIndex {
     }
 }
 
-/// One visible row, resolved once and painted once.
+
 #[derive(Clone, Copy)]
 struct Row {
     rect: Rect,
@@ -1395,7 +1395,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
-    /// Open or close the node at display row `d`; emits nothing for a leaf.
+
     fn toggle_at(
         &self,
         st: &mut TreeState,
@@ -1439,8 +1439,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         true
     }
 
-    /// Enter / a click on a row: toggle a branch, otherwise choose or
-    /// activate the leaf.
+
+
     fn engage(
         &self,
         st: &mut TreeState,
@@ -1483,7 +1483,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         );
     }
 
-    /// `←` / `h`: close an open branch, else move to the parent row.
+
     fn collapse_or_parent(
         &self,
         st: &mut TreeState,
@@ -1528,7 +1528,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        // the parent is the nearest earlier row at a smaller depth
+
         let mut probe = d;
         while probe > 0 {
             probe = probe.saturating_sub(1);
@@ -1546,7 +1546,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         acc.consumed();
     }
 
-    /// `→` / `l`: open a closed branch, else step into it.
+
     fn expand_or_descend(
         &self,
         st: &mut TreeState,
@@ -1638,8 +1638,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
-    /// The update phase: reconcile over the **visible** rows, then drain
-    /// keys, pointer and wheel.
+
+
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TreeState, items: &[T]) -> Response<TreeAction> {
         if self.disabled {
             st.click_cursor = None;
@@ -1695,15 +1695,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         if released {
             st.click_cursor = None;
         }
-        // a toggle changed how many rows there are; the scrollbar must not
-        // spend a frame believing the old count
+
+
         let after = index.visible.len();
         st.core.scroll_mut().set_content(after);
         acc.finish(self.id)
     }
 
-    /// Reconcile the cursor and the chosen leaf against the visible rows and
-    /// seed the cursor when there is none. Returns the visible row count.
+
+
     fn reconcile(&self, st: &mut TreeState, items: &[T], index: &TreeIndex) -> usize {
         let len = index.visible.len();
         {
@@ -1836,7 +1836,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
-    /// The draw phase.
+
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &TreeState, items: &[T]) -> Rect {
         if area.is_empty() {
             return area;
@@ -1946,7 +1946,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             .draw_inherited(ui, mid, 0, inherited);
     }
 
-    /// Resolve one visible row's identity, flags and disclosure glyph.
+
     fn row_of(st: &TreeState, context: RowContext) -> Row {
         let RowContext {
             node,
@@ -2061,8 +2061,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
-    /// Paint the fold cell. A custom icon replaces the disclosure glyph and,
-    /// on a leaf, opts that cell out of the disclosure hit.
+
+
     fn paint_fold(
         &self,
         ui: &mut Ui<'_>,
@@ -2083,7 +2083,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     &patch,
                 )
                 .style;
-            // No explicit background keeps the row fill, including a focused tint.
+
             let style = if matches!(patch.bg, Slot::Inherit) {
                 style.with_bg_from(row_style)
             } else {
@@ -2106,14 +2106,14 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 Slot::Set(g) => {
                     ui.glyph(fold, g, icon.style);
                 }
-                // A leaf has no disclosure glyph. Its reserved blank cell
-                // inherits the row, while an explicit ICON patch keeps the
-                // part independently styleable.
+
+
+
                 Slot::Inherit if row.disclosure.is_none() && !has_icon_patch => {
                     ui.fill(fold, row_style);
                 }
-                // A branch keeps painting its disclosure glyph with the ICON
-                // recipe.
+
+
                 Slot::Inherit => {
                     if let Some(glyph) = row.disclosure {
                         ui.glyph(fold, glyph, icon.style);
@@ -2145,8 +2145,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 &patch,
             )
             .style;
-        // No explicit background keeps the row fill, so a focused tint
-        // stays behind the mark.
+
+
         let style = if matches!(patch.bg, Slot::Inherit) {
             style.with_bg_from(row_style)
         } else {
@@ -2188,8 +2188,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         let marker = cell_at(row.rect, fold_x.saturating_add(1));
         self.paint_marker(ui, row, marker);
         let trailing = self.trailing_mark.and_then(|paint| paint(item));
-        // The content edge is already the row end. A trailing mark reserves
-        // two cells on this row only and does not add another pad.
+
+
         let mut rest = Rect {
             x: fold_x.saturating_add(2),
             width: row
@@ -2236,8 +2236,8 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
 
     fn register_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, has_custom_icon: bool) {
         ui.register_part(self.id, PartRef::item(Part::ROW, row.key), row.rect);
-        // A branch disclosure and a leaf's blank fold cell win hit-testing
-        // over the row. A caller-painted leaf icon remains row body.
+
+
         if self.disclosure_hit_width > 0 && (row.disclosure.is_some() || !has_custom_icon) {
             let fold = Rect {
                 x: self.fold_x(row, indent),
@@ -2273,7 +2273,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
-    /// The natural size: 28 columns, whatever height is offered.
+
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
             min: (8, 1),
@@ -2330,7 +2330,7 @@ mod tests {
 
     const TREE: Id = Id::root("tree.tests");
 
-    /// A node the tests describe positionally: `(name, depth, parent)`.
+
     #[derive(Clone, Copy, Debug)]
     struct N(&'static str, u16, bool);
 
@@ -2353,7 +2353,7 @@ mod tests {
         Tree::new(TREE).node(&node)
     }
 
-    /// The labels the tree would paint, in order, without painting anything.
+
     fn visible(t: &Tree<'_, N>, items: &[N], st: &TreeState) -> Vec<&'static str> {
         let mut index = TreeIndex::default();
         index.sync(t, st, items);
@@ -2641,8 +2641,8 @@ mod tests {
         buffer
     }
 
-    /// A forest with two roots, each with two children, the second of which
-    /// has a grandchild.
+
+
     const FOREST: [N; 8] = [
         N("alpha", 0, true),
         N("a1", 1, false),
@@ -2654,13 +2654,13 @@ mod tests {
         N("b2x", 2, false),
     ];
 
-    /// §16.1 `tree::expand_collapse_is_keyed_not_positional`, and the §33
-    /// hazard verbatim: `ChipBar` lost a chip's identity after a reorder
-    /// because `draw` iterated from index 0 while the state was
-    /// key-addressed. A tree with a scroll window has the same shape, so the
-    /// expanded set, the cursor and the chosen leaf are all `ItemKey` and
-    /// every one of them must survive an expand, a collapse **and** a
-    /// reorder of the slice.
+
+
+
+
+
+
+
     #[test]
     fn expand_collapse_is_keyed_not_positional() {
         let t = tree();
@@ -2668,17 +2668,17 @@ mod tests {
         let beta = ItemKey::text("beta");
         let alpha = ItemKey::text("alpha");
 
-        // nothing is open: two roots
+
         assert_eq!(visible(&t, &FOREST, &st), ["alpha", "beta"]);
 
-        // open the SECOND root, and remember it by key
+
         st.expand(beta);
         st.set_cursor(2, ItemKey::text("b1"));
         st.choose(Some(ItemKey::text("b1")));
         assert_eq!(visible(&t, &FOREST, &st), ["alpha", "beta", "b1", "b2"]);
 
-        // reorder: `beta`'s subtree moves to the front. Positional identity
-        // would now have `alpha` open — index 0 was the open one.
+
+
         let reordered = [
             FOREST[4], FOREST[5], FOREST[6], FOREST[7], FOREST[0], FOREST[1], FOREST[2], FOREST[3],
         ];
@@ -2693,8 +2693,8 @@ mod tests {
             "the same NODE is open after the reorder, not the same index"
         );
 
-        // the cursor and the chosen leaf still name `b1`, and reconciling
-        // against the reordered slice moves them to its new display row
+
+
         let mut st2 = st.clone();
         let mut index = TreeIndex::default();
         index.sync(&t, &st2, &reordered);
@@ -2703,13 +2703,13 @@ mod tests {
         assert_eq!(st2.cursor(), Some(ItemKey::text("b1")));
         assert_eq!(st2.chosen(), Some(ItemKey::text("b1")));
 
-        // collapse it again by key; `alpha` is untouched throughout
+
         st.collapse(beta);
         assert_eq!(visible(&t, &reordered, &st), ["beta", "alpha"]);
         assert!(!st.is_expanded(beta));
 
-        // a grandchild only appears when BOTH ancestors are open, and each
-        // is addressed by its own key
+
+
         st.expand(beta);
         st.expand(ItemKey::text("b2"));
         assert_eq!(
@@ -2718,18 +2718,18 @@ mod tests {
         );
     }
 
-    /// §16.1 `tree::lazy_children_do_not_reflatten_the_world`.
-    ///
-    /// The legacy `TreeView::flatten` built a `Vec<FlatRow>` with a cloned
-    /// `label` and `meta` for **every** node on every toggle and every lazy
-    /// delivery. The property that forbids it is observable without an
-    /// allocator: the row renderer — the only thing that can touch a node's
-    /// text — must run once per **visible** row, never once per node, and a
-    /// collapsed subtree must not reach it at all.
+
+
+
+
+
+
+
+
     #[test]
     fn lazy_children_do_not_reflatten_the_world() {
-        // one root with 10 000 lazy-delivered children, all present in the
-        // slice, in a six-row viewport
+
+
         let mut items = vec![N("root", 0, true)];
         items.extend((0..10_000).map(|_| N("child", 1, false)));
 
@@ -2752,8 +2752,8 @@ mod tests {
         };
         let mut st = TreeState::new();
 
-        // collapsed: one visible row, one renderer call, and not one of the
-        // 10 000 hidden children is touched
+
+
         draw(&t, &st, &items, area);
         assert_eq!(painted.get(), 1);
         assert_eq!(
@@ -2762,7 +2762,7 @@ mod tests {
             "a collapsed subtree reached the renderer"
         );
 
-        // expanded: the viewport, not the world
+
         painted.set(0);
         st.expand(ItemKey::index(0));
         draw(&t, &st, &items, area);
@@ -2773,7 +2773,7 @@ mod tests {
         );
         assert!(seen_depth1.get() <= 6);
 
-        // and the toggle itself sees the new row count without building one
+
         let mut index = TreeIndex::default();
         index.sync(&t, &st, &items);
         assert_eq!(index.visible.len(), 10_001);
@@ -2826,9 +2826,9 @@ mod tests {
         buffer
     }
 
-    /// A `NodeKind::Lazy` node reports its expansion by key, which is the
-    /// caller's cue to fetch. The legacy contract carried a `Vec<usize>`
-    /// path and forced `object_at`-style reconstruction on the other side.
+
+
+
     #[test]
     fn a_lazy_node_reports_its_expansion_by_key() {
         let items = [N("db", 0, false)];
@@ -2851,7 +2851,7 @@ mod tests {
         );
         assert!(st.is_expanded(ItemKey::text("db")));
 
-        // a leaf has no disclosure and reports nothing
+
         let leaf = |n: &N| TreeNode::leaf(n.1).keyed(ItemKey::text(n.0));
         let t = Tree::new(TREE).node(&leaf);
         let mut index = TreeIndex::default();
@@ -2861,9 +2861,9 @@ mod tests {
         assert!(acc.finish(TREE).action_ref().is_none());
     }
 
-    /// `expand_all` must not name a key per node: it is the inverted
-    /// `KeySet`, so it costs nothing on a tree of any size and a single
-    /// later `collapse` still names one node.
+
+
+
     #[test]
     fn expand_all_is_the_inverted_key_set() {
         let t = tree();
@@ -2893,10 +2893,10 @@ mod tests {
         parent: bool,
     }
 
-    /// The old implementation scanned all 100k source nodes in both phases
-    /// and again after every toggle. A structural generation now turns an
-    /// ordinary branch toggle into one affected-subtree splice with no
-    /// accessor call and no source rebuild.
+
+
+
+
     #[test]
     fn tree_100k_nodes_flatten() {
         let mut items = Vec::with_capacity(100_000);
@@ -2941,9 +2941,9 @@ mod tests {
         assert_eq!(index.splices, 2);
     }
 
-    /// Update builds the runtime-owned index once. Draw consumes that same
-    /// entry and touches only viewport items; a second draw repeats neither
-    /// the source walk nor the first phase's work.
+
+
+
     #[test]
     fn tree_100k_nodes_render() {
         use std::rc::Rc;
@@ -3006,8 +3006,8 @@ mod tests {
         state.expand(ItemKey::num(0));
         let area = Rect::new(0, 0, 30, 6);
 
-        // The tree borrows its node/row callbacks, so the runtime lives in
-        // the same scope as them.
+
+
         {
             let mut rt = Runtime::new(
                 TreeApp {
@@ -3021,8 +3021,8 @@ mod tests {
             let mut page = Buffer::empty(area);
             rt.draw_buffer(area, &mut page).commit_presented();
             let _ = rt.settle();
-            // Warm-up (bootstrap update plus its publication draws) walked
-            // the whole source once to build the runtime-owned index.
+
+
             assert!(node_accesses.get() >= rt.app().items.len());
             node_accesses.set(0);
             painted.set(0);
@@ -3152,8 +3152,8 @@ mod tests {
         state.expand(ItemKey::text("alpha"));
         state.choose(Some(ItemKey::text("a1")));
         let area = Rect::new(0, 0, 30, 6);
-        // A persistent runtime owns the derived caches; `set_theme` is the
-        // public "drop every derived cache" entry point.
+
+
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut page = Buffer::empty(area);
         let draw = |rt: &mut Runtime<Stub>, page: &mut Buffer, state: &TreeState| {

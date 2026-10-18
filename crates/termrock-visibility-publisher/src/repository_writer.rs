@@ -1,8 +1,8 @@
-//! Bounded GitHub status publication over the Git database API.
-//!
-//! The read-only observer transport remains GET-only. This module owns the
-//! separate write transport and is deliberately disabled by the command until
-//! a trusted generated publisher workflow is accepted.
+
+
+
+
+
 
 use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -677,8 +677,8 @@ fn validate_observation(
             "validated observer record does not match the accepted run",
         ));
     }
-    // A product failure is data to publish. The observer measures the run and
-    // never changes the product conclusion into a publisher success/failure.
+
+
     Ok(())
 }
 
@@ -927,15 +927,15 @@ fn validate_source_head(
         {
             return Err(PublishError::ExistingCursorMismatch);
         }
-        // Re-runs of the same source commit may publish a newer target attempt.
-        // A different source cannot be current while the last publisher commit
-        // remains the remote tip.
+
+
+
         if input.status.source_commit != previous.last_published.source_sha {
             return Err(PublishError::StaleSource);
         }
     } else if input.status.source_commit != remote_head {
-        // Before the first publisher commit, the source event must still be the
-        // branch tip. This rejects delayed runs after a newer source push.
+
+
         return Err(PublishError::StaleSource);
     }
     if observation.target.head_sha != input.status.source_commit

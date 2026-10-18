@@ -1,9 +1,9 @@
-//! Small, deterministic Jackin fixture data.
-//!
-//! Fixture constructors keep display metadata separate from credential
-//! material. The only material-bearing values live inside
-//! `sim::onepassword` and are exposed to provider code through its
-//! secret-free closure.
+
+
+
+
+
+
 
 pub mod pinned;
 
@@ -28,43 +28,43 @@ use jackin_preview_domain::workspace::{
     WorkspaceId,
 };
 
-/// Synthetic home directory used by the fixtures.
+
 pub const HOME: &str = "/Users/alexey";
-/// Identifier of the primary payments workspace.
+
 pub const PAYMENTS_WORKSPACE: WorkspaceId = 1;
-/// Display name of the primary payments workspace.
+
 pub const PAYMENTS_WORKSPACE_NAME: &str = "payments-platform";
-/// Working directory of the primary payments workspace.
+
 pub const PAYMENTS_WORKDIR: &str = "/Users/alexey/src/payments-platform";
 
-/// Precedence used when selecting the account for one agent session.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrecedenceLevel {
-    /// Account selected explicitly for the session.
+
     Session,
-    /// Account selected by the session's role.
+
     Role,
-    /// Account selected by the workspace.
+
     Workspace,
-    /// Provider-wide default account.
+
     Global,
-    /// Current account discovered on the host.
+
     Discovered,
 }
 
-/// A resolved account plus the source of the decision.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedAccount {
-    /// Selected account identifier, when one was found.
+
     pub account: Option<AccountId>,
-    /// Precedence source that supplied the selection.
+
     pub level: Option<PrecedenceLevel>,
-    /// Human-readable explanation of the selection.
+
     pub reason: String,
 }
 
 impl PrecedenceLevel {
-    /// Source-compatible display label for the existing resolution decision.
+
     pub const fn label(self) -> &'static str {
         match self {
             Self::Session => "session choice",
@@ -77,7 +77,7 @@ impl PrecedenceLevel {
 }
 
 impl ResolvedAccount {
-    /// Public account title, retaining unknown identifiers without inventing metadata.
+
     pub fn label(&self, registry: &AccountRegistry) -> String {
         match &self.account {
             Some(id) => registry
@@ -86,14 +86,14 @@ impl ResolvedAccount {
             None => "no account".into(),
         }
     }
-    /// Source label with the typed absent decision represented explicitly.
+
     pub fn level_label(&self) -> &'static str {
         self.level.map_or("no account", PrecedenceLevel::label)
     }
 }
 
-/// Build an id-only 1Password reference. It names metadata; it never embeds
-/// or derives a credential value.
+
+
 pub fn op_reference(
     vault_id: &str,
     vault_name: &str,
@@ -112,9 +112,9 @@ pub fn op_reference(
     }
 }
 
-/// Resolve the account with explicit session > role > workspace > global >
-/// discovered precedence. Invalid or disabled choices are not silently
-/// treated as usable selections.
+
+
+
 pub fn resolve_account(
     provider: Provider,
     workspace: Option<&Workspace>,
@@ -200,8 +200,8 @@ fn validated(
     account
 }
 
-/// Compact accounts for isolated provider and precedence tests.
-/// Production scenario registries come from the source-bound `pinned` graph.
+
+
 pub fn fixture_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     let mut registry = AccountRegistry::default();
 
@@ -290,11 +290,11 @@ pub fn fixture_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     };
     registry.insert(discovered);
 
-    // Keep the original Jackin fixture ids in addition to the compact ids
-    // above.  They are referenced by saved Workspace policies and by the
-    // migration journey; aliases are metadata-only and do not duplicate any
-    // credential material.  Every source remains either a reference, a
-    // synthetic tail/fingerprint, or a host path.
+
+
+
+
+
     for account in legacy_fixture_accounts(op, now) {
         registry.insert(account);
     }
@@ -359,9 +359,9 @@ fn legacy_fixture_accounts(_op: &SimOnePassword, now: i64) -> Vec<Account> {
     );
     primary.identity = handle("ChatGPT account org_7Hq2");
     primary.identity.plan = Some("Pro 20x".into());
-    // The compact `openai-primary` record is the provider default.  Keep this
-    // legacy id available for migration coverage without creating a second
-    // inherited Codex account in workspace policy projections.
+
+
+
     out.push(primary);
 
     let mut experiments = account_with_source(
@@ -558,25 +558,25 @@ fn handle(subject: &str) -> AccountIdentity {
     }
 }
 
-/// Roles visible in the role picker.
+
 pub fn fixture_roles() -> Vec<RoleEntry> {
     pinned::roles()
 }
 
-/// The scenario's authoritative role catalog, shared with `world_for`.
+
 pub fn fixture_roles_for(scenario: jackin_preview_domain::scenario::Scenario) -> Vec<RoleEntry> {
     pinned::roles_for(scenario)
 }
 
-/// The scenario's authoritative saved workspaces, shared with `world_for`.
+
 pub fn fixture_workspaces_for(
     scenario: jackin_preview_domain::scenario::Scenario,
 ) -> Vec<Workspace> {
     pinned::workspaces_for(scenario)
 }
 
-/// Compact provider test registry with a revoked xAI record.
-/// Production HardCases uses the source-bound registry in `world_for`.
+
+
 pub fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     let mut registry = fixture_accounts(op, now);
     let mut revoked = account_with_source(
@@ -604,8 +604,8 @@ pub fn fixture_hard_accounts(op: &SimOnePassword, now: i64) -> AccountRegistry {
     registry
 }
 
-/// Compact workspace for isolated domain tests.
-/// Production saved workspaces come from [`fixture_workspaces_for`].
+
+
 pub fn fixture_workspace() -> Workspace {
     let mut workspace = Workspace::new(
         PAYMENTS_WORKSPACE,
@@ -660,7 +660,7 @@ pub fn fixture_workspace() -> Workspace {
     workspace
 }
 
-/// A live instance with independent persisted manifest and daemon snapshot.
+
 pub fn fixture_instance(
     status: InstanceStatus,
     run_id: RunId,
@@ -709,7 +709,7 @@ fn instance_id_for(status: InstanceStatus) -> InstanceId {
     }
 }
 
-/// Daemon state for the primary Capsule fixture.
+
 pub fn live_capsule() -> DaemonSnapshot {
     DaemonSnapshot::Tabs(vec![
         TabSnapshot {
@@ -749,8 +749,8 @@ pub fn live_capsule() -> DaemonSnapshot {
     ])
 }
 
-/// Useful only for tests and diagnostics: all populated fixture records are
-/// deterministic and contain no resolved credential material.
+
+
 pub fn fixture_metadata(op: &SimOnePassword) -> (usize, usize) {
     let accounts = op.accounts.len();
     let fields = op

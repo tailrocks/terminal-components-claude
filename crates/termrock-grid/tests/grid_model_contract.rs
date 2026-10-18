@@ -1,4 +1,4 @@
-//! External compile witness for the three-method `GridModel` contract.
+
 
 #[path = "fixtures/grid_model.rs"]
 mod grid_model;
@@ -23,7 +23,3 @@ fn three_method_grid_model_supports_read_only_entry_points() {
         .collect::<String>();
     assert!(text.contains("model only"));
 }
-
-// DROPPED: read_only_update_takes_a_shared_model — trybuild compile-fail test
-// (ui/grid_editable_update_rejects_shared_model) requires trybuild, unavailable
-// in this offline workspace.

@@ -1,10 +1,10 @@
-//! Explicit real-PTY fixture for session input-mode restoration.
+
 #![allow(clippy::unwrap_used, reason = "explicit terminal fixture assertions")]
 
 use std::io::{self, Read};
 use termrock_session::TerminalSession;
 
-/// The external driver controls stdout failure and compares PTY termios.
+
 #[test]
 #[ignore = "real PTY fixture; external driver supplies terminal and output failure"]
 #[expect(clippy::print_stderr, reason = "explicit PTY synchronization markers")]
@@ -16,8 +16,8 @@ fn terminal_cleanup_driver_fixture() {
         let result = TerminalSession::enter();
         assert!(result.is_err());
         eprintln!("TERMINAL_ENTRY_ERROR_RESTORED");
-        // stdout is deliberately broken; bypass only libtest's final report,
-        // after the session error path and assertions have completed.
+
+
         std::process::exit(0);
     }
     let mut session = TerminalSession::enter().unwrap();

@@ -1,4 +1,4 @@
-//! Replacement entry points refuse pending work before changing state.
+
 use tablepro_ui::{QueryOutcome, Tab, TableProApp};
 use termrock::{App, GridEditor, KeyCode, Theme};
 use termrock_test_support::Harness;
@@ -119,7 +119,7 @@ fn result_confirmation_rejects_changed_sql_and_vanished_target_is_noop() {
     assert_eq!(h.app().result().row_count(), 1);
     assert_eq!(h.app().result().pending_total(), 1);
     assert!(h.find("Work changed").is_some());
-    // A new pending intent cannot be redirected to a fresh record after removal.
+
     let Some(Tab::Query(tab)) = h.app_mut().workbench.tab_mut(key) else {
         unreachable!("query")
     };

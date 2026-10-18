@@ -1,8 +1,8 @@
-//! Non-vacuous Showcase journeys through the public application facade.
-//!
-//! Every interaction below goes through `junie-tui-testing::Harness`. The
-//! assertions check rendered evidence, focus, keyed regions, and durable
-//! state transitions; a missing control is a test failure, never a skip.
+
+
+
+
+
 
 use showcase_ui::{App, NAV_ENTRIES, PageId};
 use termrock::{
@@ -76,9 +76,9 @@ fn area_text(h: &Harness<App>, area: Rect) -> String {
 }
 
 fn focus_bar_x(h: &Harness<App>, y: u16) -> Option<u16> {
-    // The shell's historical sidebar also owns a `▎` gutter at column 0.
-    // Start after that reserved sidebar so this helper observes the tree's
-    // own focus gutter rather than an unrelated shell decoration.
+
+
+
     (20..h.buffer().area().width).find(|x| h.cell(*x, y).symbol() == "▎")
 }
 
@@ -732,7 +732,7 @@ fn prompt_dialog_validates_and_returns_value() {
     assert!(h.text().contains("Rename task"));
     assert_eq!(h.focus(), Some(field));
     assert!(h.state_of(field).contains(StateFlags::EDITING));
-    // Published focus starts editing before the next key reaches the prompt.
+
     press(&mut h, KeyCode::Enter);
     assert!(h.text().contains("Name cannot be empty"));
     assert!(!h.state_of(field).contains(StateFlags::EDITING));

@@ -1,7 +1,7 @@
-//! Slice 4 collection performance acceptance tests.
-//!
-//! Separate integration-test binary prevents its codegen from perturbing
-//! allocation counts in the established `perf` baseline binary.
+
+
+
+
 #![cfg_attr(
     test,
     allow(
@@ -34,11 +34,11 @@ use termrock_viewport::{TextViewport, ViewportLine, ViewportState, ViewportWorkP
 #[global_allocator]
 static GLOBAL: Counting = Counting;
 
-/// The split-crate baseline lives beside this test; the shared perf module's
-/// default path (`../tui/tests/perf_baseline.txt`) is a monolith relic.
+
+
 const BASELINE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt");
 
-// ----------------------------------------------- H. Slice 4 large components
+
 
 const TREE_ID: Id = Id::root("perf.tree");
 const STEPS_ID: Id = Id::root("perf.steps");
@@ -134,9 +134,9 @@ fn viewport_lines(n: usize, extra_capacity: usize) -> Vec<ViewportLine<'static>>
     lines
 }
 
-// Mutable collection fixtures own their data in the same Runtime model across
-// updates. Tick admits exactly one operation; initialization/settlement only
-// polls component lifecycle. Timing includes admission and frame publication.
+
+
+
 fn collection_runtime<A: App>(app: A, area: Rect) -> (Runtime<A>, Buffer) {
     let mut runtime = Runtime::new(app, Theme::junie());
     let _ = runtime.initialize();
@@ -402,8 +402,8 @@ fn perf_tree_nodes(n: usize) -> Vec<PerfTreeNode> {
     nodes
 }
 
-/// One warmed expand/collapse pair. Accessor counts are binding: an ordinary
-/// toggle splices the cached projection and must not walk the borrowed source.
+
+
 struct TreeApp<'a> {
     nodes: Vec<PerfTreeNode>,
     state: TreeState,
@@ -466,11 +466,11 @@ fn bench_tree_toggle(n: usize, iterations: usize) -> (Stats, usize) {
     };
     let area = Rect::new(0, 0, 80, 40);
     let (mut runtime, mut buffer) = collection_runtime(app, area);
-    // The cold assertion measures paint indexing; bootstrap update has its own index.
+
     node_accesses.set(0);
     runtime.draw_buffer(area, &mut buffer).commit_presented();
     assert_eq!(node_accesses.get(), n, "cold index did not scan once");
-    // Reserve the large projection with one real expand/collapse update pair.
+
     collection_tick(&mut runtime, &mut buffer);
     collection_tick(&mut runtime, &mut buffer);
     node_accesses.set(0);
@@ -794,9 +794,9 @@ fn grid_500x12_render() {
     );
 }
 
-/// One pre-formatting conversion: exactly one owned string per cell plus the
-/// flat storage allocation. This is the library-side witness for §20.9-11;
-/// `TablePro` keeps the application-level benchmark with this same name.
+
+
+
 #[test]
 fn grid_500x12_load() {
     let _g = lock();

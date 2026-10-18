@@ -1,9 +1,9 @@
-//! Title-row text from the actual Holla 794b095 production binary.
-//!
-//! The fixture contains all 22 pages × four sizes × four capabilities. It
-//! records reference observations, not candidate snapshots or a blessed
-//! baseline. Acquisition hashes live in the external Showcase fidelity
-//! evidence manifest. These rows are independent of animated page bodies.
+
+
+
+
+
+
 
 use showcase_ui::{App, PageId};
 use termrock::{ColorLevel, Theme};

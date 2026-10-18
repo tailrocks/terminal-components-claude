@@ -1,12 +1,12 @@
-//! Optional component measurement against the live `Ui`.
+
 
 use super::Ui;
 
 use crate::measure::{Constraints, Size};
 
-/// Optional measurement for components that can size themselves.
+
 pub trait Measure {
-    /// Measure against the design tokens and the offered constraints.
+
     fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size;
 }
 
@@ -30,7 +30,7 @@ mod tests {
         height: 6,
     };
 
-    /// Run `f` with a real `Ui` over a scratch page.
+
     fn with_ui<R>(theme: &Theme, f: impl FnOnce(&mut Ui<'_>) -> R) -> (R, FrameState) {
         let mut frame = FrameState::default();
         frame.reset(1, SCREEN);
@@ -72,9 +72,9 @@ mod tests {
         StylePatch::new().set_fg(Role::Warning),
     )];
 
-    /// The one test that keeps a second resolution path from drifting: the
-    /// `&self` `Ui::resolve` must equal the `&mut self` `Ui::style` field for
-    /// field, over the whole built-in recipe set (Adjudication N2).
+
+
+
     #[test]
     fn ui_resolve_equals_ui_style_for_every_family_variant_part() {
         for theme in [Theme::junie(), Theme::paper()] {
@@ -93,8 +93,8 @@ mod tests {
                                 }
                             }
                         }
-                        // a custom family goes through the neutral recipe on
-                        // both paths
+
+
                         let cf = Family::custom("drift");
                         assert_eq!(
                             ui.resolve(cf, Variant::DEFAULT, Part::LABEL, StateFlags::FOCUSED),
@@ -111,10 +111,10 @@ mod tests {
         }
     }
 
-    /// Invariant M1: `Ui::style` is the *painting* query and alone writes the
-    /// roles and the `testing` record; measurement records nothing, or
-    /// `declared_parts_are_the_parts_actually_styled` would pass on a part a
-    /// component only measured.
+
+
+
+
     #[test]
     fn measure_records_no_roles_and_no_styled_parts() {
         let theme = Theme::junie();
@@ -133,8 +133,8 @@ mod tests {
         let _ = frame;
     }
 
-    /// Measurement must not evict a painting entry from the 256-slot memo
-    /// (§11.1 A3, §20.9-2), so it performs no cache read and no cache write.
+
+
     #[cfg(feature = "testing")]
     #[test]
     fn measure_does_not_touch_the_style_cache() {
@@ -155,8 +155,8 @@ mod tests {
         });
     }
 
-    /// The case that forced Adjudication N2: a natural width that depends on
-    /// a themed glyph, computed from `&Ui` (the `Measure::measure` receiver).
+
+
     #[test]
     fn natural_width_follows_the_themed_glyph() {
         struct Gutterful<'a> {
@@ -184,15 +184,15 @@ mod tests {
 
         let b = Gutterful { label: "Save" };
         let c = Constraints::loose(40, 3);
-        // Junie binds `FocusBar` to a one-cell glyph, and the gutter carries
-        // it only while focused
+
+
         let junie = Theme::junie();
         let (rest, _) = with_ui(&junie, |ui| b.measure(ui, c));
         assert_eq!(rest.preferred.0, 6);
 
-        // a theme that rebinds `FocusBar` to a two-cell glyph widens the
-        // measured width by exactly one column, without the component
-        // knowing which glyph the theme chose
+
+
+
         let mut wide = Theme::junie();
         wide.design.glyphs.set(GlyphRole::FocusBar, "██");
         let mut narrow = Theme::junie();
@@ -212,9 +212,9 @@ mod tests {
         assert_eq!(measure_focused(&wide), measure_focused(&narrow) + 1);
     }
 
-    /// `Theme::metrics` is `Theme::resolve` minus the colour binding: the two
-    /// share one `accumulate`, so the glyph, size and alignment a component
-    /// sizes against in `update` are the ones `draw` paints with.
+
+
+
     #[test]
     fn metrics_are_surface_independent() {
         for theme in [Theme::junie(), Theme::paper()] {

@@ -1,4 +1,4 @@
-//! `TablePro` binary entry point.
+
 
 fn main() -> std::process::ExitCode {
     use std::io::Write as _;

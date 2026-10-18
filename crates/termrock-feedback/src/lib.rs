@@ -1,4 +1,4 @@
-//! Spinner, ProgressBar, Meter, StatusBar, HintBar and KeyHint using shared motion and style contracts.
+
 
 pub(crate) use termrock_core as event;
 pub(crate) use termrock_core as id;

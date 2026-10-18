@@ -1,4 +1,4 @@
-//! Caller projections retain shared input handling and semantic cursor identity.
+
 use termrock_core::event::KeyCode;
 use termrock_core::id::{Id, ItemKey};
 use termrock_core::response::Response;

@@ -1,4 +1,4 @@
-//! Text measurement, editing, matching, spans, and secrets (`COMPONENT_ARCHITECTURE.md` §15, §18.1).
+
 
 pub(crate) use termrock_theme as theme;
 

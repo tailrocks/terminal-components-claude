@@ -1,6 +1,6 @@
-//! Pinned 794b095 fixture graph, migrated as domain data only.
-//! Canonical role keys replace the source fixture's short references together;
-//! daemon services and virtual time remain the current safe simulation.
+
+
+
 use crate::pty::{Daemon, Span, SplitDir, TextViewport, Tone};
 use crate::world::{GithubRepo, World};
 use jackin_preview_domain::account::{
@@ -90,9 +90,9 @@ pub(crate) fn roles() -> Vec<RoleEntry> {
     ]
 }
 
-/// A large, deterministic Role registry (`svc-001` …) so the scoped-config
-/// screens prove they scale: every Role is trusted, in the registry, and
-/// carries no configuration until an operator adds some.
+
+
+
 fn generated_roles(n: usize) -> Vec<RoleEntry> {
     const AREAS: [&str; 6] = ["billing", "ledger", "search", "notify", "ingest", "auth"];
     (1..=n)
@@ -159,8 +159,8 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
             ),
         )],
     );
-    // two Anthropic accounts at once: Personal is the inherited registry
-    // default, Work is switched on here; Codex Primary is inherited
+
+
     w.accounts.enabled.insert("acct-claude-work".into());
     w.accounts.role_preferred.insert(
         ("reviewer".into(), Provider::Anthropic),
@@ -194,8 +194,8 @@ fn workspaces(rich: bool) -> Vec<Workspace> {
         ),
         EnvVar::plain("TF_LOG", "WARN"),
     ];
-    // the inherited Codex default is switched off here; Experiments is
-    // enabled and therefore the only (and preferred) Codex account
+
+
     w.accounts
         .disabled_defaults
         .insert("acct-codex-primary".into());
@@ -604,7 +604,7 @@ fn accounts_mixed(now: i64) -> AccountRegistry {
     };
     r.insert(a);
 
-    // discovered, read-only
+
     let mut a = Account::discovered(
         "disc-amp",
         "discovered",
@@ -853,7 +853,7 @@ fn accounts_hard(now: i64) -> AccountRegistry {
         windows: vec![],
     };
     r.insert(a);
-    // long labels
+
     if let Some(w) = r.get_mut("acct-claude-work")
         && let Some(win) = w.usage.windows.iter_mut().find(|w| w.id == "weekly")
     {
@@ -874,7 +874,7 @@ pub(crate) fn populate(w: &mut World, rich: bool) {
     } else {
         accounts_mixed(now)
     };
-    // instances
+
     let mut i1 = instance(
         "jk-7f3a",
         Some(1),
@@ -1012,7 +1012,7 @@ pub(crate) fn populate(w: &mut World, rich: bool) {
     i9.sessions = Ok(vec![]);
     w.instances = vec![i1, i2, i3, i4, i5, i6, i7, i8, i9];
     if rich {
-        // many instances, missing daemon data, manifest error
+
         let mut i10 = instance(
             "jk-e0e0",
             Some(10),
@@ -1055,7 +1055,7 @@ pub(crate) fn populate(w: &mut World, rich: bool) {
             ));
         }
     }
-    // daemons for running instances
+
     let now_ms = w.now_ms();
     let mut d1 = Daemon::new("payments-platform");
     d1.new_tab(
@@ -1082,7 +1082,7 @@ pub(crate) fn populate(w: &mut World, rich: bool) {
         t.custom_label = Some("docs".into());
     }
     d1.active = 0;
-    // long shell log for scrollback
+
     if let Some(p) = d1.pane_mut(3) {
         for n in 0..1_960u32 {
             let status = match n % 7 {
@@ -1136,13 +1136,13 @@ pub(crate) fn populate(w: &mut World, rich: bool) {
     if rich {
         let d10 = Daemon::new("data-pipeline");
         w.daemons.insert("jk-e0e0".into(), d10);
-        // its daemon never answers
+
         if let Some(i) = w.instance_mut("jk-e0e0") {
             i.daemon = DaemonSnapshot::Unavailable;
         }
         w.daemons.remove("jk-e0e0");
     }
-    // every instance carries the effective account set of its Workspace
+
     let registry = w.accounts.clone();
     let sets: Vec<(u32, Vec<AccountId>)> = w
         .workspaces
@@ -1170,7 +1170,7 @@ pub(crate) fn populate(w: &mut World, rich: bool) {
     w.sync_arbiter();
 }
 
-/// Re-seed snapshot-carrying domain records against a refreshed world.
+
 pub fn refresh_snapshots(w: &mut World) {
     let snaps: Vec<(String, DaemonSnapshot)> = w
         .daemons
@@ -1189,7 +1189,7 @@ pub fn refresh_snapshots(w: &mut World) {
     }
 }
 
-// Exact source catalog identities; no label parsing or generic namespace stripping.
+
 fn canonical_role(short: &str) -> &str {
     match short {
         "the-architect" => "chainargos/the-architect",
@@ -1254,7 +1254,7 @@ pub(crate) fn workspaces_for(scenario: Scenario) -> Vec<Workspace> {
     result
 }
 
-// Source794b095 fixtures649–691, copied as public metadata only.
+
 pub(crate) fn github() -> Vec<GithubRepo> {
     let r = |n: &str, b: &str, extra: &[&str], upd: &str| GithubRepo {
         full_name: n.into(),

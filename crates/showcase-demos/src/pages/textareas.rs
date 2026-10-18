@@ -1,4 +1,4 @@
-//! Multiline editing and viewport scrolling.
+
 
 use termrock::{
     Cx, Family, Field, FieldError, Id, Panel, PanelKind, Part, Rect, StateFlags, TextAction,
@@ -62,7 +62,7 @@ fn commit_field() -> Field<'static, TextArea<'static>> {
     .error(Some("Use the imperative mood and explain why"))
 }
 
-/// Both phase paths build the same two cards (§13).
+
 fn playground_panel(meta: &'static str) -> Panel<'static> {
     Panel::new(PLAYGROUND)
         .kind(PanelKind::Card)
@@ -184,8 +184,8 @@ fn legacy_field_error(ui: &mut Ui<'_>, area: Rect, text: &str) {
     let _ = ui.paint_str(row, &fitted, style);
 }
 
-/// A controlled multi-line document with enough rows to exercise wheel and
-/// keyboard scrolling at both baseline sizes.
+
+
 #[derive(Debug)]
 pub struct TextAreasPage {
     value: String,
@@ -224,9 +224,9 @@ impl Page for TextAreasPage {
                 TextAction::MoveNext | TextAction::MovePrev => "focus moved",
             };
         }
-        // Both phases build the same cards and reference fields (§13). The
-        // narrow-width meta variant is a paint-budget quirk decided in draw;
-        // update builds the canonical wide form through the same constructor.
+
+
+
         let _ = playground_panel("Enter Edit · Esc Done · Tab Next ");
         let _ = states_panel();
         let _ = notes_field();

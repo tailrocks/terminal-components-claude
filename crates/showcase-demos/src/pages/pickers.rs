@@ -1,4 +1,4 @@
-//! Searchable semantic picker with query and scope state.
+
 
 use termrock::author::PaintStyle;
 use termrock::{
@@ -915,7 +915,7 @@ fn paint_historical(
     );
 }
 
-/// The picker owns query/cursor state while the app owns the selected result.
+
 #[derive(Debug, Default)]
 pub struct PickersPage {
     state: PickerState,
@@ -1021,9 +1021,9 @@ impl Page for PickersPage {
         result |= picker_chain().update(cx, &mut self.chain_state).erase();
         result |= menu_bar().update(cx, &mut self.menu_state).erase();
         result |= context_menu().update(cx, &mut self.context_state).erase();
-        // Drain the layer owner on every pass. A dismissal event is addressed
-        // to PICKER after the layer has left the active stack; gating update
-        // on `is_open` would strand that event and trip the runtime diagnostic.
+
+
+
         let kind = self.open_kind.unwrap_or(PickerKind::Quick);
         let items = match kind {
             PickerKind::Quick => self.items.as_slice(),
