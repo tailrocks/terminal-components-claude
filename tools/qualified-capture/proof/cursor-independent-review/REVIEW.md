@@ -1,27 +1,5 @@
 # Independent physical cursor follow-up review
 
-## Status
-
-Historical record retained for context and any still-applicable planned work.
-
-## Authority
-
-Current project direction: [architecture](../../../../docs/architecture.md), [design](../../../../docs/design.md), [status](../../../../docs/status.md), and [plan](../../../../docs/plan.md). Historical claims here do not establish current implementation readiness.
-
-## Current evidence
-
-This document snapshot is Git blob `5066ce64336ceac5bb7bcb6baec7c18f2f209b0b` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
-
-## Remaining work
-
-Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
-
-## Verification
-
-Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
-
----
-
 ACCEPT bounded follow-up e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2. Clean detached committed source reviewed; no source/approval changes made.
 
 Only production delta is cursor_position getter: min(internal_column, cols.saturating_sub(1)). For positive width N this correctly returns0..N-1, including N=1, while preserving pending-wrap internal columnN. It neither rewrites Grid.pos nor changes parsing. No internal vt100 caller uses this public getter; formatter/parser internals still use grid position. Rows are unchanged and grid resize clamps positive row/column bounds.

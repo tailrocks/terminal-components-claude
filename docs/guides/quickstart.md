@@ -1,35 +1,17 @@
 # Quick start
 
-## Status
+The workspace facade is the `termrock` package at `crates/termrock`; its Rust path is `termrock`. The API and package boundaries are under active development. Read [architecture](../architecture.md), [design authority](../design.md), and [authoring contract](../contracts/authoring.md) before depending on a particular API surface.
 
-Current workspace guide for the `termrock` facade. The crate split and public APIs remain in active development.
+Run the facade checks from the repository root:
 
-## Authority
-
-The package is `termrock` in `crates/termrock`; its Rust path is `termrock`. See [architecture](../architecture.md), [design reference](../design.md), and [authoring](authoring.md).
-
-## Current evidence
-
-The facade re-exports `App`, `Cx`, `Ui`, `Response`, `Theme`, `Button`, `Id`, `Rect`, and `run`. The API shape below follows `crates/termrock/tests/ex01_button.rs` and `crates/termrock-runtime/src/runtime.rs`.
-
-## Remaining work
-
-The workspace does not currently provide a published-crate installation workflow or a stable API guarantee. Confirm package and API details against the source before using this guide for an external release.
-
-## Verification
-
-`cargo check -p termrock --offline` checks the facade crate. The integration fixture `cargo test -p termrock --test ex01_button --offline` exercises a headless button app.
-
-## Minimal application
-
-Add the workspace package as a path dependency when building inside this checkout:
-
-```toml
-[dependencies]
-termrock = { path = "crates/termrock" }
+```sh
+cargo check -p termrock --offline
+cargo test -p termrock --features testing --test ex01_button --offline
 ```
 
-An app implements an update pass and a draw pass. Update handles interaction and returns a response; draw paints from shared app state and registers UI geometry for the next frame.
+The `testing` feature is required for the headless integration examples. To try the interactive applications, see the launch commands in [development](../development.md).
+
+A minimal app implements an update pass and a draw pass. Update handles interaction and returns a response; draw paints from shared app state and registers UI geometry for the next frame.
 
 ```rust
 use termrock::{App, Button, Cx, Id, Rect, Response, Theme, Ui, run};
@@ -54,8 +36,4 @@ fn main() -> std::io::Result<()> {
 }
 ```
 
-Use the provided `App` and `run` path for terminal applications. For deterministic tests or custom event loops, construct `Runtime` directly; the two `ex01_button` and `ex02_text_input` integration fixtures show the current headless pattern.
-
-## Useful API areas
-
-The facade re-exports common types from the split crates. Browse `termrock::controls` for buttons and toggles, `termrock::fields` for text inputs, `termrock::navigation` for lists and tabs, `termrock::overlays` for dialogs and menus, and `termrock::theme` for theme types. Component authors can use `termrock::author` for the lower-level registration vocabulary; its contracts are described in [authoring](authoring.md).
+For deterministic tests or custom event loops, construct `Runtime` directly; the `ex01_button` and `ex02_text_input` integration fixtures show the current headless pattern. Common types are re-exported by the facade; component authors can use `termrock::author` for the registration vocabulary described in the [authoring contract](../contracts/authoring.md).

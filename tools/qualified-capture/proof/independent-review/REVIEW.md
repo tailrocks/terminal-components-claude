@@ -1,27 +1,5 @@
 # Independent tool repair / migration review
 
-## Status
-
-Historical record retained for context and any still-applicable planned work.
-
-## Authority
-
-Current project direction: [architecture](../../../../docs/architecture.md), [design](../../../../docs/design.md), [status](../../../../docs/status.md), and [plan](../../../../docs/plan.md). Historical claims here do not establish current implementation readiness.
-
-## Current evidence
-
-This document snapshot is Git blob `a8e24f9af53cb9a13a922084d593846f76273e42` at the starting `main` revision. Its historical outputs do not transfer to current behavior without fresh verification.
-
-## Remaining work
-
-Preserve actionable requirements; reconcile them with the canonical plan and current branch evidence before treating them as active.
-
-## Verification
-
-Verify any current claim against the current source and, for product behavior, the accepted `design/interaction-polish` reference.
-
----
-
 Recommendation: ACCEPT the reference-derived fixture migration bound to tool commit 7d5d62cd44d430ff5d2fc4006cc776b30ee487e1 and migration-images/index.json SHA256 2a7cb723fc6323b7df1c8dda66467fe4ec6296ce5582c1b6ca3a899fb9e7364b. This is a reviewer recommendation; no source, approvals or application snapshots were modified.
 
 Independently reviewed all non-vendor commit changes, full fixture source, migration exporter, and actual vendored delta. Recomputed crate archive SHA256 054ff75fb8fa83e609e685106df4faeffdf3a735d3c74ebce97ec557d5d36fd9 and all 17 original file hashes from cached vt1000.16.2 archive. Exactly attrs/cell/screen/term differ. Actual delta byte-equals reviewed vt100.patch; no hidden vendor changes. Patch retains independent bold/dim; exports hidden/blink/strike; handles DECAWM and continuation styles; preserves appropriate SGR reset/diff serialization. Qualification tests exercise these contracts. Literal-paste addition preserves LF and rejects protocol delimiters; existing terminal-simulated paste remains separate. Dependency-root patch requirement and raw replay cursor-appearance limits are documented.

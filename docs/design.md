@@ -1,24 +1,7 @@
-# Product design reference
+# Product design target
 
-## Status
+`design/interaction-polish` is the product authority for appearance, colors, UI/UX, keyboard and pointer behavior, and planned product work. `main` is the structural authority for the split Rust crates and reusable APIs. The modular implementation remains incomplete and not ready until it satisfies both.
 
-`design/interaction-polish` is the accepted reference for visual appearance, UI/UX, colors, interaction behavior, and planned product work.
+Preserve all design-branch work and acceptance criteria. Implement accepted behavior through the split architecture: reusable controls, layout, state, identity, theme, rendering and interaction belong in shared crates; application workflows and domain policy belong in app crates. Review design-branch API ideas individually before adopting them.
 
-## Authority
-
-Preserve the design branch's product intent when implementing through `main`'s modular crate architecture. The design branch's monolithic code structure is not the target. Reusable API ideas may be adopted after review and placement in the appropriate crate.
-
-## Current evidence
-
-The branch reference is named by the active project goal. Its actual captures, source behavior, and plans remain the evidence to compare against when the branch is available. Do not claim parity based only on prose, code compilation, or self-generated baselines.
-
-## Remaining work
-
-- Preserve all planned work recorded on `design/interaction-polish`.
-- Carry its accepted UI/UX, visual, color, and behavior contracts into the split crates.
-- Reconcile existing design specifications, plans, and captures; remove or correct conclusions that contradict the accepted reference.
-- Record unresolved differences as open work rather than describing them as complete.
-
-## Verification
-
-Compare interactions and rendered captures against the design branch at matching states and terminal sizes. Record exact evidence for accepted changes. Do not bless differences as parity without review.
+Verify parity with exact source revisions, matching states, terminal sizes, supported color modes, and reviewed rendered comparisons. Compilation, tests, prose, and candidate baselines alone do not establish parity. Keep unresolved differences in [the plan](plan.md) and retain full design-branch acceptance detail through [the design work index](plans/design-work-index.md).
