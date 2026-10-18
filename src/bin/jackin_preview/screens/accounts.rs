@@ -1,7 +1,7 @@
-//! Account & Usage Center: register, inspect, edit, validate, enable,
-//! set-default, remove and refresh provider accounts and API-key profiles;
-//! 1Password is the primary credential path, masked plain text the
-//! explicit alternative; an honest overall Usage summary sits on row zero.
+
+
+
+
 
 use crate::screens::Jackin;
 use junie_tui::shell::Page;
@@ -89,7 +89,7 @@ struct Row {
     expanded: bool,
 }
 
-/// Transient state of the add/edit form (never the key itself).
+
 struct FormCtx {
     editing: Option<AccountId>,
     op_ref: Option<OpReference>,
@@ -106,14 +106,14 @@ pub struct AccountsScreen {
     inspector_scroll: ScrollState,
     tree_area: Rect,
     inspector_area: Rect,
-    /// The account tree beside the inspector: a resizable seam wide, the
-    /// tree with a summary and the inspector as a drawer narrow.
+
+
     md: MasterDetail,
     actions: Vec<Button>,
     form: Option<FormCtx>,
     pending_remove: Option<AccountId>,
-    /// The tree rows' context menu (right-click, Shift+F10, Menu key);
-    /// its `config` is the knob.
+
+
     pub menu: RowMenu<Sel, &'static str>,
 }
 
@@ -371,7 +371,7 @@ impl AccountsScreen {
         }
     }
 
-    // ------------------------------------------------------------ actions
+
 
     fn refresh_scope(&mut self, w: &mut World, cx: &mut Cx) {
         let ids: Vec<AccountId> = match &self.selected {
@@ -595,7 +595,7 @@ impl AccountsScreen {
             .hidden(),
             FormField::note("validation", vec![]),
         ];
-        // editing keeps existing reference metadata
+
         let mut ctx = FormCtx {
             editing: editing.map(|a| a.id.clone()),
             op_ref: None,
@@ -640,7 +640,7 @@ impl AccountsScreen {
         cx.open(form, LayerTag::new("form"));
     }
 
-    /// Progressive disclosure: show the fields the current choices need.
+
     fn reveal(form: &mut FormDialog, w: &World) {
         let provider = REGISTERABLE[form.choice("provider").min(3)];
         let source = form.choice("source");
@@ -822,7 +822,7 @@ impl AccountsScreen {
         }
         let provider = REGISTERABLE[choice("provider").min(3)];
         let source_idx = choice("source");
-        // validate now (material level is the gate)
+
         let outcome = match self.run_validation(&values, w) {
             Ok(o) => o,
             Err(e) => {
@@ -865,7 +865,7 @@ impl AccountsScreen {
             });
             return;
         }
-        // duplicate protection
+
         let probe = match &source {
             CredentialSource::OnePassword(r) => DuplicateProbe::OpReference {
                 canonical: r.canonical(),
@@ -931,7 +931,7 @@ impl AccountsScreen {
             .filter(|a| a.origin == AccountOrigin::Registered)
             .count()
             == 0;
-        // a discovered twin of the same folder is promoted rather than duplicated
+
         if let CredentialSource::LocalFolder { path, .. } = &source {
             let twin = w
                 .accounts
@@ -1084,8 +1084,8 @@ impl AccountsScreen {
             return;
         };
         if let CredentialSource::PlainApiKey { fingerprint, .. } = &a.source {
-            // no key material is stored, so re-validation can only confirm the
-            // fingerprint and re-check the identity that the original entry produced
+
+
             let level = if a.usage.windows.iter().any(|w| w.has_meter()) {
                 crate::domain::account::ValidationLevel::QuotaReadable
             } else if a.identity.subject.is_some() {
@@ -1183,10 +1183,10 @@ impl AccountsScreen {
         Outcome::Changed
     }
 
-    // ------------------------------------------------------- context menu
 
-    /// The commands a tree row offers: the inspector's buttons and the
-    /// row's keys; unavailable ones carry the reason.
+
+
+
     fn menu_items(&self, sel: &Sel, w: &World) -> (String, Vec<(MenuItem, &'static str)>) {
         let item = |label: &str, key: &'static str| MenuItem::new(label).shortcut(key);
         match sel {
@@ -1278,8 +1278,8 @@ impl AccountsScreen {
         }
     }
 
-    /// Run a chosen menu command on `target` through the path its button or
-    /// key takes.
+
+
     fn run_menu(&mut self, target: Sel, cmd: &'static str, w: &mut World, cx: &mut Cx) -> Outcome {
         let prev = std::mem::replace(&mut self.selected, target.clone());
         let out = match (cmd, &target) {
@@ -1298,14 +1298,14 @@ impl AccountsScreen {
             }
             _ => self.fire(cmd, w, cx),
         };
-        // a menu that leaves the cursor in place runs on its row only
+
         if !self.menu.config.moves_cursor && self.selected == target {
             self.selected = prev;
         }
         out.or(Outcome::Changed)
     }
 
-    // ------------------------------------------------------------- render
+
 
     fn draw_tree(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, w: &World) {
         let t = ctx.theme;
@@ -1427,7 +1427,7 @@ impl AccountsScreen {
                     ms.remove_modifier(Modifier::BOLD),
                 );
             }
-            // the cursor row is a fill: its details step up to stay readable
+
             legible_on_fill(buf, rect, t, bg);
             ctx.clickable(rid, rect);
             if row.expandable {
@@ -1707,8 +1707,8 @@ impl AccountsScreen {
                 .meta(&scope)
                 .render(area, buf, t)
         } else {
-            // the card is itself the focus stop (it scrolls): its title
-            // carries the one `▎` while no action inside holds focus
+
+
             Panel::card(Some(&title))
                 .focused(focused)
                 .focus_mark(if ctx.interaction.focused(INSPECTOR) {
@@ -1721,13 +1721,13 @@ impl AccountsScreen {
         };
         self.inspector_area = inner;
         let bg = if as_drawer { t.canvas } else { t.surface };
-        // the actions wrap onto a second line rather than cut the last
-        // (destructive) one; the body gives up the rows they take
+
+
         let action_row = ButtonRow::new().overflow(RowOverflow::Wrap);
         let action_rows = action_row.rows(inner.width + 1, &self.actions, t);
         let body_h = inner.height.saturating_sub(1 + action_rows);
         let mut body = Rect::new(inner.x, inner.y, inner.width, body_h);
-        // wrap-aware line count
+
         let label_w: u16 = lines
             .iter()
             .map(|l| match l {
@@ -1760,7 +1760,7 @@ impl AccountsScreen {
                         }
                     }
                     Line::PropSpans(k, spans) => {
-                        // toned parts wrap like a plain value (the Health line)
+
                         let vw = body.width.saturating_sub(label_w) as usize;
                         for (i, p) in wrap_spans(&spans, vw.max(8)).into_iter().enumerate() {
                             rendered.push(Line::PropSpans(
@@ -1775,7 +1775,7 @@ impl AccountsScreen {
             rendered
         };
         let mut rendered = wrap_lines(body);
-        // overflowing text keeps the shared gap clear of the scrollbar
+
         if rendered.len() > body_h as usize {
             body.width = inner
                 .width
@@ -1945,19 +1945,19 @@ impl AccountsScreen {
 #[derive(Clone)]
 enum Line {
     Prop(String, String, Tone),
-    /// A property whose value has a tone per part (the Health line).
+
     PropSpans(String, Vec<Span>),
     Text(String, Tone),
-    /// A row led by a [`Theme::status`](junie_tui::theme::Theme::status)
-    /// glyph, then its parts (a warning: account, phrase, reset time).
+
+
     Status(StatusKind, Vec<Span>),
     Heading(String, String),
     Meter(String, u8, String, QuotaTone),
     Blank,
 }
 
-/// A [`Line::Status`] row: the status glyph in its style, a space, then
-/// the parts in their tones.
+
+
 #[allow(clippy::too_many_arguments)]
 fn draw_status_line(
     buf: &mut Buffer,
@@ -1978,7 +1978,7 @@ fn draw_status_line(
     render_spans(buf, x + gw, y, w - gw, t, spans, bg);
 }
 
-/// Everything a meter row says besides the percentage the bar already shows.
+
 pub fn meter_detail(win: &QuotaWindow, w: &World) -> String {
     let mut parts: Vec<String> = vec![];
     if let (Some(u), Some(l)) = (win.used, win.limit)
@@ -2003,11 +2003,11 @@ pub fn meter_detail(win: &QuotaWindow, w: &World) -> String {
     parts.join(" · ")
 }
 
-/// How a quota meter draws: the level the domain gives the window, and
-/// whether the value is last-good data. A stale or failed refresh keeps the
-/// window's level (a quota warning stays a warning) and draws it stale
-/// (`Meter::stale`), rather than a fixed `MeterTone::Stale` that would
-/// re-derive the level from the shared thresholds.
+
+
+
+
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct QuotaTone {
     pub tone: MeterTone,
@@ -2015,15 +2015,15 @@ pub struct QuotaTone {
 }
 
 impl QuotaTone {
-    /// Apply the tone and the stale flag to a meter.
+
     pub fn on(self, m: Meter) -> Meter {
         m.tone(self.tone).stale(self.stale)
     }
 }
 
-/// One quota window as a [`MeterList`] row: the label, the percentage in a
-/// block meter with the window's tone, and the detail after it. Callers
-/// set the columns.
+
+
+
 pub(super) fn quota_row(label: &str, pct: u8, detail: &str, tone: QuotaTone) -> MeterList {
     MeterList::new(vec![
         MeterRow::new(
@@ -2036,12 +2036,12 @@ pub(super) fn quota_row(label: &str, pct: u8, detail: &str, tone: QuotaTone) -> 
     ])
 }
 
-/// The one quota-meter tone for every jackin screen (accounts, usage, the
-/// capsule usage dialog and status bar). The domain classifies each
-/// window (`QuotaStatus`), so the meter takes its level from the status
-/// and never re-derives one from the percentage: a pay-as-you-go window
-/// at 100% that the provider reports available reads healthy, as its
-/// status cell does.
+
+
+
+
+
+
 pub fn quota_tone(win: &QuotaWindow, phase: Freshness) -> QuotaTone {
     let tone = match (phase, win.status) {
         (Freshness::Refreshing, _) => MeterTone::Refreshing,
@@ -2083,7 +2083,7 @@ fn validation_marks(a: &Account) -> (&'static str, &'static str, &'static str) {
     }
 }
 
-/// Right-hand meta for a tree row: freshness word and age.
+
 fn account_meta(a: &Account, w: &World) -> (String, Tone) {
     if !a.enabled {
         return ("disabled".into(), Tone::Faint);
@@ -2191,8 +2191,8 @@ impl Page<Jackin> for AccountsScreen {
             let (o, chosen) = self.menu.on_key(key);
             match chosen {
                 Some((target, cmd)) => return self.run_menu(target, cmd, w, cx),
-                // K14: a key the menu has no use for closed it; the page
-                // gets it
+
+
                 None if o == Outcome::Ignored => {}
                 None => return o,
             }
@@ -2418,7 +2418,7 @@ impl Page<Jackin> for AccountsScreen {
                     return Outcome::Changed;
                 }
                 KeyCode::Tab | KeyCode::Enter => {
-                    // the actions are inside the inspector: the drawer stays
+
                     if let Some(b) = self.actions.first() {
                         cx.focus.focus(b.id);
                     }
@@ -2467,12 +2467,12 @@ impl Page<Jackin> for AccountsScreen {
         Outcome::Ignored
     }
 
-    /// A click picks a row, folds a provider, runs an action or chooses
-    /// from the open row menu; a secondary click opens a row's menu; a
-    /// drag moves the seam or the tree's bar; the wheel scrolls the pane
-    /// under the pointer.
+
+
+
+
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
-        // the seam drags, and a double-click resets it
+
         if let Some(o) = self.md.on_pointer(ev) {
             return o;
         }
@@ -2528,7 +2528,7 @@ impl Page<Jackin> for AccountsScreen {
                             let _ = &w2;
                         });
                         cx.with_top::<FormDialog>(|f| {
-                            // re-reveal with the changed radio
+
                             f.set_visible("op", false);
                             f.set_visible("op_note", false);
                             f.set_visible("key", true);
@@ -2669,7 +2669,7 @@ impl Page<Jackin> for AccountsScreen {
         self.build_rows(w);
         let t = ctx.theme;
         if w.accounts.accounts.is_empty() && self.filter.is_none() {
-            // empty state still lists Overview and Add
+
         }
         self.md.detail_owns = self.actions.iter().map(|b| b.id).collect();
         let l = self.md.layout(area, buf, ctx, t.canvas);
@@ -2699,7 +2699,7 @@ impl Page<Jackin> for AccountsScreen {
             fill(buf, inner, Style::new().bg(t.surface));
             empty::render(inner, buf, t, &e, t.surface);
         }
-        // after the rows: a keyboard-opened menu anchors to the cursor row
+
         self.menu.render(area, buf, ctx);
     }
 
@@ -2810,10 +2810,10 @@ impl Screen for AccountsScreen {
     }
 }
 
-// ------------------------------------------------------------ pointer
 
-/// The screen's pointer gestures by phase (its hand-drawn rows keep
-/// their derived ids until S16 moves them onto widgets).
+
+
+
 impl AccountsScreen {
     fn click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         self.build_rows(w);

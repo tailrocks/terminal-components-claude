@@ -1,24 +1,24 @@
-//! A sidebar's navigation list: sections, the current item, a keyboard
-//! cursor and a collapsed (icon-only) mode.
-//!
-//! ```text
-//!    Workspace            ····
-//! ▎› T Tasks        3     ▎› T      (the current item, the focused cursor)
-//!    R Runs                  R
-//!    B Branches              B
-//!
-//!    Project              ····
-//!    M Members               M
-//!    $ Billing               $      (disabled: skipped, inert)
-//! ```
-//!
-//! One focus stop (WAI-ARIA navigation list): ↑↓ move the cursor over the
-//! enabled items, Enter or Space opens the item under it, and a click opens
-//! an item at once (a navigation role activates on a single click, macOS
-//! sidebars). The current item keeps its `›` while focus is elsewhere; the
-//! `▎` cursor shows only while focused. Section headings and blank rows
-//! between sections are drawn but never take the cursor. The list scrolls
-//! when it overflows, with a scrollbar in its divider column.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -35,19 +35,19 @@ use crate::core::scroll::ScrollState;
 use crate::ui::ctx::{RenderCtx, fill};
 use crate::widgets::scrollbar;
 
-/// One entry of a [`NavList`].
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NavItem {
     pub label: String,
-    /// A one-cell glyph or initial: shown before the label, and alone in
-    /// the collapsed mode.
+
+
     pub icon: String,
-    /// The section heading the item sits under. Consecutive items with the
-    /// same section share one heading.
+
+
     pub section: String,
-    /// A short count or flag at the row's right end (`3`, `new`).
+
     pub badge: Option<String>,
-    /// Shown, skipped by the cursor and inert under the pointer.
+
     pub disabled: bool,
 }
 
@@ -62,39 +62,39 @@ impl NavItem {
         }
     }
 
-    /// See [`Self::icon`].
+
     pub fn icon(mut self, icon: &str) -> Self {
         self.icon = icon.to_owned();
         self
     }
 
-    /// See [`Self::section`].
+
     pub fn section(mut self, section: &str) -> Self {
         self.section = section.to_owned();
         self
     }
 
-    /// See [`Self::badge`].
+
     pub fn badge(mut self, badge: &str) -> Self {
         self.badge = Some(badge.to_owned());
         self
     }
 
-    /// See [`Self::disabled`].
+
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
         self
     }
 }
 
-/// What the list asks of its owner.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavAction {
-    /// Item `i` was opened (Enter, Space or a click): it is now current.
+
     Activated(usize),
 }
 
-/// One drawn row of the list.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NavRow {
     Section(usize),
@@ -102,24 +102,24 @@ enum NavRow {
     Item(usize),
 }
 
-/// A navigation list with sections; see the module docs.
+
 #[derive(Debug, Clone)]
 pub struct NavList {
     pub id: WidgetId,
     pub items: Vec<NavItem>,
-    /// The open item (`›`).
+
     pub current: usize,
-    /// The keyboard cursor (`▎` while focused).
+
     pub cursor: usize,
-    /// Icon-only: initials and section dots, no labels or badges.
+
     pub collapsed: bool,
-    /// Which keys move the cursor. Default [`NavKeys::DEFAULT`] (arrows,
-    /// paging, Home/End); [`NavKeys::VIM`] adds `j k g G`.
+
+
     pub nav: NavKeys,
-    /// The list's width open and collapsed, divider included
-    /// ([`Self::width`]). Default 24 and 6.
+
+
     pub widths: (u16, u16),
-    /// Scroll over the flattened rows (section headings and items).
+
     pub scroll: ScrollState,
     area: Rect,
     track: Rect,
@@ -142,32 +142,32 @@ impl NavList {
         }
     }
 
-    /// Open item `i` (the cursor follows it).
+
     pub fn current(mut self, i: usize) -> Self {
         self.current = i;
         self.cursor = i;
         self
     }
 
-    /// See [`Self::collapsed`].
+
     pub fn collapsed(mut self, on: bool) -> Self {
         self.collapsed = on;
         self
     }
 
-    /// See [`Self::nav`].
+
     pub fn nav(mut self, nav: NavKeys) -> Self {
         self.nav = nav;
         self
     }
 
-    /// See [`Self::widths`].
+
     pub fn widths(mut self, open: u16, collapsed: u16) -> Self {
         self.widths = (open, collapsed);
         self
     }
 
-    /// Item `i`'s hit id.
+
     pub fn item_id(&self, i: usize) -> WidgetId {
         self.id.part(Self::item_part(i))
     }
@@ -176,7 +176,7 @@ impl NavList {
         PartRef::item(Part::ROW, ItemKey::index(i))
     }
 
-    /// The width the list wants: [`Self::widths`] for its mode.
+
     pub fn width(&self) -> u16 {
         if self.collapsed {
             self.widths.1
@@ -185,8 +185,8 @@ impl NavList {
         }
     }
 
-    /// The rows in drawing order: a heading before every section, a blank
-    /// row between sections.
+
+
     fn rows(&self) -> Vec<NavRow> {
         let mut rows = vec![];
         let mut section: Option<&str> = None;
@@ -195,7 +195,7 @@ impl NavList {
                 if !rows.is_empty() {
                     rows.push(NavRow::Blank);
                 }
-                // an item without a section starts no heading
+
                 if !it.section.is_empty() {
                     rows.push(NavRow::Section(i));
                 }
@@ -213,7 +213,7 @@ impl NavList {
             .unwrap_or(0)
     }
 
-    /// Keep the cursor's row in view with the smallest scroll.
+
     fn reveal_cursor(&mut self) {
         let row = self.row_of(self.cursor);
         self.scroll.set_content(self.rows().len());
@@ -228,8 +228,8 @@ impl NavList {
         }
     }
 
-    /// The nearest enabled item `steps` items from the cursor (negative:
-    /// up), stopping at the ends.
+
+
     fn step(&self, steps: isize) -> usize {
         let mut c = self.cursor;
         let mut left = steps.unsigned_abs();
@@ -250,7 +250,7 @@ impl NavList {
         c
     }
 
-    /// A key while the list has focus.
+
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<NavAction>) {
         if self.items.is_empty() {
             return (Outcome::Ignored, None);
@@ -290,7 +290,7 @@ impl NavList {
         }
     }
 
-    /// A click on item `i`: it opens at once.
+
     pub fn on_click(&mut self, i: usize) -> (Outcome, Option<NavAction>) {
         if i < self.items.len() && !self.items[i].disabled {
             self.cursor = i;
@@ -309,7 +309,7 @@ impl NavList {
         self.scroll.set_content(rows.len());
         self.scroll.set_viewport(area.height as usize);
         let has_sb = self.scroll.overflows();
-        // the last column is the divider, and the scrollbar on overflow
+
         let row_w = area.width.saturating_sub(1);
         let mut cursor_y = None;
         for (k, ri) in self.scroll.visible_range().enumerate() {
@@ -412,13 +412,13 @@ impl NavList {
     }
 }
 
-/// A navigation list drawn alone, in a forced state, for a States grid
-/// ([`crate::ui::specimen`]): its first three items under one section
-/// heading, the first one current and the cursor on the second. Hover and
-/// press land on the cursor row (where the pointer would be), selected
-/// opens the cursor row, disabled disables it under the pointer (no
-/// reaction), overflow lengthens its label past the row and gives it a
-/// badge. Collapsed, the sample is the icon-only list.
+
+
+
+
+
+
+
 impl crate::ui::specimen::Specimen for NavList {
     fn specimen_id(&self) -> WidgetId {
         self.id
@@ -468,7 +468,7 @@ impl crate::ui::specimen::Specimen for NavList {
             }
             _ => {}
         }
-        // the pointer rests on the cursor row, not on the list
+
         let v = state.visual();
         if v.hovered || state == Disabled {
             ctx.interaction.hover = Some(l.item_id(c));
@@ -482,8 +482,8 @@ impl crate::ui::specimen::Specimen for NavList {
 }
 
 impl NavList {
-    /// The States grid's sample: the first three items in one section,
-    /// all enabled, the first current and the cursor on the second.
+
+
     fn sample(&self) -> Self {
         let mut l = self.clone();
         l.items.truncate(3);
@@ -503,9 +503,9 @@ impl NavList {
     }
 }
 
-/// The list's pointer gestures: a click on an item opens it, the wheel
-/// scrolls, the divider's scrollbar pages and drags. Focus is the
-/// router's ([`crate::core::pointer::PointerConfig::focus_on`]).
+
+
+
 impl crate::core::pointer::MouseTarget for NavList {
     type Action = NavAction;
 
@@ -595,7 +595,7 @@ mod tests {
         (buf, hits)
     }
 
-    /// Row `y` without the divider column.
+
     fn row(buf: &Buffer, y: u16) -> String {
         (0..buf.area.width - 1)
             .map(|x| buf[(x, y)].symbol().to_owned())
@@ -621,7 +621,7 @@ mod tests {
             (Outcome::Changed, Some(NavAction::Activated(3)))
         );
         assert_eq!(nav.current, 3);
-        // the vim letters only with NavKeys::VIM
+
         assert_eq!(nav.on_key(&key(KeyCode::Char('k'))).0, Outcome::Ignored);
         let mut nav = nav.nav(NavKeys::VIM);
         nav.on_key(&key(KeyCode::Char('g')));
@@ -684,7 +684,7 @@ mod tests {
         let text: Vec<String> = (0..30)
             .map(|y| (0..40).map(|x| buf[(x, y)].symbol()).collect())
             .collect();
-        // each sample: the heading, then Tasks (current), Runs (cursor), Billing
+
         let at = |label: &str| -> usize {
             text.iter()
                 .position(|r| r.starts_with(label))

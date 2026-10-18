@@ -1,8 +1,8 @@
-//! The Screens pages Disk cleanup, Activity and Workspaces through the
-//! real app (plan §7 SC49, SC51, SC52): each page composes library
-//! components, not the planned-page stub; options set through `--opt`
-//! change the playground, the States rows render, and the key
-//! interactions work.
+
+
+
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -17,7 +17,7 @@ fn typed(h: &mut Harness, s: &str) {
     }
 }
 
-// ------------------------------------------------------------ Disk cleanup
+
 
 const DISK: WidgetId = WidgetId::of("diskcleanup");
 
@@ -28,7 +28,7 @@ fn disk_cleanup_shows_the_flow_not_the_stub() {
         let text = h.text();
         assert!(!text.contains("arrives with"), "{text}");
         assert!(text.contains("/Volumes/Backup"), "{w}: {text}");
-        // a short terminal scrolls the page by section: focus reveals one
+
         h.focus(DISK.sub("tree"));
         let text = h.text();
         for needle in ["Usage · ~/work", "backend"] {
@@ -51,11 +51,11 @@ fn disk_cleanup_shows_the_flow_not_the_stub() {
 fn disk_cleanup_checklist_counts_and_skips_the_category_in_use() {
     let mut h = Harness::new(120, 40, PageId::DiskCleanup);
     h.focus(DISK.sub("categories"));
-    // the cursor starts on the first (checked) row: Space unchecks it
+
     h.key(KeyCode::Char(' '));
     assert!(h.text().contains("3 of 10 · 8.1 GiB"), "{}", h.text());
-    // the last row is in use: the cursor never parks on it, so it stays
-    // unchecked however far the keys go
+
+
     for _ in 0..12 {
         h.key(KeyCode::Down);
     }
@@ -71,13 +71,13 @@ fn disk_cleanup_review_takes_two_gates_and_reclaims() {
     h.focus(DISK.sub("categories"));
     h.key(KeyCode::Char('d'));
     assert!(h.text().contains("gate 1 of 2"), "{}", h.text());
-    // Gate 1 opens on Cancel: Continue is one step right
+
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     let text = h.text();
     assert!(text.contains("gate 2 of 2"), "{text}");
     assert!(text.contains("TRASH 4"), "{text}");
-    // the action stays disarmed until the phrase matches
+
     typed(&mut h, "TRASH");
     h.key(KeyCode::Enter);
     assert!(h.text().contains("gate 2 of 2"), "not armed yet");
@@ -137,7 +137,7 @@ fn disk_cleanup_options_drive_the_widgets() {
     let text = h.text();
     assert!(text.contains("scanning ~/work"), "{text}");
     assert!(text.contains("scanning · 3 left"), "{text}");
-    // a held scan cannot be reviewed: its sizes are not final
+
     let review = h.area(DISK.sub("review"));
     h.click(review.x + 1, review.y);
     assert!(!h.text().contains("gate 1 of 2"));
@@ -167,7 +167,7 @@ fn disk_cleanup_narrow_collapses_each_pair_into_a_drawer() {
         text.contains("→ ~/work · 31.8 GiB · Tab shows details"),
         "{text}"
     );
-    // Tab moves into the detail: the drawer covers the tree
+
     h.key(KeyCode::Tab);
     assert!(h.app.shell.focus.is(DISK.sub("details")));
     let text = h.text();
@@ -176,7 +176,7 @@ fn disk_cleanup_narrow_collapses_each_pair_into_a_drawer() {
         "{text}"
     );
     assert!(!text.contains("▸ frontend"), "{text}");
-    // Esc returns to the tree and closes the drawer
+
     h.key(KeyCode::Esc);
     assert!(h.app.shell.focus.is(DISK.sub("tree")));
     assert!(h.text().contains("▸ frontend"));
@@ -195,8 +195,8 @@ fn disk_cleanup_states_rows_render() {
 #[test]
 fn disk_cleanup_tab_order_runs_tree_details_then_checklist() {
     let mut h = Harness::new(120, 40, PageId::DiskCleanup);
-    // the sidebar, the section strip, the usage tree, its details, the
-    // checklist
+
+
     for _ in 0..4 {
         h.key(KeyCode::Tab);
     }
@@ -205,7 +205,7 @@ fn disk_cleanup_tab_order_runs_tree_details_then_checklist() {
     assert!(h.text().contains("gate 1 of 2"), "{}", h.text());
 }
 
-// ---------------------------------------------------------------- Activity
+
 
 const ACT: WidgetId = WidgetId::of("activity");
 
@@ -235,13 +235,13 @@ fn activity_shows_a_live_job_not_the_stub() {
 #[test]
 fn activity_follows_the_tail_and_streams_hide_their_lines() {
     let mut h = Harness::new(120, 40, PageId::Activity);
-    // the services keep writing while the log follows its tail
+
     for _ in 0..3 {
         h.tick();
     }
     assert!(h.text().contains("following"));
     assert!(h.text().contains("scheduler │"), "{}", h.text());
-    // a digit hides the third stream (scheduler) while the chips have focus
+
     h.focus(ACT.sub("streams"));
     h.key(KeyCode::Char('3'));
     assert_eq!(h.status(), "scheduler hidden");
@@ -251,7 +251,7 @@ fn activity_follows_the_tail_and_streams_hide_their_lines() {
     h.key(KeyCode::Char(' '));
     assert_eq!(h.status(), "scheduler shown");
     assert!(h.text().contains("scheduler │"));
-    // scrolling up leaves the tail; End follows again
+
     h.focus(ACT.sub("log"));
     h.key(KeyCode::Up);
     assert!(h.text().contains("scrollback ↑"), "{}", h.text());
@@ -292,7 +292,7 @@ fn activity_options_drive_the_widgets() {
     assert!(h.text().contains("last 20 kept"), "{}", h.text());
     h.opt("activity.wrap=off");
     assert!(!h.text().contains("│  MTP 421"), "no wrapped continuation");
-    // digits are the page's again with the knob off
+
     h.opt("activity.digit_toggles=off");
     h.focus(ACT.sub("streams"));
     h.key(KeyCode::Char('2'));
@@ -309,7 +309,7 @@ fn activity_states_rows_render() {
     }
 }
 
-// -------------------------------------------------------------- Workspaces
+
 
 const WS: WidgetId = WidgetId::of("workspaces");
 
@@ -331,7 +331,7 @@ fn workspaces_shows_tree_detail_and_roster_not_the_stub() {
     ] {
         assert!(text.contains(needle), "{needle}: {text}");
     }
-    // narrow: the tree alone, the detail is a drawer away
+
     let h = Harness::new(80, 24, PageId::Workspaces);
     let text = h.text();
     assert!(!text.contains("arrives with"), "{text}");
@@ -362,7 +362,7 @@ fn workspaces_narrow_detail_is_a_drawer() {
 fn workspaces_detail_follows_the_tree_cursor() {
     let mut h = Harness::new(120, 40, PageId::Workspaces);
     h.focus(WS.sub("tree"));
-    // the workspace, its two instances, then the next workspace
+
     for _ in 0..3 {
         h.key(KeyCode::Down);
     }
@@ -419,7 +419,7 @@ fn workspaces_options_drive_the_master_detail() {
     h.opt("workspaces.collapse_below=80");
     h.opt("workspaces.size=share");
     assert!(h.text().contains("Working dir"));
-    // without the typed confirm the purge is a plain destructive confirm
+
     h.opt("workspaces.typed=off");
     h.click_id(WS.sub("delete"));
     h.key(KeyCode::Right);

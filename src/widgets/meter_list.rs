@@ -1,17 +1,17 @@
-//! A column of labelled capacity meters: one row per quota, filesystem or
-//! resource, the labels, meters and details each aligned in a column.
-//!
-//! ```text
-//! Session    ▐ 38% ▌          ▲   resets in 2 h      (label · meter · detail)
-//! Weekly     ━━━━━━━━━━━━──── 72% ▲  of 100 credits
-//! /System    ━━━━━━━━━━━━━━── 91% !  455 of 500 GB
-//! ```
-//!
-//! The level, its glyph and staleness are each row's [`Meter`] (its
-//! [`MeterTone`](crate::widgets::progress::MeterTone)); the list owns only
-//! the columns: the label width (fixed or measured), the meter width (fixed
-//! or filling), the gaps, the room a narrow list keeps after the meter and
-//! the width below which a meter is not drawn at all.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -23,12 +23,12 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{fit, truncate, width};
 use crate::widgets::progress::{Meter, MeterTone};
 
-/// One row of a [`MeterList`]: a label, its meter and an optional detail.
+
 #[derive(Debug, Clone)]
 pub struct MeterRow {
     pub label: String,
     pub meter: Meter,
-    /// Text after the meter ("455 of 500 GB", "resets in 2 h").
+
     pub detail: Option<String>,
 }
 
@@ -40,40 +40,40 @@ impl MeterRow {
             detail: None,
         }
     }
-    /// See [`MeterRow::detail`](field@MeterRow::detail).
+
     pub fn detail(mut self, detail: impl Into<String>) -> Self {
         self.detail = Some(detail.into());
         self
     }
 }
 
-/// Labelled meters in aligned columns. One row per [`MeterRow`].
+
 #[derive(Debug, Clone)]
 pub struct MeterList {
     pub rows: Vec<MeterRow>,
-    /// Width of the label column. `None` (default): the widest label.
+
     pub label_width: Option<u16>,
-    /// The labels' tone. Default [`Tone::Normal`].
+
     pub label_tone: Tone,
-    /// Cells between the label column and the meter. Default 1.
+
     pub label_gap: u16,
-    /// Paint the whole label column in the label style, the cells after a
-    /// short label included (`true`), or write only the label's text and
-    /// leave the cells after it as they are (`false`, default: a list
-    /// drawn over a row fill keeps the fill).
+
+
+
+
     pub pad_label: bool,
-    /// Width of the meter. `None` (default): the meter fills the row up to
-    /// [`Self::reserve`].
+
+
     pub meter_width: Option<u16>,
-    /// Cells a narrow list keeps free after the meter: the meter shrinks
-    /// first. Default 0.
+
+
     pub reserve: u16,
-    /// Narrowest meter drawn: below it the row shows its label only.
-    /// Default 0.
+
+
     pub min_meter: u16,
-    /// Cells between the meter and the detail. Default 2.
+
     pub detail_gap: u16,
-    /// The details' tone. Default [`Tone::Muted`].
+
     pub detail_tone: Tone,
 }
 
@@ -98,7 +98,7 @@ impl MeterList {
             detail_tone: Tone::Muted,
         }
     }
-    /// A fixed label column. Default: the widest label.
+
     pub fn label_width(mut self, w: u16) -> Self {
         self.label_width = Some(w);
         self
@@ -107,7 +107,7 @@ impl MeterList {
         self.label_tone = tone;
         self
     }
-    /// See [`MeterList::pad_label`](field@MeterList::pad_label).
+
     pub fn pad_label(mut self, on: bool) -> Self {
         self.pad_label = on;
         self
@@ -116,7 +116,7 @@ impl MeterList {
         self.label_gap = gap;
         self
     }
-    /// A fixed meter width. Default: fill the row.
+
     pub fn meter_width(mut self, w: u16) -> Self {
         self.meter_width = Some(w);
         self
@@ -138,13 +138,13 @@ impl MeterList {
         self
     }
 
-    /// Rows the list takes: one per meter.
+
     pub fn height(&self) -> u16 {
         self.rows.len() as u16
     }
 
-    /// The label column's width in `area`: fixed, or the widest label, at
-    /// most `area`.
+
+
     pub fn label_column(&self, area: Rect) -> u16 {
         self.label_width
             .unwrap_or_else(|| {
@@ -157,8 +157,8 @@ impl MeterList {
             .min(area.width)
     }
 
-    /// The meter's column `(x, width)` in `area`; width 0 when the meter
-    /// does not fit ([`Self::min_meter`]).
+
+
     pub fn meter_column(&self, area: Rect) -> (u16, u16) {
         let mx = area.x + self.label_column(area) + self.label_gap;
         let room = area.right().saturating_sub(mx).saturating_sub(self.reserve);
@@ -170,7 +170,7 @@ impl MeterList {
         }
     }
 
-    /// Draw the rows from the top of `area` on `bg`; returns the rows drawn.
+
     pub fn render(&self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) -> u16 {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
@@ -214,12 +214,12 @@ impl MeterList {
     }
 }
 
-/// The id a meter list answers to in a States grid (it is not interactive).
+
 const SAMPLE_ID: WidgetId = WidgetId::of("meter-list-sample");
 
-/// In a States grid a meter list shows its rows refreshing (Loading),
-/// failed (Error), with a label and detail past their columns (Overflow)
-/// and in a narrow slot.
+
+
+
 impl crate::ui::specimen::Specimen for MeterList {
     fn specimen_id(&self) -> WidgetId {
         SAMPLE_ID
@@ -301,17 +301,17 @@ mod tests {
     fn labels_meters_and_details_line_up_in_columns() {
         let l = list().meter_width(20);
         let buf = draw(&l, 60);
-        // measured label column: "Session" (7) + gap 1
+
         assert_eq!(l.meter_column(buf.area), (8, 20));
         for y in 0..2 {
             let row = text(&buf, y);
-            // the detail starts after the meter and the detail gap
+
             assert_eq!(buf[(30, y)].fg, Theme::junie().text_muted, "{row}");
         }
         assert!(text(&buf, 0).starts_with("Session "));
         assert!(text(&buf, 1).starts_with("Weekly  "));
         assert!(text(&buf, 0).ends_with("resets in 2 h"));
-        // the high row keeps its level glyph
+
         assert!(text(&buf, 1).contains('!'));
     }
 
@@ -323,10 +323,10 @@ mod tests {
             .reserve(4)
             .min_meter(8);
         let area = Rect::new(0, 0, 30, 2);
-        // 30 - 11 - 4 = 15 cells for the meter
+
         assert_eq!(l.meter_column(area), (11, 15));
         let buf = draw(&l, 20);
-        // 20 - 11 - 4 = 5 < 8: label only
+
         assert_eq!(text(&buf, 0), "Session");
     }
 
@@ -338,7 +338,7 @@ mod tests {
             .meter_width(10)
             .label_tone(Tone::Secondary);
         let buf = draw(&l, 40);
-        // "Weekly" is 6 cells: the 4 after it keep the buffer's style
+
         assert_ne!(buf[(8, 1)].fg, t.text_secondary);
         let buf = draw(&l.pad_label(true), 40);
         assert_eq!(buf[(8, 1)].fg, t.text_secondary);
@@ -349,7 +349,7 @@ mod tests {
     fn a_detail_is_truncated_to_the_row() {
         let l = list().meter_width(10).label_width(8);
         let buf = draw(&l, 26);
-        // meter at 9..19, detail at 21: 5 cells
+
         assert_eq!(text(&buf, 0).chars().skip(21).collect::<String>(), "rese…");
     }
 

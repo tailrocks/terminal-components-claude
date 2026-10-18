@@ -1,8 +1,8 @@
-//! Cleanup review (HP20–HP22): every detected insight category with its
-//! candidates, the shared eligibility rule, arbitrary selection, the
-//! Trash/permanent mode and dry-run toggles, and the route into the
-//! authorized deletion gate. The same page serves Gradle and IntelliJ
-//! recursive cleanups through the shared candidate walker.
+
+
+
+
+
 
 use crate::screens::Holla;
 use junie_tui::shell::Page as ShellPage;
@@ -43,7 +43,7 @@ use junie_tui::ui::text::plural;
 
 pub const LIST: WidgetId = WidgetId::of("cleanup.list");
 pub const DETAIL: WidgetId = WidgetId::of("cleanup.detail");
-/// A row's context menu.
+
 pub const ROW_MENU: WidgetId = WidgetId::of("cleanup.row.menu");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,8 +55,8 @@ enum Row {
     Note(String),
 }
 
-/// A recursive tool cleanup (Gradle, IDEA) modelled as one synthetic
-/// category over the shared walker.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Special {
     id: String,
@@ -66,7 +66,7 @@ struct Special {
 }
 
 pub struct CleanupPage {
-    /// Filter: one category id, or a special recursive cleanup.
+
     pub filter: Option<String>,
     cats: Vec<InsightCategory>,
     special: Option<Special>,
@@ -76,21 +76,21 @@ pub struct CleanupPage {
     detail_scroll: ScrollState,
     list_area: Rect,
     detail_area: Rect,
-    /// Checked candidate paths.
+
     pub checked: BTreeSet<String>,
-    /// Categories drilled open.
+
     open: BTreeSet<usize>,
     pub mode: Mode,
     pub dry_run: bool,
-    /// The candidate list beside its details; a drawer when narrow.
+
     md: MasterDetail,
     seeded: bool,
     last_tick: u64,
-    /// The last built plan revision, to show drift.
+
     pub reviewed: Option<u64>,
 }
 
-/// List row `i` as a part of [`LIST`].
+
 fn row_part(i: usize) -> PartRef {
     PartRef::item(Part::ROW, ItemKey::index(i))
 }
@@ -194,8 +194,8 @@ impl CleanupPage {
                 self.cats.retain(|c| c.category.id == f);
             }
         }
-        // the checked set follows candidate identity: vanished paths drop,
-        // eligibility is re-checked every rebuild
+
+
         let live: BTreeSet<&str> = self
             .cats
             .iter()
@@ -292,7 +292,7 @@ impl CleanupPage {
         }
     }
 
-    /// Checked candidates as deletion items, with their guards.
+
     pub fn selected_items(&self) -> Vec<DeleteItem> {
         let mut v = vec![];
         for c in &self.cats {
@@ -862,9 +862,9 @@ impl CleanupPage {
         }
     }
 
-    /// The context menu of row `row` (a category or a candidate): the
-    /// page's own keys. Each item stands for the key at its index in the
-    /// tag (`row:keys`).
+
+
+
     fn row_menu(&self, row: usize, anchor: ContextAnchor, cx: &mut Cx) -> Outcome {
         let mut items = vec![];
         let mut keys = String::new();
@@ -970,7 +970,7 @@ impl CleanupPage {
 
 impl ShellPage<Holla> for CleanupPage {
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
-        // Esc on the details returns to the list
+
         if let Some(o) = self.md.on_key(key, cx.focus) {
             return o;
         }
@@ -1138,10 +1138,10 @@ impl ShellPage<Holla> for CleanupPage {
 
     fn pointer(&mut self, ev: &PointerEvent, w: &mut World, cx: &mut Cx) -> Outcome {
         let (id, pos) = (ev.id, ev.pos());
-        // a row of the list: its index is the part's
+
         let row = ev.on(LIST).then(|| ev.index_of(Part::ROW)).flatten();
         if let Some((axis, delta)) = ev.wheel() {
-            // a sideways notch never scrolls these vertical panes
+
             if axis != Axis::Vertical {
                 return Outcome::Ignored;
             }
@@ -1232,8 +1232,8 @@ impl ShellPage<Holla> for CleanupPage {
             return Outcome::Ignored;
         }
         self.last_tick = w.tick;
-        // the world moves every tick, the review only when its candidates,
-        // checks or rows do: an idle review asks for no redraw
+
+
         super::rebuild_on_tick(
             self,
             |s| {
@@ -1310,7 +1310,7 @@ impl ShellPage<Holla> for CleanupPage {
         cx: &mut Cx,
     ) -> Outcome {
         if let Some((row, Some(key), _)) = row_choice(tag, "cleanup-row", result.menu_chosen()) {
-            // the chosen item runs its key on the row it was opened for
+
             self.cursor = row.min(self.rows.len().saturating_sub(1));
             return self.on_key(&key, w, cx).or(Outcome::Changed);
         }
@@ -1389,8 +1389,8 @@ impl Screen for CleanupPage {
     }
 }
 
-/// Gate 1 facts for a deletion plan: resolved before review, revalidated
-/// at commit.
+
+
 pub fn plan_facts(plan: &DeletePlan, w: &World) -> Vec<Prop> {
     let home = w.location.home.clone();
     let denied = plan
@@ -1491,9 +1491,9 @@ pub fn plan_facts(plan: &DeletePlan, w: &World) -> Vec<Prop> {
     v
 }
 
-/// Commit an authorized plan: prerequisites, then the execution starts as a
-/// world-owned job that `step` advances one item per tick. Returns the index
-/// of the report that grows while it runs.
+
+
+
 pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
     if plan.fingerprint() != plan.revision {
         return Err("the reviewed plan changed · confirm again".into());
@@ -1544,8 +1544,8 @@ pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
     Ok(report_index)
 }
 
-/// Advance the running cleanup by one item. Returns the report index on the
-/// step that settles it; the partial report is visible in between.
+
+
 pub fn step(w: &mut World) -> Option<usize> {
     let mut job = w.cleanup_job.take()?;
     let home = w.location.home.clone();
@@ -1586,10 +1586,10 @@ pub fn step(w: &mut World) -> Option<usize> {
     }
 }
 
-/// Land a finished cleanup: log persistence, world effects and a rescan.
+
 fn settle(w: &mut World, idx: usize, report: cleanup::Report) {
     w.persisted.ops_log = w.ops_log.lines.clone();
-    // legacy candidate rows follow the filesystem
+
     let removed: Vec<String> = report
         .items
         .iter()
@@ -1601,8 +1601,8 @@ fn settle(w: &mut World, idx: usize, report: cleanup::Report) {
         })
         .map(|i| i.path.clone())
         .collect();
-    // the operation log is the record of a gated cleanup; the overview's
-    // candidate list only drops what left the tree
+
+
     for p in &removed {
         w.disk
             .candidates

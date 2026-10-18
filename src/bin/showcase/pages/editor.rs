@@ -1,7 +1,7 @@
-//! Code editor (plan §7 SC24): block-aware editing, syntax tones,
-//! diagnostics, a running block, find, and the completion popup, with
-//! every `CodeEditor` and `Completion` knob as an option and the editor's
-//! States grid. Options: `crate::options::CODE_EDITOR`.
+
+
+
+
 
 use std::ops::Range;
 
@@ -71,10 +71,10 @@ const KEYWORDS: &[&str] = &[
     "Self", "static", "struct", "trait", "type", "use", "where", "while",
 ];
 
-/// Booleans take the literal tone (as numbers do), not the keyword tone.
+
 const LITERALS: &[&str] = &["true", "false"];
 
-/// (label, detail, glyph) — a static symbol table stands in for a language server.
+
 const CANDIDATES: &[(&str, &str, &str)] = &[
     ("fetch(", "async fn (url: &str) -> Result<Body, Error>", "ƒ"),
     ("client(", "fn () -> Client", "ƒ"),
@@ -175,7 +175,7 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxTone)> {
     out
 }
 
-/// Blocks are paragraphs: runs of non-blank lines.
+
 fn blocks(src: &str) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     let mut start: Option<usize> = None;
@@ -212,8 +212,8 @@ pub struct EditorPage {
     last_ms: Option<u32>,
 }
 
-/// An app's own reading-mode keys: Ctrl+F finds, F3 steps through the
-/// matches, `[` and `]` jump between blocks; Enter still edits.
+
+
 fn custom_keymap() -> KeyMap<CodeCmd> {
     vec![
         (KeyBinding::key(KeyCode::Enter), CodeCmd::Edit),
@@ -243,8 +243,8 @@ impl EditorPage {
         page
     }
 
-    /// The editor and the completion popup from the option values, through
-    /// their builders; the text and the cursor survive.
+
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let text = if o.value("codeeditor.document") == "empty" {
@@ -329,13 +329,13 @@ impl EditorPage {
             });
     }
 
-    /// The document, for tests.
+
     #[cfg(test)]
     pub fn text(&self) -> &str {
         self.editor.text()
     }
 
-    /// The identifier being typed, as (start offset, word).
+
     fn word_before_cursor(&self) -> (usize, String) {
         let cur = self.editor.cursor_offset();
         let head = &self.editor.text()[..cur];
@@ -442,8 +442,8 @@ impl EditorPage {
         let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(26)), buf, t);
         self.editor.render(inner, buf, ctx, bg);
 
-        // the toolbar over the State card: find and run, each with its
-        // key, after the editor in Tab order (left column first)
+
+
         let widths = [self.find.width(), self.run_button.width()];
         let rects =
             junie_tui::widgets::button::row_layout(Rect::new(r.x, r.y, r.width, 1), &widths, 2);
@@ -560,7 +560,7 @@ impl EditorPage {
             }
         }
 
-        // the popup sits above everything else on the page
+
         if self.completion.is_open() {
             let screen = *buf.area();
             self.completion.render(screen, buf, ctx);
@@ -568,9 +568,9 @@ impl EditorPage {
     }
 }
 
-/// The States grid: the editor with tones and plain, and one carrying a
-/// warning, in rest, focus, editing, read-only, a running block, an
-/// error, no text and a long line.
+
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

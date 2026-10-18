@@ -1,10 +1,10 @@
-//! Meters (Feedback, plan §7 SC36): `MeterList`, labelled capacity meters
-//! in aligned columns, as the apps use them: a plan's quota windows in
-//! block meters with domain tones (jackin usage and accounts), filesystems
-//! on owner thresholds with the room a narrow list keeps (holla disk), and
-//! a host's load on the shared thresholds (holla snapshot). Refresh puts
-//! every meter into its refreshing tone; Offline keeps the last-good
-//! values, drawn stale. Options: `crate::options::METERS`.
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -28,10 +28,10 @@ use junie_tui::widgets::progress::{Meter, MeterLevel, MeterTone, MeterVisual, St
 
 const ID: WidgetId = WidgetId::of("meters");
 
-/// Ticks a refresh runs (the meters show their refreshing tone).
+
 const REFRESH_TICKS: u16 = 24;
 
-/// A plan's quota windows: label, used %, the domain's tone, detail.
+
 const QUOTAS: [(&str, Option<u8>, MeterTone, &str); 5] = [
     (
         "Session (5 h)",
@@ -60,7 +60,7 @@ const QUOTAS: [(&str, Option<u8>, MeterTone, &str); 5] = [
     ),
 ];
 
-/// Filesystems on the disk thresholds (attention at 80, danger at 95).
+
 const DISKS: [(&str, u8, &str); 4] = [
     ("/", 62, "310 of 500 GB"),
     ("/System/Volumes/Data", 84, "840 of 1000 GB"),
@@ -68,7 +68,7 @@ const DISKS: [(&str, u8, &str); 4] = [
     ("/Volumes/Scratch", 12, "61 of 512 GB"),
 ];
 
-/// A host's load on the shared thresholds.
+
 const HOST: [(&str, u8, &str); 4] = [
     ("CPU", 23, "8 cores · load 1.84"),
     ("Memory", 68, "21.8 of 32 GB"),
@@ -85,9 +85,9 @@ pub struct MetersPage {
     opts: PageValues,
     refresh: Button,
     offline: Button,
-    /// Ticks left of a running refresh.
+
     refreshing: u16,
-    /// Completed refreshes: each moves the quota windows on.
+
     epoch: u8,
     sections: crate::pages::layout::Sections,
 }
@@ -106,7 +106,7 @@ impl MetersPage {
         }
     }
 
-    /// The column options every list on the page shares.
+
     fn columns(&self, list: MeterList) -> MeterList {
         let mut list = list;
         if let Ok(w) = self.opts.value("meters.label_width").parse::<u16>() {
@@ -122,8 +122,8 @@ impl MetersPage {
         })
     }
 
-    /// A row with the page-wide tone overrides: refreshing while a refresh
-    /// runs, last-good while offline.
+
+
     fn row(&self, label: &str, meter: Meter, detail: &str) -> MeterRow {
         let mut meter = meter.stale_style(match self.opts.value("meters.stale_style") {
             "faint" => StaleStyle::Faint,
@@ -150,7 +150,7 @@ impl MetersPage {
         let rows = QUOTAS
             .iter()
             .map(|(label, pct, tone, detail)| {
-                // each refresh moves the healthy windows on a little
+
                 let pct = pct.map(|p| {
                     if p < 80 {
                         (p + self.epoch * 3).min(79)
@@ -180,7 +180,7 @@ impl MetersPage {
                 self.row(mount, meter, detail)
             })
             .collect();
-        // a narrow list shrinks the meter first and drops it below 8 cells
+
         self.columns(MeterList::new(rows))
             .label_tone(Tone::Secondary)
             .pad_label(true)
@@ -203,8 +203,8 @@ impl MetersPage {
             .detail_gap(3)
     }
 
-    /// The page's header: its status follows the offline option, as a
-    /// usage screen's does.
+
+
     fn header(&self) -> PageHeader {
         let offline = self.opts.on("meters.offline");
         let (status, tone) = if offline {
@@ -224,7 +224,7 @@ impl MetersPage {
     }
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
-        // the header, a group heading, then the cards
+
         let header = self.header();
         let rows = header.render(area, buf, ctx.theme);
         debug_assert_eq!(rows, header.height());
@@ -252,8 +252,8 @@ impl MetersPage {
         let l = self.sections.layout(
             area,
             &[
-                // a card takes its title row, a blank row and a bottom
-                // row around its body
+
+
                 StackChild::fixed(quotas.height() + 5),
                 StackChild::fixed(disks.height() + 3),
                 StackChild::fixed(host.height() + 3),
@@ -336,7 +336,7 @@ impl MetersPage {
     }
 }
 
-/// A card holding one meter list.
+
 fn card(
     area: Rect,
     buf: &mut Buffer,
@@ -352,8 +352,8 @@ fn card(
     list.render(inner, buf, ctx, bg);
 }
 
-/// The States grid: a quota list (block) and a filesystem list (line) in
-/// their content states.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     StateGrid::new(ID.sub("states"))

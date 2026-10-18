@@ -1,25 +1,25 @@
-//! The one cursor model for every row and item collection: lists, trees,
-//! tables, grids, menus, selects, pickers, tab strips, chips and radio
-//! groups.
-//!
-//! - [`RowSource`] is what a collection tells the cursor: how many rows,
-//!   which are enabled, their labels (for type-ahead) and their keys.
-//! - [`Cursor`] is the position plus its rules (wrap, axis, disabled-row
-//!   skipping). [`Cursor::apply`] is the only place that steps, pages,
-//!   jumps to the ends, skips disabled rows and wraps;
-//!   [`Cursor::type_ahead`] is the only place that type-selects;
-//!   [`Cursor::select`] the only place a pointer or context menu places it.
-//! - [`NavProfile`] is the app-wide layer of the override stack (plan §3):
-//!   `Desktop` (the default: arrows, paging and Home/End; letters type
-//!   ahead) or `Vim` (`h j k l g G` navigate; no type-ahead). A widget's
-//!   own `nav(..)` and `type_ahead(..)` builders override the profile, and
-//!   its key map overrides both.
-//!
-//! Standards: WAI-ARIA APG listbox, tree and grid keyboard interaction
-//! (arrows step, Home/End jump to the first and last *enabled* item,
-//! PageUp/PageDown move by a viewport, "type-ahead is recommended for all
-//! listboxes"); macOS lists, outline views, popup buttons and menus (type
-//! select, disabled items skipped, no wrap except in menus).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use std::cell::Cell;
 
@@ -29,35 +29,35 @@ use crate::core::id::ItemKey;
 use crate::core::keymap::{Nav, NavKeys};
 use crate::core::typeahead::TypeAhead;
 
-/// What a collection tells its [`Cursor`].
+
 pub trait RowSource {
-    /// How many rows (items, tabs, options) there are.
+
     fn len(&self) -> usize;
 
-    /// True when there are no rows.
+
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Whether row `i` can take the cursor. Disabled rows, notes and
-    /// separators are skipped by keyboard navigation and type-ahead.
+
+
     fn enabled(&self, i: usize) -> bool {
         let _ = i;
         true
     }
 
-    /// Whether row `i` is a section header: text, never a cursor stop,
-    /// even when [`Cursor::skip_disabled`] is off (a disabled row can
-    /// still be reached then; a header never can). Default `false`.
+
+
+
     fn is_header(&self, i: usize) -> bool {
         let _ = i;
         false
     }
 
-    /// The text type-ahead matches for row `i`.
+
     fn label(&self, i: usize) -> &str;
 
-    /// A stable key for row `i` (the bridge to `main`'s `ItemKey` cursors).
+
     fn key(&self, i: usize) -> ItemKey {
         ItemKey::index(i)
     }
@@ -81,14 +81,14 @@ impl RowSource for [String] {
     }
 }
 
-/// A [`RowSource`] made of closures, for collections whose rows are not one
-/// slice (a filtered view, a column of a table).
+
+
 pub struct RowFn<'a> {
-    /// Number of rows.
+
     pub len: usize,
-    /// Whether row `i` is enabled.
+
     pub enabled: &'a dyn Fn(usize) -> bool,
-    /// Row `i`'s type-ahead label.
+
     pub label: &'a dyn Fn(usize) -> &'a str,
 }
 
@@ -104,21 +104,21 @@ impl RowSource for RowFn<'_> {
     }
 }
 
-/// What a cursor operation did.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Moved {
-    /// The key is not navigation for this cursor (a ←/→ on a vertical
-    /// list, an empty collection): let it bubble.
+
+
     Ignored,
-    /// Handled, but the cursor stays at this index (an end of a list that
-    /// does not wrap, no enabled row that way, a type-ahead miss).
+
+
     Stayed(usize),
-    /// The cursor moved to this index.
+
     To(usize),
 }
 
 impl Moved {
-    /// The cursor's index after the operation, `None` when ignored.
+
     pub fn index(self) -> Option<usize> {
         match self {
             Moved::Ignored => None,
@@ -126,12 +126,12 @@ impl Moved {
         }
     }
 
-    /// True when the cursor changed rows.
+
     pub fn moved(self) -> bool {
         matches!(self, Moved::To(_))
     }
 
-    /// `Ignored`, `Consumed` (stayed) or `Changed` (moved).
+
     pub fn outcome(self) -> Outcome {
         match self {
             Moved::Ignored => Outcome::Ignored,
@@ -141,24 +141,24 @@ impl Moved {
     }
 }
 
-/// A cursor over a [`RowSource`]: its index and its rules.
-///
-/// Widgets keep their `cursor` index field (and their `wrap` knob); they
-/// build a `Cursor` from them for each key and write the index back (until
-/// `ListCore` holds the cursor, plan S13).
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Cursor {
-    /// The row under the cursor.
+
     pub index: usize,
-    /// Past either end lands on the other end (menus). Default off, as in
-    /// macOS lists, outline views and tab strips.
+
+
     pub wrap: bool,
-    /// Which arrows step: ↑/↓ for [`Axis::Vertical`] (lists, trees,
-    /// menus), ←/→ for [`Axis::Horizontal`] (tab strips, chips, segmented
-    /// controls, button rows). Default vertical.
+
+
+
     pub axis: Axis,
-    /// Keyboard steps pass over rows [`RowSource::enabled`] rejects.
-    /// Default on (macOS, APG). Type-ahead always skips them.
+
+
     pub skip_disabled: bool,
 }
 
@@ -169,8 +169,8 @@ impl Default for Cursor {
 }
 
 impl Cursor {
-    /// A vertical cursor at `index` that does not wrap and skips disabled
-    /// rows.
+
+
     pub const fn new(index: usize) -> Self {
         Self {
             index,
@@ -180,19 +180,19 @@ impl Cursor {
         }
     }
 
-    /// See [`Self::wrap`].
+
     pub const fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
 
-    /// See [`Self::axis`].
+
     pub const fn axis(mut self, axis: Axis) -> Self {
         self.axis = axis;
         self
     }
 
-    /// See [`Self::skip_disabled`].
+
     pub const fn skip_disabled(mut self, on: bool) -> Self {
         self.skip_disabled = on;
         self
@@ -211,17 +211,17 @@ impl Cursor {
         }
     }
 
-    /// Apply a navigation step. `page` is the number of rows a viewport
-    /// shows (PageUp/PageDown move by it; at least 1).
-    ///
-    /// | `Nav` | vertical | horizontal |
-    /// |---|---|---|
-    /// | ↑ ↓ | previous / next enabled row | ignored |
-    /// | ← → | ignored | previous / next enabled item |
-    /// | PageUp PageDown | `page` rows, then the nearest enabled row (never wraps) | ignored |
-    /// | Home End | first / last enabled row | first / last enabled item |
-    ///
-    /// An empty source ignores every step.
+
+
+
+
+
+
+
+
+
+
+
     pub fn apply<S: RowSource + ?Sized>(&mut self, nav: Nav, src: &S, page: usize) -> Moved {
         let n = src.len();
         if n == 0 {
@@ -250,8 +250,8 @@ impl Cursor {
         }
     }
 
-    /// Step `delta` rows (±1 for the arrows), passing over disabled rows
-    /// and wrapping when [`Self::wrap`] is on.
+
+
     pub fn step<S: RowSource + ?Sized>(&mut self, delta: isize, src: &S) -> Moved {
         let n = src.len();
         if n == 0 {
@@ -262,7 +262,7 @@ impl Cursor {
         for _ in 0..n {
             let next = crate::core::nav::step_index(i, n, delta, self.wrap);
             if next == i {
-                // an end of a list that does not wrap
+
                 break;
             }
             i = next;
@@ -273,7 +273,7 @@ impl Cursor {
         self.settle(from, from)
     }
 
-    /// Jump to the first enabled row.
+
     pub fn first<S: RowSource + ?Sized>(&mut self, src: &S) -> Moved {
         let n = src.len();
         if n == 0 {
@@ -284,7 +284,7 @@ impl Cursor {
         self.settle(from, to)
     }
 
-    /// Jump to the last enabled row.
+
     pub fn last<S: RowSource + ?Sized>(&mut self, src: &S) -> Moved {
         let n = src.len();
         if n == 0 {
@@ -295,8 +295,8 @@ impl Cursor {
         self.settle(from, to)
     }
 
-    /// The usable row nearest `to`, searching away from `from` first (the
-    /// direction of travel), then back toward it; `from` when none is.
+
+
     fn nearest<S: RowSource + ?Sized>(&self, src: &S, to: usize, from: usize) -> usize {
         let n = src.len();
         if self.usable(src, to) {
@@ -318,9 +318,9 @@ impl Cursor {
             .unwrap_or(from)
     }
 
-    /// Place the cursor on row `i` (a click, a context menu, a programmatic
-    /// move). Out of range is ignored; the row need not be enabled (a
-    /// pointer may point at a disabled row).
+
+
+
     pub fn select<S: RowSource + ?Sized>(&mut self, i: usize, src: &S) -> Moved {
         if i >= src.len() {
             return Moved::Ignored;
@@ -329,11 +329,11 @@ impl Cursor {
         self.settle(from, i)
     }
 
-    /// Type-select: add `c` to the prefix in `ta` and move to the first
-    /// enabled row at or after the cursor (wrapping) whose label starts with
-    /// it; a repeated single letter cycles through the rows starting with
-    /// it. A miss is [`Moved::Stayed`]: the letter is consumed, never
-    /// passed on half-typed (plan §3).
+
+
+
+
+
     pub fn type_ahead<S: RowSource + ?Sized>(
         &mut self,
         c: char,
@@ -356,33 +356,33 @@ impl Cursor {
     }
 }
 
-/// What a key means to a navigable collection.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyStep {
-    /// A navigation step ([`NavKeys::action`]).
+
     Nav(Nav),
-    /// A character to type-select with ([`TypeAhead::char_of`]).
+
     Type(char),
 }
 
 impl KeyStep {
-    /// Classify `key`: with type-ahead on, a printable character types
-    /// (vim letters included, so `j` finds "Jobs"); otherwise `nav`
-    /// decides. `None` when the key is neither.
-    ///
-    /// This is the rule for the topmost layer (an open menu, an open select
-    /// popup, a cell popup): it types before anything beneath it sees the
-    /// key. A collection embedded in a page uses [`Self::ordered`].
+
+
+
+
+
+
+
     pub fn of(key: &Key, nav: &NavKeys, type_ahead: bool) -> Option<Self> {
         Self::ordered(key, nav, type_ahead, TypeAheadPrecedence::TypeAhead)
     }
 
-    /// [`Self::of`] for a collection embedded in a page (a list, a tree, a
-    /// closed select, a table): under [`TypeAheadPrecedence::Shortcuts`],
-    /// while [`route_key`] offers the key to shortcuts first, a type-ahead
-    /// character is not typed. The collection lets it pass (unless it binds
-    /// the key itself) and [`route_key`] hands it back for type-ahead only
-    /// when no shortcut took it.
+
+
+
+
+
+
     pub fn ordered(
         key: &Key,
         nav: &NavKeys,
@@ -402,37 +402,37 @@ impl KeyStep {
     }
 }
 
-/// Who gets a printable key first when a focused list, tree, closed select
-/// or table type-selects and the page or the app also binds that key as a
-/// single-character shortcut (`d` delete, `e` edit, `q` quit, `0`
-/// explorer).
-///
-/// The rule lives in one place: [`route_key`] offers a type-ahead
-/// character to the shortcuts first and to type-ahead second, and
-/// [`KeyStep::ordered`] is where every embedded collection asks. Layers of
-/// the override stack: the app-wide default ([`Self::install`]), then a
-/// widget's `type_ahead_precedence(..)` builder, then the app's key map
-/// (a shortcut the app unbinds no longer competes). Open menus and popups
-/// are the topmost layer and always type first ([`KeyStep::of`]).
-///
-/// Standards: APG recommends type-ahead in listboxes and trees and warns
-/// that it must not collide with the application's own keys; WCAG 2.1.4
-/// asks that single-character shortcuts be remappable or turned off,
-/// which the key maps and [`Self::TypeAhead`] provide; a terminal app's
-/// commands are single letters because ⌘ is not delivered, so a hinted
-/// letter must keep working while a list has focus (hints never advertise
-/// a key that does not work). See docs/audits/design-review-2026-10/
-/// keyboard.md, "Type-ahead and single-letter shortcuts".
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum TypeAheadPrecedence {
-    /// Keymap first (the default): a key a shortcut in the current context
-    /// takes runs that shortcut; type-ahead gets every other letter and
-    /// digit.
+
+
+
     #[default]
     Shortcuts,
-    /// Type-ahead first (macOS Finder lists, where commands carry ⌘): a
-    /// focused collection types every letter and digit, and a page's
-    /// letter shortcuts need the focus elsewhere.
+
+
+
     TypeAhead,
 }
 
@@ -443,33 +443,33 @@ thread_local! {
     static YIELDED: Cell<bool> = const { Cell::new(false) };
 }
 
-/// Which pass of [`route_key`] is running.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Pass {
-    /// Not inside [`route_key`] (a widget driven on its own): type-ahead
-    /// types at once.
+
+
     Direct,
-    /// The first pass: shortcuts get the key; collections yield it.
+
     Shortcuts,
-    /// The second pass: no shortcut took it, so it types.
+
     TypeAhead,
 }
 
 impl TypeAheadPrecedence {
-    /// Make this the app-wide default (on this thread). Read at each key,
-    /// so it can be installed at any time.
+
+
     pub fn install(self) {
         PRECEDENCE.with(|p| p.set(self));
     }
 
-    /// The installed default ([`Self::Shortcuts`] unless an app installed
-    /// another).
+
+
     pub fn current() -> Self {
         PRECEDENCE.with(Cell::get)
     }
 }
 
-/// Restores the routing pass when a pass ends (also on unwind).
+
 struct PassGuard(Pass);
 
 impl PassGuard {
@@ -484,18 +484,18 @@ impl Drop for PassGuard {
     }
 }
 
-/// Deliver `key` through `handle` (an app's whole key path: modals, shell,
-/// page, focused widget) so that a single-character shortcut wins over
-/// type-ahead ([`TypeAheadPrecedence::Shortcuts`]).
-///
-/// A key that is not a type-ahead character ([`TypeAhead::char_of`]: not a
-/// letter or digit, or a chord) is delivered once. A letter or digit is
-/// delivered first with type-ahead held back: every handler, shortcut or
-/// widget key map sees it as if no collection typed. When a collection
-/// held it back and nothing visible happened (no shortcut ran: the result
-/// is not [`Outcome::Changed`]), it is delivered again and types. Hints
-/// stay truthful: a key a hint advertises is a key some handler takes, and
-/// that handler runs before type-ahead.
+
+
+
+
+
+
+
+
+
+
+
+
 pub fn route_key(key: &Key, mut handle: impl FnMut() -> Outcome) -> Outcome {
     if ROUTE.with(Cell::get) != Pass::Direct || TypeAhead::char_of(key).is_none() {
         return handle();
@@ -512,20 +512,20 @@ pub fn route_key(key: &Key, mut handle: impl FnMut() -> Outcome) -> Outcome {
     handle().or(first)
 }
 
-/// The app-wide navigation profile: the first layer of the override stack
-/// (profile, then a widget's `nav(..)`/`type_ahead(..)` builders, then its
-/// key map). Every navigable widget reads it when it is built, so install
-/// it before building widgets (at app start).
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub enum NavProfile {
-    /// Desktop conventions (macOS, Windows, GNOME; APG): arrows, paging and
-    /// Home/End navigate; printable keys type-select in lists, trees,
-    /// selects and menus. Letters are never navigation, so they stay free
-    /// for typing (WCAG 2.1.4). The default.
+
+
+
+
     #[default]
     Desktop,
-    /// Vim keys: `h j k l` and `g`/`G` navigate everywhere, and type-ahead
-    /// is off so the letters do not collide.
+
+
     Vim,
 }
 
@@ -534,7 +534,7 @@ thread_local! {
 }
 
 impl NavProfile {
-    /// The keys that navigate under this profile.
+
     pub const fn nav(self) -> NavKeys {
         match self {
             NavProfile::Desktop => NavKeys::DESKTOP,
@@ -542,29 +542,29 @@ impl NavProfile {
         }
     }
 
-    /// Whether lists, trees, selects and menus type-select by default.
+
     pub const fn type_ahead(self) -> bool {
         matches!(self, NavProfile::Desktop)
     }
 
-    /// Make this the profile widgets built from now on (on this thread)
-    /// take their defaults from.
+
+
     pub fn install(self) {
         PROFILE.with(|p| p.set(self));
     }
 
-    /// The installed profile ([`NavProfile::Desktop`] unless an app
-    /// installed another).
+
+
     pub fn current() -> Self {
         PROFILE.with(Cell::get)
     }
 }
 
-/// A navigable collection: a [`RowSource`] with a [`Cursor`]. Every list,
-/// tree, table, grid, menu, select, picker, tab strip, chip bar and radio
-/// group implements it, so one table-driven test covers them all.
+
+
+
 pub trait Navigable: RowSource {
-    /// The cursor as the collection holds it now.
+
     fn cursor(&self) -> Cursor;
 }
 
@@ -601,7 +601,7 @@ mod tests {
     #[test]
     fn apply_steps_pages_and_jumps_over_enabled_rows() {
         let src = rows(&[0, 2, 5]);
-        // (start, nav, page, wrap, expected)
+
         let cases: &[(usize, Nav, usize, bool, Moved)] = &[
             (1, Nav::Down, 1, false, Moved::To(3)),
             (3, Nav::Up, 1, false, Moved::To(1)),
@@ -746,8 +746,8 @@ mod tests {
         assert_eq!(TypeAhead::default().timeout, Duration::from_millis(1000));
     }
 
-    /// A page that binds `q` (and swallows everything else, as a modal
-    /// does when `swallow` is set) around a focused list that type-selects.
+
+
     struct Page {
         cursor: Cursor,
         ta: TypeAhead,
@@ -769,7 +769,7 @@ mod tests {
             }
         }
 
-        /// The whole key path: the focused list first, then the page.
+
         fn on_key(&mut self, k: &Key) -> Outcome {
             if let Some(KeyStep::Type(c)) =
                 KeyStep::ordered(k, &NavKeys::DESKTOP, true, self.precedence)
@@ -806,7 +806,7 @@ mod tests {
         assert_eq!(p.cursor.index, 1, "an unbound letter types");
         assert_eq!(p.press('z'), Outcome::Consumed, "a miss is consumed");
         assert_eq!(p.press('?'), Outcome::Ignored, "punctuation is never typed");
-        // a modal that swallows unbound keys still lets its list type
+
         let mut m = Page::new();
         m.swallow = true;
         assert_eq!(m.press('d'), Outcome::Changed);
@@ -816,7 +816,7 @@ mod tests {
 
     #[test]
     fn type_ahead_first_is_an_app_wide_and_a_per_widget_choice() {
-        // per widget
+
         let mut p = Page::new();
         p.precedence = TypeAheadPrecedence::TypeAhead;
         p.press('q');
@@ -825,7 +825,7 @@ mod tests {
             (0, 2),
             "the list typed q"
         );
-        // app-wide, read at each key
+
         TypeAheadPrecedence::TypeAhead.install();
         let mut a = Page::new();
         a.press('q');
@@ -840,12 +840,12 @@ mod tests {
     #[test]
     fn outside_route_key_and_in_popups_a_letter_types_at_once() {
         let q = key(KeyCode::Char('q'), KeyModifiers::NONE);
-        // a widget driven on its own (no router): S4's behaviour
+
         let mut p = Page::new();
         p.on_key(&q);
         assert_eq!((p.shortcut_runs, p.cursor.index), (0, 2));
-        // an open popup is the topmost layer: `KeyStep::of` types even
-        // while shortcuts are offered the key
+
+
         let step = route_key(&q, || {
             assert_eq!(
                 KeyStep::of(&q, &NavKeys::DESKTOP, true),

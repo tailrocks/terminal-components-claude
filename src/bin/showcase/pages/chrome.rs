@@ -1,13 +1,13 @@
-//! Application chrome (plan §7, SC4): the brand lockup, a menu bar with
-//! anchored menus, an identity strip of segments, a status bar with three
-//! groups that collapse by priority, a context menu on list rows, and the
-//! hint-bar layer precedence.
-//!
-//! Options rebuild the menu bar through its builders (`open_on`,
-//! `overflow`, `hover_switch`, `press_drag`, `hide_owner_focus`, `wrap`,
-//! `type_ahead`, `nav`, `dismiss`, `brand`); the readout under the bar
-//! reads the built widget back. States: segments and status items drawn
-//! by themselves in every state they have.
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -49,16 +49,16 @@ const PR: WidgetId = WidgetId::of("chrome.status.pr");
 const ENV: WidgetId = WidgetId::of("chrome.strip.env");
 const PENDING: WidgetId = WidgetId::of("chrome.strip.pending");
 
-/// Width of the menu bar under `chrome.bar=narrow`: too narrow for every
-/// title, so `chrome.overflow` shows.
+
+
 const NARROW_BAR: u16 = 30;
 
-/// What an open context menu is about.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Target {
-    /// A session row's tab menu.
+
     Session(usize),
-    /// The app menu anchored at the environment segment.
+
     Env,
 }
 
@@ -68,11 +68,11 @@ pub struct ChromePage {
     sessions: ListBox,
     context: RowMenu<Target>,
     last: String,
-    /// The last `MenuBarAction` the bar reported.
+
     action: Option<MenuBarAction>,
     zoomed: bool,
     hint_area: Rect,
-    /// Value indices of the page options, in `page_options` order.
+
     opts: Vec<usize>,
 }
 
@@ -106,7 +106,7 @@ impl ChromePage {
         page
     }
 
-    /// The value of option `key` (`chrome.<name>`) as the table spells it.
+
     fn opt(&self, key: &str) -> &'static str {
         let table = page_options(PageId::Chrome);
         let i = table
@@ -120,7 +120,7 @@ impl ChromePage {
         self.opt(key) == "on"
     }
 
-    /// The menu bar, built from the options through its builders.
+
     fn build_bar(&self) -> MenuBar {
         let bar = MenuBar::new(
             BAR,
@@ -188,7 +188,7 @@ impl ChromePage {
         }
     }
 
-    /// The built bar read back: what each builder set.
+
     fn readout(&self) -> [String; 2] {
         let b = &self.bar;
         let on = |v: bool| if v { "on" } else { "off" };
@@ -224,8 +224,8 @@ impl ChromePage {
         ]
     }
 
-    /// The identity strip: who and where, each fact a segment with its
-    /// own tone and priority; the environment opens the app menu.
+
+
     fn strip(&self, tick: u64, t: &junie_tui::theme::Theme) -> (Vec<Segment>, Vec<Segment>) {
         let g = &t.glyphs;
         let left = vec![
@@ -298,7 +298,7 @@ impl ChromePage {
         b
     }
 
-    /// Open the tab menu about session `row`, as `req` places it.
+
     fn open_context(&mut self, req: ContextRequest<usize>) {
         let row = req.target;
         let label = self.sessions.items[row].label.clone();
@@ -309,7 +309,7 @@ impl ChromePage {
         );
     }
 
-    /// A context menu's items.
+
     fn context_items(&self, target: Target) -> Vec<MenuItem> {
         match target {
             Target::Session(row) => vec![
@@ -356,7 +356,7 @@ impl ChromePage {
                 hint("right-click", "Context menu"),
                 hint("Tab", "Next"),
             ])
-            // a status made of parts in their own tones
+
             .status_parts(
                 vec![
                     ("last: ".to_owned(), Tone::Muted),
@@ -381,7 +381,7 @@ impl ChromePage {
         cx.status(label);
     }
 
-    /// Record what the bar reported, and act on a choice or the brand.
+
     fn bar_action(&mut self, ev: Option<MenuBarAction>, cx: &mut Cx) {
         let Some(ev) = ev else { return };
         self.action = Some(ev);
@@ -399,7 +399,7 @@ impl ChromePage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let mut y = area.y;
-        // the menu bar on the canvas, narrow when chrome.bar says so
+
         let bar_w = if self.opt("chrome.bar") == "narrow" {
             area.width.min(NARROW_BAR)
         } else {
@@ -408,10 +408,10 @@ impl ChromePage {
         self.bar
             .render(Rect::new(area.x, y, bar_w, 1), buf, ctx, t.canvas);
         y += 2;
-        // the status bar, the hint bar and their captions take the last
-        // five rows; everything else stays above them
+
+
         let foot = area.bottom().saturating_sub(5);
-        // body: a list of sessions in a card
+
         let body = Rect::new(area.x, y, area.width, foot.saturating_sub(y).min(11));
         let panel = Panel::card(Some("Sessions"))
             .meta("right-click or Shift+F10 for the tab menu")
@@ -439,8 +439,8 @@ impl ChromePage {
                 );
             }
         }
-        // toned lines drawn by the library: spans with their own tones,
-        // and a footer status led by its `StatusKind` glyph
+
+
         let sy = inner.y + notes.len() as u16 + 1;
         if nx + 8 < inner.right() && sy + 1 < inner.bottom() {
             let max = inner.right().saturating_sub(nx);
@@ -462,8 +462,8 @@ impl ChromePage {
                 Some(("Saved", Some(StatusKind::Ok))),
             );
         }
-        // the built bar read back, then the identity strip on the chrome
-        // plane
+
+
         let mut y = body.bottom() + 1;
         for line in self.readout() {
             if y < foot {
@@ -472,7 +472,7 @@ impl ChromePage {
             }
             y += 1;
         }
-        // what the bar reported last, and the actions it reports
+
         if y < foot {
             let last = match self.action {
                 Some(a) => format!("{a:?}"),
@@ -502,7 +502,7 @@ impl ChromePage {
             segments::render(row, buf, ctx, &left, &right, t.surface);
         }
         let ay = y + 2;
-        // status bar row above the hint bar, and where its items went
+
         let status_row = Rect::new(area.x, area.bottom().saturating_sub(4), area.width, 1);
         let status = self.status_bar();
         let placed = status.layout(status_row);
@@ -527,7 +527,7 @@ impl ChromePage {
                 t.faint().bg(t.canvas),
             );
         }
-        // the hint layer that a shell would pin to the bottom
+
         let hint_row = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.hint_area = hint_row;
         let layer = self.layer(ctx.interaction.focus);
@@ -538,13 +538,13 @@ impl ChromePage {
             t.faint().bg(t.canvas),
         );
         HintBar::render(hint_row, buf, t, &layer);
-        // popovers last so they sit on top
+
         self.context.render(area, buf, ctx);
     }
 }
 
-/// The States grid: segments and status items in every state they have,
-/// drawn by the widgets themselves.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -589,7 +589,7 @@ impl Page for ChromePage {
     }
 
     fn animating(&self) -> bool {
-        // the strip's deploy spinner and the busy status item
+
         true
     }
 
@@ -648,7 +648,7 @@ impl Page for ChromePage {
                 }
                 Outcome::Ignored
             }
-            // a title opens its menu on the press (MenuBar::open_on)
+
             PageEvent::Pointer(ev) => {
                 if let Some(r) = self.bar.route(ev) {
                     let (o, a) = r.into_parts();
@@ -668,7 +668,7 @@ impl Page for ChromePage {
                 }
                 let id = ev.id;
                 if id == ENV {
-                    // the app menu, anchored where the segment was clicked
+
                     let menu = ContextMenu::new(CONTEXT, self.context_items(Target::Env))
                         .at(ev.pos())
                         .title("production");
@@ -706,7 +706,7 @@ impl Page for ChromePage {
         self.layer(focus)
             .hints
             .iter()
-            // the chrome layers are all literal hints, so every action is borrowed
+
             .filter_map(|h| match h.action {
                 std::borrow::Cow::Borrowed(a) => Some((h.key, a)),
                 std::borrow::Cow::Owned(_) => None,

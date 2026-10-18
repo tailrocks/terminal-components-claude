@@ -1,18 +1,18 @@
-//! Disk cleanup (Screens, plan §7 SC49): holla's disk usage and cleanup
-//! flow composed from library components only. Filesystem meters
-//! (`MeterList`), a usage tree with sizes and scanning nodes (`TreeView`
-//! busy nodes), the cursor node's facts (`props`), a checklist of cleanup
-//! categories (`ListBox` in multi mode, a disabled row in use), a reclaim
-//! summary, and the two-gate review: Gate 1 lists the resolved facts
-//! (`Dialog::facts`), Gate 2 arms the action with a typed phrase. The mode
-//! (Trash, permanent delete, dry run) changes the summary, the gates and
-//! the confirming button. The usage | details and categories | reclaim
-//! pairs are `MasterDetail`s: narrow, each master keeps a summary row and
-//! its detail becomes a drawer. Options: `crate::options::DISK_CLEANUP`.
-//!
-//! Gaps (recorded in docs/remaining-work.md, Priority 0): a per-row
-//! tri-state check (a category with some candidates checked) waits for
-//! S16's `RowMark`; the tree's size column for S16's `TreeView::columns`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -43,33 +43,33 @@ use junie_tui::widgets::segments::{self, Segment};
 use junie_tui::widgets::tree::{TreeAction, TreeNode, TreeView};
 
 const ID: WidgetId = WidgetId::of("diskcleanup");
-/// The usage tree.
+
 pub const TREE: WidgetId = ID.sub("tree");
-/// The cursor node's facts (the usage tree's detail).
+
 pub const DETAILS: WidgetId = ID.sub("details");
-/// The cleanup categories.
+
 pub const CATEGORIES: WidgetId = ID.sub("categories");
-/// Gate 1 (the review) and Gate 2 (the typed phrase).
+
 pub const GATE1: WidgetId = ID.sub("gate1");
 pub const GATE2: WidgetId = ID.sub("gate2");
 
 const GIB: u64 = 1 << 30;
 const MIB: u64 = 1 << 20;
 
-/// Ticks a rescan takes; each top-level folder finishes in turn.
+
 const SCAN_TICKS: u16 = 30;
 
-/// The disk thresholds the filesystems use (attention 80, danger 95).
+
 const DISK_TONE: MeterTone = MeterTone::Level { warn: 80, crit: 95 };
 
-/// A cleanup category: label, size, safety, enabled.
+
 struct Category {
     label: &'static str,
     size: u64,
     safety: &'static str,
-    /// Checked when the page opens (the safe ones).
+
     checked: bool,
-    /// `Some(reason)`: in use, never selectable.
+
     blocked: Option<&'static str>,
 }
 
@@ -112,7 +112,7 @@ const CATEGORIES_DATA: [Category; 10] = [
     },
 ];
 
-/// The usage tree under `~/work` (allocated sizes, largest first).
+
 fn usage() -> Vec<TreeNode> {
     let node = |label: &str, size: u64, total: u64, children: Vec<TreeNode>| {
         let meta = format!("{:>9} · {:>3}%", bytes(size), size * 100 / total.max(1));
@@ -169,7 +169,7 @@ fn usage() -> Vec<TreeNode> {
     )]
 }
 
-/// What the confirming action does in each mode.
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Mode {
     Trash,
@@ -192,7 +192,7 @@ impl Mode {
             Mode::DryRun => "Run dry run",
         }
     }
-    /// The phrase Gate 2 asks for: the action and how many.
+
     fn phrase(self, n: usize) -> String {
         match self {
             Mode::Trash => format!("TRASH {n}"),
@@ -211,19 +211,19 @@ pub struct DiskCleanupPage {
     opts: PageValues,
     tree: TreeView,
     list: ListBox,
-    /// The categories still on disk, parallel to the list's rows.
+
     cats: Vec<usize>,
     rescan: Button,
     review: Button,
-    /// The cursor node's facts, and the path they are for.
+
     facts: PropsList,
     facts_for: Option<Vec<usize>>,
-    /// Usage tree | details, and categories | reclaim.
+
     usage_md: MasterDetail,
     clean_md: MasterDetail,
-    /// Ticks left of a running rescan.
+
     scanning: u16,
-    /// Bytes reclaimed so far (the root filesystem drops by it).
+
     reclaimed: u64,
     sections: crate::pages::layout::Sections,
 }
@@ -277,8 +277,8 @@ impl DiskCleanupPage {
         p
     }
 
-    /// The tree and the list through their builders, from the options;
-    /// their rows, cursor and checks survive.
+
+
     fn rebuild(&mut self) {
         let tree = std::mem::replace(&mut self.tree, TreeView::new(TREE, vec![]));
         self.tree = tree.show_meta(self.opts.on("diskcleanup.sizes"));
@@ -313,15 +313,15 @@ impl DiskCleanupPage {
         }
     }
 
-    /// A scan holds while the option says so, or while a rescan runs.
+
     fn is_scanning(&self) -> bool {
         self.scanning > 0 || self.opts.value("diskcleanup.scan") == "scanning"
     }
 
-    /// The top-level folders not scanned yet are busy.
+
     fn sync_scan(&mut self) {
         let n = self.tree.node(&[0]).map_or(0, |n| n.children.len());
-        // a held scan stops after the second folder
+
         let done = if self.scanning > 0 {
             n * (SCAN_TICKS - self.scanning) as usize / SCAN_TICKS as usize
         } else if self.is_scanning() {
@@ -334,7 +334,7 @@ impl DiskCleanupPage {
         }
     }
 
-    /// Checked categories: (row, category).
+
     fn checked(&self) -> Vec<(usize, &'static Category)> {
         self.cats
             .iter()
@@ -377,7 +377,7 @@ impl DiskCleanupPage {
         .min_meter(8)
     }
 
-    /// The cursor node's facts.
+
     fn details(&self) -> (String, Vec<Prop>) {
         let rows = self.tree.rows();
         let Some(row) = rows.get(self.tree.cursor) else {
@@ -581,8 +581,8 @@ impl DiskCleanupPage {
             );
         }
         if r.is_empty() {
-            // collapsed: the drawer's stops stay reachable (the review
-            // through the master-detail)
+
+
             self.clean_md.finish(ctx);
             ctx.focus_stop(self.rescan.id);
             return;
@@ -656,7 +656,7 @@ impl DiskCleanupPage {
         self.sync_scan();
     }
 
-    /// The facts both gates show.
+
     fn facts(&self) -> Vec<Prop> {
         let checked = self.checked();
         let mode = self.mode();
@@ -692,7 +692,7 @@ impl DiskCleanupPage {
         ]
     }
 
-    /// Gate 1: the resolved facts and the command sequence.
+
     fn gate1(&self) -> Dialog {
         let mode = self.mode();
         let n = self.checked().len();
@@ -736,8 +736,8 @@ impl DiskCleanupPage {
         }
     }
 
-    /// Gate 2: the typed phrase arms the action (or a plain confirm with
-    /// the typed gate off).
+
+
     fn gate2(&self) -> Dialog {
         let mode = self.mode();
         let n = self.checked().len();
@@ -771,7 +771,7 @@ impl DiskCleanupPage {
         cx.open_dialog(self.gate1());
     }
 
-    /// The gated action ran: the checked categories leave the list.
+
     fn commit(&mut self, cx: &mut Cx) {
         let checked = self.checked();
         let n = checked.len();
@@ -811,8 +811,8 @@ impl DiskCleanupPage {
     }
 }
 
-/// The States grid: the usage tree, the category checklist and the
-/// filesystem meters in their content states.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

@@ -1,26 +1,26 @@
-//! Search and ranking over the catalogue (CONCEPT §6.3, §6.6, §9): one query
-//! across actions and resources, fuzzy matching over labels, keywords and
-//! resource names, exact aliases that beat every learned signal, scope
-//! tokens, and a ranking order that explains itself.
+
+
+
+
 
 use junie_tui::ui::text::fuzzy;
 
 use crate::domain::action::{Item, Signal};
 use crate::domain::context::Scope;
 
-/// One ranked row: the item index, the score, the matched byte offsets in
-/// the label, and the reason to show.
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ranked {
     pub index: usize,
     pub score: i64,
     pub matched: Vec<usize>,
     pub reason: String,
-    /// `alias gp` when an alias matched exactly.
+
     pub tag: Option<String>,
 }
 
-/// The parsed query: free text plus an optional scope token.
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Query {
     pub text: String,
@@ -61,9 +61,9 @@ impl Query {
     }
 }
 
-/// Which scope filter applies after the query token and the readout:
-/// the scope, and whether it is strict (a typed token) or the readout's
-/// bias.
+
+
+
 pub fn effective_scope(readout: Scope, token: Option<ScopeToken>) -> (Option<Scope>, bool) {
     match token {
         Some(ScopeToken::All) => (None, true),
@@ -75,9 +75,9 @@ pub fn effective_scope(readout: Scope, token: Option<ScopeToken>) -> (Option<Sco
     }
 }
 
-/// A row belongs to the scope. `Here` without a token is a bias: urgent
-/// rows, query matches, Explore and activity rows cross it. A typed token
-/// or a narrowed readout filters exactly.
+
+
+
 fn in_scope(item: &Item, scope: Option<Scope>, strict: bool, has_query: bool) -> bool {
     match scope {
         None => true,
@@ -92,8 +92,8 @@ fn in_scope(item: &Item, scope: Option<Scope>, strict: bool, has_query: bool) ->
     }
 }
 
-/// Matching score for a query word against an item: lower is better;
-/// `None` when the word does not match at all.
+
+
 fn word_score(item: &Item, word: &str) -> Option<(u32, Vec<usize>)> {
     let mut best: Option<(u32, Vec<usize>)> = None;
     let mut consider = |score: u32, matched: Vec<usize>| {
@@ -124,15 +124,15 @@ fn word_score(item: &Item, word: &str) -> Option<(u32, Vec<usize>)> {
     best
 }
 
-/// Rank the catalogue for a query in a scope. Empty queries rank by the
-/// recommendation order; non-empty queries require every word to match.
+
+
 pub fn search(items: &[Item], raw: &str, readout: Scope, group: Option<&str>) -> Vec<Ranked> {
     search_with(items, raw, readout, group, None)
 }
 
-/// `search` with the item remembered for this exact query (HP02): it ranks
-/// first among the rows that still match the text, below an alias, and
-/// never authorizes anything.
+
+
+
 pub fn search_with(
     items: &[Item],
     raw: &str,
@@ -150,7 +150,7 @@ pub fn search_with(
         if item.hidden && !has_query {
             continue;
         }
-        // an exact alias is deterministic user intent: it crosses scope
+
         let alias_hit = has_query
             && (item.aliases.iter().any(|a| a.eq_ignore_ascii_case(&text))
                 || (group.is_some()
@@ -206,12 +206,12 @@ pub fn search_with(
                 if total == u32::MAX {
                     continue;
                 }
-                // match quality comes first: a prefix or substring always
-                // beats a scattered subsequence, whatever the live signal;
-                // the whole phrase inside the label is its own top bucket,
-                // above any set of exact keyword hits
+
+
+
+
                 let phrase = item.label.to_lowercase().contains(&text);
-                // a measured suffix (" · 900 MiB") is not part of the name
+
                 let core = item
                     .label
                     .split(" · ")
@@ -220,13 +220,13 @@ pub fn search_with(
                     .to_lowercase();
                 let exact = core == text;
                 if phrase {
-                    // among phrase matches the label closest to the query is
-                    // the intended one
+
+
                     total =
                         (core.chars().count().saturating_sub(text.chars().count())).min(199) as u32;
                 }
-                // the typed name itself is decisive: no learned signal moves
-                // a longer label above it
+
+
                 let bucket: i64 = if exact {
                     10
                 } else if phrase {
@@ -243,7 +243,7 @@ pub fn search_with(
                 score += bucket * 100_000 + (200 - (total as i64).min(199));
             }
         }
-        // the ranking order of CONCEPT §9 as tiers above the text score
+
         let tier = match item.signal() {
             Signal::Pin => 7,
             Signal::Urgency => 6,
@@ -252,20 +252,20 @@ pub fn search_with(
             Signal::GlobalUse => 2,
             Signal::Default => 1,
         };
-        // a pin, a remembered query and frecency all stay inside the match
-        // bucket: a better text match is never displaced by a learned signal
+
+
         if item.pinned {
             score += 90_000;
             reason = format!("pinned here · {reason}");
         }
         if has_query && learned == Some(item.id.as_str()) {
-            // the remembered choice for this exact query leads every text
-            // match (it still had to match) and yields only to an alias
+
+
             score += 950_000;
             reason = format!("remembered for “{}” · {reason}", text);
         }
         if item.frecency > 0.0 {
-            // bounded: at most a quarter of one match-quality step
+
             score += (item.frecency.clamp(0.0, 1.0) * crate::domain::usage::BOOST_CAP * 100_000.0)
                 as i64;
         }
@@ -295,7 +295,7 @@ pub fn search_with(
     out
 }
 
-/// The full explanation of a row's rank, for "Why is this here?".
+
 pub fn explain(item: &Item, cwd_short: &str) -> Vec<(String, String)> {
     let mut rows = vec![];
     for r in &item.reasons {

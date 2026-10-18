@@ -1,8 +1,8 @@
-//! Keyboard focus ring.
-//!
-//! The ring is rebuilt every frame in render order, which makes Tab order
-//! identical to reading order and keeps it deterministic. A modal pushes a
-//! barrier so only its own controls are reachable.
+
+
+
+
+
 
 use super::id::WidgetId;
 
@@ -17,16 +17,16 @@ impl FocusRing {
         self.order.push(id);
     }
 
-    /// How many entries were registered so far: where a group that
-    /// [`Self::sort_from`] reorders starts.
+
+
     pub fn len(&self) -> usize {
         self.order.len()
     }
     pub fn is_empty(&self) -> bool {
         self.order.is_empty()
     }
-    /// Reorder the entries registered since `start` by `key` (stable:
-    /// equal keys keep their registration order).
+
+
     pub fn sort_from<K: Ord>(&mut self, start: usize, key: impl FnMut(&WidgetId) -> K) {
         if let Some(group) = self.order.get_mut(start..) {
             group.sort_by_key(key);
@@ -74,66 +74,66 @@ impl FocusRing {
     }
 }
 
-/// Where focus goes when the focused control disappears (a dialog
-/// deleted the focused row, a button vanished with its panel).
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusFallback {
-    /// The control just before where the lost one sat in the ring (or the
-    /// first, when it was first): focus stays in the same neighbourhood.
-    /// When focus was moved onto a control that cannot take it (a click
-    /// on a disabled field) and the control that last held it is still
-    /// there, focus stays on that control, as a click on a disabled macOS
-    /// control leaves focus where it was.
+
+
+
+
+
+
     #[default]
     Nearest,
-    /// The first control of the ring.
+
     First,
 }
 
-/// What a control does with an edit in progress when it loses focus
-/// (focus moved elsewhere, or a click landed on dead space).
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BlurAction {
-    /// Apply the edit and report it like Enter would (macOS: leaving a
-    /// field ends editing and keeps the text).
+
+
     #[default]
     Commit,
-    /// Revert to the value before editing, like Esc.
+
     Cancel,
-    /// Leave the edit open; it continues when focus comes back.
+
     Keep,
 }
 
-/// One control lost focus (or was asked to end its edit in place).
-///
-/// Produced by [`Focus::take_changes`]. Applications forward every change
-/// to the owner of `from`, which calls the control's `on_blur`, so the
-/// control commits or cancels from the event path (never from render) and
-/// the owner sees the resulting `Committed`/`Cancelled` event.
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FocusChange {
-    /// The control that lost focus.
+
     pub from: WidgetId,
-    /// Where focus is now. Equal to `Some(from)` when the control keeps
-    /// focus but its edit ends ([`Focus::end_edit`]: a click on dead space).
+
+
     pub to: Option<WidgetId>,
 }
 
-/// A control that ends an edit in progress (or closes a popup) when focus
-/// leaves it. Implemented by the editing widgets (`TextInput`, `TextArea`,
-/// `Select`, `DataGrid`, `DataTable`) so an owner that has no use for the
-/// resulting event forwards a change in one call ([`forward_blur`]); an
-/// owner that runs save or validation hooks calls the widget's own
-/// `on_blur` and reads its event instead.
+
+
+
+
+
+
 pub trait BlurTarget {
-    /// The focus id whose loss blurs this control.
+
     fn blur_id(&self) -> WidgetId;
-    /// End the edit per the control's blur policy; `Changed` when
-    /// anything changed.
+
+
     fn blur(&mut self) -> super::event::Outcome;
 }
 
-/// Hand `change` to whichever of `targets` lost focus.
+
 pub fn forward_blur(
     change: FocusChange,
     targets: &mut [&mut dyn BlurTarget],
@@ -145,40 +145,40 @@ pub fn forward_blur(
 }
 
 thread_local! {
-    /// A control's request to move focus on ([`request_focus_next`]),
-    /// waiting for the application's [`Focus::settle`].
+
+
     static REQUEST: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
 }
 
-/// Ask the focus ring to move on from the focused control: forward, or
-/// backward when `backward`. A text control calls it when Tab ends its
-/// edit, so the move happens whether or not its owner remembers to; an
-/// owner that moves focus itself while handling the same input wins (its
-/// move cancels the request). Applications apply it with
-/// [`Focus::settle`] after each input.
+
+
+
+
+
+
 pub fn request_focus_next(backward: bool) {
     REQUEST.with(|r| r.set(Some(backward)));
 }
 
-/// Drop a pending [`request_focus_next`] without applying it.
+
 pub fn cancel_focus_request() {
     REQUEST.with(|r| r.set(None));
 }
 
-/// Focus state shared by the whole application.
+
 #[derive(Debug, Default, Clone)]
 pub struct Focus {
     current: Option<WidgetId>,
-    /// Ring position of `current` the last time it was validated.
+
     last_index: Option<usize>,
-    /// The control `current` was the last time it was validated.
+
     last_valid: Option<WidgetId>,
-    /// Controls that lost focus since the last [`Self::take_changes`].
+
     left: Vec<WidgetId>,
-    /// The current control was asked to end its edit in place.
+
     end_edit: Option<WidgetId>,
-    /// Counts every explicit focus request, including one for the control
-    /// that already has focus ([`Self::moves`]).
+
+
     moves: u64,
 }
 
@@ -207,22 +207,22 @@ impl Focus {
         self.move_to(ring.prev(self.current));
     }
 
-    /// How many explicit focus requests ([`Self::set`], [`Self::focus`],
-    /// [`Self::next`], [`Self::prev`]) were made so far, counting one that
-    /// names the control already focused. A caller that compares this
-    /// before and after a handler can tell "the handler chose focus" from
-    /// "the handler left focus alone", which comparing [`Self::current`]
-    /// cannot when the handler re-focused the focused control.
+
+
+
+
+
+
     pub fn moves(&self) -> u64 {
         self.moves
     }
 
-    /// Every focus move goes through here so the control that lost focus
-    /// is remembered for [`Self::take_changes`].
+
+
     fn move_to(&mut self, id: Option<WidgetId>) {
         self.moves = self.moves.wrapping_add(1);
         if self.current != id {
-            // an explicit move answers any pending request
+
             cancel_focus_request();
         }
         if let Some(from) = self.current
@@ -234,8 +234,8 @@ impl Focus {
         self.current = id;
     }
 
-    /// Apply a pending [`request_focus_next`] against `ring`; `true` when
-    /// focus moved.
+
+
     pub fn apply_request(&mut self, ring: &FocusRing) -> bool {
         let Some(backward) = REQUEST.with(|r| r.take()) else {
             return false;
@@ -249,30 +249,30 @@ impl Focus {
         self.current != before
     }
 
-    /// End of an input: apply a pending [`request_focus_next`], then drain
-    /// the focus changes ([`Self::take_changes`]). Applications call this
-    /// once after handling each input and forward every change to the
-    /// owner of `from`.
+
+
+
+
     pub fn settle(&mut self, ring: &FocusRing) -> Vec<FocusChange> {
         self.apply_request(ring);
         self.take_changes()
     }
 
-    /// End the focused control's edit without moving focus: a click on
-    /// dead space (no control under the pointer) ends editing the way
-    /// macOS does when the window background is clicked. The next
-    /// [`Self::take_changes`] reports it with `to == Some(from)`.
+
+
+
+
     pub fn end_edit(&mut self) {
         self.end_edit = self.current;
     }
 
-    /// Drain the controls that lost focus (or were asked to end their
-    /// edit) since the last call. A control that lost focus and got it
-    /// back before the drain is not reported: it never really blurred.
-    ///
-    /// Applications call this after handling each input and forward every
-    /// change to the owner of `from` (its `on_blur`), so blur behaviour
-    /// runs on the event path, never inside `render`.
+
+
+
+
+
+
+
     pub fn take_changes(&mut self) -> Vec<FocusChange> {
         let to = self.current;
         let mut out: Vec<FocusChange> = std::mem::take(&mut self.left)
@@ -288,14 +288,14 @@ impl Focus {
         out
     }
 
-    /// Make sure focus points at something reachable in this ring, falling
-    /// back to the ring's first control.
+
+
     pub fn ensure_valid(&mut self, ring: &FocusRing) {
         self.ensure_valid_with(ring, FocusFallback::First);
     }
 
-    /// Make sure focus points at something reachable in this ring, falling
-    /// back per `fallback` when the focused control is gone.
+
+
     pub fn ensure_valid_with(&mut self, ring: &FocusRing, fallback: FocusFallback) {
         let reach = ring.reachable();
         if let Some(i) = self
@@ -389,7 +389,7 @@ mod tests {
         let mut f = Focus::default();
         f.focus(WidgetId::of("c"));
         f.ensure_valid_with(&ring(&["a", "b", "c", "d"]), FocusFallback::Nearest);
-        // "c" was deleted: focus lands on the control before it, not on "a"
+
         f.ensure_valid_with(&ring(&["a", "b", "d"]), FocusFallback::Nearest);
         assert_eq!(f.current(), Some(WidgetId::of("b")));
         let mut first = Focus::default();
@@ -401,8 +401,8 @@ mod tests {
 
     #[test]
     fn focus_moved_onto_an_unfocusable_control_stays_where_it_was() {
-        // a click focused a disabled field (registered, not reachable):
-        // Nearest keeps focus on the control that still holds its place
+
+
         let r = ring(&["a", "b", "c", "d"]);
         let mut f = Focus::default();
         f.focus(WidgetId::of("c"));
@@ -410,7 +410,7 @@ mod tests {
         f.focus(WidgetId::of("disabled"));
         f.ensure_valid_with(&r, FocusFallback::Nearest);
         assert_eq!(f.current(), Some(WidgetId::of("c")));
-        // First keeps its rule: the ring's first stop
+
         let mut first = Focus::default();
         first.focus(WidgetId::of("c"));
         first.ensure_valid_with(&r, FocusFallback::First);
@@ -435,8 +435,8 @@ mod tests {
             }]
         );
         assert!(f.take_changes().is_empty(), "drained");
-        // leaving and coming back inside one input is not a blur for b;
-        // c held focus in between and lost it
+
+
         f.focus(c);
         f.focus(b);
         assert_eq!(
@@ -446,7 +446,7 @@ mod tests {
                 to: Some(b)
             }]
         );
-        // b -> c -> a: both b and c lost focus
+
         f.focus(c);
         f.focus(a);
         assert_eq!(
@@ -494,7 +494,7 @@ mod tests {
         let changes = f.settle(&r);
         assert!(f.is(WidgetId::of("b")));
         assert_eq!(changes.len(), 1);
-        // an owner that moves focus itself answers the request
+
         request_focus_next(false);
         f.prev(&r);
         f.settle(&r);

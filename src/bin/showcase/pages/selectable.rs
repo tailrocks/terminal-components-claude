@@ -1,17 +1,17 @@
-//! Selectable table driving an editor: a members table in multi-selection
-//! mode (checkbox column, tri-state header, disabled owner row) beside an
-//! inspector that edits the selected member, bulk-edits the fields several
-//! members share (`— mixed —` where they differ), applies or reverts, and
-//! deletes after a confirmation that names the count.
-//!
-//! A click selects one row, Shift+click extends, and Space or the row's
-//! checkbox toggles it on every platform. The client platform's toggle
-//! click is a shortcut beside them: Option+click on macOS (where
-//! Ctrl+click is the secondary click that opens the row menu; some macOS
-//! terminals keep Option+click, so it is a fallback), Ctrl+click elsewhere
-//! (`DataTable::toggle_mods_for`, named in the footer by
-//! `keyhint::modifier_click`). A right click or Shift+F10 opens the row
-//! menu (Edit, Delete…).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
@@ -45,12 +45,12 @@ const ID: WidgetId = WidgetId::of("selectable");
 const DELETE: WidgetId = WidgetId::of("selectable.delete_dialog");
 const DISCARD: WidgetId = WidgetId::of("selectable.discard_dialog");
 const MENU: WidgetId = WidgetId::of("selectable.menu");
-/// The placeholder a bulk edit shows where the selected members differ.
+
 pub const MIXED: &str = "— mixed —";
-/// Width of the editor beside the table on a wide page.
+
 const EDITOR_W: u16 = 44;
-/// Rows the editor card takes: heading, four field rows, the action row
-/// and the frame.
+
+
 const EDITOR_H: u16 = 17;
 
 const ROLES: [&str; 3] = ["Admin", "Editor", "Viewer"];
@@ -61,7 +61,7 @@ const REGIONS: [&str; 3] = ["EU", "US", "APAC"];
 pub struct Member {
     pub name: String,
     pub email: String,
-    /// Index into [`ROLES`]; `None` for the workspace owner.
+
     pub role: Option<usize>,
     pub status: usize,
     pub region: usize,
@@ -203,9 +203,9 @@ fn cells(m: &Member) -> Vec<Cell> {
     ]
 }
 
-/// What the form holds, field by field. `None` is "leave as it is": a
-/// field that is not shown (name and email in a bulk edit) or that still
-/// shows `— mixed —`.
+
+
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct FormValues {
     name: Option<String>,
@@ -225,13 +225,13 @@ fn email_rule(s: &str) -> Option<String> {
     (!s.contains('@') || !s.contains('.')).then(|| "Enter a valid email address".to_owned())
 }
 
-/// The value every selected member shares, or `None` when they differ.
+
 fn shared<T: PartialEq + Clone>(mut it: impl Iterator<Item = T>) -> Option<T> {
     let first = it.next()?;
     it.all(|v| v == first).then_some(first)
 }
 
-/// `selection.*` option keys, in the order of `SelectablePage::knobs`.
+
 const KEYS: [&str; 5] = [
     "selection.esc_clears",
     "selection.toggle_mods",
@@ -240,7 +240,7 @@ const KEYS: [&str; 5] = [
     "selection.activate",
 ];
 
-/// The `selection.activate` values, in option order.
+
 const ACTIVATE: [Activate; 4] = [
     Activate::Double,
     Activate::ClickAgain,
@@ -248,7 +248,7 @@ const ACTIVATE: [Activate; 4] = [
     Activate::Never,
 ];
 
-/// The members table as the options say, through `DataTable`'s builders.
+
 fn members_table(members: &[Member], k: &[usize; 5], platform: ClientPlatform) -> DataTable {
     use ratatui::crossterm::event::KeyModifiers;
     let [esc, mods, disabled, checks, activate] = *k;
@@ -264,7 +264,7 @@ fn members_table(members: &[Member], k: &[usize; 5], platform: ClientPlatform) -
     )
     .selection_mode(SelectionMode::Multi)
     .selection_column(checks == 1)
-    // the workspace owner is listed but cannot be edited here
+
     .disabled_rows(if disabled == 0 { &[0] } else { &[] })
     .esc_clears(esc == 1)
     .toggle_mods(toggle)
@@ -272,8 +272,8 @@ fn members_table(members: &[Member], k: &[usize; 5], platform: ClientPlatform) -
     .empty_text("No members yet")
 }
 
-/// The States grid: the members table with and without its checkbox
-/// column, drawn by `DataTable` itself.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -314,7 +314,7 @@ fn states_grid() -> StateGrid {
 
 pub struct SelectablePage {
     template: Template,
-    /// The `selection.*` option values, in [`KEYS`] order.
+
     knobs: [usize; 5],
     pub members: Vec<Member>,
     pub table: DataTable,
@@ -328,48 +328,48 @@ pub struct SelectablePage {
     pub apply: Button,
     pub revert: Button,
     pub delete: Button,
-    /// Source rows the form was loaded from.
+
     loaded: Vec<usize>,
-    /// The form as loaded: Apply writes only what differs from it.
+
     base: FormValues,
-    /// The notes differ across the selection (the field shows `— mixed —`
-    /// while empty).
+
+
     notes_mixed: bool,
-    /// The last apply or delete, shown beside the actions.
+
     pub feedback: Option<String>,
-    /// What changing the selection does to unsaved edits in the editor.
-    /// Default [`LeaveEdits::Commit`]: they are applied, as leaving a
-    /// field commits it; only edits that fail validation ask first.
+
+
+
     pub leave_edits: LeaveEdits,
-    /// Whose conventions the toggle click follows and the footer names:
-    /// the table's `toggle_mods` is `DataTable::toggle_mods_for` this
-    /// platform (Option+click on macOS, Ctrl+click elsewhere). Default
-    /// [`ClientPlatform::current`]; see [`Self::for_platform`].
+
+
+
+
     pub platform: ClientPlatform,
-    /// The row menu: which display row (and column) it is about.
+
     menu: RowMenu<(usize, usize)>,
-    /// The selection (and cursor row) a change asked for while the
-    /// unsaved-changes question is open: Don't Save (or a Save that
-    /// succeeds) applies it.
+
+
+
     pending: Option<(junie_tui::core::selection::RowSelection, usize)>,
     sections: crate::pages::layout::Sections,
 }
 
-/// What changing the selection does to unsaved edits in the editor.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LeaveEdits {
-    /// Apply them (macOS: leaving an edit commits it). Edits that fail
-    /// validation ask Save / Don't Save / Cancel instead.
+
+
     #[default]
     Commit,
-    /// Always ask Save / Don't Save / Cancel.
-    #[allow(dead_code)] // an option for apps; the showcase uses Commit
+
+    #[allow(dead_code)]
     Ask,
-    /// Drop them silently.
+
     Discard,
 }
 
-/// What the row menu's items do.
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RowAction {
     Edit,
@@ -381,7 +381,7 @@ impl SelectablePage {
         Self::for_platform(ClientPlatform::current())
     }
 
-    /// The page with `platform`'s toggle click (and footer hint).
+
     pub fn for_platform(platform: ClientPlatform) -> Self {
         let members = members();
         let knobs = KEYS.map(|k| crate::options::find(k).map_or(0, |o| o.default));
@@ -419,7 +419,7 @@ impl SelectablePage {
         page
     }
 
-    /// Fill the form from the current selection.
+
     pub fn load(&mut self) {
         self.loaded = self.table.selected_rows();
         let sel: Vec<&Member> = self.loaded.iter().map(|&r| &self.members[r]).collect();
@@ -489,7 +489,7 @@ impl SelectablePage {
         }
     }
 
-    /// The form differs from what was loaded.
+
     pub fn dirty(&self) -> bool {
         !self.loaded.is_empty() && self.values() != self.base
     }
@@ -513,7 +513,7 @@ impl SelectablePage {
         self.load();
     }
 
-    /// Write the fields that changed to every loaded member.
+
     fn do_apply(&mut self, cx: &mut Cx) {
         for input in [&mut self.name, &mut self.email, &mut self.notes] {
             if input.editing {
@@ -628,7 +628,7 @@ impl SelectablePage {
         cx.focus.focus(self.table.id);
     }
 
-    /// Enter on a table row: make sure it is selected, then edit it.
+
     fn edit_row(&mut self, src: usize, cx: &mut Cx) {
         if !self.table.selection.contains(src) {
             let disabled = self.table.disabled.clone();
@@ -648,8 +648,8 @@ impl SelectablePage {
         cx.focus.focus(first);
     }
 
-    /// The editor's edits pass validation (a single member's name and
-    /// email); a field that fails shows its error.
+
+
     fn edits_valid(&mut self) -> bool {
         for input in [&mut self.name, &mut self.email, &mut self.notes] {
             if input.editing {
@@ -664,9 +664,9 @@ impl SelectablePage {
         a && b
     }
 
-    /// Run `f` on the table; when it changes the selection while the
-    /// editor holds unsaved edits, [`Self::leave_edits`] decides: apply
-    /// them and move on, or put the old selection back and ask.
+
+
+
     fn table_input(
         &mut self,
         cx: &mut Cx,
@@ -676,8 +676,8 @@ impl SelectablePage {
             .then(|| (self.table.selection.clone(), self.table.cursor_row));
         let (out, tev) = f(&mut self.table);
         if let (Some((before, cursor)), Some(TableAction::SelectionChanged)) = (guard, &tev) {
-            // commit: apply to the rows the editor holds, then load the
-            // new selection (do_apply reloads from it)
+
+
             if self.leave_edits == LeaveEdits::Commit && self.edits_valid() {
                 self.do_apply(cx);
                 return Outcome::Changed;
@@ -716,7 +716,7 @@ impl SelectablePage {
         }
     }
 
-    /// What display row `row` offers: the table's own Enter and `d`.
+
     fn row_items(&self, row: usize) -> Vec<(RowAction, MenuItem)> {
         let src = self.table.source_row(row);
         let locked = self.table.is_disabled(src);
@@ -746,8 +746,8 @@ impl SelectablePage {
             .open(req.menu(MENU, items).title(title), req.target);
     }
 
-    /// Item `i` of the menu about `cell`: the same path Enter or `d` takes,
-    /// on that row (selected first when it is not part of the selection).
+
+
     fn choose(&mut self, cell: (usize, usize), i: usize, cx: &mut Cx) -> Outcome {
         let Some(&(action, _)) = self.row_items(cell.0).get(i) else {
             return Outcome::Consumed;
@@ -757,16 +757,16 @@ impl SelectablePage {
             RowAction::Edit => self.edit_row(src, cx),
             RowAction::Delete => {
                 self.table_input(cx, |t| {
-                    // the library's right-click rule (M10): a row outside
-                    // the selection becomes the selection
+
+
                     let changed = t.context_selection(cell.0);
                     (
                         Outcome::Changed,
                         changed.then_some(TableAction::SelectionChanged),
                     )
                 });
-                // the unsaved-changes question comes first when edits
-                // cannot be applied
+
+
                 if self.pending.is_none() {
                     self.ask_delete(cx);
                 }
@@ -853,7 +853,7 @@ impl SelectablePage {
             self.notes
                 .render(Rect::new(inner.x, y, inner.width, 3), buf, ctx, bg);
         }
-        // actions on the last row
+
         let dirty = self.dirty();
         self.apply.disabled = !dirty;
         self.revert.disabled = !dirty;
@@ -889,16 +889,16 @@ impl SelectablePage {
         }
     }
 
-    /// The page's pointer events: a secondary click opens the row menu;
-    /// the table takes its checkboxes, headers, cells, bar and wheel (a
-    /// click focuses it); a select opens on the press, follows the drag and
-    /// chooses on the release (press-drag-release); the fields, the toggle
-    /// and the buttons take their clicks.
+
+
+
+
+
     fn pointer(&mut self, ev: &PointerEvent, cx: &mut Cx) -> Outcome {
         if ev.is(Phase::Secondary) {
             let cfg = self.menu.config;
-            // the right click's selection rule (M10) is a selection change
-            // like any other: the editor's unsaved edits are settled first
+
+
             let mut req = None;
             self.table_input(cx, |t| {
                 let before = t.selection.clone();
@@ -929,8 +929,8 @@ impl SelectablePage {
             None => (Outcome::Ignored, None),
         });
         if routed {
-            // a click focuses the table, unless it opened a row in the
-            // editor (a double click), which took the focus there
+
+
             if click && ev.bar.is_none() && out != Outcome::Ignored && cx.focus.current() == before
             {
                 cx.focus.focus(self.table.id);
@@ -947,12 +947,12 @@ impl SelectablePage {
         }
         for sel in self.selects() {
             if let Some(r) = sel.route(ev) {
-                // the press that opens the list focuses the field (the
-                // release that would focus it is no click)
+
+
                 if (click || ev.is(Phase::Press)) && ev.id == sel.id {
                     cx.focus.focus(sel.id);
                 }
-                // a wheel over the closed field passes on
+
                 if r.outcome() == Outcome::Ignored && ev.wheel().is_some() {
                     break;
                 }
@@ -1005,7 +1005,7 @@ impl SelectablePage {
 impl SelectablePage {
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         if area.width > 50 + EDITOR_W {
-            // side by side: the table takes what the editor leaves
+
             let tw = area.width - EDITOR_W - 1;
             self.render_table(Rect::new(area.x, area.y, tw, area.height), buf, ctx);
             let eh = area.height.min(EDITOR_H);
@@ -1013,7 +1013,7 @@ impl SelectablePage {
             self.menu.render(area, buf, ctx);
             return;
         }
-        // stacked: the page scrolls by whole cards on a short terminal
+
         let focus = if ctx.interaction.has_focus(self.table.id) {
             Some(0)
         } else if self
@@ -1191,13 +1191,13 @@ impl Page for SelectablePage {
                     page.selection_changed();
                 };
                 match result {
-                    // Don't Save: drop the edits, load the new selection
+
                     DialogResult::Action(1) => {
                         go(self);
                         cx.status("Changes discarded");
                     }
-                    // Save: apply (a field that fails keeps the editor and
-                    // focuses it), then move on
+
+
                     DialogResult::Action(2) => {
                         self.do_apply(cx);
                         if !self.dirty() {
@@ -1252,8 +1252,8 @@ impl Page for SelectablePage {
                     ("Ctrl+A", "Select all"),
                 ];
                 if selected {
-                    // with rows selected, the click that adds or removes
-                    // one, beside the keys that extend
+
+
                     if let Some(click) =
                         keyhint::modifier_click(self.table.toggle_mods, self.platform)
                     {
@@ -1261,7 +1261,7 @@ impl Page for SelectablePage {
                     }
                     h.push(junie_tui::widgets::widget_hints::EDIT_PAIR);
                     h.push(("d", "Delete…"));
-                    // only when Esc clears it (`selection.esc_clears`)
+
                     if self.table.esc_clears {
                         h.push(("Esc", "Clear selection"));
                     }

@@ -1,22 +1,22 @@
-//! Menus (Navigation, plan §7.5 SC16): the library `ContextMenu` opened
-//! from rows (`ui::context`) and from a control, with every `MenuItem`
-//! kind and every menu builder.
-//!
-//! - **Playground**: a file list whose rows open a context menu (secondary
-//!   click, press-drag-release, Shift+F10, the Menu key, an optional extra
-//!   key), with shortcuts, disabled items with their reason, separators
-//!   and a danger item decided per file (`danger_if`, `separator_if`); an
-//!   "Actions" button whose menu opens under it (`anchor_control`), long
-//!   enough to scroll under `max_rows`; a readout of the last request and
-//!   action.
-//! - **Options**: one control per builder (`menus.<key>`): placement, fit,
-//!   edge margin, min width, max rows, title, release selects, owner focus,
-//!   nav, wrap, type-ahead, dismiss, unknown keys, and the
-//!   `ContextConfig` keys.
-//! - **States**: two menus in every state a menu has, drawn by the menu.
-//!
-//! The page is wiring and demo data only: placement, keys, pointer and
-//! dismissal are the menu's own; `RowMenu` routes page events to it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -44,7 +44,7 @@ const ID: WidgetId = WidgetId::of("menus");
 const ROW_MENU: WidgetId = ID.sub("row-menu");
 const ACTIONS_MENU: WidgetId = ID.sub("actions-menu");
 
-/// The demo files: name, kind, read-only.
+
 const FILES: &[(&str, &str, bool)] = &[
     ("report.pdf", "document", false),
     ("notes.md", "text", false),
@@ -55,8 +55,8 @@ const FILES: &[(&str, &str, bool)] = &[
     ("LICENSE", "read-only", true),
 ];
 
-/// The Actions menu: long enough to scroll under `menus.max_rows`, with
-/// every item kind.
+
+
 fn action_items() -> Vec<MenuItem> {
     vec![
         MenuItem::new("New file").shortcut("⌘N"),
@@ -72,7 +72,7 @@ fn action_items() -> Vec<MenuItem> {
     ]
 }
 
-/// What a file row offers: only what this page can do with it.
+
 fn row_items(read_only: bool) -> Vec<MenuItem> {
     let rename = MenuItem::new("Rename").shortcut("F2");
     let trash = MenuItem::new("Move to Trash")
@@ -98,7 +98,7 @@ fn row_items(read_only: bool) -> Vec<MenuItem> {
     ]
 }
 
-/// The page's option values (indices into `options::MENUS` values).
+
 struct Opts {
     values: Vec<(&'static str, usize)>,
 }
@@ -122,7 +122,7 @@ impl Opts {
         self.get(key) == 1
     }
 
-    /// The menu builders an app calls, from the options.
+
     fn style(&self, m: ContextMenu) -> ContextMenu {
         let fit = match self.get("menus.fit") {
             1 => Place::FLUSH,
@@ -157,7 +157,7 @@ impl Opts {
         m
     }
 
-    /// Which keys open a row's menu and whether a click moves the cursor.
+
     fn context(&self) -> ContextConfig {
         let extra = (self.get("menus.extra_key") == 1).then_some(Key {
             code: KeyCode::Char('m'),
@@ -189,11 +189,11 @@ pub struct MenusPage {
     opts: Opts,
     pub files: ListBox,
     pub actions: Button,
-    /// The row menu, about a file (an index into [`FILES`]).
+
     pub row_menu: RowMenu<usize>,
-    /// The Actions menu (about nothing in particular).
+
     pub actions_menu: RowMenu<()>,
-    /// The last request: what and where.
+
     pub request: String,
     pub last: String,
 }
@@ -219,8 +219,8 @@ impl MenusPage {
         }
     }
 
-    /// Open the menu `req` asks for. The list's display row maps to the
-    /// file it shows (`ContextRequest::map`).
+
+
     fn open_row_menu(&mut self, req: ContextRequest<usize>) {
         let req = req.map(|row| row.min(FILES.len() - 1));
         let (name, _, read_only) = FILES[req.target];
@@ -306,14 +306,14 @@ impl MenusPage {
                 t.primary().bg(bg),
             );
         }
-        // the open menus float above the page, placed on the whole screen
+
         let screen = *buf.area();
         self.row_menu.render(screen, buf, ctx);
         self.actions_menu.render(screen, buf, ctx);
     }
 }
 
-/// Which keys open a row's menu.
+
 fn keys_readout(c: &ContextConfig) -> String {
     let mut parts = vec!["right-click".to_owned()];
     if c.keys.shift_f10 {
@@ -336,7 +336,7 @@ fn keys_readout(c: &ContextConfig) -> String {
     s
 }
 
-/// The States grid: a command menu and one with reasons and a separator.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");

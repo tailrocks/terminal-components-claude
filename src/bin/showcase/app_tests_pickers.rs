@@ -1,6 +1,6 @@
-//! The Pickers page (plan §7.5, SC20), driven through the real app: the
-//! remote fetch's loading, error and retry; the command palette's disabled
-//! rows; the live tab switcher; the options; the States grid.
+
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::crossterm::event::KeyCode;
@@ -24,7 +24,7 @@ fn picker(h: &Harness) -> &Picker {
     h.app.layers.top_as::<Picker>().expect("a picker is open")
 }
 
-/// The page has a layer open on the shell's stack.
+
 fn is_open(h: &Harness) -> bool {
     h.app
         .layers
@@ -74,7 +74,7 @@ fn a_failed_fetch_shows_its_error_and_r_retries() {
     }
     assert!(matches!(picker(&h).status, PickerStatus::Error { .. }));
     assert!(h.text().contains("Could not reach origin"));
-    // Enter is refused on an error
+
     h.key(KeyCode::Enter);
     assert!(is_open(&h));
     h.key(KeyCode::Char('r'));
@@ -95,7 +95,7 @@ fn the_command_palette_refuses_a_disabled_row_and_says_why() {
     }
     h.key(KeyCode::Enter);
     assert!(is_open(&h), "a disabled row is not chosen");
-    // Esc clears the query first
+
     h.key(KeyCode::Esc);
     assert!(is_open(&h));
     for c in "format".chars() {
@@ -121,7 +121,7 @@ fn the_tab_switcher_refreshes_live_and_keeps_its_cursor() {
         cursor,
         "a refresh keeps the cursor row"
     );
-    // Delete closes the highlighted tab
+
     h.key(KeyCode::Delete);
     assert_eq!(page(&h).last, format!("Secondary({cursor})"));
 }

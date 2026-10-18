@@ -1,16 +1,16 @@
-//! Shared pointer bookkeeping.
-//!
-//! Every application used to hand-roll the same state machine in its
-//! `on_mouse`: which widget is hovered, which one holds the button, the
-//! brief pressed flash after an activation, the "keyboard wins until the
-//! pointer moves" suppression, double-click detection and the hover refresh
-//! after a wheel scroll. [`PointerState`] owns all of it, configured by
-//! [`PointerConfig`], so every app behaves the same and a behaviour change
-//! lands once.
-//!
-//! The state is clock-agnostic: callers pass the current time in
-//! milliseconds (`now_ms`), so applications with a simulated clock stay
-//! deterministic under test.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::layout::Position;
 
@@ -24,114 +24,114 @@ use super::intent::{Intent, Phase};
 use super::response::Response;
 use super::scroll::Scrollable;
 
-/// When a pointer press moves keyboard focus to the control under it.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusOn {
-    /// On button down (macOS: a click focuses as soon as it lands).
+
     #[default]
     Press,
-    /// On a completed click (button released over the pressed control).
+
     Release,
 }
 
-/// What a secondary (context) click on a light-dismiss popup's backdrop
-/// does, i.e. a right-click outside an open menu, select or popover.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SecondaryOutside {
-    /// Close the popup, then open the context menu of what is under the
-    /// pointer (macOS: the new menu replaces the old one at the new spot).
+
+
     #[default]
     Reopen,
-    /// Close the popup only.
+
     Close,
-    /// Do nothing: the popup stays open.
+
     Ignore,
 }
 
-/// Where a secondary click goes ([`PointerState::route_secondary`]).
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SecondaryRoute {
-    /// Nothing reachable under the pointer.
+
     Nothing,
-    /// A control: open its context menu.
+
     Target(WidgetId),
-    /// The backdrop of an open popup. Deliver a click on `backdrop` (it
-    /// closes the popup through its own [`crate::ui::popup::Dismiss`]),
-    /// then, when `reopen` is set, the secondary click on that control.
+
+
+
     Outside {
         backdrop: WidgetId,
         reopen: Option<WidgetId>,
     },
-    /// The backdrop of an open popup under [`SecondaryOutside::Ignore`].
+
     Swallowed,
 }
 
-/// Pointer behaviour knobs. The defaults follow desktop (macOS)
-/// conventions.
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PointerConfig {
-    /// When a press focuses the control under it.
+
     pub focus_on: FocusOn,
-    /// Longest gap between two clicks that still counts them as one
-    /// multi-click (double, triple, ...).
+
+
     pub double_click_ms: u64,
-    /// How far (in cells, on either axis) the second click of a
-    /// multi-click may land from the first.
+
+
     pub double_click_slop: u16,
-    /// Lines one wheel notch scrolls.
+
     pub wheel_lines: i32,
-    /// After a wheel scroll changes the content, re-resolve hover at the
-    /// pointer once the next frame has registered its hit regions.
+
+
     pub hover_refresh_after_scroll: bool,
-    /// How long the pressed flash shows after an activation.
+
     pub flash_ms: u64,
-    /// A secondary click outside an open popup. Default
-    /// [`SecondaryOutside::Reopen`].
+
+
     pub secondary_outside: SecondaryOutside,
-    /// A secondary click on a focusable control focuses it before its
-    /// context menu opens (a right click in a text field makes it the
-    /// field the keyboard edits, as in Windows, GNOME and browser fields;
-    /// a text control's Edit menu then takes the keys,
-    /// [`crate::ui::edit_menu`]). Never while a modal layer is open (the
-    /// layer owns its focus). Default on.
+
+
+
+
+
+
     pub secondary_focuses: bool,
-    /// A press on dead space (no control under the pointer) ends the
-    /// focused control's edit in place ([`super::focus::Focus::end_edit`]),
-    /// as clicking a macOS window background ends field editing.
+
+
+
     pub end_edit_on_dead_space: bool,
-    /// While a press that started inside a drag-selecting body
-    /// ([`HitRegistry::register_autoscroll`]) is held with the pointer
-    /// past that body's edge, the app tick replays the drag so the content
-    /// keeps scrolling and the selection keeps extending without further
-    /// mouse motion (macOS `autoscroll:`; GTK and Windows do the same).
+
+
+
+
+
     pub autoscroll: bool,
-    /// How often an edge autoscroll step repeats. Each step moves as many
-    /// rows or columns as the pointer is past the edge, so the speed
-    /// scales with the distance.
+
+
+
     pub autoscroll_ms: u64,
-    /// A press held on the bare track of a scrollbar keeps paging toward
-    /// the pointer (macOS, Windows): the app tick replays the press until
-    /// the thumb reaches the pointer or the button goes up.
+
+
+
     pub track_repeat: bool,
-    /// How long a track press is held before it starts repeating.
+
     pub track_repeat_delay_ms: u64,
-    /// How often a held track press repeats once it does.
+
     pub track_repeat_ms: u64,
-    /// The pointer takes the shape of what is under it (an I-beam over
-    /// text, a resize arrow over a seam) where the terminal supports OSC 22
-    /// ([`super::shape`]; detection-gated, so on by default).
+
+
+
     pub pointer_shapes: bool,
-    /// The text caret's shape (DECSCUSR, where supported). Default
-    /// [`super::shape::CaretShape::Bar`], the macOS caret.
+
+
     pub caret_shape: super::shape::CaretShape,
-    /// A click anywhere on a skippable animation (an intro, an outro, a
-    /// splash) skips it, as Enter or Esc does, so the pointer is never
-    /// left waiting on a screen it cannot act on. Default on.
+
+
+
     pub click_skips_animation: bool,
 }
 
 impl PointerConfig {
-    /// The desktop defaults.
+
     pub const DEFAULT: Self = Self {
         focus_on: FocusOn::Press,
         double_click_ms: 500,
@@ -180,7 +180,7 @@ impl PointerConfig {
         self.secondary_outside = policy;
         self
     }
-    /// See [`Self::secondary_focuses`].
+
     pub const fn secondary_focuses(mut self, on: bool) -> Self {
         self.secondary_focuses = on;
         self
@@ -211,12 +211,12 @@ impl PointerConfig {
         self.autoscroll_ms = ms;
         self
     }
-    /// See [`Self::track_repeat`].
+
     pub const fn track_repeat(mut self, on: bool) -> Self {
         self.track_repeat = on;
         self
     }
-    /// See [`Self::track_repeat_delay_ms`] and [`Self::track_repeat_ms`].
+
     pub const fn track_repeat_ms(mut self, delay_ms: u64, every_ms: u64) -> Self {
         self.track_repeat_delay_ms = delay_ms;
         self.track_repeat_ms = every_ms;
@@ -230,16 +230,16 @@ impl Default for PointerConfig {
     }
 }
 
-/// What a button release resolved to.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Release {
-    /// Pressed and released over the same control: a click.
+
     Click(WidgetId),
-    /// Pressed and released over no control at all: a click outside
-    /// everything reachable (under a modal: on its inert backdrop).
+
+
     Outside,
-    /// The press and the release landed on different targets: nothing
-    /// happens (the user dragged off to cancel).
+
+
     Cancelled,
 }
 
@@ -251,42 +251,42 @@ struct LastClick {
     count: u8,
 }
 
-/// Hover, press, flash and click-count state shared by every app.
+
 #[derive(Debug, Clone, Default)]
 pub struct PointerState {
     pub config: PointerConfig,
-    /// The control under the pointer.
+
     pub hover: Option<WidgetId>,
-    /// The control that took the last button down, until it is released.
+
     pub pressed: Option<WidgetId>,
-    /// Hover feedback is hidden after keyboard use until the pointer moves.
+
     pub hover_suppressed: bool,
-    /// Last known pointer position.
+
     pub pos: Option<Position>,
-    /// Focus was last moved by a click (see
-    /// [`crate::ui::ctx::FocusVisible`]); cleared by any key.
+
+
     pub pointer_focus: bool,
     flash: Option<(WidgetId, u64)>,
-    /// The scrollbar the held press started on.
+
     grab: Option<super::hit::Bar>,
-    /// The autoscroll body the held press started in.
+
     edge: Option<ratatui::layout::Rect>,
-    /// When the last autoscroll step ran.
+
     autoscroll_at: Option<u64>,
-    /// When the held track press repeats next ([`Self::track_repeat_due`]).
+
     track_at: Option<u64>,
-    /// Where the held secondary press started (until its release).
+
     secondary_at: Option<Position>,
-    /// The release resolved by [`Self::on_up`] completes the held press on
-    /// another control that accepts it ([`HitRegistry::accept_release`]).
+
+
     accepted: Option<WidgetId>,
-    /// The terminal reported pointer motion with no button held (any-motion
-    /// tracking). Until then, hover-only behaviour is not relied on.
+
+
     motion_seen: bool,
     last_click: Option<LastClick>,
     hover_refresh: Option<Position>,
-    /// The control hovered and since when (in the caller's clock), for
-    /// [`Self::hover_ms`]; marked lazily, so no event needs the time.
+
+
     hover_mark: std::cell::Cell<Option<(WidgetId, u64)>>,
 }
 
@@ -298,18 +298,18 @@ impl PointerState {
         }
     }
 
-    /// Keyboard input: the keyboard wins until the pointer moves again.
+
     pub fn suppress_hover(&mut self) {
         self.hover_suppressed = true;
         self.pointer_focus = false;
     }
 
-    /// The app moved focus because of a click.
+
     pub fn focused_by_click(&mut self) {
         self.pointer_focus = true;
     }
 
-    /// Pointer moved: hover follows it and suppression ends.
+
     pub fn on_move(&mut self, hits: &HitRegistry, pos: Position) -> Outcome {
         self.pos = Some(pos);
         self.motion_seen = true;
@@ -324,23 +324,23 @@ impl PointerState {
         }
     }
 
-    /// Drag with the button held: hover follows, the pressed control (if
-    /// any) receives the drag.
+
+
     pub fn on_drag(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
-        // a held press tracks what it would release on, so a hover-only
-        // region (a cut title) never cancels the pressed look
+
+
         self.hover = hits.hit(pos);
         self.pressed
     }
 
-    /// Button down: whatever is under the pointer is pressed. Any stale
-    /// press (a release lost outside the terminal) is replaced.
+
+
     pub fn on_down(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
         let hit = hits.hit(pos);
         let grab = hit.and_then(|id| hits.bar(id));
-        // a track-press replay ([`Self::track_repeat_due`]) keeps its clock
+
         if grab.is_none() || grab != self.grab || hit != self.pressed {
             self.track_at = None;
         }
@@ -352,9 +352,9 @@ impl PointerState {
         hit
     }
 
-    /// A held press is past the edge of the body it started in, and edge
-    /// autoscroll is on ([`PointerConfig::autoscroll`]): the app ticks at
-    /// [`PointerConfig::autoscroll_ms`] while this holds.
+
+
+
     pub fn autoscrolling(&self) -> bool {
         self.config.autoscroll
             && self.pressed.is_some()
@@ -362,10 +362,10 @@ impl PointerState {
             && matches!((self.edge, self.pos), (Some(edge), Some(pos)) if !edge.contains(pos))
     }
 
-    /// On an app tick: when an autoscroll step is due, the pressed control
-    /// and the pointer position to replay as a drag (the drag handler
-    /// scrolls and extends the selection), at most once per
-    /// [`PointerConfig::autoscroll_ms`].
+
+
+
+
     pub fn autoscroll_due(&mut self, now_ms: u64) -> Option<(WidgetId, Position)> {
         if !self.autoscrolling() {
             self.autoscroll_at = None;
@@ -380,22 +380,22 @@ impl PointerState {
         Some((self.pressed?, self.pos?))
     }
 
-    /// A press is held on a scrollbar with the pointer still over its
-    /// track, and [`PointerConfig::track_repeat`] is on: the app ticks at
-    /// [`PointerConfig::track_repeat_ms`] while this holds.
+
+
+
     pub fn track_repeating(&self) -> bool {
         self.config.track_repeat
             && self.pressed.is_some()
             && matches!((self.grab, self.pos), (Some(bar), Some(pos)) if bar.track.contains(pos))
     }
 
-    /// On an app tick: the pointer position at which to replay the held
-    /// scrollbar press (a button down there) when a repeat is due: first
-    /// after [`PointerConfig::track_repeat_delay_ms`], then every
-    /// [`PointerConfig::track_repeat_ms`]. Replayed on the bare track the
-    /// press pages again toward the pointer; once the thumb is under the
-    /// pointer the replay grabs it and the paging stops, as on macOS.
-    /// The clock starts at the first tick after the press.
+
+
+
+
+
+
+
     pub fn track_repeat_due(&mut self, now_ms: u64) -> Option<Position> {
         if !self.track_repeating() {
             self.track_at = None;
@@ -414,11 +414,11 @@ impl PointerState {
         }
     }
 
-    /// A press on `id` while a modal is open: when `id` is the modal's own
-    /// surface ([`HitRegistry::is_surface`]) it is dead space inside the
-    /// modal, and ends the focused field's edit in place like
-    /// [`Self::dead_space`] (per [`PointerConfig::end_edit_on_dead_space`]).
-    /// `true` when it was the surface.
+
+
+
+
+
     pub fn surface_press(
         &self,
         hits: &HitRegistry,
@@ -432,33 +432,33 @@ impl PointerState {
         true
     }
 
-    /// A press that hit no control: ends the focused control's edit in
-    /// place, per [`PointerConfig::end_edit_on_dead_space`]. Applications
-    /// call it when [`Self::on_down`] returns `None` outside a modal.
+
+
+
     pub fn dead_space(&self, focus: &mut super::focus::Focus) {
         if self.config.end_edit_on_dead_space {
             focus.end_edit();
         }
     }
 
-    /// The scrollbar the held press started on, if any: drags go to its
-    /// owner on its axis, through [`crate::widgets::scrollbar::apply`].
+
+
     pub fn grabbed(&self) -> Option<super::hit::Bar> {
         self.grab.filter(|b| self.pressed == Some(b.id))
     }
 
-    /// Whether the terminal reports pointer motion with no button held
-    /// (any-motion tracking, `?1003`). Some terminals, and tmux without
-    /// passthrough, report motion only while a button is held: there hover
-    /// never follows the pointer, so hover-driven behaviour (a menu-bar
-    /// hover switch) must not be relied on, and click and the arrow keys
-    /// do the job ([`crate::widgets::menu::MenuBar::hover_switch`]).
-    /// `false` until the first buttonless move arrives.
+
+
+
+
+
+
+
     pub fn reports_motion(&self) -> bool {
         self.motion_seen
     }
 
-    /// Secondary button: hover lands on the target, no press is held.
+
     pub fn on_secondary(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
         self.pressed = None;
@@ -468,10 +468,10 @@ impl PointerState {
         hit
     }
 
-    /// Secondary button, resolved against open popups: on a light-dismiss
-    /// backdrop it is an outside click (closing the popup) followed, per
-    /// [`PointerConfig::secondary_outside`], by the same secondary click on
-    /// the control beneath. Hover lands on the final target.
+
+
+
+
     pub fn route_secondary(&mut self, hits: &HitRegistry, pos: Position) -> SecondaryRoute {
         let hit = self.on_secondary(hits, pos);
         let Some(id) = hit else {
@@ -496,8 +496,8 @@ impl PointerState {
         }
     }
 
-    /// Secondary button moved while held: hover follows the pointer (onto
-    /// the rows of the context menu the press opened).
+
+
     pub fn on_secondary_drag(&mut self, hits: &HitRegistry, pos: Position) -> Outcome {
         self.pos = Some(pos);
         let was = self.hover;
@@ -510,13 +510,13 @@ impl PointerState {
         }
     }
 
-    /// Secondary button released: the control a press-drag-release chose,
-    /// if any. That is the control under the pointer when it accepts a
-    /// secondary release ([`HitRegistry::accept_release`] with
-    /// [`ReleaseFrom::Secondary`], an open context menu's rows) and the
-    /// pointer moved at least one cell from the press, so the release of a
-    /// plain right-click never picks the row it opened under. Deliver it as
-    /// a click.
+
+
+
+
+
+
+
     pub fn on_secondary_up(&mut self, hits: &HitRegistry, pos: Position) -> Option<WidgetId> {
         self.pos = Some(pos);
         let from = self.secondary_at.take()?;
@@ -528,11 +528,11 @@ impl PointerState {
             .then_some(hit)
     }
 
-    /// Button up: the control under the pointer, plus — when it is a
-    /// pass-through backdrop the press started on — the control beneath it
-    /// that the same click also reaches. A control that accepts a release
-    /// from the held press ([`HitRegistry::accept_release`]) completes the
-    /// click in [`Self::release`].
+
+
+
+
+
     pub fn on_up(
         &mut self,
         hits: &HitRegistry,
@@ -551,7 +551,7 @@ impl PointerState {
         (hit, beneath)
     }
 
-    /// Resolve a release over `hit`, consuming the held press.
+
     pub fn release(&mut self, hit: Option<WidgetId>) -> Release {
         let pressed = self.pressed.take();
         let accepted = self.accepted.take();
@@ -566,16 +566,16 @@ impl PointerState {
         }
     }
 
-    /// Hold `id` as pressed (a pass-through click re-dispatched beneath a
-    /// backdrop).
+
+
     pub fn press(&mut self, id: WidgetId) {
         self.pressed = Some(id);
     }
 
-    /// Count a completed click on `id` at `pos`: 1 for a single click, 2
-    /// for a double click, 3 for a triple, ... Clicks chain while they land
-    /// on the same control, within [`PointerConfig::double_click_slop`]
-    /// cells and [`PointerConfig::double_click_ms`] of the previous one.
+
+
+
+
     pub fn count_click(&mut self, id: WidgetId, pos: Position, now_ms: u64) -> u8 {
         let count = self.press_count(id, pos, now_ms);
         self.last_click = Some(LastClick {
@@ -587,10 +587,10 @@ impl PointerState {
         count
     }
 
-    /// The count the click a press on `id` at `pos` starts would complete
-    /// with ([`Self::count_click`] without recording it): 2 for the second
-    /// press of a double click. A text field selects the word on that
-    /// press and a drag from it extends by words.
+
+
+
+
     pub fn press_count(&self, id: WidgetId, pos: Position, now_ms: u64) -> u8 {
         let slop = self.config.double_click_slop;
         match self.last_click {
@@ -606,12 +606,12 @@ impl PointerState {
         }
     }
 
-    /// Forget the click chain (a modal opened, the content changed).
-    /// How long the pointer has rested on the hovered control, in ms of the
-    /// clock `now_ms` reads (0 when nothing is hovered or the target just
-    /// changed). Delayed hover content (an expansion tooltip, a
-    /// tooltip) waits on it through
-    /// [`crate::ui::ctx::Interaction::hover_ms`].
+
+
+
+
+
+
     pub fn hover_ms(&self, now_ms: u64) -> u64 {
         let Some(id) = self.hover.filter(|_| !self.hover_suppressed) else {
             self.hover_mark.set(None);
@@ -630,24 +630,24 @@ impl PointerState {
         self.last_click = None;
     }
 
-    /// Flash `id` as pressed (activation feedback) from `now_ms`.
+
     pub fn flash(&mut self, id: WidgetId, now_ms: u64) {
         self.flash = Some((id, now_ms.saturating_add(self.config.flash_ms)));
     }
 
-    /// The flashing control, if its flash has not run out yet.
+
     pub fn flashing(&self, now_ms: u64) -> Option<WidgetId> {
         self.flash
             .filter(|&(_, until)| now_ms < until)
             .map(|(id, _)| id)
     }
 
-    /// A flash is pending (shown or waiting to be cleared by a tick).
+
     pub fn has_flash(&self) -> bool {
         self.flash.is_some()
     }
 
-    /// Clear a flash that has run out; `true` when something changed.
+
     pub fn expire_flash(&mut self, now_ms: u64) -> bool {
         match self.flash {
             Some((_, until)) if now_ms >= until => {
@@ -658,7 +658,7 @@ impl PointerState {
         }
     }
 
-    /// Lines to scroll for a vertical wheel event (negative = up).
+
     pub fn wheel_delta(&self, kind: MouseKind) -> i32 {
         match kind {
             MouseKind::WheelUp | MouseKind::WheelLeft => -self.config.wheel_lines,
@@ -666,16 +666,16 @@ impl PointerState {
         }
     }
 
-    /// A wheel scroll changed the content at `pos`: re-resolve hover once
-    /// the next frame's hit regions exist (see [`Self::refresh_hover`]).
+
+
     pub fn scrolled(&mut self, pos: Position, out: Outcome) {
         if out == Outcome::Changed && self.config.hover_refresh_after_scroll {
             self.hover_refresh = Some(pos);
         }
     }
 
-    /// Call after a frame has rebuilt `hits`: applies a pending hover
-    /// refresh after a scroll.
+
+
     pub fn refresh_hover(&mut self, hits: &HitRegistry) {
         if let Some(pos) = self.hover_refresh.take()
             && !self.hover_suppressed
@@ -685,31 +685,31 @@ impl PointerState {
     }
 }
 
-// ------------------------------------------------------------------ router
 
-/// One pointer event resolved to its target: the region under the pointer
-/// (the held one for a drag or a release), its owner widget and part
-/// ([`HitRegistry::resolve`]), and the [`Intent`] the widget acts on.
-/// [`PointerRouter`] builds it; an app hands it to the owner through
-/// [`MouseTarget`].
+
+
+
+
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PointerEvent {
-    /// The hit region's id: a row, a tab, a scrollbar, a backdrop.
+
     pub id: WidgetId,
-    /// The widget that owns the region and the part of it the pointer is
-    /// on.
+
+
     pub hit: Hit,
-    /// [`Intent::Pointer`] (press, click, drag, ...) or [`Intent::Wheel`].
+
     pub intent: Intent<'static>,
-    /// The scrollbar under a press, click or release, or the one a drag
-    /// holds ([`PointerState::grabbed`]). A [`Scrollable`] owner takes it
-    /// through [`scroll_input`].
+
+
+
     pub bar: Option<Bar>,
 }
 
 impl PointerEvent {
-    /// A pointer event of `phase` on the region `id` (resolved through
-    /// `hits`, so a part keeps its owner).
+
+
     pub fn new(
         hits: &HitRegistry,
         phase: Phase,
@@ -733,7 +733,7 @@ impl PointerEvent {
         }
     }
 
-    /// A wheel event of `delta` lines on `axis` over the region `id`.
+
     pub fn wheel_on(
         hits: &HitRegistry,
         id: WidgetId,
@@ -757,23 +757,23 @@ impl PointerEvent {
         }
     }
 
-    /// The widget the event belongs to.
+
     pub fn owner(&self) -> WidgetId {
         self.hit.owner
     }
 
-    /// Whether the event belongs to `owner`.
+
     pub fn on(&self, owner: WidgetId) -> bool {
         self.hit.owner == owner
     }
 
-    /// The part of the owner the pointer is on.
+
     pub fn part(&self) -> PartRef {
         self.hit.part
     }
 
-    /// The positional item of the part (a row, a tab, an option) when the
-    /// part is `part`.
+
+
     pub fn index_of(&self, part: Part) -> Option<usize> {
         if self.hit.part.part != part {
             return None;
@@ -781,7 +781,7 @@ impl PointerEvent {
         self.hit.part.item.and_then(ItemKey::as_index)
     }
 
-    /// The pointer phase; `None` for a wheel event.
+
     pub fn phase(&self) -> Option<Phase> {
         match self.intent {
             Intent::Pointer { phase, .. } => Some(phase),
@@ -789,17 +789,17 @@ impl PointerEvent {
         }
     }
 
-    /// Whether this is a pointer event of `phase`.
+
     pub fn is(&self, phase: Phase) -> bool {
         self.phase() == Some(phase)
     }
 
-    /// The pointer position.
+
     pub fn pos(&self) -> Position {
         self.intent.pos().unwrap_or_default()
     }
 
-    /// The multi-click count (1, 2, 3; 0 for a wheel).
+
     pub fn count(&self) -> u8 {
         match self.intent {
             Intent::Pointer { count, .. } => count,
@@ -807,7 +807,7 @@ impl PointerEvent {
         }
     }
 
-    /// The modifiers held with the event.
+
     pub fn mods(&self) -> KeyModifiers {
         match self.intent {
             Intent::Pointer { mods, .. } | Intent::Wheel { mods, .. } => mods,
@@ -815,7 +815,7 @@ impl PointerEvent {
         }
     }
 
-    /// The axis and the signed lines of a wheel event.
+
     pub fn wheel(&self) -> Option<(Axis, i32)> {
         match self.intent {
             Intent::Wheel { axis, delta, .. } => Some((axis, delta as i32)),
@@ -831,12 +831,12 @@ fn hit_of(hits: &HitRegistry, id: WidgetId) -> Hit {
     })
 }
 
-/// The scrolling half of every [`Scrollable`] target's pointer handling,
-/// shared so no widget routes its own bars or wheel: a wheel notch scrolls
-/// the pane ([`Scrollable::wheel`]); a press or a drag on one of its bars
-/// moves it ([`Scrollable::bar_input`]); the click or release that ends a
-/// bar press is consumed (the press already moved the view). `None`: the
-/// event is not a scrolling one.
+
+
+
+
+
+
 pub fn scroll_input<S: Scrollable + ?Sized>(w: &mut S, ev: &PointerEvent) -> Option<Response<()>> {
     if let Some((axis, delta)) = ev.wheel() {
         return Some(w.wheel(axis, delta));
@@ -853,33 +853,33 @@ pub fn scroll_input<S: Scrollable + ?Sized>(w: &mut S, ev: &PointerEvent) -> Opt
     }
 }
 
-/// A widget the pointer router delivers events to. The router resolves
-/// every event to its owner ([`PointerEvent::hit`]); the app hands it to
-/// the widget whose [`Self::mouse_id`] it names, and the widget acts on
-/// the part (a row, a tab, its bar) without scanning ids.
-///
-/// The library widgets implement it as adapters over their per-gesture
-/// methods; S15's `Component` replaces them with one blanket impl.
+
+
+
+
+
+
+
 pub trait MouseTarget {
-    /// What a gesture may produce (a chosen row, an activated tab).
+
     type Action;
 
-    /// The widget's id: events whose [`PointerEvent::owner`] is this id
-    /// are this widget's.
+
+
     fn mouse_id(&self) -> WidgetId;
 
-    /// Handle one of this widget's events.
+
     fn pointer(&mut self, ev: &PointerEvent) -> Response<Self::Action>;
 
-    /// [`Self::pointer`] when the event is this widget's; `None` otherwise,
-    /// so a container offers an event to each child in turn.
+
+
     fn route(&mut self, ev: &PointerEvent) -> Option<Response<Self::Action>> {
         ev.on(self.mouse_id()).then(|| self.pointer(ev))
     }
 }
 
-/// What the router borrows from its host at once: its own state, the
-/// frame's hit regions, the focus and its ring.
+
+
 pub struct PointerParts<'a> {
     pub router: &'a mut PointerRouter,
     pub hits: &'a HitRegistry,
@@ -887,53 +887,53 @@ pub struct PointerParts<'a> {
     pub ring: &'a FocusRing,
 }
 
-/// The app side of the pointer router: where resolved events go. The
-/// host routes each [`PointerEvent`] by its owner: the top layer first,
-/// then the chrome (menu bar, tabs, footer), then the page.
+
+
+
 pub trait PointerHost {
-    /// The router's state, the hit regions, the focus and its ring.
+
     fn pointer_parts(&mut self) -> PointerParts<'_>;
 
-    /// A modal or popover layer is open: the router does not move focus
-    /// on a press (the layer owns its focus), a press on its body ends an
-    /// edit ([`PointerState::surface_press`]), and events the layer
-    /// ignores are consumed, never reaching the page behind.
+
+
+
+
     fn layer_open(&self) -> bool;
 
-    /// The host's clock, in milliseconds (multi-clicks, the flash, the
-    /// autoscroll and track-repeat ticks).
+
+
     fn now_ms(&self) -> u64;
 
-    /// Deliver one event to its owner.
+
     fn deliver(&mut self, ev: &PointerEvent) -> Response<()>;
 
-    /// A click that landed on nothing reachable: a modal's inert backdrop
-    /// or dead space. The host dismisses its top layer with
-    /// [`crate::core::intent::DismissReason::OutsideClick`] (a refused
-    /// dismissal flashes) or closes an open menu. Default: a repaint.
+
+
+
+
     fn outside(&mut self, _pos: Position) -> Response<()> {
         Response::changed()
     }
 }
 
-/// The one pointer state machine every app runs through its
-/// [`PointerHost`]: hover, press, release, click count, drag (with a
-/// drag-end phase), wheel on both axes ([`PointerConfig::wheel_lines`],
-/// offered to each owner under the pointer until one takes it),
-/// secondary press, drag and release, middle click, pass-through
-/// backdrops, dead space, presses on a modal's body, the activation flash
-/// and [`PointerConfig::focus_on`]. It owns the [`PointerState`] and
-/// dereferences to it.
+
+
+
+
+
+
+
+
 #[derive(Debug, Clone, Default)]
 pub struct PointerRouter {
     pub state: PointerState,
-    /// The held press moved (a drag): its release is preceded by
-    /// [`Phase::DragEnd`].
+
+
     dragged: bool,
-    /// The pressed region and its owner and part as resolved at the press:
-    /// a drag, its end and the release still reach that owner after the
-    /// region scrolled out of the frame (a grid range drag autoscrolling
-    /// past the cell it started on).
+
+
+
+
     held: Option<(WidgetId, Hit)>,
 }
 
@@ -959,9 +959,9 @@ impl PointerRouter {
         }
     }
 
-    /// An event of `phase` on the held region `id`: resolved through the
-    /// frame's hits, or, when the region is gone from them, to the owner
-    /// and part it had at the press.
+
+
+
     fn held_event(
         &self,
         hits: &HitRegistry,
@@ -983,12 +983,12 @@ impl PointerRouter {
         ev
     }
 
-    /// Route one mouse event through `host`.
+
     pub fn route<H: PointerHost + ?Sized>(host: &mut H, m: Mouse) -> Outcome {
         let before = host.pointer_parts().focus.current();
         let out = Self::dispatch(host, m);
-        // focus a click moved shows only on controls that want a ring
-        // after a click (FocusVisible)
+
+
         let p = host.pointer_parts();
         let pressed = m.kind == MouseKind::Down && p.router.state.pressed.is_some();
         if pressed || (m.kind == MouseKind::Up && p.focus.current() != before) {
@@ -997,10 +997,10 @@ impl PointerRouter {
         out
     }
 
-    /// On the host's tick: a due edge-autoscroll step replays the held
-    /// drag at the pointer ([`PointerState::autoscroll_due`]); a due track
-    /// repeat replays the press held on a scrollbar track, so it keeps
-    /// paging toward the pointer ([`PointerState::track_repeat_due`]).
+
+
+
+
     pub fn tick<H: PointerHost + ?Sized>(host: &mut H) -> Outcome {
         let now = host.now_ms();
         let due = host.pointer_parts().router.state.autoscroll_due(now);
@@ -1017,7 +1017,7 @@ impl PointerRouter {
 
     fn dispatch<H: PointerHost + ?Sized>(host: &mut H, m: Mouse) -> Outcome {
         let layer = host.layer_open();
-        // under a layer nothing an owner ignores reaches the page behind
+
         let swallow = |out: Outcome| {
             if layer && out == Outcome::Ignored {
                 Outcome::Consumed
@@ -1059,8 +1059,8 @@ impl PointerRouter {
                     out = host.deliver(&ev).outcome();
                 }
                 out = out.or(Self::release(host, m, hit, layer, now));
-                // a pass-through backdrop: the click closes the popup and
-                // then lands on what is beneath it, as a click of its own
+
+
                 if let Some(below) = beneath {
                     host.pointer_parts().router.state.press(below);
                     out = out.or(Self::release(host, m, Some(below), layer, now));
@@ -1072,8 +1072,8 @@ impl PointerRouter {
                 let p = host.pointer_parts();
                 p.router.state.on_secondary_drag(p.hits, m.pos)
             }
-            // press, drag onto a context-menu row, release: the release
-            // chooses it, delivered as a click on the row
+
+
             MouseKind::SecondaryUp => {
                 let now = host.now_ms();
                 let p = host.pointer_parts();
@@ -1085,8 +1085,8 @@ impl PointerRouter {
                     None => Outcome::Ignored,
                 }
             }
-            // a middle click goes to the control under the pointer (a tab
-            // strip closes the tab under it)
+
+
             MouseKind::Middle => {
                 let p = host.pointer_parts();
                 let Some(id) = p.hits.hit(m.pos) else {
@@ -1115,15 +1115,15 @@ impl PointerRouter {
             return Outcome::Ignored;
         };
         if layer {
-            // a press on a modal's own body is dead space inside it: it
-            // ends the focused field's edit in place
+
+
             p.router.state.surface_press(p.hits, id, p.focus);
         } else if p.router.state.config.focus_on == FocusOn::Press && p.ring.contains(id) {
             p.focus.focus(id);
         }
         p.router.held = Some((id, hit_of(p.hits, id)));
-        // the click count this press starts: the second press of a double
-        // click selects a word in a field
+
+
         let count = p.router.state.press_count(id, m.pos, now);
         let ev = PointerEvent::new(p.hits, Phase::Press, id, m.pos, count, m.mods);
         host.deliver(&ev).outcome().or(Outcome::Changed)
@@ -1135,8 +1135,8 @@ impl PointerRouter {
         let route = p.router.state.route_secondary(p.hits, m.pos);
         let at = |host: &mut H, id: WidgetId| {
             let p = host.pointer_parts();
-            // a focusable control under a secondary click takes focus
-            // first, so the keys reach the menu it opens
+
+
             if !layer && p.router.state.config.secondary_focuses && p.ring.contains(id) {
                 p.focus.focus(id);
             }
@@ -1148,12 +1148,12 @@ impl PointerRouter {
             SecondaryRoute::Swallowed => Outcome::Consumed,
             SecondaryRoute::Target(id) => at(host, id),
             SecondaryRoute::Outside { backdrop, reopen } => {
-                // the open popup closes exactly as a primary click on its
-                // backdrop closes it ...
+
+
                 host.pointer_parts().router.state.press(backdrop);
                 let out = Self::release(host, m, Some(backdrop), layer, now).or(Outcome::Changed);
-                // ... then the control beneath gets the secondary click,
-                // so its menu opens at the new spot
+
+
                 match reopen {
                     Some(id) => out.or(at(host, id)),
                     None => out,
@@ -1175,8 +1175,8 @@ impl PointerRouter {
         };
         let p = host.pointer_parts();
         let delta = p.router.state.wheel_delta(m.kind);
-        // the notch goes to the innermost owner that takes it: a field (or
-        // its label) inside a scrolling stack passes it on
+
+
         let events: Vec<PointerEvent> = p
             .hits
             .scroll_stack(m.pos)
@@ -1186,7 +1186,7 @@ impl PointerRouter {
         let mut out = Outcome::Ignored;
         let mut tried: Vec<WidgetId> = Vec::new();
         for ev in events {
-            // one offer per owner: its rows and its body are one scroller
+
             if tried.contains(&ev.owner()) {
                 continue;
             }
@@ -1196,14 +1196,14 @@ impl PointerRouter {
                 break;
             }
         }
-        // the rows under the pointer change with the scroll: hover is
-        // re-resolved once the new frame has registered its hits
+
+
         host.pointer_parts().router.state.scrolled(m.pos, out);
         out
     }
 
-    /// A button release over `hit`: the release of the held press, or a
-    /// click replayed on a backdrop or a menu row.
+
+
     fn release<H: PointerHost + ?Sized>(
         host: &mut H,
         m: Mouse,
@@ -1217,9 +1217,9 @@ impl PointerRouter {
             Release::Click(id) => id,
             Release::Outside => return host.outside(m.pos).outcome().or(Outcome::Changed),
             Release::Cancelled => {
-                // the press and the release landed on different targets:
-                // the pressed owner gets the release (a select's press-drag
-                // ends on an option)
+
+
+
                 let Some(pressed) = pressed else {
                     return Outcome::Changed;
                 };
@@ -1229,17 +1229,17 @@ impl PointerRouter {
                 return host.deliver(&ev).outcome().or(Outcome::Changed);
             }
         };
-        // every activated target flashes, modals included
+
         p.router.state.flash(id, now);
         let count = p.router.state.count_click(id, m.pos, now);
         let ev = PointerEvent::new(p.hits, Phase::Click, id, m.pos, count, m.mods);
         let before = p.focus.moves();
         let out = host.deliver(&ev).outcome();
-        // a control the click did not focus is focused here under
-        // [`FocusOn::Release`], so keyboard and pointer agree. A handler
-        // that chose focus itself keeps its choice, even when it named the
-        // control that already had focus (Find hands focus to the editor):
-        // [`Focus::moves`] tells that apart from a handler that did nothing.
+
+
+
+
+
         let p = host.pointer_parts();
         if !layer
             && p.router.state.config.focus_on == FocusOn::Release
@@ -1257,9 +1257,9 @@ mod tests {
     use super::*;
     use ratatui::layout::Rect;
 
-    /// Standards review (5): a backdrop click dismisses a dialog only when
-    /// both the press and the release land on the backdrop; a drag out of
-    /// the dialog (or into it) is no dismissal.
+
+
+
     #[test]
     fn a_backdrop_click_needs_press_and_release_on_the_backdrop() {
         let mut hits = HitRegistry::default();
@@ -1295,7 +1295,7 @@ mod tests {
         p.on_down(&h, Position::new(1, 0));
         let (hit, _) = p.on_up(&h, Position::new(1, 1));
         assert_eq!(p.release(hit), Release::Click(b), "press-drag-release");
-        // a press that started on another control is not accepted
+
         p.on_down(&h, Position::new(1, 1));
         p.press(WidgetId::of("c"));
         let (hit, _) = p.on_up(&h, Position::new(1, 1));
@@ -1307,10 +1307,10 @@ mod tests {
         let (mut h, a, b) = hits();
         h.accept_release(b, ReleaseFrom::Secondary);
         let mut p = PointerState::default();
-        // a plain right-click: press and release on the same cell
+
         p.on_secondary(&h, Position::new(1, 1));
         assert_eq!(p.on_secondary_up(&h, Position::new(1, 1)), None);
-        // press, drag onto the row, release
+
         p.on_secondary(&h, Position::new(1, 0));
         assert_eq!(
             p.on_secondary_drag(&h, Position::new(2, 1)),
@@ -1318,11 +1318,11 @@ mod tests {
         );
         assert_eq!(p.hover, Some(b));
         assert_eq!(p.on_secondary_up(&h, Position::new(2, 1)), Some(b));
-        // over a row that does not accept it
+
         p.on_secondary(&h, Position::new(1, 1));
         assert_eq!(p.on_secondary_up(&h, Position::new(3, 0)), None);
         let _ = a;
-        // a release with no secondary press held
+
         assert_eq!(p.on_secondary_up(&h, Position::new(2, 1)), None);
     }
 
@@ -1348,11 +1348,11 @@ mod tests {
         assert_eq!(p.count_click(a, at, 0), 1);
         assert_eq!(p.count_click(a, at, 300), 2);
         assert_eq!(p.count_click(a, at, 600), 3);
-        // too slow
+
         assert_eq!(p.count_click(a, at, 1200), 1);
-        // too far on a large widget
+
         assert_eq!(p.count_click(a, Position::new(8, 0), 1300), 1);
-        // a different control
+
         assert_eq!(p.count_click(b, Position::new(8, 0), 1400), 1);
         let mut slow = PointerState::new(PointerConfig::DEFAULT.double_click_ms(1000));
         slow.count_click(a, at, 0);
@@ -1364,7 +1364,7 @@ mod tests {
         let (h, a, b) = hits();
         let mut p = PointerState::default();
         p.on_down(&h, Position::new(1, 0));
-        // the release was lost; the next press replaces the stale one
+
         assert_eq!(p.on_down(&h, Position::new(1, 1)), Some(b));
         assert_eq!(p.release(Some(b)), Release::Click(b));
         p.on_down(&h, Position::new(1, 0));
@@ -1414,11 +1414,11 @@ mod tests {
         assert_eq!(p.track_repeat_due(1000), None, "the clock starts");
         assert_eq!(p.track_repeat_due(1299), None, "not before the delay");
         assert_eq!(p.track_repeat_due(1300), Some(at));
-        // the replayed press keeps the clock
+
         p.on_down(&h, at);
         assert_eq!(p.track_repeat_due(1340), None);
         assert_eq!(p.track_repeat_due(1350), Some(at));
-        // off the track: no repeat
+
         p.on_drag(&h, Position::new(3, 8));
         assert!(!p.track_repeating());
         assert_eq!(p.track_repeat_due(2000), None);
@@ -1428,10 +1428,10 @@ mod tests {
             None,
             "back on it: the delay again"
         );
-        // the release ends it
+
         p.release(Some(bar.id));
         assert!(!p.track_repeating());
-        // switched off
+
         let mut off = PointerState::new(PointerConfig::DEFAULT.track_repeat(false));
         off.on_down(&h, at);
         assert!(!off.track_repeating());
@@ -1476,21 +1476,21 @@ mod tests {
         h.register_autoscroll(Rect::new(0, 0, 10, 5));
         let mut p = PointerState::default();
         p.on_down(&h, Position::new(2, 2));
-        // inside the body: nothing to do
+
         p.on_drag(&h, Position::new(3, 4));
         assert!(!p.autoscrolling());
         assert_eq!(p.autoscroll_due(0), None);
-        // past the bottom edge: a step now, the next after autoscroll_ms
+
         p.on_drag(&h, Position::new(3, 7));
         assert!(p.autoscrolling());
         assert_eq!(p.autoscroll_due(100), Some((cell, Position::new(3, 7))));
         assert_eq!(p.autoscroll_due(120), None);
         assert_eq!(p.autoscroll_due(150), Some((cell, Position::new(3, 7))));
-        // the release ends it
+
         p.release(Some(cell));
         assert!(!p.autoscrolling());
         assert_eq!(p.autoscroll_due(500), None);
-        // switched off
+
         let mut off = PointerState::new(PointerConfig::DEFAULT.autoscroll(false));
         off.on_down(&h, Position::new(2, 2));
         off.on_drag(&h, Position::new(3, 7));
@@ -1507,7 +1507,7 @@ mod tests {
     }
 }
 
-/// The router against a recording host: every resolved event, in order.
+
 #[cfg(test)]
 mod router_tests {
     use super::*;
@@ -1521,7 +1521,7 @@ mod router_tests {
         layer: bool,
         now: u64,
         log: Vec<PointerEvent>,
-        /// Owners that ignore everything (a wheel passes them on).
+
         deaf: Vec<WidgetId>,
         outside: usize,
     }
@@ -1587,7 +1587,7 @@ mod router_tests {
         }
     }
 
-    /// A list `list` with rows 0..3 on y 0..3, a body `body` around it.
+
     fn layout() -> (HitRegistry, WidgetId, WidgetId) {
         let mut h = HitRegistry::default();
         let body = WidgetId::of("body");
@@ -1642,15 +1642,15 @@ mod router_tests {
         let _ = body;
     }
 
-    /// A drag keeps the owner of the region it started on after that
-    /// region scrolled out of the frame (a grid range drag autoscrolling
-    /// past its first cell).
+
+
+
     #[test]
     fn a_drag_keeps_its_owner_after_the_pressed_region_scrolls_away() {
         let (h, list, _) = layout();
         let mut host = Host::new(h);
         host.mouse(MouseKind::Down, 2, 0);
-        // the next frame: the list scrolled, row 0 is gone
+
         let mut h = HitRegistry::default();
         h.register(WidgetId::of("body"), Rect::new(0, 0, 20, 10));
         h.register(list, Rect::new(0, 0, 10, 3));

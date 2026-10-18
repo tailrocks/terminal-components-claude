@@ -1,17 +1,17 @@
-//! A row of action buttons with an optional status message beside them.
-//!
-//! ```text
-//!  [ Connect ]  [ Edit… ]  [ Duplicate ]  ✓ Saved 2 s ago     (start: message after the buttons)
-//!  Two steps excluded              [ Cancel ]  [ Run plan ]   (end: message before them)
-//! ```
-//!
-//! The one place a card, page or footer lays out its buttons: packed to
-//! the start (forms, cards) or the end (dialog actions, the macOS
-//! convention), a fixed gap between them, never wrapping or folding (a
-//! [`ButtonRow`] does that for dialogs that must). ←/→ between the
-//! buttons is [`ActionRow::step`]: the one button-row navigation (K32),
-//! skipping disabled buttons and stopping at the ends unless
-//! [`ActionRow::wrap`].
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -23,18 +23,18 @@ use crate::ui::ctx::RenderCtx;
 use crate::ui::text::{truncate, width};
 use crate::widgets::button::{Button, ButtonRow, RowAlign, row_layout, row_layout_right};
 
-/// A button row with an optional message; see the module docs.
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionRow {
-    /// Where the buttons sit. Default [`RowAlign::Start`].
+
     pub align: RowAlign,
-    /// Cells between buttons, and between the buttons and the message.
-    /// Default 2.
+
+
     pub gap: u16,
-    /// A status message beside the buttons, in its tone, cut to the room
-    /// left (after the buttons at the start, before them at the end).
+
+
     pub message: Option<(String, Tone)>,
-    /// ←/→ past the last button lands on the first. Default off (K32).
+
     pub wrap: bool,
 }
 
@@ -54,31 +54,31 @@ impl ActionRow {
         }
     }
 
-    /// See [`Self::align`].
+
     pub fn align(mut self, align: RowAlign) -> Self {
         self.align = align;
         self
     }
 
-    /// See [`Self::gap`].
+
     pub fn gap(mut self, gap: u16) -> Self {
         self.gap = gap;
         self
     }
 
-    /// See [`Self::message`].
+
     pub fn message(mut self, text: &str, tone: Tone) -> Self {
         self.message = Some((text.to_owned(), tone));
         self
     }
 
-    /// See [`Self::wrap`].
+
     pub fn wrap(mut self, on: bool) -> Self {
         self.wrap = on;
         self
     }
 
-    /// Where each button goes in `area` (one row), without drawing.
+
     pub fn layout(&self, area: Rect, buttons: &[&Button]) -> Vec<Rect> {
         let widths: Vec<u16> = buttons.iter().map(|b| b.width()).collect();
         let row = Rect::new(area.x, area.y, area.width, area.height.min(1));
@@ -88,8 +88,8 @@ impl ActionRow {
         }
     }
 
-    /// Draw the buttons and the message on the first row of `area`, on
-    /// the plane `bg`; returns each button's area.
+
+
     pub fn render(
         &self,
         area: Rect,
@@ -138,9 +138,9 @@ impl ActionRow {
         rects
     }
 
-    /// The button ←/→ moves to from `cur` (the next or previous enabled
-    /// one), per [`Self::wrap`]; `None` at an end or when `cur` is not in
-    /// the row.
+
+
+
     pub fn step(
         &self,
         buttons: &[&Button],
@@ -193,7 +193,7 @@ mod tests {
         );
         let t = Theme::junie();
         assert_eq!(buf[(at as u16, 0)].fg, t.tone_on(Tone::Success, t.canvas));
-        // no room: the message is cut first, the buttons stay
+
         let (buf, rects2) = draw(&r, rects[1].right() + 6, &mut [&mut a, &mut b]);
         assert_eq!(rects2, rects);
         assert!(row(&buf, 0).trim_end().ends_with('…'), "{}", row(&buf, 0));

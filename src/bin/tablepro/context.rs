@@ -1,13 +1,13 @@
-//! Context menus on the connections list and the workbench: the explorer
-//! tree, the tab strip, the data grids (a table tab's rows, a query tab's
-//! result rows) and the History tab's query list.
-//!
-//! A secondary click on a row, cell or tab, or the context key on the
-//! focused widget's cursor ([`ContextConfig::keys`]), opens a
-//! [`ContextMenu`] of the commands that widget already has. Each item
-//! replays the key its command is bound to on the widget, so a menu choice
-//! runs exactly the code the key runs; a command that cannot run here or
-//! now stays in the menu with a reason.
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
@@ -31,46 +31,46 @@ use crate::connections::ConnectionsScreen;
 use crate::db::ObjectKind;
 use crate::workbench::{WorkTab, Workbench};
 
-/// The context menu's id.
+
 pub const MENU: WidgetId = WidgetId::of("context-menu");
 
-/// What an open context menu is about.
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Target {
-    /// An explorer row.
+
     Explorer(usize),
-    /// A tab in the workbench strip.
+
     Tab(usize),
-    /// A `(display row, column)` cell of the active table tab's grid.
+
     Grid(usize, usize),
-    /// A `(display row, column)` cell of the active query tab's results.
+
     Results(usize, usize),
-    /// A row of the active History tab's query list.
+
     History(usize),
-    /// A row of the connections list (a group or a connection).
+
     Connection(usize),
-    /// A column header (or its resize seam) of the active tab's grid.
+
     Header(usize),
-    /// The app menu (the TablePro and connection segments of the status
-    /// strip): its items run [`AppCommand`]s.
+
+
     App,
 }
 
-/// A command of the app menu: the pointer's way to quit, to see the open
-/// tabs and to leave a connection (mouse audit #40).
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppCommand {
-    /// The open-tabs list (Ctrl+G).
+
     OpenTabs,
-    /// Close the workbench and go back to the connection list, where
-    /// another connection can be opened.
+
+
     Disconnect,
-    /// Quit, asking first when work would be lost (Ctrl+Q).
+
     Quit,
 }
 
-/// The app menu at `pos`: Open tabs… and Disconnect while connected (to
-/// `connection`), then Quit.
+
+
 pub fn app_menu(connection: Option<&str>, pos: Position) -> CtxMenu {
     let mut items = vec![];
     if connection.is_some() {
@@ -100,27 +100,27 @@ pub fn app_menu(connection: Option<&str>, pos: Position) -> CtxMenu {
     }
 }
 
-/// An open context menu: the popover, what it is about, the widget its
-/// commands act on and the key each item replays there.
+
+
 pub struct CtxMenu {
     pub menu: ContextMenu,
     pub target: Target,
     pub owner: WidgetId,
     pub keys: Vec<Option<Key>>,
-    /// For a [`Target::Header`] menu: the command of each item (header
-    /// commands run on the grid, not as a replayed key).
+
+
     pub header: Vec<HeaderAction>,
-    /// For a [`Target::App`] menu: its items, each with its command
-    /// ([`Menus`]: a choice resolves to the command, never to a label).
+
+
     pub app: Menus<AppCommand>,
 }
 
-/// The menu on the app's layer stack: the library [`ContextMenu`] layer,
-/// carrying what its items act on so the owner reads them from the closed
-/// entry. Two differences from the plain menu: the keyboard stays on
-/// [`CtxMenu::owner`] while it is open (the row it acts on keeps its
-/// cursor, marked with a fill, and gets the focus back when it closes),
-/// and the footer names the menu's keys.
+
+
+
+
+
+
 impl Layer<ModalResult> for CtxMenu {
     fn spec(&self) -> LayerSpec {
         Overlay::spec(&self.menu).initial_focus(self.owner)
@@ -174,10 +174,10 @@ fn alt(c: char) -> Key {
     }
 }
 
-/// Items paired with the key each one replays (`None`: unavailable).
+
 type Items = Vec<(MenuItem, Option<Key>)>;
 
-/// A command bound to `key`, or unavailable for `reason`.
+
 fn cmd(items: &mut Items, item: MenuItem, key: Key, reason: Option<&str>) {
     match reason {
         Some(r) => items.push((item.reason(r), None)),
@@ -185,15 +185,15 @@ fn cmd(items: &mut Items, item: MenuItem, key: Key, reason: Option<&str>) {
     }
 }
 
-/// Mark the last item as ending a group.
+
 fn group(items: &mut Items) {
     if let Some((it, _)) = items.last_mut() {
         it.separator_after = true;
     }
 }
 
-/// The menu for a secondary click `ev`, moving the widget's cursor there
-/// per `cfg`.
+
+
 pub fn on_secondary(w: &mut Workbench, cfg: &ContextConfig, ev: &PointerEvent) -> Option<CtxMenu> {
     if let Some(req) = cfg.on_secondary(&mut w.explorer, ev) {
         return Some(build(w, req.map(Target::Explorer)));
@@ -231,7 +231,7 @@ pub fn on_secondary(w: &mut Workbench, cfg: &ContextConfig, ev: &PointerEvent) -
     Some(build(w, req))
 }
 
-/// The menu for the context key `key` on the focused widget's cursor.
+
 pub fn on_key(
     w: &Workbench,
     cfg: &ContextConfig,
@@ -262,8 +262,8 @@ pub fn on_key(
     Some(build(w, req))
 }
 
-/// Put the widget's cursor back on `target` before an item's key replays
-/// there (the strip or a grid may have moved since the menu opened).
+
+
 pub fn select(w: &mut Workbench, target: Target) {
     use junie_tui::ui::context::ContextSource;
     match target {
@@ -290,8 +290,8 @@ pub fn select(w: &mut Workbench, target: Target) {
     }
 }
 
-/// The connections list's menu for a secondary click `ev`, moving its
-/// cursor (and the selected connection) there per `cfg`.
+
+
 pub fn on_secondary_connections(
     c: &mut ConnectionsScreen,
     cfg: &ContextConfig,
@@ -302,7 +302,7 @@ pub fn on_secondary_connections(
     Some(build_connection(c, req.map(Target::Connection)))
 }
 
-/// The connections list's menu for the context key `key` on its cursor.
+
 pub fn on_key_connections(
     c: &ConnectionsScreen,
     cfg: &ContextConfig,
@@ -469,7 +469,7 @@ fn build(w: &Workbench, req: ContextRequest<Target>) -> CtxMenu {
     finish(req, title, owner, items)
 }
 
-/// The menu for `req`: `items` titled `title`, acting on `owner`.
+
 fn finish(req: ContextRequest<Target>, title: String, owner: WidgetId, items: Items) -> CtxMenu {
     let (items, keys): (Vec<MenuItem>, Vec<Option<Key>>) = items.into_iter().unzip();
     let mut menu = req.menu(MENU, items);
@@ -573,8 +573,8 @@ fn tab_items(w: &Workbench, i: usize) -> (String, WidgetId, Items) {
     (title, w.strip.id, items)
 }
 
-/// A grid cell's commands. `table`: the grid of a table tab (filters,
-/// reload and saving pending edits live there); otherwise query results.
+
+
 fn grid_items(g: &DataGrid, row: usize, col: usize, table: bool) -> (String, WidgetId, Items) {
     let mut items = Items::new();
     let Some(spec) = g.columns.get(col) else {

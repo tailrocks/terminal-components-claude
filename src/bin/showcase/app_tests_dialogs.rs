@@ -1,6 +1,6 @@
-//! The Dialogs page (plan §7.5, SC17), driven through the real app: each
-//! variant opens and returns its result, the two gates chain, the options
-//! reach the dialog through its builders, and the States grid.
+
+
+
 
 use ratatui::crossterm::event::KeyCode;
 
@@ -22,7 +22,7 @@ fn harness() -> Harness {
     Harness::on(120, 40, PageId::Dialogs)
 }
 
-/// Click the variant button labelled `label`.
+
 fn open(h: &mut Harness, label: &str) {
     let (x, y) = h.find(label).unwrap_or_else(|| panic!("{label} button"));
     h.click(x + 1, y);
@@ -64,7 +64,7 @@ fn the_drop_gates_chain_and_the_token_arms_the_action() {
         h.text().contains("DROP TABLE public.orders"),
         "the code block"
     );
-    // Cancel is focused first: → reaches Continue
+
     h.key(KeyCode::Right);
     h.key(KeyCode::Enter);
     let d = h.app.dialog().expect("the second gate opens");
@@ -105,7 +105,7 @@ fn placement_below_opens_the_dialog_under_the_button_that_asked() {
     let button = page(&h).buttons[0].area;
     let d = h.app.dialog().unwrap();
     assert_eq!(d.area.y, button.bottom(), "right under the button");
-    // centred, it sits elsewhere
+
     h.key(KeyCode::Esc);
     h.opt("dialogs.placement=center");
     open(&mut h, "Confirm run");
@@ -121,8 +121,8 @@ fn chrome_rows_keep_a_tall_dialog_clear_of_the_header_and_footer() {
     h.opt("dialogs.chrome=3-2");
     open(&mut h, "Release notes");
     let d = h.app.dialog().unwrap().area;
-    // the shell honours the dialog's own chrome: 3 rows above, 2 below,
-    // then the outer margin
+
+
     assert_eq!(d.y, 3 + 1, "{d:?}");
     assert!(d.bottom() < 30 - 2, "{d:?}");
     assert!(d.height < base.height, "{d:?} vs {base:?}");
@@ -183,11 +183,11 @@ fn the_states_grid_draws_every_row_with_no_second_focus_bar() {
     assert!(h.text().contains("Drop table?"));
 }
 
-/// A prompt guarded by `guard_dirty_prompt` refuses the outside click once
-/// its field holds typed text, and the refusal flashes the frame (the
-/// layer stack's dismiss policy, as for page layers). Before the shell's
-/// dialog moved onto `ShellLayers` the refusal read the dialog's raw
-/// policy, which still allowed outside clicks, so nothing flashed.
+
+
+
+
+
 #[test]
 fn a_refused_outside_click_on_a_dirty_prompt_flashes_its_frame() {
     use ratatui::style::Modifier;

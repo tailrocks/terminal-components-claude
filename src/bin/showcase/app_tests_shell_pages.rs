@@ -1,5 +1,5 @@
-//! App shell pages (plan §7, SC5 and SC6), driven through the real app:
-//! Breadcrumbs & rails, Help & keys, Quit & leave.
+
+
 
 use junie_tui::runtime::Application;
 use ratatui::Terminal;
@@ -68,7 +68,7 @@ impl Harness {
         s
     }
 
-    /// Where `needle` starts on screen.
+
     pub fn find(&self, needle: &str) -> Option<(u16, u16)> {
         let buf = self.term.backend().buffer();
         for y in 0..buf.area.height {
@@ -81,7 +81,7 @@ impl Harness {
         None
     }
 
-    /// The row holding `needle`, as text.
+
     pub fn row_of(&self, needle: &str) -> String {
         let (_, y) = self.find(needle).unwrap_or_else(|| panic!("{needle:?}"));
         let buf = self.term.backend().buffer();
@@ -112,7 +112,7 @@ impl Harness {
     }
 }
 
-/// Print a page at 120×40 (`--no-capture`), for sketches.
+
 #[test]
 fn dump_shell_pages() {
     if std::env::var("SHOWCASE_DUMP").is_err() {
@@ -136,7 +136,7 @@ fn dump_shell_pages() {
     println!("{}", h.text());
 }
 
-// ------------------------------------------------------------ SC5 ----
+
 
 mod breadcrumbs_rails {
     use super::*;
@@ -150,7 +150,7 @@ mod breadcrumbs_rails {
     fn enter_descends_and_a_crumb_goes_back() {
         let mut h = page();
         let (x, y) = h.find("Projects").expect("the folder list");
-        // a double click opens a folder, as in Finder
+
         h.click(x, y);
         h.click(x, y);
         assert!(h.app.shell.focus.is(LIST));
@@ -159,20 +159,20 @@ mod breadcrumbs_rails {
             "{}",
             h.text()
         );
-        // Enter opens the folder under the cursor
+
         let (x, y) = h
             .find("payments-plat")
             .unwrap_or_else(|| panic!("{}", h.text()));
         h.click(x, y);
         h.click(x, y);
         assert!(h.text().contains("› Projects › payments-platform"));
-        // a click on an earlier level goes back to it
+
         let (x, y) = h.find("Users ›").expect("the trail");
         h.click(x, y);
         assert!(h.row_of("Disk ›").contains("Disk › Users"));
         assert!(!h.text().contains("› alex ›"));
         assert!(h.text().contains("Users (level 1)"));
-        // Backspace walks up a level
+
         h.app.shell.focus.focus(LIST);
         h.key(KeyCode::Backspace);
         assert!(h.text().contains("Backspace → level 0"));
@@ -192,16 +192,16 @@ mod breadcrumbs_rails {
     #[test]
     fn the_rail_collapses_and_expands_by_pointer_and_ctrl_b() {
         let mut h = page();
-        // ‹ in the explorer's frame collapses it
+
         let (x, y) = h.find("‹").expect("the collapse button");
         h.click(x, y);
         assert!(h.row_of("Last RailAction").contains("Collapse"));
         assert!(h.find("─ Explorer").is_none(), "the frame is gone");
-        // the rail: `›` over the name written down the column
+
         let (x, y) = h.find("›    Location").expect("the rail");
         let buf = h.term.backend().buffer().clone();
         assert_eq!(buf[(x, y + 2)].symbol(), "E");
-        // a click anywhere on it opens the sidebar again and focuses the list
+
         h.click(x, y + 4);
         assert!(h.row_of("Last RailAction").contains("Expand"));
         assert!(h.app.shell.focus.is(LIST));
@@ -252,8 +252,8 @@ mod breadcrumbs_rails {
     }
 }
 
-/// The header's trail is the library `Breadcrumb`: plain text, the page
-/// bold, collapsing before the header links go.
+
+
 #[test]
 fn the_header_crumb_is_the_library_trail() {
     let h = Harness::new(120, 40, PageId::BreadcrumbsRails);
@@ -267,18 +267,18 @@ fn the_header_crumb_is_the_library_trail() {
             .contains(ratatui::style::Modifier::BOLD),
         "the current page reads as the title"
     );
-    // nothing to click: a plain trail registers no link
+
     let (gx, gy) = h.find("App shell ›").unwrap();
     let mut h = h;
     h.click(gx, gy);
     assert_eq!(h.app.page(), PageId::BreadcrumbsRails);
-    // narrow: the links stay, the trail gives way
+
     let h = Harness::new(72, 20, PageId::BreadcrumbsRails);
     let row = h.row_of("Design system");
     assert!(row.contains("? Help"), "{row}");
 }
 
-// ------------------------------------------------------------ SC6 ----
+
 
 mod help_keys {
     use super::*;
@@ -293,10 +293,10 @@ mod help_keys {
         h.click(x + 1, y);
     }
 
-    /// The shell's `?` is the library HelpOverlay built from the live key
-    /// maps (K23): the shell's keys with the showcase's commands, the
-    /// sidebar tree's keys, the mouse; sections in columns, Esc closes it
-    /// and focus comes back.
+
+
+
+
     #[test]
     fn question_mark_opens_the_shell_reference() {
         let mut h = Harness::new(120, 40, PageId::Overview);
@@ -308,26 +308,26 @@ mod help_keys {
         for s in ["Shell", "Sidebar", "Mouse", "The Inspector", "Next page"] {
             assert!(text.contains(s), "{s}\n{text}");
         }
-        // sections side by side: more than one column
+
         assert_eq!(
             h.find("Shell  ").map(|p| p.1),
             h.find("Sidebar  ").map(|p| p.1),
             "{text}"
         );
-        // one focus indicator, in the topmost layer: on the Done button
+
         assert_eq!(h.live_bars(), 1);
         assert!(h.row_of("▎").contains("Done"), "{text}");
         h.key(KeyCode::Esc);
         assert!(h.app.help().is_none());
         assert_eq!(h.app.shell.focus.current(), before);
-        // `?` closes it too (HelpCmd::Close)
+
         h.key(KeyCode::Char('?'));
         assert!(h.app.help().is_some());
         h.key(KeyCode::Char('?'));
         assert!(h.app.help().is_none());
     }
 
-    /// One modal at a time: the reference refuses to open over a dialog.
+
     #[test]
     fn it_refuses_to_open_over_a_dialog() {
         let mut h = Harness::new(120, 40, PageId::Overview);
@@ -385,7 +385,7 @@ mod help_keys {
         assert!(h.app.help().is_some(), "? is not bound any more");
         h.key(KeyCode::F(1));
         assert!(h.app.help().is_none(), "F1 closes");
-        // vim keys scroll the reference only with the vim map
+
         open(&mut h);
         let top = h.text();
         h.key(KeyCode::Char('j'));
@@ -459,7 +459,7 @@ mod quit_leave {
         press(&mut h, LEAVE);
         let d = h.app.dialog().expect("the unsaved-changes dialog");
         assert_eq!(d.actions.len(), 3, "Cancel / Discard / Save");
-        // Enter presses the focused Save
+
         h.key(KeyCode::Enter);
         assert!(
             h.row_of("Last answer")
@@ -468,7 +468,7 @@ mod quit_leave {
             h.text()
         );
         assert!(h.row_of("Edits").contains("Clean"));
-        // without save: Cancel / Discard
+
         h.opt("quitleave.save=off");
         h.opt("quitleave.stakes=unsaved");
         press(&mut h, LEAVE);
@@ -488,8 +488,8 @@ mod quit_leave {
         assert!(h.row_of("Last answer").contains("Resolved::Stay"));
     }
 
-    /// The shell's own guard sees the page's stakes: `q` never leaves a
-    /// dirty page, Ctrl+Q asks first.
+
+
     #[test]
     fn the_shell_quit_keys_see_the_page_stakes() {
         let mut h = page();

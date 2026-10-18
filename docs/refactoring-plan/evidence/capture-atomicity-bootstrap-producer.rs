@@ -1,4 +1,4 @@
-//! Small real terminal producer for capture atomicity qualification, not TC.
+
 use std::io::{self, IsTerminal, Read, Write};
 
 struct App {
@@ -28,8 +28,8 @@ impl App {
 
     fn checkpoint(&self, output: &mut impl Write, nonce: &str) -> io::Result<()> {
         self.draw(output)?;
-        // Same stream, after all render bytes. No further update can occur
-        // until the observer acknowledges this barrier with another input.
+
+
         let phase = if self.value % 2 == 0 { 'A' } else { 'B' };
         write!(output, "\x1b]777;{nonce};{{\"generation\":{},\"action_index\":{},\"tick\":{},\"value\":{},\"phase\":\"{phase}\"}}\x07",
             self.generation, self.generation, self.tick, self.value)?;

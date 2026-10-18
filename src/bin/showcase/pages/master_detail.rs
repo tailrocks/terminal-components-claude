@@ -1,11 +1,11 @@
-//! Master-detail (Layout, plan §7 SC38): a `MasterDetail` of database
-//! tables beside the selected table's facts. Wide, the panes share a
-//! draggable seam that the panes also move with `SplitKeys`
-//! (Alt+Shift+arrows); narrow, the list takes the body with a one-line
-//! summary under it and the facts open as a drawer (Tab, Show details),
-//! which Esc closes. The demo's width option narrows the frame so the
-//! collapsed layout shows at any terminal size. Options:
-//! `crate::options::MASTER_DETAIL`.
+
+
+
+
+
+
+
+
 
 use std::borrow::Cow;
 
@@ -36,10 +36,10 @@ const ID: WidgetId = WidgetId::of("masterdetail");
 const LIST: WidgetId = WidgetId::of("masterdetail").sub("tables");
 const DETAIL: WidgetId = WidgetId::of("masterdetail").sub("facts");
 const TOGGLE: WidgetId = WidgetId::of("masterdetail").sub("toggle");
-/// The detail's action: a stop inside the detail (`detail_owns`).
+
 const OPEN: WidgetId = WidgetId::of("masterdetail").sub("open");
 
-/// A table: name, rows, size, columns, indexes, owner, last analyzed.
+
 struct Table {
     name: &'static str,
     rows: usize,
@@ -155,7 +155,7 @@ pub struct MasterDetailPage {
     facts: PropsList,
     toggle: Button,
     open: Button,
-    /// The table whose facts the detail shows.
+
     shown: usize,
     sections: crate::pages::layout::Sections,
 }
@@ -181,7 +181,7 @@ impl MasterDetailPage {
         page
     }
 
-    /// The master-detail from the option values, through its builders.
+
     fn rebuild(&mut self) {
         let o = &self.opts;
         let collapse = o.number("masterdetail.collapse").unwrap_or(80);
@@ -210,8 +210,8 @@ impl MasterDetailPage {
         self.md = md;
     }
 
-    /// Columns the demo frame gets: the whole body, or a fixed width that
-    /// shows the collapsed layout on a wide terminal.
+
+
     fn frame_width(&self, avail: u16) -> u16 {
         self.opts
             .number("masterdetail.width")
@@ -283,7 +283,7 @@ impl MasterDetailPage {
                 .focused(ctx.interaction.focused(DETAIL));
             let pbg = p.bg(t);
             let r = p.render(l.detail, buf, t);
-            // the facts, then the detail's action on its last row
+
             let facts = Rect::new(r.x, r.y, r.width, r.height.saturating_sub(2));
             self.facts.render(facts, buf, ctx, pbg);
             if r.height > 2 && r.width > 2 {
@@ -326,8 +326,8 @@ fn facts(t: &Table) -> Vec<Prop> {
     ]
 }
 
-/// The States grid: the master-detail with its seam at rest, under the
-/// pointer and pressed, and collapsed with its summary.
+
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -338,7 +338,7 @@ fn states_grid() -> StateGrid {
         .column("Master-detail", MasterDetail::new(id.child(0), id.child(1)))
 }
 
-/// A library hint as the page's footer pair.
+
 pub(crate) fn page_hint(h: junie_tui::widgets::keyhint::Hint) -> Hint {
     let action = match h.action {
         Cow::Borrowed(s) => s,

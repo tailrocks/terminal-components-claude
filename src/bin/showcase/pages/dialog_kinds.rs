@@ -1,20 +1,20 @@
-//! Dialog kinds (Overlays, plan §7.5 SC18): the library's purpose-built
-//! modals, `FormDialog`, `InfoDialog`, `ChoiceDialog` and `HelpOverlay`,
-//! opened on the shell's layer stack with the page as their owner.
-//!
-//! - **Playground**: an "Add connection" form with every field kind (an
-//!   input, a masked password showing its last four characters, a select,
-//!   radios, a chooser that stacks a picker over the form, a live preview
-//!   note, a check that discloses a hidden field), a Test action and Save;
-//!   a server info dialog with copyable rows, an intro, a detail block and
-//!   an action; a release-channel choice with toned options, a line and a
-//!   stepper; a keyboard reference. A card reads the options back from the
-//!   built dialogs, another shows what they returned.
-//! - **Options**: one control per builder (`dialogkinds.<key>`).
-//! - **States**: a choice dialog in every state it has, drawn by it.
-//!
-//! The page is wiring and demo data only: keys, pointer, focus and
-//! dismissal are the dialogs' own.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -59,7 +59,7 @@ const SSL: &[&str] = &["Disable", "Require", "Verify full"];
 const CHANNELS: &[&str] = &["Stable", "Beta", "Nightly (may break)"];
 const KEY_FILES: &[&str] = &["~/.ssh/id_ed25519", "~/.ssh/prod_rsa", "~/keys/staging.pem"];
 
-/// The buttons: label and what the dialog shows.
+
 const OPENERS: &[(&str, &str)] = &[
     ("Add connection…", "every field kind"),
     ("Server info", "copy rows with y"),
@@ -71,10 +71,10 @@ pub struct DialogKindsPage {
     template: Template,
     opts: PageValues,
     pub buttons: Vec<Button>,
-    /// The kinds of the layers the page has open on the shell's stack,
-    /// bottom first (the form, the key picker over it).
+
+
     open: Vec<&'static str>,
-    /// What the dialogs returned, newest last.
+
     pub log: Vec<String>,
     channel: usize,
 }
@@ -130,7 +130,7 @@ impl DialogKindsPage {
         ButtonRow::new().wrap(self.opts.on("dialogkinds.button_wrap"))
     }
 
-    /// The connection form, as an app builds it.
+
     pub fn form(&self) -> FormDialog {
         let mut f = FormDialog::new(
             FORM,
@@ -288,7 +288,7 @@ impl DialogKindsPage {
         self.open.push(kind);
     }
 
-    /// Stack the key picker over the open form (its chooser fired).
+
     fn open_key_picker(&mut self, cx: &mut Cx) {
         let mut p = Picker::new(KEYS, "SSH key");
         p.set_searchable(false);
@@ -298,8 +298,8 @@ impl DialogKindsPage {
         self.open.push("keys");
     }
 
-    /// What a layer the page opened reported: an event keeps it open (the
-    /// page changes it through `Cx::with_top`), a result closed it.
+
+
     fn on_report(&mut self, kind: &str, r: Report, cx: &mut Cx) {
         if r.closed.is_some() {
             self.open.pop();
@@ -343,7 +343,7 @@ impl DialogKindsPage {
                     });
                 }
                 self.log.push(format!("Form · Action({name:?})"));
-                // keep-open: the owner closes the form once it validates
+
                 if name == "save" && !r.text("name").trim().is_empty() {
                     cx.close();
                     self.open.pop();
@@ -380,7 +380,7 @@ impl DialogKindsPage {
         }
     }
 
-    /// What the options built, read back from the dialogs.
+
     fn readout(&self) -> Vec<Prop> {
         let f = self.form();
         let i = self.info();
@@ -493,7 +493,7 @@ impl DialogKindsPage {
 
     fn render_playground(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        // as many buttons per row as fit; four in a row carry a note each
+
         let per = (area.width.saturating_sub(2) / 22).clamp(1, 4) as usize;
         let notes = per == 4;
         let lines = self.buttons.len().div_ceil(per) as u16 + u16::from(notes);
@@ -556,13 +556,13 @@ impl DialogKindsPage {
     }
 }
 
-/// The live preview under the form's fields: the URL it would connect to.
+
 fn preview_lines(name: &str, host: &str, driver: usize) -> Vec<(String, Tone)> {
     let scheme = ["postgres", "mysql", "sqlite"][driver.min(2)];
     vec![(format!("Preview  {scheme}://{host}/{name}"), Tone::Muted)]
 }
 
-/// The States grid: a choice dialog, plain and with a stepper and tones.
+
 fn states_grid() -> StateGrid {
     use SpecimenState::*;
     let id = ID.sub("states");
@@ -605,8 +605,8 @@ impl Page for DialogKindsPage {
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut Cx) -> Outcome {
-        // the shell routes a layer the page opened; the page underneath
-        // takes nothing meanwhile
+
+
         if !self.open.is_empty() {
             return Outcome::Ignored;
         }
@@ -650,8 +650,8 @@ impl Page for DialogKindsPage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
-        // the form, info, choice and help layers have no hints of their
-        // own yet (plan S5 deviation 3, S8b): their keys, by kind
+
+
         if let Some(kind) = self.open.last() {
             return match *kind {
                 "form" => vec![("Tab", "Next field"), ("Enter", "Save"), ("Esc", "Cancel")],

@@ -1,7 +1,7 @@
-//! Progress (plan §7 SC21): determinate and indeterminate bars on one
-//! `BarLayout`, a job list under its aggregate `Tally`, a live build, and
-//! capacity meters in every tone (owner thresholds, a fixed level,
-//! staleness and its two styles). Options: `crate::options::PROGRESS`.
+
+
+
+
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -25,8 +25,8 @@ use junie_tui::widgets::progress::{
 
 const ID: WidgetId = WidgetId::of("progress");
 
-/// A deploy's steps: every status, a queued step at 0 % and a step of
-/// unknown size, under one tally.
+
+
 const JOBS: [(&str, Option<f64>, ProgressStatus); 7] = [
     ("Build image", Some(1.0), ProgressStatus::Done),
     ("Unit tests", Some(1.0), ProgressStatus::Done),
@@ -63,7 +63,7 @@ impl ProgressPage {
         }
     }
 
-    /// The bar layout the options pick, shared by every bar on the page.
+
     fn layout(&self) -> BarLayout {
         let l = BarLayout::default().reserve_value(self.opts.on("progress.reserve_value"));
         match self.opts.value("progress.label_width") {
@@ -183,10 +183,10 @@ impl ProgressPage {
             ),
             t.muted().bg(bg),
         );
-        // left: one meter per tone in the visual the options pick; right:
-        // the builder options (block visual, owner thresholds, a fixed
-        // level, staleness on a domain tone, the faint stale style). Red
-        // appears only as a run or a glyph, never as a filled block.
+
+
+
+
         let visual = match self.opts.value("progress.meter_visual") {
             "block" => MeterVisual::Block,
             _ => MeterVisual::Line,
@@ -261,8 +261,8 @@ impl ProgressPage {
     }
 }
 
-/// The States grid: bars (active, done) and meters (by level, stale in
-/// the style the options pick, block) in their content states.
+
+
 fn states_grid(opts: &PageValues) -> StateGrid {
     use SpecimenState::*;
     let stale = match opts.value("progress.stale_style") {

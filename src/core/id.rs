@@ -1,12 +1,12 @@
-//! Stable widget identifiers.
-//!
-//! Every interactive element owns a [`WidgetId`]. Ids are derived from a
-//! human readable path (`"forms.name"`) so they are stable across frames and
-//! easy to debug, and can be extended with numeric children for repeated rows.
-//!
-//! A [`PartRef`] names a sub-region of one widget (a row, a thumb, a close
-//! box) by [`Part`] and an optional [`ItemKey`]; it is what a pointer
-//! [`Intent`](super::intent::Intent) carries instead of a raw hit id.
+
+
+
+
+
+
+
+
+
 
 use std::fmt;
 
@@ -27,29 +27,29 @@ const fn fnv1a(mut hash: u64, bytes: &[u8]) -> u64 {
 }
 
 impl WidgetId {
-    /// Build an id from a static path such as `"buttons.primary"`.
+
     pub const fn of(path: &str) -> Self {
         Self(fnv1a(FNV_OFFSET, path.as_bytes()))
     }
 
-    /// Derive a child id, e.g. one per table row or list item.
+
     pub const fn child(self, index: usize) -> Self {
         Self(fnv1a(self.0, &index.to_le_bytes()))
     }
 
-    /// Derive a named child id.
+
     pub const fn sub(self, name: &str) -> Self {
         Self(fnv1a(self.0, name.as_bytes()))
     }
 
-    /// The id of one part of this widget: the single rule every widget
-    /// and [`HitRegistry::register_part`](super::hit::HitRegistry::register_part)
-    /// derive part ids with, so no widget hand-rolls its own.
-    ///
-    /// The widget's own surface (`Part::CONTAINER`, no item) is the widget
-    /// id itself, and a collection's item (`Part::ROW` or `Part::TAB` with
-    /// an [`ItemKey::Index`]) is [`Self::child`], so row ids stay what they
-    /// always were. Every other part hashes the item, then the part number.
+
+
+
+
+
+
+
+
     pub const fn part(self, p: PartRef) -> Self {
         let base = match p.item {
             None => self,
@@ -64,12 +64,12 @@ impl WidgetId {
         }
     }
 
-    /// The inverse of [`Self::part`] over a known set of positional items:
-    /// which `i` in `items` makes `id` this widget's `part` `i`. Only for
-    /// the id-taking methods S15 deletes; a routed event names its part
-    /// already ([`PointerEvent::index_of`]).
-    ///
-    /// [`PointerEvent::index_of`]: crate::core::pointer::PointerEvent::index_of
+
+
+
+
+
+
     pub fn item_of(
         self,
         id: WidgetId,
@@ -88,55 +88,55 @@ impl fmt::Debug for WidgetId {
     }
 }
 
-/// FNV-1a over `name`, folded into the custom half of a 16-bit key space.
-///
-/// Every 16-bit custom key namespace ([`Part::custom`],
-/// [`ActionKey::custom`](super::intent::ActionKey::custom)) uses this one
-/// rule: `0..=0x7FFF` is reserved for numbered keys and `0x8000..=0xFFFF`
-/// for hashed names, so a numbered key and a named key are never the same
-/// key. Two names can still fold to the same 15 bits.
+
+
+
+
+
+
+
 pub const fn custom_hash16(name: &str) -> u16 {
     let h = fnv1a(FNV_OFFSET, name.as_bytes());
     0x8000 | ((h ^ (h >> 16) ^ (h >> 32) ^ (h >> 48)) as u16 & 0x7FFF)
 }
 
-/// A stable key for one item of a collection (a row, a tab, a chip).
-///
-/// Collection parts carry an `ItemKey`, never a raw hit id. Same shape as
-/// `main` (termrock-core `id.rs`, plan §1.9).
+
+
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ItemKey {
-    /// A positional key: UNSTABLE under insert, remove and reorder.
+
     Index(usize),
-    /// A numeric domain key (a database id, a handle).
+
     Num(u64),
-    /// A hashed textual or composite key.
+
     Text(u64),
 }
 
 impl ItemKey {
-    /// A positional key. UNSTABLE under insert, remove and reorder.
+
     pub const fn index(i: usize) -> Self {
         ItemKey::Index(i)
     }
 
-    /// A numeric key.
+
     pub const fn num(n: u64) -> Self {
         ItemKey::Num(n)
     }
 
-    /// A textual key: FNV-1a over the bytes.
+
     pub const fn text(s: &str) -> Self {
         ItemKey::Text(fnv1a(FNV_OFFSET, s.as_bytes()))
     }
 
-    /// A composite key (schema + table, provider + account); order-sensitive.
+
     pub const fn pair(a: u64, b: u64) -> Self {
         let h = fnv1a(FNV_OFFSET, &a.to_le_bytes());
         ItemKey::Text(fnv1a(h, &b.to_le_bytes()))
     }
 
-    /// The position of an [`ItemKey::Index`] key.
+
     pub const fn as_index(self) -> Option<usize> {
         match self {
             ItemKey::Index(i) => Some(i),
@@ -145,12 +145,12 @@ impl ItemKey {
     }
 }
 
-/// A typed logical part of a widget (`Part::ROW`, `Part::THUMB`, ...).
-///
-/// `0..=255` is the library range; [`Part::custom`] maps an app's name into
-/// `0x8000..=0xFFFF`. Equality is structural, so `PartRef { part:
-/// Part::ROW, .. }` works as a `match` pattern. The numbers match `main`
-/// exactly (termrock-core `id.rs`), so a part means the same on both.
+
+
+
+
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Part(u16);
 
@@ -159,10 +159,10 @@ macro_rules! parts {
         impl Part {
             $( $(#[$m])* pub const $name: Part = Part($v); )*
 
-            /// Every library part constant, in declaration order.
+
             pub const ALL: &'static [Part] = &[ $( Part::$name ),* ];
 
-            /// The library name of a part, or `None` for a custom part.
+
             pub const fn name(self) -> Option<&'static str> {
                 match self {
                     $( Part::$name => Some(stringify!($name)), )*
@@ -174,88 +174,88 @@ macro_rules! parts {
 }
 
 parts! {
-    /// The whole widget surface.
+
     CONTAINER = 0,
-    /// A frame or border.
+
     BORDER = 1,
-    /// A dimmed backdrop behind a layer.
+
     BACKDROP = 2,
-    /// The focus gutter column.
+
     GUTTER = 3,
-    /// A selection or check marker.
+
     MARKER = 4,
-    /// A leading icon.
+
     ICON = 5,
-    /// The main label.
+
     LABEL = 6,
-    /// Secondary text.
+
     META = 7,
-    /// Help or caption text.
+
     HELP = 8,
-    /// A title.
+
     TITLE = 9,
-    /// The body slot.
+
     BODY = 10,
-    /// The action row.
+
     ACTIONS = 11,
-    /// A field surface.
+
     FIELD = 12,
-    /// Editable text.
+
     TEXT = 13,
-    /// Placeholder text.
+
     PLACEHOLDER = 14,
-    /// A collection row.
+
     ROW = 15,
-    /// A grid cell.
+
     CELL = 16,
-    /// A header row or header cell.
+
     HEADER = 17,
-    /// A scrollbar track.
+
     TRACK = 18,
-    /// A scrollbar thumb.
+
     THUMB = 19,
-    /// A horizontal rule.
+
     RULE = 20,
-    /// One tab.
+
     TAB = 21,
-    /// A close affordance.
+
     CLOSE = 22,
-    /// A prefix glyph.
+
     PREFIX = 23,
-    /// A badge.
+
     BADGE = 24,
-    /// An overflow indicator.
+
     OVERFLOW = 25,
-    /// The "new" affordance.
+
     NEW = 26,
-    /// The empty-state area.
+
     EMPTY = 27,
-    /// A query field.
+
     QUERY = 28,
-    /// A split seam.
+
     SEAM = 29,
-    /// A summary line.
+
     SUMMARY = 30,
-    /// A detail line.
+
     DETAIL = 31,
-    /// A key hint's key.
+
     KEY = 32,
-    /// A key hint's action.
+
     ACTION = 33,
-    /// A row change-state glyph, separate from selection.
+
     CHANGE = 34,
-    /// A row number.
+
     ROW_NUMBER = 35,
 }
 
 impl Part {
-    /// A custom part named by an app or a downstream widget; lands in the
-    /// high range. Two names can fold to the same part (15 bits).
+
+
     pub const fn custom(name: &str) -> Part {
         Part(custom_hash16(name))
     }
 
-    /// The raw part number.
+
     pub const fn raw(self) -> u16 {
         self.0
     }
@@ -270,30 +270,30 @@ impl fmt::Debug for Part {
     }
 }
 
-/// A sub-region of one widget: a part plus an optional item key. Never
-/// interchangeable with a derived [`WidgetId`].
+
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct PartRef {
-    /// The part.
+
     pub part: Part,
-    /// The item, for per-row parts.
+
     pub item: Option<ItemKey>,
 }
 
 impl PartRef {
-    /// The overflow indicator before the shown window (a tab strip's `‹N`,
-    /// a scrolled menu's ▲, a grid's hidden columns on the left). The
-    /// `+N` button of a whole overflow is `PartRef::of(Part::OVERFLOW)`.
+
+
+
     pub const OVERFLOW_BEFORE: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(0));
-    /// The overflow indicator after the shown window (`N›`, ▼).
+
     pub const OVERFLOW_AFTER: PartRef = PartRef::item(Part::OVERFLOW, ItemKey::Index(1));
 
-    /// A part without an item.
+
     pub const fn of(part: Part) -> Self {
         Self { part, item: None }
     }
 
-    /// A per-item part.
+
     pub const fn item(part: Part, key: ItemKey) -> Self {
         Self {
             part,
