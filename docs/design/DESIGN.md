@@ -160,6 +160,26 @@ components:
     padding: "{spacing.tree-indent}"
 ---
 
+## Status
+
+This specification remains the visual, color, interaction, and behavior authority for `design/interaction-polish`. Its detailed token tables and concrete contracts below are preserved. They express the target; they do not claim every behavior is implemented or currently verified.
+
+## Authority
+
+Use this branch for intended UI/UX. Use `main` for the direction of crate boundaries and reusable APIs. Implementation must carry this design into the split crates; neither a code-structure choice nor a historical baseline pass overrides the specified design.
+
+## Current evidence
+
+This file specifies design intent. Current implementation evidence comes from source, tests, and the procedures in `docs/visual-testing/README.md`. Historical product notes and verification records apply to their stated revisions and scope.
+
+## Remaining work
+
+Preserve the complete design contract and all open work in `docs/remaining-work.md`, `docs/improvements/`, and `docs/audits/`. Record approved design changes explicitly; otherwise port the specified behavior and appearance without redesign.
+
+## Verification
+
+Verify observable states against the current visual procedures and relevant component/application tests. A specification match in prose is not proof of rendered parity.
+
 # Junie TUI
 
 ## Overview

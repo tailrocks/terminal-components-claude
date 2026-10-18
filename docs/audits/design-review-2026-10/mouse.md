@@ -1,3 +1,20 @@
+
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
 Audited `origin/design/interaction-polish` at 9776abef7, mouse first. Most findings were checked against the code. Throwaway harness tests in showcase, tablepro, holla and jackin confirmed each probed behaviour as broken or missing at that revision; they were not committed. Severity scale: H = dead end or clearly wrong, M = gap against desktop behaviour, L = polish.
 
 ## 1. Mouse interaction model to adopt library-wide

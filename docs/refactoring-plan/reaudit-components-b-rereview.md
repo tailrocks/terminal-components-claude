@@ -1,5 +1,26 @@
 # Independent rereview: component-B repairs
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Date: 2026-09-11. Scope: TASK-021–031/073 repair contracts and shared ADJ-04/09, authored by another agent. TASK-067 consumer changes are excluded because this reviewer authored them. Planning-only review under `docs/sources/PLANNING_GOAL.md` and verify-and-stop; no production, baseline, task package, shared validator or Git ref was changed by this rereview.
 
 ## Result and boundary

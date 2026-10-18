@@ -1,13 +1,34 @@
-# Architecture completion with immutable product parity
+# Historical architecture and product-parity task collection
 
-Task numbers are identifiers, not execution order. Read every task.toml dependency and require its accepted code and trust products in the actual integrated parent. TASK-070–073 are early verification/conformance foundations despite their appended numbers.
+## Status
 
-The graph first qualifies independent comparator/host, project runner, test accounting and architecture verification. Four parallel oracle producers then capture their complete source-defined scenarios. Component baseline closure and exact historical-test dispositions precede production work. An attributed conformance foundation precedes reusable component repairs; complete generated conformance follows them. Application tasks restore bounded live flows through those reusable APIs. Final tasks close ownership, test relocation, performance, public API/docs and exact-tree merge readiness.
+Historical task collection; all packages require current-scope reconciliation before use.
 
-Source contracts are frozen now. Numeric oracle event traces, output hashes and content-addressed bundles are future preparation products; no fabricated hash is a precondition. They must be independently produced from the immutable oracle and sealed before component or application implementation. Candidate code never chooses its expected frames, checkpoint membership, event coordinates or normalization.
+## Authority
+
+Main is the split-crate architecture direction. `design/interaction-polish` is the UI/UX, color, and interaction authority.
+
+## Current evidence
+
+Original requirements, task graph, trusted obligations, and task schemas are preserved below. Their historical pins do not establish current implementation or readiness.
+
+## Remaining work
+
+Preserve every requirement, acceptance criterion, check, dependency, and planned outcome during reconciliation into the current task ledger.
+
+## Verification
+
+The task-format schema and package hashes are historical evidence. Requalify any revised package set and update the task inventory before execution.
+
+
+The 73 packages below retain their original task numbers, dependency graph, requirements, acceptance criteria, and trusted source obligations as historical planning contracts. They are not current execution authorization. TASK-070–073 are early verification/conformance foundations despite their appended numbers.
+
+The historical graph proposed to qualify an independent comparator/host, project runner, test accounting and architecture verification. Four parallel oracle producers then capture their complete source-defined scenarios. Component baseline closure and exact historical-test dispositions precede production work. An attributed conformance foundation precedes reusable component repairs; complete generated conformance follows them. Application tasks restore bounded live flows through those reusable APIs. Final tasks close ownership, test relocation, performance, public API/docs and exact-tree merge readiness.
+
+The original source contracts and immutable-oracle pins remain preserved for provenance. Their UI/UX assertions are inputs for reconciliation against the current design/interaction-polish branch; they do not supersede it. Numeric event traces and output hashes described here are historical planned products, not evidence that they exist or are accepted.
 
 Each package includes canonical README, execution protocol, verify.toml, dependency metadata and protected detailed obligations. The trusted source-obligations.tsv joins exact historical clauses to requirement, acceptance and check IDs. These source clauses supplement the task's detailed component/application/closure contract; a generic check name alone is not evidence that a clause passed.
 
-The host implements source freezing, independent isolated verification and compare-and-swap local integration. It invokes supported standalone taskfmt verification, never the main-targeting run/promote lifecycle. A final passing task establishes readiness only; pushing or merging remains a separately authorized action.
+The host protocol described here is a preserved proposal. Its verification and integration claims have not been qualified for the current project direction; no task completion or readiness is inferred.
 
-Product edits also prove visual non-regression against the committed `snapshots/` grouped store (`../../visual-validation.md`). `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Candidates never write `snapshots/` or run `tuisnap accept`.
+The original visual-validation command and `snapshots/` requirements are historical contract details. Current acceptance evidence must follow the design branch’s visual procedures and current task-specific gates; the old snapshot store does not define present UI/UX authority.

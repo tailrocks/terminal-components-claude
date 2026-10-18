@@ -1,5 +1,26 @@
 # Text, editor, grid, Diff, and viewport verification plan
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Date: 2026-09-10. Scope: current `holla-fable` worktree only. No other branch/history inspected. This follow-up is planning only: no widget/source changes made. Existing primitives are sufficient foundations; proposed work below strengthens their ownership and geometry contracts, not a new widget inventory.
 
 ## Evidence and limits

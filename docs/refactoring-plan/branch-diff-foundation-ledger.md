@@ -1,5 +1,22 @@
 # Foundation full-diff review ledger
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 Compared immutable object IDs: main `7b27732a8c3c131760ec3438f641cb3c11343a42`; Holla `2e2401393c47360741ebd321679de08982dca50a`; oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c`. This ledger is a bijection with the 67 foundation rows in branch-diff-inventory.tsv, not an update to that shared inventory.
 
 Every row records a complete no-renames, no-external-diff read: diff headers, all added/deleted source lines, and all tests/comments. All statuses are whole-file additions/deletions, so the stated line range is also the exact full diff payload range. Long files were paged without skipped ranges; two combined-output truncations were repaired by rereading event.rs:420–475 and theme/glyph.rs:125–180. Blob IDs identify exact source bytes. No production or qualification tests were run for this comparison; reviewed does not mean behavioral PASS.

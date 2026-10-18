@@ -1,5 +1,26 @@
 # Contingent execution decomposition
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This proposal is retained as decomposition history. The reconciled 73-task catalog now exists; [task-index.tsv](task-index.tsv), canonical task packages and [proof-contract.md](proof-contract.md) supersede this document wherever they differ. In particular, TASK-001 now owns only comparator/host core; TASK-070 owns source/scenario runner operations; TASK-071 owns accounting; TASK-072 owns architecture verification; and TASK-073 establishes attributed conformance before component repairs. Independent qualification for those producers is required. Dynamic-disabled capture cancellation is already implemented and requires preservation/overlap proof, as ADJ-01 records. Do not execute this provisional label graph or revive its earlier umbrella scopes.
 
 This is a planning proposal, not the task catalog. Do not execute these work streams or treat their labels as task IDs. Final package creation waits for the coordinator's reconciliation of historical early/middle/late coverage and the parity synthesis. The final catalog belongs at `refactoring-tasks/terminal-components/completion/NNN`; every row below must become one or more canonical task packages with exact evidence and scenario membership.

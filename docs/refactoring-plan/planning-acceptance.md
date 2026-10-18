@@ -1,12 +1,33 @@
 # Planning completion audit
 
+## Status
+
+Historical evidence. Its dated findings and source pins describe the recorded review only.
+
+## Authority
+
+Current authority: main defines the intended split-crate architecture; design/interaction-polish defines UI/UX, colors, and behavior.
+
+## Current evidence
+
+Use only findings tied to the revisions and methods recorded in this document; they do not establish current implementation state.
+
+## Remaining work
+
+Preserve concrete requirements and unresolved items in docs/remaining-work.md; superseded procedural directions are not current instructions.
+
+## Verification
+
+Verification is limited to the recorded commands, revisions, and results. Re-run against current sources before closure.
+
+
 This register evaluates all twenty items in [docs/sources/PLANNING_GOAL.md §22](../sources/PLANNING_GOAL.md). It tracks planning readiness, not completion of the future refactoring. Investigations can be evidence-complete while verification qualification or final independent acceptance remains incomplete.
 
 Current overall assessment: **reopened; the table below records the previous acceptance pass, not current execution readiness**. A renewed source-first, line-by-line audit has identified additional scope and contract gaps. See [the re-audit register](reaudit-plan.md). All twenty conditions require renewed current evidence after repairs. Qualified preparation is not a claim that the future production harness or refactored applications already pass.
 
 | §22 item | Required proof | Previous pass assessment and evidence — not current readiness |
 | --- | --- | --- |
-| 1 | Immutable UI/UX reference pinned | Evidence complete. Peeled oracle and annotated tag identities are recorded in [history](history.md) and [progress](PROGRESS.md). |
+| 1 | Immutable UI/UX reference pinned | Evidence complete. Peeled oracle and annotated tag identities are recorded in [history](history.md) and [history](history.md). |
 | 2 | Branch history and divergence understood | Proven. [History](history.md) records topology and authority; [contract rereview](review-contract-repairs.md) accepts integration ordering and ancestry rules. |
 | 3 | Meaningful historical versions reconstructed | Investigation complete: 248 exact parent-relative edges, 15 linked inputs and 620 canonical HIST clauses. See [revision index](history-revision-index.tsv) and [canonical union](historical-obligations-canonical.tsv). |
 | 4 | Accepted/rejected/superseded decisions distinguished | Investigation complete. [Decision ledger](decision-ledger.tsv), [historical reconciliation](history-ledger-reconciliation.md) and [eight adjudications](architecture-adjudication.md) retain source authority and rejected/deferred alternatives. |

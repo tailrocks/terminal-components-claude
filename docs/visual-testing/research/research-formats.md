@@ -1,3 +1,20 @@
+
+## Status
+
+Current project documentation; individual evidence and task state may be revision-scoped.
+## Authority
+
+design/interaction-polish defines UI/UX, colors, and behavior; main defines the intended split-crate architecture and reusable API direction.
+## Current evidence
+
+Use the cited sources and current repository state; historical records retain their original scope.
+## Remaining work
+
+Use docs/remaining-work.md for open implementation work and docs/status.md for readiness.
+## Verification
+
+Run current task-specific checks before treating implementation as complete.
+
 **Verdict: commit one file per scenario, a `.ansi` with a cursor trailer line.** Gate on that file only. Rebuild PNG and HTML from it when someone needs to review.
 
 The PO hypothesis is half right. `.png` is redundant, but `.ansi` on its own is not enough. tuiscotti's `ansi_dump` (`tuiscotti-render/src/render/text.rs:46-70`) writes no cursor at all. Today the caret is checked only through the `.png` and `.html` gates, and 1,950 of the 7,550 scenarios (25.8%) have a visible cursor.
