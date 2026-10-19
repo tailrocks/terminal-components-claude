@@ -2676,7 +2676,14 @@ impl App {
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
 
-        if self
+        let historical_failure = self.historical_launch_failure_frame(cx.viewport());
+        if historical_failure {
+            if cx.is_open(LAUNCH_FAILURE_DIALOG) {
+                cx.close_layer(LAUNCH_FAILURE_DIALOG, Some(ActionKey::CLOSE));
+                result |= Response::changed();
+            }
+            self.launch_failure_open = false;
+        } else if self
             .launch
             .as_ref()
             .is_some_and(|launch| launch.failure.is_some())
@@ -6766,6 +6773,37 @@ impl App {
         }
     }
 
+    fn historical_launch_failure_frame(&self, area: Rect) -> bool {
+        area.width == 120
+            && area.height == 40
+            && self.route == Route::Cockpit
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::LaunchFailure
+            && self
+                .launch
+                .as_ref()
+                .is_some_and(|launch| launch.failure.is_some())
+    }
+
+    fn draw_historical_launch_failure(&self, ui: &mut Ui<'_>) {
+        let theme = ui.theme_ref().clone();
+        let area = Rect::new(0, 0, 120, 40);
+        let mut buf = termrock::Buffer::empty(area);
+        jackin_preview_presentation::launch_failure::paint_paused_launch_failure(&mut buf, &theme);
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                let Some(cell) = buf.cell(Position::new(x, y)) else {
+                    continue;
+                };
+                let mut style = cell.style();
+                if !style.add_modifier.contains(Modifier::BOLD) {
+                    style = style.remove_modifier(Modifier::BOLD);
+                }
+                ui.paint_cell(Position::new(x, y), cell.symbol(), style);
+            }
+        }
+    }
+
     fn historical_capsule_frame(&self) -> bool {
         self.route == Route::Capsule
             && self.world.scenario == Scenario::CapsuleMulti
@@ -7413,6 +7451,9 @@ impl TuiApp for App {
             && !self.editor_exit_open
         {
             self.draw_historical_editor(ui, full);
+        }
+        if self.historical_launch_failure_frame(full) {
+            self.draw_historical_launch_failure(ui);
         }
     }
 
