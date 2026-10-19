@@ -47,6 +47,35 @@ fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
 }
 
 #[test]
+fn paused_intro_outro_and_failed_launch_match_the_baseline_first_frame() {
+    let intro = H::new(Scenario::FirstUse, Motion::Paused, 300, 120, 40);
+    let intro_text = intro.text();
+    assert!(
+        intro_text.contains("Enter Skip"),
+        "intro warp hint missing: {intro_text}"
+    );
+    assert!(
+        intro_text.contains('─') || intro_text.contains('+'),
+        "intro warp rain missing: {intro_text}"
+    );
+    let outro = H::new(Scenario::OutroLast, Motion::Paused, 40, 120, 40);
+    let outro_text = outro.text();
+    assert!(
+        outro_text.contains("Enter Skip"),
+        "outro warp hint missing: {outro_text}"
+    );
+    assert!(
+        outro_text.contains('─') || outro_text.contains('+'),
+        "outro warp rain missing: {outro_text}"
+    );
+    let phrases = H::new(Scenario::FirstUse, Motion::Paused, 40, 120, 40);
+    assert!(phrases.text().contains("Enter Skip"), "{}", phrases.text());
+    assert!(phrases.text().contains("jackin❯"), "{}", phrases.text());
+    let failed = H::new(Scenario::LaunchFailure, Motion::Paused, 240, 120, 40);
+    assert!(failed.text().contains("Launch failed"), "{}", failed.text());
+}
+
+#[test]
 fn reduced_motion_and_paused_frames_are_deterministic() {
     let mut h = H::new(Scenario::FirstUse, Motion::Reduced, 0, 80, 24);
     assert_eq!(h.app().route(), Route::Intro);
