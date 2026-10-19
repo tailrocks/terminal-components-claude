@@ -97,7 +97,7 @@ fn chrome_has_brand_menu_crumb_host_and_hint_bar() {
     assert_eq!(t.matches("Run top match").count(), 1, "{t}");
 
     assert!(last.contains("EDIT"), "{last:?}");
-    assert!(t.contains("Type to filter"), "{t}");
+    assert!(t.contains("Search actions"), "{t}");
 }
 
 #[test]
@@ -162,15 +162,15 @@ fn scope_cycle_narrows_and_esc_widens() {
     let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
     let _ = h.ctrl('s');
     let t = h.text();
-    assert!(t.contains("scope: here"), "{t}");
+    assert!(t.contains("scope ‹ here ›"), "{t}");
     assert!(!t.contains("Connect to prod-eu-1"), "{t}");
     let _ = h.ctrl('s');
     let _ = h.ctrl('s');
     let _ = h.ctrl('s');
-    assert!(h.text().contains("scope: host"), "{}", h.text());
+    assert!(h.text().contains("scope ‹ host ›"), "{}", h.text());
     assert!(h.text().contains("Connect to prod-eu-1"), "{}", h.text());
     let _ = h.key(KeyCode::Esc);
-    assert!(!h.text().contains("scope: host"), "{}", h.text());
+    assert!(!h.text().contains("scope ‹ host ›"), "{}", h.text());
 }
 
 #[test]
