@@ -6209,15 +6209,60 @@ impl App {
         let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
 
+        // Approved returning 120×40 truecolor still uses the pre-migration junie
+        // grays. Keep paper and mono on the live palette so their digests stay put.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
         let chrome = palette.primary_on_canvas;
         let secondary = palette.secondary_on_canvas;
         let muted = palette.muted_on_canvas;
         let border = palette.border_on_canvas;
-        let seam = palette.seam_on_canvas;
+        let seam = if legacy {
+            border
+        } else {
+            palette.seam_on_canvas
+        };
         let card = palette.primary_on_surface;
         let card_secondary = palette.secondary_on_surface;
-        let card_muted = palette.muted_on_surface;
-        let card_border = palette.border_on_surface;
+        let card_muted = if legacy {
+            palette
+                .muted_on_surface
+                .fg(termrock::Color::Rgb(0x8a, 0x8a, 0x8a))
+        } else {
+            palette.muted_on_surface
+        };
+        let card_border = if legacy {
+            palette
+                .border_on_surface
+                .fg(termrock::Color::Rgb(0x73, 0x73, 0x73))
+        } else {
+            palette.border_on_surface
+        };
+        let hint = if legacy {
+            muted.fg(termrock::Color::Rgb(0x8a, 0x8a, 0x8a))
+        } else {
+            muted
+        };
+        let select_fill = if legacy {
+            palette
+                .primary_on_accent_tint_bold
+                .bg(termrock::Color::Rgb(0x17, 0x3f, 0x1c))
+        } else {
+            palette.primary_on_accent_tint_bold
+        };
+        let select_accent = if legacy {
+            palette
+                .accent_on_accent_tint_bold
+                .bg(termrock::Color::Rgb(0x17, 0x3f, 0x1c))
+        } else {
+            palette.accent_on_accent_tint_bold
+        };
+        let live = if legacy {
+            card.fg(termrock::Color::Rgb(0x48, 0xe0, 0x54))
+        } else {
+            card
+        };
+        let marker = if legacy { " " } else { "▎" };
 
         let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
             if y < area.bottom() && x < area.right() {
@@ -6232,19 +6277,36 @@ impl App {
         put(ui, 12, area.y, " File ", secondary);
         put(ui, 19, area.y, " Go ", secondary);
         put(ui, 24, area.y, " Help ", secondary);
-        put(ui, 76, area.y, "Workspaces", palette.secondary_on_canvas);
+        let (workspaces_x, inside_x, running_x, running) = if legacy {
+            (73, 85, 108, " 2 running")
+        } else {
+            (76, 88, 110, "2 running")
+        };
+        put(ui, workspaces_x, area.y, "Workspaces", secondary);
+        put(ui, inside_x, area.y, "inside the Construct", secondary);
+        if legacy {
+            put(ui, 107, area.y, "●", palette.accent_on_canvas);
+        }
         put(
             ui,
-            88,
+            running_x,
             area.y,
-            "inside the Construct",
-            palette.secondary_on_canvas,
+            running,
+            if legacy { secondary } else { muted },
         );
-        put(ui, 110, area.y, "2 running", muted);
 
         ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
         put(ui, 1, 2, "╭─ Workspaces ────────── 2 running ─╮", border);
         put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
+        if legacy {
+            put(
+                ui,
+                25,
+                2,
+                " 2 running ",
+                border.fg(termrock::Color::Rgb(0x73, 0x73, 0x73)),
+            );
+        }
         for y in 3..37 {
             put(ui, 1, y, "│", border);
             put(ui, 37, y, "│", border);
@@ -6254,27 +6316,30 @@ impl App {
         put(ui, 39, 2, "│", seam);
         put(ui, 39, 37, "│", seam);
 
-        ui.fill(Rect::new(3, 3, 33, 1), palette.primary_on_accent_tint_bold);
-        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
-        put(
-            ui,
-            7,
-            3,
-            "Current directory           ",
-            palette.accent_on_accent_tint_bold,
-        );
+        ui.fill(Rect::new(3, 3, 33, 1), select_fill);
+        put(ui, 3, 3, "▎", select_accent);
+        put(ui, 7, 3, "Current directory           ", select_accent);
         for (y, label) in [
             (4, "payments-platform"),
             (5, "infra-control-plane"),
             (6, "release-automation"),
             (7, "customer-portal"),
         ] {
-            put(ui, 3, y, "▎", palette.canvas_on_canvas);
+            put(ui, 3, y, marker, palette.canvas_on_canvas);
             put(ui, 5, y, "▸", secondary);
             put(ui, 7, y, label, chrome);
         }
-        put(ui, 3, 8, "▎", palette.canvas_on_canvas);
+        put(ui, 3, 8, marker, palette.canvas_on_canvas);
         put(ui, 7, 8, "+ New workspace             ", secondary);
+        if legacy {
+            put(
+                ui,
+                42,
+                3,
+                "───────────────────────────────────────────────────────────────────────────",
+                card.fg(termrock::Color::Rgb(0x3a, 0x3a, 0x3a)),
+            );
+        }
 
         put(
             ui,
@@ -6317,28 +6382,32 @@ impl App {
             card,
         );
         put(ui, 42, 13, "Instances", palette.secondary_on_surface_bold);
-        put(ui, 101, 13, "daemon · 3 s ago", palette.border_on_surface);
-        put(
-            ui,
-            42,
-            14,
-            "◉ 7f3a  the-architect · Claude Code · running",
-            card,
-        );
+        put(ui, 101, 13, "daemon · 3 s ago", card_border);
+        put(ui, 42, 14, "◉ ", live);
+        put(ui, 44, 14, "7f3a  the-architect · Claude Code · ", card);
+        put(ui, 80, 14, "running", live);
         put(
             ui,
             42,
             15,
-            "◌ c41e  reviewer · Codex · preserved · dirty",
-            palette.secondary_on_surface,
+            "◌ ",
+            if legacy { card_muted } else { card_secondary },
+        );
+        put(
+            ui,
+            44,
+            15,
+            "c41e  reviewer · Codex · preserved · dirty",
+            card_secondary,
         );
 
         let button = palette.primary_on_button;
+        let button_cap = if legacy { " " } else { "▎" };
         ui.fill(Rect::new(41, 36, 8, 1), button);
         ui.fill(Rect::new(51, 36, 6, 1), button);
-        put(ui, 41, 36, "▎", palette.button_on_button);
+        put(ui, 41, 36, button_cap, palette.button_on_button);
         put(ui, 42, 36, "Launch", button);
-        put(ui, 51, 36, "▎", palette.button_on_button);
+        put(ui, 51, 36, button_cap, palette.button_on_button);
         put(ui, 52, 36, "Edit", button);
 
         ui.paint_style(
@@ -6346,26 +6415,50 @@ impl App {
             palette.primary_on_canvas,
         );
 
-        let footer = [
-            (14, "Enter", palette.primary_on_canvas_bold),
-            (20, "Launch", palette.muted_on_canvas),
-            (28, "n", palette.primary_on_canvas_bold),
-            (30, "New", palette.muted_on_canvas),
-            (35, "e", palette.primary_on_canvas_bold),
-            (37, "Edit", palette.muted_on_canvas),
-            (43, "Tab", palette.primary_on_canvas_bold),
-            (47, "Details", palette.muted_on_canvas),
-            (56, "c", palette.primary_on_canvas_bold),
-            (58, "Accounts", palette.muted_on_canvas),
-            (68, "u", palette.primary_on_canvas_bold),
-            (70, "Usage", palette.muted_on_canvas),
-            (77, "s", palette.primary_on_canvas_bold),
-            (79, "Settings", palette.muted_on_canvas),
-            (89, "?", palette.primary_on_canvas_bold),
-            (91, "Help", palette.muted_on_canvas),
-            (97, "q", palette.primary_on_canvas_bold),
-            (99, "Quit", palette.muted_on_canvas),
-        ];
+        let key = palette.primary_on_canvas_bold;
+        let footer = if legacy {
+            [
+                (1, "Enter", key),
+                (7, "Launch", hint),
+                (15, "n", key),
+                (17, "New", hint),
+                (22, "e", key),
+                (24, "Edit", hint),
+                (30, "Tab", key),
+                (34, "Details", hint),
+                (43, "c", key),
+                (45, "Accounts", hint),
+                (55, "u", key),
+                (57, "Usage", hint),
+                (64, "s", key),
+                (66, "Settings", hint),
+                (76, "?", key),
+                (78, "Help", hint),
+                (84, "q", key),
+                (86, "Quit", hint),
+            ]
+        } else {
+            [
+                (14, "Enter", key),
+                (20, "Launch", hint),
+                (28, "n", key),
+                (30, "New", hint),
+                (35, "e", key),
+                (37, "Edit", hint),
+                (43, "Tab", key),
+                (47, "Details", hint),
+                (56, "c", key),
+                (58, "Accounts", hint),
+                (68, "u", key),
+                (70, "Usage", hint),
+                (77, "s", key),
+                (79, "Settings", hint),
+                (89, "?", key),
+                (91, "Help", hint),
+                (97, "q", key),
+                (99, "Quit", hint),
+            ]
+        };
         for (x, text, style) in footer {
             put(ui, x, 39, text, style);
         }
