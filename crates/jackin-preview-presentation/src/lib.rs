@@ -17,6 +17,7 @@
     )
 )]
 
+pub mod launch_failure;
 pub mod prelude;
 pub mod rain;
 
