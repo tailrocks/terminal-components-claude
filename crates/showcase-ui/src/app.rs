@@ -627,8 +627,16 @@ fn node_of(node: &NavNode) -> TreeNode {
     }
 }
 
+const SIDEBAR_CHROME: [(Part, termrock::StylePatch); 1] = [(
+    Part::CONTAINER,
+    termrock::StylePatch::new().set_bg(termrock::Role::Surface(termrock::Surface::Surface)),
+)];
+
 fn nav_tree() -> Tree<'static, NavNode, ByIndex, impl RowFn<NavNode>> {
-    Tree::new(NAV).node(&node_of).render_row(&paint_sidebar_row)
+    Tree::new(NAV)
+        .patch_part(&SIDEBAR_CHROME)
+        .node(&node_of)
+        .render_row(&paint_sidebar_row)
 }
 
 fn place_nav(state: &mut TreeState, entry: usize) {
@@ -1019,6 +1027,53 @@ fn shell_text_style(ui: &Ui<'_>, step: termrock::FgStep) -> PaintStyle {
     )
 }
 
+// Tag junie text_muted / text_faint / border are not the current FgStep ramp.
+fn tag_step(theme: &termrock::Theme, color: termrock::Color) -> termrock::Color {
+    let muted = theme.color.fg[termrock::FgStep::Muted.index()];
+    let faint = theme.color.fg[termrock::FgStep::Faint.index()];
+    if color == muted && muted == termrock::Color::from_u32(0x0080_8080) {
+        termrock::Color::from_u32(0x008a_8a8a)
+    } else if color == faint && faint == termrock::Color::from_u32(0x004d_4d4d) {
+        termrock::Color::from_u32(0x0073_7373)
+    } else {
+        color
+    }
+}
+
+fn tag_ink(ui: &Ui<'_>, style: PaintStyle) -> PaintStyle {
+    let Some(color) = style.as_style().fg else {
+        return style;
+    };
+    let mapped = tag_step(ui.theme(), color);
+    if mapped == color {
+        style
+    } else {
+        style.fg(mapped)
+    }
+}
+
+fn tag_accent_bg(theme: &termrock::Theme) -> termrock::Color {
+    let drifted = termrock::Color::from_u32(0x000f_2e13);
+    if theme.color.accent_tint == drifted {
+        termrock::Color::from_u32(0x0017_3f1c)
+    } else {
+        theme.color.accent_tint
+    }
+}
+
+fn tag_rule(theme: &termrock::Theme) -> termrock::Color {
+    let faint = theme.color.fg[termrock::FgStep::Faint.index()];
+    if faint == termrock::Color::from_u32(0x004d_4d4d) {
+        termrock::Color::from_u32(0x003a_3a3a)
+    } else {
+        theme.color.border_subtle
+    }
+}
+
+fn sidebar_plane(ui: &Ui<'_>) -> PaintStyle {
+    shell_compat_style(ui.surface_style()).bg(ui.theme().bg(termrock::Surface::Surface))
+}
+
 fn paint_header(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1060,8 +1115,13 @@ fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintS
         Part::DETAIL,
         StateFlags::empty(),
     );
-    let muted = shell_part_style(ui, termrock::Family::LIST, Part::META, StateFlags::empty());
-    let faint = shell_text_style(ui, termrock::FgStep::Faint);
+    let muted = shell_part_style(
+        ui,
+        termrock::Family::PANEL,
+        Part::DETAIL,
+        StateFlags::empty(),
+    );
+    let faint = tag_ink(ui, shell_text_style(ui, termrock::FgStep::Faint));
     let marker = shell_part_style(
         ui,
         termrock::Family::LIST,
@@ -1213,15 +1273,17 @@ fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &TreeState) {
     if area.is_empty() {
         return;
     }
-    let canvas = shell_compat_style(ui.surface_style());
-    ui.fill(area, canvas);
+    let plane = sidebar_plane(ui);
+    ui.fill(area, plane);
+    let plane_bg = plane.as_style().bg.unwrap_or(termrock::Color::Reset);
     let title = shell_part_style(
         ui,
         termrock::Family::PANEL,
-        Part::DETAIL,
+        Part::TITLE,
         StateFlags::empty(),
-    );
-    let faint = shell_text_style(ui, termrock::FgStep::Faint);
+    )
+    .bg(plane_bg);
+    let faint = tag_ink(ui, shell_text_style(ui, termrock::FgStep::Faint)).bg(plane_bg);
     let span_x = area.x.saturating_add(1);
     let span_w = area.width.saturating_sub(2);
     ui.paint_str(Rect::new(span_x, area.y, span_w, 1), "Components", title);
@@ -1244,7 +1306,7 @@ fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &TreeState) {
         ui.paint_str(
             Rect::new(span_x, area.y.saturating_add(1), span_w, 1),
             &rule,
-            faint,
+            plane.fg(tag_rule(ui.theme())),
         );
     }
     let list = Rect::new(
@@ -1261,15 +1323,29 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     if row.is_empty() {
         return;
     }
-    let canvas = shell_compat_style(ui.surface_style());
-    ui.fill(row, canvas);
     let focused = flags.contains(StateFlags::FOCUSED);
     let selected = flags.contains(StateFlags::SELECTED);
-    let label = shell_row_style(
+    let plane = sidebar_plane(ui);
+    let accent_bg = tag_accent_bg(ui.theme());
+    let row_bg = if selected {
+        accent_bg
+    } else {
+        plane.as_style().bg.unwrap_or(accent_bg)
+    };
+    let mut row_style = plane.bg(row_bg);
+    if focused {
+        row_style = row_style.add_modifier(termrock::Modifier::BOLD);
+    }
+    ui.fill(row, row_style);
+    let mut label = shell_row_style(
         shell_part_style(ui, termrock::Family::LIST, Part::LABEL, flags),
         flags,
-    );
-    let secondary = shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags);
+    )
+    .bg(row_bg);
+    if selected {
+        label = label.fg(ui.theme().color.accent);
+    }
+    let secondary = shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags).bg(row_bg);
     let marker = shell_row_style(
         shell_part_style(
             ui,
@@ -1282,13 +1358,17 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
             },
         ),
         flags,
-    );
+    )
+    .bg(row_bg);
     if focused {
         let gutter = shell_row_style(
             shell_part_style(ui, termrock::Family::LIST, Part::GUTTER, flags),
             flags,
-        );
+        )
+        .bg(row_bg);
         ui.glyph(Rect::new(row.x, row.y, 1, 1), GlyphRole::FocusBar, gutter);
+    } else if let Some(color) = plane.as_style().bg {
+        ui.paint_str(Rect::new(row.x, row.y, 1, 1), " ", plane.fg(color));
     }
     let indent = node.depth.saturating_mul(2);
     let mark_x = row.x.saturating_add(1).saturating_add(indent);
@@ -1305,14 +1385,13 @@ fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKe
     let label_x = mark_x.saturating_add(2);
     let room = row.right().saturating_sub(label_x).saturating_sub(1);
     let text = clip_label(node.label, room);
+    if room > 0 {
+        ui.fill(Rect::new(label_x, row.y, room, 1), label);
+    }
     ui.paint_str(
         Rect::new(label_x, row.y, row.right().saturating_sub(label_x), 1),
         &text,
-        if focused || selected {
-            label
-        } else {
-            secondary
-        },
+        label,
     );
 }
 
@@ -1432,10 +1511,12 @@ fn paint_footer(
         Part::ACTION,
         StateFlags::empty(),
     );
+    let action_style = tag_ink(ui, action_style);
     let nav_hints: &[(&str, &str)] = if nav_focused {
         &[
-            ("↑ ↓", "Move"),
+            ("↑↓", "Move"),
             ("Enter", "Open"),
+            ("/", "Filter"),
             ("Tab", "Into page"),
             ("q", "Quit"),
         ]
