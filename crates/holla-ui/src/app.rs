@@ -1216,7 +1216,7 @@ mod tests {
         assert!(lines[2].contains("Here"), "{}", lines[2]);
         assert!(!lines[2].contains('▎'), "{}", lines[2]);
         assert!(lines[3].contains('━'), "{}", lines[3]);
-        assert!(lines[4].contains("Type to filter"), "{}", lines[4]);
+        assert!(lines[4].contains("Search actions"), "{}", lines[4]);
         assert!(
             harness.diagnostics().is_empty(),
             "{:?}",
@@ -1372,7 +1372,7 @@ mod tests {
         assert!(footer.contains("Ctrl+S Scope"));
         assert!(footer.contains("q Quit"));
         let _ = h.ctrl('s');
-        assert!(h.text().contains("scope: here"));
+        assert!(h.text().contains("scope ‹ here ›"));
         assert!(h.tab_to(home::ROWS));
         let text = h.text();
         let footer = text.lines().last().unwrap();
