@@ -1,0 +1,21 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe  …  [0m
+[0m[2m                                                                        [0m
+[0m[2m  ≡ Query 1 ×    T orders ×    T order_items ×                      +   [0m
+[0m[2m ─────────────────────────────━━━━━━━━━━━━━━━━━━─────────────────────── [0m
+[0m[2m › ╭─ public › order_items ────────────────────────────────── 7 cols ─╮ [0m
+[0m[2m   │╭──────────────────────────────────────────────────────────────╮  │ [0m
+[0m[2m E ││ [0m[1;2mOpen tabs[0m[2m                                                    │─ │ [0m
+[0m[2m x ││ ▎ Filter tabs…                                               │  │ [0m
+[0m[2m p ││                                                              │  │ [0m
+[0m[2m l ││ [0m [0m[2m≡ Query 1      query                                        │┃ │ [0m
+[0m[2m o ││ [0m [0m[2mT orders       public.orders · data                         │┆ │ [0m
+[0m[2m r ││ [0m[1;7m [0m[2;7mT[0m[1;2;7m order_items  [0m[2;7mpublic.order_items · data[0m[1;2;7m           [0m[2;7mactive[0m[1;2;7m  [0m[2m │┆ │ [0m
+[0m[2m e ││ [0m [0m[2m                                                            │┆ │ [0m
+[0m[2m r ││ [0m↑[0m[2m↓ Move · Enter Switch · Delete Close tab · Esc Close        │┆ │ [0m
+[0m[2m   │╰─[0m─[0m[2m────────────────────────────────────────────────────────────╯┆ │ [0m
+[0m[2m   │         ━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ [0m
+[0m[2m   │   rows 1–6 of 500 loaded · 3,811,020 total · cols 1–1 of 7       │ [0m
+[0m[2m   ╰──────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                        [0m
+ [0m[1mType[0m Filter  [0m[1m↑↓[0m Move  [0m[1mEsc[0m Cancel  …          ✓ Connected to Production [0m
+[?25h[8;9H[6 q

@@ -1,0 +1,25 @@
+[0m[2m  jackin❯    File   Edit   View   Session   Help                             …  [0m
+[0m[2m                                                                                [0m
+[0m[2m  1 Mix (3╭──────────────────────────────────────────────────────────╮          [0m
+[0m[2m ━━━━━━━━━│ [0m[1;2mCommand palette[0m[2m                                 20 of 20 │───────── [0m
+[0m[2m╭─ Claude │ ▎ Type to filter commands…                               │─────────╮[0m
+[0m[2m│  +  let │                                                          │sion in ┆│[0m
+[0m[2m│  -  for │ [0m[1;2;7m [0m[2;7m [0m[1;2;7m New tab                   [0m[2;7mCtrl+B c[0m[1;2;7m                  [0m[2m┃ │        ┆│[0m
+[0m[2m│  +  for │    Split pane                Ctrl+B " %                ┃ │        ┆│[0m
+[0m[2m│         │    Zoom / unzoom pane        Ctrl+B z                  ┃ │        ┆│[0m
+[0m[2m│● Bash ca│    Export file               host                      ┃ │        ┃│[0m
+[0m[2m│  running│    Export file and reveal    host                      ┃ │┄┄┄┄┄┄┄┄ │[0m
+[0m[2m│         │    Export file and open      host                      ┃ │─────────╯[0m
+[0m[2m│● Edit sr│    Export file under cursor  no file under cursor      ┃ │──────────[0m
+[0m[2m│  +  pub │    Export file under curso…  no file under cursor      ┃ │─────────╮[0m
+[0m[2m│         │    Export file under curso…  no file under cursor      ┆ │] targe ┆│[0m
+[0m[2m│● Retries│    Export selected file      no selection              ┆ │dr      ┆│[0m
+[0m[2m│  One mor│    Export selected file an…  no selection              ┆ │0004-le ┆│[0m
+[0m[2m│         │    Export selected file an…  no selection              ┆ │0005-fx ┆│[0m
+[0m[2m│▶ Allow e│    Stage image from clipbo…  Not in this preview       ┆ │0007-re ┆│[0m
+[0m[2m│❯        │                                                          │        ┃│[0m
+[0m[2m│━━━━━━━━━╰──────────────────────────────────────────────────────────╯┄┄┄┄┄┄┄┄ │[0m
+[0m[2m╰─────────────────────────────────────╯│╰──────────────────────────────────────╯[0m
+[0m[2m PR #482 · Settlement retry backoff               …   Session ╍╍╍╍╍╍╍╍─── 76% ▲ [0m
+ [0m[1mEsc[0m Cancel  …          Attached to payments-platform · tabs and panes restored [0m
+[?25h[5;15H[6 q

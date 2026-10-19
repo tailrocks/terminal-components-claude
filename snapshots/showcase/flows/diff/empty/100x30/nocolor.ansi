@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Diff                no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mDiff viewer[0m  Unified or old / new review · narrow panes use unified · select … [0m
+   Buttons                                                                                          [0m
+   Inputs             ● Review   ▎[0m[1m● Empty [0m                                                          [0m
+   Text areas                                                                                       [0m
+   Forms             ╭─ Diff ──────────────────────────────────────────────────────────────────────╮[0m
+   Lists             │  No file selected                                                           │[0m
+   Trees             │                                                                             │[0m
+   Tables            │                                                                             │[0m
+   Editable tables   │                                                                             │[0m
+   Panels            │                                                                             │[0m
+   Sidebars          │                                                                             │[0m
+   Dialogs           │                                                                             │[0m
+   Progress          │                                                                             │[0m
+   Scrolling         │                                                                             │[0m
+   Terminal          │                                                                             │[0m
+   Code editor       │                                                                             │[0m
+ › Diff              │                                                                             │[0m
+   Data grid         │                                                                             │[0m
+   Chips & selects   │                                                                             │[0m
+   Pickers           │                                                                             │[0m
+   Chrome            │                                                                             │[0m
+   Settings          │                                                                             │[0m
+   Task runner       │                                                                             │[0m
+                     │                                                                             │[0m
+                     │                                                                             │[0m
+                     ╰─────────────────────────────────────────────────────────────────────────────╯[0m
+                                                                                                    [0m
+ [0m[1mEnter[0m Toggle  [0m[1mTab[0m Next control                                                                     [0m

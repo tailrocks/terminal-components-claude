@@ -1,0 +1,25 @@
+  ▪ [0m[1m TablePro  Production [0m [0m[1m◆ production[0m  acme_prod › public  ✓ safe  …  ? help  [0m
+                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders [0m×[0m[1m  [0m                                               +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────── [0m
+ › ╭─[0m[1m public › orders [0m────────────────────────────────────────────── 14 cols ─╮ [0m
+   │  [0m[1m Data  [0m  Structure                                                      │ [0m
+ E │  ━━━━━━━──────────────────────────────────────────────────────────────── │ [0m
+ x │                                                                          │ [0m
+ p │   match all ▾  [0m[1m status = 'pending' [0m×[0m[1m  [0m  + Add filter                     │ [0m
+ l │                                                                          │ [0m
+ o │   ‹3    organization_id                       [0m[1mstatus ∇ [0m  total_amo… 9›   │ [0m
+ r │  [0m[1m▎  [0m  1[0m[1m a1cc5725-426b-4be8-b1d…4c2d5a36aa8 →  [0m[1;7mpending  [0m[1m     1617.64    [0m┃ │ [0m
+ e │       2 45e4f51f-21b8-4d1a-bf0…43208da8925 →  pending       2236.65    ┆ │ [0m
+ r │       3 216371dc-bcdb-491e-816…d0cc6d4df3e →  pending       2376.57    ┆ │ [0m
+   │       4 e420b1cb-f102-48d9-944…c74d87ca6b7 →  pending        550.69    ┆ │ [0m
+   │       5 cbc419eb-5897-4d5d-84b…b4e319a287a →  pending        290.26    ┆ │ [0m
+   │       6 856eb1ff-ef23-4b8b-b3e…8c43bcce08f →  pending       2326.75    ┆ │ [0m
+   │       7 c180d977-7033-43c3-9a4…0779d6c73ea →  pending       2392.98    ┆ │ [0m
+   │  [0m[2m     8 e20af405-1eec-458e-bc5…6fa0b0d0c1c →  pending        497.22    [0m┆ │ [0m
+   │         ┄┄┄┄┄┄┄┄┄┄┄┄┄┄━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │ [0m
+   │   filtered (1) · rows 1–8 of 335 loaded · ~201,559 total                 │ [0m
+   ╰──────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1mAlt+D[0m Duplicate row  [0m[1ms[0m Sort  …         1 filter applied [0m
+[?25l

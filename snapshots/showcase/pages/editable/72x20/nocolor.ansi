@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mEditable[0m         i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mEditable tables[0m  Navigation is reversed cell; edi… [0m
+ ──────────────────                                                     [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▾ Tables        ┃    Tasks                      0 edits · 1–13 of 14 ┃[0m
+      Basic table ┃    ─────────────────────────────────────────────── ┃[0m
+ [0m[1m▎  › Editable    [0m┃       ID     Task                      Owner    …  ┆[0m
+      Data grid   ┃       #1040  Add rate limiting to au…  mira      ┃ ┆[0m
+      Selection   ┃       #1041  Migrate sessions table …  jonas     ┃ ┆[0m
+      Cell edito… ┃       #1042  Fix flaky checkout inte…  ana       ┃ ┆[0m
+      Columns     ┃       #1043  Write release notes for…  mira      ┃ ┆[0m
+  ▸ Navigation    ┆       #1044  Replace deprecated Vue …  kai       ┃ ┆[0m
+  ▸ Overlays      ┆       #1045  Upgrade Postgres driver…  jonas     ┃ ┆[0m
+ [0m[2m ▸ Feedback      [0m┆       #1046  Extract billing service…  sofia     ┃ ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄ [0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

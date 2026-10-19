@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Chips & selects    truecolor · 100×30   i Inspector   ? Help
+
+   Overview          Chips & selects  Removable chips, a popup select, and strips that drop what d…
+   Buttons
+   Inputs              Filters                                                            2 active
+   Text areas
+   Forms                match all ▾   status = 'pending' ×    total > 100 ×   …
+   Lists
+   Trees               last action: nothing yet
+   Tables
+   Editable tables
+   Panels              Selects
+   Sidebars
+   Dialogs               Sort by                  Page size                Engine
+   Progress            ▎ created_at         ▴     50                 ▾     PostgreSQL           ▾
+   Scrolling           ╭─────────────────────╮                             Fixed by the connection
+   Terminal            │▎› created_at        │
+   Code editor         │   total             │
+   Diff                │   status            │
+   Data grid           │   customer          │
+ › Chips & selects     Segment strip
+   Pickers
+   Chrome               ▪  Acme  ◆ production  acme_prod › public  safe         3 pending  ? help
+   Settings
+   Task runner          ▪  Acme  ◆ production  safe
+                       the same strip at 44 columns: low-priority segments leave first, from the …
+
+
+
+ Enter Open  ↑ ↓ Choose  Esc Close  Tab Next

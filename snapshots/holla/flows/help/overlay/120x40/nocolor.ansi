@@ -1,0 +1,41 @@
+[0m[2m  holla❯    File   Go   Help                                                         holla · Rust project  mbp · local  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m  Here                                                                                                                  [0m
+[0m[2m ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m [0m [0m[2m Search ac╭─[0m[1;2m Key reference [0m[2m─────────────────────────────────────────────────────────────────── Here ─ × ─╮e ‹ here ›  [0m
+[0m[2m            │  [0m[1;2mFinder[0m[2m                                       [0m[1;2mPages[0m[2m                                          │            [0m
+[0m[2m    Suggeste│  [0m[1;2mType[0m[2m            search actions and           [0m[1;2mDisk[0m[2m            ↑↓ move · Space select · a     │sk · here   [0m
+[0m[2m  › Inspect │                  resources together ·                         all · Enter drill · c          │─────────   [0m
+[0m[2m    Pull    │                  @parent @children @system                    cleanup plan · p details       │ndidate     [0m
+[0m[2m    Review 5│                  @all narrow the scope        [0m[1;2mPlan review[0m[2m     Space include or exclude ·     │r · 0       [0m
+[0m[2m    Run test│  [0m[1;2m↑↓[0m[2m              move · PgUp PgDn Home End                    u undo · Enter step facts ·    │start       [0m
+[0m[2m    Who is b│  [0m[1;2mEnter[0m[2m           primary action ·                             c confirm                      │            [0m
+[0m[2m            │                  destructive rows open a      [0m[1;2mGates[0m[2m           Gate 1 reviews facts and       │…ifacts'    [0m
+[0m[2m    Recent h│                  review instead                               the full sequence · Gate 2     │            [0m
+[0m[2m    nothing │  [0m[1;2mAlt+Enter[0m[2m       alternatives · run, copy,                    types the target-bound         │            [0m
+[0m[2m            │                  insert, arguments, pin,                      phrase                         │            [0m
+[0m[2m    Explore │                  alias, hide, why                                                            │            [0m
+[0m[2m [0m [0m[2m   Tasks  │  [0m[1;2mTab[0m[2m             preview › tab strip ›        [0m[1;2mEverywhere[0m[2m                                     │            [0m
+[0m[2m    System ·│                  finder                       [0m[1;2mAlt+0[0m[2m           Here                           │            [0m
+[0m[2m            │  [0m[1;2mCtrl+↑ / Ctrl+↓[0m[2m scope outward (parent,       [0m[1;2mCtrl+W[0m[2m          Close tab                      │            [0m
+[0m[2m            │                  system) / inward (children)  [0m[1;2mCtrl+G[0m[2m          Activities                     │            [0m
+[0m[2m            │  [0m[1;2mEsc[0m[2m             clear query › scope back to  [0m[1;2mF1 ?[0m[2m            This reference                 │ the        [0m
+[0m[2m            │                  here › back a page           [0m[1;2mF10 Ctrl+F2[0m[2m     Menu bar                       │d there     [0m
+[0m[2m            │  [0m[1;2mAliases[0m[2m         gp pull · du disk usage ·    [0m[1;2mCtrl+PgDn[0m[2m       Next page                      │            [0m
+[0m[2m            │                  test the test task here · d  [0m[1;2mCtrl+PgUp[0m[2m       Previous page                  │y here?     [0m
+[0m[2m            │                  then u · dc docker cleanup   [0m[1;2mTab[0m[2m             Next control                   │            [0m
+[0m[2m            │                                               [0m[1;2mShift+Tab[0m[2m       Previous control               │            [0m
+[0m[2m            │  [0m[1;2mMouse[0m[2m                                        [0m[1;2mEsc[0m[2m             Back                           │            [0m
+[0m[2m            │  [0m[1;2mClick[0m[2m           select                       [0m[1;2mCtrl+Q[0m[2m          Quit                           │            [0m
+[0m[2m            │  [0m[1;2mDouble-click[0m[2m    run                          [0m[1;2mCtrl+C[0m[2m          Copy, else quit                │            [0m
+[0m[2m            │  [0m[1;2mRight-click[0m[2m     alternatives                 [0m[1;2mAlt+1–9[0m[2m         Show that tab                  │            [0m
+[0m[2m            │  [0m[1;2mWheel[0m[2m           scroll under the pointer                                                    │            [0m
+[0m[2m            │                                                                                              │            [0m
+[0m[2m            │                                                                                              │            [0m
+[0m[2m            │                                                                                      ▎[0m[1;2mDone [0m[2m  │            [0m
+[0m[2m            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯            [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m ~/work/holla   main   ↓3   • 5                                                                       no color · 120×40 [0m
+ [0m[1m↑↓ S[0mcroll  [0m[1mEsc [0mClose  [0m[1m     [0m       [0m[1m         [0m                [0m[1m   [0m          [0m[1m       [0m        [0m[1m      [0m                          [0m
+[?25l

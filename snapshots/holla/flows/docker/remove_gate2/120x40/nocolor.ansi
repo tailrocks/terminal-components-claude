@@ -1,0 +1,41 @@
+[0m[2m  holla❯    File   Go   Help                                                                   no project  mbp · local  [0m
+[0m[2m  Here › Review                                                                                                         [0m
+[0m[2m  Here › Review                                                                                                         [0m
+[0m[2m ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m  Review · Stop and remove all containers · gate 1 of 2 · review the resolved facts, then continue deliberately         [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m  Action       stop the running containers, then remove every captured container on mbp (running and stopped) · images  [0m
+[0m[2m               and volumes stay · rm runs only after stop succeeds                                                      [0m
+[0m[2m  Host         mbp · ╭──────────────────────────────────────────────────────────────────────── × ─╮                     [0m
+[0m[2m  In           mbp · │                                                                            │                     [0m
+[0m[2m  Scope        host  │  [0m[1;2mStop and remove all containers · gate 2 of 2[0m[2m                              │                     [0m
+[0m[2m  Changes      6 cont│                                                                            │                     [0m
+[0m[2m  Risk         destru│  [0mAction   stop the running containers, then remove every captured        [0m[2m  │                     [0m
+[0m[2m  Data         live ·│  [0m         container on mbp (running and stopped) · images and volumes    [0m[2m  │                     [0m
+[0m[2m  Includes     stoppe│  [0m         stay · rm runs only after stop succeeds                        [0m[2m  │                     [0m
+[0m[2m  Recoverable  no · p│  [0mHost     mbp · local                                                    [0m[2m  │                     [0m
+[0m[2m  Provenance   built-│  [0mIn       mbp · host-wide                                                [0m[2m  │                     [0m
+[0m[2m  Gate         second│  [0mScope    host                                                           [0m[2m  │                     [0m
+[0m[2m                     │  [0mChanges  6 containers removed · writable layers lost                    [0m[2m  │                     [0m
+[0m[2m ╭─ Sequence · 2 comm│  [0mRisk     destructive                                                    [0m[2m  │──────── y copies ─╮ [0m
+[0m[2m │  01  docker stop a│  [0mData     live · 2 s ago                                                 [0m[2m  │                   │ [0m
+[0m[2m │  02  docker rm acm│  [0m                                                                        [0m[2m  │                   │ [0m
+[0m[2m │                   │  [0mdocker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedu…[0m[2m  │                   │ [0m
+[0m[2m │                   │  [0mdocker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedule…[0m[2m  │                   │ [0m
+[0m[2m │                   │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄  │                   │ [0m
+[0m[2m │                   │                                                                            │                   │ [0m
+[0m[2m │                   │  [0m[1;2mType REMOVE ALL CONTAINERS ON mbp to confirm                            [0m[2m  │                   │ [0m
+[0m[2m │                   │[0m[1;2;7m▎                                                                         [0m[2m  │                   │ [0m
+[0m[2m │                   │                                                                            │                   │ [0m
+[0m[2m │                   │                                                        Cancel    Execute   │                   │ [0m
+[0m[2m │                   │                                                                            │                   │ [0m
+[0m[2m │                   ╰────────────────────────────────────────────────────────────────────────────╯                   │ [0m
+[0m[2m │                                                                                                                    │ [0m
+[0m[2m │                                                                                                                    │ [0m
+[0m[2m ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                 [0m [0m[2mCancel   [0m [0m[2mContinue…   [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m ~/work/stack                                  review · gate 1 of 2                                   no color · 120×40 [0m
+ [0m[1m EDIT [0m  [0m[1mType[0m "REMOV[0m[1mE ALL[0m CONTAINERS[0m[1m ON[0m mbp" t[0m[1mo[0m confirm  [0m[1mEsc[0m Ca[0m[1mnce[0ml                                                     [0m
+[?25h[28;25H[6 q

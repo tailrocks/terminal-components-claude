@@ -1,0 +1,25 @@
+[0m[2m  holla❯    File   Go   Help                 holla · Rust project  mbp · local  [0m
+[0m[2m                                                                                [0m
+[0m[2m  Here  ╭─[0m[1;2m Key reference [0m[2m───────────────────────────── 1–16 of 47 ─ × ─╮        [0m
+[0m[2m ━━━━━━━│  [0m[1;2mFinder[0m[2m                                                     ┃│─────── [0m
+[0m[2m [0m [0m[2m Searc│  [0m[1;2mType[0m[2m            search actions and resources together ·    ┃│here ›  [0m
+[0m[2m        │                  @parent @children @system @all narrow      ┃│        [0m
+[0m[2m    Sugg│                  the scope                                  ┃│        [0m
+[0m[2m  › Insp│  [0m[1;2m↑↓[0m[2m              move · PgUp PgDn Home End                  ┃│s       [0m
+[0m[2m    Pull│  [0m[1;2mEnter[0m[2m           primary action · destructive rows open a   ┆│nd      [0m
+[0m[2m    Revi│                  review instead                             ┆│        [0m
+[0m[2m    Run │  [0m[1;2mAlt+Enter[0m[2m       alternatives · run, copy, insert,          ┆│e las…  [0m
+[0m[2m    Who │                  arguments, pin, alias, hide, why           ┆│ min    [0m
+[0m[2m        │  [0m[1;2mTab[0m[2m             preview › tab strip › finder               ┆│        [0m
+[0m[2m    Rece│  [0m[1;2mCtrl+↑ / Ctrl+↓[0m[2m scope outward (parent, system) / inward    ┆│        [0m
+[0m[2m    noth│                  (children)                                 ┆│        [0m
+[0m[2m        │  [0m[1;2mEsc[0m[2m             clear query › scope back to here › back    ┆│        [0m
+[0m[2m    Expl│                  a page                                     ┆│        [0m
+[0m[2m [0m [0m[2m   Tas│  [0m[1;2mAliases[0m[2m         gp pull · du disk usage · test the test    ┆│        [0m
+[0m[2m    Syst│                  task here · d then u · dc docker cleanup   ┆│        [0m
+[0m[2m        │                                                      ▎[0m[1;2mDone [0m[2m  │        [0m
+[0m[2m    → 'h╰──────────────────────────────────────────────────────────────╯        [0m
+[0m[2m                                                                                [0m
+[0m[2m ~/work/holla   main   ↓3   • 5                                no color · 80×24 [0m
+ [0m[1m↑↓ S[0mcroll  [0m[1mEsc [0mClose  [0m[1m     [0m       [0m[1m         [0m                [0m[1m   [0m                 [0m
+[?25l

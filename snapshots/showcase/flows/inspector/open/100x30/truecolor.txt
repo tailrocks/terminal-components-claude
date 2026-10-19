@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Foundations / Overview     truecolor · 100×30   i Inspector · on   ? Help
+
+▎› Overview          Overview  Tokens and principles behind every …     State
+   Buttons
+   Inputs              Tokens                                           mode        NAV
+   Text areas                                                           focus       0·2 19×26
+   Forms                   ▏ canvas                       #000000       hover       suppressed
+   Lists                   ▏ surface                      #111111       pressed     —
+   Trees                   ▏ surface.elevated             #18181b       mouse       —
+   Tables                  ▏ surface.overlay              #27272a       last key    i
+   Editable tables         ▏ field                        #1e1e22       focus ring  1 stops
+   Panels                  ▏ popover                      #3f3f46       hit regions 26
+   Sidebars                ▏ border.subtle              white 15%       tick        0
+   Dialogs                 ▏ border.strong              white 30%       colors      truecolor
+   Progress                ▏ text.primary                 #ffffff
+   Scrolling
+   Terminal            Principles
+   Code editor
+   Diff
+   Data grid           State language
+   Chips & selects
+   Pickers             ▎  focus
+   Chrome              ░  hover lifts the surface
+   Settings            ›  current / chosen
+   Task runner         ✓  checked
+                       !  error
+                       ▁  editing: cursor + underline
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

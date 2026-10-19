@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mScrolling[0m        i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mScrolling[0m  Wheel under the pointer, keys on the f… [0m
+ ──────────────────                                                     [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▸ Tables        ┃   Wrap… 1–7/255    Long… 1–7/120    Log            ┃[0m
+  ▸ Navigation    ┃   ─────────────    ─────────────    ─────────────  ┃[0m
+  ▸ Overlays      ┃   Junie works ┃       Row 001  ┃    [0m[2m 737.78s  … [0m┆  ┃[0m
+  ▸ Feedback      ┃   through a   ┆       Row 002  ┆     738.15s  … ┆  ┆[0m
+  ▾ Layout        ┃   task the    ┆       Row 003  ┆     738.52s  … ┆  ┆[0m
+      Panels      ┃   way a       ┆       Row 004  ┆     738.89s  … ┆  ┆[0m
+ [0m[1m▎  › Scrolling   [0m┃   careful     ┆       Row 005  ┆     739.26s  … ┆  ┆[0m
+      Splits & s… ┃   engineer    ┆       Row 006  ┆     739.63s  … ┃  ┆[0m
+      Master-det… ┆   [0m[2mwould: it   [0m┆    [0m[2m   Row 007  [0m┆    ━┄┄┄┄┄┄┄┄┄┄┄   ┆[0m
+ [0m[2m     Pane tree   [0m┆                                                    ┆[0m
+                                                                       ┆[0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

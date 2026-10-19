@@ -1,0 +1,51 @@
+ ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mEditable[0m                                                                             no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+ [0m[1mComponents[0m           54  [0m[1mEditable tables[0m  Navigation is reversed cell; editing is a cursor. They never look alike.                                             [0m
+ ───────────────────────                                                                                                                                        [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                                                                      the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                                                              [0m
+  ▾ Tables                  Tasks                                                                                                                    0 edits   ┃[0m
+      Basic table           ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────   ┃[0m
+ [0m[1m▎  › Editable          [0m       ID     Task                                                           Owner     Status     Branch                   Changes     ┃[0m
+      Data grid                #1040  Add rate limiting to auth endpoints                            mira      Done       feat/rate-limit               14     ┃[0m
+      Selection                #1041  Migrate sessions table to UUID keys                            jonas     ▸ Running  chore/uuid-sessions           31     ┃[0m
+      Cell editors             #1042  Fix flaky checkout integration test                            ana       Failed     fix/checkout flake   [0m[1m![0m         3     ┃[0m
+      Columns                  #1043  Write release notes for 3.2                                    mira      Queued     docs/release-3.2               0     ┃[0m
+  ▸ Navigation                 #1044  Replace deprecated Vue mixins                                  kai       Done       refactor/mixins               87     ┃[0m
+  ▸ Overlays                   #1045  Upgrade Postgres driver to 0.9                                 jonas     Paused     chore/pg-driver                5     ┃[0m
+  ▸ Feedback                   #1046  Extract billing service module                                 sofia     Done       refactor/billing              52     ┃[0m
+  ▸ Layout                     #1047  Add OpenTelemetry tracing spans                                kai       ▸ Running  feat/otel                     22     ┃[0m
+  ▸ Text & code                #1048  Remove legacy feature flags                                    ana       Queued     chore/flags                    0     ┃[0m
+  ▸ Screens                    #1049  Generate API client from OpenAPI                               sofia     Done       feat/api-client              118     ┃[0m
+                               #1050  Harden CSP headers                                             mira      Done       sec/csp                        4     ┃[0m
+                               #1051  Speed up cold start of worker                                  jonas     Failed     perf/worker-boot               9     ┃[0m
+                               #1052  Localize onboarding emails                                     kai       Queued     feat/i18n-emails               0     ┃[0m
+                               #1053  Add pagination to audit log                                    ana       Done       feat/audit-pages              16     ┃[0m
+                                                                                                                                                               ┃[0m
+                                                                                                                                                               ┃[0m
+                          reversed  cell cursor (navigation)                                                                                                   ┃[0m
+                          ▁         editing cursor + accent underline                                                                                          ┃[0m
+                          !         validation error                                                                                                           ┃[0m
+                          ▾         Owner: pick from a list (Enter, Space, Alt+↓)                                                                              ┃[0m
+                                                                                                                                                               ┃[0m
+                            Columns                                                                                                                            ┃[0m
+                            ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────   ┃[0m
+                            ID       left · read-only                                                                                                          ┃[0m
+                            Task     left · editable · text                                                                                                    ┃[0m
+                            Owner    left · editable · ▾ Select                                                                                                ┃[0m
+                            Status   left · read-only                                                                                                          ┃[0m
+                            Branch   left · editable · text                                                                                                    ┃[0m
+                            Changes  right · editable · text                                                                                                   ┃[0m
+                                                                                                                                                               ┃[0m
+                                                                                                                                                               ┃[0m
+                            Events                                                                                                                             ┃[0m
+                            ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────   ┃[0m
+                            Enter / F2 / click twice      Edit · Enter again Committed                                                                         ┃[0m
+                            Esc                           Cancel the edit · Cancelled                                                                          ┃[0m
+                            Tab at the last cell          LeaveForward · Shift+Tab LeaveBackward                                                               ┃[0m
+                            Enter on a row (Basic table)  Activated                                                                                            ┆[0m
+                            Space (Selection)             SelectionChanged                                                                                     ┆[0m
+                                                                                                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                           [0m
+[?25l

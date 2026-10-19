@@ -1,0 +1,21 @@
+[0m[2m  jackin❯    File   Go   Help      …  Workspaces  inside the Construct  [0m
+[0m[2m                                                                        [0m
+[0m[2m ╭─ Wor╭─[0m[1;2m Keyboard shortcuts [0m[2m───────────────── 1–13 of 51 ─ × ─╮ning ─╮ [0m
+[0m[2m │ [0m [0m[2m   │  [0m[1;2mWorkspaces[0m[2m                                          ┃│form  │ [0m
+[0m[2m │ [0m [0m[2m ▸ │  [0m[1;2m↑↓ j k[0m[2m      move                                    ┃│ning  │ [0m
+[0m[2m │ [0m [0m[2m ▸ │  [0m[1;2m←→ h l[0m[2m      collapse / expand                       ┃│ning  │ [0m
+[0m[2m │ [0m [0m[2m ▸ │  [0m[1;2mSpace[0m[2m       fold workspace                          ┆│iled  │ [0m
+[0m[2m │ [0m [0m[2m ▸ │  [0m[1;2mEnter[0m[2m       launch                                  ┆│iled  │ [0m
+[0m[2m │ [0m [0m[2m   │  [0m[1;2me[0m[2m           edit workspace                          ┆│      │ [0m
+[0m[2m │     │  [0m[1;2mn[0m[2m           new workspace                           ┆│      │ [0m
+[0m[2m │     │  [0m[1;2md[0m[2m           delete…                                 ┆│      │ [0m
+[0m[2m ╰─────│  [0m[1;2mw[0m[2m           prewarm                                 ┆│──────╯ [0m
+[0m[2m       │  [0m[1;2mo[0m[2m           open in GitHub                          ┆│        [0m
+[0m[2m   Curr│  [0m[1;2m* -[0m[2m         expand / collapse all                   ┆│tails   [0m
+[0m[2m   ────│  [0m[1;2mTab[0m[2m         details                                 ┆│─────   [0m
+[0m[2m   /wor│                                                      ┆│        [0m
+[0m[2m   Role│                                               ▎[0m[1;2mDone [0m[2m  │        [0m
+[0m[2m       ╰───────────────────────────────────────────────────────╯        [0m
+[0m[2m                                                                        [0m
+ [0m[1m↑↓ Sc[0mroll  [0m[1mEsc [0mClose [0m[1m [0m       [0m[1m   [0m          [0m[1m [0m           [0m[1m [0m                [0m
+[?25l

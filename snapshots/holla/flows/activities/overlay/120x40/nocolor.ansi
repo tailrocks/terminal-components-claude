@@ -1,0 +1,41 @@
+[0m[2m  holla❯    File   Go   Help                                                         acme · mise monorepo  mbp · local  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×                   [0m
+[0m[2m ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m [0m [0m[2m Search actions and resources…                                                                        scope ‹ here ›  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m    Suggested here                                                               Inspect 10 GB of genera… disk · here   [0m
+[0m[2m    Follow acme-api-1 logs     docker    here   service is unhealthy             ────────────────────────────────────   [0m
+[0m[2m  › Inspect 10 GB of generat…  disk      here   10 GB generated artifacts        Does       2 rebuildable candidates    [0m
+[0m[2m    Install missing tools · …  task      here   1 tool missing                              below this folder · 0       [0m
+[0m[2m    Review cleanup candidates  cleanup   host   10.6 GiB across 4 categories                stale enough to start       [0m
+[0m[2m    Deploy preview             custom    here   Current folder…                             selected                    [0m
+[0m[2m                                                                                 Runs       'holla disk anal…ifacts'    [0m
+[0m[2m    Recent here                                                                  In         ~/work/acme                 [0m
+[0m[2m    nothing used here yet                                                        Host       mbp · local                 [0m
+[0m[2m                         ╭────────────────────────────────────────────────────────────────────╮e                        [0m
+[0m[2m    Running              │ [0m[1;2mActivities[0m[2m                                                  4 live │GB generated             [0m
+[0m[2m    logs · api worker sch│ [0m[1;2;7m [0m[2;7m⠋[0m[1;2;7m frontend dev                 [0m[2;7mrunning · child · 3 s[0m[1;2;7m  [0m[2;7mactivities[0m[1;2;7m [0m[2m │ifacts                   [0m
+[0m[2m    api dev              │  ⠋ api dev                      running · child · 3 s              │e · read-only            [0m
+[0m[2m    btm                  │  ✓ api tests                    succeeded · project …              │d-only                   [0m
+[0m[2m    frontend dev         │  ⠋ logs · api worker scheduler  running · here · 3 s               │e · 3 s ago              [0m
+[0m[2m                         │  ○ btm                          detached · host · 3 s              │ns a review · the        [0m
+[0m[2m    Explore              │                                                                    │etion is gated there     [0m
+[0m[2m [0m [0m[2m   Tasks   Git   Files │                                                                    │ped phrase)              [0m
+[0m[2m    Children · 3 projects╰────────────────────────────────────────────────────────────────────╯ · Alias · Why here?     [0m
+[0m[2m    System · mbp               explore   host   available on this host                                                  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m ~/work/acme   main   ↑1                                                               ⠋ 4 running    no color · 120×40 [0m
+ [0m[1m↑↓ M[0move  [0m[1mEnter [0mSwitch [0m[1m Esc [0mCancel [0m[1m         [0m                [0m[1m   [0m          [0m[1m       [0m            api tests finished · exit 0 [0m
+[?25l

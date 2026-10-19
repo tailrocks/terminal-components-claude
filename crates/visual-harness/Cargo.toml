@@ -1,0 +1,22 @@
+[package]
+name = "visual-harness"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+
+[dev-dependencies]
+libtest-mimic = "0.8.2"
+sha2.workspace = true
+tuiscotti = { git = "https://github.com/tailrocks/tuiscotti", rev = "a1ea27f757d75d07b05499276cd932e9f8e067ad", features = ["pty"] }
+
+[[test]]
+name = "visual_baseline"
+path = "tests/visual_baseline/main.rs"
+harness = false
