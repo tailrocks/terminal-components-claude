@@ -191,6 +191,8 @@ impl std::fmt::Debug for App {
             .finish_non_exhaustive()
     }
 }
+const BAR_LABELS: [&str; 3] = ["File", "Go", "Help"];
+
 fn menu_bar() -> MenuBar<'static> {
     const FILE: &[MenuItem<'static>] = &[MenuItem::new(QUIT, "Quit").chord(Chord::with(
         KeyCode::Char('q'),
@@ -202,11 +204,18 @@ fn menu_bar() -> MenuBar<'static> {
         MenuItem::new(ABOUT, "About holla"),
     ];
     const MENUS: &[Menu<'static>] = &[
-        Menu::new("File", FILE),
-        Menu::new("Go", GO),
-        Menu::new("Help", HELP_MENU),
+        Menu::new(BAR_LABELS[0], FILE),
+        Menu::new(BAR_LABELS[1], GO),
+        Menu::new(BAR_LABELS[2], HELP_MENU),
     ];
-    MenuBar::new(MENU, MENUS).chord_case(termrock::ChordCase::UppercaseAscii)
+    // Tag Kind::Title at rest is text_secondary (#b3b3b3), not primary.
+    const TITLE_TONE: &[(Part, StylePatch)] = &[(
+        Part::TITLE,
+        StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)),
+    )];
+    MenuBar::new(MENU, MENUS)
+        .chord_case(termrock::ChordCase::UppercaseAscii)
+        .patch_part(TITLE_TONE)
 }
 
 fn brand() -> Brand<'static> {
@@ -215,6 +224,25 @@ fn brand() -> Brand<'static> {
 
 fn header_bar<'a>(items: &'a [StatusItem<'a>]) -> StatusBar<'a> {
     StatusBar::new(HEADER).right(items)
+}
+
+fn paint_menu_title_pads(ui: &mut Ui<'_>, menu_x: u16, y: u16, menu_right: u16) {
+    // MenuBar paints the label only. The tag's " {title} " pads use the same secondary ink.
+    let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
+    let mut x = menu_x.saturating_add(1);
+    for label in BAR_LABELS {
+        let w = termrock::width(label).saturating_add(2);
+        if x.saturating_add(w) > menu_right {
+            break;
+        }
+        ui.paint_str(Rect::new(x, y, 1, 1), " ", style);
+        ui.paint_str(
+            Rect::new(x.saturating_add(w).saturating_sub(1), y, 1, 1),
+            " ",
+            style,
+        );
+        x = x.saturating_add(w).saturating_add(1);
+    }
 }
 
 fn gate_dialog() -> Dialog<'static> {
@@ -634,31 +662,25 @@ impl App {
     }
     fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
         let header = Rect::new(area.x, area.y, area.width, 1);
+        // Tag lockup starts at x + chrome_edge - 1. One more column before this bar matches the tag's post-lockup gap (its title pad is the other).
+        let lockup_x = header.x.saturating_add(1);
         let brand = brand();
         let brand_width = brand
             .measure(ui, Constraints::loose(header.width, 1))
             .preferred
             .0;
-        brand.draw(ui, Rect::new(header.x, header.y, brand_width, 1));
+        brand.draw(ui, Rect::new(lockup_x, header.y, brand_width, 1));
         let menu = menu_bar();
+        let menu_x = lockup_x.saturating_add(brand_width).saturating_add(1);
+        let menu_room = header.right().saturating_sub(menu_x);
         let menu_width = menu
-            .measure(
-                ui,
-                Constraints::loose(header.width.saturating_sub(brand_width), 1),
-            )
+            .measure(ui, Constraints::loose(menu_room, 1))
             .preferred
-            .0;
-        menu.draw(
-            ui,
-            Rect::new(
-                header.x.saturating_add(brand_width),
-                header.y,
-                menu_width,
-                1,
-            ),
-            &self.menu,
-        );
-        let used = brand_width.saturating_add(menu_width).saturating_add(2);
+            .0
+            .min(menu_room);
+        menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
+        paint_menu_title_pads(ui, menu_x, header.y, menu_x.saturating_add(menu_width));
+        let used = menu_x.saturating_sub(header.x).saturating_add(menu_width);
         let identity = self.world.host.identity();
         let level = format!(
             "{} · {}×{}",
