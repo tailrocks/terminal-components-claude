@@ -1,0 +1,21 @@
+ ▪ [0m[1mJunie[0m Design system  Screens › [0m[1mTask runner[0m     i Inspector   ? Help  [0m
+                                                                        [0m
+ [0m[1mComponents[0m      54  [0m[1mTask runner[0m  Composed: tree, live progress, follo… [0m
+ ──────────────────                                                     [0m
+    Overview      ┃  [0m[1m Playground  [0m  Options    States                   [0m
+  ▸ App shell     ┃  ━━━━━━━━━━━━━──────────────────────────────────────[0m
+  ▸ Inputs & for… ┃                                                     [0m
+  ▸ Tables        ┃    Targets                         Pipeline        ┃[0m
+  ▸ Navigation    ┃    ──────────────────────────      ─────────────── ┃[0m
+  ▸ Overlays      ┃     ▾ payments-gateway             ○ compile  …  q ┃[0m
+  ▸ Feedback      ┃       ▾ build                      ○ lint     …  q ┃[0m
+  ▸ Layout        ┃           compile                  ○ typecheck…  q ┃[0m
+  ▸ Text & code   ┆           lint                     ○ unit     …  q ┆[0m
+  ▾ Screens       ┆           typecheck                ○ integrati…  q ┆[0m
+      Settings    ┆       ▾ test                       ○ e2e      …  q ┆[0m
+ [0m[1m▎  › Task runner [0m┆           unit                                     ┆[0m
+ [0m[2m     Query work… [0m┆           integration               [0m[1;7mRun pipeline [0m  ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄ [0m
+                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                   [0m
+[?25l

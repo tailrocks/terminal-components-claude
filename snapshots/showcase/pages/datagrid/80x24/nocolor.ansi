@@ -1,0 +1,25 @@
+ ▪ [0m[1mJunie[0m Design system  Tables › [0m[1mData grid[0m                i Inspector   ? Help  [0m
+                                                                                [0m
+ [0m[1mComponents[0m      54  [0m[1mData grid[0m  Typed cells, a pending-change queue, paging an… [0m
+ ──────────────────                                                             [0m
+    Overview         [0m[1m Playground  [0m  Options    States                           [0m
+  ▸ App shell        ━━━━━━━━━━━━━──────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                              [0m
+  ▾ Tables             customers         rows 1–21 of 40 loaded · ~4,812 total ┃[0m
+      Basic table      ─────────────────────────────────────────────────────── ┃[0m
+      Editable               ⚷ id       customer                   plan        ┆[0m
+ [0m[1m▎  › Data grid    [0m        1 1001       Northwind Traders          enterprise  ┆[0m
+      Selection            2 1002       Blue Yonder Airlines       team        ┆[0m
+      Cell editors         3 1003       Contoso Pharmaceuticals    pro         ┆[0m
+      Columns              4 1004       Fabrikam Robotics          free        ┆[0m
+  ▸ Navigation             5 1005       Litware Analytics          enterprise  ┆[0m
+  ▸ Overlays               6 1006       Tailspin Toys              team        ┆[0m
+  ▸ Feedback               7 1007       Wide World Importers       pro         ┆[0m
+  ▸ Layout                 8 1008       Adventure Works            free        ┆[0m
+  ▸ Text & code            9 1009       Proseware Studio           enterprise  ┆[0m
+  ▸ Screens               10 1010       Woodgrove Bank             team        ┆[0m
+                          11 1011       Alpine Ski House           pro         ┆[0m
+                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄ [0m
+                                                                                [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                           [0m
+[?25l

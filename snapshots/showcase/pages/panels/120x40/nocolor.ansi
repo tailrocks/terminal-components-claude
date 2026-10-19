@@ -1,0 +1,41 @@
+ ▪ [0m[1mJunie[0m Design system  Layout › [0m[1mPanels[0m                                       no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+ [0m[1mComponents[0m           54  [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed twice             [0m
+ ───────────────────────                                                                                                [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                      [0m
+  ▸ Tables                  Titled card                        surface    ╭─ Framed · split pane           1–13 of 24 ─╮[0m
+  ▸ Navigation              ──────────────────────────────────────────    │  Junie works through a task the way a    ┃ │[0m
+  ▸ Overlays                A card is a filled surface. Its title sits    │  careful engineer would: it reads the    ┃ │[0m
+  ▸ Feedback                in the top-left and metadata on the right.    │  relevant code, forms a plan, makes      ┃ │[0m
+  ▾ Layout                  It never has a border.                        │  focused changes, runs the tests, and    ┃ │[0m
+ [0m[1m▎  › Panels            [0m                                                  │  reports back with a summary you can     ┃ │[0m
+      Scrolling                                                           │  review before anything is merged.       ┃ │[0m
+      Splits & stacks                                                     │                                          ┃ │[0m
+      Master-detail                                                       │  Each step is visible. You can pause,    ┆ │[0m
+      Pane tree             Untitled card. Same surface, content          │  redirect, or take over at any point,    ┆ │[0m
+  ▸ Text & code             starts at the padding edge.                   │  and every change lands as an ordinary   ┆ │[0m
+  ▸ Screens                                                               │  diff in your working tree.              ┆ │[0m
+                                                                          │                                          ┆ │[0m
+                                                                          │  [0m[2mThe design system in this prototype     [0m┆ │[0m
+                                                                          ╰────────────────────────────────────────────╯[0m
+                            Nested                                                                                      [0m
+                            ──────────────────────────────────────────      Card · scrollable               1–11 of 60  [0m
+                            Target                                          ──────────────────────────────────────────  [0m
+                               Local                                           0.00s  info   Resolving workspace me… ┃  [0m
+                               CLI                                             0.37s  info   Fetching crates.io ind… ┃  [0m
+                            [0m[2m   Cloud                      [0m                     0.74s  info   Compiling proc-macro2 … ┆  [0m
+                                                                               1.11s  info   Compiling serde v1.0.2… ┆  [0m
+                            A group inside a card is a muted label             1.48s  warn   unused import: `std::f… ┆  [0m
+                            plus indent. The focus bar stays on the            1.85s  info   Compiling tokio v1.40.0 ┆  [0m
+                            control.                                           2.22s  info   Running unittests src/… ┆  [0m
+                                                                               2.59s  info   test api::auth::tests:… ┆  [0m
+                                                                               2.96s  info   test db::pool::tests::… ┆  [0m
+                                                                               3.33s  error  test checkout::places_… ┆  [0m
+                                                                            [0m[2m   3.70s  info   test workers::schedule… [0m┆  [0m
+                                                                            ━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄   [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
+[?25l

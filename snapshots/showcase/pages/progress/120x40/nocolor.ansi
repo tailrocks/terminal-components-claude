@@ -1,0 +1,41 @@
+ ▪ [0m[1mJunie[0m Design system  Feedback › [0m[1mProgress[0m                                   no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+ [0m[1mComponents[0m           54  [0m[1mProgress[0m  Determinate, indeterminate, an aggregate tally, capacity meters                     [0m
+ ───────────────────────                                                                                                [0m
+    Overview              [0m[1m Playground  [0m  Options    States                                              the live widget [0m
+  ▸ App shell             ━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────[0m
+  ▸ Inputs & forms                                                                                                      [0m
+  ▸ Tables                  Live                                                                      ticks at 80 ms   ┃[0m
+  ▸ Navigation              ────────────────────────────────────────────────────────────────────────────────────────   ┃[0m
+  ▸ Overlays                Building          ─────────────────────────────────────────────   0%                       ┃[0m
+  ▾ Feedback                                                                                                           ┃[0m
+ [0m[1m▎  › Progress          [0m    Resolving         ─────────────────────────────────────────────                            ┃[0m
+      Empty & error                                                                                                    ┃[0m
+      Meters                ⠋ Waiting for the test runner                                                              ┃[0m
+      Notices                                                                                                          ┃[0m
+  ▸ Layout                   Restart    Pause                                                                          ┃[0m
+  ▸ Text & code                                                                                                        ┃[0m
+  ▸ Screens                                                                                                            ┃[0m
+                                                                                                                       ┃[0m
+                            Deploy checkout-service                                                    one BarLayout   ┃[0m
+                            ────────────────────────────────────────────────────────────────────────────────────────   ┃[0m
+                            2 of 7 done · 3 running · 1 paused · 1 failed                                              ┃[0m
+                                                                                                                       ┃[0m
+                            Build image       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓                     ┃[0m
+                            Unit tests        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓                     ┃[0m
+                            Integration       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────  64% !                     ┃[0m
+                            Push to registry  ━━━━━━━━━━━━━━━━━━━━━━━──────────────────────  50%                       ┃[0m
+                            Migrate schema    ━━━━━━━━━━━━━━───────────────────────────────  30% ‖                     ┃[0m
+                            Warm caches       ─────────────────────────────────────────────                            ┃[0m
+                            Notify            ─────────────────────────────────────────────   0%                       ┃[0m
+                                                                                                                       ┃[0m
+                                                                                                                       ┆[0m
+                            Meters                                                          capacity, not completion   ┆[0m
+                            ────────────────────────────────────────────────────────────────────────────────────────   ┆[0m
+                            Capacity meters are never green: low ≤ 59 % blue, medium ≤ 84 % warning ▲, high error !.   ┆[0m
+                            Stale keeps its level, dashed.                                                             ┆[0m
+                                                                                                                       ┆[0m
+                            Low        ━━━━━━━━━────────────── 38% used       [0m[1m 38% used · [0mblock                        ┆[0m
+                                                                                                                        [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1m/[0m Filter  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                   [0m
+[?25l

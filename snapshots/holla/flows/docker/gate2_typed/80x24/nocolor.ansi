@@ -1,0 +1,25 @@
+[0m[2m  holla❯    File   Go   Help                  no project  devbox · development  [0m
+[0m[2m  Here › Clean Docker completely › Review                                       [0m
+[0m[2m  H╭──────────────────────────────────────────────────────────────────── × ─╮   [0m
+[0m[2m ━━│                                                                        │── [0m
+[0m[2m  R│  [0m[1;2mClean Docker completely · gate 2 of 2[0m[2m                                 │…  [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m  A│  [0mAction             remove all user-removable Docker state on devbox [0m[2m ┃│┃  [0m
+[0m[2m  H│  [0mHost               devbox                                           [0m[2m ┃│┃  [0m
+[0m[2m  I│  [0mSteps              7 included                                       [0m[2m ┃│┃  [0m
+[0m[2m  S│  [0mDocker accounting  12 containers (5 running) · 41 images 9.8 GB · 7 [0m[2m ┆│┆  [0m
+[0m[2m  D│  [0m                   volumes 4.1 GB · build cache 6.1 GB              [0m[2m ┆│┆  [0m
+[0m[2m   │  [0mReclaimable        ~18.4 GB                                         [0m[2m ┆│┆  [0m
+[0m[2m  R│  [0mRecoverable        no · images, containers and volumes are permanent[0m[2m ┆│┆  [0m
+[0m[2m   │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  │   [0m
+[0m[2m ╭─│                                                                        │─╮ [0m
+[0m[2m │ │  [0m[1;2mType I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm      [0m[2m  │ │ [0m
+[0m[2m │ │[0m[1;2;7m▎ [0m[1;2;4;7mI UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox[0m[1;2;7m                      [0m[2m  │ │ [0m
+[0m[2m │ │                                                                        │ │ [0m
+[0m[2m ╰─│                                                    Cancel    Execute   │─╯ [0m
+[0m[2m   │                                                                        │   [0m
+[0m[2m   ╰─────────────────────────────────────────────────────[0m─[0m[2m─────────[0m─[0m[2m────────╯   [0m
+[0m[2m                                                                                [0m
+[0m[2m /work/scratch              review · gate 1 of 2               no color · 80×24 [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Execu[0m[1mte  Esc[0m Cancel  [0m[1m   [0m       [0m[1m [0m                [0m[1m   [0m              [0m
+[?25h[17;53H[6 q

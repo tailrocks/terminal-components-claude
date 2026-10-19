@@ -1,0 +1,21 @@
+[0m[2m  ▪  TablePro  Production  ◆ production  acme_prod › public  ✓ safe  …  [0m
+[0m[2m                                                                        [0m
+[0m[2m  ≡ ╭──────────────────────────────────────────────────────────────╮+   [0m
+[0m[2m ───│  [0m[1;2mAdd filter[0m[2m                                                  │─── [0m
+[0m[2m › ╭│                                                              │ ─╮ [0m
+[0m[2m   ││   Column                        Operator                     │  │ [0m
+[0m[2m E ││   id                      ▾     =                        ▾   │─ │ [0m
+[0m[2m x ││                                 Operators that fit the col…  │  │ [0m
+[0m[2m p ││   [0m[1;2mValue                                                    [0m[2m  │  │ [0m
+[0m[2m l ││ [0m▎[0m[2m value                                                      │┃ │ [0m
+[0m[2m o ││ [0m [0m[2m                                                            │┆ │ [0m
+[0m[2m r ││ [0m [0m[2m                                                            │┆ │ [0m
+[0m[2m e ││ [0m [0m[2mWHERE id = ''                                               │┆ │ [0m
+[0m[2m r ││ [0m [0m[2m                                                            │┆ │ [0m
+[0m[2m   ││ [0m [0m[2m                                                            │┆ │ [0m
+[0m[2m   ││                                        Cancel   [0m[1;2;7mAdd filter [0m[2m  │  │ [0m
+[0m[2m   │╰──────────────────────────────────────────────────────────────╯  │ [0m
+[0m[2m   ╰──────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                        [0m
+ [0m[1mTab[0m Next field  [0m[1mEnter[0m Apply  [0m[1mEsc[0m Cancel      ✓ Connected to Production [0m
+[?25h[10;9H[6 q

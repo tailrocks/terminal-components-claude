@@ -1,0 +1,41 @@
+[0m[2;38;5;7;48;5;0m [0m[2;38;5;7;48;5;8m holla❯ [0m[2;38;5;7;48;5;0m   File   Go   Help                                                         acme · mise monorepo  mbp · local  [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×                   [0m
+[0m[2;38;5;7;48;5;0m ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m Search actions and resources…                                                                        scope ‹ here ›  [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m    Suggested here                                                               Inspect 10 GB of genera… disk · here   [0m
+[0m[2;38;5;7;48;5;0m    Follow acme-api-1 logs     docker    here   service is unhealthy             ────────────────────────────────────   [0m
+[0m[2;38;5;7;48;5;0m  › Inspect 10 GB of generat…  disk      here   10 GB generated artifacts        Does       2 rebuildable candidates    [0m
+[0m[2;38;5;7;48;5;0m    Install missing tools · …  task      here   1 tool missing                              below this folder · 0       [0m
+[0m[2;38;5;7;48;5;0m    Review cleanup candidates  cleanup   host   10.6 GiB across 4 categories                stale enough to start       [0m
+[0m[2;38;5;7;48;5;0m    Deploy preview             custom    here   Current folder…                             selected                    [0m
+[0m[2;38;5;7;48;5;0m                                                                                 Runs       'holla disk anal…ifacts'    [0m
+[0m[2;38;5;7;48;5;0m    Recent here                                                                  In         ~/work/acme                 [0m
+[0m[2;38;5;7;48;5;0m    nothing used here yet                                                        Host       mbp · local                 [0m
+[0m[2;38;5;7;48;5;0m                         ╭────────────────────────────────────────────────────────────────────╮e                        [0m
+[0m[2;38;5;7;48;5;0m    Running              │ [0m[1;2;38;5;15;48;5;0mActivities[0m[2;38;5;7;48;5;0m                                                  4 live │GB generated             [0m
+[0m[2;38;5;7;48;5;0m    logs · api worker sch│ [0m[1;2;38;5;4;48;5;4m [0m[2;38;5;15;48;5;4m⠋[0m[1;2;38;5;15;48;5;4m frontend dev                 [0m[2;38;5;15;48;5;4mrunning · child · 3 s[0m[1;2;38;5;15;48;5;4m  [0m[2;38;5;15;48;5;4mactivities[0m[1;2;38;5;15;48;5;4m [0m[2;38;5;7;48;5;0m │ifacts                   [0m
+[0m[2;38;5;7;48;5;0m    api dev              │ [0m[2;38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m⠋[0m[2;38;5;15;48;5;0m api dev                      [0m[2;38;5;7;48;5;0mrunning · child · 3 s[0m[2;38;5;15;48;5;0m             [0m[2;38;5;7;48;5;0m │e · read-only            [0m
+[0m[2;38;5;7;48;5;0m    btm                  │ [0m[2;38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m✓[0m[2;38;5;15;48;5;0m api tests                    [0m[2;38;5;7;48;5;0msucceeded · project …[0m[2;38;5;15;48;5;0m             [0m[2;38;5;7;48;5;0m │d-only                   [0m
+[0m[2;38;5;7;48;5;0m    frontend dev         │ [0m[2;38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m⠋[0m[2;38;5;15;48;5;0m logs · api worker scheduler  [0m[2;38;5;7;48;5;0mrunning · here · 3 s[0m[2;38;5;15;48;5;0m              [0m[2;38;5;7;48;5;0m │e · 3 s ago              [0m
+[0m[2;38;5;7;48;5;0m                         │ [0m[2;38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m○[0m[2;38;5;15;48;5;0m btm                          [0m[2;38;5;7;48;5;0mdetached · host · 3 s[0m[2;38;5;15;48;5;0m             [0m[2;38;5;7;48;5;0m │ns a review · the        [0m
+[0m[2;38;5;7;48;5;0m    Explore              │                                                                    │etion is gated there     [0m
+[0m[2;38;5;7;48;5;0m [0m[38;5;0;48;5;0m [0m[2;38;5;7;48;5;0m   Tasks   Git   Files │                                                                    │ped phrase)              [0m
+[0m[2;38;5;7;48;5;0m    Children · 3 projects╰────────────────────────────────────────────────────────────────────╯ · Alias · Why here?     [0m
+[0m[2;38;5;7;48;5;0m    System · mbp               explore   host   available on this host                                                  [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m                                                                                                                        [0m
+[0m[2;38;5;7;48;5;0m ~/work/acme   main   ↑1                                                              ⠋ 4 running    16 colors · 120×40 [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m↑↓ [0m[1;38;5;7;48;5;0mM[0m[38;5;7;48;5;0move[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mEnter [0m[38;5;7;48;5;0mSwitch[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m Esc [0m[38;5;7;48;5;0mCancel[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m         [0m[38;5;15;48;5;0m                [0m[1;38;5;15;48;5;0m   [0m[38;5;15;48;5;0m          [0m[1;38;5;15;48;5;0m       [0m[38;5;15;48;5;0m            [0m[38;5;7;48;5;0mapi tests finished · exit 0[0m[38;5;15;48;5;0m [0m
+[?25l

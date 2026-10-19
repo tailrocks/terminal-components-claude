@@ -1,0 +1,31 @@
+[0m[2m  jackin❯    File   Edit   View   Session   Help              …  payments-platform › the-architect  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m  1 Mix (3) ●    2 Shell    3 docs ●                                                                [0m
+[0m[2m ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m╭─ Claude Code (Work) ●─────────────────────────╮│╭─ Codex (Primary) ○─────────────────────────────╮[0m
+[0m[2m│                   ╭──────────────────────────────────────────────────────────╮                  ┆│[0m
+[0m[2m│● The loop retries │ [0m[1;2mCommand palette[0m[2m                                 20 of 20 │_currency         ┆│[0m
+[0m[2m│  exponential backo│ ▎ Type to filter commands…                               │1,204.49 EUR      ┆│[0m
+[0m[2m│                   │                                                          │sion in ledger/fx ┆│[0m
+[0m[2m│● Edit src/settleme│ [0m[1;2;7m [0m[2;7m [0m[1;2;7m New tab                   [0m[2;7mCtrl+B c[0m[1;2;7m                  [0m[2m┃ │                  ┆│[0m
+[0m[2m│  +  const MAX_ATTE│    Split pane                Ctrl+B " %                ┃ │                  ┃│[0m
+[0m[2m│  +  let delay = BA│    Zoom / unzoom pane        Ctrl+B z                  ┃ │                  ┃│[0m
+[0m[2m│  -  for attempt in│    Export file               host                      ┃ │                  ┃│[0m
+[0m[2m│  +  for attempt in│    Export file and reveal    host                      ┃ │━━━━━━━━┄┄┄┄┄┄┄┄┄┄ │[0m
+[0m[2m│                   │    Export file and open      host                      ┃ │───────────────────╯[0m
+[0m[2m│● Bash cargo test -│    Export file under cursor  no file under cursor      ┃ │────────────────────[0m
+[0m[2m│  running 6 tests …│    Export file under curso…  no file under cursor      ┃ │───────────────────╮[0m
+[0m[2m│                   │    Export file under curso…  no file under cursor      ┆ │f.md              ┆│[0m
+[0m[2m│● Edit src/settleme│    Export selected file      no selection              ┆ │ppy -p settlement ┆│[0m
+[0m[2m│  +  pub use retry:│    Export selected file an…  no selection              ┆ │2 (crates/settlem ┆│[0m
+[0m[2m│                   │    Export selected file an…  no selection              ┆ │] target(s) in 3. ┆│[0m
+[0m[2m│● Retries now back │    Stage image from clipbo…  Not in this preview       ┆ │dr                ┆│[0m
+[0m[2m│  One more edit: ex│                                                          │0004-ledger-preci ┆│[0m
+[0m[2m│                   ╰──────────────────────────────────────────────────────────╯0005-fx-rounding. ┆│[0m
+[0m[2m│▶ Allow edit to src/settlement/config.rs? (y/ ┃│││0003-retry-policy.md         0007-retry-backof ┆│[0m
+[0m[2m│❯                                             ┃│││payments-platform ❯                            ┃│[0m
+[0m[2m│━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄ │││━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄ │[0m
+[0m[2m╰───────────────────────────────────────────────╯│╰────────────────────────────────────────────────╯[0m
+[0m[2m PR #482 · Settlement retry backoff                                   …   Session ╍╍╍╍╍╍╍╍─── 76% ▲ [0m
+ [0m[1mType F[0milter  [0m[1m↑↓[0m Move  [0m[1mEsc [0mCancel  …        Attached to payments-platform · tabs and panes restored [0m
+[?25h[8;25H[6 q
