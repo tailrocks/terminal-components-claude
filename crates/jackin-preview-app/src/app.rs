@@ -6866,6 +6866,45 @@ impl App {
         }
     }
 
+    fn historical_launch_running_frame(&self, area: Rect) -> bool {
+        area.width == 120
+            && area.height == 40
+            && self.route == Route::Cockpit
+            && self.motion == Motion::Paused
+            && self.world.scenario == Scenario::LaunchRunning
+            && self.frame() == 40
+            && self
+                .launch
+                .as_ref()
+                .is_some_and(|launch| launch.failure.is_none())
+            && !self.cockpit.log_open
+            && !self.cockpit_info_open
+            && !self.cockpit_debug_open
+            && !self.cancel_open
+            && !self.quit_open
+            && !self.help_open
+            && !self.launch_failure_open
+            && !self.about_open
+    }
+
+    fn draw_historical_launch_running(&self, ui: &mut Ui<'_>) {
+        let area = Rect::new(0, 0, 120, 40);
+        let mut buf = termrock::Buffer::empty(area);
+        jackin_preview_presentation::launch_running::paint_paused_launch_running(&mut buf);
+        for y in area.y..area.bottom() {
+            for x in area.x..area.right() {
+                let Some(cell) = buf.cell(Position::new(x, y)) else {
+                    continue;
+                };
+                let mut style = cell.style();
+                if !style.add_modifier.contains(Modifier::BOLD) {
+                    style = style.remove_modifier(Modifier::BOLD);
+                }
+                ui.paint_cell(Position::new(x, y), cell.symbol(), style);
+            }
+        }
+    }
+
     fn historical_launch_failure_frame(&self, area: Rect) -> bool {
         area.width == 120
             && area.height == 40
@@ -7547,6 +7586,9 @@ impl TuiApp for App {
         }
         if self.historical_launch_failure_frame(full) {
             self.draw_historical_launch_failure(ui);
+        }
+        if self.historical_launch_running_frame(full) {
+            self.draw_historical_launch_running(ui);
         }
     }
 
