@@ -17,10 +17,10 @@ use crate::{
     sim::{pg, world::World},
 };
 use termrock::{
-    ActionKey, Binding, Brand, Chord, Constraints, Cx, Dialog, FgStep, Focusability, FrameRead,
-    HintBar, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Menu, MenuAction, MenuBar,
-    MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role, StylePatch, Surface, TooSmall,
-    Ui,
+    ActionKey, Binding, Brand, Chord, Color, Constraints, Cx, Dialog, FgStep, Focusability,
+    FrameRead, HintBar, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Menu,
+    MenuAction, MenuBar, MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role,
+    StylePatch, Surface, TooSmall, Ui,
 };
 
 const BRAND: Id = Id::root("holla.brand");
@@ -752,6 +752,9 @@ impl App {
             ui,
             Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
         );
+        if self.route == Route::Home {
+            paint_here_band(ui, area);
+        }
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.footer_draw(ui, footer);
     }
@@ -1056,7 +1059,7 @@ impl termrock::App for App {
             area.height.saturating_sub(4),
         );
         match self.route {
-            Route::Home => self.home.draw(&self.world, ui, body),
+            Route::Home => self.home.draw(&self.world, ui, home_body(body)),
             Route::Plan => {
                 if let Some(plan) = &self.plan {
                     plan.draw(ui, body);
@@ -1119,6 +1122,57 @@ fn too_small(area: Rect) -> bool {
     area.width < MIN_WIDTH || area.height < MIN_HEIGHT
 }
 
+/// Tag body starts under a 4-row header. `body` is the port's y+2 frame, so Home drops two more rows for the band and one for the tag footer gap.
+fn home_body(body: Rect) -> Rect {
+    Rect::new(
+        body.x,
+        body.y.saturating_add(2),
+        body.width,
+        body.height.saturating_sub(3),
+    )
+}
+
+/// Tag `Tabs` active item for this boot: width `1 + label + 2`, bold primary on `#27272a`, accent `━`, then `#3a3a3a` `─`.
+fn paint_here_band(ui: &mut Ui<'_>, area: Rect) {
+    let width = area.width.saturating_sub(2);
+    if width == 0 || area.height < 4 {
+        return;
+    }
+    let x = area.x.saturating_add(1);
+    let y = area.y.saturating_add(2);
+    let tab_w = 1u16
+        .saturating_add(termrock::width("Here"))
+        .saturating_add(2)
+        .min(width);
+    let plate = ui.paint_patch(
+        &StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Primary))
+            .set_bg(Role::Surface(Surface::Overlay))
+            .add(termrock::Modifier::BOLD),
+    );
+    let tab = Rect::new(x, y, tab_w, 1);
+    ui.fill(tab, plate);
+    ui.paint_str(tab, " Here", plate);
+    let accent = ui.paint_patch(&StylePatch::new().set_fg(Role::Accent));
+    // Tag `border_subtle` is `#3a3a3a`. The port `BorderSubtle` token is `#262626`.
+    let rule =
+        ui.paint_patch(&StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x3a, 0x3a, 0x3a))));
+    let under = y.saturating_add(1);
+    ui.paint_str(
+        Rect::new(x, under, tab_w, 1),
+        &"━".repeat(usize::from(tab_w)),
+        accent,
+    );
+    let rest = width.saturating_sub(tab_w);
+    if rest > 0 {
+        ui.paint_str(
+            Rect::new(x.saturating_add(tab_w), under, rest, 1),
+            &"─".repeat(usize::from(rest)),
+            rule,
+        );
+    }
+}
+
 #[cfg(test)]
 #[expect(
     clippy::unwrap_used,
@@ -1148,6 +1202,26 @@ mod tests {
             120,
             40,
         )
+    }
+    #[test]
+    fn discovery_boot_paints_the_here_band_above_the_filter() {
+        let harness = harness(
+            App::for_scenario(Scenario::ParityDiscovery, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let text = harness.text();
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines[2].contains("Here"), "{}", lines[2]);
+        assert!(!lines[2].contains('▎'), "{}", lines[2]);
+        assert!(lines[3].contains('━'), "{}", lines[3]);
+        assert!(lines[4].contains("Type to filter"), "{}", lines[4]);
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
     }
     #[test]
     fn paused_clock_step_advances_world_time_by_1100_ms() {
