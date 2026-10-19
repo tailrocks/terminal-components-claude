@@ -68,8 +68,15 @@ fn canvas(theme: &Theme) -> Color {
 }
 
 fn ladder_color(theme: &Theme, level: u8) -> Color {
-    let index = 4usize.saturating_sub(usize::from(level.min(4)));
-    theme.color.fg.get(index).copied().unwrap_or(Color::Reset)
+    let step = level.min(4);
+    let index = 4usize.saturating_sub(usize::from(step));
+    let resolved = theme.color.fg.get(index).copied().unwrap_or(Color::Reset);
+    // Tag junie `text_muted` / `text_faint` are not the current FgStep ramp.
+    match step {
+        2 if resolved == Color::from_u32(0x80_80_80) => Color::from_u32(0x8a_8a_8a),
+        1 if resolved == Color::from_u32(0x4d_4d_4d) => Color::from_u32(0x73_73_73),
+        _ => resolved,
+    }
 }
 
 pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
@@ -530,13 +537,7 @@ fn draw_text(buf: &mut Buffer, area: Rect, text: &str, y: u16, tone: Tone, theme
 }
 
 fn hint_ink(theme: &Theme, level: u8) -> Color {
-    let resolved = ladder_color(theme, level);
-    // Tag junie `text_muted` / `text_faint` are not the current FgStep ramp.
-    match level {
-        2 if resolved == Color::from_u32(0x80_80_80) => Color::from_u32(0x8a_8a_8a),
-        1 if resolved == Color::from_u32(0x4d_4d_4d) => Color::from_u32(0x73_73_73),
-        _ => resolved,
-    }
+    ladder_color(theme, level)
 }
 
 fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, theme: &Theme) {
@@ -911,6 +912,39 @@ mod tests {
         );
         assert_eq!(format_universe_duration(45), "45 seconds");
         assert_eq!(format_universe_duration(450), "7 minutes 30 seconds");
+    }
+
+    #[test]
+    fn paused_outro_warp_uses_tag_muted_and_faint_ink() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 120, 40);
+        let mut buf = Buffer::empty(area);
+        paint_outro(
+            &mut buf,
+            area,
+            &OutroState::new(Motion::Paused, Some(8_040), 40),
+            &theme,
+        );
+        let mut muted = 0usize;
+        let mut faint = 0usize;
+        let mut legacy = 0usize;
+        for y in 0..area.height {
+            for x in 0..area.width {
+                let cell = buf.cell((x, y)).expect("cell");
+                if cell.fg == Color::from_u32(0x8a_8a_8a) {
+                    muted += 1;
+                } else if cell.fg == Color::from_u32(0x73_73_73) {
+                    faint += 1;
+                } else if cell.fg == Color::from_u32(0x80_80_80)
+                    || cell.fg == Color::from_u32(0x4d_4d_4d)
+                {
+                    legacy += 1;
+                }
+            }
+        }
+        assert!(muted > 0, "tag muted ink missing");
+        assert!(faint > 0, "tag faint ink missing");
+        assert_eq!(legacy, 0, "current ramp leaked into the warp");
     }
 
     #[test]
