@@ -1,11 +1,12 @@
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
-    Action, ActionKey, App, Chord, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
-    Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel,
-    Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, Panel,
-    PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane,
-    SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme,
-    Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
+    Action, ActionKey, Align, App, Chord, ColumnKey, Cx, Dialog, DialogAction, DialogState, FgStep,
+    Field, Focusability, Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction,
+    GridColumnFit, GridEditor, GridGutter, GridModel, GridSortIndicator, Id, Intent, ItemKey,
+    KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, Panel, PanelKind, Part, Phase,
+    PickerAction, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState,
+    StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction,
+    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -173,6 +174,8 @@ const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
 // Frozen junie ink. Current steps are Muted #808080, Faint/BorderStrong #4d4d4d,
 // Info #8787ff, and Danger #e44545. None of those roles match the frame.
 const TAG_CHROME_FG: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a));
+const TAG_PATH_FG: Role = Role::Custom(termrock::Color::from_u32(0x00b3_b3b3));
+const TAG_OK_FG: Role = Role::Custom(termrock::Color::from_u32(0x003f_b950));
 const TAG_RULE_FG: Role = Role::Custom(termrock::Color::from_u32(0x003a_3a3a));
 const LEGACY_FAINT: Role = Role::Custom(termrock::Color::from_u32(0x0073_7373));
 const LEGACY_INFO: Role = Role::Custom(termrock::Color::from_u32(0x0079_b8ff));
@@ -263,7 +266,6 @@ enum ExplorerNode {
     },
     Object {
         item: ExplorerItem,
-        count: String,
         prefix: &'static str,
     },
 }
@@ -792,21 +794,21 @@ impl TableProApp {
             .focused(false)
     }
 
-    fn explorer_panel(schema: &str) -> Panel<'_> {
+    fn explorer_panel(schema: &str, focused: bool) -> Panel<'_> {
         Panel::new(EXPLORER_PANEL)
             .kind(PanelKind::Framed)
-            .title(" Explorer ")
+            .title(" Explorer")
             .meta(schema)
-            .focused(true)
+            .focused(focused)
             .patch_part(&FRAMED_PANEL_PATCH)
             .slot(Part::GUTTER, &preserve_frame_gutter)
     }
 
-    fn content_panel<'a>(title: &'a str, meta: Option<&'a str>) -> Panel<'a> {
+    fn content_panel<'a>(title: &'a str, meta: Option<&'a str>, focused: bool) -> Panel<'a> {
         let panel = Panel::new(CONTENT_FRAME)
             .kind(PanelKind::Framed)
             .title(title)
-            .focused(true)
+            .focused(focused)
             .patch_part(&FRAMED_PANEL_PATCH)
             .slot(Part::GUTTER, &preserve_frame_gutter);
         match meta {
@@ -915,12 +917,29 @@ impl TableProApp {
         self.sync_tabs_state();
         self.screen = Screen::Workbench;
         self.surface = Surface::WorkbenchDefault;
+        self.split_state = SplitPaneState::new(25);
         self.status = format!("Connected to {}", connection.name);
         true
     }
 
     fn sync_active_table(&mut self) {
         self.sync_active_tab();
+    }
+
+    fn pin_tab_window(&mut self) {
+        let Some(active) = self.tabs_state.active() else {
+            return;
+        };
+        let Some(index) = self
+            .workbench
+            .tabs()
+            .iter()
+            .position(|tab| tab_key(tab) == active)
+        else {
+            return;
+        };
+        self.tabs_state = TabsState::default();
+        self.tabs_state.set_active(index, active);
     }
 
     fn sync_tabs_state(&mut self) {
@@ -1102,16 +1121,21 @@ impl TableProApp {
         editable: bool,
     ) -> ([termrock::Column<'_>; termrock::GRID_MAX_COLUMNS], usize) {
         let count = columns.len().min(termrock::GRID_MAX_COLUMNS);
-        let mut specs =
-            [termrock::Column::new(termrock::ColumnKey::num(0), ""); termrock::GRID_MAX_COLUMNS];
-        for (index, (name, _)) in columns.iter().take(count).enumerate() {
+        let mut specs = [termrock::Column::new(ColumnKey::num(0), ""); termrock::GRID_MAX_COLUMNS];
+        for (index, (name, ty)) in columns.iter().take(count).enumerate() {
             let mut col = termrock::Column::new(
-                termrock::ColumnKey::num((index as u16).saturating_add(1)),
+                ColumnKey::num((index as u16).saturating_add(1)),
                 name.as_str(),
             );
             col.sortable = true;
             col.editable = editable;
             col.sticky = index == 0;
+            if matches!(ty, ColType::Int | ColType::Numeric) {
+                col.align = Align::Right;
+            }
+            if name == "id" {
+                col.min_width = 38;
+            }
             if let Some(slot) = specs.get_mut(index) {
                 *slot = col;
             }
@@ -1606,6 +1630,49 @@ impl TableProApp {
         response
     }
 
+    fn draw_table_data(&self, ui: &mut Ui<'_>, inner: termrock::Rect) {
+        paint_data_mode(ui, inner);
+        let grid_area = termrock::Rect {
+            y: inner.y.saturating_add(3),
+            height: inner.height.saturating_sub(5),
+            ..inner
+        };
+        let Some((id, grid_view)) = self.workbench.active_grid() else {
+            return;
+        };
+        let (columns, count) =
+            Self::column_specs(&grid_view.columns, grid_view.model.is_editable());
+        let grid = result_grid(id, columns.get(..count).unwrap_or(&[]));
+        grid.draw(ui, grid_area, &grid_view.state, &grid_view.model);
+        let shown = usize::from(grid_area.height.saturating_sub(1));
+        let loaded = grid_view.model.row_count();
+        let last = shown.min(loaded);
+        let status = format!(
+            "rows 1–{} of {} loaded · {} total · cols 1–2 of {}",
+            grouped(last),
+            grouped(loaded),
+            grouped(grid_view.model.total()),
+            grouped(grid_view.columns.len()),
+        );
+        let status_area = termrock::Rect {
+            y: inner.bottom().saturating_sub(1),
+            height: 1,
+            ..inner
+        };
+        let style = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        ui.paint_str(
+            termrock::Rect {
+                x: status_area.x.saturating_add(1),
+                width: status_area.width.saturating_sub(1),
+                ..status_area
+            },
+            &status,
+            style,
+        );
+    }
+
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         if let Some((id, grid)) = self.workbench.active_grid() {
             let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
@@ -1777,7 +1844,8 @@ impl TableProApp {
     }
 
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
-        let panel = Self::explorer_panel(self.workbench.schema_caption());
+        let meta = format!("{}    ", self.workbench.current_schema());
+        let panel = Self::explorer_panel(&meta, self.surface != Surface::TableGrid);
         let inner = panel.inner(ui, area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, area, |_, _| {});
@@ -1803,13 +1871,14 @@ impl TableProApp {
                 &self.explorer_nodes,
             );
         });
+        paint_explorer_collapse(ui, area);
     }
 
     fn draw_content(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         let (title, meta) = match self.workbench.active() {
             Some(Tab::Table(table)) => (
-                qualified_label(" ", &table.table.schema, &table.table.name),
-                Some(format!("{} cols ", table.table.columns.len())),
+                qualified_label("", &table.table.schema, &table.table.name),
+                Some(format!("{} cols", table.table.columns.len())),
             ),
             Some(Tab::Query(query)) => (format!(" {}", query.name), None),
             Some(Tab::History(_)) => (
@@ -1818,7 +1887,7 @@ impl TableProApp {
             ),
             None => (" Workbench".to_owned(), None),
         };
-        let panel = Self::content_panel(&title, meta.as_deref());
+        let panel = Self::content_panel(&title, meta.as_deref(), true);
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
             Some(Tab::Query(query)) => {
                 let rows = fixed_flex_pair(inner, 3);
@@ -1844,14 +1913,11 @@ impl TableProApp {
                 }
             }
             Some(Tab::Table(table)) => {
-                let rows = fixed_flex_pair(inner, 2);
-                let mode = if table.is_structure() {
-                    "▎ Data    Structure"
+                if table.is_structure() {
+                    ui.paint_str(inner, "Structure", ui.surface_style());
                 } else {
-                    "Data    ▎ Structure"
-                };
-                ui.paint_str(rows[0], mode, ui.surface_style());
-                self.draw_result_grid(ui, rows[1]);
+                    self.draw_table_data(ui, inner);
+                }
             }
             Some(Tab::History(history)) => {
                 ui.paint_str(inner, "Query history", ui.surface_style());
@@ -2060,7 +2126,7 @@ fn build_explorer_nodes(catalog: &Catalog) -> Vec<ExplorerNode> {
             (ObjectKind::Table, "Tables", "T"),
             (ObjectKind::View, "Views", "V"),
             (ObjectKind::Function, "Functions", "ƒ"),
-            (ObjectKind::Sequence, "Sequences", "S"),
+            (ObjectKind::Sequence, "Sequences", "#"),
         ] {
             let objects = catalog
                 .tables
@@ -2080,11 +2146,11 @@ fn build_explorer_nodes(catalog: &Catalog) -> Vec<ExplorerNode> {
                 schema: schema.clone(),
                 name: label.to_owned(),
             });
-            nodes.extend(objects.into_iter().map(|item| ExplorerNode::Object {
-                count: compact_count(item.rows),
-                item,
-                prefix,
-            }));
+            nodes.extend(
+                objects
+                    .into_iter()
+                    .map(|item| ExplorerNode::Object { item, prefix }),
+            );
         }
     }
     nodes
@@ -2130,7 +2196,7 @@ fn explorer_node(node: &ExplorerNode) -> TreeNode {
         ExplorerNode::Database { .. } => TreeNode::parent(0).keyed(explorer_node_key(node)),
         ExplorerNode::Schema { .. } => TreeNode::parent(1).keyed(explorer_node_key(node)),
         ExplorerNode::Group { .. } => TreeNode::parent(2).keyed(explorer_node_key(node)),
-        ExplorerNode::Object { .. } => TreeNode::leaf(3).keyed(explorer_node_key(node)),
+        ExplorerNode::Object { .. } => TreeNode::lazy(3).keyed(explorer_node_key(node)),
     }
 }
 
@@ -2149,32 +2215,17 @@ fn qualified_label(prefix: &str, left: &str, right: &str) -> String {
     text
 }
 
-fn compact_count(rows: usize) -> String {
-    if rows >= 1_000_000 {
-        format!("{:.1}m", rows as f64 / 1_000_000.0)
-    } else if rows >= 1_000 {
-        format!("{:.1}k", rows as f64 / 1_000.0)
-    } else {
-        rows.to_string()
-    }
-}
-
 fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
     match node {
-        ExplorerNode::Database { name } => row.label_fmt(format_args!("▣ {name}")),
+        ExplorerNode::Database { name } => row.label_fmt(format_args!("D {name}")),
         ExplorerNode::Schema { name } => row.label_fmt(format_args!("S {name}")),
         ExplorerNode::Group { name, .. } => row.label(name),
-        ExplorerNode::Object {
-            item,
-            prefix,
-            count,
-        } => {
+        ExplorerNode::Object { item, prefix, .. } => {
             row.label_spans(&[
                 Span::new(prefix).role(Role::Fg(FgStep::Muted)),
                 Span::new(" "),
                 Span::new(&item.name),
             ]);
-            row.meta(count);
         }
     }
 }
@@ -2258,7 +2309,14 @@ fn explorer_tree() -> Tree<
         .key(explorer_node_key)
         .node(&explorer_node)
         .row(explorer_row)
+        .branch_activation(TreeBranchActivation::Activate)
 }
+
+const ID_HEADER_PREFIX: [(ColumnKey, GlyphRole, Role); 1] = [(
+    ColumnKey::num(1),
+    GlyphRole::PrimaryKey,
+    Role::Fg(FgStep::Muted),
+)];
 
 fn tab_strip()
 -> Tabs<'static, TabRecord, impl Fn(&TabRecord) -> ItemKey, impl Fn(&TabRecord, &mut RowUi<'_>)> {
@@ -2283,10 +2341,22 @@ fn workbench_split() -> SplitPane<'static> {
         .min_second(20)
 }
 fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
-    Grid::new(id, columns)
+    let grid = Grid::new(id, columns)
         .blur(termrock::BlurPolicy::Keep)
         .nav(termrock::NavUnit::Cell)
         .select_mode(termrock::SelectMode::Multi)
+        .gutter(GridGutter::Detailed {
+            row_numbers: true,
+            min_digits: 1,
+        })
+        .column_fit(GridColumnFit::CompleteWithPreview { min_width: 4 })
+        .column_gap(2)
+        .sort_indicator(GridSortIndicator::ActiveOnly);
+    if columns.first().is_some_and(|column| column.title == "id") {
+        grid.header_prefixes(&ID_HEADER_PREFIX)
+    } else {
+        grid
+    }
 }
 
 fn shell_parts(area: termrock::Rect) -> [termrock::Rect; 3] {
@@ -2368,6 +2438,72 @@ fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
+fn paint_explorer_collapse(ui: &mut Ui<'_>, area: termrock::Rect) {
+    if area.width < 6 || area.height == 0 {
+        return;
+    }
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+    ui.paint_str(
+        termrock::Rect {
+            x: area.right().saturating_sub(4),
+            y: area.y,
+            width: 1,
+            height: 1,
+        },
+        "‹",
+        style,
+    );
+}
+
+fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
+    if inner.height < 2 {
+        return;
+    }
+    let label = ui.surface_style();
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(1),
+            width: inner.width.saturating_sub(1),
+            height: 1,
+            ..inner
+        },
+        "Data    Structure",
+        label,
+    );
+    let rule = termrock::Rect {
+        y: inner.y.saturating_add(1),
+        height: 1,
+        ..inner
+    };
+    let active = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let quiet = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+    ui.paint_str(
+        termrock::Rect {
+            width: 7.min(rule.width),
+            ..rule
+        },
+        "━━━━━━━",
+        active,
+    );
+    if rule.width > 7 {
+        ui.paint_str(
+            termrock::Rect {
+                x: rule.x.saturating_add(7),
+                width: rule.width.saturating_sub(7),
+                ..rule
+            },
+            &"─".repeat(usize::from(rule.width.saturating_sub(7))),
+            quiet,
+        );
+    }
+}
+
 fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str) {
     let x = area
         .x
@@ -2415,6 +2551,25 @@ fn paint_detail_rule(ui: &mut Ui<'_>, card: termrock::Rect) {
     );
 }
 
+fn safe_mode_mark(mode: SafeMode) -> Span<'static> {
+    match mode {
+        SafeMode::Safe | SafeMode::SafeFull => Span::new(" ✓ safe ").role(TAG_OK_FG),
+        _ => Span::new(mode.token()),
+    }
+}
+
+fn grouped(n: usize) -> String {
+    let raw = n.to_string();
+    let mut out = String::new();
+    for (index, ch) in raw.chars().rev().enumerate() {
+        if index > 0 && index.is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(ch);
+    }
+    out.chars().rev().collect()
+}
+
 fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     ui.fill(area, base);
@@ -2460,24 +2615,26 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             Environment::Local | Environment::Development => "·",
         };
         let environment = app.connection.environment.label();
-        let path = qualified_label("", &app.connection.database, app.workbench.current_schema());
+        let path = format!(
+            " {} ",
+            qualified_label("", &app.connection.database, app.workbench.current_schema())
+        );
         ui.paint_spans(
             area,
             &[
                 Span::new("  "),
                 Span::new("▪").role(Role::Accent),
                 Span::new(" "),
-                Span::new(" TablePro ").bold(),
-                Span::new(" "),
+                Span::new(" TablePro  ").bold(),
                 Span::new(&app.connection.name).bold(),
-                Span::new("  "),
-                Span::new(glyph).bold(),
+                Span::new(" ").bold(),
                 Span::new(" "),
-                Span::new(environment).bold(),
-                Span::new("  "),
-                Span::new(&path).role(Role::Fg(FgStep::Secondary)),
-                Span::new("  "),
-                Span::new(app.safe_mode.token()).bold(),
+                Span::new(glyph).role(LEGACY_DANGER_LABEL).bold(),
+                Span::new(" ").role(LEGACY_DANGER_LABEL).bold(),
+                Span::new(environment).role(LEGACY_DANGER_LABEL).bold(),
+                Span::new(" "),
+                Span::new(&path).role(TAG_PATH_FG),
+                safe_mode_mark(app.safe_mode),
             ],
             base,
         );
@@ -2556,25 +2713,31 @@ fn with_footer_spans(app: &TableProApp, paint: impl FnOnce(&[Span<'static>])) {
         match app.workbench.active() {
             Some(Tab::Table(_)) => paint(&[
                 Span::new(" "),
-                Span::new("↑ ↓←→").bold(),
+                Span::new("↑↓←→").bold(),
                 Span::new(" "),
                 Span::new("Cell").role(Role::Fg(FgStep::Muted)),
                 Span::new("  "),
                 Span::new("Enter").bold(),
                 Span::new(" "),
                 Span::new("Edit").role(Role::Fg(FgStep::Muted)),
-                Span::new("  s").bold(),
+                Span::new("  "),
+                Span::new("Alt+D").bold(),
+                Span::new(" "),
+                Span::new("Duplicate row").role(Role::Fg(FgStep::Muted)),
+                Span::new("  "),
+                Span::new("s").bold(),
                 Span::new(" "),
                 Span::new("Sort").role(Role::Fg(FgStep::Muted)),
-                Span::new("  f").bold(),
+                Span::new("  "),
+                Span::new("f").bold(),
                 Span::new(" "),
                 Span::new("Filter").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Space").bold(),
+                Span::new("  "),
+                Span::new("Space").bold(),
                 Span::new(" "),
                 Span::new("Select row").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
+                Span::new("  "),
+                Span::new("…").role(Role::Fg(FgStep::Muted)),
             ]),
             Some(Tab::Query(_)) => paint(&[
                 Span::new(" "),
@@ -2641,8 +2804,11 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         ui.fill(right, base);
         ui.paint_str(right, notice, base);
     } else if app.screen == Screen::Workbench {
-        let prefix = "Connected to ";
-
+        let prefix = if app.surface == Surface::TableGrid {
+            "✓ Connected to "
+        } else {
+            "Connected to "
+        };
         let mut right_text =
             String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
         right_text.push_str(prefix);
@@ -2655,7 +2821,13 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         };
         ui.paint_spans(
             right,
-            &[Span::new(&right_text).role(Role::Fg(FgStep::Muted))],
+            &[
+                Span::new(&right_text).role(if app.surface == Surface::TableGrid {
+                    Role::Success
+                } else {
+                    Role::Fg(FgStep::Muted)
+                }),
+            ],
             base,
         );
     }
@@ -2923,8 +3095,8 @@ impl App for TableProApp {
 
         let _ = Self::connections_panel("", None);
         let _ = Self::connection_details_panel("");
-        let _ = Self::explorer_panel(self.workbench.schema_caption());
-        let _ = Self::content_panel("", None);
+        let _ = Self::explorer_panel(self.workbench.schema_caption(), true);
+        let _ = Self::content_panel("", None, true);
         if matches!(
             cx.update_cause(),
             UpdateCause::Bootstrap | UpdateCause::Event
@@ -3091,7 +3263,11 @@ impl App for TableProApp {
                 .find(|node| explorer_node_key(node) == *key)
         {
             let item = item.clone();
-            let _ = self.open_table(&item);
+            if self.open_table(&item)
+                && let Some(id) = self.result_id()
+            {
+                cx.focus(id);
+            }
         }
         response |= tree_response.erase();
 
@@ -3122,6 +3298,12 @@ impl App for TableProApp {
             }
         }
         response |= tabs_response.erase();
+        if self.workbench.tabs().len() <= 3 {
+            self.pin_tab_window();
+        }
+        if cx.update_cause() == UpdateCause::Bootstrap && self.screen == Screen::Workbench {
+            cx.focus(EXPLORER);
+        }
 
         response
     }
