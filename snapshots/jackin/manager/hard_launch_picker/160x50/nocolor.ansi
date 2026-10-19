@@ -1,0 +1,51 @@
+[0m[2m  jackin❯    File   Go   Help                                                    Workspaces  inside the Construct  ! instance index unreadable  ▲ daemon stale  [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m ╭─ Workspaces ────────────────────── 3 running ─╮ │  Current directory · payments-platform saved workspace      Running                          3 instances   [0m
+[0m[2m │ [0m [0m[2m   Current …ory  saved as payments-platform  │ │  ─────────────────────────────────────────────────────      ────────────────────────────────────────────   [0m
+[0m[2m │ [0m [0m[2m ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…   [0m
+[0m[2m │ [0m [0m[2m ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes       [0m
+[0m[2m │ [0m [0m[2m ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal                   [0m
+[0m[2m │ [0m [0m[2m ▸ customer-portal                 ! failed  │ │  Roles         the-architect ★ · allowed 3 of 126                                                          [0m
+[0m[2m │ [0m [0m[2m ▸ data-pipeline                  1 running  │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex      [0m
+[0m[2m │ [0m [0m[2m ▸ docs-site                       1 record  │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane             [0m
+[0m[2m │ [0m [0m[2m   auth-service                        idle  │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments                 [0m
+[0m[2m │ [0m [0m[2m   gateway                             idle  │ │                OpenCode · Go subscription ★                                                                [0m
+[0m[2m │ [0m [0m[2m   mobile-app                          idle  │ │  Policies      git pull enabled · keep awake on · dir…      ◉ e0e0  data-pipeline · backend · Claude Co…   [0m
+[0m[2m │ [0m [0m[2m   ml-notebooks                        idle  │ │                                                                running 10 min · daemon unavailable         [0m
+[0m[2m │ [0m [0m[2m   search-indexer                      idle  │ │  Instances                    ▲ daemon stale · 3 s ago         account Claude · Personal                   [0m
+[0m[2m │ [0m [0m[2m   staging-env                         idle  │ │  ◉ 7f3a  the-architect · Claude Code · running                                                             [0m
+[0m[2m │ [0m [0m[2m   billing-reconciliation…-truncation  idle  │ │  ◌ c41e  reviewer · Codex · preserved · dirty                                                              [0m
+[0m[2m │ [0m [0m[2m   legacy-monolith                     idle  │ │  ◌ b000  reviewer · Codex · exited                          Preserved                          6 records   [0m
+[0m[2m │ [0m [0m[2m   + New workspace                           │ │  ◌ b111  reviewer · Codex · restore available               ◌ c41e  payments-platform · reviewer · pres…   [0m
+[0m[2m │                                               │ │  ◌ b222  reviewer · Codex · exited                          ◌ a1c0  release-automation · backend · rest…   [0m
+[0m[2m │                                    ╭──────────────────────────────────────────────────────────────────────────────────╮nfra-control-plane · sre · preserv…   [0m
+[0m[2m │                                    │ [0m[1;2mLaunch · choose Agent[0m[2m                          payments-platform › the-architect │ayments-platform · reviewer · rest…   [0m
+[0m[2m │                                    │ [0m[1;2;7m [0m[2;7m▪[0m[1;2;7m Claude Code  [0m[2;7maccount Claude · Personal · provider …[0m[1;2;7m  [0m[2;7mchoose at start[0m[1;2;7m  [0m[2;7magents[0m[1;2;7m [0m[2m │ayments-platform · reviewer · rest…   [0m
+[0m[2m │                                    │  ▪ Codex        account Codex · Primary · provider de…  ready                    │ayments-platform · reviewer · rest…   [0m
+[0m[2m │                                    │  ▪ OpenCode     account OpenCode · Go subscription · …  ready                    │                                      [0m
+[0m[2m │                                    │  ▪ Grok Build   account Grok · Team · provider default  ready                    │                  ▲ stale · 3 s ago   [0m
+[0m[2m │                                    │                                                                                  │    throttled · every 5 s             [0m
+[0m[2m │                                    │                                                                                  │    degraded · 4 warnings · 1 exha…   [0m
+[0m[2m │                                    ╰──────────────────────────────────────────────────────────────────────────────────╯                                      [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │ [0m [0m[2mLaunch   [0m [0m[2mEdit                                                                                            [0m
+[0m[2m ╰───────────────────────────────────────────────╯ │                                                                                                            [0m
+[0m[2m                                                                                                                                                                [0m
+ [0m[1m↑↓ Mo[0mve  [0m[1mEnter [0mChoose[0m[1m [0m [0m[1mEsc[0m Ca[0m[1mnce[0ml         [0m[1m [0m           [0m[1m [0m              [0m[1m▲[0m Could not confirm running instances: instance index unreadable · list may be incomplete [0m
+[?25l

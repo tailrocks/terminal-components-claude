@@ -1,0 +1,25 @@
+  ▪ [0m[1m TablePro [0m Connections  6 saved                   no color · 80×24  ? help  [0m
+                                                                                [0m
+   New connection                                                 Ctrl+S Save   [0m
+   ──────────────────────────────────────────────────────────────────────────   [0m
+   [0m[1m Basic  [0m  Advanced                                                           [0m
+   ━━━━━━━━──────────────────────────────────────────────────────────────────   [0m
+                                                                                [0m
+     [0m[1mName *                              [0m ┃      Environment                ┃   [0m
+   ▎                                      ┃     (●) local                   ┃   [0m
+                                          ┃     ( ) development             ┃   [0m
+     Engine                               ┃     ( ) staging                 ┃   [0m
+     PostgreSQL                        ▾  ┃     ( ) production              ┃   [0m
+                                          ┃                                 ┃   [0m
+     Host  optional             Port      ┆      Group                      ┃   [0m
+     localhost                  5432      ┆      Personal                ▾  ┆   [0m
+     Blank: driver default                ┆                                 ┆   [0m
+     Database  optional                   ┆                                 ┆   [0m
+                                          ┆                                 ┆   [0m
+     Required for PostgreSQL              ┆                                 ┆   [0m
+                                                                                [0m
+    Test connection    Cancel    Save    [0m[1;7mSave & connect [0m                        [0m
+                                                                                [0m
+                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1mEnter[0m Apply  [0m[1mEsc[0m Cancel  [0m[1mTab[0m Next field                                [0m
+[?25h[9;6H[6 q

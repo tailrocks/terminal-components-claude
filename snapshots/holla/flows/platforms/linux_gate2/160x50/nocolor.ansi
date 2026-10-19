@@ -1,0 +1,51 @@
+[0m[2m  holla❯    File   Go   Help                                                                                                        no project  devbox · local  [0m
+[0m[2m  Here › Cleanup › Review                                                                                                                                       [0m
+[0m[2m  Here › Cleanup › Review                                                                                                                                       [0m
+[0m[2m ━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m  Review · trash 1 item · gate 1 of 2 · review the resolved facts, then continue deliberately                                                                   [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m  Action        move to Trash 1 item under ~                                                                                                                    [0m
+[0m[2m  Host          devbox · local                                                                                                                                  [0m
+[0m[2m  Mode          Trash · no Trash backend · every item will fail, never fall back · space returns after the Trash is emptied                                     [0m
+[0m[2m  Estimate      124.0 KiB allocated · APFS clones may overcount · purgeable space excluded · not a free-space guarantee                                         [0m
+[0m[2m  Denied        none · every path passed the lexical, protected-root, user-data and symlink rules                                                               [0m
+[0m[2m  Revision      c4d729e20ca0805b · any change to paths, mode or dry run voids this review                                                                       [0m
+[0m[2m  Threat model  an unprivileged user · an╭──────────────────────────────────────────────────────────────────────── × ─╮ot be excluded                           [0m
+[0m[2m  Paths         ~/Projects/app/node_modul│                                                                            │                                         [0m
+[0m[2m  Recoverable   yes · until the Trash is │  [0m[1;2mTrash 1 items · gate 2 of 2[0m[2m                                               │                                         [0m
+[0m[2m  Provenance    holla cleanup · paths val│                                                                            │                                         [0m
+[0m[2m  Gate          second gate types the tar│  [0mAction        move to Trash 1 item under ~                              [0m[2m  │                                         [0m
+[0m[2m                                         │  [0mHost          devbox · local                                            [0m[2m  │                                         [0m
+[0m[2m ╭─ Sequence · 1 command ────────────────│  [0mMode          Trash · no Trash backend · every item will fail, never    [0m[2m  │──────────────────────────── y copies ─╮ [0m
+[0m[2m │  01  trash /home/alex/Projects/app/nod│  [0m              fall back · space returns after the Trash is emptied      [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mEstimate      124.0 KiB allocated · APFS clones may overcount ·         [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0m              purgeable space excluded · not a free-space guarantee     [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mDenied        none · every path passed the lexical, protected-root,     [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0m              user-data and symlink rules                               [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mRevision      c4d729e20ca0805b · any change to paths, mode or dry run   [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0m              voids this review                                         [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mThreat model  an unprivileged user · ancestors are re-resolved at commit[0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0m              · a concurrent rename of the final path cannot be excluded[0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0mPaths         ~/Projects/app/node_modules                               [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0m                                                                        [0m[2m  │                                       │ [0m
+[0m[2m │                                       │  [0m/home/alex/Projects/app/node_modules                                    [0m[2m  │                                       │ [0m
+[0m[2m │                                       │                                                                            │                                       │ [0m
+[0m[2m │                                       │  [0m[1;2mType TRASH 1 UNDER /home/alex ON devbox to confirm                      [0m[2m  │                                       │ [0m
+[0m[2m │                                       │[0m[1;2;7m▎                                                                         [0m[2m  │                                       │ [0m
+[0m[2m │                                       │                                                                            │                                       │ [0m
+[0m[2m │                                       │                                                        Cancel    Execute   │                                       │ [0m
+[0m[2m │                                       │                                                                            │                                       │ [0m
+[0m[2m │                                       ╰────────────────────────────────────────────────────────────────────────────╯                                       │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m │                                                                                                                                                            │ [0m
+[0m[2m ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m                                                                                                                                         [0m [0m[2mCancel   [0m [0m[2mContinue…   [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m ~/work/box                                                       review · gate 1 of 2                                                        no color · 160×50 [0m
+ [0m[1m EDIT [0m  [0m[1mType[0m "TRASH[0m[1m 1 UN[0mDER /home/a[0m[1mlex[0m ON dev[0m[1mb[0mox" to confirm  [0m[1mEsc[0m Cancel                                                           1 item selected · 124.0 KiB [0m
+[?25h[34;45H[6 q

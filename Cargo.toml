@@ -46,6 +46,7 @@ members = [
     "crates/termrock-conformance",
     "crates/termrock-xtask",
     "crates/termrock-visibility-publisher",
+    "crates/visual-harness",
     "tools/refactor-proof",
 ]
 default-members = [
