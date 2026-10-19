@@ -1224,6 +1224,29 @@ mod tests {
         );
     }
     #[test]
+    fn discovery_results_header_is_tag_grey_at_column_4() {
+        let harness = harness(
+            App::for_scenario(Scenario::ParityDiscovery, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        let (x, y) = harness.find("Suggested here").expect("results header");
+        assert_eq!((x, y), (4, 6));
+        let title = harness.cell(x, y);
+        assert_eq!(title.symbol(), "S");
+        assert_eq!(title.fg, Color::Rgb(0x8a, 0x8a, 0x8a));
+        assert!(!title.modifier.contains(termrock::Modifier::BOLD));
+        let pad = harness.cell(1, y);
+        assert_eq!(pad.symbol(), " ");
+        assert_eq!(pad.fg, Color::Rgb(0xff, 0xff, 0xff));
+        assert_eq!(pad.bg, Color::Rgb(0, 0, 0));
+        assert!(!pad.modifier.contains(termrock::Modifier::BOLD));
+        let before = harness.cell(3, y);
+        assert_eq!(before.symbol(), " ");
+        assert_eq!(before.fg, Color::Rgb(0xff, 0xff, 0xff));
+    }
+    #[test]
     fn paused_clock_step_advances_world_time_by_1100_ms() {
         let mut paused = App::for_scenario(Scenario::FirstUse, Motion::Paused, 0);
         let start = paused.world.now_ms();
