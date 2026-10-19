@@ -772,6 +772,8 @@ pub struct App {
     quit: bool,
     status: Option<(PageStatus, Moment)>,
     motion_paused: bool,
+    /// Paused-frame index. `--frame` seeks here, and a paused clock paste adds its milliseconds.
+    paused_frame: usize,
 }
 
 impl core::fmt::Debug for App {
@@ -786,6 +788,7 @@ impl core::fmt::Debug for App {
             .field("keymap", &self.keymap)
             .field("inspector", &self.inspector)
             .field("motion_paused", &self.motion_paused)
+            .field("paused_frame", &self.paused_frame)
             .field("quit", &self.quit)
             .field("status", &self.status.as_ref().map(|(_, since)| since))
             .finish()
@@ -835,6 +838,7 @@ impl App {
             quit: false,
             status: None,
             motion_paused: paused,
+            paused_frame: frame,
         }
     }
 
@@ -1684,8 +1688,29 @@ impl TuiApp for App {
         Response::changed()
     }
 
-    fn accept_paused_clock_step(&mut self, _step_ms: u64) -> bool {
-        self.motion_paused
+    fn accept_paused_clock_step(&mut self, step_ms: u64) -> bool {
+        if !self.motion_paused {
+            return false;
+        }
+        self.advance_paused_clock(step_ms);
+        true
+    }
+}
+
+impl App {
+    fn advance_paused_clock(&mut self, step_ms: u64) {
+        if let Some((_, since)) = &mut self.status {
+            *since = Moment::from_duration(
+                since
+                    .as_duration()
+                    .saturating_sub(std::time::Duration::from_millis(step_ms)),
+            );
+        }
+        let frames = usize::try_from(step_ms).unwrap_or(usize::MAX);
+        self.paused_frame = self.paused_frame.saturating_add(frames);
+        for page in &mut self.pages {
+            page.seek_paused(self.paused_frame);
+        }
     }
 }
 
@@ -1917,5 +1942,30 @@ mod app_tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn paused_clock_step_advances_frame_and_status_by_1100_ms() {
+        let mut paused = App::with_page_motion(PageId::Progress, true, 0);
+        let frame = paused.paused_frame;
+        paused.status = Some((PageStatus("working".to_owned()), Moment::from_millis(5_000)));
+        assert!(TuiApp::accept_paused_clock_step(&mut paused, 1_100));
+        assert_eq!(paused.paused_frame, frame + 1_100);
+        let since = paused
+            .status
+            .as_ref()
+            .map(|(_, since)| since.as_duration().as_millis());
+        assert_eq!(since, Some(3_900));
+
+        let mut running = App::with_page_motion(PageId::Progress, false, 0);
+        let frame = running.paused_frame;
+        running.status = Some((PageStatus("working".to_owned()), Moment::from_millis(5_000)));
+        assert!(!TuiApp::accept_paused_clock_step(&mut running, 1_100));
+        assert_eq!(running.paused_frame, frame);
+        let since = running
+            .status
+            .as_ref()
+            .map(|(_, since)| since.as_duration().as_millis());
+        assert_eq!(since, Some(5_000));
     }
 }

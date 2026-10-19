@@ -842,6 +842,18 @@ impl App {
         self.status_until_ms = Some(self.world.now_ms().saturating_add(5_000));
     }
 
+    /// One sim step of `world.tick`. That call moves `now_ms` only while the clock is running.
+    fn advance_world(&mut self, interval_ms: i64) {
+        let _ = self.world.tick(interval_ms);
+        if self
+            .status_until_ms
+            .is_some_and(|until| self.world.now_ms() >= until)
+        {
+            self.status = None;
+            self.status_until_ms = None;
+        }
+    }
+
     fn copy_osc52(&mut self, value: &str) {
         let report = Self::osc52_report(value, self.world.host.osc52, self.world.host.osc52_limit);
         debug_assert!(!report.contains('\u{1b}'));
@@ -993,15 +1005,8 @@ impl termrock::App for App {
                 let mut next_clock = self.world.clock;
                 next_clock.advance(cadence as i64);
                 if self.synchronize_feedback(cx, next_clock) {
-                    let _ = self.world.tick(cadence as i64);
+                    self.advance_world(cadence as i64);
                     self.last_step_at = Some(cx.now());
-                    if self
-                        .status_until_ms
-                        .is_some_and(|until| self.world.now_ms() >= until)
-                    {
-                        self.status = None;
-                        self.status_until_ms = None;
-                    }
                 }
                 clock_response = Response::changed();
             }
@@ -1102,8 +1107,15 @@ impl termrock::App for App {
         Response::ignored()
     }
 
-    fn accept_paused_clock_step(&mut self, _step_ms: u64) -> bool {
-        self.motion == Motion::Paused
+    fn accept_paused_clock_step(&mut self, step_ms: u64) -> bool {
+        if self.motion != Motion::Paused {
+            return false;
+        }
+        let running = self.world.clock.running;
+        self.world.clock.running = true;
+        self.advance_world(i64::try_from(step_ms).unwrap_or(i64::MAX));
+        self.world.clock.running = running;
+        true
     }
 }
 
@@ -1141,6 +1153,23 @@ mod tests {
             40,
         )
     }
+    #[test]
+    fn paused_clock_step_advances_world_time_by_1100_ms() {
+        let mut paused = App::for_scenario(Scenario::FirstUse, Motion::Paused, 0);
+        let start = paused.world.now_ms();
+        assert!(termrock::App::accept_paused_clock_step(&mut paused, 1_100));
+        assert_eq!(paused.world.now_ms(), start + 1_100);
+        assert!(!paused.world.clock.running);
+
+        let mut running = App::for_scenario(Scenario::FirstUse, Motion::Full, 0);
+        let start = running.world.now_ms();
+        assert!(!termrock::App::accept_paused_clock_step(
+            &mut running,
+            1_100
+        ));
+        assert_eq!(running.world.now_ms(), start);
+    }
+
     #[test]
     fn home_query_stays_armed_under_action_focus_with_shared_caret_and_paste() {
         let mut harness = app(Scenario::HardCases);
