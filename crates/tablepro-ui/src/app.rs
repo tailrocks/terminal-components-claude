@@ -1,12 +1,16 @@
+use std::cell::RefCell;
+
 use termrock::author::{PaintStyle, StyleDefaults};
 use termrock::{
-    Action, ActionKey, Align, App, Chord, ColumnKey, Cx, Dialog, DialogAction, DialogState, FgStep,
-    Field, Focusability, Form, FormAction, FormState, FrameRead, GlyphRole, Grid, GridAction,
-    GridColumnFit, GridEditor, GridGutter, GridModel, GridSortIndicator, Id, Intent, ItemKey,
-    KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, Panel, PanelKind, Part, Phase,
-    PickerAction, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState,
-    StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction,
-    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, wrap,
+    Action, ActionKey, Align, App, CellAction, CellUi, Chord, ColumnKey, Cx, Dialog, DialogAction,
+    DialogState, FgStep, Field, Focusability, Form, FormAction, FormState, FrameRead, GlyphRole,
+    Grid, GridAction, GridCell, GridColumnFit, GridEditor, GridGutter, GridModel,
+    GridSortIndicator, Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId,
+    Modifier, Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowDecor, RowTotal,
+    RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState, StateFlags, StylePatch, Tabs,
+    TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction,
+    TreeBranchActivation, TreeNode, TreeState, Ui, UpdateCause, truncate, truncate_middle, width,
+    wrap,
 };
 
 use crate::quick_switcher::{self, QuickSwitcher};
@@ -180,8 +184,38 @@ const TAG_RULE_FG: Role = Role::Custom(termrock::Color::from_u32(0x003a_3a3a));
 const LEGACY_FAINT: Role = Role::Custom(termrock::Color::from_u32(0x0073_7373));
 const LEGACY_INFO: Role = Role::Custom(termrock::Color::from_u32(0x0079_b8ff));
 const LEGACY_DANGER_LABEL: Role = Role::Custom(termrock::Color::from_u32(0x00ff_6b6b));
-const FRAMED_PANEL_PATCH: [(Part, StylePatch); 1] =
-    [(Part::DETAIL, StylePatch::new().set_fg(Role::BorderStrong))];
+const FRAMED_PANEL_PATCH: [(Part, StylePatch); 2] = [
+    (Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT)),
+    (Part::BORDER, StylePatch::new().set_fg(Role::BorderStrong)),
+];
+const EXPLORER_PANEL_PATCH: [(Part, StylePatch); 4] = [
+    (Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT)),
+    (Part::BORDER, StylePatch::new().set_fg(TAG_RULE_FG)),
+    (
+        Part::TITLE,
+        StylePatch::new()
+            .set_fg(Role::Fg(FgStep::Secondary))
+            .remove(Modifier::BOLD),
+    ),
+    (Part::META, StylePatch::new().set_fg(LEGACY_FAINT)),
+];
+const TAB_STRIP_PATCH: [(Part, StylePatch); 2] = [
+    (Part::NEW, StylePatch::new().set_fg(TAG_PATH_FG)),
+    (
+        Part::CLOSE,
+        StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD),
+    ),
+];
+const GRID_PART_PATCH: [(Part, StylePatch); 2] = [
+    (Part::OVERFLOW, StylePatch::new().set_fg(TAG_PATH_FG)),
+    (Part::ACTIONS, StylePatch::new().set_fg(TAG_CHROME_FG)),
+];
+const LEGACY_SELECT_BG: Role = Role::Custom(termrock::Color::from_u32(0x0017_3f1c));
+const LEGACY_SCROLL_TRACK: Role = Role::Custom(termrock::Color::from_u32(0x0047_4747));
+const LEGACY_SCROLL_THUMB: Role = Role::Custom(termrock::Color::from_u32(0x0080_8080));
+const LEGACY_CELL_BG: Role = Role::Custom(termrock::Color::from_u32(0x002f_5aa8));
+const FOLLOW_REF: CellAction = CellAction::new(ActionKey::application("tablepro.follow-ref"));
+const FOLLOW_REFS: [CellAction; 1] = [FOLLOW_REF];
 const CONNECTIONS_PANEL_PATCH: [(Part, StylePatch); 1] =
     [(Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT))];
 const CONNECTION_TREE_PATCH: [(Part, StylePatch); 1] = [(
@@ -800,7 +834,7 @@ impl TableProApp {
             .title(" Explorer")
             .meta(schema)
             .focused(focused)
-            .patch_part(&FRAMED_PANEL_PATCH)
+            .patch_part(&EXPLORER_PANEL_PATCH)
             .slot(Part::GUTTER, &preserve_frame_gutter)
     }
 
@@ -1298,7 +1332,7 @@ impl TableProApp {
 
     fn active_row_action(&self, cx: &Cx<'_>) -> bool {
         self.workbench.active_grid().is_some_and(|(id, grid)| {
-            cx.state(id).contains(termrock::StateFlags::FOCUSED)
+            cx.state(id).contains(StateFlags::FOCUSED)
                 && !grid.state.is_editing()
                 && grid.model.is_editable()
         })
@@ -1642,8 +1676,15 @@ impl TableProApp {
         };
         let (columns, count) =
             Self::column_specs(&grid_view.columns, grid_view.model.is_editable());
-        let grid = result_grid(id, columns.get(..count).unwrap_or(&[]));
-        grid.draw(ui, grid_area, &grid_view.state, &grid_view.model);
+        draw_painted_grid(
+            ui,
+            grid_area,
+            id,
+            &grid_view.columns,
+            columns.get(..count).unwrap_or(&[]),
+            &grid_view.state,
+            &grid_view.model,
+        );
         let shown = usize::from(grid_area.height.saturating_sub(1));
         let loaded = grid_view.model.row_count();
         let last = shown.min(loaded);
@@ -1659,9 +1700,17 @@ impl TableProApp {
             height: 1,
             ..inner
         };
+        paint_horizontal_bar(
+            ui,
+            termrock::Rect {
+                y: status_area.y.saturating_sub(1),
+                height: 1,
+                ..status_area
+            },
+        );
         let style = ui
             .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
         ui.paint_str(
             termrock::Rect {
                 x: status_area.x.saturating_add(1),
@@ -1676,9 +1725,12 @@ impl TableProApp {
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         if let Some((id, grid)) = self.workbench.active_grid() {
             let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
-            result_grid(id, columns.get(..count).unwrap_or(&[])).draw(
+            draw_painted_grid(
                 ui,
                 area,
+                id,
+                &grid.columns,
+                columns.get(..count).unwrap_or(&[]),
                 &grid.state,
                 &grid.model,
             );
@@ -1767,8 +1819,8 @@ impl TableProApp {
         let inner = panel.inner(ui, list_area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, list_area, |_, _| {});
-        paint_frame_title_tail(ui, list_area, " Connections ");
-        paint_panel_tail(ui, list_area);
+        paint_frame_title_tail(ui, list_area, " Connections ", Role::BorderStrong);
+        paint_panel_tail(ui, list_area, Role::BorderStrong);
         ui.with_area(body, |ui| {
             let filter = termrock::Rect {
                 x: body.x,
@@ -1849,8 +1901,7 @@ impl TableProApp {
         let inner = panel.inner(ui, area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, area, |_, _| {});
-        paint_frame_title_tail(ui, area, " Explorer ");
-        paint_panel_tail(ui, area);
+        paint_panel_tail(ui, area, TAG_RULE_FG);
         ui.with_area(body, |ui| {
             let filter = termrock::Rect {
                 x: body.x,
@@ -1858,13 +1909,19 @@ impl TableProApp {
                 width: body.width,
                 height: 1.min(inner.height),
             };
-            paint_legacy_filter(ui, filter, "Filter objects", Role::Fg(FgStep::Muted));
+            paint_legacy_filter(ui, filter, "Filter objects", TAG_CHROME_FG);
             let tree_area = termrock::Rect {
                 y: body.y.saturating_add(2),
                 height: inner.height.saturating_sub(2),
                 ..body
             };
             explorer_tree().draw(
+                ui,
+                tree_area,
+                &self.explorer_tree_state,
+                &self.explorer_nodes,
+            );
+            paint_chosen_explorer_row(
                 ui,
                 tree_area,
                 &self.explorer_tree_state,
@@ -1877,7 +1934,10 @@ impl TableProApp {
     fn draw_content(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
         let (title, meta) = match self.workbench.active() {
             Some(Tab::Table(table)) => (
-                qualified_label("", &table.table.schema, &table.table.name),
+                format!(
+                    " {}",
+                    qualified_label("", &table.table.schema, &table.table.name)
+                ),
                 Some(format!("{} cols", table.table.columns.len())),
             ),
             Some(Tab::Query(query)) => (format!(" {}", query.name), None),
@@ -1934,9 +1994,13 @@ impl TableProApp {
                 ui.paint_str(inner, "No tab open", ui.surface_style());
             }
         });
-        paint_frame_title_tail(ui, area, &title);
+        paint_content_seam(ui, area);
+        if let Some((grid_area, rows)) = GRID_SCROLL.with(|slot| *slot.borrow()) {
+            paint_grid_scrollbar(ui, grid_area, rows);
+        }
+        paint_frame_title_tail(ui, area, &title, Role::BorderStrong);
         if meta.is_some() {
-            paint_panel_tail(ui, area);
+            paint_panel_tail(ui, area, Role::BorderStrong);
         }
     }
 }
@@ -2217,12 +2281,20 @@ fn qualified_label(prefix: &str, left: &str, right: &str) -> String {
 
 fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
     match node {
-        ExplorerNode::Database { name } => row.label_fmt(format_args!("D {name}")),
-        ExplorerNode::Schema { name } => row.label_fmt(format_args!("S {name}")),
+        ExplorerNode::Database { name } => row.label_spans(&[
+            Span::new("D").role(TAG_CHROME_FG),
+            Span::new(" "),
+            Span::new(name.as_str()),
+        ]),
+        ExplorerNode::Schema { name } => row.label_spans(&[
+            Span::new("S").role(TAG_CHROME_FG),
+            Span::new(" "),
+            Span::new(name.as_str()),
+        ]),
         ExplorerNode::Group { name, .. } => row.label(name),
         ExplorerNode::Object { item, prefix, .. } => {
             row.label_spans(&[
-                Span::new(prefix).role(Role::Fg(FgStep::Muted)),
+                Span::new(prefix).role(TAG_CHROME_FG),
                 Span::new(" "),
                 Span::new(&item.name),
             ]);
@@ -2310,13 +2382,11 @@ fn explorer_tree() -> Tree<
         .node(&explorer_node)
         .row(explorer_row)
         .branch_activation(TreeBranchActivation::Activate)
+        .slot(Part::MARKER, &paint_quiet_gutter)
 }
 
-const ID_HEADER_PREFIX: [(ColumnKey, GlyphRole, Role); 1] = [(
-    ColumnKey::num(1),
-    GlyphRole::PrimaryKey,
-    Role::Fg(FgStep::Muted),
-)];
+const ID_HEADER_PREFIX: [(ColumnKey, GlyphRole, Role); 1] =
+    [(ColumnKey::num(1), GlyphRole::PrimaryKey, LEGACY_FAINT)];
 
 fn tab_strip()
 -> Tabs<'static, TabRecord, impl Fn(&TabRecord) -> ItemKey, impl Fn(&TabRecord, &mut RowUi<'_>)> {
@@ -2325,6 +2395,7 @@ fn tab_strip()
         .row(tab_row)
         .allow_new(true)
         .closable(true)
+        .patch_part(&TAB_STRIP_PATCH)
 }
 
 fn legacy_tree_body(inner: termrock::Rect) -> termrock::Rect {
@@ -2340,6 +2411,872 @@ fn workbench_split() -> SplitPane<'static> {
         .min_first(28)
         .min_second(20)
 }
+
+#[derive(Clone, Copy)]
+struct ColBudget {
+    kind: u8,
+    text: u16,
+    arrow: bool,
+}
+
+#[derive(Clone, Copy)]
+struct ColPlace {
+    x: u16,
+    width: u16,
+    primary: bool,
+}
+
+#[derive(Clone)]
+struct GridChrome {
+    gutter: u16,
+    content_width: u16,
+    complete: usize,
+    columns: usize,
+    places: Vec<ColPlace>,
+}
+
+const KIND_OTHER: u8 = 0;
+const KIND_PRIMARY: u8 = 1;
+const KIND_FOREIGN: u8 = 2;
+
+thread_local! {
+    static COL_BUDGETS: RefCell<Vec<ColBudget>> = const { RefCell::new(Vec::new()) };
+    static GRID_CHROME: RefCell<Option<GridChrome>> = const { RefCell::new(None) };
+    static GRID_SCROLL: RefCell<Option<(termrock::Rect, usize)>> = const { RefCell::new(None) };
+}
+
+fn install_grid_budgets(area_width: u16, columns: &[(String, ColType)], model: &ResultGrid) {
+    let row_count = model.row_count().max(1).to_string();
+    let digits = width(&row_count);
+    let gutter = digits.saturating_add(4);
+    let avail = area_width
+        .saturating_sub(1)
+        .saturating_sub(gutter)
+        .saturating_sub(3);
+    let mut budgets = Vec::with_capacity(columns.len());
+    let mut places = Vec::new();
+    let mut used = 0u16;
+    let mut closed = false;
+    let mut complete = 0usize;
+    let sample_rows = model.row_count().min(24);
+    for (index, (name, ty)) in columns.iter().enumerate() {
+        let primary = name == "id";
+        let foreign = *ty == ColType::Uuid && !primary;
+        let kind = if primary {
+            KIND_PRIMARY
+        } else if foreign {
+            KIND_FOREIGN
+        } else {
+            KIND_OTHER
+        };
+        let mut natural = width(name);
+        if primary {
+            natural = natural.saturating_add(2).max(38);
+        }
+        for row in 0..sample_rows {
+            if let Some(cell) = GridModel::cell(model, row, index) {
+                natural = natural.max(width(cell.text));
+            }
+        }
+        natural = natural.clamp(3, 40);
+        if closed {
+            budgets.push(ColBudget {
+                kind,
+                text: 0,
+                arrow: false,
+            });
+            continue;
+        }
+        let gap = if places.is_empty() { 0 } else { 2 };
+        let needed = used.saturating_add(gap).saturating_add(natural);
+        if !places.is_empty() && needed > avail {
+            let room = avail.saturating_sub(used).saturating_sub(gap);
+            if room >= 4 {
+                let arrow = foreign;
+                let text = room.saturating_sub(if arrow { 2 } else { 0 });
+                budgets.push(ColBudget { kind, text, arrow });
+                places.push(ColPlace {
+                    x: used.saturating_add(gap),
+                    width: room,
+                    primary,
+                });
+            } else {
+                budgets.push(ColBudget {
+                    kind,
+                    text: 0,
+                    arrow: false,
+                });
+            }
+            closed = true;
+            continue;
+        }
+        budgets.push(ColBudget {
+            kind,
+            text: natural,
+            arrow: false,
+        });
+        places.push(ColPlace {
+            x: used.saturating_add(gap),
+            width: natural,
+            primary,
+        });
+        used = needed;
+        complete = complete.saturating_add(1);
+    }
+    let chrome = GridChrome {
+        gutter,
+        content_width: avail,
+        complete,
+        columns: columns.len(),
+        places,
+    };
+    COL_BUDGETS.with(|budgets_cell| *budgets_cell.borrow_mut() = budgets);
+    GRID_CHROME.with(|chrome_cell| *chrome_cell.borrow_mut() = Some(chrome));
+}
+
+struct PaintedGrid<'a> {
+    inner: &'a ResultGrid,
+}
+
+impl GridModel for PaintedGrid<'_> {
+    fn row_count(&self) -> usize {
+        self.inner.row_count()
+    }
+
+    fn row_key(&self, row: usize) -> ItemKey {
+        GridModel::row_key(self.inner, row)
+    }
+
+    fn cell(&self, row: usize, col: usize) -> Option<termrock::CellRef<'_>> {
+        GridModel::cell(self.inner, row, col)
+    }
+
+    fn row_decor(&self, row: usize) -> RowDecor<'_> {
+        GridModel::row_decor(self.inner, row)
+    }
+
+    fn cell_decor(&self, row: usize, col: usize) -> termrock::CellDecor<'_> {
+        GridModel::cell_decor(self.inner, row, col)
+    }
+
+    fn total(&self) -> RowTotal {
+        GridModel::total(self.inner)
+    }
+
+    fn read_only_reason(&self) -> Option<&str> {
+        GridModel::read_only_reason(self.inner)
+    }
+
+    fn actions(&self, row: usize, col: usize) -> &[CellAction] {
+        let arrow = COL_BUDGETS
+            .with(|budgets| budgets.borrow().get(col).is_some_and(|budget| budget.arrow));
+        if arrow && GridModel::cell(self.inner, row, col).is_some_and(|cell| !cell.text.is_empty())
+        {
+            &FOLLOW_REFS
+        } else {
+            &[]
+        }
+    }
+}
+
+fn tab_label(tab: &TabRecord) -> (&'static str, &str) {
+    match tab.payload() {
+        Tab::Table(table) => ("T", table.table.name.as_str()),
+        Tab::Query(query) => ("≡", query.name.as_str()),
+        Tab::History(_) => ("H", "History"),
+    }
+}
+
+fn legacy_tab_width(prefix: &str, label: &str) -> u16 {
+    1u16.saturating_add(width(label))
+        .saturating_add(2)
+        .saturating_add(width(prefix))
+        .saturating_add(1)
+        .saturating_add(2)
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "legacy tab geometry, prefix ink, and the active rule are one paint"
+)]
+fn paint_legacy_tabs(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    tabs: &[TabRecord],
+    active: Option<ItemKey>,
+) {
+    if area.height < 2 || tabs.is_empty() {
+        return;
+    }
+    let base = ui.surface_style();
+    let inactive = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let active_fill = base.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let prefix_idle = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
+    let prefix_active = active_fill
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+    let close_active = active_fill
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+    let mut x = area.x;
+    let mut active_span: Option<(u16, u16)> = None;
+    for tab in tabs {
+        let (prefix, label) = tab_label(tab);
+        let tab_w = legacy_tab_width(prefix, label);
+        if x.saturating_add(tab_w) > area.right().saturating_sub(6) {
+            break;
+        }
+        let on = active == Some(tab_key(tab));
+        let body = if on { active_fill } else { inactive };
+        let prefix_style = if on { prefix_active } else { prefix_idle };
+        let close_style = if on { close_active } else { inactive };
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: area.y,
+                width: tab_w,
+                height: 1,
+            },
+            &" ".repeat(usize::from(tab_w)),
+            body,
+        );
+        let mut cursor = x.saturating_add(1);
+        ui.paint_str(
+            termrock::Rect {
+                x: cursor,
+                y: area.y,
+                width: width(prefix),
+                height: 1,
+            },
+            prefix,
+            prefix_style,
+        );
+        cursor = cursor.saturating_add(width(prefix)).saturating_add(1);
+        ui.paint_str(
+            termrock::Rect {
+                x: cursor,
+                y: area.y,
+                width: width(label),
+                height: 1,
+            },
+            label,
+            body,
+        );
+        let close_x = x.saturating_add(tab_w).saturating_sub(3);
+        ui.paint_str(
+            termrock::Rect {
+                x: close_x,
+                y: area.y,
+                width: 1,
+                height: 1,
+            },
+            "×",
+            close_style,
+        );
+        if on {
+            active_span = Some((x, tab_w));
+        }
+        x = x.saturating_add(tab_w);
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: area.y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            base,
+        );
+        x = x.saturating_add(1);
+    }
+    let quiet = base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
+    let hot = base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let rule = termrock::Rect {
+        y: area.y.saturating_add(1),
+        height: 1,
+        ..area
+    };
+    if rule.width > 0 {
+        ui.paint_str(rule, &"─".repeat(usize::from(rule.width)), quiet);
+    }
+    if let Some((start, tab_w)) = active_span {
+        ui.paint_str(
+            termrock::Rect {
+                x: start,
+                y: rule.y,
+                width: tab_w.min(rule.right().saturating_sub(start)),
+                height: 1,
+            },
+            &"━".repeat(usize::from(tab_w)),
+            hot,
+        );
+    }
+}
+
+fn explorer_depth(node: &ExplorerNode) -> usize {
+    match node {
+        ExplorerNode::Database { .. } => 0,
+        ExplorerNode::Schema { .. } => 1,
+        ExplorerNode::Group { .. } => 2,
+        ExplorerNode::Object { .. } => 3,
+    }
+}
+
+fn visible_explorer_index(
+    nodes: &[ExplorerNode],
+    state: &TreeState,
+    key: ItemKey,
+) -> Option<usize> {
+    let mut show = [false; 8];
+    show[0] = true;
+    let mut index = 0usize;
+    for node in nodes {
+        let depth = explorer_depth(node);
+        if !show.get(depth).copied().unwrap_or(false) {
+            continue;
+        }
+        let node_key = explorer_node_key(node);
+        if node_key == key {
+            return Some(index);
+        }
+        index = index.saturating_add(1);
+        let expanded = state.is_expanded(node_key);
+        if let Some(child) = show.get_mut(depth.saturating_add(1)) {
+            *child = expanded;
+        }
+        for deeper in show.iter_mut().skip(depth.saturating_add(2)) {
+            *deeper = false;
+        }
+    }
+    None
+}
+
+fn paint_chosen_explorer_row(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ExplorerNode],
+) {
+    let Some(key) = state.chosen() else {
+        return;
+    };
+    let Some(index) = visible_explorer_index(nodes, state, key) else {
+        return;
+    };
+    let Some(node) = nodes.iter().find(|node| explorer_node_key(node) == key) else {
+        return;
+    };
+    let y = area.y.saturating_add(index as u16);
+    if y >= area.bottom() {
+        return;
+    }
+    let row = termrock::Rect {
+        x: area.x.saturating_add(1),
+        y,
+        width: area.width.saturating_sub(1),
+        height: 1,
+    };
+    let fill = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(LEGACY_SELECT_BG)
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    ui.fill(row, fill);
+    let depth = explorer_depth(node);
+    let fold_x = area
+        .x
+        .saturating_add(1)
+        .saturating_add((depth as u16).saturating_mul(ui.design().space.tree_indent));
+    let mark = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    ui.paint_str(
+        termrock::Rect {
+            x: fold_x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        "▸",
+        mark,
+    );
+    let ExplorerNode::Object { item, prefix, .. } = node else {
+        return;
+    };
+    let prefix_style = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_CHROME_FG)
+                .set_bg(LEGACY_SELECT_BG),
+        ),
+    );
+    let name_style = fill.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
+    let text_x = fold_x.saturating_add(2);
+    ui.paint_str(
+        termrock::Rect {
+            x: text_x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        prefix,
+        prefix_style,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: text_x.saturating_add(2),
+            y,
+            width: width(&item.name).saturating_add(7),
+            height: 1,
+        },
+        &format!("{}       ", item.name),
+        name_style,
+    );
+}
+
+fn paint_quiet_gutter(ui: &mut Ui<'_>, area: termrock::Rect) {
+    let base = ui.surface_style();
+    ui.paint_str(area, " ", base.with_fg_from_bg(base));
+}
+
+fn paint_result_cell(cell: GridCell<'_>, ui: &mut CellUi<'_>) {
+    let budget = COL_BUDGETS.with(|budgets| budgets.borrow().get(cell.column).copied());
+    let Some(budget) = budget else {
+        ui.text(cell.value.text);
+        return;
+    };
+    if budget.text == 0 {
+        return;
+    }
+    let shown = if budget.kind == KIND_FOREIGN {
+        truncate_middle(cell.value.text, budget.text)
+    } else if width(cell.value.text) > budget.text {
+        truncate(cell.value.text, budget.text)
+    } else {
+        cell.value.text.to_owned()
+    };
+    ui.text(&shown);
+    if cell.flags.contains(StateFlags::ACTIVE) {
+        ui.patch(
+            &StylePatch::new()
+                .set_bg(LEGACY_CELL_BG)
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        );
+    } else if budget.kind == KIND_PRIMARY {
+        ui.patch(&StylePatch::new().set_fg(TAG_PATH_FG));
+    } else if cell.flags.contains(StateFlags::FOCUSED) {
+        ui.patch(&StylePatch::new().add(Modifier::BOLD));
+    }
+}
+
+fn paint_grid_focus_bar(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    state: &termrock::GridState,
+    model: &ResultGrid,
+) {
+    let Some((key, _)) = state.cursor() else {
+        return;
+    };
+    let Some(row) = (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
+    else {
+        return;
+    };
+    let y = area.y.saturating_add(1).saturating_add(row as u16);
+    if y >= area.bottom() {
+        return;
+    }
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD)));
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        "▎",
+        style,
+    );
+}
+
+fn paint_grid_scrollbar(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize) {
+    if area.height < 2 || area.width == 0 {
+        return;
+    }
+    let track_len = usize::from(area.height.saturating_sub(1));
+    let thumb_len = track_len
+        .saturating_mul(track_len)
+        .checked_div(rows.max(1))
+        .unwrap_or(1)
+        .max(1)
+        .min(track_len);
+    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
+        return;
+    };
+    let Some(last) = chrome.places.last() else {
+        return;
+    };
+    let x = area
+        .x
+        .saturating_add(chrome.gutter)
+        .saturating_add(last.x)
+        .saturating_add(last.width)
+        .saturating_add(4);
+    let covered = x.saturating_sub(1);
+    let plain = ui.surface_style();
+    let track = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_TRACK)));
+    let thumb = plain.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_THUMB)));
+    for offset in 0..track_len {
+        let y = area.y.saturating_add(1).saturating_add(offset as u16);
+        ui.paint_str(
+            termrock::Rect {
+                x: covered,
+                y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            plain,
+        );
+        let glyph = if offset < thumb_len { "┃" } else { "┆" };
+        let style = if offset < thumb_len { thumb } else { track };
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y,
+                width: 1,
+                height: 1,
+            },
+            glyph,
+            style,
+        );
+    }
+}
+
+#[allow(
+    clippy::too_many_lines,
+    reason = "header gutter, primary key, and muted titles share one pass"
+)]
+fn paint_grid_header(ui: &mut Ui<'_>, area: termrock::Rect, names: &[String]) {
+    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
+        return;
+    };
+    let base = ui.surface_style().remove_modifier(Modifier::BOLD);
+    ui.fill(
+        termrock::Rect {
+            x: area.x,
+            y: area.y,
+            width: chrome.gutter,
+            height: 1,
+        },
+        base,
+    );
+    let primary = base.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let muted = base.remove_modifier(Modifier::BOLD).patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(TAG_CHROME_FG)
+                .remove(Modifier::BOLD),
+        ),
+    );
+    let column_pad = base
+        .remove_modifier(Modifier::BOLD)
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG).remove(Modifier::BOLD)));
+    ui.fill(
+        termrock::Rect {
+            x: area.x.saturating_add(chrome.gutter),
+            y: area.y,
+            width: chrome.content_width,
+            height: 1,
+        },
+        base,
+    );
+    let key =
+        base.patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_FAINT).add(Modifier::BOLD)));
+    for (index, place) in chrome.places.iter().enumerate() {
+        let origin = area.x.saturating_add(chrome.gutter).saturating_add(place.x);
+        let rect = termrock::Rect {
+            x: origin,
+            y: area.y,
+            width: place.width,
+            height: 1,
+        };
+        ui.fill(rect, if place.primary { base } else { column_pad });
+        let Some(name) = names.get(index) else {
+            continue;
+        };
+        if place.primary {
+            ui.paint_str(
+                termrock::Rect {
+                    x: origin,
+                    y: area.y,
+                    width: 1,
+                    height: 1,
+                },
+                "⚷",
+                key,
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: origin.saturating_add(2),
+                    y: area.y,
+                    width: place.width.saturating_sub(2),
+                    height: 1,
+                },
+                name,
+                primary,
+            );
+        } else {
+            ui.paint_str(
+                termrock::Rect {
+                    x: origin,
+                    y: area.y,
+                    width: place.width,
+                    height: 1,
+                },
+                name,
+                muted,
+            );
+        }
+    }
+    if chrome.columns > chrome.complete {
+        let hidden = chrome.columns.saturating_sub(chrome.complete);
+        let label = format!("{hidden}›");
+        let label_w = width(&label);
+        let end = area
+            .x
+            .saturating_add(chrome.gutter)
+            .saturating_add(chrome.content_width)
+            .saturating_add(4);
+        ui.paint_str(
+            termrock::Rect {
+                x: end.saturating_sub(label_w),
+                y: area.y,
+                width: label_w,
+                height: 1,
+            },
+            &label,
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG))),
+        );
+    }
+}
+
+fn paint_row_numbers(ui: &mut Ui<'_>, area: termrock::Rect, rows: usize, cursor: Option<usize>) {
+    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
+        return;
+    };
+    let digits = usize::from(chrome.gutter.saturating_sub(4)).max(1);
+    let visible = usize::from(area.height.saturating_sub(1)).min(rows);
+    let plain = ui.surface_style().remove_modifier(Modifier::BOLD);
+    for row in 0..visible {
+        let y = area.y.saturating_add(1).saturating_add(row as u16);
+        for dx in 1..3 {
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_add(dx),
+                    y,
+                    width: 1,
+                    height: 1,
+                },
+                " ",
+                plain,
+            );
+        }
+        let fade = visible.saturating_sub(row);
+        let role = if fade == 1 {
+            Role::Custom(termrock::Color::from_u32(0x003f_3f3f))
+        } else if fade == 2 {
+            Role::Custom(termrock::Color::from_u32(0x005c_5c5c))
+        } else if cursor == Some(row) {
+            TAG_PATH_FG
+        } else {
+            LEGACY_FAINT
+        };
+        let text = format!("{:>width$}", row.saturating_add(1), width = digits);
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(3),
+                y,
+                width: digits as u16,
+                height: 1,
+            },
+            &text,
+            plain.patch(ui.paint_patch(&StylePatch::new().set_fg(role))),
+        );
+    }
+}
+
+fn paint_bottom_fade(ui: &mut Ui<'_>, area: termrock::Rect, model: &ResultGrid) {
+    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
+        return;
+    };
+    let visible = usize::from(area.height.saturating_sub(1)).min(model.row_count());
+    if visible < 2 {
+        return;
+    }
+    let steps = [
+        (
+            Role::Custom(termrock::Color::from_u32(0x00cc_cccc)),
+            Role::Custom(termrock::Color::from_u32(0x008f_8f8f)),
+            Role::Custom(termrock::Color::from_u32(0x006e_6e6e)),
+        ),
+        (
+            Role::Custom(termrock::Color::from_u32(0x008c_8c8c)),
+            Role::Custom(termrock::Color::from_u32(0x0062_6262)),
+            Role::Custom(termrock::Color::from_u32(0x004c_4c4c)),
+        ),
+    ];
+    for (step, (white, secondary, arrow)) in steps.into_iter().enumerate() {
+        let row = visible.saturating_sub(2).saturating_add(step);
+        let y = area.y.saturating_add(1).saturating_add(row as u16);
+        let origin = area.x.saturating_add(chrome.gutter);
+        let restyle = |ui: &mut Ui<'_>, x, width, role| {
+            if width == 0 {
+                return;
+            }
+            let style = ui
+                .surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
+            ui.paint_style(
+                termrock::Rect {
+                    x,
+                    y,
+                    width,
+                    height: 1,
+                },
+                style,
+            );
+        };
+        restyle(ui, origin, chrome.content_width.saturating_add(4), white);
+        for place in &chrome.places {
+            if place.primary {
+                restyle(ui, origin.saturating_add(place.x), place.width, secondary);
+            }
+        }
+        if let Some(place) = chrome.places.last()
+            && chrome.places.len() < chrome.columns
+        {
+            let arrow_x = origin
+                .saturating_add(place.x)
+                .saturating_add(place.width)
+                .saturating_sub(1);
+            restyle(ui, arrow_x, 1, arrow);
+        }
+    }
+}
+
+fn paint_horizontal_bar(ui: &mut Ui<'_>, row: termrock::Rect) {
+    let Some(chrome) = GRID_CHROME.with(|chrome| chrome.borrow().clone()) else {
+        return;
+    };
+    if chrome.content_width == 0 || chrome.columns == 0 {
+        return;
+    }
+    let x = row.x.saturating_add(chrome.gutter);
+    let track_w = chrome
+        .content_width
+        .saturating_add(4)
+        .min(row.right().saturating_sub(x));
+    if track_w == 0 {
+        return;
+    }
+    let columns = chrome.columns.max(1);
+    #[allow(
+        clippy::arithmetic_side_effects,
+        reason = "columns is at least 1 and the product fits a terminal width"
+    )]
+    let thumb = (usize::from(track_w) * chrome.complete.max(1) / columns)
+        .max(1)
+        .min(usize::from(track_w));
+    let track = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_TRACK)));
+    let thumb_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(LEGACY_SCROLL_THUMB)));
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            y: row.y,
+            width: track_w,
+            height: 1,
+        },
+        &"┄".repeat(usize::from(track_w)),
+        track,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x,
+            y: row.y,
+            width: thumb as u16,
+            height: 1,
+        },
+        &"━".repeat(thumb),
+        thumb_style,
+    );
+}
+
+fn draw_painted_grid(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    id: Id,
+    columns: &[(String, ColType)],
+    specs: &[termrock::Column<'_>],
+    state: &termrock::GridState,
+    model: &ResultGrid,
+) {
+    install_grid_budgets(area.width, columns, model);
+    let grid = result_grid(id, specs);
+    grid.draw(ui, area, state, &PaintedGrid { inner: model });
+    paint_grid_focus_bar(ui, area, state, model);
+    if let Some((key, _)) = state.cursor()
+        && let Some(row) = (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
+    {
+        let bold = PaintStyle::new().add_modifier(Modifier::BOLD);
+        ui.paint_style(
+            termrock::Rect {
+                x: area.x.saturating_add(1),
+                y: area.y.saturating_add(1).saturating_add(row as u16),
+                width: area.width.saturating_sub(1),
+                height: 1,
+            },
+            bold,
+        );
+    }
+    GRID_SCROLL.with(|slot| *slot.borrow_mut() = Some((area, model.row_count())));
+    paint_row_numbers(
+        ui,
+        area,
+        model.row_count(),
+        state.cursor().and_then(|(key, _)| {
+            (0..model.row_count()).find(|row| GridModel::row_key(model, *row) == key)
+        }),
+    );
+    paint_bottom_fade(ui, area, model);
+    paint_grid_header(
+        ui,
+        area,
+        &columns
+            .iter()
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>(),
+    );
+}
 fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
     let grid = Grid::new(id, columns)
         .blur(termrock::BlurPolicy::Keep)
@@ -2351,7 +3288,11 @@ fn result_grid<'a>(id: Id, columns: &'a [termrock::Column<'a>]) -> Grid<'a> {
         })
         .column_fit(GridColumnFit::CompleteWithPreview { min_width: 4 })
         .column_gap(2)
-        .sort_indicator(GridSortIndicator::ActiveOnly);
+        .right_reserve(3)
+        .sort_indicator(GridSortIndicator::ActiveOnly)
+        .patch_part(&GRID_PART_PATCH)
+        .slot(Part::GUTTER, &paint_quiet_gutter)
+        .cell(&paint_result_cell);
     if columns.first().is_some_and(|column| column.title == "id") {
         grid.header_prefixes(&ID_HEADER_PREFIX)
     } else {
@@ -2419,13 +3360,13 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str, ink: R
     }
 }
 
-fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect) {
+fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect, ink: Role) {
     if area.width < 2 || area.height == 0 {
         return;
     }
     let style = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(ink)));
     ui.paint_str(
         termrock::Rect {
             x: area.right().saturating_sub(2),
@@ -2444,7 +3385,7 @@ fn paint_explorer_collapse(ui: &mut Ui<'_>, area: termrock::Rect) {
     }
     let style = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
     ui.paint_str(
         termrock::Rect {
             x: area.right().saturating_sub(4),
@@ -2461,7 +3402,17 @@ fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
     if inner.height < 2 {
         return;
     }
-    let label = ui.surface_style();
+    let rest = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_PATH_FG)));
+    let chip = ui.surface_style().patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_bg(Role::Surface(termrock::Surface::Overlay))
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
     ui.paint_str(
         termrock::Rect {
             x: inner.x.saturating_add(1),
@@ -2470,7 +3421,17 @@ fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
             ..inner
         },
         "Data    Structure",
-        label,
+        rest,
+    );
+    ui.paint_str(
+        termrock::Rect {
+            x: inner.x.saturating_add(1),
+            width: 6.min(inner.width),
+            height: 1,
+            ..inner
+        },
+        "Data  ",
+        chip,
     );
     let rule = termrock::Rect {
         y: inner.y.saturating_add(1),
@@ -2482,7 +3443,7 @@ fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
         .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)));
     let quiet = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_RULE_FG)));
     ui.paint_str(
         termrock::Rect {
             width: 7.min(rule.width),
@@ -2504,17 +3465,47 @@ fn paint_data_mode(ui: &mut Ui<'_>, inner: termrock::Rect) {
     }
 }
 
-fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str) {
-    let x = area
-        .x
-        .saturating_add(2)
-        .saturating_add(termrock::width(title));
-    if x >= area.right().saturating_sub(1) || area.height == 0 {
+fn paint_content_seam(ui: &mut Ui<'_>, area: termrock::Rect) {
+    if area.height < 3 {
         return;
     }
     let style = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+    for y in area.y.saturating_add(1)..area.bottom().saturating_sub(1) {
+        if area.x > 0 {
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_sub(1),
+                    y,
+                    width: 1,
+                    height: 1,
+                },
+                "│",
+                style,
+            );
+        }
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x,
+                y,
+                width: 1,
+                height: 1,
+            },
+            "│",
+            style,
+        );
+    }
+}
+
+fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str, ink: Role) {
+    let x = area.x.saturating_add(2).saturating_add(width(title));
+    if x >= area.right().saturating_sub(1) || area.height == 0 {
+        return;
+    }
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(ink)));
     ui.paint_str(
         termrock::Rect {
             x,
@@ -2642,9 +3633,9 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
 
     let capability = ui.theme().capability.color.label();
     let dimensions = format!("{}×{}", area.width, ui.full().height);
-    let right_width = termrock::width(capability)
+    let right_width = width(capability)
         .saturating_add(3)
-        .saturating_add(termrock::width(&dimensions))
+        .saturating_add(width(&dimensions))
         .saturating_add(1)
         .saturating_add(8);
     let right = termrock::Rect {
@@ -2715,29 +3706,29 @@ fn with_footer_spans(app: &TableProApp, paint: impl FnOnce(&[Span<'static>])) {
                 Span::new(" "),
                 Span::new("↑↓←→").bold(),
                 Span::new(" "),
-                Span::new("Cell").role(Role::Fg(FgStep::Muted)),
+                Span::new("Cell").role(TAG_CHROME_FG),
                 Span::new("  "),
                 Span::new("Enter").bold(),
                 Span::new(" "),
-                Span::new("Edit").role(Role::Fg(FgStep::Muted)),
+                Span::new("Edit").role(TAG_CHROME_FG),
                 Span::new("  "),
                 Span::new("Alt+D").bold(),
                 Span::new(" "),
-                Span::new("Duplicate row").role(Role::Fg(FgStep::Muted)),
+                Span::new("Duplicate row").role(TAG_CHROME_FG),
                 Span::new("  "),
                 Span::new("s").bold(),
                 Span::new(" "),
-                Span::new("Sort").role(Role::Fg(FgStep::Muted)),
+                Span::new("Sort").role(TAG_CHROME_FG),
                 Span::new("  "),
                 Span::new("f").bold(),
                 Span::new(" "),
-                Span::new("Filter").role(Role::Fg(FgStep::Muted)),
+                Span::new("Filter").role(TAG_CHROME_FG),
                 Span::new("  "),
                 Span::new("Space").bold(),
                 Span::new(" "),
-                Span::new("Select row").role(Role::Fg(FgStep::Muted)),
+                Span::new("Select row").role(TAG_CHROME_FG),
                 Span::new("  "),
-                Span::new("…").role(Role::Fg(FgStep::Muted)),
+                Span::new("…").role(LEGACY_FAINT),
             ]),
             Some(Tab::Query(_)) => paint(&[
                 Span::new(" "),
@@ -2795,7 +3786,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         ui.paint_spans(area, spans, base);
     });
     if let Some(notice) = app.destructive_notice {
-        let width = termrock::width(notice).min(area.width);
+        let width = width(notice).min(area.width);
         let right = termrock::Rect {
             x: area.right().saturating_sub(width),
             width,
@@ -2813,7 +3804,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
         right_text.push_str(prefix);
         right_text.push_str(&app.connection.name);
-        let width = termrock::width(&right_text);
+        right_text.push(' ');
+        let width = width(&right_text);
         let right = termrock::Rect {
             x: area.right().saturating_sub(width),
             width,
@@ -2823,7 +3815,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             right,
             &[
                 Span::new(&right_text).role(if app.surface == Surface::TableGrid {
-                    Role::Success
+                    TAG_OK_FG
                 } else {
                     Role::Fg(FgStep::Muted)
                 }),
@@ -2849,7 +3841,7 @@ fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
         .y
         .saturating_add(area.height.saturating_sub(lines.len() as u16) / 2);
     for (offset, line) in lines.iter().enumerate() {
-        let width = termrock::width(line);
+        let width = width(line);
         let row = termrock::Rect {
             x: area.x.saturating_add(area.width.saturating_sub(width) / 2),
             y: start.saturating_add(offset as u16),
@@ -2976,24 +3968,24 @@ const DELETE_LABEL: Part = Part::custom("delete.label");
 const ACTION_MONO: &[termrock::MonoRule] = &[
     (
         CONNECT_LABEL,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StylePatch::new()
             .set_fg(Role::Surface(termrock::Surface::Canvas))
             .set_bg(Role::Fg(FgStep::Primary)),
     ),
     (
         EDIT_LABEL,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         DUPLICATE_LABEL,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
     (
         DELETE_LABEL,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
     ),
 ];
@@ -3003,7 +3995,7 @@ fn action_paint(ui: &Ui<'_>, part: Part, background: Role, foreground: Role) -> 
         CONNECTION_ACTIONS,
         termrock::Variant::DEFAULT,
         part,
-        termrock::StateFlags::empty(),
+        StateFlags::empty(),
         StyleDefaults::new(StylePatch::new().set_bg(background).set_fg(foreground))
             .mono(ACTION_MONO),
         None,
@@ -3019,7 +4011,7 @@ fn paint_action_button(
     mut button: PaintStyle,
     bold: bool,
 ) {
-    let width = termrock::width(label).saturating_add(2);
+    let width = width(label).saturating_add(2);
     if bold {
         button = button.add_modifier(Modifier::BOLD);
     }
@@ -3135,7 +4127,7 @@ impl App for TableProApp {
                 }
                 c if c == UNDO => {
                     if let Some((id, grid)) = self.workbench.active_grid_mut()
-                        && cx.state(id).contains(termrock::StateFlags::FOCUSED)
+                        && cx.state(id).contains(StateFlags::FOCUSED)
                         && !grid.state.is_editing()
                     {
                         let _ = grid.model.undo();
@@ -3308,6 +4300,7 @@ impl App for TableProApp {
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
+        GRID_SCROLL.with(|slot| *slot.borrow_mut() = None);
         let full = ui.full();
         if full.width < MIN_WIDTH || full.height < MIN_HEIGHT {
             draw_too_small(ui, full);
@@ -3336,6 +4329,12 @@ impl App for TableProApp {
                 workbench_rows[0],
                 &self.tabs_state,
                 self.workbench.tabs(),
+            );
+            paint_legacy_tabs(
+                ui,
+                workbench_rows[0],
+                self.workbench.tabs(),
+                self.tabs_state.active(),
             );
             if self.workbench.maximized {
                 self.draw_content(ui, workbench_rows[1]);
