@@ -170,11 +170,21 @@ const CONNECTION_DETAILS_TITLE_PATCH: [(Part, StylePatch); 1] = [(
         .set_fg(Role::Fg(FgStep::Secondary))
         .remove(Modifier::BOLD),
 )];
-// Tag strip muted (#8a8a8a) and card rule (#3a3a3a). Junie steps resolve to #808080 and #4d4d4d.
+// Frozen junie ink. Current steps are Muted #808080, Faint/BorderStrong #4d4d4d,
+// Info #8787ff, and Danger #e44545. None of those roles match the frame.
 const TAG_CHROME_FG: Role = Role::Custom(termrock::Color::from_u32(0x008a_8a8a));
 const TAG_RULE_FG: Role = Role::Custom(termrock::Color::from_u32(0x003a_3a3a));
+const LEGACY_FAINT: Role = Role::Custom(termrock::Color::from_u32(0x0073_7373));
+const LEGACY_INFO: Role = Role::Custom(termrock::Color::from_u32(0x0079_b8ff));
+const LEGACY_DANGER_LABEL: Role = Role::Custom(termrock::Color::from_u32(0x00ff_6b6b));
 const FRAMED_PANEL_PATCH: [(Part, StylePatch); 1] =
     [(Part::DETAIL, StylePatch::new().set_fg(Role::BorderStrong))];
+const CONNECTIONS_PANEL_PATCH: [(Part, StylePatch); 1] =
+    [(Part::DETAIL, StylePatch::new().set_fg(LEGACY_FAINT))];
+const CONNECTION_TREE_PATCH: [(Part, StylePatch); 1] = [(
+    Part::GUTTER,
+    StylePatch::new().set_fg(Role::Surface(termrock::Surface::Canvas)),
+)];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
@@ -766,7 +776,7 @@ impl TableProApp {
             .kind(PanelKind::Framed)
             .title(title)
             .focused(true)
-            .patch_part(&FRAMED_PANEL_PATCH)
+            .patch_part(&CONNECTIONS_PANEL_PATCH)
             .slot(Part::GUTTER, &preserve_frame_gutter);
         match meta {
             Some(meta) => panel.meta(meta),
@@ -1618,19 +1628,20 @@ impl TableProApp {
             || connection.host.clone(),
             |port| format!("{}:{port}", connection.host),
         );
-        let ssl_ssh = format!(
-            "{} / {}",
-            if connection.ssl { "on" } else { "off" },
-            if connection.ssh.is_some() {
-                "on"
-            } else {
-                "off"
-            }
-        );
+        let ssl = if connection.ssl { "on" } else { "off" };
+        let ssh = connection.ssh.clone().unwrap_or_else(|| "off".to_owned());
         let properties = [
-            ("Engine", connection.engine.label().to_owned()),
-            ("Host", host),
-            ("Database", connection.database.clone()),
+            (
+                "Engine",
+                connection.engine.label().to_owned(),
+                Role::Fg(FgStep::Primary),
+            ),
+            ("Host", host, Role::Fg(FgStep::Primary)),
+            (
+                "Database",
+                connection.database.clone(),
+                Role::Fg(FgStep::Primary),
+            ),
             (
                 "User",
                 if connection.user.is_empty() {
@@ -1638,8 +1649,13 @@ impl TableProApp {
                 } else {
                     connection.user.clone()
                 },
+                Role::Fg(FgStep::Primary),
             ),
-            ("Environment", connection.environment.label().to_owned()),
+            (
+                "Environment",
+                connection.environment.label().to_owned(),
+                legacy_environment_role(connection.environment),
+            ),
             (
                 "Safe Mode",
                 format!(
@@ -1647,9 +1663,11 @@ impl TableProApp {
                     connection.safe_mode.label(),
                     connection.safe_mode.description()
                 ),
+                Role::Fg(FgStep::Secondary),
             ),
-            ("SSL / SSH", ssl_ssh),
-            ("Last used", connection.last_used.clone()),
+            ("SSL", ssl.to_owned(), Role::Fg(FgStep::Secondary)),
+            ("SSH", ssh, Role::Fg(FgStep::Secondary)),
+            ("Last used", connection.last_used.clone(), TAG_CHROME_FG),
         ];
         let card_area = termrock::Rect {
             width: area.width.min(70),
@@ -1691,13 +1709,19 @@ impl TableProApp {
                 width: body.width,
                 height: 1.min(inner.height),
             };
-            paint_legacy_filter(ui, filter, "Filter connections");
+            paint_legacy_filter(ui, filter, "Filter connections", TAG_CHROME_FG);
             let tree_area = termrock::Rect {
                 y: body.y.saturating_add(2),
                 height: inner.height.saturating_sub(2),
                 ..body
             };
             connection_tree().draw(
+                ui,
+                tree_area,
+                &self.connection_visual_tree_state,
+                &self.connection_nodes,
+            );
+            paint_connection_focus_bar(
                 ui,
                 tree_area,
                 &self.connection_visual_tree_state,
@@ -1766,7 +1790,7 @@ impl TableProApp {
                 width: body.width,
                 height: 1.min(inner.height),
             };
-            paint_legacy_filter(ui, filter, "Filter objects");
+            paint_legacy_filter(ui, filter, "Filter objects", Role::Fg(FgStep::Muted));
             let tree_area = termrock::Rect {
                 y: body.y.saturating_add(2),
                 height: inner.height.saturating_sub(2),
@@ -1925,17 +1949,23 @@ fn stable_key(parts: &[&str]) -> ItemKey {
 fn build_connection_nodes(connections: &[Connection]) -> Vec<ConnectionNode> {
     let mut nodes = Vec::with_capacity(connections.len().saturating_mul(2));
     let mut groups: Vec<&str> = Vec::new();
-    for (index, connection) in connections.iter().enumerate() {
+    for connection in connections {
         if !groups.contains(&connection.group.as_str()) {
-            groups.push(&connection.group);
-            nodes.push(ConnectionNode::Group {
-                name: connection.group.clone(),
-            });
+            groups.push(connection.group.as_str());
         }
-        nodes.push(ConnectionNode::Connection {
-            index,
-            connection: connection.clone(),
+    }
+    for group in groups {
+        nodes.push(ConnectionNode::Group {
+            name: group.to_owned(),
         });
+        for (index, connection) in connections.iter().enumerate() {
+            if connection.group == group {
+                nodes.push(ConnectionNode::Connection {
+                    index,
+                    connection: connection.clone(),
+                });
+            }
+        }
     }
     nodes
 }
@@ -1982,23 +2012,37 @@ fn connection_node(node: &ConnectionNode) -> TreeNode {
     }
 }
 
+fn legacy_environment_role(environment: Environment) -> Role {
+    match environment {
+        Environment::Local => TAG_CHROME_FG,
+        Environment::Development => LEGACY_INFO,
+        Environment::Staging => Role::Warning,
+        Environment::Production => LEGACY_DANGER_LABEL,
+    }
+}
+
+fn connection_mark(connection: &Connection) -> Span<'static> {
+    match connection.environment {
+        Environment::Local => Span::new(" "),
+        Environment::Development => Span::new("·").role(LEGACY_INFO),
+        Environment::Staging => Span::new("◇").role(Role::Warning),
+        Environment::Production => Span::new("◆").role(LEGACY_DANGER_LABEL),
+    }
+}
+
 fn connection_row(node: &ConnectionNode, row: &mut RowUi<'_>) {
     match node {
         ConnectionNode::Group { name } => row.label(name),
         ConnectionNode::Connection { connection, .. } => {
-            let glyph = match connection.environment {
-                Environment::Production => '◆',
-                Environment::Staging => '◇',
-                Environment::Local | Environment::Development => '·',
-            };
-            let glyph = match glyph {
-                '◆' => Span::new("◆"),
-                '◇' => Span::new("◇"),
-                _ => Span::new("·"),
-            }
-            .role(Role::Fg(FgStep::Muted));
-            row.label_spans(&[glyph, Span::new(" "), Span::new(&connection.name)]);
-            row.meta(connection.engine.short());
+            row.label_spans(&[
+                connection_mark(connection),
+                Span::new(" "),
+                Span::new(&connection.name),
+            ]);
+            row.trailing(
+                connection.engine.short(),
+                &StylePatch::new().set_fg(TAG_CHROME_FG),
+            );
         }
     }
 }
@@ -2151,6 +2195,46 @@ fn tab_row(tab: &TabRecord, row: &mut RowUi<'_>) {
     }
 }
 
+fn paint_connection_focus_bar(
+    ui: &mut Ui<'_>,
+    area: termrock::Rect,
+    state: &TreeState,
+    nodes: &[ConnectionNode],
+) {
+    let Some(cursor) = state.cursor() else {
+        return;
+    };
+    let Some(index) = nodes
+        .iter()
+        .position(|node| connection_node_key(node) == cursor)
+    else {
+        return;
+    };
+    let offset = state.scroll().offset();
+    let Some(row) = index.checked_sub(offset) else {
+        return;
+    };
+    let y = area
+        .y
+        .saturating_add(u16::try_from(row).unwrap_or(u16::MAX));
+    if y >= area.bottom() {
+        return;
+    }
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent).add(Modifier::BOLD)));
+    ui.paint_str(
+        termrock::Rect {
+            x: area.x,
+            y,
+            width: 1,
+            height: 1,
+        },
+        "▎",
+        style,
+    );
+}
+
 fn connection_tree() -> Tree<
     'static,
     ConnectionNode,
@@ -2161,6 +2245,7 @@ fn connection_tree() -> Tree<
         .key(connection_node_key)
         .node(&connection_node)
         .row(connection_row)
+        .patch_part(&CONNECTION_TREE_PATCH)
 }
 
 fn explorer_tree() -> Tree<
@@ -2231,7 +2316,7 @@ fn shell_parts(area: termrock::Rect) -> [termrock::Rect; 3] {
 
 fn preserve_frame_gutter(_: &mut Ui<'_>, _: termrock::Rect) {}
 
-fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
+fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str, ink: Role) {
     if area.is_empty() {
         return;
     }
@@ -2251,7 +2336,7 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
     );
 
     if area.width > 2 {
-        let label = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        let label = field.patch(ui.paint_patch(&StylePatch::new().set_fg(ink)));
         ui.paint_str(
             termrock::Rect {
                 x: area.x.saturating_add(2),
@@ -2423,30 +2508,50 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     );
 }
 
+fn connection_footer_spans() -> [Span<'static>; 36] {
+    [
+        Span::new(" "),
+        Span::new("↑↓").bold(),
+        Span::new(" "),
+        Span::new("Move").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Enter").bold(),
+        Span::new(" "),
+        Span::new("Connect").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("e").bold(),
+        Span::new(" "),
+        Span::new("Edit…").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("d").bold(),
+        Span::new(" "),
+        Span::new("Delete…").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Alt+D").bold(),
+        Span::new(" "),
+        Span::new("Duplicate").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("/").bold(),
+        Span::new(" "),
+        Span::new("Filter").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Ctrl+N").bold(),
+        Span::new(" "),
+        Span::new("New").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Shift+F10").bold(),
+        Span::new(" "),
+        Span::new("Menu").role(TAG_CHROME_FG),
+        Span::new("  "),
+        Span::new("Tab").bold(),
+        Span::new(" "),
+        Span::new("Next").role(TAG_CHROME_FG),
+    ]
+}
+
 fn with_footer_spans(app: &TableProApp, paint: impl FnOnce(&[Span<'static>])) {
     if app.screen == Screen::Connections {
-        paint(&[
-            Span::new(" "),
-            Span::new("↑ ↓").bold(),
-            Span::new(" "),
-            Span::new("Move").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Connect").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("/").bold(),
-            Span::new(" "),
-            Span::new("Filter").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("Ctrl+N").bold(),
-            Span::new(" "),
-            Span::new("New").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Next").role(Role::Fg(FgStep::Muted)),
-        ]);
+        paint(&connection_footer_spans());
     } else {
         match app.workbench.active() {
             Some(Tab::Table(_)) => paint(&[
@@ -2586,24 +2691,18 @@ fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_connection_properties(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
-    properties: &[(&str, String)],
+    properties: &[(&str, String, Role)],
 ) {
     let value_x = area.x.saturating_add(13);
     let value_width = area.width.saturating_sub(18).max(1);
     let label_style = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(TAG_CHROME_FG)));
     let mut y = area.y;
-    for (label, value) in properties {
-        let value_step = match *label {
-            "Environment" => FgStep::Faint,
-            "Safe Mode" | "SSL / SSH" => FgStep::Secondary,
-            "Last used" => FgStep::Muted,
-            _ => FgStep::Primary,
-        };
+    for (label, value, value_role) in properties {
         let value_style = ui
             .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(value_step))));
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(*value_role)));
         let lines = if *label == "Safe Mode" {
             wrap(value, value_width)
         } else {
@@ -2690,7 +2789,7 @@ fn draw_connection_actions(ui: &mut Ui<'_>, area: termrock::Rect) {
             ui,
             DELETE_LABEL,
             Role::Surface(termrock::Surface::Overlay),
-            Role::Danger,
+            LEGACY_DANGER_LABEL,
         ),
         false,
     );
@@ -2771,7 +2870,7 @@ fn paint_action_button(
             width: 1,
             height: 1,
         },
-        "▎",
+        " ",
         gutter,
     );
     ui.paint_str(
