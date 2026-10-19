@@ -1,10 +1,11 @@
 use showcase_demos::render_number::RenderNumber;
 use termrock::author::PaintStyle;
 use termrock::{
-    ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
-    FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment, NavList, NavListAction,
-    NavListState, Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, Size, StateFlags,
-    Status, StatusBar, StatusItem, Theme, TooSmall, Ui, Variant, id, width,
+    ActionKey, App as TuiApp, Brand, ByIndex, Chord, ColorLevel, Cx, Dialog, DialogAction,
+    DialogState, FrameRead, GlyphRole, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment,
+    Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, RowFn, Size, StateFlags, Status,
+    StatusBar, StatusItem, Theme, TooSmall, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
+    width,
 };
 
 use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -159,17 +160,10 @@ impl PageId {
     }
 
     pub fn from_name(value: &str) -> Option<Self> {
-        let normalized = |input: &str| {
-            input
-                .chars()
-                .filter(char::is_ascii_alphanumeric)
-                .map(|character| character.to_ascii_lowercase())
-                .collect::<String>()
-        };
-        let value = normalized(value);
-        Self::ALL
-            .into_iter()
-            .find(|page| normalized(page.slug()) == value || normalized(page.title()) == value)
+        nav_index_from_name(value).and_then(|index| {
+            let entry = NAV_ENTRIES.get(index)?;
+            entry_is_live(entry).then_some(entry.id)
+        })
     }
 
     pub fn from_key(key: ItemKey) -> Option<Self> {
@@ -197,121 +191,259 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
         id: PageId::Overview,
         label: "Overview",
-        section: "Foundations",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Buttons,
-        label: "Buttons",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Inputs,
-        label: "Inputs",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::TextAreas,
-        label: "Text areas",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Forms,
-        label: "Forms",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Lists,
-        label: "Lists",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Trees,
-        label: "Trees",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Tables,
-        label: "Tables",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Editable,
-        label: "Editable tables",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Panels,
-        label: "Panels",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Sidebars,
-        label: "Sidebars",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Dialogs,
-        label: "Dialogs",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Progress,
-        label: "Progress",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Scrolling,
-        label: "Scrolling",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Terminal,
-        label: "Terminal",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Editor,
-        label: "Code editor",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Grid,
-        label: "Data grid",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Chips,
-        label: "Chips & selects",
-        section: "Components",
-        icon: "•",
-    },
-    NavEntry {
-        id: PageId::Pickers,
-        label: "Pickers",
-        section: "Components",
+        section: "",
         icon: "•",
     },
     NavEntry {
         id: PageId::Chrome,
         label: "Chrome",
-        section: "Components",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Status & hints",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Breadcrumbs & rails",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Help & keys",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Quit & leave",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Focus & navigation",
+        section: "App shell",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Buttons,
+        label: "Buttons",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Inputs,
+        label: "Inputs",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::TextAreas,
+        label: "Text areas",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Chips,
+        label: "Chips & selects",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Forms,
+        label: "Forms",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Checks & radios",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Toolbars",
+        section: "Inputs & forms",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Tables,
+        label: "Basic table",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Editable,
+        label: "Editable",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Grid,
+        label: "Data grid",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Selection",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Cell editors",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Columns",
+        section: "Tables",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Lists,
+        label: "Lists",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Trees,
+        label: "Trees",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Sidebars,
+        label: "Sidebars",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Tabs",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Menus",
+        section: "Navigation",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Dialogs,
+        label: "Dialogs",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Pickers,
+        label: "Pickers",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Dialog kinds",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Popups & tooltips",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "File browser",
+        section: "Overlays",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Progress,
+        label: "Progress",
+        section: "Feedback",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Empty & error",
+        section: "Feedback",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Meters",
+        section: "Feedback",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Notices",
+        section: "Feedback",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Panels,
+        label: "Panels",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Scrolling,
+        label: "Scrolling",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Splits & stacks",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Master-detail",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Pane tree",
+        section: "Layout",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Editor,
+        label: "Code editor",
+        section: "Text & code",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Diff",
+        section: "Text & code",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Terminal,
+        label: "Terminal",
+        section: "Text & code",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Text utilities",
+        section: "Text & code",
         icon: "•",
     },
     NavEntry {
@@ -326,23 +458,218 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         section: "Screens",
         icon: "•",
     },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Query workbench",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Connections",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Finder",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Disk cleanup",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Activity",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Workspaces",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Accounts & usage",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Launch cockpit",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Overview,
+        label: "Read-only report",
+        section: "Screens",
+        icon: "•",
+    },
 ];
 
-fn nav_key(entry: &NavEntry) -> ItemKey {
-    ItemKey::text(entry.id.slug())
+const NAV_ALIASES: &[(&str, &str)] = &[
+    ("tables", "Basic table"),
+    ("editabletables", "Editable"),
+    ("selectabletable", "Selection"),
+    ("optioneditors", "Cell editors"),
+    ("options", "Cell editors"),
+    ("enums", "Cell editors"),
+    ("choices", "Cell editors"),
+    ("selection", "Selection"),
+    ("bulkedit", "Selection"),
+    ("selectable", "Selection"),
+    ("hints", "Status & hints"),
+    ("breadcrumbs", "Breadcrumbs & rails"),
+    ("rails", "Breadcrumbs & rails"),
+    ("help", "Help & keys"),
+    ("quit", "Quit & leave"),
+    ("leave", "Quit & leave"),
+    ("focus", "Focus & navigation"),
+    ("checks", "Checks & radios"),
+    ("radios", "Checks & radios"),
+    ("popups", "Popups & tooltips"),
+    ("tooltips", "Popups & tooltips"),
+    ("empty", "Empty & error"),
+    ("splits", "Splits & stacks"),
+    ("text", "Text utilities"),
+    ("datagrid", "Data grid"),
+    ("codeeditor", "Code editor"),
+    ("chipsselects", "Chips & selects"),
+    ("queryworkbench", "Query workbench"),
+    ("celleditors", "Cell editors"),
+];
+
+fn normalized_name(input: &str) -> String {
+    input
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .map(|character| character.to_ascii_lowercase())
+        .collect()
 }
 
-fn nav_section(entry: &NavEntry) -> &str {
-    entry.section
+fn entry_is_live(entry: &NavEntry) -> bool {
+    entry.label == "Overview" || entry.id != PageId::Overview
 }
 
-fn nav() -> NavList<'static, NavEntry, impl Fn(&NavEntry) -> ItemKey> {
-    NavList::new(NAV)
-        .key(nav_key)
-        .section(&nav_section)
-        .compact_when_clipped()
-        .header_indent(3)
-        .render_row(&paint_nav_row)
+fn nav_index_from_name(value: &str) -> Option<usize> {
+    let value = normalized_name(value);
+    if let Some(label) = NAV_ALIASES
+        .iter()
+        .find(|(alias, _)| *alias == value)
+        .map(|(_, label)| *label)
+    {
+        return NAV_ENTRIES.iter().position(|entry| entry.label == label);
+    }
+    if let Some(index) = NAV_ENTRIES
+        .iter()
+        .position(|entry| normalized_name(entry.label) == value)
+    {
+        return Some(index);
+    }
+    NAV_ENTRIES.iter().position(|entry| {
+        entry_is_live(entry)
+            && (normalized_name(entry.id.slug()) == value
+                || normalized_name(entry.id.title()) == value)
+    })
+}
+
+fn index_for_page(page: PageId) -> usize {
+    NAV_ENTRIES
+        .iter()
+        .position(|entry| entry_is_live(entry) && entry.id == page)
+        .unwrap_or(0)
+}
+
+struct NavNode {
+    label: &'static str,
+    depth: u16,
+    parent: bool,
+    entry: Option<usize>,
+}
+
+fn nav_nodes() -> Vec<NavNode> {
+    let mut nodes = Vec::new();
+    let mut section = "";
+    for (index, entry) in NAV_ENTRIES.iter().enumerate() {
+        if entry.section != section {
+            section = entry.section;
+            if !section.is_empty() {
+                nodes.push(NavNode {
+                    label: section,
+                    depth: 0,
+                    parent: true,
+                    entry: None,
+                });
+            }
+        }
+        nodes.push(NavNode {
+            label: entry.label,
+            depth: u16::from(!entry.section.is_empty()),
+            parent: false,
+            entry: Some(index),
+        });
+    }
+    nodes
+}
+
+fn node_of(node: &NavNode) -> TreeNode {
+    if node.parent {
+        TreeNode::parent(node.depth)
+    } else {
+        TreeNode::leaf(node.depth)
+    }
+}
+
+fn nav_tree() -> Tree<'static, NavNode, ByIndex, impl RowFn<NavNode>> {
+    Tree::new(NAV).node(&node_of).render_row(&paint_sidebar_row)
+}
+
+fn place_nav(state: &mut TreeState, entry: usize) {
+    state.collapse_all();
+    let nodes = nav_nodes();
+    let Some(source) = nodes.iter().position(|node| node.entry == Some(entry)) else {
+        return;
+    };
+    if nodes[source].depth > 0
+        && let Some(parent) = (0..source).rev().find(|&index| nodes[index].parent)
+    {
+        state.expand(ItemKey::index(parent));
+    }
+    let key = ItemKey::index(source);
+    let visible = visible_index(&nodes, source, state);
+    state.choose(Some(key));
+    state.set_cursor(visible, key);
+}
+
+fn visible_index(nodes: &[NavNode], source: usize, state: &TreeState) -> usize {
+    let mut collapsed_at = None;
+    let mut seen = 0usize;
+    for (index, node) in nodes.iter().enumerate() {
+        if collapsed_at.is_some_and(|depth| node.depth > depth) {
+            continue;
+        }
+        collapsed_at = None;
+        if index == source {
+            return seen;
+        }
+        seen = seen.saturating_add(1);
+        if node.parent && !state.is_expanded(ItemKey::index(index)) {
+            collapsed_at = Some(node.depth);
+        }
+    }
+    0
+}
+
+fn entry_for_key(key: ItemKey, nodes: &[NavNode]) -> Option<usize> {
+    let source = (0..nodes.len()).find(|&index| ItemKey::index(index) == key)?;
+    nodes.get(source)?.entry
 }
 
 fn shell_brand() -> Brand<'static> {
@@ -436,7 +763,8 @@ fn keymap() -> KeyMap {
 
 pub struct App {
     page: PageId,
-    nav_state: NavListState,
+    nav_index: usize,
+    nav_state: TreeState,
     pages: Vec<Box<dyn Page>>,
     help_state: DialogState,
     keymap: KeyMap,
@@ -451,6 +779,7 @@ impl core::fmt::Debug for App {
         formatter
             .debug_struct("App")
             .field("page", &self.page)
+            .field("nav_index", &self.nav_index)
             .field("nav_state", &self.nav_state)
             .field("pages", &self.pages.len())
             .field("help_state", &self.help_state)
@@ -472,11 +801,23 @@ impl App {
         Self::with_page_motion(initial, false, 0)
     }
 
+    pub fn for_page_name(name: &str) -> Self {
+        Self::boot(nav_index_from_name(name).unwrap_or(0), false, 0)
+    }
+
     pub fn with_page_motion(initial: PageId, paused: bool, frame: usize) -> Self {
-        let mut nav_state = NavListState::new();
-        let initial_key = ItemKey::text(initial.slug());
-        nav_state.set_current(Some(initial_key));
-        nav_state.set_cursor(initial.index(), initial_key);
+        Self::boot(index_for_page(initial), paused, frame)
+    }
+
+    fn boot(nav_index: usize, paused: bool, frame: usize) -> Self {
+        let nav_index = nav_index.min(NAV_ENTRIES.len().saturating_sub(1));
+        let selected = NAV_ENTRIES.get(nav_index).copied();
+        let initial = selected
+            .filter(entry_is_live)
+            .map(|entry| entry.id)
+            .unwrap_or(PageId::Overview);
+        let mut nav_state = TreeState::new();
+        place_nav(&mut nav_state, nav_index);
         let mut pages: Vec<Box<dyn Page>> = PageId::ALL.into_iter().map(page).collect();
         if paused {
             for page in &mut pages {
@@ -485,6 +826,7 @@ impl App {
         }
         Self {
             page: initial,
+            nav_index,
             nav_state,
             pages,
             help_state: DialogState::default(),
@@ -504,11 +846,26 @@ impl App {
         self.quit
     }
 
-    fn goto(&mut self, page: PageId) {
-        self.page = page;
-        let key = ItemKey::text(page.slug());
-        self.nav_state.set_current(Some(key));
-        self.nav_state.set_cursor(page.index(), key);
+    fn goto_entry(&mut self, index: usize) {
+        let Some(entry) = NAV_ENTRIES.get(index).copied() else {
+            return;
+        };
+        self.nav_index = index;
+        if entry_is_live(&entry) {
+            self.page = entry.id;
+        }
+        place_nav(&mut self.nav_state, index);
+    }
+
+    fn show_live_page(&self) -> bool {
+        NAV_ENTRIES.get(self.nav_index).is_some_and(entry_is_live)
+    }
+
+    fn nav_label(&self) -> &'static str {
+        NAV_ENTRIES
+            .get(self.nav_index)
+            .map(|entry| entry.label)
+            .unwrap_or("Overview")
     }
 
     fn active(&self) -> Option<&dyn Page> {
@@ -586,16 +943,16 @@ fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
         area.width,
         area.height.saturating_sub(4),
     );
-    let sidebar_width = if area.width >= 110 { 24 } else { 19 };
+    let sidebar_span: u16 = if area.width >= 110 { 24 } else { 19 };
     let inspector_width = if inspector && area.width >= 100 {
         30
     } else {
         0
     };
-    let sidebar = Rect::new(body.x, body.y, sidebar_width, body.height);
-    let main_x = body.x.saturating_add(sidebar_width).saturating_add(2);
+    let sidebar = Rect::new(body.x, body.y, sidebar_span.saturating_add(1), body.height);
+    let main_x = body.x.saturating_add(sidebar_span).saturating_add(2);
     let main_width = body.width.saturating_sub(
-        sidebar_width
+        sidebar_span
             .saturating_add(2)
             .saturating_add(inspector_width)
             .saturating_add(u16::from(inspector_width > 0).saturating_mul(2)),
@@ -663,7 +1020,8 @@ fn paint_header(
     area: Rect,
     screen_width: u16,
     screen_height: u16,
-    page: PageId,
+    section: &str,
+    label: &str,
     inspector: bool,
 ) {
     if area.is_empty() {
@@ -672,8 +1030,9 @@ fn paint_header(
     let canvas = shell_compat_style(ui.surface_style());
     ui.fill(area, canvas);
 
-    let (title, secondary, muted, faint, marker) = header_styles(ui);
-    let left = paint_header_breadcrumb(ui, area, page, title, secondary, muted, marker);
+    let styles = header_styles(ui);
+    let (title, secondary, muted, faint, marker) = styles;
+    let left = paint_header_breadcrumb(ui, area, section, label, (title, secondary, faint, marker));
     paint_header_actions(
         ui,
         area,
@@ -711,12 +1070,11 @@ fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintS
 fn paint_header_breadcrumb(
     ui: &mut Ui<'_>,
     area: Rect,
-    page: PageId,
-    title: PaintStyle,
-    secondary: PaintStyle,
-    muted: PaintStyle,
-    marker: PaintStyle,
+    section: &str,
+    label: &str,
+    styles: (PaintStyle, PaintStyle, PaintStyle, PaintStyle),
 ) -> u16 {
+    let (title, secondary, faint, marker) = styles;
     let mut x = area.x.saturating_add(1);
     ui.paint_str(Rect::new(x, area.y, 1, 1), "▪", marker);
     x = x.saturating_add(2);
@@ -732,23 +1090,29 @@ fn paint_header_breadcrumb(
         secondary,
     );
     x = x.saturating_add(14);
-
-    let Some(entry) = NAV_ENTRIES
-        .get(page.index())
-        .copied()
-        .or_else(|| NAV_ENTRIES.first().copied())
-    else {
-        return x;
-    };
-    for fragment in ["/ ", entry.section, " / ", entry.label] {
+    // The brand advance already leaves one space. The baseline crumb starts one cell later.
+    x = x.saturating_add(1);
+    if !section.is_empty() {
         ui.paint_str(
             Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-            fragment,
-            muted,
+            section,
+            secondary,
         );
-        x = x.saturating_add(width(fragment));
+        x = x.saturating_add(width(section));
+        let separator = " › ";
+        ui.paint_str(
+            Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+            separator,
+            faint,
+        );
+        x = x.saturating_add(width(separator));
     }
-    x
+    ui.paint_str(
+        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+        label,
+        title,
+    );
+    x.saturating_add(width(label))
 }
 
 fn paint_header_actions(
@@ -841,95 +1205,147 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle
     }
 }
 
-fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, entry: &NavEntry) {
-    let current = flags.contains(StateFlags::SELECTED);
-
-    let flags = flags.difference(StateFlags::SELECTED);
-    let emphasized = current || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
-    let container = shell_compat_style(
-        ui.style(
-            termrock::Family::LIST,
-            Variant::DEFAULT,
-            Part::CONTAINER,
-            flags,
-        )
-        .style,
+fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &TreeState) {
+    if area.is_empty() {
+        return;
+    }
+    let canvas = shell_compat_style(ui.surface_style());
+    ui.fill(area, canvas);
+    let title = shell_part_style(
+        ui,
+        termrock::Family::PANEL,
+        Part::DETAIL,
+        StateFlags::empty(),
     );
-    let row_background = ui.surface_style().patch(container);
-    ui.fill(row, container);
-    let gutter = ui
-        .style(
+    let faint = shell_text_style(ui, termrock::FgStep::Faint);
+    let span_x = area.x.saturating_add(1);
+    let span_w = area.width.saturating_sub(2);
+    ui.paint_str(Rect::new(span_x, area.y, span_w, 1), "Components", title);
+    let count = NAV_ENTRIES.len().to_string();
+    let count_w = width(&count);
+    if span_w > count_w {
+        ui.paint_str(
+            Rect::new(
+                span_x.saturating_add(span_w).saturating_sub(count_w),
+                area.y,
+                count_w,
+                1,
+            ),
+            &count,
+            faint,
+        );
+    }
+    if area.height > 1 {
+        let rule = "─".repeat(usize::from(span_w));
+        ui.paint_str(
+            Rect::new(span_x, area.y.saturating_add(1), span_w, 1),
+            &rule,
+            faint,
+        );
+    }
+    let list = Rect::new(
+        span_x,
+        area.y.saturating_add(2),
+        span_w,
+        area.height.saturating_sub(3),
+    );
+    let nodes = nav_nodes();
+    nav_tree().draw(ui, list, state, &nodes);
+}
+
+fn paint_sidebar_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, node: &NavNode) {
+    if row.is_empty() {
+        return;
+    }
+    let canvas = shell_compat_style(ui.surface_style());
+    ui.fill(row, canvas);
+    let focused = flags.contains(StateFlags::FOCUSED);
+    let selected = flags.contains(StateFlags::SELECTED);
+    let label = shell_row_style(
+        shell_part_style(ui, termrock::Family::LIST, Part::LABEL, flags),
+        flags,
+    );
+    let secondary = shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags);
+    let marker = shell_row_style(
+        shell_part_style(
+            ui,
             termrock::Family::LIST,
-            Variant::DEFAULT,
-            Part::GUTTER,
-            flags,
-        )
-        .style
-        .with_bg_from(row_background);
-    let gutter = if flags.contains(StateFlags::FOCUSED) {
-        gutter
-    } else {
-        gutter.with_fg_from_bg(row_background)
-    };
-    let marker = ui
-        .style(
-            termrock::Family::LIST,
-            Variant::DEFAULT,
             Part::MARKER,
-            if current {
+            if selected {
                 flags | StateFlags::SELECTED
             } else {
                 flags
             },
-        )
-        .style
-        .with_bg_from(row_background);
-    let label = ui
-        .style(termrock::Family::LIST, Variant::DEFAULT, Part::LABEL, flags)
-        .style
-        .with_bg_from(row_background);
-    let secondary = shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags)
-        .with_bg_from(row_background);
-    let gutter = shell_row_style(gutter, flags);
-    let marker = shell_row_style(marker, flags);
-    let label = shell_row_style(label, flags);
-    let secondary = shell_row_style(secondary, flags);
-    ui.paint_str(Rect::new(row.x, row.y, 1, 1), "▎", gutter);
-    ui.paint_str(
-        Rect::new(row.x.saturating_add(1), row.y, 1, 1),
-        if current { "›" } else { " " },
-        marker,
-    );
-    ui.paint_str(Rect::new(row.x.saturating_add(2), row.y, 1, 1), " ", label);
-    ui.paint_str(
-        Rect::new(
-            row.x.saturating_add(3),
-            row.y,
-            row.width.saturating_sub(4),
-            1,
         ),
-        entry.label,
-        if emphasized { label } else { secondary },
+        flags,
     );
-    let label_style = if emphasized { label } else { secondary };
-    let label_area = Rect::new(
-        row.x.saturating_add(3),
-        row.y,
-        row.width.saturating_sub(4),
-        1,
-    );
-    let used = width(entry.label).min(label_area.width);
-    if used < label_area.width {
-        ui.fill(
-            Rect::new(
-                label_area.x.saturating_add(used),
-                label_area.y,
-                label_area.width.saturating_sub(used),
-                1,
-            ),
-            label_style,
+    if focused {
+        let gutter = shell_row_style(
+            shell_part_style(ui, termrock::Family::LIST, Part::GUTTER, flags),
+            flags,
         );
+        ui.glyph(Rect::new(row.x, row.y, 1, 1), GlyphRole::FocusBar, gutter);
     }
+    let indent = node.depth.saturating_mul(2);
+    let mark_x = row.x.saturating_add(1).saturating_add(indent);
+    if node.parent {
+        let role = if flags.contains(StateFlags::EXPANDED) {
+            GlyphRole::Expanded
+        } else {
+            GlyphRole::Collapsed
+        };
+        ui.glyph(Rect::new(mark_x, row.y, 1, 1), role, secondary);
+    } else if selected {
+        ui.glyph(Rect::new(mark_x, row.y, 1, 1), GlyphRole::Chosen, marker);
+    }
+    let label_x = mark_x.saturating_add(2);
+    let room = row.right().saturating_sub(label_x).saturating_sub(1);
+    let text = clip_label(node.label, room);
+    ui.paint_str(
+        Rect::new(label_x, row.y, row.right().saturating_sub(label_x), 1),
+        &text,
+        if focused || selected {
+            label
+        } else {
+            secondary
+        },
+    );
+}
+
+fn paint_placeholder(ui: &mut Ui<'_>, area: Rect, label: &str) {
+    if area.is_empty() {
+        return;
+    }
+    let title = shell_part_style(
+        ui,
+        termrock::Family::PANEL,
+        Part::TITLE,
+        StateFlags::empty(),
+    );
+    ui.paint_str(Rect::new(area.x, area.y, area.width, 1), label, title);
+}
+
+fn clip_label(label: &str, max: u16) -> String {
+    let max = usize::from(max);
+    if usize::from(width(label)) <= max {
+        return label.to_owned();
+    }
+    let room = max.saturating_sub(1);
+    let mut end = 0;
+    let mut used = 0usize;
+    for (index, character) in label.char_indices() {
+        let mut buf = [0u8; 4];
+        let piece = character.encode_utf8(&mut buf);
+        let piece_width = usize::from(width(piece));
+        if used.saturating_add(piece_width) > room {
+            break;
+        }
+        used = used.saturating_add(piece_width);
+        end = index.saturating_add(character.len_utf8());
+    }
+    let mut out = label[..end].to_owned();
+    out.push('…');
+    out
 }
 
 fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
@@ -950,7 +1366,7 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
             "—"
         };
         let rows = [
-            ("page", app.page.title()),
+            ("page", app.nav_label()),
             ("focus", focus),
             ("hover", hover),
             ("pressed", pressed),
@@ -1109,25 +1525,19 @@ impl TuiApp for App {
                 cx.quit();
             }
             Some(NEXT_PAGE) => {
-                let next = self
-                    .page
-                    .index()
-                    .checked_add(1)
-                    .and_then(|index| PageId::ALL.get(index).copied())
-                    .or_else(|| PageId::ALL.first().copied());
-                if let Some(page) = next {
-                    self.goto(page);
+                let count = NAV_ENTRIES.len();
+                if count > 0 {
+                    self.goto_entry(self.nav_index.saturating_add(1) % count);
                 }
             }
             Some(PREV_PAGE) => {
-                let previous = self
-                    .page
-                    .index()
-                    .checked_sub(1)
-                    .and_then(|index| PageId::ALL.get(index).copied())
-                    .or_else(|| PageId::ALL.last().copied());
-                if let Some(page) = previous {
-                    self.goto(page);
+                let count = NAV_ENTRIES.len();
+                if count > 0 {
+                    let previous = self
+                        .nav_index
+                        .checked_sub(1)
+                        .unwrap_or(count.saturating_sub(1));
+                    self.goto_entry(previous);
                 }
             }
             Some(HELP_COMMAND) if !cx.is_open(HELP) => {
@@ -1138,7 +1548,8 @@ impl TuiApp for App {
             }
             _ => {}
         }
-        if let Some(action) = command
+        if self.show_live_page()
+            && let Some(action) = command
             && !matches!(
                 action,
                 QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND | INSPECTOR_COMMAND
@@ -1147,27 +1558,30 @@ impl TuiApp for App {
         {
             response |= active.command(cx, action);
         }
-        response |= nav()
-            .update(cx, &mut self.nav_state, NAV_ENTRIES)
-            .on_action(|action| match action {
-                NavListAction::Chose(key) => {
-                    if let Some(page) = PageId::from_key(key) {
-                        self.goto(page);
+        let nodes = nav_nodes();
+        let mut picked = None;
+        response |= nav_tree()
+            .update(cx, &mut self.nav_state, &nodes)
+            .on_action(|action| {
+                let (key, activate) = match action {
+                    TreeAction::Chose(key) => (key, false),
+                    TreeAction::Activated(key) => (key, true),
+                    TreeAction::Moved | TreeAction::Expanded(_) | TreeAction::Collapsed(_) => {
+                        return;
                     }
-                }
-                NavListAction::EnterContent(key) => {
-                    if let Some(page) = PageId::from_key(key) {
-                        self.goto(page);
-                        cx.focus_next();
-                    }
-                }
-                NavListAction::Moved(_)
-                | NavListAction::LeaveBackward
-                | NavListAction::LeaveForward => {}
+                };
+                picked = entry_for_key(key, &nodes).map(|index| (index, activate));
             });
+        if let Some((index, activate)) = picked {
+            self.goto_entry(index);
+            if activate && self.show_live_page() {
+                cx.focus_next();
+            }
+        }
 
-        if !(cx.update_cause() == termrock::UpdateCause::Tick
-            && (cx.is_open(HELP) || self.motion_paused))
+        if self.show_live_page()
+            && !(cx.update_cause() == termrock::UpdateCause::Tick
+                && (cx.is_open(HELP) || self.motion_paused))
             && let Some(active) = self.pages.get_mut(self.page.index())
         {
             let update = active.update(cx);
@@ -1200,30 +1614,41 @@ impl TuiApp for App {
         let shell = shell_layout(full, self.inspector);
 
         shell_brand().draw(ui, shell.header);
-        nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
+        paint_sidebar(ui, shell.sidebar, &self.nav_state);
         shell_status().draw(ui, shell.footer);
+        let entry = NAV_ENTRIES.get(self.nav_index).copied();
+        let section = entry.map(|entry| entry.section).unwrap_or("");
+        let label = entry.map(|entry| entry.label).unwrap_or("Overview");
         paint_header(
             ui,
             shell.header,
             full.width,
             full.height,
-            self.page,
+            section,
+            label,
             self.inspector,
         );
-        if let Some(active) = self.active() {
-            active.draw(ui, shell.main);
+        if self.show_live_page() {
+            if let Some(active) = self.active() {
+                active.draw(ui, shell.main);
+            } else {
+                missing_page_panel().draw(ui, shell.main, |ui, area| {
+                    let _ = ui.paint_str(area, "No page selected", ui.surface_style());
+                });
+            }
         } else {
-            missing_page_panel().draw(ui, shell.main, |ui, area| {
-                let _ = ui.paint_str(area, "No page selected", ui.surface_style());
-            });
+            paint_placeholder(ui, shell.main, label);
         }
         if let Some(inspector) = shell.inspector {
             paint_inspector(ui, inspector, self);
         }
-        let (page_hints, page_editing) = self
-            .active()
-            .map(|page| (page.hints(ui), page.editing(ui)))
-            .unwrap_or_default();
+        let (page_hints, page_editing) = if self.show_live_page() {
+            self.active()
+                .map(|page| (page.hints(ui), page.editing(ui)))
+                .unwrap_or_default()
+        } else {
+            (&[][..], false)
+        };
         paint_footer(
             ui,
             shell.footer,
@@ -1265,15 +1690,15 @@ impl TuiApp for App {
 }
 
 pub fn run() -> std::io::Result<()> {
-    let (page, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
-    termrock::run(App::with_page_motion(page, paused, frame), theme)
+    let (nav, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
+    termrock::run(App::boot(nav, paused, frame), theme)
 }
 
 fn parse_args(
     mut args: impl Iterator<Item = String>,
-) -> std::io::Result<(PageId, Theme, bool, usize)> {
+) -> std::io::Result<(usize, Theme, bool, usize)> {
     let mut theme = Theme::junie();
-    let mut page = PageId::Overview;
+    let mut nav = 0usize;
     let mut paused = false;
     let mut frame = 0usize;
     let mut frame_seen = false;
@@ -1305,9 +1730,9 @@ fn parse_args(
             }
             "--page" => {
                 if let Some(value) = args.next()
-                    && let Some(selected) = PageId::from_name(&value)
+                    && let Some(index) = nav_index_from_name(&value)
                 {
-                    page = selected;
+                    nav = index;
                 }
             }
             "--motion" => {
@@ -1360,7 +1785,7 @@ fn parse_args(
             "--frame cannot be combined with --motion full",
         ));
     }
-    Ok((page, theme, paused, frame))
+    Ok((nav, theme, paused, frame))
 }
 
 #[cfg(test)]
@@ -1460,8 +1885,9 @@ mod app_tests {
                 .map(str::to_owned),
         );
         assert!(parsed.is_ok(), "valid frame options: {parsed:?}");
-        if let Ok((page, _, paused, frame)) = parsed {
-            assert_eq!(page, PageId::Progress);
+        if let Ok((nav, _, paused, frame)) = parsed {
+            assert_eq!(NAV_ENTRIES[nav].id, PageId::Progress);
+            assert_eq!(NAV_ENTRIES[nav].label, "Progress");
             assert!(paused);
             assert_eq!(frame, 80);
         }
