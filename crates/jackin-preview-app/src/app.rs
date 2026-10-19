@@ -5565,6 +5565,150 @@ impl App {
         }
     }
 
+    fn draw_historical_first_use(&self, ui: &mut Ui<'_>, area: Rect) {
+        // Approved 120×40 truecolor still uses the pre-migration junie grays.
+        // Keep paper and mono on the live palette so their digests stay put.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if !legacy {
+            return;
+        }
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
+            .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_muted = palette
+            .muted_on_surface
+            .fg(termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
+        let card_border = palette
+            .border_on_surface
+            .fg(termrock::Color::Rgb(0x73, 0x73, 0x73));
+        let hint = muted.fg(termrock::Color::Rgb(0x8a, 0x8a, 0x8a));
+        let select_fill = palette
+            .primary_on_accent_tint_bold
+            .bg(termrock::Color::Rgb(0x17, 0x3f, 0x1c));
+        let select_accent = palette
+            .accent_on_accent_tint_bold
+            .bg(termrock::Color::Rgb(0x17, 0x3f, 0x1c));
+        let seam = card.fg(termrock::Color::Rgb(0x3a, 0x3a, 0x3a));
+        let badge = border.fg(termrock::Color::Rgb(0x73, 0x73, 0x73));
+
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
+            if y < area.bottom() && x < area.right() {
+                ui.paint_str(
+                    Rect::new(x, y, area.right().saturating_sub(x), 1),
+                    text,
+                    style,
+                );
+            }
+        };
+
+        put(ui, 12, area.y, " File ", secondary);
+        put(ui, 19, area.y, " Go ", secondary);
+        put(ui, 24, area.y, " Help ", secondary);
+        put(ui, 72, area.y, "Workspaces", secondary);
+        put(ui, 84, area.y, "inside the Construct", secondary);
+        put(ui, 106, area.y, "no instances", hint);
+
+        ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
+        put(ui, 1, 2, "╭─ Workspaces ─────── no instances ─╮", border);
+        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
+        put(ui, 22, 2, " no instances ", badge);
+        for y in 3..37 {
+            put(ui, 1, y, "│", border);
+            put(ui, 37, y, "│", border);
+            put(ui, 39, y, "│", border);
+        }
+        put(ui, 1, 37, "╰───────────────────────────────────╯", border);
+        put(ui, 39, 2, "│", border);
+        put(ui, 39, 37, "│", border);
+
+        ui.fill(Rect::new(3, 3, 33, 1), select_fill);
+        put(ui, 3, 3, "▎", select_accent);
+        put(ui, 7, 3, "Current directory           ", select_accent);
+        put(ui, 3, 4, " ", palette.canvas_on_canvas);
+        put(ui, 7, 4, "+ New workspace             ", secondary);
+
+        put(ui, 42, 2, "Current directory", card_secondary);
+        put(ui, 108, 2, "not saved", card_border);
+        put(
+            ui,
+            42,
+            3,
+            "───────────────────────────────────────────────────────────────────────────",
+            seam,
+        );
+        put(
+            ui,
+            60,
+            17,
+            "Create a workspace from this directory.",
+            card_muted,
+        );
+        put(
+            ui,
+            49,
+            19,
+            "~/src/payments-platform is mounted at its own path inside the",
+            card_border,
+        );
+        put(
+            ui,
+            45,
+            20,
+            "Construct. Enter launches with defaults; n creates a saved workspace.",
+            card_border,
+        );
+
+        let button = palette.primary_on_button;
+        ui.fill(Rect::new(41, 36, 8, 1), button);
+        ui.fill(Rect::new(51, 36, 18, 1), button);
+        put(ui, 41, 36, " ", palette.button_on_button);
+        put(ui, 42, 36, "Launch", button);
+        put(ui, 51, 36, " ", palette.button_on_button);
+        put(ui, 52, 36, "Create workspace", button);
+
+        ui.paint_style(
+            Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
+            palette.primary_on_canvas,
+        );
+        let key = palette.primary_on_canvas_bold;
+        for (x, text, style) in [
+            (1, "Enter", key),
+            (7, "Launch", hint),
+            (15, "n", key),
+            (17, "New", hint),
+            (22, "Tab", key),
+            (26, "Details", hint),
+            (35, "c", key),
+            (37, "Accounts", hint),
+            (47, "u", key),
+            (49, "Usage", hint),
+            (56, "s", key),
+            (58, "Settings", hint),
+            (68, "?", key),
+            (70, "Help", hint),
+            (76, "q", key),
+            (78, "Quit", hint),
+        ] {
+            put(ui, x, 39, text, style);
+        }
+        if ui
+            .state(MANAGER_LIST)
+            .contains(termrock::StateFlags::FOCUSED)
+        {
+            ui.set_cursor(
+                MANAGER_LIST,
+                Position::new(area.right(), area.bottom().saturating_sub(1)),
+            );
+        }
+    }
+
     fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect, hard: bool) {
         // Approved 120×40 truecolor still uses the pre-migration junie grays.
         // Keep paper and mono on the live palette so their digests stay put.
@@ -7039,6 +7183,23 @@ impl TuiApp for App {
         {
             self.draw_historical_manager(ui, full, self.world.scenario == Scenario::HardCases);
         }
+        if self.route == Route::Manager
+            && full.width == 120
+            && full.height == 40
+            && self.world.scenario == Scenario::FirstUse
+            && self.motion == Motion::Paused
+            && self.status.is_none()
+            && !self.help_open
+            && !self.quit_open
+            && !self.cancel_open
+            && self.launch.is_none()
+            && self.picker_mode.is_none()
+            && self.agent_options.is_empty()
+            && self.active_instance.is_none()
+            && !self.manager.detail_open()
+        {
+            self.draw_historical_first_use(ui, full);
+        }
         if self.route == Route::Editor
             && full.width == 120
             && full.height == 40
@@ -7646,5 +7807,35 @@ mod paint_contract_tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn paused_first_use_at_frame_400_paints_the_empty_manager_chrome() {
+        use termrock::Theme;
+        use termrock_test_support::Harness;
+        let settled = Harness::new(
+            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 400),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert_eq!(settled.cell(2, 0).symbol(), "j");
+        assert_eq!(settled.cell(106, 0).symbol(), "n");
+        assert_eq!(settled.cell(22, 2).symbol(), " ");
+        assert_eq!(settled.cell(7, 3).symbol(), "C");
+        assert_eq!(settled.cell(108, 2).symbol(), "n");
+        assert_eq!(settled.cell(60, 17).symbol(), "C");
+        assert_eq!(settled.cell(42, 36).symbol(), "L");
+        assert_eq!(settled.cell(52, 36).symbol(), "C");
+        assert_eq!(settled.cell(1, 39).symbol(), "E");
+        assert_eq!(settled.cell(22, 39).symbol(), "T");
+        let intro = Harness::new(
+            App::for_scenario_at(Scenario::FirstUse, Motion::Paused, 40),
+            Theme::junie(),
+            120,
+            40,
+        );
+        assert!(intro.text().contains("Enter Skip"), "{}", intro.text());
+        assert!(!intro.text().contains("no instances"), "{}", intro.text());
     }
 }
