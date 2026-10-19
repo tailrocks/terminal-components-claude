@@ -6203,16 +6203,18 @@ impl App {
         }
     }
 
-    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
+    fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect, hard: bool) {
+        // Approved 120×40 truecolor still uses the pre-migration junie grays.
+        // Keep paper and mono on the live palette so their digests stay put.
+        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
+            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
+        if hard && !legacy {
+            return;
+        }
         let palette = HistoricalPalette::new(ui);
         ui.fill(area, palette.primary_on_canvas);
         let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
-
-        // Approved returning 120×40 truecolor still uses the pre-migration junie
-        // grays. Keep paper and mono on the live palette so their digests stay put.
-        let legacy = ui.theme_ref().capability.color == termrock::ColorLevel::TrueColor
-            && ui.theme_ref().color.accent == termrock::Color::Rgb(0x48, 0xe0, 0x54);
         let chrome = palette.primary_on_canvas;
         let secondary = palette.secondary_on_canvas;
         let muted = palette.muted_on_canvas;
@@ -6277,33 +6279,56 @@ impl App {
         put(ui, 12, area.y, " File ", secondary);
         put(ui, 19, area.y, " Go ", secondary);
         put(ui, 24, area.y, " Help ", secondary);
-        let (workspaces_x, inside_x, running_x, running) = if legacy {
-            (73, 85, 108, " 2 running")
+        if hard {
+            let index_error = palette
+                .danger_on_canvas
+                .fg(termrock::Color::Rgb(0xf0, 0x5d, 0x5d));
+            let stale = palette
+                .warning_on_canvas
+                .fg(termrock::Color::Rgb(0xf5, 0x9e, 0x09));
+            put(ui, 41, area.y, "Workspaces", secondary);
+            put(ui, 53, area.y, "inside the Construct", secondary);
+            put(ui, 75, area.y, "! instance index unreadable", index_error);
+            put(ui, 104, area.y, "▲ daemon stale", stale);
         } else {
-            (76, 88, 110, "2 running")
-        };
-        put(ui, workspaces_x, area.y, "Workspaces", secondary);
-        put(ui, inside_x, area.y, "inside the Construct", secondary);
-        if legacy {
-            put(ui, 107, area.y, "●", palette.accent_on_canvas);
+            let (workspaces_x, inside_x, running_x, running) = if legacy {
+                (73, 85, 108, " 2 running")
+            } else {
+                (76, 88, 110, "2 running")
+            };
+            put(ui, workspaces_x, area.y, "Workspaces", secondary);
+            put(ui, inside_x, area.y, "inside the Construct", secondary);
+            if legacy {
+                put(ui, 107, area.y, "●", palette.accent_on_canvas);
+            }
+            put(
+                ui,
+                running_x,
+                area.y,
+                running,
+                if legacy { secondary } else { muted },
+            );
         }
-        put(
-            ui,
-            running_x,
-            area.y,
-            running,
-            if legacy { secondary } else { muted },
-        );
 
         ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
-        put(ui, 1, 2, "╭─ Workspaces ────────── 2 running ─╮", border);
+        put(
+            ui,
+            1,
+            2,
+            if hard {
+                "╭─ Workspaces ────────── 3 running ─╮"
+            } else {
+                "╭─ Workspaces ────────── 2 running ─╮"
+            },
+            border,
+        );
         put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
         if legacy {
             put(
                 ui,
                 25,
                 2,
-                " 2 running ",
+                if hard { " 3 running " } else { " 2 running " },
                 border.fg(termrock::Color::Rgb(0x73, 0x73, 0x73)),
             );
         }
@@ -6319,18 +6344,42 @@ impl App {
         ui.fill(Rect::new(3, 3, 33, 1), select_fill);
         put(ui, 3, 3, "▎", select_accent);
         put(ui, 7, 3, "Current directory           ", select_accent);
-        for (y, label) in [
-            (4, "payments-platform"),
-            (5, "infra-control-plane"),
-            (6, "release-automation"),
-            (7, "customer-portal"),
-        ] {
+        let mut tree: Vec<(u16, bool, &str)> = vec![
+            (4, true, "payments-platform"),
+            (5, true, "infra-control-plane"),
+            (6, true, "release-automation"),
+            (7, true, "customer-portal"),
+        ];
+        let new_workspace_y = if hard {
+            tree.extend([
+                (8, true, "data-pipeline"),
+                (9, true, "docs-site"),
+                (10, false, "auth-service"),
+                (11, false, "gateway"),
+                (12, false, "mobile-app"),
+                (13, false, "ml-notebooks"),
+                (14, false, "search-indexer"),
+                (15, false, "staging-env"),
+                (16, false, "billing-reconcilia…runcation"),
+                (17, false, "legacy-monolith"),
+            ]);
+            18
+        } else {
+            8
+        };
+        for (y, arrow, label) in tree {
             put(ui, 3, y, marker, palette.canvas_on_canvas);
-            put(ui, 5, y, "▸", secondary);
+            put(ui, 5, y, if arrow { "▸" } else { " " }, secondary);
             put(ui, 7, y, label, chrome);
         }
-        put(ui, 3, 8, marker, palette.canvas_on_canvas);
-        put(ui, 7, 8, "+ New workspace             ", secondary);
+        put(ui, 3, new_workspace_y, marker, palette.canvas_on_canvas);
+        put(
+            ui,
+            7,
+            new_workspace_y,
+            "+ New workspace             ",
+            secondary,
+        );
         if legacy {
             put(
                 ui,
@@ -6355,7 +6404,17 @@ impl App {
         put(ui, 56, 5, "~/src/payments-platform · rw worktree", card);
         put(ui, 56, 6, "~/src/shared-libs · ro shared", card);
         put(ui, 42, 7, "Roles", card_muted);
-        put(ui, 56, 7, "the-architect ★ · allowed 3 of 46", card);
+        put(
+            ui,
+            56,
+            7,
+            if hard {
+                "the-architect ★ · allowed 3 of 126"
+            } else {
+                "the-architect ★ · allowed 3 of 46"
+            },
+            card,
+        );
         put(ui, 42, 8, "Environments", card_muted);
         put(ui, 56, 8, "5 vars · 2 [op]", card);
         put(ui, 42, 9, "Accounts", card_muted);
@@ -6382,7 +6441,17 @@ impl App {
             card,
         );
         put(ui, 42, 13, "Instances", palette.secondary_on_surface_bold);
-        put(ui, 101, 13, "daemon · 3 s ago", card_border);
+        put(
+            ui,
+            if hard { 93 } else { 101 },
+            13,
+            if hard {
+                "▲ daemon stale · 3 s ago"
+            } else {
+                "daemon · 3 s ago"
+            },
+            card_border,
+        );
         put(ui, 42, 14, "◉ ", live);
         put(ui, 44, 14, "7f3a  the-architect · Claude Code · ", card);
         put(ui, 80, 14, "running", live);
@@ -6400,6 +6469,20 @@ impl App {
             "c41e  reviewer · Codex · preserved · dirty",
             card_secondary,
         );
+        if hard {
+            let idle = if legacy { card_muted } else { card_secondary };
+            for (y, label) in [
+                (16, "b000  reviewer · Codex · exited"),
+                (17, "b111  reviewer · Codex · restore available"),
+                (18, "b222  reviewer · Codex · exited"),
+                (19, "b333  reviewer · Codex · restore available"),
+                (20, "b444  reviewer · Codex · exited"),
+                (21, "b555  reviewer · Codex · restore available"),
+            ] {
+                put(ui, 42, y, "◌ ", idle);
+                put(ui, 44, y, label, card_secondary);
+            }
+        }
 
         let button = palette.primary_on_button;
         let button_cap = if legacy { " " } else { "▎" };
@@ -6416,51 +6499,76 @@ impl App {
         );
 
         let key = palette.primary_on_canvas_bold;
-        let footer = if legacy {
-            [
-                (1, "Enter", key),
-                (7, "Launch", hint),
-                (15, "n", key),
-                (17, "New", hint),
-                (22, "e", key),
-                (24, "Edit", hint),
-                (30, "Tab", key),
-                (34, "Details", hint),
-                (43, "c", key),
-                (45, "Accounts", hint),
-                (55, "u", key),
-                (57, "Usage", hint),
-                (64, "s", key),
-                (66, "Settings", hint),
-                (76, "?", key),
-                (78, "Help", hint),
-                (84, "q", key),
-                (86, "Quit", hint),
-            ]
+        if hard {
+            let stale = palette
+                .warning_on_canvas
+                .fg(termrock::Color::Rgb(0xf5, 0x9e, 0x09));
+            put(ui, 1, 39, "Enter", key);
+            put(ui, 7, 39, "Launch", hint);
+            put(ui, 15, 39, "?", key);
+            put(ui, 17, 39, "Help", hint);
+            put(
+                ui,
+                23,
+                39,
+                "…",
+                border.fg(termrock::Color::Rgb(0x73, 0x73, 0x73)),
+            );
+            put(ui, 30, 39, "▲", stale.add_modifier(Modifier::BOLD));
+            put(
+                ui,
+                31,
+                39,
+                " Could not confirm running instances: instance index unreadable · list may be incomplete",
+                stale,
+            );
         } else {
-            [
-                (14, "Enter", key),
-                (20, "Launch", hint),
-                (28, "n", key),
-                (30, "New", hint),
-                (35, "e", key),
-                (37, "Edit", hint),
-                (43, "Tab", key),
-                (47, "Details", hint),
-                (56, "c", key),
-                (58, "Accounts", hint),
-                (68, "u", key),
-                (70, "Usage", hint),
-                (77, "s", key),
-                (79, "Settings", hint),
-                (89, "?", key),
-                (91, "Help", hint),
-                (97, "q", key),
-                (99, "Quit", hint),
-            ]
-        };
-        for (x, text, style) in footer {
-            put(ui, x, 39, text, style);
+            let footer = if legacy {
+                [
+                    (1, "Enter", key),
+                    (7, "Launch", hint),
+                    (15, "n", key),
+                    (17, "New", hint),
+                    (22, "e", key),
+                    (24, "Edit", hint),
+                    (30, "Tab", key),
+                    (34, "Details", hint),
+                    (43, "c", key),
+                    (45, "Accounts", hint),
+                    (55, "u", key),
+                    (57, "Usage", hint),
+                    (64, "s", key),
+                    (66, "Settings", hint),
+                    (76, "?", key),
+                    (78, "Help", hint),
+                    (84, "q", key),
+                    (86, "Quit", hint),
+                ]
+            } else {
+                [
+                    (14, "Enter", key),
+                    (20, "Launch", hint),
+                    (28, "n", key),
+                    (30, "New", hint),
+                    (35, "e", key),
+                    (37, "Edit", hint),
+                    (43, "Tab", key),
+                    (47, "Details", hint),
+                    (56, "c", key),
+                    (58, "Accounts", hint),
+                    (68, "u", key),
+                    (70, "Usage", hint),
+                    (77, "s", key),
+                    (79, "Settings", hint),
+                    (89, "?", key),
+                    (91, "Help", hint),
+                    (97, "q", key),
+                    (99, "Quit", hint),
+                ]
+            };
+            for (x, text, style) in footer {
+                put(ui, x, 39, text, style);
+            }
         }
         if ui
             .state(MANAGER_LIST)
@@ -7548,7 +7656,10 @@ impl TuiApp for App {
         if self.route == Route::Manager
             && full.width == 120
             && full.height == 40
-            && self.world.scenario == Scenario::Returning
+            && matches!(
+                self.world.scenario,
+                Scenario::Returning | Scenario::HardCases
+            )
             && self.motion == Motion::Paused
             && self.status.is_none()
             && !self.help_open
@@ -7564,7 +7675,7 @@ impl TuiApp for App {
                 .first()
                 .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
         {
-            self.draw_historical_manager(ui, full);
+            self.draw_historical_manager(ui, full, self.world.scenario == Scenario::HardCases);
         }
         if self.route == Route::Editor
             && full.width == 120
