@@ -1,6 +1,6 @@
 use termrock::{
-    Buffer, Color, Family, Modifier, Part, Rect, Role, StateFlags, Style, StylePatch, Surface,
-    Theme, Variant,
+    Buffer, Color, Family, FgStep, Modifier, Part, Rect, Role, StateFlags, Style, StylePatch,
+    Surface, Theme, Variant,
 };
 
 use jackin_preview_domain::scenario::Motion;
@@ -104,7 +104,9 @@ pub fn fill_canvas(buf: &mut Buffer, area: Rect, theme: &Theme) {
         area,
         role_style(
             theme,
-            StylePatch::new().set_bg(Role::Surface(Surface::Canvas)),
+            StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .set_bg(Role::Surface(Surface::Canvas)),
         ),
     );
 }
@@ -527,6 +529,16 @@ fn draw_text(buf: &mut Buffer, area: Rect, text: &str, y: u16, tone: Tone, theme
     }
 }
 
+fn hint_ink(theme: &Theme, level: u8) -> Color {
+    let resolved = ladder_color(theme, level);
+    // Tag junie `text_muted` / `text_faint` are not the current FgStep ramp.
+    match level {
+        2 if resolved == Color::from_u32(0x80_80_80) => Color::from_u32(0x8a_8a_8a),
+        1 if resolved == Color::from_u32(0x4d_4d_4d) => Color::from_u32(0x73_73_73),
+        _ => resolved,
+    }
+}
+
 fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, theme: &Theme) {
     let text_len = key
         .chars()
@@ -544,10 +556,10 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, theme: &Them
         put(buf, column, y, ' ', clear);
     }
     let key_style = Style::new()
-        .fg(ladder_color(theme, 2))
+        .fg(hint_ink(theme, 2))
         .bg(canvas(theme))
         .add_modifier(Modifier::BOLD);
-    let action_style = Style::new().fg(ladder_color(theme, 1)).bg(canvas(theme));
+    let action_style = Style::new().fg(hint_ink(theme, 1)).bg(canvas(theme));
     for (index, ch) in key.chars().enumerate() {
         put(buf, x.saturating_add(index as u16), y, ch, key_style);
     }
@@ -563,6 +575,37 @@ fn draw_hint(buf: &mut Buffer, area: Rect, key: &str, action: &str, theme: &Them
             action_style,
         );
     }
+}
+
+fn draw_lockup(buf: &mut Buffer, area: Rect, text: &str, theme: &Theme) {
+    let label_width = text.chars().count() as u16;
+    let width = label_width.saturating_add(2);
+    if area.height < 4 || area.width < width.saturating_add(2) {
+        return;
+    }
+    let x = area.x.saturating_add(area.width.saturating_sub(width) / 2);
+    let y = area.bottom().saturating_sub(2);
+    let style = Style::new()
+        .fg(theme.color.on_accent)
+        .bg(theme.color.accent)
+        .add_modifier(Modifier::BOLD);
+    put(buf, x, y, ' ', style);
+    for (index, ch) in text.chars().enumerate() {
+        put(
+            buf,
+            x.saturating_add(1).saturating_add(index as u16),
+            y,
+            ch,
+            style,
+        );
+    }
+    put(
+        buf,
+        x.saturating_add(width).saturating_sub(1),
+        y,
+        ' ',
+        style,
+    );
 }
 
 fn draw_typed(buf: &mut Buffer, area: Rect, text: &str, y: u16, shown: usize, theme: &Theme) {
@@ -652,14 +695,7 @@ pub fn paint_intro(buf: &mut Buffer, area: Rect, state: &IntroState, theme: &The
         Motion::Reduced => {
             fill_canvas(buf, area, theme);
             draw_text(buf, area, CAPTION, cy, Tone::Ladder(4), theme);
-            draw_text(
-                buf,
-                area,
-                BRAND_MARK,
-                area.bottom().saturating_sub(2),
-                Tone::Ladder(4),
-                theme,
-            );
+            draw_lockup(buf, area, BRAND_MARK, theme);
             draw_hint(buf, area, "Enter", "Continue", theme);
             return;
         }
@@ -685,14 +721,7 @@ pub fn paint_intro(buf: &mut Buffer, area: Rect, state: &IntroState, theme: &The
                     theme,
                 );
             }
-            draw_text(
-                buf,
-                area,
-                BRAND_MARK,
-                area.bottom().saturating_sub(2),
-                Tone::Ladder(4),
-                theme,
-            );
+            draw_lockup(buf, area, BRAND_MARK, theme);
             draw_hint(buf, area, "Enter", "Skip", theme);
         }
         IntroPhase::Warp => {
@@ -753,14 +782,7 @@ pub fn paint_outro(buf: &mut Buffer, area: Rect, state: &OutroState, theme: &The
                 ),
                 (_, None) => {}
             }
-            draw_text(
-                buf,
-                area,
-                BRAND_MARK,
-                area.bottom().saturating_sub(2),
-                Tone::Ladder(4),
-                theme,
-            );
+            draw_lockup(buf, area, BRAND_MARK, theme);
             draw_hint(buf, area, "Enter", "Close", theme);
         }
         OutroPhase::Done => fill_canvas(buf, area, theme),
@@ -828,6 +850,41 @@ pub fn paint_atmosphere(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fill_canvas_paints_primary_foreground_on_the_canvas() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 2, 1);
+        let mut buf = Buffer::empty(area);
+        fill_canvas(&mut buf, area, &theme);
+        let cell = buf.cell((0, 0)).expect("filled cell");
+        assert_eq!(cell.fg, theme.color.fg[FgStep::Primary.index()]);
+        assert_eq!(cell.bg, theme.bg(Surface::Canvas));
+    }
+
+    #[test]
+    fn paused_intro_paints_the_padded_accent_lockup_and_tag_hint_ink() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 120, 40);
+        let mut buf = Buffer::empty(area);
+        paint_intro(&mut buf, area, &IntroState::new(Motion::Paused, 40), &theme);
+        let pad = buf.cell((55, 38)).expect("lockup pad");
+        let mark = buf.cell((56, 38)).expect("lockup mark");
+        assert_eq!(pad.symbol(), " ");
+        assert_eq!(pad.bg, theme.color.accent);
+        assert_eq!(mark.symbol(), "j");
+        assert_eq!(mark.fg, theme.color.on_accent);
+        assert_eq!(mark.bg, theme.color.accent);
+        assert!(mark.modifier.contains(Modifier::BOLD));
+        let key = buf.cell((108, 39)).expect("hint key");
+        let action = buf.cell((114, 39)).expect("hint action");
+        assert_eq!(key.symbol(), "E");
+        assert_eq!(key.fg, Color::from_u32(0x8a_8a_8a));
+        assert!(key.modifier.contains(Modifier::BOLD));
+        assert_eq!(action.symbol(), "S");
+        assert_eq!(action.fg, Color::from_u32(0x73_73_73));
+        assert!(!action.modifier.contains(Modifier::BOLD));
+    }
 
     #[test]
     fn intro_timeline_follows_original_pacing() {
