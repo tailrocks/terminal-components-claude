@@ -607,6 +607,7 @@ fn production_restart_goes_through_two_gates() {
 #[test]
 fn disk_plan_policy_skips_active_today() {
     let mut h = fixture(Scenario::DiskCleanup, Motion::Paused, 4_000, 120, 40);
+    let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("reclaim disk");
     let _ = h.key(KeyCode::Enter);
     assert!(h.app().route == Route::Plan, "{}", h.text());
@@ -694,6 +695,7 @@ fn long_running_task_starts_named_activity() {
 #[test]
 fn launch_failure_is_honest() {
     let mut h = fixture(Scenario::LaunchFailure, Motion::Paused, 4_000, 120, 40);
+    let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("mise run test");
     let _ = h.key(KeyCode::Enter);
     let t = h.text();
@@ -869,6 +871,7 @@ fn git_sync_plan_resolves_per_child_primary_branches() {
 #[test]
 fn disk_reclaim_plan_matches_apply_effect() {
     let mut h = fixture(Scenario::DiskCleanup, Motion::Paused, 4_000, 120, 40);
+    let _ = h.key(KeyCode::Esc);
     let _ = h.type_str("reclaim disk");
     let _ = h.key(KeyCode::Enter);
     assert!(h.app().route == Route::Plan, "{}", h.text());
