@@ -98,7 +98,7 @@ pub fn style(theme: &Theme, tone: Tone, dim: u8) -> Option<Style> {
     }
 }
 
-fn put(buf: &mut Buffer, x: u16, y: u16, ch: char, style: Style) {
+pub(crate) fn put(buf: &mut Buffer, x: u16, y: u16, ch: char, style: Style) {
     if let Some(cell) = buf.cell_mut(termrock::Position::new(x, y)) {
         let mut bytes = [0u8; 4];
         cell.set_symbol(ch.encode_utf8(&mut bytes));
