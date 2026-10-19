@@ -19,13 +19,12 @@ use crate::{
 use termrock::{
     ActionKey, Binding, Brand, Chord, Constraints, Cx, Dialog, FgStep, Focusability, FrameRead,
     HintBar, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Menu, MenuAction, MenuBar,
-    MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusAction, StatusBar,
-    StatusItem, StylePatch, Surface, TooSmall, Ui,
+    MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role, StylePatch, Surface, TooSmall,
+    Ui,
 };
 
 const BRAND: Id = Id::root("holla.brand");
 const MENU: Id = Id::root("holla.menu");
-const HEADER: Id = Id::root("holla.header");
 const STRIP: Id = Id::root("holla.activities");
 const FOOTER: Id = Id::root("holla.footer");
 const MIN_WIDTH: u16 = 72;
@@ -222,10 +221,6 @@ fn brand() -> Brand<'static> {
     Brand::new(BRAND, "holla❯").clickable(true)
 }
 
-fn header_bar<'a>(items: &'a [StatusItem<'a>]) -> StatusBar<'a> {
-    StatusBar::new(HEADER).right(items)
-}
-
 fn paint_menu_title_pads(ui: &mut Ui<'_>, menu_x: u16, y: u16, menu_right: u16) {
     // MenuBar paints the label only. The tag's " {title} " pads use the same secondary ink.
     let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
@@ -242,6 +237,69 @@ fn paint_menu_title_pads(ui: &mut Ui<'_>, menu_x: u16, y: u16, menu_right: u16) 
             style,
         );
         x = x.saturating_add(w).saturating_add(1);
+    }
+}
+
+/// Tag `segments::render` inset. Not the status-bar gutter: that bar fills `#111111`.
+const MENU_CHROME_EDGE: u16 = 2;
+const MENU_SEGMENT_GAP: u16 = 2;
+
+fn menu_project(world: &World) -> String {
+    // Parity worlds have no `location.project`. These strings are the tag `draw_menu` labels.
+    // Concept screens still show cwd; that path is the crumb those screens document.
+    match world.scenario {
+        Scenario::ParityDiscovery => "probe · Rust project".to_owned(),
+        Scenario::ParityHistory => "holla · Rust project".to_owned(),
+        Scenario::ParityGitCurrent => "svc · Rust project".to_owned(),
+        Scenario::ParityCargo => "engine · Rust project".to_owned(),
+        Scenario::ParityCustomActions => "team · Rust project".to_owned(),
+        Scenario::ParityDiskNavigation => "big · Rust project".to_owned(),
+        Scenario::ParityDeleteSafety | Scenario::ParityCleanupResults => {
+            "safe · Rust project".to_owned()
+        }
+        Scenario::ParityGitBatch => "repos · project collection".to_owned(),
+        Scenario::ParityExecutor => "batch · project collection".to_owned(),
+        Scenario::ParityTaskSources => "poly · Node project · yarn".to_owned(),
+        Scenario::ParityInsights => "web · Node project · pnpm".to_owned(),
+        Scenario::ParityGradle => "android · Gradle build".to_owned(),
+        Scenario::ParityTaskInput => "app · service checkout".to_owned(),
+        Scenario::ParityFiles
+        | Scenario::ParityBrowser
+        | Scenario::ParityDocker
+        | Scenario::ParityBrewServices
+        | Scenario::ParityIdea
+        | Scenario::ParityUpgradeManagers
+        | Scenario::ParityDiskScan
+        | Scenario::ParityPlatforms
+        | Scenario::ParityPlatformsLinux => "no project".to_owned(),
+        _ => world.cwd.clone(),
+    }
+}
+
+fn paint_menu_tail(ui: &mut Ui<'_>, area: Rect, project: &str, host: &str) {
+    if area.is_empty() {
+        return;
+    }
+    let host_w = termrock::width(host);
+    let budget = area.width.saturating_sub(
+        host_w.saturating_add(MENU_SEGMENT_GAP.saturating_add(MENU_CHROME_EDGE.saturating_mul(2))),
+    );
+    let project = (budget >= 12).then(|| termrock::truncate_middle(project, budget));
+    let secondary = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
+    let host_style = ui
+        .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary)))
+        .add_modifier(termrock::Modifier::BOLD);
+    let mut x = area.right().saturating_sub(MENU_CHROME_EDGE);
+    x = x.saturating_sub(host_w);
+    if x >= area.x && host_w > 0 {
+        ui.paint_str(Rect::new(x, area.y, host_w, 1), host, host_style);
+    }
+    if let Some(project) = project.as_deref() {
+        let project_w = termrock::width(project);
+        x = x.saturating_sub(MENU_SEGMENT_GAP).saturating_sub(project_w);
+        if x >= area.x && project_w > 0 {
+            ui.paint_str(Rect::new(x, area.y, project_w, 1), project, secondary);
+        }
     }
 }
 
@@ -680,75 +738,15 @@ impl App {
             .min(menu_room);
         menu.draw(ui, Rect::new(menu_x, header.y, menu_width, 1), &self.menu);
         paint_menu_title_pads(ui, menu_x, header.y, menu_x.saturating_add(menu_width));
-        let used = menu_x.saturating_sub(header.x).saturating_add(menu_width);
-        let identity = self.world.host.identity();
-        let level = format!(
-            "{} · {}×{}",
-            ui.theme().capability.color.label(),
-            area.width,
-            area.height
-        );
-        let crumb = match self.route {
-            Route::Home => self.world.cwd.clone(),
-            Route::Plan => self.plan.as_ref().map_or_else(String::new, |plan| {
-                format!("Plan · {}", plan.plan().title())
-            }),
-            Route::Activity => self.activities.current(&self.world).map_or_else(
-                || "Activity".into(),
-                |activity| format!("Activity · {}", activity.name),
-            ),
-            Route::Disk => format!("Disk usage · {}", self.world.cwd),
-            Route::Files => format!("Files · {}", self.world.cwd),
-            Route::Cleanup => "Cleanup review".to_owned(),
-            Route::Review => "Review".to_owned(),
-            Route::Snapshot => "Snapshot".to_owned(),
-        };
-        let available = area.width.saturating_sub(used);
-        let reserved = termrock::width(&identity)
-            .saturating_add(termrock::width(&level))
-            .saturating_add(termrock::width("? help"))
-            .saturating_add(10);
-        let crumb = termrock::truncate_middle(&crumb, available.saturating_sub(reserved));
-        let mut items = Vec::new();
-        if available.saturating_sub(reserved) >= 8 {
-            items.push(
-                StatusItem::new(&crumb)
-                    .priority(7)
-                    .tone(Role::Fg(FgStep::Secondary)),
-            );
-        }
-        let scope = (self.route == Route::Home)
-            .then_some(self.home.scope)
-            .flatten()
-            .map(|scope| format!("scope: {}", scope.label()));
-        if let Some(scope) = scope.as_deref() {
-            items.push(
-                StatusItem::new(scope)
-                    .priority(6)
-                    .tone(Role::Fg(FgStep::Secondary)),
-            );
-        }
-        items.extend(self.discovery_item());
-        items.push(StatusItem::new(&identity).priority(9).tone(
-            if self.world.host.env.sensitive() {
-                Role::Warning
-            } else {
-                Role::Fg(FgStep::Secondary)
-            },
-        ));
-        items.push(
-            StatusItem::new(&level)
-                .priority(1)
-                .tone(Role::Fg(FgStep::Faint)),
-        );
-        items.push(
-            StatusItem::new("? help")
-                .priority(3)
-                .key(ItemKey::text("help")),
-        );
-        header_bar(&items).draw(
+        let menu_right = menu_x.saturating_add(menu_width).saturating_sub(1);
+        let brand_right = lockup_x.saturating_add(brand_width);
+        let used = menu_right.max(brand_right);
+        let tail_x = used.saturating_add(2);
+        paint_menu_tail(
             ui,
-            Rect::new(area.x.saturating_add(used), area.y, available, 1),
+            Rect::new(tail_x, header.y, header.right().saturating_sub(tail_x), 1),
+            &menu_project(&self.world),
+            &self.world.host.identity(),
         );
         self.strip_draw(
             ui,
@@ -756,15 +754,6 @@ impl App {
         );
         let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
         self.footer_draw(ui, footer);
-    }
-    fn discovery_item(&self) -> Option<StatusItem<'static>> {
-        self.world.discovering().then(|| {
-            let frame = usize::try_from(self.world.now_ms().div_euclid(80)).unwrap_or_default();
-            StatusItem::new("discovering…")
-                .spinner(frame)
-                .priority(5)
-                .tone(Role::Fg(FgStep::Secondary))
-        })
     }
     fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
         let hints = HintLayer::from_bindings(GLOBAL);
@@ -929,8 +918,6 @@ impl App {
         let activity_response = self.activities.update(&self.world, cx);
         let mut menu = menu_bar().update(cx, &mut self.menu);
         let brand = brand().update(cx);
-        let items = [StatusItem::new("? help").key(ItemKey::text("help"))];
-        let header = header_bar(&items).update(cx);
         let controls = retired | home_response | plan_response | activity_response;
         if too_small(cx.viewport()) {
             let overlay = self
@@ -946,48 +933,35 @@ impl App {
             {
                 self.quit = true;
             }
-            return controls
-                | overlay
-                | menu.erase()
-                | brand.erase()
-                | header.erase()
-                | Response::consumed();
+            return controls | overlay | menu.erase() | brand.erase() | Response::consumed();
         }
         if self.overlay.is_some() {
-            return controls
-                | menu.erase()
-                | brand.erase()
-                | header.erase()
-                | self.update_overlay(cx);
+            return controls | menu.erase() | brand.erase() | self.update_overlay(cx);
         }
         if let Some(command @ (INTERRUPT | QUIT)) = cx
             .command()
             .filter(|_| cx.update_cause() == termrock::UpdateCause::Event)
         {
             self.command(command, cx);
-            return controls | menu.erase() | brand.erase() | header.erase() | Response::changed();
+            return controls | menu.erase() | brand.erase() | Response::changed();
         }
         if let Some(MenuAction::Chosen(command)) = menu.take_action() {
             self.command(command, cx);
-            return controls | menu.erase() | brand.erase() | header.erase();
+            return controls | menu.erase() | brand.erase();
         }
         if self.menu.is_open() {
-            return controls | menu.erase() | brand.erase() | header.erase();
+            return controls | menu.erase() | brand.erase();
         }
         if let Some(command) = cx
             .command()
             .filter(|_| cx.update_cause() == termrock::UpdateCause::Event)
         {
             self.command(command, cx);
-            return controls | menu.erase() | brand.erase() | header.erase() | Response::changed();
+            return controls | menu.erase() | brand.erase() | Response::changed();
         }
         if brand.activated() {
             self.open_dialog(dialogs::Intent::About, cx);
-            return controls | menu.erase() | brand.erase() | header.erase();
-        }
-        if matches!(header.action_ref(), Some(StatusAction::Chose(_))) {
-            self.open_dialog(dialogs::Intent::Help, cx);
-            return controls | menu.erase() | brand.erase() | header.erase();
+            return controls | menu.erase() | brand.erase();
         }
         let strip = self.strip_update(cx);
         match self.route {
@@ -1009,7 +983,7 @@ impl App {
             | Route::Review
             | Route::Snapshot => {}
         }
-        controls | menu.erase() | brand.erase() | header.erase() | strip
+        controls | menu.erase() | brand.erase() | strip
     }
 }
 impl termrock::App for App {
@@ -1278,24 +1252,14 @@ mod tests {
         );
         assert!(!settled.app().world.discovering());
         assert!(!settled.text().contains("discovering…"));
-        let mut theme = Theme::junie();
-        theme.design.motion.spinner_frames = &["a", "b", "c"];
         let early = harness(
             App::for_scenario(Scenario::FirstUse, Motion::Paused, 100),
-            theme,
+            Theme::junie(),
             120,
             40,
         );
         assert!(early.app().world.discovering());
-
-        assert!(
-            early
-                .text()
-                .lines()
-                .next()
-                .unwrap()
-                .contains("c discovering…")
-        );
+        assert!(!early.text().lines().next().unwrap().contains("discovering"));
         assert!(early.diagnostics().is_empty(), "{:?}", early.diagnostics());
     }
     #[test]
@@ -1362,13 +1326,13 @@ mod tests {
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
     #[test]
-    fn home_scope_is_projected_into_header_and_clears_with_escape() {
+    fn home_scope_stays_off_the_menu_row_and_clears_with_escape() {
         let mut harness = app(Scenario::HardCases);
         let _ = harness.ctrl('s');
-        let scope = harness.app().home.scope.unwrap();
-        let label = format!("scope: {}", scope.label());
-        assert!(harness.text().lines().next().unwrap().contains(&label));
+        assert!(harness.app().home.scope.is_some());
+        assert!(!harness.text().lines().next().unwrap().contains("scope:"));
         let _ = harness.key(KeyCode::Esc);
+        assert!(harness.app().home.scope.is_none());
         assert!(!harness.text().lines().next().unwrap().contains("scope:"));
         assert!(
             harness.diagnostics().is_empty(),
