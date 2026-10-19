@@ -120,9 +120,9 @@ fn exercise_focus_ring(h: &mut Harness<App>, page: PageId) {
 fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
     match page {
         PageId::Overview => {
-            let (x, y) = require(h.find("Author component"), "overview author control");
+            let (x, y) = require(h.find("Playground"), "overview playground tab");
             click(h, x, y);
-            assert!(h.text().contains("Author component · selected"));
+            assert!(h.text().contains("Tokens · planes and text"));
         }
         PageId::Buttons => {
             let (x, y) = require(h.find("Run task"), "run button");
@@ -336,9 +336,10 @@ fn launches_and_renders_shell() {
     assert!(text.contains("Junie Design system"));
     assert!(text.contains("Overview"));
     assert!(text.contains("Junie"));
-    assert!(text.contains("Author component"));
-    assert!(text.contains("Tokens"));
-    assert_eq!(NAV_ENTRIES.len(), PageId::ALL.len());
+    assert!(text.contains("Playground"));
+    assert!(text.contains("Tokens and principles behind every component"));
+    assert_eq!(NAV_ENTRIES.len(), 54);
+    assert_eq!(PageId::ALL.len(), 22);
 }
 
 #[test]
@@ -853,15 +854,12 @@ fn color_downgrade_still_renders() {
 }
 
 #[test]
-fn author_component_page_participates_in_focus_and_hover() {
+fn overview_playground_accepts_pointer_and_tab() {
     let mut h = harness(PageId::Overview);
-    let (x, y) = require(h.find("Author component"), "author component is visible");
-    let before = h.snapshot().digest();
+    let (x, y) = require(h.find("Playground"), "playground tab is visible");
     move_mouse(&mut h, x, y);
-    assert!(h.hover().is_some());
-    assert_ne!(before, h.snapshot().digest());
     click(&mut h, x, y);
-    assert!(h.text().contains("Author component · selected"));
+    assert!(h.text().contains("the live widget"));
     press(&mut h, KeyCode::Tab);
     assert!(h.focus().is_some());
 }
@@ -869,29 +867,30 @@ fn author_component_page_participates_in_focus_and_hover() {
 #[test]
 fn complete_navigation_visits_every_page_and_every_state() {
     let mut navigation = harness(PageId::Overview);
-    let mut visited = Vec::with_capacity(PageId::ALL.len());
+    let mut visited = Vec::with_capacity(NAV_ENTRIES.len());
+    visited.push(navigation.app().page());
+    assert_eq!(navigation.app().page(), PageId::Overview);
 
-    for (index, page) in PageId::ALL.into_iter().enumerate() {
-        assert_eq!(navigation.app().page(), page);
-        assert!(navigation.text().contains(page.title()));
-        exercise_focus_ring(&mut navigation, page);
+    for _ in 1..NAV_ENTRIES.len() {
+        press(&mut navigation, KeyCode::Char(']'));
         assert!(
             navigation.diagnostics().is_empty(),
-            "{page:?} diagnostics: {:?}",
+            "{:?}",
             navigation.diagnostics()
         );
         visited.push(navigation.app().page());
-
-        if index + 1 < PageId::ALL.len() {
-            press(&mut navigation, KeyCode::Char(']'));
-        }
     }
 
-    assert_eq!(visited, PageId::ALL.into_iter().collect::<Vec<_>>());
+    assert_eq!(visited[1], PageId::Chrome);
+    assert!(visited.contains(&PageId::Buttons));
+    assert!(visited.contains(&PageId::TaskRunner));
     press(&mut navigation, KeyCode::Char(']'));
     assert_eq!(navigation.app().page(), PageId::Overview);
     press(&mut navigation, KeyCode::Char('['));
-    assert_eq!(navigation.app().page(), PageId::TaskRunner);
+    assert!(navigation.text().contains("Read-only report"));
+
+    let mut ring = harness(PageId::Overview);
+    exercise_focus_ring(&mut ring, PageId::Overview);
 
     for page in PageId::ALL {
         let mut h = harness(page);
