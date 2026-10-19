@@ -1059,6 +1059,10 @@ impl termrock::App for App {
         }
         Response::ignored()
     }
+
+    fn accept_paused_clock_step(&mut self, _step_ms: u64) -> bool {
+        self.motion == Motion::Paused
+    }
 }
 
 fn too_small(area: Rect) -> bool {
