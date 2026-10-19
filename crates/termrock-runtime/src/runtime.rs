@@ -54,6 +54,17 @@ pub trait App {
     fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
         Response::ignored()
     }
+
+    /// Accept one visual-baseline clock step while motion is paused.
+    ///
+    /// The runtime calls this only when [`crate::test_clock_enabled`] is true and
+    /// [`crate::parse_test_clock_step`] returns `step_ms`. Return true only when motion is
+    /// paused and the step is accepted. True consumes the paste: it is not delivered to the
+    /// typing owner. The default reports that motion is not paused and does not consume.
+    #[must_use = "false leaves the paste on the typing-owner path"]
+    fn accept_paused_clock_step(&mut self, _step_ms: u64) -> bool {
+        false
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1189,7 +1200,10 @@ impl<A: App> Runtime<A> {
             }
             Input::Mouse(m) => self.enqueue_mouse(*m),
             Input::Paste(s) => {
-                if let Some(owner) = self.last.typing.owner {
+                let consumed = crate::test_clock_enabled()
+                    && crate::parse_test_clock_step(s)
+                        .is_some_and(|step_ms| self.app.accept_paused_clock_step(step_ms));
+                if !consumed && let Some(owner) = self.last.typing.owner {
                     self.intents.paste(owner, s.as_str());
                 }
             }

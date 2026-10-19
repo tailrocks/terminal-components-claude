@@ -1258,6 +1258,10 @@ impl TuiApp for App {
         cx.focus(NAV);
         Response::changed()
     }
+
+    fn accept_paused_clock_step(&mut self, _step_ms: u64) -> bool {
+        self.motion_paused
+    }
 }
 
 pub fn run() -> std::io::Result<()> {
