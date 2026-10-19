@@ -1,0 +1,51 @@
+[0m[2m  jackin❯    File   Go   Help                                                         Workspaces › payments-platform › 7f3a  inside the Construct  ● 2 running  [0m
+[0m[2m                                                                                                                                                                [0m
+[0m[2m ╭─ Workspaces ────────────────────── 2 running ─╮ │  7f3a · payments-platform           instance · running      Running                          2 instances   [0m
+[0m[2m │ [0m [0m[2m   Current …ory  saved as payments-platform  │ │  ─────────────────────────────────────────────────────      ────────────────────────────────────────────   [0m
+[0m[2m │ [0m [0m[2m ▾ payments-platform              1 running  │ │  Workspace     payments-platform › role the-architect       ◉ 7f3a  payments-platform · the-architect ·…   [0m
+[0m[2m │ [0m [0m[2m   ◉ 7f3a  the-ar… Code  running 2 h 14 min  │ │  Agent         Claude Code · account Claude · Persona…         running 2 h 14 min · 3 tabs · 5 panes       [0m
+[0m[2m │ [0m [0m[2m   ◌ c41e  revie…Codex  preserved · dirty •  │ │  Container     jackin-payments-platform-7f3a                   account Claude · Personal                   [0m
+[0m[2m │ [0m [0m[2m ▸ infra-control-plane            1 running  │ │  Started       2 h ago · last seen 3 s ago                                                                 [0m
+[0m[2m │ [0m [0m[2m ▸ release-automation              ! failed  │ │  Lifecycle     running · Container and Capsule daemon       ◉ 9b02  infra-control-plane · sre · Codex      [0m
+[0m[2m │ [0m [0m[2m ▸ customer-portal                 ! failed  │ │                are live.                                       running 40 min · 1 tab · 1 pane             [0m
+[0m[2m │ [0m [0m[2m   + New workspace                           │ │  Working tree  2 uncommitted · 1 unpushed                      account Codex · Experiments                 [0m
+[0m[2m │                                               │ │  Branch        feature/settlement-backoff · PR #482 ·…                                                     [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │  Live topology                        daemon · 3 s ago      Preserved                          3 records   [0m
+[0m[2m │                                               │ │  ▾ tab 1  Mix (3)                                           ◌ c41e  payments-platform · reviewer · pres…   [0m
+[0m[2m │                                               │ │ [0m [0m[2m › pane 1  claude     blocked                              ◌ a1c0  release-automation · backend · rest…   [0m
+[0m[2m │                                               │ │ [0m [0m[2m   pane 2  codex      done                                 ◌ 04d7  infra-control-plane · sre · preserv…   [0m
+[0m[2m │                                               │ │ [0m [0m[2m   pane 3  shell      unknown                                                                             [0m
+[0m[2m │                                             ╭─[0m[1;2m Container 7f3a [0m[2m─────────────────────────────── read-only ─ × ─╮Daemon                     healthy · 3 s ago   [0m
+[0m[2m │                                             │ [0m[1;2m▎ [0m[2mCo[0mn[0m[2mtainer[0m[1;2m  jackin-payments-platform-7f3a            [0m[2my copy[0m[1;2m [0m[2m  │Refresh      throttled · every 5 s             [0m
+[0m[2m │                                             │   Image      jackin/derived:payments-platform-7f3a             │Usage        degraded · 4 warnings · 1 exha…   [0m
+[0m[2m │                                             │   Wo[0mr[0m[2mkspace  payments-platform › role the-architect            │                                               [0m
+[0m[2m │                                             │   Agent      Claude Code · account Claude · Personal           │                                               [0m
+[0m[2m │                                             │   Target     /workspace/payments-platform · 2 mounts           │                                               [0m
+[0m[2m │                                             │   Run id     run-7f3a                                          │                                               [0m
+[0m[2m │                                             │   Lifecycle  running                                           │                                               [0m
+[0m[2m │                                             │   Daemon     attached · 3 tabs · 3 s ago                       │                                               [0m
+[0m[2m │                                             │                                                                │                                               [0m
+[0m[2m │                                             │                                                                │                                               [0m
+[0m[2m │                                             │                                                                │                                               [0m
+[0m[2m │                                             │                                                        Close   │                                               [0m
+[0m[2m │                                             ╰────────────────────────────────────────────────────────────────╯                                               [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │                                                                                                            [0m
+[0m[2m │                                               │ │ [0m [0m[2mReconnect   [0m [0m[2mNew session   [0m [0m[2mShell   [0m [0m[2mInspect   [0m [0m[2mStop                                                      [0m
+[0m[2m │                                               │ │ [0m [0m[2mPurge…                                                                                                    [0m
+[0m[2m ╰───────────────────────────────────────────────╯ │                                                                                                            [0m
+[0m[2m                                                                                                                                                                [0m
+ [0m[1m↑↓ Mo[0mve  [0m[1my[0m Copy  [0m[1mEsc[0m Close      [0m[1m [0m             [0m[1m [0m       [0m[1m [0m          [0m[1m [0m         [0m[1m [0m       [0m[1m   [0m          [0m[1m [0m           [0m[1m [0m        [0m[1m [0m           [0m[1m [0m       [0m[1m [0m                     [0m
+[?25l

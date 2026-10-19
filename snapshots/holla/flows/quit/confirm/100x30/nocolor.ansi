@@ -1,0 +1,31 @@
+[0m[2m  holla❯    File   Go   Help                                     acme · mise monorepo  mbp · local  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×                               2› +2  [0m
+[0m[2m ────━━━━━━━─────────────────────────────────────────────────────────────────────────────────────── [0m
+[0m[2m [0m [0m[2m Search actions and resources…                                                    scope ‹ here ›  [0m
+[0m[2m                                                                                                    [0m
+[0m[2m    Suggested here                                                                                ┃ [0m
+[0m[2m    Follow acme-api-1 logs             docker    here   service is unhealthy                      ┃ [0m
+[0m[2m  › Inspect 10 GB of generated artif…  disk      here   10 GB generated artifacts                 ┃ [0m
+[0m[2m    Install missing too╭──────────────────────────────────────────────── × ─╮                     ┃ [0m
+[0m[2m    Review cleanup cand│                                                    │egories              ┃ [0m
+[0m[2m    Deploy preview     │  [0m[1;2mQuit holla❯?[0m[2m                                      │reviewed             ┃ [0m
+[0m[2m                       │                                                    │                     ┃ [0m
+[0m[2m    Recent here        │  4 activities are still running. Quitting stops    │                     ┃ [0m
+[0m[2m    nothing used here y│  what holla started; detached monitors keep        │                     ┃ [0m
+[0m[2m                       │  running.                                          │                     ┃ [0m
+[0m[2m    Running            │                                                    │                     ┃ [0m
+[0m[2m    logs · api worker s│                           ▎[0m[1;2;4mS[0m[1;2mtay [0m[2m   S[0m[2;4mt[0m[2mop and quit   │                     ┃ [0m
+[0m[2m    api dev            │                                                    │                     ┃ [0m
+[0m[2m    btm                ╰────────────────────────────────────────────────────╯                     ┃ [0m
+[0m[2m    frontend dev                       activity  child  ⠋ running · 3 s                           ┃ [0m
+[0m[2m                                                                                                  ┃ [0m
+[0m[2m    Explore                                                                                       ┃ [0m
+[0m[2m [0m [0m[2m   Tasks   Git   Files   Disk   Services   System                                               ┃ [0m
+[0m[2m    Children · 3 projects              explore   child  3 child projects discovered               ┆ [0m
+[0m[2m                                                                                                    [0m
+[0m[2m    → 'holla disk analyze --artifacts' · here · read-only                                           [0m
+[0m[2m                                                                                                    [0m
+[0m[2m ~/work/acme   main   ↑1                                           ⠋ 4 running    no color · 100×30 [0m
+ [0m[1m←→ C[0mhoose  [0m[1mEnter[0m Stay [0m[1m Esc [0mStay   [0m[1m         [0m                            api tests finished · exit 0 [0m
+[?25l

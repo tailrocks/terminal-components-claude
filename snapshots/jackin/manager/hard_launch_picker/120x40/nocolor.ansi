@@ -1,0 +1,41 @@
+[0m[2m  jackin❯    File   Go   Help            Workspaces  inside the Construct  ! instance index unreadable  ▲ daemon stale  [0m
+[0m[2m                                                                                                                        [0m
+[0m[2m ╭─ Workspaces ────────── 3 running ─╮ │  Current directory · payments-platform                       saved workspace   [0m
+[0m[2m │ [0m [0m[2m   Current directory             │ │  ───────────────────────────────────────────────────────────────────────────   [0m
+[0m[2m │ [0m [0m[2m ▸ payments-platform             │ │  Working dir   /workspace/payments-platform                                    [0m
+[0m[2m │ [0m [0m[2m ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree                           [0m
+[0m[2m │ [0m [0m[2m ▸ release-automation            │ │                ~/src/shared-libs · ro shared                                   [0m
+[0m[2m │ [0m [0m[2m ▸ customer-portal               │ │  Roles         the-architect ★ · allowed 3 of 126                              [0m
+[0m[2m │ [0m [0m[2m ▸ data-pipeline                 │ │  Environments  5 vars · 2 [op]                                                 [0m
+[0m[2m │ [0m [0m[2m ▸ docs-site                     │ │  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·       [0m
+[0m[2m │ [0m [0m[2m   auth-service                  │ │                Grok · Team ★ · OpenCode · Go subscription ★                    [0m
+[0m[2m │ [0m [0m[2m   gateway                       │ │  Policies      git pull enabled · keep awake on · dirty exit ask               [0m
+[0m[2m │ [0m [0m[2m   mobile-app                    │ │                                                                                [0m
+[0m[2m │ [0m [0m[2m   ml-notebooks                  │ │  Instances                                          ▲ daemon stale · 3 s ago   [0m
+[0m[2m │ [0m [0m[2m   search-indexer                │ │  ◉ 7f3a  the-architect · Claude Code · running                                 [0m
+[0m[2m │ [0m [0m[2m   staging-env╭──────────────────────────────────────────────────────────────────────────────────╮                  [0m
+[0m[2m │ [0m [0m[2m   billing-rec│ [0m[1;2mLaunch · choose Agent[0m[2m                          payments-platform › the-architect │                  [0m
+[0m[2m │ [0m [0m[2m   legacy-mono│ [0m[1;2;7m [0m[2;7m▪[0m[1;2;7m Claude Code  [0m[2;7maccount Claude · Personal · provider …[0m[1;2;7m  [0m[2;7mchoose at start[0m[1;2;7m  [0m[2;7magents[0m[1;2;7m [0m[2m │                  [0m
+[0m[2m │ [0m [0m[2m   + New works│  ▪ Codex        account Codex · Primary · provider de…  ready                    │                  [0m
+[0m[2m │                │  ▪ OpenCode     account OpenCode · Go subscription · …  ready                    │                  [0m
+[0m[2m │                │  ▪ Grok Build   account Grok · Team · provider default  ready                    │                  [0m
+[0m[2m │                │                                                                                  │                  [0m
+[0m[2m │                │                                                                                  │                  [0m
+[0m[2m │                ╰──────────────────────────────────────────────────────────────────────────────────╯                  [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │                                                                                [0m
+[0m[2m │                                   │ │ [0m [0m[2mLaunch   [0m [0m[2mEdit                                                                [0m
+[0m[2m ╰───────────────────────────────────╯ │                                                                                [0m
+[0m[2m                                                                                                                        [0m
+ [0m[1m↑↓ Mo[0mve  [0m[1mEsc[0m C[0m[1ma[0mncel  …       [0m[1m▲[0m Could not confirm running instances: instance index unreadable · list may be incomplete [0m
+[?25l
