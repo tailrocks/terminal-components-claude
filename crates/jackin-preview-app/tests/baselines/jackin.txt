@@ -60,6 +60,6 @@ returning 100 30 junie truecolor db2a797c45aa4acf
 returning 100 30 paper mono ba3d0bca168e59d2
 returning 100 30 paper truecolor 72b7727c3e7d446b
 returning 120 40 junie mono 78a2b61980bc2587
-returning 120 40 junie truecolor b3215ee90849c90b
+returning 120 40 junie truecolor fb4ecaa710432862
 returning 120 40 paper mono 88d630b9c82893bd
 returning 120 40 paper truecolor d0d60d05ee0bfd73
