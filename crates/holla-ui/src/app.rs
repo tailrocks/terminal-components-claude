@@ -1,15 +1,18 @@
 use crate::{
     dispatch::{self, Destination},
     domain::{action::Scope, fixtures, ranking::Pin},
-    scenario::{Motion, Scenario},
+    scenario::{Motion, Scenario, Screen},
     screens::{
         actions::{Actions, Choice},
         activity::{self, Activities},
+        cleanup,
         clone::ClonePicker,
         dialogs::{self, ProductDialog},
+        disk, files,
         home::{self, HomeState},
         plan::{self, PlanState},
         plan_gate::PlanGate,
+        review, snapshot,
     },
     sim::{pg, world::World},
 };
@@ -138,6 +141,23 @@ enum Route {
     Home,
     Plan,
     Activity,
+    Disk,
+    Files,
+    Cleanup,
+    Review,
+    Snapshot,
+}
+
+fn opening_route(scenario: Scenario) -> Route {
+    match scenario.screen() {
+        Screen::Disk => Route::Disk,
+        Screen::Activity => Route::Activity,
+        Screen::Files => Route::Files,
+        Screen::Cleanup => Route::Cleanup,
+        Screen::Review => Route::Review,
+        Screen::Snapshot => Route::Snapshot,
+        Screen::Finder | Screen::Plan => Route::Home,
+    }
 }
 enum Overlay {
     Dialog(Box<ProductDialog>),
@@ -239,13 +259,20 @@ impl App {
                 Chord::key(KeyCode::F(8)),
                 DEFINITION_TRUST,
             );
+        let route = opening_route(scenario);
+        let mut activities = Activities::default();
+        if route == Route::Activity
+            && let Some(activity) = world.activities.first()
+        {
+            activities.show(activity.id);
+        }
         Self {
             world,
             motion,
-            route: Route::Home,
+            route,
             home: HomeState::default(),
             plan: None,
-            activities: Activities::default(),
+            activities,
             overlay: None,
             retired_overlay: None,
             menu: MenuState::default(),
@@ -648,6 +675,11 @@ impl App {
                 || "Activity".into(),
                 |activity| format!("Activity · {}", activity.name),
             ),
+            Route::Disk => format!("Disk usage · {}", self.world.cwd),
+            Route::Files => format!("Files · {}", self.world.cwd),
+            Route::Cleanup => "Cleanup review".to_owned(),
+            Route::Review => "Review".to_owned(),
+            Route::Snapshot => "Snapshot".to_owned(),
         };
         let available = area.width.saturating_sub(used);
         let reserved = termrock::width(&identity)
@@ -936,7 +968,12 @@ impl App {
                     self.plan_event(event, cx);
                 }
             }
-            Route::Activity => {}
+            Route::Activity
+            | Route::Disk
+            | Route::Files
+            | Route::Cleanup
+            | Route::Review
+            | Route::Snapshot => {}
         }
         controls | menu.erase() | brand.erase() | header.erase() | strip
     }
@@ -1025,6 +1062,11 @@ impl termrock::App for App {
                 }
             }
             Route::Activity => self.activities.draw(&self.world, ui, body),
+            Route::Disk => disk::draw(&self.world, ui, body),
+            Route::Files => files::draw(&self.world, ui, body),
+            Route::Cleanup => cleanup::draw(&self.world, ui, body),
+            Route::Review => review::draw(&self.world, ui, body),
+            Route::Snapshot => snapshot::draw(&self.world, ui, body),
         }
         self.chrome(ui, area);
         if let Some(overlay) = &self.overlay {
@@ -1648,7 +1690,9 @@ mod tests {
     }
     #[test]
     fn closed_pages_open_from_commands_and_leave_the_home_frame_unchanged() {
-        let closed = app(Scenario::DiskCleanup);
+        let mut closed = app(Scenario::DiskCleanup);
+        assert!(closed.app().route == Route::Disk);
+        let _ = closed.key(KeyCode::Esc);
         assert!(closed.app().route == Route::Home);
         assert!(closed.app().overlay.is_none());
         let before = closed.text();
@@ -1672,6 +1716,8 @@ mod tests {
         ];
         for (key, title) in pages {
             let mut harness = app(Scenario::DiskCleanup);
+            let _ = harness.key(KeyCode::Esc);
+            assert!(harness.app().route == Route::Home, "{title}");
             let _ = harness.key(key);
             let text = harness.text();
             assert!(text.contains(title), "{title} missing from {text}");
@@ -1697,15 +1743,37 @@ mod tests {
     fn paused_scenarios_stay_on_home_without_a_finder_stack_or_osc52() {
         for scenario in Scenario::ALL {
             let harness = app(scenario);
-            assert!(harness.app().route == Route::Home, "{}", scenario.name());
+            let expected = match scenario.screen() {
+                Screen::Disk => Route::Disk,
+                Screen::Activity => Route::Activity,
+                Screen::Finder | Screen::Plan => Route::Home,
+                Screen::Files | Screen::Cleanup | Screen::Review | Screen::Snapshot => Route::Home,
+            };
+            assert!(
+                harness.app().route == expected,
+                "{} opened {:?}",
+                scenario.name(),
+                harness.app().route as u8
+            );
             assert!(harness.app().overlay.is_none(), "{}", scenario.name());
+            assert!(
+                harness.text().contains("holla❯"),
+                "{} missing brand",
+                scenario.name()
+            );
+            assert!(
+                harness.text().contains(scenario.boot_title()),
+                "{} missing {}",
+                scenario.name(),
+                scenario.boot_title()
+            );
             assert!(
                 !harness.text().contains('\u{1b}'),
                 "frame 0 must not emit an OSC 52 clipboard sequence: {}",
                 scenario.name()
             );
         }
-        assert_eq!(Scenario::ALL.len(), 11);
+        assert_eq!(Scenario::ALL.len(), 34);
     }
     #[test]
     fn every_real_app_scenario_renders_purely_with_persistent_identity() {
@@ -2237,7 +2305,16 @@ mod independent_draw_review {
     fn all_scenarios_available_routes_repeat_full_cells_without_model_effects() {
         let mut count = 0;
         for scenario in Scenario::ALL {
-            for route in [Route::Home, Route::Plan, Route::Activity] {
+            for route in [
+                Route::Home,
+                Route::Plan,
+                Route::Activity,
+                Route::Disk,
+                Route::Files,
+                Route::Cleanup,
+                Route::Review,
+                Route::Snapshot,
+            ] {
                 let mut app = App::for_scenario(scenario, Motion::Paused, 4000);
                 if route == Route::Plan {
                     let plan = crate::sim::catalogue::catalogue(&app.world)
