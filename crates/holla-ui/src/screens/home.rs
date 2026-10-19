@@ -258,6 +258,8 @@ impl HomeState {
             nav_list()
                 .render_row(&paint_action)
                 .draw(ui, rows_area, &self.rows, &rows);
+            // `Part::HEADER` fills the row. Tag titles are only the glyphs, so retint after that fill.
+            paint_section_titles(ui, rows_area, &rows, self.rows.scroll().offset());
         }
         let groups = rows
             .iter()
@@ -318,6 +320,14 @@ impl HomeState {
 /// Tag finder grey. Junie `FgStep::Muted` is `#808080`.
 const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
 const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
+/// Home body is already one column in. Tag section titles start at screen column 4.
+const SECTION_INDENT: u16 = 3;
+/// Header recipe is bold secondary. The pad must stay primary; glyphs are retinted below.
+const HEADER_PAD: StylePatch = StylePatch::new()
+    .set_fg(Role::Fg(FgStep::Primary))
+    .remove(termrock::Modifier::BOLD);
+const HEADER_TEXT: StylePatch = TAG_GREY.remove(termrock::Modifier::BOLD);
+const HEADER_PARTS: &[(Part, StylePatch)] = &[(Part::HEADER, HEADER_PAD)];
 
 fn query_input() -> TextInput<'static> {
     TextInput::new(QUERY)
@@ -334,9 +344,48 @@ fn nav_list() -> NavList<'static, HomeRow, impl Fn(&HomeRow) -> ItemKey> {
     NavList::new(ROWS)
         .scrollable(true)
         .leave_at_boundary(true)
-        .header_indent(2)
+        .header_indent(SECTION_INDENT)
         .section(&section)
+        .patch_part(HEADER_PARTS)
         .key(row_key)
+}
+
+fn section_header_rows(rows: &[HomeRow]) -> Vec<(usize, &str)> {
+    let mut out = Vec::new();
+    let mut next = 0_usize;
+    let mut previous: Option<&str> = None;
+    for row in rows {
+        let name = row.section;
+        if previous != Some(name) {
+            next = next.saturating_add(usize::from(previous.is_some()));
+            if !name.is_empty() {
+                out.push((next, name));
+                next = next.saturating_add(1);
+            }
+            previous = Some(name);
+        }
+        next = next.saturating_add(1);
+    }
+    out
+}
+
+fn paint_section_titles(ui: &mut Ui<'_>, area: Rect, rows: &[HomeRow], offset: usize) {
+    if area.is_empty() {
+        return;
+    }
+    let style = ui.paint_patch(&HEADER_TEXT);
+    let limit = offset.saturating_add(usize::from(area.height));
+    let x = area.x.saturating_add(SECTION_INDENT);
+    let width = area.width.saturating_sub(SECTION_INDENT);
+    for (row, text) in section_header_rows(rows) {
+        if !(offset..limit).contains(&row) {
+            continue;
+        }
+        let y = area
+            .y
+            .saturating_add(u16::try_from(row.saturating_sub(offset)).unwrap_or(u16::MAX));
+        ui.paint_str(Rect::new(x, y, width, 1), text, style);
+    }
 }
 fn row_key(row: &HomeRow) -> ItemKey {
     ItemKey::text(&row.action.id)
