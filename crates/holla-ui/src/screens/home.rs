@@ -1,5 +1,5 @@
 use termrock::{
-    BlurPolicy, Chord, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
+    BlurPolicy, Chord, Color, Cx, Family, FgStep, FrameRead, Hint, HintKey, HintLayer, Id, ItemKey,
     KeyCode, KeyModifiers, NavList, NavListAction, NavListState, Part, Rect, Response, Role,
     StateFlags, StylePatch, TextAction, TextInput, TextInputState, TypingPolicy, Ui, Variant,
 };
@@ -194,10 +194,9 @@ impl HomeState {
         if area.is_empty() {
             return;
         }
-        let scope_label = self.scope.map(|scope| format!("scope: {}", scope.label()));
-        let scope_width = scope_label
-            .as_ref()
-            .map_or(0, |label| termrock::width(label).saturating_add(3));
+        let scope_name = self.scope.map_or("here", Scope::label);
+        let scope_label = format!(" scope ‹ {scope_name} › ");
+        let scope_width = termrock::width(&scope_label);
         let field = ui
             .style(
                 Family::INPUT,
@@ -212,21 +211,17 @@ impl HomeState {
             Rect::new(area.x, area.y, area.width.saturating_sub(scope_width), 1),
             &self.editor,
         );
-        if let Some(label) = scope_label {
-            let style = ui
-                .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)))
-                .with_bg_from(field);
-            ui.paint_str(
-                Rect::new(
-                    area.right().saturating_sub(scope_width),
-                    area.y,
-                    scope_width,
-                    1,
-                ),
-                &label,
-                style,
-            );
-        }
+        let scope_style = ui.paint_patch(&TAG_GREY).with_bg_from(field);
+        ui.paint_str(
+            Rect::new(
+                area.right().saturating_sub(scope_width),
+                area.y,
+                scope_width.min(area.width),
+                1,
+            ),
+            &scope_label,
+            scope_style,
+        );
         let rows = self.rows(world);
         let mut rows_area = Rect::new(
             area.x,
@@ -320,12 +315,17 @@ impl HomeState {
     }
 }
 
+/// Tag finder grey. Junie `FgStep::Muted` is `#808080`.
+const TAG_GREY: StylePatch = StylePatch::new().set_fg(Role::Custom(Color::Rgb(0x8a, 0x8a, 0x8a)));
+const QUERY_PARTS: &[(Part, StylePatch)] = &[(Part::PLACEHOLDER, TAG_GREY)];
+
 fn query_input() -> TextInput<'static> {
     TextInput::new(QUERY)
-        .placeholder("Type to filter · actions, files, hosts")
+        .placeholder("Search actions and resources…")
         .placeholder_while_editing(true)
         .blur(BlurPolicy::Keep)
         .typing_policy(TypingPolicy::Fallback { cursor: true })
+        .patch_part(QUERY_PARTS)
 }
 fn section(row: &HomeRow) -> &str {
     row.section
@@ -404,9 +404,7 @@ fn paint_action(ui: &mut Ui<'_>, area: Rect, flags: StateFlags, _key: ItemKey, r
         }
     }
     if reason_x < area.right() {
-        let muted = ui
-            .paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted)))
-            .with_bg_from(style);
+        let muted = ui.paint_patch(&TAG_GREY).with_bg_from(style);
         ui.paint_str(
             Rect::new(reason_x, area.y, reason_width, 1),
             &action.reason,
